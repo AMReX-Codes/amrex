@@ -170,14 +170,14 @@ The supported BC types at the physical domain boundaries are
 
 - :cpp:`LinOpBCType::reflect_odd` for reflection with sign changed.
 
-2) Cell-centered solvers only: 
-if we want to do a linear solve where the boundary conditions on the 
+2) Cell-centered solvers only:
+if we want to do a linear solve where the boundary conditions on the
 coarsest AMR level of the solve come from a coarser level (e.g. the
-base AMR level of the solve is > 0 and does not cover the entire domain), 
-we must explicitly provide the coarser data.  Boundary conditions from a 
-coarser level are always Dirichlet.  
+base AMR level of the solve is > 0 and does not cover the entire domain),
+we must explicitly provide the coarser data.  Boundary conditions from a
+coarser level are always Dirichlet.
 
-Note that this step, if needed, must be performed before the step below.  
+Note that this step, if needed, must be performed before the step below.
 The :cpp:`MLLinOp` member function for this step is
 
 .. highlight:: c++
@@ -189,29 +189,32 @@ The :cpp:`MLLinOp` member function for this step is
 Here :cpp:`const MultiFab* crse` contains the Dirichlet boundary
 values at the coarse resolution, and :cpp:`int crse_ratio` (e.g., 2)
 is the refinement ratio between the coarsest solver level and the AMR
-level below it.  The MultiFab crse does not need to have ghost cells itself. 
-If the coarse grid bc's for the solve are identically zero, :cpp:`nullptr` 
+level below it.  The MultiFab crse does not need to have ghost cells itself.
+If the coarse grid bc's for the solve are identically zero, :cpp:`nullptr`
 can be passed instead of :cpp:`crse`.
 
-3) Cell-centered solvers only: 
-before the solve one must always call the :cpp:`MLLinOp` member function 
+3) Cell-centered solvers only:
+before the solve one must always call the :cpp:`MLLinOp` member function
 
 .. highlight:: c++
 
 ::
 
-    virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata) = 0;
+    virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata,
+                             const MultiFab* robinbc_a,
+                             const MultiFab* robinbc_b,
+                             const MultiFab* robinbc_f) = 0;
 
-If we want to supply any inhomogeneous Dirichlet or Neumann boundary 
-conditions at the domain boundaries, we must supply those values 
-in ``MultiFab* levelbcdata``, which must have at least one ghost cell. 
+If we want to supply an inhomogeneous Dirichlet, inhomogeneous Neumann, or
+Robin boundary conditions at the domain boundaries, we must supply those values
+in ``MultiFab* levelbcdata``, which must have at least one ghost cell.
 Note that the argument :cpp:`amrlev` is relative to the solve, not
 necessarily the full AMR hierarchy; amrlev = 0 refers to the coarsest
 level of the solve.
 
 If the boundary condition is Dirichlet the ghost cells outside the
 domain boundary of ``levelbcdata`` must hold the value of the solution
-at the domain boundary; 
+at the domain boundary;
 if the boundary condition is Neumann those ghost cells must hold
 the value of the gradient of the solution normal to the boundary
 (e.g. it would hold dphi/dx on both the low and high faces in the x-direction).
@@ -221,11 +224,11 @@ we can pass :cpp:`nullptr` instead of a MultiFab.
 
 We can use the solution array itself to hold these values;
 the values are copied to internal arrays and will not be over-written
-when the solution array itself is being updated by the solver. 
+when the solution array itself is being updated by the solver.
 Note, however, that this call does not provide an initial guess for the solve.
 
-It should be emphasized that the data in ``levelbcdata`` for 
-Dirichlet or Neumann boundaries are assumed to be exactly on the face 
+It should be emphasized that the data in ``levelbcdata`` for
+Dirichlet or Neumann boundaries are assumed to be exactly on the face
 of the physical domain; storing these values in the ghost cell of
 a cell-centered array is a convenience of implementation.
 
@@ -292,10 +295,10 @@ Available choices are
   if cg fails.  The matrix must be symmetric.
 
 - :cpp:`MLMG::BottomSolver::hypre`: One of the solvers available through hypre;
-  see the section below on External Solvers 
+  see the section below on External Solvers
 
 - :cpp:`MLMG::BottomSolver::petsc`: Currently for cell-centered only.
-  
+
 - :cpp:`LPInfo::setAgglomeration(bool)` (by default true) can be used
   continue to coarsen the multigrid by copying what would have been the
   bottom solver to a new :cpp:`MultiFab` with a new :cpp:`BoxArray` with
@@ -318,12 +321,12 @@ We have the option using the :cpp:`MLMG` member method
 
     void setMaxOrder (int maxorder);
 
-to set the order of the cell-centered linear operator stencil at physical boundaries 
+to set the order of the cell-centered linear operator stencil at physical boundaries
 with Dirichlet boundary conditions and at coarse-fine boundaries.  In both of these
-cases, the boundary value is not defined at the center of the ghost cell. 
+cases, the boundary value is not defined at the center of the ghost cell.
 The order determines the number of interior cells that are used in the extrapolation
-of the boundary value from the cell face to the center of the ghost cell, where 
-the extrapolated value is then used in the regular stencil.  For example, 
+of the boundary value from the cell face to the center of the ghost cell, where
+the extrapolated value is then used in the regular stencil.  For example,
 :cpp:`maxorder = 2` uses the boundary value and the first interior value to extrapolate
 to the ghost cell center; :cpp:`maxorder = 3` uses the boundary value and the first two interior values.
 
@@ -344,8 +347,8 @@ Embedded Boundaries
 
 AMReX supports multi-level solvers for use with embedded boundaries.
 These include
-1) cell-centered solvers with homogeneous Neumann, homogeneous Dirichlet, 
-or inhomogeneous Dirichlet boundary conditions on the EB faces, and 
+1) cell-centered solvers with homogeneous Neumann, homogeneous Dirichlet,
+or inhomogeneous Dirichlet boundary conditions on the EB faces, and
 2) nodal solvers with homogeneous Neumann boundary conditions on the EB faces.
 
 To use a cell-centered solver with EB, one builds a linear operator
@@ -389,9 +392,9 @@ where phi_on_eb is the MultiFab holding the Dirichlet values in every cut cell,
 and coeff again is a real number (i.e. the value is the same at every cell)
 or a MultiFab holding the coefficient of the gradient at each cell with an EB face.
 
-Currently there are options to define the face-based coefficients on 
+Currently there are options to define the face-based coefficients on
 face centers vs face centroids, and to interpret the solution variable
-as being defined on cell centers vs cell centroids.   
+as being defined on cell centers vs cell centroids.
 
 The default is for the solution variable to be defined at cell centers;
 to tell the solver to interpret the solution variable as living
@@ -417,7 +420,7 @@ External Solvers
 ================
 
 AMReX provides interfaces to the `hypre <https://computing.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods>`_ preconditioners and solvers, including BoomerAMG, GMRES (all variants), PCG, and BICGStab as
-solvers, and BoomerAMG and Euclid as preconditioners.  These can be called as 
+solvers, and BoomerAMG and Euclid as preconditioners.  These can be called as
 as bottom solvers for both cell-centered and node-based problems.
 
 If it is built with Hypre support, AMReX initializes Hypre by default in
@@ -440,18 +443,18 @@ residual correction form of the original problem. To build Hypre, follow the nex
     1.- git clone https://github.com/hypre-space/hypre.git
     2.- cd hypre/src
     3.- ./configure
-        (if you want to build hypre with long long int, do ./configure --enable-bigint ) 
+        (if you want to build hypre with long long int, do ./configure --enable-bigint )
     4.- make install
     5.- Create an environment variable with the HYPRE directory --
         HYPRE_DIR=/hypre_path/hypre/src/hypre
 
-To use hypre, one must include ``amrex/Src/Extern/HYPRE`` in the build system. 
+To use hypre, one must include ``amrex/Src/Extern/HYPRE`` in the build system.
 For examples of using hypre, we refer the reader to
 ``Tutorials/LinearSolvers/ABecLaplacian_C`` or ``Tutorials/LinearSolvers/NodalProjection_EB``.
 
-Caveat: to use hypre for the nodal solver,  you must either build with USE_EB = TRUE, 
+Caveat: to use hypre for the nodal solver,  you must either build with USE_EB = TRUE,
 or explicitly set the coarsening strategy in the calling routine to be ``RAP`` rather than ``Sigma``
-by adding 
+by adding
 
 .. highlight:: c++
 
@@ -463,7 +466,7 @@ where
 :cpp:`nodal_projector` is the :cpp:`NodalProjector` object we have built.
 
 The following parameter should be set to True if the problem to be solved has a singular matrix.
-In this case, the solution is only defined to within a constant.  Setting this parameter to True 
+In this case, the solution is only defined to within a constant.  Setting this parameter to True
 replaces one row in the matrix sent to hypre from AMReX by a row that sets the value at one cell to 0.
 
 - :cpp:`hypre.adjust_singular_matrix`:   Default is False.
@@ -517,7 +520,7 @@ problems. To build PETSc, follow the next steps:
     1.- git clone https://github.com/petsc/petsc.git
     2.- cd petsc
     3.- ./configure --download-hypre=yes --prefix=build_dir
-    4.- Follow the steps given by petsc 
+    4.- Follow the steps given by petsc
     5.- Create an environment variable with the PETSC directory --
         PETSC_DIR=/petsc_path/petsc/build_dir
 
@@ -528,45 +531,45 @@ reader to ``Tutorials/LinearSolvers/ABecLaplacian_C``.
 MAC Projection
 =========================
 
-Some codes define a velocity field :math:`U = (u,v,w)` on faces, i.e. 
+Some codes define a velocity field :math:`U = (u,v,w)` on faces, i.e.
 :math:`u` is defined on x-faces, :math:`v` is defined on y-faces,
-and :math:`w` is defined on z-faces.   We refer to the exact projection 
-of this velocity field as a MAC projection, in which we solve 
+and :math:`w` is defined on z-faces.   We refer to the exact projection
+of this velocity field as a MAC projection, in which we solve
 
 .. math::
 
    D( \beta \nabla \phi) = D(U^*) - S
 
-for :math:`\phi` and then set 
+for :math:`\phi` and then set
 
 .. math::
 
    U = U^* - \beta \nabla \phi
 
 
-where :math:`U^*` is a vector field (typically velocity) that we want to satisfy 
+where :math:`U^*` is a vector field (typically velocity) that we want to satisfy
 :math:`D(U) = S`.  For incompressible flow,  :math:`S = 0`.
 
 The MacProjection class can be defined and used to perform the MAC projection without explicitly
 calling the solver directly.  In addition to solving the variable coefficient Poisson equation,
 the MacProjector internally computes the divergence of the vector field, :math:`D(U^*)`,
 to compute the right-hand-side, and after the solve, subtracts the weighted gradient term to
-make the vector field result satisfy the divergence constraint.  
+make the vector field result satisfy the divergence constraint.
 
 In the simplest form of the call, :math:`S` is assumed to be zero and does not need to be specified.
 Typically, the user does not allocate the solution array, but it is also possible to create and pass
-in the solution array and have :math:`\phi` returned as well as :math:`U`.  
+in the solution array and have :math:`\phi` returned as well as :math:`U`.
 
 Caveat:  Currently the MAC projection only works when the base level covers the full domain; it does
 not yet have the interface to pass boundary conditions for a fine level that come from coarser data.
 
 Also note that any Dirichlet or Neumann boundary conditions at domain boundaries
-are assumed to be homogeneous.  The call to the :cpp:`MLLinOp` member function 
+are assumed to be homogeneous.  The call to the :cpp:`MLLinOp` member function
 :cpp:`setLevelBC` occurs inside the MacProjection class; one does not need to call that
 explicitly when using the MacProjection class.
 
-The code below is taken from 
-``Tutorials/LinearSolvers/MAC_Projection_EB/main.cpp`` and demonstrates how to set up 
+The code below is taken from
+``Tutorials/LinearSolvers/MAC_Projection_EB/main.cpp`` and demonstrates how to set up
 the MACProjector object and use it to perform a MAC projection.
 
 .. highlight:: c++
@@ -580,16 +583,16 @@ the MACProjector object and use it to perform a MAC projection.
         vel[idim].define (amrex::convert(grids,IntVect::TheDimensionVector(idim)), dmap, 1, 1,
                           MFInfo(), factory);
         beta[idim].define(amrex::convert(grids,IntVect::TheDimensionVector(idim)), dmap, 1, 0,
-	                  MFInfo(), factory);
+                          MFInfo(), factory);
         beta[idim].setVal(1.0);  // set beta to 1
     }
 
-    // If we want to use phi elsewhere, we must create an array in which to return the solution 
+    // If we want to use phi elsewhere, we must create an array in which to return the solution
     // MultiFab phi_inout(grids, dmap, 1, 1, MFInfo(), factory);
 
     // If we want to supply a non-zero S we must allocate and fill it outside the solver
     // MultiFab S(grids, dmap, 1, 0, MFInfo(), factory);
-    // Set S here ... 
+    // Set S here ...
 
     // set initial velocity to U=(1,0,0)
     AMREX_D_TERM(vel[0].setVal(1.0);,
@@ -614,13 +617,13 @@ the MACProjector object and use it to perform a MAC projection.
     //                      lp_info,                          // structure for passing info to the operator
     //                      {&S});                            // defines the specified RHS divergence
 
-    // Set bottom-solver to use hypre instead of native BiCGStab 
-    if (use_hypre_as_full_solver || use_hypre_as_bottom_solver) 
+    // Set bottom-solver to use hypre instead of native BiCGStab
+    if (use_hypre_as_full_solver || use_hypre_as_bottom_solver)
        macproj.setBottomSolver(MLMG::BottomSolver::hypre);
 
     // Set boundary conditions.
     //  Here we use Neumann on the low x-face, Dirichlet on the high x-face,
-    //  and periodic in the other two directions  
+    //  and periodic in the other two directions
     //  (the first argument is for the low end, the second is for the high end)
     // Note that Dirichlet and Neumann boundary conditions are assumed to be homogeneous.
     macproj.setDomainBC({AMREX_D_DECL(LinOpBCType::Neumann,
@@ -644,7 +647,7 @@ the MACProjector object and use it to perform a MAC projection.
     //  at face centers (MLMG::Location::FaceCenter) or face centroids (MLMG::Location::FaceCentroid)
     macproj.project(reltol,abstol,MLMG::Location::FaceCenter);
 
-    // If we want to use phi elsewhere, we can pass in an array in which to return the solution 
+    // If we want to use phi elsewhere, we can pass in an array in which to return the solution
     // macproj.project({&phi_inout},reltol,abstol,MLMG::Location::FaceCenter);
 
 See ``Tutorials/LinearSolvers/MAC_Projection_EB`` for the complete working example.
@@ -653,19 +656,19 @@ Nodal Projection
 ================
 
 Some codes define a velocity field :math:`U = (u,v,w)` with all
-components co-located on cell centers.  The nodal solver in AMReX 
+components co-located on cell centers.  The nodal solver in AMReX
 can be used to compute an approximate projection of the cell-centered
 velocity field, with pressure and velocity divergence defined on nodes.
 When we use the nodal solver this way, and subtract only the cell average
 of the gradient from the velocity, it is effectively an approximate projection.
 
-As with the MAC projection, consider that we want to solve 
+As with the MAC projection, consider that we want to solve
 
 .. math::
 
    D( \beta \nabla \phi) = D(U^*) - S
 
-for :math:`\phi` and then set 
+for :math:`\phi` and then set
 
 .. math::
 
@@ -684,7 +687,7 @@ gradient term to make the vector field result satisfy the divergence constraint.
 .. highlight:: c++
 
 ::
-                  
+
    //
    // Given a cell-centered velocity (vel) field, a cell-centered
    // scalar field (sigma) field, and a source term S (either node-
@@ -695,15 +698,15 @@ gradient term to make the vector field result satisfy the divergence constraint.
    // and then perform the projection:
    //
    //     vel = vel - sigma * grad(phi)
-   // 
+   //
 
    //
    // Create the EB factory
-   // 
+   //
    EBFArrayBoxFactory factory(eb_level, geom, grids, dmap, ng_ebs, ebs);
 
    //
-   //  Create the cell-centered velocity field we want to project  
+   //  Create the cell-centered velocity field we want to project
    //
    MultiFab vel(grids, dmap, AMREX_SPACEDIM, 1, MFInfo(), factory);
 
@@ -713,7 +716,7 @@ gradient term to make the vector field result satisfy the divergence constraint.
 
    //
    // Setup linear operator, AKA the nodal Laplacian
-   // 
+   //
    LPInfo lp_info;
 
    // If we want to use hypre to solve the full problem we do not need to coarsen the GMG stencils
@@ -740,14 +743,14 @@ gradient term to make the vector field result satisfy the divergence constraint.
    matrix.setHarmonicAverage(false);
 
    //
-   // Compute RHS 
+   // Compute RHS
    //
    // NOTE: it's up to the user to compute the RHS. as opposed
    //       to the MAC projection case !!!
    //
    // NOTE: do this operation AFTER setting up the linear operator so
    //       that compRHS method can be used
-   // 
+   //
 
    // RHS is nodal
    const BoxArray & nd_grids = amrex::convert(grids, IntVect{1,1,1}); // nodal grids
@@ -793,9 +796,9 @@ gradient term to make the vector field result satisfy the divergence constraint.
    nodal_solver.setVerbose(mg_verbose);
    nodal_solver.setBottomVerbose(mg_bottom_verbose);
 
-   // Set bottom-solver to use hypre instead of native BiCGStab 
+   // Set bottom-solver to use hypre instead of native BiCGStab
    //   ( we could also have set this to cg, bicgcg, cgbicg)
-   // if (use_hypre_as_full_solver || use_hypre_as_bottom_solver) 
+   // if (use_hypre_as_full_solver || use_hypre_as_bottom_solver)
    //     nodal_solver.setBottomSolver(MLMG::BottomSolver::hypre);
 
    // Define the relative tolerance
@@ -811,7 +814,7 @@ gradient term to make the vector field result satisfy the divergence constraint.
 
    //
    // Create cell-centered MultiFab to hold value of -sigma*grad(phi) at cell-centers
-   // 
+   //
    //
    MultiFab fluxes(grids, dmap, AMREX_SPACEDIM, 1, MFInfo(), factory);
    fluxes.setVal(0.0);
@@ -820,8 +823,8 @@ gradient term to make the vector field result satisfy the divergence constraint.
    nodal_solver.getFluxes( {&fluxes} );
 
    //
-   // Apply projection explicitly --  vel = vel - sigma * grad(phi)  
-   // 
+   // Apply projection explicitly --  vel = vel - sigma * grad(phi)
+   //
    MultiFab::Add( *vel, *fluxes, 0, 0, AMREX_SPACEDIM, 0);
 
 See ``Tutorials/LinearSolvers/Nodal_Projection_EB`` for the complete working example.
@@ -852,17 +855,17 @@ and in 3-d Cartesian component form as
  ( (\eta w_x)_x + (\eta w_y)_y + (\eta w_z)_z ) + ( (\eta u_z)_x + (\eta v_z)_y + (\eta w_z)_z ) +  ( (\kappa - \frac{2}{3} \eta) (u_x+v_y+w_z) )_z
 
 
-Here :math:`\eta` is the dynamic viscosity and :math:`\kappa` is the bulk viscosity.  
+Here :math:`\eta` is the dynamic viscosity and :math:`\kappa` is the bulk viscosity.
 
 We evaluate the following terms from the above using the ``MLABecLaplacian`` and ``MLEBABecLaplacian`` operators;
 
 .. math::
 
-   ( (\frac{4}{3} \eta + \kappa) u_x)_x + (              \eta           u_y)_y + (\eta u_z)_z 
+   ( (\frac{4}{3} \eta + \kappa) u_x)_x + (              \eta           u_y)_y + (\eta u_z)_z
 
-                 (\eta           v_x)_x + ( (\frac{4}{3} \eta + \kappa) v_y)_y + (\eta v_z)_z 
+                 (\eta           v_x)_x + ( (\frac{4}{3} \eta + \kappa) v_y)_y + (\eta v_z)_z
 
-    (\eta w_x)_x                        + (              \eta           w_y)_y + ( (\frac{4}{3} \eta + \kappa) w_z)_z 
+    (\eta w_x)_x                        + (              \eta           w_y)_y + ( (\frac{4}{3} \eta + \kappa) w_z)_z
 
 the following cross-terms are evaluated separately using the ``MLTensorOp`` and ``MLEBTensorOp`` operators.
 
@@ -922,7 +925,7 @@ viscous term `divtau` explicitly:
        {
            BoxArray edge_ba = grids[lev];
            edge_ba.surroundingNodes(dir);
-           b[lev][dir].reset(new MultiFab(edge_ba, dmap[lev], 1, nghost, MFInfo(), *ebfactory[lev]));
+           b[lev][dir] = std::make_unique<MultiFab>(edge_ba, dmap[lev], 1, nghost, MFInfo(), *ebfactory[lev]);
        }
 
        average_cellcenter_to_face( GetArrOfPtrs(b[lev]), *etan[lev], geom[lev] );
@@ -977,22 +980,22 @@ An example (implemented in the ``MultiComponent`` tutorial) might be:
   .. _fig::refluxfreecoarsefine:
 
   .. figure:: ./LinearSolvers/refluxfreecoarsefine.png
-	      :height: 2cm
-	      :align: center
+      :height: 2cm
+      :align: center
 
-	      : Reflux-free coarse-fine boundary update.
-	      Level 2 ghost nodes (small dark blue) are interpolated from coarse boundary.
-	      Level 1 ghost nodes are updated during the relaxation along with all the other interior fine nodes.
-	      Coarse nodes (large blue) on the coarse/fine boundary are updated by restricting with interior nodes
-	      and the first level of ghost nodes.
-	      Coarse nodes underneath level 2 ghost nodes are not updated.
-	      The remaining coarse nodes are updates by restriction.
-	      
+      : Reflux-free coarse-fine boundary update.
+      Level 2 ghost nodes (small dark blue) are interpolated from coarse boundary.
+      Level 1 ghost nodes are updated during the relaxation along with all the other interior fine nodes.
+      Coarse nodes (large blue) on the coarse/fine boundary are updated by restricting with interior nodes
+      and the first level of ghost nodes.
+      Coarse nodes underneath level 2 ghost nodes are not updated.
+      The remaining coarse nodes are updates by restriction.
+
   The MC nodal operator can inherit from the ``MCNodeLinOp`` class.
   ``Fapply``, ``Fsmooth``, and ``Fflux`` must update level 1 ghost nodes that are inside the domain.
   `interpolation` and `restriction` can be implemented as usual.
   `reflux` is a straightforward restriction from fine to coarse, using level 1 ghost nodes for restriction as described above.
-  
+
   See ``Tutorials/LinearSolvers/MultiComponent`` for a complete working example.
 
 .. solver reuse

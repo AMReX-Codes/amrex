@@ -49,7 +49,7 @@ def configure(argv):
                         default="no")
     parser.add_argument("--comp",
                         help="Compiler [default=gnu]",
-                        choices=["gnu","intel","cray","pgi","llvm","nag","nec","ibm"],
+                        choices=["gnu","intel","cray","pgi","llvm","nag","nec","ibm","armclang"],
                         default="gnu")
     parser.add_argument("--debug",
                         help="Debug build [default=no]",
@@ -96,9 +96,13 @@ def configure(argv):
                         choices=["yes","no"],
                         default="no")
     parser.add_argument("--with-sensei-insitu",
-                        help="Use SENSEI in situ [default=no]",
+                        help="Enables the SENSEI in situ integration. [default=no]",
                         choices=["yes","no"],
                         default="no")
+    parser.add_argument("--sensei-amr-inst",
+                        help="Enables the SENSEI instrumentation in amrex::Amr. [default=yes]",
+                        choices=["yes","no"],
+                        default="yes")
     parser.add_argument("--with-omp-offload",
                         help="Use OpenMP-offload [default=no]",
                         choices=["yes","no"],
@@ -110,10 +114,14 @@ def configure(argv):
     parser.add_argument("--enable-pic",
                         help="Enable position independent code [default=no]",
                         choices=["yes","no"],
-                        default="no")   
+                        default="no")
     parser.add_argument("--cuda-arch",
                         help="Specify CUDA architecture [default=70]",
-                        default="70")   
+                        default="70")
+    parser.add_argument("--enable-probinit",
+                        help="Only relevant to Amr/AmrLevel based codes that need to read probin file or call amrex_probinit",
+                        choices=["yes","no"],
+                        default="yes")
     args = parser.parse_args()
 
     if args.with_fortran == "no":
@@ -146,10 +154,12 @@ def configure(argv):
     f.write("AMREX_XSDK = {}\n".format("TRUE" if args.enable_xsdk_defaults == "yes" else "FALSE"))
     f.write("ALLOW_DIFFERENT_COMP = {}\n".format("FALSE" if args.allow_different_compiler == "no" else "TRUE"))
     f.write("USE_SENSEI_INSITU = {}\n".format("FALSE" if args.with_sensei_insitu == "no" else "TRUE"))
+    f.write("NO_SENSEI_AMR_INST = {}\n".format("FALSE" if args.sensei_amr_inst == "yes" else "TRUE"))
     f.write("USE_OMP_OFFLOAD = {}\n".format("FALSE" if args.with_omp_offload == "no" else "TRUE"))
     f.write("TINY_PROFILE = {}\n".format("FALSE" if args.enable_tiny_profile == "no" else "TRUE"))
     f.write("USE_COMPILE_PIC = {}\n".format("FALSE" if args.enable_pic == "no" else "TRUE"))
     f.write("CUDA_ARCH = " + args.cuda_arch.strip() + "\n")
+    f.write("AMREX_NO_PROBINIT = {}\n".format("TRUE" if args.enable_probinit == "no" else "FALSE"))
     f.write("\n")
 
     fin = open("GNUmakefile.in","r")

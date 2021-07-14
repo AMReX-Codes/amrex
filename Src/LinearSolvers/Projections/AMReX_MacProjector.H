@@ -136,7 +136,7 @@ public:
     //
     // Setters and getters
     //
-    void setVerbose            (int  v) noexcept 
+    void setVerbose            (int  v) noexcept
        { m_verbose = v;
          m_mlmg->setVerbose(m_verbose); }
 
@@ -175,6 +175,7 @@ private:
     int m_verbose = 0;
 
     bool m_needs_domain_bcs = true;
+    Vector<int> m_needs_level_bcs;
 
     // Location of umac -- face center vs face centroid
     MLMG::Location m_umac_loc;

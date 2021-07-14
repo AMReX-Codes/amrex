@@ -255,9 +255,9 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
                                  m_ncomp, 1, MFInfo(), FArrayBoxFactory());
         MultiFab::Copy(grown_crse_data, m_crse_data, 0, 0, m_ncomp, 0);
         grown_crse_data.FillBoundary(m_crse_geom.periodicity());
-        
+
         m_crse_data.setVal(0.0);
-        
+
         auto const& factory = dynamic_cast<EBFArrayBoxFactory const&>(crse_state.Factory());
         auto const& flags = factory.getMultiEBCellFlagFab();
 
@@ -321,9 +321,9 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
     {
         const Box& cbx = mfi.tilebox();
         const Box& fbx = amrex::refine(cbx, m_ratio);
-        
+
         const auto& ebflag = flags[mfi];
-        
+
         if (ebflag.getType(fbx) != FabType::covered)
         {
             Array4<Real> const& d = fine_state.array(mfi);

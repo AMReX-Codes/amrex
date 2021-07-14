@@ -1,4 +1,5 @@
 target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
+target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/Parser>)
 
 target_sources( amrex
    PRIVATE
@@ -17,7 +18,6 @@ target_sources( amrex
    AMReX.H
    AMReX_Exception.H
    AMReX_Extension.H
-   AMReX_IndexSequence.H
    AMReX_PODVector.H
    AMReX_ParmParse.cpp
    AMReX_parmparse_fi.cpp
@@ -30,6 +30,7 @@ target_sources( amrex
    AMReX_Reduce.H
    AMReX_Scan.H
    AMReX_Partition.H
+   AMReX_Morton.H
    AMReX_Random.H
    AMReX_RandomEngine.H
    AMReX_Random.cpp
@@ -66,6 +67,8 @@ target_sources( amrex
    AMReX_DArena.cpp
    AMReX_EArena.H
    AMReX_EArena.cpp
+   AMReX_PArena.H
+   AMReX_PArena.cpp
    AMReX_BLProfiler.H
    AMReX_BLBackTrace.H
    AMReX_BLFort.H
@@ -168,6 +171,7 @@ target_sources( amrex
    AMReX_FilND_C.cpp
    # Non-Local BC
    AMReX_NonLocalBC.H
+   AMReX_NonLocalBC.cpp
    AMReX_NonLocalBCImpl.H
    # Plotfile ----------------------------------------------------------------
    AMReX_PlotFileUtil.cpp
@@ -207,6 +211,9 @@ target_sources( amrex
    AMReX_GpuReduce.H
    AMReX_GpuAllocators.H
    AMReX_GpuContainers.H
+   AMReX_MFParallelFor.H
+   AMReX_MFParallelForC.H
+   AMReX_MFParallelForG.H
    # CUDA --------------------------------------------------------------------
    AMReX_CudaGraph.H
    # Machine model -----------------------------------------------------------
@@ -218,6 +225,29 @@ target_sources( amrex
    # Profiling ---------------------------------------------------------------
    AMReX_BLProfiler.cpp
    AMReX_BLBackTrace.cpp
+   # Parser ---------------------------------------------------------------
+   Parser/AMReX_Parser.cpp
+   Parser/AMReX_Parser.H
+   Parser/AMReX_Parser_Exe.cpp
+   Parser/AMReX_Parser_Exe.H
+   Parser/AMReX_Parser_Y.cpp
+   Parser/AMReX_Parser_Y.H
+   Parser/amrex_parser.lex.cpp
+   Parser/amrex_parser.lex.h
+   Parser/amrex_parser.tab.cpp
+   Parser/amrex_parser.tab.h
+   Parser/AMReX_IParser.cpp
+   Parser/AMReX_IParser.H
+   Parser/AMReX_IParser_Exe.cpp
+   Parser/AMReX_IParser_Exe.H
+   Parser/AMReX_IParser_Y.cpp
+   Parser/AMReX_IParser_Y.H
+   Parser/amrex_iparser.lex.cpp
+   Parser/amrex_iparser.lex.h
+   Parser/amrex_iparser.tab.cpp
+   Parser/amrex_iparser.tab.h
+   # Forward declaration -----------------------------------------------------
+   AMReX_BaseFwd.H
    )
 
 # Fortran stuff

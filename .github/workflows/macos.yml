@@ -3,12 +3,13 @@ name: macos
 on: [push, pull_request]
 
 env:
-  CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -fno-operator-names"
+  # -Wno-range-loop-analysis: Apple clang has a bug in range-loop-analysis
+  CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wno-c++17-extensions -Wno-range-loop-analysis"
 
 jobs:
-  # Build libamrex and all tutorials
-  tutorials-macos:
-    name: AppleClang@11.0 GFortran@9.3 [tutorials]
+  # Build libamrex and all tests
+  tests-macos:
+    name: AppleClang@11.0 GFortran@9.3 [tests]
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
@@ -16,11 +17,21 @@ jobs:
       run: .github/workflows/dependencies/dependencies_mac.sh
     - name: Build & Install
       run: |
-        mkdir build
-        cd build
-        cmake ..                        \
+        cmake -S . -B build             \
+            -DBUILD_SHARED_LIBS=ON      \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DAMReX_BUILD_TUTORIALS=ON  \
-            -DAMReX_PARTICLES=ON
-        make -j 2
+            -DAMReX_ENABLE_TESTS=ON     \
+            -DAMReX_PARTICLES=ON        \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=$(which ccache)
+        cmake --build build --parallel 2
+
+        cmake -S . -B build             \
+            -DCMAKE_BUILD_TYPE=Debug    \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_ENABLE_TESTS=ON     \
+            -DAMReX_PARTICLES=ON        \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=$(which ccache)
+        cmake --build build --parallel 2
+
+        cmake --build build --target install

@@ -184,13 +184,13 @@ and then taking the divergence to update the cells,
 
 .. math::
 
-   \phi_{i,\,j}^{n+1} = \phi_{i,\,j}^n 
+   \phi_{i,\,j}^{n+1} = \phi_{i,\,j}^n
    + \frac{\Delta t}{\Delta x}\left(F_{i+^1\!/_2,\,j}-F_{i-^1\!/_2,\,j}\right)
    + \frac{\Delta t}{\Delta y}\left(F_{i,\,j+^1\!/_2}-F_{i,\,j-^1\!/_2}\right)
 
 The implementation details of the code are discussed in section
 :ref:`sec:basics:heat1`.  For now let's just build and run the code, and
-visualizae the results.
+visualize the results.
 
 Building and Running the Code
 -----------------------------

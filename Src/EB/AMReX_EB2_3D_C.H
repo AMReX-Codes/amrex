@@ -161,6 +161,140 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
 
 namespace {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void cover_cut_edges_given_corner (
+                       int i, int j, int k,
+                       Array4<Type_t> const& ex,
+                       Array4<Type_t> const& ey,
+                       Array4<Type_t> const& ez)
+   {
+      //x edges
+      if (j >= ex.begin.y && j < ex.end.y && k >= ex.begin.z && k < ex.end.z) {
+         if (i > ex.begin.x && i <= ex.end.x && ex(i-1,j,k) == Type::irregular)
+            ex(i-1,j,k) = Type::covered;
+         if (i >= ex.begin.x && i < ex.end.x && ex(i  ,j,k) == Type::irregular)
+            ex(i,j,k) = Type::covered;
+      }
+
+      //y edges
+      if (i >= ey.begin.x && i < ey.end.x && k >= ey.begin.z && k < ey.end.z) {
+         if (j > ey.begin.y && j <= ey.end.y && ey(i,j-1,k) == Type::irregular)
+            ey(i,j-1,k) = Type::covered;
+         if (j >= ey.begin.y && j < ey.end.y && ey(i,j  ,k) == Type::irregular)
+            ey(i,j,k) = Type::covered;
+      }
+
+      //z edges
+      if (i >= ez.begin.x && i < ez.end.x && j >= ez.begin.y && j < ez.end.y) {
+         if (k > ez.begin.z && k <= ez.end.z && ez(i,j,k-1) == Type::irregular)
+            ez(i,j,k-1) = Type::covered;
+         if (k >= ez.begin.z && k < ez.end.z && ez(i,j,k  ) == Type::irregular)
+            ez(i,j,k) = Type::covered;
+      }
+   }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void amrex_eb2_cover_multiple_cuts (Box const& tbx, Box const& bxg2,
+                       Array4<Real const> const& s,
+                       Array4<Type_t> const& fx,
+                       Array4<Type_t> const& fy,
+                       Array4<Type_t> const& fz,
+                       Array4<Type_t> const& ex,
+                       Array4<Type_t> const& ey,
+                       Array4<Type_t> const& ez)
+{
+    // x faces
+    Box b = amrex::surroundingNodes(bxg2,0);
+    auto lo = amrex::max_lbound(tbx, b);
+    auto hi = amrex::min_ubound(tbx, b);
+    amrex::Loop(lo, hi,
+    [=] (int i, int j, int k) noexcept
+    {
+        // If only opposite corners of face are regular, it
+        // will result in a face with 4 cuts, so cover them
+        if ( (   s(i,j,k  ) <  0.0 && s(i,j+1,k  ) >= 0.0
+              && s(i,j,k+1) >= 0.0 && s(i,j+1,k+1) <  0.0 )
+           || (  s(i,j,k  ) >= 0.0 && s(i,j+1,k  ) <  0.0
+              && s(i,j,k+1) <  0.0 && s(i,j+1,k+1) >= 0.0 )) {
+//             printf("AMReX WARNING: covering multiple cuts\n");
+
+            // Cover the face
+            fx(i,j,k) = Type::covered;
+
+            // Cover the cut edges containing any regular corner
+            if (s(i,j  ,k  ) < 0.0)
+               cover_cut_edges_given_corner(i,j  ,k  ,ex,ey,ez);
+            if (s(i,j+1,k  ) < 0.0)
+               cover_cut_edges_given_corner(i,j+1,k  ,ex,ey,ez);
+            if (s(i,j  ,k+1) < 0.0)
+               cover_cut_edges_given_corner(i,j  ,k+1,ex,ey,ez);
+            if (s(i,j+1,k+1) < 0.0)
+               cover_cut_edges_given_corner(i,j+1,k+1,ex,ey,ez);
+        }
+    });
+
+    // y faces
+    b = amrex::surroundingNodes(bxg2,1);
+    lo = amrex::max_lbound(tbx, b);
+    hi = amrex::min_ubound(tbx, b);
+    amrex::Loop(lo, hi,
+    [=] (int i, int j, int k) noexcept
+    {
+        // If only opposite corners of face are regular, it
+        // will result in a face with 4 cuts, so cover them
+        if ( (   s(i,j,k  ) <  0.0 && s(i+1,j,k  ) >= 0.0
+              && s(i,j,k+1) >= 0.0 && s(i+1,j,k+1) <  0.0 )
+           || (  s(i,j,k  ) >= 0.0 && s(i+1,j,k  ) <  0.0
+              && s(i,j,k+1) <  0.0 && s(i+1,j,k+1) >= 0.0 )) {
+   //         printf("AMReX WARNING: covering multiple cuts\n");
+
+            // Cover the face
+            fy(i,j,k) = Type::covered;
+
+            // Cover the cut edges containing any regular corner
+            if (s(i  ,j,k  ) < 0.0)
+               cover_cut_edges_given_corner(i  ,j,k  ,ex,ey,ez);
+            if (s(i+1,j,k  ) < 0.0)
+               cover_cut_edges_given_corner(i+1,j,k  ,ex,ey,ez);
+            if (s(i  ,j,k+1) < 0.0)
+               cover_cut_edges_given_corner(i  ,j,k+1,ex,ey,ez);
+            if (s(i+1,j,k+1) < 0.0)
+               cover_cut_edges_given_corner(i+1,j,k+1,ex,ey,ez);
+        }
+    });
+
+    // z faces
+    b = amrex::surroundingNodes(bxg2,2);
+    lo = amrex::max_lbound(tbx, b);
+    hi = amrex::min_ubound(tbx, b);
+    amrex::Loop(lo, hi,
+    [=] (int i, int j, int k) noexcept
+    {
+        // If only opposite corners of face are regular, it
+        // will result in a face with 4 cuts, so cover them
+        if ( (   s(i,j,k  ) <  0.0 && s(i+1,j,k  ) >= 0.0
+              && s(i,j+1,k) >= 0.0 && s(i+1,j+1,k) <  0.0 )
+           || (  s(i,j,k  ) >= 0.0 && s(i+1,j,k  ) <  0.0
+              && s(i,j+1,k) <  0.0 && s(i+1,j+1,k) >= 0.0 )) {
+//            printf("AMReX WARNING: covering multiple cuts\n");
+            // Cover the face
+            fz(i,j,k) = Type::covered;
+
+            // Cover the cut edges containing any regular corner
+            if (s(i  ,j  ,k) < 0.0)
+               cover_cut_edges_given_corner(i  ,j  ,k,ex,ey,ez);
+            if (s(i+1,j  ,k) < 0.0)
+               cover_cut_edges_given_corner(i+1,j  ,k,ex,ey,ez);
+            if (s(i  ,j+1,k) < 0.0)
+               cover_cut_edges_given_corner(i  ,j+1,k,ex,ey,ez);
+            if (s(i+1,j+1,k) < 0.0)
+               cover_cut_edges_given_corner(i+1,j+1,k,ex,ey,ez);
+        }
+    });
+}
+
+namespace {
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int num_cuts (Real a, Real b) noexcept {
         return (a >= 0.0 && b < 0.0) || (b >= 0.0 && a < 0.0);
     }
@@ -314,7 +448,7 @@ Real coarsen_edge_cent (Real f1, Real f2)
             f2 = Real(0.5)*f2 + Real(0.25);
         }
         Real r = (f2*f2-f1*f1)/(f2-f1+Real(1.e-30));
-        return amrex::min(Real(0.5),amrex::max(-0.5,r));
+        return amrex::min(Real(0.5),amrex::max(Real(-0.5),r));
     }
 }
 }

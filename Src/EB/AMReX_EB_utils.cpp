@@ -38,16 +38,56 @@ namespace amrex {
             amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
 #endif
 
-        const Box dbox = geom.growPeriodicDomain(2);
-
         //
-        // Get array from arguments
+        // Get array4 from arguments
         //
         Array4<Real> const& div  = div_mf.array(*mfi);
         Array4<Real> const& divc = divc_mf.array(*mfi);
         auto const&         wt   = weights.array(*mfi);
         auto const&        flags = flags_fab.array();
         auto const&        vfrac = volfrac->array(*mfi);
+
+        apply_flux_redistribution ( bx, div, divc, wt, icomp, ncomp, flags, vfrac, geom);
+    }
+
+    //
+    // Do small cell redistribution on one FAB with the Array4's already passed in
+    //
+    void apply_flux_redistribution ( const Box& bx,
+                                     Array4<Real      > const& div,
+                                     Array4<Real const> const& divc,
+                                     Array4<Real const> const& wt,
+                                     const int icomp,
+                                     const int ncomp,
+                                     Array4<EBCellFlag const> const& flags,
+                                     Array4<Real const>    const& vfrac,
+                                     const Geometry & geom)
+    {
+        //
+        // Check that grid is uniform
+        //
+        const Real* dx = geom.CellSize();
+
+#if (AMREX_SPACEDIM == 2)
+        if (! amrex::almostEqual(dx[0], dx[1]))
+            amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
+#elif (AMREX_SPACEDIM == 3)
+        if( ! amrex::almostEqual(dx[0],dx[1]) ||
+            ! amrex::almostEqual(dx[0],dx[2]) ||
+            ! amrex::almostEqual(dx[1],dx[2]) )
+            amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
+#endif
+
+        const Box dbox = geom.growPeriodicDomain(2);
+
+        //
+        // Get array from arguments
+        //
+        // Array4<Real> const& div  = div_mf.array(*mfi);
+        // Array4<Real> const& divc = divc_mf.array(*mfi);
+        // auto const&         wt   = weights.array(*mfi);
+        // auto const&        flags = flags_fab.array();
+        // auto const&        vfrac = volfrac->array(*mfi);
 
         const Box& grown1_bx = amrex::grow(bx,1);
         const Box& grown2_bx = amrex::grow(bx,2);
@@ -110,9 +150,9 @@ namespace amrex {
             }
             divnc /=  (vtot + 1.e-80);
 
-            // We need to multiply divc by mask to make sure optmp is zero for cells
+            // We need to multiply by mask to make sure optmp is zero for cells
             // outside the domain for non-cyclic BCs
-            optmp(i,j,k,n) =  (1 - vfrac(i,j,k)) * (divnc - divc(i,j,k,n) * mask(i,j,k));
+            optmp(i,j,k,n) =  (1 - vfrac(i,j,k)) * (divnc - divc(i,j,k,n)) * mask(i,j,k);
             delm(i,j,k,n)  = -(    vfrac(i,j,k)) * optmp(i,j,k,n);
 
         }
@@ -288,7 +328,7 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
         RealVect facet_normal {AMREX_D_DECL(0._rt, 0._rt, 0._rt)};
         facet_normal[tmp_facet] = 1.; // whether facing inwards or outwards is not important here
 
-        // skip cases where cell faces conincide with the eb facets
+        // skip cases where cell faces coincide with the eb facets
         if (AMREX_D_TERM(amrex::Math::abs(eb_normal[0]) == amrex::Math::abs(facet_normal[0]),
                       && amrex::Math::abs(eb_normal[1]) == amrex::Math::abs(facet_normal[1]),
                       && amrex::Math::abs(eb_normal[2]) == amrex::Math::abs(facet_normal[2])))
@@ -339,7 +379,7 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
         //
         // Purpose: Given an a line an a point, this finds the point
         // one the line which minimizes the cartesian distance. It also finds
-        // the corresponing distance along the line corresponding to this point
+        // the corresponding distance along the line corresponding to this point
         //
         RealVect c = edge_p0 - r_vec;
         Real lambda_tmp = - edge_v.dotProduct(c) / edge_v.dotProduct(edge_v);
@@ -376,7 +416,7 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
         Real cz_hi =  3.4e38_rt;
         Real eps = 1.e-7_rt;
 #endif
-        // if the line runs parrallel to any of these dimensions (which is true for
+        // if the line runs parallel to any of these dimensions (which is true for
         // EB edges), then skip -> the min/max functions at the end will skip them
         // due to the +/-huge(c...) defaults (above).
         if ( amrex::Math::abs(edge_v[0]) > eps ) {

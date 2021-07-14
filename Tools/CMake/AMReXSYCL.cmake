@@ -28,7 +28,7 @@ if (DPCPP_BETA_VERSION LESS "09")
 endif ()
 
 
-set(_cxx_dpcpp "$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:IntelClang>,$<CXX_COMPILER_ID:IntelDPCPP>>")
+set(_cxx_dpcpp "$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:IntelClang>,$<CXX_COMPILER_ID:IntelDPCPP>,$<CXX_COMPILER_ID:IntelLLVM>>")
 set(_cxx_dpcpp "$<AND:$<COMPILE_LANGUAGE:CXX>,${_cxx_dpcpp}>")
 
 #
@@ -43,10 +43,9 @@ target_compile_features(SYCL INTERFACE cxx_std_17)
 #
 # Compiler options
 #
-
 target_compile_options( SYCL
    INTERFACE
-   $<${_cxx_dpcpp}:-Wno-error=sycl-strict -fsycl>
+   $<${_cxx_dpcpp}:-Wno-error=sycl-strict -Wno-pass-failed -fsycl>
    $<${_cxx_dpcpp}:$<$<BOOL:${AMReX_DPCPP_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
 
 # temporary work-around for DPC++ beta08 bug
@@ -68,6 +67,15 @@ if (AMReX_MPI)
     INTERFACE
     $<${_cxx_dpcpp}:-fsycl-unnamed-lambda>)
 endif ()
+
+if(AMReX_DPCPP_ONEDPL)
+    # TBB and PSTL are broken in oneAPI 2021.3.0
+    # https://software.intel.com/content/www/us/en/develop/articles/intel-oneapi-dpcpp-library-release-notes.html#inpage-nav-2-3
+    # at least since 2021.1.1 and probably won't be fixed until glibc version 10 is gone
+    target_compile_definitions( SYCL
+        INTERFACE
+        $<${_cxx_dpcpp}:_GLIBCXX_USE_TBB_PAR_BACKEND=0 PSTL_USE_PARALLEL_POLICIES=0>)
+endif()
 
 #
 # Link options

@@ -47,7 +47,7 @@ public:
                      Location a_beta_loc);
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta)
         {setBCoeffs (amrlev, beta, Location::FaceCenter);}
-                    
+
     void setBCoeffs (int amrlev, Real beta);
     void setBCoeffs (int amrlev, Vector<Real> const& beta);
 
@@ -99,7 +99,7 @@ public:
         { return amrex::GetArrOfConstPtrs(m_b_coeffs[amrlev][mglev]); }
 
     virtual std::unique_ptr<MLLinOp> makeNLinOp (int /*grid_size*/) const final override {
-        amrex::Abort("MLABecLaplacian::makeNLinOp: Not implmented");
+        amrex::Abort("MLABecLaplacian::makeNLinOp: Not implemented");
         return std::unique_ptr<MLLinOp>{};
     }
 
@@ -123,7 +123,7 @@ public:
 
 protected:
 
-    int m_ncomp;
+    int m_ncomp = 1;
 
     bool m_needs_update = true;
 

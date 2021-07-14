@@ -141,7 +141,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         {
             const Geometry& geom = this->Geom(lev);
 
-            mask_ptr[lev].reset(new iMultiFab(ba, dmap, num_mask_comps, m_num_neighbor_cells));
+            mask_ptr[lev] = std::make_unique<iMultiFab>(ba, dmap, int(num_mask_comps), m_num_neighbor_cells);
             mask_ptr[lev]->setVal(-1, m_num_neighbor_cells);
 
 #ifdef AMREX_USE_OMP
@@ -624,6 +624,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::sumNeighbors (int real_start_comp, int real_num_comp,
                 int int_start_comp,  int int_num_comp) {
 #ifdef AMREX_USE_GPU
+    amrex::ignore_unused(real_start_comp,real_num_comp,int_start_comp,int_num_comp);
     amrex::Abort("Not implemented.");
 #else
     sumNeighborsCPU(real_start_comp, real_num_comp, int_start_comp, int_num_comp);
@@ -686,7 +687,6 @@ buildNeighborList (CheckPair&& check_pair, bool /*sort*/)
         }
 #endif
 
-        IntVect ref_fac = computeRefFac(0, lev);
               auto& plev = this->GetParticles(lev);
         const auto& geom = this->Geom(lev);
 
@@ -704,12 +704,11 @@ buildNeighborList (CheckPair&& check_pair, bool /*sort*/)
             if (ptile.numParticles() == 0) continue;
 
             Box bx = pti.tilebox();
-            bx.coarsen(ref_fac);
-            bx.grow(m_num_neighbor_cells);
+            bx.grow(computeRefFac(0, lev).max()*m_num_neighbor_cells);
 
             m_neighbor_list[lev][index].build(ptile, bx, geom,
-                                              std::forward<CheckPair>(check_pair),
-                                              m_num_neighbor_cells);
+                          std::forward<CheckPair>(check_pair),
+                          computeRefFac(0, lev).max()*m_num_neighbor_cells);
 #ifndef AMREX_USE_GPU
             const auto& counts = m_neighbor_list[lev][index].GetCounts();
             const auto& list   = m_neighbor_list[lev][index].GetList();

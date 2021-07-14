@@ -7,7 +7,7 @@
 
 #include <vector>
 #include <array>
-#include <fstream>
+#include <iosfwd>
 
 namespace amrex {
 
@@ -16,15 +16,15 @@ class EBToPVD {
 public:
    EBToPVD(): m_grid(0) {}
 
-   void EBToPolygon(const Real* problo, const Real* dx, 
-         const Box & bx, Array4<EBCellFlag const> const& flag, 
-         Array4<Real const> const& bcent,  
+   void EBToPolygon(const Real* problo, const Real* dx,
+         const Box & bx, Array4<EBCellFlag const> const& flag,
+         Array4<Real const> const& bcent,
          Array4<Real const> const& apx, Array4<Real const> const& apy, Array4<Real const> const& apz);
 
    void WriteEBVTP(const int myID) const;
    void WritePVTP(const int nProcs) const;
 
-   void EBGridCoverage(const int myID, const Real* problo, const Real* dx, 
+   void EBGridCoverage(const int myID, const Real* problo, const Real* dx,
          const Box &bx, Array4<EBCellFlag const> const& flag);
 
 private:
@@ -42,7 +42,7 @@ private:
          const Real* dx) const;
 
    // Fills count and flags selecting the alphas which are in (0,1)
-   void calc_intersects(int& int_count, std::array<bool,12>& intersects_flags, 
+   void calc_intersects(int& int_count, std::array<bool,12>& intersects_flags,
          const std::array<Real,12>& alpha) const;
 
    void print_points(std::ofstream& myfile) const;

@@ -21,8 +21,8 @@ void mlabeclap_adotx (Box const& box, Array4<Real> const& y,
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
         y(i,0,0,n) = alpha*a(i,0,0)*x(i,0,0,n)
-            - dhx * (bX(i+1,0,0)*(x(i+1,0,0,n) - x(i  ,0,0,n))
-                   - bX(i  ,0,0)*(x(i  ,0,0,n) - x(i-1,0,0,n)));
+            - dhx * (bX(i+1,0,0,n)*(x(i+1,0,0,n) - x(i  ,0,0,n))
+                   - bX(i  ,0,0,n)*(x(i  ,0,0,n) - x(i-1,0,0,n)));
     }
     }
 }
@@ -48,8 +48,8 @@ void mlabeclap_adotx_os (Box const& box, Array4<Real> const& y,
             y(i,0,0,n) = Real(0.0);
         } else {
             y(i,0,0,n) = alpha*a(i,0,0)*x(i,0,0,n)
-                - dhx * (bX(i+1,0,0)*(x(i+1,0,0,n) - x(i  ,0,0,n))
-                       - bX(i  ,0,0)*(x(i  ,0,0,n) - x(i-1,0,0,n)));
+                - dhx * (bX(i+1,0,0,n)*(x(i+1,0,0,n) - x(i  ,0,0,n))
+                       - bX(i  ,0,0,n)*(x(i  ,0,0,n) - x(i-1,0,0,n)));
         }
     }
     }
@@ -70,7 +70,7 @@ void mlabeclap_normalize (Box const& box, Array4<Real> const& x,
     for (int n = 0; n < ncomp; ++n) {
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
-        x(i,0,0,n) /= alpha*a(i,0,0) + dhx*(bX(i,0,0)+bX(i+1,0,0));
+        x(i,0,0,n) /= alpha*a(i,0,0) + dhx*(bX(i,0,0,n)+bX(i+1,0,0,n));
     }
     }
 }
@@ -85,7 +85,7 @@ void mlabeclap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real const
     for (int n = 0; n < ncomp; ++n) {
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
-        fx(i,0,0,n) = -fac*bx(i,0,0)*(sol(i,0,0,n)-sol(i-1,0,0,n));
+        fx(i,0,0,n) = -fac*bx(i,0,0,n)*(sol(i,0,0,n)-sol(i-1,0,0,n));
     }
     }
 }
@@ -98,9 +98,9 @@ void mlabeclap_flux_xface (Box const& box, Array4<Real> const& fx, Array4<Real c
 
     for (int n = 0; n < ncomp; ++n) {
     int i = lo.x;
-    fx(i,0,0,n) = -fac*bx(i,0,0)*(sol(i,0,0,n)-sol(i-1,0,0,n));
+    fx(i,0,0,n) = -fac*bx(i,0,0,n)*(sol(i,0,0,n)-sol(i-1,0,0,n));
     i += xlen;
-    fx(i,0,0,n) = -fac*bx(i,0,0)*(sol(i,0,0,n)-sol(i-1,0,0,n));
+    fx(i,0,0,n) = -fac*bx(i,0,0,n)*(sol(i,0,0,n)-sol(i-1,0,0,n));
     }
 }
 
@@ -129,13 +129,13 @@ void abec_gsrb (Box const& box, Array4<Real> const& phi, Array4<Real const> cons
                 Real cf1 = (i == vhi.x && m1(vhi.x+1,0,0) > 0)
                     ? f1(vhi.x,0,0,n) : Real(0.0);
 
-                Real delta = dhx*(bX(i,0,0)*cf0 + bX(i+1,0,0)*cf1);
+                Real delta = dhx*(bX(i,0,0,n)*cf0 + bX(i+1,0,0,n)*cf1);
 
                 Real gamma = alpha*a(i,0,0)
-                    +   dhx*( bX(i,0,0) + bX(i+1,0,0) );
+                    +   dhx*( bX(i,0,0,n) + bX(i+1,0,0,n) );
 
-                Real rho = dhx*(bX(i  ,0  ,0)*phi(i-1,0  ,0,n)
-                              + bX(i+1,0  ,0)*phi(i+1,0  ,0,n));
+                Real rho = dhx*(bX(i  ,0  ,0,n)*phi(i-1,0  ,0,n)
+                              + bX(i+1,0  ,0,n)*phi(i+1,0  ,0,n));
 
                 phi(i,0,0,n) = (rhs(i,0,0,n) + rho - phi(i,0,0,n)*delta)
                     / (gamma - delta);
@@ -173,13 +173,13 @@ void abec_gsrb_os (Box const& box, Array4<Real> const& phi, Array4<Real const> c
                     Real cf1 = (i == vhi.x && m1(vhi.x+1,0,0) > 0)
                         ? f1(vhi.x,0,0,n) : Real(0.0);
 
-                    Real delta = dhx*(bX(i,0,0)*cf0 + bX(i+1,0,0)*cf1);
+                    Real delta = dhx*(bX(i,0,0,n)*cf0 + bX(i+1,0,0,n)*cf1);
 
                     Real gamma = alpha*a(i,0,0)
-                        +   dhx*( bX(i,0,0) + bX(i+1,0,0) );
+                        +   dhx*( bX(i,0,0,n) + bX(i+1,0,0,n) );
 
-                    Real rho = dhx*(bX(i  ,0  ,0)*phi(i-1,0  ,0,n)
-                                  + bX(i+1,0  ,0)*phi(i+1,0  ,0,n));
+                    Real rho = dhx*(bX(i  ,0  ,0,n)*phi(i-1,0  ,0,n)
+                                  + bX(i+1,0  ,0,n)*phi(i+1,0  ,0,n));
 
                     phi(i,0,0,n) = (rhs(i,0,0,n) + rho - phi(i,0,0,n)*delta)
                         / (gamma - delta);

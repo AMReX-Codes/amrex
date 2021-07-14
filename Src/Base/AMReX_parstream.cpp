@@ -1,8 +1,9 @@
-#include <cstdio>
-#include <fstream>
 #include <AMReX_parstream.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParallelDescriptor.H>
+
+#include <cstdio>
+#include <fstream>
 
 namespace amrex
 {
@@ -125,7 +126,7 @@ namespace amrex
         s_pout_basename = "amrex_pout" ;
         s_pout_init = true ;
       }
-      // if MPI not initialized, we cant open the file so return cout
+      // if MPI not initialized, we can't open the file so return cout
       if ( ! flag_i || flag_f)
       {
         return std::cout; // MPI hasn't been started yet, or has ended....

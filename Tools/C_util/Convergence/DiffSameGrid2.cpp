@@ -28,11 +28,14 @@ static
 void
 PrintUsage (const char* progName)
 {
-    std::cout << "\nThis utility performs a diff operation between two"      << std::endl
-	      << "plotfiles which have the exact same grids."                << std::endl
-	      << "Both absolute and relative differences are reported."      << std::endl
-	      << "Note: no attempt has been made to prevent a divide by 0, " << std::endl
-	      << "so some relative errors may not be well defined."          << std::endl;
+    std::cout << std::endl
+              << "This utility performs a diff operation between two"        << std::endl
+              << "plotfiles which have the exact same grids."                << std::endl
+              << "Both absolute and relative differences are reported."      << std::endl
+              << "For L0 norm we also report max absolute difference"        << std::endl
+              << "divided by the maximum coarse level value."                << std::endl
+              << "Note: no attempt has been made to prevent a divide by 0,"  << std::endl
+              << "for relative error, so some may not be well defined."      << std::endl;
     std::cout << '\n';
     std::cout << "Usage:" << '\n';
     std::cout << progName << '\n';
@@ -50,16 +53,16 @@ PrintUsage (const char* progName)
 static
 bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
-			const AmrData& amrd2)
+                        const AmrData& amrd2)
 {
     const Vector<std::string>& derives1 = amrd1.PlotVarNames();
     const Vector<std::string>& derives2 = amrd2.PlotVarNames();
     int length = derives1.size();
     if (length != derives2.size())
-	return false;
+        return false;
     for (int i=0; i<length; ++i)
-	if (derives1[i] != derives2[i])
-	    return false;
+        if (derives1[i] != derives2[i])
+            return false;
     return true;
 }
 
@@ -101,19 +104,19 @@ main (int   argc,
 
     DataServices::SetBatchMode();
     Amrvis::FileType fileType(Amrvis::NEWPLT);
-    
+
     DataServices dataServicesC(iFile1, fileType);
     DataServices dataServicesF(iFile2, fileType);
 
     if (!dataServicesC.AmrDataOk() || !dataServicesF.AmrDataOk())
         amrex::Abort("ERROR: Dataservices not OK");
     //
-    // Generate AmrData Objects 
+    // Generate AmrData Objects
     //
     AmrData& amrDataI = dataServicesC.AmrDataRef();
     AmrData& amrDataE = dataServicesF.AmrDataRef();
     //
-    // Initial Tests 
+    // Initial Tests
     //
     if (!amrDatasHaveSameDerives(amrDataI,amrDataE))
         amrex::Abort("ERROR: Plotfiles do not have the same state variables");
@@ -125,7 +128,7 @@ main (int   argc,
     int finestLevel = amrDataI.FinestLevel();
     const Vector<std::string>& derives = amrDataI.PlotVarNames();
     Vector<int> destComps(nComp);
-    for (int i = 0; i < nComp; i++) 
+    for (int i = 0; i < nComp; i++)
         destComps[i] = i;
     //
     // Compute the absolute and relative errors
@@ -137,27 +140,35 @@ main (int   argc,
     // then we failed the comparison
     bool failed = false;
 
-    if (ParallelDescriptor::IOProcessor())
-        std::cout << "L"<< norm << " norm of Absolute and Relative Error in Each Component" << std::endl
-		  << std::setfill('-') << std::setw(80) << "-" << std::setfill(' ') << std::endl;
+    if (ParallelDescriptor::IOProcessor()) {
+        if (norm == 0) {
+            std::cout << "L"<< norm << " norm of absolute error, relative error, and absolute error divided by the max coarse absolute value" << std::endl
+                      << std::setfill('-') << std::setw(80) << "-" << std::setfill(' ') << std::endl;
+        } else {
+            std::cout << "L"<< norm << " norm of Absolute and Relative Error in Each Component" << std::endl
+                      << std::setfill('-') << std::setw(80) << "-" << std::setfill(' ') << std::endl;
+        }
+    }
+
+    Vector<Real> maxAbsVal(nComp);
 
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
     {
         const BoxArray& baI = amrDataI.boxArray(iLevel);
         const BoxArray& baE = amrDataE.boxArray(iLevel);
 
-        DistributionMapping dm {baI}; 
+        DistributionMapping dm {baI};
         if (baI != baE)
         {
             std::cout << "ERROR: BoxArrays are not the same at level " << iLevel << std::endl;
             ParallelDescriptor::Abort();
         }
 
-	aerror[iLevel] = new MultiFab(baI, dm, nComp, 0);
-	aerror[iLevel]->setVal(GARBAGE);
+        aerror[iLevel] = new MultiFab(baI, dm, nComp, 0);
+        aerror[iLevel]->setVal(GARBAGE);
 
-	rerror[iLevel] = new MultiFab(baI, dm, nComp, 0);
-	rerror[iLevel]->setVal(GARBAGE);
+        rerror[iLevel] = new MultiFab(baI, dm, nComp, 0);
+        rerror[iLevel]->setVal(GARBAGE);
 
         MultiFab dataI(baI, dm, nComp, 0);
         MultiFab dataE(baE, dm, nComp, 0);
@@ -165,30 +176,36 @@ main (int   argc,
         amrDataI.FillVar(dataI, iLevel, derives, destComps);
         amrDataE.FillVar(dataE, iLevel, derives, destComps);
 
-	// this part needs to be checked -- it appears that
-	// FlushGrids works on all levels at once -- but we are 
-	// looping over levels
+        if (iLevel == 0) {
+            for (int iComp=0; iComp < nComp; ++iComp) {
+                maxAbsVal[iComp] = dataI.norm0(iComp);
+            }
+        }
+
+        // this part needs to be checked -- it appears that
+        // FlushGrids works on all levels at once -- but we are
+        // looping over levels
         for (int i = 0; i < destComps.size(); i++)
         {
             amrDataI.FlushGrids(destComps[i]);
             amrDataE.FlushGrids(destComps[i]);
         }
 
-	// aerror will contain the absolute errors
+        // aerror will contain the absolute errors
         (*aerror[iLevel]).copy(dataI);
         (*aerror[iLevel]).minus(dataE, 0, nComp, 0);
 
-	// rerror will contain the relative errors
+        // rerror will contain the relative errors
         (*rerror[iLevel]).copy(dataI);
         (*rerror[iLevel]).minus(dataE, 0, nComp, 0);
-	(*rerror[iLevel]).divide(dataI, 0, nComp, 0);
+        (*rerror[iLevel]).divide(dataI, 0, nComp, 0);
 
 
         //
         // Output Statistics
         //
         if (ParallelDescriptor::IOProcessor())
-	  std::cout << "Level:  " << iLevel << std::endl;
+          std::cout << "Level:  " << iLevel << std::endl;
 
         Vector<Real> anorms(nComp,0);
         Vector<Real> rnorms(nComp,0);
@@ -197,23 +214,23 @@ main (int   argc,
         {
             for (int iComp = 0; iComp < nComp; iComp++)
             {
-	      
-	      // compute the norm of the absolute and relative errors for the
-	      // current FAB
-	      const Real agrdL2 = (*aerror[iLevel])[mfi].norm(norm, iComp, 1);
-	      const Real rgrdL2 = (*rerror[iLevel])[mfi].norm(norm, iComp, 1);
 
-	      // Adding the current norm to that from the previous FABs.
-	      // note: right now, we are storing anorm**norm, so that the 
-	      // summation makes sense.
-	      if (norm != 0) {
-		anorms[iComp] = anorms[iComp] + pow(agrdL2, norm);
-		rnorms[iComp] = rnorms[iComp] + pow(rgrdL2, norm);
-	      }
-	      else {
-		anorms[iComp] = std::max(anorms[iComp], agrdL2);
-		rnorms[iComp] = std::max(rnorms[iComp], rgrdL2);
-	      }
+              // compute the norm of the absolute and relative errors for the
+              // current FAB
+              const Real agrdL2 = (*aerror[iLevel])[mfi].norm(norm, iComp, 1);
+              const Real rgrdL2 = (*rerror[iLevel])[mfi].norm(norm, iComp, 1);
+
+              // Adding the current norm to that from the previous FABs.
+              // note: right now, we are storing anorm**norm, so that the
+              // summation makes sense.
+              if (norm != 0) {
+                anorms[iComp] = anorms[iComp] + pow(agrdL2, norm);
+                rnorms[iComp] = rnorms[iComp] + pow(rgrdL2, norm);
+              }
+              else {
+                anorms[iComp] = std::max(anorms[iComp], agrdL2);
+                rnorms[iComp] = std::max(rnorms[iComp], rgrdL2);
+              }
 
             }
         }
@@ -230,19 +247,19 @@ main (int   argc,
                 if (proc != ParallelDescriptor::IOProcessorNumber())
                 {
                     MPI_Status stat;
-                    int rc = MPI_Recv(atmp.dataPtr(), nComp, datatype, 
-                                      MPI_ANY_SOURCE, 
-				      proc, 
-				      ParallelDescriptor::Communicator(), 
+                    int rc = MPI_Recv(atmp.dataPtr(), nComp, datatype,
+                                      MPI_ANY_SOURCE,
+                                      proc,
+                                      ParallelDescriptor::Communicator(),
                                       &stat);
 
                     if (rc != MPI_SUCCESS)
                         ParallelDescriptor::Abort(rc);
 
-                    rc = MPI_Recv(rtmp.dataPtr(), nComp, datatype, 
-                                      MPI_ANY_SOURCE, 
-				      ParallelDescriptor::NProcs() + proc, 
-				      ParallelDescriptor::Communicator(), 
+                    rc = MPI_Recv(rtmp.dataPtr(), nComp, datatype,
+                                      MPI_ANY_SOURCE,
+                                      ParallelDescriptor::NProcs() + proc,
+                                      ParallelDescriptor::Communicator(),
                                       &stat);
 
                     if (rc != MPI_SUCCESS)
@@ -251,14 +268,14 @@ main (int   argc,
 
                     for (int iComp = 0; iComp < nComp; iComp++)
                     {
-		      if (norm != 0) {
-			anorms[iComp] = anorms[iComp] + atmp[iComp];
-			rnorms[iComp] = rnorms[iComp] + rtmp[iComp];
-		      }
-		      else {
-			anorms[iComp] = std::max(anorms[iComp], atmp[iComp]);
-			rnorms[iComp] = std::max(rnorms[iComp], rtmp[iComp]);
-		      }
+                      if (norm != 0) {
+                        anorms[iComp] = anorms[iComp] + atmp[iComp];
+                        rnorms[iComp] = rnorms[iComp] + rtmp[iComp];
+                      }
+                      else {
+                        anorms[iComp] = std::max(anorms[iComp], atmp[iComp]);
+                        rnorms[iComp] = std::max(rnorms[iComp], rtmp[iComp]);
+                      }
 
                     }
                 }
@@ -266,7 +283,7 @@ main (int   argc,
         }
         else
         {
-            int rc = MPI_Send(anorms.dataPtr(), nComp, datatype, 
+            int rc = MPI_Send(anorms.dataPtr(), nComp, datatype,
                               ParallelDescriptor::IOProcessorNumber(),
                               ParallelDescriptor::MyProc(),
                               ParallelDescriptor::Communicator());
@@ -275,7 +292,7 @@ main (int   argc,
                 ParallelDescriptor::Abort(rc);
 
 
-            rc = MPI_Send(rnorms.dataPtr(), nComp, datatype, 
+            rc = MPI_Send(rnorms.dataPtr(), nComp, datatype,
                               ParallelDescriptor::IOProcessorNumber(),
                               ParallelDescriptor::NProcs() + ParallelDescriptor::MyProc(),
                               ParallelDescriptor::Communicator());
@@ -285,7 +302,7 @@ main (int   argc,
         }
 #endif
 
-	// normalize the norms and print out
+        // normalize the norms and print out
         Real vol = 1.0;
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
             vol *= amrDataI.DxLevel()[iLevel][dir];
@@ -296,18 +313,29 @@ main (int   argc,
             {
                 if (norm != 0)
                 {
-		  anorms[iComp] = anorms[iComp] * vol;
-		  anorms[iComp] = pow(anorms[iComp], (1.0/norm));
+                  anorms[iComp] = anorms[iComp] * vol;
+                  anorms[iComp] = pow(anorms[iComp], (1.0/norm));
 
-		  rnorms[iComp] = rnorms[iComp] * vol;
-		  rnorms[iComp] = pow(rnorms[iComp], (1.0/norm));
+                  rnorms[iComp] = rnorms[iComp] * vol;
+                  rnorms[iComp] = pow(rnorms[iComp], (1.0/norm));
                 }
 
                 if (anorms[iComp] != 0.0) failed = true;
 
-                std::cout << "  " << std::setw(32) << derives[iComp] 
-			  << ": " << std::setw(20) << anorms[iComp] 
-			  << std::setw(20) << rnorms[iComp] << std::endl;
+                if (norm == 0) {
+                    Real absOverMax = (maxAbsVal[iComp] == 0.) ? 0. : anorms[iComp]/maxAbsVal[iComp];
+
+                    std::cout << "  " << std::setw(32) << derives[iComp]
+                              << ": " << std::setw(20) << anorms[iComp]
+                              << std::setw(20) << rnorms[iComp]
+                              << std::setw(20) << absOverMax
+                              << std::endl;
+                } else {
+                    std::cout << "  " << std::setw(32) << derives[iComp]
+                              << ": " << std::setw(20) << anorms[iComp]
+                              << std::setw(20) << rnorms[iComp]
+                              << std::endl;
+                }
             }
             std::cout << std::endl;
         }
@@ -320,7 +348,7 @@ main (int   argc,
     // optionally dump out a plotfile containing the absolute errors
     if (!difFile.empty())
         WritePlotFile(aerror, amrDataI, difFile, verbose);
-    
+
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel) {
       delete aerror[iLevel];
       delete rerror[iLevel];

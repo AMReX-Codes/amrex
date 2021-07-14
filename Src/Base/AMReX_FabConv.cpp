@@ -1,15 +1,14 @@
-
-#include <iostream>
-#include <cstdlib>
-#include <limits>
-#include <cstring>
-
 #include <AMReX.H>
 #include <AMReX_FabConv.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_FPC.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Utility.H>
+
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include <limits>
 
 namespace amrex {
 
@@ -311,7 +310,7 @@ _pd_extract_field (char const* in,
     int ind;
     Long bit_field = 0L;
     //
-    // Move past the apropriate number of bytes so that the start bit is
+    // Move past the appropriate number of bytes so that the start bit is
     // in the first byte.  OFFY is the offset of the byte containing the
     // bit OFFS
     //
@@ -423,7 +422,7 @@ _pd_insert_field (Long  in_long,
     char* in = (char *) &in_long;
     //
     // If the output start bit is not in the first byte move past the
-    // apropriate number of bytes so that the start bit is in the first byte.
+    // appropriate number of bytes so that the start bit is in the first byte.
     //
     if (offs > 7)
     {
@@ -457,7 +456,7 @@ _pd_insert_field (Long  in_long,
     longmask = ~((1LL << dm) - 1LL);
     in_long  = (in_long << dm) & longmask;
     //
-    // Reorder the bytes apropriately.
+    // Reorder the bytes appropriately.
     //
     if (l_order == REVERSE_ORDER)
         _pd_btrvout(in, l_bytes, 1L);
@@ -523,11 +522,11 @@ permute_real_word_order (void*       out,
                          const void* in,
                          Long        nitems,
                          const int*  outord,
-                         const int*  inord, 
+                         const int*  inord,
                          int         REALSIZE)
 {
 //    BL_PROFILE("permute_real_word_order");
-    
+
     char* pin  = (char*) in;
     char* pout = (char*) out;
 
@@ -572,7 +571,7 @@ permute_real_word_order (void*       out,
 // to relax, but there is no evidence that it should be.
 //
 // An issue which is not a problem in the current implementation is that
-// old machines with byte sizes other than 8 bits can be accomodated
+// old machines with byte sizes other than 8 bits can be accommodated
 // because the conversions treat the input and output as bitstreams
 // instead of bytestreams.
 //
@@ -972,7 +971,7 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
 
     if(bAlwaysFixDenormals) {
       PD_fixdenormals(out, nitems, FPC::NativeRealDescriptor().format(),
-		      FPC::NativeRealDescriptor().order());
+                      FPC::NativeRealDescriptor().order());
     }
 }
 
@@ -1005,7 +1004,7 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
 
         if(bAlwaysFixDenormals) {
           PD_fixdenormals(out, get, FPC::NativeRealDescriptor().format(),
-			  FPC::NativeRealDescriptor().order());
+                          FPC::NativeRealDescriptor().order());
         }
         nitems -= get;
         out    += get;
@@ -1193,7 +1192,7 @@ RealDescriptor::convertToNativeFloatFormat (float*                out,
 
         if(bAlwaysFixDenormals) {
           PD_fixdenormals(out, get, FPC::Native32RealDescriptor().format(),
-			  FPC::Native32RealDescriptor().order());
+                          FPC::Native32RealDescriptor().order());
         }
         nitems -= get;
         out    += get;
@@ -1235,7 +1234,7 @@ RealDescriptor::convertToNativeDoubleFormat (double*               out,
 
         if(bAlwaysFixDenormals) {
           PD_fixdenormals(out, get, FPC::Native64RealDescriptor().format(),
-			  FPC::Native64RealDescriptor().order());
+                          FPC::Native64RealDescriptor().order());
         }
         nitems -= get;
         out    += get;

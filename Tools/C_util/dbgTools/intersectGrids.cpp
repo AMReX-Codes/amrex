@@ -138,7 +138,7 @@ main (int   argc,
         amrex::Abort("nCrsRatio != nRefLevels");
 
     cout << nRefLevels << endl;
-        
+
 
     //----------------------------------------------------//
     // Loop Through Refined Levels and Generate MultiFabs //
@@ -156,7 +156,7 @@ main (int   argc,
         for (int bx=0; bx < nGrds; bx++)
         {
             is >> inBox;
-            
+
             if (intersectBox.intersects(inBox))
             {
                 oBoxes.set(nOBoxes, inBox);

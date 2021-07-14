@@ -20,7 +20,7 @@ struct Managed {
     {
         return The_Managed_Arena()->alloc(len);
     }
-    
+
     void operator delete (void *ptr)
     {
         if (ptr) The_Managed_Arena()->free(ptr);
@@ -30,19 +30,19 @@ struct Managed {
 };
 
 struct Pinned {
-    
+
 #ifdef AMREX_USE_GPU
 
     void *operator new (std::size_t len)
     {
         return The_Pinned_Arena()->alloc(len);
     }
-    
+
     void operator delete (void *ptr)
     {
         if (ptr) The_Pinned_Arena()->free(ptr);
     }
-    
+
 #endif
 };
 
@@ -52,7 +52,7 @@ struct Deleter {
     void operator() (void* pt) const noexcept { m_arena->free(pt); }
 };
 
-template <class T, typename std::enable_if<AMREX_IS_TRIVIALLY_COPYABLE(T),int>::type = 0>
+template <class T, std::enable_if_t<std::is_trivially_copyable<T>::value,int> = 0>
 struct DeviceScalar
 {
     DeviceScalar (DeviceScalar const&) = delete;
@@ -64,7 +64,7 @@ struct DeviceScalar
 
     DeviceScalar () {
         if (Gpu::inLaunchRegion()) {
-            dp = (T*)(The_Device_Arena()->alloc(sizeof(T)));
+            dp = (T*)(The_Arena()->alloc(sizeof(T)));
         } else {
             dp = (T*)(std::malloc(sizeof(T)));
         }
@@ -72,7 +72,7 @@ struct DeviceScalar
 
     explicit DeviceScalar (T init_val) {
         if (Gpu::inLaunchRegion()) {
-            dp = (T*)(The_Device_Arena()->alloc(sizeof(T)));
+            dp = (T*)(The_Arena()->alloc(sizeof(T)));
             Gpu::htod_memcpy(dp, &init_val, sizeof(T));
         } else {
             dp = (T*)(std::malloc(sizeof(T)));
@@ -82,7 +82,7 @@ struct DeviceScalar
 
     ~DeviceScalar () {
         if (Gpu::inLaunchRegion()) {
-            The_Device_Arena()->free(dp);
+            The_Arena()->free(dp);
         } else {
             std::free(dp);
         }

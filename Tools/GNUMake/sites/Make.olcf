@@ -2,7 +2,7 @@
 # For Summit et al. at OLCF
 #
 
-OLCF_MACHINES := summit ascent
+OLCF_MACHINES := summit ascent spock
 
 ifneq ($(which_computer), $(findstring $(which_computer), $(OLCF_MACHINES)))
   $(error Unknown OLCF computer, $(which_computer))
@@ -43,4 +43,24 @@ ifeq ($(which_computer),$(filter $(which_computer),summit ascent))
   GPUS_PER_NODE=6
   GPUS_PER_SOCKET=3
 
+endif
+
+ifeq ($(which_computer),spock)
+  ifeq ($(USE_HIP),TRUE)
+    # MI100
+    AMD_ARCH=gfx908
+  endif
+
+  ifeq ($(USE_MPI),TRUE)
+    includes += $(shell CC --cray-print-opts=cflags)
+    ifneq ($(BL_NO_FORT),TRUE)
+      LIBRARIES += $(shell ftn --cray-print-opts=libs)
+    else
+      LIBRARIES += $(shell CC --cray-print-opts=libs)
+    endif
+    # for gpu aware mpi
+    ifeq ($(USE_HIP),TRUE)
+      LIBRARIES += $(PE_MPICH_GTL_DIR_gfx908) -lmpi_gtl_hsa
+    endif
+  endif
 endif

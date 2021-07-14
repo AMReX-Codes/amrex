@@ -28,7 +28,7 @@ set( CMAKE_MODULE_PATH ${AMREX_CMAKE_MODULES_PATH} )
 #
 # Retrieve amrex version
 #
-include( AMReX_Utils )
+include( AMReXUtils )
 get_amrex_version()
 
 
@@ -73,6 +73,9 @@ endif()
 # Include options, utilities and other stuff we need
 #
 include( AMReXOptions )
+if (AMReX_GPU_BACKEND STREQUAL "CUDA")
+   include(AMReXCUDAOptions)
+endif ()
 
 #
 # Enable Fortran if requested
@@ -85,21 +88,25 @@ endif ()
 # Enable CUDA if requested
 #
 if (AMReX_CUDA)
-    # CMake 3.18+: CMAKE_CUDA_ARCHITECTURES
-    # https://cmake.org/cmake/help/latest/policy/CMP0104.html
-    if(POLICY CMP0104)
-        cmake_policy(SET CMP0104 OLD)
+    if(CMAKE_VERSION VERSION_LESS 3.20)
+        # CMake 3.18+: CMAKE_CUDA_ARCHITECTURES
+        # https://cmake.org/cmake/help/latest/policy/CMP0104.html
+        if(POLICY CMP0104)
+            cmake_policy(SET CMP0104 OLD)
+        endif()
     endif()
 
     enable_language(CUDA)
-    include(AMReX_SetupCUDA)
+    if(CMAKE_VERSION VERSION_LESS 3.20)
+        include(AMReX_SetupCUDA)
+    endif()
 endif ()
 
 #
 # Check compiler version
 #
-set_mininum_cxx_compiler_version(GNU 4.8)
-set_mininum_cxx_compiler_version(MSVC 19.23)
+set_mininum_compiler_version(CXX GNU 5.1)
+set_mininum_compiler_version(CXX MSVC 19.23)
 
 #
 # Set CMAKE_<LANG>_FLAGS_<CONFIG> if not already defined
@@ -113,16 +120,6 @@ add_subdirectory(Src)
 get_property(_amrex_targets
    DIRECTORY Src
    PROPERTY BUILDSYSTEM_TARGETS)
-
-#
-# Tutorials and "test_install" target
-#
-option(AMReX_BUILD_TUTORIALS "Build tutorials" NO)
-
-if (AMReX_BUILD_TUTORIALS)
-   message(STATUS "Enabling Tutorials")
-   add_subdirectory(Tutorials)
-endif ()
 
 #
 # Plotfile tools
@@ -143,9 +140,16 @@ endif ()
 #
 # Install amrex  -- Export
 #
-include(AMReXInstallHelpers)
-install_amrex_targets(${_amrex_targets})
+if(AMReX_INSTALL)
+    include(AMReXInstallHelpers)
+    install_amrex_targets(${_amrex_targets})
 
+    # Add a test_install target to smoke-test
+    # the installation
+    add_test_install_target(
+       ${CMAKE_CURRENT_LIST_DIR}/Tests/CMakeTestInstall
+       ${CMAKE_INSTALL_PREFIX})
+endif()
 
 #
 # Enable CTests

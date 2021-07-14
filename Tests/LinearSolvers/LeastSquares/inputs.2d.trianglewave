@@ -1,0 +1,25 @@
+amrex.fpe_trap_invalid = 1
+eb_is_dirichlet = 1
+eb_is_homog_dirichlet = 0
+
+eb2.geom_type = channel
+
+eb2.channel_pt_on_top_wall = 0.0  8.775  0.0
+eb2.channel_height = 7.0
+eb2.channel_rotation = 0.
+eb2.channel_has_fluid_inside = 1
+
+use_triangle_wave = true
+
+max_level = 0
+ref_ratio = 2
+n_cell = 20
+max_grid_size = 64
+max_coarsening_level = 0
+prob_lo = 0.   0.   0.
+prob_hi = 10.0  10.0  0.
+is_periodic = 1  0  0
+scalars = 0  1
+
+
+plot_file = "plot-2d-triangle-wave"

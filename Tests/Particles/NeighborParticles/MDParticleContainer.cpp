@@ -98,7 +98,6 @@ InitParticles(const IntVect& a_num_particles_per_cell,
             }
         }
 
-        auto& particles = GetParticles(lev);
         auto& particle_tile = DefineAndReturnParticleTile(lev, mfi);
         auto old_size = particle_tile.GetArrayOfStructs().size();
         auto new_size = old_size + host_particles.size();
@@ -136,7 +135,6 @@ std::pair<Real, Real> MDParticleContainer::minAndMaxDistance()
     BL_PROFILE("MDParticleContainer::minAndMaxDistance");
 
     const int lev = 0;
-    const Geometry& geom = Geom(lev);
     auto& plev  = GetParticles(lev);
 
     Real min_d = std::numeric_limits<Real>::max();
@@ -155,11 +153,11 @@ std::pair<Real, Real> MDParticleContainer::minAndMaxDistance()
         auto nbor_data = m_neighbor_list[lev][index].data();
         ParticleType* pstruct = aos().dataPtr();
 
-	Gpu::DeviceScalar<Real> min_d_gpu(min_d);
-	Gpu::DeviceScalar<Real> max_d_gpu(max_d);
+        Gpu::DeviceScalar<Real> min_d_gpu(min_d);
+        Gpu::DeviceScalar<Real> max_d_gpu(max_d);
 
-	Real* pmin_d = min_d_gpu.dataPtr();
-	Real* pmax_d = max_d_gpu.dataPtr();
+        Real* pmin_d = min_d_gpu.dataPtr();
+        Real* pmax_d = max_d_gpu.dataPtr();
 
         AMREX_FOR_1D ( np, i,
         {
@@ -175,15 +173,15 @@ std::pair<Real, Real> MDParticleContainer::minAndMaxDistance()
                 r2 = amrex::max(r2, Params::min_r*Params::min_r);
                 Real r = sqrt(r2);
 
-		Gpu::Atomic::Min(pmin_d, r);
-		Gpu::Atomic::Max(pmax_d, r);
+                Gpu::Atomic::Min(pmin_d, r);
+                Gpu::Atomic::Max(pmax_d, r);
             }
         });
 
-        //	Gpu::Device::streamSynchronize();
+        //        Gpu::Device::streamSynchronize();
 
-	min_d = std::min(min_d, min_d_gpu.dataValue());
-	max_d = std::max(max_d, max_d_gpu.dataValue());
+        min_d = std::min(min_d, min_d_gpu.dataValue());
+        max_d = std::max(max_d, max_d_gpu.dataValue());
     }
     ParallelDescriptor::ReduceRealMin(min_d, ParallelDescriptor::IOProcessorNumber());
     ParallelDescriptor::ReduceRealMax(max_d, ParallelDescriptor::IOProcessorNumber());
@@ -196,7 +194,6 @@ void MDParticleContainer::moveParticles(amrex::Real dx)
     BL_PROFILE("MDParticleContainer::moveParticles");
 
     const int lev = 0;
-    const Geometry& geom = Geom(lev);
     auto& plev  = GetParticles(lev);
 
     for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
@@ -233,7 +230,6 @@ void MDParticleContainer::checkNeighborParticles()
     BL_PROFILE("MDParticleContainer::checkNeighborParticles");
 
     const int lev = 0;
-    const Geometry& geom = Geom(lev);
     auto& plev  = GetParticles(lev);
 
     int ngrids = ParticleBoxArray(0).size();
@@ -253,7 +249,7 @@ void MDParticleContainer::checkNeighborParticles()
         auto& ptile = plev[index];
         auto& aos   = ptile.GetArrayOfStructs();
         auto& soa   = ptile.GetStructOfArrays();
-        const size_t np = aos.numTotalParticles();
+        const int np = aos.numTotalParticles();
 
         ParticleType* pstruct = aos().dataPtr();
         auto rdata = soa.GetRealData(0).dataPtr();
@@ -327,19 +323,11 @@ void MDParticleContainer::checkNeighborList()
     BL_PROFILE("MDParticleContainer::checkNeighborList");
 
     const int lev = 0;
-    const Geometry& geom = Geom(lev);
     auto& plev  = GetParticles(lev);
-
-    int ngrids = ParticleBoxArray(0).size();
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         int gid = mfi.index();
-
-        int mine = 0;
-
-        amrex::Gpu::DeviceScalar<int> d_mine(mine);
-        int* p_mine = d_mine.dataPtr();
 
         int tid = mfi.LocalTileIndex();
         auto index = std::make_pair(gid, tid);
@@ -347,8 +335,8 @@ void MDParticleContainer::checkNeighborList()
         auto& ptile = plev[index];
         auto& aos   = ptile.GetArrayOfStructs();
 
-        const size_t np       = aos.numParticles();
-        const size_t np_total = aos.numTotalParticles();
+        const int np       = aos.numParticles();
+        const int np_total = aos.numTotalParticles();
 
         amrex::Gpu::ManagedVector<int> d_neighbor_count(np,0);
         int* p_neighbor_count = d_neighbor_count.data();
@@ -359,7 +347,7 @@ void MDParticleContainer::checkNeighborList()
         auto nbor_data = m_neighbor_list[lev][index].data();
         ParticleType* pstruct = aos().dataPtr();
 
-        // ON DEVIDE: 
+        // ON DEVICE:
         // AMREX_FOR_1D ( np, i,
         // ON HOST:
         // for (int i = 0; i < np; i++)
@@ -380,20 +368,20 @@ void MDParticleContainer::checkNeighborList()
                 Real dx = p1.pos(0) - p2.pos(0);
                 Real dy = p1.pos(1) - p2.pos(1);
                 Real dz = p1.pos(2) - p2.pos(2);
-                
+
                 Real r2 = dx*dx + dy*dy + dz*dz;
 
-                Real cutoff_sq = 25.0*Params::cutoff*Params::cutoff; 
+                Real cutoff_sq = 25.0*Params::cutoff*Params::cutoff;
 
-		if (r2 <= cutoff_sq)
-		{
+                if (r2 <= cutoff_sq)
+                {
                    Gpu::Atomic::AddNoRet(&(p_full_count[i]),1);
                    full_nbors.push_back(p2.id());
-		}
+                }
             }
 
             for (const auto& p2 : nbor_data.getNeighbors(i))
-            {               
+            {
                 Gpu::Atomic::AddNoRet(&(p_neighbor_count[i]),1);
                 nbor_nbors.push_back(p2.id());
             }
@@ -411,10 +399,10 @@ void MDParticleContainer::checkNeighborList()
 
             // amrex::PrintToFile("neighbor_test") << "   there are " << nbor_nbors.size() << " " <<
             //                  full_nbors.size() << " list / full neighbors of particle " << i << std::endl;
-            
+
             // Loop over particles in my neighbor list
             for (int cnt = 0; cnt < nbor_nbors.size(); cnt++)
-            {               
+            {
                 // std::cout << "   NBORS " << nbor_nbors[cnt] << " " << full_nbors[cnt] << std::endl;
                 if (nbor_nbors[cnt] != full_nbors[cnt])
                 {
@@ -436,7 +424,6 @@ void MDParticleContainer::reset_test_id()
     BL_PROFILE("MDParticleContainer::reset_test_id");
 
     const int lev = 0;
-    const Geometry& geom = Geom(lev);
     auto& plev  = GetParticles(lev);
 
     for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)

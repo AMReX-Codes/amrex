@@ -1,12 +1,12 @@
-#include <cstring>
-#include <cstdlib>
-
 #include <AMReX_BaseFab.H>
 #include <AMReX_BLFort.H>
 
 #ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
+
+#include <cstring>
+#include <cstdlib>
 
 namespace amrex {
 
@@ -128,7 +128,7 @@ TotalCellsAllocatedInFabsHWM () noexcept
 #endif
 }
 
-void 
+void
 ResetTotalBytesAllocatedInFabsHWM () noexcept
 {
 #ifdef AMREX_USE_OMP

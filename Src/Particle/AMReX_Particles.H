@@ -2,22 +2,6 @@
 #define AMREX_PARTICLES_H_
 #include <AMReX_Config.H>
 
-#include <cstring>
-#include <map>
-#include <deque>
-#include <vector>
-#include <fstream>
-#include <iostream>
-#include <numeric>
-#include <algorithm>
-#include <array>
-#include <memory>
-#include <limits>
-#include <utility>
-#include <tuple>
-#include <type_traits>
-#include <random>
-
 #include <AMReX_ParticleContainerBase.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParGDB.H>
@@ -50,6 +34,7 @@
 #include <AMReX_DenseBins.H>
 #include <AMReX_SparseBins.H>
 #include <AMReX_ParticleTransformation.H>
+#include <AMReX_ParticleMesh.H>
 #include <AMReX_ParIter.H>
 #include <AMReX_OpenMP.H>
 
@@ -63,12 +48,33 @@
 
 #ifdef AMREX_USE_HDF5
 #include <hdf5.h>
+#ifdef AMREX_USE_HDF5_ASYNC
+#include "h5_vol_external_async_native.h"
 #endif
+#endif
+
+#include <algorithm>
+#include <array>
+#include <cstring>
+#include <fstream>
+#include <iostream>
+#include <limits>
+#include <map>
+#include <memory>
+#include <numeric>
+#include <random>
+#include <tuple>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 namespace amrex {
 
+#ifdef AMREX_USE_HDF5_ASYNC
+extern hid_t es_par_g;
+#endif
 /**
-* \brief A struct used for communicating particle data accross processes
+* \brief A struct used for communicating particle data across processes
 *  during multi-level operations.
 */
 struct ParticleCommData
@@ -118,7 +124,7 @@ struct ParticleInitType
 
 /**
  * \brief A distributed container for Particles sorted onto the levels, grids,
- * and tiles of a block-structured AMR hierarachy.
+ * and tiles of a block-structured AMR hierarchy.
  *
  * The data layout on a single tile is determined by the value of the following
  * template parameters:
@@ -134,13 +140,13 @@ template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArra
 class ParticleContainer : public ParticleContainerBase
 {
 public:
-    //! \brief number of extra Real components in the particle struct
+    //! \brief Number of extra Real components in the particle struct
     static constexpr int NStructReal = T_NStructReal;
-    //! \brief number of extra integer components in the particle struct
+    //! \brief Number of extra integer components in the particle struct
     static constexpr int NStructInt = T_NStructInt;
-    //! \brief number of extra Real components stored in struct-of-array form
+    //! \brief Number of extra Real components stored in struct-of-array form
     static constexpr int NArrayReal = T_NArrayReal;
-    //! \brief number of extra integer components stored in struct-of-array form
+    //! \brief Number of extra integer components stored in struct-of-array form
     static constexpr int NArrayInt = T_NArrayInt;
 
 private:
@@ -148,6 +154,9 @@ private:
     friend class ParIterBase<false,NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>;
 
 public:
+    //! \brief The memory allocator in use.
+    template <typename T>
+    using AllocatorType = Allocator<T>;
     //! \brief The type of Particles we hold.
     using ParticleType = Particle<NStructReal, NStructInt>;
     //! \brief The type of the "SuperParticle" which stored all components in AoS form
@@ -222,9 +231,9 @@ public:
     //! \param A BoxArray, which gives the set of grid boxes
     //!
     ParticleContainer (const Geometry            & geom,
-		       const DistributionMapping & dmap,
-		       const BoxArray            & ba)
-	:
+                       const DistributionMapping & dmap,
+                       const BoxArray            & ba)
+        :
         ParticleContainerBase(geom, dmap, ba),
         h_communicate_real_comp(NArrayReal, true),
         h_communicate_int_comp(NArrayInt, true),
@@ -247,10 +256,10 @@ public:
     //! refinement ratio between levels n and n+1
     //!
     ParticleContainer (const Vector<Geometry>            & geom,
-		       const Vector<DistributionMapping> & dmap,
-		       const Vector<BoxArray>            & ba,
-		       const Vector<int>                 & rr)
-	:
+                       const Vector<DistributionMapping> & dmap,
+                       const Vector<BoxArray>            & ba,
+                       const Vector<int>                 & rr)
+        :
         ParticleContainerBase(geom, dmap, ba, rr),
         h_communicate_real_comp(NArrayReal, true),
         h_communicate_int_comp(NArrayInt, true),
@@ -272,10 +281,10 @@ public:
     //! refinement ratio between levels n and n+1
     //!
     ParticleContainer (const Vector<Geometry>            & geom,
-		       const Vector<DistributionMapping> & dmap,
-		       const Vector<BoxArray>            & ba,
-		       const Vector<IntVect>             & rr)
-	:
+                       const Vector<DistributionMapping> & dmap,
+                       const Vector<BoxArray>            & ba,
+                       const Vector<IntVect>             & rr)
+        :
         ParticleContainerBase(geom, dmap, ba, rr),
         h_communicate_real_comp(NArrayReal, true),
         h_communicate_int_comp(NArrayInt, true),
@@ -319,8 +328,8 @@ public:
     //! \param A BoxArray, which gives the set of grid boxes
     //!
     void Define (const Geometry            & geom,
-		 const DistributionMapping & dmap,
-		 const BoxArray            & ba)
+                 const DistributionMapping & dmap,
+                 const BoxArray            & ba)
     {
         this->ParticleContainerBase::Define(geom, dmap, ba);
         reserveData();
@@ -337,13 +346,13 @@ public:
     //! refinement ratio between levels n and n+1
     //!
     void Define (const Vector<Geometry>            & geom,
-		 const Vector<DistributionMapping> & dmap,
-		 const Vector<BoxArray>            & ba,
-		 const Vector<int>                 & rr)
+                 const Vector<DistributionMapping> & dmap,
+                 const Vector<BoxArray>            & ba,
+                 const Vector<int>                 & rr)
     {
         this->ParticleContainerBase::Define(geom, dmap, ba, rr);
         reserveData();
-	resizeData();
+        resizeData();
     }
 
     //! \brief The total number of tiles on this rank on this level
@@ -449,12 +458,25 @@ public:
     * In a local Redistribute, particles can only have moved a certain distance since the last
     * time Redistribute() was called. Thus, communication only needs to happen between neighboring
     * ranks. In a global Redistribute, the particles can potentially go from any rank to any rank.
-    * This usually happens after initialiation or when doing dynamic load balancing.
+    * This usually happens after initialization or when doing dynamic load balancing.
     *
-    * \param lev_min
-    * \param lev_max
-    * \param nGrow
-    * \param local
+    * \param lev_min The minimum level consider. Particles on levels less than this will not be
+    *                touched, and particles on finer levels will not be assigned to levels less
+    *                than this, either.
+    *                Default: 0.
+    * \param lev_max The maximum level consider. Particles on levels greater than this will not be
+    *                touched, and particles on coarser levels will not be assigned to levels greater
+    *                than this, either. If negative, will use the finest level in the hierarchy.
+    *                Default: -1.
+    * \param nGrow If particles are within nGrow cells of their current box, they will not moved.
+    *              This is useful for subcycling methods, when fine level particles need to be
+    *              redistributed but are not necessarily at the same time as those on the coarse
+    *              level.
+    *              Default: 0
+    * \param local If 0, this will be a non-local redistribute, meaning that particle can potentially
+    *              go to any other box in the simulation. If > 0, this is the maximum number of cells
+    *              a particle can have moved since the last Redistribute() call. Knowing this number
+    *              allows an optimized MPI communication pattern to be used.
     */
     void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
 
@@ -466,7 +488,7 @@ public:
     /**
      * \brief Sort the particles on each tile by groups of cells, given an IntVect bin_size
      *
-     *        If bin_size is the zero vector, this operation is a no-op.
+     * If bin_size is the zero vector, this operation is a no-op.
      *
      */
     void SortParticlesByBin (IntVect bin_size);
@@ -596,7 +618,7 @@ public:
     * \param local whether to call redistribute after
     */
     template <class PCType,
-              amrex::EnableIf_t<IsParticleContainer<PCType>::value, int> foo = 0>
+              std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0>
     void copyParticles (const PCType& other, bool local=false);
 
     /**
@@ -607,7 +629,7 @@ public:
     * \param local whether to call redistribute after
     */
     template <class PCType,
-              amrex::EnableIf_t<IsParticleContainer<PCType>::value, int> foo = 0>
+              std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0>
     void addParticles (const PCType& other, bool local=false);
 
     /**
@@ -625,8 +647,8 @@ public:
     * \param local whether to call redistribute after
     */
     template <class F, class PCType,
-              amrex::EnableIf_t<IsParticleContainer<PCType>::value, int> foo = 0,
-              amrex::EnableIf_t<! std::is_integral<F>::value, int> bar = 0>
+              std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0,
+              std::enable_if_t<! std::is_integral<F>::value, int> bar = 0>
     void copyParticles (const PCType& other, F&&f, bool local=false);
 
     /**
@@ -643,8 +665,8 @@ public:
     * \param local whether to call redistribute after
     */
     template <class F, class PCType,
-              amrex::EnableIf_t<IsParticleContainer<PCType>::value, int> foo = 0,
-              amrex::EnableIf_t<! std::is_integral<F>::value, int> bar = 0>
+              std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0,
+              std::enable_if_t<! std::is_integral<F>::value, int> bar = 0>
     void addParticles (const PCType& other, F&& f, bool local=false);
 
     /**
@@ -684,15 +706,15 @@ public:
      /**
       * \brief Writes particle data to disk in the AMReX native format.
       *
-	  * \tparam F function type
-	  *
+      * \tparam F function type
+      *
       * \param dir The base directory into which to write (i.e. "plt00000")
       * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
       * \param write_real_comp for each real component, whether or not we include that component in the file
       * \param write_int_comp for each integer component, whether or not we include that component in the file
       * \param real_comp_names for each real component, a name to label the data with
       * \param int_comp_names for each integer component, a name to label the data with
-	  * \param f callable that returns whether a given particle should be written or not
+      * \param f callable that returns whether a given particle should be written or not
       */
     template <class F>
     void WriteBinaryParticleData (const std::string& dir,
@@ -701,7 +723,7 @@ public:
                                   const Vector<int>& write_int_comp,
                                   const Vector<std::string>& real_comp_names,
                                   const Vector<std::string>&  int_comp_names,
-								  F&& f) const;
+                                                                  F&& f) const;
 
     void CheckpointPre ();
 
@@ -740,7 +762,7 @@ public:
                                   const Vector<std::string>& real_comp_names,
                                   const Vector<std::string>&  int_comp_names) const;
     /**
-     *   \brief Restart from checkpoint in HDF5 format
+     * \brief Restart from checkpoint in HDF5 format
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
@@ -748,7 +770,7 @@ public:
     void RestartHDF5 (const std::string& dir, const std::string& file);
 
     /**
-     *   \brief Older version, for backwards compatibility
+     * \brief Older version, for backwards compatibility
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
@@ -759,7 +781,7 @@ public:
 #endif
 
     /**
-     *   \brief Restart from checkpoint
+     * \brief Restart from checkpoint
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
@@ -767,7 +789,7 @@ public:
     void Restart (const std::string& dir, const std::string& file);
 
     /**
-     *   \brief Older version, for backwards compatibility
+     * \brief Older version, for backwards compatibility
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
@@ -776,7 +798,7 @@ public:
     void Restart (const std::string& dir, const std::string& file, bool is_checkpoint);
 
     /**
-     *  \brief This version of WritePlotFile writes all components and assigns component names
+     * \brief This version of WritePlotFile writes all components and assigns component names
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
@@ -784,9 +806,9 @@ public:
     void WritePlotFile (const std::string& dir, const std::string& name) const;
 
     /**
-     *  \brief This version of WritePlotFile writes all components and assigns component names
+     * \brief This version of WritePlotFile writes all components and assigns component names
      *
-     *  This version also lets you pass in a functor to toggle whether each particle gets output.
+     * This version also lets you pass in a functor to toggle whether each particle gets output.
      *
      * \tparam F function type
      *
@@ -798,7 +820,7 @@ public:
     void WritePlotFile (const std::string& dir, const std::string& name, F&& f) const;
 
     /**
-     *  \brief This version of WritePlotFile writes all components and allows the user to specify the names of the components.
+     * \brief This version of WritePlotFile writes all components and allows the user to specify the names of the components.
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
@@ -810,9 +832,9 @@ public:
                         const Vector<std::string>&  int_comp_names) const;
 
     /**
-     *  \brief This version of WritePlotFile writes all components and allows the user to specify the names of the components.
+     * \brief This version of WritePlotFile writes all components and allows the user to specify the names of the components.
      *
-     *  This version also lets you pass in a functor to toggle whether each particle gets output.
+     * This version also lets you pass in a functor to toggle whether each particle gets output.
      *
      * \tparam F function type
      *
@@ -820,7 +842,7 @@ public:
      * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param real_comp_names for each real component, a name to label the data with
      * \param int_comp_names for each integer component, a name to label the data with
-	 * \param f callable that returns whether or not to write each particle
+     * \param f callable that returns whether or not to write each particle
      */
     template <class F>
     void WritePlotFile (const std::string& dir, const std::string& name,
@@ -828,8 +850,8 @@ public:
                         const Vector<std::string>&  int_comp_names, F&& f) const;
 
     /**
-     *  This version of WritePlotFile writes all components and allows the user to specify
-     *  the names of the components.
+     * \brief This version of WritePlotFile writes all components and allows the user to specify
+     * the names of the components.
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
@@ -839,10 +861,10 @@ public:
                         const Vector<std::string>& real_comp_names) const;
 
     /**
-     *  This version of WritePlotFile writes all components and allows the user to specify
-     *  the names of the components.
+     * \brief This version of WritePlotFile writes all components and allows the user to specify
+     * the names of the components.
      *
-     *  This version also lets you pass in a functor to toggle whether each particle gets output.
+     * This version also lets you pass in a functor to toggle whether each particle gets output.
      *
      * \tparam F function type
      *
@@ -856,8 +878,8 @@ public:
                         const Vector<std::string>& real_comp_names, F&& f) const;
 
     /**
-     *  This version of WritePlotFile assigns component names, but allows the user to pass
-     *  in a vector of ints that toggle on / off the writing of specfic components.
+     * \brief This version of WritePlotFile assigns component names, but allows the user to pass
+     * in a vector of ints that toggle on / off the writing of specific components.
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
@@ -870,10 +892,10 @@ public:
                         const Vector<int>& write_int_comp) const;
 
     /**
-     *  This version of WritePlotFile assigns component names, but allows the user to pass
-     *  in a vector of ints that toggle on / off the writing of specfic components.
+     * \brief This version of WritePlotFile assigns component names, but allows the user to pass
+     * in a vector of ints that toggle on / off the writing of specific components.
      *
-     *  This version also lets you pass in a functor to toggle whether each particle gets output.
+     * This version also lets you pass in a functor to toggle whether each particle gets output.
      *
      * \tparam F function type
      *
@@ -915,10 +937,10 @@ public:
      * the user should pass in vectors containing names of all the components, whether
      * they are written or not.
      *
-	 *  This version also lets you pass in a functor to toggle whether each particle gets output.
-	 *
-	 * \tparam F function type
-	 *
+     *  This version also lets you pass in a functor to toggle whether each particle gets output.
+     *
+     * \tparam F function type
+     *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param write_real_comp for each real component, whether to include that comp in the file
@@ -1080,17 +1102,17 @@ public:
     Gpu::DeviceVector<int> d_communicate_real_comp;
     Gpu::DeviceVector<int> d_communicate_int_comp;
 
-    //! ---- variables for i/o optimization saved for pre and post checkpoint
+    //! Variables for i/o optimization saved for pre and post checkpoint
     mutable bool levelDirectoriesCreated;
     mutable bool usePrePost;
     mutable bool doUnlink;
     int maxnextidPrePost;
     mutable int nOutFilesPrePost;
     Long nparticlesPrePost;
-    Vector<Long> nParticlesAtLevelPrePost;          //!< ---- [level]
-    mutable Vector<Vector<int>>  whichPrePost;      //!< ---- [level]
-    mutable Vector<Vector<int>>  countPrePost;      //!< ---- [level]
-    mutable Vector<Vector<Long>> wherePrePost;      //!< ---- [level]
+    Vector<Long> nParticlesAtLevelPrePost;
+    mutable Vector<Vector<int>>  whichPrePost;
+    mutable Vector<Vector<int>>  countPrePost;
+    mutable Vector<Vector<Long>> wherePrePost;
     mutable std::string HdrFileNamePrePost;
     mutable Vector<std::string> filePrefixPrePost;
 
@@ -1111,7 +1133,7 @@ protected:
     */
     template <typename P>
     bool Where (const P& prt, ParticleLocData& pld,
-		int lev_min = 0, int lev_max = -1, int nGrow=0, int local_grid=-1) const;
+                int lev_min = 0, int lev_max = -1, int nGrow=0, int local_grid=-1) const;
 
 
     /**
@@ -1132,7 +1154,7 @@ public:
     WriteParticles (int level, std::ofstream& ofs, int fnum,
                     Vector<int>& which, Vector<int>& count, Vector<Long>& where,
                     const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
-                    const Vector<std::map<std::pair<int, int>, Gpu::DeviceVector<int>>>& particle_io_flags) const;
+                    const Vector<std::map<std::pair<int, int>,IntVector>>& particle_io_flags) const;
 protected:
 
 #ifdef AMREX_USE_HDF5
@@ -1158,7 +1180,7 @@ private:
                                      int /*grid*/, const ParticleType& /*p*/) {}
 
     void RedistributeMPI (std::map<int, Vector<char> >& not_ours,
-			  int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);
+                          int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);
 
     void locateParticle (ParticleType& p, ParticleLocData& pld,
                          int lev_min, int lev_max, int nGrow, int local_grid=-1) const;

@@ -45,16 +45,16 @@ PrintUsage (const char* progName)
 static
 bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
-			const AmrData& amrd2)
+                        const AmrData& amrd2)
 {
     const Vector<std::string>& derives1 = amrd1.PlotVarNames();
     const Vector<std::string>& derives2 = amrd2.PlotVarNames();
     int length = derives1.size();
     if (length != derives2.size())
-	return false;
+        return false;
     for (int i=0; i<length; ++i)
-	if (derives1[i] != derives2[i])
-	    return false;
+        if (derives1[i] != derives2[i])
+            return false;
     return true;
 }
 
@@ -96,19 +96,19 @@ main (int   argc,
 
     DataServices::SetBatchMode();
     Amrvis::FileType fileType(Amrvis::NEWPLT);
-    
+
     DataServices dataServicesC(iFile1, fileType);
     DataServices dataServicesF(iFile2, fileType);
 
     if (!dataServicesC.AmrDataOk() || !dataServicesF.AmrDataOk())
         amrex::Abort("ERROR: Dataservices not OK");
     //
-    // Generate AmrData Objects 
+    // Generate AmrData Objects
     //
     AmrData& amrDataI = dataServicesC.AmrDataRef();
     AmrData& amrDataE = dataServicesF.AmrDataRef();
     //
-    // Initial Tests 
+    // Initial Tests
     //
     if (!amrDatasHaveSameDerives(amrDataI,amrDataE))
         amrex::Abort("ERROR: Plotfiles do not have the same state variables");
@@ -120,13 +120,13 @@ main (int   argc,
     int finestLevel = amrDataI.FinestLevel();
     const Vector<std::string>& derives = amrDataI.PlotVarNames();
     Vector<int> destComps(nComp);
-    for (int i = 0; i < nComp; i++) 
+    for (int i = 0; i < nComp; i++)
         destComps[i] = i;
     //
     // Compute the error
     //
     Vector<MultiFab*> error(finestLevel+1);
-    
+
     if (ParallelDescriptor::IOProcessor())
         std::cout << "L"<< norm << " norm of Error in Each Component" << std::endl
              << "-----------------------------------------" << std::endl;
@@ -143,8 +143,8 @@ main (int   argc,
         }
 
         DistributionMapping dmI(baI);
-	error[iLevel] = new MultiFab(baI, dmI, nComp, 0);
-	error[iLevel]->setVal(GARBAGE);
+        error[iLevel] = new MultiFab(baI, dmI, nComp, 0);
+        error[iLevel]->setVal(GARBAGE);
 
         DistributionMapping dmE(baE);
         MultiFab dataI(baI, dmI, nComp, 0);
@@ -165,7 +165,7 @@ main (int   argc,
         // Output Statistics
         //
         if (ParallelDescriptor::IOProcessor())
-	  std::cout << "Level:  " << iLevel << std::endl;
+          std::cout << "Level:  " << iLevel << std::endl;
 
         Vector<Real> norms(nComp,0);
 
@@ -193,8 +193,8 @@ main (int   argc,
                 if (proc != ParallelDescriptor::IOProcessorNumber())
                 {
                     MPI_Status stat;
-                    int rc = MPI_Recv(tmp.dataPtr(), nComp, datatype, 
-                                      MPI_ANY_SOURCE, proc, ParallelDescriptor::Communicator(), 
+                    int rc = MPI_Recv(tmp.dataPtr(), nComp, datatype,
+                                      MPI_ANY_SOURCE, proc, ParallelDescriptor::Communicator(),
                                       &stat);
 
                     if (rc != MPI_SUCCESS)
@@ -212,7 +212,7 @@ main (int   argc,
         }
         else
         {
-            int rc = MPI_Send(norms.dataPtr(), nComp, datatype, 
+            int rc = MPI_Send(norms.dataPtr(), nComp, datatype,
                               ParallelDescriptor::IOProcessorNumber(),
                               ParallelDescriptor::MyProc(),
                               ParallelDescriptor::Communicator());
@@ -244,9 +244,9 @@ main (int   argc,
 
     if (!difFile.empty())
         WritePlotFile(error, amrDataI, difFile, verbose);
-    
+
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
-	delete error[iLevel];
+        delete error[iLevel];
 
     amrex::Finalize();
 

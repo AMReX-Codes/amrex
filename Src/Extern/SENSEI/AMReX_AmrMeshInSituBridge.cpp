@@ -5,7 +5,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Vector.H>
 
-#ifdef BL_USE_SENSEI_INSITU
+#ifdef AMREX_USE_SENSEI_INSITU
 #include <chrono>
 #include <AnalysisAdaptor.h>
 #include <Profiler.h>
@@ -20,7 +20,7 @@ AmrMeshInSituBridge::update(unsigned int step, double time,
     const std::vector<std::vector<std::string>> &names)
 {
     int ret = 0;
-#if defined(BL_USE_SENSEI_INSITU)
+#if defined(AMREX_USE_SENSEI_INSITU)
     if (doUpdate())
     {
         amrex::Print() << "SENSEI Begin update..." << std::endl;

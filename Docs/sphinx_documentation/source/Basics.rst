@@ -307,6 +307,69 @@ Then we would pass :cpp:`add_par` into :cpp:`amrex::Initialize`:
 This value replaces the current default value of true in AMReX itself, but
 can still be over-written by setting a value in the inputs file.
 
+.. _sec:basics:parser:
+
+Parser
+======
+
+AMReX provides a parser in ``AMReX_Parser.H`` that can be used at runtime to evaluate mathematical
+expressions given in the form of string.  It supports ``+``, ``-``, ``*``,
+``/``, ``**`` (power), ``^`` (power), ``sqrt``, ``exp``, ``log``, ``log10``,
+``sin``, ``cos``, ``tan``, ``asin``, ``acos``, ``atan``, ``sinh``, ``cosh``,
+``tanh``, and ``abs``.  The minimum and maximum of two numbers can be
+computed with ``min`` and ``max``, respectively.  It supports the Heaviside
+step function, ``heaviside(x1,x2)`` that gives ``0``, ``x2``, ``1``, for
+``x1 < 0``, ``x1 = 0`` and ``x1 > 0``, respectively.  There is ``if(a,b,c)``
+that gives ``b`` or ``c`` depending on the value of ``a``.  A number of
+comparison operators are supported, including ``<``, ``>``, ``==``, ``!=``,
+``<=``, and ``>=``.  The Boolean results from comparison can be combined by
+``and`` and ``or``, and they hold the value ``1`` for true and ``0`` for
+false.  The precedence of the operators follows the convention of the C and
+C++ programming languages.  Here is an example of using the parser.
+
+.. highlight: c++
+
+::
+
+   Parser parser("if(x>a and x<b, sin(x)*cos(y)*if(z<0, 1.0, exp(-z)), .3*c**2)");
+   parser.setConstant(a, ...);
+   parser.setConstant(b, ...);
+   parser.setConstant(c, ...);
+   parser.registerVariables({"x","y","z"});
+   auto f = parser.compile<3>();  // 3 because there are three variables.
+
+   // f can be used in both host and device code.  It takes 3 arguments in
+   // this example.  The parser object must be alive for f to be valid.
+   for (int k = 0; ...) {
+     for (int j = 0; ...) {
+       for (int i = 0; ...) {
+         a(i,j,k) = f(i*dx, j*dy, k*dz);
+       }
+     }
+   }
+
+Local automatic variables can be defined in the expression.  For example,
+
+.. highlight: c++
+
+::
+
+   Parser parser("r2=x*x+y*y; r=sqrt(r2); cos(a+r2)*log(r)"
+   parser.setConstant(a, ...);
+   parser.registerVariables({"x","y"});
+   auto f = parser.compile<2>();  // 2 because there are two variables.
+
+Note that an assignment to an automatic variable must be terminated with
+``;``, and one should avoid name conflict between the local variables and
+the constants set by :cpp:`setConstant` and the variables registered by
+:cpp:`registerVariables`.
+
+Besides :cpp:`amrex::Parser` for floating point numbers, AMReX also provides
+:cpp:`amrex::IParser` for integers.  The two parsers have a lot of
+similarity, but floating point number specific functions (e.g., ``sqrt``,
+``sin``, etc.) are not supported in ``IParser``.  In addition to ``/`` whose
+result truncates towards zero, the integer parser also supports ``//`` whose
+result truncates towards negative infinity.
 
 .. _sec:basics:initialize:
 
@@ -365,7 +428,7 @@ Sharing the Command Line
 ------------------------
 
 In some cases we want AMReX to only read part of the command line -- this happens, for example, when we
-are going to use AMReX in cooperation with another code package and that code also takes command-line 
+are going to use AMReX in cooperation with another code package and that code also takes command-line
 arguments.
 
 .. highlight:: console
@@ -719,7 +782,7 @@ Dim3 and XDim3
     struct Dim3 { int x; int y; int z; };
     struct XDim3 { Real x; Real y; Real z; };
 
-One can covert an :cpp:`IntVect` to :cpp:`Dim3`,
+One can convert an :cpp:`IntVect` to :cpp:`Dim3`,
 
 .. highlight:: c++
 
@@ -1477,6 +1540,39 @@ Here the number of ghost cells involved is zero, and the copy is performed on
 all components if unspecified (assuming the two MultiFabs have the same number
 of components).
 
+Both :cpp:`ParallelCopy(...)` and :cpp:`FillBoundary(...)` are blocking calls. They
+will only return when the communication is completed and the destination MultiFab is
+guaranteed to be properly updated.  AMReX also provides non-blocking versions of
+these calls to allow users to overlap communication with calculation and potentially
+improve overall application performance.
+
+The non-blocking calls are used by calling the :cpp:`***_nowait(...)` function
+to begin the comm operation, followed by the :cpp:`***_finish()` function at a later
+time to complete it. For example:
+
+.. highlight:: c++
+
+::
+
+      mfA.ParallelCopy_nowait(mfsrc, period, op);
+
+      // ... Any overlapping calc work here on other data, e.g.
+      mfB.setVal(0.0);
+
+      mfA.ParallelCopy_finish();
+
+      mfB.FillBoundary_nowait(period);
+      // ... Overlapping work here
+      mfB.FillBoundary_finish();
+
+
+All function signatures of the blocking calls are also available in the non-blocking
+calls and should be used in the `nowait` function.  The `finish` functions take no
+parameters, as the required data is stored during `nowait` and retrieved.  Users that
+choose to use non-blocking calls must ensure the calls are properly used to avoid race
+conditions, which typically means not interacting with the MultiFab between the
+:cpp:`_nowait` and :cpp:`_finish` calls.
+
 
 .. _sec:basics:mfiter:
 
@@ -1518,7 +1614,7 @@ together. In this section, we will show how you can operate on the
           // Call function f1 to work on the region specified by box.
           // Note that the whole region of the Fab includes ghost
           // cells (if there are any), and is thus larger than or
-          // equal to "box". 
+          // equal to "box".
           f1(box, a);
       }
 
@@ -1769,7 +1865,7 @@ tiling flag is on. One can change the default size using :cpp:`ParmParse`
    | | :cpp:`Box` may overlap with points in the other   | | tiles have :math:`5\times 4` points, whereas       |
    | | :cpp:`Box`. However, the memory locations for     | | others have :math:`4 \times 4` points. Points from |
    | | storing floating point data of those points do    | | different Boxes may overlap, but points from       |
-   | | not overlap, because they belong to seperate      | | different tiles of the same Box do not.            |
+   | | not overlap, because they belong to separate      | | different tiles of the same Box do not.            |
    | | FArrayBoxes.                                      |                                                      |
    +-----------------------------------------------------+------------------------------------------------------+
 
@@ -2214,7 +2310,7 @@ macro on loops that are not safe for vectorization may lead to errors,
 so if unsure about the independence of the iterations of a
 loop, test and verify before adding the macro.
 
-These loops should usually use :cpp:`i <= hi.x`, not :cpp:`i < hi.x`, when 
+These loops should usually use :cpp:`i <= hi.x`, not :cpp:`i < hi.x`, when
 defining the loop bounds. If not, the highest index cells will be left out
 of the calculation.
 
@@ -2256,7 +2352,7 @@ works with and without GPU support.  When AMReX is built with GPU support,
 AMREX_GPU_DEVICE indicates that the lambda function is a device
 function and :cpp:`ParallelFor` launches a GPU kernel to do the work.
 When it is built without GPU support, AMREX_GPU_DEVICE has no effects
-whatsoever.  More details on :cpp:`ParalleFor` will be presented in
+whatsoever.  More details on :cpp:`ParallelFor` will be presented in
 section :ref:`sec:gpu:for`.  It should be emphasized that
 :cpp:`ParallelFor` does not start an OpenMP parallel region.  The OpenMP parallel
 region will be started by the pragma above the :cpp:`MFIter` loop if it is
@@ -2265,7 +2361,7 @@ GPU is enabled so that more parallelism is exposed to GPU kernels.
 Also note that when tiling is off, :cpp:`tilbox` returns
 :cpp:`validbox`.
 
-There are other versions of :cpp:`ParalleFor`,
+There are other versions of :cpp:`ParallelFor`,
 
 .. highlight:: c++
 
@@ -2405,7 +2501,7 @@ The basic idea behind physical boundary conditions is as follows:
    whatsoever, whereas for the GPU build, this marks the operator as a GPU
    device function.
 
--  It is the user's responsibility to have a consisent definition of
+-  It is the user's responsibility to have a consistent definition of
    what the ghost cells represent. A common option used in AMReX codes is to
    fill the domain ghost cells with the value that lies on the boundary (as
    opposed to another common option where the value in the ghost cell represents
@@ -2530,6 +2626,8 @@ want AMReX to handle this, ``ParmParse`` parameter
 `amrex.signal_handling=0` can be used to disable it.
 
 
+.. _sec:basics:debugging:
+
 Debugging
 =========
 
@@ -2611,7 +2709,7 @@ For example,
 ::
 
     mpiexec -n 4 valgrind --leak-check=yes --track-origins=yes --log-file=vallog.%p ./foo.exe ...
-    
+
 Breaking into Debuggers
 =======================
 
@@ -2748,7 +2846,7 @@ and ghost cells associated with each grid:
     // Ncomp = number of components for each array
     int Ncomp  = 1;
 
-    // How Boxes are distrubuted among MPI processes
+    // How Boxes are distributed among MPI processes
     DistributionMapping dm(ba);
 
     // we allocate two phi multifabs; one will store the old state, the other the new.

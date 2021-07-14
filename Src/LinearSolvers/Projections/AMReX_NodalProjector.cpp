@@ -108,15 +108,18 @@ void NodalProjector::define (LPInfo const& a_lpinfo)
     //
     if (m_sigma.empty()) {
 #ifdef AMREX_USE_EB
-        m_linop.reset(new MLNodeLaplacian(m_geom, ba, dm, a_lpinfo, m_ebfactory, m_const_sigma));
+        m_linop = std::make_unique<MLNodeLaplacian>(m_geom, ba, dm, a_lpinfo, m_ebfactory,
+                                                    m_const_sigma);
 #else
-        m_linop.reset(new MLNodeLaplacian(m_geom, ba, dm, a_lpinfo, {}, m_const_sigma));
+        m_linop = std::make_unique<MLNodeLaplacian>(m_geom, ba, dm, a_lpinfo,
+                                                    Vector<FabFactory<FArrayBox> const*>{},
+                                                    m_const_sigma);
 #endif
     } else {
 #ifdef AMREX_USE_EB
-        m_linop.reset(new MLNodeLaplacian(m_geom, ba, dm, a_lpinfo, m_ebfactory));
+        m_linop = std::make_unique<MLNodeLaplacian>(m_geom, ba, dm, a_lpinfo, m_ebfactory);
 #else
-        m_linop.reset(new MLNodeLaplacian(m_geom, ba, dm, a_lpinfo));
+        m_linop = std::make_unique<MLNodeLaplacian>(m_geom, ba, dm, a_lpinfo);
 #endif
     }
 
@@ -126,7 +129,7 @@ void NodalProjector::define (LPInfo const& a_lpinfo)
     //
     // Setup solver
     //
-    m_mlmg.reset(new MLMG(*m_linop));
+    m_mlmg = std::make_unique<MLMG>(*m_linop);
 
     setOptions();
 }
@@ -138,7 +141,6 @@ void NodalProjector::define (LPInfo const& a_lpinfo)
 void
 NodalProjector::setOptions ()
 {
-
     // Default values
     int          bottom_verbose(0);
     int          maxiter(100);
@@ -150,6 +152,8 @@ NodalProjector::setOptions ()
     int          num_pre_smooth (2);
     int          num_post_smooth(2);
 
+    Real         normalization_threshold(-1.);
+
     // Read from input file
     ParmParse pp("nodal_proj");
     pp.query( "verbose"       , m_verbose );
@@ -160,8 +164,15 @@ NodalProjector::setOptions ()
     pp.query( "bottom_atol"   , bottom_atol );
     pp.query( "bottom_solver" , bottom_solver );
 
+    pp.query( "normalization_threshold" , normalization_threshold);
+
     pp.query( "num_pre_smooth"  , num_pre_smooth );
     pp.query( "num_post_smooth" , num_post_smooth );
+
+    // This is only used by the Krylov solvers but we pass it through the nodal operator
+    //      if it is set here.  Otherwise we use the default set in AMReX_NodeLaplacian.H
+    if (normalization_threshold > 0.)
+        m_linop->setNormalizationThreshold(normalization_threshold);
 
     // Set default/input values
     m_mlmg->setVerbose(m_verbose);
@@ -293,7 +304,7 @@ NodalProjector::project ( Real a_rtol, Real a_atol )
         MultiFab::Add( *m_vel[lev], m_fluxes[lev], 0, 0, AMREX_SPACEDIM, 0);
 
         // set m_fluxes = grad(phi)
-	m_linop->compGrad(lev,m_fluxes[lev],m_phi[lev]);
+        m_linop->compGrad(lev,m_fluxes[lev],m_phi[lev]);
     }
 
     //

@@ -15,7 +15,7 @@
 
 namespace amrex { namespace EB2 {
 
-extern int max_grid_size;
+extern AMREX_EXPORT int max_grid_size;
 
 void useEB2 (bool);
 
@@ -51,7 +51,7 @@ public:
     virtual const Box& coarsestDomain () const = 0;
 
 protected:
-    static Vector<std::unique_ptr<IndexSpace> > m_instance;
+    static AMREX_EXPORT Vector<std::unique_ptr<IndexSpace> > m_instance;
 };
 
 const IndexSpace* TopIndexSpaceIfPresent () noexcept;

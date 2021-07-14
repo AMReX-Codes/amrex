@@ -5,6 +5,7 @@
 
 #include <AMReX_BLassert.H>
 
+#include <set>
 #include <stack>
 #include <string>
 #include <iosfwd>
@@ -70,16 +71,16 @@ class IntVect;
 // remaining four values are integers indexed 2, 3, 4, and 5.
 //
 // For a string value to represent an integer or float it must fit the
-// following regular experssion:
+// following regular expression:
 //   Sign    ::= '+' | '-'
 //   Digit   ::= '0' | '1' | ... | '9'
 //   Integer ::= [Sign]Digit+
 //   Exp     ::= ('e'|'E')Integer
 //   Float   ::= ( Integer[.Digit*][Exp] | [Integer].Digit+[Exp] )
 //
-// Where '+' indicates one or more occurences, '*' represents zero or
-// more occurences, '|' means one or the other and '[]' represents zero
-// or one occurence.
+// Where '+' indicates one or more occurrences, '*' represents zero or
+// more occurrences, '|' means one or the other and '[]' represents zero
+// or one occurrence.
 //
 // Note that floats and doubles have the same string representation and
 // that the FORTRAN "double" exponent format is not supported.
@@ -236,6 +237,26 @@ class IntVect;
 *     test = apple "boy blue" 10 20 30 40
 *
 *     FILE = prob_file
+*
+*  Preprocessing of AMREX_SPACEDIM is supported. It supports #if, #elif,
+*  #else, and #endif.  The condition must be `AMREX_SPACEDIM op D`, where op
+*  is >, <, >=, <=, or ==, and D is 1, 2, or 3. The parentheses around the
+*  condition are optional. Some examples are shown below.
+*
+*    #if (AMREX_SPACEDIM == 1)
+*    n_cell = 256
+*    #elif (AMREX_SPACEDIM == 2)
+*    n_cell = 128 128
+*    #else
+*    n_cell = 64 64 64
+*    #endif
+*
+*    #if AMREX_SPACEDIM >= 2
+*    t = 0.5
+*    #else
+*    t = 1.5
+*    #endif
+*
 */
 
 class ParmParse
@@ -255,9 +276,9 @@ public:
     //! Returns true if name is in table.
     bool contains (const char* name) const;
     /**
-    * \brief Returns the number of values associated with nth occurence of
+    * \brief Returns the number of values associated with nth occurrence of
     * name (prepended with the prefix) in the table.  n == -1 implies
-    * the last occurence.
+    * the last occurrence.
     */
     int countval (const char* name,
                   int         n = LAST) const;
@@ -909,6 +930,9 @@ public:
         return exist;
     }
 
+    //! Remove given name from the table.
+    int remove (const char* name);
+
     /**
     * \brief Construct an initial ParmParse object from the argc and argv
     * passed in to main().  An error will be signalled if another
@@ -919,8 +943,8 @@ public:
     * ParmParse object.
     */
     static void Initialize(int         argc,
-			   char**      argv,
-			   const char* parfile);
+                           char**      argv,
+                           const char* parfile);
     /**
     * \brief The destructor.  The internal static table will only be deleted
     * if there are no other ParmParse objects in existence.
@@ -934,6 +958,9 @@ public:
 
     //! Returns unused [prefix.]* parameters.
     static std::vector<std::string> getUnusedInputs (const std::string& prefix = std::string());
+
+    //! Returns [prefix.]* parameters.
+    static std::set<std::string> getEntries (const std::string& prefix = std::string());
 
     struct PP_entry;
     typedef std::list<PP_entry> Table;
@@ -956,7 +983,7 @@ protected:
     friend class Frame;
     friend class Record;
 
-    explicit ParmParse (const Table& tbl);
+    explicit ParmParse (Table& tbl);
     //
     //! Set/Get the prefix.
     std::string getPrefix() const;
@@ -967,7 +994,7 @@ protected:
     //
     //! Prefix used in keyword search.
     std::stack<std::string> m_pstack;
-    const Table& m_table;
+    Table& m_table;
 };
 
 struct ParmParse::PP_entry
@@ -977,7 +1004,7 @@ struct ParmParse::PP_entry
     PP_entry (const std::string& name,
               const std::string& vals);
     PP_entry (const std::string& name,
-	      const Table& table);
+              const Table& table);
     PP_entry (const PP_entry& pe);
     PP_entry& operator= (const PP_entry& pe);
     ~PP_entry ();

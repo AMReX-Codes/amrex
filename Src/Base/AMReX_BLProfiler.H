@@ -15,15 +15,14 @@
 #include <AMReX_Box.H>
 #endif
 
-#include <iostream>
-#include <ostream>
+#include <list>
+#include <map>
+#include <iosfwd>
 #include <string>
 #include <stack>
 #include <set>
-#include <map>
-#include <list>
-#include <utility>
 #include <typeinfo>
+#include <utility>
 
 namespace amrex {
 
@@ -40,16 +39,16 @@ class BLProfiler
     struct CallStats {
       CallStats() : callStackDepth(-2), csFNameNumber(-2),
                     nCSCalls(0), totalTime(0.0),
-		    stackTime(0.0), callTime(0.0)  { }
+                    stackTime(0.0), callTime(0.0)  { }
       CallStats(int depth, int fnamenumber) : callStackDepth(depth),
                                               csFNameNumber(fnamenumber),
                                               nCSCalls(0), totalTime(0.0),
-					      stackTime(0.0), callTime(0.0)  { }
+                                              stackTime(0.0), callTime(0.0)  { }
       CallStats(int depth, int fnamenumber, int ncalls, Real totaltime,
                 Real stacktime, Real calltime) : callStackDepth(depth),
                                                  csFNameNumber(fnamenumber),
                                                  nCSCalls(ncalls), totalTime(totaltime),
-					         stackTime(stacktime), callTime(calltime)  { }
+                                                 stackTime(stacktime), callTime(calltime)  { }
       int callStackDepth, csFNameNumber;
       Long nCSCalls;
       Real totalTime, stackTime, callTime;
@@ -184,7 +183,7 @@ class BLProfiler
     static void AddCommStat(const CommFuncType cft, const int size,
                             const int pid, const int tag);
     static void AddWait(const CommFuncType cft, const MPI_Request &reqs,
-		        const MPI_Status &status, const bool bc);
+                        const MPI_Status &status, const bool bc);
     static void AddWaitsome(const CommFuncType cft, const Vector<MPI_Request> &reqs,
                             const int completed, const Vector<MPI_Status> &status,
                             const bool bc);
@@ -322,23 +321,18 @@ namespace BLProfilerUtils {
 
   void WriteRow(std::ostream &os, const std::string &fname,
                 const BLProfiler::ProfStats &pstats, const Real percent,
-	        const int colWidth, const Real maxlen,
-	        const bool bwriteavg);
+                const int colWidth, const Real maxlen,
+                const bool bwriteavg);
 
   void WriteStats(std::ostream &os,
                   const std::map<std::string, BLProfiler::ProfStats> &mpStats,
-		  const std::map<std::string, int> &fnameNumbers,
-		  const Vector<BLProfiler::CallStats> &callTraces,
-		  bool bwriteavg = false, bool bwriteinclusivetimes = false);
+                  const std::map<std::string, int> &fnameNumbers,
+                  const Vector<BLProfiler::CallStats> &callTraces,
+                  bool bwriteavg = false, bool bwriteinclusivetimes = false);
 }
 
 
-inline std::ostream &operator<< (std::ostream &os, const BLProfiler::CommStats &cs) {
-  os << BLProfiler::CommStats::CFTToString(cs.cfType) << "   " << cs.size
-     << "  " << cs.commpid << "  " << cs.tag << "  " << cs.timeStamp;
-  return os;
-}
-
+std::ostream &operator<< (std::ostream &os, const BLProfiler::CommStats &cs);
 
 
 inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {

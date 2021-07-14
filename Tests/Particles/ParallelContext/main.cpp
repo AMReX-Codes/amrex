@@ -175,7 +175,6 @@ public:
 
         for (int lev = 0; lev <= finestLevel(); ++lev)
         {
-            const Geometry& geom = Geom(lev);
             const auto dx = Geom(lev).CellSizeArray();
             auto& plev  = GetParticles(lev);
 
@@ -234,8 +233,6 @@ public:
 
         for (int lev = 0; lev <= finestLevel(); ++lev)
         {
-            const Geometry& geom = Geom(lev);
-            const auto dx = Geom(lev).CellSizeArray();
             auto& plev  = GetParticles(lev);
 
             for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
@@ -335,8 +332,12 @@ void testParallelContext ()
 
     if (task_me > 1) task_me = 1;
 
+#ifdef BL_USE_MPI
     MPI_Comm new_comm;
     MPI_Comm_split(ParallelContext::CommunicatorSub(), task_me, myproc, &new_comm);
+#else
+    MPI_Comm new_comm = ParallelContext::CommunicatorSub();
+#endif
 
     const int io_rank = 0;
     ParallelContext::push(new_comm, task_me, io_rank);

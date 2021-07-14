@@ -27,13 +27,28 @@ ifeq ($(shell expr $(nvcc_major_version) \>= 11),1)
   nvcc_forward_unknowns = 1
 endif
 
+ifeq ($(shell expr $(nvcc_major_version) \= 11),1)
+ifeq ($(shell expr $(nvcc_minor_version) \= 0),1)
+  # -MP not supported in 11.0
+  DEPFLAGS = -MMD
+endif
+endif
+
+ifeq ($(shell expr $(nvcc_major_version) \< 11),1)
+  # -MMD -MP not supported in < 11
+  USE_LEGACY_DEPFLAGS = TRUE
+  DEPFLAGS =
+endif
+
 ifeq ($(shell expr $(nvcc_major_version) \< 10),1)
-  DEPFLAGS = -M  # -MM not supported in < 10
+  # -MM not supported in < 10
+  LEGACY_DEPFLAGS = -M
 endif
 
 ifeq ($(shell expr $(nvcc_major_version) \= 10),1)
 ifeq ($(shell expr $(nvcc_minor_version) \= 0),1)
-  DEPFLAGS = -M  # -MM not supported in 10.0
+  # -MM not supported in 10.0
+  LEGACY_DEPFLAGS = -M
 endif
 endif
 
@@ -56,25 +71,18 @@ ifeq ($(lowercase_nvcc_host_comp),$(filter $(lowercase_nvcc_host_comp),gcc gnu g
 endif
 
 ifeq ($(lowercase_nvcc_host_comp),gnu)
-  ifdef CXXSTD
-    CXXSTD := $(strip $(CXXSTD))
-    ifeq ($(shell expr $(gcc_major_version) \< 5),1)
-      ifneq ($(NO_CONFIG_CHECKING),TRUE)
-        ifeq ($(CXXSTD),c++14)
-          $(error C++14 support requires GCC 5 or newer.)
-        endif
-      endif
-    endif
-  else
-    ifeq ($(gcc_major_version),4)
-      CXXSTD := c++11
-    else ifeq ($(gcc_major_version),5)
-      CXXSTD := c++14
-    else
-      CXXSTD := c++14
+
+  ifeq ($(shell expr $(gcc_major_version) \< 5),1)
+    ifneq ($(NO_CONFIG_CHECKING),TRUE)
+      $(error C++14 support requires GCC 5 or newer.)
     endif
   endif
 
+  ifdef CXXSTD
+    CXXSTD := $(strip $(CXXSTD))
+  else
+    CXXSTD = c++14
+  endif
   CXXFLAGS += -std=$(CXXSTD)
 
   NVCC_CCBIN ?= g++
@@ -93,27 +101,21 @@ else ifeq ($(lowercase_nvcc_host_comp),pgi)
       endif
     endif
   else
-    ifeq ($(gcc_major_version),4)
-      CXXSTD := c++11
-    else ifeq ($(gcc_major_version),5)
-      CXXSTD := c++14
-    else
-      CXXSTD := c++14
-    endif
+    CXXSTD := c++14
   endif
 
   CXXFLAGS += -std=$(CXXSTD)
 
   NVCC_CCBIN ?= pgc++
 
-  # In pgi.make, we use gcc_major_version to handle c++11/c++14 flag.
+  # In pgi.make, we use gcc_major_version to handle c++14 flag.
   CXXFLAGS_FROM_HOST := -ccbin=$(NVCC_CCBIN) -Xcompiler='$(CXXFLAGS)' --std=$(CXXSTD)
   CFLAGS_FROM_HOST := $(CXXFLAGS_FROM_HOST)
 else
   ifdef CXXSTD
     CXXSTD := $(strip $(CXXSTD))
   else
-    CXXSTD := c++11
+    CXXSTD := c++14
   endif
 
   NVCC_CCBIN ?= $(CXX)
@@ -141,7 +143,7 @@ ifeq ($(CUDA_VERBOSE),TRUE)
 endif
 
 ifeq ($(USE_CUPTI),TRUE)
-  INCLUDE_LOCATIONS += $(MAKE_CUDA_PATH)/extras/CUPTI/include
+  SYSTEM_INCLUDE_LOCATIONS += $(MAKE_CUDA_PATH)/extras/CUPTI/include
   LIBRARY_LOCATIONS += ${MAKE_CUDA_PATH}/extras/CUPTI/lib64
   LIBRARIES += -Wl,-rpath,${MAKE_CUDA_PATH}/extras/CUPTI/lib64 -lcupti
 endif
@@ -166,8 +168,31 @@ endif
 endif
 endif
 
-CXXFLAGS = $(CXXFLAGS_FROM_HOST) $(NVCC_FLAGS) -dc -x cu
-CFLAGS   =   $(CFLAGS_FROM_HOST) $(NVCC_FLAGS) -dc -x cu
+nvcc_diag_error = 0
+ifeq ($(shell expr $(nvcc_major_version) \>= 12),1)
+  nvcc_diag_error = 1
+else
+ifeq ($(shell expr $(nvcc_major_version) \= 11),1)
+ifeq ($(shell expr $(nvcc_minor_version) \>= 2),1)
+  nvcc_diag_error = 1
+endif
+endif
+endif
+# warning #20092-D: a __device__ variable cannot be directly written in a host function
+ifeq ($(nvcc_diag_error),1)
+  NVCC_FLAGS += --display-error-number --diag-error 20092
+endif
+
+CXXFLAGS = $(CXXFLAGS_FROM_HOST) $(NVCC_FLAGS) -x cu
+CFLAGS   =   $(CFLAGS_FROM_HOST) $(NVCC_FLAGS) -x cu
+
+ifeq ($(USE_GPU_RDC),TRUE)
+  CXXFLAGS += -dc
+  CFLAGS   += -dc
+else
+  CXXFLAGS += -c
+  CFLAGS   += -c
+endif
 
 ifeq ($(nvcc_version),9.2)
   # relaxed constexpr not supported

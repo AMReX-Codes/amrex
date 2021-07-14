@@ -2,9 +2,6 @@
 #define AMREX_GPU_DEVICE_H_
 #include <AMReX_Config.H>
 
-#include <cstdlib>
-#include <memory>
-#include <array>
 #include <AMReX.H>
 #include <AMReX_Utility.H>
 #include <AMReX_GpuTypes.H>
@@ -12,6 +9,13 @@
 #include <AMReX_GpuControl.H>
 #include <AMReX_OpenMP.H>
 #include <AMReX_Vector.H>
+
+#include <algorithm>
+#include <array>
+#include <cstdlib>
+#include <memory>
+
+#define AMREX_GPU_MAX_STREAMS 8
 
 namespace amrex {
 
@@ -64,10 +68,14 @@ public:
 #endif
 
     static int numGpuStreams () noexcept { return max_gpu_streams; }
+
     static void setStreamIndex (const int idx) noexcept;
     static void resetStreamIndex () noexcept { setStreamIndex(-1); }
 
 #ifdef AMREX_USE_GPU
+    // For Index, the null stream is -1, and the other streams are 0, 1, 2, ...
+    static int streamIndex (gpuStream_t s = gpuStream()) noexcept;
+
     static gpuStream_t setStream (gpuStream_t s) noexcept;
     static gpuStream_t resetStream () noexcept;
 #endif
@@ -121,8 +129,12 @@ public:
 #endif
 
     static std::size_t freeMemAvailable ();
+    static void profilerStart ();
+    static void profilerStop ();
 
 #ifdef AMREX_USE_GPU
+
+    static int memoryPoolsSupported () noexcept { return memory_pools_supported; }
 
 #   if defined(AMREX_USE_HIP) && (HIP_VERSION_MAJOR >= 4)
     // definition: https://github.com/llvm/llvm-project/blob/62ec4ac90738a5f2d209ed28c822223e58aaaeb7/clang/lib/Basic/Targets/AMDGPU.cpp#L400
@@ -159,6 +171,7 @@ private:
     static Vector<gpuStream_t> gpu_stream_pool;
     static Vector<gpuStream_t> gpu_stream;
     static gpuDeviceProp_t device_prop;
+    static int memory_pools_supported;
     static unsigned int max_blocks_per_launch;
 
 #ifdef AMREX_USE_DPCPP
@@ -333,12 +346,6 @@ onNullStream (gpuStream_t stream)
 {
     return Device::onNullStream(stream);
 }
-#endif
-
-#ifdef AMREX_USE_GPU
-void callbackAdded ();
-void resetNumCallbacks ();
-int getNumCallbacks ();
 #endif
 
 }}

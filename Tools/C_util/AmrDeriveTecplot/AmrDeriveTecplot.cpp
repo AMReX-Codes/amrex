@@ -50,7 +50,7 @@ struct Node
 
 std::ostream& operator<< (std::ostream&  os, const Node& node)
 {
-    os << "Node: IntVect=" << node.iv << ", level=" << node.level << ", grid=" << node.grid << ", type="; 
+    os << "Node: IntVect=" << node.iv << ", level=" << node.level << ", grid=" << node.grid << ", type=";
     if (node.type==Node::INIT)
         os << "INIT";
     else if (node.type==Node::COVERED)
@@ -85,41 +85,41 @@ struct Element
 };
 
 static
-void 
+void
 print_usage (int,
              char* argv[])
 {
-    std::cerr 
-	<< endl
-	<< " usage:" << endl
-	<< endl
-	<< "    " << argv[0] << " [ParmParse input file] [additional keyword=input]" << endl
-	<< endl
-	<< "       The first argument is a file name unless it contains an =." << endl
-	<< "       With no arguments prints this help." << endl
+    std::cerr
         << endl
-	<< " keywords:" << endl
-	<< endl
-	<< "    box = int list of two subbox coords, LL and UR  (default all)" << endl
-	<< "    comps = integer comp list  (overrides sComp and nComp)" << endl
-	<< "    finestLevel = <#> finest level to use  (default all)" << endl
-	<< "    help = <anything> prints this help" << endl
-	<< "    infile = <plotfile>  (required)" << endl
-	<< "    nComp = <#> number of comps  (default all)" << endl
-	<< "    nGrowPer = <#> number of lev-0 cells by which to" << endl
-	<< "               extend periodic boundaries  (default 0)" << endl
-	<< "    sComp = start comp  (default 0)" << endl
-	<< "    connect_cc = Generate flattened structure by connecting cells centers,"
+        << " usage:" << endl
+        << endl
+        << "    " << argv[0] << " [ParmParse input file] [additional keyword=input]" << endl
+        << endl
+        << "       The first argument is a file name unless it contains an =." << endl
+        << "       With no arguments prints this help." << endl
+        << endl
+        << " keywords:" << endl
+        << endl
+        << "    box = int list of two subbox coords, LL and UR  (default all)" << endl
+        << "    comps = integer comp list  (overrides sComp and nComp)" << endl
+        << "    finestLevel = <#> finest level to use  (default all)" << endl
+        << "    help = <anything> prints this help" << endl
+        << "    infile = <plotfile>  (required)" << endl
+        << "    nComp = <#> number of comps  (default all)" << endl
+        << "    nGrowPer = <#> number of lev-0 cells by which to" << endl
+        << "               extend periodic boundaries  (default 0)" << endl
+        << "    sComp = start comp  (default 0)" << endl
+        << "    connect_cc = Generate flattened structure by connecting cells centers,"
         << "                 otherwise, generate node at all cell corners and copy cc"
         << "                 value out (default 1)" << endl
-	<< endl
-	<< " if nGrowPer > 1 then these additional keywords are needed:" << endl
-	<< endl	
-	<< "    geometry.coord_sys = <0 Cartesion, 1 rz>" << endl
-	<< "    geometry.is_periodic = <0, false or 1, true for each axis>" << endl
-	<< "    geometry.prob_lo = <lower limits for the axes>" << endl
-	<< "    geometry.prob_hi = <upper limits for the axes>" << endl
-	<< endl;
+        << endl
+        << " if nGrowPer > 1 then these additional keywords are needed:" << endl
+        << endl
+        << "    geometry.coord_sys = <0 Cartesion, 1 rz>" << endl
+        << "    geometry.is_periodic = <0, false or 1, true for each axis>" << endl
+        << "    geometry.prob_lo = <lower limits for the axes>" << endl
+        << "    geometry.prob_hi = <upper limits for the axes>" << endl
+        << endl;
     amrex::Finalize();
     exit(1);
 }
@@ -136,7 +136,7 @@ GetBndryCells (const BoxArray& ba,
     BoxList gcells, bcells;
 
     for (int i = 0; i < ba.size(); ++i)
-	gcells.join(amrex::boxDiff(amrex::grow(ba[i],ngrow),ba[i]));
+        gcells.join(amrex::boxDiff(amrex::grow(ba[i],ngrow),ba[i]));
     //
     // Now strip out intersections with original BoxArray.
     //
@@ -219,7 +219,7 @@ Collate(Vector<Real>& NodeRaw,
 #if BL_USE_MPI
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
     BL_ASSERT(IOProc==0);
-    const int nProcs = ParallelDescriptor::NProcs(); 
+    const int nProcs = ParallelDescriptor::NProcs();
     Vector<int> nmdataR(nProcs,0);
     Vector<int> offsetR(nProcs,0);
     //
@@ -295,7 +295,7 @@ Collate(Vector<Real>& NodeRaw,
         for (int i = 1; i < nProcs; i++)
         {
             const int nodeOffset = offsetR[i]/nCompPerNode;
-            for (int j = 0; j < nmdataI[i]; j++)                
+            for (int j = 0; j < nmdataI[i]; j++)
                 EltRaw[offsetI[i]+j] += nodeOffset;
         }
     }
@@ -335,7 +335,7 @@ main (int   argc,
     outfile_DEF = infile+".dat";
 #endif
 
-    // 
+    //
     bool connect_cc = true; pp.query("connect_cc",connect_cc);
 
     std::string outfile(outfile_DEF); pp.query("outfile",outfile);
@@ -423,7 +423,7 @@ main (int   argc,
 
         if (nGrowPer>0 && geom[lev].isAnyPeriodic() && gridArray[lev].size()>0)
         {
-	  //const Box& probDomain = amrData.ProbDomain()[lev];
+          //const Box& probDomain = amrData.ProbDomain()[lev];
             const BoxArray& ba = amrData.boxArray(lev);
             BoxList bladd;
             Vector<IntVect> shifts;
@@ -454,7 +454,7 @@ main (int   argc,
 
     const int nGrow = 1;
     typedef BaseFab<Node> NodeFab;
-    typedef FabArray<NodeFab> MultiNodeFab; 
+    typedef FabArray<NodeFab> MultiNodeFab;
     PArray<MultiNodeFab> nodes(Nlev,PArrayManage);
 
     std::cerr << "Before nodes allocated" << endl;
@@ -474,7 +474,7 @@ main (int   argc,
             for (IntVect iv=box.smallEnd(); iv<=box.bigEnd(); box.next(iv))
                 ifab(iv,0) = Node(iv,lev,fai.index(),Node::VALID);
         }
-            
+
         if (lev != 0)
         {
             const int ref = amrData.RefRatio()[lev-1];
@@ -525,7 +525,7 @@ main (int   argc,
         {
             const BoxArray coarsenedFineBoxes =
                 BoxArray(gridArray[lev+1]).coarsen(amrData.RefRatio()[lev]);
-                
+
             for (MFIter fai(nodes[lev]); fai.isValid(); ++fai)
             {
                 NodeFab& ifab = nodes[lev][fai];
@@ -549,7 +549,7 @@ main (int   argc,
             {
                 if (ifab(iv,0).type == Node::VALID)
                 {
-                    if (ifab(iv,0).level != lev) 
+                    if (ifab(iv,0).level != lev)
                         std::cout << "bad level: " << ifab(iv,0) << std::endl;
                     nodeMap[ifab(iv,0)] = cnt++;
                 }
@@ -565,7 +565,7 @@ main (int   argc,
     {
         for (MFIter fai(nodes[lev]); fai.isValid(); ++fai)
         {
-            NodeFab& ifab = nodes[lev][fai];                        
+            NodeFab& ifab = nodes[lev][fai];
             Box box = ifab.box() & subboxArray[lev];
 
             for (int dir=0; dir<BL_SPACEDIM; ++dir)
@@ -646,7 +646,7 @@ main (int   argc,
         nodeVect[it->second] = (*it).first;
     }
     std::cerr << "Final nodeVect built (" << nodeVect.size() << " nodes)" << endl;
-		
+
     nodeMap.clear();
     elements.clear();
     nodes.clear();
@@ -693,11 +693,11 @@ main (int   argc,
                 for (MFIter mfi(pData); mfi.isValid(); ++mfi)
                     pData[mfi].copy(pDataNG[mfi]);
                 amrData.FillVar(pData,lev,names[comps[i]],0);
-		pData.EnforcePeriodicity(geom[lev]);
+                pData.EnforcePeriodicity(geom[lev]);
                 for (MFIter mfi(pData); mfi.isValid(); ++mfi)
                     pDataNG[mfi].copy(pData[mfi]);
                 fileData[lev].copy(pDataNG,0,i,1);
-            }            
+            }
         }
 
         if (fileData[lev].max(0) > 1.e29)
@@ -752,7 +752,7 @@ main (int   argc,
         if (jGrid<0)
         {
             bool found_it = false;
-            
+
             // Try same grid as last time, otherwise search list
             if (node.level==levPrev && grids[jGridPrev].contains(iv))
             {
@@ -769,11 +769,11 @@ main (int   argc,
             }
             BL_ASSERT(found_it);
         }
-	// Remember these for next time
-	levPrev = node.level;
-	jGridPrev = jGrid;
+        // Remember these for next time
+        levPrev = node.level;
+        jGridPrev = jGrid;
 
-	Vector<IntVect> ivt;
+        Vector<IntVect> ivt;
         if (connect_cc) {
             ivt.resize(1,iv);
         } else {
@@ -788,30 +788,30 @@ main (int   argc,
 #endif
         }
 
-	for (int j=0; j<ivt.size(); ++j) {
+        for (int j=0; j<ivt.size(); ++j) {
 
             Real offset = (connect_cc ? 0.5 : 0);
 
 #ifdef BIN_POINT
-	  for (int dir=0; dir<BL_SPACEDIM; ++dir)
+          for (int dir=0; dir<BL_SPACEDIM; ++dir)
             data[cnt++] = plo[dir] + (ivt[j][dir] + offset) * dx[dir];
 #else /* BLOCK ordering */
-	  for (int dir=0; dir<BL_SPACEDIM; ++dir)
+          for (int dir=0; dir<BL_SPACEDIM; ++dir)
             fdat[dir][cnt] = plo[dir] + (ivt[j][dir] + offset) * dx[dir];
 #endif /* BIN_POINT */
 
 
 #ifdef BIN_POINT
-	  for (int n=0; n<comps.size(); ++n) {
+          for (int n=0; n<comps.size(); ++n) {
             data[cnt++] = fileData[node.level][jGrid](iv,n);
           }
 #else /* BLOCK ordering */
-	  for (int n=0; n<comps.size(); ++n) {
+          for (int n=0; n<comps.size(); ++n) {
               fdat[n+BL_SPACEDIM][cnt] = fileData[node.level][jGrid](iv,n);
           }
-	  cnt++;
+          cnt++;
 #endif /* BIN_POINT */
-	}
+        }
     }
 
     //Collate(tmpData,connData,MYLEN);
@@ -862,7 +862,7 @@ main (int   argc,
                 << "\", N=" << nNodesFINAL << ", E=" << nElts << ", F=" << "FEPOINT" << " ET="
                 //<< "\", N=" << nPts << ", E=" << nElts << ", F=" << block_or_point << " ET="
                 << AMREX_D_PICK("POINT","QUADRILATERAL","BRICK") << endl;
-            
+
             for (int i=0; i<nNodesFINAL; ++i)
             {
                 for (int j=0; j<nState; ++j)

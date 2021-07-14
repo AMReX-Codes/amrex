@@ -14,14 +14,14 @@
 #include <AMReX_EB2_C.H>
 #include <AMReX_EB2_IF_AllRegular.H>
 
+#ifdef AMREX_USE_OMP
+#include <omp.h>
+#endif
+
 #include <unordered_map>
 #include <limits>
 #include <cmath>
 #include <type_traits>
-
-#ifdef AMREX_USE_OMP
-#include <omp.h>
-#endif
 
 namespace amrex { namespace EB2 {
 
@@ -121,9 +121,11 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
     BL_PROFILE("EB2::GShopLevel()-fine");
 
     Real small_volfrac = 1.e-14;
+    bool cover_multiple_cuts = false;
     {
         ParmParse pp("eb2");
         pp.query("small_volfrac", small_volfrac);
+        pp.query("cover_multiple_cuts", cover_multiple_cuts);
     }
 
     // make sure ngrow is multiple of 16
@@ -255,7 +257,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
 
             auto& cellflag = m_cellflag[mfi];
 
-            gfab.buildTypes(cellflag);
+            gfab.buildTypes(cellflag, cover_multiple_cuts);
 
             Array4<Real const> const& lst = levelset.const_array();
             Array4<EBCellFlag> const& cfg = m_cellflag.array(mfi);

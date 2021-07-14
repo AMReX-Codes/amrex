@@ -2,15 +2,6 @@
 #define BL_BASEUMAP_H
 #include <AMReX_Config.H>
 
-#include <cmath>
-#include <cstdlib>
-#include <algorithm>
-#include <limits>
-
-#ifdef AMREX_USE_OMP
-#include <omp.h>
-#endif
-
 #include <AMReX_BLassert.H>
 #include <AMReX_Box.H>
 #include <AMReX_BoxList.H>
@@ -20,8 +11,16 @@
 #include <AMReX_MakeType.H>
 #include <unordered_map>
 
+#ifdef AMREX_USE_OMP
+#include <omp.h>
+#endif
 
-// iv - IntVect in absolute coordiantes
+#include <cmath>
+#include <cstdlib>
+#include <algorithm>
+#include <limits>
+
+// iv - IntVect in absolute coordinates
 // m - variable / component
 // l - multivalued index
 #define AMREX_BASEUMAP_KIDX(iv,m,l) (l*domain.numPts()*nvar + m*domain.numPts() + domain.index(iv))

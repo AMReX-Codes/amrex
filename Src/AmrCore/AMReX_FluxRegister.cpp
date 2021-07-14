@@ -6,12 +6,6 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_iMultiFab.H>
 
-#ifndef BL_NO_FORT
-#include <AMReX_FLUXREG_F.H>
-#endif
-
-#include <vector>
-
 namespace amrex {
 
 FluxRegister::FluxRegister ()
@@ -21,7 +15,7 @@ FluxRegister::FluxRegister ()
     ratio.scale(-1);
 }
 
-FluxRegister::FluxRegister (const BoxArray&            fine_boxes, 
+FluxRegister::FluxRegister (const BoxArray&            fine_boxes,
                             const DistributionMapping& dm,
                             const IntVect&             ref_ratio,
                             int                        fine_lev,
@@ -61,7 +55,7 @@ FluxRegister::coarsenedBoxes () const noexcept
 }
 
 void
-FluxRegister::define (const BoxArray&            fine_boxes, 
+FluxRegister::define (const BoxArray&            fine_boxes,
                       const DistributionMapping& dm,
                       const IntVect&             ref_ratio,
                       int                        fine_lev,
@@ -179,16 +173,16 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
     const Orientation face_lo(dir,Orientation::low);
     const Orientation face_hi(dir,Orientation::high);
- 
+
     MultiFab mf(mflx.boxArray(),mflx.DistributionMap(),numcomp,0,
                 MFInfo(), mflx.Factory());
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif    
+#endif
     for (MFIter mfi(mflx,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-	const Box& bx = mfi.tilebox();
+        const Box& bx = mfi.tilebox();
         auto       dfab =   mf.array(mfi);
         auto const sfab = mflx.const_array(mfi);
         auto const afab = area.const_array(mfi);
@@ -266,7 +260,7 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
 
     const Orientation face_lo(dir,Orientation::low);
     const Orientation face_hi(dir,Orientation::high);
- 
+
     MultiFab mf(mflx.boxArray(),mflx.DistributionMap(),numcomp,0,
                 MFInfo(), mflx.Factory());
 
@@ -275,7 +269,7 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
 #endif
     for (MFIter mfi(mflx,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-	const Box& bx = mfi.tilebox();
+        const Box& bx = mfi.tilebox();
         auto       dfab =   mf.array(mfi);
         auto const sfab = mflx.const_array(mfi);
         auto const afab = area.const_array(mfi);
@@ -455,35 +449,39 @@ FluxRegister::FineSetVal (int              dir,
                           int              destcomp,
                           int              numcomp,
                           Real             val,
-                          RunOn           /*runon*/) noexcept
+                          RunOn            runon) noexcept
 {
-    Gpu::LaunchSafeGuard lsg(false); // xxxxx gpu todo
-
-    // This routine used by FLASH does NOT run on gpu for safety.
-
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
     FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno];
     BL_ASSERT(numcomp <= loreg.nComp());
-    loreg.setVal<RunOn::Host>(val, loreg.box(), destcomp, numcomp);
+    if ((runon == RunOn::Gpu) && Gpu::inLaunchRegion()) {
+        loreg.setVal<RunOn::Device>(val, loreg.box(), destcomp, numcomp);
+    } else {
+        loreg.setVal<RunOn::Host>(val, loreg.box(), destcomp, numcomp);
+    }
 
     FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno];
     BL_ASSERT(numcomp <= hireg.nComp());
-    hireg.setVal<RunOn::Host>(val, hireg.box(), destcomp, numcomp);
+    if ((runon == RunOn::Gpu) && Gpu::inLaunchRegion()) {
+        hireg.setVal<RunOn::Device>(val, hireg.box(), destcomp, numcomp);
+    } else {
+        hireg.setVal<RunOn::Host>(val, hireg.box(), destcomp, numcomp);
+    }
 }
 
 void
 FluxRegister::Reflux (MultiFab&       mf,
-		      const MultiFab& volume,
-		      Real            scale,
-		      int             scomp,
-		      int             dcomp,
-		      int             nc,
-		      const Geometry& geom)
+                      const MultiFab& volume,
+                      Real            scale,
+                      int             scomp,
+                      int             dcomp,
+                      int             nc,
+                      const Geometry& geom)
 {
     for (OrientationIter fi; fi; ++fi)
     {
-	const Orientation& face = fi();
+        const Orientation& face = fi();
         Reflux(mf, volume, face, scale, scomp, dcomp, nc, geom);
     }
 }
@@ -492,27 +490,27 @@ void
 FluxRegister::Reflux (MultiFab&       mf,
                       const MultiFab& volume,
                       int             dir,
-		      Real            scale,
-		      int             scomp,
-		      int             dcomp,
-		      int             nc,
-		      const Geometry& geom)
+                      Real            scale,
+                      int             scomp,
+                      int             dcomp,
+                      int             nc,
+                      const Geometry& geom)
 {
     for (int s = 0; s < 2; ++s)
     {
         Orientation::Side side = (s==0) ? Orientation::low : Orientation::high;
-	Orientation face(dir, side);
+        Orientation face(dir, side);
         Reflux(mf, volume, face, scale, scomp, dcomp, nc, geom);
     }
 }
 
 void
 FluxRegister::Reflux (MultiFab&       mf,
-		      Real            scale,
-		      int             scomp,
-		      int             dcomp,
-		      int             nc,
-		      const Geometry& geom)
+                      Real            scale,
+                      int             scomp,
+                      int             dcomp,
+                      int             nc,
+                      const Geometry& geom)
 {
     const Real* dx = geom.CellSize();
 
@@ -524,20 +522,20 @@ FluxRegister::Reflux (MultiFab&       mf,
     Reflux(mf,volume,scale,scomp,dcomp,nc,geom);
 }
 
-void 
+void
 FluxRegister::Reflux (MultiFab&       mf,
                       int             dir,
-		      Real            scale,
-		      int             scomp,
-		      int             dcomp,
-		      int             nc,
-		      const Geometry& geom)
+                      Real            scale,
+                      int             scomp,
+                      int             dcomp,
+                      int             nc,
+                      const Geometry& geom)
 {
     const Real* dx = geom.CellSize();
-    
+
     MultiFab volume(mf.boxArray(), mf.DistributionMap(), 1, 0,
                     MFInfo(), mf.Factory());
-    
+
     volume.setVal(AMREX_D_TERM(dx[0],*dx[1],*dx[2]), 0, 1, 0);
 
     Reflux(mf,volume,dir,scale,scomp,dcomp,nc,geom);
@@ -576,72 +574,96 @@ FluxRegister::Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
 void
 FluxRegister::ClearInternalBorders (const Geometry& geom)
 {
-    Gpu::LaunchSafeGuard lsg(false); // xxxxx gpu todo
-
     int nc = this->nComp();
     const Box& domain = geom.Domain();
-    
+
+    Vector<Array4BoxTag<Real> > tags;
+
     for (int dir = 0; dir < AMREX_SPACEDIM; dir++) {
-	Orientation lo(dir, Orientation::low);
-	Orientation hi(dir, Orientation::high);
-	
-	FabSet& frlo = (*this)[lo];
-	FabSet& frhi = (*this)[hi];
-	
-	const BoxArray& balo = frlo.boxArray();
-	const BoxArray& bahi = frhi.boxArray();
-	
+        Orientation lo(dir, Orientation::low);
+        Orientation hi(dir, Orientation::high);
+
+        FabSet& frlo = (*this)[lo];
+        FabSet& frhi = (*this)[hi];
+
+        const BoxArray& balo = frlo.boxArray();
+        const BoxArray& bahi = frhi.boxArray();
+
 #ifdef AMREX_USE_OMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         {
-	    for (FabSetIter fsi(frlo); fsi.isValid(); ++fsi) {
-		const Box& bx = fsi.validbox();
-		const std::vector< std::pair<int,Box> >& isects = bahi.intersections(bx);
-		for (int ii = 0; ii < static_cast<int>(isects.size()); ++ii) {
-		    frlo[fsi].setVal<RunOn::Host>(0.0, isects[ii].second, 0, nc);
-		}
-		if (geom.isPeriodic(dir)) {
-		    if (bx.smallEnd(dir) == domain.smallEnd(dir)) {
-			const Box& sbx = amrex::shift(bx, dir, domain.length(dir));
-			const std::vector<std::pair<int,Box> >& isects2 = bahi.intersections(sbx);
-			for (int ii = 0; ii < static_cast<int>(isects2.size()); ++ii) {
-			    const Box& bx2 = amrex::shift(isects2[ii].second, dir, -domain.length(dir));
-			    frlo[fsi].setVal<RunOn::Host>(0.0, bx2, 0, nc);
-			}		      
-		    }
+            for (FabSetIter fsi(frlo); fsi.isValid(); ++fsi) {
+                const Box& bx = fsi.validbox();
+                const std::vector< std::pair<int,Box> >& isects = bahi.intersections(bx);
+                auto const& frarr = frlo[fsi].array();
+                for (int ii = 0; ii < static_cast<int>(isects.size()); ++ii) {
+                    if (Gpu::inLaunchRegion()) {
+                        tags.emplace_back(Array4BoxTag<Real>{frarr, isects[ii].second});
+                    } else {
+                        frlo[fsi].setVal<RunOn::Host>(0.0, isects[ii].second, 0, nc);
+                    }
                 }
-	    }
-	    
-	    for (FabSetIter fsi(frhi); fsi.isValid(); ++fsi) {
-		const Box& bx = fsi.validbox();
-		const std::vector< std::pair<int,Box> >& isects = balo.intersections(bx);
-		for (int ii = 0; ii < static_cast<int>(isects.size()); ++ii) {
-		    frhi[fsi].setVal<RunOn::Host>(0.0, isects[ii].second, 0, nc);
-		}
-		if (geom.isPeriodic(dir)) {
-		    if (bx.bigEnd(dir) == domain.bigEnd(dir)) {
-			const Box& sbx = amrex::shift(bx, dir, -domain.length(dir));
-			const std::vector<std::pair<int,Box> >& isects2 = balo.intersections(sbx);
-			for (int ii = 0; ii < static_cast<int>(isects2.size()); ++ii) {
-			    const Box& bx2 = amrex::shift(isects2[ii].second, dir, domain.length(dir));
-			    frhi[fsi].setVal<RunOn::Host>(0.0, bx2, 0, nc);
-			}		      
-		    }
-		}
-	    }
-	}
+                if (geom.isPeriodic(dir)) {
+                    if (bx.smallEnd(dir) == domain.smallEnd(dir)) {
+                        const Box& sbx = amrex::shift(bx, dir, domain.length(dir));
+                        const std::vector<std::pair<int,Box> >& isects2 = bahi.intersections(sbx);
+                        for (int ii = 0; ii < static_cast<int>(isects2.size()); ++ii) {
+                            const Box& bx2 = amrex::shift(isects2[ii].second, dir, -domain.length(dir));
+                            if (Gpu::inLaunchRegion()) {
+                                tags.emplace_back(Array4BoxTag<Real>{frarr, bx2});
+                            } else {
+                                frlo[fsi].setVal<RunOn::Host>(0.0, bx2, 0, nc);
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (FabSetIter fsi(frhi); fsi.isValid(); ++fsi) {
+                const Box& bx = fsi.validbox();
+                const std::vector< std::pair<int,Box> >& isects = balo.intersections(bx);
+                auto const& frarr = frhi[fsi].array();
+                for (int ii = 0; ii < static_cast<int>(isects.size()); ++ii) {
+                    if (Gpu::inLaunchRegion()) {
+                        tags.emplace_back(Array4BoxTag<Real>{frarr, isects[ii].second});
+                    } else {
+                        frhi[fsi].setVal<RunOn::Host>(0.0, isects[ii].second, 0, nc);
+                    }
+                }
+                if (geom.isPeriodic(dir)) {
+                    if (bx.bigEnd(dir) == domain.bigEnd(dir)) {
+                        const Box& sbx = amrex::shift(bx, dir, -domain.length(dir));
+                        const std::vector<std::pair<int,Box> >& isects2 = balo.intersections(sbx);
+                        for (int ii = 0; ii < static_cast<int>(isects2.size()); ++ii) {
+                            const Box& bx2 = amrex::shift(isects2[ii].second, dir, domain.length(dir));
+                            if (Gpu::inLaunchRegion()) {
+                                tags.emplace_back(Array4BoxTag<Real>{frarr, bx2});
+                            } else {
+                                frhi[fsi].setVal<RunOn::Host>(0.0, bx2, 0, nc);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
+
+#ifdef AMREX_USE_GPU
+    // There is Gpu::synchronize in Parallelfor below internally.
+    ParallelFor(tags, nc,
+    [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4BoxTag<Real> const& tag)
+    {
+        tag.dfab(i,j,k,n) = 0.0;
+    });
+#endif
 }
 
-#ifndef BL_NO_FORT
 void
 FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
                              Real scale, int srccomp, int destcomp, int numcomp,
                              const Geometry& crse_geom)
 {
-    Gpu::LaunchSafeGuard lsg(false); // xxxxx gpu todo
-
     BL_PROFILE("FluxRegister::OverwriteFlux()");
 
     const auto& cperiod = crse_geom.periodicity();
@@ -651,35 +673,61 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
         if (crse_geom.isPeriodic(idim)) cdomain.grow(idim, 1);
     }
 
-    // cell-centered mask: 0: coarse, 1: covered by fine, 2: phys bc
+    bool run_on_gpu = Gpu::inLaunchRegion();
+
+    // cell-centered mask:
+    constexpr int crse_cell = 0;
+    constexpr int fine_cell = 1; // covered by fine
+    constexpr int phbc_cell = 2;
     const BoxArray& cba = amrex::convert(crse_fluxes[0]->boxArray(), IntVect::TheCellVector());
     iMultiFab cc_mask(cba, crse_fluxes[0]->DistributionMap(), 1, 1);
     {
         const std::vector<IntVect>& pshifts = cperiod.shiftIntVect();
+        Vector<Array4BoxTag<int> > tags;
 
 #ifdef AMREX_USE_OMP
-#pragma omp parallel
+#pragma omp parallel if (!run_on_gpu)
 #endif
         {
             std::vector< std::pair<int,Box> > isects;
 
             for (MFIter mfi(cc_mask); mfi.isValid(); ++mfi)
             {
-                IArrayBox& fab = cc_mask[mfi];
-                fab.setVal<RunOn::Host>(0);  // coarse by default
-                fab.setComplement<RunOn::Host>(2, cdomain, 0, 1); // phys bc
+                auto const& fab = cc_mask.array(mfi);
+                const Box& bx = mfi.fabbox();
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                {
+                    if (cdomain.contains(i,j,k)) {
+                        fab(i,j,k) = crse_cell;
+                    } else {
+                        fab(i,j,k) = phbc_cell;
+                    }
+                });
 
-                const Box& bx = fab.box();
                 for (const auto& iv : pshifts)
                 {
                     grids.intersections(bx+iv, isects);
                     for (const auto& is : isects)
                     {
-                        fab.setVal<RunOn::Host>(1, is.second-iv, 0, 1);
+                        Box const& b = is.second-iv;
+                        if (run_on_gpu) {
+                            tags.push_back({fab,b});
+                        } else {
+                            cc_mask[mfi].setVal<RunOn::Host>(fine_cell, b, 0, 1);
+                        }
                     }
                 }
             }
         }
+
+#ifdef AMREX_USE_GPU
+        amrex::ParallelFor(tags, 1,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, int n,
+                              Array4BoxTag<int> const& tag) noexcept
+        {
+            tag.dfab(i,j,k,n) = fine_cell;
+        });
+#endif
     }
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
@@ -691,25 +739,47 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
 
         Orientation lo_face(idim, Orientation::low);
         Orientation hi_face(idim, Orientation::high);
-        
+
         bndry[lo_face].copyTo(fine_flux, 0, srccomp, 0, numcomp, cperiod);
         bndry[hi_face].plusTo(fine_flux, 0, srccomp, 0, numcomp, cperiod);
 
 #ifdef AMREX_USE_OMP
-#pragma omp parallel
+#pragma omp parallel if (!run_on_gpu)
 #endif
-        for (MFIter mfi(crse_flux,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(crse_flux,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
-            amrex_froverwrite_cfb(BL_TO_FORTRAN_BOX(bx),
-                                  BL_TO_FORTRAN_N_ANYD(crse_flux[mfi],destcomp),
-                                  BL_TO_FORTRAN_ANYD(fine_flux[mfi]),
-                                  BL_TO_FORTRAN_ANYD(cc_mask[mfi]),
-                                  &numcomp, &idim, &scale);
+            auto const& cflx = crse_flux[mfi].array(destcomp);
+            auto const& fflx = fine_flux[mfi].const_array();
+            auto const& msk = cc_mask[mfi].const_array();
+            if (idim == 0) {
+                AMREX_HOST_DEVICE_FOR_4D(bx, numcomp, i, j, k, n,
+                {
+                    if ( (msk(i-1,j,k) == crse_cell && msk(i,j,k) == fine_cell) ||
+                         (msk(i-1,j,k) == fine_cell && msk(i,j,k) == crse_cell) ) {
+                        cflx(i,j,k,n) = scale*fflx(i,j,k,n);
+                    }
+                });
+            } else if (idim == 1) {
+                AMREX_HOST_DEVICE_FOR_4D(bx, numcomp, i, j, k, n,
+                {
+                    if ( (msk(i,j-1,k) == crse_cell && msk(i,j,k) == fine_cell) ||
+                         (msk(i,j-1,k) == fine_cell && msk(i,j,k) == crse_cell) ) {
+                        cflx(i,j,k,n) = scale*fflx(i,j,k,n);
+                    }
+                });
+            } else if(idim == 2) {
+                AMREX_HOST_DEVICE_FOR_4D(bx, numcomp, i, j, k, n,
+                {
+                    if ( (msk(i,j,k-1) == crse_cell && msk(i,j,k) == fine_cell) ||
+                         (msk(i,j,k-1) == fine_cell && msk(i,j,k) == crse_cell) ) {
+                        cflx(i,j,k,n) = scale*fflx(i,j,k,n);
+                    }
+                });
+            }
         }
     }
 }
-#endif
 
 void
 FluxRegister::write (const std::string& name, std::ostream& os) const
@@ -731,7 +801,7 @@ void
 FluxRegister::read (const std::string& name, std::istream& is)
 {
     if (ncomp < 0) {
-	amrex::Abort("FluxRegister::read: FluxRegister not defined");
+        amrex::Abort("FluxRegister::read: FluxRegister not defined");
     }
 
     IntVect ratio_in;
@@ -743,7 +813,7 @@ FluxRegister::read (const std::string& name, std::istream& is)
     is >> ncomp_in;
 
     if (ratio_in != ratio || fine_level_in != fine_level || ncomp_in != ncomp) {
-	amrex::Abort("FluxRegister::read: predefined FluxRegister does not match the one in istream");
+        amrex::Abort("FluxRegister::read: predefined FluxRegister does not match the one in istream");
     }
 
     BndryRegister* br = this;

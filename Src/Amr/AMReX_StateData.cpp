@@ -1,8 +1,4 @@
 
-#include <iostream>
-#include <limits>
-#include <algorithm>
-
 #include <AMReX_RealBox.H>
 #include <AMReX_StateData.H>
 #include <AMReX_StateDescriptor.H>
@@ -12,6 +8,10 @@
 #ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
+
+#include <iostream>
+#include <limits>
+#include <algorithm>
 
 namespace amrex {
 
@@ -28,7 +28,7 @@ Vector<std::string> StateData::fabArrayHeaderNames;
 std::map<std::string, Vector<char> > *StateData::faHeaderMap;
 
 
-StateData::StateData () 
+StateData::StateData ()
     : desc(nullptr),
       new_time{INVALID_TIME,INVALID_TIME},
       old_time{INVALID_TIME,INVALID_TIME},
@@ -38,7 +38,7 @@ StateData::StateData ()
 
 StateData::StateData (const Box&             p_domain,
                       const BoxArray&        grds,
-		      const DistributionMapping& dm,
+                      const DistributionMapping& dm,
                       const StateDescriptor* d,
                       Real                   cur_time,
                       Real                   dt,
@@ -58,7 +58,7 @@ StateData::StateData (StateData&& rhs) noexcept
       new_data(std::move(rhs.new_data)),
       old_data(std::move(rhs.old_data)),
       arena(rhs.arena)
-{   
+{
 }
 
 void
@@ -72,14 +72,14 @@ StateData::operator= (StateData const& rhs)
     dmap = rhs.dmap;
     new_time = rhs.new_time;
     old_time = rhs.old_time;
-    new_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
-                                MFInfo().SetTag("StateData").SetArena(arena),
-                                *m_factory));
+    new_data = std::make_unique<MultiFab>(grids,dmap,desc->nComp(),desc->nExtra(),
+                                          MFInfo().SetTag("StateData").SetArena(arena),
+                                          *m_factory);
     MultiFab::Copy(*new_data, *rhs.new_data, 0, 0, desc->nComp(),desc->nExtra());
     if (rhs.old_data) {
-        old_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
-                                    MFInfo().SetTag("StateData").SetArena(arena),
-                                    *m_factory));
+        old_data = std::make_unique<MultiFab>(grids,dmap,desc->nComp(),desc->nExtra(),
+                                              MFInfo().SetTag("StateData").SetArena(arena),
+                                              *m_factory);
         MultiFab::Copy(*old_data, *rhs.old_data, 0, 0, desc->nComp(),desc->nExtra());
     } else {
         old_data.reset();
@@ -89,7 +89,7 @@ StateData::operator= (StateData const& rhs)
 void
 StateData::define (const Box&             p_domain,
                    const BoxArray&        grds,
-		   const DistributionMapping& dm,
+                   const DistributionMapping& dm,
                    const StateDescriptor& d,
                    Real                   time,
                    Real                   dt,
@@ -126,9 +126,9 @@ StateData::define (const Box&             p_domain,
     }
     int ncomp = desc->nComp();
 
-    new_data.reset(new MultiFab(grids,dmap,ncomp,desc->nExtra(),
-                                MFInfo().SetTag("StateData").SetArena(arena),
-                                *m_factory));
+    new_data = std::make_unique<MultiFab>(grids,dmap,ncomp,desc->nExtra(),
+                                          MFInfo().SetTag("StateData").SetArena(arena),
+                                          *m_factory);
     old_data.reset();
 }
 
@@ -136,15 +136,15 @@ void
 StateData::copyOld (const StateData& state)
 {
     const MultiFab& MF = state.oldData();
-    
+
     int nc = MF.nComp();
     int ng = MF.nGrow();
-    
+
     BL_ASSERT(nc == (*old_data).nComp());
     BL_ASSERT(ng == (*old_data).nGrow());
-    
+
     MultiFab::Copy(*old_data, state.oldData(), 0, 0, nc, ng);
-    
+
     old_time = state.old_time;
 }
 
@@ -155,10 +155,10 @@ StateData::copyNew (const StateData& state)
 
     int nc = MF.nComp();
     int ng = MF.nGrow();
-    
+
     BL_ASSERT(nc == (*new_data).nComp());
     BL_ASSERT(ng == (*new_data).nGrow());
-    
+
     MultiFab::Copy(*new_data, state.newData(), 0, 0, nc, ng);
 
     new_time = state.new_time;
@@ -174,9 +174,9 @@ StateData::reset ()
 
 void
 StateData::restart (std::istream&          is,
-		    const Box&             p_domain,
-		    const BoxArray&        grds,
-		    const DistributionMapping& dm,
+                    const Box&             p_domain,
+                    const BoxArray&        grds,
+                    const DistributionMapping& dm,
                     const FabFactory<FArrayBox>& factory,
                     const StateDescriptor& d,
                     const std::string&     chkfile)
@@ -196,18 +196,18 @@ StateData::restart (std::istream&          is,
     }
 
     {
-	Box domain_in;
-	BoxArray grids_in;
-	is >> domain_in;
-	grids_in.readFrom(is);
-	BL_ASSERT(domain_in == domain);
-	BL_ASSERT(amrex::match(grids_in,grids));
+        Box domain_in;
+        BoxArray grids_in;
+        is >> domain_in;
+        grids_in.readFrom(is);
+        BL_ASSERT(domain_in == domain);
+        BL_ASSERT(amrex::match(grids_in,grids));
     }
 
     restartDoit(is, chkfile);
 }
 
-void 
+void
 StateData::restartDoit (std::istream& is, const std::string& chkfile)
 {
     BL_PROFILE("StateData::restartDoit()");
@@ -220,17 +220,17 @@ StateData::restartDoit (std::istream& is, const std::string& chkfile)
     int nsets;
     is >> nsets;
 
-    new_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
-                                MFInfo().SetTag("StateData").SetArena(arena),
-                                *m_factory));
+    new_data = std::make_unique<MultiFab>(grids,dmap,desc->nComp(),desc->nExtra(),
+                                          MFInfo().SetTag("StateData").SetArena(arena),
+                                          *m_factory);
     old_data.reset();
     if (nsets == 2) {
-        old_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
-                                    MFInfo().SetTag("StateData").SetArena(arena),
-                                    *m_factory));
+        old_data = std::make_unique<MultiFab>(grids,dmap,desc->nComp(),desc->nExtra(),
+                                              MFInfo().SetTag("StateData").SetArena(arena),
+                                              *m_factory);
     }
     //
-    // If no data is written then we just allocate the MF instead of reading it in. 
+    // If no data is written then we just allocate the MF instead of reading it in.
     // This assumes that the application will do something with it.
     // We set it to zero in case a compiler complains about uninitialized data.
     //
@@ -242,44 +242,44 @@ StateData::restartDoit (std::istream& is, const std::string& chkfile)
     std::string FullPathName;
 
     for(int ns(1); ns <= nsets; ++ns) {
-      MultiFab *whichMF = nullptr;
-      if(ns == 1) {
-	whichMF = new_data.get();
-      } else if(ns == 2) {
-	whichMF = old_data.get();
-      } else {
-        amrex::Abort("**** Error in StateData::restart:  invalid nsets.");
-      }
+        MultiFab *whichMF = nullptr;
+        if(ns == 1) {
+            whichMF = new_data.get();
+        } else if(ns == 2) {
+            whichMF = old_data.get();
+        } else {
+            amrex::Abort("**** Error in StateData::restart:  invalid nsets.");
+        }
 
-      is >> mf_name;
-      //
-      // Note that mf_name is relative to the Header file.
-      // We need to prepend the name of the chkfile directory.
-      //
-      FullPathName = chkfile;
-      if ( ! chkfile.empty() && chkfile[chkfile.length()-1] != '/') {
-          FullPathName += '/';
-      }
-      FullPathName += mf_name;
+        is >> mf_name;
+        //
+        // Note that mf_name is relative to the Header file.
+        // We need to prepend the name of the chkfile directory.
+        //
+        FullPathName = chkfile;
+        if ( ! chkfile.empty() && chkfile[chkfile.length()-1] != '/') {
+            FullPathName += '/';
+        }
+        FullPathName += mf_name;
 
-      // ---- check for preread header
-      std::string FullHeaderPathName(FullPathName + "_H");
-      const char *faHeader = 0;
-      if(faHeaderMap != 0) {
-        std::map<std::string, Vector<char> >::iterator fahmIter;
-	fahmIter = faHeaderMap->find(FullHeaderPathName);
-	if(fahmIter != faHeaderMap->end()) {
-	  faHeader = fahmIter->second.dataPtr();
-	}
-      }
+        // ---- check for preread header
+        std::string FullHeaderPathName(FullPathName + "_H");
+        const char *faHeader = 0;
+        if(faHeaderMap != 0) {
+            std::map<std::string, Vector<char> >::iterator fahmIter;
+            fahmIter = faHeaderMap->find(FullHeaderPathName);
+            if(fahmIter != faHeaderMap->end()) {
+                faHeader = fahmIter->second.dataPtr();
+            }
+        }
 
-      VisMF::Read(*whichMF, FullPathName, faHeader);
+        VisMF::Read(*whichMF, FullPathName, faHeader);
     }
 }
 
-void 
+void
 StateData::restart (const StateDescriptor& d,
-		    const StateData& rhs)
+                    const StateData& rhs)
 {
     desc = &d;
     arena = nullptr;
@@ -290,9 +290,9 @@ StateData::restart (const StateDescriptor& d,
     new_time.start = rhs.new_time.start;
     new_time.stop  = rhs.new_time.stop;
     old_data.reset();
-    new_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
-                                MFInfo().SetTag("StateData").SetArena(arena),
-                                *m_factory));
+    new_data = std::make_unique<MultiFab>(grids,dmap,desc->nComp(),desc->nExtra(),
+                                          MFInfo().SetTag("StateData").SetArena(arena),
+                                          *m_factory);
     new_data->setVal(0._rt);
 }
 
@@ -306,9 +306,9 @@ StateData::allocOldData ()
 {
     if (old_data == nullptr)
     {
-        old_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
-                                    MFInfo().SetTag("StateData").SetArena(arena),
-                                    *m_factory));
+        old_data = std::make_unique<MultiFab>(grids,dmap,desc->nComp(),desc->nExtra(),
+                                              MFInfo().SetTag("StateData").SetArena(arena),
+                                              *m_factory);
     }
 }
 
@@ -352,14 +352,14 @@ StateData::syncNewTimeLevel (Real time)
     Real teps = (new_time.stop - old_time.stop)*1.e-3_rt;
     if (time > new_time.stop-teps && time < new_time.stop+teps)
     {
-	if (desc->timeType() == StateDescriptor::Point)
-	{
-	    new_time.start = new_time.stop = time;
-	}
-	else
-	{
-	    new_time.stop = time;
-	}
+        if (desc->timeType() == StateDescriptor::Point)
+        {
+            new_time.start = new_time.stop = time;
+        }
+        else
+        {
+            new_time.stop = time;
+        }
     }
 }
 
@@ -402,7 +402,7 @@ StateData::swapTimeLevels (Real dt)
 void
 StateData::replaceOldData (MultiFab&& mf)
 {
-    old_data.reset(new MultiFab(std::move(mf)));
+    old_data = std::make_unique<MultiFab>(std::move(mf));
 }
 
 // This version does NOT delete the replaced data.
@@ -416,7 +416,7 @@ StateData::replaceOldData (StateData& s)
 void
 StateData::replaceNewData (MultiFab&& mf)
 {
-    new_data.reset(new MultiFab(std::move(mf)));
+    new_data = std::make_unique<MultiFab>(std::move(mf));
 }
 
 // This version does NOT delete the replaced data.
@@ -438,7 +438,7 @@ StateData::FillBoundary (FArrayBox&     dest,
 {
     BL_PROFILE("StateData::FillBoundary(dx)");
     BL_ASSERT(dest.box().ixType() == desc->getType());
-   
+
     if (domain.contains(dest.box())) return;
 
     const Box& bx  = dest.box();
@@ -492,7 +492,7 @@ StateData::FillBoundary (FArrayBox&     dest,
                 //
                 // Use the "group" boundary fill routine.
                 //
-		desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcrs.dataPtr(),groupsize);
+                desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcrs.dataPtr(),groupsize);
                 i += groupsize;
             }
             else
@@ -528,7 +528,7 @@ StateData::FillBoundary (Box const&      bx,
 {
     BL_PROFILE("StateData::FillBoundary(geom)");
     BL_ASSERT(bx.ixType() == desc->getType());
-   
+
     if (domain.contains(bx)) return;
 
     Vector<BCRec> bcr(num_comp);
@@ -553,7 +553,7 @@ StateData::FillBoundary (Box const&      bx,
                 //
                 // Use the "group" boundary fill routine.
                 //
-		desc->bndryFill(sc)(bx,dest,dc,groupsize,geom,time,bcr,0,sc);
+                desc->bndryFill(sc)(bx,dest,dc,groupsize,geom,time,bcr,0,sc);
                 i += groupsize;
             }
             else
@@ -583,15 +583,15 @@ StateData::RegisterData (MultiFabCopyDescriptor& multiFabCopyDesc,
 
 void
 StateData::InterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
-			 Vector<MultiFabId>&      mfid,
-			 BoxList*                unfillableBoxes,
-			 Vector<FillBoxId>&       returnedFillBoxIds,
-			 const Box&              subbox,
-			 Real                    time,
-			 int                     src_comp,
-			 int                     dest_comp,
-			 int                     num_comp,
-			 bool                    extrap)
+                         Vector<MultiFabId>&      mfid,
+                         BoxList*                unfillableBoxes,
+                         Vector<FillBoxId>&       returnedFillBoxIds,
+                         const Box&              subbox,
+                         Real                    time,
+                         int                     src_comp,
+                         int                     dest_comp,
+                         int                     num_comp,
+                         bool                    extrap)
 {
     if (desc->timeType() == StateDescriptor::Point)
     {
@@ -608,18 +608,18 @@ StateData::InterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
         else
         {
             amrex::InterpAddBox(multiFabCopyDesc,
-				 unfillableBoxes,
-				 returnedFillBoxIds,
-				 subbox,
-				 mfid[MFOLDDATA],
-				 mfid[MFNEWDATA],
-				 old_time.start,
-				 new_time.start,
-				 time,
-				 src_comp,
-				 dest_comp,
-				 num_comp,
-				 extrap);
+                                unfillableBoxes,
+                                returnedFillBoxIds,
+                                subbox,
+                                mfid[MFOLDDATA],
+                                mfid[MFNEWDATA],
+                                old_time.start,
+                                new_time.start,
+                                time,
+                                src_comp,
+                                dest_comp,
+                                num_comp,
+                                extrap);
         }
     }
     else
@@ -657,14 +657,14 @@ StateData::InterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
 
 void
 StateData::InterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
-			  const Vector<MultiFabId>& mfid,
-			  const Vector<FillBoxId>&  fillBoxIds,
-			  FArrayBox&               dest,
-			  Real                     time,
-			  int                      src_comp,
-			  int                      dest_comp,
-			  int                      num_comp,
-			  bool                     extrap)
+                          const Vector<MultiFabId>& mfid,
+                          const Vector<FillBoxId>&  fillBoxIds,
+                          FArrayBox&               dest,
+                          Real                     time,
+                          int                      src_comp,
+                          int                      dest_comp,
+                          int                      num_comp,
+                          bool                     extrap)
 {
     BL_PROFILE("StateData::InterpFillFab()");
     if (desc->timeType() == StateDescriptor::Point)
@@ -676,17 +676,17 @@ StateData::InterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
         else
         {
             amrex::InterpFillFab(multiFabCopyDesc,
-				  fillBoxIds,
-				  mfid[MFOLDDATA],
-				  mfid[MFNEWDATA],
-				  dest,
-				  old_time.start,
-				  new_time.start,
-				  time,
-				  src_comp,
-				  dest_comp,
-				  num_comp,
-				  extrap);
+                                 fillBoxIds,
+                                 mfid[MFOLDDATA],
+                                 mfid[MFNEWDATA],
+                                 dest,
+                                 old_time.start,
+                                 new_time.start,
+                                 time,
+                                 src_comp,
+                                 dest_comp,
+                                 num_comp,
+                                 extrap);
         }
     }
     else
@@ -712,35 +712,35 @@ StateData::InterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
 
 void
 StateData::getData (Vector<MultiFab*>& data,
-		    Vector<Real>& datatime,
-		    Real time) const
+                    Vector<Real>& datatime,
+                    Real time) const
 {
     data.clear();
     datatime.clear();
 
     if (desc->timeType() == StateDescriptor::Point)
     {
-	BL_ASSERT(new_data != nullptr);
+        BL_ASSERT(new_data != nullptr);
         if (old_data == nullptr)
         {
-	    data.push_back(new_data.get());
-	    datatime.push_back(new_time.start);
+            data.push_back(new_data.get());
+            datatime.push_back(new_time.start);
         }
         else
         {
-	    const Real teps = (new_time.start - old_time.start)*1.e-3_rt;
-	    if (time > new_time.start-teps && time < new_time.start+teps) {
-		data.push_back(new_data.get());
-		datatime.push_back(new_time.start);
-	    } else if (time > old_time.start-teps && time < old_time.start+teps) {
-	    	    data.push_back(old_data.get());
-		    datatime.push_back(old_time.start);
-	    } else {
-		data.push_back(old_data.get());
-		data.push_back(new_data.get());
-		datatime.push_back(old_time.start);
-		datatime.push_back(new_time.start);
-	    }
+            const Real teps = (new_time.start - old_time.start)*1.e-3_rt;
+            if (time > new_time.start-teps && time < new_time.start+teps) {
+                data.push_back(new_data.get());
+                datatime.push_back(new_time.start);
+            } else if (time > old_time.start-teps && time < old_time.start+teps) {
+                data.push_back(old_data.get());
+                datatime.push_back(old_time.start);
+            } else {
+                data.push_back(old_data.get());
+                data.push_back(new_data.get());
+                datatime.push_back(old_time.start);
+                datatime.push_back(new_time.start);
+            }
         }
     }
     else
@@ -749,15 +749,15 @@ StateData::getData (Vector<MultiFab*>& data,
 
         if (time > new_time.start-teps && time < new_time.stop+teps)
         {
-	    data.push_back(new_data.get());
-	    datatime.push_back(time);
+            data.push_back(new_data.get());
+            datatime.push_back(time);
         }
         else if (old_data != nullptr        &&
                  time > old_time.start-teps &&
                  time < old_time.stop+teps)
         {
-	    data.push_back(old_data.get());
-	    datatime.push_back(time);
+            data.push_back(old_data.get());
+            datatime.push_back(time);
         }
         else
         {
@@ -799,18 +799,18 @@ StateData::checkPoint (const std::string& name,
            << new_time.start << '\n'
            << new_time.stop  << '\n';
 
-        if (desc->store_in_checkpoint()) 
+        if (desc->store_in_checkpoint())
         {
            if (dump_old)
            {
                os << 2 << '\n' << mf_name_new << '\n' << mf_name_old << '\n';
-	       fabArrayHeaderNames.push_back(mf_name_new);
-	       fabArrayHeaderNames.push_back(mf_name_old);
+               fabArrayHeaderNames.push_back(mf_name_new);
+               fabArrayHeaderNames.push_back(mf_name_old);
            }
            else
            {
                os << 1 << '\n' << mf_name_new << '\n';
-	       fabArrayHeaderNames.push_back(mf_name_new);
+               fabArrayHeaderNames.push_back(mf_name_new);
            }
         }
         else
@@ -821,24 +821,24 @@ StateData::checkPoint (const std::string& name,
 
     if (desc->store_in_checkpoint())
     {
-       BL_ASSERT(new_data);
-       std::string mf_fullpath_new(fullpathname + NewSuffix);
-       if (AsyncOut::UseAsyncOut()) {
-           VisMF::AsyncWrite(*new_data,mf_fullpath_new);
-       } else {
-           VisMF::Write(*new_data,mf_fullpath_new,how);
-       }
+        BL_ASSERT(new_data);
+        std::string mf_fullpath_new(fullpathname + NewSuffix);
+        if (AsyncOut::UseAsyncOut()) {
+            VisMF::AsyncWrite(*new_data,mf_fullpath_new);
+        } else {
+            VisMF::Write(*new_data,mf_fullpath_new,how);
+        }
 
-       if (dump_old)
-       {
-           BL_ASSERT(old_data);
-           std::string mf_fullpath_old(fullpathname + OldSuffix);
-           if (AsyncOut::UseAsyncOut()) {
-               VisMF::AsyncWrite(*old_data,mf_fullpath_old);
-           } else {
-               VisMF::Write(*old_data,mf_fullpath_old,how);
-           }
-       }
+        if (dump_old)
+        {
+            BL_ASSERT(old_data);
+            std::string mf_fullpath_old(fullpathname + OldSuffix);
+            if (AsyncOut::UseAsyncOut()) {
+                VisMF::AsyncWrite(*old_data,mf_fullpath_old);
+            } else {
+                VisMF::Write(*old_data,mf_fullpath_old,how);
+            }
+        }
     }
 }
 
@@ -884,61 +884,61 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
 #endif
 #endif
     {
-	FArrayBox tmp;
+        FArrayBox tmp;
 
-	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-	{
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        {
             FArrayBox& dest = mf[mfi];
             Array4<Real> const& desta = dest.array();
             const Box& bx = dest.box();
-    
-	    bool has_phys_bc = false;
-	    bool is_periodic = false;
-	    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-		bool touch = bx.smallEnd(i) < domainlo[i] || bx.bigEnd(i) > domainhi[i];
-		if (geom.isPeriodic(i)) {
-		    is_periodic = is_periodic || touch;
-		} else {
-		    has_phys_bc = has_phys_bc || touch;
-		}
-	    }
 
-	    if (has_phys_bc)
-	    {
+            bool has_phys_bc = false;
+            bool is_periodic = false;
+            for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+                bool touch = bx.smallEnd(i) < domainlo[i] || bx.bigEnd(i) > domainhi[i];
+                if (geom.isPeriodic(i)) {
+                    is_periodic = is_periodic || touch;
+                } else {
+                    has_phys_bc = has_phys_bc || touch;
+                }
+            }
+
+            if (has_phys_bc)
+            {
                 if (has_bndryfunc_fab) {
                     statedata->FillBoundary(bx, dest, time, geom, dest_comp, src_comp, num_comp);
                 } else {
                     statedata->FillBoundary(dest, time, dx, prob_domain, dest_comp, src_comp, num_comp);
                 }
-		
-		if (is_periodic) // fix up corner
-		{
-		    Box GrownDomain = domain;
-		    
-		    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
-		    {
-			if (!geom.isPeriodic(dir))
-			{
-			    const int lo = domainlo[dir] - bx.smallEnd(dir);
-			    const int hi = bx.bigEnd(dir) - domainhi[dir];
-			    if (lo > 0) GrownDomain.growLo(dir,lo);
-			    if (hi > 0) GrownDomain.growHi(dir,hi);
-			}
-		    }
-		    
-		    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
-		    {
-			if (!geom.isPeriodic(dir)) continue;
-			
-			Box lo_slab = bx;
-			Box hi_slab = bx;
-			lo_slab.shift(dir, domain.length(dir));
-			hi_slab.shift(dir,-domain.length(dir));
-			lo_slab &= GrownDomain;
-			hi_slab &= GrownDomain;
-			
-			if (lo_slab.ok())
-			{
+
+                if (is_periodic) // fix up corner
+                {
+                    Box GrownDomain = domain;
+
+                    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
+                    {
+                        if (!geom.isPeriodic(dir))
+                        {
+                            const int lo = domainlo[dir] - bx.smallEnd(dir);
+                            const int hi = bx.bigEnd(dir) - domainhi[dir];
+                            if (lo > 0) GrownDomain.growLo(dir,lo);
+                            if (hi > 0) GrownDomain.growHi(dir,hi);
+                        }
+                    }
+
+                    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
+                    {
+                        if (!geom.isPeriodic(dir)) continue;
+
+                        Box lo_slab = bx;
+                        Box hi_slab = bx;
+                        lo_slab.shift(dir, domain.length(dir));
+                        hi_slab.shift(dir,-domain.length(dir));
+                        lo_slab &= GrownDomain;
+                        hi_slab &= GrownDomain;
+
+                        if (lo_slab.ok())
+                        {
                             if (run_on_gpu)
                             {
                                 tmp.resize(lo_slab,num_comp);
@@ -1001,10 +1001,10 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
                                 }
                                 dest.copy<RunOn::Host>(tmp, lo_slab, 0, db, dest_comp, num_comp);
                             }
-			}
-			
-			if (hi_slab.ok())
-			{
+                        }
+
+                        if (hi_slab.ok())
+                        {
                             if (run_on_gpu)
                             {
                                 tmp.resize(hi_slab,num_comp);
@@ -1067,11 +1067,11 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
                                 }
                                 dest.copy<RunOn::Host>(tmp, hi_slab, 0, db, dest_comp, num_comp);
                             }
-			}
-		    }
-		}
-	    }
-	}
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

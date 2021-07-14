@@ -237,6 +237,9 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator=DefaultAllocator>
 struct ParticleTile
 {
+    template <typename T>
+    using AllocatorType = Allocator<T>;
+
     using ParticleType = Particle<NStructReal, NStructInt>;
     static constexpr int NAR = NArrayReal;
     static constexpr int NAI = NArrayInt;
@@ -333,7 +336,7 @@ struct ParticleTile
     /// Add one particle to this tile.
     ///
     template < int NR = NArrayReal, int NI = NArrayInt,
-               EnableIf_t<NR != 0 || NI != 0, int> foo = 0>
+               std::enable_if_t<NR != 0 || NI != 0, int> foo = 0>
     void push_back (const SuperParticleType& sp)
     {
         auto np = numParticles();

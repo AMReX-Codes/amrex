@@ -9,16 +9,12 @@
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_Exception.H>
 #include <AMReX_Extension.H>
-#include <AMReX_INT.H>
-#include <AMReX_REAL.H>
-#include <AMReX_Math.H>
 
-#include <iostream>
 #include <functional>
-#include <string>
-#include <cstdio>
-#include <vector>
+#include <iostream>
 #include <memory>
+#include <string>
+#include <vector>
 
 //
 // Initialize, Finalize, Error Reporting, and Version String Functions
@@ -47,21 +43,21 @@ namespace amrex
         constexpr bool  Debug = true;
 #endif
 
-        extern std::string exename;
-	
-        extern int verbose;
+        extern AMREX_EXPORT std::string exename;
 
-        extern int signal_handling;
-        extern int call_addr2line;
-        extern int throw_exception;
+        extern AMREX_EXPORT int verbose;
 
-        extern int regtest_reduction;
+        extern AMREX_EXPORT int signal_handling;
+        extern AMREX_EXPORT int call_addr2line;
+        extern AMREX_EXPORT int throw_exception;
 
-        extern std::ostream* osout;
-        extern std::ostream* oserr;
-        
-        extern ErrorHandler error_handler;
-        extern int abort_on_unused_inputs;
+        extern AMREX_EXPORT int regtest_reduction;
+
+        extern AMREX_EXPORT std::ostream* osout;
+        extern AMREX_EXPORT std::ostream* oserr;
+
+        extern AMREX_EXPORT ErrorHandler error_handler;
+        extern AMREX_EXPORT int abort_on_unused_inputs;
     }
 
     std::string Version ();
@@ -101,18 +97,14 @@ namespace amrex
 
     void Error_host (const char* msg);
 
-#if defined(AMREX_USE_GPU)
-    AMREX_GPU_EXTERNAL AMREX_GPU_DEVICE AMREX_NO_INLINE
-    void Error_device (const char * msg);
-#endif
-
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Error (const char* msg = 0) {
 #if AMREX_DEVICE_COMPILE
-#ifdef NDEBUG
+#if defined(NDEBUG)
         amrex::ignore_unused(msg);
 #else
-        Error_device(msg);
+        if (msg) AMREX_DEVICE_PRINTF("Error %s\n", msg);
+        AMREX_DEVICE_ASSERT(0);
 #endif
 #else
         Error_host(msg);
@@ -124,18 +116,13 @@ namespace amrex
 
     void Warning_host (const char * msg);
 
-#if defined(AMREX_USE_GPU)
-    AMREX_GPU_EXTERNAL AMREX_GPU_DEVICE AMREX_NO_INLINE
-    void Warning_device (const char * msg);
-#endif
-
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Warning (const char * msg) {
 #if AMREX_DEVICE_COMPILE
-#ifdef NDEBUG
+#if defined(NDEBUG)
         amrex::ignore_unused(msg);
 #else
-        Warning_device(msg);
+        if (msg) AMREX_DEVICE_PRINTF("Warning %s\n", msg);
 #endif
 #else
         Warning_host(msg);
@@ -147,18 +134,14 @@ namespace amrex
 
     void Abort_host (const char * msg);
 
-#if defined(AMREX_USE_GPU)
-    AMREX_GPU_EXTERNAL AMREX_GPU_DEVICE AMREX_NO_INLINE
-    void Abort_device (const char * msg);
-#endif
-
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Abort (const char * msg = 0) {
 #if AMREX_DEVICE_COMPILE
-#ifdef NDEBUG
+#if defined(NDEBUG)
         amrex::ignore_unused(msg);
 #else
-        Abort_device(msg);
+        if (msg) AMREX_DEVICE_PRINTF("Abort %s\n", msg);
+        AMREX_DEVICE_ASSERT(0);
 #endif
 #else
         Abort_host(msg);
@@ -173,18 +156,20 @@ namespace amrex
 
     void Assert_host (const char* EX, const char* file, int line, const char* msg);
 
-#if defined(AMREX_USE_GPU)
-    AMREX_GPU_EXTERNAL AMREX_GPU_DEVICE AMREX_NO_INLINE
-    void Assert_device (const char* EX, const char* file, int line, const char* msg);
-#endif
-
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Assert (const char* EX, const char* file, int line, const char* msg = nullptr) {
 #if AMREX_DEVICE_COMPILE
-#ifdef NDEBUG
+#if defined(NDEBUG)
         amrex::ignore_unused(EX,file,line,msg);
 #else
-        Assert_device(EX,file,line,msg);
+        if (msg) {
+            AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
+                                EX, file, line, msg);
+        } else {
+            AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d",
+                                EX, file, line);
+        }
+        AMREX_DEVICE_ASSERT(0);
 #endif
 #else
         Assert_host(EX,file,line,msg);

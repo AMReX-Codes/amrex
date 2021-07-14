@@ -8,14 +8,14 @@
 #include <AMReX_ParmParse.H>
 
 #ifdef AMREX_USE_MPI
-#define MY_USE_MPI 1 
-#else 
+#define MY_USE_MPI 1
+#else
 #define MY_USE_MPI 0
-#endif 
+#endif
 
 using namespace amrex;
 
-void 
+void
 print_usage (int,
              char* argv[])
 {
@@ -26,7 +26,7 @@ print_usage (int,
 
 int main(int argc, char* argv[])
 {
-    static_assert(MY_USE_MPI!=1, "cannot work with MPI" ); 
+    static_assert(MY_USE_MPI!=1, "cannot work with MPI" );
     amrex::Initialize(argc,argv);
     {
         if (argc < 3)
@@ -35,10 +35,10 @@ int main(int argc, char* argv[])
         std::string name1, name2;
         int ngrow = -1;
         {
-        	ParmParse pp;
-        	pp.get("infile1", name1);
-          	pp.get("infile2", name2);
-        	pp.query("ngrow", ngrow);
+            ParmParse pp;
+            pp.get("infile1", name1);
+            pp.get("infile2", name2);
+            pp.query("ngrow", ngrow);
         }
 
         MultiFab mf1, mf2;
@@ -54,9 +54,9 @@ int main(int argc, char* argv[])
             Abort(" ngrow bigger than infile1's ngrow! ");
          if (ngrow > mf2.nGrow())
             Abort(" ngrow bigger than infile2's ngrow! ");
-   
+
         if (mf1.boxArray() != mf2.boxArray()) {
-        	Abort("The two multifabs have different BoxArray");
+            Abort("The two multifabs have different BoxArray");
         }
 
         const int ncomp = mf1.nComp();
@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
             mf2_min[icomp] = mf2.min(icomp,ngrow);
             mf2_max[icomp] = mf2.max(icomp,ngrow);
         }
-*/ 
+*/
 
         MultiFab mfdiff(mf1.boxArray(), mf1.DistributionMap(), ncomp, ngrow);
 
@@ -80,18 +80,18 @@ int main(int argc, char* argv[])
         MultiFab::Subtract(mfdiff, mf2, 0, 0, ncomp, ngrow);
 
         for (int icomp = 0; icomp < ncomp; ++icomp) {
-            Print() << "Component " << icomp << std::endl; 
-            Print() << "diff Min,max: " << mfdiff.min(icomp,ngrow) 
-    		  << " , " << mfdiff.max(icomp,ngrow) << std::endl;
+            Print() << "Component " << icomp << std::endl;
+            Print() << "diff Min,max: " << mfdiff.min(icomp,ngrow)
+                    << " , " << mfdiff.max(icomp,ngrow) << std::endl;
         }
-/*    	if (ncomp > 1) {
-    	    Print() << " for component " << icomp;
-    	}
-        	Print() << " 1st mf min,max: " << mf1_min[icomp]
-    		  << ", " << mf1_max[icomp]
+/*            if (ncomp > 1) {
+                Print() << " for component " << icomp;
+            }
+                Print() << " 1st mf min,max: " << mf1_min[icomp]
+                      << ", " << mf1_max[icomp]
                       << ", 2nd mf min,max: ";
-        	Print() << mf2_min[icomp]
-    	    	  << ", " << mf2_max[icomp] << "\n";
+                Print() << mf2_min[icomp]
+                          << ", " << mf2_max[icomp] << "\n";
          } */
 
          Print() << "Writing mfdiff" << std::endl;

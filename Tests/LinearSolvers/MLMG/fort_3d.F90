@@ -27,33 +27,33 @@ subroutine fort_set_coef (lo, hi, exact, elo, ehi, alpha, alo, ahi, beta, blo, b
   zc = (prob_hi(3) + prob_lo(3))/2.d0
 
   theta = 0.5d0*log(3.d0) / (w + 1.d-50)
-      
+
   do k = lo(3)-1, hi(3)+1
      z = prob_lo(3) + dx(3) * (dble(k)+0.5d0)
      do j = lo(2)-1, hi(2)+1
         y = prob_lo(2) + dx(2) * (dble(j)+0.5d0)
         do i = lo(1)-1, hi(1)+1
            x = prob_lo(1) + dx(1) * (dble(i)+0.5d0)
-           
+
            r = sqrt((x-xc)**2 + (y-yc)**2 + (z-zc)**2)
-               
+
            beta(i,j,k) = (sigma-1.d0)/2.d0*tanh(theta*(r-0.25d0)) + (sigma+1.d0)/2.d0
         end do
      end do
   end do
-  
+
   do k = lo(3), hi(3)
      z = prob_lo(3) + dx(3) * (dble(k)+0.5d0)
      do j = lo(2), hi(2)
         y = prob_lo(2) + dx(2) * (dble(j)+0.5d0)
         do i = lo(1), hi(1)
            x = prob_lo(1) + dx(1) * (dble(i)+0.5d0)
-           
+
            r = sqrt((x-xc)**2 + (y-yc)**2 + (z-zc)**2)
-           
+
            dbdrfac = (sigma-1.d0)/2.d0/(cosh(theta*(r-0.25d0)))**2 * theta/r
            dbdrfac = dbdrfac * b
-           
+
            alpha(i,j,k) = 1.d0
 
            if (bct .eq. 'p' .or. bct .eq. 'n') then

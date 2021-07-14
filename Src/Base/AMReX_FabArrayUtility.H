@@ -5,12 +5,13 @@
 #include <AMReX_FabArray.H>
 #include <AMReX_LayoutData.H>
 #include <AMReX_Print.H>
+#include <AMReX_Reduce.H>
 #include <limits>
 
 namespace amrex {
 
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
 ReduceSum (FabArray<FAB> const& fa, int nghost, F&& f) {
     return ReduceSum(fa, IntVect(nghost), std::forward<F>(f));
@@ -18,7 +19,7 @@ ReduceSum (FabArray<FAB> const& fa, int nghost, F&& f) {
 
 namespace fudetail {
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
 ReduceSum_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -42,7 +43,7 @@ ReduceSum_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 #ifdef AMREX_USE_GPU
 namespace fudetail {
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
 ReduceSum_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -65,7 +66,7 @@ ReduceSum_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         sm = amrex::get<0>(hv);
     }
 
@@ -73,14 +74,14 @@ ReduceSum_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 }
 
 template <class FAB, class F>
-amrex::EnableIf_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB::value_type>
+std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB::value_type>
 ReduceSum_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
     return ReduceSum_host(fa,nghost,std::forward<F>(f));
 }
 
 template <class FAB, class F>
-amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB::value_type>
+std::enable_if_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB::value_type>
 ReduceSum_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
     amrex::ignore_unused(fa,nghost,f);
@@ -90,7 +91,7 @@ ReduceSum_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 }
 
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
 ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -102,7 +103,7 @@ ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 }
 #else
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
 ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -111,7 +112,7 @@ ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 #endif
 
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            int nghost, F&& f) {
@@ -120,7 +121,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 
 namespace fudetail {
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceSum_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 IntVect const& nghost, F&& f)
@@ -146,7 +147,7 @@ ReduceSum_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #ifdef AMREX_USE_GPU
 namespace fudetail {
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceSum_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                   IntVect const& nghost, F&& f)
@@ -173,7 +174,7 @@ ReduceSum_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         sm = amrex::get<0>(hv);
     }
 
@@ -181,7 +182,7 @@ ReduceSum_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 
 template <class FAB1, class FAB2, class F>
-amrex::EnableIf_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
+std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
 ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         IntVect const& nghost, F&& f)
 {
@@ -189,7 +190,7 @@ ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 
 template <class FAB1, class FAB2, class F>
-amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
+std::enable_if_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
 ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         IntVect const& nghost, F&& f)
 {
@@ -200,7 +201,7 @@ ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            IntVect const& nghost, F&& f)
@@ -213,7 +214,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 #else
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            IntVect const& nghost, F&& f)
@@ -223,7 +224,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #endif
 
 template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> const& fa3,
            int nghost, F&& f)
@@ -233,7 +234,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
 
 namespace fudetail {
 template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceSum_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
@@ -260,7 +261,7 @@ ReduceSum_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #ifdef AMREX_USE_GPU
 namespace fudetail {
 template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceSum_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                   FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
@@ -286,7 +287,7 @@ ReduceSum_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         sm = amrex::get<0>(hv);
     }
 
@@ -294,7 +295,7 @@ ReduceSum_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 
 template <class FAB1, class FAB2, class FAB3, class F>
-amrex::EnableIf_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
+std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
 ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
 {
@@ -302,7 +303,7 @@ ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 
 template <class FAB1, class FAB2, class FAB3, class F>
-amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
+std::enable_if_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
 ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
 {
@@ -313,7 +314,7 @@ ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 
 template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
@@ -326,7 +327,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 #else
 template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
@@ -336,7 +337,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #endif
 
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
 ReduceMin (FabArray<FAB> const& fa, int nghost, F&& f)
 {
@@ -345,7 +346,7 @@ ReduceMin (FabArray<FAB> const& fa, int nghost, F&& f)
 
 namespace fudetail {
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
 ReduceMin_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -369,7 +370,7 @@ ReduceMin_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 #ifdef AMREX_USE_GPU
 namespace fudetail {
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
 ReduceMin_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -393,7 +394,7 @@ ReduceMin_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     }
 
@@ -401,14 +402,14 @@ ReduceMin_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 }
 
 template <class FAB, class F>
-amrex::EnableIf_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB::value_type>
+std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB::value_type>
 ReduceMin_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
     return ReduceMin_host(fa,nghost,std::forward<F>(f));
 }
 
 template <class FAB, class F>
-amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB::value_type>
+std::enable_if_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB::value_type>
 ReduceMin_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
     amrex::ignore_unused(fa,nghost,f);
@@ -418,7 +419,7 @@ ReduceMin_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 }
 
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
 ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -430,7 +431,7 @@ ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 }
 #else
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
 ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -439,7 +440,7 @@ ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 #endif
 
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F&& f)
 {
@@ -448,7 +449,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F&&
 
 namespace fudetail {
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMin_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 IntVect const& nghost, F&& f)
@@ -475,7 +476,7 @@ ReduceMin_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #ifdef AMREX_USE_GPU
 namespace fudetail {
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMin_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                   IntVect const& nghost, F&& f)
@@ -501,7 +502,7 @@ ReduceMin_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     }
 
@@ -509,7 +510,7 @@ ReduceMin_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 
 template <class FAB1, class FAB2, class F>
-amrex::EnableIf_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
+std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
 ReduceMin_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         IntVect const& nghost, F&& f)
 {
@@ -517,7 +518,7 @@ ReduceMin_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 
 template <class FAB1, class FAB2, class F>
-amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
+std::enable_if_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
 ReduceMin_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         IntVect const& nghost, F&& f)
 {
@@ -528,7 +529,7 @@ ReduceMin_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            IntVect const& nghost, F&& f)
@@ -541,7 +542,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 #else
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            IntVect const& nghost, F&& f)
@@ -551,7 +552,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #endif
 
 template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> const& fa3,
            int nghost, F&& f)
@@ -561,7 +562,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
 
 namespace fudetail {
 template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMin_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
@@ -589,7 +590,7 @@ ReduceMin_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #ifdef AMREX_USE_GPU
 namespace fudetail {
 template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMin_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                   FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
@@ -616,7 +617,7 @@ ReduceMin_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     }
 
@@ -624,7 +625,7 @@ ReduceMin_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 
 template <class FAB1, class FAB2, class FAB3, class F>
-amrex::EnableIf_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
+std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
 ReduceMin_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
 {
@@ -632,7 +633,7 @@ ReduceMin_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 
 template <class FAB1, class FAB2, class FAB3, class F>
-amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
+std::enable_if_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
 ReduceMin_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
 {
@@ -643,7 +644,7 @@ ReduceMin_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 
 template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
@@ -656,7 +657,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 #else
 template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
@@ -666,7 +667,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #endif
 
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
 ReduceMax (FabArray<FAB> const& fa, int nghost, F&& f)
 {
@@ -675,7 +676,7 @@ ReduceMax (FabArray<FAB> const& fa, int nghost, F&& f)
 
 namespace fudetail {
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
 ReduceMax_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -700,7 +701,7 @@ ReduceMax_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 #ifdef AMREX_USE_GPU
 namespace fudetail {
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
 ReduceMax_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -724,7 +725,7 @@ ReduceMax_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     }
 
@@ -732,14 +733,14 @@ ReduceMax_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 }
 
 template <class FAB, class F>
-amrex::EnableIf_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB::value_type>
+std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB::value_type>
 ReduceMax_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
     return ReduceMax_host(fa,nghost,std::forward<F>(f));
 }
 
 template <class FAB, class F>
-amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB::value_type>
+std::enable_if_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB::value_type>
 ReduceMax_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
     amrex::ignore_unused(fa,nghost,f);
@@ -749,7 +750,7 @@ ReduceMax_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 }
 
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
 ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -761,7 +762,7 @@ ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 }
 #else
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
 ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -770,7 +771,7 @@ ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 #endif
 
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F&& f)
 {
@@ -779,7 +780,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F&&
 
 namespace fudetail {
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMax_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 IntVect const& nghost, F&& f)
@@ -806,7 +807,7 @@ ReduceMax_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #ifdef AMREX_USE_GPU
 namespace fudetail {
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMax_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                   IntVect const& nghost, F&& f)
@@ -832,7 +833,7 @@ ReduceMax_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     }
 
@@ -840,7 +841,7 @@ ReduceMax_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 
 template <class FAB1, class FAB2, class F>
-amrex::EnableIf_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
+std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
 ReduceMax_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         IntVect const& nghost, F&& f)
 {
@@ -848,7 +849,7 @@ ReduceMax_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 
 template <class FAB1, class FAB2, class F>
-amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
+std::enable_if_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
 ReduceMax_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         IntVect const& nghost, F&& f)
 {
@@ -859,7 +860,7 @@ ReduceMax_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            IntVect const& nghost, F&& f)
@@ -872,7 +873,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 #else
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            IntVect const& nghost, F&& f)
@@ -882,7 +883,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #endif
 
 template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> const& fa3,
            int nghost, F&& f)
@@ -892,7 +893,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
 
 namespace fudetail {
 template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMax_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
@@ -920,7 +921,7 @@ ReduceMax_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #ifdef AMREX_USE_GPU
 namespace fudetail {
 template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMax_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                   FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
@@ -947,7 +948,7 @@ ReduceMax_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     }
 
@@ -955,7 +956,7 @@ ReduceMax_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 
 template <class FAB1, class FAB2, class FAB3, class F>
-amrex::EnableIf_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
+std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
 ReduceMax_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
 {
@@ -963,7 +964,7 @@ ReduceMax_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 
 template <class FAB1, class FAB2, class FAB3, class F>
-amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
+std::enable_if_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
 ReduceMax_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
 {
@@ -974,7 +975,7 @@ ReduceMax_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 
 template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
@@ -987,7 +988,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 #else
 template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
@@ -997,7 +998,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #endif
 
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 bool
 ReduceLogicalAnd (FabArray<FAB> const& fa, int nghost, F&& f)
 {
@@ -1006,7 +1007,7 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, int nghost, F&& f)
 
 namespace fudetail {
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 bool
 ReduceLogicalAnd_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -1029,7 +1030,7 @@ ReduceLogicalAnd_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 #ifdef AMREX_USE_GPU
 namespace fudetail {
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 bool
 ReduceLogicalAnd_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -1052,7 +1053,7 @@ ReduceLogicalAnd_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     }
 
@@ -1060,14 +1061,14 @@ ReduceLogicalAnd_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 }
 
 template <class FAB, class F>
-amrex::EnableIf_t<!amrex::DefinitelyNotHostRunnable<F>::value, bool>
+std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, bool>
 ReduceLogicalAnd_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
     return ReduceLogicalAnd_host(fa,nghost,std::forward<F>(f));
 }
 
 template <class FAB, class F>
-amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, bool>
+std::enable_if_t<amrex::DefinitelyNotHostRunnable<F>::value, bool>
 ReduceLogicalAnd_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
     amrex::ignore_unused(fa,nghost,f);
@@ -1077,7 +1078,7 @@ ReduceLogicalAnd_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F
 }
 
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 bool
 ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -1089,7 +1090,7 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 }
 #else
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 bool
 ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -1098,7 +1099,7 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 #endif
 
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 bool
 ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                   int nghost, F&& f)
@@ -1108,7 +1109,7 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 
 namespace fudetail {
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 bool
 ReduceLogicalAnd_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                        IntVect const& nghost, F&& f)
@@ -1133,7 +1134,7 @@ ReduceLogicalAnd_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #ifdef AMREX_USE_GPU
 namespace fudetail {
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 bool
 ReduceLogicalAnd_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                          IntVect const& nghost, F&& f)
@@ -1158,7 +1159,7 @@ ReduceLogicalAnd_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     }
 
@@ -1166,7 +1167,7 @@ ReduceLogicalAnd_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 
 template <class FAB1, class FAB2, class F>
-amrex::EnableIf_t<!amrex::DefinitelyNotHostRunnable<F>::value, bool>
+std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, bool>
 ReduceLogicalAnd_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                   IntVect const& nghost, F&& f)
 {
@@ -1174,7 +1175,7 @@ ReduceLogicalAnd_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& 
 }
 
 template <class FAB1, class FAB2, class F>
-amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, bool>
+std::enable_if_t<amrex::DefinitelyNotHostRunnable<F>::value, bool>
 ReduceLogicalAnd_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                                IntVect const& nghost, F&& f)
 {
@@ -1185,7 +1186,7 @@ ReduceLogicalAnd_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& 
 }
 
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 bool
 ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                   IntVect const& nghost, F&& f)
@@ -1198,7 +1199,7 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 #else
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 bool
 ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                   IntVect const& nghost, F&& f)
@@ -1208,7 +1209,7 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #endif
 
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 bool
 ReduceLogicalOr (FabArray<FAB> const& fa, int nghost, F&& f)
 {
@@ -1217,7 +1218,7 @@ ReduceLogicalOr (FabArray<FAB> const& fa, int nghost, F&& f)
 
 namespace fudetail {
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 bool
 ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -1240,7 +1241,7 @@ ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 #ifdef AMREX_USE_GPU
 namespace fudetail {
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 bool
 ReduceLogicalOr_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -1263,7 +1264,7 @@ ReduceLogicalOr_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     }
 
@@ -1271,14 +1272,14 @@ ReduceLogicalOr_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 }
 
 template <class FAB, class F>
-amrex::EnableIf_t<!amrex::DefinitelyNotHostRunnable<F>::value, bool>
+std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, bool>
 ReduceLogicalOr_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
     return ReduceLogicalOr_host(fa,nghost,std::forward<F>(f));
 }
 
 template <class FAB, class F>
-amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, bool>
+std::enable_if_t<amrex::DefinitelyNotHostRunnable<F>::value, bool>
 ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
     amrex::ignore_unused(fa,nghost,f);
@@ -1288,7 +1289,7 @@ ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 }
 
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 bool
 ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -1300,7 +1301,7 @@ ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 }
 #else
 template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 bool
 ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -1309,7 +1310,7 @@ ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 #endif
 
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 bool
 ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                  int nghost, F&& f)
@@ -1319,7 +1320,7 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 
 namespace fudetail {
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 bool
 ReduceLogicalOr_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                       IntVect const& nghost, F&& f)
@@ -1344,7 +1345,7 @@ ReduceLogicalOr_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #ifdef AMREX_USE_GPU
 namespace fudetail {
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 bool
 ReduceLogicalOr_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         IntVect const& nghost, F&& f)
@@ -1369,7 +1370,7 @@ ReduceLogicalOr_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     }
 
@@ -1377,7 +1378,7 @@ ReduceLogicalOr_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 
 template <class FAB1, class FAB2, class F>
-amrex::EnableIf_t<!amrex::DefinitelyNotHostRunnable<F>::value, bool>
+std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, bool>
 ReduceLogicalOr_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                  IntVect const& nghost, F&& f)
 {
@@ -1385,7 +1386,7 @@ ReduceLogicalOr_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& f
 }
 
 template <class FAB1, class FAB2, class F>
-amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, bool>
+std::enable_if_t<amrex::DefinitelyNotHostRunnable<F>::value, bool>
 ReduceLogicalOr_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                               IntVect const& nghost, F&& f)
 {
@@ -1396,7 +1397,7 @@ ReduceLogicalOr_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& f
 }
 
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 bool
 ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                  IntVect const& nghost, F&& f)
@@ -1409,7 +1410,7 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 #else
 template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 bool
 ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                  IntVect const& nghost, F&& f)
@@ -1418,7 +1419,7 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 #endif
 
-template <class FAB, class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+template <class FAB, class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 void
 printCell (FabArray<FAB> const& mf, const IntVect& cell, int comp = -1,
            const IntVect& ng = IntVect::TheZeroVector())
@@ -1427,28 +1428,28 @@ printCell (FabArray<FAB> const& mf, const IntVect& cell, int comp = -1,
     {
         const Box& bx = amrex::grow(mfi.validbox(), ng);
         if (bx.contains(cell)) {
-	    if (comp >= 0) {
+            if (comp >= 0) {
                 amrex::AllPrint().SetPrecision(17) << " At cell " << cell << " in Box " << bx
                                                    << ": " << mf[mfi](cell, comp) << std::endl;
-	    } else {
+            } else {
                 std::ostringstream ss;
                 ss.precision(17);
                 const int ncomp = mf.nComp();
                 for (int i = 0; i < ncomp-1; ++i)
-		{
+                {
                     ss << mf[mfi](cell,i) << ", ";
-		}
+                }
                 ss << mf[mfi](cell,ncomp-1);
                 amrex::AllPrint() << " At cell " << cell << " in Box " << bx
                                   << ": " << ss.str() << std::endl;
-	    }
+            }
         }
     }
 }
 
 
 template <class FAB,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 void
 Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
 {
@@ -1456,7 +1457,7 @@ Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int
 }
 
 template <class FAB,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 void
 Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
@@ -1478,41 +1479,8 @@ Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int
     }
 }
 
-
 template <class FAB,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
-void
-Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
-{
-    Copy(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
-}
-
-template <class FAB,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
-void
-Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
-{
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.growntilebox(nghost);
-        if (bx.ok())
-        {
-            auto const srcFab = src.array(mfi);
-            auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
-            {
-                dstFab(i,j,k,dstcomp+n) = srcFab(i,j,k,srccomp+n);
-            });
-        }
-    }
-}
-
-
-template <class FAB,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 void
 Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
 {
@@ -1520,7 +1488,7 @@ Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp
 }
 
 template <class FAB,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 void
 Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
@@ -1544,7 +1512,7 @@ Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp
 
 
 template <class FAB,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 void
 Multiply (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
 {
@@ -1552,7 +1520,7 @@ Multiply (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp
 }
 
 template <class FAB,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 void
 Multiply (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
@@ -1576,7 +1544,7 @@ Multiply (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp
 
 
 template <class FAB,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 void
 Divide (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
 {
@@ -1584,7 +1552,7 @@ Divide (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, 
 }
 
 template <class FAB,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 void
 Divide (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
@@ -1607,7 +1575,7 @@ Divide (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, 
 }
 
 template <class FAB,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 void
 Abs (FabArray<FAB>& fa, int icomp, int numcomp, int nghost)
 {
@@ -1615,7 +1583,7 @@ Abs (FabArray<FAB>& fa, int icomp, int numcomp, int nghost)
 }
 
 template <class FAB,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 void
 Abs (FabArray<FAB>& fa, int icomp, int numcomp, const IntVect& nghost)
 {
@@ -1636,13 +1604,12 @@ Abs (FabArray<FAB>& fa, int icomp, int numcomp, const IntVect& nghost)
     }
 }
 
-template <class FAB, class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+template <class FAB, class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 void
 prefetchToHost (FabArray<FAB> const& fa, const bool synchronous = true)
 {
 #ifdef AMREX_USE_GPU
-    if ((fa.arena() == The_Arena() && fa.arena()->arenaInfo().device_use_managed_memory) ||
-        fa.arena() == The_Managed_Arena()) {
+    if (fa.arena()->isManaged()) {
         for (MFIter mfi(fa, MFItInfo().SetDeviceSync(synchronous)); mfi.isValid(); ++mfi) {
             fa.prefetchToHost(mfi);
         }
@@ -1652,13 +1619,12 @@ prefetchToHost (FabArray<FAB> const& fa, const bool synchronous = true)
 #endif
 }
 
-template <class FAB, class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+template <class FAB, class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 void
 prefetchToDevice (FabArray<FAB> const& fa, const bool synchronous = true)
 {
 #ifdef AMREX_USE_GPU
-    if ((fa.arena() == The_Arena() && fa.arena()->arenaInfo().device_use_managed_memory) ||
-        fa.arena() == The_Managed_Arena()) {
+    if (fa.arena()->isManaged()) {
         for (MFIter mfi(fa, MFItInfo().SetDeviceSync(synchronous)); mfi.isValid(); ++mfi) {
             fa.prefetchToDevice(mfi);
         }
@@ -1668,7 +1634,7 @@ prefetchToDevice (FabArray<FAB> const& fa, const bool synchronous = true)
 #endif
 }
 
-template <class FAB, class IFAB, class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value
+template <class FAB, class IFAB, class bar = std::enable_if_t<IsBaseFab<FAB>::value
                                                                && IsBaseFab<IFAB>::value> >
 void
 OverrideSync (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& period)
@@ -1676,7 +1642,7 @@ OverrideSync (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& 
     BL_PROFILE("OverrideSync()");
 
     if (fa.ixType().cellCentered()) return;
-    
+
     const int ncomp = fa.nComp();
 
 #ifdef AMREX_USE_OMP
@@ -1692,7 +1658,7 @@ OverrideSync (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& 
             if (!ifab(i,j,k)) fab(i,j,k,n) = 0;
         });
     }
-    
+
     FabArray<FAB> tmpmf(fa.boxArray(), fa.DistributionMap(), ncomp, 0,
                         MFInfo(), fa.Factory());
     tmpmf.setVal(0);
@@ -1701,7 +1667,7 @@ OverrideSync (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& 
     amrex::Copy(fa, tmpmf, 0, 0, ncomp, 0);
 }
 
-template <class FAB, class foo = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+template <class FAB, class foo = std::enable_if_t<IsBaseFab<FAB>::value> >
 void
 dtoh_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src,
              int scomp, int dcomp, int ncomp)
@@ -1719,14 +1685,14 @@ dtoh_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src,
 #endif
 }
 
-template <class FAB, class foo = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+template <class FAB, class foo = std::enable_if_t<IsBaseFab<FAB>::value> >
 void
 dtoh_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src)
 {
     dtoh_memcpy(dst, src, 0, 0, dst.nComp());
 }
 
-template <class FAB, class foo = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+template <class FAB, class foo = std::enable_if_t<IsBaseFab<FAB>::value> >
 void
 htod_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src,
              int scomp, int dcomp, int ncomp)
@@ -1744,14 +1710,14 @@ htod_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src,
 #endif
 }
 
-template <class FAB, class foo = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+template <class FAB, class foo = std::enable_if_t<IsBaseFab<FAB>::value> >
 void
 htod_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src)
 {
     htod_memcpy(dst, src, 0, 0, dst.nComp());
 }
 
-template <class FAB, class foo = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+template <class FAB, class foo = std::enable_if_t<IsBaseFab<FAB>::value> >
 IntVect
 indexFromValue (FabArray<FAB> const& mf, int comp, IntVect const& nghost,
                 typename FAB::value_type value)

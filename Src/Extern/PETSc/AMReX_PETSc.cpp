@@ -25,7 +25,7 @@ std::unique_ptr<PETScABecLap>
 makePetsc (const BoxArray& grids, const DistributionMapping& dmap,
            const Geometry& geom, MPI_Comm comm_)
 {
-        return std::unique_ptr<PETScABecLap>(new PETScABecLap(grids, dmap, geom, comm_));
+    return std::make_unique<PETScABecLap>(grids, dmap, geom, comm_);
 }
 
 
@@ -41,11 +41,11 @@ PETScABecLap::PETScABecLap (const BoxArray& grids, const DistributionMapping& dm
     int ngrow = 0;
     acoefs.define(grids, dmap, ncomp, ngrow);
     acoefs.setVal(0.0);
-    
+
 #ifdef AMREX_USE_EB
     ngrow = 1;
 #endif
-    
+
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
         BoxArray edge_boxes(grids);
         edge_boxes.surroundingNodes(i);
@@ -76,7 +76,7 @@ PETScABecLap::~PETScABecLap ()
     m_factory = nullptr;
     m_bndry = nullptr;
     m_maxorder = -1;
-    
+
     PetscFinalize();
 }
 
@@ -128,11 +128,11 @@ PETScABecLap::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real /*a
 
     loadVectors(soln, rhs);
     //
-    VecAssemblyBegin(x); 
-    VecAssemblyEnd(x); 
+    VecAssemblyBegin(x);
+    VecAssemblyEnd(x);
     //
-    VecAssemblyBegin(b); 
-    VecAssemblyEnd(b); 
+    VecAssemblyBegin(b);
+    VecAssemblyEnd(b);
     KSPSetTolerances(solver, rel_tol, PETSC_DEFAULT, PETSC_DEFAULT, max_iter);
     KSPSolve(solver, b, x);
     if (verbose >= 2)
@@ -156,7 +156,7 @@ PETScABecLap::prepareSolver ()
 
     const BoxArray& ba = acoefs.boxArray();
     const DistributionMapping& dm = acoefs.DistributionMap();
-    
+
 #if defined(AMREX_DEBUG) || defined(AMREX_TESTING)
     if (sizeof(PetscInt) < sizeof(Long)) {
         Long ncells_grids = ba.numPts();
@@ -258,7 +258,7 @@ PETScABecLap::prepareSolver ()
             cid_arr(i,j,k) += os;
             cid_vec(i,j,k) = cid_arr(i,j,k);
         });
-    }    
+    }
 
     cell_id.FillBoundary(geom.periodicity());
 
@@ -266,14 +266,14 @@ PETScABecLap::prepareSolver ()
     PetscInt d_nz = (eb_stencil_size + regular_stencil_size) / 2;
     // estimated amount of block off diag elements
     PetscInt o_nz  = d_nz / 2;
-    MatCreate(PETSC_COMM_WORLD, &A); 
+    MatCreate(PETSC_COMM_WORLD, &A);
     MatSetType(A, MATMPIAIJ);
-    MatSetSizes(A, ncells_proc, ncells_proc, ncells_world, ncells_world); 
+    MatSetSizes(A, ncells_proc, ncells_proc, ncells_world, ncells_world);
     MatMPIAIJSetPreallocation(A, d_nz, NULL, o_nz, NULL );
     //Maybe an over estimate of the diag/off diag #of non-zero entries, so we turn off malloc warnings
-    MatSetUp(A); 
-    MatSetOption(A, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_FALSE); 
- 
+    MatSetUp(A);
+    MatSetOption(A, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_FALSE);
+
     // A.SetValues
     const auto dx = geom.CellSizeArray();
     const int bho = (m_maxorder > 2) ? 1 : 0;
@@ -285,7 +285,7 @@ PETScABecLap::prepareSolver ()
     for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
-        
+
 #ifdef AMREX_USE_EB
         const auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
 #else
@@ -321,7 +321,7 @@ PETScABecLap::prepareSolver ()
 
             Real sa = scalar_a;
             Real sb = scalar_b;
-    
+
             if (fabtyp == FabType::regular)
             {
                 constexpr int stencil_size = 2*AMREX_SPACEDIM+1;
@@ -440,8 +440,8 @@ PETScABecLap::prepareSolver ()
 
             Gpu::synchronize();
 
-            //Load in by row! 
-            int matid = 0; 
+            //Load in by row!
+            int matid = 0;
             for (int rit = 0; rit < nrows; ++rit)
             {
                 MatSetValues(A, 1, &rows[rit], ncols[rit], &cols[matid], &mat[matid], INSERT_VALUES);
@@ -463,10 +463,10 @@ PETScABecLap::prepareSolver ()
     // Classic AMG
     PCSetType(pc, PCGAMG);
     PCGAMGSetType(pc, PCGAMGAGG);
-    PCGAMGSetNSmooths(pc,0); 
-//    PCSetType(pc, PCJACOBI); 
+    PCGAMGSetNSmooths(pc,0);
+//    PCSetType(pc, PCJACOBI);
 
-    
+
 // we are not using command line options    KSPSetFromOptions(solver);
     // create b & x
     VecCreateMPI(PETSC_COMM_WORLD, ncells_proc, ncells_world, &x);

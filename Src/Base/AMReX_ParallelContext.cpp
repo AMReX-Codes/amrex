@@ -1,7 +1,8 @@
-#include <sstream>
-
 #include <AMReX_ParallelContext.H>
 #include <AMReX_ParallelDescriptor.H>
+
+#include <sstream>
+#include <fstream>
 
 namespace amrex {
 namespace ParallelContext {
@@ -101,7 +102,7 @@ Frame::global_to_local_rank (int* local, const int* global, std::size_t n) const
 #else
     amrex::ignore_unused(global);
     for (std::size_t i = 0; i < n; ++i) local[i] = 0;
-#endif    
+#endif
 }
 
 int
@@ -127,7 +128,7 @@ Frame::get_ofs_ptr ()
         return nullptr;
     } else {
         if (!m_out) {
-            m_out.reset(new std::ofstream(m_out_filename, std::ios_base::app));
+            m_out = std::make_unique<std::ofstream>(m_out_filename, std::ios_base::app);
         }
         return m_out.get();
     }

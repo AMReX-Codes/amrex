@@ -1,11 +1,11 @@
 
 #include <AMReX_HypreABecLap.H>
-#include <string>
-#include <algorithm>
-
 #include <AMReX_Habec_K.H>
 
 #include <_hypre_struct_mv.h>
+
+#include <string>
+#include <algorithm>
 
 namespace amrex {
 
@@ -54,8 +54,8 @@ HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real reltol, Real absto
     //
     loadVectors(soln, rhs);
     //
-    HYPRE_StructVectorAssemble(x); 
-    HYPRE_StructVectorAssemble(b); 
+    HYPRE_StructVectorAssemble(x);
+    HYPRE_StructVectorAssemble(b);
 
     HYPRE_StructPFMGSetMaxIter(solver, maxiter);
     HYPRE_StructPFMGSetTol(solver, reltol);
@@ -83,7 +83,7 @@ HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real reltol, Real absto
         Real res;
         HYPRE_StructPFMGGetNumIterations(solver, &num_iterations);
         HYPRE_StructPFMGGetFinalRelativeResidualNorm(solver, &res);
-        
+
         amrex::Print() << "\n" << num_iterations
                        << " Hypre PFMG Iterations, Relative Residual "
                        << res << std::endl;
@@ -176,7 +176,7 @@ HypreABecLap::prepareSolver ()
     HYPRE_StructMatrixCreate(comm, grid, stencil, &A);
     HYPRE_StructMatrixInitialize(A);
 
-    HYPRE_StructStencilDestroy(stencil); 
+    HYPRE_StructStencilDestroy(stencil);
 
     HYPRE_StructVectorCreate(comm, grid, &b);
     HYPRE_StructVectorCreate(comm, grid, &x);

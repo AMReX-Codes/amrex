@@ -1,9 +1,10 @@
-#include <cstring>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Print.H>
+
+#include <cstring>
 
 using namespace amrex;
 
@@ -11,34 +12,34 @@ extern "C"
 {
     void amrex_new_parmparse (ParmParse*& pp, const char* name)
     {
-	pp = new ParmParse(std::string(name));
+        pp = new ParmParse(std::string(name));
     }
 
     void amrex_delete_parmparse (ParmParse* pp)
     {
-	delete pp;
+        delete pp;
     }
 
     int amrex_parmparse_get_counts (ParmParse* pp, const char* name)
     {
-	return pp->countval(name);
+        return pp->countval(name);
     }
 
     void amrex_parmparse_get_int (ParmParse* pp, const char* name, int* v)
     {
-	pp->get(name, *v);
+        pp->get(name, *v);
     }
 
     void amrex_parmparse_get_real (ParmParse* pp, const char* name, Real* v)
     {
-	pp->get(name, *v);
+        pp->get(name, *v);
     }
 
     void amrex_parmparse_get_bool (ParmParse* pp, const char* name, int* v)
     {
-	bool b;
-	pp->get(name, b);
-	*v = b;
+        bool b;
+        pp->get(name, b);
+        *v = b;
     }
 
     void amrex_parmparse_get_string (ParmParse* pp, const char* name, char*& v, int* len)
@@ -59,20 +60,20 @@ extern "C"
 
     void amrex_parmparse_get_intarr (ParmParse* pp, const char* name, int v[], int len)
     {
-	Vector<int> r;
-	pp->getarr(name, r);
-	for (int i = 0; i < len; ++i) {
-	    v[i] = r[i];
-	}
+        Vector<int> r;
+        pp->getarr(name, r);
+        for (int i = 0; i < len; ++i) {
+            v[i] = r[i];
+        }
     }
 
     void amrex_parmparse_get_realarr (ParmParse* pp, const char* name, Real v[], int len)
     {
-	Vector<Real> r;
-	pp->getarr(name, r);
-	for (int i = 0; i < len; ++i) {
-	    v[i] = r[i];
-	}
+        Vector<Real> r;
+        pp->getarr(name, r);
+        for (int i = 0; i < len; ++i) {
+            v[i] = r[i];
+        }
     }
 
     void amrex_parmparse_get_stringarr (ParmParse* pp, const char* name, char** v, int* sv, int n)
@@ -89,18 +90,18 @@ extern "C"
 
     int amrex_parmparse_query_int (ParmParse* pp, const char* name, int* v)
     {
-	return pp->query(name, *v);
+        return pp->query(name, *v);
     }
 
     int amrex_parmparse_query_real (ParmParse* pp, const char* name, Real* v)
     {
-	return pp->query(name, *v);
+        return pp->query(name, *v);
     }
 
     int amrex_parmparse_query_bool (ParmParse* pp, const char* name, int* v)
     {
-	bool b;
-	if (pp->query(name, b)) {
+        bool b;
+        if (pp->query(name, b)) {
             *v = b;
             return 1;
         } else {
@@ -127,7 +128,7 @@ extern "C"
     {
         pp->add(name,v);
     }
-    
+
     void amrex_parmparse_add_bool (ParmParse* pp, const char* name, int v)
     {
         pp->add(name,static_cast<bool>(v));

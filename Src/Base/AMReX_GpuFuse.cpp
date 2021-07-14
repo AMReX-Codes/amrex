@@ -2,6 +2,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_OpenMP.H>
+#include <limits>
 
 namespace amrex {
 namespace Gpu {
@@ -11,15 +12,20 @@ namespace Gpu {
 namespace {
     bool s_in_fuse_region = false;
     bool s_in_fuse_reduction_region = false;
+#if defined(AMREX_USE_GPU_RDC)
     // Fusing kernels with elements greater than this are not recommended based tests on v100
     Long s_fuse_size_threshold = 257*257;
     // If the number of kernels is less than this, fusing is not recommended based on tests on v100
     int s_fuse_numkernels_threshold = 3;
+#else
+    Long s_fuse_size_threshold = std::numeric_limits<Long>::max();
+    int s_fuse_numkernels_threshold = std::numeric_limits<int>::max();
+#endif
 }
 
 std::unique_ptr<Fuser> Fuser::m_instance = nullptr;
 
-#if defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION))
+#if defined(AMREX_USE_GPU_RDC) && (defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION)))
 
 Fuser::Fuser ()
 {
@@ -74,7 +80,7 @@ void Fuser::Launch ()
         std::size_t total_buf_size = offset_objects + sizeof_objects;
 
         char* h_buffer = (char*)The_Pinned_Arena()->alloc(total_buf_size);
-        char* d_buffer = (char*)The_Device_Arena()->alloc(total_buf_size);
+        char* d_buffer = (char*)The_Arena()->alloc(total_buf_size);
 
         std::memcpy(h_buffer, nwarps, sizeof_nwarps);
         std::memcpy(h_buffer+offset_helpers, m_helper_buf, sizeof_helpers);
@@ -85,7 +91,7 @@ void Fuser::Launch ()
         auto d_lambda_helper = reinterpret_cast<FuseHelper*>(d_buffer+offset_helpers);
         auto d_lambda_object = reinterpret_cast<char*>(d_buffer+offset_objects);
 
-        constexpr int nthreads = 256;
+        constexpr int nthreads = AMREX_GPU_MAX_THREADS;
         constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
         int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
 
@@ -178,7 +184,7 @@ void Fuser::Launch ()
         Gpu::synchronize();
         The_Pinned_Arena()->free(nwarps);
         The_Pinned_Arena()->free(h_buffer);
-        The_Device_Arena()->free(d_buffer);
+        The_Arena()->free(d_buffer);
 
         for (int i = 0; i < nlambdas; ++i) {
             char* p = m_lambda_buf + m_helper_buf[i].m_offset;
@@ -220,7 +226,7 @@ Fuser&
 Fuser::getInstance ()
 {
     if (m_instance == nullptr) {
-        m_instance.reset(new Fuser());
+        m_instance = std::make_unique<Fuser>();
     }
     return *m_instance;
 }

@@ -2,12 +2,13 @@
 #define AMREX_BOXITERATOR_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_BLassert.H>
+#include <AMReX_Box.H>
+#include <AMReX_REAL.H>
+#include <AMReX_SPACE.H>
+#include <AMReX_IntVect.H>
+
 #include <cstdlib>
-#include "AMReX_BLassert.H"
-#include "AMReX_Box.H"
-#include "AMReX_REAL.H"
-#include "AMReX_SPACE.H"
-#include "AMReX_IntVect.H"
 
 namespace amrex
 {
@@ -16,7 +17,7 @@ namespace amrex
 
 
      BoxIterator iterates through the IntVects of a box.  The actual
-     sqeuence of IntVects is implementation-specific.
+     sequence of IntVects is implementation-specific.
      Typical usage:
 
      Box b;

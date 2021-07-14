@@ -1,6 +1,6 @@
 #include "MyTest.H"
 #include "MyTest_F.H"
-    
+
 #include <AMReX_MLEBABecLap.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFabUtil.H>
@@ -120,7 +120,7 @@ MyTest::initGrids ()
         grids[ilev].define(domain);
         grids[ilev].maxSize(max_grid_size);
         domain.grow(-n_cell/4);   // fine level cover the middle of the coarse domain
-        domain.refine(ref_ratio); 
+        domain.refine(ref_ratio);
     }
 }
 
@@ -140,8 +140,8 @@ MyTest::initData ()
         dmap[ilev].define(grids[ilev]);
         const EB2::IndexSpace& eb_is = EB2::IndexSpace::top();
         const EB2::Level& eb_level = eb_is.getLevel(geom[ilev]);
-        factory[ilev].reset(new EBFArrayBoxFactory(eb_level, geom[ilev], grids[ilev], dmap[ilev],
-                                                   {2,2,2}, EBSupport::full));
+        factory[ilev] = std::make_unique<EBFArrayBoxFactory>
+            (eb_level, geom[ilev], grids[ilev], dmap[ilev], Vector<int>{2,2,2}, EBSupport::full);
 
         phi[ilev].define(grids[ilev], dmap[ilev], 1, 1, MFInfo(), *factory[ilev]);
         rhs[ilev].define(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
@@ -163,65 +163,65 @@ MyTest::initData ()
 #if (AMREX_SPACEDIM == 2)
         for (MFIter mfi(rhs[ilev]); mfi.isValid(); ++mfi)
         {
-            FArrayBox& rhsfab = rhs[ilev][mfi]; 
-            FArrayBox& afab   = acoef[ilev][mfi]; 
-            FArrayBox& bfabx  = bcoef[ilev][0][mfi]; 
+            FArrayBox& rhsfab = rhs[ilev][mfi];
+            FArrayBox& afab   = acoef[ilev][mfi];
+            FArrayBox& bfabx  = bcoef[ilev][0][mfi];
             FArrayBox& bfaby  = bcoef[ilev][1][mfi];
             const Box& bx = rhsfab.box();
-            build_a_2d(bx.loVect(), bx.hiVect(), 
-                       geom[ilev].ProbLo(), 
-                       geom[ilev].ProbHi(), 
-                       BL_TO_FORTRAN_ANYD(afab), 
-                       dx); 
-                       
-             build_b_2d(bx.loVect(), bx.hiVect(), 
-                       geom[ilev].ProbLo(), 
-                       geom[ilev].ProbHi(), 
+            build_a_2d(bx.loVect(), bx.hiVect(),
+                       geom[ilev].ProbLo(),
+                       geom[ilev].ProbHi(),
+                       BL_TO_FORTRAN_ANYD(afab),
+                       dx);
+
+             build_b_2d(bx.loVect(), bx.hiVect(),
+                       geom[ilev].ProbLo(),
+                       geom[ilev].ProbHi(),
                        BL_TO_FORTRAN_ANYD( bfabx),
                        BL_TO_FORTRAN_ANYD( bfaby),
                        dx); // */
-            
-            build_rhs_2d(bx.loVect(), bx.hiVect(), 
-                      BL_TO_FORTRAN_ANYD(rhsfab), 
-                      BL_TO_FORTRAN_ANYD(  afab), 
+
+            build_rhs_2d(bx.loVect(), bx.hiVect(),
+                      BL_TO_FORTRAN_ANYD(rhsfab),
+                      BL_TO_FORTRAN_ANYD(  afab),
                       BL_TO_FORTRAN_ANYD( bfabx),
                       BL_TO_FORTRAN_ANYD( bfaby),
-                      dx, geom[ilev].ProbLo(), 
-                      geom[ilev].ProbHi()); 
+                      dx, geom[ilev].ProbLo(),
+                      geom[ilev].ProbHi());
         }
 #elif (AMREX_SPACEDIM ==3)
         for (MFIter mfi(rhs[ilev]); mfi.isValid(); ++mfi)
         {
-            FArrayBox& rhsfab = rhs[ilev][mfi]; 
-            FArrayBox& afab   = acoef[ilev][mfi]; 
-            FArrayBox& bfabx  = bcoef[ilev][0][mfi]; 
+            FArrayBox& rhsfab = rhs[ilev][mfi];
+            FArrayBox& afab   = acoef[ilev][mfi];
+            FArrayBox& bfabx  = bcoef[ilev][0][mfi];
             FArrayBox& bfaby  = bcoef[ilev][1][mfi];
             FArrayBox& bfabz  = bcoef[ilev][2][mfi];
             const Box& bx = rhsfab.box();
 
-            build_a_3d(bx.loVect(), bx.hiVect(), 
-                       geom[ilev].ProbLo(), 
-                       geom[ilev].ProbHi(), 
-                       BL_TO_FORTRAN_ANYD(afab), 
-                       dx); 
-                       
-             build_b_3d(bx.loVect(), bx.hiVect(), 
-                       geom[ilev].ProbLo(), 
-                       geom[ilev].ProbHi(), 
+            build_a_3d(bx.loVect(), bx.hiVect(),
+                       geom[ilev].ProbLo(),
+                       geom[ilev].ProbHi(),
+                       BL_TO_FORTRAN_ANYD(afab),
+                       dx);
+
+             build_b_3d(bx.loVect(), bx.hiVect(),
+                       geom[ilev].ProbLo(),
+                       geom[ilev].ProbHi(),
                        BL_TO_FORTRAN_ANYD( bfabx),
                        BL_TO_FORTRAN_ANYD( bfaby),
                        BL_TO_FORTRAN_ANYD( bfabz),
                        dx); // */
 
- 
-            build_rhs_3d(bx.loVect(), bx.hiVect(), 
-                      BL_TO_FORTRAN_ANYD(rhsfab), 
-                      BL_TO_FORTRAN_ANYD(  afab), 
+
+            build_rhs_3d(bx.loVect(), bx.hiVect(),
+                      BL_TO_FORTRAN_ANYD(rhsfab),
+                      BL_TO_FORTRAN_ANYD(  afab),
                       BL_TO_FORTRAN_ANYD( bfabx),
                       BL_TO_FORTRAN_ANYD( bfaby),
-                      BL_TO_FORTRAN_ANYD( bfabz), 
-                      dx, geom[ilev].ProbLo(), 
-                      geom[ilev].ProbHi()); 
+                      BL_TO_FORTRAN_ANYD( bfabz),
+                      dx, geom[ilev].ProbLo(),
+                      geom[ilev].ProbHi());
         }
 
 #endif
@@ -230,13 +230,12 @@ MyTest::initData ()
         {
             FArrayBox& fab = phi[ilev][mfi];
             const Box& bx = fab.box();
-            apply_bc(bx.loVect(), bx.hiVect(), 
+            apply_bc(bx.loVect(), bx.hiVect(),
                       BL_TO_FORTRAN_ANYD(fab),
-                      dx, geom[ilev].ProbLo(), 
-                      geom[ilev].ProbHi());// */ 
+                      dx, geom[ilev].ProbLo(),
+                      geom[ilev].ProbHi());// */
         }
 
         phi[ilev].setVal(0.0, 0, 1, 0);
     }
 }
-

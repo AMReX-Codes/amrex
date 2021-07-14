@@ -20,10 +20,10 @@ PrintUsage (const char* progName)
             << "with the format (i,j,k) followed by all components in a row.  " << std::endl
             << "The user can modify this cpp file to write out on certain components," << std::endl
             << "coordinates, row/column formatting, etc." << std::endl << std::endl;
-    
+
     Print() << "Usage:" << '\n';
     Print() << progName << " infile=inputFileName [comp_in_line = 1]" << '\n' << '\n';
-        
+
     exit(1);
 }
 
@@ -97,10 +97,10 @@ main (int   argc,
 
     // storage for the input coarse and fine MultiFabs
     MultiFab mf;
-    
+
     // read in plotfiles, 'coarse' and 'fine' to MultiFabs
     // note: fine could be the same resolution as coarse
-    VisMF::Read(mf, iFile);    
+    VisMF::Read(mf, iFile);
 
     ncomp = mf.nComp();
     Print() << "ncomp = " << ncomp << std::endl;
@@ -129,7 +129,7 @@ main (int   argc,
     mf_onegrid.ParallelCopy(mf,0,0,ncomp,0,0);
 
     for ( MFIter mfi(mf_onegrid,false); mfi.isValid(); ++mfi ) {
-        
+
         const Box& bx = mfi.validbox();
         const auto lo = amrex::lbound(bx);
         const auto hi = amrex::ubound(bx);
@@ -148,7 +148,7 @@ main (int   argc,
               }
             }
           }
-        }    
+        }
     } // end MFIter
-    
+
 }

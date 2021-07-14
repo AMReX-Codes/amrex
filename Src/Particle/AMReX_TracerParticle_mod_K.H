@@ -6,21 +6,21 @@
 #include <AMReX_Box.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_Geometry.H>
-#include <cmath>
 #include <AMReX_REAL.H>
 #include <AMReX_IntVect.H>
-#include "AMReX_TracerParticles.H"
+#include <AMReX_TracerParticles.H>
 
+#include <cmath>
 
 namespace amrex{
 
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void cic_interpolate (const P& p,
-		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
-		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
-		      const amrex::Array4<amrex::Real const> &  uccarr,
-		      amrex::ParticleReal * val, int M)
+                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                      const amrex::Array4<amrex::Real const> &  uccarr,
+                      amrex::ParticleReal * val, int M)
 {
   AMREX_ASSERT(val != nullptr);
 
@@ -38,7 +38,7 @@ void cic_interpolate (const P& p,
     {
         val[d] = ParticleReal(0.0);
         for (int ii = 0; ii<=1; ++ii)
-	{
+        {
             val[d] += static_cast<ParticleReal>(sx[ii]*uccarr(i+ii,0,0,d));
         }
     }
@@ -62,9 +62,9 @@ void cic_interpolate (const P& p,
       {
         val[d] = ParticleReal(0.0);
         for (int jj = 0; jj <= 1; ++jj)
-	  {
+          {
             for (int ii = 0; ii <= 1; ++ii)
-	      {
+              {
                   val[d] += static_cast<ParticleReal>(sx[ii]*sy[jj]*uccarr(i+ii,j+jj,0,d));
               }
           }
@@ -92,7 +92,7 @@ void cic_interpolate (const P& p,
     {
         val[d] = ParticleReal(0.0);
         for (int kk = 0; kk<=1; ++kk)
-	{
+        {
             for (int jj = 0; jj <= 1; ++jj)
             {
                 for (int ii = 0; ii <= 1; ++ii)
@@ -108,10 +108,10 @@ void cic_interpolate (const P& p,
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void cic_interpolate (const P& p,
-		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
-		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
-		      const amrex::Array4<amrex::Real const> &  uccarr,
-		      amrex::ParticleReal * val)
+                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                      const amrex::Array4<amrex::Real const> &  uccarr,
+                      amrex::ParticleReal * val)
 {
     cic_interpolate(p, plo, dxi, uccarr, val, AMREX_SPACEDIM);
 }
@@ -119,10 +119,10 @@ void cic_interpolate (const P& p,
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void mac_interpolate (const P& p,
-		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
-		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
-		      amrex::GpuArray<amrex::Array4<amrex::Real const>,AMREX_SPACEDIM> const& p_uccarr,
-		      amrex::ParticleReal * val)
+                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                      amrex::GpuArray<amrex::Array4<amrex::Real const>,AMREX_SPACEDIM> const& p_uccarr,
+                      amrex::ParticleReal * val)
 {
 
 #if (AMREX_SPACEDIM == 1)
@@ -193,11 +193,11 @@ void mac_interpolate (const P& p,
       val[d] = ParticleReal(0.0);
       for (int kk = 0; kk <=1; ++kk)
       {
-	  for (int jj = 0; jj <= 1; ++jj)
+          for (int jj = 0; jj <= 1; ++jj)
           {
-	      for (int ii = 0; ii <= 1; ++ii)
+              for (int ii = 0; ii <= 1; ++ii)
               {
-		  val[d] += static_cast<ParticleReal>((p_uccarr[d])(i+ii, j+jj, k+kk ,0)*sx[ii]*sy[jj]*sz[kk]);
+                  val[d] += static_cast<ParticleReal>((p_uccarr[d])(i+ii, j+jj, k+kk ,0)*sx[ii]*sy[jj]*sz[kk]);
               }
           }
       }

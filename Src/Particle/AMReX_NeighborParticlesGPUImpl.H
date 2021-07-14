@@ -51,7 +51,6 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 buildNeighborMask ()
 {
     BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::buildNeighborMask");
-    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
     m_neighbor_mask_initialized = true;
     const int lev = 0;
     const Geometry& geom = this->Geom(lev);
@@ -64,16 +63,18 @@ buildNeighborMask ()
         ! BoxArray::SameRefs(m_neighbor_mask_ptr->boxArray(), ba) ||
         ! DistributionMapping::SameRefs(m_neighbor_mask_ptr->DistributionMap(), dmap))
     {
-        m_neighbor_mask_ptr.reset(new iMultiFab(ba, dmap, 1, 0));
+        m_neighbor_mask_ptr = std::make_unique<iMultiFab>(ba, dmap, 1, 0);
         m_neighbor_mask_ptr->setVal(-1);
 
         const Periodicity& periodicity = geom.periodicity();
         const std::vector<IntVect>& pshifts = periodicity.shiftIntVect();
 
+        Vector<Array4BoxValTag<int> > tags;
+
         for (MFIter mfi(ba, dmap); mfi.isValid(); ++mfi)
         {
             int grid = mfi.index();
-	    int num_codes = 0;
+            int num_codes = 0;
 
             std::set<NeighborTask> neighbor_grids;
             for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
@@ -106,8 +107,10 @@ buildNeighborMask ()
             Vector<Box> bl = detail::getBoundaryBoxes(
                 amrex::grow(ba[mfi], -m_num_neighbor_cells), m_num_neighbor_cells);
 
+            Gpu::HostVector<int> h_off;
+            Gpu::HostVector<NeighborCode> h_arr;
             m_grid_map[grid].resize(bl.size());
-	    m_code_offsets[grid].push_back(0);
+            h_off.push_back(0);
             for (int i = 0; i < static_cast<int>(bl.size()); ++i)
             {
                 const Box& box = bl[i];
@@ -116,7 +119,9 @@ buildNeighborMask ()
                 const bool first_only = false;
                 auto isecs = isec_ba.intersections(box, first_only, nGrow);
 
-                if (! isecs.empty() ) (*m_neighbor_mask_ptr)[mfi].setVal<RunOn::Host>(i, box);
+                if (! isecs.empty() ) {
+                    tags.push_back({(*m_neighbor_mask_ptr)[mfi].array(), box, i});
+                }
 
                 for (auto& isec : isecs)
                 {
@@ -124,14 +129,31 @@ buildNeighborMask ()
                     code.grid_id = isec_grids[isec.first];
                     code.periodic_shift = isec_pshifts[isec.first];
                     m_grid_map[grid][i].push_back(code);
-		    m_code_array[grid].push_back(code);
+                    h_arr.push_back(code);
                     const int global_rank = dmap[code.grid_id];
                     neighbor_procs.push_back(ParallelContext::global_to_local_rank(global_rank));
-		    ++num_codes;
+                    ++num_codes;
                 }
-   	        m_code_offsets[grid].push_back(m_code_array[grid].size());
+                h_off.push_back(h_arr.size());
             }
-	}
+
+            m_code_offsets[grid].resize(h_off.size());
+            Gpu::copy(Gpu::hostToDevice, h_off.begin(), h_off.end(),
+                      m_code_offsets[grid].begin());
+
+            m_code_array[grid].resize(h_arr.size());
+            Gpu::copy(Gpu::hostToDevice, h_arr.begin(), h_arr.end(),
+                      m_code_array[grid].begin());
+
+            Gpu::Device::synchronize();
+        }
+
+        amrex::ParallelFor(tags, 1,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, const Array4BoxValTag<int>& tag) noexcept
+            {
+                tag.dfab(i,j,k,n) = tag.val;
+            });
+
         RemoveDuplicates(neighbor_procs);
     }
 }
@@ -143,7 +165,6 @@ buildNeighborCopyOp ()
 {
     BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::buildNeighborCopyOp()");
 
-    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
     AMREX_ASSERT(hasNeighbors() == false);
 
     const int lev = 0;
@@ -168,58 +189,58 @@ buildNeighborCopyOp ()
 
         Array4<const int> const& mask_arr = m_neighbor_mask_ptr->array(mfi);
 
-	Gpu::DeviceVector<int> counts(np + 1, 0);
-	Gpu::DeviceVector<int> offsets(np + 1);
-	auto p_counts = counts.dataPtr();
-	auto p_offsets = offsets.dataPtr();
+        Gpu::DeviceVector<int> counts(np + 1, 0);
+        Gpu::DeviceVector<int> offsets(np + 1);
+        auto p_counts = counts.dataPtr();
+        auto p_offsets = offsets.dataPtr();
 
         ParticleType* p_ptr = &(aos[0]);
-	auto p_code_array = m_code_array[gid].dataPtr();
-	auto p_code_offsets = m_code_offsets[gid].dataPtr();
-	AMREX_FOR_1D ( np, i,
+        auto p_code_array = m_code_array[gid].dataPtr();
+        auto p_code_offsets = m_code_offsets[gid].dataPtr();
+        AMREX_FOR_1D ( np, i,
         {
             IntVect iv = getParticleCell(p_ptr[i], plo, dxi, domain);
-	    int code = mask_arr(iv);
-	    if (code >= 0)
+            int code = mask_arr(iv);
+            if (code >= 0)
             {
                 int start = p_code_offsets[code];
                 int stop =  p_code_offsets[code+1];
                 p_counts[i] += stop - start;
-	    }
-	});
+            }
+        });
 
         amrex::Gpu::exclusive_scan(counts.begin(), counts.end(), offsets.begin());
 
-	int num_copies;
+        int num_copies;
         Gpu::dtoh_memcpy(&num_copies, offsets.data()+np, sizeof(int));
 
-	neighbor_copy_op.resize(gid, lev, num_copies);
+        neighbor_copy_op.resize(gid, lev, num_copies);
 
-	auto p_boxes = neighbor_copy_op.m_boxes[lev][gid].dataPtr();
+        auto p_boxes = neighbor_copy_op.m_boxes[lev][gid].dataPtr();
         auto p_levs = neighbor_copy_op.m_levels[lev][gid].dataPtr();
-	auto p_src_indices = neighbor_copy_op.m_src_indices[lev][gid].dataPtr();
-	auto p_periodic_shift = neighbor_copy_op.m_periodic_shift[lev][gid].dataPtr();
+        auto p_src_indices = neighbor_copy_op.m_src_indices[lev][gid].dataPtr();
+        auto p_periodic_shift = neighbor_copy_op.m_periodic_shift[lev][gid].dataPtr();
 
-	AMREX_FOR_1D ( np, i,
+        AMREX_FOR_1D ( np, i,
         {
             IntVect iv = getParticleCell(p_ptr[i], plo, dxi, domain);
-	    int code = mask_arr(iv);
-	    if (code >= 0)
-	    {
-	        int k = 0;
-	        int start = p_code_offsets[code];
-	        int stop =  p_code_offsets[code+1];
-	        for (int j = start; j < stop; ++j)
-	        {
+            int code = mask_arr(iv);
+            if (code >= 0)
+            {
+                int k = 0;
+                int start = p_code_offsets[code];
+                int stop =  p_code_offsets[code+1];
+                for (int j = start; j < stop; ++j)
+                {
                     int index = p_offsets[i]+k;
                     p_boxes[index] = p_code_array[j].grid_id;
                     p_levs[index] = 0;
                     p_periodic_shift[index] = p_code_array[j].periodic_shift;
                     p_src_indices[index] = i;
                     ++k;
-		}
-	    }
-	});
+                }
+            }
+        });
 
         Gpu::streamSynchronize();
     }
@@ -232,7 +253,6 @@ fillNeighborsGPU ()
 {
     BL_PROFILE("NeighborParticleContainer::fillNeighbors");
 
-    AMREX_ASSERT(this->numLevels() == 1);
     AMREX_ASSERT(numParticlesOutOfRange(*this, 0) == 0);
 
     buildNeighborMask();
@@ -251,8 +271,6 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 updateNeighborsGPU ()
 {
     BL_PROFILE("NeighborParticleContainer::updateNeighborsGPU");
-
-    AMREX_ASSERT(this->numLevels() == 1);
 
     clearNeighbors();
     packBuffer(*this, neighbor_copy_op, neighbor_copy_plan, snd_buffer);

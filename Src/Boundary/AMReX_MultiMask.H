@@ -20,7 +20,7 @@ public:
     MultiMask () { ; }
     MultiMask (const BoxArray& ba, const DistributionMapping& dm, int ncomp);
     MultiMask (const BoxArray& regba, const DistributionMapping& dm, const Geometry& geom,
-	       Orientation face, int in_rad, int out_rad, int extent_rad, int ncomp, bool initval);
+               Orientation face, int in_rad, int out_rad, int extent_rad, int ncomp, bool initval);
 
     ~MultiMask () = default;
 
@@ -32,7 +32,7 @@ public:
 
     void define (const BoxArray& ba, const DistributionMapping& dm, int ncomp);
     void define (const BoxArray& regba, const DistributionMapping& dm, const Geometry& geom,
-		 Orientation face, int in_rad, int out_rad, int extent_rad, int ncomp, bool initval);
+                 Orientation face, int in_rad, int out_rad, int extent_rad, int ncomp, bool initval);
 
     Mask& operator[] (const MFIter& mfi) noexcept { return m_fa[mfi]; }
     const Mask& operator[] (const MFIter& mfi) const  noexcept { return m_fa[mfi]; }
@@ -59,8 +59,8 @@ class MultiMaskIter
     : public MFIter
 {
 public:
-    explicit MultiMaskIter (const MultiMask& mm) 
-	: MFIter(mm.m_fa) { }
+    explicit MultiMaskIter (const MultiMask& mm)
+        : MFIter(mm.m_fa) { }
 };
 
 }

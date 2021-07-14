@@ -2,7 +2,7 @@ module amrex_amrcore_module
 
   use iso_c_binding
   use amrex_base_module
- 
+
   implicit none
 
   private
@@ -138,7 +138,7 @@ module amrex_amrcore_module
        type(c_ptr), value :: dm
        type(c_ptr), value :: amrcore
      end subroutine amrex_fi_set_distromap
-     
+
      subroutine amrex_fi_set_geometry (lev, gm, amrcore) bind(c)
        import
        implicit none

@@ -92,8 +92,8 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
     const DistributionMapping& dm = sol.DistributionMap();
     const auto& factory = sol.Factory();
 
-    MultiFab ph(ba, dm, ncomp, sol.nGrow(), MFInfo(), factory);
-    MultiFab sh(ba, dm, ncomp, sol.nGrow(), MFInfo(), factory);
+    MultiFab ph(ba, dm, ncomp, sol.nGrowVect(), MFInfo(), factory);
+    MultiFab sh(ba, dm, ncomp, sol.nGrowVect(), MFInfo(), factory);
     ph.setVal(0.0);
     sh.setVal(0.0);
 
@@ -109,10 +109,10 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
 
     // If singular remove mean from residual
 //    if (Lp.isBottomSingular()) mlmg->makeSolvable(amrlev, mglev, r);
- 
+
     // Then normalize
     Lp.normalize(amrlev, mglev, r);
- 
+
     MultiFab::Copy(sorig,sol,0,0,ncomp,nghost);
     MultiFab::Copy(rh,   r,  0,0,ncomp,nghost);
 
@@ -132,21 +132,21 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
     if ( rnorm0 == 0 || rnorm0 < eps_abs )
     {
         if ( verbose > 0 )
-	{
+        {
             amrex::Print() << "MLCGSolver_BiCGStab: niter = 0,"
-                           << ", rnorm = " << rnorm 
+                           << ", rnorm = " << rnorm
                            << ", eps_abs = " << eps_abs << std::endl;
-	}
+        }
         return ret;
     }
 
     for (; iter <= maxiter; ++iter)
     {
         const Real rho = dotxy(rh,r);
-        if ( rho == 0 ) 
-	{
+        if ( rho == 0 )
+        {
             ret = 1; break;
-	}
+        }
         if ( iter == 1 )
         {
             MultiFab::Copy(p,r,0,0,ncomp,nghost);
@@ -163,19 +163,19 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
 
         Real rhTv = dotxy(rh,v);
         if ( rhTv != Real(0.0) )
-	{
+        {
             alpha = rho/rhTv;
-	}
+        }
         else
-	{
+        {
             ret = 2; break;
-	}
+        }
         sxay(sol, sol,  alpha, ph, nghost);
         sxay(s,     r, -alpha,  v, nghost);
 
-        //Subtract mean from s 
+        //Subtract mean from s
 //        if (Lp.isBottomSingular()) mlmg->makeSolvable(amrlev, mglev, s);
- 
+
         rnorm = norm_inf(s);
 
         if ( verbose > 2 && ParallelDescriptor::IOProcessor() )
@@ -203,13 +203,13 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         BL_PROFILE_VAR_STOP(blp_par);
 
         if ( tvals[0] != Real(0.0) )
-	{
+        {
             omega = tvals[1]/tvals[0];
-	}
+        }
         else
-	{
+        {
             ret = 3; break;
-	}
+        }
         sxay(sol, sol,  omega, sh, nghost);
         sxay(r,     s, -omega,  t, nghost);
 
@@ -228,9 +228,9 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
 
         if ( omega == 0 )
-	{
+        {
             ret = 4; break;
-	}
+        }
         rho_1 = rho;
     }
 
@@ -252,8 +252,8 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
     if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
     {
         sol.plus(sorig, 0, ncomp, nghost);
-    } 
-    else 
+    }
+    else
     {
         sol.setVal(0);
         sol.plus(sorig, 0, ncomp, nghost);
@@ -276,7 +276,7 @@ MLCGSolver::solve_cg (MultiFab&       sol,
     const DistributionMapping& dm = sol.DistributionMap();
     const auto& factory = sol.Factory();
 
-    MultiFab p(ba, dm, ncomp, sol.nGrow(), MFInfo(), factory);
+    MultiFab p(ba, dm, ncomp, sol.nGrowVect(), MFInfo(), factory);
     p.setVal(0.0);
 
     MultiFab sorig(ba, dm, ncomp, nghost, MFInfo(), factory);
@@ -306,9 +306,9 @@ MLCGSolver::solve_cg (MultiFab&       sol,
     {
         if ( verbose > 0 ) {
             amrex::Print() << "MLCGSolver_CG: niter = 0,"
-                           << ", rnorm = " << rnorm 
+                           << ", rnorm = " << rnorm
                            << ", eps_abs = " << eps_abs << std::endl;
-        } 
+        }
         return ret;
     }
 
@@ -336,14 +336,14 @@ MLCGSolver::solve_cg (MultiFab&       sol,
         Real alpha;
         Real pw = dotxy(p,q);
         if ( pw != Real(0.0))
-	{
+        {
             alpha = rho/pw;
-	}
+        }
         else
-	{
+        {
             ret = 1; break;
-	}
-        
+        }
+
         if ( verbose > 2 )
         {
             amrex::Print() << "MLCGSolver_cg:"
@@ -367,7 +367,7 @@ MLCGSolver::solve_cg (MultiFab&       sol,
 
         rho_1 = rho;
     }
-    
+
     if ( verbose > 0 )
     {
         amrex::Print() << "MLCGSolver_cg: Final Iteration"
@@ -386,8 +386,8 @@ MLCGSolver::solve_cg (MultiFab&       sol,
     if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
     {
         sol.plus(sorig, 0, ncomp, nghost);
-    } 
-    else 
+    }
+    else
     {
         sol.setVal(0);
         sol.plus(sorig, 0, ncomp, nghost);

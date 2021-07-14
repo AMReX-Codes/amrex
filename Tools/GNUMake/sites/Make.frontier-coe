@@ -2,8 +2,7 @@ ifeq (,$(filter $(which_computer),poplar redwood tulip))
   $(error Unknown Frontier CoE computer, $(which_computer))
 else
   ifeq ($(USE_HIP),TRUE)
-    CXXFLAGS += --amdgpu-target=gfx906,gfx908
-    HIPCC_FLAGS += --amdgpu-target=gfx906,gfx908
+    AMD_ARCH=gfx906,gfx908
   endif
 
   ifeq ($(USE_MPI),TRUE)

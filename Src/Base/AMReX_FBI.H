@@ -45,6 +45,16 @@ struct Array4BoxTag {
     Box const& box () const noexcept { return dbox; }
 };
 
+template <class T>
+struct Array4BoxValTag {
+    Array4<T> dfab;
+    Box       dbox;
+    T          val;
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Box const& box () const noexcept { return dbox; }
+};
+
 #ifdef AMREX_USE_GPU
 namespace detail {
 template <class TagType, class F>
@@ -100,23 +110,7 @@ ParallelFor_doit (Vector<TagType> const& tags, F && f)
         int g_wid = g_tid / Gpu::Device::warp_size;
         if (g_wid >= ntotwarps) return;
 
-        int tag_id = -10000;
-        {
-            int lo = 0;
-            int hi = ntags;
-            while (lo <= hi)
-            {
-                int mid = (lo+hi)/2;
-                if (g_wid >= d_nwarps[mid] && g_wid < d_nwarps[mid+1]) {
-                    tag_id = mid;
-                    break;
-                } else if (g_wid < d_nwarps[mid]) {
-                    hi = mid-1;
-                } else {
-                    lo = mid+1;
-                }
-            };
-        }
+        int tag_id = amrex::bisect(d_nwarps, 0, ntags, g_wid);
 
         auto tag = d_tags[tag_id];
         int ncells = tag.box().numPts();
@@ -199,7 +193,7 @@ template <class T>
 struct CellAtomicAdd
 {
     template<class U=T,
-             amrex::EnableIf_t<amrex::HasAtomicAdd<U>::value,int> = 0>
+             std::enable_if_t<amrex::HasAtomicAdd<U>::value,int> = 0>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     operator() (U* d, U s) const noexcept
     {
@@ -242,6 +236,8 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
                                copy_tags[i].dbox, copy_tags[i].offset});
     }
 
+    amrex::Abort("xxxxx TODO This function still has a bug.  Even if we fix the bug, it should still be avoided because it is slow due to the lack of atomic operations for this type.");
+
     detail::ParallelFor_doit(tags,
     [=] AMREX_GPU_DEVICE (
 #ifdef AMREX_USE_DPCPP
@@ -263,7 +259,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
             } else {
                 if (sycl::ONEAPI::any_of(item.get_sub_group(), msk > mypriority)) {
                     if (m) *m = 0; // yield
-                    item.mem_fence(); // xxxxx DPCPP todo: This is block level, but needs to be device level fence, which is currently a PR in intel/llvm
+                    item.mem_fence(sycl::access::fence_space::global_and_local);
                     to_try = 1;
                 } else {
                     to_try = (msk > 0); // hold on to my lock
@@ -293,7 +289,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
 #ifdef AMREX_USE_CUDA
             if (__all_sync(0xffffffff, msk == 0)) {  // 0 means lock acquired
 #elif defined(AMREX_USE_HIP)
-            if (__all(msk == 0)) { 
+            if (__all(msk == 0)) {
 #endif
                 break; // all threads have acquired.
             } else {
@@ -323,7 +319,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
     });
 }
 
-template <typename T, amrex::EnableIf_t<amrex::IsStoreAtomic<T>::value,int> = 0>
+template <typename T, std::enable_if_t<amrex::IsStoreAtomic<T>::value,int> = 0>
 void
 fab_to_fab_atomic_cpy (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, int ncomp,
                        Vector<Array4<int> > const&)
@@ -331,7 +327,7 @@ fab_to_fab_atomic_cpy (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, in
     fab_to_fab<T>(copy_tags, scomp, dcomp, ncomp, CellStore<T>());
 }
 
-template <typename T, amrex::EnableIf_t<!amrex::IsStoreAtomic<T>::value,int> = 0>
+template <typename T, std::enable_if_t<!amrex::IsStoreAtomic<T>::value,int> = 0>
 void
 fab_to_fab_atomic_cpy (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, int ncomp,
                        Vector<Array4<int> > const& masks)
@@ -339,7 +335,7 @@ fab_to_fab_atomic_cpy (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, in
     fab_to_fab<T>(copy_tags, scomp, dcomp, ncomp, CellStore<T>(), masks);
 }
 
-template <typename T, amrex::EnableIf_t<amrex::HasAtomicAdd<T>::value,int> = 0>
+template <typename T, std::enable_if_t<amrex::HasAtomicAdd<T>::value,int> = 0>
 void
 fab_to_fab_atomic_add (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, int ncomp,
                        Vector<Array4<int> > const&)
@@ -347,7 +343,7 @@ fab_to_fab_atomic_add (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, in
     fab_to_fab<T>(copy_tags, scomp, dcomp, ncomp, CellAtomicAdd<T>());
 }
 
-template <typename T, amrex::EnableIf_t<!amrex::HasAtomicAdd<T>::value,int> = 0>
+template <typename T, std::enable_if_t<!amrex::HasAtomicAdd<T>::value,int> = 0>
 void
 fab_to_fab_atomic_add (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, int ncomp,
                        Vector<Array4<int> > const& masks)
@@ -566,7 +562,7 @@ FabArray<FAB>::FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp
     if ( !(TheFB.m_localCopy.ready()) )
     {
         const_cast<FB&>(TheFB).m_localCopy.resize(N_locs);
-    
+
         int idx = 0;
         // Record the graph.
         for (MFIter mfi(*this, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi)
@@ -575,7 +571,7 @@ FabArray<FAB>::FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp
                                                      const_cast<FB&>(TheFB).m_localCopy.getHostPtr(0),
                                                      (TheFB).m_localCopy.getDevicePtr(0),
                                                      std::size_t(sizeof(CopyMemory)*N_locs) );
-    
+
             const auto& tags = loc_copy_tags[mfi];
             for (auto const & tag : tags)
             {
@@ -591,7 +587,7 @@ FabArray<FAB>::FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp
                     }
                 });
             }
-    
+
             bool last_iter = mfi.LocalIndex() == (this->local_size()-1);
             cudaGraphExec_t graphExec = amrex::Gpu::Device::stopGraphRecording(last_iter);
             if (last_iter) { const_cast<FB&>(TheFB).m_localCopy.setGraph( graphExec ); }
@@ -600,7 +596,7 @@ FabArray<FAB>::FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp
 
     // Setup Launch Parameters
     // This is perfectly threadable, right?
-    // Additional optimization -> Check to see whether values need to be reset? 
+    // Additional optimization -> Check to see whether values need to be reset?
     // Can then remove this setup and memcpy from CudaGraph::executeGraph.
     int idx = 0;
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
@@ -614,7 +610,7 @@ FabArray<FAB>::FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp
                                                                                scomp, ncomp));
         }
     }
-     
+
     // Launch Graph
     TheFB.m_localCopy.executeGraph();
 }
@@ -634,7 +630,7 @@ FabArray<FAB>::FB_local_copy_cuda_graph_n (const FB& TheFB, int scomp, int ncomp
 
         BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.dstIndex]));
         BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.srcIndex]));
-	    
+
         if (distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc())
         {
             loc_copy_tags[tag.dstIndex].push_back
@@ -642,13 +638,13 @@ FabArray<FAB>::FB_local_copy_cuda_graph_n (const FB& TheFB, int scomp, int ncomp
             launches++;
         }
     }
-                
+
     FillBoundary_test();
 
     if ( !(TheFB.m_localCopy.ready()) )
     {
         const_cast<FB&>(TheFB).m_localCopy.resize(launches);
-    
+
         int idx = 0;
         int cuda_stream = 0;
         for (MFIter mfi(*this, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi)
@@ -664,7 +660,7 @@ FabArray<FAB>::FB_local_copy_cuda_graph_n (const FB& TheFB, int scomp, int ncomp
 
                 const auto& tag = tags[t];
                 const Dim3 offset = tag.offset.dim3();
-    
+
                 CopyMemory* cmem = TheFB.m_localCopy.getDevicePtr(idx++);
                 AMREX_HOST_DEVICE_FOR_3D(tag.dbox, i, j, k,
                 {
@@ -681,22 +677,22 @@ FabArray<FAB>::FB_local_copy_cuda_graph_n (const FB& TheFB, int scomp, int ncomp
             }
         }
     }
-                
+
     // Setup Launch Parameters
     // This is perfectly threadable, right?
     int idx = 0;
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
         const auto& dst_array = this->array(mfi);
-        const auto& tags = loc_copy_tags[mfi]; 
+        const auto& tags = loc_copy_tags[mfi];
         for (auto const & tag : tags)
         {
             const_cast<FB&>(TheFB).m_localCopy.setParams(idx++, makeCopyMemory(tag.sfab->array(),
                                                                                dst_array,
-                                                                               scomp, ncomp)); 
+                                                                               scomp, ncomp));
         }
     }
-    
+
     // Launch Graph without synch. Local work is entirely independent.
     TheFB.m_localCopy.executeGraph(false);
 }
@@ -733,7 +729,7 @@ FabArray<FAB>::FB_pack_send_buffer_cuda_graph (const FB& TheFB, int scomp, int n
             }
         }
         const_cast<FB&>(TheFB).m_copyToBuffer.resize(launches);
-    
+
         // Record the graph.
         int idx = 0;
         for (Gpu::StreamIter sit(N_snds,Gpu::StreamItInfo().DisableDeviceSync());
@@ -786,14 +782,14 @@ FabArray<FAB>::FB_pack_send_buffer_cuda_graph (const FB& TheFB, int scomp, int n
                                                                                                          tag.sbox,
                                                                                                          ncomp),
                                                                                        scomp, ncomp));
-                
+
                 dptr += (tag.sbox.numPts() * ncomp * sizeof(value_type));
             }
             amrex::ignore_unused(send_size);
             BL_ASSERT(dptr <= send_data[j] + send_size[j]);
         }
     }
-    
+
     // Launch Graph synched, so copyToBuffer is complete prior to posting sends.
     TheFB.m_copyToBuffer.executeGraph();
 }
@@ -827,11 +823,11 @@ FabArray<FAB>::FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int
             BL_ASSERT(dptr <= recv_data[k] + recv_size[k]);
         }
     }
-  
+
     if ( !(TheFB.m_copyFromBuffer.ready()) )
     {
         const_cast<FB&>(TheFB).m_copyFromBuffer.resize(launches);
-   
+
         int idx = 0;
         for (MFIter mfi(*this, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi)
         {
@@ -839,7 +835,7 @@ FabArray<FAB>::FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int
                                                      const_cast<FB&>(TheFB).m_copyFromBuffer.getHostPtr(0),
                                                      (TheFB).m_copyFromBuffer.getDevicePtr(0),
                                                      std::size_t(sizeof(CopyMemory)*launches) );
-    
+
             const auto& tags = recv_copy_tags[mfi];
             for (auto const & tag : tags)
             {
@@ -854,14 +850,14 @@ FabArray<FAB>::FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int
                     }
                 });
             }
-    
+
             bool last_iter = mfi.LocalIndex() == (this->local_size()-1);
             cudaGraphExec_t graphExec = amrex::Gpu::Device::stopGraphRecording(last_iter);
             if (last_iter) { const_cast<FB&>(TheFB).m_copyFromBuffer.setGraph( graphExec ); }
         }
     }
 
-    // Setup graph.   
+    // Setup graph.
     int idx = 0;
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
@@ -876,7 +872,7 @@ FabArray<FAB>::FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int
                                                                                     dcomp, ncomp));
         }
     }
-    
+
     // Launch Graph - synced because next action is freeing recv buffer.
     TheFB.m_copyFromBuffer.executeGraph();
 }

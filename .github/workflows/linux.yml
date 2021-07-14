@@ -1,3 +1,7 @@
+# -Wextra-semi: GCC < 10 does not have this.
+# -Wunreachable-code: GCC no longer has this option.
+# -Wno-c++17-extensions: Clang complains about nodiscard if the standard is not set to c++17.
+
 name: linux
 
 on: [push, pull_request]
@@ -7,7 +11,7 @@ jobs:
   library:
     name: GNU@7.5 C++17 Release [lib]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -17,20 +21,22 @@ jobs:
         mkdir build
         cd build
         cmake ..                                  \
+            -DAMReX_FORTRAN=ON                    \
             -DAMReX_PLOTFILE_TOOLS=ON             \
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
             -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex  \
             -DCMAKE_CXX_STANDARD=17
         make -j 2
         make install
-        
+        make test_install
+
         export PATH=/tmp/my-amrex/bin:$PATH
         which fcompare
 
   library_clang:
     name: Clang@6.0 C++14 SP NOMPI Debug [lib]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -fno-operator-names"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wno-c++17-extensions"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -43,6 +49,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex      \
+            -DAMReX_FORTRAN=ON                        \
             -DAMReX_MPI=OFF                           \
             -DAMReX_PARTICLES=ON                      \
             -DAMReX_PLOTFILE_TOOLS=ON                 \
@@ -54,15 +61,16 @@ jobs:
             -DCMAKE_Fortran_COMPILER=$(which gfortran)
         make -j 2
         make install
+        make test_install
 
         export PATH=/tmp/my-amrex/bin:$PATH
         which fcompare
 
-  # Build libamrex and all tutorials
-  tutorials:
-    name: GNU@7.5 C++14 [tutorials]
+  # Build libamrex and all tests
+  tests_build:
+    name: GNU@7.5 C++14 Debug Fortran [tests]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -74,15 +82,46 @@ jobs:
         cmake ..                        \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DAMReX_BUILD_TUTORIALS=ON  \
+            -DAMReX_ENABLE_TESTS=ON     \
+            -DAMReX_FORTRAN=ON          \
             -DAMReX_PARTICLES=ON
         make -j 2
 
-  # Build libamrex and all tutorials
-  tutorials_cxx20:
-    name: GNU@10.1 C++20 OMP [tutorials]
+  test_sensei:
+    name: SENSEI Adaptor [test]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-Werror -Wno-error=deprecated-declarations -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
+    env:
+      CXX: clang++
+      CC: clang
+      CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"
+      CMAKE_GENERATOR: Ninja
+      CMAKE_PREFIX_PATH: /root/install/sensei/develop/lib/cmake
+    container:
+      image: ryankrattiger/sensei:fedora33-vtk-mpi-20210616
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup
+      run: mkdir build
+    - name: Configure
+      run: |
+        cd build
+        cmake ..                  \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DAMReX_ENABLE_TESTS=ON  \
+            -DAMReX_FORTRAN=OFF      \
+            -DAMReX_PARTICLES=ON     \
+            -DAMReX_SENSEI=ON        \
+            -DCMAKE_CXX_STANDARD=14
+    - name: Build
+      run: |
+        cd build
+        cmake --build .
+
+  # Build libamrex and all tests
+  tests_cxx20:
+    name: GNU@10.1 C++20 OMP [tests]
+    runs-on: ubuntu-18.04
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -94,7 +133,8 @@ jobs:
         cmake ..                        \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DAMReX_BUILD_TUTORIALS=ON  \
+            -DAMReX_ENABLE_TESTS=ON     \
+            -DAMReX_FORTRAN=ON          \
             -DAMReX_OMP=ON              \
             -DAMReX_PARTICLES=ON        \
             -DCMAKE_CXX_STANDARD=20     \
@@ -103,11 +143,38 @@ jobs:
             -DCMAKE_Fortran_COMPILER=$(which gfortran-10)
         make -j 2
 
-  # Build libamrex and all tutorials w/o MPI
-  tutorials-nonmpi:
-    name: GNU@7.5 C++14 NOMPI [tutorials]
+  tests_clang:
+    name: Clang@6.0 C++14 SP Particles DP Mesh Debug [tests]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wno-c++17-extensions"}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_clang6.sh
+    - name: Build & Install
+      run: |
+        mkdir build
+        cd build
+        cmake ..                                      \
+            -DCMAKE_BUILD_TYPE=Debug                  \
+            -DCMAKE_VERBOSE_MAKEFILE=ON               \
+            -DAMReX_ENABLE_TESTS=ON                   \
+            -DAMReX_FORTRAN=ON                        \
+            -DAMReX_MPI=OFF                           \
+            -DAMReX_PARTICLES=ON                      \
+            -DAMReX_PRECISION=DOUBLE                  \
+            -DAMReX_PARTICLES_PRECISION=SINGLE        \
+            -DCMAKE_CXX_STANDARD=14                   \
+            -DCMAKE_C_COMPILER=$(which clang)         \
+            -DCMAKE_CXX_COMPILER=$(which clang++)     \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran)
+        make -j 2
+
+  # Build libamrex and all tests w/o MPI
+  tests-nonmpi:
+    name: GNU@7.5 C++14 NOMPI [tests]
+    runs-on: ubuntu-18.04
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -119,16 +186,17 @@ jobs:
         cmake ..                        \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DAMReX_BUILD_TUTORIALS=ON  \
+            -DAMReX_ENABLE_TESTS=ON     \
+            -DAMReX_FORTRAN=ON          \
             -DAMReX_MPI=OFF             \
             -DAMReX_PARTICLES=ON
         make -j 2
 
-  # Build libamrex and all tutorials
-  tutorials-nofortran:
-    name: GNU@7.5 C++11 w/o Fortran [tutorials]
+  # Build libamrex and all tests
+  tests-nofortran:
+    name: GNU@7.5 C++14 w/o Fortran [tests]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -140,124 +208,10 @@ jobs:
         cmake ..                        \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DAMReX_BUILD_TUTORIALS=ON  \
-            -DAMReX_PARTICLES=ON       \
-            -DAMReX_FORTRAN=OFF        \
-            -DCMAKE_CXX_STANDARD=11
-        make -j 2
-
-  # Build libamrex and all tutorials with CUDA 9.1 (oldest supported)
-  tutorials-cuda9:
-    name: CUDA@9.1.85 GNU@4.8.5 C++11 Release [tutorials]
-    runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names"}
-    steps:
-    - uses: actions/checkout@v2
-    - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_nvcc9.sh
-    - name: Build & Install
-      run: |
-        mkdir build
-        cd build
-        cmake ..                                         \
-            -DCMAKE_VERBOSE_MAKEFILE=ON                  \
-            -DAMReX_BUILD_TUTORIALS=ON                   \
-            -DAMReX_PARTICLES=ON                        \
-            -DAMReX_GPU_BACKEND=CUDA                         \
-            -DCMAKE_C_COMPILER=$(which gcc-4.8)              \
-            -DCMAKE_CXX_COMPILER=$(which g++-4.8)            \
-            -DCMAKE_CUDA_HOST_COMPILER=$(which g++-4.8)      \
-            -DCMAKE_Fortran_COMPILER=$(which gfortran-4.8)   \
-            -DAMReX_CUDA_ARCH=6.0 \
-            -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON
-        make -j 2
-
-  # Build libamrex and all tutorials with CUDA 11.0.2 (recent supported)
-  tutorials-cuda11:
-    name: CUDA@11.2 GNU@9.3.0 C++17 Release [tutorials]
-    runs-on: ubuntu-20.04
-    env: {CXXFLAGS: "-fno-operator-names"}
-    steps:
-    - uses: actions/checkout@v2
-    - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_nvcc11.sh
-    - name: Build & Install
-      run: |
-        export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
-        export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
-        which nvcc || echo "nvcc not in PATH!"
-
-        cmake -S . -B build                              \
-            -DCMAKE_VERBOSE_MAKEFILE=ON                  \
-            -DAMReX_BUILD_TUTORIALS=ON                   \
-            -DAMReX_PARTICLES=ON                         \
-            -DAMReX_GPU_BACKEND=CUDA                     \
-            -DCMAKE_C_COMPILER=$(which gcc)              \
-            -DCMAKE_CXX_COMPILER=$(which g++)            \
-            -DCMAKE_CUDA_HOST_COMPILER=$(which g++)      \
-            -DCMAKE_Fortran_COMPILER=$(which gfortran)   \
-            -DCMAKE_CUDA_STANDARD=17                     \
-            -DCMAKE_CXX_STANDARD=17                      \
-            -DAMReX_CUDA_ARCH=8.0                        \
-            -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
-            -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON
-
-        cmake --build build -j 2
-
-  tutorials-dpcpp:
-    name: DPCPP GFortran@7.5 C++17 [tutorials]
-    runs-on: ubuntu-20.04
-    env: {CXXFLAGS: "-fno-operator-names"}
-    steps:
-    - uses: actions/checkout@v2
-    - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_dpcpp.sh
-    - name: Build & Install
-      run: |
-        set +e
-        source /opt/intel/oneapi/setvars.sh
-        set -e
-        cmake -S . -B build                                \
-            -DCMAKE_CXX_COMPILER_ID="Clang"                \
-            -DCMAKE_CXX_COMPILER_VERSION=12.0              \
-            -DCMAKE_CXX_STANDARD_COMPUTED_DEFAULT="17"     \
-            -DCMAKE_VERBOSE_MAKEFILE=ON                    \
-            -DAMReX_BUILD_TUTORIALS=ON                     \
-            -DAMReX_PARTICLES=ON                           \
-            -DAMReX_GPU_BACKEND=SYCL                       \
-            -DCMAKE_C_COMPILER=$(which clang)              \
-            -DCMAKE_CXX_COMPILER=$(which dpcpp)            \
-            -DCMAKE_Fortran_COMPILER=$(which gfortran)
-        cmake --build build --parallel 2
-    # note: setting the CXX compiler ID is a work-around for
-    # the 2021.1 DPC++ release / CMake 3.19.0-3.19.1
-    # https://gitlab.kitware.com/cmake/cmake/-/issues/21551#note_869580
-
-  tutorials-hip:
-    name: HIP ROCm@3.8 GFortran@9.3 C++17 [tutorials]
-    runs-on: ubuntu-20.04
-    env: {CXXFLAGS: "-fno-operator-names"}
-    steps:
-    - uses: actions/checkout@v2
-    - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_hip.sh
-    - name: Build & Install
-      run: |
-        source /etc/profile.d/rocm.sh
-        hipcc --version
-        mkdir build
-        cd build
-        cmake ..                                           \
-            -DCMAKE_VERBOSE_MAKEFILE=ON                    \
-            -DAMReX_BUILD_TUTORIALS=ON                     \
-            -DAMReX_PARTICLES=ON                          \
-            -DAMReX_FORTRAN=ON                            \
-            -DAMReX_LINEAR_SOLVERS=ON                     \
-            -DAMReX_GPU_BACKEND=HIP                       \
-            -DAMReX_AMD_ARCH=gfx900                              \
-            -DCMAKE_C_COMPILER=$(which hipcc)              \
-            -DCMAKE_CXX_COMPILER=$(which hipcc)            \
-            -DCMAKE_Fortran_COMPILER=$(which gfortran)
+            -DAMReX_ENABLE_TESTS=ON     \
+            -DAMReX_FORTRAN=OFF         \
+            -DAMReX_PARTICLES=ON        \
+            -DAMReX_FORTRAN=OFF
         make -j 2
 
   # Build 1D libamrex with configure
@@ -285,7 +239,7 @@ jobs:
     - name: Build & Install
       run: |
         ./configure --dim 2 --with-fortran no --comp llvm --with-mpi no
-        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names -Wno-c++17-extensions"
         make install
 
   # Build 3D libamrex with configure
@@ -300,21 +254,6 @@ jobs:
       run: |
         ./configure --dim 3 --enable-eb yes --enable-xsdk-defaults yes
         make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
-        make install
-
-  # Build 3D libamrex cuda build with configure
-  configure-3d-cuda:
-    name: CUDA@11.2 GNU@9.3.0 [configure 3D]
-    runs-on: ubuntu-20.04
-    steps:
-    - uses: actions/checkout@v2
-    - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_nvcc11.sh
-    - name: Build & Install
-      run: |
-        export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
-        ./configure --dim 3 --with-cuda yes --enable-eb yes --enable-xsdk-defaults yes --with-fortran no
-        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names CXXSTD=c++17
         make install
 
   # Build 3D libamrex with single precision and tiny profiler
@@ -359,10 +298,10 @@ jobs:
         make -j2 USE_MPI=FALSE USE_OMP=FALSE WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
 
   # Build libamrex and run all tests
-  tests:
+  tests_run:
     name: GNU@7.5 C++14 [tests]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies

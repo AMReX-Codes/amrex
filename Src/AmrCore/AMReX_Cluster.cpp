@@ -1,11 +1,13 @@
 
-#include <algorithm>
-#include <cmath>
 #include <AMReX_Cluster.H>
+#include <AMReX_BoxArray.H>
 #include <AMReX_BoxDomain.H>
 #include <AMReX_Vector.H>
 #include <AMReX_Array.H>
 #include <AMReX_BLProfiler.H>
+
+#include <algorithm>
+#include <cmath>
 
 namespace amrex {
 
@@ -47,7 +49,7 @@ private:
 }
 
 Cluster::Cluster (Cluster&   c,
-                  const Box& b) 
+                  const Box& b)
     :
     m_ar(0),
     m_len(0)
@@ -108,7 +110,7 @@ Cluster::distribute (ClusterList&     clst,
     BL_ASSERT(ok());
     BL_ASSERT(bd.ok());
     BL_ASSERT(clst.length() == 0);
-   
+
     for (BoxDomain::const_iterator bdi = bd.begin(), End = bd.end();
          bdi != End && ok();
          ++bdi)
@@ -158,7 +160,7 @@ Cluster::minBox () noexcept
 //
 
 static
-int 
+int
 FindCut (const int* hist,
          int        lo,
          int        hi,
@@ -399,7 +401,7 @@ Cluster::new_chop ()
            }
        }
        BL_ASSERT(dir >= 0 && dir < AMREX_SPACEDIM);
-   
+
        int nlo = 0;
        for (int i = lo[dir]; i < cut[dir]; i++) {
            nlo += hist[dir][i-lo[dir]];
@@ -425,7 +427,7 @@ Cluster::new_chop ()
        // Replace the current box by the part of the box "below" the cut
        m_len = nlo;
        minBox();
-   
+
        if ( (eff() > oldeff) || (neweff > oldeff) || n_try > 0)
        {
           return newbox.release();
@@ -477,7 +479,7 @@ ClusterList::boxArray () const
         ba.set(i,(*cli)->box());
     }
 
-    return ba;   
+    return ba;
 }
 
 void
@@ -508,7 +510,7 @@ ClusterList::boxList() const
     {
         blst.push_back((*cli)->box());
     }
-    return blst;   
+    return blst;
 }
 
 void
@@ -561,21 +563,19 @@ ClusterList::new_chop (Real eff)
 }
 
 void
-ClusterList::intersect (const BoxDomain& dom)
+ClusterList::intersect (BoxArray& domba)
 {
     BL_PROFILE("ClusterList::intersect()");
 
-    //
-    // Make a BoxArray covering dom.
-    // We'll use this to speed up the contains() test below.
-    //
-    BoxArray domba(dom.boxList());
+    domba.removeOverlap();
+
+    BoxDomain dom(domba.boxList());
 
     for (std::list<Cluster*>::iterator cli = lst.begin(); cli != lst.end(); )
     {
         Cluster* c = *cli;
 
-	bool assume_disjoint_ba = true;
+        bool assume_disjoint_ba = true;
         if (domba.contains(c->box(),assume_disjoint_ba))
         {
             ++cli;
@@ -600,6 +600,8 @@ ClusterList::intersect (const BoxDomain& dom)
             lst.erase(cli++);
         }
     }
+
+    domba.clear();
 }
 
 }

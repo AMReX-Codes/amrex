@@ -3,13 +3,13 @@
 #define BL_BOXLIST_H
 #include <AMReX_Config.H>
 
-#include <iosfwd>
-
 #include <AMReX_IntVect.H>
 #include <AMReX_IndexType.H>
 #include <AMReX_Box.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
+
+#include <iosfwd>
 
 namespace amrex
 {
@@ -211,8 +211,8 @@ public:
     const Vector<Box>& data() const noexcept { return m_lbox; }
 
     void swap (BoxList& rhs) {
-	std::swap(m_lbox, rhs.m_lbox);
-	std::swap(btype, rhs.btype);
+        std::swap(m_lbox, rhs.m_lbox);
+        std::swap(btype, rhs.btype);
     }
 
     void Bcast ();

@@ -39,6 +39,9 @@ target_sources(amrex
    MLMG/AMReX_MLPoisson_${AMReX_SPACEDIM}D_K.H
    MLMG/AMReX_MLNodeLaplacian.H
    MLMG/AMReX_MLNodeLaplacian.cpp
+   MLMG/AMReX_MLNodeLaplacian_sync.cpp
+   MLMG/AMReX_MLNodeLaplacian_sten.cpp
+   MLMG/AMReX_MLNodeLaplacian_misc.cpp
    MLMG/AMReX_MLNodeLap_K.H
    MLMG/AMReX_MLNodeLap_${AMReX_SPACEDIM}D_K.H
    MLMG/AMReX_MLNodeTensorLaplacian.H
@@ -47,6 +50,7 @@ target_sources(amrex
    MLMG/AMReX_MLNodeTensorLap_${AMReX_SPACEDIM}D_K.H
    MLMG/AMReX_MLTensorOp.H
    MLMG/AMReX_MLTensorOp.cpp
+   MLMG/AMReX_MLTensorOp_grad.cpp
    MLMG/AMReX_MLTensor_K.H
    MLMG/AMReX_MLTensor_${AMReX_SPACEDIM}D_K.H
    Projections/AMReX_MacProjector.H
@@ -55,15 +59,27 @@ target_sources(amrex
    Projections/AMReX_NodalProjector.cpp
    )
 
+if (AMReX_SPACEDIM EQUAL 3)
+   target_sources(amrex
+      PRIVATE
+      MLMG/AMReX_MLMG_2D_K.H
+      MLMG/AMReX_MLPoisson_2D_K.H
+      MLMG/AMReX_MLALap_2D_K.H
+      )
+endif ()
+
 if (AMReX_EB)
    target_sources(amrex
       PRIVATE
+      MLMG/AMReX_MLNodeLaplacian_eb.cpp
       MLMG/AMReX_MLEBABecLap.H
       MLMG/AMReX_MLEBABecLap.cpp
+      MLMG/AMReX_MLEBABecLap_F.cpp
       MLMG/AMReX_MLEBABecLap_K.H
       MLMG/AMReX_MLEBABecLap_${AMReX_SPACEDIM}D_K.H
       MLMG/AMReX_MLEBTensorOp.H
       MLMG/AMReX_MLEBTensorOp.cpp
+      MLMG/AMReX_MLEBTensorOp_bc.cpp
       MLMG/AMReX_MLEBTensor_K.H
       MLMG/AMReX_MLEBTensor_${AMReX_SPACEDIM}D_K.H
       )
@@ -74,5 +90,12 @@ if (AMReX_FORTRAN)
       PRIVATE
       MLMG/AMReX_MLLinOp_F.H
       MLMG/AMReX_MLLinOp_nd.F90
+      )
+endif ()
+
+if (AMReX_HYPRE)
+   target_sources(amrex
+      PRIVATE
+      MLMG/AMReX_MLNodeLaplacian_hypre.cpp
       )
 endif ()

@@ -10,7 +10,7 @@ Plotfile
 ========
 
 AMReX has its own native plotfile format. Many visualization tools are
-available for AMReX plotfiles (see the chapter on :ref:`Chap:Visualization`). 
+available for AMReX plotfiles (see the chapter on :ref:`Chap:Visualization`).
 AMReX provides the following two functions for writing a generic AMReX plotfile.
 Many AMReX application codes may have their own plotfile routines that store
 additional information such as compiler options, git hashes of the
@@ -52,7 +52,7 @@ making such strings.
       const std::string& pfname = amrex::Concatenate("plt",istep); // plt00258
 
       // By default there are 5 digits, but we can change it to say 4.
-      const std::string& pfname2 = amrex::Concatenate("plt",istep,4); // plt0258  
+      const std::string& pfname2 = amrex::Concatenate("plt",istep,4); // plt0258
 
       istep =1234567;  // Having more than 5 digits is OK.
       const std::string& pfname3 = amrex::Concatenate("plt",istep); // plt1234567
@@ -91,6 +91,56 @@ We note that AMReX does not overwrite old plotfiles if the new
 plotfile has the same name. The old plotfiles will be renamed to
 new directories named like plt00350.old.46576787980.
 
+Async Output
+============
+
+AMReX provides the ability to print MultiFabs, plotfiles and
+particle data asynchronously.  Asynchronous output works by creating
+a copy of the data at the time of the call, which is written to disk
+by a persistent thread created during AMReX's initialization.  This allows
+the calculation to continue immediately, which can drastically reduce
+walltime spent writing to disk.
+
+If the number of output files is less than the number of MPI ranks,
+AMReX's async output requires MPI to be initialized with THREAD_MULTIPLE
+support. THREAD_MULTIPLE support allows multiple unique threads to run unique
+MPI calls simultaneously.  This support is required to allow AMReX applications
+to perform MPI work while the Async Output concurrently pings ranks to signal
+that they can safely begin writing to their assigned files.  However,
+THREAD_MULTIPLE can introduce additional overhead as each threads' MPI operations
+must be scheduled safely around each other. Therefore, AMReX uses a lower level
+of support, SERIALIZED, by default and applications have to turn on THREAD_MULTIPLE
+support.
+
+To turn on Async Output, use the input flag ``amrex.async_out=1``.  The number
+of output files can also be set, using ``amrex.async_out_nfiles``.  The default
+number of files is ``64``. If the number of ranks is larger than the number of
+files, THREAD_MULTIPLE must be turned on by adding
+``MPI_THREAD_MULTIPLE=TRUE`` to the GNUMakefile. Otherwise, AMReX
+will throw an error.
+
+Async Output works for a wide range of AMReX calls, including:
+* amrex::WriteSingleLevelPlotfile()
+* amrex::WriteMultiLevelPlotfile()
+* amrex::WriteMLMF()
+* VisMF::AsyncWrite()
+* ParticleContainer::Checkpoint()
+* ParticleContainer::WritePlotFile()
+* Amr::writePlotFile()
+* Amr::writeSmallPlotFile()
+* Amr::checkpoint()
+* AmrLevel::writePlotFile()
+* StateData::checkPoint()
+* FabSet::write()
+
+Be aware: when using Async Output, a thread is spawned and exclusively used
+to perform output throughout the runtime.  As such, you may oversubscribe
+resources if you launch an AMReX application that assigns all available
+hardware threads in another way, such as OpenMP.  If you see any degradation
+when using Async Output and OpenMP, try using one less thread in
+``OMP_NUM_THREADS`` to prevent oversubscription and get more consistent
+results.
+
 Checkpoint File
 ===============
 
@@ -106,7 +156,7 @@ However we have provided an example restart capability in the tutorial
 Refer to the functions :cpp:`ReadCheckpointFile()` and
 :cpp:`WriteCheckpointFile()` in this tutorial.
 
-A checkpoint file is actually a directory with name, e.g., 
+A checkpoint file is actually a directory with name, e.g.,
 ``chk00010`` containing a ``Header`` (text) file, along with
 subdirectories ``Level_0``, ``Level_1``, etc. containing the
 :cpp:`MultiFab` data at each level of refinement.
@@ -183,7 +233,7 @@ can also be used. For example,
        HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
        std::string HeaderFileName(checkpointname + "/Header");
        HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
-		                               std::ofstream::trunc |
+                                               std::ofstream::trunc |
                                                std::ofstream::binary);
 
        if( ! HeaderFile.good()) {
@@ -306,7 +356,7 @@ read the file from the disk and broadcast it to others as
         }
     }
 
-The following code how to read in a :cpp:`BoxArray`, create a 
+The following code how to read in a :cpp:`BoxArray`, create a
 :cpp:`DistributionMapping`, build :cpp:`MultiFab` and :cpp:`FluxRegister` data,
 and read in a :cpp:`MultiFab` from a checkpoint file, on a level-by-level basis:
 
@@ -334,7 +384,7 @@ and read in a :cpp:`MultiFab` from a checkpoint file, on a level-by-level basis:
         phi_old[lev].define(grids[lev], dmap[lev], ncomp, nghost);
         phi_new[lev].define(grids[lev], dmap[lev], ncomp, nghost);
         if (lev > 0 && do_reflux) {
-            flux_reg[lev].reset(new FluxRegister(grids[lev], dmap[lev], refRatio(lev-1), lev, ncomp));
+            flux_reg[lev] = std::make_unique<FluxRegister>(grids[lev], dmap[lev], refRatio(lev-1), lev, ncomp);
         }
     }
 
