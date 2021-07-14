@@ -498,14 +498,15 @@ void test_ghosts_and_virtuals_onepercell (TestParams& parms)
     Vector<BoxArray> ba(nlevs);
     ba[0].define(domain);
 
-    if (nlevs > 1) {
-        int n_fine = parms.nx*rr[0];
+    int n_fine = parms.nx;
+    for (int lev = 1; lev < nlevs; lev++) {
+        n_fine *= rr[lev-1];
         IntVect refined_lo(AMREX_D_DECL(n_fine/4,n_fine/4,n_fine/4));
         IntVect refined_hi(AMREX_D_DECL(3*n_fine/4-1,3*n_fine/4-1,3*n_fine/4-1));
 
         // Build a box for the level 1 domain
         Box refined_patch(refined_lo, refined_hi);
-        ba[1].define(refined_patch);
+        ba[lev].define(refined_patch);
     }
 
     // break the BoxArrays at both levels into max_grid_size^3 boxes
