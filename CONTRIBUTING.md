@@ -64,7 +64,7 @@ on your fork that haven't been merged into main development yet.
 ---
 
 Then, clone your fork on your local computer. If you plan on doing a lot of amrex development,
-we recommend configuring your clone to use ssh access so you won't have to enter your Github,
+we recommend configuring your clone to use ssh access so you won't have to enter your Github
 password every time, which you can do using these commands:
 
 ```
