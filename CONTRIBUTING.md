@@ -54,14 +54,9 @@ your fork.
 First, let us setup your local git repo. To make your own fork of the main
 (`upstream`) repository, press the fork button on the [AMReX Github page](https://github.com/AMReX-Codes/amrex).
 
----
-**NOTE**
-
-If you already had a fork of AMReX prior to 4/17/2020, we recommend deleting it and re-forking.
-This is due to a history re-write on the main repository. Note that you will lose any branches
-on your fork that haven't been merged into main development yet.
-
----
+> Note: If you already had a fork of AMReX prior to 4/17/2020, we recommend deleting it and re-forking.
+> This is due to a history re-write on the main repository. Note that you will lose any branches
+> on your fork that haven't been merged into main development yet.
 
 Then, clone your fork on your local computer. If you plan on doing a lot of amrex development,
 we recommend configuring your clone to use ssh access so you won't have to enter your Github
