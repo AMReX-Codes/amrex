@@ -80,7 +80,7 @@ git fetch upstream
 git branch -u upstream/development
 ```
 
-For instructions on setting up SSH access to your Github account on a new machine, see [here](https://docs.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh)
+For instructions on setting up SSH access to your Github account on a new machine, see [here.](https://docs.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh)
 
 If you instead prefer to use HTTPS authentication, configure your local clone as follows:
 
