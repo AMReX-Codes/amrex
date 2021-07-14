@@ -585,11 +585,11 @@ public:
 
    //! Set all values outside the Geometry domain to val.
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
-    void setDomainBndry (value_type val, const Geometry& goem);
+    void setDomainBndry (value_type val, const Geometry& geom);
 
     //! Set ncomp values outside the Geometry domain to val, starting at start_comp.
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
-    void setDomainBndry (value_type val, int strt_comp, int ncomp, const Geometry& goem);
+    void setDomainBndry (value_type val, int strt_comp, int ncomp, const Geometry& geom);
 
     /**
     * \brief This function copies data from fa to this FabArray.  Each FAB

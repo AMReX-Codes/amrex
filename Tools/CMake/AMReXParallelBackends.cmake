@@ -268,7 +268,7 @@ if (AMReX_HIP)
                        "and https://github.com/AMReX-Codes/amrex/pull/2031 "
                        "for details.")
    elseif(${_this_comp} STREQUAL hipcc)
-       # hipcc expects a comma-separeted list
+       # hipcc expects a comma-separated list
        string(REPLACE ";" "," AMReX_AMD_ARCH_HIPCC "${AMReX_AMD_ARCH}")
 
        target_link_libraries(amrex PUBLIC ${HIP_LIBRARIES})

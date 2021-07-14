@@ -21,7 +21,6 @@
 namespace amrex {
 
 class MFIter;
-class MFGhostIter;
 class Geometry;
 class FArrayBox;
 template <typename FAB> class FabFactory;
@@ -32,7 +31,6 @@ namespace EB2 { class IndexSpace; }
 class FabArrayBase
 {
     friend class MFIter;
-    friend class MFGhostIter;
 
     template <class FAB> friend void FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period);
 
@@ -294,9 +292,6 @@ public:
 
     //! Default tilesize in MFIter
     static AMREX_EXPORT IntVect mfiter_tile_size;
-
-    //! Default tilesize in MFGhostIter
-    static AMREX_EXPORT IntVect mfghostiter_tile_size;
 
     //! The maximum number of components to copy() at a time.
     static AMREX_EXPORT int MaxComp;
@@ -649,7 +644,7 @@ public:
 
 #ifdef AMREX_USE_GPU
     //
-    //! For ParalleFor(FabArray)
+    //! For ParallelFor(FabArray)
     struct ParForInfo
     {
         ParForInfo (const FabArrayBase& fa, const IntVect& nghost);

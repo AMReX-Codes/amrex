@@ -404,7 +404,7 @@ amrex::InvNormDist (double p)
 //  Parameters:
 //
 //    Input, double P, the value of the cumulative probability
-//    densitity function.  0 < P < 1.  Fails if P is outside this range.
+//    density function.  0 < P < 1.  Fails if P is outside this range.
 //
 //    Output, the normal deviate value with the property that the
 //    probability of a standard normal deviate being less than or equal

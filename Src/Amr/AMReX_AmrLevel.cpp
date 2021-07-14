@@ -303,7 +303,7 @@ AmrLevel::writePlotFile (const std::string& dir,
 
 #ifdef AMREX_USE_EB
         if (EB2::TopIndexSpaceIfPresent()) {
-            // volfrac threshhold for amrvis
+            // volfrac threshold for amrvis
             if (level == parent->finestLevel()) {
                 for (int lev = 0; lev <= parent->finestLevel(); ++lev) {
                     os << "1.0e-6\n";

@@ -782,7 +782,7 @@ Dim3 and XDim3
     struct Dim3 { int x; int y; int z; };
     struct XDim3 { Real x; Real y; Real z; };
 
-One can covert an :cpp:`IntVect` to :cpp:`Dim3`,
+One can convert an :cpp:`IntVect` to :cpp:`Dim3`,
 
 .. highlight:: c++
 
@@ -1865,7 +1865,7 @@ tiling flag is on. One can change the default size using :cpp:`ParmParse`
    | | :cpp:`Box` may overlap with points in the other   | | tiles have :math:`5\times 4` points, whereas       |
    | | :cpp:`Box`. However, the memory locations for     | | others have :math:`4 \times 4` points. Points from |
    | | storing floating point data of those points do    | | different Boxes may overlap, but points from       |
-   | | not overlap, because they belong to seperate      | | different tiles of the same Box do not.            |
+   | | not overlap, because they belong to separate      | | different tiles of the same Box do not.            |
    | | FArrayBoxes.                                      |                                                      |
    +-----------------------------------------------------+------------------------------------------------------+
 
@@ -2352,7 +2352,7 @@ works with and without GPU support.  When AMReX is built with GPU support,
 AMREX_GPU_DEVICE indicates that the lambda function is a device
 function and :cpp:`ParallelFor` launches a GPU kernel to do the work.
 When it is built without GPU support, AMREX_GPU_DEVICE has no effects
-whatsoever.  More details on :cpp:`ParalleFor` will be presented in
+whatsoever.  More details on :cpp:`ParallelFor` will be presented in
 section :ref:`sec:gpu:for`.  It should be emphasized that
 :cpp:`ParallelFor` does not start an OpenMP parallel region.  The OpenMP parallel
 region will be started by the pragma above the :cpp:`MFIter` loop if it is
@@ -2361,7 +2361,7 @@ GPU is enabled so that more parallelism is exposed to GPU kernels.
 Also note that when tiling is off, :cpp:`tilbox` returns
 :cpp:`validbox`.
 
-There are other versions of :cpp:`ParalleFor`,
+There are other versions of :cpp:`ParallelFor`,
 
 .. highlight:: c++
 
@@ -2501,7 +2501,7 @@ The basic idea behind physical boundary conditions is as follows:
    whatsoever, whereas for the GPU build, this marks the operator as a GPU
    device function.
 
--  It is the user's responsibility to have a consisent definition of
+-  It is the user's responsibility to have a consistent definition of
    what the ghost cells represent. A common option used in AMReX codes is to
    fill the domain ghost cells with the value that lies on the boundary (as
    opposed to another common option where the value in the ghost cell represents
@@ -2846,7 +2846,7 @@ and ghost cells associated with each grid:
     // Ncomp = number of components for each array
     int Ncomp  = 1;
 
-    // How Boxes are distrubuted among MPI processes
+    // How Boxes are distributed among MPI processes
     DistributionMapping dm(ba);
 
     // we allocate two phi multifabs; one will store the old state, the other the new.

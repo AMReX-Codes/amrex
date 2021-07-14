@@ -21,7 +21,7 @@ void set_eb_data (const int i, const int j, const int k,
     Real azm = apz(i,j,k);
     Real azp = apz(i,j,k+1);
 
-    // Check for multple cuts
+    // Check for multiple cuts
     // We know there are no multiple cuts on faces by now.
     // So we only need to check the case that there are two cuts
     // at the opposite corners.

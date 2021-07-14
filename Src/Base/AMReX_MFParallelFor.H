@@ -25,7 +25,7 @@ struct ParForMFTileSize {
  * \brief ParallelFor for MultiFab/FabArray.
  *
  * This version launch a kernel to work on the valid region.  If built for
- * CPU, tiling will be enabled.  For GPU build, this funciton is
+ * CPU, tiling will be enabled.  For GPU build, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 4D loop.
  *
  * \tparam MF the MultiFab/FabArray type
@@ -47,7 +47,7 @@ ParallelFor (MF const& mf, F&& f)
  * \brief ParallelFor for MultiFab/FabArray.
  *
  * This version launch a kernel to work on the valid and ghost region.  If
- * built for CPU, tiling will be enabled.  For GPU build, this funciton is
+ * built for CPU, tiling will be enabled.  For GPU build, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 4D loop.
  *
  * \tparam MF the MultiFab/FabArray type
@@ -70,7 +70,7 @@ ParallelFor (MF const& mf, IntVect const& ng, F&& f)
  * \brief ParallelFor for MultiFab/FabArray.
  *
  * This version launch a kernel to work on the valid region.  If built for
- * CPU, tiling will be enabled.  For GPU build, this funciton is
+ * CPU, tiling will be enabled.  For GPU build, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 5D loop.
  *
  * \tparam MF the MultiFab/FabArray type
@@ -93,7 +93,7 @@ ParallelFor (MF const& mf, int ncomp, F&& f)
  * \brief ParallelFor for MultiFab/FabArray.
  *
  * This version launch a kernel to work on the valid and ghost region.  If
- * built for CPU, tiling will be enabled.  For GPU build, this funciton is
+ * built for CPU, tiling will be enabled.  For GPU build, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 5D loop.
  *
  * \tparam MF the MultiFab/FabArray type
@@ -118,7 +118,7 @@ ParallelFor (MF const& mf, IntVect const& ng, int ncomp, F&& f)
  *
  * This version launch a kernel to work on the valid region.  If built for
  * CPU, tiling will be enabled.  However, one could specify a huge tile size
- * to effectively disable tiling.  For GPU build, this funciton is
+ * to effectively disable tiling.  For GPU build, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 4D loop.
  *
  * \tparam MF the MultiFab/FabArray type
@@ -142,7 +142,7 @@ ParallelFor (MF const& mf, ParForMFTileSize const& ts, F&& f)
  *
  * This version launch a kernel to work on the valid and ghost region.  If
  * built for CPU, tiling will be enabled.  However, one could specify a huge
- * tile size to effectively disable tiling.  For GPU build, this funciton is
+ * tile size to effectively disable tiling.  For GPU build, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 4D loop.
  *
  * \tparam MF the MultiFab/FabArray type
@@ -167,7 +167,7 @@ ParallelFor (MF const& mf, IntVect const& ng, ParForMFTileSize const& ts, F&& f)
  *
  * This version launch a kernel to work on the valid region.  If built for
  * CPU, tiling will be enabled.  However, one could specify a huge tile size
- * to effectively disable tiling.  For GPU build, this funciton is
+ * to effectively disable tiling.  For GPU build, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 5D loop.
  *
  * \tparam MF the MultiFab/FabArray type
@@ -192,7 +192,7 @@ ParallelFor (MF const& mf, int ncomp, ParForMFTileSize const& ts, F&& f)
  *
  * This version launch a kernel to work on the valid and ghost region.  If
  * built for CPU, tiling will be enabled.  However, one could specify a huge
- * tile size to effectively disable tiling.  For GPU build, this funciton is
+ * tile size to effectively disable tiling.  For GPU build, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 5D loop.
  *
  * \tparam MF the MultiFab/FabArray type

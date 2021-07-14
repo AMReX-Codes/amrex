@@ -171,7 +171,7 @@ struct PolarFn2 { // for the x-y corners
 //!
 //! \param[in]  dcomp The first component at the destination.
 //!
-//! \param[in]  scomp The first component at the srouce.
+//! \param[in]  scomp The first component at the source.
 //!
 //! \param[in]  ncomp The number of components that will be copied.
 //!
@@ -204,7 +204,7 @@ local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
     }
 }
 
-//! \brief Unpack the recieved data into the local FABs.
+//! \brief Unpack the received data into the local FABs.
 //!
 //! This function assumes that all destination and source boxes stored in the local copy comm tags
 //! are related by the DTOS. If this is not the case the behaviour will at best be caught as an
@@ -327,7 +327,7 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
         tag.dfab(i,j,k,scomp+n) = proj(tag.sfab, si ,n);
     });
 
-    // There is Gpu::synchronize in ParalleFor above
+    // There is Gpu::synchronize in ParallelFor above
 
     if (pbuffer != recv_data[0]) {
         The_Arena()->free(pbuffer);

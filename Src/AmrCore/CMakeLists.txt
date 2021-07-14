@@ -36,7 +36,7 @@ if (AMReX_FORTRAN)
       )
 endif ()
 
-# These files are neeeded only if Particles are enabled
+# These files are needed only if Particles are enabled
 if ( AMReX_PARTICLES )
   target_sources( amrex PRIVATE AMReX_AmrParGDB.H AMReX_AmrParticles.H )
 endif ()

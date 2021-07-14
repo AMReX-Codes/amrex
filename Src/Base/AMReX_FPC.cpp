@@ -11,7 +11,7 @@
 #elif (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 #define AMREX_BIG_ENDIAN
 #else
-#error Unknow Byte Order
+#error Unknown Byte Order
 #endif
 
 #else

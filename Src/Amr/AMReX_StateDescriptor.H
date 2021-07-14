@@ -173,7 +173,7 @@ public:
     ~StateDescriptor ();
 
     /**
-    * \brief Define the data members if constructed with default construtor.
+    * \brief Define the data members if constructed with default constructor.
     *
     * \param btyp
     * \param ttyp
