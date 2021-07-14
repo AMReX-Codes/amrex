@@ -77,6 +77,10 @@ if (AMReX_EB)
       MLMG/AMReX_MLEBABecLap_F.cpp
       MLMG/AMReX_MLEBABecLap_K.H
       MLMG/AMReX_MLEBABecLap_${AMReX_SPACEDIM}D_K.H
+      MLMG/AMReX_MLEBNodeFDLaplacian.H
+      MLMG/AMReX_MLEBNodeFDLaplacian.cpp
+      MLMG/AMReX_MLEBNodeFDLap_K.H
+      MLMG/AMReX_MLEBNodeFDLap_${AMReX_SPACEDIM}D_K.H
       MLMG/AMReX_MLEBTensorOp.H
       MLMG/AMReX_MLEBTensorOp.cpp
       MLMG/AMReX_MLEBTensorOp_bc.cpp
