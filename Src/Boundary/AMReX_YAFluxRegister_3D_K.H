@@ -25,7 +25,8 @@ void yafluxreg_crseadd (Box const& bx, Array4<Real> const& d, Array4<int const> 
                 for (int n = 0; n < nc; ++n) {
                     d(i,j,k,n) -= dtdx*fx(i,j,k,n);
                 }
-            } else if (flag(i+1,j,k) == amrex_yafluxreg_fine_cell) {
+            }
+            if (flag(i+1,j,k) == amrex_yafluxreg_fine_cell) {
                 for (int n = 0; n < nc; ++n) {
                     d(i,j,k,n) += dtdx*fx(i+1,j,k,n);
                 }
@@ -35,7 +36,8 @@ void yafluxreg_crseadd (Box const& bx, Array4<Real> const& d, Array4<int const> 
                 for (int n = 0; n < nc; ++n) {
                     d(i,j,k,n) -= dtdy*fy(i,j,k,n);
                 }
-            } else if (flag(i,j+1,k) == amrex_yafluxreg_fine_cell) {
+            }
+            if (flag(i,j+1,k) == amrex_yafluxreg_fine_cell) {
                 for (int n = 0; n < nc; ++n) {
                     d(i,j,k,n) += dtdy*fy(i,j+1,k,n);
                 }
@@ -45,7 +47,8 @@ void yafluxreg_crseadd (Box const& bx, Array4<Real> const& d, Array4<int const> 
                 for (int n = 0; n < nc; ++n) {
                     d(i,j,k,n) -= dtdz*fz(i,j,k,n);
                 }
-            } else if (flag(i,j,k+1) == amrex_yafluxreg_fine_cell) {
+            }
+            if (flag(i,j,k+1) == amrex_yafluxreg_fine_cell) {
                 for (int n = 0; n < nc; ++n) {
                     d(i,j,k,n) += dtdz*fz(i,j,k+1,n);
                 }
