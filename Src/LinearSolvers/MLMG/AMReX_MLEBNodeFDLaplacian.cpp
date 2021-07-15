@@ -424,6 +424,80 @@ MLEBNodeFDLaplacian::fixUpResidualMask (int /*amrlev*/, iMultiFab& /*resmsk*/)
     amrex::Abort("MLEBNodeFDLaplacian::fixUpResidualMask: TODO");
 }
 
+void
+MLEBNodeFDLaplacian::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
+                               MultiFab& sol, Location /*loc*/) const
+{
+    BL_PROFILE("MLEBNodeFDLaplacian::compGrad()");
+
+    AMREX_ASSERT(AMREX_D_TERM(grad[0]->ixType() == IndexType(IntVect(AMREX_D_DECL(0,1,1))),
+                           && grad[1]->ixType() == IndexType(IntVect(AMREX_D_DECL(1,0,1))),
+                           && grad[2]->ixType() == IndexType(IntVect(AMREX_D_DECL(1,1,0)))));
+    const int mglev = 0;
+    AMREX_D_TERM(const auto dxi = m_geom[amrlev][mglev].InvCellSize(0);,
+                 const auto dyi = m_geom[amrlev][mglev].InvCellSize(1);,
+                 const auto dzi = m_geom[amrlev][mglev].InvCellSize(2);)
+    const auto phieb = m_s_phi_eb;
+
+    auto const& dmask = *m_dirichlet_mask[amrlev][mglev];
+
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+    AMREX_ASSERT(factory);
+    auto const& edgecent = factory->getEdgeCent();
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(*grad[0],TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        AMREX_D_TERM(const Box& xbox = mfi.tilebox(IntVect(AMREX_D_DECL(0,1,1)));,
+                     const Box& ybox = mfi.tilebox(IntVect(AMREX_D_DECL(1,0,1)));,
+                     const Box& zbox = mfi.tilebox(IntVect(AMREX_D_DECL(1,1,0)));)
+        Array4<Real const> const& p = sol.const_array(mfi);
+        AMREX_D_TERM(Array4<Real> const& gpx = grad[0]->array(mfi);,
+                     Array4<Real> const& gpy = grad[1]->array(mfi);,
+                     Array4<Real> const& gpz = grad[2]->array(mfi);)
+        Array4<int const> const& dmarr = dmask.const_array(mfi);
+        bool cutfab = edgecent[0]->ok(mfi);
+        AMREX_D_TERM(Array4<Real const> const& ecx
+                         = cutfab ? edgecent[0]->const_array(mfi) : Array4<Real const>{};,
+                     Array4<Real const> const& ecy
+                         = cutfab ? edgecent[1]->const_array(mfi) : Array4<Real const>{};,
+                     Array4<Real const> const& ecz
+                         = cutfab ? edgecent[2]->const_array(mfi) : Array4<Real const>{};)
+        if (phieb == std::numeric_limits<Real>::lowest()) {
+            auto const& phiebarr = m_phi_eb[amrlev].const_array(mfi);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM(
+                xbox, txbox,
+                {
+                    mlebndfdlap_grad_x(txbox, gpx, p, dmarr, ecx, phiebarr, dxi);
+                }
+                , ybox, tybox,
+                {
+                    mlebndfdlap_grad_y(tybox, gpy, p, dmarr, ecy, phiebarr, dyi);
+                }
+                , zbox, tzbox,
+                {
+                    mlebndfdlap_grad_z(tzbox, gpz, p, dmarr, ecz, phiebarr, dzi);
+                });
+        } else {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM(
+                xbox, txbox,
+                {
+                    mlebndfdlap_grad_x(txbox, gpx, p, dmarr, ecx, phieb, dxi);
+                }
+                , ybox, tybox,
+                {
+                    mlebndfdlap_grad_y(tybox, gpy, p, dmarr, ecy, phieb, dyi);
+                }
+                , zbox, tzbox,
+                {
+                    mlebndfdlap_grad_z(tzbox, gpz, p, dmarr, ecz, phieb, dzi);
+                });
+        }
+    }
+}
+
 #if defined(AMREX_USE_HYPRE)
 void
 MLEBNodeFDLaplacian::fillIJMatrix (MFIter const& mfi,

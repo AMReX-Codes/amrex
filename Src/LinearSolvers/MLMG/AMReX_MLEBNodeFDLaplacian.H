@@ -73,6 +73,9 @@ public:
 
     virtual bool isSingular (int) const final override { return false; }
 
+    virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
+                           MultiFab& sol, Location /*loc*/) const override;
+
 #if defined(AMREX_USE_HYPRE)
     virtual void fillIJMatrix (MFIter const& mfi,
                                Array4<HypreNodeLap::AtomicInt const> const& gid,
