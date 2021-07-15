@@ -726,92 +726,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             virts_offset += np;
         }
     }
-    #if 0
-    if (aggregation_type == "Cell")
-    {
-        BoxList bl_buffer;
-        bl_buffer.complementIn(Geom(level).Domain(), ParticleBoxArray(level));
-        BoxArray buffer(std::move(bl_buffer));
-        buffer.grow(aggregation_buffer);
-
-        for(ParConstIterType pti(*this, level); pti.isValid(); ++pti)
-        {
-            const auto& ptile = ParticlesAt(level, pti);
-            const auto& aos = pti.GetArrayOfStructs();
-            const auto src = ptile.getConstParticleTileData();
-
-            std::map<IntVect,SuperParticleType> agg_map;
-
-            for (int pindex = 0; pindex < ptile.numParticles(); ++pindex)
-            {
-                IntVect cell = Index(aos[pindex], level);
-                if (buffer.contains(cell))
-                {
-                    // It's in the no-aggregation buffer.
-                    // Set its id to indicate that it's a virt.
-                    SuperParticleType p = src.getSuperParticle(pindex);
-                    p.id() = VirtualParticleID;
-                    virts.push_back(p);
-            std::cout<<"push_back:n"<<p<<std::endl;
-                }
-                else
-                {
-                    //
-                    // Note that Cell aggregation assumes that p.rdata(0) is mass and
-                    // that all other components should be combined in a mass-weighted
-                    // average.
-                    //
-                    auto agg_map_it = agg_map.find(cell);
-
-                    if (agg_map_it == agg_map.end())
-                    {
-                        //
-                        // Add the particle.
-                        //
-                        SuperParticleType p = src.getSuperParticle(pindex);
-                        p.id() = VirtualParticleID;
-                        agg_map[cell] = p;
-                    }
-                    else
-                    {
-                        AMREX_ASSERT(agg_map_it != agg_map.end());
-                        const SuperParticleType&  pnew       = src.getSuperParticle(pindex);
-                        SuperParticleType&        pold       = agg_map_it->second;
-                        const Real           old_mass   = pold.rdata(0);
-                        const Real           new_mass   = pnew.rdata(0);
-                        const Real           total_mass = old_mass + new_mass;
-                        //
-                        // Set the position to the center of mass.
-                        //
-                        for (int i = 0; i < AMREX_SPACEDIM; i++)
-                        {
-                            pold.pos(i) = static_cast<ParticleReal>((old_mass*pold.pos(i) + new_mass*pnew.pos(i))/total_mass);
-                        }
-                        AMREX_ASSERT(this->Index(pold, level) == cell);
-                        //
-                        // Set the metadata (presumably velocity) to the mass-weighted average.
-                        //
-                        for (int i = 1; i < NStructReal; i++)
-                        {
-                            pold.rdata(i) = static_cast<ParticleReal>((old_mass*pold.rdata(i) + new_mass*pnew.rdata(i))/total_mass);
-                        }
-                        pold.rdata(0) = static_cast<ParticleReal>(total_mass);
-            std::cout<<"push_back increased "<<old_mass<<" to "<<total_mass<<std::endl;
-                    }
-                }
-            }
-
-            //
-            // Add the aggregated particles to the virtuals.
-            //
-            for (const auto& agg_particle : agg_map)
-            {
-                virts.push_back(agg_particle.second);
-        std::cout<<"push_back:a"<<agg_particle.second<<std::endl;
-            }
-        }
-    }
-    #else
     if (aggregation_type == "Cell")
     {
         //Components would be based on
@@ -955,7 +869,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
           amrex::Gpu::Atomic::AddNoRet(&p.rdata(NStructReal+n), partData(i,j,k,AMREX_SPACEDIM+NStructReal+n));
           });*/
     }
-#endif
 }
 
 struct AssignGridFilter
@@ -1023,7 +936,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     ParticleTileType ptile;
     CreateGhostParticles(level, nGrow, ptile);
     ptile.GetArrayOfStructs().swap(ghosts);
-
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
@@ -1035,33 +947,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     BL_PROFILE("ParticleContainer::CreateGhostParticles()");
     AMREX_ASSERT(ghosts.empty());
     AMREX_ASSERT(level < finestLevel());
+
     if (level >= static_cast<int>(m_particles.size()))
         return;
 
-    //#ifndef AMREX_USE_GPU
-    #if 1
-    const BoxArray& fine = ParticleBoxArray(level + 1);
-    std::vector< std::pair<int,Box> > isects;
-    for(ParConstIterType pti(*this, level); pti.isValid(); ++pti)
-      {
-        const auto& ptile = ParticlesAt(level, pti);
-        const auto src = ptile.getConstParticleTileData();
-
-        auto& aos = ptile.GetArrayOfStructs();
-        for (int pindex = 0; pindex < ptile.numParticles(); ++pindex)
-          {
-            const IntVect& iv = Index(aos[pindex], level+1);
-            fine.intersections(Box(iv,iv),isects,true,nGrow);
-            if (isects.size() > 0)
-              {
-                SuperParticleType p = src.getSuperParticle(pindex);
-                p.id() = GhostParticleID;
-        //                std::cout<<"push_back add: "<<p<<std::endl;
-        //                ghosts.push_back(p);
-              }
-          }
-      }
-    //        #else
     if (! m_particle_locator.isValid(GetParGDB())) m_particle_locator.build(GetParGDB());
     m_particle_locator.setGeometry(GetParGDB());
     AmrAssignGrid<DenseBinIteratorFactory<Box>> assign_grid = m_particle_locator.getGridAssignor();
@@ -1078,7 +967,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         ghost_offset += filterAndTransformParticles(ghosts, src_tile, AssignGridFilter(assign_grid_ptr,gid,level,nGrow), TransformerGhost(),0,ghost_offset);
     }
     ghosts.resize(ghost_offset);
-    #endif
     Gpu::synchronize();
 }
 
@@ -2105,7 +1993,6 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt, Allocator>
     }
 
     Redistribute(level, level, nGrow);
-    //    Real sm = amrex::ReduceSum(*this, [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p) -> Real { return (amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
     particles.resize(0);
 }
 
