@@ -15,6 +15,8 @@
 #define AMREX_CXX_CRAY
 #elif defined(__PGI)
 #define AMREX_CXX_PGI
+#elif defined(__NVCOMPILER)
+#define AMREX_CXX_NVHPC
 #elif defined(__NEC__)
 #define AMREX_CXX_NEC
 #elif defined(__ibmxl__)
@@ -61,6 +63,8 @@
 #elif defined(__PGI)
 #define AMREX_PRAGMA_SIMD _Pragma("loop ivdep")
 
+//__NVCOMPILER
+
 #elif defined(__NEC__)
 #define AMREX_PRAGMA_SIMD
 
@@ -93,6 +97,8 @@
 
 #elif defined(__PGI)
 #define AMREX_FORCE_INLINE inline
+
+//__NVCOMPILER
 
 #elif defined(__NEC__)
 #define AMREX_FORCE_INLINE inline
