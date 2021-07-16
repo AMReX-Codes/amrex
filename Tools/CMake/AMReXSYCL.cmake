@@ -53,7 +53,8 @@ target_compile_options( SYCL
 #   https://github.com/intel/llvm/issues/2187
 target_compile_options( SYCL
    INTERFACE
-   $<${_cxx_dpcpp}:-mlong-double-64 "SHELL:-Xclang -mlong-double-64">)
+     "$<${_cxx_dpcpp}:-mlong-double-64>"
+     "$<${_cxx_dpcpp}:SHELL:-Xclang -mlong-double-64>")
 
 # Beta09 has enabled eary optimizations by default.  But this causes many
 # tests to crash.  So we disable it.
