@@ -211,6 +211,12 @@ public:
                                const Vector<int>                 & rr,
                                int                               nneighbor);
 
+    NeighborParticleContainer ( const NeighborParticleContainer &) = delete;
+    NeighborParticleContainer& operator= ( const NeighborParticleContainer & ) = delete;
+
+    NeighborParticleContainer ( NeighborParticleContainer && ) = default;
+    NeighborParticleContainer& operator= ( NeighborParticleContainer && ) = default;
+
     ///
     /// Regrid functions
     ///
