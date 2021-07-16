@@ -274,6 +274,11 @@ public:
 
     ~AmrParticleContainer () {}
 
+    AmrParticleContainer ( const AmrParticleContainer &) = delete;
+    AmrParticleContainer& operator= ( const AmrParticleContainer & ) = delete;
+
+    AmrParticleContainer ( AmrParticleContainer && ) = default;
+    AmrParticleContainer& operator= ( AmrParticleContainer && ) = default;
 };
 
 class AmrTracerParticleContainer
@@ -287,6 +292,12 @@ public:
     }
 
     ~AmrTracerParticleContainer () {}
+
+    AmrTracerParticleContainer ( const AmrTracerParticleContainer &) = delete;
+    AmrTracerParticleContainer& operator= ( const AmrTracerParticleContainer & ) = delete;
+
+    AmrTracerParticleContainer ( AmrTracerParticleContainer && ) = default;
+    AmrTracerParticleContainer& operator= ( AmrTracerParticleContainer && ) = default;
 };
 
 }
