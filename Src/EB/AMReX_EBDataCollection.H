@@ -30,6 +30,7 @@ public:
     EBDataCollection& operator= (EBDataCollection&&) = delete;
 
     const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const;
+    const MultiFab& getLevelSet () const;
     const MultiFab& getVolFrac () const;
     const MultiCutFab& getCentroid () const;
     const MultiCutFab& getBndryCent () const;
@@ -49,6 +50,7 @@ private:
 
     // EBSupport::basic
     FabArray<EBCellFlagFab>* m_cellflags = nullptr;
+    MultiFab* m_levelset = nullptr;
 
     // EBSupport::volume
     MultiFab* m_volfrac = nullptr;
