@@ -236,8 +236,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
     amrex::Print()<<myPC.ParticleDistributionMap(lev)<<std::endl;
     }*/
 
-    const auto Nrep = IntVect::TheUnitVector();
-    myPC.InitFromAsciiFile("particle_file.init", 4, &Nrep);
+    myPC.InitFromAsciiFile("particle_file.init", 4);
 
     for (int lev = 0; lev < nlevs; lev++) {
     myPC.SetParticleBoxArray(lev, ba[lev]);
@@ -416,7 +415,7 @@ void test_ghosts_and_virtuals_randomperbox (TestParams& parms)
         Real sum_test = amrex::ReduceSum(virtPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
         amrex::ParallelAllReduce::Sum(sum_test,ParallelContext::CommunicatorSub());
         amrex::Print().SetPrecision(18)<<"Found sum of virts: "<<sum_test<<std::endl;
-        AMREX_ALWAYS_ASSERT((virtPC.AggregationType()=="None" && amrex::Math::abs(sum_test - total_virts_test * parms.nx / 2 * parms.nppc * parms.nppc * parms.nppc) < tol) || ParallelDescriptor::NProcs() != 1 || virtPC.AggregationType() == "Cell");
+        AMREX_ALWAYS_ASSERT((virtPC.AggregationType()=="None" && amrex::Math::abs(sum_test - total_virts_test * parms.nx * parms.ny * parms.nz / (32 * 32 * 32) * (16 * 16 * 16) / (parms.max_grid_size * parms.max_grid_size * parms.max_grid_size) * parms.nppc * parms.nppc * parms.nppc) < tol) || ParallelDescriptor::NProcs() % 2 != 0 || virtPC.AggregationType() == "Cell");
 
     }
 
