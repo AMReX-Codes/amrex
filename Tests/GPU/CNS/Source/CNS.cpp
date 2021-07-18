@@ -101,6 +101,9 @@ CNS::initData ()
             cns_initdata(i, j, k, sfab, geomdata, *lparm, *lprobparm);
         });
     }
+
+    // Compute the initial temperature (will override what was set in initdata)
+    computeTemp(S_new,0);
 }
 
 void
