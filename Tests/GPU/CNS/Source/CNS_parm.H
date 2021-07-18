@@ -19,6 +19,10 @@ struct Parm
     amrex::Real smallr = 1.e-19;
     amrex::Real smallp = 1.e-10;
 
+    amrex::Real const_visc_mu = -1.0;
+    amrex::Real const_visc_ki = -1.0;
+    amrex::Real const_lambda  = -1.0;
+
     void Initialize ();
 };
 

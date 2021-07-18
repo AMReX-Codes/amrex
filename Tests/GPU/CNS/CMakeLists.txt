@@ -10,7 +10,7 @@ endif ()
 #
 set(_sources main.cpp CNS_advance.cpp CNS_bcfill.cpp CNSBld.cpp CNS.cpp CNS_derive.cpp CNS_derive.H CNS.H
    CNS_index_macros.H CNS_io.cpp CNS_K.H CNS_parm.cpp CNS_parm.H CNS_setup.cpp CNS_tagging.H
-   hydro/CNS_hydro_K.H)
+   hydro/CNS_hydro_K.H diffusion/CNS_diffusion_K.H)
 list(TRANSFORM _sources PREPEND Source/)
 
 ##########################################################################################

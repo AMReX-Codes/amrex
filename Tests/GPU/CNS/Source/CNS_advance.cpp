@@ -1,6 +1,7 @@
 
 #include "CNS.H"
 #include "CNS_hydro_K.H"
+#include "CNS_diffusion_K.H"
 #include "CNS_K.H"
 
 using namespace amrex;
@@ -68,6 +69,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
     const int neqns = 5;
     const int ncons = 7;
     const int nprim = 8;
+    const int ncoef = 3;
 
     Array<MultiFab,AMREX_SPACEDIM> fluxes;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -77,7 +79,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
 
     Parm const* lparm = d_parm;
 
-    FArrayBox qtmp, slopetmp;
+    FArrayBox qtmp, slopetmp, diff_coeff;
     for (MFIter mfi(S); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
@@ -91,13 +93,39 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
         const Box& bxg2 = amrex::grow(bx,2);
         qtmp.resize(bxg2, nprim);
         Elixir qeli = qtmp.elixir();
+        Elixir dcoeff_eli;
         auto const& q = qtmp.array();
+
+        if (do_visc)
+        {
+           diff_coeff.resize(bxg2, ncoef);
+           dcoeff_eli = diff_coeff.elixir();
+        }
 
         amrex::ParallelFor(bxg2,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             cns_ctoprim(i, j, k, sfab, q, *lparm);
         });
+
+        if (do_visc)
+        {
+           auto const& coefs = diff_coeff.array();
+           if(use_const_visc == 1 ) {
+              amrex::ParallelFor(bxg2,
+              [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+              {
+                  cns_constcoef(i, j, k, q, coefs, *lparm);
+              });
+           } else {
+              amrex::ParallelFor(bxg2,
+              [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+              {
+                  cns_diffcoef(i, j, k, q, coefs, *lparm);
+              });
+           }
+        }
+
 
         const Box& bxg1 = amrex::grow(bx,1);
         slopetmp.resize(bxg1,neqns);
@@ -120,6 +148,16 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
             for (int n = neqns; n < ncons; ++n) fxfab(i,j,k,n) = Real(0.0);
         });
 
+        if (do_visc)
+        {
+           auto const& coefs = diff_coeff.array();
+           amrex::ParallelFor(xflxbx,
+           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+           {
+               cns_diff_x(i, j, k, q, coefs, dxinv, fxfab, *lparm);
+           });
+        }
+
         // y-direction
         cdir = 1;
         const Box& yslpbx = amrex::grow(bx, cdir, 1);
@@ -135,6 +173,16 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
             cns_riemann_y(i, j, k, fyfab, slope, q, *lparm);
             for (int n = neqns; n < ncons; ++n) fyfab(i,j,k,n) = Real(0.0);
         });
+
+        if (do_visc)
+        {
+           auto const& coefs = diff_coeff.array();
+           amrex::ParallelFor(yflxbx,
+           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+           {
+               cns_diff_y(i, j, k, q, coefs, dxinv, fyfab, *lparm);
+           });
+        }
 
         // z-direction
         cdir = 2;
@@ -152,9 +200,23 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
             for (int n = neqns; n < ncons; ++n) fzfab(i,j,k,n) = Real(0.0);
         });
 
+        if (do_visc)
+        {
+           auto const& coefs = diff_coeff.array();
+           amrex::ParallelFor(zflxbx,
+           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+           {
+               cns_diff_z(i, j, k, q, coefs, dxinv, fzfab, *lparm);
+           });
+        }
+
         // don't have to do this, but we could
         qeli.clear(); // don't need them anymore
         slopeeli.clear();
+
+        if (do_visc) {
+           dcoeff_eli.clear();
+        }
 
         amrex::ParallelFor(bx, ncons,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept

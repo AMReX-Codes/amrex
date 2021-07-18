@@ -156,6 +156,9 @@ protected:
 
     static int do_reflux;
 
+    static bool do_visc;
+    static bool use_const_visc;
+
     static int refine_max_dengrad_lev;
     static amrex::Real refine_dengrad;
 

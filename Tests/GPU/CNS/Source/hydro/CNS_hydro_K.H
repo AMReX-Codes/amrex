@@ -25,6 +25,8 @@ cns_ctoprim (int i, int j, int k,
     Real ei = u(i,j,k,UEDEN) - kineng;
     if (ei <= Real(0.0)) ei = u(i,j,k,UEINT);
     Real p = amrex::max((parm.eos_gamma-Real(1.0))*ei,parm.smallp);
+
+    // q(i,j,k,QEINT) is e, not (rho e)
     ei *= rhoinv;
 
     q(i,j,k,QRHO) = rho;
@@ -34,7 +36,7 @@ cns_ctoprim (int i, int j, int k,
     q(i,j,k,QEINT) = ei;
     q(i,j,k,QPRES) = p;
     q(i,j,k,QCS) = std::sqrt(parm.eos_gamma*p*rhoinv);
-    q(i,j,k,QTEMP) = Real(0.0);
+    q(i,j,k,QTEMP) = ei / parm.cv;
 }
 
 AMREX_GPU_DEVICE
