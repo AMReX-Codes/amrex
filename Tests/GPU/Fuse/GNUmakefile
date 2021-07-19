@@ -12,7 +12,7 @@ USE_OMP   = FALSE
 USE_CUDA  = TRUE
 USE_DPCPP = FALSE
 
-## To test HIP indirect funciton, uncomment the following or run with `make -j8 USE_HIP=TRUE`
+## To test HIP indirect function, uncomment the following or run with `make -j8 USE_HIP=TRUE`
 # USE_HIP=TRUE
 ifdef USE_HIP
   HIP_INDIRECT_FUNCTION=$(USE_HIP)

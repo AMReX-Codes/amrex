@@ -88,7 +88,7 @@ union AMREX_PARSERSTYPE
 {
 
     struct amrex::parser_node* n;
-    amrex::Real d;
+    double d;
     struct amrex::parser_symbol* s;
     enum amrex::parser_f1_t f1;
     enum amrex::parser_f2_t f2;

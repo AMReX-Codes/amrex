@@ -55,10 +55,8 @@ IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
 
 #if defined(AMREX_USE_GPU) || !defined(AMREX_USE_OMP)
 IntVect FabArrayBase::comm_tile_size(AMREX_D_DECL(1024000, 1024000, 1024000));
-IntVect FabArrayBase::mfghostiter_tile_size(AMREX_D_DECL(1024000, 1024000, 1024000));
 #else
 IntVect FabArrayBase::comm_tile_size(AMREX_D_DECL(1024000, 8, 8));
-IntVect FabArrayBase::mfghostiter_tile_size(AMREX_D_DECL(1024000, 8, 8));
 #endif
 
 FabArrayBase::TACache              FabArrayBase::m_TheTileArrayCache;
@@ -111,11 +109,6 @@ FabArrayBase::Initialize ()
     if (pp.queryarr("mfiter_tile_size", tilesize, 0, AMREX_SPACEDIM))
     {
         for (int i=0; i<AMREX_SPACEDIM; i++) FabArrayBase::mfiter_tile_size[i] = tilesize[i];
-    }
-
-    if (pp.queryarr("mfghostiter_tile_size", tilesize, 0, AMREX_SPACEDIM))
-    {
-        for (int i=0; i<AMREX_SPACEDIM; i++) FabArrayBase::mfghostiter_tile_size[i] = tilesize[i];
     }
 
     if (pp.queryarr("comm_tile_size", tilesize, 0, AMREX_SPACEDIM))
@@ -1227,7 +1220,7 @@ FabArrayBase::RB90::define (const FabArrayBase& fa)
                     const int ksnd = isects[j].first;
                     Box bxsnd = isects[j].second;
                     // the ghost cells at hi-x, hi-y, lo-z, and hi-z
-                    // boundares are also the source
+                    // boundaries are also the source
                     if (bxsnd.bigEnd(n) == m_domain.bigEnd(n)) {
                         bxsnd.growHi(n,m_ngrow[n]);
                     }
@@ -1395,7 +1388,7 @@ FabArrayBase::RB180::define (const FabArrayBase& fa)
                 const int ksnd = isects[j].first;
                 Box bxsnd = isects[j].second;
                 // the ghost cells at lo-y, hi-y, lo-z, and hi-z
-                // boundares are also the source
+                // boundaries are also the source
                 for (int idim = 1; idim < AMREX_SPACEDIM; ++idim) {
                     if (bxsnd.smallEnd(idim) == m_domain.smallEnd(idim)) {
                         bxsnd.growLo(idim, m_ngrow[idim]);

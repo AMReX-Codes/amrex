@@ -1,5 +1,6 @@
 #include <AMReX.H>
 #include <AMReX_Parser.H>
+#include <AMReX_IParser.H>
 #include <map>
 
 using namespace amrex;
@@ -146,6 +147,7 @@ int test4 (std::string const& f,
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
+
     {
         amrex::Print() << "\n";
         int nerror = 0;
@@ -360,5 +362,76 @@ int main (int argc, char* argv[])
         }
         amrex::Print() << "\n";
     }
+
+    {
+        int count = 0;
+        int x = 11;
+        {
+            auto f = [&] (std::string s) -> int
+            {
+                amrex::Print() << count++ << ". Testing \"" << s << "\"\n";
+                IParser iparser(s);
+                iparser.registerVariables({"x"});
+                auto exe = iparser.compileHost<1>();
+                return exe(x);
+            };
+            AMREX_ALWAYS_ASSERT(f("2*(x/3)") == (2*(x/3)));
+            AMREX_ALWAYS_ASSERT(f("2*(3/x)") == (2*(3/x)));
+            AMREX_ALWAYS_ASSERT(f("2/(x/3)") == (2/(x/3)));
+            AMREX_ALWAYS_ASSERT(f("2/(22/x)") == (2/(22/x)));
+            AMREX_ALWAYS_ASSERT(f("x/13*5") == ((x/13)*5));
+            AMREX_ALWAYS_ASSERT(f("13/x*5") == ((13/x)*5));
+            AMREX_ALWAYS_ASSERT(f("x/13/5") == ((x/13)/5));
+            AMREX_ALWAYS_ASSERT(f("13/x/5") == ((13/x)/5));
+
+            auto g = [&] (std::string s, std::string c, int cv) -> int
+            {
+                amrex::Print() << count++ << ". Testing \"" << s << "\"\n";
+                IParser iparser(s);
+                iparser.registerVariables({"x"});
+                iparser.setConstant(c, cv);
+                auto exe = iparser.compileHost<1>();
+                return exe(x);
+            };
+            AMREX_ALWAYS_ASSERT(g("a*(x/3)", "a", 2) == (2*(x/3)));
+            AMREX_ALWAYS_ASSERT(g("a*(3/x)", "a", 2) == (2*(3/x)));
+            AMREX_ALWAYS_ASSERT(g("a/(x/3)", "a", 2) == (2/(x/3)));
+            AMREX_ALWAYS_ASSERT(g("a/(22/x)", "a", 2) == (2/(22/x)));
+            AMREX_ALWAYS_ASSERT(g("x/b*5", "b", 13) == ((x/13)*5));
+            AMREX_ALWAYS_ASSERT(g("b/x*5", "b", 13) == ((13/x)*5));
+            AMREX_ALWAYS_ASSERT(g("x/b/5", "b", 13) == ((x/13)/5));
+            AMREX_ALWAYS_ASSERT(g("b/x/5", "b", 13) == ((13/x)/5));
+
+            auto h = [&] (std::string s) -> int
+            {
+                amrex::Print() << count++ << ". Testing \"" << s << "\"\n";
+                IParser iparser(s);
+                auto exe = iparser.compileHost<0>();
+                return exe();
+            };
+            AMREX_ALWAYS_ASSERT(h("2**10") == 1024);
+            AMREX_ALWAYS_ASSERT(h("3^-1") == 1/3);
+            AMREX_ALWAYS_ASSERT(h("5^0") == 1);
+            AMREX_ALWAYS_ASSERT(h("(-2)**3") == -8);
+            AMREX_ALWAYS_ASSERT(h("(-3)**-1") == 1/(-3));
+            AMREX_ALWAYS_ASSERT(h("(-5)^0") == 1);
+
+            amrex::Print() << count++ << ". Testing \"a // b\"\n";
+            for (int a = -15; a <= 15; ++a) {
+                for (int b = -5; b <= 5; ++b) {
+                    if (b != 0) {
+                        IParser iparser("a//b");
+                        iparser.setConstant("a",a);
+                        iparser.registerVariables({"b"});
+                        auto exe = iparser.compile<1>();
+                        AMREX_ALWAYS_ASSERT(exe(b) ==
+                                            static_cast<int>(std::floor(double(a)/double(b))));
+                    }
+                }
+            }
+        }
+        amrex::Print() << "\nAll IParser tests passed\n\n";
+    }
+
     amrex::Finalize();
 }

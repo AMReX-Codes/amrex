@@ -127,7 +127,7 @@ ifeq ($(AMREX_FCOMP),pgi)
 
 #
 # Now set the Fortran flags. Since this is done after the GNU include
-# in the CUDA version, all of the GNU specific options are overriden.
+# in the CUDA version, all of the GNU specific options are overridden.
 #
 
 FC  = pgfortran

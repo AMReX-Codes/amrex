@@ -642,7 +642,7 @@ AmrLevelAdv::errorEst (TagBoxArray& tags,
 
             TagBox&     tagfab  = tags[mfi];
 
-            // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
+            // We cannot pass tagfab to Fortran because it is BaseFab<char>.
             // So we are going to get a temporary integer array.
             tagfab.get_itags(itags, tilebx);
 

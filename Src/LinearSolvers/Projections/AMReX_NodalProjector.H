@@ -154,7 +154,7 @@ private:
     std::array<LinOpBCType,AMREX_SPACEDIM>  m_bc_lo;
     std::array<LinOpBCType,AMREX_SPACEDIM>  m_bc_hi;
 
-    // Members for syncronization
+    // Members for synchronization
     IntVect   m_ref_ratio;
     BoxArray  m_fine_grids;  // Grid at crse level + 1
     MultiFab* m_sync_resid_crse = nullptr;

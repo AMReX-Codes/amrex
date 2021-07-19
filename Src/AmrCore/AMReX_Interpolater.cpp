@@ -439,7 +439,7 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     AsyncArray<BCRec> async_bcr(bcr.data(), (run_on_gpu) ? ncomp : 0);
     BCRec const* bcrp = (run_on_gpu) ? async_bcr.data() : bcr.data();
 
-    // component of ccfab : slopes for first compoent for x-direction
+    // component of ccfab : slopes for first component for x-direction
     //                      slopes for second component for x-direction
     //                      ...
     //                      slopes for last component for x-direction
@@ -729,7 +729,7 @@ CellConservativeProtected::interp (const FArrayBox& crse,
     AsyncArray<BCRec> async_bcr(bcr.data(), (run_on_gpu) ? ncomp : 0);
     BCRec const* bcrp = (run_on_gpu) ? async_bcr.data() : bcr.data();
 
-    // component of ccfab : slopes for first compoent for x-direction
+    // component of ccfab : slopes for first component for x-direction
     //                      slopes for second component for x-direction
     //                      ...
     //                      slopes for last component for x-direction

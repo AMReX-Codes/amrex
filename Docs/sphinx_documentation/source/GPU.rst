@@ -325,7 +325,7 @@ Enabling HIP support (experimental)
 To build AMReX with HIP support in CMake, add
 ``-DAMReX_GPU_BACKEND=HIP -DAMReX_AMD_ARCH=<target-arch> -DCMAKE_CXX_COMPILER=<your-hip-compiler>``
 to the ``cmake`` invocation.
-If you don't need Fortran features (``AMReX_FORTRAN=OFF``), it is recomended to use AMD's ``clang++`` as the HIP compiler.
+If you don't need Fortran features (``AMReX_FORTRAN=OFF``), it is recommended to use AMD's ``clang++`` as the HIP compiler.
 (Please see these issues for reference in rocm/HIP <= 4.2.0
 `[1] <https://github.com/ROCm-Developer-Tools/HIP/issues/2275>`__
 `[2] <https://github.com/AMReX-Codes/amrex/pull/2031>`__.)

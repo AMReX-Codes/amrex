@@ -54,7 +54,7 @@ cuda_print_option(AMReX_CUDA_WARN_CAPTURE_THIS)
 cuda_print_option(AMReX_CUDA_ERROR_CAPTURE_THIS)
 
 option(AMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL
-       "Error if a CUDA host function is called from a host device funtion" OFF)
+       "Error if a CUDA host function is called from a host device function" OFF)
 cuda_print_option(AMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL)
 
 # makes things more robust for -Xcompiler pre-fixing unknown nvcc flags

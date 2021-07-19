@@ -14,7 +14,7 @@ struct HypreOptParse
     //! Input file parser instance for the given namespace
     amrex::ParmParse pp;
 
-    //! Hypre solver/precondtioner whose options are being set
+    //! Hypre solver/preconditioner whose options are being set
     HYPRE_Solver solver;
 
     HypreOptParse(const std::string& prefix, HYPRE_Solver sinp)

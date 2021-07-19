@@ -16,7 +16,7 @@ namespace amrex
 {
 
 /// A base class for coupling to the SENSEI in situ library
-/** Implements initialze and finalize. Derived classes implement an update
+/** Implements initialize and finalize. Derived classes implement an update
  * method. See AmrInSituBridge and AmrMeshInSituBridge.
  */
 class InSituBridge

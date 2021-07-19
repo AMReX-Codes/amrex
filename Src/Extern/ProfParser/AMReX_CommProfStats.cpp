@@ -1229,7 +1229,7 @@ void CommProfStats::SendRecvData(const std::string &filenameprefix,
   int anyDataLeft(dataBlocks.size());
   vector<bool> dataLeft(dataBlocks.size(), true);
 
-  // ---- this part orders the indicies by time, then processor number
+  // ---- this part orders the indices by time, then processor number
   Vector<int> idbIndex;
   bool resort(true);
   if(resort) {

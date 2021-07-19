@@ -347,7 +347,7 @@ void MDParticleContainer::checkNeighborList()
         auto nbor_data = m_neighbor_list[lev][index].data();
         ParticleType* pstruct = aos().dataPtr();
 
-        // ON DEVIDE:
+        // ON DEVICE:
         // AMREX_FOR_1D ( np, i,
         // ON HOST:
         // for (int i = 0; i < np; i++)
