@@ -20,6 +20,8 @@ cns.hi_bc       =  0   0   4
 cns.gravity = -1.0
 cns.eos_gamma = 1.6666666666
 
+cns.do_visc = false
+
 cns.cfl = 0.3  # cfl number for hyperbolic system
 
 cns.refine_max_dengrad_lev = 10
