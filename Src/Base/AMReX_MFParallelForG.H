@@ -12,7 +12,7 @@ namespace amrex {
 namespace detail {
 
 inline
-std::pair<int*,int*> build_par_for_nblocks (Vector<Long> const& ncells)
+std::pair<int*,int*> build_par_for_nblocks (Vector<Long> const& ncells, int nthreads)
 {
     int* hp = nullptr;
     int* dp = nullptr;
@@ -24,7 +24,7 @@ std::pair<int*,int*> build_par_for_nblocks (Vector<Long> const& ncells)
         Long ntot = 0;
         bool same_size = true;
         for (int i = 0; i < nboxes; ++i) {
-            Long nblocks = (ncells[i] + AMREX_GPU_MAX_THREADS-1) / AMREX_GPU_MAX_THREADS;
+            Long nblocks = (ncells[i] + nthreads-1) / nthreads;
             hp[i+1] = hp[i] + static_cast<int>(nblocks);
             ntot += nblocks;
             same_size = same_size && (ncells[i] == ncells[0]);
@@ -68,7 +68,7 @@ namespace parfor_mf_detail {
     }
 }
 
-template <typename MF, typename F>
+template <int MT, typename MF, typename F>
 std::enable_if_t<IsFabArray<MF>::value>
 ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, F&& f)
 {
@@ -89,29 +89,29 @@ ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, F&&
         IntVect ngrow = nghost - mf.nGrowVect(); // We use this to go from fabbox to valid+nghost.
         auto ma = mf.arrays();
 
-        auto par_for_blocks = mf.getParForInfo(nghost).getBlocks();
+        auto par_for_blocks = mf.getParForInfo(nghost,MT).getBlocks();
         const int nblocks = par_for_blocks.first[nboxes];
         const int block_0_size = par_for_blocks.first[1];
         const int* dp_nblocks = par_for_blocks.second;
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
-        amrex::launch_global<AMREX_GPU_MAX_THREADS>
-            <<<nblocks, AMREX_GPU_MAX_THREADS, 0, Gpu::gpuStream()>>>
+        amrex::launch_global<MT>
+            <<<nblocks, MT, 0, Gpu::gpuStream()>>>
             ([=] AMREX_GPU_DEVICE () noexcept
              {
                  int ibox, icell;
                  if (dp_nblocks) {
                      ibox = amrex::bisect(dp_nblocks, 0, nboxes, static_cast<int>(blockIdx.x));
-                     icell = (blockIdx.x-dp_nblocks[ibox])*AMREX_GPU_MAX_THREADS + threadIdx.x;
+                     icell = (blockIdx.x-dp_nblocks[ibox])*MT + threadIdx.x;
                  } else {
                      ibox = blockIdx.x / block_0_size;
-                     icell = (blockIdx.x-ibox*block_0_size)*AMREX_GPU_MAX_THREADS + threadIdx.x;
+                     icell = (blockIdx.x-ibox*block_0_size)*MT + threadIdx.x;
                  }
 
 #elif defined(AMREX_USE_DPCPP)
 
-        amrex::launch(nblocks, AMREX_GPU_MAX_THREADS, Gpu::gpuStream(),
+        amrex::launch(nblocks, MT, Gpu::gpuStream(),
              [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
              {
                  int ibox, icell;
@@ -119,10 +119,10 @@ ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, F&&
                  int threadIdxx = item.get_local_linear_id();
                  if (dp_nblocks) {
                      ibox = amrex::bisect(dp_nblocks, 0, nboxes, static_cast<int>(blockIdxx));
-                     icell = (blockIdxx-dp_nblocks[ibox])*AMREX_GPU_MAX_THREADS + threadIdxx;
+                     icell = (blockIdxx-dp_nblocks[ibox])*MT + threadIdxx;
                  } else {
                      ibox = blockIdxx / block_0_size;
-                     icell = (blockIdxx-ibox*block_0_size)*AMREX_GPU_MAX_THREADS + threadIdxx;
+                     icell = (blockIdxx-ibox*block_0_size)*MT + threadIdxx;
                  }
 #endif
                  Box b(ma[ibox]);
@@ -147,9 +147,16 @@ ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, F&&
 
 template <typename MF, typename F>
 std::enable_if_t<IsFabArray<MF>::value>
+ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const& ts, F&& f)
+{
+    ParallelFor<AMREX_GPU_MAX_THREADS>(mf, nghost, ncomp, ts, std::forward<F>(f));
+}
+
+template <typename MF, typename F>
+std::enable_if_t<IsFabArray<MF>::value>
 ParallelFor (MF const& mf, IntVect const& nghost, IntVect const& ts, F&& f)
 {
-    ParallelFor(mf, nghost, 1, ts, std::forward<F>(f));
+    ParallelFor<AMREX_GPU_MAX_THREADS>(mf, nghost, 1, ts, std::forward<F>(f));
 }
 
 }

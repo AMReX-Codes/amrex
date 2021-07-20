@@ -647,7 +647,7 @@ public:
     //! For ParallelFor(FabArray)
     struct ParForInfo
     {
-        ParForInfo (const FabArrayBase& fa, const IntVect& nghost);
+        ParForInfo (const FabArrayBase& fa, const IntVect& nghost, int nthreads);
         ~ParForInfo ();
 
         std::pair<int*,int*> const& getBlocks () const { return m_nblocks_x; }
@@ -660,10 +660,12 @@ public:
 
         IndexType m_typ;
         IntVect m_crse_ratio;
+        IntVect m_ng;
+        int m_nthreads;
         std::pair<int*,int*> m_nblocks_x;
     };
 
-    ParForInfo const& getParForInfo (const IntVect& nghost) const;
+    ParForInfo const& getParForInfo (const IntVect& nghost, int nthreads) const;
 
     static std::multimap<BDKey,ParForInfo*> m_TheParForCache;
 
