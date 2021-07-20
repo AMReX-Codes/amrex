@@ -732,7 +732,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
         {
             ChopGrids(lev,new_grids[lev],ParallelDescriptor::NProcs());
             if (new_grids[lev] == grids[lev]) {
-                new_grids[lev] = grids[lev]; // to avoid dupliates
+                new_grids[lev] = grids[lev]; // to avoid duplicates
             }
         }
     }

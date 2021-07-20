@@ -529,6 +529,8 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
             Box const& bx = fai.fabbox();
             const auto lo  = amrex::lbound(bx);
             const auto len = amrex::length(bx);
+            const auto lenxy = len.x*len.y;
+            const auto lenx  = len.x;
             const int ncells = bx.numPts();
             const char* tags = (*this)[fai].dataPtr();
 #ifdef AMREX_USE_DPCPP
@@ -549,9 +551,9 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
                     unsigned int itag = Gpu::Atomic::Inc<sycl::access::address_space::local_space>
                         (shared_counter, 20480u);
                     IntVect* p = dp_tags + dp_tags_offset[iblock_begin+bid];
-                    int k =  icell /   (len.x*len.y);
-                    int j = (icell - k*(len.x*len.y)) /   len.x;
-                    int i = (icell - k*(len.x*len.y)) - j*len.x;
+                    int k =  icell /   lenxy;
+                    int j = (icell - k*lenxy) /   lenx;
+                    int i = (icell - k*lenxy) - j*lenx;
                     i += lo.x;
                     j += lo.y;
                     k += lo.z;
@@ -576,9 +578,9 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
                 if (icell < ncells && tags[icell] != TagBox::CLEAR) {
                     unsigned int itag = Gpu::Atomic::Inc(shared_counter, blockDim.x);
                     IntVect* p = dp_tags + dp_tags_offset[iblock_begin+bid];
-                    int k =  icell /   (len.x*len.y);
-                    int j = (icell - k*(len.x*len.y)) /   len.x;
-                    int i = (icell - k*(len.x*len.y)) - j*len.x;
+                    int k =  icell /   lenxy;
+                    int j = (icell - k*lenxy) /   lenx;
+                    int i = (icell - k*lenxy) - j*lenx;
                     i += lo.x;
                     j += lo.y;
                     k += lo.z;

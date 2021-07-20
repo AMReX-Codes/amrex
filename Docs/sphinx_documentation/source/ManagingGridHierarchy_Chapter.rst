@@ -1,6 +1,8 @@
 .. role:: cpp(code)
    :language: c++
 
+.. _Chap:ManagingGridHierarchy:
+
 Gridding and Load Balancing
 ===========================
 

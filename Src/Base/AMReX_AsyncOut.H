@@ -26,7 +26,7 @@ void Submit (std::function<void()> const& a_f);
 void Finish (); // If you want to wait for jobs submitted to finish
 
 //
-// These functions are used inside user's job funciton.
+// These functions are used inside user's job function.
 //
 void Wait ();   // Wait for my turn to write file.  This is not for waiting for job to finish.
 void Notify (); // Notify next MPI process in the same file.

@@ -79,7 +79,7 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                vertex[6] = {problo[0] + (i  )*dx[0], problo[1] + (j+1)*dx[1], problo[2] + (k+1)*dx[2]};
                vertex[7] = {problo[0] + (i+1)*dx[0], problo[1] + (j+1)*dx[1], problo[2] + (k+1)*dx[2]};
 
-               // NOTE: this seems to be unncessary:
+               // NOTE: this seems to be unnecessary:
                // skip cells that have a tiny intersection and cells that have
                // the centroid on a face/edge/corner
                // if(apnorm > stol    .and. &

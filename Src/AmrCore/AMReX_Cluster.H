@@ -97,7 +97,7 @@ public:
 
     /**
     * \brief Constructs a list of cluster objects obtained by intersecting
-    * this cluster with each box in bl.  The list is retruned in the
+    * this cluster with each box in bl.  The list is returned in the
     * argument clst.  For each intersection that includes tagged
     * points, construct a new cluster by removing those points from
     * this object.  Empty intersections or those that contain no

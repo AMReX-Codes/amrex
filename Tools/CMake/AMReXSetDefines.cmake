@@ -83,7 +83,7 @@ if (AMReX_FORTRAN)
    #
    include( FortranCInterface )
    if(NOT FortranCInterface_GLOBAL_FOUND)
-      message(FATAL_ERROR "Failed to find the Fortan C Interface -- check the CMakeError.log")
+      message(FATAL_ERROR "Failed to find the Fortran C Interface -- check the CMakeError.log")
    endif()
    include( ${FortranCInterface_BINARY_DIR}/Output.cmake )
 

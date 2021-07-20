@@ -267,7 +267,7 @@ contains
     logical :: nodal(3)
     type(amrex_multifab) :: nullmf
 
-    ! For ABecLaplacian, the b coefficents are on faces
+    ! For ABecLaplacian, the b coefficients are on faces
     allocate(beta(amrex_spacedim,0:max_level))
     do ilev = 0, max_level
        do idim = 1, amrex_spacedim
@@ -412,7 +412,7 @@ contains
 
     call amrex_write_plotfile("plot", max_level+1, plotmf, varname, geom, 0._amrex_real, steps, rr)
 
-    ! let's not realy on finalizer, which is feature not all compilers support properly.
+    ! let's not really on finalizer, which is feature not all compilers support properly.
     do ilev = 0, max_level
        call amrex_multifab_destroy(plotmf(ilev))
     end do

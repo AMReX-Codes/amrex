@@ -395,9 +395,9 @@ ppfound (const std::string& keyword,
 }
 
 //
-// Return the index of the n'th occurence of a parameter name,
-// except if n==-1, return the index of the last occurence.
-// Return 0 if the specified occurence does not exist.
+// Return the index of the n'th occurrence of a parameter name,
+// except if n==-1, return the index of the last occurrence.
+// Return 0 if the specified occurrence does not exist.
 //
 
 const ParmParse::PP_entry*
@@ -444,7 +444,7 @@ ppindex (const ParmParse::Table& table,
     if ( fnd )
     {
         //
-        // Found an entry; mark all occurences of name as used.
+        // Found an entry; mark all occurrences of name as used.
         //
         for ( const_list_iterator li = table.begin(), End = table.end(); li != End; ++li )
         {
@@ -722,12 +722,12 @@ squeryval (const ParmParse::Table& table,
            const std::string& name,
            T&           ptr,
            int          ival,
-           int          occurence)
+           int          occurrence)
 {
     //
-    // Get last occurrance of name in table.
+    // Get last occurrence of name in table.
     //
-    const ParmParse::PP_entry* def = ppindex(table, occurence, name, false);
+    const ParmParse::PP_entry* def = ppindex(table, occurrence, name, false);
     if ( def == 0 )
     {
         return false;
@@ -739,13 +739,13 @@ squeryval (const ParmParse::Table& table,
     {
         amrex::ErrorStream() << "ParmParse::queryval no value number"
                   << ival << " for ";
-        if ( occurence ==  ParmParse::LAST )
+        if ( occurrence ==  ParmParse::LAST )
         {
-            amrex::ErrorStream() << "last occurence of ";
+            amrex::ErrorStream() << "last occurrence of ";
         }
         else
         {
-            amrex::ErrorStream() << " occurence " << occurence << " of ";
+            amrex::ErrorStream() << " occurrence " << occurrence << " of ";
         }
         amrex::ErrorStream() << def->m_name << '\n' << *def << '\n';
         amrex::Abort();
@@ -758,13 +758,13 @@ squeryval (const ParmParse::Table& table,
     {
         amrex::ErrorStream() << "ParmParse::queryval type mismatch on value number "
                   << ival << " of " << '\n';
-        if ( occurence == ParmParse::LAST )
+        if ( occurrence == ParmParse::LAST )
         {
-            amrex::ErrorStream() << " last occurence of ";
+            amrex::ErrorStream() << " last occurrence of ";
         }
         else
         {
-            amrex::ErrorStream() << " occurence number " << occurence << " of ";
+            amrex::ErrorStream() << " occurrence number " << occurrence << " of ";
         }
         amrex::ErrorStream() << def->m_name << '\n';
         amrex::ErrorStream() << " Expected an \""
@@ -783,15 +783,15 @@ sgetval (const ParmParse::Table& table,
          const std::string& name,
          T&           ptr,
          int          ival,
-         int          occurence)
+         int          occurrence)
 {
-    if ( squeryval(table, name,ptr,ival,occurence) == 0 )
+    if ( squeryval(table, name,ptr,ival,occurrence) == 0 )
     {
         amrex::ErrorStream() << "ParmParse::getval ";
-        if ( occurence >= 0 )
+        if ( occurrence >= 0 )
         {
-            amrex::ErrorStream() << "occurence number "
-                      << occurence
+            amrex::ErrorStream() << "occurrence number "
+                      << occurrence
                       << " of ";
         }
 
@@ -811,12 +811,12 @@ squeryarr (const ParmParse::Table& table,
            std::vector<T>&    ptr,
            int          start_ix,
            int          num_val,
-           int          occurence)
+           int          occurrence)
 {
     //
-    // Get last occurrance of name in table.
+    // Get last occurrence of name in table.
     //
-    const ParmParse::PP_entry *def = ppindex(table,occurence, name, false);
+    const ParmParse::PP_entry *def = ppindex(table,occurrence, name, false);
     if ( def == 0 )
     {
         return false;
@@ -840,13 +840,13 @@ squeryarr (const ParmParse::Table& table,
     if ( stop_ix >= static_cast<int>(def->m_vals.size()) )
     {
         amrex::ErrorStream() << "ParmParse::queryarr too many values requested for";
-        if ( occurence == ParmParse::LAST )
+        if ( occurrence == ParmParse::LAST )
         {
-            amrex::ErrorStream() << " last occurence of ";
+            amrex::ErrorStream() << " last occurrence of ";
         }
         else
         {
-            amrex::ErrorStream() << " occurence " << occurence << " of ";
+            amrex::ErrorStream() << " occurrence " << occurrence << " of ";
         }
         amrex::ErrorStream() << def->m_name << '\n' << *def << '\n';
         amrex::Abort();
@@ -859,13 +859,13 @@ squeryarr (const ParmParse::Table& table,
         {
             amrex::ErrorStream() << "ParmParse::queryarr type mismatch on value number "
                       <<  n << " of ";
-            if ( occurence == ParmParse::LAST )
+            if ( occurrence == ParmParse::LAST )
             {
-                amrex::ErrorStream() << " last occurence of ";
+                amrex::ErrorStream() << " last occurrence of ";
             }
             else
             {
-                amrex::ErrorStream() << " occurence number " << occurence << " of ";
+                amrex::ErrorStream() << " occurrence number " << occurrence << " of ";
             }
             amrex::ErrorStream() << def->m_name << '\n';
             amrex::ErrorStream() << " Expected an \""
@@ -886,14 +886,14 @@ sgetarr (const ParmParse::Table& table,
          std::vector<T>&           ptr,
          int          start_ix,
          int          num_val,
-         int          occurence)
+         int          occurrence)
 {
-    if ( squeryarr(table,name,ptr,start_ix,num_val,occurence) == 0 )
+    if ( squeryarr(table,name,ptr,start_ix,num_val,occurrence) == 0 )
     {
         amrex::ErrorStream() << "ParmParse::sgetarr ";
-        if ( occurence >= 0 )
+        if ( occurrence >= 0 )
         {
-            amrex::ErrorStream() << "occurence number " << occurence << " of ";
+            amrex::ErrorStream() << "occurrence number " << occurrence << " of ";
         }
         amrex::ErrorStream() << "ParmParse::sgetarr(): "
                   << name
@@ -1024,7 +1024,7 @@ ParmParse::ParmParse (const std::string& prefix)
     m_pstack.push(prefix);
 }
 
-ParmParse::ParmParse (const Table& a_table)
+ParmParse::ParmParse (Table& a_table)
     : m_table(a_table)
 {
     m_pstack.push("");
@@ -1262,7 +1262,7 @@ ParmParse::countval (const char* name,
                      int         n) const
 {
     //
-    // First find n'th occurance of name in table.
+    // First find n'th occurrence of name in table.
     //
     const PP_entry* def = ppindex(m_table, n, prefixedName(name), false);
     return def == 0 ? 0 : def->m_vals.size();
@@ -2013,9 +2013,9 @@ ParmParse::addarr (const char* name,
     saddarr(prefixedName(name),ptr);
 }
 
-
+
 //
-// Return number of occurences of parameter name.
+// Return number of occurrences of parameter name.
 //
 
 int
@@ -2058,7 +2058,7 @@ ParmParse::contains (const char* name) const
        if ( ppfound(prefixedName(name), *li, false))
        {
            //
-           // Found an entry; mark all occurences of name as used.
+           // Found an entry; mark all occurrences of name as used.
            //
            for ( const_list_iterator lli = m_table.begin(); lli != m_table.end(); ++lli )
            {
@@ -2073,6 +2073,21 @@ ParmParse::contains (const char* name) const
     return false;
 }
 
+int
+ParmParse::remove (const char* name)
+{
+    int r = 0;
+    for (auto it = m_table.begin(); it != m_table.end(); ) {
+        if (ppfound(prefixedName(name), *it, false)) {
+            it = m_table.erase(it);
+            ++r;
+        } else {
+            ++it;
+        }
+    }
+    return r;
+}
+
 ParmParse::Record
 ParmParse::getRecord (const std::string& name, int n) const
 {
@@ -2085,7 +2100,6 @@ ParmParse::getRecord (const std::string& name, int n) const
     return Record(ParmParse(*pe->m_table));
 }
 
-
 //
 //
 //

@@ -16,7 +16,7 @@ namespace amrex {
 
 // N: node
 // P: pointer offset
-// V: value (i.e., Real literal)
+// V: value (i.e., double literal)
 
 enum parser_exe_t {
     PARSER_EXE_NULL = 0,
@@ -58,7 +58,7 @@ struct alignas(8) ParserExeNull {
 
 struct alignas(8) ParserExeNumber {
     enum parser_exe_t type = PARSER_EXE_NUMBER;
-    Real v;
+    double v;
 };
 
 struct alignas(8) ParserExeSymbol {
@@ -72,7 +72,7 @@ struct alignas(8) ParserExeADD {
 
 struct alignas(8) ParserExeSUB {
     enum parser_exe_t type = PARSER_EXE_SUB;
-    Real sign;
+    double sign;
 };
 
 struct alignas(8) ParserExeMUL {
@@ -109,25 +109,25 @@ struct alignas(8) ParserExeF2_B {
 struct alignas(8) ParserExeADD_VP {
     enum parser_exe_t type = PARSER_EXE_ADD_VP;
     int i;
-    Real v;
+    double v;
 };
 
 struct alignas(8) ParserExeSUB_VP {
     enum parser_exe_t type = PARSER_EXE_SUB_VP;
     int i;
-    Real v;
+    double v;
 };
 
 struct alignas(8) ParserExeMUL_VP {
     enum parser_exe_t type = PARSER_EXE_MUL_VP;
     int i;
-    Real v;
+    double v;
 };
 
 struct alignas(8) ParserExeDIV_VP {
     enum parser_exe_t type = PARSER_EXE_DIV_VP;
     int i;
-    Real v;
+    double v;
 };
 
 struct alignas(8) ParserExeADD_PP {
@@ -161,22 +161,22 @@ struct alignas(8) ParserExeNEG_P {
 
 struct alignas(8) ParserExeADD_VN {
     enum parser_exe_t type = PARSER_EXE_ADD_VN;
-    Real v;
+    double v;
 };
 
 struct alignas(8) ParserExeSUB_VN {
     enum parser_exe_t type = PARSER_EXE_SUB_VN;
-    Real v;
+    double v;
 };
 
 struct alignas(8) ParserExeMUL_VN {
     enum parser_exe_t type = PARSER_EXE_MUL_VN;
-    Real v;
+    double v;
 };
 
 struct alignas(8) ParserExeDIV_VN {
     enum parser_exe_t type = PARSER_EXE_DIV_VN;
-    Real v;
+    double v;
 };
 
 struct alignas(8) ParserExeADD_PN {
@@ -187,7 +187,7 @@ struct alignas(8) ParserExeADD_PN {
 struct alignas(8) ParserExeSUB_PN {
     enum parser_exe_t type = PARSER_EXE_SUB_PN;
     int i;
-    Real sign;
+    double sign;
 };
 
 struct alignas(8) ParserExeMUL_PN {
@@ -214,17 +214,17 @@ struct alignas(8) ParserExeJUMP {
 template <int N>
 struct ParserStack
 {
-    Real m_data[N];
+    double m_data[N];
     int m_size = 0;
-    constexpr void push (Real v) { m_data[m_size++] = v; }
+    constexpr void push (double v) { m_data[m_size++] = v; }
     constexpr void pop () { --m_size; }
-    constexpr Real const& top () const { return m_data[m_size-1]; }
-    constexpr Real      & top ()       { return m_data[m_size-1]; }
-    constexpr Real operator[] (int i) const { return m_data[i]; }
+    constexpr double const& top () const { return m_data[m_size-1]; }
+    constexpr double      & top ()       { return m_data[m_size-1]; }
+    constexpr double operator[] (int i) const { return m_data[i]; }
 };
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-Real parser_exe_eval (char* p, Real const* x)
+double parser_exe_eval (char* p, double const* x)
 {
     ParserStack<AMREX_PARSER_STACK_SIZE> pstack;
     while (*((parser_exe_t*)p) != PARSER_EXE_NULL) {
@@ -239,14 +239,14 @@ Real parser_exe_eval (char* p, Real const* x)
         case PARSER_EXE_SYMBOL:
         {
             int i = ((ParserExeSymbol*)p)->i;
-            Real d = AMREX_PARSER_GET_DATA(i);
+            double d = AMREX_PARSER_GET_DATA(i);
             pstack.push(d);
             p     += sizeof(ParserExeSymbol);
             break;
         }
         case PARSER_EXE_ADD:
         {
-            Real b = pstack.top();
+            double b = pstack.top();
             pstack.pop();
             pstack.top() += b;
             p += sizeof(ParserExeADD);
@@ -254,7 +254,7 @@ Real parser_exe_eval (char* p, Real const* x)
         }
         case PARSER_EXE_SUB:
         {
-            Real b = pstack.top();
+            double b = pstack.top();
             pstack.pop();
             pstack.top() = (pstack.top() - b) * (((ParserExeSUB*)p)->sign);
             p += sizeof(ParserExeSUB);
@@ -262,7 +262,7 @@ Real parser_exe_eval (char* p, Real const* x)
         }
         case PARSER_EXE_MUL:
         {
-            Real b = pstack.top();
+            double b = pstack.top();
             pstack.pop();
             pstack.top() *= b;
             p += sizeof(ParserExeMUL);
@@ -270,7 +270,7 @@ Real parser_exe_eval (char* p, Real const* x)
         }
         case PARSER_EXE_DIV_F:
         {
-            Real v = pstack.top();
+            double v = pstack.top();
             pstack.pop();
             pstack.top() /= v;
             p += sizeof(ParserExeDIV_F);
@@ -278,7 +278,7 @@ Real parser_exe_eval (char* p, Real const* x)
         }
         case PARSER_EXE_DIV_B:
         {
-            Real v = pstack.top();
+            double v = pstack.top();
             pstack.pop();
             pstack.top() = v / pstack.top();
             p += sizeof(ParserExeDIV_B);
@@ -298,7 +298,7 @@ Real parser_exe_eval (char* p, Real const* x)
         }
         case PARSER_EXE_F2_F:
         {
-            Real v = pstack.top();
+            double v = pstack.top();
             pstack.pop();
             pstack.top() = parser_call_f2(((ParserExeF2_F*)p)->ftype, pstack.top(), v);
             p += sizeof(ParserExeF2_F);
@@ -306,7 +306,7 @@ Real parser_exe_eval (char* p, Real const* x)
         }
         case PARSER_EXE_F2_B:
         {
-            Real v = pstack.top();
+            double v = pstack.top();
             pstack.pop();
             pstack.top() = parser_call_f2(((ParserExeF2_B*)p)->ftype, v, pstack.top());
             p += sizeof(ParserExeF2_B);
@@ -315,7 +315,7 @@ Real parser_exe_eval (char* p, Real const* x)
         case PARSER_EXE_ADD_VP:
         {
             int i = ((ParserExeADD_VP*)p)->i;
-            Real d = AMREX_PARSER_GET_DATA(i);
+            double d = AMREX_PARSER_GET_DATA(i);
             pstack.push(((ParserExeADD_VP*)p)->v + d);
             p     += sizeof(ParserExeADD_VP);
             break;
@@ -323,7 +323,7 @@ Real parser_exe_eval (char* p, Real const* x)
         case PARSER_EXE_SUB_VP:
         {
             int i = ((ParserExeSUB_VP*)p)->i;
-            Real d = AMREX_PARSER_GET_DATA(i);
+            double d = AMREX_PARSER_GET_DATA(i);
             pstack.push(((ParserExeSUB_VP*)p)->v - d);
             p     += sizeof(ParserExeSUB_VP);
             break;
@@ -331,7 +331,7 @@ Real parser_exe_eval (char* p, Real const* x)
         case PARSER_EXE_MUL_VP:
         {
             int i = ((ParserExeMUL_VP*)p)->i;
-            Real d = AMREX_PARSER_GET_DATA(i);
+            double d = AMREX_PARSER_GET_DATA(i);
             pstack.push(((ParserExeMUL_VP*)p)->v * d);
             p     += sizeof(ParserExeMUL_VP);
             break;
@@ -339,7 +339,7 @@ Real parser_exe_eval (char* p, Real const* x)
         case PARSER_EXE_DIV_VP:
         {
             int i = ((ParserExeDIV_VP*)p)->i;
-            Real d = AMREX_PARSER_GET_DATA(i);
+            double d = AMREX_PARSER_GET_DATA(i);
             pstack.push(((ParserExeDIV_VP*)p)->v / d);
             p     += sizeof(ParserExeDIV_VP);
             break;
@@ -347,9 +347,9 @@ Real parser_exe_eval (char* p, Real const* x)
         case PARSER_EXE_ADD_PP:
         {
             int i = ((ParserExeADD_PP*)p)->i1;
-            Real d1 = AMREX_PARSER_GET_DATA(i);
+            double d1 = AMREX_PARSER_GET_DATA(i);
             i     = ((ParserExeADD_PP*)p)->i2;
-            Real d2 = AMREX_PARSER_GET_DATA(i);
+            double d2 = AMREX_PARSER_GET_DATA(i);
             pstack.push(d1+d2);
             p     += sizeof(ParserExeADD_PP);
             break;
@@ -357,9 +357,9 @@ Real parser_exe_eval (char* p, Real const* x)
         case PARSER_EXE_SUB_PP:
         {
             int i = ((ParserExeSUB_PP*)p)->i1;
-            Real d1 = AMREX_PARSER_GET_DATA(i);
+            double d1 = AMREX_PARSER_GET_DATA(i);
             i     = ((ParserExeSUB_PP*)p)->i2;
-            Real d2 = AMREX_PARSER_GET_DATA(i);
+            double d2 = AMREX_PARSER_GET_DATA(i);
             pstack.push(d1-d2);
             p     += sizeof(ParserExeSUB_PP);
             break;
@@ -367,9 +367,9 @@ Real parser_exe_eval (char* p, Real const* x)
         case PARSER_EXE_MUL_PP:
         {
             int i = ((ParserExeMUL_PP*)p)->i1;
-            Real d1 = AMREX_PARSER_GET_DATA(i);
+            double d1 = AMREX_PARSER_GET_DATA(i);
             i     = ((ParserExeMUL_PP*)p)->i2;
-            Real d2 = AMREX_PARSER_GET_DATA(i);
+            double d2 = AMREX_PARSER_GET_DATA(i);
             pstack.push(d1*d2);
             p     += sizeof(ParserExeMUL_PP);
             break;
@@ -377,9 +377,9 @@ Real parser_exe_eval (char* p, Real const* x)
         case PARSER_EXE_DIV_PP:
         {
             int i = ((ParserExeDIV_PP*)p)->i1;
-            Real d1 = AMREX_PARSER_GET_DATA(i);
+            double d1 = AMREX_PARSER_GET_DATA(i);
             i     = ((ParserExeDIV_PP*)p)->i2;
-            Real d2 = AMREX_PARSER_GET_DATA(i);
+            double d2 = AMREX_PARSER_GET_DATA(i);
             pstack.push(d1/d2);
             p      += sizeof(ParserExeDIV_PP);
             break;
@@ -387,7 +387,7 @@ Real parser_exe_eval (char* p, Real const* x)
         case PARSER_EXE_NEG_P:
         {
             int i = ((ParserExeNEG_P*)p)->i;
-            Real d = AMREX_PARSER_GET_DATA(i);
+            double d = AMREX_PARSER_GET_DATA(i);
             pstack.push(-d);
             p     += sizeof(ParserExeNEG_P);
             break;
@@ -419,7 +419,7 @@ Real parser_exe_eval (char* p, Real const* x)
         case PARSER_EXE_ADD_PN:
         {
             int i = ((ParserExeADD_PN*)p)->i;
-            Real d = AMREX_PARSER_GET_DATA(i);
+            double d = AMREX_PARSER_GET_DATA(i);
             pstack.top() += d;
             p         += sizeof(ParserExeADD_PN);
             break;
@@ -427,7 +427,7 @@ Real parser_exe_eval (char* p, Real const* x)
         case PARSER_EXE_SUB_PN:
         {
             int i = ((ParserExeSUB_PN*)p)->i;
-            Real d = AMREX_PARSER_GET_DATA(i);
+            double d = AMREX_PARSER_GET_DATA(i);
             pstack.top() = (d - pstack.top()) * (((ParserExeSUB_PN*)p)->sign);
             p         += sizeof(ParserExeSUB_PN);
             break;
@@ -435,7 +435,7 @@ Real parser_exe_eval (char* p, Real const* x)
         case PARSER_EXE_MUL_PN:
         {
             int i = ((ParserExeMUL_PN*)p)->i;
-            Real d = AMREX_PARSER_GET_DATA(i);
+            double d = AMREX_PARSER_GET_DATA(i);
             pstack.top() *= d;
             p         += sizeof(ParserExeMUL_PN);
             break;
@@ -443,7 +443,7 @@ Real parser_exe_eval (char* p, Real const* x)
         case PARSER_EXE_DIV_PN:
         {
             int i = ((ParserExeDIV_PN*)p)->i;
-            Real d = AMREX_PARSER_GET_DATA(i);
+            double d = AMREX_PARSER_GET_DATA(i);
             if (((ParserExeDIV_PN*)p)->reverse) {
                 pstack.top() /= d;
             } else {
@@ -454,9 +454,9 @@ Real parser_exe_eval (char* p, Real const* x)
         }
         case PARSER_EXE_IF:
         {
-            Real cond = pstack.top();
+            double cond = pstack.top();
             pstack.pop();
-            if (cond == Real(0.0)) { // false branch
+            if (cond == 0.0) { // false branch
                 p += ((ParserExeIF*)p)->offset;
             }
             p += sizeof(ParserExeIF);

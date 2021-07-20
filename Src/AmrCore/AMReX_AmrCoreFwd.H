@@ -4,7 +4,7 @@
 namespace amrex {
 
 class AmrCore;
-class AmrInfo;
+struct AmrInfo;
 class AmrMesh;
 
 class FluxRegister;

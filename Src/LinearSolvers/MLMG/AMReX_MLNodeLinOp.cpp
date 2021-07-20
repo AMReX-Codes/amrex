@@ -21,13 +21,20 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
                      const LPInfo& a_info,
-                     const Vector<FabFactory<FArrayBox> const*>& a_factory)
+                     const Vector<FabFactory<FArrayBox> const*>& a_factory,
+                     int a_eb_limit_coarsening)
 {
+    bool eb_limit_coarsening;
+    if (a_eb_limit_coarsening < 0) { // default
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-    bool eb_limit_coarsening = true;
+        eb_limit_coarsening = true;
 #else
-    bool eb_limit_coarsening = false;
+        eb_limit_coarsening = false;
 #endif
+    } else {
+        eb_limit_coarsening = a_eb_limit_coarsening;
+    }
+
     MLLinOp::define(a_geom, a_grids, a_dmap, a_info, a_factory, eb_limit_coarsening);
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!hasHiddenDimension(),
@@ -49,7 +56,6 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
             m_dirichlet_mask[amrlev][mglev]->setVal(0); // non-Dirichlet by default
         }
     }
-
 
     m_cc_fine_mask.resize(m_num_amr_levels);
     m_nd_fine_mask.resize(m_num_amr_levels);
@@ -138,7 +144,7 @@ MLNodeLinOp::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                      bool skip_fillboundary) const
 {
     if (!skip_fillboundary) {
-        applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Solution);
+        applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Correction);
     }
     Fsmooth(amrlev, mglev, sol, rhs);
 }
@@ -343,10 +349,12 @@ MLNodeLinOp::setOversetMask (int amrlev, const iMultiFab& a_dmask)
 }
 
 void
-MLNodeLinOp::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/, StateMode,
-                      bool skip_fillboundary) const
+MLNodeLinOp::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/,
+                      StateMode state_mode, bool skip_fillboundary) const
 {
     BL_PROFILE("MLNodeLinOp::applyBC()");
+
+    m_in_solution_mode = state_mode == StateMode::Solution;
 
     const Geometry& geom = m_geom[amrlev][mglev];
     const Box& nd_domain = amrex::surroundingNodes(geom.Domain());
@@ -388,4 +396,3 @@ MLNodeLinOp::makeHypreNodeLap (int bottom_verbose, const std::string& options_na
 #endif
 
 }
-

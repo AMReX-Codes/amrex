@@ -235,7 +235,7 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
             if( flag(i,j,k).isConnected(ii,jj,kk) &&
                 ! (ii==0 && jj==0 && kk==0)) {
 
-            // Not multplying by dx to be consistent with how the
+            // Not multiplying by dx to be consistent with how the
             // slope is stored. Also not including the global shift
             // wrt plo or i,j,k. We only need relative distance.
 
