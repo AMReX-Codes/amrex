@@ -776,13 +776,13 @@ struct AssignGridFilter
 {
 
     int m_lev_min, m_lev_max, m_nGrow, m_gid;
-    amrex::AmrAssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> * m_assign_grid;
+    amrex::AmrAssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> m_assign_grid;
 
     /**
        \brief This filters based on matching grids
        *
      **/
-    AssignGridFilter (amrex::AmrAssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> * assign_grid, int gid, int level, int nGrow)
+    AssignGridFilter (amrex::AmrAssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> assign_grid, int gid, int level, int nGrow)
       : m_lev_min(level), m_lev_max(level+1), m_nGrow(nGrow), m_gid(gid), m_assign_grid(assign_grid)
     {}
 
@@ -790,12 +790,11 @@ struct AssignGridFilter
     AMREX_GPU_HOST_DEVICE
     int operator() (const SrcData& src, int src_i) const noexcept
     {
-        const auto tup_min = (*m_assign_grid)(src.m_aos[src_i], m_lev_min, m_lev_max, m_nGrow);
-        const auto tup_max = (*m_assign_grid)(src.m_aos[src_i], m_lev_max, m_lev_max, m_nGrow);
+        const auto tup_min = (m_assign_grid)(src.m_aos[src_i], m_lev_min, m_lev_max, m_nGrow);
+        const auto tup_max = (m_assign_grid)(src.m_aos[src_i], m_lev_max, m_lev_max, m_nGrow);
         const auto p_boxes = amrex::get<0>(tup_min);
         const auto p_boxes_max = amrex::get<0>(tup_max);
         const auto p_levs_max  = amrex::get<1>(tup_max);
-
         return p_boxes_max >=0 && p_boxes == m_gid && p_levs_max == m_lev_max;
     }
 };
@@ -865,7 +864,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
         auto np = src_tile.numParticles();
         ghosts.resize(ghost_offset+np);
-        ghost_offset += filterAndTransformParticles(ghosts, src_tile, AssignGridFilter(assign_grid_ptr,gid,level,nGrow), TransformerGhost(),0,ghost_offset);
+        ghost_offset += filterAndTransformParticles(ghosts, src_tile, AssignGridFilter(assign_grid,gid,level,nGrow), TransformerGhost(),0,ghost_offset);
+        ghosts.resize(ghost_offset);
+        Gpu::synchronize();
     }
     ghosts.resize(ghost_offset);
     Gpu::synchronize();
