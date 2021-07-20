@@ -847,7 +847,7 @@ Instead of using :cpp:`Elixir`, we can write code like below,
       FArrayBox tmp_fab(bx, numcomps, The_Async_Arena());
       Array4<Real> const& tmp_arr = tmp_fab.array();
       FArrayBox tmp_fab_2;
-      tmp_fab_2.resize(bx, numcomps, The_Async_Async());
+      tmp_fab_2.resize(bx, numcomps, The_Async_Arena());
 
       // GPU kernels using the temporary
     }
