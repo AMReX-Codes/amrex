@@ -854,8 +854,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     if (! m_particle_locator.isValid(GetParGDB())) m_particle_locator.build(GetParGDB());
     m_particle_locator.setGeometry(GetParGDB());
     AmrAssignGrid<DenseBinIteratorFactory<Box>> assign_grid = m_particle_locator.getGridAssignor();
-    auto assign_grid_ptr = & assign_grid;
-    //    ghosts.resize(0);
+
     auto ghost_offset = ghosts.numParticles();
     for(ParConstIterType pti(*this, level); pti.isValid(); ++pti)
     {
