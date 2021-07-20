@@ -333,7 +333,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                 Gpu::copy(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
                           dst_tile.GetArrayOfStructs().begin() + old_size);
 
-                if((host_real_attribs[lev][std::make_pair(grid, tile)]).size() > NArrayReal)
+                if((host_real_attribs[lev][std::make_pair(grid, tile)]).size() > (long unsigned int) NArrayReal)
                   for (int i = 0; i < NArrayReal; ++i) {
                     Gpu::copy(Gpu::hostToDevice,
                               host_real_attribs[lev][std::make_pair(grid,tile)][i].begin(),
@@ -372,7 +372,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                 Where(p, pld);
 
                 host_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
-                if((host_real_attribs[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)]).size() > extradata - NStructReal)
+                if((host_real_attribs[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)]).size() > (long unsigned int) (extradata - NStructReal))
                     for (int n = NStructReal; n < extradata; n++)
                     {
                         Real rdata = nreals[n-NStructReal].back();
