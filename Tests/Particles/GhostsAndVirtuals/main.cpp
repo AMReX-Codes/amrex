@@ -127,7 +127,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
     IntVect domain_hi(AMREX_D_DECL(nx - 1, ny - 1, nz-1));
     const Box domain(domain_lo, domain_hi);
 
-    amrex::Print()<<"Hardcoding ascii to nx=ny=nz=32 and nlevs=3"<<std::endl;
+    amrex::Print()<<"Ascii test always uses nx=ny=nz=32, nlevs=3, ProbHi=64"<<std::endl;
 
     // Define the refinement ratio
     Vector<int> rr(nlevs-1);
@@ -152,6 +152,8 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
 
     Vector<BoxArray> ba(nlevs);
     ba[0].define(domain);
+
+    //Create BoxArray similar to InitAmr in AMReX_Amr.cpp
     if (nlevs > 0 && !regrid_grids_file.empty())
     {
 #define STRIP while( is.get() != '\n' ) {}
@@ -175,29 +177,17 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
                 Box bx;
                 is >> bx;
                 STRIP;
-                 bx.refine(rr[lev-1]);
-         /*
-                 for (int idim = 0 ; idim < AMREX_SPACEDIM; ++idim)
-                 {
-                     if (bx.length(idim) > parms.max_grid_size)
-                     {
-                         std::ostringstream ss;
-                         ss << "Grid " << bx << " too large" << '\n';
-                         amrex::Error(ss.str());
-                     }
-                 }*/
-                 bl.push_back(bx);
+                bx.refine(rr[lev-1]);
+
+                bl.push_back(bx);
             }
             ba[lev-1].define(bl);
-        //            amrex::Print()<<(geom[lev-1].ProbHi(0))<<"\n"<<ba[lev-1]<<std::endl;
         }
         is.close();
 #undef STRIP
     }
-    /*
-    for (int lev = 0; lev < nlevs; lev++)
-    AmrMesh::ChopGrids(lev,ba[lev],ParallelDescriptor::NProcs());
-    */
+
+    //Create "original" BoxArray based on a hierarchical grid
     Vector<BoxArray> ba_orig(nlevs);
     ba_orig[0].define(domain);
 
@@ -212,7 +202,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         ba_orig[lev].define(refined_patch);
     }
 
-    // break the BoxArrays at both levels into max_grid_size^3 boxes
+    // break the BoxArrays at all levels into max_grid_size^3 boxes
     for (int lev = 0; lev < nlevs; lev++) {
         ba[lev].maxSize(parms.max_grid_size);
         ba_orig[lev].maxSize(parms.max_grid_size);
@@ -230,20 +220,18 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
     MyParticleContainer myPC(geom, dmap_orig, ba_orig, rr);
 
     myPC.SetVerbose(parms.verbose);
-    /*
-    for (int lev = 0; lev < nlevs; lev++) {
-    amrex::Print()<<myPC.ParticleBoxArray(lev)<<std::endl;
-    amrex::Print()<<myPC.ParticleDistributionMap(lev)<<std::endl;
-    }*/
 
+    //Initialize particles from ascii file with extradata=4
     myPC.InitFromAsciiFile("particle_file.init", 4);
 
+    //Regrid to the more compilcated BoxArray similar to NeighborParticleContainer Regrid
     for (int lev = 0; lev < nlevs; lev++) {
     myPC.SetParticleBoxArray(lev, ba[lev]);
     myPC.SetParticleDistributionMap(lev, dmap[lev]);
     }
     myPC.Redistribute();
 
+    //Check created particle containers with a summation and number of particles
     Real tol = 1e-4;
     {
 
