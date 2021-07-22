@@ -178,6 +178,20 @@ if (AMReX_HIP)
 
    set(_valid_hip_compilers clang++ hipcc nvcc CC)
    get_filename_component(_this_comp ${CMAKE_CXX_COMPILER} NAME)
+   
+   # work-arounds for breaking Fortran compiles
+   #   https://github.com/ROCm-Developer-Tools/HIP/pull/2280
+   set(IS_PRE_ROCM4_HIPCC FALSE)
+   # CMake<3.21 and hipcc as CXX
+   if(${_this_comp} STREQUAL hipcc)
+      set(IS_PRE_ROCM4_HIPCC TRUE)
+   endif()
+   # CMake >=3.21 and hipcc as CXX but then set by cmake to clang++
+   if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "ROCMClang")
+      if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.4.0)
+          set(IS_PRE_ROCM4_HIPCC TRUE)
+      endif()
+   endif()
 
    if (NOT (_this_comp IN_LIST _valid_hip_compilers) )
       message(WARNING "\nCMAKE_CXX_COMPILER (${_this_comp}) is likely "
@@ -229,7 +243,7 @@ if (AMReX_HIP)
    endif()
    # AMD's or mainline clang++ with support for "-x hip"
    # Cray's CC wrapper that points to AMD's clang++ underneath
-   if(NOT ${_this_comp} STREQUAL hipcc)
+   if(NOT IS_PRE_ROCM4_HIPCC)
        target_link_libraries(amrex PUBLIC hip::device)
 
        # work-around for https://github.com/ROCm-Developer-Tools/HIP/issues/2278
@@ -237,8 +251,8 @@ if (AMReX_HIP)
        #set_property(TARGET amrex PROPERTY CXX_STANDARD 17)
        # note: already bumped to C++17 (cxx_std_17) or newer in AMReX_Config.cmake
 
-       # work-around for ROCm <=4.2
-       # https://github.com/ROCm-Developer-Tools/HIP/pull/2190
+       # work-around for ROCm <4.4
+       # https://github.com/ROCm-Developer-Tools/HIP/pull/2280
        target_compile_options(amrex PUBLIC
           "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-mllvm;-amdgpu-early-inline-all=true;-mllvm;-amdgpu-function-calls=false>"
        )
@@ -267,7 +281,7 @@ if (AMReX_HIP)
                        "See https://github.com/ROCm-Developer-Tools/HIP/issues/2275 "
                        "and https://github.com/AMReX-Codes/amrex/pull/2031 "
                        "for details.")
-   elseif(${_this_comp} STREQUAL hipcc)
+   elseif(IS_PRE_ROCM4_HIPCC)
        # hipcc expects a comma-separated list
        string(REPLACE ";" "," AMReX_AMD_ARCH_HIPCC "${AMReX_AMD_ARCH}")
 

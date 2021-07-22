@@ -45,6 +45,12 @@ function (configure_amrex)
    # minimum: C++14 on Linux, C++17 on Windows, C++17 for dpc++ and hip
    if (AMReX_DPCPP OR AMReX_HIP)
       target_compile_features(amrex PUBLIC cxx_std_17)
+      # CMake 3.21+ identifies hipcc as ROCMClang
+      # work-arounds: ignores target_compile_features for CXX targets
+      # https://gitlab.kitware.com/cmake/cmake/-/issues/22460
+      if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "ROCMClang")
+          target_compile_options(amrex PUBLIC -std=c++17)
+      endif()
    else ()
       target_compile_features(amrex PUBLIC $<IF:$<STREQUAL:$<PLATFORM_ID>,Windows>,cxx_std_17,cxx_std_14>)
    endif ()

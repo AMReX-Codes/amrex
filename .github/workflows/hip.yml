@@ -41,8 +41,7 @@ jobs:
             -DAMReX_GPU_BACKEND=HIP                       \
             -DAMReX_AMD_ARCH=gfx908                       \
             -DCMAKE_C_COMPILER=$(which clang)             \
-            -DCMAKE_CXX_COMPILER=$(which clang++)         \
-            -DCMAKE_CXX_STANDARD=17
+            -DCMAKE_CXX_COMPILER=$(which clang++)
         cmake --build build_nofortran -j 2
         cmake -S . -B build_full_legacywrapper            \
             -DCMAKE_VERBOSE_MAKEFILE=ON                   \
@@ -55,11 +54,7 @@ jobs:
             -DAMReX_AMD_ARCH=gfx908                       \
             -DCMAKE_C_COMPILER=$(which clang)             \
             -DCMAKE_CXX_COMPILER=$(which hipcc)           \
-            -DCMAKE_CXX_COMPILER_ID="Clang"               \
-            -DCMAKE_CXX_COMPILER_VERSION=12.0             \
-            -DCMAKE_CXX_STANDARD_COMPUTED_DEFAULT="17"    \
-            -DCMAKE_Fortran_COMPILER=$(which gfortran)    \
-            -DCMAKE_CXX_STANDARD=17
+            -DCMAKE_Fortran_COMPILER=$(which gfortran)
         cmake --build build_full_legacywrapper -j 2
 
   # Build 2D libamrex hip build with configure
