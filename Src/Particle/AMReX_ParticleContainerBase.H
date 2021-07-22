@@ -90,7 +90,7 @@ public:
                  const Vector<BoxArray>            & ba,
                  const Vector<int>                 & rr);
 
-	bool isDefined () const { return m_gdb != nullptr; }
+    bool isDefined () const { return m_gdb != nullptr; }
 
     void reserveData ();
     void resizeData ();
