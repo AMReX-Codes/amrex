@@ -864,11 +864,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         auto np = src_tile.numParticles();
         ghosts.resize(ghost_offset+np);
         ghost_offset += filterAndTransformParticles(ghosts, src_tile, AssignGridFilter(assign_grid,gid,level,nGrow), TransformerGhost(),0,ghost_offset);
-        ghosts.resize(ghost_offset);
-        Gpu::synchronize();
     }
+    //Resize implicitly includes a Gpu::synchronize()
     ghosts.resize(ghost_offset);
-    Gpu::synchronize();
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
