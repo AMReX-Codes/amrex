@@ -823,7 +823,7 @@ struct TransformerGhost
             dst.m_idata[j][dst_i] = src.m_idata[j][src_i];
         for (int j = 0; j < dst.m_num_runtime_int; ++j)
             dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][src_i];
-        ParticleIDWrapper((dst.m_aos[dst_i]).m_idcpu) = GhostParticleID;
+        (dst.m_aos[dst_i]).id() = GhostParticleID;
     }
 };
 
