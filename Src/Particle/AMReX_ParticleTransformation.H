@@ -321,13 +321,12 @@ template <typename DstTile, typename SrcTile, typename Index, typename N,
 Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask,
                        Index src_start, Index dst_start, N n) noexcept
 {
-    auto np = src.numParticles();
-    Gpu::DeviceVector<Index> offsets(np);
-    Gpu::exclusive_scan(mask, mask+np, offsets.begin());
+    Gpu::DeviceVector<Index> offsets(n);
+    Gpu::exclusive_scan(mask, mask+n, offsets.begin());
 
     Index last_mask=0, last_offset=0;
-    Gpu::copyAsync(Gpu::deviceToHost, mask+np-1, mask + np, &last_mask);
-    Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);
+    Gpu::copyAsync(Gpu::deviceToHost, mask+n-1, mask + n, &last_mask);
+    Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+n-1, offsets.data()+n, &last_offset);
 
     auto p_offsets = offsets.dataPtr();
 
@@ -336,8 +335,7 @@ Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask,
 
     AMREX_HOST_DEVICE_FOR_1D( n, i,
     {
-        if (mask[src_start+i]) copyParticle(dst_data, src_data, src_start+i,
-                                            dst_start+p_offsets[src_start+i]);
+        if (mask[i]) copyParticle(dst_data, src_data, src_start+i, dst_start+p_offsets[i]);
     });
 
     Gpu::synchronize();
@@ -385,13 +383,12 @@ auto filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
                       Index src_start, Index dst_start, N n) noexcept
     -> decltype(particle_detail::call_f(p, typename SrcTile::ConstParticleTileDataType(), int{}, RandomEngine{}))
 {
-    auto np = src.numParticles();
-    Gpu::DeviceVector<Index> mask(np);
+    Gpu::DeviceVector<Index> mask(n);
 
     auto p_mask = mask.dataPtr();
     const auto src_data = src.getConstParticleTileData();
 
-    amrex::ParallelForRNG(np,
+    amrex::ParallelForRNG(n,
     [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
     {
         p_mask[i] = particle_detail::call_f(p, src_data, src_start+i, engine);
