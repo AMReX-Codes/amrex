@@ -200,6 +200,7 @@ public:
 
     static AMREX_EXPORT bool do_tiling;
     static AMREX_EXPORT IntVect tile_size;
+    mutable AmrParticleLocator<DenseBins<Box> > m_particle_locator;
 
 protected:
 
@@ -215,9 +216,7 @@ protected:
     mutable int redistribute_mask_nghost = std::numeric_limits<int>::min();
     mutable amrex::Vector<int> neighbor_procs;
     mutable ParticleBufferMap m_buffer_map;
-#ifdef AMREX_USE_GPU
-    mutable AmrParticleLocator<DenseBins<Box> > m_particle_locator;
-#endif
+
 };
 
 } // namespace amrex

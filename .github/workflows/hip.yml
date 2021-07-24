@@ -27,7 +27,6 @@ jobs:
     - name: Build & Install
       run: |
         source /etc/profile.d/rocm.sh
-        export PATH=/opt/rocm-4.1.1/llvm/bin:$PATH
         hipcc --version
         which clang
         which clang++
