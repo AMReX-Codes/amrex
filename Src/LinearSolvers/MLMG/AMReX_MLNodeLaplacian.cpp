@@ -323,6 +323,7 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
         AMREX_ALWAYS_ASSERT(regular_coarsening);
     }
 
+#ifdef AMREX_USE_GPU
     auto fine_ma = fine.arrays();
     auto crse_ma = cmf->const_arrays();
     auto msk_ma = dmsk.const_arrays();
@@ -371,86 +372,60 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
             });
         }
         Gpu::synchronize();
-    } else {
-        if (m_coarsening_strategy == CoarseningStrategy::RAP)
-        {
-            auto sten_ma = stencil->const_arrays();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
-            for (MFIter mfi(fine, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        for (MFIter mfi(fine, true); mfi.isValid(); ++mfi)
+        {
+            Box const& bx = mfi.tilebox();
+            Array4<Real> const& ffab = fine.array(mfi);
+            Array4<Real const> const& cfab = cmf->const_array(mfi);
+            Array4<int const> const& mfab = dmsk.const_array(mfi);
+            if (m_coarsening_strategy == CoarseningStrategy::RAP)
             {
-                int box_no = mfi.LocalIndex();
-                Box const& bx = mfi.tilebox();
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                Array4<Real const> const& stfab = stencil->const_array(mfi);
+                amrex::LoopConcurrentOnCpu(bx, [&] (int i, int j, int k) noexcept
                 {
-                    mlndlap_interpadd_rap(i, j, k, fine_ma[box_no], crse_ma[box_no], sten_ma[box_no], msk_ma[box_no]);
+                    mlndlap_interpadd_rap(i,j,k,ffab,cfab,stfab,mfab);
                 });
             }
-        }
-        else if (sigma[0] == nullptr)
-        {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel
-#endif
-            for (MFIter mfi(fine, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+            else if (sigma[0] == nullptr)
             {
-                int box_no = mfi.LocalIndex();
-                Box const& bx = mfi.tilebox();
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                amrex::LoopConcurrentOnCpu(bx, [&] (int i, int j, int k) noexcept
                 {
-                    mlndlap_interpadd_c(i, j, k, fine_ma[box_no], crse_ma[box_no], msk_ma[box_no]);
+                    mlndlap_interpadd_c(i,j,k,ffab,cfab,mfab);
                 });
             }
-        }
-        else if (m_use_harmonic_average && fmglev > 0)
-        {
-            AMREX_D_TERM(MultiArray4<Real const> const& sx_ma = sigma[0]->const_arrays();,
-                         MultiArray4<Real const> const& sy_ma = sigma[1]->const_arrays();,
-                         MultiArray4<Real const> const& sz_ma = sigma[2]->const_arrays(););
-#ifdef AMREX_USE_OMP
-#pragma omp parallel
-#endif
-            for (MFIter mfi(fine, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+            else if (m_use_harmonic_average && fmglev > 0)
             {
-                int box_no = mfi.LocalIndex();
-                Box const& bx = mfi.tilebox();
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                AMREX_D_TERM(Array4<Real const> const& sxfab = sigma[0]->const_array(mfi);,
+                             Array4<Real const> const& syfab = sigma[1]->const_array(mfi);,
+                             Array4<Real const> const& szfab = sigma[2]->const_array(mfi);)
+                amrex::LoopConcurrentOnCpu(bx, [&] (int i, int j, int k) noexcept
                 {
-                    mlndlap_interpadd_ha(i, j, k, fine_ma[box_no], crse_ma[box_no], AMREX_D_DECL(sx_ma[box_no],sy_ma[box_no],sz_ma[box_no]), msk_ma[box_no]);
+                    mlndlap_interpadd_ha(i,j,k,ffab,cfab,AMREX_D_DECL(sxfab,syfab,szfab),mfab);
                 });
             }
-        }
-        else if (regular_coarsening)
-        {
-            auto sig_ma = sigma[0]->const_arrays();
-#ifdef AMREX_USE_OMP
-#pragma omp parallel
-#endif
-            for (MFIter mfi(fine, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+            else
             {
-                int box_no = mfi.LocalIndex();
-                Box const& bx = mfi.tilebox();
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                Array4<Real const> const& sfab = sigma[0]->const_array(mfi);
+                if (regular_coarsening)
                 {
-                    mlndlap_interpadd_aa(i, j, k, fine_ma[box_no], crse_ma[box_no], sig_ma[box_no], msk_ma[box_no]);
-                });
-            }
-        }
-        else
-        {
-            auto sig_ma = sigma[0]->const_arrays();
-#ifdef AMREX_USE_OMP
-#pragma omp parallel
-#endif
-            for (MFIter mfi(fine, TilingIfNotGPU()); mfi.isValid(); ++mfi)
-            {
-                int box_no = mfi.LocalIndex();
-                Box const& bx = mfi.tilebox();
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                    amrex::LoopConcurrentOnCpu(bx, [&] (int i, int j, int k) noexcept
+                    {
+                        mlndlap_interpadd_aa(i,j,k,ffab,cfab,sfab,mfab);
+                    });
+                }
+                else
                 {
-                    mlndlap_semi_interpadd_aa(i, j, k, fine_ma[box_no], crse_ma[box_no], sig_ma[box_no], msk_ma[box_no], idir);
-                });
+                    amrex::LoopConcurrentOnCpu(bx, [&] (int i, int j, int k) noexcept
+                    {
+                        mlndlap_semi_interpadd_aa(i,j,k,ffab,cfab,sfab,mfab,idir);
+                    });
+                }
             }
         }
     }
