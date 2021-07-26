@@ -1,7 +1,8 @@
 module probdata_module
 
+  use amrex_fort_module
   implicit none
 
-  double precision, save :: adv_vel(3)
+  real(amrex_real), save :: adv_vel(3)
 
 end module probdata_module
