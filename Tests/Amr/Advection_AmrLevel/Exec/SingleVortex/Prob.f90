@@ -16,13 +16,14 @@ subroutine initdata(level, time, lo, hi, &
      phi, phi_lo, phi_hi, &
      dx, prob_lo) bind(C, name="initdata")
 
+  use amrex_fort_module
   implicit none
-  integer, intent(in) :: level, lo(3), hi(3), phi_lo(3), phi_hi(3)
-  double precision, intent(in) :: time
-  double precision, intent(inout) :: phi(phi_lo(1):phi_hi(1), &
+  integer(c_int),   intent(in)    :: level, lo(3), hi(3), phi_lo(3), phi_hi(3)
+  real(amrex_real), intent(in)    :: time
+  real(amrex_real), intent(inout) :: phi(phi_lo(1):phi_hi(1), &
        &                                 phi_lo(2):phi_hi(2), &
        &                                 phi_lo(3):phi_hi(3))
-  double precision, intent(in) :: dx(3), prob_lo(3)
+  real(amrex_real), intent(in)    :: dx(3), prob_lo(3)
 
   integer          :: dm
   integer          :: i,j,k
