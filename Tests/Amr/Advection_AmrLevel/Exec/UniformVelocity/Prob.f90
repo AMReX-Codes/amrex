@@ -75,7 +75,7 @@ subroutine initdata(level, time, lo, hi, &
         ! The compiler should automatically convert this innermost loop to SIMD
         do i = lo(1), hi(1)
 
-           x = prob_lo(1) + (real(i,kindo=amrex_real)+0.5d0) * dx(1)
+           x = prob_lo(1) + (real(i,kind=amrex_real)+0.5d0) * dx(1)
 
            if ( dm == 2 ) then
               r2 = ((x-0.0d0)**2 + (y-0.0d0)**2) / 0.01d0
