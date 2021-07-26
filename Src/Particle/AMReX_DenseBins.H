@@ -43,8 +43,8 @@ struct DenseBinIteratorFactory
  * array where each bin starts.
  *
  * The storage for the bins is "dense" in the sense that users pass in
- * a Box that defines the space over which the bins will be defined, and
- * empty bins will still take up space.
+ * either a Box or an integer that defines the space over which the bins will be defined,
+ * and empty bins will still take up space.
  *
  * \tparam The type of items we hold
  *
@@ -65,6 +65,9 @@ public:
      * Finally, the set of partial sums is incremented in parallel using atomicInc,
      * which results in a permutation array that places the items in bin-sorted order.
      *
+     * This version uses a 3D box to specificy the index space over which the bins
+     * are defined.
+     *
      * \tparam N the 'size' type that can enumerate all the items
      * \tparam F a function that maps items to IntVect bins
      *
@@ -76,53 +79,41 @@ public:
     template <typename N, typename F>
     void build (N nitems, T const* v, const Box& bx, F&& f)
     {
-        BL_PROFILE("DenseBins<T>::build");
-
-        m_items = v;
-
-        m_cells.resize(nitems);
-        m_perm.resize(nitems);
-
-        auto nbins = bx.numPts();
-        m_counts.resize(0);
-        m_counts.resize(nbins+1, 0);
-
-        m_offsets.resize(0);
-        m_offsets.resize(nbins+1);
-
         const auto lo = lbound(bx);
         const auto hi = ubound(bx);
-        index_type* pcell   = m_cells.dataPtr();
-        index_type* pcount  = m_counts.dataPtr();
-        amrex::ParallelFor(nitems, [=] AMREX_GPU_DEVICE (int i) noexcept
-        {
-            auto iv = f(v[i]);
-            auto iv3 = iv.dim3();
-            int nx = hi.x-lo.x+1;
-            int ny = hi.y-lo.y+1;
-            int nz = hi.z-lo.z+1;
-            index_type uix = amrex::min(nx-1,amrex::max(0,iv3.x));
-            index_type uiy = amrex::min(ny-1,amrex::max(0,iv3.y));
-            index_type uiz = amrex::min(nz-1,amrex::max(0,iv3.z));
-            pcell[i] = (uix * ny + uiy) * nz + uiz;
-            Gpu::Atomic::AddNoRet(&pcount[pcell[i]], index_type{ 1 });
-        });
-
-        Gpu::exclusive_scan(m_counts.begin(), m_counts.end(), m_offsets.begin());
-
-        Gpu::copy(Gpu::deviceToDevice, m_offsets.begin(), m_offsets.end(), m_counts.begin());
-
-        index_type* pperm = m_perm.dataPtr();
-        constexpr index_type max_index = std::numeric_limits<index_type>::max();
-        amrex::ParallelFor(nitems, [=] AMREX_GPU_DEVICE (int i) noexcept
-        {
-            index_type index = Gpu::Atomic::Inc(&pcount[pcell[i]], max_index);
-            pperm[index] = i;
-        });
-
-        Gpu::Device::streamSynchronize();
+        build(nitems, v, bx.numPts(),
+              [=] AMREX_GPU_DEVICE (const T& t) noexcept
+              {
+                  auto iv = f(t);
+                  auto iv3 = iv.dim3();
+                  int nx = hi.x-lo.x+1;
+                  int ny = hi.y-lo.y+1;
+                  int nz = hi.z-lo.z+1;
+                  index_type uix = amrex::min(nx-1,amrex::max(0,iv3.x));
+                  index_type uiy = amrex::min(ny-1,amrex::max(0,iv3.y));
+                  index_type uiz = amrex::min(nz-1,amrex::max(0,iv3.z));
+                  return (uix * ny + uiy) * nz + uiz;
+              });
     }
 
+    /**
+     * \brief Populate the bins with a set of items.
+     *
+     * The algorithm is similar to a counting sort. First, we count the number
+     * of items in each bin. Then, we perform a prefix sum on the resulting counts.
+     * Finally, the set of partial sums is incremented in parallel using atomicInc,
+     * which results in a permutation array that places the items in bin-sorted order.
+     *
+     * This version uses a 1D index space for the set of bins.
+     *
+     * \tparam N the 'size' type that can enumerate all the items
+     * \tparam F a function that maps items to IntVect bins
+     *
+     * \param nitems the number of items to put in the bins
+     * \param v pointer to the start of the items
+     * \param nbins the number of bins to use
+     * \param f a function object that maps items to bins
+     */
     template <typename N, typename F>
     void build (N nitems, T const* v, int nbins, F&& f)
     {
