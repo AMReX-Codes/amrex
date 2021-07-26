@@ -62,6 +62,7 @@ subroutine get_face_velocity(level, time, &
   end do
   end do
 
+  ! z velocity
   vz = 1.d0
 
   call bl_deallocate(psi)
