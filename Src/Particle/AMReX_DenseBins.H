@@ -123,6 +123,72 @@ public:
         Gpu::Device::streamSynchronize();
     }
 
+//     template <typename N, typename F>
+//     void buildOpenMP (N nitems, T const* v, const Box& bx, F&& f)
+//     {
+//         BL_PROFILE("DenseBins<T>::buildOpenMP");
+
+//         m_items = v;
+
+//         m_cells.resize(nitems);
+//         m_perm.resize(nitems);
+//         std::vector<index_type> thread_ids(nitems);
+
+//         auto nbins = bx.numPts();
+//         int nthreads = OpenMP::get_max_threads();
+//         std::vector<std::vector<index_type> > counts(nthreads);
+//         for (int i = 0; i < nthreads; ++i) { counts[i].resize(nbins+1, 0); }
+
+//         m_counts.resize(0);
+//         m_counts.resize(nbins+1, 0);
+
+//         m_offsets.resize(0);
+//         m_offsets.resize(nbins+1);
+
+//         const auto lo = lbound(bx);
+//         const auto hi = ubound(bx);
+// #ifdef AMREX_USE_OMP
+// #pragma omp parallel
+// #endif
+//         for (int i = 0; i < nitems; ++i) {
+//             auto iv = f(v[i]);
+//             auto iv3 = iv.dim3();
+//             int nx = hi.x-lo.x+1;
+//             int ny = hi.y-lo.y+1;
+//             int nz = hi.z-lo.z+1;
+//             index_type uix = amrex::min(nx-1,amrex::max(0,iv3.x));
+//             index_type uiy = amrex::min(ny-1,amrex::max(0,iv3.y));
+//             index_type uiz = amrex::min(nz-1,amrex::max(0,iv3.z));
+//             m_cells[i] = (uix * ny + uiy) * nz + uiz;
+//             thread_ids[i] = OpenMP::omp_get_thread_num();
+//             m_perm[i] = counts[OpenMP::omp_get_thread_num()][m_cells[i]]++;
+//         }
+
+//         index_type total = 0;
+//         for (int j = 0; j < nthreads; ++j) {
+//             for (int i = 0; i < nbins; ++i) {
+//                 auto tmp = counts[j][i];
+//                 counts[j][i] = total;
+//                 total += tmp;
+//             }
+//         }
+
+// #ifdef AMREX_USE_OMP
+// #pragma omp parallel
+// #endif
+//         for (int i = 0; i < nitems; ++i)
+//         {
+//             auto tid = thread_ids[i];
+//             auto bid = m_cells[i];
+//             m_perm[i] += counts[tid][bid];
+//         }
+
+//         for (int i = 0; i < nbins; ++i) { m_offsets[i] = counts[nthreads-1][i]; }
+//         m_offsets[nbins] = total;
+
+//         for (int i = 0; i < nbins; ++i) { m_counts[i] = m_offsets[i+1] - m_offsets[i]; }
+//     }
+
     template <typename N, typename F>
     void build (N nitems, T const* v, int nbins, F&& f)
     {
@@ -160,6 +226,61 @@ public:
         });
 
         Gpu::Device::streamSynchronize();
+    }
+
+    template <typename N, typename F>
+    void buildOpenMP (N nitems, T const* v, int nbins, F&& f)
+    {
+        BL_PROFILE("DenseBins<T>::buildOpenMP");
+
+        m_items = v;
+
+        m_cells.resize(nitems);
+        m_perm.resize(nitems);
+        std::vector<index_type> thread_ids(nitems);
+
+        int nthreads = OpenMP::get_max_threads();
+        std::vector<std::vector<index_type> > counts(nthreads);
+        for (int i = 0; i < nthreads; ++i) { counts[i].resize(nbins+1, 0);}
+
+        m_counts.resize(0);
+        m_counts.resize(nbins+1, 0);
+
+        m_offsets.resize(0);
+        m_offsets.resize(nbins+1);
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for
+#endif
+        for (int i = 0; i < nitems; ++i) {
+            m_cells[i] = f(v[i]);
+            thread_ids[i] = OpenMP::get_thread_num();
+            m_perm[i] = counts[OpenMP::get_thread_num()][m_cells[i]]++;
+        }
+
+        index_type total = 0;
+        for (int j = 0; j < nthreads; ++j) {
+            for (int i = 0; i < nbins; ++i) {
+                auto tmp = counts[j][i];
+                counts[j][i] = total;
+                total += tmp;
+            }
+        }
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for
+#endif
+        for (int i = 0; i < nitems; ++i)
+        {
+            auto tid = thread_ids[i];
+            auto bid = m_cells[i];
+            m_perm[i] += counts[tid][bid];
+        }
+
+        for (int i = 0; i < nbins; ++i) { m_offsets[i] = counts[nthreads-1][i]; }
+        m_offsets[nbins] = total;
+
+        for (int i = 0; i < nbins; ++i) { m_counts[i] = m_offsets[i+1] - m_offsets[i]; }
     }
 
     //! \brief the number of items in the container
