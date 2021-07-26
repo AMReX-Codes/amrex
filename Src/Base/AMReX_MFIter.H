@@ -67,9 +67,7 @@ public:
         */
         AllBoxes      = 0x02,
         //! NoTeamBarrier: This option is for Team only. If on, there is no barrier in MFIter dtor.
-        NoTeamBarrier = 0x04,
-        //! SkipInit: Used by MFGhostIter
-        SkipInit      = 0x08
+        NoTeamBarrier = 0x04
     };
 
     /**
@@ -168,7 +166,7 @@ public:
 
 protected:
 
-    std::unique_ptr<FabArrayBase> m_fa;  //!< This must be the first memeber!
+    std::unique_ptr<FabArrayBase> m_fa;  //!< This must be the first member!
 
     const FabArrayBase& fabArray;
 
@@ -209,20 +207,8 @@ protected:
     void Initialize ();
 };
 
-//! Iterate over ghost cells.  Lots of MFIter functions do not work.
-class MFGhostIter
-    :
-    public MFIter
-{
-public:
-    explicit MFGhostIter (const FabArrayBase& fabarray);
-private:
-    void Initialize ();
-    FabArrayBase::TileArray lta;
-};
-
 //! Is it safe to have these two MultiFabs in the same MFiter?
-//! Ture means safe; false means maybe.
+//! True means safe; false means maybe.
 inline bool isMFIterSafe (const FabArrayBase& x, const FabArrayBase& y) {
     return x.DistributionMap() == y.DistributionMap()
         && BoxArray::SameRefs(x.boxArray(), y.boxArray());

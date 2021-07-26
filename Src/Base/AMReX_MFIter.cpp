@@ -254,10 +254,7 @@ MFIter::Initialize ()
             "Nested or multiple active MFIters is not supported by default.  This can be changed by calling MFIter::allowMultipleMFIters(true)".);
     }
 
-    if (flags & SkipInit) {
-        return;
-    }
-    else if (flags & AllBoxes)  // a very special case
+    if (flags & AllBoxes)  // a very special case
     {
         index_map    = &(fabArray.IndexArray());
         currentIndex = 0;
@@ -513,83 +510,6 @@ MFIter::operator++ () noexcept
         }
 #endif
     }
-}
-
-MFGhostIter::MFGhostIter (const FabArrayBase& fabarray)
-    :
-    MFIter(fabarray, (unsigned char)(SkipInit|Tiling))
-{
-    Initialize();
-}
-
-void
-MFGhostIter::Initialize ()
-{
-    int rit = 0;
-    int nworkers = 1;
-#ifdef BL_USE_TEAM
-    if (ParallelDescriptor::TeamSize() > 1) {
-        rit = ParallelDescriptor::MyRankInTeam();
-        nworkers = ParallelDescriptor::TeamSize();
-    }
-#endif
-
-    int tid = OpenMP::get_thread_num();
-    int nthreads = OpenMP::get_num_threads();
-
-    int npes = nworkers*nthreads;
-    int pid = rit*nthreads+tid;
-
-    BoxList alltiles;
-    Vector<int> allindex;
-    Vector<int> alllocalindex;
-
-    for (int i=0; i < fabArray.IndexArray().size(); ++i) {
-        int K = fabArray.IndexArray()[i];
-        const Box& vbx = fabArray.box(K);
-        const Box& fbx = fabArray.fabbox(K);
-
-        const BoxList& diff = amrex::boxDiff(fbx, vbx);
-
-        for (BoxList::const_iterator bli = diff.begin(); bli != diff.end(); ++bli) {
-            BoxList tiles(*bli, FabArrayBase::mfghostiter_tile_size);
-            int nt = tiles.size();
-            for (int it=0; it<nt; ++it) {
-                allindex.push_back(K);
-                alllocalindex.push_back(i);
-            }
-            alltiles.catenate(tiles);
-        }
-    }
-
-    int n_tot_tiles = alltiles.size();
-    int navg = n_tot_tiles / npes;
-    int nleft = n_tot_tiles - navg*npes;
-    int ntiles = navg;
-    if (pid < nleft) ntiles++;
-
-    // how many tiles should we skip?
-    int nskip = pid*navg + std::min(pid,nleft);
-    BoxList::const_iterator bli = alltiles.begin();
-    for (int i=0; i<nskip; ++i) ++bli;
-
-    lta.indexMap.reserve(ntiles);
-    lta.localIndexMap.reserve(ntiles);
-    lta.tileArray.reserve(ntiles);
-
-    for (int i=0; i<ntiles; ++i) {
-        lta.indexMap.push_back(allindex[i+nskip]);
-        lta.localIndexMap.push_back(alllocalindex[i+nskip]);
-        lta.tileArray.push_back(*bli++);
-    }
-
-    currentIndex = beginIndex = 0;
-    endIndex = lta.indexMap.size();
-
-    lta.nuse = 0;
-    index_map       = &(lta.indexMap);
-    local_index_map = &(lta.localIndexMap);
-    tile_array      = &(lta.tileArray);
 }
 
 }

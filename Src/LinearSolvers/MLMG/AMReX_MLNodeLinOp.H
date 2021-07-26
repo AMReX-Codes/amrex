@@ -33,7 +33,8 @@ public:
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo(),
-                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
+                 int a_eb_limit_coarsening = -1);
 
     virtual void setLevelBC (int /*amrlev*/, const MultiFab* /*levelbcdata*/,
                              const MultiFab* = nullptr, const MultiFab* = nullptr,
@@ -141,6 +142,8 @@ protected:
     bool m_is_bottom_singular = false;
     bool m_masks_built = false;
     bool m_overset_dirichlet_mask = false;
+
+    mutable bool m_in_solution_mode = true;
 };
 
 }

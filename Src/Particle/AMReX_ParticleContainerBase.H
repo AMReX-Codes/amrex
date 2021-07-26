@@ -90,6 +90,8 @@ public:
                  const Vector<BoxArray>            & ba,
                  const Vector<int>                 & rr);
 
+    bool isDefined () const { return m_gdb != nullptr; }
+
     void reserveData ();
     void resizeData ();
     void RedefineDummyMF (int lev);
@@ -188,7 +190,8 @@ public:
         return computeNeighborProcs(this->GetParGDB(), ngrow);
     }
 
-    bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
+    template <class MF>
+    bool OnSameGrids (int level, const MF& mf) const { return m_gdb->OnSameGrids(level, mf); }
 
     static const std::string& Version ();
     static const std::string& DataPrefix ();

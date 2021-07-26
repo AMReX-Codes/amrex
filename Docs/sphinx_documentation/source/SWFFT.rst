@@ -19,7 +19,7 @@ Pencil Redistribution
 
 As input, SWFFT takes three-dimensional arrays of data distributed across block-structured grids, and redistributes the data into "pencil" grids in :math:`z, x,` and then :math:`y`, belonging to different MPI processes. After each pencil conversion, a 1D FFT is performed on the data along the pencil direction using calls to the FFTW [3]_ library. The ``README`` files in the tutorial directories specify the relationship between the number of grids and the number of MPI processes that should be used. The ``hacc/SWFFT`` ``README`` document by Adrian Pope et al. explains restrictions on grid dimensions in relation to the number of MPI processes [1]_  [2]_:
 
-      [...] A rule of thumb is that [SWFFT] generally works when the number of vertexes along
+      [...] A rule of thumb is that [SWFFT] generally works when the number of vertices along
       one side of the global 3D grid ("ng") can be factored into small primes, and
       when the number of MPI ranks can also be factored into small primes.
       I believe that all of the unique prime factors of the number of MPI ranks

@@ -108,7 +108,7 @@ void Rank_cube(int * myrank,
   The subsequent member functions are used to look up and ranks of x,y, and z
   pencils from their coordinates, and vica versa.
   The ordering of the ranks is such that pencils will be going through cubes
-  with the same rank sequencially. (since the cubes ranks are already
+  with the same rank sequentially. (since the cubes ranks are already
   determined and can not be changed, these routines figure out which ranks
   the pencils should be assigned so that there is no communication hangs.)
 */
@@ -125,10 +125,10 @@ void Coord_x_pencils(int myrank,
   int num_cubes=(d->process_topology_3.nproc[2]*d->process_topology_3.nproc[1]);
 
 /*
-  the x_pencil ranks increment in each cube sequencially, after reaching the
+  the x_pencil ranks increment in each cube sequentially, after reaching the
   last cube the second slot in the first cube is the next rank, and then the
   process repeats. num_repeats, is the number of times this repetition had to
-  have occured to increment to the current rank.
+  have occurred to increment to the current rank.
 */
   int num_repeats=myrank/(num_cubes);
 
@@ -268,7 +268,7 @@ void distribution_init(MPI_Comm comm,
    check_z_dims, which will assert if these kinda errors happen (as well as
    checking errors coming from picking the total number of processors and Ng
    in a way where the cubes will not fit for any orientation (like 100 procs
-   and Ng=101!)). Curretly the fix to these errors is to pick better values
+   and Ng=101!)). Currently the fix to these errors is to pick better values
    for Ng and the total number of processors that work, however when we do
    have our own prime factorization method, then that method could also make
    pencils that fit inside the proper distribution (and we would not need so
@@ -390,8 +390,8 @@ void distribution_init(MPI_Comm comm,
 
   if(debug){
 /*
-  this debug statment checks to see if the way coordinates found by
-  calculation matchs MPI's coord system (MPI might differ between machines
+  this debug statement checks to see if the way coordinates found by
+  calculation matches MPI's coord system (MPI might differ between machines
   so this is why the code calculates the coord system itself, however with
   debug on, can check if it matches MPI(even tho it is not enforced to match
   it.)).
@@ -452,7 +452,7 @@ void distribution_init(MPI_Comm comm,
               d->process_topology_2_z.n[1],
               d->process_topology_2_z.n[2]);
 
-    //try swaping pencil dimensions if current setup pencil dimensions dont
+    //try swapping pencil dimensions if current setup pencil dimensions dont
     //fit inside the cubes.
     if(!(check_z_dims)
        && ((d->process_topology_3.n[0]) % (d->process_topology_2_z.n[1]) == 0)
@@ -460,7 +460,7 @@ void distribution_init(MPI_Comm comm,
     {
 
       if(self==0 && debug)
-        fprintf(stderr,"Swaping Z pencils in initialization  (%d,%d,%d).... \n",
+        fprintf(stderr,"Swapping Z pencils in initialization  (%d,%d,%d).... \n",
                 d->process_topology_2_z.nproc[0],
                 d->process_topology_2_z.nproc[1],
                 d->process_topology_2_z.nproc[2]);
@@ -564,7 +564,7 @@ void distribution_init(MPI_Comm comm,
   assert(check_z_dims);
 /*
   if this happends, it is because the dimensions were chosen incorrectly.
-  Either to many processors for the number of points in one dimenison (could
+  Either to many processors for the number of points in one dimension (could
   not do at least 1 point per processor), or the methods above could
   not make a distribution of pencils that fit in the cubiods, which would
   happen if the user gave numbers that wouldent work (we require the number
@@ -622,14 +622,14 @@ void distribution_init(MPI_Comm comm,
               d->process_topology_2_x.n[1],
               d->process_topology_2_x.n[2]);
 
-    //try swaping pencil dimensions if current setup does not have pencils
+    //try swapping pencil dimensions if current setup does not have pencils
     //that fit inside cubes.
     if(!(check_x_dims)
        && ((d->process_topology_3.n[2]) % (d->process_topology_2_x.n[1]) == 0)
        && ((d->process_topology_3.n[1]) % (d->process_topology_2_x.n[2]) == 0))
     {
       if(self==0 && debug)
-        fprintf(stderr,"Swaping X pencils in initialization .... \n");
+        fprintf(stderr,"Swapping X pencils in initialization .... \n");
       d->process_topology_2_x.nproc[0] = d->process_topology_2_x.nproc[0];
       int temp = d->process_topology_2_x.nproc[1];
       d->process_topology_2_x.nproc[1] = d->process_topology_2_x.nproc[2];
@@ -730,7 +730,7 @@ void distribution_init(MPI_Comm comm,
   assert(check_x_dims);
 /*
   if this happends, it is because the dimensions were chosen incorrectly.
-  Either to many processors for the number of points in one dimenison (could
+  Either to many processors for the number of points in one dimension (could
   not do at least 1 point per processor), or the methods above could not make
   a distribution of pencils that fit in the cubiods, which would happen if the
   user gave numbers that wouldent work (we require the number of processors in
@@ -786,14 +786,14 @@ void distribution_init(MPI_Comm comm,
               d->process_topology_2_y.n[0],
               d->process_topology_2_y.n[1],
               d->process_topology_2_y.n[2]);
-    //try swaping pencil dimensions if the current dimension of the pencils
+    //try swapping pencil dimensions if the current dimension of the pencils
     //does not fit inside the cubes.
     if(!(check_y_dims)
        && ((d->process_topology_3.n[2]) % (d->process_topology_2_y.n[0]) == 0)
        && ((d->process_topology_3.n[0]) % (d->process_topology_2_y.n[2]) == 0))
     {
       if(self==0 && debug)
-        fprintf(stderr,"Swaping Y pencils in initialization .... \n");
+        fprintf(stderr,"Swapping Y pencils in initialization .... \n");
 
       int temp = d->process_topology_2_y.nproc[0];
       d->process_topology_2_y.nproc[0] = d->process_topology_2_y.nproc[2];
@@ -894,7 +894,7 @@ void distribution_init(MPI_Comm comm,
   assert(check_y_dims);
 /*
   if this happends, it is because the dimensions were chosen incorrectly.
-  Either to many processors for the number of points in one dimenison (could
+  Either to many processors for the number of points in one dimension (could
   not do at least 1 point per processor), or the methods above could
   not make a distribution of pencils that fit in the cubiods, which would
   happen if the user gave numbers that wouldent work (we require the number of
@@ -1107,7 +1107,7 @@ void distribution_init_explicit(MPI_Comm comm,
     outfile= fopen("error.data","a");
     fprintf(outfile,"X DIMS FAILS:(%d,%d,%d) (%d,%d,%d) \n",d->process_topology_2_x.nproc[0],d->process_topology_2_x.nproc[1],d->process_topology_2_x.nproc[2], d->process_topology_3.nproc[0],d->process_topology_3.nproc[1],d->process_topology_3.nproc[2]);
   }
-  assert(check_x_dims);//if this happends, it is because the dimensions were chosen incorrectly. Either to many processors for the number of points in one dimenison (could not do at least 1 point per processor), or the methods above could
+  assert(check_x_dims);//if this happends, it is because the dimensions were chosen incorrectly. Either to many processors for the number of points in one dimension (could not do at least 1 point per processor), or the methods above could
   //not make a distribution of pencils that fit in the cubiods, which would happen if the user gave numbers that wouldent work (we require the number of processors in each dimension of the cuboid must be modulo the number of points
   //in that dimension, otherwise, this error will happen).
   Coord_x_pencils(self,d->process_topology_2_x.self,d);
@@ -1137,7 +1137,7 @@ void distribution_init_explicit(MPI_Comm comm,
     outfile= fopen("error.data","a");
     fprintf(outfile,"Y DIMS FAILS:(%d,%d,%d) (%d,%d,%d) \n",d->process_topology_2_y.nproc[0],d->process_topology_2_y.nproc[1],d->process_topology_2_y.nproc[2], d->process_topology_3.nproc[0],d->process_topology_3.nproc[1],d->process_topology_3.nproc[2]);
   }
-  assert(check_y_dims);//if this happends, it is because the dimensions were chosen incorrectly. Either to many processors for the number of points in one dimenison (could not do at least 1 point per processor), or the methods above could
+  assert(check_y_dims);//if this happends, it is because the dimensions were chosen incorrectly. Either to many processors for the number of points in one dimension (could not do at least 1 point per processor), or the methods above could
   //not make a distribution of pencils that fit in the cubiods, which would happen if the user gave numbers that wouldent work (we require the number of processors in each dimension of the cuboid must be modulo the number of points
   //in that dimension, otherwise, this error will happen).
   Coord_y_pencils(self,d->process_topology_2_y.self,d);
@@ -1167,7 +1167,7 @@ void distribution_init_explicit(MPI_Comm comm,
     outfile= fopen("error.data","a");
     fprintf(outfile,"Z DIMS FAILS:(%d,%d,%d) (%d,%d,%d) \n",d->process_topology_2_z.nproc[0],d->process_topology_2_z.nproc[1],d->process_topology_2_z.nproc[2], d->process_topology_3.nproc[0],d->process_topology_3.nproc[1],d->process_topology_3.nproc[2]);
   }
-  assert(check_z_dims);//if this happends, it is because the dimensions were chosen incorrectly. Either to many processors for the number of points in one dimenison (could not do at least 1 point per processor), or the methods above could
+  assert(check_z_dims);//if this happends, it is because the dimensions were chosen incorrectly. Either to many processors for the number of points in one dimension (could not do at least 1 point per processor), or the methods above could
   //not make a distribution of pencils that fit in the cubiods, which would happen if the user gave numbers that wouldent work (we require the number of processors in each dimension of the cuboid must be modulo the number of points
   //in that dimension, otherwise, this error will happen).
   Coord_z_pencils(self,d->process_topology_2_z.self,d);
@@ -1530,9 +1530,9 @@ static void redistribute_2_and_3(const complex_t *a,
   int self = d->process_topology_1.self[0];
   int npeers;
   int me=0;//determines which processor to print
-  bool print_me=false; //prints info on proccessor whose rank = me.
-  bool print_mess=false;//prints communication sends and recieves without actually doing the comms(intended to debug comm hangs).
-  bool print_result=false /*true*/;//prints a line in a file called "passed.data" which happends if the code runs completly.
+  bool print_me=false; //prints info on processor whose rank = me.
+  bool print_mess=false;//prints communication sends and receives without actually doing the comms(intended to debug comm hangs).
+  bool print_result=false /*true*/;//prints a line in a file called "passed.data" which happends if the code runs completely.
   assert(z_dim==0||z_dim==1||z_dim==2);
   int x_dim=0,y_dim=0;
   //x_dim, y_dim and z_dim are the dimensions of the x,y,z axis of the pencil with respect to the original axis(where index 2 is into the grid, 1 is vertical translation and 0 is horizontal).
@@ -1543,7 +1543,7 @@ static void redistribute_2_and_3(const complex_t *a,
       if((self == me && print_me))fprintf(stderr, "DOING Y PENCILS!...\n"); break;
     case 2: x_dim=0; y_dim=1;
       if((self == me && print_me))fprintf(stderr, "DOING Z PENCILS!...\n"); break;
-    default: assert("incorrect inputed dimension");
+    default: assert("incorrect inputted dimension");
   }
 
   // assuming dimensions are all commensurate, then the number of
@@ -1568,7 +1568,7 @@ static void redistribute_2_and_3(const complex_t *a,
   cube_sizes[y_dim] = d->process_topology_3.n[y_dim];
   cube_sizes[z_dim] = d->process_topology_3.n[z_dim];
 
-  //set varibles used to calculate the subarrays of each pencil and cube.
+  //set variables used to calculate the subarrays of each pencil and cube.
   switch(z_dim){
     case 0:
       p1max = d->process_topology_2_x.nproc[x_dim] / d->process_topology_3.nproc[x_dim] - 1;
@@ -1603,7 +1603,7 @@ static void redistribute_2_and_3(const complex_t *a,
 
   //set variables that will be used to find pencils chunks
   int pencil_dims[3]={0,0,0};// size of entire pencil in its local coord system
-  int local_sizes[3]={0,0,0}; //size of chunck in its local coord system.
+  int local_sizes[3]={0,0,0}; //size of chunk in its local coord system.
   if(z_dim==2){
     local_sizes[0]=subsizes[0];
     local_sizes[1]=subsizes[1];
@@ -1772,7 +1772,7 @@ static void redistribute_2_and_3(const complex_t *a,
 
 
     //If sending cube chunks to pencils, need to fill those chunks with data here. The chunks are filled in the order
-    //such that when the pencil recieves the chunk, in its local array indexing, it assumes that the array is already
+    //such that when the pencil receives the chunk, in its local array indexing, it assumes that the array is already
     //filled such that it is contiguous. Therefore, complicated for-loops below fill the array in the cubes local indexing to match what the pencil will
     //expect.
     if(direction == REDISTRIBUTE_3_TO_2){
@@ -1875,20 +1875,20 @@ static void redistribute_2_and_3(const complex_t *a,
     } else {
       abort();
     }
-    //comunication of the chunks:
+    //communication of the chunks:
     //if print_mess boolean is set to true, then the code runs without sending any messages, and is used to test which messages would be sent in the entire run.
     //(designed to debug comm hangups, if they occur).
 
     if(direction == REDISTRIBUTE_3_TO_2){
 
-      if((self == me) && print_mess)fprintf(stderr, " I am %d, making request to recieve from %d...\n", self,recv_peer);
+      if((self == me) && print_mess)fprintf(stderr, " I am %d, making request to receive from %d...\n", self,recv_peer);
       if(!print_mess)MPI_Irecv((void *) d->d2_chunk, chunk_size, MPI_DOUBLE_COMPLEX, recv_peer, 0, d->process_topology_1.cart, &req1);
 
       if((self == me) && print_mess)fprintf(stderr, " I am %d, making request to send to %d...\n", self,send_peer);
       if(!print_mess)MPI_Isend((void *) d->d3_chunk, chunk_size, MPI_DOUBLE_COMPLEX, send_peer, 0, d->process_topology_1.cart, &req2);
 
-      if((self == me) && print_mess)fprintf(stderr, " I am %d, waiting to recieve from %d...\n", self,recv_peer);
-      //fprintf(stderr, " I am %d, waiting to recieve from %d...\n", self,recv_peer);
+      if((self == me) && print_mess)fprintf(stderr, " I am %d, waiting to receive from %d...\n", self,recv_peer);
+      //fprintf(stderr, " I am %d, waiting to receive from %d...\n", self,recv_peer);
       if(!print_mess)MPI_Wait(&req1,MPI_STATUS_IGNORE);
 
       //if((self == me || self == 1 || self == 2 || self == 3) && print_me)fprintf(stderr, " I am %d, waiting to send to %d...\n", self,send_peer);
@@ -1921,13 +1921,13 @@ static void redistribute_2_and_3(const complex_t *a,
     }
     else if (direction == REDISTRIBUTE_2_TO_3) {
 
-      if((self == me) && print_mess)fprintf(stderr, " I am %d, making request to recieve from %d...\n", self,recv_peer);
+      if((self == me) && print_mess)fprintf(stderr, " I am %d, making request to receive from %d...\n", self,recv_peer);
       if(!print_mess)MPI_Irecv((void *) d->d3_chunk, chunk_size, MPI_DOUBLE_COMPLEX, recv_peer, 0, d->process_topology_1.cart, &req1);
 
       if((self == me) && print_mess)fprintf(stderr, " I am %d, making request to send to %d...\n", self,send_peer);
       if(!print_mess)MPI_Isend((void *) d->d2_chunk, chunk_size, MPI_DOUBLE_COMPLEX, send_peer, 0, d->process_topology_1.cart, &req2);
 
-      if((self == me) && print_mess)fprintf(stderr, " I am %d, waiting to recieve from %d...\n", self,recv_peer);
+      if((self == me) && print_mess)fprintf(stderr, " I am %d, waiting to receive from %d...\n", self,recv_peer);
       if(!print_mess)MPI_Wait(&req1,MPI_STATUS_IGNORE);
 
       if((self == me) && print_mess)fprintf(stderr, " I am %d, waiting to send to %d...\n", self,send_peer);

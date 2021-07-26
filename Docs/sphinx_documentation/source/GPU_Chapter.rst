@@ -11,7 +11,7 @@ Users can also use OpenMP and/or OpenACC in their applications.
 AMReX supports NVIDIA GPUs with compute capability >= 6 and CUDA >= 10
 as well as CUDA 9.1.  While HIP and DPC++ compilers are in development in
 preparation for Frontier and Aurora, AMReX only supports the latest
-publically released versions of those compilers on the Iris and Tulip testbeds.
+publicly released versions of those compilers on the Iris and Tulip testbeds.
 
 For complete details of CUDA, HIP, DPC++, OpenMP and OpenACC
 languages, see their respective documentations.
