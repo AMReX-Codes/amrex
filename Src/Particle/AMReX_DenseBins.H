@@ -256,9 +256,6 @@ public:
     //! \brief returns the pointer to the bins array
     index_type* binsPtr () noexcept { return m_bins.dataPtr(); }
 
-    //! \brief returns the pointer to the counts array
-    index_type* countsPtr () noexcept { return m_counts.dataPtr(); }
-
     //! \brief returns const pointer to the permutation array
     const index_type* permutationPtr () const noexcept { return m_perm.dataPtr(); }
 
@@ -267,9 +264,6 @@ public:
 
     //! \brief returns the const pointer to the bins array
     const index_type* binsPtr () const noexcept { return m_bins.dataPtr(); }
-
-    //! \brief returns const pointer to the counts array
-    const index_type* countsPtr () const noexcept { return m_counts.dataPtr(); }
 
     //! \brief returns a GPU-capable object that can create iterators over the items in a bin.
     DenseBinIteratorFactory<T> getBinIteratorFactory() const noexcept
