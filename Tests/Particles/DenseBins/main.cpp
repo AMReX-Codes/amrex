@@ -1,7 +1,8 @@
 #include <AMReX.H>
-#include <AMReX_Vector.H>
-#include <AMReX_ParmParse.H>
 #include <AMReX_DenseBins.H>
+#include <AMReX_GpuContainers.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_Vector.H>
 
 using namespace amrex;
 
@@ -12,6 +13,12 @@ void checkAnswer (const amrex::DenseBins<int>& bins)
     const auto bins_ptr = bins.binsPtr();
     const auto offsets = bins.offsetsPtr();
 
+#ifdef AMREX_USE_GPU
+    amrex::ParallelFor(bins.numItems(), [=] AMREX_GPU_DEVICE (int i) noexcept
+    {
+        AMREX_ALWAYS_ASSERT(bins_ptr[perm[i]] <= bins_ptr[perm[i+1]]);
+    });
+#else
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
@@ -19,7 +26,21 @@ void checkAnswer (const amrex::DenseBins<int>& bins)
     {
         AMREX_ALWAYS_ASSERT(bins_ptr[perm[i]] <= bins_ptr[perm[i+1]]);
     }
+#endif
 
+#ifdef AMREX_USE_GPU
+    amrex::ParallelFor(bins.numItems(), [=] AMREX_GPU_DEVICE (int i) noexcept
+    {
+        auto start = offsets[i  ];
+        auto stop  = offsets[i+1];
+        if (start < stop) {
+            for (auto j = start+1; j < stop; ++j)
+            {
+                AMREX_ALWAYS_ASSERT(bins_ptr[perm[start]] == bins_ptr[perm[j]]);
+            }
+        }
+    });
+#else
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
@@ -32,6 +53,20 @@ void checkAnswer (const amrex::DenseBins<int>& bins)
             AMREX_ALWAYS_ASSERT(bins_ptr[perm[start]] == bins_ptr[perm[j]]);
         }
     }
+#endif
+}
+
+void testGPU (int nbins, const amrex::Vector<int>& items)
+{
+    // copy to device
+    Gpu::DeviceVector<int> items_d(items.size());
+    Gpu::copy(Gpu::hostToDevice, items.begin(), items.end(), items_d.begin());
+    Gpu::Device::synchronize();
+
+    amrex::DenseBins<int> bins;
+    bins.build(BinPolicy::GPU, items.size(), items.data(), nbins, [=] AMREX_GPU_DEVICE (int j) noexcept -> unsigned int { return j ; });
+
+    checkAnswer(bins);
 }
 
 void testOpenMP (int nbins, const amrex::Vector<int>& items)
@@ -75,7 +110,12 @@ void testDenseBins ()
     initData(nbins, items);
 
     testSerial(nbins, items);
+#ifdef AMREX_USE_OMP
     testOpenMP(nbins, items);
+#endif
+#ifdef AMREX_USE_GPU
+    testGPU(nbins, items);
+#endif
 }
 
 int main (int argc, char* argv[])
