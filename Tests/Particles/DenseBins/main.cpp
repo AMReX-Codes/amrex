@@ -64,7 +64,7 @@ void testGPU (int nbins, const amrex::Vector<int>& items)
     Gpu::Device::synchronize();
 
     amrex::DenseBins<int> bins;
-    bins.build(BinPolicy::GPU, items.size(), items.data(), nbins, [=] AMREX_GPU_DEVICE (int j) noexcept -> unsigned int { return j ; });
+    bins.build(BinPolicy::GPU, items_d.size(), items_d.data(), nbins, [=] AMREX_GPU_DEVICE (int j) noexcept -> unsigned int { return j ; });
 
     checkAnswer(bins);
 }
