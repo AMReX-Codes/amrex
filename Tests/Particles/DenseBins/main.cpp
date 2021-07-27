@@ -12,11 +12,18 @@ void checkAnswer (const amrex::DenseBins<int>& bins,
     const auto perm = bins.permutationPtr();
     const auto bins_ptr = bins.binsPtr();
     const auto offsets = bins.offsetsPtr();
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for
+#endif
     for (int i = 0; i < bins.numItems()-1; ++i)
     {
         AMREX_ALWAYS_ASSERT(bins_ptr[perm[i]] <= bins_ptr[perm[i+1]]);
     }
 
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for
+#endif
     for (int i = 0; i < bins.numBins(); ++i) {
         auto start = offsets[i  ];
         auto stop  = offsets[i+1];
