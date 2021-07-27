@@ -186,8 +186,8 @@ public:
         std::vector<index_type> thread_ids(nitems);
 
         int nthreads = OpenMP::get_max_threads();
-        std::vector<std::vector<index_type> > counts(nthreads);
-        for (int i = 0; i < nthreads; ++i) { counts[i].resize(nbins, 0);}
+        auto counts = (index_type*)(The_Arena()->alloc(nthreads*nbins*sizeof(index_type)));
+        for (int i = 0; i < nbins*nthreads; ++i) { counts[i] = 0;}
 
         m_counts.resize(0);
         m_counts.resize(nbins+1, 0);
@@ -201,7 +201,7 @@ public:
         for (int i = 0; i < nitems; ++i) {
             m_bins[i] = f(v[i]);
             thread_ids[i] = OpenMP::get_thread_num();
-            ++counts[OpenMP::get_thread_num()][m_bins[i]];
+            ++counts[nbins*OpenMP::get_thread_num()+m_bins[i]];
         }
 
 #ifdef AMREX_USE_OMP
@@ -210,8 +210,8 @@ public:
         for (int i = 0; i < nbins; ++i) {
             index_type total = 0;
             for (int j = 0; j < nthreads; ++j) {
-                auto tmp = counts[j][i];
-                counts[j][i] = total;
+                auto tmp = counts[nbins*j+i];
+                counts[nbins*j+i] = total;
                 total += tmp;
             }
             m_counts[i] = total;
@@ -226,7 +226,7 @@ public:
 #endif
         for (int i = 0; i < nbins; ++i) {
             for (int j = 0; j < nthreads; ++j) {
-                counts[j][i] += m_offsets[i];
+                counts[nbins*j+i] += m_offsets[i];
             }
         }
 
@@ -237,8 +237,10 @@ public:
         {
             auto tid = thread_ids[i];
             auto bid = m_bins[i];
-            m_perm[counts[tid][bid]++] = i;
+            m_perm[counts[nbins*tid+bid]++] = i;
         }
+
+        The_Arena()->free(counts);
     }
 
     //! \brief the number of items in the container
