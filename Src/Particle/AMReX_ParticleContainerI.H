@@ -648,13 +648,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Re
 
 struct TransformerVirt
 {
-    int aggregation_type_int;
     /**
-       \brief This copies the particle but multiplies all the idata by m_factor
+       \brief This copies the particle but replaces the id with VirtualParticleID
        *
      **/
     TransformerVirt ()
-    { }
+    {}
 
     template <typename DstData, typename SrcData>
     AMREX_GPU_HOST_DEVICE
@@ -832,7 +831,7 @@ struct TransformerGhost
 {
 
     /**
-       \brief This copies the particle but multiplies all the idata by m_factor
+       \brief This copies the particle but replaces the id with GhostParticleID
        *
      **/
     TransformerGhost ()
