@@ -186,7 +186,6 @@ public:
 
         int nchunks = OpenMP::get_max_threads();
         int chunksize = nitems / nchunks;
-        int nleft = nitems - chunksize*nchunks;
         auto counts = (index_type*)(The_Arena()->alloc(nchunks*nbins*sizeof(index_type)));
         for (int i = 0; i < nbins*nchunks; ++i) { counts[i] = 0;}
 
