@@ -5,8 +5,7 @@
 
 using namespace amrex;
 
-void checkAnswer (const amrex::DenseBins<int>& bins,
-                  const amrex::Vector<int>& items)
+void checkAnswer (const amrex::DenseBins<int>& bins)
 {
     BL_PROFILE("checkAnswer");
     const auto perm = bins.permutationPtr();
@@ -28,7 +27,7 @@ void checkAnswer (const amrex::DenseBins<int>& bins,
         auto start = offsets[i  ];
         auto stop  = offsets[i+1];
         if (start == stop) continue;
-        for (int j = start+1; j < stop; ++j)
+        for (auto j = start+1; j < stop; ++j)
         {
             AMREX_ALWAYS_ASSERT(bins_ptr[perm[start]] == bins_ptr[perm[j]]);
         }
@@ -40,7 +39,7 @@ void testOpenMP (int nbins, const amrex::Vector<int>& items)
     amrex::DenseBins<int> bins;
     bins.buildOpenMP(items.size(), items.data(), nbins, [=] (int j) noexcept -> unsigned int { return j ; });
 
-    checkAnswer(bins, items);
+    checkAnswer(bins);
 }
 
 void testSerial (int nbins, const amrex::Vector<int>& items)
@@ -48,7 +47,7 @@ void testSerial (int nbins, const amrex::Vector<int>& items)
     amrex::DenseBins<int> bins;
     bins.build(items.size(), items.data(), nbins, [=] (int j) noexcept -> unsigned int { return j ; });
 
-    checkAnswer(bins, items);
+    checkAnswer(bins);
 }
 
 void initData (int nbins, amrex::Vector<int>& items)
