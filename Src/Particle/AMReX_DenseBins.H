@@ -202,7 +202,7 @@ public:
         for (int i = 0; i < nitems; ++i) {
             m_bins[i] = f(v[i]);
             thread_ids[i] = OpenMP::get_thread_num();
-            m_perm[i] = counts[OpenMP::get_thread_num()][m_bins[i]]++;
+            ++counts[OpenMP::get_thread_num()][m_bins[i]];
         }
         }
         { BL_PROFILE("two");
@@ -227,20 +227,8 @@ public:
         {
             auto tid = thread_ids[i];
             auto bid = m_bins[i];
-            m_perm[i] += counts[tid][bid];
+            m_perm[counts[tid][bid]++] = i;
         }
-        }
-
-        { BL_PROFILE("four");
-        Gpu::DeviceVector<index_type> tmp(nitems);
-#ifdef AMREX_USE_OMP
-#pragma omp parallel for
-#endif
-        for (int i = 0; i < nitems; ++i)
-        {
-            tmp[m_perm[i]] = i;
-        }
-        m_perm.swap(tmp);
         }
     }
 
