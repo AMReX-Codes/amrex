@@ -8,6 +8,11 @@
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>
 #include <AMReX_PhysBCFunct.H>
+#include <AMReX_Interpolater.H>
+#include <AMReX_MFInterpolater.H>
+#ifdef AMREX_USE_EB
+#include <AMReX_EBInterpolater.H>
+#endif
 
 #include <utility>
 #include <memory>
@@ -19,9 +24,6 @@ typedef void (*BndryFuncFabDefault) (Box const& bx, FArrayBox& data,
                                      Geometry const& geom, const Real time,
                                      const Vector<BCRec>& bcr, const int bcomp,
                                      const int scomp);
-
-class Interpolater;
-
 
 /**
 * \brief Attributes of StateData.
@@ -163,7 +165,7 @@ public:
                      int           ident,
                      int           nextra,
                      int           num_comp,
-                     Interpolater* interp,
+                     InterpBase*   interp,
                      bool          extrap = false,
                      bool          store_in_checkpoint = true);
 
@@ -189,7 +191,7 @@ public:
                  int           ident,
                  int           nextra,
                  int           num_comp,
-                 Interpolater* interp,
+                 InterpBase*   interp,
                  bool          extrap = false,
                  bool          store_in_checkpoint = true);
 
@@ -208,7 +210,7 @@ public:
                        const std::string& nm,
                        const BCRec&       bc,
                        const BndryFunc&   func,
-                       Interpolater*      interp = 0,
+                       InterpBase*        interp = 0,
                        int                max_map_start_comp = -1,
                        int                min_map_end_comp   = -1);
 
@@ -227,7 +229,7 @@ public:
                        const std::string& nm,
                        const BCRec&       bc,
                        const BndryFunc&   func,
-                       Interpolater*      interp,
+                       InterpBase*        interp,
                        bool               primary_or_secondary,
                        int                groupsize);
 
@@ -257,10 +259,10 @@ public:
     * \param min_end_comp
     */
     void setUpMaps (int&                use_default_map,
-                    const Interpolater* default_map,
+                    const InterpBase*   default_map,
                     int                 start_comp,
                     int                 num_comp,
-                    Interpolater**&     maps,
+                    InterpBase**&       maps,
                     int&                nmaps,
                     int*&               map_start_comp,
                     int*&               map_num_comp,
@@ -276,7 +278,7 @@ public:
     * \param max_start_comp
     * \param min_end_comp
     */
-    void cleanUpMaps (Interpolater**& maps,
+    void cleanUpMaps (InterpBase**&   maps,
                       int*&           map_start_comp,
                       int*&           map_num_comp,
                       int*&           max_start_comp,
@@ -316,14 +318,14 @@ public:
     /**
     * \brief Returns the interpolater.
     */
-    Interpolater* interp () const noexcept;
+    InterpBase* interp () const noexcept;
 
     /**
     * \brief Returns the interpolater of specified component.
     *
     * \param i
     */
-    Interpolater* interp (int i) const noexcept;
+    InterpBase* interp (int i) const noexcept;
 
     /**
     * \brief Returns the name of specified component.
@@ -407,7 +409,7 @@ private:
     int                id;           //!< Unique id
     int                ncomp;        //!< Number of components
     int                ngrow;        //!< Grow factor
-    Interpolater*      mapper;       //!< Default interpolator
+    InterpBase*        mapper;       //!< Default interpolator
     bool               m_extrap;     //!< Can extrapolate in time?
     bool               m_store_in_checkpoint;     //!< Should store this in the checkpoint file?
     Vector<std::string> names;        //!< Printable names of components
@@ -420,7 +422,7 @@ private:
     * \brief If mapper_comp[icomp] != 0, that map is used instead of mapper
     * when interpolating icomp; otherwise, mapper is used.
     */
-    Vector<Interpolater*> mapper_comp;
+    Vector<InterpBase*> mapper_comp;
 
     /**
     * \brief For component icomp, max_map_start_comp[icomp] and
@@ -487,7 +489,7 @@ public:
                         StateDescriptor::TimeCenter ttyp,
                         int                         nextra,
                         int                         num_comp,
-                        Interpolater*               interp,
+                        InterpBase*                 interp,
                         bool                        extrap = false,
                         bool                        store_in_checkpoint = true);
 
@@ -521,7 +523,7 @@ public:
                        const std::string&                nm,
                        const BCRec&                      bc,
                        const StateDescriptor::BndryFunc& func,
-                       Interpolater*                     interp = 0,
+                       InterpBase*                       interp = 0,
                        int                               max_map_start_comp = -1,
                        int                               min_map_end_comp   = -1);
 
@@ -540,7 +542,7 @@ public:
                        const Vector<std::string>&         nm,
                        const Vector<BCRec>&               bc,
                        const StateDescriptor::BndryFunc& func,
-                       Interpolater*                     interp = 0);
+                       InterpBase*                       interp = 0);
     /**
     * Returns StateDescriptor at index k.
     */
