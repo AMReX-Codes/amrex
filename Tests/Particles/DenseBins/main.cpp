@@ -37,7 +37,7 @@ void checkAnswer (const amrex::DenseBins<int>& bins)
 void testOpenMP (int nbins, const amrex::Vector<int>& items)
 {
     amrex::DenseBins<int> bins;
-    bins.buildOpenMP(items.size(), items.data(), nbins, [=] (int j) noexcept -> unsigned int { return j ; });
+    bins.build(BinPolicy::OpenMP, items.size(), items.data(), nbins, [=] (int j) noexcept -> unsigned int { return j ; });
 
     checkAnswer(bins);
 }
@@ -45,7 +45,7 @@ void testOpenMP (int nbins, const amrex::Vector<int>& items)
 void testSerial (int nbins, const amrex::Vector<int>& items)
 {
     amrex::DenseBins<int> bins;
-    bins.build(items.size(), items.data(), nbins, [=] AMREX_GPU_DEVICE (int j) noexcept -> unsigned int { return j ; });
+    bins.build(BinPolicy::Serial, items.size(), items.data(), nbins, [=] AMREX_GPU_DEVICE (int j) noexcept -> unsigned int { return j ; });
 
     checkAnswer(bins);
 }
