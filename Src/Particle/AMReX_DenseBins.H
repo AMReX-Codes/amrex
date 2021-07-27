@@ -96,7 +96,6 @@ public:
               });
     }
 
-
     /**
      * \brief Populate the bins with a set of items.
      *
@@ -154,6 +153,24 @@ public:
         Gpu::Device::streamSynchronize();
     }
 
+    /**
+     * \brief Populate the bins with a set of items.
+     *
+     * The algorithm is similar to a counting sort. First, we count the number
+     * of items in each bin. Then, we perform a prefix sum on the resulting counts.
+     * Finally, the set of partial sums is incremented in parallel using atomicInc,
+     * which results in a permutation array that places the items in bin-sorted order.
+     *
+     * This version uses a 1D index space for the set of bins.
+     *
+     * \tparam N the 'size' type that can enumerate all the items
+     * \tparam F a function that maps items to IntVect bins
+     *
+     * \param nitems the number of items to put in the bins
+     * \param v pointer to the start of the items
+     * \param nbins the number of bins to use
+     * \param f a function object that maps items to bins
+     */
     template <typename N, typename F>
     void buildOpenMP (N nitems, T const* v, const Box& bx, F&& f)
     {

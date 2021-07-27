@@ -756,7 +756,9 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 #endif
         } else {
             Real const_sigma = m_const_sigma;
-#if (AMREX_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 1)
+            amrex::ignore_unused(const_sigma);
+#elif (AMREX_SPACEDIM == 2)
             if (amrrr == 2) {
                 AMREX_HOST_DEVICE_FOR_3D(cbx, i, j, k,
                 {
@@ -837,7 +839,9 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 #endif
             } else {
                 Real const_sigma = m_const_sigma;
-#if (AMREX_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 1)
+                amrex::ignore_unused(const_sigma);
+#elif (AMREX_SPACEDIM == 2)
                 AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                 {
                     mlndlap_res_cf_contrib_cs(i,j,k,resarr,csolarr,crhsarr,const_sigma,
