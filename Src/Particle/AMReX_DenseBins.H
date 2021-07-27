@@ -24,7 +24,7 @@ namespace BinPolicy
 #else
     static constexpr OpenMPBinPolicy   Default{};
 #endif
-};
+}
 
 template <typename T>
 struct DenseBinIteratorFactory
