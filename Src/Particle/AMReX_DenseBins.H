@@ -187,7 +187,7 @@ public:
 
         int nthreads = OpenMP::get_max_threads();
         std::vector<std::vector<index_type> > counts(nthreads);
-        for (int i = 0; i < nthreads; ++i) { counts[i].resize(nbins+1, 0);}
+        for (int i = 0; i < nthreads; ++i) { counts[i].resize(nbins, 0);}
 
         m_counts.resize(0);
         m_counts.resize(nbins+1, 0);
@@ -195,7 +195,6 @@ public:
         m_offsets.resize(0);
         m_offsets.resize(nbins+1);
 
-        { BL_PROFILE("one");
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
@@ -204,22 +203,33 @@ public:
             thread_ids[i] = OpenMP::get_thread_num();
             ++counts[OpenMP::get_thread_num()][m_bins[i]];
         }
-        }
-        { BL_PROFILE("two");
-        index_type total = 0;
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for
+#endif
         for (int i = 0; i < nbins; ++i) {
-            m_offsets[i] = total;
+            index_type total = 0;
             for (int j = 0; j < nthreads; ++j) {
                 auto tmp = counts[j][i];
                 counts[j][i] = total;
                 total += tmp;
             }
-            m_counts[i] = total - m_offsets[i];
-        }
-        m_offsets[nbins] = total;
+            m_counts[i] = total;
         }
 
-        { BL_PROFILE("three");
+        // note - this part has to be serial
+        m_offsets[0] = 0;
+        for (int i = 0; i < nbins; ++i) {m_offsets[i+1] = m_offsets[i] + m_counts[i];}
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for
+#endif
+        for (int i = 0; i < nbins; ++i) {
+            for (int j = 0; j < nthreads; ++j) {
+                counts[j][i] += m_offsets[i];
+            }
+        }
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
@@ -228,7 +238,6 @@ public:
             auto tid = thread_ids[i];
             auto bid = m_bins[i];
             m_perm[counts[tid][bid]++] = i;
-        }
         }
     }
 
