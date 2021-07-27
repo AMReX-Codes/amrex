@@ -122,7 +122,7 @@ public:
 
         m_items = v;
 
-        m_cells.resize(nitems);
+        m_bins.resize(nitems);
         m_perm.resize(nitems);
 
         m_counts.resize(0);
@@ -131,7 +131,7 @@ public:
         m_offsets.resize(0);
         m_offsets.resize(nbins+1);
 
-        index_type* pcell   = m_cells.dataPtr();
+        index_type* pcell   = m_bins.dataPtr();
         index_type* pcount  = m_counts.dataPtr();
         amrex::ParallelFor(nitems, [=] AMREX_GPU_DEVICE (int i) noexcept
         {
@@ -181,7 +181,7 @@ public:
 
         m_items = v;
 
-        m_cells.resize(nitems);
+        m_bins.resize(nitems);
         m_perm.resize(nitems);
         std::vector<index_type> thread_ids(nitems);
 
@@ -195,38 +195,53 @@ public:
         m_offsets.resize(0);
         m_offsets.resize(nbins+1);
 
+        { BL_PROFILE("one");
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < nitems; ++i) {
-            m_cells[i] = f(v[i]);
+            m_bins[i] = f(v[i]);
             thread_ids[i] = OpenMP::get_thread_num();
-            m_perm[i] = counts[OpenMP::get_thread_num()][m_cells[i]]++;
+            m_perm[i] = counts[OpenMP::get_thread_num()][m_bins[i]]++;
         }
-
+        }
+        { BL_PROFILE("two");
         index_type total = 0;
-        for (int j = 0; j < nthreads; ++j) {
-            for (int i = 0; i < nbins; ++i) {
+        for (int i = 0; i < nbins; ++i) {
+            m_offsets[i] = total;
+            for (int j = 0; j < nthreads; ++j) {
                 auto tmp = counts[j][i];
                 counts[j][i] = total;
                 total += tmp;
             }
+            m_counts[i] = total - m_offsets[i];
+        }
+        m_offsets[nbins] = total;
         }
 
+        { BL_PROFILE("three");
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < nitems; ++i)
         {
             auto tid = thread_ids[i];
-            auto bid = m_cells[i];
+            auto bid = m_bins[i];
             m_perm[i] += counts[tid][bid];
         }
+        }
 
-        for (int i = 0; i < nbins; ++i) { m_offsets[i] = counts[nthreads-1][i]; }
-        m_offsets[nbins] = total;
-
-        for (int i = 0; i < nbins; ++i) { m_counts[i] = m_offsets[i+1] - m_offsets[i]; }
+        { BL_PROFILE("four");
+        Gpu::DeviceVector<index_type> tmp(nitems);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for
+#endif
+        for (int i = 0; i < nitems; ++i)
+        {
+            tmp[m_perm[i]] = i;
+        }
+        m_perm.swap(tmp);
+        }
     }
 
     //! \brief the number of items in the container
@@ -241,11 +256,23 @@ public:
     //! \brief returns the pointer to the offsets array
     index_type* offsetsPtr () noexcept { return m_offsets.dataPtr(); }
 
+    //! \brief returns the pointer to the bins array
+    index_type* binsPtr () noexcept { return m_bins.dataPtr(); }
+
+    //! \brief returns the pointer to the counts array
+    index_type* countsPtr () noexcept { return m_counts.dataPtr(); }
+
     //! \brief returns const pointer to the permutation array
     const index_type* permutationPtr () const noexcept { return m_perm.dataPtr(); }
 
     //! \brief returns const pointer to the offsets array
     const index_type* offsetsPtr () const noexcept { return m_offsets.dataPtr(); }
+
+    //! \brief returns the const pointer to the bins array
+    const index_type* binsPtr () const noexcept { return m_bins.dataPtr(); }
+
+    //! \brief returns const pointer to the counts array
+    const index_type* countsPtr () const noexcept { return m_counts.dataPtr(); }
 
     //! \brief returns a GPU-capable object that can create iterators over the items in a bin.
     DenseBinIteratorFactory<T> getBinIteratorFactory() const noexcept
@@ -257,7 +284,7 @@ private:
 
     const T* m_items;
 
-    Gpu::DeviceVector<index_type> m_cells;
+    Gpu::DeviceVector<index_type> m_bins;
     Gpu::DeviceVector<index_type> m_counts;
     Gpu::DeviceVector<index_type> m_offsets;
     Gpu::DeviceVector<index_type> m_perm;

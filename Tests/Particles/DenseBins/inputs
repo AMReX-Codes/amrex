@@ -1,2 +1,5 @@
 nitems = 100000000
 nbins = 5000
+
+#nitems = 20
+#nbins = 4
