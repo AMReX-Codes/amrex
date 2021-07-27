@@ -183,11 +183,12 @@ public:
 
         m_bins.resize(nitems);
         m_perm.resize(nitems);
-        std::vector<index_type> thread_ids(nitems);
 
-        int nthreads = OpenMP::get_max_threads();
-        auto counts = (index_type*)(The_Arena()->alloc(nthreads*nbins*sizeof(index_type)));
-        for (int i = 0; i < nbins*nthreads; ++i) { counts[i] = 0;}
+        int nchunks = OpenMP::get_max_threads();
+        int chunksize = nitems / nchunks;
+        int nleft = nitems - chunksize*nchunks;
+        auto counts = (index_type*)(The_Arena()->alloc(nchunks*nbins*sizeof(index_type)));
+        for (int i = 0; i < nbins*nchunks; ++i) { counts[i] = 0;}
 
         m_counts.resize(0);
         m_counts.resize(nbins+1, 0);
@@ -198,10 +199,13 @@ public:
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
-        for (int i = 0; i < nitems; ++i) {
-            m_bins[i] = f(v[i]);
-            thread_ids[i] = OpenMP::get_thread_num();
-            ++counts[nbins*OpenMP::get_thread_num()+m_bins[i]];
+        for (int j = 0; j < nchunks; ++j) {
+            int istart = j*chunksize;
+            int istop = (j == nchunks-1) ? nitems : (j+1)*chunksize;
+            for (int i = istart; i < istop; ++i) {
+                m_bins[i] = f(v[i]);
+                ++counts[nbins*j+m_bins[i]];
+            }
         }
 
 #ifdef AMREX_USE_OMP
@@ -209,7 +213,7 @@ public:
 #endif
         for (int i = 0; i < nbins; ++i) {
             index_type total = 0;
-            for (int j = 0; j < nthreads; ++j) {
+            for (int j = 0; j < nchunks; ++j) {
                 auto tmp = counts[nbins*j+i];
                 counts[nbins*j+i] = total;
                 total += tmp;
@@ -225,7 +229,7 @@ public:
 #pragma omp parallel for
 #endif
         for (int i = 0; i < nbins; ++i) {
-            for (int j = 0; j < nthreads; ++j) {
+            for (int j = 0; j < nchunks; ++j) {
                 counts[nbins*j+i] += m_offsets[i];
             }
         }
@@ -233,11 +237,13 @@ public:
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
-        for (int i = 0; i < nitems; ++i)
-        {
-            auto tid = thread_ids[i];
-            auto bid = m_bins[i];
-            m_perm[counts[nbins*tid+bid]++] = i;
+        for (int j = 0; j < nchunks; ++j) {
+            int istart = j*chunksize;
+            int istop = (j == nchunks-1) ? nitems : (j+1)*chunksize;
+            for (int i = istart; i < istop; ++i) {
+                auto bid = m_bins[i];
+                m_perm[counts[nbins*j+bid]++] = i;
+            }
         }
 
         The_Arena()->free(counts);
