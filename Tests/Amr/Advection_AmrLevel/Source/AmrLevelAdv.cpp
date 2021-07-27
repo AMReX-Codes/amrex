@@ -1,6 +1,8 @@
 
 #include <AmrLevelAdv.H>
 #include <Adv_F.H>
+#include <Kernels.H>
+
 #include <AMReX_VisMF.H>
 #include <AMReX_TagBox.H>
 #include <AMReX_ParmParse.H>
@@ -285,7 +287,7 @@ AmrLevelAdv::advance (Real time,
     }
 
 #ifdef AMREX_USE_OMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         FArrayBox flux[BL_SPACEDIM], uface[BL_SPACEDIM];
@@ -304,10 +306,17 @@ AmrLevelAdv::advance (Real time,
                 uface[i].resize(amrex::grow(bxtmp, iteration), 1);
             }
 
+            /*
             get_face_velocity(&level, &ctr_time,
                               AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
                                      BL_TO_FORTRAN(uface[1]),
                                      BL_TO_FORTRAN(uface[2])),
+                              dx, prob_lo);
+            */
+
+            // Compute Godunov velocities for each face.
+            get_face_velocity(ctr_time,
+                              AMREX_D_DECL(uface[0], uface[1], uface[2]),
                               dx, prob_lo);
 
             for (int i = 0; i < BL_SPACEDIM ; i++) {
@@ -379,10 +388,16 @@ AmrLevelAdv::estTimeStep (Real)
                 uface[i].resize(bx,1);
             }
 
+            /*
             get_face_velocity(&level, &cur_time,
                               AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
                                      BL_TO_FORTRAN(uface[1]),
                                      BL_TO_FORTRAN(uface[2])),
+                              dx, prob_lo);
+            */
+
+            get_face_velocity(cur_time,
+                              AMREX_D_DECL(uface[0], uface[1], uface[2]),
                               dx, prob_lo);
 
             for (int i = 0; i < BL_SPACEDIM; ++i) {
