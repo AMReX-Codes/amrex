@@ -9,9 +9,9 @@ void get_face_velocity(const amrex::Real /*time*/,
                        amrex::FArrayBox& vz,
                        const amrex::Real* /*dx*/, const amrex::Real* /*prob_lo*/)
 {
-    vx.setVal(adv_vel[0]);
-    vy.setVal(adv_vel[1]);
-    vz.setVal(adv_vel[2]);
+    vx.setVal<RunOn::Device>(adv_vel[0]);
+    vy.setVal<RunOn::Device>(adv_vel[1]);
+    vz.setVal<RunOn::Device>(adv_vel[2]);
 
     return;
 }
