@@ -700,9 +700,14 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
         const auto& fcent = factory.getFaceCent();
 
         iMultiFab cc_mask;
+        // The "1,1,0,1" in BuildMask signifies that cells in the interior of the
+        // domain -- regardless of valid cells, ghost cells filled from other fine grid,
+        // or ghost cells interpolated from coarser level -- can be used in the
+        // tangential interpolation from face centers to face centroids.  That interpolation
+        // routine is the only routine which uses cc_mask.
         if (!already_on_centroids) {
             cc_mask.define(divu.boxArray(), divu.DistributionMap(), 1, 1);
-            cc_mask.BuildMask(geom.Domain(), geom.periodicity(), 1, 0, 0, 1);
+            cc_mask.BuildMask(geom.Domain(), geom.periodicity(), 1, 1, 0, 1);
         }
 
         const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
