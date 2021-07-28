@@ -32,7 +32,7 @@ list(TRANSFORM _sources PREPEND Source/)
 ###############################################################################
 set(_sv_exe_dir Exec/SingleVortex/)
 
-set(_sv_sources face_velocity_${AMReX_SPACEDIM}d.f90  Prob.f90)
+set(_sv_sources face_velocity_${AMReX_SPACEDIM}d_K.h  Prob.f90)
 list(TRANSFORM _sv_sources PREPEND ${_sv_exe_dir})
 list(APPEND _sv_sources ${_sources})
 
