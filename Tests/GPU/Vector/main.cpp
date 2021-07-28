@@ -86,7 +86,7 @@ void async_test()
         });
     }
 
-    // Async Vector now out of scope. Still completes correctly. 
+    // Async Vector now out of scope. Still completes correctly.
 
 #ifdef AMREX_USE_GPU
     amrex::Print() << "Async Synching -- should print first." << std::endl;
