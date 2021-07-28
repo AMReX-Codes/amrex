@@ -71,13 +71,11 @@ void get_face_velocity(const amrex::Real time,
     using namespace amrex;
 
     // Extract boxes out of vx and vy fabs
-    GpuArray<Box, 3> nbx;
+    GpuArray<Box, 2> nbx;
     nbx[0] = vx.box();
     nbx[1] = vy.box();
-    nbx[2] = vz.box();
     const Box& ngbxx = nbx[0];
     const Box& ngbxy = nbx[1];
-    const Box& ngbxz = nbx[2];
 
     // Construct GpuArray for velocities
     GpuArray<Array4<Real>, 3> vel{ vx.array(), vy.array(), vz.array() };
