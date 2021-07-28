@@ -259,7 +259,7 @@ public:
         const auto lo = lbound(bx);
         const auto hi = ubound(bx);
         build(BinPolicy::OpenMP, nitems, v, bx.numPts(),
-              [=] AMREX_GPU_DEVICE (const T& t) noexcept
+              [=] (const T& t) noexcept
               {
                   auto iv = f(t);
                   auto iv3 = iv.dim3();
@@ -398,7 +398,7 @@ public:
         const auto lo = lbound(bx);
         const auto hi = ubound(bx);
         build(BinPolicy::Serial, nitems, v, bx.numPts(),
-              [=] AMREX_GPU_DEVICE (const T& t) noexcept
+              [=] (const T& t) noexcept
               {
                   auto iv = f(t);
                   auto iv3 = iv.dim3();
