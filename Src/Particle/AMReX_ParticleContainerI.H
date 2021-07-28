@@ -648,27 +648,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Re
 
 struct TransformerVirt
 {
-    /**
-       \brief This copies the particle but replaces the id with VirtualParticleID
-       *
-     **/
-    TransformerVirt ()
-    {}
-
     template <typename DstData, typename SrcData>
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void operator() (DstData& dst, const SrcData& src,
                      int src_i, int dst_i) const noexcept
     {
-        dst.m_aos[dst_i] = src.m_aos[src_i];
-        for (int j = 0; j < DstData::NAR; ++j)
-            dst.m_rdata[j][dst_i] = src.m_rdata[j][src_i];
-        for (int j = 0; j < dst.m_num_runtime_real; ++j)
-            dst.m_runtime_rdata[j][dst_i] = src.m_runtime_rdata[j][src_i];
-        for (int j = 0; j < DstData::NAI; ++j)
-            dst.m_idata[j][dst_i] = src.m_idata[j][src_i];
-        for (int j = 0; j < dst.m_num_runtime_int; ++j)
-            dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][src_i];
+        copyParticle(dst, src, src_i, dst_i);
 
         (dst.m_aos[dst_i]).id() = VirtualParticleID;
         (dst.m_aos[dst_i]).cpu() = 0;
@@ -829,13 +814,6 @@ struct AssignGridFilter
 
 struct TransformerGhost
 {
-
-    /**
-       \brief This copies the particle but replaces the id with GhostParticleID
-       *
-     **/
-    TransformerGhost ()
-    {}
 
     template <typename DstData, typename SrcData>
     AMREX_GPU_HOST_DEVICE
