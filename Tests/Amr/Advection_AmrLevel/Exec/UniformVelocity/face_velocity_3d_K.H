@@ -3,7 +3,7 @@
 
 #include "probdata.H"
 
-void get_face_velocity(const amrex::Real* time,
+void get_face_velocity(const amrex::Real time,
                        amrex::FArrayBox& vx,
                        amrex::FArrayBox& vy,
                        amrex::FArrayBox& vz,
@@ -15,3 +15,5 @@ void get_face_velocity(const amrex::Real* time,
 
     return;
 }
+
+#endif
