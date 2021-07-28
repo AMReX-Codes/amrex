@@ -8,8 +8,10 @@ void get_face_velocity(const amrex::Real /*time*/,
                        amrex::FArrayBox& vy,
                        const amrex::Real* /*dx*/, const amrex::Real* /*prob_lo*/)
 {
-    vx.setVal<RunOn::Device>(adv_vel[0]);
-    vy.setVal<RunOn::Device>(adv_vel[1]);
+    using namespace amrex;
+
+    vx.setVal<RunOn::Device>(&adv_vel[0]);
+    vy.setVal<RunOn::Device>(&adv_vel[1]);
 
     return;
 }
