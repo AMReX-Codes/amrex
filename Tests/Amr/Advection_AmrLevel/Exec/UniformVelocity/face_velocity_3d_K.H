@@ -3,11 +3,11 @@
 
 #include "probdata.H"
 
-void get_face_velocity(const amrex::Real time,
+void get_face_velocity(const amrex::Real /*time*/,
                        amrex::FArrayBox& vx,
                        amrex::FArrayBox& vy,
                        amrex::FArrayBox& vz,
-                       const amrex::Real* dx, const amrex::Real* prob_lo)
+                       const amrex::Real* /*dx*/, const amrex::Real* /*prob_lo*/)
 {
     vx.setVal(adv_vel[0]);
     vy.setVal(adv_vel[1]);
