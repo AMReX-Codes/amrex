@@ -70,7 +70,7 @@ void mf_cell_cons_lin_interp_mcslope (int i, int j, int /*k*/, int ns, Array4<Re
     Real sy = (df*db >= Real(0.0)) ? amrex::min(amrex::Math::abs(df),amrex::Math::abs(db)) : Real(0.);
     sy = amrex::Math::copysign(Real(1.),dc)*amrex::min(sy,amrex::Math::abs(dc));
 
-    Real alpha;
+    Real alpha = Real(1.0);
     if (sx != Real(0.0) || sy != Real(0.0)) {
         Real dumax = amrex::Math::abs(sx) * Real(ratio[0]-1)/Real(2*ratio[0])
             +        amrex::Math::abs(sy) * Real(ratio[1]-1)/Real(2*ratio[1]);
@@ -81,9 +81,12 @@ void mf_cell_cons_lin_interp_mcslope (int i, int j, int /*k*/, int ns, Array4<Re
             umin = amrex::min(umin, u(i+ioff,j+joff,0,nu));
             umax = amrex::max(umax, u(i+ioff,j+joff,0,nu));
         }}
-        alpha = amrex::min(Real(1.0), (umax - u(i,j,0,nu)) / dumax, (u(i,j,0,nu) - umin) / dumax);
-    } else {
-        alpha = Real(1.0);
+        if (dumax * alpha > (umax - u(i,j,0,nu))) {
+            alpha = (umax - u(i,j,0,nu)) / dumax;
+        }
+        if (dumax * alpha > (u(i,j,0,nu) - umin)) {
+            alpha = (u(i,j,0,nu) - umin) / dumax;
+        }
     }
 
     slope(i,j,0,ns        ) = sx * alpha;
@@ -126,7 +129,7 @@ void mf_cell_cons_lin_interp_mcslope_rz (int i, int j, int ns, Array4<Real> cons
     Real sy = (df*db >= Real(0.0)) ? amrex::min(amrex::Math::abs(df),amrex::Math::abs(db)) : Real(0.);
     sy = amrex::Math::copysign(Real(1.),dc)*amrex::min(sy,amrex::Math::abs(dc));
 
-    Real alpha;
+    Real alpha = Real(1.0);
     if (sx != Real(0.0) || sy != Real(0.0)) {
         const Real drc = drf * ratio[0];
         const Real rcm =  i    * drc + rlo;
@@ -154,9 +157,12 @@ void mf_cell_cons_lin_interp_mcslope_rz (int i, int j, int ns, Array4<Real> cons
             umin = amrex::min(umin, u(i+ioff,j+joff,0,nu));
             umax = amrex::max(umax, u(i+ioff,j+joff,0,nu));
         }}
-        alpha = amrex::min(Real(1.0), (umax - u(i,j,0,nu)) / dumax, (u(i,j,0,nu) - umin) / dumin);
-    } else {
-        alpha = Real(1.0);
+        if (dumax * alpha > (umax - u(i,j,0,nu))) {
+            alpha = (umax - u(i,j,0,nu)) / dumax;
+        }
+        if (dumin * alpha > (u(i,j,0,nu) - umin)) {
+            alpha = (u(i,j,0,nu) - umin) / dumin;
+        }
     }
 
     slope(i,j,0,ns        ) = sx * alpha;
