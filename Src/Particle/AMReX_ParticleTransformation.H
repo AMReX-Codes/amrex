@@ -27,7 +27,7 @@ namespace amrex
  *
  */
 template <int NSR, int NSI, int NAR, int NAI>
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void copyParticle (const      ParticleTileData<NSR, NSI, NAR, NAI>& dst,
                    const ConstParticleTileData<NSR, NSI, NAR, NAI>& src,
                    int src_i, int dst_i) noexcept
@@ -61,7 +61,7 @@ void copyParticle (const      ParticleTileData<NSR, NSI, NAR, NAI>& dst,
  *
  */
 template <int NSR, int NSI, int NAR, int NAI>
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void copyParticle (const ParticleTileData<NSR, NSI, NAR, NAI>& dst,
                    const ParticleTileData<NSR, NSI, NAR, NAI>& src,
                    int src_i, int dst_i) noexcept
@@ -95,7 +95,7 @@ void copyParticle (const ParticleTileData<NSR, NSI, NAR, NAI>& dst,
  *
  */
 template <int NSR, int NSI, int NAR, int NAI>
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void swapParticle (const ParticleTileData<NSR, NSI, NAR, NAI>& dst,
                    const ParticleTileData<NSR, NSI, NAR, NAI>& src,
                    int src_i, int dst_i) noexcept
