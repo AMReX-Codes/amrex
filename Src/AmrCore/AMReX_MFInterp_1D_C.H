@@ -49,7 +49,7 @@ void mf_cell_cons_lin_interp_mcslope (int i, int /*j*/, int /*k*/, int ns,
     Real sx = (df*db >= Real(0.0)) ? amrex::min(amrex::Math::abs(df),amrex::Math::abs(db)) : Real(0.);
     sx = amrex::Math::copysign(Real(1.),dc)*amrex::min(sx,amrex::Math::abs(dc));
 
-    Real alpha;
+    Real alpha = Real(1.0);
     if (sx != Real(0.0)) {
         Real dumax = amrex::Math::abs(sx) * Real(ratio[0]-1)/Real(2*ratio[0]);
         Real umax = u(i,0,0,nu);
@@ -58,9 +58,12 @@ void mf_cell_cons_lin_interp_mcslope (int i, int /*j*/, int /*k*/, int ns,
             umin = amrex::min(umin, u(i+ioff,0,0,nu));
             umax = amrex::max(umax, u(i+ioff,0,0,nu));
         }
-        alpha = amrex::min(Real(1.0), (umax - u(i,0,0,nu)) / dumax, (u(i,0,0,nu) - umin) / dumax);
-    } else {
-        alpha = Real(1.0);
+        if (dumax * alpha > (umax - u(i,0,0,nu))) {
+            alpha = (umax - u(i,0,0,nu)) / dumax;
+        }
+        if (dumax * alpha > (u(i,0,0,nu) - umin)) {
+            alpha = (u(i,0,0,nu) - umin) / dumax;
+        }
     }
 
     slope(i,0,0,ns) = sx * alpha;
@@ -93,7 +96,7 @@ void mf_cell_cons_lin_interp_mcslope_sph (int i, int ns, Array4<Real> const& slo
     Real sx = (df*db >= Real(0.0)) ? amrex::min(amrex::Math::abs(df),amrex::Math::abs(db)) : Real(0.);
     sx = amrex::Math::copysign(Real(1.),dc)*amrex::min(sx,amrex::Math::abs(dc));
 
-    Real alpha;
+    Real alpha = Real(1.0);
     if (sx != Real(0.0)) {
         const Real drc = drf * ratio[0];
         const Real rcm =  i    * drc + rlo;
@@ -118,9 +121,12 @@ void mf_cell_cons_lin_interp_mcslope_sph (int i, int ns, Array4<Real> const& slo
             umin = amrex::min(umin, u(i+ioff,0,0,nu));
             umax = amrex::max(umax, u(i+ioff,0,0,nu));
         }
-        alpha = amrex::min(Real(1.0), (umax - u(i,0,0,nu)) / dumax, (u(i,0,0,nu) - umin) / dumin);
-    } else {
-        alpha = Real(1.0);
+        if (dumax * alpha > (umax - u(i,0,0,nu))) {
+            alpha = (umax - u(i,0,0,nu)) / dumax;
+        }
+        if (dumin * alpha > (u(i,0,0,nu) - umin)) {
+            alpha = (u(i,0,0,nu) - umin) / dumin;
+        }
     }
 
     slope(i,0,0,ns) = sx * alpha;

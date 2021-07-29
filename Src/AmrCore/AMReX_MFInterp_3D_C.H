@@ -92,7 +92,7 @@ void mf_cell_cons_lin_interp_mcslope (int i, int j, int k, int ns, Array4<Real> 
     Real sz = (df*db >= Real(0.0)) ? amrex::min(amrex::Math::abs(df),amrex::Math::abs(db)) : Real(0.);
     sz = amrex::Math::copysign(Real(1.),dc)*amrex::min(sz,amrex::Math::abs(dc));
 
-    Real alpha;
+    Real alpha = 1.0;
     if (sx != Real(0.0) || sy != Real(0.0) || sz != Real(0.0)) {
         Real dumax = amrex::Math::abs(sx) * Real(ratio[0]-1)/Real(2*ratio[0])
             +        amrex::Math::abs(sy) * Real(ratio[1]-1)/Real(2*ratio[1])
@@ -105,9 +105,12 @@ void mf_cell_cons_lin_interp_mcslope (int i, int j, int k, int ns, Array4<Real> 
             umin = amrex::min(umin, u(i+ioff,j+joff,k+koff,nu));
             umax = amrex::max(umax, u(i+ioff,j+joff,k+koff,nu));
         }}}
-        alpha = amrex::min(Real(1.0), (umax - u(i,j,k,nu)) / dumax, (u(i,j,k,nu) - umin) / dumax);
-    } else {
-        alpha = Real(1.0);
+        if (dumax * alpha > (umax - u(i,j,k,nu))) {
+            alpha = (umax - u(i,j,k,nu)) / dumax;
+        }
+        if (dumax * alpha > (u(i,j,k,nu) - umin)) {
+            alpha = (u(i,j,k,nu) - umin) / dumax;
+        }
     }
 
     slope(i,j,k,ns        ) = sx * alpha;
