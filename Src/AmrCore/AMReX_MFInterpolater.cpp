@@ -1,3 +1,4 @@
+#include <AMReX_Interp_C.H>
 #include <AMReX_MFInterp_C.H>
 #include <AMReX_MFInterpolater.H>
 #include <AMReX_Geometry.H>
@@ -5,8 +6,61 @@
 
 namespace amrex {
 
+MFPCInterp          mf_pc_interp;
 MFCellConsLinInterp mf_cell_cons_interp(false);
 MFCellConsLinInterp mf_lincc_interp(true);
+
+Box
+MFPCInterp::CoarseBox (const Box& fine, const IntVect& ratio)
+{
+    return amrex::coarsen(fine,ratio);
+}
+
+Box
+MFPCInterp::CoarseBox (const Box& fine, int ratio)
+{
+    return amrex::coarsen(fine,ratio);
+}
+
+void
+MFPCInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf, int fcomp, int nc,
+                    IntVect const& ng, Geometry const&, Geometry const&,
+                    Box const& dest_domain, IntVect const& ratio,
+                    Vector<BCRec> const&, int)
+{
+    AMREX_ASSERT(crsemf.nGrowVect() == 0);
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        auto const& crse = crsemf.const_arrays();
+        auto const& fine = finemf.arrays();
+        experimental::ParallelFor(finemf, ng, nc,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            if (dest_domain.contains(i,j,k)) {
+                AMREX_D_TERM(int ic = amrex::coarsen(i,ratio[0]);,
+                             int jc = amrex::coarsen(j,ratio[1]);,
+                             int kc = amrex::coarsen(k,ratio[2]);)
+                AMREX_D_PICK(fine[box_no](i,0,0,n+fcomp) = crse[box_no](ic, 0, 0,n+ccomp);,
+                             fine[box_no](i,j,0,n+fcomp) = crse[box_no](ic,jc, 0,n+ccomp);,
+                             fine[box_no](i,j,k,n+fcomp) = crse[box_no](ic,jc,kc,n+ccomp);)
+            }
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(finemf); mfi.isValid(); ++mfi) {
+            auto const& fine = finemf.array(mfi);
+            auto const& crse = crsemf.const_array(mfi);
+            Box const& fbox = amrex::grow(mfi.validbox(), ng) & dest_domain;
+            pcinterp_interp(fbox, fine, fcomp, nc, crse, ccomp, ratio);
+        }
+    }
+}
 
 Box
 MFCellConsLinInterp::CoarseBox (const Box& fine, const IntVect& ratio)
