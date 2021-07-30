@@ -128,6 +128,50 @@ void mf_cell_cons_lin_interp (int i, int j, int k, int ns, Array4<Real> const& f
         + zoff * slope(ic,jc,kc,ns+ncomp*2);
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mf_cell_bilin_interp (int i, int j, int k, int n, Array4<Real> const& fine, int fcomp,
+                           Array4<Real const> const& crse, int ccomp, IntVect const& ratio) noexcept
+{
+    int ic = amrex::coarsen(i,ratio[0]);
+    int jc = amrex::coarsen(j,ratio[1]);
+    int kc = amrex::coarsen(k,ratio[2]);
+    int ioff = i - ic*ratio[0];
+    int joff = j - jc*ratio[1];
+    int koff = k - kc*ratio[2];
+    int sx, sy, sz;
+    Real wx, wy, wz;
+    if (ioff*2 < ratio[0]) {
+        sx = -1;
+        wx = Real(ratio[0]+1+2*ioff) / Real(2*ratio[0]);
+    } else {
+        sx = 1;
+        wx = Real(3*ratio[0]-1-2*ioff) / Real(2*ratio[0]);
+    }
+    if (joff*2 < ratio[1]) {
+        sy = -1;
+        wy = Real(ratio[1]+1+2*joff) / Real(2*ratio[1]);
+    } else {
+        sy = 1;
+        wy = Real(3*ratio[1]-1-2*joff) / Real(2*ratio[1]);
+    }
+    if (koff*2 < ratio[2]) {
+        sz = -1;
+        wz = Real(ratio[2]+1+2*koff) / Real(2*ratio[2]);
+    } else {
+        sz = 1;
+        wz = Real(3*ratio[2]-1-2*koff) / Real(2*ratio[2]);
+    }
+    fine(i,j,k,n+fcomp) =
+        crse(ic   ,jc   ,kc   ,n+ccomp)*           wx *           wy *           wz  +
+        crse(ic+sx,jc   ,kc   ,n+ccomp)*(Real(1.0)-wx)*           wy *           wz  +
+        crse(ic   ,jc+sy,kc   ,n+ccomp)*           wx *(Real(1.0)-wy)*           wz  +
+        crse(ic+sx,jc+sy,kc   ,n+ccomp)*(Real(1.0)-wx)*(Real(1.0)-wy)*           wz  +
+        crse(ic   ,jc   ,kc+sz,n+ccomp)*           wx *           wy *(Real(1.0)-wz) +
+        crse(ic+sx,jc   ,kc+sz,n+ccomp)*(Real(1.0)-wx)*           wy *(Real(1.0)-wz) +
+        crse(ic   ,jc+sy,kc+sz,n+ccomp)*           wx *(Real(1.0)-wy)*(Real(1.0)-wz) +
+        crse(ic+sx,jc+sy,kc+sz,n+ccomp)*(Real(1.0)-wx)*(Real(1.0)-wy)*(Real(1.0)-wz);
+}
+
 }
 
 #endif

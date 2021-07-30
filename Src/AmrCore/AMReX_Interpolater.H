@@ -190,7 +190,6 @@ public:
 };
 
 
-#ifndef BL_NO_FORT
 /**
 * \brief Bilinear interpolation on cell centered data.
 *
@@ -254,7 +253,6 @@ public:
                          int              actual_state,
                          RunOn            gpu_or_cpu) override;
 };
-#endif
 
 
 /**
@@ -798,9 +796,9 @@ extern AMREX_EXPORT FaceDivFree               face_divfree_interp;
 extern AMREX_EXPORT FaceLinear                face_linear_interp;
 extern AMREX_EXPORT CellConservativeLinear    lincc_interp;
 extern AMREX_EXPORT CellConservativeLinear    cell_cons_interp;
+extern AMREX_EXPORT CellBilinear              cell_bilinear_interp;
 
 #ifndef BL_NO_FORT
-extern AMREX_EXPORT CellBilinear              cell_bilinear_interp;
 extern AMREX_EXPORT CellQuadratic             quadratic_interp;
 extern AMREX_EXPORT CellConservativeProtected protected_interp;
 extern AMREX_EXPORT CellConservativeQuartic   quartic_interp;
