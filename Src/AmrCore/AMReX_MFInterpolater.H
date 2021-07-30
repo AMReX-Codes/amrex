@@ -50,7 +50,7 @@ public:
 * a(ic,jc,ivar)*fab(if,jf,ivar) = 0 is satisfied in all fine cells if,jf
 * covering coarse cell ic,jc.
 */
-class MFCellConsLinInterp final
+class MFCellConsLinInterp
     : public MFInterpolater
 {
 public:
@@ -59,13 +59,13 @@ public:
 
     virtual ~MFCellConsLinInterp () = default;
 
-    virtual Box CoarseBox (Box const& fine, int ratio);
-    virtual Box CoarseBox (Box const& fine, IntVect const& ratio);
+    virtual Box CoarseBox (Box const& fine, int ratio) override;
+    virtual Box CoarseBox (Box const& fine, IntVect const& ratio) override;
 
     virtual void interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf, int fcomp, int ncomp,
                          IntVect const& ng, Geometry const& cgeom, Geometry const& fgeom,
                          Box const& dest_domain, IntVect const& ratio,
-                         Vector<BCRec> const& bcs, int bcscomp);
+                         Vector<BCRec> const& bcs, int bcscomp) override;
 protected:
     bool do_linear_limiting = true;
 };

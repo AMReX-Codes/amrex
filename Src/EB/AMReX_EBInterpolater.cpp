@@ -9,15 +9,6 @@ namespace amrex {
 EBCellConservativeLinear  eb_lincc_interp;
 EBCellConservativeLinear  eb_cell_cons_interp(0);
 
-EBCellConservativeLinear::EBCellConservativeLinear (bool do_linear_limiting_)
-    : CellConservativeLinear(do_linear_limiting_)
-{
-}
-
-EBCellConservativeLinear::~EBCellConservativeLinear ()
-{
-}
-
 void
 EBCellConservativeLinear::interp (const FArrayBox& crse,
                                   int              crse_comp,
@@ -52,7 +43,7 @@ EBCellConservativeLinear::interp (const FArrayBox& crse,
 
         const Box& crse_bx = CoarseBox(target_fine_region,ratio);
 
-        const FabType ftype = fine_flag.getType(target_fine_region);
+        const FabType ftype = fine_flag.getType(amrex::refine(crse_bx,ratio));
         const FabType ctype = crse_flag.getType(crse_bx);
 
         if (ftype == FabType::multivalued || ctype == FabType::multivalued)
