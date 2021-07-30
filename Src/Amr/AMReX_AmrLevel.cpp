@@ -678,7 +678,7 @@ FillPatchIteratorHelper::FillPatchIteratorHelper (AmrLevel&     amrlevel,
                                                   int           index,
                                                   int           scomp,
                                                   int           ncomp,
-                                                  Interpolater* mapper)
+                                                  InterpBase*   mapper)
     :
     m_amrlevel(amrlevel),
     m_leveldata(leveldata),
@@ -731,7 +731,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
                                      int           idx,
                                      int           scomp,
                                      int           ncomp,
-                                     Interpolater* mapper)
+                                     InterpBase*   mapper)
 {
     BL_PROFILE("FillPatchIteratorHelper::Initialize()");
 
@@ -741,7 +741,8 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
     BL_ASSERT(AmrLevel::desc_lst[idx].inRange(scomp,ncomp));
     BL_ASSERT(0 <= idx && idx < AmrLevel::desc_lst.size());
 
-    m_map          = mapper;
+    m_map          = dynamic_cast<Interpolater*>(mapper);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_map, "Cannot use MFInterpolater without proper nesting");
     m_time         = time;
     m_growsize     = boxGrow;
     m_index        = idx;
@@ -1531,7 +1532,6 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
     const DistributionMapping& mf_DM = mf.DistributionMap();
     AmrLevel&               clev    = parent->getLevel(level-1);
     const Geometry&         cgeom   = clev.geom;
-    const Box&              cdomain = amrex::convert(clev.geom.Domain(),mf.ixType());
 
     Box domain_g = pdomain;
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
@@ -1548,7 +1548,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
     {
         const int     SComp  = ranges[i].first;
         const int     NComp  = ranges[i].second;
-        Interpolater* mapper = desc.interp(SComp);
+        InterpBase*   mapper = desc.interp(SComp);
 
         BoxArray crseBA(mf_BA.size());
 
@@ -1590,30 +1590,8 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
             FillPatch(clev,crseMF,0,time,idx,SComp,NComp,0);
         }
 
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-        {
-            const Box& dbx = amrex::grow(mfi.validbox(),nghost) & domain_g;
-
-            Vector<BCRec> bcr(ncomp);
-
-            amrex::setBC(crseMF[mfi].box(),cdomain,SComp,0,NComp,desc.getBCs(),bcr);
-
-            mapper->interp(crseMF[mfi],
-                           0,
-                           mf[mfi],
-                           DComp,
-                           NComp,
-                           dbx,
-                           crse_ratio,
-                           cgeom,
-                           geom,
-                           bcr,
-                           SComp,
-                           idx, RunOn::Gpu);
-        }
+        FillPatchInterp(mf, DComp, crseMF, 0, NComp, IntVect(nghost), cgeom, geom, domain_g,
+                        crse_ratio, mapper, desc.getBCs(), SComp);
 
         if (nghost > 0) {
             StateDataPhysBCFunct physbcf(state[idx],SComp,geom);
@@ -2265,4 +2243,3 @@ AmrLevel::CreateLevelDirectory (const std::string &dir)
 }
 
 }
-

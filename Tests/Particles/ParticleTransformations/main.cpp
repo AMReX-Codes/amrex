@@ -187,7 +187,7 @@ struct KeepOddFilter
 {
     template <typename SrcData>
     AMREX_GPU_HOST_DEVICE
-    int operator() (const SrcData& src, int i) const noexcept
+    bool operator() (const SrcData& src, int i) const noexcept
     {
         return (src.m_aos[i].id() % 2 == 1);
     }
@@ -197,7 +197,7 @@ struct KeepEvenFilter
 {
     template <typename SrcData>
     AMREX_GPU_HOST_DEVICE
-    int operator() (const SrcData& src, int i) const noexcept
+    bool operator() (const SrcData& src, int i) const noexcept
     {
         return (src.m_aos[i].id() % 2 == 0);
     }
@@ -326,6 +326,7 @@ void filterAndTransformParticles (PC& pc, Pred&& p, F&& f)
             ptile_tmp.resize(ptile.size());
 
             auto num_output = amrex::filterAndTransformParticles(ptile_tmp, ptile, std::forward<Pred>(p), std::forward<F>(f));
+
             ptile.swap(ptile_tmp);
             ptile.resize(num_output);
         }
@@ -354,6 +355,7 @@ void twoWayFilterAndTransformParticles (PC& dst1, PC& dst2, const PC& src, Pred&
                                                                  ptile_src,
                                                                  std::forward<Pred>(p),
                                                                  std::forward<F>(f));
+
             ptile_dst1.resize(num_output);
             ptile_dst2.resize(num_output);
         }

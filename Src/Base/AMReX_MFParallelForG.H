@@ -85,7 +85,6 @@ ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, F&&
             parfor_mf_detail::call_f(f, 0, i, j, k, n);
         });
     } else {
-        AMREX_ASSERT(nghost.allLE(mf.nGrowVect()) && nghost.allGE(IntVect(0)));
         IntVect ngrow = nghost - mf.nGrowVect(); // We use this to go from fabbox to valid+nghost.
         auto ma = mf.arrays();
 

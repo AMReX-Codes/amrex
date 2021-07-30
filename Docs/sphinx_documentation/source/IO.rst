@@ -120,18 +120,19 @@ files, THREAD_MULTIPLE must be turned on by adding
 will throw an error.
 
 Async Output works for a wide range of AMReX calls, including:
-* amrex::WriteSingleLevelPlotfile()
-* amrex::WriteMultiLevelPlotfile()
-* amrex::WriteMLMF()
-* VisMF::AsyncWrite()
-* ParticleContainer::Checkpoint()
-* ParticleContainer::WritePlotFile()
-* Amr::writePlotFile()
-* Amr::writeSmallPlotFile()
-* Amr::checkpoint()
-* AmrLevel::writePlotFile()
-* StateData::checkPoint()
-* FabSet::write()
+
+* ``amrex::WriteSingleLevelPlotfile()``
+* ``amrex::WriteMultiLevelPlotfile()``
+* ``amrex::WriteMLMF()``
+* ``VisMF::AsyncWrite()``
+* ``ParticleContainer::Checkpoint()``
+* ``ParticleContainer::WritePlotFile()``
+* ``Amr::writePlotFile()``
+* ``Amr::writeSmallPlotFile()``
+* ``Amr::checkpoint()``
+* ``AmrLevel::writePlotFile()``
+* ``StateData::checkPoint()``
+* ``FabSet::write()``
 
 Be aware: when using Async Output, a thread is spawned and exclusively used
 to perform output throughout the runtime.  As such, you may oversubscribe

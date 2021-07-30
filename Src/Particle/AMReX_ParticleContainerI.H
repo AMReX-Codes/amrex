@@ -648,40 +648,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Re
 
 struct TransformerVirt
 {
-    int aggregation_type_int;
-    /**
-       \brief This copies the particle but multiplies all the idata by m_factor
-       *
-     **/
-    TransformerVirt (std::string aggregation_type_in)
-    {
-      aggregation_type_int = -1;
-      aggregation_type_int = (aggregation_type_in == "None") ? 0 : aggregation_type_int;
-      aggregation_type_int = (aggregation_type_in == "Cell") ? 1 : aggregation_type_int;
-    }
-
     template <typename DstData, typename SrcData>
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void operator() (DstData& dst, const SrcData& src,
                      int src_i, int dst_i) const noexcept
     {
-        dst.m_aos[dst_i] = src.m_aos[src_i];
-        for (int j = 0; j < DstData::NAR; ++j)
-            dst.m_rdata[j][dst_i] = src.m_rdata[j][src_i];
-        for (int j = 0; j < dst.m_num_runtime_real; ++j)
-            dst.m_runtime_rdata[j][dst_i] = src.m_runtime_rdata[j][src_i];
-        for (int j = 0; j < DstData::NAI; ++j)
-            dst.m_idata[j][dst_i] = src.m_idata[j][src_i];
-        for (int j = 0; j < dst.m_num_runtime_int; ++j)
-            dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][src_i];
+        copyParticle(dst, src, src_i, dst_i);
 
-        if (aggregation_type_int == 0)
-            ParticleIDWrapper((dst.m_aos[dst_i]).m_idcpu) = VirtualParticleID;
-
-        if (aggregation_type_int == 1)
-        {
-            ParticleIDWrapper((dst.m_aos[dst_i]).m_idcpu) = -1;
-        }
+        (dst.m_aos[dst_i]).id() = VirtualParticleID;
+        (dst.m_aos[dst_i]).cpu() = 0;
     }
 };
 
@@ -722,7 +697,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
             auto np = src_tile.numParticles();
             virts.resize(virts_offset+np);
-            transformParticles(virts, src_tile, 0, virts_offset, np, TransformerVirt(aggregation_type));
+            transformParticles(virts, src_tile, 0, virts_offset, np, TransformerVirt());
             virts_offset += np;
         }
     }
@@ -880,28 +855,15 @@ struct AssignGridFilter
 struct TransformerGhost
 {
 
-    /**
-       \brief This copies the particle but multiplies all the idata by m_factor
-       *
-     **/
-    TransformerGhost ()
-    {}
-
     template <typename DstData, typename SrcData>
     AMREX_GPU_HOST_DEVICE
     void operator() (DstData& dst, const SrcData& src,
                      int src_i, int dst_i) const noexcept
     {
-        dst.m_aos[dst_i] = src.m_aos[src_i];
-        for (int j = 0; j < DstData::NAR; ++j)
-            dst.m_rdata[j][dst_i] = src.m_rdata[j][src_i];
-        for (int j = 0; j < dst.m_num_runtime_real; ++j)
-            dst.m_runtime_rdata[j][dst_i] = src.m_runtime_rdata[j][src_i];
-        for (int j = 0; j < DstData::NAI; ++j)
-            dst.m_idata[j][dst_i] = src.m_idata[j][src_i];
-        for (int j = 0; j < dst.m_num_runtime_int; ++j)
-            dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][src_i];
+        copyParticle(dst, src, src_i, dst_i);
+
         (dst.m_aos[dst_i]).id() = GhostParticleID;
+        (dst.m_aos[dst_i]).cpu() = 0;
     }
 };
 

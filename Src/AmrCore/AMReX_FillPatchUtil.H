@@ -3,9 +3,11 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_MultiFab.H>
+#include <AMReX_iMultiFab.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_PhysBCFunct.H>
 #include <AMReX_Interpolater.H>
+#include <AMReX_MFInterpolater.H>
 #include <AMReX_Array.H>
 #include <AMReX_Utility.H>
 

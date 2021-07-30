@@ -115,6 +115,27 @@ namespace amrex {
     };
 
     template<typename T>
+    class AsyncArenaAllocator
+        : public ArenaAllocatorTraits
+    {
+    public :
+
+        using value_type = T;
+
+        inline value_type* allocate(std::size_t n)
+        {
+            value_type* result = nullptr;
+            result = (value_type*) The_Async_Arena()->alloc(n * sizeof(T));
+            return result;
+        }
+
+        inline void deallocate(value_type* ptr, std::size_t)
+        {
+            The_Async_Arena()->free(ptr);
+        }
+    };
+
+    template<typename T>
     class PolymorphicAllocator
     {
     public :
@@ -176,6 +197,9 @@ namespace amrex {
 
     template <typename T>
     struct RunOnGpu<ManagedArenaAllocator<T> > : std::true_type {};
+
+    template <typename T>
+    struct RunOnGpu<AsyncArenaAllocator<T> > : std::true_type {};
 
 #endif // AMREX_USE_GPU
 
