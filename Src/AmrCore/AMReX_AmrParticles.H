@@ -259,6 +259,11 @@ public:
 
     typedef Particle<NStructReal, NStructInt> ParticleType;
 
+    AmrParticleContainer ()
+        : ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>()
+    {
+    }
+
     AmrParticleContainer (AmrCore* amr_core)
         : ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>(amr_core->GetParGDB())
     {

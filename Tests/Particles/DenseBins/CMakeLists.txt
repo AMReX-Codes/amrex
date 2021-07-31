@@ -1,5 +1,5 @@
 set(_sources     main.cpp)
-set(_input_files inputs  particle_file.init  fixed_grids.init)
+set(_input_files inputs  )
 
 setup_test(_sources _input_files)
 

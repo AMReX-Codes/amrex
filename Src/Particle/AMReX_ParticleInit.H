@@ -82,7 +82,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     Long how_many_read = 0;
 
     Gpu::HostVector<ParticleType> nparticles;
-    Vector<Gpu::HostVector<Real> > nreals;
+    Vector<Gpu::HostVector<Real> > nreals(0);
     if (extradata > NStructReal) nreals.resize(extradata - NStructReal);
 
     if (MyProc < NReaders)
@@ -183,10 +183,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             p.cpu() = MyProc;
 
             nparticles.push_back(p);
-            for (int n = NStructReal; n < extradata; n++)
-            {
-                nreals[n-NStructReal].push_back(r[n-NStructReal]);
-            }
+            if(nreals.size() > extradata - NStructReal)
+                for (int n = NStructReal; n < extradata; n++)
+                {
+                    nreals[n-NStructReal].push_back(r[n-NStructReal]);
+                }
 
             how_many++;
             how_many_read++;
@@ -240,10 +241,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                             p_rep.cpu() = MyProc;
 
                             nparticles.push_back(p_rep);
-                            for (int n = NStructReal; n < extradata; n++)
-                            {
-                                nreals[n-NStructReal].push_back(r[n-NStructReal]);
-                            }
+
+                            if (nreals.size() > extradata - NStructReal)
+                                for (int n = NStructReal; n < extradata; n++)
+                                {
+                                    nreals[n-NStructReal].push_back(r[n-NStructReal]);
+                                }
 
                             how_many++;
                         }
@@ -254,7 +257,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 #if AMREX_SPACEDIM > 2
             }
 #endif
+
         }
+
     }
 
     // Now Redistribute() each chunk separately to minimize memory bloat.
@@ -277,6 +282,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                            << nr*NRedist_chunk << " to "
                            << (nr+1)*NRedist_chunk-1 << '\n';
         }
+
         for (int which = nr*NRedist_chunk; which < (nr+1)*NRedist_chunk; which++)
         {
             if (which == MyProc)
@@ -288,17 +294,23 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
                     host_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
 
-                    for (int n = NStructReal; n < extradata; n++)
+                    if (nreals.size() > extradata - NStructReal && NArrayReal > 0)
                     {
-                        Real rdata = nreals[n-NStructReal].back();
-                        host_real_attribs[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][n-NStructReal].push_back(rdata);
+                        for (int n = NStructReal; n < extradata; n++)
+                        {
+                            Real rdata = nreals[n-NStructReal].back();
+                            host_real_attribs[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][n-NStructReal].push_back(rdata);
+                        }
                     }
 
                     nparticles.pop_back();
 
-                    for (int n = NStructReal; n < extradata; n++)
+                    if (nreals.size() > extradata - NStructReal)
                     {
-                        nreals[n-NStructReal].pop_back();
+                        for (int n = NStructReal; n < extradata; n++)
+                        {
+                            nreals[n-NStructReal].pop_back();
+                        }
                     }
                 }
             }
@@ -308,6 +320,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         {
             for (auto& kv : host_particles[lev])
             {
+
                 auto grid = kv.first.first;
                 auto tile = kv.first.second;
                 const auto& src_tile = kv.second;
@@ -320,12 +333,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                 Gpu::copy(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
                           dst_tile.GetArrayOfStructs().begin() + old_size);
 
-                for (int i = 0; i < NArrayReal; ++i) {
+                if((host_real_attribs[lev][std::make_pair(grid, tile)]).size() > (long unsigned int) NArrayReal)
+                  for (int i = 0; i < NArrayReal; ++i) {
                     Gpu::copy(Gpu::hostToDevice,
                               host_real_attribs[lev][std::make_pair(grid,tile)][i].begin(),
                               host_real_attribs[lev][std::make_pair(grid,tile)][i].end(),
                               dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
-                }
+         }
             }
         }
 
@@ -358,17 +372,20 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                 Where(p, pld);
 
                 host_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
-                for (int n = NStructReal; n < extradata; n++)
-                {
-                    Real rdata = nreals[n-NStructReal].back();
-                    host_real_attribs[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][n-NStructReal].push_back(rdata);
-                }
+                if((host_real_attribs[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)]).size() > (long unsigned int) (extradata - NStructReal))
+                    for (int n = NStructReal; n < extradata; n++)
+                    {
+                        Real rdata = nreals[n-NStructReal].back();
+                        host_real_attribs[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][n-NStructReal].push_back(rdata);
+                    }
 
                 nparticles.pop_back();
-                for (int n = NStructReal; n < extradata; n++)
-                {
-                    nreals[n-NStructReal].pop_back();
-                }
+
+                if (nreals.size() > extradata - NStructReal)
+                    for (int n = NStructReal; n < extradata; n++)
+                    {
+                        nreals[n-NStructReal].pop_back();
+                    }
             }
         }
 
@@ -398,6 +415,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         }
 
         Redistribute();
+
     }
 
     if (m_verbose > 0)
@@ -1254,9 +1272,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         for (Long jcnt = 0; jcnt < icount_per_box; jcnt++) {
         for (Long kcnt = 0; kcnt < icount_per_box; kcnt++)
         {
-            p.pos(0) = static_cast<ParticleReal>(grid_box.lo(0) + (dist(mt) + icnt) / icount_per_box);
-            p.pos(1) = static_cast<ParticleReal>(grid_box.lo(1) + (dist(mt) + jcnt) / icount_per_box);
-            p.pos(2) = static_cast<ParticleReal>(grid_box.lo(2) + (dist(mt) + kcnt) / icount_per_box);
+            p.pos(0) = static_cast<ParticleReal>(grid_box.lo(0) + (dist(mt) + icnt) / icount_per_box * grid_box.length(0));
+            p.pos(1) = static_cast<ParticleReal>(grid_box.lo(1) + (dist(mt) + jcnt) / icount_per_box * grid_box.length(1));
+            p.pos(2) = static_cast<ParticleReal>(grid_box.lo(2) + (dist(mt) + kcnt) / icount_per_box * grid_box.length(2));
 
             for (int i = 0; i < AMREX_SPACEDIM; i++)
                 AMREX_ASSERT(p.pos(i) < grid_box.hi(i));

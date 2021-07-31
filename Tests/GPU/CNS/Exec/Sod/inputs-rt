@@ -19,6 +19,8 @@ cns.hi_bc       =  2   0   0
 
 cns.cfl = 0.3  # cfl number for hyperbolic system
 
+cns.do_visc = false
+
 cns.v = 2
 amr.v = 1
 
