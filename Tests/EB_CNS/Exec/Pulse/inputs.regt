@@ -1,0 +1,68 @@
+
+max_step  = 40
+stop_time = 7.e-6
+
+geometry.is_periodic = 1 1 1
+geometry.coord_sys   = 0  # 0 => cart, 1 => RZ  2=>spherical
+geometry.prob_lo     =   0.0     0.0     0.0
+geometry.prob_hi     =   1.0     1.0     1.0
+amr.n_cell           =    64      64      64
+
+# >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
+# 0 = Interior           3 = Symmetry
+# 1 = Inflow             4 = SlipWall
+# 2 = Outflow            5 = NoSlipWall
+# >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
+cns.lo_bc       =  0   0   0
+cns.hi_bc       =  0   0   0
+
+cns.cfl = 0.3  # cfl number for hyperbolic system
+
+cns.v = 1
+amr.v = 1
+
+# LOAD BALANCE
+amr.loadbalance_with_workestimates = 1
+amr.loadbalance_level0_int = 1000
+
+# REFINEMENT / REGRIDDING 
+amr.max_level       = 2       # maximum level number allowed
+amr.ref_ratio       = 2 2 2 2 # refinement ratio
+amr.regrid_int      = 2 2 2 2 # how often to regrid
+amr.blocking_factor = 16
+amr.max_grid_size   = 32
+amr.n_error_buf     = 2 2 2 2 # number of buffer cells in error est
+amr.grid_eff        = 0.7     # what constitutes an efficient grid
+
+# CHECKPOINT FILES
+amr.checkpoint_files_output = 0
+amr.check_file              = chk    # root name of checkpoint file
+amr.check_int               = 100    # number of timesteps between checkpoints
+
+# PLOTFILES
+amr.plot_files_output = 1
+amr.plot_file         = plt     # root name of plotfile
+amr.plot_int          = 100     # number of timesteps between plotfiles
+amr.derive_plot_vars  = pressure x_velocity y_velocity z_velocity
+
+# EB
+eb2.geom_type = sphere
+eb2.sphere_radius = 0.125
+eb2.sphere_center = 0.45  0.65  0.53
+eb2.sphere_has_fluid_inside = 0
+
+#eb2.geom_type = all_regular
+
+# problem specific parameter
+prob.drho = 1.2e-4
+
+amrex.fpe_trap_invalid=1
+
+cns.refine_cutcells = 0
+
+cns.refine_box_lo_0 = 0.48 0.48 0.48
+cns.refine_box_hi_0 = 0.52 0.52 0.52
+
+cns.refine_box_lo_1 = 0.85 0.85 0.85
+cns.refine_box_hi_1 = 0.99 0.99 0.99
+
