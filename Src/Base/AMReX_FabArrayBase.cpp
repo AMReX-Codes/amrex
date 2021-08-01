@@ -1747,7 +1747,11 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 #endif
                     numblk[longdir] *= 2;
                 }
-                numblk.min(len);
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    // make sure not to use too many blocks that could
+                    // result in very small boxes
+                    numblk[idim] = std::min(numblk[idim], (len[idim]+15)/16);
+                }
                 IntVect sz, extra;
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                     sz[idim] = len[idim] / numblk[idim];
