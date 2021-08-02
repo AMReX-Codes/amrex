@@ -187,6 +187,37 @@ void mf_cell_cons_lin_interp_rz (int i, int j, int ns, Array4<Real> const& fine,
         + yoff * slope(ic,jc,0,ns+ncomp);
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mf_cell_bilin_interp (int i, int j, int, int n, Array4<Real> const& fine, int fcomp,
+                           Array4<Real const> const& crse, int ccomp, IntVect const& ratio) noexcept
+{
+    int ic = amrex::coarsen(i,ratio[0]);
+    int jc = amrex::coarsen(j,ratio[1]);
+    int ioff = i - ic*ratio[0];
+    int joff = j - jc*ratio[1];
+    int sx, sy;
+    Real wx, wy;
+    if (ioff*2 < ratio[0]) {
+        sx = -1;
+        wx = Real(ratio[0]+1+2*ioff) / Real(2*ratio[0]);
+    } else {
+        sx = 1;
+        wx = Real(3*ratio[0]-1-2*ioff) / Real(2*ratio[0]);
+    }
+    if (joff*2 < ratio[1]) {
+        sy = -1;
+        wy = Real(ratio[1]+1+2*joff) / Real(2*ratio[1]);
+    } else {
+        sy = 1;
+        wy = Real(3*ratio[1]-1-2*joff) / Real(2*ratio[1]);
+    }
+    fine(i,j,0,n+fcomp) =
+        crse(ic   ,jc   ,0,n+ccomp)*           wx *           wy  +
+        crse(ic+sx,jc   ,0,n+ccomp)*(Real(1.0)-wx)*           wy  +
+        crse(ic   ,jc+sy,0,n+ccomp)*           wx *(Real(1.0)-wy) +
+        crse(ic+sx,jc+sy,0,n+ccomp)*(Real(1.0)-wx)*(Real(1.0)-wy);
+}
+
 }
 
 #endif
