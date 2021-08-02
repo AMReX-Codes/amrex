@@ -649,13 +649,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Re
 struct FilterVirt
 {
 
-    BoxArray m_buffer;
+    amrex::AssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> m_assign_buffer_grid;
     GpuArray<Real, AMREX_SPACEDIM> m_plo, m_dxi;
     Box m_domain;
-  
-  FilterVirt (const BoxArray & buffer, const GpuArray<Real, AMREX_SPACEDIM>& plo,
-              const GpuArray<Real, AMREX_SPACEDIM> & dxi, const Box& domain)
-    : m_buffer(buffer), m_plo(plo), m_dxi(dxi), m_domain(domain)
+
+    FilterVirt (const     amrex::AssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> & assign_buffer_grid, const GpuArray<Real, AMREX_SPACEDIM>& plo,
+                const GpuArray<Real, AMREX_SPACEDIM> & dxi, const Box& domain)
+      : m_assign_buffer_grid(assign_buffer_grid), m_plo(plo), m_dxi(dxi), m_domain(domain)
     {}
 
     template <typename SrcData>
@@ -663,7 +663,7 @@ struct FilterVirt
     int operator() (const SrcData& src, int src_i) const noexcept
     {
         auto iv = getParticleCell(src.m_aos[src_i], m_plo, m_dxi, m_domain);
-        return m_buffer.contains(iv);
+        return (m_assign_buffer_grid(iv)!=-1);
     }
 };
 
@@ -745,6 +745,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         BoxArray buffer(std::move(bl_buffer));
         buffer.grow(aggregation_buffer);
 
+        ParticleLocator<DenseBins<Box>> locator;
+        locator.build(buffer, geom);
+        AssignGrid<DenseBinIteratorFactory<Box>> assign_buffer_grid = locator.getGridAssignor();
+
         amrex::ParticleToMesh(*this, mf, level,
         [=] AMREX_GPU_DEVICE (const ParticleType& p,
                               amrex::Array4<amrex::Real> const& partData,
@@ -752,7 +756,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi)
         {
             auto iv = getParticleCell(p, plo, dxi, domain);
-            if(!buffer.contains(iv))
+            if(assign_buffer_grid(iv)!=-1)
             {
                //Ordering may make this not unique
                for (int i = 0; i < NArrayReal; ++i)
@@ -780,7 +784,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         {
 
             auto iv = getParticleCell(p, plo, dxi, domain);
-            if(!buffer.contains(iv))
+            if(assign_buffer_grid(iv)!=-1)
             {
             //if this cell has no particle id info, do a straight copy
             if(partData(iv,0)==0)
@@ -845,7 +849,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
         auto np = src_tile.numParticles();
         virts.resize(virts_offset+np);
-        virts_offset += filterAndTransformParticles(virts, src_tile, FilterVirt(buffer,plo,dxi,domain), TransformerVirt(),0,virts_offset);
+        virts_offset += filterAndTransformParticles(virts, src_tile, FilterVirt(assign_buffer_grid,plo,dxi,domain), TransformerVirt(),0,virts_offset);
     }
     //Resize implicitly includes a Gpu::synchronize()
     virts.resize(virts_offset);
