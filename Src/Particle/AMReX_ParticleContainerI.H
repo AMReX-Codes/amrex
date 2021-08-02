@@ -767,7 +767,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
     //There may be a better way to ensure virts is the right length
     virts.resize(imf.sum(0));
-  
+    amrex::Print()<<"orig number of particles: "<<imf.sum(0)<<std::endl;
+
+    int last_offset = 0;
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
           const auto bx = mfi.tilebox();
@@ -777,20 +779,22 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
 	  Vector<int> offsets(bx.numPts());
 	  auto offsets_ptr = offsets.dataPtr();
-	  Long last_offset = Scan::ExclusiveSum(bx.numPts(),(imf_arr.ptr(bx.smallEnd(),0)),(offsets.dataPtr()),Scan::retSum);
+	  Long next_offset = Scan::ExclusiveSum(bx.numPts(),(imf_arr.ptr(bx.smallEnd(),0)),(offsets.dataPtr()),Scan::retSum);
+  	  amrex::Print()<<next_offset<<"\t"<<last_offset<<"\t"<<bx.numPts()<<std::endl;
            auto dst = virts.getParticleTileData();
            ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
            {
                if(imf_arr(i,j,k,0)!=0)
                {
-                   SuperParticleType p=dst.getSuperParticle(offsets_ptr[((i-imf_arr.begin.x)+(j-imf_arr.begin.y)*imf_arr.jstride+(k-imf_arr.begin.z)*imf_arr.kstride)]);
+		 amrex::Print()<<next_offset<<"\t"<<last_offset<<"\t"<<bx.numPts()<<"\t"<<i<<"\t"<<j<<"\t"<<k<<"\n"<<last_offset+offsets_ptr[((i-imf_arr.begin.x)+(j-imf_arr.begin.y)*imf_arr.jstride+(k-imf_arr.begin.z)*imf_arr.kstride)]<<std::endl;
+		 SuperParticleType p;
                    p.cpu() = 0;
                    p.id() = VirtualParticleID;
 
                    p.rdata(0) = partData(i,j,k,AMREX_SPACEDIM);
                    for (int n = 0; n < AMREX_SPACEDIM; ++n)
                      p.pos(n) = partData(i,j,k,n) / p.rdata(0);
-                   for (int n = 0; n < NStructReal; ++n)
+                   for (int n = 1; n < NStructReal; ++n)
                        p.rdata(n) = partData(i,j,k,AMREX_SPACEDIM+n) / p.rdata(0);
                    for (int n = 0; n < NArrayReal; ++n)
                        p.rdata(NStructReal+n) = partData(i,j,k,AMREX_SPACEDIM+NStructReal+n);
@@ -798,10 +802,22 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                        p.idata(n) = (long unsigned int) imf_arr(i,j,k,1+n);
                    for (int n = 0; n < NArrayInt; ++n)
                        p.idata(NStructInt+n) = (long unsigned int) imf_arr(i,j,k,1+NStructInt+n);
+		   dst.setSuperParticle(p, last_offset+offsets_ptr[((i-imf_arr.begin.x)+(j-imf_arr.begin.y)*imf_arr.jstride+(k-imf_arr.begin.z)*imf_arr.kstride)]);
+		   amrex::Print()<<p<<std::endl;
                  }
 
             });
+	   last_offset+=next_offset;
      }
+    amrex::Print()<<virts.size()<<std::endl;
+    Real sum_test=0.0;
+    for(int i=0;i<virts.size();i++)
+      {
+	const auto p = (virts.getParticleTileData()).getSuperParticle(i);
+	sum_test += (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3)));
+      }
+    amrex::ParallelAllReduce::Sum(sum_test,ParallelContext::CommunicatorSub());
+    amrex::Print().SetPrecision(18)<<"Found sum of virtsTEST: "<<sum_test<<std::endl;
     
     /*        amrex::MeshToParticle(virts, mf, level,
         [=] AMREX_GPU_DEVICE (ParticleContainer::ParticleType& p,
