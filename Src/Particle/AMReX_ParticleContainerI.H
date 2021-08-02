@@ -646,6 +646,27 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Re
   }
 }
 
+struct FilterVirt
+{
+
+    BoxArray m_buffer;
+    GpuArray<Real, AMREX_SPACEDIM> m_plo, m_dxi;
+    Box m_domain;
+  
+  FilterVirt (const BoxArray & buffer, const GpuArray<Real, AMREX_SPACEDIM>& plo,
+	      const GpuArray<Real, AMREX_SPACEDIM> & dxi, const Box& domain)
+    : m_buffer(buffer), m_plo(plo), m_dxi(dxi), m_domain(domain)
+    {}
+
+    template <typename SrcData>
+    AMREX_GPU_HOST_DEVICE
+    int operator() (const SrcData& src, int src_i) const noexcept
+    {
+        auto iv = getParticleCell(src.m_aos[src_i], m_plo, m_dxi, m_domain);
+	return m_buffer.contains(iv);
+    }
+};
+
 struct TransformerVirt
 {
     template <typename DstData, typename SrcData>
@@ -719,6 +740,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         const auto dxi = geom.InvCellSizeArray();
         const auto domain = geom.Domain();
 
+        BoxList bl_buffer;
+        bl_buffer.complementIn(Geom(level).Domain(), ParticleBoxArray(level));
+        BoxArray buffer(std::move(bl_buffer));
+        buffer.grow(aggregation_buffer);
+
         amrex::ParticleToMesh(*this, mf, level,
         [=] AMREX_GPU_DEVICE (const ParticleType& p,
                               amrex::Array4<amrex::Real> const& partData,
@@ -726,7 +752,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi)
         {
             auto iv = getParticleCell(p, plo, dxi, domain);
-
+	    if(!buffer.contains(iv))
+	    {
                //Ordering may make this not unique
                for (int i = 0; i < NArrayReal; ++i)
                  amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+NStructReal+i), partData(iv,AMREX_SPACEDIM) ? 0 : p.rdata(NStructReal+i));
@@ -741,6 +768,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                }
                for (int i = 0; i < 1; ++i)
                    amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+i), static_cast<ParticleReal>(p.rdata(0)));
+	    }
 
         }); //skipping extra false argument, doing mf.setVal(0) at beginning
  
@@ -752,7 +780,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         {
 
             auto iv = getParticleCell(p, plo, dxi, domain);
-            //if this cell has no particle id info, do a straight copy
+	    if(!buffer.contains(iv))
+	    {
+	    //if this cell has no particle id info, do a straight copy
             if(partData(iv,0)==0)
             {
           //                amrex::Gpu::Atomic::AddNoRet(&partData(iv,0), VirtualParticleID);
@@ -762,7 +792,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                 for (int i = 0; i < NArrayInt; ++i)
                   amrex::Gpu::Atomic::AddNoRet(&partData(iv,1+NStructInt+i), p.idata(NStructInt+i));
             }
-
+	    }
         });
 
     //There may be a better way to ensure virts is the right length
@@ -806,6 +836,19 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         });
 	last_offset+=next_offset;
     }
+
+    auto virts_offset = virts.numParticles();
+    for(ParConstIterType pti(*this, level); pti.isValid(); ++pti)
+    {
+        const auto& src_tile = ParticlesAt(level, pti);
+        int gid = pti.index();
+
+        auto np = src_tile.numParticles();
+        virts.resize(virts_offset+np);
+        virts_offset += filterAndTransformParticles(virts, src_tile, FilterVirt(buffer,plo,dxi,domain), TransformerVirt(),0,virts_offset);
+    }
+    //Resize implicitly includes a Gpu::synchronize()
+    virts.resize(virts_offset);
     
     }
 }
