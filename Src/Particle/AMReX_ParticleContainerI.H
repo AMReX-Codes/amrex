@@ -775,10 +775,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
           const auto partData = mf.array(mfi);
           const auto imf_arr = imf.array(mfi);
 
-           Vector<int> offsets;
-           offsets.resize(bx.numPts());
-	   auto offsets_ptr = offsets.dataPtr();
-           Long last_offset = Scan::ExclusiveSum(bx.numPts(),(imf_arr.ptr(bx.smallEnd(),0)),(offsets.dataPtr()),Scan::retSum);
+	  Vector<int> offsets(bx.numPts());
+	  auto offsets_ptr = offsets.dataPtr();
+	  Long last_offset = Scan::ExclusiveSum(bx.numPts(),(imf_arr.ptr(bx.smallEnd(),0)),(offsets.dataPtr()),Scan::retSum);
            auto dst = virts.getParticleTileData();
            ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
            {
@@ -803,7 +802,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
             });
      }
-
+    
     /*        amrex::MeshToParticle(virts, mf, level,
         [=] AMREX_GPU_DEVICE (ParticleContainer::ParticleType& p,
                               amrex::Array4<const amrex::Real> const& partData)
