@@ -654,7 +654,7 @@ struct FilterVirt
     Box m_domain;
   
   FilterVirt (const BoxArray & buffer, const GpuArray<Real, AMREX_SPACEDIM>& plo,
-	      const GpuArray<Real, AMREX_SPACEDIM> & dxi, const Box& domain)
+              const GpuArray<Real, AMREX_SPACEDIM> & dxi, const Box& domain)
     : m_buffer(buffer), m_plo(plo), m_dxi(dxi), m_domain(domain)
     {}
 
@@ -663,7 +663,7 @@ struct FilterVirt
     int operator() (const SrcData& src, int src_i) const noexcept
     {
         auto iv = getParticleCell(src.m_aos[src_i], m_plo, m_dxi, m_domain);
-	return m_buffer.contains(iv);
+        return m_buffer.contains(iv);
     }
 };
 
@@ -752,8 +752,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi)
         {
             auto iv = getParticleCell(p, plo, dxi, domain);
-	    if(!buffer.contains(iv))
-	    {
+            if(!buffer.contains(iv))
+            {
                //Ordering may make this not unique
                for (int i = 0; i < NArrayReal; ++i)
                  amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+NStructReal+i), partData(iv,AMREX_SPACEDIM) ? 0 : p.rdata(NStructReal+i));
@@ -768,7 +768,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                }
                for (int i = 0; i < 1; ++i)
                    amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+i), static_cast<ParticleReal>(p.rdata(0)));
-	    }
+            }
 
         }); //skipping extra false argument, doing mf.setVal(0) at beginning
  
@@ -780,9 +780,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         {
 
             auto iv = getParticleCell(p, plo, dxi, domain);
-	    if(!buffer.contains(iv))
-	    {
-	    //if this cell has no particle id info, do a straight copy
+            if(!buffer.contains(iv))
+            {
+            //if this cell has no particle id info, do a straight copy
             if(partData(iv,0)==0)
             {
           //                amrex::Gpu::Atomic::AddNoRet(&partData(iv,0), VirtualParticleID);
@@ -792,7 +792,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                 for (int i = 0; i < NArrayInt; ++i)
                   amrex::Gpu::Atomic::AddNoRet(&partData(iv,1+NStructInt+i), p.idata(NStructInt+i));
             }
-	    }
+            }
         });
 
     //There may be a better way to ensure virts is the right length
@@ -806,35 +806,35 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         const auto partData = mf.array(mfi);
         const auto imf_arr = imf.array(mfi);
 
-	Vector<int> offsets(bx.numPts());
-	auto offsets_ptr = offsets.dataPtr();
-	Long next_offset = Scan::ExclusiveSum(bx.numPts(),(imf_arr.ptr(bx.smallEnd(),0)),(offsets.dataPtr()),Scan::retSum);
+        Vector<int> offsets(bx.numPts());
+        auto offsets_ptr = offsets.dataPtr();
+        Long next_offset = Scan::ExclusiveSum(bx.numPts(),(imf_arr.ptr(bx.smallEnd(),0)),(offsets.dataPtr()),Scan::retSum);
 
         auto dst = virts.getParticleTileData();
         ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
         {
              if(imf_arr(i,j,k,0)!=0)
              {
-	         SuperParticleType p;
-		 p.cpu() = 0;
-		 p.id() = VirtualParticleID;
+                 SuperParticleType p;
+                 p.cpu() = 0;
+                 p.id() = VirtualParticleID;
 
-		 p.rdata(0) = partData(i,j,k,AMREX_SPACEDIM);
-		 for (int n = 0; n < AMREX_SPACEDIM; ++n)
+                 p.rdata(0) = partData(i,j,k,AMREX_SPACEDIM);
+                 for (int n = 0; n < AMREX_SPACEDIM; ++n)
                      p.pos(n) = partData(i,j,k,n) / p.rdata(0);
-		 for (int n = 1; n < NStructReal; ++n)
+                 for (int n = 1; n < NStructReal; ++n)
                      p.rdata(n) = partData(i,j,k,AMREX_SPACEDIM+n) / p.rdata(0);
-		 for (int n = 0; n < NArrayReal; ++n)
+                 for (int n = 0; n < NArrayReal; ++n)
                      p.rdata(NStructReal+n) = partData(i,j,k,AMREX_SPACEDIM+NStructReal+n);
-		 for (int n = 0; n < NStructInt; ++n)
+                 for (int n = 0; n < NStructInt; ++n)
                      p.idata(n) = (long unsigned int) imf_arr(i,j,k,1+n);
-		 for (int n = 0; n < NArrayInt; ++n)
-		     p.idata(NStructInt+n) = (long unsigned int) imf_arr(i,j,k,1+NStructInt+n);
-		 dst.setSuperParticle(p, last_offset+offsets_ptr[((i-imf_arr.begin.x)+(j-imf_arr.begin.y)*imf_arr.jstride+(k-imf_arr.begin.z)*imf_arr.kstride)]);
-	     }
+                 for (int n = 0; n < NArrayInt; ++n)
+                     p.idata(NStructInt+n) = (long unsigned int) imf_arr(i,j,k,1+NStructInt+n);
+                 dst.setSuperParticle(p, last_offset+offsets_ptr[((i-imf_arr.begin.x)+(j-imf_arr.begin.y)*imf_arr.jstride+(k-imf_arr.begin.z)*imf_arr.kstride)]);
+             }
 
         });
-	last_offset+=next_offset;
+        last_offset+=next_offset;
     }
 
     auto virts_offset = virts.numParticles();
