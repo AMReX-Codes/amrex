@@ -653,7 +653,7 @@ struct FilterVirt
     GpuArray<Real, AMREX_SPACEDIM> m_plo, m_dxi;
     Box m_domain;
 
-    FilterVirt (const     amrex::AssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> & assign_buffer_grid, const GpuArray<Real, AMREX_SPACEDIM>& plo,
+    FilterVirt (const amrex::AssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> assign_buffer_grid, const GpuArray<Real, AMREX_SPACEDIM>& plo,
                 const GpuArray<Real, AMREX_SPACEDIM> & dxi, const Box& domain)
       : m_assign_buffer_grid(assign_buffer_grid), m_plo(plo), m_dxi(dxi), m_domain(domain)
     {}
@@ -744,10 +744,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         bl_buffer.complementIn(Geom(level).Domain(), ParticleBoxArray(level));
         BoxArray buffer(std::move(bl_buffer));
         buffer.grow(aggregation_buffer);
+	Gpu::synchronize();
 
         ParticleLocator<DenseBins<Box>> locator;
         locator.build(buffer, geom);
+	Gpu::synchronize();
         AssignGrid<DenseBinIteratorFactory<Box>> assign_buffer_grid = locator.getGridAssignor();
+	Gpu::synchronize();
 
         amrex::ParticleToMesh(*this, mf, level,
         [=] AMREX_GPU_DEVICE (const ParticleType& p,
@@ -756,7 +759,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi)
         {
             auto iv = getParticleCell(p, plo, dxi, domain);
-            if(assign_buffer_grid(iv)!=-1)
+            if(assign_buffer_grid(iv)==-1)
             {
                //Ordering may make this not unique
                for (int i = 0; i < NArrayReal; ++i)
@@ -784,7 +787,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         {
 
             auto iv = getParticleCell(p, plo, dxi, domain);
-            if(assign_buffer_grid(iv)!=-1)
+            if(assign_buffer_grid(iv)==-1)
             {
             //if this cell has no particle id info, do a straight copy
             if(partData(iv,0)==0)
@@ -813,7 +816,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         Vector<int> offsets(bx.numPts());
         auto offsets_ptr = offsets.dataPtr();
         Long next_offset = Scan::ExclusiveSum(bx.numPts(),(imf_arr.ptr(bx.smallEnd(),0)),(offsets.dataPtr()),Scan::retSum);
-
+        Gpu::synchronize();
         auto dst = virts.getParticleTileData();
         ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
         {
@@ -839,21 +842,24 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
         });
         last_offset+=next_offset;
+        Gpu::synchronize();
     }
 
-    auto virts_offset = virts.numParticles();
+    // last_offset should equal virts.numParticles()
+    auto virts_offset = last_offset;
     for(ParConstIterType pti(*this, level); pti.isValid(); ++pti)
     {
         const auto& src_tile = ParticlesAt(level, pti);
         int gid = pti.index();
 
         auto np = src_tile.numParticles();
+        Gpu::synchronize();
         virts.resize(virts_offset+np);
         virts_offset += filterAndTransformParticles(virts, src_tile, FilterVirt(assign_buffer_grid,plo,dxi,domain), TransformerVirt(),0,virts_offset);
+        Gpu::synchronize();
     }
     //Resize implicitly includes a Gpu::synchronize()
     virts.resize(virts_offset);
-    
     }
 }
 
