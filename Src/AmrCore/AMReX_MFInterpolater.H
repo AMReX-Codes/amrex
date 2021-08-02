@@ -22,6 +22,34 @@ public:
                          Vector<BCRec> const& bcs, int bcscomp) = 0;
 };
 
+/**
+* \brief Piecewise constant interpolation on cell-centered data.
+*/
+class MFPCInterp final
+    : public MFInterpolater
+{
+public:
+    virtual ~MFPCInterp () = default;
+
+    virtual Box CoarseBox (Box const& fine, int ratio);
+    virtual Box CoarseBox (Box const& fine, IntVect const& ratio);
+
+    virtual void interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf, int fcomp, int ncomp,
+                         IntVect const& ng, Geometry const& cgeom, Geometry const& fgeom,
+                         Box const& dest_domain, IntVect const& ratio,
+                         Vector<BCRec> const& bcs, int bcscomp);
+};
+
+/**
+* \brief Linear conservative interpolation on cell centered data
+*
+* Linear conservative interpolation on cell centered data, i.e, conservative
+* interpolation with a limiting scheme that preserves the value of any
+* linear combination of the fab components. If sum_ivar
+* a(ic,jc,ivar)*fab(ic,jc,ivar) = 0, then sum_ivar
+* a(ic,jc,ivar)*fab(if,jf,ivar) = 0 is satisfied in all fine cells if,jf
+* covering coarse cell ic,jc.
+*/
 class MFCellConsLinInterp final
     : public MFInterpolater
 {
@@ -42,6 +70,7 @@ protected:
     bool do_linear_limiting = true;
 };
 
+extern AMREX_EXPORT MFPCInterp          mf_pc_interp;
 extern AMREX_EXPORT MFCellConsLinInterp mf_cell_cons_interp;
 extern AMREX_EXPORT MFCellConsLinInterp mf_lincc_interp;
 
