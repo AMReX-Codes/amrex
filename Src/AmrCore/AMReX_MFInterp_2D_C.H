@@ -22,9 +22,8 @@ void mf_cell_cons_lin_interp_llslope (int i, int j, int, Array4<Real> const& slo
         sx = amrex::Math::copysign(Real(1.),dc)*amrex::min(sx,amrex::Math::abs(dc));
         if (dc != Real(0.0)) {
             sfx = amrex::min(sfx, sx / dc);
-        } else {
-            sfx = Real(0.0);
         }
+        slope(i,j,0,ns        ) = dc;
 
         // y-direction
         dc = mf_compute_slopes_y(i, j, 0, u, nu, domain, bc[ns]);
@@ -34,12 +33,8 @@ void mf_cell_cons_lin_interp_llslope (int i, int j, int, Array4<Real> const& slo
         sy = amrex::Math::copysign(Real(1.),dc)*amrex::min(sy,amrex::Math::abs(dc));
         if (dc != Real(0.0)) {
             sfy = amrex::min(sfy, sy / dc);
-        } else {
-            sfy = Real(0.0);
         }
-
-        slope(i,j,0,ns        ) = sx;
-        slope(i,j,0,ns+  ncomp) = sy;
+        slope(i,j,0,ns+  ncomp) = dc;
     }
 
     for (int ns = 0; ns < ncomp; ++ns) {

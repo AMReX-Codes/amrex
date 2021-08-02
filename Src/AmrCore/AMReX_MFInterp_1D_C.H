@@ -21,11 +21,8 @@ void mf_cell_cons_lin_interp_llslope (int i, int, int, Array4<Real> const& slope
         sx = amrex::Math::copysign(Real(1.),dc)*amrex::min(sx,amrex::Math::abs(dc));
         if (dc != Real(0.0)) {
             sfx = amrex::min(sfx, sx / dc);
-        } else {
-            sfx = Real(0.0);
         }
-
-        slope(i,0,0,ns) = sx;
+        slope(i,0,0,ns) = dc;
     }
 
     for (int ns = 0; ns < ncomp; ++ns) {
