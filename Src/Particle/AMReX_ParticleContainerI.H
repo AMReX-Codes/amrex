@@ -763,7 +763,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             {
                //Ordering may make this not unique
                for (int i = 0; i < NArrayReal; ++i)
-                 amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+NStructReal+i), partData(iv,AMREX_SPACEDIM) ? static_cast<Real>(0) : static_cast<Real>(p.rdata(NStructReal+i)));
+                 amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+NStructReal+i), partData(iv,AMREX_SPACEDIM)!=0.0 ? static_cast<Real>(0) : static_cast<Real>(p.rdata(NStructReal+i)));
 
                for (int i = 0; i < AMREX_SPACEDIM; ++i)
                {
