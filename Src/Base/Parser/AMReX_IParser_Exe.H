@@ -236,7 +236,7 @@ struct IParserStack
     constexpr int operator[] (int i) const { return m_data[i]; }
 };
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+AMREX_GPU_HOST_DEVICE inline
 int iparser_exe_eval (char* p, int const* x)
 {
     IParserStack<AMREX_IPARSER_STACK_SIZE> pstack;

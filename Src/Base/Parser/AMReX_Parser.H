@@ -18,7 +18,7 @@ template <int N>
 struct ParserExecutor
 {
     template <int M=N, typename std::enable_if_t<M==0,int> = 0>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
     double operator() () const noexcept
     {
 #if AMREX_DEVICE_COMPILE
@@ -29,7 +29,7 @@ struct ParserExecutor
     }
 
     template <typename... Ts>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
     std::enable_if_t<sizeof...(Ts) == N && !amrex::Same<float,Ts...>::value, double>
     operator() (Ts... var) const noexcept
     {
@@ -42,7 +42,7 @@ struct ParserExecutor
     }
 
     template <typename... Ts>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
     std::enable_if_t<sizeof...(Ts) == N &&  amrex::Same<float,Ts...>::value, float>
     operator() (Ts... var) const noexcept
     {
@@ -54,8 +54,57 @@ struct ParserExecutor
 #endif
     }
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
     double operator() (GpuArray<double,N> const& var) const noexcept
+    {
+#if AMREX_DEVICE_COMPILE
+        return parser_exe_eval(m_device_executor, var.data());
+#else
+        return parser_exe_eval(m_host_executor, var.data());
+#endif
+    }
+
+    // Unlike operator(), eval is force inlined.
+
+    template <int M=N, typename std::enable_if_t<M==0,int> = 0>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    double eval () const noexcept
+    {
+#if AMREX_DEVICE_COMPILE
+        return parser_exe_eval(m_device_executor, nullptr);
+#else
+        return parser_exe_eval(m_host_executor, nullptr);
+#endif
+    }
+
+    template <typename... Ts>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    std::enable_if_t<sizeof...(Ts) == N && !amrex::Same<float,Ts...>::value, double>
+    eval (Ts... var) const noexcept
+    {
+        amrex::GpuArray<double,N> l_var{var...};
+#if AMREX_DEVICE_COMPILE
+        return parser_exe_eval(m_device_executor, l_var.data());
+#else
+        return parser_exe_eval(m_host_executor, l_var.data());
+#endif
+    }
+
+    template <typename... Ts>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    std::enable_if_t<sizeof...(Ts) == N &&  amrex::Same<float,Ts...>::value, float>
+    eval (Ts... var) const noexcept
+    {
+        amrex::GpuArray<double,N> l_var{var...};
+#if AMREX_DEVICE_COMPILE
+        return static_cast<float>(parser_exe_eval(m_device_executor, l_var.data()));
+#else
+        return static_cast<float>(parser_exe_eval(m_host_executor, l_var.data()));
+#endif
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    double eval (GpuArray<double,N> const& var) const noexcept
     {
 #if AMREX_DEVICE_COMPILE
         return parser_exe_eval(m_device_executor, var.data());

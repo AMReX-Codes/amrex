@@ -4,6 +4,11 @@
 
 #if !defined(BL_LANG_FORT)
 
+#if defined(__INTEL_COMPILER) && defined(__EDG__)
+// Disable "routine is both inline and noinline" warning from classical Intel compiler
+#pragma warning disable 2196
+#endif
+
 // restrict
 
 #ifdef __cplusplus
