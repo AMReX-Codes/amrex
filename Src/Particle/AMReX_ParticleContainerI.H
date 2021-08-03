@@ -744,21 +744,21 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         bl_buffer.complementIn(Geom(level).Domain(), ParticleBoxArray(level));
         BoxArray buffer(std::move(bl_buffer));
         buffer.grow(aggregation_buffer);
-	Gpu::synchronize();
+        Gpu::synchronize();
 
         ParticleLocator<DenseBins<Box>> locator;
         locator.build(buffer, geom);
-	Gpu::synchronize();
+        Gpu::synchronize();
         AssignGrid<DenseBinIteratorFactory<Box>> assign_buffer_grid = locator.getGridAssignor();
-	Gpu::synchronize();
+        Gpu::synchronize();
 
         amrex::ParticleToMesh(*this, mf, level,
         [=] AMREX_GPU_DEVICE (const ParticleType& p,
                               amrex::Array4<amrex::Real> const& partData,
-                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
-                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi)
+                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo_loc,
+                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi_loc)
         {
-            auto iv = getParticleCell(p, plo, dxi, domain);
+            auto iv = getParticleCell(p, plo_loc, dxi_loc, domain);
             if(assign_buffer_grid(iv)==-1)
             {
                //Ordering may make this not unique
@@ -778,15 +778,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             }
 
         }); //skipping extra false argument, doing mf.setVal(0) at beginning
- 
+
         amrex::ParticleToMesh(*this, imf, level,
         [=] AMREX_GPU_DEVICE (const ParticleType& p,
                               amrex::Array4<int> const& partData,
-                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
-                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi)
+                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo_loc,
+                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi_loc)
         {
 
-            auto iv = getParticleCell(p, plo, dxi, domain);
+            auto iv = getParticleCell(p, plo_loc, dxi_loc, domain);
             if(assign_buffer_grid(iv)==-1)
             {
             //if this cell has no particle id info, do a straight copy
@@ -809,7 +809,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
         const auto bx = mfi.tilebox();
-        const auto mf_arr = mf.array(mfi);
         const auto partData = mf.array(mfi);
         const auto imf_arr = imf.array(mfi);
 
@@ -850,7 +849,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     for(ParConstIterType pti(*this, level); pti.isValid(); ++pti)
     {
         const auto& src_tile = ParticlesAt(level, pti);
-        int gid = pti.index();
 
         auto np = src_tile.numParticles();
         Gpu::synchronize();
