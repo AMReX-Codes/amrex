@@ -56,26 +56,39 @@ EBMFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& fine
         for (MFIter mfi(finemf); mfi.isValid(); ++mfi) {
             Box const target_fine_region = amrex::grow(mfi.validbox(),ng) & dest_domain;
             Box const& crse_bx = CoarseBox(target_fine_region, ratio);
-            const EBCellFlagFab& fine_flag = fflags[mfi];
-            FabType const ftype = fine_flag.getType(amrex::refine(crse_bx,ratio));
-            if (ftype == FabType::singlevalued) {
-                const auto& crse_flag = cflags.const_array(mfi);
-                const auto& fine = finemf.array(mfi);
-                const auto& crse = crsemf.const_array(mfi);
-                amrex::LoopConcurrentOnCpu(target_fine_region, nc,
-                [&] (int i, int j, int k, int n) noexcept
+            const EBCellFlagFab& crse_flag_fab = cflags[mfi];
+            if (crsemf[mfi].getType() != FabType::regular) {
+                const EBCellFlagFab& fine_flag_fab = fflags[mfi];
+                const FabType ftype = fine_flag_fab.getType(target_fine_region);
+                const FabType ctype = crse_flag_fab.getType(crse_bx);
+                if (ftype == FabType::multivalued || ctype == FabType::multivalued)
                 {
-                    int ic = amrex::coarsen(i,ratio[0]);
-                    int jc = amrex::coarsen(j,ratio[1]);
+                    amrex::Abort("EBCellConservativeLinear::interp: multivalued not implemented");
+                }
+                else if (ftype == FabType::covered)
+                {
+                    ; // don't need to do anything special
+                }
+                else
+                {
+                    const auto& crse_flag = cflags.const_array(mfi);
+                    const auto& fine = finemf.array(mfi);
+                    const auto& crse = crsemf.const_array(mfi);
+                    amrex::LoopConcurrentOnCpu(target_fine_region, nc,
+                    [&] (int i, int j, int k, int n) noexcept
+                    {
+                        int ic = amrex::coarsen(i,ratio[0]);
+                        int jc = amrex::coarsen(j,ratio[1]);
 #if (AMREX_SPACEDIM == 2)
-                    int kc = k;
+                        int kc = k;
 #else
-                    int kc = amrex::coarsen(k,ratio[2]);
+                        int kc = amrex::coarsen(k,ratio[2]);
 #endif
-                    if (crse_flag(ic,jc,kc).numNeighbors() < AMREX_D_TERM(3,*3,*3)) {
-                        fine(i,j,k,n+fcomp) = crse(ic,jc,kc,n+ccomp);
-                    }
-                });
+                        if (crse_flag(ic,jc,kc).numNeighbors() < AMREX_D_TERM(3,*3,*3)) {
+                            fine(i,j,k,n+fcomp) = crse(ic,jc,kc,n+ccomp);
+                        }
+                    });
+                }
             }
         }
     }
