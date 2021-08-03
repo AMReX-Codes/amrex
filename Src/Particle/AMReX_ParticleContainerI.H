@@ -763,18 +763,18 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             {
                //Ordering may make this not unique
                for (int i = 0; i < NArrayReal; ++i)
-                 amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+NStructReal+i), partData(iv,AMREX_SPACEDIM) ? 0 : p.rdata(NStructReal+i));
+                 amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+NStructReal+i), partData(iv,AMREX_SPACEDIM) ? static_cast<Real>(0) : static_cast<Real>(p.rdata(NStructReal+i)));
 
                for (int i = 0; i < AMREX_SPACEDIM; ++i)
                {
-                   amrex::Gpu::Atomic::AddNoRet(&partData(iv,i), static_cast<ParticleReal>((p.rdata(0)*p.pos(i))));
+                   amrex::Gpu::Atomic::AddNoRet(&partData(iv,i), static_cast<Real>((p.rdata(0)*p.pos(i))));
                }
                for (int i = 1; i < NStructReal; ++i)
                {
-                   amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+i), static_cast<ParticleReal>((p.rdata(0)*p.rdata(i))));
+                   amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+i), static_cast<Real>((p.rdata(0)*p.rdata(i))));
                }
                for (int i = 0; i < 1; ++i)
-                   amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+i), static_cast<ParticleReal>(p.rdata(0)));
+                   amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+i), static_cast<Real>(p.rdata(0)));
             }
 
         }); //skipping extra false argument, doing mf.setVal(0) at beginning
@@ -825,13 +825,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                  p.cpu() = 0;
                  p.id() = VirtualParticleID;
 
-                 p.rdata(0) = partData(i,j,k,AMREX_SPACEDIM);
+                 p.rdata(0) = static_cast<ParticleReal>(partData(i,j,k,AMREX_SPACEDIM));
                  for (int n = 0; n < AMREX_SPACEDIM; ++n)
-                     p.pos(n) = partData(i,j,k,n) / p.rdata(0);
+                     p.pos(n) = static_cast<ParticleReal>(partData(i,j,k,n) / p.rdata(0));
                  for (int n = 1; n < NStructReal; ++n)
-                     p.rdata(n) = partData(i,j,k,AMREX_SPACEDIM+n) / p.rdata(0);
+                     p.rdata(n) = static_cast<ParticleReal>(partData(i,j,k,AMREX_SPACEDIM+n) / p.rdata(0));
                  for (int n = 0; n < NArrayReal; ++n)
-                     p.rdata(NStructReal+n) = partData(i,j,k,AMREX_SPACEDIM+NStructReal+n);
+                     p.rdata(NStructReal+n) = static_cast<ParticleReal>(partData(i,j,k,AMREX_SPACEDIM+NStructReal+n));
                  for (int n = 0; n < NStructInt; ++n)
                      p.idata(n) = (long unsigned int) imf_arr(i,j,k,1+n);
                  for (int n = 0; n < NArrayInt; ++n)
