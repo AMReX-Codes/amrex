@@ -12,6 +12,7 @@
 #include <AMReX_MFInterpolater.H>
 #ifdef AMREX_USE_EB
 #include <AMReX_EBInterpolater.H>
+#include <AMReX_EBMFInterpolater.H>
 #endif
 
 #include <utility>
