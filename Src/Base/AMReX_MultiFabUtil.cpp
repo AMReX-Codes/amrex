@@ -962,7 +962,9 @@ namespace amrex
             Vector<Gpu::HostVector<Real> > other_hv(OpenMP::get_max_threads()-1);
 
             Vector<Real*> pp(OpenMP::get_max_threads());
-            pp[0] = hv.data();
+            if (!pp.empty()) {
+                pp[0] = hv.data();
+            }
             for (int i = 1; i < OpenMP::get_max_threads(); ++i) {
                 other_hv[i-1].resize(n1d, Real(0.0));
                 pp[i] = other_hv[i-1].data();
