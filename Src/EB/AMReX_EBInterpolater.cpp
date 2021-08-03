@@ -43,7 +43,7 @@ EBCellConservativeLinear::interp (const FArrayBox& crse,
 
         const Box& crse_bx = CoarseBox(target_fine_region,ratio);
 
-        const FabType ftype = fine_flag.getType(amrex::refine(crse_bx,ratio));
+        const FabType ftype = fine_flag.getType(target_fine_region);
         const FabType ctype = crse_flag.getType(crse_bx);
 
         if (ftype == FabType::multivalued || ctype == FabType::multivalued)
