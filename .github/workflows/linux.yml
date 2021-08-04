@@ -324,7 +324,10 @@ jobs:
   test_hdf5:
     name: HDF5 I/O Test [tests]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code"}
+    env:
+      CXX: h5pcc
+      CC: h5cc
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
