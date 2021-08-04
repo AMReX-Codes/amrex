@@ -812,9 +812,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         const auto partData = mf.array(mfi);
         const auto imf_arr = imf.array(mfi);
 
-        Vector<int> offsets(bx.numPts());
+        Gpu::DeviceVector<int> offsets(bx.numPts());
         auto offsets_ptr = offsets.dataPtr();
-        Long next_offset = Scan::ExclusiveSum(bx.numPts(),(imf_arr.ptr(bx.smallEnd(),0)),(offsets.dataPtr()),Scan::retSum);
+        int next_offset = Scan::ExclusiveSum((int) bx.numPts(),(imf_arr.ptr(bx.smallEnd(),0)),(offsets.dataPtr()),Scan::retSum);
         Gpu::synchronize();
         auto dst = virts.getParticleTileData();
         ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
