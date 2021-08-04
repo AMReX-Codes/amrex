@@ -65,7 +65,7 @@ namespace amrex {
          * unsigned integer.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr static unsigned int size() const noexcept { return N; }
+        static unsigned int size() noexcept { return N; }
 
         /**
          * Returns a const pointer address to the first element of the
@@ -196,7 +196,7 @@ namespace amrex {
          * integer.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr unsigned int size() const noexcept { return (XHI-XLO+1); }
+        static unsigned int size() noexcept { return (XHI-XLO+1); }
 
         /**
          * Index of the lower bound of the Array1D object. Can be other than 0.
@@ -312,7 +312,7 @@ namespace amrex {
          * unsigned integer.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr unsigned int size() const noexcept { return (XHI-XLO+1)*(YHI-YLO+1); }
+        static unsigned int size() noexcept { return (XHI-XLO+1)*(YHI-YLO+1); }
 
         /**
          * Index of the lower bound of the Array2D object in the x direction.
@@ -697,7 +697,7 @@ for (int j = 1; j <= N; ++j) {
          * unsigned integer.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr unsigned int size() const noexcept { return (XHI-XLO+1)*(YHI-YLO+1)*(ZHI-ZLO+1); }
+        static unsigned int size() noexcept { return (XHI-XLO+1)*(YHI-YLO+1)*(ZHI-ZLO+1); }
 
         /**
          * Index of the lower bound of the Array3D object in the x direction.
