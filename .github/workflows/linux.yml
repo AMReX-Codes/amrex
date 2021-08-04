@@ -320,3 +320,22 @@ jobs:
       run: |
         cd build
         ctest --output-on-failure -R
+
+  test_hdf5:
+    name: HDF5 I/O Test [tests]
+    runs-on: ubuntu-18.04
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code"}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/dependencies.sh
+        sudo apt-get install libhdf5-dev
+    - name: Build & Test
+      run: |
+        cd Tests/HDF5Benchmark
+        sed -i "s/HDF5_HOME/#HDF5_HOME/g" ./GNUmakefile
+        make -j 2
+        mpirun -np 2 ./main3d.gnu.TPROF.MPI.ex ./inputs
+        h5dump -d "level_0/data:offsets=0" -s "1" -c "1" plt00000.h5
+        h5dump -d "level_0/data:datatype=1" -s "1" -c "1" plt00000/particle0/particle0.h5
