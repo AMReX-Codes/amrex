@@ -14,6 +14,8 @@
 #ifdef AMREX_USE_EB
 #include <AMReX_EB2.H>
 #include <AMReX_EBFabFactory.H>
+#include <AMReX_EBInterpolater.H>
+#include <AMReX_EBMFInterpolater.H>
 #endif
 
 #ifdef AMREX_USE_OMP
