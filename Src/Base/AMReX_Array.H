@@ -44,7 +44,7 @@ namespace amrex {
         T& operator [] (int i) noexcept { return arr[i]; }
 
         /**
-         * data() returns a pointer to the underlying data of a GpuArray object.
+         * Returns a pointer to the underlying data of a GpuArray object.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* data () const noexcept { return arr; }
@@ -53,38 +53,47 @@ namespace amrex {
         T* data () noexcept { return arr; }
 
         /**
-         * size() returns the number of items in the GpuArray object as an unsigned integer.
+         * Returns the number of items in the GpuArray object as an unsigned integer.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr unsigned int size() const noexcept { return N; }
 
         /**
-         * begin() returns a pointer to the first element of the GpuArray object;
-         * end() returns a pointer to the last element.
+         * Returns a pointer to the first element of the GpuArray object.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* begin() const noexcept { return arr; }
 
+        /**
+         * Returns a pointer to the last element.
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* end() const noexcept { return arr + N; }
 
+        /**
+         * Returns a pointer to the first element of the GpuArray object.
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* begin() noexcept { return arr; }
 
+        /**
+         * Returns a pointer to the last element.
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* end() noexcept { return arr + N; }
 
         /**
-         * fill() fills in all of the elements in the GpuArray object to the same value.
-         * @param value The value to fill
+         * Fills in all of the elements in the GpuArray object to the same value.
+         *
+         * \param value The fill value
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void fill( const T& value ) noexcept
         { for (unsigned int i = 0; i < N; ++i) arr[i] = value; }
 
         /**
-         * sum() and product() returns the sum and product of all elements in the GpuArray object, respectively.
-         * Both only make sense for basic integral and floating-point types.
+         * Returns the sum of all elements in the GpuArray object. Only makes sense
+         * for integers and floating-point types.
          */
         template <typename F=T,
                   typename std::enable_if<std::is_floating_point<F>::value,int>::type FOO = 0>
@@ -96,6 +105,11 @@ namespace amrex {
             return s;
         }
 
+        /**
+         * Returns the product of all elements in the GpuArray object. Only makes sense
+         * for integers and floating-point types.
+         */
+
         template <typename F=T,
                   typename std::enable_if<std::is_floating_point<F>::value,int>::type FOO = 0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -106,6 +120,10 @@ namespace amrex {
             return p;
         }
 
+        /**
+         * Returns the sum of all elements in the GpuArray object. Only makes sense
+         * for integers and floating-point types.
+         */
         template <typename I=T,
                   typename std::enable_if<std::is_integral<I>::value,int>::type FOO = 0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -116,6 +134,10 @@ namespace amrex {
             return s;
         }
 
+        /**
+         * Returns the product of all elements in the GpuArray object. Only makes sense
+         * for integers and floating-point types.
+         */
         template <typename I=T,
                   typename std::enable_if<std::is_integral<I>::value,int>::type FOO = 0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -136,8 +158,9 @@ namespace amrex {
 namespace amrex {
 
     /**
-     * Array2D and Array3D objects can be indexed according to Fortran column-major order (first index moving fastest)
-     * or C/C++ row-major order (last index moving fastest). If not specified, Fortran order is assumed.
+     * Array2D and Array3D objects can be indexed according to Fortran column-major
+     * order (first index moving fastest) * or C/C++ row-major order (last index
+     * moving fastest). If not specified, Fortran order is assumed.
      */
     namespace Order {
         struct C {};
@@ -148,13 +171,13 @@ namespace amrex {
     struct Array1D
     {
         /**
-         * size() returns the number of elements in the Array1D object as an unsigned integer.
+         * Returns the number of elements in the Array1D object as an unsigned integer.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr unsigned int size() const noexcept { return (XHI-XLO+1); }
 
         /**
-         * When called without any arguments, length() returns a Dim3 containing the number of items in the Array1D object.
+         * When called without any arguments, returns a Dim3 containing the number of items in the Array1D object.
          * When called with an optional argument axis, length(axis) returns the number of items as an unsigned integer.
          * For Array1D, the only valid value for axis is 0.
          */
@@ -295,7 +318,7 @@ namespace amrex {
          * When called with an optional argument axis, length(axis) returns the number of items for that particular dimension
          * as an unsigned integer.
          * For Array2D, the valid values for axis are 0 or 1.
-         * @param axis The specified dimension (0 for x dimension, 1 for y dimension)
+         * \param axis The specified dimension (0 for x dimension, 1 for y dimension)
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr unsigned int length(const int axis) const noexcept {
@@ -317,7 +340,7 @@ namespace amrex {
         /**
          * As with length(), these functions can be called with an optional argument axis.
          * For Array2D, the valid values for axis are 0 or 1.
-         * @param axis The specified dimension (0 for x dimension, 1 for y dimension)
+         * \param axis The specified dimension (0 for x dimension, 1 for y dimension)
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr int lbound(const int axis) const noexcept {
@@ -406,8 +429,8 @@ namespace amrex {
          * }
          * \endverbatim
          * In this example, the axis is 1 and the location index is i.
-         * @param axis The dimension to reduce (0 for x dimension, 1 for y dimension)
-         * @param loc  The appropriate location index
+         * \param axis The dimension to reduce (0 for x dimension, 1 for y dimension)
+         * \param loc  The appropriate location index
          */
         template <typename O=ORDER,
                   typename F=T,
@@ -714,7 +737,7 @@ namespace amrex {
          * When called with an optional argument axis, length(axis) returns the number of items for that particular dimension
          * as an unsigned integer.
          * For Array3D, the valid values for axis are 0, 1, or 2.
-         * @param axis The specified dimension (0 for x dimension, 1 for y dimension, 2 for z dimension)
+         * \param axis The specified dimension (0 for x dimension, 1 for y dimension, 2 for z dimension)
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr unsigned int length(const int axis) const noexcept {
@@ -737,7 +760,7 @@ namespace amrex {
         /**
          * As with length(), lbound() and ubound() can be called with an optional argument axis.
          * For Array3D, the valid values for axis are 0, 1, or 2.
-         * @param axis The specified dimension (0 for x dimension, 1 for y dimension, 2 for z dimension)
+         * \param axis The specified dimension (0 for x dimension, 1 for y dimension, 2 for z dimension)
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr int lbound(const int axis) const noexcept {
@@ -816,27 +839,25 @@ namespace amrex {
          * Alternatively, one could instantiate an Array2D object of the appropriate bounds and call sum(axis,loc0,loc1) or
          * product(axis,loc0,loc1) to perform the reduction only on the specified axis, for particular indices loc0 and loc1.
          * This can be used, for instance, to calculate the sum over the x dimension of an Array3D object that was instantiated as
-         * \verbatim
-         * Array3D<amrex::Real, 1, M, 1, N, 1, K> array;
-         * \endverbatim
+         * \verbatim Array3D<amrex::Real, 1, M, 1, N, 1, K> array; \endverbatim
          * one could instantiate an Array2D object to hold the results,
          * \verbatim
-         * Array2D<amrex::Real, 1, N, 1, K> mat;
-         * \endverbatim
+           Array2D<amrex::Real, 1, N, 1, K> mat;
+           \endverbatim
          * and then perform the summation for each element of the resulting matrix.
          * \verbatim
-         * for     (int j = 1; j <= N; ++j) {
-         *     for (int k = 1; k <= K; ++k) {
-         *         mat(j,k) = array.sum(0,j,k)
-         *     }
-         * }
-         * \endverbatim
+           for     (int j = 1; j <= N; ++j) {
+              for (int k = 1; k <= K; ++k) {
+                  mat(j,k) = array.sum(0,j,k)
+              }
+           }
+           \endverbatim
          * In this example, the axis is 0 and the location indices are loc0 = j and loc1 = k.
          * For axis = 1, the location indices are treated as loc0 = i and loc1 = k;
          * for axis = 2, loc0 = j and loc1 = k.
-         * @param axis The dimension to reduce (0 for x dimension, 1 for y dimension, 2 for z dimension)
-         * @param loc0 The appropriate location index (either i or j)
-         * @param loc1 The appropriate location index (either j or k)
+         * \param axis The dimension to reduce (0 for x dimension, 1 for y dimension, 2 for z dimension)
+         * \param loc0 The appropriate location index (either i or j)
+         * \param loc1 The appropriate location index (either j or k)
          */
         template <typename O=ORDER,
                   typename F=T,
