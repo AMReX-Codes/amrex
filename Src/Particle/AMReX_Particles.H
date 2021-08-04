@@ -1352,12 +1352,12 @@ public:
                     const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
                     const Vector<std::map<std::pair<int, int>,IntVector>>& particle_io_flags) const;
 #ifdef AMREX_USE_HDF5
-    void 
-    WriteParticlesHDF5 (int level, hid_t grp, 
+    void
+    WriteParticlesHDF5 (int level, hid_t grp,
                         Vector<int>& which, Vector<int>& count, Vector<Long>& where,
                         const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
                         const Vector<std::map<std::pair<int, int>,IntVector>>& particle_io_flags) const;
-#endif    
+#endif
 
 protected:
 

@@ -946,7 +946,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
             H5Pset_deflate(dcpl, (int)comp_value);
 
         if (ParallelDescriptor::MyProc() == 0) {
-            std::cout << "HDF5 checkpoint using " << mode_env << ", " << 
+            std::cout << "HDF5 checkpoint using " << mode_env << ", " <<
                 comp_value << ", " << chunk_dim << std::endl;
         }
     }

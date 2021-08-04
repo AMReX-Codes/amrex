@@ -548,7 +548,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
-::WriteParticlesHDF5 (int lev, hid_t grp, 
+::WriteParticlesHDF5 (int lev, hid_t grp,
                       Vector<int>& which, Vector<int>& count, Vector<Long>& where,
                       const Vector<int>& write_real_comp,
                       const Vector<int>& write_int_comp,
@@ -601,7 +601,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             H5Pset_deflate(dcpl, (int)comp_value);
 
         if (ParallelDescriptor::MyProc() == 0) {
-            std::cout << "HDF5 checkpoint using " << mode_env << ", " << 
+            std::cout << "HDF5 checkpoint using " << mode_env << ", " <<
                 comp_value << ", " << chunk_dim << std::endl;
         }
     }
@@ -656,7 +656,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
     #ifdef BL_USE_MPI
     // Collect the number of mf and total size of mf from each rank
-    MPI_Allgather(&my_mfi_cnt, 1, ParallelDescriptor::Mpi_typemap<int>::type(), &(all_mfi_cnt[0]), 1, 
+    MPI_Allgather(&my_mfi_cnt, 1, ParallelDescriptor::Mpi_typemap<int>::type(), &(all_mfi_cnt[0]), 1,
                   ParallelDescriptor::Mpi_typemap<int>::type(), ParallelDescriptor::Communicator());
 
     for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
@@ -1237,7 +1237,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
 template <class RTYPE>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
-::ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev, 
+::ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev,
                      hid_t int_dset, hid_t real_dset, int finest_level_in_file)
 {
     BL_PROFILE("ParticleContainer::ReadParticlesHDF5()");
