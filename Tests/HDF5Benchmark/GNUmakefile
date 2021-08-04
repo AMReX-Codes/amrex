@@ -25,8 +25,6 @@ USE_HDF5  = TRUE
 HDF5_HOME = $(OLCF_HDF5_ROOT)
 
 USE_HDF5_ZFP = FALSE
-USE_HDF5_ZFP = TRUE
-# H5Z_HOME  = /gpfs/alpine/csc300/world-shared/gnu_build/H5Z-ZFP-hdf5-develop/install
 H5Z_HOME  = /gpfs/alpine/csc300/world-shared/gnu_build/H5Z-ZFP/install
 ZFP_HOME  = /gpfs/alpine/csc300/world-shared/gnu_build/zfp
 
