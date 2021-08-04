@@ -585,11 +585,11 @@ public:
 
    //! Set all values outside the Geometry domain to val.
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
-    void setDomainBndry (value_type val, const Geometry& goem);
+    void setDomainBndry (value_type val, const Geometry& geom);
 
     //! Set ncomp values outside the Geometry domain to val, starting at start_comp.
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
-    void setDomainBndry (value_type val, int strt_comp, int ncomp, const Geometry& goem);
+    void setDomainBndry (value_type val, int strt_comp, int ncomp, const Geometry& geom);
 
     /**
     * \brief This function copies data from fa to this FabArray.  Each FAB
@@ -1895,6 +1895,8 @@ FabArray<FAB>::setDomainBndry (value_type val,
                                int        ncomp,
                                const Geometry& geom)
 {
+    BL_PROFILE("FabArray::setDomainBndry()");
+
     Box domain_box = amrex::convert(geom.Domain(), boxArray().ixType());
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (geom.isPeriodic(idim)) {
@@ -2061,6 +2063,8 @@ FabArray<FAB>::abs (int comp, int ncomp, const IntVect& nghost)
 {
     BL_ASSERT(nghost.allGE(IntVect::TheZeroVector()) && nghost.allLE(n_grow));
     BL_ASSERT(comp+ncomp <= n_comp);
+    BL_PROFILE("FabArray::abs()");
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -2080,6 +2084,8 @@ template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
 void
 FabArray<FAB>::plus (value_type val, int comp, int num_comp, int nghost)
 {
+    BL_PROFILE("FabArray::plus()");
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -2099,6 +2105,8 @@ template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
 void
 FabArray<FAB>::plus (value_type val, const Box& region, int comp, int num_comp, int nghost)
 {
+    BL_PROFILE("FabArray::plus(val, region, comp, num_comp, nghost)");
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -2120,6 +2128,8 @@ template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
 void
 FabArray<FAB>::mult (value_type val, int comp, int num_comp, int nghost)
 {
+    BL_PROFILE("FabArray::mult()");
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -2139,6 +2149,8 @@ template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
 void
 FabArray<FAB>::mult (value_type val, const Box& region, int comp, int num_comp, int nghost)
 {
+    BL_PROFILE("FabArray::mult(val, region, comp, num_comp, nghost)");
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -2160,6 +2172,8 @@ template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
 void
 FabArray<FAB>::invert (value_type numerator, int comp, int num_comp, int nghost)
 {
+    BL_PROFILE("FabArray::invert()");
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -2179,6 +2193,8 @@ template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
 void
 FabArray<FAB>::invert (value_type numerator, const Box& region, int comp, int num_comp, int nghost)
 {
+    BL_PROFILE("FabArray::invert(numerator, region, comp, num_comp, nghost)");
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -2433,6 +2449,8 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
                           value_type covered, value_type notcovered,
                           value_type physbnd, value_type interior)
 {
+    BL_PROFILE("FabArray::BuildMask()");
+
     int ncomp = this->nComp();
     const IntVect& ngrow = this->nGrowVect();
 
@@ -2474,6 +2492,8 @@ template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type>
 void
 FabArray<FAB>::setVal (value_type val, const CommMetaData& thecmd, int scomp, int ncomp)
 {
+    BL_PROFILE("FabArray::setVal(val, thecmd, scomp, ncomp)");
+
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
@@ -2512,6 +2532,8 @@ template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type>
 LayoutData<int>
 FabArray<FAB>::RecvLayoutMask (const CommMetaData& thecmd)
 {
+    BL_PROFILE("FabArray::RecvLayoutMask()");
+
     LayoutData<int> r(this->boxArray(), this->DistributionMap());
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (thecmd.m_threadsafe_rcv)

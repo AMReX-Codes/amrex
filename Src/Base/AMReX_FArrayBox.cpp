@@ -784,7 +784,7 @@ FABio_8bit::write (std::ostream&    os,
 {
     BL_ASSERT(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= f.nComp());
 
-    const Real eps = 1.0e-8_rt; // FIXME - whats a better value?
+    const Real eps = 1.0e-8_rt; // FIXME - what's a better value?
     const Long siz = f.box().numPts();
 
     unsigned char *c = new unsigned char[siz];

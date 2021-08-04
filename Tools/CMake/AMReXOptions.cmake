@@ -38,7 +38,7 @@ message(STATUS "Configuring AMReX with the following options enabled: ")
 #
 # This is the option to enable/disable xSDK mode
 #
-# To handle both XSDK options and correponding plain AMReX options,
+# To handle both XSDK options and corresponding plain AMReX options,
 # we make use of policy CMP0077 introduced as a default in CMake 3.13
 # Under policy CMP0077, normal variables prevent option()
 # to set internal variables of the same name.

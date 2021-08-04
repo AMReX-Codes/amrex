@@ -7,6 +7,9 @@
 #include "AMReX_PlotFileUtil.H"
 #include <AMReX_AmrParticles.H>
 
+#include "mypc.H"
+#include "trilinear_deposition_K.H"
+
 using namespace amrex;
 
 struct TestParams {
@@ -61,13 +64,15 @@ void testParticleMesh (TestParams& parms)
         domain.refine(2);
     }
 
-    Vector<MultiFab> density(parms.nlevs);
+    Vector<MultiFab> density1(parms.nlevs);
+    Vector<MultiFab> density2(parms.nlevs);
     for (int lev = 0; lev < parms.nlevs; lev++) {
-        density[lev].define(ba[lev], dm[lev], 1, 1);
-        density[lev].setVal(0.0);
+        density1[lev].define(ba[lev], dm[lev], 1, 1);
+        density1[lev].setVal(0.0);
+        density2[lev].define(ba[lev], dm[lev], 1, 1);
+        density2[lev].setVal(0.0);
     }
 
-    typedef ParticleContainer<1> MyParticleContainer;
     MyParticleContainer myPC(geom, dm, ba, rr);
     myPC.SetVerbose(false);
 
@@ -81,7 +86,10 @@ void testParticleMesh (TestParams& parms)
     MyParticleContainer::ParticleInitData pdata = {{mass}, {}, {}, {}};
     myPC.InitRandom(num_particles, iseed, pdata, serialize);
 
-    amrex::ParticleToMesh(myPC, GetVecOfPtrs(density), 0, parms.nlevs-1,
+    //
+    // Here we provide an example of one way to call ParticleToMesh
+    //
+    amrex::ParticleToMesh(myPC, GetVecOfPtrs(density1), 0, parms.nlevs-1,
         [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& p,
                               amrex::Array4<amrex::Real> const& rho,
                               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
@@ -113,6 +121,20 @@ void testParticleMesh (TestParams& parms)
           }
       });
 
+    //
+    // Here we provide an example of another way to call ParticleToMesh
+    //
+    int start_part_comp = 0;
+    int start_mesh_comp = 0;
+    int        num_comp = 1;
+
+    ParticleToMesh(myPC,GetVecOfPtrs(density2),0,parms.nlevs-1,
+                   TrilinearDeposition{start_part_comp,start_mesh_comp,num_comp});
+
+    //
+    // Now write the output from each into separate plotfiles for comparison
+    //
+
     Vector<std::string> varnames;
     varnames.push_back("density");
 
@@ -128,13 +150,20 @@ void testParticleMesh (TestParams& parms)
     Vector<const MultiFab*> outputMF(output_levs);
     Vector<IntVect> outputRR(output_levs);
     for (int lev = 0; lev < output_levs; ++lev) {
-        outputMF[lev] = &density[lev];
+        outputMF[lev] = &density1[lev];
         outputRR[lev] = IntVect(AMREX_D_DECL(2, 2, 2));
     }
-
-    WriteMultiLevelPlotfile("plt00000", output_levs, outputMF,
+    WriteMultiLevelPlotfile("plt00000_v1", output_levs, outputMF,
                             varnames, geom, 0.0, level_steps, outputRR);
-    myPC.Checkpoint("plt00000", "particle0", true, particle_varnames);
+    myPC.Checkpoint("plt00000_v1", "particle0", true, particle_varnames);
+
+    for (int lev = 0; lev < output_levs; ++lev) {
+        outputMF[lev] = &density2[lev];
+        outputRR[lev] = IntVect(AMREX_D_DECL(2, 2, 2));
+    }
+    WriteMultiLevelPlotfile("plt00000_v2", output_levs, outputMF,
+                            varnames, geom, 0.0, level_steps, outputRR);
+    myPC.Checkpoint("plt00000_v2", "particle0", true, particle_varnames);
 }
 
 int main(int argc, char* argv[])

@@ -95,7 +95,7 @@ enum parser_node_t {
 
 union parser_nvp {
     struct parser_node* n;
-    Real v;
+    double v;
     int ip;
 };
 
@@ -109,7 +109,7 @@ struct parser_node {
 
 struct parser_number {
     enum parser_node_t type;
-    Real value;
+    double value;
 };
 
 struct parser_symbol {
@@ -131,7 +131,7 @@ struct parser_f2 {  /* Builtin functions with two arguments */
     enum parser_f2_t ftype;
 };
 
-struct parser_f3 { /* Builtin funcitons with three arguments */
+struct parser_f3 { /* Builtin functions with three arguments */
     enum parser_node_t type;
     struct parser_node* n1;
     struct parser_node* n2;
@@ -154,7 +154,7 @@ void parser_defexpr (struct parser_node* body);
 struct parser_symbol* parser_makesymbol (char* name);
 struct parser_node* parser_newnode (enum parser_node_t type, struct parser_node* l,
                                     struct parser_node* r);
-struct parser_node* parser_newnumber (Real d);
+struct parser_node* parser_newnumber (double d);
 struct parser_node* parser_newsymbol (struct parser_symbol* sym);
 struct parser_node* parser_newf1 (enum parser_f1_t ftype, struct parser_node* l);
 struct parser_node* parser_newf2 (enum parser_f2_t ftype, struct parser_node* l,
@@ -184,7 +184,7 @@ struct amrex_parser* parser_dup (struct amrex_parser* source);
 struct parser_node* parser_ast_dup (struct amrex_parser* parser, struct parser_node* src, int move);
 
 void parser_regvar (struct amrex_parser* parser, char const* name, int i);
-void parser_setconst (struct amrex_parser* parser, char const* name, Real c);
+void parser_setconst (struct amrex_parser* parser, char const* name, double c);
 void parser_print (struct amrex_parser* parser);
 std::set<std::string> parser_get_symbols (struct amrex_parser* parser);
 int parser_depth (struct amrex_parser* parser);
@@ -194,14 +194,14 @@ void parser_ast_optimize (struct parser_node* node);
 std::size_t parser_ast_size (struct parser_node* node);
 void parser_ast_print (struct parser_node* node, std::string const& space, AllPrint& printer);
 void parser_ast_regvar (struct parser_node* node, char const* name, int i);
-void parser_ast_setconst (struct parser_node* node, char const* name, Real c);
+void parser_ast_setconst (struct parser_node* node, char const* name, double c);
 void parser_ast_get_symbols (struct parser_node* node, std::set<std::string>& symbols);
 int parser_ast_depth (struct parser_node* node);
 
 /*******************************************************************/
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Real
-parser_call_f1 (enum parser_f1_t type, Real a)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE double
+parser_call_f1 (enum parser_f1_t type, double a)
 {
     switch (type) {
     case PARSER_SQRT:        return std::sqrt(a);
@@ -218,42 +218,42 @@ parser_call_f1 (enum parser_f1_t type, Real a)
     case PARSER_COSH:        return std::cosh(a);
     case PARSER_TANH:        return std::tanh(a);
     case PARSER_ABS:         return amrex::Math::abs(a);
-    case PARSER_POW_M3:      return amrex::Real(1.0)/(a*a*a);
-    case PARSER_POW_M2:      return amrex::Real(1.0)/(a*a);
-    case PARSER_POW_M1:      return amrex::Real(1.0)/a;
+    case PARSER_POW_M3:      return 1.0/(a*a*a);
+    case PARSER_POW_M2:      return 1.0/(a*a);
+    case PARSER_POW_M1:      return 1.0/a;
     case PARSER_POW_P1:      return a;
     case PARSER_POW_P2:      return a*a;
     case PARSER_POW_P3:      return a*a*a;
     default:
         amrex::Abort("parser_call_f1: Unknown function ");
-        return Real(0.0);
+        return 0.0;
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Real
-parser_call_f2 (enum parser_f2_t type, Real a, Real b)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE double
+parser_call_f2 (enum parser_f2_t type, double a, double b)
 {
     switch (type) {
     case PARSER_POW:
         return std::pow(a,b);
     case PARSER_GT:
-        return (a > b) ? Real(1.0) : Real(0.0);
+        return (a > b) ? 1.0 : 0.0;
     case PARSER_LT:
-        return (a < b) ? Real(1.0) : Real(0.0);
+        return (a < b) ? 1.0 : 0.0;
     case PARSER_GEQ:
-        return (a >= b) ? Real(1.0) : Real(0.0);
+        return (a >= b) ? 1.0 : 0.0;
     case PARSER_LEQ:
-        return (a <= b) ? Real(1.0) : Real(0.0);
+        return (a <= b) ? 1.0 : 0.0;
     case PARSER_EQ:
-        return (a == b) ? Real(1.0) : Real(0.0);
+        return (a == b) ? 1.0 : 0.0;
     case PARSER_NEQ:
-        return (a != b) ? Real(1.0) : Real(0.0);
+        return (a != b) ? 1.0 : 0.0;
     case PARSER_AND:
-        return ((a != Real(0.0)) && (b != Real(0.0))) ? Real(1.0) : Real(0.0);
+        return ((a != 0.0) && (b != 0.0)) ? 1.0 : 0.0;
     case PARSER_OR:
-        return ((a != Real(0.0)) || (b != Real(0.0))) ? Real(1.0) : Real(0.0);
+        return ((a != 0.0) || (b != 0.0)) ? 1.0 : 0.0;
     case PARSER_HEAVISIDE:
-        return (a < Real(0.0)) ? Real(0.0) : ((a > Real(0.0)) ? Real(1.0) : b);
+        return (a < 0.0) ? 0.0 : ((a > 0.0) ? 1.0 : b);
     case PARSER_JN:
 #if defined AMREX_USE_DPCPP || defined __MINGW32__
         // neither jn(f) nor std::cyl_bessel_j work yet
@@ -261,11 +261,7 @@ parser_call_f2 (enum parser_f2_t type, Real a, Real b)
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "parser_call_f2: jn in SYCL/DPC++ not supported yet");
         return 0.0;
 #else
-#   if defined(AMREX_USE_FLOAT) && !defined(__APPLE__)
-        return jnf(int(a), b);
-#   else
         return jn(int(a), b);
-#   endif
 #endif
     case PARSER_MIN:
         return (a < b) ? a : b;
@@ -273,15 +269,15 @@ parser_call_f2 (enum parser_f2_t type, Real a, Real b)
         return (a > b) ? a : b;
     default:
         amrex::Abort("parser_call_f2: Unknown function");
-        return Real(0.0);
+        return 0.0;
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Real
-parser_call_f3 (enum parser_f3_t /*type*/, Real a, Real b, Real c)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE double
+parser_call_f3 (enum parser_f3_t /*type*/, double a, double b, double c)
 {
     // There is only one type currently
-    return (a != Real(0.0)) ? b : c;
+    return (a != 0.0) ? b : c;
 }
 
 }

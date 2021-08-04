@@ -98,7 +98,7 @@ def ppCleanup(cwfile, infile, oufile):
                 if status:
                     # "ifdef" block is CLEANUP, so "else" block is KEEP
                     cleanupstack.append(False)
-                else: # There are two possibilies:
+                else: # There are two possibilities:
                     if dw in cleanWords:
                         cleanupstack.append(True)
                     else:

@@ -826,7 +826,7 @@ void BLProfiler::WriteBaseProfile(bool bFlushing, bool memCheck) {   // ---- wri
 
   // Print to std::out if this is a Finalize call
   //    or if user sets print on flushes.
-  // Should generally be turned off as this requires syncronization.
+  // Should generally be turned off as this requires synchronization.
   if ((!bFlushing) || (bFlushPrint)) {
     // ---------------------------------- now collect global data onto the ioproc
     int maxlen(0);

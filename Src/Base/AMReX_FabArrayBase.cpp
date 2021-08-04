@@ -55,10 +55,8 @@ IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
 
 #if defined(AMREX_USE_GPU) || !defined(AMREX_USE_OMP)
 IntVect FabArrayBase::comm_tile_size(AMREX_D_DECL(1024000, 1024000, 1024000));
-IntVect FabArrayBase::mfghostiter_tile_size(AMREX_D_DECL(1024000, 1024000, 1024000));
 #else
 IntVect FabArrayBase::comm_tile_size(AMREX_D_DECL(1024000, 8, 8));
-IntVect FabArrayBase::mfghostiter_tile_size(AMREX_D_DECL(1024000, 8, 8));
 #endif
 
 FabArrayBase::TACache              FabArrayBase::m_TheTileArrayCache;
@@ -111,11 +109,6 @@ FabArrayBase::Initialize ()
     if (pp.queryarr("mfiter_tile_size", tilesize, 0, AMREX_SPACEDIM))
     {
         for (int i=0; i<AMREX_SPACEDIM; i++) FabArrayBase::mfiter_tile_size[i] = tilesize[i];
-    }
-
-    if (pp.queryarr("mfghostiter_tile_size", tilesize, 0, AMREX_SPACEDIM))
-    {
-        for (int i=0; i<AMREX_SPACEDIM; i++) FabArrayBase::mfghostiter_tile_size[i] = tilesize[i];
     }
 
     if (pp.queryarr("comm_tile_size", tilesize, 0, AMREX_SPACEDIM))
@@ -1227,7 +1220,7 @@ FabArrayBase::RB90::define (const FabArrayBase& fa)
                     const int ksnd = isects[j].first;
                     Box bxsnd = isects[j].second;
                     // the ghost cells at hi-x, hi-y, lo-z, and hi-z
-                    // boundares are also the source
+                    // boundaries are also the source
                     if (bxsnd.bigEnd(n) == m_domain.bigEnd(n)) {
                         bxsnd.growHi(n,m_ngrow[n]);
                     }
@@ -1395,7 +1388,7 @@ FabArrayBase::RB180::define (const FabArrayBase& fa)
                 const int ksnd = isects[j].first;
                 Box bxsnd = isects[j].second;
                 // the ghost cells at lo-y, hi-y, lo-z, and hi-z
-                // boundares are also the source
+                // boundaries are also the source
                 for (int idim = 1; idim < AMREX_SPACEDIM; ++idim) {
                     if (bxsnd.smallEnd(idim) == m_domain.smallEnd(idim)) {
                         bxsnd.growLo(idim, m_ngrow[idim]);
@@ -1754,7 +1747,11 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 #endif
                     numblk[longdir] *= 2;
                 }
-                numblk.min(len);
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    // make sure not to use too many blocks that could
+                    // result in very small boxes
+                    numblk[idim] = std::min(numblk[idim], (len[idim]+15)/16);
+                }
                 IntVect sz, extra;
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                     sz[idim] = len[idim] / numblk[idim];
@@ -2489,9 +2486,11 @@ FabArrayBase::is_cell_centered () const noexcept
 
 #ifdef AMREX_USE_GPU
 
-FabArrayBase::ParForInfo::ParForInfo (const FabArrayBase& fa, const IntVect& nghost)
+FabArrayBase::ParForInfo::ParForInfo (const FabArrayBase& fa, const IntVect& nghost, int nthreads)
     : m_typ(fa.boxArray().ixType()),
       m_crse_ratio(fa.boxArray().crseRatio()),
+      m_ng(nghost),
+      m_nthreads(nthreads),
       m_nblocks_x({nullptr,nullptr})
 {
     Vector<Long> ncells;
@@ -2505,7 +2504,7 @@ FabArrayBase::ParForInfo::ParForInfo (const FabArrayBase& fa, const IntVect& ngh
         }
         ncells.push_back(N);
     }
-    m_nblocks_x = detail::build_par_for_nblocks(ncells);
+    m_nblocks_x = detail::build_par_for_nblocks(ncells, nthreads);
 }
 
 FabArrayBase::ParForInfo::~ParForInfo ()
@@ -2514,19 +2513,21 @@ FabArrayBase::ParForInfo::~ParForInfo ()
 }
 
 FabArrayBase::ParForInfo const&
-FabArrayBase::getParForInfo (const IntVect& nghost) const
+FabArrayBase::getParForInfo (const IntVect& nghost, int nthreads) const
 {
     AMREX_ASSERT(getBDKey() == m_bdkey);
     auto er_it = m_TheParForCache.equal_range(m_bdkey);
     for (auto it = er_it.first; it != er_it.second; ++it) {
         if (it->second->m_typ        == boxArray().ixType()    &&
-            it->second->m_crse_ratio == boxArray().crseRatio())
+            it->second->m_crse_ratio == boxArray().crseRatio() &&
+            it->second->m_ng         == nghost                 &&
+            it->second->m_nthreads   == nthreads)
         {
             return *(it->second);
         }
     }
 
-    ParForInfo* new_pfi = new ParForInfo(*this, nghost);
+    ParForInfo* new_pfi = new ParForInfo(*this, nghost, nthreads);
     m_TheParForCache.insert(er_it.second,
                             std::multimap<BDKey,ParForInfo*>::value_type(m_bdkey,new_pfi));
     return *new_pfi;

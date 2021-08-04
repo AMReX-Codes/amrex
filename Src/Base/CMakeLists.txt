@@ -236,6 +236,16 @@ target_sources( amrex
    Parser/amrex_parser.lex.h
    Parser/amrex_parser.tab.cpp
    Parser/amrex_parser.tab.h
+   Parser/AMReX_IParser.cpp
+   Parser/AMReX_IParser.H
+   Parser/AMReX_IParser_Exe.cpp
+   Parser/AMReX_IParser_Exe.H
+   Parser/AMReX_IParser_Y.cpp
+   Parser/AMReX_IParser_Y.H
+   Parser/amrex_iparser.lex.cpp
+   Parser/amrex_iparser.lex.h
+   Parser/amrex_iparser.tab.cpp
+   Parser/amrex_iparser.tab.h
    # Forward declaration -----------------------------------------------------
    AMReX_BaseFwd.H
    )

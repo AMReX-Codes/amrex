@@ -289,7 +289,7 @@ int MaskCoveredCells(const amrex::Box &pdom, const amrex::BoxArray &cBoxes,
                 // shift to array indexing space
                 iBox -= cBox.smallEnd();
 
-                // indeces of covered region
+                // indices of covered region
                 int iLo[3] = {AMREX_ARLIM(iBox.loVect())};
                 int iHi[3] = {AMREX_ARLIM(iBox.hiVect())};
 
@@ -303,7 +303,7 @@ int MaskCoveredCells(const amrex::Box &pdom, const amrex::BoxArray &cBoxes,
 }
 
 
-// helper to track names and centerings of the avaliable arrays
+// helper to track names and centerings of the available arrays
 class StateMap
 {
 public:

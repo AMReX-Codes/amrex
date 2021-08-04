@@ -50,18 +50,35 @@ your fork.
 - Create a Pull Request from branch `<branch_name>` on your fork to branch
 `development` on the main AMReX repository.
 
-First, let us setup your local git repo. Make your own fork of the main
-(`upstream`) repository:
-on the [AMReX Github page](https://github.com/AMReX-Codes/amrex), press the
-fork button.
+First, let us setup your local git repo. To make your own fork of the main
+(`upstream`) repository, press the fork button on the [AMReX Github page](https://github.com/AMReX-Codes/amrex).
 
-If you already had a fork of AMReX prior to 4/17/2020, we recommend deleting it and re-forking.
-This is due to a history re-write on the main repository. Note that you will lose any branches
-on your fork that haven't been merged into main development yet.
+> Note: If you already had a fork of AMReX prior to 4/17/2020, we recommend deleting it and re-forking.
+> This is due to a history re-write on the main repository. Note that you will lose any branches
+> on your fork that haven't been merged into main development yet.
 
-Then, you can execute:
+Then, clone your fork on your local computer. If you plan on doing a lot of amrex development,
+we recommend configuring your clone to use ssh access so you won't have to enter your Github
+password every time, which you can do using these commands:
+
 ```
-# Clone your fork on your local computer. You can get this address on your fork's Github page.
+git clone --branch development git@github.com:<myGithubUsername>/amrex.git
+
+# Then, navigate into your repo, add a new remote for the main AMReX repo, and fetch it:
+cd amrex
+git remote add upstream https://github.com/AMReX-Codes/amrex
+git remote set-url --push upstream git@github.com:<myGithubUsername>/amrex.git
+git fetch upstream
+
+# We recommend setting your development branch to track the upstream one instead of your fork:
+git branch -u upstream/development
+```
+
+For instructions on setting up SSH access to your Github account on a new machine, see [here.](https://docs.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh)
+
+If you instead prefer to use HTTPS authentication, configure your local clone as follows:
+
+```
 git clone --branch development https://github.com/<myGithubUsername>/amrex.git
 
 # Navigate into your repo, add a new remote for the main AMReX repo, and fetch it
@@ -73,6 +90,7 @@ git fetch upstream
 # We recommend setting your development branch to track the upstream one instead of your fork:
 git branch -u upstream/development
 ```
+
 Now you are free to play with your fork (for additional information, you can visit the
 [Github fork help page](https://help.github.com/en/articles/fork-a-repo)).
 

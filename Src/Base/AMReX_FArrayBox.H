@@ -101,7 +101,7 @@ public:
     /**
     * \brief Pure virtual function.  Derived classes MUST override this
     * function to read an FArrayBox from the istream, under the
-    * assumption that the header has alread been read.
+    * assumption that the header has already been read.
     */
     virtual void read (std::istream& is,
                        FArrayBox&    fb) const = 0;

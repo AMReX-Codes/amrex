@@ -74,7 +74,7 @@ namespace amrex {
 extern hid_t es_par_g;
 #endif
 /**
-* \brief A struct used for communicating particle data accross processes
+* \brief A struct used for communicating particle data across processes
 *  during multi-level operations.
 */
 struct ParticleCommData
@@ -124,7 +124,7 @@ struct ParticleInitType
 
 /**
  * \brief A distributed container for Particles sorted onto the levels, grids,
- * and tiles of a block-structured AMR hierarachy.
+ * and tiles of a block-structured AMR hierarchy.
  *
  * The data layout on a single tile is determined by the value of the following
  * template parameters:
@@ -458,7 +458,7 @@ public:
     * In a local Redistribute, particles can only have moved a certain distance since the last
     * time Redistribute() was called. Thus, communication only needs to happen between neighboring
     * ranks. In a global Redistribute, the particles can potentially go from any rank to any rank.
-    * This usually happens after initialiation or when doing dynamic load balancing.
+    * This usually happens after initialization or when doing dynamic load balancing.
     *
     * \param lev_min The minimum level consider. Particles on levels less than this will not be
     *                touched, and particles on finer levels will not be assigned to levels less
@@ -470,7 +470,7 @@ public:
     *                Default: -1.
     * \param nGrow If particles are within nGrow cells of their current box, they will not moved.
     *              This is useful for subcycling methods, when fine level particles need to be
-    *              redistributed but are not neccessarily at the same time as those on the coarse
+    *              redistributed but are not necessarily at the same time as those on the coarse
     *              level.
     *              Default: 0
     * \param local If 0, this will be a non-local redistribute, meaning that particle can potentially
@@ -828,7 +828,7 @@ public:
 
     /**
      * \brief This version of WritePlotFile assigns component names, but allows the user to pass
-     * in a vector of ints that toggle on / off the writing of specfic components.
+     * in a vector of ints that toggle on / off the writing of specific components.
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
@@ -842,7 +842,7 @@ public:
 
     /**
      * \brief This version of WritePlotFile assigns component names, but allows the user to pass
-     * in a vector of ints that toggle on / off the writing of specfic components.
+     * in a vector of ints that toggle on / off the writing of specific components.
      *
      * This version also lets you pass in a functor to toggle whether each particle gets output.
      *

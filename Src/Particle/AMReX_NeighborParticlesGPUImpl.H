@@ -51,7 +51,6 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 buildNeighborMask ()
 {
     BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::buildNeighborMask");
-    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
     m_neighbor_mask_initialized = true;
     const int lev = 0;
     const Geometry& geom = this->Geom(lev);
@@ -166,7 +165,6 @@ buildNeighborCopyOp ()
 {
     BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::buildNeighborCopyOp()");
 
-    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
     AMREX_ASSERT(hasNeighbors() == false);
 
     const int lev = 0;
@@ -255,7 +253,6 @@ fillNeighborsGPU ()
 {
     BL_PROFILE("NeighborParticleContainer::fillNeighbors");
 
-    AMREX_ASSERT(this->numLevels() == 1);
     AMREX_ASSERT(numParticlesOutOfRange(*this, 0) == 0);
 
     buildNeighborMask();
@@ -274,8 +271,6 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 updateNeighborsGPU ()
 {
     BL_PROFILE("NeighborParticleContainer::updateNeighborsGPU");
-
-    AMREX_ASSERT(this->numLevels() == 1);
 
     clearNeighbors();
     packBuffer(*this, neighbor_copy_op, neighbor_copy_plan, snd_buffer);

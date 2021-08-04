@@ -69,9 +69,9 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                 get_gaussian_random_momentum(v, a_thermal_momentum_mean,
                                              a_thermal_momentum_std);
 
-                Real x = plo[0] + (iv[0] + r[0])*dx[0];
-                Real y = plo[1] + (iv[1] + r[1])*dx[1];
-                Real z = plo[2] + (iv[2] + r[2])*dx[2];
+                ParticleReal x = static_cast<ParticleReal> (plo[0] + (iv[0] + r[0])*dx[0]);
+                ParticleReal y = static_cast<ParticleReal> (plo[1] + (iv[1] + r[1])*dx[1]);
+                ParticleReal z = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);
 
                 ParticleType p;
                 p.id()  = ParticleType::NextID();
@@ -80,9 +80,9 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                 p.pos(1) = y;
                 p.pos(2) = z;
 
-                p.rdata(PIdx::vx) = v[0];
-                p.rdata(PIdx::vy) = v[1];
-                p.rdata(PIdx::vz) = v[2];
+                p.rdata(PIdx::vx) = static_cast<ParticleReal> (v[0]);
+                p.rdata(PIdx::vy) = static_cast<ParticleReal> (v[1]);
+                p.rdata(PIdx::vz) = static_cast<ParticleReal> (v[2]);
 
                 p.rdata(PIdx::ax) = 0.0;
                 p.rdata(PIdx::ay) = 0.0;
@@ -189,7 +189,7 @@ std::pair<Real, Real> MDParticleContainer::minAndMaxDistance()
     return std::make_pair(min_d, max_d);
 }
 
-void MDParticleContainer::moveParticles(amrex::Real dx)
+void MDParticleContainer::moveParticles(amrex::ParticleReal dx)
 {
     BL_PROFILE("MDParticleContainer::moveParticles");
 
@@ -347,7 +347,7 @@ void MDParticleContainer::checkNeighborList()
         auto nbor_data = m_neighbor_list[lev][index].data();
         ParticleType* pstruct = aos().dataPtr();
 
-        // ON DEVIDE:
+        // ON DEVICE:
         // AMREX_FOR_1D ( np, i,
         // ON HOST:
         // for (int i = 0; i < np; i++)
@@ -446,7 +446,7 @@ void MDParticleContainer::reset_test_id()
         {
             ParticleType& p1 = pstruct[i];
             p1.idata(0) = gid;
-            rdata[i] = (Real) gid;
+            rdata[i] = (ParticleReal) gid;
             idata[i] = gid;
         });
     }

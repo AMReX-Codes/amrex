@@ -7,7 +7,7 @@ Provides tools to perform non-standard operations on CMake targets
 #]=======================================================================]
 
 #
-# Recursively finds the properties associated to _target via all its dependecies.
+# Recursively finds the properties associated to _target via all its dependencies.
 # Basically, it returns all ( including transitive ) includes, defines, flags,
 # and link libraries associated with _target
 # This is essentially a wrapper for get_target_prop_recursive below and should
@@ -37,7 +37,7 @@ endfunction ()
 
 
 #
-# Recursively finds the properties associated to _target via all its dependecies
+# Recursively finds the properties associated to _target via all its dependencies
 # NOT RECOMMENDED to use this function directly.
 # Use get_target_properties_flattened INSTEAD!
 #

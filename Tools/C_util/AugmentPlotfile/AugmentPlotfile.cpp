@@ -31,7 +31,7 @@ static void PrintUsage (const char* progName)
 {
     std::cout << "\nThis utility adds the requested components to the plotfile " << std::endl;
     std::cout << "specified as an input and writes out the original data and   " << std::endl;
-    std::cout << "addtional components to the plotfile specified as an output. " << std::endl;
+    std::cout << "additional components to the plotfile specified as an output. " << std::endl;
     std::cout << '\n';
     std::cout << "Usage:" << '\n';
     std::cout << progName << '\n';

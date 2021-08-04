@@ -257,7 +257,7 @@ public:
     {
         return AMREX_D_TERM(vect[0] != rhs[0], || vect[1] != rhs[1], || vect[2] != rhs[2]);
     }
-    //! Return ture if this is lexicographically less than rhs.
+    //! Return true if this is lexicographically less than rhs.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator< (const IntVect& rhs) const noexcept
     {
@@ -276,13 +276,13 @@ public:
     {
         return !(rhs < *this);
     }
-    //! Retrun true if this is lexicographically greater than rhs.
+    //! Return true if this is lexicographically greater than rhs.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator> (const IntVect& rhs) const noexcept
     {
         return rhs < *this;
     }
-    //! Retrun true if this is lexicographically greater than or equal to rhs.
+    //! Return true if this is lexicographically greater than or equal to rhs.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator>= (const IntVect& rhs) const noexcept
     {

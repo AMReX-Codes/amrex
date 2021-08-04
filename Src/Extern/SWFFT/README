@@ -35,7 +35,7 @@ in "real space" (initial 3D distribution) and "k space" (2D pencils in z).
 
 This code does not work for arbitrary grid sizes and number of MPI ranks.
 The specific constraints are difficult to enumerate in a compact way, but a
-rule of thumb is that it generally works when the number of vertexes along
+rule of thumb is that it generally works when the number of vertices along
 one side of the global 3D grid ("ng")can be factored into small primes, and
 when the number of MPI ranks can also be factored into small primes.
 I believe that all of the unique prime factors of the number of MPI ranks
@@ -69,7 +69,7 @@ with the proposed number of MPI ranks as a command line argument, eg.
 
 $ ./CheckDecomposition <ngx> <ngy> <ngz> <Nproc> [nx ny nz]
 
-where <ngx>, <ngy>, and <ngz> are the number of vertexes along each side
+where <ngx>, <ngy>, and <ngz> are the number of vertices along each side
 of the global grid and <Nproc> is the number of MPI ranks. The user may
 optionally additionally supply the number of MPI ranks in each dimension
 for the 3D communicator as [nx ny nz], and though this option is not currently
@@ -102,11 +102,11 @@ Integer Types
 
 The signature of many MPI functions requires 32-bit integers, so we use those
 where required. The underlying distribution.h/.c code also uses 32-bit
-integers to keep track of the number of grid vertexes along the sides of
+integers to keep track of the number of grid vertices along the sides of
 the global grid, which likely does not present a practical limit on the
 size of 3D grids in the near future. I believe we always use 64-bit integers
 for iteration through the grids values themselves, so the total number of
-grid vertexes locally and globally should not be limited by 32-bit integer
+grid vertices locally and globally should not be limited by 32-bit integer
 size. This distribution code has been tested up to 16384^3 global grid and
 on >~10^6 MPI-ranks.
 
