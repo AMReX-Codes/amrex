@@ -332,7 +332,7 @@ jobs:
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
-        sudo apt-get install libhdf5-dev
+        sudo apt-get install libhdf5-openmpi-dev
     - name: Build & Test
       run: |
         cd Tests/HDF5Benchmark
