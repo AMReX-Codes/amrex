@@ -162,7 +162,7 @@ namespace amrex {
         }
 
         /**
-         * GpuArray is implemented as a static array. Hence, no constructor or
+         * GpuArray is implemented as a fixed-size array. Hence, no constructor or
          * destructor is given.
          */
         T arr[amrex::max(N,1u)];
@@ -291,7 +291,7 @@ namespace amrex {
         }
 
         /**
-         * Array1D is implemented as a static array.
+         * Array1D is implemented as a fixed-size array.
          * Hence, no constructor or destructor is given.
          */
         T arr[(XHI-XLO+1)];
@@ -705,7 +705,7 @@ for (int j = 1; j <= N; ++j) {
         }
 
         /**
-         * Array2D is implemented as a static array.
+         * Array2D is implemented as a fixed-size array.
          * Hence, no constructor or destructor is given.
          */
         T arr[(XHI-XLO+1)*(YHI-YLO+1)];
@@ -1233,7 +1233,7 @@ for     (int j = 1; j <= N; ++j) {
         }
 
         /**
-         * Array3D is implemented as a static array.
+         * Array3D is implemented as a fixed-size array.
          * Hence, no constructor or destructor is given.
          */
         T arr[(XHI-XLO+1)*(YHI-YLO+1)*(ZHI-ZLO+1)];
