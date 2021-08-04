@@ -35,7 +35,7 @@ namespace amrex {
         using reference_type = T&;
 
         /**
-         * Array indexing using []
+         * GpuArray elements are indexed using square brackets, as with any other array.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator [] (int i) const noexcept { return arr[i]; }
@@ -44,7 +44,7 @@ namespace amrex {
         T& operator [] (int i) noexcept { return arr[i]; }
 
         /**
-         * data() returns a pointer to the underlying data
+         * data() returns a pointer to the underlying data of a GpuArray object.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* data () const noexcept { return arr; }
@@ -53,14 +53,14 @@ namespace amrex {
         T* data () noexcept { return arr; }
 
         /**
-         * Array size
+         * size() returns the number of items in the GpuArray object as an unsigned integer.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr unsigned int size() const noexcept { return N; }
 
         /**
-         * begin() returns a pointer to the first item in the GpuArray;
-         * end() returns a pointer to the last item.
+         * begin() returns a pointer to the first element of the GpuArray object;
+         * end() returns a pointer to the last element.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* begin() const noexcept { return arr; }
@@ -75,7 +75,7 @@ namespace amrex {
         T* end() noexcept { return arr + N; }
 
         /**
-         * fill() fills in all of the items in the GpuArray to the same value.
+         * fill() fills in all of the elements in the GpuArray object to the same value.
          * @param value The value to fill
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -83,7 +83,7 @@ namespace amrex {
         { for (unsigned int i = 0; i < N; ++i) arr[i] = value; }
 
         /**
-         * sum() and product() returns the sum and product of all the members of the GpuArray.
+         * sum() and product() returns the sum and product of all elements in the GpuArray object, respectively.
          * Both only make sense for basic integral and floating-point types.
          */
         template <typename F=T,
@@ -126,7 +126,7 @@ namespace amrex {
             return p;
         }
 
-        /*
+        /**
          * GpuArray is implemented as a static array. Hence, no constructor or destructor is given.
          */
         T arr[amrex::max(N,1u)];
@@ -135,6 +135,10 @@ namespace amrex {
 
 namespace amrex {
 
+    /**
+     * Array2D and Array3D objects can be indexed according to Fortran column-major order (first index moving fastest)
+     * or C/C++ row-major order (last index moving fastest). If not specified, Fortran order is assumed.
+     */
     namespace Order {
         struct C {};
         struct F {};
@@ -143,12 +147,17 @@ namespace amrex {
     template <class T, int XLO, int XHI>
     struct Array1D
     {
-        // Size
+        /**
+         * size() returns the number of elements in the Array1D object as an unsigned integer.
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr unsigned int size() const noexcept { return (XHI-XLO+1); }
 
-        // Length
-
+        /**
+         * When called without any arguments, length() returns a Dim3 containing the number of items in the Array1D object.
+         * When called with an optional argument axis, length(axis) returns the number of items as an unsigned integer.
+         * For Array1D, the only valid value for axis is 0.
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr Dim3 length() const noexcept { return Dim3{(XHI-XLO+1),0,0}; }
 
@@ -159,8 +168,11 @@ namespace amrex {
             return (XHI-XLO+1);
         }
 
-        // Bounds
-
+        /**
+         * When called without any arguments, lbound() and ubound() return a Dim3 containing the lower and upper bounds
+         * of the Array1D object, respectively. As with length(), these functions can be called with an optional argument axis.
+         * For Array1D, the only valid value for axis is 0.
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr Dim3 lbound() const noexcept { return Dim3{XLO,0,0}; }
 
@@ -181,8 +193,10 @@ namespace amrex {
             return XHI;
         }
 
-        // Pointer access
-
+        /**
+         * begin() returns a pointer to the first item in the Array1D object;
+         * end() returns a pointer to the last item.
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* begin() const noexcept { return arr; }
 
@@ -195,8 +209,9 @@ namespace amrex {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* end() noexcept { return arr + XHI-XLO+1; }
 
-        // Array access
-
+        /**
+         * The elements of an Array1D object are accessed using parentheses, e.g. array(i), instead of using square brackets.
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i) const noexcept {
             AMREX_ASSERT(i >= XLO && i <= XHI);
@@ -209,8 +224,10 @@ namespace amrex {
             return arr[i-XLO];
         }
 
-        // sum() and product() for floating point types
-
+        /**
+         * sum() and product() returns the sum and product of all the elements in the Array1D object, respectively.
+         * Both only make sense for basic integral and floating-point types.
+         */
         template <typename F=T,
                   typename std::enable_if<std::is_floating_point<F>::value,int>::type FOO = 0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -230,8 +247,6 @@ namespace amrex {
             for (int i = XLO; i <= XHI; ++i) p *= arr[i-XLO];
             return p;
         }
-
-        // sum() and product() for integral types
 
         template <typename I=T,
                   typename std::enable_if<std::is_integral<I>::value,int>::type FOO = 0>
@@ -253,7 +268,9 @@ namespace amrex {
             return p;
         }
 
-        // Member array
+        /**
+         * Array1D is implemented as a static array. Hence, no constructor or destructor is given.
+         */
         T arr[(XHI-XLO+1)];
     };
 
@@ -261,15 +278,25 @@ namespace amrex {
               class ORDER=Order::F> // Fortran order by default
     struct Array2D
     {
-        // Size
+        /**
+         * size() returns the total number of elements of the Array2D object as an unsigned integer.
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr unsigned int size() const noexcept { return (XHI-XLO+1)*(YHI-YLO+1); }
 
-        // Length
-
+        /**
+         * When called without any arguments, length() returns a Dim3 containing the total number of elements in the Array2D
+         * object in each dimension.
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr Dim3 length() const noexcept { return Dim3{(XHI-XLO+1),(YHI-YLO+1),0}; }
 
+        /**
+         * When called with an optional argument axis, length(axis) returns the number of items for that particular dimension
+         * as an unsigned integer.
+         * For Array2D, the valid values for axis are 0 or 1.
+         * @param axis The specified dimension (0 for x dimension, 1 for y dimension)
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr unsigned int length(const int axis) const noexcept {
             AMREX_ASSERT(axis == 0 || axis == 1);
@@ -277,14 +304,21 @@ namespace amrex {
             else /* (axis == 1) */ { return (YHI-YLO+1); }
         }
 
-        // Bounds
-
+        /**
+         * When called without any arguments, lbound() and ubound() return a Dim3 containing the lower and upper bounds
+         * of the Array2D object, respectively.
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr Dim3 lbound() const noexcept { return Dim3{XLO,YLO,0}; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr Dim3 ubound() const noexcept { return Dim3{XHI,YHI,0}; }
 
+        /**
+         * As with length(), these functions can be called with an optional argument axis.
+         * For Array2D, the valid values for axis are 0 or 1.
+         * @param axis The specified dimension (0 for x dimension, 1 for y dimension)
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr int lbound(const int axis) const noexcept {
             AMREX_ASSERT(axis == 0 || axis == 1);
@@ -299,8 +333,10 @@ namespace amrex {
             else /* (axis == 1) */ { return YHI; }
         }
 
-        // Pointer access
-
+        /**
+         * begin() and end() return a pointer to the first and last element of the Array2D object, respectively,
+         * as if the object treated as one-dimensional.
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* begin() const noexcept { return arr; }
 
@@ -313,8 +349,10 @@ namespace amrex {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* end() noexcept { return arr + (XHI-XLO+1)*(YHI-YLO+1); }
 
-        // Array access, Fortran order
-
+        /**
+         * The elements of an Array2D object are accessed using parentheses, e.g. array(i,j), instead of using square brackets.
+         * If the order is not specified, Fortran column-major order is assumed (the index i moves the fastest)
+         */
         template <typename O=ORDER,
                   typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -331,8 +369,11 @@ namespace amrex {
             return arr[i+j*(XHI-XLO+1)-(YLO*(XHI-XLO+1)+XLO)];
         }
 
-        // sum() and product() for floating point types, Fortran order
-
+        /**
+         * When called without any arguments, sum() and product() returns the sum and product of all the elements in the Array2D
+         * object, respectively.
+         * Both only make sense for basic integral and floating-point types.
+         */
         template <typename O=ORDER,
                   typename F=T,
                   typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0,
@@ -347,6 +388,27 @@ namespace amrex {
             return s;
         }
 
+        /**
+         * Alternatively, one could instantiate an Array1D object of the appropriate bounds and call sum(axis,loc) or
+         * product(axis,loc) to perform the reduction only on the specified axis, for a particular index loc.
+         * This can be used, for instance, to calculate the sum over the y dimension of an Array2D object that was instantiated as
+         * \verbatim
+         * Array2D<amrex::Real, 1, M, 1, N> array;
+         * \endverbatim
+         * one could instantiate an Array1D object to hold the results,
+         * \verbatim
+         * Array1D<amrex::Real, 1, M> vec;
+         * \endverbatim
+         * and then perform the summation for each element of the resulting vector.
+         * \verbatim
+         * for (int i = 1; i <= M; ++i) {
+         *     vec(i) = array.sum(1,i)
+         * }
+         * \endverbatim
+         * In this example, the axis is 1 and the location index is i.
+         * @param axis The dimension to reduce (0 for x dimension, 1 for y dimension)
+         * @param loc  The appropriate location index
+         */
         template <typename O=ORDER,
                   typename F=T,
                   typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0,
@@ -401,8 +463,6 @@ namespace amrex {
             return p;
         }
 
-        // sum() and product() for integral types, Fortran order
-
         template <typename O=ORDER,
                   typename I=T,
                   typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0,
@@ -471,8 +531,10 @@ namespace amrex {
             return p;
         }
 
-        // Array access, C order
-
+        /**
+         * The elements of an Array2D object are accessed using parentheses, e.g. array(i,j), instead of using square brackets.
+         * When the order is manually specified as Order::C, row-major order is used (the index j moves the fastest).
+         */
         template <typename O=ORDER,
                   typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -489,8 +551,6 @@ namespace amrex {
             return arr[j+i*(YHI-YLO+1)-(XLO*(YHI-YLO+1)+YLO)];
         }
 
-        // sum() and product() for floating point types, C order
-
         template <typename O=ORDER,
                   typename F=T,
                   typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0,
@@ -558,8 +618,6 @@ namespace amrex {
             }
             return p;
         }
-
-        // sum() and product() for integral types, C order
 
         template <typename O=ORDER,
                   typename I=T,
@@ -629,7 +687,9 @@ namespace amrex {
             return p;
         }
 
-        // Member array
+        /**
+         * Array2D is implemented as a static array. Hence, no constructor or destructor is given.
+         */
         T arr[(XHI-XLO+1)*(YHI-YLO+1)];
     };
 
@@ -637,15 +697,25 @@ namespace amrex {
               class ORDER=Order::F> // Fortran order by default
     struct Array3D
     {
-        // Size
+        /**
+         * size() returns the number of elements in the Array3D object as an unsigned integer.
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr unsigned int size() const noexcept { return (XHI-XLO+1)*(YHI-YLO+1)*(ZHI-ZLO+1); }
 
-        // Length
-
+        /**
+         * When called without any arguments, length() returns a Dim3 containing the total number of elements in the Array3D
+         * object in each dimension.
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr Dim3 length() const noexcept { return Dim3{(XHI-XLO+1),(YHI-YLO+1),(ZHI-ZLO+1)}; }
 
+        /**
+         * When called with an optional argument axis, length(axis) returns the number of items for that particular dimension
+         * as an unsigned integer.
+         * For Array3D, the valid values for axis are 0, 1, or 2.
+         * @param axis The specified dimension (0 for x dimension, 1 for y dimension, 2 for z dimension)
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr unsigned int length(const int axis) const noexcept {
             AMREX_ASSERT(axis >= 0 || axis <= 2);
@@ -654,14 +724,21 @@ namespace amrex {
             else /* (axis == 2) */ { return (ZHI-ZLO+1); }
         }
 
-        // Bounds
-
+        /**
+         * When called without any arguments, lbound() and ubound() return a Dim3 containing the lower and upper bounds
+         * of the Array3D object, respectively.
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr Dim3 lbound() const noexcept { return Dim3{XLO,YLO,ZLO}; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr Dim3 ubound() const noexcept { return Dim3{XHI,YHI,ZHI}; }
 
+        /**
+         * As with length(), lbound() and ubound() can be called with an optional argument axis.
+         * For Array3D, the valid values for axis are 0, 1, or 2.
+         * @param axis The specified dimension (0 for x dimension, 1 for y dimension, 2 for z dimension)
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr int lbound(const int axis) const noexcept {
             AMREX_ASSERT(axis >= 0 || axis <= 2);
@@ -678,8 +755,10 @@ namespace amrex {
             else /* (axis == 2) */ { return ZHI; }
         }
 
-        // Pointer access
-
+        /**
+         * begin() and end() return a pointer to the first and last element of the Array3D object, respectively,
+         * as if the object treated as one-dimensional.
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* begin() const noexcept { return arr; }
 
@@ -692,8 +771,10 @@ namespace amrex {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* end() noexcept { return arr + (XHI-XLO+1)*(YHI-YLO+1)*(ZHI-ZLO+1); }
 
-        // Array access, Fortran order
-
+        /**
+         * The elements of an Array3D object are accessed using parentheses, e.g. array(i,j,k), instead of using square brackets.
+         * If the order is not specified, Fortran column-major order is assumed (the index i moves the fastest)
+         */
         template <typename O=ORDER,
                   typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -710,8 +791,11 @@ namespace amrex {
                        -(ZLO*((XHI-XLO+1)*(YHI-YLO+1))+YLO*(XHI-XLO+1)+XLO)];
         }
 
-        // sum() and product() for floating point types, Fortran order
-
+        /**
+         * When called without any arguments, sum() and product() returns the sum and product of all the elements in the Array3D
+         * object, respectively.
+         * Both only make sense for basic integral and floating-point types.
+         */
         template <typename O=ORDER,
                   typename F=T,
                   typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0,
@@ -728,6 +812,32 @@ namespace amrex {
             return s;
         }
 
+        /**
+         * Alternatively, one could instantiate an Array2D object of the appropriate bounds and call sum(axis,loc0,loc1) or
+         * product(axis,loc0,loc1) to perform the reduction only on the specified axis, for particular indices loc0 and loc1.
+         * This can be used, for instance, to calculate the sum over the x dimension of an Array3D object that was instantiated as
+         * \verbatim
+         * Array3D<amrex::Real, 1, M, 1, N, 1, K> array;
+         * \endverbatim
+         * one could instantiate an Array2D object to hold the results,
+         * \verbatim
+         * Array2D<amrex::Real, 1, N, 1, K> mat;
+         * \endverbatim
+         * and then perform the summation for each element of the resulting matrix.
+         * \verbatim
+         * for     (int j = 1; j <= N; ++j) {
+         *     for (int k = 1; k <= K; ++k) {
+         *         mat(j,k) = array.sum(0,j,k)
+         *     }
+         * }
+         * \endverbatim
+         * In this example, the axis is 0 and the location indices are loc0 = j and loc1 = k.
+         * For axis = 1, the location indices are treated as loc0 = i and loc1 = k;
+         * for axis = 2, loc0 = j and loc1 = k.
+         * @param axis The dimension to reduce (0 for x dimension, 1 for y dimension, 2 for z dimension)
+         * @param loc0 The appropriate location index (either i or j)
+         * @param loc1 The appropriate location index (either j or k)
+         */
         template <typename O=ORDER,
                   typename F=T,
                   typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0,
@@ -803,8 +913,6 @@ namespace amrex {
             }
             return p;
         }
-
-        // sum() and product() for integral types, Fortran order
 
         template <typename O=ORDER,
                   typename I=T,
@@ -898,8 +1006,10 @@ namespace amrex {
             return p;
         }
 
-        // Array access, C order
-
+        /**
+         * The elements of an Array3D object are accessed using parentheses, e.g. array(i,j,k), instead of using square brackets.
+         * When the order is manually specified as Order::C, row-major order is used (the index k moves the fastest).
+         */
         template <typename O=ORDER,
                   typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -915,8 +1025,6 @@ namespace amrex {
             return arr[k+j*(ZHI-ZLO+1)+i*((ZHI-ZLO+1)*(YHI-YLO+1))
                        -(XLO*((ZHI-ZLO+1)*(YHI-YLO+1))+YLO*(ZHI-ZLO+1)+ZLO)];
         }
-
-        // sum() and product() for floating point types, C order
 
         template <typename O=ORDER,
                   typename F=T,
@@ -1010,8 +1118,6 @@ namespace amrex {
             return p;
         }
 
-        // sum() and product() for integral types, C order
-
         template <typename O=ORDER,
                   typename I=T,
                   typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0,
@@ -1104,7 +1210,9 @@ namespace amrex {
             return p;
         }
 
-        // Member array
+        /**
+         * Array3D is implemented as a static array. Hence, no constructor or destructor is given.
+         */
         T arr[(XHI-XLO+1)*(YHI-YLO+1)*(ZHI-ZLO+1)];
     };
 }
