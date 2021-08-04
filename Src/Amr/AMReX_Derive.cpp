@@ -266,9 +266,11 @@ DeriveRec::getRange (int  k,
     for (r = rng; r != 0 && k > 0; k--, r = r->next)
         ;
     BL_ASSERT(r != 0);
-    state_indx = r->typ;
-    src_comp   = r->sc;
-    num_comp   = r->nc;
+    if (r != 0) {
+        state_indx = r->typ;
+        src_comp   = r->sc;
+        num_comp   = r->nc;
+    }
 }
 
 void
