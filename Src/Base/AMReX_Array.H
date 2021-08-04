@@ -34,28 +34,34 @@ namespace amrex {
         using value_type = T;
         using reference_type = T&;
 
-        // Array access
-
+        /**
+         * Array indexing using []
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator [] (int i) const noexcept { return arr[i]; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator [] (int i) noexcept { return arr[i]; }
 
-        // Array pointer access
-
+        /**
+         * data() returns a pointer to the underlying data
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* data () const noexcept { return arr; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* data () noexcept { return arr; }
 
-        // Size
+        /**
+         * Array size
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr unsigned int size() const noexcept { return N; }
 
-        // Pointer access
-
+        /**
+         * begin() returns a pointer to the first item in the GpuArray;
+         * end() returns a pointer to the last item.
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* begin() const noexcept { return arr; }
 
@@ -68,13 +74,18 @@ namespace amrex {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* end() noexcept { return arr + N; }
 
-        // Fill
+        /**
+         * fill() fills in all of the items in the GpuArray to the same value.
+         * @param value The value to fill
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void fill( const T& value ) noexcept
         { for (unsigned int i = 0; i < N; ++i) arr[i] = value; }
 
-        // sum() and product() for floating point types
-
+        /**
+         * sum() and product() returns the sum and product of all the members of the GpuArray.
+         * Both only make sense for basic integral and floating-point types.
+         */
         template <typename F=T,
                   typename std::enable_if<std::is_floating_point<F>::value,int>::type FOO = 0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -94,8 +105,6 @@ namespace amrex {
             for (unsigned int i = 0; i < N; ++i) p *= arr[i];
             return p;
         }
-
-        // sum() and product() for integral types
 
         template <typename I=T,
                   typename std::enable_if<std::is_integral<I>::value,int>::type FOO = 0>
@@ -117,7 +126,9 @@ namespace amrex {
             return p;
         }
 
-        // Member array
+        /*
+         * GpuArray is implemented as a static array. Hence, no constructor or destructor is given.
+         */
         T arr[amrex::max(N,1u)];
     };
 }
