@@ -143,6 +143,7 @@ namespace amrex {
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr unsigned int length(const int axis) const noexcept {
+            amrex::ignore_unused(axis);
             AMREX_ASSERT(axis == 0);
             return (XHI-XLO+1);
         }
@@ -157,12 +158,14 @@ namespace amrex {
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr int lbound(const int axis) const noexcept {
+            amrex::ignore_unused(axis);
             AMREX_ASSERT(axis == 0);
             return XLO;
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr int ubound(const int axis) const noexcept {
+            amrex::ignore_unused(axis);
             AMREX_ASSERT(axis == 0);
             return XHI;
         }
