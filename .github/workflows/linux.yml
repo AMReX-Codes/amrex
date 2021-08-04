@@ -336,7 +336,8 @@ jobs:
     - name: Build & Test
       run: |
         cd Tests/HDF5Benchmark
-        sed -i "s/HDF5_HOME/#HDF5_HOME/g" ./GNUmakefile
+        dpkg -L libhdf5-openmpi-dev
+        export OLCF_HDF5_ROOT=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
         make -j 2
         mpirun -np 2 ./main3d.gnu.TPROF.MPI.ex ./inputs
         h5dump -d "level_0/data:offsets=0" -s "1" -c "1" plt00000.h5
