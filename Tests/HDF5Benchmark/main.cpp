@@ -110,8 +110,10 @@ void test ()
             sleep(sleeptime);
         }
 
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "Writing plot file [" << fname << ".h5]" << std::endl;
+        if (ParallelDescriptor::IOProcessor()) {
+            std::cout << "Writing plot file [" << fname << ".h5] ...";
+            fflush(stdout);
+        }
 #ifdef AMREX_USE_HDF5
         WriteMultiLevelPlotfileHDF5(fname, nlevs, amrex::GetVecOfConstPtrs(mf),
                                     varnames, geom, time, level_steps, ref_ratio);
@@ -119,6 +121,8 @@ void test ()
         WriteMultiLevelPlotfile(fname, nlevs, amrex::GetVecOfConstPtrs(mf),
                                 varnames, geom, time, level_steps, ref_ratio);
 #endif
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << " done" << std::endl;
     }
 
     /* ParallelDescriptor::Barrier(); */
@@ -141,13 +145,15 @@ void test ()
                                     12.0, 13.0, 14, 15, 16};
 
     if (nparticlefile > 0) {
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "Init particles..." << std::endl;
+        if (ParallelDescriptor::IOProcessor()) {
+            std::cout << "Init particles ...";
+            fflush(stdout);
+        }
 
         myPC.InitRandom(num_particles, iseed, pdata, serialize);
 
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "done" << std::endl;
+            std::cout << " done" << std::endl;
 
         Vector<std::string> particle_realnames;
         for (int i = 0; i < NStructReal + NArrayReal; ++i)
@@ -169,8 +175,10 @@ void test ()
                 sleep(sleeptime);
             }
 
-            if (ParallelDescriptor::IOProcessor())
-                std::cout << "Writing particle file [" << fname << "/particle0.h5]" << std::endl;
+            if (ParallelDescriptor::IOProcessor()) {
+                std::cout << "Writing particle file [" << fname << "/particle0.h5] ...";
+                fflush(stdout);
+            }
 
 #ifdef AMREX_USE_HDF5
             myPC.CheckpointHDF5(fname, "particle0", false, particle_realnames, particle_intnames);
@@ -178,6 +186,8 @@ void test ()
             myPC.Checkpoint(fname, "particle0", false, particle_realnames, particle_intnames);
             /* myPC.WriteAsciiFile("particle0_ascii"); */
 #endif
+            if (ParallelDescriptor::IOProcessor())
+                std::cout << " done" << std::endl;
         }
     }
 
@@ -185,7 +195,7 @@ void test ()
     {
         MyPC newPC(geom, dmap, ba, ref_ratio);
 #ifdef AMREX_USE_HDF5
-        newPC.RestartHDF5("plt00000", "particle0");
+        newPC.RestartHDF5("plt00000/particle0", "particle0");
 #else
         newPC.Restart("plt00000", "particle0");
 #endif
