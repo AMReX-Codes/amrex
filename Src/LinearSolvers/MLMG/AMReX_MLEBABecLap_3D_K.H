@@ -264,8 +264,12 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
             if (apxm != 0.0 && apxm != 1.0) {
                 int jj = j + static_cast<int>(amrex::Math::copysign(1.0, fcx(i,j,k,0)));
                 int kk = k + static_cast<int>(amrex::Math::copysign(1.0, fcx(i,j,k,1)));
-                Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? amrex::Math::abs(fcx(i,j,k,0)) : 0.0;
-                Real fracz = (ccm(i-1,j,kk) || ccm(i,j,kk)) ? amrex::Math::abs(fcx(i,j,k,1)) : 0.0;
+                Real fracy = ( flag(i,j,k).isConnected(-1,jj-j,0) && 
+                               flag(i,j,k).isConnected( 0,jj-j,0)) ? 
+                             amrex::Math::abs(fcx(i,j,k,0)) : 0.0;
+                Real fracz = (flag(i,j,k).isConnected(-1,0,kk-k) && 
+                              flag(i,j,k).isConnected( 0,0,kk-k)) ? 
+                             amrex::Math::abs(fcx(i,j,k,1)) : 0.0;
                 if (beta_on_center && phi_on_center)
                 {
                     fxm = (1.0-fracy)*(1.0-fracz)*fxm +
@@ -287,8 +291,12 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
             if (apxp != 0.0 && apxp != 1.0) {
                 int jj = j + static_cast<int>(amrex::Math::copysign(1.0,fcx(i+1,j,k,0)));
                 int kk = k + static_cast<int>(amrex::Math::copysign(1.0,fcx(i+1,j,k,1)));
-                Real fracy = (ccm(i,jj,k) || ccm(i+1,jj,k)) ? amrex::Math::abs(fcx(i+1,j,k,0)) : 0.0;
-                Real fracz = (ccm(i,j,kk) || ccm(i+1,j,kk)) ? amrex::Math::abs(fcx(i+1,j,k,1)) : 0.0;
+                Real fracy = (flag(i,j,k).isConnected(0,jj-j,0) && 
+                              flag(i,j,k).isConnected(1,jj-j,0)) ? 
+                             amrex::Math::abs(fcx(i+1,j,k,0)) : 0.0;
+                Real fracz = (flag(i,j,k).isConnected(0,0,kk-k) && 
+                              flag(i,j,k).isConnected(1,0,kk-k)) ? 
+                             amrex::Math::abs(fcx(i+1,j,k,1)) : 0.0;
                 if (beta_on_center && phi_on_center)
                 {
                     fxp = (1.0-fracy)*(1.0-fracz)*fxp +
@@ -303,7 +311,6 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                                fracz *(1.0-fracy)*(x(i+1, j,kk,n)-x(i, j,kk,n)) +
                                fracy *     fracz *(x(i+1,jj,kk,n)-x(i,jj,kk,n));
                     fxp *= bX(i+1,j,k,n);
-
                 }
             }
 
@@ -311,8 +318,12 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
             if (apym != 0.0 && apym != 1.0) {
                 int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j,k,0)));
                 int kk = k + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j,k,1)));
-                Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? amrex::Math::abs(fcy(i,j,k,0)) : 0.0;
-                Real fracz = (ccm(i,j-1,kk) || ccm(i,j,kk)) ? amrex::Math::abs(fcy(i,j,k,1)) : 0.0;
+                Real fracx = (flag(i,j,k).isConnected(ii-i,-1,0) && 
+                              flag(i,j,k).isConnected(ii-i, 0,0)) ? 
+                             amrex::Math::abs(fcy(i,j,k,0)) : 0.0;
+                Real fracz = (flag(i,j,k).isConnected(0,-1,kk-k) && 
+                              flag(i,j,k).isConnected(0,0,kk-k)) ? 
+                             amrex::Math::abs(fcy(i,j,k,1)) : 0.0;
                 if (beta_on_center && phi_on_center)
                 {
                     fym = (1.0-fracx)*(1.0-fracz)*fym +
@@ -327,7 +338,6 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                                fracz *(1.0-fracx)*(x(i ,j,kk,n)-x( i,j-1,kk,n)) +
                                fracx *     fracz *(x(ii,j,kk,n)-x(ii,j-1,kk,n));
                     fym *= bY(i,j,k,n);
-
                 }
             }
 
@@ -335,8 +345,12 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
             if (apyp != 0.0 && apyp != 1.0) {
                 int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j+1,k,0)));
                 int kk = k + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j+1,k,1)));
-                Real fracx = (ccm(ii,j,k) || ccm(ii,j+1,k)) ? amrex::Math::abs(fcy(i,j+1,k,0)) : 0.0;
-                Real fracz = (ccm(i,j,kk) || ccm(i,j+1,kk)) ? amrex::Math::abs(fcy(i,j+1,k,1)) : 0.0;
+                Real fracx = (flag(i,j,k).isConnected(ii-i,0,0) && 
+                              flag(i,j,k).isConnected(ii-i,1,0)) ? 
+                             amrex::Math::abs(fcy(i,j+1,k,0)) : 0.0;
+                Real fracz = (flag(i,j,k).isConnected(0,0,kk-k) && 
+                              flag(i,j,k).isConnected(0,1,kk-k)) ? 
+                             amrex::Math::abs(fcy(i,j+1,k,1)) : 0.0;
                 if (beta_on_center && phi_on_center)
                 {
                     fyp = (1.0-fracx)*(1.0-fracz)*fyp +
@@ -351,7 +365,6 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                                fracz *(1.0-fracx)*(x( i,j+1,kk,n)-x( i,j,kk,n)) +
                                fracx *     fracz *(x(ii,j+1,kk,n)-x(ii,j,kk,n));
                     fyp *= bY(i,j+1,k,n);
-
                 }
             }
 
@@ -359,8 +372,12 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
             if (apzm != 0.0 && apzm != 1.0) {
                 int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcz(i,j,k,0)));
                 int jj = j + static_cast<int>(amrex::Math::copysign(1.0,fcz(i,j,k,1)));
-                Real fracx = (ccm(ii,j,k-1) || ccm(ii,j,k)) ? amrex::Math::abs(fcz(i,j,k,0)) : 0.0;
-                Real fracy = (ccm(i,jj,k-1) || ccm(i,jj,k)) ? amrex::Math::abs(fcz(i,j,k,1)) : 0.0;
+                Real fracx = (flag(i,j,k).isConnected(ii-i,0,-1) && 
+                              flag(i,j,k).isConnected(ii-i,0,0)) ? 
+                             amrex::Math::abs(fcz(i,j,k,0)) : 0.0;
+                Real fracy = (flag(i,j,k).isConnected(0,jj-j,-1) && 
+                              flag(i,j,k).isConnected(0,jj-j, 0)) ? 
+                             amrex::Math::abs(fcz(i,j,k,1)) : 0.0;
                 if (beta_on_center && phi_on_center)
                 {
                     fzm = (1.0-fracx)*(1.0-fracy)*fzm +
@@ -375,7 +392,6 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                                fracy *(1.0-fracx)*(x( i,jj,k,n)-x( i,jj,k-1,n)) +
                                fracx *     fracy *(x(ii,jj,k,n)-x(ii,jj,k-1,n));
                     fzm *= bZ(i,j,k,n);
-
                 }
             }
 
@@ -383,8 +399,12 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
             if (apzp != 0.0 && apzp != 1.0) {
                 int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcz(i,j,k+1,0)));
                 int jj = j + static_cast<int>(amrex::Math::copysign(1.0,fcz(i,j,k+1,1)));
-                Real fracx = (ccm(ii,j,k) || ccm(ii,j,k+1)) ? amrex::Math::abs(fcz(i,j,k+1,0)) : 0.0;
-                Real fracy = (ccm(i,jj,k) || ccm(i,jj,k+1)) ? amrex::Math::abs(fcz(i,j,k+1,1)) : 0.0;
+                Real fracx = (flag(i,j,k).isConnected(ii-i,0,0) && 
+                              flag(i,j,k).isConnected(ii-i,0,1)) ? 
+                             amrex::Math::abs(fcz(i,j,k+1,0)) : 0.0;
+                Real fracy = (flag(i,j,k).isConnected(0,jj-j,0) && 
+                              flag(i,j,k).isConnected(0,jj-j,1)) ? 
+                             amrex::Math::abs(fcz(i,j,k+1,1)) : 0.0;
                 if (beta_on_center && phi_on_center)
                 {
                     fzp = (1.0-fracx)*(1.0-fracy)*fzp +
@@ -399,7 +419,6 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                                fracy *(1.0-fracx)*(x( i,jj,k+1,n)-x( i,jj,k,n)) +
                                fracx *     fracy *(x(ii,jj,k+1,n)-x(ii,jj,k,n));
                     fzp *= bZ(i,j,k+1,n);
-
                 }
             }
 
@@ -433,9 +452,9 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                 int jj = j - static_cast<int>(sy);
                 int kk = k - static_cast<int>(sz);
 
-                gx = sx*gx;
-                gy = sy*gy;
-                gz = sz*gz;
+                gx = flag(i,j,k).isConnected(ii-i,0,0) ? sx*gx : 0.0;
+                gy = flag(i,j,k).isConnected(0,jj-j,0) ? sy*gy : 0.0;
+                gz = flag(i,j,k).isConnected(0,0,kk-k) ? sz*gz : 0.0;
                 Real gxy = gx*gy;
                 Real gxz = gx*gz;
                 Real gyz = gy*gz;

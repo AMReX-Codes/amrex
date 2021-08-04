@@ -1601,6 +1601,7 @@ MLMG::apply (const Vector<MultiFab*>& out, const Vector<MultiFab*>& a_in)
 
     const auto& amrrr = linop.AMRRefRatio();
 
+
     for (int alev = finest_amr_lev; alev >= 0; --alev) {
         const MultiFab* crse_bcdata = (alev > 0) ? in[alev-1] : nullptr;
         linop.solutionResidual(alev, *out[alev], *in[alev], rh[alev], crse_bcdata);

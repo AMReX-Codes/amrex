@@ -254,8 +254,12 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                     if (apx(i,j,k) > 0.0 && apx(i,j,k) < 1.0) {
                         int jj = j + (fcx(i,j,k,0) >= 0.0 ? 1 : -1);
                         int kk = k + (fcx(i,j,k,1) >= 0.0 ? 1 : -1);
-                        Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? amrex::Math::abs(fcx(i,j,k,0)) : 0.0;
-                        Real fracz = (ccm(i-1,j,kk) || ccm(i,j,kk)) ? amrex::Math::abs(fcx(i,j,k,1)) : 0.0;
+                        Real fracy = ( flag(i,j,k).isConnected(-1,jj-j,0) && 
+                                       flag(i,j,k).isConnected( 0,jj-j,0)) ? 
+                                     amrex::Math::abs(fcx(i,j,k,0)) : 0.0;
+                        Real fracz = (flag(i,j,k).isConnected(-1,0,kk-k) && 
+                                      flag(i,j,k).isConnected( 0,0,kk-k)) ? 
+                                     amrex::Math::abs(fcx(i,j,k,1)) : 0.0;
                         fxm_0 = (1.0-fracy)*(1.0-fracz) *fxm_0
                             + fracy*(1.0-fracz) * fx(i,jj,k ,0)
                             + fracz*(1.0-fracy) * fx(i,j ,kk,0)
@@ -276,8 +280,12 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                     if (apx(i+1,j,k) > 0.0 && apx(i+1,j,k) < 1.0) {
                         int jj = j + (fcx(i+1,j,k,0) >= 0.0 ? 1 : -1);
                         int kk = k + (fcx(i+1,j,k,1) >= 0.0 ? 1 : -1);
-                        Real fracy = (ccm(i,jj,k) || ccm(i+1,jj,k)) ? amrex::Math::abs(fcx(i+1,j,k,0)) : 0.0;
-                        Real fracz = (ccm(i,j,kk) || ccm(i+1,j,kk)) ? amrex::Math::abs(fcx(i+1,j,k,1)) : 0.0;
+                        Real fracy = (flag(i,j,k).isConnected(0,jj-j,0) && 
+                                      flag(i,j,k).isConnected(1,jj-j,0)) ? 
+                                     amrex::Math::abs(fcx(i+1,j,k,0)) : 0.0;
+                        Real fracz = (flag(i,j,k).isConnected(0,0,kk-k) && 
+                                      flag(i,j,k).isConnected(1,0,kk-k)) ? 
+                                     amrex::Math::abs(fcx(i+1,j,k,1)) : 0.0;
                         fxp_0 = (1.0-fracy)*(1.0-fracz) *  fxp_0
                             + fracy*(1.0-fracz) * fx(i+1,jj,k ,0)
                             + fracz*(1.0-fracy) * fx(i+1,j ,kk,0)
@@ -298,8 +306,12 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                     if (apy(i,j,k) > 0.0 && apy(i,j,k) < 1.0) {
                         int ii = i + (fcy(i,j,k,0) >= 0.0 ? 1 : -1);
                         int kk = k + (fcy(i,j,k,1) >= 0.0 ? 1 : -1);
-                        Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? amrex::Math::abs(fcy(i,j,k,0)) : 0.0;
-                        Real fracz = (ccm(i,j-1,kk) || ccm(i,j,kk)) ? amrex::Math::abs(fcy(i,j,k,1)) : 0.0;
+                        Real fracx = (flag(i,j,k).isConnected(ii-i,-1,0) && 
+                                      flag(i,j,k).isConnected(ii-i, 0,0)) ? 
+                                     amrex::Math::abs(fcy(i,j,k,0)) : 0.0;
+                        Real fracz = (flag(i,j,k).isConnected(0,-1,kk-k) && 
+                                      flag(i,j,k).isConnected(0,0,kk-k)) ? 
+                                     amrex::Math::abs(fcy(i,j,k,1)) : 0.0;
                         fym_0 = (1.0-fracx)*(1.0-fracz) *fym_0
                             + fracx*(1.0-fracz) * fy(ii,j,k ,0)
                             + fracz*(1.0-fracx) * fy(i ,j,kk,0)
@@ -320,8 +332,12 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                     if (apy(i,j+1,k) > 0.0 && apy(i,j+1,k) < 1.0) {
                         int ii = i + (fcy(i,j+1,k,0) >= 0.0 ? 1 : -1);
                         int kk = k + (fcy(i,j+1,k,1) >= 0.0 ? 1 : -1);
-                        Real fracx = (ccm(ii,j,k) || ccm(ii,j+1,k)) ? amrex::Math::abs(fcy(i,j+1,k,0)) : 0.0;
-                        Real fracz = (ccm(i,j,kk) || ccm(i,j+1,kk)) ? amrex::Math::abs(fcy(i,j+1,k,1)) : 0.0;
+                        Real fracx = (flag(i,j,k).isConnected(ii-i,0,0) && 
+                                      flag(i,j,k).isConnected(ii-i,1,0)) ? 
+                                     amrex::Math::abs(fcy(i,j+1,k,0)) : 0.0;
+                        Real fracz = (flag(i,j,k).isConnected(0,0,kk-k) && 
+                                      flag(i,j,k).isConnected(0,1,kk-k)) ? 
+                                     amrex::Math::abs(fcy(i,j+1,k,1)) : 0.0;
                         fyp_0 = (1.0-fracx)*(1.0-fracz) *  fyp_0
                             + fracx*(1.0-fracz) * fy(ii,j+1,k ,0)
                             + fracz*(1.0-fracx) * fy(i ,j+1,kk,0)
@@ -342,8 +358,12 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                     if (apz(i,j,k) > 0.0 && apz(i,j,k) < 1.0) {
                         int ii = i + (fcz(i,j,k,0) >= 0.0 ? 1 : -1);
                         int jj = j + (fcz(i,j,k,1) >= 0.0 ? 1 : -1);
-                        Real fracx = (ccm(ii,j,k-1) || ccm(ii,j,k)) ? amrex::Math::abs(fcz(i,j,k,0)) : 0.0;
-                        Real fracy = (ccm(i,jj,k-1) || ccm(i,jj,k)) ? amrex::Math::abs(fcz(i,j,k,1)) : 0.0;
+                        Real fracx = (flag(i,j,k).isConnected(ii-i,0,-1) && 
+                                      flag(i,j,k).isConnected(ii-i,0,0)) ? 
+                                     amrex::Math::abs(fcz(i,j,k,0)) : 0.0;
+                        Real fracy = (flag(i,j,k).isConnected(0,jj-j,-1) && 
+                                      flag(i,j,k).isConnected(0,jj-j,0)) ? 
+                                     amrex::Math::abs(fcz(i,j,k,1)) : 0.0;
                         fzm_0 = (1.0-fracx)*(1.0-fracy) *fzm_0
                             + fracx*(1.0-fracy) * fz(ii,j ,k,0)
                             + fracy*(1.0-fracx) * fz(i ,jj,k,0)
@@ -364,8 +384,12 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                     if (apz(i,j,k+1) > 0.0 && apz(i,j,k+1) < 1.0) {
                         int ii = i + (fcz(i,j,k+1,0) >= 0.0 ? 1 : -1);
                         int jj = j + (fcz(i,j,k+1,1) >= 0.0 ? 1 : -1);
-                        Real fracx = (ccm(ii,j,k) || ccm(ii,j,k)) ? amrex::Math::abs(fcz(i,j,k+1,0)) : 0.0;
-                        Real fracy = (ccm(i,jj,k) || ccm(i,jj,k)) ? amrex::Math::abs(fcz(i,j,k+1,1)) : 0.0;
+                        Real fracx = (flag(i,j,k).isConnected(ii-i,0,0) && 
+                                      flag(i,j,k).isConnected(ii-i,0,1)) ? 
+                                     amrex::Math::abs(fcz(i,j,k+1,0)) : 0.0;
+                        Real fracy = (flag(i,j,k).isConnected(0,jj-j,0) && 
+                                      flag(i,j,k).isConnected(0,jj-j,1)) ? 
+                                     amrex::Math::abs(fcz(i,j,k+1,1)) : 0.0;
                         fzp_0 = (1.0-fracx)*(1.0-fracy) *  fzp_0
                             + fracx*(1.0-fracy) * fz(ii,j ,k+1,0)
                             + fracy*(1.0-fracx) * fz(i ,jj,k+1,0)
@@ -418,9 +442,9 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                         int jj = j - isy;
                         int kk = k - isz;
 
-                        gx *= isx;
-                        gy *= isy;
-                        gz *= isz;
+                        gx = flag(i,j,k).isConnected(ii-i,0,0) ? isx*gx : 0.0;
+                        gy = flag(i,j,k).isConnected(0,jj-j,0) ? isy*gy : 0.0;
+                        gz = flag(i,j,k).isConnected(0,0,kk-k) ? isz*gz : 0.0;
                         Real gxy = gx*gy;
                         Real gxz = gx*gz;
                         Real gyz = gy*gz;
