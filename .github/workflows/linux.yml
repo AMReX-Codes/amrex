@@ -322,7 +322,7 @@ jobs:
         ctest --output-on-failure -R
 
   test_hdf5:
-    name: HDF5 I/O Test [tests]
+    name: GNU@7.5 HDF5 I/O Test [tests]
     runs-on: ubuntu-18.04
     env:
       CXX: h5pcc
@@ -333,12 +333,12 @@ jobs:
       run: |
         .github/workflows/dependencies/dependencies.sh
         sudo apt-get install libhdf5-openmpi-dev
+        sudo apt-get install libhdf5-tools
     - name: Build & Test
       run: |
         cd Tests/HDF5Benchmark
-        dpkg -L libhdf5-openmpi-dev
         export OLCF_HDF5_ROOT=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
         make -j 2
         mpirun -np 2 ./main3d.gnu.TPROF.MPI.ex ./inputs
-        h5dump -d "level_0/data:offsets=0" -s "1" -c "1" plt00000.h5
-        h5dump -d "level_0/data:datatype=1" -s "1" -c "1" plt00000/particle0/particle0.h5
+        h5dump -d "level_0/data:offsets=0"  -s "1" -c "1" ./plt00000.h5
+        h5dump -d "level_0/data:datatype=1" -s "1" -c "1" ./plt00000/particle0/particle0.h5
