@@ -213,6 +213,24 @@ namespace amrex
         }
         return mf_out;
     }
+
+    /**
+     * \brief Sum MultiFab data to line
+     *
+     * Return a HostVector that contains the sum of the given MultiFab data in the plane
+     * with the given normal direction.  The size of the vector is
+     * domain.length(direction) x ncomp.  The vector is actually a 2D array, where the
+     * element for component icomp at spatial index k is at [icomp*ncomp+k].
+     *
+     * \param mf MultiFab data for summing
+     * \param icomp starting component
+     * \param ncomp number of components
+     * \param domain the domain
+     * \param direction the direction of the line
+     * \param local If false, reduce across MPI processes.
+     */
+    Gpu::HostVector<Real> sumToLine (MultiFab const& mf, int icomp, int ncomp,
+                                     Box const& domain, int direction, bool local = false);
 }
 
 namespace amrex {

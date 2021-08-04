@@ -124,19 +124,19 @@ void testNeighborParticles ()
     amrex::PrintToFile("neighbor_test") << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n";
 
     amrex::PrintToFile("neighbor_test") << "Moving particles and updating neighbors \n";
-    pc.moveParticles(0.1);
+    pc.moveParticles(static_cast<amrex::ParticleReal> (0.1));
     pc.updateNeighbors();
 
     amrex::PrintToFile("neighbor_test") << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n";
 
     amrex::PrintToFile("neighbor_test") << "Moving particles and updating neighbors again \n";
-    pc.moveParticles(0.1);
+    pc.moveParticles(static_cast<amrex::ParticleReal> (0.1));
     pc.updateNeighbors();
 
     amrex::PrintToFile("neighbor_test") << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n";
 
     amrex::PrintToFile("neighbor_test") << "Moving particles and updating neighbors yet again \n";
-    pc.moveParticles(0.1);
+    pc.moveParticles(static_cast<amrex::ParticleReal> (0.1));
     pc.updateNeighbors();
 
     amrex::PrintToFile("neighbor_test") << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n";
