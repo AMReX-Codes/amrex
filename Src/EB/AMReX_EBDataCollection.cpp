@@ -24,6 +24,9 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
         m_cellflags = new FabArray<EBCellFlagFab>(a_ba, a_dm, 1, m_ngrow[0], MFInfo(),
                                                   DefaultFabFactory<EBCellFlagFab>());
         a_level.fillEBCellFlag(*m_cellflags, m_geom);
+        m_levelset = new MultiFab(amrex::convert(a_ba,IntVect::TheUnitVector()), a_dm,
+                                  1, m_ngrow[0], MFInfo(), FArrayBoxFactory());
+        a_level.fillLevelSet(*m_levelset, m_geom);
     }
 
     if (m_support >= EBSupport::volume)
@@ -66,6 +69,7 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
 EBDataCollection::~EBDataCollection ()
 {
     delete m_cellflags;
+    delete m_levelset;
     delete m_volfrac;
     delete m_centroid;
     delete m_bndrycent;
@@ -83,6 +87,13 @@ EBDataCollection::getMultiEBCellFlagFab () const
 {
     AMREX_ASSERT(m_cellflags != nullptr);
     return *m_cellflags;
+}
+
+const MultiFab&
+EBDataCollection::getLevelSet () const
+{
+    AMREX_ASSERT(m_levelset != nullptr);
+    return *m_levelset;
 }
 
 const MultiFab&

@@ -21,7 +21,7 @@ struct CnsFillExtDir
 // bx                  : Cells outside physical domain and inside bx are filled.
 // data, dcomp, numcomp: Fill numcomp components of data starting from dcomp.
 // bcr, bcomp          : bcr[bcomp] specifies BC for component dcomp and so on.
-// scomp               : component index for dcomp as in the desciptor set up in CNS::variableSetUp.
+// scomp               : component index for dcomp as in the descriptor set up in CNS::variableSetUp.
 
 void cns_bcfill (Box const& bx, FArrayBox& data,
                  const int dcomp, const int numcomp,

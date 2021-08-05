@@ -17,7 +17,7 @@ namespace amrex
 
 
      BoxIterator iterates through the IntVects of a box.  The actual
-     sqeuence of IntVects is implementation-specific.
+     sequence of IntVects is implementation-specific.
      Typical usage:
 
      Box b;

@@ -650,7 +650,7 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
     }
 
 #ifdef AMREX_USE_GPU
-    // There is Gpu::synchronize in Parallefor below internally.
+    // There is Gpu::synchronize in Parallelfor below internally.
     ParallelFor(tags, nc,
     [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4BoxTag<Real> const& tag)
     {

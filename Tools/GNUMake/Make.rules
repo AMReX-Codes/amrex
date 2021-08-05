@@ -74,9 +74,9 @@ else
 
 # multiple executables
 %.$(machineSuffix).ex:%.cpp $(objForExecs)
-	$(SLIENT) $(CCACHE) $(CXX) $(DEPFLAGS) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< -o $(objEXETempDir)/$(subst /,_,$<).o
+	$(SILENT) $(CCACHE) $(CXX) $(DEPFLAGS) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< -o $(objEXETempDir)/$(subst /,_,$<).o
 	@echo "Linking $@ ..."
-	$(SLIENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $(objEXETempDir)/$(subst /,_,$<).o $(objForExecs) $(FINAL_LIBS)
+	$(SILENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $(objEXETempDir)/$(subst /,_,$<).o $(objForExecs) $(FINAL_LIBS)
 
 endif
 

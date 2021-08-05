@@ -871,4 +871,145 @@ namespace amrex
         return r;
     }
 
+
+    Gpu::HostVector<Real> sumToLine (MultiFab const& mf, int icomp, int ncomp,
+                                     Box const& domain, int direction, bool local)
+    {
+        int n1d = domain.length(direction) * ncomp;
+        Gpu::HostVector<Real> hv(n1d);
+
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion())
+        {
+            Gpu::DeviceVector<Real> dv(domain.length(direction), Real(0.0));
+            Real* p = dv.data();
+
+            for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+                Box const& b = mfi.validbox();
+                const auto lo = amrex::lbound(b);
+                const auto len = amrex::length(b);
+                auto const& fab = mf.const_array(mfi);
+
+                int n2d, n2dx;
+                if (direction == 0) {
+                    n2d = len.y * len.z;
+                    n2dx = len.y;
+                } else if (direction == 1) {
+                    n2d = len.x * len.z;
+                    n2dx = len.x;
+                } else {
+                    n2d = len.x * len.y;
+                    n2dx = len.x;
+                }
+                int n2dblocks = (n2d+AMREX_GPU_MAX_THREADS-1)/AMREX_GPU_MAX_THREADS;
+                int nblocks = n2dblocks * b.length(direction);
+#ifdef AMREX_USE_DPCPP
+                std::size_t shared_mem_byte = sizeof(Real)*Gpu::Device::warp_size;
+                amrex::launch(nblocks, AMREX_GPU_MAX_THREADS, shared_mem_byte, Gpu::gpuStream(),
+                              [=] AMREX_GPU_DEVICE (Gpu::Handler const& h) noexcept
+#else
+                amrex::launch(nblocks, AMREX_GPU_MAX_THREADS, Gpu::gpuStream(),
+                              [=] AMREX_GPU_DEVICE () noexcept
+#endif
+                {
+#ifdef AMREX_USE_DPCPP
+                    int i1d = h.blockIdx() / n2dblocks;
+                    int i2d = h.threadIdx() + h.blockDim()*(h.blockIdx()-i1d*n2dblocks);
+#else
+                    int i1d = blockIdx.x / n2dblocks;
+                    int i2d = threadIdx.x + blockDim.x*(blockIdx.x-i1d*n2dblocks);
+#endif
+                    int i2dy = i2d / n2dx;
+                    int i2dx = i2d - i2dy*n2dx;
+                    int i, j, k, idir;
+                    if (direction == 0) {
+                        i = i1d  + lo.x;
+                        j = i2dx + lo.y;
+                        k = i2dy + lo.z;
+                        idir = i;
+                    } else if (direction == 1) {
+                        i = i2dx + lo.x;
+                        j = i1d  + lo.y;
+                        k = i2dy + lo.z;
+                        idir = j;
+                    } else {
+                        i = i2dx + lo.x;
+                        j = i2dy + lo.y;
+                        k = i1d  + lo.z;
+                        idir = k;
+                    }
+                    for (int n = 0; n < ncomp; ++n) {
+                        Real r = (i2d < n2d) ? fab(i,j,k,n+icomp) : Real(0.0);
+#ifdef AMREX_USE_DPCPP
+                        Gpu::deviceReduceSum_full(p+n+ncomp*idir, r, h);
+#else
+                        Gpu::deviceReduceSum_full(p+n+ncomp*idir, r);
+#endif
+                    }
+                });
+            }
+
+            Gpu::copyAsync(Gpu::deviceToHost, dv.begin(), dv.end(), hv.begin());
+            Gpu::streamSynchronize();
+        }
+        else
+#endif
+        {
+            for (auto& x : hv) {
+                x = Real(0.0);
+            }
+
+            Vector<Gpu::HostVector<Real> > other_hv(OpenMP::get_max_threads()-1);
+
+            Vector<Real*> pp(OpenMP::get_max_threads());
+            if (!pp.empty()) {
+                pp[0] = hv.data();
+            }
+            for (int i = 1; i < OpenMP::get_max_threads(); ++i) {
+                other_hv[i-1].resize(n1d, Real(0.0));
+                pp[i] = other_hv[i-1].data();
+            }
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(mf,true); mfi.isValid(); ++mfi) {
+                Box const& b = mfi.tilebox();
+                auto const& fab = mf.const_array(mfi);
+                Real * AMREX_RESTRICT p = pp[OpenMP::get_thread_num()];
+                if (direction == 0) {
+                    amrex::LoopOnCpu(b, ncomp, [&] (int i, int j, int k, int n) noexcept
+                    {
+                        p[n+ncomp*i] += fab(i,j,k,n+icomp);
+                    });
+                } else if (direction == 1) {
+                    amrex::LoopOnCpu(b, ncomp, [&] (int i, int j, int k, int n) noexcept
+                    {
+                        p[n+ncomp*j] += fab(i,j,k,n+icomp);
+                    });
+                } else {
+                    amrex::LoopOnCpu(b, ncomp, [&] (int i, int j, int k, int n) noexcept
+                    {
+                        p[n+ncomp*k] += fab(i,j,k,n+icomp);
+                    });
+                }
+            }
+
+            if (! other_hv.empty()) {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for
+#endif
+                for (int i = 0; i < n1d; ++i) {
+                    for (auto const& v : other_hv) {
+                        hv[i] += v[i];
+                    }
+                }
+            }
+        }
+
+        if (!local) {
+            ParallelAllReduce::Sum(hv.data(), hv.size(), ParallelContext::CommunicatorSub());
+        }
+        return hv;
+    }
 }

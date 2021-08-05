@@ -438,7 +438,7 @@ MultiLevelToBlueprint (int n_levels,
 
     Node info;
     // if we have mesh data, use blueprint verify
-    // to make sure we conform to whats expected
+    // to make sure we conform to what's expected
     // for a multi-domain mesh
 
     if(!res.dtype().is_empty() &&
@@ -467,7 +467,7 @@ void WriteBlueprintFiles (const conduit::Node &bp_mesh,
     long num_domains = (long)bp_mesh.number_of_children();
     ParallelDescriptor::ReduceLongSum(num_domains);
 
-    // get numer of mpi tasks and this task's rank
+    // get number of mpi tasks and this task's rank
     int rank   = ParallelDescriptor::MyProc();
     int ntasks = ParallelDescriptor::NProcs();
 

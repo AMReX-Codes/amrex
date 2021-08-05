@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
     fprintf(stderr,"\n");
     fprintf(stderr,"USAGE: %s <ngx> <ngy> <ngz> <Nproc> [nx ny nz]\n",argv[0]);
     fprintf(stderr,"\n");
-    fprintf(stderr,"Required: ng? = number of global grid vertexes in each dimension\n");
+    fprintf(stderr,"Required: ng? = number of global grid vertices in each dimension\n");
     fprintf(stderr,"Required: Nproc = total number of MPI ranks\n");
     fprintf(stderr,"Optional: n? = number of MPI ranks in each dimension for 3D Cartesian communicator if setting explicitly; Nproc = nx*ny*nz enforced\n");
     fprintf(stderr,"\n");
@@ -200,7 +200,7 @@ int main(int argc, char *argv[]) {
               d->process_topology_2_z.n[1],
               d->process_topology_2_z.n[2]);
 
-    //try swaping pencil dimensions if current setup pencil dimensions dont
+    //try swapping pencil dimensions if current setup pencil dimensions dont
     //fit inside the cubes.
     if(!(check_z_dims)
        && ((d->process_topology_3.n[0]) % (d->process_topology_2_z.n[1]) == 0)
@@ -208,7 +208,7 @@ int main(int argc, char *argv[]) {
     {
 
       if(self==0 && debug)
-        fprintf(stderr,"Swaping Z pencils in initialization  (%d,%d,%d)\n",
+        fprintf(stderr,"Swapping Z pencils in initialization  (%d,%d,%d)\n",
                 d->process_topology_2_z.nproc[0],
                 d->process_topology_2_z.nproc[1],
                 d->process_topology_2_z.nproc[2]);
@@ -312,7 +312,7 @@ int main(int argc, char *argv[]) {
     fprintf(stderr,"assert(check_z_dims) would have failed.\n");
 
 //  if this happens, it is because the dimensions were chosen incorrectly.
-//  Either to many processors for the number of points in one dimenison (could
+//  Either to many processors for the number of points in one dimension (could
 //  not do at least 1 point per processor), or the methods above could
 //  not make a distribution of pencils that fit in the cubiods, which would
 //  happen if the user gave numbers that wouldent work (we require the number
@@ -361,14 +361,14 @@ int main(int argc, char *argv[]) {
               d->process_topology_2_x.n[1],
               d->process_topology_2_x.n[2]);
 
-    //try swaping pencil dimensions if current setup does not have pencils
+    //try swapping pencil dimensions if current setup does not have pencils
     //that fit inside cubes.
     if(!(check_x_dims)
        && ((d->process_topology_3.n[2]) % (d->process_topology_2_x.n[1]) == 0)
        && ((d->process_topology_3.n[1]) % (d->process_topology_2_x.n[2]) == 0))
     {
       if(self==0 && debug)
-        fprintf(stderr,"Swaping X pencils in initialization .... \n");
+        fprintf(stderr,"Swapping X pencils in initialization .... \n");
       d->process_topology_2_x.nproc[0] = d->process_topology_2_x.nproc[0];
       int temp = d->process_topology_2_x.nproc[1];
       d->process_topology_2_x.nproc[1] = d->process_topology_2_x.nproc[2];
@@ -468,7 +468,7 @@ int main(int argc, char *argv[]) {
   if(!check_x_dims)
     fprintf(stderr,"assert(check_x_dims) would have failed.\n");
 //  if this happens, it is because the dimensions were chosen incorrectly.
-//  Either to many processors for the number of points in one dimenison (could
+//  Either to many processors for the number of points in one dimension (could
 //  not do at least 1 point per processor), or the methods above could not make
 //  a distribution of pencils that fit in the cubiods, which would happen if the
 //  user gave numbers that wouldent work (we require the number of processors in
@@ -516,14 +516,14 @@ int main(int argc, char *argv[]) {
               d->process_topology_2_y.n[0],
               d->process_topology_2_y.n[1],
               d->process_topology_2_y.n[2]);
-    //try swaping pencil dimensions if the current dimension of the pencils
+    //try swapping pencil dimensions if the current dimension of the pencils
     //does not fit inside the cubes.
     if(!(check_y_dims)
        && ((d->process_topology_3.n[2]) % (d->process_topology_2_y.n[0]) == 0)
        && ((d->process_topology_3.n[0]) % (d->process_topology_2_y.n[2]) == 0))
     {
       if(self==0 && debug)
-        fprintf(stderr,"Swaping Y pencils in initialization .... \n");
+        fprintf(stderr,"Swapping Y pencils in initialization .... \n");
 
       int temp = d->process_topology_2_y.nproc[0];
       d->process_topology_2_y.nproc[0] = d->process_topology_2_y.nproc[2];
@@ -624,7 +624,7 @@ int main(int argc, char *argv[]) {
     fprintf(stderr,"assert(check_y_dims) would have failed.\n");
 
 //  if this happens, it is because the dimensions were chosen incorrectly.
-//  Either to many processors for the number of points in one dimenison (could
+//  Either to many processors for the number of points in one dimension (could
 //  not do at least 1 point per processor), or the methods above could
 //  not make a distribution of pencils that fit in the cubiods, which would
 //  happen if the user gave numbers that wouldent work (we require the number of

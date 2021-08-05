@@ -84,7 +84,7 @@ contains
        yit = yit - nint(yit)  ! shift so that the center of the nine cells are (0.,0.)
        zit = zit - nint(zit)
        !
-       ! coefficents for quadratic interpolation
+       ! coefficients for quadratic interpolation
        cym = 0.5d0*yit*(yit-1.d0)
        cy0 = 1.d0-yit*yit
        cyp = 0.5d0*yit*(yit+1.d0)
@@ -92,7 +92,7 @@ contains
        cz0 = 1.d0-zit*zit
        czp = 0.5d0*zit*(zit+1.d0)
        !
-       ! interploation
+       ! interpolation
        u1 = interp2d(cym,cy0,cyp,czm,cz0,czp, q(i+is,iyit-1:iyit+1,izit-1:izit+1,qu))
        v1 = interp2d(cym,cy0,cyp,czm,cz0,czp, q(i+is,iyit-1:iyit+1,izit-1:izit+1,qv))
        w1 = interp2d(cym,cy0,cyp,czm,cz0,czp, q(i+is,iyit-1:iyit+1,izit-1:izit+1,qw))
@@ -108,7 +108,7 @@ contains
        yit = yit - nint(yit)  ! shift so that the center of the nine cells are (0.,0.)
        zit = zit - nint(zit)
        !
-       ! coefficents for quadratic interpolation
+       ! coefficients for quadratic interpolation
        cym = 0.5d0*yit*(yit-1.d0)
        cy0 = 1.d0-yit*yit
        cyp = 0.5d0*yit*(yit+1.d0)
@@ -116,7 +116,7 @@ contains
        cz0 = 1.d0-zit*zit
        czp = 0.5d0*zit*(zit+1.d0)
        !
-       ! interploation
+       ! interpolation
        u2 = interp2d(cym,cy0,cyp,czm,cz0,czp, q(i+2*is,iyit-1:iyit+1,izit-1:izit+1,qu))
        v2 = interp2d(cym,cy0,cyp,czm,cz0,czp, q(i+2*is,iyit-1:iyit+1,izit-1:izit+1,qv))
        w2 = interp2d(cym,cy0,cyp,czm,cz0,czp, q(i+2*is,iyit-1:iyit+1,izit-1:izit+1,qw))

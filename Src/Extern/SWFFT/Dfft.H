@@ -276,7 +276,7 @@ public:
     printTimingStats(d.parent_comm(), "DFFT fcopy", stop-start);
 #endif
 
-    // foward FFT from m_fo into m_fo
+    // forward FFT from m_fo into m_fo
     forward(&m_fo[0]);
   }
 

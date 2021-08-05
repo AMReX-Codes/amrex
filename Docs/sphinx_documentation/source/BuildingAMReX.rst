@@ -403,7 +403,7 @@ For example, one can enable OpenMP support as follows:
     cmake -DAMReX_OMP=YES -DCMAKE_INSTALL_PREFIX=/path/to/installdir  /path/to/amrex
 
 In the example above ``<var>=AMReX_OMP`` and ``<value>=YES``.
-Configuration variables requiring a boolen value are evaluated to true if they
+Configuration variables requiring a boolean value are evaluated to true if they
 are assigned a value of ``1``, ``ON``, ``YES``, ``TRUE``, ``Y``. Conversely they are evaluated to false
 if they are assigned a value of ``0``, ``OFF``, ``NO``, ``FALSE``, ``N``.
 Boolean configuration variables are case-insensitive.
@@ -705,7 +705,7 @@ to compile ``Foo``'s C++ sources. If no AMReX installation is found or if the av
 
 ..
    It will fail if
-   it cannot find any, or if the available one was not built with 3D and Embedded Boudary support.
+   it cannot find any, or if the available one was not built with 3D and Embedded Boundary support.
    If AMReX is found, it will then link AMReX to target ``Foo`` and use the AMReX flags preset
    to compile ``Foo``'s C++ sources.
 

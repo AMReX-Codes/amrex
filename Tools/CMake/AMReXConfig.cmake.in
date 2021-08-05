@@ -204,8 +204,11 @@ endif ()
 #
 # CUDA
 #
-if (@AMReX_CUDA@)
-   include(AMReX_SetupCUDA)
+# AMReX 21.06+ supports CUDA_ARCHITECTURES
+if(CMAKE_VERSION VERSION_LESS 3.20)
+   if (@AMReX_CUDA@)
+      include(AMReX_SetupCUDA)
+   endif ()
 endif ()
 
 include( "${CMAKE_CURRENT_LIST_DIR}/AMReXTargets.cmake" )
