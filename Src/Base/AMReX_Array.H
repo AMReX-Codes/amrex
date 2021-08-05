@@ -486,24 +486,26 @@ for (int i = 1; i <= M; ++i) {
          * When called with two arguments, performs a product reduction over
          * the specified axis, for a particular location index loc.
          *
+         * \param axis The dimension to reduce (0 for x dimension,
+         *             1 for y dimension)
+         * \param loc  The appropriate location index
+         *
          * This can be used, for instance, to calculate the product over the x
          * dimension of an Array2D object that was instantiated as
          * \verbatim Array2D<amrex::Real, 1, M, 1, N> array; \endverbatim
          *
-         * One could instantiate an Array1D object to hold the results,
+         * One could instantiate an Array1D object to hold the results with,
          * \verbatim Array1D<amrex::Real, 1, N> vec; \endverbatim
          * and then perform the product for each element of the resulting
          * vector.
+         * 
          * \verbatim
-for (int j = 1; j <= N; ++j) {
-    vec(j) = array.sum(0,j)
-}
-         * \endverbatim
-         * In this example, the axis is 0 and the location index is j.
+         for (int j = 1; j <= N; ++j) {
+             vec(j) = array.sum(0,j)
+         }
+         \endverbatim
+         * In this example, the axis is 0 and the location index is \c j\c.
          *
-         * \param axis The dimension to reduce (0 for x dimension,
-         *             1 for y dimension)
-         * \param loc  The appropriate location index
          */
         template <typename O=ORDER,
                   typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
