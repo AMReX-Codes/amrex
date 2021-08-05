@@ -759,18 +759,24 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             {
                //Ordering may make this not unique
                for (int i = 0; i < NArrayReal; ++i)
-                 amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+NStructReal+i), partData(iv,AMREX_SPACEDIM)!=0.0 ? static_cast<Real>(0) : static_cast<Real>(p.rdata(NStructReal+i)));
-
+               {
+                   amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+NStructReal+i), partData(iv,AMREX_SPACEDIM)!=0.0 ? static_cast<Real>(0) : static_cast<Real>(p.rdata(NStructReal+i)));
+               }
+               //Add the rdata(0)-weighted sum of position
                for (int i = 0; i < AMREX_SPACEDIM; ++i)
                {
                    amrex::Gpu::Atomic::AddNoRet(&partData(iv,i), static_cast<Real>((p.rdata(0)*p.pos(i))));
                }
+               //Add the rdata(0)-weighted sum of other rdata fields
                for (int i = 1; i < NStructReal; ++i)
                {
                    amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+i), static_cast<Real>((p.rdata(0)*p.rdata(i))));
                }
+               //Add the rdata(0) sum
                for (int i = 0; i < 1; ++i)
+               {
                    amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+i), static_cast<Real>(p.rdata(0)));
+               }
             }
 
         }); //skipping extra false argument, doing mf.setVal(0) at beginning
@@ -785,14 +791,19 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             auto iv = getParticleCell(p, plo_loc, dxi_loc, domain);
             if(assign_buffer_grid(iv)==-1)
             {
-                //if this cell has no particle id info, do a straight copy
+                //if this cell has no particle id info, do a straight copy to store idata
                 if(partData(iv,0)==0)
                 {
+                    //Add 1 to indicate at least 1 particle at cell iv
                     amrex::Gpu::Atomic::AddNoRet(&partData(iv,0), 1);
                     for (int i = 0; i < NStructInt; ++i)
+                    {
                         amrex::Gpu::Atomic::AddNoRet(&partData(iv,1+i), p.idata(i));
+                    }
                     for (int i = 0; i < NArrayInt; ++i)
+                    {
                         amrex::Gpu::Atomic::AddNoRet(&partData(iv,1+NStructInt+i), p.idata(NStructInt+i));
+                    }
                 }
             }
         });
@@ -819,17 +830,34 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                  p.cpu() = 0;
                  p.id() = VirtualParticleID;
 
+                 //Set rdata(0) first so we can normalize the weighted fields
                  p.rdata(0) = static_cast<ParticleReal>(partData(i,j,k,AMREX_SPACEDIM));
+                 //Set pos with the normalized weighted field
                  for (int n = 0; n < AMREX_SPACEDIM; ++n)
+                 {
                      p.pos(n) = static_cast<ParticleReal>(partData(i,j,k,n) / p.rdata(0));
+                 }
+                 //Set rdata(n>0) with the normalized weighted field for NStructReal
                  for (int n = 1; n < NStructReal; ++n)
+                 {
                      p.rdata(n) = static_cast<ParticleReal>(partData(i,j,k,AMREX_SPACEDIM+n) / p.rdata(0));
+                 }
+                 //Set rdata(n>0) with the normalized weighted field for NArrayReal
                  for (int n = 0; n < NArrayReal; ++n)
+                 {
                      p.rdata(NStructReal+n) = static_cast<ParticleReal>(partData(i,j,k,AMREX_SPACEDIM+NStructReal+n));
+                 }
+                 //Set idata with the "first" particles idata field for NStructInt
                  for (int n = 0; n < NStructInt; ++n)
+                 {
                      p.idata(n) = (long unsigned int) imf_arr(i,j,k,1+n);
+                 }
+                 //Set idata with the "first" particles idata field for NArrayInt
                  for (int n = 0; n < NArrayInt; ++n)
+                 {
                      p.idata(NStructInt+n) = (long unsigned int) imf_arr(i,j,k,1+NStructInt+n);
+                 }
+                 //Set the new particle in dst tile
                  dst.setSuperParticle(p, last_offset+offsets_ptr[((i-imf_arr.begin.x)+(j-imf_arr.begin.y)*imf_arr.jstride+(k-imf_arr.begin.z)*imf_arr.kstride)]);
              }
 
