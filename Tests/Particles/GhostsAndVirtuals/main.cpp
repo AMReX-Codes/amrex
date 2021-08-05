@@ -130,7 +130,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
     amrex::Print()<<"Ascii test always uses nx=ny=nz=32, nlevs=3, ProbHi=64"<<std::endl;
 
     // Define the refinement ratio
-    Vector<int> rr(nlevs-1);
+    Vector<int> rr(nlevs);
     rr[0] = 2;
     for (int lev = 1; lev < nlevs; lev++)
         rr[lev] = 2;
