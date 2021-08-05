@@ -49,7 +49,7 @@ namespace amrex {
         T& operator [] (int i) noexcept { return arr[i]; }
 
         /**
-         * Returns a const pointer to the underlying data of a GpuArray object.
+         * Returns a \c const pointer to the underlying data of a GpuArray object.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* data () const noexcept { return arr; }
@@ -68,7 +68,7 @@ namespace amrex {
         static constexpr unsigned int size () noexcept { return N; }
 
         /**
-         * Returns a const pointer address to the first element of the
+         * Returns a \c const pointer address to the first element of the
          * GpuArray object.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -219,14 +219,14 @@ namespace amrex {
         static constexpr unsigned int len () noexcept { return (XHI-XLO+1); }
 
         /**
-         * Returns a const pointer address to the first element of the
+         * Returns a \c const pointer address to the first element of the
          * Array1D object.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* begin () const noexcept { return arr; }
 
         /**
-         * Returns a const pointer address right after the last element of the
+         * Returns a \c const pointer address right after the last element of the
          * Array1D object.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -248,7 +248,7 @@ namespace amrex {
 
         /**
          * The elements of an Array1D object are accessed using parentheses,
-         * e.g. array(i), instead of using square brackets.
+         * e.g. \c array(i), instead of using square brackets.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i) const noexcept {
@@ -300,10 +300,10 @@ namespace amrex {
     /**
      * A GPU-compatible two-dimensional array.
      *
-     * \tparam XLO Index for lower bound in x dimension. Can be other than 0.
-     * \tparam XHI Index for upper bound in x dimension.
-     * \tparam YLO Index for lower bound in y dimension. Can be other than 0.
-     * \tparam YHI Index for upper bound in y dimension.
+     * \tparam XLO Index for lower bound in \a x dimension. Can be other than 0.
+     * \tparam XHI Index for upper bound in \a x dimension.
+     * \tparam YLO Index for lower bound in \a y dimension. Can be other than 0.
+     * \tparam YHI Index for upper bound in \a y dimension.
      * \tparam ORDER Either Order::C (C/C++ row-major order) or
      *               Order::F (Fortran column-major order, which is the
      *               default if not given)
@@ -321,7 +321,7 @@ namespace amrex {
 
         /**
          * Returns the index of the lower bound of the Array2D object in the
-         * x direction.
+         * \a x direction.
          * Can be other than 0.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -329,7 +329,7 @@ namespace amrex {
 
         /**
          * Returns the index of the upper bound of the Array2D object in the
-         * x direction.
+         * \a x direction.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr int xhi () noexcept { return XHI; }
@@ -337,14 +337,14 @@ namespace amrex {
 
         /**
          * Returns the number of elements of the Array2D object in the
-         * x direction as an unsigned integer.
+         * \a x direction as an unsigned integer.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr unsigned int xlen () noexcept { return (XHI-XLO+1); }
 
         /**
          * Returns the index of the lower bound of the Array2D object in the
-         * y direction.
+         * \a y direction.
          * Can be other than 0.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -352,7 +352,7 @@ namespace amrex {
 
         /**
          * Returns the index of the upper bound of the Array2D object in the
-         * y direction.
+         * \a y direction.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr int yhi () noexcept { return YHI; }
@@ -360,20 +360,20 @@ namespace amrex {
 
         /**
          * Returns the number of elements of the Array2D object in the
-         * y direction as an unsigned integer.
+         * \a y direction as an unsigned integer.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr unsigned int ylen () noexcept { return (YHI-YLO+1); }
 
         /**
-         * Returns a const pointer address to the first element of the
+         * Returns a \c const pointer address to the first element of the
          * Array2D object, as if the object is treated as one-dimensional.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* begin () const noexcept { return arr; }
 
         /**
-         * Returns a const pointer address right after the last element of the
+         * Returns a \c const pointer address right after the last element of the
          * Array2D object, as if the object is treated as one-dimensional.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -395,9 +395,9 @@ namespace amrex {
 
         /**
          * The elements of an Array2D object are accessed using parentheses,
-         * e.g. array(i,j), instead of using square brackets.
+         * e.g. \c array(i,j), instead of using square brackets.
          * If the order is not specified, Fortran column-major order is assumed
-         * (the index i moves the fastest)
+         * (the index \c i moves the fastest)
          */
         template <typename O=ORDER,
                   typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
@@ -409,9 +409,9 @@ namespace amrex {
 
         /**
          * The elements of an Array2D object are accessed using parentheses,
-         * e.g. array(i,j), instead of using square brackets.
+         * e.g. \c array(i,j), instead of using square brackets.
          * If the order is not specified, Fortran column-major order is assumed
-         * (the index i moves the fastest)
+         * (the index \c i moves the fastest)
          */
         template <typename O=ORDER,
                   typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
@@ -442,13 +442,13 @@ namespace amrex {
 
         /**
          * When called with two arguments, performs a sum reduction over
-         * the specified axis, for a particular location index loc.
+         * the specified \c axis, for a particular location index \c loc.
          *
-         * \param axis The dimension to reduce (0 for x dimension,
-         *             1 for y dimension)
+         * \param axis The dimension to reduce (0 for \a x dimension,
+         *             1 for \a y dimension)
          * \param loc  The appropriate location index
          *
-         * This can be used, for instance, to calculate the sum over the y
+         * This can be used, for instance, to calculate the sum over the \a y
          * dimension of an Array2D object that was instantiated as
          * \verbatim Array2D<amrex::Real, 1, M, 1, N> array; \endverbatim
          *
@@ -506,13 +506,13 @@ namespace amrex {
 
         /**
          * When called with two arguments, performs a product reduction over
-         * the specified axis, for a particular location index loc.
+         * the specified \c axis, for a particular location index \c loc.
          *
-         * \param axis The dimension to reduce (0 for x dimension,
-         *             1 for y dimension)
+         * \param axis The dimension to reduce (0 for \a x dimension,
+         *             1 for \a y dimension)
          * \param loc  The appropriate location index
          *
-         * This can be used, for instance, to calculate the product over the x
+         * This can be used, for instance, to calculate the product over the \a x
          * dimension of an Array2D object that was instantiated as
          * \verbatim Array2D<amrex::Real, 1, M, 1, N> array; \endverbatim
          *
@@ -551,9 +551,9 @@ namespace amrex {
 
         /**
          * The elements of an Array2D object are accessed using parentheses,
-         * e.g. array(i,j), instead of using square brackets.
+         * e.g. \c array(i,j), instead of using square brackets.
          * When the order is manually specified as Order::C, row-major order
-         * is used (the index j moves the fastest).
+         * is used (the index \c j moves the fastest).
          */
         template <typename O=ORDER,
                   typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
@@ -565,9 +565,9 @@ namespace amrex {
 
         /**
          * The elements of an Array2D object are accessed using parentheses,
-         * e.g. array(i,j), instead of using square brackets.
+         * e.g. \c array(i,j), instead of using square brackets.
          * When the order is manually specified as Order::C, row-major order
-         * is used (the index j moves the fastest).
+         * is used (the index \c j moves the fastest).
          */
         template <typename O=ORDER,
                   typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
@@ -598,13 +598,13 @@ namespace amrex {
 
         /**
          * When called with two arguments, performs a sum reduction over
-         * the specified axis, for a particular location index loc.
+         * the specified \c axis, for a particular location index \c loc.
          *
-         * \param axis The dimension to reduce (0 for x dimension,
-         *             1 for y dimension)
+         * \param axis The dimension to reduce (0 for \a x dimension,
+         *             1 for \a y dimension)
          * \param loc  The appropriate location index
          *
-         * This can be used, for instance, to calculate the sum over the y
+         * This can be used, for instance, to calculate the sum over the \a y
          * dimension of an Array2D object that was instantiated as
          * \verbatim Array2D<amrex::Real, 1, M, 1, N, Order::C> array; \endverbatim
          *
@@ -617,7 +617,7 @@ namespace amrex {
              vec(i) = array.sum(1,i)
          }
          \endverbatim
-         * In this example, the axis is 1 and the location index is i.
+         * In this example, the axis is 1 and the location index is \c i.
          *
          */
         template <typename O=ORDER,
@@ -664,13 +664,13 @@ namespace amrex {
 
         /**
          * When called with two arguments, performs a product reduction over
-         * the specified axis, for a particular location index loc.
+         * the specified \c axis, for a particular location index \c loc.
          *
-         * \param axis The dimension to reduce (0 for x dimension,
-         *             1 for y dimension)
+         * \param axis The dimension to reduce (0 for \a x dimension,
+         *             1 for \a y dimension)
          * \param loc  The appropriate location index
          *
-         * This can be used, for instance, to calculate the product over the x
+         * This can be used, for instance, to calculate the product over the \a x
          * dimension of an Array2D object that was instantiated as
          * \verbatim Array2D<amrex::Real, 1, M, 1, N, Order::C> array; \endverbatim
          *
@@ -720,12 +720,12 @@ namespace amrex {
     /**
      * A GPU-compatible three-dimensional array.
      *
-     * \tparam XLO Index for lower bound in x dimension. Can be other than 0.
-     * \tparam XHI Index for upper bound in x dimension.
-     * \tparam YLO Index for lower bound in y dimension. Can be other than 0.
-     * \tparam YHI Index for upper bound in y dimension.
-     * \tparam ZLO Index for lower bound in z dimension. Can be other than 0.
-     * \tparam ZHI Index for upper bound in z dimension.
+     * \tparam XLO Index for lower bound in \a x dimension. Can be other than 0.
+     * \tparam XHI Index for upper bound in \a x dimension.
+     * \tparam YLO Index for lower bound in \a y dimension. Can be other than 0.
+     * \tparam YHI Index for upper bound in \a y dimension.
+     * \tparam ZLO Index for lower bound in \a z dimension. Can be other than 0.
+     * \tparam ZHI Index for upper bound in \a z dimension.
      * \tparam ORDER Either Order::C (C/C++ row-major order) or
      *               Order::F (Fortran column-major order, which is the
      *               default if not given)
@@ -743,7 +743,7 @@ namespace amrex {
 
         /**
          * Returns the index of the lower bound of the Array3D object in the
-         * x direction.
+         * \a x direction.
          * Can be other than 0.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -751,21 +751,21 @@ namespace amrex {
 
         /**
          * Returns the index of the upper bound of the Array3D object in the
-         * x direction.
+         * \a x direction.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr int xhi () noexcept { return XHI; }
 
         /**
          * Returns the number of elements of the Array3D object in the
-         * x direction as an unsigned integer.
+         * \a x direction as an unsigned integer.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr unsigned int xlen () noexcept { return (XHI-XLO+1); }
 
         /**
          * Returns the index of the lower bound of the Array3D object in the
-         * y direction.
+         * \a y direction.
          * Can be other than 0.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -773,7 +773,7 @@ namespace amrex {
 
         /**
          * Returns the index of the upper bound of the Array3D object in the
-         * y direction.
+         * \a y direction.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr int yhi () noexcept { return YHI; }
@@ -781,14 +781,14 @@ namespace amrex {
 
         /**
          * Returns the number of elements of the Array3D object in the
-         * y direction as an unsigned integer.
+         * \a y direction as an unsigned integer.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr unsigned int ylen () noexcept { return (YHI-YLO+1); }
 
         /**
          * Returns the index of the lower bound of the Array3D object in the
-         * z direction.
+         * \a z direction.
          * Can be other than 0.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -796,27 +796,27 @@ namespace amrex {
 
         /**
          * Returns the index of the upper bound of the Array3D object in the
-         * z direction.
+         * \a z direction.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr int zhi () noexcept { return ZHI; }
 
         /**
-         * Number of elements of the Array3D object in the z direction
-         * as an unsigned integer.
+         * Returns the number of elements of the Array3D object in the
+         * \a z direction as an unsigned integer.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr unsigned int zlen () noexcept { return (ZHI-ZLO+1); }
 
         /**
-         * Returns a const pointer address to the first element of the
+         * Returns a \c const pointer address to the first element of the
          * Array3D object, as if the object is treated as one-dimensional.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* begin () const noexcept { return arr; }
 
         /**
-         * Returns a const pointer address right after the last element of the
+         * Returns a \c const pointer address right after the last element of the
          * Array3D object, as if the object is treated as one-dimensional.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -838,9 +838,9 @@ namespace amrex {
 
         /**
          * The elements of an Array3D object are accessed using parentheses,
-         * e.g. array(i,j,k), instead of using square brackets.
+         * e.g. \c array(i,j,k), instead of using square brackets.
          * If the order is not specified, Fortran column-major order is assumed
-         * (the index i moves the fastest)
+         * (the index \c i moves the fastest)
          */
         template <typename O=ORDER,
                   typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
@@ -852,9 +852,9 @@ namespace amrex {
 
         /**
          * The elements of an Array3D object are accessed using parentheses,
-         * e.g. array(i,j,k), instead of using square brackets.
+         * e.g. \c array(i,j,k), instead of using square brackets.
          * If the order is not specified, Fortran column-major order is assumed
-         * (the index i moves the fastest)
+         * (the index \c i moves the fastest)
          */
         template <typename O=ORDER,
                   typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
@@ -889,15 +889,15 @@ namespace amrex {
 
         /**
          * When called with three arguments, performs a sum reduction over
-         * the specified axis, for a particular set of location indices loc0
-         * and loc1.
+         * the specified \c axis, for a particular set of location indices \c loc0
+         * and \c loc1.
          *
-         * \param axis The dimension to reduce (0 for x dimension,
-         *             1 for y dimension, 2 for z dimension)
-         * \param loc0 The appropriate location index (either i or j)
-         * \param loc1 The appropriate location index (either j or k)
+         * \param axis The dimension to reduce (0 for \a x dimension,
+         *             1 for \a y dimension, 2 for \a z dimension)
+         * \param loc0 The appropriate location index (either \c i or \c j)
+         * \param loc1 The appropriate location index (either \c j or \c k)
          *
-         * This can be used, for instance, to calculate the sum over the x
+         * This can be used, for instance, to calculate the sum over the \a x
          * dimension of an Array3D object that was instantiated as
          * \verbatim Array3D<amrex::Real, 1, M, 1, N, 1, K> array; \endverbatim
          *
@@ -912,9 +912,9 @@ namespace amrex {
              }
          }
          \endverbatim
-         * In this example, the axis is 0 and the location indices are loc0 = j
-         * and loc1 = k. For axis = 1, the location indices are treated as
-         * loc0 = i and loc1 = k; for axis = 2, loc0 = j and loc1 = k.
+         * In this example, the axis is 0 and the location indices are \c loc0 = \c j
+         * and \c loc1 = \c k. For axis = 1, the location indices are treated as
+         * \c loc0 = \c i and \c loc1 = \c k; for axis = 2, \c loc0 = \c j and \c loc1 = \c k.
          *
          */
         template <typename O=ORDER,
@@ -976,15 +976,15 @@ namespace amrex {
 
         /**
          * When called with three arguments, performs a product reduction over
-         * the specified axis, for a particular set of location indices loc0
-         * and loc1.
+         * the specified \c axis, for a particular set of location indices \c loc0
+         * and \c loc1.
          *
-         * \param axis The dimension to reduce (0 for x dimension,
-         *             1 for y dimension, 2 for z dimension)
-         * \param loc0 The appropriate location index (either i or j)
-         * \param loc1 The appropriate location index (either j or k)
+         * \param axis The dimension to reduce (0 for \a x dimension,
+         *             1 for \a y dimension, 2 for \a z dimension)
+         * \param loc0 The appropriate location index (either \c i or \c j)
+         * \param loc1 The appropriate location index (either \c j or \c k)
          *
-         * This can be used, for instance, to calculate the sum over the z
+         * This can be used, for instance, to calculate the sum over the \a z
          * dimension of an Array3D object that was instantiated as
          * \verbatim Array3D<amrex::Real, 1, M, 1, N, 1, K> array; \endverbatim
          *
@@ -999,9 +999,9 @@ namespace amrex {
              }
          }
          \endverbatim
-         * In this example, the axis is 2 and the location indices are loc0 = i
-         * and loc1 = j. For axis = 0, the location indices are treated as
-         * loc0 = j and loc1 = k; for axis = 1, loc0 = i and loc1 = k.
+         * In this example, the axis is 2 and the location indices are \c loc0 = \c i
+         * and \c loc1 = \c j. For axis = 0, the location indices are treated as
+         * \c loc0 = \c j and \c loc1 = \c k; for axis = 1, \c loc0 = \c i and \c loc1 = \c k.
          *
          */
         template <typename O=ORDER,
@@ -1041,9 +1041,9 @@ namespace amrex {
 
         /**
          * The elements of an Array3D object are accessed using parentheses,
-         * e.g. array(i,j,k), instead of using square brackets.
+         * e.g. \c array(i,j,k), instead of using square brackets.
          * When the order is manually specified as Order::C, row-major order
-         * is used (the index k moves the fastest).
+         * is used (the index \c k moves the fastest).
          */
         template <typename O=ORDER,
                   typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
@@ -1055,9 +1055,9 @@ namespace amrex {
 
         /**
          * The elements of an Array3D object are accessed using parentheses,
-         * e.g. array(i,j,k), instead of using square brackets.
+         * e.g. \c array(i,j,k), instead of using square brackets.
          * When the order is manually specified as Order::C, row-major order
-         * is used (the index k moves the fastest).
+         * is used (the index \c k moves the fastest).
          */
         template <typename O=ORDER,
                   typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
@@ -1091,15 +1091,15 @@ namespace amrex {
 
         /**
          * When called with three arguments, performs a sum reduction over
-         * the specified axis, for a particular set of location indices loc0
-         * and loc1.
+         * the specified \c axis, for a particular set of location indices \c loc0
+         * and \c loc1.
          *
-         * \param axis The dimension to reduce (0 for x dimension,
-         *             1 for y dimension, 2 for z dimension)
-         * \param loc0 The appropriate location index (either i or j)
-         * \param loc1 The appropriate location index (either j or k)
+         * \param axis The dimension to reduce (0 for \a x dimension,
+         *             1 for \a y dimension, 2 for \a z dimension)
+         * \param loc0 The appropriate location index (either \c i or \c j)
+         * \param loc1 The appropriate location index (either \c j or \c k)
          *
-         * This can be used, for instance, to calculate the sum over the y
+         * This can be used, for instance, to calculate the sum over the \a y
          * dimension of an Array3D object that was instantiated as
          * \verbatim Array3D<amrex::Real, 1, M, 1, N, 1, K, Order::C> array; \endverbatim
          *
@@ -1114,9 +1114,9 @@ namespace amrex {
               }
           }
           \endverbatim
-         * In this example, the axis is 1 and the location indices are loc0 = i
-         * and loc1 = k. For axis = 0, the location indices are treated as
-         * loc0 = i and loc1 = j; for axis = 2, loc0 = j and loc1 = k.
+         * In this example, the axis is 1 and the location indices are \c loc0 = \c i
+         * and \c loc1 = \c k. For axis = 0, the location indices are treated as
+         * \c loc0 = \c i and \c loc1 = \c j; for axis = 2, \c loc0 = \c j and \c loc1 = \c k.
          *
          */
         template <typename O=ORDER,
@@ -1178,15 +1178,15 @@ namespace amrex {
 
         /**
          * When called with three arguments, performs a product reduction over
-         * the specified axis, for a particular set of location indices loc0
-         * and loc1.
+         * the specified \c axis, for a particular set of location indices \c loc0
+         * and \c loc1.
          *
-         * \param axis The dimension to reduce (0 for x dimension,
-         *             1 for y dimension, 2 for z dimension)
-         * \param loc0 The appropriate location index (either i or j)
-         * \param loc1 The appropriate location index (either j or k)
+         * \param axis The dimension to reduce (0 for \a x dimension,
+         *             1 for \a y dimension, 2 for \a z dimension)
+         * \param loc0 The appropriate location index (either \c i or \c j)
+         * \param loc1 The appropriate location index (either \c j or \c k)
          *
-         * This can be used, for instance, to calculate the product over the x
+         * This can be used, for instance, to calculate the product over the \a x
          * dimension of an Array3D object that was instantiated as
          * \verbatim Array3D<amrex::Real, 1, M, 1, N, 1, K, Order::C> array; \endverbatim
          *
@@ -1201,9 +1201,9 @@ namespace amrex {
              }
          }
          \endverbatim
-         * In this example, the axis is 0 and the location indices are loc0 = j
-         * and loc1 = k. For axis = 1, the location indices are treated as
-         * loc0 = i and loc1 = k; for axis = 2, loc0 = j and loc1 = k.
+         * In this example, the axis is 0 and the location indices are \c loc0 = \c j
+         * and \c loc1 = \c k. For axis = 1, the location indices are treated as
+         * \c loc0 = \c i and \c loc1 = \c k; for axis = 2, \c loc0 = \c j and \c loc1 = \c k.
          *
          */
         template <typename O=ORDER,
