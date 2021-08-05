@@ -520,7 +520,7 @@ namespace amrex {
          * \verbatim Array1D<amrex::Real, 1, N> vec; \endverbatim
          * and then perform the product for each element of the resulting
          * vector.
-         * 
+         *
          * \verbatim
          for (int j = 1; j <= N; ++j) {
              vec(j) = array.sum(0,j)
@@ -983,7 +983,7 @@ namespace amrex {
          *             1 for y dimension, 2 for z dimension)
          * \param loc0 The appropriate location index (either i or j)
          * \param loc1 The appropriate location index (either j or k)
-         * 
+         *
          * This can be used, for instance, to calculate the sum over the z
          * dimension of an Array3D object that was instantiated as
          * \verbatim Array3D<amrex::Real, 1, M, 1, N, 1, K> array; \endverbatim
