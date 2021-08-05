@@ -850,12 +850,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                  //Set idata with the "first" particles idata field for NStructInt
                  for (int n = 0; n < NStructInt; ++n)
                  {
-                     p.idata(n) = (long unsigned int) imf_arr(i,j,k,1+n);
+                     p.idata(n) = imf_arr(i,j,k,1+n);
                  }
                  //Set idata with the "first" particles idata field for NArrayInt
                  for (int n = 0; n < NArrayInt; ++n)
                  {
-                     p.idata(NStructInt+n) = (long unsigned int) imf_arr(i,j,k,1+NStructInt+n);
+                     p.idata(NStructInt+n) = imf_arr(i,j,k,1+NStructInt+n);
                  }
                  //Set the new particle in dst tile
                  dst.setSuperParticle(p, last_offset+offsets_ptr[((i-imf_arr.begin.x)+(j-imf_arr.begin.y)*imf_arr.jstride+(k-imf_arr.begin.z)*imf_arr.kstride)]);
