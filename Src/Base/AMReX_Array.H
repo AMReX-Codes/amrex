@@ -444,6 +444,10 @@ namespace amrex {
          * When called with two arguments, performs a sum reduction over
          * the specified axis, for a particular location index loc.
          *
+         * \param axis The dimension to reduce (0 for x dimension,
+         *             1 for y dimension)
+         * \param loc  The appropriate location index
+         *
          * This can be used, for instance, to calculate the sum over the y
          * dimension of an Array2D object that was instantiated as
          * \verbatim Array2D<amrex::Real, 1, M, 1, N> array; \endverbatim
@@ -453,15 +457,12 @@ namespace amrex {
          * and then perform the summation for each element of the resulting
          * vector.
          * \verbatim
-for (int i = 1; i <= M; ++i) {
-    vec(i) = array.sum(1,i)
-}
-\endverbatim
-         * In this example, the axis is 1 and the location index is i.
+         for (int i = 1; i <= M; ++i) {
+             vec(i) = array.sum(1,i)
+         }
+         \endverbatim
+         * In this example, the axis is 1 and the location index is \c i.
          *
-         * \param axis The dimension to reduce (0 for x dimension,
-         *             1 for y dimension)
-         * \param loc  The appropriate location index
          */
         template <typename O=ORDER,
                   typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
@@ -525,7 +526,7 @@ for (int i = 1; i <= M; ++i) {
              vec(j) = array.sum(0,j)
          }
          \endverbatim
-         * In this example, the axis is 0 and the location index is \c j\c.
+         * In this example, the axis is 0 and the location index is \c j.
          *
          */
         template <typename O=ORDER,
@@ -599,6 +600,10 @@ for (int i = 1; i <= M; ++i) {
          * When called with two arguments, performs a sum reduction over
          * the specified axis, for a particular location index loc.
          *
+         * \param axis The dimension to reduce (0 for x dimension,
+         *             1 for y dimension)
+         * \param loc  The appropriate location index
+         *
          * This can be used, for instance, to calculate the sum over the y
          * dimension of an Array2D object that was instantiated as
          * \verbatim Array2D<amrex::Real, 1, M, 1, N, Order::C> array; \endverbatim
@@ -608,15 +613,12 @@ for (int i = 1; i <= M; ++i) {
          * and then perform the summation for each element of the resulting
          * vector.
          * \verbatim
-for (int i = 1; i <= M; ++i) {
-    vec(i) = array.sum(1,i)
-}
-         * \endverbatim
+         for (int i = 1; i <= M; ++i) {
+             vec(i) = array.sum(1,i)
+         }
+         \endverbatim
          * In this example, the axis is 1 and the location index is i.
          *
-         * \param axis The dimension to reduce (0 for x dimension,
-         *             1 for y dimension)
-         * \param loc  The appropriate location index
          */
         template <typename O=ORDER,
                   typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
@@ -664,6 +666,10 @@ for (int i = 1; i <= M; ++i) {
          * When called with two arguments, performs a product reduction over
          * the specified axis, for a particular location index loc.
          *
+         * \param axis The dimension to reduce (0 for x dimension,
+         *             1 for y dimension)
+         * \param loc  The appropriate location index
+         *
          * This can be used, for instance, to calculate the product over the x
          * dimension of an Array2D object that was instantiated as
          * \verbatim Array2D<amrex::Real, 1, M, 1, N, Order::C> array; \endverbatim
@@ -673,15 +679,12 @@ for (int i = 1; i <= M; ++i) {
          * and then perform the summation for each element of the resulting
          * vector.
          * \verbatim
-for (int j = 1; j <= N; ++j) {
-    vec(j) = array.product(0,j)
-}
-         * \endverbatim
-         * In this example, the axis is 0 and the location index is j.
+         for (int j = 1; j <= N; ++j) {
+             vec(j) = array.product(0,j)
+         }
+         \endverbatim
+         * In this example, the axis is 0 and the location index is \c j.
          *
-         * \param axis The dimension to reduce (0 for x dimension,
-         *             1 for y dimension)
-         * \param loc  The appropriate location index
          */
         template <typename O=ORDER,
                   typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
@@ -889,6 +892,11 @@ for (int j = 1; j <= N; ++j) {
          * the specified axis, for a particular set of location indices loc0
          * and loc1.
          *
+         * \param axis The dimension to reduce (0 for x dimension,
+         *             1 for y dimension, 2 for z dimension)
+         * \param loc0 The appropriate location index (either i or j)
+         * \param loc1 The appropriate location index (either j or k)
+         *
          * This can be used, for instance, to calculate the sum over the x
          * dimension of an Array3D object that was instantiated as
          * \verbatim Array3D<amrex::Real, 1, M, 1, N, 1, K> array; \endverbatim
@@ -898,20 +906,16 @@ for (int j = 1; j <= N; ++j) {
          * and then perform the summation for each element of the resulting
          * matrix.
          * \verbatim
-for     (int j = 1; j <= N; ++j) {
-    for (int k = 1; k <= K; ++k) {
-        mat(j,k) = array.sum(0,j,k)
-    }
-}
-\endverbatim
+         for     (int j = 1; j <= N; ++j) {
+             for (int k = 1; k <= K; ++k) {
+                 mat(j,k) = array.sum(0,j,k)
+             }
+         }
+         \endverbatim
          * In this example, the axis is 0 and the location indices are loc0 = j
          * and loc1 = k. For axis = 1, the location indices are treated as
          * loc0 = i and loc1 = k; for axis = 2, loc0 = j and loc1 = k.
          *
-         * \param axis The dimension to reduce (0 for x dimension,
-         *             1 for y dimension, 2 for z dimension)
-         * \param loc0 The appropriate location index (either i or j)
-         * \param loc1 The appropriate location index (either j or k)
          */
         template <typename O=ORDER,
                   typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
@@ -975,6 +979,11 @@ for     (int j = 1; j <= N; ++j) {
          * the specified axis, for a particular set of location indices loc0
          * and loc1.
          *
+         * \param axis The dimension to reduce (0 for x dimension,
+         *             1 for y dimension, 2 for z dimension)
+         * \param loc0 The appropriate location index (either i or j)
+         * \param loc1 The appropriate location index (either j or k)
+         * 
          * This can be used, for instance, to calculate the sum over the z
          * dimension of an Array3D object that was instantiated as
          * \verbatim Array3D<amrex::Real, 1, M, 1, N, 1, K> array; \endverbatim
@@ -984,20 +993,16 @@ for     (int j = 1; j <= N; ++j) {
          * and then perform the summation for each element of the resulting
          * matrix.
          * \verbatim
-for     (int j = 1; j <= N; ++j) {
-    for (int i = 1; i <= M; ++i) {
-        mat(i,j) = array.sum(2,i,j)
-    }
-}
-\endverbatim
+         for     (int j = 1; j <= N; ++j) {
+             for (int i = 1; i <= M; ++i) {
+                 mat(i,j) = array.sum(2,i,j)
+             }
+         }
+         \endverbatim
          * In this example, the axis is 2 and the location indices are loc0 = i
          * and loc1 = j. For axis = 0, the location indices are treated as
          * loc0 = j and loc1 = k; for axis = 1, loc0 = i and loc1 = k.
          *
-         * \param axis The dimension to reduce (0 for x dimension,
-         *             1 for y dimension, 2 for z dimension)
-         * \param loc0 The appropriate location index (either i or j)
-         * \param loc1 The appropriate location index (either j or k)
          */
         template <typename O=ORDER,
                   typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
@@ -1089,6 +1094,11 @@ for     (int j = 1; j <= N; ++j) {
          * the specified axis, for a particular set of location indices loc0
          * and loc1.
          *
+         * \param axis The dimension to reduce (0 for x dimension,
+         *             1 for y dimension, 2 for z dimension)
+         * \param loc0 The appropriate location index (either i or j)
+         * \param loc1 The appropriate location index (either j or k)
+         *
          * This can be used, for instance, to calculate the sum over the y
          * dimension of an Array3D object that was instantiated as
          * \verbatim Array3D<amrex::Real, 1, M, 1, N, 1, K, Order::C> array; \endverbatim
@@ -1098,20 +1108,16 @@ for     (int j = 1; j <= N; ++j) {
          * and then perform the summation for each element of the resulting
          * matrix.
          * \verbatim
-for     (int i = 1; i <= M; ++i) {
-    for (int k = 1; k <= K; ++k) {
-        mat(i,k) = array.sum(1,i,k)
-    }
-}
-\endverbatim
+          for     (int i = 1; i <= M; ++i) {
+              for (int k = 1; k <= K; ++k) {
+                  mat(i,k) = array.sum(1,i,k)
+              }
+          }
+          \endverbatim
          * In this example, the axis is 1 and the location indices are loc0 = i
          * and loc1 = k. For axis = 0, the location indices are treated as
          * loc0 = i and loc1 = j; for axis = 2, loc0 = j and loc1 = k.
          *
-         * \param axis The dimension to reduce (0 for x dimension,
-         *             1 for y dimension, 2 for z dimension)
-         * \param loc0 The appropriate location index (either i or j)
-         * \param loc1 The appropriate location index (either j or k)
          */
         template <typename O=ORDER,
                   typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
@@ -1175,6 +1181,11 @@ for     (int i = 1; i <= M; ++i) {
          * the specified axis, for a particular set of location indices loc0
          * and loc1.
          *
+         * \param axis The dimension to reduce (0 for x dimension,
+         *             1 for y dimension, 2 for z dimension)
+         * \param loc0 The appropriate location index (either i or j)
+         * \param loc1 The appropriate location index (either j or k)
+         *
          * This can be used, for instance, to calculate the product over the x
          * dimension of an Array3D object that was instantiated as
          * \verbatim Array3D<amrex::Real, 1, M, 1, N, 1, K, Order::C> array; \endverbatim
@@ -1184,20 +1195,16 @@ for     (int i = 1; i <= M; ++i) {
          * and then perform the summation for each element of the resulting
          * matrix.
          * \verbatim
-for     (int j = 1; j <= N; ++j) {
-    for (int k = 1; k <= K; ++k) {
-        mat(j,k) = array.sum(0,j,k)
-    }
-}
-\endverbatim
+         for     (int j = 1; j <= N; ++j) {
+             for (int k = 1; k <= K; ++k) {
+                 mat(j,k) = array.sum(0,j,k)
+             }
+         }
+         \endverbatim
          * In this example, the axis is 0 and the location indices are loc0 = j
          * and loc1 = k. For axis = 1, the location indices are treated as
          * loc0 = i and loc1 = k; for axis = 2, loc0 = j and loc1 = k.
          *
-         * \param axis The dimension to reduce (0 for x dimension,
-         *             1 for y dimension, 2 for z dimension)
-         * \param loc0 The appropriate location index (either i or j)
-         * \param loc1 The appropriate location index (either j or k)
          */
         template <typename O=ORDER,
                   typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
