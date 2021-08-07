@@ -46,6 +46,8 @@ list of important variables.
    +-----------------+-------------------------------------+--------------------+
    | TEST            | TRUE or FALSE                       | FALSE              |
    +-----------------+-------------------------------------+--------------------+
+   | USE_ASSERTION   | TRUE or FALSE                       | FALSE              |
+   +-----------------+-------------------------------------+--------------------+
    | USE_MPI         | TRUE or FALSE                       | FALSE              |
    +-----------------+-------------------------------------+--------------------+
    | USE_OMP         | TRUE or FALSE                       | FALSE              |
@@ -112,8 +114,8 @@ Variables ``DEBUG``, ``TEST``, ``USE_MPI`` and ``USE_OMP`` are optional with
 default set to FALSE.  The meaning of these variables should
 be obvious.  When ``DEBUG=TRUE``, aggressive compiler optimization flags are
 turned off and assertions in source code are turned on. For production runs,
-``DEBUG`` should be set to FALSE. ``TEST`` is set by default in CI and adds
-slight debugging, e.g., initializing default values in FABs.
+``DEBUG`` should be set to FALSE. ``TEST`` and ``USE_ASSERTION`` are set by
+default in CI and add slight debugging, e.g., initializing default values in FABs.
 An advanced variable, ``MPI_THREAD_MULTIPLE``, can be set to TRUE to initialize
 MPI with support for concurrent MPI calls from multiple threads.
 
