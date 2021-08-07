@@ -83,6 +83,7 @@ set_y_vel_bc(BCRec& bc, const BCRec& phys_bc)
 #endif
 }
 
+#if (AMREX_SPACEDIM == 3)
 static
 void
 set_z_vel_bc(BCRec& bc, const BCRec& phys_bc)
@@ -91,15 +92,12 @@ set_z_vel_bc(BCRec& bc, const BCRec& phys_bc)
     const int* hi_bc = phys_bc.hi();
     bc.setLo(0,tang_vel_bc[lo_bc[0]]);
     bc.setHi(0,tang_vel_bc[hi_bc[0]]);
-#if (AMREX_SPACEDIM >= 2)
     bc.setLo(1,tang_vel_bc[lo_bc[1]]);
     bc.setHi(1,tang_vel_bc[hi_bc[1]]);
-#endif
-#if (AMREX_SPACEDIM == 3)
     bc.setLo(2,norm_vel_bc[lo_bc[2]]);
     bc.setHi(2,norm_vel_bc[hi_bc[2]]);
-#endif
 }
+#endif
 
 void
 CNS::variableSetUp ()
@@ -110,8 +108,6 @@ CNS::variableSetUp ()
     d_prob_parm = (ProbParm*)The_Arena()->alloc(sizeof(ProbParm));
 
     read_params();
-
-    Geometry const* gg = AMReX::top()->getDefaultGeometry();
 
     bool state_data_extrap = false;
     bool store_in_checkpoint = true;

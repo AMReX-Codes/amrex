@@ -272,7 +272,7 @@ CNS::compute_dSdt_box_eb (const Box& bx,
        eb_compute_div(i,j,k,n,valid,q,divc_arr,
                       AMREX_D_DECL(fx_in_arr ,fy_in_arr ,fz_in_arr),
                       AMREX_D_DECL(fx_out_arr,fy_out_arr,fz_out_arr),
-                      lev_mask, flag, vfrac, bcent, coefs, redistwgt_arr,
+                      flag, vfrac, bcent, coefs, redistwgt_arr,
                       AMREX_D_DECL(apx, apy, apz),
                       AMREX_D_DECL(fcx, fcy, fcz), dxinv, *lparm, eb_weights_type, l_do_visc);
     });
@@ -281,7 +281,7 @@ CNS::compute_dSdt_box_eb (const Box& bx,
     auto const& del_m_arr = delta_m.array();
 
     // Now do redistribution
-    cns_flux_redistribute(bx,sfab,dsdtfab,divc_arr,optmp_arr,del_m_arr,redistwgt_arr,vfrac,flag,
+    cns_flux_redistribute(bx,dsdtfab,divc_arr,optmp_arr,del_m_arr,redistwgt_arr,vfrac,flag,
                           as_crse, drho_as_crse, rrflag_as_crse, as_fine, dm_as_fine, lev_mask, dt);
 
     if (gravity != Real(0.0))

@@ -247,6 +247,10 @@ riemann (const amrex::Real gamma, const amrex::Real smallp, const amrex::Real /*
 {
     using amrex::Real;
 
+#if (AMREX_SPACEDIM == 2)
+    amrex::ignore_unused(ut2l,ut2r);
+#endif
+
     constexpr Real weakwv = Real(1.e-3);
     constexpr Real small = Real(1.e-6);
 
@@ -306,7 +310,10 @@ riemann (const amrex::Real gamma, const amrex::Real smallp, const amrex::Real /*
         ustar = Real(0.5)*(ustarm+ustarp);
     }
 
-    Real ro, uo, po, sgnm, utrans1, utrans2;
+    Real ro, uo, po, sgnm, utrans1;
+#if (AMREX_SPACEDIM == 3)
+    Real utrans2;
+#endif
     if (ustar > Real(0.)) {
         ro = rl;
         uo = ul;
@@ -400,7 +407,7 @@ compute_hyp_wallflux (const amrex::Real rho,
     Real un = u*(axm-axp)*apnorminv + v*(aym-ayp)*apnorminv + w*(azm-azp)*apnorminv;
 #endif
 
-    Real momfluxn, momfluxt1, momfluxt2;
+    Real AMREX_D_DECL(momfluxn, momfluxt1, momfluxt2);
 
     riemann(parm.eos_gamma, parm.smallp, parm.smallr,
             rho,  un, p, 0., 0.,

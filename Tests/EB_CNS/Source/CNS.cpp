@@ -333,7 +333,7 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real /*time*/, int, int)
         const Real* dx = geom.CellSize();
 
 #ifdef AMREX_USE_OMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(tags); mfi.isValid(); ++mfi)
         {
@@ -583,7 +583,7 @@ CNS::computeTemp (MultiFab& State, int ng)
 
     // This will reset Eint and compute Temperature
 #ifdef AMREX_USE_OMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(State,true); mfi.isValid(); ++mfi)
     {
@@ -601,4 +601,3 @@ CNS::computeTemp (MultiFab& State, int ng)
         }
     }
 }
-

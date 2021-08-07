@@ -13,7 +13,6 @@ using namespace amrex;
 
 void
 CNS::cns_flux_redistribute (const Box& bx,
-                            Array4<Real       const> const& q,
                             Array4<Real            > const& dqdt,
                             Array4<Real            > const& divc,
                             Array4<Real            > const& optmp,
@@ -30,7 +29,6 @@ CNS::cns_flux_redistribute (const Box& bx,
                             Real dt)
 {
     const Box& bxg1 = amrex::grow(bx,1);
-    const Box& bxg2 = amrex::grow(bx,2);
 
     Parm* l_parm = d_parm;
 

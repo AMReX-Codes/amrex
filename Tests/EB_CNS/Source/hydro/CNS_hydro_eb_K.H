@@ -8,26 +8,6 @@
 #include <AMReX_FArrayBox.H>
 #include <cmath>
 
-AMREX_GPU_DEVICE
-inline
-void
-cns_flux_to_dudt_eb (int i, int j, int k, int n,
-                  amrex::Array4<amrex::Real> const& dudt,
-                  amrex::Array4<amrex::Real const> const& fx,
-                  amrex::Array4<amrex::Real const> const& fy,
-                  amrex::Array4<amrex::Real const> const& fz,
-                  amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxinv) noexcept
-{
-#if (AMREX_SPACEDIM == 2)
-    dudt(i,j,k,n) = dxinv[0] * (fx(i,j,k,n) - fx(i+1,j,k,n))
-        +           dxinv[1] * (fy(i,j,k,n) - fy(i,j+1,k,n));
-#else
-    dudt(i,j,k,n) = dxinv[0] * (fx(i,j,k,n) - fx(i+1,j,k,n))
-        +           dxinv[1] * (fy(i,j,k,n) - fy(i,j+1,k,n))
-        +           dxinv[2] * (fz(i,j,k,n) - fz(i,j,k+1,n));
-#endif
-}
-
 namespace {
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -59,13 +39,17 @@ cns_slope_eb_x (int i, int j, int k,
     Real dlft1 = Real(0.0);
     Real dlft2 = Real(0.0);
     Real dlft3 = Real(0.0);
+#if (AMREX_SPACEDIM == 3)
     Real dlft4 = Real(0.0);
+#endif
 
     Real drgt0 = Real(0.0);
     Real drgt1 = Real(0.0);
     Real drgt2 = Real(0.0);
     Real drgt3 = Real(0.0);
+#if (AMREX_SPACEDIM == 3)
     Real drgt4 = Real(0.0);
+#endif
 
     if (plm_iorder == 1)
     {
@@ -126,13 +110,17 @@ cns_slope_eb_y (int i, int j, int k,
     Real dlft1 = Real(0.0);
     Real dlft2 = Real(0.0);
     Real dlft3 = Real(0.0);
+#if (AMREX_SPACEDIM == 3)
     Real dlft4 = Real(0.0);
+#endif
 
     Real drgt0 = Real(0.0);
     Real drgt1 = Real(0.0);
     Real drgt2 = Real(0.0);
     Real drgt3 = Real(0.0);
+#if (AMREX_SPACEDIM == 3)
     Real drgt4 = Real(0.0);
+#endif
 
     if (plm_iorder == 1)
     {

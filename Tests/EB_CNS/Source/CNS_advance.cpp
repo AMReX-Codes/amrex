@@ -84,8 +84,13 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
     auto const& fact = dynamic_cast<EBFArrayBoxFactory const&>(S.Factory());
     auto const& flags = fact.getMultiEBCellFlagFab();
 
+    MFItInfo mfiinfo;
+    if (Gpu::notInLaunchRegion()) {
+        mfiinfo.EnableTiling(hydro_tile_size).SetDynamic(true);
+    }
+
 #ifdef AMREX_USE_OMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         std::array<FArrayBox,AMREX_SPACEDIM> flux;
@@ -93,8 +98,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
         FArrayBox fab_drho_as_crse(Box::TheUnitBox(),ncomp);
         IArrayBox fab_rrflag_as_crse(Box::TheUnitBox());
 
-        for (MFIter mfi(S, MFItInfo().EnableTiling(hydro_tile_size).SetDynamic(true));
-                        mfi.isValid(); ++mfi)
+        for (MFIter mfi(S, mfiinfo); mfi.isValid(); ++mfi)
         {
             auto wt = amrex::second();
 
@@ -103,13 +107,13 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
             const auto& flag = flags[mfi];
 
             if (flag.getType(bx) == FabType::covered) {
-                dSdt[mfi].setVal<RunOn::Host>(0.0, bx, 0, ncomp);
+                dSdt[mfi].setVal<RunOn::Device>(0.0, bx, 0, ncomp);
             } else {
 
                 // flux is used to store centroid flux needed for reflux
                 for (int idim=0; idim < AMREX_SPACEDIM; ++idim) {
                     flux[idim].resize(amrex::surroundingNodes(bx,idim),ncomp);
-                    flux[idim].setVal(0.);
+                    flux[idim].setVal<RunOn::Device>(0.);
                 }
 
                 if (flag.getType(amrex::grow(bx,1)) == FabType::regular)
@@ -177,6 +181,8 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                                             RunOn::Cpu);
                 }
             }
+
+            Gpu::streamSynchronize();
 
             wt = (amrex::second() - wt) / bx.d_numPts();
             cost[mfi].plus<RunOn::Host>(wt, bx);

@@ -19,8 +19,8 @@ cns_diffcoef (int i, int j, int k,
 
     if (q(i,j,k,QTEMP) < 0.)
     {
-        std::cout << "Computing diff coeffs at " << IntVect(i,j,k) <<
-             " with  temp = " << q(i,j,k,UTEMP)  << std::endl;
+//        std::cout << "Computing diff coeffs at " << IntVect(i,j,k) <<
+//             " with  temp = " << q(i,j,k,UTEMP)  << std::endl;
         amrex::Abort("Negative temperature sent to cns_diffcoef_eb");
     }
 

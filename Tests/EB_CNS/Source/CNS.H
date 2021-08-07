@@ -162,7 +162,6 @@ protected:
                               amrex::Real dt);
 
     void cns_flux_redistribute (const amrex::Box& bx,
-                                amrex::Array4<amrex::Real       const> const& q,
                                 amrex::Array4<amrex::Real            > const& dqdt,
                                 amrex::Array4<amrex::Real            > const& divc,
                                 amrex::Array4<amrex::Real            > const& optmp,
