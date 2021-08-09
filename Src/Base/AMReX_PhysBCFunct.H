@@ -669,7 +669,7 @@ GpuBndryFuncFab<F>::fcdoit (Box const& bx, FArrayBox& dest,
         Vector<Box> face_boxes;
         for (const Box& b : dom_face_boxes) {
             Box tmp = b & bx;
-            if (tmp.ok()) face_boxes.push_idxTypeback(tmp);
+            if (tmp.ok()) face_boxes.push_back(tmp);
         }
         const int n_face_boxes = face_boxes.size();
         if (n_face_boxes == 1) {
