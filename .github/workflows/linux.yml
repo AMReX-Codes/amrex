@@ -21,7 +21,6 @@ jobs:
         mkdir build
         cd build
         cmake ..                                  \
-            -DAMReX_EB=ON                         \
             -DAMReX_FORTRAN=ON                    \
             -DAMReX_PLOTFILE_TOOLS=ON             \
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
