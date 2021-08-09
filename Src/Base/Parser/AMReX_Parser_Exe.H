@@ -223,8 +223,10 @@ struct ParserStack
     constexpr double operator[] (int i) const { return m_data[i]; }
 };
 
-AMREX_GPU_HOST_DEVICE inline
-double parser_exe_eval (char* p, double const* x)
+// The purpose of template is to noinline.
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+T parser_exe_eval (char* p, T const* x)
 {
     ParserStack<AMREX_PARSER_STACK_SIZE> pstack;
     while (*((parser_exe_t*)p) != PARSER_EXE_NULL) {

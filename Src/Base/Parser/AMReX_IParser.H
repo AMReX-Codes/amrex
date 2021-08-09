@@ -17,72 +17,36 @@ template <int N>
 struct IParserExecutor
 {
     template <int M=N, typename std::enable_if_t<M==0,int> = 0>
-    AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int operator() () const noexcept
     {
 #if AMREX_DEVICE_COMPILE
-        return iparser_exe_eval(m_device_executor, nullptr);
+        return iparser_exe_eval<int>(m_device_executor, nullptr);
 #else
-        return iparser_exe_eval(m_host_executor, nullptr);
+        return iparser_exe_eval<int>(m_host_executor, nullptr);
 #endif
     }
 
     template <typename... Ts>
-    AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     std::enable_if_t<sizeof...(Ts) == N, int>
     operator() (Ts... var) const noexcept
     {
         amrex::GpuArray<int,N> l_var{var...};
 #if AMREX_DEVICE_COMPILE
-        return iparser_exe_eval(m_device_executor, l_var.data());
+        return iparser_exe_eval<int>(m_device_executor, l_var.data());
 #else
-        return iparser_exe_eval(m_host_executor, l_var.data());
+        return iparser_exe_eval<int>(m_host_executor, l_var.data());
 #endif
     }
 
-    AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int operator() (GpuArray<int,N> const& var) const noexcept
     {
 #if AMREX_DEVICE_COMPILE
-        return iparser_exe_eval(m_device_executor, var.data());
+        return iparser_exe_eval<int>(m_device_executor, var.data());
 #else
-        return iparser_exe_eval(m_host_executor, var.data());
-#endif
-    }
-
-    // Unlike operator(), eval is force inlined.
-
-    template <int M=N, typename std::enable_if_t<M==0,int> = 0>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    int eval () const noexcept
-    {
-#if AMREX_DEVICE_COMPILE
-        return iparser_exe_eval(m_device_executor, nullptr);
-#else
-        return iparser_exe_eval(m_host_executor, nullptr);
-#endif
-    }
-
-    template <typename... Ts>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    std::enable_if_t<sizeof...(Ts) == N, int>
-    eval (Ts... var) const noexcept
-    {
-        amrex::GpuArray<int,N> l_var{var...};
-#if AMREX_DEVICE_COMPILE
-        return iparser_exe_eval(m_device_executor, l_var.data());
-#else
-        return iparser_exe_eval(m_host_executor, l_var.data());
-#endif
-    }
-
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    int eval (GpuArray<int,N> const& var) const noexcept
-    {
-#if AMREX_DEVICE_COMPILE
-        return iparser_exe_eval(m_device_executor, var.data());
-#else
-        return iparser_exe_eval(m_host_executor, var.data());
+        return iparser_exe_eval<int>(m_host_executor, var.data());
 #endif
     }
 

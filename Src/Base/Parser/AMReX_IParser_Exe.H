@@ -236,8 +236,10 @@ struct IParserStack
     constexpr int operator[] (int i) const { return m_data[i]; }
 };
 
-AMREX_GPU_HOST_DEVICE inline
-int iparser_exe_eval (char* p, int const* x)
+// The purpose of template is to noinline.
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+T iparser_exe_eval (char* p, T const* x)
 {
     IParserStack<AMREX_IPARSER_STACK_SIZE> pstack;
     while (*((iparser_exe_t*)p) != IPARSER_EXE_NULL) {
