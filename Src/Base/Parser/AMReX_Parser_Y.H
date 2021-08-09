@@ -200,23 +200,89 @@ int parser_ast_depth (struct parser_node* node);
 
 /*******************************************************************/
 
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+T parser_math_exp (T a) { return std::exp(a); }
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+T parser_math_log (T a) { return std::log(a); }
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+T parser_math_log10 (T a) { return std::log10(a); }
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+T parser_math_sin (T a) { return std::sin(a); }
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+T parser_math_cos (T a) { return std::cos(a); }
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+T parser_math_tan (T a) { return std::tan(a); }
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+T parser_math_asin (T a) { return std::asin(a); }
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+T parser_math_acos (T a) { return std::acos(a); }
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+T parser_math_atan (T a) { return std::atan(a); }
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+T parser_math_sinh (T a) { return std::sinh(a); }
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+T parser_math_cosh (T a) { return std::cosh(a); }
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+T parser_math_tanh (T a) { return std::tanh(a); }
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+T parser_math_pow (T a, T b) { return std::pow(a,b); }
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+T parser_math_jn (int a, T b)
+{
+#if defined AMREX_USE_DPCPP || defined __MINGW32__
+    // neither jn(f) nor std::cyl_bessel_j work yet
+    // https://github.com/oneapi-src/oneAPI-spec/issues/308
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "parser: jn in SYCL/DPC++ not supported yet");
+    return 0.0;
+#else
+    return jn(a, b);
+#endif
+}
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE double
 parser_call_f1 (enum parser_f1_t type, double a)
 {
     switch (type) {
     case PARSER_SQRT:        return std::sqrt(a);
-    case PARSER_EXP:         return std::exp(a);
-    case PARSER_LOG:         return std::log(a);
-    case PARSER_LOG10:       return std::log10(a);
-    case PARSER_SIN:         return std::sin(a);
-    case PARSER_COS:         return std::cos(a);
-    case PARSER_TAN:         return std::tan(a);
-    case PARSER_ASIN:        return std::asin(a);
-    case PARSER_ACOS:        return std::acos(a);
-    case PARSER_ATAN:        return std::atan(a);
-    case PARSER_SINH:        return std::sinh(a);
-    case PARSER_COSH:        return std::cosh(a);
-    case PARSER_TANH:        return std::tanh(a);
+    case PARSER_EXP:         return parser_math_exp<double>(a);
+    case PARSER_LOG:         return parser_math_log<double>(a);
+    case PARSER_LOG10:       return parser_math_log10<double>(a);
+    case PARSER_SIN:         return parser_math_sin<double>(a);
+    case PARSER_COS:         return parser_math_cos<double>(a);
+    case PARSER_TAN:         return parser_math_tan<double>(a);
+    case PARSER_ASIN:        return parser_math_asin<double>(a);
+    case PARSER_ACOS:        return parser_math_acos<double>(a);
+    case PARSER_ATAN:        return parser_math_atan<double>(a);
+    case PARSER_SINH:        return parser_math_sinh<double>(a);
+    case PARSER_COSH:        return parser_math_cosh<double>(a);
+    case PARSER_TANH:        return parser_math_tanh<double>(a);
     case PARSER_ABS:         return amrex::Math::abs(a);
     case PARSER_POW_M3:      return 1.0/(a*a*a);
     case PARSER_POW_M2:      return 1.0/(a*a);
@@ -235,7 +301,7 @@ parser_call_f2 (enum parser_f2_t type, double a, double b)
 {
     switch (type) {
     case PARSER_POW:
-        return std::pow(a,b);
+        return parser_math_pow<double>(a,b);
     case PARSER_GT:
         return (a > b) ? 1.0 : 0.0;
     case PARSER_LT:
@@ -255,14 +321,7 @@ parser_call_f2 (enum parser_f2_t type, double a, double b)
     case PARSER_HEAVISIDE:
         return (a < 0.0) ? 0.0 : ((a > 0.0) ? 1.0 : b);
     case PARSER_JN:
-#if defined AMREX_USE_DPCPP || defined __MINGW32__
-        // neither jn(f) nor std::cyl_bessel_j work yet
-        // https://github.com/oneapi-src/oneAPI-spec/issues/308
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "parser_call_f2: jn in SYCL/DPC++ not supported yet");
-        return 0.0;
-#else
-        return jn(int(a), b);
-#endif
+        return parser_math_jn<double>(int(a),b);
     case PARSER_MIN:
         return (a < b) ? a : b;
     case PARSER_MAX:
