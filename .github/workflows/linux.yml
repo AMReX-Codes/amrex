@@ -21,6 +21,7 @@ jobs:
         mkdir build
         cd build
         cmake ..                                  \
+            -DAMReX_EB=ON                         \
             -DAMReX_FORTRAN=ON                    \
             -DAMReX_PLOTFILE_TOOLS=ON             \
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
@@ -49,6 +50,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex      \
+            -DAMReX_EB=ON                             \
             -DAMReX_FORTRAN=ON                        \
             -DAMReX_MPI=OFF                           \
             -DAMReX_PARTICLES=ON                      \
@@ -82,6 +84,7 @@ jobs:
         cmake ..                        \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
             -DAMReX_PARTICLES=ON
@@ -107,6 +110,7 @@ jobs:
         cd build
         cmake ..                  \
             -DCMAKE_BUILD_TYPE=Debug \
+            -DAMReX_EB=ON            \
             -DAMReX_ENABLE_TESTS=ON  \
             -DAMReX_FORTRAN=OFF      \
             -DAMReX_PARTICLES=ON     \
@@ -133,6 +137,7 @@ jobs:
         cmake ..                        \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
             -DAMReX_OMP=ON              \
@@ -158,6 +163,7 @@ jobs:
         cmake ..                                      \
             -DCMAKE_BUILD_TYPE=Debug                  \
             -DCMAKE_VERBOSE_MAKEFILE=ON               \
+            -DAMReX_EB=ON                             \
             -DAMReX_ENABLE_TESTS=ON                   \
             -DAMReX_FORTRAN=ON                        \
             -DAMReX_MPI=OFF                           \
@@ -186,6 +192,7 @@ jobs:
         cmake ..                        \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
             -DAMReX_MPI=OFF             \
@@ -208,6 +215,7 @@ jobs:
         cmake ..                        \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=OFF         \
             -DAMReX_PARTICLES=ON        \

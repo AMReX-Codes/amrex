@@ -21,6 +21,7 @@ jobs:
             -DBUILD_SHARED_LIBS=ON      \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_PARTICLES=ON        \
             -DCMAKE_CXX_COMPILER_LAUNCHER=$(which ccache)
@@ -29,6 +30,7 @@ jobs:
         cmake -S . -B build             \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_PARTICLES=ON        \
             -DCMAKE_CXX_COMPILER_LAUNCHER=$(which ccache)
