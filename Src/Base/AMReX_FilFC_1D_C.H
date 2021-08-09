@@ -11,7 +11,7 @@ namespace amrex {
 AMREX_GPU_DEVICE
 inline
 void
-filfc_cell (const IntVect& iv, const IndexType &idxType,
+filfc_face (const IntVect& iv, const IndexType &idxType,
             Array4<Real> const& q,
             const int dcomp, const int numcomp,
             GeometryData const& geom, const Real /*time*/,
@@ -40,6 +40,19 @@ filfc_cell (const IntVect& iv, const IndexType &idxType,
                 q(i,0,0,n) = q(ilo,0,0,n);
                 break;
             }
+            case (BCType::hoextrap):
+            {
+                if (i < ilo - 1)
+                {
+                    q(i,0,0,n) = q(ilo,0,0,n);
+                }
+                // i == ilo-1
+                else
+                {
+                    q(i,0,0,n) = Real(2.0)*q(i+1,0,0,n) - q(i+2,0,0,n);
+                }
+                break;
+            }
             case (BCType::reflect_even):
             {
                 q(i,0,0,n) = q(2*ilo-i,0,0,n);
@@ -58,6 +71,19 @@ filfc_cell (const IntVect& iv, const IndexType &idxType,
             case (BCType::foextrap):
             {
                 q(i,0,0,n) = q(ihi,0,0,n);
+                break;
+            }
+            case (BCType::hoextrap):
+            {
+                if (i > ihi + 1)
+                {
+                    q(i,0,0,n) = q(ihi,0,0,n);
+                }
+                // i == ihi+1
+                else
+                {
+                    q(i,0,0,n) = Real(2.0)*q(i-1,0,0,n) - q(i-2,0,0,n);
+                }
                 break;
             }
             case (BCType::reflect_even):

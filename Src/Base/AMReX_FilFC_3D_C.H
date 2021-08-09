@@ -11,7 +11,7 @@ namespace amrex {
 AMREX_GPU_DEVICE
 inline
 void
-filcc_cell (const IntVect& iv, const IndexType &idxType,
+filfc_face (const IntVect& iv, const IndexType &idxType,
             Array4<Real> const& q,
             const int dcomp, const int numcomp,
             GeometryData const& geom, const Real /*time*/,
@@ -44,6 +44,20 @@ filcc_cell (const IntVect& iv, const IndexType &idxType,
                 q(i,j,k,n) = q(ilo,j,k,n);
                 break;
             }
+            case (BCType::hoextrap):
+            {
+                if (i < ilo - 1)
+                {
+                    q(i,j,k,n) = q(ilo,j,k,n);
+                }
+                // i == ilo-1
+                else
+                {
+                    q(i,j,k,n) =  (idxType.nodeCentered(0)) ? Real(2.0)*q(i+1,j,k,n) - q(i+2,j,k,n) 
+                                                            : Real(0.5)*(Real(3.)*q(i+1,j,k,n) - q(i+2,j,k,n));
+                }
+                break;
+            }
             case (BCType::reflect_even):
             {
                 q(i,j,k,n) = (idxType.nodeCentered(0)) ? q(2*ilo-i,j,k,n)
@@ -53,7 +67,7 @@ filcc_cell (const IntVect& iv, const IndexType &idxType,
             case (BCType::reflect_odd):
             {
                 q(i,j,k,n) = (idxType.nodeCentered(0)) ? -q(2*ilo-i,j,k,n)
-                                                       ; -q(2*ilo-i-1,j,k,n);
+                                                       : -q(2*ilo-i-1,j,k,n);
                 break;
             }
             }
@@ -64,6 +78,20 @@ filcc_cell (const IntVect& iv, const IndexType &idxType,
             case (BCType::foextrap):
             {
                 q(i,j,k,n) = q(ihi,j,k,n);
+                break;
+            }
+            case (BCType::hoextrap):
+            {
+                if (i > ihi + 1)
+                {
+                    q(i,j,k,n) = q(ilo,j,k,n);
+                }
+                // i == ihi+1
+                else
+                {
+                    q(i,j,k,n) =  (idxType.nodeCentered(0)) ? Real(2.0)*q(i-1,j,k,n) - q(i-2,j,k,n) 
+                                                            : Real(0.5)*(Real(3.)*q(i-1,j,k,n) - q(i-2,j,k,n));
+                }
                 break;
             }
             case (BCType::reflect_even):
@@ -89,6 +117,20 @@ filcc_cell (const IntVect& iv, const IndexType &idxType,
                 q(i,j,k,n) = q(i,jlo,k,n);
                 break;
             }
+            case (BCType::hoextrap):
+            {
+                if (j < jlo - 1)
+                {
+                    q(i,j,k,n) = q(i,jlo,k,n);
+                }
+                // j == jlo-1
+                else
+                {
+                    q(i,j,k,n) =  (idxType.nodeCentered(1)) ? Real(2.0)*q(i,j+1,k,n) - q(i,j+2,k,n) 
+                                                            : Real(0.5)*(Real(3.)*q(i,j+1,k,n) - q(i,j+2,k,n));
+                }
+                break;
+            }
             case (BCType::reflect_even):
             {
                 q(i,j,k,n) = (idxType.nodeCentered(1)) ? q(i,2*jlo-j,k,n)
@@ -109,6 +151,20 @@ filcc_cell (const IntVect& iv, const IndexType &idxType,
             case (BCType::foextrap):
             {
                 q(i,j,k,n) = q(i,jhi,k,n);
+                break;
+            }
+            case (BCType::hoextrap):
+            {
+                if (j > jhi + 1)
+                {
+                    q(i,j,k,n) = q(i,jhi,k,n);
+                }
+                // j == jhi+1
+                else
+                {
+                    q(i,j,k,n) =  (idxType.nodeCentered(1)) ? Real(2.0)*q(i,j-1,k,n) - q(i,j-2,k,n) 
+                                                            : Real(0.5)*(Real(3.)*q(i,j-1,k,n) - q(i,j-2,k,n));
+                }
                 break;
             }
             case (BCType::reflect_even):
@@ -134,6 +190,20 @@ filcc_cell (const IntVect& iv, const IndexType &idxType,
                 q(i,j,k,n) = q(i,j,klo,n);
                 break;
             }
+            case (BCType::hoextrap):
+            {
+                if (k < klo - 1)
+                {
+                    q(i,j,k,n) = q(i,j,klo,n);
+                }
+                // k == klo-1
+                else
+                {
+                    q(i,j,k,n) =  (idxType.nodeCentered(2)) ? Real(2.0)*q(i,j,k+1,n) - q(i,j,k+2,n) 
+                                                            : Real(0.5)*(Real(3.)*q(i,j,k+1,n) - q(i,j,k+2,n));
+                }
+                break;
+            }
             case (BCType::reflect_even):
             {
                 q(i,j,k,n) = (idxType.nodeCentered(2)) ? q(i,j,2*klo-k,n)
@@ -154,6 +224,20 @@ filcc_cell (const IntVect& iv, const IndexType &idxType,
             case (BCType::foextrap):
             {
                 q(i,j,k,n) = q(i,j,khi,n);
+                break;
+            }
+            case (BCType::hoextrap):
+            {
+                if (k > khi + 1)
+                {
+                    q(i,j,k,n) = q(i,j,khi,n);
+                }
+                // k == khi+1
+                else
+                {
+                    q(i,j,k,n) =  (idxType.nodeCentered(2)) ? Real(2.0)*q(i,j,k-1,n) - q(i,j,k-2,n) 
+                                                            : Real(0.5)*(Real(3.)*q(i,j,k-1,n) - q(i,j,k-2,n));
+                }
                 break;
             }
             case (BCType::reflect_even):
