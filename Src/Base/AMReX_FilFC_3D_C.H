@@ -53,7 +53,7 @@ filfc_face (const IntVect& iv, const IndexType &idxType,
                 // i == ilo-1
                 else
                 {
-                    q(i,j,k,n) =  (idxType.nodeCentered(0)) ? Real(2.0)*q(i+1,j,k,n) - q(i+2,j,k,n) 
+                    q(i,j,k,n) =  (idxType.nodeCentered(0)) ? Real(2.0)*q(i+1,j,k,n) - q(i+2,j,k,n)
                                                             : Real(0.5)*(Real(3.)*q(i+1,j,k,n) - q(i+2,j,k,n));
                 }
                 break;
@@ -89,7 +89,7 @@ filfc_face (const IntVect& iv, const IndexType &idxType,
                 // i == ihi+1
                 else
                 {
-                    q(i,j,k,n) =  (idxType.nodeCentered(0)) ? Real(2.0)*q(i-1,j,k,n) - q(i-2,j,k,n) 
+                    q(i,j,k,n) =  (idxType.nodeCentered(0)) ? Real(2.0)*q(i-1,j,k,n) - q(i-2,j,k,n)
                                                             : Real(0.5)*(Real(3.)*q(i-1,j,k,n) - q(i-2,j,k,n));
                 }
                 break;
@@ -126,7 +126,7 @@ filfc_face (const IntVect& iv, const IndexType &idxType,
                 // j == jlo-1
                 else
                 {
-                    q(i,j,k,n) =  (idxType.nodeCentered(1)) ? Real(2.0)*q(i,j+1,k,n) - q(i,j+2,k,n) 
+                    q(i,j,k,n) =  (idxType.nodeCentered(1)) ? Real(2.0)*q(i,j+1,k,n) - q(i,j+2,k,n)
                                                             : Real(0.5)*(Real(3.)*q(i,j+1,k,n) - q(i,j+2,k,n));
                 }
                 break;
@@ -162,7 +162,7 @@ filfc_face (const IntVect& iv, const IndexType &idxType,
                 // j == jhi+1
                 else
                 {
-                    q(i,j,k,n) =  (idxType.nodeCentered(1)) ? Real(2.0)*q(i,j-1,k,n) - q(i,j-2,k,n) 
+                    q(i,j,k,n) =  (idxType.nodeCentered(1)) ? Real(2.0)*q(i,j-1,k,n) - q(i,j-2,k,n)
                                                             : Real(0.5)*(Real(3.)*q(i,j-1,k,n) - q(i,j-2,k,n));
                 }
                 break;
@@ -199,7 +199,7 @@ filfc_face (const IntVect& iv, const IndexType &idxType,
                 // k == klo-1
                 else
                 {
-                    q(i,j,k,n) =  (idxType.nodeCentered(2)) ? Real(2.0)*q(i,j,k+1,n) - q(i,j,k+2,n) 
+                    q(i,j,k,n) =  (idxType.nodeCentered(2)) ? Real(2.0)*q(i,j,k+1,n) - q(i,j,k+2,n)
                                                             : Real(0.5)*(Real(3.)*q(i,j,k+1,n) - q(i,j,k+2,n));
                 }
                 break;
@@ -235,7 +235,7 @@ filfc_face (const IntVect& iv, const IndexType &idxType,
                 // k == khi+1
                 else
                 {
-                    q(i,j,k,n) =  (idxType.nodeCentered(2)) ? Real(2.0)*q(i,j,k-1,n) - q(i,j,k-2,n) 
+                    q(i,j,k,n) =  (idxType.nodeCentered(2)) ? Real(2.0)*q(i,j,k-1,n) - q(i,j,k-2,n)
                                                             : Real(0.5)*(Real(3.)*q(i,j,k-1,n) - q(i,j,k-2,n));
                 }
                 break;
