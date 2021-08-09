@@ -805,7 +805,7 @@ GpuBndryFuncFab<F>::fcdoit (Box const& bx, FArrayBox& dest,
             [=] AMREX_GPU_DEVICE (Long iface) noexcept
             {
                 const auto& face = getCell(boxes_p, n_corner_boxes, iface);
-                filfc_cell(face, idxType, fab, dcomp, numcomp, geomdata, time,
+                filfc_face(face, idxType, fab, dcomp, numcomp, geomdata, time,
                            bcr_p, 0, orig_comp);
                 f_user(face, fab, dcomp, numcomp, geomdata, time,
                        bcr_p, 0, orig_comp);
