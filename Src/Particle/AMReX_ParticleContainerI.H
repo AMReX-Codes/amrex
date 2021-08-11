@@ -1976,8 +1976,11 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt, Allocator>
     }
 
     auto& ptile = DefineAndReturnParticleTile(level, 0, 0);
-    ptile.resize(particles.size());
-    amrex::copyParticles(ptile, particles);
+    int old_np = ptile.size();
+    int num_to_add = particles.size();
+    int new_np = old_np + num_to_add;
+    ptile.resize(new_np);
+    amrex::copyParticles(ptile, particles, 0, old_np, num_to_add);
     Redistribute(level, level, nGrow);
     particles.resize(0);
 }
