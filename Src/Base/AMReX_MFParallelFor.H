@@ -454,7 +454,7 @@ ParallelFor (MF const& mf, IntVect const& ng, int ncomp, TileSize const& ts, F&&
  *
  * This version launches a kernel to work on the valid and ghost regions.  If
  * built for CPU, tiling will be enabled.  However, one could specify a huge
- * tile size to effectively disable tiling.  For GPU build, this function is
+ * tile size to effectively disable tiling.  For GPU builds, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 4D loop.
  *
  * \tparam MF the MultiFab/FabArray type
