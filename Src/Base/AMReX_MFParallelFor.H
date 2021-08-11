@@ -491,7 +491,7 @@ ParallelFor (MF const& mf, IntVect const& ng, TileSize const& ts, DynamicTiling 
  * \param ncomp the number of component
  * \param ts tile size, ignored by GPU build
  * \param dt controls dynamic tiling for the cpu build
- * \param f a calable object void(int,int,int,int,int), where the first argument
+ * \param f a callable object void(int,int,int,int,int), where the first argument
  *           is the local box index, the following three are spatial indices
  *           for x, y, and z-directions, and the last is for component.
  */
