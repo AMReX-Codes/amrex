@@ -218,6 +218,37 @@ void mf_cell_bilin_interp (int i, int j, int, int n, Array4<Real> const& fine, i
         crse(ic+sx,jc+sy,0,n+ccomp)*(Real(1.0)-wx)*(Real(1.0)-wy);
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mf_nodebilin_interp (int i, int j, int, int n, Array4<Real> const& fine, int fcomp,
+                          Array4<Real const> const& crse, int ccomp, IntVect const& ratio) noexcept
+{
+    int ic = amrex::coarsen(i,ratio[0]);
+    int jc = amrex::coarsen(j,ratio[1]);
+    int ioff = i - ic*ratio[0];
+    int joff = j - jc*ratio[1];
+    Real rxinv = Real(1.0) / Real(ratio[0]);
+    Real ryinv = Real(1.0) / Real(ratio[1]);
+    if (ioff != 0 && joff != 0) {
+        // Node on a X-Y face
+        fine(i,j,0,n+fcomp) = rxinv * ryinv *
+            (crse(ic  ,jc  ,0,n+ccomp) * (ratio[0]-ioff) * (ratio[1]-joff) +
+             crse(ic+1,jc  ,0,n+ccomp) * (         ioff) * (ratio[1]-joff) +
+             crse(ic  ,jc+1,0,n+ccomp) * (ratio[0]-ioff) * (         joff) +
+             crse(ic+1,jc+1,0,n+ccomp) * (         ioff) * (         joff));
+    } else if (ioff != 0) {
+        // Node on X line
+        fine(i,j,0,n+fcomp) = rxinv*((ratio[0]-ioff)*crse(ic  ,jc,0,n+ccomp) +
+                                     (         ioff)*crse(ic+1,jc,0,n+ccomp));
+    } else if (joff != 0) {
+        // Node on Y line
+        fine(i,j,0,n+fcomp) = ryinv*((ratio[1]-joff)*crse(ic,jc  ,0,n+ccomp) +
+                                     (         joff)*crse(ic,jc+1,0,n+ccomp));
+    } else {
+        // Node coincident with coarse node
+        fine(i,j,0,n+fcomp) = crse(ic,jc,0,n+ccomp);
+    }
+}
+
 }
 
 #endif

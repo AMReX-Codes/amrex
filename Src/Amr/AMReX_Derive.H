@@ -252,7 +252,7 @@ protected:
     DeriveRec (const std::string&  name,
                IndexType           result_type,
                int                 nvar_derive,
-               Vector<std::string>& var_names,
+               Vector<std::string> const& var_names,
                DeriveFunc          der_func,
                DeriveBoxMap        box_map,
                Interpolater*       interp = &pc_interp);
@@ -260,7 +260,7 @@ protected:
     DeriveRec (const std::string&  name,
                IndexType           result_type,
                int                 nvar_derive,
-               Vector<std::string>& var_names,
+               Vector<std::string> const& var_names,
                DeriveFunc3D        der_func_3d,
                DeriveBoxMap        box_map,
                Interpolater*       interp = &pc_interp);
@@ -268,7 +268,7 @@ protected:
     DeriveRec (const std::string&  name,
                IndexType           result_type,
                int                 nvar_derive,
-               Vector<std::string>& var_names,
+               Vector<std::string> const& var_names,
                DeriveFuncFab       der_func_fab,
                DeriveBoxMap        box_map,
                Interpolater*       interp = &pc_interp);
@@ -421,7 +421,7 @@ public:
     void add (const std::string&      name,
               IndexType               result_type,
               int                     nvar_derive,
-              Vector<std::string>&    var_names,
+              Vector<std::string> const&    var_names,
               DeriveFunc              der_func,
               DeriveRec::DeriveBoxMap box_map,
               Interpolater*           interp = &pc_interp);
@@ -429,7 +429,7 @@ public:
     void add (const std::string&      name,
               IndexType               result_type,
               int                     nvar_derive,
-              Vector<std::string>&    var_names,
+              Vector<std::string> const&    var_names,
               DeriveFunc3D            der_func_3d,
               DeriveRec::DeriveBoxMap box_map,
               Interpolater*           interp = &pc_interp);
@@ -437,7 +437,7 @@ public:
     void add (const std::string&      name,
               IndexType               result_type,
               int                     nvar_derive,
-              Vector<std::string>&    var_names,
+              Vector<std::string> const&    var_names,
               DeriveFuncFab           der_func_fab,
               DeriveRec::DeriveBoxMap box_map,
               Interpolater*           interp = &pc_interp);
