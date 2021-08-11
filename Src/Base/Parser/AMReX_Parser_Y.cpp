@@ -9,11 +9,12 @@
 void
 amrex_parsererror (char const *s, ...)
 {
+    char print_buff[512];
     std::va_list vl;
     va_start(vl, s);
-    std::vfprintf(stderr, s, vl);
-    std::fprintf(stderr, "\n");
+    std::vsnprintf(print_buff, 512, s, vl);
     va_end(vl);
+    throw std::runtime_error(print_buff);
 }
 
 namespace amrex {
