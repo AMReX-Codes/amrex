@@ -28,15 +28,15 @@ namespace experimental {
 /**
  * \brief ParallelFor for MultiFab/FabArray.
  *
- * This version launch a kernel to work on the valid region.  If built for
- * CPU, tiling will be enabled.  For GPU build, this function is
+ * This version launches a kernel to work on the valid region.  If built for
+ * CPU, tiling will be enabled.  For GPU builds, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 4D loop.
  *
  * \tparam MF the MultiFab/FabArray type
  * \tparam F a callable type like lambda
  *
  * \param mf the MultiFab/FabArray object used to specify the iteration space
- * \param f a calable object void(int,int,int,int), where the first argument
+ * \param f a callable object void(int,int,int,int), where the first argument
  *           is the local box index, and the following three are spatial indices
  *           for x, y, and z-directions.
  */
@@ -50,8 +50,8 @@ ParallelFor (MF const& mf, F&& f)
 /**
  * \brief ParallelFor for MultiFab/FabArray.
  *
- * This version launch a kernel to work on the valid region.  If built for
- * CPU, tiling will be enabled.  For GPU build, this function is
+ * This version launches a kernel to work on the valid region.  If built for
+ * CPU, tiling will be enabled.  For GPU builds, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 4D loop.
  *
  * \tparam MT max threads in GPU blocks (Only relevant for GPU builds)
@@ -59,7 +59,7 @@ ParallelFor (MF const& mf, F&& f)
  * \tparam F a callable type like lambda
  *
  * \param mf the MultiFab/FabArray object used to specify the iteration space
- * \param f a calable object void(int,int,int,int), where the first argument
+ * \param f a callable object void(int,int,int,int), where the first argument
  *           is the local box index, and the following three are spatial indices
  *           for x, y, and z-directions.
  */
@@ -77,8 +77,8 @@ ParallelFor (MF const& mf, F&& f)
 /**
  * \brief ParallelFor for MultiFab/FabArray.
  *
- * This version launch a kernel to work on the valid and ghost region.  If
- * built for CPU, tiling will be enabled.  For GPU build, this function is
+ * This version launches a kernel to work on the valid and ghost regions.  If
+ * built for CPU, tiling will be enabled.  For GPU builds, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 4D loop.
  *
  * \tparam MF the MultiFab/FabArray type
@@ -86,7 +86,7 @@ ParallelFor (MF const& mf, F&& f)
  *
  * \param mf the MultiFab/FabArray object used to specify the iteration space
  * \param ng the number of ghost cells around the valid region
- * \param f a calable object void(int,int,int,int), where the first argument
+ * \param f a callable object void(int,int,int,int), where the first argument
  *           is the local box index, and the following three are spatial indices
  *           for x, y, and z-directions.
  */
@@ -100,8 +100,8 @@ ParallelFor (MF const& mf, IntVect const& ng, F&& f)
 /**
  * \brief ParallelFor for MultiFab/FabArray.
  *
- * This version launch a kernel to work on the valid and ghost region.  If
- * built for CPU, tiling will be enabled.  For GPU build, this function is
+ * This version launches a kernel to work on the valid and ghost regions.  If
+ * built for CPU, tiling will be enabled.  For GPU builds, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 4D loop.
  *
  * \tparam MT max threads in GPU blocks (Only relevant for GPU builds)
@@ -110,7 +110,7 @@ ParallelFor (MF const& mf, IntVect const& ng, F&& f)
  *
  * \param mf the MultiFab/FabArray object used to specify the iteration space
  * \param ng the number of ghost cells around the valid region
- * \param f a calable object void(int,int,int,int), where the first argument
+ * \param f a callable object void(int,int,int,int), where the first argument
  *           is the local box index, and the following three are spatial indices
  *           for x, y, and z-directions.
  */
@@ -128,8 +128,8 @@ ParallelFor (MF const& mf, IntVect const& ng, F&& f)
 /**
  * \brief ParallelFor for MultiFab/FabArray.
  *
- * This version launch a kernel to work on the valid region.  If built for
- * CPU, tiling will be enabled.  For GPU build, this function is
+ * This version launches a kernel to work on the valid region.  If built for
+ * CPU, tiling will be enabled.  For GPU builds, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 5D loop.
  *
  * \tparam MF the MultiFab/FabArray type
@@ -137,7 +137,7 @@ ParallelFor (MF const& mf, IntVect const& ng, F&& f)
  *
  * \param mf the MultiFab/FabArray object used to specify the iteration space
  * \param ncomp the number of component
- * \param f a calable object void(int,int,int,int,int), where the first argument
+ * \param f a callable object void(int,int,int,int,int), where the first argument
  *           is the local box index, the following three are spatial indices
  *           for x, y, and z-directions, and the last is for component.
  */
@@ -151,8 +151,8 @@ ParallelFor (MF const& mf, int ncomp, F&& f)
 /**
  * \brief ParallelFor for MultiFab/FabArray.
  *
- * This version launch a kernel to work on the valid region.  If built for
- * CPU, tiling will be enabled.  For GPU build, this function is
+ * This version launches a kernel to work on the valid region.  If built for
+ * CPU, tiling will be enabled.  For GPU builds, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 5D loop.
  *
  * \tparam MT max threads in GPU blocks (Only relevant for GPU builds)
@@ -161,7 +161,7 @@ ParallelFor (MF const& mf, int ncomp, F&& f)
  *
  * \param mf the MultiFab/FabArray object used to specify the iteration space
  * \param ncomp the number of component
- * \param f a calable object void(int,int,int,int,int), where the first argument
+ * \param f a callable object void(int,int,int,int,int), where the first argument
  *           is the local box index, the following three are spatial indices
  *           for x, y, and z-directions, and the last is for component.
  */
@@ -179,8 +179,8 @@ ParallelFor (MF const& mf, int ncomp, F&& f)
 /**
  * \brief ParallelFor for MultiFab/FabArray.
  *
- * This version launch a kernel to work on the valid and ghost region.  If
- * built for CPU, tiling will be enabled.  For GPU build, this function is
+ * This version launches a kernel to work on the valid and ghost regions.  If
+ * built for CPU, tiling will be enabled.  For GPU builds, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 5D loop.
  *
  * \tparam MF the MultiFab/FabArray type
@@ -189,7 +189,7 @@ ParallelFor (MF const& mf, int ncomp, F&& f)
  * \param mf the MultiFab/FabArray object used to specify the iteration space
  * \param ng the number of ghost cells around the valid region
  * \param ncomp the number of component
- * \param f a calable object void(int,int,int,int,int), where the first argument
+ * \param f a callable object void(int,int,int,int,int), where the first argument
  *           is the local box index, the following three are spatial indices
  *           for x, y, and z-directions, and the last is for component.
  */
@@ -203,8 +203,8 @@ ParallelFor (MF const& mf, IntVect const& ng, int ncomp, F&& f)
 /**
  * \brief ParallelFor for MultiFab/FabArray.
  *
- * This version launch a kernel to work on the valid and ghost region.  If
- * built for CPU, tiling will be enabled.  For GPU build, this function is
+ * This version launches a kernel to work on the valid and ghost regions.  If
+ * built for CPU, tiling will be enabled.  For gpu builds, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 5D loop.
  *
  * \tparam MT max threads in GPU blocks (Only relevant for GPU builds)
@@ -214,7 +214,7 @@ ParallelFor (MF const& mf, IntVect const& ng, int ncomp, F&& f)
  * \param mf the MultiFab/FabArray object used to specify the iteration space
  * \param ng the number of ghost cells around the valid region
  * \param ncomp the number of component
- * \param f a calable object void(int,int,int,int,int), where the first argument
+ * \param f a callable object void(int,int,int,int,int), where the first argument
  *           is the local box index, the following three are spatial indices
  *           for x, y, and z-directions, and the last is for component.
  */
@@ -232,9 +232,9 @@ ParallelFor (MF const& mf, IntVect const& ng, int ncomp, F&& f)
 /**
  * \brief ParallelFor for MultiFab/FabArray.
  *
- * This version launch a kernel to work on the valid region.  If built for
+ * This version launches a kernel to work on the valid region.  If built for
  * CPU, tiling will be enabled.  However, one could specify a huge tile size
- * to effectively disable tiling.  For GPU build, this function is
+ * to effectively disable tiling.  For gpu builds, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 4D loop.
  *
  * \tparam MF the MultiFab/FabArray type
@@ -242,7 +242,7 @@ ParallelFor (MF const& mf, IntVect const& ng, int ncomp, F&& f)
  *
  * \param mf the MultiFab/FabArray object used to specify the iteration space
  * \param ts tile size, ignored by GPU build
- * \param f a calable object void(int,int,int,int), where the first argument
+ * \param f a callable object void(int,int,int,int), where the first argument
  *           is the local box index, and the following three are spatial indices
  *           for x, y, and z-directions.
  */
@@ -256,9 +256,9 @@ ParallelFor (MF const& mf, TileSize const& ts, F&& f)
 /**
  * \brief ParallelFor for MultiFab/FabArray.
  *
- * This version launch a kernel to work on the valid region.  If built for
+ * This version launches a kernel to work on the valid region.  If built for
  * CPU, tiling will be enabled.  However, one could specify a huge tile size
- * to effectively disable tiling.  For GPU build, this function is
+ * to effectively disable tiling.  For gpu builds, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 4D loop.
  *
  * \tparam MT max threads in GPU blocks (Only relevant for GPU builds)
@@ -267,7 +267,7 @@ ParallelFor (MF const& mf, TileSize const& ts, F&& f)
  *
  * \param mf the MultiFab/FabArray object used to specify the iteration space
  * \param ts tile size, ignored by GPU build
- * \param f a calable object void(int,int,int,int), where the first argument
+ * \param f a callable object void(int,int,int,int), where the first argument
  *           is the local box index, and the following three are spatial indices
  *           for x, y, and z-directions.
  */
@@ -285,9 +285,9 @@ ParallelFor (MF const& mf, TileSize const& ts, F&& f)
 /**
  * \brief ParallelFor for MultiFab/FabArray.
  *
- * This version launch a kernel to work on the valid and ghost region.  If
+ * This version launches a kernel to work on the valid and ghost regions.  If
  * built for CPU, tiling will be enabled.  However, one could specify a huge
- * tile size to effectively disable tiling.  For GPU build, this function is
+ * tile size to effectively disable tiling.  For gpu builds, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 4D loop.
  *
  * \tparam MF the MultiFab/FabArray type
@@ -296,7 +296,7 @@ ParallelFor (MF const& mf, TileSize const& ts, F&& f)
  * \param mf the MultiFab/FabArray object used to specify the iteration space
  * \param ng the number of ghost cells around the valid region
  * \param ts tile size, ignored by GPU build
- * \param f a calable object void(int,int,int,int), where the first argument
+ * \param f a callable object void(int,int,int,int), where the first argument
  *           is the local box index, and the following three are spatial indices
  *           for x, y, and z-directions.
  */
@@ -310,9 +310,9 @@ ParallelFor (MF const& mf, IntVect const& ng, TileSize const& ts, F&& f)
 /**
  * \brief ParallelFor for MultiFab/FabArray.
  *
- * This version launch a kernel to work on the valid and ghost region.  If
+ * This version launches a kernel to work on the valid and ghost regions.  If
  * built for CPU, tiling will be enabled.  However, one could specify a huge
- * tile size to effectively disable tiling.  For GPU build, this function is
+ * tile size to effectively disable tiling.  For gpu builds, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 4D loop.
  *
  * \tparam MT max threads in GPU blocks (Only relevant for GPU builds)
@@ -322,7 +322,7 @@ ParallelFor (MF const& mf, IntVect const& ng, TileSize const& ts, F&& f)
  * \param mf the MultiFab/FabArray object used to specify the iteration space
  * \param ng the number of ghost cells around the valid region
  * \param ts tile size, ignored by GPU build
- * \param f a calable object void(int,int,int,int), where the first argument
+ * \param f a callable object void(int,int,int,int), where the first argument
  *           is the local box index, and the following three are spatial indices
  *           for x, y, and z-directions.
  */
@@ -340,9 +340,9 @@ ParallelFor (MF const& mf, IntVect const& ng, TileSize const& ts, F&& f)
 /**
  * \brief ParallelFor for MultiFab/FabArray.
  *
- * This version launch a kernel to work on the valid region.  If built for
+ * This version launches a kernel to work on the valid region.  If built for
  * CPU, tiling will be enabled.  However, one could specify a huge tile size
- * to effectively disable tiling.  For GPU build, this function is
+ * to effectively disable tiling.  For gpu builds, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 5D loop.
  *
  * \tparam MF the MultiFab/FabArray type
@@ -351,7 +351,7 @@ ParallelFor (MF const& mf, IntVect const& ng, TileSize const& ts, F&& f)
  * \param mf the MultiFab/FabArray object used to specify the iteration space
  * \param ncomp the number of component
  * \param ts tile size, ignored by GPU build
- * \param f a calable object void(int,int,int,int,int), where the first argument
+ * \param f a callable object void(int,int,int,int,int), where the first argument
  *           is the local box index, the following three are spatial indices
  *           for x, y, and z-directions, and the last is for component.
  */
@@ -365,9 +365,9 @@ ParallelFor (MF const& mf, int ncomp, TileSize const& ts, F&& f)
 /**
  * \brief ParallelFor for MultiFab/FabArray.
  *
- * This version launch a kernel to work on the valid region.  If built for
+ * This version launches a kernel to work on the valid region.  If built for
  * CPU, tiling will be enabled.  However, one could specify a huge tile size
- * to effectively disable tiling.  For GPU build, this function is
+ * to effectively disable tiling.  For gpu builds, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 5D loop.
  *
  * \tparam MT max threads in GPU blocks (Only relevant for GPU builds)
@@ -377,7 +377,7 @@ ParallelFor (MF const& mf, int ncomp, TileSize const& ts, F&& f)
  * \param mf the MultiFab/FabArray object used to specify the iteration space
  * \param ncomp the number of component
  * \param ts tile size, ignored by GPU build
- * \param f a calable object void(int,int,int,int,int), where the first argument
+ * \param f a callable object void(int,int,int,int,int), where the first argument
  *           is the local box index, the following three are spatial indices
  *           for x, y, and z-directions, and the last is for component.
  */
@@ -395,9 +395,9 @@ ParallelFor (MF const& mf, int ncomp, TileSize const& ts, F&& f)
 /**
  * \brief ParallelFor for MultiFab/FabArray.
  *
- * This version launch a kernel to work on the valid and ghost region.  If
+ * This version launches a kernel to work on the valid and ghost regions.  If
  * built for CPU, tiling will be enabled.  However, one could specify a huge
- * tile size to effectively disable tiling.  For GPU build, this function is
+ * tile size to effectively disable tiling.  For gpu builds, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 5D loop.
  *
  * \tparam MF the MultiFab/FabArray type
@@ -407,7 +407,7 @@ ParallelFor (MF const& mf, int ncomp, TileSize const& ts, F&& f)
  * \param ng the number of ghost cells around the valid region
  * \param ncomp the number of component
  * \param ts tile size, ignored by GPU build
- * \param f a calable object void(int,int,int,int,int), where the first argument
+ * \param f a callable object void(int,int,int,int,int), where the first argument
  *           is the local box index, the following three are spatial indices
  *           for x, y, and z-directions, and the last is for component.
  */
@@ -423,7 +423,7 @@ ParallelFor (MF const& mf, IntVect const& ng, int ncomp, TileSize const& ts, F&&
  *
  * This version launches a kernel to work on the valid and ghost regions.  If
  * built for CPU, tiling will be enabled.  However, one could specify a huge
- * tile size to effectively disable tiling.  For GPU build, this function is
+ * tile size to effectively disable tiling.  For gpu builds, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 5D loop.
  *
  * \tparam MT max threads in GPU blocks (Only relevant for GPU builds)
@@ -478,9 +478,9 @@ ParallelFor (MF const& mf, IntVect const& ng, TileSize const& ts, DynamicTiling 
 /**
  * \brief ParallelFor for MultiFab/FabArray.
  *
- * This version launch a kernel to work on the valid and ghost region.  If
+ * This version launches a kernel to work on the valid and ghost regions.  If
  * built for CPU, tiling will be enabled.  However, one could specify a huge
- * tile size to effectively disable tiling.  For GPU build, this function is
+ * tile size to effectively disable tiling.  For gpu builds, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 5D loop.
  *
  * \tparam MF the MultiFab/FabArray type
@@ -506,7 +506,7 @@ ParallelFor (MF const& mf, IntVect const& ng, int ncomp, TileSize const& ts,
 /**
  * \brief ParallelFor for MultiFab/FabArray.
  *
- * This version launch a kernel to work on the valid and ghost region.  If
+ * This version launches a kernel to work on the valid and ghost regions.  If
  * built for CPU, tiling will be enabled.  However, one could specify a huge
  * tile size to effectively disable tiling.  For GPU builds, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 4D loop.
@@ -519,7 +519,7 @@ ParallelFor (MF const& mf, IntVect const& ng, int ncomp, TileSize const& ts,
  * \param ng the number of ghost cells around the valid region
  * \param ts tile size, ignored by GPU build
  * \param dt controls dynamic tiling for the cpu build
- * \param f a calable object void(int,int,int,int), where the first argument
+ * \param f a callable object void(int,int,int,int), where the first argument
  *           is the local box index, and the following three are spatial indices
  *           for x, y, and z-directions.
  */
@@ -538,9 +538,9 @@ ParallelFor (MF const& mf, IntVect const& ng, TileSize const& ts,
 /**
  * \brief ParallelFor for MultiFab/FabArray.
  *
- * This version launch a kernel to work on the valid and ghost region.  If
+ * This version launches a kernel to work on the valid and ghost regions.  If
  * built for CPU, tiling will be enabled.  However, one could specify a huge
- * tile size to effectively disable tiling.  For GPU build, this function is
+ * tile size to effectively disable tiling.  For gpu builds, this function is
  * NON-BLOCKING on the host. Conceptually, this is a 5D loop.
  *
  * \tparam MT max threads in GPU blocks (Only relevant for GPU builds)
@@ -552,7 +552,7 @@ ParallelFor (MF const& mf, IntVect const& ng, TileSize const& ts,
  * \param ncomp the number of component
  * \param ts tile size, ignored by GPU build
  * \param dt controls dynamic tiling for the cpu build
- * \param f a calable object void(int,int,int,int,int), where the first argument
+ * \param f a callable object void(int,int,int,int,int), where the first argument
  *           is the local box index, the following three are spatial indices
  *           for x, y, and z-directions, and the last is for component.
  */
