@@ -169,6 +169,21 @@ void mf_cell_bilin_interp (int i, int, int, int n, Array4<Real> const& fine, int
         crse(ic+sx,0,0,n+ccomp)*(Real(1.0)-wx);
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mf_nodebilin_interp (int i, int, int, int n, Array4<Real> const& fine, int fcomp,
+                          Array4<Real const> const& crse, int ccomp, IntVect const& ratio) noexcept
+{
+    int ic = amrex::coarsen(i,ratio[0]);
+    int ioff = i - ic*ratio[0];
+    if (ioff != 0) {
+        Real rxinv = Real(1.0) / Real(ratio[0]);
+        fine(i,0,0,n+fcomp) = rxinv*((ratio[0]-ioff)*crse(ic  ,0,0,n+ccomp) +
+                                     (         ioff)*crse(ic+1,0,0,n+ccomp));
+    } else {
+        fine(i,0,0,n+fcomp) = crse(ic,0,0,n+ccomp);
+    }
+}
+
 }
 
 #endif
