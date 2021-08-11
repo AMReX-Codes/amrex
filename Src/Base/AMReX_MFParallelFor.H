@@ -464,7 +464,7 @@ ParallelFor (MF const& mf, IntVect const& ng, int ncomp, TileSize const& ts, F&&
  * \param ng the number of ghost cells around the valid region
  * \param ts tile size, ignored by GPU build
  * \param dt controls dynamic tiling for the cpu build
- * \param f a calable object void(int,int,int,int), where the first argument
+ * \param f a callable object void(int,int,int,int), where the first argument
  *           is the local box index, and the following three are spatial indices
  *           for x, y, and z-directions.
  */
