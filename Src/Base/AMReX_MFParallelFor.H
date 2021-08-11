@@ -434,7 +434,7 @@ ParallelFor (MF const& mf, IntVect const& ng, int ncomp, TileSize const& ts, F&&
  * \param ng the number of ghost cells around the valid region
  * \param ncomp the number of component
  * \param ts tile size, ignored by GPU build
- * \param f a calable object void(int,int,int,int,int), where the first argument
+ * \param f a callable object void(int,int,int,int,int), where the first argument
  *           is the local box index, the following three are spatial indices
  *           for x, y, and z-directions, and the last is for component.
  */
