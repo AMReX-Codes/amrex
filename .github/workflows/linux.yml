@@ -326,4 +326,4 @@ jobs:
     - name: Run tests
       run: |
         cd build
-        ctest --output-on-failure -R
+        ctest --output-on-failure -E CNS
