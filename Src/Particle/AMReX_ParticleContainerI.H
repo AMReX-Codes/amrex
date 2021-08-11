@@ -1959,8 +1959,6 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt, Allocator>
 {
     BL_PROFILE("ParticleContainer::AddParticlesAtLevel()");
 
-    //    if (particles.size() == 0) return;
-
     if (int(m_particles.size()) < level+1)
     {
         if (Verbose())
@@ -1977,20 +1975,9 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt, Allocator>
         }
     }
 
-    ParticleLocData pld;
-
-    auto src = particles.getParticleTileData();
-
-    for (int i = 0; i < particles.numParticles(); ++i) {
-        SuperParticleType p = src.getSuperParticle(i);
-        if (p.id() > 0)
-        {
-            if (!Where(p, pld, level, level, nGrow))
-                amrex::Abort("ParticleContainerAddParticlesAtLevel(): Can't add outside of domain\n");
-            m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
-        }
-    }
-
+    auto& ptile = DefineAndReturnParticleTile(level, 0, 0);
+    ptile.resize(particles.size());
+    amrex::copyParticles(ptile, particles);
     Redistribute(level, level, nGrow);
     particles.resize(0);
 }
