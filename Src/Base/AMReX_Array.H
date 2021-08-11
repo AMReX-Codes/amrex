@@ -107,64 +107,26 @@ namespace amrex {
 
         /**
          * Returns the sum of all elements in the GpuArray object.
-         * Only makes sense for integers and floating-point types.
          */
-        template <typename F=T,
-                  typename std::enable_if<std::is_floating_point<F>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T sum () noexcept
         {
-            T s = (T)0.0;
+            T s = 0;
             for (unsigned int i = 0; i < N; ++i) { s += arr[i]; }
             return s;
         }
 
         /**
          * Returns the product of all elements in the GpuArray object.
-         * Only makes sense for integers and floating-point types.
          */
-        template <typename F=T,
-                  typename std::enable_if<std::is_floating_point<F>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T product () noexcept
         {
-            T p = (T)1.0;
+            T p = 1;
             for (unsigned int i = 0; i < N; ++i) { p *= arr[i]; }
             return p;
         }
 
-        /**
-         * Returns the sum of all elements in the GpuArray object.
-         * Only makes sense for integers and floating-point types.
-         */
-        template <typename I=T,
-                  typename std::enable_if<std::is_integral<I>::value,int>::type=0>
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T sum () noexcept
-        {
-            T s = (T)0;
-            for (unsigned int i = 0; i < N; ++i) s += arr[i];
-            return s;
-        }
-
-        /**
-         * Returns the product of all elements in the GpuArray object.
-         * Only makes sense for integers and floating-point types.
-         */
-        template <typename I=T,
-                  typename std::enable_if<std::is_integral<I>::value,int>::type=0>
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T product () noexcept
-        {
-            T p = (T)1;
-            for (unsigned int i = 0; i < N; ++i) p *= arr[i];
-            return p;
-        }
-
-        /**
-         * GpuArray is implemented as a fixed-size array. Hence, no constructor or
-         * destructor is given.
-         */
         T arr[amrex::max(N,1u)];
     };
 }
@@ -268,25 +230,25 @@ namespace amrex {
 
         /**
          * Returns the sum of all elements in the Array1D object.
-         * Only makes sense for integers and floating-point types.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T sum () noexcept
         {
-            T s = (T)0.0;
+            T s = 0;
             for (int i = XLO; i <= XHI; ++i) { s += arr[i-XLO]; }
             return s;
         }
 
         /**
          * Returns the product of all elements in the Array1D object.
-         * Only makes sense for integers and floating-point types.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T product() noexcept
         {
-            T p = (T)1.0;
-            for (int i = XLO; i <= XHI; ++i) { p *= arr[i-XLO]; }
+            T p = 1;
+            for (int i = 0; i < (XHI-XLO+1); ++i) {
+                p *= arr[i];
+            }
             return p;
         }
 
@@ -422,134 +384,6 @@ namespace amrex {
         }
 
         /**
-         * When called without any arguments, returns the sum of all
-         * elements in the Array2D object.
-         * Only makes sense for integers and floating-point types.
-         */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T sum () noexcept
-        {
-            T s = (T)0.0;
-            for     (int j = YLO; j <= YHI; ++j) {
-                for (int i = XLO; i <= XHI; ++i) {
-                    s += arr[i+j*(XHI-XLO+1)-(YLO*(XHI-XLO+1)+XLO)];
-                }
-            }
-            return s;
-        }
-
-        /**
-         * When called with two arguments, performs a sum reduction over
-         * the specified \c axis, for a particular location index \c loc.
-         *
-         * \param axis The dimension to reduce (0 for \a x dimension,
-         *             1 for \a y dimension)
-         * \param loc  The appropriate location index
-         *
-         * This can be used, for instance, to calculate the sum over the \a y
-         * dimension of an Array2D object that was instantiated as
-         * \verbatim Array2D<amrex::Real, 1, M, 1, N> array; \endverbatim
-         *
-         * One could instantiate an Array1D object to hold the results,
-         * \verbatim Array1D<amrex::Real, 1, M> vec; \endverbatim
-         * and then perform the summation for each element of the resulting
-         * vector.
-         * \verbatim
-         for (int i = 1; i <= M; ++i) {
-             vec(i) = array.sum(1,i)
-         }
-         \endverbatim
-         * In this example, the axis is 1 and the location index is \c i.
-         *
-         */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T sum (const int axis, const int loc)
-        {
-            T s = (T)0.0;
-            if        (axis == 0) {
-                int j = loc;
-                for (int i = XLO; i <= XHI; ++i) {
-                    s += arr[i+j*(XHI-XLO+1)-(YLO*(XHI-XLO+1)+XLO)];
-                }
-            } else if (axis == 1) {
-                int i = loc;
-                for (int j = YLO; j <= YHI; ++j) {
-                    s += arr[i+j*(XHI-XLO+1)-(YLO*(XHI-XLO+1)+XLO)];
-                }
-            }
-            return s;
-        }
-
-        /**
-         * When called without any arguments, returns the product of all
-         * elements in the Array2D object.
-         * Only makes sense for integers and floating-point types.
-         */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T product () noexcept
-        {
-            T p = (T)1.0;
-            for     (int j = YLO; j <= XHI; ++j) {
-                for (int i = XLO; i <= XHI; ++i) {
-                    p *= arr[i+j*(XHI-XLO+1)-(YLO*(XHI-XLO+1)+XLO)];
-                }
-            }
-            return p;
-        }
-
-
-        /**
-         * When called with two arguments, performs a product reduction over
-         * the specified \c axis, for a particular location index \c loc.
-         *
-         * \param axis The dimension to reduce (0 for \a x dimension,
-         *             1 for \a y dimension)
-         * \param loc  The appropriate location index
-         *
-         * This can be used, for instance, to calculate the product over the \a x
-         * dimension of an Array2D object that was instantiated as
-         * \verbatim Array2D<amrex::Real, 1, M, 1, N> array; \endverbatim
-         *
-         * One could instantiate an Array1D object to hold the results with,
-         * \verbatim Array1D<amrex::Real, 1, N> vec; \endverbatim
-         * and then perform the product for each element of the resulting
-         * vector.
-         *
-         * \verbatim
-         for (int j = 1; j <= N; ++j) {
-             vec(j) = array.sum(0,j)
-         }
-         \endverbatim
-         * In this example, the axis is 0 and the location index is \c j.
-         *
-         */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T product (const int axis, const int loc)
-        {
-            T p = (T)1.0;
-            if        (axis == 0) {
-                int j = loc;
-                for (int i = XLO; i <= XHI; ++i) {
-                    p *= arr[i+j*(XHI-XLO+1)-(YLO*(XHI-XLO+1)+XLO)];
-                }
-            } else if (axis == 1) {
-                int i = loc;
-                for (int j = YLO; j <= YHI; ++j) {
-                    p *= arr[i+j*(XHI-XLO+1)-(YLO*(XHI-XLO+1)+XLO)];
-                }
-            }
-            return p;
-        }
-
-        /**
          * The elements of an Array2D object are accessed using parentheses,
          * e.g. \c array(i,j), instead of using square brackets.
          * When the order is manually specified as Order::C, row-major order
@@ -580,18 +414,13 @@ namespace amrex {
         /**
          * When called without any arguments, returns the sum of all
          * elements in the Array2D object.
-         * Only makes sense for integers and floating-point types.
          */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T sum () noexcept
         {
-            T s = (T)0.0;
-            for     (int i = XLO; i <= XHI; ++i) {
-                for (int j = YLO; j <= YHI; ++j) {
-                    s += arr[j+i*(YHI-YLO+1)-(XLO*(YHI-YLO+1)+YLO)];
-                }
+            T s = 0;
+            for (int i = 0; i < (XHI-XLO+1)*(YHI-YLO+1); ++i) {
+                s += arr[i];
             }
             return s;
         }
@@ -606,7 +435,7 @@ namespace amrex {
          *
          * This can be used, for instance, to calculate the sum over the \a y
          * dimension of an Array2D object that was instantiated as
-         * \verbatim Array2D<amrex::Real, 1, M, 1, N, Order::C> array; \endverbatim
+         * \verbatim Array2D<amrex::Real, 1, M, 1, N> array; \endverbatim
          *
          * One could instantiate an Array1D object to hold the results,
          * \verbatim Array1D<amrex::Real, 1, M> vec; \endverbatim
@@ -620,24 +449,19 @@ namespace amrex {
          * In this example, the axis is 1 and the location index is \c i.
          *
          */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T sum (const int axis, const int loc)
+        constexpr T sum (int axis, int loc)
         {
-            AMREX_ASSERT(axis == 0 || axis == 1);
-            T s = (T)0.0;
+            T s = 0;
             if        (axis == 0) {
                 int j = loc;
-                AMREX_ASSERT(j >= YLO && j <= YHI);
                 for (int i = XLO; i <= XHI; ++i) {
-                    s += arr[j+i*(YHI-YLO+1)-(XLO*(YHI-YLO+1)+YLO)];
+                    s += this->operator()(i,j);
                 }
             } else if (axis == 1) {
                 int i = loc;
-                AMREX_ASSERT(i >= XLO && i <= XHI);
                 for (int j = YLO; j <= YHI; ++j) {
-                    s += arr[j+i*(YHI-YLO+1)-(XLO*(YHI-YLO+1)+YLO)];
+                    s += this->operator()(i,j);
                 }
             }
             return s;
@@ -646,18 +470,13 @@ namespace amrex {
         /**
          * When called without any arguments, returns the product of all
          * elements in the Array2D object.
-         * Only makes sense for integers and floating-point types.
          */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T product () noexcept
         {
-            T p = (T)1.0;
-            for     (int i = XLO; i <= XHI; ++i) {
-                for (int j = YLO; j <= YHI; ++j) {
-                    p *= arr[j+i*(YHI-YLO+1)-(XLO*(YHI-YLO+1)+YLO)];
-                }
+            T p = 1;
+            for (int i = 0; i < (XHI-XLO+1)*(YHI-YLO+1); ++i) {
+                p *= arr[i];
             }
             return p;
         }
@@ -672,47 +491,39 @@ namespace amrex {
          *
          * This can be used, for instance, to calculate the product over the \a x
          * dimension of an Array2D object that was instantiated as
-         * \verbatim Array2D<amrex::Real, 1, M, 1, N, Order::C> array; \endverbatim
+         * \verbatim Array2D<amrex::Real, 1, M, 1, N> array; \endverbatim
          *
-         * One could instantiate an Array1D object to hold the results,
+         * One could instantiate an Array1D object to hold the results with,
          * \verbatim Array1D<amrex::Real, 1, N> vec; \endverbatim
-         * and then perform the summation for each element of the resulting
+         * and then perform the product for each element of the resulting
          * vector.
+         *
          * \verbatim
          for (int j = 1; j <= N; ++j) {
-             vec(j) = array.product(0,j)
+             vec(j) = array.sum(0,j)
          }
          \endverbatim
          * In this example, the axis is 0 and the location index is \c j.
          *
          */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T product (const int axis, const int loc)
+        constexpr T product (int axis, int loc)
         {
-            AMREX_ASSERT(axis == 0 || axis == 1);
-            T p = (T)1.0;
+            T p = 1;
             if        (axis == 0) {
                 int j = loc;
-                AMREX_ASSERT(j >= YLO && j <= YHI);
                 for (int i = XLO; i <= XHI; ++i) {
-                    p *= arr[j+i*(YHI-YLO+1)-(XLO*(YHI-YLO+1)+YLO)];
+                    p *= this->operator()(i,j);
                 }
             } else if (axis == 1) {
                 int i = loc;
-                AMREX_ASSERT(i >= XLO && i <= XHI);
                 for (int j = YLO; j <= YHI; ++j) {
-                    p *= arr[j+i*(YHI-YLO+1)-(XLO*(YHI-YLO+1)+YLO)];
+                    p *= this->operator()(i,j);
                 }
             }
             return p;
         }
 
-        /**
-         * Array2D is implemented as a fixed-size array.
-         * Hence, no constructor or destructor is given.
-         */
         T arr[(XHI-XLO+1)*(YHI-YLO+1)];
     };
 
@@ -865,27 +676,46 @@ namespace amrex {
         }
 
         /**
-         * When called without any arguments, returns the sum of all
-         * elements in the Array3D object.
-         * Only makes sense for integers and floating-point types.
+         * The elements of an Array3D object are accessed using parentheses,
+         * e.g. \c array(i,j,k), instead of using square brackets.
+         * When the order is manually specified as Order::C, row-major order
+         * is used (the index \c k moves the fastest).
          */
         template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
+                  typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        const T& operator() (int i, int j, int k) const noexcept {
+            return arr[k+j*(ZHI-ZLO+1)+i*((ZHI-ZLO+1)*(YHI-YLO+1))
+                       -(XLO*((ZHI-ZLO+1)*(YHI-YLO+1))+YLO*(ZHI-ZLO+1)+ZLO)];
+        }
+
+        /**
+         * The elements of an Array3D object are accessed using parentheses,
+         * e.g. \c array(i,j,k), instead of using square brackets.
+         * When the order is manually specified as Order::C, row-major order
+         * is used (the index \c k moves the fastest).
+         */
+        template <typename O=ORDER,
+                  typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T& operator() (int i, int j, int k) noexcept {
+            return arr[k+j*(ZHI-ZLO+1)+i*((ZHI-ZLO+1)*(YHI-YLO+1))
+                       -(XLO*((ZHI-ZLO+1)*(YHI-YLO+1))+YLO*(ZHI-ZLO+1)+ZLO)];
+        }
+
+        /**
+         * When called without any arguments, returns the sum of all
+         * elements in the Array3D object.
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T sum () noexcept
         {
-            T s = (T)0.0;
-            for         (int k = ZLO; k <= ZHI; ++k) {
-                for     (int j = YLO; j <= YHI; ++j) {
-                    for (int i = XLO; i <= XHI; ++i) {
-                        s += arr[i+j*(XHI-XLO+1)+k*((XHI-XLO+1)*(YHI-YLO+1))
-                                 -(ZLO*((XHI-XLO+1)*(YHI-YLO+1))+YLO*(XHI-XLO+1)+XLO)];
-                    }
-                }
+            T s = 0;
+            for (int i = 0; i < (XHI-XLO+1)*(YHI-YLO+1)*(ZHI-ZLO+1); ++i) {
+                s += arr[i];
             }
             return s;
         }
-
 
         /**
          * When called with three arguments, performs a sum reduction over
@@ -917,36 +747,27 @@ namespace amrex {
          * \c loc0 = \c i and \c loc1 = \c k; for axis = 2, \c loc0 = \c j and \c loc1 = \c k.
          *
          */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T sum (const int axis, const int loc0, const int loc1)
+        constexpr T sum (int axis, int loc0, int loc1)
         {
-            AMREX_ASSERT(axis >= 0 && axis <= 2);
-            T s = (T)0.0;
+            T s = 0;
             if        (axis == 0) {
                 int j = loc0;
                 int k = loc1;
-                AMREX_ASSERT(j >= YLO && j <= YHI && k >= ZLO && k <= ZHI);
                 for (int i = XLO; i <= XHI; ++i) {
-                    s += arr[i+j*(XHI-XLO+1)+k*((XHI-XLO+1)*(YHI-YLO+1))
-                             -(ZLO*((XHI-XLO+1)*(YHI-YLO+1))+YLO*(XHI-XLO+1)+XLO)];
+                    s += this->operator()(i,j,k);
                 }
             } else if (axis == 1) {
                 int i = loc0;
                 int k = loc1;
-                AMREX_ASSERT(i >= XLO && i <= XHI && k >= ZLO && k <= ZHI);
                 for (int j = YLO; j <= YHI; ++j) {
-                    s += arr[i+j*(XHI-XLO+1)+k*((XHI-XLO+1)*(YHI-YLO+1))
-                             -(ZLO*((XHI-XLO+1)*(YHI-YLO+1))+YLO*(XHI-XLO+1)+XLO)];
+                    s += this->operator()(i,j,k);
                 }
             } else if (axis == 2) {
                 int i = loc0;
                 int j = loc1;
-                AMREX_ASSERT(i >= XLO && i <= XHI && j >= YLO && j <= YHI);
                 for (int k = ZLO; k <= ZHI; ++k) {
-                    s += arr[i+j*(XHI-XLO+1)+k*((XHI-XLO+1)*(YHI-YLO+1))
-                             -(ZLO*((XHI-XLO+1)*(YHI-YLO+1))+YLO*(XHI-XLO+1)+XLO)];
+                    s += this->operator()(i,j,k);
                 }
             }
             return s;
@@ -955,24 +776,17 @@ namespace amrex {
         /**
          * When called without any arguments, returns the product of all
          * elements in the Array3D object.
-         * Only makes sense for integers and floating-point types.
          */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T product () noexcept
         {
-            T p = (T)1.0;
-            for         (int k = ZLO; k <= ZHI; ++k) {
-                for     (int j = YLO; j <= YHI; ++j) {
-                    for (int i = XLO; i <= XHI; ++i) {
-                        p *= arr[i+j*(XHI-XLO+1)+k*((XHI-XLO+1)*(YHI-YLO+1))
-                                 -(ZLO*((XHI-XLO+1)*(YHI-YLO+1))+YLO*(XHI-XLO+1)+XLO)];
-                    }
-                }
+            T p = 1;
+            for (int i = 0; i < (XHI-XLO+1)*(YHI-YLO+1)*(ZHI-ZLO+1); ++i) {
+                p *= arr[i];
             }
             return p;
         }
+
 
         /**
          * When called with three arguments, performs a product reduction over
@@ -1009,242 +823,29 @@ namespace amrex {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T product (const int axis, const int loc0, const int loc1)
         {
-            AMREX_ASSERT(axis >= 0 && axis <= 2);
-            T p = (T)1.0;
+            T p = 1;
             if        (axis == 0) {
                 int j = loc0;
                 int k = loc1;
-                AMREX_ASSERT(j >= YLO && j <= YHI && k >= ZLO && k <= ZHI);
                 for (int i = XLO; i <= XHI; ++i) {
-                    p *= arr[i+j*(XHI-XLO+1)+k*((XHI-XLO+1)*(YHI-YLO+1))
-                             -(ZLO*((XHI-XLO+1)*(YHI-YLO+1))+YLO*(XHI-XLO+1)+XLO)];
+                    p *= this->operator()(i,j,k);
                 }
             } else if (axis == 1) {
                 int i = loc0;
                 int k = loc1;
-                AMREX_ASSERT(i >= XLO && i <= XHI && k >= ZLO && k <= ZHI);
                 for (int j = YLO; j <= YHI; ++j) {
-                    p *= arr[i+j*(XHI-XLO+1)+k*((XHI-XLO+1)*(YHI-YLO+1))
-                             -(ZLO*((XHI-XLO+1)*(YHI-YLO+1))+YLO*(XHI-XLO+1)+XLO)];
+                    p *= this->operator()(i,j,k);
                 }
             } else if (axis == 2) {
                 int i = loc0;
                 int j = loc1;
-                AMREX_ASSERT(i >= XLO && i <= XHI && j >= YLO && j <= YHI);
                 for (int k = ZLO; k <= ZHI; ++k) {
-                    p *= arr[i+j*(XHI-XLO+1)+k*((XHI-XLO+1)*(YHI-YLO+1))
-                             -(ZLO*((XHI-XLO+1)*(YHI-YLO+1))+YLO*(XHI-XLO+1)+XLO)];
+                    p *= this->operator()(i,j,k);
                 }
             }
             return p;
         }
 
-        /**
-         * The elements of an Array3D object are accessed using parentheses,
-         * e.g. \c array(i,j,k), instead of using square brackets.
-         * When the order is manually specified as Order::C, row-major order
-         * is used (the index \c k moves the fastest).
-         */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        const T& operator() (int i, int j, int k) const noexcept {
-            return arr[k+j*(ZHI-ZLO+1)+i*((ZHI-ZLO+1)*(YHI-YLO+1))
-                       -(XLO*((ZHI-ZLO+1)*(YHI-YLO+1))+YLO*(ZHI-ZLO+1)+ZLO)];
-        }
-
-        /**
-         * The elements of an Array3D object are accessed using parentheses,
-         * e.g. \c array(i,j,k), instead of using square brackets.
-         * When the order is manually specified as Order::C, row-major order
-         * is used (the index \c k moves the fastest).
-         */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T& operator() (int i, int j, int k) noexcept {
-            return arr[k+j*(ZHI-ZLO+1)+i*((ZHI-ZLO+1)*(YHI-YLO+1))
-                       -(XLO*((ZHI-ZLO+1)*(YHI-YLO+1))+YLO*(ZHI-ZLO+1)+ZLO)];
-        }
-
-        /**
-         * When called without any arguments, returns the sum of all
-         * elements in the Array3D object.
-         * Only makes sense for integers and floating-point types.
-         */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T sum () noexcept
-        {
-            T s = (T)0.0;
-            for         (int i = XLO; i <= XHI; ++i) {
-                for     (int j = YLO; j <= YHI; ++j) {
-                    for (int k = ZLO; k <= ZHI; ++k) {
-                        s += arr[k+j*(ZHI-ZLO+1)+i*((ZHI-ZLO+1)*(YHI-YLO+1))
-                                 -(XLO*((ZHI-ZLO+1)*(YHI-YLO+1))+YLO*(ZHI-ZLO+1)+ZLO)];
-                    }
-                }
-            }
-            return s;
-        }
-
-        /**
-         * When called with three arguments, performs a sum reduction over
-         * the specified \c axis, for a particular set of location indices \c loc0
-         * and \c loc1.
-         *
-         * \param axis The dimension to reduce (0 for \a x dimension,
-         *             1 for \a y dimension, 2 for \a z dimension)
-         * \param loc0 The appropriate location index (either \c i or \c j)
-         * \param loc1 The appropriate location index (either \c j or \c k)
-         *
-         * This can be used, for instance, to calculate the sum over the \a y
-         * dimension of an Array3D object that was instantiated as
-         * \verbatim Array3D<amrex::Real, 1, M, 1, N, 1, K, Order::C> array; \endverbatim
-         *
-         * One could instantiate an Array2D object to hold the results,
-         * \verbatim Array2D<amrex::Real, 1, M, 1, K, Order::C> mat; \endverbatim
-         * and then perform the summation for each element of the resulting
-         * matrix.
-         * \verbatim
-          for     (int i = 1; i <= M; ++i) {
-              for (int k = 1; k <= K; ++k) {
-                  mat(i,k) = array.sum(1,i,k)
-              }
-          }
-          \endverbatim
-         * In this example, the axis is 1 and the location indices are \c loc0 = \c i
-         * and \c loc1 = \c k. For axis = 0, the location indices are treated as
-         * \c loc0 = \c i and \c loc1 = \c j; for axis = 2, \c loc0 = \c j and \c loc1 = \c k.
-         *
-         */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T sum (const int axis, const int loc0, const int loc1)
-        {
-            AMREX_ASSERT(axis >= 0 && axis <= 2);
-            T s = (T)0.0;
-            if        (axis == 0) {
-                int j = loc0;
-                int k = loc1;
-                AMREX_ASSERT(j >= YLO && j <= YHI && k >= ZLO && k <= ZHI);
-                for (int i = XLO; i <= XHI; ++i) {
-                    s += arr[k+j*(ZHI-ZLO+1)+i*((ZHI-ZLO+1)*(YHI-YLO+1))
-                             -(XLO*((ZHI-ZLO+1)*(YHI-YLO+1))+YLO*(ZHI-ZLO+1)+ZLO)];
-                }
-            } else if (axis == 1) {
-                int i = loc0;
-                int k = loc1;
-                AMREX_ASSERT(i >= XLO && i <= XHI && k >= ZLO && k <= ZHI);
-                for (int j = YLO; j <= YHI; ++j) {
-                    s += arr[k+j*(ZHI-ZLO+1)+i*((ZHI-ZLO+1)*(YHI-YLO+1))
-                             -(XLO*((ZHI-ZLO+1)*(YHI-YLO+1))+YLO*(ZHI-ZLO+1)+ZLO)];
-                }
-            } else if (axis == 2) {
-                int i = loc0;
-                int j = loc1;
-                AMREX_ASSERT(i >= XLO && i <= XHI && j >= YLO && j <= YHI);
-                for (int k = ZLO; k <= ZHI; ++k) {
-                    s += arr[k+j*(ZHI-ZLO+1)+i*((ZHI-ZLO+1)*(YHI-YLO+1))
-                             -(XLO*((ZHI-ZLO+1)*(YHI-YLO+1))+YLO*(ZHI-ZLO+1)+ZLO)];
-                }
-            }
-            return s;
-        }
-
-        /**
-         * When called without any arguments, returns the product of all
-         * elements in the Array3D object.
-         * Only makes sense for integers and floating-point types.
-         */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T product () noexcept
-        {
-            T p = (T)1.0;
-            for         (int i = XLO; i <= XHI; ++i) {
-                for     (int j = YLO; j <= YHI; ++j) {
-                    for (int k = ZLO; k <= ZHI; ++k) {
-                        p *= arr[k+j*(ZHI-ZLO+1)+i*((ZHI-ZLO+1)*(YHI-YLO+1))
-                                 -(XLO*((ZHI-ZLO+1)*(YHI-YLO+1))+YLO*(ZHI-ZLO+1)+ZLO)];
-                    }
-                }
-            }
-            return p;
-        }
-
-        /**
-         * When called with three arguments, performs a product reduction over
-         * the specified \c axis, for a particular set of location indices \c loc0
-         * and \c loc1.
-         *
-         * \param axis The dimension to reduce (0 for \a x dimension,
-         *             1 for \a y dimension, 2 for \a z dimension)
-         * \param loc0 The appropriate location index (either \c i or \c j)
-         * \param loc1 The appropriate location index (either \c j or \c k)
-         *
-         * This can be used, for instance, to calculate the product over the \a x
-         * dimension of an Array3D object that was instantiated as
-         * \verbatim Array3D<amrex::Real, 1, M, 1, N, 1, K, Order::C> array; \endverbatim
-         *
-         * One could instantiate an Array2D object to hold the results,
-         * \verbatim Array2D<amrex::Real, 1, N, 1, K, Order::C> mat; \endverbatim
-         * and then perform the summation for each element of the resulting
-         * matrix.
-         * \verbatim
-         for     (int j = 1; j <= N; ++j) {
-             for (int k = 1; k <= K; ++k) {
-                 mat(j,k) = array.sum(0,j,k)
-             }
-         }
-         \endverbatim
-         * In this example, the axis is 0 and the location indices are \c loc0 = \c j
-         * and \c loc1 = \c k. For axis = 1, the location indices are treated as
-         * \c loc0 = \c i and \c loc1 = \c k; for axis = 2, \c loc0 = \c j and \c loc1 = \c k.
-         *
-         */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T product (const int axis, const int loc0, const int loc1)
-        {
-            AMREX_ASSERT(axis >= 0 && axis <= 2);
-            T p = (T)1.0;
-            if        (axis == 0) {
-                int j = loc0;
-                int k = loc1;
-                AMREX_ASSERT(j >= YLO && j <= YHI && k >= ZLO && k <= ZHI);
-                for (int i = XLO; i <= XHI; ++i) {
-                    p *= arr[k+j*(ZHI-ZLO+1)+i*((ZHI-ZLO+1)*(YHI-YLO+1))
-                             -(XLO*((ZHI-ZLO+1)*(YHI-YLO+1))+YLO*(ZHI-ZLO+1)+ZLO)];
-                }
-            } else if (axis == 1) {
-                int i = loc0;
-                int k = loc1;
-                AMREX_ASSERT(i >= XLO && i <= XHI && k >= ZLO && k <= ZHI);
-                for (int j = YLO; j <= YHI; ++j) {
-                    p *= arr[k+j*(ZHI-ZLO+1)+i*((ZHI-ZLO+1)*(YHI-YLO+1))
-                             -(XLO*((ZHI-ZLO+1)*(YHI-YLO+1))+YLO*(ZHI-ZLO+1)+ZLO)];
-                }
-            } else if (axis == 2) {
-                int i = loc0;
-                int j = loc1;
-                AMREX_ASSERT(i >= XLO && i <= XHI && j >= YLO && j <= YHI);
-                for (int k = ZLO; k <= ZHI; ++k) {
-                    p *= arr[k+j*(ZHI-ZLO+1)+i*((ZHI-ZLO+1)*(YHI-YLO+1))
-                             -(XLO*((ZHI-ZLO+1)*(YHI-YLO+1))+YLO*(ZHI-ZLO+1)+ZLO)];
-                }
-            }
-            return p;
-        }
-
-        /**
-         * Array3D is implemented as a fixed-size array.
-         * Hence, no constructor or destructor is given.
-         */
         T arr[(XHI-XLO+1)*(YHI-YLO+1)*(ZHI-ZLO+1)];
     };
 }
