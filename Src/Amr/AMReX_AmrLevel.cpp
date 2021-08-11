@@ -163,19 +163,19 @@ AmrLevel::writePlotFile (const std::string& dir,
         }
     }
 
+    int num_derive = 0;
     std::vector<std::string> derive_names;
     const std::list<DeriveRec>& dlist = derive_lst.dlist();
-    for (std::list<DeriveRec>::const_iterator it = dlist.begin();
-         it != dlist.end();
-         ++it)
+    for (auto const& d : dlist)
     {
-        if (parent->isDerivePlotVar(it->name()))
+        if (parent->isDerivePlotVar(d.name()))
         {
-            derive_names.push_back(it->name());
+            derive_names.push_back(d.name());
+            num_derive += d.numDerive();
         }
     }
 
-    int n_data_items = plot_var_map.size() + derive_names.size();
+    int n_data_items = plot_var_map.size() + num_derive;
 
 #ifdef AMREX_USE_EB
     if (EB2::TopIndexSpaceIfPresent()) {
@@ -211,7 +211,10 @@ AmrLevel::writePlotFile (const std::string& dir,
 
         // derived
         for (auto const& dname : derive_names) {
-            os << derive_lst.get(dname)->variableName(0) << '\n';
+            const DeriveRec* rec = derive_lst.get(dname);
+            for (i = 0; i < rec->numDerive(); ++i) {
+                os << rec->variableName(i) << '\n';
+            }
         }
 
 #ifdef AMREX_USE_EB
@@ -337,7 +340,7 @@ AmrLevel::writePlotFile (const std::string& dir,
         for (auto const& dname : derive_names)
         {
             derive(dname, cur_time, plotMF, cnt);
-            cnt++;
+            cnt += derive_lst.get(dname)->numDerive();
         }
     }
 
