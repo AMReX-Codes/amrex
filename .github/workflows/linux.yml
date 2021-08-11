@@ -70,7 +70,7 @@ jobs:
         export PATH=/tmp/my-amrex/bin:$PATH
         which fcompare
 
-        ctest --output-on-failure -E CNS
+        ctest --output-on-failure
 
   # Build libamrex and all tests
   tests_build:
@@ -94,7 +94,7 @@ jobs:
             -DAMReX_PARTICLES=ON
         make -j 2
 
-        ctest --output-on-failure -E CNS
+        ctest --output-on-failure
 
   test_sensei:
     name: SENSEI Adaptor [test]
@@ -125,7 +125,7 @@ jobs:
         cmake --build build -j 2
 
         cd build
-        ctest --output-on-failure -E CNS
+        ctest --output-on-failure
 
   # Build libamrex and all tests
   tests_cxx20:
@@ -154,7 +154,7 @@ jobs:
             -DCMAKE_Fortran_COMPILER=$(which gfortran-10)
         make -j 2
 
-        ctest --output-on-failure -E CNS
+        ctest --output-on-failure
 
   tests_clang:
     name: Clang@6.0 C++14 SP Particles DP Mesh Debug [tests]
@@ -184,7 +184,7 @@ jobs:
             -DCMAKE_Fortran_COMPILER=$(which gfortran)
         make -j 2
 
-        ctest --output-on-failure -E CNS
+        ctest --output-on-failure
 
   # Build libamrex and all tests w/o MPI
   tests-nonmpi:
@@ -209,7 +209,7 @@ jobs:
             -DAMReX_PARTICLES=ON
         make -j 2
 
-        ctest --output-on-failure -E CNS
+        ctest --output-on-failure
 
   # Build libamrex and all tests
   tests-nofortran:
@@ -234,7 +234,7 @@ jobs:
             -DAMReX_FORTRAN=OFF
         make -j 2
 
-        ctest --output-on-failure -E CNS
+        ctest --output-on-failure
 
   # Build 1D libamrex with configure
   configure-1d:
@@ -341,4 +341,4 @@ jobs:
     - name: Run tests
       run: |
         cd build
-        ctest --output-on-failure -E CNS
+        ctest --output-on-failure

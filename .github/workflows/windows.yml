@@ -15,12 +15,14 @@ jobs:
               -DCMAKE_BUILD_TYPE=Debug      `
               -DBUILD_SHARED_LIBS=ON        `
               -DCMAKE_VERBOSE_MAKEFILE=ON   `
-              -DAMReX_EB=ON                 `
+              -DAMReX_EB=ON                `
               -DAMReX_ENABLE_TESTS=ON       `
               -DAMReX_FORTRAN=OFF           `
               -DAMReX_MPI=OFF               `
               -DAMReX_PARTICLES=ON
         cmake --build build --config Debug -j 2
+
+        ctest --output-on-failure --test-dir build --build-config Debug
 
   # Build libamrex and all test (static)
   test_msvc_static:
@@ -39,6 +41,8 @@ jobs:
               -DAMReX_MPI=OFF               `
               -DAMReX_PARTICLES=ON
         cmake --build build --config RelWithDebInfo -j 2
+
+        ctest --output-on-failure --test-dir build --build-config RelWithDebInfo
 
   # Build libamrex and all tests
   tests_clang:
@@ -63,3 +67,5 @@ jobs:
               -DAMReX_OMP=ON                ^
               -DAMReX_PARTICLES=ON
         cmake --build build --config Release -j 2
+
+        ctest --output-on-failure --test-dir build --build-config RelWithDebInfo

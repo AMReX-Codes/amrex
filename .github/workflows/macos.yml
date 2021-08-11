@@ -28,7 +28,7 @@ jobs:
         cmake --build build --parallel 2
 
         cd build
-        ctest --output-on-failure -E CNS
+        ctest --output-on-failure
         cd ..
 
         rm -rf build
