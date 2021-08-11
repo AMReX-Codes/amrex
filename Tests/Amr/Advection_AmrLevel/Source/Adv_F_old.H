@@ -1,5 +1,5 @@
-#ifndef _Adv_F_H_
-#define _Adv_F_H_
+#ifndef _Adv_F_old_H_
+#define _Adv_F_old_H_
 
 #include <AMReX_BLFort.H>
 #include <AMReX_SPACE.H>
@@ -23,10 +23,12 @@ extern "C"
                    const amrex_real* dx, const amrex_real* problo,
                    const amrex_real* time, const int* level);
 
+  /* Moved to Exec/ * /Adv_F.H
   void initdata(const int* level, const amrex_real* time,
                 const int* lo, const int* hi,
                 BL_FORT_FAB_ARG_3D(state),
                 const amrex_real* dx, const amrex_real* problo);
+  */
 
   /*
   void get_face_velocity(const int* level, const amrex_real* time,

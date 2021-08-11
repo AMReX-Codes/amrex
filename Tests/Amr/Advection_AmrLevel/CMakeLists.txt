@@ -15,7 +15,7 @@ endif ()
 #
 # Sources common to both cases
 #
-set(_sources Adv_F.H  AmrLevelAdv.cpp  AmrLevelAdv.H  LevelBldAdv.cpp  main.cpp)
+set(_sources Adv_F.H Adv_F_old.H AmrLevelAdv.cpp  AmrLevelAdv.H  LevelBldAdv.cpp  main.cpp)
 
 list(APPEND _sources Src_${AMReX_SPACEDIM}d/Adv_${AMReX_SPACEDIM}d.f90 Src_${AMReX_SPACEDIM}d/compute_flux_${AMReX_SPACEDIM}d.f90
    Src_${AMReX_SPACEDIM}d/slope_${AMReX_SPACEDIM}d.f90 )
