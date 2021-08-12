@@ -599,7 +599,7 @@ AmrLevelAdv::post_regrid (int lbase, int /*new_finest*/) {
 
 /**
  * Do work after a restart().
- * /
+ */
 void
 AmrLevelAdv::post_restart()
 {
