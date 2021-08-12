@@ -25,17 +25,17 @@ std::unique_ptr<AmrTracerParticleContainer> AmrLevelAdv::TracerPC =  nullptr;
 int AmrLevelAdv::do_tracers                       =  0;
 #endif
 
-//
-//Default constructor.  Builds invalid object.
-//
+/**
+ * Default constructor.  Builds invalid object.
+ */
 AmrLevelAdv::AmrLevelAdv ()
 {
     flux_reg = 0;
 }
 
-//
-//The basic constructor.
-//
+/**
+ * The basic constructor.
+ */
 AmrLevelAdv::AmrLevelAdv (Amr&            papa,
                           int             lev,
                           const Geometry& level_geom,
@@ -50,17 +50,17 @@ AmrLevelAdv::AmrLevelAdv (Amr&            papa,
         flux_reg = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
 }
 
-//
-//The destructor.
-//
+/**
+ * The destructor.
+ */
 AmrLevelAdv::~AmrLevelAdv ()
 {
     delete flux_reg;
 }
 
-//
-//Restart from a checkpoint file.
-//
+/**
+ * Restart from a checkpoint file.
+ */
 void
 AmrLevelAdv::restart (Amr&          papa,
                       std::istream& is,
@@ -73,6 +73,9 @@ AmrLevelAdv::restart (Amr&          papa,
         flux_reg = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
 }
 
+/**
+ * Write a checkpoint file.
+ */
 void
 AmrLevelAdv::checkPoint (const std::string& dir,
                          std::ostream&      os,
@@ -87,9 +90,9 @@ AmrLevelAdv::checkPoint (const std::string& dir,
 #endif
 }
 
-//
-//Write a plotfile to specified directory.
-//
+/**
+ * Write a plotfile to specified directory.
+ */
 void
 AmrLevelAdv::writePlotFile (const std::string& dir,
                              std::ostream&      os,
@@ -105,9 +108,9 @@ AmrLevelAdv::writePlotFile (const std::string& dir,
 #endif
 }
 
-//
-//Define data descriptors.
-//
+/**
+ * Define data descriptors.
+ */
 void
 AmrLevelAdv::variableSetUp ()
 {
@@ -137,9 +140,9 @@ AmrLevelAdv::variableSetUp ()
                           StateDescriptor::BndryFunc(nullfill));
 }
 
-//
-//Cleanup data descriptors at end of run.
-//
+/**
+ * Cleanup data descriptors at end of run.
+ */
 void
 AmrLevelAdv::variableCleanUp ()
 {
@@ -151,14 +154,14 @@ AmrLevelAdv::variableCleanUp ()
     The_Arena()->free(d_prob_parm);
 }
 
-//
-//Initialize grid data at problem start-up.
-//
+/**
+ * Initialize grid data at problem start-up.
+ */
 void
 AmrLevelAdv::initData ()
 {
     //
-    // Loop over grids, call FORTRAN function to init with data.
+    // Loop over grids.
     //
     const Real* dx  = geom.CellSize();
     const Real* prob_lo = geom.ProbLo();
@@ -175,7 +178,7 @@ AmrLevelAdv::initData ()
         const int* lo      = box.loVect();
         const int* hi      = box.hiVect();
 
-        // use a Fortran routine to initialize data at each level
+        // Use a Fortran subroutine to initialize data.
         initdata(&level, &cur_time, AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi),
                  BL_TO_FORTRAN_3D(S_new[mfi]), AMREX_ZFILL(dx),
                  AMREX_ZFILL(prob_lo));
@@ -191,13 +194,14 @@ AmrLevelAdv::initData ()
     }
 }
 
-//
-//Initialize data on this level from another AmrLevelAdv (during regrid).
-//
+/**
+ * Initialize data on this level from another AmrLevelAdv (during regrid).
+ */
 void
 AmrLevelAdv::init (AmrLevel &old)
 {
     AmrLevelAdv* oldlev = (AmrLevelAdv*) &old;
+
     //
     // Create new grid data by fillpatching from old.
     //
@@ -212,9 +216,9 @@ AmrLevelAdv::init (AmrLevel &old)
     FillPatch(old, S_new, 0, cur_time, Phi_Type, 0, NUM_STATE);
 }
 
-//
-//Initialize data on this level after regridding if old level did not previously exist
-//
+/**
+ * Initialize data on this level after regridding if old level did not previously exist
+ */
 void
 AmrLevelAdv::init ()
 {
@@ -229,9 +233,9 @@ AmrLevelAdv::init ()
     FillCoarsePatch(S_new, 0, cur_time, Phi_Type, 0, NUM_STATE);
 }
 
-//
-//Advance grids at this level in time.
-//
+/**
+ * Advance grids at this level in time.
+ */
 Real
 AmrLevelAdv::advance (Real time,
                       Real dt,
@@ -365,9 +369,9 @@ AmrLevelAdv::advance (Real time,
     return dt;
 }
 
-//
-//Estimate time step.
-//
+/**
+ * Estimate time step.
+ */
 Real
 AmrLevelAdv::estTimeStep (Real)
 {
@@ -416,18 +420,18 @@ AmrLevelAdv::estTimeStep (Real)
     return dt_est;
 }
 
-//
-//Compute initial time step.
-//
+/**
+ * Compute initial time step.
+ */
 Real
 AmrLevelAdv::initialTimeStep ()
 {
     return estTimeStep(0.0);
 }
 
-//
-//Compute initial `dt'.
-//
+/**
+ * Compute initial `dt'.
+ */
 void
 AmrLevelAdv::computeInitialDt (int                   finest_level,
                                int                   /*sub_cycle*/,
@@ -469,9 +473,9 @@ AmrLevelAdv::computeInitialDt (int                   finest_level,
     }
 }
 
-//
-//Compute new `dt'.
-//
+/**
+ * Compute new `dt'.
+ */
 void
 AmrLevelAdv::computeNewDt (int                   finest_level,
                            int                   /*sub_cycle*/,
@@ -546,9 +550,9 @@ AmrLevelAdv::computeNewDt (int                   finest_level,
     }
 }
 
-//
-//Do work after timestep().
-//
+/**
+ * Do work after timestep().
+ */
 void
 AmrLevelAdv::post_timestep (int iteration)
 {
@@ -579,9 +583,9 @@ AmrLevelAdv::post_timestep (int iteration)
 #endif
 }
 
-//
-//Do work after regrid().
-//
+/**
+ * Do work after regrid().
+ */
 void
 AmrLevelAdv::post_regrid (int lbase, int /*new_finest*/) {
 #ifdef AMREX_PARTICLES
@@ -593,9 +597,9 @@ AmrLevelAdv::post_regrid (int lbase, int /*new_finest*/) {
 #endif
 }
 
-//
-//Do work after a restart().
-//
+/**
+ * Do work after a restart().
+ * /
 void
 AmrLevelAdv::post_restart()
 {
@@ -608,9 +612,9 @@ AmrLevelAdv::post_restart()
 #endif
 }
 
-//
-//Do work after init().
-//
+/**
+ * Do work after init().
+ */
 void
 AmrLevelAdv::post_init (Real /*stop_time*/)
 {
@@ -625,9 +629,9 @@ AmrLevelAdv::post_init (Real /*stop_time*/)
         getLevel(k).avgDown();
 }
 
-//
-//Error estimation for regridding.
-//
+/**
+ * Error estimation for regridding.
+ */
 void
 AmrLevelAdv::errorEst (TagBoxArray& tags,
                        int          clearval,
@@ -675,6 +679,9 @@ AmrLevelAdv::errorEst (TagBoxArray& tags,
     }
 }
 
+/**
+ * Read parameters from input file and probin file.
+ */
 void
 AmrLevelAdv::read_params ()
 {
@@ -707,7 +714,7 @@ AmrLevelAdv::read_params ()
 #endif
 
     //
-    // read tagging parameters from probin file
+    // Read tagging parameters from probin file
     //
 
     std::string probin_file("probin");
@@ -721,7 +728,7 @@ AmrLevelAdv::read_params ()
     for (int i = 0; i < probin_file_length; i++)
         probin_file_name[i] = probin_file[i];
 
-    // use a Fortran routine to read in tagging parameters from probin file
+    // use a Fortran subroutine to read in tagging parameters from probin file
     get_tagging_params(probin_file_name.dataPtr(), &probin_file_length);
 
 }
