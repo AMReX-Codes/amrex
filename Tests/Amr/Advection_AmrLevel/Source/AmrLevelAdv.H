@@ -15,13 +15,14 @@
 #include <omp.h>
 #endif
 
+#include "Prob_Parm.H"
+
 enum StateType { Phi_Type = 0,
                  NUM_STATE_TYPE };
 
 //
 // AmrLevel-derived class for hyperbolic conservation equations
 //
-
 class AmrLevelAdv
     :
     public amrex::AmrLevel
@@ -121,7 +122,6 @@ public:
     //Do work after timestep().
     //
     virtual void post_timestep (int iteration) override;
-
     //
     //Do work after regrid().
     //
@@ -149,6 +149,9 @@ public:
 
     static int  NUM_STATE;
     static int  NUM_GROW;
+
+    static ProbParm* h_prob_parm;
+    static ProbParm* d_prob_parm;
 
 protected:
 
@@ -181,6 +184,7 @@ protected:
     static int       do_tracers;
     static std::unique_ptr<amrex::AmrTracerParticleContainer> TracerPC;
 #endif
+
 };
 
 //

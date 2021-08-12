@@ -1,6 +1,7 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_TagBox.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_GpuMemory.H>
 
 #include "AmrLevelAdv.H"
 #include "Adv_F.H"
@@ -15,6 +16,9 @@ int      AmrLevelAdv::do_reflux       = 1;
 
 int      AmrLevelAdv::NUM_STATE       = 1;  // One variable in the state
 int      AmrLevelAdv::NUM_GROW        = 3;  // number of ghost cells
+
+ProbParm* AmrLevelAdv::h_prob_parm = nullptr;
+ProbParm* AmrLevelAdv::d_prob_parm = nullptr;
 
 #ifdef AMREX_PARTICLES
 std::unique_ptr<AmrTracerParticleContainer> AmrLevelAdv::TracerPC =  nullptr;
@@ -109,6 +113,11 @@ AmrLevelAdv::variableSetUp ()
 {
     BL_ASSERT(desc_lst.size() == 0);
 
+
+    // Initialize struct containing problem-specific variables
+    h_prob_parm = new ProbParm{};
+    d_prob_parm = (ProbParm*)The_Arena()->alloc(sizeof(ProbParm));
+
     // Get options, set phys_bc
     read_params();
 
@@ -138,6 +147,8 @@ AmrLevelAdv::variableCleanUp ()
 #ifdef AMREX_PARTICLES
     TracerPC.reset();
 #endif
+    delete h_prob_parm;
+    The_Arena()->free(d_prob_parm);
 }
 
 //
@@ -164,9 +175,10 @@ AmrLevelAdv::initData ()
         const int* lo      = box.loVect();
         const int* hi      = box.hiVect();
 
-          initdata(&level, &cur_time, AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi),
-                   BL_TO_FORTRAN_3D(S_new[mfi]), AMREX_ZFILL(dx),
-                   AMREX_ZFILL(prob_lo));
+        // use a Fortran routine to initialize data at each level
+        initdata(&level, &cur_time, AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi),
+                 BL_TO_FORTRAN_3D(S_new[mfi]), AMREX_ZFILL(dx),
+                 AMREX_ZFILL(prob_lo));
     }
 
 #ifdef AMREX_PARTICLES
@@ -306,14 +318,6 @@ AmrLevelAdv::advance (Real time,
                 uface[i].resize(amrex::grow(bxtmp, iteration), 1);
             }
 
-            /*
-            get_face_velocity(&level, &ctr_time,
-                              AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
-                                     BL_TO_FORTRAN(uface[1]),
-                                     BL_TO_FORTRAN(uface[2])),
-                              dx, prob_lo);
-            */
-
             // Compute Godunov velocities for each face.
             get_face_velocity(ctr_time,
                               AMREX_D_DECL(uface[0], uface[1], uface[2]),
@@ -387,14 +391,6 @@ AmrLevelAdv::estTimeStep (Real)
                 const Box& bx = mfi.nodaltilebox(i);
                 uface[i].resize(bx,1);
             }
-
-            /*
-            get_face_velocity(&level, &cur_time,
-                              AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
-                                     BL_TO_FORTRAN(uface[1]),
-                                     BL_TO_FORTRAN(uface[2])),
-                              dx, prob_lo);
-            */
 
             get_face_velocity(cur_time,
                               AMREX_D_DECL(uface[0], uface[1], uface[2]),
@@ -725,8 +721,7 @@ AmrLevelAdv::read_params ()
     for (int i = 0; i < probin_file_length; i++)
         probin_file_name[i] = probin_file[i];
 
-    // use a fortran routine to
-    // read in tagging parameters from probin file
+    // use a Fortran routine to read in tagging parameters from probin file
     get_tagging_params(probin_file_name.dataPtr(), &probin_file_length);
 
 }

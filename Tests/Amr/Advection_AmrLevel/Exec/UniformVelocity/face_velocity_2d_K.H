@@ -3,7 +3,6 @@
 
 #include "Prob_Parm.H"
 
-
 void get_face_velocity(const amrex::Real /*time*/,
                        amrex::FArrayBox& vx,
                        amrex::FArrayBox& vy,
@@ -11,8 +10,8 @@ void get_face_velocity(const amrex::Real /*time*/,
 {
     using namespace amrex;
 
-    vx.setVal<RunOn::Device>(d_prob_parm->adv_vel[0]);
-    vy.setVal<RunOn::Device>(d_prob_parm->adv_vel[1]);
+    vx.setVal<RunOn::Device>(AmrLevelAdv::d_prob_parm->adv_vel[0]);
+    vy.setVal<RunOn::Device>(AmrLevelAdv::d_prob_parm->adv_vel[1]);
 
     return;
 }

@@ -6,9 +6,7 @@
 using namespace amrex::literals;
 
 // Define the struct to contain problem-specific variables here.
-struct ProbParm
-{
-    amrex::Real adv_vel[3] = {1.0, 1.0, 1.0}; // Default values
-};
+// For this case, since we don't need any, the struct is empty.
+struct ProbParm {};
 
 #endif

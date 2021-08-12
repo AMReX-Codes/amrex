@@ -11,9 +11,9 @@ void get_face_velocity(const amrex::Real /*time*/,
 {
     using namespace amrex;
 
-    vx.setVal<RunOn::Device>(d_prob_parm->adv_vel[0]);
-    vy.setVal<RunOn::Device>(d_prob_parm->adv_vel[1]);
-    vz.setVal<RunOn::Device>(d_prob_parm->adv_vel[2]);
+    vx.setVal<RunOn::Device>(AmrLevelAdv::d_prob_parm->adv_vel[0]);
+    vy.setVal<RunOn::Device>(AmrLevelAdv::d_prob_parm->adv_vel[1]);
+    vz.setVal<RunOn::Device>(AmrLevelAdv::d_prob_parm->adv_vel[2]);
 
     return;
 }
