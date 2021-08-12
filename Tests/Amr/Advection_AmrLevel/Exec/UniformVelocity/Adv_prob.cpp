@@ -8,8 +8,8 @@ extern "C" {
     void amrex_probinit (const int* /*init*/,
                          const int* /*name*/,
                          const int* /*namelen*/,
-                         const amrex_real* /*problo*/,
-                         const amrex_real* /*probhi*/)
+                         const amrex::Real* /*problo*/,
+                         const amrex::Real* /*probhi*/)
     {
         // Read the prob block from the input file using ParmParse
         amrex::ParmParse pp("prob");
