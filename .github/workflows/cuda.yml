@@ -21,6 +21,7 @@ jobs:
         cd build
         cmake ..                                           \
             -DCMAKE_VERBOSE_MAKEFILE=ON                    \
+            -DAMReX_EB=OFF                                 \
             -DAMReX_ENABLE_TESTS=ON                        \
             -DAMReX_FORTRAN=OFF                            \
             -DAMReX_PARTICLES=ON                           \
