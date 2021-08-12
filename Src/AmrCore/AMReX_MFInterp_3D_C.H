@@ -172,6 +172,69 @@ void mf_cell_bilin_interp (int i, int j, int k, int n, Array4<Real> const& fine,
         crse(ic+sx,jc+sy,kc+sz,n+ccomp)*(Real(1.0)-wx)*(Real(1.0)-wy)*(Real(1.0)-wz);
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mf_nodebilin_interp (int i, int j, int k, int n, Array4<Real> const& fine, int fcomp,
+                          Array4<Real const> const& crse, int ccomp, IntVect const& ratio) noexcept
+{
+    int ic = amrex::coarsen(i,ratio[0]);
+    int jc = amrex::coarsen(j,ratio[1]);
+    int kc = amrex::coarsen(k,ratio[2]);
+    int ioff = i - ic*ratio[0];
+    int joff = j - jc*ratio[1];
+    int koff = k - kc*ratio[2];
+    Real rxinv = Real(1.0) / Real(ratio[0]);
+    Real ryinv = Real(1.0) / Real(ratio[1]);
+    Real rzinv = Real(1.0) / Real(ratio[2]);
+    if (ioff != 0 && joff != 0 && koff != 0) {
+        // Fine node at center of cell
+        fine(i,j,k,n+fcomp) = rxinv * ryinv * rzinv *
+            (crse(ic  ,jc  ,kc  ,n+ccomp) * (ratio[0]-ioff) * (ratio[1]-joff) * (ratio[2]-koff) +
+             crse(ic+1,jc  ,kc  ,n+ccomp) * (         ioff) * (ratio[1]-joff) * (ratio[2]-koff) +
+             crse(ic  ,jc+1,kc  ,n+ccomp) * (ratio[0]-ioff) * (         joff) * (ratio[2]-koff) +
+             crse(ic+1,jc+1,kc  ,n+ccomp) * (         ioff) * (         joff) * (ratio[2]-koff) +
+             crse(ic  ,jc  ,kc+1,n+ccomp) * (ratio[0]-ioff) * (ratio[1]-joff) * (         koff) +
+             crse(ic+1,jc  ,kc+1,n+ccomp) * (         ioff) * (ratio[1]-joff) * (         koff) +
+             crse(ic  ,jc+1,kc+1,n+ccomp) * (ratio[0]-ioff) * (         joff) * (         koff) +
+             crse(ic+1,jc+1,kc+1,n+ccomp) * (         ioff) * (         joff) * (         koff));
+    } else if (joff != 0 && koff != 0) {
+        // Node on a Y-Z face
+        fine(i,j,k,n+fcomp) = ryinv * rzinv *
+            (crse(ic,jc  ,kc  ,n+ccomp) * (ratio[1]-joff) * (ratio[2]-koff) +
+             crse(ic,jc+1,kc  ,n+ccomp) * (         joff) * (ratio[2]-koff) +
+             crse(ic,jc  ,kc+1,n+ccomp) * (ratio[1]-joff) * (         koff) +
+             crse(ic,jc+1,kc+1,n+ccomp) * (         joff) * (         koff));
+    } else if (ioff != 0 && koff != 0) {
+        // Node on a Z-X face
+        fine(i,j,k,n+fcomp) = rxinv * rzinv *
+            (crse(ic  ,jc,kc  ,n+ccomp) * (ratio[0]-ioff) * (ratio[2]-koff) +
+             crse(ic+1,jc,kc  ,n+ccomp) * (         ioff) * (ratio[2]-koff) +
+             crse(ic  ,jc,kc+1,n+ccomp) * (ratio[0]-ioff) * (         koff) +
+             crse(ic+1,jc,kc+1,n+ccomp) * (         ioff) * (         koff));
+    } else if (ioff != 0 && joff != 0) {
+        // Node on a X-Y face
+        fine(i,j,k,n+fcomp) = rxinv * ryinv *
+            (crse(ic  ,jc  ,kc,n+ccomp) * (ratio[0]-ioff) * (ratio[1]-joff) +
+             crse(ic+1,jc  ,kc,n+ccomp) * (         ioff) * (ratio[1]-joff) +
+             crse(ic  ,jc+1,kc,n+ccomp) * (ratio[0]-ioff) * (         joff) +
+             crse(ic+1,jc+1,kc,n+ccomp) * (         ioff) * (         joff));
+    } else if (ioff != 0) {
+        // Node on X line
+        fine(i,j,k,n+fcomp) = rxinv*((ratio[0]-ioff)*crse(ic  ,jc,kc,n+ccomp) +
+                                     (         ioff)*crse(ic+1,jc,kc,n+ccomp));
+    } else if (joff != 0) {
+        // Node on Y line
+        fine(i,j,k,n+fcomp) = ryinv*((ratio[1]-joff)*crse(ic,jc  ,kc,n+ccomp) +
+                                     (         joff)*crse(ic,jc+1,kc,n+ccomp));
+    } else if (koff != 0) {
+        // Node on Z line
+        fine(i,j,k,n+fcomp) = rzinv*((ratio[2]-koff)*crse(ic,jc,kc  ,n+ccomp) +
+                                     (         koff)*crse(ic,jc,kc+1,n+ccomp));
+    } else {
+        // Node coincident with coarse node
+        fine(i,j,k,n+fcomp) = crse(ic,jc,kc,n+ccomp);
+    }
+}
+
 }
 
 #endif

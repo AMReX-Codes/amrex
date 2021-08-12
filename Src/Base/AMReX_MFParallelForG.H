@@ -70,7 +70,7 @@ namespace parfor_mf_detail {
 
 template <int MT, typename MF, typename F>
 std::enable_if_t<IsFabArray<MF>::value>
-ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, F&& f)
+ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, bool, F&& f)
 {
     const auto& index_array = mf.IndexArray();
     const int nboxes = index_array.size();
@@ -146,16 +146,16 @@ ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, F&&
 
 template <typename MF, typename F>
 std::enable_if_t<IsFabArray<MF>::value>
-ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const& ts, F&& f)
+ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const& ts, bool dynamic, F&& f)
 {
-    ParallelFor<AMREX_GPU_MAX_THREADS>(mf, nghost, ncomp, ts, std::forward<F>(f));
+    ParallelFor<AMREX_GPU_MAX_THREADS>(mf, nghost, ncomp, ts, dynamic, std::forward<F>(f));
 }
 
 template <typename MF, typename F>
 std::enable_if_t<IsFabArray<MF>::value>
-ParallelFor (MF const& mf, IntVect const& nghost, IntVect const& ts, F&& f)
+ParallelFor (MF const& mf, IntVect const& nghost, IntVect const& ts, bool dynamic, F&& f)
 {
-    ParallelFor<AMREX_GPU_MAX_THREADS>(mf, nghost, 1, ts, std::forward<F>(f));
+    ParallelFor<AMREX_GPU_MAX_THREADS>(mf, nghost, 1, ts, dynamic, std::forward<F>(f));
 }
 
 }

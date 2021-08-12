@@ -102,26 +102,11 @@ NodeBilinear::interp (const FArrayBox&  crse,
 {
     BL_PROFILE("NodeBilinear::interp()");
 
-    bool run_on_gpu = (runon == RunOn::Gpu && Gpu::inLaunchRegion());
-
-    int num_slope  = ncomp*(AMREX_D_TERM(2,*2,*2)-1);
-    const Box cslope_bx = amrex::enclosedCells(CoarseBox(fine_region, ratio));
-    FArrayBox slopefab(cslope_bx, num_slope);
-    Elixir slopeeli;
-    if (run_on_gpu) slopeeli = slopefab.elixir();
-
     Array4<Real const> const& crsearr = crse.const_array();
     Array4<Real> const& finearr = fine.array();
-    Array4<Real> const& slopearr = slopefab.array();
-
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, cslope_bx, tbx,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
     {
-        amrex::nodebilin_slopes<Real>(tbx, slopearr, crsearr, crse_comp, ncomp, ratio);
-    });
-
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, fine_region, tbx,
-    {
-        amrex::nodebilin_interp<Real>(tbx, finearr, fine_comp, ncomp, slopearr, crsearr, crse_comp, ratio);
+        mf_nodebilin_interp(i,j,k,n, finearr, fine_comp, crsearr, crse_comp, ratio);
     });
 }
 
