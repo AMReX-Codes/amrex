@@ -231,7 +231,7 @@ namespace amrex
                 }
 
                 std::size_t const hashhash = hasher(data[hash]) % N;
-                if (hashhash != hash) { // data[hash] not in correct has poision, thus will yield it's poistion
+                if (hashhash != hash) { // data[hash] not in correct has poision, thus will yield it's position
                     std::swap(data[i], data[hash]);
                     // after swap, new data[hash] in correct hash position
                     //   new data[i] not sure

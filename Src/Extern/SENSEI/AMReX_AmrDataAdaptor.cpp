@@ -38,7 +38,7 @@
 namespace amrex {
 namespace InSituUtils {
 
-// helper to track names and centerings of the avaliable arrays
+// helper to track names and centerings of the available arrays
 class DescriptorMap : public amrex::InSituUtils::StateMap
 {
 public:
@@ -756,7 +756,7 @@ int AmrDataAdaptor::AddGhostCellsArray(vtkDataObject* mesh,
     unsigned int nLevels = InSituUtils::NumActiveLevels(levels);
 
     // generate a mask array for each box in each level
-    // the mask arrays may be chached as they are used in
+    // the mask arrays may be cached as they are used in
     // GetMeshMetadata to determine array min/max over
     // valid cells
     if (!this->Internals->Masks.size())

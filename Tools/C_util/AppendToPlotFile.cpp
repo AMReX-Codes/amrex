@@ -215,7 +215,7 @@ AppendToPlotFile(AmrData&                   amrData,
             }
 
             // Reform name in case we had to rename the mf
-            //  and add new name after exisiting ones
+            //  and add new name after existing ones
             RelativePathNameNEW = buf;
             RelativePathNameNEW += '/';
             RelativePathNameNEW += mfBaseName_Unique;

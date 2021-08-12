@@ -27,7 +27,12 @@ Parser::define (std::string const& func_body)
         std::string f = m_data->m_expression + "\n";
 
         YY_BUFFER_STATE buffer = amrex_parser_scan_string(f.c_str());
-        amrex_parserparse();
+        try {
+            amrex_parserparse();
+        } catch (const std::runtime_error& e) {
+            throw std::runtime_error(std::string(e.what()) + " in Parser expression \""
+                                     + m_data->m_expression + "\"");
+        }
         m_data->m_parser = amrex_parser_new();
         amrex_parser_delete_buffer(buffer);
     }
@@ -40,12 +45,9 @@ Parser::Data::~Data ()
 {
     m_expression.clear();
     if (m_parser) { amrex_parser_delete(m_parser); }
-    m_parser = nullptr;
     if (m_host_executor) { The_Pinned_Arena()->free(m_host_executor); }
-    m_host_executor = nullptr;
 #ifdef AMREX_USE_GPU
     if (m_device_executor) { The_Arena()->free(m_device_executor); }
-    m_device_executor = nullptr;
 #endif
 }
 
@@ -55,7 +57,7 @@ Parser::operator bool () const
 }
 
 void
-Parser::setConstant (std::string const& name, amrex::Real c)
+Parser::setConstant (std::string const& name, double c)
 {
     if (m_data && m_data->m_parser) {
         parser_setconst(m_data->m_parser, name.c_str(), c);

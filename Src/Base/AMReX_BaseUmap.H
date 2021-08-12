@@ -20,7 +20,7 @@
 #include <algorithm>
 #include <limits>
 
-// iv - IntVect in absolute coordiantes
+// iv - IntVect in absolute coordinates
 // m - variable / component
 // l - multivalued index
 #define AMREX_BASEUMAP_KIDX(iv,m,l) (l*domain.numPts()*nvar + m*domain.numPts() + domain.index(iv))

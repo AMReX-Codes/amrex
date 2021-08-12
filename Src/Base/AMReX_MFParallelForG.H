@@ -12,7 +12,7 @@ namespace amrex {
 namespace detail {
 
 inline
-std::pair<int*,int*> build_par_for_nblocks (Vector<Long> const& ncells)
+std::pair<int*,int*> build_par_for_nblocks (Vector<Long> const& ncells, int nthreads)
 {
     int* hp = nullptr;
     int* dp = nullptr;
@@ -24,7 +24,7 @@ std::pair<int*,int*> build_par_for_nblocks (Vector<Long> const& ncells)
         Long ntot = 0;
         bool same_size = true;
         for (int i = 0; i < nboxes; ++i) {
-            Long nblocks = (ncells[i] + AMREX_GPU_MAX_THREADS-1) / AMREX_GPU_MAX_THREADS;
+            Long nblocks = (ncells[i] + nthreads-1) / nthreads;
             hp[i+1] = hp[i] + static_cast<int>(nblocks);
             ntot += nblocks;
             same_size = same_size && (ncells[i] == ncells[0]);
@@ -68,79 +68,94 @@ namespace parfor_mf_detail {
     }
 }
 
-template <typename MF, typename F>
+template <int MT, typename MF, typename F>
 std::enable_if_t<IsFabArray<MF>::value>
-ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, F&& f)
+ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, bool, F&& f)
 {
     const auto& index_array = mf.IndexArray();
     const int nboxes = index_array.size();
-    if (nboxes == 0) return;
 
-    AMREX_ASSERT(nghost.allLE(mf.nGrowVect()) && nghost.allGE(IntVect(0)));
-    IntVect ngrow = nghost - mf.nGrowVect(); // We use this to go from fabbox to valid+nghost.
-    auto ma = mf.arrays();
+    if (nboxes == 0) {
+        return;
+    } else if (nboxes == 1) {
+        auto const& fab = mf.atLocalIdx(0);
+        Box const& b = amrex::grow(fab.box(), nghost-mf.nGrowVect());
+        amrex::ParallelFor(b, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            parfor_mf_detail::call_f(f, 0, i, j, k, n);
+        });
+    } else {
+        IntVect ngrow = nghost - mf.nGrowVect(); // We use this to go from fabbox to valid+nghost.
+        auto ma = mf.arrays();
 
-    auto par_for_blocks = mf.getParForInfo(nghost).getBlocks();
-    const int nblocks = par_for_blocks.first[nboxes];
-    const int block_0_size = par_for_blocks.first[1];
-    const int* dp_nblocks = par_for_blocks.second;
+        auto par_for_blocks = mf.getParForInfo(nghost,MT).getBlocks();
+        const int nblocks = par_for_blocks.first[nboxes];
+        const int block_0_size = par_for_blocks.first[1];
+        const int* dp_nblocks = par_for_blocks.second;
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
-    amrex::launch_global<AMREX_GPU_MAX_THREADS>
-        <<<nblocks, AMREX_GPU_MAX_THREADS, 0, Gpu::gpuStream()>>>
-        ([=] AMREX_GPU_DEVICE () noexcept
-         {
-             int ibox, icell;
-             if (dp_nblocks) {
-                 ibox = amrex::bisect(dp_nblocks, 0, nboxes, static_cast<int>(blockIdx.x));
-                 icell = (blockIdx.x-dp_nblocks[ibox])*AMREX_GPU_MAX_THREADS + threadIdx.x;
-             } else {
-                 ibox = blockIdx.x / block_0_size;
-                 icell = (blockIdx.x-ibox*block_0_size)*AMREX_GPU_MAX_THREADS + threadIdx.x;
-             }
+        amrex::launch_global<MT>
+            <<<nblocks, MT, 0, Gpu::gpuStream()>>>
+            ([=] AMREX_GPU_DEVICE () noexcept
+             {
+                 int ibox, icell;
+                 if (dp_nblocks) {
+                     ibox = amrex::bisect(dp_nblocks, 0, nboxes, static_cast<int>(blockIdx.x));
+                     icell = (blockIdx.x-dp_nblocks[ibox])*MT + threadIdx.x;
+                 } else {
+                     ibox = blockIdx.x / block_0_size;
+                     icell = (blockIdx.x-ibox*block_0_size)*MT + threadIdx.x;
+                 }
 
 #elif defined(AMREX_USE_DPCPP)
 
-    amrex::launch(nblocks, AMREX_GPU_MAX_THREADS, Gpu::gpuStream(),
-         [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
-         {
-             int ibox, icell;
-             int blockIdxx = item.get_group_linear_id();
-             int threadIdxx = item.get_local_linear_id();
-             if (dp_nblocks) {
-                 ibox = amrex::bisect(dp_nblocks, 0, nboxes, static_cast<int>(blockIdxx));
-                 icell = (blockIdxx-dp_nblocks[ibox])*AMREX_GPU_MAX_THREADS + threadIdxx;
-             } else {
-                 ibox = blockIdxx / block_0_size;
-                 icell = (blockIdxx-ibox*block_0_size)*AMREX_GPU_MAX_THREADS + threadIdxx;
-             }
-#endif
-             Box b(ma[ibox]);
-             b.grow(ngrow);
-             int ncells = b.numPts();
-             if (icell < ncells) {
-                 const auto len = amrex::length(b);
-                 int k =  icell /   (len.x*len.y);
-                 int j = (icell - k*(len.x*len.y)) /   len.x;
-                 int i = (icell - k*(len.x*len.y)) - j*len.x;
-                 AMREX_D_TERM(i += b.smallEnd(0);,
-                              j += b.smallEnd(1);,
-                              k += b.smallEnd(2);)
-                 for (int n = 0; n < ncomp; ++n) {
-                     parfor_mf_detail::call_f(f, ibox, i, j, k, n);
+        amrex::launch(nblocks, MT, Gpu::gpuStream(),
+             [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
+             {
+                 int ibox, icell;
+                 int blockIdxx = item.get_group_linear_id();
+                 int threadIdxx = item.get_local_linear_id();
+                 if (dp_nblocks) {
+                     ibox = amrex::bisect(dp_nblocks, 0, nboxes, static_cast<int>(blockIdxx));
+                     icell = (blockIdxx-dp_nblocks[ibox])*MT + threadIdxx;
+                 } else {
+                     ibox = blockIdxx / block_0_size;
+                     icell = (blockIdxx-ibox*block_0_size)*MT + threadIdxx;
                  }
-             }
-         });
-
+#endif
+                 Box b(ma[ibox]);
+                 b.grow(ngrow);
+                 int ncells = b.numPts();
+                 if (icell < ncells) {
+                     const auto len = amrex::length(b);
+                     int k =  icell /   (len.x*len.y);
+                     int j = (icell - k*(len.x*len.y)) /   len.x;
+                     int i = (icell - k*(len.x*len.y)) - j*len.x;
+                     AMREX_D_TERM(i += b.smallEnd(0);,
+                                  j += b.smallEnd(1);,
+                                  k += b.smallEnd(2);)
+                     for (int n = 0; n < ncomp; ++n) {
+                         parfor_mf_detail::call_f(f, ibox, i, j, k, n);
+                     }
+                 }
+             });
+    }
     AMREX_GPU_ERROR_CHECK();
 }
 
 template <typename MF, typename F>
 std::enable_if_t<IsFabArray<MF>::value>
-ParallelFor (MF const& mf, IntVect const& nghost, IntVect const& ts, F&& f)
+ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const& ts, bool dynamic, F&& f)
 {
-    ParallelFor(mf, nghost, 1, ts, std::forward<F>(f));
+    ParallelFor<AMREX_GPU_MAX_THREADS>(mf, nghost, ncomp, ts, dynamic, std::forward<F>(f));
+}
+
+template <typename MF, typename F>
+std::enable_if_t<IsFabArray<MF>::value>
+ParallelFor (MF const& mf, IntVect const& nghost, IntVect const& ts, bool dynamic, F&& f)
+{
+    ParallelFor<AMREX_GPU_MAX_THREADS>(mf, nghost, 1, ts, dynamic, std::forward<F>(f));
 }
 
 }

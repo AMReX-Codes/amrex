@@ -9,11 +9,12 @@
 void
 amrex_parsererror (char const *s, ...)
 {
+    char print_buff[512];
     std::va_list vl;
     va_start(vl, s);
-    std::vfprintf(stderr, s, vl);
-    std::fprintf(stderr, "\n");
+    std::vsnprintf(print_buff, 512, s, vl);
     va_end(vl);
+    throw std::runtime_error(print_buff);
 }
 
 namespace amrex {
@@ -48,7 +49,7 @@ parser_newnode (enum parser_node_t type, struct parser_node* l, struct parser_no
 }
 
 struct parser_node*
-parser_newnumber (Real d)
+parser_newnumber (double d)
 {
     auto r = (struct parser_number*) std::malloc(sizeof(struct parser_number));
     r->type = PARSER_NUMBER;
@@ -111,7 +112,7 @@ parser_newlist (struct parser_node* nl, struct parser_node* nr)
 {
     if (nr == nullptr) {
         return nl;
-    } {
+    } else {
         auto r = (struct parser_node*) std::malloc(sizeof(struct parser_node));
         r->type = PARSER_LIST;
         r->l = nl;
@@ -388,7 +389,7 @@ parser_ast_optimize (struct parser_node* node)
         if (node->l->type == PARSER_NUMBER &&
             node->r->type == PARSER_NUMBER)
         {
-            Real v = ((struct parser_number*)(node->l))->value
+            double v = ((struct parser_number*)(node->l))->value
                 +    ((struct parser_number*)(node->r))->value;
             ((struct parser_number*)node)->type = PARSER_NUMBER;
             ((struct parser_number*)node)->value = v;
@@ -418,28 +419,28 @@ parser_ast_optimize (struct parser_node* node)
         else if (node->l->type == PARSER_NUMBER &&
                  node->r->type == PARSER_ADD_VP)
         {
-            Real v = ((struct parser_number*)(node->l))->value + PARSER_EVAL_R(node);
+            double v = ((struct parser_number*)(node->l))->value + PARSER_EVAL_R(node);
             PARSER_MOVEUP_R(node, v);
             node->type = PARSER_ADD_VP;
         }
         else if (node->l->type == PARSER_NUMBER &&
                  node->r->type == PARSER_SUB_VP)
         {
-            Real v = ((struct parser_number*)(node->l))->value + PARSER_EVAL_R(node);
+            double v = ((struct parser_number*)(node->l))->value + PARSER_EVAL_R(node);
             PARSER_MOVEUP_R(node, v);
             node->type = PARSER_SUB_VP;
         }
         else if (node->l->type == PARSER_ADD_VP &&
                  node->r->type == PARSER_NUMBER)
         {
-            Real v = PARSER_EVAL_L(node) + ((struct parser_number*)(node->r))->value;
+            double v = PARSER_EVAL_L(node) + ((struct parser_number*)(node->r))->value;
             PARSER_MOVEUP_L(node, v);
             node->type = PARSER_ADD_VP;
         }
         else if (node->l->type == PARSER_SUB_VP &&
                  node->r->type == PARSER_NUMBER)
         {
-            Real v = PARSER_EVAL_L(node) + ((struct parser_number*)(node->r))->value;
+            double v = PARSER_EVAL_L(node) + ((struct parser_number*)(node->r))->value;
             PARSER_MOVEUP_L(node, v);
             node->type = PARSER_SUB_VP;
         }
@@ -448,14 +449,14 @@ parser_ast_optimize (struct parser_node* node)
         {
             if (node->r->l->type == PARSER_NUMBER)
             { // #l + (#rl + node_rr) -> (#l + #rl) + node_rr, same type
-                Real v = ((struct parser_number*)(node->l))->value
+                double v = ((struct parser_number*)(node->l))->value
                     + ((struct parser_number*)(node->r->l))->value;
                 node->r = node->r->r;
                 ((struct parser_number*)(node->l))->value = v;
             }
             else if (node->r->r->type == PARSER_NUMBER)
             { // #l + (node_rl + #rr) -> (#l + #rr) + node_rl, same type
-                Real v = ((struct parser_number*)(node->l))->value
+                double v = ((struct parser_number*)(node->l))->value
                     + ((struct parser_number*)(node->r->r))->value;
                 node->r = node->r->l;
                 ((struct parser_number*)(node->l))->value = v;
@@ -466,7 +467,7 @@ parser_ast_optimize (struct parser_node* node)
         {
             if (node->r->l->type == PARSER_NUMBER)
             { // #l + (#rl - node_rr) -> (#l + #rl) - node_rr, type change
-                Real v = ((struct parser_number*)(node->l))->value
+                double v = ((struct parser_number*)(node->l))->value
                     + ((struct parser_number*)(node->r->l))->value;
                 node->r = node->r->r;
                 ((struct parser_number*)(node->l))->value = v;
@@ -474,7 +475,7 @@ parser_ast_optimize (struct parser_node* node)
             }
             else if (node->r->r->type == PARSER_NUMBER)
             { // #l + (node_rl - #rr) -> (#l - #rr) + node_rl, same type
-                Real v = ((struct parser_number*)(node->l))->value
+                double v = ((struct parser_number*)(node->l))->value
                     - ((struct parser_number*)(node->r->r))->value;
                 node->r = node->r->l;
                 ((struct parser_number*)(node->l))->value = v;
@@ -485,14 +486,14 @@ parser_ast_optimize (struct parser_node* node)
         {
             if (node->l->l->type == PARSER_NUMBER)
             { // (#ll + node_lr) + #r -> nodel_lr + (#ll + #r), same type
-                Real v = ((struct parser_number*)(node->l->l))->value
+                double v = ((struct parser_number*)(node->l->l))->value
                     + ((struct parser_number*)(node->r))->value;
                 node->l = node->l->r;
                 ((struct parser_number*)(node->r))->value = v;
             }
             else if (node->l->r->type == PARSER_NUMBER)
             { // (node_ll + #lr) + #r -> node_ll + (#lr + #r), same type
-                Real v = ((struct parser_number*)(node->l->r))->value
+                double v = ((struct parser_number*)(node->l->r))->value
                     + ((struct parser_number*)(node->r))->value;
                 node->l = node->l->l;
                 ((struct parser_number*)(node->r))->value = v;
@@ -503,7 +504,7 @@ parser_ast_optimize (struct parser_node* node)
         {
             if (node->l->l->type == PARSER_NUMBER)
             { // (#ll - node_lr) + #r -> (#ll + #r) - node_lr, type change
-                Real v = ((struct parser_number*)(node->l->l))->value
+                double v = ((struct parser_number*)(node->l->l))->value
                     + ((struct parser_number*)(node->r))->value;
                 node->r = node->l->r;
                 ((struct parser_number*)(node->l))->type = PARSER_NUMBER;
@@ -512,7 +513,7 @@ parser_ast_optimize (struct parser_node* node)
             }
             else if (node->l->r->type == PARSER_NUMBER)
             { // (node_ll - #lr) + #r -> node_ll + (#r - #lr), same type
-                Real v = ((struct parser_number*)(node->r))->value
+                double v = ((struct parser_number*)(node->r))->value
                     - ((struct parser_number*)(node->l->r))->value;
                 node->l = node->l->l;
                 ((struct parser_number*)(node->r))->value = v;
@@ -526,7 +527,7 @@ parser_ast_optimize (struct parser_node* node)
         if (node->l->type == PARSER_NUMBER &&
             node->r->type == PARSER_NUMBER)
         {
-            Real v = ((struct parser_number*)(node->l))->value
+            double v = ((struct parser_number*)(node->l))->value
                 -    ((struct parser_number*)(node->r))->value;
             ((struct parser_number*)node)->type = PARSER_NUMBER;
             ((struct parser_number*)node)->value = v;
@@ -556,28 +557,28 @@ parser_ast_optimize (struct parser_node* node)
         else if (node->l->type == PARSER_NUMBER &&
                  node->r->type == PARSER_ADD_VP)
         {
-            Real v = ((struct parser_number*)(node->l))->value - PARSER_EVAL_R(node);
+            double v = ((struct parser_number*)(node->l))->value - PARSER_EVAL_R(node);
             PARSER_MOVEUP_R(node, v);
             node->type = PARSER_SUB_VP;
         }
         else if (node->l->type == PARSER_NUMBER &&
                  node->r->type == PARSER_SUB_VP)
         {
-            Real v = ((struct parser_number*)(node->l))->value - PARSER_EVAL_R(node);
+            double v = ((struct parser_number*)(node->l))->value - PARSER_EVAL_R(node);
             PARSER_MOVEUP_R(node, v);
             node->type = PARSER_ADD_VP;
         }
         else if (node->l->type == PARSER_ADD_VP &&
                  node->r->type == PARSER_NUMBER)
         {
-            Real v = PARSER_EVAL_L(node) - ((struct parser_number*)(node->r))->value;
+            double v = PARSER_EVAL_L(node) - ((struct parser_number*)(node->r))->value;
             PARSER_MOVEUP_L(node, v);
             node->type = PARSER_ADD_VP;
         }
         else if (node->l->type == PARSER_SUB_VP &&
                  node->r->type == PARSER_NUMBER)
         {
-            Real v = PARSER_EVAL_L(node) - ((struct parser_number*)(node->r))->value;
+            double v = PARSER_EVAL_L(node) - ((struct parser_number*)(node->r))->value;
             PARSER_MOVEUP_L(node, v);
             node->type = PARSER_SUB_VP;
         }
@@ -586,14 +587,14 @@ parser_ast_optimize (struct parser_node* node)
         {
             if (node->r->l->type == PARSER_NUMBER)
             { // #l - (#rl + node_rr) -> (#l - #rl) - node_rr, same type
-                Real v = ((struct parser_number*)(node->l))->value
+                double v = ((struct parser_number*)(node->l))->value
                     - ((struct parser_number*)(node->r->l))->value;
                 node->r = node->r->r;
                 ((struct parser_number*)(node->l))->value = v;
             }
             else if (node->r->r->type == PARSER_NUMBER)
             { // #l - (node_rl + #rr) -> (#l - #rr) - node_rl, same type
-                Real v = ((struct parser_number*)(node->l))->value
+                double v = ((struct parser_number*)(node->l))->value
                     - ((struct parser_number*)(node->r->r))->value;
                 node->r = node->r->l;
                 ((struct parser_number*)(node->l))->value = v;
@@ -604,7 +605,7 @@ parser_ast_optimize (struct parser_node* node)
         {
             if (node->r->l->type == PARSER_NUMBER)
             { // #l - (#rl - node_rr) -> (#l - #rl) + node_rr, type change
-                Real v = ((struct parser_number*)(node->l))->value
+                double v = ((struct parser_number*)(node->l))->value
                     - ((struct parser_number*)(node->r->l))->value;
                 node->r = node->r->r;
                 ((struct parser_number*)(node->l))->value = v;
@@ -612,7 +613,7 @@ parser_ast_optimize (struct parser_node* node)
             }
             else if (node->r->r->type == PARSER_NUMBER)
             { // #l - (node_rl - #rr) -> (#l + #rr) - node_rl, same type
-                Real v = ((struct parser_number*)(node->l))->value
+                double v = ((struct parser_number*)(node->l))->value
                     + ((struct parser_number*)(node->r->r))->value;
                 node->r = node->r->l;
                 ((struct parser_number*)(node->l))->value = v;
@@ -623,14 +624,14 @@ parser_ast_optimize (struct parser_node* node)
         {
             if (node->l->l->type == PARSER_NUMBER)
             { // (#ll + node_lr) - #r -> node_lr - (#r - #ll), same type
-                Real v = ((struct parser_number*)(node->r))->value
+                double v = ((struct parser_number*)(node->r))->value
                     - ((struct parser_number*)(node->l->l))->value;
                 node->l = node->l->r;
                 ((struct parser_number*)(node->r))->value = v;
             }
             else if (node->l->r->type == PARSER_NUMBER)
             { // (node_ll + #lr) - #r -> node_ll - (#r - #lr), same type
-                Real v = ((struct parser_number*)(node->r))->value
+                double v = ((struct parser_number*)(node->r))->value
                     - ((struct parser_number*)(node->l->r))->value;
                 node->l = node->l->l;
                 ((struct parser_number*)(node->r))->value = v;
@@ -641,7 +642,7 @@ parser_ast_optimize (struct parser_node* node)
         {
             if (node->l->l->type == PARSER_NUMBER)
             { // (#ll - node_lr) - #r -> (#ll - #r) - node_lr, type change
-                Real v = ((struct parser_number*)(node->l->l))->value
+                double v = ((struct parser_number*)(node->l->l))->value
                     - ((struct parser_number*)(node->r))->value;
                 node->r = node->l->r;
                 node->l->type = PARSER_NUMBER;
@@ -649,7 +650,7 @@ parser_ast_optimize (struct parser_node* node)
             }
             else if (node->l->r->type == PARSER_NUMBER)
             { // (node_ll - #lr) - #r -> node_ll - (#r + #lr), same type
-                Real v = ((struct parser_number*)(node->r))->value
+                double v = ((struct parser_number*)(node->r))->value
                     + ((struct parser_number*)(node->l->r))->value;
                 node->l = node->l->l;
                 ((struct parser_number*)(node->r))->value = v;
@@ -663,7 +664,7 @@ parser_ast_optimize (struct parser_node* node)
         if (node->l->type == PARSER_NUMBER &&
             node->r->type == PARSER_NUMBER)
         {
-            Real v = ((struct parser_number*)(node->l))->value
+            double v = ((struct parser_number*)(node->l))->value
                 *    ((struct parser_number*)(node->r))->value;
             ((struct parser_number*)node)->type = PARSER_NUMBER;
             ((struct parser_number*)node)->value = v;
@@ -693,28 +694,28 @@ parser_ast_optimize (struct parser_node* node)
         else if (node->l->type == PARSER_NUMBER &&
                  node->r->type == PARSER_MUL_VP)
         {
-            Real v = ((struct parser_number*)(node->l))->value * PARSER_EVAL_R(node);
+            double v = ((struct parser_number*)(node->l))->value * PARSER_EVAL_R(node);
             PARSER_MOVEUP_R(node, v);
             node->type = PARSER_MUL_VP;
         }
         else if (node->l->type == PARSER_NUMBER &&
                  node->r->type == PARSER_DIV_VP)
         {
-            Real v = ((struct parser_number*)(node->l))->value * PARSER_EVAL_R(node);
+            double v = ((struct parser_number*)(node->l))->value * PARSER_EVAL_R(node);
             PARSER_MOVEUP_R(node, v);
             node->type = PARSER_DIV_VP;
         }
         else if (node->l->type == PARSER_MUL_VP &&
                  node->r->type == PARSER_NUMBER)
         {
-            Real v = PARSER_EVAL_L(node) * ((struct parser_number*)(node->r))->value;
+            double v = PARSER_EVAL_L(node) * ((struct parser_number*)(node->r))->value;
             PARSER_MOVEUP_L(node, v);
             node->type = PARSER_MUL_VP;
         }
         else if (node->l->type == PARSER_DIV_VP &&
                  node->r->type == PARSER_NUMBER)
         {
-            Real v = PARSER_EVAL_L(node) * ((struct parser_number*)(node->r))->value;
+            double v = PARSER_EVAL_L(node) * ((struct parser_number*)(node->r))->value;
             PARSER_MOVEUP_L(node, v);
             node->type = PARSER_DIV_VP;
         }
@@ -723,14 +724,14 @@ parser_ast_optimize (struct parser_node* node)
         {
             if (node->r->l->type == PARSER_NUMBER)
             { // #l * (#rl * node_rr) -> (#l * #rl) * node_rr, same type
-                Real v = ((struct parser_number*)(node->l))->value
+                double v = ((struct parser_number*)(node->l))->value
                     * ((struct parser_number*)(node->r->l))->value;
                 node->r = node->r->r;
                 ((struct parser_number*)(node->l))->value = v;
             }
             else if (node->r->r->type == PARSER_NUMBER)
             { // #l * (node_rl * #rr) -> (#l * #rr) * node_rl, same type
-                Real v = ((struct parser_number*)(node->l))->value
+                double v = ((struct parser_number*)(node->l))->value
                     * ((struct parser_number*)(node->r->r))->value;
                 node->r = node->r->l;
                 ((struct parser_number*)(node->l))->value = v;
@@ -741,7 +742,7 @@ parser_ast_optimize (struct parser_node* node)
         {
             if (node->r->l->type == PARSER_NUMBER)
             { // #l * (#rl / node_rr) -> (#l * #rl) / node_rr, type change
-                Real v = ((struct parser_number*)(node->l))->value
+                double v = ((struct parser_number*)(node->l))->value
                     * ((struct parser_number*)(node->r->l))->value;
                 node->r = node->r->r;
                 ((struct parser_number*)(node->l))->value = v;
@@ -750,7 +751,7 @@ parser_ast_optimize (struct parser_node* node)
             }
             else if (node->r->r->type == PARSER_NUMBER)
             { // #l * (node_rl / #rr) -> (#l / #rr) * node_rl, same type
-                Real v = ((struct parser_number*)(node->l))->value
+                double v = ((struct parser_number*)(node->l))->value
                     / ((struct parser_number*)(node->r->r))->value;
                 node->r = node->r->l;
                 ((struct parser_number*)(node->l))->value = v;
@@ -761,14 +762,14 @@ parser_ast_optimize (struct parser_node* node)
         {
             if (node->l->l->type == PARSER_NUMBER)
             { // (#ll * node_lr) * #r -> nodel_lr * (#ll * #r), same type
-                Real v = ((struct parser_number*)(node->l->l))->value
+                double v = ((struct parser_number*)(node->l->l))->value
                     * ((struct parser_number*)(node->r))->value;
                 node->l = node->l->r;
                 ((struct parser_number*)(node->r))->value = v;
             }
             else if (node->l->r->type == PARSER_NUMBER)
             { // (node_ll * #lr) * #r -> node_ll + (#lr * #r), same type
-                Real v = ((struct parser_number*)(node->l->r))->value
+                double v = ((struct parser_number*)(node->l->r))->value
                     * ((struct parser_number*)(node->r))->value;
                 node->l = node->l->l;
                 ((struct parser_number*)(node->r))->value = v;
@@ -779,7 +780,7 @@ parser_ast_optimize (struct parser_node* node)
         {
             if (node->l->l->type == PARSER_NUMBER)
             { // (#ll / node_lr) * #r -> (#ll * #r) / node_lr, type change
-                Real v = ((struct parser_number*)(node->l->l))->value
+                double v = ((struct parser_number*)(node->l->l))->value
                     * ((struct parser_number*)(node->r))->value;
                 node->r = node->l->r;
                 ((struct parser_number*)(node->l))->type = PARSER_NUMBER;
@@ -787,8 +788,8 @@ parser_ast_optimize (struct parser_node* node)
                 node->type = PARSER_DIV;
             }
             else if (node->l->r->type == PARSER_NUMBER)
-            { // (node_ll / #lr) * #r -> node_ll * (#r / #lr), smae type
-                Real v = ((struct parser_number*)(node->r))->value
+            { // (node_ll / #lr) * #r -> node_ll * (#r / #lr), same type
+                double v = ((struct parser_number*)(node->r))->value
                     / ((struct parser_number*)(node->l->r))->value;
                 node->l = node->l->l;
                 ((struct parser_number*)(node->r))->value = v;
@@ -802,7 +803,7 @@ parser_ast_optimize (struct parser_node* node)
         if (node->l->type == PARSER_NUMBER &&
             node->r->type == PARSER_NUMBER)
         {
-            Real v = ((struct parser_number*)(node->l))->value
+            double v = ((struct parser_number*)(node->l))->value
                 /    ((struct parser_number*)(node->r))->value;
             ((struct parser_number*)node)->type = PARSER_NUMBER;
             ((struct parser_number*)node)->value = v;
@@ -817,7 +818,7 @@ parser_ast_optimize (struct parser_node* node)
         else if (node->l->type == PARSER_SYMBOL &&
                  node->r->type == PARSER_NUMBER)
         {
-            node->lvp.v = Real(1.)/((struct parser_number*)(node->r))->value;
+            node->lvp.v = double(1.)/((struct parser_number*)(node->r))->value;
             node->rip   =          ((struct parser_symbol*)(node->l))->ip;
             node->r = node->l;
             node->type = PARSER_MUL_VP;
@@ -832,28 +833,28 @@ parser_ast_optimize (struct parser_node* node)
         else if (node->l->type == PARSER_NUMBER &&
                  node->r->type == PARSER_MUL_VP)
         {
-            Real v = ((struct parser_number*)(node->l))->value / PARSER_EVAL_R(node);
+            double v = ((struct parser_number*)(node->l))->value / PARSER_EVAL_R(node);
             PARSER_MOVEUP_R(node, v);
             node->type = PARSER_DIV_VP;
         }
         else if (node->l->type == PARSER_NUMBER &&
                  node->r->type == PARSER_DIV_VP)
         {
-            Real v = ((struct parser_number*)(node->l))->value / PARSER_EVAL_R(node);
+            double v = ((struct parser_number*)(node->l))->value / PARSER_EVAL_R(node);
             PARSER_MOVEUP_R(node, v);
             node->type = PARSER_MUL_VP;
         }
         else if (node->l->type == PARSER_MUL_VP &&
                  node->r->type == PARSER_NUMBER)
         {
-            Real v = PARSER_EVAL_L(node) / ((struct parser_number*)(node->r))->value;
+            double v = PARSER_EVAL_L(node) / ((struct parser_number*)(node->r))->value;
             PARSER_MOVEUP_L(node, v);
             node->type = PARSER_MUL_VP;
         }
         else if (node->l->type == PARSER_DIV_VP &&
                  node->r->type == PARSER_NUMBER)
         {
-            Real v = PARSER_EVAL_L(node) / ((struct parser_number*)(node->r))->value;
+            double v = PARSER_EVAL_L(node) / ((struct parser_number*)(node->r))->value;
             PARSER_MOVEUP_L(node, v);
             node->type = PARSER_DIV_VP;
         }
@@ -862,14 +863,14 @@ parser_ast_optimize (struct parser_node* node)
         {
             if (node->r->l->type == PARSER_NUMBER)
             { // #l / (#rl * node_rr) -> (#l / #rl) / node_rr, same type
-                Real v = ((struct parser_number*)(node->l))->value
+                double v = ((struct parser_number*)(node->l))->value
                     / ((struct parser_number*)(node->r->l))->value;
                 node->r = node->r->r;
                 ((struct parser_number*)(node->l))->value = v;
             }
             else if (node->r->r->type == PARSER_NUMBER)
             { // #l / (node_rl * #rr) -> (#l / #rr) / node_rl, same type
-                Real v = ((struct parser_number*)(node->l))->value
+                double v = ((struct parser_number*)(node->l))->value
                     / ((struct parser_number*)(node->r->r))->value;
                 node->r = node->r->l;
                 ((struct parser_number*)(node->l))->value = v;
@@ -880,7 +881,7 @@ parser_ast_optimize (struct parser_node* node)
         {
             if (node->r->l->type == PARSER_NUMBER)
             { // #l / (#rl / node_rr) -> (#l / #rl) * node_rr, type change
-                Real v = ((struct parser_number*)(node->l))->value
+                double v = ((struct parser_number*)(node->l))->value
                     / ((struct parser_number*)(node->r->l))->value;
                 node->r = node->r->r;
                 ((struct parser_number*)(node->l))->value = v;
@@ -888,7 +889,7 @@ parser_ast_optimize (struct parser_node* node)
             }
             else if (node->r->r->type == PARSER_NUMBER)
             { // #l / (node_rl / #rr) -> (#l * #rr) / node_rl, same type
-                Real v = ((struct parser_number*)(node->l))->value
+                double v = ((struct parser_number*)(node->l))->value
                     * ((struct parser_number*)(node->r->r))->value;
                 node->r = node->r->l;
                 ((struct parser_number*)(node->l))->value = v;
@@ -899,7 +900,7 @@ parser_ast_optimize (struct parser_node* node)
         {
             if (node->l->l->type == PARSER_NUMBER)
             { // (#ll * node_lr) / #r -> node_lr * (#ll / #r), type change
-                Real v = ((struct parser_number*)(node->l->l))->value
+                double v = ((struct parser_number*)(node->l->l))->value
                     / ((struct parser_number*)(node->r))->value;
                 node->l = node->l->r;
                 ((struct parser_number*)(node->r))->value = v;
@@ -907,7 +908,7 @@ parser_ast_optimize (struct parser_node* node)
             }
             else if (node->l->r->type == PARSER_NUMBER)
             { // (node_ll * #lr) / #r -> node_ll * (#lr / #r), type change
-                Real v = ((struct parser_number*)(node->l->r))->value
+                double v = ((struct parser_number*)(node->l->r))->value
                     / ((struct parser_number*)(node->r))->value;
                 node->l = node->l->l;
                 ((struct parser_number*)(node->r))->value = v;
@@ -919,7 +920,7 @@ parser_ast_optimize (struct parser_node* node)
         {
             if (node->l->l->type == PARSER_NUMBER)
             { // (#ll / node_lr) / #r -> (#ll / #r) / node_lr, type change
-                Real v = ((struct parser_number*)(node->l->l))->value
+                double v = ((struct parser_number*)(node->l->l))->value
                     / ((struct parser_number*)(node->r))->value;
                 node->r = node->l->r;
                 node->l->type = PARSER_NUMBER;
@@ -927,10 +928,10 @@ parser_ast_optimize (struct parser_node* node)
             }
             else if (node->l->r->type == PARSER_NUMBER)
             { // (node_ll / #lr) / #r -> node_ll * 1./(#r * #lr), type change
-                Real v = ((struct parser_number*)(node->r))->value
+                double v = ((struct parser_number*)(node->r))->value
                     * ((struct parser_number*)(node->l->r))->value;
                 node->l = node->l->l;
-                ((struct parser_number*)(node->r))->value = Real(1.)/v;
+                ((struct parser_number*)(node->r))->value = double(1.)/v;
                 node->type = PARSER_MUL;
             }
         }
@@ -939,7 +940,7 @@ parser_ast_optimize (struct parser_node* node)
         parser_ast_optimize(node->l);
         if (node->l->type == PARSER_NUMBER)
         {
-            Real v = -((struct parser_number*)(node->l))->value;
+            double v = -((struct parser_number*)(node->l))->value;
             ((struct parser_number*)node)->type = PARSER_NUMBER;
             ((struct parser_number*)node)->value = v;
         }
@@ -1039,7 +1040,7 @@ parser_ast_optimize (struct parser_node* node)
             { // -(node_ll / #lr) -> (-1/#lr) * node_ll
                 node->r = node->l->l;
                 ((struct parser_number*)(node->l))->value =
-                    Real(-1.0) / ((struct parser_number*)(node->l->r))->value;
+                    double(-1.0) / ((struct parser_number*)(node->l->r))->value;
                 node->l->type = PARSER_NUMBER;
                 node->type = PARSER_MUL;
             }
@@ -1049,7 +1050,7 @@ parser_ast_optimize (struct parser_node* node)
         parser_ast_optimize(node->l);
         if (node->l->type == PARSER_NUMBER)
         {
-            Real v = parser_call_f1
+            double v = parser_call_f1
                 (((struct parser_f1*)node)->ftype,
                  ((struct parser_number*)(((struct parser_f1*)node)->l))->value);
             ((struct parser_number*)node)->type = PARSER_NUMBER;
@@ -1062,7 +1063,7 @@ parser_ast_optimize (struct parser_node* node)
         if (node->l->type == PARSER_NUMBER &&
             node->r->type == PARSER_NUMBER)
         {
-            Real v = parser_call_f2
+            double v = parser_call_f2
                 (((struct parser_f2*)node)->ftype,
                  ((struct parser_number*)(((struct parser_f2*)node)->l))->value,
                  ((struct parser_number*)(((struct parser_f2*)node)->r))->value);
@@ -1072,31 +1073,31 @@ parser_ast_optimize (struct parser_node* node)
         else if (node->r->type == PARSER_NUMBER && ((struct parser_f2*)node)->ftype == PARSER_POW)
         {
             struct parser_node* n = node->l;
-            Real v = ((struct parser_number*)(node->r))->value;
-            if (Real(-3.0) == v) {
+            double v = ((struct parser_number*)(node->r))->value;
+            if (-3.0 == v) {
                 ((struct parser_f1*)node)->type = PARSER_F1;
                 ((struct parser_f1*)node)->l = n;
                 ((struct parser_f1*)node)->ftype = PARSER_POW_M3;
-            } else if (Real(-2.0) == v) {
+            } else if (-2.0 == v) {
                 ((struct parser_f1*)node)->type = PARSER_F1;
                 ((struct parser_f1*)node)->l = n;
                 ((struct parser_f1*)node)->ftype = PARSER_POW_M2;
-            } else if (Real(-1.0) == v) {
+            } else if (-1.0 == v) {
                 ((struct parser_f1*)node)->type = PARSER_F1;
                 ((struct parser_f1*)node)->l = n;
                 ((struct parser_f1*)node)->ftype = PARSER_POW_M1;
-            } else if (Real(0.0) == v) {
+            } else if (0.0 == v) {
                 ((struct parser_number*)node)->type = PARSER_NUMBER;
-                ((struct parser_number*)node)->value = Real(1.0);
-            } else if (Real(1.0) == v) {
+                ((struct parser_number*)node)->value = 1.0;
+            } else if (1.0 == v) {
                 ((struct parser_f1*)node)->type = PARSER_F1;
                 ((struct parser_f1*)node)->l = n;
                 ((struct parser_f1*)node)->ftype = PARSER_POW_P1;
-            } else if (Real(2.0) == v) {
+            } else if (2.0 == v) {
                 ((struct parser_f1*)node)->type = PARSER_F1;
                 ((struct parser_f1*)node)->l = n;
                 ((struct parser_f1*)node)->ftype = PARSER_POW_P2;
-            } else if (Real(3.0) == v) {
+            } else if (3.0 == v) {
                 ((struct parser_f1*)node)->type = PARSER_F1;
                 ((struct parser_f1*)node)->l = n;
                 ((struct parser_f1*)node)->ftype = PARSER_POW_P3;
@@ -1111,7 +1112,7 @@ parser_ast_optimize (struct parser_node* node)
             ((struct parser_f3*)node)->n2->type == PARSER_NUMBER &&
             ((struct parser_f3*)node)->n3->type == PARSER_NUMBER)
         {
-            Real v = parser_call_f3
+            double v = parser_call_f3
                 (((struct parser_f3*)node)->ftype,
                  ((struct parser_number*)(((struct parser_f3*)node)->n1))->value,
                  ((struct parser_number*)(((struct parser_f3*)node)->n2))->value,
@@ -1124,7 +1125,7 @@ parser_ast_optimize (struct parser_node* node)
         parser_ast_optimize(node->r);
         if (node->r->type == PARSER_NUMBER)
         {
-            Real v = node->lvp.v + ((struct parser_number*)(node->r))->value;
+            double v = node->lvp.v + ((struct parser_number*)(node->r))->value;
             ((struct parser_number*)node)->type = PARSER_NUMBER;
             ((struct parser_number*)node)->value = v;
         }
@@ -1133,7 +1134,7 @@ parser_ast_optimize (struct parser_node* node)
         parser_ast_optimize(node->r);
         if (node->r->type == PARSER_NUMBER)
         {
-            Real v = node->lvp.v - ((struct parser_number*)(node->r))->value;
+            double v = node->lvp.v - ((struct parser_number*)(node->r))->value;
             ((struct parser_number*)node)->type = PARSER_NUMBER;
             ((struct parser_number*)node)->value = v;
         }
@@ -1142,7 +1143,7 @@ parser_ast_optimize (struct parser_node* node)
         parser_ast_optimize(node->r);
         if (node->r->type == PARSER_NUMBER)
         {
-            Real v = node->lvp.v * ((struct parser_number*)(node->r))->value;
+            double v = node->lvp.v * ((struct parser_number*)(node->r))->value;
             ((struct parser_number*)node)->type = PARSER_NUMBER;
             ((struct parser_number*)node)->value = v;
         }
@@ -1151,7 +1152,7 @@ parser_ast_optimize (struct parser_node* node)
         parser_ast_optimize(node->r);
         if (node->r->type == PARSER_NUMBER)
         {
-            Real v = node->lvp.v / ((struct parser_number*)(node->r))->value;
+            double v = node->lvp.v / ((struct parser_number*)(node->r))->value;
             ((struct parser_number*)node)->type = PARSER_NUMBER;
             ((struct parser_number*)node)->value = v;
         }
@@ -1160,7 +1161,7 @@ parser_ast_optimize (struct parser_node* node)
         parser_ast_optimize(node->l);
         if (node->l->type == PARSER_NUMBER)
         {
-            Real v = -((struct parser_number*)(node->l))->value;
+            double v = -((struct parser_number*)(node->l))->value;
             ((struct parser_number*)node)->type = PARSER_NUMBER;
             ((struct parser_number*)node)->value = v;
         }
@@ -1204,7 +1205,7 @@ parser_ast_print_f1 (struct parser_f1* f1, std::string const& space, AllPrint& p
     case PARSER_POW_P2:      printer << "POW(,2)\n";     break;
     case PARSER_POW_P3:      printer << "POW(,3)\n";     break;
     default:
-        amrex::AllPrint() << "parser_ast+print_f1: Unknow function " << f1->ftype << "\n";
+        amrex::AllPrint() << "parser_ast_print_f1: Unknown function " << f1->ftype << "\n";
     }
     parser_ast_print(f1->l, space+"  ", printer);
 }
@@ -1271,7 +1272,7 @@ parser_ast_print_f3 (struct parser_f3* f3, std::string const& space, AllPrint& p
         printer << space << "IF\n";
         break;
     default:
-        amrex::AllPrint() << "parser_ast_print_f3: Unknow funciton " << f3->ftype << "\n";
+        amrex::AllPrint() << "parser_ast_print_f3: Unknown function " << f3->ftype << "\n";
     }
     parser_ast_print(f3->n1, more_space, printer);
     parser_ast_print(f3->n2, more_space, printer);
@@ -1492,7 +1493,7 @@ parser_ast_regvar (struct parser_node* node, char const* name, int i)
     }
 }
 
-void parser_ast_setconst (struct parser_node* node, char const* name, Real c)
+void parser_ast_setconst (struct parser_node* node, char const* name, double c)
 {
     switch (node->type)
     {
@@ -1604,7 +1605,7 @@ parser_regvar (struct amrex_parser* parser, char const* name, int i)
 }
 
 void
-parser_setconst (struct amrex_parser* parser, char const* name, Real c)
+parser_setconst (struct amrex_parser* parser, char const* name, double c)
 {
     parser_ast_setconst(parser->ast, name, c);
     parser_ast_optimize(parser->ast);

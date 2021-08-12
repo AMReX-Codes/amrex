@@ -32,7 +32,7 @@
 namespace amrex {
 namespace InSituUtils {
 
-// helper to track names and centerings of the avaliable arrays
+// helper to track names and centerings of the available arrays
 class MeshStateMap : public amrex::InSituUtils::StateMap
 {
 public:

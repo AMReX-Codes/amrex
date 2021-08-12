@@ -181,7 +181,7 @@ public:
     void buffer (const IntVect& nbuf);
 
     /**
-    * \brief This funciton does two things.  Map tagged cells through a periodic boundary to other
+    * \brief This function does two things.  Map tagged cells through a periodic boundary to other
     * grids in TagBoxArray cells, and remove duplicates.
     *
     * \param geom

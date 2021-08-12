@@ -5,6 +5,7 @@
 #include <AMReX_Array.H>
 #include <AMReX_GpuDevice.H>
 #include <AMReX_Parser_Exe.H>
+#include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 
 #include <memory>
@@ -18,7 +19,7 @@ struct ParserExecutor
 {
     template <int M=N, typename std::enable_if_t<M==0,int> = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Real operator() () const noexcept
+    double operator() () const noexcept
     {
 #if AMREX_DEVICE_COMPILE
         return parser_exe_eval(m_device_executor, nullptr);
@@ -29,10 +30,10 @@ struct ParserExecutor
 
     template <typename... Ts>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    std::enable_if_t<sizeof...(Ts) == N && amrex::Same<amrex::Real,Ts...>::value, amrex::Real>
+    std::enable_if_t<sizeof...(Ts) == N && !amrex::Same<float,Ts...>::value, double>
     operator() (Ts... var) const noexcept
     {
-        amrex::GpuArray<amrex::Real,N> l_var{var...};
+        amrex::GpuArray<double,N> l_var{var...};
 #if AMREX_DEVICE_COMPILE
         return parser_exe_eval(m_device_executor, l_var.data());
 #else
@@ -40,8 +41,21 @@ struct ParserExecutor
 #endif
     }
 
+    template <typename... Ts>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Real operator() (GpuArray<Real,N> const& var) const noexcept
+    std::enable_if_t<sizeof...(Ts) == N &&  amrex::Same<float,Ts...>::value, float>
+    operator() (Ts... var) const noexcept
+    {
+        amrex::GpuArray<double,N> l_var{var...};
+#if AMREX_DEVICE_COMPILE
+        return static_cast<float>(parser_exe_eval(m_device_executor, l_var.data()));
+#else
+        return static_cast<float>(parser_exe_eval(m_host_executor, l_var.data()));
+#endif
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    double operator() (GpuArray<double,N> const& var) const noexcept
     {
 #if AMREX_DEVICE_COMPILE
         return parser_exe_eval(m_device_executor, var.data());
@@ -75,7 +89,7 @@ public:
 
     explicit operator bool () const;
 
-    void setConstant (std::string const& name, amrex::Real c);
+    void setConstant (std::string const& name, double c);
 
     void registerVariables (Vector<std::string> const& vars);
 
@@ -136,7 +150,12 @@ Parser::compileHost () const
 
             m_data->m_host_executor = (char*)The_Pinned_Arena()->alloc(m_data->m_exe_size);
 
-            parser_compile(m_data->m_parser, m_data->m_host_executor);
+            try {
+                parser_compile(m_data->m_parser, m_data->m_host_executor);
+            } catch (const std::runtime_error& e) {
+                throw std::runtime_error(std::string(e.what()) + " in Parser expression \""
+                                         + m_data->m_expression + "\"");
+            }
         }
 
 #ifdef AMREX_USE_GPU

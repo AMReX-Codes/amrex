@@ -117,7 +117,7 @@ do is start from an existing test and modify it. For example, this entry:
    outputFile = plot
    testSrcTree = C_Src
 
-defines a test called :cpp:`MLMG_FI_PoisCom` by specifying the apppropriate build directory, inputs file,
+defines a test called :cpp:`MLMG_FI_PoisCom` by specifying the appropriate build directory, inputs file,
 and a set of configuration options. The above options are the most commonly changed; for a full list
 of options, see the example configuration file at https://github.com/AMReX-Codes/regression_testing/blob/main/example-tests.ini.
 

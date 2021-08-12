@@ -787,7 +787,7 @@ char *yytext;
 #endif
 #define YY_NO_INPUT 1
  /* Tokens NUMBER, SYMBOL, F1, POW, F2, etc. are defined in amrex_parser.y. */
- /* Types PARSER_SQRT, PARSER_SQRT, etc. are defined in AMReX_Parser_y.H. */
+ /* Types PARSER_SQRT, PARSER_EXP, etc. are defined in AMReX_Parser_y.H. */
  /* Used later to define NUMBER */
 
 #define INITIAL 0
@@ -1220,7 +1220,7 @@ YY_RULE_SETUP
 /* everything else */
 case 48:
 YY_RULE_SETUP
-{ amrex_parsererror("Unknown character %c\n", *amrex_parsertext); }
+{ amrex_parsererror("Unknown character %c", *amrex_parsertext); }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP

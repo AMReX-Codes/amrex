@@ -146,20 +146,10 @@ CNS::variableSetUp ()
     derive_lst.addComponent("pressure",desc_lst,State_Type,Eint,1);
 
     // Velocities
-    derive_lst.add("x_velocity",IndexType::TheCellType(),1,
+    derive_lst.add("velocity",IndexType::TheCellType(),AMREX_SPACEDIM,
+                   {AMREX_D_DECL("x_velocity","y_velocity","z_velocity")},
                    cns_dervel,the_same_box);
-    derive_lst.addComponent("x_velocity",desc_lst,State_Type,Density,1);
-    derive_lst.addComponent("x_velocity",desc_lst,State_Type,Xmom,1);
-
-    derive_lst.add("y_velocity",IndexType::TheCellType(),1,
-                   cns_dervel,the_same_box);
-    derive_lst.addComponent("y_velocity",desc_lst,State_Type,Density,1);
-    derive_lst.addComponent("y_velocity",desc_lst,State_Type,Ymom,1);
-
-    derive_lst.add("z_velocity",IndexType::TheCellType(),1,
-                   cns_dervel,the_same_box);
-    derive_lst.addComponent("z_velocity",desc_lst,State_Type,Density,1);
-    derive_lst.addComponent("z_velocity",desc_lst,State_Type,Zmom,1);
+    derive_lst.addComponent("velocity",desc_lst,State_Type,Density,1+AMREX_SPACEDIM);
 }
 
 void

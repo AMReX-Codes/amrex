@@ -44,6 +44,10 @@ list of important variables.
    +-----------------+-------------------------------------+--------------------+
    | PRECISION       | DOUBLE or FLOAT                     | DOUBLE             |
    +-----------------+-------------------------------------+--------------------+
+   | TEST            | TRUE or FALSE                       | FALSE              |
+   +-----------------+-------------------------------------+--------------------+
+   | USE_ASSERTION   | TRUE or FALSE                       | FALSE              |
+   +-----------------+-------------------------------------+--------------------+
    | USE_MPI         | TRUE or FALSE                       | FALSE              |
    +-----------------+-------------------------------------+--------------------+
    | USE_OMP         | TRUE or FALSE                       | FALSE              |
@@ -106,11 +110,12 @@ AMReX uses double precision by default.  One can change to single
 precision by setting ``PRECISION=FLOAT``.
 (Particles have an equivalent flag ``USE_SINGLE_PRECISION_PARTICLES=TRUE/FALSE``.)
 
-Variables ``DEBUG``, ``USE_MPI`` and ``USE_OMP`` are optional with default set
-to FALSE.  The meaning of these variables should
+Variables ``DEBUG``, ``TEST``, ``USE_MPI`` and ``USE_OMP`` are optional with
+default set to FALSE.  The meaning of these variables should
 be obvious.  When ``DEBUG=TRUE``, aggressive compiler optimization flags are
 turned off and assertions in source code are turned on. For production runs,
-``DEBUG`` should be set to FALSE.
+``DEBUG`` should be set to FALSE. ``TEST`` and ``USE_ASSERTION`` are set by
+default in CI and add slight debugging, e.g., initializing default values in FABs.
 An advanced variable, ``MPI_THREAD_MULTIPLE``, can be set to TRUE to initialize
 MPI with support for concurrent MPI calls from multiple threads.
 
@@ -403,7 +408,7 @@ For example, one can enable OpenMP support as follows:
     cmake -DAMReX_OMP=YES -DCMAKE_INSTALL_PREFIX=/path/to/installdir  /path/to/amrex
 
 In the example above ``<var>=AMReX_OMP`` and ``<value>=YES``.
-Configuration variables requiring a boolen value are evaluated to true if they
+Configuration variables requiring a boolean value are evaluated to true if they
 are assigned a value of ``1``, ``ON``, ``YES``, ``TRUE``, ``Y``. Conversely they are evaluated to false
 if they are assigned a value of ``0``, ``OFF``, ``NO``, ``FALSE``, ``N``.
 Boolean configuration variables are case-insensitive.
@@ -474,6 +479,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    | AMReX_COMM_PROFILE           |  Build with comm-profiling support              | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_MEM_PROFILE            |  Build with memory-profiling support            | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_TESTING                |  Build for testing (CI)                         | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_MPI_THREAD_MULTIPLE    |  Concurrent MPI calls from multiple threads     | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
@@ -705,7 +712,7 @@ to compile ``Foo``'s C++ sources. If no AMReX installation is found or if the av
 
 ..
    It will fail if
-   it cannot find any, or if the available one was not built with 3D and Embedded Boudary support.
+   it cannot find any, or if the available one was not built with 3D and Embedded Boundary support.
    If AMReX is found, it will then link AMReX to target ``Foo`` and use the AMReX flags preset
    to compile ``Foo``'s C++ sources.
 

@@ -77,7 +77,7 @@ public:
     BndryData (BndryData&& rhs) = delete;
     BndryData& operator= (BndryData&& rhs) = delete;
 
-    //! alocate bndry fabs along given face
+    //! allocate bndry fabs along given face
     void define (const BoxArray& grids,
                  const DistributionMapping& dmap,
                  int             ncomp,
@@ -145,7 +145,7 @@ public:
     FabSet& operator[] (Orientation face) noexcept { return BndryRegister::bndry[face]; }
 
 protected:
-    //! Helper function for copy constructor and assigment operator.
+    //! Helper function for copy constructor and assignment operator.
     void init (const BndryData& src);
 
     /**
