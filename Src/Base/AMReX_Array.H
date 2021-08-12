@@ -818,8 +818,6 @@ namespace amrex {
          * \c loc0 = \c j and \c loc1 = \c k; for axis = 1, \c loc0 = \c i and \c loc1 = \c k.
          *
          */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T product (const int axis, const int loc0, const int loc1)
         {
