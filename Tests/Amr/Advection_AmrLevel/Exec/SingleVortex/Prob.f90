@@ -1,20 +1,3 @@
-
-subroutine amrex_probinit (init,name,namlen,problo,probhi) bind(c)
-
-  use amrex_fort_module
-
-  implicit none
-
-  integer(c_int), intent(in) :: init, namlen
-  integer(c_int), intent(in) :: name(namlen)
-  real(amrex_real), intent(in) :: problo(*), probhi(*)
-
-  ! nothing needs to be done here,
-  ! since there are no extra inputs to be read from probin file
-
-end subroutine amrex_probinit
-
-
 subroutine initdata(level, time, lo, hi, &
      phi, phi_lo, phi_hi, &
      dx, prob_lo) bind(C, name="initdata")

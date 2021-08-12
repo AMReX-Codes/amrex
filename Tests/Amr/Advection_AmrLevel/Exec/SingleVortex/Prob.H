@@ -10,9 +10,8 @@ extern "C" {
                          const amrex_real* /*problo*/,
                          const amrex_real* /*probhi*/)
     {
-        amrex::ParmParse pp("prob");
-
-
+        // Nothing needs to be done here,
+        // since there are no extra inputs to be read from probin file
     }
 }
 #endif

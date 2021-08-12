@@ -1,2 +1,2 @@
-f90EXE_sources += Prob.f90 probdata.f90
-CEXE_headers += probdata.H face_velocity_$(DIM)d_K.H
+f90EXE_sources += Prob.f90
+CEXE_headers += Prob_Parm.H Prob.H face_velocity_$(DIM)d_K.H
