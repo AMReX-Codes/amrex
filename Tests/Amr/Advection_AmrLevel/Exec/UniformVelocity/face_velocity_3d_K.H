@@ -1,7 +1,7 @@
 #ifndef FACE_VELOCITY_3D_H_
 #define FACE_VELOCITY_3D_H_
 
-#include "probdata.H"
+#include "Prob_Parm.H"
 
 void get_face_velocity(const amrex::Real /*time*/,
                        amrex::FArrayBox& vx,
