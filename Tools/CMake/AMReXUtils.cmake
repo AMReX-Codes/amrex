@@ -17,7 +17,7 @@ function (get_amrex_version)
       execute_process ( COMMAND git describe --abbrev=12 --dirty --always --tags
          WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
          OUTPUT_VARIABLE _tmp )
-      string( STRIP ${_tmp} _tmp )
+      string( STRIP "${_tmp}" _tmp )
       # filter invalid descriptions in shallow git clones
       if (NOT _tmp MATCHES "^([0-9]+)\\.([0-9]+)(\\.([0-9]+))*(-.*)*$")
          set( _tmp "")
