@@ -430,10 +430,9 @@ void test_ghosts_and_virtuals_randomperbox (TestParams& parms)
     yvel = 2.0e-8;
     zvel = 3.0e-8;
     MyParticleContainer::ParticleInitData pdata_bigger = {{mass, xvel, yvel, zvel},{}, {}, {}};
-    MyParticleContainer myPC_tmp2(geom, dmap, ba, rr);
-    myPC_tmp2.InitRandomPerBox(num_particles, iseed+5, pdata_bigger);
-    myPC.addParticles(myPC_tmp2);
-    myPC_tmp2.clearParticles();
+    myPC_tmp.InitRandomPerBox(num_particles, iseed+5, pdata_bigger);
+    myPC.addParticles(myPC_tmp);
+    myPC_tmp.clearParticles();
 
     {
         MyParticleContainer virtPC(geom, dmap, ba, rr);
