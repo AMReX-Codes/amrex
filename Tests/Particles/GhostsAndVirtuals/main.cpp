@@ -40,7 +40,7 @@ void test_ghosts_and_virtuals (TestParams& parms)
     const Box domain(domain_lo, domain_hi);
 
     // Define the refinement ratio
-    Vector<int> rr(nlevs-1);
+    Vector<int> rr(nlevs);
     for (int lev = 1; lev < nlevs; lev++)
         rr[lev-1] = 2;
 
@@ -60,8 +60,9 @@ void test_ghosts_and_virtuals (TestParams& parms)
     Vector<BoxArray> ba(nlevs);
     ba[0].define(domain);
 
+    int n_fine = parms.nx;
     for (int lev = 1; lev < nlevs; lev++) {
-        int n_fine = parms.nx*rr[lev-1];
+        n_fine *= rr[lev-1];
         IntVect refined_lo(AMREX_D_DECL(n_fine/4,n_fine/4,n_fine/4));
         IntVect refined_hi(AMREX_D_DECL(3*n_fine/4-1,3*n_fine/4-1,3*n_fine/4-1));
 
@@ -329,7 +330,7 @@ void test_ghosts_and_virtuals_randomperbox (TestParams& parms)
     const Box domain(domain_lo, domain_hi);
 
     // Define the refinement ratio
-    Vector<int> rr(nlevs-1);
+    Vector<int> rr(nlevs);
     for (int lev = 1; lev < nlevs; lev++)
         rr[lev-1] = 2;
 
@@ -349,14 +350,15 @@ void test_ghosts_and_virtuals_randomperbox (TestParams& parms)
     Vector<BoxArray> ba(nlevs);
     ba[0].define(domain);
 
-    if (nlevs > 1) {
-        int n_fine = parms.nx*rr[0];
+    int n_fine = parms.nx;
+    for (int lev = 1; lev < nlevs; lev++) {
+        n_fine *= rr[lev-1];
         IntVect refined_lo(AMREX_D_DECL(n_fine/4,n_fine/4,n_fine/4));
         IntVect refined_hi(AMREX_D_DECL(3*n_fine/4-1,3*n_fine/4-1,3*n_fine/4-1));
 
         // Build a box for the level 1 domain
         Box refined_patch(refined_lo, refined_hi);
-        ba[1].define(refined_patch);
+        ba[lev].define(refined_patch);
     }
 
     // break the BoxArrays at both levels into max_grid_size^3 boxes
@@ -393,7 +395,10 @@ void test_ghosts_and_virtuals_randomperbox (TestParams& parms)
     zvel = 3.0e-5;
     total_virts_test+=mass+xvel+yvel+zvel;
     MyParticleContainer::ParticleInitData pdata_big = {{mass, xvel, yvel, zvel},{}, {}, {}};
-    myPC.InitRandomPerBox(num_particles, iseed, pdata_big);
+    MyParticleContainer myPC_tmp(geom, dmap, ba, rr);
+    myPC_tmp.InitRandomPerBox(num_particles, iseed, pdata_big);
+    myPC.addParticles(myPC_tmp);
+    myPC_tmp.clearParticles();
 
     {
         MyParticleContainer virtPC(geom, dmap, ba, rr);
@@ -425,7 +430,10 @@ void test_ghosts_and_virtuals_randomperbox (TestParams& parms)
     yvel = 2.0e-8;
     zvel = 3.0e-8;
     MyParticleContainer::ParticleInitData pdata_bigger = {{mass, xvel, yvel, zvel},{}, {}, {}};
-    myPC.InitRandomPerBox(num_particles, iseed+5, pdata_bigger);
+    MyParticleContainer myPC_tmp2(geom, dmap, ba, rr);
+    myPC_tmp2.InitRandomPerBox(num_particles, iseed+5, pdata_bigger);
+    myPC.addParticles(myPC_tmp2);
+    myPC_tmp2.clearParticles();
 
     {
         MyParticleContainer virtPC(geom, dmap, ba, rr);
@@ -479,7 +487,7 @@ void test_ghosts_and_virtuals_onepercell (TestParams& parms)
     const Box domain(domain_lo, domain_hi);
 
     // Define the refinement ratio
-    Vector<int> rr(nlevs-1);
+    Vector<int> rr(nlevs);
     for (int lev = 1; lev < nlevs; lev++)
         rr[lev-1] = 2;
 
@@ -545,7 +553,10 @@ void test_ghosts_and_virtuals_onepercell (TestParams& parms)
     yoff = 0.25;
     zoff = 0.25;
     MyParticleContainer::ParticleInitData pdata_big = {{mass, xvel, yvel, zvel},{}, {}, {}};
-    myPC.InitOnePerCell(xoff, yoff, zoff, pdata_big);
+    MyParticleContainer myPC_tmp(geom, dmap, ba, rr);
+    myPC_tmp.InitOnePerCell(xoff, yoff, zoff, pdata_big);
+    myPC.addParticles(myPC_tmp);
+    myPC_tmp.clearParticles();
 
     {
         MyParticleContainer virtPC(geom, dmap, ba, rr);
