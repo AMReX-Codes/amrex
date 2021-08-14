@@ -11,6 +11,8 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 amrex::Real amrex_calc_xslope (int i, int j, int k, int n, int order,
                                amrex::Array4<amrex::Real const> const& q) noexcept
 {
+    using namespace amrex::literals;
+
     if (order == 2)
     {
         amrex::Real dl = 2.0_rt*(q(i  ,j,k,n) - q(i-1,j,k,n));
@@ -62,6 +64,8 @@ amrex::Real amrex_calc_xslope_extdir (int i, int j, int k, int n, int order,
                                       amrex::Array4<amrex::Real const> const& q,
                                       bool edlo, bool edhi, int domlo, int domhi) noexcept
 {
+    using namespace amrex::literals;
+
     if (order == 2)
     {
         amrex::Real dl = 2.0_rt*(q(i  ,j,k,n) - q(i-1,j,k,n));
@@ -152,6 +156,8 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 amrex::Real amrex_calc_yslope (int i, int j, int k, int n, int order,
                                amrex::Array4<amrex::Real const> const& q) noexcept
 {
+    using namespace amrex::literals;
+
     if (order == 2)
     {
         amrex::Real dl = 2.0_rt*(q(i,j  ,k,n) - q(i,j-1,k,n));
@@ -202,6 +208,8 @@ amrex::Real amrex_calc_yslope_extdir (int i, int j, int k, int n, int order,
                                       amrex::Array4<amrex::Real const> const& q,
                                       bool edlo, bool edhi, int domlo, int domhi) noexcept
 {
+    using namespace amrex::literals;
+
     if (order == 2)
     {
         amrex::Real dl = 2.0_rt*(q(i,j  ,k,n) - q(i,j-1,k,n));
@@ -290,6 +298,8 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 amrex::Real amrex_calc_zslope (int i, int j, int k, int n, int order,
                                amrex::Array4<amrex::Real const> const& q) noexcept
 {
+    using namespace amrex::literals;
+
     if (order == 2)
     {
         amrex::Real dl = 2.0_rt*(q(i,j,k  ,n) - q(i,j,k-1,n));
@@ -340,6 +350,8 @@ amrex::Real amrex_calc_zslope_extdir (int i, int j, int k, int n, int order,
                                       amrex::Array4<amrex::Real const> const& q,
                                       bool edlo, bool edhi, int domlo, int domhi) noexcept
 {
+    using namespace amrex::literals;
+
     if (order == 2)
     {
 
