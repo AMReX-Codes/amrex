@@ -1172,7 +1172,6 @@ void ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev, hid_t int
     DenseBins<ParticleType> m_bins;
 
 private:
-
     virtual void particlePostLocate (ParticleType& /*p*/, const ParticleLocData& /*pld*/,
                                      const int /*lev*/) {}
 
