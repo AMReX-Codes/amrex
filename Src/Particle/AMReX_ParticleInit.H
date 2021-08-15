@@ -1004,7 +1004,7 @@ InitRandom (Long                    icount,
                         r = amrex::Random();
                         x = geom.ProbLo(i) + (r * len[i]);
                     }
-                    while (x < xlo[i] || x > xhi[i]);
+                    while (static_cast<ParticleReal>(x) < static_cast<ParticleReal>(xlo[i]) || static_cast<ParticleReal>(x) >= static_cast<ParticleReal>(xhi[i]));
 
                     pos[j*AMREX_SPACEDIM + i] = static_cast<ParticleReal>(x);
                 }
@@ -1021,7 +1021,7 @@ InitRandom (Long                    icount,
         host_particles.reserve(15);
         host_particles.resize(finestLevel()+1);
 
-        Vector<std::map<std::pair<int, int>, std::array<Gpu::HostVector<Real>, NArrayReal > > > host_real_attribs;
+        Vector<std::map<std::pair<int, int>, std::array<Gpu::HostVector<ParticleReal>, NArrayReal > > > host_real_attribs;
         host_real_attribs.reserve(15);
         host_real_attribs.resize(finestLevel()+1);
 
@@ -1065,7 +1065,7 @@ InitRandom (Long                    icount,
 
                 // add the real...
                 for (int i = 0; i < NArrayReal; i++) {
-                    host_real_attribs[pld.m_lev][ind][i].push_back(pdata.real_array_data[i]);
+                    host_real_attribs[pld.m_lev][ind][i].push_back(static_cast<ParticleReal>(pdata.real_array_data[i]));
                 }
 
                 // ... and int array data
@@ -1125,7 +1125,7 @@ InitRandom (Long                    icount,
         host_particles.reserve(15);
         host_particles.resize(finestLevel()+1);
 
-        Vector<std::map<std::pair<int, int>, std::array<Gpu::HostVector<Real>, NArrayReal > > > host_real_attribs;
+        Vector<std::map<std::pair<int, int>, std::array<Gpu::HostVector<ParticleReal>, NArrayReal > > > host_real_attribs;
         host_real_attribs.reserve(15);
         host_real_attribs.resize(finestLevel()+1);
 
@@ -1140,7 +1140,7 @@ InitRandom (Long                    icount,
                     r = amrex::Random();
                     x = geom.ProbLo(i) + (r * len[i]);
                 }
-                while (x < xlo[i] || x > xhi[i]);
+                while (static_cast<ParticleReal>(x) < static_cast<ParticleReal>(xlo[i]) || static_cast<ParticleReal>(x) >= static_cast<ParticleReal>(xhi[i]));
 
                 p.pos(i) = static_cast<ParticleReal>(x);
 
@@ -1172,7 +1172,7 @@ InitRandom (Long                    icount,
 
             // add the real...
             for (int i = 0; i < NArrayReal; i++) {
-                host_real_attribs[pld.m_lev][ind][i].push_back(pdata.real_array_data[i]);
+                host_real_attribs[pld.m_lev][ind][i].push_back(static_cast<ParticleReal>(pdata.real_array_data[i]));
             }
 
             // ... and int array data
