@@ -2,4 +2,4 @@ CEXE_sources += AmrLevelAdv.cpp LevelBldAdv.cpp main.cpp
 
 CEXE_headers += AmrLevelAdv.H
 
-FEXE_headers += Adv_F_old.H
+FEXE_headers += Adv_F.H Adv_F_old.H

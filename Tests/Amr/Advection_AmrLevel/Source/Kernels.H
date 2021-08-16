@@ -1,7 +1,7 @@
 #ifndef Kernels_H_
 #define Kernels_H_
 
-// Kernel to tag high error cells
+// GPU kernels to tag high error cells
 #include "Tagging_nd_K.H"
 
 // GPU kernel to compute Godunov velocities on each face.

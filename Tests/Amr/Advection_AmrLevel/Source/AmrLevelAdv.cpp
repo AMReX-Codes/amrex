@@ -639,48 +639,47 @@ AmrLevelAdv::post_init (Real /*stop_time*/)
  */
 void
 AmrLevelAdv::errorEst (TagBoxArray& tags,
-                       int          clearval,
-                       int          tagval,
-                       Real         time,
+                       int          /*clearval*/,
+                       int          /*tagval*/,
+                       Real         /*time*/,
                        int          /*n_error_buf*/,
                        int          /*ngrow*/)
 {
-    const Real* dx        = geom.CellSize();
-    const Real* prob_lo   = geom.ProbLo();
-
     MultiFab& S_new = get_new_data(Phi_Type);
 
+    const char   tagval = TagBox::SET;
+    // const char clearval = TagBox::CLEAR;
+
 #ifdef AMREX_USE_OMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-        Vector<int>  itags;
 
-        for (MFIter mfi(S_new,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(S_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            const Box&  tilebx  = mfi.tilebox();
+            const Box& tilebx = mfi.tilebox();
+            const auto phiarr = S_new.array(mfi);
+            auto       tagarr = tags.array(mfi);
 
-            TagBox&     tagfab  = tags[mfi];
+            // Tag cells with high phi.
+            if (level < max_phierr_lev) {
+                const Real phierr_lev  = phierr[level];
+                amrex::ParallelFor(tilebx,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    state_error(i, j, k, tagarr, phiarr, phierr_lev, tagval);
+                });
+            }
 
-            // We cannot pass tagfab to Fortran because it is BaseFab<char>.
-            // So we are going to get a temporary integer array.
-            tagfab.get_itags(itags, tilebx);
-
-            // data pointer and index space
-            int*        tptr    = itags.dataPtr();
-            const int*  tlo     = tilebx.loVect();
-            const int*  thi     = tilebx.hiVect();
-
-            // Fortran subroutine
-            state_error(tptr,  AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
-                        BL_TO_FORTRAN_3D(S_new[mfi]),
-                        &tagval, &clearval,
-                        AMREX_ARLIM_3D(tilebx.loVect()), AMREX_ARLIM_3D(tilebx.hiVect()),
-                        AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo), &time, &level);
-            //
-            // Now update the tags in the TagBox.
-            //
-            tagfab.tags_and_untags(itags, tilebx);
+            // Tag cells with high phi gradient.
+            if (level < max_phigrad_lev) {
+                const Real phigrad_lev = phigrad[level];
+                amrex::ParallelFor(tilebx,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    grad_error(i, j, k, tagarr, phiarr, phigrad_lev, tagval);
+                });
+            }
         }
     }
 }

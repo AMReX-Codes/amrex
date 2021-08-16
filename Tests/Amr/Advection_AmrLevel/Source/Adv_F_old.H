@@ -17,13 +17,14 @@ extern "C"
                 const int* dlo, const int* dhi,
                 const amrex_real* dx, const amrex_real* glo,
                 const amrex_real* time, const int* bc);
-
+  /*
   void state_error(int* tag, const int* tag_lo, const int* tag_hi,
                    BL_FORT_FAB_ARG_3D(state),
                    const int* tagval, const int* clearval,
                    const int* lo, const int* hi,
                    const amrex_real* dx, const amrex_real* problo,
                    const amrex_real* time, const int* level);
+  */
 
   /*
   void initdata(const int* level, const amrex_real* time,
