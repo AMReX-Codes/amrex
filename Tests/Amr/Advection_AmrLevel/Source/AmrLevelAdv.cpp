@@ -116,7 +116,6 @@ AmrLevelAdv::variableSetUp ()
 {
     BL_ASSERT(desc_lst.size() == 0);
 
-
     // Initialize struct containing problem-specific variables
     h_prob_parm = new ProbParm{};
     d_prob_parm = (ProbParm*)The_Arena()->alloc(sizeof(ProbParm));
@@ -150,6 +149,12 @@ AmrLevelAdv::variableCleanUp ()
 #ifdef AMREX_PARTICLES
     TracerPC.reset();
 #endif
+
+    // Free arrays containing error thresholds
+    free(phierr);
+    free(phigrad);
+
+    // Delete structs containing problem-specific parameters
     delete h_prob_parm;
     The_Arena()->free(d_prob_parm);
 }
@@ -666,6 +671,7 @@ AmrLevelAdv::errorEst (TagBoxArray& tags,
             const int*  tlo     = tilebx.loVect();
             const int*  thi     = tilebx.hiVect();
 
+            // Fortran subroutine
             state_error(tptr,  AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
                         BL_TO_FORTRAN_3D(S_new[mfi]),
                         &tagval, &clearval,
@@ -680,7 +686,7 @@ AmrLevelAdv::errorEst (TagBoxArray& tags,
 }
 
 /**
- * Read parameters from input file and probin file.
+ * Read parameters from input file.
  */
 void
 AmrLevelAdv::read_params ()
@@ -713,24 +719,9 @@ AmrLevelAdv::read_params ()
     pp.query("do_tracers", do_tracers);
 #endif
 
-    //
-    // Read tagging parameters from probin file
-    //
-
-    std::string probin_file("probin");
-
-    ParmParse ppa("amr");
-    ppa.query("probin_file",probin_file);
-
-    int probin_file_length = probin_file.length();
-    Vector<int> probin_file_name(probin_file_length);
-
-    for (int i = 0; i < probin_file_length; i++)
-        probin_file_name[i] = probin_file[i];
-
-    // use a Fortran subroutine to read in tagging parameters from probin file
-    get_tagging_params(probin_file_name.dataPtr(), &probin_file_length);
-
+    // Read tagging parameters from tagging block in the input file.
+    // See Src_nd/Tagging_params.cpp for the function implementation.
+    get_tagging_params();
 }
 
 void

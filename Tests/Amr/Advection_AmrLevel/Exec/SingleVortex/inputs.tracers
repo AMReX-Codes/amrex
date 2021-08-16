@@ -45,3 +45,7 @@ adv.do_tracers = 1
 
 particles.do_tiling = true
 particles.tile_size = 1024000 4 4
+
+# ERROR TAGGING
+tagging.phierr =  1.01  1.1   1.5
+tagging.max_phierr_lev = 10

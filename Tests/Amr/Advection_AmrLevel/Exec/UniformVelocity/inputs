@@ -42,3 +42,7 @@ adv.do_tracers = 0
 
 # PROBLEM-SPECIFIC PARAMETERS
 prob.adv_vel =  1.0  1.0  1.0
+
+# ERROR TAGGING
+tagging.phierr =  1.01  1.1   1.5
+tagging.max_phierr_lev = 10

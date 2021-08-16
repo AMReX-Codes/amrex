@@ -160,8 +160,8 @@ public:
      * Error estimation for regridding.
      */
     virtual void errorEst (amrex::TagBoxArray& tb,
-                           int          clearval,
-                           int          tagval,
+                           int                 clearval,
+                           int                 tagval,
                            amrex::Real         time,
                            int          n_error_buf = 0, int ngrow = 0) override;
 
@@ -172,12 +172,22 @@ public:
     static int  NUM_STATE;
     static int  NUM_GROW;
 
+    // ProbParm class instances
     static ProbParm* h_prob_parm;
     static ProbParm* d_prob_parm;
 
+    // Variables for error tagging
+    static int max_phierr_lev;
+    static int max_phigrad_lev;
+    static amrex::Real* phierr;
+    static amrex::Real* phigrad;
+
+#if !defined(AMREX_USE_CUDA)
 protected:
+#endif
 
     static void read_params ();
+    static void get_tagging_params ();
 
     // inline functions implemented below
     AmrLevelAdv& getLevel (int lev);

@@ -9,7 +9,9 @@ extern "C"
 {
 #endif
 
+  /*
   void get_tagging_params(const int* name, const int* namlen);
+  */
 
   void nullfill(BL_FORT_FAB_ARG_3D(state),
                 const int* dlo, const int* dhi,
@@ -23,7 +25,7 @@ extern "C"
                    const amrex_real* dx, const amrex_real* problo,
                    const amrex_real* time, const int* level);
 
-  /* Moved to Exec/ * /Adv_F.H
+  /*
   void initdata(const int* level, const amrex_real* time,
                 const int* lo, const int* hi,
                 BL_FORT_FAB_ARG_3D(state),
