@@ -13,7 +13,6 @@ void
 AmrLevelAdv::get_tagging_params()
 {
     // Use ParmParse to get number of levels from input file
-    int maxlev_in;
     amrex::ParmParse pp("tagging");
     pp.query("max_phierr_lev", max_phierr_lev);
     pp.query("max_phigrad_lev", max_phigrad_lev);
