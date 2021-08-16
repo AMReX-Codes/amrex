@@ -670,8 +670,7 @@ GpuBndryFuncFab<F>::fcdoit (Box const& bx, FArrayBox& dest,
             {
                 AMREX_D_PICK(amrex::ignore_unused(j,k),amrex::ignore_unused(k),(void)0);
                 IntVect const face(AMREX_D_DECL(i,j,k));
-                filfc_face(face, idxType, fab, dcomp, numcomp, geomdata, time,
-                           bcr_p, 0, orig_comp);
+                filfc_face(face, fab, dcomp, numcomp, domain, bcr_p, 0);
                 f_user(face, fab, dcomp, numcomp, geomdata, time,
                        bcr_p, 0, orig_comp);
             });
@@ -686,8 +685,7 @@ GpuBndryFuncFab<F>::fcdoit (Box const& bx, FArrayBox& dest,
             [=] AMREX_GPU_DEVICE (Long iface) noexcept
             {
                 const auto& face = getCell(boxes_p, n_face_boxes, iface);
-                filfc_face(face, idxType, fab, dcomp, numcomp, geomdata, time,
-                           bcr_p, 0, orig_comp);
+                filfc_face(face, fab, dcomp, numcomp, domain, bcr_p, 0);
                 f_user(face, fab, dcomp, numcomp, geomdata, time,
                        bcr_p, 0, orig_comp);
             });
@@ -732,8 +730,7 @@ GpuBndryFuncFab<F>::fcdoit (Box const& bx, FArrayBox& dest,
             {
                 AMREX_D_PICK(amrex::ignore_unused(j,k),amrex::ignore_unused(k),(void)0);
                 IntVect const face(AMREX_D_DECL(i,j,k));
-                filfc_face(face, idxType, fab, dcomp, numcomp, geomdata, time,
-                           bcr_p, 0, orig_comp);
+                filfc_face(face, fab, dcomp, numcomp, domain, bcr_p, 0);
                 f_user(face, fab, dcomp, numcomp, geomdata, time,
                        bcr_p, 0, orig_comp);
             });
@@ -748,8 +745,7 @@ GpuBndryFuncFab<F>::fcdoit (Box const& bx, FArrayBox& dest,
             [=] AMREX_GPU_DEVICE (Long iface) noexcept
             {
                 const auto& face = getCell(boxes_p, n_edge_boxes, iface);
-                filfc_face(face, idxType, fab, dcomp, numcomp, geomdata, time,
-                           bcr_p, 0, orig_comp);
+                filfc_face(face, fab, dcomp, numcomp, domain, bcr_p, 0);
                 f_user(face, fab, dcomp, numcomp, geomdata, time,
                        bcr_p, 0, orig_comp);
             });
@@ -781,8 +777,7 @@ GpuBndryFuncFab<F>::fcdoit (Box const& bx, FArrayBox& dest,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 IntVect const face(AMREX_D_DECL(i,j,k));
-                filfc_face(face, idxType, fab, dcomp, numcomp, geomdata, time,
-                           bcr_p, 0, orig_comp);
+                filfc_face(face, fab, dcomp, numcomp, domain, bcr_p, 0);
                 f_user(face, fab, dcomp, numcomp, geomdata, time,
                        bcr_p, 0, orig_comp);
             });
@@ -797,8 +792,7 @@ GpuBndryFuncFab<F>::fcdoit (Box const& bx, FArrayBox& dest,
             [=] AMREX_GPU_DEVICE (Long iface) noexcept
             {
                 const auto& face = getCell(boxes_p, n_corner_boxes, iface);
-                filfc_face(face, idxType, fab, dcomp, numcomp, geomdata, time,
-                           bcr_p, 0, orig_comp);
+                filfc_face(face, fab, dcomp, numcomp, domain, bcr_p, 0);
                 f_user(face, fab, dcomp, numcomp, geomdata, time,
                        bcr_p, 0, orig_comp);
             });
@@ -828,8 +822,7 @@ GpuBndryFuncFab<F>::fcdoit (Box const& bx, FArrayBox& dest,
             {
                 amrex::ignore_unused(j,k);
                 IntVect const face(AMREX_D_DECL(i,j,k));
-                filfc_face(face, idxType, fab, dcomp, numcomp, geomdata, time,
-                           bcr_p, 0, orig_comp);
+                filfc_face(face, fab, dcomp, numcomp, domain, bcr_p, 0);
                 f_user(face, fab, dcomp, numcomp, geomdata, time,
                        bcr_p, 0, orig_comp);
             });
@@ -869,8 +862,7 @@ GpuBndryFuncFab<F>::fcdoit (Box const& bx, FArrayBox& dest,
             {
                 amrex::ignore_unused(j,k);
                 IntVect const face(AMREX_D_DECL(i,j,k));
-                filfc_face(face, idxType, fab, dcomp, numcomp, geomdata, time,
-                           bcr_p, 0, orig_comp);
+                filfc_face(face, fab, dcomp, numcomp, domain, bcr_p, 0);
                 f_user(face, fab, dcomp, numcomp, geomdata, time,
                        bcr_p, 0, orig_comp);
             });
@@ -896,8 +888,7 @@ GpuBndryFuncFab<F>::fcdoit (Box const& bx, FArrayBox& dest,
             amrex::For(tmp, [=] (int i, int j, int k) noexcept
             {
                 IntVect const face(AMREX_D_DECL(i,j,k));
-                filfc_face(face, idxType, fab, dcomp, numcomp, geomdata, time,
-                           bcr_p, 0, orig_comp);
+                filfc_face(face, fab, dcomp, numcomp, domain, bcr_p, 0);
                 f_user(face, fab, dcomp, numcomp, geomdata, time,
                        bcr_p, 0, orig_comp);
             });

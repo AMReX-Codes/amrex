@@ -11,17 +11,15 @@ namespace amrex {
 AMREX_GPU_DEVICE
 inline
 void
-filfc_face (const IntVect& iv, const IndexType &idxType,
-            Array4<Real> const& q,
+filfc_face (const IntVect& iv, Array4<Real> const& q,
             const int dcomp, const int numcomp,
-            GeometryData const& geom, const Real /*time*/,
-            const BCRec* bcr, const int bcomp,
-            const int /*orig_comp*/) noexcept
+            Box const& domain_box, const BCRec* bcr,
+            const int bcomp) noexcept
 {
     const int i = iv[0];
     const int j = iv[1];
 
-    const Box& domain_box = geom.Domain();
+    const IndexType &idxType = domain_box.ixType();
     const auto& domain_lo = domain_box.loVect();
     const auto& domain_hi = domain_box.hiVect();
     const int ilo = domain_lo[0];
