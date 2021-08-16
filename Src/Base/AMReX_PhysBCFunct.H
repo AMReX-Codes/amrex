@@ -223,6 +223,7 @@ GpuBndryFuncFab<F>::ccdoit (Box const& bx, FArrayBox& dest,
 {
     const IntVect& len = bx.length();
 
+    const Box domain = geom.Domain();
     Box gdomain = geom.Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (geom.isPeriodic(idim)) {
@@ -264,8 +265,7 @@ GpuBndryFuncFab<F>::ccdoit (Box const& bx, FArrayBox& dest,
             {
                 AMREX_D_PICK(amrex::ignore_unused(j,k),amrex::ignore_unused(k),(void)0);
                 IntVect const cell(AMREX_D_DECL(i,j,k));
-                filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
-                           bcr_p, 0, orig_comp);
+                filcc_cell(cell, fab, dcomp, numcomp, domain, bcr_p, orig_comp);
                 f_user(cell, fab, dcomp, numcomp, geomdata, time,
                        bcr_p, 0, orig_comp);
             });
@@ -280,8 +280,7 @@ GpuBndryFuncFab<F>::ccdoit (Box const& bx, FArrayBox& dest,
             [=] AMREX_GPU_DEVICE (Long icell) noexcept
             {
                 const auto& cell = getCell(boxes_p, n_face_boxes, icell);
-                filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
-                           bcr_p, 0, orig_comp);
+                filcc_cell(cell, fab, dcomp, numcomp, domain, bcr_p, orig_comp);
                 f_user(cell, fab, dcomp, numcomp, geomdata, time,
                        bcr_p, 0, orig_comp);
             });
@@ -327,8 +326,7 @@ GpuBndryFuncFab<F>::ccdoit (Box const& bx, FArrayBox& dest,
             {
                 AMREX_D_PICK(amrex::ignore_unused(j,k),amrex::ignore_unused(k),(void)0);
                 IntVect const cell(AMREX_D_DECL(i,j,k));
-                filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
-                           bcr_p, 0, orig_comp);
+                filcc_cell(cell, fab, dcomp, numcomp, domain, bcr_p, orig_comp);
                 f_user(cell, fab, dcomp, numcomp, geomdata, time,
                        bcr_p, 0, orig_comp);
             });
@@ -343,8 +341,7 @@ GpuBndryFuncFab<F>::ccdoit (Box const& bx, FArrayBox& dest,
             [=] AMREX_GPU_DEVICE (Long icell) noexcept
             {
                 const auto& cell = getCell(boxes_p, n_edge_boxes, icell);
-                filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
-                           bcr_p, 0, orig_comp);
+                filcc_cell(cell, fab, dcomp, numcomp, domain, bcr_p, orig_comp);
                 f_user(cell, fab, dcomp, numcomp, geomdata, time,
                        bcr_p, 0, orig_comp);
             });
@@ -376,8 +373,7 @@ GpuBndryFuncFab<F>::ccdoit (Box const& bx, FArrayBox& dest,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 IntVect const cell(AMREX_D_DECL(i,j,k));
-                filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
-                           bcr_p, 0, orig_comp);
+                filcc_cell(cell, fab, dcomp, numcomp, domain, bcr_p, orig_comp);
                 f_user(cell, fab, dcomp, numcomp, geomdata, time,
                        bcr_p, 0, orig_comp);
             });
@@ -392,8 +388,7 @@ GpuBndryFuncFab<F>::ccdoit (Box const& bx, FArrayBox& dest,
             [=] AMREX_GPU_DEVICE (Long icell) noexcept
             {
                 const auto& cell = getCell(boxes_p, n_corner_boxes, icell);
-                filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
-                           bcr_p, 0, orig_comp);
+                filcc_cell(cell, fab, dcomp, numcomp, domain, bcr_p, orig_comp);
                 f_user(cell, fab, dcomp, numcomp, geomdata, time,
                        bcr_p, 0, orig_comp);
             });
@@ -423,8 +418,7 @@ GpuBndryFuncFab<F>::ccdoit (Box const& bx, FArrayBox& dest,
             {
                 amrex::ignore_unused(j,k);
                 IntVect const cell(AMREX_D_DECL(i,j,k));
-                filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
-                           bcr_p, 0, orig_comp);
+                filcc_cell(cell, fab, dcomp, numcomp, domain, bcr_p, orig_comp);
                 f_user(cell, fab, dcomp, numcomp, geomdata, time,
                        bcr_p, 0, orig_comp);
             });
@@ -464,8 +458,7 @@ GpuBndryFuncFab<F>::ccdoit (Box const& bx, FArrayBox& dest,
             {
                 amrex::ignore_unused(j,k);
                 IntVect const cell(AMREX_D_DECL(i,j,k));
-                filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
-                           bcr_p, 0, orig_comp);
+                filcc_cell(cell, fab, dcomp, numcomp, domain, bcr_p, orig_comp);
                 f_user(cell, fab, dcomp, numcomp, geomdata, time,
                        bcr_p, 0, orig_comp);
             });
@@ -491,8 +484,7 @@ GpuBndryFuncFab<F>::ccdoit (Box const& bx, FArrayBox& dest,
             amrex::For(tmp, [=] (int i, int j, int k) noexcept
             {
                 IntVect const cell(AMREX_D_DECL(i,j,k));
-                filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
-                           bcr_p, 0, orig_comp);
+                filcc_cell(cell, fab, dcomp, numcomp, domain, bcr_p, orig_comp);
                 f_user(cell, fab, dcomp, numcomp, geomdata, time,
                        bcr_p, 0, orig_comp);
             });
