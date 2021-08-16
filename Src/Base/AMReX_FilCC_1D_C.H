@@ -13,7 +13,7 @@ inline
 void
 filcc_cell (const IntVect& iv, Array4<Real> const& q,
             const int dcomp, const int numcomp,
-            Box const& domain_box, const BCRec* bcr, 
+            Box const& domain_box, const BCRec* bcr,
             const int bcomp) noexcept
 {
     const int i = iv[0];
