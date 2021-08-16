@@ -20,7 +20,7 @@ set(_sources Adv_F.H  Adv_F_old.H  AmrLevelAdv.cpp  AmrLevelAdv.H  LevelBldAdv.c
 list(APPEND _sources Src_${AMReX_SPACEDIM}d/Adv_${AMReX_SPACEDIM}d.f90 Src_${AMReX_SPACEDIM}d/compute_flux_${AMReX_SPACEDIM}d.f90
    Src_${AMReX_SPACEDIM}d/slope_${AMReX_SPACEDIM}d.f90 )
 
-list(APPEND _sources Src_nd/Adv_nd.f90  Src_nd/Tagging_nd.f90  Src_nd/tagging_params.f90)
+list(APPEND _sources Src_nd/Adv_nd.f90  Src_nd/Tagging_nd.f90  Src_nd/tagging_params.f90 Src_nd/Tagging_params.cpp)
 
 list(TRANSFORM _sources PREPEND Source/)
 
