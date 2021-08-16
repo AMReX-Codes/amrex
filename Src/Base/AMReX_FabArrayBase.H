@@ -142,6 +142,9 @@ public:
     IntVect nGrowFilled () const noexcept { return n_filled; }
     void setNGrowFilled (IntVect const& ng) noexcept { n_filled = ng; }
 
+    //! Is this a good candidate for kernel fusing?
+    bool isFusingCandidate () const noexcept;
+
     //
     struct CacheStats
     {
