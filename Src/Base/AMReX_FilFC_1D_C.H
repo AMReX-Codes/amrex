@@ -18,6 +18,7 @@ filfc_face (const IntVect& iv, Array4<Real> const& q,
 {
     const int i = iv[0];
 
+    // Domain box is indexed according to the face currently treating
     const auto& domain_lo = domain_box.loVect();
     const auto& domain_hi = domain_box.hiVect();
     const int ilo = domain_lo[0];
@@ -29,7 +30,14 @@ filfc_face (const IntVect& iv, Array4<Real> const& q,
     {
         const BCRec& bc = bcr[bcomp+n-dcomp];
 
-        if (i < ilo)
+        if (i == ilo)
+        {
+            // Enforce reflect_odd on the domain face
+            if (bc.lo(0) == BCType::reflect_odd) {
+                q(i,0,0,n) = 0.0;
+            }
+        }
+        else if (i < ilo)
         {
             switch (bc.lo(0)) {
             case (BCType::foextrap):
@@ -60,6 +68,13 @@ filfc_face (const IntVect& iv, Array4<Real> const& q,
                 q(i,0,0,n) = -q(2*ilo-i,0,0,n);
                 break;
             }
+            }
+        }
+        else if (i == ihi)
+        {
+            // Enforce reflect_odd on the domain face
+            if (bc.hi(0) == BCType::reflect_odd) {
+                q(i,0,0,n) = 0.0;
             }
         }
         else if (i > ihi)

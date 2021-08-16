@@ -19,6 +19,7 @@ filfc_face (const IntVect& iv, Array4<Real> const& q,
     const int i = iv[0];
     const int j = iv[1];
 
+    // Domain box is indexed according to the face currently treating
     const IndexType &idxType = domain_box.ixType();
     const auto& domain_lo = domain_box.loVect();
     const auto& domain_hi = domain_box.hiVect();
@@ -31,7 +32,15 @@ filfc_face (const IntVect& iv, Array4<Real> const& q,
     {
         const BCRec& bc = bcr[bcomp+n-dcomp];
 
-        if (i < ilo)
+        if (i == ilo)
+        {
+            // Enforce reflect_odd on the x domain face
+            if ((bc.lo(0) == BCType::reflect_odd) &&
+                (idxType.nodeCentered(0)) ) {
+                q(i,j,0,n) = 0.0;
+            }
+        }
+        else if (i < ilo)
         {
             switch (bc.lo(0)) {
             case (BCType::foextrap):
@@ -65,6 +74,14 @@ filfc_face (const IntVect& iv, Array4<Real> const& q,
                                                        : -q(2*ilo-i-1,j,0,n);
                 break;
             }
+            }
+        }
+        else if (i == ihi)
+        {
+            // Enforce reflect_odd on the x domain face
+            if ((bc.hi(0) == BCType::reflect_odd) &&
+                (idxType.nodeCentered(0)) ) {
+                q(i,j,0,n) = 0.0;
             }
         }
         else if (i > ihi)
@@ -104,7 +121,15 @@ filfc_face (const IntVect& iv, Array4<Real> const& q,
             }
         }
 
-        if (j < jlo)
+        if (j == jlo)
+        {
+            // Enforce reflect_odd on the y domain face
+            if ((bc.lo(1) == BCType::reflect_odd) &&
+                (idxType.nodeCentered(1)) ) {
+                q(i,j,0,n) = 0.0;
+            }
+        }
+        else if (j < jlo)
         {
             switch (bc.lo(1)) {
             case (BCType::foextrap):
@@ -138,6 +163,14 @@ filfc_face (const IntVect& iv, Array4<Real> const& q,
                                                        : -q(i,2*jlo-j-1,0,n);
                 break;
             }
+            }
+        }
+        else if (j == jhi)
+        {
+            // Enforce reflect_odd on the y domain face
+            if ((bc.hi(1) == BCType::reflect_odd) &&
+                (idxType.nodeCentered(1)) ) {
+                q(i,j,0,n) = 0.0;
             }
         }
         else if (j > jhi)
