@@ -31,6 +31,14 @@ AmrLevelAdv::get_tagging_params()
     amrex::Vector<amrex::Real> phigrad_in(max_phigrad_lev);
     pp.queryarr("phierr",  phierr_in);
     pp.queryarr("phigrad", phigrad_in);
-    for (int i = 0; i < max_phierr_lev; ++i)   { phierr[i]  = phierr_in[i]; }
-    for (int i = 0; i < max_phigrad_lev; ++i)  { phigrad[i] = phigrad_in[i]; }
+    for (int i = 0; i < max_phierr_lev; ++i) {
+        if (phierr_in[i] != 0.0) {
+            phierr[i]  = phierr_in[i];
+        }
+    }
+    for (int i = 0; i < max_phigrad_lev; ++i) {
+        if (phigrad_in[i] != 0.0) {
+            phigrad[i] = phigrad_in[i];
+        }
+    }
 }
