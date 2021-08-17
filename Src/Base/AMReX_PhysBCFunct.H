@@ -201,11 +201,11 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
                                 const int orig_comp)
 {
     if (bx.ixType().cellCentered()) {
-        ccfcdoit(bx,dest,dcomp,numcomp,geom,time,bcr,bcomp,orig_comp, filcc_cell);
+        ccfcdoit(bx,dest,dcomp,numcomp,geom,time,bcr,bcomp,orig_comp, FilccCell{});
     } else if (bx.ixType().nodeCentered()) {
         nddoit(bx,dest,dcomp,numcomp,geom,time,bcr,bcomp,orig_comp);
     } else {
-        ccfcdoit(bx,dest,dcomp,numcomp,geom,time,bcr,bcomp,orig_comp, filfc_face);
+        ccfcdoit(bx,dest,dcomp,numcomp,geom,time,bcr,bcomp,orig_comp, FilfcFace{});
     }
 }
 
