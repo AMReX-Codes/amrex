@@ -19,7 +19,7 @@ struct FilccCell
         const int i = iv[0];
         const int j = iv[1];
         const int k = iv[2];
-    
+
         const auto& domain_lo = domain_box.loVect();
         const auto& domain_hi = domain_box.hiVect();
         const int ilo = domain_lo[0];
@@ -28,11 +28,11 @@ struct FilccCell
         const int ihi = domain_hi[0];
         const int jhi = domain_hi[1];
         const int khi = domain_hi[2];
-    
+
         for (int n = dcomp; n < numcomp+dcomp; ++n)
         {
             const BCRec& bc = bcr[bcomp+n-dcomp];
-    
+
             if (i < ilo)
             {
                 switch (bc.lo(0)) {
@@ -117,7 +117,7 @@ struct FilccCell
                 }
                 }
             }
-    
+
             if (j < jlo)
             {
                 switch (bc.lo(1)) {
@@ -202,7 +202,7 @@ struct FilccCell
                 }
                 }
             }
-    
+
             if (k < klo)
             {
                 switch (bc.lo(2)) {

@@ -19,7 +19,7 @@ struct FilfcFace
         const int i = iv[0];
         const int j = iv[1];
         const int k = iv[2];
-    
+
         // Domain box is indexed according to the face currently treating
         const IndexType &idxType = domain_box.ixType();
         const auto& domain_lo = domain_box.loVect();
@@ -30,11 +30,11 @@ struct FilfcFace
         const int ihi = domain_hi[0];
         const int jhi = domain_hi[1];
         const int khi = domain_hi[2];
-    
+
         for (int n = dcomp; n < numcomp+dcomp; ++n)
         {
             const BCRec& bc = bcr[bcomp+n-dcomp];
-    
+
             if (i == ilo)
             {
                 // Enforce reflect_odd on the x domain face
@@ -123,7 +123,7 @@ struct FilfcFace
                 }
                 }
             }
-    
+
             if (j == jlo)
             {
                 // Enforce reflect_odd on the y domain face
@@ -212,7 +212,7 @@ struct FilfcFace
                 }
                 }
             }
-    
+
             if (k == klo)
             {
                 // Enforce reflect_odd on the z domain face

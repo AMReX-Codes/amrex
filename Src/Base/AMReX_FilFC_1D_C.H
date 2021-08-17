@@ -17,7 +17,7 @@ struct FilfcFace
                      const int bcomp) const noexcept
     {
         const int i = iv[0];
-    
+
         // Domain box is indexed according to the face currently treating
         const auto& domain_lo = domain_box.loVect();
         const auto& domain_hi = domain_box.hiVect();
@@ -25,11 +25,11 @@ struct FilfcFace
         const int ihi = domain_hi[0];
         const int is = amrex::max(q.begin.x,ilo);
         const int ie = amrex::min(q.end.x-1,ihi);
-    
+
         for (int n = dcomp; n < numcomp+dcomp; ++n)
         {
             const BCRec& bc = bcr[bcomp+n-dcomp];
-    
+
             if (i == ilo)
             {
                 // Enforce reflect_odd on the domain face

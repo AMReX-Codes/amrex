@@ -17,18 +17,18 @@ struct FilccCell
                      const int bcomp) const noexcept
     {
         const int i = iv[0];
-    
+
         const auto& domain_lo = domain_box.loVect();
         const auto& domain_hi = domain_box.hiVect();
         const int ilo = domain_lo[0];
         const int ihi = domain_hi[0];
         const int is = amrex::max(q.begin.x,ilo);
         const int ie = amrex::min(q.end.x-1,ihi);
-    
+
         for (int n = dcomp; n < numcomp+dcomp; ++n)
         {
             const BCRec& bc = bcr[bcomp+n-dcomp];
-    
+
             if (i < ilo)
             {
                 switch (bc.lo(0)) {
