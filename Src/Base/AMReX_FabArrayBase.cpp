@@ -2484,6 +2484,30 @@ FabArrayBase::is_cell_centered () const noexcept
     return boxArray().ixType().cellCentered();
 }
 
+bool
+FabArrayBase::isFusingCandidate () const noexcept
+{
+#ifdef AMREX_USE_GPU
+    // This is fine tuned on MI100.
+    // For V100 and A100, it is not very sensitive to the choice here.
+    const int n = local_size();
+    if (n <= 1) {
+        return false;
+    } else if (n > 8) {
+        return true;
+    } else {
+        for (int i = 0; i < n; ++i) {
+            if (boxarray[indexArray[i]].numPts() <= Long(65*65*65)) {
+                return true;
+            }
+        }
+        return false;
+    }
+#else
+    return false;
+#endif
+}
+
 #ifdef AMREX_USE_GPU
 
 FabArrayBase::ParForInfo::ParForInfo (const FabArrayBase& fa, const IntVect& nghost, int nthreads)

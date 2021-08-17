@@ -194,8 +194,6 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
-        IntVect ng( 0);
-
         auto xarr_ma = in.const_arrays();
         auto yarr_ma = out.arrays();
         auto dmskarr_ma = dmsk.const_arrays();
@@ -203,7 +201,7 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
         if (m_coarsening_strategy == CoarseningStrategy::RAP)
         {
             auto stenarr_ma = stencil->const_arrays();
-            experimental::ParallelFor(out, ng,[=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+            ParallelFor(out, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
             {
                 yarr_ma[box_no](i,j,k) = mlndlap_adotx_sten(i,j,k,xarr_ma[box_no],stenarr_ma[box_no],dmskarr_ma[box_no]);
             });
@@ -211,7 +209,7 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
         else if (sigma[0] == nullptr)
         {
             Real const_sigma = m_const_sigma;
-            experimental::ParallelFor(out, ng,[=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+            ParallelFor(out, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
             {
 #if (AMREX_SPACEDIM == 2)
                 yarr_ma[box_no](i,j,k) = mlndlap_adotx_c(i,j,k,xarr_ma[box_no],const_sigma,dmskarr_ma[box_no], is_rz, dxinvarr);
@@ -225,7 +223,7 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
             AMREX_D_TERM(MultiArray4<Real const> const& sxarr_ma = sigma[0]->const_arrays();,
                          MultiArray4<Real const> const& syarr_ma = sigma[1]->const_arrays();,
                          MultiArray4<Real const> const& szarr_ma = sigma[2]->const_arrays(););
-            experimental::ParallelFor(out, ng,[=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+            ParallelFor(out, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
             {
 #if (AMREX_SPACEDIM == 2)
                 yarr_ma[box_no](i,j,k) = mlndlap_adotx_ha(i,j,k,xarr_ma[box_no],AMREX_D_DECL(sxarr_ma[box_no],syarr_ma[box_no],szarr_ma[box_no]), dmskarr_ma[box_no],
@@ -239,7 +237,7 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
         else
         {
             auto sarr_ma = sigma[0]->const_arrays();
-            experimental::ParallelFor(out, ng,[=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+            ParallelFor(out, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
             {
 #if (AMREX_SPACEDIM == 2)
                 yarr_ma[box_no](i,j,k) = mlndlap_adotx_aa(i,j,k,xarr_ma[box_no],sarr_ma[box_no],dmskarr_ma[box_no], is_rz, dxinvarr);
@@ -340,7 +338,6 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        IntVect ng(0);
         constexpr int nsweeps = 4;
 
         auto solarr_ma = sol.arrays();
@@ -351,7 +348,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
             auto starr_ma = stencil->const_arrays();
             for (int ns = 0; ns < nsweeps; ++ns)
             {
-                experimental::ParallelFor(sol, ng, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
                     Real Ax = mlndlap_adotx_sten(i,j,k,solarr_ma[box_no],starr_ma[box_no],dmskarr_ma[box_no]);
                     mlndlap_jacobi_sten(i,j,k,solarr_ma[box_no],Ax,rhsarr_ma[box_no],starr_ma[box_no],dmskarr_ma[box_no]);
@@ -363,7 +360,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
             for (int ns = 0; ns < nsweeps; ++ns)
             {
                 Real const_sigma = m_const_sigma;
-                experimental::ParallelFor(sol, ng, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
                     Real Ax = mlndlap_adotx_c(i,j,k,solarr_ma[box_no],const_sigma,dmskarr_ma[box_no],
 #if (AMREX_SPACEDIM == 2)
@@ -382,7 +379,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                          MultiArray4<Real const> const& szarr_ma = sigma[2]->const_arrays(););
             for (int ns = 0; ns < nsweeps; ++ns)
             {
-                experimental::ParallelFor(sol, ng, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
                     Real Ax = mlndlap_adotx_ha(i,j,k,solarr_ma[box_no],AMREX_D_DECL(sxarr_ma[box_no],syarr_ma[box_no],szarr_ma[box_no]), dmskarr_ma[box_no],
 #if (AMREX_SPACEDIM == 2)
@@ -399,7 +396,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
             auto sarr_ma = sigma[0]->const_arrays();
             for (int ns = 0; ns < nsweeps; ++ns)
             {
-                experimental::ParallelFor(sol, ng, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
                     Real Ax = mlndlap_adotx_aa(i,j,k,solarr_ma[box_no],sarr_ma[box_no],dmskarr_ma[box_no],
 #if (AMREX_SPACEDIM == 2)
