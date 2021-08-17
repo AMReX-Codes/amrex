@@ -12,12 +12,12 @@ namespace detail {
 
 template <typename MF, typename F>
 std::enable_if_t<IsFabArray<MF>::value>
-ParallelFor (MF const& mf, IntVect const& nghost, IntVect const& ts, F&& f)
+ParallelFor (MF const& mf, IntVect const& nghost, IntVect const& ts, bool dynamic, F&& f)
 {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(mf,MFItInfo().EnableTiling(ts)); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(mf,MFItInfo().EnableTiling(ts).SetDynamic(dynamic)); mfi.isValid(); ++mfi) {
         Box const& bx = mfi.growntilebox(nghost);
         int const lidx = mfi.LocalIndex();
         const auto lo = amrex::lbound(bx);
@@ -35,12 +35,12 @@ ParallelFor (MF const& mf, IntVect const& nghost, IntVect const& ts, F&& f)
 
 template <typename MF, typename F>
 std::enable_if_t<IsFabArray<MF>::value>
-ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const& ts, F&& f)
+ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const& ts, bool dynamic, F&& f)
 {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(mf,MFItInfo().EnableTiling(ts)); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(mf,MFItInfo().EnableTiling(ts).SetDynamic(dynamic)); mfi.isValid(); ++mfi) {
         Box const& bx = mfi.growntilebox(nghost);
         int const lidx = mfi.LocalIndex();
         const auto lo = amrex::lbound(bx);
