@@ -70,13 +70,14 @@ jobs:
         export PATH=/tmp/my-amrex/bin:$PATH
         which fcompare
 
-        ctest --output-on-failure -E CNS
+        ctest --output-on-failure
 
   # Build libamrex and all tests
   tests_build:
     name: GNU@7.5 C++14 Debug Fortran [tests]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1"}
+      # It's too slow with -O0
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -94,7 +95,7 @@ jobs:
             -DAMReX_PARTICLES=ON
         make -j 2
 
-        ctest --output-on-failure -E "(CNS|Particles_GhostsAndVirtuals)"
+        ctest --output-on-failure -E Particles_GhostsAndVirtuals
 
   test_sensei:
     name: SENSEI Adaptor [test]
@@ -140,10 +141,14 @@ jobs:
         mkdir build
         cd build
         cmake ..                        \
-            -DCMAKE_BUILD_TYPE=Debug    \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_ASSERTIONS=ON       \
+            -DAMReX_TESTING=ON          \
             -DAMReX_EB=OFF              \
             -DAMReX_ENABLE_TESTS=ON     \
+            -DAMReX_BOUND_CHECK=ON      \
+            -DAMReX_FPE=ON              \
             -DAMReX_FORTRAN=ON          \
             -DAMReX_OMP=ON              \
             -DAMReX_PARTICLES=ON        \
@@ -183,8 +188,7 @@ jobs:
             -DCMAKE_Fortran_COMPILER=$(which gfortran)
         make -j 2
 
-# TODO: Lots of failing RT tests, invalid particles, etc.
-#        ctest --output-on-failure -E CNS
+        ctest --output-on-failure -E Particles
 
   # Build libamrex and all tests w/o MPI
   tests-nonmpi:
@@ -200,8 +204,12 @@ jobs:
         mkdir build
         cd build
         cmake ..                        \
-            -DCMAKE_BUILD_TYPE=Debug    \
+            -DCMAKE_BUILD_TYPE=Release  \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_ASSERTIONS=ON       \
+            -DAMReX_TESTING=ON          \
+            -DAMReX_BOUND_CHECK=ON      \
+            -DAMReX_FPE=ON              \
             -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
@@ -209,7 +217,7 @@ jobs:
             -DAMReX_PARTICLES=ON
         make -j 2
 
-        ctest --output-on-failure -E "(CNS|Particles_GhostsAndVirtuals)"
+        ctest --output-on-failure -E Particles_GhostsAndVirtuals
 
   # Build libamrex and all tests
   tests-nofortran:
@@ -225,8 +233,12 @@ jobs:
         mkdir build
         cd build
         cmake ..                        \
-            -DCMAKE_BUILD_TYPE=Debug    \
+            -DCMAKE_BUILD_TYPE=RelWithDebINfo \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_ASSERTIONS=ON       \
+            -DAMReX_TESTING=ON          \
+            -DAMReX_BOUND_CHECK=ON      \
+            -DAMReX_FPE=ON              \
             -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=OFF         \
@@ -234,7 +246,7 @@ jobs:
             -DAMReX_FORTRAN=OFF
         make -j 2
 
-        ctest --output-on-failure -E "(CNS|Particles_GhostsAndVirtuals)"
+        ctest --output-on-failure -E Particles_GhostsAndVirtuals
 
   # Build 1D libamrex with configure
   configure-1d:
@@ -341,4 +353,4 @@ jobs:
     - name: Run tests
       run: |
         cd build
-        ctest --output-on-failure -E CNS
+        ctest --output-on-failure
