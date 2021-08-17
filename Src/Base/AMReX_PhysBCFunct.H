@@ -344,8 +344,7 @@ GpuBndryFuncFab<F>::ccfcdoit (Box const& bx, FArrayBox& dest,
     const IntVect& len = bx.length();
 
     IndexType idxType = bx.ixType();
-    Box const& domain = (idxType.cellCentered()) ? amrex::convert(geom.Domain(),idxType)
-                                                 : geom.Domain();
+    Box const& domain = amrex::convert(geom.Domain(),idxType);
     Box gdomain = domain;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (geom.isPeriodic(idim)) {
