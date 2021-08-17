@@ -26,7 +26,7 @@ jobs:
         cmake --build build --parallel 2
 
         cd build
-        ctest --output-on-failure -E Particles_GhostsAndVirtuals
+        ctest --output-on-failure
         cd ..
 
   # Build libamrex and all tests
@@ -53,4 +53,4 @@ jobs:
         cmake --build build --target install
 
         cd build
-        ctest --output-on-failure -E Particles_GhostsAndVirtuals
+        ctest --output-on-failure
