@@ -5,7 +5,7 @@
 
 ## License
 
-AMReX Copyright (c) 2017-2021, The Regents of the University of California,
+AMReX Copyright (c) 2017, The Regents of the University of California,
 through Lawrence Berkeley National Laboratory and the Alliance for
 Sustainable Energy, LLC., through National Renewable Energy Laboratory
 (subject to receipt of any required approvals from the U.S. Dept. of
