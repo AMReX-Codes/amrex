@@ -2,6 +2,10 @@ name: cuda
 
 on: [push, pull_request]
 
+concurrency:
+  group: ${{ github.head_ref }}-cuda
+  cancel-in-progress: true
+
 jobs:
   # Build libamrex and all tests with CUDA 9.2
   tests-cuda9:

@@ -2,6 +2,10 @@ name: hip
 
 on: [push, pull_request]
 
+concurrency:
+  group: ${{ github.head_ref }}-hip
+  cancel-in-progress: true
+
 jobs:
   # MPI_C is broken since HIP 4.1
   # https://gitlab.kitware.com/cmake/cmake/-/issues/21968
@@ -44,6 +48,29 @@ jobs:
             -DCMAKE_CXX_COMPILER=$(which clang++)         \
             -DCMAKE_CXX_STANDARD=17
         cmake --build build_nofortran -j 2
+
+  tests-hip-wrapper:
+    name: HIP ROCm GFortran@9.3 C++17 [tests-hipcc]
+    runs-on: ubuntu-20.04
+    # Have to have -Wno-deprecated-declarations due to deprecated atomicAddNoRet
+    # Have to have -Wno-gnu-zero-variadic-macro-arguments to avoid
+    #    amrex/Src/Base/AMReX_GpuLaunchGlobal.H:15:5: error: must specify at least one argument for '...' parameter of variadic macro [-Werror,-Wgnu-zero-variadic-macro-arguments]
+    #        __launch_bounds__(amrex_launch_bounds_max_threads)
+    #        ^
+    #    /opt/rocm-4.1.1/hip/include/hip/hcc_detail/hip_runtime.h:178:71: note: expanded from macro '__launch_bounds__'
+    #        select_impl_(__VA_ARGS__, launch_bounds_impl1, launch_bounds_impl0)(__VA_ARGS__)
+    #                                                                          ^
+    #    /opt/rocm-4.1.1/hip/include/hip/hcc_detail/hip_runtime.h:176:9: note: macro 'select_impl_' defined here
+    #    #define select_impl_(_1, _2, impl_, ...) impl_
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wno-deprecated-declarations -Wno-gnu-zero-variadic-macro-arguments -Wno-pass-failed"}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_hip.sh
+    - name: Build & Install
+      run: |
+        source /etc/profile.d/rocm.sh
+        hipcc --version
         cmake -S . -B build_full_legacywrapper            \
             -DCMAKE_VERBOSE_MAKEFILE=ON                   \
             -DAMReX_EB=OFF                                \

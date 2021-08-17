@@ -223,8 +223,9 @@ needed to do this happens automatically.
 Application codes will likely want to create their own derived
 ParticleContainer class that specializes the template parameters and adds
 additional functionality, like setting the initial conditions, moving the
-particles, etc. See the ``amrex/Tutorials/Particles`` for examples of this.
+particles, etc. See the `particle tutorials`_ for examples of this.
 
+.. _`particle tutorials`: https://amrex-codes.github.io/amrex/tutorials_html/Particles_Tutorial.html
 
 .. _sec:Particles:Initializing:
 
@@ -496,8 +497,9 @@ associated with them. Note that we call :cpp:`SumBoundary` instead of
 the ghost cells surrounding each Fab into the corresponding valid cells.
 
 For a complete example of an electrostatic PIC calculation that includes static
-mesh refinement, please see ``amrex/Tutorials/Particles/ElectrostaticPIC``.
+mesh refinement, please see the `Electrostatic PIC tutorial`.
 
+.. _`Electrostatic PIC tutorial`: https://amrex-codes.github.io/amrex/tutorials_html/Particles_Tutorial.html#electrostaticpic
 
 .. _sec:Particles:ShortRange:
 
@@ -569,9 +571,11 @@ and neighbor particles into a Fortran subroutine, as follows:
 
 Alternatively, one can avoid doing a direct :math:`N^2` summation over the
 particles on a tile by binning the particles by cell and building a neighbor
-list. A tutorial that demonstrates this process is available at
-``amrex/Tutorials/Particles/NeighborList``. The data structure used to represent
+list. A tutorial that demonstrates this process is
+`Neighbor List`_. The data structure used to represent
 the neighbor lists is illustrated in :numref:`fig:particles:neighbor_list`.
+
+.. _`Neighbor List`: https://amrex-codes.github.io/amrex/tutorials_html/Particles_Tutorial.html#neighborlist
 
 .. raw:: latex
 
@@ -598,7 +602,7 @@ This array can then be used to compute the forces on all the particles in one
 scan. Users can define their own :cpp:`NeighborParticleContainer` subclasses
 that have their own collision criteria by overloading the virtual
 :cpp:`check_pair` function. For an example of this in action, please see the
-:cpp:`NeighborList` Tutorial.
+`Neighbor List`_ Tutorial.
 
 
 .. _sec:Particles:IO:
@@ -701,4 +705,6 @@ running on GPU platforms like Summit. We recommend leaving it off.
 
 .. [3]
    Note that for the extra particle components, which component refers to which
-   variable is an application-specific convention - the particles have 4 extra real comps, but which one is "mass" is up to the user. We suggest using an :cpp:`enum` to keep these indices straight; please see ``amrex/Tutorials/Particles/ElectrostaticPIC/ElectrosticParticleContainer.H`` for an example of this.
+   variable is an application-specific convention - the particles have 4 extra real comps, but which one is "mass" is up
+   to the user. We suggest using an :cpp:`enum` to keep these indices straight; please
+   see ``amrex/Tutorials/Particles/ElectrostaticPIC/ElectrosticParticleContainer.H`` for an example of this.
