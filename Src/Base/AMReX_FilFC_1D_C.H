@@ -23,8 +23,6 @@ struct FilfcFace
         const auto& domain_hi = domain_box.hiVect();
         const int ilo = domain_lo[0];
         const int ihi = domain_hi[0];
-        const int is = amrex::max(q.begin.x,ilo);
-        const int ie = amrex::min(q.end.x-1,ihi);
 
         for (int n = dcomp; n < numcomp+dcomp; ++n)
         {
