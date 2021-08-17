@@ -2,6 +2,10 @@ name: hip
 
 on: [push, pull_request]
 
+concurrency:
+  group: ${{ github.head_ref }}-hip
+  cancel-in-progress: true
+
 jobs:
   # MPI_C is broken since HIP 4.1
   # https://gitlab.kitware.com/cmake/cmake/-/issues/21968

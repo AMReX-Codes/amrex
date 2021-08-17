@@ -2,6 +2,10 @@ name: intel
 
 on: [push, pull_request]
 
+concurrency:
+  group: ${{ github.head_ref }}-intel
+  cancel-in-progress: true
+
 jobs:
   tests-dpcpp:
     name: DPCPP GFortran@7.5 C++17 [tests]
