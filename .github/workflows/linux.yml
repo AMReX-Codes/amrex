@@ -6,6 +6,10 @@ name: linux
 
 on: [push, pull_request]
 
+concurrency:
+  group: ${{ github.head_ref }}-linux
+  cancel-in-progress: true
+
 jobs:
   # Build and install libamrex as AMReX CMake project
   # Note: this is an intentional "minimal" build that does not enable (many) options

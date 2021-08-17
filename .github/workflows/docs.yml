@@ -1,5 +1,11 @@
 name: Build and Deploy
+
 on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.head_ref }}-docs
+  cancel-in-progress: true
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
