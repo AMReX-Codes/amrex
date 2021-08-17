@@ -20,6 +20,9 @@ int      AmrLevelAdv::NUM_GROW        = 3;  // number of ghost cells
 ProbParm* AmrLevelAdv::h_prob_parm = nullptr;
 ProbParm* AmrLevelAdv::d_prob_parm = nullptr;
 
+Vector<Real> AmrLevelAdv::phierr;
+Vector<Real> AmrLevelAdv::phigrad;
+
 #ifdef AMREX_PARTICLES
 std::unique_ptr<AmrTracerParticleContainer> AmrLevelAdv::TracerPC =  nullptr;
 int AmrLevelAdv::do_tracers                       =  0;
@@ -149,10 +152,6 @@ AmrLevelAdv::variableCleanUp ()
 #ifdef AMREX_PARTICLES
     TracerPC.reset();
 #endif
-
-    // Free arrays containing error thresholds
-    free(phierr);
-    free(phigrad);
 
     // Delete structs containing problem-specific parameters
     delete h_prob_parm;

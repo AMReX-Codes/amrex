@@ -179,8 +179,8 @@ public:
     // Variables for error tagging
     static int max_phierr_lev;
     static int max_phigrad_lev;
-    static amrex::Real* phierr;
-    static amrex::Real* phigrad;
+    static amrex::Vector<amrex::Real> phierr;
+    static amrex::Vector<amrex::Real> phigrad;
 
 #if !defined(AMREX_USE_CUDA)
 protected:
