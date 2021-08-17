@@ -95,7 +95,7 @@ jobs:
             -DAMReX_PARTICLES=ON
         make -j 2
 
-        ctest --output-on-failure -E Particles_GhostsAndVirtuals
+        ctest --output-on-failure
 
   test_sensei:
     name: SENSEI Adaptor [test]
@@ -158,7 +158,7 @@ jobs:
             -DCMAKE_Fortran_COMPILER=$(which gfortran-10)
         make -j 2
 
-        ctest --output-on-failure -E Particles_GhostsAndVirtuals
+        ctest --output-on-failure
 
   tests_clang:
     name: Clang@6.0 C++14 SP Particles DP Mesh Debug [tests]
@@ -217,7 +217,7 @@ jobs:
             -DAMReX_PARTICLES=ON
         make -j 2
 
-        ctest --output-on-failure -E Particles_GhostsAndVirtuals
+        ctest --output-on-failure
 
   # Build libamrex and all tests
   tests-nofortran:
@@ -246,7 +246,7 @@ jobs:
             -DAMReX_FORTRAN=OFF
         make -j 2
 
-        ctest --output-on-failure -E Particles_GhostsAndVirtuals
+        ctest --output-on-failure
 
   # Build 1D libamrex with configure
   configure-1d:
