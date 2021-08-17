@@ -39,7 +39,7 @@ MFPCInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf, int fco
     if (Gpu::inLaunchRegion()) {
         auto const& crse = crsemf.const_arrays();
         auto const& fine = finemf.arrays();
-        experimental::ParallelFor(finemf, ng, nc,
+        ParallelFor(finemf, ng, nc,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
         {
             if (dest_domain.contains(i,j,k)) {
@@ -111,14 +111,14 @@ MFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf
             Real drf = fgeom.CellSize(0);
             Real rlo = fgeom.Offset(0);
             if (do_linear_limiting) {
-                experimental::ParallelFor(crsemf, IntVect(-1),
+                ParallelFor(crsemf, IntVect(-1),
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int, int) noexcept
                 {
                     mf_cell_cons_lin_interp_llslope(i,0,0, tmp[box_no], crse[box_no], ccomp, nc,
                                                     cdomain, pbc);
                 });
             } else {
-                experimental::ParallelFor(crsemf, IntVect(-1), nc,
+                ParallelFor(crsemf, IntVect(-1), nc,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int, int, int n) noexcept
                 {
                     mf_cell_cons_lin_interp_mcslope_sph(i, n, tmp[box_no], crse[box_no], ccomp, nc,
@@ -126,7 +126,7 @@ MFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf
                 });
             }
 
-            experimental::ParallelFor(finemf, ng, nc,
+            ParallelFor(finemf, ng, nc,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int, int, int n) noexcept
             {
                 if (dest_domain.contains(i,0,0)) {
@@ -140,14 +140,14 @@ MFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf
             Real drf = fgeom.CellSize(0);
             Real rlo = fgeom.Offset(0);
             if (do_linear_limiting) {
-                experimental::ParallelFor(crsemf, IntVect(-1),
+                ParallelFor(crsemf, IntVect(-1),
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int) noexcept
                 {
                     mf_cell_cons_lin_interp_llslope(i,j,0, tmp[box_no], crse[box_no], ccomp, nc,
                                                     cdomain, pbc);
                 });
             } else {
-                experimental::ParallelFor(crsemf, IntVect(-1), nc,
+                ParallelFor(crsemf, IntVect(-1), nc,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int, int n) noexcept
                 {
                     mf_cell_cons_lin_interp_mcslope_rz(i,j,n, tmp[box_no], crse[box_no], ccomp, nc,
@@ -155,7 +155,7 @@ MFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf
                 });
             }
 
-            experimental::ParallelFor(finemf, ng, nc,
+            ParallelFor(finemf, ng, nc,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int, int n) noexcept
             {
                 if (dest_domain.contains(i,j,0)) {
@@ -167,14 +167,14 @@ MFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf
 #endif
         {
             if (do_linear_limiting) {
-                experimental::ParallelFor(crsemf, IntVect(-1),
+                ParallelFor(crsemf, IntVect(-1),
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
                     mf_cell_cons_lin_interp_llslope(i,j,k, tmp[box_no], crse[box_no], ccomp, nc,
                                                     cdomain, pbc);
                 });
             } else {
-                experimental::ParallelFor(crsemf, IntVect(-1), nc,
+                ParallelFor(crsemf, IntVect(-1), nc,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
                 {
                     mf_cell_cons_lin_interp_mcslope(i,j,k,n, tmp[box_no], crse[box_no], ccomp, nc,
@@ -182,7 +182,7 @@ MFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf
                 });
             }
 
-            experimental::ParallelFor(finemf, ng, nc,
+            ParallelFor(finemf, ng, nc,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
                 if (dest_domain.contains(i,j,k)) {
@@ -335,7 +335,7 @@ MFCellBilinear::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf, int
     if (Gpu::inLaunchRegion()) {
         auto const& crse = crsemf.const_arrays();
         auto const& fine = finemf.arrays();
-        experimental::ParallelFor(finemf, ng, nc,
+        ParallelFor(finemf, ng, nc,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
         {
             if (dest_domain.contains(i,j,k)) {
@@ -390,7 +390,7 @@ MFNodeBilinear::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf, int
     if (Gpu::inLaunchRegion()) {
         auto const& crse = crsemf.const_arrays();
         auto const& fine = finemf.arrays();
-        experimental::ParallelFor(finemf, ng, nc,
+        ParallelFor(finemf, ng, nc,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
         {
             if (dest_domain.contains(i,j,k)) {

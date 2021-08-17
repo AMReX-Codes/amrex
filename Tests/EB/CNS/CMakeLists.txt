@@ -2,14 +2,6 @@ if (NOT (AMReX_SPACEDIM EQUAL 3) OR NOT CMAKE_Fortran_COMPILER_LOADED)
    return()
 endif ()
 
-#
-# This directory contains 4 tutorials
-#
-#  * Combustor
-#  * Pulse
-#  * ShockRef
-#  * Sod
-#
 
 set(_sources main.cpp CNS_advance.cpp CNSBld.cpp CNS.cpp CNS_F.H CNS.H CNS_init_eb2.cpp CNS_io.cpp
    CNS_setup.cpp )
@@ -33,65 +25,13 @@ unset(_fortran_sources)
 unset(_hydro_sources)
 
 
-
-##########################################################################################
-#
-# Combustor tutorial
-#
-##########################################################################################
-set(_combustor_sources Exec/Combustor/cns_prob.F90 ${_sources})
-set(_input_files Exec/Combustor/inputs Exec/Combustor/inputs.regt)
-
-setup_test(_combustor_sources _input_files
-   HAS_FORTRAN_MODULES
-   BASE_NAME CNS_Combustor
-   RUNTIME_SUBDIR Combustor)
-
-unset(_combustor_sources)
-
-
-
-##########################################################################################
-#
-# Pulse tutorial
-#
-##########################################################################################
-set(_pulse_sources Exec/Pulse/cns_prob.F90 ${_sources})
-set(_input_files Exec/Pulse/inputs Exec/Pulse/inputs.regt)
-
-setup_test(_pulse_sources _input_files
-   HAS_FORTRAN_MODULES
-   BASE_NAME CNS_Pulse
-   RUNTIME_SUBDIR Pulse)
-
-unset(_pulse_sources)
-
-
-
-##########################################################################################
-#
-# ShockRef tutorial
-#
-##########################################################################################
-set(_shockref_sources Exec/ShockRef/cns_prob.F90 ${_sources})
-set(_input_files Exec/ShockRef/inputs Exec/ShockRef/inputs.regt Exec/ShockRef/inputs.amr)
-
-setup_test(_shockref_sources _input_files
-   HAS_FORTRAN_MODULES
-   BASE_NAME CNS_ShockRef
-   RUNTIME_SUBDIR ShockRef)
-
-unset(_shockref_sources)
-
-
-
 ##########################################################################################
 #
 # Sod tutorial
 #
 ##########################################################################################
 set(_sod_sources Exec/Sod/cns_prob.F90 ${_sources})
-set(_input_files Exec/Sod/inputs)
+set(_input_files Exec/Sod/inputs-ci)
 
 setup_test(_sod_sources _input_files
    HAS_FORTRAN_MODULES

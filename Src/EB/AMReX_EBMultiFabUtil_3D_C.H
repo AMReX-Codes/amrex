@@ -1,6 +1,7 @@
 #ifndef AMREX_EB_MULTIFAB_UTIL_3D_C_H_
 #define AMREX_EB_MULTIFAB_UTIL_3D_C_H_
 #include <AMReX_Config.H>
+#include <AMReX_REAL.H>
 
 namespace amrex {
 
@@ -253,10 +254,10 @@ void eb_compute_divergence (int i, int j, int k, int n, Array4<Real> const& divu
     {
         Real fxm = u(i,j,k,n);
         if (apx(i,j,k) != 0.0 && apx(i,j,k) != 1.0) {
-            int jj = j + static_cast<int>(amrex::Math::copysign(1.0, fcx(i,j,k,0)));
-            int kk = k + static_cast<int>(amrex::Math::copysign(1.0, fcx(i,j,k,1)));
-            Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? amrex::Math::abs(fcx(i,j,k,0)) : 0.0;
-            Real fracz = (ccm(i-1,j,kk) || ccm(i,j,kk)) ? amrex::Math::abs(fcx(i,j,k,1)) : 0.0;
+            int jj = j + static_cast<int>(amrex::Math::copysign(1.0_rt, fcx(i,j,k,0)));
+            int kk = k + static_cast<int>(amrex::Math::copysign(1.0_rt, fcx(i,j,k,1)));
+            Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? amrex::Math::abs(fcx(i,j,k,0)) : 0.0_rt;
+            Real fracz = (ccm(i-1,j,kk) || ccm(i,j,kk)) ? amrex::Math::abs(fcx(i,j,k,1)) : 0.0_rt;
             fxm = (1.0-fracy)*(1.0-fracz)*fxm
                 +      fracy *(1.0-fracz)*u(i,jj,k ,n)
                 +      fracz *(1.0-fracy)*u(i,j ,kk,n)
@@ -265,10 +266,10 @@ void eb_compute_divergence (int i, int j, int k, int n, Array4<Real> const& divu
 
         Real fxp = u(i+1,j,k,n);
         if (apx(i+1,j,k) != 0.0 && apx(i+1,j,k) != 1.0) {
-            int jj = j + static_cast<int>(amrex::Math::copysign(1.0,fcx(i+1,j,k,0)));
-            int kk = k + static_cast<int>(amrex::Math::copysign(1.0,fcx(i+1,j,k,1)));
-            Real fracy = (ccm(i,jj,k) || ccm(i+1,jj,k)) ? amrex::Math::abs(fcx(i+1,j,k,0)) : 0.0;
-            Real fracz = (ccm(i,j,kk) || ccm(i+1,j,kk)) ? amrex::Math::abs(fcx(i+1,j,k,1)) : 0.0;
+            int jj = j + static_cast<int>(amrex::Math::copysign(1.0_rt,fcx(i+1,j,k,0)));
+            int kk = k + static_cast<int>(amrex::Math::copysign(1.0_rt,fcx(i+1,j,k,1)));
+            Real fracy = (ccm(i,jj,k) || ccm(i+1,jj,k)) ? amrex::Math::abs(fcx(i+1,j,k,0)) : 0.0_rt;
+            Real fracz = (ccm(i,j,kk) || ccm(i+1,j,kk)) ? amrex::Math::abs(fcx(i+1,j,k,1)) : 0.0_rt;
             fxp = (1.0-fracy)*(1.0-fracz)*fxp
                 +      fracy *(1.0-fracz)*u(i+1,jj,k ,n)
                 +      fracz *(1.0-fracy)*u(i+1,j ,kk,n)
@@ -277,10 +278,10 @@ void eb_compute_divergence (int i, int j, int k, int n, Array4<Real> const& divu
 
         Real fym = v(i,j,k,n);
         if (apy(i,j,k) != 0.0 && apy(i,j,k) != 1.0) {
-            int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j,k,0)));
-            int kk = k + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j,k,1)));
-            Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? amrex::Math::abs(fcy(i,j,k,0)) : 0.0;
-            Real fracz = (ccm(i,j-1,kk) || ccm(i,j,kk)) ? amrex::Math::abs(fcy(i,j,k,1)) : 0.0;
+            int ii = i + static_cast<int>(amrex::Math::copysign(1.0_rt,fcy(i,j,k,0)));
+            int kk = k + static_cast<int>(amrex::Math::copysign(1.0_rt,fcy(i,j,k,1)));
+            Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? amrex::Math::abs(fcy(i,j,k,0)) : 0.0_rt;
+            Real fracz = (ccm(i,j-1,kk) || ccm(i,j,kk)) ? amrex::Math::abs(fcy(i,j,k,1)) : 0.0_rt;
             fym = (1.0-fracx)*(1.0-fracz)*fym
                 +      fracx *(1.0-fracz)*v(ii,j,k ,n)
                 +      fracz *(1.0-fracx)*v(i ,j,kk,n)
@@ -289,10 +290,10 @@ void eb_compute_divergence (int i, int j, int k, int n, Array4<Real> const& divu
 
         Real fyp = v(i,j+1,k,n);
         if (apy(i,j+1,k) != 0.0 && apy(i,j+1,k) != 1.0) {
-            int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j+1,k,0)));
-            int kk = k + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j+1,k,1)));
-            Real fracx = (ccm(ii,j,k) || ccm(ii,j+1,k)) ? amrex::Math::abs(fcy(i,j+1,k,0)) : 0.0;
-            Real fracz = (ccm(i,j,kk) || ccm(i,j+1,kk)) ? amrex::Math::abs(fcy(i,j+1,k,1)) : 0.0;
+            int ii = i + static_cast<int>(amrex::Math::copysign(1.0_rt,fcy(i,j+1,k,0)));
+            int kk = k + static_cast<int>(amrex::Math::copysign(1.0_rt,fcy(i,j+1,k,1)));
+            Real fracx = (ccm(ii,j,k) || ccm(ii,j+1,k)) ? amrex::Math::abs(fcy(i,j+1,k,0)) : 0.0_rt;
+            Real fracz = (ccm(i,j,kk) || ccm(i,j+1,kk)) ? amrex::Math::abs(fcy(i,j+1,k,1)) : 0.0_rt;
             fyp = (1.0-fracx)*(1.0-fracz)*fyp
                 +      fracx *(1.0-fracz)*v(ii,j+1,k ,n)
                 +      fracz *(1.0-fracx)*v(i ,j+1,kk,n)
@@ -301,10 +302,10 @@ void eb_compute_divergence (int i, int j, int k, int n, Array4<Real> const& divu
 
         Real fzm = w(i,j,k,n);
         if (apz(i,j,k) != 0.0 && apz(i,j,k) != 1.0) {
-            int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcz(i,j,k,0)));
-            int jj = j + static_cast<int>(amrex::Math::copysign(1.0,fcz(i,j,k,1)));
-            Real fracx = (ccm(ii,j,k-1) || ccm(ii,j,k)) ? amrex::Math::abs(fcz(i,j,k,0)) : 0.0;
-            Real fracy = (ccm(i,jj,k-1) || ccm(i,jj,k)) ? amrex::Math::abs(fcz(i,j,k,1)) : 0.0;
+            int ii = i + static_cast<int>(amrex::Math::copysign(1.0_rt,fcz(i,j,k,0)));
+            int jj = j + static_cast<int>(amrex::Math::copysign(1.0_rt,fcz(i,j,k,1)));
+            Real fracx = (ccm(ii,j,k-1) || ccm(ii,j,k)) ? amrex::Math::abs(fcz(i,j,k,0)) : 0.0_rt;
+            Real fracy = (ccm(i,jj,k-1) || ccm(i,jj,k)) ? amrex::Math::abs(fcz(i,j,k,1)) : 0.0_rt;
             fzm = (1.0-fracx)*(1.0-fracy)*fzm
                 +      fracx *(1.0-fracy)*w(ii,j ,k,n)
                 +      fracy *(1.0-fracx)*w(i ,jj,k,n)
@@ -313,10 +314,10 @@ void eb_compute_divergence (int i, int j, int k, int n, Array4<Real> const& divu
 
         Real fzp = w(i,j,k+1,n);
         if (apz(i,j,k+1) != 0.0 && apz(i,j,k+1) != 1.0) {
-            int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcz(i,j,k+1,0)));
-            int jj = j + static_cast<int>(amrex::Math::copysign(1.0,fcz(i,j,k+1,1)));
-            Real fracx = (ccm(ii,j,k) || ccm(ii,j,k+1)) ? amrex::Math::abs(fcz(i,j,k+1,0)) : 0.0;
-            Real fracy = (ccm(i,jj,k) || ccm(i,jj,k+1)) ? amrex::Math::abs(fcz(i,j,k+1,1)) : 0.0;
+            int ii = i + static_cast<int>(amrex::Math::copysign(1.0_rt,fcz(i,j,k+1,0)));
+            int jj = j + static_cast<int>(amrex::Math::copysign(1.0_rt,fcz(i,j,k+1,1)));
+            Real fracx = (ccm(ii,j,k) || ccm(ii,j,k+1)) ? amrex::Math::abs(fcz(i,j,k+1,0)) : 0.0_rt;
+            Real fracy = (ccm(i,jj,k) || ccm(i,jj,k+1)) ? amrex::Math::abs(fcz(i,j,k+1,1)) : 0.0_rt;
             fzp = (1.0-fracx)*(1.0-fracy)*fzp
                 +      fracx *(1.0-fracy)*w(ii,j ,k+1,n)
                 +      fracy *(1.0-fracx)*w(i ,jj,k+1,n)

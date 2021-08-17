@@ -569,6 +569,9 @@ ParallelFor (MF const& mf, IntVect const& ng, int ncomp, TileSize const& ts,
 }
 
 }
+
+using experimental::ParallelFor;
+
 }
 
 #endif
