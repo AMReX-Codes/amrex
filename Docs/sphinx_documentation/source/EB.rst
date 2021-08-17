@@ -484,13 +484,26 @@ as living at face centroids, modify the setBCoeffs command to be
 Tutorials
 =========
 
-``amrex/Tutorials/EB/CNS`` is an AMR code for solving compressible
+`EB/CNS`_ is an AMR code for solving compressible
 Navier-Stokes equations with the embedded boundary approach.
 
-``amrex/Tutorials/EB/Poisson`` is a single-level code that is a proxy for
+`EB/Poisson`_ is a single-level code that is a proxy for
 solving the electrostatic Poisson equation for a grounded sphere with a point
 charge inside.
 
-``amrex/Tutorials/EB/MacProj`` is a single-level code that computes a divergence-free
+`EB/MacProj`_ is a single-level code that computes a divergence-free
 flow field around a sphere.  A MAC projection is performed on an initial velocity
 field of (1,0,0).
+
+.. _`EB/CNS`: https://amrex-codes.github.io/amrex/tutorials_html/EB_Tutorial.html
+
+.. _`EB/Poisson`: https://amrex-codes.github.io/amrex/tutorials_html/EB_Tutorial.html
+
+.. _`EB/MacProj`: https://amrex-codes.github.io/amrex/tutorials_html/EB_Tutorial.html
+
+
+
+
+
+
+
