@@ -315,6 +315,10 @@ AmrLevelAdv::advance (Real time,
         for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
+            Box nbx[3];
+            nbx[0] = mfi.nodaltilebox(0);
+            nbx[1] = mfi.nodaltilebox(1);
+            nbx[2] = mfi.nodaltilebox(2);
 
             const FArrayBox& statein = Sborder[mfi];
             FArrayBox& stateout      =   S_new[mfi];
@@ -335,16 +339,35 @@ AmrLevelAdv::advance (Real time,
                 const Box& bxtmp = mfi.grownnodaltilebox(i, iteration);
                 Umac[i][mfi].copy<RunOn::Host>(uface[i], bxtmp);
             }
-            advect(&time, bx.loVect(), bx.hiVect(),
-                   BL_TO_FORTRAN_3D(statein),
-                   BL_TO_FORTRAN_3D(stateout),
-                   AMREX_D_DECL(BL_TO_FORTRAN_3D(uface[0]),
-                          BL_TO_FORTRAN_3D(uface[1]),
-                          BL_TO_FORTRAN_3D(uface[2])),
-                   AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]),
-                          BL_TO_FORTRAN_3D(flux[1]),
-                          BL_TO_FORTRAN_3D(flux[2])),
-                   dx, &dt);
+
+            AMREX_D_TERM(const FArrayBox& velx = uface[0];,
+                         const FArrayBox& vely = uface[1];,
+                         const FArrayBox& velz = uface[2]);
+
+            // CFL check.
+            AMREX_D_TERM(Real umax = velx.norm<RunOn::Device>(0);,
+                         Real vmax = vely.norm<RunOn::Device>(0);,
+                         Real wmax = velz.norm<RunOn::Device>(0));
+
+            if (AMREX_D_TERM(umax*dt > dx[0], ||
+                             vmax*dt > dx[1], ||
+                             wmax*dt > dx[2]))
+            {
+#if (AMREX_SPACEDIM > 2)
+                amrex::AllPrint() << "umax = " << umax << ", vmax = " << vmax << ", wmax = " << wmax
+                                  << ", dt = " << dt << " dx = " << dx[0] << " " << dx[1] << " " << dx[2] << std::endl;
+#else
+                amrex::AllPrint() << "umax = " << umax << ", vmax = " << vmax
+                                  << ", dt = " << dt << " dx = " << dx[0] << " " << dx[1] << std::endl;
+#endif
+                amrex::Abort("CFL violation. Use smaller adv.cfl.");
+            }
+
+            // Advect. See Adv.cpp for implementation.
+            advect(time, bx, nbx, statein, stateout,
+                   AMREX_D_DECL(velx,    vely,    velz),
+                   AMREX_D_DECL(flux[0], flux[1], flux[2]),
+                   dx, dt);
 
             if (do_reflux) {
                 for (int i = 0; i < BL_SPACEDIM ; i++)
@@ -352,6 +375,7 @@ AmrLevelAdv::advance (Real time,
             }
         }
     }
+
 
     if (do_reflux) {
         if (current) {

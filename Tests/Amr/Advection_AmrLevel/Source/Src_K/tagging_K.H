@@ -1,5 +1,5 @@
-#ifndef TAGGING_ND_K_H_
-#define TAGGING_ND_K_H_
+#ifndef TAGGING_K_H_
+#define TAGGING_K_H_
 
 #include <AMReX_Array4.H>
 #include <AMReX_Math.H>
@@ -45,4 +45,4 @@ grad_error (int i, int j, int k,
     }
 }
 
-#endif /* TAGGING_ND_K_H_ */
+#endif /* TAGGING_K_H_ */

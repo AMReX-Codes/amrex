@@ -41,6 +41,7 @@ extern "C"
                          const amrex_real* dx, const amrex_real* problo);
   */
 
+  /*
   void advect(const amrex_real* time, const int* lo, const int* hi,
               const BL_FORT_FAB_ARG_3D(statein),
               BL_FORT_FAB_ARG_3D(stateout),
@@ -51,6 +52,7 @@ extern "C"
                      BL_FORT_FAB_ARG_3D(fy),
                      BL_FORT_FAB_ARG_3D(fz)),
               const amrex_real* dx, const amrex_real* dt);
+  */
 
 #ifdef __cplusplus
 }

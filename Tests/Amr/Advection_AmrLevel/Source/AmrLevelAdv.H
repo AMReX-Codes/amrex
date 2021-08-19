@@ -15,6 +15,7 @@
 #include <omp.h>
 #endif
 
+// Problem-dependent struct. Defined under Exec directory.
 #include "Prob_Parm.H"
 
 enum StateType { Phi_Type = 0,
@@ -188,6 +189,19 @@ protected:
 
     static void read_params ();
     static void get_tagging_params ();
+    static void advect (const amrex::Real /*time*/,
+                        const amrex::Box& bx,
+                        amrex::Box* nbx,
+                        const amrex::FArrayBox& statein,
+                        amrex::FArrayBox& stateout,
+                        AMREX_D_DECL(const amrex::FArrayBox& vx,
+                                     const amrex::FArrayBox& vy,
+                                     const amrex::FArrayBox& vz),
+                        AMREX_D_DECL(amrex::FArrayBox& fx,
+                                     amrex::FArrayBox& fy,
+                                     amrex::FArrayBox& fz),
+                        const amrex::Real* dx,
+                        const amrex::Real dt);
 
     // inline functions implemented below
     AmrLevelAdv& getLevel (int lev);
