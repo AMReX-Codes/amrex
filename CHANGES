@@ -1,3 +1,76 @@
+# 21.08
+
+  -- Add AsyncVector. (#2197)
+
+  -- Make CreateVirtualParticles use GPU functions for aggregation_type=None
+     (#2195)
+
+  -- Change mask for ctr to ctroid interp (#2196)
+
+  -- Add OpenMP support to DenseBins::build (#2193)
+
+  -- Integration of experimental parfor into NodeLaplacian Fapply. (#2190)
+
+  -- Fix filter functions for callables that return bool. (#2192)
+
+  -- MFCellConsLinInterp (#2189)
+
+  -- Introduction of the experimental parfor into NodeLaplacian
+     interpolation (#2183)
+
+  -- Enable default construction for AmrParticleContainer and add
+     isDefined() method. (#2188) A Particle container is considered
+     "defined" if it has been given a set of grids, otherwise not.
+
+  -- Make CreateGhostParticles use GPU functions (#2185)
+
+  -- Add ROCMClang as an LLVM compiler to cmake (#2184)
+
+  -- Scale uniform random interval to account for gridbox length in
+     ParticleInit (#2179)
+
+  -- Optimization of ParallelFor for single box FabArray (#2176)
+
+  -- Add ns to gpu cns (#2177)
+
+  -- CI: IntelLLVM known to CMake (#2136)
+
+  -- Add default move constructors / assignment operators for other pc
+     types. (#2174)
+
+  -- Gradient in WarpX EB nodal solver (#2171)
+
+  -- Update MacProjector::project to check if m_umac is nullptr (#2166)
+
+  -- EB nodal solver (#2145) New EB nodal solver with Dirichlet EB.  This
+     uses a finite-difference stencil.  It will be used by WarpX's static
+     solver.
+
+  -- Workaround for a DPC++ reduction issue (#2165)
+     More reliable workaround for DPCPP reduction issue (#2167)
+
+  -- Add ParmParse::remove (#2160)
+
+  -- Remove MFGhostIter (#2162)
+
+  -- Fix typos with the help of codespell (#2163)
+
+  -- Parser Precision (#2154) Use double internally.  If the arguments are
+     all floats, the final result will be converted to float.
+
+  -- IParser: Integer Parser (#2158)
+
+  -- Disable `jn` in Parser on Windows (#2152)
+
+  -- Fix the size of the BC Vector in the multi-level version of
+     ParticleToMesh. (#2149)
+
+  -- Make ParticleToMesh and MeshToParticle support iMultifab. (#2137)
+
+  -- Fix crashes with Conduit Blueprint Code (#2144)
+
+  -- CMake: HIP Modernizing & RDC (#2031)
+
 # 21.07
 
   -- Parser: This can be used at runtime to evaluate math expressions given

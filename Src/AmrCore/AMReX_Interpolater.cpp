@@ -15,12 +15,10 @@
 namespace amrex {
 
 //
-// PCInterp, NodeBilinear, FaceLinear, and CellConservativeLinear are supported for all dimensions
-// on cpu and gpu.
+// PCInterp, NodeBilinear, FaceLinear, CellConservativeLinear, and
+// CellBilinear are supported for all dimensions on cpu and gpu.
 //
 // CellConsertiveProtected only works in 2D and 3D on cpu.
-//
-// CellBilinear works in 1D, 2D and 3D on cpu.
 //
 // CellQuadratic only works in 2D on cpu.
 //
@@ -37,9 +35,9 @@ FaceLinear                face_linear_interp;
 FaceDivFree               face_divfree_interp;
 CellConservativeLinear    lincc_interp;
 CellConservativeLinear    cell_cons_interp(0);
+CellBilinear              cell_bilinear_interp;
 
 #ifndef BL_NO_FORT
-CellBilinear              cell_bilinear_interp;
 CellQuadratic             quadratic_interp;
 CellConservativeProtected protected_interp;
 CellConservativeQuartic   quartic_interp;
@@ -104,26 +102,11 @@ NodeBilinear::interp (const FArrayBox&  crse,
 {
     BL_PROFILE("NodeBilinear::interp()");
 
-    bool run_on_gpu = (runon == RunOn::Gpu && Gpu::inLaunchRegion());
-
-    int num_slope  = ncomp*(AMREX_D_TERM(2,*2,*2)-1);
-    const Box cslope_bx = amrex::enclosedCells(CoarseBox(fine_region, ratio));
-    FArrayBox slopefab(cslope_bx, num_slope);
-    Elixir slopeeli;
-    if (run_on_gpu) slopeeli = slopefab.elixir();
-
     Array4<Real const> const& crsearr = crse.const_array();
     Array4<Real> const& finearr = fine.array();
-    Array4<Real> const& slopearr = slopefab.array();
-
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, cslope_bx, tbx,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
     {
-        amrex::nodebilin_slopes<Real>(tbx, slopearr, crsearr, crse_comp, ncomp, ratio);
-    });
-
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, fine_region, tbx,
-    {
-        amrex::nodebilin_interp<Real>(tbx, finearr, fine_comp, ncomp, slopearr, crsearr, crse_comp, ratio);
+        mf_nodebilin_interp(i,j,k,n, finearr, fine_comp, crsearr, crse_comp, ratio);
     });
 }
 
@@ -262,19 +245,16 @@ void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
 
 FaceLinear::~FaceLinear () {}
 
-#ifndef BL_NO_FORT
 CellBilinear::~CellBilinear () {}
 
 Box
-CellBilinear::CoarseBox (const Box& fine,
-                         int        ratio)
+CellBilinear::CoarseBox (const Box& fine, int ratio)
 {
-    return CoarseBox(fine, ratio*IntVect::TheUnitVector());
+    return CoarseBox(fine, IntVect(ratio));
 }
 
 Box
-CellBilinear::CoarseBox (const Box&     fine,
-                         const IntVect& ratio)
+CellBilinear::CoarseBox (const Box& fine, const IntVect& ratio)
 {
     const int* lo = fine.loVect();
     const int* hi = fine.hiVect();
@@ -283,22 +263,21 @@ CellBilinear::CoarseBox (const Box&     fine,
     const int* clo = crse.loVect();
     const int* chi = crse.hiVect();
 
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
-    {
-        int iratio = ratio[i];
-        int hrat   = iratio/2;
-        if (lo[i] <  clo[i]*ratio[i] + hrat)
+    for (int i = 0; i < AMREX_SPACEDIM; i++) {
+        if ((lo[i]-clo[i]*ratio[i])*2 < ratio[i]) {
             crse.growLo(i,1);
-        if (hi[i] >= chi[i]*ratio[i] + hrat)
+        }
+        if ((hi[i]-chi[i]*ratio[i])*2 >= ratio[i]) {
             crse.growHi(i,1);
+        }
     }
     return crse;
 }
 
 void
-CellBilinear::interp (const FArrayBox&  crse,
+CellBilinear::interp (const FArrayBox&  crsefab,
                       int               crse_comp,
-                      FArrayBox&        fine,
+                      FArrayBox&        finefab,
                       int               fine_comp,
                       int               ncomp,
                       const Box&        fine_region,
@@ -306,44 +285,20 @@ CellBilinear::interp (const FArrayBox&  crse,
                       const Geometry& /*crse_geom*/,
                       const Geometry& /*fine_geom*/,
                       Vector<BCRec> const& /*bcr*/,
-                      int               actual_comp,
-                      int               actual_state,
-                      RunOn             /*runon*/)
+                      int               /*actual_comp*/,
+                      int               /*actual_state*/,
+                      RunOn             runon)
 {
     BL_PROFILE("CellBilinear::interp()");
-    //
-    // Set up to call FORTRAN.
-    //
-    const int* clo = crse.box().loVect();
-    const int* chi = crse.box().hiVect();
-    const int* flo = fine.loVect();
-    const int* fhi = fine.hiVect();
-    const int* lo  = fine_region.loVect();
-    const int* hi  = fine_region.hiVect();
-    int num_slope  = AMREX_D_TERM(2,*2,*2)-1;
-    int len0       = crse.box().length(0);
-    int slp_len    = num_slope*len0;
 
-    Vector<Real> slope(slp_len);
-
-    int strp_len = len0*ratio[0];
-
-    Vector<Real> strip(strp_len);
-
-    int strip_lo = ratio[0] * clo[0];
-    int strip_hi = ratio[0] * chi[0];
-
-    const Real* cdat  = crse.dataPtr(crse_comp);
-    Real*       fdat  = fine.dataPtr(fine_comp);
-    const int* ratioV = ratio.getVect();
-
-    amrex_cbinterp (cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),AMREX_ARLIM(clo),AMREX_ARLIM(chi),
-                   fdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),AMREX_ARLIM(lo),AMREX_ARLIM(hi),
-                   AMREX_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),&ncomp,
-                   slope.dataPtr(),&num_slope,strip.dataPtr(),&strip_lo,&strip_hi,
-                   &actual_comp,&actual_state);
+    auto const& crse = crsefab.const_array();
+    auto const& fine = finefab.array();
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+    {
+        mf_cell_bilin_interp(i,j,k,n, fine, fine_comp, crse, crse_comp, ratio);
+    });
 }
-#endif
+
 
 CellConservativeLinear::CellConservativeLinear (bool do_linear_limiting_)
 {

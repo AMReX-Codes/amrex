@@ -53,7 +53,7 @@ public:
             const Box& tile_box  = mfi.tilebox();
 
             Gpu::HostVector<ParticleType> host_particles;
-            std::array<Gpu::HostVector<Real>, NAR> host_real;
+            std::array<Gpu::HostVector<ParticleReal>, NAR> host_real;
             std::array<Gpu::HostVector<int>, NAI> host_int;
             for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
             {
@@ -61,9 +61,9 @@ public:
                     Real r[3];
                     get_position_unit_cell(r, a_num_particles_per_cell, i_part);
 
-                    Real x = plo[0] + (iv[0] + r[0])*dx[0];
-                    Real y = plo[1] + (iv[1] + r[1])*dx[1];
-                    Real z = plo[2] + (iv[2] + r[2])*dx[2];
+                    ParticleReal x = static_cast<ParticleReal> (plo[0] + (iv[0] + r[0])*dx[0]);
+                    ParticleReal y = static_cast<ParticleReal> (plo[1] + (iv[1] + r[1])*dx[1]);
+                    ParticleReal z = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);
 
                     ParticleType p;
                     p.id()  = ParticleType::NextID();

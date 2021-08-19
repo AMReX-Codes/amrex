@@ -45,11 +45,13 @@ equations.  In these solves, all components of the velocity field are solved
 for simultaneously.  The tensor solve functionality is only available for
 cell-centered velocity.
 
-The tutorials in ``amrex/Tutorials/LinearSolvers/`` show examples of
+The tutorials in `Linear Solvers`_ show examples of
 using the solvers.  The tutorial
 ``amrex/Tutorials/Basic/HeatEquation_EX3_C`` shows how to solve the
 heat equation implicitly using the solver.  The tutorials also show
 how to add linear solvers into the build system.
+
+.. _`Linear Solvers`: https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers_Tutorial.html
 
 .. toctree::
    :maxdepth: 1

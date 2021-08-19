@@ -12,21 +12,24 @@ namespace amrex {
 PArena::PArena (Long release_threshold)
 {
 #ifdef AMREX_CUDA_GE_11_2
-    AMREX_CUDA_SAFE_CALL(cudaDeviceGetMemPool(&m_pool, Gpu::Device::deviceId()));
-    AMREX_CUDA_SAFE_CALL(cudaMemPoolGetAttribute(m_pool, cudaMemPoolAttrReleaseThreshold,
-                                                 &m_old_release_threshold));
-    cuuint64_t value = release_threshold;
-    AMREX_CUDA_SAFE_CALL(cudaMemPoolSetAttribute(m_pool, cudaMemPoolAttrReleaseThreshold, &value));
-#else
-    amrex::ignore_unused(release_threshold);
+    if (Gpu::Device::memoryPoolsSupported()) {
+        AMREX_CUDA_SAFE_CALL(cudaDeviceGetMemPool(&m_pool, Gpu::Device::deviceId()));
+        AMREX_CUDA_SAFE_CALL(cudaMemPoolGetAttribute(m_pool, cudaMemPoolAttrReleaseThreshold,
+                                                     &m_old_release_threshold));
+        cuuint64_t value = release_threshold;
+        AMREX_CUDA_SAFE_CALL(cudaMemPoolSetAttribute(m_pool, cudaMemPoolAttrReleaseThreshold, &value));
+    }
 #endif
+    amrex::ignore_unused(release_threshold);
 }
 
 PArena::~PArena ()
 {
 #ifdef AMREX_CUDA_GE_11_2
-    AMREX_CUDA_SAFE_CALL(cudaMemPoolSetAttribute(m_pool, cudaMemPoolAttrReleaseThreshold,
-                                                 &m_old_release_threshold));
+    if (Gpu::Device::memoryPoolsSupported()) {
+        AMREX_CUDA_SAFE_CALL(cudaMemPoolSetAttribute(m_pool, cudaMemPoolAttrReleaseThreshold,
+                                                     &m_old_release_threshold));
+    }
 #endif
 }
 

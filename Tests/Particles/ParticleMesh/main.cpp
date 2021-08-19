@@ -61,7 +61,7 @@ void testParticleMesh (TestParams& parms)
 
   bool serialize = true;
   int iseed = 451;
-  Real mass = 10.0;
+  double mass = 10.0;
 
   MyParticleContainer::ParticleInitData pdata = {{mass, AMREX_D_DECL(1.0, 2.0, 3.0), AMREX_D_DECL(0.0, 0.0, 0.0)}, {},{},{}};
   myPC.InitRandom(num_particles, iseed, pdata, serialize);
@@ -138,7 +138,7 @@ void testParticleMesh (TestParams& parms)
               for (int kk = 0; kk <= 1; ++kk) {
                   for (int jj = 0; jj <= 1; ++jj) {
                       for (int ii = 0; ii <= 1; ++ii) {
-                          p.rdata(4+comp) += sx[ii]*sy[jj]*sz[kk]*acc(i+ii-1,j+jj-1,k+kk-1,comp);
+                          p.rdata(4+comp) += static_cast<ParticleReal> (sx[ii]*sy[jj]*sz[kk]*acc(i+ii-1,j+jj-1,k+kk-1,comp));
                       }
                   }
               }
