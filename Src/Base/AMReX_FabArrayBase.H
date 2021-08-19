@@ -654,6 +654,7 @@ public:
         ~ParForInfo ();
 
         std::pair<int*,int*> const& getBlocks () const { return m_nblocks_x; }
+        Box const* getBoxes () const { return m_boxes; }
 
         ParForInfo () = delete;
         ParForInfo (ParForInfo const&) = delete;
@@ -666,6 +667,9 @@ public:
         IntVect m_ng;
         int m_nthreads;
         std::pair<int*,int*> m_nblocks_x;
+        Box* m_boxes = nullptr;
+        char* m_hp = nullptr;
+        char* m_dp = nullptr;
     };
 
     ParForInfo const& getParForInfo (const IntVect& nghost, int nthreads) const;
