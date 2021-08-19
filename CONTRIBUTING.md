@@ -300,7 +300,7 @@ to be documented where appropriate. For example:
     void MyFunction (int variable, MultiFab& data){
     ...
 ```
-Additional information regarding doxygen comment formatting can be found
+Additional information regarding Doxygen comment formatting can be found
 in the [Doxygen Manual](https://www.doxygen.nl/manual/).
 
 
