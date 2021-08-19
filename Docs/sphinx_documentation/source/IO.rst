@@ -153,9 +153,11 @@ functions can be used to build codes for reading and writing
 checkpoint files. Since each application code has its own
 requirement, there is no standard AMReX checkpoint format.
 However we have provided an example restart capability in the tutorial
-``/amrex/Tutorials/Amr/Advection_AmrCore/Exec/SingleVortex``.
+`Advection AmrCore`_.
 Refer to the functions :cpp:`ReadCheckpointFile()` and
 :cpp:`WriteCheckpointFile()` in this tutorial.
+
+.. _`Advection AmrCore`: https://amrex-codes.github.io/amrex/tutorials_html/AMR_Tutorial.html#advection-amrcore
 
 A checkpoint file is actually a directory with name, e.g.,
 ``chk00010`` containing a ``Header`` (text) file, along with
