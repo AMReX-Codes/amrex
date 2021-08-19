@@ -264,14 +264,15 @@ AMReX developers should adhere to the following coding guidelines:
        for (int n=0; n<10; ++n)
           Print() << "Not like this.";
 ```
-  * Add a space after function definitions and declarations (but
+  * Add a space after the function name and before the
+parenthesis of the parameter list (but
 not when simply calling the function). For example:
 ```cpp
-        void CorrectFunctionDef (int input)
+        void CorrectFunctionDec (int input)
 ```
   Not
 ```cpp
-        void IncorrectFunctionDef(int input)
+        void IncorrectFunctionDec(int input)
 ```
   This makes it easy to find where functions are defined with grep.
   * Member variables should be prefixed with `m_`. For example:
