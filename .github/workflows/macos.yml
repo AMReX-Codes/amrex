@@ -2,6 +2,10 @@ name: macos
 
 on: [push, pull_request]
 
+concurrency:
+  group: ${{ github.head_ref }}-macos
+  cancel-in-progress: true
+
 jobs:
   # Build libamrex and all tests
   tests-macos-eb:
@@ -26,7 +30,7 @@ jobs:
         cmake --build build --parallel 2
 
         cd build
-        ctest --output-on-failure -E Particles_GhostsAndVirtuals
+        ctest --output-on-failure
         cd ..
 
   # Build libamrex and all tests
@@ -53,4 +57,4 @@ jobs:
         cmake --build build --target install
 
         cd build
-        ctest --output-on-failure -E Particles_GhostsAndVirtuals
+        ctest --output-on-failure
