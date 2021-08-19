@@ -237,6 +237,73 @@ After saving and then exiting the editor, `git log` should show a clean history 
 `development` branch.  You can also do `git diff yyy..xxx` to make sure nothing new was dropped.  If
 all goes well, you can submit a PR using `xxx` branch.
 Don't worry, if something goes wrong during the rebase, you an always `git rebase --abort` and start over.
+
+## AMReX Coding Style Guide
+
+### Code Guidelines
+
+AMReX developers should adhere to the following coding guidelines:
+
+  * Indentations should use 4 spaces, not tabs.
+  * Use curly braces for single statement blocks. For example: 
+  
+```cpp
+       for (int n=0; n<10; ++n) { 
+           Print() << "Like this!"; 
+       }
+```
+
+or
+      
+```cpp
+       for (int n=0; n<10; ++n) { Print() << "Like this!"; }
+```
+      
+but not
+
+```cpp
+
+       for (int n=0; n<10; ++n) Print() << "Not like this.";
+```
+      
+  or
+      
+```cpp
+       for (int n=0; n<10; ++n) 
+          Print() << "Not like this.";
+```
+  
+  * Add a space after function definitions and declarations (but not when simply calling the function). For example:
+      
+```cpp
+        void CorrectFunctionDef (int input)
+```
+
+  Not
+       
+
+```cpp
+        void IncorrectFunctionDef(int input)
+```
+
+
+  This makes it easy to find where functions are defined with grep.
+
+  * Member variables should be prefixed with :code:`m_`. For example:
+      
+        
+```cpp
+       amrex::Real m_variable; 
+```
+
+These guidelines should be adhered to in new contributions to AMReX, but please refrain from making stylistic changes to unrelated sections of code in your PRs.
+
+###API Documentation
+
+Where appropriate functions should be documented with Doxygen style comments.
+
+
+
 ## Core Developers
 
 People who make a number of substantive contributions will be named
