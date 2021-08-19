@@ -243,62 +243,43 @@ Don't worry, if something goes wrong during the rebase, you an always `git rebas
 ### Code Guidelines
 
 AMReX developers should adhere to the following coding guidelines:
-
   * Indentations should use 4 spaces, not tabs.
   * Use curly braces for single statement blocks. For example: 
-  
 ```cpp
        for (int n=0; n<10; ++n) { 
            Print() << "Like this!"; 
        }
 ```
-
-or
-      
+  or
 ```cpp
        for (int n=0; n<10; ++n) { Print() << "Like this!"; }
 ```
-      
-but not
-
+  but not
 ```cpp
 
        for (int n=0; n<10; ++n) Print() << "Not like this.";
 ```
-      
   or
-      
 ```cpp
        for (int n=0; n<10; ++n) 
           Print() << "Not like this.";
 ```
-  
   * Add a space after function definitions and declarations (but not when simply calling the function). For example:
-      
 ```cpp
         void CorrectFunctionDef (int input)
 ```
-
   Not
-       
-
 ```cpp
         void IncorrectFunctionDef(int input)
 ```
-
-
   This makes it easy to find where functions are defined with grep.
-
-  * Member variables should be prefixed with :code:`m_`. For example:
-      
-        
+  * Member variables should be prefixed with `m_`. For example:
 ```cpp
        amrex::Real m_variable; 
 ```
-
 These guidelines should be adhered to in new contributions to AMReX, but please refrain from making stylistic changes to unrelated sections of code in your PRs.
 
-###API Documentation
+### API Documentation
 
 Where appropriate functions should be documented with Doxygen style comments.
 
