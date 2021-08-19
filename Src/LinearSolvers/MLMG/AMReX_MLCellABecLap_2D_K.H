@@ -25,6 +25,18 @@ int coarsen_overset_mask (Box const& bx, Array4<int> const& cmsk, Array4<int con
     return nerrors;
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void coarsen_overset_mask (int i, int j, int, Array4<int> const& cmsk,
+                           Array4<int const> const& fmsk) noexcept
+{
+    int ii = 2*i;
+    int jj = 2*j;
+    cmsk(i,j,0) = fmsk(ii,jj,0) + fmsk(ii+1,jj,0) + fmsk(ii,jj+1,0) + fmsk(ii+1,jj+1,0);
+    if (cmsk(i,j,0) == 4) {
+        cmsk(i,j,0) = 1;
+    }
+}
+
 }
 
 #endif
