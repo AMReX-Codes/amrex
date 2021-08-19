@@ -284,7 +284,7 @@ please refrain from making stylistic changes to unrelated sections of code in yo
 ### API Documentation Using Doxygen
 
 The Doxygen documentation is designed for advanced user-developers. It aims
-to maximize the efficiency of a search-and-find style of locating information
+to maximize the efficiency of a search-and-find style of locating information.
 Doxygen style comment blocks should proceed the namespace, class, function, etc.
 to be documented where appropriate. For example:
 ```cpp
@@ -292,12 +292,12 @@ to be documented where appropriate. For example:
     * \brief A one line description.
     *
     * \param[in] variable A short description of the variable.
-    * \param[inout] data_var A variable where data is read and changed.
+    * \param[inout] data The value of data is read and changed.
     *
     * A longer description can be included here.
     */
 
-    void MyFunction (int variable, MultiFab& data_var){
+    void MyFunction (int variable, MultiFab& data){
     ...
 ```
 Additional information regarding doxygen comment formatting can be found
