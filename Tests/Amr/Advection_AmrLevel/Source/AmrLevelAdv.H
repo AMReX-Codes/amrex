@@ -3,6 +3,8 @@
 
 #include <AMReX_AmrLevel.H>
 #include <AMReX_FluxRegister.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_PhysBCFunct.H>
 
 #ifdef AMREX_PARTICLES
 #include <AMReX_AmrParticles.H>
@@ -234,6 +236,13 @@ protected:
 
 };
 
+// Boundary conditions function that does nothing.
+void nullfill (amrex::Box const& bx, amrex::FArrayBox& data,
+               const int dcomp, const int numcomp,
+               amrex::Geometry const& geom, const amrex::Real time,
+               const amrex::Vector<amrex::BCRec>& bcr, const int bcomp,
+               const int scomp);
+
 /*
  * Inlines.
  */
@@ -259,4 +268,5 @@ AmrLevelAdv::getFluxReg (int lev)
 {
     return getLevel(lev).getFluxReg();
 }
+
 #endif /*_AmrLevelAdv_H_*/

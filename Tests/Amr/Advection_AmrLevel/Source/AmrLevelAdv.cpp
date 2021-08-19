@@ -5,7 +5,6 @@
 
 #include "AmrLevelAdv.H"
 #include "Adv_F.H"
-#include "Adv_F_old.H"
 #include "Kernels.H"
 
 using namespace amrex;
@@ -138,8 +137,11 @@ AmrLevelAdv::variableSetUp ()
 
     BCRec bc(lo_bc, hi_bc);
 
+    StateDescriptor::BndryFunc bndryfunc(nullfill);
+    bndryfunc.setRunOnGPU(true);  // I promise the bc function will launch gpu kernels.
+
     desc_lst.setComponent(Phi_Type, 0, "phi", bc,
-                          StateDescriptor::BndryFunc(nullfill));
+                          bndryfunc);
 }
 
 /**
