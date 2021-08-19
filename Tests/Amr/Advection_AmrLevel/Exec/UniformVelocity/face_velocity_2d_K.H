@@ -3,6 +3,8 @@
 
 #include "Prob_Parm.H"
 
+AMREX_GPU_DEVICE
+AMREX_FORCE_INLINE
 void get_face_velocity(const amrex::Real /*time*/,
                        amrex::FArrayBox& vx,
                        amrex::FArrayBox& vy,
