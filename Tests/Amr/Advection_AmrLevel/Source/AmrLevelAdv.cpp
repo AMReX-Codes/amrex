@@ -317,10 +317,10 @@ AmrLevelAdv::advance (Real time,
         for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
-            Box nbx[3];
-            nbx[0] = mfi.nodaltilebox(0);
-            nbx[1] = mfi.nodaltilebox(1);
-            nbx[2] = mfi.nodaltilebox(2);
+            GpuArray<Box,BL_SPACEDIM> nbx;
+            AMREX_D_TERM(nbx[0] = mfi.nodaltilebox(0);,
+                         nbx[1] = mfi.nodaltilebox(1);,
+                         nbx[2] = mfi.nodaltilebox(2));
 
             const FArrayBox& statein = Sborder[mfi];
             FArrayBox& stateout      =   S_new[mfi];

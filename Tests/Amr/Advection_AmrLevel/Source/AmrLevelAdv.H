@@ -193,7 +193,7 @@ protected:
     static void get_tagging_params ();
     static void advect (const amrex::Real /*time*/,
                         const amrex::Box& bx,
-                        amrex::Box* nbx,
+                        amrex::GpuArray<amrex::Box,BL_SPACEDIM> nbx,
                         const amrex::FArrayBox& statein,
                         amrex::FArrayBox& stateout,
                         AMREX_D_DECL(const amrex::FArrayBox& vx,
