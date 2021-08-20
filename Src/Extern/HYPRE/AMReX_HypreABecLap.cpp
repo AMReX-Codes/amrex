@@ -275,7 +275,7 @@ HypreABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
 #endif
     {
 #ifdef AMREX_USE_OMP
-#pragma omp paralle if (Gpu::notInLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(rhs_diag,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
