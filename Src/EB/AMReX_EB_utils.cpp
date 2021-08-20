@@ -2,6 +2,7 @@
 #include <AMReX_EB_utils.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiCutFab.H>
+#include <AMReX_REAL.H>
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_EBFArrayBox.H>
 
@@ -328,7 +329,7 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
         RealVect facet_normal {AMREX_D_DECL(0._rt, 0._rt, 0._rt)};
         facet_normal[tmp_facet] = 1.; // whether facing inwards or outwards is not important here
 
-        // skip cases where cell faces conincide with the eb facets
+        // skip cases where cell faces coincide with the eb facets
         if (AMREX_D_TERM(amrex::Math::abs(eb_normal[0]) == amrex::Math::abs(facet_normal[0]),
                       && amrex::Math::abs(eb_normal[1]) == amrex::Math::abs(facet_normal[1]),
                       && amrex::Math::abs(eb_normal[2]) == amrex::Math::abs(facet_normal[2])))
@@ -379,7 +380,7 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
         //
         // Purpose: Given an a line an a point, this finds the point
         // one the line which minimizes the cartesian distance. It also finds
-        // the corresponing distance along the line corresponding to this point
+        // the corresponding distance along the line corresponding to this point
         //
         RealVect c = edge_p0 - r_vec;
         Real lambda_tmp = - edge_v.dotProduct(c) / edge_v.dotProduct(edge_v);
@@ -416,7 +417,7 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
         Real cz_hi =  3.4e38_rt;
         Real eps = 1.e-7_rt;
 #endif
-        // if the line runs parrallel to any of these dimensions (which is true for
+        // if the line runs parallel to any of these dimensions (which is true for
         // EB edges), then skip -> the min/max functions at the end will skip them
         // due to the +/-huge(c...) defaults (above).
         if ( amrex::Math::abs(edge_v[0]) > eps ) {

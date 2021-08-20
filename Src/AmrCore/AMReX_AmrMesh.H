@@ -201,7 +201,7 @@ public:
     BoxArray MakeBaseGrids () const;
 
     /**
-    * \brief Make new grids based on error estimates.  This functin
+    * \brief Make new grids based on error estimates.  This function
     * expects that valid BoxArrays exist in this->grids from level
     * lbase to level this->finest_level (the current finest level).
     * new_grids.  On return, the new finest level is stored in

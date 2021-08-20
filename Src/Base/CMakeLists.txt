@@ -1,4 +1,5 @@
 target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
+target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/Parser>)
 
 target_sources( amrex
    PRIVATE
@@ -165,6 +166,8 @@ target_sources( amrex
    AMReX_BC_TYPES.H
    AMReX_FilCC_${AMReX_SPACEDIM}D_C.H
    AMReX_FilCC_C.H
+   AMReX_FilFC_${AMReX_SPACEDIM}D_C.H
+   AMReX_FilFC_C.H
    AMReX_FilCC_C.cpp
    AMReX_FilND_C.H
    AMReX_FilND_C.cpp
@@ -224,6 +227,27 @@ target_sources( amrex
    # Profiling ---------------------------------------------------------------
    AMReX_BLProfiler.cpp
    AMReX_BLBackTrace.cpp
+   # Parser ---------------------------------------------------------------
+   Parser/AMReX_Parser.cpp
+   Parser/AMReX_Parser.H
+   Parser/AMReX_Parser_Exe.cpp
+   Parser/AMReX_Parser_Exe.H
+   Parser/AMReX_Parser_Y.cpp
+   Parser/AMReX_Parser_Y.H
+   Parser/amrex_parser.lex.cpp
+   Parser/amrex_parser.lex.h
+   Parser/amrex_parser.tab.cpp
+   Parser/amrex_parser.tab.h
+   Parser/AMReX_IParser.cpp
+   Parser/AMReX_IParser.H
+   Parser/AMReX_IParser_Exe.cpp
+   Parser/AMReX_IParser_Exe.H
+   Parser/AMReX_IParser_Y.cpp
+   Parser/AMReX_IParser_Y.H
+   Parser/amrex_iparser.lex.cpp
+   Parser/amrex_iparser.lex.h
+   Parser/amrex_iparser.tab.cpp
+   Parser/amrex_iparser.tab.h
    # Forward declaration -----------------------------------------------------
    AMReX_BaseFwd.H
    )

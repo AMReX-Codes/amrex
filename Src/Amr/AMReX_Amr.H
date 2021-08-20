@@ -19,7 +19,7 @@ namespace amrex {
 
 class AmrLevel;
 class LevelBld;
-#if defined(BL_USE_SENSEI_INSITU)
+#if defined(AMREX_USE_SENSEI_INSITU) && !defined(AMREX_NO_SENSEI_AMR_INST)
 class AmrInSituBridge;
 #endif
 
@@ -366,7 +366,7 @@ protected:
                            int  niter,
                            Real stop_time);
 
-    // pure virtural function in AmrCore
+    // pure virtual function in AmrCore
     virtual void MakeNewLevelFromScratch (int /*lev*/, Real /*time*/, const BoxArray& /*ba*/, const DistributionMapping& /*dm*/) override
         { amrex::Abort("How did we get here!"); }
     virtual void MakeNewLevelFromCoarse (int /*lev*/, Real /*time*/, const BoxArray& /*ba*/, const DistributionMapping& /*dm*/) override
@@ -472,7 +472,7 @@ protected:
     static Vector<BoxArray> regrid_ba;
     static int compute_new_dt_on_regrid;
 
-#if defined(BL_USE_SENSEI_INSITU)
+#if defined(AMREX_USE_SENSEI_INSITU) && !defined(AMREX_NO_SENSEI_AMR_INST)
     static AmrInSituBridge *insitu_bridge;
 #endif
 

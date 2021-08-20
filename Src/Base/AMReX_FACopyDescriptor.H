@@ -513,7 +513,8 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     }
     BL_ASSERT(Rcvs.count(MyProc) == 0);
 
-    BL_ASSERT((Total_Rcvs_Size*sizeof(value_type)) < std::numeric_limits<int>::max());
+    BL_ASSERT((Total_Rcvs_Size*sizeof(value_type))
+              < static_cast<std::size_t>(std::numeric_limits<int>::max()));
 
     const int NProcs = ParallelDescriptor::NProcs();
 

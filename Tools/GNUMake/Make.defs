@@ -287,8 +287,12 @@ endif
 
 ifdef USE_SENSEI_INSITU
   USE_SENSEI_INSITU := $(strip $(USE_SENSEI_INSITU))
+  ifdef NO_SENSEI_AMR_INST
+    NO_SENSEI_AMR_INST := $(strip $(NO_SENSEI_AMR_INST))
+  endif
 else
   USE_SENSEI_INSITU := FALSE
+  NO_SENSEI_AMR_INST := FALSE
 endif
 
 ifdef USE_HDF5
@@ -380,6 +384,9 @@ SKIP_LINKING ?= FALSE
 USE_COMPILE_PIC ?= FALSE
 
 AMREX_GIT_VERSION := $(shell cd $(AMREX_HOME); git describe --abbrev=12 --dirty --always --tags)
+ifndef AMREX_GIT_VERSION
+  AMREX_GIT_VERSION := $(shell grep -o -m 1 -E "[0-9]{2}\.[0-9]{2}(\.[0-9]+)?" $(AMREX_HOME)/CHANGES)
+endif
 DEFINES += -DAMREX_GIT_VERSION=\"$(AMREX_GIT_VERSION)\"
 
 FORTLINK  	= UNDERSCORE
@@ -686,10 +693,6 @@ ifeq ($(USE_CUPTI),TRUE)
   endif
 endif
 
-ifeq ($(USE_GPU_RDC),TRUE)
-    DEFINES += -DAMREX_USE_GPU_RDC
-endif
-
 ifeq ($(USE_HIP),TRUE)
 
     USE_GPU := TRUE
@@ -770,6 +773,9 @@ ifeq ($(USE_GPU),TRUE)
     DEFINES += -DAMREX_USE_GPU -DBL_COALESCE_FABS
     ifeq ($(GPU_ERROR_CHECK),FALSE)
         DEFINES += -DAMREX_GPU_NO_ERROR_CHECK
+    endif
+    ifeq ($(USE_GPU_RDC),TRUE)
+        DEFINES += -DAMREX_USE_GPU_RDC
     endif
 endif
 

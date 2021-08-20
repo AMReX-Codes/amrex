@@ -3,15 +3,19 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_MultiFab.H>
+#include <AMReX_iMultiFab.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_PhysBCFunct.H>
 #include <AMReX_Interpolater.H>
+#include <AMReX_MFInterpolater.H>
 #include <AMReX_Array.H>
 #include <AMReX_Utility.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EB2.H>
 #include <AMReX_EBFabFactory.H>
+#include <AMReX_EBInterpolater.H>
+#include <AMReX_EBMFInterpolater.H>
 #endif
 
 #ifdef AMREX_USE_OMP

@@ -10,7 +10,7 @@ void intercept_to_edge_centroid (AMREX_D_DECL(Array4<Real> const& excent,
                                               Array4<Type_t const> const& fz),
                                  Array4<Real const> const& levset,
                                  GpuArray<Real,AMREX_SPACEDIM> const& dx,
-                                 GpuArray<Real,AMREX_SPACEDIM> const& problo)
+                                 GpuArray<Real,AMREX_SPACEDIM> const& problo) noexcept
 {
     AMREX_D_TERM(const Real dxinv = Real(1.0)/dx[0];,
                  const Real dyinv = Real(1.0)/dx[1];,

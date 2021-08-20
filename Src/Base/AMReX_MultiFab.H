@@ -26,7 +26,7 @@ class iMultiFab;
  * This class is useful for storing floating point data on a domain defined by
  * a union of rectangular regions embedded in a uniform index space.
  * MultiFab class extends the function of the underlying FabArray class just
- * as the FArrayBox class extends the funtion of BaseFab<Real>.
+ * as the FArrayBox class extends the function of BaseFab<Real>.
  * Additional member functions are defined for I/O and simple arithmetic operations on these aggregate objects.
  * This class does NOT provide a copy constructor or assignment operator.
  */
@@ -52,9 +52,9 @@ public:
     * \param ngrow number of cells the region grows
     * \param info MFInfo
 
-    * The size of the FArrayBox is given by the Box grown by ngrow and
-    * the number of components is given by ncomp.  If info is set to
-    * not allocateing memroy, then no FArrayBoxes are allocated at
+    * The size of the FArrayBox is given by the Box grown by ngrow, and
+    * the number of components is given by ncomp. If info is set to
+    * not allocating memory, then no FArrayBoxes are allocated at
     * this time but can be defined later.
     */
     MultiFab (const BoxArray&            bs,
@@ -642,28 +642,6 @@ public:
     bool contains_inf (bool local=false) const;
     bool contains_inf (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
     bool contains_inf (int scomp, int ncomp, const IntVect& ngrow, bool local=false) const;
-
-    /**
-    * \brief Sum values in overlapped cells.  The destination is limited to valid cells.
-    */
-    void SumBoundary (const Periodicity& period = Periodicity::NonPeriodic());
-
-    void SumBoundary (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
-
-    void SumBoundary_nowait (const Periodicity& period = Periodicity::NonPeriodic());
-
-    void SumBoundary_nowait (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
-
-    /**
-    * \brief Sum values in overlapped cells.  The destination is limited to valid + ngrow cells.
-    */
-    void SumBoundary (int scomp, int ncomp, IntVect const& ngrow,
-                      const Periodicity& period = Periodicity::NonPeriodic());
-
-    void SumBoundary_nowait (int scomp, int ncomp, IntVect const& ngrow,
-                             const Periodicity& period = Periodicity::NonPeriodic());
-
-    void SumBoundary_finish ();
 
     /**
      * \brief Return a mask indicating how many duplicates are in each point.

@@ -58,19 +58,33 @@ namespace amrex
     void average_node_to_cellcenter (MultiFab& cc, int dcomp,
          const MultiFab& nd, int scomp, int ncomp, int ngrow)
     {
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion() && cc.isFusingCandidate()) {
+            auto const& ccma = cc.arrays();
+            auto const& ndma = nd.const_arrays();
+            ParallelFor(cc, IntVect(ngrow), ncomp,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+            {
+                amrex_avg_nd_to_cc(i, j, k, n, ccma[box_no], ndma[box_no], dcomp, scomp);
+            });
+            Gpu::streamSynchronize();
+        } else
+#endif
+        {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box bx = mfi.growntilebox(ngrow);
-            Array4<Real> const& ccarr = cc.array(mfi);
-            Array4<Real const> const& ndarr = nd.const_array(mfi);
-
-            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
+            for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
-                amrex_avg_nd_to_cc(tbx, ccarr, ndarr, dcomp, scomp, ncomp);
-            });
+                const Box bx = mfi.growntilebox(ngrow);
+                Array4<Real> const& ccarr = cc.array(mfi);
+                Array4<Real const> const& ndarr = nd.const_array(mfi);
+
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
+                {
+                    amrex_avg_nd_to_cc(i, j, k, n, ccarr, ndarr, dcomp, scomp);
+                });
+            }
         }
     }
 
@@ -80,21 +94,39 @@ namespace amrex
         AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
         AMREX_ASSERT(edge.size() == AMREX_SPACEDIM);
         AMREX_ASSERT(edge[0]->nComp() == 1);
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion() && cc.isFusingCandidate()) {
+            auto const& ccma = cc.arrays();
+            AMREX_D_TERM(auto const& exma = edge[0]->const_arrays();,
+                         auto const& eyma = edge[1]->const_arrays();,
+                         auto const& ezma = edge[2]->const_arrays(););
+            ParallelFor(cc, IntVect(ngrow),
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+            {
+                amrex_avg_eg_to_cc(i, j, k, ccma[box_no],
+                                   AMREX_D_DECL(exma[box_no], eyma[box_no], ezma[box_no]),
+                                   dcomp);
+            });
+            Gpu::streamSynchronize();
+        } else
+#endif
+        {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box bx = mfi.growntilebox(ngrow);
-            Array4<Real> const& ccarr = cc.array(mfi);
-            AMREX_D_TERM(Array4<Real const> const& exarr = edge[0]->const_array(mfi);,
-                         Array4<Real const> const& eyarr = edge[1]->const_array(mfi);,
-                         Array4<Real const> const& ezarr = edge[2]->const_array(mfi););
-
-            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
+            for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
-                amrex_avg_eg_to_cc(tbx, ccarr, AMREX_D_DECL(exarr,eyarr,ezarr), dcomp);
-            });
+                const Box bx = mfi.growntilebox(ngrow);
+                Array4<Real> const& ccarr = cc.array(mfi);
+                AMREX_D_TERM(Array4<Real const> const& exarr = edge[0]->const_array(mfi);,
+                             Array4<Real const> const& eyarr = edge[1]->const_array(mfi);,
+                             Array4<Real const> const& ezarr = edge[2]->const_array(mfi););
+
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D( bx, i, j, k,
+                {
+                    amrex_avg_eg_to_cc(i, j, k, ccarr, AMREX_D_DECL(exarr,eyarr,ezarr), dcomp);
+                });
+            }
         }
     }
 
@@ -121,28 +153,57 @@ namespace amrex
         AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
         AMREX_ASSERT(fc[0]->nComp() == 1);
 
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion() && cc.isFusingCandidate()) {
+            auto const& ccma = cc.arrays();
+            AMREX_D_TERM(auto const& fxma = fc[0]->const_arrays();,
+                         auto const& fyma = fc[1]->const_arrays();,
+                         auto const& fzma = fc[2]->const_arrays(););
+            ParallelFor(cc, IntVect(ngrow),
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+            {
+#if (AMREX_SPACEDIM == 1)
+                GeometryData gd{};
+                gd.coord = 0;
+#endif
+                amrex_avg_fc_to_cc(i,j,k, ccma[box_no], AMREX_D_DECL(fxma[box_no],
+                                                                     fyma[box_no],
+                                                                     fzma[box_no]),
+                                   dcomp
+#if (AMREX_SPACEDIM == 1)
+                                   , gd
+#endif
+                    );
+            });
+            Gpu::streamSynchronize();
+        } else
+#endif
+        {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box bx = mfi.growntilebox(ngrow);
-            Array4<Real> const& ccarr = cc.array(mfi);
-            AMREX_D_TERM(Array4<Real const> const& fxarr = fc[0]->const_array(mfi);,
-                         Array4<Real const> const& fyarr = fc[1]->const_array(mfi);,
-                         Array4<Real const> const& fzarr = fc[2]->const_array(mfi););
+            for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+            {
+                const Box bx = mfi.growntilebox(ngrow);
+                Array4<Real> const& ccarr = cc.array(mfi);
+                AMREX_D_TERM(Array4<Real const> const& fxarr = fc[0]->const_array(mfi);,
+                             Array4<Real const> const& fyarr = fc[1]->const_array(mfi);,
+                             Array4<Real const> const& fzarr = fc[2]->const_array(mfi););
 
 #if (AMREX_SPACEDIM == 1)
-            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
-            {
-                amrex_avg_fc_to_cc(tbx, ccarr, fxarr, dcomp, GeometryData());
-            });
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D( bx, i, j, k,
+                {
+                    GeometryData gd;
+                    gd.coord = 0;
+                    amrex_avg_fc_to_cc(i,j,k, ccarr, fxarr, dcomp, gd);
+                });
 #else
-            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
-            {
-                amrex_avg_fc_to_cc(tbx, ccarr, AMREX_D_DECL(fxarr,fyarr,fzarr), dcomp);
-            });
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D( bx, i, j, k,
+                {
+                    amrex_avg_fc_to_cc(i,j,k, ccarr, AMREX_D_DECL(fxarr,fyarr,fzarr), dcomp);
+                });
 #endif
+            }
         }
     }
 
@@ -156,28 +217,51 @@ namespace amrex
         const GeometryData gd = geom.data();
         amrex::ignore_unused(gd);
 
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion() && cc.isFusingCandidate()) {
+            auto const& ccma = cc.arrays();
+            AMREX_D_TERM(auto const& fxma = fc[0]->const_arrays();,
+                         auto const& fyma = fc[1]->const_arrays();,
+                         auto const& fzma = fc[2]->const_arrays(););
+            ParallelFor(cc,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+            {
+                amrex_avg_fc_to_cc(i,j,k, ccma[box_no], AMREX_D_DECL(fxma[box_no],
+                                                                     fyma[box_no],
+                                                                     fzma[box_no]),
+                                   0
+#if (AMREX_SPACEDIM == 1)
+                                   , gd
+#endif
+                                   );
+            });
+            Gpu::streamSynchronize();
+        } else
+#endif
+        {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box bx = mfi.tilebox();
-            Array4<Real> const& ccarr = cc.array(mfi);
-            AMREX_D_TERM(Array4<Real const> const& fxarr = fc[0]->const_array(mfi);,
-                         Array4<Real const> const& fyarr = fc[1]->const_array(mfi);,
-                         Array4<Real const> const& fzarr = fc[2]->const_array(mfi););
+            for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+            {
+                const Box bx = mfi.tilebox();
+                Array4<Real> const& ccarr = cc.array(mfi);
+                AMREX_D_TERM(Array4<Real const> const& fxarr = fc[0]->const_array(mfi);,
+                             Array4<Real const> const& fyarr = fc[1]->const_array(mfi);,
+                             Array4<Real const> const& fzarr = fc[2]->const_array(mfi););
 
 #if (AMREX_SPACEDIM == 1)
-            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
-            {
-                amrex_avg_fc_to_cc(tbx, ccarr, fxarr, 0, gd);
-            });
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D( bx, i, j, k,
+                {
+                    amrex_avg_fc_to_cc(i,j,k, ccarr, fxarr, 0, gd);
+                });
 #else
-            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
-            {
-                amrex_avg_fc_to_cc(tbx, ccarr, AMREX_D_DECL(fxarr,fyarr,fzarr), 0);
-            });
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D( bx, i, j, k,
+                {
+                    amrex_avg_fc_to_cc(i,j,k, ccarr, AMREX_D_DECL(fxarr,fyarr,fzarr), 0);
+                });
 #endif
+            }
         }
     }
 
@@ -205,41 +289,71 @@ namespace amrex
 
 #if (AMREX_SPACEDIM == 1)
         const GeometryData& gd = geom.data();
-        if (use_harmonic_averaging)
+        if (use_harmonic_averaging) {
             AMREX_ASSERT(gd.Coord() == 0);
+        }
 #else
         amrex::ignore_unused(geom);
 #endif
 
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion() && cc.isFusingCandidate()) {
+            auto const& ccma = cc.const_arrays();
+            AMREX_D_TERM(auto const& fxma = fc[0]->arrays();,
+                         auto const& fyma = fc[1]->arrays();,
+                         auto const& fzma = fc[2]->arrays(););
+            MultiFab foo(amrex::convert(cc.boxArray(),IntVect(1)), cc.DistributionMap(), 1, 0,
+                         MFInfo().SetAlloc(false));
+            IntVect ng = -cc.nGrowVect();
+            ParallelFor(foo, ncomp,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+            {
+                Box ccbx(ccma[box_no]);
+                ccbx.grow(ng);
+                AMREX_D_TERM(Box const& xbx = amrex::surroundingNodes(ccbx,0);,
+                             Box const& ybx = amrex::surroundingNodes(ccbx,1);,
+                             Box const& zbx = amrex::surroundingNodes(ccbx,2););
+#if (AMREX_SPACEDIM == 1)
+                amrex_avg_cc_to_fc(i,j,k,n, xbx, fxma[box_no], ccma[box_no], gd, use_harmonic_averaging);
+#else
+                amrex_avg_cc_to_fc(i,j,k,n, AMREX_D_DECL(xbx,ybx,zbx),
+                                   AMREX_D_DECL(fxma[box_no],fyma[box_no],fzma[box_no]),
+                                   ccma[box_no], use_harmonic_averaging);
+#endif
+            });
+            Gpu::streamSynchronize();
+        } else
+#endif
+        {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            AMREX_D_TERM(const Box& xbx = mfi.nodaltilebox(0);,
-                         const Box& ybx = mfi.nodaltilebox(1);,
-                         const Box& zbx = mfi.nodaltilebox(2););
-            const auto& index_bounds = amrex::getIndexBounds(AMREX_D_DECL(xbx,ybx,zbx));
+            for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+            {
+                AMREX_D_TERM(const Box& xbx = mfi.nodaltilebox(0);,
+                             const Box& ybx = mfi.nodaltilebox(1);,
+                             const Box& zbx = mfi.nodaltilebox(2););
+                const auto& index_bounds = amrex::getIndexBounds(AMREX_D_DECL(xbx,ybx,zbx));
 
-            AMREX_D_TERM(Array4<Real> const& fxarr = fc[0]->array(mfi);,
-                         Array4<Real> const& fyarr = fc[1]->array(mfi);,
-                         Array4<Real> const& fzarr = fc[2]->array(mfi););
-            Array4<Real const> const& ccarr = cc.const_array(mfi);
+                AMREX_D_TERM(Array4<Real> const& fxarr = fc[0]->array(mfi);,
+                             Array4<Real> const& fyarr = fc[1]->array(mfi);,
+                             Array4<Real> const& fzarr = fc[2]->array(mfi););
+                Array4<Real const> const& ccarr = cc.const_array(mfi);
 
 #if (AMREX_SPACEDIM == 1)
-            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (index_bounds, tbx,
-            {
-                amrex_avg_cc_to_fc(tbx, xbx, fxarr, ccarr, gd, ncomp,
-                                   use_harmonic_averaging);
-            });
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(index_bounds, ncomp, i, j, k, n,
+                {
+                    amrex_avg_cc_to_fc(i,j,k,n, xbx, fxarr, ccarr, gd, use_harmonic_averaging);
+                });
 #else
-            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (index_bounds, tbx,
-            {
-                amrex_avg_cc_to_fc(tbx, AMREX_D_DECL(xbx,ybx,zbx),
-                                   AMREX_D_DECL(fxarr,fyarr,fzarr), ccarr, ncomp,
-                                   use_harmonic_averaging);
-            });
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(index_bounds, ncomp, i, j, k, n,
+                {
+                    amrex_avg_cc_to_fc(i,j,k,n, AMREX_D_DECL(xbx,ybx,zbx),
+                                       AMREX_D_DECL(fxarr,fyarr,fzarr), ccarr,
+                                       use_harmonic_averaging);
+                });
 #endif
+            }
         }
     }
 
@@ -288,22 +402,37 @@ namespace amrex
         MultiFab fvolume;
         fgeom.GetVolume(fvolume, fine_BA, fine_dm, 0);
 
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion() && crse_S_fine.isFusingCandidate()) {
+            auto const& crsema = crse_S_fine.arrays();
+            auto const& finema = S_fine.const_arrays();
+            auto const& finevolma = fvolume.const_arrays();
+            ParallelFor(crse_S_fine, ncomp,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+            {
+                amrex_avgdown_with_vol(i,j,k,n,crsema[box_no],finema[box_no],finevolma[box_no],
+                                       0,scomp,ratio);
+            });
+            Gpu::streamSynchronize();
+        } else
+#endif
+        {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(crse_S_fine,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            //  NOTE: The tilebox is defined at the coarse level.
-            const Box& bx = mfi.tilebox();
-            Array4<Real> const& crsearr = crse_S_fine.array(mfi);
-            Array4<Real const> const& finearr = S_fine.const_array(mfi);
-            Array4<Real const> const& finevolarr = fvolume.const_array(mfi);
-
-            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
+            for (MFIter mfi(crse_S_fine,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
-                amrex_avgdown_with_vol(tbx,crsearr,finearr,finevolarr,
-                                       0,scomp,ncomp,ratio);
-            });
+                //  NOTE: The tilebox is defined at the coarse level.
+                const Box& bx = mfi.tilebox();
+                Array4<Real> const& crsearr = crse_S_fine.array(mfi);
+                Array4<Real const> const& finearr = S_fine.const_array(mfi);
+                Array4<Real const> const& finevolarr = fvolume.const_array(mfi);
+
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
+                {
+                    amrex_avgdown_with_vol(i,j,k,n,crsearr,finearr,finevolarr,0,scomp,ratio);
+                });
+            }
         }
 
         S_crse.ParallelCopy(crse_S_fine,0,scomp,ncomp);
@@ -338,20 +467,34 @@ namespace amrex
 
         MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp, nGrow, MFInfo(), FArrayBoxFactory());
 
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion() && crse_S_fine.isFusingCandidate()) {
+            auto const& crsema = crse_S_fine.arrays();
+            auto const& finema = S_fine.const_arrays();
+            ParallelFor(crse_S_fine, IntVect(nGrow), ncomp,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+            {
+                amrex_avgdown(i,j,k,n,crsema[box_no],finema[box_no],0,scomp,ratio);
+            });
+            Gpu::streamSynchronize();
+        } else
+#endif
+        {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(crse_S_fine, TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            //  NOTE: The tilebox is defined at the coarse level.
-            const Box& bx = mfi.growntilebox(nGrow);
-            Array4<Real> const& crsearr = crse_S_fine.array(mfi);
-            Array4<Real const> const& finearr = S_fine.const_array(mfi);
-
-            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
+            for (MFIter mfi(crse_S_fine, TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
-                amrex_avgdown(tbx,crsearr,finearr,0,scomp,ncomp,ratio);
-            });
+                //  NOTE: The tilebox is defined at the coarse level.
+                const Box& bx = mfi.growntilebox(nGrow);
+                Array4<Real> const& crsearr = crse_S_fine.array(mfi);
+                Array4<Real const> const& finearr = S_fine.const_array(mfi);
+
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
+                {
+                    amrex_avgdown(i,j,k,n,crsearr,finearr,0,scomp,ratio);
+                });
+            }
         }
 
         S_crse.ParallelCopy(crse_S_fine, 0, scomp, ncomp, nGrow, 0,
@@ -375,26 +518,48 @@ namespace amrex
 
         if (crse_S_fine_BA == S_crse.boxArray() && S_fine.DistributionMap() == S_crse.DistributionMap())
         {
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion() && S_crse.isFusingCandidate()) {
+                auto const& crsema = S_crse.arrays();
+                auto const& finema = S_fine.const_arrays();
+                if (is_cell_centered) {
+                    ParallelFor(S_crse, ncomp,
+                    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+                    {
+                        amrex_avgdown(i,j,k,n,crsema[box_no],finema[box_no],scomp,scomp,ratio);
+                    });
+                } else {
+                    ParallelFor(S_crse, ncomp,
+                    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+                    {
+                        amrex_avgdown_nodes(i,j,k,n,crsema[box_no],finema[box_no],scomp,scomp,ratio);
+                    });
+                }
+                Gpu::streamSynchronize();
+            } else
+#endif
+            {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(S_crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-            {
-                //  NOTE: The tilebox is defined at the coarse level.
-                const Box& bx = mfi.tilebox();
-                Array4<Real> const& crsearr = S_crse.array(mfi);
-                Array4<Real const> const& finearr = S_fine.const_array(mfi);
+                for (MFIter mfi(S_crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+                {
+                    //  NOTE: The tilebox is defined at the coarse level.
+                    const Box& bx = mfi.tilebox();
+                    Array4<Real> const& crsearr = S_crse.array(mfi);
+                    Array4<Real const> const& finearr = S_fine.const_array(mfi);
 
-                if (is_cell_centered) {
-                    AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
-                    {
-                        amrex_avgdown(tbx,crsearr,finearr,scomp,scomp,ncomp,ratio);
-                    });
-                } else {
-                    AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
-                    {
-                        amrex_avgdown_nodes(tbx,crsearr,finearr,scomp,scomp,ncomp,ratio);
-                    });
+                    if (is_cell_centered) {
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
+                        {
+                            amrex_avgdown(i,j,k,n,crsearr,finearr,scomp,scomp,ratio);
+                        });
+                    } else {
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
+                        {
+                            amrex_avgdown_nodes(i,j,k,n,crsearr,finearr,scomp,scomp,ratio);
+                        });
+                    }
                 }
             }
         }
@@ -402,30 +567,52 @@ namespace amrex
         {
             MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp, 0, MFInfo(), FArrayBoxFactory());
 
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion() && crse_S_fine.isFusingCandidate()) {
+                auto const& crsema = crse_S_fine.arrays();
+                auto const& finema = S_fine.const_arrays();
+                if (is_cell_centered) {
+                    ParallelFor(crse_S_fine, ncomp,
+                    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+                    {
+                        amrex_avgdown(i,j,k,n,crsema[box_no],finema[box_no],0,scomp,ratio);
+                    });
+                } else {
+                    ParallelFor(crse_S_fine, ncomp,
+                    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+                    {
+                        amrex_avgdown_nodes(i,j,k,n,crsema[box_no],finema[box_no],0,scomp,ratio);
+                    });
+                }
+                Gpu::streamSynchronize();
+            } else
+#endif
+            {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(crse_S_fine,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-            {
-                //  NOTE: The tilebox is defined at the coarse level.
-                const Box& bx = mfi.tilebox();
-                Array4<Real> const& crsearr = crse_S_fine.array(mfi);
-                Array4<Real const> const& finearr = S_fine.const_array(mfi);
+                for (MFIter mfi(crse_S_fine,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+                {
+                    //  NOTE: The tilebox is defined at the coarse level.
+                    const Box& bx = mfi.tilebox();
+                    Array4<Real> const& crsearr = crse_S_fine.array(mfi);
+                    Array4<Real const> const& finearr = S_fine.const_array(mfi);
 
-                //  NOTE: We copy from component scomp of the fine fab into component 0 of the crse fab
-                //        because the crse fab is a temporary which was made starting at comp 0, it is
-                //        not part of the actual crse multifab which came in.
+                    //  NOTE: We copy from component scomp of the fine fab into component 0 of the crse fab
+                    //        because the crse fab is a temporary which was made starting at comp 0, it is
+                    //        not part of the actual crse multifab which came in.
 
-                if (is_cell_centered) {
-                    AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
-                    {
-                        amrex_avgdown(tbx,crsearr,finearr,0,scomp,ncomp,ratio);
-                    });
-                } else {
-                    AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
-                    {
-                        amrex_avgdown_nodes(tbx,crsearr,finearr,0,scomp,ncomp,ratio);
-                    });
+                    if (is_cell_centered) {
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
+                        {
+                            amrex_avgdown(i,j,k,n,crsearr,finearr,0,scomp,ratio);
+                        });
+                    } else {
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
+                        {
+                            amrex_avgdown_nodes(i,j,k,n,crsearr,finearr,0,scomp,ratio);
+                        });
+                    }
                 }
             }
 
@@ -488,19 +675,33 @@ namespace amrex
         const int ncomp = crse.nComp();
         if (isMFIterSafe(fine, crse))
         {
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion() && crse.isFusingCandidate()) {
+                auto const& crsema = crse.arrays();
+                auto const& finema = fine.const_arrays();
+                ParallelFor(crse, IntVect(ngcrse), ncomp,
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+                {
+                    amrex_avgdown_faces(i,j,k,n, crsema[box_no], finema[box_no], 0, 0, ratio, dir);
+                });
+                Gpu::streamSynchronize();
+            } else
+#endif
+            {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-            {
-                const Box& bx = mfi.growntilebox(ngcrse);
-                Array4<Real> const& crsearr = crse.array(mfi);
-                Array4<Real const> const& finearr = fine.const_array(mfi);
-
-                AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
+                for (MFIter mfi(crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
                 {
-                    amrex_avgdown_faces(tbx, crsearr, finearr, 0, 0, ncomp, ratio, dir);
-                });
+                    const Box& bx = mfi.growntilebox(ngcrse);
+                    Array4<Real> const& crsearr = crse.array(mfi);
+                    Array4<Real const> const& finearr = fine.const_array(mfi);
+
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
+                    {
+                        amrex_avgdown_faces(i,j,k,n, crsearr, finearr, 0, 0, ratio, dir);
+                    });
+                }
             }
         }
         else
@@ -570,19 +771,32 @@ namespace amrex
         const int ncomp = crse.nComp();
         if (isMFIterSafe(fine, crse))
         {
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion() && crse.isFusingCandidate()) {
+                auto const& crsema = crse.arrays();
+                auto const& finema = fine.const_arrays();
+                ParallelFor(crse, IntVect(ngcrse), ncomp,
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+                {
+                    amrex_avgdown_edges(i,j,k,n, crsema[box_no], finema[box_no], 0, 0, ratio, dir);
+                });
+            } else
+#endif
+            {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if(Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-            {
-                const Box& bx = mfi.growntilebox(ngcrse);
-                Array4<Real> const& crsearr = crse.array(mfi);
-                Array4<Real const> const& finearr = fine.const_array(mfi);
-
-                AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
+                for (MFIter mfi(crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
                 {
-                    amrex_avgdown_edges(tbx, crsearr, finearr, 0, 0, ncomp, ratio, dir);
-                });
+                    const Box& bx = mfi.growntilebox(ngcrse);
+                    Array4<Real> const& crsearr = crse.array(mfi);
+                    Array4<Real const> const& finearr = fine.const_array(mfi);
+
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
+                    {
+                        amrex_avgdown_edges(i,j,k,n, crsearr, finearr, 0, 0, ratio, dir);
+                    });
+                }
             }
         }
         else
@@ -651,7 +865,7 @@ namespace amrex
 
             if (interpolate)
             {
-                AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( tile_box, thread_box,
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA( tile_box, thread_box,
                 {
                     amrex_fill_slice_interp(thread_box, slice_arr, full_arr,
                                             0, start_comp, ncomp,
@@ -871,4 +1085,145 @@ namespace amrex
         return r;
     }
 
+
+    Gpu::HostVector<Real> sumToLine (MultiFab const& mf, int icomp, int ncomp,
+                                     Box const& domain, int direction, bool local)
+    {
+        int n1d = domain.length(direction) * ncomp;
+        Gpu::HostVector<Real> hv(n1d);
+
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion())
+        {
+            Gpu::DeviceVector<Real> dv(domain.length(direction), Real(0.0));
+            Real* p = dv.data();
+
+            for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+                Box const& b = mfi.validbox();
+                const auto lo = amrex::lbound(b);
+                const auto len = amrex::length(b);
+                auto const& fab = mf.const_array(mfi);
+
+                int n2d, n2dx;
+                if (direction == 0) {
+                    n2d = len.y * len.z;
+                    n2dx = len.y;
+                } else if (direction == 1) {
+                    n2d = len.x * len.z;
+                    n2dx = len.x;
+                } else {
+                    n2d = len.x * len.y;
+                    n2dx = len.x;
+                }
+                int n2dblocks = (n2d+AMREX_GPU_MAX_THREADS-1)/AMREX_GPU_MAX_THREADS;
+                int nblocks = n2dblocks * b.length(direction);
+#ifdef AMREX_USE_DPCPP
+                std::size_t shared_mem_byte = sizeof(Real)*Gpu::Device::warp_size;
+                amrex::launch(nblocks, AMREX_GPU_MAX_THREADS, shared_mem_byte, Gpu::gpuStream(),
+                              [=] AMREX_GPU_DEVICE (Gpu::Handler const& h) noexcept
+#else
+                amrex::launch(nblocks, AMREX_GPU_MAX_THREADS, Gpu::gpuStream(),
+                              [=] AMREX_GPU_DEVICE () noexcept
+#endif
+                {
+#ifdef AMREX_USE_DPCPP
+                    int i1d = h.blockIdx() / n2dblocks;
+                    int i2d = h.threadIdx() + h.blockDim()*(h.blockIdx()-i1d*n2dblocks);
+#else
+                    int i1d = blockIdx.x / n2dblocks;
+                    int i2d = threadIdx.x + blockDim.x*(blockIdx.x-i1d*n2dblocks);
+#endif
+                    int i2dy = i2d / n2dx;
+                    int i2dx = i2d - i2dy*n2dx;
+                    int i, j, k, idir;
+                    if (direction == 0) {
+                        i = i1d  + lo.x;
+                        j = i2dx + lo.y;
+                        k = i2dy + lo.z;
+                        idir = i;
+                    } else if (direction == 1) {
+                        i = i2dx + lo.x;
+                        j = i1d  + lo.y;
+                        k = i2dy + lo.z;
+                        idir = j;
+                    } else {
+                        i = i2dx + lo.x;
+                        j = i2dy + lo.y;
+                        k = i1d  + lo.z;
+                        idir = k;
+                    }
+                    for (int n = 0; n < ncomp; ++n) {
+                        Real r = (i2d < n2d) ? fab(i,j,k,n+icomp) : Real(0.0);
+#ifdef AMREX_USE_DPCPP
+                        Gpu::deviceReduceSum_full(p+n+ncomp*idir, r, h);
+#else
+                        Gpu::deviceReduceSum_full(p+n+ncomp*idir, r);
+#endif
+                    }
+                });
+            }
+
+            Gpu::copyAsync(Gpu::deviceToHost, dv.begin(), dv.end(), hv.begin());
+            Gpu::streamSynchronize();
+        }
+        else
+#endif
+        {
+            for (auto& x : hv) {
+                x = Real(0.0);
+            }
+
+            Vector<Gpu::HostVector<Real> > other_hv(OpenMP::get_max_threads()-1);
+
+            Vector<Real*> pp(OpenMP::get_max_threads());
+            if (!pp.empty()) {
+                pp[0] = hv.data();
+            }
+            for (int i = 1; i < OpenMP::get_max_threads(); ++i) {
+                other_hv[i-1].resize(n1d, Real(0.0));
+                pp[i] = other_hv[i-1].data();
+            }
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(mf,true); mfi.isValid(); ++mfi) {
+                Box const& b = mfi.tilebox();
+                auto const& fab = mf.const_array(mfi);
+                Real * AMREX_RESTRICT p = pp[OpenMP::get_thread_num()];
+                if (direction == 0) {
+                    amrex::LoopOnCpu(b, ncomp, [&] (int i, int j, int k, int n) noexcept
+                    {
+                        p[n+ncomp*i] += fab(i,j,k,n+icomp);
+                    });
+                } else if (direction == 1) {
+                    amrex::LoopOnCpu(b, ncomp, [&] (int i, int j, int k, int n) noexcept
+                    {
+                        p[n+ncomp*j] += fab(i,j,k,n+icomp);
+                    });
+                } else {
+                    amrex::LoopOnCpu(b, ncomp, [&] (int i, int j, int k, int n) noexcept
+                    {
+                        p[n+ncomp*k] += fab(i,j,k,n+icomp);
+                    });
+                }
+            }
+
+            if (! other_hv.empty()) {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for
+#endif
+                for (int i = 0; i < n1d; ++i) {
+                    for (auto const& v : other_hv) {
+                        hv[i] += v[i];
+                    }
+                }
+            }
+        }
+
+        if (!local) {
+            ParallelAllReduce::Sum(hv.data(), hv.size(), ParallelContext::CommunicatorSub());
+        }
+        return hv;
+    }
 }

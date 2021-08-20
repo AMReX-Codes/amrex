@@ -176,13 +176,14 @@ endif ()
 #
 if (AMReX_HIP)
 
-   set(_valid_hip_compilers hipcc nvcc)  # later: CC, clang++
+   set(_valid_hip_compilers clang++ hipcc nvcc CC)
    get_filename_component(_this_comp ${CMAKE_CXX_COMPILER} NAME)
 
    if (NOT (_this_comp IN_LIST _valid_hip_compilers) )
-      message(WARNING "\nCMAKE_CXX_COMPILER=${_this_comp} is potentially "
-         "not a valid HIP device compiler.\n"
-         "For now, set CMAKE_CXX_COMPILER to hipcc for HIP builds.\n")
+      message(WARNING "\nCMAKE_CXX_COMPILER (${_this_comp}) is likely "
+         "incompatible with HIP.\n"
+         "Set CMAKE_CXX_COMPILER to either AMD's clang++ (preferred) or "
+         "hipcc or nvcc for HIP builds.\n")
    endif ()
 
    unset(_hip_compiler)
@@ -198,25 +199,59 @@ if (AMReX_HIP)
 
    set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
 
-   find_package(HIP REQUIRED)
+
+   if(DEFINED AMReX_AMD_ARCH)
+      # Set the GPU to compile for: semicolon-separated list
+      set(GPU_TARGETS "${AMReX_AMD_ARCH}" CACHE STRING "GPU targets to compile for" FORCE)
+      set(AMDGPU_TARGETS "${AMReX_AMD_ARCH}" CACHE STRING "GPU targets to compile for" FORCE)
+      mark_as_advanced(AMDGPU_TARGETS)
+      mark_as_advanced(GPU_TARGETS)
+   endif()
+
+   find_package(hip)
 
    if("${HIP_COMPILER}" STREQUAL "hcc")
       message(FATAL_ERROR "Using (deprecated) HCC compiler: please update ROCm")
    endif()
 
-   if(HIP_FOUND)
+   if(hip_FOUND)
       message(STATUS "Found HIP: ${HIP_VERSION}")
-      message(STATUS "HIP: Platform=${HIP_PLATFORM} Compiler=${HIP_COMPILER} Path=${HIP_PATH}")
+      message(STATUS "HIP: Runtime=${HIP_RUNTIME} Compiler=${HIP_COMPILER} Path=${HIP_PATH}")
    else()
       message(FATAL_ERROR "Could not find HIP."
          " Ensure that HIP is either installed in /opt/rocm/hip or the variable HIP_PATH is set to point to the right location.")
+   endif()
+
+   if(${_this_comp} STREQUAL hipcc AND NOT AMReX_FORTRAN)
+       message(WARNING "You are using the legacy wrapper 'hipcc' as the HIP compiler.\n"
+           "This is only needed when building with Fortran support and with ROCm/HIP <=4.2.0. "
+           "Use AMD's 'clang++' compiler instead.")
+   endif()
+   # AMD's or mainline clang++ with support for "-x hip"
+   # Cray's CC wrapper that points to AMD's clang++ underneath
+   if(NOT ${_this_comp} STREQUAL hipcc)
+       target_link_libraries(amrex PUBLIC hip::device)
+
+       # work-around for https://github.com/ROCm-Developer-Tools/HIP/issues/2278
+       # CXX_STANDARD always adds -std=c++XX, even if the compiler default fulfills it
+       #set_property(TARGET amrex PROPERTY CXX_STANDARD 17)
+       # note: already bumped to C++17 (cxx_std_17) or newer in AMReX_Config.cmake
+
+       # work-around for ROCm <=4.2
+       # https://github.com/ROCm-Developer-Tools/HIP/pull/2190
+       target_compile_options(amrex PUBLIC
+          "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-mllvm;-amdgpu-early-inline-all=true;-mllvm;-amdgpu-function-calls=false>"
+       )
+       target_compile_options(amrex PUBLIC
+          "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-x hip>"
+       )
    endif()
 
    # Link to hiprand -- must include rocrand too
    find_package(rocrand REQUIRED CONFIG)
    find_package(rocprim REQUIRED CONFIG)
    find_package(hiprand REQUIRED CONFIG)
-   if (AMReX_ROCTX)
+   if(AMReX_ROCTX)
        # To be modernized in the future, please see:
        # https://github.com/ROCm-Developer-Tools/roctracer/issues/56
        target_include_directories(amrex PUBLIC ${HIP_PATH}/../roctracer/include ${HIP_PATH}/../rocprofiler/include)
@@ -232,16 +267,34 @@ if (AMReX_HIP)
                        "See https://github.com/ROCm-Developer-Tools/HIP/issues/2275 "
                        "and https://github.com/AMReX-Codes/amrex/pull/2031 "
                        "for details.")
-   else()
+   elseif(${_this_comp} STREQUAL hipcc)
+       # hipcc expects a comma-separated list
+       string(REPLACE ";" "," AMReX_AMD_ARCH_HIPCC "${AMReX_AMD_ARCH}")
+
        target_link_libraries(amrex PUBLIC ${HIP_LIBRARIES})
+       # ARCH flags -- these must be PUBLIC for all downstream targets to use,
+       # else there will be a runtime issue (cannot find
+       # missing gpu devices)
+       target_compile_options(amrex PUBLIC
+          $<$<COMPILE_LANGUAGE:CXX>:--amdgpu-target=${AMReX_AMD_ARCH_HIPCC} -Wno-pass-failed>)
    endif()
 
-   # ARCH flags -- these must be PUBLIC for all downstream targets to use,
-   # else there will be a runtime issue (cannot find
-   # missing gpu devices)
-   target_compile_options(amrex
-      PUBLIC
-      # There are a lot of warnings due to #define AMREX_PRAGMA_SIMD _Pragma("clang loop vectorize(enable)")
-      $<$<COMPILE_LANGUAGE:CXX>:-m64 --amdgpu-target=${AMReX_AMD_ARCH} -Wno-pass-failed> )
+   target_compile_options(amrex PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-m64>)
+
+   # Equivalently, relocatable-device-code (RDC) flags are needed for `extern`
+   # device variable support (for codes that use global variables on device)
+   # as well as our kernel fusion in AMReX, e.g. happening likely in amr regrid
+   # As of ROCm 4.1, we cannot enable this with hipcc, as it looks...
+   if(AMReX_GPU_RDC)
+       target_compile_options(amrex PUBLIC
+          $<$<COMPILE_LANGUAGE:CXX>:-fgpu-rdc> )
+       if(CMAKE_VERSION VERSION_LESS 3.18)
+           target_link_options(amrex PUBLIC
+              -fgpu-rdc)
+       else()
+           target_link_options(amrex PUBLIC
+              "$<$<LINK_LANGUAGE:CXX>:-fgpu-rdc>")
+       endif()
+   endif()
 
 endif ()
