@@ -55,7 +55,7 @@ void get_face_velocity_y(int i, int j, int k,
     vy(i,j,k) =  ( (psi(i+1,j,0)+psi(i+1,j-1,0)) - (psi(i-1,j,0)+psi(i-1,j-1,0)) ) * (0.25/dx);
 }
 
-AMREX_GPU_HOST_DEVICE
+AMREX_GPU_HOST
 AMREX_FORCE_INLINE
 void get_face_velocity(const amrex::Real time,
                        amrex::FArrayBox& vx,
