@@ -142,24 +142,24 @@ Example: Advection_AmrLevel
 
 The figure above shows the :ref:`fig:AmrAdvection_AmrLevel_flowchart`
 
-*  ``amrex/Src/``
+-  ``amrex/Src/``
 
-   *  ``Base/`` Base AMReX library.
+   -  ``Base/`` Base AMReX library.
 
-   *  ``Boundary/`` An assortment of classes for handling boundary data.
+   -  ``Boundary/`` An assortment of classes for handling boundary data.
 
-   *  ``AmrCore/`` AMR data management classes, described in more detail above.
+   -  ``AmrCore/`` AMR data management classes, described in more detail above.
 
-   *  ``Amr/``
+   -  ``Amr/``
 
-*  ``Advection_AmrLevel/Src`` Source code specific to this example.
+-  ``Advection_AmrLevel/Src`` Source code specific to this example.
    Most notably is the :cpp:`AmrLevelAdv` class, which is derived from
    :cpp:`AmrLevel`. The subdirectory ``Src_K`` contain GPU kernels.
 
-*  ``Advection_AmrLevel/Exec`` Contains a makefile so a user can write other
+-  ``Advection_AmrLevel/Exec`` Contains a makefile so a user can write other
    examples besides ``SingleVortex`` and ``UniformVelocity``.
 
-   *  ``SingleVortex`` and ``UniformVelocity``
+   -  ``SingleVortex`` and ``UniformVelocity``
       Build the code here by editing the ``GNUmakefile`` and running ``make``.
       There is also problem-specific source code here used for initialization or
       specifying the velocity field used in this simulation.
