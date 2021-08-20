@@ -337,6 +337,8 @@ AmrLevelAdv::advance (Real time,
                               AMREX_D_DECL(uface[0], uface[1], uface[2]),
                               dx, prob_lo);
 
+            Gpu::streamSynchronize();
+
             for (int i = 0; i < BL_SPACEDIM ; i++) {
                 const Box& bxtmp = mfi.grownnodaltilebox(i, iteration);
                 Umac[i][mfi].copy<RunOn::Device>(uface[i], bxtmp);
@@ -370,6 +372,8 @@ AmrLevelAdv::advance (Real time,
                    AMREX_D_DECL(velx,    vely,    velz),
                    AMREX_D_DECL(flux[0], flux[1], flux[2]),
                    dx, dt);
+
+            Gpu::streamSynchronize();
 
             if (do_reflux) {
                 for (int i = 0; i < BL_SPACEDIM ; i++)
@@ -429,6 +433,8 @@ AmrLevelAdv::estTimeStep (Real)
             get_face_velocity(cur_time,
                               AMREX_D_DECL(uface[0], uface[1], uface[2]),
                               dx, prob_lo);
+
+            Gpu::streamSynchronize();
 
             for (int i = 0; i < BL_SPACEDIM; ++i) {
                 Real umax = uface[i].norm<RunOn::Device>(0);
