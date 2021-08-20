@@ -229,20 +229,34 @@ template <class FAB,
 void
 Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
+        auto const& srcarr = src.const_arrays();
+        auto const& dstarr = dst.arrays();
+        ParallelFor(dst, nghost, numcomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            dstarr[box_no](i,j,k,dstcomp+n) = srcarr[box_no](i,j,k,srccomp+n);
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.growntilebox(nghost);
-        if (bx.ok())
+        for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            auto const srcFab = src.array(mfi);
-            auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
+            const Box& bx = mfi.growntilebox(nghost);
+            if (bx.ok())
             {
-                dstFab(i,j,k,dstcomp+n) = srcFab(i,j,k,srccomp+n);
-            });
+                auto const srcFab = src.array(mfi);
+                auto       dstFab = dst.array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
+                {
+                    dstFab(i,j,k,dstcomp+n) = srcFab(i,j,k,srccomp+n);
+                });
+            }
         }
     }
 }
@@ -1990,17 +2004,30 @@ FabArray<FAB>::setVal (value_type val,
 
     BL_PROFILE("FabArray::setVal()");
 
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && this->isFusingCandidate()) {
+        auto const& fa = this->arrays();
+        ParallelFor(*this, nghost, ncomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            fa[box_no](i,j,k,n+comp) = val;
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
-    {
-        const Box& bx = fai.growntilebox(nghost);
-        auto fab = this->array(fai);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, ncomp, i, j, k, n,
+        for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
         {
-            fab(i,j,k,n+comp) = val;
-        });
+            const Box& bx = fai.growntilebox(nghost);
+            auto fab = this->array(fai);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
+            {
+                fab(i,j,k,n+comp) = val;
+            });
+        }
     }
 }
 
@@ -2030,20 +2057,35 @@ FabArray<FAB>::setVal (value_type val,
 
     BL_PROFILE("FabArray::setVal(val,region,comp,ncomp,nghost)");
 
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && this->isFusingCandidate()) {
+        auto const& fa = this->arrays();
+        ParallelFor(*this, nghost, ncomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            if (region.contains(i,j,k)) {
+                fa[box_no](i,j,k,n+comp) = val;
+            }
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
-    AMREX_ALWAYS_ASSERT(!omp_in_parallel());
+        AMREX_ALWAYS_ASSERT(!omp_in_parallel());
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
-    {
-        Box b = fai.growntilebox(nghost) & region;
+        for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
+        {
+            Box b = fai.growntilebox(nghost) & region;
 
-        if (b.ok()) {
-            auto fab = this->array(fai);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( b, ncomp, i, j, k, n,
-            {
-                fab(i,j,k,n+comp) = val;
-            });
+            if (b.ok()) {
+                auto fab = this->array(fai);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( b, ncomp, i, j, k, n,
+                {
+                    fab(i,j,k,n+comp) = val;
+                });
+            }
         }
     }
 }
@@ -2065,17 +2107,30 @@ FabArray<FAB>::abs (int comp, int ncomp, const IntVect& nghost)
     BL_ASSERT(comp+ncomp <= n_comp);
     BL_PROFILE("FabArray::abs()");
 
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && this->isFusingCandidate()) {
+        auto const& fa = this->arrays();
+        ParallelFor(*this, nghost, ncomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            fa[box_no](i,j,k,n+comp) = amrex::Math::abs(fa[box_no](i,j,k,n+comp));
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.growntilebox(nghost);
-        auto fab = this->array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, ncomp, i, j, k, n,
+        for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            fab(i,j,k,n+comp) = amrex::Math::abs(fab(i,j,k,n+comp));
-        });
+            const Box& bx = mfi.growntilebox(nghost);
+            auto fab = this->array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
+            {
+                fab(i,j,k,n+comp) = amrex::Math::abs(fab(i,j,k,n+comp));
+            });
+        }
     }
 }
 
@@ -2086,17 +2141,30 @@ FabArray<FAB>::plus (value_type val, int comp, int num_comp, int nghost)
 {
     BL_PROFILE("FabArray::plus()");
 
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && this->isFusingCandidate()) {
+        auto const& fa = this->arrays();
+        ParallelFor(*this, IntVect(nghost), num_comp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            fa[box_no](i,j,k,n+comp) += val;
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.growntilebox(nghost);
-        auto fab = this->array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, num_comp, i, j, k, n,
+        for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            fab(i,j,k,n+comp) += val;
-        });
+            const Box& bx = mfi.growntilebox(nghost);
+            auto fab = this->array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, num_comp, i, j, k, n,
+            {
+                fab(i,j,k,n+comp) += val;
+            });
+        }
     }
 }
 
@@ -2107,18 +2175,33 @@ FabArray<FAB>::plus (value_type val, const Box& region, int comp, int num_comp, 
 {
     BL_PROFILE("FabArray::plus(val, region, comp, num_comp, nghost)");
 
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && this->isFusingCandidate()) {
+        auto const& fa = this->arrays();
+        ParallelFor(*this, IntVect(nghost), num_comp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            if (region.contains(i,j,k)) {
+                fa[box_no](i,j,k,n+comp) += val;
+            }
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.growntilebox(nghost) & region;
-        if (bx.ok()) {
-            auto fab = this->array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, num_comp, i, j, k, n,
-            {
-                fab(i,j,k,n+comp) += val;
-            });
+        for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost) & region;
+            if (bx.ok()) {
+                auto fab = this->array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, num_comp, i, j, k, n,
+                {
+                    fab(i,j,k,n+comp) += val;
+                });
+            }
         }
     }
 }
@@ -2130,17 +2213,30 @@ FabArray<FAB>::mult (value_type val, int comp, int num_comp, int nghost)
 {
     BL_PROFILE("FabArray::mult()");
 
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && this->isFusingCandidate()) {
+        auto const& fa = this->arrays();
+        ParallelFor(*this, IntVect(nghost), num_comp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            fa[box_no](i,j,k,n+comp) *= val;
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.growntilebox(nghost);
-        auto fab = this->array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, num_comp, i, j, k, n,
+        for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            fab(i,j,k,n+comp) *= val;
-        });
+            const Box& bx = mfi.growntilebox(nghost);
+            auto fab = this->array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, num_comp, i, j, k, n,
+            {
+                fab(i,j,k,n+comp) *= val;
+            });
+        }
     }
 }
 
@@ -2151,18 +2247,33 @@ FabArray<FAB>::mult (value_type val, const Box& region, int comp, int num_comp, 
 {
     BL_PROFILE("FabArray::mult(val, region, comp, num_comp, nghost)");
 
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && this->isFusingCandidate()) {
+        auto const& fa = this->arrays();
+        ParallelFor(*this, IntVect(nghost), num_comp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            if (region.contains(i,j,k)) {
+                fa[box_no](i,j,k,n+comp) *= val;
+            }
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.growntilebox(nghost) & region;
-        if (bx.ok()) {
-            auto fab = this->array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, num_comp, i, j, k, n,
-            {
-                fab(i,j,k,n+comp) *= val;
-            });
+        for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost) & region;
+            if (bx.ok()) {
+                auto fab = this->array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, num_comp, i, j, k, n,
+                {
+                    fab(i,j,k,n+comp) *= val;
+                });
+            }
         }
     }
 }
@@ -2174,17 +2285,30 @@ FabArray<FAB>::invert (value_type numerator, int comp, int num_comp, int nghost)
 {
     BL_PROFILE("FabArray::invert()");
 
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && this->isFusingCandidate()) {
+        auto const& fa = this->arrays();
+        ParallelFor(*this, IntVect(nghost), num_comp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            fa[box_no](i,j,k,n+comp) = numerator / fa[box_no](i,j,k,n+comp);
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.growntilebox(nghost);
-        auto fab = this->array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, num_comp, i, j, k, n,
+        for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            fab(i,j,k,n+comp) = numerator / fab(i,j,k,n+comp);
-        });
+            const Box& bx = mfi.growntilebox(nghost);
+            auto fab = this->array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, num_comp, i, j, k, n,
+            {
+                fab(i,j,k,n+comp) = numerator / fab(i,j,k,n+comp);
+            });
+        }
     }
 }
 
@@ -2195,18 +2319,33 @@ FabArray<FAB>::invert (value_type numerator, const Box& region, int comp, int nu
 {
     BL_PROFILE("FabArray::invert(numerator, region, comp, num_comp, nghost)");
 
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && this->isFusingCandidate()) {
+        auto const& fa = this->arrays();
+        ParallelFor(*this, IntVect(nghost), num_comp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            if (region.contains(i,j,k)) {
+                fa[box_no](i,j,k,n+comp) = numerator / fa[box_no](i,j,k,n+comp);
+            }
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.growntilebox(nghost) & region;
-        if (bx.ok()) {
-            auto fab = this->array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, num_comp, i, j, k, n,
-            {
-                fab(i,j,k,n+comp) = numerator / fab(i,j,k,n+comp);
-            });
+        for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost) & region;
+            if (bx.ok()) {
+                auto fab = this->array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, num_comp, i, j, k, n,
+                {
+                    fab(i,j,k,n+comp) = numerator / fab(i,j,k,n+comp);
+                });
+            }
         }
     }
 }
@@ -2461,26 +2600,47 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
         }
     }
 
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        auto const& fab = this->array(mfi);
-        Box const& fbx = mfi.growntilebox();
-        Box const& gbx = fbx & domain;
-        Box const& vbx = mfi.validbox();
-        AMREX_HOST_DEVICE_FOR_4D_FUSIBLE(fbx, ncomp, i, j, k, n,
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && this->isFusingCandidate()) {
+        auto const& fa = this->arrays();
+        ParallelFor(*this, ngrow, ncomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
         {
-            IntVect iv(AMREX_D_DECL(i,j,k));
-            if (vbx.contains(iv)) {
+            auto const& fab = fa[box_no];
+            Box vbx(fab);
+            vbx.grow(-ngrow);
+            if (vbx.contains(i,j,k)) {
                 fab(i,j,k,n) = interior;
-            } else if (gbx.contains(iv)) {
+            } else if (domain.contains(i,j,k)) {
                 fab(i,j,k,n) = notcovered;
             } else {
                 fab(i,j,k,n) = physbnd;
             }
         });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            auto const& fab = this->array(mfi);
+            Box const& fbx = mfi.growntilebox();
+            Box const& gbx = fbx & domain;
+            Box const& vbx = mfi.validbox();
+            AMREX_HOST_DEVICE_FOR_4D(fbx, ncomp, i, j, k, n,
+            {
+                if (vbx.contains(i,j,k)) {
+                    fab(i,j,k,n) = interior;
+                } else if (gbx.contains(i,j,k)) {
+                    fab(i,j,k,n) = notcovered;
+                } else {
+                    fab(i,j,k,n) = physbnd;
+                }
+            });
+        }
     }
 
     const FabArrayBase::FB& TheFB = this->getFB(ngrow,period);

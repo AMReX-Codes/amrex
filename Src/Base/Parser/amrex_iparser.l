@@ -59,6 +59,6 @@
 "\n"    { return EOL; }
 
  /* everything else */
-.	{ amrex_iparsererror("Unknown character %c\n", *amrex_iparsertext); }
+.	{ amrex_iparsererror("Unknown character %c", *amrex_iparsertext); }
 
 %%

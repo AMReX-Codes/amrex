@@ -52,8 +52,8 @@ public:
     * \param ngrow number of cells the region grows
     * \param info MFInfo
 
-    * The size of the FArrayBox is given by the Box grown by ngrow and
-    * the number of components is given by ncomp.  If info is set to
+    * The size of the FArrayBox is given by the Box grown by ngrow, and
+    * the number of components is given by ncomp. If info is set to
     * not allocating memory, then no FArrayBoxes are allocated at
     * this time but can be defined later.
     */

@@ -81,7 +81,7 @@ void testParticleMesh (TestParams& parms)
 
     bool serialize = true;
     int iseed = 451;
-    Real mass = 10.0;
+    double mass = 10.0;
 
     MyParticleContainer::ParticleInitData pdata = {{mass}, {}, {}, {}};
     myPC.InitRandom(num_particles, iseed, pdata, serialize);

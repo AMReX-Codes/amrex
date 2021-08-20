@@ -487,7 +487,7 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
 
     MultiFab rhs_diag(rhs.boxArray(), rhs.DistributionMap(), 1, 0);
 #ifdef AMREX_USE_OMP
-#pragma omp paralle if (Gpu::notInLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(rhs_diag,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {

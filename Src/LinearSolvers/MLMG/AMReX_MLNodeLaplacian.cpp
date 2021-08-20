@@ -248,39 +248,75 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
         }
     }
 
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(*pcrse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        Array4<Real> cfab = pcrse->array(mfi);
-        Array4<Real const> const& ffab = fine.const_array(mfi);
-        Array4<int const> const& mfab = dmsk.const_array(mfi);
+#ifdef AMREX_USE_GPU
+    auto pcrse_ma = pcrse->arrays();
+    auto fine_ma = fine.const_arrays();
+    auto msk_ma = dmsk.const_arrays();
+
+    if (Gpu::inLaunchRegion()) {
         if (m_coarsening_strategy == CoarseningStrategy::Sigma)
         {
             if (regular_coarsening)
             {
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                ParallelFor(*pcrse, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
                 {
-                    mlndlap_restriction(i,j,k,cfab,ffab,mfab);
+                    mlndlap_restriction(i,j,k,pcrse_ma[box_no],fine_ma[box_no],msk_ma[box_no]);
                 });
             }
             else
             {
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                ParallelFor(*pcrse, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
                 {
-                    mlndlap_semi_restriction(i,j,k,cfab,ffab,mfab,idir);
+                    mlndlap_semi_restriction(i,j,k,pcrse_ma[box_no],fine_ma[box_no],msk_ma[box_no],idir);
                 });
             }
         }
         else
         {
-            Array4<Real const> const& stfab = stencil->const_array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            auto st_ma = stencil->const_arrays();
+            ParallelFor(*pcrse, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
             {
-                mlndlap_restriction_rap(i,j,k,cfab,ffab,stfab,mfab);
+                mlndlap_restriction_rap(i,j,k,pcrse_ma[box_no],fine_ma[box_no],st_ma[box_no],msk_ma[box_no]);
             });
+        }
+        Gpu::synchronize();
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(*pcrse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            Array4<Real> cfab = pcrse->array(mfi);
+            Array4<Real const> const& ffab = fine.const_array(mfi);
+            Array4<int const> const& mfab = dmsk.const_array(mfi);
+            if (m_coarsening_strategy == CoarseningStrategy::Sigma)
+            {
+                if (regular_coarsening)
+                {
+                    amrex::LoopConcurrentOnCpu(bx, [&] (int i, int j, int k) noexcept
+                    {
+                        mlndlap_restriction(i,j,k,cfab,ffab,mfab);
+                    });
+                }
+                else
+                {
+                    amrex::LoopConcurrentOnCpu(bx, [&] (int i, int j, int k) noexcept
+                    {
+                        mlndlap_semi_restriction(i,j,k,cfab,ffab,mfab,idir);
+                    });
+                }
+            }
+            else
+            {
+                Array4<Real const> const& stfab = stencil->const_array(mfi);
+                amrex::LoopConcurrentOnCpu(bx, [&] (int i, int j, int k) noexcept
+                {
+                    mlndlap_restriction_rap(i,j,k,cfab,ffab,stfab,mfab);
+                });
+            }
         }
     }
 
@@ -329,18 +365,17 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
     auto msk_ma = dmsk.const_arrays();
 
     if (Gpu::inLaunchRegion()) {
-        IntVect ng( 0);
         if (m_coarsening_strategy == CoarseningStrategy::RAP)
         {
             auto sten_ma = stencil->const_arrays();
-            experimental::ParallelFor(fine, ng,[=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+            ParallelFor(fine, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
             {
                 mlndlap_interpadd_rap(i, j, k, fine_ma[box_no], crse_ma[box_no], sten_ma[box_no], msk_ma[box_no]);
             });
         }
         else if (sigma[0] == nullptr)
         {
-            experimental::ParallelFor(fine, ng,[=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+            ParallelFor(fine, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
             {
                 mlndlap_interpadd_c(i, j, k, fine_ma[box_no], crse_ma[box_no], msk_ma[box_no]);
             });
@@ -350,7 +385,7 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
             AMREX_D_TERM(MultiArray4<Real const> const& sx_ma = sigma[0]->const_arrays();,
                          MultiArray4<Real const> const& sy_ma = sigma[1]->const_arrays();,
                          MultiArray4<Real const> const& sz_ma = sigma[2]->const_arrays(););
-            experimental::ParallelFor(fine, ng,[=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+            ParallelFor(fine, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
             {
                 mlndlap_interpadd_ha(i, j, k, fine_ma[box_no], crse_ma[box_no], AMREX_D_DECL(sx_ma[box_no], sy_ma[box_no], sz_ma[box_no]), msk_ma[box_no]);
             });
@@ -358,7 +393,7 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
         else if (regular_coarsening)
         {
             auto sig_ma = sigma[0]->const_arrays();
-            experimental::ParallelFor(fine, ng,[=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+            ParallelFor(fine, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
             {
                 mlndlap_interpadd_aa(i, j, k, fine_ma[box_no], crse_ma[box_no], sig_ma[box_no], msk_ma[box_no]);
             });
@@ -366,7 +401,7 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
         else
         {
             auto sig_ma = sigma[0]->const_arrays();
-            experimental::ParallelFor(fine, ng,[=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+            ParallelFor(fine, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
             {
                 mlndlap_semi_interpadd_aa(i, j, k, fine_ma[box_no], crse_ma[box_no], sig_ma[box_no], msk_ma[box_no], idir);
             });

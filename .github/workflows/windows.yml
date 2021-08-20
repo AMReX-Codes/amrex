@@ -2,6 +2,10 @@ name: windows
 
 on: [push, pull_request]
 
+concurrency:
+  group: ${{ github.head_ref }}-windows
+  cancel-in-progress: true
+
 jobs:
   # Build libamrex and all tests
   tests_msvc:
@@ -15,6 +19,7 @@ jobs:
               -DCMAKE_BUILD_TYPE=Debug      `
               -DBUILD_SHARED_LIBS=ON        `
               -DCMAKE_VERBOSE_MAKEFILE=ON   `
+              -DAMReX_EB=OFF                `
               -DAMReX_ENABLE_TESTS=ON       `
               -DAMReX_FORTRAN=OFF           `
               -DAMReX_MPI=OFF               `
@@ -32,7 +37,8 @@ jobs:
         cmake -S . -B build   `
               -DCMAKE_BUILD_TYPE=RelWithDebInfo `
               -DCMAKE_VERBOSE_MAKEFILE=ON   `
-              -DAMReX_ENABLE_TESTS=ON    `
+              -DAMReX_EB=ON                 `
+              -DAMReX_ENABLE_TESTS=ON       `
               -DAMReX_FORTRAN=OFF           `
               -DAMReX_MPI=OFF               `
               -DAMReX_PARTICLES=ON
@@ -54,6 +60,7 @@ jobs:
               -DCMAKE_BUILD_TYPE=Release    ^
               -DBUILD_SHARED_LIBS=ON        ^
               -DCMAKE_VERBOSE_MAKEFILE=ON   ^
+              -DAMReX_EB=ON                 ^
               -DAMReX_ENABLE_TESTS=ON       ^
               -DAMReX_FORTRAN=OFF           ^
               -DAMReX_MPI=OFF               ^
