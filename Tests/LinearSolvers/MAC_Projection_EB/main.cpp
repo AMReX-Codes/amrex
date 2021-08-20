@@ -195,7 +195,7 @@ int main (int argc, char* argv[])
                              {geom},                           // the geometry object
                              lp_info);                         // structure for passing info to the operator
 
-        // Here we specifiy the desired divergence S
+        // Here we specify the desired divergence S
         // MacProjector macproj({amrex::GetArrOfPtrs(vel)},       // face-based velocity
         //                      {amrex::GetArrOfConstPtrs(beta)}, // beta
         //                      {geom},                           // the geometry object

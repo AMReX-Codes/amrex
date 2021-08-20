@@ -235,7 +235,7 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
             if( flag(i,j,k).isConnected(ii,jj,kk) &&
                 ! (ii==0 && jj==0 && kk==0)) {
 
-            // Not multplying by dx to be consistent with how the
+            // Not multiplying by dx to be consistent with how the
             // slope is stored. Also not including the global shift
             // wrt plo or i,j,k. We only need relative distance.
 
@@ -666,8 +666,8 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
            // Compute max and min values in a 3x2 stencil
            for(int jj(0); jj<=1; jj++){
                for(int ii(-1); ii<=1; ii++){
-                    if( flag(i,j,k).isConnected(ii,jj,kk) and
-                    not (ii==0 and jj==0 and kk==0)) {
+                    if ( flag(i,j,k).isConnected(ii,jj,kk) and
+                    not (ii==0 and jj==0) ) {
                         if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
                         if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
                 }
@@ -690,8 +690,8 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
            // Compute max and min values in a 3x2 stencil
            for(int jj(-1); jj<=0; jj++){
                for(int ii(-1); ii<=1; ii++){
-                    if( flag(i,j,k).isConnected(ii,jj,kk) and
-                    not (ii==0 and jj==0 and kk==0)) {
+                    if ( flag(i,j,k).isConnected(ii,jj,kk) and
+                    not (ii==0 and jj==0) ) {
                         if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
                         if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
                 }
@@ -711,10 +711,10 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
            amrex::Real q_min = state(i,j,k,n);
            amrex::Real q_max = state(i,j,k,n);
 
-           for(int jj(0); jj<=1; jj++){
+           for(int jj(-1); jj<=1; jj++){
                for(int ii(0); ii<=1; ii++){
-                    if( flag(i,j,k).isConnected(ii,jj,kk) and
-                    not (ii==0 and jj==0 and kk==0)) {
+                    if ( flag(i,j,k).isConnected(ii,jj,kk) and
+                    not (ii==0 and jj==0) ) {
                         if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
                         if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
                 }

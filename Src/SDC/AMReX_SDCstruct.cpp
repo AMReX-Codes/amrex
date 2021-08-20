@@ -36,7 +36,7 @@ SDCstruct::SDCstruct(int Nnodes_in,int Npieces_in, MultiFab& sol_in)
   if (Npieces == 3)
     Ithree.resize(Nnodes);
 
-  //  Assign  geomety and multifab info
+  //  Assign  geometry and multifab info
   const BoxArray &ba=sol_in.boxArray();
   const DistributionMapping &dm=sol_in.DistributionMap();
   const int Nghost=sol_in.nGrow();
@@ -84,7 +84,7 @@ void SDCstruct::SDC_rhs_integrals(Real dt)
                 { //  // MISDC pieces
                   qij = dt*(Qgauss[sdc_m][sdc_n]);  // leave off -dt*Qtil and add it later
                   res[sdc_m][mfi].saxpy(qij,f[2][sdc_n][mfi]);
-                  // Compute seperate integral for f_3 piece
+                  // Compute separate integral for f_3 piece
                   qij = -dt*(Qimp[sdc_m][sdc_n]);
                   Ithree[sdc_m][mfi].saxpy(qij,f[2][sdc_n][mfi]);
                 }

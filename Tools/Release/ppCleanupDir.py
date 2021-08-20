@@ -23,11 +23,11 @@ def ppCleanupDir(argv):
     outdir = argv[3]
 
     if not os.path.isfile(cwfile):
-        print "clean word file:",cwfile,"does't exist."
+        print "clean word file:",cwfile,"doesn't exist."
         sys.exit(1)
 
     if not os.path.isdir(indir):
-        print "In Dir", indir,"does't exist."
+        print "In Dir", indir,"doesn't exist."
         sys.exit(1)
 
     if os.path.exists(outdir):

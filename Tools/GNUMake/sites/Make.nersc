@@ -29,23 +29,17 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
     endif
 
     includes += $(shell CC --cray-print-opts=cflags)
-    ifneq ($(BL_NO_FORT),TRUE)
-      comm := ,
-      LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(shell ftn --cray-print-opts=libs))
-
-#      LIBRARIES += $(shell ftn --cray-print-opts=libs)
-#      LIBRARIES += -lmpi
-    else
-      comm := ,
-      LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(shell ftn --cray-print-opts=libs))
-
-#      LIBRARIES += $(shell CC --cray-print-opts=libs)
-#      LIBRARIES += -lmpi
-    endif
   endif
 
   ifeq ($(USE_CUDA),TRUE)
     CUDA_ARCH = 80
+
+    comm := ,
+    ifneq ($(BL_NO_FORT),TRUE)
+        LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(shell ftn --cray-print-opts=libs))
+    else
+        LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(shell CC --cray-print-opts=libs))
+    endif
 
     ifneq ($(CUDA_ROOT),)
         SYSTEM_CUDA_PATH := $(CUDA_ROOT)

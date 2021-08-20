@@ -17,7 +17,7 @@ source code of ${_target} alone.
 add_typecheck_target(_target) assumes that all the C++ interfaces to
 Fortran routines are located in header files with name ending in "_f.H"
 or "_F.H". It also assumes that the Fortran implementations are stored
-in files with extentions ".f", ".f90", ".F", and ".F90". 
+in files with extensions ".f", ".f90", ".F", and ".F90". 
 
 
 Typechecking is performed in 4 steps:
@@ -62,7 +62,7 @@ function( add_typecheck_target _target)
    endif ()
 
    if ( NOT TARGET ${_target} )
-      message(WARNING "Skipping typecheck for target ${_target} bacause it does not exist")
+      message(WARNING "Skipping typecheck for target ${_target} because it does not exist")
       return ()
    endif ()
 
@@ -165,7 +165,7 @@ function( add_typecheck_target _target)
    # However, since this would only generate ".mod" files and no ".o" files, the target
    # would always be out of date and repeat itself.
    # A work around would be to create the module and the orig file at the same time.
-   # this could be achieved with a add_custom_command which is aware of dependecies info.
+   # this could be achieved with a add_custom_command which is aware of dependencies info.
    # To this end, we could use IMPLICIT_DEPENDS. Unfortunately this option is supported
    # for C and C++ only for now.
    set(_typecheckobjs  typecheckobjs_${_target})
@@ -280,7 +280,7 @@ function( add_typecheck_target _target)
    foreach ( _file IN LISTS _fsources )
       get_filename_component( _fname    ${_file} NAME )     # This strips away the path
       get_filename_component( _fullname ${_file} ABSOLUTE ) # This add the absolute path to fname
-      set( _orig_file ${_typecheck_dir}/${_fname}.orig )     # Use fullpath otherwise it rebuilds everytime
+      set( _orig_file ${_typecheck_dir}/${_fname}.orig )     # Use fullpath otherwise it rebuilds every time
       add_custom_command(
          OUTPUT   ${_orig_file}
          COMMAND  ${CMAKE_Fortran_COMPILER}

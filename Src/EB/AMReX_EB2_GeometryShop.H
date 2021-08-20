@@ -167,7 +167,7 @@ BrentRootFinder (GpuArray<Real,AMREX_SPACEDIM> const& lo,
     return bPt[rangedir];
 }
 
-template <class F>
+template <class F, class R = int>
 class GeometryShop
 {
 public:
@@ -183,21 +183,29 @@ public:
     using FunctionType = F;
 
     explicit GeometryShop (F const& f)
-        : m_f(f)
+        : m_f(f), m_resource()
         {}
 
     explicit GeometryShop (F && f)
-        : m_f(std::move(f))
+        : m_f(std::move(f)), m_resource()
+        {}
+
+    GeometryShop (F const& f, R const& r)
+        : m_f(f), m_resource(r)
+        {}
+
+    GeometryShop (F && f, R && r)
+        : m_f(std::move(f)), m_resource(std::move(r))
         {}
 
     ~GeometryShop() {}
 
     GeometryShop (GeometryShop<F> const& rhs)
-        : m_f(rhs.m_f)
+        : m_f(rhs.m_f), m_resource(rhs.m_resource)
         {}
 
     GeometryShop (GeometryShop<F> && rhs)
-        : m_f(std::move(rhs.m_f))
+        : m_f(std::move(rhs.m_f)), m_resource(std::move(rhs.m_resource))
         {}
 
     GeometryShop<F>& operator= (GeometryShop<F> const& rhs) = delete;
@@ -408,10 +416,48 @@ public:
         }
     }
 
+    void updateIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
+                          Array<Array4<Type_t const>,AMREX_SPACEDIM> const& type_arr,
+                          Array4<Real const> const& lst, Geometry const& geom) const noexcept
+    {
+        auto const& dx = geom.CellSizeArray();
+        auto const& problo = geom.ProbLoArray();
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            Array4<Real> const& inter = inter_arr[idim];
+            Array4<Type_t const> const& type = type_arr[idim];
+            const Box bx{inter};
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+            {
+                if (type(i,j,k) == Type::irregular) {
+                    if (idim == 0) {
+                        if (lst(i,j,k) == Real(0.0)) {
+                            inter(i,j,k) = problo[0] + i*dx[0];
+                        } else if (lst(i+1,j,k) == Real(0.0)) {
+                            inter(i,j,k) = problo[0] + (i+1)*dx[0];
+                        }
+                    } else if (idim == 1) {
+                        if (lst(i,j,k) == Real(0.0)) {
+                            inter(i,j,k) = problo[1] + j*dx[1];
+                        } else if (lst(i,j+1,k) == Real(0.0)) {
+                            inter(i,j,k) = problo[1] + (j+1)*dx[1];
+                        }
+                    } else {
+                        if (lst(i,j,k) == Real(0.0)) {
+                            inter(i,j,k) = problo[2] + k*dx[2];
+                        } else if (lst(i,j,k+1) == Real(0.0)) {
+                            inter(i,j,k) = problo[2] + (k+1)*dx[2];
+                        }
+                    }
+                }
+            });
+        }
+    }
+
 private:
 
     F m_f;
-
+    R m_resource;  // We use this to hold the ownership of resource for F if needed,
+                   // because F needs to be a simply type suitable for GPU.
 };
 
 template <class F>
@@ -419,6 +465,15 @@ GeometryShop<typename std::decay<F>::type>
 makeShop (F&& f)
 {
     return GeometryShop<typename std::decay<F>::type>(std::forward<F>(f));
+}
+
+template <class F, class R>
+GeometryShop<typename std::decay<F>::type, typename std::decay<R>::type>
+makeShop (F&& f, R&& r)
+{
+    return GeometryShop<typename std::decay<F>::type,
+                        typename std::decay<R>::type>
+        (std::forward<F>(f), std::forward<R>(r));
 }
 
 }}

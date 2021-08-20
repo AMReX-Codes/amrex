@@ -90,6 +90,8 @@ public:
                  const Vector<BoxArray>            & ba,
                  const Vector<int>                 & rr);
 
+    bool isDefined () const { return m_gdb != nullptr; }
+
     void reserveData ();
     void resizeData ();
     void RedefineDummyMF (int lev);
@@ -188,7 +190,8 @@ public:
         return computeNeighborProcs(this->GetParGDB(), ngrow);
     }
 
-    bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
+    template <class MF>
+    bool OnSameGrids (int level, const MF& mf) const { return m_gdb->OnSameGrids(level, mf); }
 
     static const std::string& Version ();
     static const std::string& DataPrefix ();
@@ -199,6 +202,7 @@ public:
 
     static AMREX_EXPORT bool do_tiling;
     static AMREX_EXPORT IntVect tile_size;
+    mutable AmrParticleLocator<DenseBins<Box> > m_particle_locator;
 
 protected:
 
@@ -214,9 +218,7 @@ protected:
     mutable int redistribute_mask_nghost = std::numeric_limits<int>::min();
     mutable amrex::Vector<int> neighbor_procs;
     mutable ParticleBufferMap m_buffer_map;
-#ifdef AMREX_USE_GPU
-    mutable AmrParticleLocator<DenseBins<Box> > m_particle_locator;
-#endif
+
 };
 
 } // namespace amrex

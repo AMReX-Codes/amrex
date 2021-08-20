@@ -74,7 +74,7 @@ DArena::alloc (std::size_t nbytes)
     if ((nblocks & (nblocks - 1)) != 0) { // nblocks is NOT power of 2
         ++order;
     }
-    // We have found the miminal order that satisfies 2^order >= nblocks
+    // We have found the minimal order that satisfies 2^order >= nblocks
 
     std::lock_guard<std::mutex> lock(m_mutex);
 

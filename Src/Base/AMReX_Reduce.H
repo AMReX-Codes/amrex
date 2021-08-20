@@ -316,6 +316,8 @@ public:
         int ncells = box.numPts();
         const auto lo  = amrex::lbound(box);
         const auto len = amrex::length(box);
+        const auto lenxy = len.x*len.y;
+        const auto lenx = len.x;
         IndexType ixtype = box.ixType();
         constexpr int nitems_per_thread = 4;
         int nblocks_ec = (ncells + nitems_per_thread*AMREX_GPU_MAX_THREADS-1)
@@ -335,9 +337,9 @@ public:
             }
             for (int icell = gh.item->get_global_id(0), stride = gh.item->get_global_range(0);
                  icell < ncells; icell += stride) {
-                int k =  icell /   (len.x*len.y);
-                int j = (icell - k*(len.x*len.y)) /   len.x;
-                int i = (icell - k*(len.x*len.y)) - j*len.x;
+                int k =  icell /   lenxy;
+                int j = (icell - k*lenxy) /   lenx;
+                int i = (icell - k*lenxy) - j*lenx;
                 i += lo.x;
                 j += lo.y;
                 k += lo.z;
@@ -358,9 +360,9 @@ public:
             }
             for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
                  icell < ncells; icell += stride) {
-                int k =  icell /   (len.x*len.y);
-                int j = (icell - k*(len.x*len.y)) /   len.x;
-                int i = (icell - k*(len.x*len.y)) - j*len.x;
+                int k =  icell /   lenxy;
+                int j = (icell - k*lenxy) /   lenx;
+                int i = (icell - k*lenxy) - j*lenx;
                 i += lo.x;
                 j += lo.y;
                 k += lo.z;
@@ -384,6 +386,8 @@ public:
         int ncells = box.numPts();
         const auto lo  = amrex::lbound(box);
         const auto len = amrex::length(box);
+        const auto lenxy = len.x*len.y;
+        const auto lenx = len.x;
         constexpr int nitems_per_thread = 4;
         int nblocks_ec = (ncells + nitems_per_thread*AMREX_GPU_MAX_THREADS-1)
             / (nitems_per_thread*AMREX_GPU_MAX_THREADS);
@@ -402,9 +406,9 @@ public:
             }
             for (int icell = gh.item->get_global_id(0), stride = gh.item->get_global_range(0);
                  icell < ncells; icell += stride) {
-                int k =  icell /   (len.x*len.y);
-                int j = (icell - k*(len.x*len.y)) /   len.x;
-                int i = (icell - k*(len.x*len.y)) - j*len.x;
+                int k =  icell /   lenxy;
+                int j = (icell - k*lenxy) /   lenx;
+                int i = (icell - k*lenxy) - j*lenx;
                 i += lo.x;
                 j += lo.y;
                 k += lo.z;
@@ -426,9 +430,9 @@ public:
             }
             for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
                  icell < ncells; icell += stride) {
-                int k =  icell /   (len.x*len.y);
-                int j = (icell - k*(len.x*len.y)) /   len.x;
-                int i = (icell - k*(len.x*len.y)) - j*len.x;
+                int k =  icell /   lenxy;
+                int j = (icell - k*lenxy) /   lenx;
+                int i = (icell - k*lenxy) - j*lenx;
                 i += lo.x;
                 j += lo.y;
                 k += lo.z;
@@ -507,6 +511,13 @@ public:
 #ifdef AMREX_USE_DPCPP
         // device reduce needs local(i.e., shared) memory
         constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
+#ifndef AMREX_NO_DPCPP_REDUCE_WORKAROUND
+        // xxxxx DPCPP todo: reduce bug workaround
+        Gpu::DeviceVector<ReduceTuple> dtmp(1);
+        auto presult = dtmp.data();
+#else
+        auto presult = hp;
+#endif
         amrex::launch(1, AMREX_GPU_MAX_THREADS, shared_mem_bytes, stream,
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
         {
@@ -521,8 +532,11 @@ public:
                 }
             }
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r, gh);
-            if (gh.threadIdx() == 0) { *hp = dst; }
+            if (gh.threadIdx() == 0) { *presult = dst; }
         });
+#ifndef AMREX_NO_DPCPP_REDUCE_WORKAROUND
+        Gpu::dtoh_memcpy_async(hp, dtmp.data(), sizeof(ReduceTuple));
+#endif
 #else
         amrex::launch(1, AMREX_GPU_MAX_THREADS, 0, stream,
         [=] AMREX_GPU_DEVICE () noexcept
@@ -710,6 +724,8 @@ bool AnyOf (Box const& box, P&& pred)
     int ncells = box.numPts();
     const auto lo  = amrex::lbound(box);
     const auto len = amrex::length(box);
+    const auto lenxy = len.x*len.y;
+    const auto lenx = len.x;
     auto ec = Gpu::ExecutionConfig(ncells);
     ec.numBlocks.x = std::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch());
 
@@ -727,9 +743,9 @@ bool AnyOf (Box const& box, P&& pred)
             int r = false;
             for (int icell = gh.blockDim()*gh.blockIdx()+gh.threadIdx(), stride = gh.blockDim()*gh.gridDim();
                  icell < ncells && !r; icell += stride) {
-                int k =  icell /   (len.x*len.y);
-                int j = (icell - k*(len.x*len.y)) /   len.x;
-                int i = (icell - k*(len.x*len.y)) - j*len.x;
+                int k =  icell /   lenxy;
+                int j = (icell - k*lenxy) /   lenx;
+                int i = (icell - k*lenxy) - j*lenx;
                 i += lo.x;
                 j += lo.y;
                 k += lo.z;
@@ -752,9 +768,9 @@ bool AnyOf (Box const& box, P&& pred)
             int r = false;
             for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
                  icell < ncells && !r; icell += stride) {
-                int k =  icell /   (len.x*len.y);
-                int j = (icell - k*(len.x*len.y)) /   len.x;
-                int i = (icell - k*(len.x*len.y)) - j*len.x;
+                int k =  icell /   lenxy;
+                int j = (icell - k*lenxy) /   lenx;
+                int i = (icell - k*lenxy) - j*lenx;
                 i += lo.x;
                 j += lo.y;
                 k += lo.z;

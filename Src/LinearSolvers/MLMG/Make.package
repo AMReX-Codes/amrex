@@ -75,6 +75,11 @@ CEXE_sources   += AMReX_MLEBABecLap_F.cpp
 CEXE_headers   += AMReX_MLEBABecLap_K.H
 CEXE_headers   += AMReX_MLEBABecLap_$(DIM)D_K.H
 
+CEXE_headers   += AMReX_MLEBNodeFDLaplacian.H
+CEXE_sources   += AMReX_MLEBNodeFDLaplacian.cpp
+CEXE_headers   += AMReX_MLEBNodeFDLap_K.H
+CEXE_headers   += AMReX_MLEBNodeFDLap_$(DIM)D_K.H
+
 CEXE_headers   += AMReX_MLEBTensorOp.H
 CEXE_sources   += AMReX_MLEBTensorOp.cpp
 CEXE_sources   += AMReX_MLEBTensorOp_bc.cpp

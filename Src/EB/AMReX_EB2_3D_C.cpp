@@ -3,16 +3,39 @@
 namespace amrex { namespace EB2 {
 
 namespace {
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void set_covered (const int i, const int j, const int k,
+                  Array4<EBCellFlag> const& cell,
+                  Array4<Real> const& vfrac, Array4<Real> const& vcent,
+                  Array4<Real> const& barea, Array4<Real> const& bcent,
+                  Array4<Real> const& bnorm) noexcept
+{
+    vfrac(i,j,k) = 0.0;
+    vcent(i,j,k,0) = 0.0;
+    vcent(i,j,k,1) = 0.0;
+    vcent(i,j,k,2) = 0.0;
+    bcent(i,j,k,0) = -1.0;
+    bcent(i,j,k,1) = -1.0;
+    bcent(i,j,k,2) = -1.0;
+    bnorm(i,j,k,0) = 0.0;
+    bnorm(i,j,k,1) = 0.0;
+    bnorm(i,j,k,2) = 0.0;
+    barea(i,j,k) = 0.0;
+    cell(i,j,k).setCovered();
+}
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void set_eb_data (const int i, const int j, const int k,
-                  Array4<Real> const& apx,
+                  Array4<EBCellFlag> const& cell, Array4<Real> const& apx,
                   Array4<Real> const& apy, Array4<Real> const& apz,
                   Array4<Real const> const& fcx, Array4<Real const> const& fcy,
                   Array4<Real const> const& fcz, Array4<Real const> const& m2x,
                   Array4<Real const> const& m2y, Array4<Real const> const& m2z,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
-                  Array4<Real> const& bnorm)
+                  Array4<Real> const& bnorm, Real small_volfrac,
+                  bool& is_small_cell, bool& is_multicut) noexcept
 {
     Real axm = apx(i,j,k);
     Real axp = apx(i+1,j,k);
@@ -21,7 +44,7 @@ void set_eb_data (const int i, const int j, const int k,
     Real azm = apz(i,j,k);
     Real azp = apz(i,j,k+1);
 
-    // Check for multple cuts
+    // Check for multiple cuts
     // We know there are no multiple cuts on faces by now.
     // So we only need to check the case that there are two cuts
     // at the opposite corners.
@@ -31,14 +54,17 @@ void set_eb_data (const int i, const int j, const int k,
                        ayp >= 0.5 && ayp < 1.0 &&
                        azm >= 0.5 && azm < 1.0 &&
                        azp >= 0.5 && azp < 1.0);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!multi_cuts,
-                                     "amrex::EB2::build_cells: multi-cuts not supported");
+    if (multi_cuts) {
+        set_covered(i, j, k, cell, vfrac, vcent, barea, bcent, bnorm);
+        is_multicut = true;
+        return;
+    }
 
     Real dapx = axm - axp;
     Real dapy = aym - ayp;
     Real dapz = azm - azp;
     Real apnorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(apnorm != 0.0,
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(apnorm != 0.0,
                                      "amrex::EB2:build_cells: apnorm==0");
     Real apnorminv = 1.0/apnorm;
     Real nx = dapx * apnorminv;
@@ -61,6 +87,13 @@ void set_eb_data (const int i, const int j, const int k,
                       + ny*(aym*fcy(i,j,k,1)-ayp*fcy(i,j+1,k,1));
 
     vfrac(i,j,k) = 0.5*(B0 + nx*Bx + ny*By + nz*Bz);
+
+    // remove small cell
+    if (vfrac(i,j,k) < small_volfrac) {
+        set_covered(i, j, k, cell, vfrac, vcent, barea, bcent, bnorm);
+        is_small_cell = true;
+        return;
+    }
 
     Real bainv = 1.0/barea(i,j,k);
     bcent(i,j,k,0) = bainv * (Bx + nx*vfrac(i,j,k));
@@ -121,6 +154,8 @@ void set_eb_data (const int i, const int j, const int k,
     vcent(i,j,k,0) = Sx * den;
     vcent(i,j,k,1) = Sy * den;
     vcent(i,j,k,2) = Sz * den;
+
+
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -238,41 +273,69 @@ void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void set_covered (const int i, const int j, const int k,
-                  Array4<EBCellFlag> const& cell,
+void set_eb_cell (int i, int j, int k,
+                  Array4<EBCellFlag> const& cell, Array4<Real> const& apx,
+                  Array4<Real> const& apy, Array4<Real> const& apz,
+                  Array4<Real const> const& fcx, Array4<Real const> const& fcy,
+                  Array4<Real const> const& fcz, Array4<Real const> const& m2x,
+                  Array4<Real const> const& m2y, Array4<Real const> const& m2z,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
-                  Array4<Real> const& bnorm)
+                  Array4<Real> const& bnorm, Real small_volfrac,
+                  bool& is_small_cell, bool& is_multicut) noexcept
 {
-    vfrac(i,j,k) = 0.0;
-    vcent(i,j,k,0) = 0.0;
-    vcent(i,j,k,1) = 0.0;
-    vcent(i,j,k,2) = 0.0;
-    bcent(i,j,k,0) = -1.0;
-    bcent(i,j,k,1) = -1.0;
-    bcent(i,j,k,2) = -1.0;
-    bnorm(i,j,k,0) = 0.0;
-    bnorm(i,j,k,1) = 0.0;
-    bnorm(i,j,k,2) = 0.0;
-    barea(i,j,k) = 0.0;
-    cell(i,j,k).setCovered();
-}
+    if (cell(i,j,k).isRegular()) {
+        vfrac(i,j,k) = 1.0;
+        vcent(i,j,k,0) = 0.0;
+        vcent(i,j,k,1) = 0.0;
+        vcent(i,j,k,2) = 0.0;
+        bcent(i,j,k,0) = -1.0;
+        bcent(i,j,k,1) = -1.0;
+        bcent(i,j,k,2) = -1.0;
+        bnorm(i,j,k,0) = 0.0;
+        bnorm(i,j,k,1) = 0.0;
+        bnorm(i,j,k,2) = 0.0;
+        barea(i,j,k) = 0.0;
+    } else if (cell(i,j,k).isCovered()) {
+        vfrac(i,j,k) = 0.0;
+        vcent(i,j,k,0) = 0.0;
+        vcent(i,j,k,1) = 0.0;
+        vcent(i,j,k,2) = 0.0;
+        bcent(i,j,k,0) = -1.0;
+        bcent(i,j,k,1) = -1.0;
+        bcent(i,j,k,2) = -1.0;
+        bnorm(i,j,k,0) = 0.0;
+        bnorm(i,j,k,1) = 0.0;
+        bnorm(i,j,k,2) = 0.0;
+        barea(i,j,k) = 0.0;
+    } else {
+        set_eb_data(i, j , k, cell, apx, apy, apz, fcx, fcy, fcz, m2x, m2y, m2z,
+                    vfrac, vcent, barea, bcent, bnorm, small_volfrac,
+                    is_small_cell, is_multicut);
+    }
 }
 
-void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
-                  Array4<Type_t> const& fx, Array4<Type_t> const& fy,
-                  Array4<Type_t> const& fz, Array4<Type_t const> const& ex,
-                  Array4<Type_t const> const& ey, Array4<Type_t const> const& ez,
-                  Array4<Real const> const& levset, Array4<Real const> const& interx,
-                  Array4<Real const> const& intery, Array4<Real const> const& interz,
-                  Array4<Real> const& apx, Array4<Real> const& apy,
-                  Array4<Real> const& apz, Array4<Real> const& fcx,
-                  Array4<Real> const& fcy, Array4<Real> const& fcz,
-                  Array4<Real> const& m2x, Array4<Real> const& m2y,
-                  Array4<Real> const& m2z,
-                  GpuArray<Real,AMREX_SPACEDIM> const& dx,
-                  GpuArray<Real,AMREX_SPACEDIM> const& problo)
+}
+
+int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
+                 Array4<Type_t> const& fx, Array4<Type_t> const& fy,
+                 Array4<Type_t> const& fz, Array4<Type_t const> const& ex,
+                 Array4<Type_t const> const& ey, Array4<Type_t const> const& ez,
+                 Array4<Real> const& levset, Array4<Real const> const& interx,
+                 Array4<Real const> const& intery, Array4<Real const> const& interz,
+                 Array4<Real> const& apx, Array4<Real> const& apy,
+                 Array4<Real> const& apz, Array4<Real> const& fcx,
+                 Array4<Real> const& fcy, Array4<Real> const& fcz,
+                 Array4<Real> const& m2x, Array4<Real> const& m2y,
+                 Array4<Real> const& m2z,
+                 GpuArray<Real,AMREX_SPACEDIM> const& dx,
+                 GpuArray<Real,AMREX_SPACEDIM> const& problo,
+                 bool cover_multiple_cuts) noexcept
 {
+    Gpu::Buffer<int> nmulticuts = {0};
+    int* hp = nmulticuts.hostData();
+    int* dp = nmulticuts.data();
+
     constexpr Real small = 1.e-14;
     const Real dxinv = 1.0/dx[0];
     const Real dyinv = 1.0/dx[1];
@@ -353,10 +416,11 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 lzp = (levset(i,j+1,k) < 0.0) ? cut : 1.0-cut;
             }
 
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncuts <= 2,
-                                             "amrex::EB2::build_faces: more than 2 cuts not supported");
+            if (ncuts > 2) {
+                Gpu::Atomic::Add(dp,1);
+            }
 
-            if (lym <= small && lyp <= small && lzm <= small && lzp <= small) {
+            if ((ncuts > 2) || (lym <= small && lyp <= small && lzm <= small && lzp <= small)) {
                 apx(i,j,k) = 0.0;
                 fcx(i,j,k,0) = 0.0;
                 fcx(i,j,k,1) = 0.0;
@@ -460,10 +524,11 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 lzp = (levset(i+1,j,k) < 0.0) ? cut : 1.0-cut;
             }
 
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncuts <= 2,
-                                             "amrex::EB2::build_faces: more than 2 cuts not supported");
+            if (ncuts > 2) {
+                Gpu::Atomic::Add(dp,1);
+            }
 
-            if (lxm <= small && lxp <= small && lzm <= small && lzp <= small) {
+            if ((ncuts > 2) || (lxm <= small && lxp <= small && lzm <= small && lzp <= small)) {
                 apy(i,j,k) = 0.0;
                 fcy(i,j,k,0) = 0.0;
                 fcy(i,j,k,1) = 0.0;
@@ -567,10 +632,11 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 lyp = (levset(i+1,j,k) < 0.0) ? cut : 1.0-cut;
             }
 
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncuts <= 2,
-                                             "amrex::EB2::build_faces: more than 2 cuts not supported");
+            if (ncuts > 2) {
+                Gpu::Atomic::Add(dp,1);
+            }
 
-            if (lxm <= small && lxp <= small && lym <= small && lyp <= small) {
+            if ((ncuts > 2) || (lxm <= small && lxp <= small && lym <= small && lyp <= small)) {
                 apz(i,j,k) = 0.0;
                 fcz(i,j,k,0) = 0.0;
                 fcz(i,j,k,1) = 0.0;
@@ -618,6 +684,64 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
             }
         }
     });
+
+    nmulticuts.copyToHost();
+
+    if (*hp > 0) {
+        if (cover_multiple_cuts) {
+            Box const& nbxg1 = amrex::surroundingNodes(bxg1);
+            AMREX_HOST_DEVICE_FOR_3D(nbxg1, i, j, k,
+            {
+                if (levset(i,j,k) < Real(0.0)) {
+                    bool zero_levset = false;
+                    if        (xbx.contains(i  ,j-1,k-1)
+                             &&          fx(i  ,j-1,k-1) == Type::covered) {
+                        zero_levset = true;
+                    } else if (xbx.contains(i  ,j  ,k-1)
+                             &&          fx(i  ,j  ,k-1) == Type::covered) {
+                        zero_levset = true;
+                    } else if (xbx.contains(i  ,j-1,k  )
+                             &&          fx(i  ,j-1,k  ) == Type::covered) {
+                        zero_levset = true;
+                    } else if (xbx.contains(i  ,j  ,k  )
+                             &&          fx(i  ,j  ,k  ) == Type::covered) {
+                        zero_levset = true;
+                    } else if (ybx.contains(i-1,j  ,k-1)
+                             &&          fy(i-1,j  ,k-1) == Type::covered) {
+                        zero_levset = true;
+                    } else if (ybx.contains(i  ,j  ,k-1)
+                             &&          fy(i  ,j  ,k-1) == Type::covered) {
+                        zero_levset = true;
+                    } else if (ybx.contains(i-1,j  ,k  )
+                             &&          fy(i-1,j  ,k  ) == Type::covered) {
+                        zero_levset = true;
+                    } else if (ybx.contains(i  ,j  ,k  )
+                             &&          fy(i  ,j  ,k  ) == Type::covered) {
+                        zero_levset = true;
+                    } else if (zbx.contains(i-1,j-1,k  )
+                             &&          fz(i-1,j-1,k  ) == Type::covered) {
+                        zero_levset = true;
+                    } else if (zbx.contains(i  ,j-1,k  )
+                             &&          fz(i  ,j-1,k  ) == Type::covered) {
+                        zero_levset = true;
+                    } else if (zbx.contains(i-1,j  ,k  )
+                             &&          fz(i-1,j  ,k  ) == Type::covered) {
+                        zero_levset = true;
+                    } else if (zbx.contains(i  ,j  ,k  )
+                             &&          fz(i  ,j  ,k  ) == Type::covered) {
+                        zero_levset = true;
+                    }
+                    if (zero_levset) {
+                        levset(i,j,k) = Real(0.0);
+                    }
+                }
+            });
+        } else {
+            amrex::Abort("amrex::EB2::build_faces: more than 2 cuts not supported");
+        }
+    }
+
+    return *hp;
 }
 
 void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
@@ -630,48 +754,116 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
                   Array4<Real> const& bnorm, Array4<EBCellFlag> const& ctmp,
-                  Real small_volfrac,
-                  Geometry const& geom, bool extend_domain_face)
+                  Array4<Real> const& levset, Real small_volfrac, Geometry const& geom,
+                  bool extend_domain_face, bool cover_multiple_cuts,
+                  int& nsmallcells, int& nmulticuts) noexcept
 {
+    Gpu::Buffer<int> n_smallcell_multicuts = {0,0};
+    int* hp = n_smallcell_multicuts.hostData();
+    int* dp = n_smallcell_multicuts.data();
+
     const Box& bxg1 = amrex::grow(bx,1);
-    AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bxg1, i, j, k,
     {
-        if (cell(i,j,k).isRegular()) {
-            vfrac(i,j,k) = 1.0;
-            vcent(i,j,k,0) = 0.0;
-            vcent(i,j,k,1) = 0.0;
-            vcent(i,j,k,2) = 0.0;
-            bcent(i,j,k,0) = -1.0;
-            bcent(i,j,k,1) = -1.0;
-            bcent(i,j,k,2) = -1.0;
-            bnorm(i,j,k,0) = 0.0;
-            bnorm(i,j,k,1) = 0.0;
-            bnorm(i,j,k,2) = 0.0;
-            barea(i,j,k) = 0.0;
-        } else if (cell(i,j,k).isCovered()) {
-            vfrac(i,j,k) = 0.0;
-            vcent(i,j,k,0) = 0.0;
-            vcent(i,j,k,1) = 0.0;
-            vcent(i,j,k,2) = 0.0;
-            bcent(i,j,k,0) = -1.0;
-            bcent(i,j,k,1) = -1.0;
-            bcent(i,j,k,2) = -1.0;
-            bnorm(i,j,k,0) = 0.0;
-            bnorm(i,j,k,1) = 0.0;
-            bnorm(i,j,k,2) = 0.0;
-            barea(i,j,k) = 0.0;
-        } else {
-
-            set_eb_data(i,j,k,apx,apy,apz,
-                        fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
-                        barea,bcent,bnorm);
-
-            // remove small cells
-            if (vfrac(i,j,k) < small_volfrac) {
-                set_covered(i,j,k,cell,vfrac,vcent,barea,bcent,bnorm);
-            }
+        bool is_small_cell = false;
+        bool is_multicut = false;
+        set_eb_cell(i, j, k, cell, apx, apy, apz, fcx, fcy, fcz, m2x, m2y, m2z,
+                    vfrac, vcent, barea, bcent, bnorm, small_volfrac,
+                    is_small_cell, is_multicut);
+        if (is_small_cell) {
+            Gpu::Atomic::Add(dp, 1);
+        }
+        if (is_multicut) {
+            Gpu::Atomic::Add(dp+1, 1);
         }
     });
+
+    n_smallcell_multicuts.copyToHost();
+    nsmallcells += hp[0];
+    nmulticuts  += hp[1];
+
+    if (nsmallcells > 0 || nmulticuts > 0) {
+        if (!cover_multiple_cuts && nmulticuts > 0) {
+            amrex::Abort("amrex::EB2::build_cells: multi-cuts not supported");
+        }
+        Box const& nbxg1 = amrex::surroundingNodes(bxg1);
+        Box const& bxg1x = amrex::surroundingNodes(bxg1,0);
+        Box const& bxg1y = amrex::surroundingNodes(bxg1,1);
+        Box const& bxg1z = amrex::surroundingNodes(bxg1,2);
+        AMREX_HOST_DEVICE_FOR_3D(nbxg1, i, j, k,
+        {
+            if (levset(i,j,k) < Real(0.0)) {
+                bool zero_levset = false;
+                if        (bxg1.contains(i-1,j-1,k-1)
+                           &&       cell(i-1,j-1,k-1).isCovered()) {
+                    zero_levset = true;
+                } else if (bxg1.contains(i  ,j-1,k-1)
+                           &&       cell(i  ,j-1,k-1).isCovered()) {
+                    zero_levset = true;
+                } else if (bxg1.contains(i-1,j  ,k-1)
+                           &&       cell(i-1,j  ,k-1).isCovered()) {
+                    zero_levset = true;
+                } else if (bxg1.contains(i  ,j  ,k-1)
+                           &&       cell(i  ,j  ,k-1).isCovered()) {
+                    zero_levset = true;
+                } else if (bxg1.contains(i-1,j-1,k  )
+                           &&       cell(i-1,j-1,k  ).isCovered()) {
+                    zero_levset = true;
+                } else if (bxg1.contains(i  ,j-1,k  )
+                           &&       cell(i  ,j-1,k  ).isCovered()) {
+                    zero_levset = true;
+                } else if (bxg1.contains(i-1,j  ,k  )
+                           &&       cell(i-1,j  ,k  ).isCovered()) {
+                    zero_levset = true;
+                } else if (bxg1.contains(i  ,j  ,k  )
+                           &&       cell(i  ,j  ,k  ).isCovered()) {
+                    zero_levset = true;
+                } else if (cover_multiple_cuts) {
+                    if        (bxg1x.contains(i  ,j-1,k-1)
+                               &&          fx(i  ,j-1,k-1) == Type::covered) {
+                        zero_levset = true;
+                    } else if (bxg1x.contains(i  ,j  ,k-1)
+                               &&          fx(i  ,j  ,k-1) == Type::covered) {
+                        zero_levset = true;
+                    } else if (bxg1x.contains(i  ,j-1,k  )
+                               &&          fx(i  ,j-1,k  ) == Type::covered) {
+                        zero_levset = true;
+                    } else if (bxg1x.contains(i  ,j  ,k  )
+                               &&          fx(i  ,j  ,k  ) == Type::covered) {
+                        zero_levset = true;
+                    } else if (bxg1y.contains(i-1,j  ,k-1)
+                               &&          fy(i-1,j  ,k-1) == Type::covered) {
+                        zero_levset = true;
+                    } else if (bxg1y.contains(i  ,j  ,k-1)
+                               &&          fy(i  ,j  ,k-1) == Type::covered) {
+                        zero_levset = true;
+                    } else if (bxg1y.contains(i-1,j  ,k  )
+                               &&          fy(i-1,j  ,k  ) == Type::covered) {
+                        zero_levset = true;
+                    } else if (bxg1y.contains(i  ,j  ,k  )
+                               &&          fy(i  ,j  ,k  ) == Type::covered) {
+                        zero_levset = true;
+                    } else if (bxg1z.contains(i-1,j-1,k  )
+                               &&          fz(i-1,j-1,k  ) == Type::covered) {
+                        zero_levset = true;
+                    } else if (bxg1z.contains(i  ,j-1,k  )
+                               &&          fz(i  ,j-1,k  ) == Type::covered) {
+                        zero_levset = true;
+                    } else if (bxg1z.contains(i-1,j  ,k  )
+                               &&          fz(i-1,j  ,k  ) == Type::covered) {
+                        zero_levset = true;
+                    } else if (bxg1z.contains(i  ,j  ,k  )
+                               &&          fz(i  ,j  ,k  ) == Type::covered) {
+                        zero_levset = true;
+                    }
+                }
+                if (zero_levset) {
+                    levset(i,j,k) = Real(0.0);
+                }
+            }
+        });
+        return;
+    }
 
     // set cells in the extended region to covered if the
     // corresponding cell on the domain face is covered
@@ -733,76 +925,6 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
           });
        }
     }
-
-    // fix faces for small cells whose vfrac has been set to zero
-    const Box xbx = Box(bx).surroundingNodes(0).grow(1,1).grow(2,1);
-    AMREX_HOST_DEVICE_FOR_3D ( xbx, i, j, k,
-    {
-        if (vfrac(i-1,j,k) == 0._rt || vfrac(i,j,k) == 0._rt) {
-            fx(i,j,k) = Type::covered;
-            apx(i,j,k) = 0.0;
-            if (! cell(i  ,j,k).isCovered())
-            {
-                cell(i  ,j,k).setSingleValued();
-                set_eb_data(i,j,k,apx,apy,apz,
-                            fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
-                            barea,bcent,bnorm);
-            }
-            if (! cell(i-1,j,k).isCovered())
-            {
-                cell(i-1,j,k).setSingleValued();
-                set_eb_data(i-1,j,k,apx,apy,apz,
-                            fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
-                            barea,bcent,bnorm);
-            }
-        }
-    });
-    //
-    const Box ybx = Box(bx).surroundingNodes(1).grow(0,1).grow(2,1);
-    AMREX_HOST_DEVICE_FOR_3D ( ybx, i, j, k,
-    {
-        if (vfrac(i,j-1,k) == 0._rt || vfrac(i,j,k) == 0._rt) {
-            fy(i,j,k) = Type::covered;
-            apy(i,j,k) = 0.0;
-            if (! cell(i,j  ,k).isCovered())
-            {
-                cell(i,j  ,k).setSingleValued();
-                set_eb_data(i,j,k,apx,apy,apz,
-                            fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
-                            barea,bcent,bnorm);
-            }
-            if (! cell(i,j-1,k).isCovered())
-            {
-                cell(i,j-1,k).setSingleValued();
-                set_eb_data(i,j-1,k,apx,apy,apz,
-                            fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
-                            barea,bcent,bnorm);
-            }
-        }
-    });
-    //
-    const Box zbx = Box(bx).surroundingNodes(2).grow(0,1).grow(1,1);
-    AMREX_HOST_DEVICE_FOR_3D ( zbx, i, j, k,
-    {
-        if (vfrac(i,j,k-1) == 0._rt || vfrac(i,j,k) == 0._rt) {
-            fz(i,j,k) = Type::covered;
-            apz(i,j,k) = 0.0;
-            if (! cell(i,j,k  ).isCovered())
-            {
-                cell(i,j,k  ).setSingleValued();
-                set_eb_data(i,j,k,apx,apy,apz,
-                            fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
-                            barea,bcent,bnorm);
-            }
-            if (! cell(i,j,k-1).isCovered())
-            {
-                cell(i,j,k-1).setSingleValued();
-                set_eb_data(i,j,k-1,apx,apy,apz,
-                            fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
-                            barea,bcent,bnorm);
-            }
-        }
-    });
 
     // Build neighbors.  By default all 26 neighbors are already set.
     AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,

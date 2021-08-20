@@ -1312,7 +1312,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     }
 
     if (linop.m_parent) {
-        do_nsolve = false;  // no embeded N-Solve
+        do_nsolve = false;  // no embedded N-Solve
     } else if (!linop.supportNSolve()) {
         do_nsolve = false;
     }

@@ -198,7 +198,7 @@ in the ``bl_proffortfuncstart_int/bl_proffortfuncstop_int`` calls.
 ``BL_PROFILE_CHANGE_FORT_INT_NAME`` should be called in ``main()``.
 
 Be aware: Fortran functions cannot be profiled when using the Tiny Profiler.
-You will need to turn on the full profiler to recieve the results from
+You will need to turn on the full profiler to receive the results from
 fortran instrumentation.
 
 .. _sec:sample:tiny:

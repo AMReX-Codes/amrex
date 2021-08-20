@@ -1,4 +1,138 @@
-# 21.05
+# 21.08
+
+  -- Add AsyncVector. (#2197)
+
+  -- Make CreateVirtualParticles use GPU functions for aggregation_type=None
+     (#2195)
+
+  -- Change mask for ctr to ctroid interp (#2196)
+
+  -- Add OpenMP support to DenseBins::build (#2193)
+
+  -- Integration of experimental parfor into NodeLaplacian Fapply. (#2190)
+
+  -- Fix filter functions for callables that return bool. (#2192)
+
+  -- MFCellConsLinInterp (#2189)
+
+  -- Introduction of the experimental parfor into NodeLaplacian
+     interpolation (#2183)
+
+  -- Enable default construction for AmrParticleContainer and add
+     isDefined() method. (#2188) A Particle container is considered
+     "defined" if it has been given a set of grids, otherwise not.
+
+  -- Make CreateGhostParticles use GPU functions (#2185)
+
+  -- Add ROCMClang as an LLVM compiler to cmake (#2184)
+
+  -- Scale uniform random interval to account for gridbox length in
+     ParticleInit (#2179)
+
+  -- Optimization of ParallelFor for single box FabArray (#2176)
+
+  -- Add ns to gpu cns (#2177)
+
+  -- CI: IntelLLVM known to CMake (#2136)
+
+  -- Add default move constructors / assignment operators for other pc
+     types. (#2174)
+
+  -- Gradient in WarpX EB nodal solver (#2171)
+
+  -- Update MacProjector::project to check if m_umac is nullptr (#2166)
+
+  -- EB nodal solver (#2145) New EB nodal solver with Dirichlet EB.  This
+     uses a finite-difference stencil.  It will be used by WarpX's static
+     solver.
+
+  -- Workaround for a DPC++ reduction issue (#2165)
+     More reliable workaround for DPCPP reduction issue (#2167)
+
+  -- Add ParmParse::remove (#2160)
+
+  -- Remove MFGhostIter (#2162)
+
+  -- Fix typos with the help of codespell (#2163)
+
+  -- Parser Precision (#2154) Use double internally.  If the arguments are
+     all floats, the final result will be converted to float.
+
+  -- IParser: Integer Parser (#2158)
+
+  -- Disable `jn` in Parser on Windows (#2152)
+
+  -- Fix the size of the BC Vector in the multi-level version of
+     ParticleToMesh. (#2149)
+
+  -- Make ParticleToMesh and MeshToParticle support iMultifab. (#2137)
+
+  -- Fix crashes with Conduit Blueprint Code (#2144)
+
+  -- CMake: HIP Modernizing & RDC (#2031)
+
+# 21.07
+
+  -- Parser: This can be used at runtime to evaluate math expressions given
+     by strings. It's ported from WarpX. (#2121, #2129, #2132)
+
+  -- Bug fix in neighbor particle list construction. (#2131)
+
+  -- Bug fix in multi-level nodal solver with non-uniform cell size. (#2126)
+
+  -- Add SENSEI Adaptor for Particles Containers (#2016)
+
+  -- Enhance DiffSameGrid2.cpp (#2114)
+
+  -- Don't rely on managed memory in ParticleCopyPlan (#2116)
+
+  -- HIP: Increase to C++17 (#2113)
+
+  -- Port remaining Fortran and CPU kernels in FluxRegister to GPU (#2112)
+
+  -- Reimplement partitionParticlesByDest (#2109)
+
+  -- Fix a bug in in-place ExclusiveSum (#2105)
+
+  -- Add AUTO_BUILD_SOURCES to the dependencies for GNU make (#2101)
+
+  -- Add a number of forward declaration headers (#2100)
+
+  -- CMake 3.20+ CUDA: Fast Math (#2094) Honor CUDA fast math option
+    `AMReX_CUDA_FASTMATH` (default: ON) in modernized CUDA CMake logic.
+
+  -- Remove VecReduce and FabReduce (#2091)
+
+  -- Fix indexes bug for particles output in GPU version of packIOData (#2087)
+
+  -- Remove deprecated Reduce functions (#2086)
+
+  -- Disable kernel fusing if gpu rdc is off. (#2083) Because the kernel
+     fusing depends on rdc.
+
+  -- ParallelFor for MultiFab/FabArray (#2073, #2089)
+
+  -- ParticleContainer-level reduction functions that work on tuples of data at once. (#2082)
+
+  -- AMReX_PROBINT: Depends on AMReX_AMRLEVEL (#2081)
+
+  -- Arena aliases (#2078)
+
+  -- CMake 3.20+ CUDA: Policy & Include (#2074)
+
+  -- GPU RDC Support (#2061)
+
+  -- Generalize fextract allowing to specify coords perpendicular to slicedir (#2035)
+
+  -- Add interface between sundials SUNMemory and the Arena (#1800)
+
+  -- Do not rely on managed memory in ParticleContainer::WriteAsciiFile (#2070)
+
+  -- Particle plotfile/checkpoint without managed memory. (#2063)
+
+  -- Support preprocessing of AMREX_SPACEDIM in input files. (#2049)
+
+# 21.06
 
   -- Add roctx ranges to TinyProfiler (#2057)
 
@@ -287,7 +421,7 @@
      with `AMREX_USE_OMP` for all parallel "backend" implementations and
      control of MFIter loops.
 
-  -- Update Make.nrel to accomodate MPT MPI with CUDA enabled (#1726)
+  -- Update Make.nrel to accommodate MPT MPI with CUDA enabled (#1726)
 
   -- Cell-centered Hypre and Petsc setup on GPU (#1709)
 
@@ -373,7 +507,7 @@
   -- Fix a bug that causes errors when writing HDF5 plotfile and particle
      (#1621)
 
-  -- Fortran Inteface: Porting more MultiFab functions (#1609)
+  -- Fortran Interface: Porting more MultiFab functions (#1609)
 
   -- Remove alternative operators from AMReX (#1599)
 
@@ -543,7 +677,7 @@
   -- Only check the requested MPI Threading level if AMReX also initialized
      MPI. (#1406)
 
-  -- DPCPP support for mulitple GPUs (#1392)
+  -- DPCPP support for multiple GPUs (#1392)
 
   -- Random Number Generation on Device (#1363) In order to support RNG on
      device with DPC++, we have to change the API because DPC++ does not
@@ -805,7 +939,7 @@
      now requires RunOn::Device or RunOn::Host template parameter when
      GPU support is enabled.
 
-  -- FillPatch* funcitons are now templated to support FabArray in
+  -- FillPatch* functions are now templated to support FabArray in
      addition to MultiFab.
 
   -- Fix -pthread for nvcc by default in Make.unknown
@@ -967,7 +1101,7 @@
      now non-static.  The default Geometry can been obtained via
      `DefaultGeometry()` function.
 
-  -- Funciton amrex::Loop and amrex:LoopConcurrent are added to help
+  -- Function amrex::Loop and amrex:LoopConcurrent are added to help
      looping over cells in a Box.
 
   -- Nodal solver: A bug in nodal owner mask that could affect
@@ -1056,7 +1190,7 @@
      to C++ (F_Interfaces) are still there.
 
   -- In addition to launch macros, there are now functions for
-     lauching, amrex::launch, amrex::For and amrex::ParallelFor.
+     launching, amrex::launch, amrex::For and amrex::ParallelFor.
      These improves debuggability. 
 
   -- If compiled with BASEFAB_IS_PINNED, pinned memory will be used
@@ -1148,7 +1282,7 @@
      can be passed in and their defaults are std::cout and std::cerr.
 
   -- ParmParse inputs files can now contain Fortran namelist that can
-     be accessed from Fortan (and Frotran only).  These Fortran inputs
+     be accessed from Fortran (and Frotran only).  These Fortran inputs
      are stored in amrex_namelist character variable in
      amrex_parmparse_module, and can be read with standard Fortran
      I/O.

@@ -37,6 +37,9 @@ add_amrex_define( AMREX_USE_ROCTX NO_LEGACY IF AMReX_ROCTX )
 # Mem profiler
 add_amrex_define( AMREX_MEM_PROFILING NO_LEGACY IF AMReX_MEM_PROFILE )
 
+# Testing
+add_amrex_define( AMREX_TESTING NO_LEGACY IF AMReX_TESTING )
+
 # MPI
 add_amrex_define( AMREX_USE_MPI IF AMReX_MPI )
 add_amrex_define( AMREX_MPI_THREAD_MULTIPLE NO_LEGACY IF AMReX_MPI_THREAD_MULTIPLE)
@@ -83,7 +86,7 @@ if (AMReX_FORTRAN)
    #
    include( FortranCInterface )
    if(NOT FortranCInterface_GLOBAL_FOUND)
-      message(FATAL_ERROR "Failed to find the Fortan C Interface -- check the CMakeError.log")
+      message(FATAL_ERROR "Failed to find the Fortran C Interface -- check the CMakeError.log")
    endif()
    include( ${FortranCInterface_BINARY_DIR}/Output.cmake )
 
@@ -112,8 +115,11 @@ else ()
    add_amrex_define(BL_NO_FORT)
 endif ()
 
-# SENSEI Insitu -- only legacy
-add_amrex_define( BL_USE_SENSEI_INSITU IF AMReX_SENSEI )
+#
+# SENSEI Insitu
+#
+add_amrex_define( AMREX_USE_SENSEI_INSITU NO_LEGACY IF AMReX_SENSEI )
+add_amrex_define( AMREX_NO_SENSEI_AMR_INST NO_LEGACY IF AMReX_NO_SENSEI_AMR_INST )
 
 # Conduit Support
 add_amrex_define( AMREX_USE_CONDUIT NO_LEGACY IF AMReX_CONDUIT )

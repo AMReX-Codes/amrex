@@ -6,12 +6,12 @@ DatasetClient.[H,cpp]
 
 TV_TempWrite.H            Allows access to writeMF and readMF functions for
                             writing/reading MultiFab's into a file format
-                            readible by the little functions in the ViewMF
+                            readable by the little functions in the ViewMF
                             subdirectory here
 
 WritePlotFile.[H,cpp]     Define a function called writePlotFile which takes
                             a MultiFab and writes it into a HyperCLawV1.1 
-                            pltfile format readible by pAmrvis
+                            pltfile format readable by pAmrvis
 
 ViewMF                    Code for building a viewer for 2D and 3D which 
                             simply calls ArrayView after reading MultiFabs

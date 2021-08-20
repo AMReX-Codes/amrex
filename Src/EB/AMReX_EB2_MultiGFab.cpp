@@ -6,7 +6,7 @@
 namespace amrex { namespace EB2 {
 
 void
-GFab::buildTypes (EBCellFlagFab& celltype, bool cover_multiple_cuts)
+GFab::buildTypes (EBCellFlagFab& celltype)
 {
     Array4<Real const> const& s = m_levelset.const_array();
     Array4<EBCellFlag> const& cell = celltype.array();
@@ -18,7 +18,6 @@ GFab::buildTypes (EBCellFlagFab& celltype, bool cover_multiple_cuts)
     const Box& nodal_box = amrex::surroundingNodes(bxg2);
 
 #if (AMREX_SPACEDIM == 2)
-    amrex::ignore_unused(cover_multiple_cuts);
 
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( nodal_box, tbx,
     {
@@ -35,13 +34,6 @@ GFab::buildTypes (EBCellFlagFab& celltype, bool cover_multiple_cuts)
     {
         amrex_eb2_build_types(tbx, bxg2, s, cell, fx, fy, fz, ex, ey, ez);
     });
-
-    if (cover_multiple_cuts) {
-       AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( nodal_box, tbx,
-       {
-           amrex_eb2_cover_multiple_cuts(tbx, bxg2, s, fx, fy, fz, ex, ey, ez);
-       });
-    }
 
 #endif
 }

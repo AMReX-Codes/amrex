@@ -77,8 +77,10 @@ public:
     void project ( const Vector<amrex::MultiFab*>& a_phi, amrex::Real a_rtol = Real(1.0e-11),
                    amrex::Real a_atol = Real(1.0e-14) );
 
-    Vector< const MultiFab* > getGradPhi () const {return GetVecOfConstPtrs(m_fluxes);}
-    Vector< const MultiFab* > getPhi     () const {return GetVecOfConstPtrs(m_phi);}
+    Vector<       MultiFab* > getGradPhi      ()       {return GetVecOfPtrs(m_fluxes);}
+    Vector< const MultiFab* > getGradPhiConst () const {return GetVecOfConstPtrs(m_fluxes);}
+    Vector<       MultiFab* > getPhi          ()       {return GetVecOfPtrs(m_phi);}
+    Vector< const MultiFab* > getPhiConst     () const {return GetVecOfConstPtrs(m_phi);}
 
     void computeRHS ( const amrex::Vector<amrex::MultiFab*>&       a_rhs,
                       const amrex::Vector<amrex::MultiFab*>&       a_vel,
@@ -154,7 +156,7 @@ private:
     std::array<LinOpBCType,AMREX_SPACEDIM>  m_bc_lo;
     std::array<LinOpBCType,AMREX_SPACEDIM>  m_bc_hi;
 
-    // Members for syncronization
+    // Members for synchronization
     IntVect   m_ref_ratio;
     BoxArray  m_fine_grids;  // Grid at crse level + 1
     MultiFab* m_sync_resid_crse = nullptr;

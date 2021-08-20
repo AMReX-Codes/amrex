@@ -1101,7 +1101,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE)
 template <typename N, typename T, typename M=std::enable_if_t<std::is_integral<N>::value> >
 T InclusiveSum (N n, T const* in, T * out, RetSum /*a_ret_sum*/ = retSum)
 {
-#if (__cplusplus >= 201703L) && (!defined(AMREX_CXX_GCC) || __GNUC__ >= 10)
+#if (__cplusplus >= 201703L) && (!defined(_GLIBCXX_RELEASE) || _GLIBCXX_RELEASE >= 10)
     // GCC's __cplusplus is not a reliable indication for C++17 support
     std::inclusive_scan(in, in+n, out);
 #else
@@ -1117,7 +1117,7 @@ T ExclusiveSum (N n, T const* in, T * out, RetSum /*a_ret_sum*/ = retSum)
     if (n <= 0) return 0;
 
     auto in_last = in[n-1];
-#if (__cplusplus >= 201703L) && (!defined(AMREX_CXX_GCC) || __GNUC__ >= 10)
+#if (__cplusplus >= 201703L) && (!defined(_GLIBCXX_RELEASE) || _GLIBCXX_RELEASE >= 10)
     // GCC's __cplusplus is not a reliable indication for C++17 support
     std::exclusive_scan(in, in+n, out, 0);
 #else
@@ -1142,7 +1142,7 @@ namespace Gpu
         OutIter result_end = result;
         std::advance(result_end, N);
         return result_end;
-#elif (__cplusplus >= 201703L) && (!defined(AMREX_CXX_GCC) || __GNUC__ >= 10)
+#elif (__cplusplus >= 201703L) && (!defined(_GLIBCXX_RELEASE) || _GLIBCXX_RELEASE >= 10)
         // GCC's __cplusplus is not a reliable indication for C++17 support
         return std::inclusive_scan(begin, end, result);
 #else
@@ -1159,7 +1159,7 @@ namespace Gpu
         OutIter result_end = result;
         std::advance(result_end, N);
         return result_end;
-#elif (__cplusplus >= 201703L) && (!defined(AMREX_CXX_GCC) || __GNUC__ >= 10)
+#elif (__cplusplus >= 201703L) && (!defined(_GLIBCXX_RELEASE) || _GLIBCXX_RELEASE >= 10)
         // GCC's __cplusplus is not a reliable indication for C++17 support
         return std::exclusive_scan(begin, end, result, 0);
 #else
