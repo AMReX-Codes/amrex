@@ -303,9 +303,9 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
                                 if (! periodicity.isPeriodic(dir)) continue;
                                 if (tag.periodic_shift[dir] < 0)
-                                    p.pos(dir) += prob_domain.length(dir);
+                                    p.pos(dir) += static_cast<ParticleReal> (prob_domain.length(dir));
                                 else if (tag.periodic_shift[dir] > 0)
-                                    p.pos(dir) -= prob_domain.length(dir);
+                                    p.pos(dir) -= static_cast<ParticleReal> (prob_domain.length(dir));
                             }
                         }
 
@@ -326,9 +326,9 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
                                 if (! periodicity.isPeriodic(dir)) continue;
                                 if (tag.periodic_shift[dir] < 0)
-                                    p.pos(dir) += prob_domain.length(dir);
+                                    p.pos(dir) += static_cast<ParticleReal> (prob_domain.length(dir));
                                 else if (tag.periodic_shift[dir] > 0)
-                                    p.pos(dir) -= prob_domain.length(dir);
+                                    p.pos(dir) -= static_cast<ParticleReal> (prob_domain.length(dir));
                             }
                         }
 

@@ -208,25 +208,39 @@ MultiFab::Swap (MultiFab& dst, MultiFab& src,
         std::swap(dst, src);
 
     } else {
-
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
+            auto const& dstma = dst.arrays();
+            auto const& srcma = src.arrays();
+            ParallelFor(dst, nghost, numcomp,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+            {
+                const amrex::Real tmp = dstma[box_no](i,j,k,n+dstcomp);
+                dstma[box_no](i,j,k,n+dstcomp) = srcma[box_no](i,j,k,n+srccomp);
+                srcma[box_no](i,j,k,n+srccomp) = tmp;
+            });
+            Gpu::streamSynchronize();
+        } else
+#endif
+        {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.growntilebox(nghost);
-            if (bx.ok()) {
-                auto sfab = src.array(mfi);
-                auto dfab = dst.array(mfi);
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
-                {
-                    const amrex::Real tmp = dfab(i,j,k,n+dstcomp);
-                    dfab(i,j,k,n+dstcomp) = sfab(i,j,k,n+srccomp);
-                    sfab(i,j,k,n+srccomp) = tmp;
-                });
+            for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.growntilebox(nghost);
+                if (bx.ok()) {
+                    auto sfab = src.array(mfi);
+                    auto dfab = dst.array(mfi);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
+                    {
+                        const amrex::Real tmp = dfab(i,j,k,n+dstcomp);
+                        dfab(i,j,k,n+dstcomp) = sfab(i,j,k,n+srccomp);
+                        sfab(i,j,k,n+srccomp) = tmp;
+                    });
+                }
             }
         }
-
     }
 }
 
@@ -308,20 +322,34 @@ MultiFab::Saxpy (MultiFab& dst, Real a, const MultiFab& src,
 
     BL_PROFILE("MultiFab::Saxpy()");
 
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
+        auto const& dstma = dst.arrays();
+        auto const& srcma = src.const_arrays();
+        ParallelFor(dst, nghost, numcomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            dstma[box_no](i,j,k,dstcomp+n) += a * srcma[box_no](i,j,k,srccomp+n);
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.growntilebox(nghost);
+        for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost);
 
-        if (bx.ok()) {
-            auto const sfab = src.array(mfi);
-            auto       dfab = dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
-            {
-                dfab(i,j,k,dstcomp+n) += a * sfab(i,j,k,srccomp+n);
-            });
+            if (bx.ok()) {
+                auto const sfab = src.array(mfi);
+                auto       dfab = dst.array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
+                {
+                    dfab(i,j,k,dstcomp+n) += a * sfab(i,j,k,srccomp+n);
+                });
+            }
         }
     }
 }
@@ -343,19 +371,34 @@ MultiFab::Xpay (MultiFab& dst, Real a, const MultiFab& src,
 
     BL_PROFILE("MultiFab::Xpay()");
 
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
+        auto const& dstma = dst.arrays();
+        auto const& srcma = src.const_arrays();
+        ParallelFor(dst, nghost, numcomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            dstma[box_no](i,j,k,n+dstcomp) = srcma[box_no](i,j,k,n+srccomp)
+                +                        a * dstma[box_no](i,j,k,n+dstcomp);
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.growntilebox(nghost);
-        if (bx.ok()) {
-            auto const sfab = src.array(mfi);
-            auto       dfab = dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
-            {
-                dfab(i,j,k,n+dstcomp) = sfab(i,j,k,n+srccomp) + a * dfab(i,j,k,n+dstcomp);
-            });
+        for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost);
+            if (bx.ok()) {
+                auto const sfab = src.array(mfi);
+                auto       dfab = dst.array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
+                {
+                    dfab(i,j,k,n+dstcomp) = sfab(i,j,k,n+srccomp) + a * dfab(i,j,k,n+dstcomp);
+                });
+            }
         }
     }
 }
@@ -383,21 +426,37 @@ MultiFab::LinComb (MultiFab& dst,
 
     BL_PROFILE("MultiFab::LinComb()");
 
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
+        auto const& dstma = dst.arrays();
+        auto const& xma = x.const_arrays();
+        auto const& yma = y.const_arrays();
+        ParallelFor(dst, nghost, numcomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            dstma[box_no](i,j,k,dstcomp+n) = a*xma[box_no](i,j,k,xcomp+n)
+                +                            b*yma[box_no](i,j,k,ycomp+n);
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.growntilebox(nghost);
+        for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost);
 
-        if (bx.ok()) {
-            auto const xfab =   x.array(mfi);
-            auto const yfab =   y.array(mfi);
-            auto       dfab = dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
-            {
-                dfab(i,j,k,dstcomp+n) = a*xfab(i,j,k,xcomp+n) + b*yfab(i,j,k,ycomp+n);
-            });
+            if (bx.ok()) {
+                auto const xfab =   x.array(mfi);
+                auto const yfab =   y.array(mfi);
+                auto       dfab = dst.array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
+                {
+                    dfab(i,j,k,dstcomp+n) = a*xfab(i,j,k,xcomp+n) + b*yfab(i,j,k,ycomp+n);
+                });
+            }
         }
     }
 }
@@ -425,20 +484,36 @@ MultiFab::AddProduct (MultiFab& dst,
 
     BL_PROFILE("MultiFab::AddProduct()");
 
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
+        auto const& dstma = dst.arrays();
+        auto const& src1ma = src1.const_arrays();
+        auto const& src2ma = src2.const_arrays();
+        ParallelFor(dst, nghost, numcomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            dstma[box_no](i,j,k,n+dstcomp) += src1ma[box_no](i,j,k,n+comp1)
+                *                             src2ma[box_no](i,j,k,n+comp2);
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.growntilebox(nghost);
-        if (bx.ok()) {
-            auto const s1fab = src1.array(mfi);
-            auto const s2fab = src2.array(mfi);
-            auto        dfab =  dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
-            {
-                dfab(i,j,k,n+dstcomp) += s1fab(i,j,k,n+comp1) * s2fab(i,j,k,n+comp2);
-            });
+        for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost);
+            if (bx.ok()) {
+                auto const s1fab = src1.array(mfi);
+                auto const s2fab = src2.array(mfi);
+                auto        dfab =  dst.array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
+                {
+                    dfab(i,j,k,n+dstcomp) += s1fab(i,j,k,n+comp1) * s2fab(i,j,k,n+comp2);
+                });
+            }
         }
     }
 }
@@ -1185,68 +1260,6 @@ MultiFab::negate (const Box& region, int comp, int num_comp, int nghost)
     BL_ASSERT(comp+num_comp <= n_comp);
 
     FabArray<FArrayBox>::mult(-1.,region,comp,num_comp,nghost);
-}
-
-void
-MultiFab::SumBoundary (const Periodicity& period)
-{
-    SumBoundary(0, n_comp, IntVect(0), period);
-}
-
-void
-MultiFab::SumBoundary (int scomp, int ncomp, const Periodicity& period)
-{
-    SumBoundary(scomp, ncomp, IntVect(0), period);
-}
-
-void
-MultiFab::SumBoundary (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period)
-{
-    BL_PROFILE("MultiFab::SumBoundary()");
-
-    SumBoundary_nowait(scomp, ncomp, nghost, period);
-    SumBoundary_finish();
-}
-
-void
-MultiFab::SumBoundary_nowait (const Periodicity& period)
-{
-    SumBoundary_nowait(0, n_comp, IntVect(0), period);
-}
-
-void
-MultiFab::SumBoundary_nowait (int scomp, int ncomp, const Periodicity& period)
-{
-    SumBoundary_nowait(scomp, ncomp, IntVect(0), period);
-}
-
-void
-MultiFab::SumBoundary_nowait (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period)
-{
-    BL_PROFILE("MultiFab::SumBoundary_nowait()");
-
-    if ( n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) return;
-
-    MultiFab* tmp = new MultiFab( boxArray(), DistributionMap(), ncomp, n_grow, MFInfo(), Factory() );
-    MultiFab::Copy(*tmp, *this, scomp, 0, ncomp, n_grow);
-    this->setVal(0.0, scomp, ncomp, nghost);
-    this->ParallelCopy_nowait(*tmp,0,scomp,ncomp,n_grow,nghost,period,FabArrayBase::ADD);
-
-    // All local. Operation complete.
-    if (!this->pcd) { delete tmp; }
-}
-
-void
-MultiFab::SumBoundary_finish ()
-{
-    BL_PROFILE("MultiFab::SumBoundary_finish()");
-
-    // If pcd doesn't exist, ParallelCopy was all local and operation was fully completed in "SumBoundary_nowait".
-    if ( (n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) || !(this->pcd) ) return;
-
-    FabArray<FArrayBox>* tmp = const_cast<FabArray<FArrayBox>*> (this->pcd->src);
-    this->ParallelCopy_finish();
-    delete tmp;
 }
 
 std::unique_ptr<MultiFab>

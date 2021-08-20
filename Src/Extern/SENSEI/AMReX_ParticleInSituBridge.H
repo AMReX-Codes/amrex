@@ -16,7 +16,7 @@
 namespace amrex
 {
 /// Bridge for simulations that use amrex::ParticleContainer
-/// inherits intialize and finalize from amrex::InSituBridge
+/// inherits initialize and finalize from amrex::InSituBridge
 class ParticleInSituBridge : public InSituBridge
 {
 public:

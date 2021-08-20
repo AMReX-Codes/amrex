@@ -9,7 +9,7 @@ ENV MPI_HOME=/usr/lib64/openmpi/
 # Configure Python environment
 ENV PYTHONPATH=/usr/lib64/python3.9/site-packages/openmpi
 
-# Configure VTK environtment
+# Configure VTK environment
 ENV VTK_VERSION=9.0.1
 ENV VTK_DIR=${PACKAGE_ROOT}/vtk/${VTK_VERSION}
 

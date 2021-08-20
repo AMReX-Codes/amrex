@@ -646,6 +646,42 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Re
   }
 }
 
+struct FilterVirt
+{
+
+    amrex::AssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> m_assign_buffer_grid;
+    GpuArray<Real, AMREX_SPACEDIM> m_plo, m_dxi;
+    Box m_domain;
+
+    FilterVirt (const amrex::AssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> assign_buffer_grid, const GpuArray<Real, AMREX_SPACEDIM>& plo,
+                const GpuArray<Real, AMREX_SPACEDIM> & dxi, const Box& domain)
+      : m_assign_buffer_grid(assign_buffer_grid), m_plo(plo), m_dxi(dxi), m_domain(domain)
+    {}
+
+    template <typename SrcData>
+    AMREX_GPU_HOST_DEVICE
+    int operator() (const SrcData& src, int src_i) const noexcept
+    {
+        auto iv = getParticleCell(src.m_aos[src_i], m_plo, m_dxi, m_domain);
+        return (m_assign_buffer_grid(iv)!=-1);
+    }
+};
+
+struct TransformerVirt
+{
+    template <typename DstData, typename SrcData>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void operator() (DstData& dst, const SrcData& src,
+                     int src_i, int dst_i) const noexcept
+    {
+        copyParticle(dst, src, src_i, dst_i);
+
+        (dst.m_aos[dst_i]).id() = VirtualParticleID;
+        (dst.m_aos[dst_i]).cpu() = 0;
+    }
+};
+
+
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
@@ -667,110 +703,226 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     AMREX_ASSERT(level > 0);
     AMREX_ASSERT(virts.empty());
 
-    if (level >= static_cast<int>(m_particles.size()))
+    if (level >= static_cast<int>(m_particles.size())) {
         return;
+    }
 
     std::string aggregation_type = AggregationType();
     int aggregation_buffer = AggregationBuffer();
 
     if (aggregation_type == "None")
     {
+        auto virts_offset = virts.numParticles();
         for(ParConstIterType pti(*this, level); pti.isValid(); ++pti)
         {
-            const auto& ptile = ParticlesAt(level, pti);
-            const auto src = ptile.getConstParticleTileData();
+            const auto& src_tile = ParticlesAt(level, pti);
 
-            for (int pindex = 0; pindex < ptile.numParticles(); ++pindex)
-            {
-                SuperParticleType p = src.getSuperParticle(pindex);
-                p.id() = VirtualParticleID;
-                virts.push_back(p);
-            }
+            auto np = src_tile.numParticles();
+            virts.resize(virts_offset+np);
+            transformParticles(virts, src_tile, 0, virts_offset, np, TransformerVirt());
+            virts_offset += np;
         }
     }
-
     if (aggregation_type == "Cell")
     {
+        //Components would be based on
+        int nComp = AMREX_SPACEDIM + NStructReal + NArrayReal;
+        // NArrayReal, NStructInt, NArrayInt behavior as before
+        int nGhost = 0;
+        MultiFab mf(ParticleBoxArray(level), ParticleDistributionMap(level), nComp, nGhost);
+
+        nComp = 1 + NStructInt + NArrayInt;
+        iMultiFab imf(ParticleBoxArray(level), ParticleDistributionMap(level), nComp, nGhost);
+
+        const auto& geom = Geom(level);
+        const auto plo = geom.ProbLoArray();
+        const auto dxi = geom.InvCellSizeArray();
+        const auto domain = geom.Domain();
+
         BoxList bl_buffer;
         bl_buffer.complementIn(Geom(level).Domain(), ParticleBoxArray(level));
         BoxArray buffer(std::move(bl_buffer));
         buffer.grow(aggregation_buffer);
 
-        for(ParConstIterType pti(*this, level); pti.isValid(); ++pti)
+        ParticleLocator<DenseBins<Box>> locator;
+        locator.build(buffer, geom);
+        AssignGrid<DenseBinIteratorFactory<Box>> assign_buffer_grid = locator.getGridAssignor();
+
+        amrex::ParticleToMesh(*this, mf, level,
+        [=] AMREX_GPU_DEVICE (const ParticleType& p,
+                              amrex::Array4<amrex::Real> const& partData,
+                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo_loc,
+                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi_loc)
         {
-            const auto& ptile = ParticlesAt(level, pti);
-            const auto& aos = pti.GetArrayOfStructs();
-            const auto src = ptile.getConstParticleTileData();
-
-            std::map<IntVect,SuperParticleType> agg_map;
-
-            for (int pindex = 0; pindex < ptile.numParticles(); ++pindex)
+            auto iv = getParticleCell(p, plo_loc, dxi_loc, domain);
+            if(assign_buffer_grid(iv)==-1)
             {
-                IntVect cell = Index(aos[pindex], level);
-                if (buffer.contains(cell))
-                {
-                    // It's in the no-aggregation buffer.
-                    // Set its id to indicate that it's a virt.
-                    SuperParticleType p = src.getSuperParticle(pindex);
-                    p.id() = VirtualParticleID;
-                    virts.push_back(p);
-                }
-                else
-                {
-                    //
-                    // Note that Cell aggregation assumes that p.rdata(0) is mass and
-                    // that all other components should be combined in a mass-weighted
-                    // average.
-                    //
-                    auto agg_map_it = agg_map.find(cell);
+               //Ordering may make this not unique
+               for (int i = 0; i < NArrayReal; ++i)
+               {
+                   amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+NStructReal+i), partData(iv,AMREX_SPACEDIM)!=0.0 ? static_cast<Real>(0) : static_cast<Real>(p.rdata(NStructReal+i)));
+               }
+               //Add the rdata(0)-weighted sum of position
+               for (int i = 0; i < AMREX_SPACEDIM; ++i)
+               {
+                   amrex::Gpu::Atomic::AddNoRet(&partData(iv,i), static_cast<Real>((p.rdata(0)*p.pos(i))));
+               }
+               //Add the rdata(0)-weighted sum of other rdata fields
+               for (int i = 1; i < NStructReal; ++i)
+               {
+                   amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+i), static_cast<Real>((p.rdata(0)*p.rdata(i))));
+               }
+               //Add the rdata(0) sum
+               for (int i = 0; i < 1; ++i)
+               {
+                   amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+i), static_cast<Real>(p.rdata(0)));
+               }
+            }
 
-                    if (agg_map_it == agg_map.end())
+        }); //skipping extra false argument, doing mf.setVal(0) at beginning
+
+        amrex::ParticleToMesh(*this, imf, level,
+        [=] AMREX_GPU_DEVICE (const ParticleType& p,
+                              amrex::Array4<int> const& partData,
+                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo_loc,
+                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi_loc)
+        {
+
+            auto iv = getParticleCell(p, plo_loc, dxi_loc, domain);
+            if(assign_buffer_grid(iv)==-1)
+            {
+                //if this cell has no particle id info, do a straight copy to store idata
+                if(partData(iv,0)==0)
+                {
+                    //Add 1 to indicate at least 1 particle at cell iv
+                    amrex::Gpu::Atomic::AddNoRet(&partData(iv,0), 1);
+                    for (int i = 0; i < NStructInt; ++i)
                     {
-                        //
-                        // Add the particle.
-                        //
-                        SuperParticleType p = src.getSuperParticle(pindex);
-                        p.id() = VirtualParticleID;
-                        agg_map[cell] = p;
+                        amrex::Gpu::Atomic::AddNoRet(&partData(iv,1+i), p.idata(i));
                     }
-                    else
+                    for (int i = 0; i < NArrayInt; ++i)
                     {
-                        AMREX_ASSERT(agg_map_it != agg_map.end());
-                        const SuperParticleType&  pnew       = src.getSuperParticle(pindex);
-                        SuperParticleType&        pold       = agg_map_it->second;
-                        const Real           old_mass   = pold.rdata(0);
-                        const Real           new_mass   = pnew.rdata(0);
-                        const Real           total_mass = old_mass + new_mass;
-                        //
-                        // Set the position to the center of mass.
-                        //
-                        for (int i = 0; i < AMREX_SPACEDIM; i++)
-                        {
-                            pold.pos(i) = static_cast<ParticleReal>((old_mass*pold.pos(i) + new_mass*pnew.pos(i))/total_mass);
-                        }
-                        AMREX_ASSERT(this->Index(pold, level) == cell);
-                        //
-                        // Set the metadata (presumably velocity) to the mass-weighted average.
-                        //
-                        for (int i = 1; i < NStructReal; i++)
-                        {
-                            pold.rdata(i) = static_cast<ParticleReal>((old_mass*pold.rdata(i) + new_mass*pnew.rdata(i))/total_mass);
-                        }
-                        pold.rdata(0) = static_cast<ParticleReal>(total_mass);
+                        amrex::Gpu::Atomic::AddNoRet(&partData(iv,1+NStructInt+i), p.idata(NStructInt+i));
                     }
                 }
             }
+        });
 
-            //
-            // Add the aggregated particles to the virtuals.
-            //
-            for (const auto& agg_particle : agg_map)
-            {
-                virts.push_back(agg_particle.second);
-            }
-        }
+    //There may be a better way to ensure virts is the right length
+    virts.resize(imf.sum(0));
+
+    int last_offset = 0;
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    {
+        const auto bx = mfi.tilebox();
+        const auto partData = mf.array(mfi);
+        const auto imf_arr = imf.array(mfi);
+
+        Gpu::DeviceVector<int> offsets(bx.numPts());
+        auto offsets_ptr = offsets.dataPtr();
+        int next_offset = Scan::ExclusiveSum((int) bx.numPts(),(imf_arr.ptr(bx.smallEnd(),0)),(offsets.dataPtr()),Scan::retSum);
+        auto dst = virts.getParticleTileData();
+        ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
+        {
+             if(imf_arr(i,j,k,0)!=0)
+             {
+                 SuperParticleType p;
+                 p.cpu() = 0;
+                 p.id() = VirtualParticleID;
+
+                 //Set rdata(0) first so we can normalize the weighted fields
+                 p.rdata(0) = static_cast<ParticleReal>(partData(i,j,k,AMREX_SPACEDIM));
+                 //Set pos with the normalized weighted field
+                 for (int n = 0; n < AMREX_SPACEDIM; ++n)
+                 {
+                     p.pos(n) = static_cast<ParticleReal>(partData(i,j,k,n) / p.rdata(0));
+                 }
+                 //Set rdata(n>0) with the normalized weighted field for NStructReal
+                 for (int n = 1; n < NStructReal; ++n)
+                 {
+                     p.rdata(n) = static_cast<ParticleReal>(partData(i,j,k,AMREX_SPACEDIM+n) / p.rdata(0));
+                 }
+                 //Set rdata(n>0) with the normalized weighted field for NArrayReal
+                 for (int n = 0; n < NArrayReal; ++n)
+                 {
+                     p.rdata(NStructReal+n) = static_cast<ParticleReal>(partData(i,j,k,AMREX_SPACEDIM+NStructReal+n));
+                 }
+                 //Set idata with the "first" particles idata field for NStructInt
+                 for (int n = 0; n < NStructInt; ++n)
+                 {
+                     p.idata(n) = imf_arr(i,j,k,1+n);
+                 }
+                 //Set idata with the "first" particles idata field for NArrayInt
+                 for (int n = 0; n < NArrayInt; ++n)
+                 {
+                     p.idata(NStructInt+n) = imf_arr(i,j,k,1+NStructInt+n);
+                 }
+                 //Set the new particle in dst tile
+                 dst.setSuperParticle(p, last_offset+offsets_ptr[((i-imf_arr.begin.x)+(j-imf_arr.begin.y)*imf_arr.jstride+(k-imf_arr.begin.z)*imf_arr.kstride)]);
+             }
+
+        });
+        last_offset+=next_offset;
+        Gpu::synchronize();
+    }
+
+    // last_offset should equal virts.numParticles()
+    auto virts_offset = last_offset;
+    for(ParConstIterType pti(*this, level); pti.isValid(); ++pti)
+    {
+        const auto& src_tile = ParticlesAt(level, pti);
+
+        auto np = src_tile.numParticles();
+        virts.resize(virts_offset+np);
+        virts_offset += filterAndTransformParticles(virts, src_tile, FilterVirt(assign_buffer_grid,plo,dxi,domain), TransformerVirt(),0,virts_offset);
+        Gpu::synchronize();
+    }
+    //Resize implicitly includes a Gpu::synchronize()
+    virts.resize(virts_offset);
     }
 }
+
+struct AssignGridFilter
+{
+
+    int m_lev_min, m_lev_max, m_nGrow, m_gid;
+    amrex::AmrAssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> m_assign_grid;
+
+    /**
+       \brief This filters based on matching grids
+       *
+     **/
+    AssignGridFilter (amrex::AmrAssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> assign_grid, int gid, int level, int nGrow)
+      : m_lev_min(level), m_lev_max(level+1), m_nGrow(nGrow), m_gid(gid), m_assign_grid(assign_grid)
+    {}
+
+    template <typename SrcData>
+    AMREX_GPU_HOST_DEVICE
+    int operator() (const SrcData& src, int src_i) const noexcept
+    {
+        const auto tup_min = (m_assign_grid)(src.m_aos[src_i], m_lev_min, m_lev_max, m_nGrow);
+        const auto tup_max = (m_assign_grid)(src.m_aos[src_i], m_lev_max, m_lev_max, m_nGrow);
+        const auto p_boxes = amrex::get<0>(tup_min);
+        const auto p_boxes_max = amrex::get<0>(tup_max);
+        const auto p_levs_max  = amrex::get<1>(tup_max);
+        return p_boxes_max >=0 && p_boxes == m_gid && p_levs_max == m_lev_max;
+    }
+};
+
+struct TransformerGhost
+{
+
+    template <typename DstData, typename SrcData>
+    AMREX_GPU_HOST_DEVICE
+    void operator() (DstData& dst, const SrcData& src,
+                     int src_i, int dst_i) const noexcept
+    {
+        copyParticle(dst, src, src_i, dst_i);
+
+        (dst.m_aos[dst_i]).id() = GhostParticleID;
+        (dst.m_aos[dst_i]).cpu() = 0;
+    }
+};
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
@@ -793,29 +945,28 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     AMREX_ASSERT(ghosts.empty());
     AMREX_ASSERT(level < finestLevel());
 
-    if (level >= static_cast<int>(m_particles.size()))
+    if (level >= static_cast<int>(m_particles.size())) {
         return;
+    }
 
-    const BoxArray& fine = ParticleBoxArray(level + 1);
-    std::vector< std::pair<int,Box> > isects;
+    if (! m_particle_locator.isValid(GetParGDB())) {
+        m_particle_locator.build(GetParGDB());
+    }
+
+    m_particle_locator.setGeometry(GetParGDB());
+    AmrAssignGrid<DenseBinIteratorFactory<Box>> assign_grid = m_particle_locator.getGridAssignor();
+    auto ghost_offset = ghosts.numParticles();
     for(ParConstIterType pti(*this, level); pti.isValid(); ++pti)
     {
-        const auto& ptile = ParticlesAt(level, pti);
-        const auto src = ptile.getConstParticleTileData();
+        const auto& src_tile = ParticlesAt(level, pti);
+        int gid = pti.index();
 
-        auto& aos = ptile.GetArrayOfStructs();
-        for (int pindex = 0; pindex < ptile.numParticles(); ++pindex)
-        {
-            const IntVect& iv = Index(aos[pindex], level+1);
-            fine.intersections(Box(iv,iv),isects,true,nGrow);
-            if (isects.size() > 0)
-            {
-                SuperParticleType p = src.getSuperParticle(pindex);
-                p.id() = GhostParticleID;
-                ghosts.push_back(p);
-            }
-        }
+        auto np = src_tile.numParticles();
+        ghosts.resize(ghost_offset+np);
+        ghost_offset += filterAndTransformParticles(ghosts, src_tile, AssignGridFilter(assign_grid,gid,level,nGrow), TransformerGhost(),0,ghost_offset);
     }
+    //Resize implicitly includes a Gpu::synchronize()
+    ghosts.resize(ghost_offset);
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
@@ -828,10 +979,8 @@ clearParticles ()
 
     for (int lev = 0; lev < static_cast<int>(m_particles.size()); ++lev)
     {
-        for (auto& kv : m_particles[lev])
-        {
-            kv.second.resize(0);
-        }
+        for (auto& kv : m_particles[lev]) { kv.second.resize(0); }
+        particle_detail::clearEmptyEntries(m_particles[lev]);
     }
 }
 
@@ -1090,21 +1239,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         }
     }
 
-    // Remove any map entries for which the particle container is now empty.
     for (int lev = lev_min; lev <= lev_max; lev++)
     {
-        auto& pmap = m_particles[lev];
-        for (auto pmap_it = pmap.begin(); pmap_it != pmap.end(); /* no ++ */)
-        {
-            if (pmap_it->second.empty())
-            {
-                pmap.erase(pmap_it++);
-            }
-            else
-            {
-                ++pmap_it;
-            }
-        }
+        particle_detail::clearEmptyEntries(m_particles[lev]);
     }
 
     if (ParallelDescriptor::UseGpuAwareMpi())
@@ -1352,17 +1489,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
   }
 
   for (int lev = lev_min; lev <= lev_max; lev++) {
-      auto& pmap = m_particles[lev];
-      for (auto pmap_it = pmap.begin(); pmap_it != pmap.end(); /* no ++ */) {
-
-          // Remove any map entries for which the particle container is now empty.
-          if (pmap_it->second.empty()) {
-              pmap.erase(pmap_it++);
-          }
-          else {
-              ++pmap_it;
-          }
-      }
+      particle_detail::clearEmptyEntries(m_particles[lev]);
   }
 
   // Second pass - for each tile in parallel, collect the particles we are owed from all thread's buffers.
@@ -1436,15 +1563,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
       }
   }
 
-  // remove any empty map entries from not_ours
-  for (auto pmap_it = not_ours.begin(); pmap_it != not_ours.end(); /* no ++ */) {
-      if (pmap_it->second.empty()) {
-          not_ours.erase(pmap_it++);
-      }
-      else {
-          ++pmap_it;
-      }
-  }
+  particle_detail::clearEmptyEntries(not_ours);
 
   if (int(m_particles.size()) > theEffectiveFinestLevel+1) {
       // Looks like we lost an AmrLevel on a regrid.
@@ -1808,8 +1927,6 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt, Allocator>
 {
     BL_PROFILE("ParticleContainer::AddParticlesAtLevel()");
 
-    //    if (particles.size() == 0) return;
-
     if (int(m_particles.size()) < level+1)
     {
         if (Verbose())
@@ -1826,20 +1943,12 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt, Allocator>
         }
     }
 
-    ParticleLocData pld;
-
-    auto src = particles.getParticleTileData();
-
-    for (int i = 0; i < particles.numParticles(); ++i) {
-        SuperParticleType p = src.getSuperParticle(i);
-        if (p.id() > 0)
-        {
-            if (!Where(p, pld, level, level, nGrow))
-                amrex::Abort("ParticleContainerAddParticlesAtLevel(): Can't add outside of domain\n");
-            m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
-        }
-    }
-
+    auto& ptile = DefineAndReturnParticleTile(level, 0, 0);
+    int old_np = ptile.size();
+    int num_to_add = particles.size();
+    int new_np = old_np + num_to_add;
+    ptile.resize(new_np);
+    amrex::copyParticles(ptile, particles, 0, old_np, num_to_add);
     Redistribute(level, level, nGrow);
     particles.resize(0);
 }

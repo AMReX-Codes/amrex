@@ -178,6 +178,7 @@ C$(AMREX_BASE)_sources += AMReX_FilCC_C.cpp
 C$(AMREX_BASE)_headers += AMReX_FilCC_C.H AMReX_FilCC_$(DIM)D_C.H
 C$(AMREX_BASE)_sources += AMReX_FilND_C.cpp
 C$(AMREX_BASE)_headers += AMReX_FilND_C.H
+C$(AMREX_BASE)_headers += AMReX_FilFC_C.H AMReX_FilFC_$(DIM)D_C.H
 
 #
 # Non-Local BC
@@ -265,3 +266,31 @@ CEXE_headers += AMReX_BaseFwd.H
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
+
+
+CEXE_headers += amrex_parser.lex.h amrex_parser.tab.h
+CEXE_sources += amrex_parser.lex.cpp amrex_parser.tab.cpp
+
+CEXE_headers += AMReX_Parser_Y.H
+CEXE_sources += AMReX_Parser_Y.cpp
+
+CEXE_headers += AMReX_Parser_Exe.H
+CEXE_sources += AMReX_Parser_Exe.cpp
+
+CEXE_headers += AMReX_Parser.H
+CEXE_sources += AMReX_Parser.cpp
+
+CEXE_headers += amrex_iparser.lex.h amrex_iparser.tab.h
+CEXE_sources += amrex_iparser.lex.cpp amrex_iparser.tab.cpp
+
+CEXE_headers += AMReX_IParser_Y.H
+CEXE_sources += AMReX_IParser_Y.cpp
+
+CEXE_headers += AMReX_IParser_Exe.H
+CEXE_sources += AMReX_IParser_Exe.cpp
+
+CEXE_headers += AMReX_IParser.H
+CEXE_sources += AMReX_IParser.cpp
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base/Parser
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base/Parser

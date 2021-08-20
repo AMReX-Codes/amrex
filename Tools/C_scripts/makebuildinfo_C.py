@@ -231,7 +231,7 @@ if __name__ == "__main__":
     parser.add_argument("--libraries", help="libraries linked", type=str, default="")
 
     parser.add_argument("--AUX",
-                        help="auxillary information (EOS, network path) (deprecated)",
+                        help="auxiliary information (EOS, network path) (deprecated)",
                         type=str, default="")
 
     parser.add_argument("--MODULES",
@@ -301,7 +301,7 @@ if __name__ == "__main__":
             mod_dict[k] = v
 
 
-    # auxillary info
+    # auxiliary info
     if args.AUX == "":
         AUX = []
     else:

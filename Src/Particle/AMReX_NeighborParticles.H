@@ -211,6 +211,12 @@ public:
                                const Vector<int>                 & rr,
                                int                               nneighbor);
 
+    NeighborParticleContainer ( const NeighborParticleContainer &) = delete;
+    NeighborParticleContainer& operator= ( const NeighborParticleContainer & ) = delete;
+
+    NeighborParticleContainer ( NeighborParticleContainer && ) = default;
+    NeighborParticleContainer& operator= ( NeighborParticleContainer && ) = default;
+
     ///
     /// Regrid functions
     ///
@@ -342,7 +348,7 @@ protected:
     void calcCommSize ();
 
     ///
-    /// Perform the MPI communication neccesary to fill neighbor buffers
+    /// Perform the MPI communication necessary to fill neighbor buffers
     ///
     void fillNeighborsMPI (bool reuse_rcv_counts);
 

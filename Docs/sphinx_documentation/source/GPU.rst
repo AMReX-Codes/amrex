@@ -325,6 +325,10 @@ Enabling HIP support (experimental)
 To build AMReX with HIP support in CMake, add
 ``-DAMReX_GPU_BACKEND=HIP -DAMReX_AMD_ARCH=<target-arch> -DCMAKE_CXX_COMPILER=<your-hip-compiler>``
 to the ``cmake`` invocation.
+If you don't need Fortran features (``AMReX_FORTRAN=OFF``), it is recommended to use AMD's ``clang++`` as the HIP compiler.
+(Please see these issues for reference in rocm/HIP <= 4.2.0
+`[1] <https://github.com/ROCm-Developer-Tools/HIP/issues/2275>`__
+`[2] <https://github.com/AMReX-Codes/amrex/pull/2031>`__.)
 
 In AMReX CMake, the HIP compiler is treated as a special C++ compiler and therefore
 the standard CMake variables used to customize the compilation process for C++,
@@ -332,17 +336,18 @@ for example ``CMAKE_CXX_FLAGS``, can be used for HIP as well.
 
 
 Since CMake does not support autodetection of HIP compilers/target architectures
-yet, ``CMAKE_CXX_COMPILER`` must be set to a valid HIP compiler, i.e. ``hipcc`` or ``nvcc``,
+yet, ``CMAKE_CXX_COMPILER`` must be set to a valid HIP compiler, i.e. ``clang++`` or ``hipcc`` or ``nvcc``,
 and ``AMReX_AMD_ARCH`` to the target architecture you are building for.
 Thus **AMReX_AMD_ARCH and CMAKE_CXX_COMPILER are required user-inputs when AMReX_GPU_BACKEND=HIP**.
-We again read also an *environment variable*: ``AMREX_AMD_ARCH`` (note: all caps).
+We again read also an *environment variable*: ``AMREX_AMD_ARCH`` (note: all caps) and the C++ compiler can be hinted as always, e.g. with ``export CXX=$(which clang++)``.
 Below is an example configuration for HIP on Tulip:
 
 .. highlight:: console
 
 ::
 
-   cmake -DAMReX_GPU_BACKEND=HIP -DCMAKE_CXX_COMPILER=$(which hipcc) -DAMReX_AMD_ARCH="gfx906,gfx908"  [other options] /path/to/amrex/source
+   cmake -S . -B build -DAMReX_GPU_BACKEND=HIP -DCMAKE_CXX_COMPILER=$(which clang++) -DAMReX_AMD_ARCH="gfx906;gfx908"  # [other options]
+   cmake --build build -j 6
 
 
 Enabling SYCL support (experimental)
@@ -842,7 +847,7 @@ Instead of using :cpp:`Elixir`, we can write code like below,
       FArrayBox tmp_fab(bx, numcomps, The_Async_Arena());
       Array4<Real> const& tmp_arr = tmp_fab.array();
       FArrayBox tmp_fab_2;
-      tmp_fab_2.resize(bx, numcomps, The_Async_Async());
+      tmp_fab_2.resize(bx, numcomps, The_Async_Arena());
 
       // GPU kernels using the temporary
     }
@@ -878,9 +883,12 @@ function is executed.
 The available launch schema are presented here in three categories: launching
 nested loops over Boxes or 1D arrays, launching generic work and launching using
 OpenACC or  OpenMP pragmas. The latest versions of the examples used in this section
-of the documentation can be found in the AMReX source code at ``amrex/Tutorials/GPU/Launch``.
+of the documentation can be found in the AMReX source code in the `Launch`_ tutorials.
 Users should also refer to Chapter :ref:`Chap:Basics` as needed for information about basic
 AMReX classes.
+
+.. _`Launch`: https://amrex-codes.github.io/amrex/tutorials_html/GPU_Tutorial.html#launch
+
 
 AMReX also recommends writing primary floating point operation kernels
 in C++ using AMReX's :cpp:`Array4` object syntax.  It provides a
@@ -1477,7 +1485,9 @@ look like the following:
 Note the use of the :fortran:`!$acc parallel deviceptr` clause to specify which data has been placed
 in managed memory. This instructs OpenACC to treat those variables as if they already live on
 the device, bypassing the usual copies. For complete examples of a particle code that has been ported
-to GPUs using Cuda, OpenACC, and OpenMP, please see :cpp:`Tutorials/Particles/ElectromagneticPIC`.
+to GPUs using Cuda, OpenACC, and OpenMP, please see the tutorial `Electromagnetic PIC`_.
+
+.. _`Electromagnetic PIC`: https://amrex-codes.github.io/amrex/tutorials_html/Particles_Tutorial.html#electromagneticpic
 
 GPU-aware implementations of many common particle operations are provided with AMReX, including neighbor list
 construction and traversal, particle-mesh deposition and interpolation, parallel reductions of particle data,
@@ -1545,7 +1555,7 @@ AMReX for GPUs:
   performance and greatly reduces runtime.  Functions are written
   inline by putting their definitions in the ``.H`` file and using
   the ``AMREX_FORCE_INLINE`` AMReX macro.  Examples can be found in
-  ``Tutorials/GPU/Launch``. For example:
+  in the `Launch`_ tutorial. For example:
 
 .. highlight:: cpp
 

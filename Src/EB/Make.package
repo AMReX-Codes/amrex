@@ -23,6 +23,9 @@ CEXE_headers += AMReX_EBSupport.H
 CEXE_headers += AMReX_EBInterpolater.H
 CEXE_sources += AMReX_EBInterpolater.cpp
 
+CEXE_headers += AMReX_EBMFInterpolater.H
+CEXE_sources += AMReX_EBMFInterpolater.cpp
+
 CEXE_headers += AMReX_EBFluxRegister.H
 CEXE_headers += AMReX_EBFluxRegister_C.H AMReX_EBFluxRegister_$(DIM)D_C.H
 CEXE_sources += AMReX_EBFluxRegister.cpp
@@ -57,6 +60,7 @@ CEXE_headers += AMReX_EB2_IF_Translation.H
 CEXE_headers += AMReX_EB2_IF_Union.H
 CEXE_headers += AMReX_EB2_IF_Extrusion.H
 CEXE_headers += AMReX_EB2_IF_Difference.H
+CEXE_headers += AMReX_EB2_IF_Parser.H
 CEXE_headers += AMReX_EB2_IF.H
 CEXE_headers += AMReX_EB2_IF_Base.H
 

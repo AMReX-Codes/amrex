@@ -223,16 +223,17 @@ MacProjector::project (Real reltol, Real atol)
         }
     }
 
-    averageDownVelocity();
+    if ( m_umac[0][0] )
+      averageDownVelocity();
 
     for (int ilev = 0; ilev < nlevs; ++ilev)
     {
+      if ( m_umac[0][0] )
+      {
         Array<MultiFab const*, AMREX_SPACEDIM> u;
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             u[idim] = m_umac[ilev][idim];
         }
-        MultiFab divu(m_rhs[ilev].boxArray(), m_rhs[ilev].DistributionMap(),
-                      1, 0, MFInfo(), m_rhs[ilev].Factory());
 #ifdef AMREX_USE_EB
         if (m_umac_loc != MLMG::Location::FaceCentroid)
         {
@@ -243,9 +244,9 @@ MacProjector::project (Real reltol, Real atol)
             }
         }
 
-        EB_computeDivergence(divu, u, m_geom[ilev], (m_umac_loc == MLMG::Location::FaceCentroid));
+        EB_computeDivergence(m_rhs[ilev], u, m_geom[ilev], (m_umac_loc == MLMG::Location::FaceCentroid));
 #else
-        computeDivergence(divu, u, m_geom[ilev]);
+        computeDivergence(m_rhs[ilev], u, m_geom[ilev]);
 #endif
 
         // For mlabeclaplacian, we solve -del dot (beta grad phi) = rhs
@@ -253,25 +254,28 @@ MacProjector::project (Real reltol, Real atol)
         // For mlpoisson, we solve `del dot grad phi = rhs/(-const_beta)`
         //   and set up RHS as (m_divu - divu)*(-1/const_beta)
         AMREX_ASSERT(m_poisson == nullptr || m_const_beta != Real(0.0));
-        MultiFab::Copy(m_rhs[ilev], divu, 0, 0, 1, 0);
         m_rhs[ilev].mult(m_poisson ? Real(1.0)/m_const_beta : Real(-1.0));
+      }
+      //else m_rhs already initialized to 0
 
-        if (m_divu[ilev].ok())
-        {
-            MultiFab::Saxpy(m_rhs[ilev], m_poisson ? Real(-1.0)/m_const_beta : Real(1.0),
-                            m_divu[ilev], 0, 0, 1, 0);
-        }
+      if (m_divu[ilev].ok())
+      {
+        MultiFab::Saxpy(m_rhs[ilev], m_poisson ? Real(-1.0)/m_const_beta : Real(1.0),
+                        m_divu[ilev], 0, 0, 1, 0);
+      }
 
-        // Always reset initial phi to be zero. This is needed to handle the
-        // situation where the MacProjector is being reused.
-        m_phi[ilev].setVal(0.0);
+      // Always reset initial phi to be zero. This is needed to handle the
+      // situation where the MacProjector is being reused.
+      m_phi[ilev].setVal(0.0);
     }
 
     m_mlmg->solve(amrex::GetVecOfPtrs(m_phi), amrex::GetVecOfConstPtrs(m_rhs), reltol, atol);
 
-    m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes), m_umac_loc);
+    if ( m_umac[0][0] )
+    {
+      m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes), m_umac_loc);
 
-    for (int ilev = 0; ilev < nlevs; ++ilev) {
+      for (int ilev = 0; ilev < nlevs; ++ilev) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             if (m_poisson) {
                 MultiFab::Saxpy(*m_umac[ilev][idim], m_const_beta, m_fluxes[ilev][idim], 0,0,1,0);
@@ -282,9 +286,11 @@ MacProjector::project (Real reltol, Real atol)
             EB_set_covered_faces(m_umac[ilev], 0.0);
 #endif
         }
+      }
+
+      averageDownVelocity();
     }
 
-    averageDownVelocity();
 }
 
 void

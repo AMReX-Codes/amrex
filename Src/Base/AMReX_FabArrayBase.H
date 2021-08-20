@@ -21,7 +21,6 @@
 namespace amrex {
 
 class MFIter;
-class MFGhostIter;
 class Geometry;
 class FArrayBox;
 template <typename FAB> class FabFactory;
@@ -32,7 +31,6 @@ namespace EB2 { class IndexSpace; }
 class FabArrayBase
 {
     friend class MFIter;
-    friend class MFGhostIter;
 
     template <class FAB> friend void FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period);
 
@@ -143,6 +141,9 @@ public:
     // is updated by FillBoundary and ParallelCopy.
     IntVect nGrowFilled () const noexcept { return n_filled; }
     void setNGrowFilled (IntVect const& ng) noexcept { n_filled = ng; }
+
+    //! Is this a good candidate for kernel fusing?
+    bool isFusingCandidate () const noexcept;
 
     //
     struct CacheStats
@@ -294,9 +295,6 @@ public:
 
     //! Default tilesize in MFIter
     static AMREX_EXPORT IntVect mfiter_tile_size;
-
-    //! Default tilesize in MFGhostIter
-    static AMREX_EXPORT IntVect mfghostiter_tile_size;
 
     //! The maximum number of components to copy() at a time.
     static AMREX_EXPORT int MaxComp;
@@ -649,13 +647,14 @@ public:
 
 #ifdef AMREX_USE_GPU
     //
-    //! For ParalleFor(FabArray)
+    //! For ParallelFor(FabArray)
     struct ParForInfo
     {
-        ParForInfo (const FabArrayBase& fa, const IntVect& nghost);
+        ParForInfo (const FabArrayBase& fa, const IntVect& nghost, int nthreads);
         ~ParForInfo ();
 
         std::pair<int*,int*> const& getBlocks () const { return m_nblocks_x; }
+        Box const* getBoxes () const { return m_boxes; }
 
         ParForInfo () = delete;
         ParForInfo (ParForInfo const&) = delete;
@@ -665,10 +664,15 @@ public:
 
         IndexType m_typ;
         IntVect m_crse_ratio;
+        IntVect m_ng;
+        int m_nthreads;
         std::pair<int*,int*> m_nblocks_x;
+        Box* m_boxes = nullptr;
+        char* m_hp = nullptr;
+        char* m_dp = nullptr;
     };
 
-    ParForInfo const& getParForInfo (const IntVect& nghost) const;
+    ParForInfo const& getParForInfo (const IntVect& nghost, int nthreads) const;
 
     static std::multimap<BDKey,ParForInfo*> m_TheParForCache;
 

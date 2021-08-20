@@ -13,6 +13,10 @@ target_sources(amrex
    AMReX_FillPatchUtil.H
    AMReX_FillPatchUtil_I.H
    AMReX_FluxRegister.H
+   AMReX_InterpBase.H
+   AMReX_InterpBase.cpp
+   AMReX_MFInterpolater.H
+   AMReX_MFInterpolater.cpp
    AMReX_Interpolater.cpp
    AMReX_TagBox.cpp
    AMReX_AmrMesh.cpp
@@ -23,6 +27,8 @@ target_sources(amrex
    AMReX_FluxReg_C.H
    AMReX_Interp_C.H
    AMReX_Interp_${AMReX_SPACEDIM}D_C.H
+   AMReX_MFInterp_C.H
+   AMReX_MFInterp_${AMReX_SPACEDIM}D_C.H
    AMReX_AmrCoreFwd.H
    )
 
@@ -36,7 +42,7 @@ if (AMReX_FORTRAN)
       )
 endif ()
 
-# These files are neeeded only if Particles are enabled
+# These files are needed only if Particles are enabled
 if ( AMReX_PARTICLES )
   target_sources( amrex PRIVATE AMReX_AmrParGDB.H AMReX_AmrParticles.H )
 endif ()

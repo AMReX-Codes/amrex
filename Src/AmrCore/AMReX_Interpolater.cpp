@@ -4,6 +4,7 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_Interpolater.H>
 #include <AMReX_Interp_C.H>
+#include <AMReX_MFInterp_C.H>
 
 #ifndef BL_NO_FORT
 #include <AMReX_INTERP_F.H>
@@ -14,12 +15,10 @@
 namespace amrex {
 
 //
-// PCInterp, NodeBilinear, FaceLinear, and CellConservativeLinear are supported for all dimensions
-// on cpu and gpu.
+// PCInterp, NodeBilinear, FaceLinear, CellConservativeLinear, and
+// CellBilinear are supported for all dimensions on cpu and gpu.
 //
 // CellConsertiveProtected only works in 2D and 3D on cpu.
-//
-// CellBilinear works in 1D, 2D and 3D on cpu.
 //
 // CellQuadratic only works in 2D on cpu.
 //
@@ -36,33 +35,13 @@ FaceLinear                face_linear_interp;
 FaceDivFree               face_divfree_interp;
 CellConservativeLinear    lincc_interp;
 CellConservativeLinear    cell_cons_interp(0);
+CellBilinear              cell_bilinear_interp;
 
 #ifndef BL_NO_FORT
-CellBilinear              cell_bilinear_interp;
 CellQuadratic             quadratic_interp;
 CellConservativeProtected protected_interp;
 CellConservativeQuartic   quartic_interp;
 #endif
-
-Interpolater::~Interpolater () {}
-
-InterpolaterBoxCoarsener
-Interpolater::BoxCoarsener (const IntVect& ratio)
-{
-    return InterpolaterBoxCoarsener(this, ratio);
-}
-
-Box
-InterpolaterBoxCoarsener::doit (const Box& fine) const
-{
-    return mapper->CoarseBox(fine, ratio);
-}
-
-BoxConverter*
-InterpolaterBoxCoarsener::clone () const
-{
-    return new InterpolaterBoxCoarsener(mapper, ratio);
-}
 
 NodeBilinear::~NodeBilinear () {}
 
@@ -123,26 +102,11 @@ NodeBilinear::interp (const FArrayBox&  crse,
 {
     BL_PROFILE("NodeBilinear::interp()");
 
-    bool run_on_gpu = (runon == RunOn::Gpu && Gpu::inLaunchRegion());
-
-    int num_slope  = ncomp*(AMREX_D_TERM(2,*2,*2)-1);
-    const Box cslope_bx = amrex::enclosedCells(CoarseBox(fine_region, ratio));
-    FArrayBox slopefab(cslope_bx, num_slope);
-    Elixir slopeeli;
-    if (run_on_gpu) slopeeli = slopefab.elixir();
-
     Array4<Real const> const& crsearr = crse.const_array();
     Array4<Real> const& finearr = fine.array();
-    Array4<Real> const& slopearr = slopefab.array();
-
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, cslope_bx, tbx,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
     {
-        amrex::nodebilin_slopes<Real>(tbx, slopearr, crsearr, crse_comp, ncomp, ratio);
-    });
-
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, fine_region, tbx,
-    {
-        amrex::nodebilin_interp<Real>(tbx, finearr, fine_comp, ncomp, slopearr, crsearr, crse_comp, ratio);
+        mf_nodebilin_interp(i,j,k,n, finearr, fine_comp, crsearr, crse_comp, ratio);
     });
 }
 
@@ -281,19 +245,16 @@ void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
 
 FaceLinear::~FaceLinear () {}
 
-#ifndef BL_NO_FORT
 CellBilinear::~CellBilinear () {}
 
 Box
-CellBilinear::CoarseBox (const Box& fine,
-                         int        ratio)
+CellBilinear::CoarseBox (const Box& fine, int ratio)
 {
-    return CoarseBox(fine, ratio*IntVect::TheUnitVector());
+    return CoarseBox(fine, IntVect(ratio));
 }
 
 Box
-CellBilinear::CoarseBox (const Box&     fine,
-                         const IntVect& ratio)
+CellBilinear::CoarseBox (const Box& fine, const IntVect& ratio)
 {
     const int* lo = fine.loVect();
     const int* hi = fine.hiVect();
@@ -302,22 +263,21 @@ CellBilinear::CoarseBox (const Box&     fine,
     const int* clo = crse.loVect();
     const int* chi = crse.hiVect();
 
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
-    {
-        int iratio = ratio[i];
-        int hrat   = iratio/2;
-        if (lo[i] <  clo[i]*ratio[i] + hrat)
+    for (int i = 0; i < AMREX_SPACEDIM; i++) {
+        if ((lo[i]-clo[i]*ratio[i])*2 < ratio[i]) {
             crse.growLo(i,1);
-        if (hi[i] >= chi[i]*ratio[i] + hrat)
+        }
+        if ((hi[i]-chi[i]*ratio[i])*2 >= ratio[i]) {
             crse.growHi(i,1);
+        }
     }
     return crse;
 }
 
 void
-CellBilinear::interp (const FArrayBox&  crse,
+CellBilinear::interp (const FArrayBox&  crsefab,
                       int               crse_comp,
-                      FArrayBox&        fine,
+                      FArrayBox&        finefab,
                       int               fine_comp,
                       int               ncomp,
                       const Box&        fine_region,
@@ -325,62 +285,20 @@ CellBilinear::interp (const FArrayBox&  crse,
                       const Geometry& /*crse_geom*/,
                       const Geometry& /*fine_geom*/,
                       Vector<BCRec> const& /*bcr*/,
-                      int               actual_comp,
-                      int               actual_state,
-                      RunOn             /*runon*/)
+                      int               /*actual_comp*/,
+                      int               /*actual_state*/,
+                      RunOn             runon)
 {
     BL_PROFILE("CellBilinear::interp()");
-    //
-    // Set up to call FORTRAN.
-    //
-    const int* clo = crse.box().loVect();
-    const int* chi = crse.box().hiVect();
-    const int* flo = fine.loVect();
-    const int* fhi = fine.hiVect();
-    const int* lo  = fine_region.loVect();
-    const int* hi  = fine_region.hiVect();
-    int num_slope  = AMREX_D_TERM(2,*2,*2)-1;
-    int len0       = crse.box().length(0);
-    int slp_len    = num_slope*len0;
 
-    Vector<Real> slope(slp_len);
-
-    int strp_len = len0*ratio[0];
-
-    Vector<Real> strip(strp_len);
-
-    int strip_lo = ratio[0] * clo[0];
-    int strip_hi = ratio[0] * chi[0];
-
-    const Real* cdat  = crse.dataPtr(crse_comp);
-    Real*       fdat  = fine.dataPtr(fine_comp);
-    const int* ratioV = ratio.getVect();
-
-    amrex_cbinterp (cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),AMREX_ARLIM(clo),AMREX_ARLIM(chi),
-                   fdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),AMREX_ARLIM(lo),AMREX_ARLIM(hi),
-                   AMREX_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),&ncomp,
-                   slope.dataPtr(),&num_slope,strip.dataPtr(),&strip_lo,&strip_hi,
-                   &actual_comp,&actual_state);
-}
-#endif
-
-Vector<int>
-Interpolater::GetBCArray (const Vector<BCRec>& bcr)
-{
-    Vector<int> bc(2*AMREX_SPACEDIM*bcr.size());
-
-    for (int n = 0; n < bcr.size(); n++)
+    auto const& crse = crsefab.const_array();
+    auto const& fine = finefab.array();
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
     {
-        const int* b_rec = bcr[n].vect();
-
-        for (int m = 0; m < 2*AMREX_SPACEDIM; m++)
-        {
-            bc[2*AMREX_SPACEDIM*n + m] = b_rec[m];
-        }
-    }
-
-    return bc;
+        mf_cell_bilin_interp(i,j,k,n, fine, fine_comp, crse, crse_comp, ratio);
+    });
 }
+
 
 CellConservativeLinear::CellConservativeLinear (bool do_linear_limiting_)
 {
@@ -430,6 +348,9 @@ CellConservativeLinear::interp (const FArrayBox& crse,
 
     bool run_on_gpu = (runon == RunOn::Gpu && Gpu::inLaunchRegion());
 
+    Box const& cdomain = crse_geom.Domain();
+    amrex::ignore_unused(fine_geom);
+
     Array4<Real const> const& crsearr = crse.const_array();
     Array4<Real> const& finearr = fine.array();
 
@@ -439,63 +360,84 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     AsyncArray<BCRec> async_bcr(bcr.data(), (run_on_gpu) ? ncomp : 0);
     BCRec const* bcrp = (run_on_gpu) ? async_bcr.data() : bcr.data();
 
-    // component of ccfab : slopes for first compoent for x-direction
-    //                      slopes for second component for x-direction
-    //                      ...
-    //                      slopes for last component for x-direction
-    //                      slopes for y-direction
-    //                      slopes for z-drction
-    // then followed by
-    //      lin_lim = true : factors (one for all components) for x, y and z-direction
-    //      lin_lim = false: min for every component followed by max for every component
-    const int ntmp = do_linear_limiting ? (ncomp+1)*AMREX_SPACEDIM : ncomp*(AMREX_SPACEDIM+2);
-    FArrayBox ccfab(cslope_bx, ntmp);
+    FArrayBox ccfab(cslope_bx, ncomp*AMREX_SPACEDIM);
     Elixir cceli;
     if (run_on_gpu) cceli = ccfab.elixir();
-    Array4<Real> const& ccarr = ccfab.array();
+    Array4<Real> const& tmp = ccfab.array();
+    Array4<Real const> const& ctmp = ccfab.const_array();
 
-    const Vector<Real>& vec_voff = amrex::ccinterp_compute_voff(cslope_bx, ratio, crse_geom, fine_geom);
+#if (AMREX_SPACEDIM == 1)
+    if (crse_geom.IsSPHERICAL()) {
+        Real drf = fine_geom.CellSize(0);
+        Real rlo = fine_geom.Offset(0);
+        if (do_linear_limiting) {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(runon, cslope_bx, i, j, k,
+            {
+                mf_cell_cons_lin_interp_llslope(i,j,k, tmp, crsearr, crse_comp, ncomp,
+                                                cdomain, bcrp);
+            });
+        } else {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cslope_bx, ncomp, i, j, k, n,
+            {
+                amrex::ignore_unused(j,k);
+                mf_cell_cons_lin_interp_mcslope_sph(i, n, tmp, crsearr, crse_comp, ncomp,
+                                                    cdomain, ratio, bcrp, drf, rlo);
+            });
+        }
 
-    AsyncArray<Real> async_voff(vec_voff.data(), (run_on_gpu) ? vec_voff.size() : 0);
-    Real const* voff = (run_on_gpu) ? async_voff.data() : vec_voff.data();
-
-    if (do_linear_limiting) {
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG ( runon, cslope_bx, tbx,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, fine_region, ncomp, i, j, k, n,
         {
-            amrex::cellconslin_slopes_linlim(tbx, ccarr, crsearr, crse_comp, ncomp, bcrp);
+            amrex::ignore_unused(j,k);
+            mf_cell_cons_lin_interp_sph(i, n, finearr, fine_comp, ctmp,
+                                        crsearr, crse_comp, ncomp, ratio, drf, rlo);
         });
+    } else
+#elif (AMREX_SPACEDIM == 2)
+    if (crse_geom.IsRZ()) {
+        Real drf = fine_geom.CellSize(0);
+        Real rlo = fine_geom.Offset(0);
+        if (do_linear_limiting) {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(runon, cslope_bx, i, j, k,
+            {
+                mf_cell_cons_lin_interp_llslope(i,j,k, tmp, crsearr, crse_comp, ncomp,
+                                                cdomain, bcrp);
+            });
+        } else {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cslope_bx, ncomp, i, j, k, n,
+            {
+                amrex::ignore_unused(k);
+                mf_cell_cons_lin_interp_mcslope_rz(i, j, n, tmp, crsearr, crse_comp, ncomp,
+                                                   cdomain, ratio, bcrp, drf, rlo);
+            });
+        }
 
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG ( runon, fine_region, tbx,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, fine_region, ncomp, i, j, k, n,
         {
-            amrex::cellconslin_interp(tbx, finearr, fine_comp, ncomp, ccarr, crsearr, crse_comp,
-                                      voff, ratio);
+            amrex::ignore_unused(k);
+            mf_cell_cons_lin_interp_rz(i, j, n, finearr, fine_comp, ctmp,
+                                       crsearr, crse_comp, ncomp, ratio, drf, rlo);
         });
-    } else {
-        const Box& fslope_bx = amrex::refine(cslope_bx,ratio);
-        FArrayBox fafab(fslope_bx, ncomp);
-        Elixir faeli;
-        if (run_on_gpu) faeli = fafab.elixir();
-        Array4<Real> const& faarr = fafab.array();
+    } else
+#endif
+    {
+        if (do_linear_limiting) {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(runon, cslope_bx, i, j, k,
+            {
+                mf_cell_cons_lin_interp_llslope(i,j,k, tmp, crsearr, crse_comp, ncomp,
+                                                cdomain, bcrp);
+            });
+        } else {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cslope_bx, ncomp, i, j, k, n,
+            {
+                mf_cell_cons_lin_interp_mcslope(i,j,k,n, tmp, crsearr, crse_comp, ncomp,
+                                                cdomain, ratio, bcrp);
+            });
+        }
 
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, cslope_bx, tbx,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, fine_region, ncomp, i, j, k, n,
         {
-            amrex::cellconslin_slopes_mclim(tbx, ccarr, crsearr, crse_comp, ncomp, bcrp);
-        });
-
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, fslope_bx, tbx,
-        {
-            amrex::cellconslin_fine_alpha(tbx, faarr, ccarr, ncomp, voff, ratio);
-        });
-
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, cslope_bx, tbx,
-        {
-            amrex::cellconslin_slopes_mmlim(tbx, ccarr, faarr, ncomp, ratio);
-        });
-
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, fine_region, tbx,
-        {
-            amrex::cellconslin_interp(tbx, finearr, fine_comp, ncomp, ccarr, crsearr, crse_comp,
-                                      voff, ratio);
+            mf_cell_cons_lin_interp(i,j,k,n, finearr, fine_comp, ctmp,
+                                    crsearr, crse_comp, ncomp, ratio);
         });
     }
 }
@@ -676,89 +618,10 @@ PCInterp::interp (const FArrayBox& crse,
 }
 
 #ifndef BL_NO_FORT
-CellConservativeProtected::CellConservativeProtected () {}
+CellConservativeProtected::CellConservativeProtected ()
+    : CellConservativeLinear(true) {}
 
 CellConservativeProtected::~CellConservativeProtected () {}
-
-Box
-CellConservativeProtected::CoarseBox (const Box&     fine,
-                                      const IntVect& ratio)
-{
-    Box crse = amrex::coarsen(fine,ratio);
-    crse.grow(1);
-    return crse;
-}
-
-Box
-CellConservativeProtected::CoarseBox (const Box& fine,
-                                      int        ratio)
-{
-    Box crse(amrex::coarsen(fine,ratio));
-    crse.grow(1);
-    return crse;
-}
-
-void
-CellConservativeProtected::interp (const FArrayBox& crse,
-                                   int              crse_comp,
-                                   FArrayBox&       fine,
-                                   int              fine_comp,
-                                   int              ncomp,
-                                   const Box&       fine_region,
-                                   const IntVect&   ratio,
-                                   const Geometry&  crse_geom,
-                                   const Geometry&  fine_geom,
-                                   Vector<BCRec> const&  bcr,
-                                   int              /*actual_comp*/,
-                                   int              /*actual_state*/,
-                                   RunOn            runon)
-{
-    BL_PROFILE("CellConservativeProtected::interp()");
-    BL_ASSERT(bcr.size() >= ncomp);
-
-    AMREX_ASSERT(fine.box().contains(fine_region));
-
-    bool run_on_gpu = (runon == RunOn::Gpu && Gpu::inLaunchRegion());
-
-    Array4<Real const> const& crsearr = crse.const_array();
-    Array4<Real> const& finearr = fine.array();
-
-    const Box& crse_region = CoarseBox(fine_region,ratio);
-    const Box& cslope_bx = amrex::grow(crse_region,-1);
-
-    AsyncArray<BCRec> async_bcr(bcr.data(), (run_on_gpu) ? ncomp : 0);
-    BCRec const* bcrp = (run_on_gpu) ? async_bcr.data() : bcr.data();
-
-    // component of ccfab : slopes for first compoent for x-direction
-    //                      slopes for second component for x-direction
-    //                      ...
-    //                      slopes for last component for x-direction
-    //                      slopes for y-direction
-    //                      slopes for z-drction
-    // then followed by
-    //                      factors (one for all components) for x, y and z-direction
-    const int ntmp = (ncomp+1)*AMREX_SPACEDIM;
-    FArrayBox ccfab(cslope_bx, ntmp);
-    Elixir cceli;
-    if (run_on_gpu) cceli = ccfab.elixir();
-    Array4<Real> const& ccarr = ccfab.array();
-
-    const Vector<Real>& vec_voff = amrex::ccinterp_compute_voff(cslope_bx, ratio, crse_geom, fine_geom);
-
-    AsyncArray<Real> async_voff(vec_voff.data(), (run_on_gpu) ? vec_voff.size() : 0);
-    Real const* voff = (run_on_gpu) ? async_voff.data() : vec_voff.data();
-
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, cslope_bx, tbx,
-    {
-        amrex::cellconslin_slopes_linlim(tbx, ccarr, crsearr, crse_comp, ncomp, bcrp);
-    });
-
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, fine_region, tbx,
-    {
-        amrex::cellconslin_interp(tbx, finearr, fine_comp, ncomp, ccarr, crsearr, crse_comp,
-                                  voff, ratio);
-    });
-}
 
 void
 CellConservativeProtected::protect (const FArrayBox& crse,

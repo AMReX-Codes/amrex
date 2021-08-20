@@ -15,12 +15,12 @@ namespace amrex {
 /*
 * A Collection of IArrayBoxes
 *
-* The iMultiFab class is publically derived from the
+* The iMultiFab class is publicly derived from the
 * FabArray<int,IArrayBox> class.  It is a collection (stored as an array) of
 * IArrayBoxes useful for storing integer data on a domain defined by
 * a union of rectangular regions embedded in a uniform index space.  The
 * iMultiFab class extends the function of the underlying FabArray class just
-* as the IArrayBox class extends the funtion of BaseFab<int>.  Additional
+* as the IArrayBox class extends the function of BaseFab<int>.  Additional
 * member functions are defined for I/O and simple arithmetic operations on
 * these aggregate objects.
 *
@@ -430,6 +430,13 @@ public:
                       int             dstcomp,
                       int             numcomp,
                       int             nghost);
+
+    static void Copy (iMultiFab&       dst,
+                      const iMultiFab& src,
+                      int             srccomp,
+                      int             dstcomp,
+                      int             numcomp,
+                      const IntVect&  nghost);
 
     /**
     * \brief Subtract src from dst including nghost ghost cells.

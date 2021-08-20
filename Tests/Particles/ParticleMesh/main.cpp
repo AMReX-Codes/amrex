@@ -48,7 +48,10 @@ void testParticleMesh (TestParams& parms)
   MultiFab partMF(ba, dmap, 1 + BL_SPACEDIM, 1);
   partMF.setVal(0.0);
 
-  typedef ParticleContainer<1 + 2*BL_SPACEDIM> MyParticleContainer;
+  iMultiFab partiMF(ba, dmap, 1 + BL_SPACEDIM, 1);
+  partiMF.setVal(0);
+
+  typedef ParticleContainer<1 + 2*BL_SPACEDIM, 1> MyParticleContainer;
   MyParticleContainer myPC(geom, dmap, ba);
   myPC.SetVerbose(false);
 
@@ -58,7 +61,7 @@ void testParticleMesh (TestParams& parms)
 
   bool serialize = true;
   int iseed = 451;
-  Real mass = 10.0;
+  double mass = 10.0;
 
   MyParticleContainer::ParticleInitData pdata = {{mass, AMREX_D_DECL(1.0, 2.0, 3.0), AMREX_D_DECL(0.0, 0.0, 0.0)}, {},{},{}};
   myPC.InitRandom(num_particles, iseed, pdata, serialize);
@@ -135,11 +138,42 @@ void testParticleMesh (TestParams& parms)
               for (int kk = 0; kk <= 1; ++kk) {
                   for (int jj = 0; jj <= 1; ++jj) {
                       for (int ii = 0; ii <= 1; ++ii) {
-                          p.rdata(4+comp) += sx[ii]*sy[jj]*sz[kk]*acc(i+ii-1,j+jj-1,k+kk-1,comp);
+                          p.rdata(4+comp) += static_cast<ParticleReal> (sx[ii]*sy[jj]*sz[kk]*acc(i+ii-1,j+jj-1,k+kk-1,comp));
                       }
                   }
               }
           }
+      });
+
+  // now also try the iMultiFab versions
+  amrex::ParticleToMesh(myPC, partiMF, 0,
+      [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& p,
+                            amrex::Array4<int> const& count)
+      {
+          amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
+          amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
+          amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] + 0.5;
+
+          int i = static_cast<int>(amrex::Math::floor(lx));
+          int j = static_cast<int>(amrex::Math::floor(ly));
+          int k = static_cast<int>(amrex::Math::floor(lz));
+
+          amrex::Gpu::Atomic::AddNoRet(&count(i, j, k), 1);
+      });
+
+  amrex::MeshToParticle(myPC, partiMF, 0,
+      [=] AMREX_GPU_DEVICE (MyParticleContainer::ParticleType& p,
+                            amrex::Array4<const int> const& count)
+      {
+          amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
+          amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
+          amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] + 0.5;
+
+          int i = static_cast<int>(amrex::Math::floor(lx));
+          int j = static_cast<int>(amrex::Math::floor(ly));
+          int k = static_cast<int>(amrex::Math::floor(lz));
+
+          p.idata(0) = count(i, j, k);
       });
 
   WriteSingleLevelPlotfile("plot", partMF,
