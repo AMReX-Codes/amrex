@@ -330,14 +330,13 @@ AmrLevelAdv::advance (Real time,
                          nbx[1] = mfi.nodaltilebox(1);,
                          nbx[2] = mfi.nodaltilebox(2));
 
-            // Allocate temporary fabs for states
+            // Grab fab pointers from state multifabs
             const FArrayBox& statein = Sborder[mfi];
             FArrayBox& stateout      =   S_new[mfi];
 
-            // Add elixir for state fabs
-            Array<Elixir,2> steli;
-            steli[0] = statein.elixir();
-            steli[1] = stateout.elixir();
+            // Add elixir for output state fab
+            Elixir steli;
+            steli = stateout.elixir();
 
             // Resize temporary fabs for fluxes and face velocities.
             for (int i = 0; i < BL_SPACEDIM ; i++) {
