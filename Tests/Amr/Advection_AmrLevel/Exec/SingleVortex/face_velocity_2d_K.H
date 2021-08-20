@@ -10,7 +10,10 @@ AMREX_FORCE_INLINE
 void get_face_velocity_psi(amrex::Box const& bx,
                            const amrex::Real time,
                            amrex::Array4<amrex::Real> const& psi,
-                           amrex::Real const* dx, amrex::Real const* prob_lo)
+                           amrex::Real const dx,
+                           amrex::Real const dy,
+                           amrex::Real const prob_lo_x,
+                           amrex::Real const prob_lo_y)
 {
     using namespace amrex;
     constexpr Real PI = 3.141592653589793238462643383279502884197;
@@ -22,11 +25,11 @@ void get_face_velocity_psi(amrex::Box const& bx,
     // Compute streamfunction psi
     for     (int j = plo.y; j <= phi.y; ++j)
     {
-        Real y = ( (Real)j + 0.5 )*dx[1] + prob_lo[1];
+        Real y = ( (Real)j + 0.5 )*dy + prob_lo_y;
         AMREX_PRAGMA_SIMD
         for (int i = plo.x; i <= phi.x; ++i)
         {
-            Real x = ( (Real)i + 0.5 )*dx[0] + prob_lo[0];
+            Real x = ( (Real)i + 0.5 )*dx + prob_lo_x;
             psi(i,j,0) = std::pow(std::sin(PI*x), 2) * std::pow(std::sin(PI*y), 2)
                        * std::cos(PI*time/2.0) * 1.0/PI;
         }
@@ -91,7 +94,9 @@ void get_face_velocity(const amrex::Real time,
     amrex::launch(psibox,
     [=] AMREX_GPU_DEVICE (const Box& tbx)
     {
-        get_face_velocity_psi(tbx, time, psi, dx, prob_lo);
+        get_face_velocity_psi(tbx, time, psi,
+                              dx[0], dx[1],
+                              prob_lo[0], prob_lo[1]);
     });
 
     // Compute face velocities
