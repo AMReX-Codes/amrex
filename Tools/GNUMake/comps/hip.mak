@@ -41,9 +41,9 @@ HIPCC_FLAGS += --amdgpu-target=$(AMD_ARCH)
 CXXFLAGS += $(HIPCC_FLAGS)
 
 ifeq ($(USE_OMP),TRUE)
-  CXXFLAGS += -fopenmp
-  CFLAGS   += -fopenmp
-  HIPCC_FLAGS += -fopenmp
+  CXXFLAGS += -fopenmp=libgomp
+  CFLAGS   += -fopenmp=libgomp
+  HIPCC_FLAGS += -fopenmp=libgomp
 endif
 
 # =============================================================================================
