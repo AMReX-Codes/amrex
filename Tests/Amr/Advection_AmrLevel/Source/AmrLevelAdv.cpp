@@ -313,19 +313,33 @@ AmrLevelAdv::advance (Real time,
 #endif
     {
         FArrayBox flux[BL_SPACEDIM], uface[BL_SPACEDIM];
-
         for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
         {
+            // Add elixir for flux and face velocity fabs
+            Array<Elixir,BL_SPACEDIM> flxeli;
+            Array<Elixir,BL_SPACEDIM> veleli;
+            for (int i = 0; i < BL_SPACEDIM ; i++) {
+                flxeli[i] = flux[i].elixir();
+                veleli[i] = uface[i].elixir();
+            }
+
+            // Set up tileboxes and nodal tileboxes
             const Box& bx = mfi.tilebox();
             GpuArray<Box,BL_SPACEDIM> nbx;
             AMREX_D_TERM(nbx[0] = mfi.nodaltilebox(0);,
                          nbx[1] = mfi.nodaltilebox(1);,
                          nbx[2] = mfi.nodaltilebox(2));
 
+            // Allocate temporary fabs for states
             const FArrayBox& statein = Sborder[mfi];
             FArrayBox& stateout      =   S_new[mfi];
 
-            // Allocate fabs for fluxes and Godunov velocities.
+            // Add elixir for state fabs
+            Array<Elixir,2> steli;
+            steli[0] = statein.elixir();
+            steli[1] = stateout.elixir();
+
+            // Resize temporary fabs for fluxes and face velocities.
             for (int i = 0; i < BL_SPACEDIM ; i++) {
                 const Box& bxtmp = amrex::surroundingNodes(bx,i);
                 flux[i].resize(bxtmp,NUM_STATE);
@@ -336,8 +350,6 @@ AmrLevelAdv::advance (Real time,
             get_face_velocity(ctr_time,
                               AMREX_D_DECL(uface[0], uface[1], uface[2]),
                               dx, prob_lo);
-
-            Gpu::streamSynchronize();
 
             for (int i = 0; i < BL_SPACEDIM ; i++) {
                 const Box& bxtmp = mfi.grownnodaltilebox(i, iteration);
@@ -367,23 +379,16 @@ AmrLevelAdv::advance (Real time,
                 amrex::Abort("CFL violation. Use smaller adv.cfl.");
             }
 
-            Gpu::streamSynchronize();
-
             // Advect. See Adv.cpp for implementation.
             advect(time, bx, nbx, statein, stateout,
                    AMREX_D_DECL(velx,    vely,    velz),
                    AMREX_D_DECL(flux[0], flux[1], flux[2]),
                    dx, dt);
 
-            Gpu::streamSynchronize();
-
             if (do_reflux) {
                 for (int i = 0; i < BL_SPACEDIM ; i++)
                     fluxes[i][mfi].copy<RunOn::Device>(flux[i],mfi.nodaltilebox(i));
             }
-
-            Gpu::streamSynchronize();
-
         }
     }
 
@@ -438,8 +443,6 @@ AmrLevelAdv::estTimeStep (Real)
             get_face_velocity(cur_time,
                               AMREX_D_DECL(uface[0], uface[1], uface[2]),
                               dx, prob_lo);
-
-            Gpu::streamSynchronize();
 
             for (int i = 0; i < BL_SPACEDIM; ++i) {
                 Real umax = uface[i].norm<RunOn::Device>(0);
