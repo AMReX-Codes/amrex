@@ -4,6 +4,7 @@
 #include "AmrLevelAdv.H"
 #include "Kernels.H"
 
+AMREX_GPU_HOST
 void
 AmrLevelAdv::advect (const amrex::Real /*time*/,
                      const amrex::Box& bx,

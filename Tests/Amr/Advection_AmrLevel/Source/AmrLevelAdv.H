@@ -189,8 +189,20 @@ public:
 protected:
 #endif
 
+    // Function to read parameters from input file.
     static void read_params ();
+
+    /**
+     * Function to read tagging parameters from input file.
+     * See Tagging_params.cpp for implementation.
+     */
     static void get_tagging_params ();
+
+    /**
+     * Function to perform advection for a single level.
+     * See Adv.cpp for implementation.
+     */
+    AMREX_GPU_HOST
     static void advect (const amrex::Real /*time*/,
                         const amrex::Box& bx,
                         amrex::GpuArray<amrex::Box,BL_SPACEDIM> nbx,
@@ -236,15 +248,20 @@ protected:
 
 };
 
-// Boundary condition function that does nothing.
-// See bc_nullfill.cpp for implementation.
+/**
+ * Boundary condition function that does nothing.
+ * See bc_nullfill.cpp for implementation.
+ */
 void nullfill (amrex::Box const& bx, amrex::FArrayBox& data,
                const int dcomp, const int numcomp,
                amrex::Geometry const& geom, const amrex::Real time,
                const amrex::Vector<amrex::BCRec>& bcr, const int bcomp,
                const int scomp);
 
-// Problem-dependent function that computes Godunov velocities for each face.
+/**
+ * Problem-dependent function that computes Godunov velocities for each face.
+ * See face_velocity_?D_K.H under Exec directory for implementation.
+ */
 AMREX_GPU_HOST
 AMREX_FORCE_INLINE
 void get_face_velocity(const amrex::Real time,
