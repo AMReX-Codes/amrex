@@ -63,7 +63,7 @@ void get_face_velocity_z(int i, int j, int k,
     vz(i,j,k) = 1.0;
 }
 
-AMREX_GPU_DEVICE
+AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 void get_face_velocity(const amrex::Real time,
                        amrex::FArrayBox& vx,
