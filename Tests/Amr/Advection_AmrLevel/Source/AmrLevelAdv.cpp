@@ -339,7 +339,7 @@ AmrLevelAdv::advance (Real time,
 
             for (int i = 0; i < BL_SPACEDIM ; i++) {
                 const Box& bxtmp = mfi.grownnodaltilebox(i, iteration);
-                Umac[i][mfi].copy<RunOn::Host>(uface[i], bxtmp);
+                Umac[i][mfi].copy<RunOn::Device>(uface[i], bxtmp);
             }
 
             AMREX_D_TERM(const FArrayBox& velx = uface[0];,
@@ -373,7 +373,7 @@ AmrLevelAdv::advance (Real time,
 
             if (do_reflux) {
                 for (int i = 0; i < BL_SPACEDIM ; i++)
-                    fluxes[i][mfi].copy<RunOn::Host>(flux[i],mfi.nodaltilebox(i));
+                    fluxes[i][mfi].copy<RunOn::Device>(flux[i],mfi.nodaltilebox(i));
             }
         }
     }
@@ -431,7 +431,7 @@ AmrLevelAdv::estTimeStep (Real)
                               dx, prob_lo);
 
             for (int i = 0; i < BL_SPACEDIM; ++i) {
-                Real umax = uface[i].norm<RunOn::Host>(0);
+                Real umax = uface[i].norm<RunOn::Device>(0);
                 if (umax > 1.e-100) {
                     dt_est = std::min(dt_est, dx[i] / umax);
                 }
