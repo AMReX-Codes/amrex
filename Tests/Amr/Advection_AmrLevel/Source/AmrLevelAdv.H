@@ -202,7 +202,7 @@ protected:
                         AMREX_D_DECL(amrex::FArrayBox& fx,
                                      amrex::FArrayBox& fy,
                                      amrex::FArrayBox& fz),
-                        const amrex::Real* dx,
+                        amrex::GpuArray<amrex::Real,BL_SPACEDIM> dx,
                         const amrex::Real dt);
 
     // inline functions implemented below
@@ -236,12 +236,22 @@ protected:
 
 };
 
-// Boundary conditions function that does nothing.
+// Boundary condition function that does nothing.
+// See bc_nullfill.cpp for implementation.
 void nullfill (amrex::Box const& bx, amrex::FArrayBox& data,
                const int dcomp, const int numcomp,
                amrex::Geometry const& geom, const amrex::Real time,
                const amrex::Vector<amrex::BCRec>& bcr, const int bcomp,
                const int scomp);
+
+// Problem-dependent function that computes Godunov velocities for each face.
+AMREX_GPU_HOST
+AMREX_FORCE_INLINE
+void get_face_velocity(const amrex::Real time,
+                       amrex::FArrayBox& vx,
+                       amrex::FArrayBox& vy,
+                       amrex::GpuArray<amrex::Real,BL_SPACEDIM> dx,
+                       amrex::GpuArray<amrex::Real,BL_SPACEDIM> prob_lo);
 
 /*
  * Inlines.

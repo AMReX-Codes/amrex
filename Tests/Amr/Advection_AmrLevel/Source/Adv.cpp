@@ -1,3 +1,6 @@
+#include <AMReX_FArrayBox.H>
+#include <AMReX_Array.H>
+
 #include "AmrLevelAdv.H"
 #include "Kernels.H"
 
@@ -13,7 +16,7 @@ AmrLevelAdv::advect (const amrex::Real /*time*/,
                      AMREX_D_DECL(amrex::FArrayBox& fx,
                                   amrex::FArrayBox& fy,
                                   amrex::FArrayBox& fz),
-                     const amrex::Real* dx,
+                     amrex::GpuArray<amrex::Real,BL_SPACEDIM> dx,
                      const amrex::Real dt)
 {
     using namespace amrex;

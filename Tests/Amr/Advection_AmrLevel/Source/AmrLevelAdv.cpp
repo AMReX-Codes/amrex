@@ -264,8 +264,8 @@ AmrLevelAdv::advance (Real time,
     const Real cur_time = state[Phi_Type].curTime();
     const Real ctr_time = 0.5*(prev_time + cur_time);
 
-    const Real* dx = geom.CellSize();
-    const Real* prob_lo = geom.ProbLo();
+    GpuArray<Real,BL_SPACEDIM> dx = geom.CellSizeArray();
+    GpuArray<Real,BL_SPACEDIM> prob_lo = geom.ProbLoArray();
 
     //
     // Get pointers to Flux registers, or set pointer to zero if not there.
@@ -408,8 +408,8 @@ AmrLevelAdv::estTimeStep (Real)
     // This is just a dummy value to start with
     Real dt_est  = 1.0e+20;
 
-    const Real* dx = geom.CellSize();
-    const Real* prob_lo = geom.ProbLo();
+    GpuArray<Real,BL_SPACEDIM> dx = geom.CellSizeArray();
+    GpuArray<Real,BL_SPACEDIM> prob_lo = geom.ProbLoArray();
     const Real cur_time = state[Phi_Type].curTime();
     const MultiFab& S_new = get_new_data(Phi_Type);
 

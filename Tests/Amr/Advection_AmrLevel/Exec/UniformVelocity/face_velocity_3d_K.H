@@ -1,6 +1,10 @@
 #ifndef FACE_VELOCITY_3D_H_
 #define FACE_VELOCITY_3D_H_
 
+#include <AMReX_FArrayBox.H>
+#include <AMReX_Array.H>
+
+#include "AmrLevelAdv.H"
 #include "Prob_Parm.H"
 
 AMREX_GPU_HOST
@@ -9,7 +13,8 @@ void get_face_velocity(const amrex::Real /*time*/,
                        amrex::FArrayBox& vx,
                        amrex::FArrayBox& vy,
                        amrex::FArrayBox& vz,
-                       const amrex::Real* /*dx*/, const amrex::Real* /*prob_lo*/)
+                       amrex::GpuArray<amrex::Real,3> /*dx*/,
+                       amrex::GpuArray<amrex::Real,3> /*prob_lo*/)
 {
     using namespace amrex;
 
