@@ -104,8 +104,6 @@ AmrLevelAdv::advect (const amrex::Real /*time*/,
         flux_x(i, j, k, phix, phi_in, velx, slope4_c, hdtdx);
     });
 
-    amrex::Gpu::streamSynchronize();
-
     // y -------------------------
     Array4<Real> phiy = tmpfab.array(itmp++);
     Array4<Real const> phiy_c = phiy;
@@ -131,8 +129,6 @@ AmrLevelAdv::advect (const amrex::Real /*time*/,
     {
         flux_y(i, j, k, phiy, phi_in, vely, slope4_c, hdtdy);
     });
-
-    amrex::Gpu::streamSynchronize();
 
 #if (AMREX_SPACEDIM == 3)
     // z -------------------------
@@ -249,8 +245,6 @@ AmrLevelAdv::advect (const amrex::Real /*time*/,
     });
 #endif
 
-    amrex::Gpu::streamSynchronize();
-
     // final edge states
     // ===========================
     amrex::ParallelFor(amrex::surroundingNodes(bx,Direction::x),
@@ -294,8 +288,6 @@ AmrLevelAdv::advect (const amrex::Real /*time*/,
 
     AMREX_ASSERT(itmp == ntmpcomps);
 
-    amrex::Gpu::streamSynchronize();
-
     // compute new state (stateout) and scale fluxes based on face area.
     // ===========================
 
@@ -312,8 +304,6 @@ AmrLevelAdv::advect (const amrex::Real /*time*/,
                      AMREX_D_DECL(tfluxx_c,tfluxy_c,tfluxz_c),
                      AMREX_D_DECL(dtdx,dtdy,dtdz));
     });
-
-    amrex::Gpu::streamSynchronize();
 
     // Scale by face area in order to correctly reflux
     amrex::ParallelFor(
@@ -332,8 +322,6 @@ AmrLevelAdv::advect (const amrex::Real /*time*/,
                      {
                          tfluxz(i,j,k) *= dt*dx[0]*dx[1];
                      }));
-
-    amrex::Gpu::streamSynchronize();
 
     // Copy fluxes into Flux MultiFab
     AMREX_D_TERM(Array4<Real> fluxx = fx.array();,
