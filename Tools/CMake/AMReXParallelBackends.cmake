@@ -259,6 +259,20 @@ if (AMReX_HIP)
    endif ()
    target_link_libraries(amrex PUBLIC hip::hiprand roc::rocrand roc::rocprim)
 
+
+   # add openmp library flag
+   if(AMReX_OMP)
+       target_compile_options(amrex PUBLIC
+          $<$<COMPILE_LANGUAGE:CXX>:-fopenmp=libgomp> )
+       if(CMAKE_VERSION VERSION_LESS 3.18)
+           target_link_options(amrex PUBLIC
+              -fopenmp=libgomp)
+       else()
+           target_link_options(amrex PUBLIC
+              "$<$<LINK_LANGUAGE:CXX>:-fopenmp=libgomp>")
+       endif()
+   endif()
+
    # avoid forcing the rocm LLVM flags on a gfortran
    # https://github.com/ROCm-Developer-Tools/HIP/issues/2275
    if(AMReX_FORTRAN)
