@@ -367,6 +367,8 @@ AmrLevelAdv::advance (Real time,
                 amrex::Abort("CFL violation. Use smaller adv.cfl.");
             }
 
+            Gpu::streamSynchronize();
+
             // Advect. See Adv.cpp for implementation.
             advect(time, bx, nbx, statein, stateout,
                    AMREX_D_DECL(velx,    vely,    velz),
@@ -379,6 +381,9 @@ AmrLevelAdv::advance (Real time,
                 for (int i = 0; i < BL_SPACEDIM ; i++)
                     fluxes[i][mfi].copy<RunOn::Device>(flux[i],mfi.nodaltilebox(i));
             }
+
+            Gpu::streamSynchronize();
+
         }
     }
 
