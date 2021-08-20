@@ -104,21 +104,21 @@ the :cpp:`AmrLevelAdv` class, e.g.,
 
         desc_lst.addDescriptor(Phi_Type,IndexType::TheCellType(),
                                StateDescriptor::Point,0,NUM_STATE,
-			       &cell_cons_interp);
+                               &cell_cons_interp);
 
         int lo_bc[BL_SPACEDIM];
         int hi_bc[BL_SPACEDIM];
         for (int i = 0; i < BL_SPACEDIM; ++i) {
-	    lo_bc[i] = hi_bc[i] = INT_DIR;   // periodic boundaries
+            lo_bc[i] = hi_bc[i] = INT_DIR;   // periodic boundaries
         }
 
         BCRec bc(lo_bc, hi_bc);
 
-	StateDescriptor::BndryFunc bndryfunc(nullfill);
-	bndryfunc.setRunOnGPU(true);  // I promise the bc function will launch gpu kernels.
+        StateDescriptor::BndryFunc bndryfunc(nullfill);
+        bndryfunc.setRunOnGPU(true);  // I promise the bc function will launch gpu kernels.
 
-	desc_lst.setComponent(Phi_Type, 0, "phi", bc,
-	                      bndryfunc);
+        desc_lst.setComponent(Phi_Type, 0, "phi", bc,
+                              bndryfunc);
     }
 
 We see how to define the :cpp:`StateType`, including nodality, whether or not
