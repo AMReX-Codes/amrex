@@ -665,6 +665,22 @@ MLLinOp::defineBC ()
 }
 
 void
+MLLinOp::make (Vector<Vector<MultiFab>> & mf, int nc) const
+{
+    mf.clear();
+    mf.resize(m_num_amr_levels);
+    for (int alev = 0; alev < m_num_amr_levels; ++alev)
+    {
+        mf[alev].resize(m_num_mg_levels[alev]);
+        for (int mlev = 0; mlev < m_num_mg_levels[alev]; ++mlev)
+        {
+            const auto& ba = amrex::convert(m_grids[alev][mlev], m_ixtype);
+            mf[alev][mlev].define(ba, m_dmap[alev][mlev], nc, getNGrow(alev), MFInfo(), *m_factory[alev][mlev]);
+        }
+    }
+}
+
+void
 MLLinOp::make (Vector<Vector<MultiFab> >& mf, int nc, IntVect const& ng) const
 {
     mf.clear();

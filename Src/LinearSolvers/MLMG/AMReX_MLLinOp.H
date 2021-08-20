@@ -191,7 +191,8 @@ public:
 
     virtual BottomSolver getDefaultBottomSolver () const { return BottomSolver::bicgstab; }
     virtual int getNComp () const { return 1; }
-    virtual int getNGrow () const { return 0; }
+    //virtual int getNGrow () const { return 0; }
+    virtual int getNGrow (int a_lev = 0, int mg_lev = 0) const { return 0; }
 
     virtual bool needsUpdate () const { return false; }
     virtual void update () {}
@@ -430,6 +431,7 @@ protected:
 
     bool isCellCentered () const noexcept { return m_ixtype == 0; }
 
+    void make (Vector<Vector<MultiFab> >& mf, int nc) const;
     void make (Vector<Vector<MultiFab> >& mf, int nc, IntVect const& ng) const;
 
     virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int /*amrlev*/, int /*mglev*/) const {

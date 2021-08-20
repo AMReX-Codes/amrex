@@ -10,6 +10,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             bool enforce_periodicity_only)
 {
     AMREX_ASSERT_WITH_MESSAGE(!fbd, "FillBoundary_nowait() called when comm operation already in progress.");
+    std::cout << " in FBEP_nowait line 13  " << std::endl;
 
     bool work_to_do;
     if (enforce_periodicity_only) {
@@ -125,6 +126,10 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 
         AMREX_ASSERT(send_reqs.size() == N_snds);
         PostSnds(send_data, send_size, send_rank, send_reqs, SeqNum);
+        for (int i = 0 ; i < send_size.size() ; i++)
+        {
+            std::cout << "135: i=" << i << " send_size = " << send_size[i] << std::endl;
+        }
     }
 
     FillBoundary_test();
@@ -150,12 +155,14 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         else
 #endif
         {
+            std::cout << "ngrow is " << TheFB.m_ngrow << std::endl;
             FB_local_copy_cpu(TheFB, scomp, ncomp);
         }
 
         FillBoundary_test();
     }
 
+    std::cout << " finishing up FBEP_nowait line 160  " << std::endl;
 #endif /*BL_USE_MPI*/
 }
 
@@ -189,6 +196,9 @@ FabArray<FAB>::FillBoundary_finish ()
         if (actual_n_rcvs > 0) {
             ParallelDescriptor::Waitall(fbd->recv_reqs, fbd->recv_stat);
 #ifdef AMREX_DEBUG
+            // NOTE: expected size is correct. The received size is too smal.
+            // fbd->recv_size is RIGHT
+            // fbd->recv_stat is WRONG, too small
             if (!CheckRcvStats(fbd->recv_stat, fbd->recv_size, fbd->tag))
             {
                 amrex::Abort("FillBoundary_finish failed with wrong message size");

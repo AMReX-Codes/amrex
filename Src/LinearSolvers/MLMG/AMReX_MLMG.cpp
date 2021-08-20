@@ -235,6 +235,8 @@ void MLMG::oneIter (int iter)
 
     for (int alev = finest_amr_lev; alev > 0; --alev)
     {
+        if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow(alev);
+
         miniCycle(alev);
 
         MultiFab::Add(*sol[alev], *cor[alev][0], 0, 0, ncomp, nghost);
@@ -249,6 +251,7 @@ void MLMG::oneIter (int iter)
 
     // coarsest amr level
     {
+        if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow(0);
         // enforce solvability if appropriate
         if (linop.isSingular(0) && linop.getEnforceSingularSolvable())
         {
@@ -261,11 +264,13 @@ void MLMG::oneIter (int iter)
             mgVcycle (0, 0);
         }
 
-        MultiFab::Add(*sol[0], *cor[0][0], 0, 0, ncomp, 0);
+        MultiFab::Add(*sol[0], *cor[0][0], 0, 0, ncomp, nghost);
     }
 
     for (int alev = 1; alev <= finest_amr_lev; ++alev)
     {
+        if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow(alev);
+
         // (Fine AMR correction) = I(Coarse AMR correction)
         interpCorrection(alev);
 
@@ -332,7 +337,8 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
 
     int ncomp = linop.getNComp();
     int nghost = 0;
-    if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow();
+//    if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow();
+    if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow(calev);
 
     MultiFab& crse_sol = *sol[calev];
     const MultiFab& crse_rhs = rhs[calev];
@@ -373,7 +379,8 @@ MLMG::computeResWithCrseCorFineCor (int falev)
 
     int ncomp = linop.getNComp();
     int nghost = 0;
-    if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow();
+//    if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow();
+    if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow(falev);
 
     const MultiFab& crse_cor = *cor[falev-1][0];
 
@@ -522,7 +529,8 @@ MLMG::mgFcycle ()
     const int mg_bottom_lev = linop.NMGLevels(amrlev) - 1;
     const int ncomp = linop.getNComp();
     int nghost = 0;
-    if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow();
+//    if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow();
+    if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow(amrlev);
 
     for (int mglev = 1; mglev <= mg_bottom_lev; ++mglev)
     {
@@ -562,7 +570,8 @@ MLMG::interpCorrection (int alev)
 
     const int ncomp = linop.getNComp();
     int nghost = 0;
-    if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow();
+//    if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow();
+    if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow(alev);
 
     const MultiFab& crse_cor = *cor[alev-1][0];
     MultiFab& fine_cor = *cor[alev][0];
@@ -679,7 +688,8 @@ MLMG::interpCorrection (int alev)
         for (MFIter mfi(fine_cor, TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             Box fbx = mfi.tilebox();
-            if (cf_strategy == CFStrategy::ghostnodes && nghost >1) fbx.grow(2);
+//            if (cf_strategy == CFStrategy::ghostnodes && nghost >1) fbx.grow(2);
+            if (cf_strategy == CFStrategy::ghostnodes && nghost >1) fbx.grow(nghost);
             Array4<Real> const& ffab = fine_cor.array(mfi);
             Array4<Real const> const& cfab = cfine.const_array(mfi);
 
@@ -693,6 +703,63 @@ MLMG::interpCorrection (int alev)
                 {
                     mlmg_lin_nd_interp_r4(i,j,k,n,ffab,cfab);
                 });
+
+
+
+                    ////////////////////////////////
+                    
+                                    for (int ctr = 0; false && ctr < 10; ctr++)
+                                    {
+                                        //Real res = 0.0;
+
+                                        Box domain = linop.Geom(alev,0).Domain();
+                                        domain.convert(amrex::IntVect::TheNodeVector());
+                                        domain.grow(-1);
+                                        Box bx = mfi.tilebox();
+                                        bx.grow(nghost);
+                                        Box intbx = bx & domain;  // Take intersection of box and the problem domain
+                                        Dim3 lo = amrex::lbound(bx), hi = amrex::ubound(bx);
+                                        
+                                        //amrex::Array4<amrex::Real>       const& x  = a_x.array(mfi);
+                                        for (int n = 0; n < ncomp; n++)
+                                        {
+                                            //std::cout << "ctr="<<ctr<<" n=" << n << std::endl;
+                                            amrex::ParallelFor (intbx,[=] AMREX_GPU_DEVICE(int i, int j, int k) {
+                                                //if (j==lo.y)
+                                                //    std::cout << i << " " << ffab(i,j,k) << std::endl;
+
+                                                if ( i%4 || j%4 )
+                                                {
+                                                    if (j == lo.y || j==hi.y)
+                                                    {
+                                                        Real du = -2.0 * (ffab(i+1,j,k) + ffab(i-1,j,k) - 2.0*ffab(i,j,k));
+                                                        if (i > lo.x+1)
+                                                            du += ffab(i-2,j,k) + ffab(i,j,k) - 2.0*ffab(i-1,j,k);
+                                                        if (i < hi.x-1)
+                                                            du += ffab(i+2,j,k) + ffab(i,j,k) - 2.0*ffab(i+1,j,k);
+                                                        Real ddu = -2.0;
+                                                        ffab(i,j,k) = ffab(i,j,k) + 0.5 * du / ddu;
+                                                    }
+                                                    if (i == lo.x || i==hi.x)
+                                                    {
+                                                        Real du = -2.0 * (ffab(i,j+1,k) + ffab(i,j-1,k) - 2.0*ffab(i,j,k));
+                                                        if (j > lo.y+1)
+                                                            du += ffab(i,j-2,k) + ffab(i,j,k) - 2.0*ffab(i,j-1,k);
+                                                        if (j < hi.y-1)
+                                                            du += ffab(i,j+2,k) + ffab(i,j,k) - 2.0*ffab(i,j+1,k);
+                                                        Real ddu = -2.0;
+                                                        ffab(i,j,k) = ffab(i,j,k) + 0.5 * du / ddu;
+                                                    }
+                                                }
+                                            });
+                                            //std::cout << "DONE" << std::endl; 
+                                        }
+                                    }
+                                    //amrex::Abort();
+                    ////////////////////////////////
+
+
+                
             }
         }
     }
@@ -711,7 +778,8 @@ MLMG::interpCorrection (int alev, int mglev)
 
     const int ncomp = linop.getNComp();
     int nghost = 0;
-    if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow();
+//    if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow();
+    if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow(alev);
 
     const Geometry& crse_geom = linop.Geom(alev,mglev+1);
     const IntVect refratio = (alev > 0) ? IntVect(2) : linop.mg_coarsen_ratio_vec[mglev];
@@ -1146,7 +1214,6 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
 
     const int ncomp = linop.getNComp();
     IntVect ng_rhs(0);
-    if (cf_strategy == CFStrategy::ghostnodes) ng_rhs = IntVect(linop.getNGrow());
     IntVect ng_sol(1);
     if (linop.hasHiddenDimension()) ng_sol[linop.hiddenDirection()] = 0;
 
@@ -1198,6 +1265,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     rhs.resize(namrlevs);
     for (int alev = 0; alev < namrlevs; ++alev)
     {
+        if (cf_strategy == CFStrategy::ghostnodes) ng_rhs = IntVect(linop.getNGrow(alev));
         if (!solve_called) {
             rhs[alev].define(a_rhs[alev]->boxArray(), a_rhs[alev]->DistributionMap(), ncomp, ng_rhs,
                              MFInfo(), *linop.Factory(alev));
@@ -1233,8 +1301,18 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     IntVect ng = linop.isCellCentered() ? IntVect(0) : IntVect(1);
     if (cf_strategy == CFStrategy::ghostnodes) ng = ng_rhs;
     if (!solve_called) {
+        if (cf_strategy == CFStrategy::ghostnodes) 
+        {
         linop.make(res, ncomp, ng);
         linop.make(rescor, ncomp, ng);
+            //linop.make(res, ncomp);
+            //linop.make(rescor, ncomp);
+        }
+        else
+        {
+            linop.make(res, ncomp, ng);
+            linop.make(rescor, ncomp, ng);
+        }
     }
     for (int alev = 0; alev <= finest_amr_lev; ++alev)
     {
@@ -1419,7 +1497,8 @@ MLMG::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<MultiFab*>& a_so
                 const int mglev = 0;
                 const int ncomp = linop.getNComp();
                 int nghost = 0;
-                if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow();
+//                if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow();
+                if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow(alev);
                 ffluxes[alev][idim].define(amrex::convert(linop.m_grids[alev][mglev],
                                                           IntVect::TheDimensionVector(idim)),
                                            linop.m_dmap[alev][mglev], ncomp, nghost, MFInfo(),
@@ -1473,7 +1552,8 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
 
     const int ncomp = linop.getNComp();
     int nghost = 0;
-    if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow();
+//    if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow();
+    // remove above
     amrex::ignore_unused(nghost);
     IntVect ng_sol(1);
     if (linop.hasHiddenDimension()) ng_sol[linop.hiddenDirection()] = 0;
@@ -1484,6 +1564,7 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
     {
         if (cf_strategy == CFStrategy::ghostnodes)
         {
+            nghost = linop.getNGrow(alev);
             sol[alev] = a_sol[alev];
         }
         else if (a_sol[alev]->nGrowVect() == ng_sol)
@@ -1514,6 +1595,8 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
     const auto& amrrr = linop.AMRRefRatio();
 
     for (int alev = finest_amr_lev; alev >= 0; --alev) {
+        if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow(alev);
+        
         const MultiFab* crse_bcdata = (alev > 0) ? sol[alev-1] : nullptr;
         const MultiFab* prhs = a_rhs[alev];
 #if (AMREX_SPACEDIM != 3)
@@ -1556,7 +1639,8 @@ MLMG::apply (const Vector<MultiFab*>& out, const Vector<MultiFab*>& a_in)
     Vector<MultiFab> in_raii(namrlevs);
     Vector<MultiFab> rh(namrlevs);
     int nghost = 0;
-    if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow();
+//    if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow();
+// remove above
     IntVect ng_sol(1);
     if (linop.hasHiddenDimension()) ng_sol[linop.hiddenDirection()] = 0;
 
@@ -1564,6 +1648,7 @@ MLMG::apply (const Vector<MultiFab*>& out, const Vector<MultiFab*>& a_in)
     {
         if (cf_strategy == CFStrategy::ghostnodes)
         {
+    	    nghost = linop.getNGrow(alev);
             in[alev] = a_in[alev];
         }
         else if (a_in[alev]->nGrowVect() == ng_sol)
@@ -1624,6 +1709,7 @@ MLMG::apply (const Vector<MultiFab*>& out, const Vector<MultiFab*>& a_in)
 #endif
 
     for (int alev = 0; alev <= finest_amr_lev; ++alev) {
+        if (cf_strategy == CFStrategy::ghostnodes)  nghost = linop.getNGrow(alev);
         out[alev]->negate(nghost);
     }
 }

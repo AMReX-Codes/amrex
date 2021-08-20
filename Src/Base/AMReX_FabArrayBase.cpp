@@ -708,7 +708,7 @@ FabArrayBase::FB::define_fb (const FabArrayBase& fa)
                     {
                         // In the case where ngrow>1, augment the send/rcv box list
                         // with boxes for overlapping ghost nodes.
-                        const Box& ba_krcv   = amrex::grow(ba[krcv],1);
+                        const Box& ba_krcv   = amrex::grow(ba[krcv],ng_ng);
                         const Box& dst_bx_ng = (amrex::grow(ba_krcv,ng_ng) & (vbx_ng + (*pit)));
                         const BoxList &bltmp = ba.complementIn(dst_bx_ng);
                         for (auto const& btmp : bltmp)
@@ -779,7 +779,7 @@ FabArrayBase::FB::define_fb (const FabArrayBase& fa)
                     // In the case where ngrow>1, augment the send/rcv box list
                     // with boxes for overlapping ghost nodes.
                     Box ba_ksnd = ba[ksnd];
-                    ba_ksnd.grow(1);
+                    ba_ksnd.grow(ng_ng);
                     const Box dst_bx_ng = (ba_ksnd & (bxrcv + (*pit))) - (*pit);
                     const BoxList &bltmp = ba.complementIn(dst_bx_ng);
                     for (auto const& btmp : bltmp)
@@ -2365,16 +2365,19 @@ CheckRcvStats (Vector<MPI_Status>& recv_stats, const Vector<std::size_t>& recv_s
 
             const int comm_data_type = ParallelDescriptor::select_comm_data_type(recv_size[i]);
             if (comm_data_type == 1) {
+                std::cout << "datatype 1" << std::endl;
                 MPI_Get_count(&recv_stats[i],
                               ParallelDescriptor::Mpi_typemap<char>::type(),
                               &tmp_count);
                 count = tmp_count;
             } else if (comm_data_type == 2) {
+                std::cout << "datatype 2" << std::endl;
                 MPI_Get_count(&recv_stats[i],
                               ParallelDescriptor::Mpi_typemap<unsigned long long>::type(),
                               &tmp_count);
                 count = sizeof(unsigned long long) * tmp_count;
             } else if (comm_data_type == 3) {
+                std::cout << "datatype 3" << std::endl;
                 MPI_Get_count(&recv_stats[i],
                               ParallelDescriptor::Mpi_typemap<ParallelDescriptor::lull_t>::type(),
                               &tmp_count);
