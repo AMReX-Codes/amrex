@@ -9,11 +9,11 @@ Amr Class
 
 The :cpp:`Amr` class is designed to manage parts of the computation which do
 not belong on a single level, like establishing and updating the hierarchy of
-levels, global timestepping, and managing the different AmrLevels.  Most likely
-you will not need to derive any classes from :cpp:`Amr`. Our mature application
-codes use this base class without any derived classes.
+levels, global timestepping, and managing the different :cpp:`AmrLevel`\ s.
+Most likely you will not need to derive any classes from :cpp:`Amr`. Our
+mature application codes use this base class without any derived classes.
 
-One of the most important data members is an array of AmrLevels - the
+One of the most important data members is an array of :cpp:`AmrLevel`\ s - the
 :cpp:`Amr` class calls many functions from the :cpp:`AmrLevel` class to do
 things like advance the solution on a level, compute a time step to be used for
 a level, etc.
@@ -63,8 +63,8 @@ data that we care about in our applications codes (such as the fluid state)
 will be stored as :cpp:`StateData`.  Essentially, data is made :cpp:`StateData`
 if we need it to be stored in checkpoints/plotfiles, and/or we want it to be
 automatically interpolated when we refine.  An :cpp:`AmrLevel` stores an array
-of StateData (in a C++ array called :cpp:`state`). We index this array using
-integer keys (defined via an enum in, e.g., AmrLevelAdv.H):
+of :cpp:`StateData` (in a C++ array called :cpp:`state`). We index this array
+using integer keys (defined via an :cpp:`enum` in, e.g., ``AmrLevelAdv.H``):
 
 .. highlight:: c++
 
@@ -75,11 +75,11 @@ integer keys (defined via an enum in, e.g., AmrLevelAdv.H):
 
 In our tutorial code, we use the function :cpp:`AmrLevelAdv::variableSetup` to
 tell our simulation about the :cpp:`StateData` (e.g., how many variables, ghost
-cells, nodality, etc.) Note that if you have more than one StateType, each of
-the different StateData carried in the state array can have different numbers
-of components, ghost cells, boundary conditions, etc. This is the main reason
-we separate all this data into separate StateData objects collected together in
-an indexable array.
+cells, nodality, etc.). Note that if you have more than one :cpp:`StateType`,
+each of the different :cpp:`StateData` carried in the state array can have
+different numbers of components, ghost cells, boundary conditions, etc.
+This is the main reason we separate all this data into separate :cpp:`StateData`
+objects collected together in an indexable array.
 
 LevelBld Class
 ==============
@@ -104,28 +104,31 @@ the :cpp:`AmrLevelAdv` class, e.g.,
 
         desc_lst.addDescriptor(Phi_Type,IndexType::TheCellType(),
                                StateDescriptor::Point,0,NUM_STATE,
-                   &cell_cons_interp);
+			       &cell_cons_interp);
 
         int lo_bc[BL_SPACEDIM];
         int hi_bc[BL_SPACEDIM];
         for (int i = 0; i < BL_SPACEDIM; ++i) {
-        lo_bc[i] = hi_bc[i] = INT_DIR;   // periodic boundaries
+	    lo_bc[i] = hi_bc[i] = INT_DIR;   // periodic boundaries
         }
 
         BCRec bc(lo_bc, hi_bc);
 
-        desc_lst.setComponent(Phi_Type, 0, "phi", bc,
-                  StateDescriptor::BndryFunc(nullfill));
+	StateDescriptor::BndryFunc bndryfunc(nullfill);
+	bndryfunc.setRunOnGPU(true);  // I promise the bc function will launch gpu kernels.
+
+	desc_lst.setComponent(Phi_Type, 0, "phi", bc,
+	                      bndryfunc);
     }
 
 We see how to define the :cpp:`StateType`, including nodality, whether or not
 we want the variable to represent a point in time or an interval over time
 (useful for returning the time associated with data), the number of ghost
 cells, number of components, and the interlevel interpolation (See
-AMReX_Interpolator for various interpolation types. We also see how to specify
+AMReX_Interpolator for various interpolation types). We also see how to specify
 physical boundary functions by providing a function (in this case,
 :cpp:`nullfill` since we are not using physical boundary conditions), where
-:cpp:`nullfill` is defined in a Fortran routine in the tutorial source code.
+:cpp:`nullfill` is defined in ``bc_nullfill.cpp`` in the tutorial source code.
 
 Example: Advection_AmrLevel
 ===========================
@@ -135,30 +138,31 @@ Example: Advection_AmrLevel
 .. figure:: ./AmrLevel/figs/flowchart.png
    :width: 4in
 
-   Source code tree for the AmrAdvection_AmrLevel example.
+   Source code tree for the ``Amr/Advection_AmrLevel`` example.
 
 The figure above shows the :ref:`fig:AmrAdvection_AmrLevel_flowchart`
 
--  amrex/Src/
+*  ``amrex/Src/``
 
-   -  Base/ Base amrex library.
+   *  ``Base/`` Base AMReX library.
 
-   -  Boundary/ An assortment of classes for handling boundary data.
+   *  ``Boundary/`` An assortment of classes for handling boundary data.
 
-   -  AmrCore/ AMR data management classes, described in more detail above.
+   *  ``AmrCore/`` AMR data management classes, described in more detail above.
 
-   -  Amr/
+   *  ``Amr/``
 
--  ``Advection_AmrLevel/Src`` Source code specific to this example. Most notably
-   is the AmrLevelAdv class, which is derived from AmrLevel. The subdirectories ``Src_2d``
-   and ``Src_3d`` contain dimension specific routines. ``Src_nd`` contains dimension-independent routines.
+*  ``Advection_AmrLevel/Src`` Source code specific to this example.
+   Most notably is the :cpp:`AmrLevelAdv` class, which is derived from
+   :cpp:`AmrLevel`. The subdirectory ``Src_K`` contain GPU kernels.
 
--  Exec Contains a makefile so a user can write other examples besides SingleVortex and UniformVelocity.
+*  ``Advection_AmrLevel/Exec`` Contains a makefile so a user can write other
+   examples besides ``SingleVortex`` and ``UniformVelocity``.
 
--  SingleVortex and UniformVelocity
-   Build the code here by editing the GNUmakefile and running make. There
-   is also problem-specific source code here used for initialization or specifying the velocity field used in this
-   simulation.
+   *  ``SingleVortex`` and ``UniformVelocity``
+      Build the code here by editing the ``GNUmakefile`` and running ``make``.
+      There is also problem-specific source code here used for initialization or
+      specifying the velocity field used in this simulation.
 
 .. highlight:: c++
 
@@ -183,14 +187,14 @@ The figure above shows the :ref:`fig:AmrAdvection_AmrLevel_flowchart`
 Particles
 =========
 
-There is an option to turn on passively advected particles. In the GNUmakefile,
-add the line ``USE_PARTICLES = TRUE`` and build the code
+There is an option to turn on passively advected particles. In the
+``GNUmakefile``, add the line ``USE_PARTICLES = TRUE`` and build the code
 (do a ``make realclean first``).
 In the inputs file, add the line ``adv.do_tracers = 1``.
-When you run the code, within each plotfile directory there will be a subdirectory
-called "Tracer".
+When you run the code, within each plotfile directory there will be a
+subdirectory called "Tracer".
 
-Copy the files from amrex/Tools/Py_util/amrex_particles_to_vtp into
+Copy the files from ``amrex/Tools/Py_util/amrex_particles_to_vtp`` into
 the run directory and type, e.g.,
 
 .. highlight:: console
