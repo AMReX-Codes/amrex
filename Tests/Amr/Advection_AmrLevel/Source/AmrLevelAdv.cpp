@@ -326,9 +326,6 @@ AmrLevelAdv::advance (Real time,
             const FArrayBox& statein = Sborder[mfi];
             FArrayBox& stateout      =   S_new[mfi];
 
-            // Add elixir for output state fab
-            Elixir steli = stateout.elixir();
-
             // Resize temporary fabs for fluxes and face velocities.
             for (int i = 0; i < BL_SPACEDIM ; i++) {
                 const Box& bxtmp = amrex::surroundingNodes(bx,i);
