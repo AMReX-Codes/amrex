@@ -315,14 +315,6 @@ AmrLevelAdv::advance (Real time,
         FArrayBox flux[BL_SPACEDIM], uface[BL_SPACEDIM];
         for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
         {
-            // Add elixir for flux and face velocity fabs
-            Array<Elixir,BL_SPACEDIM> flxeli;
-            Array<Elixir,BL_SPACEDIM> veleli;
-            for (int i = 0; i < BL_SPACEDIM ; i++) {
-                flxeli[i] = flux[i].elixir();
-                veleli[i] = uface[i].elixir();
-            }
-
             // Set up tileboxes and nodal tileboxes
             const Box& bx = mfi.tilebox();
             GpuArray<Box,BL_SPACEDIM> nbx;
@@ -335,14 +327,21 @@ AmrLevelAdv::advance (Real time,
             FArrayBox& stateout      =   S_new[mfi];
 
             // Add elixir for output state fab
-            Elixir steli;
-            steli = stateout.elixir();
+            Elixir steli = stateout.elixir();
 
             // Resize temporary fabs for fluxes and face velocities.
             for (int i = 0; i < BL_SPACEDIM ; i++) {
                 const Box& bxtmp = amrex::surroundingNodes(bx,i);
                 flux[i].resize(bxtmp,NUM_STATE);
                 uface[i].resize(amrex::grow(bxtmp, iteration), 1);
+            }
+
+            // Add elixir for flux and face velocity fabs
+            Array<Elixir,BL_SPACEDIM> flxeli;
+            Array<Elixir,BL_SPACEDIM> veleli;
+            for (int i = 0; i < BL_SPACEDIM ; i++) {
+                flxeli[i] = flux[i].elixir();
+                veleli[i] = uface[i].elixir();
             }
 
             // Compute Godunov velocities for each face.
@@ -434,14 +433,14 @@ AmrLevelAdv::estTimeStep (Real)
 
         for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
         {
-            Array<Elixir,BL_SPACEDIM> veleli;
-            for (int i = 0; i < BL_SPACEDIM ; i++) {
-                veleli[i] = uface[i].elixir();
-            }
-
             for (int i = 0; i < BL_SPACEDIM ; i++) {
                 const Box& bx = mfi.nodaltilebox(i);
                 uface[i].resize(bx,1);
+            }
+
+            Array<Elixir,BL_SPACEDIM> veleli;
+            for (int i = 0; i < BL_SPACEDIM ; i++) {
+                veleli[i] = uface[i].elixir();
             }
 
             get_face_velocity(cur_time,
