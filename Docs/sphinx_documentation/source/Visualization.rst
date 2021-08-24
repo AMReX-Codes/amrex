@@ -283,7 +283,11 @@ Note that Paraview is not able to generate iso-surfaces from cell centered data.
    values and click "Apply".
 
 To visualize particle data within plofile directories (for example, you could
-run the ``ShortRangeParticles`` example):
+run the `NeighborList`_ example in `Tutorials/Particles`_):
+
+.. _`NeighborList`: https://amrex-codes.github.io/amrex/tutorials_html/Particles_Tutorial.html#neighborlist
+
+.. _`Tutorials/Particles`: https://amrex-codes.github.io/amrex/tutorials_html/Particles_Tutorial.html
 
 .. raw:: latex
 
