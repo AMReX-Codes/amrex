@@ -550,8 +550,8 @@ For a :cpp:`ParticleContainer` that does this neighbor finding, please see
 :cpp:`NeighborParticleContainer` has additional methods called :cpp:`fillNeighbors()`
 and :cpp:`clearNeighbors()` that fill the :cpp:`neighbors` data structure with
 copies of the proper particles. A tutorial that uses these features is
-available at `NeighborList`_. In this tutorial the function 
-:cpp:`void MDParticleContainer:computeForces()` 
+available at `NeighborList`_. In this tutorial the function
+:cpp:`void MDParticleContainer:computeForces()`
 computes the forces on a given tile via direct summation over the real
 and neighbor particles, as follows:
 
@@ -565,24 +565,24 @@ and neighbor particles, as follows:
     void MDParticleContainer::computeForces()
     {
         BL_PROFILE("MDParticleContainer::computeForces");
-    
+
         const int lev = 0;
         const Geometry& geom = Geom(lev);
         auto& plev  = GetParticles(lev);
-    
+
         for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
             int gid = mfi.index();
             int tid = mfi.LocalTileIndex();
             auto index = std::make_pair(gid, tid);
-    
+
             auto& ptile = plev[index];
             auto& aos   = ptile.GetArrayOfStructs();
             const size_t np = aos.numParticles();
-    
+
             auto nbor_data = m_neighbor_list[lev][index].data();
             ParticleType* pstruct = aos().dataPtr();
-    
+
            // now we loop over the neighbor list and compute the forces
             AMREX_FOR_1D ( np, i,
             {
@@ -590,20 +590,20 @@ and neighbor particles, as follows:
                 p1.rdata(PIdx::ax) = 0.0;
                 p1.rdata(PIdx::ay) = 0.0;
                 p1.rdata(PIdx::az) = 0.0;
-    
+
                 for (const auto& p2 : nbor_data.getNeighbors(i))
                 {
                     Real dx = p1.pos(0) - p2.pos(0);
                     Real dy = p1.pos(1) - p2.pos(1);
                     Real dz = p1.pos(2) - p2.pos(2);
-    
+
                     Real r2 = dx*dx + dy*dy + dz*dz;
                     r2 = amrex::max(r2, Params::min_r*Params::min_r);
-    
+
                     if (r2 > Params::cutoff*Params::cutoff) return;
-    
+
                     Real r = sqrt(r2);
-    
+
                     Real coef = (1.0 - Params::cutoff / r) / r2;
                     p1.rdata(PIdx::ax) += coef * dx;
                     p1.rdata(PIdx::ay) += coef * dy;
