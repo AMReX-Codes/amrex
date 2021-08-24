@@ -1,6 +1,7 @@
-ifeq (,$(filter $(which_computer),poplar redwood tulip))
+ifeq (,$(filter $(which_computer),poplar redwood tulip birch))
   $(error Unknown Frontier CoE computer, $(which_computer))
 else
+ifneq (,$(filter $(which_computer),poplar redwood tulip))
   ifeq ($(USE_HIP),TRUE)
     AMD_ARCH=gfx906,gfx908
   endif
@@ -23,5 +24,23 @@ else
     endif
 
   endif
+else
+  ifeq ($(USE_HIP),TRUE)
+    # MI100
+    AMD_ARCH=gfx908
+  endif
 
+  ifeq ($(USE_MPI),TRUE)
+    includes += $(shell CC --cray-print-opts=cflags)
+    ifneq ($(BL_NO_FORT),TRUE)
+      LIBRARIES += $(shell ftn --cray-print-opts=libs)
+    else
+      LIBRARIES += $(shell CC --cray-print-opts=libs)
+    endif
+    # for gpu aware mpi
+    ifeq ($(USE_HIP),TRUE)
+      LIBRARIES += $(PE_MPICH_GTL_DIR_amd_gfx908) -lmpi_gtl_hsa
+    endif
+  endif
+endif
 endif
