@@ -1539,6 +1539,8 @@ FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     , m_dp_arrays  (std::exchange(rhs.m_dp_arrays, nullptr))
 #endif
     , m_hp_arrays  (std::exchange(rhs.m_hp_arrays, nullptr))
+    , m_arrays     (rhs.m_arrays)
+    , m_const_arrays(rhs.m_const_arrays)
     , m_tags       (std::move(rhs.m_tags))
     , shmem        (std::move(rhs.shmem))
     // no need to worry about the data used in non-blocking FillBoundary.
@@ -1566,6 +1568,8 @@ FabArray<FAB>::operator= (FabArray<FAB>&& rhs) noexcept
         std::swap(m_dp_arrays, rhs.m_dp_arrays);
 #endif
         std::swap(m_hp_arrays, rhs.m_hp_arrays);
+        m_arrays = rhs.m_arrays;
+        m_const_arrays = rhs.m_const_arrays;
         std::swap(m_tags, rhs.m_tags);
         shmem = std::move(rhs.shmem);
 
