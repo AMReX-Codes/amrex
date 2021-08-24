@@ -71,6 +71,10 @@ public:
     Array4<Real const> const_array (const MFIter& mfi) const noexcept { return m_mf.const_array(mfi); }
     Array4<Real const> const_array (int i)             const noexcept { return m_mf.const_array(i); }
 
+    MultiArray4<Real const> arrays () const noexcept { return m_mf.const_arrays(); }
+    MultiArray4<Real      > arrays ()       noexcept { return m_mf.arrays(); }
+    MultiArray4<Real const> const_arrays () const noexcept { return m_mf.const_arrays(); }
+
     Box fabbox (int K) const noexcept { return m_mf.fabbox(K); }
 
     int size () const noexcept { return m_mf.size(); }

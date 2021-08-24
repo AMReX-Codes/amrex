@@ -80,11 +80,11 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                 yfab(i,j,k,n) = 0.0;
             });
         } else if (fabtyp == FabType::regular) {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
             {
-                mlabeclap_adotx(tbx, yfab, xfab, afab,
+                mlabeclap_adotx(i,j,k,n, yfab, xfab, afab,
                                 AMREX_D_DECL(bxfab,byfab,bzfab),
-                                dxinvarr, ascalar, bscalar, ncomp);
+                                dxinvarr, ascalar, bscalar);
             });
         } else {
             Array4<int const> const& ccmfab = ccmask.const_array(mfi);
@@ -248,16 +248,16 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
         }
         else if (fabtyp == FabType::regular)
         {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D(vbx, nc, i, j, k, n,
             {
-                abec_gsrb(thread_box, solnfab, rhsfab, alpha, afab,
+                abec_gsrb(i,j,k,n, solnfab, rhsfab, alpha, afab,
                           AMREX_D_DECL(dhx, dhy, dhz),
                           AMREX_D_DECL(bxfab, byfab, bzfab),
                           AMREX_D_DECL(m0,m2,m4),
                           AMREX_D_DECL(m1,m3,m5),
                           AMREX_D_DECL(f0fab,f2fab,f4fab),
                           AMREX_D_DECL(f1fab,f3fab,f5fab),
-                          vbx, redblack, nc);
+                          vbx, redblack);
             });
         }
         else
