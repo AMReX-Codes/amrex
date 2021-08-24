@@ -550,9 +550,11 @@ For a :cpp:`ParticleContainer` that does this neighbor finding, please see
 :cpp:`ParticleContainer` has additional methods called :cpp:`fillNeighbors()`
 and :cpp:`clearNeighbors()` that fill the :cpp:`neighbors` data structure with
 copies of the proper particles. A tutorial that uses these features is
-available at ``amrex/Tutorials/Particles/ShortRangeParticles``. This tutorial
+available at `NeighborList`_. This tutorial
 computes the forces on a given tile via direct summation by passing the real
 and neighbor particles into a Fortran subroutine, as follows:
+
+.. _`NeighborList`: https://amrex-codes.github.io/amrex/tutorials_html/Particles_Tutorial.html#neighborlist
 
 .. highlight:: c++
 
