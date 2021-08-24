@@ -12,14 +12,16 @@
 #endif
 
 /*
-  The AMREX_SPACEDIM macro specifies the dimension of the AMReX library
-  to be built.  Acceptable values are either 1, 2, or 3.  This macro
-  must be set for every compilation as many of the data structures of
-  AMReX rely on it being set.
-
-  Code that depends on the dimensionality of the problem that you're
-  trying to solve should be cast in terms of this macro.
-*/
+ * \def AMREX_SPACEDIM
+ *
+ * The AMREX_SPACEDIM macro specifies the dimension of the AMReX library
+ * to be built.  Acceptable values are either 1, 2, or 3.  This macro
+ * must be set for every compilation as many of the data structures of
+ * AMReX rely on it being set.
+ * 
+ * Code that depends on the dimensionality of the problem that you're
+ * trying to solve should be cast in terms of this macro.
+ */
 
 #if !defined(AMREX_SPACEDIM)
 #error AMREX_SPACEDIM must be defined
@@ -97,27 +99,29 @@ namespace amrex
 */
 #  define AMREX_D_DECL(a,b,c) a
 
-/*
-  The AMREX_D_TERM(a,b,c) macro expands to a whitespace-separated list of
-  1, 2, or all 3 of the arguments of the call, depending on the value
-  of AMREX_SPACEDIM.  This can be used to write program logic
-  that depend on 1, 2, or 3 arguments, corresponding to
-  the value of AMREX_SPACEDIM.
-
-  For example:
-
-     return AMREX_D_TERM(len[0], *len[1], *len[2]);
-
-  More explicitly, this macro evaluates to one of
-
-     a
-
-     a b
-
-     a b c
-
-  corresponding to AMREX_SPACEDIM values of 1, 2, or 3.
-*/
+/**
+ * \def AMREX_D_TERM
+ *
+ * The AMREX_D_TERM(a,b,c) macro expands to a whitespace-separated list of
+ * 1, 2, or all 3 of the arguments of the call, depending on the value
+ * of AMREX_SPACEDIM.  This can be used to write program logic
+ * that depend on 1, 2, or 3 arguments, corresponding to
+ * the value of AMREX_SPACEDIM.
+ *
+ * For example:
+ *
+ *    return AMREX_D_TERM(len[0], *len[1], *len[2]);
+ *
+ * More explicitly, this macro evaluates to one of
+ *
+ *    a
+ *
+ *    a b
+ *
+ *    a b c
+ *
+ * corresponding to AMREX_SPACEDIM values of 1, 2, or 3.
+ */
 #  define AMREX_D_TERM(a,b,c) a
 
 /*
