@@ -195,7 +195,8 @@ std::size_t parser_ast_size (struct parser_node* node);
 void parser_ast_print (struct parser_node* node, std::string const& space, AllPrint& printer);
 void parser_ast_regvar (struct parser_node* node, char const* name, int i);
 void parser_ast_setconst (struct parser_node* node, char const* name, double c);
-void parser_ast_get_symbols (struct parser_node* node, std::set<std::string>& symbols);
+void parser_ast_get_symbols (struct parser_node* node, std::set<std::string>& symbols,
+                             std::set<std::string>& local_symbols);
 int parser_ast_depth (struct parser_node* node);
 
 /*******************************************************************/
