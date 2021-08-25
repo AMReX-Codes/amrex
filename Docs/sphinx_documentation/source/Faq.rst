@@ -9,10 +9,11 @@ Frequently Asked Questions
 
 **A.** Do you have :cpp:`amrex::initialize(); {` and :cpp:`} amrex::finalize();`
 at the beginning and end of your code? For all AMReX commands to function
-properly, including releasing memory, they need to be contained
-between these two curly braces. See the tutorial `HelloWorld`_ for a short demonstration.
+properly, including to release resources, they need to be contained
+between these two curly braces. In the `Initialize and Finalize`_ section,
+these commands are discussed further detail.
 
-.. _`HelloWorld` : https://amrex-codes.github.io/amrex/tutorials_html/Basic_Tutorial.html#helloworld
+.. _`Initialize and Finalize` : https://amrex-codes.github.io/amrex/docs_html/Basics.html#initialize-and-finalize:w
 
 |
 
