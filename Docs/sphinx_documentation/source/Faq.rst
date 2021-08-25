@@ -13,7 +13,7 @@ properly, including to release resources, they need to be contained
 between these two curly braces. In the `Initialize and Finalize`_ section,
 these commands are discussed further detail.
 
-.. _`Initialize and Finalize` : https://amrex-codes.github.io/amrex/docs_html/Basics.html#initialize-and-finalize:w
+.. _`Initialize and Finalize` : https://amrex-codes.github.io/amrex/docs_html/Basics.html#initialize-and-finalize
 
 |
 
