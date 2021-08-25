@@ -232,22 +232,39 @@ MLNodeLaplacian::buildStencil ()
 #ifdef AMREX_USE_EB
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion() && m_stencil[amrlev][mglev]->isFusingCandidate()) {
+                auto const& stma = m_stencil[amrlev][mglev]->const_arrays();
+                auto const& dmskma = m_dirichlet_mask[amrlev][mglev]->arrays();
+                ParallelFor(*m_stencil[amrlev][mglev],
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                {
+                    if (stma[box_no](i,j,k,0) == Real(0.0)) {
+                        dmskma[box_no](i,j,k) = 1;
+                    }
+                });
+                // We only need to sync once at the end of this function.
+            } else
+#endif
+            {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(*m_stencil[amrlev][mglev],TilingIfNotGPU()); mfi.isValid(); ++mfi) {
-                Box const& bx = mfi.tilebox();
-                Array4<Real const> const& starr = m_stencil[amrlev][mglev]->const_array(mfi);
-                Array4<int> const& dmskarr = m_dirichlet_mask[amrlev][mglev]->array(mfi);
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE(bx, i, j, k,
-                {
-                    if (starr(i,j,k,0) == Real(0.0)) {
-                        dmskarr(i,j,k) = 1;
-                    }
-                });
+                for (MFIter mfi(*m_stencil[amrlev][mglev],TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+                    Box const& bx = mfi.tilebox();
+                    Array4<Real const> const& starr = m_stencil[amrlev][mglev]->const_array(mfi);
+                    Array4<int> const& dmskarr = m_dirichlet_mask[amrlev][mglev]->array(mfi);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                    {
+                        if (starr(i,j,k,0) == Real(0.0)) {
+                            dmskarr(i,j,k) = 1;
+                        }
+                    });
+                }
             }
         }
     }
+    Gpu::synchronize();
 #endif
 }
 

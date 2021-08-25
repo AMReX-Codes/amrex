@@ -357,21 +357,38 @@ MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
                  ratio3.y = ratio[1];,
                  ratio3.z = ratio[2];);
 
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(fine,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx    = mfi.tilebox();
-        Array4<Real const> const& cfab = crse.const_array(mfi);
-        Array4<Real> const& ffab = fine.array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, ncomp, i, j, k, n,
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && fine.isFusingCandidate()) {
+        auto const& finema = fine.arrays();
+        auto const& crsema = crse.const_arrays();
+        ParallelFor(fine, ncomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
         {
             int ic = amrex::coarsen(i,ratio3.x);
             int jc = amrex::coarsen(j,ratio3.y);
             int kc = amrex::coarsen(k,ratio3.z);
-            ffab(i,j,k,n) += cfab(ic,jc,kc,n);
+            finema[box_no](i,j,k,n) += crsema[box_no](ic,jc,kc,n);
         });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(fine,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx    = mfi.tilebox();
+            Array4<Real const> const& cfab = crse.const_array(mfi);
+            Array4<Real> const& ffab = fine.array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+            {
+                int ic = amrex::coarsen(i,ratio3.x);
+                int jc = amrex::coarsen(j,ratio3.y);
+                int kc = amrex::coarsen(k,ratio3.z);
+                ffab(i,j,k,n) += cfab(ic,jc,kc,n);
+            });
+        }
     }
 }
 
