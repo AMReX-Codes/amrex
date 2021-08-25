@@ -448,10 +448,8 @@ AmrLevelAdv::estTimeStep (Real)
                 uface[i].resize(bx,1);
             }
 
-            Array<Elixir,BL_SPACEDIM> veleli;
-            for (int i = 0; i < BL_SPACEDIM ; i++) {
-                veleli[i] = uface[i].elixir();
-            }
+            // Note: no need to set elixir on uface[i] temporary fabs since
+            //       norm<RunOn::Device> kernel launch is blocking.
 
             get_face_velocity(cur_time,
                               AMREX_D_DECL(uface[0], uface[1], uface[2]),
