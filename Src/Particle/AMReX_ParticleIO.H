@@ -730,6 +730,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     AMREX_ASSERT(finest_level_in_file >= 0);
 
     // Determine whether this is a dual-grid restart or not.
+    Vector<DistributionMapping> old_dms(finest_level_in_file + 1);
+    Vector<BoxArray> old_bas(finest_level_in_file + 1);
     Vector<BoxArray> particle_box_arrays(finest_level_in_file + 1);
     bool dual_grid = false;
 
@@ -750,6 +752,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     {
         for (int lev = 0; lev <= finest_level_in_file; lev++)
         {
+            old_dms[lev] = ParticleDistributionMap(lev);
+            old_bas[lev] = ParticleBoxArray(lev);
             std::string phdr_name = fullname;
             phdr_name = amrex::Concatenate(phdr_name + "/Level_", lev, 1);
             phdr_name += "/Particle_H";
@@ -777,6 +781,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
     if (dual_grid) {
         for (int lev = 0; lev <= finestLevel(); lev++) {
+            // this can happen if there are no particles at a given level in the checkpoint
+            if (particle_box_arrays[lev].size() == 0) {
+                particle_box_arrays[lev] = BoxArray(Geom(lev).Domain());
+            }
             SetParticleBoxArray(lev, particle_box_arrays[lev]);
             DistributionMapping pdm(particle_box_arrays[lev]);
             SetParticleDistributionMap(lev, pdm);
@@ -880,6 +888,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
             if (!ParticleFile.good())
                 amrex::Abort("ParticleContainer::Restart(): problem reading particles");
+        }
+    }
+
+    if (dual_grid) {
+        for (int lev = 0; lev <= finest_level_in_file; lev++) {
+            SetParticleBoxArray(lev, old_bas[lev]);
+            SetParticleDistributionMap(lev, old_dms[lev]);
         }
     }
 
