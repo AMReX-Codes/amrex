@@ -19,6 +19,9 @@ int      AmrLevelAdv::NUM_GROW        = 3;  // number of ghost cells
 ProbParm* AmrLevelAdv::h_prob_parm = nullptr;
 ProbParm* AmrLevelAdv::d_prob_parm = nullptr;
 
+int      AmrLevelAdv::max_phierr_lev  = -1;
+int      AmrLevelAdv::max_phigrad_lev = -1;
+
 Vector<Real> AmrLevelAdv::phierr;
 Vector<Real> AmrLevelAdv::phigrad;
 

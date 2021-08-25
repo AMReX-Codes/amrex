@@ -4,9 +4,6 @@
 
 #include "AmrLevelAdv.H"
 
-int          AmrLevelAdv::max_phierr_lev  = -1;
-int          AmrLevelAdv::max_phigrad_lev = -1;
-
 void
 AmrLevelAdv::get_tagging_params()
 {
