@@ -23,31 +23,32 @@ AmrLevel Class
 
 Pure virtual functions include:
 
--  :cpp:`computeInitialDt` Compute an array of time steps for each level of
-   refinement. Called at the beginning of the simulation.
+   -  :cpp:`computeInitialDt` Compute an array of time steps for each level of
+      refinement. Called at the beginning of the simulation.
 
--  :cpp:`computeNewDt` Compute an array of time steps for each level of
-   refinement. Called at the end of a coarse level advance.
+   -  :cpp:`computeNewDt` Compute an array of time steps for each level of
+      refinement. Called at the end of a coarse level advance.
 
--  :cpp:`advance` Advance the grids at a level.
+   -  :cpp:`advance` Advance the grids at a level.
 
--  :cpp:`post_timestep` Work after at time step at a given level. In this
-   tutorial we do the AMR synchronization here.
+   -  :cpp:`post_timestep` Work after at time step at a given level. In this
+      tutorial we do the AMR synchronization here.
 
--  :cpp:`post_regrid` Work after regridding. In this tutorial we redistribute
-   particles.
+   -  :cpp:`post_regrid` Work after regridding. In this tutorial we redistribute
+      particles.
 
--  :cpp:`post_init` Work after initialization. In this tutorial we perform AMR
-   synchronization.
+   -  :cpp:`post_init` Work after initialization. In this tutorial we perform
+      AMR synchronization.
 
--  :cpp:`initData` Initialize the data on a given level at the beginning of the
-   simulation.
+   -  :cpp:`initData` Initialize the data on a given level at the beginning of
+      the simulation.
 
--  :cpp:`init` There are two versions of this function used to initialize data
-   on a level during regridding. One version is specifically for the case where
-   the level did not previously exist (a newly created refined level)
+   -  :cpp:`init` There are two versions of this function used to initialize
+      data on a level during regridding. One version is specifically for the
+      case where the level did not previously exist (a newly created refined
+      level).
 
--  :cpp:`errorEst` Perform the tagging at a level for refinement.
+   -  :cpp:`errorEst` Perform the tagging at a level for refinement.
 
 StateData
 ---------
@@ -128,41 +129,29 @@ cells, number of components, and the interlevel interpolation (See
 AMReX_Interpolator for various interpolation types). We also see how to specify
 physical boundary functions by providing a function (in this case,
 :cpp:`nullfill` since we are not using physical boundary conditions), where
-:cpp:`nullfill` is defined in ``bc_nullfill.cpp`` in the tutorial source code.
+:cpp:`nullfill` is defined in ``Src/bc_nullfill.cpp`` in the tutorial source
+code.
 
 Example: Advection_AmrLevel
 ===========================
 
-.. _fig:AmrAdvection_AmrLevel_flowchart:
+The Advection_AmrLevel example is documented in detail
+`here <https://amrex-codes.github.io/amrex/tutorials_html/AMR_Tutorial.html#advection-amrlevel>`__
+in the AMReX tutorial documentation.
 
-.. figure:: ./AmrLevel/figs/flowchart.png
-   :width: 4in
+The ``Src`` subdirectory contains source code that is specific to this example. Most notably is the :cpp:`AmrLevelAdv` class, which is derived from the base
+:cpp:`AmrLevel` class, and the :cpp:`LevelBldAdv` class, derived from the base
+:cpp:`LevelBld` class as described above. The subdirectory ``Src/Src_K`` contain GPU kernels.
 
-   Source code tree for the ``Amr/Advection_AmrLevel`` example.
+The ``Exec`` subdirectory contains two examples: ``SingleVortex`` and
+``UniformVelocity``. Each subdirectory contains problem-specific source code
+used for initialization using a Fortran subroutine (``Prob.f90``) and
+specifying the velocity fields used in this simulation
+(``face_velocity_2d_K.H`` and ``face_velocity_3d_K.H`` for the 2-D and 3-D
+problem, respectively). Build the code here by editing the ``GNUmakefile``
+and running ``make``.
 
-The figure above shows the :ref:`fig:AmrAdvection_AmrLevel_flowchart`
-
--  ``amrex/Src/``
-
-   -  ``Base/`` Base AMReX library.
-
-   -  ``Boundary/`` An assortment of classes for handling boundary data.
-
-   -  ``AmrCore/`` AMR data management classes, described in more detail above.
-
-   -  ``Amr/``
-
--  ``Advection_AmrLevel/Src`` Source code specific to this example.
-   Most notably is the :cpp:`AmrLevelAdv` class, which is derived from
-   :cpp:`AmrLevel`. The subdirectory ``Src_K`` contain GPU kernels.
-
--  ``Advection_AmrLevel/Exec`` Contains a makefile so a user can write other
-   examples besides ``SingleVortex`` and ``UniformVelocity``.
-
-   -  ``SingleVortex`` and ``UniformVelocity``
-      Build the code here by editing the ``GNUmakefile`` and running ``make``.
-      There is also problem-specific source code here used for initialization or
-      specifying the velocity field used in this simulation.
+The pseudocode for the main program is given below.
 
 .. highlight:: c++
 
