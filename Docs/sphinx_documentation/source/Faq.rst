@@ -62,7 +62,7 @@ may contain some variation. GPU profiling is an area of current development for 
 Additional tools and discussion on this topic is contained
 in the section `Debugging`_.
 
-.. _`Debugging`: https://amrex-codes.github.io/amrex/docs_html/Basics.html?highlight=print#debugging
+.. _`Debugging`: https://amrex-codes.github.io/amrex/docs_html/Basics.html#debugging
 
 .. _`Amrvis`: https://amrex-codes.github.io/amrex/docs_html/Visualization.html#sec-amrvis
 
