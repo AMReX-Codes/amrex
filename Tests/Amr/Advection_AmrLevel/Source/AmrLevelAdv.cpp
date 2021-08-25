@@ -178,17 +178,27 @@ AmrLevelAdv::initData ()
         amrex::Print() << "Initializing the data at level " << level << std::endl;
     }
 
-    for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
+    // Create temporary MultiFab on CPU using pinned memory
+    MultiFab S_tmp(S_new.boxArray(),
+                   S_new.DistributionMap(),
+                   S_new.nComp(),
+                   S_new.nGrowVect(),
+                   MFInfo().SetArena(The_Pinned_Arena()));
+
+    for (MFIter mfi(S_tmp); mfi.isValid(); ++mfi)
     {
         const Box& box     = mfi.validbox();
         const int* lo      = box.loVect();
         const int* hi      = box.hiVect();
 
-        // Use a Fortran subroutine to initialize data.
+        // Use a Fortran subroutine to initialize data on CPU.
         initdata(&level, &cur_time, AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi),
-                 BL_TO_FORTRAN_3D(S_new[mfi]), AMREX_ZFILL(dx),
+                 BL_TO_FORTRAN_3D(S_tmp[mfi]), AMREX_ZFILL(dx),
                  AMREX_ZFILL(prob_lo));
     }
+
+    // Explicitly copy data to GPU.
+    amrex::htod_memcpy(S_new, S_tmp);
 
 #ifdef AMREX_PARTICLES
     init_particles();
