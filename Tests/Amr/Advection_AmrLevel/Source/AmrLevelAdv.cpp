@@ -326,7 +326,7 @@ AmrLevelAdv::advance (Real time,
 #endif
     {
         FArrayBox flux[BL_SPACEDIM], uface[BL_SPACEDIM];
-        for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(S_new, TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             // Set up tileboxes and nodal tileboxes
             const Box& bx = mfi.tilebox();
@@ -339,19 +339,20 @@ AmrLevelAdv::advance (Real time,
             const FArrayBox& statein = Sborder[mfi];
             FArrayBox& stateout      =   S_new[mfi];
 
-            // Resize temporary fabs for fluxes and face velocities.
             for (int i = 0; i < BL_SPACEDIM ; i++) {
+#ifdef AMREX_USE_GPU
+                // No tiling on GPU.
+                // Make aliases on flux and face velocity fabs.
+                flux[i]  = FArrayBox(fluxes[i][mfi], amrex::make_alias,
+                                     0, NUM_STATE);
+                uface[i] = FArrayBox(Umac[i][mfi], amrex::make_alias,
+                                     0, 1);
+#else
+            // Resize temporary fabs for fluxes and face velocities.
                 const Box& bxtmp = amrex::surroundingNodes(bx,i);
                 flux[i].resize(bxtmp,NUM_STATE);
                 uface[i].resize(amrex::grow(bxtmp, iteration), 1);
-            }
-
-            // Add elixir for flux and face velocity fabs
-            Array<Elixir,BL_SPACEDIM> flxeli;
-            Array<Elixir,BL_SPACEDIM> veleli;
-            for (int i = 0; i < BL_SPACEDIM ; i++) {
-                flxeli[i] = flux[i].elixir();
-                veleli[i] = uface[i].elixir();
+#endif
             }
 
             // Compute Godunov velocities for each face.
@@ -359,19 +360,17 @@ AmrLevelAdv::advance (Real time,
                               AMREX_D_DECL(uface[0], uface[1], uface[2]),
                               dx, prob_lo);
 
+#ifndef AMREX_USE_GPU
             for (int i = 0; i < BL_SPACEDIM ; i++) {
                 const Box& bxtmp = mfi.grownnodaltilebox(i, iteration);
-                Umac[i][mfi].copy<RunOn::Device>(uface[i], bxtmp);
+                Umac[i][mfi].copy(uface[i], bxtmp);
             }
-
-            AMREX_D_TERM(const FArrayBox& velx = uface[0];,
-                         const FArrayBox& vely = uface[1];,
-                         const FArrayBox& velz = uface[2]);
+#endif
 
             // CFL check.
-            AMREX_D_TERM(Real umax = velx.norm<RunOn::Device>(0);,
-                         Real vmax = vely.norm<RunOn::Device>(0);,
-                         Real wmax = velz.norm<RunOn::Device>(0));
+            AMREX_D_TERM(Real umax = uface[0].norm<RunOn::Device>(0);,
+                         Real vmax = uface[1].norm<RunOn::Device>(0);,
+                         Real wmax = uface[2].norm<RunOn::Device>(0));
 
             if (AMREX_D_TERM(umax*dt > dx[0], ||
                              vmax*dt > dx[1], ||
@@ -389,14 +388,16 @@ AmrLevelAdv::advance (Real time,
 
             // Advect. See Adv.cpp for implementation.
             advect(time, bx, nbx, statein, stateout,
-                   AMREX_D_DECL(velx,    vely,    velz),
-                   AMREX_D_DECL(flux[0], flux[1], flux[2]),
+                   AMREX_D_DECL(uface[0], uface[1], uface[2]),
+                   AMREX_D_DECL(flux[0],  flux[1],  flux[2]),
                    dx, dt);
 
+#ifndef AMREX_USE_GPU
             if (do_reflux) {
                 for (int i = 0; i < BL_SPACEDIM ; i++)
-                    fluxes[i][mfi].copy<RunOn::Device>(flux[i],mfi.nodaltilebox(i));
+                    fluxes[i][mfi].copy(flux[i],mfi.nodaltilebox(i));
             }
+#endif
         }
     }
 
