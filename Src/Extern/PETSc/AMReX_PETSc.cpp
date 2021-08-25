@@ -172,7 +172,10 @@ PETScABecLap::prepareSolver ()
     cell_id.define(ba,dm,1,1);
     cell_id_vec.define(ba,dm,1,0);
 
+    PetscInt ncells_proc = 0;
+
 #ifdef AMREX_USE_EB
+
     auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
     const FabArray<EBCellFlagFab>* flags = (ebfactory) ? &(ebfactory->getMultiEBCellFlagFab()) : nullptr;
     const MultiFab* vfrac = (ebfactory) ? &(ebfactory->getVolFrac()) : nullptr;
@@ -182,42 +185,126 @@ PETScABecLap::prepareSolver ()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     auto barea = (ebfactory) ? &(ebfactory->getBndryArea()) : nullptr;
     auto bcent = (ebfactory) ? &(ebfactory->getBndryCent()) : nullptr;
-#endif
 
-    PetscInt ncells_proc = 0;
+    if (ebfactory)
+    {
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion() && cell_id.isFusingCandidate()) {
+            Gpu::HostVector<int> hv_is_covered;
+            for (MFIter mfi(cell_id); mfi.isValid(); ++mfi) {
+                const Box& bx = mfi.validbox();
+                auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+                if (fabtyp == FabType::covered)
+                {
+                    ncells_grid[mfi] = 0;
+                    hv_is_covered.push_back(0);
+                }
+                else
+                {
+                    Long npts = bx.numPts();
+                    ncells_grid[mfi] = npts;
+                    ncells_proc += npts;
+                    hv_is_covered.push_back(1);
+                }
+            }
+            Gpu::DeviceVector<int> dv_is_covered(hv_is_covered.size());
+            Gpu::copyAsync(Gpu::hostToDevice, hv_is_covered.begin(), hv_is_covered.end(),
+                           dv_is_covered.begin());
+            auto pc = dv_is_covered.data();
+            auto const& cell_id_ma = cell_id.arrays();
+            ParallelFor(cell_id, IntVect(1),
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+            {
+                Box vbx(cell_id_ma[box_no]);
+                vbx.grow(-1);
+                if (vbx.contains(i,j,k) && pc[box_no]) {
+                    cell_id_ma[box_no](i,j,k) = vbx.index(IntVect{AMREX_D_DECL(i,j,k)});
+                } else {
+                    cell_id_ma[box_no](i,j,k) = std::numeric_limits<PetscInt>::lowest();
+                }
+            });
+            Gpu::streamSynchronize();
+        } else
+#endif
+        {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion()) reduction(+:ncells_proc)
 #endif
-    for (MFIter mfi(cell_id); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.validbox();
-        const Box& gbx = amrex::grow(bx,1);
-        Array4<PetscInt> const& cid_arr = cell_id.array(mfi);
-#ifdef AMREX_USE_EB
-        auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
-        if (fabtyp == FabType::covered)
-        {
-            ncells_grid[mfi] = 0;
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE(gbx, i, j, k,
+            for (MFIter mfi(cell_id); mfi.isValid(); ++mfi)
             {
-                cid_arr(i,j,k) = std::numeric_limits<PetscInt>::lowest();
-            });
+                const Box& bx = mfi.validbox();
+                const Box& gbx = amrex::grow(bx,1);
+                Array4<PetscInt> const& cid_arr = cell_id.array(mfi);
+                auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+                if (fabtyp == FabType::covered)
+                {
+                    ncells_grid[mfi] = 0;
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(gbx, i, j, k,
+                    {
+                        cid_arr(i,j,k) = std::numeric_limits<PetscInt>::lowest();
+                    });
+                }
+                else
+                {
+                    Long npts = bx.numPts();
+                    ncells_grid[mfi] = npts;
+                    ncells_proc += npts;
+
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(gbx, i, j, k,
+                    {
+                        if (bx.contains(i,j,k)) {
+                            cid_arr(i,j,k) = bx.index(IntVect{AMREX_D_DECL(i,j,k)});
+                        } else {
+                            cid_arr(i,j,k) = std::numeric_limits<PetscInt>::lowest();
+                        }
+                    });
+                }
+            }
         }
-        else
+
+    } else // if (ebfactory)
 #endif
-        {
-            Long npts = bx.numPts();
+    {
+        for (MFIter mfi(cell_id); mfi.isValid(); ++mfi) {
+            Long npts = mfi.validbox().numPts();
             ncells_grid[mfi] = npts;
             ncells_proc += npts;
+        }
 
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE(gbx, i, j, k,
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion() && cell_id.isFusingCandidate()) {
+            auto const& cell_id_ma = cell_id.arrays();
+            ParallelFor(cell_id, IntVect(1),
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
             {
-                if (bx.contains(i,j,k)) {
-                    cid_arr(i,j,k) = bx.index(IntVect{AMREX_D_DECL(i,j,k)});
+                Box vbx(cell_id_ma[box_no]);
+                vbx.grow(-1);
+                if (vbx.contains(i,j,k)) {
+                    cell_id_ma[box_no](i,j,k) = vbx.index(IntVect{AMREX_D_DECL(i,j,k)});
                 } else {
-                    cid_arr(i,j,k) = std::numeric_limits<PetscInt>::lowest();
+                    cell_id_ma[box_no](i,j,k) = std::numeric_limits<PetscInt>::lowest();
                 }
             });
+            Gpu::streamSynchronize();
+        } else
+#endif
+        {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(cell_id,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+                const Box& tbx = mfi.growntilebox();
+                const Box& vbx = mfi.validbox();
+                Array4<PetscInt> const& cid_arr = cell_id.array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(tbx, i, j, k,
+                {
+                    if (vbx.contains(i,j,k)) {
+                        cid_arr(i,j,k) = vbx.index(IntVect{AMREX_D_DECL(i,j,k)});
+                    } else {
+                        cid_arr(i,j,k) = std::numeric_limits<PetscInt>::lowest();
+                    }
+                });
+            }
         }
     }
 
@@ -244,20 +331,37 @@ PETScABecLap::prepareSolver ()
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(proc_end == proc_begin+ncells_proc,
                                      "PETScABecLap::prepareSolver: how did this happen?");
 
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && cell_id.isFusingCandidate()) {
+        Gpu::Buffer<PetscInt> offset_buf(offset.data(), offset.local_size());
+        auto poffset = offset_buf.data();
+        auto const& cell_id_ma = cell_id.arrays();
+        auto const& cell_id_vec_ma = cell_id_vec.arrays();
+        ParallelFor(cell_id,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+        {
+            cell_id_ma[box_no](i,j,k) += poffset[box_no];
+            cell_id_vec_ma[box_no](i,j,k) = cell_id_ma[box_no](i,j,k);
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(cell_id,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        Box const& bx = mfi.tilebox();
-        auto os = offset[mfi];
-        Array4<PetscInt> const& cid_arr = cell_id.array(mfi);
-        Array4<PetscInt> const& cid_vec = cell_id_vec.array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE(bx, i, j, k,
+        for (MFIter mfi(cell_id,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            cid_arr(i,j,k) += os;
-            cid_vec(i,j,k) = cid_arr(i,j,k);
-        });
+            Box const& bx = mfi.tilebox();
+            auto os = offset[mfi];
+            Array4<PetscInt> const& cid_arr = cell_id.array(mfi);
+            Array4<PetscInt> const& cid_vec = cell_id_vec.array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                cid_arr(i,j,k) += os;
+                cid_vec(i,j,k) = cid_arr(i,j,k);
+            });
+        }
     }
 
     cell_id.FillBoundary(geom.periodicity());
@@ -399,7 +503,7 @@ PETScABecLap::prepareSolver ()
             if (sizeof(PetscInt) < sizeof(Long)) {
                 Long ntot = static_cast<Long>(nrows)*max_stencil_size;
                 AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ntot <  static_cast<Long>(std::numeric_limits<PetscInt>::max()),
-                                                 "Integer overflow: please configure Hypre with --enable-bigint");
+                                                 "PetscInt is too short");
             }
 #endif
             PetscInt nelems = nrows * max_stencil_size;
@@ -486,31 +590,91 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
     soln.setVal(0.0);
 
     MultiFab rhs_diag(rhs.boxArray(), rhs.DistributionMap(), 1, 0);
-#ifdef AMREX_USE_OMP
-#pragma omp paralle if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(rhs_diag,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& reg = mfi.validbox();
-        Array4<Real> const& rhs_diag_a = rhs_diag.array(mfi);
-        Array4<Real const> const& rhs_a = rhs.const_array(mfi);
-        Array4<Real const> const& diaginv_a = diaginv.const_array(mfi);
+
 #ifdef AMREX_USE_EB
-        auto fabtyp = (flags) ? (*flags)[mfi].getType(reg) : FabType::regular;
-        if (fabtyp == FabType::singlevalued) {
-            auto const& flag = flags->const_array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE(reg, i, j, k,
+    if (ebfactory)
+    {
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion() && rhs_diag.isFusingCandidate()) {
+            Gpu::HostVector<FabType> hv_type;
+            for (MFIter mfi(rhs_diag); mfi.isValid(); ++mfi) {
+                const Box& reg = mfi.validbox();
+                hv_type.push_back((*flags)[mfi].getType(reg));
+            }
+            Gpu::DeviceVector<FabType> dv_type(hv_type.size());
+            Gpu::copyAsync(Gpu::hostToDevice, hv_type.begin(), hv_type.end(), dv_type.begin());
+            auto ptype = dv_type.data();
+            auto const& rhs_diag_ma = rhs_diag.arrays();
+            auto const& rhs_ma = rhs.const_arrays();
+            auto const& diaginv_ma = diaginv.const_arrays();
+            auto const& flag_ma = flags->const_arrays();
+            ParallelFor(rhs_diag,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
             {
-                rhs_diag_a(i,j,k) = (flag(i,j,k).isCovered()) ?
-                    Real(0.0) : rhs_a(i,j,k) * diaginv_a(i,j,k);
+                rhs_diag_ma[box_no](i,j,k) =
+                    (flag_ma[box_no](i,j,k).isCovered()) ?
+                    Real(0.0) : rhs_ma[box_no](i,j,k) * diaginv_ma[box_no](i,j,k);
             });
-        } else if (fabtyp == FabType::regular)
+            Gpu::streamSynchronize();
+        } else
 #endif
         {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE(reg, i, j, k,
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(rhs_diag,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
-                rhs_diag_a(i,j,k) = rhs_a(i,j,k) * diaginv_a(i,j,k);
+                const Box& reg = mfi.validbox();
+                const Box& tbx = mfi.tilebox();
+                Array4<Real> const& rhs_diag_a = rhs_diag.array(mfi);
+                Array4<Real const> const& rhs_a = rhs.const_array(mfi);
+                Array4<Real const> const& diaginv_a = diaginv.const_array(mfi);
+                auto fabtyp = (*flags)[mfi].getType(reg);
+                if (fabtyp == FabType::singlevalued) {
+                    auto const& flag = flags->const_array(mfi);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(tbx, i, j, k,
+                    {
+                        rhs_diag_a(i,j,k) = (flag(i,j,k).isCovered()) ?
+                            Real(0.0) : rhs_a(i,j,k) * diaginv_a(i,j,k);
+                    });
+                } else if (fabtyp == FabType::regular) {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(tbx, i, j, k,
+                    {
+                        rhs_diag_a(i,j,k) = rhs_a(i,j,k) * diaginv_a(i,j,k);
+                    });
+                }
+            }
+        }
+    } else
+#endif
+    {
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion() && rhs_diag.isFusingCandidate()) {
+            auto const& rhs_diag_ma = rhs_diag.arrays();
+            auto const& rhs_ma = rhs.const_arrays();
+            auto const& diaginv_ma = diaginv.const_arrays();
+            ParallelFor(rhs_diag,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+            {
+                rhs_diag_ma[box_no](i,j,k) = rhs_ma[box_no](i,j,k) * diaginv_ma[box_no](i,j,k);
             });
+        } else
+#endif
+        {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(rhs_diag,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+            {
+                const Box& tbx = mfi.tilebox();
+                Array4<Real> const& rhs_diag_a = rhs_diag.array(mfi);
+                Array4<Real const> const& rhs_a = rhs.const_array(mfi);
+                Array4<Real const> const& diaginv_a = diaginv.const_array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(tbx, i, j, k,
+                {
+                    rhs_diag_a(i,j,k) = rhs_a(i,j,k) * diaginv_a(i,j,k);
+                });
+            }
         }
     }
 

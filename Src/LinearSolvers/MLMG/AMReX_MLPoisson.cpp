@@ -95,70 +95,111 @@ MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) con
     const Real probxlo = m_geom[amrlev][mglev].ProbLo(0);
 #endif
 
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(out, TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        const auto& xfab = in.array(mfi);
-        const auto& yfab = out.array(mfi);
-
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && out.isFusingCandidate() && !hasHiddenDimension()) {
+        auto const& xma = in.const_arrays();
+        auto const& yma = out.arrays();
         if (m_overset_mask[amrlev][mglev]) {
             AMREX_ASSERT(!m_has_metric_term);
-            const auto& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE ( bx, i, j, k,
+            const auto& osmma = m_overset_mask[amrlev][mglev]->const_arrays();
+            ParallelFor(out,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
             {
                 amrex::ignore_unused(j,k);
-                mlpoisson_adotx_os(AMREX_D_DECL(i,j,k), yfab, xfab, osm,
+                mlpoisson_adotx_os(AMREX_D_DECL(i,j,k), yma[box_no], xma[box_no], osmma[box_no],
                                    AMREX_D_DECL(dhx,dhy,dhz));
             });
         } else {
-#if (AMREX_SPACEDIM == 3)
-            if (hasHiddenDimension()) {
-                Box const& bx2d = compactify(bx);
-                const auto& xfab2d = compactify(xfab);
-                const auto& yfab2d = compactify(yfab);
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx2d, i, j, k,
-                {
-                    amrex::ignore_unused(k);
-                    TwoD::mlpoisson_adotx(i, j, yfab2d, xfab2d, dh0, dh1);
-                });
-            } else {
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx, i, j, k,
-                {
-                    mlpoisson_adotx(i, j, k, yfab, xfab, dhx, dhy, dhz);
-                });
-            }
-#elif (AMREX_SPACEDIM == 2)
+#if (AMREX_SPACEDIM < 3)
             if (m_has_metric_term) {
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx, i, j, k,
-                {
-                    amrex::ignore_unused(k);
-                    mlpoisson_adotx_m(i, j, yfab, xfab, dhx, dhy, dx, probxlo);
-                });
-            } else {
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx, i, j, k,
-                {
-                    amrex::ignore_unused(k);
-                    mlpoisson_adotx(i, j, yfab, xfab, dhx, dhy);
-                });
-            }
-#elif (AMREX_SPACEDIM == 1)
-            if (m_has_metric_term) {
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx, i, j, k,
+                ParallelFor(out,
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
                     amrex::ignore_unused(j,k);
-                    mlpoisson_adotx_m(i, yfab, xfab, dhx, dx, probxlo);
+                    mlpoisson_adotx_m(AMREX_D_DECL(i,j,k), yma[box_no], xma[box_no],
+                                      AMREX_D_DECL(dhx,dhy,dhz), dx, probxlo);
                 });
-            } else {
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx, i, j, k,
-                {
-                    amrex::ignore_unused(j,k);
-                    mlpoisson_adotx(i, yfab, xfab, dhx);
-                });
-            }
+            } else
 #endif
+            {
+                ParallelFor(out,
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                {
+                    amrex::ignore_unused(j,k);
+                    mlpoisson_adotx(AMREX_D_DECL(i,j,k), yma[box_no], xma[box_no],
+                                    AMREX_D_DECL(dhx,dhy,dhz));
+                });
+            }
+        }
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(out, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            const auto& xfab = in.array(mfi);
+            const auto& yfab = out.array(mfi);
+
+            if (m_overset_mask[amrlev][mglev]) {
+                AMREX_ASSERT(!m_has_metric_term);
+                const auto& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D( bx, i, j, k,
+                {
+                    amrex::ignore_unused(j,k);
+                    mlpoisson_adotx_os(AMREX_D_DECL(i,j,k), yfab, xfab, osm,
+                                       AMREX_D_DECL(dhx,dhy,dhz));
+                });
+            } else {
+#if (AMREX_SPACEDIM == 3)
+                if (hasHiddenDimension()) {
+                    Box const& bx2d = compactify(bx);
+                    const auto& xfab2d = compactify(xfab);
+                    const auto& yfab2d = compactify(yfab);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx2d, i, j, k,
+                    {
+                        amrex::ignore_unused(k);
+                        TwoD::mlpoisson_adotx(i, j, yfab2d, xfab2d, dh0, dh1);
+                    });
+                } else {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                    {
+                        mlpoisson_adotx(i, j, k, yfab, xfab, dhx, dhy, dhz);
+                    });
+                }
+#elif (AMREX_SPACEDIM == 2)
+                if (m_has_metric_term) {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                    {
+                        amrex::ignore_unused(k);
+                        mlpoisson_adotx_m(i, j, yfab, xfab, dhx, dhy, dx, probxlo);
+                    });
+                } else {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                    {
+                        amrex::ignore_unused(k);
+                        mlpoisson_adotx(i, j, yfab, xfab, dhx, dhy);
+                    });
+                }
+#elif (AMREX_SPACEDIM == 1)
+                if (m_has_metric_term) {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                    {
+                        amrex::ignore_unused(j,k);
+                        mlpoisson_adotx_m(i, yfab, xfab, dhx, dx, probxlo);
+                    });
+                } else {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                    {
+                        amrex::ignore_unused(j,k);
+                        mlpoisson_adotx(i, yfab, xfab, dhx);
+                    });
+                }
+#endif
+            }
         }
     }
 }
@@ -179,25 +220,38 @@ MLPoisson::normalize (int amrlev, int mglev, MultiFab& mf) const
     const Real dx = m_geom[amrlev][mglev].CellSize(0);
     const Real probxlo = m_geom[amrlev][mglev].ProbLo(0);
 
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && mf.isFusingCandidate()) {
+        auto const& ma = mf.arrays();
+        ParallelFor(mf,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+        {
+            mlpoisson_normalize(i,j,k, ma[box_no], AMREX_D_DECL(dhx,dhy,dhz), dx, probxlo);
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(mf, TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        const auto& fab = mf.array(mfi);
+        for (MFIter mfi(mf, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            const auto& fab = mf.array(mfi);
 
 #if (AMREX_SPACEDIM == 2)
-        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
-        {
-            mlpoisson_normalize(tbx, fab, dhx, dhy, dx, probxlo);
-        });
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                mlpoisson_normalize(i,j,k, fab, dhx, dhy, dx, probxlo);
+            });
 #else
-        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
-        {
-            mlpoisson_normalize(tbx, fab, dhx, dx, probxlo);
-        });
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                mlpoisson_normalize(i,j,k, fab, dhx, dx, probxlo);
+            });
 #endif
+        }
     }
 #endif
 }
