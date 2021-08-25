@@ -43,9 +43,6 @@ indent_size = 3
 # Clean up trailing whitespace
 trim_trailing_whitespace = true
 
-# Automatically wrap lines at 80 columns
-max_line_length = 80
-
 [Makefile]
 # TABs are part of its syntax
 indent_style = tab
