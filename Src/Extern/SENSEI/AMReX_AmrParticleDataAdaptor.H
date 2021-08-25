@@ -9,7 +9,6 @@
 
 #include <AMReX_AmrMesh.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_AmrDataAdaptor.H>
 #include <AMReX_ParticleDataAdaptor.H>
 // sensei includes
 #include "DataAdaptor.h"
