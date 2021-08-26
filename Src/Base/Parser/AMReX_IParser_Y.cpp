@@ -1327,7 +1327,8 @@ void iparser_ast_setconst (struct iparser_node* node, char const* name, int c)
     }
 }
 
-void iparser_ast_get_symbols (struct iparser_node* node, std::set<std::string>& symbols)
+void iparser_ast_get_symbols (struct iparser_node* node, std::set<std::string>& symbols,
+                              std::set<std::string>& local_symbols)
 {
     switch (node->type)
     {
@@ -1345,34 +1346,35 @@ void iparser_ast_get_symbols (struct iparser_node* node, std::set<std::string>& 
     case IPARSER_MUL_PP:
     case IPARSER_DIV_PP:
     case IPARSER_LIST:
-        iparser_ast_get_symbols(node->l, symbols);
-        iparser_ast_get_symbols(node->r, symbols);
+        iparser_ast_get_symbols(node->l, symbols, local_symbols);
+        iparser_ast_get_symbols(node->r, symbols, local_symbols);
         break;
     case IPARSER_NEG:
     case IPARSER_NEG_P:
-        iparser_ast_get_symbols(node->l, symbols);
+        iparser_ast_get_symbols(node->l, symbols, local_symbols);
         break;
     case IPARSER_F1:
-        iparser_ast_get_symbols(((struct iparser_f1*)node)->l, symbols);
+        iparser_ast_get_symbols(((struct iparser_f1*)node)->l, symbols, local_symbols);
         break;
     case IPARSER_F2:
-        iparser_ast_get_symbols(((struct iparser_f2*)node)->l, symbols);
-        iparser_ast_get_symbols(((struct iparser_f2*)node)->r, symbols);
+        iparser_ast_get_symbols(((struct iparser_f2*)node)->l, symbols, local_symbols);
+        iparser_ast_get_symbols(((struct iparser_f2*)node)->r, symbols, local_symbols);
         break;
     case IPARSER_F3:
-        iparser_ast_get_symbols(((struct iparser_f3*)node)->n1, symbols);
-        iparser_ast_get_symbols(((struct iparser_f3*)node)->n2, symbols);
-        iparser_ast_get_symbols(((struct iparser_f3*)node)->n3, symbols);
+        iparser_ast_get_symbols(((struct iparser_f3*)node)->n1, symbols, local_symbols);
+        iparser_ast_get_symbols(((struct iparser_f3*)node)->n2, symbols, local_symbols);
+        iparser_ast_get_symbols(((struct iparser_f3*)node)->n3, symbols, local_symbols);
         break;
     case IPARSER_ASSIGN:
-        iparser_ast_get_symbols(((struct iparser_assign*)node)->v, symbols);
+        local_symbols.emplace(((struct iparser_assign*)node)->s->name);
+        iparser_ast_get_symbols(((struct iparser_assign*)node)->v, symbols, local_symbols);
         break;
     case IPARSER_ADD_VP:
     case IPARSER_SUB_VP:
     case IPARSER_MUL_VP:
     case IPARSER_DIV_VP:
     case IPARSER_DIV_PV:
-        iparser_ast_get_symbols(node->r, symbols);
+        iparser_ast_get_symbols(node->r, symbols, local_symbols);
         break;
     default:
         amrex::Abort("iparser_ast_get_symbols: unknown node type " + std::to_string(node->type));
@@ -1403,7 +1405,11 @@ std::set<std::string>
 iparser_get_symbols (struct amrex_iparser* iparser)
 {
     std::set<std::string> symbols;
-    iparser_ast_get_symbols(iparser->ast, symbols);
+    std::set<std::string> local_symbols;
+    iparser_ast_get_symbols(iparser->ast, symbols, local_symbols);
+    for (auto const& ls : local_symbols) {
+        symbols.erase(ls);
+    }
     return symbols;
 }
 

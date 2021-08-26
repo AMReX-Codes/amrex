@@ -212,7 +212,7 @@ namespace amrex
             a_vector.m_capacity = 0;
         }
 
-        ~PODVector () noexcept { deallocate(m_data, capacity()); }
+        ~PODVector () noexcept { if (m_data != nullptr) { deallocate(m_data, capacity()); }}
 
         PODVector& operator= (const PODVector<T, Allocator>& a_vector) noexcept
         {

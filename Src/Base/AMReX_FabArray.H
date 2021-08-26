@@ -26,6 +26,7 @@
 #include <AMReX_LayoutData.H>
 #include <AMReX_BaseFabUtility.H>
 #include <AMReX_MFParallelFor.H>
+#include <AMReX_TagParallelFor.H>
 
 #include <AMReX_Gpu.H>
 
@@ -1539,6 +1540,8 @@ FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     , m_dp_arrays  (std::exchange(rhs.m_dp_arrays, nullptr))
 #endif
     , m_hp_arrays  (std::exchange(rhs.m_hp_arrays, nullptr))
+    , m_arrays     (rhs.m_arrays)
+    , m_const_arrays(rhs.m_const_arrays)
     , m_tags       (std::move(rhs.m_tags))
     , shmem        (std::move(rhs.shmem))
     // no need to worry about the data used in non-blocking FillBoundary.
@@ -1566,6 +1569,8 @@ FabArray<FAB>::operator= (FabArray<FAB>&& rhs) noexcept
         std::swap(m_dp_arrays, rhs.m_dp_arrays);
 #endif
         std::swap(m_hp_arrays, rhs.m_hp_arrays);
+        m_arrays = rhs.m_arrays;
+        m_const_arrays = rhs.m_const_arrays;
         std::swap(m_tags, rhs.m_tags);
         shmem = std::move(rhs.shmem);
 
@@ -1875,7 +1880,7 @@ FabArray<FAB>::setBndry (value_type val)
 }
 
 template <class FAB>
-template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type>
+template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
 void
 FabArray<FAB>::setBndry (value_type val,
                          int        strt_comp,
@@ -1883,12 +1888,94 @@ FabArray<FAB>::setBndry (value_type val,
 {
     if (n_grow.max() > 0)
     {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion()) {
+            bool use_mfparfor = true;
+            const int nboxes = local_size();
+            if (nboxes == 1) {
+                if (boxarray[indexArray[0]].numPts() > Long(65*65*65)) {
+                    use_mfparfor = false;
+                }
+            } else {
+                for (int i = 0; i < nboxes; ++i) {
+                    const Long npts = boxarray[indexArray[i]].numPts();
+                    if (npts >= Long(64*64*64)) {
+                        use_mfparfor = false;
+                        break;
+                    } else if (npts <= Long(17*17*17)) {
+                        break;
+                    }
+                }
+            }
+            const IntVect nghost = n_grow;
+            if (use_mfparfor) {
+                auto const& ma = this->arrays();
+                ParallelFor(*this, nghost,
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                {
+                    auto const& a = ma[box_no];
+                    Box vbx(a);
+                    vbx.grow(-nghost);
+                    if (!vbx.contains(i,j,k)) {
+                        for (int n = 0; n < ncomp; ++n) {
+                            a(i,j,k,strt_comp+n) = val;
+                        }
+                    }
+                });
+                Gpu::streamSynchronize();
+            } else {
+                using Tag = Array4BoxTag<value_type>;
+                Vector<Tag> tags;
+                for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
+                    Box const& vbx = mfi.validbox();
+                    auto const& a = this->array(mfi);
+
+                    Box b;
+#if (AMREX_SPACEDIM == 3)
+                    if (nghost[2] > 0) {
+                        b = vbx;
+                        b.setRange(2, vbx.smallEnd(2)-nghost[2], nghost[2]);
+                        b.grow(IntVect(nghost[0],nghost[1],0));
+                        tags.emplace_back(Tag{a, b});
+                        b.shift(2, vbx.length(2)+nghost[2]);
+                        tags.emplace_back(Tag{a, b});
+                    }
 #endif
-        for (MFIter fai(*this); fai.isValid(); ++fai)
+#if (AMREX_SPACEDIM >= 2)
+                    if (nghost[1] > 0) {
+                        b = vbx;
+                        b.setRange(1, vbx.smallEnd(1)-nghost[1], nghost[1]);
+                        b.grow(0, nghost[0]);
+                        tags.emplace_back(Tag{a, b});
+                        b.shift(1, vbx.length(1)+nghost[1]);
+                        tags.emplace_back(Tag{a, b});
+                    }
+#endif
+                    if (nghost[0] > 0) {
+                        b = vbx;
+                        b.setRange(0, vbx.smallEnd(0)-nghost[0], nghost[0]);
+                        tags.emplace_back(Tag{a, b});
+                        b.shift(0, vbx.length(0)+nghost[0]);
+                        tags.emplace_back(Tag{a, b});
+                    }
+                }
+
+                ParallelFor(tags, ncomp,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Tag const& tag) noexcept
+                {
+                    tag.dfab(i,j,k,strt_comp+n) = val;
+                });
+            }
+        } else
+#endif
         {
-            get(fai).template setComplement<RunOn::Device>(val, fai.validbox(), strt_comp, ncomp);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel
+#endif
+            for (MFIter fai(*this); fai.isValid(); ++fai)
+            {
+                get(fai).template setComplement<RunOn::Host>(val, fai.validbox(), strt_comp, ncomp);
+            }
         }
     }
 }

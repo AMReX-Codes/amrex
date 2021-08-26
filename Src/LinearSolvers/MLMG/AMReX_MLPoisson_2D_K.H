@@ -313,21 +313,13 @@ void mlpoisson_gsrb_m (Box const& box, Array4<Real> const& phi, Array4<Real cons
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlpoisson_normalize (Box const& box, Array4<Real> const& x,
+void mlpoisson_normalize (int i, int j, int, Array4<Real> const& x,
                           Real dhx, Real dhy, Real dx, Real probxlo) noexcept
 {
-    const auto lo = amrex::lbound(box);
-    const auto hi = amrex::ubound(box);
-
-    for     (int j = lo.y; j <= hi.y; ++j) {
-        AMREX_PRAGMA_SIMD
-        for (int i = lo.x; i <= hi.x; ++i) {
-            Real rel = probxlo + i*dx;
-            Real rer = probxlo +(i+1)*dx;
-            Real rc = probxlo + (i+Real(0.5))*dx;
-            x(i,j,0) /= (-dhx*(rel+rer) - dhy*rc*Real(2.0));
-        }
-    }
+    Real rel = probxlo + i*dx;
+    Real rer = probxlo +(i+1)*dx;
+    Real rc = probxlo + (i+Real(0.5))*dx;
+    x(i,j,0) /= (-dhx*(rel+rer) - dhy*rc*Real(2.0));
 }
 
 #if (AMREX_SPACEDIM != 2)
