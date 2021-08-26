@@ -325,8 +325,9 @@ AmrLevelAdv::advance (Real time,
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-        FArrayBox fluxfab[AMREX_SPACEDIM], velfab[AMREX_SPACEDIM],
-                  *flux[AMREX_SPACEDIM], *uface[AMREX_SPACEDIM];
+        FArrayBox fluxfab[AMREX_SPACEDIM], velfab[AMREX_SPACEDIM];
+        FArrayBox* flux[AMREX_SPACEDIM];
+        FArrayBox* uface[AMREX_SPACEDIM];
 
         for (MFIter mfi(S_new, TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
