@@ -181,12 +181,17 @@ AmrLevelAdv::initData ()
         amrex::Print() << "Initializing the data at level " << level << std::endl;
     }
 
+#ifdef AMREX_USE_GPU
     // Create temporary MultiFab on CPU using pinned memory
     MultiFab S_tmp(S_new.boxArray(),
                    S_new.DistributionMap(),
                    S_new.nComp(),
                    S_new.nGrowVect(),
                    MFInfo().SetArena(The_Pinned_Arena()));
+#else
+    // Use a MultiFab pointer
+    MultiFab& S_tmp = S_new;
+#endif
 
     for (MFIter mfi(S_tmp); mfi.isValid(); ++mfi)
     {
