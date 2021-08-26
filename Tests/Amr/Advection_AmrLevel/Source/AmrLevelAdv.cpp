@@ -205,8 +205,10 @@ AmrLevelAdv::initData ()
                  AMREX_ZFILL(prob_lo));
     }
 
+#ifdef AMREX_USE_GPU
     // Explicitly copy data to GPU.
     amrex::htod_memcpy(S_new, S_tmp);
+#endif
 
 #ifdef AMREX_PARTICLES
     init_particles();
