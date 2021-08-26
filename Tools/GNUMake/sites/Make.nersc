@@ -19,6 +19,8 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
   endif
   endif
 
+  includes += $(shell CC --cray-print-opts=cflags)
+
   ifeq ($(USE_MPI),TRUE)
     ifneq ($(USE_CUDA),TRUE)
       CC  = cc
@@ -27,8 +29,6 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
       F90 = ftn
       LIBRARIES += -lmpichf90
     endif
-
-    includes += $(shell CC --cray-print-opts=cflags)
   endif
 
   ifeq ($(USE_CUDA),TRUE)
