@@ -325,7 +325,9 @@ AmrLevelAdv::advance (Real time,
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-        FArrayBox flux[BL_SPACEDIM], uface[BL_SPACEDIM];
+        FArrayBox fluxfab[AMREX_SPACEDIM], velfab[AMREX_SPACEDIM],
+                  *flux[AMREX_SPACEDIM], *uface[AMREX_SPACEDIM];
+
         for (MFIter mfi(S_new, TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             // Set up tileboxes and nodal tileboxes
@@ -342,35 +344,37 @@ AmrLevelAdv::advance (Real time,
             for (int i = 0; i < BL_SPACEDIM ; i++) {
 #ifdef AMREX_USE_GPU
                 // No tiling on GPU.
-                // Make aliases on flux and face velocity fabs.
-                flux[i]  = FArrayBox(fluxes[i][mfi], amrex::make_alias,
-                                     0, NUM_STATE);
-                uface[i] = FArrayBox(Umac[i][mfi], amrex::make_alias,
-                                     0, 1);
+                // Point flux and face velocity fab pointers to untiled fabs.
+                flux[i] = &(fluxes[i][mfi]);
+                uface[i] = &(Umac[i][mfi]);
 #else
-            // Resize temporary fabs for fluxes and face velocities.
+                // Resize temporary fabs for fluxes and face velocities
                 const Box& bxtmp = amrex::surroundingNodes(bx,i);
-                flux[i].resize(bxtmp,NUM_STATE);
-                uface[i].resize(amrex::grow(bxtmp, iteration), 1);
+                fluxfab[i].resize(bxtmp,NUM_STATE);
+                velfab[i].resize(amrex::grow(bxtmp, iteration), 1);
+
+                // Point flux and face velocity fab pointers to temporary fabs
+                flux[i] = &(fluxfab[i]);
+                uface[i] = &(velfab[i]);
 #endif
             }
 
             // Compute Godunov velocities for each face.
             get_face_velocity(ctr_time,
-                              AMREX_D_DECL(uface[0], uface[1], uface[2]),
+                              AMREX_D_DECL(*uface[0], *uface[1], *uface[2]),
                               dx, prob_lo);
 
 #ifndef AMREX_USE_GPU
             for (int i = 0; i < BL_SPACEDIM ; i++) {
                 const Box& bxtmp = mfi.grownnodaltilebox(i, iteration);
-                Umac[i][mfi].copy(uface[i], bxtmp);
+                Umac[i][mfi].copy(*uface[i], bxtmp);
             }
 #endif
 
             // CFL check.
-            AMREX_D_TERM(Real umax = uface[0].norm<RunOn::Device>(0);,
-                         Real vmax = uface[1].norm<RunOn::Device>(0);,
-                         Real wmax = uface[2].norm<RunOn::Device>(0));
+            AMREX_D_TERM(Real umax = uface[0]->norm<RunOn::Device>(0);,
+                         Real vmax = uface[1]->norm<RunOn::Device>(0);,
+                         Real wmax = uface[2]->norm<RunOn::Device>(0));
 
             if (AMREX_D_TERM(umax*dt > dx[0], ||
                              vmax*dt > dx[1], ||
@@ -388,14 +392,14 @@ AmrLevelAdv::advance (Real time,
 
             // Advect. See Adv.cpp for implementation.
             advect(time, bx, nbx, statein, stateout,
-                   AMREX_D_DECL(uface[0], uface[1], uface[2]),
-                   AMREX_D_DECL(flux[0],  flux[1],  flux[2]),
+                   AMREX_D_DECL(*uface[0], *uface[1], *uface[2]),
+                   AMREX_D_DECL(*flux[0],  *flux[1],  *flux[2]),
                    dx, dt);
 
 #ifndef AMREX_USE_GPU
             if (do_reflux) {
                 for (int i = 0; i < BL_SPACEDIM ; i++)
-                    fluxes[i][mfi].copy(flux[i],mfi.nodaltilebox(i));
+                    fluxes[i][mfi].copy(*flux[i],mfi.nodaltilebox(i));
             }
 #endif
         }
