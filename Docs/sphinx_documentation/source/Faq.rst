@@ -65,6 +65,24 @@ in the section `Debugging`_.
 .. _`Debugging`: https://amrex-codes.github.io/amrex/docs_html/Basics.html#debugging
 
 .. _`Amrvis`: https://amrex-codes.github.io/amrex/docs_html/Visualization.html#sec-amrvis
+   
+|
+
+**Q.** What's the difference between :cpp:`copy` and :cpp:`parallelCopy`?
+
+**A.** 
+
+|
+
+**Q.** How do I fill ghost cells?
+
+**A.** 
+
+|
+
+**Q.** What's the difference between ``AmrCore`` and ``AmrLevel``? 
+
+**A.** 
 
 More Questions
 --------------
