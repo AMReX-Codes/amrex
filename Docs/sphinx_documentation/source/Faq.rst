@@ -65,24 +65,35 @@ in the section `Debugging`_.
 .. _`Debugging`: https://amrex-codes.github.io/amrex/docs_html/Basics.html#debugging
 
 .. _`Amrvis`: https://amrex-codes.github.io/amrex/docs_html/Visualization.html#sec-amrvis
-   
+
 |
 
 **Q.** What's the difference between :cpp:`copy` and :cpp:`parallelCopy`?
 
-**A.** 
+**A.**
 
 |
 
 **Q.** How do I fill ghost cells?
 
-**A.** 
+**A.**
 
 |
 
-**Q.** What's the difference between ``AmrCore`` and ``AmrLevel``? 
+**Q.** What's the difference between ``AmrCore`` and ``AmrLevel``? How do
+I decide which to use?
 
-**A.** 
+**A.**
+
+|
+
+**Q.** For GPU usage, how can I perform explicit host to device and
+device to host copies without relying on managed memory?
+
+**A.** Use ``The_Pinned_Arena()`` and ``htod_memcpy()`` or ``dtoh_memcpy()``. See
+`Memory Allocation`_ in the AMReX Source Documentation.
+
+.. _`Memory Allocation`: https://amrex-codes.github.io/amrex/docs_html/GPU.html#memory-allocation
 
 More Questions
 --------------
