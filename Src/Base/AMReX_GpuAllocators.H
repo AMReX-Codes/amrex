@@ -47,7 +47,7 @@ namespace amrex {
 
         inline void deallocate(value_type* ptr, std::size_t)
         {
-            The_Arena()->free(ptr);
+            if (ptr != nullptr) { The_Arena()->free(ptr); }
         }
     };
 
@@ -68,7 +68,7 @@ namespace amrex {
 
         inline void deallocate(value_type* ptr, std::size_t)
         {
-            The_Device_Arena()->free(ptr);
+            if (ptr != nullptr) { The_Device_Arena()->free(ptr); }
         }
     };
 
@@ -89,7 +89,7 @@ namespace amrex {
 
         inline void deallocate(value_type* ptr, std::size_t)
         {
-            The_Pinned_Arena()->free(ptr);
+            if (ptr != nullptr) { The_Pinned_Arena()->free(ptr); }
         }
     };
 
@@ -110,7 +110,7 @@ namespace amrex {
 
         inline void deallocate(value_type* ptr, std::size_t)
         {
-            The_Managed_Arena()->free(ptr);
+            if (ptr != nullptr) { The_Managed_Arena()->free(ptr); }
         }
     };
 
@@ -131,7 +131,7 @@ namespace amrex {
 
         inline void deallocate(value_type* ptr, std::size_t)
         {
-            The_Async_Arena()->free(ptr);
+            if (ptr != nullptr) { The_Async_Arena()->free(ptr); }
         }
     };
 
@@ -160,13 +160,16 @@ namespace amrex {
 
         inline void deallocate(value_type* ptr, std::size_t)
         {
-            if (m_use_gpu_aware_mpi)
+            if (ptr != nullptr)
             {
-                The_Arena()->free(ptr);
-            }
-            else
-            {
-                The_Pinned_Arena()->free(ptr);
+                if (m_use_gpu_aware_mpi)
+                {
+                    The_Arena()->free(ptr);
+                }
+                else
+                {
+                    The_Pinned_Arena()->free(ptr);
+                }
             }
         }
 

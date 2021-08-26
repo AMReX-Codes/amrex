@@ -795,9 +795,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     for (int lev = 0; lev <= finest_level_in_file; lev++) {
         HdrFile >> ngrids[lev];
         AMREX_ASSERT(ngrids[lev] > 0);
-        if (lev <= finestLevel()) {
-            AMREX_ASSERT(ngrids[lev] == int(ParticleBoxArray(lev).size()));
-        }
     }
 
     resizeData();

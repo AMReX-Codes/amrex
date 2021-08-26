@@ -100,6 +100,8 @@ C$(AMREX_BASE)_headers += AMReX_MFParallelFor.H
 C$(AMREX_BASE)_headers += AMReX_MFParallelForC.H
 C$(AMREX_BASE)_headers += AMReX_MFParallelForG.H
 
+C$(AMREX_BASE)_headers += AMReX_TagParallelFor.H
+
 #
 # I/O stuff.
 #
