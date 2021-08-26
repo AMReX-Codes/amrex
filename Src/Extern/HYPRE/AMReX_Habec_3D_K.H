@@ -112,10 +112,11 @@ void habec_mat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, int i, int j, int k,
     }
 }
 
+template <typename Int>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void habec_ijmat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, Array4<HYPRE_Int> const& ncols,
+void habec_ijmat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, Array4<Int> const& ncols,
                   Array4<Real> const& diaginv, int i, int j, int k,
-                  Array4<HYPRE_Int const> const& cell_id,
+                  Array4<Int const> const& cell_id,
                   Real sa, Array4<Real const> const& a,
                   Real sb, GpuArray<Real,AMREX_SPACEDIM> const& dx,
                   GpuArray<Array4<Real const>, AMREX_SPACEDIM> const& b,
@@ -213,9 +214,10 @@ void habec_ijmat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, Array4<HYPRE_Int> con
     }
 }
 
+template <typename Int>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void habec_cols (GpuArray<HYPRE_Int,2*AMREX_SPACEDIM+1>& sten, int i, int j, int k,
-                 Array4<HYPRE_Int const> const& cell_id)
+void habec_cols (GpuArray<Int,2*AMREX_SPACEDIM+1>& sten, int i, int j, int k,
+                 Array4<Int const> const& cell_id)
 {
     sten[0] = cell_id(i  ,j  ,k  );
     sten[1] = cell_id(i-1,j  ,k  );
@@ -228,9 +230,10 @@ void habec_cols (GpuArray<HYPRE_Int,2*AMREX_SPACEDIM+1>& sten, int i, int j, int
 
 #ifdef AMREX_USE_EB
 
+template <typename Int>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void habec_cols_eb (GpuArray<HYPRE_Int,27>& sten, int i, int j, int k,
-                    Array4<HYPRE_Int const> const& cell_id)
+void habec_cols_eb (GpuArray<Int,27>& sten, int i, int j, int k,
+                    Array4<Int const> const& cell_id)
 {
     sten[0 ] = cell_id(i-1,j-1,k-1);
     sten[1 ] = cell_id(i  ,j-1,k-1);
@@ -261,10 +264,11 @@ void habec_cols_eb (GpuArray<HYPRE_Int,27>& sten, int i, int j, int k,
     sten[26] = cell_id(i+1,j+1,k+1);
 }
 
+template <typename Int>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<HYPRE_Int> const& ncols,
+void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
                      Array4<Real> const& diaginv, int i, int j, int k,
-                     Array4<HYPRE_Int const> const& cell_id,
+                     Array4<Int const> const& cell_id,
                      Real sa, Array4<Real const> const& a,
                      Real sb, GpuArray<Real,AMREX_SPACEDIM> const& dx,
                      GpuArray<Array4<Real const>, AMREX_SPACEDIM> const& b,

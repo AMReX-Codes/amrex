@@ -39,6 +39,13 @@ public:
 
     Array4<int const> array (const MFIter& mfi) const noexcept { return m_fa.array(mfi); }
     Array4<int      > array (const MFIter& mfi)       noexcept { return m_fa.array(mfi); }
+    Array4<int const> const_array (const MFIter& mfi) const noexcept {
+        return m_fa.const_array(mfi);
+    }
+
+    MultiArray4<int const> arrays () const noexcept { return m_fa.const_arrays(); }
+    MultiArray4<int      > arrays ()       noexcept { return m_fa.arrays(); }
+    MultiArray4<int const> const_arrays () const noexcept { return m_fa.const_arrays(); }
 
     int nComp () const noexcept { return m_fa.nComp(); }
 
@@ -66,4 +73,3 @@ public:
 }
 
 #endif
-
