@@ -422,6 +422,8 @@ else ifeq ($(USE_CUDA),TRUE)
     AMREX_CCOMP = $(NVCC_HOST_COMP)
   else ifeq ($(COMP),cray)
     AMREX_CCOMP = cray
+  else ifeq ($(COMP),nvhpc)
+    AMREX_CCOMP = nvhpc
   else
     AMREX_CCOMP = gnu
   endif

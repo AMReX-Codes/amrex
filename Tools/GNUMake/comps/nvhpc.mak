@@ -179,32 +179,40 @@ endif
 
 ifeq ($(USE_CUDA),TRUE)
 
-  F90FLAGS += -gpu=cc$(CUDA_ARCH),fastmath,cuda10.1
-  FFLAGS   += -gpu=cc$(CUDA_ARCH),fastmath,cuda10.1
+  ifneq ($(which_computer),perlmutter)
+    F90FLAGS += -gpu=cc$(CUDA_ARCH),fastmath,cuda10.1
+    FFLAGS   += -gpu=cc$(CUDA_ARCH),fastmath,cuda10.1
+  endif
 
   ifneq ($(DEBUG),TRUE)
     F90FLAGS += -Mcuda=lineinfo
     FFLAGS   += -Mcuda=lineinfo
   endif
 
-  ifeq ($(CUDA_VERBOSE),TRUE)
-    F90FLAGS += -gpu=keepptx
-    FFLAGS   += -gpu=keepptx
+  ifneq ($(which_computer),perlmutter)
+    ifeq ($(CUDA_VERBOSE),TRUE)
+      F90FLAGS += -gpu=keepptx
+      FFLAGS   += -gpu=keepptx
+    endif
   endif
 
   F90FLAGS += CUDA_HOME=$(COMPILE_CUDA_PATH)
   FFLAGS   += CUDA_HOME=$(COMPILE_CUDA_PATH)
 
-  ifdef CUDA_MAXREGCOUNT
-    F90FLAGS += -gpu=maxregcount:$(CUDA_MAXREGCOUNT)
-    FFLAGS   += -gpu=maxregcount:$(CUDA_MAXREGCOUNT)
+  ifneq ($(which_computer),perlmutter)
+    ifdef CUDA_MAXREGCOUNT
+      F90FLAGS += -gpu=maxregcount:$(CUDA_MAXREGCOUNT)
+      FFLAGS   += -gpu=maxregcount:$(CUDA_MAXREGCOUNT)
+    endif
   endif
 
-  ifeq ($(USE_MPI),TRUE)
-  ifneq ($(findstring Open MPI, $(shell mpicxx -showme:version 2>&1)),)
-    OMPI_FCFLAGS_ORIG = $(shell mpif90 -showme:compile)
-    export OMPI_FCFLAGS := $(subst -pthread,-lpthread,$(OMPI_FCFLAGS_ORIG))
-  endif
+  ifneq ($(which_computer),perlmutter)
+    ifeq ($(USE_MPI),TRUE)
+      ifneq ($(findstring Open MPI, $(shell mpicxx -showme:version 2>&1)),)
+        OMPI_FCFLAGS_ORIG = $(shell mpif90 -showme:compile)
+        export OMPI_FCFLAGS := $(subst -pthread,-lpthread,$(OMPI_FCFLAGS_ORIG))
+      endif
+    endif
   endif
 
 endif
@@ -226,8 +234,12 @@ F90FLAGS += $(GENERIC_NVHPC_FLAGS)
 
 # Add -lrt for the missing "aio_return" symbol
 # /usr/common/software/sles15_cgpu/nvhpc/21.3/Linux_x86_64/21.3/compilers/lib/libnvf.a:async.o:                 U aio_return
-override XTRALIBS += -lstdc++ -latomic -lnvf -lrt
+override XTRALIBS += -lstdc++ -latomic -lrt
 
 LINK_WITH_FORTRAN_COMPILER ?= $(USE_F_INTERFACES)
+
+ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
+    XTRALIBS += -lnvf
+endif
 
 endif # AMREX_FCOMP == nvhpc
