@@ -88,6 +88,7 @@ public:
     // Do work after init().
     virtual void post_init (amrex::Real stop_time) override;
 
+    // Do work after a restart().
     virtual void post_restart () override;
 
     // Error estimation for regridding.

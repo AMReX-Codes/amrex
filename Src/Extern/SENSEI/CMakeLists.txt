@@ -38,13 +38,13 @@ if ( AMReX_PARTICLES )
    list ( APPEND amrex_sensei_sources
       AMReX_ParticleDataAdaptor.H
       AMReX_ParticleDataAdaptorI.H
-      AMReX_ParticleInSituBridge.H
-      AMReX_AmrParticleInSituBridge.H )
+      AMReX_ParticleInSituBridge.H )
 
    if( AMReX_AMRLEVEL )
       list ( APPEND amrex_sensei_sources
          AMReX_AmrParticleDataAdaptor.H
-         AMReX_AmrParticleDataAdaptorI.H )
+         AMReX_AmrParticleDataAdaptorI.H
+         AMReX_AmrParticleInSituBridge.H )
    endif()
 endif ()
 

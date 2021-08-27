@@ -5,6 +5,7 @@
 #include <AMReX_Config.H>
 #ifdef AMREX_PARTICLES
 
+#include <AMReX_AmrDataAdaptor.H>
 #include <AMReX_Particles.H>
 
 #include <AMReX_AmrMesh.H>
