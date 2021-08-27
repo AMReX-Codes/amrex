@@ -11,15 +11,16 @@ endif
 ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
 
   ifdef PE_ENV
-  ifneq ($(USE_CUDA),TRUE)
+  ifneq ($(USE_GPU),TRUE)
     lowercase_peenv := $(shell echo $(PE_ENV) | tr A-Z a-z)
     ifneq ($(lowercase_peenv),$(lowercase_comp))
       has_compiler_mismatch = COMP=$(COMP) does not match PrgEnv-$(lowercase_peenv)
     endif
+    ifeq ($(lowercase_peenv),nvidia)
+      $(error PrgEnv-nvidia cannot be used with CPU-only builds. Try PrgEnv-gnu instead.)
+    endif
   endif
   endif
-
-  includes += $(shell CC --cray-print-opts=cflags)
 
   ifeq ($(USE_MPI),TRUE)
     ifneq ($(USE_CUDA),TRUE)
@@ -29,10 +30,16 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
       F90 = ftn
       LIBRARIES += -lmpichf90
     endif
+
+    includes += $(shell CC --cray-print-opts=cflags)
   endif
 
   ifeq ($(USE_CUDA),TRUE)
     CUDA_ARCH = 80
+
+    ifeq ($(USE_MPI), FALSE)
+      includes += $(CRAY_CUDATOOLKIT_INCLUDE_OPTS)
+    endif
 
     comm := ,
     ifneq ($(BL_NO_FORT),TRUE)
