@@ -35,6 +35,14 @@ struct Array4MaskCopyTag {
 };
 
 template <class T>
+struct Array4Tag {
+    Array4<T> dfab;
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Box box () const noexcept { return Box(dfab); }
+};
+
+template <class T>
 struct Array4BoxTag {
     Array4<T> dfab;
     Box       dbox;
