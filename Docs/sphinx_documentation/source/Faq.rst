@@ -103,6 +103,16 @@ device to host copies without relying on managed memory?
 
 |
 
+**Q.** How do I generate random numbers with AMReX? Can I set the seed?
+Are they thread safe with MPI and OpenMP?
+
+**A.** (Thread safe) Yes, :cpp:`amrex::Random()` is thread safe. When OpenMP is on,
+each thread will have its own dedicated Random Number Generator that
+is totally independent of the others.
+
+|
+|
+
 More Questions
 --------------
 
