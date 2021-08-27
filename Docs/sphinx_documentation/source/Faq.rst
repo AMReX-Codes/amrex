@@ -95,6 +95,14 @@ device to host copies without relying on managed memory?
 
 .. _`Memory Allocation`: https://amrex-codes.github.io/amrex/docs_html/GPU.html#memory-allocation
 
+|
+
+**Q.** How can you prevent a section of code from running on the GPU for profiling purposes?
+
+**A.**
+
+|
+
 More Questions
 --------------
 
