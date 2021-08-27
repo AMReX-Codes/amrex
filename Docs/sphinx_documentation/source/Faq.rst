@@ -115,7 +115,8 @@ is totally independent of the others.
 face-centered containers? How is it used in AMReX-based codes like MLMG and the
 advection routines in AMReX-Hydro?
 
-**A.**
+**A.** In the cell-centered MLMG solver, the Dirichlet boundary data are stored
+in containers that have the information of the location of the data.
 
 |
 |
