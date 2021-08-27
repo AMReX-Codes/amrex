@@ -39,7 +39,7 @@ amrex_calc_slopes_eb_given_A (int i, int j, int k, int n,
         for(int jj(-1); jj<=1; jj++){
           for(int ii(-1); ii<=1; ii++){
 
-            if(!flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0))
+            if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0))
             {
               du[lc] = state(i+ii,j+jj,k+kk,n) - state(i,j,k,n);
             } else {
@@ -317,8 +317,8 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
           for(int ii(-1); ii<=1; ii++)
           {
 
-            if( flag(i,j,k).isConnected(ii,jj,kk) &&
-                ! (ii==0 && jj==0 && kk==0)) {
+            if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0))
+            {
               A[lc][0] = ii + ccent(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0);
               A[lc][1] = jj + ccent(i+ii,j+jj,k+kk,1) - ccent(i,j,k,1);
               A[lc][2] = kk + ccent(i+ii,j+jj,k+kk,2) - ccent(i,j,k,2);
@@ -540,9 +540,8 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
         for(int jj(-1); jj<=1; jj++)
           for(int ii(-1); ii<=1; ii++)
           {
-            if( flag(i,j,k).isConnected(ii,jj,kk) &&
-                ! (ii==0 && jj==0 && kk==0))
-                {
+              if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0))
+              {
                     bool ilo_test = ( edlo_x && (i == domlo_x) && ii == -1);
                     bool ihi_test = ( edhi_x && (i == domhi_x) && ii ==  1);
 
@@ -618,13 +617,13 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
                    A[lc][1] -= ccent(i,j,k,1);
                    A[lc][2] -= ccent(i,j,k,2);
 
-                } else {
+              } else {
 
                     A[lc][0] = 0.0;
                     A[lc][1] = 0.0;
                     A[lc][2] = 0.0;
-                }
-                lc++;
+              }
+              lc++;
             } // i,j
     } // k
 
@@ -859,11 +858,11 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
     {
         for(int jj(-1); jj<=1; jj++){
           for(int ii(-1); ii<=1; ii++){
-            if( flag(i,j,k).isConnected(ii,jj,kk) and
-                not (ii==0 and jj==0 and kk==0)) {
-                if ((ii==-1 or ii==1) and jj==0 and kk==0) cuts_x++;
-                if ((jj==-1 or jj==1) and ii==0 and kk==0) cuts_y++;
-                if ((kk==-1 or kk==1) and ii==0 and jj==0) cuts_z++;
+            if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0))
+            {
+                if ((ii==-1 or ii==1) && jj==0 && kk==0) cuts_x++;
+                if ((jj==-1 or jj==1) && ii==0 && kk==0) cuts_y++;
+                if ((kk==-1 or kk==1) && ii==0 && jj==0) cuts_z++;
             }
           }
         }
@@ -875,7 +874,7 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
 
 
     //Reconstruct values at the face centroids and compute the limiter
-    if(flag(i,j,k).isConnected(0,1,0)) {
+    if (flag(i,j,k).isConnected(0,1,0)) {
            amrex::Real xf = fcy(i,j+1,k,0); // local (x,z) of centroid of y-face we are extrapolating to
            amrex::Real zf = fcy(i,j+1,k,1); // local (x,z) of centroid of y-face we are extrapolating to
 
@@ -893,8 +892,7 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
            for(int kk(-1); kk<=1; kk++) {
                for(int jj(0); jj<=1; jj++){
                  for(int ii(-1); ii<=1; ii++){
-                   if( flag(i,j,k).isConnected(ii,jj,kk) and
-                       not (ii==0 and jj==0 and kk==0)) {
+                   if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0)) {
                        if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
                        if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
                    }
@@ -922,8 +920,7 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
            for(int kk(-1); kk<=1; kk++) {
                for(int jj(-1); jj<=0; jj++){
                  for(int ii(-1); ii<=1; ii++){
-                   if( flag(i,j,k).isConnected(ii,jj,kk) and
-                       not (ii==0 and jj==0 and kk==0)) {
+                   if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0)) {
                        if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
                        if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
                    }
@@ -933,7 +930,7 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
 
            alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
     }
-    if(flag(i,j,k).isConnected(1,0,0)) {
+    if (flag(i,j,k).isConnected(1,0,0)) {
            amrex::Real yf = fcx(i+1,j,k,0); // local (y,z) of centroid of x-face we are extrapolating to
            amrex::Real zf = fcx(i+1,j,k,1); // local (y,z) of centroid of x-face we are extrapolating to
 
@@ -951,8 +948,7 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
            for(int kk(-1); kk<=1; kk++) {
                for(int jj(-1); jj<=1; jj++){
                  for(int ii(0); ii<=1; ii++){
-                   if( flag(i,j,k).isConnected(ii,jj,kk) and
-                       not (ii==0 and jj==0 and kk==0)) {
+                   if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0)) {
                        if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
                        if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
                    }
@@ -962,7 +958,7 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
 
            alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
     }
-    if(flag(i,j,k).isConnected(-1,0,0)) {
+    if (flag(i,j,k).isConnected(-1,0,0)) {
            amrex::Real yf = fcx(i,j,k,0); // local (y,z) of centroid of x-face we are extrapolating to
            amrex::Real zf = fcx(i,j,k,1); // local (y,z) of centroid of x-face we are extrapolating to
 
@@ -980,8 +976,7 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
            for(int kk(-1); kk<=1; kk++) {
                for(int jj(-1); jj<=1; jj++){
                  for(int ii(-1); ii<=0; ii++){
-                   if( flag(i,j,k).isConnected(ii,jj,kk) and
-                       not (ii==0 and jj==0 and kk==0)) {
+                   if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0)) {
                        if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
                        if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
                    }
@@ -990,7 +985,7 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
            }
            alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
     }
-    if(flag(i,j,k).isConnected(0,0,1)) {
+    if (flag(i,j,k).isConnected(0,0,1)) {
            amrex::Real xf = fcz(i,j,k+1,0); // local (x,y) of centroid of z-face we are extrapolating to
            amrex::Real yf = fcz(i,j,k+1,1); // local (x,y) of centroid of z-face we are extrapolating to
 
@@ -1008,8 +1003,7 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
            for(int kk(0); kk<=1; kk++) {
                for(int jj(-1); jj<=1; jj++){
                  for(int ii(-1); ii<=1; ii++){
-                   if( flag(i,j,k).isConnected(ii,jj,kk) and
-                       not (ii==0 and jj==0 and kk==0)) {
+                   if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0)) {
                        if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
                        if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
                    }
@@ -1018,7 +1012,7 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
            }
            alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
     }
-    if(flag(i,j,k).isConnected(0,0,-1)) {
+    if (flag(i,j,k).isConnected(0,0,-1)) {
            amrex::Real xf = fcz(i,j,k,0); // local (x,y) of centroid of z-face we are extrapolating to
            amrex::Real yf = fcz(i,j,k,1); // local (x,y) of centroid of z-face we are extrapolating to
 
@@ -1036,8 +1030,7 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
            for(int kk(-1); kk<=0; kk++) {
                for(int jj(-1); jj<=1; jj++){
                  for(int ii(-1); ii<=1; ii++){
-                   if( flag(i,j,k).isConnected(ii,jj,kk) and
-                       not (ii==0 and jj==0 and kk==0)) {
+                   if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0)) {
                        if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
                        if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
                    }
