@@ -5,11 +5,11 @@
 #include <AMReX_Config.H>
 #ifdef AMREX_PARTICLES
 
+#include <AMReX_AmrDataAdaptor.H>
 #include <AMReX_Particles.H>
 
 #include <AMReX_AmrMesh.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_AmrDataAdaptor.H>
 #include <AMReX_ParticleDataAdaptor.H>
 // sensei includes
 #include "DataAdaptor.h"

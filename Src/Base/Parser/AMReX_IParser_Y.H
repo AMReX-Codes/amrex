@@ -175,7 +175,8 @@ std::size_t iparser_ast_size (struct iparser_node* node);
 void iparser_ast_print (struct iparser_node* node, std::string const& space, AllPrint& printer);
 void iparser_ast_regvar (struct iparser_node* node, char const* name, int i);
 void iparser_ast_setconst (struct iparser_node* node, char const* name, int c);
-void iparser_ast_get_symbols (struct iparser_node* node, std::set<std::string>& symbols);
+void iparser_ast_get_symbols (struct iparser_node* node, std::set<std::string>& symbols,
+                              std::set<std::string>& local_symbols);
 int iparser_ast_depth (struct iparser_node* node);
 
 /*******************************************************************/

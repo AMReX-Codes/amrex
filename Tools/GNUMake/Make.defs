@@ -429,29 +429,29 @@ endif
 
 ifdef AMREX_CCOMP
   lowercase_amrex_ccomp = $(shell echo $(AMREX_CCOMP) | tr A-Z a-z)
-  ifeq ($(lowercase_amrex_comp),$(filter $(lowercase_amrex_comp),gcc gnu g++))
+  ifeq ($(lowercase_amrex_ccomp),$(filter $(lowercase_amrex_ccomp),gcc gnu g++))
     AMREX_CCOMP = gnu
-  else ifeq ($(lowercase_amrex_comp),intel)
+  else ifeq ($(lowercase_amrex_ccomp),intel)
     AMREX_CCOMP = intel
-  else ifeq ($(lowercase_amrex_comp),dpcpp)
+  else ifeq ($(lowercase_amrex_ccomp),dpcpp)
     AMREX_CCOMP = dpcpp
-  else ifeq ($(lowercase_amrex_comp),cray)
+  else ifeq ($(lowercase_amrex_ccomp),cray)
     AMREX_CCOMP = cray
-  else ifeq ($(lowercase_amrex_comp),pgi)
+  else ifeq ($(lowercase_amrex_ccomp),pgi)
     AMREX_CCOMP = pgi
-  else ifeq ($(lowercase_amrex_comp),nvhpc)
+  else ifeq ($(lowercase_amrex_ccomp),nvhpc)
     AMREX_CCOMP = nvhpc
-  else ifeq ($(lowercase_amrex_comp),ibm)
+  else ifeq ($(lowercase_amrex_ccomp),ibm)
     AMREX_CCOMP = ibm
-  else ifeq ($(lowercase_amrex_comp),$(filter $(lowercase_amrex_comp),llvm clang clang++))
+  else ifeq ($(lowercase_amrex_ccomp),$(filter $(lowercase_amrex_ccomp),llvm clang clang++))
     AMREX_CCOMP = clang
-  else ifeq ($(lowercase_amrex_comp),$(filter $(lowercase_amrex_comp),llvm-flang flang))
+  else ifeq ($(lowercase_amrex_ccomp),$(filter $(lowercase_amrex_ccomp),llvm-flang flang))
     AMREX_CCOMP = clang
-  else ifeq ($(lowercase_amrex_comp),nag)
+  else ifeq ($(lowercase_amrex_ccomp),nag)
     AMREX_CCOMP = gnu
-  else ifeq ($(lowercase_amrex_comp),nec)
+  else ifeq ($(lowercase_amrex_ccomp),nec)
     AMREX_CCOMP = nec
-  else ifeq ($(lowercase_amrex_comp),armclang)
+  else ifeq ($(lowercase_amrex_ccomp),armclang)
     AMREX_CCOMP = armclang
   else
     $(error Unknown compiler $(AMREX_CCOMP). Supported compilers are gnu, intel, dpcpp, cray, pgi, nvhpc, ibm, llvm, nag, nec, and armclang)

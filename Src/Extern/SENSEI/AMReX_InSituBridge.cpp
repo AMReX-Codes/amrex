@@ -1,6 +1,6 @@
 #include <AMReX_InSituBridge.H>
-
 #include <AMReX_ParmParse.H>
+#include <AMReX_Print.H>
 
 #ifdef AMREX_USE_SENSEI_INSITU
 #include <chrono>
@@ -8,8 +8,6 @@
 #include <AnalysisAdaptor.h>
 #include <ConfigurableAnalysis.h>
 #include <Profiler.h>
-#include <AMReX_AmrDataAdaptor.H>
-#include <AMReX_AmrMeshDataAdaptor.H>
 #endif
 
 namespace amrex {

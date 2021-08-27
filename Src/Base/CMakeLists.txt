@@ -216,6 +216,7 @@ target_sources( amrex
    AMReX_MFParallelFor.H
    AMReX_MFParallelForC.H
    AMReX_MFParallelForG.H
+   AMReX_TagParallelFor.H
    # CUDA --------------------------------------------------------------------
    AMReX_CudaGraph.H
    # Machine model -----------------------------------------------------------
