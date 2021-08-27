@@ -71,6 +71,48 @@ void mllinop_apply_bc_x (int side, Box const& box, int blen,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mllinop_apply_bc_x (int side, int i, int j, int k, int blen,
+                         Array4<Real> const& phi,
+                         Array4<int const> const& mask,
+                         BoundCond bct, Real bcl,
+                         Array4<Real const> const& bcval,
+                         int maxorder, Real dxinv, int inhomog, int icomp) noexcept
+{
+    if (mask(i,j,k) > 0) {
+        const int s = 1-2*side;  // +1 for lo and -1 for hi
+        switch (bct) {
+        case AMREX_LO_NEUMANN:
+        {
+            phi(i,j,k,icomp) = phi(i+s,j,k,icomp);
+            break;
+        }
+        case AMREX_LO_REFLECT_ODD:
+        {
+            phi(i,j,k,icomp) = -phi(i+s,j,k,icomp);
+            break;
+        }
+        case AMREX_LO_DIRICHLET:
+        {
+            const int NX = amrex::min(blen+1, maxorder);
+            GpuArray<Real,4> x{{-bcl * dxinv, Real(0.5), Real(1.5), Real(2.5)}};
+            GpuArray<Real,4> coef{};
+            poly_interp_coeff(-Real(0.5), &x[0], NX, &coef[0]);
+            Real tmp = Real(0.0);
+            for (int m = 1; m < NX; ++m) {
+                tmp += phi(i+m*s,j,k,icomp) * coef[m];
+            }
+            phi(i,j,k,icomp) = tmp;
+            if (inhomog) {
+                phi(i,j,k,icomp) += bcval(i,j,k,icomp)*coef[0];
+            }
+            break;
+        }
+        default: {}
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_bc_y (int side, Box const& box, int blen,
                          Array4<Real> const& phi,
                          Array4<int const> const& mask,
@@ -132,6 +174,48 @@ void mllinop_apply_bc_y (int side, Box const& box, int blen,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mllinop_apply_bc_y (int side, int i, int j, int k, int blen,
+                         Array4<Real> const& phi,
+                         Array4<int const> const& mask,
+                         BoundCond bct, Real bcl,
+                         Array4<Real const> const& bcval,
+                         int maxorder, Real dyinv, int inhomog, int icomp) noexcept
+{
+    if (mask(i,j,k) > 0) {
+        const int s = 1-2*side; // +1 for lo and -1 for hi
+        switch (bct) {
+        case AMREX_LO_NEUMANN:
+        {
+            phi(i,j,k,icomp) = phi(i,j+s,k,icomp);
+            break;
+        }
+        case AMREX_LO_REFLECT_ODD:
+        {
+            phi(i,j,k,icomp) = -phi(i,j+s,k,icomp);
+            break;
+        }
+        case AMREX_LO_DIRICHLET:
+        {
+            const int NX = amrex::min(blen+1, maxorder);
+            GpuArray<Real,4> x{{-bcl * dyinv, Real(0.5), Real(1.5), Real(2.5)}};
+            GpuArray<Real,4> coef{};
+            poly_interp_coeff(-Real(0.5), &x[0], NX, &coef[0]);
+            Real tmp = Real(0.0);
+            for (int m = 1; m < NX; ++m) {
+                tmp += phi(i,j+m*s,k,icomp) * coef[m];
+            }
+            phi(i,j,k,icomp) = tmp;
+            if (inhomog) {
+                phi(i,j,k,icomp) += bcval(i,j,k,icomp)*coef[0];
+            }
+            break;
+        }
+        default: {}
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_bc_z (int side, Box const& box, int blen,
                          Array4<Real> const& phi,
                          Array4<int const> const& mask,
@@ -189,6 +273,48 @@ void mllinop_apply_bc_z (int side, Box const& box, int blen,
         break;
     }
     default: {}
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mllinop_apply_bc_z (int side, int i, int j, int k, int blen,
+                         Array4<Real> const& phi,
+                         Array4<int const> const& mask,
+                         BoundCond bct, Real bcl,
+                         Array4<Real const> const& bcval,
+                         int maxorder, Real dzinv, int inhomog, int icomp) noexcept
+{
+    if (mask(i,j,k) > 0) {
+        const int s = 1-2*side; // +1 for lo and -1 for hi
+        switch (bct) {
+        case AMREX_LO_NEUMANN:
+        {
+            phi(i,j,k,icomp) = phi(i,j,k+s,icomp);
+            break;
+        }
+        case AMREX_LO_REFLECT_ODD:
+        {
+            phi(i,j,k,icomp) = -phi(i,j,k+s,icomp);
+            break;
+        }
+        case AMREX_LO_DIRICHLET:
+        {
+            const int NX = amrex::min(blen+1, maxorder);
+            GpuArray<Real,4> x{{-bcl * dzinv, Real(0.5), Real(1.5), Real(2.5)}};
+            GpuArray<Real,4> coef{};
+            poly_interp_coeff(-Real(0.5), &x[0], NX, &coef[0]);
+            Real tmp = Real(0.0);
+            for (int m = 1; m < NX; ++m) {
+                tmp += phi(i,j,k+m*s,icomp) * coef[m];
+            }
+            phi(i,j,k,icomp) = tmp;
+            if (inhomog) {
+                phi(i,j,k,icomp) += bcval(i,j,k,icomp)*coef[0];
+            }
+            break;
+        }
+        default: {}
+        }
     }
 }
 
