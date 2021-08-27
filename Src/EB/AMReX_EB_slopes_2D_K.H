@@ -531,7 +531,7 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
     if ( (edlo_x && i < domlo_x) || (edhi_x && i > domhi_x)   ||
          (edlo_y && j < domlo_y) || (edhi_y && j > domhi_y) )
     {
-          xslope = 0.; 
+          xslope = 0.;
           yslope = 0.;
     }
     return {xslope,yslope};
@@ -664,7 +664,7 @@ amrex_calc_slopes_extdir_eb_grown (int i, int j, int k, int n, int nx, int ny,
     if ( (edlo_x && i < domlo_x) || (edhi_x && i > domhi_x)   ||
          (edlo_y && j < domlo_y) || (edhi_y && j > domhi_y) )
     {
-          xslope = 0.; 
+          xslope = 0.;
           yslope = 0.;
     }
     return {xslope,yslope};

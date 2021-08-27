@@ -39,13 +39,10 @@ amrex_calc_slopes_eb_given_A (int i, int j, int k, int n,
         for(int jj(-1); jj<=1; jj++){
           for(int ii(-1); ii<=1; ii++){
 
-            if( flag(i,j,k).isConnected(ii,jj,kk) &&
-                ! (ii==0 && jj==0 && kk==0)) {
-
+            if(!flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0))
+            {
               du[lc] = state(i+ii,j+jj,k+kk,n) - state(i,j,k,n);
-
             } else {
-
               du[lc] = 0.0;
             }
             lc++;
@@ -141,7 +138,7 @@ amrex_calc_slopes_eb_given_A_grown (int i, int j, int k, int n, int nx, int ny, 
         for(int jj(-ny); jj<=ny; jj++){
           for(int ii(-nx); ii<=nx; ii++){
 
-            if(!flag(i,j,k).isCovered() && !(ii==0 && jj==0 && kk==0)) 
+            if (!flag(i,j,k).isCovered() && !(ii==0 && jj==0 && kk==0))
             {
               du[lc] = state(i+ii,j+jj,k+kk,n) - state(i,j,k,n);
             } else {
@@ -378,7 +375,7 @@ amrex_calc_slopes_eb_grown (int i, int j, int k, int n, int nx, int ny, int nz,
           for(int ii(-nx); ii<=nx; ii++)
           {
 
-            if (!flag(i,j,k).isCovered() && !(ii==0 && jj==0 && kk==0)) 
+            if (!flag(i,j,k).isCovered() && !(ii==0 && jj==0 && kk==0))
             {
               A[lc][0] = ii + ccent(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0);
               A[lc][1] = jj + ccent(i+ii,j+jj,k+kk,1) - ccent(i,j,k,1);
