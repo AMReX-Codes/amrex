@@ -97,7 +97,7 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
     loc_copy_tags.reserve(N_locs);
 
     Vector<BaseFab<int> > maskfabs;
-    Vector<Array4<int> > masks;
+    Vector<Array4Tag<int> > masks;
     if (!is_thread_safe)
     {
         if ((op == FabArrayBase::COPY && !amrex::IsStoreAtomic<value_type>::value) ||
@@ -123,22 +123,17 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
                 if (!maskfabs[li].isAllocated()) {
                     maskfabs[li].resize(this->atLocalIdx(li).box());
                 }
-                masks.push_back(maskfabs[li].array());
+                masks.emplace_back(Array4Tag<int>{maskfabs[li].array()});
             }
         }
     }
 
     if (maskfabs.size() > 0) {
-        for (Gpu::StreamIter sit(maskfabs.size()); sit.isValid(); ++sit) {
-            BaseFab<int>& mskfab = maskfabs[sit()];
-            const Array4<int>& msk = mskfab.array();
-            const Box& bx = mskfab.box();
-            amrex::ParallelFor(bx,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                msk(i,j,k) = 0;
-            });
-        }
+        amrex::ParallelFor(masks,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, Array4Tag<int> const& msk) noexcept
+        {
+            msk.dfab(i,j,k) = 0;
+        });
     }
 
     if (op == FabArrayBase::COPY)
