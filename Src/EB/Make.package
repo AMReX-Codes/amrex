@@ -36,8 +36,6 @@ CEXE_sources += AMReX_EBAmrUtil.cpp
 CEXE_headers += AMReX_EB_utils.H
 CEXE_sources += AMReX_EB_utils.cpp
 
-CEXE_headers += AMReX_EB_slopes_K.H
-
 CEXE_headers += AMReX_algoim.H AMReX_algoim_K.H
 CEXE_sources += AMReX_algoim.cpp
 

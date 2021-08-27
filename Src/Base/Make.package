@@ -28,8 +28,6 @@ C$(AMREX_BASE)_sources += AMReX_FileSystem.cpp
 C$(AMREX_BASE)_headers += AMReX_Random.H AMReX_RandomEngine.H
 C$(AMREX_BASE)_sources += AMReX_Random.cpp
 
-C$(AMREX_BASE)_headers += AMReX_Slopes_K.H
-
 C$(AMREX_BASE)_headers += AMReX_REAL.H AMReX_INT.H AMReX_CONSTANTS.H AMReX_SPACE.H
 
 C$(AMREX_BASE)_sources += AMReX_DistributionMapping.cpp AMReX_ParallelDescriptor.cpp
