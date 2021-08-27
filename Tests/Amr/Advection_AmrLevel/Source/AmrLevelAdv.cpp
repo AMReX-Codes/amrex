@@ -710,6 +710,11 @@ AmrLevelAdv::errorEst (TagBoxArray& tags,
 {
     MultiFab& S_new = get_new_data(Phi_Type);
 
+    // Create temporary multifab with properly filled patches
+    const Real cur_time = state[Phi_Type].curTime();
+    MultiFab phi(S_new.boxArray(), S_new.DistributionMap(), NUM_STATE, 1);
+    FillPatch(*this, phi, phi.nGrow(), cur_time, Phi_Type, 0, NUM_STATE);
+
     const char   tagval = TagBox::SET;
     // const char clearval = TagBox::CLEAR;
 
@@ -718,10 +723,10 @@ AmrLevelAdv::errorEst (TagBoxArray& tags,
 #endif
     {
 
-        for (MFIter mfi(S_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        for (MFIter mfi(phi,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& tilebx = mfi.tilebox();
-            const auto phiarr = S_new.array(mfi);
+            const auto phiarr = phi.array(mfi);
             auto       tagarr = tags.array(mfi);
 
             // Tag cells with high phi.
