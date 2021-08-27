@@ -247,7 +247,11 @@ BoxList::ok () const noexcept
 bool
 BoxList::isDisjoint () const
 {
-    return BoxArray(*this).isDisjoint();
+    if (this->size() <= 1) {
+        return true;
+    } else {
+        return BoxArray(*this).isDisjoint();
+    }
 }
 
 bool
