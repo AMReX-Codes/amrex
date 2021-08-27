@@ -109,6 +109,13 @@ Are they thread safe with MPI and OpenMP?
 **A.** (Thread safe) Yes, :cpp:`amrex::Random()` is thread safe. When OpenMP is on,
 each thread will have its own dedicated Random Number Generator that
 is totally independent of the others.
+|
+
+**Q.** Is Dirichlet boundary condition data loaded into cell-centered, or
+face-centered containers? How is it used in AMReX-based codes like MLMG and the
+advection routines in AMReX-Hydro?
+
+**A.**
 
 |
 |
