@@ -16,8 +16,10 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
     ifneq ($(lowercase_peenv),$(lowercase_comp))
       has_compiler_mismatch = COMP=$(COMP) does not match PrgEnv-$(lowercase_peenv)
     endif
-    ifeq ($(lowercase_peenv),nvidia)
-      $(error PrgEnv-nvidia cannot be used with CPU-only builds. Try PrgEnv-gnu instead.)
+    ifeq ($(MAKECMDGOALS),)
+      ifeq ($(lowercase_peenv),nvidia)
+        $(error PrgEnv-nvidia cannot be used with CPU-only builds. Try PrgEnv-gnu instead.)
+      endif
     endif
   endif
   endif
