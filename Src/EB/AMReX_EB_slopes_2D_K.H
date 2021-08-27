@@ -177,7 +177,7 @@ amrex_calc_slopes_eb_given_A_grown (int i, int j, int /*k*/, int n, int nx, int 
 //
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
-amrex_overwrite_with_regular_slopes(int i, int j, int k, int n, 
+amrex_overwrite_with_regular_slopes(int i, int j, int k, int n,
                                     amrex::Real& xslope, amrex::Real& yslope,
                                     amrex::Array4<amrex::Real const> const& state,
                                     amrex::Array4<amrex::Real const> const& ccent,
@@ -350,7 +350,7 @@ amrex_calc_slopes_eb_grown (int i, int j, int k, int n, int nx, int ny,
 //
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
-amrex_overwrite_with_regular_slopes_extdir(int i, int j, int k, int n, 
+amrex_overwrite_with_regular_slopes_extdir(int i, int j, int k, int n,
                                            amrex::Real& xslope, amrex::Real& yslope,
                                            amrex::Array4<amrex::Real const> const& state,
                                            amrex::Array4<amrex::Real const> const& ccent,
@@ -547,7 +547,7 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
 //
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>
-amrex_calc_slopes_extdir_eb_grown (int i, int j, int k, int n, int nx, int ny, 
+amrex_calc_slopes_extdir_eb_grown (int i, int j, int k, int n, int nx, int ny,
                                    amrex::Array4<amrex::Real const> const& state,
                                    amrex::Array4<amrex::Real const> const& ccent,
                                    amrex::Array4<amrex::Real const> const& vfrac,
