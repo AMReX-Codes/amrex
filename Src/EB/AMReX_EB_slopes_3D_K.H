@@ -421,7 +421,6 @@ amrex_overwrite_with_regular_slopes_extdir(int i, int j, int k, int n,
 {
     //
     // Correct only those cells which are affected by extdir but not by EB:
-    //    2) If all the cells are regular we use the "regular slope" in the extdir direction
     //
 
     // We have enough cells in the x-direction to do 4th order slopes
@@ -486,8 +485,7 @@ amrex_overwrite_with_regular_slopes_extdir(int i, int j, int k, int n,
 // 1) standard limited slope if all three cells in the stencil are regular cells
 //    (this stencil sees the extdir/hoextrap boundary condition if there is one)
 // OR
-// 2) least squares linear fit to the at-most 9 in 2D / 27 in 3D nearest neighbors, with the function
-// least squares linear fit to the 9 in 2D / 27 in 3D nearest neighbors, with the function
+// 2) least squares linear fit to the at-most 26 nearest neighbors, with the function
 // going through the centroid of cell(i,j,k).  This does not assume that the cell centroids,
 // where the data is assume to live, are the same as cell centers.
 //
