@@ -233,7 +233,7 @@ the command ``display`` from `ImageMagick`_ as seen below.
 
 This should produce a window to view the image. (The example here is enlarged for clarity.):
 
-.. image:: figs/ex_fsnapshot.resize.png
+.. image:: figs/ex_fsnapshot_resize.png
 
 
 |
