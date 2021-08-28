@@ -58,6 +58,7 @@ may contain some variation. GPU profiling is an area of current development for 
 - :cpp:`amrex::Print()` is useful for printing
   output when using multiple processes or threads as it prevents messages
   from getting mixed up.
+- `fcompare`_ compares two plotfiles and reports absolute and relative error.
 
 Additional tools and discussion on this topic is contained
 in the section `Debugging`_.
@@ -65,6 +66,8 @@ in the section `Debugging`_.
 .. _`Debugging`: https://amrex-codes.github.io/amrex/docs_html/Basics.html#debugging
 
 .. _`Amrvis`: https://amrex-codes.github.io/amrex/docs_html/Visualization.html#sec-amrvis
+
+.. _`fcompare`: https://amrex-codes.github.io/amrex/docs_html/Post_Processing.html#fcompare
 
 |
 
@@ -117,6 +120,21 @@ advection routines in AMReX-Hydro?
 
 **A.** In the cell-centered MLMG solver, the Dirichlet boundary data are stored
 in containers that have the information of the location of the data.
+
+|
+
+**Q.** When using embedded boundaries (EB), is :cpp:`flag.isRegular()` the same
+as :cpp:`volfrac==1`?
+
+**A.**
+
+|
+
+**Q.** When using embedded boundaries (EB), how far out does
+:cpp:`flag.isConnected(ii,jj,kk)` go? How does a cell ``(i,j,k)``
+know if a cell ``(i+1,j+1,k+1)`` is "connected" to it?
+
+**A.**
 
 |
 |
