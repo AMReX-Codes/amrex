@@ -711,11 +711,13 @@ AmrLevelAdv::errorEst (TagBoxArray& tags,
     MultiFab& S_new = get_new_data(Phi_Type);
 
     // Properly fill patches and ghost cells for phi gradient check.
-    MultiFab phi(S_new.boxArray(), S_new.DistributionMap(), NUM_STATE, 1);
+    MultiFab phitmp;
     if (level < max_phigrad_lev) {
         const Real cur_time = state[Phi_Type].curTime();
-        FillPatch(*this, phi, 1, cur_time, Phi_Type, 0, NUM_STATE);
+        phitmp.define(S_new.boxArray(), S_new.DistributionMap(), NUM_STATE, 1);
+        FillPatch(*this, phitmp, 1, cur_time, Phi_Type, 0, NUM_STATE);
     }
+    MultiFab const& phi = (level < max_phigrad_lev) ? phitmp : S_new;
 
     const char   tagval = TagBox::SET;
     // const char clearval = TagBox::CLEAR;
@@ -724,11 +726,10 @@ AmrLevelAdv::errorEst (TagBoxArray& tags,
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-        for (MFIter mfi(S_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        for (MFIter mfi(phi,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& tilebx  = mfi.tilebox();
-            const auto phiarr  = S_new.array(mfi);
-            const auto gradarr = phi.array(mfi);
+            const auto phiarr  = phi.array(mfi);
             auto       tagarr  = tags.array(mfi);
 
             // Tag cells with high phi.
@@ -747,7 +748,7 @@ AmrLevelAdv::errorEst (TagBoxArray& tags,
                 amrex::ParallelFor(tilebx,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    grad_error(i, j, k, tagarr, gradarr, phigrad_lev, tagval);
+                    grad_error(i, j, k, tagarr, phiarr, phigrad_lev, tagval);
                 });
             }
         }
