@@ -42,6 +42,4 @@ adv.do_tracers = 0
 
 # ERROR TAGGING
 tagging.phierr  =  1.01  1.1   1.5
-tagging.phigrad =  1e+20 1e+20 1e+20
 tagging.max_phierr_lev  = 10
-tagging.max_phigrad_lev = 10
