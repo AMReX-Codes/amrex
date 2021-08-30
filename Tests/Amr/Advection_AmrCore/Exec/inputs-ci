@@ -2,7 +2,7 @@
 # Run until nsteps == max_step or time == stop_time, 
 #     whichever comes first
 # *****************************************************************
-max_step  = 20
+max_step  = 5
 stop_time = 2.0
 
 # *****************************************************************

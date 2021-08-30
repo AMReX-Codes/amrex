@@ -26,6 +26,23 @@ insert_final_newline = true
 trim_trailing_whitespace = false
 
 
+[*.rst]
+# Enforce UTF-8 encoding
+charset = utf-8
+
+# Unix-style newlines
+end_of_line = lf
+
+# Newline ending in files
+insert_final_newline = true
+
+# 3 space indentation
+indent_style = space
+indent_size = 3
+
+# Clean up trailing whitespace
+trim_trailing_whitespace = true
+
 [Makefile]
 # TABs are part of its syntax
 indent_style = tab
