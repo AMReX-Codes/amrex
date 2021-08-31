@@ -100,9 +100,21 @@ device to host copies without relying on managed memory?
 
 |
 
-**Q.** How can you prevent a section of code from running on the GPU for profiling purposes?
+**Q.** How can I prevent a section of code from running on the GPU?
 
-**A.**
+**A.** Use:
+
+.. code-block::
+
+    Gpu::setLaunchRegion(0);
+    ... ;
+    Gpu::setLaunchRegion(1);
+
+Please note that because much of the execution patterns remain intact with this approach,
+it is likely not the ideal way to compare GPU to non-GPU performance. For more information
+see `Basic Gpu Debugging`_.
+
+.. _`Basic Gpu Debugging`: GPU.html#basic-gpu-debugging
 
 |
 
@@ -112,6 +124,7 @@ Are they thread safe with MPI and OpenMP?
 **A.** (Thread safe) Yes, :cpp:`amrex::Random()` is thread safe. When OpenMP is on,
 each thread will have its own dedicated Random Number Generator that
 is totally independent of the others.
+
 |
 
 **Q.** Is Dirichlet boundary condition data loaded into cell-centered, or
