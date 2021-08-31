@@ -26,6 +26,7 @@
 #include <AMReX_LayoutData.H>
 #include <AMReX_BaseFabUtility.H>
 #include <AMReX_MFParallelFor.H>
+#include <AMReX_TagParallelFor.H>
 
 #include <AMReX_Gpu.H>
 
