@@ -1,9 +1,11 @@
-
-#include <AmrLevelAdv.H>
-#include <Adv_F.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_TagBox.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_GpuMemory.H>
+
+#include "AmrLevelAdv.H"
+#include "Adv_F.H"
+#include "Kernels.H"
 
 using namespace amrex;
 
@@ -14,22 +16,31 @@ int      AmrLevelAdv::do_reflux       = 1;
 int      AmrLevelAdv::NUM_STATE       = 1;  // One variable in the state
 int      AmrLevelAdv::NUM_GROW        = 3;  // number of ghost cells
 
+ProbParm* AmrLevelAdv::h_prob_parm = nullptr;
+ProbParm* AmrLevelAdv::d_prob_parm = nullptr;
+
+int      AmrLevelAdv::max_phierr_lev  = -1;
+int      AmrLevelAdv::max_phigrad_lev = -1;
+
+Vector<Real> AmrLevelAdv::phierr;
+Vector<Real> AmrLevelAdv::phigrad;
+
 #ifdef AMREX_PARTICLES
 std::unique_ptr<AmrTracerParticleContainer> AmrLevelAdv::TracerPC =  nullptr;
 int AmrLevelAdv::do_tracers                       =  0;
 #endif
 
-//
-//Default constructor.  Builds invalid object.
-//
+/**
+ * Default constructor.  Builds invalid object.
+ */
 AmrLevelAdv::AmrLevelAdv ()
 {
     flux_reg = 0;
 }
 
-//
-//The basic constructor.
-//
+/**
+ * The basic constructor.
+ */
 AmrLevelAdv::AmrLevelAdv (Amr&            papa,
                           int             lev,
                           const Geometry& level_geom,
@@ -44,17 +55,17 @@ AmrLevelAdv::AmrLevelAdv (Amr&            papa,
         flux_reg = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
 }
 
-//
-//The destructor.
-//
+/**
+ * The destructor.
+ */
 AmrLevelAdv::~AmrLevelAdv ()
 {
     delete flux_reg;
 }
 
-//
-//Restart from a checkpoint file.
-//
+/**
+ * Restart from a checkpoint file.
+ */
 void
 AmrLevelAdv::restart (Amr&          papa,
                       std::istream& is,
@@ -67,6 +78,9 @@ AmrLevelAdv::restart (Amr&          papa,
         flux_reg = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
 }
 
+/**
+ * Write a checkpoint file.
+ */
 void
 AmrLevelAdv::checkPoint (const std::string& dir,
                          std::ostream&      os,
@@ -81,9 +95,9 @@ AmrLevelAdv::checkPoint (const std::string& dir,
 #endif
 }
 
-//
-//Write a plotfile to specified directory.
-//
+/**
+ * Write a plotfile to specified directory.
+ */
 void
 AmrLevelAdv::writePlotFile (const std::string& dir,
                              std::ostream&      os,
@@ -99,13 +113,17 @@ AmrLevelAdv::writePlotFile (const std::string& dir,
 #endif
 }
 
-//
-//Define data descriptors.
-//
+/**
+ * Define data descriptors.
+ */
 void
 AmrLevelAdv::variableSetUp ()
 {
     BL_ASSERT(desc_lst.size() == 0);
+
+    // Initialize struct containing problem-specific variables
+    h_prob_parm = new ProbParm{};
+    d_prob_parm = (ProbParm*)The_Arena()->alloc(sizeof(ProbParm));
 
     // Get options, set phys_bc
     read_params();
@@ -122,13 +140,16 @@ AmrLevelAdv::variableSetUp ()
 
     BCRec bc(lo_bc, hi_bc);
 
+    StateDescriptor::BndryFunc bndryfunc(nullfill);
+    bndryfunc.setRunOnGPU(true);  // I promise the bc function will launch gpu kernels.
+
     desc_lst.setComponent(Phi_Type, 0, "phi", bc,
-                          StateDescriptor::BndryFunc(nullfill));
+                          bndryfunc);
 }
 
-//
-//Cleanup data descriptors at end of run.
-//
+/**
+ * Cleanup data descriptors at end of run.
+ */
 void
 AmrLevelAdv::variableCleanUp ()
 {
@@ -136,16 +157,20 @@ AmrLevelAdv::variableCleanUp ()
 #ifdef AMREX_PARTICLES
     TracerPC.reset();
 #endif
+
+    // Delete structs containing problem-specific parameters
+    delete h_prob_parm;
+    The_Arena()->free(d_prob_parm);
 }
 
-//
-//Initialize grid data at problem start-up.
-//
+/**
+ * Initialize grid data at problem start-up.
+ */
 void
 AmrLevelAdv::initData ()
 {
     //
-    // Loop over grids, call FORTRAN function to init with data.
+    // Loop over grids.
     //
     const Real* dx  = geom.CellSize();
     const Real* prob_lo = geom.ProbLo();
@@ -156,16 +181,34 @@ AmrLevelAdv::initData ()
         amrex::Print() << "Initializing the data at level " << level << std::endl;
     }
 
-    for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
+#ifdef AMREX_USE_GPU
+    // Create temporary MultiFab on CPU using pinned memory
+    MultiFab S_tmp(S_new.boxArray(),
+                   S_new.DistributionMap(),
+                   S_new.nComp(),
+                   S_new.nGrowVect(),
+                   MFInfo().SetArena(The_Pinned_Arena()));
+#else
+    // Use a MultiFab pointer
+    MultiFab& S_tmp = S_new;
+#endif
+
+    for (MFIter mfi(S_tmp); mfi.isValid(); ++mfi)
     {
         const Box& box     = mfi.validbox();
         const int* lo      = box.loVect();
         const int* hi      = box.hiVect();
 
-          initdata(&level, &cur_time, AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi),
-                   BL_TO_FORTRAN_3D(S_new[mfi]), AMREX_ZFILL(dx),
-                   AMREX_ZFILL(prob_lo));
+        // Use a Fortran subroutine to initialize data on CPU.
+        initdata(&level, &cur_time, AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi),
+                 BL_TO_FORTRAN_3D(S_tmp[mfi]), AMREX_ZFILL(dx),
+                 AMREX_ZFILL(prob_lo));
     }
+
+#ifdef AMREX_USE_GPU
+    // Explicitly copy data to GPU.
+    amrex::htod_memcpy(S_new, S_tmp);
+#endif
 
 #ifdef AMREX_PARTICLES
     init_particles();
@@ -177,13 +220,14 @@ AmrLevelAdv::initData ()
     }
 }
 
-//
-//Initialize data on this level from another AmrLevelAdv (during regrid).
-//
+/**
+ * Initialize data on this level from another AmrLevelAdv (during regrid).
+ */
 void
 AmrLevelAdv::init (AmrLevel &old)
 {
     AmrLevelAdv* oldlev = (AmrLevelAdv*) &old;
+
     //
     // Create new grid data by fillpatching from old.
     //
@@ -198,9 +242,9 @@ AmrLevelAdv::init (AmrLevel &old)
     FillPatch(old, S_new, 0, cur_time, Phi_Type, 0, NUM_STATE);
 }
 
-//
-//Initialize data on this level after regridding if old level did not previously exist
-//
+/**
+ * Initialize data on this level after regridding if old level did not previously exist
+ */
 void
 AmrLevelAdv::init ()
 {
@@ -215,9 +259,9 @@ AmrLevelAdv::init ()
     FillCoarsePatch(S_new, 0, cur_time, Phi_Type, 0, NUM_STATE);
 }
 
-//
-//Advance grids at this level in time.
-//
+/**
+ * Advance grids at this level in time.
+ */
 Real
 AmrLevelAdv::advance (Real time,
                       Real dt,
@@ -240,8 +284,8 @@ AmrLevelAdv::advance (Real time,
     const Real cur_time = state[Phi_Type].curTime();
     const Real ctr_time = 0.5*(prev_time + cur_time);
 
-    const Real* dx = geom.CellSize();
-    const Real* prob_lo = geom.ProbLo();
+    GpuArray<Real,BL_SPACEDIM> dx = geom.CellSizeArray();
+    GpuArray<Real,BL_SPACEDIM> prob_lo = geom.ProbLoArray();
 
     //
     // Get pointers to Flux registers, or set pointer to zero if not there.
@@ -285,52 +329,90 @@ AmrLevelAdv::advance (Real time,
     }
 
 #ifdef AMREX_USE_OMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-        FArrayBox flux[BL_SPACEDIM], uface[BL_SPACEDIM];
+        FArrayBox fluxfab[AMREX_SPACEDIM], velfab[AMREX_SPACEDIM];
+        FArrayBox* flux[AMREX_SPACEDIM];
+        FArrayBox* uface[AMREX_SPACEDIM];
 
-        for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(S_new, TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
+            // Set up tileboxes and nodal tileboxes
             const Box& bx = mfi.tilebox();
+            GpuArray<Box,BL_SPACEDIM> nbx;
+            AMREX_D_TERM(nbx[0] = mfi.nodaltilebox(0);,
+                         nbx[1] = mfi.nodaltilebox(1);,
+                         nbx[2] = mfi.nodaltilebox(2));
 
+            // Grab fab pointers from state multifabs
             const FArrayBox& statein = Sborder[mfi];
             FArrayBox& stateout      =   S_new[mfi];
 
-            // Allocate fabs for fluxes and Godunov velocities.
             for (int i = 0; i < BL_SPACEDIM ; i++) {
+#ifdef AMREX_USE_GPU
+                // No tiling on GPU.
+                // Point flux and face velocity fab pointers to untiled fabs.
+                flux[i] = &(fluxes[i][mfi]);
+                uface[i] = &(Umac[i][mfi]);
+#else
+                // Resize temporary fabs for fluxes and face velocities
                 const Box& bxtmp = amrex::surroundingNodes(bx,i);
-                flux[i].resize(bxtmp,NUM_STATE);
-                uface[i].resize(amrex::grow(bxtmp, iteration), 1);
+                fluxfab[i].resize(bxtmp,NUM_STATE);
+                velfab[i].resize(amrex::grow(bxtmp, iteration), 1);
+
+                // Point flux and face velocity fab pointers to temporary fabs
+                flux[i] = &(fluxfab[i]);
+                uface[i] = &(velfab[i]);
+#endif
             }
 
-            get_face_velocity(&level, &ctr_time,
-                              AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
-                                     BL_TO_FORTRAN(uface[1]),
-                                     BL_TO_FORTRAN(uface[2])),
+            // Compute Godunov velocities for each face.
+            get_face_velocity(ctr_time,
+                              AMREX_D_DECL(*uface[0], *uface[1], *uface[2]),
                               dx, prob_lo);
 
+#ifndef AMREX_USE_GPU
             for (int i = 0; i < BL_SPACEDIM ; i++) {
                 const Box& bxtmp = mfi.grownnodaltilebox(i, iteration);
-                Umac[i][mfi].copy<RunOn::Host>(uface[i], bxtmp);
+                Umac[i][mfi].copy(*uface[i], bxtmp);
             }
-            advect(&time, bx.loVect(), bx.hiVect(),
-                   BL_TO_FORTRAN_3D(statein),
-                   BL_TO_FORTRAN_3D(stateout),
-                   AMREX_D_DECL(BL_TO_FORTRAN_3D(uface[0]),
-                          BL_TO_FORTRAN_3D(uface[1]),
-                          BL_TO_FORTRAN_3D(uface[2])),
-                   AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]),
-                          BL_TO_FORTRAN_3D(flux[1]),
-                          BL_TO_FORTRAN_3D(flux[2])),
-                   dx, &dt);
+#endif
 
+            // CFL check.
+            AMREX_D_TERM(Real umax = uface[0]->norm<RunOn::Device>(0);,
+                         Real vmax = uface[1]->norm<RunOn::Device>(0);,
+                         Real wmax = uface[2]->norm<RunOn::Device>(0));
+
+            if (AMREX_D_TERM(umax*dt > dx[0], ||
+                             vmax*dt > dx[1], ||
+                             wmax*dt > dx[2]))
+            {
+#if (AMREX_SPACEDIM > 2)
+                amrex::AllPrint() << "umax = " << umax << ", vmax = " << vmax << ", wmax = " << wmax
+                                  << ", dt = " << dt << " dx = " << dx[0] << " " << dx[1] << " " << dx[2] << std::endl;
+#else
+                amrex::AllPrint() << "umax = " << umax << ", vmax = " << vmax
+                                  << ", dt = " << dt << " dx = " << dx[0] << " " << dx[1] << std::endl;
+#endif
+                amrex::Abort("CFL violation. Use smaller adv.cfl.");
+            }
+
+            // Advect. See Adv.cpp for implementation.
+            advect(time, bx, nbx, statein, stateout,
+                   AMREX_D_DECL(*uface[0], *uface[1], *uface[2]),
+                   AMREX_D_DECL(*flux[0],  *flux[1],  *flux[2]),
+                   dx, dt);
+
+#ifndef AMREX_USE_GPU
             if (do_reflux) {
                 for (int i = 0; i < BL_SPACEDIM ; i++)
-                    fluxes[i][mfi].copy<RunOn::Host>(flux[i],mfi.nodaltilebox(i));
+                    fluxes[i][mfi].copy(*flux[i],mfi.nodaltilebox(i));
             }
+#endif
         }
     }
+
 
     if (do_reflux) {
         if (current) {
@@ -352,17 +434,17 @@ AmrLevelAdv::advance (Real time,
     return dt;
 }
 
-//
-//Estimate time step.
-//
+/**
+ * Estimate time step.
+ */
 Real
 AmrLevelAdv::estTimeStep (Real)
 {
     // This is just a dummy value to start with
     Real dt_est  = 1.0e+20;
 
-    const Real* dx = geom.CellSize();
-    const Real* prob_lo = geom.ProbLo();
+    GpuArray<Real,BL_SPACEDIM> dx = geom.CellSizeArray();
+    GpuArray<Real,BL_SPACEDIM> prob_lo = geom.ProbLoArray();
     const Real cur_time = state[Phi_Type].curTime();
     const MultiFab& S_new = get_new_data(Phi_Type);
 
@@ -379,14 +461,15 @@ AmrLevelAdv::estTimeStep (Real)
                 uface[i].resize(bx,1);
             }
 
-            get_face_velocity(&level, &cur_time,
-                              AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
-                                     BL_TO_FORTRAN(uface[1]),
-                                     BL_TO_FORTRAN(uface[2])),
+            // Note: no need to set elixir on uface[i] temporary fabs since
+            //       norm<RunOn::Device> kernel launch is blocking.
+
+            get_face_velocity(cur_time,
+                              AMREX_D_DECL(uface[0], uface[1], uface[2]),
                               dx, prob_lo);
 
             for (int i = 0; i < BL_SPACEDIM; ++i) {
-                Real umax = uface[i].norm<RunOn::Host>(0);
+                Real umax = uface[i].norm<RunOn::Device>(0);
                 if (umax > 1.e-100) {
                     dt_est = std::min(dt_est, dx[i] / umax);
                 }
@@ -405,18 +488,18 @@ AmrLevelAdv::estTimeStep (Real)
     return dt_est;
 }
 
-//
-//Compute initial time step.
-//
+/**
+ * Compute initial time step.
+ */
 Real
 AmrLevelAdv::initialTimeStep ()
 {
     return estTimeStep(0.0);
 }
 
-//
-//Compute initial `dt'.
-//
+/**
+ * Compute initial `dt'.
+ */
 void
 AmrLevelAdv::computeInitialDt (int                   finest_level,
                                int                   /*sub_cycle*/,
@@ -458,9 +541,9 @@ AmrLevelAdv::computeInitialDt (int                   finest_level,
     }
 }
 
-//
-//Compute new `dt'.
-//
+/**
+ * Compute new `dt'.
+ */
 void
 AmrLevelAdv::computeNewDt (int                   finest_level,
                            int                   /*sub_cycle*/,
@@ -535,9 +618,9 @@ AmrLevelAdv::computeNewDt (int                   finest_level,
     }
 }
 
-//
-//Do work after timestep().
-//
+/**
+ * Do work after timestep().
+ */
 void
 AmrLevelAdv::post_timestep (int iteration)
 {
@@ -568,9 +651,9 @@ AmrLevelAdv::post_timestep (int iteration)
 #endif
 }
 
-//
-//Do work after regrid().
-//
+/**
+ * Do work after regrid().
+ */
 void
 AmrLevelAdv::post_regrid (int lbase, int /*new_finest*/) {
 #ifdef AMREX_PARTICLES
@@ -582,9 +665,9 @@ AmrLevelAdv::post_regrid (int lbase, int /*new_finest*/) {
 #endif
 }
 
-//
-//Do work after a restart().
-//
+/**
+ * Do work after a restart().
+ */
 void
 AmrLevelAdv::post_restart()
 {
@@ -597,9 +680,9 @@ AmrLevelAdv::post_restart()
 #endif
 }
 
-//
-//Do work after init().
-//
+/**
+ * Do work after init().
+ */
 void
 AmrLevelAdv::post_init (Real /*stop_time*/)
 {
@@ -614,56 +697,67 @@ AmrLevelAdv::post_init (Real /*stop_time*/)
         getLevel(k).avgDown();
 }
 
-//
-//Error estimation for regridding.
-//
+/**
+ * Error estimation for regridding.
+ */
 void
 AmrLevelAdv::errorEst (TagBoxArray& tags,
-                       int          clearval,
-                       int          tagval,
-                       Real         time,
+                       int          /*clearval*/,
+                       int          /*tagval*/,
+                       Real         /*time*/,
                        int          /*n_error_buf*/,
                        int          /*ngrow*/)
 {
-    const Real* dx        = geom.CellSize();
-    const Real* prob_lo   = geom.ProbLo();
-
     MultiFab& S_new = get_new_data(Phi_Type);
 
+    // Properly fill patches and ghost cells for phi gradient check.
+    MultiFab phitmp;
+    if (level < max_phigrad_lev) {
+        const Real cur_time = state[Phi_Type].curTime();
+        phitmp.define(S_new.boxArray(), S_new.DistributionMap(), NUM_STATE, 1);
+        FillPatch(*this, phitmp, 1, cur_time, Phi_Type, 0, NUM_STATE);
+    }
+    MultiFab const& phi = (level < max_phigrad_lev) ? phitmp : S_new;
+
+    const char   tagval = TagBox::SET;
+    // const char clearval = TagBox::CLEAR;
+
 #ifdef AMREX_USE_OMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-        Vector<int>  itags;
-
-        for (MFIter mfi(S_new,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(phi,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            const Box&  tilebx  = mfi.tilebox();
+            const Box& tilebx  = mfi.tilebox();
+            const auto phiarr  = phi.array(mfi);
+            auto       tagarr  = tags.array(mfi);
 
-            TagBox&     tagfab  = tags[mfi];
+            // Tag cells with high phi.
+            if (level < max_phierr_lev) {
+                const Real phierr_lev  = phierr[level];
+                amrex::ParallelFor(tilebx,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    state_error(i, j, k, tagarr, phiarr, phierr_lev, tagval);
+                });
+            }
 
-            // We cannot pass tagfab to Fortran because it is BaseFab<char>.
-            // So we are going to get a temporary integer array.
-            tagfab.get_itags(itags, tilebx);
-
-            // data pointer and index space
-            int*        tptr    = itags.dataPtr();
-            const int*  tlo     = tilebx.loVect();
-            const int*  thi     = tilebx.hiVect();
-
-            state_error(tptr,  AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
-                        BL_TO_FORTRAN_3D(S_new[mfi]),
-                        &tagval, &clearval,
-                        AMREX_ARLIM_3D(tilebx.loVect()), AMREX_ARLIM_3D(tilebx.hiVect()),
-                        AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo), &time, &level);
-            //
-            // Now update the tags in the TagBox.
-            //
-            tagfab.tags_and_untags(itags, tilebx);
+            // Tag cells with high phi gradient.
+            if (level < max_phigrad_lev) {
+                const Real phigrad_lev = phigrad[level];
+                amrex::ParallelFor(tilebx,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    grad_error(i, j, k, tagarr, phiarr, phigrad_lev, tagval);
+                });
+            }
         }
     }
 }
 
+/**
+ * Read parameters from input file.
+ */
 void
 AmrLevelAdv::read_params ()
 {
@@ -695,25 +789,9 @@ AmrLevelAdv::read_params ()
     pp.query("do_tracers", do_tracers);
 #endif
 
-    //
-    // read tagging parameters from probin file
-    //
-
-    std::string probin_file("probin");
-
-    ParmParse ppa("amr");
-    ppa.query("probin_file",probin_file);
-
-    int probin_file_length = probin_file.length();
-    Vector<int> probin_file_name(probin_file_length);
-
-    for (int i = 0; i < probin_file_length; i++)
-        probin_file_name[i] = probin_file[i];
-
-    // use a fortran routine to
-    // read in tagging parameters from probin file
-    get_tagging_params(probin_file_name.dataPtr(), &probin_file_length);
-
+    // Read tagging parameters from tagging block in the input file.
+    // See Src_nd/Tagging_params.cpp for the function implementation.
+    get_tagging_params();
 }
 
 void

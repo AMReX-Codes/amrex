@@ -900,8 +900,6 @@ BoxArray::ok () const
 bool
 BoxArray::isDisjoint () const
 {
-    BL_ASSERT(ixType().cellCentered());
-
     std::vector< std::pair<int,Box> > isects;
 
     const int N = size();

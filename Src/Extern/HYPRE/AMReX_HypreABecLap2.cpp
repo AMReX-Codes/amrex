@@ -292,19 +292,35 @@ HypreABecLap2::loadVectors (MultiFab& soln, const MultiFab& rhs)
     soln.setVal(0.0);
 
     MultiFab rhs_diag(rhs.boxArray(), rhs.DistributionMap(), 1, 0);
-#ifdef AMREX_USE_OMP
-#pragma omp paralle if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(rhs_diag,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& reg = mfi.validbox();
-        Array4<Real> const& rhs_diag_a = rhs_diag.array(mfi);
-        Array4<Real const> const& rhs_a = rhs.const_array(mfi);
-        Array4<Real const> const& diaginv_a = diaginv.const_array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE(reg, i, j, k,
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && rhs_diag.isFusingCandidate()) {
+        auto const& rhs_diag_ma = rhs_diag.arrays();
+        auto const& rhs_ma = rhs.const_arrays();
+        auto const& diaginv_ma = diaginv.const_arrays();
+        ParallelFor(rhs_diag,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
         {
-            rhs_diag_a(i,j,k) = rhs_a(i,j,k) * diaginv_a(i,j,k);
+            rhs_diag_ma[box_no](i,j,k) = rhs_ma[box_no](i,j,k) * diaginv_ma[box_no](i,j,k);
         });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(rhs_diag,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            Array4<Real> const& rhs_diag_a = rhs_diag.array(mfi);
+            Array4<Real const> const& rhs_a = rhs.const_array(mfi);
+            Array4<Real const> const& diaginv_a = diaginv.const_array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                rhs_diag_a(i,j,k) = rhs_a(i,j,k) * diaginv_a(i,j,k);
+            });
+        }
     }
 
     const HYPRE_Int part = 0;

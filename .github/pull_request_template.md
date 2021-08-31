@@ -9,4 +9,4 @@ The proposed changes:
 - [ ] add new capabilities to AMReX
 - [ ] changes answers in the test suite to more than roundoff level
 - [ ] are likely to significantly affect the results of downstream AMReX users
-- [ ] are described in the proposed changes to the AMReX documentation, if appropriate
+- [ ] include documentation in the code and/or rst files, if appropriate

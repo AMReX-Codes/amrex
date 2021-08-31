@@ -62,9 +62,6 @@ Documentation on migration from BoxLib is available in the AMReX repository at D
    :maxdepth: 1
    :caption: API
 
-   filelist
-   classlist
-
 Indices and tables
 ==================
 

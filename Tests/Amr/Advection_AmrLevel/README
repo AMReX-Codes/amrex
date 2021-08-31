@@ -1,7 +1,8 @@
-Advection_AmrLevel: This tutorial contains an AMR advection code that advects a single 
-scalar field with a velocity field that is specified on faces.
+Advection_AmrLevel: This tutorial contains an AMR advection code that advects a
+single scalar field with a velocity field that is specified on faces.
 
-It is an AMReX based code designed to run in parallel using MPI/OMP.
+It is a mixed Fortran/C++ AMReX-based code designed to run in parallel using
+MPI/OMP. Additionally, it can also be run using GPUs.
 
 This example uses source code from the amrex/Src/Base, Boundary, AmrCore , and
 Amr directories.
