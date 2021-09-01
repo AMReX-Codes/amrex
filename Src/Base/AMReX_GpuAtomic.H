@@ -53,7 +53,7 @@ namespace detail {
     {
 #if defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
-        constexpr auto as = sycl::accesss::address_space::global_space;
+        constexpr auto as = sycl::access::address_space::global_space;
         static_assert(sizeof(R) == sizeof(I), "sizeof R != sizeof I");
         I* const add_as_I = reinterpret_cast<I*>(address);
         sycl::atomic<I, as> a{sycl::multi_ptr<I,as>(add_as_I)};
