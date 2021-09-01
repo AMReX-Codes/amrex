@@ -176,6 +176,13 @@ main (int   argc,
         amrDataI.FillVar(dataI, iLevel, derives, destComps);
         amrDataE.FillVar(dataE, iLevel, derives, destComps);
 
+        if (dataI.contains_nan()) {
+            Abort("First plotfile contains NaN(s)");
+        }
+        if (dataE.contains_nan()) {
+            Abort("Second plotfile contains NaN(s)");
+        }
+        
         if (iLevel == 0) {
             for (int iComp=0; iComp < nComp; ++iComp) {
                 maxAbsVal[iComp] = dataI.norm0(iComp);
