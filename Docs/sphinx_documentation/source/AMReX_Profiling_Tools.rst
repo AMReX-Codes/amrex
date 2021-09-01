@@ -7,7 +7,12 @@
 Types of Profiling
 ==================
 
-Currently you have two options for AMReX-specific profiling:
+AMReX's build-in profiling works through objects that start and stop timers
+based on user-placed macros or in the objects' constructor and destructor.
+The results of these timers are stored in a global list that is consolidated
+and printed during finalization, or at a user-defined flush.
+
+Currently, AMReX has two options for build-in profiling:
 :ref:`sec:tiny:profiling` and :ref:`sec:full:profiling`.
 
 .. _sec:tiny:profiling:
@@ -96,9 +101,11 @@ documentation will reflect the latest status in the development branch.
 Instrumenting C++ Code
 ======================
 
+AMReX profiler objects are created and managed through :cpp:`BL_PROF` macros.
+
 .. highlight:: c++
 
-You must at least instrument main(), i.e
+To start with, you must at least instrument main(), i.e.:
 
 ::
 
@@ -107,59 +114,196 @@ You must at least instrument main(), i.e
       amrex::Initialize(argc,argv);
       BL_PROFILE_VAR("main()",pmain);
 
-      ...
+      <AMReX code block>
 
       BL_PROFILE_VAR_STOP(pmain);
       amrex::Finalize();
     }
 
-You can then instrument any of your functions
+    // OR
+
+    void main_main()
+    {
+        BL_PROFILE("main()");
+
+        <AMReX code block>
+    }
+
+    int main(...)
+    {
+        amrex::Initialize(argc,argv);
+        main_main();
+        amrex::Finalize();
+    }
+
+You can then instrument any of your functions, or code blocks. There are four general
+profiler macro types available:
+
+1) A scoped timer, :cpp:`BL_PROFILE`:
+
+These timers generate their own object name, so they can't be controlled after defined.
+However, they are the cleanest and easiest to work with in many situations. They time from
+the point the macro is called until the end of the enclosing scope. This macro is ideal to
+time an entire function. For example:
 
 ::
 
     void YourClass::YourFunction()
     {
-      BL_PROFILE_VAR("YourClass::YourFunction()",object_name);  // this name can be any string
+      BL_PROFILE("YourClass::YourFunction()");   // Timer starts here.
 
-      // your function code
-    }
+      < Your Function Code Block>
 
-Note that you do not need to put BL_PROFILE_VAR_STOP because the profiler will
-go out of scope at the end of the function.
+    }    // <------ Timer goes out of scope here, calling stop and returning the function time.
 
-For other timers within an already instrumented function, add:
+Note that all AMReX timers are scoped and will call "stop" when the corresponding object is destroyed.
+This macro is unique because it can _only_ stop when it goes out of scope.
+
+2) A named, scoped timer, :cpp:`BL_PROFILE_VAR`:
+
+In some cases, using scopes to control the timer is non-ideal. In such cases, you can use the
+`_VAR_` macros to create a named timer that can be controlled through `_START_` and `_STOP_` macros.
+`_VAR_` signifies the macro takes a variable name. For example, to time a function without scoping:
 
 ::
-
-          BL_PROFILE_VAR("Flaten::FORT_FLATENX()", anyname);  // add this before
+          BL_PROFILE_VAR("Flaten::FORT_FLATENX()", anyname);  // Create and start "anyname".
             FORT_FLATENX(arg1, arg2);
-          BL_PROFILE_VAR_STOP(anyname);   // add this after, using the same name
+          BL_PROFILE_VAR_STOP(anyname);   // Stop the "anyname" timer object.
 
-if you want to use the same name within the same scope, you can use:
+This can also be used to selectively time with the same scope, for example, to include :cpp:`Func_0`
+and :cpp:`Func_2`, but not :cpp:`Func_1`:
 
 ::
 
           BL_PROFILE_VAR("MyFuncs()", myfuncs);  // the first one
-            MyFunc_0(arg);
-          BL_PROFILE_VAR_STOP(myfuncs);
-          ...
-          BL_PROFILE_VAR_START(myfuncs);
-            MyFunc_1(arg);
+            MyFunc_0(args);
           BL_PROFILE_VAR_STOP(myfuncs);
 
-or create a profiling variable without starting, then start/stop:
+            MyFunc_1(args);
+
+          BL_PROFILE_VAR_START(myfuncs);
+            MyFunc_2(arg);
+          BL_PROFILE_VAR_STOP(myfuncs);
+
+Remember, these are still scoped. So, the scoped timer example can be reproduced exactly with named
+timers by just using the :cpp:`_VAR` macro:
 
 ::
 
-          BL_PROFILE_VAR_NS("MyFuncs()", myfuncs);  // dont start the timer
-          ...
-          BL_PROFILE_VAR_START(myfuncs);
-            MyFunc_0(arg);
-          BL_PROFILE_VAR_STOP(myfuncs);
-          ...
-          BL_PROFILE_VAR_START(myfuncs);
-            MyFunc_1(arg);
-          BL_PROFILE_VAR_STOP(myfuncs);
+    void YourClass::YourFunction()
+    {
+      BL_PROFILE_VAR("YourClass::YourFunction()",  pmain);   // Timer starts here.
+
+      < Your Function Code Block>
+
+    }    // <------ Timer goes out of scope here correctly, without a STOP call.
+
+
+
+3) A named, scoped timer that doesn't auto-start, :cpp:`BL_PROFILE_VAR_NS`:
+
+Sometimes, a complicated scoping may mean the profiling object needs to be defined before it's
+started. To create a named AMReX timer that doesn't start automatically, use the `_NS_` macros.
+(NS stands for "no start").
+
+For example, this implementation times :cpp:`MyFunc0` and :cpp:`MyFunc1` but not any of the
+"Additional Code" blocks:
+
+::
+
+          {
+              BL_PROFILE_VAR_NS("MyFuncs()", myfuncs);  // dont start the timer
+
+              <Additional Code A>
+
+              {
+                 BL_PROFILE_VAR_START(myfuncs);
+                   MyFunc_0(arg);
+                 BL_PROFILE_VAR_STOP(myfuncs);
+              }
+
+              <Additional Code B>
+
+              {
+                 BL_PROFILE_VAR_START(myfuncs);
+                   MyFunc_1(arg);
+                 BL_PROFILE_VAR_STOP(myfuncs);
+
+                 <Additional Code C>
+              }
+          }
+
+Note: The `_NS_` macro must, by necessity, also be a `_VAR_` macro, otherwise, you would never be
+able to turn the timer on!
+
+4) Designate a sub-region to profile, :cpp:`BL_PROFILE_REGION`:
+
+Often, it's helpful to look at a subset of timers separately from the complete profile. For
+example, look at the timing of a specific timestep or isolate everything inside the "Chemistry"
+part of the code. This can be accomplished by designating profile regions. All timers within a
+named region will be included both in the full analysis, as well as a separate sub-analysis for
+further analysis.
+
+Regions are meant to be large, contiguous blocks of code and should be used sparingly and purposefully
+to produce useful profiling report. As such, the possible region options are purposefully limited.
+When using the TinyProfiler, the only available region macro is the scoped macro. To create a region
+that includes in the `MyFuncs` code block, including timers in the "Additional Code" regions:
+
+::
+
+          {
+              BL_PROFILE_REGION("MyFuncs");
+
+              <Additional Code A>
+
+              {
+                 BL_PROFILE("MyFunc0");
+
+                 MyFunc_0(arg);
+              }
+
+              <Additional Code B>
+
+              {
+                 BL_PROFILE("MyFunc1");
+
+                 MyFunc_1(arg);
+                 <Additional Code C>
+              }
+          }
+
+If using the Full Profiler, named region objects are also available. These use a slightly modified
+`_VAR_`, `_START_` and `_STOP_` formatting. To include all timers in a region, except the timers
+inside :cpp:`MyFunc0` and :cpp:`MyFunc1`:
+
+::
+          {
+              BL_PROFILE_REGION("MyFuncs()", myfuncs);
+              <Code Block A>
+              BL_PROFILE_REGION_STOP(myfuncs);
+
+              {
+                   MyFunc_0(arg);
+              }
+
+              BL_PROFILE_REGION_START(myfuncs);
+              <Code Block B>
+              BL_PROFILE_REGION_STOP(myfuncs);
+
+              {
+                   MyFunc_1(arg);
+
+                 BL_PROFILE_REGION_START(myfuncs);
+                 <Code Block C>
+                 BL_PROFILE_REGION_STOP(myfuncs);
+              }
+          }
+
+Currently, these are only available in the FullProfiler to control the size of the TinyProfiler output
+and allow instrumentation strategies without needing to re-code each time. You can use the scoped
+regions in a few select places that will be output in both profiler modes, while named regions
+will only be isolated during a FullProfiler run.
+
 
 Instrumenting Fortran90 Code
 ============================
