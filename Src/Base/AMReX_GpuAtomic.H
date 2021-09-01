@@ -60,14 +60,14 @@ namespace detail {
         I old_I = a.load(mo), new_I;
         bool test_success;
         do {
-            R const tmp = f(*(reinterpret_cast<R const*>(&old_I)), val);
+            R const tmp = op(*(reinterpret_cast<R const*>(&old_I)), val);
             new_I = *(reinterpret_cast<I const*>(&tmp));
             test_success = cond(tmp);
         } while (test_success && ! a.compare_exchange_strong(old_I, new_I, mo));
         return test_success;
 #else
         R old = *address;
-        R const tmp = f(*(reinterpret_cast<R const*>(&old)), val);
+        R const tmp = op(*(reinterpret_cast<R const*>(&old)), val);
         if (cond(tmp)) {
             *address = tmp;
             return true;
