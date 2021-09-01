@@ -637,7 +637,8 @@ MLNodeLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
             if (m_coarsening_strategy == CoarseningStrategy::RAP)
             {
                 Array4<Real const> const& stenarr = stencil->const_array(mfi);
-                amrex::LoopConcurrentOnCpu(bx, [=] (int i, int j, int k) noexcept
+
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
                 {
                     mlndlap_normalize_sten(i,j,k,arr,stenarr,dmskarr,s0_norm0);
                 });
@@ -648,7 +649,7 @@ MLNodeLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
                              Array4<Real const> const& syarr = sigma[1]->const_array(mfi);,
                              Array4<Real const> const& szarr = sigma[2]->const_array(mfi););
 
-                amrex::LoopConcurrentOnCpu(bx, [=] (int i, int j, int k) noexcept
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
                 {
                     mlndlap_normalize_ha(i,j,k,arr,AMREX_D_DECL(sxarr,syarr,szarr),dmskarr,dxinv);
                 });
@@ -657,7 +658,7 @@ MLNodeLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
             {
                 Array4<Real const> const& sarr = sigma[0]->const_array(mfi);
 
-                amrex::LoopConcurrentOnCpu(bx, [=] (int i, int j, int k) noexcept
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
                 {
                     mlndlap_normalize_aa(i,j,k,arr,sarr,dmskarr,dxinv);
                 });
