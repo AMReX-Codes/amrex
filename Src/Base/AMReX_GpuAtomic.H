@@ -248,6 +248,7 @@ namespace detail {
 * \param value value to combine
 * \param op callable specifying the operation to use to combine *add and value
 * \param cond callable specifying the condition to test on first.
+*        The value passed in to the cond function is the would-be combined value
 **/
     template<class T, class Op, class Cond>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
