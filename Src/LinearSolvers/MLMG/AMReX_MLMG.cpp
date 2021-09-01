@@ -337,8 +337,7 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
 
     int ncomp = linop.getNComp();
     int nghost = 0;
-//    if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow();
-    if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow(calev);
+    if (cf_strategy == CFStrategy::ghostnodes) nghost = std::min(linop.getNGrow(falev),linop.getNGrow(calev));
 
     MultiFab& crse_sol = *sol[calev];
     const MultiFab& crse_rhs = rhs[calev];
@@ -587,8 +586,8 @@ MLMG::interpCorrection (int alev)
     int ng_dst = linop.isCellCentered() ? 1 : 0;
     if (cf_strategy == CFStrategy::ghostnodes)
     {
-        ng_src = nghost;
-        ng_dst = nghost;
+        ng_src = linop.getNGrow(alev-1);
+        ng_dst = linop.getNGrow(alev-1);
     }
     MultiFab cfine(ba, fine_cor.DistributionMap(), ncomp, ng_dst);
     cfine.setVal(0.0);
@@ -752,7 +751,6 @@ MLMG::interpCorrection (int alev)
                                                     }
                                                 }
                                             });
-                                            //std::cout << "DONE" << std::endl; 
                                         }
                                     }
                                     //amrex::Abort();
@@ -1333,9 +1331,11 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         for (int mglev = 0; mglev < nmglevs; ++mglev)
         {
             if (!solve_called) {
+                IntVect _ng = ng;
+                if (cf_strategy == CFStrategy::ghostnodes) _ng=IntVect(linop.getNGrow(alev,mglev));
                 cor[alev][mglev] = std::make_unique<MultiFab>(res[alev][mglev].boxArray(),
                                                               res[alev][mglev].DistributionMap(),
-                                                              ncomp, ng, MFInfo(),
+                                                              ncomp, _ng, MFInfo(),
                                                               *linop.Factory(alev,mglev));
             }
             cor[alev][mglev]->setVal(0.0);
@@ -1350,9 +1350,11 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         for (int mglev = 0; mglev < nmglevs-1; ++mglev)
         {
             if (!solve_called) {
+                IntVect _ng = ng;
+                if (cf_strategy == CFStrategy::ghostnodes) _ng=IntVect(linop.getNGrow(alev,mglev));
                 cor_hold[alev][mglev] = std::make_unique<MultiFab>(cor[alev][mglev]->boxArray(),
                                                                    cor[alev][mglev]->DistributionMap(),
-                                                                   ncomp, ng, MFInfo(),
+                                                                   ncomp, _ng, MFInfo(),
                                                                    *linop.Factory(alev,mglev));
             }
             cor_hold[alev][mglev]->setVal(0.0);
@@ -1362,9 +1364,11 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     {
         cor_hold[alev].resize(1);
         if (!solve_called) {
+            IntVect _ng = ng;
+            if (cf_strategy == CFStrategy::ghostnodes) _ng=IntVect(linop.getNGrow(alev));
             cor_hold[alev][0] = std::make_unique<MultiFab>(cor[alev][0]->boxArray(),
                                                            cor[alev][0]->DistributionMap(),
-                                                           ncomp, ng, MFInfo(),
+                                                           ncomp, _ng, MFInfo(),
                                                            *linop.Factory(alev,0));
         }
         cor_hold[alev][0]->setVal(0.0);

@@ -431,8 +431,8 @@ protected:
 
     bool isCellCentered () const noexcept { return m_ixtype == 0; }
 
-    void make (Vector<Vector<MultiFab> >& mf, int nc) const;
-    void make (Vector<Vector<MultiFab> >& mf, int nc, IntVect const& ng) const;
+    virtual void make (Vector<Vector<MultiFab> >& mf, int nc) const;
+    virtual void make (Vector<Vector<MultiFab> >& mf, int nc, IntVect const& ng) const;
 
     virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int /*amrlev*/, int /*mglev*/) const {
         return std::make_unique<FArrayBoxFactory>();
