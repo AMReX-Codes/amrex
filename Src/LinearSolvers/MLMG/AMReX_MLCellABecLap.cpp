@@ -121,18 +121,33 @@ MLCellABecLap::define (const Vector<Geometry>& a_geom,
             m_overset_mask[amrlev].push_back(std::make_unique<iMultiFab>(m_grids[amrlev][mglev],
                                                                          m_dmap[amrlev][mglev],
                                                                          1, 1));
+
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion() && m_overset_mask[amrlev][mglev]->isFusingCandidate()) {
+                auto const& crsema = m_overset_mask[amrlev][mglev]->arrays();
+                auto const& finema = m_overset_mask[amrlev][mglev-1]->const_arrays();
+                ParallelFor(*m_overset_mask[amrlev][mglev],
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                {
+                    coarsen_overset_mask(i,j,k, crsema[box_no], finema[box_no]);
+                });
+                Gpu::streamSynchronize();
+            } else
+#endif
+            {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(*m_overset_mask[amrlev][mglev], TilingIfNotGPU()); mfi.isValid(); ++mfi)
-            {
-                const Box& bx = mfi.tilebox();
-                Array4<int> const& cmsk = m_overset_mask[amrlev][mglev]->array(mfi);
-                Array4<int const> const fmsk = m_overset_mask[amrlev][mglev-1]->const_array(mfi);
-                AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA(bx, tbx,
+                for (MFIter mfi(*m_overset_mask[amrlev][mglev], TilingIfNotGPU()); mfi.isValid(); ++mfi)
                 {
-                    coarsen_overset_mask(tbx, cmsk, fmsk);
-                });
+                    const Box& bx = mfi.tilebox();
+                    Array4<int> const& cmsk = m_overset_mask[amrlev][mglev]->array(mfi);
+                    Array4<int const> const fmsk = m_overset_mask[amrlev][mglev-1]->const_array(mfi);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                    {
+                        coarsen_overset_mask(i,j,k, cmsk, fmsk);
+                    });
+                }
             }
         }
     }

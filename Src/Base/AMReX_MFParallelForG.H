@@ -31,8 +31,7 @@ void build_par_for_nblocks (char*& a_hp, char*& a_dp, std::pair<int*,int*>& bloc
             ntot += nblocks;
             same_size = same_size && (ncells[i] == ncells[0]);
 
-            new (hp_boxes+i) Box;
-            hp_boxes[i] = boxes[i];
+            new (hp_boxes+i) Box(boxes[i]);
         }
         amrex::ignore_unused(ntot);
         AMREX_ASSERT(static_cast<Long>(hp_blks[nboxes]) == ntot); // no overflow

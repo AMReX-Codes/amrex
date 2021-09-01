@@ -163,6 +163,7 @@ clean:: cleanconfig
 	$(SILENT) $(RM) -r $(TmpBuildDir) *~
 	$(SILENT) $(RM) *.ex *.o
 	$(SILENT) $(RM) *.mod
+	$(SILENT) $(RM) *.ptx
 	$(SILENT) $(RM) BLProfParser.lex.yy.cpp
 	$(SILENT) $(RM) BLProfParser.tab.cpp
 	$(SILENT) $(RM) BLProfParser.tab.H
