@@ -1,3 +1,108 @@
+# 21.09
+
+  -- Migrate Fortran kernles in the Advection_AmrLevel test to C++. (#2296,
+     #2268)
+
+  -- Move slope routines out of amrex into AMReX-Hydro (#2294)
+    
+  -- GNU Make: Fix GNU builds on Perlmutter, + some bug fixes. (#2286,
+     #2293)
+
+  -- Use ParallelFor(Tag) (#2292, #2267)
+
+  -- Optimization of thread safety check in building communication metadata
+     (#2288)
+
+  -- SENSEI: Remove amr adaptor/bridge when AMRLEVEL is off (#2258, #2283)
+    
+  -- ParallelFor(Tag) (#2281)
+    
+  -- Protect against nullptr when calling PODVector dtor. (#2272)
+
+  -- Parser: Hide local symbols (#2274)
+    
+  -- Add EditorConfig section for rst files (#2273)
+    
+  -- Fix bug in the dual grid PC restart in the case where there are no
+     particles on some levels. (#2276)
+
+  -- Fix FabArray move-ctor and move-= (#2270)
+
+  -- Fine-tune FabArray::setBndry (#2269)
+
+  -- MF ParallelFor: PETSc (#2262)
+    
+  -- MF ParallelFor: HYPRE (#2257)
+
+  -- MF ParallelFor: MultiFabUtil (#2256)
+
+  -- Fix Particle CI Tests (#2252)
+
+  -- Github Action Concurrency (#2254)
+    
+  -- MF ParallelFor: MultiFab (#2249)
+    
+  -- Reimplement AddParticlesAtLevel for GPU (#2236)
+
+  -- Enable mixed (face) GpuBndryFuncFab (#2238)
+
+  -- Use the new ParallelFor in some FabArrayUtility functions (#2246)
+
+  -- Use new ParallelFor in FabArray (#2245)
+
+  -- CI: Build Embedded Boundaries (#2232)
+
+  -- Also remove empty map entries when calling clearParticles (#2248)
+
+  -- Bug fix of rarely met issue from Tools/CMake/AMReXUtils.cmake file (#2244)
+
+  -- Move MF ParallelFor out of experimental:: (#2241)
+
+  -- Option for dynamic tiling in CPU build of MF ParallelFor (#2235)
+
+  -- Add sum(), product(), size(), {x,y,z}{lo,hi,len}() member functions to
+     GpuArray and Array?D (#2217)
+
+  -- Fix derive data in AmrLevel::writePlotFile (#2234)
+
+  -- Add MFNodeBilinear for nodal linear interpolation (#2202)
+
+  -- Adding experimental parfor into the FSmooth method (#2230)
+    
+  -- Parser: Exception handling (#2233)
+
+  -- Parser: Noinline transcendental functions (#2229)
+
+  -- Adding experimental parfor into the restriction operator (#2204)
+
+  -- Fix PArena (#2221)
+
+  -- Test Build Variant (#2223)
+
+  -- EB: Fix small cells and multicuts (#2225)
+
+  -- Make CreateVirtualParticles use GPU functions for aggregation_type=Cell (#2219)
+
+  -- Change getgradphi in nodalproj (#2222)
+
+  -- Fix EBInterpolater (#2214)
+
+  -- Add EBMFCellConsLinInterp for EB cell data interpolation (#2203)
+
+  -- Bilinear interpolation for cell data (#2205)
+
+  -- CMake: Prebuild & SetupCUDA (#2209)
+
+  -- Reduction of MulitFab to 1D data (#2182)
+
+  -- YAFluxRegister with blocking factor of 1 (#2155)
+
+  -- Fix lincc_interp (#2201)
+
+  -- Add MFPCInterp for piece-wise constant interpolation (#2200)
+
+  -- Fix Coarse/Fine Boundary BoxArray generated in FPInfo for FillPatch (#2207)
+
 # 21.08
 
   -- Add AsyncVector. (#2197)
