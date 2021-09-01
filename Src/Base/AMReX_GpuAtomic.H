@@ -49,7 +49,7 @@ namespace detail {
 
     template <typename R, typename I, typename Op, typename Cond>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    bool atomic_op_if (R* const address, R const val, Op const op, Cond const cond) noexcept
+    bool atomic_op_if (R* const address, R const val, Op&& op, Cond&& cond) noexcept
     {
 #if defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
@@ -96,7 +96,7 @@ namespace detail {
 
     template <typename R, typename I, typename Op, typename Cond>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    bool atomic_op_if (R* const address, R const val, Op const op, Cond const cond) noexcept
+    bool atomic_op_if (R* const address, R const val, Op&& op, Cond&& cond) noexcept
     {
         static_assert(sizeof(R) == sizeof(I), "sizeof R != sizeof I");
         I* const add_as_I = reinterpret_cast<I*>(address);
@@ -203,34 +203,34 @@ namespace detail {
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_DPCPP)
     template <typename Op, typename Cond>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    bool If_device (double* const sum, double const value, Op const op, Cond const cond) noexcept
+    bool If_device (double* const sum, double const value, Op&& op, Cond&& cond) noexcept
     {
         return detail::atomic_op_if<double, unsigned long long>(sum, value,
-                   std::forward<Op const>(op), std::forward<Cond const>(cond));
+                   std::forward<Op>(op), std::forward<Cond>(cond));
     }
 
     template <typename Op, typename Cond>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    bool If_device (float* const sum, float const value, Op const op, Cond const cond) noexcept
+    bool If_device (float* const sum, float const value, Op&& op, Cond&& cond) noexcept
     {
         return detail::atomic_op_if<float, unsigned int>(sum, value,
-                   std::forward<Op const>(op), std::forward<Cond const>(cond));
+                   std::forward<Op>(op), std::forward<Cond>(cond));
     }
 
     template <typename Op, typename Cond>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    bool If_device (Long* const sum, Long const value, Op const op, Cond const cond) noexcept
+    bool If_device (Long* const sum, Long const value, Op&& op, Cond&& cond) noexcept
     {
         return detail::atomic_op_if<Long, unsigned long long>(sum, value,
-                   std::forward<Op const>(op), std::forward<Cond const>(cond));
+                   std::forward<Op>(op), std::forward<Cond>(cond));
     }
 
     template <typename T, typename Op, typename Cond>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    bool If_device (T* const sum, T const value, Op const op, Cond const cond) noexcept
+    bool If_device (T* const sum, T const value, Op&& op, Cond&& cond) noexcept
     {
         return detail::atomic_op_if<T, T>(sum, value,
-                   std::forward<Op const>(op), std::forward<Cond const>(cond));
+                   std::forward<Op>(op), std::forward<Cond>(cond));
     }
 #endif
 
@@ -251,10 +251,10 @@ namespace detail {
 **/
     template<class T, class Op, class Cond>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool If (T* const add, T const value, Op const op, Cond const cond) noexcept
+    bool If (T* const add, T const value, Op&& op, Cond&& cond) noexcept
     {
 #if AMREX_DEVICE_COMPILE
-        return If_device(add, value, std::forward<Op const>(op), std::forward<Cond const>(cond));
+        return If_device(add, value, std::forward<Op>(op), std::forward<Cond>(cond));
 #else
         T old = *add;
         T const tmp = op(old, value);
