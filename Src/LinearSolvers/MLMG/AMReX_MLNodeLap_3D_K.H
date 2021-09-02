@@ -952,7 +952,7 @@ Real mlndlap_adotx_c (int i, int j, int k, Array4<Real const> const& x,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_normalize_ha (int& i, int& j, int& k, Array4<Real> const& x, Array4<Real const> const& sx,
+void mlndlap_normalize_ha (int i, int j, int k, Array4<Real> const& x, Array4<Real const> const& sx,
                            Array4<Real const> const& sy, Array4<Real const> const& sz,
                            Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
@@ -971,7 +971,7 @@ void mlndlap_normalize_ha (int& i, int& j, int& k, Array4<Real> const& x, Array4
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_normalize_aa (int& i, int& j, int& k, Array4<Real> const& x, Array4<Real const> const& sig,
+void mlndlap_normalize_aa (int i, int j, int k, Array4<Real> const& x, Array4<Real const> const& sig,
                            Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
     Real facx = Real(1.0/36.0)*dxinv[0]*dxinv[0];
