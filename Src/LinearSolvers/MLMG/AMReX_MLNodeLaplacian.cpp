@@ -588,41 +588,81 @@ MLNodeLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
     const Real s0_norm0 = m_s0_norm0[amrlev][mglev];
 
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        Array4<Real> const& arr = mf.array(mfi);
-        Array4<int const> const& dmskarr = dmsk.const_array(mfi);
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && mf.isFusingCandidate()) {
+        const auto& ma = mf.arrays();
+        const auto& dmsk_ma = dmsk.const_arrays();
+
         if (m_coarsening_strategy == CoarseningStrategy::RAP)
         {
-            Array4<Real const> const& stenarr = stencil->const_array(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            const auto& sten_ma = stencil->const_arrays();
+            ParallelFor(mf,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
             {
-                mlndlap_normalize_sten(tbx,arr,stenarr,dmskarr,s0_norm0);
+                mlndlap_normalize_sten(i,j,k,ma[box_no],sten_ma[box_no],dmsk_ma[box_no],s0_norm0);
             });
         }
         else if (m_use_harmonic_average && mglev > 0)
         {
-            AMREX_D_TERM(Array4<Real const> const& sxarr = sigma[0]->const_array(mfi);,
-                         Array4<Real const> const& syarr = sigma[1]->const_array(mfi);,
-                         Array4<Real const> const& szarr = sigma[2]->const_array(mfi););
-
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            AMREX_D_TERM(const auto& sx_ma = sigma[0]->const_arrays();,
+                         const auto& sy_ma = sigma[1]->const_arrays();,
+                         const auto& sz_ma = sigma[2]->const_arrays(););
+            ParallelFor(mf,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
             {
-                mlndlap_normalize_ha(tbx,arr,AMREX_D_DECL(sxarr,syarr,szarr),dmskarr,dxinv);
+                mlndlap_normalize_ha(i,j,k,ma[box_no],AMREX_D_DECL(sx_ma[box_no],sy_ma[box_no],sz_ma[box_no]),dmsk_ma[box_no],dxinv);
             });
         }
         else
         {
-            Array4<Real const> const& sarr = sigma[0]->const_array(mfi);
-
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            const auto& sx_ma = sigma[0]->const_arrays();
+            ParallelFor(mf,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
             {
-                mlndlap_normalize_aa(tbx,arr,sarr,dmskarr,dxinv);
+                mlndlap_normalize_aa(i,j,k,ma[box_no],sx_ma[box_no],dmsk_ma[box_no],dxinv);
             });
+        }
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            Array4<Real> const& arr = mf.array(mfi);
+            Array4<int const> const& dmskarr = dmsk.const_array(mfi);
+            if (m_coarsening_strategy == CoarseningStrategy::RAP)
+            {
+                Array4<Real const> const& stenarr = stencil->const_array(mfi);
+
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                {
+                    mlndlap_normalize_sten(i,j,k,arr,stenarr,dmskarr,s0_norm0);
+                });
+            }
+            else if (m_use_harmonic_average && mglev > 0)
+            {
+                AMREX_D_TERM(Array4<Real const> const& sxarr = sigma[0]->const_array(mfi);,
+                             Array4<Real const> const& syarr = sigma[1]->const_array(mfi);,
+                             Array4<Real const> const& szarr = sigma[2]->const_array(mfi););
+
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                {
+                    mlndlap_normalize_ha(i,j,k,arr,AMREX_D_DECL(sxarr,syarr,szarr),dmskarr,dxinv);
+                });
+            }
+            else
+            {
+                Array4<Real const> const& sarr = sigma[0]->const_array(mfi);
+
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                {
+                    mlndlap_normalize_aa(i,j,k,arr,sarr,dmskarr,dxinv);
+                });
+            }
         }
     }
 }

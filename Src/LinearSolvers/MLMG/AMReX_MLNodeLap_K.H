@@ -158,16 +158,13 @@ void mlndlap_applybc (Box const& vbx, Array4<T> const& phi, Box const& domain,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_normalize_sten (Box const& bx, Array4<Real> const& x,
+void mlndlap_normalize_sten (int i, int j, int k, Array4<Real> const& x,
                              Array4<Real const> const& sten,
                              Array4<int const> const& msk, Real s0_norm0) noexcept
 {
-    amrex::LoopConcurrent(bx, [=] (int i, int j, int k) noexcept
-    {
-        if (!msk(i,j,k) && amrex::Math::abs(sten(i,j,k,0)) > s0_norm0) {
-            x(i,j,k) /= sten(i,j,k,0);
-        }
-    });
+    if (!msk(i,j,k) && amrex::Math::abs(sten(i,j,k,0)) > s0_norm0) {
+        x(i,j,k) /= sten(i,j,k,0);
+    }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

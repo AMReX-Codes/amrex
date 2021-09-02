@@ -63,12 +63,12 @@ Real mlndlap_adotx_aa (int /*i*/, int /*j*/, int /*k*/, Array4<Real const> const
 { return Real(0.0); }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_normalize_ha (Box const&, Array4<Real> const&, Array4<Real const> const&,
+void mlndlap_normalize_ha (int /*i*/, int /*j*/, int /*k*/, Array4<Real> const&, Array4<Real const> const&,
                            Array4<int const> const&, GpuArray<Real,AMREX_SPACEDIM> const&) noexcept
 {}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_normalize_aa (Box const&, Array4<Real> const&, Array4<Real const> const&,
+void mlndlap_normalize_aa (int /*i*/, int /*j*/, int /*k*/, Array4<Real> const&, Array4<Real const> const&,
                            Array4<int const> const&, GpuArray<Real,AMREX_SPACEDIM> const&) noexcept
 {}
 
