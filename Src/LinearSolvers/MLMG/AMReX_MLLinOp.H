@@ -191,7 +191,7 @@ public:
 
     virtual BottomSolver getDefaultBottomSolver () const { return BottomSolver::bicgstab; }
     virtual int getNComp () const { return 1; }
-    virtual int getNGrow (int a_lev = 0, int mg_lev = 0) const { return 0; }
+    virtual int getNGrow (int /*a_lev*/ = 0, int /*mg_lev*/ = 0) const { return 0; }
 
     virtual bool needsUpdate () const { return false; }
     virtual void update () {}
