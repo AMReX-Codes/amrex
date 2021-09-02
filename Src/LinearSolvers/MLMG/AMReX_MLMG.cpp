@@ -1236,16 +1236,8 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     IntVect ng = linop.isCellCentered() ? IntVect(0) : IntVect(1);
     if (cf_strategy == CFStrategy::ghostnodes) ng = ng_rhs;
     if (!solve_called) {
-        if (cf_strategy == CFStrategy::ghostnodes)
-        {
-            linop.make(res, ncomp, ng);
-            linop.make(rescor, ncomp, ng);
-        }
-        else
-        {
-            linop.make(res, ncomp, ng);
-            linop.make(rescor, ncomp, ng);
-        }
+        linop.make(res, ncomp, ng);
+        linop.make(rescor, ncomp, ng);
     }
     for (int alev = 0; alev <= finest_amr_lev; ++alev)
     {
