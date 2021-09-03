@@ -44,7 +44,10 @@ if ( AMReX_PARTICLES )
       list ( APPEND amrex_sensei_sources
          AMReX_AmrParticleDataAdaptor.H
          AMReX_AmrParticleDataAdaptorI.H
-         AMReX_AmrParticleInSituBridge.H )
+         AMReX_AmrParticleInSituBridge.H
+         AMReX_AmrMeshParticleDataAdaptor.H
+         AMReX_AmrMeshParticleDataAdaptorI.H
+         AMReX_AmrMeshParticleInSituBridge.H )
    endif()
 endif ()
 
