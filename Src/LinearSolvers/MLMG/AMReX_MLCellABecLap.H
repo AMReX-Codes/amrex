@@ -3,7 +3,6 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_MLCellLinOp.H>
-#include <AMReX_MLCGSolver.H>
 
 namespace amrex {
 
@@ -13,7 +12,7 @@ class MLCellABecLap
 public:
 
     friend class MLMG;
-    friend class MLCGSolver<FArrayBox>;
+    friend class MLCGSolver;
 
     MLCellABecLap ();
     virtual ~MLCellABecLap ();

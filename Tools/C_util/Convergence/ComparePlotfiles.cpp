@@ -90,6 +90,13 @@ main (int   argc,
     VisMF::Read(mf_c, iFile1);
     VisMF::Read(mf_f, iFile2);
 
+    if (mf_c.contains_nan()) {
+        Abort("First plotfile contains NaN(s)");
+    }
+    if (mf_f.contains_nan()) {
+        Abort("Second plotfile contains NaN(s)");
+    }
+
     // check number of components
     if (mf_c.nComp() != mf_f.nComp()) {
         Abort("plotfiles do not have the same number of variables");

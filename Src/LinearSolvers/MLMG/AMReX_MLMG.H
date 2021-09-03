@@ -21,7 +21,7 @@ class MLMG
 {
 public:
 
-    friend class MLCGSolver<FArrayBox>;
+    friend class MLCGSolver;
 
     using BCMode = MLLinOp::BCMode;
     using Location = MLLinOp::Location;
@@ -164,7 +164,7 @@ public:
 
     void bottomSolveWithPETSc (MultiFab& x, const MultiFab& b);
 
-    int bottomSolveWithCG (MultiFab& x, const MultiFab& b, MLCGSolver<FArrayBox>::Type type);
+    int bottomSolveWithCG (MultiFab& x, const MultiFab& b, MLCGSolver::Type type);
 
     Real getInitRHS () const noexcept { return m_rhsnorm0; }
     // Initial composite residual

@@ -153,6 +153,13 @@ main (int   argc,
         amrDataI.FillVar(dataI, iLevel, derives, destComps);
         amrDataE.FillVar(dataE, iLevel, derives, destComps);
 
+        if (dataI.contains_nan()) {
+            Abort("First plotfile contains NaN(s)");
+        }
+        if (dataE.contains_nan()) {
+            Abort("Second plotfile contains NaN(s)");
+        }
+
         for (int i = 0; i < destComps.size(); i++)
         {
             amrDataI.FlushGrids(destComps[i]);
