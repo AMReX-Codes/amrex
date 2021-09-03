@@ -287,10 +287,39 @@ macros in the following way:
               }
           }
 
+The ``MyFuncs`` region appears in the Tiny Profilier output as an additional table.
+The following output example, mimics the above code. In it, the region is
+indicated by ``REG::MyFuncs``.
+
+.. code-block:: console
+
+    BEGIN REGION MyFuncs
+
+    -------------------------------------------------------------
+    Name          NCalls  Excl. Min  Excl. Avg  Excl. Max   Max %
+    -------------------------------------------------------------
+    MyFunc0         1000      4.402      4.402      4.402  14.19%
+    MyFunc1         1000       4.39       4.39       4.39  14.15%
+    REG::MyFuncs    1000     0.0168     0.0168     0.0168   0.05%
+    -------------------------------------------------------------
+
+    -------------------------------------------------------------
+    Name          NCalls  Incl. Min  Incl. Avg  Incl. Max   Max %
+    -------------------------------------------------------------
+    REG::MyFuncs    1000      8.809      8.809      8.809  28.39%
+    MyFunc0         1000      4.402      4.402      4.402  14.19%
+    MyFunc1         1000       4.39       4.39       4.39  14.15%
+    -------------------------------------------------------------
+
+    END REGION MyFuncs
+
+
 Named Regions
 ~~~~~~~~~~~~~~
 
-If using the Full Profiler, named region objects are also available. These use slightly modified
+If using the Full Profiler, named region objects are also available.
+Named regions allow for control of start and stop instead of relying on
+scope alone. These macros use slightly modified
 ``_VAR_``, ``_START_`` and ``_STOP_`` formatting. To include all timers in a region, except the timers
 inside :cpp:`MyFunc0` and :cpp:`MyFunc1`, arrange the macros as follows:
 
@@ -324,8 +353,9 @@ the Tiny Profiler output and to allow instrumentation strategies without needing
 
 .. admonition:: A Combined Tiny-Full Region Profiling Strategy
 
-  We recommend using scoped regions in a few select places that will be timed when either the
-  Tiny or Full Profiler is activated. Because named regions will be isolated by the Full Profiler
+  We recommend using scoped regions in a few select places that will be isolated for analysis
+  when either the Tiny or Full Profiler is activated.
+  Because only named regions will be isolated by the Full Profiler
   and ignored by the Tiny Profiler, they can be used for regions that you wish to instrument only
   when the Full Profiler is active.
 
