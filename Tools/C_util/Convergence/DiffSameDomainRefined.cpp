@@ -202,6 +202,13 @@ main (int   argc,
             MultiFab& data1     = amrData1.GetGrids(iLevel, iComp);
             MultiFab& data2Fine = amrData2.GetGrids(iLevel, iComp);
 
+            if (data1.contains_nan()) {
+                Abort("First plotfile contains NaN(s)");
+            }
+            if (data2Fine.contains_nan()) {
+                Abort("Second plotfile contains NaN(s)");
+            }
+
             // Copy the data at the coarse level one component at a time
             new_data1.copy(data1,0,0,1);
 

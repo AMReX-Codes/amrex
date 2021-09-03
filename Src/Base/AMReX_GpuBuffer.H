@@ -73,7 +73,7 @@ public:
     T* data () noexcept { return (d_data != nullptr) ? d_data : h_data; }
 
     T const* hostData () const noexcept { return h_data; }
-    T* hostDatat () noexcept { return h_data; }
+    T* hostData () noexcept { return h_data; }
 
     std::size_t size () const noexcept { return m_size; }
 

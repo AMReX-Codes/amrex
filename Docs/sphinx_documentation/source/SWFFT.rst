@@ -74,7 +74,7 @@ The following figures illustrate how data is distributed from block structured g
    | | (c) X-pencils: :math:`N_x=1,N_y=4,N_z=2`              | | (d) Y-pencils: :math:`N_x=4,N_y=1,N_z=2`           |
    +---------------------------------------------------------+------------------------------------------------------+
 
-Using the same number of AMReX grids as processes has been verified to work in the ``SWFFT_poisson`` and ``SWFFT_simple`` tutorials. This can be illustrated by the following equation for the total number of grids, :math:`N_{b}`, in a regularly structured domain:
+Using the same number of AMReX grids as processes has been verified to work in the `SWFFT Poisson`_ and `SWFFT Simple`_ tutorials. This can be illustrated by the following equation for the total number of grids, :math:`N_{b}`, in a regularly structured domain:
 
 .. math:: N_{b} = m_{bi} m_{bj} = n_{bi} n_{bj} n_{bk},
 
@@ -83,11 +83,19 @@ where :math:`n_{bi}, n_{bj},` and  :math:`n_{bk}` are the number of grids, or bo
 Tutorials
 --------------------------------
 
-AMReX contains two SWFFT tutorials, ``SWFFT_poisson`` and ``SWFFT_simple``:
+AMReX contains two SWFFT tutorials, `SWFFT Poisson`_ and `SWFFT Simple`_:
 
-- ``SWFFT_poisson`` tutorial: The tutorial found in ``amrex/Tutorials/SWFFT/SWFFT_poisson`` solves a Poisson equation with periodic boundary conditions.  In it, both a forward FFT and reverse FFT are called to solve the equation, however, no reordering of the DFT data in k-space is performed.
+- `SWFFT Poisson`_ solves a Poisson equation with periodic boundary conditions.  In it, both a forward FFT
+  and reverse FFT are called to solve the equation, however, no reordering of the DFT data in k-space is performed.
 
-- ``SWFFT_simple`` tutorial: This tutorial: ``amrex/Tutorials/SWFFT/SWFFT_simple``, is useful if the objective is to simply take a forward FFT of data, and the DFT's ordering in k-space matters to the user.  This tutorial initializes a 3D or 2D :cpp:`MultiFab`, takes a forward FFT, and then redistributes the data in k-space back to the "correct," 0 to :math:`2\pi`, ordering.  The results are written to a plot file.
+- `SWFFT Simple`_ is useful if the objective is to simply take a forward FFT of data,
+  and the DFT's ordering in k-space matters to the user. This tutorial initializes a 3D or 2D :cpp:`MultiFab`,
+  takes a forward FFT, and then redistributes the data in k-space back to the "correct," 0 to :math:`2\pi`, ordering.
+  The results are written to a plot file.
+
+.. _`SWFFT Poisson`: https://amrex-codes.github.io/amrex/tutorials_html/SWFFT_Tutorial.html#swfft-poisson
+
+.. _`SWFFT Simple`: https://amrex-codes.github.io/amrex/tutorials_html/SWFFT_Tutorial.html#swfft-simple
 
 .. [1]
    https://xgitlab.cels.anl.gov/hacc/SWFFT

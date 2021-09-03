@@ -889,10 +889,10 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
 
         if (fabtyp == FabType::regular)
         {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
             {
-                mlabeclap_normalize(tbx, fab, afab, AMREX_D_DECL(bxfab, byfab, bzfab),
-                                    dxinvarray, ascalar, bscalar, ncomp);
+                mlabeclap_normalize(i,j,k,n, fab, afab, AMREX_D_DECL(bxfab, byfab, bzfab),
+                                    dxinvarray, ascalar, bscalar);
             });
         }
         else if (fabtyp == FabType::singlevalued)

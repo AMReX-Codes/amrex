@@ -5,7 +5,6 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_BCRec.H>
 #include <AMReX_Vector.H>
-#include <cmath>
 
 namespace amrex {
 
@@ -42,6 +41,9 @@ namespace {
     static constexpr int iyz  = 5;
     static constexpr int ixyz = 6;
 }
+
+// Let's keep these nodal functions even though amrex is no longer using
+// them, because they are used by other codes.
 
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void

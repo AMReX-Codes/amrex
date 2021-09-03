@@ -27,7 +27,12 @@ Parser::define (std::string const& func_body)
         std::string f = m_data->m_expression + "\n";
 
         YY_BUFFER_STATE buffer = amrex_parser_scan_string(f.c_str());
-        amrex_parserparse();
+        try {
+            amrex_parserparse();
+        } catch (const std::runtime_error& e) {
+            throw std::runtime_error(std::string(e.what()) + " in Parser expression \""
+                                     + m_data->m_expression + "\"");
+        }
         m_data->m_parser = amrex_parser_new();
         amrex_parser_delete_buffer(buffer);
     }

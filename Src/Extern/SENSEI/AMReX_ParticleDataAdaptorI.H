@@ -266,7 +266,7 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
     SENSEI_ERROR("No mesh named \"" << meshName << "\"")
     return -1;
   }
-  vtkMultiBlockDataSet *mb = vtkMultiBlockDataSet::New();
+  vtkMultiBlockDataSet* mb = vtkMultiBlockDataSet::New();
 
   if (structureOnly)
   {
@@ -656,15 +656,15 @@ vtkPolyData* ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
   // allocate vertex storage for particles
 #ifdef AMREX_SINGLE_PRECISION_PARTICLES
-  vtkFloatArray *coords = vtkFloatArray::New();
+  vtkNew<vtkFloatArray> coords;
 #else
-  vtkDoubleArray *coords = vtkDoubleArray::New();
+  vtkNew<vtkDoubleArray> coords;
 #endif
   coords->SetName("coords");
   coords->SetNumberOfComponents(3);
   coords->SetNumberOfTuples(numParticles);
 #ifdef AMREX_SINGLE_PRECISION_PARTICLES
-  float *pCoords = coords->GetPointer(0);;
+  float *pCoords = coords->GetPointer(0);
 #else
   double *pCoords = coords->GetPointer(0);
 #endif
@@ -674,32 +674,28 @@ vtkPolyData* ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>
   long long ptId = 0;
 
   // allocate connectivity array for particles
-  vtkSmartPointer<vtkCellArray> vertex = vtkSmartPointer<vtkCellArray>::New();
+  vtkNew<vtkCellArray> vertex;
   vertex->AllocateExact(numParticles, 1);
+
+  // points->SetNumberOfPoints(numParticles);
 
   // loop over levels in the particle container
   for (int lev = 0; lev < particles.size();  lev++)
   {
-    // loop over ParticleTiles on level
-    auto& pmap = particles[lev];
-    for (const auto& kv : pmap)
+    using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    for (MyParIter pti(*this->m_particles, lev); pti.isValid(); ++pti)
     {
-      // loop over particles in ParticleTile
-      const auto& aos = kv.second.GetArrayOfStructs();
-      const auto &parts = aos();
+      auto& aos = pti.GetArrayOfStructs();
+      auto numReal = pti.numParticles();
 
-      // visit only the "real" particles, skip the "neighbor" particles.
-      long long numReal = aos.numRealParticles();
       for (long long i = 0; i < numReal; ++i)
       {
-        const auto &part = parts[i];
-
+        const auto &part = aos[i];
         if (part.id() > 0)
         {
           // add a vertex type cell
           vertex->InsertNextCell(1);
           vertex->InsertCellPoint(ptId);
-
           // copy the partilce coordinates
 #if (AMREX_SPACEDIM == 1)
           pCoords[0] = part.pos(0);
@@ -722,9 +718,8 @@ vtkPolyData* ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>
   }
 
   // pass the particle coordinates into VTK's point data structure.
-  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+  vtkNew<vtkPoints> points;
   points->SetData(coords);
-  coords->Delete();
 
   // add point and vertex data to output mesh
   pd->SetPoints(points);
@@ -735,44 +730,45 @@ vtkPolyData* ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
 //-----------------------------------------------------------------------------
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddParticlesIDArray(vtkDataObject* mesh)
+int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddParticlesIDArray(
+  vtkDataObject* mesh)
 {
   auto vtk_particles = dynamic_cast<vtkPolyData*>(mesh);
   const auto& particles = this->m_particles->GetParticles();
   auto nptsOnProc = this->m_particles->TotalNumberOfParticles(true, true);
 
-  vtkSmartPointer<vtkIntArray> intArray = vtkSmartPointer<vtkIntArray>::New();
-  intArray->SetName("id");
-  intArray->SetNumberOfComponents(1);
-  intArray->SetNumberOfValues(nptsOnProc);
+ // allocate a VTK array for the data
+  vtkNew<vtkIntArray> idArray;
+  idArray->SetName("id");
+  idArray->SetNumberOfComponents(1);
+  idArray->SetNumberOfValues(nptsOnProc);
 
-  int *partIds = intArray->GetPointer(0);
+  // get pointer underlying to data
+  int *partIds = idArray->GetPointer(0);
 
+  // loop over particles and append their cpu value to the list
+  using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+  long ptId = 0;
   for (int level = 0; level < particles.size(); ++level)
   {
-    auto &pmap = particles[level];
-    for (const auto &kv : pmap)
+    for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
     {
-      const auto &aos = kv.second.GetArrayOfStructs();
-      const auto &parts = aos();
-
-      // visit only the "real" particles, skip the "neighbor" particles.
-      long long numReal = aos.numRealParticles();
+      auto& aos = pti.GetArrayOfStructs();
+      auto numReal = pti.numParticles();
       for (long long i = 0; i < numReal; ++i)
       {
-        const auto &part = parts[i];
+        const auto &part = aos[i];
         if (part.id() > 0)
         {
           partIds[i] = part.id();
         }
       }
-
       partIds += numReal;
     }
   }
 
   // the association for this array is vtkDataObject::POINT
-  vtk_particles->GetPointData()->AddArray(intArray);
+  vtk_particles->GetPointData()->AddArray(idArray);
 
   return 0;
 }
@@ -787,38 +783,36 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
   auto nptsOnProc = this->m_particles->TotalNumberOfParticles(true, true);
 
   // allocate a VTK array for the data
-  vtkSmartPointer<vtkIntArray> intArray = vtkSmartPointer<vtkIntArray>::New();
-  intArray->SetName("cpu");
-  intArray->SetNumberOfComponents(1);
-  intArray->SetNumberOfValues(nptsOnProc);
+  vtkNew<vtkIntArray> cpuArray;
+  cpuArray->SetName("cpu");
+  cpuArray->SetNumberOfComponents(1);
+  cpuArray->SetNumberOfValues(nptsOnProc);
 
-  int *partCpu = intArray->GetPointer(0);
+  // get pointer to underlying data
+  int* partCpu = cpuArray->GetPointer(0);
 
+  // loop over particles and append their cpu value to the list
+  using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
   for (int level = 0; level < particles.size(); ++level)
   {
-    auto &pmap = particles[level];
-    for (const auto &kv : pmap)
+    for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
     {
-      const auto &aos = kv.second.GetArrayOfStructs();
-      const auto &parts = aos();
-
-      // visit only the "real" particles, skip the "neighbor" particles.
-      long long numReal = aos.numRealParticles();
+      auto& aos = pti.GetArrayOfStructs();
+      auto numReal = pti.numParticles();
       for (long long i = 0; i < numReal; ++i)
       {
-        const auto &part = parts[i];
+        const auto &part = aos[i];
         if (part.id() > 0)
         {
           partCpu[i] = part.cpu();
         }
       }
-
       partCpu += numReal;
     }
   }
 
   // the association for this array is vtkDataObject::POINT
-  vtk_particles->GetPointData()->AddArray(intArray);
+  vtk_particles->GetPointData()->AddArray(cpuArray);
 
   return 0;
 }
@@ -829,9 +823,7 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
   const std::string &arrayName,
   vtkDataObject* mesh)
 {
-  // get the particles from the particle container
-  const auto& particles = this->m_particles->GetParticles();
-  auto nptsOnProc = this->m_particles->TotalNumberOfParticles(true, true);
+  const long nParticles = this->m_particles->TotalNumberOfParticles(true, true);
 
   // check that the name of the arrays is listed in the m_realArrays
   RealDataMapType::iterator ait = m_realArrays.find(arrayName);
@@ -857,50 +849,46 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
 
   // allocate the vtkArray
 #ifdef AMREX_SINGLE_PRECISION_PARTICLES
-  vtkFloatArray *data = vtkFloatArray::New();
+  vtkNew<vtkFloatArray> data;
 #else
-  vtkDoubleArray *data = vtkDoubleArray::New();
+  vtkNew<vtkDoubleArray> data;
 #endif
   data->SetName(arrayName.c_str());
   data->SetNumberOfComponents(nComps);
-  data->SetNumberOfTuples(nptsOnProc);
+  data->SetNumberOfTuples(nParticles);
+
 #ifdef AMREX_SINGLE_PRECISION_PARTICLES
-  float *pData = data->GetPointer(0);
+  float* pData = data->GetPointer(0);
 #else
-  double *pData = data->GetPointer(0);
+  double* pData = data->GetPointer(0);
 #endif
 
-  for (int level = 0; level < particles.size(); ++level)
+  using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+  for (int level = 0; level < this->m_particles->numLevels(); ++level)
   {
-    auto &pmap = particles[level];
-    for (const auto &kv : pmap)
+    for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
     {
-      const auto &aos = kv.second.GetArrayOfStructs();
+      auto& particle_attributes = pti.GetStructOfArrays();
+      auto& aos = pti.GetArrayOfStructs();
 
-      // visit only the "real" particles, skip the "neighbor" particles.
-      long long numReal = aos.numRealParticles();
-      const auto &parts = aos();
-
-      // the data we're about to copy
-      const auto &soa = kv.second.GetStructOfArrays();
-
+      auto numReal = pti.numParticles();
       // shuffle from the AMReX component order
       for (int j = 0; j < nComps; ++j)
       {
+        int compInd = indices[j];
         // component to copy
-        const auto &realData = soa.GetRealData(j);
+        const auto &realData = particle_attributes.GetRealData(compInd);
 
         for (long long i = 0; i < numReal; ++i)
         {
-          const auto &part = parts[i];
+          const auto &part = aos[i];
           if (part.id() > 0)
           {
             pData[i*nComps + j] = realData[i];
           }
         }
-
-        pData += numReal*nComps;
       }
+      pData += numReal * nComps;
     }
   }
 
@@ -923,7 +911,6 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
   vtkDataObject* mesh)
 {
   // get the particles from the particle container
-  const auto& particles = this->m_particles->GetParticles();
   auto nptsOnProc = this->m_particles->TotalNumberOfParticles(true, true);
 
   // check that the name of the arrays is listed in the m_intArrays
@@ -944,40 +931,34 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
     return -1;
   }
 
-  vtkSmartPointer<vtkIntArray> data = vtkSmartPointer<vtkIntArray>::New();
+  vtkNew<vtkIntArray> data;
   data->SetName(arrayName.c_str());
   data->SetNumberOfComponents(1);
   data->SetNumberOfValues(nptsOnProc);
-
-  int *pData = data->GetPointer(0);
+  int* pData = data->GetPointer(0);
 
   // fill array
-  for (int level = 0; level<particles.size();level++)
+  using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+  for (int level = 0; level< this->m_particles->numLevels(); level++)
   {
-    auto &pmap = particles[level];
-    for (const auto &kv : pmap)
+    for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
     {
-      const auto &aos = kv.second.GetArrayOfStructs();
+      auto& particle_attributes = pti.GetStructOfArrays();
+      auto& aos = pti.GetArrayOfStructs();
 
-      // visit only the "real" particles, skip the "neighbor" particles.
-      long long numReal = aos.numRealParticles();
-      const auto &parts = aos();
-
-      // the data we're about to copy
-      const auto &soa = kv.second.GetStructOfArrays();
-
+      auto numReal = pti.numParticles();
+      // shuffle from the AMReX component order
       // component to copy
-      const auto &intData = soa.GetIntData(index);
+      const auto &intData = particle_attributes.GetIntData(index);
 
       for (long long i = 0; i < numReal; ++i)
       {
-        const auto &part = parts[i];
+        const auto &part = aos[i];
         if (part.id() > 0)
         {
           pData[i] = intData[i];
         }
       }
-
       pData += numReal;
     }
   }
@@ -1028,46 +1009,43 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
 
   // allocate the vtk array
 #ifdef AMREX_SINGLE_PRECISION_PARTICLES
-  vtkFloatArray *dataOut = vtkFloatArray::New();
+  vtkNew<vtkFloatArray> data;
 #else
-  vtkDoubleArray *dataOut = vtkDoubleArray::New();
+  vtkNew<vtkDoubleArray> data;
 #endif
-  dataOut->SetName(arrayName.c_str());
-  dataOut->SetNumberOfComponents(nComps);
-  dataOut->SetNumberOfTuples(nptsOnProc);
+
+  data->SetName(arrayName.c_str());
+  data->SetNumberOfComponents(nComps);
+  data->SetNumberOfTuples(nptsOnProc);
+
 #ifdef AMREX_SINGLE_PRECISION_PARTICLES
-  float *pDataOut = dataOut->GetPointer(0);
+  float *pData = data->GetPointer(0);
 #else
-  double *pDataOut = dataOut->GetPointer(0);
+  double *pData = data->GetPointer(0);
 #endif
 
   // copy the data from each level
-  int count = 0;
-  std::vector<double> tuple(nComps);
+  using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
   for (int level = 0; level<particles.size();level++)
   {
-    auto &pmap = particles[level];
-    for (const auto &kv : pmap)
+    for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
     {
-      // loop over particles in ParticleTile
-      const auto& aos = kv.second.GetArrayOfStructs();
-      const auto &parts = aos();
+      auto& aos = pti.GetArrayOfStructs();
 
-      // visit only the "real" particles, skip the "neighbor" particles.
-      long long numReal = aos.numRealParticles();
-      for (long long i = 0; i < numReal; ++i)
+      auto numReal = pti.numParticles();
+      // shuffle from the AMReX component order
+      for (int j = 0; j < nComps; ++j)
       {
-        const auto &part = parts[i];
-        if (part.id() > 0)
+        for (long long i = 0; i < numReal; ++i)
         {
-          for(int q = 0; q < nComps; ++q)
+          const auto &part = aos[i];
+          if (part.id() > 0)
           {
-            pDataOut[i*nComps + q] = part.rdata(indices[q]);
+            pData[i*nComps + j] = part.rdata(indices[j]);
           }
         }
       }
-
-      pDataOut += numReal*nComps;
+      pData += numReal * nComps;
     }
   }
 
@@ -1078,8 +1056,7 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
   auto blocks = dynamic_cast<vtkMultiBlockDataSet*>(mesh);
 
   auto block = dynamic_cast<vtkPolyData*>(blocks->GetBlock(rank));
-  block->GetPointData()->AddArray(dataOut);
-  dataOut->Delete();
+  block->GetPointData()->AddArray(data);
 
   return 0;
 }
@@ -1114,33 +1091,28 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
   }
 
   // allocate vtkArray
-  vtkSmartPointer<vtkIntArray> data = vtkSmartPointer<vtkIntArray>::New();
+  vtkNew<vtkIntArray> data;
   data->SetName(arrayName.c_str());
   data->SetNumberOfComponents(1);
   data->SetNumberOfValues(nptsOnProc);
+  int* pData = data->GetPointer(0);
 
-  int *pData = data->GetPointer(0);
-
+  using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
   for (int level = 0; level<particles.size(); ++level)
   {
-    auto &pmap = particles[level];
-    for (const auto &kv : pmap)
+    for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
     {
-      // loop over particles in ParticleTile
-      const auto& aos = kv.second.GetArrayOfStructs();
-      const auto &parts = aos();
+      const auto& aos = pti.GetArrayOfStructs();
 
-      // visit only the "real" particles, skip the "neighbor" particles.
-      long long numReal = aos.numRealParticles();
+      long long numReal = pti.numParticles();
       for (long long i = 0; i < numReal; ++i)
       {
-        const auto &part = parts[i];
+        const auto &part = aos[i];
         if (part.id() > 0)
         {
           pData[i] = part.idata(index);
         }
       }
-
       pData += numReal;
     }
   }

@@ -150,7 +150,12 @@ Parser::compileHost () const
 
             m_data->m_host_executor = (char*)The_Pinned_Arena()->alloc(m_data->m_exe_size);
 
-            parser_compile(m_data->m_parser, m_data->m_host_executor);
+            try {
+                parser_compile(m_data->m_parser, m_data->m_host_executor);
+            } catch (const std::runtime_error& e) {
+                throw std::runtime_error(std::string(e.what()) + " in Parser expression \""
+                                         + m_data->m_expression + "\"");
+            }
         }
 
 #ifdef AMREX_USE_GPU

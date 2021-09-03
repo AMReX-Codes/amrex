@@ -1220,7 +1220,7 @@ YY_RULE_SETUP
 /* everything else */
 case 48:
 YY_RULE_SETUP
-{ amrex_parsererror("Unknown character %c\n", *amrex_parsertext); }
+{ amrex_parsererror("Unknown character %c", *amrex_parsertext); }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP

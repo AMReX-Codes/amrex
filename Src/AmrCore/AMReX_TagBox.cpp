@@ -335,9 +335,6 @@ TagBoxArray::mapPeriodicRemoveDuplicates (const Geometry& geom)
 
         // We need to keep tags in periodic boundary
         const auto owner_mask = amrex::OwnerMask(tmp, Periodicity::NonPeriodic(), nGrowVect());
-#ifdef AMREX_USE_OMP
-#pragma omp parallel
-#endif
         for (MFIter mfi(tmp); mfi.isValid(); ++mfi) {
             Box const& box = mfi.fabbox();
             Array4<TagType> const& tag =this->array(mfi);

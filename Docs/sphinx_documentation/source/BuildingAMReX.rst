@@ -44,6 +44,10 @@ list of important variables.
    +-----------------+-------------------------------------+--------------------+
    | PRECISION       | DOUBLE or FLOAT                     | DOUBLE             |
    +-----------------+-------------------------------------+--------------------+
+   | TEST            | TRUE or FALSE                       | FALSE              |
+   +-----------------+-------------------------------------+--------------------+
+   | USE_ASSERTION   | TRUE or FALSE                       | FALSE              |
+   +-----------------+-------------------------------------+--------------------+
    | USE_MPI         | TRUE or FALSE                       | FALSE              |
    +-----------------+-------------------------------------+--------------------+
    | USE_OMP         | TRUE or FALSE                       | FALSE              |
@@ -106,11 +110,12 @@ AMReX uses double precision by default.  One can change to single
 precision by setting ``PRECISION=FLOAT``.
 (Particles have an equivalent flag ``USE_SINGLE_PRECISION_PARTICLES=TRUE/FALSE``.)
 
-Variables ``DEBUG``, ``USE_MPI`` and ``USE_OMP`` are optional with default set
-to FALSE.  The meaning of these variables should
+Variables ``DEBUG``, ``TEST``, ``USE_MPI`` and ``USE_OMP`` are optional with
+default set to FALSE.  The meaning of these variables should
 be obvious.  When ``DEBUG=TRUE``, aggressive compiler optimization flags are
 turned off and assertions in source code are turned on. For production runs,
-``DEBUG`` should be set to FALSE.
+``DEBUG`` should be set to FALSE. ``TEST`` and ``USE_ASSERTION`` are set by
+default in CI and add slight debugging, e.g., initializing default values in FABs.
 An advanced variable, ``MPI_THREAD_MULTIPLE``, can be set to TRUE to initialize
 MPI with support for concurrent MPI calls from multiple threads.
 
@@ -474,6 +479,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    | AMReX_COMM_PROFILE           |  Build with comm-profiling support              | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_MEM_PROFILE            |  Build with memory-profiling support            | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_TESTING                |  Build for testing (CI)                         | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_MPI_THREAD_MULTIPLE    |  Concurrent MPI calls from multiple threads     | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+

@@ -73,7 +73,9 @@ MLNodeLaplacian::buildIntegral ()
 #else
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
-        amrex::algoim::compute_integrals(*m_integral[amrlev]);
+        if (dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get())) {
+            amrex::algoim::compute_integrals(*m_integral[amrlev]);
+        }
     }
 #endif
 }

@@ -416,6 +416,43 @@ public:
         }
     }
 
+    void updateIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
+                          Array<Array4<Type_t const>,AMREX_SPACEDIM> const& type_arr,
+                          Array4<Real const> const& lst, Geometry const& geom) const noexcept
+    {
+        auto const& dx = geom.CellSizeArray();
+        auto const& problo = geom.ProbLoArray();
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            Array4<Real> const& inter = inter_arr[idim];
+            Array4<Type_t const> const& type = type_arr[idim];
+            const Box bx{inter};
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+            {
+                if (type(i,j,k) == Type::irregular) {
+                    if (idim == 0) {
+                        if (lst(i,j,k) == Real(0.0)) {
+                            inter(i,j,k) = problo[0] + i*dx[0];
+                        } else if (lst(i+1,j,k) == Real(0.0)) {
+                            inter(i,j,k) = problo[0] + (i+1)*dx[0];
+                        }
+                    } else if (idim == 1) {
+                        if (lst(i,j,k) == Real(0.0)) {
+                            inter(i,j,k) = problo[1] + j*dx[1];
+                        } else if (lst(i,j+1,k) == Real(0.0)) {
+                            inter(i,j,k) = problo[1] + (j+1)*dx[1];
+                        }
+                    } else {
+                        if (lst(i,j,k) == Real(0.0)) {
+                            inter(i,j,k) = problo[2] + k*dx[2];
+                        } else if (lst(i,j,k+1) == Real(0.0)) {
+                            inter(i,j,k) = problo[2] + (k+1)*dx[2];
+                        }
+                    }
+                }
+            });
+        }
+    }
+
 private:
 
     F m_f;

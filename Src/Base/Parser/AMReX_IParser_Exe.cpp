@@ -44,7 +44,10 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
                 t->i = AMREX_IPARSER_LOCAL_IDX0 + lidx;
             } else {
                 t->i = ((struct iparser_symbol*)node)->ip;
-                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(t->i >= 0, "iparser_compile: unknown variable");
+                if (t->i < 0) {
+                    throw std::runtime_error(std::string("Unknown variable ")
+                                             + ((struct iparser_symbol*)node)->name);
+                }
             }
         }
         exe_size += sizeof(IParserExeSymbol);
@@ -89,7 +92,10 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
                     t->i = AMREX_IPARSER_LOCAL_IDX0 + lidx;
                 } else {
                     t->i = ((struct iparser_symbol*)(node->l))->ip;
-                    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(t->i >= 0, "iparser_compile: unknown variable");
+                    if (t->i < 0) {
+                        throw std::runtime_error(std::string("Unknown variable ")
+                                                 + ((struct iparser_symbol*)node->l)->name);
+                    }
                 }
             }
             exe_size += sizeof(IParserExeADD_PN);
@@ -107,7 +113,10 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
                     t->i = AMREX_IPARSER_LOCAL_IDX0 + lidx;
                 } else {
                     t->i = ((struct iparser_symbol*)(node->r))->ip;
-                    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(t->i >= 0, "iparser_compile: unknown variable");
+                    if (t->i < 0) {
+                        throw std::runtime_error(std::string("Unknown variable ")
+                                                 + ((struct iparser_symbol*)node->r)->name);
+                    }
                 }
             }
             exe_size += sizeof(IParserExeADD_PN);
@@ -174,7 +183,10 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
                     t->i = AMREX_IPARSER_LOCAL_IDX0 + lidx;
                 } else {
                     t->i = ((struct iparser_symbol*)(node->l))->ip;
-                    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(t->i >= 0, "iparser_compile: unknown variable");
+                    if (t->i < 0) {
+                        throw std::runtime_error(std::string("Unknown variable ")
+                                                 + ((struct iparser_symbol*)node->l)->name);
+                    }
                 }
                 t->sign = 1.0;
             }
@@ -193,7 +205,10 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
                     t->i = AMREX_IPARSER_LOCAL_IDX0 + lidx;
                 } else {
                     t->i = ((struct iparser_symbol*)(node->r))->ip;
-                    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(t->i >= 0, "iparser_compile: unknown variable");
+                    if (t->i < 0) {
+                        throw std::runtime_error(std::string("Unknown variable ")
+                                                 + ((struct iparser_symbol*)node->r)->name);
+                    }
                 }
                 t->sign = -1.0;
             }
@@ -262,7 +277,10 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
                     t->i = AMREX_IPARSER_LOCAL_IDX0 + lidx;
                 } else {
                     t->i = ((struct iparser_symbol*)(node->l))->ip;
-                    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(t->i >= 0, "iparser_compile: unknown variable");
+                    if (t->i < 0) {
+                        throw std::runtime_error(std::string("Unknown variable ")
+                                                 + ((struct iparser_symbol*)node->l)->name);
+                    }
                 }
             }
             exe_size += sizeof(IParserExeMUL_PN);
@@ -280,7 +298,10 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
                     t->i = AMREX_IPARSER_LOCAL_IDX0 + lidx;
                 } else {
                     t->i = ((struct iparser_symbol*)(node->r))->ip;
-                    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(t->i >= 0, "iparser_compile: unknown variable");
+                    if (t->i < 0) {
+                        throw std::runtime_error(std::string("Unknown variable ")
+                                                 + ((struct iparser_symbol*)node->r)->name);
+                    }
                 }
             }
             exe_size += sizeof(IParserExeMUL_PN);
@@ -347,7 +368,10 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
                     t->i = AMREX_IPARSER_LOCAL_IDX0 + lidx;
                 } else {
                     t->i = ((struct iparser_symbol*)(node->l))->ip;
-                    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(t->i >= 0, "iparser_compile: unknown variable");
+                    if (t->i < 0) {
+                        throw std::runtime_error(std::string("Unknown variable ")
+                                                 + ((struct iparser_symbol*)node->l)->name);
+                    }
                 }
                 t->reverse = false;
             }
@@ -366,7 +390,10 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
                     t->i = AMREX_IPARSER_LOCAL_IDX0 + lidx;
                 } else {
                     t->i = ((struct iparser_symbol*)(node->r))->ip;
-                    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(t->i >= 0, "iparser_compile: unknown variable");
+                    if (t->i < 0) {
+                        throw std::runtime_error(std::string("Unknown variable ")
+                                                 + ((struct iparser_symbol*)node->r)->name);
+                    }
                 }
                 t->reverse = true;
             }

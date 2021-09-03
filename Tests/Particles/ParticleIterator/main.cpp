@@ -12,7 +12,7 @@ int main(int argc, char* argv[])
 {
 
   amrex::Initialize(argc,argv);
-
+  {
   int ncell = 48;
   int max_grid_size = 32;
   int nlevs = 1;
@@ -65,6 +65,6 @@ int main(int argc, char* argv[])
   for (ParIter<1+BL_SPACEDIM> mfi(MyPC, 0); mfi.isValid(); ++mfi) {
       amrex::AllPrintToFile("particle_iterator_out") << mfi.index() << " " << mfi.tileIndex() << "\n";
   }
-
+  }
   amrex::Finalize();
 }

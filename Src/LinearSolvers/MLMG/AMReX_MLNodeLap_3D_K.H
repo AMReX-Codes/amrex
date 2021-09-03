@@ -952,7 +952,7 @@ Real mlndlap_adotx_c (int i, int j, int k, Array4<Real const> const& x,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_normalize_ha (Box const& bx, Array4<Real> const& x, Array4<Real const> const& sx,
+void mlndlap_normalize_ha (int i, int j, int k, Array4<Real> const& x, Array4<Real const> const& sx,
                            Array4<Real const> const& sy, Array4<Real const> const& sz,
                            Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
@@ -960,21 +960,18 @@ void mlndlap_normalize_ha (Box const& bx, Array4<Real> const& x, Array4<Real con
     Real facy = Real(1.0/36.0)*dxinv[1]*dxinv[1];
     Real facz = Real(1.0/36.0)*dxinv[2]*dxinv[2];
 
-    amrex::LoopConcurrent(bx, [=] (int i, int j, int k) noexcept
-    {
-        if (!msk(i,j,k)) {
-            x(i,j,k) = x(i,j,k)/(Real(-4.0)*(facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1)+sx(i-1,j,k-1)+sx(i,j,k-1)
-                                                  +sx(i-1,j-1,k  )+sx(i,j-1,k  )+sx(i-1,j,k  )+sx(i,j,k  ))
-                                            +facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1)+sy(i-1,j,k-1)+sy(i,j,k-1)
-                                                  +sy(i-1,j-1,k  )+sy(i,j-1,k  )+sy(i-1,j,k  )+sy(i,j,k  ))
-                                            +facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)+sz(i-1,j,k-1)+sz(i,j,k-1)
-                                                  +sz(i-1,j-1,k  )+sz(i,j-1,k  )+sz(i-1,j,k  )+sz(i,j,k  ))));
-        }
-    });
+    if (!msk(i,j,k)) {
+        x(i,j,k) = x(i,j,k)/(Real(-4.0)*(facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1)+sx(i-1,j,k-1)+sx(i,j,k-1)
+                                                +sx(i-1,j-1,k  )+sx(i,j-1,k  )+sx(i-1,j,k  )+sx(i,j,k  ))
+                                         +facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1)+sy(i-1,j,k-1)+sy(i,j,k-1)
+                                                +sy(i-1,j-1,k  )+sy(i,j-1,k  )+sy(i-1,j,k  )+sy(i,j,k  ))
+                                         +facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)+sz(i-1,j,k-1)+sz(i,j,k-1)
+                                                +sz(i-1,j-1,k  )+sz(i,j-1,k  )+sz(i-1,j,k  )+sz(i,j,k  ))));
+    }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_normalize_aa (Box const& bx, Array4<Real> const& x, Array4<Real const> const& sig,
+void mlndlap_normalize_aa (int i, int j, int k, Array4<Real> const& x, Array4<Real const> const& sig,
                            Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
     Real facx = Real(1.0/36.0)*dxinv[0]*dxinv[0];
@@ -982,14 +979,11 @@ void mlndlap_normalize_aa (Box const& bx, Array4<Real> const& x, Array4<Real con
     Real facz = Real(1.0/36.0)*dxinv[2]*dxinv[2];
     Real fxyz = facx + facy + facz;
 
-    amrex::LoopConcurrent(bx, [=] (int i, int j, int k) noexcept
-    {
-        if (!msk(i,j,k)) {
-            x(i,j,k) = x(i,j,k) /
-                (Real(-4.0)*fxyz*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1)
-                                 +sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  )));
-        }
-    });
+    if (!msk(i,j,k)) {
+        x(i,j,k) = x(i,j,k) /
+           (Real(-4.0)*fxyz*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1)
+                             +sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  )));
+    }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

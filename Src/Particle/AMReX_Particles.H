@@ -1374,7 +1374,6 @@ template <class RTYPE>
     DenseBins<ParticleType> m_bins;
 
 private:
-
     virtual void particlePostLocate (ParticleType& /*p*/, const ParticleLocData& /*pld*/,
                                      const int /*lev*/) {}
 

@@ -1,5 +1,4 @@
-CEXE_sources += AmrLevelAdv.cpp LevelBldAdv.cpp main.cpp 
-
-CEXE_headers += AmrLevelAdv.H
+CEXE_headers += AmrLevelAdv.H Kernels.H
+CEXE_sources += AmrLevelAdv.cpp LevelBldAdv.cpp Adv.cpp bc_nullfill.cpp Tagging_params.cpp main.cpp 
 
 FEXE_headers += Adv_F.H

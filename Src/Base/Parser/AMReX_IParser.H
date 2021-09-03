@@ -136,7 +136,12 @@ IParser::compileHost () const
 
             m_data->m_host_executor = (char*)The_Pinned_Arena()->alloc(m_data->m_exe_size);
 
-            iparser_compile(m_data->m_iparser, m_data->m_host_executor);
+            try {
+                iparser_compile(m_data->m_iparser, m_data->m_host_executor);
+            } catch (const std::runtime_error& e) {
+                throw std::runtime_error(std::string(e.what()) + " in IParser expression \""
+                                         + m_data->m_expression + "\"");
+            }
         }
 
 #ifdef AMREX_USE_GPU

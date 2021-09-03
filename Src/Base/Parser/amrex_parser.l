@@ -79,6 +79,6 @@ EXP	([Ee][-+]?[0-9]+)
 "\n"    { return EOL; }
 
  /* everything else */
-.	{ amrex_parsererror("Unknown character %c\n", *amrex_parsertext); }
+.	{ amrex_parsererror("Unknown character %c", *amrex_parsertext); }
 
 %%

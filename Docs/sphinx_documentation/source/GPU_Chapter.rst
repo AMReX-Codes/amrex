@@ -19,7 +19,9 @@ languages, see their respective documentations.
 Be aware, this documentation is currently focused on CUDA.  HIP and DPC++ documentation
 is forthcoming.
 
-A number of tutorials can be found at ``Tutorials/GPU/``.
+A number of tutorials can be found at `Tutorials/GPU`_.
+
+.. _`Tutorials/GPU`: https://amrex-codes.github.io/amrex/tutorials_html/GPU_Tutorial.html
 
 .. toctree::
    :maxdepth: 1

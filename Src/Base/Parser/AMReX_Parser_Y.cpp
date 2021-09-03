@@ -9,11 +9,12 @@
 void
 amrex_parsererror (char const *s, ...)
 {
+    char print_buff[512];
     std::va_list vl;
     va_start(vl, s);
-    std::vfprintf(stderr, s, vl);
-    std::fprintf(stderr, "\n");
+    std::vsnprintf(print_buff, 512, s, vl);
     va_end(vl);
+    throw std::runtime_error(print_buff);
 }
 
 namespace amrex {
@@ -1546,7 +1547,8 @@ void parser_ast_setconst (struct parser_node* node, char const* name, double c)
     }
 }
 
-void parser_ast_get_symbols (struct parser_node* node, std::set<std::string>& symbols)
+void parser_ast_get_symbols (struct parser_node* node, std::set<std::string>& symbols,
+                             std::set<std::string>& local_symbols)
 {
     switch (node->type)
     {
@@ -1564,33 +1566,34 @@ void parser_ast_get_symbols (struct parser_node* node, std::set<std::string>& sy
     case PARSER_MUL_PP:
     case PARSER_DIV_PP:
     case PARSER_LIST:
-        parser_ast_get_symbols(node->l, symbols);
-        parser_ast_get_symbols(node->r, symbols);
+        parser_ast_get_symbols(node->l, symbols, local_symbols);
+        parser_ast_get_symbols(node->r, symbols, local_symbols);
         break;
     case PARSER_NEG:
     case PARSER_NEG_P:
-        parser_ast_get_symbols(node->l, symbols);
+        parser_ast_get_symbols(node->l, symbols, local_symbols);
         break;
     case PARSER_F1:
-        parser_ast_get_symbols(((struct parser_f1*)node)->l, symbols);
+        parser_ast_get_symbols(((struct parser_f1*)node)->l, symbols, local_symbols);
         break;
     case PARSER_F2:
-        parser_ast_get_symbols(((struct parser_f2*)node)->l, symbols);
-        parser_ast_get_symbols(((struct parser_f2*)node)->r, symbols);
+        parser_ast_get_symbols(((struct parser_f2*)node)->l, symbols, local_symbols);
+        parser_ast_get_symbols(((struct parser_f2*)node)->r, symbols, local_symbols);
         break;
     case PARSER_F3:
-        parser_ast_get_symbols(((struct parser_f3*)node)->n1, symbols);
-        parser_ast_get_symbols(((struct parser_f3*)node)->n2, symbols);
-        parser_ast_get_symbols(((struct parser_f3*)node)->n3, symbols);
+        parser_ast_get_symbols(((struct parser_f3*)node)->n1, symbols, local_symbols);
+        parser_ast_get_symbols(((struct parser_f3*)node)->n2, symbols, local_symbols);
+        parser_ast_get_symbols(((struct parser_f3*)node)->n3, symbols, local_symbols);
         break;
     case PARSER_ASSIGN:
-        parser_ast_get_symbols(((struct parser_assign*)node)->v, symbols);
+        local_symbols.emplace(((struct parser_assign*)node)->s->name);
+        parser_ast_get_symbols(((struct parser_assign*)node)->v, symbols, local_symbols);
         break;
     case PARSER_ADD_VP:
     case PARSER_SUB_VP:
     case PARSER_MUL_VP:
     case PARSER_DIV_VP:
-        parser_ast_get_symbols(node->r, symbols);
+        parser_ast_get_symbols(node->r, symbols, local_symbols);
         break;
     default:
         amrex::Abort("parser_ast_get_symbols: unknown node type " + std::to_string(node->type));
@@ -1622,7 +1625,11 @@ std::set<std::string>
 parser_get_symbols (struct amrex_parser* parser)
 {
     std::set<std::string> symbols;
-    parser_ast_get_symbols(parser->ast, symbols);
+    std::set<std::string> local_symbols;
+    parser_ast_get_symbols(parser->ast, symbols, local_symbols);
+    for (auto const& ls : local_symbols) {
+        symbols.erase(ls);
+    }
     return symbols;
 }
 

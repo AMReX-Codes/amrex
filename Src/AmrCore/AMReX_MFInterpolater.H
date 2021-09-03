@@ -88,10 +88,29 @@ public:
                          Vector<BCRec> const& bcs, int bcscomp);
 };
 
+/*
+ * \brief [Bi|Tri] linear interpolation on nodal data
+ */
+class MFNodeBilinear final
+    : public MFInterpolater
+{
+public:
+    virtual ~MFNodeBilinear () = default;
+
+    virtual Box CoarseBox (Box const& fine, int ratio);
+    virtual Box CoarseBox (Box const& fine, IntVect const& ratio);
+
+    virtual void interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf, int fcomp, int ncomp,
+                         IntVect const& ng, Geometry const& cgeom, Geometry const& fgeom,
+                         Box const& dest_domain, IntVect const& ratio,
+                         Vector<BCRec> const& bcs, int bcscomp);
+};
+
 extern AMREX_EXPORT MFPCInterp          mf_pc_interp;
 extern AMREX_EXPORT MFCellConsLinInterp mf_cell_cons_interp;
 extern AMREX_EXPORT MFCellConsLinInterp mf_lincc_interp;
 extern AMREX_EXPORT MFCellBilinear      mf_cell_bilinear_interp;
+extern AMREX_EXPORT MFNodeBilinear      mf_node_bilinear_interp;
 
 }
 

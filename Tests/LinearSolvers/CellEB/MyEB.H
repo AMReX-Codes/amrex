@@ -30,7 +30,7 @@ public:
     FlowerIF& operator= (FlowerIF&& rhs) = delete;
 
     AMREX_GPU_HOST_DEVICE inline
-    amrex::Real operator() (AMREX_D_DECL(amrex::Real x, amrex::Real y, amrex::Real z))
+    amrex::Real operator() (AMREX_D_DECL(amrex::Real x, amrex::Real y, amrex::Real))
         const noexcept
     {
         amrex::Real posx = x - m_center.x;

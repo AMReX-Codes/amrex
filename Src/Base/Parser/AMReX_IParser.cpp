@@ -27,7 +27,12 @@ IParser::define (std::string const& func_body)
         std::string f = m_data->m_expression + "\n";
 
         YY_BUFFER_STATE buffer = amrex_iparser_scan_string(f.c_str());
-        amrex_iparserparse();
+        try {
+            amrex_iparserparse();
+        } catch (const std::runtime_error& e) {
+            throw std::runtime_error(std::string(e.what()) + " in IParser expression \""
+                                     + m_data->m_expression + "\"");
+        }
         m_data->m_iparser = amrex_iparser_new();
         amrex_iparser_delete_buffer(buffer);
     }

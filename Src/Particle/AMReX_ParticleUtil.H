@@ -538,6 +538,19 @@ IntVect computeRefFac (const ParGDBBase* a_gdb, int src_lev, int lev);
 
 Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow);
 
+namespace particle_detail
+{
+template <typename C>
+void clearEmptyEntries (C& c)
+{
+    for (auto c_it = c.begin(); c_it != c.end(); /* no ++ */)
+    {
+        if (c_it->second.empty()) { c.erase(c_it++); }
+        else { ++c_it; }
+    }
+}
+}
+
 #ifdef AMREX_USE_HDF5_ASYNC
 void async_vol_es_wait_particle();
 void async_vol_es_wait_close_particle();

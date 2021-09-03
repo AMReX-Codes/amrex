@@ -111,6 +111,9 @@ namespace amrex
         return (m_data[local_index]);
       }
 
+    const T* data () const noexcept { return m_data.data(); }
+    T*       data ()       noexcept { return m_data.data(); }
+
   private:
       Vector<T> m_data;
       bool m_need_to_clear_bd = false;

@@ -8,9 +8,10 @@
 MLMG and Linear Operator Classes
 ================================
 
-``MLMG`` is a class for solving the linear system using the geometric
-multigrid method.  The constructor of ``MLMG`` takes the reference to
-:cpp:`MLLinOp`, an abstract base class of various linear operator
+Multi-Level Multi-Grid or ``MLMG`` is a class for solving the linear
+system using the geometric multigrid method.  The constructor of
+``MLMG`` takes the reference to :cpp:`MLLinOp`, an abstract base
+class of various linear operator
 classes, :cpp:`MLABecLaplacian`, :cpp:`MLPoisson`,
 :cpp:`MLNodeLaplacian`, etc.  We choose the type of linear operator
 class according to the type the linear system to solve.
@@ -450,7 +451,11 @@ residual correction form of the original problem. To build Hypre, follow the nex
 
 To use hypre, one must include ``amrex/Src/Extern/HYPRE`` in the build system.
 For examples of using hypre, we refer the reader to
-``Tutorials/LinearSolvers/ABecLaplacian_C`` or ``Tutorials/LinearSolvers/NodalProjection_EB``.
+`ABecLaplacian`_ or `Nodal Projection EB`_.
+
+.. _`ABecLaplacian`: https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers_Tutorial.html
+
+.. _`Nodal Projection EB`: https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers_Tutorial.html
 
 Caveat: to use hypre for the nodal solver,  you must either build with USE_EB = TRUE,
 or explicitly set the coarsening strategy in the calling routine to be ``RAP`` rather than ``Sigma``
@@ -526,7 +531,7 @@ problems. To build PETSc, follow the next steps:
 
 To use PETSc, one must include ``amrex/Src/Extern/PETSc``
 in the build system.  For an example of using PETSc, we refer the
-reader to ``Tutorials/LinearSolvers/ABecLaplacian_C``.
+reader to the tutorial, `ABecLaplacian`_.
 
 MAC Projection
 =========================
@@ -568,9 +573,11 @@ are assumed to be homogeneous.  The call to the :cpp:`MLLinOp` member function
 :cpp:`setLevelBC` occurs inside the MacProjection class; one does not need to call that
 explicitly when using the MacProjection class.
 
-The code below is taken from
-``Tutorials/LinearSolvers/MAC_Projection_EB/main.cpp`` and demonstrates how to set up
+The code below is taken from the file
+``Tutorials/LinearSolvers/MAC_Projection_EB/main.cpp`` in `MAC Projection EB`_ and demonstrates how to set up
 the MACProjector object and use it to perform a MAC projection.
+
+.. _`MAC Projection EB`: https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers_Tutorial.html
 
 .. highlight:: c++
 
@@ -650,7 +657,7 @@ the MACProjector object and use it to perform a MAC projection.
     // If we want to use phi elsewhere, we can pass in an array in which to return the solution
     // macproj.project({&phi_inout},reltol,abstol,MLMG::Location::FaceCenter);
 
-See ``Tutorials/LinearSolvers/MAC_Projection_EB`` for the complete working example.
+See the `MAC Projection EB`_ tutorial for the complete working example.
 
 Nodal Projection
 ================
@@ -827,7 +834,7 @@ gradient term to make the vector field result satisfy the divergence constraint.
    //
    MultiFab::Add( *vel, *fluxes, 0, 0, AMREX_SPACEDIM, 0);
 
-See ``Tutorials/LinearSolvers/Nodal_Projection_EB`` for the complete working example.
+See the `Nodal Projection EB`_ tutorial for the complete working example.
 
 Tensor Solve
 ============

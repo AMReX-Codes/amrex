@@ -34,7 +34,6 @@ target_sources( amrex
    AMReX_Random.H
    AMReX_RandomEngine.H
    AMReX_Random.cpp
-   AMReX_Slopes_K.H
    AMReX_BLassert.H
    AMReX_ArrayLim.H
    AMReX_REAL.H
@@ -166,6 +165,8 @@ target_sources( amrex
    AMReX_BC_TYPES.H
    AMReX_FilCC_${AMReX_SPACEDIM}D_C.H
    AMReX_FilCC_C.H
+   AMReX_FilFC_${AMReX_SPACEDIM}D_C.H
+   AMReX_FilFC_C.H
    AMReX_FilCC_C.cpp
    AMReX_FilND_C.H
    AMReX_FilND_C.cpp
@@ -214,6 +215,7 @@ target_sources( amrex
    AMReX_MFParallelFor.H
    AMReX_MFParallelForC.H
    AMReX_MFParallelForG.H
+   AMReX_TagParallelFor.H
    # CUDA --------------------------------------------------------------------
    AMReX_CudaGraph.H
    # Machine model -----------------------------------------------------------

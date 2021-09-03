@@ -883,9 +883,12 @@ function is executed.
 The available launch schema are presented here in three categories: launching
 nested loops over Boxes or 1D arrays, launching generic work and launching using
 OpenACC or  OpenMP pragmas. The latest versions of the examples used in this section
-of the documentation can be found in the AMReX source code at ``amrex/Tutorials/GPU/Launch``.
+of the documentation can be found in the AMReX source code in the `Launch`_ tutorials.
 Users should also refer to Chapter :ref:`Chap:Basics` as needed for information about basic
 AMReX classes.
+
+.. _`Launch`: https://amrex-codes.github.io/amrex/tutorials_html/GPU_Tutorial.html#launch
+
 
 AMReX also recommends writing primary floating point operation kernels
 in C++ using AMReX's :cpp:`Array4` object syntax.  It provides a
@@ -1482,7 +1485,9 @@ look like the following:
 Note the use of the :fortran:`!$acc parallel deviceptr` clause to specify which data has been placed
 in managed memory. This instructs OpenACC to treat those variables as if they already live on
 the device, bypassing the usual copies. For complete examples of a particle code that has been ported
-to GPUs using Cuda, OpenACC, and OpenMP, please see :cpp:`Tutorials/Particles/ElectromagneticPIC`.
+to GPUs using Cuda, OpenACC, and OpenMP, please see the tutorial `Electromagnetic PIC`_.
+
+.. _`Electromagnetic PIC`: https://amrex-codes.github.io/amrex/tutorials_html/Particles_Tutorial.html#electromagneticpic
 
 GPU-aware implementations of many common particle operations are provided with AMReX, including neighbor list
 construction and traversal, particle-mesh deposition and interpolation, parallel reductions of particle data,
@@ -1550,7 +1555,7 @@ AMReX for GPUs:
   performance and greatly reduces runtime.  Functions are written
   inline by putting their definitions in the ``.H`` file and using
   the ``AMREX_FORCE_INLINE`` AMReX macro.  Examples can be found in
-  ``Tutorials/GPU/Launch``. For example:
+  in the `Launch`_ tutorial. For example:
 
 .. highlight:: cpp
 

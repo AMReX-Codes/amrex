@@ -29,7 +29,7 @@ EBMFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& fine
         auto const& crse = crsemf.const_arrays();
         auto const& fine = finemf.arrays();
         auto const& cflg = cflags.const_arrays();
-        experimental::ParallelFor(finemf, ng, nc,
+        ParallelFor(finemf, ng, nc,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
         {
             if (dest_domain.contains(i,j,k)) {
