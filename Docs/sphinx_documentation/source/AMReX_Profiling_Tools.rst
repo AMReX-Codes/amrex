@@ -329,7 +329,6 @@ the Tiny Profiler output and to allow instrumentation strategies without needing
   and ignored by the Tiny Profiler, they can be used for regions that you wish to instrument only
   when the Full Profiler is active.
 
-.. HACK verify intended meaning.
 
 Instrumenting Fortran90 Code
 ============================
