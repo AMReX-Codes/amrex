@@ -166,8 +166,6 @@ for timing an entire function. For example:
 Note that all AMReX timers are scoped and will call "stop" when the corresponding object is destroyed.
 This macro is unique because it can *only* stop when it goes out of scope.
 
-.. HACK check meaning of _only_ here.
-
 2) A named, scoped timer, :cpp:`BL_PROFILE_VAR`:
 ----------------------------------------------------------------------------------------
 
@@ -347,13 +345,13 @@ with the following calls:
     ...
     call bl_proffortfuncstop("my_function")
 
-Note that the start and stop calls must be matched and the profiling output
-will warn of any :fortran:`bl_proffortfuncstart` calls that were not stopped
-with :fortran:`bl_proffortfuncstop` calls (when in debug mode only). You will need
-to add :fortran:`bl_proffortfuncstop` before any returns, at the end of the
-function or at the point in the function you want to stop profiling.
-
-.. HACK check meaning change "and" to ","
+Note that the start and stop calls must be matched before leaving the
+scope of the corresponding start. Moreover, it is necessary to take into
+account all possible code paths. Therefore, you may need to add :fortran:`bl_proffortfuncstop`
+in multiple locations, such as before any returns, at the end of the function
+and at the point in the function where you want to stop profiling. The profiling
+output will only warn of any :fortran:`bl_proffortfuncstart` calls that were not stopped with
+:fortran:`bl_proffortfuncstop` calls when in debug mode.
 
 For functions with a high number of calls, there is a lighter-weight interface:
 
