@@ -45,7 +45,30 @@ Output
 At the end of a run, a summary of exclusive and inclusive function times will
 be written to ``stdout``. This output includes the minimum and maximum (over
 processes) time spent in each routine as well as the average and the maximum
-percentage of total run time. See :ref:`sec:sample:tiny` for sample output.
+percentage of total run time. See the sample output below.
+
+.. highlight:: console
+
+::
+
+    TinyProfiler total time across processes [min...avg...max]: 1.765...1.765...1.765
+    ---------------------------------------------------------------------------------
+    Name                          NCalls   Excl. Min   Excl. Avg   Excl. Max   Max  %
+    ---------------------------------------------------------------------------------
+    mfix_level::EvolveFluid       1        1.602       1.668       1.691       95.83%
+    FabArray::FillBoundary()      11081    0.02195     0.03336     0.06617      3.75%
+    FabArrayBase::getFB()         22162    0.02031     0.02147     0.02275      1.29%
+    PC<...>::WriteAsciiFile()     1        0.00292     0.004072    0.004551     0.26%
+
+
+    ---------------------------------------------------------------------------------
+    Name                          NCalls   Incl. Min   Incl. Avg  Incl. Max    Max  %
+    ---------------------------------------------------------------------------------
+    mfix_level::Evolve()          1        1.69        1.723      1.734        98.23%
+    mfix_level::EvolveFluid       1        1.69        1.723      1.734        98.23%
+    FabArray::FillBoundary()      11081    0.04236     0.05485    0.08826       5.00%
+    FabArrayBase::getFB()         22162    0.02031     0.02149    0.02275       1.29%
+
 
 The tiny profiler automatically writes the results to ``stdout`` at the end of your
 code, when ``amrex::Finalize();`` is reached. However, you may want to write
@@ -76,7 +99,9 @@ Full Profiling
 
 If you set ``PROFILE = TRUE`` then a ``bl_prof`` directory will be written that
 contains detailed per-task timings for each processor.  This will be written in
-``nfiles`` files (where ``nfiles`` is specified by the user).  In addition, an
+``nfiles`` files (where ``nfiles`` is specified by the user). The information
+in the directory can be analyzed by the :ref:`sec:amrprofparse` tool
+within :ref:`sec:amrvis`. In addition, an
 exclusive-only set of function timings will be written to ``stdout``.
 
 Trace Profiling
@@ -318,47 +343,46 @@ Named Regions
 ~~~~~~~~~~~~~~
 
 If using the Full Profiler, named region objects are also available.
-Named regions allow for control of start and stop instead of relying on
-scope alone. These macros use slightly modified
-``_VAR_``, ``_START_`` and ``_STOP_`` formatting. To include all timers in a region, except the timers
-inside :cpp:`MyFunc0` and :cpp:`MyFunc1`, arrange the macros as follows:
+Named regions allow control of start and stop points without relying on scope.
+These macros use slightly modified
+``_VAR_``, ``_START_`` and ``_STOP_`` formatting. The first
+argument is the name, followed by the profile variable. Names
+for each section can differ, but because the profiler variable will be used
+to group the sections into a region, it must be the same.
+Consider the following example:
 
 ::
 
-          {
-              BL_PROFILE_REGION("MyFuncs()", myfuncs);
-              <Code Block A>
-              BL_PROFILE_REGION_STOP(myfuncs);
+  {
+      BL_PROFILE_REGION_VAR("RegionAC",reg_ac);
+      <Code Block A>
+      BL_PROFILE_REGION_VAR_STOP("RegionAC", reg_ac);
 
-              {
-                   MyFunc_0(arg);
-              }
+      {
 
-              BL_PROFILE_REGION_START(myfuncs);
-              <Code Block B>
-              BL_PROFILE_REGION_STOP(myfuncs);
+         MyFunc_0(arg);
+      }
 
-              {
-                   MyFunc_1(arg);
+      BL_PROFILE_REGION_VAR("RegionB", reg_b)
+      <Code Block B>
+      BL_PROFILE_REGION_VAR_STOP("RegionB", reg_b);
 
-                 BL_PROFILE_REGION_START(myfuncs);
-                 <Code Block C>
-                 BL_PROFILE_REGION_STOP(myfuncs);
-              }
-          }
+      {
 
-Currently, these macros are only available in the Full Profiler. This was done to control the size of
-the Tiny Profiler output and to allow instrumentation strategies without needing to re-code each time.
+         MyFunc_1(arg);
+
+         BL_PROFILE_REGION_VAR_START("SecondRegionAC", reg_ac);
+         <Code Block C>
+         BL_PROFILE_REGION_VAR_STOP("SecondRegionAC", reg_ac);
+      }
+  }
 
 
-.. admonition:: A Combined Tiny-Full Region Profiling Strategy
-
-  We recommend using scoped regions in a few select places that will be isolated for analysis
-  when either the Tiny or Full Profiler is activated.
-  Because only named regions will be isolated by the Full Profiler
-  and ignored by the Tiny Profiler, they can be used for regions that you wish to instrument only
-  when the Full Profiler is active.
-
+Here, :cpp:`<Code Block A>` and :cpp:`<Code Block C>` are
+grouped into one region labeled "RegionAC" for profiling. :cpp:`<Code Block B>`
+is isolated in its own group.
+Any timers inside :cpp:`MyFunc_0` and :cpp:`MyFunc_1` are not included in the
+region groupings.
 
 Instrumenting Fortran90 Code
 ============================
@@ -403,35 +427,7 @@ in the ``bl_proffortfuncstart_int/bl_proffortfuncstop_int`` calls.
    You will need to turn on the Full Profiler to receive the results from
    fortran instrumentation.
 
-.. _sec:sample:tiny:
-
-Sample Output From Tiny Profile
-===============================
-
-Output using ``TINY_PROFILE = TRUE`` can look like the following:
-
-.. highlight:: console
-
-::
-
-
-    TinyProfiler total time across processes [min...avg...max]: 1.765...1.765...1.765
-    ---------------------------------------------------------------------------------
-    Name                          NCalls   Excl. Min   Excl. Avg   Excl. Max   Max  %
-    ---------------------------------------------------------------------------------
-    mfix_level::EvolveFluid       1        1.602       1.668       1.691       95.83%
-    FabArray::FillBoundary()      11081    0.02195     0.03336     0.06617      3.75%
-    FabArrayBase::getFB()         22162    0.02031     0.02147     0.02275      1.29%
-    PC<...>::WriteAsciiFile()     1        0.00292     0.004072    0.004551     0.26%
-
-
-    ---------------------------------------------------------------------------------
-    Name                          NCalls   Incl. Min   Incl. Avg  Incl. Max    Max  %
-    ---------------------------------------------------------------------------------
-    mfix_level::Evolve()          1        1.69        1.723      1.734        98.23%
-    mfix_level::EvolveFluid       1        1.69        1.723      1.734        98.23%
-    FabArray::FillBoundary()      11081    0.04236     0.05485    0.08826       5.00%
-    FabArrayBase::getFB()         22162    0.02031     0.02149    0.02275       1.29%
+.. _sec:amrprofparse:
 
 AMRProfParser
 =============
