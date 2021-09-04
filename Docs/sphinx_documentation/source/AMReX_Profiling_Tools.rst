@@ -27,7 +27,7 @@ To enable "Tiny Profiling" with GNU Make, in `GNUMakefile` set,
   TINY_PROFILE = TRUE
   PROFILE      = FALSE
 
-If building with CMake, set the following cmake flags,
+If building with CMake, set the following CMake flags,
 
 ::
 
@@ -87,7 +87,7 @@ partial outputs.) Therefore, it is recommended to place these flush calls in
 easily identifiable regions of your code and outside of as many profiling
 timers as possible, such as immediately before or after writing a checkpoint.
 
-Also, since flush calls will print multiple, similar looking outputs to stdout,
+Also, since flush calls will print multiple, similar looking outputs to ``stdout``,
 it is also recommended to wrap any ``BL_PROFILE_TINY_FLUSH();`` calls in
 informative ``amrex::Print()`` lines to ensure accurate identification of each
 set of timers.
@@ -149,7 +149,7 @@ To start, you must at least instrument main(), i.e.:
       amrex::Finalize();
     }
 
-or
+Or:
 
 ::
 
@@ -275,7 +275,7 @@ and :cpp:`MyFunc1` but not any of the
 ----------------------------------------------------------------------------------------
 
 Often, it's helpful to look at a subset of timers separately from the complete profile. For
-example, you may want to view the timing of a specific timestep or isolate everything inside the "Chemistry"
+example, you may want to view the timing of a specific time step or isolate everything inside the "Chemistry"
 part of the code. This can be accomplished by designating profile regions. All timers within a
 named region will be included both in the full analysis, as well as in a separate sub-analysis.
 
@@ -312,7 +312,7 @@ macros in the following way:
               }
           }
 
-The ``MyFuncs`` region appears in the Tiny Profilier output as an additional table.
+The ``MyFuncs`` region appears in the Tiny Profiler output as an additional table.
 The following output example, mimics the above code. In it, the region is
 indicated by ``REG::MyFuncs``.
 
@@ -406,7 +406,7 @@ and at the point in the function where you want to stop profiling. The profiling
 output will only warn of any :fortran:`bl_proffortfuncstart` calls that were not stopped with
 :fortran:`bl_proffortfuncstop` calls when in debug mode.
 
-For functions with a high number of calls, there is a lighter-weight interface:
+For functions with a high number of calls, there is a lighter-weight interface,
 
 ::
 
