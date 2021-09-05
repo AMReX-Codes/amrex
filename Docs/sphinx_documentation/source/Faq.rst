@@ -47,7 +47,7 @@ my timings are inconsistent.
 **A.** Due to the asynchronous nature of GPU execution, profilers might only
 measure the run time on CPU, if there is no explicit synchronization.  For
 ``TINY_PROFILE``, one could use :cpp:`ParmParse` parameter
-``tiny_profiler.device_synchronize_around_region=1` to add synchronization.
+``tiny_profiler.device_synchronize_around_region=1`` to add synchronization.
 Note that this may degrade performance.
 
 |
@@ -114,7 +114,7 @@ device to host copies without relying on managed memory?
 **A.** Use ``The_Pinned_Arena()`` (See `Memory Allocation`_ in the AMReX
 Source Documentation.) and
 
-.. code-bolck::
+.. code-block::
 
  void htod_memcpy (void* p_d, const void* p_h, const std::size_t sz);
  void dtoh_memcpy (void* p_h, const void* p_d, const std::size_t sz);
