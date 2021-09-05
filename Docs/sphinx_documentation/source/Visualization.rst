@@ -10,9 +10,10 @@ Our favorite visualization tool is Amrvis. We heartily encourage you to build
 the ``amrvis1d``, ``amrvis2d``, and ``amrvis3d`` executables, and use
 them to visualize your data. A useful feature is ``View/Dataset``, which
 allows you to view data in a nested spreadsheet that
-reflects the AMR hierarchy -- this can be handy for debugging. In Amrvis you can modify how
-many levels of data are shown, whether you want to see the grid boxes or
-not, the color palette, etc. Below are instructions and tips for using
+reflects the AMR hierarchy -- this can be handy for debugging.
+Other display options include: the ability to select the number of levels of data to show,
+whether to display grid boxes, and to specify the color palette.
+Below are instructions and tips for using
 Amrvis. Additional information is contained in the document
 ``Amrvis/Docs/Amrvis.tex`` (which can built into a ``pdf`` using ``pdflatex``).
 
@@ -47,22 +48,27 @@ Amrvis. Additional information is contained in the document
 
    |
 
-   **Note**:sup:`1`: Amrvis requires the OSF/Motif libraries and headers. If you don't have
-   these you will need to install the development version of motif through your
-   package manager.  ``lesstif`` gives some functionality and will allow you to
-   build the Amrvis executable, but Amrvis may exhibit subtle anomalies.
+   .. note::
 
-   On most Linux distributions, the motif library is provided by the
-   ``openmotif`` package, and its header files (like ``Xm.h``) are provided by
-   ``openmotif-devel``. If those packages are not installed, then use the
-   OS-specific package management tool to install them.
+      Amrvis requires the OSF/Motif libraries and headers. If you don't have
+      these you will need to install the development version of motif through your
+      package manager.  ``lesstif`` gives some functionality and will allow you to
+      build the Amrvis executable, but Amrvis may exhibit subtle anomalies.
+
+      On most Linux distributions, the motif library is provided by the
+      ``openmotif`` package, and its header files (like ``Xm.h``) are provided by
+      ``openmotif-devel``. If those packages are not installed, then use the
+      OS-specific package management tool to install them.
 
    |
 
-   **Note**:sup:`2`: These instructions assume that the install directories
-   for Amrvis and volpack share the same parent directory. To install volpack
-   in a different location specify the location of volpack in Amrvis's
-   ``GNUmakefile`` by changing the variable ``VOLPACKDIR`` to the desired location.
+   .. note::
+
+       These instructions assume that the install directories
+       for Amrvis and volpack share the same parent directory. To install volpack
+       in a different location specify the location of volpack in Amrvis's
+       ``GNUmakefile`` by changing the variable ``VOLPACKDIR`` to the desired location.
+
 
    |
 
@@ -77,12 +83,20 @@ Amrvis. Additional information is contained in the document
 
 #. **Configure**:
 
-   Amrvis will look for the configuration file ``.amrvis.defaults`` in your
-   home folder. Run the command ``cp Amrvis/amrvis.defaults ~/.amrvis.defaults`` to
-   copy it there.  Then, in
-   your copy, edit the line containing "palette" to point to the color palette
-   you want to use, e.g.,
-   "palette /home/username/Amrvis/Palette". The other lines control options
+   The settings for Amrvis are saved in the configuration file ``.amrvis.defaults`` in
+   your home directory. A default version of this file is available in the parent directory of the
+   Amrvis repo. Run the command ``cp Amrvis/amrvis.defaults ~/.amrvis.defaults`` to
+   copy it to your home directory. A color pallete is also available in the Amrvis directory as a file
+   named ``Palette``.
+   To configure Amrvis to use this pallete you can open the ``.amrvis.defaults`` file
+   in your home directory and edit the line containing ``palette`` to point to the
+   location of this file. For example,
+
+   ::
+
+      palette     ~/Amrvis/Palette
+
+   Other lines in ``.amrvis.defaults`` control options
    such as the initial field to display, the number format, window size, etc.
    If there are multiple instances of the same option, the last option takes
    precedence.
@@ -110,7 +124,7 @@ Amrvis. Additional information is contained in the document
    |
 
    We have created a number of routines to convert AMReX plotfile data to other
-   formats (such as matlab), but in order to properly interpret the
+   formats (such as Matlab), but in order to properly interpret the
    hierarchical AMR data, each tends to require its own idiosyncrasies. If you
    would like to display the data in another format, please leave a
    message on `AMReX's GitHub Discussions page`_.
@@ -162,8 +176,8 @@ equation`).
 Next, download and install VisIt from
 https://wci.llnl.gov/simulation/computer-codes/visit.  To open a single
 plotfile, run VisIt, then select "File" :math:`\rightarrow` "Open file ...",
-then select the Header file associated the the plotfile of interest (e.g.,
-plt00000/Header).  Assuming you ran the simulation in 2D, here are instructions
+then select the Header file associated with the plotfile of interest (e.g.,
+``plt00000/Header``).  Assuming you ran the simulation in 2D, here are instructions
 for making a simple plot:
 
 -  To view the data, select "Add" :math:`\rightarrow` "Pseudocolor"
@@ -236,19 +250,17 @@ then select movie.visit. Create an image to your liking and press the
 the movie, choose "File" :math:`\rightarrow` "Save movie ...", and follow the
 on-screen instructions.
 
-Caveat:
+.. warning::
 
-The Visit reader determines "Cycle" from the name of the plotfile (directory),
-specifically from the integer that follows the string "plt" in the plotfile name.
+    The Visit reader determines the value of ``Cycle`` from the name of the plotfile (directory),
+    specifically from the integer that follows the string "plt" in the plotfile name.
+    So if you call it ``plt00100``, ``myplt00100`` or ``this_is_my_plt00100`` then it will
+    correctly recognize and print ``Cycle: 100``.
+    If you call it ``plt00100_old`` it will also correctly recognize and print ``Cycle: 100``.
 
-So ... if you call it plt00100 or myplt00100 or this_is_my_plt00100 then it will
-correctly recognize and print Cycle: 100.
-
-If you call it plt00100_old it will also correctly recognize and print Cycle: 100
-
-But, if you do not have "plt" followed immediately by the number,
-e.g. you name it pltx00100, then VisIt will not be able to correctly recognize
-and print the value for "Cycle".  (It will still read and display the data itself.)
+    However, if you do not have ``plt`` followed immediately by the number,
+    e.g. you name it ``pltx00100``, then VisIt will not be able to correctly recognize
+    and print the value for ``Cycle``.  (It will still read and display the data itself.)
 
 .. _section-1:
 
