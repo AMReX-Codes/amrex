@@ -457,15 +457,6 @@ For examples of using hypre, we refer the reader to
 
 .. _`Nodal Projection EB`: https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers_Tutorial.html
 
-.. highlight:: c++
-
-::
-
-    nodal_projector.getLinOp().setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::RAP);
-
-where
-:cpp:`nodal_projector` is the :cpp:`NodalProjector` object we have built.
-
 The following parameter should be set to True if the problem to be solved has a singular matrix.
 In this case, the solution is only defined to within a constant.  Setting this parameter to True
 replaces one row in the matrix sent to hypre from AMReX by a row that sets the value at one cell to 0.
