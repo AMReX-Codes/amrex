@@ -7,8 +7,7 @@
 #include <AMReX_CONSTANTS.H>
 #include <cmath>
 
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 cns_diffcoef_eb (int i, int j, int k,
                  amrex::Array4<amrex::Real const> const& q,
@@ -31,8 +30,7 @@ cns_diffcoef_eb (int i, int j, int k,
     coefs(i,j,k,CLAM) = cov ? -1.e10 : coefs(i,j,k,CETA)*parm.cp/parm.Pr;
 }
 
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 cns_constcoef_eb (int i, int j, int k,
                  amrex::Array4<amrex::EBCellFlag const> const& flag,
@@ -47,8 +45,7 @@ cns_constcoef_eb (int i, int j, int k,
      coefs(i,j,k,CLAM) = cov ? -1.e01 : parm.const_lambda;
 }
 
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 cns_diff_eb_x (int i, int j, int k,
                amrex::Array4<amrex::Real const> const& q,
@@ -122,8 +119,7 @@ cns_diff_eb_x (int i, int j, int k,
 
 }
 
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 cns_diff_eb_y (int i, int j, int k, amrex::Array4<amrex::Real const> const& q,
                amrex::Array4<amrex::Real const> const& coeffs,
@@ -197,8 +193,7 @@ cns_diff_eb_y (int i, int j, int k, amrex::Array4<amrex::Real const> const& q,
 }
 
 #if (AMREX_SPACEDIM == 3)
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 cns_diff_eb_z (int i, int j, int k,
                amrex::Array4<amrex::Real const> const& q,
@@ -257,17 +252,15 @@ cns_diff_eb_z (int i, int j, int k,
 }
 #endif
 
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 Real
-compute_interp1d(amrex::Real cym,amrex::Real cy0,amrex::Real cyp, Array1D<Real, 1,3>& v)
+compute_interp1d (amrex::Real cym,amrex::Real cy0,amrex::Real cyp, Array1D<Real, 1,3>& v)
 {
     Real x = cym*v(1) + cy0*v(2) + cyp*v(3);
     return x;
 }
 
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 Real
 compute_interp2d(amrex::Real cym,amrex::Real cy0,amrex::Real cyp,
                  amrex::Real czm,amrex::Real cz0,amrex::Real czp, Array2D<Real, 1,3,1,3>& v)
@@ -278,8 +271,7 @@ compute_interp2d(amrex::Real cym,amrex::Real cy0,amrex::Real cyp,
 }
 
 #if (AMREX_SPACEDIM == 2)
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 compute_diff_wallflux ( int i, int j, int k,
                         amrex::Array4<amrex::Real const> const& q,
@@ -468,8 +460,7 @@ compute_diff_wallflux ( int i, int j, int k,
 
 #else // 3d version below
 
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 compute_diff_wallflux ( int i, int j, int k,
                         amrex::Array4<amrex::Real const> const& q,

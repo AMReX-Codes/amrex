@@ -32,7 +32,9 @@ cns_initdata (int i, int j, int k, amrex::Array4<amrex::Real> const& state,
     state(i,j,k,URHO ) = rhot;
     state(i,j,k,UMX  ) = rhot*uxt;
     state(i,j,k,UMY  ) = Real(0.0);
+#if (AMREX_SPACEDIM == 3)
     state(i,j,k,UMZ  ) = Real(0.0);
+#endif
     state(i,j,k,UEINT) = et;
     state(i,j,k,UEDEN) = et + Real(0.5)*rhot*uxt*uxt;
     state(i,j,k,UTEMP) = 0.0;

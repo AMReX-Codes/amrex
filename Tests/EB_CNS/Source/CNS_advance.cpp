@@ -118,18 +118,17 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
 
                 if (flag.getType(amrex::grow(bx,1)) == FabType::regular)
                 {
-
                     Array4<Real const>    s_arr =    S.array(mfi);
                     Array4<Real      > dsdt_arr = dSdt.array(mfi);
 
                     compute_dSdt_box(bx,s_arr,dsdt_arr,{AMREX_D_DECL(&flux[0],&flux[1],&flux[2])});
 
                     if (fr_as_crse) {
-                        fr_as_crse->CrseAdd(mfi,{AMREX_D_DECL(&flux[0],&flux[1],&flux[2])},dx,dt,RunOn::Cpu);
+                        fr_as_crse->CrseAdd(mfi,{AMREX_D_DECL(&flux[0],&flux[1],&flux[2])},dx,dt,RunOn::Device);
                     }
 
                     if (fr_as_fine) {
-                        fr_as_fine->FineAdd(mfi,{AMREX_D_DECL(&flux[0],&flux[1],&flux[2])},dx,dt,RunOn::Cpu);
+                        fr_as_fine->FineAdd(mfi,{AMREX_D_DECL(&flux[0],&flux[1],&flux[2])},dx,dt,RunOn::Device);
                     }
                 }
                 else
@@ -163,29 +162,31 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                                         as_crse, p_drho_as_crse->array(), p_rrflag_as_crse->const_array(),
                                         as_fine, dm_as_fine.array(), level_mask.const_array(mfi), dt);
 
-                    if (fr_as_crse)
+                    if (fr_as_crse) {
                         fr_as_crse->CrseAdd(mfi,{AMREX_D_DECL(&flux[0],&flux[1],&flux[2])},
                                             dx,dt,(*volfrac)[mfi],
                                             {AMREX_D_DECL(&((*areafrac[0])[mfi]),
                                                           &((*areafrac[1])[mfi]),
                                                           &((*areafrac[2])[mfi]))},
-                                            RunOn::Cpu);
+                                            RunOn::Device);
+                    }
 
-                    if (fr_as_fine)
+                    if (fr_as_fine) {
                         fr_as_fine->FineAdd(mfi,{AMREX_D_DECL(&flux[0],&flux[1],&flux[2])},
                                             dx,dt,(*volfrac)[mfi],
                                             {AMREX_D_DECL(&((*areafrac[0])[mfi]),
                                                           &((*areafrac[1])[mfi]),
                                                           &((*areafrac[2])[mfi]))},
                                             dm_as_fine,
-                                            RunOn::Cpu);
+                                            RunOn::Device);
+                    }
                 }
             }
 
             Gpu::streamSynchronize();
 
             wt = (amrex::second() - wt) / bx.d_numPts();
-            cost[mfi].plus<RunOn::Host>(wt, bx);
+            cost[mfi].plus<RunOn::Device>(wt, bx);
         }
     }
 }
