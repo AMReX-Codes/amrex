@@ -20,7 +20,8 @@ Currently, AMReX has two options for built-in profiling:
 Tiny Profiling
 ----------------------
 
-To enable "Tiny Profiling" with GNU Make, in `GNUMakefile` set,
+To enable "Tiny Profiling" with GNU Make edit the options in the file ``GNUMakefile``
+to show,
 
 ::
 
