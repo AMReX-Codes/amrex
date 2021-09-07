@@ -196,10 +196,6 @@ protected:
     const Vector<int>* local_tile_index_map;
     const Vector<int>* num_local_tiles;
 
-#ifdef AMREX_USE_GPU
-    std::unique_ptr<Gpu::FuseSafeGuard> gpu_fsg;
-#endif
-
     static AMREX_EXPORT int nextDynamicIndex;
     static AMREX_EXPORT int depth;
     static AMREX_EXPORT int allow_multiple_mfiters;

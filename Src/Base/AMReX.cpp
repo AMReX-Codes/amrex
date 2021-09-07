@@ -516,10 +516,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     machine::Initialize();
 
-#ifdef AMREX_USE_GPU
-    Gpu::Fuser::Initialize();
-#endif
-
 #ifdef AMREX_USE_HYPRE
     if (init_hypre) {
         HYPRE_Init();

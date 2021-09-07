@@ -161,7 +161,6 @@ ReduceSum_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<value_type> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
-        Gpu::FuseReductionSafeGuard rsg(true);
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
