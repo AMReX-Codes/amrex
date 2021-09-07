@@ -58,10 +58,10 @@ CNS::compute_dSdt_box_eb (const Box& bx,
     redistwgt.resize(bxg2,1);
 
     // Set to zero just in case
-    divc.setVal(0.0);
-    optmp.setVal(0.0);
-    delta_m.setVal(0.0);
-    redistwgt.setVal(0.0);
+    divc.setVal<RunOn::Device>(0.0);
+    optmp.setVal<RunOn::Device>(0.0);
+    delta_m.setVal<RunOn::Device>(0.0);
+    redistwgt.setVal<RunOn::Device>(0.0);
 
     // Primitive variables
     FArrayBox qtmp;
@@ -72,18 +72,16 @@ CNS::compute_dSdt_box_eb (const Box& bx,
     slopetmp.resize(bxg4,NEQNS);
 
     FArrayBox diff_coeff;
-    Elixir dcoeff_eli;
 
     if (do_visc == 1)
     {
        diff_coeff.resize(bxg4, NCOEF);
-       dcoeff_eli = diff_coeff.elixir();
     }
 
     FArrayBox flux_tmp[AMREX_SPACEDIM];
     for (int idim=0; idim < AMREX_SPACEDIM; ++idim) {
         flux_tmp[idim].resize(amrex::surroundingNodes(bxg3,idim),NCONS);
-        flux_tmp[idim].setVal(0.);
+        flux_tmp[idim].setVal<RunOn::Device>(0.);
     }
 
     Parm const* lparm = d_parm;
@@ -92,7 +90,6 @@ CNS::compute_dSdt_box_eb (const Box& bx,
                  auto const& fyfab = flux_tmp[1].array();,
                  auto const& fzfab = flux_tmp[2].array(););
 
-    Elixir qeli = qtmp.elixir();
     auto const& q = qtmp.array();
 
     GpuArray<Real,3> weights;
@@ -134,8 +131,10 @@ CNS::compute_dSdt_box_eb (const Box& bx,
        }
     }
 
-    Elixir slopeeli = slopetmp.elixir();
     auto const& slope = slopetmp.array();
+
+    auto l_plm_iorder = plm_iorder;
+    auto l_plm_theta = plm_theta;
 
     // x-direction
     int cdir = 0;
@@ -143,7 +142,7 @@ CNS::compute_dSdt_box_eb (const Box& bx,
     amrex::ParallelFor(xslpbx,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
-        cns_slope_eb_x(i, j, k, slope, q, flag, plm_iorder, plm_theta);
+        cns_slope_eb_x(i, j, k, slope, q, flag, l_plm_iorder, l_plm_theta);
     });
 
     const Box& xflxbx = amrex::surroundingNodes(bxg3,cdir);
@@ -172,7 +171,7 @@ CNS::compute_dSdt_box_eb (const Box& bx,
     amrex::ParallelFor(yslpbx,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
-        cns_slope_eb_y(i, j, k, slope, q, flag, plm_iorder, plm_theta);
+        cns_slope_eb_y(i, j, k, slope, q, flag, l_plm_iorder, l_plm_theta);
     });
 
     const Box& yflxbx = amrex::surroundingNodes(bxg3,cdir);
@@ -200,7 +199,7 @@ CNS::compute_dSdt_box_eb (const Box& bx,
     amrex::ParallelFor(zslpbx,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
-        cns_slope_eb_z(i, j, k, slope, q, flag, plm_iorder, plm_theta);
+        cns_slope_eb_z(i, j, k, slope, q, flag, l_plm_iorder, l_plm_theta);
     });
 
     const Box& zflxbx = amrex::surroundingNodes(bxg3,cdir);
@@ -222,14 +221,6 @@ CNS::compute_dSdt_box_eb (const Box& bx,
     }
 #endif
 
-    // don't have to do this, but we could
-    qeli.clear(); // don't need them anymore
-    slopeeli.clear();
-
-    if (do_visc == 1) {
-       dcoeff_eli.clear();
-    }
-
     // These are the fluxes we computed above -- they live at face centers
     AMREX_D_TERM(auto const& fx_in_arr = flux_tmp[0].array();,
                  auto const& fy_in_arr = flux_tmp[1].array();,
@@ -241,20 +232,15 @@ CNS::compute_dSdt_box_eb (const Box& bx,
                  auto const& fy_out_arr = flux[1]->array();,
                  auto const& fz_out_arr = flux[2]->array(););
 
-    int bx_ilo = bx.smallEnd()[0];
-    int bx_ihi = bx.bigEnd()[0];
-    int bx_jlo = bx.smallEnd()[1];
-    int bx_jhi = bx.bigEnd()[1];
-#if (AMREX_SPACEDIM == 3)
-    int bx_klo = bx.smallEnd()[2];
-    int bx_khi = bx.bigEnd()[2];
-#endif
+    auto const& blo = bx.smallEnd();
+    auto const& bhi = bx.bigEnd();
 
     // Because we are going to redistribute, we put the divergence into divc
     //    rather than directly into dsdtfab
     auto const& divc_arr = divc.array();
 
     bool l_do_visc = do_visc;
+    auto l_eb_weights_type = eb_weights_type;
 
     auto const& coefs = diff_coeff.array();
     auto const& redistwgt_arr = redistwgt.array();
@@ -262,19 +248,14 @@ CNS::compute_dSdt_box_eb (const Box& bx,
     amrex::ParallelFor(bxg2, NEQNS,
     [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
     {
-       int valid = (i >= bx_ilo && i <= bx_ihi && j >= bx_jlo && j <= bx_jhi);
-#if (AMREX_SPACEDIM == 3)
-       valid &= (k >= bx_klo && k <= bx_khi);
-#endif
-
        // This does the divergence but not the redistribution -- we will do that later
        // We do compute the weights here though
-       eb_compute_div(i,j,k,n,valid,q,divc_arr,
+       eb_compute_div(i,j,k,n,blo,bhi,q,divc_arr,
                       AMREX_D_DECL(fx_in_arr ,fy_in_arr ,fz_in_arr),
                       AMREX_D_DECL(fx_out_arr,fy_out_arr,fz_out_arr),
                       flag, vfrac, bcent, coefs, redistwgt_arr,
                       AMREX_D_DECL(apx, apy, apz),
-                      AMREX_D_DECL(fcx, fcy, fcz), dxinv, *lparm, eb_weights_type, l_do_visc);
+                      AMREX_D_DECL(fcx, fcy, fcz), dxinv, *lparm, l_eb_weights_type, l_do_visc);
     });
 
     auto const& optmp_arr = optmp.array();
@@ -301,4 +282,6 @@ CNS::compute_dSdt_box_eb (const Box& bx,
             dsdtfab(i,j,k,irhoE) += g * sfab(i,j,k,imz);
         });
     }
+
+    Gpu::streamSynchronize();
 }

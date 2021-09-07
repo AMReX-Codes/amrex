@@ -113,7 +113,7 @@ CNS::variableSetUp ()
     bool store_in_checkpoint = true;
     desc_lst.addDescriptor(State_Type,IndexType::TheCellType(),
                            StateDescriptor::Point,NUM_GROW,NUM_STATE,
-                           &eb_cell_cons_interp,state_data_extrap,store_in_checkpoint);
+                           &eb_mf_cell_cons_interp,state_data_extrap,store_in_checkpoint);
 
     Vector<BCRec>       bcs(NUM_STATE);
     Vector<std::string> name(NUM_STATE);
@@ -181,4 +181,8 @@ CNS::variableCleanUp ()
     The_Arena()->free(d_prob_parm);
     desc_lst.clear();
     derive_lst.clear();
+
+#ifdef AMREX_USE_GPU
+    The_Arena()->free(dp_refine_boxes);
+#endif
 }

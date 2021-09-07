@@ -24,6 +24,7 @@ int       CNS::refine_cutcells          = 1;
 int       CNS::refine_max_dengrad_lev   = -1;
 Real      CNS::refine_dengrad           = 1.0e10;
 Vector<RealBox> CNS::refine_boxes;
+RealBox*  CNS::dp_refine_boxes;
 
 bool      CNS::do_visc        = true;  // diffusion is on by default
 bool      CNS::use_const_visc = false; // diffusion does not use constant viscosity by default
@@ -104,20 +105,12 @@ CNS::initData ()
     Parm const* lparm = d_parm;
     ProbParm const* lprobparm = d_prob_parm;
 
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
+    auto const& sma = S_new.arrays();
+    amrex::ParallelFor(S_new,
+    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
     {
-        const Box& box = mfi.validbox();
-        auto s_arr = S_new.array(mfi);
-
-        amrex::ParallelFor(box,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-            cns_initdata(i, j, k, s_arr, geomdata, *lparm, *lprobparm);
-        });
-    }
+        cns_initdata(i, j, k, sma[box_no], geomdata, *lparm, *lprobparm);
+    });
 
     // Compute the initial temperature (will override what was set in initdata)
     computeTemp(S_new,0);
@@ -329,29 +322,25 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real /*time*/, int, int)
 
     if (!refine_boxes.empty())
     {
-        const Real* problo = geom.ProbLo();
-        const Real* dx = geom.CellSize();
+        const int n_refine_boxes = refine_boxes.size();
+        const auto problo = geom.ProbLoArray();
+        const auto dx = geom.CellSizeArray();
+        auto boxes = dp_refine_boxes;
 
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(tags); mfi.isValid(); ++mfi)
+        auto const& tagma = tags.arrays();
+        ParallelFor(tags,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
         {
-            auto& fab = tags[mfi];
-            const Box& bx = fab.box();
-            for (BoxIterator bi(bx); bi.ok(); ++bi)
-            {
-                const IntVect& cell = bi();
-                RealVect pos {AMREX_D_DECL((cell[0]+0.5)*dx[0]+problo[0],
-                                           (cell[1]+0.5)*dx[1]+problo[1],
-                                           (cell[2]+0.5)*dx[2]+problo[2])};
-                for (const auto& rbx : refine_boxes) {
-                    if (rbx.contains(pos)) {
-                        fab(cell) = TagBox::SET;
-                    }
+            RealVect pos {AMREX_D_DECL((i+0.5)*dx[0]+problo[0],
+                                       (j+0.5)*dx[1]+problo[1],
+                                       (k+0.5)*dx[2]+problo[2])};
+            for (int irb = 0; irb < n_refine_boxes; ++irb) {
+                if (boxes[irb].contains(pos)) {
+                    tagma[box_no](i,j,k) = TagBox::SET;
                 }
             }
-        }
+        });
+        Gpu::synchronize();
     }
 
     if (level < refine_max_dengrad_lev)
@@ -365,22 +354,14 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real /*time*/, int, int)
 //        const char clearval = TagBox::CLEAR;
         const Real dengrad_threshold = refine_dengrad;
 
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(rho,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        auto const& tagma = tags.arrays();
+        auto const& rhoma = rho.const_arrays();
+        ParallelFor(rho,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
         {
-            const Box& bx = mfi.tilebox();
-
-            const auto rhofab = rho.array(mfi);
-            auto tag = tags.array(mfi);
-
-            amrex::ParallelFor(bx,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                cns_tag_denerror(i, j, k, tag, rhofab, dengrad_threshold, tagval);
-            });
-        }
+            cns_tag_denerror(i, j, k, tagma[box_no], rhoma[box_no], dengrad_threshold, tagval);
+        });
+        Gpu::synchronize();
     }
 }
 
@@ -439,6 +420,14 @@ CNS::read_params ()
         pp.getarr(("refine_box_hi_"+std::to_string(irefbox)).c_str(), refboxhi);
         refine_boxes.emplace_back(refboxlo.data(), refboxhi.data());
         ++irefbox;
+    }
+    if (!refine_boxes.empty()) {
+#ifdef AMREX_USE_GPU
+        dp_refine_boxes = (RealBox*)The_Arena()->alloc(sizeof(RealBox)*refine_boxes.size());
+        Gpu::htod_memcpy(dp_refine_boxes, refine_boxes.data(), sizeof(RealBox)*refine_boxes.size());
+#else
+        dp_refine_boxes = refine_boxes.data();
+#endif
     }
 
     pp.query("gravity", gravity);
