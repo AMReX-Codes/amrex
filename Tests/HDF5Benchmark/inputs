@@ -1,9 +1,9 @@
 # Domain size
-ncells = 128
+ncells = 64
 
 # Maximum allowable size of each subdomain in the problem domain;
 # this is used to decompose the domain for parallel calculations.
-max_grid_size = 32
+max_grid_size = 8
 
 # Number of levels
 nlevs = 1
@@ -15,10 +15,10 @@ ncomp = 6
 nppc = 2
 
 # Number of plot files to write
-nplotfile = 5
+nplotfile = 2
 
 # Number of plot files to write
-nparticlefile = 5
+nparticlefile = 2
 
 # Time to sleep before each write
 sleeptime = 2
