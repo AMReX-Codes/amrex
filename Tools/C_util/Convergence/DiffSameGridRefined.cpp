@@ -198,6 +198,13 @@ main (int   argc,
             MultiFab& data1 = amrData1.GetGrids(iLevel, iComp);
             MultiFab& data2Fine = amrData2.GetGrids(iLevel, iComp);
 
+            if (data1.contains_nan()) {
+                Abort("First plotfile contains NaN(s)");
+            }
+            if (data2Fine.contains_nan()) {
+                Abort("Second plotfile contains NaN(s)");
+            }
+
 
             //
             // Calculate the errors  for each FAB in the MultiFab

@@ -10,7 +10,7 @@ COMP    = gnu
 PRECISION = DOUBLE
 
 USE_MPI   = TRUE
-MPI_THREAD_MULTIPLE = TRUE
+MPI_THREAD_MULTIPLE = FALSE
 
 USE_OMP   = FALSE
 
@@ -21,7 +21,12 @@ TINY_PROFILE = TRUE
 EBASE     = main
 
 USE_HDF5  = TRUE
-HDF5_HOME = /gpfs/alpine/csc300/world-shared/gnu_build/hpc-io/hdf5/async_optional_build/hdf5
+# HDF5_HOME = /gpfs/alpine/csc300/world-shared/gnu_build/hdf5/develop_build/hdf5
+HDF5_HOME = $(OLCF_HDF5_ROOT)
+
+USE_HDF5_ZFP = FALSE
+H5Z_HOME  = /gpfs/alpine/csc300/world-shared/gnu_build/H5Z-ZFP/install
+ZFP_HOME  = /gpfs/alpine/csc300/world-shared/gnu_build/zfp
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
