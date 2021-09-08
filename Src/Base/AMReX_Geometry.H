@@ -63,7 +63,7 @@ public:
     RealBox prob_domain;
     Box domain;
     Real dx[AMREX_SPACEDIM];
-    int is_periodic[AMREX_SPACEDIM]; /**< For each dim, 0 if the domain is non-periodic and 1 if it is. */
+    int is_periodic[AMREX_SPACEDIM]; /**< For each dimension, 0 if the domain is non-periodic and 1 if it is. */
     int coord;
 };
 
