@@ -103,6 +103,17 @@ public:
 
     //! Set the rectangular domain after using default constructor.
     void define (const Box& dom, const RealBox* rb = 0, int coord = -1, int const* is_per = nullptr) noexcept;
+
+    /**
+     * Defines a geometry obbect the describes the problem domain and coordinate system for rectangular problem
+     * domains.
+     *
+     * \param dom cell-centered `Box` specifying the indexing of the space domain.
+     * \param rb a `RealBox` specifying the coordinate system.
+     * \param coord  specifies the coordinate system type.
+     * \param is_per  int pointer or array specifying periodicity.
+     *
+     */
     void define (const Box& dom, const RealBox& rb, int coord, Array<int,AMREX_SPACEDIM> const& is_per) noexcept;
     //! Returns the problem domain.
     const RealBox& ProbDomain () const noexcept { return prob_domain; }
