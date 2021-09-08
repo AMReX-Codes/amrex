@@ -17,6 +17,7 @@
 
 namespace amrex {
 /**
+* \class Geometry
 * \brief Rectangular problem domain geometry.
 *
 * This class describes problem domain and coordinate system for
@@ -62,7 +63,7 @@ public:
     RealBox prob_domain;
     Box domain;
     Real dx[AMREX_SPACEDIM];
-    int is_periodic[AMREX_SPACEDIM];
+    int is_periodic[AMREX_SPACEDIM]; /**< For each dim, 0 if the domain is non-periodic and 1 if it is. */
     int coord;
 };
 
