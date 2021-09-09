@@ -885,6 +885,15 @@ public:
                       const Periodicity& period = Periodicity::NonPeriodic());
     void SumBoundary_nowait (int scomp, int ncomp, IntVect const& ngrow,
                              const Periodicity& period = Periodicity::NonPeriodic());
+
+    /**
+    * \brief Sum values in overlapped cells.
+    *        For computing the overlap, the dst is grown by dst_ngrow, while the src uses src_ngrow.
+    */
+    void SumBoundary (int scomp, int ncomp, IntVect const& src_ngrow, IntVect const& dst_ngrow,
+                      const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundary_nowait (int scomp, int ncomp, IntVect const& src_ngrow, IntVect const& dst_ngrow,
+                             const Periodicity& period = Periodicity::NonPeriodic());
     void SumBoundary_finish ();
 
     /** \brief Fill cells outside periodic domains with their corresponding cells inside
@@ -2566,9 +2575,16 @@ template <class FAB>
 void
 FabArray<FAB>::SumBoundary (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period)
 {
+    SumBoundary(scomp, ncomp, nghost, nghost, period);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundary (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost, const Periodicity& period)
+{
     BL_PROFILE("FabArray<FAB>::SumBoundary()");
 
-    SumBoundary_nowait(scomp, ncomp, nghost, period);
+    SumBoundary_nowait(scomp, ncomp, src_nghost, dst_nghost, period);
     SumBoundary_finish();
 }
 
@@ -2590,14 +2606,23 @@ template <class FAB>
 void
 FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period)
 {
+    SumBoundary_nowait(scomp, ncomp, nghost, nghost, period);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost, const Periodicity& period)
+{
     BL_PROFILE("FabArray<FAB>::SumBoundary_nowait()");
 
     if ( n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) return;
 
-    FabArray<FAB>* tmp = new FabArray<FAB>( boxArray(), DistributionMap(), ncomp, n_grow, MFInfo(), Factory() );
-    amrex::Copy(*tmp, *this, scomp, 0, ncomp, n_grow);
-    this->setVal(0.0, scomp, ncomp, nghost);
-    this->ParallelCopy_nowait(*tmp,0,scomp,ncomp,n_grow,nghost,period,FabArrayBase::ADD);
+    AMREX_ASSERT(src_nghost <= n_grow);
+
+    FabArray<FAB>* tmp = new FabArray<FAB>( boxArray(), DistributionMap(), ncomp, src_nghost, MFInfo(), Factory() );
+    amrex::Copy(*tmp, *this, scomp, 0, ncomp, src_nghost);
+    this->setVal(0.0, scomp, ncomp, dst_nghost);
+    this->ParallelCopy_nowait(*tmp,0,scomp,ncomp,src_nghost,dst_nghost,period,FabArrayBase::ADD);
 
     // All local. Operation complete.
     if (!this->pcd) { delete tmp; }
