@@ -137,7 +137,7 @@ public:
      * domains. Useful for when the Geometry object has been constructed with the default constructor.
      *
      * \param dom cell-centered `Box` specifying the index space bounds of the domain.
-     * \param rb A `RealBox` specifying the real space bounds of the domain. Optional. If not specified,
+     * \param rb A pointer to a `RealBox` specifying the real space bounds of the domain. Optional. If not specified,
      *        will be ParmParsed from "geometry.prob_lo" and "geometry.prob_hi".
      * \param coord Specifies the coordinate system type. Optional. Can be one of:
      *        CoordSys::cartesian
