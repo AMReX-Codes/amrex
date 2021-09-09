@@ -27,6 +27,7 @@
 #include <AMReX_BaseFabUtility.H>
 #include <AMReX_MFParallelFor.H>
 #include <AMReX_TagParallelFor.H>
+#include <AMReX_ParReduce.H>
 
 #include <AMReX_Gpu.H>
 
@@ -210,9 +211,9 @@ struct MultiArray4
     }
 
 #ifdef AMREX_USE_GPU
-    Array4<T>* dp = nullptr;
+    Array4<T> const* AMREX_RESTRICT dp = nullptr;
 #endif
-    Array4<T>* hp = nullptr;
+    Array4<T> const* AMREX_RESTRICT hp = nullptr;
 };
 
 template <class FAB> class FabArray;
