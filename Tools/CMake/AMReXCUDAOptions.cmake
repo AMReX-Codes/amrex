@@ -78,16 +78,9 @@ cuda_print_option(AMReX_CUDA_COMPILATION_TIMER)
 option(AMReX_CUDA_DEBUG "Generate debug information for device code (optimizations: off)" OFF)
 cuda_print_option(AMReX_CUDA_DEBUG)
 
-set(_CUDA_PERF_NEUTRAL_DEBUG OFF)
-if ("${CMAKE_BUILD_TYPE}" MATCHES "Debug" OR "${CMAKE_BUILD_TYPE}" MATCHES "RelWithDebInfo")
-    set(_CUDA_PERF_NEUTRAL_DEBUG ON)
-endif ()
-
 # both are performance-neutral debug symbols
-option(AMReX_CUDA_SHOW_LINENUMBERS "Generate line-number information (optimizations: on)"
-       ${_CUDA_PERF_NEUTRAL_DEBUG})
-option(AMReX_CUDA_SHOW_CODELINES "Generate source information in PTX (optimizations: on)"
-       ${_CUDA_PERF_NEUTRAL_DEBUG})
+option(AMReX_CUDA_SHOW_LINENUMBERS "Generate line-number information (optimizations: on)" ON)
+option(AMReX_CUDA_SHOW_CODELINES "Generate source information in PTX (optimizations: on)" ON)
 cuda_print_option(AMReX_CUDA_SHOW_LINENUMBERS)
 cuda_print_option(AMReX_CUDA_SHOW_CODELINES)
 
