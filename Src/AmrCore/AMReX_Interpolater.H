@@ -788,6 +788,198 @@ public:
 
 };
 
+/**
+* \brief DG interpolation on nodal data with cell (Order 1).
+*/
+
+class DGInterpOrder1
+    :
+    public Interpolater
+{
+public:
+
+    /**
+    * \brief The destructor.
+    */
+    virtual ~DGInterpOrder1 () override;
+
+    /**
+    * \brief Returns coarsened box given fine box and refinement ratio.
+    *
+    * \param fine
+    * \param ratio
+    */
+    virtual Box CoarseBox (const Box& fine,
+                           int        ratio) override;
+
+    /**
+    * \brief Returns coarsened box given fine box and refinement ratio.
+    *
+    * \param fine
+    * \param ratio
+    */
+    virtual Box CoarseBox (const Box&     fine,
+                           const IntVect& ratio) override;
+
+    /**
+    * \brief Coarse to fine interpolation in space (Order 2).
+    *
+    * \param crse
+    * \param crse_comp
+    * \param fine
+    * \param fine_comp
+    * \param ncomp
+    * \param fine_region
+    * \param ratio
+    * \param crse_geom
+    * \param fine_geom
+    * \param bcr
+    * \param actual_comp
+    * \param actual_state
+    */
+    virtual void interp (const FArrayBox& crse,
+                         int              crse_comp,
+                         FArrayBox&       fine,
+                         int              fine_comp,
+                         int              ncomp,
+                         const Box&       fine_region,
+                         const IntVect&   ratio,
+                         const Geometry&  crse_geom,
+                         const Geometry&  fine_geom,
+                         Vector<BCRec> const&  bcr,
+                         int              actual_comp,
+                         int              actual_state,
+                         RunOn            gpu_or_cpu) override;
+};
+
+/**
+* \brief DG interpolation on nodal data with cell (Order 2).
+*/
+
+class DGInterpOrder2
+    :
+    public Interpolater
+{
+public:
+
+    /**
+    * \brief The destructor.
+    */
+    virtual ~DGInterpOrder2 () override;
+
+    /**
+    * \brief Returns coarsened box given fine box and refinement ratio.
+    *
+    * \param fine
+    * \param ratio
+    */
+    virtual Box CoarseBox (const Box& fine,
+                           int        ratio) override;
+
+    /**
+    * \brief Returns coarsened box given fine box and refinement ratio.
+    *
+    * \param fine
+    * \param ratio
+    */
+    virtual Box CoarseBox (const Box&     fine,
+                           const IntVect& ratio) override;
+
+    /**
+    * \brief Coarse to fine interpolation in space (Order 2).
+    *
+    * \param crse
+    * \param crse_comp
+    * \param fine
+    * \param fine_comp
+    * \param ncomp
+    * \param fine_region
+    * \param ratio
+    * \param crse_geom
+    * \param fine_geom
+    * \param bcr
+    * \param actual_comp
+    * \param actual_state
+    */
+    virtual void interp (const FArrayBox& crse,
+                         int              crse_comp,
+                         FArrayBox&       fine,
+                         int              fine_comp,
+                         int              ncomp,
+                         const Box&       fine_region,
+                         const IntVect&   ratio,
+                         const Geometry&  crse_geom,
+                         const Geometry&  fine_geom,
+                         Vector<BCRec> const&  bcr,
+                         int              actual_comp,
+                         int              actual_state,
+                         RunOn            gpu_or_cpu) override;
+};
+
+/**
+* \brief DG interpolation on nodal data with cell (Order 3).
+*/
+
+class DGInterpOrder3
+    :
+    public Interpolater
+{
+public:
+
+    /**
+    * \brief The destructor.
+    */
+    virtual ~DGInterpOrder3 () override;
+
+    /**
+    * \brief Returns coarsened box given fine box and refinement ratio.
+    *
+    * \param fine
+    * \param ratio
+    */
+    virtual Box CoarseBox (const Box& fine,
+                           int        ratio) override;
+
+    /**
+    * \brief Returns coarsened box given fine box and refinement ratio.
+    *
+    * \param fine
+    * \param ratio
+    */
+    virtual Box CoarseBox (const Box&     fine,
+                           const IntVect& ratio) override;
+
+    /**
+    * \brief Coarse to fine interpolation in space (Order 2).
+    *
+    * \param crse
+    * \param crse_comp
+    * \param fine
+    * \param fine_comp
+    * \param ncomp
+    * \param fine_region
+    * \param ratio
+    * \param crse_geom
+    * \param fine_geom
+    * \param bcr
+    * \param actual_comp
+    * \param actual_state
+    */
+    virtual void interp (const FArrayBox& crse,
+                         int              crse_comp,
+                         FArrayBox&       fine,
+                         int              fine_comp,
+                         int              ncomp,
+                         const Box&       fine_region,
+                         const IntVect&   ratio,
+                         const Geometry&  crse_geom,
+                         const Geometry&  fine_geom,
+                         Vector<BCRec> const&  bcr,
+                         int              actual_comp,
+                         int              actual_state,
+                         RunOn            gpu_or_cpu) override;
+};
+
 
 //! CONSTRUCT A GLOBAL OBJECT OF EACH VERSION.
 extern AMREX_EXPORT PCInterp                  pc_interp;
@@ -797,6 +989,9 @@ extern AMREX_EXPORT FaceLinear                face_linear_interp;
 extern AMREX_EXPORT CellConservativeLinear    lincc_interp;
 extern AMREX_EXPORT CellConservativeLinear    cell_cons_interp;
 extern AMREX_EXPORT CellBilinear              cell_bilinear_interp;
+extern AMREX_EXPORT DGInterpOrder1            dg_interp_order1;
+extern AMREX_EXPORT DGInterpOrder2            dg_interp_order2;
+extern AMREX_EXPORT DGInterpOrder3            dg_interp_order3;
 
 #ifndef BL_NO_FORT
 extern AMREX_EXPORT CellQuadratic             quadratic_interp;

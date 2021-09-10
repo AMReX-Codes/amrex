@@ -27,6 +27,297 @@ pcinterp_interp (Box const& bx,
     }
 }
 
+const Real Zero_1D = 0.0;
+
+/* First order DG methods */
+const int nDOFX_Order1_1D = 1;
+const Real GaussLegendreWeights_Order1_1D[nDOFX_Order1_1D] =
+{
+  +1.0000000000000000E+000
+};
+const Real ProjectionMatrix_Order1_1D[2][nDOFX_Order1_1D][nDOFX_Order1_1D] =
+{
+  {
+    {
+      +1.0000000000000000E+000
+    }
+  },
+  {
+    {
+      +1.0000000000000000E+000
+    }
+  },
+};
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+dginterp_interp_order1
+  ( Box const& bx,
+    Array4<Real> const& fine, const int fcomp, const int ncomp,
+    Array4<Real const> const& crse, const int ccomp,
+    IntVect const& ratio) noexcept
+{
+
+  amrex::ignore_unused( fcomp, ccomp );
+
+  const int nDOFX = nDOFX_Order1_1D;
+
+  // Get bounds on fine grid
+  const auto loFine = amrex::lbound(bx);
+  const auto hiFine = amrex::ubound(bx);
+
+  // Number of fields in MultiFab
+  int nFields = ncomp / nDOFX;
+
+  // Index for projection matrix
+  int iProj;
+
+  // Loop over fields
+  for( int iField = 0; iField < nFields; iField++ )
+  {
+
+    // Loop over fine cells in x-direction
+    for( int iFine = loFine.x; iFine <= hiFine.x; iFine++ )
+    {
+
+      if( iFine % 2 == 0 ) { iProj = 0; }
+      else                 { iProj = 1; }
+
+      // Get coarse element corresponding to fine element iFine
+      const int iCrse = amrex::coarsen(iFine,ratio[0]);
+
+      // Loop over DOF of fine element
+      for( int iNX = 0; iNX < nDOFX; iNX++ )
+      {
+
+        // Initialize fine data to zero
+        fine(iFine,0,0,nDOFX*iField+iNX) = Zero_1D;
+
+        // Project coarse data onto fine data
+        for( int jNX = 0; jNX < nDOFX; jNX++ )
+        {
+
+          fine(iFine,0,0,nDOFX*iField+iNX)
+            = fine(iFine,0,0,nDOFX*iField+iNX)
+                + ProjectionMatrix_Order1_1D[iProj][iNX][jNX]
+                    * crse(iCrse,0,0,nDOFX*iField+jNX);
+
+        } // jNX
+
+        fine(iFine,0,0,nDOFX*iField+iNX)
+          = fine(iFine,0,0,nDOFX*iField+iNX)
+              / GaussLegendreWeights_Order1_1D[iNX];
+
+      } // iNX
+    } // iFine
+  } // iField
+
+} // End of function dginterp_interp_order1
+
+/* Second order DG methods */
+const int nDOFX_Order2_1D = 2;
+const Real GaussLegendreWeights_Order2_1D[nDOFX_Order2_1D] =
+{
+  +5.0000000000000000E-001,
+  +5.0000000000000000E-001
+};
+const Real ProjectionMatrix_Order2_1D[2][nDOFX_Order2_1D][nDOFX_Order2_1D] =
+{
+  {
+    {
+      +5.9150635094610970E-001,
+      -9.1506350946109677E-002
+    },
+    {
+      +3.4150635094610965E-001,
+      +1.5849364905389032E-001
+    }
+  },
+  {
+    {
+      +1.5849364905389032E-001,
+      +3.4150635094610965E-001
+    },
+    {
+      -9.1506350946109677E-002,
+      +5.9150635094610970E-001
+    }
+  },
+};
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+dginterp_interp_order2
+  ( Box const& bx,
+    Array4<Real> const& fine, const int fcomp, const int ncomp,
+    Array4<Real const> const& crse, const int ccomp,
+    IntVect const& ratio) noexcept
+{
+
+  amrex::ignore_unused( fcomp, ccomp );
+
+  const int nDOFX = nDOFX_Order2_1D;
+
+  // Get bounds on fine grid
+  const auto loFine = amrex::lbound(bx);
+  const auto hiFine = amrex::ubound(bx);
+
+  // Number of fields in MultiFab
+  int nFields = ncomp / nDOFX;
+
+  // Index for projection matrix
+  int iProj;
+
+  // Loop over fields
+  for( int iField = 0; iField < nFields; iField++ )
+  {
+
+    // Loop over fine cells in x-direction
+    for( int iFine = loFine.x; iFine <= hiFine.x; iFine++ )
+    {
+
+      if( iFine % 2 == 0 ) { iProj = 0; }
+      else                 { iProj = 1; }
+
+      // Get coarse element corresponding to fine element iFine
+      const int iCrse = amrex::coarsen(iFine,ratio[0]);
+
+      // Loop over DOF of fine element
+      for( int iNX = 0; iNX < nDOFX; iNX++ )
+      {
+
+        // Initialize fine data to zero
+        fine(iFine,0,0,nDOFX*iField+iNX) = Zero_1D;
+
+        // Project coarse data onto fine data
+        for( int jNX = 0; jNX < nDOFX; jNX++ )
+        {
+
+          fine(iFine,0,0,nDOFX*iField+iNX)
+            = fine(iFine,0,0,nDOFX*iField+iNX)
+                + ProjectionMatrix_Order2_1D[iProj][iNX][jNX]
+                    * crse(iCrse,0,0,nDOFX*iField+jNX);
+
+        } // jNX
+
+        fine(iFine,0,0,nDOFX*iField+iNX)
+          = fine(iFine,0,0,nDOFX*iField+iNX)
+              / GaussLegendreWeights_Order2_1D[iNX];
+
+      } // iNX
+    } // iFine
+  } // iField
+
+} // End of function dginterp_interp_order2
+
+/* Third order DG methods */
+const int nDOFX_Order3_1D = 3;
+const Real GaussLegendreWeights_Order3_1D[nDOFX_Order3_1D] =
+{
+  +2.7777777777777779E-001,
+  +4.4444444444444442E-001,
+  +2.7777777777777779E-001
+};
+const Real ProjectionMatrix_Order3_1D[2][nDOFX_Order3_1D][nDOFX_Order3_1D] =
+{
+  {
+    {
+      +3.4134182158367665E-001,
+      -8.6712191954047071E-002,
+      +2.3148148148148143E-002
+    },
+    {
+      +2.3603642022990431E-001,
+      +2.5925925925925924E-001,
+      -5.0851235044719140E-002
+    },
+    {
+      +2.3148148148148143E-002,
+      +2.7189737713923223E-001,
+      -1.7267747509602631E-002
+    }
+  },
+  {
+    {
+      -1.7267747509602634E-002,
+      +2.7189737713923223E-001,
+      +2.3148148148148140E-002
+    },
+    {
+      -5.0851235044719140E-002,
+      +2.5925925925925924E-001,
+      +2.3603642022990431E-001
+    },
+    {
+      +2.3148148148148140E-002,
+      -8.6712191954047058E-002,
+      +3.4134182158367671E-001
+    }
+  },
+};
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+dginterp_interp_order3
+  ( Box const& bx,
+    Array4<Real> const& fine, const int fcomp, const int ncomp,
+    Array4<Real const> const& crse, const int ccomp,
+    IntVect const& ratio) noexcept
+{
+
+  amrex::ignore_unused( fcomp, ccomp );
+
+  const int nDOFX = nDOFX_Order3_1D;
+
+  // Get bounds on fine grid
+  const auto loFine = amrex::lbound(bx);
+  const auto hiFine = amrex::ubound(bx);
+
+  // Number of fields in MultiFab
+  int nFields = ncomp / nDOFX;
+
+  // Index for projection matrix
+  int iProj;
+
+  // Loop over fields
+  for( int iField = 0; iField < nFields; iField++ )
+  {
+
+    // Loop over fine cells in x-direction
+    for( int iFine = loFine.x; iFine <= hiFine.x; iFine++ )
+    {
+
+      if( iFine % 2 == 0 ) { iProj = 0; }
+      else                 { iProj = 1; }
+
+      // Get coarse element corresponding to fine element iFine
+      const int iCrse = amrex::coarsen(iFine,ratio[0]);
+
+      // Loop over DOF of fine element
+      for( int iNX = 0; iNX < nDOFX; iNX++ )
+      {
+
+        // Initialize fine data to zero
+        fine(iFine,0,0,nDOFX*iField+iNX) = Zero_1D;
+
+        // Project coarse data onto fine data
+        for( int jNX = 0; jNX < nDOFX; jNX++ )
+        {
+
+          fine(iFine,0,0,nDOFX*iField+iNX)
+            = fine(iFine,0,0,nDOFX*iField+iNX)
+                + ProjectionMatrix_Order3_1D[iProj][iNX][jNX]
+                    * crse(iCrse,0,0,nDOFX*iField+jNX);
+
+        } // jNX
+
+        fine(iFine,0,0,nDOFX*iField+iNX)
+          = fine(iFine,0,0,nDOFX*iField+iNX)
+              / GaussLegendreWeights_Order3_1D[iNX];
+
+      } // iNX
+    } // iFine
+  } // iField
+
+} // End of function dginterp_interp_order3
+
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 nodebilin_slopes (Box const& bx, Array4<T> const& slope, Array4<T const> const& u,

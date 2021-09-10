@@ -24,6 +24,12 @@ namespace amrex {
 //
 // CellConservativeQuartic only works with ref ratio of 2 on cpu
 //
+// DGInterpOrder1 only works with ref ratio of 2. Not tested for GPU
+//
+// DGInterpOrder2 only works with ref ratio of 2. Not tested for GPU
+//
+// DGInterpOrder3 only works with ref ratio of 2. Not tested for GPU
+//
 // FaceDivFree works in 2D and 3D on cpu and gpu. The algorithm is restricted to ref ratio of 2.
 
 //
@@ -36,6 +42,9 @@ FaceDivFree               face_divfree_interp;
 CellConservativeLinear    lincc_interp;
 CellConservativeLinear    cell_cons_interp(0);
 CellBilinear              cell_bilinear_interp;
+DGInterpOrder1            dg_interp_order1;
+DGInterpOrder2            dg_interp_order2;
+DGInterpOrder3            dg_interp_order3;
 
 #ifndef BL_NO_FORT
 CellQuadratic             quadratic_interp;
@@ -614,6 +623,135 @@ PCInterp::interp (const FArrayBox& crse,
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG ( runon, fine_region, tbx,
     {
         amrex::pcinterp_interp(tbx,finearr,fine_comp,ncomp,crsearr,crse_comp,ratio);
+    });
+}
+
+DGInterpOrder1::~DGInterpOrder1 () {}
+
+Box
+DGInterpOrder1::CoarseBox (const Box& fine,
+                           int        ratio)
+{
+    return amrex::coarsen(fine,ratio);
+}
+
+Box
+DGInterpOrder1::CoarseBox (const Box&     fine,
+                           const IntVect& ratio)
+{
+    return amrex::coarsen(fine,ratio);
+}
+
+void
+DGInterpOrder1::interp (const FArrayBox& crse,
+                        int              crse_comp,
+                        FArrayBox&       fine,
+                        int              fine_comp,
+                        int              ncomp,
+                        const Box&       fine_region,
+                        const IntVect&   ratio,
+                        const Geometry& /*crse_geom*/,
+                        const Geometry& /*fine_geom*/,
+                        Vector<BCRec> const& /*bcr*/,
+                        int               /*actual_comp*/,
+                        int               /*actual_state*/,
+                        RunOn             runon)
+{
+    BL_PROFILE("DGInterpOrder1::interp()");
+
+    Array4<Real const> const& crsearr = crse.const_array();
+    Array4<Real> const& finearr = fine.array();;
+
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG ( runon, fine_region, tbx,
+    {
+        amrex::dginterp_interp_order1
+          (tbx,finearr,fine_comp,ncomp,crsearr,crse_comp,ratio);
+    });
+}
+
+DGInterpOrder2::~DGInterpOrder2 () {}
+
+Box
+DGInterpOrder2::CoarseBox (const Box& fine,
+                           int        ratio)
+{
+    return amrex::coarsen(fine,ratio);
+}
+
+Box
+DGInterpOrder2::CoarseBox (const Box&     fine,
+                           const IntVect& ratio)
+{
+    return amrex::coarsen(fine,ratio);
+}
+
+void
+DGInterpOrder2::interp (const FArrayBox& crse,
+                        int              crse_comp,
+                        FArrayBox&       fine,
+                        int              fine_comp,
+                        int              ncomp,
+                        const Box&       fine_region,
+                        const IntVect&   ratio,
+                        const Geometry& /*crse_geom*/,
+                        const Geometry& /*fine_geom*/,
+                        Vector<BCRec> const& /*bcr*/,
+                        int               /*actual_comp*/,
+                        int               /*actual_state*/,
+                        RunOn             runon)
+{
+    BL_PROFILE("DGInterpOrder2::interp()");
+
+    Array4<Real const> const& crsearr = crse.const_array();
+    Array4<Real> const& finearr = fine.array();;
+
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG ( runon, fine_region, tbx,
+    {
+        amrex::dginterp_interp_order2
+          (tbx,finearr,fine_comp,ncomp,crsearr,crse_comp,ratio);
+    });
+}
+
+DGInterpOrder3::~DGInterpOrder3 () {}
+
+Box
+DGInterpOrder3::CoarseBox (const Box& fine,
+                           int        ratio)
+{
+    return amrex::coarsen(fine,ratio);
+}
+
+Box
+DGInterpOrder3::CoarseBox (const Box&     fine,
+                           const IntVect& ratio)
+{
+    return amrex::coarsen(fine,ratio);
+}
+
+void
+DGInterpOrder3::interp (const FArrayBox& crse,
+                        int              crse_comp,
+                        FArrayBox&       fine,
+                        int              fine_comp,
+                        int              ncomp,
+                        const Box&       fine_region,
+                        const IntVect&   ratio,
+                        const Geometry& /*crse_geom*/,
+                        const Geometry& /*fine_geom*/,
+                        Vector<BCRec> const& /*bcr*/,
+                        int               /*actual_comp*/,
+                        int               /*actual_state*/,
+                        RunOn             runon)
+{
+    BL_PROFILE("DGInterpOrder3::interp()");
+
+    Array4<Real const> const& crsearr = crse.const_array();
+    Array4<Real> const& finearr = fine.array();;
+
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG ( runon, fine_region, tbx,
+    {
+        amrex::dginterp_interp_order3
+          (tbx,finearr,fine_comp,ncomp,crsearr,crse_comp,ratio);
     });
 }
 

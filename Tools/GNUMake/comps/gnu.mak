@@ -211,8 +211,8 @@ endif
 
 ########################################################################
 
-FFLAGS   += -ffixed-line-length-none -fno-range-check -fno-second-underscore
-F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -fimplicit-none
+FFLAGS   += -fallow-argument-mismatch -ffixed-line-length-none -fno-range-check -fno-second-underscore
+F90FLAGS += -fallow-argument-mismatch -ffree-line-length-none -fno-range-check -fno-second-underscore -fimplicit-none
 
 FMODULES =  -J$(fmoddir) -I $(fmoddir)
 
