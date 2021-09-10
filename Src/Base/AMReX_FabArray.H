@@ -2575,7 +2575,7 @@ template <class FAB>
 void
 FabArray<FAB>::SumBoundary (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period)
 {
-    SumBoundary(scomp, ncomp, nghost, nghost, period);
+    SumBoundary(scomp, ncomp, this->nGrowVect(), nghost, period);
 }
 
 template <class FAB>
@@ -2606,7 +2606,7 @@ template <class FAB>
 void
 FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period)
 {
-    SumBoundary_nowait(scomp, ncomp, nghost, nghost, period);
+    SumBoundary_nowait(scomp, ncomp, this->nGrowVect(), nghost, period);
 }
 
 template <class FAB>
