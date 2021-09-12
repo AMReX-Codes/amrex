@@ -7,68 +7,105 @@ Amrvis
 ======
 
 Our favorite visualization tool is Amrvis. We heartily encourage you to build
-the ``amrvis1d``, ``amrvis2d``, and ``amrvis3d`` executables, and to try using
-them to visualize your data. A very useful feature is View/Dataset, which
-allows you to actually view the numbers in a spreadsheet that is nested to
-reflect the AMR hierarchy -- this can be handy for debugging. You can modify how
-many levels of data you want to see, whether you want to see the grid boxes or
-not, what palette you use, etc. Below are some instructions and tips for using
-Amrvis; you can find additional information in Amrvis/Docs/Amrvis.tex (which
-you can build into a pdf using pdflatex).
+the ``amrvis1d``, ``amrvis2d``, and ``amrvis3d`` executables, and use
+them to visualize your data. A useful feature is ``View/Dataset``, which
+allows you to view data in a nested spreadsheet that
+reflects the AMR hierarchy -- this can be handy for debugging.
+Other display options include: the ability to select the number of levels of data to show,
+whether to display grid boxes, and to specify the color palette.
+Below are instructions and tips for using
+Amrvis. Additional information is contained in the document
+``Amrvis/Docs/Amrvis.tex`` (which can built into a ``pdf`` using ``pdflatex``).
 
-#. Download and build :
+#. **Download and Build**:
 
-   .. highlight:: console
+   Amrvis is available for download from the ``AMReX-Codes/Amrvis`` GitHub
+   repository. To download use,
 
-   ::
+   .. code-block:: console
 
        git clone https://github.com/AMReX-Codes/Amrvis
 
-   Then cd into Amrvis/, edit the GNUmakefile by setting ``COMP`` to the
-   compiler suite you have.
+   To build, ``cd`` into ``Amrvis/``, and edit ``GNUmakefile`` by setting the variable
+   ``COMP`` to your compiler suite.
 
-   Type ``make DIM=1``, ``make DIM=2``, or ``make DIM=3`` to build, resulting
-   in an executable that looks like amrvis2d...ex.
+   Type ``make DIM=1``, ``make DIM=2``, or ``make DIM=3`` to build. The result is
+   an executable that looks like ``amrvis2d.<ver>.ex``.
 
-   If you want to build amrvis with ``DIM=3``, you must first download and build
-   ``volpack``:
+   |
 
-   .. highlight:: console
+   *3D Data Visualization with Volpack*
 
-   ::
+   If you want to build Amrvis with ``DIM=3`` for display of 3-dimensional data,
+   you must first download and build ``volpack``. This can be done by cloning
+   the repository:
+
+   .. code-block:: console
 
        git clone https://ccse.lbl.gov/pub/Downloads/volpack.git
 
-   Then cd into volpack/ and type ``make``.
+   After downloading, ``cd`` into ``volpack/`` and type ``make``.
 
-   Note: Amrvis requires the OSF/Motif libraries and headers. If you don't have
-   these you will need to install the development version of motif through your
-   package manager.  ``lesstif`` gives some functionality and will allow you to
-   build the amrvis executable, but Amrvis may exhibit subtle anomalies.
+   |
 
-   On most Linux distributions, the motif library is provided by the
-   ``openmotif`` package, and its header files (like Xm.h) are provided by
-   ``openmotif-devel``. If those packages are not installed, then use the
-   OS-specific package management tool to install them.
+   .. note::
 
-   You may then want to create an alias to amrvis2d, for example
+      Amrvis requires the OSF/Motif libraries and headers. If you don't have
+      these you will need to install the development version of motif through your
+      package manager.  ``lesstif`` gives some functionality and will allow you to
+      build the Amrvis executable, but Amrvis may exhibit subtle anomalies.
 
-   .. highlight:: console
+      On most Linux distributions, the motif library is provided by the
+      ``openmotif`` package, and its header files (like ``Xm.h``) are provided by
+      ``openmotif-devel``. If those packages are not installed, then use the
+      OS-specific package management tool to install them.
+
+   |
+
+   .. note::
+
+       These instructions assume that the install directories
+       for Amrvis and volpack share the same parent directory. To install volpack
+       in a different location specify the location of volpack in Amrvis's
+       ``GNUmakefile`` by changing the variable ``VOLPACKDIR`` to the desired location.
+
+
+   |
+
+   After building you may want to create an alias for convenience.
+   To do this type,
+
+   .. code-block:: console
+
+       alias amrvis2d /tmp/Amrvis/amrvis2d.<ver>.ex
+
+   |
+
+#. **Configure**:
+
+   The settings for Amrvis are saved in the configuration file ``.amrvis.defaults`` in
+   your home directory. A default version of this file is available in the parent directory of the
+   Amrvis repo. Run the command ``cp Amrvis/amrvis.defaults ~/.amrvis.defaults`` to
+   copy it to your home directory. A color pallete is also available in the Amrvis directory as a file
+   named ``Palette``.
+   To configure Amrvis to use this pallete you can open the ``.amrvis.defaults`` file
+   in your home directory and edit the line containing ``palette`` to point to the
+   location of this file. For example,
 
    ::
 
-       alias amrvis2d /tmp/Amrvis/amrvis2d...ex
+      palette     ~/Amrvis/Palette
 
-#. Run the command ``cp Amrvis/amrvis.defaults ~/.amrvis.defaults``.  Then, in
-   your copy, edit the line containing "palette" line to point to, e.g.,
-   "palette /home/username/Amrvis/Palette". The other lines control options
-   such as the initial field to display, the number format, widow size, etc.
+   Other lines in ``.amrvis.defaults`` control options
+   such as the initial field to display, the number format, window size, etc.
    If there are multiple instances of the same option, the last option takes
    precedence.
 
-#. Generally the plotfiles have the form pltXXXXX (the plt prefix can be
-   changed), where XXXXX is a number corresponding to the timestep the file was
-   output. ``amrvis2d <filename>`` or ``amrvis3d <filename>`` to see a single
+#. **Run**:
+
+   By default, the plotfiles are directories that have the form pltXXXXX,
+   where XXXXX is a number corresponding to the timestep that the file was
+   created. Use ``amrvis2d <filename>`` or ``amrvis3d <filename>`` to see a single
    plotfile, or for 2D data sets, ``amrvis2d -a plt*``, which will animate the
    sequence of plotfiles. FArrayBoxes and MultiFabs can also be viewed with the
    ``-fab`` and ``-mf`` options. When opening MultiFabs, use the name of the
@@ -79,16 +116,20 @@ you can build into a pdf using pdflatex).
    :math:`\rightarrow` "Dataset" in order to look at the actual numerical
    values (see :numref:`Fig:Amrvis`).  Or you can simply left
    click on a point to obtain the numerical value.  You can also export the
-   pictures in several different formats under "File/Export".  In 2D you can
-   right and center click to get line-out plots.  In 3D you can right and
-   center click to change the planes, and the hold shift+(right or center)
+   pictures in several different formats under ``File/Export``.  In 2D you can
+   right or center click to get line-out plots.  In 3D you can right or
+   center click to change the planes, and hold shift+(right or center)
    click to get line-out plots.
 
-   We have created a number of routines to convert AMReX plotfile data other
-   formats (such as matlab), but in order to properly interpret the
-   hierarchical AMR data, each tends to have its own idiosyncrasies. If you
-   would like to display the data in another format, please contact Marc Day
-   (MSDay@lbl.gov) and we will point you to whatever we have that can help.
+   |
+
+   We have created a number of routines to convert AMReX plotfile data to other
+   formats (such as Matlab), but in order to properly interpret the
+   hierarchical AMR data, each tends to require its own idiosyncrasies. If you
+   would like to display the data in another format, please leave a
+   message on `AMReX's GitHub Discussions page`_.
+
+.. _`AMReX's GitHub Discussions page`: https://github.com/AMReX-Codes/amrex/discussions
 
 .. |a| image:: ./Visualization/Amrvis_2d.png
        :width: 100%
@@ -98,7 +139,7 @@ you can build into a pdf using pdflatex).
 
 .. _Fig:Amrvis:
 
-.. table:: 2D and 3D images generated using Amrvis
+.. table:: . 2D and 3D images generated using Amrvis.
    :align: center
 
    +-----+-----+
@@ -135,8 +176,8 @@ equation`).
 Next, download and install VisIt from
 https://wci.llnl.gov/simulation/computer-codes/visit.  To open a single
 plotfile, run VisIt, then select "File" :math:`\rightarrow` "Open file ...",
-then select the Header file associated the the plotfile of interest (e.g.,
-plt00000/Header).  Assuming you ran the simulation in 2D, here are instructions
+then select the Header file associated with the plotfile of interest (e.g.,
+``plt00000/Header``).  Assuming you ran the simulation in 2D, here are instructions
 for making a simple plot:
 
 -  To view the data, select "Add" :math:`\rightarrow` "Pseudocolor"
@@ -209,19 +250,17 @@ then select movie.visit. Create an image to your liking and press the
 the movie, choose "File" :math:`\rightarrow` "Save movie ...", and follow the
 on-screen instructions.
 
-Caveat:
+.. warning::
 
-The Visit reader determines "Cycle" from the name of the plotfile (directory),
-specifically from the integer that follows the string "plt" in the plotfile name.
+    The Visit reader determines the value of ``Cycle`` from the name of the plotfile (directory),
+    specifically from the integer that follows the string "plt" in the plotfile name.
+    So if you call it ``plt00100``, ``myplt00100`` or ``this_is_my_plt00100`` then it will
+    correctly recognize and print ``Cycle: 100``.
+    If you call it ``plt00100_old`` it will also correctly recognize and print ``Cycle: 100``.
 
-So ... if you call it plt00100 or myplt00100 or this_is_my_plt00100 then it will
-correctly recognize and print Cycle: 100.
-
-If you call it plt00100_old it will also correctly recognize and print Cycle: 100
-
-But, if you do not have "plt" followed immediately by the number,
-e.g. you name it pltx00100, then VisIt will not be able to correctly recognize
-and print the value for "Cycle".  (It will still read and display the data itself.)
+    However, if you do not have ``plt`` followed immediately by the number,
+    e.g. you name it ``pltx00100``, then VisIt will not be able to correctly recognize
+    and print the value for ``Cycle``.  (It will still read and display the data itself.)
 
 .. _section-1:
 
