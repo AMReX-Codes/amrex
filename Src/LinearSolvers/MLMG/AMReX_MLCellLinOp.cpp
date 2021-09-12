@@ -422,7 +422,7 @@ MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
     if (Gpu::inLaunchRegion() && fine.isFusingCandidate()) {
         auto const& finema = fine.arrays();
         auto const& crsema = crse.const_arrays();
-        ParallelFor(fine, ncomp,
+        ParallelFor(fine, IntVect(0), ncomp,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
         {
             int ic = amrex::coarsen(i,ratio3.x);
