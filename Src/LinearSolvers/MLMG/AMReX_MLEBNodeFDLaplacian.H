@@ -40,9 +40,7 @@ public:
     void setEBDirichlet (Real a_phi_eb);
     //
     template <typename F>
-    std::enable_if_t<
-        std::is_same<std::decay_t<decltype(std::declval<F>()(AMREX_D_DECL(Real(0.),Real(0.),Real(0.))))>,
-                     Real>::value>
+    std::enable_if_t<IsCallableR<Real,F,AMREX_D_DECL(Real,Real,Real)>::value>
     setEBDirichlet (F&& f);
 
     void define (const Vector<Geometry>& a_geom,
@@ -99,9 +97,7 @@ private:
 };
 
 template <typename F>
-std::enable_if_t<
-    std::is_same<std::decay_t<decltype(std::declval<F>()(AMREX_D_DECL(Real(0.),Real(0.),Real(0.))))>,
-                 Real>::value>
+std::enable_if_t<IsCallableR<Real,F,AMREX_D_DECL(Real,Real,Real)>::value>
 MLEBNodeFDLaplacian::setEBDirichlet (F&& f)
 {
     m_phi_eb.resize(m_num_amr_levels);
@@ -137,7 +133,6 @@ MLEBNodeFDLaplacian::setEBDirichlet (F&& f)
             }
         }
     }
-    return Real(0.);
 }
 
 }
