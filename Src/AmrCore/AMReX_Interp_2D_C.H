@@ -199,14 +199,14 @@ face_linear_interp_y (int i, int j, int /*k*/, int n, Array4<T> const& fine,
 
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-bool ccprotect_check_redo (const Box const& interp_bx,
+bool ccprotect_check_redo (Box const& interp_bx,
                            const int n,
-                           Array4<T const> const& fine,
+                           Array4<T> const& fine,
                            Array4<T const> const& fine_state) noexcept
 {
     bool r = false;
     Dim3 lo = lbound(interp_bx), hi = ubound(interp_bx);
-    for     (int j = lo.y; i <= hi.y; ++j) {
+    for     (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
             r = r || ((fine_state(i,j,n) + fine(i,j,n)) < 0.0 );
         }

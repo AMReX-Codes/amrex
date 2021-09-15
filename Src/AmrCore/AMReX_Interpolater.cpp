@@ -641,7 +641,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(crse,crse_comp,fine,fine_comp,fine_state,
                          state_comp,ncomp,fine_region,ratio,
-                         crse_geom,fine_geom,bcr);
+                         crse_geom,fine_geom,bcr,runon);
     amrex::Abort("1D CellConservativeProtected::protect not supported");
 #else
     BL_PROFILE("CellConservativeProtected::protect()");
@@ -689,7 +689,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
     }
 #endif
 
-/*
+    /*
     Real* fdat       = fine.dataPtr(fine_comp);
     Real* state_dat  = fine_state.dataPtr(state_comp);
     const Real* cdat = crse.dataPtr(crse_comp);
@@ -721,7 +721,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                          state_dat, AMREX_ARLIM(slo), AMREX_ARLIM(shi),
                          &ncomp,AMREX_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
                          bc.dataPtr());
-*/
+    */
 
     // Check coarse-to-fine ratios against rMAX
 #if (AMREX_SPACEDIM == 2)
@@ -737,27 +737,28 @@ CellConservativeProtected::protect (const FArrayBox& crse,
     Array4<Real>       const&   fnarr = fine.array();
     Array4<Real const> const& fnstarr = fine_state.const_array();
 
+    const Box& fnbx = fine.box();
+
     // Loop over coarse indices
     amrex::ParallelFor(cs_bx, ncomp,
     [=] AMREX_GPU_DEVICE (int ic, int jc, int kc, int n)
     {
-        // Create BoxArray for interpolation
-        const Box& fnbx = fine.box();
-        Dim3 fnbxlo = lbound(fine_bx), fnbxhi = ubound(fine_bx);
-        int ilo = std::max(ratio[0]*ic,              fnbxlo.x);
-        int ihi = std::min(ratio[0]*ic+(ratio[0]-1), fnbxhi.x);
-        int jlo = std::max(ratio[1]*jc,              fnbxlo.y);
-        int jhi = std::min(ratio[1]*jc+(ratio[1]-1), fnbxhi.y);
-#if (AMREX_SPACEDIM == 3)
-        int klo = std::max(ratio[2]*kc,              fnbxlo.z);
-        int khi = std::min(ratio[2]*kc+(ratio[2]-1), fnbxhi.z);
-#endif
-        IntVect interp_lo(AMREX_D_DECL(ilo,jlo,klo));
-        IntVect interp_hi(AMREX_D_DECL(ihi,jhi,khi));
-        Box interp_bx(interp_lo,interp_hi);
-
         // Only interpolate for derived components
-        for (int n = 2; n < ncomp; ++n) {
+        if (n > 1) {
+
+            // Create Box for interpolation
+            Dim3 fnbxlo = lbound(fnbx), fnbxhi = ubound(fnbx);
+            int ilo = std::max(ratio[0]*ic,              fnbxlo.x);
+            int ihi = std::min(ratio[0]*ic+(ratio[0]-1), fnbxhi.x);
+            int jlo = std::max(ratio[1]*jc,              fnbxlo.y);
+            int jhi = std::min(ratio[1]*jc+(ratio[1]-1), fnbxhi.y);
+#if (AMREX_SPACEDIM == 3)
+            int klo = std::max(ratio[2]*kc,              fnbxlo.z);
+            int khi = std::min(ratio[2]*kc+(ratio[2]-1), fnbxhi.z);
+#endif
+            IntVect interp_lo(AMREX_D_DECL(ilo,jlo,klo));
+            IntVect interp_hi(AMREX_D_DECL(ihi,jhi,khi));
+            Box interp_bx(interp_lo,interp_hi);
 
             // Check if interpolation needs to be redone
             bool redo_me = false;
@@ -798,9 +799,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                  */
 
             } // redo_me
-
-        } // ncomp
-
+        } // n
     }); // cs_bx
 
 #endif /*(AMREX_SPACEDIM == 1)*/
