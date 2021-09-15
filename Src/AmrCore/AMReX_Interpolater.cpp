@@ -734,14 +734,14 @@ CellConservativeProtected::protect (const FArrayBox& crse,
     }
 
     // Loop over coarse indices
-    Dim3 csbxlo = cs_bx.lbound(), csbxhi = cs_bx.ubound();
+    Dim3 csbxlo = lbound(cs_bx), csbxhi = ubound(cs_bx);
     for         (int kc = csbxlo.z; kc <= csbxhi.z; ++kc) {
         for     (int jc = csbxlo.y; jc <= csbxhi.y; ++jc) {
             for (int ic = csbxlo.x; ic <= csbxhi.x; ++ic) {
 
                 // Create BoxArray for interpolation
                 const Box& fnbx = fine.box();
-                Dim3 fnbxlo = fine_bx.lbound(), fnbxhi = fine_bx.ubound();
+                Dim3 fnbxlo = lbound(fine_bx), fnbxhi = ubound(fine_bx);
                 AMREX_D_TERM(int ilo = std::max(ratio[0]*ic, fnbxlo.x);,
                              int jlo = std::max(ratio[1]*jc, fnbxlo.y);,
                              int klo = std::max(ratio[2]*kc, fnbxlo.z));
@@ -785,7 +785,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                          *        of fine_state
                          */
 
-                        ccprotect_calc_sums();
+                        //ccprotect_calc_sums();
 
                         /*
                          * Special case 1:
