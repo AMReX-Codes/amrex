@@ -739,7 +739,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
 
     // Loop over coarse indices
     amrex::ParallelFor(cs_bx, ncomp,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k, int n)
+    [=] AMREX_GPU_DEVICE (int ic, int jc, int kc, int n)
     {
         // Create BoxArray for interpolation
         const Box& fnbx = fine.box();

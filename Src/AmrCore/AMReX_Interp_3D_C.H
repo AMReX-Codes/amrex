@@ -390,9 +390,9 @@ bool ccprotect_check_redo (const Box const& interp_bx,
 {
     bool r = false;
     Dim3 lo = lbound(interp_bx), hi = ubound(interp_bx);
-    for         (int k = lo.z,; i <= hi.z; ++k) {
-        for     (int j = lo.y,; i <= hi.y; ++j) {
-            for (int i = lo.x,; i <= hi.x; ++i) {
+    for         (int k = lo.z; i <= hi.z; ++k) {
+        for     (int j = lo.y; i <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
                 r = r || ((fine_state(i,j,k,n) + fine(i,j,k,n)) < 0.0 );
             }
         }
