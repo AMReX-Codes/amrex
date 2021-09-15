@@ -198,8 +198,7 @@ face_linear_interp_y (int i, int j, int /*k*/, int n, Array4<T> const& fine,
 }
 
 template <typename T>
-template <RunOn run_on>
-AMREX_GPU_HOST AMREX_FORCE_INLINE
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 bool ccprotect_check_redo (const Box const& interp_bx,
                            const int n,
                            Array4<T const> const& fine,

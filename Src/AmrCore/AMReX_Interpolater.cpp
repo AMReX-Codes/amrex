@@ -733,78 +733,75 @@ CellConservativeProtected::protect (const FArrayBox& crse,
         amrex::Abort("rMAX in CellConservativeProtected::protect");
     }
 
+    Array4<Real const> const&   csarr = crse.const_array();
+    Array4<Real>       const&   fnarr = fine.array();
+    Array4<Real const> const& fnstarr = fine_state.const_array();
+
     // Loop over coarse indices
-    Dim3 csbxlo = lbound(cs_bx), csbxhi = ubound(cs_bx);
-    for         (int kc = csbxlo.z; kc <= csbxhi.z; ++kc) {
-        for     (int jc = csbxlo.y; jc <= csbxhi.y; ++jc) {
-            for (int ic = csbxlo.x; ic <= csbxhi.x; ++ic) {
+    amrex::ParallelFor(cs_bx, ncomp,
+    [=] AMREX_GPU_DEVICE (int i, int j, int k, int n)
+    {
+        // Create BoxArray for interpolation
+        const Box& fnbx = fine.box();
+        Dim3 fnbxlo = lbound(fine_bx), fnbxhi = ubound(fine_bx);
+        int ilo = std::max(ratio[0]*ic,              fnbxlo.x);
+        int ihi = std::min(ratio[0]*ic+(ratio[0]-1), fnbxhi.x);
+        int jlo = std::max(ratio[1]*jc,              fnbxlo.y);
+        int jhi = std::min(ratio[1]*jc+(ratio[1]-1), fnbxhi.y);
+#if (AMREX_SPACEDIM == 3)
+        int klo = std::max(ratio[2]*kc,              fnbxlo.z);
+        int khi = std::min(ratio[2]*kc+(ratio[2]-1), fnbxhi.z);
+#endif
+        IntVect interp_lo(AMREX_D_DECL(ilo,jlo,klo));
+        IntVect interp_hi(AMREX_D_DECL(ihi,jhi,khi));
+        Box interp_bx(interp_lo,interp_hi);
 
-                // Create BoxArray for interpolation
-                const Box& fnbx = fine.box();
-                Dim3 fnbxlo = lbound(fine_bx), fnbxhi = ubound(fine_bx);
-                AMREX_D_TERM(int ilo = std::max(ratio[0]*ic, fnbxlo.x);,
-                             int jlo = std::max(ratio[1]*jc, fnbxlo.y);,
-                             int klo = std::max(ratio[2]*kc, fnbxlo.z));
-                AMREX_D_TERM(int ihi = std::min(ratio[0]*ic+(ratio[0]-1), fnbxhi.x);,
-                             int jhi = std::min(ratio[1]*jc+(ratio[1]-1), fnbxhi.y);,
-                             int khi = std::min(ratio[2]*kc+(ratio[2]-1), fnbxhi.z));
-                IntVect interp_lo(AMREX_D_DECL(ilo,jlo,klo));
-                IntVect interp_hi(AMREX_D_DECL(ihi,jhi,khi));
-                Box interp_bx(interp_lo,interp_hi);
+        // Only interpolate for derived components
+        for (int n = 2; n < ncomp; ++n) {
 
-                // Only interpolate for derived components
-                for (int n = 2; n < ncomp; ++n) {
+            // Check if interpolation needs to be redone
+            bool redo_me = false;
+            redo_me = ccprotect_check_redo(interp_bx, n, fnarr, fnstarr);
 
-                    // Check if interpolation needs to be redone
-                    bool redo_me = false;
-                    Array4<Real const> const& fnarr   = fine.const_array();
-                    Array4<Real const> const& fnstarr = fine_state.const_array();
-                    redo_me = ccprotect_check_redo(interp_bx, n, fnarr, fnstarr);
+            /*
+             * If all the fine values are non-negative after the original
+             * interpolated correction, then we do nothing here.
+             *
+             * If any of the fine values are negative after the original
+             * interpolated correction, then we do our best.
+             */
+            if (redo_me) {
 
-                    /*
-                     * If all the fine values are non-negative after the
-                     * original interpolated correction, then we do nothing here.
-                     *
-                     * If any of the fine values are negative after the
-                     * original interpolated correction, then we do our best.
-                     */
-                    if (redo_me) {
+                /*
+                 * First, calculate the following quantities:
+                 *
+                 * crseTot = volume-weighted sum of all interpolated values
+                 *           of the correction, which is equivalent to
+                 *           the total volume-weighted coarse correction
+                 *
+                 * SumN = volume-weighted sum of all negative values of fine_state
+                 *
+                 * SumP = volume-weighted sum of all positive values of fine_state
+                 */
 
-                        /*
-                         * First, calculate the following quantities:
-                         *
-                         * crseTot = volume-weighted sum of all interpolated
-                         *           values of the correction, which is
-                         *           equivalent to the total volume-weighted
-                         *           coarse correction
-                         *
-                         * SumN = volume-weighted sum of all negative values
-                         *        of fine_state
-                         *
-                         * SumP = volume-weighted sum of all positive values
-                         *        of fine_state
-                         */
+                //ccprotect_calc_sums();
 
-                        //ccprotect_calc_sums();
+                /*
+                 * Special case 1:
+                 *
+                 * Coarse correction > 0, and fine_state has some cells
+                 * with negative values which will be filled before
+                 * adding to the other cells.
+                 *
+                 * Use the correction to bring negative cells to zero,
+                 * then distribute the remaining positive proportionally.
+                 */
 
-                        /*
-                         * Special case 1:
-                         *
-                         * Coarse correction > 0, and fine_state has some cells
-                         * with negative values which will be filled before
-                         * adding to the other cells.
-                         *
-                         * Use the correction to bring negative cells to zero,
-                         * then distribute the remaining positive proportionally.
-                         */
+            } // redo_me
 
-                    } // redo_me
+        } // ncomp
 
-                } // ncomp
-
-            } // ic
-        }     // jc
-    }         // kc
+    }); // cs_bx
 
 #endif /*(AMREX_SPACEDIM == 1)*/
 
