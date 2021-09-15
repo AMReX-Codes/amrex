@@ -197,6 +197,46 @@ face_linear_interp_y (int i, int j, int /*k*/, int n, Array4<T> const& fine,
     }
 }
 
+template <typename T>
+template <RunOn run_on>
+AMREX_GPU_HOST AMREX_FORCE_INLINE
+bool ccprotect_check_redo (const Box const& interp_bx,
+                           const int n,
+                           Array4<T const> const& fine,
+                           Array4<T const> const& fine_state) noexcept
+{
+    bool r = false;
+    Array4<bool> my;
+
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
+        ReduceOps<ReduceOpLogicalOr> reduce_op;
+        ReduceData<bool> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+        reduce_op.eval(interp_bx, reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int /*k*/, int n) -> ReduceTuple
+        {
+            // Perform the check per thread
+            bool t = false;
+            t = t || ((fine_state(i,j,n) + fine(i,j,n)) < 0.0 );
+            return { t };
+        });
+
+        // Perform boolean or reduction
+        ReduceTuple hv = reduce_data.value(reduce_op);
+        r = amrex::get<0>(hv);
+    } else
+#endif
+    {
+        amrex::LoopOnCpu(interp_bx, 1, [=,&r] (int i, int j, int /*k*/, int n ) noexcept
+        {
+            r = r || ((fine_state(i,j,n) + fine(i,j,n)) < 0.0 );
+        });
+    }
+
+    return r;
+}
+
 }
 
 #endif

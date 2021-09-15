@@ -18,7 +18,7 @@ namespace amrex {
 // PCInterp, NodeBilinear, FaceLinear, CellConservativeLinear, and
 // CellBilinear are supported for all dimensions on cpu and gpu.
 //
-// CellConsertiveProtected only works in 2D and 3D on cpu.
+// CellConservativeProtected only works in 2D and 3D on cpu.
 //
 // CellQuadratic only works in 2D on cpu.
 //
@@ -35,11 +35,11 @@ FaceLinear                face_linear_interp;
 FaceDivFree               face_divfree_interp;
 CellConservativeLinear    lincc_interp;
 CellConservativeLinear    cell_cons_interp(0);
+CellConservativeProtected protected_interp;
 CellBilinear              cell_bilinear_interp;
 
 #ifndef BL_NO_FORT
 CellQuadratic             quadratic_interp;
-CellConservativeProtected protected_interp;
 CellConservativeQuartic   quartic_interp;
 #endif
 
@@ -636,7 +636,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                                     const Geometry&  crse_geom,
                                     const Geometry&  fine_geom,
                                     Vector<BCRec>&   bcr,
-                                    RunOn            /*runon*/)
+                                    RunOn            runon)
 {
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(crse,crse_comp,fine,fine_comp,fine_state,
@@ -689,6 +689,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
     }
 #endif
 
+/*
     Real* fdat       = fine.dataPtr(fine_comp);
     Real* state_dat  = fine_state.dataPtr(state_comp);
     const Real* cdat = crse.dataPtr(crse_comp);
@@ -720,6 +721,90 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                          state_dat, AMREX_ARLIM(slo), AMREX_ARLIM(shi),
                          &ncomp,AMREX_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
                          bc.dataPtr());
+*/
+
+    // Check coarse-to-fine ratios against rMAX
+#if (AMREX_SPACEDIM == 2)
+    const int rMAX = 32;
+#else
+    const int rMAX = 16;
+#endif
+    if ( std::max(AMREX_D_DECL(ratio[0], ratio[1], ratio[2])) > rMAX ) {
+        amrex::Abort("rMAX in CellConservativeProtected::protect");
+    }
+
+    // Loop over coarse indices
+    Dim3 csbxlo = cs_bx.lbound(), csbxhi = cs_bx.ubound();
+    for         (int kc = csbxlo.z; kc <= csbxhi.z; ++kc) {
+        for     (int jc = csbxlo.y; jc <= csbxhi.y; ++jc) {
+            for (int ic = csbxlo.x; ic <= csbxhi.x; ++ic) {
+
+                // Create BoxArray for interpolation
+                const Box& fnbx = fine.box();
+                Dim3 fnbxlo = fine_bx.lbound(), fnbxhi = fine_bx.ubound();
+                AMREX_D_TERM(int ilo = std::max(ratio[0]*ic, fnbxlo.x);,
+                             int jlo = std::max(ratio[1]*jc, fnbxlo.y);,
+                             int klo = std::max(ratio[2]*kc, fnbxlo.z));
+                AMREX_D_TERM(int ihi = std::min(ratio[0]*ic+(ratio[0]-1), fnbxhi.x);,
+                             int jhi = std::min(ratio[1]*jc+(ratio[1]-1), fnbxhi.y);,
+                             int khi = std::min(ratio[2]*kc+(ratio[2]-1), fnbxhi.z));
+                IntVect interp_lo(AMREX_D_DECL(ilo,jlo,klo));
+                IntVect interp_hi(AMREX_D_DECL(ihi,jhi,khi));
+                Box interp_bx(interp_lo,interp_hi);
+
+                // Only interpolate for derived components
+                for (int n = 2; n < ncomp; ++n) {
+
+                    // Check if interpolation needs to be redone
+                    bool redo_me = false;
+                    Array4<Real const> const& fnarr   = fine.const_array();
+                    Array4<Real const> const& fnstarr = fine_state.const_array();
+                    redo_me = ccprotect_check_redo(interp_bx, n, fnarr, fnstarr);
+
+                    /*
+                     * If all the fine values are non-negative after the
+                     * original interpolated correction, then we do nothing here.
+                     *
+                     * If any of the fine values are negative after the
+                     * original interpolated correction, then we do our best.
+                     */
+                    if (redo_me) {
+
+                        /*
+                         * First, calculate the following quantities:
+                         *
+                         * crseTot = volume-weighted sum of all interpolated
+                         *           values of the correction, which is
+                         *           equivalent to the total volume-weighted
+                         *           coarse correction
+                         *
+                         * SumN = volume-weighted sum of all negative values
+                         *        of fine_state
+                         *
+                         * SumP = volume-weighted sum of all positive values
+                         *        of fine_state
+                         */
+
+                        ccprotect_calc_sums();
+
+                        /*
+                         * Special case 1:
+                         *
+                         * Coarse correction > 0, and fine_state has some cells
+                         * with negative values which will be filled before
+                         * adding to the other cells.
+                         *
+                         * Use the correction to bring negative cells to zero,
+                         * then distribute the remaining positive proportionally.
+                         */
+
+                    } // redo_me
+
+                } // ncomp
+
+            } // ic
+        }     // jc
+    }         // kc
 
 #endif /*(AMREX_SPACEDIM == 1)*/
 
