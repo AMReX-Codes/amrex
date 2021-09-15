@@ -1620,19 +1620,9 @@ by "amrex" in your :cpp:`inputs` file.
 Basic Gpu Debugging
 ===================
 
-- Turn off GPU offloading for some part of the code with
+Architecture agnostic tools include ``gdb``, ``hpctoolkit``, and ``Valgrind``. Note that there are some architecture specific implementations of ``gdb`` such as ``cuda-gdb``, ``rocgdb``, ``gdb-amd``, the Intel ``gdb``. For advance debugging topics and tools, refer to the system-specific documentation (e.g. https://docs.olcf.ornl.gov/systems/summit_user_guide.html#debugging) .
 
-.. highlight:: cpp
-
-::
-
-    Gpu::setLaunchRegion(0);
-    ... ;
-    Gpu::setLaunchRegion(1);
-
-Note that functions, ``amrex::launch`` and ``amrex::ParallelFor``, do
-not respect the launch region flag.  Only the macros (e.g.,
-``AMREX_LAUNCH_HOST_DEVICE_LAMBDA`` and ``AMREX_HOST_DEVICE_FOR_*D``) do.
+One strategy to isolate specific kernel failures is to add ``amrex::Gpu::synchronize()`` or ``amrex::Gpu::streamSynchronize()`` after every ``ParallelFor`` or similar ``amrex::launch`` type call.
 
 Cuda-specific tests
 -------------------
@@ -1642,9 +1632,11 @@ Cuda-specific tests
 ::
 
     nvprof ./main3d.xxx
+    nsys nvprof ./main3d.xxx
 
-- Run under ``nvprof -o profile%p.nvvp ./main3d.xxxx`` for
-  a small problem and examine page faults using nvvp
+- Run under ``nvprof -o profile%p.nvvp ./main3d.xxxx`` or
+  ``nsys profile -o nsys_out.%q{SLURM_PROCID}.%q{SLURM_JOBID} ./main3d.xxx`` for
+  a small problem and examine page faults using nvvp or ``nsight-sys $(pwd)/nsys_out.#.######.qdrep``
 
 - Run under ``cuda-memcheck``
 
@@ -1653,3 +1645,62 @@ Cuda-specific tests
 - Run with ``CUDA_LAUNCH_BLOCKING=1``.  This means that only one
   kernel will run at a time.  This can help identify if there are race
   conditions.
+
+..
+    Needs minor updates, but maybe point people towards this:
+    https://github.com/AMReX-Codes/amrex-tutorials/blob/main/GPU/run.saul
+    Updates to tutorial run script should include better link to:
+    https://docs.nvidia.com/nsight-systems/UserGuide/index.html#cli-profiling
+
+Rocm-specific tests
+-------------------
+
+- To test if your kernels have launched, run
+
+::
+
+    rocprof ./main3d.xxx
+
+- Run under ``rocprof  --hsa-trace --stats --timestamp on --roctx-trace ./main3d.xxxx`` for
+  a small problem and examine tracing using ``chrome://tracing``
+
+- Run under ``rocgdb``
+
+- Run with ``CUDA_LAUNCH_BLOCKING=1`` or ``HIP_LAUNCH_BLOCKING=1``.  This means that only one
+  kernel will run at a time.  This can help identify if there are race
+  conditions.
+  See https://rocmdocs.amd.com/en/latest/Programming_Guides/HIP_Debugging.html#chicken-bits
+  for more specific environment variables.
+
+..
+    https://github.com/ROCm-Developer-Tools/ROCgdb
+
+    example to get more info from rocgdb (possibly should be in general debugging (along with very useful way to use "b abort" or "file ./main3d.xxx; b main; run inputs; b exit; c")
+    set pagination off
+    set non-stop on
+    b abort
+
+    - Run under ``rocm-memcheck``??? Valgrind is meant to work, not sure if there's a rocm-specific one
+    https://rocmdocs.amd.com/en/latest/Programming_Guides/HIP_Debugging.html#chicken-bits
+
+Intel GPU specific tests
+------------------------
+
+- To test if your kernels have launched, run
+
+::
+
+    ./ze_tracer ./main3d.xxx
+
+- Use Intel Advisor
+  ``advisor --collect=survey ./main3d.xxx`` for
+  a small problem with 1 mpi and examine metrics
+
+- Run under specific Intel ``gdb``
+
+- Run with ``ZE_DEBUG=1``.  This will report some backend information
+
+..
+    https://software.intel.com/content/dam/develop/external/us/en/documents/advisor-user-guide.pdf
+    https://software.intel.com/content/www/us/en/develop/documentation/oneapi-programming-guide/top/software-development-process/debugging-the-dpc-and-openmp-offload-process/oneapi-debug-tools.html
+    https://software.intel.com/content/www/us/en/develop/documentation/oneapi-programming-guide/top/software-development-process/debugging-the-dpc-and-openmp-offload-process/debug-the-offload-process.html
