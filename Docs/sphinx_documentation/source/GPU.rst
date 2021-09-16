@@ -688,48 +688,56 @@ AMReX provides functions for performing standard reduction operations on
 When ``USE_CUDA=TRUE``, these functions automatically implement the
 corresponding reductions on GPUs in an efficient manner.
 
-Function templates :cpp:`amrex::ReduceSum`, :cpp:`amrex::ReduceMin` and
-:cpp:`amrex::ReduceMax` can be used to implement user-defined reduction
-functions over :cpp:`MultiFab`\ s. These same templates are implemented
-in the :cpp:`MultiFab` functions, so they can be used as a reference to
-build a custom reduction. For example, the :cpp:`MultiFab:Dot`
-implementation is reproduced here:
+Function template :cpp:`ParallelFor` can be used to implement user-defined
+reduction functions over :cpp:`MultiFab`\ s.  For example, the following
+function computes the sum of total kinetic energy using the data in a
+:cpp:`MultiFab` storing the mass and momentum density.
 
 .. highlight:: c++
 
 ::
 
-    Real MultiFab::Dot (const MultiFab& x, int xcomp,
-                        const MultiFab& y, int ycomp,
-                        int numcomp, int nghost, bool local) {
-        Real sm = amrex::ReduceSum(x, y, nghost,
-        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& xfab, FArrayBox const& yfab) -> Real
-        {
-            return xfab.dot(bx,xcomp,yfab,bx,ycomp,numcomp);
-        });
-
-        if (!local) ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
-
-        return sm;
+    Real comupute_ek (MultiFab const& mf)
+    {
+        auto const& ma = mf.const_arrays();
+        return ParallelFor(mf, IntVect(0), // zero ghost cells
+               [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
+                   noexcept -> GpuTuple<Real>
+               {
+                   Array4<Real const> const& a = ma[box_no];
+                   Real rho = a(i,j,k,0);
+                   Real rhovx = a(i,j,k,1);
+                   Real rhovy = a(i,j,k,2);
+                   Real rhovz = a(i,j,k,3);
+                   Real ek = (rhovx*rhovx+rhovy*rhovy+rhovz*rhovz)/(2.*rho);
+                   return { ek };
+               });
     }
 
-:cpp:`amrex::ReduceSum` takes two :cpp:`MultiFab`\ s, ``x`` and ``y`` and
-returns the sum of the value returned from the given lambda function.
-In this case, :cpp:`BaseFab::dot` is returned, yielding a sum of the
-dot product of each local pair of :cpp:`BaseFab`\ s. Finally,
-:cpp:`ParallelAllReduce` is used to sum the dot products across all
-MPI ranks and return the total dot product of the two
-:cpp:`MultiFab`\ s.
+As another example, the following function computes the max- and 1-norm of a
+:cpp:`MultiFab` in the masked region specified by an :cpp:`iMultiFab`.
 
-To implement a different reduction, replace the code block inside the
-lambda function with the operation that should be applied, being sure
-to return the value to be summed, minimized, or maximized.  The reduction
-templates have a few different interfaces to accommodate a variety of
-reductions.  The :cpp:`amrex::ReduceSum` reduction template has varieties
-that take either one, two or three ::cpp:`MultiFab`\ s.
-:cpp:`amrex::ReduceMin` and :cpp:`amrex::ReduceMax` can take either one
-or two.
+.. highlight:: c++
 
+::
+
+    GpuTuple<Real,Real> compute_norms (MultiFab const& mf,
+                                       iMulitiFab const& mask)
+    {
+        auto const& data_ma = mf.const_arrays();
+        auto const& mask_ma = mask.const_arrays();
+        return ParallelFor(mf, IntVect(0), // zero ghost cells
+               [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
+                   noexcept -> GpuTuple<Real,Real>
+               {
+                   if (mask_ma[box_no](i,j,k)) {
+                       Real a = amrex::Math::abs(data_ma[box_no](i,j,k));
+                       return { a, a };
+                   } else {
+                       return { 0., 0. };
+                   }
+               });
+    }
 
 Box, IntVect and IndexType
 --------------------------
