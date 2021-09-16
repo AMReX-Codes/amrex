@@ -1620,31 +1620,51 @@ by "amrex" in your :cpp:`inputs` file.
 Basic Gpu Debugging
 ===================
 
-Architecture agnostic tools include ``gdb``, ``hpctoolkit``, and ``Valgrind``. Note that there are some architecture specific implementations of ``gdb`` such as ``cuda-gdb``, ``rocgdb``, ``gdb-amd``, the Intel ``gdb``. For advance debugging topics and tools, refer to the system-specific documentation (e.g. https://docs.olcf.ornl.gov/systems/summit_user_guide.html#debugging) .
 
+The asynchronous nature of GPU execution can make tracking down bugs complex.
+The relative timing of improperly coded functions can cause variations in output and the timing of error messages 
+may not linearly relate to a place in the code. 
 One strategy to isolate specific kernel failures is to add ``amrex::Gpu::synchronize()`` or ``amrex::Gpu::streamSynchronize()`` after every ``ParallelFor`` or similar ``amrex::launch`` type call.
+These synchronization commands will halt execution of the code until the GPU has finished processing all previously requested tasks, thereby making it easier to locate and identify sources of error. 
 
-Cuda-specific tests
+
+.. this has better lead in to the following information
+
+Debuggers
+---------
+
+Users may also find debuggers useful. Architecture agnostic tools include ``gdb``, ``hpctoolkit``, and ``Valgrind``. Note that there are architecture specific implementations of ``gdb`` such as ``cuda-gdb``, ``rocgdb``, ``gdb-amd``, and the Intel ``gdb``. 
+Usage of several of these variations are described in the following sections.
+
+For advance debugging topics and tools, refer to system-specific documentation (e.g. https://docs.olcf.ornl.gov/systems/summit_user_guide.html#debugging).
+
+
+CUDA-Specific Tests
 -------------------
 
-- To test if your kernels have launched, run
+- To test if your kernels have launched, run:
 
-::
+  ::
 
     nvprof ./main3d.xxx
+
+  If using NVIDIA Nsight Compute instead, access ``nvprof`` functionality with:
+
+  ::
+    
     nsys nvprof ./main3d.xxx
 
-- Run under ``nvprof -o profile%p.nvvp ./main3d.xxxx`` or
+- Run ``nvprof -o profile%p.nvvp ./main3d.xxxx`` or
   ``nsys profile -o nsys_out.%q{SLURM_PROCID}.%q{SLURM_JOBID} ./main3d.xxx`` for
-  a small problem and examine page faults using nvvp or ``nsight-sys $(pwd)/nsys_out.#.######.qdrep``
+  a small problem and examine page faults using ``nvvp`` or ``nsight-sys $(pwd)/nsys_out.#.######.qdrep``.
 
-- Run under ``cuda-memcheck``
+- Run under ``cuda-memcheck`` to identify memory errors.
 
-- Run under ``cuda-gdb``
+- Run under ``cuda-gdb`` to identify kernel errors.
 
-- Run with ``CUDA_LAUNCH_BLOCKING=1``.  This means that only one
-  kernel will run at a time.  This can help identify if there are race
-  conditions.
+- To help identify race conditions, globally disable asynchronicity of kernel launches for all
+  CUDA applications by setting ``CUDA_LAUNCH_BLOCKING=1`` in your environment variables. This
+  will ensure that only one CUDA kernel will run at a time. 
 
 ..
     Needs minor updates, but maybe point people towards this:
@@ -1652,25 +1672,25 @@ Cuda-specific tests
     Updates to tutorial run script should include better link to:
     https://docs.nvidia.com/nsight-systems/UserGuide/index.html#cli-profiling
 
-Rocm-specific tests
--------------------
+AMD ROCm-Specific Tests
+-----------------------
 
-- To test if your kernels have launched, run
+- To test if your kernels have launched, run:
 
-::
+  ::
 
     rocprof ./main3d.xxx
 
-- Run under ``rocprof  --hsa-trace --stats --timestamp on --roctx-trace ./main3d.xxxx`` for
-  a small problem and examine tracing using ``chrome://tracing``
+- Run ``rocprof  --hsa-trace --stats --timestamp on --roctx-trace ./main3d.xxxx`` for
+  a small problem and examine tracing using ``chrome://tracing``.
 
-- Run under ``rocgdb``
+- Run under ``rocgdb`` for source-level debugging.
 
-- Run with ``CUDA_LAUNCH_BLOCKING=1`` or ``HIP_LAUNCH_BLOCKING=1``.  This means that only one
-  kernel will run at a time.  This can help identify if there are race
-  conditions.
-  See https://rocmdocs.amd.com/en/latest/Programming_Guides/HIP_Debugging.html#chicken-bits
-  for more specific environment variables.
+- To help identify if there are race conditions, globally disable asynchronicity of kernel launches by setting ``CUDA_LAUNCH_BLOCKING=1`` or ``HIP_LAUNCH_BLOCKING=1``
+  in your environment variables. This will ensure only one kernel will run at a time.  
+  See the `AMD ROCm docs' chicken bits section`_ for more debugging environment variables.
+
+.. _`AMD ROCm docs' chicken bits section`: https://rocmdocs.amd.com/en/latest/Programming_Guides/HIP_Debugging.html#chicken-bits
 
 ..
     https://github.com/ROCm-Developer-Tools/ROCgdb
@@ -1683,22 +1703,24 @@ Rocm-specific tests
     - Run under ``rocm-memcheck``??? Valgrind is meant to work, not sure if there's a rocm-specific one
     https://rocmdocs.amd.com/en/latest/Programming_Guides/HIP_Debugging.html#chicken-bits
 
-Intel GPU specific tests
+Intel GPU Specific Tests
 ------------------------
 
-- To test if your kernels have launched, run
+- To test if your kernels have launched, run:
 
-::
+  ::
 
     ./ze_tracer ./main3d.xxx
 
-- Use Intel Advisor
+- Run Intel Advisor, 
   ``advisor --collect=survey ./main3d.xxx`` for
-  a small problem with 1 mpi and examine metrics
+  a small problem with 1 MPI process and examine metrics.
 
-- Run under specific Intel ``gdb``
+- Run under ``gdb`` with the `Intel Distribution for GDB`_.
 
-- Run with ``ZE_DEBUG=1``.  This will report some backend information
+- To report back-end information, set ``ZE_DEBUG=1`` in your environment variables. 
+
+.. _`Intel Distribution for GDB`: https://software.intel.com/content/www/us/en/develop/tools/oneapi/components/distribution-for-gdb.html
 
 ..
     https://software.intel.com/content/dam/develop/external/us/en/documents/advisor-user-guide.pdf
