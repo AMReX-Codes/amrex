@@ -667,8 +667,8 @@ CellConservativeProtected::protect (const FArrayBox& crse,
     // Get coarse and fine edge-centered volume coordinates.
     //
     int dir;
-    Vector<Real> fvc[AMREX_SPACEDIM];
-    Vector<Real> cvc[AMREX_SPACEDIM];
+    GpuArray<Vector<Real>, AMREX_SPACEDIM> fvc;
+    GpuArray<Vector<Real>, AMREX_SPACEDIM> cvc;
     for (dir = 0; dir < AMREX_SPACEDIM; dir++)
     {
         fine_geom.GetEdgeVolCoord(fvc[dir],target_fine_region,dir);
@@ -729,32 +729,41 @@ CellConservativeProtected::protect (const FArrayBox& crse,
 #else
     const int rMAX = 16;
 #endif
-    if ( std::max(AMREX_D_DECL(ratio[0], ratio[1], ratio[2])) > rMAX ) {
+    if ( amrex::max(AMREX_D_DECL(ratio[0], ratio[1], ratio[2])) > rMAX ) {
         amrex::Abort("rMAX in CellConservativeProtected::protect");
     }
 
-    Array4<Real const> const&   csarr = crse.const_array();
-    Array4<Real>       const&   fnarr = fine.array();
-    Array4<Real const> const& fnstarr = fine_state.const_array();
-
+    // Extract box from fine fab
     const Box& fnbx = fine.box();
 
+    // Create a temporary fab to hold original values of fine fab
+    const Box tbx(IntVect(AMREX_D_DECL(0, 0, 0)),
+                  IntVect(AMREX_D_DECL(ratio[0]-1, ratio[1]-1, ratio[2]-1)));
+    FArrayBox fine_orig(tbx);
+    fine_orig.setVal<RunOn::Device>(0.0);
+
+    // Extract pointers to fab data
+    Array4<Real const> const&     csarr = crse.const_array();
+    Array4<Real>       const&     fnarr = fine.array();
+    Array4<Real>       const& fnorigarr = fine_orig.array();
+    Array4<Real const> const&   fnstarr = fine_state.const_array();
+
     // Loop over coarse indices
-    amrex::ParallelFor(cs_bx, ncomp,
-    [=] AMREX_GPU_DEVICE (int ic, int jc, int kc, int n)
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cs_bx, ncomp, ic, jc, kc, n,
     {
         // Only interpolate for derived components
         if (n > 1) {
 
             // Create Box for interpolation
-            Dim3 fnbxlo = lbound(fnbx), fnbxhi = ubound(fnbx);
-            int ilo = std::max(ratio[0]*ic,              fnbxlo.x);
-            int ihi = std::min(ratio[0]*ic+(ratio[0]-1), fnbxhi.x);
-            int jlo = std::max(ratio[1]*jc,              fnbxlo.y);
-            int jhi = std::min(ratio[1]*jc+(ratio[1]-1), fnbxhi.y);
+            Dim3 fnbxlo = lbound(fnbx);
+            Dim3 fnbxhi = ubound(fnbx);
+            int ilo = amrex::max(ratio[0]*ic,              fnbxlo.x);
+            int ihi = amrex::min(ratio[0]*ic+(ratio[0]-1), fnbxhi.x);
+            int jlo = amrex::max(ratio[1]*jc,              fnbxlo.y);
+            int jhi = amrex::min(ratio[1]*jc+(ratio[1]-1), fnbxhi.y);
 #if (AMREX_SPACEDIM == 3)
-            int klo = std::max(ratio[2]*kc,              fnbxlo.z);
-            int khi = std::min(ratio[2]*kc+(ratio[2]-1), fnbxhi.z);
+            int klo = amrex::max(ratio[2]*kc,              fnbxlo.z);
+            int khi = amrex::min(ratio[2]*kc+(ratio[2]-1), fnbxhi.z);
 #endif
             IntVect interp_lo(AMREX_D_DECL(ilo,jlo,klo));
             IntVect interp_hi(AMREX_D_DECL(ihi,jhi,khi));
@@ -762,7 +771,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
 
             // Check if interpolation needs to be redone
             bool redo_me = false;
-            redo_me = ccprotect_check_redo(interp_bx, n, fnarr, fnstarr);
+            ccprotect_check_redo(interp_bx, &redo_me, n, fnarr, fnstarr);
 
             /*
              * If all the fine values are non-negative after the original
@@ -772,6 +781,9 @@ CellConservativeProtected::protect (const FArrayBox& crse,
              * interpolated correction, then we do our best.
              */
             if (redo_me) {
+
+                // "Back up" fine data
+                ccprotect_copy_fine_orig(interp_bx, n, fnorigarr, fnarr);
 
                 /*
                  * First, calculate the following quantities:
@@ -799,7 +811,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                  */
 
             } // redo_me
-        } // n
+        } // (n > 1)
     }); // cs_bx
 
 #endif /*(AMREX_SPACEDIM == 1)*/

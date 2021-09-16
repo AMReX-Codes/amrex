@@ -199,9 +199,10 @@ face_linear_interp_y (int i, int j, int /*k*/, int n, Array4<T> const& fine,
 
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-bool ccprotect_check_redo (Box const& interp_bx,
+void ccprotect_check_redo (Box const& interp_bx,
+                           bool redo_me,
                            const int n,
-                           Array4<T> const& fine,
+                           Array4<T>       const& fine,
                            Array4<T const> const& fine_state) noexcept
 {
     bool r = false;
@@ -212,9 +213,38 @@ bool ccprotect_check_redo (Box const& interp_bx,
         }
     }
 
-    return r;
+    redo_me = r;
 }
 
+template <typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void ccprotect_copy_fine_orig(Box const& interp_bx,
+                              const int n,
+                              Array4<T> const& fine_orig,
+                              Array4<T> const& fine) noexcept
+{
+    Dim3 lo = lbound(interp_bx), hi = ubound(interp_bx);
+    for     (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x; i <= hi.x; ++i) {
+            fine_orig(i-lo.x,j-lo.y,0) = fine(i,j,n);
+        }
+    }
 }
+
+template <typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void ccprotect_calc_sums (Box const& interp_bx,
+                          Real crseTot,
+                          Real SumN,
+                          Real SumP,
+                          GpuArray<T, 2> fvc,
+                          GpuArray<T, 2> cvc,
+                          Array4<T> const& fine,
+                          Array4<T const> const& fine_state) noexcept
+{
+
+}
+
+}  // namespace amrex
 
 #endif
