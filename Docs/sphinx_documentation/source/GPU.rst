@@ -739,6 +739,9 @@ As another example, the following function computes the max- and 1-norm of a
                });
     }
 
+It should be noted that the reduction result of :cpp:`ParallelFor` is local
+and it is the user's responsibility if MPI communication is needed.
+
 Box, IntVect and IndexType
 --------------------------
 
