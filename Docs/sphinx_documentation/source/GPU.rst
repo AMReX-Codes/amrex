@@ -697,7 +697,7 @@ function computes the sum of total kinetic energy using the data in a
 
 ::
 
-    Real comupute_ek (MultiFab const& mf)
+    Real compute_ek (MultiFab const& mf)
     {
         auto const& ma = mf.const_arrays();
         return ParallelFor(mf, IntVect(0), // zero ghost cells
