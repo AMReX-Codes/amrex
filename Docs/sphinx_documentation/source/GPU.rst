@@ -1622,18 +1622,18 @@ Basic Gpu Debugging
 
 
 The asynchronous nature of GPU execution can make tracking down bugs complex.
-The relative timing of improperly coded functions can cause variations in output and the timing of error messages 
-may not linearly relate to a place in the code. 
+The relative timing of improperly coded functions can cause variations in output and the timing of error messages
+may not linearly relate to a place in the code.
 One strategy to isolate specific kernel failures is to add ``amrex::Gpu::synchronize()`` or ``amrex::Gpu::streamSynchronize()`` after every ``ParallelFor`` or similar ``amrex::launch`` type call.
-These synchronization commands will halt execution of the code until the GPU has finished processing all previously requested tasks, thereby making it easier to locate and identify sources of error. 
+These synchronization commands will halt execution of the code until the GPU or GPU stream, respectively, has finished processing all previously requested tasks, thereby making it easier to locate and identify sources of error.
 
 
 .. this has better lead in to the following information
 
-Debuggers
----------
+Debuggers and Related Tools
+---------------------------
 
-Users may also find debuggers useful. Architecture agnostic tools include ``gdb``, ``hpctoolkit``, and ``Valgrind``. Note that there are architecture specific implementations of ``gdb`` such as ``cuda-gdb``, ``rocgdb``, ``gdb-amd``, and the Intel ``gdb``. 
+Users may also find debuggers useful. Architecture agnostic tools include ``gdb``, ``hpctoolkit``, and ``Valgrind``. Note that there are architecture specific implementations of ``gdb`` such as ``cuda-gdb``, ``rocgdb``, ``gdb-amd``, and the Intel ``gdb``.
 Usage of several of these variations are described in the following sections.
 
 For advance debugging topics and tools, refer to system-specific documentation (e.g. https://docs.olcf.ornl.gov/systems/summit_user_guide.html#debugging).
@@ -1651,7 +1651,7 @@ CUDA-Specific Tests
   If using NVIDIA Nsight Compute instead, access ``nvprof`` functionality with:
 
   ::
-    
+
     nsys nvprof ./main3d.xxx
 
 - Run ``nvprof -o profile%p.nvvp ./main3d.xxxx`` or
@@ -1664,7 +1664,7 @@ CUDA-Specific Tests
 
 - To help identify race conditions, globally disable asynchronicity of kernel launches for all
   CUDA applications by setting ``CUDA_LAUNCH_BLOCKING=1`` in your environment variables. This
-  will ensure that only one CUDA kernel will run at a time. 
+  will ensure that only one CUDA kernel will run at a time.
 
 ..
     Needs minor updates, but maybe point people towards this:
@@ -1687,7 +1687,7 @@ AMD ROCm-Specific Tests
 - Run under ``rocgdb`` for source-level debugging.
 
 - To help identify if there are race conditions, globally disable asynchronicity of kernel launches by setting ``CUDA_LAUNCH_BLOCKING=1`` or ``HIP_LAUNCH_BLOCKING=1``
-  in your environment variables. This will ensure only one kernel will run at a time.  
+  in your environment variables. This will ensure only one kernel will run at a time.
   See the `AMD ROCm docs' chicken bits section`_ for more debugging environment variables.
 
 .. _`AMD ROCm docs' chicken bits section`: https://rocmdocs.amd.com/en/latest/Programming_Guides/HIP_Debugging.html#chicken-bits
@@ -1712,13 +1712,13 @@ Intel GPU Specific Tests
 
     ./ze_tracer ./main3d.xxx
 
-- Run Intel Advisor, 
+- Run Intel Advisor,
   ``advisor --collect=survey ./main3d.xxx`` for
   a small problem with 1 MPI process and examine metrics.
 
 - Run under ``gdb`` with the `Intel Distribution for GDB`_.
 
-- To report back-end information, set ``ZE_DEBUG=1`` in your environment variables. 
+- To report back-end information, set ``ZE_DEBUG=1`` in your environment variables.
 
 .. _`Intel Distribution for GDB`: https://software.intel.com/content/www/us/en/develop/tools/oneapi/components/distribution-for-gdb.html
 
