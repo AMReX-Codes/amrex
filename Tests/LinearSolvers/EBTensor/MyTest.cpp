@@ -169,7 +169,7 @@ MyTest::initData ()
     eta.define(grids, dmap, 1, 1, MFInfo(), *factory);
 
     const auto& dx = geom.CellSizeArray();
-    const auto& problo = geom.ProbLo();
+    const auto& problo = geom.ProbLoArray();
 
     amrex::Real R;
 
@@ -186,14 +186,11 @@ MyTest::initData ()
 
     for (MFIter mfi(exact); mfi.isValid(); ++mfi) {
         const Box& bx = mfi.fabbox();
-        const auto lo = amrex::lbound(bx);
-        const auto hi = amrex::ubound(bx);
         const Array4<Real> velfab = exact.array(mfi);
         const Array4<Real> rhsfab = rhs.array(mfi);
         const Array4<Real> etafab = eta.array(mfi);
-        for         (int k = lo.z; k <= hi.z; ++k) {
-            for     (int j = lo.y; j <= hi.y; ++j) {
-                for (int i = lo.x; i <= hi.x; ++i) {
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+             {
                     AMREX_D_TERM(Real x = (i+0.5)*dx[0] + problo[0];,
                                  Real y = (j+0.5)*dx[1] + problo[1];,
                                  Real z = (k+0.5)*dx[2] + problo[2];)
@@ -228,9 +225,9 @@ MyTest::initData ()
                         z < -1.0 || z > 1.0)
 #endif
                     {
-                        AMREX_D_TERM(x = std::max(-1.0,std::min(1.0,x));,
-                                     y = std::max(-1.0,std::min(1.0,y));,
-                                     z = std::max(-1.0,std::min(1.0,z));)
+                        AMREX_D_TERM(x = amrex::max(-1.0,amrex::min(1.0,x));,
+                                     y = amrex::max(-1.0,amrex::min(1.0,y));,
+                                     z = amrex::max(-1.0,amrex::min(1.0,z));)
 #if (AMREX_SPACEDIM == 2)
                             init(x,y,R2,u,v,urhs,vrhs,seta);
 #elif (AMREX_SPACEDIM == 3)
@@ -246,9 +243,7 @@ MyTest::initData ()
                                      velfab(i,j,k,1) = v;,
                                      velfab(i,j,k,2) = w;);
                     }
-                }
-            }
-        }
+             });
     }
 
     amrex::EB_set_covered(exact, 0.0);
