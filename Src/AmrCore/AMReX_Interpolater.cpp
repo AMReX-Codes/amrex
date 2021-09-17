@@ -771,7 +771,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
 
             // Check if interpolation needs to be redone
             bool redo_me = false;
-            ccprotect_check_redo(interp_bx, &redo_me, n, fnarr, fnstarr);
+            ccprotect_check_redo(interp_bx, redo_me, n, fnarr, fnstarr);
 
             /*
              * If all the fine values are non-negative after the original
@@ -807,80 +807,95 @@ CellConservativeProtected::protect (const FArrayBox& crse,
 #endif
                                     fnarr, fnstarr);
 
-                if (crseTot > 0) {
-                    if (crseTot > std::abs(SumN)) {
-                        /*
-                         * Special case 1:
-                         * (crseTot > 0) && (crseTot > abs(SumN))
-                         *
-                         * Coarse correction > 0, and fine_state has some cells
-                         * with negative values which will be filled before
-                         * adding to the other cells.
-                         *
-                         * Use the correction to bring negative cells to zero,
-                         * then distribute the remaining positive proportionally.
-                         */
-                        icase = 1;
-                    } else {
-                        /*
-                         * Special case 2:
-                         * (crseTot > 0) && (crseTot < abs(SumN))
-                         *
-                         * Coarse correction > 0, and correction can not make
-                         * them all positive.
-                         *
-                         * Add correction only to the negative cells,
-                         * in proportion to their magnitude.
-                         */
-                        icase = 2;
-                    } // (crseTot > abs(sumN))
-                } else {
-                    if (std::abs(crseTot) > SumP) {
-                        /*
-                         * Special case 3:
-                         * (crseTot < 0) && (abs(crseTot) > SumP)
-                         *
-                         * Coarse correction < 0, and fine_state DOES NOT have
-                         * enough positive states to absorb it.
-                         *
-                         * Here we bring all the positive fine cells to zero,
-                         * then distribute the remaining negative amount
-                         * in such a way as to make them all as close to the
-                         * same negative value as possible.
-                         */
-                        icase = 3;
-                    } else {
-                        if ((SumP+SumN+crseTot) > 0.0) {
-                            /*
-                             * Special case 4:
-                             * (crseTot < 0) && (abs(crseTot) < SumP) &&
-                             *   ((SumP+SumN+crseTot) > 0)
-                             *
-                             * Coarse correction < 0, and fine_state has enough
-                             * positive states to absorb all the negative
-                             * correction *and* redistribute to make
-                             * negative cells positive.
-                             */
-                            icase = 4;
-                        } else {
-                            /*
-                             * Special case 5:
-                             * (crseTot < 0) && (abs(crseTot) < SumP) &&
-                             *   ((SumP+SumN+crseTot) < 0)
-                             *
-                             * Coarse correction < 0, and fine_state has enough
-                             * positive states to absorb all the negative
-                             * correction, but not enough to fix the states
-                             * already negative.
-                             *
-                             * We bring all the positive states to zero,
-                             * and use whatever remaining positiveness from
-                             * the states to help the negative states.
-                             */
-                            icase = 5;
-                        } // ((sumP+sumN+crseTot) < 0)
-                    } // (abs(crseTot) > sumP)
-                } // (crseTot > 0)
+#if (AMREX_SPACEDIM == 2)
+                // Calculate volume of current coarse cell
+                Real cvol = (cvc[0][ic+1]-cvc[0][ic]) * (cvc[1][jc+1]-cvc[1][jc]);
+#else /* (AMREX_SPACEDIM == 3) */
+                // Calculate number of fine cells
+                int numFineCells = (ihi-ilo+1) * (jhi-jlo+1) * (khi-klo+1);
+#endif
+
+                if ( (crseTot > 0) && (crseTot > Math::abs(SumN)) ) {
+
+                    /*
+                     * Special case 1:
+                     *
+                     * Coarse correction > 0, and fine_state has some cells
+                     * with negative values which will be filled before
+                     * adding to the other cells.
+                     *
+                     * Use the correction to bring negative cells to zero,
+                     * then distribute the remaining positive proportionally.
+                     */
+                    icase = 1;
+                    ccprotect_case1(interp_bx, crseTot, SumN, SumP, n,
+#if (AMREX_SPACEDIM == 2)
+                                    cvol,
+#else
+                                    numFineCells,
+#endif
+                                    fnarr, fnstarr);
+
+                } else if ( (crseTot > 0) && (crseTot < Math::abs(SumN)) ) {
+
+                    /*
+                     * Special case 2:
+                     *
+                     * Coarse correction > 0, and correction can not make
+                     * them all positive.
+                     *
+                     * Add correction only to the negative cells,
+                     * in proportion to their magnitude.
+                     */
+                    icase = 2;
+
+                } else if ( (crseTot < 0) && (Math::abs(crseTot) > SumP) ) {
+
+                    /*
+                     * Special case 3:
+                     *
+                     * Coarse correction < 0, and fine_state DOES NOT have
+                     * enough positive states to absorb it.
+                     *
+                     * Here we bring all the positive fine cells to zero,
+                     * then distribute the remaining negative amount
+                     * in such a way as to make them all as close to the
+                     * same negative value as possible.
+                     */
+                    icase = 3;
+
+                } else if ( (crseTot < 0) && (Math::abs(crseTot) < SumP) &&
+                            ((SumP+SumN+crseTot) > 0.0) )  {
+
+                    /*
+                     * Special case 4:
+                     *
+                     * Coarse correction < 0, and fine_state has enough
+                     * positive states to absorb all the negative
+                     * correction *and* redistribute to make
+                     * negative cells positive.
+                     */
+                    icase = 4;
+
+                } else if ( (crseTot < 0) && (Math::abs(crseTot) < SumP) &&
+                            ((SumP+SumN+crseTot) < 0.0) )  {
+                    /*
+                     * Special case 5:
+                     *
+                     * Coarse correction < 0, and fine_state has enough
+                     * positive states to absorb all the negative
+                     * correction, but not enough to fix the states
+                     * already negative.
+                     *
+                     * We bring all the positive states to zero,
+                     * and use whatever remaining positiveness from
+                     * the states to help the negative states.
+                     */
+                    icase = 5;
+
+                }
+
+                // Sanity check
 
             } // redo_me
         } // (n > 1)
