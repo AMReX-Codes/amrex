@@ -1,3 +1,21 @@
+'''
+Author: Michael Kieburtz (MichaelKieburtz@gmail.com)
+Copyright (C) 2021, Modern Electron Inc
+
+Description:
+    This script parses the saved stdout output from a simulation run and parses
+    the TinyProfile portion at the end. It saves this output in a JSON file that
+    can be interpreted by Hatchet (https://github.com/hatchet/hatchet).
+
+Usage:
+    python profileparser.py path_to_stdout_file [write_dir]
+
+    Where 'write_dir' is an optional parameter for the directory where the JSON file
+    will be saved. If this is not specified the JSON file will be written to the same
+    directory as the stdout file.
+
+'''
+
 import os
 import re
 import json
