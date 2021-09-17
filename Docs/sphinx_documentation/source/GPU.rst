@@ -1627,9 +1627,6 @@ may not linearly relate to a place in the code.
 One strategy to isolate specific kernel failures is to add ``amrex::Gpu::synchronize()`` or ``amrex::Gpu::streamSynchronize()`` after every ``ParallelFor`` or similar ``amrex::launch`` type call.
 These synchronization commands will halt execution of the code until the GPU or GPU stream, respectively, has finished processing all previously requested tasks, thereby making it easier to locate and identify sources of error.
 
-
-.. this has better lead in to the following information
-
 Debuggers and Related Tools
 ---------------------------
 
@@ -1666,12 +1663,6 @@ CUDA-Specific Tests
   CUDA applications by setting ``CUDA_LAUNCH_BLOCKING=1`` in your environment variables. This
   will ensure that only one CUDA kernel will run at a time.
 
-..
-    Needs minor updates, but maybe point people towards this:
-    https://github.com/AMReX-Codes/amrex-tutorials/blob/main/GPU/run.saul
-    Updates to tutorial run script should include better link to:
-    https://docs.nvidia.com/nsight-systems/UserGuide/index.html#cli-profiling
-
 AMD ROCm-Specific Tests
 -----------------------
 
@@ -1692,17 +1683,6 @@ AMD ROCm-Specific Tests
 
 .. _`AMD ROCm docs' chicken bits section`: https://rocmdocs.amd.com/en/latest/Programming_Guides/HIP_Debugging.html#chicken-bits
 
-..
-    https://github.com/ROCm-Developer-Tools/ROCgdb
-
-    example to get more info from rocgdb (possibly should be in general debugging (along with very useful way to use "b abort" or "file ./main3d.xxx; b main; run inputs; b exit; c")
-    set pagination off
-    set non-stop on
-    b abort
-
-    - Run under ``rocm-memcheck``??? Valgrind is meant to work, not sure if there's a rocm-specific one
-    https://rocmdocs.amd.com/en/latest/Programming_Guides/HIP_Debugging.html#chicken-bits
-
 Intel GPU Specific Tests
 ------------------------
 
@@ -1722,7 +1702,3 @@ Intel GPU Specific Tests
 
 .. _`Intel Distribution for GDB`: https://software.intel.com/content/www/us/en/develop/tools/oneapi/components/distribution-for-gdb.html
 
-..
-    https://software.intel.com/content/dam/develop/external/us/en/documents/advisor-user-guide.pdf
-    https://software.intel.com/content/www/us/en/develop/documentation/oneapi-programming-guide/top/software-development-process/debugging-the-dpc-and-openmp-offload-process/oneapi-debug-tools.html
-    https://software.intel.com/content/www/us/en/develop/documentation/oneapi-programming-guide/top/software-development-process/debugging-the-dpc-and-openmp-offload-process/debug-the-offload-process.html
