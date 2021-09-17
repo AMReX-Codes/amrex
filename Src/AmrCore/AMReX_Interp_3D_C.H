@@ -423,10 +423,29 @@ void ccprotect_calc_sums (Box const& interp_bx,
                           Real crseTot,
                           Real SumN,
                           Real SumP,
+                          const int n,
                           Array4<T>       const& fine,
                           Array4<T const> const& fine_state) noexcept
 {
-
+    Dim3 lo = lbound(interp_bx), hi = ubound(interp_bx);
+    Real pos = 0.0;
+    Real neg = 0.0;
+    Real tot = 0.0;
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                tot += fine(i,j,k,n);
+                if (fine_state(i,j,k,n) <= 0.0) {
+                    neg += fine_state(i,j,n);
+                } else {
+                    pos += fine_state(i,j,n);
+                }
+            }
+        }
+    }
+    crseTot = tot;
+    SumN = neg;
+    SumP = pos;
 }
 
 }  // namespace amrex
