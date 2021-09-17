@@ -844,10 +844,13 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                      * Coarse correction > 0, and correction can not make
                      * them all positive.
                      *
-                     * Add correction only to the negative cells,
-                     * in proportion to their magnitude.
+                     * Add correction only to the negative cells
+                     * in proportion to their magnitude, and
+                     * don't add any correction to the states already positive.
                      */
                     icase = 2;
+                    ccprotect_case2(interp_bx, crseTot, SumN, SumP, n,
+                                    fnarr, fnstarr);
 
                 } else if ( (crseTot < 0) && (Math::abs(crseTot) > SumP) ) {
 
