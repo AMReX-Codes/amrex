@@ -139,7 +139,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "write_dir", type=str, metavar="write_dir",
         default=None, nargs='?',
-        help="The JSON file is written to the specified directory. The default is the current working directory."
+        help="The JSON file is written to the specified directory. The default is the directory of the stdout file."
     )
     args = vars(parser.parse_args())
     path = args["stdout_path"]
