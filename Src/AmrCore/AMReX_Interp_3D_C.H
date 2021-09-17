@@ -515,9 +515,32 @@ void ccprotect_case2 (Box const& interp_bx,
                     // Add correction to negative cells proportionally.
                     fine(i,j,k,n) = alpha * Math::abs(fine_state(i,j,k,n));
                 } else {
-                    // Don't touch the positive states
+                    // Don't touch the positive states.
                     fine(i,j,k,n) = 0.0;
                 }
+            }
+        }
+    }
+}
+
+template <typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void ccprotect_case3 (Box const& interp_bx,
+                      const Real crseTot,
+                      const Real SumN,
+                      const Real SumP,
+                      const int n,
+                      const int numFineCells,
+                      Array4<T> const& fine,
+                      Array4<T const> const& fine_state) noexcept
+{
+    Dim3 lo = lbound(interp_bx), hi = ubound(interp_bx);
+    Real negVal = (SumP + SumN + crseTot) / (Real)numFineCells;
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                // We want to make them all as close to the same negative value.
+                fine(i,j,k,n) = negVal - fine_state(i,j,k,n);
             }
         }
     }

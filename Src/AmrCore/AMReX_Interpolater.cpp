@@ -860,12 +860,18 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                      * Coarse correction < 0, and fine_state DOES NOT have
                      * enough positive states to absorb it.
                      *
-                     * Here we bring all the positive fine cells to zero,
-                     * then distribute the remaining negative amount
+                     * Here we distribute the remaining negative amount
                      * in such a way as to make them all as close to the
                      * same negative value as possible.
                      */
                     icase = 3;
+                    ccprotect_case3(interp_bx, crseTot, SumN, SumP, n,
+#if (AMREX_SPACEDIM == 2)
+                                    cvol,
+#else
+                                    numFineCells,
+#endif
+                                    fnarr, fnstarr);
 
                 } else if ( (crseTot < 0) && (Math::abs(crseTot) < SumP) &&
                             ((SumP+SumN+crseTot) > 0.0) )  {
