@@ -72,7 +72,8 @@ void main_main ()
     }
 
     // Redo, confirming works for a single item.
-    vec[int(nitem-1)] = 1.0;
+    auto pvec = vec.data();
+    amrex::single_task([=] AMREX_GPU_DEVICE () { pvec[nitem-1] = 1.0; });
 
     {
         BL_PROFILE("Vector AnyOf - Just 1");
@@ -115,10 +116,13 @@ void main_main ()
                            });
 
             // Redo, confirming works for a single value.
-            if (bx.contains(IntVect{ncell/3,ncell/2,ncell-1}))
+            amrex::single_task([=] AMREX_GPU_DEVICE ()
             {
-                arr(ncell/3,ncell/2,ncell-1) = 1.0;
-            }
+                if (bx.contains(IntVect{ncell/3,ncell/2,ncell-1}))
+                {
+                    arr(ncell/3,ncell/2,ncell-1) = 1.0;
+                }
+            });
 
             bool anyof_C = Reduce::AnyOf(bx,
                            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept

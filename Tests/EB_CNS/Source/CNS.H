@@ -107,7 +107,7 @@ public:
     // Cleanup data descriptors at end of run.
     static void variableCleanUp ();
 
-    static int numGrow() { return NUM_GROW; };
+    static int numGrow() { return NUM_GROW; }
 
     static int numState () { return NUM_STATE; }
 
