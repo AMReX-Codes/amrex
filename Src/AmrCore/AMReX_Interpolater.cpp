@@ -870,13 +870,32 @@ CellConservativeProtected::protect (const FArrayBox& crse,
             } // redo_me
         } // (n > 0)
 
-        // Explicit barrier to wait for interpolation for n > 0 to finish
-        Gpu::streamSynchronize();
+    }); // cs_bx
+
+
+    // Explicit barrier to wait for interpolation for n > 0 to finish
+    Gpu::streamSynchronize();
+
+    AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(runon, cs_bx, ic, jc, kc,
+    {
+        // Create Box for interpolation
+        Dim3 fnbxlo = lbound(fnbx);
+        Dim3 fnbxhi = ubound(fnbx);
+        int ilo = amrex::max(ratio[0]*ic,              fnbxlo.x);
+        int ihi = amrex::min(ratio[0]*ic+(ratio[0]-1), fnbxhi.x);
+        int jlo = amrex::max(ratio[1]*jc,              fnbxlo.y);
+        int jhi = amrex::min(ratio[1]*jc+(ratio[1]-1), fnbxhi.y);
+#if (AMREX_SPACEDIM == 3)
+        int klo = amrex::max(ratio[2]*kc,              fnbxlo.z);
+        int khi = amrex::min(ratio[2]*kc+(ratio[2]-1), fnbxhi.z);
+#endif
+        IntVect interp_lo(AMREX_D_DECL(ilo,jlo,klo));
+        IntVect interp_hi(AMREX_D_DECL(ihi,jhi,khi));
+        Box interp_bx(interp_lo,interp_hi);
 
         // Set sync for density (n=0) to sum of spec sync (1:nvar)
         ccprotect_set_sync(interp_bx, ncomp, fnarr);
-
-    }); // cs_bx
+    });
 
 #endif /*(AMREX_SPACEDIM == 1)*/
 
