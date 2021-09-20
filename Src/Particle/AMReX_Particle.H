@@ -221,6 +221,20 @@ struct Particle
     ConstParticleIDWrapper id () const & { return ConstParticleIDWrapper(this->m_idcpu); }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void atomicSetID (const Long id) {
+        uint64_t tmp;
+        ParticleIDWrapper wrapper(tmp);
+        wrapper = id;
+#if defined(AMREX_USE_OMP)
+#pragma omp atomic write
+        this->m_idcpu = wrapper.m_idata;
+#else
+        auto old_ptr = reinterpret_cast<unsigned long long*>(&(this->m_idcpu));
+        amrex::Gpu::Atomic::Exch(old_ptr, (unsigned long long) wrapper.m_idata);
+#endif
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealVect pos () const & {return RealVect(AMREX_D_DECL(this->m_pos[0], this->m_pos[1], this->m_pos[2]));}
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
