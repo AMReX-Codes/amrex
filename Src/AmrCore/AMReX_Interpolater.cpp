@@ -881,10 +881,12 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                      *
                      * Coarse correction < 0, and fine_state has enough
                      * positive states to absorb all the negative
-                     * correction *and* redistribute to make
+                     * correction *and* to redistribute to make
                      * negative cells positive.
                      */
                     icase = 4;
+                    ccprotect_case4(interp_bx, crseTot, SumN, SumP, n,
+                                    fnarr, fnstarr);
 
                 } else if ( (crseTot < 0) && (Math::abs(crseTot) < SumP) &&
                             ((SumP+SumN+crseTot) < 0.0) )  {
@@ -896,9 +898,8 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                      * correction, but not enough to fix the states
                      * already negative.
                      *
-                     * We bring all the positive states to zero,
-                     * and use whatever remaining positiveness from
-                     * the states to help the negative states.
+                     * Here we take a constant percentage away from each
+                     * positive cell and don't touch the negatives.
                      */
                     icase = 5;
 
