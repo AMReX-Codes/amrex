@@ -902,10 +902,13 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                      * positive cell and don't touch the negatives.
                      */
                     icase = 5;
+                    ccprotect_case5(interp_bx, crseTot, SumN, SumP, n,
+                                    fnarr, fnstarr);
 
                 }
 
                 // Sanity check
+
 
             } // redo_me
         } // (n > 1)

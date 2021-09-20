@@ -573,6 +573,33 @@ void ccprotect_case4 (Box const& interp_bx,
     }
 }
 
+template <typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void ccprotect_case5 (Box const& interp_bx,
+                      const Real crseTot,
+                      const Real SumN,
+                      const Real SumP,
+                      const int n,
+                      Array4<T> const& fine,
+                      Array4<T const> const& fine_state) noexcept
+{
+    Dim3 lo = lbound(interp_bx), hi = ubound(interp_bx);
+    Real alpha = (crseTot + SumP) / SumN;
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                if (fine_state(i,j,k,n) > 0.0) {
+                    // Don't touch the negatives
+                    fine(i,j,k,n) = -fine_state(i,j,k,n);
+                } else {
+                    // Take a constant percentage away from each positive cell
+                    fine(i,j,k,n) = alpha * fine_state(i,j,k,n);
+                }
+            }
+        }
+    }
+}
+
 }  // namespace amrex
 
 
