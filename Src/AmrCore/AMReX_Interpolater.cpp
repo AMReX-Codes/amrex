@@ -663,36 +663,6 @@ CellConservativeProtected::protect (const FArrayBox& crse,
     Box cs_bx(crse_bx);
     cs_bx.grow(-1);
 
-#if (AMREX_SPACEDIM == 2)
-    //
-    // Get coarse and fine edge-centered volume coordinates.
-    //
-    int dir;
-    unsigned int fsz[AMREX_SPACEDIM];
-    unsigned int csz[AMREX_SPACEDIM];
-    Vector<Real> fvc[AMREX_SPACEDIM];
-    Vector<Real> cvc[AMREX_SPACEDIM];
-    for (dir = 0; dir < AMREX_SPACEDIM; dir++)
-    {
-        fine_geom.GetEdgeVolCoord(fvc[dir],target_fine_region,dir);
-        crse_geom.GetEdgeVolCoord(cvc[dir],crse_bx,dir);
-        fsz[dir] = fvc[dir].size();
-        csz[dir] = cvc[dir].size();
-    }
-    unsigned int fszmax = (fsz[0] > fsz[1]) ? fsz[0] : fsz[1];
-    unsigned int cszmax = (csz[0] > csz[1]) ? csz[0] : csz[1];
-    GpuArray<Real, fszmax> d_fvc[AMREX_SPACEDIM];
-    GpuArray<Real, cszmax> d_cvc[AMREX_SPACEDIM];
-    for (dir = 0; dir < AMREX_SPACEDIM; dir++) {
-        for (int i = 0; i < fsz[dir]; i++) {
-            d_fvc[dir][i] = fvc[dir][i];
-        }
-        for (int i = 0; i < csz[dir]; i++) {
-            d_cvc[dir][i] = cvc[dir][i];
-        }
-    }
-#endif
-
     // Check coarse-to-fine ratios against rMAX
 #if (AMREX_SPACEDIM == 2)
     const int rMAX = 32;
@@ -702,6 +672,22 @@ CellConservativeProtected::protect (const FArrayBox& crse,
     if ( amrex::max(AMREX_D_DECL(ratio[0], ratio[1], ratio[2])) > rMAX ) {
         amrex::Abort("rMAX in CellConservativeProtected::protect");
     }
+
+#if (AMREX_SPACEDIM == 2)
+    /*
+     * Get coarse and fine volumes.
+     */
+    bool cs_cart = crse_geom.isCartesian();
+    bool fn_cart = fine_geom.isCartesian();
+    if (!cs_cart) {
+        GpuArray<Real, 2> cs_lo = crse_geom.ProbLoArray();
+    }
+    if (!fn_cart) {
+        GpuArray<Real, 2> fn_lo = fine_geom.ProbLoArray();
+    }
+    GpuArray<Real, 2> cs_dx = crse_geom.CellSizeArray();
+    GpuArray<Real, 2> fn_dx = fine_geom.CellSizeArray();
+#endif
 
     // Extract box from fine fab
     const Box& fnbx = fine.box();
@@ -745,7 +731,17 @@ CellConservativeProtected::protect (const FArrayBox& crse,
              */
             if (redo_me) {
 
-                int icase = 0;
+#if (AMREX_SPACEDIM == 2)
+                /*
+                 * Calculate coarse and fine cell volumes.
+                 */
+                Real cvol;
+                Real fvol[ihi-ilo+1];
+                ccprotect_calc_vols(cvol, fvol,
+                                    ic, ilo, ihi,
+                                    cs_cart, cs_problo, cs_dx,
+                                    fn_cart, fn_problo, fn_dx);
+#endif
 
                 /*
                  * First, calculate the following quantities:
@@ -763,14 +759,11 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                 Real SumP = 0.0;
                 ccprotect_calc_sums(interp_bx, crseTot, SumN, SumP, n,
 #if (AMREX_SPACEDIM == 2)
-                                    d_fvc,
+                                    fvol,
 #endif
                                     fnarr, fnstarr);
 
-#if (AMREX_SPACEDIM == 2)
-                // Calculate volume of current coarse cell
-                Real cvol = (d_cvc[0][ic+1]-d_cvc[0][ic]) * (d_cvc[1][jc+1]-d_cvc[1][jc]);
-#else /* (AMREX_SPACEDIM == 3) */
+#if (AMREX_SPACEDIM == 3)
                 // Calculate number of fine cells
                 int numFineCells = (ihi-ilo+1) * (jhi-jlo+1) * (khi-klo+1);
 #endif
@@ -787,7 +780,6 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                      * Use the correction to bring negative cells to zero,
                      * then distribute the remaining positive proportionally.
                      */
-                    icase = 1;
                     ccprotect_case1(interp_bx, crseTot, SumN, SumP, n,
 #if (AMREX_SPACEDIM == 2)
                                     cvol,
@@ -808,7 +800,6 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                      * in proportion to their magnitude, and
                      * don't add any correction to the states already positive.
                      */
-                    icase = 2;
                     ccprotect_case2(interp_bx, crseTot, SumN, SumP, n,
                                     fnarr, fnstarr);
 
@@ -824,7 +815,6 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                      * in such a way as to make them all as close to the
                      * same negative value as possible.
                      */
-                    icase = 3;
                     ccprotect_case3(interp_bx, crseTot, SumN, SumP, n,
 #if (AMREX_SPACEDIM == 2)
                                     cvol,
@@ -844,7 +834,6 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                      * correction *and* to redistribute to make
                      * negative cells positive.
                      */
-                    icase = 4;
                     ccprotect_case4(interp_bx, crseTot, SumN, SumP, n,
                                     fnarr, fnstarr);
 
@@ -861,7 +850,6 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                      * Here we take a constant percentage away from each
                      * positive cell and don't touch the negatives.
                      */
-                    icase = 5;
                     ccprotect_case5(interp_bx, crseTot, SumN, SumP, n,
                                     fnarr, fnstarr);
 
