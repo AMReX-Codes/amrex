@@ -908,7 +908,12 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                 }
 
                 // Sanity check
-
+                ccprotect_check_conservation(interp_bx, crseTot, SumN, SumP,
+#if (AMREX_SPACEDIM == 2)
+                                             fvc, cvol,
+#endif
+                                             AMREX_D_DECL(ic, jc, kc),
+                                             icase, n, fnarr, fnstarr, fnorigarr);
 
             } // redo_me
         } // (n > 1)

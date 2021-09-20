@@ -600,6 +600,57 @@ void ccprotect_case5 (Box const& interp_bx,
     }
 }
 
+template <typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void ccprotect_check_conservation (Box const& interp_bx,
+                                   const Real crseTot,
+                                   const Real SumN,
+                                   const Real SumP,
+                                   const int ic,
+                                   const int jc,
+                                   const int kc,
+                                   const int icase,
+                                   const int n,
+                                   Array4<T> const& fine,
+                                   Array4<T const> const& fine_state,
+                                   Array4<T> const& fine_orig,
+                                   const Real tol = 1.e-8) noexcept
+{
+    // Calculate new total
+    Dim3 lo = lbound(interp_bx), hi = ubound(interp_bx);
+    Real sum_fine_new = 0.0;
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                sum_fine_new += fine(i,j,k,n);
+            }
+        }
+    }
+
+    // Check conservation
+    if (Math::abs(sum_fine_new - crseTot) > tol) {
+        std::cerr << std::endl;
+        std::cerr << "PROTECT_INTERP: BLEW CONSERVATION with ICASE = " << icase
+                  << std::endl;
+        std::cerr << "AT COARSE CELL " << ic << " " << jc << " " << kc << " "
+                  << " AND COMPONENT " << n << std::endl;
+        std::cerr << "CRSETOT NEW OLD " << sum_fine_new << " "
+                                        << crseTot << std::endl;
+        std::cerr << "SUMP SUMN " << SumP << " " << SumN << std::endl;
+        for         (int k = lo.z; k <= hi.z; ++k) {
+            for     (int j = lo.y; j <= hi.y; ++j) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    std::cerr << "FINE OLD NEW " << i << " " << j << " " << k << " "
+                              << fine_orig(i-lo.x,j-lo.y,k-lo.z,0) << " "
+                              << fine(i,j,k,n) << " "
+                              << fine_state(i,j,k,n) << std::endl;
+                }
+            }
+        }
+    }
+}
+
+
 }  // namespace amrex
 
 
