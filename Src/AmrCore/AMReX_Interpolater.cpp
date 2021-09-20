@@ -679,8 +679,8 @@ CellConservativeProtected::protect (const FArrayBox& crse,
         fsz[dir] = fvc[dir].size();
         csz[dir] = cvc[dir].size();
     }
-    int fszmax = std::max((int)fsz[0], (int)fsz[1]);
-    int cszmax = std::max((int)csz[0], (int)csz[1]);
+    int fszmax = (fsz[0] > fsz[1]) ? fsz[0] : fsz[1];
+    int cszmax = (csz[0] > csz[1]) ? csz[0] : csz[1];
     GpuArray<Real, fszmax> d_fvc[AMREX_SPACEDIM];
     GpuArray<Real, cszmax> d_cvc[AMREX_SPACEDIM];
     for (dir = 0; dir < AMREX_SPACEDIM; dir++) {
