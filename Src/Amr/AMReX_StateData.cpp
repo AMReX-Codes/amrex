@@ -878,10 +878,8 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
     bool has_bndryfunc_fab = statedata->desc->hasBndryFuncFab();
     bool run_on_gpu = statedata->desc->RunOnGPU() && Gpu::inLaunchRegion();
 
-#if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (!run_on_gpu)
-#endif
 #endif
     {
         FArrayBox tmp;
