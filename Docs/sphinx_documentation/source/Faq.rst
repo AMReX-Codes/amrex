@@ -125,54 +125,12 @@ Source Documentation.) and
 
 |
 
-**Q.** How can I prevent a section of code from running on the GPU?
-
-**A.** Use:
-
-.. code-block::
-
-    Gpu::setLaunchRegion(0);
-    ... ;
-    Gpu::setLaunchRegion(1);
-
-Please note that because much of the execution patterns remain intact with this approach,
-it is likely not the ideal way to compare GPU to non-GPU performance. For more information
-see `Basic Gpu Debugging`_.
-
-.. _`Basic Gpu Debugging`: GPU.html#basic-gpu-debugging
-
-|
-
-**Q.** How do I generate random numbers with AMReX? Can I set the seed?
-Are they thread safe with MPI and OpenMP?
-
-**A.** (Thread safe) Yes, :cpp:`amrex::Random()` is thread safe. When OpenMP is on,
-each thread will have its own dedicated Random Number Generator that
-is totally independent of the others.
-
-|
-
 **Q.** Is Dirichlet boundary condition data loaded into cell-centered, or
 face-centered containers? How is it used in AMReX-based codes like MLMG and the
 advection routines in AMReX-Hydro?
 
 **A.** In the cell-centered MLMG solver, the Dirichlet boundary data are stored
 in containers that have the information of the location of the data.
-
-|
-
-**Q.** When using embedded boundaries (EB), is :cpp:`flag.isRegular()` the same
-as :cpp:`volfrac==1`?
-
-**A.**
-
-|
-
-**Q.** When using embedded boundaries (EB), how far out does
-:cpp:`flag.isConnected(ii,jj,kk)` go? How does a cell ``(i,j,k)``
-know if a cell ``(i+1,j+1,k+1)`` is "connected" to it?
-
-**A.**
 
 |
 |
