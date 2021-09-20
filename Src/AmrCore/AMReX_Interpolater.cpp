@@ -675,18 +675,10 @@ CellConservativeProtected::protect (const FArrayBox& crse,
 
 #if (AMREX_SPACEDIM == 2)
     /*
-     * Get coarse and fine volumes.
+     * Get coarse and fine geometry data.
      */
-    bool cs_cart = crse_geom.isCartesian();
-    bool fn_cart = fine_geom.isCartesian();
-    if (!cs_cart) {
-        GpuArray<Real, 2> cs_lo = crse_geom.ProbLoArray();
-    }
-    if (!fn_cart) {
-        GpuArray<Real, 2> fn_lo = fine_geom.ProbLoArray();
-    }
-    GpuArray<Real, 2> cs_dx = crse_geom.CellSizeArray();
-    GpuArray<Real, 2> fn_dx = fine_geom.CellSizeArray();
+    GeometryData cs_geomdata = crse_geom.data();
+    GeometryData fn_geomdata = fine_geom.data();
 #endif
 
     // Extract box from fine fab
@@ -739,8 +731,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                 Real fvol[ihi-ilo+1];
                 ccprotect_calc_vols(cvol, fvol,
                                     ic, ilo, ihi,
-                                    cs_cart, cs_problo, cs_dx,
-                                    fn_cart, fn_problo, fn_dx);
+                                    cs_geomdata, fn_geomdata);
 #endif
 
                 /*

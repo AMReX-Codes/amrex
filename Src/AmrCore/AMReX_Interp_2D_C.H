@@ -5,6 +5,7 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_BCRec.H>
 #include <AMReX_Vector.H>
+#include <AMReX_Geometry.H>
 #include <cmath>
 
 namespace amrex {
@@ -222,27 +223,33 @@ void ccprotect_calc_vols (Real& cvol,
                           const int ic,
                           const int ilo,
                           const int ihi,
-                          const bool cs_cart,
-                          GpuArray<Real, 2> cs_problo,
-                          GpuArray<Real, 2> cs_dx,
-                          const bool fn_cart,
-                          GpuArray<Real, 2> fn_problo,
-                          GpuArray<Real, 2> fn_dx) noexcept
+                          GeometryData cs_geomdata,
+                          GeometryData fn_geomdata) noexcept
 {
     // Calculate coarse cell volume
-    if (cs_cart) {
+    const Real* cs_dx = cs_geomdata.CellSize();
+    if (cs_geomdata.coord == 0) {
+        // Cartesian
         cvol = cs_dx[0] * cs_dx[1];
     } else {
+        // RZ
+        const Real* cs_problo = cs_geomdata.ProbLo();
         Real rp = cs_problo[0] + (ic+0.5)*cs_dx[0];
         Real rm = cs_problo[0] + (ic-0.5)*cs_dx[0];
         cvol = (rp*rp - rm*rm) * cs_dx[1];
     }
 
     // Calculate fine cell volumes
-    for (int i = ilo; i <= ihi; ++i) {
-        if (fn_cart) {
+    const Real* fn_dx = fn_geomdata.CellSize();
+    if (fn_geomdata.coord == 0) {
+        // Cartesian
+        for (int i = ilo; i <= ihi; ++i) {
             fvol[i-ilo] = fn_dx[0] * fn_dx[1];
-        } else {
+        }
+    } else {
+        // RZ
+        const Real* fn_problo = fn_geomdata.ProbLo();
+        for (int i = ilo; i <= ihi; ++i) {
             Real rp = fn_problo[0] + (i+0.5)*fn_dx[0];
             Real rm = fn_problo[0] + (i-0.5)*fn_dx[0];
             fvol[i-ilo] = (rp*rp - rm*rm) * fn_dx[1];
@@ -257,7 +264,7 @@ void ccprotect_calc_sums (Box const& interp_bx,
                           Real& SumN,
                           Real& SumP,
                           const int n,
-                          Real* fvol,
+                          Real fvol[],
                           Array4<T> const& fine,
                           Array4<T const> const& fine_state) noexcept
 {
@@ -265,7 +272,6 @@ void ccprotect_calc_sums (Box const& interp_bx,
     Real pos = 0.0;
     Real neg = 0.0;
     Real tot = 0.0;
-    Real fvol;
     for     (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
             tot += fvol[i] * fine(i,j,n);
