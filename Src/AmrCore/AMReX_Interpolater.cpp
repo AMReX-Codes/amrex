@@ -696,7 +696,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
     Array4<Real const> const&   fnstarr = fine_state.const_array();
 
     // Loop over coarse indices
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cs_bx, ncomp, ic, jc, kc, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cs_bx, ncomp-1, ic, jc, kc, n,
     {
         // Create Box for interpolation
         Dim3 fnbxlo = lbound(fnbx);
