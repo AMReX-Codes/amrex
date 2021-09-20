@@ -625,11 +625,11 @@ CellConservativeProtected::~CellConservativeProtected () {}
 
 void
 CellConservativeProtected::protect (const FArrayBox& crse,
-                                    int              crse_comp,
+                                    int              /*crse_comp*/,
                                     FArrayBox&       fine,
-                                    int              fine_comp,
+                                    int              /*fine_comp*/,
                                     FArrayBox&       fine_state,
-                                    int              state_comp,
+                                    int              /*state_comp*/,
                                     int              ncomp,
                                     const Box&       fine_region,
                                     const IntVect&   ratio,
@@ -639,8 +639,8 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                                     RunOn            runon)
 {
 #if (AMREX_SPACEDIM == 1)
-    amrex::ignore_unused(crse,crse_comp,fine,fine_comp,fine_state,
-                         state_comp,ncomp,fine_region,ratio,
+    amrex::ignore_unused(crse,fine,fine_state,
+                         ncomp,fine_region,ratio,
                          crse_geom,fine_geom,bcr,runon);
     amrex::Abort("1D CellConservativeProtected::protect not supported");
 #else
@@ -675,54 +675,6 @@ CellConservativeProtected::protect (const FArrayBox& crse,
         crse_geom.GetEdgeVolCoord(cvc[dir],crse_bx,dir);
     }
 
-#if (AMREX_SPACEDIM == 2)
-    const int* cvcblo = crse_bx.loVect();
-    const int* fvcblo = target_fine_region.loVect();
-
-    int cvcbhi[AMREX_SPACEDIM];
-    int fvcbhi[AMREX_SPACEDIM];
-
-    for (dir=0; dir<AMREX_SPACEDIM; dir++)
-    {
-        cvcbhi[dir] = cvcblo[dir] + cvc[dir].size() - 1;
-        fvcbhi[dir] = fvcblo[dir] + fvc[dir].size() - 1;
-    }
-#endif
-
-    /*
-    Real* fdat       = fine.dataPtr(fine_comp);
-    Real* state_dat  = fine_state.dataPtr(state_comp);
-    const Real* cdat = crse.dataPtr(crse_comp);
-
-    const int* flo    = fine.loVect();
-    const int* fhi    = fine.hiVect();
-    const int* slo    = fine_state.loVect();
-    const int* shi    = fine_state.hiVect();
-    const int* clo    = crse.loVect();
-    const int* chi    = crse.hiVect();
-    const int* fblo   = target_fine_region.loVect();
-    const int* fbhi   = target_fine_region.hiVect();
-    const int* csbhi  = cs_bx.hiVect();
-    const int* csblo  = cs_bx.loVect();
-
-    Vector<int> bc     = GetBCArray(bcr);
-    const int* ratioV = ratio.getVect();
-
-    amrex_protect_interp (fdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),
-                         fblo, fbhi,
-                         cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),
-                         csblo, csbhi,
-#if (AMREX_SPACEDIM == 2)
-                         fvc[0].dataPtr(),fvc[1].dataPtr(),
-                         AMREX_ARLIM(fvcblo), AMREX_ARLIM(fvcbhi),
-                         cvc[0].dataPtr(),cvc[1].dataPtr(),
-                         AMREX_ARLIM(cvcblo), AMREX_ARLIM(cvcbhi),
-#endif
-                         state_dat, AMREX_ARLIM(slo), AMREX_ARLIM(shi),
-                         &ncomp,AMREX_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
-                         bc.dataPtr());
-    */
-
     // Check coarse-to-fine ratios against rMAX
 #if (AMREX_SPACEDIM == 2)
     const int rMAX = 32;
@@ -736,38 +688,31 @@ CellConservativeProtected::protect (const FArrayBox& crse,
     // Extract box from fine fab
     const Box& fnbx = fine.box();
 
-    // Create a temporary fab to hold original values of fine fab
-    const Box tbx(IntVect(AMREX_D_DECL(0, 0, 0)),
-                  IntVect(AMREX_D_DECL(ratio[0]-1, ratio[1]-1, ratio[2]-1)));
-    FArrayBox fine_orig(tbx);
-    fine_orig.setVal<RunOn::Device>(0.0);
-
     // Extract pointers to fab data
     Array4<Real const> const&     csarr = crse.const_array();
     Array4<Real>       const&     fnarr = fine.array();
-    Array4<Real>       const& fnorigarr = fine_orig.array();
     Array4<Real const> const&   fnstarr = fine_state.const_array();
 
     // Loop over coarse indices
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cs_bx, ncomp, ic, jc, kc, n,
     {
-        // Only interpolate for derived components
-        if (n > 1) {
-
-            // Create Box for interpolation
-            Dim3 fnbxlo = lbound(fnbx);
-            Dim3 fnbxhi = ubound(fnbx);
-            int ilo = amrex::max(ratio[0]*ic,              fnbxlo.x);
-            int ihi = amrex::min(ratio[0]*ic+(ratio[0]-1), fnbxhi.x);
-            int jlo = amrex::max(ratio[1]*jc,              fnbxlo.y);
-            int jhi = amrex::min(ratio[1]*jc+(ratio[1]-1), fnbxhi.y);
+        // Create Box for interpolation
+        Dim3 fnbxlo = lbound(fnbx);
+        Dim3 fnbxhi = ubound(fnbx);
+        int ilo = amrex::max(ratio[0]*ic,              fnbxlo.x);
+        int ihi = amrex::min(ratio[0]*ic+(ratio[0]-1), fnbxhi.x);
+        int jlo = amrex::max(ratio[1]*jc,              fnbxlo.y);
+        int jhi = amrex::min(ratio[1]*jc+(ratio[1]-1), fnbxhi.y);
 #if (AMREX_SPACEDIM == 3)
-            int klo = amrex::max(ratio[2]*kc,              fnbxlo.z);
-            int khi = amrex::min(ratio[2]*kc+(ratio[2]-1), fnbxhi.z);
+        int klo = amrex::max(ratio[2]*kc,              fnbxlo.z);
+        int khi = amrex::min(ratio[2]*kc+(ratio[2]-1), fnbxhi.z);
 #endif
-            IntVect interp_lo(AMREX_D_DECL(ilo,jlo,klo));
-            IntVect interp_hi(AMREX_D_DECL(ihi,jhi,khi));
-            Box interp_bx(interp_lo,interp_hi);
+        IntVect interp_lo(AMREX_D_DECL(ilo,jlo,klo));
+        IntVect interp_hi(AMREX_D_DECL(ihi,jhi,khi));
+        Box interp_bx(interp_lo,interp_hi);
+
+        // Only interpolate for derived components
+        if (n > 0) {
 
             // Check if interpolation needs to be redone
             bool redo_me = false;
@@ -783,9 +728,6 @@ CellConservativeProtected::protect (const FArrayBox& crse,
             if (redo_me) {
 
                 int icase = 0;
-
-                // "Back up" fine data
-                ccprotect_copy_fine_orig(interp_bx, n, fnorigarr, fnarr);
 
                 /*
                  * First, calculate the following quantities:
@@ -907,16 +849,15 @@ CellConservativeProtected::protect (const FArrayBox& crse,
 
                 }
 
-                // Sanity check
-                ccprotect_check_conservation(interp_bx, crseTot, SumN, SumP,
-#if (AMREX_SPACEDIM == 2)
-                                             fvc, cvol,
-#endif
-                                             AMREX_D_DECL(ic, jc, kc),
-                                             icase, n, fnarr, fnstarr, fnorigarr);
-
             } // redo_me
-        } // (n > 1)
+        } // (n > 0)
+
+        // Explicit barrier to wait for interpolation for n > 0 to finish
+        Gpu::streamSynchronize();
+
+        // Set sync for density (n=0) to sum of spec sync (1:nvar)
+        ccprotect_set_sync(interp_bx, ncomp, fnarr);
+
     }); // cs_bx
 
 #endif /*(AMREX_SPACEDIM == 1)*/

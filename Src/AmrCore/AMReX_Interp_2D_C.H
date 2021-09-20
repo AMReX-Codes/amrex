@@ -218,21 +218,6 @@ void ccprotect_check_redo (Box const& interp_bx,
 
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void ccprotect_copy_fine_orig(Box const& interp_bx,
-                              const int n,
-                              Array4<T> const& fine_orig,
-                              Array4<T> const& fine) noexcept
-{
-    Dim3 lo = lbound(interp_bx), hi = ubound(interp_bx);
-    for     (int j = lo.y; j <= hi.y; ++j) {
-        for (int i = lo.x; i <= hi.x; ++i) {
-            fine_orig(i-lo.x,j-lo.y,0) = fine(i,j,n);
-        }
-    }
-}
-
-template <typename T>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void ccprotect_calc_sums (Box const& interp_bx,
                           Real& crseTot,
                           Real& SumN,
@@ -403,59 +388,16 @@ void ccprotect_case5 (Box const& interp_bx,
 
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void ccprotect_check_conservation (Box const& interp_bx,
-                                   const Real crseTot,
-                                   const Real SumN,
-                                   const Real SumP,
-                                   GpuArray<Vector<T>, 2> fvc,
-                                   const Real cvol,
-                                   const int ic,
-                                   const int jc,
-                                   const int icase,
-                                   const int n,
-                                   Array4<T> const& fine,
-                                   Array4<T const> const& fine_state,
-                                   Array4<T> const& fine_orig,
-                                   const Real tol = 1.e-8,
-                                   const Real minfvol = 1.e-50) noexcept
+void ccprotect_set_sync (Box const& interp_bx,
+                         const int nvar,
+                         Array4<T> const& fine) noexcept
 {
-    // Calculate new volume-weighted total
     Dim3 lo = lbound(interp_bx), hi = ubound(interp_bx);
-    Real sum_fine_new = 0.0;
-    Real fvol;
     for     (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
-            fvol = (fvc[0][i+1]-fvc[0][i]) * (fvc[1][j+1]-fvc[1][j]);
-            sum_fine_new += fvol * fine(i,j,n);
-        }
-    }
-
-    // Check conservation
-    if (Math::abs(sum_fine_new - crseTot)/cvol > tol) {
-        std::cerr << std::endl;
-        std::cerr << "PROTECT_INTERP: BLEW CONSERVATION with ICASE = " << icase
-                  << std::endl;
-        std::cerr << "AT COARSE CELL " << ic << " " << jc
-                  << " AND COMPONENT " << n << std::endl;
-        std::cerr << "CRSETOT NEW OLD " << sum_fine_new << " "
-                                        << crseTot << std::endl;
-        std::cerr << "CVOL " << cvol << std::endl;
-        std::cerr << "SUMP SUMN " << SumP << " " << SumN << std::endl;
-        for     (int j = lo.y; j <= hi.y; ++j) {
-            for (int i = lo.x; i <= hi.x; ++i) {
-                fvol = (fvc[0][i+1]-fvc[0][i]) * (fvc[1][j+1]-fvc[1][j]);
-                std::cerr << "FINE OLD NEW " << i << " " << j << " "
-                          << fine_orig(i-(lo.x),j-(lo.y),0) << " "
-                          << fine(i,j,n) << " "
-                          << fine_state(i,j,n) << " "
-                          << fvol << std::endl;
-                if (Math::abs(fvol) > minfvol) {
-                    std::cerr << "MAKING FVOL "
-                              << fvc[0][i+1] << " "
-                              << fvc[0][i] << " "
-                              << fvc[1][j+1] << " "
-                              << fvc[1][j+1] << std::endl;
-                }
+            fine(i,j,0) = 0.0;
+            for (int n = 1; n <= nvar; ++n) {
+                fine(i,j,0) += fine(i,j,n);
             }
         }
     }
