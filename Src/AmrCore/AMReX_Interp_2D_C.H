@@ -228,7 +228,7 @@ void ccprotect_calc_vols (Real& cvol,
 {
     // Calculate coarse cell volume
     const Real* cs_dx = cs_geomdata.CellSize();
-    if (cs_geomdata.coord == 0) {
+    if (cs_geomdata.coord == CoordSys::cartesian) {
         // Cartesian
         cvol = cs_dx[0] * cs_dx[1];
     } else {
@@ -241,7 +241,7 @@ void ccprotect_calc_vols (Real& cvol,
 
     // Calculate fine cell volumes
     const Real* fn_dx = fn_geomdata.CellSize();
-    if (fn_geomdata.coord == 0) {
+    if (fn_geomdata.coord == CoordSys::cartesian) {
         // Cartesian
         for (int i = ilo; i <= ihi; ++i) {
             fvol[i-ilo] = fn_dx[0] * fn_dx[1];
