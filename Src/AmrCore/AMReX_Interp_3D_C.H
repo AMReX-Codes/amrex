@@ -596,7 +596,7 @@ void ccprotect_set_sync (Box const& interp_bx,
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
                 fine(i,j,k,0) = 0.0;
-                for (int n = 1; n <= nvar; ++n) {
+                for (int n = 1; n < nvar-1; ++n) {
                     fine(i,j,k,0) += fine(i,j,k,n);
                 }
             }
