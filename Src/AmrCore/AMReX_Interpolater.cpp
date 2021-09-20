@@ -663,17 +663,35 @@ CellConservativeProtected::protect (const FArrayBox& crse,
     Box cs_bx(crse_bx);
     cs_bx.grow(-1);
 
+#if (AMREX_SPACEDIM == 2)
     //
     // Get coarse and fine edge-centered volume coordinates.
     //
     int dir;
-    GpuArray<Vector<Real>, AMREX_SPACEDIM> fvc;
-    GpuArray<Vector<Real>, AMREX_SPACEDIM> cvc;
+    int fsz[AMREX_SPACEDIM];
+    int csz[AMREX_SPACEDIM];
+    Vector<Real> fvc[AMREX_SPACEDIM];
+    Vector<Real> cvc[AMREX_SPACEDIM];
     for (dir = 0; dir < AMREX_SPACEDIM; dir++)
     {
         fine_geom.GetEdgeVolCoord(fvc[dir],target_fine_region,dir);
         crse_geom.GetEdgeVolCoord(cvc[dir],crse_bx,dir);
+        fsz[dir] = fvc[dir].size();
+        csz[dir] = cvc[dir].size();
     }
+    int fszmax = amrex::max(fsz[0], fsz[1]);
+    int cszmax = amrex::max(csz[0], csz[1]);
+    GpuArray<Real, fszmax> d_fvc[AMREX_SPACEDIM];
+    GpuArray<Real, cszmax> d_cvc[AMREX_SPACEDIM];
+    for (dir = 0; dir < AMREX_SPACEDIM; dir++) {
+        for (int i = 0; i < fsz[dir]; i++) {
+            d_fvc[dir][i] = fvc[dir][i];
+        }
+        for (int i = 0; i < csz[dir]; i++) {
+            d_cvc[dir][i] = cvc[dir][i];
+        }
+    }
+#endif
 
     // Check coarse-to-fine ratios against rMAX
 #if (AMREX_SPACEDIM == 2)
@@ -745,13 +763,13 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                 Real SumP = 0.0;
                 ccprotect_calc_sums(interp_bx, crseTot, SumN, SumP, n,
 #if (AMREX_SPACEDIM == 2)
-                                    fvc,
+                                    d_fvc,
 #endif
                                     fnarr, fnstarr);
 
 #if (AMREX_SPACEDIM == 2)
                 // Calculate volume of current coarse cell
-                Real cvol = (cvc[0][ic+1]-cvc[0][ic]) * (cvc[1][jc+1]-cvc[1][jc]);
+                Real cvol = (d_cvc[0][ic+1]-d_cvc[0][ic]) * (d_cvc[1][jc+1]-d_cvc[1][jc]);
 #else /* (AMREX_SPACEDIM == 3) */
                 // Calculate number of fine cells
                 int numFineCells = (ihi-ilo+1) * (jhi-jlo+1) * (khi-klo+1);
