@@ -7,7 +7,7 @@ Frequently Asked Questions
 
 **Q.** Why am I getting a segmentation fault after my code runs?
 
-**A.** Do you have :cpp:`amrex::initialize(); {` and :cpp:`} amrex::finalize();`
+**A.** Do you have :cpp:`amrex::Initialize(); {` and :cpp:`} amrex::Finalize();`
 at the beginning and end of your code? For all AMReX commands to function
 properly, including to release resources, they need to be contained
 between these two curly braces or in a separate function. In the `Initialize
@@ -77,9 +77,9 @@ in the section `Debugging`_.
 **Q.** What's the difference between :cpp:`Copy` and :cpp:`ParallelCopy` for
 :cpp:`MultiFab` data?
 
-**A.** :cpp:`MultiFab::Copy` is for two :cpp:`MultiFab`s built with the same
+**A.** :cpp:`MultiFab::Copy` is for two :cpp:`MultiFab`\ s built with the same
 :cpp:`BoxArray` and :cpp:`DistributionMapping`, whereas :cpp:`ParallelCopy`
-is for parallel communication of two :cpp:`MultiFab`s with different
+is for parallel communication of two :cpp:`MultiFab`\ s with different
 :cpp:`BoxArray` and/or :cpp:`DistributionMapping`.
 
 |
