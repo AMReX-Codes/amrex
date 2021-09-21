@@ -647,6 +647,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
 #else
     BL_PROFILE("CellConservativeProtected::protect()");
     BL_ASSERT(bcr.size() >= ncomp);
+    amrex::ignore_unused(bcr);
 
     //
     // Make box which is intersection of fine_region and domain of fine.
@@ -680,6 +681,8 @@ CellConservativeProtected::protect (const FArrayBox& crse,
      */
     GeometryData cs_geomdata = crse_geom.data();
     GeometryData fn_geomdata = fine_geom.data();
+#else
+    amrex::ignore_unused(crse_geom,fine_geom);
 #endif
 
     // Extract box from fine fab
@@ -690,7 +693,6 @@ CellConservativeProtected::protect (const FArrayBox& crse,
     redo_me.setVal<RunOn::Device>(0);
 
     // Extract pointers to fab data
-    Array4<Real const> const&     csarr = crse.const_array();
     Array4<Real>       const&     fnarr = fine.array();
     Array4<Real const> const&   fnstarr = fine_state.const_array();
     Array4<char>       const&    tagarr = redo_me.array();
