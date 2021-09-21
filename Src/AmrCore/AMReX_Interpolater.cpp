@@ -695,13 +695,15 @@ CellConservativeProtected::protect (const FArrayBox& crse,
         // Create Box for interpolation
         Dim3 fnbxlo = lbound(fnbx);
         Dim3 fnbxhi = ubound(fnbx);
-        int ilo = amrex::max(ratio[0]*ic,              fnbxlo.x);
-        int ihi = amrex::min(ratio[0]*ic+(ratio[0]-1), fnbxhi.x);
-        int jlo = amrex::max(ratio[1]*jc,              fnbxlo.y);
-        int jhi = amrex::min(ratio[1]*jc+(ratio[1]-1), fnbxhi.y);
+        int ilo; int ihi; int jlo; int jhi;
+        ilo = amrex::max(ratio[0]*ic,              fnbxlo.x);
+        ihi = amrex::min(ratio[0]*ic+(ratio[0]-1), fnbxhi.x);
+        jlo = amrex::max(ratio[1]*jc,              fnbxlo.y);
+        jhi = amrex::min(ratio[1]*jc+(ratio[1]-1), fnbxhi.y);
 #if (AMREX_SPACEDIM == 3)
-        int klo = amrex::max(ratio[2]*kc,              fnbxlo.z);
-        int khi = amrex::min(ratio[2]*kc+(ratio[2]-1), fnbxhi.z);
+        int klo; int khi;
+        klo = amrex::max(ratio[2]*kc,              fnbxlo.z);
+        khi = amrex::min(ratio[2]*kc+(ratio[2]-1), fnbxhi.z);
 #endif
         IntVect interp_lo(AMREX_D_DECL(ilo,jlo,klo));
         IntVect interp_hi(AMREX_D_DECL(ihi,jhi,khi));
