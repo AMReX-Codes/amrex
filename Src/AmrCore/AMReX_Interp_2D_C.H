@@ -270,9 +270,9 @@ void ccprotect_calc_sums (Box const& interp_bx,
 
             tot += fvol * fine(i,j,n);
             if (fine_state(i,j,n) <= 0.0) {
-                neg += fvol[i] * fine_state(i,j,n);
+                neg += fvol * fine_state(i,j,n);
             } else {
-                pos += fvol[i] * fine_state(i,j,n);
+                pos += fvol * fine_state(i,j,n);
             }
         }
     }
