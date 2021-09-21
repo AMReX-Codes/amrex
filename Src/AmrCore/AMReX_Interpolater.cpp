@@ -756,7 +756,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
 
 #if (AMREX_SPACEDIM == 3)
             // Calculate number of fine cells
-            int numFineCells = (ihi-ilo+1) * (jhi-jlo+1) * (khi-klo+1);
+            int numFineCells = interp_bx.length(0) * interp_bx.length(1) * interp_bx.length(2);
 #endif
 
             if ( (crseTot > 0) && (crseTot > Math::abs(SumN)) ) {
