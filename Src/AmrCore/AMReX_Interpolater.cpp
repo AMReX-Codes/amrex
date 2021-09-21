@@ -685,14 +685,15 @@ CellConservativeProtected::protect (const FArrayBox& crse,
     // Extract box from fine fab
     const Box& fnbx = fine.box();
 
+    // Create TagBox to hold marked cells for interpolation
+    TagBox redo_me(cs_bx, ncomp-1, The_Managed_Arena);
+    redo_me.setVar(TagBox::CLEAR);
+
     // Extract pointers to fab data
     Array4<Real const> const&     csarr = crse.const_array();
     Array4<Real>       const&     fnarr = fine.array();
     Array4<Real const> const&   fnstarr = fine_state.const_array();
-
-    // Create TagBox to hold marked cells for interpolation
-    TagBox redo_me(cs_bx, ncomp-1, The_Managed_Arena);
-    redo_me.setVar(TagBox::CLEAR);
+    Array4<char>       const&    tagarr = redo_me.array();
 
     // Loop over coarse indices
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cs_bx, ncomp-1, ic, jc, kc, n,
@@ -703,7 +704,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
 
         // Check if interpolation needs to be redone for derived components
         if (n > 0) {
-            ccprotect_check_redo(ic, jc, kc, interp_bx, redo_me, n, fnarr, fnstarr);
+            ccprotect_check_redo(ic, jc, kc, n, interp_bx, tagarr, fnarr, fnstarr);
         } // (n > 0)
     }); // cs_bx
 
@@ -720,7 +721,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cs_bx, ncomp-1, ic, jc, kc, n,
     {
 
-        if (redo_me(ic,jc,kc,n-1) == TagBox::SET) {
+        if (tagarr(ic,jc,kc,n-1) == TagBox::SET) {
             // Create Box for interpolation
             Box interp_bx;
             ccprotect_create_bx(ic, jc, kc, interp_bx, fnbx, ratio);
