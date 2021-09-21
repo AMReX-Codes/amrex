@@ -625,7 +625,7 @@ CellConservativeProtected::CellConservativeProtected ()
 CellConservativeProtected::~CellConservativeProtected () {}
 
 void
-CellConservativeProtected::protect (const FArrayBox& crse,
+CellConservativeProtected::protect (const FArrayBox& /*crse*/,
                                     int              /*crse_comp*/,
                                     FArrayBox&       fine,
                                     int              /*fine_comp*/,
