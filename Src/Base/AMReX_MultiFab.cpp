@@ -1778,7 +1778,7 @@ MultiFab::OverrideSync (const Periodicity& period)
 {
     if (ixType().cellCentered()) return;
     auto msk = this->OwnerMask(period);
-    this->OverrideSync(*msk, period);
+    amrex::OverrideSync(*this, *msk, period);
 }
 
 void
