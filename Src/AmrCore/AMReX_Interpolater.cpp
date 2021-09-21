@@ -729,9 +729,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                  */
                 Real cvol;
                 Real fvol[ihi-ilo+1];
-                ccprotect_calc_vols(cvol, fvol,
-                                    ic, ilo, ihi,
-                                    cs_geomdata, fn_geomdata);
+                ccprotect_calc_vols(cvol, ic, cs_geomdata);
 #endif
 
                 /*
@@ -750,7 +748,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                 Real SumP = 0.0;
                 ccprotect_calc_sums(interp_bx, crseTot, SumN, SumP, n,
 #if (AMREX_SPACEDIM == 2)
-                                    fvol,
+                                    fn_geomdata,
 #endif
                                     fnarr, fnstarr);
 

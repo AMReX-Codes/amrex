@@ -218,13 +218,9 @@ void ccprotect_check_redo (Box const& interp_bx,
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void ccprotect_calc_vols (Real& cvol,
-                          Real* fvol,
+void ccprotect_calc_cvol (Real& cvol,
                           const int ic,
-                          const int ilo,
-                          const int ihi,
-                          GeometryData cs_geomdata,
-                          GeometryData fn_geomdata) noexcept
+                          GeometryData cs_geomdata) noexcept
 {
     // Calculate coarse cell volume
     const Real* cs_dx = cs_geomdata.CellSize();
@@ -238,23 +234,6 @@ void ccprotect_calc_vols (Real& cvol,
         Real rm = cs_problo[0] + (ic-0.5)*cs_dx[0];
         cvol = (rp*rp - rm*rm) * cs_dx[1];
     }
-
-    // Calculate fine cell volumes
-    const Real* fn_dx = fn_geomdata.CellSize();
-    if (fn_geomdata.coord == CoordSys::cartesian) {
-        // Cartesian
-        for (int i = ilo; i <= ihi; ++i) {
-            fvol[i-ilo] = fn_dx[0] * fn_dx[1];
-        }
-    } else {
-        // RZ
-        const Real* fn_problo = fn_geomdata.ProbLo();
-        for (int i = ilo; i <= ihi; ++i) {
-            Real rp = fn_problo[0] + (i+0.5)*fn_dx[0];
-            Real rm = fn_problo[0] + (i-0.5)*fn_dx[0];
-            fvol[i-ilo] = (rp*rp - rm*rm) * fn_dx[1];
-        }
-    }
 }
 
 template <typename T>
@@ -264,7 +243,7 @@ void ccprotect_calc_sums (Box const& interp_bx,
                           Real& SumN,
                           Real& SumP,
                           const int n,
-                          Real fvol[],
+                          GeometryData fn_geomdata,
                           Array4<T> const& fine,
                           Array4<T const> const& fine_state) noexcept
 {
@@ -272,9 +251,24 @@ void ccprotect_calc_sums (Box const& interp_bx,
     Real pos = 0.0;
     Real neg = 0.0;
     Real tot = 0.0;
+    Real fvol;
     for     (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
-            tot += fvol[i] * fine(i,j,n);
+
+            // Calculate fine cell volume
+            const Real* fn_dx = fn_geomdata.CellSize();
+            if (fn_geomdata.coord == CoordSys::cartesian) {
+                // Cartesian
+                fvol = fn_dx[0] * fn_dx[1];
+            } else {
+                // RZ
+                const Real* fn_problo = fn_geomdata.ProbLo();
+                Real rp = fn_problo[0] + (i+0.5)*fn_dx[0];
+                Real rm = fn_problo[0] + (i-0.5)*fn_dx[0];
+                fvol = (rp*rp - rm*rm) * fn_dx[1];
+            }
+
+            tot += fvol * fine(i,j,n);
             if (fine_state(i,j,n) <= 0.0) {
                 neg += fvol[i] * fine_state(i,j,n);
             } else {
