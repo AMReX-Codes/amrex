@@ -422,7 +422,7 @@ void ccprotect_check_redo (int ic, int jc, int kc,
     }
 
     if (r) {
-        redo_me(ic,jc,kc,n-1) = TagBox::SET;
+        redo_me(ic,jc,kc,n-1) = 1;
     }
 }
 

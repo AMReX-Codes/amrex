@@ -686,8 +686,8 @@ CellConservativeProtected::protect (const FArrayBox& crse,
     const Box& fnbx = fine.box();
 
     // Create TagBox to hold marked cells for interpolation
-    TagBox redo_me(cs_bx, ncomp-1, The_Managed_Arena);
-    redo_me.setVal(TagBox::CLEAR);
+    BaseFab<char> redo_me(cs_bx, ncomp-1, The_Managed_Arena);
+    redo_me.setVal(0);
 
     // Extract pointers to fab data
     Array4<Real const> const&     csarr = crse.const_array();
@@ -721,7 +721,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cs_bx, ncomp, ic, jc, kc, n,
     {
 
-        if (tagarr(ic,jc,kc,n) == TagBox::SET) {
+        if (tagarr(ic,jc,kc,n)) {
             // Create Box for interpolation
             Box interp_bx;
             ccprotect_create_bx(ic, jc, kc, interp_bx, fnbx, ratio);
