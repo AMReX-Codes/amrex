@@ -687,7 +687,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
 
     // Create TagBox to hold marked cells for interpolation
     BaseFab<char> redo_me(cs_bx, ncomp-1, The_Managed_Arena);
-    redo_me.setVal(0);
+    redo_me.setVal<RunOn::Device>(0);
 
     // Extract pointers to fab data
     Array4<Real const> const&     csarr = crse.const_array();
