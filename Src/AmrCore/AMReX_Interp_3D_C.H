@@ -381,6 +381,25 @@ face_linear_interp_z (int i, int j, int k, int n, Array4<T> const& fine,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ccprotect_create_bx (int ic, int jc, int kc,
+                          Box& interp_bx,
+                          Box const& fn_bx,
+                          IntVect const& ratio) noexcept
+{
+    Dim3 fnbxlo = lbound(fnbx);
+    Dim3 fnbxhi = ubound(fnbx);
+    int ilo = amrex::max(ratio[0]*ic,              fnbxlo.x);
+    int ihi = amrex::min(ratio[0]*ic+(ratio[0]-1), fnbxhi.x);
+    int jlo = amrex::max(ratio[1]*jc,              fnbxlo.y);
+    int jhi = amrex::min(ratio[1]*jc+(ratio[1]-1), fnbxhi.y);
+    int klo = amrex::max(ratio[2]*kc,              fnbxlo.z);
+    int khi = amrex::min(ratio[2]*kc+(ratio[2]-1), fnbxhi.z);
+    IntVect interp_lo(ilo,jlo,klo);
+    IntVect interp_hi(ihi,jhi,khi);
+    interp_bx = Box(interp_lo,interp_hi);
+}
+
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void ccprotect_check_redo (Box const& interp_bx,

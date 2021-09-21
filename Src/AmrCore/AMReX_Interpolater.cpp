@@ -689,165 +689,164 @@ CellConservativeProtected::protect (const FArrayBox& crse,
     Array4<Real>       const&     fnarr = fine.array();
     Array4<Real const> const&   fnstarr = fine_state.const_array();
 
+    // Create TagBox to hold marked cells for interpolation
+    TagBox redo_me(cs_bx, ncomp-1, The_Managed_Arena);
+    redo_me.setVar(TagBox::CLEAR);
+
     // Loop over coarse indices
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cs_bx, ncomp-1, ic, jc, kc, n,
     {
         // Create Box for interpolation
-        Dim3 fnbxlo = lbound(fnbx);
-        Dim3 fnbxhi = ubound(fnbx);
-        int ilo = amrex::max(ratio[0]*ic,              fnbxlo.x);
-        int ihi = amrex::min(ratio[0]*ic+(ratio[0]-1), fnbxhi.x);
-        int jlo = amrex::max(ratio[1]*jc,              fnbxlo.y);
-        int jhi = amrex::min(ratio[1]*jc+(ratio[1]-1), fnbxhi.y);
-#if (AMREX_SPACEDIM == 3)
-        int klo = amrex::max(ratio[2]*kc,              fnbxlo.z);
-        int khi = amrex::min(ratio[2]*kc+(ratio[2]-1), fnbxhi.z);
-#endif
-        IntVect interp_lo(AMREX_D_DECL(ilo,jlo,klo));
-        IntVect interp_hi(AMREX_D_DECL(ihi,jhi,khi));
-        Box interp_bx(interp_lo,interp_hi);
+        Box interp_bx;
+        ccprotect_create_bx(ic, jc, kc, interp_bx, fnbx, ratio);
 
-        // Only interpolate for derived components
+        // Check if interpolation needs to be redone for derived components
         if (n > 0) {
-
-            // Check if interpolation needs to be redone
-            bool redo_me = false;
-            ccprotect_check_redo(interp_bx, redo_me, n, fnarr, fnstarr);
-
-            /*
-             * If all the fine values are non-negative after the original
-             * interpolated correction, then we do nothing here.
-             *
-             * If any of the fine values are negative after the original
-             * interpolated correction, then we do our best.
-             */
-            if (redo_me) {
-
-#if (AMREX_SPACEDIM == 2)
-                /*
-                 * Calculate coarse and fine cell volumes.
-                 */
-                Real cvol;
-                ccprotect_calc_cvol(cvol, ic, cs_geomdata);
-#endif
-
-                /*
-                 * First, calculate the following quantities:
-                 *
-                 * crseTot = volume-weighted sum of all interpolated values
-                 *           of the correction, which is equivalent to
-                 *           the total volume-weighted coarse correction
-                 *
-                 * SumN = volume-weighted sum of all negative values of fine_state
-                 *
-                 * SumP = volume-weighted sum of all positive values of fine_state
-                 */
-                Real crseTot = 0.0;
-                Real SumN = 0.0;
-                Real SumP = 0.0;
-                ccprotect_calc_sums(interp_bx, crseTot, SumN, SumP, n,
-#if (AMREX_SPACEDIM == 2)
-                                    fn_geomdata,
-#endif
-                                    fnarr, fnstarr);
-
-#if (AMREX_SPACEDIM == 3)
-                // Calculate number of fine cells
-                int numFineCells = (ihi-ilo+1) * (jhi-jlo+1) * (khi-klo+1);
-#endif
-
-                if ( (crseTot > 0) && (crseTot > Math::abs(SumN)) ) {
-
-                    /*
-                     * Special case 1:
-                     *
-                     * Coarse correction > 0, and fine_state has some cells
-                     * with negative values which will be filled before
-                     * adding to the other cells.
-                     *
-                     * Use the correction to bring negative cells to zero,
-                     * then distribute the remaining positive proportionally.
-                     */
-                    ccprotect_case1(interp_bx, crseTot, SumN, SumP, n,
-#if (AMREX_SPACEDIM == 2)
-                                    cvol,
-#else
-                                    numFineCells,
-#endif
-                                    fnarr, fnstarr);
-
-                } else if ( (crseTot > 0) && (crseTot < Math::abs(SumN)) ) {
-
-                    /*
-                     * Special case 2:
-                     *
-                     * Coarse correction > 0, and correction can not make
-                     * them all positive.
-                     *
-                     * Add correction only to the negative cells
-                     * in proportion to their magnitude, and
-                     * don't add any correction to the states already positive.
-                     */
-                    ccprotect_case2(interp_bx, crseTot, SumN, SumP, n,
-                                    fnarr, fnstarr);
-
-                } else if ( (crseTot < 0) && (Math::abs(crseTot) > SumP) ) {
-
-                    /*
-                     * Special case 3:
-                     *
-                     * Coarse correction < 0, and fine_state DOES NOT have
-                     * enough positive states to absorb it.
-                     *
-                     * Here we distribute the remaining negative amount
-                     * in such a way as to make them all as close to the
-                     * same negative value as possible.
-                     */
-                    ccprotect_case3(interp_bx, crseTot, SumN, SumP, n,
-#if (AMREX_SPACEDIM == 2)
-                                    cvol,
-#else
-                                    numFineCells,
-#endif
-                                    fnarr, fnstarr);
-
-                } else if ( (crseTot < 0) && (Math::abs(crseTot) < SumP) &&
-                            ((SumP+SumN+crseTot) > 0.0) )  {
-
-                    /*
-                     * Special case 4:
-                     *
-                     * Coarse correction < 0, and fine_state has enough
-                     * positive states to absorb all the negative
-                     * correction *and* to redistribute to make
-                     * negative cells positive.
-                     */
-                    ccprotect_case4(interp_bx, crseTot, SumN, SumP, n,
-                                    fnarr, fnstarr);
-
-                } else if ( (crseTot < 0) && (Math::abs(crseTot) < SumP) &&
-                            ((SumP+SumN+crseTot) < 0.0) )  {
-                    /*
-                     * Special case 5:
-                     *
-                     * Coarse correction < 0, and fine_state has enough
-                     * positive states to absorb all the negative
-                     * correction, but not enough to fix the states
-                     * already negative.
-                     *
-                     * Here we take a constant percentage away from each
-                     * positive cell and don't touch the negatives.
-                     */
-                    ccprotect_case5(interp_bx, crseTot, SumN, SumP, n,
-                                    fnarr, fnstarr);
-
-                }
-
-            } // redo_me
+            ccprotect_check_redo(ic, jc, kc, interp_bx, redo_me, n, fnarr, fnstarr);
         } // (n > 0)
-
     }); // cs_bx
 
+    // Explicit barrier to wait for interpolation check to finish
+    Gpu::streamSynchronize();
+
+    /*
+     * If all the fine values are non-negative after the original
+     * interpolated correction, then we do nothing here.
+     *
+     * If any of the fine values are negative after the original
+     * interpolated correction, then we do our best.
+     */
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cs_bx, ncomp-1, ic, jc, kc, n,
+    {
+
+        if (redo_me(ic,jc,kc,n-1) == TagBox::SET) {
+            // Create Box for interpolation
+            Box interp_bx;
+            ccprotect_create_bx(ic, jc, kc, interp_bx, fnbx, ratio);
+
+#if (AMREX_SPACEDIM == 2)
+            /*
+             * Calculate coarse and fine cell volumes.
+             */
+            Real cvol;
+            ccprotect_calc_cvol(cvol, ic, cs_geomdata);
+#endif
+
+            /*
+             * First, calculate the following quantities:
+             *
+             * crseTot = volume-weighted sum of all interpolated values
+             *           of the correction, which is equivalent to
+             *           the total volume-weighted coarse correction
+             *
+             * SumN = volume-weighted sum of all negative values of fine_state
+             *
+             * SumP = volume-weighted sum of all positive values of fine_state
+             */
+            Real crseTot = 0.0;
+            Real SumN = 0.0;
+            Real SumP = 0.0;
+            ccprotect_calc_sums(interp_bx, crseTot, SumN, SumP, n,
+#if (AMREX_SPACEDIM == 2)
+                                fn_geomdata,
+#endif
+                                fnarr, fnstarr);
+
+#if (AMREX_SPACEDIM == 3)
+            // Calculate number of fine cells
+            int numFineCells = (ihi-ilo+1) * (jhi-jlo+1) * (khi-klo+1);
+#endif
+
+            if ( (crseTot > 0) && (crseTot > Math::abs(SumN)) ) {
+
+                /*
+                 * Special case 1:
+                 *
+                 * Coarse correction > 0, and fine_state has some cells
+                 * with negative values which will be filled before
+                 * adding to the other cells.
+                 *
+                 * Use the correction to bring negative cells to zero,
+                 * then distribute the remaining positive proportionally.
+                 */
+                ccprotect_case1(interp_bx, crseTot, SumN, SumP, n,
+#if (AMREX_SPACEDIM == 2)
+                                cvol,
+#else
+                                numFineCells,
+#endif
+                                fnarr, fnstarr);
+
+            } else if ( (crseTot > 0) && (crseTot < Math::abs(SumN)) ) {
+
+                /*
+                 * Special case 2:
+                 *
+                 * Coarse correction > 0, and correction can not make
+                 * them all positive.
+                 *
+                 * Add correction only to the negative cells
+                 * in proportion to their magnitude, and
+                 * don't add any correction to the states already positive.
+                 */
+                ccprotect_case2(interp_bx, crseTot, SumN, SumP, n,
+                                fnarr, fnstarr);
+
+            } else if ( (crseTot < 0) && (Math::abs(crseTot) > SumP) ) {
+
+                /*
+                 * Special case 3:
+                 *
+                 * Coarse correction < 0, and fine_state DOES NOT have
+                 * enough positive states to absorb it.
+                 *
+                 * Here we distribute the remaining negative amount
+                 * in such a way as to make them all as close to the
+                 * same negative value as possible.
+                 */
+                ccprotect_case3(interp_bx, crseTot, SumN, SumP, n,
+#if (AMREX_SPACEDIM == 2)
+                                cvol,
+#else
+                                numFineCells,
+#endif
+                                fnarr, fnstarr);
+
+            } else if ( (crseTot < 0) && (Math::abs(crseTot) < SumP) &&
+                        ((SumP+SumN+crseTot) > 0.0) )  {
+
+                /*
+                 * Special case 4:
+                 *
+                 * Coarse correction < 0, and fine_state has enough
+                 * positive states to absorb all the negative
+                 * correction *and* to redistribute to make
+                 * negative cells positive.
+                 */
+                ccprotect_case4(interp_bx, crseTot, SumN, SumP, n,
+                                fnarr, fnstarr);
+
+            } else if ( (crseTot < 0) && (Math::abs(crseTot) < SumP) &&
+                        ((SumP+SumN+crseTot) < 0.0) )  {
+                /*
+                 * Special case 5:
+                 *
+                 * Coarse correction < 0, and fine_state has enough
+                 * positive states to absorb all the negative
+                 * correction, but not enough to fix the states
+                 * already negative.
+                 *
+                 * Here we take a constant percentage away from each
+                 * positive cell and don't touch the negatives.
+                 */
+                ccprotect_case5(interp_bx, crseTot, SumN, SumP, n,
+                                fnarr, fnstarr);
+
+            }
+
+        } // redo_me
+
+    }); // cs_bx
 
     // Explicit barrier to wait for interpolation for n > 0 to finish
     Gpu::streamSynchronize();
@@ -855,19 +854,8 @@ CellConservativeProtected::protect (const FArrayBox& crse,
     AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(runon, cs_bx, ic, jc, kc,
     {
         // Create Box for interpolation
-        Dim3 fnbxlo = lbound(fnbx);
-        Dim3 fnbxhi = ubound(fnbx);
-        int ilo = amrex::max(ratio[0]*ic,              fnbxlo.x);
-        int ihi = amrex::min(ratio[0]*ic+(ratio[0]-1), fnbxhi.x);
-        int jlo = amrex::max(ratio[1]*jc,              fnbxlo.y);
-        int jhi = amrex::min(ratio[1]*jc+(ratio[1]-1), fnbxhi.y);
-#if (AMREX_SPACEDIM == 3)
-        int klo = amrex::max(ratio[2]*kc,              fnbxlo.z);
-        int khi = amrex::min(ratio[2]*kc+(ratio[2]-1), fnbxhi.z);
-#endif
-        IntVect interp_lo(AMREX_D_DECL(ilo,jlo,klo));
-        IntVect interp_hi(AMREX_D_DECL(ihi,jhi,khi));
-        Box interp_bx(interp_lo,interp_hi);
+        Box interp_bx;
+        ccprotect_create_bx(ic, jc, kc, interp_bx, fnbx, ratio);
 
         // Set sync for density (n=0) to sum of spec sync (1:nvar)
         ccprotect_set_sync(interp_bx, ncomp, fnarr);
