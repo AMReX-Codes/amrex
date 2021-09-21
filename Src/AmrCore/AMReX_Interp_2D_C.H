@@ -199,7 +199,7 @@ face_linear_interp_y (int i, int j, int /*k*/, int n, Array4<T> const& fine,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ccprotect_create_bx (int ic, int jc, int kc,
+void ccprotect_create_bx (int ic, int jc, int /*kc*/,
                           Box& interp_bx,
                           Box const& fn_bx,
                           IntVect const& ratio) noexcept
@@ -217,7 +217,7 @@ void ccprotect_create_bx (int ic, int jc, int kc,
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ccprotect_check_redo (int ic, int jc, int kc,
+void ccprotect_check_redo (int ic, int jc, int /*kc*/,
                            Box const& interp_bx,
                            TagBox& redo_me,
                            const int n,
@@ -232,7 +232,9 @@ void ccprotect_check_redo (int ic, int jc, int kc,
         }
     }
 
-    redo_me = r;
+    if (r) {
+        redo_me(ic,jc,n-1) = TagBox::SET;
+    }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
