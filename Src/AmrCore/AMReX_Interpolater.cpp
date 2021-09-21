@@ -728,8 +728,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                  * Calculate coarse and fine cell volumes.
                  */
                 Real cvol;
-                Real fvol[ihi-ilo+1];
-                ccprotect_calc_vols(cvol, ic, cs_geomdata);
+                ccprotect_calc_cvol(cvol, ic, cs_geomdata);
 #endif
 
                 /*
