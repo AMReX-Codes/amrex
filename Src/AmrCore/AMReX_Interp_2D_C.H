@@ -6,6 +6,7 @@
 #include <AMReX_BCRec.H>
 #include <AMReX_Vector.H>
 #include <AMReX_Geometry.H>
+#include <AMReX_TagBox.H>
 #include <cmath>
 
 namespace amrex {
@@ -204,8 +205,8 @@ void ccprotect_create_bx (int ic, int jc, int /*kc*/,
                           Box const& fn_bx,
                           IntVect const& ratio) noexcept
 {
-    Dim3 fnbxlo = lbound(fnbx);
-    Dim3 fnbxhi = ubound(fnbx);
+    Dim3 fnbxlo = lbound(fn_bx);
+    Dim3 fnbxhi = ubound(fn_bx);
     int ilo = amrex::max(ratio[0]*ic,              fnbxlo.x);
     int ihi = amrex::min(ratio[0]*ic+(ratio[0]-1), fnbxhi.x);
     int jlo = amrex::max(ratio[1]*jc,              fnbxlo.y);
