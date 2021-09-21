@@ -199,7 +199,7 @@ face_linear_interp_y (int i, int j, int /*k*/, int n, Array4<T> const& fine,
 }
 
 template <typename T>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ccprotect_check_redo (Box const& interp_bx,
                            bool& redo_me,
                            const int n,
@@ -217,7 +217,7 @@ void ccprotect_check_redo (Box const& interp_bx,
     redo_me = r;
 }
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ccprotect_calc_cvol (Real& cvol,
                           const int ic,
                           GeometryData cs_geomdata) noexcept
@@ -237,7 +237,7 @@ void ccprotect_calc_cvol (Real& cvol,
 }
 
 template <typename T>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ccprotect_calc_sums (Box const& interp_bx,
                           Real& crseTot,
                           Real& SumN,
@@ -282,7 +282,7 @@ void ccprotect_calc_sums (Box const& interp_bx,
 }
 
 template <typename T>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ccprotect_case1 (Box const& interp_bx,
                       const Real crseTot,
                       const Real SumN,
@@ -324,7 +324,7 @@ void ccprotect_case1 (Box const& interp_bx,
 }
 
 template <typename T>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ccprotect_case2 (Box const& interp_bx,
                       const Real crseTot,
                       const Real SumN,
@@ -349,7 +349,7 @@ void ccprotect_case2 (Box const& interp_bx,
 }
 
 template <typename T>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ccprotect_case3 (Box const& interp_bx,
                       const Real crseTot,
                       const Real SumN,
@@ -370,7 +370,7 @@ void ccprotect_case3 (Box const& interp_bx,
 }
 
 template <typename T>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ccprotect_case4 (Box const& interp_bx,
                       const Real crseTot,
                       const Real SumN,
@@ -395,7 +395,7 @@ void ccprotect_case4 (Box const& interp_bx,
 }
 
 template <typename T>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ccprotect_case5 (Box const& interp_bx,
                       const Real crseTot,
                       const Real SumN,
@@ -420,7 +420,7 @@ void ccprotect_case5 (Box const& interp_bx,
 }
 
 template <typename T>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ccprotect_set_sync (Box const& interp_bx,
                          const int nvar,
                          Array4<T> const& fine) noexcept
