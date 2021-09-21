@@ -687,7 +687,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
 
     // Create TagBox to hold marked cells for interpolation
     TagBox redo_me(cs_bx, ncomp-1, The_Managed_Arena);
-    redo_me.setVar(TagBox::CLEAR);
+    redo_me.setVal(TagBox::CLEAR);
 
     // Extract pointers to fab data
     Array4<Real const> const&     csarr = crse.const_array();
@@ -696,7 +696,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
     Array4<char>       const&    tagarr = redo_me.array();
 
     // Loop over coarse indices
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cs_bx, ncomp-1, ic, jc, kc, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cs_bx, ncomp, ic, jc, kc, n,
     {
         // Create Box for interpolation
         Box interp_bx;
@@ -718,10 +718,10 @@ CellConservativeProtected::protect (const FArrayBox& crse,
      * If any of the fine values are negative after the original
      * interpolated correction, then we do our best.
      */
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cs_bx, ncomp-1, ic, jc, kc, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cs_bx, ncomp, ic, jc, kc, n,
     {
 
-        if (tagarr(ic,jc,kc,n-1) == TagBox::SET) {
+        if (tagarr(ic,jc,kc,n) == TagBox::SET) {
             // Create Box for interpolation
             Box interp_bx;
             ccprotect_create_bx(ic, jc, kc, interp_bx, fnbx, ratio);
