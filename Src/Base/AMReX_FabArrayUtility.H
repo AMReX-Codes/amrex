@@ -1428,8 +1428,7 @@ OverrideSync_finish (FabArray<FAB> & fa, std::unique_ptr< FabArray<FAB> >& tmpmf
 {
     BL_PROFILE("OverrideSync_finish()");
 
-    // If !pcd, PC is done (all local), so skip finish.
-    if ( (fa.ixType().cellCentered()) && (tmpmf->pcd) )
+    if (tmpmf)
     {
         tmpmf->ParallelCopy_finish();
     }
