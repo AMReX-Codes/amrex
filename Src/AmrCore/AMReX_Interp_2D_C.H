@@ -217,8 +217,9 @@ void ccprotect_create_bx (int ic, int jc, int kc,
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ccprotect_check_redo (Box const& interp_bx,
-                           bool& redo_me,
+void ccprotect_check_redo (int ic, int jc, int kc,
+                           Box const& interp_bx,
+                           TagBox& redo_me,
                            const int n,
                            Array4<T>       const& fine,
                            Array4<T const> const& fine_state) noexcept
