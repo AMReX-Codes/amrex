@@ -721,9 +721,7 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
         if (tagarr(ic,jc,kc,n)) {
             ccprotect_redo(ic, jc, kc, n,
                            fnbx, ratio,
-#if (AMREX_SPACEDIM == 2)
                            cs_geomdata, fn_geomdata,
-#endif
                            fnarr, fnstarr);
         }
     }); // cs_bx

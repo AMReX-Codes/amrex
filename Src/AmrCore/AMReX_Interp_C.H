@@ -18,10 +18,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ccprotect_redo (int ic, int jc, int kc, int n,
                      Box const& fine_bx,
                      IntVect const& ratio,
-#if (AMREX_SPACEDIM == 2)
                      GeometryData cs_geomdata,
                      GeometryData fn_geomdata,
-#endif
                      Array4<T>       const& fine,
                      Array4<T const> const& fine_state) noexcept
 {
@@ -38,6 +36,7 @@ void ccprotect_redo (int ic, int jc, int kc, int n,
 #else
     int klo = amrex::max(ratio[2]*kc,              fnbxlo.z);
     int khi = amrex::min(ratio[2]*kc+(ratio[2]-1), fnbxhi.z);
+    amrex::ignore_unused(cs_geomdata, fn_geomdata);
 #endif
 
 #if (AMREX_SPACEDIM == 2)
