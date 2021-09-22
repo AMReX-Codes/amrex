@@ -6,7 +6,6 @@
 #include <AMReX_BCRec.H>
 #include <AMReX_Vector.H>
 #include <AMReX_Geometry.H>
-#include <AMReX_TagBox.H>
 
 namespace amrex {
 
@@ -383,46 +382,31 @@ face_linear_interp_z (int i, int j, int k, int n, Array4<T> const& fine,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ccprotect_create_bx (int ic, int jc, int kc,
-                          Box& interp_bx,
-                          Box const& fn_bx,
-                          IntVect const& ratio) noexcept
+template <typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void ccprotect_check_redo (int ic, int jc, int kc,
+                           const int n,
+                           Box const& fine_bx,
+                           IntVect const& ratio,
+                           Array4<char>    const& redo_me,
+                           Array4<T>       const& fine,
+                           Array4<T const> const& fine_state) noexcept
 {
-    Dim3 fnbxlo = lbound(fn_bx);
-    Dim3 fnbxhi = ubound(fn_bx);
+    // Calculate bounds for interpolation
+    Dim3 fnbxlo = lbound(fine_bx);
+    Dim3 fnbxhi = ubound(fine_bx);
     int ilo = amrex::max(ratio[0]*ic,              fnbxlo.x);
     int ihi = amrex::min(ratio[0]*ic+(ratio[0]-1), fnbxhi.x);
     int jlo = amrex::max(ratio[1]*jc,              fnbxlo.y);
     int jhi = amrex::min(ratio[1]*jc+(ratio[1]-1), fnbxhi.y);
     int klo = amrex::max(ratio[2]*kc,              fnbxlo.z);
     int khi = amrex::min(ratio[2]*kc+(ratio[2]-1), fnbxhi.z);
-    IntVect interp_lo(ilo,jlo,klo);
-    IntVect interp_hi(ihi,jhi,khi);
-    interp_bx = Box(interp_lo,interp_hi);
-}
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ccprotect_calc_cvol (Real& /*cvol*/,
-                          const int /*ic*/,
-                          GeometryData /*cs_geomdata*/) noexcept
-{
-}
-
-template <typename T>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void ccprotect_check_redo (int ic, int jc, int kc,
-                           const int n,
-                           Box const& interp_bx,
-                           Array4<char>    const& redo_me,
-                           Array4<T>       const& fine,
-                           Array4<T const> const& fine_state) noexcept
-{
+    // Perform logical or "any" reduction
     bool r = false;
-    Dim3 lo = lbound(interp_bx), hi = ubound(interp_bx);
-    for         (int k = lo.z; k <= hi.z; ++k) {
-        for     (int j = lo.y; j <= hi.y; ++j) {
-            for (int i = lo.x; i <= hi.x; ++i) {
+    for         (int k = klo; k <= khi; ++k) {
+        for     (int j = jlo; j <= jhi; ++j) {
+            for (int i = ilo; i <= ihi; ++i) {
                 r = r || ((fine_state(i,j,k,n) + fine(i,j,k,n)) < 0.0 );
             }
         }
@@ -435,202 +419,143 @@ void ccprotect_check_redo (int ic, int jc, int kc,
 
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void ccprotect_calc_sums (Box const& interp_bx,
+void ccprotect_calc_sums (int i, int j, int k, int n,
                           Real& crseTot,
                           Real& SumN,
                           Real& SumP,
-                          const int n,
-                          GeometryData /*fn_geomdata*/,
                           Array4<T>       const& fine,
                           Array4<T const> const& fine_state) noexcept
 {
-    Dim3 lo = lbound(interp_bx), hi = ubound(interp_bx);
-    Real pos = 0.0;
-    Real neg = 0.0;
-    Real tot = 0.0;
-    for         (int k = lo.z; k <= hi.z; ++k) {
-        for     (int j = lo.y; j <= hi.y; ++j) {
-            for (int i = lo.x; i <= hi.x; ++i) {
-                tot += fine(i,j,k,n);
-                if (fine_state(i,j,k,n) <= 0.0) {
-                    neg += fine_state(i,j,n);
-                } else {
-                    pos += fine_state(i,j,n);
-                }
-            }
-        }
+    crseTot += fine(i,j,k,n);
+    if (fine_state(i,j,k,n) <= 0.0) {
+        SumN += fine_state(i,j,n);
+    } else {
+        SumP += fine_state(i,j,n);
     }
-    crseTot = tot;
-    SumN = neg;
-    SumP = pos;
 }
 
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void ccprotect_case1 (Box const& interp_bx,
+void ccprotect_case1 (int i, int j, int k, int n,
                       const Real crseTot,
                       const Real SumN,
                       const Real SumP,
-                      const int n,
-                      const Real /*cvol*/,
                       const int numFineCells,
                       Array4<T> const& fine,
                       Array4<T const> const& fine_state) noexcept
 {
-    Dim3 lo = lbound(interp_bx), hi = ubound(interp_bx);
-
     // Fill in negative values first.
-    for         (int k = lo.z; k <= hi.z; ++k) {
-        for     (int j = lo.y; j <= hi.y; ++j) {
-            for (int i = lo.x; i <= hi.x; ++i) {
-                if (fine_state(i,j,k,n) < 0.0) {
-                    fine(i,j,k,n) = -fine_state(i,j,k,n);
-                }
-            }
-        }
+    if (fine_state(i,j,k,n) < 0.0) {
+        fine(i,j,k,n) = -fine_state(i,j,k,n);
     }
 
     // Then, add the remaining positive proportionally.
     if (SumP > 0.0) {
-        Real alpha = (crseTot - Math::abs(SumN)) / SumP;
-        for         (int k = lo.z; k <= hi.z; ++k) {
-            for     (int j = lo.y; j <= hi.y; ++j) {
-                for (int i = lo.x; i <= hi.x; ++i) {
-                    if (fine_state(i,j,k,n) > 0.0) {
-                        fine(i,j,k,n) = alpha * fine_state(i,j,k,n);
-                    }
-                }
-            }
+        if (fine_state(i,j,k,n) > 0.0) {
+            Real alpha = (crseTot - Math::abs(SumN)) / SumP;
+            fine(i,j,k,n) = alpha * fine_state(i,j,k,n);
         }
     } else { /* (SumP < 0) */
         Real posVal = (crseTot - Math::abs(SumN)) / (Real)numFineCells;
-        for         (int k = lo.z; k <= hi.z; ++k) {
-            for     (int j = lo.y; j <= hi.y; ++j) {
-                for (int i = lo.x; i <= hi.x; ++i) {
-                    fine(i,j,k,n) = fine(i,j,k,n) + posVal;
-                }
-            }
-        }
+        fine(i,j,k,n) += posVal;
     }
 }
 
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void ccprotect_case2 (Box const& interp_bx,
+void ccprotect_case2 (int i, int j, int k, int n,
                       const Real crseTot,
                       const Real SumN,
                       const Real /* SumP */,
-                      const int n,
                       Array4<T> const& fine,
                       Array4<T const> const& fine_state) noexcept
 {
-    Dim3 lo = lbound(interp_bx), hi = ubound(interp_bx);
     Real alpha = crseTot / Math::abs(SumN);
-    for         (int k = lo.z; k <= hi.z; ++k) {
-        for     (int j = lo.y; j <= hi.y; ++j) {
-            for (int i = lo.x; i <= hi.x; ++i) {
-                if (fine_state(i,j,k,n) < 0.0) {
-                    // Add correction to negative cells proportionally.
-                    fine(i,j,k,n) = alpha * Math::abs(fine_state(i,j,k,n));
-                } else {
-                    // Don't touch the positive states.
-                    fine(i,j,k,n) = 0.0;
-                }
-            }
-        }
+    if (fine_state(i,j,k,n) < 0.0) {
+        // Add correction to negative cells proportionally.
+        fine(i,j,k,n) = alpha * Math::abs(fine_state(i,j,k,n));
+    } else {
+        // Don't touch the positive states.
+        fine(i,j,k,n) = 0.0;
     }
 }
 
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void ccprotect_case3 (Box const& interp_bx,
+void ccprotect_case3 (int i, int j, int k, int n,
                       const Real crseTot,
                       const Real SumN,
                       const Real SumP,
-                      const int n,
-                      const Real /*cvol*/,
                       const int numFineCells,
                       Array4<T> const& fine,
                       Array4<T const> const& fine_state) noexcept
 {
-    Dim3 lo = lbound(interp_bx), hi = ubound(interp_bx);
+    // We want to make them all as close to the same negative value.
     Real negVal = (SumP + SumN + crseTot) / (Real)numFineCells;
-    for         (int k = lo.z; k <= hi.z; ++k) {
-        for     (int j = lo.y; j <= hi.y; ++j) {
-            for (int i = lo.x; i <= hi.x; ++i) {
-                // We want to make them all as close to the same negative value.
-                fine(i,j,k,n) = negVal - fine_state(i,j,k,n);
-            }
-        }
-    }
+    fine(i,j,k,n) = negVal - fine_state(i,j,k,n);
 }
 
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void ccprotect_case4 (Box const& interp_bx,
+void ccprotect_case4 (int i, int j, int k, int n,
                       const Real crseTot,
                       const Real SumN,
                       const Real SumP,
-                      const int n,
                       Array4<T> const& fine,
                       Array4<T const> const& fine_state) noexcept
 {
-    Dim3 lo = lbound(interp_bx), hi = ubound(interp_bx);
-    Real alpha = (crseTot + SumN) / SumP;
-    for         (int k = lo.z; k <= hi.z; ++k) {
-        for     (int j = lo.y; j <= hi.y; ++j) {
-            for (int i = lo.x; i <= hi.x; ++i) {
-                if (fine_state(i,j,k,n) < 0.0) {
-                    // Absorb the negative correction
-                    fine(i,j,k,n) = -fine_state(i,j,k,n);
-                } else {
-                    // Redistribute the rest to make negative cells positive
-                    fine(i,j,k,n) = alpha * fine_state(i,j,k,n);
-                }
-            }
-        }
+    if (fine_state(i,j,k,n) < 0.0) {
+        // Absorb the negative correction
+        fine(i,j,k,n) = -fine_state(i,j,k,n);
+    } else {
+        // Redistribute the rest to make negative cells positive
+        Real alpha = (crseTot + SumN) / SumP;
+        fine(i,j,k,n) = alpha * fine_state(i,j,k,n);
     }
 }
 
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void ccprotect_case5 (Box const& interp_bx,
+void ccprotect_case5 (int i, int j, int k, int n,
                       const Real crseTot,
                       const Real SumN,
                       const Real SumP,
-                      const int n,
                       Array4<T> const& fine,
                       Array4<T const> const& fine_state) noexcept
 {
-    Dim3 lo = lbound(interp_bx), hi = ubound(interp_bx);
-    Real alpha = (crseTot + SumP) / SumN;
-    for         (int k = lo.z; k <= hi.z; ++k) {
-        for     (int j = lo.y; j <= hi.y; ++j) {
-            for (int i = lo.x; i <= hi.x; ++i) {
-                if (fine_state(i,j,k,n) > 0.0) {
-                    // Don't touch the negatives
-                    fine(i,j,k,n) = -fine_state(i,j,k,n);
-                } else {
-                    // Take a constant percentage away from each positive cell
-                    fine(i,j,k,n) = alpha * fine_state(i,j,k,n);
-                }
-            }
-        }
+    if (fine_state(i,j,k,n) > 0.0) {
+        // Don't touch the negatives
+        fine(i,j,k,n) = -fine_state(i,j,k,n);
+    } else {
+        // Take a constant percentage away from each positive cell
+        Real alpha = (crseTot + SumP) / SumN;
+        fine(i,j,k,n) = alpha * fine_state(i,j,k,n);
     }
 }
 
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void ccprotect_set_sync (Box const& interp_bx,
+void ccprotect_set_sync (int ic, int jc, int kc,
+                         Box const& fine_bx,
+                         IntVect const& ratio,
                          const int nvar,
                          Array4<T> const& fine) noexcept
 {
-    Dim3 lo = lbound(interp_bx), hi = ubound(interp_bx);
-    for         (int k = lo.z; k <= hi.z; ++k) {
-        for     (int j = lo.y; j <= hi.y; ++j) {
-            for (int i = lo.x; i <= hi.x; ++i) {
+    // Calculate bounds for interpolation
+    Dim3 fnbxlo = lbound(fine_bx);
+    Dim3 fnbxhi = ubound(fine_bx);
+    int ilo = amrex::max(ratio[0]*ic,              fnbxlo.x);
+    int ihi = amrex::min(ratio[0]*ic+(ratio[0]-1), fnbxhi.x);
+    int jlo = amrex::max(ratio[1]*jc,              fnbxlo.y);
+    int jhi = amrex::min(ratio[1]*jc+(ratio[1]-1), fnbxhi.y);
+    int klo = amrex::max(ratio[2]*kc,              fnbxlo.z);
+    int khi = amrex::min(ratio[2]*kc+(ratio[2]-1), fnbxhi.z);
+
+    for         (int k = klo; k <= khi; ++k) {
+        for     (int j = jlo; j <= jhi; ++j) {
+            for (int i = ilo; i <= ihi; ++i) {
                 fine(i,j,k,0) = 0.0;
-                for (int n = 1; n < nvar-1; ++n) {
+                for (int n = 1; n < nvar; ++n) {
                     fine(i,j,k,0) += fine(i,j,k,n);
                 }
             }
