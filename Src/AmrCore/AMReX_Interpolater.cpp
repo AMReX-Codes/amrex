@@ -689,7 +689,7 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
     const Box& fnbx = fine.box();
 
     // Create TagBox to hold marked cells for interpolation
-    BaseFab<char> redo_me(cs_bx, ncomp-1, The_Managed_Arena);
+    BaseFab<char> redo_me(cs_bx, ncomp-1, &The_Managed_Arena);
     redo_me.setVal<RunOn::Device>(0);
 
     // Extract pointers to fab data
