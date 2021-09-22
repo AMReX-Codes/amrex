@@ -1366,22 +1366,20 @@ OverrideSync (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& 
 {
     BL_PROFILE("OverrideSync()");
 
-    auto tmpmf = OverrideSync_nowait(fa, msk, period);
-    OverrideSync_finish(fa, tmpmf);
+    OverrideSync_nowait(fa, msk, period);
+    OverrideSync_finish(fa);
 }
 
 
 template <class FAB, class IFAB, class bar = std::enable_if_t<IsBaseFab<FAB>::value
                                                                && IsBaseFab<IFAB>::value> >
-std::unique_ptr< FabArray<FAB> >
+void
 OverrideSync_nowait (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& period)
 {
     BL_PROFILE("OverrideSync_nowait()");
+    AMREX_ASSERT_WITH_MESSAGE(fa.os_temp, "OverrideSync_nowait() called when already in progress.");
 
-    if (fa.ixType().cellCentered())
-    {
-        return (std::unique_ptr< FabArray<FAB> >(nullptr));
-    }
+    if (fa.ixType().cellCentered()) return;
 
     const int ncomp = fa.nComp();
 
@@ -1413,30 +1411,24 @@ OverrideSync_nowait (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Period
         }
     }
 
-    std::unique_ptr< FabArray<FAB> > tmpmf =
-         std::make_unique< FabArray<FAB> > ( fa.boxArray(), fa.DistributionMap(),
-                                             ncomp, 0, MFInfo(), fa.Factory() );
-    tmpmf->setVal(0);
-    tmpmf->ParallelCopy_nowait(fa, period, FabArrayBase::ADD);
-
-    return tmpmf;
+    fa.os_temp = std::make_unique< FabArray<FAB> > ( fa.boxArray(), fa.DistributionMap(),
+                                                     ncomp, 0, MFInfo(), fa.Factory() );
+    fa.os_temp->setVal(0);
+    fa.os_temp->ParallelCopy_nowait(fa, period, FabArrayBase::ADD);
 }
 
 template <class FAB, class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 void
-OverrideSync_finish (FabArray<FAB> & fa, std::unique_ptr< FabArray<FAB> >& tmpmf)
+OverrideSync_finish (FabArray<FAB> & fa)
 {
     BL_PROFILE("OverrideSync_finish()");
 
-    if (tmpmf)
-    {
-        tmpmf->ParallelCopy_finish();
-    }
+    if (fa.ixType().cellCentered()) return;
 
-    const int ncomp = fa.nComp();
-    amrex::Copy(fa, *tmpmf, 0, 0, ncomp, 0);
+    fa.os_temp->ParallelCopy_finish();
+    amrex::Copy(fa, *(fa.os_temp), 0, 0, fa.nComp(), 0);
 
-    tmpmf.reset();
+    fa.os_temp.reset();
 }
 
 template <class FAB, class foo = std::enable_if_t<IsBaseFab<FAB>::value> >

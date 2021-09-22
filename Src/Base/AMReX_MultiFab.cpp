@@ -1787,4 +1787,24 @@ MultiFab::OverrideSync (const iMultiFab& msk, const Periodicity& period)
     amrex::OverrideSync(*this, msk, period);
 }
 
+void
+MultiFab::OverrideSync_nowait (const Periodicity& period)
+{
+    if (ixType().cellCentered()) return;
+    auto msk = this->OwnerMask(period);
+    amrex::OverrideSync_nowait(*this, *msk, period);
+}
+
+void
+MultiFab::OverrideSync_nowait (const iMultiFab& msk, const Periodicity& period)
+{
+    amrex::OverrideSync_nowait(*this, msk, period);
+}
+
+void
+MultiFab::OverrideSync_finish ()
+{
+    amrex::OverrideSync_finish(*this);
+}
+
 }
