@@ -673,15 +673,11 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
         amrex::Abort("rMAX in CellConservativeProtected::protect");
     }
 
-#if (AMREX_SPACEDIM == 2)
     /*
      * Get coarse and fine geometry data.
      */
     GeometryData cs_geomdata = crse_geom.data();
     GeometryData fn_geomdata = fine_geom.data();
-#else
-    amrex::ignore_unused(crse_geom, fine_geom);
-#endif
 
     // Extract box from fine fab
     const Box& fnbx = fine.box();
