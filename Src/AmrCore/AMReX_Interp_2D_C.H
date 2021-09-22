@@ -310,6 +310,7 @@ void ccprotect_case1 (Box const& interp_bx,
                       const Real SumP,
                       const int n,
                       const Real cvol,
+                      const int /*numFineCells*/,
                       Array4<T> const& fine,
                       Array4<T const> const& fine_state) noexcept
 {
@@ -377,6 +378,7 @@ void ccprotect_case3 (Box const& interp_bx,
                       const Real SumP,
                       const int n,
                       const Real cvol,
+                      const int /*numFineCells*/,
                       Array4<T> const& fine,
                       Array4<T const> const& fine_state) noexcept
 {

@@ -402,6 +402,13 @@ void ccprotect_create_bx (int ic, int jc, int kc,
     interp_bx = Box(interp_lo,interp_hi);
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ccprotect_calc_cvol (Real& /*cvol*/,
+                          const int /*ic*/,
+                          GeometryData /*cs_geomdata*/) noexcept
+{
+}
+
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void ccprotect_check_redo (int ic, int jc, int kc,
@@ -433,6 +440,7 @@ void ccprotect_calc_sums (Box const& interp_bx,
                           Real& SumN,
                           Real& SumP,
                           const int n,
+                          GeometryData /*fn_geomdata*/,
                           Array4<T>       const& fine,
                           Array4<T const> const& fine_state) noexcept
 {
@@ -464,6 +472,7 @@ void ccprotect_case1 (Box const& interp_bx,
                       const Real SumN,
                       const Real SumP,
                       const int n,
+                      const Real /*cvol*/
                       const int numFineCells,
                       Array4<T> const& fine,
                       Array4<T const> const& fine_state) noexcept
@@ -539,6 +548,7 @@ void ccprotect_case3 (Box const& interp_bx,
                       const Real SumN,
                       const Real SumP,
                       const int n,
+                      const Real /*cvol*/,
                       const int numFineCells,
                       Array4<T> const& fine,
                       Array4<T const> const& fine_state) noexcept

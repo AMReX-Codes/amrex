@@ -675,15 +675,11 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
         amrex::Abort("rMAX in CellConservativeProtected::protect");
     }
 
-#if (AMREX_SPACEDIM == 2)
     /*
      * Get coarse and fine geometry data.
      */
     GeometryData cs_geomdata = crse_geom.data();
     GeometryData fn_geomdata = fine_geom.data();
-#else
-    amrex::ignore_unused(crse_geom,fine_geom);
-#endif
 
     // Extract box from fine fab
     const Box& fnbx = fine.box();
@@ -728,13 +724,11 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
             Box interp_bx;
             ccprotect_create_bx(ic, jc, kc, interp_bx, fnbx, ratio);
 
-#if (AMREX_SPACEDIM == 2)
             /*
              * Calculate coarse and fine cell volumes.
              */
             Real cvol;
             ccprotect_calc_cvol(cvol, ic, cs_geomdata);
-#endif
 
             /*
              * First, calculate the following quantities:
@@ -750,16 +744,11 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
             Real crseTot = 0.0;
             Real SumN = 0.0;
             Real SumP = 0.0;
-            ccprotect_calc_sums(interp_bx, crseTot, SumN, SumP, n,
-#if (AMREX_SPACEDIM == 2)
-                                fn_geomdata,
-#endif
+            ccprotect_calc_sums(interp_bx, crseTot, SumN, SumP, n, fn_geomdata,
                                 fnarr, fnstarr);
 
-#if (AMREX_SPACEDIM == 3)
             // Calculate number of fine cells
             int numFineCells = interp_bx.length(0) * interp_bx.length(1) * interp_bx.length(2);
-#endif
 
             if ( (crseTot > 0) && (crseTot > Math::abs(SumN)) ) {
 
@@ -774,11 +763,7 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
                  * then distribute the remaining positive proportionally.
                  */
                 ccprotect_case1(interp_bx, crseTot, SumN, SumP, n,
-#if (AMREX_SPACEDIM == 2)
-                                cvol,
-#else
-                                numFineCells,
-#endif
+                                cvol, numFineCells,
                                 fnarr, fnstarr);
 
             } else if ( (crseTot > 0) && (crseTot < Math::abs(SumN)) ) {
@@ -809,11 +794,7 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
                  * same negative value as possible.
                  */
                 ccprotect_case3(interp_bx, crseTot, SumN, SumP, n,
-#if (AMREX_SPACEDIM == 2)
-                                cvol,
-#else
-                                numFineCells,
-#endif
+                                cvol, numFineCells,
                                 fnarr, fnstarr);
 
             } else if ( (crseTot < 0) && (Math::abs(crseTot) < SumP) &&
