@@ -34,6 +34,7 @@ void ccprotect_redo (int ic, int jc, int kc, int n,
 #if (AMREX_SPACEDIM == 2)
     int klo = 0;
     int khi = 0;
+    amrex::ignore_unused(kc);
 #else
     int klo = amrex::max(ratio[2]*kc,              fnbxlo.z);
     int khi = amrex::min(ratio[2]*kc+(ratio[2]-1), fnbxhi.z);
