@@ -638,7 +638,7 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
                                     RunOn            runon)
 {
 #if (AMREX_SPACEDIM == 1)
-    amrex::ignore_unused(crse,fine,fine_state,
+    amrex::ignore_unused(fine,fine_state,
                          ncomp,fine_region,ratio,
                          crse_geom,fine_geom,bcr,runon);
     amrex::Abort("1D CellConservativeProtected::protect not supported");
