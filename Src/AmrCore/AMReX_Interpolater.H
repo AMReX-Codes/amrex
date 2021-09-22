@@ -325,7 +325,6 @@ protected:
 };
 
 
-#ifndef BL_NO_FORT
 /**
 * \brief Lin. cons. interp. on cc data with protection against under/over-shoots.
 *
@@ -379,7 +378,6 @@ public:
                           Vector<BCRec>&   bcr,
                           RunOn            gpu_or_cpu) override;
 };
-#endif
 
 
 #ifndef BL_NO_FORT
