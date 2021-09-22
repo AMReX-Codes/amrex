@@ -234,7 +234,7 @@ void ccprotect_check_redo (int ic, int jc, int /*kc*/,
     }
 
     if (r) {
-        redo_me(ic,jc,0,n-1) = 1;
+        redo_me(ic,jc,0,n) = 1;
     }
 }
 
