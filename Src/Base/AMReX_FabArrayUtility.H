@@ -1377,7 +1377,7 @@ void
 OverrideSync_nowait (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& period)
 {
     BL_PROFILE("OverrideSync_nowait()");
-    AMREX_ASSERT_WITH_MESSAGE(fa.os_temp, "OverrideSync_nowait() called when already in progress.");
+    AMREX_ASSERT_WITH_MESSAGE(!fa.os_temp, "OverrideSync_nowait() called when already in progress.");
 
     if (fa.ixType().cellCentered()) return;
 
