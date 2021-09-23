@@ -427,9 +427,9 @@ void ccprotect_calc_sums (int i, int j, int k, int n,
 {
     crseTot += fine(i,j,k,n);
     if (fine_state(i,j,k,n) <= 0.0) {
-        SumN += fine_state(i,j,n);
+        SumN += fine_state(i,j,k,n);
     } else {
-        SumP += fine_state(i,j,n);
+        SumP += fine_state(i,j,k,n);
     }
 }
 
