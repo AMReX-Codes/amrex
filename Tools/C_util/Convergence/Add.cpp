@@ -44,38 +44,40 @@ main (int   argc,
       char* argv[])
 {
     amrex::Initialize(argc,argv);
+    {
 
-    if (argc == 1)
-        PrintUsage(argv[0]);
+	if (argc == 1)
+	    PrintUsage(argv[0]);
 
-    ParmParse pp;
+	ParmParse pp;
 
-    FArrayBox::setFormat(FABio::FAB_IEEE_32);
-    //
-    // Scan the arguments.
-    //
-    std::string iFileDir, iFile, eFile, oFile, oFileDir;
-    Real factor;
+	FArrayBox::setFormat(FABio::FAB_IEEE_32);
+	//
+	// Scan the arguments.
+	//
+	std::string iFileDir, iFile, eFile, oFile, oFileDir;
+	Real factor;
 
-    pp.query("infile", iFile);
-    if (iFile.empty())
-        amrex::Abort("You must specify `infile'");
+	pp.query("infile", iFile);
+	if (iFile.empty())
+	    amrex::Abort("You must specify `infile'");
 
-    pp.query("factor", factor);
+	pp.query("factor", factor);
 
-    pp.query("outfile", oFile);
-    if (oFile.empty())
-        amrex::Abort("You must specify `outfile'");
+	pp.query("outfile", oFile);
+	if (oFile.empty())
+	    amrex::Abort("You must specify `outfile'");
 
-    std::ifstream is(iFile.c_str(),ios::in);
-    std::ofstream os(oFile.c_str(),ios::out);
+	std::ifstream is(iFile.c_str(),ios::in);
+	std::ofstream os(oFile.c_str(),ios::out);
 
-    FArrayBox dataI, dataE;
-    dataI.readFrom(is);
+	FArrayBox dataI, dataE;
+	dataI.readFrom(is);
 
-    dataI.plus(factor);
+	dataI.plus(factor);
 
-    dataI.writeOn(os);
+	dataI.writeOn(os);
 
+    }
     amrex::Finalize();
 }
