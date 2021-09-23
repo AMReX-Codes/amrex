@@ -14,17 +14,19 @@
 
 namespace amrex {
 
-//
-// PCInterp, NodeBilinear, FaceLinear, CellConservativeLinear, and
-// CellBilinear are supported for all dimensions on cpu and gpu.
-//
-// CellConservativeProtected only works in 2D and 3D on cpu.
-//
-// CellQuadratic only works in 2D on cpu.
-//
-// CellConservativeQuartic only works with ref ratio of 2 on cpu
-//
-// FaceDivFree works in 2D and 3D on cpu and gpu. The algorithm is restricted to ref ratio of 2.
+/*
+ * PCInterp, NodeBilinear, FaceLinear, CellConservativeLinear, and
+ * CellBilinear are supported for all dimensions on cpu and gpu.
+ *
+ * CellConservativeProtected only works in 2D and 3D on cpu and gpu.
+ *
+ * CellQuadratic only works in 2D on cpu.
+ *
+ * CellConservativeQuartic only works with ref ratio of 2 on cpu
+ *
+ * FaceDivFree works in 2D and 3D on cpu and gpu.
+ * The algorithm is restricted to ref ratio of 2.
+ */
 
 //
 // CONSTRUCT A GLOBAL OBJECT OF EACH VERSION.
