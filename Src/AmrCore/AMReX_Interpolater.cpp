@@ -696,11 +696,9 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
      * Loop over coarse indices.
      * Check if interpolation needs to be redone for derived components (n > 0)
      */
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cs_bx, ncomp-1, ic, jc, kc, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cs_bx, ncomp-2, ic, jc, kc, n,
     {
-        if (n > 0) {
-            ccprotect_check_redo(ic, jc, kc, n, fnbx, ratio, tagarr, fnarr, fnstarr);
-        } // (n > 0)
+        ccprotect_check_redo(ic, jc, kc, n+1, fnbx, ratio, tagarr, fnarr, fnstarr);
     }); // cs_bx
 
     /*
