@@ -698,6 +698,19 @@ public:
 
     /**
      * \brief Writes a particle checkpoint to file, suitable for restarting.
+     *        This version allows the particle component names to be passed in.
+     */
+    void Checkpoint (const std::string& dir, const std::string& name,
+                     const Vector<std::string>& real_comp_names = Vector<std::string>(),
+                     const Vector<std::string>& int_comp_names = Vector<std::string>()) const
+    {
+        Checkpoint(dir, name, true, real_comp_names, int_comp_names);
+    }
+
+    /**
+     * \brief Writes a particle checkpoint to file, suitable for restarting.
+     *        This version allows the particle component names to be passed in.
+     *        This overload exists for backwards comptability. The is_checkpoint parameter is ignored.
      */
     void Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint,
                      const Vector<std::string>& real_comp_names = Vector<std::string>(),
