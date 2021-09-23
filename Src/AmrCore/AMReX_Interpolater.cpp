@@ -673,11 +673,15 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
         amrex::Abort("rMAX in CellConservativeProtected::protect");
     }
 
+#if (AMREX_SPACEDIM == 2)
     /*
      * Get coarse and fine geometry data.
      */
     GeometryData cs_geomdata = crse_geom.data();
     GeometryData fn_geomdata = fine_geom.data();
+#else
+    amrex::ignore_unused(crse_geom, fine_geom);
+#endif
 
     // Extract box from fine fab
     const Box& fnbx = fine.box();
@@ -708,15 +712,26 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
      * If any of the fine values are negative after the original
      * interpolated correction, then we do our best.
      */
+#if (AMREX_SPACEDIM == 2)
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cs_bx, ncomp-1, ic, jc, kc, n,
     {
         if (tagarr(ic,jc,kc,n)) {
-            ccprotect_redo(ic, jc, kc, n,
-                           fnbx, ratio,
-                           cs_geomdata, fn_geomdata,
-                           fnarr, fnstarr);
+            ccprotect_redo_2d(ic, jc, kc, n,
+                              fnbx, ratio,
+                              cs_geomdata, fn_geomdata,
+                              fnarr, fnstarr);
         }
     }); // cs_bx
+#else
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cs_bx, ncomp-1, ic, jc, kc, n,
+    {
+        if (tagarr(ic,jc,kc,n)) {
+            ccprotect_redo_3d(ic, jc, kc, n,
+                              fnbx, ratio,
+                              fnarr, fnstarr);
+        }
+    }); // cs_bx
+#endif
 
     // Set sync for density (n=0) to sum of spec sync (1:nvar)
     AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(runon, cs_bx, ic, jc, kc,
