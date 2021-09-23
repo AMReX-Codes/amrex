@@ -685,6 +685,7 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
     // Create TagBox to hold marked cells for interpolation
     BaseFab<char> redo_me(cs_bx, ncomp);
     redo_me.setVal<RunOn::Device>(0);
+    Elixir redo_me_eli = redo_me.elixir();
 
     // Extract pointers to fab data
     Array4<Real>       const&   fnarr = fine.array();
@@ -702,9 +703,6 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
         } // (n > 0)
     }); // cs_bx
 
-    // Explicit barrier to wait for interpolation check to finish
-    Gpu::streamSynchronize();
-
     /*
      * If all the fine values are non-negative after the original
      * interpolated correction, then we do nothing here.
@@ -721,9 +719,6 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
                            fnarr, fnstarr);
         }
     }); // cs_bx
-
-    // Explicit barrier to wait for interpolation for n > 0 to finish
-    Gpu::streamSynchronize();
 
     // Set sync for density (n=0) to sum of spec sync (1:nvar)
     AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(runon, cs_bx, ic, jc, kc,
