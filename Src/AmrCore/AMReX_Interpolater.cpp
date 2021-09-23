@@ -626,7 +626,7 @@ void
 CellConservativeProtected::protect (const FArrayBox& /*crse*/,
                                     int              /*crse_comp*/,
                                     FArrayBox&       fine,
-                                    int              /*fine_comp*/,
+                                    int              fine_comp,
                                     FArrayBox&       fine_state,
                                     int              /*state_comp*/,
                                     int              ncomp,
@@ -696,7 +696,7 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
      * Loop over coarse indices.
      * Check if interpolation needs to be redone for derived components (n > 0)
      */
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cs_bx, ncomp-2, ic, jc, kc, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cs_bx, fine_comp-1, ic, jc, kc, n,
     {
         ccprotect_check_redo(ic, jc, kc, n+1, fnbx, ratio, tagarr, fnarr, fnstarr);
     }); // cs_bx
@@ -708,7 +708,7 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
      * If any of the fine values are negative after the original
      * interpolated correction, then we do our best.
      */
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cs_bx, ncomp-1, ic, jc, kc, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cs_bx, fine_comp, ic, jc, kc, n,
     {
         if (tagarr(ic,jc,kc,n)) {
             ccprotect_redo(ic, jc, kc, n,
@@ -721,7 +721,7 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
     // Set sync for density (n=0) to sum of spec sync (1:nvar)
     AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(runon, cs_bx, ic, jc, kc,
     {
-        ccprotect_set_sync(ic, jc, kc, fnbx, ratio, ncomp-1, fnarr);
+        ccprotect_set_sync(ic, jc, kc, fnbx, ratio, fine_comp, fnarr);
     });
 
 #endif /*(AMREX_SPACEDIM == 1)*/
