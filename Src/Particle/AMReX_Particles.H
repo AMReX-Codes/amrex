@@ -693,12 +693,8 @@ public:
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
-     */
-    void Checkpoint (const std::string& dir, const std::string& name) const;
-
-    /**
-     * \brief Writes a particle checkpoint to file, suitable for restarting.
-     *        This version allows the particle component names to be passed in.
+     * \param real_comp_names vector of real component names, optional
+     * \param int_comp_names vector of int component names, optional
      */
     void Checkpoint (const std::string& dir, const std::string& name,
                      const Vector<std::string>& real_comp_names = Vector<std::string>(),
