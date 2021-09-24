@@ -70,12 +70,21 @@ cuda_print_option(AMReX_CUDA_PTX_VERBOSE)
 option(AMReX_CUDA_COMPILATION_TIMER "Generate CSV table with time for each compilation phase" OFF)
 cuda_print_option(AMReX_CUDA_COMPILATION_TIMER)
 
-# not a good default-candidate for CMAKE_BUILD_TYPE "Debug": often does not
-# compile at all, is very sensitive to further set options, or compiles super slowly;
-# im some cases, such as recursive function usage, apps need to increase
+# Default on for CMAKE_BUILD_TYPE "Debug":
+# In the past, this often did not compile at all, was very sensitive to further set options, or
+# compiled super slowly;
+# in some cases, such as recursive function usage, apps need to increase
 # `cudaLimitStackSize` in order to not stack overflow with device debug symbols
 # (this costs some extra DRAM).
-option(AMReX_CUDA_DEBUG "Generate debug information for device code (optimizations: off)" OFF)
+# Nonetheless, for CUDA approx. 11.0+, we see the opposite: we have very slow Debug builds with CUDA if
+# we do not activate -G for some LinearSolvers/MLMG objects. Thus, we default-on now to -G in
+# Debug builds.
+if ( "${CMAKE_BUILD_TYPE}" MATCHES "Debug" )
+    set(AMReX_CUDA_DEBUG_DEFAULT ON)
+else ()
+    set(AMReX_CUDA_DEBUG_DEFAULT OFF)
+endif ()
+option(AMReX_CUDA_DEBUG "Generate debug information for device code (optimizations: off)" ${AMReX_CUDA_DEBUG_DEFAULT})
 cuda_print_option(AMReX_CUDA_DEBUG)
 
 # both are performance-neutral debug symbols
