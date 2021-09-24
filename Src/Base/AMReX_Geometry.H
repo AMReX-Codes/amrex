@@ -17,6 +17,7 @@
 
 namespace amrex {
 /**
+* \class Geometry
 * \brief Rectangular problem domain geometry.
 *
 * This class describes problem domain and coordinate system for
@@ -62,7 +63,7 @@ public:
     RealBox prob_domain;
     Box domain;
     Real dx[AMREX_SPACEDIM];
-    int is_periodic[AMREX_SPACEDIM];
+    int is_periodic[AMREX_SPACEDIM]; /**< For each dimension, 0 if the domain is non-periodic and 1 if it is. */
     int coord;
 };
 
@@ -71,13 +72,44 @@ class Geometry
     public CoordSys
 {
 public:
-    //! The default constructor.
+    /** \brief The default constructor.
+     *
+     *   Leaves object in an unusable state. A "define" method must be called before use.
+     */
     Geometry () noexcept;
-    //! Constructor taking the rectangular domain.
+
+    /**
+     * Constructs a fully-defined geometry object that describes the problem domain and coordinate system.
+     *
+     * \param dom cell-centered `Box` specifying the index space bounds of the domain.
+     * \param rb A pointer to a `RealBox` specifying the real space bounds of the domain. Optional. If not specified,
+     *        will be ParmParsed from "geometry.prob_lo" and "geometry.prob_hi".
+     * \param coord Specifies the coordinate system type. Optional. Can be one of:
+     *        CoordSys::cartesian
+     *        CoordSys::RZ
+     *        CoordSys::SPHERICAL
+     *        Default is cartesian.
+     * \param is_per pointer to memory space specifying periodicity in each coordinate direction.
+     *        Optional. Default is non-periodic.
+     */
     explicit Geometry (const Box&     dom,
                        const RealBox* rb     =  nullptr,
                        int            coord  = -1,
                        int const*     is_per =  nullptr) noexcept;
+    /**
+     * Constructs a fully-defined geometry object that describes the problem domain and coordinate system.
+     *
+     * \param dom cell-centered `Box` specifying the index space bounds of the domain.
+     * \param rb A pointer to a `RealBox` specifying the real space bounds of the domain. Optional. If not specified,
+     *        will be ParmParsed from "geometry.prob_lo" and "geometry.prob_hi".
+     * \param coord Specifies the coordinate system type. Optional. Can be one of:
+     *        CoordSys::cartesian
+     *        CoordSys::RZ
+     *        CoordSys::SPHERICAL
+     *        Default is cartesian.
+     * \param is_per amrex::Array specifying periodicity in each coordinate direction. Optional.
+     *        Default is non-periodic.
+     */
     Geometry (const Box& dom, const RealBox& rb, int coord,
               Array<int,AMREX_SPACEDIM> const& is_per) noexcept;
 
@@ -100,9 +132,40 @@ public:
     static void ResetDefaultPeriodicity (const Array<int,AMREX_SPACEDIM>& is_per) noexcept;
     static void ResetDefaultCoord (int coord) noexcept;
 
-    //! Set the rectangular domain after using default constructor.
+    /**
+     * Defines a geometry object that describes the problem domain and coordinate system for rectangular problem
+     * domains. Useful for when the Geometry object has been constructed with the default constructor.
+     *
+     * \param dom cell-centered `Box` specifying the index space bounds of the domain.
+     * \param rb A pointer to a `RealBox` specifying the real space bounds of the domain. Optional. If not specified,
+     *        will be ParmParsed from "geometry.prob_lo" and "geometry.prob_hi".
+     * \param coord Specifies the coordinate system type. Optional. Can be one of:
+     *        CoordSys::cartesian
+     *        CoordSys::RZ
+     *        CoordSys::SPHERICAL
+     *        Default is cartesian.
+     * \param is_per pointer to memory space specifying periodicity in each coordinate direction.
+     *        Optional. Default is non-periodic.
+     */
     void define (const Box& dom, const RealBox* rb = 0, int coord = -1, int const* is_per = nullptr) noexcept;
+
+    /**
+     * Defines a geometry object that describes the problem domain and coordinate system for rectangular problem
+     * domains. Useful for when the Geometry object has been constructed with the default constructor.
+     *
+     * \param dom cell-centered `Box` specifying the index space bounds of the domain.
+     * \param rb A pointer to a `RealBox` specifying the real space bounds of the domain. Optional. If not specified,
+     *        will be ParmParsed from "geometry.prob_lo" and "geometry.prob_hi".
+     * \param coord Specifies the coordinate system type. Optional. Can be one of:
+     *        CoordSys::cartesian
+     *        CoordSys::RZ
+     *        CoordSys::SPHERICAL
+     *        Default is cartesian.
+     * \param is_per amrex::Array specifying periodicity in each coordinate direction. Optional.
+     *        Default is non-periodic.
+     */
     void define (const Box& dom, const RealBox& rb, int coord, Array<int,AMREX_SPACEDIM> const& is_per) noexcept;
+
     //! Returns the problem domain.
     const RealBox& ProbDomain () const noexcept { return prob_domain; }
     //! Returns the roundoff domain.

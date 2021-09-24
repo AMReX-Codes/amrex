@@ -87,40 +87,6 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
-::Checkpoint (const std::string& dir, const std::string& name) const
-{
-    Vector<int> write_real_comp;
-    Vector<std::string> real_comp_names;
-    for (int i = 0; i < NStructReal + NumRealComps(); ++i )
-    {
-        write_real_comp.push_back(1);
-        std::stringstream ss;
-        ss << "real_comp" << i;
-        real_comp_names.push_back(ss.str());
-    }
-
-    Vector<int> write_int_comp;
-    Vector<std::string> int_comp_names;
-    for (int i = 0; i < NStructInt + NumIntComps(); ++i )
-    {
-        write_int_comp.push_back(1);
-        std::stringstream ss;
-        ss << "int_comp" << i;
-        int_comp_names.push_back(ss.str());
-    }
-
-    WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
-                            real_comp_names, int_comp_names,
-                            [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p) -> int
-                            {
-                                return p.id() > 0;
-                            });
-}
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
-void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::WritePlotFile (const std::string& dir, const std::string& name) const
 {
     Vector<int> write_real_comp;

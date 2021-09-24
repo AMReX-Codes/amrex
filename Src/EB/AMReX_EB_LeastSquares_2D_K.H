@@ -693,7 +693,7 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                     rhs(irow) += Amatrix(a_ind,irow)*phi_val;
 
                     if (flag(ii,jj,k).isSingleValued() &&
-                        is_eb_dirichlet && is_eb_inhomog && Amatrix(a_ind+9,irow)){
+                        is_eb_dirichlet && is_eb_inhomog && Amatrix(a_ind+9,irow) != Real(0.0)){
                       rhs(irow) += Amatrix(a_ind+9,irow)*phieb(ii,jj,k,n);
                     }
                 }

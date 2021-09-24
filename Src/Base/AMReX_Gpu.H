@@ -15,7 +15,6 @@ namespace amrex { namespace Cuda {} }
 #include <AMReX_GpuAssert.H>
 #include <AMReX_GpuTypes.H>
 #include <AMReX_GpuControl.H>
-#include <AMReX_GpuFuse.H>
 #include <AMReX_GpuLaunch.H>
 #include <AMReX_GpuError.H>
 

@@ -21,7 +21,11 @@ cns_initdata (int i, int j, int k, amrex::Array4<amrex::Real> const& state,
 
     Real x = (prob_lo[0] + (i+Real(0.5))*dx[0]) - 0.5 * (prob_lo[0] + prob_hi[0]);
     Real y = (prob_lo[1] + (j+Real(0.5))*dx[1]) - 0.5 * (prob_lo[1] + prob_hi[1]);
+#if (AMREX_SPACEDIM == 3)
     Real z = (prob_lo[2] + (k+Real(0.5))*dx[2]) - 0.5 * (prob_lo[2] + prob_hi[2]);
+#else
+    Real z = Real(0.0);
+#endif
     Real r = std::sqrt(x*x + y*y + z*z);
 
     if (r > prob_parm.rpulse) {
@@ -32,7 +36,9 @@ cns_initdata (int i, int j, int k, amrex::Array4<amrex::Real> const& state,
 
     state(i,j,k,UMX  ) = Real(0.0);
     state(i,j,k,UMY  ) = Real(0.0);
+#if (AMREX_SPACEDIM == 3)
     state(i,j,k,UMZ  ) = Real(0.0);
+#endif
 
     Real Pt = prob_parm.p0 * std::pow( (state(i,j,k,URHO) / prob_parm.rho0), parm.eos_gamma );
 

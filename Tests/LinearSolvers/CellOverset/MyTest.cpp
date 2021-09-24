@@ -34,9 +34,16 @@ MyTest::solve ()
 
     std::unique_ptr<MLABecLaplacian> mlabec;
     if (do_overset) {
-        mlabec = std::make_unique<MLABecLaplacian>({geom}, {grids}, {dmap}, {&oversetmask}, info);
+        mlabec = std::make_unique<MLABecLaplacian>(Vector<Geometry>{geom},
+                                                   Vector<BoxArray>{grids},
+                                                   Vector<DistributionMapping>{dmap},
+                                                   Vector<iMultiFab const*>{&oversetmask},
+                                                   info);
     } else {
-        mlabec = std::make_unique<MLABecLaplacian>({geom}, {grids}, {dmap}, info);
+        mlabec = std::make_unique<MLABecLaplacian>(Vector<Geometry>{geom},
+                                                   Vector<BoxArray>{grids},
+                                                   Vector<DistributionMapping>{dmap},
+                                                   info);
     }
 
     mlabec->setDomainBC(mlmg_lobc, mlmg_hibc);

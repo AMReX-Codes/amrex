@@ -16,6 +16,8 @@
 namespace amrex {
     template <class... Ts>
     using Tuple = std::tuple<Ts...>;
+
+    template <class... Ts> struct TypeList {};
 }
 
 namespace amrex {

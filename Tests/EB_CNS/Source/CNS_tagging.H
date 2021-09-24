@@ -5,8 +5,7 @@
 #include <AMReX_TagBox.H>
 #include <cmath>
 
-AMREX_GPU_HOST_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 cns_tag_denerror (int i, int j, int k,
                   amrex::Array4<char> const& tag,

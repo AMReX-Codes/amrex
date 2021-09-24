@@ -18,7 +18,7 @@
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_BLProfStats.H>
-#include <BLProfParser.tab.H>
+//#include <BLProfParser.tab.H>
 #include <AMReX_CommProfStats.H>
 #include <AMReX_RegionsProfStats.H>
 #endif

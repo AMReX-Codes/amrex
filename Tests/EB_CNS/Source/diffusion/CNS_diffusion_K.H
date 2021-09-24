@@ -7,8 +7,7 @@
 #include <AMReX_CONSTANTS.H>
 #include <cmath>
 
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 cns_diffcoef (int i, int j, int k,
               amrex::Array4<amrex::Real const> const& q,
@@ -29,22 +28,18 @@ cns_diffcoef (int i, int j, int k,
     coefs(i,j,k,CLAM) = coefs(i,j,k,CETA)*parm.cp/parm.Pr;
 }
 
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 cns_constcoef (int i, int j, int k,
               amrex::Array4<amrex::Real> const& coefs,
               Parm const& parm) noexcept
 {
-    using amrex::Real;
-
-     coefs(i,j,k,CETA) = parm.const_visc_mu;
-     coefs(i,j,k,CXI)  = parm.const_visc_ki;
-     coefs(i,j,k,CLAM) = parm.const_lambda;
+    coefs(i,j,k,CETA) = parm.const_visc_mu;
+    coefs(i,j,k,CXI)  = parm.const_visc_ki;
+    coefs(i,j,k,CLAM) = parm.const_lambda;
 }
 
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 cns_diff_x (int i, int j, int k,
                amrex::Array4<amrex::Real const> const& q,
@@ -87,8 +82,7 @@ cns_diff_x (int i, int j, int k,
 
 }
 
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 cns_diff_y (int i, int j, int k, amrex::Array4<amrex::Real const> const& q,
                amrex::Array4<amrex::Real const> const& coeffs,
@@ -131,8 +125,7 @@ cns_diff_y (int i, int j, int k, amrex::Array4<amrex::Real const> const& q,
 }
 
 #if (AMREX_SPACEDIM == 3)
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 cns_diff_z (int i, int j, int k,
                amrex::Array4<amrex::Real const> const& q,

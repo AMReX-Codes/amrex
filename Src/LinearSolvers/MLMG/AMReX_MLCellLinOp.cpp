@@ -422,7 +422,7 @@ MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
     if (Gpu::inLaunchRegion() && fine.isFusingCandidate()) {
         auto const& finema = fine.arrays();
         auto const& crsema = crse.const_arrays();
-        ParallelFor(fine, ncomp,
+        ParallelFor(fine, IntVect(0), ncomp,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
         {
             int ic = amrex::coarsen(i,ratio3.x);
@@ -819,7 +819,6 @@ MLCellLinOp::reflux (int crse_amrlev,
                 AMREX_D_TERM(Elixir elifx = flux[0].elixir();,
                              Elixir elify = flux[1].elixir();,
                              Elixir elifz = flux[2].elixir(););
-                Gpu::FuseSafeGuard fsg(false); // Turn off fusing in FFlux
                 FFlux(crse_amrlev, mfi, pflux, crse_sol[mfi], Location::FaceCentroid);
                 fluxreg.CrseAdd(mfi, cpflux, crse_dx, dt, RunOn::Gpu);
             }
@@ -841,7 +840,6 @@ MLCellLinOp::reflux (int crse_amrlev,
                 AMREX_D_TERM(Elixir elifx = flux[0].elixir();,
                              Elixir elify = flux[1].elixir();,
                              Elixir elifz = flux[2].elixir(););
-                Gpu::FuseSafeGuard fsg(false); // Turn off fusing in FFlux
                 FFlux(fine_amrlev, mfi, pflux, fine_sol[mfi], Location::FaceCentroid, face_only);
                 fluxreg.FineAdd(mfi, cpflux, fine_dx, dt, RunOn::Gpu);
             }
@@ -880,7 +878,6 @@ MLCellLinOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes
             AMREX_D_TERM(Elixir elifx = flux[0].elixir();,
                          Elixir elify = flux[1].elixir();,
                          Elixir elifz = flux[2].elixir(););
-            Gpu::FuseSafeGuard fsg(false); // Turn off fusing in FFlux
             FFlux(amrlev, mfi, pflux, sol[mfi], loc);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 const Box& nbx = mfi.nodaltilebox(idim);

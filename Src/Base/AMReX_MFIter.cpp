@@ -228,9 +228,6 @@ MFIter::~MFIter ()
 #ifdef AMREX_USE_GPU
     AMREX_GPU_ERROR_CHECK();
     Gpu::Device::resetStreamIndex();
-    if (!OpenMP::in_parallel() && Gpu::inFuseRegion()) {
-        Gpu::LaunchFusedKernels();
-    }
 #endif
 
     if (m_fa) {
@@ -338,11 +335,6 @@ MFIter::Initialize ()
 
 #ifdef AMREX_USE_GPU
         Gpu::Device::setStreamIndex((streams > 0) ? currentIndex%streams : -1);
-        if (!OpenMP::in_parallel()) {
-            if (index_map->size() >= Gpu::getFuseNumKernelsThreshold()) {
-                gpu_fsg = std::make_unique<Gpu::FuseSafeGuard>(true);
-            }
-        }
 #endif
 
         typ = fabArray.boxArray().ixType();

@@ -1344,22 +1344,20 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
 
     const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
     const auto      strttime = amrex::second();
-    const Geometry& geom     = Geom(0);
+    const Geometry& geom     = Geom(0);  // generates particles on level 0;
 
-    // This assumes level 0 since geom = Geom(0)
     const Real* dx  = geom.CellSize();
 
-    ParticleLocData pld;
     ParticleType p;
 
     // We'll generate the particles in parallel -- but no tiling of the grid here.
     for (MFIter mfi(*m_dummy_mf[0], false); mfi.isValid(); ++mfi) {
         Box grid = ParticleBoxArray(0)[mfi.index()];
+        auto ind = std::make_pair(mfi.index(), mfi.LocalTileIndex());
         RealBox grid_box (grid,dx,geom.ProbLo());
-
-        for (IntVect beg = grid.smallEnd(), end=grid.bigEnd(),
-                 cell = grid.smallEnd(); cell <= end; grid.next(cell)) {
-
+        ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt, amrex::PinnedArenaAllocator> ptile_tmp;
+        for (IntVect beg = grid.smallEnd(), end=grid.bigEnd(), cell = grid.smallEnd(); cell <= end; grid.next(cell))
+        {
             // the real struct data
             AMREX_D_TERM(p.pos(0) = static_cast<ParticleReal>(grid_box.lo(0) + (x_off + cell[0]-beg[0])*dx[0]);,
                          p.pos(1) = static_cast<ParticleReal>(grid_box.lo(1) + (y_off + cell[1]-beg[1])*dx[1]);,
@@ -1381,28 +1379,26 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
                 p.idata(i) = pdata.int_struct_data[i];
             }
 
-            // locate the particle
-            if (!Where(p, pld))
-            {
-                amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitOnePerCell(): invalid particle");
-            }
-            AMREX_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
-            std::pair<int, int> ind(pld.m_grid, pld.m_tile);
-
             // add the struct
-            m_particles[pld.m_lev][ind].push_back(p);
+            ptile_tmp.push_back(p);
 
             // add the real...
             for (int i = 0; i < NArrayReal; i++) {
-                m_particles[pld.m_lev][ind].push_back_real(i, static_cast<ParticleReal>(pdata.real_array_data[i]));
+                ptile_tmp.push_back_real(i, static_cast<ParticleReal>(pdata.real_array_data[i]));
             }
 
             // ... and int array data
             for (int i = 0; i < NArrayInt; i++) {
-                m_particles[pld.m_lev][ind].push_back_int(i, pdata.int_array_data[i]);
+                ptile_tmp.push_back_int(i, pdata.int_array_data[i]);
             }
         }
+
+        m_particles[0][ind].resize(ptile_tmp.numParticles());
+        amrex::copyParticles(m_particles[0][ind], ptile_tmp);
+        Gpu::Device::synchronize();
     }
+
+    Redistribute();
 
     if (m_verbose > 1) {
         auto stoptime = amrex::second() - strttime;

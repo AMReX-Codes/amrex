@@ -3,6 +3,7 @@
 
 #include <AMReX_FArrayBox.H>
 
+AMREX_GPU_DEVICE
 inline void init (amrex::Real x, amrex::Real y, amrex::Real z, amrex::Real R2,
                   amrex::Real& u, amrex::Real& v, amrex::Real& w,
                   amrex::Real& urhs, amrex::Real& vrhs, amrex::Real& wrhs,

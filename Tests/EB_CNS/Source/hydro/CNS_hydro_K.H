@@ -6,8 +6,7 @@
 #include <AMReX_FArrayBox.H>
 #include <cmath>
 
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 cns_ctoprim (int i, int j, int k,
              amrex::Array4<amrex::Real const> const& u,
@@ -43,8 +42,7 @@ cns_ctoprim (int i, int j, int k,
     q(i,j,k,QTEMP) = ei/parm.cv;
 }
 
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 cns_flux_to_dudt (int i, int j, int k, int n,
                   amrex::Array4<amrex::Real> const& dudt,
@@ -79,8 +77,7 @@ amrex::Real limiter (amrex::Real dlft, amrex::Real drgt, amrex::Real plm_theta) 
 
 }
 
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 cns_slope_x (int i, int j, int k,
              amrex::Array4<amrex::Real> const& dq,
@@ -129,8 +126,7 @@ cns_slope_x (int i, int j, int k,
     }
 }
 
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 cns_slope_y (int i, int j, int k,
              amrex::Array4<amrex::Real> const& dq,
@@ -180,8 +176,7 @@ cns_slope_y (int i, int j, int k,
 }
 
 #if (AMREX_SPACEDIM == 3)
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 cns_slope_z (int i, int j, int k,
              amrex::Array4<amrex::Real> const& dq,
@@ -231,8 +226,7 @@ cns_slope_z (int i, int j, int k,
 
 namespace {
 
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 riemann (const amrex::Real gamma, const amrex::Real smallp, const amrex::Real /*smallr*/,
          const amrex::Real rl, const amrex::Real ul, const amrex::Real pl,
@@ -383,8 +377,7 @@ riemann (const amrex::Real gamma, const amrex::Real smallp, const amrex::Real /*
 #endif
 }
 
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 compute_hyp_wallflux (const amrex::Real rho,
                       AMREX_D_DECL(const amrex::Real u, const amrex::Real v, const amrex::Real w),
@@ -420,8 +413,7 @@ compute_hyp_wallflux (const amrex::Real rho,
 }
 }
 
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 cns_riemann_x (int i, int j, int k,
                amrex::Array4<amrex::Real> const& fx,
@@ -461,8 +453,7 @@ cns_riemann_x (int i, int j, int k,
             AMREX_D_DECL(fx(i,j,k,UMX), fx(i,j,k,UMY), fx(i,j,k,UMZ)), fx(i,j,k,UEDEN));
 }
 
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 cns_riemann_y (int i, int j, int k,
                amrex::Array4<amrex::Real> const& fy,
@@ -504,8 +495,7 @@ cns_riemann_y (int i, int j, int k,
 }
 
 #if (AMREX_SPACEDIM == 3)
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 cns_riemann_z (int i, int j, int k,
                amrex::Array4<amrex::Real> const& fz,

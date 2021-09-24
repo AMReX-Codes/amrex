@@ -171,6 +171,13 @@ public:
         return norm0(mask,comp,nghost,local);
     }
 
+    Real norm0 (int comp, int ncomp, IntVect const& nghost, bool local = false,
+                bool ignore_covered = false) const;
+    Real norminf (int comp, int ncomp, IntVect const& nghost, bool local = false,
+                  bool ignore_covered = false) const {
+        return norm0(comp, ncomp, nghost, local, ignore_covered);
+    }
+
     /**
     * \brief Returns the maximum *absolute* values contained in
     * each component of "comps" of the MultiFab.  No ghost cells are used.
@@ -657,6 +664,11 @@ public:
     //! Sync up nodal data with owners overriding non-owners
     void OverrideSync (const Periodicity& period = Periodicity::NonPeriodic());
     void OverrideSync (const iMultiFab& msk, const Periodicity& period = Periodicity::NonPeriodic());
+
+    void OverrideSync_nowait (const Periodicity& period = Periodicity::NonPeriodic());
+    void OverrideSync_nowait (const iMultiFab& msk, const Periodicity& period = Periodicity::NonPeriodic());
+    void OverrideSync_finish ();
+
 
     static void Initialize ();
     static void Finalize ();

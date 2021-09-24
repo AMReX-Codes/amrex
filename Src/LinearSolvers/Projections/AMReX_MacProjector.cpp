@@ -312,6 +312,10 @@ void
 MacProjector::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
                          const Vector<MultiFab*>& a_sol, MLMG::Location a_loc) const
 {
+    int ilev = 0;
+    if (m_needs_level_bcs[ilev])
+        m_linop->setLevelBC(ilev, nullptr);
+
     m_linop->getFluxes(a_flux, a_sol, a_loc);
     if (m_poisson) {
         for (auto const& mfarr : a_flux) {
