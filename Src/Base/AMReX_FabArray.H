@@ -151,7 +151,6 @@ using TheFaArenaPointer = std::unique_ptr<char, TheFaArenaDeleter>;
 template <class FAB>
 struct FBData {
 
-    //! Data used in non-blocking FillBoundary
     const FabArrayBase::FB*  fb = nullptr;
     int                 scomp;
     int                 ncomp;
@@ -1128,8 +1127,10 @@ public:
 #endif
 
     std::unique_ptr<FBData<FAB>> fbd;
-
     std::unique_ptr<PCData<FAB>> pcd;
+
+    // Pointer to temporary fab used in non-blocking OverrideSync
+    std::unique_ptr< FabArray<FAB> > os_temp;
 };
 
 

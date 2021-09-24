@@ -665,6 +665,11 @@ public:
     void OverrideSync (const Periodicity& period = Periodicity::NonPeriodic());
     void OverrideSync (const iMultiFab& msk, const Periodicity& period = Periodicity::NonPeriodic());
 
+    void OverrideSync_nowait (const Periodicity& period = Periodicity::NonPeriodic());
+    void OverrideSync_nowait (const iMultiFab& msk, const Periodicity& period = Periodicity::NonPeriodic());
+    void OverrideSync_finish ();
+
+
     static void Initialize ();
     static void Finalize ();
 
