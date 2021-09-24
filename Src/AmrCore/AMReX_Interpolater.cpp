@@ -681,7 +681,6 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
     // Extract pointers to fab data
     Array4<Real>       const&   fnarr = fine.array();
     Array4<Real const> const& fnstarr = fine_state.const_array();
-    Array4<char>       const&  tagarr = redo_me.array();
 
     /*
      * Loop over coarse indices.
