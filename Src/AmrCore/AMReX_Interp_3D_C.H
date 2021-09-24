@@ -387,7 +387,7 @@ void ccprotect_check_redo (int ic, int jc, int kc,
                            const int n,
                            Box const& fine_bx,
                            IntVect const& ratio,
-                           Array4<char>    const& redo_me,
+                           bool& redo_me,
                            Array4<T>       const& fine,
                            Array4<T const> const& fine_state) noexcept
 {
@@ -411,9 +411,7 @@ void ccprotect_check_redo (int ic, int jc, int kc,
         }
     }
 
-    if (r) {
-        redo_me(ic,jc,kc,n) = 1;
-    }
+    redo_me = r;
 }
 
 template <typename T>

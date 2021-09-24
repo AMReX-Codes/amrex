@@ -665,16 +665,6 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
     Box cs_bx(crse_bx);
     cs_bx.grow(-1);
 
-    // Check coarse-to-fine ratios against rMAX
-#if (AMREX_SPACEDIM == 2)
-    const int rMAX = 32;
-#else
-    const int rMAX = 16;
-#endif
-    if ( amrex::max(AMREX_D_DECL(ratio[0], ratio[1], ratio[2])) > rMAX ) {
-        amrex::Abort("rMAX in CellConservativeProtected::protect");
-    }
-
 #if (AMREX_SPACEDIM == 2)
     /*
      * Get coarse and fine geometry data.
@@ -688,11 +678,6 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
     // Extract box from fine fab
     const Box& fnbx = fine.box();
 
-    // Create TagBox to hold marked cells for interpolation
-    BaseFab<char> redo_me(cs_bx, ncomp);
-    redo_me.setVal<RunOn::Device>(0);
-    Elixir redo_me_eli = redo_me.elixir();
-
     // Extract pointers to fab data
     Array4<Real>       const&   fnarr = fine.array();
     Array4<Real const> const& fnstarr = fine_state.const_array();
@@ -700,37 +685,58 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
 
     /*
      * Loop over coarse indices.
-     * Check if interpolation needs to be redone for derived components (n > 0)
-     */
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cs_bx, ncomp-2, ic, jc, kc, n,
-    {
-        ccprotect_check_redo(ic, jc, kc, n+1, fnbx, ratio, tagarr, fnarr, fnstarr);
-    }); // cs_bx
-
-    /*
-     * If all the fine values are non-negative after the original
-     * interpolated correction, then we do nothing here.
-     *
-     * If any of the fine values are negative after the original
-     * interpolated correction, then we do our best.
      */
 #if (AMREX_SPACEDIM == 2)
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cs_bx, ncomp-1, ic, jc, kc, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(runon, cs_bx, ic, jc, kc,
     {
-        if (tagarr(ic,jc,kc,n)) {
-            ccprotect_redo_2d(ic, jc, kc, n,
-                              fnbx, ratio,
-                              cs_geomdata, fn_geomdata,
-                              fnarr, fnstarr);
+        /*
+         * Check if interpolation needs to be redone for derived components (n > 0)
+         */
+        for (int n = 1; n < ncomp-1; ++n) {
+            bool redo_me = false;
+            ccprotect_check_redo(ic, jc, kc, n,
+                                 fnbx, ratio, redo_me,
+                                 fnarr, fnstarr);
+
+            /*
+             * If all the fine values are non-negative after the original
+             * interpolated correction, then we do nothing here.
+             *
+             * If any of the fine values are negative after the original
+             * interpolated correction, then we do our best.
+             */
+            if (redo_me) {
+                ccprotect_redo_2d(ic, jc, kc, n,
+                                  fnbx, ratio,
+                                  cs_geomdata, fn_geomdata,
+                                  fnarr, fnstarr);
+            }
         }
     }); // cs_bx
 #else
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cs_bx, ncomp-1, ic, jc, kc, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(runon, cs_bx, ic, jc, kc,
     {
-        if (tagarr(ic,jc,kc,n)) {
-            ccprotect_redo_3d(ic, jc, kc, n,
-                              fnbx, ratio,
-                              fnarr, fnstarr);
+        /*
+         * Check if interpolation needs to be redone for derived components (n > 0)
+         */
+        for (int n = 1; n < ncomp-1; ++n) {
+            bool redo_me = false;
+            ccprotect_check_redo(ic, jc, kc, n,
+                                 fnbx, ratio, redo_me,
+                                 fnarr, fnstarr);
+
+            /*
+             * If all the fine values are non-negative after the original
+             * interpolated correction, then we do nothing here.
+             *
+             * If any of the fine values are negative after the original
+             * interpolated correction, then we do our best.
+             */
+            if (redo_me) {
+                ccprotect_redo_3d(ic, jc, kc, n,
+                                  fnbx, ratio,
+                                  fnarr, fnstarr);
+            }
         }
     }); // cs_bx
 #endif
