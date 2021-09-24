@@ -215,7 +215,7 @@ check the :ref:`table <tab:cmakecudavar>` below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_COMPILATION_TIMER |  CSV table with time for each compilation phase | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_CUDA_DEBUG             |  Device debug information (optimizations: off)  | NO          | YES, NO         |
+   | AMReX_CUDA_DEBUG             |  Device debug information (optimizations: off)  | YES: Debug  | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_ERROR_CAPTURE_THIS|  Error if a CUDA lambda captures a class' this  | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
