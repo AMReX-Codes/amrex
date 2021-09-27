@@ -288,7 +288,7 @@ void ccprotect_2d (int ic, int jc, int /*kc*/, int nvar,
                     }
 
                     // Calculate sums
-                    crseTot += fvol * fine(i,j,n);
+                    crseTot += fvol * fine(i,j,0,n);
                     if (fine_state(i,j,0,n) <= 0.0) {
                         SumN += fvol * fine_state(i,j,0,n);
                     } else {
