@@ -1,8 +1,6 @@
 #ifndef AMREX_INTERP_C_H_
 #define AMREX_INTERP_C_H_
 #include <AMReX_Config.H>
-#include <AMReX_Array4.H>
-#include <AMReX_Geometry.H>
 
 #if (AMREX_SPACEDIM == 1)
 #include <AMReX_Interp_1D_C.H>
