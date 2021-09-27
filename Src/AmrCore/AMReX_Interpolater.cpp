@@ -688,63 +688,19 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
 #if (AMREX_SPACEDIM == 2)
     AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(runon, cs_bx, ic, jc, kc,
     {
-        /*
-         * Check if interpolation needs to be redone for derived components (n > 0)
-         */
-        for (int n = 1; n < ncomp-1; ++n) {
-            bool redo_me = false;
-            ccprotect_check_redo(ic, jc, kc, n,
-                                 fnbx, ratio, redo_me,
-                                 fnarr, fnstarr);
-
-            /*
-             * If all the fine values are non-negative after the original
-             * interpolated correction, then we do nothing here.
-             *
-             * If any of the fine values are negative after the original
-             * interpolated correction, then we do our best.
-             */
-            if (redo_me) {
-                ccprotect_redo_2d(ic, jc, kc, n,
-                                  fnbx, ratio,
-                                  cs_geomdata, fn_geomdata,
-                                  fnarr, fnstarr);
-            }
-        }
+        ccprotect_2d(ic, jc, kc, ncomp,
+                     fnbx, ratio,
+                     cs_geomdata, fn_geomdata,
+                     fnarr, fnstarr);
     }); // cs_bx
 #else
     AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(runon, cs_bx, ic, jc, kc,
     {
-        /*
-         * Check if interpolation needs to be redone for derived components (n > 0)
-         */
-        for (int n = 1; n < ncomp-1; ++n) {
-            bool redo_me = false;
-            ccprotect_check_redo(ic, jc, kc, n,
-                                 fnbx, ratio, redo_me,
-                                 fnarr, fnstarr);
-
-            /*
-             * If all the fine values are non-negative after the original
-             * interpolated correction, then we do nothing here.
-             *
-             * If any of the fine values are negative after the original
-             * interpolated correction, then we do our best.
-             */
-            if (redo_me) {
-                ccprotect_redo_3d(ic, jc, kc, n,
-                                  fnbx, ratio,
-                                  fnarr, fnstarr);
-            }
-        }
+        ccprotect_3d(ic, jc, kc, ncomp,
+                     fnbx, ratio,
+                     fnarr, fnstarr);
     }); // cs_bx
 #endif
-
-    // Set sync for density (n=0) to sum of spec sync (1:nvar)
-    AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(runon, cs_bx, ic, jc, kc,
-    {
-        ccprotect_set_sync(ic, jc, kc, fnbx, ratio, ncomp-1, fnarr);
-    });
 
 #endif /*(AMREX_SPACEDIM == 1)*/
 

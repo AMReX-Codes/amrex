@@ -383,13 +383,11 @@ face_linear_interp_z (int i, int j, int k, int n, Array4<T> const& fine,
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ccprotect_check_redo (int ic, int jc, int kc,
-                           const int n,
-                           Box const& fine_bx,
-                           IntVect const& ratio,
-                           bool& redo_me,
-                           Array4<T>       const& fine,
-                           Array4<T const> const& fine_state) noexcept
+void ccprotect_3d (int ic, int jc, int kc, int nvar,
+                   Box const& fine_bx,
+                   IntVect const& ratio,
+                   Array4<T>       const& fine,
+                   Array4<T const> const& fine_state) noexcept
 {
     // Calculate bounds for interpolation
     Dim3 fnbxlo = lbound(fine_bx);
@@ -400,326 +398,223 @@ void ccprotect_check_redo (int ic, int jc, int kc,
     int jhi = amrex::min(ratio[1]*jc+(ratio[1]-1), fnbxhi.y);
     int klo = amrex::max(ratio[2]*kc,              fnbxlo.z);
     int khi = amrex::min(ratio[2]*kc+(ratio[2]-1), fnbxhi.z);
-
-    // Perform logical or "any" reduction
-    bool r = false;
-    for         (int k = klo; k <= khi; ++k) {
-        for     (int j = jlo; j <= jhi; ++j) {
-            for (int i = ilo; i <= ihi; ++i) {
-                r = r || ((fine_state(i,j,k,n) + fine(i,j,k,n)) < 0.0 );
-            }
-        }
-    }
-
-    redo_me = r;
-}
-
-template <typename T>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ccprotect_calc_sums (int i, int j, int k, int n,
-                          Real& crseTot,
-                          Real& SumN,
-                          Real& SumP,
-                          Array4<T>       const& fine,
-                          Array4<T const> const& fine_state) noexcept
-{
-    crseTot += fine(i,j,k,n);
-    if (fine_state(i,j,k,n) <= 0.0) {
-        SumN += fine_state(i,j,k,n);
-    } else {
-        SumP += fine_state(i,j,k,n);
-    }
-}
-
-template <typename T>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ccprotect_case1 (int i, int j, int k, int n,
-                      const Real crseTot,
-                      const Real SumN,
-                      const Real SumP,
-                      const int numFineCells,
-                      Array4<T> const& fine,
-                      Array4<T const> const& fine_state) noexcept
-{
-    // Fill in negative values first.
-    if (fine_state(i,j,k,n) < 0.0) {
-        fine(i,j,k,n) = -fine_state(i,j,k,n);
-    }
-
-    // Then, add the remaining positive proportionally.
-    if (SumP > 0.0) {
-        if (fine_state(i,j,k,n) > 0.0) {
-            Real alpha = (crseTot - Math::abs(SumN)) / SumP;
-            fine(i,j,k,n) = alpha * fine_state(i,j,k,n);
-        }
-    } else { /* (SumP < 0) */
-        Real posVal = (crseTot - Math::abs(SumN)) / (Real)numFineCells;
-        fine(i,j,k,n) += posVal;
-    }
-}
-
-template <typename T>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ccprotect_case2 (int i, int j, int k, int n,
-                      const Real crseTot,
-                      const Real SumN,
-                      const Real /* SumP */,
-                      Array4<T> const& fine,
-                      Array4<T const> const& fine_state) noexcept
-{
-    Real alpha = crseTot / Math::abs(SumN);
-    if (fine_state(i,j,k,n) < 0.0) {
-        // Add correction to negative cells proportionally.
-        fine(i,j,k,n) = alpha * Math::abs(fine_state(i,j,k,n));
-    } else {
-        // Don't touch the positive states.
-        fine(i,j,k,n) = 0.0;
-    }
-}
-
-template <typename T>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ccprotect_case3 (int i, int j, int k, int n,
-                      const Real crseTot,
-                      const Real SumN,
-                      const Real SumP,
-                      const int numFineCells,
-                      Array4<T> const& fine,
-                      Array4<T const> const& fine_state) noexcept
-{
-    // We want to make them all as close to the same negative value.
-    Real negVal = (SumP + SumN + crseTot) / (Real)numFineCells;
-    fine(i,j,k,n) = negVal - fine_state(i,j,k,n);
-}
-
-template <typename T>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ccprotect_case4 (int i, int j, int k, int n,
-                      const Real crseTot,
-                      const Real SumN,
-                      const Real SumP,
-                      Array4<T> const& fine,
-                      Array4<T const> const& fine_state) noexcept
-{
-    if (fine_state(i,j,k,n) < 0.0) {
-        // Absorb the negative correction
-        fine(i,j,k,n) = -fine_state(i,j,k,n);
-    } else {
-        // Redistribute the rest to make negative cells positive
-        Real alpha = (crseTot + SumN) / SumP;
-        fine(i,j,k,n) = alpha * fine_state(i,j,k,n);
-    }
-}
-
-template <typename T>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ccprotect_case5 (int i, int j, int k, int n,
-                      const Real crseTot,
-                      const Real SumN,
-                      const Real SumP,
-                      Array4<T> const& fine,
-                      Array4<T const> const& fine_state) noexcept
-{
-    if (fine_state(i,j,k,n) > 0.0) {
-        // Don't touch the negatives
-        fine(i,j,k,n) = -fine_state(i,j,k,n);
-    } else {
-        // Take a constant percentage away from each positive cell
-        Real alpha = (crseTot + SumP) / SumN;
-        fine(i,j,k,n) = alpha * fine_state(i,j,k,n);
-    }
-}
-
-template <typename T>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ccprotect_redo_3d (int ic, int jc, int kc, int n,
-                        Box const& fine_bx,
-                        IntVect const& ratio,
-                        Array4<T>       const& fine,
-                        Array4<T const> const& fine_state) noexcept
-{
-    // Calculate bounds for interpolation
-    Dim3 fnbxlo = lbound(fine_bx);
-    Dim3 fnbxhi = ubound(fine_bx);
-    int ilo = amrex::max(ratio[0]*ic,              fnbxlo.x);
-    int ihi = amrex::min(ratio[0]*ic+(ratio[0]-1), fnbxhi.x);
-    int jlo = amrex::max(ratio[1]*jc,              fnbxlo.y);
-    int jhi = amrex::min(ratio[1]*jc+(ratio[1]-1), fnbxhi.y);
-    int klo = amrex::max(ratio[2]*kc,              fnbxlo.z);
-    int khi = amrex::min(ratio[2]*kc+(ratio[2]-1), fnbxhi.z);
-
-    // Calculate number of fine cells
-    int numFineCells = (ihi-ilo+1) * (jhi-jlo+1) * (khi-klo+1);
 
     /*
-     * First, calculate the following quantities:
-     *
-     * crseTot = volume-weighted sum of all interpolated values
-     *           of the correction, which is equivalent to
-     *           the total volume-weighted coarse correction
-     *
-     * SumN = volume-weighted sum of all negative values of fine_state
-     *
-     * SumP = volume-weighted sum of all positive values of fine_state
+     * Check if interpolation needs to be redone for derived components (n > 0)
      */
-    Real crseTot = 0.0;
-    Real SumN = 0.0;
-    Real SumP = 0.0;
-    for         (int k = klo; k <= khi; ++k) {
-        for     (int j = jlo; j <= jhi; ++j) {
-            for (int i = ilo; i <= ihi; ++i) {
-                ccprotect_calc_sums(i, j, k, n,
-                                    crseTot, SumN, SumP,
-                                    fine, fine_state);
-            }
-        }
-    }
+    for (int n = 1; n < nvar-1; ++n) {
 
-    if ( (crseTot > 0) && (crseTot > Math::abs(SumN)) ) {
-
-        /*
-         * Special case 1:
-         *
-         * Coarse correction > 0, and fine_state has some cells
-         * with negative values which will be filled before
-         * adding to the other cells.
-         *
-         * Use the correction to bring negative cells to zero,
-         * then distribute the remaining positive proportionally.
-         */
+        bool redo_me = false;
         for         (int k = klo; k <= khi; ++k) {
             for     (int j = jlo; j <= jhi; ++j) {
                 for (int i = ilo; i <= ihi; ++i) {
-                    ccprotect_case1(i, j, k, n,
-                                    crseTot, SumN, SumP,
-                                    numFineCells,
-                                    fine, fine_state);
+                    if ((fine_state(i,j,k,n) + fine(i,j,k,n)) < 0.0) {
+                        redo_me = true;
+                    }
                 }
             }
         }
 
-    } else if ( (crseTot > 0) && (crseTot < Math::abs(SumN)) ) {
-
         /*
-         * Special case 2:
+         * If all the fine values are non-negative after the original
+         * interpolated correction, then we do nothing here.
          *
-         * Coarse correction > 0, and correction can not make
-         * them all positive.
-         *
-         * Add correction only to the negative cells
-         * in proportion to their magnitude, and
-         * don't add any correction to the states already positive.
+         * If any of the fine values are negative after the original
+         * interpolated correction, then we do our best.
          */
-        for         (int k = klo; k <= khi; ++k) {
-            for     (int j = jlo; j <= jhi; ++j) {
-                for (int i = ilo; i <= ihi; ++i) {
-                    ccprotect_case2(i, j, k, n,
-                                    crseTot, SumN, SumP,
-                                    fine, fine_state);
+        if (redo_me) {
+
+            // Calculate number of fine cells
+            int numFineCells = (ihi-ilo+1) * (jhi-jlo+1) * (khi-klo+1);
+
+            /*
+             * First, calculate the following quantities:
+             *
+             * crseTot = volume-weighted sum of all interpolated values
+             *           of the correction, which is equivalent to
+             *           the total volume-weighted coarse correction
+             *
+             * SumN = volume-weighted sum of all negative values of fine_state
+             *
+             * SumP = volume-weighted sum of all positive values of fine_state
+             */
+            Real crseTot = 0.0;
+            Real SumN = 0.0;
+            Real SumP = 0.0;
+            for         (int k = klo; k <= khi; ++k) {
+                for     (int j = jlo; j <= jhi; ++j) {
+                    for (int i = ilo; i <= ihi; ++i) {
+                        crseTot += fine(i,j,k,n);
+                        if (fine_state(i,j,k,n) <= 0.0) {
+                            SumN += fine_state(i,j,k,n);
+                        } else {
+                            SumP += fine_state(i,j,k,n);
+                        }
+                    }
                 }
             }
-        }
 
-    } else if ( (crseTot < 0) && (Math::abs(crseTot) > SumP) ) {
+            if ( (crseTot > 0) && (crseTot > Math::abs(SumN)) ) {
 
-        /*
-         * Special case 3:
-         *
-         * Coarse correction < 0, and fine_state DOES NOT have
-         * enough positive states to absorb it.
-         *
-         * Here we distribute the remaining negative amount
-         * in such a way as to make them all as close to the
-         * same negative value as possible.
-         */
-        for         (int k = klo; k <= khi; ++k) {
-            for     (int j = jlo; j <= jhi; ++j) {
-                for (int i = ilo; i <= ihi; ++i) {
-                    ccprotect_case3(i, j, k, n,
-                                    crseTot, SumN, SumP,
-                                    numFineCells,
-                                    fine, fine_state);
+                /*
+                 * Special case 1:
+                 *
+                 * Coarse correction > 0, and fine_state has some cells
+                 * with negative values which will be filled before
+                 * adding to the other cells.
+                 *
+                 * Use the correction to bring negative cells to zero,
+                 * then distribute the remaining positive proportionally.
+                 */
+                for         (int k = klo; k <= khi; ++k) {
+                    for     (int j = jlo; j <= jhi; ++j) {
+                        for (int i = ilo; i <= ihi; ++i) {
+
+                            // Fill in negative values first.
+                            if (fine_state(i,j,k,n) < 0.0) {
+                                fine(i,j,k,n) = -fine_state(i,j,k,n);
+                            }
+
+                            // Then, add the remaining positive proportionally.
+                            if (SumP > 0.0) {
+                                if (fine_state(i,j,k,n) > 0.0) {
+                                    Real alpha = (crseTot - Math::abs(SumN)) / SumP;
+                                    fine(i,j,k,n) = alpha * fine_state(i,j,k,n);
+                                }
+                            } else { /* (SumP < 0) */
+                                Real posVal = (crseTot - Math::abs(SumN)) / (Real)numFineCells;
+                                fine(i,j,k,n) += posVal;
+                            }
+
+                        }
+                    }
                 }
-            }
-        }
 
-    } else if ( (crseTot < 0) && (Math::abs(crseTot) < SumP) &&
-                ((SumP+SumN+crseTot) > 0.0) )  {
+            } else if ( (crseTot > 0) && (crseTot < Math::abs(SumN)) ) {
 
-        /*
-         * Special case 4:
-         *
-         * Coarse correction < 0, and fine_state has enough
-         * positive states to absorb all the negative
-         * correction *and* to redistribute to make
-         * negative cells positive.
-         */
-        for         (int k = klo; k <= khi; ++k) {
-            for     (int j = jlo; j <= jhi; ++j) {
-                for (int i = ilo; i <= ihi; ++i) {
-                    ccprotect_case4(i, j, k, n,
-                                    crseTot, SumN, SumP,
-                                    fine, fine_state);
+                /*
+                 * Special case 2:
+                 *
+                 * Coarse correction > 0, and correction can not make
+                 * them all positive.
+                 *
+                 * Add correction only to the negative cells
+                 * in proportion to their magnitude, and
+                 * don't add any correction to the states already positive.
+                 */
+                for         (int k = klo; k <= khi; ++k) {
+                    for     (int j = jlo; j <= jhi; ++j) {
+                        for (int i = ilo; i <= ihi; ++i) {
+                            Real alpha = crseTot / Math::abs(SumN);
+                            if (fine_state(i,j,k,n) < 0.0) {
+                                // Add correction to negative cells proportionally.
+                                fine(i,j,k,n) = alpha * Math::abs(fine_state(i,j,k,n));
+                            } else {
+                                // Don't touch the positive states.
+                                fine(i,j,k,n) = 0.0;
+                            }
+
+                        }
+                    }
                 }
-            }
-        }
 
-    } else if ( (crseTot < 0) && (Math::abs(crseTot) < SumP) &&
-                ((SumP+SumN+crseTot) < 0.0) )  {
-        /*
-         * Special case 5:
-         *
-         * Coarse correction < 0, and fine_state has enough
-         * positive states to absorb all the negative
-         * correction, but not enough to fix the states
-         * already negative.
-         *
-         * Here we take a constant percentage away from each
-         * positive cell and don't touch the negatives.
-         */
-        for         (int k = klo; k <= khi; ++k) {
-            for     (int j = jlo; j <= jhi; ++j) {
-                for (int i = ilo; i <= ihi; ++i) {
-                    ccprotect_case5(i, j, k, n,
-                                    crseTot, SumN, SumP,
-                                    fine, fine_state);
+            } else if ( (crseTot < 0) && (Math::abs(crseTot) > SumP) ) {
+
+                /*
+                 * Special case 3:
+                 *
+                 * Coarse correction < 0, and fine_state DOES NOT have
+                 * enough positive states to absorb it.
+                 *
+                 * Here we distribute the remaining negative amount
+                 * in such a way as to make them all as close to the
+                 * same negative value as possible.
+                 */
+                for         (int k = klo; k <= khi; ++k) {
+                    for     (int j = jlo; j <= jhi; ++j) {
+                        for (int i = ilo; i <= ihi; ++i) {
+
+                            // We want to make them all as close to the same negative value.
+                            Real negVal = (SumP + SumN + crseTot) / (Real)numFineCells;
+                            fine(i,j,k,n) = negVal - fine_state(i,j,k,n);
+                        }
+                    }
                 }
-            }
-        }
 
-    }
+            } else if ( (crseTot < 0) && (Math::abs(crseTot) < SumP) &&
+                        ((SumP+SumN+crseTot) > 0.0) )  {
 
-}
+                /*
+                 * Special case 4:
+                 *
+                 * Coarse correction < 0, and fine_state has enough
+                 * positive states to absorb all the negative
+                 * correction *and* to redistribute to make
+                 * negative cells positive.
+                 */
+                for         (int k = klo; k <= khi; ++k) {
+                    for     (int j = jlo; j <= jhi; ++j) {
+                        for (int i = ilo; i <= ihi; ++i) {
 
+                            if (fine_state(i,j,k,n) < 0.0) {
+                                // Absorb the negative correction
+                                fine(i,j,k,n) = -fine_state(i,j,k,n);
+                            } else {
+                                // Redistribute the rest to make negative cells positive
+                                Real alpha = (crseTot + SumN) / SumP;
+                                fine(i,j,k,n) = alpha * fine_state(i,j,k,n);
+                            }
 
-template <typename T>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ccprotect_set_sync (int ic, int jc, int kc,
-                         Box const& fine_bx,
-                         IntVect const& ratio,
-                         const int nvar,
-                         Array4<T> const& fine) noexcept
-{
-    // Calculate bounds for interpolation
-    Dim3 fnbxlo = lbound(fine_bx);
-    Dim3 fnbxhi = ubound(fine_bx);
-    int ilo = amrex::max(ratio[0]*ic,              fnbxlo.x);
-    int ihi = amrex::min(ratio[0]*ic+(ratio[0]-1), fnbxhi.x);
-    int jlo = amrex::max(ratio[1]*jc,              fnbxlo.y);
-    int jhi = amrex::min(ratio[1]*jc+(ratio[1]-1), fnbxhi.y);
-    int klo = amrex::max(ratio[2]*kc,              fnbxlo.z);
-    int khi = amrex::min(ratio[2]*kc+(ratio[2]-1), fnbxhi.z);
+                        }
+                    }
+                }
 
+            } else if ( (crseTot < 0) && (Math::abs(crseTot) < SumP) &&
+                        ((SumP+SumN+crseTot) < 0.0) )  {
+                /*
+                 * Special case 5:
+                 *
+                 * Coarse correction < 0, and fine_state has enough
+                 * positive states to absorb all the negative
+                 * correction, but not enough to fix the states
+                 * already negative.
+                 *
+                 * Here we take a constant percentage away from each
+                 * positive cell and don't touch the negatives.
+                 */
+                for         (int k = klo; k <= khi; ++k) {
+                    for     (int j = jlo; j <= jhi; ++j) {
+                        for (int i = ilo; i <= ihi; ++i) {
+
+                            if (fine_state(i,j,k,n) > 0.0) {
+                                // Don't touch the negatives
+                                fine(i,j,k,n) = -fine_state(i,j,k,n);
+                            } else {
+                                // Take a constant percentage away from each positive cell
+                                Real alpha = (crseTot + SumP) / SumN;
+                                fine(i,j,k,n) = alpha * fine_state(i,j,k,n);
+                            }
+
+                        }
+                    }
+                }
+
+            } // special cases
+        } // redo_me
+    } // n
+
+    // Set sync for density (n=0) to sum of spec sync (1:nvar)
     for         (int k = klo; k <= khi; ++k) {
         for     (int j = jlo; j <= jhi; ++j) {
             for (int i = ilo; i <= ihi; ++i) {
                 fine(i,j,k,0) = 0.0;
-                for (int n = 1; n < nvar; ++n) {
+                for (int n = 1; n < nvar-1; ++n) {
                     fine(i,j,k,0) += fine(i,j,k,n);
                 }
             }
         }
     }
+
 }
 
 }  // namespace amrex
