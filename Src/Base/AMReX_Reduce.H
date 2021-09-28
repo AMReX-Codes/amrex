@@ -501,7 +501,7 @@ public:
             Dim1 blockIdx {gh.blockIdx()};
             Dim1 threadIdx{gh.threadIdx()};
             Dim1 blockDim {gh.blockDim()};
-            Dim1 gridDim  {gh.blockDim()};
+            Dim1 gridDim  {gh.gridDim()};
 #else
         amrex::launch(nblocks_ec, AMREX_GPU_MAX_THREADS, 0, stream,
         [=] AMREX_GPU_DEVICE () noexcept
@@ -559,7 +559,7 @@ public:
             Dim1 blockIdx {gh.blockIdx()};
             Dim1 threadIdx{gh.threadIdx()};
             Dim1 blockDim {gh.blockDim()};
-            Dim1 gridDim  {gh.blockDim()};
+            Dim1 gridDim  {gh.gridDim()};
 #else
         amrex::launch(nblocks_ec, AMREX_GPU_MAX_THREADS, 0, stream,
         [=] AMREX_GPU_DEVICE () noexcept
@@ -615,7 +615,7 @@ public:
             Dim1 blockIdx {gh.blockIdx()};
             Dim1 threadIdx{gh.threadIdx()};
             Dim1 blockDim {gh.blockDim()};
-            Dim1 gridDim  {gh.blockDim()};
+            Dim1 gridDim  {gh.gridDim()};
 #else
         amrex::launch(nblocks_ec, AMREX_GPU_MAX_THREADS, 0, stream,
         [=] AMREX_GPU_DEVICE () noexcept
