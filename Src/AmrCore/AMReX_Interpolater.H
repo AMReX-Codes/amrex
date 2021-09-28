@@ -520,7 +520,6 @@ public:
 };
 
 
-#ifndef BL_NO_FORT
 /**
 * \brief Conservative quartic interpolation on cell averaged data.
 *
@@ -586,7 +585,6 @@ public:
                          int              actual_state,
                          RunOn            gpu_or_cpu) override;
 };
-#endif
 
 /**
 * \brief Divergence-free interpolation on face centered data.

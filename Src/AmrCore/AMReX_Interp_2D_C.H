@@ -5,6 +5,7 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_BCRec.H>
 #include <AMReX_Vector.H>
+#include <AMReX_Array.H>
 #include <AMReX_Geometry.H>
 #include <cmath>
 
@@ -449,6 +450,61 @@ void ccprotect_2d (int ic, int jc, int /*kc*/, int nvar,
     }
 
 }
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ccquartic_interp (int nvar,
+                       Box const& fine_bx,
+                       Box const& fine_bx2,
+                       Box const& crse_bx,
+                       Box const& crse_bx2,
+                       IntVect const& ratio,
+                       Array4<T>       const& fine,
+                       Array4<T const> const& fine_state) noexcept
+{
+    const Array1D<Real, -2, 2> cL = { -0.01171875,  0.0859375, 0.5, -0.0859375, 0.01171875 };
+
+    IntVect fblo  = fine_bx.lbound();
+    IntVect fbhi  = fine_bx.ubound();
+    IntVect fb2lo = fine_bx2.lbound();
+    IntVect fb2hi = fine_bx2.ubound();
+    IntVect cblo  = crse_bx.lbound();
+    IntVect cbhi  = crse_bx.ubound();
+    IntVect cb2lo = crse_bx2.lbound();
+    IntVect cb2hi = crse_bx2.ubound();
+
+    Array1D<Real, fb2lo.x, fb2hi.x> ftmp;
+    Array2D<Real, cblo.x, cbhi.x, 0, ratio[1]-1> ctmp;
+
+    for (int n = 0; n < nvar; ++n) {
+        for     (int j = cb2lo.y; j <= cb2hi.y; ++j) {
+            for (int i = cblo.x;  i <= cbhi.x;  ++i) {
+                ctmp(i,0) = 2.0 * ( cL(-2)*crse(i,j-2,0,n)
+                                  + cL(-1)*crse(i,j-1,0,n)
+                                  + cL( 0)*crse(i,j,  0,n)
+                                  + cL( 1)*crse(i,j+1,0,n)
+                                  + cL( 2)*crse(i,j+2,0,n) );
+                ctmp(i,1) = 2.0 * crse(i,j,0,n) - ctmp(i,0);
+            } // i
+            for (int iry = 0; iry <= 1; ++iry) {
+                int jj = 2*j + iry;
+                if (jj >= fblo.y && jj <= fbhi.y) {
+                    for (int i = cb2lo.x; i <= cb2lo.x; ++i) {
+                        int ii = 2*i;
+                        ftmp(ii  ) = 2.0 * ( cL(-2)*ctmp(i-2,iry)
+                                           + cL(-1)*ctmp(i-1,iry)
+                                           + cL( 0)*ctmp(i  ,iry)
+                                           + cL( 1)*ctmp(i+1,iry)
+                                           + cL( 2)*ctmp(i+2,iry) );
+                        ftmp(ii+1) = 2.0 * ctmp(i,iry) - ftmp(ii);
+                    } // i
+                    for (int ii = fblo.x; ii <= fbhi.x; ++ii) {
+                        fine(ii,jj,0,n) = ftmp(ii);
+                    } // ii
+                } // jj
+            } // iry
+        } // j
+    } // n
 
 }  // namespace amrex
 
