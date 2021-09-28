@@ -765,7 +765,7 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
     {
         ccquartic_interp(i, j, k, n,
                          ratio,
-                         crsearr, finearr );
+                         crsearr, finearr);
     });
 }
 

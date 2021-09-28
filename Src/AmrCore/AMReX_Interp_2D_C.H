@@ -486,6 +486,8 @@ void ccquartic_interp (int i, int j, int /*k*/, int n,
 
     fine(i,j,0,n) = ftmp(irx);
 
+}
+
 }  // namespace amrex
 
 #endif
