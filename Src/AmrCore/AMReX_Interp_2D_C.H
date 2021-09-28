@@ -482,7 +482,7 @@ void ccquartic_interp (int i, int j, int /*k*/, int n,
                     + cL( 0)*ctmp( 0,jry)
                     + cL( 1)*ctmp( 1,jry)
                     + cL( 2)*ctmp( 2,jry) );
-    ftmp(1) = 2.0 * ctmp(ic,jry) - ftmp(2*ic);
+    ftmp(1) = 2.0 * ctmp(0,jry) - ftmp(0);
 
     fine(i,j,0,n) = ftmp(irx);
 
