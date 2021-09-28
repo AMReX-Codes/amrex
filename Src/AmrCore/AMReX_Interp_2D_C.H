@@ -454,10 +454,13 @@ void ccprotect_2d (int ic, int jc, int /*kc*/, int nvar,
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ccquartic_interp (int i, int j, int /*k*/, int n,
-                       IntVect const& ratio,
+                       IntVect const& /* ratio */,
                        Array4<T const> const& crse,
                        Array4<T>       const& fine) noexcept
 {
+    // Note: there are asserts in CellConservativeQuartic::interp()
+    //       to check whether ratio is all equal to 2.
+
     const Array1D<Real, -2, 2> cL = { -0.01171875,  0.0859375, 0.5, -0.0859375, 0.01171875 };
 
     int ic = amrex::coarsen(i,2);
