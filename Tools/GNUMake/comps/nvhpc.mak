@@ -46,16 +46,7 @@ endif
 ifeq ($(USE_ACC),TRUE)
   GENERIC_NVHPC_FLAGS += -acc=gpu -Minfo=accel -mcmodel=medium
   ifneq ($(CUDA_ARCH),)
-    # We use 10.1 because nvcc defaults to 10.1 if it can't detect a GPU
-    # driver. And in Cori GPU interactive jobs, nvcc can't see the GPU driver
-    # unless it is executed within an `srun`. Most people do not execute `srun
-    # make`, so nvcc defaults to 10.1. But HPC SDK defaults to CUDA 11, so we
-    # get link errors between nvcc and the HPC SDK if we don't do something
-    # about this. The easiest fix is to simply force HPC SDK to use CUDA 10.1
-    # to match the blind nvcc.
-    GENERIC_NVHPC_FLAGS += -acc=gpu -gpu=cc$(CUDA_ARCH),cuda10.1
-  else
-    GENERIC_NVHPC_FLAGS += -acc=gpu
+    GENERIC_NVHPC_FLAGS += -gpu=cc$(CUDA_ARCH)
   endif
 endif
 
@@ -179,8 +170,8 @@ endif
 
 ifeq ($(USE_CUDA),TRUE)
 
-  F90FLAGS += -gpu=cc$(CUDA_ARCH),fastmath,cuda10.1
-  FFLAGS   += -gpu=cc$(CUDA_ARCH),fastmath,cuda10.1
+  F90FLAGS += -gpu=cc$(CUDA_ARCH),fastmath
+  FFLAGS   += -gpu=cc$(CUDA_ARCH),fastmath
 
   ifneq ($(DEBUG),TRUE)
     F90FLAGS += -Mcuda=lineinfo
