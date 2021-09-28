@@ -455,8 +455,8 @@ template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ccquartic_interp (int i, int j, int /*k*/, int n,
                        IntVect const& ratio,
-                       Array4<T>       const& fine,
-                       Array4<T const> const& fine_state) noexcept
+                       Array4<T const> const& crse,
+                       Array4<T>       const& fine) noexcept
 {
     const Array1D<Real, -2, 2> cL = { -0.01171875,  0.0859375, 0.5, -0.0859375, 0.01171875 };
 
@@ -479,7 +479,7 @@ void ccquartic_interp (int i, int j, int /*k*/, int n,
 
     ftmp(0) = 2.0 * ( cL(-2)*ctmp(-2,jry)
                     + cL(-1)*ctmp(-1,jry)
-                    + cL( 0)*ctmp(  ,jry)
+                    + cL( 0)*ctmp( 0,jry)
                     + cL( 1)*ctmp( 1,jry)
                     + cL( 2)*ctmp( 2,jry) );
     ftmp(1) = 2.0 * ctmp(ic,jry) - ftmp(2*ic);
