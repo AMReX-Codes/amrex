@@ -743,7 +743,6 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
 {
     BL_PROFILE("CellConservativeQuartic::interp()");
     BL_ASSERT(bcr.size() >= ncomp);
-    amrex::ignore_unused(bcr);
     BL_ASSERT(ratio[0] == 2);
 #if (AMREX_SPACEDIM >= 2)
     BL_ASSERT(ratio[0] == ratio[1]);
@@ -751,6 +750,7 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
 #if (AMREX_SPACEDIM == 3)
     BL_ASSERT(ratio[1] == ratio[2]);
 #endif
+    amrex::ignore_unused(bcr,ratio);
 
     //
     // Make box which is intersection of fine_region and domain of fine.
