@@ -99,7 +99,7 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON                  \
             -DAMReX_ENABLE_TESTS=ON                      \
             -DAMReX_PARTICLES=ON                         \
-            -DAMReX_FORTRAN=ON                           \
+            -DAMReX_FORTRAN=OFF                          \
             -DAMReX_GPU_BACKEND=CUDA                     \
             -DCMAKE_C_COMPILER=$(which nvc)              \
             -DCMAKE_CXX_COMPILER=$(which nvc++)          \
