@@ -124,12 +124,12 @@ void ccquartic_interp (int i, int /*j*/, int /*k*/, int n,
 
     Array1D<Real, 0, 1> ftmp;
 
-    ftmp(0) = 2.0 * ( cL(-2)*crse(ic-2,0,0,n)
-                    + cL(-1)*crse(ic-1,0,0,n)
-                    + cL( 0)*crse(ic  ,0,0,n)
-                    + cL( 1)*crse(ic+1,0,0,n)
-                    + cL( 2)*crse(ic+2,0,0,n) );
-    ftmp(1) = 2.0 * crse(ic,0,0,n) - ftmp(0);
+    ftmp(0) = (T)2.0 * ( cL(-2)*crse(ic-2,0,0,n)
+                       + cL(-1)*crse(ic-1,0,0,n)
+                       + cL( 0)*crse(ic  ,0,0,n)
+                       + cL( 1)*crse(ic+1,0,0,n)
+                       + cL( 2)*crse(ic+2,0,0,n) );
+    ftmp(1) = (T)2.0 * crse(ic,0,0,n) - ftmp(0);
 
     fine(i,0,0,n) = ftmp(irx);
 

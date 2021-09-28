@@ -472,20 +472,20 @@ void ccquartic_interp (int i, int j, int /*k*/, int n,
     Array2D<Real, -2, 2, 0, 1> ctmp;
 
     for (int ii = -2; ii <= 2; ++ii) {
-        ctmp(ii,0) = 2.0 * ( cL(-2)*crse(ic+ii,jc-2,0,n)
-                           + cL(-1)*crse(ic+ii,jc-1,0,n)
-                           + cL( 0)*crse(ic+ii,jc,  0,n)
-                           + cL( 1)*crse(ic+ii,jc+1,0,n)
-                           + cL( 2)*crse(ic+ii,jc+2,0,n) );
-        ctmp(ii,1) = 2.0 * crse(ic+ii,jc,0,n) - ctmp(ii,0);
+        ctmp(ii,0) = (T)2.0 * ( cL(-2)*crse(ic+ii,jc-2,0,n)
+                              + cL(-1)*crse(ic+ii,jc-1,0,n)
+                              + cL( 0)*crse(ic+ii,jc,  0,n)
+                              + cL( 1)*crse(ic+ii,jc+1,0,n)
+                              + cL( 2)*crse(ic+ii,jc+2,0,n) );
+        ctmp(ii,1) = (T)2.0 * crse(ic+ii,jc,0,n) - ctmp(ii,0);
     } // ii
 
-    ftmp(0) = 2.0 * ( cL(-2)*ctmp(-2,jry)
-                    + cL(-1)*ctmp(-1,jry)
-                    + cL( 0)*ctmp( 0,jry)
-                    + cL( 1)*ctmp( 1,jry)
-                    + cL( 2)*ctmp( 2,jry) );
-    ftmp(1) = 2.0 * ctmp(0,jry) - ftmp(0);
+    ftmp(0) = (T)2.0 * ( cL(-2)*ctmp(-2,jry)
+                       + cL(-1)*ctmp(-1,jry)
+                       + cL( 0)*ctmp( 0,jry)
+                       + cL( 1)*ctmp( 1,jry)
+                       + cL( 2)*ctmp( 2,jry) );
+    ftmp(1) = (T)2.0 * ctmp(0,jry) - ftmp(0);
 
     fine(i,j,0,n) = ftmp(irx);
 

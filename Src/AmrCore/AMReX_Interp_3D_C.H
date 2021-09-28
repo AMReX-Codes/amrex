@@ -642,30 +642,30 @@ void ccquartic_interp (int i, int j, int k, int n,
 
     for     (int jj = -2; jj <= 2; ++jj) {
         for (int ii = -2; ii <= 2; ++ii) {
-            ctmp2(ii,jj,0) = 2.0 * ( cL(-2)*crse(ic+ii,jc+jj,kc-2,n)
-                                   + cL(-1)*crse(ic+ii,jc+jj,kc-1,n)
-                                   + cL( 0)*crse(ic+ii,jc+jj,kc  ,n)
-                                   + cL( 1)*crse(ic+ii,jc+jj,kc+1,n)
-                                   + cL( 2)*crse(ic+ii,jc+jj,kc+2,n) );
-            ctmp2(ii,jj,1) = 2.0 * crse(ic+ii,jc+jj,kc,n) - ctmp2(ii,jj,0);
+            ctmp2(ii,jj,0) = (T)2.0 * ( cL(-2)*crse(ic+ii,jc+jj,kc-2,n)
+                                      + cL(-1)*crse(ic+ii,jc+jj,kc-1,n)
+                                      + cL( 0)*crse(ic+ii,jc+jj,kc  ,n)
+                                      + cL( 1)*crse(ic+ii,jc+jj,kc+1,n)
+                                      + cL( 2)*crse(ic+ii,jc+jj,kc+2,n) );
+            ctmp2(ii,jj,1) = (T)2.0 * crse(ic+ii,jc+jj,kc,n) - ctmp2(ii,jj,0);
         } // ii
     } // jj
 
     for (int ii = -2; ii <= 2; ++ii) {
-        ctmp(ii,0) = 2.0 * ( cL(-2)*ctmp2(ii,-2,krz)
-                           + cL(-1)*ctmp2(ii,-1,krz)
-                           + cL( 0)*ctmp2(ii, 0,krz)
-                           + cL( 1)*ctmp2(ii, 1,krz)
-                           + cL( 2)*ctmp2(ii, 2,krz) );
-        ctmp(ii,1) = 2.0 * ctmp2(ii, 0,krz) - ctmp(ii,0);
+        ctmp(ii,0) = (T)2.0 * ( cL(-2)*ctmp2(ii,-2,krz)
+                              + cL(-1)*ctmp2(ii,-1,krz)
+                              + cL( 0)*ctmp2(ii, 0,krz)
+                              + cL( 1)*ctmp2(ii, 1,krz)
+                              + cL( 2)*ctmp2(ii, 2,krz) );
+        ctmp(ii,1) = (T)2.0 * ctmp2(ii, 0,krz) - ctmp(ii,0);
     } // ii
 
-    ftmp(0) = 2.0 * ( cL(-2)*ctmp(-2,jry)
-                    + cL(-1)*ctmp(-1,jry)
-                    + cL( 0)*ctmp( 0,jry)
-                    + cL( 1)*ctmp( 1,jry)
-                    + cL( 2)*ctmp( 2,jry) );
-    ftmp(1) = 2.0 * ctmp(0,jry) - ftmp(0);
+    ftmp(0) = (T)2.0 * ( cL(-2)*ctmp(-2,jry)
+                       + cL(-1)*ctmp(-1,jry)
+                       + cL( 0)*ctmp( 0,jry)
+                       + cL( 1)*ctmp( 1,jry)
+                       + cL( 2)*ctmp( 2,jry) );
+    ftmp(1) = (T)2.0 * ctmp(0,jry) - ftmp(0);
 
     fine(i,j,k,n) = ftmp(irx);
 
