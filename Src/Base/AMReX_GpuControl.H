@@ -87,8 +87,8 @@ namespace Gpu {
     /**
      * Enable/disable GPU kernel launches.
      *
-     * \note This will only switch from GPU to CPU for kernel launch
-     * macros. Functions like `amrex::ParallelFor` will be unaffected.
+     * \note This will only switch from GPU to CPU for kernels launched
+     * with macros. Functions like `amrex::ParallelFor` will be unaffected.
      * Therefore it should not be used for comparing GPU to non-GPU performance
      * or behavior.
      *
