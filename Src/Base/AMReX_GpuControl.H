@@ -87,9 +87,10 @@ namespace Gpu {
     /**
      * Enable/disable GPU kernel launches.
      *
-     * \note Much of the original GPU execution patterns remain intact with this
-     * approach. Therefore it should not be used for comparing
-     * GPU to non-GPU performance.
+     * \note This will only switch from GPU to CPU for kernel launch
+     * macros. Functions like `amrex::ParallelFor` will be unaffected.
+     * Therefore it should not be used for comparing GPU to non-GPU performance
+     * or behavior.
      *
      * \code
      *  Gpu::setLaunchRegion(0);
