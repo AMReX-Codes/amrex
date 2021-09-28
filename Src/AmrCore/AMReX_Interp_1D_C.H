@@ -108,11 +108,7 @@ face_linear_interp_x (int i, int /*j*/, int /*k*/, int n, Array4<T> const& fine,
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ccquartic_interp (int nvar,
-                       Box const& fine_bx,
-                       Box const& fine_bx2,
-                       Box const& /* crse_bx */,
-                       Box const& crse_bx2,
+void ccquartic_interp (int i, int /*j*/, int /*k*/, int n,
                        IntVect const& ratio,
                        Array4<T const> const& crse,
                        Array4<T>       const& fine ) noexcept
@@ -120,30 +116,20 @@ void ccquartic_interp (int nvar,
 {
     const Array1D<Real, -2, 2> cL = { -0.01171875,  0.0859375, 0.5, -0.0859375, 0.01171875 };
 
-    IntVect fblo  = fine_bx.lbound();
-    IntVect fbhi  = fine_bx.ubound();
-    IntVect fb2lo = fine_bx2.lbound();
-    IntVect fb2hi = fine_bx2.ubound();
-    // IntVect cblo  = crse_bx.lbound();
-    // IntVect cbhi  = crse_bx.ubound();
-    IntVect cb2lo = crse_bx2.lbound();
-    IntVect cb2hi = crse_bx2.ubound();
+    int ic = amrex::coarsen(i,2);
+    int irx = std::abs(i % 2);
 
-    Array1D<Real, fb2lo.x, fb2hi.x> ftmp;
+    Array1D<Real, 0, 1> ftmp;
 
-    for (int n = 0; n < nvar; ++n) {
-        for (int i = cb2lo.x, i <= cb2hi.x; ++i) {
-            int ii = 2*i;
-            ftmp(ii  ) = 2.0 * ( cL(-2)*crse(i-2,0,0,n)
-                               + cL(-1)*crse(i-1,0,0,n)
-                               + cL( 0)*crse(i  ,0,0,n)
-                               + cL( 1)*crse(i+1,0,0,n)
-                               + cL( 2)*crse(i+2,0,0,n) );
-            ftmp(ii+1) = 2.0 * crse(i,0,0,n) - ftmp(ii);
-        } // i
-        for (int ii = fblo.x; ii <= fbhi.x; ++ii) {
-            fine(ii,0,0,n) = ftmp(ii);
-        } // ii
+    ftmp(0) = 2.0 * ( cL(-2)*crse(ic-2,0,0,n)
+                    + cL(-1)*crse(ic-1,0,0,n)
+                    + cL( 0)*crse(ic  ,0,0,n)
+                    + cL( 1)*crse(ic+1,0,0,n)
+                    + cL( 2)*crse(ic+2,0,0,n) );
+    ftmp(1) = 2.0 * crse(ic,0,0,n) - ftmp(0);
+
+    fine(i,0,0,n) = ftmp(irx);
+
     } // n
 }
 

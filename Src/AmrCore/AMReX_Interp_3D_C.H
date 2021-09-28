@@ -619,76 +619,52 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ccquartic_interp (int nvar,
-                       Box const& fine_bx,
-                       Box const& fine_bx2,
-                       Box const& crse_bx,
-                       Box const& crse_bx2,
+void ccquartic_interp (int i, int j, int k, int n,
                        IntVect const& ratio,
                        Array4<T>       const& fine,
                        Array4<T const> const& fine_state) noexcept
 {
     const Array1D<Real, -2, 2> cL = { -0.01171875,  0.0859375, 0.5, -0.0859375, 0.01171875 };
 
-    IntVect fblo  = fine_bx.lbound();
-    IntVect fbhi  = fine_bx.ubound();
-    IntVect fb2lo = fine_bx2.lbound();
-    IntVect fb2hi = fine_bx2.ubound();
-    IntVect cblo  = crse_bx.lbound();
-    IntVect cbhi  = crse_bx.ubound();
-    IntVect cb2lo = crse_bx2.lbound();
-    IntVect cb2hi = crse_bx2.ubound();
+    int ic = amrex::coarsen(i,2);
+    int jc = amrex::coarsen(j,2);
+    int kc = amrex::coarsen(k,2);
+    int irx = std::abs(i % 2);
+    int jry = std::abs(j % 2);
+    int krz = std::abs(k % 2);
 
-    Array1D<Real, fb2lo.x, fb2hi.x> ftmp;
-    Array2D<Real, cblo.x, cbhi.x, 0, ratio[1]-1> ctmp;
-    Array3D<Real, cblo.x, cbhi.x, cblo.y, cbhi.y, 0, ratio[2]-1> ctmp2;
+    Array1D<Real,               0, 1> ftmp;
+    Array2D<Real,        -2, 2, 0, 1> ctmp;
+    Array3D<Real, -2, 2, -2, 2, 0, 1> ctmp2;
 
-    for (int n = 0; n < nvar; ++n) {
-        for         (int k = cb2lo.z; k <= cb2hi.z; ++k) {
-            for     (int j = cblo.y;  j <= cbhi.y;  ++j) {
-                for (int i = cblo.x;  i <= cbhi.x;  ++i) {
-                    ctmp2(i,j,0) = 2.0 * ( cL(-2)*crse(i,j,k-2,n)
-                                         + cL(-1)*crse(i,j,k-1,n)
-                                         + cL( 0)*crse(i,j,k  ,n)
-                                         + cL( 1)*crse(i,j,k+1,n)
-                                         + cL( 2)*crse(i,j,k+2,n) );
-                    ctmp2(i,j,1) = 2.0 * crse(i,j,k,n) - ctmp2(i,j,0);
-                } // i
-            } // j
-            for (int irz = 0; irz <= 1; ++irz) {
-                int kk = 2*k + irz;
-                if (kk >= fblo.z && kk <= fbhi.z) {
-                    for     (int j = cb2lo.y; j <= cb2hi.y; ++j) {
-                        for (int i = cblo.x;  i <= cbhi.x;  ++i) {
-                            ctmp(i,0) = 2.0 * ( cL(-2)*ctmp2(i,j-2,irz)
-                                              + cL(-1)*ctmp2(i,j-1,irz)
-                                              + cL( 0)*ctmp2(i,j  ,irz)
-                                              + cL( 1)*ctmp2(i,j+1,irz)
-                                              + cL( 2)*ctmp2(i,j+2,irz) );
-                            ctmp(i,1) = 2.0 * ctmp2(i,j,irz) - ctmp(i,0);
-                        } // i
-                        for (int iry = 0; iry <= 1; ++iry) {
-                            int jj = 2*j + iry;
-                            if (jj >= fblo.y && jj <= fbhi.y) {
-                                for (int i = cb2lo.x; i <= cb2hi.x; ++i) {
-                                    int ii = 2*i;
-                                    ftmp(ii  ) = 2.0 * ( cL(-2)*ctmp(i-2,iry)
-                                                       + cL(-1)*ctmp(i-1,iry)
-                                                       + cL( 0)*ctmp(i  ,iry)
-                                                       + cL( 1)*ctmp(i+1,iry)
-                                                       + cL( 2)*ctmp(i+2,iry) );
-                                    ftmp(ii+1) = 2.0 * ctmp(i,iry) - ftmp(ii);
-                                } // i
-                                for (int ii = fblo.x; ii <= fbhi.x) {
-                                    fine(ii,jj,kk,n) = ftmp(ii);
-                                } // ii
-                            } // jj
-                        } // iry
-                    } // j
-                } // kk
-            } // irz
-        } // k
-    } // n
+    for     (int jj = -2; jj <= 2; ++jj) {
+        for (int ii = -2; ii <= 2; ++ii) {
+            ctmp2(ii,jj,0) = 2.0 * ( cL(-2)*crse(ic+ii,jc+jj,kc-2,n)
+                                   + cL(-1)*crse(ic+ii,jc+jj,kc-1,n)
+                                   + cL( 0)*crse(ic+ii,jc+jj,kc  ,n)
+                                   + cL( 1)*crse(ic+ii,jc+jj,kc+1,n)
+                                   + cL( 2)*crse(ic+ii,jc+jj,kc+2,n) );
+            ctmp2(ii,jj,1) = 2.0 * crse(ic+ii,jc+jj,kc,n) - ctmp2(ii,jj,0);
+        } // ii
+    } // jj
+
+    for (int ii = -2; ii <= 2; ++ii) {
+        ctmp(ii,0) = 2.0 * ( cL(-2)*ctmp2(ii,-2,krz)
+                           + cL(-1)*ctmp2(ii,-1,krz)
+                           + cL( 0)*ctmp2(ii, 0,krz)
+                           + cL( 1)*ctmp2(ii, 1,krz)
+                           + cL( 2)*ctmp2(ii, 2,krz) );
+        ctmp(ii,1) = 2.0 * ctmp2(ii, 0,krz) - ctmp(ii,0);
+    } // ii
+
+    ftmp(0) = 2.0 * ( cL(-2)*ctmp(-2,jry)
+                    + cL(-1)*ctmp(-1,jry)
+                    + cL( 0)*ctmp( 0,jry)
+                    + cL( 1)*ctmp( 1,jry)
+                    + cL( 2)*ctmp( 2,jry) );
+    ftmp(1) = 2.0 * ctmp(0,jry) - ftmp(0);
+
+    fine(i,j,k,n) = ftmp(irx);
 
 }  // namespace amrex
 

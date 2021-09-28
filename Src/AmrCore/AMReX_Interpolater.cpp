@@ -22,7 +22,7 @@ namespace amrex {
  *
  * CellQuadratic only works in 2D on cpu.
  *
- * CellConservativeQuartic only works with ref ratio of 2 on cpu
+ * CellConservativeQuartic only works with ref ratio of 2 on cpu and gpu.
  *
  * FaceDivFree works in 2D and 3D on cpu and gpu.
  * The algorithm is restricted to ref ratio of 2.
@@ -757,22 +757,16 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
     //
     Box target_fine_region = fine_region & fine.box();
 
-    //
-    // crse_bx is coarsening of target_fine_region, grown by 2.
-    //
-    Box crse_bx = CoarseBox(target_fine_region,ratio);
-
-    Box crse_bx2(crse_bx);
-    crse_bx2.grow(-2);
-    Box fine_bx2 = amrex::refine(crse_bx2,ratio);
-
     // Extract pointers to fab data
     Array4<Real const> const& crsearr = crse.const_array();
     Array4<Real>       const& finearr = fine.array();
 
-    ccquartic_interp( ncomp,
-                      target_fine_region, fine_bx2, crse_bx, crse_bx2, ratio,
-                      crsearr, finearr );
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, target_fine_region, ncomp, i, j, k, n,
+    {
+        ccquartic_interp(i, j, k, n,
+                         ratio,
+                         crsearr, finearr );
+    });
 }
 
 FaceDivFree::~FaceDivFree () {}
