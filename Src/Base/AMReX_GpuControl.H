@@ -84,6 +84,25 @@ namespace Gpu {
     inline bool inLaunchRegion() noexcept { return in_launch_region; }
     inline bool notInLaunchRegion() noexcept { return !in_launch_region; }
 
+    /**
+     * Enable/disable GPU kernel launches.
+     *
+     * \note This will only switch from GPU to CPU for kernels launched
+     * with macros. Functions like `amrex::ParallelFor` will be unaffected.
+     * Therefore it should not be used for comparing GPU to non-GPU performance
+     * or behavior.
+     *
+     * \code
+     *  Gpu::setLaunchRegion(0);
+     *
+     *  //...
+     *
+     *  Gpu::setLaunchRegion(1);
+     * \endcode
+     *
+     * Will disable the launching of GPU kernels between the calls.
+     */
+
     inline bool setLaunchRegion (bool launch) noexcept {
         bool r = in_launch_region;
         in_launch_region = launch;
