@@ -728,9 +728,9 @@ CellConservativeQuartic::CoarseBox (const Box&     fine,
 
 void
 CellConservativeQuartic::interp (const FArrayBox&  crse,
-                                 int               /* crse_comp */,
+                                 int               crse_comp,
                                  FArrayBox&        fine,
-                                 int               /* fine_comp */,
+                                 int               fine_comp,
                                  int               ncomp,
                                  const Box&        fine_region,
                                  const IntVect&    ratio,
@@ -758,8 +758,8 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
     Box target_fine_region = fine_region & fine.box();
 
     // Extract pointers to fab data
-    Array4<Real const> const& crsearr = crse.const_array();
-    Array4<Real>       const& finearr = fine.array();
+    Array4<Real const> const& crsearr = crse.const_array(crse_comp);
+    Array4<Real>       const& finearr = fine.array(fine_comp);
 
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, target_fine_region, ncomp, i, j, k, n,
     {
