@@ -5,6 +5,7 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_BCRec.H>
 #include <AMReX_Vector.H>
+#include <AMReX_Array.H>
 
 namespace amrex {
 
@@ -614,6 +615,62 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
             }
         }
     }
+
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ccquartic_interp (int i, int j, int k, int n,
+                       Array4<Real const> const& crse,
+                       Array4<Real>       const& fine) noexcept
+{
+    // Note: there are asserts in CellConservativeQuartic::interp()
+    //       to check whether ratio is all equal to 2.
+
+    constexpr Array1D<Real, -2, 2> cL = { -0.01171875_rt,  0.0859375_rt, 0.5_rt, -0.0859375_rt, 0.01171875_rt };
+
+    int ic = amrex::coarsen(i,2);
+    int jc = amrex::coarsen(j,2);
+    int kc = amrex::coarsen(k,2);
+    int irx = i - 2*ic; // = abs(i % 2);
+    int jry = j - 2*jc; // = abs(j % 2);
+    int krz = k - 2*kc; // = abs(k % 2);
+
+    Array2D<Real, -2, 2, -2, 2> ctmp2;
+    for     (int jj = -2; jj <= 2; ++jj) {
+        for (int ii = -2; ii <= 2; ++ii) {
+            ctmp2(ii,jj) = 2.0_rt * ( cL(-2)*crse(ic+ii,jc+jj,kc-2,n)
+                                    + cL(-1)*crse(ic+ii,jc+jj,kc-1,n)
+                                    + cL( 0)*crse(ic+ii,jc+jj,kc  ,n)
+                                    + cL( 1)*crse(ic+ii,jc+jj,kc+1,n)
+                                    + cL( 2)*crse(ic+ii,jc+jj,kc+2,n) );
+            if (krz) {
+                ctmp2(ii,jj) = 2.0_rt * crse(ic+ii,jc+jj,kc,n) - ctmp2(ii,jj);
+            }
+        } // ii
+    } // jj
+
+    Array1D<Real, -2, 2> ctmp;
+    for (int ii = -2; ii <= 2; ++ii) {
+        ctmp(ii) = 2.0_rt * ( cL(-2)*ctmp2(ii,-2)
+                            + cL(-1)*ctmp2(ii,-1)
+                            + cL( 0)*ctmp2(ii, 0)
+                            + cL( 1)*ctmp2(ii, 1)
+                            + cL( 2)*ctmp2(ii, 2) );
+        if (jry) {
+            ctmp(ii) = 2.0_rt * ctmp2(ii, 0) - ctmp(ii);
+        }
+    } // ii
+
+    Real ftmp = 2.0_rt * ( cL(-2)*ctmp(-2)
+                         + cL(-1)*ctmp(-1)
+                         + cL( 0)*ctmp( 0)
+                         + cL( 1)*ctmp( 1)
+                         + cL( 2)*ctmp( 2) );
+    if (irx) {
+        ftmp = 2.0_rt * ctmp(0) - ftmp;
+    }
+
+    fine(i,j,k,n) = ftmp;
 
 }
 

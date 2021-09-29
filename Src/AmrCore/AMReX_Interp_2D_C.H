@@ -5,6 +5,7 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_BCRec.H>
 #include <AMReX_Vector.H>
+#include <AMReX_Array.H>
 #include <AMReX_Geometry.H>
 #include <cmath>
 
@@ -447,6 +448,46 @@ void ccprotect_2d (int ic, int jc, int /*kc*/, int nvar,
             }
         }
     }
+
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ccquartic_interp (int i, int j, int /*k*/, int n,
+                       Array4<Real const> const& crse,
+                       Array4<Real>       const& fine) noexcept
+{
+    // Note: there are asserts in CellConservativeQuartic::interp()
+    //       to check whether ratio is all equal to 2.
+
+    constexpr Array1D<Real, -2, 2> cL = { -0.01171875_rt,  0.0859375_rt, 0.5_rt, -0.0859375_rt, 0.01171875_rt };
+
+    int ic = amrex::coarsen(i,2);
+    int jc = amrex::coarsen(j,2);
+    int irx = i - 2*ic; // = abs(i % 2)
+    int jry = j - 2*jc; // = abs(j % 2);
+
+    Array1D<Real, -2, 2> ctmp;
+    for (int ii = -2; ii <= 2; ++ii) {
+        ctmp(ii) = 2.0_rt * ( cL(-2)*crse(ic+ii,jc-2,0,n)
+                            + cL(-1)*crse(ic+ii,jc-1,0,n)
+                            + cL( 0)*crse(ic+ii,jc,  0,n)
+                            + cL( 1)*crse(ic+ii,jc+1,0,n)
+                            + cL( 2)*crse(ic+ii,jc+2,0,n) );
+        if (jry) {
+            ctmp(ii) = 2.0_rt * crse(ic+ii,jc,0,n) - ctmp(ii);
+        }
+    } // ii
+
+    Real ftmp = 2.0_rt * ( cL(-2)*ctmp(-2)
+                         + cL(-1)*ctmp(-1)
+                         + cL( 0)*ctmp( 0)
+                         + cL( 1)*ctmp( 1)
+                         + cL( 2)*ctmp( 2) );
+    if (irx) {
+        ftmp = 2.0_rt * ctmp(0) - ftmp;
+    }
+
+    fine(i,j,0,n) = ftmp;
 
 }
 

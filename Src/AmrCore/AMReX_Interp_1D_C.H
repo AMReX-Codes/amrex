@@ -5,6 +5,7 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_BCRec.H>
 #include <AMReX_Vector.H>
+#include <AMReX_Array.H>
 #include <cmath>
 
 namespace amrex {
@@ -105,6 +106,33 @@ face_linear_interp_x (int i, int /*j*/, int /*k*/, int n, Array4<T> const& fine,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ccquartic_interp (int i, int /*j*/, int /*k*/, int n,
+                       Array4<Real const> const& crse,
+                       Array4<Real>       const& fine ) noexcept
+
+{
+    // Note: there are asserts in CellConservativeQuartic::interp()
+    //       to check whether ratio is all equal to 2.
+
+    constexpr Array1D<Real, -2, 2> cL = { -0.01171875_rt,  0.0859375_rt, 0.5_rt, -0.0859375_rt, 0.01171875_rt };
+
+    int ic = amrex::coarsen(i,2);
+    int irx = i - 2*ic; // = abs(i % 2)
+
+    Real ftmp = 2.0_rt * ( cL(-2)*crse(ic-2,0,0,n)
+                         + cL(-1)*crse(ic-1,0,0,n)
+                         + cL( 0)*crse(ic  ,0,0,n)
+                         + cL( 1)*crse(ic+1,0,0,n)
+                         + cL( 2)*crse(ic+2,0,0,n) );
+    if (irx) {
+        ftmp = 2.0_rt * crse(ic,0,0,n) - ftmp;
+    }
+
+    fine(i,0,0,n) = ftmp;
+
 }
+
+} // namespace amrex
 
 #endif
