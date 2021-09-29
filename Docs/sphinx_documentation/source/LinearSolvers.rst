@@ -128,7 +128,7 @@ After the solver returns successfully, if needed, we can call
 to compute residual (i.e., :math:`f - L(\phi)`) given the solution and
 the right-hand side.  For cell-centered solvers, we can also call the
 following functions to compute gradient :math:`\nabla \phi` and fluxes
-:math:`-B \nabla \phi`.
+:math:`-\beta \nabla \phi`.
 
 .. highlight:: c++
 
