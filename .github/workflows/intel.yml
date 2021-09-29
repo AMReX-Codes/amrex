@@ -11,7 +11,8 @@ jobs:
     name: DPCPP GFortran@7.5 C++17 [tests]
     runs-on: ubuntu-20.04
     # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wno-sign-compare"}
+    # Since 2021.4.0, AMReX_GpuUtility.H: error: comparison with NaN always evaluates to false in fast floating point modes
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wno-sign-compare -Wno-tautological-constant-compare"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies

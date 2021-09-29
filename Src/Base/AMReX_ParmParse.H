@@ -273,6 +273,12 @@ public:
     * for this particular ParmParse object.
     */
     explicit ParmParse (const std::string& prefix = std::string());
+
+    // To avoid error: definition of implicit copy constructor for
+    // 'ParmParse' is deprecated because it has a user-declared copy
+    // assignment operator.
+    ParmParse (ParmParse const& rhs) = default;
+
     //! Returns true if name is in table.
     bool contains (const char* name) const;
     /**
