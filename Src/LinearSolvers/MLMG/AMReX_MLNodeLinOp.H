@@ -142,7 +142,11 @@ protected:
     bool m_is_bottom_singular = false;
     bool m_masks_built = false;
     bool m_overset_dirichlet_mask = false;
-
+#ifdef AMREX_USE_GPU
+    int m_smooth_num_sweeps = 4;
+#else
+    int m_smooth_num_sweeps = 2;
+#endif
     mutable bool m_in_solution_mode = true;
 };
 
