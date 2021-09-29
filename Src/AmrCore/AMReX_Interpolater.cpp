@@ -20,7 +20,7 @@ namespace amrex {
  *
  * CellConservativeProtected only works in 2D and 3D on cpu and gpu.
  *
- * CellQuadratic only works in 2D on cpu.
+ * CellQuadratic only works in 2D on cpu and gpu.
  *
  * CellConservativeQuartic only works with ref ratio of 2 on cpu and gpu.
  *
@@ -40,10 +40,7 @@ CellConservativeLinear    cell_cons_interp(0);
 CellConservativeProtected protected_interp;
 CellConservativeQuartic   quartic_interp;
 CellBilinear              cell_bilinear_interp;
-
-#ifndef BL_NO_FORT
 CellQuadratic             quadratic_interp;
-#endif
 
 NodeBilinear::~NodeBilinear () {}
 
@@ -444,7 +441,6 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     }
 }
 
-#ifndef BL_NO_FORT
 CellQuadratic::CellQuadratic (bool limit)
 {
     do_limited_slope = limit;
@@ -485,13 +481,20 @@ CellQuadratic::interp (const FArrayBox& crse,
                        int              actual_state,
                        RunOn            /*runon*/)
 {
-#if (AMREX_SPACEDIM == 1)
+#if (AMREX_SPACEDIM != 2)
     amrex::ignore_unused(crse,crse_comp,fine,fine_comp,ncomp,fine_region,
                          ratio,crse_geom,fine_geom,bcr,actual_comp,actual_state);
+
+#if (AMREX_SPACEDIM == 1)
     amrex::Abort("1D CellQuadratic::interp not supported");
+#else /* (AMREX_SPACEDIM == 3) */
+    amrex::Abort("3D CellQuadratic::interp not supported");
+#endif
+
 #else
     BL_PROFILE("CellQuadratic::interp()");
     BL_ASSERT(bcr.size() >= ncomp);
+
     //
     // Make box which is intersection of fine_region and domain of fine.
     //
@@ -521,6 +524,7 @@ CellQuadratic::interp (const FArrayBox& crse,
     int clo        = 1 - loslp;
     int chi        = clo + cslope_vol - 1;
     c_len          = hislp - loslp + 1;
+
     //
     // Alloc temp space for one strip of fine grid slopes: here we use 5
     // instead of AMREX_SPACEDIM because of the x^2, y^2 and xy terms.
@@ -533,6 +537,7 @@ CellQuadratic::interp (const FArrayBox& crse,
     Real* fstrip = strip.dataPtr();
     Real* foff   = fstrip + f_len;
     Real* fslope = foff + f_len;
+
     //
     // Get coarse and fine edge-centered volume coordinates.
     //
@@ -543,6 +548,7 @@ CellQuadratic::interp (const FArrayBox& crse,
         fine_geom.GetEdgeVolCoord(fvc[dir],target_fine_region,dir);
         crse_geom.GetEdgeVolCoord(cvc[dir],crse_bx,dir);
     }
+
     //
     // Alloc tmp space for slope calc and to allow for vectorization.
     //
@@ -572,10 +578,8 @@ CellQuadratic::interp (const FArrayBox& crse,
                    AMREX_D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()),
                    &actual_comp,&actual_state);
 
-#endif /*(AMREX_SPACEDIM > 1)*/
+#endif /*(AMREX_SPACEDIM != 2)*/
 }
-#endif
-
 
 PCInterp::~PCInterp () {}
 
