@@ -120,13 +120,11 @@ void ccquartic_interp (int i, int /*j*/, int /*k*/, int n,
     int ic = amrex::coarsen(i,2);
     int irx = i - 2*ic; // = abs(i % 2)
 
-    Real ftmp;
-
-    ftmp = 2.0_rt * ( cL(-2)*crse(ic-2,0,0,n)
-                    + cL(-1)*crse(ic-1,0,0,n)
-                    + cL( 0)*crse(ic  ,0,0,n)
-                    + cL( 1)*crse(ic+1,0,0,n)
-                    + cL( 2)*crse(ic+2,0,0,n) );
+    Real ftmp = 2.0_rt * ( cL(-2)*crse(ic-2,0,0,n)
+                         + cL(-1)*crse(ic-1,0,0,n)
+                         + cL( 0)*crse(ic  ,0,0,n)
+                         + cL( 1)*crse(ic+1,0,0,n)
+                         + cL( 2)*crse(ic+2,0,0,n) );
     if (irx) {
         ftmp = 2.0_rt * crse(ic,0,0,n) - ftmp;
     }

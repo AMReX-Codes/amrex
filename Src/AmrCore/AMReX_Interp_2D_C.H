@@ -466,9 +466,7 @@ void ccquartic_interp (int i, int j, int /*k*/, int n,
     int irx = i - 2*ic; // = abs(i % 2)
     int jry = j - 2*jc; // = abs(j % 2);
 
-    Real ftmp;
     Array1D<Real, -2, 2> ctmp;
-
     for (int ii = -2; ii <= 2; ++ii) {
         ctmp(ii) = 2.0_rt * ( cL(-2)*crse(ic+ii,jc-2,0,n)
                             + cL(-1)*crse(ic+ii,jc-1,0,n)
@@ -480,11 +478,11 @@ void ccquartic_interp (int i, int j, int /*k*/, int n,
         }
     } // ii
 
-    ftmp = 2.0_rt * ( cL(-2)*ctmp(-2)
-                    + cL(-1)*ctmp(-1)
-                    + cL( 0)*ctmp( 0)
-                    + cL( 1)*ctmp( 1)
-                    + cL( 2)*ctmp( 2) );
+    Real ftmp = 2.0_rt * ( cL(-2)*ctmp(-2)
+                         + cL(-1)*ctmp(-1)
+                         + cL( 0)*ctmp( 0)
+                         + cL( 1)*ctmp( 1)
+                         + cL( 2)*ctmp( 2) );
     if (irx) {
         ftmp = 2.0_rt * ctmp(0) - ftmp;
     }
