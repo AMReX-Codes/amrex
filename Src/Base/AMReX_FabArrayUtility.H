@@ -1540,8 +1540,9 @@ indexFromValue (FabArray<FAB> const& mf, int comp, IntVect const& nghost,
                 bool old;
 // we should be able to test on _OPENMP < 201107 for capture (version 3.1)
 // but we must work around a bug in gcc < 4.9
-#if defined(AMREX_USE_OMP) && defined(_OPENMP) && _OPENMP < 201307 // OpenMP 4.0
-#pragma omp critical (amrex_indexfromvalue)
+// And, with NVHPC 21.9, we see an ICE with the atomic capture.
+#if defined(AMREX_USE_OMP) && defined(_OPENMP) && (_OPENMP < 201307 || defined(__NVCOMPILER)) // OpenMP 4.0
+#pragma omp critical (amrex_indexfromvalueaa)
 #elif defined(AMREX_USE_OMP)
 #pragma omp atomic capture
 #endif
