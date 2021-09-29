@@ -43,11 +43,23 @@
 #define AMREX_DEVICE_COMPILE (__CUDA_ARCH__ || __HIP_DEVICE_COMPILE__ || __SYCL_DEVICE_ONLY__)
 
 #ifdef AMREX_USE_DPCPP
+
+# include <CL/sycl.hpp>
+
+namespace amrex {
+# if (__INTEL_LLVM_COMPILER <= 20210300)
+    namespace oneapi = sycl::ONEAPI;
+# else
+    namespace oneapi = sycl::ext::oneapi;
+# endif
+}
+
 # define AMREX_REQUIRE_SUBGROUP_SIZE(x) \
   _Pragma("clang diagnostic push") \
   _Pragma("clang diagnostic ignored \"-Wattributes\"") \
   [[intel::reqd_sub_group_size(x)]]                \
   _Pragma("clang diagnostic pop")
+
 #endif // AMREX_USE_DPCPP
 
 #endif
