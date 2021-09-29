@@ -5,6 +5,7 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_BCRec.H>
 #include <AMReX_Vector.H>
+#include <AMReX_Array.H>
 
 namespace amrex {
 
