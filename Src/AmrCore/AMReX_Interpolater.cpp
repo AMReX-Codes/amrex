@@ -764,7 +764,6 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, target_fine_region, ncomp, i, j, k, n,
     {
         ccquartic_interp(i, j, k, n,
-                         ratio,
                          crsearr, finearr);
     });
 }
