@@ -98,7 +98,8 @@
 #elif defined(__PGI)
 #define AMREX_FORCE_INLINE inline
 
-//__NVCOMPILER
+#elif defined(__NVCOMPILER)
+#define AMREX_FORCE_INLINE inline
 
 #elif defined(__NEC__)
 #define AMREX_FORCE_INLINE inline
