@@ -520,8 +520,7 @@ CellQuadratic::interp (const FArrayBox& crse,
 
     // Extract pointers to fab data
     Array4<Real>       const&   finearr = fine.array();
-    Array4<Real>       const&   crsearr = crse.array();
-    Array4<Real const> const&  ccrsearr = crse.const_array();
+    Array4<Real const> const&   crsearr = crse.const_array();
     Array4<Real>       const&  slopearr = sfab.array();
     Array4<Real const> const& cslopearr = sfab.const_array();
 
@@ -556,21 +555,6 @@ CellQuadratic::interp (const FArrayBox& crse,
                    &actual_comp,&actual_state);
     */
 
-    // Filter coarse fab data.
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, crse.box(), ncomp, i, j, k, n,
-    {
-        amrex::ignore_unused(k);
-        int nu = crse_comp + n;
-#ifdef AMREX_USE_FLOAT
-        constexpr Real tol = 1.e-30_rt;
-#else
-        constexpr Real tol = 1.e-50_rt;
-#endif
-        if (Math::abs(crsearr(i,j,0,nu)) < tol) {
-            crsearr(i,j,0,nu) = 0._rt;
-        }
-    });
-
     if (crse_geom.IsRZ()) {
 
         // Get coarse and fine geometry data.
@@ -582,7 +566,7 @@ CellQuadratic::interp (const FArrayBox& crse,
                                                i, j, k, n,
         {
             mf_cell_quadratic_calcslope_rz(i, j, k, n,
-                                           ccrsearr, crse_comp,
+                                           crsearr, crse_comp,
                                            slopearr, ncomp,
                                            ratio, cs_geomdata,
                                            cdomain, bcrp);
@@ -595,7 +579,7 @@ CellQuadratic::interp (const FArrayBox& crse,
         {
             mf_cell_quadratic_interp_rz(i, j, k, n,
                                         finearr, fine_comp,
-                                        ccrsearr, crse_comp,
+                                        crsearr, crse_comp,
                                         cslopearr, ncomp,
                                         ratio, fn_geomdata);
         });
