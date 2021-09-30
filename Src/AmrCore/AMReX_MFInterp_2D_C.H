@@ -256,7 +256,19 @@ Real mf_cell_quadratic_compute_slopes_xx (int i, int j, int /*k*/,
                                           Array4<Real const> const& u, int nu,
                                           Box const& domain, BCRec const& bc)
 {
-    Real xx;
+    Real xx = u(i-1,j,0,nu) - 2.0_rt * u(i,j,0,nu) + u(i+1,j,0,nu);
+    if (i == domain.smallEnd(0) && (bc.lo(0) == BCType::ext_dir ||
+                                    bc.lo(0) == BCType::hoextrap)) {
+        if (i+2 < u.end.x) {
+            xx = 0._rt;
+        }
+    }
+    if (i == domain.bigEnd(0) && (bc.hi(0) == BCType::ext_dir ||
+                                  bc.hi(0) == BCType::hoextrap)) {
+        if (i-2 >= u.begin.x) {
+            xx = 0._rt;
+        }
+    }
     return xx;
 }
 
@@ -265,7 +277,19 @@ Real mf_cell_quadratic_compute_slopes_yy (int i, int j, int /*k*/,
                                           Array4<Real const> const& u, int nu,
                                           Box const& domain, BCRec const& bc)
 {
-    Real yy;
+    Real yy = u(i,j-1,0,nu) - 2.0_rt * u(i,j,0,nu) + u(i,j+1,0,nu);
+    if (j == domain.smallEnd(1) && (bc.lo(1) == BCType::ext_dir ||
+                                    bc.lo(1) == BCType::hoextrap)) {
+        if (j+2 < u.end.y) {
+            yy = 0._rt;
+        }
+    }
+    if (j == domain.bigEnd(1) && (bc.hi(1) == BCType::ext_dir ||
+                                  bc.hi(1) == BCType::hoextrap)) {
+        if (j-2 >= u.begin.y) {
+            yy = 0._rt;
+        }
+    }
     return yy;
 }
 
@@ -274,7 +298,32 @@ Real mf_cell_quadratic_compute_slopes_xy (int i, int j, int /*k*/,
                                           Array4<Real const> const& u, int nu,
                                           Box const& domain, BCRec const& bc)
 {
-    Real xy;
+    Real xy = (1._rt/4._rt) * ( u(i-1,j-1,0,nu) - u(i+1,j-1,0,nu)
+                              - u(i-1,j+1,0,nu) + u(i+1,j+1,0,nu) );
+    if (i == domain.smallEnd(0) && (bc.lo(0) == BCType::ext_dir ||
+                                    bc.lo(0) == BCType::hoextrap)) {
+        if (i+2 < u.end.x) {
+            xy = 0._rt;
+        }
+    }
+    if (i == domain.bigEnd(0) && (bc.hi(0) == BCType::ext_dir ||
+                                  bc.hi(0) == BCType::hoextrap)) {
+        if (i-2 >= u.begin.x) {
+            xy = 0._rt;
+        }
+    }
+    if (j == domain.smallEnd(1) && (bc.lo(1) == BCType::ext_dir ||
+                                    bc.lo(1) == BCType::hoextrap)) {
+        if (j+2 < u.end.y) {
+            xy = 0._rt;
+        }
+    }
+    if (j == domain.bigEnd(1) && (bc.hi(1) == BCType::ext_dir ||
+                                  bc.hi(1) == BCType::hoextrap)) {
+        if (j-2 >= u.begin.y) {
+            xy = 0._rt;
+        }
+    }
     return xy;
 }
 
@@ -286,6 +335,18 @@ void mf_cell_quadratic_calcslope (int i, int j, int /*k*/, int n,
                                   Box const& domain,
                                   BCRec const* bc) noexcept
 {
+    int nu = ccomp + n;
+    Real sx  = mf_compute_slopes_x(i, j, 0, crse, nu, domain, bc[n]);
+    Real sy  = mf_compute_slopes_y(i, j, 0, crse, nu, domain, bc[n]);
+    Real sxx = mf_cell_quadratic_compute_slopes_xx (i, j, 0, crse, nu, domain, bc[n]);
+    Real syy = mf_cell_quadratic_compute_slopes_yy (i, j, 0, crse, nu, domain, bc[n]);
+    Real sxy = mf_cell_quadratic_compute_slopes_xy (i, j, 0, crse, nu, domain, bc[n]);
+
+    slope(i,j,0,n*ncomp  ) = sx;  // x
+    slope(i,j,0,n*ncomp+1) = sy;  // y
+    slope(i,j,0,n*ncomp+2) = sxx; // x^2
+    slope(i,j,0,n*ncomp+3) = syy; // y^2
+    slope(i,j,0,n*ncomp+4) = sxy; // xy
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

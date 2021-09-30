@@ -6,10 +6,6 @@
 #include <AMReX_Interp_C.H>
 #include <AMReX_MFInterp_C.H>
 
-#ifndef BL_NO_FORT
-#include <AMReX_INTERP_F.H>
-#endif
-
 #include <climits>
 
 namespace amrex {
@@ -517,7 +513,7 @@ CellQuadratic::interp (const FArrayBox& crse,
     AsyncArray<BCRec> async_bcr(bcr.data(), (run_on_gpu) ? ncomp : 0);
     BCRec const* bcrp = (run_on_gpu) ? async_bcr.data() : bcr.data();
 
-    // Set up temporary fab for coarse grid slopes
+    // Set up temporary fab (with elixir, as needed) for coarse grid slopes
     FArrayBox sfab(cslope_bx, 5*ncomp);
     Elixir seli;
     if (run_on_gpu) seli = sfab.elixir();
@@ -557,6 +553,17 @@ CellQuadratic::interp (const FArrayBox& crse,
                    AMREX_D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
                    AMREX_D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()),
                    &actual_comp,&actual_state);
+    */
+
+    /*
+    // Filter coarse fab data.
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, crse.box(), ncomp, i, j, k, n,
+    {
+        amrex::ignore_unused(k);
+        int nu = crse_comp + n;
+        const Real tol = 1.e50_rt;
+        crsearr(i,j,0,nu) = ( Math::abs(crsearr(i,j,0,nu)) > tol ) ? crsearr(i,j,0,nu) : 0._rt;
+    });
     */
 
     if (crse_geom.IsRZ()) {
