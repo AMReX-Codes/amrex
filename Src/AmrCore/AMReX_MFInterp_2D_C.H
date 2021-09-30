@@ -1,6 +1,8 @@
 #ifndef AMREX_MF_INTERP_2D_C_H_
 #define AMREX_MF_INTERP_2D_C_H_
 
+#include <AMReX_Geometry.H>
+
 namespace amrex {
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -249,6 +251,107 @@ void mf_nodebilin_interp (int i, int j, int, int n, Array4<Real> const& fine, in
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mf_cell_quadratic_compute_slopes_xx (int i, int j, int /*k*/,
+                                          Array4<Real const> const& u, int nu,
+                                          Box const& domain, BCRec const& bc)
+{
+    Real xx;
+    return xx;
 }
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mf_cell_quadratic_compute_slopes_yy (int i, int j, int /*k*/,
+                                          Array4<Real const> const& u, int nu,
+                                          Box const& domain, BCRec const& bc)
+{
+    Real yy;
+    return yy;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mf_cell_quadratic_compute_slopes_xy (int i, int j, int /*k*/,
+                                          Array4<Real const> const& u, int nu,
+                                          Box const& domain, BCRec const& bc)
+{
+    Real xy;
+    return xy;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mf_cell_quadratic_calcslope (int i, int j, int /*k*/, int n,
+                                  Array4<Real const> const& crse,  int ccomp,
+                                  Array4<Real>       const& slope, int ncomp,
+                                  IntVect const& ratio,
+                                  Box const& domain,
+                                  BCRec const* bc) noexcept
+{
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mf_cell_quadratic_interp (int i, int j, int /*k*/, int n,
+                               Array4<Real>       const& fine,  int fcomp,
+                               Array4<Real const> const& crse,  int ccomp,
+                               Array4<Real const> const& slope, int ncomp,
+                               IntVect const& ratio) noexcept
+{
+    int ic = amrex::coarsen(i, ratio[0]);
+    int jc = amrex::coarsen(j, ratio[1]);
+
+    // Compute offsets.
+    Real xoff = 0;
+    Real yoff = 0;
+
+    fine(i,j,0,fcomp+n) = crse(ic,jc,0,ccomp+n)
+                          +          xoff        * slope(ic,jc,0,n*ncomp  )  // x
+                          +                 yoff * slope(ic,jc,0,n*ncomp+1)  // y
+                          + 0.5_rt * xoff * xoff * slope(ic,jc,0,n*ncomp+2)  // x^2
+                          + 0.5_rt * yoff * yoff * slope(ic,jc,0,n*ncomp+3)  // y^2
+                          +          xoff * yoff * slope(ic,jc,0,n*ncomp+4); // xy
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mf_cell_quadratic_calcslope_rz (int i, int j, int /*k*/, int n,
+                                     Array4<Real const> const& crse,  int ccomp,
+                                     Array4<Real>       const& slope, int ncomp,
+                                     IntVect const& ratio,
+                                     GeometryData cs_geomdata,
+                                     Box const& domain,
+                                     BCRec const* bc) noexcept
+{
+    // Extract coarse geometry data.
+    const Real* cs_dx     = cs_geomdata.CellSize();
+    const Real* cs_problo = cs_geomdata.ProbLo();
+}
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mf_cell_quadratic_interp_rz (int i, int j, int /*k*/, int n,
+                                  Array4<Real>       const& fine,  int fcomp,
+                                  Array4<Real const> const& crse,  int ccomp,
+                                  Array4<Real const> const& slope, int ncomp,
+                                  IntVect const& ratio,
+                                  GeometryData fn_geomdata) noexcept
+{
+    int ic = amrex::coarsen(i, ratio[0]);
+    int jc = amrex::coarsen(j, ratio[1]);
+
+    // Extract fine geometry data.
+    const Real* fn_dx     = fn_geomdata.CellSize();
+    const Real* fn_problo = fn_geomdata.ProbLo();
+
+    // Compute offsets.
+    Real xoff = 0;
+    Real yoff = 0;
+
+    fine(i,j,0,fcomp+n) = crse(ic,jc,0,ccomp+n)
+                          +          xoff        * slope(ic,jc,0,n*ncomp  )  // x
+                          +                 yoff * slope(ic,jc,0,n*ncomp+1)  // y
+                          + 0.5_rt * xoff * xoff * slope(ic,jc,0,n*ncomp+2)  // x^2
+                          + 0.5_rt * yoff * yoff * slope(ic,jc,0,n*ncomp+3)  // y^2
+                          +          xoff * yoff * slope(ic,jc,0,n*ncomp+4); // xy
+}
+
+} // namespace amrex
 
 #endif
