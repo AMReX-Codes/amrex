@@ -59,6 +59,7 @@ MLEBNodeFDLaplacian::define (const Vector<Geometry>& a_geom,
     }
 
     int eb_limit_coarsening = false;
+    m_coarsening_strategy = CoarseningStrategy::Sigma; // This will fill nodes outside Neumann BC
     MLNodeLinOp::define(a_geom, cc_grids, a_dmap, a_info, _factory, eb_limit_coarsening);
 }
 
