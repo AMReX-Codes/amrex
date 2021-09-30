@@ -400,8 +400,8 @@ void mf_cell_quadratic_interp_rz (int i, int j, int /*k*/, int n,
     // Compute radial cell edge coords.
     Real fn_vm = 0.5_rt * fn_rm * fn_rm;
     Real fn_vp = 0.5_rt * fn_rp * fn_rp;
-    Real cs_vm = 0.5_rt * fn_rm * fn_rm;
-    Real cs_vp = 0.5_rt * fn_rm * fn_rm;
+    Real cs_vm = 0.5_rt * cs_rm * cs_rm;
+    Real cs_vp = 0.5_rt * cs_rp * cs_rp;
 
     // Compute r offset
     Real fcen = 0.5_rt * ( fn_vm + fn_vp );
