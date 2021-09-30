@@ -331,7 +331,6 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mf_cell_quadratic_calcslope (int i, int j, int /*k*/, int n,
                                   Array4<Real const> const& crse,  int ccomp,
                                   Array4<Real>       const& slope, int ncomp,
-                                  IntVect const& ratio,
                                   Box const& domain,
                                   BCRec const* bc) noexcept
 {
@@ -374,38 +373,43 @@ void mf_cell_quadratic_interp (int i, int j, int /*k*/, int n,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mf_cell_quadratic_calcslope_rz (int i, int j, int /*k*/, int n,
-                                     Array4<Real const> const& crse,  int ccomp,
-                                     Array4<Real>       const& slope, int ncomp,
-                                     IntVect const& ratio,
-                                     GeometryData cs_geomdata,
-                                     Box const& domain,
-                                     BCRec const* bc) noexcept
-{
-    // Extract coarse geometry data.
-    const Real* cs_dx     = cs_geomdata.CellSize();
-    const Real* cs_problo = cs_geomdata.ProbLo();
-}
-
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mf_cell_quadratic_interp_rz (int i, int j, int /*k*/, int n,
                                   Array4<Real>       const& fine,  int fcomp,
                                   Array4<Real const> const& crse,  int ccomp,
                                   Array4<Real const> const& slope, int ncomp,
                                   IntVect const& ratio,
+                                  GeometryData cs_geomdata,
                                   GeometryData fn_geomdata) noexcept
 {
     int ic = amrex::coarsen(i, ratio[0]);
     int jc = amrex::coarsen(j, ratio[1]);
+    int jry = j - jc*ratio[1]; // = abs(j % ratio[1])
 
-    // Extract fine geometry data.
-    const Real* fn_dx     = fn_geomdata.CellSize();
-    const Real* fn_problo = fn_geomdata.ProbLo();
+    // Extract geometry data for radial direction.
+    Real fn_dr  = fn_geomdata.CellSize(0);
+    Real fn_rlo = fn_geomdata.ProbLo(0);
+    Real cs_dr  = cs_geomdata.CellSize(0);
+    Real cs_rlo = cs_geomdata.ProbLo(0);
 
-    // Compute offsets.
-    Real xoff = 0;
-    Real yoff = 0;
+    // Compute radial mesh.
+    Real fn_rm = fn_rlo + Real(i)    * fn_dr;
+    Real fn_rp = fn_rlo + Real(i+1)  * fn_dr;
+    Real cs_rm = cs_rlo + Real(ic)   * cs_dr;
+    Real cs_rp = cs_rlo + Real(ic+1) * cs_dr;
+
+    // Compute radial cell edge coords.
+    Real fn_vm = 0.5_rt * fn_rm * fn_rm;
+    Real fn_vp = 0.5_rt * fn_rp * fn_rp;
+    Real cs_vm = 0.5_rt * fn_rm * fn_rm;
+    Real cs_vp = 0.5_rt * fn_rm * fn_rm;
+
+    // Compute r offset
+    Real fcen = 0.5_rt * ( fn_vm + fn_vp );
+    Real ccen = 0.5_rt * ( cs_vm + cs_vp );
+    Real xoff = ( fcen - ccen ) / ( cs_vp - cs_vm ) ;
+
+    // Compute z offset (same as Cartesian)
+    Real yoff = ( Real(jry) + 0.5_rt ) / Real(ratio[1]) - 0.5_rt;
 
     fine(i,j,0,fcomp+n) = crse(ic,jc,0,ccomp+n)
                           +          xoff        * slope(ic,jc,0,n*ncomp  )  // x

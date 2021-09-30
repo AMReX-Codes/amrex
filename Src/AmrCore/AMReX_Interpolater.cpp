@@ -555,23 +555,21 @@ CellQuadratic::interp (const FArrayBox& crse,
                    &actual_comp,&actual_state);
     */
 
+    // Compute slopes.
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cslope_bx, ncomp, i, j, k, n,
+    {
+        mf_cell_quadratic_calcslope(i, j, k, n,
+                                    crsearr, crse_comp,
+                                    slopearr, ncomp,
+                                    cdomain, bcrp);
+    });
+
+
     if (crse_geom.IsRZ()) {
 
         // Get coarse and fine geometry data.
         GeometryData cs_geomdata = crse_geom.data();
         GeometryData fn_geomdata = fine_geom.data();
-
-        // Compute slopes.
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cslope_bx, ncomp,
-                                               i, j, k, n,
-        {
-            mf_cell_quadratic_calcslope_rz(i, j, k, n,
-                                           crsearr, crse_comp,
-                                           slopearr, ncomp,
-                                           ratio, cs_geomdata,
-                                           cdomain, bcrp);
-
-        });
 
         // Compute fine correction.
         AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, target_fine_region, ncomp,
@@ -581,24 +579,14 @@ CellQuadratic::interp (const FArrayBox& crse,
                                         finearr, fine_comp,
                                         crsearr, crse_comp,
                                         cslopearr, ncomp,
-                                        ratio, fn_geomdata);
+                                        ratio,
+                                        cs_geomdata, fn_geomdata);
         });
 
     } else { /* crse_geom.IsCartesian() */
 
         // No need for fine geometry data if using Cartesian coordinates.
         amrex::ignore_unused(fine_geom);
-
-        // Compute slopes.
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cslope_bx, ncomp,
-                                               i, j, k, n,
-        {
-            mf_cell_quadratic_calcslope(i, j, k, n,
-                                        crsearr, crse_comp,
-                                        slopearr, ncomp,
-                                        ratio,
-                                        cdomain, bcrp);
-        });
 
         // Compute fine correction.
         AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, target_fine_region, ncomp,
