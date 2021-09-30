@@ -514,13 +514,14 @@ CellQuadratic::interp (const FArrayBox& crse,
     BCRec const* bcrp = (run_on_gpu) ? async_bcr.data() : bcr.data();
 
     // Set up temporary fab (with elixir, as needed) for coarse grid slopes
-    FArrayBox sfab(cslope_bx, 5*ncomp);
+    FArrayBox sfab(cslope_bx, 5*ncomp); // x, y, x^2, y^2, xy, in that order.
     Elixir seli;
     if (run_on_gpu) seli = sfab.elixir();
 
     // Extract pointers to fab data
     Array4<Real>       const&   finearr = fine.array();
-    Array4<Real const> const&   crsearr = crse.const_array();
+    Array4<Real>       const&   crsearr = crse.array();
+    Array4<Real const> const&  ccrsearr = crse.const_array();
     Array4<Real>       const&  slopearr = sfab.array();
     Array4<Real const> const& cslopearr = sfab.const_array();
 
@@ -555,16 +556,20 @@ CellQuadratic::interp (const FArrayBox& crse,
                    &actual_comp,&actual_state);
     */
 
-    /*
     // Filter coarse fab data.
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, crse.box(), ncomp, i, j, k, n,
     {
         amrex::ignore_unused(k);
         int nu = crse_comp + n;
-        const Real tol = 1.e50_rt;
-        crsearr(i,j,0,nu) = ( Math::abs(crsearr(i,j,0,nu)) > tol ) ? crsearr(i,j,0,nu) : 0._rt;
+#ifdef AMREX_USE_FLOAT
+        constexpr Real tol = 1.e-30_rt;
+#else
+        constexpr Real tol = 1.e-50_rt;
+#endif
+        if (Math::abs(crsearr(i,j,0,nu)) < tol) {
+            crsearr(i,j,0,nu) = 0._rt;
+        }
     });
-    */
 
     if (crse_geom.IsRZ()) {
 
@@ -577,7 +582,7 @@ CellQuadratic::interp (const FArrayBox& crse,
                                                i, j, k, n,
         {
             mf_cell_quadratic_calcslope_rz(i, j, k, n,
-                                           crsearr, crse_comp,
+                                           ccrsearr, crse_comp,
                                            slopearr, ncomp,
                                            ratio, cs_geomdata,
                                            cdomain, bcrp);
@@ -590,14 +595,14 @@ CellQuadratic::interp (const FArrayBox& crse,
         {
             mf_cell_quadratic_interp_rz(i, j, k, n,
                                         finearr, fine_comp,
-                                        crsearr, crse_comp,
+                                        ccrsearr, crse_comp,
                                         cslopearr, ncomp,
                                         ratio, fn_geomdata);
         });
 
     } else { /* crse_geom.IsCartesian() */
 
-        // No need for fine geometry data if Cartesian.
+        // No need for fine geometry data if using Cartesian coordinates.
         amrex::ignore_unused(fine_geom);
 
         // Compute slopes.
@@ -622,7 +627,7 @@ CellQuadratic::interp (const FArrayBox& crse,
                                      ratio);
         });
 
-    }
+    } // geom
 
 #endif /*(AMREX_SPACEDIM != 2)*/
 }

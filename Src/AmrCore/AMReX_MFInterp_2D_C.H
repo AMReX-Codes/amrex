@@ -358,10 +358,12 @@ void mf_cell_quadratic_interp (int i, int j, int /*k*/, int n,
 {
     int ic = amrex::coarsen(i, ratio[0]);
     int jc = amrex::coarsen(j, ratio[1]);
+    int irx = i - ic*ratio[0]; // = abs(i % ratio[0])
+    int jry = j - jc*ratio[1]; // = abs(j % ratio[1])
 
     // Compute offsets.
-    Real xoff = 0;
-    Real yoff = 0;
+    Real xoff = ( Real(irx) + 0.5_rt ) / Real(ratio[0]) - 0.5_rt;
+    Real yoff = ( Real(jry) + 0.5_rt ) / Real(ratio[1]) - 0.5_rt;
 
     fine(i,j,0,fcomp+n) = crse(ic,jc,0,ccomp+n)
                           +          xoff        * slope(ic,jc,0,n*ncomp  )  // x
