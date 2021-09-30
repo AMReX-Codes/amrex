@@ -236,7 +236,6 @@ void MDParticleContainer::checkNeighborParticles()
 
     amrex::Gpu::DeviceVector<int> d_num_per_grid(ngrids,0);
     amrex::Gpu::HostVector<int> h_num_per_grid(ngrids);
-    int* p_num_per_grid = d_num_per_grid.data();
 
     // CPU version
     for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
@@ -297,9 +296,6 @@ void MDParticleContainer::checkNeighborList()
 
         const int np       = aos.numParticles();
         const int np_total = aos.numTotalParticles();
-
-        amrex::Gpu::ManagedVector<int> d_neighbor_count(np,0);
-        int* p_neighbor_count = d_neighbor_count.data();
 
         amrex::Vector<unsigned int> full_count(np,0);
         amrex::Vector<unsigned int> full_nbors;
