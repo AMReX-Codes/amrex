@@ -939,7 +939,7 @@ compact and readable format.
 
 AMReX also provides a variation of the launch function that is implemented as a
 C++ macro.  It behaves identically to the function, but hides the lambda function
-from to the user.  There are some subtle differences between the two implementations,
+from the user.  There are some subtle differences between the two implementations,
 that will be discussed.  It is up to the user to select which version they would like
 to use.  For simplicity, the function variation will be discussed throughout the rest of
 this documentation, however all code snippets will also include the macro variation
@@ -1712,4 +1712,3 @@ Intel GPU Specific Tests
 - To report back-end information, set ``ZE_DEBUG=1`` in your environment variables.
 
 .. _`Intel Distribution for GDB`: https://software.intel.com/content/www/us/en/develop/tools/oneapi/components/distribution-for-gdb.html
-
