@@ -535,7 +535,7 @@ are used to tell CMake which compiler to use for the compilation of C, C++, and 
 respectively. If those options are not set by the user, CMake will use the system default compilers.
 
 The options ``CMAKE_Fortran_FLAGS`` and ``CMAKE_CXX_FLAGS`` allow the user to
-set thier own compilation flags for Fortran and C++ source files respectively.
+set their own compilation flags for Fortran and C++ source files respectively.
 If ``CMAKE_Fortran_FLAGS``/ ``CMAKE_CXX_FLAGS`` are not set by the user,
 they will be initialized with the value of the environmental variables ``FFLAGS``/
 ``CXXFLAGS``. If neither ``FFLAGS``/ ``CXXFLAGS`` nor ``CMAKE_Fortran_FLAGS``/ ``CMAKE_CXX_FLAGS``
