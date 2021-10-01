@@ -338,15 +338,13 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        constexpr int nsweeps = 4;
-
         auto solarr_ma = sol.arrays();
         auto rhsarr_ma = rhs.const_arrays();
         auto dmskarr_ma = dmsk.const_arrays();
         if (m_coarsening_strategy == CoarseningStrategy::RAP)
         {
             auto starr_ma = stencil->const_arrays();
-            for (int ns = 0; ns < nsweeps; ++ns)
+            for (int ns = 0; ns < m_smooth_num_sweeps; ++ns)
             {
                 ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
@@ -357,7 +355,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
         }
         else if (sigma[0] == nullptr)
         {
-            for (int ns = 0; ns < nsweeps; ++ns)
+            for (int ns = 0; ns < m_smooth_num_sweeps; ++ns)
             {
                 Real const_sigma = m_const_sigma;
                 ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
@@ -377,7 +375,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
             AMREX_D_TERM(MultiArray4<Real const> const& sxarr_ma = sigma[0]->const_arrays();,
                          MultiArray4<Real const> const& syarr_ma = sigma[1]->const_arrays();,
                          MultiArray4<Real const> const& szarr_ma = sigma[2]->const_arrays(););
-            for (int ns = 0; ns < nsweeps; ++ns)
+            for (int ns = 0; ns < m_smooth_num_sweeps; ++ns)
             {
                 ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
@@ -394,7 +392,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
         else
         {
             auto sarr_ma = sigma[0]->const_arrays();
-            for (int ns = 0; ns < nsweeps; ++ns)
+            for (int ns = 0; ns < m_smooth_num_sweeps; ++ns)
             {
                 ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
@@ -410,7 +408,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
         }
 
         Gpu::synchronize();
-        if (nsweeps > 1) nodalSync(amrlev, mglev, sol);
+        if (m_smooth_num_sweeps > 1) nodalSync(amrlev, mglev, sol);
     }
     else // cpu
 #endif
@@ -424,7 +422,6 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
             AMREX_ALWAYS_ASSERT(regular_coarsening);
         }
 
-        constexpr int nsweeps = 2;
         if (m_use_gauss_seidel)
         {
             if (m_coarsening_strategy == CoarseningStrategy::RAP)
@@ -440,7 +437,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                     Array4<Real const> const& starr = stencil->const_array(mfi);
                     Array4<int const> const& dmskarr = dmsk.const_array(mfi);
 
-                    for (int ns = 0; ns < nsweeps; ++ns) {
+                    for (int ns = 0; ns < m_smooth_num_sweeps; ++ns) {
                         mlndlap_gauss_seidel_sten(bx,solarr,rhsarr,starr,dmskarr);
                     }
                 }
@@ -458,7 +455,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                     Array4<Real const> const& rhsarr = rhs.const_array(mfi);
                     Array4<int const> const& dmskarr = dmsk.const_array(mfi);
 
-                    for (int ns = 0; ns < nsweeps; ++ns) {
+                    for (int ns = 0; ns < m_smooth_num_sweeps; ++ns) {
                         mlndlap_gauss_seidel_c(bx, solarr, rhsarr,
                                                const_sigma, dmskarr, dxinvarr
 #if (AMREX_SPACEDIM == 2)
@@ -483,7 +480,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                     Array4<Real const> const& rhsarr = rhs.const_array(mfi);
                     Array4<int const> const& dmskarr = dmsk.const_array(mfi);
 
-                    for (int ns = 0; ns < nsweeps; ++ns) {
+                    for (int ns = 0; ns < m_smooth_num_sweeps; ++ns) {
                         mlndlap_gauss_seidel_ha(bx, solarr, rhsarr,
                                                 AMREX_D_DECL(sxarr,syarr,szarr),
                                                 dmskarr, dxinvarr
@@ -510,7 +507,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 
                     if ( regular_coarsening )
                     {
-                        for (int ns = 0; ns < nsweeps; ++ns) {
+                        for (int ns = 0; ns < m_smooth_num_sweeps; ++ns) {
                             mlndlap_gauss_seidel_aa(bx, solarr, rhsarr,
                                                     sarr, dmskarr, dxinvarr
 #if (AMREX_SPACEDIM == 2)
@@ -519,7 +516,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                                  );
                         }
                     } else {
-                        for (int ns = 0; ns < nsweeps; ++ns) {
+                        for (int ns = 0; ns < m_smooth_num_sweeps; ++ns) {
                             mlndlap_gauss_seidel_with_line_solve_aa(bx, solarr, rhsarr,
                                                                     sarr, dmskarr, dxinvarr
 #if (AMREX_SPACEDIM == 2)
