@@ -12,8 +12,7 @@ namespace amrex {
 
 // del dot (sigma grad phi) = rhs
 // where phi and rhs are nodal multifab, and sigma is a tensor constant
-// with only diagonal components.  Only periodic and Dirichlet are supported
-// at domain boundaries.  The EB is assumed to be Dirichlet.
+// with only diagonal components.  The EB is assumed to be Dirichlet.
 
 class MLEBNodeFDLaplacian
     : public MLNodeLinOp
