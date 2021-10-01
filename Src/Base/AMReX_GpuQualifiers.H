@@ -15,13 +15,8 @@
 #define AMREX_GPU_CONSTANT __constant__
 #define AMREX_GPU_EXTERNAL
 
-#if defined(AMREX_USE_HIP) && !defined(AMREX_USE_CUDA)
-#define AMREX_GPU_MANAGED __device__
-#define AMREX_GPU_DEVICE_MANAGED __device__
-#else
 #define AMREX_GPU_MANAGED __managed__
 #define AMREX_GPU_DEVICE_MANAGED __device__ __managed__
-#endif
 
 #else
 
