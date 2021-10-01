@@ -27,7 +27,7 @@ namespace amrex {
 
 #ifdef AMREX_USE_GPU
 namespace {
-void ResizeRandomSeed ()
+void ResizeRandomSeed (amrex::ULong gpu_seed)
 {
     BL_PROFILE("ResizeRandomSeed");
 
@@ -40,20 +40,17 @@ void ResizeRandomSeed ()
 #ifdef AMREX_USE_DPCPP
 
     rand_engine_descr = new dpcpp_rng_descr
-        (Gpu::Device::nullQueue(), sycl::range<1>(N),
-         ParallelDescriptor::MyProc()*1234567ULL + 12345ULL, 1);
+        (Gpu::Device::nullQueue(), sycl::range<1>(N), gpu_seed, 1);
 
 #elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
     gpu_rand_state =  static_cast<randState_t*>(The_Arena()->alloc(N*sizeof(randState_t)));
     randState_t* gpu_rand_state_local = gpu_rand_state;
-    const int MyProc = amrex::ParallelDescriptor::MyProc();
     amrex::ParallelFor(N, [=] AMREX_GPU_DEVICE (int idx) noexcept
     {
-        amrex::ULong seed = MyProc*1234567ULL + 12345ULL ;
-        int seqstart = idx + 10 * idx ;
-        AMREX_HIP_OR_CUDA( hiprand_init(seed, seqstart, 0, &gpu_rand_state_local[idx]);,
-                            curand_init(seed, seqstart, 0, &gpu_rand_state_local[idx]); )
+        ULong seqstart = static_cast<ULong>(idx) + 10 * static_cast<ULong>(idx);
+        AMREX_HIP_OR_CUDA( hiprand_init(gpu_seed, seqstart, 0, &gpu_rand_state_local[idx]);,
+                            curand_init(gpu_seed, seqstart, 0, &gpu_rand_state_local[idx]); )
     });
 #endif
 
@@ -63,7 +60,7 @@ void ResizeRandomSeed ()
 #endif
 
 void
-amrex::InitRandom (amrex::ULong seed, int nprocs)
+amrex::InitRandom (amrex::ULong cpu_seed, int nprocs, amrex::ULong gpu_seed)
 {
     nthreads = OpenMP::get_max_threads();
     generators.resize(nthreads);
@@ -73,12 +70,14 @@ amrex::InitRandom (amrex::ULong seed, int nprocs)
 #endif
     {
         int tid = OpenMP::get_thread_num();
-        amrex::ULong init_seed = seed + tid*nprocs;
+        amrex::ULong init_seed = cpu_seed + tid*nprocs;
         generators[tid].seed(init_seed);
     }
 
 #ifdef AMREX_USE_GPU
-    ResizeRandomSeed();
+    ResizeRandomSeed(gpu_seed);
+#else
+    amrex::ignore_unused(gpu_seed);
 #endif
 }
 
@@ -171,9 +170,9 @@ amrex::UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
   }
 }
 
-void amrex::ResetRandomSeed (amrex::ULong seed)
+void amrex::ResetRandomSeed (amrex::ULong cpu_seed, amrex::ULong gpu_seed)
 {
-    InitRandom(seed);
+    InitRandom(cpu_seed, ParallelDescriptor::NProcs(), gpu_seed);
 }
 
 void
