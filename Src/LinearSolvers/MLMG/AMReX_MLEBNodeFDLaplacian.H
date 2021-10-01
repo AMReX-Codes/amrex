@@ -109,6 +109,7 @@ MLEBNodeFDLaplacian::setEBDirichlet (F&& f)
             auto const cellsize = geom.CellSizeArray();
             m_phi_eb[amrlev].define(amrex::convert(m_grids[amrlev][0],IntVect(1)),
                                     m_dmap[amrlev][0], 1, 1);
+            m_phi_eb[amrlev].setVal(0.0);
             auto const& flags = factory->getMultiEBCellFlagFab();
             auto const& levset = factory->getLevelSet();
 #ifdef AMREX_USE_OMP
