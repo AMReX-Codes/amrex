@@ -485,15 +485,14 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
     {
         if (i == MyProc) continue;
         const auto Who  = i;
-        Long nbytes     = plan.m_snd_num_particles[i]*psize;
         const auto Cnt  = plan.m_snd_counts[i];
         if (Cnt == 0) continue;
 
         auto snd_offset = plan.m_snd_offsets[i];
-        AMREX_ASSERT(plan.m_snd_counts[i] % ParallelDescriptor::alignof_comm_data(nbytes) == 0);
+        AMREX_ASSERT(plan.m_snd_counts[i] % ParallelDescriptor::alignof_comm_data(plan.m_snd_num_particles[i]*psize) == 0);
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
         AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
-        AMREX_ASSERT(snd_offset % ParallelDescriptor::alignof_comm_data(nbytes) == 0);
+        AMREX_ASSERT(snd_offset % ParallelDescriptor::alignof_comm_data(plan.m_snd_num_particles[i]*psize) == 0);
 
         ParallelDescriptor::Send((char const*)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum,
                                  ParallelContext::CommunicatorSub());
