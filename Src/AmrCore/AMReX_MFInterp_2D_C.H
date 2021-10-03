@@ -378,8 +378,8 @@ void mf_cell_quadratic_interp_rz (int i, int j, int /*k*/, int n,
                                   Array4<Real const> const& crse,  int ccomp,
                                   Array4<Real const> const& slope, int ncomp,
                                   IntVect const& ratio,
-                                  GeometryData cs_geomdata,
-                                  GeometryData fn_geomdata) noexcept
+                                  GeometryData const& cs_geomdata,
+                                  GeometryData const& fn_geomdata) noexcept
 {
     int ic = amrex::coarsen(i, ratio[0]);
     int jc = amrex::coarsen(j, ratio[1]);

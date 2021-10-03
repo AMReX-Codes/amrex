@@ -568,8 +568,8 @@ CellQuadratic::interp (const FArrayBox& crse,
     if (crse_geom.IsRZ()) {
 
         // Get coarse and fine geometry data.
-        GeometryData cs_geomdata = crse_geom.data();
-        GeometryData fn_geomdata = fine_geom.data();
+        GeometryData const& cs_geomdata = crse_geom.data();
+        GeometryData const& fn_geomdata = fine_geom.data();
 
         // Compute fine correction.
         AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, target_fine_region, ncomp,
