@@ -398,17 +398,18 @@ void mf_cell_quadratic_interp_rz (int i, int j, int /*k*/, int n,
     Real cs_rp = cs_rlo + Real(ic+1) * cs_dr;
 
     // Compute radial cell edge coords.
-    Real fn_vm = 0.5_rt * fn_rm * fn_rm;
-    Real fn_vp = 0.5_rt * fn_rp * fn_rp;
-    Real cs_vm = 0.5_rt * cs_rm * cs_rm;
-    Real cs_vp = 0.5_rt * cs_rp * cs_rp;
+    // Note: omit the 0.5 prefactor here -- we'll add it once at the last step
+    Real fn_vm = fn_rm*fn_rm;
+    Real fn_vp = fn_rp*fn_rp;
+    Real fcen  = fn_vm + fn_vp;
+    Real cs_vm = cs_rm*cs_rm;
+    Real cs_vp = cs_rp*cs_rp;
+    Real ccen  = cs_vm + cs_vp;
 
     // Compute r offset
-    Real fcen = 0.5_rt * ( fn_vm + fn_vp );
-    Real ccen = 0.5_rt * ( cs_vm + cs_vp );
-    Real xoff = ( fcen - ccen ) / ( cs_vp - cs_vm ) ;
+    Real xoff = 0.5_rt * ( fcen - ccen ) / ( cs_vp - cs_vm ) ;
 
-    // Compute z offset (same as Cartesian)
+    // Compute z offset (same formula as Cartesian)
     Real yoff = ( Real(jry) + 0.5_rt ) / Real(ratio[1]) - 0.5_rt;
 
     fine(i,j,0,fcomp+n) = crse(ic,jc,0,ccomp+n)
