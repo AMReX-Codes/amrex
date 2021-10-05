@@ -6,7 +6,7 @@ name: Linux GCC
 on: [push, pull_request]
 
 concurrency:
-  group: ${{ github.head_ref }}-linux-gcc
+  group: ${{ github.ref }}-${{ github.head_ref }}-linux-gcc
   cancel-in-progress: true
 
 jobs:

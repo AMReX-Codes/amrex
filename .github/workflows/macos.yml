@@ -3,7 +3,7 @@ name: macos
 on: [push, pull_request]
 
 concurrency:
-  group: ${{ github.head_ref }}-macos
+  group: ${{ github.ref }}-${{ github.head_ref }}-macos
   cancel-in-progress: true
 
 jobs:
