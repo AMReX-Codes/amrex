@@ -3,7 +3,7 @@ name: Build and Deploy
 on: [push, pull_request]
 
 concurrency:
-  group: ${{ github.head_ref }}-docs
+  group: ${{ github.ref }}-${{ github.head_ref }}-docs
   cancel-in-progress: true
 
 jobs:

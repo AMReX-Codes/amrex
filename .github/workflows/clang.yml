@@ -5,7 +5,7 @@ name: Linux Clang
 on: [push, pull_request]
 
 concurrency:
-  group: ${{ github.head_ref }}-linux-clang
+  group: ${{ github.ref }}-${{ github.head_ref }}-linux-clang
   cancel-in-progress: true
 
 jobs:
