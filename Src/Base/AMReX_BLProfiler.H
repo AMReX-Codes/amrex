@@ -7,7 +7,6 @@
 
 #ifdef BL_PROFILING
 
-#include <AMReX.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
@@ -469,6 +468,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 // --------------------------------------------
 #elif defined(AMREX_TINY_PROFILING)
 
+#include <AMReX.H>
 #include <AMReX_TinyProfiler.H>
 
 #define BL_PROFILE_INITIALIZE()
