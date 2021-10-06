@@ -15,10 +15,6 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_AmrData.H>
 
-#ifdef AMREX_DEBUG
-#include <TV_TempWrite.H>
-#endif
-
 #define GARBAGE 666.e+40
 using namespace amrex;
 

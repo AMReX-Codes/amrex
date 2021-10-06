@@ -16,10 +16,6 @@ using std::ios;
 #include <AMReX_Utility.H>
 #include <AMReX_VisMF.H>
 
-#ifdef AMREX_DEBUG
-#include <TV_TempWrite.H>
-#endif
-
 #include <AMReX_AVGDOWN_F.H>
 
 #define GARBAGE 666.e+40

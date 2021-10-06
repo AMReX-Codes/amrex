@@ -18,9 +18,6 @@ using std::ios;
 #include <AMReX_Utility.H>
 #include <AMReX_VisMF.H>
 
-#ifdef AMREX_DEBUG
-#include <TV_TempWrite.H>
-#endif
 
 #define GARBAGE 666.e+40
 using namespace amrex;

@@ -22,10 +22,6 @@ using std::ios;
 #include "DebugDump.H"
 #include <iomanip>
 
-#ifdef AMREX_DEBUG
-#include <TV_TempWrite.H>
-#endif
-
 #define GARBAGE 666.e+40
 
 using namespace amrex;

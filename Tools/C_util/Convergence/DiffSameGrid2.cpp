@@ -16,10 +16,6 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_DistributionMapping.H>
 
-#ifdef AMREX_DEBUG
-#include <TV_TempWrite.H>
-#endif
-
 #define GARBAGE 666.e+40
 
 

@@ -11,9 +11,6 @@
 #include <AMReX_DataServices.H>
 #include <AMReX_Utility.H>
 
-#ifdef AMREX_DEBUG
-#include <TV_TempWrite.H>
-#endif
 
 using std::ios;
 using namespace amrex;
