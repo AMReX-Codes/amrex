@@ -999,6 +999,23 @@ MLLinOp::compactify (Box const& b) const noexcept
     }
 }
 
+void
+MLLinOp::resizeMultiGrid (int new_size)
+{
+    if (new_size <= 0 || new_size >= m_num_mg_levels[0]) { return; }
+
+    m_num_mg_levels[0] = new_size;
+
+    m_geom[0].resize(new_size);
+    m_grids[0].resize(new_size);
+    m_dmap[0].resize(new_size);
+    m_factory[0].resize(new_size);
+
+    if (m_bottom_comm != m_default_comm) {
+        m_bottom_comm = makeSubCommunicator(m_dmap[0].back());
+    }
+}
+
 #ifdef AMREX_USE_PETSC
 std::unique_ptr<PETScABecLap>
 MLLinOp::makePETSc () const

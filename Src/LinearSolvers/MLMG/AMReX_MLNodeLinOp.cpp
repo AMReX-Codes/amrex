@@ -378,6 +378,35 @@ MLNodeLinOp::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/,
     }
 }
 
+void
+MLNodeLinOp::resizeMultiGrid (int new_size)
+{
+    if (new_size <= 0 || new_size >= m_num_mg_levels[0]) { return; }
+
+    if (m_owner_mask[0].size() > new_size) {
+        m_owner_mask[0].resize(new_size);
+    }
+
+    if (m_dirichlet_mask[0].size() > new_size) {
+        m_dirichlet_mask[0].resize(new_size);
+    }
+
+    if (m_masks_built)
+    {
+        const auto lobc = LoBC();
+        const auto hibc = HiBC();
+        int amrlev = 0;
+        int mglev = new_size-1;
+        const Geometry& geom = m_geom[amrlev][mglev];
+        const iMultiFab& omask = *m_owner_mask[amrlev][mglev];
+        m_bottom_dot_mask = MultiFab();
+        m_bottom_dot_mask.define(omask.boxArray(), omask.DistributionMap(), 1, 0);
+        MLNodeLinOp_set_dot_mask(m_bottom_dot_mask, omask, geom, lobc, hibc, m_coarsening_strategy);
+    }
+
+    MLLinOp::resizeMultiGrid(new_size);
+}
+
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 std::unique_ptr<HypreNodeLap>
 MLNodeLinOp::makeHypreNodeLap (int bottom_verbose, const std::string& options_namespace) const

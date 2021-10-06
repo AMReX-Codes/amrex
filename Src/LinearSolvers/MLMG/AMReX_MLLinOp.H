@@ -402,6 +402,8 @@ protected:
         return std::make_unique<FArrayBoxFactory>();
     }
 
+    virtual void resizeMultiGrid (int new_size);
+
     bool hasHiddenDimension () const noexcept { return info.hasHiddenDimension(); }
     int hiddenDirection () const noexcept { return info.hidden_direction; }
     Box compactify (Box const& b) const noexcept;
