@@ -470,7 +470,6 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
         const auto Cnt    = amrex::aligned_size(acd, nbytes);
 
         AMREX_ASSERT(Cnt > 0);
-        AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
         AMREX_ASSERT(amrex::aligned_size(acd, nbytes) % acd == 0);
 
@@ -491,7 +490,6 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
         auto snd_offset = plan.m_snd_offsets[i];
         AMREX_ASSERT(plan.m_snd_counts[i] % ParallelDescriptor::alignof_comm_data(plan.m_snd_num_particles[i]*psize) == 0);
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
-        AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
         AMREX_ASSERT(snd_offset % ParallelDescriptor::alignof_comm_data(plan.m_snd_num_particles[i]*psize) == 0);
 
         ParallelDescriptor::Send((char const*)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum,
