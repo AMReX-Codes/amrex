@@ -295,6 +295,22 @@ void HypreIJIface::boomeramg_precond_configure(const std::string& prefix)
 
         hpp("bamg_smooth_type", HYPRE_BoomerAMGSetSmoothType);
 
+        // Process ILU smoother parameters
+        if (smooth_type == 5) { // ParILUK
+            hpp("bamg_smooth_num_sweeps", HYPRE_BoomerAMGSetSmoothNumSweeps);
+            hpp("bamg_smooth_num_levels", HYPRE_BoomerAMGSetSmoothNumLevels);
+            hpp("bamg_ilu_type", HYPRE_BoomerAMGSetILUType);
+            hpp("bamg_ilu_level", HYPRE_BoomerAMGSetILULevel);
+            hpp("bamg_ilu_max_iter", HYPRE_BoomerAMGSetILUMaxIter);
+        }
+        else if (smooth_type == 7) { // Pilut
+            hpp("bamg_smooth_num_sweeps", HYPRE_BoomerAMGSetSmoothNumSweeps);
+            hpp("bamg_smooth_num_levels", HYPRE_BoomerAMGSetSmoothNumLevels);
+            hpp("bamg_ilu_max_iter", HYPRE_BoomerAMGSetILUMaxIter);
+            hpp("bamg_ilu_max_row_nnz", HYPRE_BoomerAMGSetILUMaxRowNnz);
+            hpp("bamg_ilu_drop_tol", HYPRE_BoomerAMGSetILUDroptol, 1.e-10);
+        }
+
         // Process Euclid smoother parameters
         if (smooth_type == 9) {
             if (hpp.pp.contains("bamg_euclid_file")) {
