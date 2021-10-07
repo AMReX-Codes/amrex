@@ -1,3 +1,4 @@
+AMREX_HOME ?= ../../..
 
 TOP = $(AMREX_HOME)
 USE_EB =FALSE
