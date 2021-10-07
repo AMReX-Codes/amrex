@@ -75,7 +75,7 @@ int main_main()
         plotfile_b = amrex::get_command_argument(farg++);
     }
 
-    if (plotfile_a.empty() && plotfile_b.empty()) {
+    if (plotfile_a.empty() || plotfile_b.empty()) {
         amrex::Print()
             << "\n"
             << " Compare two plotfiles, zone by zone, to machine precision\n"
