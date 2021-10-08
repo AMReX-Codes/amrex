@@ -25,6 +25,8 @@ void
 PrintUsage (const char* progName)
 {
     std::cout << '\n';
+    std::cout << "This program adds a constant factor to a FAB.\n";
+    std::cout << '\n';
     std::cout << "Usage:" << '\n';
     std::cout << progName << '\n';
     std::cout << "    infile  = inputFileName" << '\n';
