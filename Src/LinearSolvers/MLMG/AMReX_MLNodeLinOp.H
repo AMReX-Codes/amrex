@@ -125,6 +125,8 @@ public:
 
 protected:
 
+    virtual void resizeMultiGrid (int new_size) override;
+
     Vector<Vector<std::unique_ptr<iMultiFab> > > m_owner_mask;      // ownership of nodes
     Vector<Vector<std::unique_ptr<iMultiFab> > > m_dirichlet_mask;  // dirichlet?
     Vector<std::unique_ptr<iMultiFab> > m_cc_fine_mask;          // cell-centered mask for cells covered by fine
