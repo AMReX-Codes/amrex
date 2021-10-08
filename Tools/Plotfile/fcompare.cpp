@@ -66,8 +66,8 @@ int main_main()
     int farg = 1;
     while (farg <= narg) {
         const std::string fname = amrex::get_command_argument(farg);
-	if (fname == "-h" || fname == "--help"){
-	    PrintUsage();
+        if (fname == "-h" || fname == "--help"){
+            PrintUsage();
         } else if (fname == "--infile1") {
             plotfile_a = amrex::get_command_argument(++farg);
         } else if (fname == "--infile2") {
