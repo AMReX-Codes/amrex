@@ -17,10 +17,6 @@
 
 #include "AugmentPlotfile_F.H"
 
-#ifndef NDEBUG
-#include <TV_TempWrite.H>
-#endif
-
 #define GARBAGE 666.e+40
 
 
