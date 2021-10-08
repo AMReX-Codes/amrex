@@ -382,7 +382,7 @@ AMReX provides a parser in ``AMReX_Parser.H`` that can be used at runtime to eva
 expressions given in the form of string.  It supports ``+``, ``-``, ``*``,
 ``/``, ``**`` (power), ``^`` (power), ``sqrt``, ``exp``, ``log``, ``log10``,
 ``sin``, ``cos``, ``tan``, ``asin``, ``acos``, ``atan``, ``sinh``, ``cosh``,
-``tanh``, ``abs``, ``floor`` and ``ceil``.  The minimum and maximum of two
+``tanh``, ``abs``, ``floor``, ``ceil`` and ``fmod``.  The minimum and maximum of two
 numbers can be computed with ``min`` and ``max``, respectively.  It supports
 the Heaviside step function, ``heaviside(x1,x2)`` that gives ``0``, ``x2``,
 ``1``, for ``x1 < 0``, ``x1 = 0`` and ``x1 > 0``, respectively.
