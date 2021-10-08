@@ -307,6 +307,23 @@ Then we would pass :cpp:`add_par` into :cpp:`amrex::Initialize`:
 This value replaces the current default value of true in AMReX itself, but
 can still be over-written by setting a value in the inputs file.
 
+Sharing the Command Line
+------------------------
+
+In some cases we want AMReX to only read part of the command line -- this happens, for example, when we
+are going to use AMReX in cooperation with another code package and that code also takes command-line
+arguments.
+
+.. highlight:: console
+
+::
+
+    main2d*.exe inputs amrex.v=1 amrex.fpe_trap_invalid=1 -- -tao_monitor
+
+then AMReX will parse the inputs file and the optional AMReX's command
+line arguments, but will ignore everything after the double dashes.
+
+
 .. _sec:basics:parser:
 
 Parser
@@ -427,21 +444,6 @@ inserted by the compiler) do not function properly after
 (e.g., a pair of curly braces or a separate function) to make sure
 resources are properly freed.
 
-Sharing the Command Line
-------------------------
-
-In some cases we want AMReX to only read part of the command line -- this happens, for example, when we
-are going to use AMReX in cooperation with another code package and that code also takes command-line
-arguments.
-
-.. highlight:: console
-
-::
-
-    main2d*.exe inputs amrex.v=1 amrex.fpe_trap_invalid=1 -- -tao_monitor
-
-then AMReX will parse the inputs file and the optional AMReX's command
-line arguments, but will ignore everything after the double dashes.
 
 .. _sec:basics:amrgrids:
 
