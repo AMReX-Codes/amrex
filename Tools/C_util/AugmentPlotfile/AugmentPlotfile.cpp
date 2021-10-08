@@ -102,7 +102,7 @@ main (int argc, char* argv[])
         std::string infile, outfile;
 
         bool verbose = false;
-	pp.query("verbose", verbose);
+        pp.query("verbose", verbose);
         if (verbose)
         {
             AmrData::SetVerbose(true);
