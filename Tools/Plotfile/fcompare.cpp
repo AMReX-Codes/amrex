@@ -36,7 +36,6 @@ void PrintUsage()
         << "    -r|--rel_tol rtol     : relative tolerance (default is 0)\n"
         << "    --abs_tol atol        : absolute tolerance (default is 0)\n"
         << std::endl;
-    exit(EXIT_FAILURE);
 }
 
 int main_main()
@@ -68,6 +67,7 @@ int main_main()
         const std::string fname = amrex::get_command_argument(farg);
         if (fname == "-h" || fname == "--help"){
             PrintUsage();
+            exit(EXIT_SUCCESS);
         } else if (fname == "--infile1") {
             plotfile_a = amrex::get_command_argument(++farg);
         } else if (fname == "--infile2") {
@@ -103,6 +103,7 @@ int main_main()
 
     if (plotfile_a.empty() || plotfile_b.empty()) {
         PrintUsage();
+        exit(EXIT_FAILURE);
     }
 
     PlotFileData pf_a(plotfile_a);
