@@ -16,10 +16,6 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_DistributionMapping.H>
 
-#ifdef AMREX_DEBUG
-#include <TV_TempWrite.H>
-#endif
-
 #define GARBAGE 666.e+40
 
 
@@ -78,7 +74,8 @@ main (int   argc,
 
         ParmParse pp;
 
-        if (pp.contains("help"))
+        const std::string farg = amrex::get_command_argument(1);
+        if (farg == "-h" || farg == "--help")
             PrintUsage(argv[0]);
 
         std::string iFile1, iFile2, difFile;

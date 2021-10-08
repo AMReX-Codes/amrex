@@ -16,10 +16,6 @@ using std::ios;
 #include <AMReX_Utility.H>
 #include <AMReX_VisMF.H>
 
-#ifdef AMREX_DEBUG
-#include <TV_TempWrite.H>
-#endif
-
 #include <AMReX_AVGDOWN_F.H>
 
 #define GARBAGE 666.e+40
@@ -28,6 +24,8 @@ static
 void
 PrintUsage (const char* progName)
 {
+    std::cout << '\n';
+    std::cout << "This program adds a constant factor to a FAB.\n";
     std::cout << '\n';
     std::cout << "Usage:" << '\n';
     std::cout << progName << '\n';
@@ -48,6 +46,12 @@ main (int   argc,
 
         if (argc == 1)
             PrintUsage(argv[0]);
+
+        const std::string farg = amrex::get_command_argument(1);
+        if (farg == "-h" || farg == "--help")
+        {
+            PrintUsage(argv[0]);
+        }
 
         ParmParse pp;
 
