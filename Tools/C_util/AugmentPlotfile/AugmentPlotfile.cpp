@@ -91,6 +91,12 @@ main (int argc, char* argv[])
         if (argc == 1)
             PrintUsage(argv[0]);
 
+        const std::string farg = amrex::get_command_argument(1);
+        if (farg == "-h" || farg == "--help")
+        {
+            PrintUsage(argv[0]);
+        }
+
         ParmParse pp;
 
         std::string infile, outfile;

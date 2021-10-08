@@ -45,6 +45,12 @@ main (int   argc,
         if (argc == 1)
             PrintUsage(argv[0]);
 
+        const std::string farg = amrex::get_command_argument(1);
+        if (farg == "-h" || farg == "--help")
+        {
+            PrintUsage(argv[0]);
+        }
+
         ParmParse pp;
 
         FArrayBox::setFormat(FABio::FAB_IEEE_32);

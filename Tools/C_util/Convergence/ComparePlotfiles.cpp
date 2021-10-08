@@ -52,6 +52,12 @@ main (int   argc,
             PrintUsage(argv[0]);
         }
 
+        const std::string farg = amrex::get_command_argument(1);
+        if (farg == "-h" || farg == "--help")
+        {
+            PrintUsage(argv[0]);
+        }
+
         // plotfile names for the coarse, fine, and subtracted output
         std::string iFile1, iFile2, difFile="";
 

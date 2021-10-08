@@ -12,8 +12,11 @@ using namespace amrex;
 void
 print_usage (int, char* argv[])
 {
-    std::cerr << "usage:\n";
-    std::cerr << argv[0] << " infile1=f1 infile2=f2, ngrow=ngrow" << std::endl;
+    Print()<<"\n"
+           <<"This program differences two MultiFabs.\n\n"
+           << "usage:\n"
+           << argv[0] << " infile1=mf1 infile2=mf2 ngrow=ngrow\n"
+           << std::endl;
     exit(1);
 }
 
@@ -23,6 +26,12 @@ int main(int argc, char* argv[])
     {
         if (argc < 3) {
             print_usage(argc,argv);
+        }
+
+        const std::string farg = amrex::get_command_argument(1);
+        if (farg == "-h" || farg == "--help")
+        {
+            print_usage(argc, argv);
         }
 
         std::string name1, name2;
