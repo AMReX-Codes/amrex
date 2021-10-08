@@ -61,6 +61,8 @@ public:
 
     void PrintUsage (std::string const& name) const;
 
+    void PrintUsage (std::ostream& os, std::string const& name, std::string const& space) const;
+
     //! The default memory hunk size to grab from the heap.
     constexpr static std::size_t DefaultHunkSize = 1024*1024*8;
 
