@@ -2,6 +2,7 @@
 #include <AMReX_MLEBNodeFDLap_K.H>
 #include <AMReX_MLNodeLap_K.H>
 #include <AMReX_MLNodeTensorLap_K.H>
+#include <AMReX_MultiFabUtil.H>
 
 namespace amrex {
 
@@ -61,6 +62,94 @@ MLEBNodeFDLaplacian::define (const Vector<Geometry>& a_geom,
     int eb_limit_coarsening = false;
     m_coarsening_strategy = CoarseningStrategy::Sigma; // This will fill nodes outside Neumann BC
     MLNodeLinOp::define(a_geom, cc_grids, a_dmap, a_info, _factory, eb_limit_coarsening);
+
+    // We need to make sure EB objects do not get lost during coarsening
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[0][0].get());
+    if (factory) {
+        auto const& levset = factory->getLevelSet();
+        iMultiFab fine_mask(amrex::convert(m_grids[0][0],IntVect(1)), m_dmap[0][0], 1, 0);
+        auto const& ls_arrs = levset.const_arrays();
+        auto const& mk_arrs = fine_mask.arrays();
+        amrex::ParallelFor(fine_mask, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+        {
+            mk_arrs[box_no](i,j,k) = static_cast<int>(ls_arrs[box_no](i,j,k) < Real(0.0));
+        });
+
+        // Let's figure out the max mfiter safe level.  Below that leve,
+        // parallel communication is not safe if not all processes are
+        // participating.
+        int max_mfiter_safe_level;
+        for (max_mfiter_safe_level = 0; max_mfiter_safe_level < m_num_mg_levels[0]-1;
+             ++max_mfiter_safe_level)
+        {
+            if (!BoxArray::SameRefs(m_grids[0][max_mfiter_safe_level+1],
+                                    m_grids[0][max_mfiter_safe_level])
+                || m_dmap[0][max_mfiter_safe_level+1] != m_dmap[0][max_mfiter_safe_level])
+            {
+                break;
+            }
+        }
+
+        iMultiFab crse_mask;
+        int max_eb_level = 0;
+        for (int mglev = 1; mglev <= max_mfiter_safe_level; ++mglev) {
+            auto const& fine_arrs = fine_mask.const_arrays();
+            int ierr = ParReduce(TypeList<ReduceOpLogicalOr>{}, TypeList<int>{}, fine_mask,
+                                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> int
+                                 {
+                                     return mlebndfdlap_check_coarsening(i,j,k,fine_arrs[box_no]);
+                                 });
+            if (ierr) {
+                break;
+            } else {
+                max_eb_level = mglev;
+                if (mglev < m_num_mg_levels[0]-1) {
+                    crse_mask = iMultiFab(amrex::convert(m_grids[0][mglev],IntVect(1)),
+                                          m_dmap[0][mglev], 1, 0);
+                    auto const& crse_arrs = crse_mask.arrays();
+                    amrex::ParallelFor(crse_mask,
+                                       [=] AMREX_GPU_DEVICE (int b, int i, int j, int k) noexcept
+                                       {
+                                           crse_arrs[b](i,j,k) = fine_arrs[b](2*i,2*j,2*k);
+                                       });
+                    amrex::Gpu::synchronize();
+                    std::swap(fine_mask, crse_mask);
+                    crse_mask.clear();
+                }
+            }
+        }
+        ParallelAllReduce::Min(max_eb_level, ParallelContext::CommunicatorSub());
+
+        if (max_eb_level == max_mfiter_safe_level) {
+            for (int mglev = max_eb_level+1; mglev < m_num_mg_levels[0]; ++mglev) {
+                auto const& fine_arrs = fine_mask.const_arrays();
+                int ierr = ParReduce(TypeList<ReduceOpLogicalOr>{}, TypeList<int>{}, fine_mask,
+                                     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                                         -> int
+                                     {
+                                         return mlebndfdlap_check_coarsening(i,j,k,fine_arrs[box_no]);
+                                     });
+                ParallelAllReduce::Max(ierr, ParallelContext::CommunicatorSub());
+
+                if (ierr) {
+                    break;
+                } else {
+                    max_eb_level = mglev;
+                    if (mglev < m_num_mg_levels[0]-1) {
+                        crse_mask = iMultiFab(amrex::convert(m_grids[0][mglev],IntVect(1)),
+                                              m_dmap[0][mglev], 1, 0);
+                        amrex::average_down_nodal(fine_mask, crse_mask, IntVect(2));
+                        std::swap(fine_mask, crse_mask);
+                        crse_mask.clear();
+                    }
+                }
+            }
+        }
+
+        if (max_eb_level+1 < m_num_mg_levels[0]) {
+            resizeMultiGrid(max_eb_level+1);
+        }
+    }
 }
 
 std::unique_ptr<FabFactory<FArrayBox> >
@@ -218,7 +307,7 @@ MLEBNodeFDLaplacian::prepareForSolve ()
         auto const& msk = m_dirichlet_mask[0][0]->const_array(mfi);
         AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
         {
-            acf(i,j,k) = msk(i,j,k) ? ahuge : 0.0;
+            acf(i,j,k) = msk(i,j,k) ? ahuge : Real(0.0);
         });
     }
 
