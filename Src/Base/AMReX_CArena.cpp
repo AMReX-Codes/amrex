@@ -281,4 +281,13 @@ CArena::PrintUsage (std::string const& name) const
 #endif
 }
 
+void
+CArena::PrintUsage (std::ostream& os, std::string const& name, std::string const& space) const
+{
+    Long megabytes = heap_space_used() / (1024*1024);
+    Long actual_megabytes = heap_space_actually_used() / (1024*1024);
+    os << space << "[" << name << "]" << " space allocated (MB): " << megabytes << "\n";
+    os << space << "[" << name << "]" << " space used      (MB): " << actual_megabytes << "\n";
+}
+
 }

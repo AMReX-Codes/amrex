@@ -406,6 +406,53 @@ Arena::PrintUsage ()
 }
 
 void
+Arena::PrintUsageToFiles (const std::string& filename, const std::string& message)
+{
+    std::ofstream ofs(filename+"."+std::to_string(ParallelDescriptor::MyProc()),
+                      std::ios_base::app);
+    if (!ofs.is_open()) {
+        amrex::Error("Could not open file for appending in amrex::Arena::PrintUsageToFiles()");
+    }
+
+    ofs << message << "\n";
+
+#ifdef AMREX_USE_GPU
+    Long megabytes = Gpu::Device::totalGlobalMem() / (1024*1024);
+    ofs << "    Total GPU global memory (MB): " << megabytes << "\n";
+
+    megabytes = Gpu::Device::freeMemAvailable() / (1024*1024);
+    ofs << "    Free  GPU global memory (MB): " << megabytes << "\n";
+#endif
+
+    if (The_Arena()) {
+        CArena* p = dynamic_cast<CArena*>(The_Arena());
+        if (p) {
+            p->PrintUsage(ofs, "The         Arena", "    ");
+        }
+    }
+    if (The_Device_Arena() && The_Device_Arena() != The_Arena()) {
+        CArena* p = dynamic_cast<CArena*>(The_Device_Arena());
+        if (p) {
+            p->PrintUsage(ofs, "The  Device Arena", "    ");
+        }
+    }
+    if (The_Managed_Arena() && The_Managed_Arena() != The_Arena()) {
+        CArena* p = dynamic_cast<CArena*>(The_Managed_Arena());
+        if (p) {
+            p->PrintUsage(ofs, "The Managed Arena", "    ");
+        }
+    }
+    if (The_Pinned_Arena()) {
+        CArena* p = dynamic_cast<CArena*>(The_Pinned_Arena());
+        if (p) {
+            p->PrintUsage(ofs, "The  Pinned Arena", "    ");
+        }
+    }
+
+    ofs << "\n";
+}
+
+void
 Arena::Finalize ()
 {
 #ifdef AMREX_USE_GPU
