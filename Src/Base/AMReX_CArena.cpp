@@ -37,7 +37,7 @@ CArena::alloc (std::size_t nbytes)
 
     nbytes = Arena::align(nbytes == 0 ? 1 : nbytes);
 
-    if (static_cast<Long>(m_used+nbytes) >= arena_info.release_threshold) {
+    if (static_cast<Long>(m_used+nbytes) > arena_info.release_threshold) {
         freeUnused_protected();
     }
 

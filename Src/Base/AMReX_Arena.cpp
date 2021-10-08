@@ -249,6 +249,7 @@ Arena::Initialize ()
     buddy_allocator_size = Gpu::Device::totalGlobalMem() / 4L * 3L;
 #endif
 
+    the_arena_release_threshold = the_arena_init_size;
     the_pinned_arena_release_threshold = Gpu::Device::totalGlobalMem();
 #endif
 
@@ -259,6 +260,7 @@ Arena::Initialize ()
     pp.query( "the_device_arena_init_size",  the_device_arena_init_size);
     pp.query("the_managed_arena_init_size", the_managed_arena_init_size);
     pp.query( "the_pinned_arena_init_size",  the_pinned_arena_init_size);
+    the_arena_release_threshold = std::max(the_arena_init_size, the_arena_release_threshold);
     pp.query(       "the_arena_release_threshold" ,         the_arena_release_threshold);
     pp.query( "the_device_arena_release_threshold",  the_device_arena_release_threshold);
     pp.query("the_managed_arena_release_threshold", the_managed_arena_release_threshold);
