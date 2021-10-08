@@ -23,7 +23,6 @@ f90EXE_sources += $(EBASE)_F.f90
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 
-include ../Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/Extern/amrdata/Make.package
