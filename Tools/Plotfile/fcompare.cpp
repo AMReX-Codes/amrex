@@ -102,7 +102,7 @@ int main_main()
     }
 
     if (plotfile_a.empty() || plotfile_b.empty()) {
-	PrintUsage();
+        PrintUsage();
     }
 
     PlotFileData pf_a(plotfile_a);
