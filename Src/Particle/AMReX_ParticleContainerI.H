@@ -1135,9 +1135,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::So
 
             ptile_tmp.define(m_num_runtime_real, m_num_runtime_int);
             for (int comp = 0; comp < NArrayReal + m_num_runtime_real; ++comp) {
-                const auto src = ptile.GetStructOfArrays().GetRealData(comp);
-                auto dst = ptile_tmp.GetStructOfArrays().GetRealData(comp);
-                dst.resize(np);
+                ptile_tmp.GetStructOfArrays().GetRealData(comp).resize(np);
+                const auto src = ptile.GetStructOfArrays().GetRealData(comp).data();
+                auto dst = ptile_tmp.GetStructOfArrays().GetRealData(comp).data();
 
                 AMREX_HOST_DEVICE_FOR_1D( np, i,
                 {
@@ -1149,9 +1149,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::So
             }
 
             for (int comp = 0; comp < NArrayInt + m_num_runtime_int; ++comp) {
-                const auto src = ptile.GetStructOfArrays().GetIntData(comp);
-                auto dst = ptile_tmp.GetStructOfArrays().GetIntData(comp);
-                dst.resize(0);
+                ptile_tmp.GetStructOfArrays().GetIntData(comp).resize(np);
+                const auto src = ptile.GetStructOfArrays().GetIntData(comp).data();
+                auto dst = ptile_tmp.GetStructOfArrays().GetIntData(comp).data();
 
                 AMREX_HOST_DEVICE_FOR_1D( np, i,
                 {
