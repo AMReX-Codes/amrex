@@ -1110,17 +1110,58 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::So
             const size_t np = aos.numParticles();
             auto pstruct_ptr = aos().dataPtr();
 
-            ParticleTileType ptile_tmp;
-            ptile_tmp.define(m_num_runtime_real, m_num_runtime_int);
-            ptile_tmp.resize(np);
-
             const Box& box = mfi.validbox();
 
             int ntiles = numTilesInBox(box, true, bin_size);
 
             m_bins.build(np, pstruct_ptr, ntiles, GetParticleBin{plo, dxi, domain, bin_size, box});
+            auto inds = m_bins.permutationPtr();
 
-            gatherParticles(ptile_tmp, ptile, np, m_bins.permutationPtr());
+            ParticleTileType ptile_tmp;
+            auto& aos_tmp = ptile_tmp.GetArrayOfStructs()();
+            aos_tmp.resize(np);
+            {
+                const auto src = ptile.getConstParticleTileData();
+                auto dst = ptile_tmp.getParticleTileData();
+
+                AMREX_HOST_DEVICE_FOR_1D( np, i,
+                {
+                    dst.m_aos[i] = src.m_aos[inds[i]];
+                });
+
+                Gpu::synchronize();
+            }
+            ptile.GetArrayOfStructs().resize(0);
+
+            ptile_tmp.define(m_num_runtime_real, m_num_runtime_int);
+            for (int comp = 0; comp < NArrayReal + m_num_runtime_real; ++comp) {
+                const auto src = ptile.GetStructOfArrays().GetRealData(comp);
+                auto dst = ptile_tmp.GetStructOfArrays().GetRealData(comp);
+                dst.resize(np);
+
+                AMREX_HOST_DEVICE_FOR_1D( np, i,
+                {
+                    dst[i] = src[inds[i]];
+                });
+
+                Gpu::synchronize();
+                ptile.GetStructOfArrays().GetRealData(comp).resize(0);
+            }
+
+            for (int comp = 0; comp < NArrayInt + m_num_runtime_int; ++comp) {
+                const auto src = ptile.GetStructOfArrays().GetIntData(comp);
+                auto dst = ptile_tmp.GetStructOfArrays().GetIntData(comp);
+                dst.resize(0);
+
+                AMREX_HOST_DEVICE_FOR_1D( np, i,
+                {
+                    dst[i] = src[inds[i]];
+                });
+
+                Gpu::synchronize();
+                ptile.GetStructOfArrays().GetIntData(comp).resize(0);
+            }
+
             ptile.swap(ptile_tmp);
         }
     }
