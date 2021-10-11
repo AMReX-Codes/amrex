@@ -202,6 +202,7 @@ public:
 
     static AMREX_EXPORT bool do_tiling;
     static AMREX_EXPORT IntVect tile_size;
+    static AMREX_EXPORT bool memEfficientSort;
     mutable AmrParticleLocator<DenseBins<Box> > m_particle_locator;
 
 protected:

@@ -68,6 +68,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator> :: 
 
         pp.query("use_prepost", usePrePost);
         pp.query("do_unlink", doUnlink);
+        pp.query("do_mem_efficient_sort", memEfficientSort);
 
         initialized = true;
     }
@@ -1118,48 +1119,58 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::So
             auto inds = m_bins.permutationPtr();
 
             ParticleTileType ptile_tmp;
-            auto& aos_tmp = ptile_tmp.GetArrayOfStructs()();
-            aos_tmp.resize(np);
-            {
-                const auto src = ptile.getConstParticleTileData();
-                auto dst = ptile_tmp.getParticleTileData();
-
-                AMREX_HOST_DEVICE_FOR_1D( np, i,
-                {
-                    dst.m_aos[i] = src.m_aos[inds[i]];
-                });
-
-                Gpu::synchronize();
-            }
-            ptile.GetArrayOfStructs().resize(0);
-
             ptile_tmp.define(m_num_runtime_real, m_num_runtime_int);
-            for (int comp = 0; comp < NArrayReal + m_num_runtime_real; ++comp) {
-                ptile_tmp.GetStructOfArrays().GetRealData(comp).resize(np);
-                const auto src = ptile.GetStructOfArrays().GetRealData(comp).data();
-                auto dst = ptile_tmp.GetStructOfArrays().GetRealData(comp).data();
-
-                AMREX_HOST_DEVICE_FOR_1D( np, i,
+            if (memEfficientSort) {
+                amrex::Print() << "doing mem efficient sort \n";
+                auto& aos_tmp = ptile_tmp.GetArrayOfStructs()();
+                aos_tmp.resize(np);
                 {
-                    dst[i] = src[inds[i]];
-                });
+                    const auto src = ptile.getConstParticleTileData();
+                    auto dst = ptile_tmp.getParticleTileData();
 
-                Gpu::synchronize();
-                ptile.GetStructOfArrays().GetRealData(comp).resize(0);
-            }
+                    AMREX_HOST_DEVICE_FOR_1D( np, i,
+                    {
+                        dst.m_aos[i] = src.m_aos[inds[i]];
+                    });
 
-            for (int comp = 0; comp < NArrayInt + m_num_runtime_int; ++comp) {
-                ptile_tmp.GetStructOfArrays().GetIntData(comp).resize(np);
-                const auto src = ptile.GetStructOfArrays().GetIntData(comp).data();
-                auto dst = ptile_tmp.GetStructOfArrays().GetIntData(comp).data();
+                    Gpu::synchronize();
+                }
+                ptile.GetArrayOfStructs().resize(0);
+                ptile.GetArrayOfStructs()().shrink_to_fit();
 
-                AMREX_HOST_DEVICE_FOR_1D( np, i,
-                {
-                    dst[i] = src[inds[i]];
-                });
+                for (int comp = 0; comp < NArrayReal + m_num_runtime_real; ++comp) {
+                    ptile_tmp.GetStructOfArrays().GetRealData(comp).resize(np);
+                    const auto src = ptile.GetStructOfArrays().GetRealData(comp).data();
+                    auto dst = ptile_tmp.GetStructOfArrays().GetRealData(comp).data();
 
-                Gpu::synchronize();
-                ptile.GetStructOfArrays().GetIntData(comp).resize(0);
+                    AMREX_HOST_DEVICE_FOR_1D( np, i,
+                    {
+                        dst[i] = src[inds[i]];
+                    });
+
+                    Gpu::synchronize();
+                    ptile.GetStructOfArrays().GetRealData(comp).resize(0);
+                    ptile.GetStructOfArrays().GetRealData(comp).shrink_to_fit();
+                }
+
+                for (int comp = 0; comp < NArrayInt + m_num_runtime_int; ++comp) {
+                    ptile_tmp.GetStructOfArrays().GetIntData(comp).resize(np);
+                    const auto src = ptile.GetStructOfArrays().GetIntData(comp).data();
+                    auto dst = ptile_tmp.GetStructOfArrays().GetIntData(comp).data();
+
+                    AMREX_HOST_DEVICE_FOR_1D( np, i,
+                    {
+                        dst[i] = src[inds[i]];
+                    });
+
+                    Gpu::synchronize();
+                    ptile.GetStructOfArrays().GetIntData(comp).resize(0);
+                    ptile.GetStructOfArrays().GetIntData(comp).shrink_to_fit();
+                }
+            } else {
+                amrex::Print() << "doing regular sort \n";
+                ptile_tmp.resize(np);
+                gatherParticles(ptile_tmp, ptile, np, m_bins.permutationPtr());
             }
 
             ptile.swap(ptile_tmp);
