@@ -54,7 +54,8 @@ main (int   argc,
 
     ParmParse pp;
 
-    if (pp.contains("help"))
+    const std::string farg = amrex::get_command_argument(1);
+    if (farg == "-h" || farg == "--help")
       print_usage(argc,argv);
 
     std::string infile; pp.get("infile",infile);
