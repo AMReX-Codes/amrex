@@ -551,10 +551,6 @@ void clearEmptyEntries (C& c)
 }
 }
 
-#ifdef AMREX_USE_HDF5_ASYNC
-void async_vol_es_wait_particle();
-void async_vol_es_wait_close_particle();
-#endif
 }
 
 #endif // include guard

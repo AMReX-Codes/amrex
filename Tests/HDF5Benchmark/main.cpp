@@ -4,9 +4,6 @@
 #include <AMReX_Particles.H>
 
 #include <unistd.h>
-#ifdef AMREX_USE_HDF5_ASYNC
-#include "h5_vol_external_async_native.h"
-#endif
 
 using namespace amrex;
 
