@@ -310,8 +310,8 @@ can still be over-written by setting a value in the inputs file.
 Sharing the Command Line
 ------------------------
 
-In some cases we want AMReX to only read some of the command line 
-arguments -- this happens, for example, when we are going to use AMReX 
+In some cases we want AMReX to only read some of the command line
+arguments -- this happens, for example, when we are going to use AMReX
 in cooperation with another code package and that code also takes arguments.
 
 Consider:
@@ -324,6 +324,33 @@ Consider:
 
 In this example, AMReX will parse the inputs file and the optional AMReX
 command line arguments, but will ignore arguments after the double dashes.
+
+Command Line Flags
+------------------
+
+AMReX allows application codes to parse flags such as ``-h`` or ``--help``
+while still making use of ParmParse for parsing other runtime parameters but only
+if it is the first argument after the executable. If the first argument following
+the executable name begins with a dash, AMReX will initialize without reading
+any parameters and the application code may then parse the command line and
+handle those cases. Several built in functions are available to help parse
+the command line. They are:
+
+.. table::
+
+   +--------------------------------------------+-------------------------------------------+
+   | Function                                   | Purpose                                   |
+   +============================================+===========================================+
+   | ``amrex::get_command()``                   | Get the entire command line.              |
+   +--------------------------------------------+-------------------------------------------+
+   | ``amrex::get_argument_count()``            | Get the number of command line arguments  |
+   |                                            | after the executable.                     |
+   +--------------------------------------------+-------------------------------------------+
+   | ``amrex:get_command_argument(int number)`` | Returns the argument the ``number`` after |
+   |                                            | the exectuable.                           |
+   +--------------------------------------------+-------------------------------------------+
+
+
 
 
 .. _sec:basics:parser:
