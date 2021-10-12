@@ -119,6 +119,11 @@ main (int   argc,
     Vector<std::string> outNames;
     outNames.push_back("transform");
     WritePlotFile(stateOut,amrData,outfile,false,outNames);
+
+    for (int lev=0; lev<nLev; ++lev)
+    {
+        delete stateOut[lev];
+    }
   }
   amrex::Finalize();
   return 0;
