@@ -225,6 +225,12 @@ namespace {
         static NullArena the_null_arena;
         return &the_null_arena;
     }
+
+    Arena* The_BArena ()
+    {
+        static BArena the_barena;
+        return &the_barena;
+    }
 }
 
 void
@@ -294,7 +300,7 @@ Arena::Initialize ()
         the_arena->free(p);
 #endif
 #else
-        the_arena = new BArena;
+        the_arena = The_BArena();
 #endif
     }
 
@@ -308,7 +314,7 @@ Arena::Initialize ()
                                       (the_device_arena_release_threshold));
     }
 #else
-    the_device_arena = new BArena;
+    the_device_arena = The_BArena();
 #endif
 
 #ifdef AMREX_USE_GPU
@@ -319,7 +325,7 @@ Arena::Initialize ()
                                        (the_managed_arena_release_threshold));
     }
 #else
-    the_managed_arena = new BArena;
+    the_managed_arena = The_BArena();
 #endif
 
     // When USE_CUDA=FALSE, we call mlock to pin the cpu memory.
@@ -342,7 +348,7 @@ Arena::Initialize ()
         the_pinned_arena->free(p);
     }
 
-    the_cpu_arena = new BArena;
+    the_cpu_arena = The_BArena();
 
     // Initialize the null arena
     auto null_arena = The_Null_Arena();
@@ -465,18 +471,24 @@ Arena::Finalize ()
 
     initialized = false;
 
-    if (the_device_arena != the_arena) {
-        delete the_device_arena;
+    if (!dynamic_cast<BArena*>(the_device_arena)) {
+        if (the_device_arena != the_arena) {
+            delete the_device_arena;
+        }
+        the_device_arena = nullptr;
     }
-    the_device_arena = nullptr;
 
-    if (the_managed_arena != the_arena) {
-        delete the_managed_arena;
+    if (!dynamic_cast<BArena*>(the_managed_arena)) {
+        if (the_managed_arena != the_arena) {
+            delete the_managed_arena;
+        }
+        the_managed_arena = nullptr;
     }
-    the_managed_arena = nullptr;
 
-    delete the_arena;
-    the_arena = nullptr;
+    if (!dynamic_cast<BArena*>(the_arena)) {
+        delete the_arena;
+        the_arena = nullptr;
+    }
 
     delete the_async_arena;
     the_async_arena = nullptr;
@@ -484,8 +496,10 @@ Arena::Finalize ()
     delete the_pinned_arena;
     the_pinned_arena = nullptr;
 
-    delete the_cpu_arena;
-    the_cpu_arena = nullptr;
+    if (!dynamic_cast<BArena*>(the_cpu_arena)) {
+        delete the_cpu_arena;
+        the_cpu_arena = nullptr;
+    }
 }
 
 Arena*
