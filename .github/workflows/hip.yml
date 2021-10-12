@@ -3,7 +3,7 @@ name: hip
 on: [push, pull_request]
 
 concurrency:
-  group: ${{ github.head_ref }}-hip
+  group: ${{ github.ref }}-${{ github.head_ref }}-hip
   cancel-in-progress: true
 
 jobs:

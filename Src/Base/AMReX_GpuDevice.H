@@ -55,7 +55,7 @@ public:
     static gpuStream_t gpuStream () noexcept { return gpu_stream[OpenMP::get_thread_num()]; }
     static gpuStream_t nullStream () noexcept { return gpu_default_stream; }
 #ifdef AMREX_USE_CUDA
-    // for backward compatibility
+    /** for backward compatibility */
     static cudaStream_t cudaStream () noexcept { return gpu_stream[OpenMP::get_thread_num()]; }
 #endif
 #ifdef AMREX_USE_DPCPP
@@ -73,7 +73,7 @@ public:
     static void resetStreamIndex () noexcept { setStreamIndex(-1); }
 
 #ifdef AMREX_USE_GPU
-    // For Index, the null stream is -1, and the other streams are 0, 1, 2, ...
+    /** For Index, the null stream is -1, and the other streams are 0, 1, 2, ...  */
     static int streamIndex (gpuStream_t s = gpuStream()) noexcept;
 
     static gpuStream_t setStream (gpuStream_t s) noexcept;
@@ -83,21 +83,30 @@ public:
     static int deviceId () noexcept;
     static int numDevicesUsed () noexcept;
 
+    /**
+     * Halt execution of code until GPU has finished processing all previously requested
+     * tasks.
+     */
     static void synchronize () noexcept;
+
+    /**
+     * Halt execution of code until GPU stream has finished processing all
+     * previously requested tasks.
+     */
     static void streamSynchronize () noexcept;
 #ifdef AMREX_USE_DPCPP
     static void nonNullStreamSynchronize () noexcept;
 #endif
 
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
-    // Generic graph selection. These should be called by users.
+    /**  Generic graph selection. These should be called by users.  */
     static void startGraphRecording(bool first_iter, void* h_ptr, void* d_ptr, size_t sz);
     static cudaGraphExec_t stopGraphRecording(bool last_iter);
 
-    // Instantiate a created cudaGtaph
+    /** Instantiate a created cudaGtaph */
     static cudaGraphExec_t instantiateGraph(cudaGraph_t graph);
 
-    // Execute an instantiated cudaGraphExec
+    /** Execute an instantiated cudaGraphExec */
     static void executeGraph(const cudaGraphExec_t &graphExec, bool synch = true);
 
 #endif

@@ -28,6 +28,7 @@ int test1 (std::string const& f,
     GpuArray<Real,1> dx{(hi[0]-lo[0]) / (N-1)};
 
     int nfail = 0;
+    Real max_relerror = 0.;
     for (int i = 0; i < N; ++i) {
         Real x = lo[0] + i*dx[0];
         double result = exe(x);
@@ -35,13 +36,15 @@ int test1 (std::string const& f,
         double abserror = std::abs(result-benchmark);
         double relerror = abserror / (1.e-50 + std::max(std::abs(result),std::abs(benchmark)));
         if (abserror > abstol && relerror > reltol) {
-            amrex::Print() << "    f(" << x << ") = " << result << ", "
-                           << benchmark << "\n";
+            amrex::Print() << "\n    f(" << x << ") = " << result << ", "
+                           << benchmark;
+            max_relerror = std::max(max_relerror, relerror);
             ++nfail;
         }
     }
     if (nfail > 0) {
-        amrex::Print() << "    failed " << nfail << " times\n";
+        amrex::Print() << "\n    failed " << nfail << " times.  Max rel. error: "
+                       << max_relerror << "\n";
         return 1;
     } else {
         amrex::Print() << "    pass\n";

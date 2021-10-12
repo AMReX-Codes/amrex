@@ -24,8 +24,7 @@ amrex::Real limiter_eb (amrex::Real dlft, amrex::Real drgt, amrex::Real plm_thet
 
 }
 
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 cns_slope_eb_x (int i, int j, int k,
                 amrex::Array4<amrex::Real> const& dq,
@@ -95,8 +94,7 @@ cns_slope_eb_x (int i, int j, int k,
     }
 }
 
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 cns_slope_eb_y (int i, int j, int k,
                 amrex::Array4<amrex::Real> const& dq,
@@ -167,8 +165,7 @@ cns_slope_eb_y (int i, int j, int k,
 }
 
 #if (AMREX_SPACEDIM == 3)
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 cns_slope_eb_z (int i, int j, int k,
                 amrex::Array4<amrex::Real> const& dq,

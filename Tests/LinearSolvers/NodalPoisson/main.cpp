@@ -9,9 +9,12 @@ int main (int argc, char* argv[])
     {
         BL_PROFILE("main");
         MyTest mytest;
-        mytest.solve();
-        mytest.compute_norms();
-        mytest.writePlotfile();
+        for(int i=0;i<mytest.getNumTrials();++i) {
+            mytest.solve();
+            mytest.compute_norms();
+        }
+        if (mytest.getDoPlots())
+            mytest.writePlotfile();
     }
 
     amrex::Finalize();

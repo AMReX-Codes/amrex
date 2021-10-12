@@ -468,6 +468,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 // --------------------------------------------
 #elif defined(AMREX_TINY_PROFILING)
 
+#include <AMReX.H>
 #include <AMReX_TinyProfiler.H>
 
 #define BL_PROFILE_INITIALIZE()
@@ -477,7 +478,10 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_TINY_PROFILE_INITIALIZE()   amrex::TinyProfiler::Initialize()
 #define BL_TINY_PROFILE_FINALIZE()     amrex::TinyProfiler::Finalize()
 
-#define BL_PROFILE(fname)         amrex::TinyProfiler BL_PROFILE_PASTE(tiny_profiler_,__COUNTER__)((fname))
+#define BL_PROFILE(fname) BL_PROFILE_IMPL(fname, __COUNTER__)
+#define BL_PROFILE_IMPL(funame, counter)  amrex::TinyProfiler BL_PROFILE_PASTE(tiny_profiler_, counter)((funame)); \
+    amrex::ignore_unused(BL_PROFILE_PASTE(tiny_profiler_, counter));
+
 #define BL_PROFILE_T(a, T)
 #define BL_PROFILE_S(fname)
 #define BL_PROFILE_T_S(fname, T)

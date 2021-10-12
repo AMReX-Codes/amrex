@@ -325,7 +325,6 @@ protected:
 };
 
 
-#ifndef BL_NO_FORT
 /**
 * \brief Lin. cons. interp. on cc data with protection against under/over-shoots.
 *
@@ -379,7 +378,6 @@ public:
                           Vector<BCRec>&   bcr,
                           RunOn            gpu_or_cpu) override;
 };
-#endif
 
 
 #ifndef BL_NO_FORT
@@ -522,7 +520,6 @@ public:
 };
 
 
-#ifndef BL_NO_FORT
 /**
 * \brief Conservative quartic interpolation on cell averaged data.
 *
@@ -588,7 +585,6 @@ public:
                          int              actual_state,
                          RunOn            gpu_or_cpu) override;
 };
-#endif
 
 /**
 * \brief Divergence-free interpolation on face centered data.
@@ -797,11 +793,11 @@ extern AMREX_EXPORT FaceLinear                face_linear_interp;
 extern AMREX_EXPORT CellConservativeLinear    lincc_interp;
 extern AMREX_EXPORT CellConservativeLinear    cell_cons_interp;
 extern AMREX_EXPORT CellBilinear              cell_bilinear_interp;
+extern AMREX_EXPORT CellConservativeProtected protected_interp;
+extern AMREX_EXPORT CellConservativeQuartic   quartic_interp;
 
 #ifndef BL_NO_FORT
 extern AMREX_EXPORT CellQuadratic             quadratic_interp;
-extern AMREX_EXPORT CellConservativeProtected protected_interp;
-extern AMREX_EXPORT CellConservativeQuartic   quartic_interp;
 #endif
 
 }

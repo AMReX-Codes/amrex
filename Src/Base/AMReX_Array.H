@@ -109,7 +109,7 @@ namespace amrex {
          * Returns the sum of all elements in the GpuArray object.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T sum () noexcept
+        constexpr T sum () const noexcept
         {
             T s = 0;
             for (unsigned int i = 0; i < N; ++i) { s += arr[i]; }
@@ -120,7 +120,7 @@ namespace amrex {
          * Returns the product of all elements in the GpuArray object.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T product () noexcept
+        constexpr T product () const noexcept
         {
             T p = 1;
             for (unsigned int i = 0; i < N; ++i) { p *= arr[i]; }
@@ -232,7 +232,7 @@ namespace amrex {
          * Returns the sum of all elements in the Array1D object.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T sum () noexcept
+        constexpr T sum () const noexcept
         {
             T s = 0;
             for (int i = XLO; i <= XHI; ++i) { s += arr[i-XLO]; }
@@ -243,7 +243,7 @@ namespace amrex {
          * Returns the product of all elements in the Array1D object.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T product() noexcept
+        constexpr T product() const noexcept
         {
             T p = 1;
             for (int i = 0; i < (XHI-XLO+1); ++i) {
@@ -416,7 +416,7 @@ namespace amrex {
          * elements in the Array2D object.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T sum () noexcept
+        constexpr T sum () const noexcept
         {
             T s = 0;
             for (int i = 0; i < (XHI-XLO+1)*(YHI-YLO+1); ++i) {
@@ -450,7 +450,7 @@ namespace amrex {
          *
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T sum (int axis, int loc)
+        constexpr T sum (int axis, int loc) const noexcept
         {
             T s = 0;
             if        (axis == 0) {
@@ -472,7 +472,7 @@ namespace amrex {
          * elements in the Array2D object.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T product () noexcept
+        constexpr T product () const noexcept
         {
             T p = 1;
             for (int i = 0; i < (XHI-XLO+1)*(YHI-YLO+1); ++i) {
@@ -507,7 +507,7 @@ namespace amrex {
          *
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T product (int axis, int loc)
+        constexpr T product (int axis, int loc) const noexcept
         {
             T p = 1;
             if        (axis == 0) {
@@ -708,7 +708,7 @@ namespace amrex {
          * elements in the Array3D object.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T sum () noexcept
+        constexpr T sum () const noexcept
         {
             T s = 0;
             for (int i = 0; i < (XHI-XLO+1)*(YHI-YLO+1)*(ZHI-ZLO+1); ++i) {
@@ -748,7 +748,7 @@ namespace amrex {
          *
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T sum (int axis, int loc0, int loc1)
+        constexpr T sum (int axis, int loc0, int loc1) const noexcept
         {
             T s = 0;
             if        (axis == 0) {
@@ -778,7 +778,7 @@ namespace amrex {
          * elements in the Array3D object.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T product () noexcept
+        constexpr T product () const noexcept
         {
             T p = 1;
             for (int i = 0; i < (XHI-XLO+1)*(YHI-YLO+1)*(ZHI-ZLO+1); ++i) {
@@ -819,7 +819,7 @@ namespace amrex {
          *
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T product (const int axis, const int loc0, const int loc1)
+        constexpr T product (const int axis, const int loc0, const int loc1) const noexcept
         {
             T p = 1;
             if        (axis == 0) {

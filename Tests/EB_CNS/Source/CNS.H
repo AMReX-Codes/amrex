@@ -107,7 +107,7 @@ public:
     // Cleanup data descriptors at end of run.
     static void variableCleanUp ();
 
-    static int numGrow() { return NUM_GROW; };
+    static int numGrow() { return NUM_GROW; }
 
     static int numState () { return NUM_STATE; }
 
@@ -123,15 +123,64 @@ protected:
 
     void buildMetrics ();
 
-    amrex::Real estTimeStep ();
-
     // Compute initial time step.
     amrex::Real initialTimeStep ();
 
-    void computeTemp (amrex::MultiFab& State, int ng);
-
     void compute_dSdt (const amrex::MultiFab& S, amrex::MultiFab& dSdt, amrex::Real dt,
                        amrex::EBFluxRegister* fr_as_crse, amrex::EBFluxRegister* fr_as_fine);
+
+    void printTotal () const;
+
+    const amrex::MultiFab* volfrac;
+    const amrex::MultiCutFab* bndrycent;
+    std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> areafrac;
+    std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> facecent;
+
+    amrex::iMultiFab level_mask;
+
+    amrex::EBFluxRegister flux_reg;
+
+    static constexpr int NUM_GROW = 5;
+
+    enum StateDataType {
+        State_Type = 0,
+        Cost_Type
+    };
+    static int num_state_data_types;
+
+    static amrex::BCRec phys_bc;
+
+    // Parameters
+    static int verbose;
+    static amrex::IntVect hydro_tile_size;
+    static amrex::Real cfl;
+
+    static bool do_visc;
+    static bool use_const_visc;
+
+    static int plm_iorder;
+    static amrex::Real plm_theta;
+
+    static int eb_weights_type;
+    static int do_reredistribution;
+
+    static int do_reflux;
+
+    static int refine_cutcells;
+
+    static int refine_max_dengrad_lev;
+    static amrex::Real refine_dengrad;
+
+    static amrex::Vector<amrex::RealBox> refine_boxes;
+    static amrex::RealBox* dp_refine_boxes;
+
+    static amrex::Real gravity;
+
+public:
+
+    amrex::Real estTimeStep ();
+
+    void computeTemp (amrex::MultiFab& State, int ng);
 
     void compute_dSdt_box (const amrex::Box& bx,
                            amrex::Array4<amrex::Real const>& Sfab,
@@ -177,53 +226,6 @@ protected:
                                 amrex::Array4<int               const> const& lev_mask,
                                 amrex::Real dt);
 
-    void printTotal () const;
-
-    const amrex::MultiFab* volfrac;
-    const amrex::MultiCutFab* bndrycent;
-    std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> areafrac;
-    std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> facecent;
-
-    amrex::iMultiFab level_mask;
-
-    amrex::EBFluxRegister flux_reg;
-
-    static constexpr int NUM_GROW = 5;
-
-    enum StateDataType {
-        State_Type = 0,
-        Cost_Type
-    };
-    static int num_state_data_types;
-
-    static amrex::BCRec phys_bc;
-
-    // Parameters
-    static int verbose;
-    static amrex::IntVect hydro_tile_size;
-    static amrex::Real cfl;
-
-    static bool do_visc;
-    static bool use_const_visc;
-
-    static int plm_iorder;
-    static amrex::Real plm_theta;
-
-    static int eb_weights_type;
-    static int do_reredistribution;
-
-    static int do_reflux;
-
-    static int refine_cutcells;
-
-    static int refine_max_dengrad_lev;
-    static amrex::Real refine_dengrad;
-
-    static amrex::Vector<amrex::RealBox> refine_boxes;
-
-    static amrex::Real gravity;
-
-public:
     static Parm* h_parm;
     static Parm* d_parm;
     static ProbParm* h_prob_parm;

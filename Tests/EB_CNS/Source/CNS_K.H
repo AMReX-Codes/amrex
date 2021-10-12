@@ -10,8 +10,7 @@
 #include "CNS_parm.H"
 #include "CNS_K.H"
 
-AMREX_GPU_HOST_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 amrex::Real
 cns_estdt (int i, int j, int k, amrex::Array4<Real const> const& state,
            amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx,
@@ -48,8 +47,7 @@ cns_estdt (int i, int j, int k, amrex::Array4<Real const> const& state,
 }
 
 
-AMREX_GPU_DEVICE
-inline
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void
 cns_compute_temperature (int i, int j, int k, amrex::Array4<amrex::Real> const& u,
                          Parm const& parm) noexcept

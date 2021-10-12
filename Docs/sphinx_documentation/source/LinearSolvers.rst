@@ -128,7 +128,7 @@ After the solver returns successfully, if needed, we can call
 to compute residual (i.e., :math:`f - L(\phi)`) given the solution and
 the right-hand side.  For cell-centered solvers, we can also call the
 following functions to compute gradient :math:`\nabla \phi` and fluxes
-:math:`-B \nabla \phi`.
+:math:`-\beta \nabla \phi`.
 
 .. highlight:: c++
 
@@ -456,19 +456,6 @@ For examples of using hypre, we refer the reader to
 .. _`ABecLaplacian`: https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers_Tutorial.html
 
 .. _`Nodal Projection EB`: https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers_Tutorial.html
-
-Caveat: to use hypre for the nodal solver,  you must either build with USE_EB = TRUE,
-or explicitly set the coarsening strategy in the calling routine to be ``RAP`` rather than ``Sigma``
-by adding
-
-.. highlight:: c++
-
-::
-
-    nodal_projector.getLinOp().setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::RAP);
-
-where
-:cpp:`nodal_projector` is the :cpp:`NodalProjector` object we have built.
 
 The following parameter should be set to True if the problem to be solved has a singular matrix.
 In this case, the solution is only defined to within a constant.  Setting this parameter to True

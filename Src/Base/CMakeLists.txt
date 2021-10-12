@@ -188,8 +188,6 @@ target_sources( amrex
    AMReX_GpuTypes.H
    AMReX_GpuControl.H
    AMReX_GpuControl.cpp
-   AMReX_GpuFuse.H
-   AMReX_GpuFuse.cpp
    AMReX_GpuLaunch.H
    AMReX_GpuLaunchGlobal.H
    AMReX_GpuLaunchMacrosG.H
@@ -216,6 +214,7 @@ target_sources( amrex
    AMReX_MFParallelForC.H
    AMReX_MFParallelForG.H
    AMReX_TagParallelFor.H
+   AMReX_ParReduce.H
    # CUDA --------------------------------------------------------------------
    AMReX_CudaGraph.H
    # Machine model -----------------------------------------------------------

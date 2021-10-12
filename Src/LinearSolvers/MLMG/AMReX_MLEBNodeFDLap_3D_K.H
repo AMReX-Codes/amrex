@@ -226,6 +226,24 @@ void mlebndfdlap_gsrb (int i, int j, int k, Array4<Real> const& x,
     }
 }
 
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+int mlebndfdlap_check_coarsening (int i, int j, int k, Array4<int const> const& mask) noexcept
+{
+    if ((i%2 == 0) || (j%2 == 0) || (k%2 == 0)) {
+        return 0;
+    } else {
+        return !mask(i,j,k)
+            && mask(i-1,j-1,k-1)
+            && mask(i+1,j-1,k-1)
+            && mask(i-1,j+1,k-1)
+            && mask(i+1,j+1,k-1)
+            && mask(i-1,j-1,k+1)
+            && mask(i+1,j-1,k+1)
+            && mask(i-1,j+1,k+1)
+            && mask(i+1,j+1,k+1);
+    }
+}
+
 }
 
 #endif

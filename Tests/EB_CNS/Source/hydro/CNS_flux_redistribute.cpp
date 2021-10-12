@@ -134,7 +134,7 @@ CNS::cns_flux_redistribute (const Box& bx,
                       int kkk = k + kk;
 
                       Real drho = delm(i,j,k,n)*wtot*redistwgt(iii,jjj,kkk);
-                      optmp(iii,jjj,kkk,n) += drho;
+                      Gpu::Atomic::Add(&optmp(iii,jjj,kkk,n), drho);
 
                       valid_dst_cell = ( (iii >= bx_ilo) && (iii <= bx_ihi) &&
                                          (jjj >= bx_jlo) && (jjj <= bx_jhi) );
@@ -147,7 +147,8 @@ CNS::cns_flux_redistribute (const Box& bx,
                          if ( (rr_flag_crse(iii,jjj,kkk) == amrex_yafluxreg_fine_cell) &&
                               (vfrac(i,j,k) > reredistribution_threshold) )
                          {
-                            rr_drho_crse(i,j,k,n) += dt*drho*(vfrac(iii,jjj,kkk)/vfrac(i,j,k));
+                             Gpu::Atomic::Add(&rr_drho_crse(i,j,k,n),
+                                              dt*drho*(vfrac(iii,jjj,kkk)/vfrac(i,j,k)));
                          }
                       }
 
@@ -157,18 +158,18 @@ CNS::cns_flux_redistribute (const Box& bx,
                                      (vfrac(iii,jjj,kkk) > reredistribution_threshold) )
                          {
                             // recipient is a crse/fine boundary cell
-                            rr_drho_crse(iii,jjj,kkk,n) +=  -dt*drho;
+                             Gpu::Atomic::Add(&rr_drho_crse(iii,jjj,kkk,n), -dt*drho);
                          }
                       }
 
                       if (as_fine_valid_cell && !valid_dst_cell)
                       {
-                         dm_as_fine(iii,jjj,kkk,n) +=  dt*drho*vfrac(iii,jjj,kkk);
+                          Gpu::Atomic::Add(&dm_as_fine(iii,jjj,kkk,n), dt*drho*vfrac(iii,jjj,kkk));
                       }
 
                       if (as_fine_ghost_cell && valid_dst_cell)
                       {
-                         dm_as_fine(i,j,k,n) +=  -dt*drho*vfrac(iii,jjj,kkk);
+                          Gpu::Atomic::Add(&dm_as_fine(i,j,k,n), -dt*drho*vfrac(iii,jjj,kkk));
                       }
 
                   } // isConnected

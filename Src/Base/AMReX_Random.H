@@ -144,6 +144,12 @@ namespace amrex
     */
     ULong Random_long (ULong n); // [0,n-1]
 
+    namespace detail {
+        inline ULong DefaultGpuSeed () {
+            return ParallelDescriptor::MyProc()*1234567ULL + 12345ULL;
+        }
+    }
+
     /** \brief Set the seed of the random number generator.
     *
     *  There is also an entry point for Fortran callable as:
@@ -156,9 +162,10 @@ namespace amrex
     *  INTEGER seed
     *  call blinitrand(seed)
     */
-    void InitRandom (ULong seed, int nprocs=ParallelDescriptor::NProcs());
+    void InitRandom (ULong cpu_seed, int nprocs=ParallelDescriptor::NProcs(),
+                     ULong gpu_seed = detail::DefaultGpuSeed());
 
-    void ResetRandomSeed (ULong seed);
+    void ResetRandomSeed (ULong cpu_seed, ULong gpu_seed = detail::DefaultGpuSeed());
 
     /**
     * \brief Save and restore random state.

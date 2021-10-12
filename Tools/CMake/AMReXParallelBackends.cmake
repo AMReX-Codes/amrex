@@ -144,7 +144,7 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
       if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
          list(APPEND _cuda_flags "SHELL:-Xcompiler /Zi") # comes with Debug & RelWithDebInfo
       else ()
-         list(APPEND _cuda_flags "SHELL:Xcompiler -rdynamic")
+         list(APPEND _cuda_flags "SHELL:-Xcompiler -rdynamic")
       endif ()
    endif ()
 

@@ -122,6 +122,7 @@ public:
 
     static void Initialize ();
     static void PrintUsage ();
+    static void PrintUsageToFiles (std::string const& filename, std::string const& message);
     static void Finalize ();
 
 #if 0
