@@ -333,22 +333,22 @@ while still making use of ParmParse for parsing other runtime parameters but onl
 if it is the first argument after the executable. If the first argument following
 the executable name begins with a dash, AMReX will initialize without reading
 any parameters and the application code may then parse the command line and
-handle those cases. Several built in functions are available to help parse
-the command line. They are:
+handle those cases. Several built in functions are available to help do this.
+They are briefly introduced in the table below.
 
-.. table::
+.. table:: AMReX functions for parsing the command line.
 
-   +--------------------------------------------+-------------------------------------------+
-   | Function                                   | Purpose                                   |
-   +============================================+===========================================+
-   | ``amrex::get_command()``                   | Get the entire command line.              |
-   +--------------------------------------------+-------------------------------------------+
-   | ``amrex::get_argument_count()``            | Get the number of command line arguments  |
-   |                                            | after the executable.                     |
-   +--------------------------------------------+-------------------------------------------+
-   | ``amrex:get_command_argument(int number)`` | Returns the argument the ``number`` after |
-   |                                            | the exectuable.                           |
-   +--------------------------------------------+-------------------------------------------+
+   +-------------------------------------------+--------+-------------------------------------------+
+   | Function                                  | Type   | Purpose                                   |
+   +===========================================+========+===========================================+
+   | ``amrex::get_command()``                  | String | Get the entire command line.              |
+   +-------------------------------------------+--------+-------------------------------------------+
+   | ``amrex::get_argument_count()``           | Int    | Get the number of command line arguments  |
+   |                                           |        | after the executable.                     |
+   +-------------------------------------------+--------+-------------------------------------------+
+   | ``amrex:get_command_argument(int number)``| String | Returns the argument the ``number`` after |
+   |                                           |        | the exectuable.                           |
+   +-------------------------------------------+--------+-------------------------------------------+
 
 
 
