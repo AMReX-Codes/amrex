@@ -1119,27 +1119,24 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::So
             auto inds = m_bins.permutationPtr();
 
             if (memEfficientSort) {
-                ParticleType* tmp_ptr = (ParticleType*) The_Device_Arena()->alloc(np*sizeof(ParticleType));
-
+                ParticleVector tmp_particles(np);
                 {
                     auto src = ptile.getParticleTileData();
-                    ParticleType* dst = reinterpret_cast<ParticleType*>(tmp_ptr);
+                    ParticleType* dst = tmp_particles.data();
+
                     AMREX_HOST_DEVICE_FOR_1D( np, i,
                     {
                         dst[i] = src.m_aos[inds[i]];
                     });
 
                     Gpu::synchronize();
-
-                    AMREX_HOST_DEVICE_FOR_1D( np, i,
-                    {
-                        src.m_aos[i] = dst[i];
-                    });
+                    ptile.GetArrayOfStructs()().swap(tmp_particles);
                 }
 
+                RealVector tmp_real(np);
                 for (int comp = 0; comp < NArrayReal + m_num_runtime_real; ++comp) {
                     auto src = ptile.GetStructOfArrays().GetRealData(comp).data();
-                    Real* dst = reinterpret_cast<Real*>(tmp_ptr);
+                    ParticleReal* dst = tmp_real.data();
                     AMREX_HOST_DEVICE_FOR_1D( np, i,
                     {
                         dst[i] = src[inds[i]];
@@ -1147,15 +1144,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::So
 
                     Gpu::synchronize();
 
-                    AMREX_HOST_DEVICE_FOR_1D( np, i,
-                    {
-                        src[i] = dst[i];
-                    });
+                    ptile.GetStructOfArrays().GetRealData(comp).swap(tmp_real);
                 }
 
+                IntVector tmp_int(np);
                 for (int comp = 0; comp < NArrayInt + m_num_runtime_int; ++comp) {
                     auto src = ptile.GetStructOfArrays().GetIntData(comp).data();
-                    int* dst = reinterpret_cast<int*>(tmp_ptr);
+                    int* dst = tmp_int.data();
                     AMREX_HOST_DEVICE_FOR_1D( np, i,
                     {
                         dst[i] = src[inds[i]];
@@ -1163,12 +1158,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::So
 
                     Gpu::synchronize();
 
-                    AMREX_HOST_DEVICE_FOR_1D( np, i,
-                    {
-                        src[i] = dst[i];
-                    });
+                    ptile.GetStructOfArrays().GetIntData(comp).swap(tmp_int);
                 }
-                The_Arena()->free(tmp_ptr);
             } else {
                 ParticleTileType ptile_tmp;
                 ptile_tmp.define(m_num_runtime_real, m_num_runtime_int);
