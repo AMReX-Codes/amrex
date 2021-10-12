@@ -8,6 +8,8 @@ target_sources(amrex
    AMReX_XYPlotDataList.cpp
    AMReX_DataServices.H
    AMReX_DataServices.cpp
+   AMReX_WritePlotFile.H
+   AMReX_WritePlotFile.cpp
    AMReX_AmrvisConstants.H
    AMReX_FABUTIL_${AMReX_SPACEDIM}D.F
    )

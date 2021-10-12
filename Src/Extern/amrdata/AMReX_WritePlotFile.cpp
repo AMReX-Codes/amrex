@@ -14,7 +14,7 @@
 #include <AMReX_RealBox.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_DistributionMapping.H>
-#include <WritePlotFile.H>
+#include <AMReX_WritePlotFile.H>
 
 using namespace amrex;
 std::string
