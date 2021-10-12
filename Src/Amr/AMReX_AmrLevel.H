@@ -74,9 +74,7 @@ public:
         return the_plot_file_type;
     }
     /**
-    * \brief Write plot file stuff to specified directory.  This is a
-    * pure virtual function and hence MUST be implemented by
-    * derived classes.
+    * \brief Write plot file stuff to specified directory.
     */
     virtual void writePlotFile (const std::string& dir,
                                 std::ostream&      os,
@@ -92,8 +90,6 @@ public:
 
     /**
     * \brief Write small plot file stuff to specified directory.
-    * Unlike writePlotFile, this is NOT a pure virtual function
-    * so implementation by derived classes is optional.
     */
     virtual void writeSmallPlotFile (const std::string& /*dir*/,
                                      std::ostream&      /*os*/,
