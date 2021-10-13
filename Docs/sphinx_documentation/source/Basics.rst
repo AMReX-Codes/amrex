@@ -310,18 +310,47 @@ can still be over-written by setting a value in the inputs file.
 Sharing the Command Line
 ------------------------
 
-In some cases we want AMReX to only read part of the command line -- this happens, for example, when we
-are going to use AMReX in cooperation with another code package and that code also takes command-line
-arguments.
+In some cases we want AMReX to only read some of the command line
+arguments -- this happens, for example, when we are going to use AMReX
+in cooperation with another code package and that code also takes arguments.
+
+Consider:
 
 .. highlight:: console
 
 ::
 
-    main2d*.exe inputs amrex.v=1 amrex.fpe_trap_invalid=1 -- -tao_monitor
+    main2d.gnu.exe inputs amrex.v=1 amrex.fpe_trap_invalid=1 -- -tao_monitor
 
-then AMReX will parse the inputs file and the optional AMReX's command
-line arguments, but will ignore everything after the double dashes.
+In this example, AMReX will parse the inputs file and the optional AMReX
+command line arguments, but will ignore arguments after the double dashes.
+
+Command Line Flags
+------------------
+
+AMReX allows application codes to parse flags such as ``-h`` or ``--help``
+while still making use of ParmParse for parsing other runtime parameters but only
+if it is the first argument after the executable. If the first argument following
+the executable name begins with a dash, AMReX will initialize without reading
+any parameters and the application code may then parse the command line and
+handle those cases. Several built in functions are available to help do this.
+They are briefly introduced in the table below.
+
+.. table:: AMReX functions for parsing the command line.
+
+   +-------------------------------------------+--------+-------------------------------------------+
+   | Function                                  | Type   | Purpose                                   |
+   +===========================================+========+===========================================+
+   | ``amrex::get_command()``                  | String | Get the entire command line.              |
+   +-------------------------------------------+--------+-------------------------------------------+
+   | ``amrex::get_argument_count()``           | Int    | Get the number of command line arguments  |
+   |                                           |        | after the executable.                     |
+   +-------------------------------------------+--------+-------------------------------------------+
+   | ``amrex:get_command_argument(int number)``| String | Returns the argument the ``number`` after |
+   |                                           |        | the exectuable.                           |
+   +-------------------------------------------+--------+-------------------------------------------+
+
+
 
 
 .. _sec:basics:parser:
