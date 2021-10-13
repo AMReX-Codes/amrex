@@ -208,11 +208,14 @@ ParmParse
 
 :cpp:`ParmParse` in AMReX_ParmParse.H is a class providing a database for the
 storage and retrieval of command-line and input-file arguments. When
-:cpp:`amrex::Initialize(int& argc, char**& argv)` is called, the first command-line argument after the
-executable name (if there is one and it does not contain character =) is taken
+:cpp:`amrex::Initialize(int& argc, char**& argv)` is called, the first command-line
+argument after the executable name (if there is one, and it does not contain character
+'=' or start with '-') is taken
 to be the inputs file, and the contents in the file are used to initialize the
 :cpp:`ParmParse` database. The rest of the command-line arguments are also
-parsed by :cpp:`ParmParse`. The format of the inputs file is a series of
+parsed by :cpp:`ParmParse`, with the exception of those folllowing a '\\-\\-' which signals
+command line sharing (see section :ref:`sec:basics:parmparse:sharingCL` ). The format of the inputs
+file is a series of
 definitions in the form of ``prefix.name = value value ....`` For each line,
 text after # are comments. Here is an example inputs file.
 
@@ -307,6 +310,8 @@ Then we would pass :cpp:`add_par` into :cpp:`amrex::Initialize`:
 This value replaces the current default value of true in AMReX itself, but
 can still be over-written by setting a value in the inputs file.
 
+.. _sec:basics:parmparse:sharingCL:
+
 Sharing the Command Line
 ------------------------
 
@@ -346,7 +351,7 @@ They are briefly introduced in the table below.
    | ``amrex::get_argument_count()``           | Int    | Get the number of command line arguments  |
    |                                           |        | after the executable.                     |
    +-------------------------------------------+--------+-------------------------------------------+
-   | ``amrex:get_command_argument(int number)``| String | Returns the argument the ``number`` after |
+   | ``amrex:get_command_argument(int n)``     | String | Returns the n-th argument after           |
    |                                           |        | the exectuable.                           |
    +-------------------------------------------+--------+-------------------------------------------+
 
