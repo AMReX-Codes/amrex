@@ -341,11 +341,11 @@ void mf_cell_quadratic_calcslope (int i, int j, int /*k*/, int n,
     Real syy = mf_cell_quadratic_compute_slopes_yy (i, j, 0, crse, nu, domain, bc[n]);
     Real sxy = mf_cell_quadratic_compute_slopes_xy (i, j, 0, crse, nu, domain, bc[n]);
 
-    slope(i,j,0,n*ncomp  ) = sx;  // x
-    slope(i,j,0,n*ncomp+1) = sy;  // y
-    slope(i,j,0,n*ncomp+2) = sxx; // x^2
-    slope(i,j,0,n*ncomp+3) = syy; // y^2
-    slope(i,j,0,n*ncomp+4) = sxy; // xy
+    slope(i,j,0,5*n  ) = sx;  // x
+    slope(i,j,0,5*n+1) = sy;  // y
+    slope(i,j,0,5*n+2) = sxx; // x^2
+    slope(i,j,0,5*n+3) = syy; // y^2
+    slope(i,j,0,5*n+4) = sxy; // xy
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -365,11 +365,11 @@ void mf_cell_quadratic_interp (int i, int j, int /*k*/, int n,
     Real yoff = ( Real(jry) + 0.5_rt ) / Real(ratio[1]) - 0.5_rt;
 
     fine(i,j,0,fcomp+n) = crse(ic,jc,0,ccomp+n)
-                          +          xoff        * slope(ic,jc,0,n*ncomp  )  // x
-                          +                 yoff * slope(ic,jc,0,n*ncomp+1)  // y
-                          + 0.5_rt * xoff * xoff * slope(ic,jc,0,n*ncomp+2)  // x^2
-                          + 0.5_rt * yoff * yoff * slope(ic,jc,0,n*ncomp+3)  // y^2
-                          +          xoff * yoff * slope(ic,jc,0,n*ncomp+4); // xy
+                          +          xoff        * slope(ic,jc,0,5*n  )  // x
+                          +                 yoff * slope(ic,jc,0,5*n+1)  // y
+                          + 0.5_rt * xoff * xoff * slope(ic,jc,0,5*n+2)  // x^2
+                          + 0.5_rt * yoff * yoff * slope(ic,jc,0,5*n+3)  // y^2
+                          +          xoff * yoff * slope(ic,jc,0,5*n+4); // xy
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -413,11 +413,11 @@ void mf_cell_quadratic_interp_rz (int i, int j, int /*k*/, int n,
     Real yoff = ( Real(jry) + 0.5_rt ) / Real(ratio[1]) - 0.5_rt;
 
     fine(i,j,0,fcomp+n) = crse(ic,jc,0,ccomp+n)
-                          +          xoff        * slope(ic,jc,0,n*ncomp  )  // x
-                          +                 yoff * slope(ic,jc,0,n*ncomp+1)  // y
-                          + 0.5_rt * xoff * xoff * slope(ic,jc,0,n*ncomp+2)  // x^2
-                          + 0.5_rt * yoff * yoff * slope(ic,jc,0,n*ncomp+3)  // y^2
-                          +          xoff * yoff * slope(ic,jc,0,n*ncomp+4); // xy
+                          +          xoff        * slope(ic,jc,0,5*n  )  // x
+                          +                 yoff * slope(ic,jc,0,5*n+1)  // y
+                          + 0.5_rt * xoff * xoff * slope(ic,jc,0,5*n+2)  // x^2
+                          + 0.5_rt * yoff * yoff * slope(ic,jc,0,5*n+3)  // y^2
+                          +          xoff * yoff * slope(ic,jc,0,5*n+4); // xy
 }
 
 } // namespace amrex
