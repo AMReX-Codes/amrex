@@ -1,5 +1,6 @@
 #ifndef AMREX_LO_BCTYPES_H_
 #define AMREX_LO_BCTYPES_H_
+#include <AMReX_Config.H>
 
 #ifndef AMREX_XSDK
 
@@ -18,6 +19,7 @@
 #define AMREX_LO_SANCHEZ_POMRANING 105
 #define AMREX_LO_INFLOW   106
 #define AMREX_LO_INHOMOG_NEUMANN 107
+#define AMREX_LO_ROBIN 108
 #define AMREX_LO_PERIODIC 200
 #define AMREX_LO_BOGUS    1729
 
@@ -35,6 +37,7 @@ namespace amrex {
         SanchezPomraning = AMREX_LO_SANCHEZ_POMRANING,
         inflow           = AMREX_LO_INFLOW,
         inhomogNeumann   = AMREX_LO_INHOMOG_NEUMANN,
+        Robin            = AMREX_LO_ROBIN,
         Periodic         = AMREX_LO_PERIODIC,
         bogus            = AMREX_LO_BOGUS
     };

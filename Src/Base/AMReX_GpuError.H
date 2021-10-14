@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_ERROR_H_
 #define AMREX_GPU_ERROR_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Utility.H>
 #include <string>
@@ -89,17 +90,6 @@ namespace Gpu {
                            + " " + hipGetErrorString(amrex_i_err)); \
         amrex::Abort(errStr); \
     }}
-
-#ifdef AMREX_HIP_PLATFORM_NVCC
-#define AMREX_CUDA_SAFE_CALL(call) { \
-    cudaError_t amrex_i_err = call;          \
-    if (cudaSuccess != amrex_i_err) { \
-        std::string errStr(std::string("CUDA error in file ") + __FILE__ \
-                           + " line " + std::to_string(__LINE__) \
-                           + " " + cudaGetErrorString(amrex_i_err)); \
-        amrex::Abort(errStr); \
-    }}
-#endif
 #endif
 
 #define AMREX_GPU_ERROR_CHECK() amrex::Gpu::ErrorCheck(__FILE__, __LINE__)

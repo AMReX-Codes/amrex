@@ -32,7 +32,7 @@ MyTest::initializeEB ()
                                            EB2::translate(box, {AMREX_D_DECL(-0.5,-0.5,-0.5)}),
                                            std::atan(1.0)*0.3, 2),
                                        {AMREX_D_DECL(0.5,0.5,0.5)}));
-        EB2::Build(gshop, geom.back(), max_level, max_level+max_coarsening_level);        
+        EB2::Build(gshop, geom.back(), max_level, max_level+max_coarsening_level);
     }
     else if (geom_type == "two_spheres")
     {

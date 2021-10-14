@@ -1,5 +1,6 @@
 #ifndef AMREX_MLMG_K_H_
 #define AMREX_MLMG_K_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FArrayBox.H>
 #ifdef AMREX_USE_EB
@@ -11,6 +12,7 @@
 #elif (AMREX_SPACEDIM == 2)
 #include <AMReX_MLMG_2D_K.H>
 #else
+#include <AMReX_MLMG_2D_K.H>
 #include <AMReX_MLMG_3D_K.H>
 #endif
 

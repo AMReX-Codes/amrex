@@ -83,10 +83,10 @@ public:
             const Box& tile_box  = mfi.tilebox();
 
             Gpu::HostVector<ParticleType> host_particles;
-            std::array<Gpu::HostVector<Real>, NAR> host_real;
+            std::array<Gpu::HostVector<ParticleReal>, NAR> host_real;
             std::array<Gpu::HostVector<int>, NAI> host_int;
 
-            std::vector<Gpu::HostVector<Real> > host_runtime_real(NumRuntimeRealComps());
+            std::vector<Gpu::HostVector<ParticleReal> > host_runtime_real(NumRuntimeRealComps());
             std::vector<Gpu::HostVector<int> > host_runtime_int(NumRuntimeIntComps());
 
             for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
@@ -98,12 +98,12 @@ public:
                     ParticleType p;
                     p.id()  = ParticleType::NextID();
                     p.cpu() = ParallelDescriptor::MyProc();
-                    p.pos(0) = plo[0] + (iv[0] + r[0])*dx[0];
+                    p.pos(0) = static_cast<ParticleReal> (plo[0] + (iv[0] + r[0])*dx[0]);
 #if AMREX_SPACEDIM > 1
-                    p.pos(1) = plo[1] + (iv[1] + r[1])*dx[1];
+                    p.pos(1) = static_cast<ParticleReal> (plo[1] + (iv[1] + r[1])*dx[1]);
 #endif
 #if AMREX_SPACEDIM > 2
-                    p.pos(2) = plo[2] + (iv[2] + r[2])*dx[2];
+                    p.pos(2) = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);
 #endif
 
                     for (int i = 0; i < NSR; ++i) p.rdata(i) = p.id();
@@ -162,6 +162,8 @@ public:
                           host_runtime_int[i].end(),
                           soa.GetIntData(NAI+i).begin() + old_size);
             }
+
+            Gpu::synchronize();
         }
 
         RedistributeLocal();
@@ -173,7 +175,6 @@ public:
 
         for (int lev = 0; lev <= finestLevel(); ++lev)
         {
-            const Geometry& geom = Geom(lev);
             const auto dx = Geom(lev).CellSizeArray();
             auto& plev  = GetParticles(lev);
 
@@ -188,30 +189,32 @@ public:
 
                 if (do_random == 0)
                 {
-                    AMREX_FOR_1D ( np, i,
+                    amrex::ParallelFor(np,
+                    [=] AMREX_GPU_DEVICE (size_t i) noexcept
                     {
                         ParticleType& p = pstruct[i];
-                        p.pos(0) += move_dir[0]*dx[0];
+                        p.pos(0) += static_cast<ParticleReal> (move_dir[0]*dx[0]);
 #if AMREX_SPACEDIM > 1
-                        p.pos(1) += move_dir[1]*dx[1];
+                        p.pos(1) += static_cast<ParticleReal> (move_dir[1]*dx[1]);
 #endif
 #if AMREX_SPACEDIM > 2
-                        p.pos(2) += move_dir[2]*dx[2];
+                        p.pos(2) += static_cast<ParticleReal> (move_dir[2]*dx[2]);
 #endif
                     });
                 }
                 else
                 {
-                    AMREX_FOR_1D ( np, i,
+                    amrex::ParallelForRNG(np,
+                    [=] AMREX_GPU_DEVICE (size_t i, RandomEngine const& engine) noexcept
                     {
                         ParticleType& p = pstruct[i];
 
-                        p.pos(0) += (2*amrex::Random()-1)*move_dir[0]*dx[0];
+                        p.pos(0) += static_cast<ParticleReal> ((2*amrex::Random(engine)-1)*move_dir[0]*dx[0]);
 #if AMREX_SPACEDIM > 1
-                        p.pos(1) += (2*amrex::Random()-1)*move_dir[1]*dx[1];
+                        p.pos(1) += static_cast<ParticleReal> ((2*amrex::Random(engine)-1)*move_dir[1]*dx[1]);
 #endif
 #if AMREX_SPACEDIM > 2
-                        p.pos(2) += (2*amrex::Random()-1)*move_dir[2]*dx[2];
+                        p.pos(2) += static_cast<ParticleReal> ((2*amrex::Random(engine)-1)*move_dir[2]*dx[2]);
 #endif
                     });
                 }
@@ -230,8 +233,6 @@ public:
 
         for (int lev = 0; lev <= finestLevel(); ++lev)
         {
-            const Geometry& geom = Geom(lev);
-            const auto dx = Geom(lev).CellSizeArray();
             auto& plev  = GetParticles(lev);
 
             for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
@@ -331,8 +332,12 @@ void testParallelContext ()
 
     if (task_me > 1) task_me = 1;
 
+#ifdef BL_USE_MPI
     MPI_Comm new_comm;
     MPI_Comm_split(ParallelContext::CommunicatorSub(), task_me, myproc, &new_comm);
+#else
+    MPI_Comm new_comm = ParallelContext::CommunicatorSub();
+#endif
 
     const int io_rank = 0;
     ParallelContext::push(new_comm, task_me, io_rank);

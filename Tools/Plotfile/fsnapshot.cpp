@@ -38,25 +38,25 @@ void main_main()
     int farg = 1;
     while (farg <= narg) {
         const std::string& name = amrex::get_command_argument(farg);
-        if (name == "-n" or name == "--normaldir") {
+        if (name == "-n" || name == "--normaldir") {
             ndir_pass = std::stoi(amrex::get_command_argument(++farg));
-        } else if (name == "-p" or name == "--palette") {
+        } else if (name == "-p" || name == "--palette") {
             pfname[0] = amrex::get_command_argument(++farg);
-        } else if (name == "-v" or name == "--variable") {
+        } else if (name == "-v" || name == "--variable") {
             compname = amrex::get_command_argument(++farg);
-        } else if (name == "-M" or name == "--max") {
+        } else if (name == "-M" || name == "--max") {
             def_mx = std::stod(amrex::get_command_argument(++farg));
             ldef_mx = true;
-        } else if (name == "-m" or name == "--min") {
+        } else if (name == "-m" || name == "--min") {
             def_mn = std::stod(amrex::get_command_argument(++farg));
             ldef_mn = true;
-        } else if (name == "-L" or name == "--max_level") {
+        } else if (name == "-L" || name == "--max_level") {
             max_level = std::stoi(amrex::get_command_argument(++farg));
-        } else if (name == "-l" or name == "--log") {
+        } else if (name == "-l" || name == "--log") {
             do_log = true;
-        } else if (name == "-g" or name == "--origin") {
+        } else if (name == "-g" || name == "--origin") {
             origin = true;
-        } else if (name == "-c" or name == "--coordinates") {
+        } else if (name == "-c" || name == "--coordinates") {
             location[0] = std::stod(amrex::get_command_argument(++farg));
             location[1] = std::stod(amrex::get_command_argument(++farg));
             location[2] = std::stod(amrex::get_command_argument(++farg));
@@ -66,11 +66,11 @@ void main_main()
         ++farg;
     }
 
-    if (pltfile.empty() and farg <= narg) {
+    if (pltfile.empty() && farg <= narg) {
         pltfile = amrex::get_command_argument(farg);
     }
 
-    if (pltfile.empty() or compname.empty()) {
+    if (pltfile.empty() || compname.empty()) {
         amrex::Print()
             << "\n"
             << " produce an image of 2-d plotfile or slice of 3-d plotfile\n"
@@ -97,8 +97,8 @@ void main_main()
 
     // make sure we have valid options set
     if (do_log) {
-        if (ldef_mx and def_mx < 0.) amrex::Abort("ERROR: log plot specified with negative maximum");
-        if (ldef_mn and def_mn < 0.) amrex::Abort("ERROR: log plot specified with negative minimum");
+        if (ldef_mx && def_mx < 0.) amrex::Abort("ERROR: log plot specified with negative maximum");
+        if (ldef_mn && def_mn < 0.) amrex::Abort("ERROR: log plot specified with negative minimum");
     }
 
     // get the palette
@@ -117,6 +117,7 @@ void main_main()
             }
         }
     }
+    amrex::ignore_unused(numElements);
 
     PlotFileData pf(pltfile);
     int dim = pf.spaceDim();
@@ -128,7 +129,7 @@ void main_main()
     if (max_level < 0) {
         max_level = pf.finestLevel();
     } else {
-        if (max_level < 0 or max_level > pf.finestLevel()) {
+        if (max_level < 0 || max_level > pf.finestLevel()) {
             amrex::Abort("ERROR: specified level not allowed");
         }
     }
@@ -152,7 +153,7 @@ void main_main()
         iloc[2] = (fhi.z-flo.z+1)/2 + flo.z;
     }
 
-    if (location[0] > -1.e36 or location[1] > -1.e36 or location[2] > -1.e36) {
+    if (location[0] > -1.e36 || location[1] > -1.e36 || location[2] > -1.e36) {
         Array<Real,AMREX_SPACEDIM> problo = pf.probLo();
         Array<Real,AMREX_SPACEDIM> dx = pf.cellSize(max_level);
         for (int idim = 0; idim < dim; ++idim) {
@@ -178,6 +179,7 @@ void main_main()
         ndir_end = ndir_begin+1;
         ndirs = 1;
     }
+    amrex::ignore_unused(ndirs);
 
     Vector<Box> finebox(3, finedomainbox);
     Vector<MultiFab> datamf(3);

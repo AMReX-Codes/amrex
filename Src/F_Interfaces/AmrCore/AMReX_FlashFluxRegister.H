@@ -1,5 +1,6 @@
 #ifndef AMREX_FLASH_FLUX_REGISTER_H_
 #define AMREX_FLASH_FLUX_REGISTER_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>

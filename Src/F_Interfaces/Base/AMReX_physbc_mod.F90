@@ -67,7 +67,7 @@ contains
     this%owner = .false.
     this%p     = c_null_ptr
   end subroutine amrex_physbc_destroy
-  
+
   subroutine amrex_physbc_assign (dst, src)
     class(amrex_physbc), intent(inout) :: dst
     type (amrex_physbc), intent(in   ) :: src

@@ -1,15 +1,20 @@
 #ifndef AMREX_ErrorList_H_
 #define AMREX_ErrorList_H_
-
-#include <string>
-#include <memory>
+#include <AMReX_Config.H>
 
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_REAL.H>
 #include <AMReX_ArrayLim.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_TagBox.H>
+#include <AMReX_Geometry.H>
+
+#include <string>
+#include <memory>
 
 namespace amrex {
+
 
 extern "C"
 {
@@ -78,7 +83,7 @@ extern "C"
     */
     typedef void (*ErrorFunc3DDefault)(int* tag, const int* tlo, const int* thi,
                                        const int* tagval, const int* clearval,
-         			       amrex::Real* data, const int* data_lo, const int* data_hi,
+                                       amrex::Real* data, const int* data_lo, const int* data_hi,
                                        const int* lo, const int * hi, const int* nvar,
                                        const int* domain_lo, const int* domain_hi,
                                        const amrex::Real* dx, const amrex::Real* xlo,
@@ -372,6 +377,110 @@ private:
 
 std::ostream& operator << (std::ostream& os, const ErrorList& elst);
 
+  struct AMRErrorTagInfo
+  {
+    int m_max_level = 1000;
+    Real m_min_time = std::numeric_limits<Real>::lowest();
+    Real m_max_time = std::numeric_limits<Real>::max();
+    RealBox m_realbox;
+
+    AMRErrorTagInfo& SetMaxLevel (int max_level) noexcept {
+      m_max_level = max_level;
+      return *this;
+    }
+    AMRErrorTagInfo& SetMinTime (amrex::Real min_time) noexcept {
+      m_min_time = min_time;
+      return *this;
+    }
+    AMRErrorTagInfo& SetMaxTime (amrex::Real max_time) noexcept {
+      m_max_time = max_time;
+      return *this;
+    }
+    AMRErrorTagInfo& SetRealBox (const amrex::RealBox& realbox) noexcept {
+      m_realbox = realbox;
+      return *this;
+    }
+  };
+
+  class AMRErrorTag
+  {
+  public:
+
+    enum TEST {GRAD=0, RELGRAD, LESS, GREATER, VORT, BOX, USER};
+
+    struct UserFunc
+    {
+      virtual void operator() (const amrex::Box&                       bx,
+                               amrex::Array4<const amrex::Real> const& dat,
+                               amrex::Array4<char> const&              tag,
+                               amrex::Real                             time,
+                               int                                     level,
+                               char                                    tagval,
+                               char                                    clearval) = 0;
+    };
+
+    explicit AMRErrorTag (const AMRErrorTagInfo& info = AMRErrorTagInfo()) noexcept
+      : m_test(BOX), m_field(std::string()), m_info(info) {m_ngrow = SetNGrow();}
+
+    AMRErrorTag (amrex::Real            value,
+                 AMRErrorTag::TEST      test,
+                 const std::string&     field,
+                 const AMRErrorTagInfo& info = AMRErrorTagInfo()) noexcept
+      : m_test(test), m_field(field), m_info(info)
+      {
+          m_value.resize(info.m_max_level);
+          for (int i = 0; i < m_value.size(); ++i) {
+              m_value[i] = value;
+          }
+          m_ngrow = SetNGrow();
+      }
+
+    AMRErrorTag (amrex::Vector<amrex::Real>  value,
+                 AMRErrorTag::TEST           test,
+                 const std::string&          field,
+                 const AMRErrorTagInfo&      info = AMRErrorTagInfo()) noexcept
+      : m_test(test), m_field(field), m_info(info)
+      {
+          AMREX_ASSERT(value.size() > 0);
+          m_value.resize(info.m_max_level);
+          for (int i = 0; i < m_value.size() && i < value.size(); ++i) {
+              m_value[i] = value[i];
+          }
+          // If the user didn't provided a value for every level,
+          // assume the last value holds for all higher levels.
+          for (int i = value.size(); i < m_value.size(); ++i) {
+              m_value[i] = value[value.size()-1];
+          }
+          m_ngrow = SetNGrow();
+      }
+
+    AMRErrorTag (AMRErrorTag::UserFunc* userfunc,
+                 const std::string&     field,
+                 int                    ngrow,
+                 const AMRErrorTagInfo& info = AMRErrorTagInfo()) noexcept
+      : m_userfunc(userfunc), m_field(field), m_info(info), m_ngrow(ngrow) {}
+
+    virtual void operator() (amrex::TagBoxArray&    tb,
+                             const amrex::MultiFab* mf,
+                             char                   clearval,
+                             char                   tagval,
+                             amrex::Real            time,
+                             int                    level,
+                             const amrex::Geometry& geom) const noexcept;
+
+    int NGrow() const noexcept {return m_ngrow;}
+    const std::string& Field () const noexcept {return m_field;}
+
+  protected:
+    int SetNGrow () const noexcept;
+
+    Vector<Real> m_value;
+    TEST m_test;
+    UserFunc* m_userfunc = nullptr;
+    std::string m_field;
+    AMRErrorTagInfo m_info;
+    int m_ngrow;
+  };
 }
 
 #endif

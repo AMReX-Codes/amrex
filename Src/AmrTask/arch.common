@@ -1,4 +1,0 @@
-ROOT_PATH= /home/users/nnguyent/lbl/amrex/Src/AmrTask
-
-include  $(ROOT_PATH)/arch/arch.mpi.generic
-#include  $(ROOT_PATH)/arch/arch.serial

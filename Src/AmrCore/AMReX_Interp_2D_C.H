@@ -1,351 +1,15 @@
 #ifndef AMREX_INTERP_2D_C_H_
 #define AMREX_INTERP_2D_C_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FArrayBox.H>
 #include <AMReX_BCRec.H>
 #include <AMReX_Vector.H>
+#include <AMReX_Array.H>
+#include <AMReX_Geometry.H>
 #include <cmath>
 
 namespace amrex {
-
-AMREX_GPU_HOST
-inline
-Vector<Real>
-ccinterp_compute_voff (Box const& cbx, IntVect const& ratio, Geometry const& cgeom,
-                       Geometry const& fgeom) noexcept
-{
-    const Box& fbx = amrex::refine(cbx,ratio);
-    const auto& flen = amrex::length(fbx);
-    const auto& flo = amrex::lbound(fbx);
-    const auto& fhi = amrex::ubound(fbx);
-    const int nxy = flen.x + flen.y;
-    Vector<Real> voff(nxy);
-
-    Vector<Real> fvc, cvc;
-    fgeom.GetEdgeVolCoord(fvc,fbx,0);
-    cgeom.GetEdgeVolCoord(cvc,cbx,0);
-
-    const auto& clo = amrex::lbound(cbx);
-
-    Real* AMREX_RESTRICT xoff = &voff[0];
-    AMREX_PRAGMA_SIMD
-    for (int i = flo.x; i <= fhi.x; ++i) {
-        const int ic = amrex::coarsen(i, ratio[0]);
-        const int ii = i - flo.x;
-        const int iic = ic - clo.x;
-        const Real fcen = 0.5_rt*(fvc[ii ]+fvc[ii +1]);
-        const Real ccen = 0.5_rt*(cvc[iic]+cvc[iic+1]);
-        xoff[ii] = (fcen-ccen)/(cvc[iic+1]-cvc[iic]);
-    }
-
-    fgeom.GetEdgeVolCoord(fvc,fbx,1);
-    cgeom.GetEdgeVolCoord(cvc,cbx,1);
-
-    Real* AMREX_RESTRICT yoff = &voff[flen.x];
-    AMREX_PRAGMA_SIMD
-    for (int j = flo.y; j <= fhi.y; ++j) {
-        const int jc = amrex::coarsen(j, ratio[1]);
-        const int jj = j - flo.y;
-        const int jjc = jc - clo.y;
-        const Real fcen = 0.5_rt*(fvc[jj ]+fvc[jj +1]);
-        const Real ccen = 0.5_rt*(cvc[jjc]+cvc[jjc+1]);
-        yoff[jj] = (fcen-ccen)/(cvc[jjc+1]-cvc[jjc]);
-    }
-
-    return voff;
-}
-
-namespace {
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-compute_slopes (const Dim3& lo, const Dim3& hi,
-                Array4<Real> const& slopes, const Dim3& slo, const Dim3& shi, int ns,
-                Array4<Real const> const& u, int nu,
-                BCRec const& bc, int ncomp) noexcept
-{
-    for     (int j = lo.y; j <= hi.y; ++j) {
-        AMREX_PRAGMA_SIMD
-        for (int i = lo.x; i <= hi.x; ++i) {
-            slopes(i,j,0,ns      ) = 0.5_rt*(u(i+1,j,0,nu)-u(i-1,j,0,nu));
-            slopes(i,j,0,ns+ncomp) = 0.5_rt*(u(i,j+1,0,nu)-u(i,j-1,0,nu));
-        }
-    }
-
-    if (lo.x == slo.x && (bc.lo(0) == BCType::ext_dir || bc.lo(0) == BCType::hoextrap))
-    {
-        const int i = slo.x;
-        if (shi.x-slo.x >= 1) {
-            for     (int j = lo.y; j <= hi.y; ++j) {
-                slopes(i,j,0,ns) = -(16._rt/15._rt)*u(i-1,j,0,nu) + 0.5_rt*u(i,j,0,nu)
-                    + (2._rt/3._rt)*u(i+1,j,0,nu) - 0.1_rt*u(i+2,j,0,nu);
-            }
-        } else {
-            for     (int j = lo.y; j <= hi.y; ++j) {
-                slopes(i,j,0,ns) = 0.25_rt*(u(i+1,j,0,nu)+5._rt*u(i,j,0,nu)-6._rt*u(i-1,j,0,nu));
-            }
-        }
-    }
-
-    if (hi.x == shi.x && (bc.hi(0) == BCType::ext_dir || bc.hi(0) == BCType::hoextrap))
-    {
-        const int i = shi.x;
-        if (shi.x-slo.x >= 1) {
-            for     (int j = lo.y; j <= hi.y; ++j) {
-                slopes(i,j,0,ns) = (16._rt/15._rt)*u(i+1,j,0,nu) - 0.5_rt*u(i,j,0,nu)
-                    - (2._rt/3._rt)*u(i-1,j,0,nu) + 0.1_rt*u(i-2,j,0,nu);
-            }
-        } else {
-            for     (int j = lo.y; j <= hi.y; ++j) {
-                slopes(i,j,0,ns) = -0.25_rt*(u(i-1,j,0,nu)+5._rt*u(i,j,0,nu)-6._rt*u(i+1,j,0,nu));
-            }
-        }
-    }
-
-    if (lo.y == slo.y && (bc.lo(1) == BCType::ext_dir || bc.lo(1) == BCType::hoextrap))
-    {
-        const int j = slo.y;
-        if (shi.y-slo.y >= 1) {
-            AMREX_PRAGMA_SIMD
-            for (int i = lo.x; i <= hi.x; ++i) {
-                slopes(i,j,0,ns+ncomp) = -(16._rt/15._rt)*u(i,j-1,0,nu) + 0.5_rt*u(i,j,0,nu)
-                    + (2._rt/3._rt)*u(i,j+1,0,nu) - 0.1_rt*u(i,j+2,0,nu);
-            }
-        } else {
-            AMREX_PRAGMA_SIMD
-            for (int i = lo.x; i <= hi.x; ++i) {
-                slopes(i,j,0,ns+ncomp) = 0.25_rt*(u(i,j+1,0,nu)+5._rt*u(i,j,0,nu)-6._rt*u(i,j-1,0,nu));
-            }
-        }
-    }
-
-    if (hi.y == shi.y && (bc.hi(1) == BCType::ext_dir || bc.hi(1) == BCType::hoextrap))
-    {
-        const int j = shi.y;
-        if (shi.y-slo.y >= 1) {
-            AMREX_PRAGMA_SIMD
-            for (int i = lo.x; i <= hi.x; ++i) {
-                slopes(i,j,0,ns+ncomp) = (16._rt/15._rt)*u(i,j+1,0,nu) - 0.5_rt*u(i,j,0,nu)
-                    - (2._rt/3._rt)*u(i,j-1,0,nu) + 0.1_rt*u(i,j-2,0,nu);
-            }
-        } else {
-            AMREX_PRAGMA_SIMD
-            for (int i = lo.x; i <= hi.x; ++i) {
-                slopes(i,j,0,ns+ncomp) = -0.25_rt*(u(i,j-1,0,nu)+5._rt*u(i,j,0,nu)-6._rt*u(i,j+1,0,nu));
-            }
-        }
-    }
-}
-
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-cellconslin_slopes_linlim (Box const& bx, Array4<Real> const& slopes,
-                           Array4<Real const> const& u, const int icomp, const int ncomp,
-                           BCRec const* AMREX_RESTRICT bcr) noexcept
-{
-    const auto lo = amrex::lbound(bx);
-    const auto hi = amrex::ubound(bx);
-
-    const auto slo  = amrex::lbound(slopes);
-    const auto shi  = amrex::ubound(slopes);
-
-    const Array4<Real> sf(slopes,ncomp*AMREX_SPACEDIM); // slope factor
-
-    for     (int j = lo.y; j <= hi.y; ++j) {
-        AMREX_PRAGMA_SIMD
-        for (int i = lo.x; i <= hi.x; ++i) {
-            sf(i,j,0,0) = 1.0_rt;
-            sf(i,j,0,1) = 1.0_rt;
-        }
-    }
-
-    for (int n = 0; n < ncomp; ++n)
-    {
-        const int nu = n + icomp;
-        compute_slopes(lo, hi, slopes, slo, shi, n, u, nu, bcr[n], ncomp);
-
-        for     (int j = lo.y; j <= hi.y; ++j) {
-            AMREX_PRAGMA_SIMD
-            for (int i = lo.x; i <= hi.x; ++i) {
-                Real cen  = slopes(i,j,0,n);
-                Real forw = 2.0_rt*(u(i+1,j,0,nu)-u(i  ,j,0,nu));
-                Real back = 2.0_rt*(u(i  ,j,0,nu)-u(i-1,j,0,nu));
-                Real slp = (forw*back >= 0.0_rt) ? amrex::min(amrex::Math::abs(forw),amrex::Math::abs(back)) : 0.0_rt;
-                slopes(i,j,0,n) = amrex::Math::copysign(1.0_rt,cen)*amrex::min(slp,amrex::Math::abs(cen));
-                if (cen != 0.0_rt) {
-                    sf(i,j,0,0) = amrex::min(sf(i,j,0,0), slopes(i,j,0,n)/cen);
-                } else {
-                    sf(i,j,0,0) = 0.0_rt;
-                }
-
-                cen  = slopes(i,j,0,n+ncomp);
-                forw = 2.0_rt*(u(i,j+1,0,nu)-u(i,j  ,0,nu));
-                back = 2.0_rt*(u(i,j  ,0,nu)-u(i,j-1,0,nu));
-                slp = (forw*back >= 0.0_rt) ? amrex::min(amrex::Math::abs(forw),amrex::Math::abs(back)) : 0.0_rt;
-                slopes(i,j,0,n+ncomp) = amrex::Math::copysign(1.0_rt,cen)*amrex::min(slp,amrex::Math::abs(cen));
-                if (cen != 0.0_rt) {
-                    sf(i,j,0,1) = amrex::min(sf(i,j,0,1), slopes(i,j,0,n+ncomp)/cen);
-                } else {
-                    sf(i,j,0,1) = 0.0_rt;
-                }
-            }
-        }
-    }
-
-    for (int n = 0; n < ncomp; ++n) {
-        for     (int j = lo.y; j <= hi.y; ++j) {
-            AMREX_PRAGMA_SIMD
-            for (int i = lo.x; i <= hi.x; ++i) {
-                slopes(i,j,0,n      ) *= sf(i,j,0,0);
-                slopes(i,j,0,n+ncomp) *= sf(i,j,0,1);
-            }
-        }
-    }
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-cellconslin_interp (Box const& bx,
-                    Array4<Real> const& fine, const int fcomp, const int ncomp,
-                    Array4<Real const> const& slopes,
-                    Array4<Real const> const& crse, const int ccomp,
-                    Real const* AMREX_RESTRICT voff, IntVect const& ratio) noexcept
-{
-    const auto lo = amrex::lbound(bx);
-    const auto hi = amrex::ubound(bx);
-
-    Box vbox(slopes);
-    vbox.refine(ratio);
-    const auto vlo  = amrex::lbound(vbox);
-    const auto vlen = amrex::length(vbox);
-    Real const* AMREX_RESTRICT xoff = voff;
-    Real const* AMREX_RESTRICT yoff = voff + vlen.x;
-
-    for (int n = 0; n < ncomp; ++n) {
-        for (int j = lo.y; j <= hi.y; ++j) {
-            const int jc = amrex::coarsen(j,ratio[1]);
-            AMREX_PRAGMA_SIMD
-            for (int i = lo.x; i <= hi.x; ++i) {
-                const int ic = amrex::coarsen(i,ratio[0]);
-                fine(i,j,0,n+fcomp) = crse(ic,jc,0,n+ccomp)
-                    + xoff[i-vlo.x] * slopes(ic,jc,0,n)
-                    + yoff[j-vlo.y] * slopes(ic,jc,0,n+ncomp);
-            }
-        }
-    }
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-cellconslin_slopes_mclim (Box const& bx, Array4<Real> const& slopes,
-                          Array4<Real const> const& u, const int icomp, const int ncomp,
-                          BCRec const* AMREX_RESTRICT bcr) noexcept
-{
-    const auto lo = amrex::lbound(bx);
-    const auto hi = amrex::ubound(bx);
-
-    const auto slo = amrex::lbound(slopes);
-    const auto shi = amrex::ubound(slopes);
-
-    const Array4<Real> mm(slopes, ncomp*AMREX_SPACEDIM);  // min and max
-
-    for (int n = 0; n < ncomp; ++n) {
-        const int nu = n + icomp;
-        for     (int j = lo.y; j <= hi.y; ++j) {
-            for (int i = lo.x; i <= hi.x; ++i) {
-                Real cmn = u(i,j,0,nu);
-                Real cmx = cmn;
-                for     (int joff = -1; joff <= 1; ++joff) {
-                    for (int ioff = -1; ioff <= 1; ++ioff) {
-                        cmn = amrex::min(cmn,u(i+ioff,j+joff,0,nu));
-                        cmx = amrex::max(cmx,u(i+ioff,j+joff,0,nu));
-                    }
-                }
-                mm(i,j,0,n      ) = cmn - u(i,j,0,nu);
-                mm(i,j,0,n+ncomp) = cmx - u(i,j,0,nu);
-            }
-        }
-
-        compute_slopes(lo, hi, slopes, slo, shi, n, u, nu, bcr[n], ncomp);
-
-        for     (int j = lo.y; j <= hi.y; ++j) {
-            AMREX_PRAGMA_SIMD
-            for (int i = lo.x; i <= hi.x; ++i) {
-                Real cen  = slopes(i,j,0,n);
-                Real forw = 2.0_rt*(u(i+1,j,0,nu)-u(i  ,j,0,nu));
-                Real back = 2.0_rt*(u(i  ,j,0,nu)-u(i-1,j,0,nu));
-                Real slp = (forw*back >= 0.0_rt) ? amrex::min(amrex::Math::abs(forw),amrex::Math::abs(back)) : 0.0_rt;
-                slopes(i,j,0,n) = amrex::Math::copysign(1.0_rt,cen)*amrex::min(slp,amrex::Math::abs(cen));
-
-                cen  = slopes(i,j,0,n+ncomp);
-                forw = 2.0_rt*(u(i,j+1,0,nu)-u(i,j  ,0,nu));
-                back = 2.0_rt*(u(i,j  ,0,nu)-u(i,j-1,0,nu));
-                slp = (forw*back >= 0.0_rt) ? amrex::min(amrex::Math::abs(forw),amrex::Math::abs(back)) : 0.0_rt;
-                slopes(i,j,0,n+ncomp) = amrex::Math::copysign(1.0_rt,cen)*amrex::min(slp,amrex::Math::abs(cen));
-            }
-        }
-    }
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-cellconslin_fine_alpha (Box const& bx, Array4<Real> const& alpha,
-                        Array4<Real const> const& slopes, const int ncomp,
-                        Real const* AMREX_RESTRICT voff, IntVect const& ratio) noexcept
-{
-    const auto lo = amrex::lbound(bx);
-    const auto hi = amrex::ubound(bx);
-
-    const Array4<Real const> mm(slopes, ncomp*AMREX_SPACEDIM);  // min and max
-
-    const auto vlo  = amrex::lbound(alpha);
-    const auto vlen = amrex::length(alpha);
-    Real const* AMREX_RESTRICT xoff = voff;
-    Real const* AMREX_RESTRICT yoff = voff + vlen.x;
-
-    for (int n = 0; n < ncomp; ++n) {
-        for (int j = lo.y; j <= hi.y; ++j) {
-            const int jc = amrex::coarsen(j,ratio[1]);
-            AMREX_PRAGMA_SIMD
-            for (int i = lo.x; i <= hi.x; ++i) {
-                const int ic = amrex::coarsen(i,ratio[0]);
-                const Real dummy_fine = xoff[i-vlo.x]*slopes(ic,jc,0,n)
-                    +                   yoff[j-vlo.y]*slopes(ic,jc,0,n+ncomp);
-
-                if (dummy_fine > mm(ic,jc,0,n+ncomp) && dummy_fine != 0.0_rt) {
-                    alpha(i,j,0,n) = mm(ic,jc,0,n+ncomp) / dummy_fine;
-                } else if (dummy_fine < mm(ic,jc,0,n) && dummy_fine != 0.0_rt) {
-                    alpha(i,j,0,n) = mm(ic,jc,0,n) / dummy_fine;
-                } else {
-                    alpha(i,j,0,n) = 1.0_rt;
-                }
-            }
-        }
-    }
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-cellconslin_slopes_mmlim (Box const& bx, Array4<Real> const& slopes,
-                          Array4<Real const> const& alpha,
-                          const int ncomp, IntVect const& ratio) noexcept
-{
-    const auto lo = amrex::lbound(bx);
-    const auto hi = amrex::ubound(bx);
-
-    for (int n = 0; n < ncomp; ++n) {
-        for (int j = lo.y; j <= hi.y; ++j) {
-            const int jj = j*ratio[1];
-            for (int i = lo.x; i <= hi.x; ++i) {
-                const int ii = i*ratio[0];
-                Real a = 1.0_rt;
-                for     (int joff = 0; joff < ratio[1]; ++joff) {
-                    for (int ioff = 0; ioff < ratio[0]; ++ioff) {
-                        a = amrex::min(a, alpha(ii+ioff,jj+joff,0,n));
-                    }
-                }
-                slopes(i,j,0,n      ) *= a;
-                slopes(i,j,0,n+ncomp) *= a;
-            }
-        }
-    }
-}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 pcinterp_interp (Box const& bx,
@@ -382,8 +46,8 @@ nodebilin_slopes (Box const& bx, Array4<T> const& slope, Array4<T const> const& 
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
-    const Real rx = 1.0_rt/ratio[0];
-    const Real ry = 1.0_rt/ratio[1];
+    const Real rx = Real(1.)/ratio[0];
+    const Real ry = Real(1.)/ratio[1];
 
     for (int n = 0; n < ncomp; ++n) {
         for     (int j = lo.y; j <= hi.y; ++j) {
@@ -430,13 +94,94 @@ nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const i
 
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+facediv_face_interp (int ci, int cj, int /*ck*/,
+                     int nc, int nf, int idir,
+                     Array4<T const> const& crse,
+                     Array4<T> const& fine,
+                     Array4<int const> const& mask,
+                     IntVect const& ratio) noexcept
+{
+    if (mask) {
+        if (!mask(ci, cj, 0, nc))
+            { return; }
+    }
+
+    const int fi = ci*ratio[0];
+    const int fj = cj*ratio[1];
+
+    switch (idir) {
+        case 0:
+        {
+            const Real neg = crse(ci, cj-1, 0, nc);
+            const Real cen = crse(ci, cj  , 0, nc);
+            const Real pos = crse(ci, cj+1, 0, nc);
+
+            fine(fi, fj  , 0, nf) = Real(0.125)*(8*cen + neg - pos);
+            fine(fi, fj+1, 0, nf) = Real(0.125)*(8*cen + pos - neg);
+
+            break;
+        }
+        case 1:
+        {
+            const Real neg = crse(ci-1, cj, 0, nc);
+            const Real cen = crse(ci  , cj, 0, nc);
+            const Real pos = crse(ci+1, cj, 0, nc);
+
+            fine(fi  , fj, 0, nf) = Real(0.125)*(8*cen + neg - pos);
+            fine(fi+1, fj, 0, nf) = Real(0.125)*(8*cen + pos - neg);
+
+            break;
+        }
+    }
+}
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+facediv_int (int ci, int cj, int /*ck*/, int nf,
+             GpuArray<Array4<T>, AMREX_SPACEDIM> const& fine,
+             IntVect const& ratio,
+             GpuArray<Real, AMREX_SPACEDIM> const& cellSize) noexcept
+{
+    const int fi = ci*ratio[0];
+    const int fj = cj*ratio[1];
+
+    // References to fine exterior values.
+    const Real umm = fine[0](fi,   fj,   0, nf);
+    const Real ump = fine[0](fi,   fj+1, 0, nf);
+    const Real upm = fine[0](fi+2, fj,   0, nf);
+    const Real upp = fine[0](fi+2, fj+1, 0, nf);
+
+    const Real vmm = fine[1](fi,   fj,   0, nf);
+    const Real vmp = fine[1](fi+1, fj,   0, nf);
+    const Real vpm = fine[1](fi,   fj+2, 0, nf);
+    const Real vpp = fine[1](fi+1, fj+2, 0, nf);
+
+    const Real dxdy = cellSize[0]/cellSize[1];
+    const Real x_corr = Real(0.25)*dxdy * (vpp+vmm-vmp-vpm);
+    const Real y_corr = Real(0.25)/dxdy * (upp+umm-ump-upm);
+
+    // Calc fine faces on interior of coarse cells.
+    fine[0](fi+1,fj  ,0,nf) = Real(0.5)*(umm+upm) + x_corr;
+    fine[0](fi+1,fj+1,0,nf) = Real(0.5)*(ump+upp) + x_corr;
+    fine[1](fi,  fj+1,0,nf) = Real(0.5)*(vmm+vpm) + y_corr;
+    fine[1](fi+1,fj+1,0,nf) = Real(0.5)*(vmp+vpp) + y_corr;
+}
+
+
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 face_linear_interp_x (int i, int j, int /*k*/, int n, Array4<T> const& fine,
                       Array4<T const> const& crse, IntVect const& ratio) noexcept
 {
-    int ii = amrex::coarsen(i,ratio[0]);
-    int jj = amrex::coarsen(j,ratio[1]);
-    Real const w = static_cast<Real>(i-ii*ratio[0]) * (1.0_rt/ratio[0]);
-    fine(i,j,0,n) = (1.0_rt-w) * crse(ii,jj,0,n) + w * crse(ii+1,jj,0,n);
+    const int ii = amrex::coarsen(i,ratio[0]);
+    const int jj = amrex::coarsen(j,ratio[1]);
+    if (i-ii*ratio[0] == 0) {
+        fine(i,j,0,n) = crse(ii,jj,0,n);
+    } else {
+        Real const w = static_cast<Real>(i-ii*ratio[0]) * (Real(1.)/ratio[0]);
+        fine(i,j,0,n) = (Real(1.)-w) * crse(ii,jj,0,n) + w * crse(ii+1,jj,0,n);
+    }
 }
 
 template<typename T>
@@ -444,12 +189,308 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 face_linear_interp_y (int i, int j, int /*k*/, int n, Array4<T> const& fine,
                       Array4<T const> const& crse, IntVect const& ratio) noexcept
 {
-    int ii = amrex::coarsen(i,ratio[0]);
-    int jj = amrex::coarsen(j,ratio[1]);
-    Real const w = static_cast<Real>(j-jj*ratio[1]) * (1.0_rt/ratio[1]);
-    fine(i,j,0,n) = (1.0_rt-w) * crse(ii,jj,0,n) + w * crse(ii,jj+1,0,n);
+    const int ii = amrex::coarsen(i,ratio[0]);
+    const int jj = amrex::coarsen(j,ratio[1]);
+    if (j-jj*ratio[1] == 0) {
+        fine(i,j,0,n) = crse(ii,jj,0,n);
+    } else {
+        Real const w = static_cast<Real>(j-jj*ratio[1]) * (Real(1.)/ratio[1]);
+        fine(i,j,0,n) = (Real(1.)-w) * crse(ii,jj,0,n) + w * crse(ii,jj+1,0,n);
+    }
 }
 
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ccprotect_2d (int ic, int jc, int /*kc*/, int nvar,
+                   Box const& fine_bx,
+                   IntVect const& ratio,
+                   GeometryData cs_geomdata,
+                   GeometryData fn_geomdata,
+                   Array4<T>       const& fine,
+                   Array4<T const> const& fine_state) noexcept
+{
+    // Calculate bounds for interpolation
+    Dim3 fnbxlo = lbound(fine_bx);
+    Dim3 fnbxhi = ubound(fine_bx);
+    int ilo = amrex::max(ratio[0]*ic,              fnbxlo.x);
+    int ihi = amrex::min(ratio[0]*ic+(ratio[0]-1), fnbxhi.x);
+    int jlo = amrex::max(ratio[1]*jc,              fnbxlo.y);
+    int jhi = amrex::min(ratio[1]*jc+(ratio[1]-1), fnbxhi.y);
+
+    /*
+     * Check if interpolation needs to be redone for derived components (n > 0)
+     */
+    for (int n = 1; n < nvar-1; ++n) {
+
+        bool redo_me = false;
+        for     (int j = jlo; j <= jhi; ++j) {
+            for (int i = ilo; i <= ihi; ++i) {
+                if ((fine_state(i,j,0,n) + fine(i,j,0,n)) < 0.0) {
+                    redo_me = true;
+                }
+            }
+        }
+
+        /*
+         * If all the fine values are non-negative after the original
+         * interpolated correction, then we do nothing here.
+         *
+         * If any of the fine values are negative after the original
+         * interpolated correction, then we do our best.
+         */
+        if (redo_me) {
+
+            /*
+             * Calculate coarse cell volumes.
+             */
+            Real cvol;
+            // Calculate coarse cell volume
+            const Real* cs_dx = cs_geomdata.CellSize();
+            if (cs_geomdata.coord == CoordSys::cartesian) {
+                // Cartesian
+                cvol = cs_dx[0] * cs_dx[1];
+            } else {
+                // RZ
+                const Real* cs_problo = cs_geomdata.ProbLo();
+                Real rp = cs_problo[0] + (ic+0.5)*cs_dx[0];
+                Real rm = cs_problo[0] + (ic-0.5)*cs_dx[0];
+                cvol = (rp*rp - rm*rm) * cs_dx[1];
+            }
+
+            /*
+             * First, calculate the following quantities:
+             *
+             * crseTot = volume-weighted sum of all interpolated values
+             *           of the correction, which is equivalent to
+             *           the total volume-weighted coarse correction
+             *
+             * SumN = volume-weighted sum of all negative values of fine_state
+             *
+             * SumP = volume-weighted sum of all positive values of fine_state
+             */
+            Real crseTot = 0.0;
+            Real SumN = 0.0;
+            Real SumP = 0.0;
+            for     (int j = jlo; j <= jhi; ++j) {
+                for (int i = ilo; i <= ihi; ++i) {
+
+                    Real fvol;
+                    // Calculate fine cell volume
+                    const Real* fn_dx = fn_geomdata.CellSize();
+                    if (fn_geomdata.coord == CoordSys::cartesian) {
+                        // Cartesian
+                        fvol = fn_dx[0] * fn_dx[1];
+                    } else {
+                        // RZ
+                        const Real* fn_problo = fn_geomdata.ProbLo();
+                        Real rp = fn_problo[0] + (i+0.5)*fn_dx[0];
+                        Real rm = fn_problo[0] + (i-0.5)*fn_dx[0];
+                        fvol = (rp*rp - rm*rm) * fn_dx[1];
+                    }
+
+                    // Calculate sums
+                    crseTot += fvol * fine(i,j,0,n);
+                    if (fine_state(i,j,0,n) <= 0.0) {
+                        SumN += fvol * fine_state(i,j,0,n);
+                    } else {
+                        SumP += fvol * fine_state(i,j,0,n);
+                    }
+                }
+            }
+
+            if ( (crseTot > 0) && (crseTot > Math::abs(SumN)) ) {
+
+                /*
+                 * Special case 1:
+                 *
+                 * Coarse correction > 0, and fine_state has some cells
+                 * with negative values which will be filled before
+                 * adding to the other cells.
+                 *
+                 * Use the correction to bring negative cells to zero,
+                 * then distribute the remaining positive proportionally.
+                 */
+                for     (int j = jlo; j <= jhi; ++j) {
+                    for (int i = ilo; i <= ihi; ++i) {
+
+                        // Fill in negative values first.
+                        if (fine_state(i,j,0,n) < 0.0) {
+                            fine(i,j,0,n) = -fine_state(i,j,0,n);
+                        }
+
+                        // Then, add the remaining positive proportionally.
+                        if (SumP > 0.0) {
+                            if (fine_state(i,j,0,n) > 0.0) {
+                                Real alpha = (crseTot - Math::abs(SumN)) / SumP;
+                                fine(i,j,0,n) = alpha * fine_state(i,j,0,n);
+                            }
+                        } else { /* (SumP < 0) */
+                            Real posVal = (crseTot - Math::abs(SumN)) / cvol;
+                            fine(i,j,0,n) += posVal;
+                        }
+
+                    }
+                }
+
+            } else if ( (crseTot > 0) && (crseTot < Math::abs(SumN)) ) {
+
+                /*
+                 * Special case 2:
+                 *
+                 * Coarse correction > 0, and correction can not make
+                 * them all positive.
+                 *
+                 * Add correction only to the negative cells
+                 * in proportion to their magnitude, and
+                 * don't add any correction to the states already positive.
+                 */
+                for     (int j = jlo; j <= jhi; ++j) {
+                    for (int i = ilo; i <= ihi; ++i) {
+
+                        Real alpha = crseTot / Math::abs(SumN);
+                        if (fine_state(i,j,0,n) < 0.0) {
+                            // Add correction to negative cells proportionally.
+                            fine(i,j,0,n) = alpha * Math::abs(fine_state(i,j,0,n));
+                        } else {
+                            // Don't touch the positive states.
+                            fine(i,j,0,n) = 0.0;
+                        }
+
+                    }
+                }
+
+            } else if ( (crseTot < 0) && (Math::abs(crseTot) > SumP) ) {
+
+                /*
+                 * Special case 3:
+                 *
+                 * Coarse correction < 0, and fine_state DOES NOT have
+                 * enough positive states to absorb it.
+                 *
+                 * Here we distribute the remaining negative amount
+                 * in such a way as to make them all as close to the
+                 * same negative value as possible.
+                 */
+                for     (int j = jlo; j <= jhi; ++j) {
+                    for (int i = ilo; i <= ihi; ++i) {
+
+                        // We want to make them all as close to the same negative value.
+                        Real negVal = (SumP + SumN + crseTot) / cvol;
+                        fine(i,j,0,n) = negVal - fine_state(i,j,0,n);
+
+                    }
+                }
+
+            } else if ( (crseTot < 0) && (Math::abs(crseTot) < SumP) &&
+                        ((SumP+SumN+crseTot) > 0.0) )  {
+
+                /*
+                 * Special case 4:
+                 *
+                 * Coarse correction < 0, and fine_state has enough
+                 * positive states to absorb all the negative
+                 * correction *and* to redistribute to make
+                 * negative cells positive.
+                 */
+                for     (int j = jlo; j <= jhi; ++j) {
+                    for (int i = ilo; i <= ihi; ++i) {
+
+                        if (fine_state(i,j,0,n) < 0.0) {
+                            // Absorb the negative correction
+                            fine(i,j,0,n) = -fine_state(i,j,0,n);
+                        } else {
+                            // Redistribute the rest to make negative cells positive
+                            Real alpha = (crseTot + SumN) / SumP;
+                            fine(i,j,0,n) = alpha * fine_state(i,j,0,n);
+                        }
+
+                    }
+                }
+
+            } else if ( (crseTot < 0) && (Math::abs(crseTot) < SumP) &&
+                        ((SumP+SumN+crseTot) < 0.0) )  {
+                /*
+                 * Special case 5:
+                 *
+                 * Coarse correction < 0, and fine_state has enough
+                 * positive states to absorb all the negative
+                 * correction, but not enough to fix the states
+                 * already negative.
+                 *
+                 * Here we take a constant percentage away from each
+                 * positive cell and don't touch the negatives.
+                 */
+                for     (int j = jlo; j <= jhi; ++j) {
+                    for (int i = ilo; i <= ihi; ++i) {
+
+                        if (fine_state(i,j,0,n) > 0.0) {
+                            // Don't touch the negatives
+                            fine(i,j,0,n) = -fine_state(i,j,0,n);
+                        } else {
+                            // Take a constant percentage away from each positive cell
+                            Real alpha = (crseTot + SumP) / SumN;
+                            fine(i,j,0,n) = alpha * fine_state(i,j,0,n);
+                        }
+
+                    }
+                }
+
+            } // special cases
+        } // redo_me
+    } // n
+
+    // Set sync for density (n=0) to sum of spec sync (1:nvar)
+    for     (int j = jlo; j <= jhi; ++j) {
+        for (int i = ilo; i <= ihi; ++i) {
+            fine(i,j,0,0) = 0.0;
+            for (int n = 1; n < nvar-1; ++n) {
+                fine(i,j,0,0) += fine(i,j,0,n);
+            }
+        }
+    }
+
 }
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ccquartic_interp (int i, int j, int /*k*/, int n,
+                       Array4<Real const> const& crse,
+                       Array4<Real>       const& fine) noexcept
+{
+    // Note: there are asserts in CellConservativeQuartic::interp()
+    //       to check whether ratio is all equal to 2.
+
+    constexpr Array1D<Real, -2, 2> cL = { -0.01171875_rt,  0.0859375_rt, 0.5_rt, -0.0859375_rt, 0.01171875_rt };
+
+    int ic = amrex::coarsen(i,2);
+    int jc = amrex::coarsen(j,2);
+    int irx = i - 2*ic; // = abs(i % 2)
+    int jry = j - 2*jc; // = abs(j % 2);
+
+    Array1D<Real, -2, 2> ctmp;
+    for (int ii = -2; ii <= 2; ++ii) {
+        ctmp(ii) = 2.0_rt * ( cL(-2)*crse(ic+ii,jc-2,0,n)
+                            + cL(-1)*crse(ic+ii,jc-1,0,n)
+                            + cL( 0)*crse(ic+ii,jc,  0,n)
+                            + cL( 1)*crse(ic+ii,jc+1,0,n)
+                            + cL( 2)*crse(ic+ii,jc+2,0,n) );
+        if (jry) {
+            ctmp(ii) = 2.0_rt * crse(ic+ii,jc,0,n) - ctmp(ii);
+        }
+    } // ii
+
+    Real ftmp = 2.0_rt * ( cL(-2)*ctmp(-2)
+                         + cL(-1)*ctmp(-1)
+                         + cL( 0)*ctmp( 0)
+                         + cL( 1)*ctmp( 1)
+                         + cL( 2)*ctmp( 2) );
+    if (irx) {
+        ftmp = 2.0_rt * ctmp(0) - ftmp;
+    }
+
+    fine(i,j,0,n) = ftmp;
+
+}
+
+}  // namespace amrex
 
 #endif

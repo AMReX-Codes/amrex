@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_RANGE_H_
 #define AMREX_GPU_RANGE_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
@@ -25,7 +26,7 @@ Long size (T const& b) noexcept { return static_cast<Long>(b); }
 
 template <typename T, typename std::enable_if<std::is_integral<T>::value,int>::type = 0>
 AMREX_GPU_HOST_DEVICE
-Long at (T const& b, Long offset) noexcept { return offset; }
+Long at (T const& /*b*/, Long offset) noexcept { return offset; }
 
 //! Box version
 AMREX_GPU_HOST_DEVICE

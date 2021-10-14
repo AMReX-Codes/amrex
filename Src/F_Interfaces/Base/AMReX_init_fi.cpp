@@ -30,6 +30,7 @@ extern "C"
 #ifdef BL_USE_MPI
         MPI_Comm ccomm = MPI_Comm_f2c(fcomm);
 #else
+        amrex::ignore_unused(fcomm);
         int ccomm = 0;
 #endif
         amrex::Initialize(argc, argv, arg_parmparse, ccomm, proc_parmparse);

@@ -15,7 +15,7 @@ static int max_iter = 100;
 static int max_fmg_iter = 20;
 static int max_coarsening_level = 30;
 static int verbose  = 2;
-static int cg_verbose = 0;
+static int bottom_verbose = 0;
 static int linop_maxorder = 2;
 static bool agglomeration = false;
 static bool consolidation = false;
@@ -39,7 +39,7 @@ void solve_with_mlmg(const Vector<Geometry>& geom, int ref_ratio,
     pp.query("max_fmg_iter", max_fmg_iter);
     pp.query("max_coarsening_level", max_coarsening_level);
     pp.query("verbose", verbose);
-    pp.query("cg_verbose", cg_verbose);
+    pp.query("bottom_verbose", bottom_verbose);
     pp.query("linop_maxorder", linop_maxorder);
     pp.query("agglomeration", agglomeration);
     pp.query("consolidation", consolidation);
@@ -94,7 +94,7 @@ void solve_with_mlmg(const Vector<Geometry>& geom, int ref_ratio,
     mlmg.setMaxFmgIter(max_fmg_iter);
     if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
     mlmg.setVerbose(verbose);
-    mlmg.setBottomVerbose(cg_verbose);
+    mlmg.setBottomVerbose(bottom_verbose);
 
     mlmg.solve(psoln, prhs, tol_rel, tol_abs);
   } else {
@@ -136,7 +136,7 @@ void solve_with_mlmg(const Vector<Geometry>& geom, int ref_ratio,
       mlmg.setMaxIter(max_iter);
       mlmg.setMaxFmgIter(max_fmg_iter);
       mlmg.setVerbose(verbose);
-      mlmg.setBottomVerbose(cg_verbose);
+      mlmg.setBottomVerbose(bottom_verbose);
 
       mlmg.solve({&soln[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);
     }

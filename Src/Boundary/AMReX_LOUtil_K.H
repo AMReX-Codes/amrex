@@ -1,5 +1,6 @@
 #ifndef AMREX_LO_UTIL_K_H_
 #define AMREX_LO_UTIL_K_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_REAL.H>

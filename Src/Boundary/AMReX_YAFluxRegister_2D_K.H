@@ -1,5 +1,6 @@
 #ifndef AMREX_YAFLUXREGISTER_2D_K_H_
 #define AMREX_YAFLUXREGISTER_2D_K_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FArrayBox.H>
 
@@ -21,7 +22,8 @@ void yafluxreg_crseadd (Box const& bx, Array4<Real> const& d, Array4<int const> 
                 for (int n = 0; n < nc; ++n) {
                     d(i,j,0,n) -= dtdx*fx(i,j,0,n);
                 }
-            } else if (flag(i+1,j,0) == amrex_yafluxreg_fine_cell) {
+            }
+            if (flag(i+1,j,0) == amrex_yafluxreg_fine_cell) {
                 for (int n = 0; n < nc; ++n) {
                     d(i,j,0,n) += dtdx*fx(i+1,j,0,n);
                 }
@@ -31,7 +33,8 @@ void yafluxreg_crseadd (Box const& bx, Array4<Real> const& d, Array4<int const> 
                 for (int n = 0; n < nc; ++n) {
                     d(i,j,0,n) -= dtdy*fy(i,j,0,n);
                 }
-            } else if (flag(i,j+1,0) == amrex_yafluxreg_fine_cell) {
+            }
+            if (flag(i,j+1,0) == amrex_yafluxreg_fine_cell) {
                 for (int n = 0; n < nc; ++n) {
                     d(i,j,0,n) += dtdy*fy(i,j+1,0,n);
                 }

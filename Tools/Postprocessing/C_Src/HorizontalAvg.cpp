@@ -24,11 +24,11 @@ main (int   argc,
         ParmParse pp;
 
         FArrayBox::setFormat(FABio::FAB_IEEE_32);
-    
+
         int verbose; pp.query("verbose",verbose);
         if (verbose > 2)
             AmrData::SetVerbose(true);
-    
+
         std::string infile; pp.get("infile",infile);
         std::string outdir = infile + std::string("_stats"); pp.query("outdir",outdir);
         std::string outfile("horizAvg.dat"); pp.query("outfile",outfile);
@@ -37,7 +37,7 @@ main (int   argc,
         Amrvis::FileType fileType(Amrvis::NEWPLT);
         DataServices dataServices(infile, fileType);
         if (!dataServices.AmrDataOk())
-            DataServices::Dispatch(DataServices::ExitRequest, NULL);    
+            DataServices::Dispatch(DataServices::ExitRequest, NULL);
         AmrData& amrData = dataServices.AmrDataRef();
 
         Vector<int> comps;
@@ -70,7 +70,7 @@ main (int   argc,
                 comps[localWtComp] = weightComp;
             }
         }
-    
+
         int nComp = comps.size();
         Vector<string> varNames(nComp);
         for (int i=0; i<nComp; ++i)
@@ -98,21 +98,21 @@ main (int   argc,
 
         if (ParallelDescriptor::IOProcessor() && verbose)
             std::cerr << "Data has been read" << std::endl;
-    
+
         Box probDomain = amrData.ProbDomain()[finestLevel];
         int dir = BL_SPACEDIM-1;
         int ksize(probDomain.length(dir));
         Vector<Real> havg(ksize*nComp,0.);
         Vector<Real> wavg(ksize,0.);
         Vector<Real> area(ksize,0.);
-    
+
         FArrayBox mask;
         for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         {
             const Box& box = mfi.validbox();
             FArrayBox& fab = mf[mfi];
             mask.resize(box,1); mask.setVal(1);
-        
+
             if (weightComp>=0) {
                 for (int n=0; n<nComp; ++n) {
                     if (n!=localWtComp) {
@@ -137,7 +137,7 @@ main (int   argc,
                 for (int n=0; n<nComp; ++n) {
                     havg[k*nComp+n] += fab.sum(sub,n,1);
                 }
-            }        
+            }
         }
 
         if (ParallelDescriptor::IOProcessor() && verbose>1)
@@ -161,7 +161,7 @@ main (int   argc,
                     }
                 }
             }
-        
+
             if (!amrex::UtilCreateDirectory(outdir, 0755))
                 amrex::CreateDirectoryFailed(outdir);
 

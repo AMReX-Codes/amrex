@@ -1,6 +1,7 @@
 
 #ifndef AMREX_BNDRYDATA_H_
 #define AMREX_BNDRYDATA_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_BLassert.H>
 #include <AMReX_BoxArray.H>
@@ -21,7 +22,7 @@ namespace amrex {
 //
 //  A BndryData stores and manipulates boundary data
 //  information on each side of each box in a BoxArray.
-//    
+//
 
 /**
 * \brief A BndryData contains a BndryRegister about each side of each grid in
@@ -60,7 +61,7 @@ public:
     * domain (cell-centered)
     */
     BndryData (const BoxArray& grids,
-	       const DistributionMapping& dmap,
+               const DistributionMapping& dmap,
                int             ncomp,
                const Geometry& geom);
 
@@ -76,9 +77,9 @@ public:
     BndryData (BndryData&& rhs) = delete;
     BndryData& operator= (BndryData&& rhs) = delete;
 
-    //! alocate bndry fabs along given face
+    //! allocate bndry fabs along given face
     void define (const BoxArray& grids,
-		 const DistributionMapping& dmap,
+                 const DistributionMapping& dmap,
                  int             ncomp,
                  const Geometry& geom);
     //
@@ -144,7 +145,7 @@ public:
     FabSet& operator[] (Orientation face) noexcept { return BndryRegister::bndry[face]; }
 
 protected:
-    //! Helper function for copy constructor and assigment operator.
+    //! Helper function for copy constructor and assignment operator.
     void init (const BndryData& src);
 
     /**

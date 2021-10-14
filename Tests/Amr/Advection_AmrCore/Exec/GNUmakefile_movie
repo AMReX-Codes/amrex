@@ -1,0 +1,11 @@
+PARAVIEW_PATH ?= /path/containing/paraview/executable
+
+movie2D:
+	@echo "Making a movie from 2D simulation, this will probably take <30 seconds ..."
+	@$(PARAVIEW_PATH)/pvpython paraview_amr101.py -d 2 > /dev/null 2>&1
+	@echo "Done! Generated amr101_2D.avi and amr101_2D.gif"
+
+movie3D:
+	@echo "Making a movie from 3D simulation, this will probably take <30 seconds ..."
+	@$(PARAVIEW_PATH)/pvpython paraview_amr101.py > /dev/null 2>&1
+	@echo "Done! Generated amr101_3D.avi and amr101_3D.gif"

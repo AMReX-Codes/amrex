@@ -303,15 +303,12 @@ ForkJoin::get_dm (const BoxArray& ba, int task_idx, const DistributionMapping& d
             r = ParallelContext::local_to_global_rank(lr);
         }
 
-        dm_vec[task_idx].reset(new DistributionMapping(std::move(pmap)));
+        dm_vec[task_idx] = std::make_unique<DistributionMapping>(std::move(pmap));
 
         if (flag_verbose) {
             amrex::Print() << "    Creating DM for (box array, task id) = ("
                       << ba.getRefID() << ", " << task_idx << ")" << std::endl;
         }
-
-//        amrex::Print() << " xxxxx get_dm " << task_idx << ", " << *dm_vec[task_idx] << "\n";
-
     } else {
         // DM has already been created
         if (flag_verbose) {

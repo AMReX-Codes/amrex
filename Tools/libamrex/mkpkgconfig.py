@@ -20,7 +20,7 @@ def doit(prefix, version, cflags, libs, libpriv, fflags):
     print("fflags="+fflags);
     print("")
     print("Name: amrex")
-    print("Description: Software Framework for Block Structed AMR")
+    print("Description: Software Framework for Block Structured AMR")
     print("Version:")
     print("URL: https://github.com/AMReX-Codes/amrex")
     print("Requires:")

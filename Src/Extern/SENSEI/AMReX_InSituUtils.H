@@ -1,5 +1,6 @@
 #ifndef AMReX_InSituUtils_H
 #define AMReX_InSituUtils_H
+#include <AMReX_Config.H>
 
 #include <vtkDataSetAttributes.h>
 #include <vtkUnsignedCharArray.h>
@@ -97,6 +98,8 @@ template <typename n_t>
 int AllocateBoxArray(const amrex::Box &pdom, const amrex::BoxArray &boxes,
     const amrex::DistributionMapping &dmap, int ng, std::vector<n_t*> &darrays)
 {
+    amrex::ignore_unused(pdom);
+
     int rank = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -153,6 +156,8 @@ int MaskGhostCells(const amrex::Box &pdom, const amrex::BoxArray &boxes,
     const amrex::DistributionMapping &dmap, unsigned int ng,
     std::vector<n_t*> &darrays)
 {
+    amrex::ignore_unused(pdom);
+
     // no ghosts to mask
     if (ng < 1)
         return 0;
@@ -233,6 +238,8 @@ int MaskCoveredCells(const amrex::Box &pdom, const amrex::BoxArray &cBoxes,
     const amrex::DistributionMapping &cMap, amrex::BoxArray fBoxes,
     const IntVect &fRefRatio, int ng, std::vector<n_t*> &cMasks)
 {
+    amrex::ignore_unused(pdom);
+
     int rank = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -282,7 +289,7 @@ int MaskCoveredCells(const amrex::Box &pdom, const amrex::BoxArray &cBoxes,
                 // shift to array indexing space
                 iBox -= cBox.smallEnd();
 
-                // indeces of covered region
+                // indices of covered region
                 int iLo[3] = {AMREX_ARLIM(iBox.loVect())};
                 int iHi[3] = {AMREX_ARLIM(iBox.hiVect())};
 
@@ -296,7 +303,7 @@ int MaskCoveredCells(const amrex::Box &pdom, const amrex::BoxArray &cBoxes,
 }
 
 
-// helper to track names and centerings of the avaliable arrays
+// helper to track names and centerings of the available arrays
 class StateMap
 {
 public:
@@ -317,4 +324,3 @@ protected:
 }
 
 #endif
-

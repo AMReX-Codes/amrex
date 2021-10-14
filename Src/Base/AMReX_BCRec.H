@@ -1,6 +1,7 @@
 
 #ifndef AMREX_BCREC_H_
 #define AMREX_BCREC_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Box.H>
 #include <AMReX_BC_TYPES.H>

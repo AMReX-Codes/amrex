@@ -1,8 +1,8 @@
 
+#include <AMReX_IndexType.H>
+
 #include <iostream>
 #include <iomanip>
-
-#include <AMReX_IndexType.H>
 
 namespace amrex {
 

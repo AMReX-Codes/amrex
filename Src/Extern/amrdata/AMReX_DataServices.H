@@ -3,6 +3,7 @@
 // ---------------------------------------------------------------
 #ifndef AMREX_DATASERVICES_H_
 #define AMREX_DATASERVICES_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
@@ -17,7 +18,7 @@
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_BLProfStats.H>
-#include <BLProfParser.tab.H>
+//#include <BLProfParser.tab.H>
 #include <AMReX_CommProfStats.H>
 #include <AMReX_RegionsProfStats.H>
 #endif
@@ -117,10 +118,10 @@ class DataServices {
 
       //! PointValueRequest
       void PointValue(int pointBoxArraySize, Box *pointBoxArray,
-		      const string &currentDerived,
-		      int coarsestLevelToSearch, int finestLevelToSearch,
-		      int &intersectedLevel, Box &intersectedGrid,
-		      Real &dataPointValue, bool &bPointIsValid);
+                      const string &currentDerived,
+                      int coarsestLevelToSearch, int finestLevelToSearch,
+                      int &intersectedLevel, Box &intersectedGrid,
+                      Real &dataPointValue, bool &bPointIsValid);
 
       //! LineValuesRequest
       void LineValues(int lineBoxArraySize, Box *lineBoxArray, int whichDir,

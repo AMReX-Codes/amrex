@@ -1,5 +1,6 @@
 #ifndef AMREX_ML_TENSOR_OP_H_
 #define AMREX_ML_TENSOR_OP_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_Array.H>
@@ -35,7 +36,7 @@ public:
     MLTensorOp (const Vector<Geometry>& a_geom,
                 const Vector<BoxArray>& a_grids,
                 const Vector<DistributionMapping>& a_dmap,
-                const Vector<iMultiFab const*>& a_overset_mask,
+                const Vector<iMultiFab const*>& a_overset_mask, // 1: unknown, 0: known
                 const LPInfo& a_info = LPInfo(),
                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
     virtual ~MLTensorOp ();
@@ -76,7 +77,7 @@ public:
     }
 
     virtual void prepareForSolve () final override;
-    virtual bool isSingular (int armlev) const final override { return false; }
+    virtual bool isSingular (int /*armlev*/) const final override { return false; }
     virtual bool isBottomSingular () const final override { return false; }
 
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
@@ -84,10 +85,10 @@ public:
 
     virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
                            MultiFab& sol, Location loc) const override;
- 
+
     void compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
                       MultiFab& sol, Location loc) const;
- 
+
 protected:
 
     bool m_needs_update = true;
@@ -101,7 +102,7 @@ public: // for cuda
 
     void applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                         BCMode bc_mode, StateMode s_mode, const MLMGBndry* bndry
-			) const;
+                        ) const;
 };
 
 }

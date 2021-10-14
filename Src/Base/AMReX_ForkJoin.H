@@ -1,5 +1,6 @@
 #ifndef AMREX_FORKJOIN_H
 #define AMREX_FORKJOIN_H
+#include <AMReX_Config.H>
 
 #include <AMReX_ParallelContext.H>
 #include <AMReX_MultiFab.H>

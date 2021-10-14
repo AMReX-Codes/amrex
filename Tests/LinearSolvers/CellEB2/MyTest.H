@@ -33,7 +33,7 @@ private:
     int prob_type = 2;
 
     std::string plot_file_name{"plot"};
- 
+
     amrex::Vector<amrex::Real> scalars;
 
     // For MLMG solver

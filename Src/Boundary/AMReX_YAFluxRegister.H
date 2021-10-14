@@ -1,5 +1,6 @@
 #ifndef AMREX_YAFLUXREGISTER_H_
 #define AMREX_YAFLUXREGISTER_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>

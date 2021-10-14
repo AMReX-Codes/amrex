@@ -46,7 +46,7 @@ def main(inputFile):
     # make sure we have the python wrappers built around the fortran code
     #
     # this will build the shared object file, fhelmEOS.so, which contains
-    # links to the fortran helmeos.f90 code.  
+    # links to the fortran helmeos.f90 code.
     # the helmeos python module (imported at the top of this script) uses
     # the fhelmEOS.so information
     helmeos.fwrap()
@@ -55,13 +55,13 @@ def main(inputFile):
     fh = open(inputFile,'r')
 
     X = numpy.zeros(nspec,numpy.float64)
-    
+
     lineno = 0
     for line in fh:
         lineno += 1
         if lineno < lineSkip: continue
         line = line.split()
-        
+
         line.pop(0)
         line.pop(0)
 

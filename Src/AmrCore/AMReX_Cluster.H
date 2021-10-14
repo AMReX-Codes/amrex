@@ -1,18 +1,17 @@
 
 #ifndef AMREX_Cluster_H_
 #define AMREX_Cluster_H_
+#include <AMReX_Config.H>
+
+#include <AMReX_BoxList.H>
+#include <AMReX_REAL.H>
 
 #include <list>
-#include <AMReX_IntVect.H>
-#include <AMReX_Box.H>
-#include <AMReX_Array.H>
-#include <AMReX_Vector.H>
-#include <AMReX_BoxArray.H>
-#include <AMReX_REAL.H>
 
 namespace amrex {
 
 class BoxDomain;
+class BoxArray;
 class ClusterList;
 
 
@@ -98,7 +97,7 @@ public:
 
     /**
     * \brief Constructs a list of cluster objects obtained by intersecting
-    * this cluster with each box in bl.  The list is retruned in the
+    * this cluster with each box in bl.  The list is returned in the
     * argument clst.  For each intersection that includes tagged
     * points, construct a new cluster by removing those points from
     * this object.  Empty intersections or those that contain no
@@ -115,7 +114,7 @@ public:
     /**
     * \brief Compute ratio of tagged to total number of points in cluster.
     */
-    Real eff () const noexcept { BL_ASSERT(ok()); return numTag()/m_bx.d_numPts(); }
+    Real eff () const noexcept { BL_ASSERT(ok()); return Real(numTag()/m_bx.d_numPts()); }
 
 private:
 
@@ -218,12 +217,13 @@ public:
     void new_chop (Real eff);
 
     /**
-    * \brief Intersect clusters with BoxDomain to insure cluster
-    * boxes are interior to domain.
+    * \brief Intersect clusters with BoxArray to insure cluster
+    * boxes are interior to the domain of BoxArray.  Note that
+    * ba is modified during the process.
     *
-    * \param dom
+    * \param ba
     */
-    void intersect (const BoxDomain& dom);
+    void intersect (BoxArray& ba);
 
 private:
 

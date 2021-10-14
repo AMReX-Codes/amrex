@@ -32,8 +32,8 @@ def generate_filelist(rootdir, outfile, output_data, subdir_prefix=""):
             # found a subdirectory - create a new _files.rst file and call
             # generate_filelist on the subdir
 
-            # ignore AmrTask and F_Interfaces
-            if subdir.lower() in ['amrtask', 'f_interfaces']:
+            # ignore F_Interfaces
+            if subdir.lower() in ['f_interfaces']:
                 continue
 
             output_data += """{}_files

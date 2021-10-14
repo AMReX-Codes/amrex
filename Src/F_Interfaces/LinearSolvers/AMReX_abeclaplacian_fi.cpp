@@ -43,7 +43,7 @@ extern "C" {
     void amrex_fi_abeclap_set_bcoeffs (MLLinOp* linop, int amrlev, const MultiFab* beta[])
     {
         MLABecLaplacian& abeclap = dynamic_cast<MLABecLaplacian&>(*linop);
-        std::array<MultiFab const*, AMREX_SPACEDIM> b{AMREX_D_DECL(beta[0],beta[1],beta[2])};
+        std::array<MultiFab const*, AMREX_SPACEDIM> b{{AMREX_D_DECL(beta[0],beta[1],beta[2])}};
         abeclap.setBCoeffs(amrlev, b);
     }
 }

@@ -1,4 +1,4 @@
-c ::: SCCS stuff "@(#)FABUTIL_3D.F	3.1\t6/25/93"
+c ::: SCCS stuff "@(#)FABUTIL_3D.F        3.1\t6/25/93"
 
 #define   FORT_CINTERP   cinterp3d
 #define   FORT_PCINTERP  pcinterp3d
@@ -60,28 +60,28 @@ c ::: --------------------------------------------------------------
       REAL_T fdat(flen)
       REAL_T voff(flen)
 
-c ::: NOTE: data must be sent in so that 
+c ::: NOTE: data must be sent in so that
 c ::: cslope(1,*) and crse(1,*) are associated with
 c ::: the same cell
 
 c ::: ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 c ::: cinterp:   conservative interpolation from coarse grid to
 c ::: subregion of fine grid defined by (fblo,fbhi)
-c ::: 
+c :::
 c ::: Inputs/Outputs
 c ::: fine        <=>  (modify) fine grid array
 c ::: flo,fhi      =>  (const)  index limits of fine grid
 c ::: fblo,fbhi    =>  (const)  subregion of fine grid to get values
 c ::: nvar         =>  (const)  number of variables in state vector
 c ::: lratio       =>  (const)  refinement ratio between levels
-c ::: 
+c :::
 c ::: crse         =>  (const)  coarse grid data widended by 1 zone
 c ::: and unrolled
 c ::: clo,chi      =>  (const)  one dimensional limits of crse grid
 c ::: cslo,cshi    =>  (const)  coarse grid index limits where
 c ::: slopes are to be defined. This is
 c ::: the projection of (fblo,fbhi) down
-c ::: to the coarse level 
+c ::: to the coarse level
 c ::: fslo,fshi    =>  (const)  fine grid index limits where
 c ::: slopes are needed.  This is the
 c ::: refinement of (cslo,cshi) and
@@ -129,28 +129,28 @@ c ::: local var
       lenz = fbhi(3)-fblo(3)+1
       maxlen = max(lenx,leny,lenz)
       if (maxlen .eq. lenx) then
-          do 100 i = fblo(1), fbhi(1) 
+          do 100 i = fblo(1), fbhi(1)
               fn = i-fslo(1)+1
               ioff = mod(fn-1,lratio)
               voff(fn) = float(ioff)-hafrat
 100       continue
       else if (maxlen .eq. leny) then
-          do 110 j = fblo(2), fbhi(2) 
+          do 110 j = fblo(2), fbhi(2)
               fn = j-fslo(2)+1
               joff = mod(fn-1,lratio)
               voff(fn) = float(joff)-hafrat
 110       continue
       else
-          do 120 k = fblo(3), fbhi(3) 
+          do 120 k = fblo(3), fbhi(3)
               fn = k-fslo(3)+1
               koff = mod(fn-1,lratio)
               voff(fn) = float(koff)-hafrat
 120       continue
       end if
-      do 130 n = 1, nvar 
+      do 130 n = 1, nvar
 
 c ::: ::::: compute slopes in x direction
-          do 140 i = 1, clen 
+          do 140 i = 1, clen
               cen = half*(crse(i+ist,n)-crse(i-ist,n))
               forw = crse(i+ist,n)-crse(i,n)
               back = crse(i,n)-crse(i-ist,n)
@@ -158,7 +158,7 @@ c ::: ::::: compute slopes in x direction
               cslope(i,1)=merge(slp,zero,forw*back>=0.0d0)
 140       continue
 c ::: ::::: compute slopes in y direction
-          do 150 i = 1, clen 
+          do 150 i = 1, clen
               cen = half*(crse(i+jst,n)-crse(i-jst,n))
               forw = crse(i+jst,n)-crse(i,n)
               back = crse(i,n)-crse(i-jst,n)
@@ -166,7 +166,7 @@ c ::: ::::: compute slopes in y direction
               cslope(i,2)=merge(slp,zero,forw*back>=0.0d0)
 150       continue
 c ::: ::::: compute slopes in z direction
-          do 160 i = 1, clen 
+          do 160 i = 1, clen
               cen = half*(crse(i+kst,n)-crse(i-kst,n))
               forw = crse(i+kst,n)-crse(i,n)
               back = crse(i,n)-crse(i-kst,n)
@@ -175,16 +175,16 @@ c ::: ::::: compute slopes in z direction
 160       continue
 
           if (maxlen .eq. lenx) then
-              do 170 kc = cblo(3), cbhi(3) 
-                  do 180 jc = cblo(2), cbhi(2) 
+              do 170 kc = cblo(3), cbhi(3)
+                  do 180 jc = cblo(2), cbhi(2)
 
 c ::: ..,.......::::: strip out a fine grid slope vector
-                      do 190 ioff = 1, lratio 
+                      do 190 ioff = 1, lratio
                           icc = clo + ist + jst*(jc-jslo) + kst*(kc-
      $                    kslo)
                           istart = ioff
                           iend = ioff + (ncbx-1)*lratio
-                          do 200 fn = istart, iend, lratio 
+                          do 200 fn = istart, iend, lratio
                               fslope(fn,1) = cslope(icc,1)
                               fslope(fn,2) = cslope(icc,2)
                               fslope(fn,3) = cslope(icc,3)
@@ -193,7 +193,7 @@ c ::: ..,.......::::: strip out a fine grid slope vector
 200                       continue
 190                   continue
 
-                      do 210 koff = 0, lratio-1 
+                      do 210 koff = 0, lratio-1
                           k = lratio*kc + koff
                           if (k .lt. fblo(3)) then
                               goto 210
@@ -204,7 +204,7 @@ c                             --- next ---
 c                             --- break ---
                           end if
                           zoff = float(koff)-hafrat
-                          do 220 joff = 0, lratio-1 
+                          do 220 joff = 0, lratio-1
                               j = lratio*jc + joff
                               if (j .lt. fblo(2)) then
                                   goto 220
@@ -216,9 +216,9 @@ c                                 --- break ---
                               end if
                               yoff = float(joff)-hafrat
 
-                              do 230 i = fblo(1), fbhi(1) 
+                              do 230 i = fblo(1), fbhi(1)
                                   fn = i-fslo(1)+1
-                                  fine(i,j,k,n) = fdat(fn) + volratio* 
+                                  fine(i,j,k,n) = fdat(fn) + volratio*
      $                            (voff(fn)*fslope(fn,1)+yoff*fslope(fn,
      $                            2)+ zoff*fslope(fn,3))
 230                           continue
@@ -229,16 +229,16 @@ c                                 --- break ---
 180               continue
 170           continue
           else if (maxlen .eq. leny) then
-              do 240 kc = cblo(3), cbhi(3) 
-                  do 250 ic = cblo(1), cbhi(1) 
+              do 240 kc = cblo(3), cbhi(3)
+                  do 250 ic = cblo(1), cbhi(1)
 
 c ::: ..,.......::::: strip out a fine grid slope vector
-                      do 260 joff = 1, lratio 
+                      do 260 joff = 1, lratio
                           icc = clo + ist*(ic-islo) + jst + kst*(kc-
      $                    kslo)
                           istart = joff
                           iend = joff + (ncby-1)*lratio
-                          do 270 fn = istart, iend, lratio 
+                          do 270 fn = istart, iend, lratio
                               fslope(fn,1) = cslope(icc,1)
                               fslope(fn,2) = cslope(icc,2)
                               fslope(fn,3) = cslope(icc,3)
@@ -247,7 +247,7 @@ c ::: ..,.......::::: strip out a fine grid slope vector
 270                       continue
 260                   continue
 
-                      do 280 koff = 0, lratio-1 
+                      do 280 koff = 0, lratio-1
                           k = lratio*kc + koff
                           if (k .lt. fblo(3)) then
                               goto 280
@@ -258,7 +258,7 @@ c                             --- next ---
 c                             --- break ---
                           end if
                           zoff = float(koff)-hafrat
-                          do 290 ioff = 0, lratio-1 
+                          do 290 ioff = 0, lratio-1
                               i = lratio*ic + ioff
                               if (i .lt. fblo(1)) then
                                   goto 290
@@ -270,9 +270,9 @@ c                                 --- break ---
                               end if
                               xoff = float(ioff)-hafrat
 
-                              do 300 j = fblo(2), fbhi(2) 
+                              do 300 j = fblo(2), fbhi(2)
                                   fn = j-fslo(2)+1
-                                  fine(i,j,k,n) = fdat(fn) + volratio* 
+                                  fine(i,j,k,n) = fdat(fn) + volratio*
      $                            (xoff*fslope(fn,1)+voff(fn)*fslope(fn,
      $                            2)+ zoff*fslope(fn,3))
 300                           continue
@@ -283,16 +283,16 @@ c                                 --- break ---
 250               continue
 240           continue
           else
-              do 310 jc = cblo(2), cbhi(2) 
-                  do 320 ic = cblo(1), cbhi(1) 
+              do 310 jc = cblo(2), cbhi(2)
+                  do 320 ic = cblo(1), cbhi(1)
 
 c ::: ..,.......::::: strip out a fine grid slope vector
-                      do 330 koff = 1, lratio 
-                          icc = clo + ist*(ic-islo) + jst*(jc-jslo) + 
+                      do 330 koff = 1, lratio
+                          icc = clo + ist*(ic-islo) + jst*(jc-jslo) +
      $                    kst
                           istart = koff
                           iend = koff + (ncbz-1)*lratio
-                          do 340 fn = istart, iend, lratio 
+                          do 340 fn = istart, iend, lratio
                               fslope(fn,1) = cslope(icc,1)
                               fslope(fn,2) = cslope(icc,2)
                               fslope(fn,3) = cslope(icc,3)
@@ -301,7 +301,7 @@ c ::: ..,.......::::: strip out a fine grid slope vector
 340                       continue
 330                   continue
 
-                      do 350 joff = 0, lratio-1 
+                      do 350 joff = 0, lratio-1
                           j = lratio*jc + joff
                           if (j .lt. fblo(2)) then
                               goto 350
@@ -312,7 +312,7 @@ c                             --- next ---
 c                             --- break ---
                           end if
                           yoff = float(joff)-hafrat
-                          do 360 ioff = 0, lratio-1 
+                          do 360 ioff = 0, lratio-1
                               i = lratio*ic + ioff
                               if (i .lt. fblo(1)) then
                                   goto 360
@@ -324,10 +324,10 @@ c                                 --- break ---
                               end if
                               xoff = float(ioff)-hafrat
 
-                              do 370 k = fblo(3), fbhi(3) 
+                              do 370 k = fblo(3), fbhi(3)
                                   fn = k-fslo(3)+1
-                                  fine(i,j,k,n) = fdat(fn) + volratio* 
-     $                            (xoff*fslope(fn,1)+yoff*fslope(fn,2)+ 
+                                  fine(i,j,k,n) = fdat(fn) + volratio*
+     $                            (xoff*fslope(fn,1)+yoff*fslope(fn,2)+
      $                            voff(fn)*fslope(fn,3))
 370                           continue
 360                       continue
@@ -363,7 +363,7 @@ c ::: ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 c ::: pcinterp:  use piecewise constant interpolation to define
 c ::: values on the subregion of the fine FAB defined
 c ::: by (fblo,fbhi).
-c ::: 
+c :::
 c ::: Inputs/Outputs
 c ::: fine        <=>  (modify) fab to get interpolated values
 c ::: flo,fhi      =>  (const)  index limits of fine
@@ -379,18 +379,18 @@ c ::: local var
       integer ixproj,ii,ll
       ixproj(ii,ll) = (ii + ll*iabs(ii))/ll - iabs(ii)
 
-      do 130 k = fblo(3), fbhi(3) 
+      do 130 k = fblo(3), fbhi(3)
           kc = ixproj(k,lrat)
-          do 140 j = fblo(2), fbhi(2) 
+          do 140 j = fblo(2), fbhi(2)
               jc = ixproj(j,lrat)
-              do 150 n = 1, nvar 
-                  do 160 ioff = 0, lrat-1 
-                      do 170 ic = cblo(1),cbhi(1) 
+              do 150 n = 1, nvar
+                  do 160 ioff = 0, lrat-1
+                      do 170 ic = cblo(1),cbhi(1)
                           i = lrat*ic + ioff
                           temp(i) = crse(ic,jc,kc,n)
 170                   continue
 160               continue
-                  do 180 i = fblo(1), fbhi(1) 
+                  do 180 i = fblo(1), fbhi(1)
                       fine(i,j,k,n) = temp(i)
 180               continue
 150           continue
@@ -403,7 +403,7 @@ c ::: local var
 
 c ::: --------------------------------------------------------------
       subroutine FORT_VCINTERP (fine,floi1,floi2,floi3,fhii1,fhii2,
-     $ fhii3,fbloi1,fbloi2,fbloi3, fbhii1,fbhii2,fbhii3,nvar,lratio, 
+     $ fhii3,fbloi1,fbloi2,fbloi3, fbhii1,fbhii2,fbhii3,nvar,lratio,
      $ crse,clo,chi,cblo,cbhi, fslo,fshi,cvloi1,cvloi2,cvloi3,cvhii1,
      $ cvhii2,cvhii3, cslope,clen,fslope,fdat,flen,voff, cvc1,fvc1,cvc2,
      $ fvc2,cvc3,fvc3)
@@ -432,7 +432,7 @@ c ::: --------------------------------------------------------------
       REAL_T fvc2(fbloi2 :fbhii2+1)
       REAL_T fvc3(fbloi3 :fbhii3+1)
 
-c ::: NOTE: data must be sent in so that 
+c ::: NOTE: data must be sent in so that
 c ::: cslope(1,*) and crse(1,*) are associated with
 c ::: the same cell
 
@@ -440,21 +440,21 @@ c ::: ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 c ::: vcinterp:   conservative interpolation in volume coordinates
 c ::: from coarse grid to
 c ::: subregion of fine grid defined by (fblo,fbhi)
-c ::: 
+c :::
 c ::: Inputs/Outputs
 c ::: fine        <=>  (modify) fine grid array
 c ::: flo,fhi      =>  (const)  index limits of fine grid
 c ::: fblo,fbhi    =>  (const)  subregion of fine grid to get values
 c ::: nvar         =>  (const)  number of variables in state vector
 c ::: lratio       =>  (const)  refinement ratio between levels
-c ::: 
+c :::
 c ::: crse         =>  (const)  coarse grid data widended by 1 zone
 c ::: and unrolled
 c ::: clo,chi      =>  (const)  one dimensional limits of crse grid
 c ::: cslo,cshi    =>  (const)  coarse grid index limits where
 c ::: slopes are to be defined. This is
 c ::: the projection of (fblo,fbhi) down
-c ::: to the coarse level 
+c ::: to the coarse level
 c ::: fslo,fshi    =>  (const)  fine grid index limits where
 c ::: slopes are needed.  This is the
 c ::: refinement of (cslo,cshi) and
@@ -507,7 +507,7 @@ c ::: local var
       lenz = fbhii3-fbloi3+1
       maxlen = max(lenx,leny,lenz)
       if (maxlen .eq. lenx) then
-          do 380 i = fbloi1, fbhii1 
+          do 380 i = fbloi1, fbhii1
               fn = i-fslo(1)+1
               ic = IX_PROJ(i,lratio)
               fcen = half*(fvc1(i)+fvc1(i+1))
@@ -515,7 +515,7 @@ c ::: local var
               voff(fn) = (fcen-ccen)/(cvc1(ic+1)-cvc1(ic))
 380       continue
       else if (maxlen .eq. leny) then
-          do 390 j = fbloi2, fbhii2 
+          do 390 j = fbloi2, fbhii2
               fn = j-fslo(2)+1
               jc = IX_PROJ(j,lratio)
               fcen = half*(fvc2(j)+fvc2(j+1))
@@ -523,7 +523,7 @@ c ::: local var
               voff(fn) = (fcen-ccen)/(cvc2(jc+1)-cvc2(jc))
 390       continue
       else
-          do 400 k = fbloi3, fbhii3 
+          do 400 k = fbloi3, fbhii3
               fn = k-fslo(3)+1
               kc = IX_PROJ(k,lratio)
               fcen = half*(fvc3(k)+fvc3(k+1))
@@ -531,10 +531,10 @@ c ::: local var
               voff(fn) = (fcen-ccen)/(cvc3(kc+1)-cvc3(kc))
 400       continue
       end if
-      do 410 n = 1, nvar 
+      do 410 n = 1, nvar
 
 c ::: ::::: compute slopes in x direction
-          do 420 i = 1, clen 
+          do 420 i = 1, clen
               cen = half*(crse(i+ist,n)-crse(i-ist,n))
               forw = crse(i+ist,n)-crse(i,n)
               back = crse(i,n)-crse(i-ist,n)
@@ -542,7 +542,7 @@ c ::: ::::: compute slopes in x direction
               cslope(i,1)=merge(slp,zero,forw*back>=0.0d0)
 420       continue
 c ::: ::::: compute slopes in y direction
-          do 430 i = 1, clen 
+          do 430 i = 1, clen
               cen = half*(crse(i+jst,n)-crse(i-jst,n))
               forw = crse(i+jst,n)-crse(i,n)
               back = crse(i,n)-crse(i-jst,n)
@@ -550,7 +550,7 @@ c ::: ::::: compute slopes in y direction
               cslope(i,2)=merge(slp,zero,forw*back>=0.0d0)
 430       continue
 c ::: ::::: compute slopes in z direction
-          do 440 i = 1, clen 
+          do 440 i = 1, clen
               cen = half*(crse(i+kst,n)-crse(i-kst,n))
               forw = crse(i+kst,n)-crse(i,n)
               back = crse(i,n)-crse(i-kst,n)
@@ -559,16 +559,16 @@ c ::: ::::: compute slopes in z direction
 440       continue
 
           if (maxlen .eq. lenx) then
-              do 450 kc = cblo(3), cbhi(3) 
-                  do 460 jc = cblo(2), cbhi(2) 
+              do 450 kc = cblo(3), cbhi(3)
+                  do 460 jc = cblo(2), cbhi(2)
 
 c ::: ..,.......::::: strip out a fine grid slope vector
-                      do 470 ioff = 1, lratio 
+                      do 470 ioff = 1, lratio
                           icc = clo + ist + jst*(jc-jslo) + kst*(kc-
      $                    kslo)
                           istart = ioff
                           iend = ioff + (ncbx-1)*lratio
-                          do 480 fn = istart, iend, lratio 
+                          do 480 fn = istart, iend, lratio
                               fslope(fn,1) = cslope(icc,1)
                               fslope(fn,2) = cslope(icc,2)
                               fslope(fn,3) = cslope(icc,3)
@@ -577,7 +577,7 @@ c ::: ..,.......::::: strip out a fine grid slope vector
 480                       continue
 470                   continue
 
-                      do 490 koff = 0, lratio-1 
+                      do 490 koff = 0, lratio-1
                           k = lratio*kc + koff
                           if (k .lt. fbloi3) then
                               goto 490
@@ -590,7 +590,7 @@ c                             --- break ---
                           fcen = half*(fvc3(k)+fvc3(k+1))
                           ccen = half*(cvc3(kc)+cvc3(kc+1))
                           zoff = (fcen-ccen)/(cvc3(kc+1)-cvc3(kc))
-                          do 500 joff = 0, lratio-1 
+                          do 500 joff = 0, lratio-1
                               j = lratio*jc + joff
                               if (j .lt. fbloi2) then
                                   goto 500
@@ -604,7 +604,7 @@ c                                 --- break ---
                               ccen = half*(cvc2(jc)+cvc2(jc+1))
                               yoff = (fcen-ccen)/(cvc2(jc+1)-cvc2(jc))
 
-                              do 510 i = fbloi1, fbhii1 
+                              do 510 i = fbloi1, fbhii1
                                   fn = i-fslo(1)+1
                                   fine(i,j,k,n) = fdat(fn) + voff(fn)*
      $                            fslope(fn,1)+yoff*fslope(fn,2)+ zoff*
@@ -617,16 +617,16 @@ c                                 --- break ---
 460               continue
 450           continue
           else if (maxlen .eq. leny) then
-              do 520 kc = cblo(3), cbhi(3) 
-                  do 530 ic = cblo(1), cbhi(1) 
+              do 520 kc = cblo(3), cbhi(3)
+                  do 530 ic = cblo(1), cbhi(1)
 
 c ::: ..,.......::::: strip out a fine grid slope vector
-                      do 540 joff = 1, lratio 
+                      do 540 joff = 1, lratio
                           icc = clo + ist*(ic-islo) + jst + kst*(kc-
      $                    kslo)
                           istart = joff
                           iend = joff + (ncby-1)*lratio
-                          do 550 fn = istart, iend, lratio 
+                          do 550 fn = istart, iend, lratio
                               fslope(fn,1) = cslope(icc,1)
                               fslope(fn,2) = cslope(icc,2)
                               fslope(fn,3) = cslope(icc,3)
@@ -635,7 +635,7 @@ c ::: ..,.......::::: strip out a fine grid slope vector
 550                       continue
 540                   continue
 
-                      do 560 koff = 0, lratio-1 
+                      do 560 koff = 0, lratio-1
                           k = lratio*kc + koff
                           if (k .lt. fbloi3) then
                               goto 560
@@ -648,7 +648,7 @@ c                             --- break ---
                           fcen = half*(fvc3(k)+fvc3(k+1))
                           ccen = half*(cvc3(kc)+cvc3(kc+1))
                           zoff = (fcen-ccen)/(cvc3(kc+1)-cvc3(kc))
-                          do 570 ioff = 0, lratio-1 
+                          do 570 ioff = 0, lratio-1
                               i = lratio*ic + ioff
                               if (i .lt. fbloi1) then
                                   goto 570
@@ -662,10 +662,10 @@ c                                 --- break ---
                               ccen = half*(cvc1(ic)+cvc1(ic+1))
                               xoff = (fcen-ccen)/(cvc1(ic+1)-cvc1(ic))
 
-                              do 580 j = fbloi2, fbhii2 
+                              do 580 j = fbloi2, fbhii2
                                   fn = j-fslo(2)+1
                                   fine(i,j,k,n) = fdat(fn) + xoff*
-     $                            fslope(fn,1)+voff(fn)*fslope(fn,2)+ 
+     $                            fslope(fn,1)+voff(fn)*fslope(fn,2)+
      $                            zoff*fslope(fn,3)
 580                           continue
 570                       continue
@@ -675,16 +675,16 @@ c                                 --- break ---
 530               continue
 520           continue
           else
-              do 590 jc = cblo(2), cbhi(2) 
-                  do 600 ic = cblo(1), cbhi(1) 
+              do 590 jc = cblo(2), cbhi(2)
+                  do 600 ic = cblo(1), cbhi(1)
 
 c ::: ..,.......::::: strip out a fine grid slope vector
-                      do 610 koff = 1, lratio 
-                          icc = clo + ist*(ic-islo) + jst*(jc-jslo) + 
+                      do 610 koff = 1, lratio
+                          icc = clo + ist*(ic-islo) + jst*(jc-jslo) +
      $                    kst
                           istart = koff
                           iend = koff + (ncbz-1)*lratio
-                          do 620 fn = istart, iend, lratio 
+                          do 620 fn = istart, iend, lratio
                               fslope(fn,1) = cslope(icc,1)
                               fslope(fn,2) = cslope(icc,2)
                               fslope(fn,3) = cslope(icc,3)
@@ -693,7 +693,7 @@ c ::: ..,.......::::: strip out a fine grid slope vector
 620                       continue
 610                   continue
 
-                      do 630 joff = 0, lratio-1 
+                      do 630 joff = 0, lratio-1
                           j = lratio*jc + joff
                           if (j .lt. fbloi2) then
                               goto 630
@@ -706,7 +706,7 @@ c                             --- break ---
                           fcen = half*(fvc2(j)+fvc2(j+1))
                           ccen = half*(cvc2(jc)+cvc2(jc+1))
                           yoff = (fcen-ccen)/(cvc2(jc+1)-cvc2(jc))
-                          do 640 ioff = 0, lratio-1 
+                          do 640 ioff = 0, lratio-1
                               i = lratio*ic + ioff
                               if (i .lt. fbloi1) then
                                   goto 640
@@ -720,10 +720,10 @@ c                                 --- break ---
                               ccen = half*(cvc1(ic)+cvc1(ic+1))
                               xoff = (fcen-ccen)/(cvc1(ic+1)-cvc1(ic))
 
-                              do 650 k = fbloi3, fbhii3 
+                              do 650 k = fbloi3, fbhii3
                                   fn = k-fslo(3)+1
                                   fine(i,j,k,n) = fdat(fn) + xoff*
-     $                            fslope(fn,1)+yoff*fslope(fn,2)+ 
+     $                            fslope(fn,1)+yoff*fslope(fn,2)+
      $                            voff(fn)*fslope(fn,3)
 650                           continue
 640                       continue

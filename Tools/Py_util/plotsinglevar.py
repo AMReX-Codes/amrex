@@ -6,8 +6,8 @@
 
 from __future__ import print_function
 
-import matplotlib                                                               
-matplotlib.use('agg')   
+import matplotlib
+matplotlib.use('agg')
 
 import numpy
 import pylab
@@ -31,8 +31,8 @@ except ImportError as e:
 #==============================================================================
 # do_plot
 #==============================================================================
-def do_plot(plotfile, component, component2, outFile, log, 
-            minval, maxval, minval2, maxval2, eps, dpi, origin, annotation, 
+def do_plot(plotfile, component, component2, outFile, log,
+            minval, maxval, minval2, maxval2, eps, dpi, origin, annotation,
             xmin_pass, ymin_pass, zmin_pass, xmax_pass, ymax_pass, zmax_pass):
 
     pylab.rc("font", size=9)
@@ -143,12 +143,12 @@ def do_plot(plotfile, component, component2, outFile, log,
             else:
                 data = numpy.log10(data)
 
-            if (not component2 == ""): 
+            if (not component2 == ""):
                 if (numpy.min(data2) < 0.0):
                     data2 = numpy.log10(numpy.abs(data2))
                 else:
                     data2 = numpy.log10(data2)
-                
+
             if (not minval == None): minval = math.log10(minval)
             if (not maxval == None): maxval = math.log10(maxval)
 
@@ -165,9 +165,9 @@ def do_plot(plotfile, component, component2, outFile, log,
 
         else:
             ax = pylab.subplot(1,1,1)
-    
 
-        divider = mpl_toolkits.axes_grid1.make_axes_locatable(ax)    
+
+        divider = mpl_toolkits.axes_grid1.make_axes_locatable(ax)
 
         im=pylab.imshow(data[iy0:iy,ix0:ix],origin='lower', extent=extent, vmin=minval, vmax=maxval)
 
@@ -200,25 +200,25 @@ def do_plot(plotfile, component, component2, outFile, log,
         # y-axis.
         cl = pylab.getp(cb.ax, 'ymajorticklabels')
         pylab.setp(cl, fontsize=10)
-        
+
         cb.ax.yaxis.offsetText.set_fontsize("small")
 
 
         # do a fixed offset in pixels from the (xmin,ymin) data point
-        trans=matplotlib.transforms.offset_copy(ax.transData, x=0, y=-0.5, 
+        trans=matplotlib.transforms.offset_copy(ax.transData, x=0, y=-0.5,
                                                 fig=fig1, units='inches')
 
-        pylab.text(xmin, ymin, "time = %7.3g s" % (time), 
-                   verticalalignment="bottom", transform = trans, 
+        pylab.text(xmin, ymin, "time = %7.3g s" % (time),
+                   verticalalignment="bottom", transform = trans,
                    clip_on=False, fontsize=10)
 
         if (not annotation == ""):
             trans=matplotlib.transforms.offset_copy(ax.transData, x=0, y=-0.65,
                                                     fig=fig1, units='inches')
 
-            pylab.text(xmin, ymin, "%s" % (annotation), 
-                       verticalalignment="bottom", transform = trans, 
-                       clip_on=False, fontsize=10)            
+            pylab.text(xmin, ymin, "%s" % (annotation),
+                       verticalalignment="bottom", transform = trans,
+                       clip_on=False, fontsize=10)
 
 
         #----------------------------------------------------------------------
@@ -229,7 +229,7 @@ def do_plot(plotfile, component, component2, outFile, log,
 
             divider = mpl_toolkits.axes_grid1.make_axes_locatable(ax)
 
-            im = pylab.imshow(data2[iy0:iy,ix0:ix], origin='lower', extent=extent, 
+            im = pylab.imshow(data2[iy0:iy,ix0:ix], origin='lower', extent=extent,
                               vmin=minval2, vmax=maxval2)
 
             pylab.title(component2)
@@ -259,7 +259,7 @@ def do_plot(plotfile, component, component2, outFile, log,
             # offsetText is the 10^N that appears at the top of the y-axis.
             cl = pylab.getp(cb.ax, 'ymajorticklabels')
             pylab.setp(cl, fontsize=10)
-        
+
             cb.ax.yaxis.offsetText.set_fontsize("small")
 
             #ax_cb.yaxis.tick_right()
@@ -280,7 +280,7 @@ def do_plot(plotfile, component, component2, outFile, log,
         # for the height, we will assume that the colorbar at the
         # bottom gets 0.15, and that we go until 0.95, leaving 0.8 of
         # height for the plots.
-            
+
         pos1 = [0.05, 0.15, 0.3, 0.8]
         pos2 = [0.35, 0.15, 0.3, 0.8]
         pos3 = [0.65, 0.15, 0.3, 0.8]
@@ -294,7 +294,7 @@ def do_plot(plotfile, component, component2, outFile, log,
 
         indir = 3
         (data_xy, err) = \
-            fsnapshot.fplotfile_get_data_3d(plotfile, component, indir, 
+            fsnapshot.fplotfile_get_data_3d(plotfile, component, indir,
                                             origin, data_xy)
         if (not err == 0):
             sys.exit(2)
@@ -311,7 +311,7 @@ def do_plot(plotfile, component, component2, outFile, log,
         # x-z
         data_xz = numpy.zeros( (nx, nz), dtype=numpy.float64)
         (data_xz, err) = \
-            fsnapshot.fplotfile_get_data_3d(plotfile, component, 2, 
+            fsnapshot.fplotfile_get_data_3d(plotfile, component, 2,
                                             origin, data_xz)
         if (not err == 0):
             sys.exit(2)
@@ -323,12 +323,12 @@ def do_plot(plotfile, component, component2, outFile, log,
                 data_xz = numpy.log10(numpy.abs(data_xz))
             else:
                 data_xz = numpy.log10(data_xz)
-                
+
 
         # y-z
         data_yz = numpy.zeros( (ny, nz), dtype=numpy.float64)
         (data_yz, err) = \
-            fsnapshot.fplotfile_get_data_3d(plotfile, component, 1, 
+            fsnapshot.fplotfile_get_data_3d(plotfile, component, 1,
                                             origin, data_yz)
         if (not err == 0):
             sys.exit(2)
@@ -340,11 +340,11 @@ def do_plot(plotfile, component, component2, outFile, log,
                 data_yz = numpy.log10(numpy.abs(data_yz))
             else:
                 data_yz = numpy.log10(data_yz)
-                
 
 
-                
-        if (not minval == None): 
+
+
+        if (not minval == None):
             if (log):
                 minval = math.log10(minval)
         else:
@@ -353,14 +353,14 @@ def do_plot(plotfile, component, component2, outFile, log,
             minval = min(minval,numpy.min(data_yz))
 
 
-        if (not maxval == None): 
+        if (not maxval == None):
             if (log):
                 maxval = math.log10(maxval)
         else:
             maxval = numpy.max(data_xy)
             maxval = max(maxval,numpy.max(data_xz))
             maxval = max(maxval,numpy.max(data_yz))
-            
+
 
 
 
@@ -394,7 +394,7 @@ def do_plot(plotfile, component, component2, outFile, log,
         pylab.subplots_adjust(wspace=0.4)
         #fig.add_axes(pos1)
 
-        im=pylab.imshow(data_xy[iy0:iy,ix0:ix],origin='lower', extent=extent, 
+        im=pylab.imshow(data_xy[iy0:iy,ix0:ix],origin='lower', extent=extent,
                         vmin=minval, vmax=maxval)#, axes=pos1)
 
         pylab.xlabel("x")
@@ -415,11 +415,11 @@ def do_plot(plotfile, component, component2, outFile, log,
 
         # do a fixed offset in pixels from the (xmin,ymin) data point
         fig1 = ax.get_figure()
-        trans=matplotlib.transforms.offset_copy(ax.transData, x=0, y=-0.5, 
+        trans=matplotlib.transforms.offset_copy(ax.transData, x=0, y=-0.5,
                                                 fig=fig1, units='inches')
 
-        # pylab.text(xmin_pass, ymin_pass, "time = %7.3g s" % (time), 
-        #            verticalalignment="bottom", transform = trans, 
+        # pylab.text(xmin_pass, ymin_pass, "time = %7.3g s" % (time),
+        #            verticalalignment="bottom", transform = trans,
         #            clip_on=False, fontsize=10)
 
 
@@ -452,7 +452,7 @@ def do_plot(plotfile, component, component2, outFile, log,
         ax = pylab.subplot(1,3,2)
         #fig.add_axes(pos2)
 
-        im=pylab.imshow(data_xz[iz0:iz,ix0:ix],origin='lower', extent=extent, 
+        im=pylab.imshow(data_xz[iz0:iz,ix0:ix],origin='lower', extent=extent,
                         vmin=minval, vmax=maxval) #, axes=pos2)
 
         pylab.xlabel("x")
@@ -501,7 +501,7 @@ def do_plot(plotfile, component, component2, outFile, log,
         ax = pylab.subplot(1,3,3)
         #fig.add_axes(pos3)
 
-        im=pylab.imshow(data_yz[iz0:iz,iy0:iy],origin='lower', extent=extent, 
+        im=pylab.imshow(data_yz[iz0:iz,iy0:iy],origin='lower', extent=extent,
                         vmin=minval, vmax=maxval) #, axes=pos3)
 
         pylab.xlabel("y")
@@ -525,7 +525,7 @@ def do_plot(plotfile, component, component2, outFile, log,
         pylab.subplots_adjust(bottom=0.1, left=0.05, right=0.95)
 
         formatter = matplotlib.ticker.ScalarFormatter(useMathText=True)
-        
+
         cax = pylab.axes([0.05, 0.06, 0.9, 0.04])
         pylab.colorbar(orientation="horizontal", cax=cax, format=formatter)
 
@@ -595,7 +595,7 @@ def usage():
     Note: this script requires the fsnapshot.so library, compiled with
     f2py using the GNUmakefile in AmrPostprocessing/python.
 
-    """              
+    """
     print(usageStr)
 
 
@@ -622,13 +622,13 @@ if __name__== "__main__":
     ymax = None
     zmax = None
 
-    try: opts, next = getopt.getopt(sys.argv[1:], "o:m:M:n:N:x:y:z:X:Y:Z:", 
+    try: opts, next = getopt.getopt(sys.argv[1:], "o:m:M:n:N:x:y:z:X:Y:Z:",
                                     ["log","eps","dpi=","origin","annotate="])
     except getopt.GetoptError:
         print("invalid calling sequence")
         usage()
-        sys.exit(2) 
-               
+        sys.exit(2)
+
 
     for o, a in opts:
 
@@ -663,38 +663,38 @@ if __name__== "__main__":
             try: xmin = float(a)
             except ValueError:
                 print("invalid value for -x")
-                sys.exit(2)            
+                sys.exit(2)
 
         if o == "-y":
             try: ymin = float(a)
             except ValueError:
                 print("invalid value for -y")
-                sys.exit(2)            
+                sys.exit(2)
 
         if o == "-z":
             try: zmin = float(a)
             except ValueError:
                 print("invalid value for -z")
-                sys.exit(2)            
+                sys.exit(2)
 
         if o == "-X":
             try: xmax = float(a)
             except ValueError:
                 print("invalid value for -X")
-                sys.exit(2)            
+                sys.exit(2)
 
         if o == "-Y":
             try: ymax = float(a)
             except ValueError:
                 print("invalid value for -Y")
-                sys.exit(2)            
+                sys.exit(2)
 
         if o == "-Z":
             try: zmax = float(a)
             except ValueError:
                 print("invalid value for -Z")
-                sys.exit(2)            
- 
+                sys.exit(2)
+
         if o == "--log":
             log = 1
 
@@ -725,12 +725,12 @@ if __name__== "__main__":
     except IndexError:
         print("ERROR: no component specified")
         usage()
-        sys.exit(2)    
+        sys.exit(2)
 
     try: component2 = next[2]
     except IndexError:
         component2 = ""
 
-    do_plot(plotfile, component, component2, outFile, 
+    do_plot(plotfile, component, component2, outFile,
             log, minvar, maxvar, minvar2, maxvar2, eps, dpi, origin, annotation,
             xmin, ymin, zmin, xmax, ymax, zmax)

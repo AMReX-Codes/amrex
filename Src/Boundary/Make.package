@@ -15,6 +15,8 @@ CEXE_headers += AMReX_YAFluxRegister_K.H AMReX_YAFluxRegister_$(DIM)D_K.H
 CEXE_headers += AMReX_YAFluxRegister.H
 CEXE_sources += AMReX_YAFluxRegister.cpp
 
+CEXE_headers += AMReX_BoundaryFwd.H
+
 ifneq ($(BL_NO_FORT),TRUE)
   F90EXE_sources += AMReX_LO_UTIL.F90
   F90EXE_sources += AMReX_lo_bctypes_mod.F90

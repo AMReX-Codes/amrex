@@ -17,7 +17,7 @@ an application code then uses its own build system and links to AMReX as an exte
 
 Finally, AMReX can also be built with CMake, as detailed in the section on :ref:`sec:build:cmake`.
 
-AMReX requires a C++ compiler that supports the C++11 standard, a
+AMReX requires a C++ compiler that supports the C++14 standard, a
 Fortran compiler that supports the Fortran 2003 standard, and a C
 compiler that supports the C99 standard.  Prerequisites for building
 with GNU Make include Python (>= 2.7, including 3) and standard tools

@@ -11,6 +11,7 @@
 
 #ifndef AMREX_ALGOIM_K_H_
 #define AMREX_ALGOIM_K_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_algoim.H>
 #include <AMReX_Array.H>
@@ -278,11 +279,11 @@ struct ImplicitIntegral
             }
             dphi_max *= 0.5*almostone;
             const Real phi_0 = phi(mid);
-            bool uniform_sign = (phi_0 > dphi_max) or (phi_0 < -dphi_max);
+            bool uniform_sign = (phi_0 > dphi_max) || (phi_0 < -dphi_max);
             if (uniform_sign)
             {
-                if ((phi_0 >= 0.0 and psi[i].sign() >= 0) or
-                    (phi_0 <= 0.0 and psi[i].sign() <= 0) )
+                if ((phi_0 >= 0.0 && psi[i].sign() >= 0) ||
+                    (phi_0 <= 0.0 && psi[i].sign() <= 0) )
                 {
                     --psiCount;
                     detail::swap(psi[i], psi[psiCount]);
@@ -370,7 +371,7 @@ struct ImplicitIntegral
         Real x_max = xrange.max(e0);
         roots[0] = x_min;
         int nroots = 1;
-        if (phi.grad(e0) != 0.0_rt) {
+        if (phi.grad(e0) != Real(0.0)) {
             for (int i = 0; i < psiCount; ++i)
             {
                 for (int dim = 0; dim < N; ++dim) {
@@ -382,13 +383,13 @@ struct ImplicitIntegral
                 x[e0] = x_min;
                 Real phi_lo = phi(x);
                 Real xroot = x[e0] - phi_lo / phi.grad(e0);
-                if (xroot > x_min and xroot < x_max) {
+                if (xroot > x_min && xroot < x_max) {
                     roots[nroots++] = xroot;
                 }
             }
             AMREX_ASSERT(nroots <= 3);
         }
-        if (nroots == 3 and roots[1] > roots[2]) {
+        if (nroots == 3 && roots[1] > roots[2]) {
             detail::swap(roots[1],roots[2]);
         }
         roots[nroots++] = x_max;
@@ -417,7 +418,7 @@ struct ImplicitIntegral
                     }
                 }
                 bool new_ok = (phi(x) > 0.0) ? (psi[j].sign() >= 0) : (psi[j].sign() <= 0);
-                okay = okay and new_ok;
+                okay = okay && new_ok;
             }
             if (!okay) continue;
 
@@ -432,6 +433,7 @@ struct ImplicitIntegral
 
     // Main calling engine; parameters with underscores are copied
     // upon entry but modified internally in the ctor
+    template <int K = M, std::enable_if_t<K==1,int> = 0>
     AMREX_GPU_HOST_DEVICE
     ImplicitIntegral (const Phi& phi_, F& f_, const GpuArray<bool,N>& free_,
                       const GpuArray<PsiCode<N>,1 << (N-1)>& psi_,
@@ -441,17 +443,24 @@ struct ImplicitIntegral
     {
         // For the one-dimensional base case, evaluate the
         // bottom-level integral.
-        if (M == 1)
-        {
-            for (int dim = 0; dim < N; ++dim) {
-                if (free[dim]) {
-                    e0 = dim;
-                }
+        for (int dim = 0; dim < N; ++dim) {
+            if (free[dim]) {
+                e0 = dim;
             }
-            evalIntegrand(GpuArray<Real,N>{}, 1.0);
-            return;
         }
+        evalIntegrand(GpuArray<Real,N>{}, 1.0);
+    }
 
+    // Main calling engine; parameters with underscores are copied
+    // upon entry but modified internally in the ctor
+    template <int K = M, std::enable_if_t<(K>1),int> = 0>
+    AMREX_GPU_HOST_DEVICE
+    ImplicitIntegral (const Phi& phi_, F& f_, const GpuArray<bool,N>& free_,
+                      const GpuArray<PsiCode<N>,1 << (N-1)>& psi_,
+                      int psiCount_) noexcept
+        : phi(phi_), f(f_), free(free_), psi(psi_), psiCount(psiCount_),
+          xrange()
+    {
         // Establish interval bounds for prune() and remaining part of ctor.
         for (int dim = 0; dim < N; ++dim)
         {

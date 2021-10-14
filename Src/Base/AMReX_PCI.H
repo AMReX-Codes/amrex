@@ -12,7 +12,7 @@ FabArray<FAB>::PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
 
     if (is_thread_safe)
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < N_locs; ++i)
@@ -45,7 +45,7 @@ FabArray<FAB>::PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
             }
         }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
         for (MFIter mfi(*this); mfi.isValid(); ++mfi)
@@ -97,11 +97,11 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
     loc_copy_tags.reserve(N_locs);
 
     Vector<BaseFab<int> > maskfabs;
-    Vector<Array4<int> > masks;
+    Vector<Array4Tag<int> > masks;
     if (!is_thread_safe)
     {
-        if ((op == FabArrayBase::COPY and !amrex::IsStoreAtomic<value_type>::value) or
-            (op == FabArrayBase::ADD  and !amrex::HasAtomicAdd <value_type>::value))
+        if ((op == FabArrayBase::COPY && !amrex::IsStoreAtomic<value_type>::value) ||
+            (op == FabArrayBase::ADD  && !amrex::HasAtomicAdd <value_type>::value))
         {
             maskfabs.resize(this->local_size());
             masks.reserve(N_locs);
@@ -123,22 +123,17 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
                 if (!maskfabs[li].isAllocated()) {
                     maskfabs[li].resize(this->atLocalIdx(li).box());
                 }
-                masks.push_back(maskfabs[li].array());
+                masks.emplace_back(Array4Tag<int>{maskfabs[li].array()});
             }
         }
     }
 
     if (maskfabs.size() > 0) {
-        for (Gpu::StreamIter sit(maskfabs.size()); sit.isValid(); ++sit) {
-            BaseFab<int>& mskfab = maskfabs[sit()];
-            const Array4<int>& msk = mskfab.array();
-            const Box& bx = mskfab.box();
-            amrex::ParallelFor(bx,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                msk(i,j,k) = 0;
-            });
-        }
+        amrex::ParallelFor(masks,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, Array4Tag<int> const& msk) noexcept
+        {
+            msk.dfab(i,j,k) = 0;
+        });
     }
 
     if (op == FabArrayBase::COPY)

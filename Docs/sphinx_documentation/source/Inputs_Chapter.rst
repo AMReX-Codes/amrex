@@ -7,8 +7,8 @@ Run-time Inputs
    :maxdepth: 1
 
    InputsProblemDefinition
-   InputsTimeStepping 
-   InputsLoadBalancing 
-   InputsPlotFiles 
+   InputsTimeStepping
+   InputsLoadBalancing
+   InputsPlotFiles
    InputsCheckpoint
 

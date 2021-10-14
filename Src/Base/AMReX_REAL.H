@@ -1,5 +1,6 @@
 #ifndef AMREX_REAL_H_
 #define AMREX_REAL_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Extension.H>
 
@@ -32,7 +33,7 @@
 #include <float.h>
 #endif
 
-/* 
+/*
   Real is a typedef specifying the precision of the floating-point
   calculations in C++ code.  It will be either float or double
   depending upon which of the macros BL_USE_FLOAT or

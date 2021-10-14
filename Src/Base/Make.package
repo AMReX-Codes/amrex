@@ -13,8 +13,6 @@ C$(AMREX_BASE)_headers += AMReX_Extension.H
 
 C$(AMREX_BASE)_headers += AMReX_GpuComplex.H
 
-C$(AMREX_BASE)_headers += AMReX_IndexSequence.H
-
 C$(AMREX_BASE)_headers += AMReX_PODVector.H
 
 C$(AMREX_BASE)_headers += AMReX_BlockMutex.H
@@ -27,7 +25,7 @@ C$(AMREX_BASE)_headers += AMReX_Functional.H AMReX_Reduce.H AMReX_Scan.H AMReX_P
 C$(AMREX_BASE)_headers += AMReX_FileSystem.H
 C$(AMREX_BASE)_sources += AMReX_FileSystem.cpp
 
-C$(AMREX_BASE)_headers += AMReX_Random.H
+C$(AMREX_BASE)_headers += AMReX_Random.H AMReX_RandomEngine.H
 C$(AMREX_BASE)_sources += AMReX_Random.cpp
 
 C$(AMREX_BASE)_headers += AMReX_REAL.H AMReX_INT.H AMReX_CONSTANTS.H AMReX_SPACE.H
@@ -41,8 +39,8 @@ C$(AMREX_BASE)_headers += AMReX_ParallelReduce.H
 C$(AMREX_BASE)_headers += AMReX_ForkJoin.H AMReX_ParallelContext.H
 C$(AMREX_BASE)_sources += AMReX_ForkJoin.cpp AMReX_ParallelContext.cpp
 
-C$(AMREX_BASE)_sources += AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp AMReX_DArena.cpp AMReX_EArena.cpp
-C$(AMREX_BASE)_headers += AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H AMReX_DArena.H AMReX_EArena.H
+C$(AMREX_BASE)_sources += AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp AMReX_DArena.cpp AMReX_EArena.cpp AMReX_PArena.cpp
+C$(AMREX_BASE)_headers += AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H AMReX_DArena.H AMReX_EArena.H AMReX_PArena.H
 
 C$(AMREX_BASE)_sources += AMReX_AsyncOut.cpp
 C$(AMREX_BASE)_headers += AMReX_AsyncOut.H
@@ -59,16 +57,18 @@ C$(AMREX_BASE)_headers += AMReX_BLFort.H
 C$(AMREX_BASE)_sources += AMReX_NFiles.cpp
 C$(AMREX_BASE)_headers += AMReX_NFiles.H
 
+C$(AMREX_BASE)_headers += AMReX_Morton.H
 
 C$(AMREX_BASE)_headers += AMReX_parstream.H
 C$(AMREX_BASE)_sources += AMReX_parstream.cpp
 
 C$(AMREX_BASE)_headers += AMReX_Gpu.H AMReX_GpuQualifiers.H AMReX_GpuPrint.H AMReX_GpuAssert.H AMReX_GpuTypes.H AMReX_GpuError.H
+C$(AMREX_BASE)_headers += AMReX_GpuKernelInfo.H
 
 C$(AMREX_BASE)_headers += AMReX_GpuLaunchMacrosG.H AMReX_GpuLaunchFunctsG.H
 C$(AMREX_BASE)_headers += AMReX_GpuLaunchMacrosC.H AMReX_GpuLaunchFunctsC.H
+C$(AMREX_BASE)_headers += AMReX_GpuLaunchGlobal.H
 C$(AMREX_BASE)_headers += AMReX_GpuLaunch.H
-C$(AMREX_BASE)_sources += AMReX_GpuLaunch.cpp
 
 C$(AMREX_BASE)_headers += AMReX_GpuControl.H
 C$(AMREX_BASE)_sources += AMReX_GpuControl.cpp
@@ -78,6 +78,7 @@ C$(AMREX_BASE)_headers += AMReX_GpuMemory.H AMReX_GpuRange.H
 C$(AMREX_BASE)_headers += AMReX_GpuAtomic.H
 C$(AMREX_BASE)_sources += AMReX_GpuDevice.cpp AMReX_GpuUtility.cpp
 C$(AMREX_BASE)_headers += AMReX_GpuDevice.H   AMReX_GpuUtility.H
+C$(AMREX_BASE)_headers += AMReX_GpuBuffer.H
 
 C$(AMREX_BASE)_headers += AMReX_GpuAsyncArray.H
 C$(AMREX_BASE)_sources += AMReX_GpuAsyncArray.cpp
@@ -90,6 +91,14 @@ C$(AMREX_BASE)_headers += AMReX_GpuReduce.H
 C$(AMREX_BASE)_headers += AMReX_CudaGraph.H AMReX_GpuContainers.H
 
 C$(AMREX_BASE)_headers += AMReX_GpuAllocators.H
+
+C$(AMREX_BASE)_headers += AMReX_MFParallelFor.H
+C$(AMREX_BASE)_headers += AMReX_MFParallelForC.H
+C$(AMREX_BASE)_headers += AMReX_MFParallelForG.H
+
+C$(AMREX_BASE)_headers += AMReX_TagParallelFor.H
+
+C$(AMREX_BASE)_headers += AMReX_ParReduce.H
 
 #
 # I/O stuff.
@@ -158,9 +167,6 @@ C$(AMREX_BASE)_headers += AMReX_MultiFabUtil.H AMReX_MultiFabUtil_C.H AMReX_Mult
 C$(AMREX_BASE)_sources += AMReX_MultiFabUtil.cpp
 C$(AMREX_BASE)_headers += AMReX_MultiFabUtilI.H
 
-C$(AMREX_BASE)_sources += AMReX_MultiFabUtil_Perilla.cpp
-C$(AMREX_BASE)_headers += AMReX_MultiFabUtil_Perilla.H
-
 #
 # Boundary-related 
 #
@@ -172,6 +178,13 @@ C$(AMREX_BASE)_sources += AMReX_FilCC_C.cpp
 C$(AMREX_BASE)_headers += AMReX_FilCC_C.H AMReX_FilCC_$(DIM)D_C.H
 C$(AMREX_BASE)_sources += AMReX_FilND_C.cpp
 C$(AMREX_BASE)_headers += AMReX_FilND_C.H
+C$(AMREX_BASE)_headers += AMReX_FilFC_C.H AMReX_FilFC_$(DIM)D_C.H
+
+#
+# Non-Local BC
+#
+C$(AMREX_BASE)_headers += AMReX_NonLocalBC.H AMReX_NonLocalBCImpl.H
+C$(AMREX_BASE)_sources += AMReX_NonLocalBC.cpp
 
 #
 # Plotfile
@@ -188,10 +201,8 @@ C$(AMREX_BASE)_headers += AMReX_BaseUmap.H
 # Fortran interface routines.
 #
 ifneq ($(BL_NO_FORT),TRUE)
-  ifeq ($(findstring FALSE,$(USE_CUDA)$(USE_GPU_PRAGMA)$(GPU_PRAGMA_NO_HOST_VERSION)),FALSE)
-    F90$(AMREX_BASE)_sources += AMReX_FILCC_${DIM}D.F90
-    F90$(AMREX_BASE)_headers += AMReX_filcc_f.H
-  endif
+  F90$(AMREX_BASE)_sources += AMReX_FILCC_${DIM}D.F90
+  F90$(AMREX_BASE)_headers += AMReX_filcc_f.H
 
   F90$(AMREX_BASE)_sources += AMReX_BLutil_F.F90
   F90$(AMREX_BASE)_sources += AMReX_BLProfiler_F.F90
@@ -249,5 +260,37 @@ endif
 CEXE_headers += AMReX_Machine.H
 CEXE_sources += AMReX_Machine.cpp
 
+# Forward declaration
+CEXE_headers += AMReX_BaseFwd.H
+
+
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
+
+
+CEXE_headers += amrex_parser.lex.h amrex_parser.tab.h
+CEXE_sources += amrex_parser.lex.cpp amrex_parser.tab.cpp
+
+CEXE_headers += AMReX_Parser_Y.H
+CEXE_sources += AMReX_Parser_Y.cpp
+
+CEXE_headers += AMReX_Parser_Exe.H
+CEXE_sources += AMReX_Parser_Exe.cpp
+
+CEXE_headers += AMReX_Parser.H
+CEXE_sources += AMReX_Parser.cpp
+
+CEXE_headers += amrex_iparser.lex.h amrex_iparser.tab.h
+CEXE_sources += amrex_iparser.lex.cpp amrex_iparser.tab.cpp
+
+CEXE_headers += AMReX_IParser_Y.H
+CEXE_sources += AMReX_IParser_Y.cpp
+
+CEXE_headers += AMReX_IParser_Exe.H
+CEXE_sources += AMReX_IParser_Exe.cpp
+
+CEXE_headers += AMReX_IParser.H
+CEXE_sources += AMReX_IParser.cpp
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base/Parser
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base/Parser

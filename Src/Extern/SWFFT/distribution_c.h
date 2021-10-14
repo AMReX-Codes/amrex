@@ -42,8 +42,8 @@
  * *****************************************************************************
  *                                DISCLAIMER
  * THE SOFTWARE IS SUPPLIED "AS IS" WITHOUT WARRANTY OF ANY KIND. NEITHER THE
- * UNITED STATES GOVERNMENT, NOR THE UNITED STATES DEPARTMENT OF ENERGY, NOR 
- * UCHICAGO ARGONNE, LLC, NOR ANY OF THEIR EMPLOYEES, MAKES ANY WARRANTY, 
+ * UNITED STATES GOVERNMENT, NOR THE UNITED STATES DEPARTMENT OF ENERGY, NOR
+ * UCHICAGO ARGONNE, LLC, NOR ANY OF THEIR EMPLOYEES, MAKES ANY WARRANTY,
  * EXPRESS OR IMPLIED, OR ASSUMES ANY LEGAL LIABILITY OR RESPONSIBILITY FOR THE
  * ACCURARY, COMPLETENESS, OR USEFULNESS OF ANY INFORMATION, DATA, APPARATUS,
  * PRODUCT, OR PROCESS DISCLOSED, OR REPRESENTS THAT ITS USE WOULD NOT INFRINGE
@@ -115,12 +115,12 @@ typedef struct {
 //   rmap   pointer to grid->rank map
 //   debug  debugging output
 ///
-void distribution_init(MPI_Comm comm, 
-		       const int n[], 
+void distribution_init(MPI_Comm comm,
+                       const int n[],
                const int Ndims[],
-		       distribution_t *d, 
+                       distribution_t *d,
                const int* rmap,
-		       bool debug);
+                       bool debug);
 
 
 ///
@@ -192,8 +192,8 @@ void distribution_3_to_1(const complex_t *a,
 ///
 void distribution_2_to_3(const complex_t *a,
                          complex_t *b,
-                         distribution_t *d, 
-			 int dim_z);
+                         distribution_t *d,
+                         int dim_z);
 
 ///
 // redistribute a 3-d to a 2-d data distribution
@@ -203,8 +203,8 @@ void distribution_2_to_3(const complex_t *a,
 ///
 void distribution_3_to_2(const complex_t *a,
                          complex_t *b,
-                         distribution_t *d, 
-			 int dim_z);
+                         distribution_t *d,
+                         int dim_z);
 
 
 ///

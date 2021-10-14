@@ -1,8 +1,8 @@
 
-#include <cstring>
-
 #include <AMReX_Derive.H>
 #include <AMReX_StateDescriptor.H>
+
+#include <cstring>
 
 namespace amrex {
 
@@ -83,7 +83,7 @@ DeriveRec::DeriveRec (const std::string&      a_name,
 DeriveRec::DeriveRec (const std::string& a_name,
                       IndexType      result_type,
                       int            nvar_derive,
-		      Vector<std::string>& var_names,
+                      Vector<std::string> const& var_names,
                       DeriveFunc     der_func,
                       DeriveBoxMap   box_map,
                       Interpolater*  a_interp)
@@ -100,7 +100,7 @@ DeriveRec::DeriveRec (const std::string& a_name,
 DeriveRec::DeriveRec (const std::string& a_name,
                       IndexType      result_type,
                       int            nvar_derive,
-		      Vector<std::string>& var_names,
+                      Vector<std::string> const& var_names,
                       DeriveFunc3D   der_func_3d,
                       DeriveBoxMap   box_map,
                       Interpolater*  a_interp)
@@ -117,7 +117,7 @@ DeriveRec::DeriveRec (const std::string& a_name,
 DeriveRec::DeriveRec (const std::string& a_name,
                       IndexType      result_type,
                       int            nvar_derive,
-		      Vector<std::string>& var_names,
+                      Vector<std::string> const& var_names,
                       DeriveFuncFab  der_func_fab,
                       DeriveBoxMap   box_map,
                       Interpolater*  a_interp)
@@ -131,7 +131,7 @@ DeriveRec::DeriveRec (const std::string& a_name,
     bx_map(box_map)
 {}
 
-DeriveRec::~DeriveRec () 
+DeriveRec::~DeriveRec ()
 {
    delete [] bcr;
    delete [] bcr3D;
@@ -226,7 +226,7 @@ void
 DeriveRec::addRange (const DescriptorList& d_list,
                      int                   state_indx,
                      int                   src_comp,
-                     int                   num_comp) 
+                     int                   num_comp)
 {
     StateRange* r = new StateRange;
 
@@ -266,9 +266,11 @@ DeriveRec::getRange (int  k,
     for (r = rng; r != 0 && k > 0; k--, r = r->next)
         ;
     BL_ASSERT(r != 0);
-    state_indx = r->typ;
-    src_comp   = r->sc;
-    num_comp   = r->nc;
+    if (r != 0) {
+        state_indx = r->typ;
+        src_comp   = r->sc;
+        num_comp   = r->nc;
+    }
 }
 
 void
@@ -328,7 +330,7 @@ const
 std::string&
 DeriveRec::variableName(int comp) const noexcept
 {
-  if (comp < variable_names.size()) 
+  if (comp < variable_names.size())
      return variable_names[comp];
 
   return derive_name;
@@ -383,7 +385,7 @@ void
 DeriveList::add (const std::string&      name,
                  IndexType               res_typ,
                  int                     nvar_der,
-                 Vector<std::string>&    vars,
+                 Vector<std::string> const&    vars,
                  DeriveFunc              der_func,
                  DeriveRec::DeriveBoxMap bx_map,
                  Interpolater*           interp)
@@ -395,7 +397,7 @@ void
 DeriveList::add (const std::string&      name,
                  IndexType               res_typ,
                  int                     nvar_der,
-                 Vector<std::string>&    vars,
+                 Vector<std::string> const&    vars,
                  DeriveFunc3D            der_func_3d,
                  DeriveRec::DeriveBoxMap bx_map,
                  Interpolater*           interp)
@@ -407,7 +409,7 @@ void
 DeriveList::add (const std::string&      name,
                  IndexType               res_typ,
                  int                     nvar_der,
-                 Vector<std::string>&    vars,
+                 Vector<std::string> const&    vars,
                  DeriveFuncFab           der_func_fab,
                  DeriveRec::DeriveBoxMap bx_map,
                  Interpolater*           interp)
@@ -422,7 +424,7 @@ DeriveList::dlist ()
 }
 
 bool
-DeriveList::canDerive (const std::string& name) const 
+DeriveList::canDerive (const std::string& name) const
 {
     for (std::list<DeriveRec>::const_iterator li = lst.begin(), End = lst.end();
          li != End;
@@ -449,7 +451,7 @@ DeriveList::get (const std::string& name) const
 
 void
 DeriveList::addComponent (const std::string&    name,
-                          const DescriptorList& d_list, 
+                          const DescriptorList& d_list,
                           int                   state_indx,
                           int                   s_comp,
                           int                   n_comp)

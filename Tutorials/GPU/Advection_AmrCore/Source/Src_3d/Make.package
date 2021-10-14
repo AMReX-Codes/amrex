@@ -1,3 +1,0 @@
-CEXE_headers += Adv_$(DIM)d.H
-CEXE_headers += computer_flux_$(DIM)d.H
-CEXE_headers += slope_$(DIM)d.H

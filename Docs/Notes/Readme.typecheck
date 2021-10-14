@@ -10,7 +10,7 @@ example,
     }
 
     /* Fortran procedure */
-    suboutine my_f (x, y) bind(c)
+    subroutine my_f (x, y) bind(c)
       implicit none
       integer x, y
     end subroutine my_f

@@ -7,11 +7,13 @@ target_sources(amrex
    AMReX_XYPlotDataList.H
    AMReX_XYPlotDataList.cpp
    AMReX_DataServices.H
-   AMReX_DataServices.cpp 
+   AMReX_DataServices.cpp
+   AMReX_WritePlotFile.H
+   AMReX_WritePlotFile.cpp
    AMReX_AmrvisConstants.H
-   AMReX_FABUTIL_${DIM}D.F
+   AMReX_FABUTIL_${AMReX_SPACEDIM}D.F
    )
 
-if (ENABLE_PROPARSER)
+if (AMReX_PROFPARSER)
    target_sources( amrex PRIVATE AMReX_XYPlotDataList.cpp AMReX_XYPlotDataList.H )
 endif ()

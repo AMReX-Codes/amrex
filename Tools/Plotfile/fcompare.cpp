@@ -15,16 +15,40 @@ struct ErrZone {
     IntVect cell;
 };
 
+void PrintUsage()
+{
+    amrex::Print()
+        << "\n"
+        << " Compare two plotfiles, zone by zone, to machine precision\n"
+        << " and report the maximum absolute and relative errors for each\n"
+        << " variable.\n"
+        << "\n"
+        << " usage:\n"
+        << "    fcompare [-n|--norm num] [-d|--diffvar var] [-z|--zone_info var] [-a|--allow_diff_grids] [-r|rel_tol] [--abs_tol] file1 file2\n"
+        << "\n"
+        << " optional arguments:\n"
+        << "    -n|--norm num         : what norm to use (default is 0 for inf norm)\n"
+        << "    -d|--diffvar var      : output a plotfile showing the differences for\n"
+        << "                            variable var\n"
+        << "    -z|--zone_info var    : output the information for a zone corresponding\n"
+        << "                            to the maximum error for the given variable\n"
+        << "    -a|--allow_diff_grids : allow different BoxArrays covering the same domain\n"
+        << "    -r|--rel_tol rtol     : relative tolerance (default is 0)\n"
+        << "    --abs_tol atol        : absolute tolerance (default is 0)\n"
+        << std::endl;
+}
+
 int main_main()
 {
     const int narg = amrex::command_argument_count();
 
     Real global_error = 0.0;
     Real global_rerror = 0.0;
+    Real abserr_for_global_rerror = 0.0;
     bool any_nans = false;
     ErrZone err_zone;
     bool all_variables_found = true;
-    
+
     // defaults
     int norm = 0;
     std::string plotfile_a;
@@ -33,6 +57,7 @@ int main_main()
     int zone_info = false;
     int allow_diff_grids = false;
     Real rtol = 0.0;
+    Real atol = 0.0;
     std::string zone_info_var_name;
     Vector<std::string> plot_names(1);
     bool abort_if_not_all_found = false;
@@ -40,24 +65,29 @@ int main_main()
     int farg = 1;
     while (farg <= narg) {
         const std::string fname = amrex::get_command_argument(farg);
-        if (fname == "--infile1") {
+        if (fname == "-h" || fname == "--help"){
+            PrintUsage();
+            return EXIT_SUCCESS;
+        } else if (fname == "--infile1") {
             plotfile_a = amrex::get_command_argument(++farg);
         } else if (fname == "--infile2") {
             plotfile_b = amrex::get_command_argument(++farg);
-        } else if (fname == "-n" or fname == "--norm") {
+        } else if (fname == "-n" || fname == "--norm") {
             norm = std::stoi(amrex::get_command_argument(++farg));
-        } else if (fname == "-z" or fname == "--zone_info") {
+        } else if (fname == "-z" || fname == "--zone_info") {
             zone_info_var_name = amrex::get_command_argument(++farg);
             zone_info = true;
-        } else if (fname == "-d" or fname == "--diffvar") {
+        } else if (fname == "-d" || fname == "--diffvar") {
             diffvar = amrex::get_command_argument(++farg);
             plot_names[0] = diffvar;
-        } else if (fname == "-a" or fname == "--allow_diff_grids") {
+        } else if (fname == "-a" || fname == "--allow_diff_grids") {
             allow_diff_grids = true;
-        } else if (fname == "-r" or fname == "--rel_tol") {
+        } else if (fname == "-r" || fname == "--rel_tol") {
             rtol = std::stod(amrex::get_command_argument(++farg));
+        } else if (fname == "--abs_tol") {
+            atol = std::stod(amrex::get_command_argument(++farg));
         } else if (fname == "--abort_if_not_all_found") {
-            abort_if_not_all_found = true;            
+            abort_if_not_all_found = true;
         } else {
             break;
         }
@@ -71,27 +101,9 @@ int main_main()
         plotfile_b = amrex::get_command_argument(farg++);
     }
 
-    if (plotfile_a.empty() and plotfile_b.empty()) {
-        amrex::Print()
-            << "\n"
-            << " Compare two plotfiles, zone by zone, to machine precision\n"
-            << " and report the maximum absolute and relative errors for each\n"
-            << " variable.\n"
-            << "\n"
-            << " usage:\n"
-            << "    fcompare [-g|--ghost] [-n|--norm num] [-d|--diffvar var] [-z|--zone_info var] [-a|--allow_diff_grids] [-r|rel_tol] file1 file2\n"
-            << "\n"
-            << " optional arguments:\n"
-            << "    -g|--ghost            : compare the ghost cells too (if stored)\n"
-            << "    -n|--norm num         : what norm to use (default is 0 for inf norm)\n"
-            << "    -d|--diffvar var      : output a plotfile showing the differences for\n"
-            << "                            variable var\n"
-            << "    -z|--zone_info var    : output the information for a zone corresponding\n"
-            << "                            to the maximum error for the given variable\n"
-            << "    -a|--allow_diff_grids : allow different BoxArrays covering the same domain\n"
-            << "    -r|--rel_tol rtol     : relative tolerance (default is 0)\n"
-            << std::endl;
-        return 0;
+    if (plotfile_a.empty() || plotfile_b.empty()) {
+        PrintUsage();
+        return EXIT_FAILURE;
     }
 
     PlotFileData pf_a(plotfile_a);
@@ -144,7 +156,7 @@ int main_main()
         auto r = std::find(std::begin(names_a),std::end(names_a),names_b[n_b]);
         if (r == std::end(names_a)) {
             amrex::Print() << " WARNING: variable " << names_b[n_b] << " not found in plotfile 1\n";
-            all_variables_found = false;            
+            all_variables_found = false;
         }
     }
 
@@ -241,7 +253,7 @@ int main_main()
                     rerror[icomp_a] = rerror[icomp_a]/rerror_denom[icomp_a];
                 }
 
-                if (icomp_a == save_var_a or icomp_a == zone_info_var_a) {
+                if (icomp_a == save_var_a || icomp_a == zone_info_var_a) {
                     mf_b.abs(0,1);
                 }
 
@@ -268,17 +280,29 @@ int main_main()
                 amrex::Print() << " " << std::setw(24) << std::left << names_a[icomp_a]
                                << "  " << std::setw(50)
                                << "< variable not present in both files > \n";
-            } else if (has_nan_a[icomp_a] or has_nan_b[icomp_a]) {
+            } else if (has_nan_a[icomp_a] && has_nan_b[icomp_a]) {
                 amrex::Print() << " " << std::setw(24) << std::left << names_a[icomp_a]
                                << "  " << std::setw(50)
-                               << "< NaN present > \n";
+                               << "< NaN present in both A and B > \n";
+            } else if (has_nan_a[icomp_a]) {
+                amrex::Print() << " " << std::setw(24) << std::left << names_a[icomp_a]
+                               << "  " << std::setw(50)
+                               << "< NaN present in A > \n";
+            } else if (has_nan_b[icomp_a]) {
+                amrex::Print() << " " << std::setw(24) << std::left << names_b[icomp_a]
+                               << "  " << std::setw(50)
+                               << "< NaN present in B > \n";
             } else {
                 Real aerr = 0., rerr = 0.;
                 if (aerror[icomp_a] > 0.) {
-                    aerr = std::min(std::max(aerror[icomp_a], 1.e-99), 1.e98);
+                    aerr = std::min(
+                        std::max(aerror[icomp_a], std::numeric_limits<Real>::min()),
+                        std::numeric_limits<Real>::max());
                 }
                 if (rerror[icomp_a] > 0.) {
-                    rerr = std::min(std::max(rerror[icomp_a], 1.e-99), 1.e98);
+                    rerr = std::min(
+                        std::max(rerror[icomp_a], std::numeric_limits<Real>::min()),
+                        std::numeric_limits<Real>::max());
                 }
                 amrex::Print() << " " << std::setw(24) << std::left << names_a[icomp_a]
                                << std::right
@@ -291,11 +315,14 @@ int main_main()
         global_error = std::max(global_error,
                                 *(std::max_element(aerror.begin(),
                                                    aerror.end())));
-        global_rerror = std::max(global_rerror,
-                                 *(std::max_element(rerror.begin(),
-                                                    rerror.end())));
+
+        const auto max_rerr = std::max_element(rerror.begin(), rerror.end());
+        global_rerror = std::max(global_rerror, *max_rerr);
+        const auto idx = std::distance(rerror.begin(), max_rerr);
+        abserr_for_global_rerror = std::max(
+            abserr_for_global_rerror, aerror[idx]);
         for (int icomp_a = 0; icomp_a < ncomp_a; ++icomp_a) {
-            any_nans = any_nans or has_nan_a[icomp_a] or has_nan_b[icomp_a];
+            any_nans = any_nans || has_nan_a[icomp_a] || has_nan_b[icomp_a];
         }
     }
 
@@ -346,11 +373,14 @@ int main_main()
         if (abort_if_not_all_found) return EXIT_FAILURE;
     }
 
-    if (global_error == 0.0 and !any_nans) {
+    if (global_error == 0.0 && !any_nans) {
         amrex::Print() << " PLOTFILE AGREE" << std::endl;
         return EXIT_SUCCESS;
-    } else if (global_rerror <= rtol) {
-        amrex::Print() << " PLOTFILE AGREE to relative tolerance " << rtol << std::endl;
+    } else if ((abserr_for_global_rerror <= atol) ||
+               (global_rerror <= rtol)) {
+        amrex::Print() << " PLOTFILE AGREE to specified tolerances: "
+                       << "absolute = " << atol
+                       << " relative = " << rtol << std::endl;
         return EXIT_SUCCESS;
     } else {
         return EXIT_FAILURE;

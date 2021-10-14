@@ -8,6 +8,8 @@ USE_MPI = FALSE
 USE_OMP = FALSE
 USE_CUDA = FALSE
 
+BL_NO_FORT = TRUE
+
 programs ?=
 
 ifeq ($(strip $(programs)),)

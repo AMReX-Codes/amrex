@@ -1,6 +1,7 @@
 
 #ifndef AMREX_MACBNDRYDATA_H_
 #define AMREX_MACBNDRYDATA_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_InterpBndryData.H>
 
@@ -15,7 +16,7 @@ public:
     MacBndry ();
 
     MacBndry (const BoxArray& _grids,
-	      const DistributionMapping& _dmap,
+              const DistributionMapping& _dmap,
               int             _ncomp,
               const Geometry& _geom);
 

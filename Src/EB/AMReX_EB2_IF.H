@@ -1,5 +1,6 @@
 #ifndef AMREX_EB2_IF_H_
 #define AMREX_EB2_IF_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_EB2_IF_Base.H>
 #include <AMReX_EB2_IF_AllRegular.H>
@@ -11,6 +12,7 @@
 #include <AMReX_EB2_IF_Extrusion.H>
 #include <AMReX_EB2_IF_Intersection.H>
 #include <AMReX_EB2_IF_Lathe.H>
+#include <AMReX_EB2_IF_Parser.H>
 #include <AMReX_EB2_IF_Plane.H>
 #include <AMReX_EB2_IF_Polynomial.H>
 #include <AMReX_EB2_IF_Rotation.H>

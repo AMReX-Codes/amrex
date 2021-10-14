@@ -28,7 +28,7 @@
 
     >>> particles = myparticles.values()
 
-    Here, each item in the list is a particle object.  
+    Here, each item in the list is a particle object.
 
 
   Each particle object contains data describing the particle
@@ -36,7 +36,7 @@
   particleInstance objects.  Each particleInstance object stores
   the state of the particle at an instance in time.  For example:
 
-    >>> time = particles[n].history[i].t 
+    >>> time = particles[n].history[i].t
 
     is the time associated with particleInstance i of particle n.
     There is a unique particleInstance for particle n for every
@@ -65,7 +65,7 @@
   The total number of particles can be found simply as len(particles),
   and the number of particleInstances for a given particle can be
   found as len(particles[n].history)
-""" 
+"""
 
 import sys
 import string
@@ -80,7 +80,7 @@ import numpy
 _particleDict = {}
 
 
-# this works for < 1000 MPI processes, but should ultimately be something 
+# this works for < 1000 MPI processes, but should ultimately be something
 # dynamic to work for all cases
 _idFactor = 1000
 
@@ -106,15 +106,15 @@ class particleInstance(object):
         """
         string = "particle pos:  (%g, %g, %g) \n" %  \
             (self.xyz[0], self.xyz[1], self.xyz[2]) + \
-            "         time: %g \n" % (self.t) 
-        
+            "         time: %g \n" % (self.t)
+
         return string
 
-    
-    
+
+
     def value(self):
         """
-           return the value of a particleInstance for comparison 
+           return the value of a particleInstance for comparison
            purposes.  The value is simply the time.
         """
         return self.t
@@ -131,7 +131,7 @@ class particle(object):
        element of which is a particleInstance object.
     """
 
-    __slots__ = ["pid", "originCPU", "dim", "finalized", 
+    __slots__ = ["pid", "originCPU", "dim", "finalized",
                  "history", "dataNames", "numInstances"]
 
     def __new__(cls, pid=None, originCPU=None, *args, **kwargs):
@@ -148,13 +148,13 @@ class particle(object):
             _particleDict[id] = obj
         return _particleDict[id]
 
-    
+
 
     def __init__(self, pid, originCPU, dim, dataNames):
         """
            initialize a particle object
         """
-        
+
         # a MAESTRO particle is identified by 2 numbers, the pid and
         # the CPU that it was created on.  Together, these uniquely
         # identify the particle.
@@ -166,7 +166,7 @@ class particle(object):
 
         # finalized is 1 when we have finished adding data and sorted
         # the history in time-order
-        self.finalized = 0   
+        self.finalized = 0
 
         # the history list will store instances of the particle at
         # different times.
@@ -179,10 +179,10 @@ class particle(object):
         # keep track of the number of particle history instances we've
         # stored
         self.numInstances = 0
-    
 
 
-    def addInstance(self, xyz=[-1.0,-1.0,-1.0],t=0.0, 
+
+    def addInstance(self, xyz=[-1.0,-1.0,-1.0],t=0.0,
                     dataValues=[]):
         """
            add a particleInstance object to the particle history to
@@ -200,7 +200,7 @@ class particle(object):
 
         # add this particle instance to the particle history
         self.history.append(particleInstance(xyz,t,dataValues))
-            
+
         self.numInstances += 1
 
 
@@ -209,7 +209,7 @@ class particle(object):
         """
            sort the particle histories in time order (since they may
            have been spread across multiple processors / files.
-  
+
            finalize() should only be called after all particle data
            has been read in
         """
@@ -239,7 +239,7 @@ class particle(object):
         n = 0
         while (n < len(self.history)):
             coords[:,n] = self.history[n].xyz[:self.dim]
-            
+
             time[n] = self.history[n].t
 
             n += 1
@@ -254,7 +254,7 @@ class particle(object):
         """
 
         index = self.dataNames.index(varname)
-        
+
         return index
 
 
@@ -268,7 +268,7 @@ class particle(object):
 
         for item in self.dataNames:
             string += "  %s" % (item)
-        
+
         string += "\n"
 
         return string
@@ -319,7 +319,7 @@ def parseParticleFile(maestroParticleFiles):
                 if (haveHeader == 1):
                     oldHeader = list(dataNames)  # list() makes a copy
 
-                
+
                 fields = string.split(line[1:])
 
                 # make sure we know what we are doing -- the first 2
@@ -335,11 +335,11 @@ def parseParticleFile(maestroParticleFiles):
 
                 # the next fields should be x, y, and z, depending on the
                 # dimensionality
-                if (fields[2] == "x" and fields[3] == "y" and 
+                if (fields[2] == "x" and fields[3] == "y" and
                     fields[4] == "z"):
                     dim = 3
                     ix = 2; iy = 3; iz = 4
-                
+
                 elif (fields[2] == "x" and fields[3] == "y"):
                     dim = 2
                     ix = 2; iy = 3
@@ -356,11 +356,11 @@ def parseParticleFile(maestroParticleFiles):
                 # then comes time
                 if (fields[2 + dim] == "time"):
                     it = 2 + dim
-                
+
                 else:
                     print "ERROR: particle file columns not in expected order"
                     sys.exit(2)
-            
+
 
                 # everything else is associated data
                 if (len(fields) > 3 + dim):
@@ -401,7 +401,7 @@ def parseParticleFile(maestroParticleFiles):
                 sys.exit(2)
 
 
-            if not id in _particleDict: 
+            if not id in _particleDict:
                 particle(pid, originCPU, dim, dataNames)
 
             _particleDict[id].addInstance(xyz=xyz,

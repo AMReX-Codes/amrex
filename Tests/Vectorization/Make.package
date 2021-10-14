@@ -1,3 +1,0 @@
-CEXE_headers += kc.H kdecl.H
-CEXE_sources += main.cpp  kc.cpp
-F90EXE_sources += kf.F90

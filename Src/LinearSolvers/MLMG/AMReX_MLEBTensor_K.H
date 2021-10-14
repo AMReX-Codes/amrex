@@ -1,5 +1,6 @@
 #ifndef AMREX_MLEBTENSOR_K_H_
 #define AMREX_MLEBTENSOR_K_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FArrayBox.H>
 

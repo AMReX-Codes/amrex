@@ -17,7 +17,7 @@ source code of ${_target} alone.
 add_typecheck_target(_target) assumes that all the C++ interfaces to
 Fortran routines are located in header files with name ending in "_f.H"
 or "_F.H". It also assumes that the Fortran implementations are stored
-in files with extentions ".f", ".f90", ".F", and ".F90". 
+in files with extensions ".f", ".f90", ".F", and ".F90". 
 
 
 Typechecking is performed in 4 steps:
@@ -62,7 +62,7 @@ function( add_typecheck_target _target)
    endif ()
 
    if ( NOT TARGET ${_target} )
-      message(WARNING "Skipping typecheck for target ${_target} bacause it does not exist")
+      message(WARNING "Skipping typecheck for target ${_target} because it does not exist")
       return ()
    endif ()
 
@@ -165,7 +165,7 @@ function( add_typecheck_target _target)
    # However, since this would only generate ".mod" files and no ".o" files, the target
    # would always be out of date and repeat itself.
    # A work around would be to create the module and the orig file at the same time.
-   # this could be achieved with a add_custom_command which is aware of dependecies info.
+   # this could be achieved with a add_custom_command which is aware of dependencies info.
    # To this end, we could use IMPLICIT_DEPENDS. Unfortunately this option is supported
    # for C and C++ only for now.
    set(_typecheckobjs  typecheckobjs_${_target})
@@ -179,7 +179,20 @@ function( add_typecheck_target _target)
       Fortran_MODULE_DIRECTORY  "${_typecheck_dir}"
       COMPILE_DEFINITIONS       "${_defines}"
       COMPILE_OPTIONS           "${_amrex_flags}"
+      WINDOWS_EXPORT_ALL_SYMBOLS ON
       )
+
+   # IPO/LTO
+   if (AMReX_IPO)
+      include(CheckIPOSupported)
+      check_ipo_supported(RESULT is_IPO_available)
+      if(is_IPO_available)
+          set_target_properties(${_typecheckobjs} PROPERTIES
+              INTERPROCEDURAL_OPTIMIZATION TRUE)
+      else()
+          message(FATAL_ERROR "Interprocedural optimization is not available, set AMReX_IPO=OFF")
+      endif()
+   endif()
 
    # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
    # STEP 2: create CPPD files from C++ headers
@@ -192,25 +205,22 @@ function( add_typecheck_target _target)
 
    # expand genex-es
    include(AMReXGenexHelpers)
-   
-   evaluate_genex(_defines _cxx_defines
-      LANG CXX
-      COMP GNU
-      CONFIG ${CMAKE_BUILD_TYPE}
-      INTERFACE BUILD)
-   
-   evaluate_genex(_defines _fortran_defines
-      LANG Fortran
-      COMP GNU
-      CONFIG ${CMAKE_BUILD_TYPE}
-      INTERFACE BUILD)
 
-   evaluate_genex(_amrex_flags _amrex_fortran_flags
-      LANG Fortran
-      COMP GNU
-      CONFIG ${CMAKE_BUILD_TYPE}
-      INTERFACE BUILD) 
-   
+   set(_cxx_defines "${_defines}")
+   eval_genex(_cxx_defines  CXX GNU
+      CONFIG        ${CMAKE_BUILD_TYPE}
+      INTERFACE     BUILD)
+
+   set(_fortran_defines "${_defines}")
+   eval_genex(_fortran_defines Fortran GNU
+      CONFIG        ${CMAKE_BUILD_TYPE}
+      INTERFACE     BUILD)
+
+   set(_amrex_fortran_flags "${_amrex_flags}")
+   eval_genex(_amrex_fortran_flags Fortran GNU
+      CONFIG        ${CMAKE_BUILD_TYPE}
+      INTERFACE     BUILD)
+
    if (_cxx_defines)
       string(REPLACE ";" ";-D" _cxx_defines "-D${_cxx_defines}")
    endif ()
@@ -270,7 +280,7 @@ function( add_typecheck_target _target)
    foreach ( _file IN LISTS _fsources )
       get_filename_component( _fname    ${_file} NAME )     # This strips away the path
       get_filename_component( _fullname ${_file} ABSOLUTE ) # This add the absolute path to fname
-      set( _orig_file ${_typecheck_dir}/${_fname}.orig )     # Use fullpath otherwise it rebuilds everytime
+      set( _orig_file ${_typecheck_dir}/${_fname}.orig )     # Use fullpath otherwise it rebuilds every time
       add_custom_command(
          OUTPUT   ${_orig_file}
          COMMAND  ${CMAKE_Fortran_COMPILER}

@@ -1,12 +1,13 @@
 
 #ifndef BL_INDEXTYPE_H
 #define BL_INDEXTYPE_H
-
-#include <iosfwd>
+#include <AMReX_Config.H>
 
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_SPACE.H>
+
+#include <iosfwd>
 
 namespace amrex {
 

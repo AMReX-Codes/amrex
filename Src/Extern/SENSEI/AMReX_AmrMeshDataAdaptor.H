@@ -1,5 +1,6 @@
 #ifndef AMReX_AmrMeshDataAdaptor_h
 #define AMReX_AmrMeshDataAdaptor_h
+#include <AMReX_Config.H>
 
 #include "DataAdaptor.h"
 #include <AMReX_AmrMesh.H>

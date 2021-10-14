@@ -3,6 +3,7 @@
 // -------------------------------------------------------------------
 #ifndef XYPLOTDATALIST_H
 #define XYPLOTDATALIST_H
+#include <AMReX_Config.H>
 
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
@@ -43,7 +44,7 @@ class XYPlotDataListLink {
   public:
     XYPlotDataListLink(const Real *d, int sX, int len)
       : xypdllLength(len), startXi(sX)
-    { 
+    {
       BL_ASSERT(len != 0);
       endXi = sX + len;
       xypdllData = new Real[len];
@@ -73,11 +74,11 @@ class XYPlotDataListLink {
 class XYPlotDataList {
   public:
     XYPlotDataList(const string &derived, int minlevel, int maxlevel,
-		   int gridlinein,
-		   const amrex::Vector<int> &ratiolist,
-		   const amrex::Vector<Real> &dx,
-		   const amrex::Vector<char *> &intersectpoint,
-		   Real startx = 0.0);
+                   int gridlinein,
+                   const amrex::Vector<int> &ratiolist,
+                   const amrex::Vector<Real> &dx,
+                   const amrex::Vector<char *> &intersectpoint,
+                   Real startx = 0.0);
     XYPlotDataList(XYPlotDataList *src);
     ~XYPlotDataList();
 
@@ -103,7 +104,7 @@ class XYPlotDataList {
     amrex::Vector<double> &YVal(int level) { return xypdlYVal[level]; }
 
   protected:
-    amrex::Vector<list<XYPlotDataListLink *> > dataSets; 
+    amrex::Vector<list<XYPlotDataListLink *> > dataSets;
     amrex::Vector<int> xypdlRatios;        // Used for insertion of data sets beginning
                                     // in the middle of a single cell [level]
     amrex::Vector<Real> dX;                // dX in the proper direction [level]

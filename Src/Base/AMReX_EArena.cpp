@@ -1,10 +1,10 @@
 
-#include <utility>
-#include <cstring>
-
 #include <AMReX_EArena.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_Gpu.H>
+
+#include <utility>
+#include <cstring>
 
 namespace amrex {
 
@@ -119,7 +119,7 @@ EArena::free (void* vp)
             }
         }
     }
-    
+
     auto hi_it = mit;
     ++hi_it;
     if (hi_it != m_mergelist.end() && mit->m_owner == hi_it->m_owner)

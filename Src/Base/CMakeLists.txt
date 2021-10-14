@@ -1,4 +1,5 @@
 target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
+target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/Parser>)
 
 target_sources( amrex
    PRIVATE
@@ -16,10 +17,7 @@ target_sources( amrex
    AMReX_error_fi.cpp
    AMReX.H
    AMReX_Exception.H
-   AMReX.cpp
-   AMReX_error_fi.cpp
    AMReX_Extension.H
-   AMReX_IndexSequence.H
    AMReX_PODVector.H
    AMReX_ParmParse.cpp
    AMReX_parmparse_fi.cpp
@@ -32,7 +30,9 @@ target_sources( amrex
    AMReX_Reduce.H
    AMReX_Scan.H
    AMReX_Partition.H
+   AMReX_Morton.H
    AMReX_Random.H
+   AMReX_RandomEngine.H
    AMReX_Random.cpp
    AMReX_BLassert.H
    AMReX_ArrayLim.H
@@ -66,6 +66,8 @@ target_sources( amrex
    AMReX_DArena.cpp
    AMReX_EArena.H
    AMReX_EArena.cpp
+   AMReX_PArena.H
+   AMReX_PArena.cpp
    AMReX_BLProfiler.H
    AMReX_BLBackTrace.H
    AMReX_BLFort.H
@@ -143,14 +145,14 @@ target_sources( amrex
    # Geometry / Coordinate system routines -----------------------------------
    AMReX_CoordSys.cpp
    AMReX_CoordSys.H
-   AMReX_COORDSYS_${DIM}D_C.H
+   AMReX_COORDSYS_${AMReX_SPACEDIM}D_C.H
    AMReX_COORDSYS_C.H
    AMReX_Geometry.cpp
    AMReX_Geometry.H
    AMReX_MultiFabUtil.cpp
    AMReX_MultiFabUtil.H
    AMReX_MultiFabUtilI.H
-   AMReX_MultiFabUtil_${DIM}D_C.H
+   AMReX_MultiFabUtil_${AMReX_SPACEDIM}D_C.H
    AMReX_MultiFabUtil_nd_C.H
    AMReX_MultiFabUtil_C.H
    # Boundary-related --------------------------------------------------------
@@ -161,11 +163,17 @@ target_sources( amrex
    AMReX_BCUtil.cpp
    AMReX_BCUtil.H
    AMReX_BC_TYPES.H
-   AMReX_FilCC_${DIM}D_C.H
+   AMReX_FilCC_${AMReX_SPACEDIM}D_C.H
    AMReX_FilCC_C.H
+   AMReX_FilFC_${AMReX_SPACEDIM}D_C.H
+   AMReX_FilFC_C.H
    AMReX_FilCC_C.cpp
    AMReX_FilND_C.H
    AMReX_FilND_C.cpp
+   # Non-Local BC
+   AMReX_NonLocalBC.H
+   AMReX_NonLocalBC.cpp
+   AMReX_NonLocalBCImpl.H
    # Plotfile ----------------------------------------------------------------
    AMReX_PlotFileUtil.cpp
    AMReX_PlotFileUtil.H
@@ -174,13 +182,14 @@ target_sources( amrex
    # GPU --------------------------------------------------------------------
    AMReX_Gpu.H
    AMReX_GpuQualifiers.H
+   AMReX_GpuKernelInfo.H
    AMReX_GpuPrint.H
    AMReX_GpuAssert.H
    AMReX_GpuTypes.H
    AMReX_GpuControl.H
    AMReX_GpuControl.cpp
    AMReX_GpuLaunch.H
-   AMReX_GpuLaunch.cpp
+   AMReX_GpuLaunchGlobal.H
    AMReX_GpuLaunchMacrosG.H
    AMReX_GpuLaunchMacrosC.H
    AMReX_GpuLaunchFunctsG.H
@@ -188,6 +197,7 @@ target_sources( amrex
    AMReX_GpuError.H
    AMReX_GpuDevice.H
    AMReX_GpuDevice.cpp
+   AMReX_GpuBuffer.H
    AMReX_GpuAtomic.H
    AMReX_GpuUtility.H
    AMReX_GpuUtility.cpp
@@ -200,6 +210,11 @@ target_sources( amrex
    AMReX_GpuReduce.H
    AMReX_GpuAllocators.H
    AMReX_GpuContainers.H
+   AMReX_MFParallelFor.H
+   AMReX_MFParallelForC.H
+   AMReX_MFParallelForG.H
+   AMReX_TagParallelFor.H
+   AMReX_ParReduce.H
    # CUDA --------------------------------------------------------------------
    AMReX_CudaGraph.H
    # Machine model -----------------------------------------------------------
@@ -211,16 +226,39 @@ target_sources( amrex
    # Profiling ---------------------------------------------------------------
    AMReX_BLProfiler.cpp
    AMReX_BLBackTrace.cpp
+   # Parser ---------------------------------------------------------------
+   Parser/AMReX_Parser.cpp
+   Parser/AMReX_Parser.H
+   Parser/AMReX_Parser_Exe.cpp
+   Parser/AMReX_Parser_Exe.H
+   Parser/AMReX_Parser_Y.cpp
+   Parser/AMReX_Parser_Y.H
+   Parser/amrex_parser.lex.cpp
+   Parser/amrex_parser.lex.h
+   Parser/amrex_parser.tab.cpp
+   Parser/amrex_parser.tab.h
+   Parser/AMReX_IParser.cpp
+   Parser/AMReX_IParser.H
+   Parser/AMReX_IParser_Exe.cpp
+   Parser/AMReX_IParser_Exe.H
+   Parser/AMReX_IParser_Y.cpp
+   Parser/AMReX_IParser_Y.H
+   Parser/amrex_iparser.lex.cpp
+   Parser/amrex_iparser.lex.h
+   Parser/amrex_iparser.tab.cpp
+   Parser/amrex_iparser.tab.h
+   # Forward declaration -----------------------------------------------------
+   AMReX_BaseFwd.H
    )
 
 # Fortran stuff
-if (ENABLE_FORTRAN)
+if (AMReX_FORTRAN)
    target_sources( amrex
       PRIVATE
       AMReX_filcc_f.H
       AMReX_BLutil_F.F90
       AMReX_BLProfiler_F.F90
-      AMReX_FILCC_${DIM}D.F90
+      AMReX_FILCC_${AMReX_SPACEDIM}D.F90
       AMReX_filcc_mod.F90
       AMReX_omp_mod.F90
       AMReX_acc_mod.F90
@@ -242,11 +280,11 @@ endif ()
 # endif
 
 # Memory Profiler
-if (ENABLE_MEM_PROFILE)
+if (AMReX_MEM_PROFILE)
    target_sources(amrex PRIVATE AMReX_MemProfiler.cpp AMReX_MemProfiler.H )
 endif ()
 
 # Tiny Profiler
-if (ENABLE_TINY_PROFILE)
+if (AMReX_TINY_PROFILE)
    target_sources(amrex PRIVATE AMReX_TinyProfiler.cpp AMReX_TinyProfiler.H )
 endif ()

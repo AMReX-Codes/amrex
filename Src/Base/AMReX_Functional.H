@@ -1,5 +1,6 @@
 #ifndef AMREX_FUNCTIONAL_H_
 #define AMREX_FUNCTIONAL_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_GpuQualifiers.H>
 
@@ -11,6 +12,15 @@ struct Plus
     constexpr T operator() (const T & lhs, const T & rhs) const
     {
         return lhs + rhs;
+    }
+};
+
+template <typename T>
+struct Minus
+{
+    constexpr T operator() (const T & lhs, const T & rhs) const
+    {
+        return lhs - rhs;
     }
 };
 

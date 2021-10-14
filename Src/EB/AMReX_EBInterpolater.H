@@ -1,5 +1,6 @@
 #ifndef AMREX_EBINTERPOLATER_H_
 #define AMREX_EBINTERPOLATER_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Interpolater.H>
 
@@ -10,9 +11,9 @@ class EBCellConservativeLinear
 {
 public:
 
-    explicit EBCellConservativeLinear (bool do_linear_limiting_ = true);
+    using CellConservativeLinear::CellConservativeLinear;
 
-    virtual ~EBCellConservativeLinear () override;
+    virtual ~EBCellConservativeLinear () = default;
 
     virtual void interp (const FArrayBox& crse,
                          int              crse_comp,
@@ -29,8 +30,8 @@ public:
                          RunOn            gpu_or_cpu) override;
 };
 
-extern EBCellConservativeLinear  eb_lincc_interp;
-extern EBCellConservativeLinear  eb_cell_cons_interp;
+extern AMREX_EXPORT EBCellConservativeLinear  eb_lincc_interp;
+extern AMREX_EXPORT EBCellConservativeLinear  eb_cell_cons_interp;
 
 }
 

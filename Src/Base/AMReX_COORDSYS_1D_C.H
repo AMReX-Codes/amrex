@@ -1,5 +1,6 @@
 #ifndef AMREX_COORDSYS_1D_C_H_
 #define AMREX_COORDSYS_1D_C_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Gpu.H>
 #include <AMReX_Array.H>
@@ -70,7 +71,7 @@ amrex_setarea (Box const& bx, Array4<Real> const& area,
     else if (coord == 1)
     {
         const Real pi = 3.1415926535897932;
-        AMREX_PRAGMA_SIMD 
+        AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             Real ri = offset[0] + dx[0]*i;
             Real a = (2.*pi)*ri;
@@ -80,7 +81,7 @@ amrex_setarea (Box const& bx, Array4<Real> const& area,
     else
     {
         const Real pi = 3.1415926535897932;
-        AMREX_PRAGMA_SIMD 
+        AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             Real ri = offset[0] + dx[0]*i;
             Real a = (4.0*pi)*ri*ri;
@@ -108,7 +109,7 @@ amrex_setdloga (Box const& bx, Array4<Real> const& dloga,
     }
     else if (coord == 1)
     {
-        AMREX_PRAGMA_SIMD 
+        AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             Real rc = offset[0] + dx[0]*(i+0.5);
             dloga(i,0,0) = 1.0/rc;
@@ -116,7 +117,7 @@ amrex_setdloga (Box const& bx, Array4<Real> const& dloga,
     }
     else
     {
-        AMREX_PRAGMA_SIMD 
+        AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             Real ri = offset[0] + dx[0]*(i+0.5);
             dloga(i,0,0) = 2.0/ri;

@@ -1,0 +1,49 @@
+# http://EditorConfig.org
+#
+# precedence of rules is bottom to top
+
+# this is the top-most EditorConfig file
+root = true
+
+
+[*.{c,h,cpp,hpp,H,py}]
+# 4 space indentation
+indent_style = space
+indent_size = 4
+
+# setting it to true would result in too many white changes to amrex
+trim_trailing_whitespace = true
+
+# unix-style newlines
+end_of_line = lf
+
+# newline ending in files
+insert_final_newline = true
+
+
+[*.md]
+# two end of line whitespaces are newlines without a paragraph
+trim_trailing_whitespace = false
+
+
+[*.rst]
+# Enforce UTF-8 encoding
+charset = utf-8
+
+# Unix-style newlines
+end_of_line = lf
+
+# Newline ending in files
+insert_final_newline = true
+
+# 3 space indentation
+indent_style = space
+indent_size = 3
+
+# Clean up trailing whitespace
+trim_trailing_whitespace = true
+
+[Makefile]
+# TABs are part of its syntax
+indent_style = tab
+indent_size = unset

@@ -1,7 +1,7 @@
 
-#include <cstdlib>
 #include <AMReX_Mask.H>
 #include <AMReX_Utility.H>
+#include <cstdlib>
 
 namespace amrex {
 

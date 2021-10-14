@@ -1,6 +1,7 @@
 
 #ifndef BL_MFCOPYDESCRIPTOR_H_
 #define BL_MFCOPYDESCRIPTOR_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FACopyDescriptor.H>
 #include <AMReX_MultiFab.H>

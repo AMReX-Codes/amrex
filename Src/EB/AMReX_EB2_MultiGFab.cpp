@@ -1,6 +1,7 @@
 
 #include <AMReX_EB2_MultiGFab.H>
 #include <AMReX_EB2_C.H>
+#include <AMReX_ParmParse.H>
 
 namespace amrex { namespace EB2 {
 
@@ -45,8 +46,7 @@ MultiGFab::getLevelSet ()
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
         auto& fab = (*this)[mfi].getLevelSet();
-        FArrayBox* p = new FArrayBox(fab.box(),1,fab.dataPtr());
-        r.setFab(mfi,p);
+        r.setFab(mfi, FArrayBox(fab.box(), fab.nComp(), fab.dataPtr()));
     }
 
     return r;

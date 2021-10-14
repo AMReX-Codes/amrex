@@ -4,7 +4,7 @@ module amrex_bc_types_module
   implicit none
 
 !  include 'AMReX_bc_types.fi'
-  
+
   private
 
   integer, parameter, public :: amrex_bc_bogus        = -666

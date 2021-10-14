@@ -1,11 +1,16 @@
 #ifndef AMREX_GPU_CONTROL_H_
 #define AMREX_GPU_CONTROL_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuTypes.H>
 
 #ifndef AMREX_GPU_MAX_THREADS
 #define AMREX_GPU_MAX_THREADS 256
+#endif
+
+#if defined(AMREX_USE_CUDA) && (__CUDACC_VER_MAJOR__ > 11 || ((__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 2)))
+#define AMREX_CUDA_GE_11_2 1
 #endif
 
 #if defined(AMREX_USE_HIP)
@@ -78,6 +83,25 @@ namespace Gpu {
 
     inline bool inLaunchRegion() noexcept { return in_launch_region; }
     inline bool notInLaunchRegion() noexcept { return !in_launch_region; }
+
+    /**
+     * Enable/disable GPU kernel launches.
+     *
+     * \note This will only switch from GPU to CPU for kernels launched
+     * with macros. Functions like `amrex::ParallelFor` will be unaffected.
+     * Therefore it should not be used for comparing GPU to non-GPU performance
+     * or behavior.
+     *
+     * \code
+     *  Gpu::setLaunchRegion(0);
+     *
+     *  //...
+     *
+     *  Gpu::setLaunchRegion(1);
+     * \endcode
+     *
+     * Will disable the launching of GPU kernels between the calls.
+     */
 
     inline bool setLaunchRegion (bool launch) noexcept {
         bool r = in_launch_region;

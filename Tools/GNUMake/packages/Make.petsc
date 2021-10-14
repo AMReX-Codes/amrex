@@ -16,7 +16,7 @@ ifdef AMREX_PETSC_HOME
   INCLUDE_LOCATIONS += $(PETSC_ABSPATH)/include
   LIBRARY_LOCATIONS += $(PETSC_ABSPATH)/lib
   ifndef CRAY_PETSC_VERSION
-      LIBRARIES += -Wl,-rpath,$(PETSC_ABSPATH)/lib -lpetsc -lHYPRE -llapack -lblas -lX11 -ldl
+      LIBRARIES += -Wl,-rpath,$(PETSC_ABSPATH)/lib -lpetsc -llapack -lblas -lX11 -ldl
   endif
 endif
 

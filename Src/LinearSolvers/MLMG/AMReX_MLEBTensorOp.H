@@ -1,5 +1,6 @@
 #ifndef AMREX_ML_EB_TENSOROP_H_
 #define AMREX_ML_EB_TENSOROP_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MLEBABecLap.H>
 
@@ -73,7 +74,7 @@ public:
     }
 
     virtual void prepareForSolve () final override;
-    virtual bool isSingular (int armlev) const final override { return false; }
+    virtual bool isSingular (int /*armlev*/) const final override { return false; }
     virtual bool isBottomSingular () const final override { return false; }
 
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,

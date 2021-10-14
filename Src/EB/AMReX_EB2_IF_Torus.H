@@ -1,5 +1,6 @@
 #ifndef AMREX_EB2_IF_TORUS_H_
 #define AMREX_EB2_IF_TORUS_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_EB2_IF_Base.H>
 #include <AMReX_Array.H>

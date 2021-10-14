@@ -1,6 +1,6 @@
 
-#include <limits>
 #include <AMReX_Periodicity.H>
+#include <limits>
 
 namespace amrex {
 
@@ -13,15 +13,15 @@ Periodicity::shiftIntVect () const
     int jmp[3] = {1,1,1};
 
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-	if (isPeriodic(i)) {
-	    per[i] = jmp[i] = period[i];
-	}
+        if (isPeriodic(i)) {
+            per[i] = jmp[i] = period[i];
+        }
     }
 
     for (int i = -per[0]; i <= per[0]; i += jmp[0]) {
     for (int j = -per[1]; j <= per[1]; j += jmp[1]) {
     for (int k = -per[2]; k <= per[2]; k += jmp[2]) {
-	r.push_back(IntVect(AMREX_D_DECL(i,j,k)));
+        r.push_back(IntVect(AMREX_D_DECL(i,j,k)));
     }
     }
     }
@@ -34,13 +34,13 @@ Periodicity::Domain () const noexcept
 {
     Box pdomain;
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-	if (isPeriodic(i)) {
-	    pdomain.setSmall(i,0);
-	    pdomain.setBig  (i,period[i]-1);
-	} else {
-	    pdomain.setSmall(i, std::numeric_limits<int>::min());
-	    pdomain.setBig(i, std::numeric_limits<int>::max()-1); // so that it can be nodalized.
-	}
+        if (isPeriodic(i)) {
+            pdomain.setSmall(i,0);
+            pdomain.setBig  (i,period[i]-1);
+        } else {
+            pdomain.setSmall(i, std::numeric_limits<int>::min());
+            pdomain.setBig(i, std::numeric_limits<int>::max()-1); // so that it can be nodalized.
+        }
     }
     return pdomain;
 }

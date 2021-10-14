@@ -1,5 +1,6 @@
 #ifndef AMREX_EB2_GRAPH_H_
 #define AMREX_EB2_GRAPH_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>

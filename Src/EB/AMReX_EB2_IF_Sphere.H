@@ -1,5 +1,6 @@
 #ifndef AMREX_EB2_IF_SPHERE_H_
 #define AMREX_EB2_IF_SPHERE_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Array.H>
 #include <AMReX_EB2_IF_Base.H>
@@ -38,7 +39,7 @@ public:
     }
 
 protected:
-  
+
     Real  m_radius;
     XDim3 m_center;
     //

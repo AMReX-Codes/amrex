@@ -1,4 +1,5 @@
-#include "AMReX_VectorIO.H"
+#include <AMReX_VectorIO.H>
+#include <iostream>
 
 using namespace amrex;
 
@@ -29,10 +30,10 @@ void amrex::writeIntData(const int* data, std::size_t size, std::ostream& os,
 void amrex::readIntData(int* data, std::size_t size, std::istream& is,
                         const IntDescriptor& id)
 {
-    if (id == FPC::NativeIntDescriptor()) 
+    if (id == FPC::NativeIntDescriptor())
     {
         is.read((char*) data, size * id.numBytes());
-    } 
+    }
     else if (id.numBytes() == 2)
     {
         readIntData<int, std::int16_t>(data, size, is, id);
@@ -77,10 +78,10 @@ void amrex::writeLongData(const Long* data, std::size_t size, std::ostream& os,
 void amrex::readLongData(Long* data, std::size_t size, std::istream& is,
                          const IntDescriptor& id)
 {
-    if (id == FPC::NativeLongDescriptor()) 
+    if (id == FPC::NativeLongDescriptor())
     {
         is.read((char*) data, size * id.numBytes());
-    } 
+    }
     else if (id.numBytes() == 2)
     {
         readIntData<Long, std::int16_t>(data, size, is, id);

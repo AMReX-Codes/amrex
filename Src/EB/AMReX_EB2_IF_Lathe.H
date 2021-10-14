@@ -1,5 +1,6 @@
 #ifndef AMREX_EB2_IF_LATHE_H_
 #define AMREX_EB2_IF_LATHE_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Array.H>
 #include <AMReX_EB2_IF_Base.H>
@@ -18,7 +19,7 @@ public:
 
     LatheIF (F&& a_f) : m_f(std::move(a_f)) {}
     LatheIF (F const& a_f) : m_f(a_f) {}
-          
+
     LatheIF (const LatheIF& rhs) = default;
     LatheIF (LatheIF&& rhs) = default;
     LatheIF& operator= (const LatheIF& rhs) = delete;
@@ -43,7 +44,7 @@ public:
         return m_f(r,0.0);
 #else
         return m_f(r,z,0.0);
-#endif  
+#endif
     }
 
 protected:

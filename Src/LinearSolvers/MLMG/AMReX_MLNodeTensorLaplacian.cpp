@@ -25,17 +25,19 @@ MLNodeTensorLaplacian::setSigma (Array<Real,nelems> const& a_sigma) noexcept
 void
 MLNodeTensorLaplacian::setBeta (Array<Real,AMREX_SPACEDIM> const& a_beta) noexcept
 {
-#if (AMREX_SPACEDIM == 2)
-    m_sigma[0] = 1. - a_beta[0]*a_beta[0];
-    m_sigma[1] =    - a_beta[0]*a_beta[1];
-    m_sigma[2] = 1. - a_beta[1]*a_beta[1];
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(a_beta);
+#elif (AMREX_SPACEDIM == 2)
+    m_sigma[0] = Real(1.) - a_beta[0]*a_beta[0];
+    m_sigma[1] =          - a_beta[0]*a_beta[1];
+    m_sigma[2] = Real(1.) - a_beta[1]*a_beta[1];
 #elif (AMREX_SPACEDIM == 3)
-    m_sigma[0] = 1. - a_beta[0]*a_beta[0];
-    m_sigma[1] =    - a_beta[0]*a_beta[1];
-    m_sigma[2] =    - a_beta[0]*a_beta[2];
-    m_sigma[3] = 1. - a_beta[1]*a_beta[1];
-    m_sigma[4] =    - a_beta[1]*a_beta[2];
-    m_sigma[5] = 1. - a_beta[2]*a_beta[2];
+    m_sigma[0] = Real(1.) - a_beta[0]*a_beta[0];
+    m_sigma[1] =          - a_beta[0]*a_beta[1];
+    m_sigma[2] =          - a_beta[0]*a_beta[2];
+    m_sigma[3] = Real(1.) - a_beta[1]*a_beta[1];
+    m_sigma[4] =          - a_beta[1]*a_beta[2];
+    m_sigma[5] = Real(1.) - a_beta[2]*a_beta[2];
 #endif
 }
 
@@ -73,7 +75,7 @@ MLNodeTensorLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, Mult
     MultiFab* pcrse = (need_parallel_copy) ? &cfine : &crse;
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][cmglev-1];
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*pcrse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -111,7 +113,7 @@ MLNodeTensorLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine,
 
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][fmglev];
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(fine, TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -128,8 +130,8 @@ MLNodeTensorLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine,
 }
 
 void
-MLNodeTensorLaplacian::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
-                                               const MultiFab& fine_sol, const MultiFab& fine_rhs)
+MLNodeTensorLaplacian::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& /*crse_rhs*/,
+                                               const MultiFab& fine_sol, const MultiFab& /*fine_rhs*/)
 {
     const auto& amrrr = AMRRefRatio(camrlev);
     amrex::average_down(fine_sol, crse_sol, 0, 1, amrrr);
@@ -141,9 +143,9 @@ MLNodeTensorLaplacian::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, 
 }
 
 void
-MLNodeTensorLaplacian::reflux (int crse_amrlev,
-                               MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
-                               MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const
+MLNodeTensorLaplacian::reflux (int /*crse_amrlev*/,
+                               MultiFab& /*res*/, const MultiFab& /*crse_sol*/, const MultiFab& /*crse_rhs*/,
+                               MultiFab& /*fine_res*/, MultiFab& /*fine_sol*/, const MultiFab& /*fine_rhs*/) const
 {
     amrex::Abort("MLNodeTensorLaplacian::reflux: TODO");
 }
@@ -164,10 +166,9 @@ MLNodeTensorLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const Multi
     BL_PROFILE("MLNodeTensorLaplacian::Fapply()");
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
-    const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
     const auto s = m_sigma;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(out,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -175,11 +176,10 @@ MLNodeTensorLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const Multi
         const Box& bx = mfi.tilebox();
         Array4<Real const> const& xarr = in.const_array(mfi);
         Array4<Real> const& yarr = out.array(mfi);
-        Array4<int const> const& dmskarr = dmsk.const_array(mfi);
 
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
         {
-            mlndtslap_adotx(tbx,yarr,xarr,dmskarr,s,dxinv);
+            mlndtslap_adotx(tbx,yarr,xarr,s,dxinv);
         });
     }
 }
@@ -193,7 +193,7 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
     const auto s = m_sigma;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(sol); mfi.isValid(); ++mfi)
@@ -215,6 +215,7 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
 void
 MLNodeTensorLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
 {
+    amrex::ignore_unused(amrlev,mglev,mf);
     return;
 
 #if 0
@@ -224,7 +225,7 @@ MLNodeTensorLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
     const auto s = m_sigma;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -242,24 +243,71 @@ MLNodeTensorLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
 }
 
 void
-MLNodeTensorLaplacian::fixUpResidualMask (int amrlev, iMultiFab& resmsk)
+MLNodeTensorLaplacian::fixUpResidualMask (int /*amrlev*/, iMultiFab& /*resmsk*/)
 {
     amrex::Abort("MLNodeTensorLaplacian::fixUpResidualMask: TODO");
 }
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 void
-MLNodeTensorLaplacian::fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const> const& nid,
-                                     Array4<int const> const& owner,
-                                     Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
-                                     Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat) const
+MLNodeTensorLaplacian::fillIJMatrix (MFIter const& mfi,
+                                     Array4<HypreNodeLap::AtomicInt const> const& gid,
+                                     Array4<int const> const& lid,
+                                     HypreNodeLap::Int* const ncols,
+                                     HypreNodeLap::Int* const cols,
+                                     Real* const mat) const
 {
     const int amrlev = 0;
     const int mglev = NMGLevels(amrlev)-1;
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
-    Array4<int const> const& dmsk = m_dirichlet_mask[amrlev][mglev]->const_array(mfi);
     const auto s = m_sigma;
-    mlndtslap_fill_ijmatrix(mfi.validbox(),nid,owner,ncols,rows,cols,mat,dmsk,s,dxinv);
+
+    const Box& ndbx = mfi.validbox();
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE
+            (static_cast<Long>(ndbx.numPts())*AMREX_D_TERM(3,*3,*3) <
+             static_cast<Long>(std::numeric_limits<int>::max()),
+             "The Box is too big.  We could use Long here, but it would much slower.");
+        const int nmax = ndbx.numPts() * AMREX_D_TERM(3,*3,*3);
+        const auto ndlo = amrex::lbound(ndbx);
+        const auto ndlen = amrex::length(ndbx);
+        amrex::Scan::PrefixSum<int>
+            (nmax,
+             [=] AMREX_GPU_DEVICE (int offset) noexcept
+             {
+                 Dim3 node = GetNode()(ndlo, ndlen, offset);
+                 Dim3 node2 = GetNode2()(offset, node);
+                 return (lid(node.x,node.y,node.z) >= 0 &&
+                         gid(node2.x,node2.y,node2.z)
+                         < std::numeric_limits<HypreNodeLap::AtomicInt>::max());
+             },
+             [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
+             {
+                 Dim3 node = GetNode()(ndlo, ndlen, offset);
+                 mlndtslap_fill_ijmatrix_gpu(ps, node.x, node.y, node.z, offset,
+                                             ndbx, gid, lid, ncols, cols, mat, s, dxinv);
+             },
+             amrex::Scan::Type::exclusive);
+    } else
+#endif
+    {
+        mlndtslap_fill_ijmatrix_cpu(ndbx, gid, lid, ncols, cols, mat, s, dxinv);
+    }
+}
+
+void
+MLNodeTensorLaplacian::fillRHS (MFIter const& mfi, Array4<int const> const& lid,
+                                Real* const rhs, Array4<Real const> const& bfab) const
+{
+    const Box& bx = mfi.validbox();
+    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+    {
+        if (lid(i,j,k) >= 0) {
+            rhs[lid(i,j,k)] = bfab(i,j,k);
+        }
+    });
 }
 #endif
 

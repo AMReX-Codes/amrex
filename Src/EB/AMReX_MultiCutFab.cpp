@@ -2,7 +2,7 @@
 #include <AMReX_MultiCutFab.H>
 #include <AMReX_MultiFab.H>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -38,9 +38,7 @@ MultiCutFab::remove ()
     {
         if (!ok(mfi))
         {
-            CutFab* p = &(m_data[mfi]);
-            delete p;
-            m_data.setFab(mfi, new CutFab(), false);
+            delete m_data.release(mfi);
         }
     }
 }
@@ -89,7 +87,7 @@ MultiCutFab::ok (const MFIter& mfi) const noexcept
 void
 MultiCutFab::setVal (Real val)
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(m_data); mfi.isValid(); ++mfi)
@@ -116,7 +114,7 @@ MultiCutFab::ToMultiFab (Real regular_value, Real covered_value) const
 {
     const int ncomp = nComp();
     MultiFab mf(boxArray(), DistributionMap(), ncomp, nGrow());
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)

@@ -1,5 +1,5 @@
 // -------------------------------------------------------------------
-// XYPlotDataList.cpp 
+// XYPlotDataList.cpp
 // -------------------------------------------------------------------
 #include <AMReX_XYPlotDataList.H>
 #include <AMReX_Utility.H>
@@ -12,10 +12,10 @@ using namespace amrex;
 // -------------------------------------------------------------------
 XYPlotDataList::XYPlotDataList(const string &derived, int minlevel,
                                int maxlevel, int gridlinein,
-			       const Vector<int> &ratiolist,
-			       const Vector<Real> &dx,
-			       const Vector<char *> &intersectpoint,
-			       Real offsetx)
+                               const Vector<int> &ratiolist,
+                               const Vector<Real> &dx,
+                               const Vector<char *> &intersectpoint,
+                               Real offsetx)
   : dataSets(maxlevel + 1),
     xypdlRatios(ratiolist),
     dX(dx),
@@ -148,7 +148,7 @@ for(int iCurLevel(maxLevel); iCurLevel >= minLevel; --iCurLevel) {
     if(fabBoxLists[ilev].isEmpty()) {  // set correct index type
       fabBoxLists[ilev].convert(probDomain.ixType());
     }
-    fillBoxLists[ilev].clear(); 
+    fillBoxLists[ilev].clear();
     fillBoxLists[ilev].convert(unfilledBoxLists[ilev].ixType());
     fillBoxLists[ilev].join(unfilledBoxLists[ilev]);
     fillBoxLists[ilev].intersect(fabBoxLists[ilev]);
@@ -175,7 +175,7 @@ for(int iCurLevel(maxLevel); iCurLevel >= minLevel; --iCurLevel) {
             {
              (*bli).setSmall(isd, (*(fabBoxLists[ilev - 1].begin())).smallEnd(isd));
              (*bli).setBig(isd, (*(fabBoxLists[ilev - 1].begin())).bigEnd(isd));
-	    }
+            }
           }
         }
       }
@@ -218,10 +218,10 @@ for(int iCurLevel(maxLevel); iCurLevel >= minLevel; --iCurLevel) {
           li != (dataSets[obLev]).end(); ++li)
       {
         XYPlotDataListLink *xypd = *li;
-	if(i >= xypd->StartXi() && i < xypd->EndXi()) {
-	  Real yval(xypd->XYPDLLData()[i - xypd->StartXi()]);
+        if(i >= xypd->StartXi() && i < xypd->EndXi()) {
+          Real yval(xypd->XYPDLLData()[i - xypd->StartXi()]);
           xypdlYVal[iCurLevel][xIndex] = yval;
-	}
+        }
       }
       ++xIndex;
     }

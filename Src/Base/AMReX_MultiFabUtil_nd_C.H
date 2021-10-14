@@ -1,5 +1,6 @@
 #ifndef AMREX_MULTIFAB_UTIL_ND_C_H_
 #define AMREX_MULTIFAB_UTIL_ND_C_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Gpu.H>
 #include <AMReX_Geometry.H>
@@ -23,9 +24,9 @@ void amrex_fill_slice_interp (Box const& bx, Array4<Real> slice,
     int ihi = 0, jhi = 0, khi = 0;
 
     Real weight = (coord - gd.ProbLo(dir)) / gd.CellSize(dir);
-    int dirhi = static_cast<int>(amrex::Math::floor(weight + 0.5_rt));
+    int dirhi = static_cast<int>(amrex::Math::floor(weight + Real(0.5)));
     int dirlo = dirhi-1;
-    weight -= dirlo+0.5_rt;
+    weight -= dirlo+Real(0.5);
 
     if (weight < 0.5) {
         switch (dir)
@@ -60,7 +61,7 @@ void amrex_fill_slice_interp (Box const& bx, Array4<Real> slice,
             for     (int j = lo.y; j <= hi.y; ++j) {
                 AMREX_PRAGMA_SIMD
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    slice(i,j,k,ns) = (1.0-weight)*full(i+ilo,j+jlo,k+klo,nf)
+                    slice(i,j,k,ns) = (Real(1.0)-weight)*full(i+ilo,j+jlo,k+klo,nf)
                         +                  weight *full(i+ihi,j+jhi,k+khi,nf);
                 }
             }

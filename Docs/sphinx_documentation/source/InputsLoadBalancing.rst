@@ -18,13 +18,13 @@ The following inputs must be preceded by "amr" and determine how we create the g
 | max_grid_size_z   | Maximum number of cells at level 0 in each grid in z-direction        |    Int      | 32        |
 +-------------------+-----------------------------------------------------------------------+-------------+-----------+
 | blocking_factor_x | Each grid must be divisible by blocking_factor_x in x-direction       |    Int      |  8        |
-|                   | (must be 1 or power of 2)                                             |             |           | 
+|                   | (must be 1 or power of 2)                                             |             |           |
 +-------------------+-----------------------------------------------------------------------+-------------+-----------+
 | blocking_factor_y | Each grid must be divisible by blocking_factor_y in y-direction       |    Int      |  8        |
-|                   | (must be 1 or power of 2)                                             |             |           | 
+|                   | (must be 1 or power of 2)                                             |             |           |
 +-------------------+-----------------------------------------------------------------------+-------------+-----------+
 | blocking_factor_z | Each grid must be divisible by blocking_factor_z in z-direction       |    Int      |  8        |
-|                   | (must be 1 or power of 2)                                             |             |           | 
+|                   | (must be 1 or power of 2)                                             |             |           |
 +-------------------+-----------------------------------------------------------------------+-------------+-----------+
 
 The following inputs must be preceded by "particles"

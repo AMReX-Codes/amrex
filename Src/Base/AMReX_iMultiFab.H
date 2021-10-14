@@ -1,6 +1,7 @@
 
 #ifndef BL_IMULTIFAB_H
 #define BL_IMULTIFAB_H
+#include <AMReX_Config.H>
 
 #include <AMReX_BLassert.H>
 #include <AMReX_IArrayBox.H>
@@ -14,12 +15,12 @@ namespace amrex {
 /*
 * A Collection of IArrayBoxes
 *
-* The iMultiFab class is publically derived from the
+* The iMultiFab class is publicly derived from the
 * FabArray<int,IArrayBox> class.  It is a collection (stored as an array) of
 * IArrayBoxes useful for storing integer data on a domain defined by
 * a union of rectangular regions embedded in a uniform index space.  The
 * iMultiFab class extends the function of the underlying FabArray class just
-* as the IArrayBox class extends the funtion of BaseFab<int>.  Additional
+* as the IArrayBox class extends the function of BaseFab<int>.  Additional
 * member functions are defined for I/O and simple arithmetic operations on
 * these aggregate objects.
 *
@@ -42,9 +43,9 @@ public:
     * a region of definition defined by the grow factor ngrow.
     */
     iMultiFab (const BoxArray&            bs,
-	       const DistributionMapping& dm,
-	       int                        ncomp,
-	       int                        ngrow,
+               const DistributionMapping& dm,
+               int                        ncomp,
+               int                        ngrow,
 #ifdef AMREX_STRICT_MODE
                const MFInfo&              info,
                const FabFactory<IArrayBox>& factory);
@@ -54,9 +55,9 @@ public:
 #endif
 
     iMultiFab (const BoxArray&            bs,
-	       const DistributionMapping& dm,
-	       int                        ncomp,
-	       const IntVect&             ngrow,
+               const DistributionMapping& dm,
+               int                        ncomp,
+               const IntVect&             ngrow,
 #ifdef AMREX_STRICT_MODE
                const MFInfo&              info,
                const FabFactory<IArrayBox>& factory);
@@ -100,7 +101,7 @@ public:
     */
     int min (int comp,
              int nghost = 0,
-	     bool local = false) const;
+             bool local = false) const;
 
     /**
     * \brief Identical to the previous min() function, but confines its
@@ -114,7 +115,7 @@ public:
     int min (const Box& b,
              int        comp,
              int        nghost = 0,
-	     bool       local = false) const;
+             bool       local = false) const;
 
     /**
     * \brief Returns the maximum value contained in component comp of the
@@ -127,8 +128,8 @@ public:
     * \param local
     */
     int max (int comp,
-	     int nghost = 0,
-	     bool local = false) const;
+             int nghost = 0,
+             bool local = false) const;
 
     /**
     * \brief Identical to the previous max() function, but confines its
@@ -142,7 +143,7 @@ public:
     int max (const Box& b,
              int        comp,
              int        nghost = 0,
-	     bool       local = false) const;
+             bool       local = false) const;
 
     /**
     * \brief Returns the sum in component comp
@@ -390,9 +391,9 @@ public:
     * \param nghost
     */
     void divide (const iMultiFab& mf,
-		 int             strt_comp,
-		 int             num_comp,
-		 int             nghost);
+                 int             strt_comp,
+                 int             num_comp,
+                 int             nghost);
 
     /**
     * \brief Add src to dst including nghost ghost cells.
@@ -406,11 +407,11 @@ public:
     * \param nghost
     */
     static void Add (iMultiFab&       dst,
-		     const iMultiFab& src,
-		     int             srccomp,
-		     int             dstcomp,
-		     int             numcomp,
-		     int             nghost);
+                     const iMultiFab& src,
+                     int             srccomp,
+                     int             dstcomp,
+                     int             numcomp,
+                     int             nghost);
 
     /**
     * \brief Copy from src to dst including nghost ghost cells.
@@ -430,6 +431,13 @@ public:
                       int             numcomp,
                       int             nghost);
 
+    static void Copy (iMultiFab&       dst,
+                      const iMultiFab& src,
+                      int             srccomp,
+                      int             dstcomp,
+                      int             numcomp,
+                      const IntVect&  nghost);
+
     /**
     * \brief Subtract src from dst including nghost ghost cells.
     * The two iMultiFabs MUST have the same underlying BoxArray.
@@ -442,11 +450,11 @@ public:
     * \param nghost
     */
     static void Subtract (iMultiFab&       dst,
-			  const iMultiFab& src,
-			  int             srccomp,
-			  int             dstcomp,
-			  int             numcomp,
-			  int             nghost);
+                          const iMultiFab& src,
+                          int             srccomp,
+                          int             dstcomp,
+                          int             numcomp,
+                          int             nghost);
 
     /**
     * \brief Multiply dst by src including nghost ghost cells.
@@ -460,11 +468,11 @@ public:
     * \param nghost
     */
     static void Multiply (iMultiFab&       dst,
-			  const iMultiFab& src,
-			  int             srccomp,
-			  int             dstcomp,
-			  int             numcomp,
-			  int             nghost);
+                          const iMultiFab& src,
+                          int             srccomp,
+                          int             dstcomp,
+                          int             numcomp,
+                          int             nghost);
 
     /**
     * \brief Divide dst by src including nghost ghost cells.
@@ -478,33 +486,33 @@ public:
     * \param nghost
     */
     static void Divide (iMultiFab&       dst,
-			const iMultiFab& src,
-			int             srccomp,
-			int             dstcomp,
-			int             numcomp,
-			int             nghost);
+                        const iMultiFab& src,
+                        int             srccomp,
+                        int             dstcomp,
+                        int             numcomp,
+                        int             nghost);
 
     virtual void define (const BoxArray&            bxs,
-			 const DistributionMapping& dm,
-			 int                        nvar,
-			 const IntVect&             ngrow,
+                         const DistributionMapping& dm,
+                         int                        nvar,
+                         const IntVect&             ngrow,
 #ifdef AMREX_STRICT_MODE
-			 const MFInfo&              info,
+                         const MFInfo&              info,
                          const FabFactory<IArrayBox>& factory) override;
 #else
-			 const MFInfo&              info = MFInfo(),
+                         const MFInfo&              info = MFInfo(),
                          const FabFactory<IArrayBox>& factory = DefaultFabFactory<IArrayBox>()) override;
 #endif
 
     virtual void define (const BoxArray&            bxs,
-			 const DistributionMapping& dm,
-			 int                        nvar,
-			 int                        ngrow,
+                         const DistributionMapping& dm,
+                         int                        nvar,
+                         int                        ngrow,
 #ifdef AMREX_STRICT_MODE
-			 const MFInfo&              info,
+                         const MFInfo&              info,
                          const FabFactory<IArrayBox>& factory) override;
 #else
-			 const MFInfo&              info = MFInfo(),
+                         const MFInfo&              info = MFInfo(),
                          const FabFactory<IArrayBox>& factory = DefaultFabFactory<IArrayBox>()) override;
 #endif
 
@@ -512,8 +520,10 @@ public:
     static void Finalize ();
 };
 
+// ngrow = IntVect{0} is a special case that should not be used in normal cases,
+// because it may mark valid cells as non-owner and ghost cells as owners.
 std::unique_ptr<iMultiFab>
-OwnerMask (FabArrayBase const& mf, const Periodicity& period);
+OwnerMask (FabArrayBase const& mf, const Periodicity& period, const IntVect& ngrow=IntVect{0});
 
 }
 

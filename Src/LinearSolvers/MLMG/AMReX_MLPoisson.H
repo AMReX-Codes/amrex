@@ -1,5 +1,6 @@
 #ifndef AMREX_MLPOISSON_H_
 #define AMREX_MLPOISSON_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MLCellABecLap.H>
 #include <AMReX_Array.H>
@@ -20,6 +21,12 @@ public:
                const Vector<DistributionMapping>& a_dmap,
                const LPInfo& a_info = LPInfo(),
                const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+    MLPoisson (const Vector<Geometry>& a_geom,
+               const Vector<BoxArray>& a_grids,
+               const Vector<DistributionMapping>& a_dmap,
+               const Vector<iMultiFab const*>& a_overset_mask, // 1: unknown, 0: known
+               const LPInfo& a_info = LPInfo(),
+               const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
     virtual ~MLPoisson ();
 
     MLPoisson (const MLPoisson&) = delete;
@@ -30,6 +37,13 @@ public:
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
+                 const LPInfo& a_info = LPInfo(),
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+
+    void define (const Vector<Geometry>& a_geom,
+                 const Vector<BoxArray>& a_grids,
+                 const Vector<DistributionMapping>& a_dmap,
+                 const Vector<iMultiFab const*>& a_overset_mask,
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
@@ -46,11 +60,15 @@ public:
 
     virtual Real getAScalar () const final override { return  0.0; }
     virtual Real getBScalar () const final override { return -1.0; }
-    virtual MultiFab const* getACoeffs (int amrlev, int mglev) const final override { return nullptr; }
-    virtual Array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const final override
-        { return { AMREX_D_DECL(nullptr,nullptr,nullptr)}; }
+    virtual MultiFab const* getACoeffs (int /*amrlev*/, int /*mglev*/) const final override { return nullptr; }
+    virtual Array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int /*amrlev*/, int /*mglev*/) const final override
+        { return {{ AMREX_D_DECL(nullptr,nullptr,nullptr)}}; }
 
     virtual std::unique_ptr<MLLinOp> makeNLinOp (int grid_size) const final override;
+
+    virtual bool supportNSolve () const final override;
+
+    virtual void copyNSolveSolution (MultiFab& dst, MultiFab const& src) const final override;
 
 private:
 
