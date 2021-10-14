@@ -335,17 +335,12 @@ void mf_cell_quadratic_calcslope (int i, int j, int /*k*/, int n,
                                   BCRec const* bc) noexcept
 {
     int nu = ccomp + n;
-    Real sx, sy, sxx, syy, sxy;
-    if (i-1 >= crse.begin.x && i+1 < crse.end.x &&
-        j-1 >= crse.begin.y && j+1 < crse.end.y) {
-        sx  = mf_compute_slopes_x(i, j, 0, crse, nu, domain, bc[n]);
-        sy  = mf_compute_slopes_y(i, j, 0, crse, nu, domain, bc[n]);
-        sxx = mf_cell_quadratic_compute_slopes_xx (i, j, 0, crse, nu, domain, bc[n]);
-        syy = mf_cell_quadratic_compute_slopes_yy (i, j, 0, crse, nu, domain, bc[n]);
-        sxy = mf_cell_quadratic_compute_slopes_xy (i, j, 0, crse, nu, domain, bc[n]);
-    } else {
-        sx = sy = sxx = syy = sxy = 0._rt;
-    }
+    Real sx  = mf_compute_slopes_x(i, j, 0, crse, nu, domain, bc[n]);
+    Real sy  = mf_compute_slopes_y(i, j, 0, crse, nu, domain, bc[n]);
+    Real sxx = mf_cell_quadratic_compute_slopes_xx (i, j, 0, crse, nu, domain, bc[n]);
+    Real syy = mf_cell_quadratic_compute_slopes_yy (i, j, 0, crse, nu, domain, bc[n]);
+    Real sxy = mf_cell_quadratic_compute_slopes_xy (i, j, 0, crse, nu, domain, bc[n]);
+
     slope(i,j,0,5*n  ) = sx;  // x
     slope(i,j,0,5*n+1) = sy;  // y
     slope(i,j,0,5*n+2) = sxx; // x^2
