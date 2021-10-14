@@ -6,10 +6,6 @@
 #include <AMReX_Interp_C.H>
 #include <AMReX_MFInterp_C.H>
 
-#ifndef BL_NO_FORT
-#include <AMReX_INTERP_F.H>
-#endif
-
 #include <climits>
 
 namespace amrex {
@@ -20,7 +16,7 @@ namespace amrex {
  *
  * CellConservativeProtected only works in 2D and 3D on cpu and gpu.
  *
- * CellQuadratic only works in 2D on cpu.
+ * CellQuadratic only works in 2D on cpu and gpu.
  *
  * CellConservativeQuartic only works with ref ratio of 2 on cpu and gpu.
  *
@@ -40,10 +36,7 @@ CellConservativeLinear    cell_cons_interp(0);
 CellConservativeProtected protected_interp;
 CellConservativeQuartic   quartic_interp;
 CellBilinear              cell_bilinear_interp;
-
-#ifndef BL_NO_FORT
 CellQuadratic             quadratic_interp;
-#endif
 
 NodeBilinear::~NodeBilinear () {}
 
@@ -444,7 +437,6 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     }
 }
 
-#ifndef BL_NO_FORT
 CellQuadratic::CellQuadratic (bool limit)
 {
     do_limited_slope = limit;
@@ -481,101 +473,102 @@ CellQuadratic::interp (const FArrayBox& crse,
                        const Geometry&  crse_geom,
                        const Geometry&  fine_geom,
                        Vector<BCRec> const&  bcr,
-                       int              actual_comp,
-                       int              actual_state,
-                       RunOn            /*runon*/)
+                       int              /* actual_comp */,
+                       int              /* actual_state */,
+                       RunOn            runon)
 {
-#if (AMREX_SPACEDIM == 1)
+#if (AMREX_SPACEDIM != 2)
     amrex::ignore_unused(crse,crse_comp,fine,fine_comp,ncomp,fine_region,
-                         ratio,crse_geom,fine_geom,bcr,actual_comp,actual_state);
+                         ratio,crse_geom,fine_geom,bcr,runon);
+
+#if (AMREX_SPACEDIM == 1)
     amrex::Abort("1D CellQuadratic::interp not supported");
+#else /* (AMREX_SPACEDIM == 3) */
+    amrex::Abort("3D CellQuadratic::interp not supported");
+#endif
+
 #else
     BL_PROFILE("CellQuadratic::interp()");
     BL_ASSERT(bcr.size() >= ncomp);
+
     //
     // Make box which is intersection of fine_region and domain of fine.
     //
     Box target_fine_region = fine_region & fine.box();
 
-    Box crse_bx(amrex::coarsen(target_fine_region,ratio));
-    Box fslope_bx(amrex::refine(crse_bx,ratio));
-    Box cslope_bx(crse_bx);
-    cslope_bx.grow(1);
+    // Make Box for slopes.
+    Box cslope_bx = amrex::coarsen(target_fine_region,ratio);
     BL_ASSERT(crse.box().contains(cslope_bx));
-    //
-    // Alloc temp space for coarse grid slopes: here we use 5
-    // instead of AMREX_SPACEDIM because of the x^2, y^2 and xy terms
-    //
-    long t_long = cslope_bx.numPts();
-    BL_ASSERT(t_long < INT_MAX);
-    int c_len = int(t_long);
 
-    Vector<Real> cslope(5*c_len);
+    // Are we running on GPU?
+    bool run_on_gpu = (runon == RunOn::Gpu && Gpu::inLaunchRegion());
 
-    int loslp = cslope_bx.index(crse_bx.smallEnd());
-    int hislp = cslope_bx.index(crse_bx.bigEnd());
+    // Set up domain for coarse geometry
+    Box const& cdomain = crse_geom.Domain();
 
-    t_long = cslope_bx.numPts();
-    BL_ASSERT(t_long < INT_MAX);
-    int cslope_vol = int(t_long);
-    int clo        = 1 - loslp;
-    int chi        = clo + cslope_vol - 1;
-    c_len          = hislp - loslp + 1;
-    //
-    // Alloc temp space for one strip of fine grid slopes: here we use 5
-    // instead of AMREX_SPACEDIM because of the x^2, y^2 and xy terms.
-    //
-    int dir;
-    int f_len = fslope_bx.longside(dir);
+    // Set up AsyncArray for boundary conditions
+    AsyncArray<BCRec> async_bcr(bcr.data(), (run_on_gpu) ? ncomp : 0);
+    BCRec const* bcrp = (run_on_gpu) ? async_bcr.data() : bcr.data();
 
-    Vector<Real> strip((5+2)*f_len);
+    // Set up temporary fab (with elixir, as needed) for coarse grid slopes
+    FArrayBox sfab(cslope_bx, 5*ncomp); // x, y, x^2, y^2, xy, in that order.
+    Elixir seli;
+    if (run_on_gpu) seli = sfab.elixir();
 
-    Real* fstrip = strip.dataPtr();
-    Real* foff   = fstrip + f_len;
-    Real* fslope = foff + f_len;
-    //
-    // Get coarse and fine edge-centered volume coordinates.
-    //
-    Vector<Real> fvc[AMREX_SPACEDIM];
-    Vector<Real> cvc[AMREX_SPACEDIM];
-    for (dir = 0; dir < AMREX_SPACEDIM; dir++)
+    // Extract pointers to fab data
+    Array4<Real>       const&   finearr = fine.array();
+    Array4<Real const> const&   crsearr = crse.const_array();
+    Array4<Real>       const&  slopearr = sfab.array();
+    Array4<Real const> const& cslopearr = sfab.const_array();
+
+    // Compute slopes.
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cslope_bx, ncomp, i, j, k, n,
     {
-        fine_geom.GetEdgeVolCoord(fvc[dir],target_fine_region,dir);
-        crse_geom.GetEdgeVolCoord(cvc[dir],crse_bx,dir);
-    }
-    //
-    // Alloc tmp space for slope calc and to allow for vectorization.
-    //
-    Real* fdat        = fine.dataPtr(fine_comp);
-    const Real* cdat  = crse.dataPtr(crse_comp);
-    const int* flo    = fine.loVect();
-    const int* fhi    = fine.hiVect();
-    const int* fblo   = target_fine_region.loVect();
-    const int* fbhi   = target_fine_region.hiVect();
-    const int* cblo   = crse_bx.loVect();
-    const int* cbhi   = crse_bx.hiVect();
-    const int* fslo   = fslope_bx.loVect();
-    const int* fshi   = fslope_bx.hiVect();
-    int slope_flag    = (do_limited_slope ? 1 : 0);
-    Vector<int> bc     = GetBCArray(bcr);
-    const int* ratioV = ratio.getVect();
+        mf_cell_quadratic_calcslope(i, j, k, n,
+                                    crsearr, crse_comp,
+                                    slopearr,
+                                    cdomain, bcrp);
+    });
 
-    amrex_cqinterp (fdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),
-                   AMREX_ARLIM(fblo), AMREX_ARLIM(fbhi),
-                   &ncomp,AMREX_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
-                   cdat,&clo,&chi,
-                   AMREX_ARLIM(cblo), AMREX_ARLIM(cbhi),
-                   fslo,fshi,
-                   cslope.dataPtr(),&c_len,fslope,fstrip,&f_len,foff,
-                   bc.dataPtr(), &slope_flag,
-                   AMREX_D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
-                   AMREX_D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()),
-                   &actual_comp,&actual_state);
 
-#endif /*(AMREX_SPACEDIM > 1)*/
+    if (crse_geom.IsRZ()) {
+
+        // Get coarse and fine geometry data.
+        GeometryData const& cs_geomdata = crse_geom.data();
+        GeometryData const& fn_geomdata = fine_geom.data();
+
+        // Compute fine correction.
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, target_fine_region, ncomp,
+                                               i, j, k, n,
+        {
+            mf_cell_quadratic_interp_rz(i, j, k, n,
+                                        finearr, fine_comp,
+                                        crsearr, crse_comp,
+                                        cslopearr,
+                                        ratio,
+                                        cs_geomdata, fn_geomdata);
+        });
+
+    } else { /* crse_geom.IsCartesian() */
+
+        // No need for fine geometry data if using Cartesian coordinates.
+        amrex::ignore_unused(fine_geom);
+
+        // Compute fine correction.
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, target_fine_region, ncomp,
+                                               i, j, k, n,
+        {
+            mf_cell_quadratic_interp(i, j, k, n,
+                                     finearr, fine_comp,
+                                     crsearr, crse_comp,
+                                     cslopearr,
+                                     ratio);
+        });
+
+    } // geom
+
+#endif /*(AMREX_SPACEDIM != 2)*/
 }
-#endif
-
 
 PCInterp::~PCInterp () {}
 
