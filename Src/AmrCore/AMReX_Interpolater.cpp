@@ -500,7 +500,6 @@ CellQuadratic::interp (const FArrayBox& crse,
     Box crse_bx(amrex::coarsen(target_fine_region,ratio));
     // Box fslope_bx(amrex::refine(crse_bx,ratio));
     Box cslope_bx(crse_bx);
-    cslope_bx.grow(1);
     BL_ASSERT(crse.box().contains(cslope_bx));
 
     // Are we running on GPU?
