@@ -16,7 +16,8 @@
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_WritePlotFile.H>
 
-using namespace amrex;
+namespace amrex {
+
 std::string
 thePlotFileType ()
 {
@@ -431,4 +432,6 @@ void WritePlotFile(const Vector<MultiFab*>&   mfa,
                    const Vector<std::string>& varNames)
 {
     WritePlotFile(mfa,amrdToMimic.ProbDomain(),amrdToMimic,oFile,verbose,varNames);
+}
+
 }
