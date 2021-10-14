@@ -211,7 +211,7 @@ storage and retrieval of command-line and input-file arguments. When
 :cpp:`amrex::Initialize(int& argc, char**& argv)` is called, the first command-line
 argument after the executable name (if there is one, and it does not contain the character
 '=' or start with '\-') is taken
-to be the inputs file, and the contents of the file is used to initialize the
+to be the inputs file, and the contents of the file are used to initialize the
 :cpp:`ParmParse` database. The rest of the command-line arguments are also
 parsed by :cpp:`ParmParse`, with the exception of those following a '\-\-' which signals
 command line sharing (see section :ref:`sec:basics:parmparse:sharingCL` ).
