@@ -7,6 +7,9 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_AmrData.H>
 
+
+namespace amrex {
+
 // Write a MultiFab to a plotfile named "name" using the HyperCLawV1.1 parallel
 // plotfile data format
 void
@@ -31,6 +34,8 @@ void WritePlotFile(const amrex::Vector<amrex::MultiFab*>& mfa,
                    const std::string&                     oFile,
                    bool                                   verbose = false,
                    const amrex::Vector<std::string>&      varNames = amrex::Vector<std::string>());
+
+}
 
 #endif
 
