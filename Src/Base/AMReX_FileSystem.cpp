@@ -82,7 +82,7 @@ CreateDirectories (std::string const& path, mode_t mode, bool verbose)
     bool retVal(false);
     Vector<std::pair<std::string, int> > pathError;
 
-    const char* path_sep_str = "/";
+    const char* path_sep_str = DirectorySeparator();
 
     if (path.length() == 0 || path == path_sep_str) {
         return true;

@@ -13,6 +13,20 @@ typedef unsigned short mode_t;
 namespace amrex {
 namespace FileSystem {
 
+/** The Platform-Specific Directory Separator
+ *
+ * Return a backslash on Windows and a slash on all other platforms.
+ */
+static constexpr char
+DirectorySeparator ()
+{
+#ifdef _WIN32
+    return '\\';
+#else
+    return '/';
+#endif
+}
+
 bool
 CreateDirectories (std::string const& filename, mode_t mode, bool verbose = false);
 
