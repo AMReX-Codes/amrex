@@ -38,8 +38,7 @@ class SplineIF {
     distFcnElement2d * closesetGeomElement;
     amrex::Real dist;
     dist = 1.0e29;
-    amrex::RealVect x;
-    x[0] = p[0];x[1] = p[1]; x[2] = p[2];
+    amrex::RealVect x(AMREX_D_DECL(p[0], p[1], p[2]));
     for (auto * geom : geomElements ) {
       amrex::Real d = geom->cpdist(x, cp);
       if (d < dist) {
