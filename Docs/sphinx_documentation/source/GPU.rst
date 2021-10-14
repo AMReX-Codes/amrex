@@ -523,7 +523,7 @@ a separate arena, the behavior of :cpp:`The_Device_Area()` or
 ``amrex.the_device_arena_release_threshold`` or
 ``amrex.the_managed_arena_release_threshold``.  Note that the units for all
 the parameter discussed above are bytes.  All these areans also have a
-member funciton :cpp:`freeUnused()` that can be used to manully release
+member function :cpp:`freeUnused()` that can be used to manually release
 unused memory back to the system.
 
 If you want to print out the current memory usage
