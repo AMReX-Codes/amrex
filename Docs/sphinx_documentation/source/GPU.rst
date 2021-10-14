@@ -461,15 +461,17 @@ specific type of GPU memory:
 
 .. table:: Memory Arenas
 
-    +---------------------+----------------------------+
-    | Arena               |        Memory Type         |
-    +=====================+============================+
-    | The_Arena()         |  managed or device memory  |
-    +---------------------+----------------------------+
-    | The_Managed_Arena() |  managed memory            |
-    +---------------------+----------------------------+
-    | The_Pinned_Arena()  |  pinned memory             |
-    +---------------------+----------------------------+
+    +---------------------+---------------------------------------------------+
+    | Arena               |        Memory Type                                |
+    +=====================+===================================================+
+    | The_Arena()         |  managed or device memory                         |
+    +---------------------+---------------------------------------------------+
+    | The_Device_Arena()  |  device memory, could be an alias to The_Arena()  |
+    +---------------------+---------------------------------------------------+
+    | The_Managed_Arena() |  managed memory, could be an alias to The_Arena() |
+    +---------------------+---------------------------------------------------+
+    | The_Pinned_Arena()  |  pinned memory                                    |
+    +---------------------+---------------------------------------------------+
 
 .. raw:: latex
 
@@ -496,6 +498,33 @@ gradually. The behavior of :cpp:`The_Managed_Arena()` likewise depends on the
 :cpp:`The_Managed_Arena()` is a separate pool of managed memory. If
 ``amrex.the_arena_is_managed=1``, :cpp:`The_Managed_Arena()` is simply aliased
 to :cpp:`The_Arena()` to reduce memory fragmentation.
+
+In :cpp:`amrex::Initialize`, a large amount of GPU device memory is
+allocated and is kept in :cpp:`The_Arena()`.  The default is 3/4 of the
+total device memory, and it can be changed with a :cpp:`ParmParse`
+parameter, ``amrex.the_arena_init_size``, in the unit of bytes.  The default
+initial size for other arenas is 8388608 (i.e., 8 MB).  For
+:cpp:`The_Managed_Arena()` and :cpp:`The_Device_Arena()`, it can be changed
+with ``amrex.the_managed_arena_init_size`` and
+``amrex.the_device_arena_init_size``, respectively, if they are not an alias
+to :cpp:`The_Arena()`.  For :cpp:`The_Pinned_Arena()`, it can be changed
+with ``amrex.the_pinned_arena_init_size``.  The user can also specify a
+release threshold for these arenas.  If the memory usage in an arena is
+below the threshold, the arena will keep the memory for later reuse,
+otherwise it will try to release memory back to the system if it is not
+being used.  By default, the release threshold for :cpp:`The_Arena()` is set
+to be a huge number that prevents the memory being released automatically,
+and it can be changed with a parameter,
+``amrex.the_arena_release_threshold``.  For :cpp:`The_Pinned_Arena()`, the
+default release threshold is the size of the total device memory, and the
+runtime parameter is ``amrex.the_pinned_arena_release_threshold``.  If it is
+a separate arena, the behavior of :cpp:`The_Device_Area()` or
+:cpp:`The_Managed_Arena()` can be changed with
+``amrex.the_device_arena_release_threshold`` or
+``amrex.the_managed_arena_release_threshold``.  Note that the units for all
+the parameter discussed above are bytes.  All these areans also have a
+member function :cpp:`freeUnused()` that can be used to manually release
+unused memory back to the system.
 
 If you want to print out the current memory usage
 of the Arenas, you can call :cpp:`amrex::Arena::PrintUsage()`.
