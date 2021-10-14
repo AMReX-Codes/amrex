@@ -1,8 +1,3 @@
-// Lifted code from the HCAll version of HyperCLaw for writing plotfiles.
-// Have to fake a level 0 data set, and then use incoming multifab as
-// level 1 data. All this could be cleaner, but this is throw-away code
-// anyway, so why bother?
-
 #include <iostream>
 #include <fstream>
 
@@ -14,10 +9,11 @@
 #include <AMReX_RealBox.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_DistributionMapping.H>
-#include <WritePlotFile.H>
+#include <AMReX_WritePlotFile.H>
 
-using namespace amrex;
-std::string
+namespace amrex {
+
+static std::string
 thePlotFileType ()
 {
     //
@@ -39,7 +35,8 @@ writePlotFile (const std::string&        dir,
                const Vector<std::string>& names)
 {
     //
-    // Faked data
+    // Fake a level 0 data set, and then use incoming multifab as
+    // level 1 data.
     //
     const int NUM_STATE = mf.nComp();
     const Real cumTime = 0.0;
@@ -431,4 +428,6 @@ void WritePlotFile(const Vector<MultiFab*>&   mfa,
                    const Vector<std::string>& varNames)
 {
     WritePlotFile(mfa,amrdToMimic.ProbDomain(),amrdToMimic,oFile,verbose,varNames);
+}
+
 }

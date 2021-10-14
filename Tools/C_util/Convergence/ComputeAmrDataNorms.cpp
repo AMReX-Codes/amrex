@@ -3,7 +3,7 @@
 
 #include <ComputeAmrDataNorms.H>
 
-#include <WritePlotFile.H>
+#include <AMReX_WritePlotFile.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>
 #include <AMReX_FArrayBox.H>

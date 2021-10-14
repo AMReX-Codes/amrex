@@ -14,7 +14,7 @@
 #include "AMReX_ParmParse.H"
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_DataServices.H>
-#include <WritePlotFile.H>
+#include <AMReX_WritePlotFile.H>
 
 #include <AMReX_BLFort.H>
 
