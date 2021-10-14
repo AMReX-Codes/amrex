@@ -209,12 +209,17 @@ ParmParse
 :cpp:`ParmParse` in AMReX_ParmParse.H is a class providing a database for the
 storage and retrieval of command-line and input-file arguments. When
 :cpp:`amrex::Initialize(int& argc, char**& argv)` is called, the first command-line
-argument after the executable name (if there is one, and it does not contain character
-'=' or start with '-') is taken
-to be the inputs file, and the contents in the file are used to initialize the
+argument after the executable name (if there is one, and it does not contain the character
+'=' or start with '\-') is taken
+to be the inputs file, and the contents of the file is used to initialize the
 :cpp:`ParmParse` database. The rest of the command-line arguments are also
-parsed by :cpp:`ParmParse`, with the exception of those folllowing a '\\-\\-' which signals
-command line sharing (see section :ref:`sec:basics:parmparse:sharingCL` ). The format of the inputs
+parsed by :cpp:`ParmParse`, with the exception of those following a '\-\-' which signals
+command line sharing (see section :ref:`sec:basics:parmparse:sharingCL` ).
+
+Inputs File
+-----------
+
+The format of the inputs
 file is a series of
 definitions in the form of ``prefix.name = value value ....`` For each line,
 text after # are comments. Here is an example inputs file.
@@ -268,11 +273,17 @@ Note that when there are multiple definitions for a parameter :cpp:`ParmParse`
 by default returns the last one. The difference between :cpp:`query` and
 :cpp:`get` should also be noted. It is a runtime error if :cpp:`get` fails to
 get the value, whereas :cpp:`query` returns an error code without generating a
-runtime error that will abort the run.  It is sometimes convenient to
+runtime error that will abort the run.
+
+Overriding Parameters with Command-Line Arguments
+-------------------------------------------------
+
+It is sometimes convenient to
 override parameters with command-line arguments without modifying the inputs
 file. The command-line arguments after the inputs file are added later than the
-file to the database and are therefore used by default. For example, one can
-run with
+file to the database and are therefore used by default. For example,
+to change the value of :cpp:`ncells` and :cpp:`hydro.cfl`, one can
+run with:
 
 .. highlight:: console
 
@@ -280,7 +291,9 @@ run with
 
         myexecutable myinputsfile ncells="64 32 16" hydro.cfl=0.9
 
-to change the value of :cpp:`ncells` and :cpp:`hydro.cfl`.
+
+Setting Parameter Values Inside Functions
+-----------------------------------------
 
 Sometimes an application code may want to set a default that differs from the
 default in AMReX.  In this case, it is often convenient to define a function that
@@ -307,8 +320,10 @@ Then we would pass :cpp:`add_par` into :cpp:`amrex::Initialize`:
 
     amrex::Initialize(argc, argv, true, MPI_COMM_WORLD, add_par);
 
-This value replaces the current default value of true in AMReX itself, but
-can still be over-written by setting a value in the inputs file.
+.. note::
+
+   Although this value replaces the current default value of true in AMReX itself, it
+   will still be over-written by setting a value in the inputs file.
 
 .. _sec:basics:parmparse:sharingCL:
 
