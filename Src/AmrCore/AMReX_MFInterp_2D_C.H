@@ -330,7 +330,7 @@ Real mf_cell_quadratic_compute_slopes_xy (int i, int j, int /*k*/,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mf_cell_quadratic_calcslope (int i, int j, int /*k*/, int n,
                                   Array4<Real const> const& crse,  int ccomp,
-                                  Array4<Real>       const& slope, int ncomp,
+                                  Array4<Real>       const& slope,
                                   Box const& domain,
                                   BCRec const* bc) noexcept
 {
@@ -352,7 +352,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mf_cell_quadratic_interp (int i, int j, int /*k*/, int n,
                                Array4<Real>       const& fine,  int fcomp,
                                Array4<Real const> const& crse,  int ccomp,
-                               Array4<Real const> const& slope, int ncomp,
+                               Array4<Real const> const& slope,
                                IntVect const& ratio) noexcept
 {
     int ic = amrex::coarsen(i, ratio[0]);
@@ -376,7 +376,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mf_cell_quadratic_interp_rz (int i, int j, int /*k*/, int n,
                                   Array4<Real>       const& fine,  int fcomp,
                                   Array4<Real const> const& crse,  int ccomp,
-                                  Array4<Real const> const& slope, int ncomp,
+                                  Array4<Real const> const& slope,
                                   IntVect const& ratio,
                                   GeometryData const& cs_geomdata,
                                   GeometryData const& fn_geomdata) noexcept

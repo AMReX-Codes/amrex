@@ -496,10 +496,8 @@ CellQuadratic::interp (const FArrayBox& crse,
     //
     Box target_fine_region = fine_region & fine.box();
 
-    // Make Boxes for slopes.
-    Box crse_bx(amrex::coarsen(target_fine_region,ratio));
-    // Box fslope_bx(amrex::refine(crse_bx,ratio));
-    Box cslope_bx(crse_bx);
+    // Make Box for slopes.
+    Box cslope_bx = amrex::coarsen(target_fine_region,ratio);
     BL_ASSERT(crse.box().contains(cslope_bx));
 
     // Are we running on GPU?
@@ -523,43 +521,12 @@ CellQuadratic::interp (const FArrayBox& crse,
     Array4<Real>       const&  slopearr = sfab.array();
     Array4<Real const> const& cslopearr = sfab.const_array();
 
-    /*
-    //
-    // Alloc tmp space for slope calc and to allow for vectorization.
-    //
-    Real* fdat        = fine.dataPtr(fine_comp);
-    const Real* cdat  = crse.dataPtr(crse_comp);
-    const int* flo    = fine.loVect();
-    const int* fhi    = fine.hiVect();
-    const int* fblo   = target_fine_region.loVect();
-    const int* fbhi   = target_fine_region.hiVect();
-    const int* cblo   = crse_bx.loVect();
-    const int* cbhi   = crse_bx.hiVect();
-    const int* fslo   = fslope_bx.loVect();
-    const int* fshi   = fslope_bx.hiVect();
-    int slope_flag    = (do_limited_slope ? 1 : 0); // unused
-    Vector<int> bc     = GetBCArray(bcr);
-    const int* ratioV = ratio.getVect();
-
-    amrex_cqinterp (fdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),
-                   AMREX_ARLIM(fblo), AMREX_ARLIM(fbhi),
-                   &ncomp,AMREX_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
-                   cdat,&clo,&chi,
-                   AMREX_ARLIM(cblo), AMREX_ARLIM(cbhi),
-                   fslo,fshi,
-                   cslope.dataPtr(),&c_len,fslope,fstrip,&f_len,foff,
-                   bc.dataPtr(), &slope_flag,
-                   AMREX_D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
-                   AMREX_D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()),
-                   &actual_comp,&actual_state);
-    */
-
     // Compute slopes.
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cslope_bx, ncomp, i, j, k, n,
     {
         mf_cell_quadratic_calcslope(i, j, k, n,
                                     crsearr, crse_comp,
-                                    slopearr, ncomp,
+                                    slopearr,
                                     cdomain, bcrp);
     });
 
@@ -577,7 +544,7 @@ CellQuadratic::interp (const FArrayBox& crse,
             mf_cell_quadratic_interp_rz(i, j, k, n,
                                         finearr, fine_comp,
                                         crsearr, crse_comp,
-                                        cslopearr, ncomp,
+                                        cslopearr,
                                         ratio,
                                         cs_geomdata, fn_geomdata);
         });
@@ -594,7 +561,7 @@ CellQuadratic::interp (const FArrayBox& crse,
             mf_cell_quadratic_interp(i, j, k, n,
                                      finearr, fine_comp,
                                      crsearr, crse_comp,
-                                     cslopearr, ncomp,
+                                     cslopearr,
                                      ratio);
         });
 
