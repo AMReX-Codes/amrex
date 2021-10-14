@@ -18,7 +18,7 @@
 
 namespace amrex {
 
-std::string
+static std::string
 thePlotFileType ()
 {
     //
