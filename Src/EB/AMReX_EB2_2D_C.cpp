@@ -282,7 +282,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
     nmulticuts.copyToHost();
 
     if (*hp > 0 && !cover_multiple_cuts) {
-        amrex::Abort("amerx::EB2::build_faces: more than 2 cuts not supported");
+        amrex::Abort("amrex::EB2::build_faces: more than 2 cuts not supported");
     }
 
     return *hp;

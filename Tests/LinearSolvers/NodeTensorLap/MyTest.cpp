@@ -39,7 +39,7 @@ MyTest::solve ()
     } else
 #endif
     {
-        mlmg.setBottomSolver(MLMG::BottomSolver::cg);
+        mlmg.setBottomSolver(MLMG::BottomSolver::bicgstab);
     }
 
     mlmg.setBottomMaxIter(1000);
@@ -200,4 +200,3 @@ MyTest::initData ()
         }
     }
 }
-

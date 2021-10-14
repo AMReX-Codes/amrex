@@ -41,6 +41,28 @@ MLNodeTensorLaplacian::setBeta (Array<Real,AMREX_SPACEDIM> const& a_beta) noexce
 #endif
 }
 
+GpuArray<Real,nelems>
+MLNodeTensorLaplacian::scaledSigma (int amrlev, int mglev) const noexcept
+{
+    auto s = m_sigma;
+    auto const& dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(dxinv);
+#elif (AMREX_SPACEDIM == 2)
+    s[0] *= dxinv[0]*dxinv[0];
+    s[1] *= dxinv[0]*dxinv[1];
+    s[2] *= dxinv[1]*dxinv[1];
+#elif (AMREX_SPACEDIM == 3)
+    s[0] *= dxinv[0]*dxinv[0];
+    s[1] *= dxinv[0]*dxinv[1];
+    s[2] *= dxinv[0]*dxinv[2];
+    s[3] *= dxinv[1]*dxinv[1];
+    s[4] *= dxinv[1]*dxinv[2];
+    s[5] *= dxinv[2]*dxinv[2];
+#endif
+    return s;
+}
+
 void
 MLNodeTensorLaplacian::define (const Vector<Geometry>& a_geom,
                                const Vector<BoxArray>& a_grids,
@@ -55,6 +77,7 @@ MLNodeTensorLaplacian::define (const Vector<Geometry>& a_geom,
         ba.enclosedCells();
     }
 
+    m_coarsening_strategy = CoarseningStrategy::Sigma; // This will fill nodes outside Neumann BC
     MLNodeLinOp::define(a_geom, cc_grids, a_dmap, a_info);
 }
 
@@ -163,53 +186,66 @@ MLNodeTensorLaplacian::prepareForSolve ()
 void
 MLNodeTensorLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const
 {
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(amrlev, mglev, out, in);
+#else
     BL_PROFILE("MLNodeTensorLaplacian::Fapply()");
 
-    const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
-    const auto s = m_sigma;
+    auto const& s = scaledSigma(amrlev, mglev);
 
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(out,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    auto const& in_a = in.const_arrays();
+    auto const& out_a = out.arrays();
+    auto const& dmsk_a = m_dirichlet_mask[amrlev][mglev]->const_arrays();
+
+    amrex::ParallelFor(out,
+    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
     {
-        const Box& bx = mfi.tilebox();
-        Array4<Real const> const& xarr = in.const_array(mfi);
-        Array4<Real> const& yarr = out.array(mfi);
+        mlndtslap_adotx(i,j,k, out_a[box_no], in_a[box_no], dmsk_a[box_no], s);
+    });
+    Gpu::synchronize();
+#endif
+}
 
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
-        {
-            mlndtslap_adotx(tbx,yarr,xarr,s,dxinv);
-        });
+void
+MLNodeTensorLaplacian::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
+                               bool skip_fillboundary) const
+{
+    BL_PROFILE("MLNodeTensorLaplacian::smooth()");
+    for (int redblack = 0; redblack < 4; ++redblack) {
+        if (!skip_fillboundary) {
+            applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Correction);
+        }
+        m_redblack = redblack;
+        Fsmooth(amrlev, mglev, sol, rhs);
+        skip_fillboundary = false;
     }
+    nodalSync(amrlev, mglev, sol);
 }
 
 void
 MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const
 {
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(amrlev, mglev, sol, rhs);
+#else
     BL_PROFILE("MLNodeTensorLaplacian::Fsmooth()");
 
-    const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
-    const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
-    const auto s = m_sigma;
+    auto const& s = scaledSigma(amrlev, mglev);
 
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(sol); mfi.isValid(); ++mfi)
+    auto const& sol_a = sol.arrays();
+    auto const& rhs_a = rhs.const_arrays();
+    auto const& dmsk_a = m_dirichlet_mask[amrlev][mglev]->const_arrays();
+    int redblack = m_redblack;
+
+    amrex::ParallelFor(sol,
+    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
     {
-        const Box& bx = mfi.validbox();
-        Array4<Real> const& solarr = sol.array(mfi);
-        Array4<Real const> const& rhsarr = rhs.const_array(mfi);
-        Array4<int const> const& dmskarr = dmsk.const_array(mfi);
-
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
-        {
-            mlndtslap_gauss_seidel(tbx, solarr, rhsarr, dmskarr, s, dxinv);
-        });
-    }
-
-    nodalSync(amrlev, mglev, sol);
+        if ((i+j+k+redblack) % 2 == 0) {
+            mlndtslap_gauss_seidel(i, j, k, sol_a[box_no], rhs_a[box_no], dmsk_a[box_no], s);
+        }
+    });
+    Gpu::synchronize();
+#endif
 }
 
 void
@@ -217,29 +253,6 @@ MLNodeTensorLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
 {
     amrex::ignore_unused(amrlev,mglev,mf);
     return;
-
-#if 0
-    BL_PROFILE("MLNodeTensorLaplacian::normalize()");
-
-    const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
-    const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
-    const auto s = m_sigma;
-
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        Array4<Real> const& arr = mf.array(mfi);
-        Array4<int const> const& dmskarr = dmsk.const_array(mfi);
-
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
-        {
-            mlndtslap_normalize(tbx, arr, dmskarr, s, dxinv);
-        });
-    }
-#endif
 }
 
 void
@@ -259,8 +272,7 @@ MLNodeTensorLaplacian::fillIJMatrix (MFIter const& mfi,
 {
     const int amrlev = 0;
     const int mglev = NMGLevels(amrlev)-1;
-    const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
-    const auto s = m_sigma;
+    auto const& s = scaledSigma(amrlev, mglev);
 
     const Box& ndbx = mfi.validbox();
 
@@ -287,13 +299,13 @@ MLNodeTensorLaplacian::fillIJMatrix (MFIter const& mfi,
              {
                  Dim3 node = GetNode()(ndlo, ndlen, offset);
                  mlndtslap_fill_ijmatrix_gpu(ps, node.x, node.y, node.z, offset,
-                                             ndbx, gid, lid, ncols, cols, mat, s, dxinv);
+                                             ndbx, gid, lid, ncols, cols, mat, s);
              },
              amrex::Scan::Type::exclusive);
     } else
 #endif
     {
-        mlndtslap_fill_ijmatrix_cpu(ndbx, gid, lid, ncols, cols, mat, s, dxinv);
+        mlndtslap_fill_ijmatrix_cpu(ndbx, gid, lid, ncols, cols, mat, s);
     }
 }
 
