@@ -37,10 +37,19 @@ AmrMesh::AmrMesh (Geometry const& level_0_geom, AmrInfo const& amr_info)
     : AmrInfo(amr_info)
 {
     int nlev = max_level + 1;
-    ref_ratio.resize      (nlev, amr_info.ref_ratio.back());
-    blocking_factor.resize(nlev, amr_info.blocking_factor.back());
-    max_grid_size.resize  (nlev, amr_info.max_grid_size.back());
-    n_error_buf.resize    (nlev, amr_info.n_error_buf.back());
+    AmrInfo def_amr_info;
+    ref_ratio.resize      (nlev, amr_info.ref_ratio.empty()
+                           ? def_amr_info.ref_ratio.back()
+                           :     amr_info.ref_ratio.back());
+    blocking_factor.resize(nlev, amr_info.blocking_factor.empty()
+                           ? def_amr_info.blocking_factor.back()
+                           :     amr_info.blocking_factor.back());
+    max_grid_size.resize  (nlev, amr_info.max_grid_size.empty()
+                           ? def_amr_info.max_grid_size.back()
+                           :     amr_info.max_grid_size.back());
+    n_error_buf.resize    (nlev, amr_info.n_error_buf.empty()
+                           ? def_amr_info.n_error_buf.back()
+                           :     amr_info.n_error_buf.back());
 
     dmap.resize(nlev);
     grids.resize(nlev);
