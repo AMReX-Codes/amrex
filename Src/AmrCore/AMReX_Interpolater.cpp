@@ -16,7 +16,7 @@ namespace amrex {
  *
  * CellConservativeProtected only works in 2D and 3D on cpu and gpu.
  *
- * CellQuadratic only works in 2D on cpu and gpu.
+ * CellQuadratic only works in 2D and 3D on cpu and gpu.
  *
  * CellConservativeQuartic only works with ref ratio of 2 on cpu and gpu.
  *
