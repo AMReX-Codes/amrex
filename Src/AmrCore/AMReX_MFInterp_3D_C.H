@@ -253,15 +253,15 @@ void mf_cell_quadratic_calcslope (int i, int j, int k, int n,
     Real sxz = mf_cell_quadratic_compute_slopes_xz (i, j, k, crse, nu, domain, bc[n]);
     Real syz = mf_cell_quadratic_compute_slopes_yz (i, j, k, crse, nu, domain, bc[n]);
 
-    slope(i,j,0,9*n  ) = sx;  // x
-    slope(i,j,0,9*n+1) = sy;  // y
-    slope(i,j,0,9*n+2) = sz;  // z
-    slope(i,j,0,9*n+3) = sxx; // x^2
-    slope(i,j,0,9*n+4) = syy; // y^2
-    slope(i,j,0,9*n+5) = szz; // z^2
-    slope(i,j,0,9*n+6) = sxy; // xy
-    slope(i,j,0,9*n+7) = sxz; // xz
-    slope(i,j,0,9*n+8) = syz; // yz
+    slope(i,j,k,9*n  ) = sx;  // x
+    slope(i,j,k,9*n+1) = sy;  // y
+    slope(i,j,k,9*n+2) = sz;  // z
+    slope(i,j,k,9*n+3) = sxx; // x^2
+    slope(i,j,k,9*n+4) = syy; // y^2
+    slope(i,j,k,9*n+5) = szz; // z^2
+    slope(i,j,k,9*n+6) = sxy; // xy
+    slope(i,j,k,9*n+7) = sxz; // xz
+    slope(i,j,k,9*n+8) = syz; // yz
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
