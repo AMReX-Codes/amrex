@@ -130,6 +130,27 @@ Real mf_cell_quadratic_compute_slopes_yy (int i, int j, int k,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mf_cell_quadratic_compute_slopes_zz (int i, int j, int k,
+                                          Array4<Real const> const& u, int nu,
+                                          Box const& domain, BCRec const& bc)
+{
+    Real zz = u(i,j,k-1,nu) - 2.0_rt * u(i,j,k,nu) + u(i,j,k+1,nu);
+    if (k == domain.smallEnd(2) && (bc.lo(2) == BCType::ext_dir ||
+                                    bc.lo(2) == BCType::hoextrap)) {
+        if (k+2 < u.end.z) {
+            zz = 0._rt;
+        }
+    }
+    if (k == domain.bigEnd(1) && (bc.hi(2) == BCType::ext_dir ||
+                                  bc.hi(2) == BCType::hoextrap)) {
+        if (k-2 >= u.begin.z) {
+            zz = 0._rt;
+        }
+    }
+    return zz;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real mf_cell_quadratic_compute_slopes_xy (int i, int j, int k,
                                           Array4<Real const> const& u, int nu,
                                           Box const& domain, BCRec const& bc)
@@ -161,6 +182,74 @@ Real mf_cell_quadratic_compute_slopes_xy (int i, int j, int k,
         }
     }
     return xy;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mf_cell_quadratic_compute_slopes_xz (int i, int j, int k,
+                                          Array4<Real const> const& u, int nu,
+                                          Box const& domain, BCRec const& bc)
+{
+    Real xz = (1._rt/4._rt) * ( u(i-1,j,k-1,nu) - u(i+1,j,k-1,nu)
+                              - u(i-1,j,k+1,nu) + u(i+1,j,k+1,nu) );
+    if (i == domain.smallEnd(0) && (bc.lo(0) == BCType::ext_dir ||
+                                    bc.lo(0) == BCType::hoextrap)) {
+        if (i+2 < u.end.x) {
+            xz = 0._rt;
+        }
+    }
+    if (i == domain.bigEnd(0) && (bc.hi(0) == BCType::ext_dir ||
+                                  bc.hi(0) == BCType::hoextrap)) {
+        if (i-2 >= u.begin.x) {
+            xz = 0._rt;
+        }
+    }
+    if (k == domain.smallEnd(2) && (bc.lo(2) == BCType::ext_dir ||
+                                    bc.lo(2) == BCType::hoextrap)) {
+        if (k+2 < u.end.y) {
+            xz = 0._rt;
+        }
+    }
+    if (k == domain.bigEnd(1) && (bc.hi(2) == BCType::ext_dir ||
+                                  bc.hi(2) == BCType::hoextrap)) {
+        if (k-2 >= u.begin.y) {
+            xz = 0._rt;
+        }
+    }
+    return xz;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mf_cell_quadratic_compute_slopes_yz (int i, int j, int k,
+                                          Array4<Real const> const& u, int nu,
+                                          Box const& domain, BCRec const& bc)
+{
+    Real yz = (1._rt/4._rt) * ( u(i,j-1,k-1,nu) - u(i,j-1,k+1,nu)
+                              - u(i,j+1,k-1,nu) + u(i,j+1,k+1,nu) );
+    if (j == domain.smallEnd(1) && (bc.lo(1) == BCType::ext_dir ||
+                                    bc.lo(1) == BCType::hoextrap)) {
+        if (j+2 < u.end.y) {
+            yz = 0._rt;
+        }
+    }
+    if (j == domain.bigEnd(1) && (bc.hi(1) == BCType::ext_dir ||
+                                  bc.hi(1) == BCType::hoextrap)) {
+        if (j-2 >= u.begin.y) {
+            yz = 0._rt;
+        }
+    }
+    if (k == domain.smallEnd(2) && (bc.lo(2) == BCType::ext_dir ||
+                                    bc.lo(2) == BCType::hoextrap)) {
+        if (k+2 < u.end.y) {
+            yz = 0._rt;
+        }
+    }
+    if (k == domain.bigEnd(1) && (bc.hi(2) == BCType::ext_dir ||
+                                  bc.hi(2) == BCType::hoextrap)) {
+        if (k-2 >= u.begin.y) {
+            yz = 0._rt;
+        }
+    }
+    return yz;
 }
 
 } // namespace
