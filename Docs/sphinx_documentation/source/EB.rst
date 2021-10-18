@@ -365,7 +365,7 @@ just like :cpp:`FArrayBox`. The difference between :cpp:`MultiCutFab` and
 :cpp:`MultiFab` is that to save memory :cpp:`MultiCutFab` only has data on boxes
 that contain cut cells. It is an error to call :cpp:`operator[]` if that box
 does not have cut cells. Thus the call must be in a :cpp:`if` test block (see
-section :ref:`sec:EB:flag`). 
+section :ref:`sec:EB:flag`).
 
 .. _sec:EB:flag:
 
