@@ -1160,14 +1160,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::So
 
                     ptile.GetStructOfArrays().GetIntData(comp).swap(tmp_int);
                 }
-                amrex::The_Arena()->PrintUsage();
             } else {
                 ParticleTileType ptile_tmp;
                 ptile_tmp.define(m_num_runtime_real, m_num_runtime_int);
                 ptile_tmp.resize(np);
                 gatherParticles(ptile_tmp, ptile, np, m_bins.permutationPtr());
                 ptile.swap(ptile_tmp);
-                amrex::The_Arena()->PrintUsage();
             }
         }
     }
