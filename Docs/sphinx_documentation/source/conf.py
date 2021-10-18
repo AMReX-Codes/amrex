@@ -45,7 +45,7 @@ extensions = ['sphinx.ext.mathjax',
 
 intersphinx_mapping = {
     'amrex_tutorials': ('https://amrex-codes.github.io/amrex/tutorials_html/', None),
-    'AMReX-Hydro':('https://amrex-codes.github.io/amrex/hydro_html/', None)
+    'amrex_hydro':('https://amrex-codes.github.io/amrex/hydro_html/', None)
 }
 
 # Add any paths that contain templates here, relative to this directory.
