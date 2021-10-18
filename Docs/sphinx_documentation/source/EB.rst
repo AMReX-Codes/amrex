@@ -36,15 +36,6 @@ cell shapes. See :numref:`fig::ebexample` for an illustration.
 
    \end{center}
 
-Because this is a relatively simple grid generation technique, computational
-meshes for rather complex geometries can be generated quickly and robustly.
-However, the technique can produce arbitrarily small cut cells in the domain.
-In practice such small cells can have significant impact on the robustness and
-stability of traditional finite volume methods. In this chapter we overview a
-class of approaches to deal with this "small cell" problem in a robust and
-efficient way, and discuss the tools and data that AMReX provides in order to
-implement them.
-
 Note that in a completely general implementation of the EB approach, there
 would be no restrictions on the shape or complexity of the EB surface.  With
 this generality comes the possibility that the process of "cutting" the cells
@@ -52,6 +43,16 @@ results in a single :math:`(i,j,k)` cell being broken into multiple cell
 fragments.  The current release of AMReX does not support multi-valued cells,
 thus there is a practical restriction on the complexity of domains (and
 numerical algorithms) supported.
+
+AMReX's relatively simple grid generation technique allows computational
+meshes for rather complex geometries to be generated quickly and robustly.
+However, the technique can produce arbitrarily small cut cells in the domain.
+In practice such small cells can have significant impact on the robustness and
+stability of traditional finite volume methods. Section
+:ref:`AMReX-Hydro:sec:redistribution` in AMReX-Hydro's documentation overviews the
+finite volume discretization in an embedded boundary cell and a
+class of approaches to deal with this "small cell" problem in a robust and
+efficient way.
 
 This chapter discusses the EB tools, data structures and algorithms currently
 supported by AMReX to enable the construction of discretizations of
@@ -316,12 +317,41 @@ following data:
     // face centroid
     Array<const MultiCutFab*,AMREX_SPACEDIM> getFaceCent () const;
 
-Volume fraction is in a single-component :cpp:`MultiFab`, and it is zero for
-covered cells, one for regular cells, and in between for cut cells. Centroid is
-in a :cpp:`MultiCutFab` with ``AMREX_SPACEDIM`` components with each component
-of the data is in the range of :math:`[-0.5,0.5]`. The centroid is based on each
-cell's local coordinates with respect to the embedded boundary. A
-:cpp:`MultiCutFab` is very similar to a :cpp:`MultiFab`. Its data can be
+Volume fraction is in a single-component :cpp:`MultiFab`. Data are in the range
+of :math:`[0,1]` with zero representing covered cells and one for regular
+cells.
+
+Volume centroid (also called cell centroid) is
+in a :cpp:`MultiCutFab` with ``AMREX_SPACEDIM`` components. Each component
+of the data is in the range of :math:`[-0.5,0.5]`, based on each
+cell's local coordinates with respect to the regular cell's center.
+
+Boundary centroid is also in a :cpp:`MultiCutFab` with
+``AMREX_SPACEDIM`` components.  Each component
+of the data is in the range of :math:`[-0.5,0.5]`, based on each
+cell's local coordinates with respect to the regular cell's center.
+
+Face centroid is in a :cpp:`MultiCutFab` with ``AMREX_SPACEDIM`` components.
+Each component of the data is in the range of :math:`[-0.5,0.5]`, based on
+each cell's local coordinates with respect to the embedded boundary.
+
+Area fractions are returned in an :cpp:`Array` of :cpp:`MultiCutFab`
+pointers. For each direction, area fraction is for the face of that direction.
+Data are in the range of :math:`[0,1]` with zero representing a covered face
+and one an un-cut face.
+
+Face centroids are returned in an :cpp:`Array` of :cpp:`MultiCutFab`
+pointers. There are two components for each direction and the
+ordering is always the same as the original ordering of the coordinates. For
+example, for :math:`y` face, the component 0 is for :math:`x` coordinate and 1
+for :math:`z`. The coordinates are in each face's local frame normalized to the
+range of :math:`[-0.5,0.5]`.
+
+
+EB Data Structures
+==================
+
+A :cpp:`MultiCutFab` is very similar to a :cpp:`MultiFab`. Its data can be
 accessed with subscript operator
 
 .. highlight: c++
@@ -335,15 +365,7 @@ just like :cpp:`FArrayBox`. The difference between :cpp:`MultiCutFab` and
 :cpp:`MultiFab` is that to save memory :cpp:`MultiCutFab` only has data on boxes
 that contain cut cells. It is an error to call :cpp:`operator[]` if that box
 does not have cut cells. Thus the call must be in a :cpp:`if` test block (see
-section :ref:`sec:EB:flag`). Boundary centroid is also a :cpp:`MultiCutFab` with
-``AMREX_SPACEDIM`` components, and it uses each cell's local coordinates. Area
-fractions and face centroids are returned in :cpp:`Array` of :cpp:`MultiCutFab`
-pointers. For each direction, area fraction is for the face of that direction.
-As for face centroids, there are two components for each direction and the
-ordering is always the same as the original ordering of the coordinates. For
-example, for :math:`y` face, the component 0 is for :math:`x` coordinate and 1
-for :math:`z`. The coordinates are in each face's local frame normalized to the
-range of :math:`[-0.5,0.5]`.
+section :ref:`sec:EB:flag`). 
 
 .. _sec:EB:flag:
 
