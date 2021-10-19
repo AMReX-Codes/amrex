@@ -303,104 +303,115 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
     const Real probxlo = m_geom[amrlev][mglev].ProbLo(0);
 #endif
 
-    MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(sol,mfi_info); mfi.isValid(); ++mfi)
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && sol.isFusingCandidate() && !hasHiddenDimension())
     {
-        const auto& m0 = mm0.array(mfi);
-        const auto& m1 = mm1.array(mfi);
+        const auto& m0ma = mm0.const_arrays();
+        const auto& m1ma = mm1.const_arrays();
 #if (AMREX_SPACEDIM > 1)
-        const auto& m2 = mm2.array(mfi);
-        const auto& m3 = mm3.array(mfi);
+        const auto& m2ma = mm2.const_arrays();
+        const auto& m3ma = mm3.const_arrays();
 #if (AMREX_SPACEDIM > 2)
-        const auto& m4 = mm4.array(mfi);
-        const auto& m5 = mm5.array(mfi);
+        const auto& m4ma = mm4.const_arrays();
+        const auto& m5ma = mm5.const_arrays();
 #endif
 #endif
 
-        const Box& tbx = mfi.tilebox();
-        const Box& vbx = mfi.validbox();
-        const auto& solnfab = sol.array(mfi);
-        const auto& rhsfab  = rhs.array(mfi);
+        const auto& solma = sol.arrays();
+        const auto& rhsma = rhs.const_arrays();
 
-        const auto& f0fab = f0.array(mfi);
-        const auto& f1fab = f1.array(mfi);
+        const auto& f0ma = f0.const_arrays();
+        const auto& f1ma = f1.const_arrays();
 #if (AMREX_SPACEDIM > 1)
-        const auto& f2fab = f2.array(mfi);
-        const auto& f3fab = f3.array(mfi);
+        const auto& f2ma = f2.const_arrays();
+        const auto& f3ma = f3.const_arrays();
 #if (AMREX_SPACEDIM > 2)
-        const auto& f4fab = f4.array(mfi);
-        const auto& f5fab = f5.array(mfi);
+        const auto& f4ma = f4.const_arrays();
+        const auto& f5ma = f5.const_arrays();
 #endif
 #endif
 
 #if (AMREX_SPACEDIM == 1)
+
         if (m_overset_mask[amrlev][mglev]) {
             AMREX_ASSERT(!m_has_metric_term);
-            const auto& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+            const auto& osmma = m_overset_mask[amrlev][mglev]->const_arrays();
+
+            ParallelFor(sol,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
             {
-                mlpoisson_gsrb_os(thread_box, solnfab, rhsfab, osm, dhx,
-                                  f0fab, m0,
-                                  f1fab, m1,
+                Box vbx(rhsma[box_no]);
+                mlpoisson_gsrb_os(i, j, k, solma[box_no], rhsma[box_no], osmma[box_no], dhx,
+                                  f0ma[box_no], m0ma[box_no],
+                                  f1ma[box_no], m1ma[box_no],
                                   vbx, redblack);
             });
         } else if (m_has_metric_term) {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+            ParallelFor(sol,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
             {
-                mlpoisson_gsrb_m(thread_box, solnfab, rhsfab, dhx,
-                                 f0fab, m0,
-                                 f1fab, m1,
+                Box vbx(rhsma[box_no]);
+                mlpoisson_gsrb_m(i, j, k, solma[box_no], rhsma[box_no], dhx,
+                                 f0ma[box_no], m0ma[box_no],
+                                 f1ma[box_no], m1ma[box_no],
                                  vbx, redblack,
                                  dx, probxlo);
             });
         } else {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+            ParallelFor(sol,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
             {
-                mlpoisson_gsrb(thread_box, solnfab, rhsfab, dhx,
-                               f0fab, m0,
-                               f1fab, m1,
+                Box vbx(rhsma[box_no]);
+                mlpoisson_gsrb(i, j, k, solma[box_no], rhsma[box_no], dhx,
+                               f0ma[box_no], m0ma[box_no],
+                               f1ma[box_no], m1ma[box_no],
                                vbx, redblack);
             });
         }
+
 #endif
 
 #if (AMREX_SPACEDIM == 2)
+
         if (m_overset_mask[amrlev][mglev]) {
             AMREX_ASSERT(!m_has_metric_term);
-            const auto& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+            const auto& osmma = m_overset_mask[amrlev][mglev]->const_arrays();
+
+            ParallelFor(sol,
+                        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
             {
-                mlpoisson_gsrb_os(thread_box, solnfab, rhsfab, osm, dhx, dhy,
-                                  f0fab, m0,
-                                  f1fab, m1,
-                                  f2fab, m2,
-                                  f3fab, m3,
+                Box vbx(rhsma[box_no]);
+                mlpoisson_gsrb_os(i, j, k, solma[box_no], rhsma[box_no], osmma[box_no], dhx, dhy,
+                                  f0ma[box_no], m0ma[box_no],
+                                  f1ma[box_no], m1ma[box_no],
+                                  f2ma[box_no], m2ma[box_no],
+                                  f3ma[box_no], m3ma[box_no],
                                   vbx, redblack);
             });
         } else if (m_has_metric_term) {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+            ParallelFor(sol,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
             {
-                mlpoisson_gsrb_m(thread_box, solnfab, rhsfab, dhx, dhy,
-                                 f0fab, m0,
-                                 f1fab, m1,
-                                 f2fab, m2,
-                                 f3fab, m3,
+                Box vbx(rhsma[box_no]);
+                mlpoisson_gsrb_m(i, j, k, solma[box_no], rhsma[box_no], dhx, dhy,
+                                 f0ma[box_no], m0ma[box_no],
+                                 f1ma[box_no], m1ma[box_no],
+                                 f2ma[box_no], m2ma[box_no],
+                                 f3ma[box_no], m3ma[box_no],
                                  vbx, redblack,
                                  dx, probxlo);
             });
         } else {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+            ParallelFor(sol,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
             {
-                mlpoisson_gsrb(thread_box, solnfab, rhsfab, dhx, dhy,
-                               f0fab, m0,
-                               f1fab, m1,
-                               f2fab, m2,
-                               f3fab, m3,
+                Box vbx(rhsma[box_no]);
+                mlpoisson_gsrb(i, j, k, solma[box_no], rhsma[box_no], dhx, dhy,
+                               f0ma[box_no], m0ma[box_no],
+                               f1ma[box_no], m1ma[box_no],
+                               f2ma[box_no], m2ma[box_no],
+                               f3ma[box_no], m3ma[box_no],
                                vbx, redblack);
             });
         }
@@ -408,56 +419,202 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
 #endif
 
 #if (AMREX_SPACEDIM == 3)
+
         if (m_overset_mask[amrlev][mglev]) {
             AMREX_ASSERT(!m_has_metric_term);
-            const auto& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+            const auto& osmma = m_overset_mask[amrlev][mglev]->const_arrays();
+
+            ParallelFor(sol,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
             {
-                mlpoisson_gsrb_os(thread_box, solnfab, rhsfab, osm, dhx, dhy, dhz,
-                                  f0fab, m0,
-                                  f1fab, m1,
-                                  f2fab, m2,
-                                  f3fab, m3,
-                                  f4fab, m4,
-                                  f5fab, m5,
+                Box vbx(rhsma[box_no]);
+                mlpoisson_gsrb_os(i, j, k, solma[box_no], rhsma[box_no], osmma[box_no], dhx, dhy, dhz,
+                                  f0ma[box_no], m0ma[box_no],
+                                  f1ma[box_no], m1ma[box_no],
+                                  f2ma[box_no], m2ma[box_no],
+                                  f3ma[box_no], m3ma[box_no],
+                                  f4ma[box_no], m4ma[box_no],
+                                  f5ma[box_no], m5ma[box_no],
                                   vbx, redblack);
             });
-        } else if (hasHiddenDimension()) {
-            Box const& tbx_2d = compactify(tbx);
-            Box const& vbx_2d = compactify(vbx);
-            const auto& solnfab_2d = compactify(solnfab);
-            const auto& rhsfab_2d = compactify(rhsfab);
-            const auto& f0fab_2d = compactify(get_d0(f0fab,f1fab,f2fab));
-            const auto& f1fab_2d = compactify(get_d1(f0fab,f1fab,f2fab));
-            const auto& f2fab_2d = compactify(get_d0(f3fab,f4fab,f5fab));
-            const auto& f3fab_2d = compactify(get_d1(f3fab,f4fab,f5fab));
-            const auto& m0_2d = compactify(get_d0(m0,m1,m2));
-            const auto& m1_2d = compactify(get_d1(m0,m1,m2));
-            const auto& m2_2d = compactify(get_d0(m3,m4,m5));
-            const auto& m3_2d = compactify(get_d1(m3,m4,m5));
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx_2d, thread_box,
-            {
-                TwoD::mlpoisson_gsrb(thread_box, solnfab_2d, rhsfab_2d, dh0, dh1,
-                                     f0fab_2d, m0_2d,
-                                     f1fab_2d, m1_2d,
-                                     f2fab_2d, m2_2d,
-                                     f3fab_2d, m3_2d,
-                                     vbx_2d, redblack);
-            });
         } else {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+            ParallelFor(sol,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
             {
-                mlpoisson_gsrb(thread_box, solnfab, rhsfab, dhx, dhy, dhz,
-                               f0fab, m0,
-                               f1fab, m1,
-                               f2fab, m2,
-                               f3fab, m3,
-                               f4fab, m4,
-                               f5fab, m5,
+                Box vbx(rhsma[box_no]);
+                mlpoisson_gsrb(i, j, k, solma[box_no], rhsma[box_no], dhx, dhy, dhz,
+                               f0ma[box_no], m0ma[box_no],
+                               f1ma[box_no], m1ma[box_no],
+                               f2ma[box_no], m2ma[box_no],
+                               f3ma[box_no], m3ma[box_no],
+                               f4ma[box_no], m4ma[box_no],
+                               f5ma[box_no], m5ma[box_no],
                                vbx, redblack);
             });
         }
+
 #endif
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
+
+        MFItInfo mfi_info;
+        if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(sol,mfi_info); mfi.isValid(); ++mfi)
+        {
+            const auto& m0 = mm0.array(mfi);
+            const auto& m1 = mm1.array(mfi);
+#if (AMREX_SPACEDIM > 1)
+            const auto& m2 = mm2.array(mfi);
+            const auto& m3 = mm3.array(mfi);
+#if (AMREX_SPACEDIM > 2)
+            const auto& m4 = mm4.array(mfi);
+            const auto& m5 = mm5.array(mfi);
+#endif
+#endif
+
+            const Box& tbx = mfi.tilebox();
+            const Box& vbx = mfi.validbox();
+            const auto& solnfab = sol.array(mfi);
+            const auto& rhsfab  = rhs.array(mfi);
+
+            const auto& f0fab = f0.array(mfi);
+            const auto& f1fab = f1.array(mfi);
+#if (AMREX_SPACEDIM > 1)
+            const auto& f2fab = f2.array(mfi);
+            const auto& f3fab = f3.array(mfi);
+#if (AMREX_SPACEDIM > 2)
+            const auto& f4fab = f4.array(mfi);
+            const auto& f5fab = f5.array(mfi);
+#endif
+#endif
+
+#if (AMREX_SPACEDIM == 1)
+            if (m_overset_mask[amrlev][mglev]) {
+                AMREX_ASSERT(!m_has_metric_term);
+                const auto& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+                {
+                    mlpoisson_gsrb_os_wrapper(thread_box, solnfab, rhsfab, osm, dhx,
+                                              f0fab, m0,
+                                              f1fab, m1,
+                                              vbx, redblack);
+                });
+            } else if (m_has_metric_term) {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+                {
+                    mlpoisson_gsrb_m_wrapper(thread_box, solnfab, rhsfab, dhx,
+                                             f0fab, m0,
+                                             f1fab, m1,
+                                             vbx, redblack,
+                                             dx, probxlo);
+                });
+            } else {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+                {
+                    mlpoisson_gsrb_wrapper(thread_box, solnfab, rhsfab, dhx,
+                                           f0fab, m0,
+                                           f1fab, m1,
+                                           vbx, redblack);
+                });
+            }
+#endif
+
+#if (AMREX_SPACEDIM == 2)
+            if (m_overset_mask[amrlev][mglev]) {
+                AMREX_ASSERT(!m_has_metric_term);
+                const auto& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+                {
+                    mlpoisson_gsrb_os_wrapper(thread_box, solnfab, rhsfab, osm, dhx, dhy,
+                                              f0fab, m0,
+                                              f1fab, m1,
+                                              f2fab, m2,
+                                              f3fab, m3,
+                                              vbx, redblack);
+                });
+            } else if (m_has_metric_term) {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+                {
+                    mlpoisson_gsrb_m_wrapper(thread_box, solnfab, rhsfab, dhx, dhy,
+                                             f0fab, m0,
+                                             f1fab, m1,
+                                             f2fab, m2,
+                                             f3fab, m3,
+                                             vbx, redblack,
+                                             dx, probxlo);
+                });
+            } else {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+                {
+                    mlpoisson_gsrb_wrapper(thread_box, solnfab, rhsfab, dhx, dhy,
+                                           f0fab, m0,
+                                           f1fab, m1,
+                                           f2fab, m2,
+                                           f3fab, m3,
+                                           vbx, redblack);
+                });
+            }
+
+#endif
+
+#if (AMREX_SPACEDIM == 3)
+            if (m_overset_mask[amrlev][mglev]) {
+                AMREX_ASSERT(!m_has_metric_term);
+                const auto& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+                {
+                    mlpoisson_gsrb_os_wrapper(thread_box, solnfab, rhsfab, osm, dhx, dhy, dhz,
+                                              f0fab, m0,
+                                              f1fab, m1,
+                                              f2fab, m2,
+                                              f3fab, m3,
+                                              f4fab, m4,
+                                              f5fab, m5,
+                                              vbx, redblack);
+                });
+            } else if (hasHiddenDimension()) {
+                Box const& tbx_2d = compactify(tbx);
+                Box const& vbx_2d = compactify(vbx);
+                const auto& solnfab_2d = compactify(solnfab);
+                const auto& rhsfab_2d = compactify(rhsfab);
+                const auto& f0fab_2d = compactify(get_d0(f0fab,f1fab,f2fab));
+                const auto& f1fab_2d = compactify(get_d1(f0fab,f1fab,f2fab));
+                const auto& f2fab_2d = compactify(get_d0(f3fab,f4fab,f5fab));
+                const auto& f3fab_2d = compactify(get_d1(f3fab,f4fab,f5fab));
+                const auto& m0_2d = compactify(get_d0(m0,m1,m2));
+                const auto& m1_2d = compactify(get_d1(m0,m1,m2));
+                const auto& m2_2d = compactify(get_d0(m3,m4,m5));
+                const auto& m3_2d = compactify(get_d1(m3,m4,m5));
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx_2d, thread_box,
+                {
+                    TwoD::mlpoisson_gsrb_wrapper(thread_box, solnfab_2d, rhsfab_2d, dh0, dh1,
+                                                 f0fab_2d, m0_2d,
+                                                 f1fab_2d, m1_2d,
+                                                 f2fab_2d, m2_2d,
+                                                 f3fab_2d, m3_2d,
+                                                 vbx_2d, redblack);
+                });
+            } else {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+                {
+                    mlpoisson_gsrb_wrapper(thread_box, solnfab, rhsfab, dhx, dhy, dhz,
+                                           f0fab, m0,
+                                           f1fab, m1,
+                                           f2fab, m2,
+                                           f3fab, m3,
+                                           f4fab, m4,
+                                           f5fab, m5,
+                                           vbx, redblack);
+                });
+            }
+#endif
+        }
     }
 }
 
