@@ -5,10 +5,10 @@
 
 using namespace amrex;
 
-static constexpr int NSR = 0;
-static constexpr int NSI = 0;
-static constexpr int NAR = 4;
-static constexpr int NAI = 0;
+static constexpr int NSR = 6;
+static constexpr int NSI = 1;
+static constexpr int NAR = 1;
+static constexpr int NAI = 1;
 
 int num_runtime_real = 0;
 int num_runtime_int = 0;
@@ -175,8 +175,6 @@ public:
 
             Gpu::synchronize();
         }
-
-        //        RedistributeLocal();
     }
 
     void moveParticles (const IntVect& move_dir, int do_random)
