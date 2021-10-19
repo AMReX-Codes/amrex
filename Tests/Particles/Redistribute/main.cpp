@@ -5,10 +5,10 @@
 
 using namespace amrex;
 
-static constexpr int NSR = 6;
-static constexpr int NSI = 1;
-static constexpr int NAR = 1;
-static constexpr int NAI = 1;
+static constexpr int NSR = 0;
+static constexpr int NSI = 0;
+static constexpr int NAR = 4;
+static constexpr int NAI = 0;
 
 int num_runtime_real = 0;
 int num_runtime_int = 0;
@@ -176,7 +176,7 @@ public:
             Gpu::synchronize();
         }
 
-        RedistributeLocal();
+        //        RedistributeLocal();
     }
 
     void moveParticles (const IntVect& move_dir, int do_random)
@@ -385,6 +385,8 @@ void testRedistribute ()
     pc.checkAnswer();
 
     auto np_old = pc.TotalNumberOfParticles();
+
+    if (params.sort) pc.SortParticlesByCell();
 
     for (int i = 0; i < params.nsteps; ++i)
     {

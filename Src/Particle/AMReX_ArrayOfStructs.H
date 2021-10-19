@@ -94,12 +94,12 @@ public:
         m_data.swap(other.m_data);
     }
 
-    void resize(size_t count) { m_data.resize(count); }
+    void resize (size_t count) { m_data.resize(count); }
 
-    Iterator erase( ConstIterator first, ConstIterator second) { return m_data.erase(first, second); }
+    Iterator erase ( ConstIterator first, ConstIterator second) { return m_data.erase(first, second); }
 
     template< class InputIt >
-    void insert( Iterator pos, InputIt first, InputIt last ) { m_data.insert(pos, first, last); }
+    void insert ( Iterator pos, InputIt first, InputIt last ) { m_data.insert(pos, first, last); }
 
     typename ParticleVector::iterator begin () { return m_data.begin(); }
     typename ParticleVector::const_iterator begin () const { return m_data.begin(); }
