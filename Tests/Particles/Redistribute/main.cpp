@@ -175,6 +175,8 @@ public:
 
             Gpu::synchronize();
         }
+
+        RedistributeLocal();
     }
 
     void moveParticles (const IntVect& move_dir, int do_random)
