@@ -992,7 +992,7 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
 
     while (nitems > 0)
     {
-        Long get = nitems > Long(readBufferSize) ? Long(readBufferSize) : nitems;
+        int get = nitems > readBufferSize ? readBufferSize : int(nitems);
         is.read(bufr, id.numBytes()*get);
         PD_convert(out,
                    bufr,
@@ -1062,7 +1062,7 @@ RealDescriptor::convertFromNativeFormat (std::ostream&         os,
 
     while (nitems > 0)
     {
-        Long put = nitems > Long(writeBufferSize) ? Long(writeBufferSize) : nitems;
+        int put = nitems > writeBufferSize ? writeBufferSize : int(nitems);
         PD_convert(bufr,
                    in,
                    put,
@@ -1104,7 +1104,7 @@ RealDescriptor::convertFromNativeFloatFormat (std::ostream&         os,
 
     while (nitems > 0)
     {
-        Long put = nitems > Long(writeBufferSize) ? Long(writeBufferSize) : nitems;
+        int put = nitems > writeBufferSize ? writeBufferSize : int(nitems);
         PD_convert(bufr,
                    in,
                    put,
@@ -1146,7 +1146,7 @@ RealDescriptor::convertFromNativeDoubleFormat (std::ostream&         os,
 
     while (nitems > 0)
     {
-        Long put = nitems > Long(writeBufferSize) ? Long(writeBufferSize) : nitems;
+        int put = nitems > writeBufferSize ? writeBufferSize : int(nitems);
         PD_convert(bufr,
                    in,
                    put,
@@ -1180,7 +1180,7 @@ RealDescriptor::convertToNativeFloatFormat (float*                out,
 
     while (nitems > 0)
     {
-        Long get = nitems > Long(readBufferSize) ? Long(readBufferSize) : nitems;
+        int get = nitems > readBufferSize ? readBufferSize : int(nitems);
         is.read(bufr, id.numBytes()*get);
         PD_convert(out,
                    bufr,
@@ -1222,7 +1222,7 @@ RealDescriptor::convertToNativeDoubleFormat (double*               out,
 
     while (nitems > 0)
     {
-        Long get = nitems > Long(readBufferSize) ? Long(readBufferSize) : nitems;
+        int get = nitems > readBufferSize ? readBufferSize : int(nitems);
         is.read(bufr, id.numBytes()*get);
         PD_convert(out,
                    bufr,
