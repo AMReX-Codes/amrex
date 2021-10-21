@@ -193,11 +193,6 @@ C$(AMREX_BASE)_sources += AMReX_PlotFileUtil.cpp AMReX_PlotFileDataImpl.cpp
 C$(AMREX_BASE)_headers += AMReX_PlotFileUtil.H AMReX_PlotFileDataImpl.H
 
 #
-# Misc
-#
-C$(AMREX_BASE)_headers += AMReX_BaseUmap.H
-
-#
 # Fortran interface routines.
 #
 ifneq ($(BL_NO_FORT),TRUE)
