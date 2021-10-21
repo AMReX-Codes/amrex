@@ -1169,33 +1169,197 @@ public:
 
 #endif /*AMREX_USE_HDF5*/
 
+    /**
+     * \brief Return the underyling Vector (over AMR levels) of ParticleLevels.
+     *        Const version.
+     */
     const Vector<ParticleLevel>& GetParticles () const { return m_particles; }
+
+    /**
+     * \brief Return the underyling Vector (over AMR levels) of ParticleLevels.
+     *        Non-const version.
+     */
     Vector      <ParticleLevel>& GetParticles ()       { return m_particles; }
 
+    /**
+     * \brief Return the ParticleLevel for level "lev". Const version.
+     *
+     *        The ParticleLevel must already exist, meaning that the "resizeData()"
+     *        method of this ParticleContainer has been called.
+     *
+     *        Note that, when using a ParticleContainer that has been constructed
+     *        with an AmrCore*, "resizeData()" must be called *after* the grids
+     *        have been created, meaning after the call to AmrCore::InitFromScratch
+     *        or AmrCore::InitFromCheckpoint has been made.
+     *
+     *        \param lev the level at which to get the particles
+     */
     const ParticleLevel& GetParticles (int lev) const { return m_particles[lev]; }
 
+    /**
+     * \brief Return the ParticleLevel for level "lev". Non-const version.
+     *
+     *        The ParticleLevel must already exist, meaning that the "resizeData()"
+     *        method of this ParticleContainer has been called.
+     *
+     *        Note that, when using a ParticleContainer that has been constructed
+     *        with an AmrCore*, "resizeData()" must be called *after* the grids
+     *        have been created, meaning after the call to AmrCore::InitFromScratch
+     *        or AmrCore::InitFromCheckpoint has been made.
+     *
+     *        \param lev the level at which to get the particles
+     */
     ParticleLevel      & GetParticles (int lev)       { return m_particles[lev]; }
 
+    /**
+     * \brief Return the ParticleTile for level "lev", grid "grid" and tile "tile."
+     *        Const version.
+     *
+     *        Here, grid and tile are integers that give the index and LocalTileIndex
+     *        of the tile you want.
+     *
+     *        This is a runtime error if a ParticleTile at "grid" and "tile" has not been
+     *        created yet.
+     *
+     *        The ParticleLevel must already exist, meaning that the "resizeData()"
+     *        method of this ParticleContainer has been called.
+     *
+     *        Note that, when using a ParticleContainer that has been constructed
+     *        with an AmrCore*, "resizeData()" must be called *after* the grids
+     *        have been created, meaning after the call to AmrCore::InitFromScratch
+     *        or AmrCore::InitFromCheckpoint has been made.
+     *
+     *        \param lev  the level at which to get the particles
+     *        \param grid the index of the grid at which to get the particles
+     *        \param tile the LocalTileIndex of the tile at which to get the particles
+     */
     const ParticleTileType& ParticlesAt (int lev, int grid, int tile) const
     { return m_particles[lev].at(std::make_pair(grid, tile)); }
 
+    /**
+     * \brief Return the ParticleTile for level "lev", grid "grid" and tile "tile."
+     *        Non-const version.
+     *
+     *        Here, grid and tile are integers that give the index and LocalTileIndex
+     *        of the tile you want.
+     *
+     *        This is a runtime error if a ParticleTile at "grid" and "tile" has not been
+     *        created yet.
+     *
+     *        The ParticleLevel must already exist, meaning that the "resizeData()"
+     *        method of this ParticleContainer has been called.
+     *
+     *        Note that, when using a ParticleContainer that has been constructed
+     *        with an AmrCore*, "resizeData()" must be called *after* the grids
+     *        have been created, meaning after the call to AmrCore::InitFromScratch
+     *        or AmrCore::InitFromCheckpoint has been made.
+     *
+     *        \param lev  the level at which to get the particles
+     *        \param grid the index of the grid at which to get the particles
+     *        \param tile the LocalTileIndex of the tile at which to get the particles
+     */
     ParticleTileType&       ParticlesAt (int lev, int grid, int tile)
     { return m_particles[lev].at(std::make_pair(grid, tile)); }
 
+    /**
+     * \brief Return the ParticleTile for level "lev" and Iterator "iter".
+     *        Const version.
+     *
+     *        Here, iter is either an MFIter or ParIter object pointing to the
+     *        tile you want.
+     *
+     *        This is a runtime error if a ParticleTile at "iter" has not been
+     *        created yet.
+     *
+     *        The ParticleLevel must already exist, meaning that the "resizeData()"
+     *        method of this ParticleContainer has been called.
+     *
+     *        Note that, when using a ParticleContainer that has been constructed
+     *        with an AmrCore*, "resizeData()" must be called *after* the grids
+     *        have been created, meaning after the call to AmrCore::InitFromScratch
+     *        or AmrCore::InitFromCheckpoint has been made.
+     *
+     *        \param lev  the level at which to get the particles
+     *        \param iter MFIter or ParIter pointing to the tile to return
+     */
     template <class Iterator>
     const ParticleTileType& ParticlesAt (int lev, const Iterator& iter) const
         { return ParticlesAt(lev, iter.index(), iter.LocalTileIndex()); }
 
+    /**
+     * \brief Return the ParticleTile for level "lev" and Iterator "iter".
+     *        Non-const version.
+     *
+     *        Here, iter is either an MFIter or ParIter object pointing to the
+     *        tile you want.
+     *
+     *        This is a runtime error if a ParticleTile at "iter" has not been
+     *        created yet.
+     *
+     *        The ParticleLevel must already exist, meaning that the "resizeData()"
+     *        method of this ParticleContainer has been called.
+     *
+     *        Note that, when using a ParticleContainer that has been constructed
+     *        with an AmrCore*, "resizeData()" must be called *after* the grids
+     *        have been created, meaning after the call to AmrCore::InitFromScratch
+     *        or AmrCore::InitFromCheckpoint has been made.
+     *
+     *        \param lev  the level at which to get the particles
+     *        \param iter MFIter or ParIter pointing to the tile to return
+     */
     template <class Iterator>
     ParticleTileType&       ParticlesAt (int lev, const Iterator& iter)
         { return ParticlesAt(lev, iter.index(), iter.LocalTileIndex()); }
 
+    /**
+     * \brief Define and return the ParticleTile for level "lev", grid "grid" and tile "tile."
+     *
+     *        Here, grid and tile are integers that give the index and LocalTileIndex
+     *        of the tile you want.
+     *
+     *        If a ParticleTile at "grid" and "tile" has not been created yet,
+     *        this function call will add it. This call will also allocate space
+     *        for any runtime-added particle components.
+     *
+     *        The ParticleLevel must already exist, meaning that the "resizeData()"
+     *        method of this ParticleContainer has been called.
+     *
+     *        Note that, when using a ParticleContainer that has been constructed
+     *        with an AmrCore*, "resizeData()" must be called *after* the grids
+     *        have been created, meaning after the call to AmrCore::InitFromScratch
+     *        or AmrCore::InitFromCheckpoint has been made.
+     *
+     *        \param lev  the level at which to get the particles
+     *        \param grid the index of the grid at which to get the particles
+     *        \param tile the LocalTileIndex of the tile at which to get the particles
+     */
     ParticleTileType& DefineAndReturnParticleTile (int lev, int grid, int tile)
     {
         m_particles[lev][std::make_pair(grid, tile)].define(NumRuntimeRealComps(), NumRuntimeIntComps());
         return ParticlesAt(lev, grid, tile);
     }
 
+    /**
+     * \brief Define and return the ParticleTile for level "lev", and Iterator "iter".
+     *
+     *        Here, iter is either an MFIter or ParIter object pointing to the
+     *        tile you want.
+     *
+     *        If a ParticleTile at "grid" and "tile" has not been created yet,
+     *        this function call will add it. This call will also allocate space
+     *        for any runtime-added particle components.
+     *
+     *        The ParticleLevel must already exist, meaning that the "resizeData()"
+     *        method of this ParticleContainer has been called.
+     *
+     *        Note that, when using a ParticleContainer that has been constructed
+     *        with an AmrCore*, "resizeData()" must be called *after* the grids
+     *        have been created, meaning after the call to AmrCore::InitFromScratch
+     *        or AmrCore::InitFromCheckpoint has been made.
+     *
+     *        \param lev  the level at which to get the particles
+     *        \param iter MFIter or ParIter pointing to the tile to return
+     */
     template <class Iterator>
     ParticleTileType& DefineAndReturnParticleTile (int lev, const Iterator& iter)
     {
