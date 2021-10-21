@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.14)
 
+message("Using Erik's AMReX")
+
+
 #
 # Allow for MSVC Runtime library controls
 #
