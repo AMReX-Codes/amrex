@@ -1192,7 +1192,7 @@ public:
      *        have been created, meaning after the call to AmrCore::InitFromScratch
      *        or AmrCore::InitFromCheckpoint has been made.
      *
-     *        \param lev : the level at which to get the particles
+     *        \param lev the level at which to get the particles
      */
     const ParticleLevel& GetParticles (int lev) const { return m_particles[lev]; }
 
@@ -1207,7 +1207,7 @@ public:
      *        have been created, meaning after the call to AmrCore::InitFromScratch
      *        or AmrCore::InitFromCheckpoint has been made.
      *
-     *        \param lev : the level at which to get the particles
+     *        \param lev the level at which to get the particles
      */
     ParticleLevel      & GetParticles (int lev)       { return m_particles[lev]; }
 
@@ -1229,9 +1229,9 @@ public:
      *        have been created, meaning after the call to AmrCore::InitFromScratch
      *        or AmrCore::InitFromCheckpoint has been made.
      *
-     *        \param lev  : the level at which to get the particles
-     *        \param grid : the index of the grid at which to get the particles
-     *        \param tile : the LocalTileIndex of the tile at which to get the particles
+     *        \param lev  the level at which to get the particles
+     *        \param grid the index of the grid at which to get the particles
+     *        \param tile the LocalTileIndex of the tile at which to get the particles
      */
     const ParticleTileType& ParticlesAt (int lev, int grid, int tile) const
     { return m_particles[lev].at(std::make_pair(grid, tile)); }
@@ -1254,9 +1254,9 @@ public:
      *        have been created, meaning after the call to AmrCore::InitFromScratch
      *        or AmrCore::InitFromCheckpoint has been made.
      *
-     *        \param lev  : the level at which to get the particles
-     *        \param grid : the index of the grid at which to get the particles
-     *        \param tile : the LocalTileIndex of the tile at which to get the particles
+     *        \param lev  the level at which to get the particles
+     *        \param grid the index of the grid at which to get the particles
+     *        \param tile the LocalTileIndex of the tile at which to get the particles
      */
     ParticleTileType&       ParticlesAt (int lev, int grid, int tile)
     { return m_particles[lev].at(std::make_pair(grid, tile)); }
@@ -1279,8 +1279,8 @@ public:
      *        have been created, meaning after the call to AmrCore::InitFromScratch
      *        or AmrCore::InitFromCheckpoint has been made.
      *
-     *        \param lev  : the level at which to get the particles
-     *        \param iter : MFIter or ParIter pointing to the tile to return
+     *        \param lev  the level at which to get the particles
+     *        \param iter MFIter or ParIter pointing to the tile to return
      */
     template <class Iterator>
     const ParticleTileType& ParticlesAt (int lev, const Iterator& iter) const
@@ -1304,8 +1304,8 @@ public:
      *        have been created, meaning after the call to AmrCore::InitFromScratch
      *        or AmrCore::InitFromCheckpoint has been made.
      *
-     *        \param lev  : the level at which to get the particles
-     *        \param iter : MFIter or ParIter pointing to the tile to return
+     *        \param lev  the level at which to get the particles
+     *        \param iter MFIter or ParIter pointing to the tile to return
      */
     template <class Iterator>
     ParticleTileType&       ParticlesAt (int lev, const Iterator& iter)
@@ -1329,9 +1329,9 @@ public:
      *        have been created, meaning after the call to AmrCore::InitFromScratch
      *        or AmrCore::InitFromCheckpoint has been made.
      *
-     *        \param lev  : the level at which to get the particles
-     *        \param grid : the index of the grid at which to get the particles
-     *        \param tile : the LocalTileIndex of the tile at which to get the particles
+     *        \param lev  the level at which to get the particles
+     *        \param grid the index of the grid at which to get the particles
+     *        \param tile the LocalTileIndex of the tile at which to get the particles
      */
     ParticleTileType& DefineAndReturnParticleTile (int lev, int grid, int tile)
     {
@@ -1357,8 +1357,8 @@ public:
      *        have been created, meaning after the call to AmrCore::InitFromScratch
      *        or AmrCore::InitFromCheckpoint has been made.
      *
-     *        \param lev  : the level at which to get the particles
-     *        \param iter : MFIter or ParIter pointing to the tile to return
+     *        \param lev  the level at which to get the particles
+     *        \param iter MFIter or ParIter pointing to the tile to return
      */
     template <class Iterator>
     ParticleTileType& DefineAndReturnParticleTile (int lev, const Iterator& iter)
