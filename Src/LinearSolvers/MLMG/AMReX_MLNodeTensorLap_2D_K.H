@@ -54,70 +54,35 @@ void mlndtslap_interpadd (int i, int j, int, Array4<Real> const& fine,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndtslap_adotx (Box const& b, Array4<Real> const& y, Array4<Real const> const& x,
-                      GpuArray<Real,3> const& s,
-                      GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+void mlndtslap_adotx (int i, int j, int k, Array4<Real> const& y, Array4<Real const> const& x,
+                      Array4<int const> const& msk, GpuArray<Real,3> const& s) noexcept
 {
-    const Real h00 = dxinv[0]*dxinv[0];
-    const Real h01 = dxinv[0]*dxinv[1];
-    const Real h11 = dxinv[1]*dxinv[1];
-    amrex::LoopConcurrent(b, [=] (int i, int j, int k) noexcept
-    {
-        y(i,j,k) = x(i-1,j-1,0) * (Real(1./6.)*h00*s[0] + Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2])
-            +      x(i-1,j  ,0) * (Real(2./3.)*h00*s[0] - Real(1./3.)*h11*s[2])
-            +      x(i-1,j+1,0) * (Real(1./6.)*h00*s[0] - Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2])
-            +      x(i  ,j-1,0) * (Real(-1./3.)*h00*s[0] + Real(2./3.)*h11*s[2])
-            +      x(i  ,j  ,0) * (Real(-4./3.)*h00*s[0] + Real(-4./3.)*h11*s[2])
-            +      x(i  ,j+1,0) * (Real(-1./3.)*h00*s[0] + Real(2./3.)*h11*s[2])
-            +      x(i+1,j-1,0) * (Real(1./6.)*h00*s[0] - Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2])
-            +      x(i+1,j  ,0) * (Real(2./3.)*h00*s[0] - Real(1./3.)*h11*s[2])
-            +      x(i+1,j+1,0) * (Real(1./6.)*h00*s[0] + Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2]);
-    });
+    if (msk(i,j,k)) {
+        y(i,j,k) = Real(0.0);
+    } else {
+        y(i,j,k) = s[0] * (x(i-1,j,0) + x(i+1,j,0))
+            +      s[2] * (x(i,j-1,0) + x(i,j+1,0))
+            - Real(2.)*(s[0]+s[2]) * x(i,j,0)
+            + Real(0.5)*s[1] * (x(i-1,j-1,0) + x(i+1,j+1,0) - x(i-1,j+1,0) - x(i+1,j-1,0));
+    }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndtslap_gauss_seidel (Box const& b, Array4<Real> const& sol,
+void mlndtslap_gauss_seidel (int i, int j, int k, Array4<Real> const& sol,
                              Array4<Real const> const& rhs, Array4<int const> const& msk,
-                             GpuArray<Real,3> const& s,
-                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+                             GpuArray<Real,3> const& s) noexcept
 {
-    const Real h00 = dxinv[0]*dxinv[0];
-    const Real h01 = dxinv[0]*dxinv[1];
-    const Real h11 = dxinv[1]*dxinv[1];
-    amrex::Loop(b, [=] (int i, int j, int k) noexcept
-    {
-        if (msk(i,j,k)) {
-            sol(i,j,k) = 0.0;
-        } else {
-            Real s0 = (Real(-4./3.)*h00*s[0] + Real(-4./3.)*h11*s[2]);
-            Real Ax = sol(i-1,j-1,0) * (Real(1./6.)*h00*s[0] + Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2])
-                +     sol(i-1,j  ,0) * (Real(2./3.)*h00*s[0] - Real(1./3.)*h11*s[2])
-                +     sol(i-1,j+1,0) * (Real(1./6.)*h00*s[0] - Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2])
-                +     sol(i  ,j-1,0) * (Real(-1./3.)*h00*s[0] + Real(2./3.)*h11*s[2])
-                +     sol(i  ,j  ,0) * s0
-                +     sol(i  ,j+1,0) * (Real(-1./3.)*h00*s[0] + Real(2./3.)*h11*s[2])
-                +     sol(i+1,j-1,0) * (Real(1./6.)*h00*s[0] - Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2])
-                +     sol(i+1,j  ,0) * (Real(2./3.)*h00*s[0] - Real(1./3.)*h11*s[2])
-                +     sol(i+1,j+1,0) * (Real(1./6.)*h00*s[0] + Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2]);
-            sol(i,j,k) += (rhs(i,j,k) - Ax) / s0;
-        }
-    });
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndtslap_normalize (Box const& b, Array4<Real> const& phi,
-                          Array4<int const> const& msk, GpuArray<Real,3> const& s,
-                          GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
-{
-    const Real h00 = dxinv[0]*dxinv[0];
-    const Real h11 = dxinv[1]*dxinv[1];
-    amrex::Loop(b, [=] (int i, int j, int k) noexcept
-    {
-        if (!msk(i,j,k)) {
-            Real s0 = (Real(-4./3.)*h00*s[0] + Real(-4./3.)*h11*s[2]);
-            phi(i,j,k) /= s0;
-        }
-    });
+    if (msk(i,j,k)) {
+        sol(i,j,k) = 0.0;
+    } else {
+        constexpr Real omega = Real(1.25);
+        Real s0 = Real(-2.)*(s[0]+s[2]);
+        Real Ax = s[0] * (sol(i-1,j,0) + sol(i+1,j,0))
+            +     s[2] * (sol(i,j-1,0) + sol(i,j+1,0))
+            + s0 * sol(i,j,0)
+            + Real(0.5)*s[1] * (sol(i-1,j-1,0) + sol(i+1,j+1,0) - sol(i-1,j+1,0) - sol(i+1,j-1,0));
+        sol(i,j,k) += (rhs(i,j,k) - Ax) * (omega/s0);
+    }
 }
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
@@ -127,13 +92,8 @@ void mlndtslap_fill_ijmatrix_cpu (Box const& ndbx,
                                   Array4<AtomicInt const> const& gid,
                                   Array4<int const> const& lid,
                                   HypreInt* const ncols, HypreInt* const cols, Real* const mat,
-                                  GpuArray<Real,3> const& s,
-                                  GpuArray<Real,AMREX_SPACEDIM> const& dxinv)
+                                  GpuArray<Real,3> const& s) noexcept
 {
-    const Real h00 = dxinv[0]*dxinv[0];
-    const Real h01 = dxinv[0]*dxinv[1];
-    const Real h11 = dxinv[1]*dxinv[1];
-
     constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
     HypreInt nelems = 0;
     amrex::LoopOnCpu(ndbx, [&] (int i, int j, int k) noexcept
@@ -143,54 +103,54 @@ void mlndtslap_fill_ijmatrix_cpu (Box const& ndbx,
             HypreInt nelems_old = nelems;
 
             cols[nelems] = gid(i,j,k);
-            mat[nelems] = Real(-4./3.)*h00*s[0] + Real(-4./3.)*h11*s[2];
+            mat[nelems] = Real(-2.)*(s[0]+s[2]);
             ++nelems;
 
             if                (gid(i-1,j-1,k) < gidmax) {
                 cols[nelems] = gid(i-1,j-1,k);
-                mat[nelems] = Real(1./6.)*h00*s[0] + Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2];
+                mat[nelems] = Real(0.5)*s[1];
                 ++nelems;
             }
 
             if                (gid(i,j-1,k) < gidmax) {
                 cols[nelems] = gid(i,j-1,k);
-                mat[nelems] = Real(-1./3.)*h00*s[0] + Real(2./3.)*h11*s[2];
+                mat[nelems] = s[2];
                 ++nelems;
             }
 
             if                (gid(i+1,j-1,k) < gidmax) {
                 cols[nelems] = gid(i+1,j-1,k);
-                mat[nelems] = Real(1./6.)*h00*s[0] - Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2];
+                mat[nelems] = Real(-0.5)*s[1];
                 ++nelems;
             }
 
             if                (gid(i-1,j,k) < gidmax) {
                 cols[nelems] = gid(i-1,j,k);
-                mat[nelems] = Real(2./3.)*h00*s[0] - Real(1./3.)*h11*s[2];
+                mat[nelems] = s[0];
                 ++nelems;
             }
 
             if                (gid(i+1,j,k) < gidmax) {
                 cols[nelems] = gid(i+1,j,k);
-                mat[nelems] = Real(2./3.)*h00*s[0] - Real(1./3.)*h11*s[2];
+                mat[nelems] = s[0];
                 ++nelems;
             }
 
             if                (gid(i-1,j+1,k) < gidmax) {
                 cols[nelems] = gid(i-1,j+1,k);
-                mat[nelems] = Real(1./6.)*h00*s[0] - Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2];
+                mat[nelems] = Real(-0.5)*s[1];
                 ++nelems;
             }
 
             if                (gid(i,j+1,k) < gidmax) {
                 cols[nelems] = gid(i,j+1,k);
-                mat[nelems] = Real(-1./3.)*h00*s[0] + Real(2./3.)*h11*s[2];
+                mat[nelems] = s[2];
                 ++nelems;
             }
 
             if                (gid(i+1,j+1,k) < gidmax) {
                 cols[nelems] = gid(i+1,j+1,k);
-                mat[nelems] = Real(1./6.)*h00*s[0] + Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2];
+                mat[nelems] = Real(0.5)*s[1];
                 ++nelems;
             }
 
@@ -207,20 +167,15 @@ void mlndtslap_fill_ijmatrix_gpu (const int ps, const int i, const int j, const 
                                   Array4<AtomicInt const> const& gid,
                                   Array4<int const> const& lid,
                                   HypreInt* const ncols, HypreInt* const cols, Real* const mat,
-                                  GpuArray<Real,3> const& s,
-                                  GpuArray<Real,AMREX_SPACEDIM> const& dxinv)
+                                  GpuArray<Real,3> const& s) noexcept
 {
     if (lid(i,j,k) >= 0)
     {
-        const Real h00 = dxinv[0]*dxinv[0];
-        const Real h01 = dxinv[0]*dxinv[1];
-        const Real h11 = dxinv[1]*dxinv[1];
-
         constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
 
         if (offset == 0) {
             cols[ps] = gid(i,j,k);
-            mat[ps] = Real(-4./3.)*h00*s[0] + Real(-4./3.)*h11*s[2];
+            mat[ps] = Real(-2.)*(s[0]+s[2]);
             int nc = 1;
             if (gid(i-1,j-1,k) < gidmax) { ++nc; }
             if (gid(i  ,j-1,k) < gidmax) { ++nc; }
@@ -234,35 +189,35 @@ void mlndtslap_fill_ijmatrix_gpu (const int ps, const int i, const int j, const 
         }
         else if (offset == 1 && gid(i-1,j-1,k) < gidmax) {
             cols[ps] =          gid(i-1,j-1,k);
-            mat[ps] = Real(1./6.)*h00*s[0] + Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2];
+            mat[ps] = Real(0.5)*s[1];
         }
         else if (offset == 2 && gid(i  ,j-1,k) < gidmax) {
             cols[ps] =          gid(i  ,j-1,k);
-            mat[ps] = Real(-1./3.)*h00*s[0] + Real(2./3.)*h11*s[2];
+            mat[ps] = s[2];
         }
         else if (offset == 3 && gid(i+1,j-1,k) < gidmax) {
             cols[ps] =          gid(i+1,j-1,k);
-            mat[ps] = Real(1./6.)*h00*s[0] - Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2];
+            mat[ps] = Real(-0.5)*s[1];
         }
         else if (offset == 4 && gid(i-1,j  ,k) < gidmax) {
             cols[ps] =          gid(i-1,j  ,k);
-            mat[ps] = Real(2./3.)*h00*s[0] - Real(1./3.)*h11*s[2];
+            mat[ps] = s[0];
         }
         else if (offset == 5 && gid(i+1,j  ,k) < gidmax) {
             cols[ps] =          gid(i+1,j  ,k);
-            mat[ps] = Real(2./3.)*h00*s[0] - Real(1./3.)*h11*s[2];
+            mat[ps] = s[0];
         }
         else if (offset == 6 && gid(i-1,j+1,k) < gidmax) {
             cols[ps] =          gid(i-1,j+1,k);
-            mat[ps] = Real(1./6.)*h00*s[0] - Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2];
+            mat[ps] = Real(-0.5)*s[1];
         }
         else if (offset == 7 && gid(i  ,j+1,k) < gidmax) {
             cols[ps] =          gid(i  ,j+1,k);
-            mat[ps] = Real(-1./3.)*h00*s[0] + Real(2./3.)*h11*s[2];
+            mat[ps] = s[2];
         }
         else if (offset == 8 && gid(i+1,j+1,k) < gidmax) {
             cols[ps] =          gid(i+1,j+1,k);
-            mat[ps] = Real(1./6.)*h00*s[0] + Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2];
+            mat[ps] = Real(0.5)*s[1];
         }
     }
 }
