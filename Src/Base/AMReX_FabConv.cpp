@@ -992,7 +992,7 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
 
     while (nitems > 0)
     {
-        int get = Long(nitems) > readBufferSize ? readBufferSize : int(nitems);
+        Long get = nitems > Long(readBufferSize) ? Long(readBufferSize) : nitems;
         is.read(bufr, id.numBytes()*get);
         PD_convert(out,
                    bufr,
