@@ -1,7 +1,7 @@
 AMREX_HOME = ../../
 
-DEBUG	= TRUE
-# DEBUG	= FALSE
+# DEBUG	= TRUE
+DEBUG	= FALSE
 
 DIM	= 3
 
