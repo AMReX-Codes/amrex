@@ -199,6 +199,10 @@ AmrLevelAdv::initData ()
         const int* lo      = box.loVect();
         const int* hi      = box.hiVect();
 
+        
+        // const Array4<Real>& phi = S_tmp.array(mfi); // HACK
+
+
         // Use a Fortran subroutine to initialize data on CPU.
         initdata(&level, &cur_time, AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi),
                  BL_TO_FORTRAN_3D(S_tmp[mfi]), AMREX_ZFILL(dx),
