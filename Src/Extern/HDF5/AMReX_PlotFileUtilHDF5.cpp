@@ -10,10 +10,6 @@
 
 #include "hdf5.h"
 
-#ifdef AMREX_USE_HDF5_ASYNC
-#include "h5_async_lib.h"
-#endif
-
 #ifdef AMREX_USE_HDF5_ZFP
 #include "H5Zzfp_lib.h"
 #include "H5Zzfp_props.h"
@@ -364,6 +360,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
                                   Real time,
                                   const Vector<int>& level_steps,
                                   const Vector<IntVect>& ref_ratio,
+                                  const std::string &compression,
                                   const std::string &versionName,
                                   const std::string &levelPrefix,
                                   const std::string &mfPrefix,
@@ -481,13 +478,20 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
 
     H5Pset_chunk(dcpl, 1, &chunk_dim);
     H5Pset_alloc_time(dcpl, H5D_ALLOC_TIME_LATE);
+    H5Pset_fill_time(dcpl, H5D_FILL_TIME_NEVER);
 
-    value_env = getenv("HDF5_COMPRESSION_VALUE");
-    if (value_env != NULL)
-        comp_value = atof(value_env);
+    /* mode_env = getenv("HDF5_COMPRESSION_MODE"); */
+    /* value_env = getenv("HDF5_COMPRESSION_VALUE"); */
+    /* if (value_env != NULL) */
+    /*     comp_value = atof(value_env); */
 
-    mode_env = getenv("HDF5_COMPRESSION_MODE");
-    if (mode_env != NULL && strcmp(mode_env, "NONE") != 0) {
+    std::string::size_type pos = compression.find('#');
+    if (pos != std::string::npos) {
+        mode_env = compression.substr(0, pos).c_str();
+        value_env = compression.substr(pos+1).c_str();
+    }
+        
+    if (mode_env != NULL && strcmp(mode_env, "None") != 0) {
         if (strcmp(mode_env, "ZFP_RATE") == 0)
             H5Pset_zfp_rate(dcpl, comp_value);
         else if (strcmp(mode_env, "ZFP_PRECISION") == 0)
@@ -765,10 +769,441 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
     delete whichRD;
 }
 
+void WriteMultiLevelPlotfileHDF52 (const std::string& plotfilename,
+                                   int nlevels,
+                                   const Vector<const MultiFab*>& mf,
+                                   const Vector<std::string>& varnames,
+                                   const Vector<Geometry>& geom,
+                                   Real time,
+                                   const Vector<int>& level_steps,
+                                   const Vector<IntVect>& ref_ratio,
+                                   const std::string &compression,
+                                   const std::string &versionName,
+                                   const std::string &levelPrefix,
+                                   const std::string &mfPrefix,
+                                   const Vector<std::string>& extra_dirs)
+{
+    BL_PROFILE("WriteMultiLevelPlotfileHDF52");
+
+    BL_ASSERT(nlevels <= mf.size());
+    BL_ASSERT(nlevels <= geom.size());
+    BL_ASSERT(nlevels <= ref_ratio.size()+1);
+    BL_ASSERT(nlevels <= level_steps.size());
+    BL_ASSERT(mf[0]->nComp() == varnames.size());
+
+    int myProc(ParallelDescriptor::MyProc());
+    int nProcs(ParallelDescriptor::NProcs());
+
+#ifdef AMREX_USE_HDF5_ASYNC
+    // For HDF5 async VOL, block and wait previous tasks have all completed
+    if (es_id_g != 0) {
+        async_vol_es_wait();
+    }
+    else {
+        ExecOnFinalize(async_vol_es_wait_close);
+        es_id_g = H5EScreate();
+    }
+#endif
+
+    herr_t  ret;
+    int finest_level = nlevels-1;
+    int ncomp = mf[0]->nComp();
+    /* double total_write_start_time(ParallelDescriptor::second()); */
+    std::string filename(plotfilename + ".h5");
+
+    // Write out root level metadata
+    hid_t fapl, dxpl_col, dxpl_ind, dcpl, fid, grp;
+
+    if(ParallelDescriptor::IOProcessor()) {
+        BL_PROFILE_VAR("H5writeMetadata", h5dwm);
+        // Create the HDF5 file
+        fid = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+        if (fid < 0)
+            FileOpenFailed(filename.c_str());
+
+        Vector<BoxArray> boxArrays(nlevels);
+        for(int level(0); level < boxArrays.size(); ++level) {
+            boxArrays[level] = mf[level]->boxArray();
+        }
+
+        WriteGenericPlotfileHeaderHDF5(fid, nlevels, mf, boxArrays, varnames, geom, time, level_steps, ref_ratio, versionName, levelPrefix, mfPrefix, extra_dirs);
+        H5Fclose(fid);
+        BL_PROFILE_VAR_STOP(h5dwm);
+    }
+
+    ParallelDescriptor::Barrier();
+
+    hid_t babox_id;
+    babox_id = H5Tcreate (H5T_COMPOUND, 2 * AMREX_SPACEDIM * sizeof(int));
+    if (1 == AMREX_SPACEDIM) {
+        H5Tinsert (babox_id, "lo_i", 0 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (babox_id, "hi_i", 1 * sizeof(int), H5T_NATIVE_INT);
+    }
+    else if (2 == AMREX_SPACEDIM) {
+        H5Tinsert (babox_id, "lo_i", 0 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (babox_id, "lo_j", 1 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (babox_id, "hi_i", 2 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (babox_id, "hi_j", 3 * sizeof(int), H5T_NATIVE_INT);
+    }
+    else if (3 == AMREX_SPACEDIM) {
+        H5Tinsert (babox_id, "lo_i", 0 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (babox_id, "lo_j", 1 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (babox_id, "lo_k", 2 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (babox_id, "hi_i", 3 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (babox_id, "hi_j", 4 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (babox_id, "hi_k", 5 * sizeof(int), H5T_NATIVE_INT);
+    }
+
+    hid_t center_id = H5Tcreate (H5T_COMPOUND, AMREX_SPACEDIM * sizeof(int));
+    if (1 == AMREX_SPACEDIM) {
+        H5Tinsert (center_id, "i", 0 * sizeof(int), H5T_NATIVE_INT);
+    }
+    else if (2 == AMREX_SPACEDIM) {
+        H5Tinsert (center_id, "i", 0 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (center_id, "j", 1 * sizeof(int), H5T_NATIVE_INT);
+    }
+    else if (3 == AMREX_SPACEDIM) {
+        H5Tinsert (center_id, "i", 0 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (center_id, "j", 1 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (center_id, "k", 2 * sizeof(int), H5T_NATIVE_INT);
+    }
+
+    fapl = H5Pcreate (H5P_FILE_ACCESS);
+    dxpl_col = H5Pcreate(H5P_DATASET_XFER);
+    dxpl_ind = H5Pcreate(H5P_DATASET_XFER);
+
+#ifdef BL_USE_MPI
+    SetHDF5fapl(fapl, ParallelDescriptor::Communicator());
+    H5Pset_dxpl_mpio(dxpl_col, H5FD_MPIO_COLLECTIVE);
+#else
+    SetHDF5fapl(fapl);
+#endif
+
+    dcpl = H5Pcreate(H5P_DATASET_CREATE);
+
+#ifdef AMREX_USE_HDF5_ZFP
+    ret = H5Z_zfp_initialize();
+    if (ret < 0) amrex::Abort("ZFP initialize failed!");
+
+    char *chunk_env = NULL, *mode_env = NULL, *value_env = NULL;
+    double comp_value = -1.0;
+    hsize_t chunk_dim = 1048576;
+
+    chunk_env = getenv("HDF5_CHUNK_SIZE");
+    if (chunk_env != NULL)
+        chunk_dim = atoi(chunk_env);
+
+    H5Pset_chunk(dcpl, 1, &chunk_dim);
+    H5Pset_alloc_time(dcpl, H5D_ALLOC_TIME_LATE);
+    H5Pset_fill_time(dcpl, H5D_FILL_TIME_NEVER);
+
+    /* mode_env = getenv("HDF5_COMPRESSION_MODE"); */
+    /* value_env = getenv("HDF5_COMPRESSION_VALUE"); */
+    /* if (value_env != NULL) */
+    /*     comp_value = atof(value_env); */
+
+    std::string::size_type pos = compression.find('#');
+    if (pos != std::string::npos) {
+        mode_env = compression.substr(0, pos).c_str();
+        value_env = compression.substr(pos+1).c_str();
+    }
+        
+    if (mode_env != NULL && strcmp(mode_env, "None") != 0) {
+        if (strcmp(mode_env, "ZFP_RATE") == 0)
+            H5Pset_zfp_rate(dcpl, comp_value);
+        else if (strcmp(mode_env, "ZFP_PRECISION") == 0)
+            H5Pset_zfp_precision(dcpl, (unsigned int)comp_value);
+        else if (strcmp(mode_env, "ZFP_ACCURACY") == 0)
+            H5Pset_zfp_accuracy(dcpl, comp_value);
+        else if (strcmp(mode_env, "ZFP_REVERSIBLE") == 0)
+            H5Pset_zfp_reversible(dcpl);
+        else if (strcmp(mode_env, "ZLIB") == 0)
+            H5Pset_deflate(dcpl, (int)comp_value);
+
+        if (ParallelDescriptor::MyProc() == 0) {
+            std::cout << "HDF5 checkpoint using " << mode_env << ", " <<
+                comp_value << ", " << chunk_dim << std::endl;
+        }
+    }
+#endif
+
+    BL_PROFILE_VAR("H5writeAllLevel", h5dwd);
+
+    // All process open the file
+#ifdef AMREX_USE_HDF5_ASYNC
+    // Only use async for writing actual data
+    fid = H5Fopen_async(filename.c_str(), H5F_ACC_RDWR, fapl, es_id_g);
+#else
+    fid = H5Fopen(filename.c_str(), H5F_ACC_RDWR, fapl);
+#endif
+    if (fid < 0)
+        FileOpenFailed(filename.c_str());
+
+    RealDescriptor *whichRD = nullptr;
+    if(FArrayBox::getFormat() == FABio::FAB_NATIVE) {
+        whichRD = FPC::NativeRealDescriptor().clone();
+    } else if(FArrayBox::getFormat() == FABio::FAB_NATIVE_32) {
+        whichRD = FPC::Native32RealDescriptor().clone();
+    } else if(FArrayBox::getFormat() == FABio::FAB_IEEE_32) {
+        whichRD = FPC::Ieee32NormalRealDescriptor().clone();
+    } else {
+        whichRD = FPC::NativeRealDescriptor().clone(); // to quiet clang static analyzer
+        Abort("VisMF::Write unable to execute with the current fab.format setting.  Use NATIVE, NATIVE_32 or IEEE_32");
+    }
+
+    bool doConvert(*whichRD != FPC::NativeRealDescriptor());
+    int whichRDBytes(whichRD->numBytes());
+
+    // Write data for each level
+    char level_name[32];
+    for (int level = 0; level <= finest_level; ++level) {
+        sprintf(level_name, "level_%d", level);
+#ifdef AMREX_USE_HDF5_ASYNC
+        grp = H5Gopen_async(fid, level_name, H5P_DEFAULT, es_id_g);
+#else
+        grp = H5Gopen(fid, level_name, H5P_DEFAULT);
+#endif
+        if (grp < 0) { std::cout << "H5Gopen [" << level_name << "] failed!" << std::endl; break; }
+
+        // Get the boxes assigned to all ranks and calculate their offsets and sizes
+        Vector<int> procMap = mf[level]->DistributionMap().ProcessorMap();
+        const BoxArray& grids = mf[level]->boxArray();
+        hid_t boxdataset, boxdataspace;
+        hid_t offsetdataset, offsetdataspace;
+        hid_t centerdataset, centerdataspace;
+        std::string bdsname("boxes");
+        std::string odsname("data:offsets=0");
+        std::string centername("boxcenter");
+        hsize_t  flatdims[1];
+        flatdims[0] = grids.size();
+
+        flatdims[0] = grids.size();
+        boxdataspace = H5Screate_simple(1, flatdims, NULL);
+
+#ifdef AMREX_USE_HDF5_ASYNC
+        boxdataset = H5Dcreate_async(grp, bdsname.c_str(), babox_id, boxdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT, es_id_g);
+#else
+        boxdataset = H5Dcreate(grp, bdsname.c_str(), babox_id, boxdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+#endif
+        if (boxdataset < 0) { std::cout << "H5Dcreate [" << bdsname << "] failed!" << std::endl; break; }
+
+        // Create a boxarray sorted by rank
+        std::map<int, Vector<Box> > gridMap;
+        for(int i(0); i < grids.size(); ++i) {
+            int gridProc(procMap[i]);
+            Vector<Box> &boxesAtProc = gridMap[gridProc];
+            boxesAtProc.push_back(grids[i]);
+        }
+        BoxArray sortedGrids(grids.size());
+        Vector<int> sortedProcs(grids.size());
+        int bIndex(0);
+        for(auto it = gridMap.begin(); it != gridMap.end(); ++it) {
+            int proc = it->first;
+            Vector<Box> &boxesAtProc = it->second;
+            for(int ii(0); ii < boxesAtProc.size(); ++ii) {
+                sortedGrids.set(bIndex, boxesAtProc[ii]);
+                sortedProcs[bIndex] = proc;
+                ++bIndex;
+            }
+        }
+
+        hsize_t  oflatdims[1];
+        oflatdims[0] = sortedGrids.size() + 1;
+        offsetdataspace = H5Screate_simple(1, oflatdims, NULL);
+#ifdef AMREX_USE_HDF5_ASYNC
+        offsetdataset = H5Dcreate_async(grp, odsname.c_str(), H5T_NATIVE_LLONG, offsetdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT, es_id_g);
+#else
+        offsetdataset = H5Dcreate(grp, odsname.c_str(), H5T_NATIVE_LLONG, offsetdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+#endif
+        if(offsetdataset < 0) { std::cout << "create offset dataset failed! ret = " << offsetdataset << std::endl; break;}
+
+        hsize_t centerdims[1];
+        centerdims[0]   = sortedGrids.size() ;
+        centerdataspace = H5Screate_simple(1, centerdims, NULL);
+#ifdef AMREX_USE_HDF5_ASYNC
+        centerdataset = H5Dcreate_async(grp, centername.c_str(), center_id, centerdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT, es_id_g);
+#else
+        centerdataset = H5Dcreate(grp, centername.c_str(), center_id, centerdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+#endif
+        if(centerdataset < 0) { std::cout << "Create center dataset failed! ret = " << centerdataset << std::endl; break;}
+
+        Vector<unsigned long long> offsets(sortedGrids.size() + 1);
+        unsigned long long currentOffset(0L);
+        for(int b(0); b < sortedGrids.size(); ++b) {
+            offsets[b] = currentOffset;
+            /* currentOffset += sortedGrids[b].numPts() * ncomp; */
+            currentOffset += sortedGrids[b].numPts();
+        }
+        offsets[sortedGrids.size()] = currentOffset;
+
+        Vector<unsigned long long> procOffsets(nProcs);
+        int posCount(0);
+        Vector<unsigned long long> procBufferSize(nProcs);
+        unsigned long long totalOffset(0);
+        for(auto it = gridMap.begin(); it != gridMap.end(); ++it) {
+            int proc = it->first;
+            Vector<Box> &boxesAtProc = it->second;
+            /* BL_ASSERT(posCount == proc); */
+            procOffsets[posCount] = totalOffset;
+            ++posCount;
+            procBufferSize[proc] = 0L;
+            for(int b(0); b < boxesAtProc.size(); ++b) {
+                /* procBufferSize[proc] += boxesAtProc[b].numPts() * ncomp; */
+                procBufferSize[proc] += boxesAtProc[b].numPts();
+            }
+            totalOffset += procBufferSize[proc];
+        }
+
+        if(ParallelDescriptor::IOProcessor()) {
+            int vbCount(0);
+            Vector<int> vbox(sortedGrids.size() * 2 * AMREX_SPACEDIM);
+            Vector<int> centering(sortedGrids.size() * AMREX_SPACEDIM);
+            for(int b(0); b < sortedGrids.size(); ++b) {
+                for(int i(0); i < AMREX_SPACEDIM; ++i) {
+                    vbox[(vbCount * 2 * AMREX_SPACEDIM) + i] = sortedGrids[b].smallEnd(i);
+                    vbox[(vbCount * 2 * AMREX_SPACEDIM) + i + AMREX_SPACEDIM] = sortedGrids[b].bigEnd(i);
+                    centering[vbCount * AMREX_SPACEDIM + i] = sortedGrids[b].ixType().test(i) ? 1 : 0;
+                }
+                ++vbCount;
+            }
+
+            // Only proc zero needs to write out this information
+#ifdef AMREX_USE_HDF5_ASYNC
+            ret = H5Dwrite_async(offsetdataset, H5T_NATIVE_LLONG, H5S_ALL, H5S_ALL, dxpl_ind, &(offsets[0]), es_id_g);
+#else
+            ret = H5Dwrite(offsetdataset, H5T_NATIVE_LLONG, H5S_ALL, H5S_ALL, dxpl_ind, &(offsets[0]));
+#endif
+            if(ret < 0) { std::cout << "Write offset dataset failed! ret = " << ret << std::endl; }
+
+#ifdef AMREX_USE_HDF5_ASYNC
+            ret = H5Dwrite_async(centerdataset, center_id, H5S_ALL, H5S_ALL, dxpl_ind, &(centering[0]), es_id_g);
+#else
+            ret = H5Dwrite(centerdataset, center_id, H5S_ALL, H5S_ALL, dxpl_ind, &(centering[0]));
+#endif
+            if(ret < 0) { std::cout << "Write center dataset failed! ret = " << ret << std::endl; }
+
+#ifdef AMREX_USE_HDF5_ASYNC
+            ret = H5Dwrite_async(boxdataset, babox_id, H5S_ALL, H5S_ALL, dxpl_ind, &(vbox[0]), es_id_g);
+#else
+            ret = H5Dwrite(boxdataset, babox_id, H5S_ALL, H5S_ALL, dxpl_ind, &(vbox[0]));
+#endif
+            if(ret < 0) { std::cout << "Write box dataset failed! ret = " << ret << std::endl; }
+        } // end IOProcessor
+
+        hsize_t hs_procsize[1], hs_allprocsize[1], ch_offset[1];
+
+        ch_offset[0]       = procOffsets[myProc];          // ---- offset on this proc
+        hs_procsize[0]     = procBufferSize[myProc];       // ---- size of buffer on this proc
+        hs_allprocsize[0]  = offsets[sortedGrids.size()];  // ---- size of buffer on all procs
+
+        hid_t dataspace    = H5Screate_simple(1, hs_allprocsize, NULL);
+        hid_t memdataspace = H5Screate_simple(1, hs_procsize, NULL);
+
+        H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, ch_offset, NULL, hs_procsize, NULL);
+
+        Vector<Real> a_buffer(procBufferSize[myProc]*ncomp, -1.0);
+        Vector<Real> a_buffer_ind(procBufferSize[myProc], -1.0);
+        const MultiFab* data;
+        std::unique_ptr<MultiFab> mf_tmp;
+        if (mf[level]->nGrowVect() != 0) {
+            mf_tmp = std::make_unique<MultiFab>(mf[level]->boxArray(),
+                                                mf[level]->DistributionMap(),
+                                                mf[level]->nComp(), 0, MFInfo(),
+                                                mf[level]->Factory());
+            MultiFab::Copy(*mf_tmp, *mf[level], 0, 0, mf[level]->nComp(), 0);
+            data = mf_tmp.get();
+        } else {
+            data = mf[level];
+        }
+
+        hid_t dataset;
+        char dataname[64];
+
+        BL_PROFILE_VAR("H5DwriteData", h5dwg);
+
+        for (int jj = 0; jj < ncomp; jj++) {
+
+            Long writeDataItems(0), writeDataSize(0);
+            for(MFIter mfi(*data); mfi.isValid(); ++mfi) {
+                const FArrayBox &fab = (*data)[mfi];
+                writeDataItems = fab.box().numPts();
+                if(doConvert) {
+                    RealDescriptor::convertFromNativeFormat(static_cast<void *> (a_buffer.dataPtr()),
+                                                            writeDataItems * ncomp, fab.dataPtr(), *whichRD);
+
+                } else {    // ---- copy from the fab
+                    memcpy(static_cast<void *> (a_buffer.dataPtr()),
+                           fab.dataPtr(), writeDataItems * ncomp * whichRDBytes);
+                }
+
+                // Extract individual variable data
+                memcpy(static_cast<void *> (a_buffer_ind.dataPtr() + writeDataSize), 
+                       static_cast<void *> (a_buffer.dataPtr() + jj*writeDataItems), 
+                       writeDataItems * whichRDBytes);
+                           
+                writeDataSize += writeDataItems;
+            }
+
+            sprintf(dataname, "data:datatype=%d", jj);
+#ifdef AMREX_USE_HDF5_ASYNC
+            dataset = H5Dcreate_async(grp, dataname, H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, dcpl, H5P_DEFAULT, es_id_g);
+            if(dataset < 0) std::cout << ParallelDescriptor::MyProc() << "create data failed!  ret = " << dataset << std::endl;
+            ret = H5Dwrite_async(dataset, H5T_NATIVE_DOUBLE, memdataspace, dataspace, dxpl_col, a_buffer_ind.dataPtr(), es_id_g);
+            if(ret < 0) { std::cout << ParallelDescriptor::MyProc() << "Write data failed!  ret = " << ret << std::endl; break; }
+            H5Dclose_async(dataset, es_id_g);
+#else
+            dataset = H5Dcreate(grp, dataname, H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, dcpl, H5P_DEFAULT);
+            if(dataset < 0) std::cout << ParallelDescriptor::MyProc() << "create data failed!  ret = " << dataset << std::endl;
+            ret = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, memdataspace, dataspace, dxpl_col, a_buffer_ind.dataPtr());
+            if(ret < 0) { std::cout << ParallelDescriptor::MyProc() << "Write data failed!  ret = " << ret << std::endl; break; }
+            H5Dclose(dataset);
+#endif
+        }
+
+        BL_PROFILE_VAR_STOP(h5dwg);
+
+        H5Sclose(memdataspace);
+        H5Sclose(dataspace);
+        H5Sclose(offsetdataspace);
+        H5Sclose(centerdataspace);
+        H5Sclose(boxdataspace);
+
+#ifdef AMREX_USE_HDF5_ASYNC
+        H5Dclose_async(offsetdataset, es_id_g);
+        H5Dclose_async(centerdataset, es_id_g);
+        H5Dclose_async(boxdataset, es_id_g);
+        H5Gclose_async(grp, es_id_g);
+#else
+        H5Dclose(offsetdataset);
+        H5Dclose(centerdataset);
+        H5Dclose(boxdataset);
+        H5Gclose(grp);
+#endif
+    } // For group
+
+    BL_PROFILE_VAR_STOP(h5dwd);
+
+    H5Tclose(center_id);
+    H5Tclose(babox_id);
+    H5Pclose(fapl);
+    H5Pclose(dxpl_col);
+    H5Pclose(dxpl_ind);
+    H5Pclose(dcpl);
+
+#ifdef AMREX_USE_HDF5_ASYNC
+    H5Fclose_async(fid, es_id_g);
+#else
+    H5Fclose(fid);
+#endif
+
+    delete whichRD;
+} // WriteMultiLevelPlotfileHDF52
+
 void
 WriteSingleLevelPlotfileHDF5 (const std::string& plotfilename,
                           const MultiFab& mf, const Vector<std::string>& varnames,
                           const Geometry& geom, Real time, int level_step,
+                          std::string &compression,
                           const std::string &versionName,
                           const std::string &levelPrefix,
                           const std::string &mfPrefix,
@@ -779,8 +1214,28 @@ WriteSingleLevelPlotfileHDF5 (const std::string& plotfilename,
     Vector<int> level_steps(1,level_step);
     Vector<IntVect> ref_ratio;
 
-    WriteMultiLevelPlotfileHDF5(plotfilename, 1, mfarr, varnames, geomarr, time,
-                            level_steps, ref_ratio, versionName, levelPrefix, mfPrefix, extra_dirs);
+    WriteMultiLevelPlotfileHDF5(plotfilename, 1, mfarr, varnames, geomarr, time, level_steps, ref_ratio, 
+                                compression, versionName, levelPrefix, mfPrefix, extra_dirs);
+}
+
+
+void
+WriteSingleLevelPlotfileHDF52 (const std::string& plotfilename,
+                          const MultiFab& mf, const Vector<std::string>& varnames,
+                          const Geometry& geom, Real time, int level_step,
+                          std::string &compression,
+                          const std::string &versionName,
+                          const std::string &levelPrefix,
+                          const std::string &mfPrefix,
+                          const Vector<std::string>& extra_dirs)
+{
+    Vector<const MultiFab*> mfarr(1,&mf);
+    Vector<Geometry> geomarr(1,geom);
+    Vector<int> level_steps(1,level_step);
+    Vector<IntVect> ref_ratio;
+
+    WriteMultiLevelPlotfileHDF52(plotfilename, 1, mfarr, varnames, geomarr, time, level_steps, ref_ratio, 
+                                compression, versionName, levelPrefix, mfPrefix, extra_dirs);
 }
 
 } // namespace amrex
