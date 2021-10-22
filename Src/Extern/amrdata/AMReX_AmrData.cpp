@@ -933,7 +933,9 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType /*fil
     plotVars.resize(nComp);
 
     Vector<int> pMap(fabBoxArray.size());
-    pMap[BoxZero] = iopNum;
+    if (!pMap.empty()) {
+        pMap[BoxZero] = iopNum;
+    }
     DistributionMapping dMap(std::move(pMap));
 
     MFInfo Fab_noallocate;
@@ -1966,6 +1968,7 @@ void AmrData::Interp(FArrayBox &fine, FArrayBox &crse,
                      const Box &fine_box, int lrat)
 {
 #if (BL_SPACEDIM == 1)
+    amrex::ignore_unused(fine, crse, fine_box, lrat);
     amrex::Abort("AmrData::MinMax:  should not be here for 1d.");
 #else
    BL_ASSERT(fine.box().contains(fine_box));
