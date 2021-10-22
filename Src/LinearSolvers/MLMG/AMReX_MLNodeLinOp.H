@@ -44,7 +44,7 @@ public:
                         StateMode s_mode, const MLMGBndry* bndry=nullptr) const final override;
 
     virtual void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
-                         bool skip_fillboundary=false) const final override;
+                         bool skip_fillboundary=false) const override;
 
     virtual void solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                    const MultiFab* crse_bcdata=nullptr) override;

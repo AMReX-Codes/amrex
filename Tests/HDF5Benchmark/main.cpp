@@ -96,8 +96,8 @@ void test ()
 
     Vector<int> level_steps(nlevs, 0);
 
-    if (compression.compare("None#0") != 0)
-        std::cout << "Compression: " << compression << std::endl;
+    /* if (compression.compare("None#0") != 0) */
+    /*     std::cout << "Compression: " << compression << std::endl; */
 
     char fname[128];
     for (int ts = 0; ts < nplotfile; ts++) {
@@ -117,8 +117,13 @@ void test ()
             fflush(stdout);
         }
 #ifdef AMREX_USE_HDF5
+#ifdef AMREX_USE_HDF5_ZFP
         WriteMultiLevelPlotfileHDF52(fname, nlevs, amrex::GetVecOfConstPtrs(mf), varnames, 
                                     geom, time, level_steps, ref_ratio, compression);
+#else
+        WriteMultiLevelPlotfileHDF5(fname, nlevs, amrex::GetVecOfConstPtrs(mf), varnames, 
+                                    geom, time, level_steps, ref_ratio);
+#endif
 #else
         WriteMultiLevelPlotfile(fname, nlevs, amrex::GetVecOfConstPtrs(mf),
                                 varnames, geom, time, level_steps, ref_ratio);

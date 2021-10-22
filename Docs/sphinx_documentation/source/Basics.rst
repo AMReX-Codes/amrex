@@ -208,11 +208,19 @@ ParmParse
 
 :cpp:`ParmParse` in AMReX_ParmParse.H is a class providing a database for the
 storage and retrieval of command-line and input-file arguments. When
-:cpp:`amrex::Initialize(int& argc, char**& argv)` is called, the first command-line argument after the
-executable name (if there is one and it does not contain character =) is taken
-to be the inputs file, and the contents in the file are used to initialize the
+:cpp:`amrex::Initialize(int& argc, char**& argv)` is called, the first command-line
+argument after the executable name (if there is one, and it does not contain the character
+'=' or start with '\-') is taken
+to be the inputs file, and the contents of the file are used to initialize the
 :cpp:`ParmParse` database. The rest of the command-line arguments are also
-parsed by :cpp:`ParmParse`. The format of the inputs file is a series of
+parsed by :cpp:`ParmParse`, with the exception of those following a '\-\-' which signals
+command line sharing (see section :ref:`sec:basics:parmparse:sharingCL` ).
+
+Inputs File
+-----------
+
+The format of the inputs
+file is a series of
 definitions in the form of ``prefix.name = value value ....`` For each line,
 text after # are comments. Here is an example inputs file.
 
@@ -265,11 +273,17 @@ Note that when there are multiple definitions for a parameter :cpp:`ParmParse`
 by default returns the last one. The difference between :cpp:`query` and
 :cpp:`get` should also be noted. It is a runtime error if :cpp:`get` fails to
 get the value, whereas :cpp:`query` returns an error code without generating a
-runtime error that will abort the run.  It is sometimes convenient to
+runtime error that will abort the run.
+
+Overriding Parameters with Command-Line Arguments
+-------------------------------------------------
+
+It is sometimes convenient to
 override parameters with command-line arguments without modifying the inputs
 file. The command-line arguments after the inputs file are added later than the
-file to the database and are therefore used by default. For example, one can
-run with
+file to the database and are therefore used by default. For example,
+to change the value of :cpp:`ncells` and :cpp:`hydro.cfl`, one can
+run with:
 
 .. highlight:: console
 
@@ -277,7 +291,9 @@ run with
 
         myexecutable myinputsfile ncells="64 32 16" hydro.cfl=0.9
 
-to change the value of :cpp:`ncells` and :cpp:`hydro.cfl`.
+
+Setting Parameter Values Inside Functions
+-----------------------------------------
 
 Sometimes an application code may want to set a default that differs from the
 default in AMReX.  In this case, it is often convenient to define a function that
@@ -304,8 +320,58 @@ Then we would pass :cpp:`add_par` into :cpp:`amrex::Initialize`:
 
     amrex::Initialize(argc, argv, true, MPI_COMM_WORLD, add_par);
 
-This value replaces the current default value of true in AMReX itself, but
-can still be over-written by setting a value in the inputs file.
+.. note::
+
+   Although this value replaces the current default value of true in AMReX itself, it
+   will still be over-written by setting a value in the inputs file.
+
+.. _sec:basics:parmparse:sharingCL:
+
+Sharing the Command Line
+------------------------
+
+In some cases we want AMReX to only read some of the command line
+arguments -- this happens, for example, when we are going to use AMReX
+in cooperation with another code package and that code also takes arguments.
+
+Consider:
+
+.. highlight:: console
+
+::
+
+    main2d.gnu.exe inputs amrex.v=1 amrex.fpe_trap_invalid=1 -- -tao_monitor
+
+In this example, AMReX will parse the inputs file and the optional AMReX
+command line arguments, but will ignore arguments after the double dashes.
+
+Command Line Flags
+------------------
+
+AMReX allows application codes to parse flags such as ``-h`` or ``--help``
+while still making use of ParmParse for parsing other runtime parameters but only
+if it is the first argument after the executable. If the first argument following
+the executable name begins with a dash, AMReX will initialize without reading
+any parameters and the application code may then parse the command line and
+handle those cases. Several built in functions are available to help do this.
+They are briefly introduced in the table below.
+
+.. table:: AMReX functions for parsing the command line.
+
+   +-------------------------------------------+--------+-------------------------------------------+
+   | Function                                  | Type   | Purpose                                   |
+   +===========================================+========+===========================================+
+   | ``amrex::get_command()``                  | String | Get the entire command line.              |
+   +-------------------------------------------+--------+-------------------------------------------+
+   | ``amrex::get_argument_count()``           | Int    | Get the number of command line arguments  |
+   |                                           |        | after the executable.                     |
+   +-------------------------------------------+--------+-------------------------------------------+
+   | ``amrex:get_command_argument(int n)``     | String | Returns the n-th argument after           |
+   |                                           |        | the exectuable.                           |
+   +-------------------------------------------+--------+-------------------------------------------+
+
+
+
 
 .. _sec:basics:parser:
 
@@ -427,21 +493,6 @@ inserted by the compiler) do not function properly after
 (e.g., a pair of curly braces or a separate function) to make sure
 resources are properly freed.
 
-Sharing the Command Line
-------------------------
-
-In some cases we want AMReX to only read part of the command line -- this happens, for example, when we
-are going to use AMReX in cooperation with another code package and that code also takes command-line
-arguments.
-
-.. highlight:: console
-
-::
-
-    main2d*.exe inputs amrex.v=1 amrex.fpe_trap_invalid=1 -- -tao_monitor
-
-then AMReX will parse the inputs file and the optional AMReX's command
-line arguments, but will ignore everything after the double dashes.
 
 .. _sec:basics:amrgrids:
 

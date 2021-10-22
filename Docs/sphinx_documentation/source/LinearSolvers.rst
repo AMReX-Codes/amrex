@@ -109,11 +109,16 @@ and then we can use the ``MLMG`` member function
 
 to solve the problem given an initial guess and a right-hand side.
 Zero is a perfectly fine initial guess.  The two :cpp:`Reals` in the argument
-list are the targeted relative and absolute error tolerances.
-The solver will terminate when one of these targets is met.
-Set the absolute tolerance to zero if one
-does not have a good value for it.  The return value of :cpp:`solve`
-is the max-norm error.
+list are the targeted relative and absolute error tolerances. The relative
+error tolerance is hard-coded to be at least :math:`10^{-16}`.
+Given the linear system :math:`Ax=b`, the solver will terminate when the
+max-norm of the residual (:math:`b-Ax`) is less than
+:cpp:`std::max(a_tol_abs, a_tol_rel*max_norm)` where :cpp:`max_norm`
+is the max-norm of the rhs, :math:`b`, if the flag :cpp:`always_use_bnorm` is
+set to True or if the rhs max-norm is greater than or equal to the max-norm error
+of the initial guess, otherwise :cpp:`max_norm` is equal to the max-norm error
+of the initial guess.  Set the absolute tolerance to zero if one does not have a
+good value for it.  The return value of :cpp:`solve` is the max-norm error.
 
 After the solver returns successfully, if needed, we can call
 

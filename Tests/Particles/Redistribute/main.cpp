@@ -386,6 +386,8 @@ void testRedistribute ()
 
     auto np_old = pc.TotalNumberOfParticles();
 
+    if (params.sort) pc.SortParticlesByCell();
+
     for (int i = 0; i < params.nsteps; ++i)
     {
         pc.moveParticles(params.move_dir, params.do_random);

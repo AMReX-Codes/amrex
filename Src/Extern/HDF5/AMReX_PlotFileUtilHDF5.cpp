@@ -468,9 +468,9 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
     ret = H5Z_zfp_initialize();
     if (ret < 0) amrex::Abort("ZFP initialize failed!");
 
-    char *chunk_env = NULL, *mode_env = NULL, *value_env = NULL;
+    const char *chunk_env = NULL, *mode_env = NULL, *value_env = NULL;
     double comp_value = -1.0;
-    hsize_t chunk_dim = 1048576;
+    hsize_t chunk_dim = 1024;
 
     chunk_env = getenv("HDF5_CHUNK_SIZE");
     if (chunk_env != NULL)
@@ -482,14 +482,14 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
 
     /* mode_env = getenv("HDF5_COMPRESSION_MODE"); */
     /* value_env = getenv("HDF5_COMPRESSION_VALUE"); */
-    /* if (value_env != NULL) */
-    /*     comp_value = atof(value_env); */
 
     std::string::size_type pos = compression.find('#');
     if (pos != std::string::npos) {
         mode_env = compression.substr(0, pos).c_str();
         value_env = compression.substr(pos+1).c_str();
     }
+    if (value_env != NULL)
+        comp_value = atof(value_env);
         
     if (mode_env != NULL && strcmp(mode_env, "None") != 0) {
         if (strcmp(mode_env, "ZFP_RATE") == 0)
@@ -885,9 +885,9 @@ void WriteMultiLevelPlotfileHDF52 (const std::string& plotfilename,
     ret = H5Z_zfp_initialize();
     if (ret < 0) amrex::Abort("ZFP initialize failed!");
 
-    char *chunk_env = NULL, *mode_env = NULL, *value_env = NULL;
+    const char *chunk_env = NULL, *mode_env = NULL, *value_env = NULL;
     double comp_value = -1.0;
-    hsize_t chunk_dim = 1048576;
+    hsize_t chunk_dim = 1024;
 
     chunk_env = getenv("HDF5_CHUNK_SIZE");
     if (chunk_env != NULL)
@@ -899,14 +899,14 @@ void WriteMultiLevelPlotfileHDF52 (const std::string& plotfilename,
 
     /* mode_env = getenv("HDF5_COMPRESSION_MODE"); */
     /* value_env = getenv("HDF5_COMPRESSION_VALUE"); */
-    /* if (value_env != NULL) */
-    /*     comp_value = atof(value_env); */
 
     std::string::size_type pos = compression.find('#');
     if (pos != std::string::npos) {
         mode_env = compression.substr(0, pos).c_str();
         value_env = compression.substr(pos+1).c_str();
     }
+    if (value_env != NULL)
+        comp_value = atof(value_env);
         
     if (mode_env != NULL && strcmp(mode_env, "None") != 0) {
         if (strcmp(mode_env, "ZFP_RATE") == 0)

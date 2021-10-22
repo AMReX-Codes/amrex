@@ -268,6 +268,7 @@ void HypreIJIface::boomeramg_precond_configure(const std::string& prefix)
     hpp("bamg_agg_interp_type", HYPRE_BoomerAMGSetAggInterpType);
     hpp("bamg_agg_pmax_elmts", HYPRE_BoomerAMGSetAggPMaxElmts);
     hpp("bamg_trunc_factor", HYPRE_BoomerAMGSetTruncFactor, 0.1);
+    hpp("bamg_set_restriction", HYPRE_BoomerAMGSetRestriction, 0);
 
     if (hpp.pp.contains("bamg_non_galerkin_tol")) {
         hpp("bamg_non_galerkin_tol", HYPRE_BoomerAMGSetNonGalerkinTol);

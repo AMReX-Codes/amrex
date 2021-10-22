@@ -62,10 +62,6 @@ target_sources( amrex
    AMReX_BArena.cpp
    AMReX_CArena.H
    AMReX_CArena.cpp
-   AMReX_DArena.H
-   AMReX_DArena.cpp
-   AMReX_EArena.H
-   AMReX_EArena.cpp
    AMReX_PArena.H
    AMReX_PArena.cpp
    AMReX_BLProfiler.H
