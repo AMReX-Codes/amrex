@@ -14,7 +14,6 @@
 #include <list>
 #include <string>
 
-//using namespace amrex;
 
 namespace amrex {
 
