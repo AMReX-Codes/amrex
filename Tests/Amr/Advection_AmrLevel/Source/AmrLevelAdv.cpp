@@ -4,8 +4,9 @@
 #include <AMReX_GpuMemory.H>
 
 #include "AmrLevelAdv.H"
-#include "Adv_F.H"
+#include "Prob.H"
 #include "Kernels.H"
+
 
 using namespace amrex;
 
@@ -193,21 +194,9 @@ AmrLevelAdv::initData ()
     MultiFab& S_tmp = S_new;
 #endif
 
-    for (MFIter mfi(S_tmp); mfi.isValid(); ++mfi)
-    {
-        const Box& box     = mfi.validbox();
-        const int* lo      = box.loVect();
-        const int* hi      = box.hiVect();
+    // Initialize data on MultiFab
+    initdata(S_tmp, geom);
 
-        
-        // const Array4<Real>& phi = S_tmp.array(mfi); // HACK
-
-
-        // Use a Fortran subroutine to initialize data on CPU.
-        initdata(&level, &cur_time, AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi),
-                 BL_TO_FORTRAN_3D(S_tmp[mfi]), AMREX_ZFILL(dx),
-                 AMREX_ZFILL(prob_lo));
-    }
 
 #ifdef AMREX_USE_GPU
     // Explicitly copy data to GPU.
