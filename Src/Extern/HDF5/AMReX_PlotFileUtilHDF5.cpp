@@ -487,10 +487,10 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
     if (pos != std::string::npos) {
         mode_env = compression.substr(0, pos).c_str();
         value_env = compression.substr(pos+1).c_str();
+        if (value_env != NULL) {
+            comp_value = atof(value_env);
+        }
     }
-
-    if (value_env != NULL)
-        comp_value = atof(value_env);
 
     if (mode_env != NULL && strcmp(mode_env, "None") != 0) {
         if (strcmp(mode_env, "ZFP_RATE") == 0)
@@ -905,10 +905,11 @@ void WriteMultiLevelPlotfileHDF52 (const std::string& plotfilename,
     if (pos != std::string::npos) {
         mode_env = compression.substr(0, pos).c_str();
         value_env = compression.substr(pos+1).c_str();
+        if (value_env != NULL) {
+            comp_value = atof(value_env);
+        }
     }
-    if (value_env != NULL)
-        comp_value = atof(value_env);
-        
+
     if (mode_env != NULL && strcmp(mode_env, "None") != 0) {
         if (strcmp(mode_env, "ZFP_RATE") == 0)
             H5Pset_zfp_rate(dcpl, comp_value);
