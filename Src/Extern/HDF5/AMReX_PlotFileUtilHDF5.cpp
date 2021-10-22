@@ -906,7 +906,6 @@ void WriteMultiLevelPlotfileHDF52 (const std::string& plotfilename,
         mode_env = compression.substr(0, pos).c_str();
         value_env = compression.substr(pos+1).c_str();
     }
-
     if (value_env != NULL)
         comp_value = atof(value_env);
         
