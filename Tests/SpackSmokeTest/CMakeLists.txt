@@ -51,7 +51,6 @@ target_sources(SingleVortex
    ${_src_dir}/bc_nullfill.cpp
    ${_src_dir}/AmrLevelAdv.cpp
    ${_src_dir}/AmrLevelAdv.H
-   ${_src_dir}/Adv_F.H
    ${_src_dir}/Adv.cpp
    ${_src_dir}/main.cpp
 
@@ -61,7 +60,7 @@ target_sources(SingleVortex
    ${_src_dir}/Src_K/Adv_K.H
 
    ${_input_dir}/Prob_Parm.H
-   ${_input_dir}/Prob.f90
+   ${_input_dir}/Prob.cpp
    ${_input_dir}/Adv_prob.cpp
    ${_input_dir}/face_velocity_${AMReX_SPACEDIM}d_K.H
    )
