@@ -488,9 +488,10 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
         mode_env = compression.substr(0, pos).c_str();
         value_env = compression.substr(pos+1).c_str();
     }
+
     if (value_env != NULL)
         comp_value = atof(value_env);
-        
+
     if (mode_env != NULL && strcmp(mode_env, "None") != 0) {
         if (strcmp(mode_env, "ZFP_RATE") == 0)
             H5Pset_zfp_rate(dcpl, comp_value);
@@ -905,6 +906,7 @@ void WriteMultiLevelPlotfileHDF52 (const std::string& plotfilename,
         mode_env = compression.substr(0, pos).c_str();
         value_env = compression.substr(pos+1).c_str();
     }
+
     if (value_env != NULL)
         comp_value = atof(value_env);
         
@@ -1137,10 +1139,10 @@ void WriteMultiLevelPlotfileHDF52 (const std::string& plotfilename,
                 }
 
                 // Extract individual variable data
-                memcpy(static_cast<void *> (a_buffer_ind.dataPtr() + writeDataSize), 
-                       static_cast<void *> (a_buffer.dataPtr() + jj*writeDataItems), 
+                memcpy(static_cast<void *> (a_buffer_ind.dataPtr() + writeDataSize),
+                       static_cast<void *> (a_buffer.dataPtr() + jj*writeDataItems),
                        writeDataItems * whichRDBytes);
-                           
+
                 writeDataSize += writeDataItems;
             }
 
@@ -1214,7 +1216,7 @@ WriteSingleLevelPlotfileHDF5 (const std::string& plotfilename,
     Vector<int> level_steps(1,level_step);
     Vector<IntVect> ref_ratio;
 
-    WriteMultiLevelPlotfileHDF5(plotfilename, 1, mfarr, varnames, geomarr, time, level_steps, ref_ratio, 
+    WriteMultiLevelPlotfileHDF5(plotfilename, 1, mfarr, varnames, geomarr, time, level_steps, ref_ratio,
                                 compression, versionName, levelPrefix, mfPrefix, extra_dirs);
 }
 
@@ -1234,7 +1236,7 @@ WriteSingleLevelPlotfileHDF52 (const std::string& plotfilename,
     Vector<int> level_steps(1,level_step);
     Vector<IntVect> ref_ratio;
 
-    WriteMultiLevelPlotfileHDF52(plotfilename, 1, mfarr, varnames, geomarr, time, level_steps, ref_ratio, 
+    WriteMultiLevelPlotfileHDF52(plotfilename, 1, mfarr, varnames, geomarr, time, level_steps, ref_ratio,
                                 compression, versionName, levelPrefix, mfPrefix, extra_dirs);
 }
 
