@@ -2,10 +2,10 @@
 #include <AMReX_MultiFab.H>
 
 /**
- * Initalize problem
+ * Initialize Data on Multifab
  *
- * \param S_tmp
- * \param geom
+ * \param S_tmp Pointer to Multifab where data is to be initialized.
+ * \param geom Pointer to Multifab's geometry data.
  *
  */
 
