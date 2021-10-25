@@ -29,7 +29,8 @@ list(TRANSFORM _sources PREPEND Source/)
 ###############################################################################
 set(_sv_exe_dir Exec/SingleVortex/)
 
-set(_sv_sources face_velocity_${AMReX_SPACEDIM}d_K.H Prob_Parm.H Adv_prob.cpp Prob.f90)
+#set(_sv_sources face_velocity_${AMReX_SPACEDIM}d_K.H Prob_Parm.H Adv_prob.cpp Prob.f90)
+set(_sv_sources face_velocity_${AMReX_SPACEDIM}d_K.H Prob_Parm.H Adv_prob.cpp Prob.cpp Prob.H)
 list(TRANSFORM _sv_sources PREPEND ${_sv_exe_dir})
 list(APPEND _sv_sources ${_sources})
 
@@ -52,7 +53,8 @@ unset(_sv_exe_dir)
 ###############################################################################
 set(_uv_exe_dir Exec/UniformVelocity/)
 
-set(_uv_sources face_velocity_${AMReX_SPACEDIM}d_K.H Prob_Parm.H Adv_prob.cpp Prob.f90)
+#set(_uv_sources face_velocity_${AMReX_SPACEDIM}d_K.H Prob_Parm.H Adv_prob.cpp Prob.f90)
+set(_sv_sources face_velocity_${AMReX_SPACEDIM}d_K.H Prob_Parm.H Adv_prob.cpp Prob.cpp Prob.H)
 list(TRANSFORM _uv_sources PREPEND ${_uv_exe_dir})
 list(APPEND _uv_sources ${_sources})
 
