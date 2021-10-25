@@ -173,10 +173,7 @@ AmrLevelAdv::initData ()
     //
     // Loop over grids.
     //
-    const Real* dx  = geom.CellSize();
-    const Real* prob_lo = geom.ProbLo();
     MultiFab& S_new = get_new_data(Phi_Type);
-    Real cur_time   = state[Phi_Type].curTime();
 
     if (verbose) {
         amrex::Print() << "Initializing the data at level " << level << std::endl;
