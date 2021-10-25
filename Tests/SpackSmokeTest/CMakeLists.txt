@@ -64,11 +64,3 @@ target_sources(SingleVortex
    ${_input_dir}/Adv_prob.cpp
    ${_input_dir}/face_velocity_${AMReX_SPACEDIM}d_K.H
    )
-
-#add_custom_command(
-#   TARGET install_test
-#   POST_BUILD
-#   COMMAND ${CMAKE_COMMAND} -E echo "Running test project"
-#   COMMAND ${PROJECT_BINARY_DIR}/install_test ${_input_dir}/inputs max_step=1 > out.txt
-#   WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-#   )
