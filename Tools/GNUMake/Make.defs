@@ -42,8 +42,6 @@ ifeq ($(USE_DPCPP),TRUE)
   USE_HIP := FALSE
   # disable ccache for now
   USE_CCACHE := FALSE
-  # Make.unknown's mpi checking does not work with mpiicpc
-  NO_MPI_CHECKING := TRUE
   ifdef USE_ONEDPL
     USE_ONEDPL := $(strip $(USE_ONEDPL))
   else
@@ -1019,10 +1017,6 @@ FINAL_LIBS = $(libraries)
 ifeq ($(USE_DPCPP),TRUE)
 
     ifeq ($(USE_MPI),TRUE)
-        CC  = mpiicc
-        CXX = mpiicpc
-        FC  = mpiifort
-        F90 = mpiifort
         CXXFLAGS += -cxx=dpcpp
     endif
 

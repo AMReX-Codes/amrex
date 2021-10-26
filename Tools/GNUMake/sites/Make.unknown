@@ -14,6 +14,17 @@ ifeq ($(USE_MPI),TRUE)
   FC  := mpif90
   F90 := mpif90
 
+  ifeq ($(USE_DPCPP),TRUE)
+     ifneq ($(findstring icpc, $(shell mpiicpc -show 2>&1)),)
+         CC  := mpiicc
+         CXX := mpiicpc
+         FC  := mpiifort
+         F90 := mpiifort
+         mpicxx_link_libs := -lmpi
+     endif
+  endif
+
+
   ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
     MPI_OTHER_COMP := mpicxx
   else
