@@ -39,7 +39,7 @@ print_usage (int,
 std::string
 getFileRoot(const std::string& infile)
 {
-  vector<std::string> tokens = Tokenize(infile,std::string("/"));
+  std::vector<std::string> tokens = Tokenize(infile,std::string("/"));
   return tokens[tokens.size()-1];
 }
 
@@ -129,4 +129,3 @@ main (int   argc,
   amrex::Finalize();
   return 0;
 }
-

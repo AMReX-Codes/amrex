@@ -554,7 +554,7 @@ int main_main()
     }
 
     int exit_code = 0;
-    for (unsigned i = 0; i < header1.num_comp; ++i) {
+    for (int i = 0; i < header1.num_comp; ++i) {
         if (global_norms[i+header1.num_comp] > rtol) exit_code = 1;
     }
 

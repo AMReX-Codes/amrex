@@ -15,13 +15,12 @@ USE_OMP   = FALSE
 
 ###################################################
 
-#EBASE     = particle_compare
+EBASE     = particle_compare
 #EBASE     = PlotfileToMatLab
 #EBASE     = PlotfileToTurb
 #EBASE     = WritePlotfileToASCII
 #EBASE     = MultiFabToMatLab
-EBASE     = PtwisePltTransform
-#EBASE     = PlotfileGradient
+#EBASE     = PtwisePltTransform
 #EBASE     = cube_extract
 #EBASE     = HorizontalAvg
 #EBASE     = IntegrateComp
@@ -33,6 +32,10 @@ else ifeq ($(EBASE), PlotfileToTurb)
   NEEDS_f90_SRC = TRUE
 else
   NEEDS_f90_SRC = FALSE
+endif
+
+ifeq ($(EBASE),particle_compare)
+  DIM = 3
 endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
@@ -53,3 +56,6 @@ vpath %.f   : . $(vpathdir)
 vpath %.f90 : . $(vpathdir)
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
+
+clean::
+	$(SILENT) $(RM) particle_compare.exe
