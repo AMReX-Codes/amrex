@@ -54,6 +54,11 @@ ifeq ($(WARN_ALL),TRUE)
   CFLAGS += $(warning_flags)
 endif
 
+# disable warning: comparison with infinity always evaluates to false in fast floating point modes [-Wtautological-constant-compare]
+#                  return std::isinf(m);
+# appeared since 2021.4.0
+CXXFLAGS += -Wno-tautological-constant-compare
+
 ifeq ($(WARN_ERROR),TRUE)
   CXXFLAGS += -Werror
   CFLAGS += -Werror
