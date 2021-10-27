@@ -29,10 +29,8 @@ ifeq ($(DEBUG),TRUE)
 
 else
 
-  CXXFLAGS += -O3 # // xxxx DPCPP: todo -g in beta6 causes a lot of warning messages
-  CFLAGS   += -O3 #                       and makes linking much slower
-#  CXXFLAGS += -g -O3
-#  CFLAGS   += -g -O3
+  CXXFLAGS += -g1 -O3 # // xxxx DPCPP: todo -g in beta6 causes a lot of warning messages
+  CFLAGS   += -g1 -O3 #                       and makes linking much slower
   FFLAGS   += -g -O3
   F90FLAGS += -g -O3
 
