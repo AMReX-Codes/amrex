@@ -1016,10 +1016,6 @@ FINAL_LIBS = $(libraries)
 
 ifeq ($(USE_DPCPP),TRUE)
 
-    ifeq ($(USE_MPI),TRUE)
-        CXXFLAGS += -cxx=dpcpp
-    endif
-
 else ifeq ($(USE_HIP),TRUE)
 
     LINKFLAGS = $(HIPCC_FLAGS)
