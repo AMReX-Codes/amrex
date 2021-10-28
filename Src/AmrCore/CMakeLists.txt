@@ -29,6 +29,10 @@ target_sources(amrex
    AMReX_Interp_${AMReX_SPACEDIM}D_C.H
    AMReX_MFInterp_C.H
    AMReX_MFInterp_${AMReX_SPACEDIM}D_C.H
+   AMReX_InterpFaceRegister.H
+   AMReX_InterpFaceRegister.cpp
+   AMReX_InterpFaceReg_C.H
+   AMReX_InterpFaceReg_${AMReX_SPACEDIM}D_C.H
    AMReX_AmrCoreFwd.H
    )
 
