@@ -39,7 +39,8 @@ sudo apt-get install -y --no-install-recommends \
 # add this to the above command once ROCm 4.5 is properly rolled out
 set +e
 sudo apt-get install -y --no-install-recommends \
-    rocrand-devel rocprim-devel
+    rocrand-dev     \
+    rocprim-dev
 set -e
 
 # activate
