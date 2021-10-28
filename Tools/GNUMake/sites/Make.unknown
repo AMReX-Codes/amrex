@@ -4,6 +4,7 @@
 
 os_type := $(shell uname)
 
+ifeq ($(USE_MPI),TRUE)
 ifeq ($(USE_DPCPP),TRUE)
    ifeq ($(shell mpiicpc -show > /dev/null 2>&1; echo $$?), 0)
       CC  := mpiicc
@@ -13,6 +14,7 @@ ifeq ($(USE_DPCPP),TRUE)
       CXXFLAGS += -cxx=dpcpp
       NO_MPI_CHECKING = TRUE
    endif
+endif
 endif
 
 ifneq ($(NO_CONFIG_CHECKING),TRUE)
