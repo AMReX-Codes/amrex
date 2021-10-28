@@ -34,14 +34,11 @@ sudo apt-get install -y --no-install-recommends \
     libnuma-dev     \
     libopenmpi-dev  \
     openmpi-bin     \
-    rocm-dev roctracer-dev rocprofiler-dev rocrand rocprim
-
-# add this to the above command once ROCm 4.5 is properly rolled out
-set +e
-sudo apt-get install -y --no-install-recommends \
+    rocm-dev        \
+    roctracer-dev   \
+    rocprofiler-dev \
     rocrand-dev     \
     rocprim-dev
-set -e
 
 # activate
 #
