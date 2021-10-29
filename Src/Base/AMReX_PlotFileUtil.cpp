@@ -981,9 +981,8 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
 
     // Write data for each level
     char level_name[32];
-    
-    hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
 
+    hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
     H5Pset_fill_time(dcpl_id, H5D_FILL_TIME_NEVER);
 
     for (int level = 0; level <= finest_level; ++level) {
