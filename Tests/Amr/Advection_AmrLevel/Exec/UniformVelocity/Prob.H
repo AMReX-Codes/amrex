@@ -1,7 +1,5 @@
-#ifndef _Prob_H_
-#define _Prob_H_
-
-using namespace amrex;
+#ifndef PROB_H_
+#define PROB_H_
 
 void initdata(MultiFab& S_tmp, const Geometry& geom);
 
