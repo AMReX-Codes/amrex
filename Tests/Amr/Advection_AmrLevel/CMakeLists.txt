@@ -15,9 +15,19 @@ endif ()
 #
 # Sources common to both cases
 #
-set(_sources Adv_F.H  AmrLevelAdv.cpp  AmrLevelAdv.H  LevelBldAdv.cpp  Adv.cpp  Tagging_params.cpp  bc_nullfill.cpp  main.cpp)
+set(_sources Adv.cpp
+             AmrLevelAdv.cpp
+             AmrLevelAdv.H
+             bc_nullfill.cpp
+             Kernels.H
+             LevelBldAdv.cpp
+             main.cpp
+             Tagging_params.cpp)
 
-list(APPEND _sources  Src_K/slope_K.H  Src_K/flux_${AMReX_SPACEDIM}d_K.H  Src_K/Adv_K.H  Src_K/tagging_K.H)
+list(APPEND _sources  Src_K/slope_K.H
+                      Src_K/flux_${AMReX_SPACEDIM}d_K.H
+                      Src_K/Adv_K.H
+                      Src_K/tagging_K.H)
 
 list(TRANSFORM _sources PREPEND Source/)
 
