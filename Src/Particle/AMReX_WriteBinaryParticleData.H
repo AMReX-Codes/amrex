@@ -1295,9 +1295,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         int ngrids;
 
         hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
-        if(std::getenv("NOFILL")) {
-          H5Pset_fill_time(dcpl_id, H5D_FILL_TIME_NEVER);
-        }
+        H5Pset_fill_time(dcpl_id, H5D_FILL_TIME_NEVER);
 
         for (int lev = 0; lev <= finest_level; ++lev) {
             sprintf(level_name, "level_%d", lev);
