@@ -784,6 +784,10 @@ AmrLevelAdv::read_params ()
     get_tagging_params();
 }
 
+//HACK added by me to address compile error
+bool AmrLevelAdv::read_params::done;
+
+
 void
 AmrLevelAdv::reflux ()
 {
