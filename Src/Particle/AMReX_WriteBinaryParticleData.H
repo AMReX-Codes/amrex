@@ -1293,6 +1293,10 @@ void WriteHDF5ParticleDataSync (PC const& pc,
 
         char level_name[128];
         int ngrids;
+
+        hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
+        H5Pset_fill_time(dcpl_id, H5D_FILL_TIME_NEVER);
+
         for (int lev = 0; lev <= finest_level; ++lev) {
             sprintf(level_name, "level_%d", lev);
 
@@ -1313,7 +1317,9 @@ void WriteHDF5ParticleDataSync (PC const& pc,
             hsize_t mfs_dim = (hsize_t)ngrids;
 
             hid_t mfs_dset_space = H5Screate_simple(1, &mfs_dim, NULL);
-            hid_t mfs_dset= H5Dcreate(grp, "boxes", comp_dtype, mfs_dset_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+
+            hid_t mfs_dset= H5Dcreate(grp, "boxes", comp_dtype, mfs_dset_space, H5P_DEFAULT, dcpl_id, H5P_DEFAULT);
 
             Vector<int> vbox(ngrids * mfs_size);
             for(int j = 0; j < pc.ParticleBoxArray(lev).size(); ++j) {
@@ -1334,7 +1340,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
 
             H5Gclose(grp);
         }
-
+        H5Pclose(dcpl_id);
         H5Fclose(fid);
     }
 
