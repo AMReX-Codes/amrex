@@ -135,6 +135,16 @@ void WriteHDF5ParticleDataSync (PC const& pc,
     AMREX_ALWAYS_ASSERT(real_comp_names.size() == pc.NumRealComps() + NStructReal);
     AMREX_ALWAYS_ASSERT( int_comp_names.size() == pc.NumIntComps() + NStructInt);
 
+#ifdef AMREX_USE_HDF5_ASYNC
+    // For HDF5 async VOL, block and wait previous tasks have all completed
+    if (es_par_g != 0)
+        async_vol_es_wait_particle();
+    else {
+        ExecOnFinalize(async_vol_es_wait_close_particle);
+        es_par_g = H5EScreate();
+    }
+#endif
+
     std::string pdir = dir;
     if ( ! pdir.empty() && pdir[pdir.size()-1] != '/') pdir += '/';
     pdir += name;
@@ -151,7 +161,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
     }
 
     /* std::ofstream HdrFile; */
-    hid_t fid, grp, fapl, dxpl, comp_dtype;
+    hid_t fid, grp, fapl, comp_dtype;
     int status;
 
     Long nparticles = 0;
@@ -373,16 +383,6 @@ void WriteHDF5ParticleDataSync (PC const& pc,
 #endif
 
 #ifdef AMREX_USE_HDF5_ASYNC
-    // For HDF5 async VOL, block and wait previous tasks have all completed
-    if (es_par_g != 0)
-        async_vol_es_wait_particle();
-    else {
-        ExecOnFinalize(async_vol_es_wait_close_particle);
-        es_par_g = H5EScreate();
-    }
-#endif
-
-#ifdef AMREX_USE_HDF5_ASYNC
     fid = H5Fopen_async(HDF5FileName.c_str(), H5F_ACC_RDWR, fapl, es_par_g);
 #else
     fid = H5Fopen(HDF5FileName.c_str(), H5F_ACC_RDWR, fapl);
@@ -420,8 +420,6 @@ void WriteHDF5ParticleDataSync (PC const& pc,
 
         if(pc.usePrePost)
             pc.filePrefixPrePost[lev] = HDF5FileName;
-
-        bool groupSets(false), setBuf(true);
 
         if (gotsome)
         {

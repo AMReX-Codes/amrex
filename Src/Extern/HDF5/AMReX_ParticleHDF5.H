@@ -1080,7 +1080,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
         /* particle_box_arrays[lev].readFrom(phdr_file); */
         particle_box_arrays[lev] = ParticleBoxArray(lev);
-        for (int i = 0; i < ngrid; i++) {
+        for (int i = 0; i < (int)ngrid; i++) {
             Box tmp ({AMREX_D_DECL(boxes[i*AMREX_SPACEDIM], boxes[i*AMREX_SPACEDIM+1], boxes[i*AMREX_SPACEDIM+2])}, {AMREX_D_DECL(boxes[i*AMREX_SPACEDIM*2], boxes[i*AMREX_SPACEDIM*2+1], boxes[i*AMREX_SPACEDIM*2+2])});
             particle_box_arrays[lev][i] = tmp;
         }
@@ -1298,7 +1298,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     host_int_attribs.reserve(15);
     host_int_attribs.resize(finest_level_in_file+1);
 
-    for (int i = 0; i < cnt; i++) {
+    for (hsize_t i = 0; i < cnt; i++) {
         p.id()   = iptr[0];
         p.cpu()  = iptr[1];
 

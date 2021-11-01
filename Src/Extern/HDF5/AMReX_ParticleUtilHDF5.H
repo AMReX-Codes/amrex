@@ -1,6 +1,3 @@
-/* #ifndef AMREX_PARTICLEUTIL_H_ */
-/* #define AMREX_PARTICLEUTIL_H_ */
-
 #ifdef AMREX_USE_HDF5_ASYNC
 #include "hdf5.h"
 
@@ -33,5 +30,3 @@ void async_vol_es_wait_close_particle()
     return;
 }
 #endif
-
-/* #endif // include guard */

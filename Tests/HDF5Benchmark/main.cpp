@@ -86,7 +86,7 @@ void test ()
 
     // these don't really matter, make something up
     const Real time = 0.0;
-    const Real dt = 0.0;
+    /* const Real dt = 0.0; */
 
     Vector<std::string> varnames;
     for (int i = 0; i < ncomp; ++i)
