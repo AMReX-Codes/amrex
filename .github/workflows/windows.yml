@@ -3,7 +3,7 @@ name: windows
 on: [push, pull_request]
 
 concurrency:
-  group: ${{ github.head_ref }}-windows
+  group: ${{ github.ref }}-${{ github.head_ref }}-windows
   cancel-in-progress: true
 
 jobs:

@@ -16,10 +16,6 @@ using std::ios;
 #include <AMReX_Utility.H>
 #include <AMReX_VisMF.H>
 
-#ifdef AMREX_DEBUG
-#include <TV_TempWrite.H>
-#endif
-
 #include <AMReX_AVGDOWN_F.H>
 
 #define GARBAGE 666.e+40
@@ -63,6 +59,11 @@ main (int   argc,
 {
     if (argc == 1)
         PrintUsage(argv[0]);
+
+    if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0)
+    {
+        PrintUsage(argv[0]);
+    }
 
     amrex::Initialize(argc,argv);
     {

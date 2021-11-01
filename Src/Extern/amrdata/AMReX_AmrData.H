@@ -11,13 +11,8 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_VisMF.H>
 
-#include <vector>
-#include <fstream>
-#include <list>
+#include <iosfwd>
 #include <string>
-using std::list;
-using std::string;
-using std::vector;
 
 namespace amrex {
 
@@ -28,7 +23,7 @@ class AmrData {
  protected:
   // List of grids at each level, level 0 being coarsest.
   Vector<Vector<MultiFab *> > dataGrids;    // [level][component]
-  vector<vector<vector<bool> > > dataGridsDefined;  // [level][component][index]
+  Vector<Vector<std::vector<bool> > > dataGridsDefined;  // [level][component][index]
   Vector<Vector<VisMF *> > visMF;    // [level][whichMultiFab]
   Vector<int> compIndexToVisMFMap;  // [nComp]
   Vector<int> compIndexToVisMFComponentMap;  // [nComp]
@@ -41,7 +36,7 @@ class AmrData {
   Vector<Box>  maxDomain;        // max problem domain size
   Vector<Real> probSize, probLo, probHi;
   Real time;
-  Vector<string> plotVars;
+  Vector<std::string> plotVars;
   Vector<Real> vfEps, afEps;
   int nComp, nGrow;
   int nRegions;         // number of boundary regions
@@ -49,7 +44,7 @@ class AmrData {
   int coordSys;
   Vector< Vector< FArrayBox *> > regions; // [lev][nReg]  ptrs to bndry data
   BoxArray fabBoxArray;  // used only for fileType == Amrvis::FAB
-  string plotFileVersion;
+  std::string plotFileVersion;
 
   Amrvis::FileType fileType;
   bool bCartGrid, bShowBody;
@@ -61,10 +56,10 @@ class AmrData {
   AmrData();
   ~AmrData();
 
-  bool ReadData(const string &filename, Amrvis::FileType filetype);
-  bool ReadNonPlotfileData(const string &filename, Amrvis::FileType filetype);
+  bool ReadData(const std::string &filename, Amrvis::FileType filetype);
+  bool ReadNonPlotfileData(const std::string &filename, Amrvis::FileType filetype);
 
-  const Vector<string> &PlotVarNames() const { return plotVars; }
+  const Vector<std::string> &PlotVarNames() const { return plotVars; }
 
   int FinestLevel() const                { return finestLevel; }
   const Vector<int> &RefRatio() const      { return refRatio; }
@@ -120,19 +115,19 @@ class AmrData {
   int NGrow() const                { return nGrow; }
   int CoordSys() const                { return coordSys; }
   Real Time() const                { return time; }
-  const string &PlotFileVersion() const { return plotFileVersion; }
+  const std::string &PlotFileVersion() const { return plotFileVersion; }
 
   // fill a databox using conservative interpolation
   void FillVar(FArrayBox *destFab, const Box &destBox,
-               int finestFillLevel, const string &varName, int procWithFabs);
+               int finestFillLevel, const std::string &varName, int procWithFabs);
   void FillVar(Vector<FArrayBox *> &destFabs, const Vector<Box> &destBoxes,
-               int finestFillLevel, const string &varName, int procWithFabs);
+               int finestFillLevel, const std::string &varName, int procWithFabs);
   void FillVar(MultiFab &destMultiFab, int finestFillLevel,
-               const Vector<string> &varNames, const Vector<int> &destFillComps);
+               const Vector<std::string> &varNames, const Vector<int> &destFillComps);
   void FillVar(MultiFab &destMultiFab, int finestFillLevel,
-               const string &varname, int destcomp = 0);
+               const std::string &varname, int destcomp = 0);
 
-  const string &GetFileName() const { return fileName; }
+  const std::string &GetFileName() const { return fileName; }
 
   void SetFileType(Amrvis::FileType type);
   Amrvis::FileType GetFileType() const     { return fileType;  }
@@ -146,11 +141,11 @@ class AmrData {
 
   void SetBoundaryWidth(int width) { boundaryWidth = width; }
 
-  bool CanDerive(const string &name) const;
-  bool CanDerive(const Vector<string> &names) const;
+  bool CanDerive(const std::string &name) const;
+  bool CanDerive(const Vector<std::string> &names) const;
   int  NumDeriveFunc() const;
   void ListDeriveFunc(std::ostream &os) const;
-  int  StateNumber(const string &statename) const;
+  int  StateNumber(const std::string &statename) const;
 
   // return the finest level <= startLevel that fully contains box b
   // b is defined on startLevel
@@ -170,7 +165,7 @@ class AmrData {
 
   // calculate the min and max values of derived on onBox at level
   // return false if onBox did not intersect any grids
-  bool MinMax(const Box &onBox, const string &derived, int level,
+  bool MinMax(const Box &onBox, const std::string &derived, int level,
               Real &dataMin, Real &dataMax);
 
   static void SetVerbose(bool tf)       { verbose = tf; }
@@ -179,7 +174,7 @@ class AmrData {
   static void SetStaticBoundaryWidth(int bw)  { sBoundaryWidth = bw; }
 
  private:
-  string fileName;
+  std::string fileName;
   static Amrvis::FileType defaultFileType;
   static bool verbose;
   static int  skipPltLines;

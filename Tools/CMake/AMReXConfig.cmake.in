@@ -190,7 +190,7 @@ if (@AMReX_CONDUIT@)
 endif ()
 
 if (@AMReX_HYPRE@)
-   find_dependency(HYPRE 2.15 REQUIRED)
+   find_dependency(HYPRE 2.20.0 REQUIRED)
 endif ()
 
 if (@AMReX_PETSC@)

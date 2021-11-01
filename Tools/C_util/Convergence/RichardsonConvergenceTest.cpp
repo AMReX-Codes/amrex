@@ -8,7 +8,7 @@ using std::ios;
 
 #include <unistd.h>
 
-#include <WritePlotFile.H>
+#include <AMReX_WritePlotFile.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>
 #include <AMReX_FArrayBox.H>
@@ -19,12 +19,7 @@ using std::ios;
 #include <AMReX_VisMF.H>
 #include <AMReX_AVGDOWN_F.H>
 #include "AMReX_ArrayLim.H"
-#include "DebugDump.H"
 #include <iomanip>
-
-#ifdef AMREX_DEBUG
-#include <TV_TempWrite.H>
-#endif
 
 #define GARBAGE 666.e+40
 
@@ -423,7 +418,8 @@ main (int   argc,
 
       ParmParse pp;
 
-      if (pp.contains("help"))
+      const std::string farg = amrex::get_command_argument(1);
+      if (farg == "-h" || farg == "--help")
           PrintUsage(argv[0]);
 
       bool verbose = false;

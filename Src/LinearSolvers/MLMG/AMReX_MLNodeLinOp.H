@@ -44,7 +44,7 @@ public:
                         StateMode s_mode, const MLMGBndry* bndry=nullptr) const final override;
 
     virtual void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
-                         bool skip_fillboundary=false) const final override;
+                         bool skip_fillboundary=false) const override;
 
     virtual void solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                    const MultiFab* crse_bcdata=nullptr) override;
@@ -125,6 +125,8 @@ public:
 
 protected:
 
+    virtual void resizeMultiGrid (int new_size) override;
+
     Vector<Vector<std::unique_ptr<iMultiFab> > > m_owner_mask;      // ownership of nodes
     Vector<Vector<std::unique_ptr<iMultiFab> > > m_dirichlet_mask;  // dirichlet?
     Vector<std::unique_ptr<iMultiFab> > m_cc_fine_mask;          // cell-centered mask for cells covered by fine
@@ -142,7 +144,11 @@ protected:
     bool m_is_bottom_singular = false;
     bool m_masks_built = false;
     bool m_overset_dirichlet_mask = false;
-
+#ifdef AMREX_USE_GPU
+    int m_smooth_num_sweeps = 4;
+#else
+    int m_smooth_num_sweeps = 2;
+#endif
     mutable bool m_in_solution_mode = true;
 };
 

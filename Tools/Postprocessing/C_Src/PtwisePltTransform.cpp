@@ -14,7 +14,7 @@
 #include "AMReX_ParmParse.H"
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_DataServices.H>
-#include <WritePlotFile.H>
+#include <AMReX_WritePlotFile.H>
 
 #include <AMReX_BLFort.H>
 
@@ -39,7 +39,7 @@ print_usage (int,
 std::string
 getFileRoot(const std::string& infile)
 {
-  vector<std::string> tokens = Tokenize(infile,std::string("/"));
+  std::vector<std::string> tokens = Tokenize(infile,std::string("/"));
   return tokens[tokens.size()-1];
 }
 
@@ -54,7 +54,8 @@ main (int   argc,
 
     ParmParse pp;
 
-    if (pp.contains("help"))
+    const std::string farg = amrex::get_command_argument(1);
+    if (farg == "-h" || farg == "--help")
       print_usage(argc,argv);
 
     std::string infile; pp.get("infile",infile);
@@ -119,8 +120,12 @@ main (int   argc,
     Vector<std::string> outNames;
     outNames.push_back("transform");
     WritePlotFile(stateOut,amrData,outfile,false,outNames);
+
+    for (int lev=0; lev<nLev; ++lev)
+    {
+        delete stateOut[lev];
+    }
   }
   amrex::Finalize();
   return 0;
 }
-

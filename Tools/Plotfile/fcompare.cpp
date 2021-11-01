@@ -15,6 +15,29 @@ struct ErrZone {
     IntVect cell;
 };
 
+void PrintUsage()
+{
+    amrex::Print()
+        << "\n"
+        << " Compare two plotfiles, zone by zone, to machine precision\n"
+        << " and report the maximum absolute and relative errors for each\n"
+        << " variable.\n"
+        << "\n"
+        << " usage:\n"
+        << "    fcompare [-n|--norm num] [-d|--diffvar var] [-z|--zone_info var] [-a|--allow_diff_grids] [-r|rel_tol] [--abs_tol] file1 file2\n"
+        << "\n"
+        << " optional arguments:\n"
+        << "    -n|--norm num         : what norm to use (default is 0 for inf norm)\n"
+        << "    -d|--diffvar var      : output a plotfile showing the differences for\n"
+        << "                            variable var\n"
+        << "    -z|--zone_info var    : output the information for a zone corresponding\n"
+        << "                            to the maximum error for the given variable\n"
+        << "    -a|--allow_diff_grids : allow different BoxArrays covering the same domain\n"
+        << "    -r|--rel_tol rtol     : relative tolerance (default is 0)\n"
+        << "    --abs_tol atol        : absolute tolerance (default is 0)\n"
+        << std::endl;
+}
+
 int main_main()
 {
     const int narg = amrex::command_argument_count();
@@ -42,7 +65,10 @@ int main_main()
     int farg = 1;
     while (farg <= narg) {
         const std::string fname = amrex::get_command_argument(farg);
-        if (fname == "--infile1") {
+        if (fname == "-h" || fname == "--help"){
+            PrintUsage();
+            return EXIT_SUCCESS;
+        } else if (fname == "--infile1") {
             plotfile_a = amrex::get_command_argument(++farg);
         } else if (fname == "--infile2") {
             plotfile_b = amrex::get_command_argument(++farg);
@@ -75,27 +101,9 @@ int main_main()
         plotfile_b = amrex::get_command_argument(farg++);
     }
 
-    if (plotfile_a.empty() && plotfile_b.empty()) {
-        amrex::Print()
-            << "\n"
-            << " Compare two plotfiles, zone by zone, to machine precision\n"
-            << " and report the maximum absolute and relative errors for each\n"
-            << " variable.\n"
-            << "\n"
-            << " usage:\n"
-            << "    fcompare [-n|--norm num] [-d|--diffvar var] [-z|--zone_info var] [-a|--allow_diff_grids] [-r|rel_tol] [--abs_tol] file1 file2\n"
-            << "\n"
-            << " optional arguments:\n"
-            << "    -n|--norm num         : what norm to use (default is 0 for inf norm)\n"
-            << "    -d|--diffvar var      : output a plotfile showing the differences for\n"
-            << "                            variable var\n"
-            << "    -z|--zone_info var    : output the information for a zone corresponding\n"
-            << "                            to the maximum error for the given variable\n"
-            << "    -a|--allow_diff_grids : allow different BoxArrays covering the same domain\n"
-            << "    -r|--rel_tol rtol     : relative tolerance (default is 0)\n"
-            << "    --abs_tol atol        : absolute tolerance (default is 0)\n"
-            << std::endl;
-        return 0;
+    if (plotfile_a.empty() || plotfile_b.empty()) {
+        PrintUsage();
+        return EXIT_FAILURE;
     }
 
     PlotFileData pf_a(plotfile_a);

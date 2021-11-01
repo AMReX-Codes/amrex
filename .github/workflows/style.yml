@@ -3,7 +3,7 @@ name: Style
 on: [push, pull_request]
 
 concurrency:
-  group: ${{ github.head_ref }}-style
+  group: ${{ github.ref }}-${{ github.head_ref }}-style
   cancel-in-progress: true
 
 jobs:

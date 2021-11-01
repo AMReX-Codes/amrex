@@ -60,7 +60,7 @@ struct BlockStatus<T, true>
     Data<T> d;
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-#if defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_DPCPP) && (__INTEL_LLVM_COMPILER <= 20210300)
     void write (char a_status, T a_value, sycl::nd_item<1> const& /*item*/) {
 #else
     void write (char a_status, T a_value) {
@@ -102,7 +102,7 @@ struct BlockStatus<T, true>
     void set_status (char a_status) { d.s.status = a_status; }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-#if defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_DPCPP) && (__INTEL_LLVM_COMPILER <= 20210300)
     STVA<T> wait (sycl::nd_item<1> const& item) volatile {
 #else
     STVA<T> wait () volatile {
@@ -110,7 +110,11 @@ struct BlockStatus<T, true>
         STVA<T> r;
         do {
 #if defined(AMREX_USE_DPCPP)
+#if (__INTEL_LLVM_COMPILER <= 20210300)
             item.mem_fence();
+#else
+            sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::work_group);
+#endif
 #else
             __threadfence_block();
 #endif
@@ -128,7 +132,7 @@ struct BlockStatus<T, false>
     char status;
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-#if defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_DPCPP) && (__INTEL_LLVM_COMPILER <= 20210300)
     void write (char a_status, T a_value, sycl::nd_item<1> const& item) {
 #else
     void write (char a_status, T a_value) {
@@ -139,7 +143,11 @@ struct BlockStatus<T, false>
             inclusive = a_value;
         }
 #if defined(AMREX_USE_DPCPP)
+#if (__INTEL_LLVM_COMPILER <= 20210300)
         item.mem_fence(sycl::access::fence_space::global_and_local);
+#else
+        sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
+#endif
 #else
         __threadfence();
 #endif
@@ -164,7 +172,7 @@ struct BlockStatus<T, false>
     void set_status (char a_status) { status = a_status; }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-#if defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_DPCPP) && (__INTEL_LLVM_COMPILER <= 20210300)
     STVA<T> wait (sycl::nd_item<1> const& item) volatile {
 #else
     STVA<T> wait () volatile {
@@ -173,7 +181,11 @@ struct BlockStatus<T, false>
         do {
             r = read();
 #if defined(AMREX_USE_DPCPP)
+#if (__INTEL_LLVM_COMPILER <= 20210300)
             item.mem_fence(sycl::access::fence_space::global_and_local);
+#else
+            sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
+#endif
 #else
             __threadfence();
 #endif
@@ -227,7 +239,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
     amrex::launch(nblocks, nthreads, sm, stream,
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
     {
-        sycl::ONEAPI::sub_group const& sg = gh.item->get_sub_group();
+        amrex::oneapi::sub_group const& sg = gh.item->get_sub_group();
         int lane = sg.get_local_id()[0];
         int warp = sg.get_group_id()[0];
         int nwarps = sg.get_group_range()[0];
@@ -323,7 +335,11 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
         // sum_prev_chunk now holds the sum of the whole block.
         if (threadIdxx == 0 && gridDimx > 1) {
             block_status.write((virtual_block_id == 0) ? 'p' : 'a',
-                               sum_prev_chunk, *gh.item);
+                               sum_prev_chunk
+#if (__INTEL_LLVM_COMPILER <= 20210300)
+                               , *gh.item
+#endif
+                );
         }
 
         if (virtual_block_id == 0) {
@@ -345,7 +361,11 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
                     int iblock = iblock0-lane;
                     detail::STVA<T> stva{'p', 0};
                     if (iblock >= 0) {
+#if (__INTEL_LLVM_COMPILER <= 20210300)
                         stva = pbs[iblock].wait(*gh.item);
+#else
+                        stva = pbs[iblock].wait();
+#endif
                     }
 
                     T x = stva.value;
@@ -382,8 +402,11 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
                 }
 
                 if (lane == 0) {
-                    block_status.write('p', block_status.get_aggregate() + exclusive_prefix,
-                                       *gh.item);
+                    block_status.write('p', block_status.get_aggregate() + exclusive_prefix
+#if (__INTEL_LLVM_COMPILER <= 20210300)
+                                       , *gh.item
+#endif
+                        );
                     shared[0] = exclusive_prefix;
                 }
             }
@@ -1006,6 +1029,7 @@ T InclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 template <typename N, typename T, typename M=std::enable_if_t<std::is_integral<N>::value> >
 T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 {
+    if (n <= 0) return 0;
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 11)
     T in_last = 0;
     if (a_ret_sum) {

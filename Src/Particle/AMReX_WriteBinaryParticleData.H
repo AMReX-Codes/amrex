@@ -150,14 +150,14 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
     for (int i = 0; i < pc.NumIntComps() + PC::NStructInt; ++i)
         if (write_int_comp[i]) ++num_output_int;
 
-    const int iChunkSize = 2 + num_output_int;
+    const Long iChunkSize = 2 + num_output_int;
     idata.resize(np*iChunkSize);
 
     int num_output_real = 0;
     for (int i = 0; i < pc.NumRealComps() + PC::NStructReal; ++i)
         if (write_real_comp[i]) ++num_output_real;
 
-    const int rChunkSize = AMREX_SPACEDIM + num_output_real;
+    const Long rChunkSize = AMREX_SPACEDIM + num_output_real;
     rdata.resize(np*rChunkSize);
 
     typename PC::IntVector  idata_d(idata.size());
@@ -241,14 +241,14 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
     for (int i = 0; i < pc.NumIntComps() + PC::NStructInt; ++i)
         if (write_int_comp[i]) ++num_output_int;
 
-    const int iChunkSize = 2 + num_output_int;
+    const Long iChunkSize = 2 + num_output_int;
     idata.resize(np*iChunkSize);
 
     int num_output_real = 0;
     for (int i = 0; i < pc.NumRealComps() + PC::NStructReal; ++i)
         if (write_real_comp[i]) ++num_output_real;
 
-    const int rChunkSize = AMREX_SPACEDIM + num_output_real;
+    const Long rChunkSize = AMREX_SPACEDIM + num_output_real;
     rdata.resize(np*rChunkSize);
 
     int* iptr = idata.dataPtr();
@@ -882,7 +882,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                 for (int i = 0; i < nic + NStructInt; ++i)
                     if (write_int_comp[i]) ++num_output_int;
 
-                const int iChunkSize = 2 + num_output_int;
+                const Long iChunkSize = 2 + num_output_int;
                 Vector<int> istuff(np_per_grid_local[lev][grid]*iChunkSize);
                 int* iptr = istuff.dataPtr();
 
@@ -931,7 +931,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                 for (int i = 0; i < nrc + NStructReal; ++i)
                     if (write_real_comp[i]) ++num_output_real;
 
-                const int rChunkSize = AMREX_SPACEDIM + num_output_real;
+                const Long rChunkSize = AMREX_SPACEDIM + num_output_real;
                 Vector<typename PC::ParticleType::RealType> rstuff(np_per_grid_local[lev][grid]*rChunkSize);
                 typename PC::ParticleType::RealType* rptr = rstuff.dataPtr();
 
@@ -1293,6 +1293,10 @@ void WriteHDF5ParticleDataSync (PC const& pc,
 
         char level_name[128];
         int ngrids;
+
+        hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
+        H5Pset_fill_time(dcpl_id, H5D_FILL_TIME_NEVER);
+
         for (int lev = 0; lev <= finest_level; ++lev) {
             sprintf(level_name, "level_%d", lev);
 
@@ -1313,7 +1317,9 @@ void WriteHDF5ParticleDataSync (PC const& pc,
             hsize_t mfs_dim = (hsize_t)ngrids;
 
             hid_t mfs_dset_space = H5Screate_simple(1, &mfs_dim, NULL);
-            hid_t mfs_dset= H5Dcreate(grp, "boxes", comp_dtype, mfs_dset_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+
+            hid_t mfs_dset= H5Dcreate(grp, "boxes", comp_dtype, mfs_dset_space, H5P_DEFAULT, dcpl_id, H5P_DEFAULT);
 
             Vector<int> vbox(ngrids * mfs_size);
             for(int j = 0; j < pc.ParticleBoxArray(lev).size(); ++j) {
@@ -1334,7 +1340,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
 
             H5Gclose(grp);
         }
-
+        H5Pclose(dcpl_id);
         H5Fclose(fid);
     }
 

@@ -20,6 +20,9 @@ public:
 
     void initData ();
 
+    int getNumTrials() { return num_trials; }
+    int getDoPlots() { return do_plots; }
+
 private:
 
     void readParameters ();
@@ -45,8 +48,11 @@ private:
     bool semicoarsening = false;
     int max_coarsening_level = 30;
     int max_semicoarsening_level = 0;
+    //int smooth_num_sweeps = 4;
 
     bool use_hypre = false;
+    bool do_plots = true;
+    int num_trials = 1;
 
 #ifdef AMREX_USE_HYPRE
     int hypre_interface_i = 1;  // 1. structed, 2. semi-structed, 3. ij

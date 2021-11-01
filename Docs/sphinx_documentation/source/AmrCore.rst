@@ -230,14 +230,25 @@ Within AMReX_Interpolater.cpp/H are the derived classes:
 
 -  :cpp:`CellConservativeProtected`
 
+-  :cpp:`CellConservativeQuartic`
+
 -  :cpp:`CellQuadratic`
 
 -  :cpp:`PCInterp`
 
--  :cpp:`CellConservativeQuartic`
+-  :cpp:`FaceLinear`
 
-The Fortran routines that perform the actual work associated with :cpp:`Interpolater` are
-contained in the files AMReX_INTERP_F.H and AMReX_INTERP_xD.F.
+-  :cpp:`FaceDivFree`
+
+These Interpolaters can be executed on CPU or GPU, with certain limitations:
+
+-  :cpp:`CellConservativeProtected` only works in 2D and 3D.
+
+-  :cpp:`CellQuadratic` only works in 2D.
+
+-  :cpp:`CellConservativeQuartic` only works with a refinement ratio of 2.
+
+-  :cpp:`FaceDivFree` only works in 2D and 3D and with a refinement ratio of 2.
 
 .. _sec:amrcore:fluxreg:
 

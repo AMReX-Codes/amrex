@@ -82,6 +82,10 @@ public :
         if (m_const_sigma == Real(0.0)) m_coarsening_strategy = cs;
     }
 
+    void setSmoothNumSweeps (int nsweeps) noexcept {
+        m_smooth_num_sweeps = nsweeps;
+    }
+
     virtual BottomSolver getDefaultBottomSolver () const final override {
         return (m_coarsening_strategy == CoarseningStrategy::RAP) ?
             BottomSolver::bicgcg : BottomSolver::bicgstab;
@@ -159,6 +163,10 @@ public :
     virtual void fillRHS (MFIter const& mfi, Array4<int const> const& lid,
                           Real* const rhs, Array4<Real const> const& bfab) const override;
 #endif
+
+protected:
+
+    virtual void resizeMultiGrid (int new_size) override final;
 
 private:
 

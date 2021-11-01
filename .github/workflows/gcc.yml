@@ -1,13 +1,12 @@
 # -Wextra-semi: GCC < 10 does not have this.
 # -Wunreachable-code: GCC no longer has this option.
-# -Wno-c++17-extensions: Clang complains about nodiscard if the standard is not set to c++17.
 
-name: linux
+name: Linux GCC
 
 on: [push, pull_request]
 
 concurrency:
-  group: ${{ github.head_ref }}-linux
+  group: ${{ github.ref }}-${{ github.head_ref }}-linux-gcc
   cancel-in-progress: true
 
 jobs:
@@ -31,42 +30,6 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
             -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex  \
             -DCMAKE_CXX_STANDARD=17
-        make -j 2
-        make install
-        make test_install
-
-        export PATH=/tmp/my-amrex/bin:$PATH
-        which fcompare
-
-        ctest --output-on-failure
-
-  library_clang:
-    name: Clang@6.0 C++14 SP NOMPI Debug [lib]
-    runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wno-c++17-extensions"}
-    steps:
-    - uses: actions/checkout@v2
-    - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_clang6.sh
-    - name: Build & Install
-      run: |
-        mkdir build
-        cd build
-        cmake ..                        \
-            -DCMAKE_BUILD_TYPE=Debug    \
-            -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex      \
-            -DAMReX_EB=ON                             \
-            -DAMReX_FORTRAN=ON                        \
-            -DAMReX_MPI=OFF                           \
-            -DAMReX_PARTICLES=ON                      \
-            -DAMReX_PLOTFILE_TOOLS=ON                 \
-            -DAMReX_PRECISION=SINGLE                  \
-            -DAMReX_PARTICLES_PRECISION=SINGLE        \
-            -DCMAKE_CXX_STANDARD=14                   \
-            -DCMAKE_C_COMPILER=$(which clang)         \
-            -DCMAKE_CXX_COMPILER=$(which clang++)     \
-            -DCMAKE_Fortran_COMPILER=$(which gfortran)
         make -j 2
         make install
         make test_install
@@ -101,36 +64,6 @@ jobs:
 
         ctest --output-on-failure
 
-  test_sensei:
-    name: SENSEI Adaptor [test]
-    runs-on: ubuntu-18.04
-    env:
-      CXX: clang++
-      CC: clang
-      CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"
-      CMAKE_GENERATOR: Ninja
-      CMAKE_PREFIX_PATH: /root/install/sensei/develop/lib/cmake
-    container:
-      image: ryankrattiger/sensei:fedora33-vtk-mpi-20210616
-    steps:
-    - uses: actions/checkout@v2
-    - name: Setup
-      run: mkdir build
-    - name: Configure
-      run: |
-        cd build
-        cmake ..                  \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DAMReX_ENABLE_TESTS=ON  \
-            -DAMReX_FORTRAN=OFF      \
-            -DAMReX_PARTICLES=ON     \
-            -DAMReX_SENSEI=ON        \
-            -DCMAKE_CXX_STANDARD=14
-    - name: Build
-      run: |
-        cd build
-        cmake --build . -j 2
-
   # Build libamrex and all tests
   tests_cxx20:
     name: GNU@10.1 C++20 OMP [tests]
@@ -163,37 +96,6 @@ jobs:
         make -j 2
 
         ctest --output-on-failure
-
-  tests_clang:
-    name: Clang@6.0 C++14 SP Particles DP Mesh Debug [tests]
-    runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wno-c++17-extensions -O1"}
-      # It's too slow with -O0
-    steps:
-    - uses: actions/checkout@v2
-    - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_clang6.sh
-    - name: Build & Install
-      run: |
-        mkdir build
-        cd build
-        cmake ..                                      \
-            -DCMAKE_BUILD_TYPE=Debug                  \
-            -DCMAKE_VERBOSE_MAKEFILE=ON               \
-            -DAMReX_EB=ON                             \
-            -DAMReX_ENABLE_TESTS=ON                   \
-            -DAMReX_FORTRAN=ON                        \
-            -DAMReX_MPI=OFF                           \
-            -DAMReX_PARTICLES=ON                      \
-            -DAMReX_PRECISION=DOUBLE                  \
-            -DAMReX_PARTICLES_PRECISION=SINGLE        \
-            -DCMAKE_CXX_STANDARD=14                   \
-            -DCMAKE_C_COMPILER=$(which clang)         \
-            -DCMAKE_CXX_COMPILER=$(which clang++)     \
-            -DCMAKE_Fortran_COMPILER=$(which gfortran)
-        make -j 2
-
-        ctest --output-on-failure -E GhostsAndVirtuals
 
   # Build libamrex and all tests w/o MPI
   tests-nonmpi:
@@ -265,20 +167,6 @@ jobs:
       run: |
         ./configure --dim 1
         make -j2 XTRA_CXXFLAGS=-fno-operator-names
-        make install
-
-  # Build 2D libamrex with configure
-  configure-2d:
-    name: Clang@6.0 NOMPI Release [configure 2D]
-    runs-on: ubuntu-18.04
-    steps:
-    - uses: actions/checkout@v2
-    - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_clang6.sh
-    - name: Build & Install
-      run: |
-        ./configure --dim 2 --with-fortran no --comp llvm --with-mpi no
-        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names -Wno-c++17-extensions"
         make install
 
   # Build 3D libamrex with configure

@@ -228,6 +228,7 @@ public:
     virtual void unimposeNeumannBC (int /*amrlev*/, MultiFab& /*rhs*/) const {} // only nodal solver might need it
     virtual void applyInhomogNeumannTerm (int /*amrlev*/, MultiFab& /*rhs*/) const {}
     virtual void applyOverset (int /*amlev*/, MultiFab& /*rhs*/) const {}
+    virtual void scaleRHS (int /*amrlev*/, MultiFab& /*rhs*/) const {}
 
     virtual void prepareForSolve () = 0;
     virtual bool isSingular (int amrlev) const = 0;
@@ -401,6 +402,8 @@ protected:
     virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int /*amrlev*/, int /*mglev*/) const {
         return std::make_unique<FArrayBoxFactory>();
     }
+
+    virtual void resizeMultiGrid (int new_size);
 
     bool hasHiddenDimension () const noexcept { return info.hasHiddenDimension(); }
     int hiddenDirection () const noexcept { return info.hidden_direction; }
