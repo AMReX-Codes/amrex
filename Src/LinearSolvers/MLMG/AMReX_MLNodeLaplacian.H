@@ -164,6 +164,10 @@ public :
                           Real* const rhs, Array4<Real const> const& bfab) const override;
 #endif
 
+protected:
+
+    virtual void resizeMultiGrid (int new_size) override final;
+
 private:
 
     int m_is_rz = 0;

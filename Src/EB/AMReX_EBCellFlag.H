@@ -309,15 +309,44 @@ public:
     EBCellFlagFab& operator= (const EBCellFlagFab&) = delete;
     EBCellFlagFab& operator= (EBCellFlagFab&&) = delete;
 
+    /**
+     * \brief Returns FabType of the whole EBCellFlagFab.
+     */
     FabType getType () const noexcept { return m_type; }
 
+    /**
+     * \brief Returns FabType in the given Box of this EBCellFlagFab.
+     */
     FabType getType (const Box& bx) const noexcept;
+
+    /**
+     * \brief Returns the number of regular cells in the given Box.
+     */
+    int getNumRegularCells (const Box& bx) const noexcept;
+
+    /**
+     * \brief Returns the number of cut cells in the given Box.
+     */
+    int getNumCutCells (const Box& bx) const noexcept;
+
+    /**
+     * \brief Returns the number of covered cells in the given Box.
+     */
+    int getNumCoveredCells (const Box& bx) const noexcept;
 
     void setType (FabType t) noexcept { m_type = t; }
 
+    struct NumCells {
+        int nregular = 0;
+        int nsingle = 0;
+        int nmulti = 0;
+        int ncovered = 0;
+        FabType type = FabType::undefined;
+    };
+
 private:
     FabType m_type = FabType::undefined;
-    mutable std::map<Box,FabType> m_typemap;
+    mutable std::map<Box,NumCells> m_typemap;
 };
 
 std::ostream& operator<< (std::ostream& os, const EBCellFlag& flag);

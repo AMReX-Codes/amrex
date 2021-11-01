@@ -1029,6 +1029,7 @@ T InclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 template <typename N, typename T, typename M=std::enable_if_t<std::is_integral<N>::value> >
 T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 {
+    if (n <= 0) return 0;
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 11)
     T in_last = 0;
     if (a_ret_sum) {

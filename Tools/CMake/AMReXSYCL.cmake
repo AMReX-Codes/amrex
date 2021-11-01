@@ -62,6 +62,13 @@ target_compile_options( SYCL
    INTERFACE
    $<${_cxx_dpcpp}:-fno-sycl-early-optimizations>)
 
+# disable warning: comparison with infinity always evaluates to false in fast floating point modes [-Wtautological-constant-compare]
+#                  return std::isinf(m);
+# appeared since 2021.4.0
+target_compile_options( SYCL
+   INTERFACE
+   $<${_cxx_dpcpp}:-Wno-tautological-constant-compare>)
+
 # Need this option to compile with mpiicpc
 if (AMReX_MPI)
   target_compile_options( SYCL

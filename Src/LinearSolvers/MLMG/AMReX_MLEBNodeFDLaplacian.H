@@ -61,6 +61,8 @@ public:
                          MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
                          MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const final override;
 
+    virtual void scaleRHS (int amrlev, MultiFab& rhs) const final;
+
     virtual void prepareForSolve () final override;
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final override;
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const final override;
@@ -91,8 +93,6 @@ private:
     GpuArray<Real,AMREX_SPACEDIM> m_sigma;
     Real m_s_phi_eb = std::numeric_limits<Real>::lowest();
     Vector<MultiFab> m_phi_eb;
-    Vector<MultiFab> m_acoef;
-    Real m_a_huge = 1.0;
 };
 
 template <typename F>

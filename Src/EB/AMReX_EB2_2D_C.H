@@ -102,8 +102,8 @@ int coarsen_from_fine (int i, int j, Box const& bx, int ngrow,
                        Array4<Real const> const& fba, Array4<Real const> const& fbc,
                        Array4<Real const> const& fbn, Array4<Real const> const& fapx,
                        Array4<Real const> const& fapy, Array4<Real const> const& ffcx,
-                       Array4<Real const> const& ffcy, Array4<Real const> const& /*fecx*/,
-                       Array4<Real const> const& /*fecy*/, Array4<EBCellFlag const> const& fflag)
+                       Array4<Real const> const& ffcy, Array4<Real const> const& fecx,
+                       Array4<Real const> const& fecy, Array4<EBCellFlag const> const& fflag)
 {
     const Box& gbx = amrex::grow(bx,ngrow);
     const Box& xbx = amrex::surroundingNodes(bx,0);
@@ -217,7 +217,11 @@ int coarsen_from_fine (int i, int j, Box const& bx, int ngrow,
             cfcx(i,j,k) = 0.5 / capx(i,j,k) *
                 (fapx(ii,jj  ,k)*(0.5*ffcx(ii,jj  ,k)-0.25) +
                  fapx(ii,jj+1,k)*(0.5*ffcx(ii,jj+1,k)+0.25));
-            cecy(i,j,k) = cfcx(i,j,k);
+            if (fecy(ii,jj,k) == Real(1.0) && fecy(ii,jj+1,k) == Real(1.0)) {
+                cecy(i,j,k) = Real(1.0);
+            } else {
+                cecy(i,j,k) = cfcx(i,j,k);
+            }
         }
         else {
             cfcx(i,j,k) = 0.0;
@@ -238,7 +242,11 @@ int coarsen_from_fine (int i, int j, Box const& bx, int ngrow,
             cfcy(i,j,k) = 0.5 / capy(i,j,k) *
                 (fapy(ii  ,jj,k)*(0.5*ffcy(ii  ,jj,k)-0.25) +
                  fapy(ii+1,jj,k)*(0.5*ffcy(ii+1,jj,k)+0.25));
-            cecx(i,j,k) = cfcy(i,j,k);
+            if (fecx(ii,jj,k) == Real(1.0) && fecx(ii+1,jj,k) == Real(1.0)) {
+                cecx(i,j,k) = Real(1.0);
+            } else {
+                cecx(i,j,k) = cfcy(i,j,k);
+            }
         } else {
             cfcy(i,j,k) = 0.0;
             cecx(i,j,k) = -1.0;

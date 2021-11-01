@@ -296,6 +296,7 @@ void HypreIJIface::boomeramg_precond_configure(const std::string& prefix)
 
         hpp("bamg_smooth_type", HYPRE_BoomerAMGSetSmoothType);
 
+#if defined(HYPRE_RELEASE_NUMBER) && (HYPRE_RELEASE_NUMBER >= 22100)
         // Process ILU smoother parameters
         if (smooth_type == 5) { // ParILUK
             hpp("bamg_smooth_num_sweeps", HYPRE_BoomerAMGSetSmoothNumSweeps);
@@ -311,6 +312,7 @@ void HypreIJIface::boomeramg_precond_configure(const std::string& prefix)
             hpp("bamg_ilu_max_row_nnz", HYPRE_BoomerAMGSetILUMaxRowNnz);
             hpp("bamg_ilu_drop_tol", HYPRE_BoomerAMGSetILUDroptol, 1.e-10);
         }
+#endif
 
         // Process Euclid smoother parameters
         if (smooth_type == 9) {
