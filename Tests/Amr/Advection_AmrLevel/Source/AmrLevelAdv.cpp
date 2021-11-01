@@ -784,6 +784,7 @@ AmrLevelAdv::read_params ()
     get_tagging_params();
 }
 
+
 void
 AmrLevelAdv::reflux ()
 {
