@@ -67,6 +67,9 @@
 
 namespace amrex {
 
+#ifdef AMREX_USE_HDF5_ASYNC
+    extern hid_t es_par_g;
+#endif
 /**
 * \brief A struct used for communicating particle data across processes
 *  during multi-level operations.

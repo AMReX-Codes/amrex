@@ -7,7 +7,6 @@ target_sources( amrex
    AMReX_PlotFileUtilHDF5.H
    AMReX_PlotFileUtilHDF5.cpp
    AMReX_ParticleUtilHDF5.H
-   AMReX_ParticleUtilHDF5.cpp
    AMReX_ParticleHDF5.H
    AMReX_ParticlesHDF5.H
    AMReX_WriteBinaryParticleDataHDF5.H

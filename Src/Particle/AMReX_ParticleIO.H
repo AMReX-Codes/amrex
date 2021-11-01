@@ -4,10 +4,6 @@
 
 #include <AMReX_WriteBinaryParticleData.H>
 
-#ifdef AMREX_USE_HDF5
-#include <AMReX_WriteBinaryParticleDataHDF5.H>
-#endif
-
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void

@@ -1,28 +1,37 @@
-#ifndef AMREX_PARTICLEUTIL_H_
-#define AMREX_PARTICLEUTIL_H_
-#include <AMReX_Config.H>
+/* #ifndef AMREX_PARTICLEUTIL_H_ */
+/* #define AMREX_PARTICLEUTIL_H_ */
 
-#include <AMReX_IntVect.H>
-#include <AMReX_Box.H>
-#include <AMReX_Gpu.H>
-#include <AMReX_Print.H>
-#include <AMReX_Math.H>
-#include <AMReX_MFIter.H>
-#include <AMReX_ParGDB.H>
-#include <AMReX_ParticleTile.H>
-#include <AMReX_ParticleBufferMap.H>
-#include <AMReX_TypeTraits.H>
-#include <AMReX_Scan.H>
-
-#include <limits>
-
-namespace amrex
-{
 #ifdef AMREX_USE_HDF5_ASYNC
-extern hid_t es_par_g;
-void async_vol_es_wait_particle();
-void async_vol_es_wait_close_particle();
-#endif
+#include "hdf5.h"
+
+hid_t es_par_g = 0;
+
+void async_vol_es_wait_particle()
+{
+    size_t num_in_progress;
+    hbool_t op_failed;
+    if (es_par_g != 0) {
+        H5ESwait(es_par_g, H5ES_WAIT_FOREVER, &num_in_progress, &op_failed);
+        if (num_in_progress != 0)
+            std::cout << "After H5ESwait, still has async operations in progress!" << std::endl;
+    }
+    return;
 }
 
-#endif // include guard
+void async_vol_es_wait_close_particle()
+{
+    size_t num_in_progress;
+    hbool_t op_failed;
+    if (es_par_g != 0) {
+        H5ESwait(es_par_g, H5ES_WAIT_FOREVER, &num_in_progress, &op_failed);
+        if (num_in_progress != 0)
+            std::cout << "After H5ESwait, still has async operations in progress!" << std::endl;
+        H5ESclose(es_par_g);
+        /* std::cout << "es_par_g closed!" << std::endl; */
+        es_par_g = 0;
+    }
+    return;
+}
+#endif
+
+/* #endif // include guard */
