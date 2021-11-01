@@ -21,8 +21,8 @@ TINY_PROFILE = TRUE
 EBASE     = main
 
 USE_HDF5  = TRUE
-HDF5_HOME = /gpfs/alpine/csc300/world-shared/gnu_build/hdf5/develop_build/hdf5
-# HDF5_HOME = $(OLCF_HDF5_ROOT)
+# HDF5_HOME = /gpfs/alpine/csc300/world-shared/gnu_build/hdf5/develop_build/hdf5
+HDF5_HOME = $(OLCF_HDF5_ROOT)
 # HDF5_HOME = $(HDF5_ROOT)
 
 # To use HDF5 with ZFP compression, follow the instructions at https://h5z-zfp.readthedocs.io to compile ZFP and H5Z_ZFP plugin, or use the following gcc build on Summit
