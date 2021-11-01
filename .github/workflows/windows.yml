@@ -17,7 +17,7 @@ jobs:
       run: |
         cmake -S . -B build   `
               -DCMAKE_BUILD_TYPE=Debug      `
-              -DBUILD_SHARED_LIBS=ON        `
+              -DBUILD_SHARED_LIBS=OFF       `
               -DCMAKE_VERBOSE_MAKEFILE=ON   `
               -DAMReX_EB=OFF                `
               -DAMReX_ENABLE_TESTS=ON       `
@@ -58,7 +58,7 @@ jobs:
         cmake -S . -B build   ^
               -T "ClangCl"    ^
               -DCMAKE_BUILD_TYPE=Release    ^
-              -DBUILD_SHARED_LIBS=ON        ^
+              -DBUILD_SHARED_LIBS=OFF       ^
               -DCMAKE_VERBOSE_MAKEFILE=ON   ^
               -DAMReX_EB=ON                 ^
               -DAMReX_ENABLE_TESTS=ON       ^
