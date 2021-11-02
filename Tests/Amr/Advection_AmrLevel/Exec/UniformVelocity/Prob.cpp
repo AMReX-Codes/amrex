@@ -31,13 +31,13 @@ void initdata (MultiFab& S_tmp, const Geometry& geom){
 #if (AMREX_SPACEDIM == 2)
 
             Real r2 = ((x-Real(0.0))*(x-Real(0.0)) + (y-Real(0.0))*(y-Real(0.0))) / Real(0.01);
-            phi(i,j,k) = 1.0 + std::exp(-r2);
+            phi(i,j,k) = Real(1.0) + std::exp(-r2);
 
 #elif (AMREX_SPACEDIM == 3)
 
             Real z = prob_lo[2] + (k + Real(0.5)) * dx[2];
             Real r2 = ((x-Real(0.0))*(x-Real(0.0)) + (y-Real(0.0))*(y-Real(0.0)) + (z-Real(0.0))*(z-Real(0.0))) / Real(0.01);
-            phi(i,j,k) = 1.0 + std::exp(-r2);
+            phi(i,j,k) = Real(1.0) + std::exp(-r2);
 #endif
 
         });
