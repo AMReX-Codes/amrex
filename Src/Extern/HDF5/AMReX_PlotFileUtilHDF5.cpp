@@ -1234,7 +1234,7 @@ WriteSingleLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
                                          compression, versionName, levelPrefix, mfPrefix, extra_dirs);
 }
 
-void 
+void
 WriteMultiLevelPlotfileHDF5 (const std::string &plotfilename,
                              int nlevels,
                              const Vector<const MultiFab*> &mf,
