@@ -1,4 +1,5 @@
 CPPFLAGS += -DAMREX_USE_HDF5
+include $(AMREX_HOME)/Src/Extern/HDF5/Make.package
 
 ifndef AMREX_HDF5_HOME
 ifdef HDF5_DIR

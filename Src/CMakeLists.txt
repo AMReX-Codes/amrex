@@ -163,6 +163,10 @@ if (AMReX_SUNDIALS)
    add_subdirectory(Extern/SUNDIALS)
 endif ()
 
+if (AMReX_HDF5)
+   add_subdirectory(Extern/HDF5)
+endif ()
+
 #
 # Print out summary -- do it here so we already linked all
 # libs at this point

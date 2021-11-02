@@ -4,9 +4,6 @@
 #include <AMReX_Particles.H>
 
 #include <unistd.h>
-#ifdef AMREX_USE_HDF5_ASYNC
-#include "h5_vol_external_async_native.h"
-#endif
 
 using namespace amrex;
 
@@ -32,6 +29,7 @@ void test ()
     int ncells, max_grid_size, ncomp, nlevs, nppc;
     int restart_check = 0, nplotfile = 1, nparticlefile = 1, sleeptime = 0;
     int grids_from_file = 0;
+    std::string compression = "None#0";
 
     ParmParse pp;
     pp.get("ncells", ncells);
@@ -39,6 +37,7 @@ void test ()
     pp.get("ncomp", ncomp);
     pp.get("nlevs", nlevs);
     pp.get("nppc", nppc);
+    pp.query("hdf5compression", compression);
     pp.query("nplotfile", nplotfile);
     pp.query("nparticlefile", nparticlefile);
     pp.query("sleeptime", sleeptime);
@@ -87,7 +86,7 @@ void test ()
 
     // these don't really matter, make something up
     const Real time = 0.0;
-    const Real dt = 0.0;
+    /* const Real dt = 0.0; */
 
     Vector<std::string> varnames;
     for (int i = 0; i < ncomp; ++i)
@@ -96,6 +95,9 @@ void test ()
     }
 
     Vector<int> level_steps(nlevs, 0);
+
+    /* if (compression.compare("None#0") != 0) */
+    /*     std::cout << "Compression: " << compression << std::endl; */
 
     char fname[128];
     for (int ts = 0; ts < nplotfile; ts++) {
@@ -115,8 +117,13 @@ void test ()
             fflush(stdout);
         }
 #ifdef AMREX_USE_HDF5
-        WriteMultiLevelPlotfileHDF5(fname, nlevs, amrex::GetVecOfConstPtrs(mf),
-                                    varnames, geom, time, level_steps, ref_ratio);
+#ifdef AMREX_USE_HDF5_ZFP
+        WriteMultiLevelPlotfileHDF5MultiDset(fname, nlevs, amrex::GetVecOfConstPtrs(mf), varnames,
+                                             geom, time, level_steps, ref_ratio, compression);
+#else
+        WriteMultiLevelPlotfileHDF5SingleDset(fname, nlevs, amrex::GetVecOfConstPtrs(mf), varnames,
+                                              geom, time, level_steps, ref_ratio);
+#endif
 #else
         WriteMultiLevelPlotfile(fname, nlevs, amrex::GetVecOfConstPtrs(mf),
                                 varnames, geom, time, level_steps, ref_ratio);
