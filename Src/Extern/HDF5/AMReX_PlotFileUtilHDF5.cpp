@@ -103,30 +103,6 @@ static int CreateWriteHDF5AttrString(hid_t loc, const char *name, const char* st
     return 1;
 }
 
-/* static int CreateWriteDsetDouble(hid_t loc, const char *name, hsize_t n, const double *data) */
-/* { */
-/*     herr_t ret; */
-/*     hid_t dset, dset_space; */
-/*     hsize_t dims = n; */
-
-/*     dset_space = H5Screate_simple(1, &dims, NULL); */
-
-/*     dset = H5Dcreate(loc, name, H5T_NATIVE_DOUBLE, dset_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); */
-/*     if (dset < 0) { */
-/*         printf("%s: Error with H5Dcreate [%s]\n", __func__, name); */
-/*         return -1; */
-/*     } */
-
-/*     ret  = H5Dwrite(dset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, (void*)data); */
-/*     if (ret < 0) { */
-/*         printf("%s: Error with H5Dwrite [%s]\n", __func__, name); */
-/*         return -1; */
-/*     } */
-/*     H5Sclose(dset_space); */
-/*     H5Aclose(dset); */
-/*     return 1; */
-/* } */
-
 #ifdef BL_USE_MPI
 static void SetHDF5fapl(hid_t fapl, MPI_Comm comm)
 #else
@@ -163,7 +139,7 @@ static void SetHDF5fapl(hid_t fapl)
 
 }
 
-void
+static void
 WriteGenericPlotfileHeaderHDF5 (hid_t fid,
                                int nlevels,
                                const Vector<const MultiFab*>& mf,
@@ -352,21 +328,21 @@ static void async_vol_es_wait()
 }
 #endif
 
-void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
-                                  int nlevels,
-                                  const Vector<const MultiFab*>& mf,
-                                  const Vector<std::string>& varnames,
-                                  const Vector<Geometry>& geom,
-                                  Real time,
-                                  const Vector<int>& level_steps,
-                                  const Vector<IntVect>& ref_ratio,
-                                  const std::string &compression,
-                                  const std::string &versionName,
-                                  const std::string &levelPrefix,
-                                  const std::string &mfPrefix,
-                                  const Vector<std::string>& extra_dirs)
+void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
+                                            int nlevels,
+                                            const Vector<const MultiFab*>& mf,
+                                            const Vector<std::string>& varnames,
+                                            const Vector<Geometry>& geom,
+                                            Real time,
+                                            const Vector<int>& level_steps,
+                                            const Vector<IntVect>& ref_ratio,
+                                            const std::string &compression,
+                                            const std::string &versionName,
+                                            const std::string &levelPrefix,
+                                            const std::string &mfPrefix,
+                                            const Vector<std::string>& extra_dirs)
 {
-    BL_PROFILE("WriteMultiLevelPlotfileHDF5");
+    BL_PROFILE("WriteMultiLevelPlotfileHDF5SingleDset");
 
     BL_ASSERT(nlevels <= mf.size());
     BL_ASSERT(nlevels <= geom.size());
@@ -768,23 +744,23 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
 #endif
 
     delete whichRD;
-}
+} // WriteMultiLevelPlotfileHDF5SingleDset
 
-void WriteMultiLevelPlotfileHDF52 (const std::string& plotfilename,
-                                   int nlevels,
-                                   const Vector<const MultiFab*>& mf,
-                                   const Vector<std::string>& varnames,
-                                   const Vector<Geometry>& geom,
-                                   Real time,
-                                   const Vector<int>& level_steps,
-                                   const Vector<IntVect>& ref_ratio,
-                                   const std::string &compression,
-                                   const std::string &versionName,
-                                   const std::string &levelPrefix,
-                                   const std::string &mfPrefix,
-                                   const Vector<std::string>& extra_dirs)
+void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
+                                           int nlevels,
+                                           const Vector<const MultiFab*>& mf,
+                                           const Vector<std::string>& varnames,
+                                           const Vector<Geometry>& geom,
+                                           Real time,
+                                           const Vector<int>& level_steps,
+                                           const Vector<IntVect>& ref_ratio,
+                                           const std::string &compression,
+                                           const std::string &versionName,
+                                           const std::string &levelPrefix,
+                                           const std::string &mfPrefix,
+                                           const Vector<std::string>& extra_dirs)
 {
-    BL_PROFILE("WriteMultiLevelPlotfileHDF52");
+    BL_PROFILE("WriteMultiLevelPlotfileHDF5MultiDset");
 
     BL_ASSERT(nlevels <= mf.size());
     BL_ASSERT(nlevels <= geom.size());
@@ -1199,17 +1175,17 @@ void WriteMultiLevelPlotfileHDF52 (const std::string& plotfilename,
 #endif
 
     delete whichRD;
-} // WriteMultiLevelPlotfileHDF52
+} // WriteMultiLevelPlotfileHDF5MultiDset
 
 void
 WriteSingleLevelPlotfileHDF5 (const std::string& plotfilename,
-                          const MultiFab& mf, const Vector<std::string>& varnames,
-                          const Geometry& geom, Real time, int level_step,
-                          std::string &compression,
-                          const std::string &versionName,
-                          const std::string &levelPrefix,
-                          const std::string &mfPrefix,
-                          const Vector<std::string>& extra_dirs)
+                              const MultiFab& mf, const Vector<std::string>& varnames,
+                              const Geometry& geom, Real time, int level_step,
+                              std::string &compression,
+                              const std::string &versionName,
+                              const std::string &levelPrefix,
+                              const std::string &mfPrefix,
+                              const Vector<std::string>& extra_dirs)
 {
     Vector<const MultiFab*> mfarr(1,&mf);
     Vector<Geometry> geomarr(1,geom);
@@ -1220,24 +1196,62 @@ WriteSingleLevelPlotfileHDF5 (const std::string& plotfilename,
                                 compression, versionName, levelPrefix, mfPrefix, extra_dirs);
 }
 
-
 void
-WriteSingleLevelPlotfileHDF52 (const std::string& plotfilename,
-                          const MultiFab& mf, const Vector<std::string>& varnames,
-                          const Geometry& geom, Real time, int level_step,
-                          std::string &compression,
-                          const std::string &versionName,
-                          const std::string &levelPrefix,
-                          const std::string &mfPrefix,
-                          const Vector<std::string>& extra_dirs)
+WriteSingleLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
+                                        const MultiFab& mf, const Vector<std::string>& varnames,
+                                        const Geometry& geom, Real time, int level_step,
+                                        std::string &compression,
+                                        const std::string &versionName,
+                                        const std::string &levelPrefix,
+                                        const std::string &mfPrefix,
+                                        const Vector<std::string>& extra_dirs)
 {
     Vector<const MultiFab*> mfarr(1,&mf);
     Vector<Geometry> geomarr(1,geom);
     Vector<int> level_steps(1,level_step);
     Vector<IntVect> ref_ratio;
 
-    WriteMultiLevelPlotfileHDF52(plotfilename, 1, mfarr, varnames, geomarr, time, level_steps, ref_ratio,
-                                compression, versionName, levelPrefix, mfPrefix, extra_dirs);
+    WriteMultiLevelPlotfileHDF5SingleDset(plotfilename, 1, mfarr, varnames, geomarr, time, level_steps, ref_ratio,
+                                          compression, versionName, levelPrefix, mfPrefix, extra_dirs);
+}
+
+void
+WriteSingleLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
+                                       const MultiFab& mf, const Vector<std::string>& varnames,
+                                       const Geometry& geom, Real time, int level_step,
+                                       std::string &compression,
+                                       const std::string &versionName,
+                                       const std::string &levelPrefix,
+                                       const std::string &mfPrefix,
+                                       const Vector<std::string>& extra_dirs)
+{
+    Vector<const MultiFab*> mfarr(1,&mf);
+    Vector<Geometry> geomarr(1,geom);
+    Vector<int> level_steps(1,level_step);
+    Vector<IntVect> ref_ratio;
+
+    WriteMultiLevelPlotfileHDF5MultiDset(plotfilename, 1, mfarr, varnames, geomarr, time, level_steps, ref_ratio,
+                                         compression, versionName, levelPrefix, mfPrefix, extra_dirs);
+}
+
+void 
+WriteMultiLevelPlotfileHDF5 (const std::string &plotfilename,
+                             int nlevels,
+                             const Vector<const MultiFab*> &mf,
+                             const Vector<std::string> &varnames,
+                             const Vector<Geometry> &geom,
+                             Real time,
+                             const Vector<int> &level_steps,
+                             const Vector<IntVect> &ref_ratio,
+                             const std::string &compression,
+                             const std::string &versionName,
+                             const std::string &levelPrefix,
+                             const std::string &mfPrefix,
+                             const Vector<std::string>& extra_dirs)
+{
+
+    WriteMultiLevelPlotfileHDF5SingleDset(plotfilename, nlevels, mf, varnames, geom, time, level_steps, ref_ratio,
+                                          compression, versionName, levelPrefix, mfPrefix, extra_dirs);
 }
 
 } // namespace amrex
