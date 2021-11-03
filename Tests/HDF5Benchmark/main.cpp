@@ -198,6 +198,8 @@ void test ()
         }
     }
 
+    ParallelDescriptor::Barrier();
+
     if (restart_check && nparticlefile > 0)
     {
         MyPC newPC(geom, dmap, ba, ref_ratio);
