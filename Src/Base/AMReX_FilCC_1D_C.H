@@ -56,7 +56,7 @@ struct FilccCell
                 }
                 case (BCType::hoextrapcc):
                 {
-                    q(i,0,0,n) = 2.*q(i+1,0,0,n) - q(i+2,0,0,n);
+                    q(i,0,0,n) = Real(ilo-i)*(q(ilo,0,0,n) - q(ilo+1,0,0,n)) + q(ilo,0,0,n);
                     break;
                 }
                 case (BCType::reflect_even):
@@ -98,7 +98,7 @@ struct FilccCell
                 }
                 case (BCType::hoextrapcc):
                 {
-                    q(i,0,0,n) = 2.*q(i-1,0,0,n) - q(i-2,0,0,n);
+                    q(i,0,0,n) = Real(i-ihi)*(q(ihi,0,0,n) - q(ihi-1,0,0,n)) + q(ihi,0,0,n);
                     break;
                 }
                 case (BCType::reflect_even):
