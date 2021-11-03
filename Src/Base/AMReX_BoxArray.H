@@ -177,9 +177,10 @@ struct BATbndryReg
         m_loshft = IntVect(-a_extent_rad);
         m_hishft = IntVect( a_extent_rad);
         IntVect nodal = a_typ.ixType();
+        m_hishft += nodal;
         const int d = a_face.coordDir();
         if (nodal[d]) {
-            // InterpFaceRegister
+            // InterpFaceRegister & SyncRegister in IAMR
             if (m_face.isLow()) {
                 m_loshft[d] = 0;
                 m_hishft[d] = 0;
@@ -188,10 +189,9 @@ struct BATbndryReg
                 m_hishft[d] = 1;
             }
             m_doilo = IntVect(0);
-            m_doihi = IntVect(1);
+            m_doihi = nodal;
         } else {
             // BndryRegister
-            m_hishft += nodal;
             if (m_face.isLow()) {
                 m_loshft[d] = nodal[d] - a_out_rad;
                 m_hishft[d] = nodal[d] + a_in_rad - 1;
