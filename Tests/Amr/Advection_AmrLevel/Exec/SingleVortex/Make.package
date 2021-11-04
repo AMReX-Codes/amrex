@@ -1,2 +1,3 @@
-CEXE_headers += Prob_Parm.H face_velocity_$(DIM)d_K.H Prob.H
-CEXE_sources += Adv_prob.cpp Prob.cpp
+f90EXE_sources += Prob.f90
+CEXE_headers += Prob_Parm.H face_velocity_$(DIM)d_K.H
+CEXE_sources += Adv_prob.cpp
