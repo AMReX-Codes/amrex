@@ -1,25 +1,28 @@
+# This is a stand-alone test developed for Spack. In Spack,
+# this CMakeLists.txt file is used a build the test that runs 
+# using the command: 
 #
-# Test the amrex installation by
-# building and running the code
-# in Tests/Amr/Advection_AmrCore/
+#   spack test run amrex
 #
-cmake_minimum_required(VERSION 3.21)
+# This CMake script builds the test, 
+# Tests/Amr/Advection_AmrCore, against a currently 
+# installed version of AMReX. The resulting executable can then be 
+# ran to test functionality.
 
-project(SingleVortex_Test)
+cmake_minimum_required(VERSION 3.14)
 
-enable_language(Fortran)
+project(amrex-test-install)
 
-if(DEFINED CMAKE_Fortran_COMPILER)
-    enable_language(Fortran)
-endif()
+#if(DEFINED CMAKE_Fortran_COMPILER)
+#    enable_language(Fortran)
+#endif()
 
 get_filename_component(_base_dir ${CMAKE_CURRENT_LIST_DIR} DIRECTORY)
 
-set(_base_dir  ${_base_dir}/Amr/Advection_AmrLevel)
+set(_base_dir  ${_base_dir}/Amr/Advection_AmrCore)
 set(_src_dir   ${_base_dir}/Source)
-set(_input_dir ${_base_dir}/Exec/SingleVortex)
+set(_input_dir ${_base_dir}/Exec)
 
-message("Base dir: ${_base_dir}")
 
 find_package(AMReX REQUIRED)
 
@@ -32,35 +35,32 @@ else ()
 endif ()
 
 
-add_executable(SingleVortex)
+add_executable(install_test)
 
-target_link_libraries(SingleVortex PUBLIC AMReX::amrex)
+target_link_libraries(install_test PUBLIC AMReX::amrex)
 
-target_include_directories(SingleVortex
+target_include_directories(install_test
    PUBLIC
    ${_src_dir}
    ${_src_dir}/Src_K/
    ${_input_dir}
    )
 
-target_sources(SingleVortex
+target_sources(install_test
    PRIVATE
-   ${_src_dir}/LevelBldAdv.cpp
-   ${_src_dir}/Tagging_params.cpp
+   ${_src_dir}/AdvancePhiAllLevels.cpp
+   ${_src_dir}/AdvancePhiAtLevel.cpp
+   ${_src_dir}/AmrCoreAdv.cpp
+   ${_src_dir}/AmrCoreAdv.H
+   ${_src_dir}/bc_fill.H
+   ${_src_dir}/DefineVelocity.cpp
+   ${_src_dir}/face_velocity.H
    ${_src_dir}/Kernels.H
-   ${_src_dir}/bc_nullfill.cpp
-   ${_src_dir}/AmrLevelAdv.cpp
-   ${_src_dir}/AmrLevelAdv.H
-   ${_src_dir}/Adv.cpp
    ${_src_dir}/main.cpp
-
-   ${_src_dir}/Src_K/tagging_K.H
-   ${_src_dir}/Src_K/slope_K.H
-   ${_src_dir}/Src_K/flux_${AMReX_SPACEDIM}d_K.H
+   ${_src_dir}/Tagging.H
    ${_src_dir}/Src_K/Adv_K.H
-
-   ${_input_dir}/Prob_Parm.H
-   ${_input_dir}/Prob.cpp
-   ${_input_dir}/Adv_prob.cpp
-   ${_input_dir}/face_velocity_${AMReX_SPACEDIM}d_K.H
+   ${_src_dir}/Src_K/compute_flux_2D_K.H
+   ${_src_dir}/Src_K/slope_K.H
+   ${_input_dir}/Prob.H
    )
+
