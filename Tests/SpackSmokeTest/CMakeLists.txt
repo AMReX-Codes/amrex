@@ -1,21 +1,14 @@
 # This is a stand-alone test developed for Spack. In Spack,
-# this CMakeLists.txt file is used a build the test that runs 
-# using the command: 
+# this CMakeLists.txt file is used to build the test when the
+# command, `spack test run amrex` is called.
 #
-#   spack test run amrex
-#
-# This CMake script builds the test, 
-# Tests/Amr/Advection_AmrCore, against a currently 
-# installed version of AMReX. The resulting executable can then be 
-# ran to test functionality.
+# This CMake script builds the test, Tests/Amr/Advection_AmrCore,
+# against a currently installed version of AMReX. The resulting
+# executable can then be ran to test functionality.
 
 cmake_minimum_required(VERSION 3.14)
 
 project(amrex-test-install)
-
-#if(DEFINED CMAKE_Fortran_COMPILER)
-#    enable_language(Fortran)
-#endif()
 
 get_filename_component(_base_dir ${CMAKE_CURRENT_LIST_DIR} DIRECTORY)
 
@@ -24,6 +17,7 @@ set(_src_dir   ${_base_dir}/Source)
 set(_input_dir ${_base_dir}/Exec)
 
 
+# Use installed version of AMReX
 find_package(AMReX REQUIRED)
 
 if (AMReX_3D_FOUND)
@@ -63,4 +57,3 @@ target_sources(install_test
    ${_src_dir}/Src_K/slope_K.H
    ${_input_dir}/Prob.H
    )
-
