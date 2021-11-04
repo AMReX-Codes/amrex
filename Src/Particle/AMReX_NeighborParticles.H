@@ -429,10 +429,14 @@ protected:
     // These are used to keep track of which particles need to be ghosted to which grids
     bool m_neighbor_mask_initialized = false;
     std::unique_ptr<amrex::iMultiFab> m_neighbor_mask_ptr;
+    // {pboxid: [[neighbor codes] size= #intersected nbrs] size= #boundary boxes}
     std::map<int, std::vector<std::vector<NeighborCode> > > m_grid_map;
 
+    // {pboxid: [ith intersected pbox: nbr codes]}
     std::map<int, amrex::Gpu::DeviceVector<NeighborCode> > m_code_array;
-    std::map<int, amrex::Gpu::DeviceVector<int> > m_code_offsets;
+    // {pboxid: [ith intersected pbox: intersection]}
+    std::map<int, amrex::Gpu::DeviceVector<Box> >          m_isec_boxes;
+    std::map<int, amrex::Gpu::DeviceVector<int> > m_code_offsets; // to be removed
 
     ParticleCopyOp neighbor_copy_op;
     ParticleCopyPlan neighbor_copy_plan;
