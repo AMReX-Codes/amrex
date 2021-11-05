@@ -171,7 +171,8 @@ MLEBNodeFDLaplacian::prepareForSolve ()
 
     buildMasks();
 
-    // Set covered nodes to Dirichlet
+    // Set covered nodes to Dirichlet, but with a negative value.
+    // compGrad relies on the negative value to detect EB.
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
             auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
@@ -183,7 +184,7 @@ MLEBNodeFDLaplacian::prepareForSolve ()
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
             {
                 if (levset_ar[box_no](i,j,k) >= Real(0.0)) {
-                    dmask_ar[box_no](i,j,k) = 1;
+                    dmask_ar[box_no](i,j,k) = -1;
                 }
             });
         }

@@ -102,10 +102,6 @@ endif
 #   https://github.com/intel/llvm/issues/2187
 CXXFLAGS += -mlong-double-64 -Xclang -mlong-double-64
 
-# Beta09 has enabled early optimizations by default.  But this causes many
-# tests to crash.  So we disable it.
-CXXFLAGS += -fno-sycl-early-optimizations
-
 F90FLAGS += -implicitnone
 
 FMODULES = -module $(fmoddir) -I$(fmoddir)

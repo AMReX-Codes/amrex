@@ -9,9 +9,12 @@ class AmrMesh;
 
 class FluxRegister;
 class Interpolater;
+class MFInterpolater;
 
 class TagBox;
 class TagBoxArray;
+
+class InterpFaceRegister;
 
 }
 
