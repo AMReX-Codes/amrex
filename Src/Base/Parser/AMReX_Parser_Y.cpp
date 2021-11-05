@@ -1257,6 +1257,9 @@ parser_ast_print_f2 (struct parser_f2* f2, std::string const& space, AllPrint& p
     case PARSER_MAX:
         printer << "MAX\n";
         break;
+    case PARSER_FMOD:
+        printer << "FMOD\n";
+        break;
     default:
         amrex::AllPrint() << "parser_ast_print_f2: Unknown function " << f2->ftype << "\n";
     }

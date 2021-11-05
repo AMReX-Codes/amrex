@@ -58,7 +58,8 @@ enum parser_f2_t {  // Built-in functions with two arguments
     PARSER_HEAVISIDE,
     PARSER_JN,
     PARSER_MIN,
-    PARSER_MAX
+    PARSER_MAX,
+    PARSER_FMOD,
 };
 
 enum parser_f3_t { // functions with three arguments
@@ -332,6 +333,8 @@ parser_call_f2 (enum parser_f2_t type, double a, double b)
         return (a < b) ? a : b;
     case PARSER_MAX:
         return (a > b) ? a : b;
+    case PARSER_FMOD:
+        return std::fmod(a,b);
     default:
         amrex::Abort("parser_call_f2: Unknown function");
         return 0.0;
