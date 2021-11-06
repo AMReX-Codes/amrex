@@ -204,7 +204,7 @@ contains
              do k = lo(3), hi(3)
                 do j = lo(2), hi(2)
                    do i = imin, imax
-                      q(i,j,k,n) = 2*q(ilo,j,k,n) - q(ilo+1,j,k,n)
+                      q(i,j,k,n) = (ilo-i)*(q(ilo,j,k,n) - q(ilo+1,j,k,n)) + q(ilo,j,k,n)
                    end do
                 end do
              end do
@@ -276,7 +276,7 @@ contains
              do k = lo(3), hi(3)
                 do j = lo(2), hi(2)
                    do i = imin, imax
-                      q(i,j,k,n) = 2*q(ihi,j,k,n) - q(ihi-1,j,k,n)
+                      q(i,j,k,n) = (i-ihi)*(q(ihi,j,k,n) - q(ihi-1,j,k,n)) + q(ihi,j,k,n)
                    end do
                 end do
              end do
@@ -350,7 +350,7 @@ contains
              do k = lo(3), hi(3)
                 do j = jmin, jmax
                    do i = lo(1), hi(1)
-                      q(i,j,k,n) = 2*q(i,jlo,k,n) - q(i,jlo+1,k,n)
+                      q(i,j,k,n) = (jlo-j)*(q(i,jlo,k,n) - q(i,jlo+1,k,n)) + q(i,jlo,k,n)
                    end do
                 end do
              end do
@@ -422,7 +422,7 @@ contains
              do k = lo(3), hi(3)
                 do j = jmin, jmax
                    do i = lo(1), hi(1)
-                      q(i,j,k,n) = 2*q(i,jhi,k,n) - q(i,jhi-1,k,n)
+                      q(i,j,k,n) = (j-jhi)*(q(i,jhi,k,n) - q(i,jhi-1,k,n)) + q(i,jhi,k,n)
                    end do
                 end do
              end do
@@ -500,7 +500,7 @@ contains
              do k = kmin, kmax
                 do j = lo(2), hi(2)
                    do i = lo(1), hi(1)
-                      q(i,j,k,n) = 2*q(i,j,klo,n) - q(i,j,klo+1,n)
+                      q(i,j,k,n) = (klo-k)*(q(i,j,klo,n) - q(i,j,klo+1,n)) + q(i,j,klo,n)
                    end do
                 end do
              end do
@@ -572,7 +572,7 @@ contains
              do k = kmin, kmax
                 do j = lo(2), hi(2)
                    do i = lo(1), hi(1)
-                      q(i,j,k,n) = 2*q(i,j,khi,n) - q(i,j,khi-1,n)
+                      q(i,j,k,n) = (k-khi)*(q(i,j,khi,n) - q(i,j,khi-1,n)) + q(i,j,khi,n)
                    end do
                 end do
              end do
