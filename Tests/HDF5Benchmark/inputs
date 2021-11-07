@@ -33,3 +33,5 @@ restart_check = 1
 
 ## Uncomment to enable compression
 hdf5compression=ZFP_ACCURACY#0.001
+
+directory=.
