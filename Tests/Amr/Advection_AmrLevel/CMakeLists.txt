@@ -1,8 +1,3 @@
-if (AMReX_SPACEDIM EQUAL 1)
-        message([WARNING] "Advection_AmrLevel Tests require AMReX_SPACEDIM = 2 or 3." )
-  return()
-endif ()
-
 if (WIN32)
         message([WARNING] "Advection_AmrLevel Tests not currently supported on Windows." )
   return()
