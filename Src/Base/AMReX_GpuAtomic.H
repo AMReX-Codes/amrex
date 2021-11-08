@@ -274,7 +274,10 @@ namespace detail {
     void AddNoRet (float* const sum, float const value) noexcept
     {
 #if AMREX_DEVICE_COMPILE
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
         atomicAddNoRet(sum, value);
+#pragma clang diagnostic pop
 #else
         *sum += value;
 #endif
