@@ -480,7 +480,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_MEM_PROFILE            |  Build with memory-profiling support            | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | AMReX_TESTING                |  Build for testing (CI)                         | NO                      | YES, NO               |
+   | AMReX_TESTING                |  Build for testing --sets MultiFab initial data | NO                      | YES, NO               |
+   |                              |  to NaN                                         |                         |                       |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_MPI_THREAD_MULTIPLE    |  Concurrent MPI calls from multiple threads     | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
@@ -534,7 +535,7 @@ are used to tell CMake which compiler to use for the compilation of C, C++, and 
 respectively. If those options are not set by the user, CMake will use the system default compilers.
 
 The options ``CMAKE_Fortran_FLAGS`` and ``CMAKE_CXX_FLAGS`` allow the user to
-set his own compilation flags for Fortran and C++ source files respectively.
+set their own compilation flags for Fortran and C++ source files respectively.
 If ``CMAKE_Fortran_FLAGS``/ ``CMAKE_CXX_FLAGS`` are not set by the user,
 they will be initialized with the value of the environmental variables ``FFLAGS``/
 ``CXXFLAGS``. If neither ``FFLAGS``/ ``CXXFLAGS`` nor ``CMAKE_Fortran_FLAGS``/ ``CMAKE_CXX_FLAGS``
@@ -704,7 +705,7 @@ As an example, consider the following CMake code:
     find_package(AMReX REQUIRED 3D EB)
     target_link_libraries( Foo  AMReX::amrex AMReX::Flags_CXX )
 
-The code in the snippet above checks wheather an AMReX installation with 3D and Embedded Boundary support
+The code in the snippet above checks whether an AMReX installation with 3D and Embedded Boundary support
 is available on the system. If so, AMReX is linked to target ``Foo`` and AMReX flags preset is used
 to compile ``Foo``'s C++ sources. If no AMReX installation is found or if the available one was built without
 3D or Embedded Boundary support, a fatal error is issued.

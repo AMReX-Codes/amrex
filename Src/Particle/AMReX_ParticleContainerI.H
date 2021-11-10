@@ -68,6 +68,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator> :: 
 
         pp.query("use_prepost", usePrePost);
         pp.query("do_unlink", doUnlink);
+        pp.query("do_mem_efficient_sort", memEfficientSort);
 
         initialized = true;
     }
@@ -1110,18 +1111,62 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::So
             const size_t np = aos.numParticles();
             auto pstruct_ptr = aos().dataPtr();
 
-            ParticleTileType ptile_tmp;
-            ptile_tmp.define(m_num_runtime_real, m_num_runtime_int);
-            ptile_tmp.resize(np);
-
             const Box& box = mfi.validbox();
 
             int ntiles = numTilesInBox(box, true, bin_size);
 
             m_bins.build(np, pstruct_ptr, ntiles, GetParticleBin{plo, dxi, domain, bin_size, box});
+            auto inds = m_bins.permutationPtr();
 
-            gatherParticles(ptile_tmp, ptile, np, m_bins.permutationPtr());
-            ptile.swap(ptile_tmp);
+            if (memEfficientSort) {
+                {
+                    ParticleVector tmp_particles(np);
+                    auto src = ptile.getParticleTileData();
+                    ParticleType* dst = tmp_particles.data();
+
+                    AMREX_HOST_DEVICE_FOR_1D( np, i,
+                    {
+                        dst[i] = src.m_aos[inds[i]];
+                    });
+
+                    Gpu::synchronize();
+                    ptile.GetArrayOfStructs()().swap(tmp_particles);
+                }
+
+                RealVector tmp_real(np);
+                for (int comp = 0; comp < NArrayReal + m_num_runtime_real; ++comp) {
+                    auto src = ptile.GetStructOfArrays().GetRealData(comp).data();
+                    ParticleReal* dst = tmp_real.data();
+                    AMREX_HOST_DEVICE_FOR_1D( np, i,
+                    {
+                        dst[i] = src[inds[i]];
+                    });
+
+                    Gpu::synchronize();
+
+                    ptile.GetStructOfArrays().GetRealData(comp).swap(tmp_real);
+                }
+
+                IntVector tmp_int(np);
+                for (int comp = 0; comp < NArrayInt + m_num_runtime_int; ++comp) {
+                    auto src = ptile.GetStructOfArrays().GetIntData(comp).data();
+                    int* dst = tmp_int.data();
+                    AMREX_HOST_DEVICE_FOR_1D( np, i,
+                    {
+                        dst[i] = src[inds[i]];
+                    });
+
+                    Gpu::synchronize();
+
+                    ptile.GetStructOfArrays().GetIntData(comp).swap(tmp_int);
+                }
+            } else {
+                ParticleTileType ptile_tmp;
+                ptile_tmp.define(m_num_runtime_real, m_num_runtime_int);
+                ptile_tmp.resize(np);
+                gatherParticles(ptile_tmp, ptile, np, m_bins.permutationPtr());
+                ptile.swap(ptile_tmp);
+            }
         }
     }
 }

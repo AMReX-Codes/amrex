@@ -79,6 +79,7 @@ set(AMReX_ASCENT_FOUND              @AMReX_ASCENT@)
 set(AMReX_HYPRE_FOUND               @AMReX_HYPRE@)
 set(AMReX_PETSC_FOUND               @AMReX_PETSC@)
 set(AMReX_SUNDIALS_FOUND            @AMReX_SUNDIALS@)
+set(AMReX_HDF5_FOUND                @AMReX_HDF5@)
 
 # Compilation options
 set(AMReX_FPE_FOUND                 @AMReX_FPE@)
@@ -124,6 +125,7 @@ set(AMReX_CONDUIT                   @AMReX_CONDUIT@)
 set(AMReX_ASCENT                    @AMReX_ASCENT@)
 set(AMReX_HYPRE                     @AMReX_HYPRE@)
 set(AMReX_PETSC                     @AMReX_PETSC@)
+set(AMReX_HDF5                      @AMReX_HDF5@)
 
 # Compilation options
 set(AMReX_FPE                       @AMReX_FPE@)
@@ -189,8 +191,12 @@ if (@AMReX_CONDUIT@)
    find_dependency(Conduit REQUIRED)
 endif ()
 
+if (@AMReX_HDF5@)
+    find_dependency(HDF5 REQUIRED)
+endif ()
+
 if (@AMReX_HYPRE@)
-   find_dependency(HYPRE 2.15 REQUIRED)
+   find_dependency(HYPRE 2.20.0 REQUIRED)
 endif ()
 
 if (@AMReX_PETSC@)

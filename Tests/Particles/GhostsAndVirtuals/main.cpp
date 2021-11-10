@@ -763,8 +763,10 @@ int main(int argc, char* argv[])
   amrex::Print()<<"Original test"<<std::endl;
   test_ghosts_and_virtuals(parms);
 
+#ifndef AMREX_USE_DPCPP
   amrex::Print()<<"RandomPerBox test"<<std::endl;
   test_ghosts_and_virtuals_randomperbox(parms);
+#endif
 
   amrex::Print()<<"OnePerCell test"<<std::endl;
   test_ghosts_and_virtuals_onepercell(parms);

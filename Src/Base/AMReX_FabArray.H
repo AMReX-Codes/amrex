@@ -27,6 +27,7 @@
 #include <AMReX_BaseFabUtility.H>
 #include <AMReX_MFParallelFor.H>
 #include <AMReX_TagParallelFor.H>
+#include <AMReX_ParReduce.H>
 
 #include <AMReX_Gpu.H>
 
@@ -150,7 +151,6 @@ using TheFaArenaPointer = std::unique_ptr<char, TheFaArenaDeleter>;
 template <class FAB>
 struct FBData {
 
-    //! Data used in non-blocking FillBoundary
     const FabArrayBase::FB*  fb = nullptr;
     int                 scomp;
     int                 ncomp;
@@ -210,9 +210,9 @@ struct MultiArray4
     }
 
 #ifdef AMREX_USE_GPU
-    Array4<T>* dp = nullptr;
+    Array4<T> const* AMREX_RESTRICT dp = nullptr;
 #endif
-    Array4<T>* hp = nullptr;
+    Array4<T> const* AMREX_RESTRICT hp = nullptr;
 };
 
 template <class FAB> class FabArray;
@@ -1127,8 +1127,10 @@ public:
 #endif
 
     std::unique_ptr<FBData<FAB>> fbd;
-
     std::unique_ptr<PCData<FAB>> pcd;
+
+    // Pointer to temporary fab used in non-blocking OverrideSync
+    std::unique_ptr< FabArray<FAB> > os_temp;
 };
 
 

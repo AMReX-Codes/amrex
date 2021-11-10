@@ -1,6 +1,8 @@
 #ifndef AMREX_MF_INTERP_2D_C_H_
 #define AMREX_MF_INTERP_2D_C_H_
 
+#include <AMReX_Geometry.H>
+
 namespace amrex {
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -249,6 +251,99 @@ void mf_nodebilin_interp (int i, int j, int, int n, Array4<Real> const& fine, in
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mf_cell_quadratic_calcslope (int i, int j, int /*k*/, int n,
+                                  Array4<Real const> const& crse,  int ccomp,
+                                  Array4<Real>       const& slope,
+                                  Box const& domain,
+                                  BCRec const* bc) noexcept
+{
+    int nu = ccomp + n;
+    Real sx  = mf_compute_slopes_x(i, j, 0, crse, nu, domain, bc[n]);
+    Real sy  = mf_compute_slopes_y(i, j, 0, crse, nu, domain, bc[n]);
+    Real sxx = mf_cell_quadratic_compute_slopes_xx (i, j, 0, crse, nu, domain, bc[n]);
+    Real syy = mf_cell_quadratic_compute_slopes_yy (i, j, 0, crse, nu, domain, bc[n]);
+    Real sxy = mf_cell_quadratic_compute_slopes_xy (i, j, 0, crse, nu, domain, bc[n]);
+
+    slope(i,j,0,5*n  ) = sx;  // x
+    slope(i,j,0,5*n+1) = sy;  // y
+    slope(i,j,0,5*n+2) = sxx; // x^2
+    slope(i,j,0,5*n+3) = syy; // y^2
+    slope(i,j,0,5*n+4) = sxy; // xy
 }
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mf_cell_quadratic_interp (int i, int j, int /*k*/, int n,
+                               Array4<Real>       const& fine,  int fcomp,
+                               Array4<Real const> const& crse,  int ccomp,
+                               Array4<Real const> const& slope,
+                               IntVect const& ratio) noexcept
+{
+    int ic = amrex::coarsen(i, ratio[0]);
+    int jc = amrex::coarsen(j, ratio[1]);
+    int irx = i - ic*ratio[0]; // = abs(i % ratio[0])
+    int jry = j - jc*ratio[1]; // = abs(j % ratio[1])
+
+    // Compute offsets.
+    Real xoff = ( Real(irx) + 0.5_rt ) / Real(ratio[0]) - 0.5_rt;
+    Real yoff = ( Real(jry) + 0.5_rt ) / Real(ratio[1]) - 0.5_rt;
+
+    fine(i,j,0,fcomp+n) = crse(ic,jc,0,ccomp+n)
+                          +          xoff        * slope(ic,jc,0,5*n  )  // x
+                          +                 yoff * slope(ic,jc,0,5*n+1)  // y
+                          + 0.5_rt * xoff * xoff * slope(ic,jc,0,5*n+2)  // x^2
+                          + 0.5_rt * yoff * yoff * slope(ic,jc,0,5*n+3)  // y^2
+                          +          xoff * yoff * slope(ic,jc,0,5*n+4); // xy
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mf_cell_quadratic_interp_rz (int i, int j, int /*k*/, int n,
+                                  Array4<Real>       const& fine,  int fcomp,
+                                  Array4<Real const> const& crse,  int ccomp,
+                                  Array4<Real const> const& slope,
+                                  IntVect const& ratio,
+                                  GeometryData const& cs_geomdata,
+                                  GeometryData const& fn_geomdata) noexcept
+{
+    int ic = amrex::coarsen(i, ratio[0]);
+    int jc = amrex::coarsen(j, ratio[1]);
+    int jry = j - jc*ratio[1]; // = abs(j % ratio[1])
+
+    // Extract geometry data for radial direction.
+    Real fn_dr  = fn_geomdata.CellSize(0);
+    Real fn_rlo = fn_geomdata.ProbLo(0);
+    Real cs_dr  = cs_geomdata.CellSize(0);
+    Real cs_rlo = cs_geomdata.ProbLo(0);
+
+    // Compute radial mesh.
+    Real fn_rm = fn_rlo + Real(i)    * fn_dr;
+    Real fn_rp = fn_rlo + Real(i+1)  * fn_dr;
+    Real cs_rm = cs_rlo + Real(ic)   * cs_dr;
+    Real cs_rp = cs_rlo + Real(ic+1) * cs_dr;
+
+    // Compute radial cell edge coords.
+    // Note: omit the 0.5 prefactor here -- we'll add it once at the last step
+    Real fn_vm = fn_rm*fn_rm;
+    Real fn_vp = fn_rp*fn_rp;
+    Real fcen  = fn_vm + fn_vp;
+    Real cs_vm = cs_rm*cs_rm;
+    Real cs_vp = cs_rp*cs_rp;
+    Real ccen  = cs_vm + cs_vp;
+
+    // Compute r offset
+    Real xoff = 0.5_rt * ( fcen - ccen ) / ( cs_vp - cs_vm ) ;
+
+    // Compute z offset (same formula as Cartesian)
+    Real yoff = ( Real(jry) + 0.5_rt ) / Real(ratio[1]) - 0.5_rt;
+
+    fine(i,j,0,fcomp+n) = crse(ic,jc,0,ccomp+n)
+                          +          xoff        * slope(ic,jc,0,5*n  )  // x
+                          +                 yoff * slope(ic,jc,0,5*n+1)  // y
+                          + 0.5_rt * xoff * xoff * slope(ic,jc,0,5*n+2)  // x^2
+                          + 0.5_rt * yoff * yoff * slope(ic,jc,0,5*n+3)  // y^2
+                          +          xoff * yoff * slope(ic,jc,0,5*n+4); // xy
+}
+
+} // namespace amrex
 
 #endif

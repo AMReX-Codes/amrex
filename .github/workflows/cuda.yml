@@ -3,7 +3,7 @@ name: cuda
 on: [push, pull_request]
 
 concurrency:
-  group: ${{ github.head_ref }}-cuda
+  group: ${{ github.ref }}-${{ github.head_ref }}-cuda
   cancel-in-progress: true
 
 jobs:
@@ -64,6 +64,47 @@ jobs:
             -DCMAKE_CXX_COMPILER=$(which g++)            \
             -DCMAKE_CUDA_HOST_COMPILER=$(which g++)      \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)   \
+            -DCMAKE_CUDA_STANDARD=17                     \
+            -DCMAKE_CXX_STANDARD=17                      \
+            -DAMReX_CUDA_ARCH=8.0                        \
+            -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
+            -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON
+
+        cmake --build build -j 2
+
+  # Build libamrex and all tests with NVHPC (recent supported)
+  tests-nvhpc21-9-nvcc:
+    name: NVHPC@21.9 NVCC/NVC++ C++17 Release [tests]
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_nvhpc21-9.sh
+    - name: Build & Install
+      run: |
+        source /etc/profile.d/modules.sh
+        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/21.9
+
+        which nvcc || echo "nvcc not in PATH!"
+        which nvc++ || echo "nvc++ not in PATH!"
+        which nvc || echo "nvc not in PATH!"
+        which nvfortran || echo "nvfortran not in PATH!"
+        nvcc --version
+        nvc++ --version
+        nvc --version
+        nvfortran --version
+        cmake --version
+
+        cmake -S . -B build                              \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                  \
+            -DAMReX_ENABLE_TESTS=ON                      \
+            -DAMReX_PARTICLES=ON                         \
+            -DAMReX_FORTRAN=OFF                          \
+            -DAMReX_GPU_BACKEND=CUDA                     \
+            -DCMAKE_C_COMPILER=$(which nvc)              \
+            -DCMAKE_CXX_COMPILER=$(which nvc++)          \
+            -DCMAKE_CUDA_HOST_COMPILER=$(which nvc++)    \
+            -DCMAKE_Fortran_COMPILER=$(which nvfortran)  \
             -DCMAKE_CUDA_STANDARD=17                     \
             -DCMAKE_CXX_STANDARD=17                      \
             -DAMReX_CUDA_ARCH=8.0                        \

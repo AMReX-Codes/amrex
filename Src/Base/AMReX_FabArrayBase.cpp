@@ -555,12 +555,16 @@ FabArrayBase::flushCPC (bool no_assertion) const
 void
 FabArrayBase::flushCPCache ()
 {
+    std::vector<CPC*> cpcs;
     for (CPCacheIter it = m_TheCPCache.begin(); it != m_TheCPCache.end(); ++it)
     {
         if (it->first == it->second->m_srcbdk) {
             m_CPC_stats.recordErase(it->second->m_nuse);
-            delete it->second;
+            cpcs.push_back(it->second);
         }
+    }
+    for (auto& c : cpcs) {
+        delete c;
     }
     m_TheCPCache.clear();
 #ifdef AMREX_MEM_PROFILING
@@ -611,8 +615,9 @@ FabArrayBase::getCPC (const IntVect& dstng, const FabArrayBase& src, const IntVe
     m_CPC_stats.recordUse();
 
     m_TheCPCache.insert(er_it.second, CPCache::value_type(dstkey,new_cpc));
-    if (srckey != dstkey)
+    if (srckey != dstkey) {
         m_TheCPCache.insert(          CPCache::value_type(srckey,new_cpc));
+    }
 
     return *new_cpc;
 }

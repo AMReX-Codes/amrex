@@ -28,7 +28,7 @@ struct BLBackTrace
 
     static std::stack<std::pair<std::string, std::string> > bt_stack;
 // threadprivate here doesn't work with Cray and Intel
-#if defined(AMREX_USE_OMP) && !defined(_CRAYC) && !defined(__INTEL_COMPILER) && !defined(__PGI)
+#if defined(AMREX_USE_OMP) && !defined(_CRAYC) && !defined(__INTEL_COMPILER) && !defined(__PGI) && !defined(__NVCOMPILER)
 #pragma omp threadprivate(bt_stack)
 #endif
 };

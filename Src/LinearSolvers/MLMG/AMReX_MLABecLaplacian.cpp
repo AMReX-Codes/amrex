@@ -12,9 +12,8 @@ MLABecLaplacian::MLABecLaplacian (const Vector<Geometry>& a_geom,
                                   const LPInfo& a_info,
                                   const Vector<FabFactory<FArrayBox> const*>& a_factory,
                                   const int a_ncomp)
-    : m_ncomp(a_ncomp)
 {
-    define(a_geom, a_grids, a_dmap, a_info, a_factory);
+    define(a_geom, a_grids, a_dmap, a_info, a_factory, a_ncomp);
 }
 
 MLABecLaplacian::MLABecLaplacian (const Vector<Geometry>& a_geom,
@@ -22,9 +21,10 @@ MLABecLaplacian::MLABecLaplacian (const Vector<Geometry>& a_geom,
                                   const Vector<DistributionMapping>& a_dmap,
                                   const Vector<iMultiFab const*>& a_overset_mask,
                                   const LPInfo& a_info,
-                                  const Vector<FabFactory<FArrayBox> const*>& a_factory)
+                                  const Vector<FabFactory<FArrayBox> const*>& a_factory,
+                                  const int a_ncomp)
 {
-    define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory);
+    define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory, a_ncomp);
 }
 
 void
@@ -32,9 +32,11 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
                          const Vector<BoxArray>& a_grids,
                          const Vector<DistributionMapping>& a_dmap,
                          const LPInfo& a_info,
-                         const Vector<FabFactory<FArrayBox> const*>& a_factory)
+                         const Vector<FabFactory<FArrayBox> const*>& a_factory,
+                         const int a_ncomp)
 {
     BL_PROFILE("MLABecLaplacian::define()");
+    m_ncomp = a_ncomp;
     MLCellABecLap::define(a_geom, a_grids, a_dmap, a_info, a_factory);
     define_ab_coeffs();
 }
@@ -45,9 +47,11 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
                          const Vector<DistributionMapping>& a_dmap,
                          const Vector<iMultiFab const*>& a_overset_mask,
                          const LPInfo& a_info,
-                         const Vector<FabFactory<FArrayBox> const*>& a_factory)
+                         const Vector<FabFactory<FArrayBox> const*>& a_factory,
+                         const int a_ncomp)
 {
     BL_PROFILE("MLABecLaplacian::define(overset)");
+    m_ncomp = a_ncomp;
     MLCellABecLap::define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory);
     define_ab_coeffs();
 }
@@ -465,7 +469,7 @@ MLABecLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
                      const auto& bzma = bzcoef.const_arrays(););
         if (m_overset_mask[amrlev][mglev]) {
             const auto& osmma = m_overset_mask[amrlev][mglev]->const_arrays();
-            ParallelFor(out, ncomp,
+            ParallelFor(out, IntVect(0), ncomp,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
                 mlabeclap_adotx_os(i,j,k,n, yma[box_no], xma[box_no], ama[box_no],
@@ -473,7 +477,7 @@ MLABecLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
                                    osmma[box_no], dxinv, ascalar, bscalar);
             });
         } else {
-            ParallelFor(out, ncomp,
+            ParallelFor(out, IntVect(0), ncomp,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
                 mlabeclap_adotx(i,j,k,n, yma[box_no], xma[box_no], ama[box_no],
@@ -539,7 +543,7 @@ MLABecLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
         AMREX_D_TERM(const auto& bxma = bxcoef.const_arrays();,
                      const auto& byma = bycoef.const_arrays();,
                      const auto& bzma = bzcoef.const_arrays(););
-        ParallelFor(mf, ncomp,
+        ParallelFor(mf, IntVect(0), ncomp,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
         {
             mlabeclap_normalize(i,j,k,n, ma[box_no], ama[box_no],
@@ -656,7 +660,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 
         if (m_overset_mask[amrlev][mglev]) {
             const auto& osmma = m_overset_mask[amrlev][mglev]->const_arrays();
-            ParallelFor(sol, nc,
+            ParallelFor(sol, IntVect(0), nc,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
                 Box vbx(ama[box_no]);
@@ -670,7 +674,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                              osmma[box_no], vbx, redblack);
             });
         } else if (regular_coarsening) {
-            ParallelFor(sol, nc,
+            ParallelFor(sol, IntVect(0), nc,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
                 Box vbx(ama[box_no]);
@@ -968,7 +972,7 @@ MLABecLaplacian::makeNLinOp (int /*grid_size*/) const
         auto const& ama = alpha.arrays();
         auto const& abotma = alpha_bottom.const_arrays();
         auto const& mma = osm_bottom.const_arrays();
-        ParallelFor(alpha, ncomp,
+        ParallelFor(alpha, IntVect(0), ncomp,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
         {
             if (mma[box_no](i,j,k)) {
@@ -1018,7 +1022,7 @@ MLABecLaplacian::copyNSolveSolution (MultiFab& dst, MultiFab const& src) const
         auto const& dstma = dst.arrays();
         auto const& srcma = src.const_arrays();
         auto const& mma = m_overset_mask[0].back()->const_arrays();
-        ParallelFor(dst, ncomp,
+        ParallelFor(dst, IntVect(0), ncomp,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
         {
             if (mma[box_no](i,j,k)) {

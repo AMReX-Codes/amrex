@@ -29,10 +29,8 @@ ifeq ($(DEBUG),TRUE)
 
 else
 
-  CXXFLAGS += -O3 # // xxxx DPCPP: todo -g in beta6 causes a lot of warning messages
-  CFLAGS   += -O3 #                       and makes linking much slower
-#  CXXFLAGS += -g -O3
-#  CFLAGS   += -g -O3
+  CXXFLAGS += -g1 -O3 # // xxxx DPCPP: todo -g in beta6 causes a lot of warning messages
+  CFLAGS   += -g1 -O3 #                       and makes linking much slower
   FFLAGS   += -g -O3
   F90FLAGS += -g -O3
 
@@ -54,6 +52,11 @@ ifeq ($(WARN_ALL),TRUE)
   CFLAGS += $(warning_flags)
 endif
 
+# disable warning: comparison with infinity always evaluates to false in fast floating point modes [-Wtautological-constant-compare]
+#                  return std::isinf(m);
+# appeared since 2021.4.0
+CXXFLAGS += -Wno-tautological-constant-compare
+
 ifeq ($(WARN_ERROR),TRUE)
   CXXFLAGS += -Werror
   CFLAGS += -Werror
@@ -72,19 +75,27 @@ CFLAGS   += -std=c99
 
 ifneq ($(DEBUG),TRUE)  # There is currently a bug that DEBUG build will crash.
 ifeq ($(DPCPP_AOT),TRUE)
-  INTEL_CPU_LONG_NAME = $(shell cat /sys/devices/cpu/caps/pmu_name)
-  ifneq ($(INTEL_CPU_LONG_NAME),)
-    ifeq ($(INTEL_CPU_LONG_NAME),skylake)
-      INTEL_CPU_SHORT_NAME = skl
-    else ifeq ($(INTEL_CPU_LONG_NAME),kabylake)
-      INTEL_CPU_SHORT_NAME = kbl
-    else ifeq ($(INTEL_CPU_LONG_NAME),cascadelake)
-      INTEL_CPU_SHORT_NAME = cfl
-    else
-      $(error AOT TODO: $(INTEL_CPU_LONG_NAME))
+  ifdef AMREX_INTEL_ARCH
+    INTEL_CPU_SHORT_NAME = $(AMREX_INTEL_ARCH)
+  else
+  ifdef INTEL_ARCH
+    INTEL_CPU_SHORT_NAME = $(INTEL_ARCH)
+  else
+    INTEL_CPU_LONG_NAME = $(shell cat /sys/devices/cpu/caps/pmu_name)
+    ifneq ($(INTEL_CPU_LONG_NAME),)
+      ifeq ($(INTEL_CPU_LONG_NAME),skylake)
+        INTEL_CPU_SHORT_NAME = skl
+      else ifeq ($(INTEL_CPU_LONG_NAME),kabylake)
+        INTEL_CPU_SHORT_NAME = kbl
+      else ifeq ($(INTEL_CPU_LONG_NAME),cascadelake)
+        INTEL_CPU_SHORT_NAME = cfl
+      else
+        $(error AOT TODO: $(INTEL_CPU_LONG_NAME))
+      endif
     endif
-    CXXFLAGS += -fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xsycl-target-backend '-device $(INTEL_CPU_SHORT_NAME)'
   endif
+  endif
+  CXXFLAGS += -fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xsycl-target-backend '-device $(INTEL_CPU_SHORT_NAME)'
 endif
 endif
 
@@ -98,10 +109,6 @@ endif
 #   define "long double" as 64bit for C++ user-defined literals
 #   https://github.com/intel/llvm/issues/2187
 CXXFLAGS += -mlong-double-64 -Xclang -mlong-double-64
-
-# Beta09 has enabled early optimizations by default.  But this causes many
-# tests to crash.  So we disable it.
-CXXFLAGS += -fno-sycl-early-optimizations
 
 F90FLAGS += -implicitnone
 

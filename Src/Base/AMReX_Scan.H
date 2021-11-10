@@ -60,7 +60,7 @@ struct BlockStatus<T, true>
     Data<T> d;
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-#if defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_DPCPP) && (__INTEL_LLVM_COMPILER <= 20210300)
     void write (char a_status, T a_value, sycl::nd_item<1> const& /*item*/) {
 #else
     void write (char a_status, T a_value) {
@@ -102,7 +102,7 @@ struct BlockStatus<T, true>
     void set_status (char a_status) { d.s.status = a_status; }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-#if defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_DPCPP) && (__INTEL_LLVM_COMPILER <= 20210300)
     STVA<T> wait (sycl::nd_item<1> const& item) volatile {
 #else
     STVA<T> wait () volatile {
@@ -110,7 +110,11 @@ struct BlockStatus<T, true>
         STVA<T> r;
         do {
 #if defined(AMREX_USE_DPCPP)
+#if (__INTEL_LLVM_COMPILER <= 20210300)
             item.mem_fence();
+#else
+            sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::work_group);
+#endif
 #else
             __threadfence_block();
 #endif
@@ -128,7 +132,7 @@ struct BlockStatus<T, false>
     char status;
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-#if defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_DPCPP) && (__INTEL_LLVM_COMPILER <= 20210300)
     void write (char a_status, T a_value, sycl::nd_item<1> const& item) {
 #else
     void write (char a_status, T a_value) {
@@ -139,7 +143,11 @@ struct BlockStatus<T, false>
             inclusive = a_value;
         }
 #if defined(AMREX_USE_DPCPP)
+#if (__INTEL_LLVM_COMPILER <= 20210300)
         item.mem_fence(sycl::access::fence_space::global_and_local);
+#else
+        sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
+#endif
 #else
         __threadfence();
 #endif
@@ -164,7 +172,7 @@ struct BlockStatus<T, false>
     void set_status (char a_status) { status = a_status; }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-#if defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_DPCPP) && (__INTEL_LLVM_COMPILER <= 20210300)
     STVA<T> wait (sycl::nd_item<1> const& item) volatile {
 #else
     STVA<T> wait () volatile {
@@ -173,7 +181,11 @@ struct BlockStatus<T, false>
         do {
             r = read();
 #if defined(AMREX_USE_DPCPP)
+#if (__INTEL_LLVM_COMPILER <= 20210300)
             item.mem_fence(sycl::access::fence_space::global_and_local);
+#else
+            sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
+#endif
 #else
             __threadfence();
 #endif
@@ -186,11 +198,9 @@ struct BlockStatus<T, false>
 
 #if defined(AMREX_USE_DPCPP)
 
-template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
-          typename M=std::enable_if_t<std::is_integral<N>::value &&
-                                      (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ||
-                                       std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value)> >
-T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
+#ifndef AMREX_DPCPP_NO_MULTIPASS_SCAN
+template <typename T, typename N, typename FIN, typename FOUT, typename TYPE>
+T PrefixSum_mp (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum)
 {
     if (n <= 0) return 0;
     constexpr int nwarps_per_block = 8;
@@ -199,6 +209,214 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
     constexpr int nelms_per_block = nthreads * nchunks;
     AMREX_ALWAYS_ASSERT(static_cast<Long>(n) < static_cast<Long>(std::numeric_limits<int>::max())*nelms_per_block);
     int nblocks = (static_cast<Long>(n) + nelms_per_block - 1) / nelms_per_block;
+    std::size_t sm = sizeof(T) * (Gpu::Device::warp_size + nwarps_per_block);
+    auto stream = Gpu::gpuStream();
+
+    std::size_t nbytes_blockresult = Arena::align(sizeof(T)*n);
+    std::size_t nbytes_blocksum = Arena::align(sizeof(T)*nblocks);
+    std::size_t nbytes_totalsum = Arena::align(sizeof(T));
+    auto dp = (char*)(The_Arena()->alloc(nbytes_blockresult
+                                         + nbytes_blocksum
+                                         + nbytes_totalsum));
+    T* blockresult_p = (T*)dp;
+    T* blocksum_p = (T*)(dp + nbytes_blockresult);
+    T* totalsum_p = (T*)(dp + nbytes_blockresult + nbytes_blocksum);
+
+    amrex::launch(nblocks, nthreads, sm, stream,
+    [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
+    {
+        amrex::oneapi::sub_group const& sg = gh.item->get_sub_group();
+        int lane = sg.get_local_id()[0];
+        int warp = sg.get_group_id()[0];
+        int nwarps = sg.get_group_range()[0];
+
+        int threadIdxx = gh.item->get_local_id(0);
+        int blockIdxx = gh.item->get_group_linear_id();
+        int blockDimx = gh.item->get_local_range(0);
+
+        T* shared = (T*)(gh.local);
+        T* shared2 = shared + Gpu::Device::warp_size;
+
+        // Each block processes [ibegin,iend).
+        N ibegin = nelms_per_block * blockIdxx;
+        N iend = amrex::min(static_cast<N>(ibegin+nelms_per_block), n);
+
+        // Each block is responsible for nchunks chunks of data,
+        // where each chunk has blockDim.x elements, one for each
+        // thread in the block.
+        T sum_prev_chunk = 0; // inclusive sum from previous chunks.
+        for (int ichunk = 0; ichunk < nchunks; ++ichunk) {
+            N offset = ibegin + ichunk*blockDimx;
+            if (offset >= iend) break;
+
+            offset += threadIdxx;
+            T x0 = (offset < iend) ? fin(offset) : 0;
+            T x = x0;
+            // Scan within a warp
+            for (int i = 1; i <= Gpu::Device::warp_size; i *= 2) {
+                T s = sg.shuffle_up(x, i);
+                if (lane >= i) x += s;
+            }
+
+            // x now holds the inclusive sum within the warp.  The
+            // last thread in each warp holds the inclusive sum of
+            // this warp.  We will store it in shared memory.
+            if (lane == Gpu::Device::warp_size - 1) {
+                shared[warp] = x;
+            }
+
+            gh.item->barrier(sycl::access::fence_space::local_space);
+
+            // The first warp will do scan on the warp sums for the
+            // whole block.
+            if (warp == 0) {
+                T y = (lane < nwarps) ? shared[lane] : 0;
+                for (int i = 1; i <= Gpu::Device::warp_size; i *= 2) {
+                    T s = sg.shuffle_up(y, i);
+                    if (lane >= i) y += s;
+                }
+
+                if (lane < nwarps) shared2[lane] = y;
+            }
+
+            gh.item->barrier(sycl::access::fence_space::local_space);
+
+            // shared[0:nwarps) holds the inclusive sum of warp sums.
+
+            // Also note x still holds the inclusive sum within the
+            // warp.  Given these two, we can compute the inclusive
+            // sum within this chunk.
+            T sum_prev_warp = (warp == 0) ? 0 : shared2[warp-1];
+            T tmp_out = sum_prev_warp + sum_prev_chunk +
+                (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ? x : x-x0);
+            sum_prev_chunk += shared2[nwarps-1];
+
+            if (offset < iend) {
+                blockresult_p[offset] = tmp_out;
+            }
+        }
+
+        // sum_prev_chunk now holds the sum of the whole block.
+        if (threadIdxx == 0) {
+            blocksum_p[blockIdxx] = sum_prev_chunk;
+        }
+    });
+
+    amrex::launch(1, nthreads, sm, stream,
+    [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
+    {
+        amrex::oneapi::sub_group const& sg = gh.item->get_sub_group();
+        int lane = sg.get_local_id()[0];
+        int warp = sg.get_group_id()[0];
+        int nwarps = sg.get_group_range()[0];
+
+        int threadIdxx = gh.item->get_local_id(0);
+        int blockDimx = gh.item->get_local_range(0);
+
+        T* shared = (T*)(gh.local);
+        T* shared2 = shared + Gpu::Device::warp_size;
+
+        T sum_prev_chunk = 0;
+        for (int offset = threadIdxx; offset - threadIdxx < nblocks; offset += blockDimx) {
+            T x = (offset < nblocks) ? blocksum_p[offset] : 0;
+            // Scan within a warp
+            for (int i = 1; i <= Gpu::Device::warp_size; i *= 2) {
+                T s = sg.shuffle_up(x, i);
+                if (lane >= i) x += s;
+            }
+
+            // x now holds the inclusive sum within the warp.  The
+            // last thread in each warp holds the inclusive sum of
+            // this warp.  We will store it in shared memory.
+            if (lane == Gpu::Device::warp_size - 1) {
+                shared[warp] = x;
+            }
+
+            gh.item->barrier(sycl::access::fence_space::local_space);
+
+            // The first warp will do scan on the warp sums for the
+            // whole block.
+            if (warp == 0) {
+                T y = (lane < nwarps) ? shared[lane] : 0;
+                for (int i = 1; i <= Gpu::Device::warp_size; i *= 2) {
+                    T s = sg.shuffle_up(y, i);
+                    if (lane >= i) y += s;
+                }
+
+                if (lane < nwarps) shared2[lane] = y;
+            }
+
+            gh.item->barrier(sycl::access::fence_space::local_space);
+
+            // shared[0:nwarps) holds the inclusive sum of warp sums.
+
+            // Also note x still holds the inclusive sum within the
+            // warp.  Given these two, we can compute the inclusive
+            // sum within this chunk.
+            T sum_prev_warp = (warp == 0) ? 0 : shared2[warp-1];
+            T tmp_out = sum_prev_warp + sum_prev_chunk + x;
+            sum_prev_chunk += shared2[nwarps-1];
+
+            if (offset < nblocks) {
+                blocksum_p[offset] = tmp_out;
+            }
+        }
+
+        // sum_prev_chunk now holds the total sum.
+        if (threadIdxx == 0) {
+            *totalsum_p = sum_prev_chunk;
+        }
+    });
+
+    amrex::launch(nblocks, nthreads, 0, stream,
+    [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
+    {
+        int threadIdxx = gh.item->get_local_id(0);
+        int blockIdxx = gh.item->get_group_linear_id();
+        int blockDimx = gh.item->get_local_range(0);
+
+        // Each block processes [ibegin,iend).
+        N ibegin = nelms_per_block * blockIdxx;
+        N iend = amrex::min(static_cast<N>(ibegin+nelms_per_block), n);
+        T prev_sum = (blockIdxx == 0) ? 0 : blocksum_p[blockIdxx-1];
+        for (N offset = ibegin + threadIdxx; offset < iend; offset += blockDimx) {
+            fout(offset, prev_sum + blockresult_p[offset]);
+        }
+    });
+
+    T totalsum = 0;
+    if (a_ret_sum) {
+        Gpu::dtoh_memcpy_async(&totalsum, totalsum_p, sizeof(T));
+    }
+    Gpu::streamSynchronize();
+    The_Arena()->free(dp);
+
+    AMREX_GPU_ERROR_CHECK();
+
+    return totalsum;
+}
+#endif
+
+template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
+          typename M=std::enable_if_t<std::is_integral<N>::value &&
+                                      (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ||
+                                       std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value)> >
+T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum)
+{
+    if (n <= 0) return 0;
+    constexpr int nwarps_per_block = 8;
+    constexpr int nthreads = nwarps_per_block*Gpu::Device::warp_size;
+    constexpr int nchunks = 12;
+    constexpr int nelms_per_block = nthreads * nchunks;
+    AMREX_ALWAYS_ASSERT(static_cast<Long>(n) < static_cast<Long>(std::numeric_limits<int>::max())*nelms_per_block);
+    int nblocks = (static_cast<Long>(n) + nelms_per_block - 1) / nelms_per_block;
+
+#ifndef AMREX_DPCPP_NO_MULTIPASS_SCAN
+    if (nblocks > 1) {
+        return PrefixSum_mp<T>(n, std::forward<FIN>(fin), std::forward<FOUT>(fout), type, retSum);
+    }
+#endif
+
     std::size_t sm = sizeof(T) * (Gpu::Device::warp_size + nwarps_per_block) + sizeof(int);
     auto stream = Gpu::gpuStream();
 
@@ -227,7 +445,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
     amrex::launch(nblocks, nthreads, sm, stream,
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
     {
-        sycl::ONEAPI::sub_group const& sg = gh.item->get_sub_group();
+        amrex::oneapi::sub_group const& sg = gh.item->get_sub_group();
         int lane = sg.get_local_id()[0];
         int warp = sg.get_group_id()[0];
         int nwarps = sg.get_group_range()[0];
@@ -323,7 +541,11 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
         // sum_prev_chunk now holds the sum of the whole block.
         if (threadIdxx == 0 && gridDimx > 1) {
             block_status.write((virtual_block_id == 0) ? 'p' : 'a',
-                               sum_prev_chunk, *gh.item);
+                               sum_prev_chunk
+#if (__INTEL_LLVM_COMPILER <= 20210300)
+                               , *gh.item
+#endif
+                );
         }
 
         if (virtual_block_id == 0) {
@@ -345,7 +567,11 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
                     int iblock = iblock0-lane;
                     detail::STVA<T> stva{'p', 0};
                     if (iblock >= 0) {
+#if (__INTEL_LLVM_COMPILER <= 20210300)
                         stva = pbs[iblock].wait(*gh.item);
+#else
+                        stva = pbs[iblock].wait();
+#endif
                     }
 
                     T x = stva.value;
@@ -382,8 +608,11 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
                 }
 
                 if (lane == 0) {
-                    block_status.write('p', block_status.get_aggregate() + exclusive_prefix,
-                                       *gh.item);
+                    block_status.write('p', block_status.get_aggregate() + exclusive_prefix
+#if (__INTEL_LLVM_COMPILER <= 20210300)
+                                       , *gh.item
+#endif
+                        );
                     shared[0] = exclusive_prefix;
                 }
             }
@@ -1006,6 +1235,7 @@ T InclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 template <typename N, typename T, typename M=std::enable_if_t<std::is_integral<N>::value> >
 T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 {
+    if (n <= 0) return 0;
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 11)
     T in_last = 0;
     if (a_ret_sum) {

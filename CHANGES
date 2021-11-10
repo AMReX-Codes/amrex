@@ -1,3 +1,144 @@
+# 21.11
+
+  -- Set to never write fill values to the dataset for HDF5 output (#2450)
+
+  -- Lower Hypre minimum version to 2.20. (#2446)
+
+  -- Fix use-after-free in the flush of parallel copy meta-data cache. (#2443)
+
+  -- Update MPI config checking to include Intel MPI wrappers for DPCPP (#2435)
+
+  -- Add EBCellFlagFab::getNumRegularCells, getNumCutCells and getNumCoveredCells (#2422)
+
+  -- ExclusiveSum on GPU: return 0 when size of pointer is 0 (#2440)
+
+  -- Multi-component overset solver (#2429)
+
+  -- Use -rpath=dir instead of -rpath dir for dpcpp. (#2439)
+
+  -- DPCPP: Use -g1 for non-debug build (#2438)
+
+  -- DPCPP: Fix warning on tautological-constant-compare (#2436)
+
+  -- Tests: Safe-Guard Module Dirs (#2434)
+
+  -- Remove deprecated BaseUmap (#2425)
+
+  -- Update WarpX EB solver (#2421)
+
+  -- MLNodeLaplacian: Fix max coarsening level for enclosed EB (#2431)
+
+  -- Fix two IO overflow bugs uncovered by NyX. (#2417)
+
+  -- Cleanup of amrdata (#2430)
+
+  -- Set options to allow other Doxygen docs to link to AMReX. (#2424)
+
+  -- Remove DArena and EArena (#2426)
+
+  -- Update MLNodeTensorLap for WarpX (#2416)
+
+  -- Reduce peak memory usage when sorting particles. (#2414)
+
+  -- Extend CellQuadratic Interpolater to 3D (#2409)
+
+  -- Fix 2D bug in EB2::SplineIF (#2407)
+
+  -- Cleanup Tools/Postprocessing/C_src (#2398)
+
+  -- Port CellQuadratic to C++ with GPU support (#2369)
+
+  -- added bamg option to set restriction type (#2402)
+
+  -- Fix dot product mask in EB nodal solver (#2404)
+
+  -- Move Tools/C_util/Convergence/WritePlotFile to Src/Extern/amrdata. (#2397)
+
+  -- Arena Document and PrintUsage (#2403)
+
+  -- BArena: Make a static BArena object (#2401)
+
+  -- Make fcompare print usage and exit if only one plotfile is provided. (#2388)
+
+  -- Add Arena::PrintUsageToFiles for debugging (#2392)
+
+  -- Update c util (#2390)
+
+  -- Adding ILU smoothing parameters for Hypre interface. (#2382)
+
+  -- Avoid free after amrex::Finalize (#2389)
+
+  -- Workaround for nvcc bug that (sometimes) incorrectly complains about unused TinyProfiler variables. (#2383)
+
+  -- Add floor and ceil to parser (#2380)
+
+  -- CI: Groups Include Branch (#2379)
+
+  -- Fix bug in the particle communication routines when the number of chars in the message is > MAXINT. (#2376)
+
+  -- ROCm now supports __managed__ (#2377)
+
+  -- Fix read unitialized memory issue in MLMG solver (#2373)
+
+# 21.10
+
+  -- Update for oneapi 2021.4.0 (#2368)
+
+  -- Port CellConservativeQuartic to C++ with GPU support (#2362)
+
+  -- Port CellConservativeProtected::protect() to C++ with GPU support (#2347)
+
+  -- CMake CUDA Debug: -G by Default (#2355)
+
+  -- OverlapSync nowait and finish. (#2346)
+
+  -- Add another overload for PC::Checkpoint (#2353)
+
+  -- Call setLevelBC from getFluxes in case we have set up the projector
+     class but not yet called project (#2345)
+
+  -- Function to atomically set particle ids (#2344)
+
+  -- Remove macro: CRSEGRNDOMP and AMREX_CRSEGRNDOMP (#2339)
+
+  -- Don't rely on mananaged memory in PC::InitOnePerCell (#2337)
+
+  -- TinyProfile parser that saves data in a machine-readable format (#2335)
+
+  -- Fix return type of MLEBNodeFDLaplacian::setEBDirichlet (#2329)
+
+  -- ParReduce (#2327)
+
+  -- Remove some versions of ParallelFor(MF) (#2326)
+
+  -- Update MLMG solver to allow variable number of ghost nodes for variable refinement ratios (#2319)
+
+  -- CMake: Always CUDA Perf-Neutral Debug (#2321)
+
+  -- Add version of SumBoundary that takes src_nghost (#2322)
+
+  -- Remove the Old Fusing Approach (#2308)
+
+  -- Add const to Array's sum and product functions (#2316)
+
+  -- Fix signed/unsigned comparison in diagnostic neighbor list function. (#2312)
+
+  -- HDF5 I/O and Compression  (#2220)
+
+  -- Use ParallelFor(Tag) in Linear Solver Preparation (#2297)
+
+  -- TagBoxArray: Remove omp parallel inside GPU launch region (#2309)
+
+  -- Update DiffMultiFab tool (#2307)
+
+  -- Kernel fusing in linear solver's applyBC (#2295)
+
+  -- Adding new parallel for into normalize method of node laplacian. (#2299)
+
+  -- Gpu::Atomic::If (#2301)
+
+  -- add adaptor and bridge for amrMesh+Particles (#2285, #2364)
+
 # 21.09
 
   -- Migrate Fortran kernles in the Advection_AmrLevel test to C++. (#2296,

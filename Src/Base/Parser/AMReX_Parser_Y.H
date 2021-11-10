@@ -35,6 +35,8 @@ enum parser_f1_t {  // Built-in functions with one argument
     PARSER_COSH,
     PARSER_TANH,
     PARSER_ABS,
+    PARSER_FLOOR,
+    PARSER_CEIL,
     PARSER_POW_M3,
     PARSER_POW_M2,
     PARSER_POW_M1,
@@ -56,7 +58,8 @@ enum parser_f2_t {  // Built-in functions with two arguments
     PARSER_HEAVISIDE,
     PARSER_JN,
     PARSER_MIN,
-    PARSER_MAX
+    PARSER_MAX,
+    PARSER_FMOD,
 };
 
 enum parser_f3_t { // functions with three arguments
@@ -286,6 +289,8 @@ parser_call_f1 (enum parser_f1_t type, double a)
     case PARSER_COSH:        return parser_math_cosh<double>(a);
     case PARSER_TANH:        return parser_math_tanh<double>(a);
     case PARSER_ABS:         return amrex::Math::abs(a);
+    case PARSER_FLOOR:       return amrex::Math::floor(a);
+    case PARSER_CEIL:        return amrex::Math::ceil(a);
     case PARSER_POW_M3:      return 1.0/(a*a*a);
     case PARSER_POW_M2:      return 1.0/(a*a);
     case PARSER_POW_M1:      return 1.0/a;
@@ -328,6 +333,8 @@ parser_call_f2 (enum parser_f2_t type, double a, double b)
         return (a < b) ? a : b;
     case PARSER_MAX:
         return (a > b) ? a : b;
+    case PARSER_FMOD:
+        return std::fmod(a,b);
     default:
         amrex::Abort("parser_call_f2: Unknown function");
         return 0.0;

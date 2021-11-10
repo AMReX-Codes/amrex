@@ -1198,6 +1198,8 @@ parser_ast_print_f1 (struct parser_f1* f1, std::string const& space, AllPrint& p
     case PARSER_COSH:        printer << "COSH\n";        break;
     case PARSER_TANH:        printer << "TANH\n";        break;
     case PARSER_ABS:         printer << "ABS\n";         break;
+    case PARSER_FLOOR:       printer << "FLOOR\n";       break;
+    case PARSER_CEIL:        printer << "CEIL\n";        break;
     case PARSER_POW_M3:      printer << "POW(,-3)\n";    break;
     case PARSER_POW_M2:      printer << "POW(,-2)\n";    break;
     case PARSER_POW_M1:      printer << "POW(,-1)\n";    break;
@@ -1254,6 +1256,9 @@ parser_ast_print_f2 (struct parser_f2* f2, std::string const& space, AllPrint& p
         break;
     case PARSER_MAX:
         printer << "MAX\n";
+        break;
+    case PARSER_FMOD:
+        printer << "FMOD\n";
         break;
     default:
         amrex::AllPrint() << "parser_ast_print_f2: Unknown function " << f2->ftype << "\n";

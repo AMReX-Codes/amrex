@@ -57,6 +57,9 @@ public:
                          MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
                          MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const final override;
 
+    virtual void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
+                         bool skip_fillboundary=false) const final override;
+
     virtual void prepareForSolve () final override;
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final override;
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const final override;
@@ -80,7 +83,10 @@ public:
 
 private:
 
+    GpuArray<Real,nelems> scaledSigma (int amrlev, int mglev) const noexcept;
+
     GpuArray<Real,nelems> m_sigma;
+    mutable int m_redblack = 0;
 };
 
 }

@@ -62,10 +62,6 @@ target_sources( amrex
    AMReX_BArena.cpp
    AMReX_CArena.H
    AMReX_CArena.cpp
-   AMReX_DArena.H
-   AMReX_DArena.cpp
-   AMReX_EArena.H
-   AMReX_EArena.cpp
    AMReX_PArena.H
    AMReX_PArena.cpp
    AMReX_BLProfiler.H
@@ -214,6 +210,7 @@ target_sources( amrex
    AMReX_MFParallelForC.H
    AMReX_MFParallelForG.H
    AMReX_TagParallelFor.H
+   AMReX_ParReduce.H
    # CUDA --------------------------------------------------------------------
    AMReX_CudaGraph.H
    # Machine model -----------------------------------------------------------

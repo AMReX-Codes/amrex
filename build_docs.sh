@@ -25,6 +25,8 @@ mkdir -p docs_html/doxygen
 cp -rp ../Docs/Doxygen/html/* docs_html/doxygen/
 mkdir -p docs_xml/doxygen
 cp -rp ../Docs/Doxygen/xml/* docs_xml/doxygen/
+# add tagfile to allow other docs to interlink with amrex
+cp ../Docs/Doxygen/amrex-doxygen-web.tag.xml docs_xml/doxygen/.
 
 # add sphinx
 cp -rp ../Docs/sphinx_documentation/build/html/* docs_html/

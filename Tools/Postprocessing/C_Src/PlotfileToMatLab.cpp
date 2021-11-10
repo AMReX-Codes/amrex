@@ -268,7 +268,8 @@ main (int   argc,
 
     ParmParse pp;
 
-    if (pp.contains("help"))
+    const std::string farg = amrex::get_command_argument(1);
+    if (farg == "-h" || farg == "--help")
       PrintUsage(argv[0]);
     //
     // MatLab expects native floating-point format.

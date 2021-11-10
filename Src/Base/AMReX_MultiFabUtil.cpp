@@ -305,7 +305,7 @@ namespace amrex
             MultiFab foo(amrex::convert(cc.boxArray(),IntVect(1)), cc.DistributionMap(), 1, 0,
                          MFInfo().SetAlloc(false));
             IntVect ng = -cc.nGrowVect();
-            ParallelFor(foo, ncomp,
+            ParallelFor(foo, IntVect(0), ncomp,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
                 Box ccbx(ccma[box_no]);
@@ -407,7 +407,7 @@ namespace amrex
             auto const& crsema = crse_S_fine.arrays();
             auto const& finema = S_fine.const_arrays();
             auto const& finevolma = fvolume.const_arrays();
-            ParallelFor(crse_S_fine, ncomp,
+            ParallelFor(crse_S_fine, IntVect(0), ncomp,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
                 amrex_avgdown_with_vol(i,j,k,n,crsema[box_no],finema[box_no],finevolma[box_no],
@@ -492,7 +492,7 @@ namespace amrex
             auto const& crsema = crse_S_fine.arrays();
             auto const& finema = S_fine.const_arrays();
             auto const& finevolma = fvolume.const_arrays();
-            ParallelFor(crse_S_fine, ncomp,
+            ParallelFor(crse_S_fine, IntVect(0), ncomp,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
                 amrex_avgdown_dg_order1
@@ -580,7 +580,7 @@ namespace amrex
             auto const& crsema = crse_S_fine.arrays();
             auto const& finema = S_fine.const_arrays();
             auto const& finevolma = fvolume.const_arrays();
-            ParallelFor(crse_S_fine, ncomp,
+            ParallelFor(crse_S_fine, IntVect(0), ncomp,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
                 amrex_avgdown_dg_order2
@@ -664,11 +664,11 @@ namespace amrex
 
 #ifdef AMREX_USE_GPU
 /*
-          if (Gpu::inLaunchRegion() && crse_S_fine.isFusingCandidate()) {
+        if (Gpu::inLaunchRegion() && crse_S_fine.isFusingCandidate()) {
             auto const& crsema = crse_S_fine.arrays();
             auto const& finema = S_fine.const_arrays();
             auto const& finevolma = fvolume.const_arrays();
-            ParallelFor(crse_S_fine, ncomp,
+            ParallelFor(crse_S_fine, IntVect(0), ncomp,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
                 amrex_avgdown_dg_order3
@@ -787,13 +787,13 @@ namespace amrex
                 auto const& crsema = S_crse.arrays();
                 auto const& finema = S_fine.const_arrays();
                 if (is_cell_centered) {
-                    ParallelFor(S_crse, ncomp,
+                    ParallelFor(S_crse, IntVect(0), ncomp,
                     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
                     {
                         amrex_avgdown(i,j,k,n,crsema[box_no],finema[box_no],scomp,scomp,ratio);
                     });
                 } else {
-                    ParallelFor(S_crse, ncomp,
+                    ParallelFor(S_crse, IntVect(0), ncomp,
                     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
                     {
                         amrex_avgdown_nodes(i,j,k,n,crsema[box_no],finema[box_no],scomp,scomp,ratio);
@@ -836,13 +836,13 @@ namespace amrex
                 auto const& crsema = crse_S_fine.arrays();
                 auto const& finema = S_fine.const_arrays();
                 if (is_cell_centered) {
-                    ParallelFor(crse_S_fine, ncomp,
+                    ParallelFor(crse_S_fine, IntVect(0), ncomp,
                     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
                     {
                         amrex_avgdown(i,j,k,n,crsema[box_no],finema[box_no],0,scomp,ratio);
                     });
                 } else {
-                    ParallelFor(crse_S_fine, ncomp,
+                    ParallelFor(crse_S_fine, IntVect(0), ncomp,
                     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
                     {
                         amrex_avgdown_nodes(i,j,k,n,crsema[box_no],finema[box_no],0,scomp,ratio);

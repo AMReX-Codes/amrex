@@ -24,6 +24,14 @@ main (int   argc,
     Real strt_time;
     Real stop_time;
 
+    // force particle tiling to be off for GPU
+#ifdef AMREX_USE_GPU
+    {
+        ParmParse pp("particles");
+        pp.add("do_tiling", 0);
+    }
+#endif
+
     {
         ParmParse pp;
 
