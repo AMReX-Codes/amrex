@@ -1,9 +1,10 @@
-if (WIN32)
-        message([WARNING] "Advection_AmrLevel Tests not currently supported on Windows." )
-  return()
+if (AMReX_SPACEDIM EQUAL 1)
+   return()
 endif ()
 
-
+if (WIN32)
+  return()
+endif ()
 
 #
 # This test works for both 2D and 3D builds
