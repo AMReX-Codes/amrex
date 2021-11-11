@@ -33,6 +33,42 @@ pcinterp_interp (Box const& bx,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+dginterp_interp_order1
+  ( Box const& bx,
+    Array4<Real> const& fine, const int fcomp, const int ncomp,
+    Array4<Real const> const& crse, const int ccomp,
+    IntVect const& ratio) noexcept
+{
+
+  amrex::ignore_unused( bx, fine, ncomp, crse, ratio );
+  amrex::ignore_unused( fcomp, ccomp );
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+dginterp_interp_order2
+  ( Box const& bx,
+    Array4<Real> const& fine, const int fcomp, const int ncomp,
+    Array4<Real const> const& crse, const int ccomp,
+    IntVect const& ratio) noexcept
+{
+
+  amrex::ignore_unused( bx, fine, ncomp, crse, ratio );
+  amrex::ignore_unused( fcomp, ccomp );
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+dginterp_interp_order3
+  ( Box const& bx,
+    Array4<Real> const& fine, const int fcomp, const int ncomp,
+    Array4<Real const> const& crse, const int ccomp,
+    IntVect const& ratio) noexcept
+{
+
+  amrex::ignore_unused( bx, fine, ncomp, crse, ratio );
+  amrex::ignore_unused( fcomp, ccomp );
+}
+
 namespace {
     static constexpr int ix   = 0;
     static constexpr int iy   = 1;
