@@ -13,7 +13,16 @@ Plotfiles are generated that can be viewed with amrvis2d / amrvis3d
 (CCSE's native vis / spreadsheet tool, downloadable separately from ccse.lbl.gov)
 or with VisIt.
 
-Build Requirements: The Advection_AmrLevel tests only run in 2 or 3 dimensions.
-Therefore when building the test with CMake it maybe necessary to add the flag
--DAMReX_SPACEDIM=2 or -DAMReX_SPACEDIM=3 (Enabled by default).  If
--DAMReX_SPACEDIM=1 no exectuable will be created.
+Build Requirements
+==================
+
+Dimension:
+
+  The Advection_AmrLevel tests only compile in 2 or 3 dimensions. Therefore
+  when configuring CMake to build the test it maybe necessary to add the
+  flag -DAMReX_SPACEDIM=2 or -DAMReX_SPACEDIM=3 (Enabled by default). If one
+  sets -DAMReX_SPACEDIM=1, no executable will be created.
+
+System:
+
+  The Advection_AmrLevel tests are not supported on Windows systems.
