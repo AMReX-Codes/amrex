@@ -7,7 +7,7 @@
 namespace amrex {
 
 /**
- * del dot (sigma grad phi) = rhs
+ * del dot (sigma grad phi) = rhs,
  * where phi and rhs are nodal multifab, and sigma is a tensor constant.
  * It is assumed that tensor is symmetric tensor of rank AMREX_SPACEDIM.
  * Only periodic and Dirichlet are supported.
@@ -21,7 +21,7 @@ public:
 #if (AMREX_SPACEDIM == 2)
     static constexpr int nelems = 3;  /** number of unique elements in sigma */
 #else
-    static constexpr int nelems = 6;
+    static constexpr int nelems = 6;  /** number of unique elements in sigma */
 #endif
 
     MLNodeTensorLaplacian () noexcept {}
