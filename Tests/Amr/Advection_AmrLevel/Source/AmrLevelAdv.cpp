@@ -170,35 +170,12 @@ AmrLevelAdv::variableCleanUp ()
 void
 AmrLevelAdv::initData ()
 {
-    //
-    // Loop over grids.
-    //
-    MultiFab& S_new = get_new_data(Phi_Type);
-
     if (verbose) {
         amrex::Print() << "Initializing the data at level " << level << std::endl;
     }
 
-#ifdef AMREX_USE_GPU
-    // Create temporary MultiFab on CPU using pinned memory
-    MultiFab S_tmp(S_new.boxArray(),
-                   S_new.DistributionMap(),
-                   S_new.nComp(),
-                   S_new.nGrowVect(),
-                   MFInfo().SetArena(The_Pinned_Arena()));
-#else
-    // Use a MultiFab pointer
-    MultiFab& S_tmp = S_new;
-#endif
-
     // Initialize data on MultiFab
-    initdata(S_tmp, geom);
-
-
-#ifdef AMREX_USE_GPU
-    // Explicitly copy data to GPU.
-    amrex::htod_memcpy(S_new, S_tmp);
-#endif
+    initdata(get_new_data(Phi_Type), geom);
 
 #ifdef AMREX_PARTICLES
     init_particles();
