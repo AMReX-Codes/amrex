@@ -3,8 +3,8 @@
 
 using namespace amrex;
 
-void amrex::writeIntData(const int* data, std::size_t size, std::ostream& os,
-                         const IntDescriptor& id)
+void amrex::writeIntData (const int* data, std::size_t size, std::ostream& os,
+                          const IntDescriptor& id)
 {
     if (id == FPC::NativeIntDescriptor())
     {
@@ -27,8 +27,8 @@ void amrex::writeIntData(const int* data, std::size_t size, std::ostream& os,
     }
 }
 
-void amrex::readIntData(int* data, std::size_t size, std::istream& is,
-                        const IntDescriptor& id)
+void amrex::readIntData (int* data, std::size_t size, std::istream& is,
+                         const IntDescriptor& id)
 {
     if (id == FPC::NativeIntDescriptor())
     {
@@ -51,8 +51,8 @@ void amrex::readIntData(int* data, std::size_t size, std::istream& is,
     }
 }
 
-void amrex::writeLongData(const Long* data, std::size_t size, std::ostream& os,
-                          const IntDescriptor& id)
+void amrex::writeLongData (const Long* data, std::size_t size, std::ostream& os,
+                           const IntDescriptor& id)
 {
     if (id == FPC::NativeLongDescriptor())
     {
@@ -75,8 +75,8 @@ void amrex::writeLongData(const Long* data, std::size_t size, std::ostream& os,
     }
 }
 
-void amrex::readLongData(Long* data, std::size_t size, std::istream& is,
-                         const IntDescriptor& id)
+void amrex::readLongData (Long* data, std::size_t size, std::istream& is,
+                          const IntDescriptor& id)
 {
     if (id == FPC::NativeLongDescriptor())
     {
@@ -99,38 +99,38 @@ void amrex::readLongData(Long* data, std::size_t size, std::istream& is,
     }
 }
 
-void amrex::writeRealData(const Real* data, std::size_t size, std::ostream& os,
-                          const RealDescriptor& rd)
+void amrex::writeRealData (const Real* data, std::size_t size, std::ostream& os,
+                           const RealDescriptor& rd)
 {
     RealDescriptor::convertFromNativeFormat(os, static_cast<Long>(size), data, rd);
 }
 
-void amrex::readRealData(Real* data, std::size_t size, std::istream& is,
-                         const RealDescriptor& rd)
+void amrex::readRealData (Real* data, std::size_t size, std::istream& is,
+                          const RealDescriptor& rd)
 {
     RealDescriptor::convertToNativeFormat(data, static_cast<Long>(size), is, rd);
 }
 
-void amrex::writeFloatData(const float* data, std::size_t size, std::ostream& os,
-                           const RealDescriptor& rd)
+void amrex::writeFloatData (const float* data, std::size_t size, std::ostream& os,
+                            const RealDescriptor& rd)
 {
     RealDescriptor::convertFromNativeFloatFormat(os, static_cast<Long>(size), data, rd);
 }
 
-void amrex::readFloatData(float* data, std::size_t size, std::istream& is,
-                          const RealDescriptor& rd)
+void amrex::readFloatData (float* data, std::size_t size, std::istream& is,
+                           const RealDescriptor& rd)
 {
     RealDescriptor::convertToNativeFloatFormat(data, static_cast<Long>(size), is, rd);
 }
 
-void amrex::writeDoubleData(const double* data, std::size_t size, std::ostream& os,
-                            const RealDescriptor& rd)
+void amrex::writeDoubleData (const double* data, std::size_t size, std::ostream& os,
+                             const RealDescriptor& rd)
 {
     RealDescriptor::convertFromNativeDoubleFormat(os, static_cast<Long>(size), data, rd);
 }
 
-void amrex::readDoubleData(double* data, std::size_t size, std::istream& is,
-                           const RealDescriptor& rd)
+void amrex::readDoubleData (double* data, std::size_t size, std::istream& is,
+                            const RealDescriptor& rd)
 {
     RealDescriptor::convertToNativeDoubleFormat(data, static_cast<Long>(size), is, rd);
 }
