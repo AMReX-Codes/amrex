@@ -6,10 +6,12 @@
 
 namespace amrex {
 
-// del dot (sigma grad phi) = rhs
-// where phi and rhs are nodal multifab, and sigma is a tensor constant.
-// It is assumed that tensor is symmetric tensor of rank AMREX_SPACEDIM.
-// Only periodic and Dirichlet are supported.
+/**
+ * del dot (sigma grad phi) = rhs
+ * where phi and rhs are nodal multifab, and sigma is a tensor constant.
+ * It is assumed that tensor is symmetric tensor of rank AMREX_SPACEDIM.
+ * Only periodic and Dirichlet are supported.
+ */
 
 class MLNodeTensorLaplacian
     : public MLNodeLinOp
@@ -17,7 +19,7 @@ class MLNodeTensorLaplacian
 public:
 
 #if (AMREX_SPACEDIM == 2)
-    static constexpr int nelems = 3;  // number of unique elements in sigma
+    static constexpr int nelems = 3;  /** number of unique elements in sigma */
 #else
     static constexpr int nelems = 6;
 #endif
@@ -34,11 +36,16 @@ public:
     MLNodeTensorLaplacian& operator= (const MLNodeTensorLaplacian&) = delete;
     MLNodeTensorLaplacian& operator= (MLNodeTensorLaplacian&&) = delete;
 
-    // The user can set the tensor by calling either setSigma or setBeta.
-    // For 2d, a_sigma contains components xx, xy, and yy.
-    // For 3d, a_sigma contains components xx, xy, xz, yy, yz, and zz.
+    /**
+     * The user can set the tensor by calling either setSigma or setBeta.
+     * For 2d, a_sigma contains components xx, xy, and yy.
+     * For 3d, a_sigma contains components xx, xy, xz, yy, yz, and zz.
+     *
+     * sigma = I - beta beta^T.
+     */
     void setSigma (Array<Real,nelems> const& a_sigma) noexcept;
-    // sigma = I - beta beta^T.
+
+    /** sigma = I - beta beta^T. */
     void setBeta (Array<Real,AMREX_SPACEDIM> const& a_beta) noexcept;
 
     void define (const Vector<Geometry>& a_geom,
