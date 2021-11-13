@@ -1,6 +1,7 @@
 #include <AMReX.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_SUNMemory.H>
+#include <sundials/sundials_context.h>
 #if defined(AMREX_USE_HIP)
 #include <sunmemory/sunmemory_hip.h>
 #elif defined(AMREX_USE_CUDA)
@@ -92,11 +93,11 @@ namespace {
     return 0;
   }
 
-  SUNMemoryHelper CreateMemoryHelper()
+  SUNMemoryHelper CreateMemoryHelper(SundialsContext& sunctx)
   {
     SUNMemoryHelper helper;
 
-    helper = SUNMemoryHelper_NewEmpty();
+    helper = SUNMemoryHelper_NewEmpty(sunctx);
 
     helper->content        = NULL;
     helper->ops->clone     = CloneMemoryHelper;
@@ -123,11 +124,13 @@ namespace {
 
   bool initialized = false;
   MemoryHelper* the_sunmemory_helper = nullptr;
-}
+} //namespace
 
 MemoryHelper::MemoryHelper()
-  : helper(CreateMemoryHelper())
-{}
+  : sunctx(SundialsContext())
+{
+  helper = CreateMemoryHelper(sunctx);
+}
 
 MemoryHelper::~MemoryHelper()
 {
@@ -137,6 +140,7 @@ MemoryHelper::~MemoryHelper()
 
 void Initialize()
 {
+  std::cout << ">>>>>>>>>> Initialize()\n";
   if (initialized) return;
   initialized = true;
 

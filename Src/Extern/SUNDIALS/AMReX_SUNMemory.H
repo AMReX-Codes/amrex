@@ -3,10 +3,13 @@
 
 #include <AMReX.H>
 #include <AMReX_Arena.H>
+#include <sundials/sundials_context.h>
 #include <sundials/sundials_memory.h>
 
 namespace amrex {
 namespace sundials {
+
+using SundialsContext = ::sundials::Context;
 
 class MemoryHelper {
 public:
@@ -14,6 +17,7 @@ public:
   ~MemoryHelper();
   operator SUNMemoryHelper() const { return helper; }
 private:
+  SundialsContext sunctx;
   SUNMemoryHelper helper;
 };
 
