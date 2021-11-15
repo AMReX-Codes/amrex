@@ -308,7 +308,11 @@ MLABecLaplacian::applyRobinBCTermsCoeffs ()
     if (!hasRobinBC()) return;
 
     const int ncomp = getNComp();
-    if (m_a_scalar == Real(0.0)) m_a_scalar = Real(1.0);
+    bool reset_alpha = false;
+    if (m_a_scalar == Real(0.0)) {
+        m_a_scalar = Real(1.0);
+        reset_alpha = true;
+    }
     const Real bovera = m_b_scalar/m_a_scalar;
 
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
@@ -317,6 +321,10 @@ MLABecLaplacian::applyRobinBCTermsCoeffs ()
         const Real dxi = m_geom[amrlev][mglev].InvCellSize(0);
         const Real dyi = (AMREX_SPACEDIM >= 2) ? m_geom[amrlev][mglev].InvCellSize(1) : Real(1.0);
         const Real dzi = (AMREX_SPACEDIM == 3) ? m_geom[amrlev][mglev].InvCellSize(2) : Real(1.0);
+
+        if (reset_alpha) {
+            m_a_coeffs[amrlev][mglev].setVal(0.0);
+        }
 
         MFItInfo mfi_info;
         if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
