@@ -239,7 +239,7 @@ public:
     ///
     /// This updates the neighbors with their current particle data.
     ///
-    void updateNeighbors ();
+    void updateNeighbors (bool boundary_neighbors_only=false);
 
     ///
     /// Each tile clears its neighbors, freeing the memory
@@ -251,6 +251,9 @@ public:
     ///
     template <class CheckPair>
     void buildNeighborList (CheckPair&& check_pair, bool sort=false);
+
+    template <class CheckPair>
+    void selectActualNeighbors (CheckPair&& check_pair, int num_cells=1);
 
     void printNeighborList ();
 
@@ -306,7 +309,7 @@ public:
 
 #ifdef AMREX_USE_GPU
     void fillNeighborsGPU ();
-    void updateNeighborsGPU ();
+    void updateNeighborsGPU (bool boundary_neighbors_only=false);
     void clearNeighborsGPU ();
 #else
     void fillNeighborsCPU ();
@@ -326,7 +329,7 @@ public:
 
     void buildNeighborMask ();
 
-    void buildNeighborCopyOp ();
+    void buildNeighborCopyOp (bool use_boundary_neighbor=false);
 
 protected:
 
@@ -449,6 +452,8 @@ protected:
 #endif
 
     Vector<std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > > m_neighbor_list;
+
+    Vector<std::map<std::pair<int, int>, amrex::Gpu::DeviceVector<int> > > m_boundary_particle_ids;
 
     bool hasNeighbors() const { return m_has_neighbors; }
 
