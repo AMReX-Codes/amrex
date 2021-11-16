@@ -93,7 +93,7 @@ namespace {
     return 0;
   }
 
-  SUNMemoryHelper CreateMemoryHelper(SundialsContext& sunctx)
+  SUNMemoryHelper CreateMemoryHelper(::sundials::Context& sunctx)
   {
     SUNMemoryHelper helper;
 
@@ -126,10 +126,9 @@ namespace {
   MemoryHelper* the_sunmemory_helper = nullptr;
 } //namespace
 
-MemoryHelper::MemoryHelper()
-  : sunctx(SundialsContext())
+MemoryHelper::MemoryHelper(::sundials::Context* sunctx)
 {
-  helper = CreateMemoryHelper(sunctx);
+  helper = CreateMemoryHelper(*sunctx);
 }
 
 MemoryHelper::~MemoryHelper()
@@ -138,17 +137,16 @@ MemoryHelper::~MemoryHelper()
   free(helper);
 }
 
-void Initialize()
+void MemoryHelper::Initialize(::sundials::Context* sunctx)
 {
-  std::cout << ">>>>>>>>>> Initialize()\n";
   if (initialized) return;
   initialized = true;
 
   BL_ASSERT(the_sunmemory_helper == nullptr);
-  the_sunmemory_helper = new MemoryHelper();
+  the_sunmemory_helper = new MemoryHelper(sunctx);
 }
 
-void Finalize()
+void MemoryHelper::Finalize()
 {
   initialized = false;
   delete the_sunmemory_helper;

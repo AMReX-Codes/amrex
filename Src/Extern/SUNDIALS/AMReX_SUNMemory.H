@@ -9,20 +9,16 @@
 namespace amrex {
 namespace sundials {
 
-using SundialsContext = ::sundials::Context;
-
 class MemoryHelper {
 public:
-  MemoryHelper();
+  MemoryHelper(::sundials::Context*);
   ~MemoryHelper();
   operator SUNMemoryHelper() const { return helper; }
+  static void Initialize(::sundials::Context*);
+  static void Finalize();
 private:
-  SundialsContext sunctx;
   SUNMemoryHelper helper;
 };
-
-void Initialize();
-void Finalize();
 
 MemoryHelper* The_SUNMemory_Helper();
 amrex::Arena* getArena (SUNMemoryType type);
