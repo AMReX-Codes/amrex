@@ -60,7 +60,7 @@ struct FilccCell
                 }
                 case (BCType::hoextrapcc):
                 {
-                    q(i,j,k,n) = Real(2.)*q(i+1,j,k,n) - q(i+2,j,k,n);
+                    q(i,j,k,n) = Real(ilo-i)*(q(ilo,j,k,n) - q(ilo+1,j,k,n)) + q(ilo,j,k,n);
                     break;
                 }
                 case (BCType::reflect_even):
@@ -102,7 +102,7 @@ struct FilccCell
                 }
                 case (BCType::hoextrapcc):
                 {
-                    q(i,j,k,n) = Real(2.)*q(i-1,j,k,n) - q(i-2,j,k,n);
+                    q(i,j,k,n) = Real(i-ihi)*(q(ihi,j,k,n) - q(ihi-1,j,k,n)) + q(ihi,j,k,n);
                     break;
                 }
                 case (BCType::reflect_even):
@@ -145,7 +145,7 @@ struct FilccCell
                 }
                 case (BCType::hoextrapcc):
                 {
-                    q(i,j,k,n) = Real(2.)*q(i,j+1,k,n) - q(i,j+2,k,n);
+                    q(i,j,k,n) = Real(jlo-j)*(q(i,jlo,k,n) - q(i,jlo+1,k,n)) + q(i,jlo,k,n);
                     break;
                 }
                 case (BCType::reflect_even):
@@ -187,7 +187,7 @@ struct FilccCell
                 }
                 case (BCType::hoextrapcc):
                 {
-                    q(i,j,k,n) = Real(2.)*q(i,j-1,k,n) - q(i,j-2,k,n);
+                    q(i,j,k,n) = Real(j-jhi)*(q(i,jhi,k,n) - q(i,jhi-1,k,n)) + q(i,jhi,k,n);
                     break;
                 }
                 case (BCType::reflect_even):
@@ -230,7 +230,7 @@ struct FilccCell
                 }
                 case (BCType::hoextrapcc):
                 {
-                    q(i,j,k,n) = Real(2.)*q(i,j,k+1,n) - q(i,j,k+2,n);
+                    q(i,j,k,n) = Real(klo-k)*(q(i,j,klo,n) - q(i,j,klo+1,n)) + q(i,j,klo,n);
                     break;
                 }
                 case (BCType::reflect_even):
@@ -272,7 +272,7 @@ struct FilccCell
                 }
                 case (BCType::hoextrapcc):
                 {
-                    q(i,j,k,n) = Real(2.)*q(i,j,k-1,n) - q(i,j,k-2,n);
+                    q(i,j,k,n) = Real(k-khi)*(q(i,j,khi,n) - q(i,j,khi-1,n)) + q(i,j,khi,n);
                     break;
                 }
                 case (BCType::reflect_even):
