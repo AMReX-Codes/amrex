@@ -877,7 +877,12 @@ CPPFLAGS	+= $(DEFINES)
 libraries	= $(XTRAOBJS) $(LIBRARIES) $(XTRALIBS)
 
 ifeq ($(USE_RPATH),TRUE)
-  LDFLAGS	+= -Xlinker -rpath='$(abspath .)' $(addprefix -Xlinker -rpath=, $(abspath $(LIBRARY_LOCATIONS)))
+  ifeq ($(shell uname),Darwin)
+      # The mac loader, ld, does not like the "=" with rpath
+      LDFLAGS	+= -Xlinker -rpath '$(abspath .)' $(addprefix -Xlinker -rpath , $(abspath $(LIBRARY_LOCATIONS)))
+  else
+      LDFLAGS	+= -Xlinker -rpath='$(abspath .)' $(addprefix -Xlinker -rpath=, $(abspath $(LIBRARY_LOCATIONS)))
+  endif
 endif
 LDFLAGS	+= -L. $(addprefix -L, $(LIBRARY_LOCATIONS))
 
