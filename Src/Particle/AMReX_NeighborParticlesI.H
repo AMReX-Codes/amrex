@@ -642,6 +642,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 #ifdef AMREX_USE_GPU
     updateNeighborsGPU(boundary_neighbors_only);
 #else
+    amrex::ignore_unused(boundary_neighbors_only);
     updateNeighborsCPU(true);
 #endif
     m_has_neighbors = true;
@@ -758,7 +759,7 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
             Box box       = pti.validbox();
 
             const auto& geom    = this->Geom(lev);
-            const auto  domain  = geom.Domain(); 
+            const auto  domain  = geom.Domain();
             const auto  dxi     = geom.InvCellSizeArray();
             const auto  plo     = geom.ProbLoArray();
 
@@ -805,8 +806,8 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
                     for (int jj = amrex::max(iy-num_cells, 0); jj <= amrex::min(iy+num_cells, ny); ++jj) {
                         for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz); ++kk) {
                             if (isActualNeighbor) break;
-                            int index = (ii * ny + jj) * nz + kk;
-                            for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
+                            int nbr_cell_id = (ii * ny + jj) * nz + kk;
+                            for (auto p = poffset[nbr_cell_id]; p < poffset[nbr_cell_id+1]; ++p) {
                                 if (pperm[p] == i) continue;
                                 if (call_check_pair(check_pair, pstruct, i, pperm[p])) {
                                     IntVect cell_ijk = getParticleCell(pstruct[pperm[p]], plo, dxi, domain);

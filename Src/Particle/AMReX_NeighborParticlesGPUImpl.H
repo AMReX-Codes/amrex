@@ -101,10 +101,10 @@ buildNeighborMask ()
             }
 
             m_code_array[grid].resize(h_code_arr.size());
-            Gpu::copy(Gpu::hostToDevice, h_code_arr.begin(), h_code_arr.end(), 
+            Gpu::copy(Gpu::hostToDevice, h_code_arr.begin(), h_code_arr.end(),
                       m_code_array[grid].begin());
             m_isec_boxes[grid].resize(h_isec_boxes.size());
-            Gpu::copy(Gpu::hostToDevice, h_isec_boxes.begin(), h_isec_boxes.end(), 
+            Gpu::copy(Gpu::hostToDevice, h_isec_boxes.begin(), h_isec_boxes.end(),
                       m_isec_boxes[grid].begin());
 
 
@@ -154,7 +154,7 @@ buildNeighborCopyOp (bool use_boundary_neighbor)
             m_boundary_particle_ids[lev][index];
         }
 
-        const auto*  p_bndry_pid = m_boundary_particle_ids[lev][index].dataPtr(); 
+        const auto*  p_bndry_pid = m_boundary_particle_ids[lev][index].dataPtr();
 
         Gpu::DeviceVector<int> counts(np + 1, 0);
         Gpu::DeviceVector<int> offsets(np + 1);
@@ -169,7 +169,7 @@ buildNeighborCopyOp (bool use_boundary_neighbor)
 
         AMREX_FOR_1D ( np, i,
         {
-            // note that cannot use ternary statement here because p_bndry is not 
+            // note that cannot use ternary statement here because p_bndry is not
             // properly allocated when use_boundary_neighbor=false
             int pid = i;
             if (use_boundary_neighbor)  pid = p_bndry_pid[i];
@@ -238,9 +238,8 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 updateNeighborsGPU (bool boundary_neighbors_only)
 {
     BL_PROFILE("NeighborParticleContainer::updateNeighborsGPU");
-    AllPrintToFile("debug") << "update nbr\n";
 
-    if (boundary_neighbors_only) { 
+    if (boundary_neighbors_only) {
         neighbor_copy_op.clear();
         neighbor_copy_plan.clear();
         buildNeighborCopyOp(true);
