@@ -76,7 +76,7 @@ void test_assign_density(TestParams& parms)
   MultiFab::Copy(density, partMF, 0, 0, 1, 0);
 
   WriteSingleLevelPlotfile("plt00000", partMF,
-                           {"density", "vx", "vy", "vz"},
+                           {"density", AMREX_D_DECL("vx", "vy", "vz")},
                            geom, 0.0, 0);
 
   myPC.Checkpoint("plt00000", "particle0");
