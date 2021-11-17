@@ -69,16 +69,16 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                 get_gaussian_random_momentum(v, a_thermal_momentum_mean,
                                              a_thermal_momentum_std);
 
-                ParticleReal x = static_cast<ParticleReal> (plo[0] + (iv[0] + r[0])*dx[0]);
-                ParticleReal y = static_cast<ParticleReal> (plo[1] + (iv[1] + r[1])*dx[1]);
-                ParticleReal z = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);
+                AMREX_D_TERM(ParticleReal x = static_cast<ParticleReal> (plo[0] + (iv[0] + r[0])*dx[0]);,
+                             ParticleReal y = static_cast<ParticleReal> (plo[1] + (iv[1] + r[1])*dx[1]);,
+                             ParticleReal z = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);)
 
                 ParticleType p;
                 p.id()  = ParticleType::NextID();
                 p.cpu() = ParallelDescriptor::MyProc();
-                p.pos(0) = x;
-                p.pos(1) = y;
-                p.pos(2) = z;
+                AMREX_D_TERM(p.pos(0) = x;,
+                             p.pos(1) = y;,
+                             p.pos(2) = z;)
 
                 p.rdata(PIdx::vx) = static_cast<ParticleReal> (v[0]);
                 p.rdata(PIdx::vy) = static_cast<ParticleReal> (v[1]);
