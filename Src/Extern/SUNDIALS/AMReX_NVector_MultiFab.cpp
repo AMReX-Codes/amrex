@@ -18,7 +18,7 @@
 
 #include <sundials/sundials_math.h>
 
-#include "NVector_Multifab.h"
+#include "AMReX_NVector_MultiFab.H"
 
 #define ZERO   RCONST(0.0)
 #define HALF   RCONST(0.5)
@@ -36,11 +36,11 @@
  * Function to create a new empty multifab vector
  */
 
-N_Vector N_VNewEmpty_Multifab(sunindextype length)
+N_Vector N_VNewEmpty_MultiFab(sunindextype length)
 {
    N_Vector v;
    N_Vector_Ops ops;
-   N_VectorContent_Multifab content;
+   N_VectorContent_MultiFab content;
 
    /* Create vector */
    v = NULL;
@@ -53,33 +53,33 @@ N_Vector N_VNewEmpty_Multifab(sunindextype length)
    if (ops == NULL) { free(v); return(NULL); }
 
    ops->nvgetvectorid     = NULL;
-   ops->nvclone           = N_VClone_Multifab;
-   ops->nvcloneempty      = N_VCloneEmpty_Multifab;
-   ops->nvdestroy         = N_VDestroy_Multifab;
-   ops->nvspace           = N_VSpace_Multifab;
+   ops->nvclone           = N_VClone_MultiFab;
+   ops->nvcloneempty      = N_VCloneEmpty_MultiFab;
+   ops->nvdestroy         = N_VDestroy_MultiFab;
+   ops->nvspace           = N_VSpace_MultiFab;
    ops->nvgetarraypointer = NULL;
    ops->nvsetarraypointer = NULL;
 
    /* standard vector operations */
-   ops->nvlinearsum    = N_VLinearSum_Multifab;
-   ops->nvconst        = N_VConst_Multifab;
-   ops->nvprod         = N_VProd_Multifab;
-   ops->nvdiv          = N_VDiv_Multifab;
-   ops->nvscale        = N_VScale_Multifab;
-   ops->nvabs          = N_VAbs_Multifab;
-   ops->nvinv          = N_VInv_Multifab;
-   ops->nvaddconst     = N_VAddConst_Multifab;
-   ops->nvdotprod      = N_VDotProd_Multifab;
-   ops->nvmaxnorm      = N_VMaxNorm_Multifab;
-   ops->nvwrmsnormmask = N_VWrmsNormMask_Multifab;
-   ops->nvwrmsnorm     = N_VWrmsNorm_Multifab;
-   ops->nvmin          = N_VMin_Multifab;
-   ops->nvwl2norm      = N_VWL2Norm_Multifab;
-   ops->nvl1norm       = N_VL1Norm_Multifab;
-   ops->nvcompare      = N_VCompare_Multifab;
-   ops->nvinvtest      = N_VInvTest_Multifab;
-   ops->nvconstrmask   = N_VConstrMask_Multifab;
-   ops->nvminquotient  = N_VMinQuotient_Multifab;
+   ops->nvlinearsum    = N_VLinearSum_MultiFab;
+   ops->nvconst        = N_VConst_MultiFab;
+   ops->nvprod         = N_VProd_MultiFab;
+   ops->nvdiv          = N_VDiv_MultiFab;
+   ops->nvscale        = N_VScale_MultiFab;
+   ops->nvabs          = N_VAbs_MultiFab;
+   ops->nvinv          = N_VInv_MultiFab;
+   ops->nvaddconst     = N_VAddConst_MultiFab;
+   ops->nvdotprod      = N_VDotProd_MultiFab;
+   ops->nvmaxnorm      = N_VMaxNorm_MultiFab;
+   ops->nvwrmsnormmask = N_VWrmsNormMask_MultiFab;
+   ops->nvwrmsnorm     = N_VWrmsNorm_MultiFab;
+   ops->nvmin          = N_VMin_MultiFab;
+   ops->nvwl2norm      = N_VWL2Norm_MultiFab;
+   ops->nvl1norm       = N_VL1Norm_MultiFab;
+   ops->nvcompare      = N_VCompare_MultiFab;
+   ops->nvinvtest      = N_VInvTest_MultiFab;
+   ops->nvconstrmask   = N_VConstrMask_MultiFab;
+   ops->nvminquotient  = N_VMinQuotient_MultiFab;
 
    /* fused vector operations (optional, NULL means disabled by default) */
    ops->nvlinearcombination = NULL;
@@ -97,7 +97,7 @@ N_Vector N_VNewEmpty_Multifab(sunindextype length)
 
    /* Create content */
    content = NULL;
-   content = (N_VectorContent_Multifab) malloc(sizeof *content);
+   content = (N_VectorContent_MultiFab) malloc(sizeof *content);
    if (content == NULL) { free(ops); free(v); return(NULL); }
 
    content->length = length;
@@ -115,7 +115,7 @@ N_Vector N_VNewEmpty_Multifab(sunindextype length)
  * Function to create a new MultiFab vector
  */
 
-N_Vector N_VNew_Multifab(sunindextype length,
+N_Vector N_VNew_MultiFab(sunindextype length,
                          const amrex::BoxArray &ba,
                          const amrex::DistributionMapping &dm,
                          sunindextype nComp,
@@ -124,7 +124,7 @@ N_Vector N_VNew_Multifab(sunindextype length,
    N_Vector v;
 
    v = NULL;
-   v = N_VNewEmpty_Multifab(length);
+   v = N_VNewEmpty_MultiFab(length);
    if (v == NULL) return(NULL);
 
    // Create and attach new MultiFab
@@ -142,12 +142,12 @@ N_Vector N_VNew_Multifab(sunindextype length,
  * Function to create a MultiFab N_Vector with user-specific MultiFab
  */
 
-N_Vector N_VMake_Multifab(sunindextype length, amrex::MultiFab *v_mf)
+N_Vector N_VMake_MultiFab(sunindextype length, amrex::MultiFab *v_mf)
 {
    N_Vector v;
 
    v = NULL;
-   v = N_VNewEmpty_Multifab(length);
+   v = N_VNewEmpty_MultiFab(length);
    if (v == NULL) return(NULL);
 
    if (length > 0)
@@ -163,7 +163,7 @@ N_Vector N_VMake_Multifab(sunindextype length, amrex::MultiFab *v_mf)
 /* ----------------------------------------------------------------------------
  * Function to return number of vector elements
  */
-sunindextype N_VGetLength_Multifab(N_Vector v)
+sunindextype N_VGetLength_MultiFab(N_Vector v)
 {
    return NV_LENGTH_M(v);
 }
@@ -174,11 +174,11 @@ sunindextype N_VGetLength_Multifab(N_Vector v)
  * -----------------------------------------------------------------
  */
 
-N_Vector N_VCloneEmpty_Multifab(N_Vector w)
+N_Vector N_VCloneEmpty_MultiFab(N_Vector w)
 {
    N_Vector v;
    N_Vector_Ops ops;
-   N_VectorContent_Multifab content;
+   N_VectorContent_MultiFab content;
 
    if (w == NULL) return(NULL);
 
@@ -237,7 +237,7 @@ N_Vector N_VCloneEmpty_Multifab(N_Vector w)
 
    /* Create content */
    content = NULL;
-   content = (N_VectorContent_Multifab) malloc(sizeof *content);
+   content = (N_VectorContent_MultiFab) malloc(sizeof *content);
    if (content == NULL) { free(ops); free(v); return(NULL); }
 
    content->length = NV_LENGTH_M(w);
@@ -251,13 +251,13 @@ N_Vector N_VCloneEmpty_Multifab(N_Vector w)
    return(v);
 }
 
-N_Vector N_VClone_Multifab(N_Vector w)
+N_Vector N_VClone_MultiFab(N_Vector w)
 {
    N_Vector v;
    sunindextype length;
 
    v = NULL;
-   v = N_VCloneEmpty_Multifab(w);
+   v = N_VCloneEmpty_MultiFab(w);
    if (v == NULL) return(NULL);
 
    length = NV_LENGTH_M(w);
@@ -280,7 +280,7 @@ N_Vector N_VClone_Multifab(N_Vector w)
    return(v);
 }
 
-void N_VDestroy_Multifab(N_Vector v)
+void N_VDestroy_MultiFab(N_Vector v)
 {
    if (NV_OWN_MF_M(v) == SUNTRUE)
    {
@@ -294,7 +294,7 @@ void N_VDestroy_Multifab(N_Vector v)
    return;
 }
 
-void N_VSpace_Multifab(N_Vector v, sunindextype *lrw, sunindextype *liw)
+void N_VSpace_MultiFab(N_Vector v, sunindextype *lrw, sunindextype *liw)
 {
    *lrw = NV_LENGTH_M(v);
    *liw = 1;
@@ -302,7 +302,7 @@ void N_VSpace_Multifab(N_Vector v, sunindextype *lrw, sunindextype *liw)
    return;
 }
 
-void N_VLinearSum_Multifab(realtype a, N_Vector x, realtype b, N_Vector y,
+void N_VLinearSum_MultiFab(realtype a, N_Vector x, realtype b, N_Vector y,
                            N_Vector z)
 {
    amrex::MultiFab *mf_x = NV_MFAB(x);
@@ -316,14 +316,14 @@ void N_VLinearSum_Multifab(realtype a, N_Vector x, realtype b, N_Vector y,
    amrex::MultiFab::LinComb(*mf_z, a, *mf_x, 0, b, *mf_y, 0, 0, ncomp, nghost);
 }
 
-void N_VConst_Multifab(realtype c, N_Vector z)
+void N_VConst_MultiFab(realtype c, N_Vector z)
 {
    sunindextype i, N;
    amrex::MultiFab *mf_z = NV_MFAB(z);
    *mf_z = c;
 }
 
-void N_VProd_Multifab(N_Vector x, N_Vector y, N_Vector z)
+void N_VProd_MultiFab(N_Vector x, N_Vector y, N_Vector z)
 {
    amrex::MultiFab *mf_x = NV_MFAB(x);
    amrex::MultiFab *mf_y = NV_MFAB(y);
@@ -337,7 +337,7 @@ void N_VProd_Multifab(N_Vector x, N_Vector y, N_Vector z)
    amrex::MultiFab::Multiply(*mf_z, *mf_y, 0, 0, ncomp, nghost);
 }
 
-void N_VDiv_Multifab(N_Vector x, N_Vector y, N_Vector z)
+void N_VDiv_MultiFab(N_Vector x, N_Vector y, N_Vector z)
 {
    amrex::MultiFab *mf_x = NV_MFAB(x);
    amrex::MultiFab *mf_y = NV_MFAB(y);
@@ -351,7 +351,7 @@ void N_VDiv_Multifab(N_Vector x, N_Vector y, N_Vector z)
    amrex::MultiFab::Divide(*mf_z, *mf_y, 0, 0, ncomp, nghost);
 }
 
-void N_VScale_Multifab(realtype c, N_Vector x, N_Vector z)
+void N_VScale_MultiFab(realtype c, N_Vector x, N_Vector z)
 {
    amrex::MultiFab *mf_x = NV_MFAB(x);
    amrex::MultiFab *mf_z = NV_MFAB(z);
@@ -364,7 +364,7 @@ void N_VScale_Multifab(realtype c, N_Vector x, N_Vector z)
    mf_z->mult(c, 0, ncomp, nghost);
 }
 
-void N_VAbs_Multifab(N_Vector x, N_Vector z)
+void N_VAbs_MultiFab(N_Vector x, N_Vector z)
 {
    using namespace amrex;
 
@@ -393,7 +393,7 @@ void N_VAbs_Multifab(N_Vector x, N_Vector z)
    }
 }
 
-void N_VInv_Multifab(N_Vector x, N_Vector z)
+void N_VInv_MultiFab(N_Vector x, N_Vector z)
 {
    amrex::MultiFab *mf_x = NV_MFAB(x);
    amrex::MultiFab *mf_z = NV_MFAB(z);
@@ -406,7 +406,7 @@ void N_VInv_Multifab(N_Vector x, N_Vector z)
    mf_z->invert(1.0, 0, ncomp, nghost);
 }
 
-void N_VAddConst_Multifab(N_Vector x, realtype b, N_Vector z)
+void N_VAddConst_MultiFab(N_Vector x, realtype b, N_Vector z)
 {
    amrex::MultiFab *mf_x = NV_MFAB(x);
    amrex::MultiFab *mf_z = NV_MFAB(z);
@@ -419,7 +419,7 @@ void N_VAddConst_Multifab(N_Vector x, realtype b, N_Vector z)
    mf_z->plus(b, nghost);
 }
 
-realtype N_VDotProd_Multifab(N_Vector x, N_Vector y)
+realtype N_VDotProd_MultiFab(N_Vector x, N_Vector y)
 {
    using namespace amrex;
 
@@ -434,7 +434,7 @@ realtype N_VDotProd_Multifab(N_Vector x, N_Vector y)
    return dotproduct;
 }
 
-realtype N_VMaxNorm_Multifab(N_Vector x)
+realtype N_VMaxNorm_MultiFab(N_Vector x)
 {
    using namespace amrex;
 
@@ -459,7 +459,7 @@ realtype N_VMaxNorm_Multifab(N_Vector x)
    return max;
 }
 
-realtype N_VWrmsNorm_Multifab(N_Vector x, N_Vector w)
+realtype N_VWrmsNorm_MultiFab(N_Vector x, N_Vector w)
 {
    using namespace amrex;
 
@@ -496,7 +496,7 @@ realtype N_VWrmsNorm_Multifab(N_Vector x, N_Vector w)
    return SUNRsqrt(sum/N);
 }
 
-realtype N_VWrmsNormMask_Multifab(N_Vector x, N_Vector w, N_Vector id)
+realtype N_VWrmsNormMask_MultiFab(N_Vector x, N_Vector w, N_Vector id)
 {
    using namespace amrex;
 
@@ -538,7 +538,7 @@ realtype N_VWrmsNormMask_Multifab(N_Vector x, N_Vector w, N_Vector id)
    return SUNRsqrt(sum/N);
 }
 
-realtype N_VMin_Multifab(N_Vector x)
+realtype N_VMin_MultiFab(N_Vector x)
 {
    amrex::MultiFab *mf_x = NV_MFAB(x);
    sunindextype ncomp = mf_x->nComp();
@@ -562,7 +562,7 @@ realtype N_VMin_Multifab(N_Vector x)
    return min;
 }
 
-realtype N_VWL2Norm_Multifab(N_Vector x, N_Vector w)
+realtype N_VWL2Norm_MultiFab(N_Vector x, N_Vector w)
 {
    using namespace amrex;
 
@@ -598,7 +598,7 @@ realtype N_VWL2Norm_Multifab(N_Vector x, N_Vector w)
    return SUNRsqrt(sum);
 }
 
-realtype N_VL1Norm_Multifab(N_Vector x)
+realtype N_VL1Norm_MultiFab(N_Vector x)
 {
    amrex::MultiFab *mf_x = NV_MFAB(x);
    sunindextype ncomp = mf_x->nComp();
@@ -619,7 +619,7 @@ realtype N_VL1Norm_Multifab(N_Vector x)
    return sum;
 }
 
-void N_VCompare_Multifab(realtype a, N_Vector x, N_Vector z)
+void N_VCompare_MultiFab(realtype a, N_Vector x, N_Vector z)
 {
    using namespace amrex;
 
@@ -650,7 +650,7 @@ void N_VCompare_Multifab(realtype a, N_Vector x, N_Vector z)
    return;
 }
 
-booleantype N_VInvTest_Multifab(N_Vector x, N_Vector z)
+booleantype N_VInvTest_MultiFab(N_Vector x, N_Vector z)
 {
    using namespace amrex;
 
@@ -698,7 +698,7 @@ booleantype N_VInvTest_Multifab(N_Vector x, N_Vector z)
    }
 }
 
-booleantype N_VConstrMask_Multifab(N_Vector a, N_Vector x, N_Vector m)
+booleantype N_VConstrMask_MultiFab(N_Vector a, N_Vector x, N_Vector m)
 {
    using namespace amrex;
 
@@ -749,7 +749,7 @@ booleantype N_VConstrMask_Multifab(N_Vector a, N_Vector x, N_Vector m)
    return (temp == ONE) ? SUNFALSE : SUNTRUE;
 }
 
-realtype N_VMinQuotient_Multifab(N_Vector num, N_Vector denom)
+realtype N_VMinQuotient_MultiFab(N_Vector num, N_Vector denom)
 {
    using namespace amrex;
 
