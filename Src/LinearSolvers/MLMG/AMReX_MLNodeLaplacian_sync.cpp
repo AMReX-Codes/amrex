@@ -657,7 +657,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     const DistributionMapping& fdm = fine_sol.DistributionMap();
 
     const iMultiFab& fdmsk = *m_dirichlet_mask[crse_amrlev+1][0];
-    const auto& stencil    =  m_stencil[crse_amrlev+1][0];
+    const auto& stencil    =  m_nosigma_stencil[crse_amrlev+1];
 
     MultiFab fine_res_for_coarse(amrex::coarsen(fba, amrrr), fdm, 1, 0);
 

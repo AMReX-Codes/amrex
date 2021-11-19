@@ -11,7 +11,7 @@ applications. AMReX is freely available `on Github
 AMReX is developed at LBNL, NREL, and ANL as part of the Block-Structured AMR
 Co-Design Center in DOE's Exascale Computing Project.
 
-All of AMReX's development is done in the github repository under the
+All of AMReX's development is done in the GitHub repository under the
 development branch; anyone can see the latest updates. A monthly release is tagged at the beginning
 of each month.
 
@@ -55,6 +55,7 @@ Documentation on migration from BoxLib is available in the AMReX repository at D
    GPU_Chapter
    Visualization_Chapter
    Post_Processing_Chapter
+   Debugging
    Inputs_Chapter
    AMReX_Profiling_Tools_Chapter
    External_Profiling_Tools_Chapter

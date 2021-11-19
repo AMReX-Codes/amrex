@@ -75,19 +75,27 @@ CFLAGS   += -std=c99
 
 ifneq ($(DEBUG),TRUE)  # There is currently a bug that DEBUG build will crash.
 ifeq ($(DPCPP_AOT),TRUE)
-  INTEL_CPU_LONG_NAME = $(shell cat /sys/devices/cpu/caps/pmu_name)
-  ifneq ($(INTEL_CPU_LONG_NAME),)
-    ifeq ($(INTEL_CPU_LONG_NAME),skylake)
-      INTEL_CPU_SHORT_NAME = skl
-    else ifeq ($(INTEL_CPU_LONG_NAME),kabylake)
-      INTEL_CPU_SHORT_NAME = kbl
-    else ifeq ($(INTEL_CPU_LONG_NAME),cascadelake)
-      INTEL_CPU_SHORT_NAME = cfl
-    else
-      $(error AOT TODO: $(INTEL_CPU_LONG_NAME))
+  ifdef AMREX_INTEL_ARCH
+    INTEL_CPU_SHORT_NAME = $(AMREX_INTEL_ARCH)
+  else
+  ifdef INTEL_ARCH
+    INTEL_CPU_SHORT_NAME = $(INTEL_ARCH)
+  else
+    INTEL_CPU_LONG_NAME = $(shell cat /sys/devices/cpu/caps/pmu_name)
+    ifneq ($(INTEL_CPU_LONG_NAME),)
+      ifeq ($(INTEL_CPU_LONG_NAME),skylake)
+        INTEL_CPU_SHORT_NAME = skl
+      else ifeq ($(INTEL_CPU_LONG_NAME),kabylake)
+        INTEL_CPU_SHORT_NAME = kbl
+      else ifeq ($(INTEL_CPU_LONG_NAME),cascadelake)
+        INTEL_CPU_SHORT_NAME = cfl
+      else
+        $(error AOT TODO: $(INTEL_CPU_LONG_NAME))
+      endif
     endif
-    CXXFLAGS += -fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xsycl-target-backend '-device $(INTEL_CPU_SHORT_NAME)'
   endif
+  endif
+  CXXFLAGS += -fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xsycl-target-backend '-device $(INTEL_CPU_SHORT_NAME)'
 endif
 endif
 
