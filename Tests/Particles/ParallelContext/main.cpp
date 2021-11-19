@@ -15,25 +15,25 @@ int num_runtime_int = 0;
 
 void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
 {
-    int nx = nppc[0];
-#if AMREX_SPACEDIM > 1
-    int ny = nppc[1];
+        int nx = nppc[0];
+#if AMREX_SPACEDIM >= 2
+        int ny = nppc[1];
 #else
-    int ny = 1;
+        int ny = 1;
 #endif
-#if AMREX_SPACEDIM > 2
-    int nz = nppc[2];
+#if AMREX_SPACEDIM == 3
+        int nz = nppc[2];
 #else
-    int nz = 1;
+        int nz = 1;
 #endif
 
-    int ix_part = i_part/(ny * nz);
-    int iy_part = (i_part % (ny * nz)) % ny;
-    int iz_part = (i_part % (ny * nz)) / ny;
+        AMREX_D_TERM(int ix_part = i_part/(ny * nz);,
+                     int iy_part = (i_part % (ny * nz)) % ny;,
+                     int iz_part = (i_part % (ny * nz)) / ny;)
 
-    r[0] = (0.5+ix_part)/nx;
-    r[1] = (0.5+iy_part)/ny;
-    r[2] = (0.5+iz_part)/nz;
+        AMREX_D_TERM(r[0] = (0.5+ix_part)/nx;,
+                     r[1] = (0.5+iy_part)/ny;,
+                     r[2] = (0.5+iz_part)/nz;)
 }
 
 class TestParticleContainer
@@ -92,7 +92,7 @@ public:
             for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
             {
                 for (int i_part=0; i_part<num_ppc;i_part++) {
-                    Real r[3];
+                    Real r[AMREX_SPACEDIM];
                     get_position_unit_cell(r, a_num_particles_per_cell, i_part);
 
                     ParticleType p;
@@ -321,8 +321,6 @@ void get_test_params(TestParams& params, const std::string& prefix)
 void testParallelContext ()
 {
     BL_PROFILE("testParallelContext");
-
-    AMREX_ALWAYS_ASSERT(AMREX_SPACEDIM == 3);
 
     // we always make two subcommunicators.
     // one takes the left half of the domain in direction 0, the other the right.
