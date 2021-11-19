@@ -10,16 +10,24 @@ namespace
     void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
     {
         int nx = nppc[0];
+#if AMREX_SPACEDIM >= 2
         int ny = nppc[1];
+#else
+        int ny = 1;
+#endif
+#if AMREX_SPACEDIM == 3
         int nz = nppc[2];
+#else
+        int nz = 1;
+#endif
 
-        int ix_part = i_part/(ny * nz);
-        int iy_part = (i_part % (ny * nz)) % ny;
-        int iz_part = (i_part % (ny * nz)) / ny;
+        AMREX_D_TERM(int ix_part = i_part/(ny * nz);,
+                     int iy_part = (i_part % (ny * nz)) % ny;,
+                     int iz_part = (i_part % (ny * nz)) / ny;)
 
-        r[0] = (0.5+ix_part)/nx;
-        r[1] = (0.5+iy_part)/ny;
-        r[2] = (0.5+iz_part)/nz;
+        AMREX_D_TERM(r[0] = (0.5+ix_part)/nx;,
+                     r[1] = (0.5+iy_part)/ny;,
+                     r[2] = (0.5+iz_part)/nz;)
     }
 
     void get_gaussian_random_momentum(Real* u, Real u_mean, Real u_std) {
@@ -61,7 +69,7 @@ InitParticles(const IntVect& a_num_particles_per_cell,
 
         for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv)) {
             for (int i_part=0; i_part<num_ppc;i_part++) {
-                Real r[3];
+                Real r[AMREX_SPACEDIM];
                 Real v[3];
 
                 get_position_unit_cell(r, a_num_particles_per_cell, i_part);
