@@ -172,10 +172,15 @@ buildNeighborCopyOp (bool use_boundary_neighbor)
             // note that cannot use ternary statement here because p_bndry is not
             // properly allocated when use_boundary_neighbor=false
             int pid = i;
-            if (use_boundary_neighbor)  pid = p_bndry_pid[i];
+            if (use_boundary_neighbor) {
+                pid = p_bndry_pid[i];
+            }
             IntVect iv = getParticleCell(p_ptr[pid], plo, dxi, domain);
-            for (int j=0; j<nisec_box; ++j)
-                if (p_isec_boxes[j].contains(iv))  ++p_counts[i];
+            for (int j=0; j<nisec_box; ++j) {
+                if (p_isec_boxes[j].contains(iv)) {
+                    ++p_counts[i];
+                }
+            }
         });
 
         amrex::Gpu::exclusive_scan(counts.begin(), counts.end(), offsets.begin());
@@ -194,7 +199,9 @@ buildNeighborCopyOp (bool use_boundary_neighbor)
         AMREX_FOR_1D ( np, i,
         {
             int pid = i;
-            if (use_boundary_neighbor)  pid = p_bndry_pid[i];
+            if (use_boundary_neighbor) {
+                pid = p_bndry_pid[i];
+            }
             IntVect iv = getParticleCell(p_ptr[pid], plo, dxi, domain);
             int      k = p_offsets[i];
             for (int j=0; j<nisec_box; ++j) {
