@@ -59,6 +59,7 @@ N_Vector N_VNewEmpty_MultiFab(sunindextype length)
    ops->nvspace           = N_VSpace_MultiFab;
    ops->nvgetarraypointer = NULL;
    ops->nvsetarraypointer = NULL;
+   ops->nvgetlength       = N_VGetLength_MultiFab;
 
    /* standard vector operations */
    ops->nvlinearsum    = N_VLinearSum_MultiFab;
@@ -199,6 +200,7 @@ N_Vector N_VCloneEmpty_MultiFab(N_Vector w)
    ops->nvspace           = w->ops->nvspace;
    ops->nvgetarraypointer = w->ops->nvgetarraypointer;
    ops->nvsetarraypointer = w->ops->nvsetarraypointer;
+   ops->nvgetlength       = N_VGetLength_MultiFab;
 
    /* standard vector operations */
    ops->nvlinearsum    = w->ops->nvlinearsum;
