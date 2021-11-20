@@ -14,6 +14,7 @@ C$(AMREX_PARTICLE)_headers += AMReX_WriteBinaryParticleData.H
 C$(AMREX_PARTICLE)_headers += AMReX_ParticleContainerBase.H
 C$(AMREX_PARTICLE)_sources += AMReX_ParticleContainerBase.cpp
 C$(AMREX_PARTICLE)_headers += AMReX_ParticleArray.H
+C$(AMREX_PARTICLE)_headers += AMReX_ParticleInterpolators.H
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Particle
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Particle
