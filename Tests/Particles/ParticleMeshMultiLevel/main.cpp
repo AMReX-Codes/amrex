@@ -98,9 +98,9 @@ void testParticleMesh (TestParams& parms)
             ParticleInterpolator::Linear interp(p, plo, dxi);
 
             interp.ParticleToMesh(p, rho, 0, 0, 1,
-                [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& p, int comp)
+                [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& part, int comp)
                 {
-                    return p.rdata(comp);  // no weighting
+                    return part.rdata(comp);  // no weighting
                 });
         });
 

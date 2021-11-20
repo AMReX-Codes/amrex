@@ -77,15 +77,15 @@ void testParticleMesh (TestParams& parms)
           ParticleInterpolator::Linear interp(p, plo, dxi);
 
           interp.ParticleToMesh(p, rho, 0, 0, 1,
-                      [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& p, int comp)
+                      [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& part, int comp)
                       {
-                          return p.rdata(comp);  // no weighting
+                          return part.rdata(comp);  // no weighting
                       });
 
           interp.ParticleToMesh(p, rho, 1, 1, AMREX_SPACEDIM,
-                      [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& p, int comp)
+                      [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& part, int comp)
                       {
-                          return p.rdata(0) * p.rdata(comp);  // mass weight these comps
+                          return part.rdata(0) * p.rdata(comp);  // mass weight these comps
                       });
       });
 
@@ -119,10 +119,10 @@ void testParticleMesh (TestParams& parms)
                   {
                       return arr(i, j, k, comp);  // no weighting
                   },
-                  [=] AMREX_GPU_DEVICE (MyParticleContainer::ParticleType& p,
+                  [=] AMREX_GPU_DEVICE (MyParticleContainer::ParticleType& part,
                                         int comp, amrex::Real val)
                   {
-                      p.rdata(comp) += val;
+                      part.rdata(comp) += val;
                   });
       });
 
@@ -152,10 +152,10 @@ void testParticleMesh (TestParams& parms)
                   {
                       return arr(i, j, k, comp);  // no weighting
                   },
-                  [=] AMREX_GPU_DEVICE (MyParticleContainer::ParticleType& p,
+                  [=] AMREX_GPU_DEVICE (MyParticleContainer::ParticleType& part,
                                         int comp, int val)
                   {
-                      p.idata(comp) = val;
+                      part.idata(comp) = val;
                   });
       });
 

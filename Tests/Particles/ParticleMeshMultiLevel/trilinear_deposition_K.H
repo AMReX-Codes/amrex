@@ -21,9 +21,9 @@ struct TrilinearDeposition
         amrex::ParticleInterpolator::Linear interp(p, plo, dxi);
 
         interp.ParticleToMesh(p, rho, start_part_comp, start_mesh_comp, num_comp,
-            [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& p, int comp)
+            [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& part, int comp)
             {
-                return p.rdata(comp);  // no weighting
+                return part.rdata(comp);  // no weighting
             });
     }
 };
