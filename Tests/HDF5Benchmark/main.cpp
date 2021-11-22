@@ -198,7 +198,7 @@ void test ()
         }
     }
 
-    ParallelDescriptor::Barrier();
+    /* ParallelDescriptor::Barrier(); */
 
     if (restart_check && nparticlefile > 0)
     {
