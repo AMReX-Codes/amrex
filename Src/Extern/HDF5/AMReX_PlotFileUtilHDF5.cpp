@@ -941,6 +941,10 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
 
     // Write data for each level
     char level_name[32];
+
+    hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
+    H5Pset_fill_time(dcpl_id, H5D_FILL_TIME_NEVER);
+
     for (int level = 0; level <= finest_level; ++level) {
         sprintf(level_name, "level_%d", level);
 #ifdef AMREX_USE_HDF5_ASYNC
@@ -966,9 +970,9 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
         boxdataspace = H5Screate_simple(1, flatdims, NULL);
 
 #ifdef AMREX_USE_HDF5_ASYNC
-        boxdataset = H5Dcreate_async(grp, bdsname.c_str(), babox_id, boxdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT, es_id_g);
+        boxdataset = H5Dcreate_async(grp, bdsname.c_str(), babox_id, boxdataspace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT, es_id_g);
 #else
-        boxdataset = H5Dcreate(grp, bdsname.c_str(), babox_id, boxdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        boxdataset = H5Dcreate(grp, bdsname.c_str(), babox_id, boxdataspace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT);
 #endif
         if (boxdataset < 0) { std::cout << "H5Dcreate [" << bdsname << "] failed!" << std::endl; break; }
 
@@ -996,9 +1000,9 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
         oflatdims[0] = sortedGrids.size() + 1;
         offsetdataspace = H5Screate_simple(1, oflatdims, NULL);
 #ifdef AMREX_USE_HDF5_ASYNC
-        offsetdataset = H5Dcreate_async(grp, odsname.c_str(), H5T_NATIVE_LLONG, offsetdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT, es_id_g);
+        offsetdataset = H5Dcreate_async(grp, odsname.c_str(), H5T_NATIVE_LLONG, offsetdataspace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT, es_id_g);
 #else
-        offsetdataset = H5Dcreate(grp, odsname.c_str(), H5T_NATIVE_LLONG, offsetdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        offsetdataset = H5Dcreate(grp, odsname.c_str(), H5T_NATIVE_LLONG, offsetdataspace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT);
 #endif
         if(offsetdataset < 0) { std::cout << "create offset dataset failed! ret = " << offsetdataset << std::endl; break;}
 
@@ -1006,9 +1010,9 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
         centerdims[0]   = sortedGrids.size() ;
         centerdataspace = H5Screate_simple(1, centerdims, NULL);
 #ifdef AMREX_USE_HDF5_ASYNC
-        centerdataset = H5Dcreate_async(grp, centername.c_str(), center_id, centerdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT, es_id_g);
+        centerdataset = H5Dcreate_async(grp, centername.c_str(), center_id, centerdataspace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT, es_id_g);
 #else
-        centerdataset = H5Dcreate(grp, centername.c_str(), center_id, centerdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        centerdataset = H5Dcreate(grp, centername.c_str(), center_id, centerdataspace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT);
 #endif
         if(centerdataset < 0) { std::cout << "Create center dataset failed! ret = " << centerdataset << std::endl; break;}
 
@@ -1171,6 +1175,7 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
     H5Tclose(center_id);
     H5Tclose(babox_id);
     H5Pclose(fapl);
+    H5Pclose(dcpl_id);
     H5Pclose(dxpl_col);
     H5Pclose(dxpl_ind);
     H5Pclose(dcpl);

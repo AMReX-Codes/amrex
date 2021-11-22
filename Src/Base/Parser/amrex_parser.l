@@ -65,6 +65,7 @@ EXP	([Ee][-+]?[0-9]+)
 "jn"          { amrex_parserlval.f2 = amrex::PARSER_JN;        return F2; }
 "min"         { amrex_parserlval.f2 = amrex::PARSER_MIN;       return F2; }
 "max"         { amrex_parserlval.f2 = amrex::PARSER_MAX;       return F2; }
+"fmod"        { amrex_parserlval.f2 = amrex::PARSER_FMOD;      return F2; }
 "if"          { amrex_parserlval.f3 = amrex::PARSER_IF;        return F3; }
 
  /* We use SYMBOL to hold variables and constants */

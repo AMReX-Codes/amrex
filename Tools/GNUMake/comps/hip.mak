@@ -66,8 +66,8 @@ endif  # BL_NO_FORT
 ifeq ($(HIP_COMPILER),clang)
 
   ifeq ($(DEBUG),TRUE)
-    CXXFLAGS += -g -O0 -ftrapv
-    CFLAGS   += -g -O0 -ftrapv
+    CXXFLAGS += -g -O0 #-ftrapv
+    CFLAGS   += -g -O0 #-ftrapv
 
     FFLAGS   += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
     F90FLAGS += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv

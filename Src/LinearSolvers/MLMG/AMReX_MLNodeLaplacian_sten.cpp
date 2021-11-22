@@ -17,6 +17,7 @@ void
 MLNodeLaplacian::buildStencil ()
 {
     m_stencil.resize(m_num_amr_levels);
+    m_nosigma_stencil.resize(m_num_amr_levels);
     m_s0_norm0.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
@@ -42,6 +43,13 @@ MLNodeLaplacian::buildStencil ()
                 (amrex::convert(m_grids[amrlev][mglev], IntVect::TheNodeVector()),
                  m_dmap[amrlev][mglev], ncomp_s, nghost);
             m_stencil[amrlev][mglev]->setVal(0.0);
+        }
+
+        if (amrlev > 0) {
+            m_nosigma_stencil[amrlev] = std::make_unique<MultiFab>
+                (amrex::convert(m_grids[amrlev][0], IntVect::TheNodeVector()),
+                 m_dmap[amrlev][0], ncomp_s, 4);
+            m_nosigma_stencil[amrlev]->setVal(0.0);
         }
 
         {
@@ -76,6 +84,8 @@ MLNodeLaplacian::buildStencil ()
                     Array4<Real const> const& sgarr_orig = sgfab_orig.const_array();
 
                     Array4<Real> const& starr = m_stencil[amrlev][0]->array(mfi);
+                    Array4<Real> const ns_starr = m_nosigma_stencil[amrlev] ?
+                        m_nosigma_stencil[amrlev]->array(mfi) : Array4<Real>{};
 #ifdef AMREX_USE_EB
                     Array4<Real const> const& intgarr = intg->const_array(mfi);
 
@@ -93,6 +103,13 @@ MLNodeLaplacian::buildStencil ()
                             {
                                 starr(i,j,k,n) = 0.0;
                             });
+
+                            if (ns_starr) {
+                                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx,ncomp_s,i,j,k,n,
+                                {
+                                    ns_starr(i,j,k,n) = 0.0;
+                                });
+                            }
                         }
                         else if (typ == FabType::singlevalued)
                         {
@@ -123,6 +140,17 @@ MLNodeLaplacian::buildStencil ()
                             {
                                 mlndlap_set_stencil_eb(i, j, k, starr, sgarr, cnarr, dxinvarr);
                             });
+
+                            if (ns_starr) {
+                                AMREX_HOST_DEVICE_FOR_3D(btmp, i, j, k,
+                                {
+                                    sgarr(i,j,k) = Real(1.0);
+                                });
+                                AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+                                {
+                                    mlndlap_set_stencil_eb(i,j,k, ns_starr, sgarr, cnarr, dxinvarr);
+                                });
+                            }
                         }
                         else
                         {
@@ -151,6 +179,18 @@ MLNodeLaplacian::buildStencil ()
                         {
                             mlndlap_set_stencil(tbx,starr,sgarr,dxinvarr);
                         });
+
+                        if (ns_starr) {
+                            AMREX_HOST_DEVICE_FOR_3D(btmp, i, j, k,
+                            {
+                                sgarr(i,j,k) = Real(1.0);
+                            });
+
+                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                            {
+                                mlndlap_set_stencil(tbx, ns_starr, sgarr, dxinvarr);
+                            });
+                        }
                     }
                 }
             }
@@ -168,9 +208,21 @@ MLNodeLaplacian::buildStencil ()
                 {
                     mlndlap_set_stencil_s0(i,j,k,starr);
                 });
+
+                if (m_nosigma_stencil[amrlev]) {
+                    Array4<Real> const& ns_starr = m_nosigma_stencil[amrlev]->array(mfi);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                    {
+                        mlndlap_set_stencil_s0(i,j,k,ns_starr);
+                    });
+                }
             }
 
             m_stencil[amrlev][0]->FillBoundary(geom.periodicity());
+
+            if (m_nosigma_stencil[amrlev]) {
+                m_nosigma_stencil[amrlev]->FillBoundary(geom.periodicity());
+            }
         }
 
         for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev)

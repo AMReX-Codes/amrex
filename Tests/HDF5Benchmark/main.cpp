@@ -30,6 +30,7 @@ void test ()
     int restart_check = 0, nplotfile = 1, nparticlefile = 1, sleeptime = 0;
     int grids_from_file = 0;
     std::string compression = "None#0";
+    std::string directory = "";
 
     ParmParse pp;
     pp.get("ncells", ncells);
@@ -43,6 +44,12 @@ void test ()
     pp.query("sleeptime", sleeptime);
     pp.query("restart_check", restart_check);
     pp.query("grids_from_file", grids_from_file);
+    pp.query("directory", directory);
+
+    if (directory != "" && directory.back() != '/') {
+        // Include separator if one was not provided
+        directory += "/";
+    }
 
     Vector<Box> domains;
     Vector<BoxArray> ba;
@@ -99,9 +106,9 @@ void test ()
     /* if (compression.compare("None#0") != 0) */
     /*     std::cout << "Compression: " << compression << std::endl; */
 
-    char fname[128];
+    char fname[512];
     for (int ts = 0; ts < nplotfile; ts++) {
-        sprintf(fname, "plt%05d", ts);
+        sprintf(fname, "%splt%05d", directory.c_str(), ts);
 
         // Fake computation
         if (ts > 0 && sleeptime > 0) {
@@ -171,7 +178,7 @@ void test ()
             particle_intnames.push_back("particle_int_component_" + std::to_string(i));
 
         for (int ts = 0; ts < nparticlefile; ts++) {
-            sprintf(fname, "plt%05d", ts);
+            sprintf(fname, "%splt%05d", directory.c_str(), ts);
 
             // Fake computation
             if (ts > 0 && sleeptime > 0) {
@@ -198,14 +205,17 @@ void test ()
         }
     }
 
-    /* ParallelDescriptor::Barrier(); */
+    ParallelDescriptor::Barrier();
 
+    char directory_path[512];
     if (restart_check && nparticlefile > 0)
     {
         MyPC newPC(geom, dmap, ba, ref_ratio);
 #ifdef AMREX_USE_HDF5
+        sprintf(directory_path, "%s%s", directory.c_str(), "plt00000/particle0");
         newPC.RestartHDF5("plt00000/particle0", "particle0");
 #else
+        sprintf(directory_path, "%s%s", directory.c_str(), "plt00000");
         newPC.Restart("plt00000", "particle0");
 #endif
 
