@@ -205,6 +205,8 @@ void test ()
         }
     }
 
+    ParallelDescriptor::Barrier();
+
     char directory_path[512];
 
     if (restart_check && nparticlefile > 0)
