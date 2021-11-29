@@ -167,9 +167,9 @@ public:
         post_update = F;
     }
 
-    virtual amrex::Real advance(T& S_old, T& S_new, amrex::Real time, const amrex::Real timestep)
+    virtual amrex::Real advance(T& S_old, T& S_new, amrex::Real time, const amrex::Real dt)
     {
-        return timestep;
+        return dt;
     }
 
     void rhs(T& S_rhs, const T& S_data, const amrex::Real time)
