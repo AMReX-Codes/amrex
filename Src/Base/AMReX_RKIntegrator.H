@@ -76,7 +76,7 @@ private:
 
         // Read an integrator type, if not recognized, then read weights/nodes/butcher tableau
         tableau_type = 0;
-        pp.query("type", tableau_type);
+        pp.get("type", tableau_type);
 
         // By default, define no extended weights and no adaptive timestepping
         extended_weights = {};
@@ -86,12 +86,12 @@ private:
         if (tableau_type == ButcherTableauTypes::User)
         {
             // Read weights/nodes/butcher tableau"
-            pp.queryarr("weights", weights);
+            pp.getarr("weights", weights);
             pp.queryarr("extended_weights", extended_weights);
-            pp.queryarr("nodes", nodes);
+            pp.getarr("nodes", nodes);
 
             amrex::Vector<amrex::Real> btable; // flattened into row major format
-            pp.queryarr("tableau", btable);
+            pp.getarr("tableau", btable);
 
             // Sanity check the inputs
             if (weights.size() != nodes.size())
