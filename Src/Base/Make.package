@@ -193,6 +193,15 @@ C$(AMREX_BASE)_sources += AMReX_PlotFileUtil.cpp AMReX_PlotFileDataImpl.cpp
 C$(AMREX_BASE)_headers += AMReX_PlotFileUtil.H AMReX_PlotFileDataImpl.H
 
 #
+# Time Integration
+#
+C$(AMREX_BASE)_headers += AMReX_FEIntegrator.H
+C$(AMREX_BASE)_headers += AMReX_IntegratorBase.H
+C$(AMREX_BASE)_headers += AMReX_RKIntegrator.H
+C$(AMREX_BASE)_headers += AMReX_TimeIntegrator.H
+
+
+#
 # Fortran interface routines.
 #
 ifneq ($(BL_NO_FORT),TRUE)
