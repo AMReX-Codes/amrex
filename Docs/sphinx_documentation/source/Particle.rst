@@ -199,13 +199,17 @@ used by your :cpp:`ParticleContainer` will be updated automatically to match
 those in your :cpp:`AmrCore`.
 
 The :cpp:`ParticleContainer` stores the particle data in a manner prescribed by
-the set of AMR grids used to define it. If tiling is turned off, then every
-grid has its own Array-of-Structs and Struct-of-Arrays. Which AMR grid a
+the set of AMR grids used to define it. Local particle data is always stored in
+a data structure called a :cpp:`ParticleTile`, which contains a mixture of AoS
+and SoA components as described above. If the parameter `particles.do_tiling=0`,
+then there is always exactly one :cpp:`ParticleTile` per grid. Which AMR grid a
 particle is assigned to is determined by examining its position and binning it,
 using the domain left edge as an offset.  By default, a particle is assigned to
 the finest level that contains its position, although this behavior can be
-tweaked if desired.  When tiling is enabled, then each *tile* gets its own
-Struct-of-Arrays and Array-of-Structs instead. Note that this is different than
+tweaked if desired.  If `particles.do_tiling=1`, then each grid can have multiple
+:cpp:`ParticleTile` objects associated with it based on the `particles.tile_size`
+parameter. Setting `particles.do_tiling=0` is equivalent to setting a very large
+`particles.tile_size` in each direction. Note that this is different than
 what happens with mesh data. With mesh data, the tiling is strictly logical;
 the data is laid out in memory the same whether tiling is turned on or off.
 With particle data, however, the particles are actually stored in different
