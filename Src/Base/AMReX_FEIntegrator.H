@@ -1,9 +1,11 @@
 #ifndef AMREX_FE_INTEGRATOR_H
 #define AMREX_FE_INTEGRATOR_H
-#include <functional>
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
-#include "AMReX_IntegratorBase.H"
+#include <AMReX_IntegratorBase.H>
+#include <functional>
+
+namespace amrex {
 
 template<class T>
 class FEIntegrator : public IntegratorBase<T>
@@ -54,5 +56,7 @@ public:
     }
 
 };
+
+}
 
 #endif

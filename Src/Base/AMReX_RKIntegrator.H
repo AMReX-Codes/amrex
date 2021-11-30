@@ -1,10 +1,12 @@
 #ifndef AMREX_RK_INTEGRATOR_H
 #define AMREX_RK_INTEGRATOR_H
-#include <functional>
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 #include <AMReX_ParmParse.H>
-#include "AMReX_IntegratorBase.H"
+#include <AMReX_IntegratorBase.H>
+#include <functional>
+
+namespace amrex {
 
 namespace ButcherTableauTypes {
     enum ButcherTypes {User = 0, ForwardEuler, Trapezoid, SSPRK3, RK4, NumTypes};
@@ -254,5 +256,7 @@ public:
     }
 
 };
+
+}
 
 #endif

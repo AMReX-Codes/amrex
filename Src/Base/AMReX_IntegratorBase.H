@@ -1,7 +1,6 @@
 #ifndef AMREX_INTEGRATOR_BASE_H
 #define AMREX_INTEGRATOR_BASE_H
-#include <functional>
-#include <type_traits>
+#include <AMReX_Config.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 #include <AMReX_MultiFab.H>
@@ -9,6 +8,11 @@
 #if defined(AMREX_PARTICLES)
 #include <AMReX_Particles.H>
 #endif
+
+#include <functional>
+#include <type_traits>
+
+namespace amrex {
 
 template<class T, typename Tv = void> struct IntegratorOps;
 
@@ -181,5 +185,7 @@ public:
 
     virtual void map_data(std::function<void(T&)> Map) {}
 };
+
+}
 
 #endif

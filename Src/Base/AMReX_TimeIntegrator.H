@@ -1,12 +1,14 @@
 #ifndef AMREX_TIME_INTEGRATOR_H
 #define AMREX_TIME_INTEGRATOR_H
-#include <functional>
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 #include <AMReX_ParmParse.H>
-#include "AMReX_IntegratorBase.H"
-#include "AMReX_FEIntegrator.H"
-#include "AMReX_RKIntegrator.H"
+#include <AMReX_IntegratorBase.H>
+#include <AMReX_FEIntegrator.H>
+#include <AMReX_RKIntegrator.H>
+#include <functional>
+
+namespace amrex {
 
 namespace IntegratorTypes {
     enum TimeIntegratorTypes {ForwardEuler = 0,
@@ -112,5 +114,7 @@ public:
         integrator_ptr->map_data(Map);
     }
 };
+
+}
 
 #endif
