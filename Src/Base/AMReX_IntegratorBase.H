@@ -157,9 +157,14 @@ protected:
 
 public:
     amrex::Real timestep;
+
     IntegratorBase() {}
 
+    virtual IntegratorBase(const T& S_data) = 0;
+
     virtual ~IntegratorBase() {}
+
+    virtual void initialize(const T& S_data) = 0;
 
     void set_rhs(std::function<void(T&, const T&, const amrex::Real)> F)
     {

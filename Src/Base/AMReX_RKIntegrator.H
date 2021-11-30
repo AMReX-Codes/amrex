@@ -153,7 +153,14 @@ private:
     }
 
 public:
+    RKIntegrator() {}
+
     RKIntegrator(const T& S_data)
+    {
+        initialize(S_data);
+    }
+
+    void initialize(const T& S_data)
     {
         initialize_parameters();
         initialize_stages(S_data);

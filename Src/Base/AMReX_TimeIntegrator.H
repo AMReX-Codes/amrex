@@ -22,27 +22,18 @@ private:
     std::unique_ptr<IntegratorBase<T> > integrator_ptr;
     std::function<void ()> post_timestep;
 
-public:
-    TimeIntegrator(T& S_data)
+    IntegratorTypes read_parameters()
     {
         amrex::ParmParse pp("integration");
 
         int integrator_type = IntegratorTypes::ForwardEuler;
         pp.get("type", integrator_type);
 
-        switch (integrator_type)
-        {
-            case IntegratorTypes::ForwardEuler:
-                integrator_ptr = std::make_unique<FEIntegrator<T> >(S_data);
-                break;
-            case IntegratorTypes::ExplicitRungeKutta:
-                integrator_ptr = std::make_unique<RKIntegrator<T> >(S_data);
-                break;
-            default:
-                amrex::Error("integration.type did not name a valid integrator type.");
-                break;
-        }
+        return static_cast<IntegratorTypes>(integrator_type);
+    }
 
+    void set_default_functions()
+    {
         // By default, do nothing post-timestep
         set_post_timestep([](){});
 
@@ -54,7 +45,49 @@ public:
         set_rhs([](T& S_rhs, const T& S_data, const amrex::Real time){});
     }
 
+public:
+
+    TimeIntegrator() {
+        // initialize functions to do nothing
+        set_default_functions();
+    }
+
+    TimeIntegrator(IntegratorTypes integrator_type, const T& S_data)
+    {
+        // initialize the integrator class corresponding to the desired type
+        initialize_integrator(integrator_type, S_data);
+
+        // initialize functions to do nothing
+        set_default_functions();
+    }
+
+    TimeIntegrator(const T& S_data)
+    {
+        // initialize the integrator class corresponding to the input parameter selection
+        IntegratorTypes integrator_type = read_parameters();
+        initialize_integrator(integrator_type, S_data);
+
+        // initialize functions to do nothing
+        set_default_functions();
+    }
+
     virtual ~TimeIntegrator() {}
+
+    void initialize_integrator(IntegratorTypes integrator_type, const T& S_data)
+    {
+        switch (integrator_type)
+        {
+            case IntegratorTypes::ForwardEuler:
+                integrator_ptr = std::make_unique<FEIntegrator<T> >(S_data);
+                break;
+            case IntegratorTypes::ExplicitRungeKutta:
+                integrator_ptr = std::make_unique<RKIntegrator<T> >(S_data);
+                break;
+            default:
+                amrex::Error("integrator type did not match a valid integrator type.");
+                break;
+        }
+    }
 
     void set_post_timestep(std::function<void ()> F)
     {

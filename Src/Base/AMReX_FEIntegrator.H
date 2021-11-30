@@ -15,13 +15,25 @@ private:
 
     amrex::Vector<std::unique_ptr<T> > F_nodes;
 
-public:
-    FEIntegrator(T& S_data)
+    void initialize_stages(const T& S_data)
     {
         IntegratorOps<T>::CreateLike(F_nodes, S_data);
     }
 
+public:
+    FEIntegrator() {}
+
+    FEIntegrator(const T& S_data)
+    {
+        initialize(S_data);
+    }
+
     virtual ~FEIntegrator() {}
+
+    void initialize(const T& S_data)
+    {
+        initialize_stages(S_data);
+    }
 
     amrex::Real advance(T& S_old, T& S_new, amrex::Real time, const amrex::Real timestep)
     {
