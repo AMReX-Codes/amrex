@@ -222,7 +222,7 @@ struct Particle
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void atomicSetID (const Long id) {
-        uint64_t tmp;
+        uint64_t tmp = 0;
         ParticleIDWrapper wrapper(tmp);
         wrapper = id;
 #if defined(AMREX_USE_OMP)

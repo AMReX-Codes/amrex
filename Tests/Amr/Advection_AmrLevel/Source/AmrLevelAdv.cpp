@@ -4,8 +4,9 @@
 #include <AMReX_GpuMemory.H>
 
 #include "AmrLevelAdv.H"
-#include "Adv_F.H"
+#include "Prob.H"
 #include "Kernels.H"
+
 
 using namespace amrex;
 
@@ -169,46 +170,12 @@ AmrLevelAdv::variableCleanUp ()
 void
 AmrLevelAdv::initData ()
 {
-    //
-    // Loop over grids.
-    //
-    const Real* dx  = geom.CellSize();
-    const Real* prob_lo = geom.ProbLo();
-    MultiFab& S_new = get_new_data(Phi_Type);
-    Real cur_time   = state[Phi_Type].curTime();
-
     if (verbose) {
         amrex::Print() << "Initializing the data at level " << level << std::endl;
     }
 
-#ifdef AMREX_USE_GPU
-    // Create temporary MultiFab on CPU using pinned memory
-    MultiFab S_tmp(S_new.boxArray(),
-                   S_new.DistributionMap(),
-                   S_new.nComp(),
-                   S_new.nGrowVect(),
-                   MFInfo().SetArena(The_Pinned_Arena()));
-#else
-    // Use a MultiFab pointer
-    MultiFab& S_tmp = S_new;
-#endif
-
-    for (MFIter mfi(S_tmp); mfi.isValid(); ++mfi)
-    {
-        const Box& box     = mfi.validbox();
-        const int* lo      = box.loVect();
-        const int* hi      = box.hiVect();
-
-        // Use a Fortran subroutine to initialize data on CPU.
-        initdata(&level, &cur_time, AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi),
-                 BL_TO_FORTRAN_3D(S_tmp[mfi]), AMREX_ZFILL(dx),
-                 AMREX_ZFILL(prob_lo));
-    }
-
-#ifdef AMREX_USE_GPU
-    // Explicitly copy data to GPU.
-    amrex::htod_memcpy(S_new, S_tmp);
-#endif
+    // Initialize data on MultiFab
+    initdata(get_new_data(Phi_Type), geom);
 
 #ifdef AMREX_PARTICLES
     init_particles();
@@ -793,6 +760,7 @@ AmrLevelAdv::read_params ()
     // See Src_nd/Tagging_params.cpp for the function implementation.
     get_tagging_params();
 }
+
 
 void
 AmrLevelAdv::reflux ()

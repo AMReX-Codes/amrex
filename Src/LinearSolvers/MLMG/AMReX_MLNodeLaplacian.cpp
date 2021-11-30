@@ -534,7 +534,7 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
     const auto hibc = HiBC();
 
     const iMultiFab& fdmsk = *m_dirichlet_mask[camrlev+1][0];
-    const auto& stencil    =  m_stencil[camrlev+1][0];
+    const auto& stencil    =  m_nosigma_stencil[camrlev+1];
 
     MultiFab cfine(amrex::coarsen(fba, amrrr), fdm, 1, 0);
 
