@@ -171,19 +171,16 @@ public:
         post_update = F;
     }
 
-    virtual amrex::Real advance(T& S_old, T& S_new, amrex::Real time, const amrex::Real dt)
-    {
-        return dt;
-    }
-
     void rhs(T& S_rhs, const T& S_data, const amrex::Real time)
     {
         Fun(S_rhs, S_data, time);
     }
 
-    virtual void time_interpolate(const T& S_new, const T& S_old, amrex::Real timestep_fraction, T& data) {}
+    virtual amrex::Real advance(T& S_old, T& S_new, amrex::Real time, const amrex::Real dt) = 0;
 
-    virtual void map_data(std::function<void(T&)> Map) {}
+    virtual void time_interpolate(const T& S_new, const T& S_old, amrex::Real timestep_fraction, T& data) = 0;
+
+    virtual void map_data(std::function<void(T&)> Map) = 0;
 };
 
 }
