@@ -112,7 +112,7 @@ struct IntegratorOps<T, typename std::enable_if<std::is_same<amrex::Vector<std::
         // Calculate Y += a * X
         const int size = Y.size();
         for (int i = 0; i < size; ++i) {
-            int nGrow = Grow ? X[i]->nGrow() : 0;
+            IntVect nGrow = Grow ? X[i]->nGrowVect() : IntVect(0);
             amrex::MultiFab::Saxpy(*Y[i], a, *X[i], 0, 0, X[i]->nComp(), nGrow);
         }
     }
