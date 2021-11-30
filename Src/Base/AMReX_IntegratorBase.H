@@ -58,7 +58,7 @@ struct IntegratorOps<T, typename std::enable_if<std::is_base_of<amrex::ParticleC
 
         auto ptIncrement = [&](){ ++pty; ++ptx; };
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
         for (; checkValid(); ptIncrement())
