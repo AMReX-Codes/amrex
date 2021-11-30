@@ -10,9 +10,9 @@
 
 namespace amrex {
 
-namespace IntegratorTypes {
-    enum TimeIntegratorTypes {ForwardEuler = 0,
-                              ExplicitRungeKutta};
+enum struct IntegratorTypes {
+    ForwardEuler = 0,
+    ExplicitRungeKutta
 };
 
 template<class T>
