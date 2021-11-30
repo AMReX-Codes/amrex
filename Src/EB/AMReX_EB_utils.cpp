@@ -275,11 +275,11 @@ namespace amrex {
     }
 #endif
 
-void FillSignedDistance (MultiFab& mf, bool fluid_has_positive_sign)
+void FillSignedDistance (MultiFab& mf, bool fluid_has_positive_sign, Real extentFactor)
 {
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(&(mf.Factory()));
     if (factory) {
-        FillSignedDistance(mf, *(factory->getEBLevel()), *factory, 1, fluid_has_positive_sign);
+        FillSignedDistance(mf, *(factory->getEBLevel()), *factory, 1, fluid_has_positive_sign, extentFactor);
     } else {
         mf.setVal(std::numeric_limits<Real>::max());
     }
@@ -481,7 +481,7 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
 
 void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
                          EBFArrayBoxFactory const& eb_factory, int refratio,
-                         bool fluid_has_positive_sign)
+                         bool fluid_has_positive_sign, Real extentFactor)
 {
     AMREX_ALWAYS_ASSERT(mf.is_nodal());
 
@@ -495,7 +495,7 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
     const auto dx_ls = ls_lev.Geom().CellSizeArray();
     const auto dx_eb = eb_factory.Geom().CellSizeArray();
     Real dx_eb_max = amrex::max(AMREX_D_DECL(dx_eb[0],dx_eb[1],dx_eb[2]));
-    Real ls_roof = amrex::min(AMREX_D_DECL(dx_eb[0],dx_eb[1],dx_eb[2])) * (flags.nGrow()+1);
+    Real ls_roof = extentFactor * amrex::min(AMREX_D_DECL(dx_eb[0],dx_eb[1],dx_eb[2])) * (flags.nGrow()+1);
 
     Real fluid_sign = fluid_has_positive_sign ? 1._rt : -1._rt;
 

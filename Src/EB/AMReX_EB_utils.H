@@ -89,10 +89,13 @@ namespace amrex {
      * \param eb_fac is an EBFArrayBoxFactory object containing EB informaiton.
      * \param refratio is the refinement ratio of mf to eb_fac.
      * \param fluid_has_positive_sign determines the sign of the fluid.
+     * \param extentFactor increase the signed distance valid region (at the expense
+     *               of increased cost).
      */
     void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
                              EBFArrayBoxFactory const& eb_fac, int refratio,
-                             bool fluid_has_positive_sign=true);
+                             bool fluid_has_positive_sign=true,
+                             Real extentFactor = 1.0);
 
     /**
      * \brief Fill MultiFab with signed distance.
@@ -103,8 +106,11 @@ namespace amrex {
      *
      * \param mf is a nodal MultiFab built with EBFArrayBoxFactory.
      * \param fluid_has_positive_sign determines the sign of the fluid.
+     * \param extentFactor increase the signed distance valid region (at the expense
+     *               of increased cost).
      */
-    void FillSignedDistance (MultiFab& mf, bool fluid_has_positive_sign=true);
+    void FillSignedDistance (MultiFab& mf, bool fluid_has_positive_sign=true,
+                             Real extentFactor = 1.0);
 }
 
 #endif
