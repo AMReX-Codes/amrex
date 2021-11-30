@@ -102,7 +102,7 @@ struct IntegratorOps<T, typename std::enable_if<std::is_same<amrex::Vector<std::
         // Copy the contents of Other into Y
         const int size = Y.size();
         for (int i = 0; i < size; ++i) {
-            int nGrow = Grow ? Other[i]->nGrow() : 0;
+            IntVect nGrow = Grow ? Other[i]->nGrowVect() : IntVect(0);
             amrex::MultiFab::Copy(*Y[i], *Other[i], 0, 0, Other[i]->nComp(), nGrow);
         }
     }
