@@ -8,8 +8,13 @@
 
 namespace amrex {
 
-namespace ButcherTableauTypes {
-    enum ButcherTypes {User = 0, ForwardEuler, Trapezoid, SSPRK3, RK4, NumTypes};
+enum struct ButcherTableauTypes {
+    User = 0,
+    ForwardEuler,
+    Trapezoid,
+    SSPRK3,
+    RK4,
+    NumTypes
 };
 
 template<class T>
