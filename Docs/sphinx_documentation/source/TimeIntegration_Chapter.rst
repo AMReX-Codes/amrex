@@ -18,11 +18,11 @@ A Simple Time Integrator Setup
 This is best shown with some sample code that sets up a time integrator and
 asks it to step forwards by some interval ``dt``. The user needs to supply at
 minimum, the right-hand side function using the ``TimeIntegrator::set_rhs()``
-function. A user can also supply a post update function which is called on
-state data immediately before evaluating the right-hand side. This post update
-function is a good opportunity to fill boundary conditions for Runge-Kutta
-stage solution data so that ghost cells are filled when the right hand side
-function is called on that solution data.
+function. By using the ``TimeIntegrator::set_post_update()`` function, a user
+can also supply a post update function which is called on state data immediately
+before evaluating the right-hand side. This post update function is a good
+opportunity to fill boundary conditions for Runge-Kutta stage solution data so that
+ghost cells are filled when the right hand side function is called on that solution data.
 
 .. highlight:: c++
 
