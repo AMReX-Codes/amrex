@@ -66,7 +66,7 @@ Picking A Time Integration Method
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The user can customize which integration method they wish to use with a set of
-runtime paramters that allow choosing between a simple Forward Euler method or
+runtime parameters that allow choosing between a simple Forward Euler method or
 a generic explicit Runge-Kutta method. If Runge-Kutta is selected, then the
 user can choose which of a set of predefined Butcher Tables to use, or can
 choose to use a custom table and supply it manually. The options are detailed as follows:
