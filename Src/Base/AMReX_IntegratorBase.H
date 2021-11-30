@@ -92,7 +92,7 @@ struct IntegratorOps<T, typename std::enable_if<std::is_same<amrex::Vector<std::
         // Emplace a new T in V with the same size as Other
         V.emplace_back(std::make_unique<T>());
         for (auto const& other_mf : Other) {
-            int nGrow = Grow ? other_mf->nGrow() : 0;
+            IntVect nGrow = Grow ? other_mf->nGrowVect() : IntVect(0);
             V.back()->emplace_back(std::make_unique<amrex::MultiFab>(other_mf->boxArray(), other_mf->DistributionMap(), other_mf->nComp(), nGrow));
         }
     }
