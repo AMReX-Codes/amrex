@@ -3,7 +3,7 @@
 # FUNCTION: get_amrex_version
 #
 # Retrieves AMReX version info and sets internal cache variables
-# AMREX_GIT_VERSION and AMREX_PKG_VERSION
+# AMREX_GIT_VERSION, AMREX_RELEASE_NUMBER, and AMREX_PKG_VERSION
 #
 #
 function (get_amrex_version)
@@ -30,7 +30,11 @@ function (get_amrex_version)
       list(GET ALL_VERSIONS 0 _tmp)
       string(REPLACE "#" "" _tmp "${_tmp}")
       string(STRIP "${_tmp}" _tmp )
-      set(_tmp "${_tmp}.0")
+      string(SUBSTRING "{_tmp}" 5 -1 _tmp2)
+      if (NOT _tmp2) # don't want to add `.0` if it is already something like 21.10.2
+         set(_tmp "${_tmp}.0")
+      endif ()
+      unset(_tmp2)
    endif ()
 
    set( AMREX_GIT_VERSION "${_tmp}" CACHE INTERNAL "" )
@@ -47,6 +51,27 @@ function (get_amrex_version)
 
    set( AMREX_PKG_VERSION "${_pkg_version}" CACHE INTERNAL "" )
    unset(_pkg_version)
+
+   if (AMREX_GIT_VERSION)
+      string(FIND "${AMREX_GIT_VERSION}" "-" _idx)
+      string(SUBSTRING "${AMREX_GIT_VERSION}" 0 "${_idx}" _rel_number )
+      string(REPLACE "." "" _rel_number "${_rel_number}")
+      string(SUBSTRING "${_rel_number}" 0 4 _rel_yymm)
+      string(SUBSTRING "${_rel_number}" 4 2 _rel_patch)
+      string(LENGTH "${_rel_patch}" _rel_patch_len)
+      if (_rel_patch_len EQUAL 0)
+         string(PREPEND _rel_patch "00")
+      elseif (_rel_patch_len EQUAL 1)
+         string(PREPEND _rel_patch "00")
+      endif ()
+      string(CONCAT _rel_number "${_rel_yymm}" "${_rel_patch}")
+      unset(_rel_yymm)
+      unset(_rel_patch)
+      unset(_rel_patch_len)
+   endif ()
+
+   set( AMREX_RELEASE_NUMBER "${_rel_number}" CACHE INTERNAL "" )
+   unset(_rel_number)
 
 endfunction ()
 

@@ -575,6 +575,12 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     return AMReX::top();
 }
 
+bool
+amrex::Initialized ()
+{
+    return !amrex::AMReX::empty();
+}
+
 void
 amrex::Finalize ()
 {
