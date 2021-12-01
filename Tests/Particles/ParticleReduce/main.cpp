@@ -3,6 +3,8 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Particles.H>
 
+#include <cmath>
+
 using namespace amrex;
 
 static constexpr int NSR = 4;
@@ -233,7 +235,7 @@ void testReduce ()
                return {a, b, c};
            }, reduce_ops);
 
-        AMREX_ALWAYS_ASSERT(amrex::get<0>(r) == 16777216.0);
+        AMREX_ALWAYS_ASSERT(amrex::get<0>(r) == amrex::Real(std::pow(256, AMREX_SPACEDIM)));
         AMREX_ALWAYS_ASSERT(amrex::get<1>(r) == 2.0);
         AMREX_ALWAYS_ASSERT(amrex::get<2>(r) == 1);
     }
