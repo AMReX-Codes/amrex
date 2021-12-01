@@ -60,7 +60,7 @@ public:
         amrex::Error("Time interpolation not yet supported by forward euler integrator.");
     }
 
-    void map_data(std::function<void(T&)> Map)
+    virtual void map_data(std::function<void(T&)> Map) override
     {
         for (auto& F : F_nodes) {
             Map(*F);
