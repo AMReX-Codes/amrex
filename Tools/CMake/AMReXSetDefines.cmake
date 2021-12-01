@@ -17,6 +17,9 @@ include(AMReXGenerateConfigHeader)  # provides add_amrex_defines
 # Git version
 add_amrex_define( "AMREX_GIT_VERSION=\"${AMREX_GIT_VERSION}\"" NO_LEGACY )
 
+# Release number
+add_amrex_define( "AMREX_RELEASE_NUMBER=${AMREX_RELEASE_NUMBER}" NO_LEGACY )
+
 # XSDK mode
 add_amrex_define( AMREX_XSDK NO_LEGACY IF USE_XSDK_DEFAULTS )
 
