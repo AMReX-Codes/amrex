@@ -429,22 +429,41 @@ public:
             AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
             {
                 if (type(i,j,k) == Type::irregular) {
+                    bool is_nan = amrex::isnan(inter(i,j,k));
                     if (idim == 0) {
-                        if (lst(i,j,k) == Real(0.0)) {
+                        if (lst(i,j,k) == Real(0.0) ||
+                            (lst(i,j,k) > Real(0.0) && is_nan))
+                        {
+                            // interp might still be quiet_nan because lst that
+                            // was set to zero has been changed by FillBoundary
+                            // at periodic bounadries.
                             inter(i,j,k) = problo[0] + i*dx[0];
-                        } else if (lst(i+1,j,k) == Real(0.0)) {
+                        }
+                        else if (lst(i+1,j,k) == Real(0.0) ||
+                                 (lst(i+1,j,k) > Real(0.0) && is_nan))
+                        {
                             inter(i,j,k) = problo[0] + (i+1)*dx[0];
                         }
                     } else if (idim == 1) {
-                        if (lst(i,j,k) == Real(0.0)) {
+                        if (lst(i,j,k) == Real(0.0) ||
+                            (lst(i,j,k) > Real(0.0) && is_nan))
+                        {
                             inter(i,j,k) = problo[1] + j*dx[1];
-                        } else if (lst(i,j+1,k) == Real(0.0)) {
+                        }
+                        else if (lst(i,j+1,k) == Real(0.0) ||
+                                 (lst(i,j+1,k) > Real(0.0) && is_nan))
+                        {
                             inter(i,j,k) = problo[1] + (j+1)*dx[1];
                         }
                     } else {
-                        if (lst(i,j,k) == Real(0.0)) {
+                        if (lst(i,j,k) == Real(0.0) ||
+                            (lst(i,j,k) > Real(0.0) && is_nan))
+                        {
                             inter(i,j,k) = problo[2] + k*dx[2];
-                        } else if (lst(i,j,k+1) == Real(0.0)) {
+                        }
+                        else if (lst(i,j,k+1) == Real(0.0) ||
+                                 (lst(i,j,k+1) > Real(0.0) && is_nan))
+                        {
                             inter(i,j,k) = problo[2] + (k+1)*dx[2];
                         }
                     }

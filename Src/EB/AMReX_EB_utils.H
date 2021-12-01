@@ -42,6 +42,19 @@ namespace amrex {
     { single_level_weighted_redistribute(div_tmp_in, div_out, weights, div_comp, ncomp, geom[lev]); }
 #endif
 
+    /**
+     * \brief Fill MultiFab with implicit function.
+     *
+     * This function fills the nodal MultiFab with the implicit function in
+     * GeometryShop.  Note that an implicit function is not necessarily a
+     * signed distance function.
+     *
+     * \tparam G is the GeometryShop type
+     *
+     * \param mf is a nodal MultiFab.
+     * \param gshop is a GeometryShop object.
+     * \param geom is a Geometry object.
+     */
     template <typename G>
     void FillImpFunc (MultiFab& mf, G const& gshop, Geometry const& geom)
     {
@@ -64,16 +77,34 @@ namespace amrex {
         }
     }
 
-#if (AMREX_SPACEDIM == 3)
-    // mf is at the same level as ls_lev.
-    // ls_lev is refratio finer than eb_factory.
+    /**
+     * \brief Fill MultiFab with signed distance.
+     *
+     * This function fills the nodal MultiFab with signed distance.  Note
+     * that the distance is valid only if it's within a few cells to the EB.
+     *
+     * \param mf is a nodal MultiFab.
+     * \param ls_lev is an EB2::Level obejct with an implicit function. This
+     *               is at the same level as mf.
+     * \param eb_fac is an EBFArrayBoxFactory object containing EB informaiton.
+     * \param refratio is the refinement ratio of mf to eb_fac.
+     * \param fluid_has_positive_sign determines the sign of the fluid.
+     */
     void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
                              EBFArrayBoxFactory const& eb_fac, int refratio,
                              bool fluid_has_positive_sign=true);
 
-    // mf needs to be built with EBFactory already.
+    /**
+     * \brief Fill MultiFab with signed distance.
+     *
+     * This function fills the nodal MultiFab with signed distance.  Note
+     * that the distance is valid only if it's within a few cells to the EB.
+     * The MultiFab must have been built with an EBFArrayBoxFactory.
+     *
+     * \param mf is a nodal MultiFab built with EBFArrayBoxFactory.
+     * \param fluid_has_positive_sign determines the sign of the fluid.
+     */
     void FillSignedDistance (MultiFab& mf, bool fluid_has_positive_sign=true);
-#endif
 }
 
 #endif

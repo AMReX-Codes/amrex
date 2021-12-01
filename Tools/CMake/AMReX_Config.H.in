@@ -1,6 +1,7 @@
 #ifndef AMREX_CONFIG_H_
 #define AMREX_CONFIG_H_
 #cmakedefine AMREX_GIT_VERSION @AMREX_GIT_VERSION@
+#cmakedefine AMREX_RELEASE_NUMBER @AMREX_RELEASE_NUMBER@
 #cmakedefine AMREX_XSDK
 #cmakedefine AMREX_DEBUG
 #cmakedefine AMREX_PROFILING
