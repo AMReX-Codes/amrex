@@ -126,7 +126,7 @@ struct IntegratorOps<T, typename std::enable_if<std::is_same<amrex::MultiFab, T>
     static void CreateLike(amrex::Vector<std::unique_ptr<T> >& V, const T& Other, bool Grow = false)
     {
         // Emplace a new T in V with the same size as Other
-        int nGrow = Grow ? Other.nGrow() : 0;
+        IntVect nGrow = Grow ? Other.nGrowVect() : IntVect(0);
         V.emplace_back(std::make_unique<T>(Other.boxArray(), Other.DistributionMap(), Other.nComp(), nGrow));
     }
 
