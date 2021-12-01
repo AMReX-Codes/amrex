@@ -133,14 +133,14 @@ struct IntegratorOps<T, typename std::enable_if<std::is_same<amrex::MultiFab, T>
     static void Copy(T& Y, const T& Other, bool Grow = true)
     {
         // Copy the contents of Other into Y
-        int nGrow = Grow ? Other.nGrow() : 0;
+        IntVect nGrow = Grow ? Other.nGrowVect() : IntVect(0);
         amrex::MultiFab::Copy(Y, Other, 0, 0, Other.nComp(), nGrow);
     }
 
     static void Saxpy(T& Y, const amrex::Real a, const T& X, bool Grow = false)
     {
         // Calculate Y += a * X
-        int nGrow = Grow ? X.nGrow() : 0;
+        IntVect nGrow = Grow ? X.nGrowVect() : IntVect(0);
         amrex::MultiFab::Saxpy(Y, a, X, 0, 0, X.nComp(), nGrow);
     }
 
