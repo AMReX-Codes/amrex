@@ -2,6 +2,7 @@
 #include "Constants.H"
 
 #include "CheckPair.H"
+#include <AMReX_SPACE.H>
 
 using namespace amrex;
 
@@ -173,11 +174,11 @@ std::pair<Real, Real> MDParticleContainer::minAndMaxDistance()
 
             for (const auto& p2 : nbor_data.getNeighbors(i))
             {
-                Real dx = p1.pos(0) - p2.pos(0);
-                Real dy = p1.pos(1) - p2.pos(1);
-                Real dz = p1.pos(2) - p2.pos(2);
+                AMREX_D_TERM(Real dx = p1.pos(0) - p2.pos(0);,
+                             Real dy = p1.pos(1) - p2.pos(1);,
+                             Real dz = p1.pos(2) - p2.pos(2);)
 
-                Real r2 = dx*dx + dy*dy + dz*dz;
+                Real r2 = AMREX_D_TERM(dx*dx, + dy*dy, + dz*dz);
                 r2 = amrex::max(r2, Params::min_r*Params::min_r);
                 Real r = sqrt(r2);
 
@@ -219,9 +220,9 @@ void MDParticleContainer::moveParticles(amrex::ParticleReal dx)
         AMREX_FOR_1D ( np, i,
         {
             ParticleType& p = pstruct[i];
-            p.pos(0) += dx;
-            p.pos(1) += dx;
-            p.pos(2) += dx;
+            AMREX_D_TERM(p.pos(0) += dx;,
+                         p.pos(1) += dx;,
+                         p.pos(2) += dx;)
         });
     }
 }
@@ -322,11 +323,11 @@ void MDParticleContainer::checkNeighborList()
                 if ( i == j ) continue;
 
                 ParticleType& p2 = h_pstruct[j];
-                Real dx = p1.pos(0) - p2.pos(0);
-                Real dy = p1.pos(1) - p2.pos(1);
-                Real dz = p1.pos(2) - p2.pos(2);
+                AMREX_D_TERM(Real dx = p1.pos(0) - p2.pos(0);,
+                             Real dy = p1.pos(1) - p2.pos(1);,
+                             Real dz = p1.pos(2) - p2.pos(2);)
 
-                Real r2 = dx*dx + dy*dy + dz*dz;
+                Real r2 = AMREX_D_TERM(dx*dx, + dy*dy, + dz*dz);
 
                 Real cutoff_sq = 25.0*Params::cutoff*Params::cutoff;
 
