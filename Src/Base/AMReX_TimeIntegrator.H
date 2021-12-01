@@ -26,7 +26,7 @@ private:
     {
         amrex::ParmParse pp("integration");
 
-        int integrator_type = IntegratorTypes::ForwardEuler;
+        int integrator_type = static_cast<int>(IntegratorTypes::ForwardEuler);
         pp.get("type", integrator_type);
 
         return static_cast<IntegratorTypes>(integrator_type);

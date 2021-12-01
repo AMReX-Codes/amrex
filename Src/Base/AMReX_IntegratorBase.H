@@ -160,7 +160,7 @@ public:
 
     IntegratorBase() {}
 
-    virtual IntegratorBase(const T& S_data) = 0;
+    IntegratorBase(const T& S_data) {}
 
     virtual ~IntegratorBase() {}
 

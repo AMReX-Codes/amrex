@@ -24,7 +24,7 @@ private:
     amrex::Real timestep;
     typedef IntegratorBase<T> BaseT;
 
-    int tableau_type;
+    ButcherTableauTypes tableau_type;
     int number_nodes;
     bool use_adaptive_timestep;
     amrex::Vector<std::unique_ptr<T> > F_nodes;
@@ -82,8 +82,9 @@ private:
         amrex::ParmParse pp("integration.rk");
 
         // Read an integrator type, if not recognized, then read weights/nodes/butcher tableau
-        tableau_type = 0;
-        pp.get("type", tableau_type);
+        int _tableau_type = 0;
+        pp.get("type", _tableau_type);
+        tableau_type = static_cast<ButcherTableauTypes>(_tableau_type);
 
         // By default, define no extended weights and no adaptive timestepping
         extended_weights = {};
