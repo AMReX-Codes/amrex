@@ -84,7 +84,7 @@ struct IntegratorOps<T, typename std::enable_if<std::is_base_of<amrex::ParticleC
 #endif
 
 template<class T>
-struct IntegratorOps<T, typename std::enable_if<std::is_same<amrex::Vector<std::unique_ptr<amrex::MultiFab> >, T>::value>::type>
+struct IntegratorOps<T, typename std::enable_if<std::is_same<amrex::Vector<amrex::MultiFab>, T>::value>::type>
 {
 
     static void CreateLike(amrex::Vector<std::unique_ptr<T> >& V, const T& Other, bool Grow = false)
@@ -92,8 +92,8 @@ struct IntegratorOps<T, typename std::enable_if<std::is_same<amrex::Vector<std::
         // Emplace a new T in V with the same size as Other
         V.emplace_back(std::make_unique<T>());
         for (auto const& other_mf : Other) {
-            IntVect nGrow = Grow ? other_mf->nGrowVect() : IntVect(0);
-            V.back()->emplace_back(std::make_unique<amrex::MultiFab>(other_mf->boxArray(), other_mf->DistributionMap(), other_mf->nComp(), nGrow));
+            IntVect nGrow = Grow ? other_mf.nGrowVect() : IntVect(0);
+            V.back()->push_back(amrex::MultiFab(other_mf.boxArray(), other_mf.DistributionMap(), other_mf.nComp(), nGrow));
         }
     }
 
@@ -102,8 +102,8 @@ struct IntegratorOps<T, typename std::enable_if<std::is_same<amrex::Vector<std::
         // Copy the contents of Other into Y
         const int size = Y.size();
         for (int i = 0; i < size; ++i) {
-            IntVect nGrow = Grow ? Other[i]->nGrowVect() : IntVect(0);
-            amrex::MultiFab::Copy(*Y[i], *Other[i], 0, 0, Other[i]->nComp(), nGrow);
+            IntVect nGrow = Grow ? Other[i].nGrowVect() : IntVect(0);
+            amrex::MultiFab::Copy(Y[i], Other[i], 0, 0, Other[i].nComp(), nGrow);
         }
     }
 
@@ -112,8 +112,8 @@ struct IntegratorOps<T, typename std::enable_if<std::is_same<amrex::Vector<std::
         // Calculate Y += a * X
         const int size = Y.size();
         for (int i = 0; i < size; ++i) {
-            IntVect nGrow = Grow ? X[i]->nGrowVect() : IntVect(0);
-            amrex::MultiFab::Saxpy(*Y[i], a, *X[i], 0, 0, X[i]->nComp(), nGrow);
+            IntVect nGrow = Grow ? X[i].nGrowVect() : IntVect(0);
+            amrex::MultiFab::Saxpy(Y[i], a, X[i], 0, 0, X[i].nComp(), nGrow);
         }
     }
 
