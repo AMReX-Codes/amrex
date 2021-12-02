@@ -224,9 +224,9 @@ tweaked if desired.
 
 .. note::
 
-   :cpp:`ParticleTile` data tiling behaves differently than mesh data.
-   With mesh data, the tiling is strictly logical --the data is laid out in memory
-   the same way whether tiling is turned on or off.
+   :cpp:`ParticleTile` data tiling with :ref:`MFIter<sec:basics:mfiter>` behaves differently than mesh
+   data. With mesh data, the tiling is strictly logical --the data is laid out in
+   memory the same way whether tiling is turned on or off.
    With particle data, however, the particles are actually stored in different
    arrays when tiling is enabled. As with mesh data, the particle tile size can be
    tuned so that an entire tile's worth of particles will fit into a cache line at
