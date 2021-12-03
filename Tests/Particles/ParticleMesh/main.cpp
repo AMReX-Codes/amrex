@@ -147,7 +147,7 @@ void testParticleMesh (TestParams& parms)
 
   // now also try the iMultiFab versions
   amrex::ParticleToMesh(myPC, partiMF, 0,
-      [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& p,
+      [=] AMREX_GPU_DEVICE (const MyParticleContainer::SuperParticleType& p,
                             amrex::Array4<int> const& count)
       {
           amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
