@@ -17,8 +17,17 @@ set(_src_dir   ${_base_dir}/Source)
 set(_input_dir ${_base_dir}/Exec)
 
 
-# Use installed version of AMReX
+if (AMReX_GPU_BACKEND STREQUAL "CUDA")
+   message("HACK:-- CUDA detected --")
+   enable_language(CUDA)
+
+   #else()
+   # Use installed version of AMReX
+   # find_package(AMReX REQUIRED)
+endif()
+
 find_package(AMReX REQUIRED)
+
 
 if (AMReX_3D_FOUND)
    set(_dim 3)
@@ -31,7 +40,6 @@ endif ()
 
 add_executable(install_test)
 
-target_link_libraries(install_test PUBLIC AMReX::amrex)
 
 target_include_directories(install_test
    PUBLIC
@@ -57,3 +65,8 @@ target_sources(install_test
    ${_src_dir}/Src_K/slope_K.H
    ${_input_dir}/Prob.H
    )
+
+target_link_libraries(install_test PUBLIC AMReX::amrex)
+
+set_target_properties(install_test PROPERTIES CUDA_ARCHITECTURES "70")
+include(AMReXCUDAOptions)
