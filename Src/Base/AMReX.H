@@ -76,6 +76,13 @@ namespace amrex
                        std::ostream& a_oserr = std::cerr,
                        ErrorHandler a_errorhandler = nullptr);
 
+    /**
+       \brief Returns true if there are any currently-active and initialized
+       AMReX instances (i.e. one for which amrex::Initialize has been called,
+       and amrex::Finalize has not). Otherwise false.
+     */
+    bool Initialized ();
+
     void Finalize (AMReX* pamrex);
     void Finalize (); // Finalize the current top
     /**
