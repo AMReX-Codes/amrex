@@ -43,11 +43,10 @@ int main_main()
     const int narg = amrex::command_argument_count();
 
     Real global_error = 0.0;
-    Real global_rerror = 0.0;
-    Real abserr_for_global_rerror = 0.0;
     bool any_nans = false;
     ErrZone err_zone;
     bool all_variables_found = true;
+    bool all_variables_passed = true;
 
     // defaults
     int norm = 0;
@@ -316,13 +315,10 @@ int main_main()
                                 *(std::max_element(aerror.begin(),
                                                    aerror.end())));
 
-        const auto max_rerr = std::max_element(rerror.begin(), rerror.end());
-        global_rerror = std::max(global_rerror, *max_rerr);
-        const auto idx = std::distance(rerror.begin(), max_rerr);
-        abserr_for_global_rerror = std::max(
-            abserr_for_global_rerror, aerror[idx]);
         for (int icomp_a = 0; icomp_a < ncomp_a; ++icomp_a) {
             any_nans = any_nans || has_nan_a[icomp_a] || has_nan_b[icomp_a];
+            all_variables_passed = all_variables_passed &&
+                (aerror[icomp_a] <= atol || rerror[icomp_a] <= rtol);
         }
     }
 
@@ -373,11 +369,12 @@ int main_main()
         if (abort_if_not_all_found) return EXIT_FAILURE;
     }
 
-    if (global_error == 0.0 && !any_nans) {
+    if (any_nans) {
+        return EXIT_FAILURE;
+    } else if (global_error == 0.0) {
         amrex::Print() << " PLOTFILE AGREE" << std::endl;
         return EXIT_SUCCESS;
-    } else if ((abserr_for_global_rerror <= atol) ||
-               (global_rerror <= rtol)) {
+    } else if (all_variables_passed) {
         amrex::Print() << " PLOTFILE AGREE to specified tolerances: "
                        << "absolute = " << atol
                        << " relative = " << rtol << std::endl;

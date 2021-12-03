@@ -5,6 +5,7 @@
 #include <AMReX.H>
 #include <AMReX_ParallelContext.H>
 #include <AMReX_ParallelDescriptor.H>
+#include <AMReX_ANSIEscCode.H>
 
 #include <sstream>
 #include <fstream>

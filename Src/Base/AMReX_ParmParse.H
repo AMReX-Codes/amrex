@@ -944,9 +944,7 @@ public:
     * passed in to main().  An error will be signalled if another
     * ParmParse object currently exists.  If parfile is specified,
     * read the parameters in from that file first and then append
-    * those derived from argv to the table.  If prefix is specified,
-    * load this string as the code prefix for this particular
-    * ParmParse object.
+    * those derived from argv to the table.
     */
     static void Initialize(int         argc,
                            char**      argv,

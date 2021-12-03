@@ -72,6 +72,7 @@ target_sources( amrex
    AMReX_parstream.H
    AMReX_parstream.cpp
    # I/O stuff  --------------------------------------------------------------
+   AMReX_ANSIEscCode.H
    AMReX_FabConv.H
    AMReX_FabConv.cpp
    AMReX_FPC.H

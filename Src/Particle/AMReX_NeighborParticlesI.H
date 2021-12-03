@@ -634,14 +634,15 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::updateNeighbors ()
+::updateNeighbors (bool boundary_neighbors_only)
 {
 
   AMREX_ASSERT(hasNeighbors());
 
 #ifdef AMREX_USE_GPU
-    updateNeighborsGPU();
+    updateNeighborsGPU(boundary_neighbors_only);
 #else
+    amrex::ignore_unused(boundary_neighbors_only);
     updateNeighborsCPU(true);
 #endif
     m_has_neighbors = true;
@@ -667,6 +668,8 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 buildNeighborList (CheckPair&& check_pair, bool /*sort*/)
 {
     AMREX_ASSERT(numParticlesOutOfRange(*this, m_num_neighbor_cells) == 0);
+
+    BL_PROFILE("NeighborParticleContainer::buildNeighborList");
 
     resizeContainers(this->numLevels());
 
@@ -728,6 +731,105 @@ buildNeighborList (CheckPair&& check_pair, bool /*sort*/)
     }
 }
 
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <class CheckPair>
+void
+NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+selectActualNeighbors (CheckPair&& check_pair, int num_cells)
+{
+    BL_PROFILE("NeighborParticleContainer::selectActualNeighbors");
+
+    for (int lev = 0; lev < this->numLevels(); ++lev)
+    {
+        for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+            PairIndex index(pti.index(), pti.LocalTileIndex());
+
+            // id of actual particles that need to be sent
+            m_boundary_particle_ids[lev][index];
+            m_boundary_particle_ids[lev][index].resize(pti.numNeighborParticles());
+            auto* p_boundary_particle_ids = m_boundary_particle_ids[lev][index].dataPtr();
+
+            const auto& aos     = pti.GetArrayOfStructs();
+            const auto* pstruct = aos().dataPtr();
+
+            Box grownBox  = pti.tilebox();
+            grownBox.grow(computeRefFac(0, lev).max()*m_num_neighbor_cells);
+            const auto lo = lbound(grownBox);
+            const auto hi = ubound(grownBox);
+            Box box       = pti.validbox();
+
+            const auto& geom    = this->Geom(lev);
+            const auto  domain  = geom.Domain();
+            const auto  dxi     = geom.InvCellSizeArray();
+            const auto  plo     = geom.ProbLoArray();
+
+            const size_t  np_real        = pti.numRealParticles();
+            const size_t  np_total       = aos().size();
+
+            DenseBins<ParticleType> bins;
+            bins.build(np_total, pstruct, grownBox,
+                      [=] AMREX_GPU_DEVICE (const ParticleType& p) noexcept -> IntVect
+                      {
+                          int i = static_cast<int>(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0]) - lo.x);
+                          int j = static_cast<int>(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1]) - lo.y);
+                          int k = static_cast<int>(amrex::Math::floor((p.pos(2)-plo[2])*dxi[2]) - lo.z);
+                          AMREX_D_TERM(AMREX_ASSERT(i >= 0);, AMREX_ASSERT(j >= 0);, AMREX_ASSERT(k >= 0));
+
+                          return IntVect(AMREX_D_DECL(i, j, k));
+                        });
+
+            auto pperm   = bins.permutationPtr();
+            auto poffset = bins.offsetsPtr();
+
+            unsigned int  np_boundary    = 0;
+            unsigned int* p_np_boundary  = &np_boundary;
+            constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
+
+            AMREX_FOR_1D ( np_real, i,
+            {
+                IntVect iv(AMREX_D_DECL(
+                    static_cast<int>(amrex::Math::floor((pstruct[i].pos(0)-plo[0])*dxi[0])) - lo.x,
+                    static_cast<int>(amrex::Math::floor((pstruct[i].pos(1)-plo[1])*dxi[1])) - lo.y,
+                    static_cast<int>(amrex::Math::floor((pstruct[i].pos(2)-plo[2])*dxi[2])) - lo.z));
+                auto iv3 = iv.dim3();
+
+                int ix = iv3.x;
+                int iy = iv3.y;
+                int iz = iv3.z;
+
+                int nx = hi.x-lo.x+1;
+                int ny = hi.y-lo.y+1;
+                int nz = hi.z-lo.z+1;
+
+                bool isActualNeighbor = false;
+                for (int ii = amrex::max(ix-num_cells, 0); ii <= amrex::min(ix+num_cells, nx); ++ii) {
+                    for (int jj = amrex::max(iy-num_cells, 0); jj <= amrex::min(iy+num_cells, ny); ++jj) {
+                        for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz); ++kk) {
+                            if (isActualNeighbor) break;
+                            int nbr_cell_id = (ii * ny + jj) * nz + kk;
+                            for (auto p = poffset[nbr_cell_id]; p < poffset[nbr_cell_id+1]; ++p) {
+                                if (pperm[p] == i) continue;
+                                if (call_check_pair(check_pair, pstruct, i, pperm[p])) {
+                                    IntVect cell_ijk = getParticleCell(pstruct[pperm[p]], plo, dxi, domain);
+                                    if (!box.contains(cell_ijk)) {
+                                        int loc = Gpu::Atomic::Inc(p_np_boundary, max_unsigned_int);
+                                        p_boundary_particle_ids[loc] = i;
+                                        isActualNeighbor = true;
+                                        break;
+                                    }
+                                }// end if check_pair
+                            }
+                        }
+                    }
+                }
+            });// end amrex_for_1d
+            Gpu::streamSynchronize();
+
+            m_boundary_particle_ids[lev][index].resize(np_boundary);
+
+        }// end mypariter
+    }// end lev
+}
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
