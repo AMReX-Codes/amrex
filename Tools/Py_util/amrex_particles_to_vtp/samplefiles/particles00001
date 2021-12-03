@@ -1,4 +1,8 @@
 512
+# This line is ignored by amrex_particles_to_vtp.py. In a real output file, something else may be here.
+# This line is ignored by amrex_particles_to_vtp.py. In a real output file, something else may be here.
+# This line is ignored by amrex_particles_to_vtp.py. In a real output file, something else may be here.
+# This line is ignored by amrex_particles_to_vtp.py. In a real output file, something else may be here.
 0.130730500175834 0.17190616444452 0.415895644078094 -0.369269499824166 0.67190616444452 0.915895644078094 0 0 0 1 0 
 1.72854016739132 1.46602730649973 1.19158682192587 0.228540167391324 0.966027306499735 0.691586821925875 0 0 0 2 0 
 2.87200318564392 0.902140774968749 0.398984789476028 0.372003185643917 0.402140774968749 0.898984789476028 0 0 0 3 0 
