@@ -161,15 +161,13 @@ install_fortran_modules:
 	done
 
 uninstall_fortran_modules:
-	@echo Uninstall Fortran modules at $(amrexIncludeDir) and $(fmoddir) ...
-	@for m in $(amrexFortModules); do \
-	    $(SILENT) $(RM) $$m; \
-	    $(SILENT) $(RM) $(amrexIncludeDir)/*.mod; \
+	@echo Uninstall Fortran modules at $(amrexIncludeDir) ...
+	@for m in $(amrexFortModuleFiles); do \
+	    $(SILENT) $(RM) $(amrexIncludeDir)/$$m; \
 	done
 	@if [ -d $(amrexIncludeDir) ]; then \
 	    $(SILENT) rmdir -p --ignore-fail-on-non-empty $(amrexIncludeDir); \
 	fi;
-		
 
 $(objEXETempDir)/amrex.pc: FORCE
 	@echo Generating amrex.pc ...
