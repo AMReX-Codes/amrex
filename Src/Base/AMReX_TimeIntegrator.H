@@ -22,7 +22,7 @@ private:
     std::unique_ptr<IntegratorBase<T> > integrator_ptr;
     std::function<void ()> post_timestep;
 
-    IntegratorTypes read_parameters()
+    IntegratorTypes read_parameters ()
     {
         amrex::ParmParse pp("integration");
 
@@ -32,7 +32,7 @@ private:
         return static_cast<IntegratorTypes>(integrator_type);
     }
 
-    void set_default_functions()
+    void set_default_functions ()
     {
         // By default, do nothing post-timestep
         set_post_timestep([](){});
@@ -47,12 +47,12 @@ private:
 
 public:
 
-    TimeIntegrator() {
+    TimeIntegrator () {
         // initialize functions to do nothing
         set_default_functions();
     }
 
-    TimeIntegrator(IntegratorTypes integrator_type, const T& S_data)
+    TimeIntegrator (IntegratorTypes integrator_type, const T& S_data)
     {
         // initialize the integrator class corresponding to the desired type
         initialize_integrator(integrator_type, S_data);
@@ -61,7 +61,7 @@ public:
         set_default_functions();
     }
 
-    TimeIntegrator(const T& S_data)
+    TimeIntegrator (const T& S_data)
     {
         // initialize the integrator class corresponding to the input parameter selection
         IntegratorTypes integrator_type = read_parameters();
@@ -71,9 +71,9 @@ public:
         set_default_functions();
     }
 
-    virtual ~TimeIntegrator() {}
+    virtual ~TimeIntegrator () {}
 
-    void initialize_integrator(IntegratorTypes integrator_type, const T& S_data)
+    void initialize_integrator (IntegratorTypes integrator_type, const T& S_data)
     {
         switch (integrator_type)
         {
@@ -89,28 +89,28 @@ public:
         }
     }
 
-    void set_post_timestep(std::function<void ()> F)
+    void set_post_timestep (std::function<void ()> F)
     {
         post_timestep = F;
     }
 
-    void set_post_update(std::function<void (T&, amrex::Real)> F)
+    void set_post_update (std::function<void (T&, amrex::Real)> F)
     {
         integrator_ptr->set_post_update(F);
     }
 
-    void set_rhs(std::function<void(T&, const T&, const amrex::Real)> F)
+    void set_rhs (std::function<void(T&, const T&, const amrex::Real)> F)
     {
         integrator_ptr->set_rhs(F);
     }
 
-    void advance(T& S_old, T& S_new, amrex::Real time, const amrex::Real timestep)
+    void advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real timestep)
     {
         integrator_ptr->advance(S_old, S_new, time, timestep);
     }
 
-    void integrate(T& S_old, T& S_new, amrex::Real start_time, const amrex::Real start_timestep,
-                   const amrex::Real end_time, const int nsteps)
+    void integrate (T& S_old, T& S_new, amrex::Real start_time, const amrex::Real start_timestep,
+                    const amrex::Real end_time, const int nsteps)
     {
         amrex::Real time = start_time;
         amrex::Real timestep = start_timestep;
@@ -137,12 +137,12 @@ public:
         }
     }
 
-    void time_interpolate(const T& S_new, const T& S_old, amrex::Real timestep_fraction, T& data)
+    void time_interpolate (const T& S_new, const T& S_old, amrex::Real timestep_fraction, T& data)
     {
         integrator_ptr->time_interpolate(S_new, S_old, timestep_fraction, data);
     }
 
-    void map_data(std::function<void(T&)> Map)
+    void map_data (std::function<void(T&)> Map)
     {
         integrator_ptr->map_data(Map);
     }

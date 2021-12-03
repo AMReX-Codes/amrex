@@ -33,7 +33,7 @@ private:
     amrex::Vector<amrex::Real> extended_weights;
     amrex::Vector<amrex::Real> nodes;
 
-    void initialize_preset_tableau()
+    void initialize_preset_tableau ()
     {
         switch (tableau_type)
         {
@@ -77,7 +77,7 @@ private:
         number_nodes = weights.size();
     }
 
-    void initialize_parameters()
+    void initialize_parameters ()
     {
         amrex::ParmParse pp("integration.rk");
 
@@ -144,7 +144,7 @@ private:
         }
     }
 
-    void initialize_stages(const T& S_data)
+    void initialize_stages (const T& S_data)
     {
         // Create data for stage RHS
         for (int i = 0; i < number_nodes; ++i)
@@ -154,22 +154,22 @@ private:
     }
 
 public:
-    RKIntegrator() {}
+    RKIntegrator () {}
 
-    RKIntegrator(const T& S_data)
+    RKIntegrator (const T& S_data)
     {
         initialize(S_data);
     }
 
-    void initialize(const T& S_data)
+    void initialize (const T& S_data)
     {
         initialize_parameters();
         initialize_stages(S_data);
     }
 
-    virtual ~RKIntegrator() {}
+    virtual ~RKIntegrator () {}
 
-    amrex::Real advance(T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step)
+    amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step)
     {
         timestep = time_step;
         // Assume before advance() that S_old is valid data at the current time ("time" argument)
@@ -223,7 +223,7 @@ public:
         return timestep;
     }
 
-    void time_interpolate(const T& S_new, const T& S_old, amrex::Real timestep_fraction, T& data)
+    void time_interpolate (const T& S_new, const T& S_old, amrex::Real timestep_fraction, T& data)
     {
         // data = S_old*(1-time_step_fraction) + S_new*(time_step_fraction)
         /*
@@ -261,7 +261,7 @@ public:
 
     }
 
-    void map_data(std::function<void(T&)> Map)
+    void map_data (std::function<void(T&)> Map)
     {
         for (auto& F : F_nodes) {
             Map(*F);

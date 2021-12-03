@@ -15,27 +15,27 @@ private:
 
     amrex::Vector<std::unique_ptr<T> > F_nodes;
 
-    void initialize_stages(const T& S_data)
+    void initialize_stages (const T& S_data)
     {
         IntegratorOps<T>::CreateLike(F_nodes, S_data);
     }
 
 public:
-    FEIntegrator() {}
+    FEIntegrator () {}
 
-    FEIntegrator(const T& S_data)
+    FEIntegrator (const T& S_data)
     {
         initialize(S_data);
     }
 
-    virtual ~FEIntegrator() {}
+    virtual ~FEIntegrator () {}
 
-    void initialize(const T& S_data)
+    void initialize (const T& S_data)
     {
         initialize_stages(S_data);
     }
 
-    amrex::Real advance(T& S_old, T& S_new, amrex::Real time, const amrex::Real timestep)
+    amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real timestep)
     {
         // Assume before advance() that S_old is valid data at the current time ("time" argument)
         // So we initialize S_new by copying the old state.
@@ -55,12 +55,12 @@ public:
         return timestep;
     }
 
-    virtual void time_interpolate(const T& S_new, const T& S_old, amrex::Real timestep_fraction, T& data) override
+    virtual void time_interpolate (const T& S_new, const T& S_old, amrex::Real timestep_fraction, T& data) override
     {
         amrex::Error("Time interpolation not yet supported by forward euler integrator.");
     }
 
-    virtual void map_data(std::function<void(T&)> Map) override
+    virtual void map_data (std::function<void(T&)> Map) override
     {
         for (auto& F : F_nodes) {
             Map(*F);
