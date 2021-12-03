@@ -1,3 +1,47 @@
+# 21.12
+
+  -- AMREX_RELEASE_NUMBER (#2448)
+
+  -- Add a function for detecting whether amrex::Initialize has been called or not. (#2501)
+
+  -- Fix fcompare's --abs_tol (#2504)
+
+  -- HDF5: Fix an issue when some MPI ranks have no box at all (#2494)
+
+  -- Signed distance function in 2D (#2490)
+
+  -- Reduce ghost particles in particle communication. (#2480)
+
+  -- Assign initial value to prevent (likely spurious) -Wmaybe_unitialized compiler warning. (#2484)
+
+  -- Fix a corner case in fixing small cells. (#2489)
+
+  -- Added special case for Mac when using rpath (#2479)
+
+  -- Fix multi-level EB nodal solver solvability fix (#2473)
+
+  -- Disable warning on atomicAddNoRet in HIP (#2466)
+
+  -- DPCPP: workaround for the scan issue (#2462)
+
+  -- DPCPP: AOT in GNU Make (#2463)
+
+  -- Implement HOEXTRAPCC for more than single ghost cell (#2456)
+
+  -- Spack Smoke Test (#2460)
+
+  -- Support fmod in Parser (#2395)
+
+  -- HIP: ftrapv causes issues with DEBUG linking (#2455)
+
+  -- DPCPP:  Enable early optimizations (#2454)
+
+  -- New HDF5 schema with separate datasets for different variables (#2432)
+
+  -- InterpFaceRegister (#2452)
+    
+  -- Fix WarpX EB solver's grad phi computation (#2453)
+
 # 21.11
 
   -- Set to never write fill values to the dataset for HDF5 output (#2450)
