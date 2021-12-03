@@ -35,7 +35,7 @@ struct AmrInfo {
     bool refine_grid_layout = true;
 
     /** Allow grids to be refined in these directions */
-    std::vector<bool> refine_grid_layout_dims = { true, true, true };
+    std::vector<int> refine_grid_layout_dims = { 1, 1, 1};
 
     bool check_input = true;
     bool use_new_chop = false;
@@ -199,7 +199,7 @@ public:
     int useFixedUpToLevel () const noexcept { return use_fixed_upto_level; }
 
     //! "Try" to chop up grids so that the number of boxes in the BoxArray is greater than the target_size.
-    void ChopGrids (int lev, BoxArray& ba, int target_size, std::vector<bool> refine_grid_layout_dims) const;
+    void ChopGrids (int lev, BoxArray& ba, int target_size, std::vector<int> refine_grid_layout_dims) const;
 
     //! Make a level 0 grids covering the whole domain.  It does NOT install the new grids.
     BoxArray MakeBaseGrids () const;

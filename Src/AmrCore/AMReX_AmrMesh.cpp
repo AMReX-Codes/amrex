@@ -361,7 +361,7 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
     {
         // chop up grids to have more grids than the number of procs
         pp.query("refine_grid_layout", refine_grid_layout);
-        pp.query("refine_grid_layout_dims", refine_grid_layout_dims);
+        pp.queryarr("refine_grid_layout_dims", refine_grid_layout_dims);
     }
 
     pp.query("check_input", check_input);
@@ -429,7 +429,7 @@ AmrMesh::LevelDefined (int lev) noexcept
 }
 
 void
-AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size, std::vector<bool> refine_grid_layout_dims) const
+AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size, std::vector<int> refine_grid_layout_dims) const
 {
     for (int cnt = 1; cnt <= 4; cnt *= 2)
     {
@@ -437,7 +437,7 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size, std::vector<bool> re
 
         for (int j = AMREX_SPACEDIM-1; j >= 0 ; j--)
         {
-            if (refine_grid_layout_dims[j]){
+            if (refine_grid_layout_dims[j] == 1){
                 chunk[j] /= 2;
 
                 if ( (ba.size() < target_size) && (chunk[j]%blocking_factor[lev][j] == 0) )
@@ -1021,7 +1021,9 @@ std::ostream& operator<< (std::ostream& os, AmrMesh const& amr_mesh)
     os << "  use_fixed_upto_level = " << amr_mesh.use_fixed_upto_level << "\n";
     os << "  use_fixed_coarse_grids = " << amr_mesh.use_fixed_coarse_grids << "\n";
     os << "  refine_grid_layout = " << amr_mesh.refine_grid_layout << "\n";
-    os << "  refine_grid_layout_dims = " << amr_mesh.refine_grid_layout_dims << "\n";
+    os << "  refine_grid_layout_dims = ";
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim){ os << " " << amr_mesh.refine_grid_layout_dims[idim] << "\n"; }
+    os << "\n";
     os << "  check_input = " << amr_mesh.check_input  << "\n";
     os << "  use_new_chop = " << amr_mesh.use_new_chop << "\n";
     os << "  iterate_on_new_grids = " << amr_mesh.iterate_on_new_grids << "\n";
