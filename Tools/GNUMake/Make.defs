@@ -946,6 +946,7 @@ amrexLibDir = $(AMREX_INSTALL_DIR)/lib
 amrexIncludeDir = $(AMREX_INSTALL_DIR)/include
 # Do different compilers have different name convention for mod files?
 amrexFortModules = $(wildcard $(objEXETempDir)/*.mod)
+amrexFortModuleFiles = $(notdir $(amrexFortModules))
 amrexPkgconfigDir = $(AMREX_INSTALL_DIR)/lib/pkgconfig
 
 #
