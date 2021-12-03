@@ -361,6 +361,7 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
     {
         // chop up grids to have more grids than the number of procs
         pp.query("refine_grid_layout", refine_grid_layout);
+        pp.query("refine_grid_layout_dims", refine_grid_layout_dims);
     }
 
     pp.query("check_input", check_input);
@@ -428,7 +429,7 @@ AmrMesh::LevelDefined (int lev) noexcept
 }
 
 void
-AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
+AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size, std::vector<bool> refine_grid_layout_dims) const
 {
     for (int cnt = 1; cnt <= 4; cnt *= 2)
     {
@@ -436,11 +437,13 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
 
         for (int j = AMREX_SPACEDIM-1; j >= 0 ; j--)
         {
-            chunk[j] /= 2;
+            if (refine_grid_layout_dims[j]){
+                chunk[j] /= 2;
 
-            if ( (ba.size() < target_size) && (chunk[j]%blocking_factor[lev][j] == 0) )
-            {
-                ba.maxSize(chunk);
+                if ( (ba.size() < target_size) && (chunk[j]%blocking_factor[lev][j] == 0) )
+                {
+                    ba.maxSize(chunk);
+                }
             }
         }
     }
@@ -463,7 +466,7 @@ AmrMesh::MakeBaseGrids () const
     // Boxes in ba have even number of cells in each direction
     // unless the domain has odd number of cells in that direction.
     if (refine_grid_layout) {
-        ChopGrids(0, ba, ParallelDescriptor::NProcs());
+        ChopGrids(0, ba, ParallelDescriptor::NProcs(), refine_grid_layout_dims);
     }
     if (ba == grids[0]) {
         ba = grids[0];  // to avoid duplicates
@@ -739,7 +742,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
         }
         else if (refine_grid_layout)
         {
-            ChopGrids(lev,new_grids[lev],ParallelDescriptor::NProcs());
+            ChopGrids(lev,new_grids[lev],ParallelDescriptor::NProcs(), refine_grid_layout_dims);
             if (new_grids[lev] == grids[lev]) {
                 new_grids[lev] = grids[lev]; // to avoid duplicates
             }
@@ -1018,6 +1021,7 @@ std::ostream& operator<< (std::ostream& os, AmrMesh const& amr_mesh)
     os << "  use_fixed_upto_level = " << amr_mesh.use_fixed_upto_level << "\n";
     os << "  use_fixed_coarse_grids = " << amr_mesh.use_fixed_coarse_grids << "\n";
     os << "  refine_grid_layout = " << amr_mesh.refine_grid_layout << "\n";
+    os << "  refine_grid_layout_dims = " << amr_mesh.refine_grid_layout_dims << "\n";
     os << "  check_input = " << amr_mesh.check_input  << "\n";
     os << "  use_new_chop = " << amr_mesh.use_new_chop << "\n";
     os << "  iterate_on_new_grids = " << amr_mesh.iterate_on_new_grids << "\n";
