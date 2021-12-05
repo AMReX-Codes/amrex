@@ -13,8 +13,8 @@
   Implementation file for N_Vector wrap of AMReX 'MultiFab' structure.
   --------------------------------------------------------------------*/
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 
 #include <sundials/sundials_math.h>
 

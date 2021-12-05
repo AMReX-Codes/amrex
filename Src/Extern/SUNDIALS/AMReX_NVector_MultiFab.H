@@ -13,8 +13,8 @@
   Header file for N_Vector wrap of AMReX 'MultiFab' structure.
   --------------------------------------------------------------------*/
 
-#ifndef NVECTOR_MULTIFAB_H
-#define NVECTOR_MULTIFAB_H
+#ifndef AMREX_NVECTOR_MULTIFAB_H
+#define AMREX_NVECTOR_MULTIFAB_H
 
 #include <stdio.h>
 #include <sundials/sundials_nvector.h>
