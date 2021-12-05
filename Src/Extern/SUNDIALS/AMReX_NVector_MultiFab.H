@@ -27,6 +27,9 @@
 extern "C" {
 #endif
 
+namespace amrex {
+namespace sundials {
+
 /* -----------------------------------------------------------------
  * Vector content structure
  * -----------------------------------------------------------------*/
@@ -94,6 +97,9 @@ SUNDIALS_EXPORT booleantype N_VConstrMask_MultiFab(N_Vector c, N_Vector x,
                                                    N_Vector m);
 SUNDIALS_EXPORT realtype N_VMinQuotient_MultiFab(N_Vector num, N_Vector denom);
 
+}
+
+}
 #ifdef __cplusplus
 }
 #endif

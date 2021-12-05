@@ -20,6 +20,9 @@
 
 #include "AMReX_NVector_MultiFab.H"
 
+namespace amrex {
+namespace sundials {
+
 #define ZERO   RCONST(0.0)
 #define HALF   RCONST(0.5)
 #define ONE    RCONST(1.0)
@@ -801,4 +804,7 @@ realtype N_VMinQuotient_MultiFab(N_Vector num, N_Vector denom)
    amrex::ParallelDescriptor::ReduceRealMin(min);
 
    return min;
+}
+
+}
 }
