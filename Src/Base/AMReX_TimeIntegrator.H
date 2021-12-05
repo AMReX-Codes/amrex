@@ -78,10 +78,10 @@ public:
         switch (integrator_type)
         {
             case IntegratorTypes::ForwardEuler:
-                integrator_ptr = std::make_unique<FEIntegrator<T> >(S_data);
+                integrator_ptr = std::make_unique<amrex::FEIntegrator<T> >(S_data);
                 break;
             case IntegratorTypes::ExplicitRungeKutta:
-                integrator_ptr = std::make_unique<RKIntegrator<T> >(S_data);
+                integrator_ptr = std::make_unique<amrex::RKIntegrator<T> >(S_data);
                 break;
             default:
                 amrex::Error("integrator type did not match a valid integrator type.");
