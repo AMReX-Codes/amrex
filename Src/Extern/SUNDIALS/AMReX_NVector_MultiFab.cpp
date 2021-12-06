@@ -406,18 +406,12 @@ void N_VAbs_MultiFab(N_Vector x, N_Vector z)
       const amrex::Box& bx = mfi.validbox();
       Array4<Real> const& x_fab = mf_x->array(mfi);
       Array4<Real> const& z_fab = mf_z->array(mfi);
-      const auto lo = lbound(bx);
-      const auto hi = ubound(bx);
 
-      for (int c = 0; c < ncomp; ++c) {
-         for (int k = lo.z; k <= hi.z; ++k) {
-            for (int j = lo.y; j <= hi.y; ++j) {
-               for (int i = lo.x; i <= hi.x; ++i) {
-                  z_fab(i,j,k,c) = SUNRabs(x_fab(i,j,k,c));
-               }
-            }
-         }
-      }
+      amrex::ParallelFor(bx, ncomp,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept
+      {
+          z_fab(i,j,k,c) = SUNRabs(x_fab(i,j,k,c));
+      });
    }
 }
 
@@ -507,16 +501,12 @@ realtype N_VWrmsNorm_MultiFab(N_Vector x, N_Vector w)
       const auto lo = lbound(bx);
       const auto hi = ubound(bx);
 
-      for (int c = 0; c < ncomp; ++c) {
-         for (int k = lo.z; k <= hi.z; ++k) {
-            for (int j = lo.y; j <= hi.y; ++j) {
-               for (int i = lo.x; i <= hi.x; ++i) {
-                  prodi = x_fab(i,j,k,c) * w_fab(i,j,k,c);
-                  sum += SUNSQR(prodi);
-               }
-            }
-         }
-      }
+      amrex::ParallelFor(bx, ncomp,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept
+      {
+         prodi = x_fab(i,j,k,c) * w_fab(i,j,k,c);
+         sum += SUNSQR(prodi);
+      });
    }
 
    ParallelDescriptor::ReduceRealSum(sum);
@@ -543,22 +533,16 @@ realtype N_VWrmsNormMask_MultiFab(N_Vector x, N_Vector w, N_Vector id)
       Array4<Real> const& x_fab = mf_x->array(mfi);
       Array4<Real> const& w_fab = mf_w->array(mfi);
       Array4<Real> const& id_fab = mf_id->array(mfi);
-      const auto lo = lbound(bx);
-      const auto hi = ubound(bx);
 
-      for (int c = 0; c < ncomp; ++c) {
-         for (int k = lo.z; k <= hi.z; ++k) {
-            for (int j = lo.y; j <= hi.y; ++j) {
-               for (int i = lo.x; i <= hi.x; ++i) {
-                  if (id_fab(i,j,k,c) > ZERO)
-                  {
-                     prodi = x_fab(i,j,k,c) * w_fab(i,j,k,c);
-                     sum += SUNSQR(prodi);
-                  }
-               }
-            }
+      amrex::ParallelFor(bx, ncomp,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept
+      {
+         if (id_fab(i,j,k,c) > ZERO)
+         {
+             prodi = x_fab(i,j,k,c) * w_fab(i,j,k,c);
+             sum += SUNSQR(prodi);
          }
-      }
+      });
    }
 
    ParallelDescriptor::ReduceRealSum(sum);
@@ -606,19 +590,12 @@ realtype N_VWL2Norm_MultiFab(N_Vector x, N_Vector w)
       const amrex::Box& bx = mfi.validbox();
       Array4<Real> const& x_fab = mf_x->array(mfi);
       Array4<Real> const& w_fab = mf_w->array(mfi);
-      const auto lo = lbound(bx);
-      const auto hi = ubound(bx);
-
-      for (int c = 0; c < ncomp; ++c) {
-         for (int k = lo.z; k <= hi.z; ++k) {
-            for (int j = lo.y; j <= hi.y; ++j) {
-               for (int i = lo.x; i <= hi.x; ++i) {
-                  prodi = x_fab(i,j,k,c) * w_fab(i,j,k,c);
-                  sum += SUNSQR(prodi);
-               }
-            }
-         }
-      }
+      amrex::ParallelFor(bx, ncomp,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept
+      {
+         prodi = x_fab(i,j,k,c) * w_fab(i,j,k,c);
+         sum += SUNSQR(prodi);
+      });
    }
 
    amrex::ParallelDescriptor::ReduceRealSum(sum);
@@ -664,14 +641,10 @@ void N_VCompare_MultiFab(realtype a, N_Vector x, N_Vector z)
       const auto lo = lbound(bx);
       const auto hi = ubound(bx);
 
-      for (int c = 0; c < ncomp; ++c) {
-         for (int k = lo.z; k <= hi.z; ++k) {
-            for (int j = lo.y; j <= hi.y; ++j) {
-               for (int i = lo.x; i <= hi.x; ++i) {
-                  z_fab(i,j,k,c) = (SUNRabs(x_fab(i,j,k,c)) >= a) ? ONE : ZERO;
-               }
-            }
-         }
+      amrex::ParallelFor(bx, ncomp,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept
+      {
+        z_fab(i,j,k,c) = (SUNRabs(x_fab(i,j,k,c)) >= a) ? ONE : ZERO;
       }
    }
 
@@ -693,25 +666,19 @@ booleantype N_VInvTest_MultiFab(N_Vector x, N_Vector z)
       const amrex::Box& bx = mfi.validbox();
       Array4<Real> const& x_fab = mf_x->array(mfi);
       Array4<Real> const& z_fab = mf_z->array(mfi);
-      const auto lo = lbound(bx);
-      const auto hi = ubound(bx);
 
-      for (int c = 0; c < ncomp; ++c) {
-         for (int k = lo.z; k <= hi.z; ++k) {
-            for (int j = lo.y; j <= hi.y; ++j) {
-               for (int i = lo.x; i <= hi.x; ++i) {
-                  if(x_fab(i,j,k,c) == ZERO)
-                  {
-                     val = ZERO;
-                  }
-                  else
-                  {
-                     z_fab(i,j,k,c) = ONE / x_fab(i,j,k,c);
-                  }
-               }
-            }
+      amrex::ParallelFor(bx, ncomp,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept
+      {
+         if(x_fab(i,j,k,c) == ZERO)
+         {
+            val = ZERO;
          }
-      }
+         else
+         {
+            z_fab(i,j,k,c) = ONE / x_fab(i,j,k,c);
+         }
+      });
    }
 
    amrex::ParallelDescriptor::ReduceRealMin(val);
@@ -743,18 +710,15 @@ booleantype N_VConstrMask_MultiFab(N_Vector a, N_Vector x, N_Vector m)
       Array4<Real> const& x_fab = mf_x->array(mfi);
       Array4<Real> const& a_fab = mf_a->array(mfi);
       Array4<Real> const& m_fab = mf_a->array(mfi);
-      const auto lo = lbound(bx);
-      const auto hi = ubound(bx);
-
-      for (int c = 0; c < ncomp; ++c) {
-         for (int k = lo.z; k <= hi.z; ++k) {
-            for (int j = lo.y; j <= hi.y; ++j) {
-               for (int i = lo.x; i <= hi.x; ++i) {
+      //Changing continue to if check, temp calculation should be changed to reduction
+      amrex::ParallelFor(bx, ncomp,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept
+      {
                   m_fab(i,j,k,c) = ZERO;
 
                   /* Continue if no constraints were set for the variable */
-                  if (a_fab(i,j,k,c) == ZERO)
-                     continue;
+                  if (a_fab(i,j,k,c) != ZERO)
+                  {
 
                   /* Check if a set constraint has been violated */
                   realtype a, x;
@@ -765,10 +729,8 @@ booleantype N_VConstrMask_MultiFab(N_Vector a, N_Vector x, N_Vector m)
                   if (test) {
                      temp = m_fab(i,j,k,c) = ONE;
                   }
-               }
-            }
-         }
-      }
+                  }
+      });
    }
 
    /* Return false if any constraint was violated */
@@ -793,18 +755,12 @@ realtype N_VMinQuotient_MultiFab(N_Vector num, N_Vector denom)
       const amrex::Box& bx = mfi.validbox();
       Array4<Real> const& num_fab = mf_num->array(mfi);
       Array4<Real> const& denom_fab = mf_denom->array(mfi);
-      const auto lo = lbound(bx);
-      const auto hi = ubound(bx);
 
-      for (int c = 0; c < ncomp; ++c) {
-         for (int k = lo.z; k <= hi.z; ++k) {
-            for (int j = lo.y; j <= hi.y; ++j) {
-               for (int i = lo.x; i <= hi.x; ++i) {
-                  if (denom_fab(i,j,k,c) == ZERO)
-                  {
-                     continue;
-                  }
-                  else
+      //Changing continue to if check, min calculation should be changed to reduction
+      amrex::ParallelFor(bx, ncomp,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept
+      {
+                  if (denom_fab(i,j,k,c) != ZERO)
                   {
                      realtype num = num_fab(i,j,k,c);
                      realtype denom = denom_fab(i,j,k,c);
@@ -818,10 +774,7 @@ realtype N_VMinQuotient_MultiFab(N_Vector num, N_Vector denom)
                         notEvenOnce = SUNFALSE;
                      }
                   }
-               }
-            }
-         }
-      }
+      });
    }
 
    amrex::ParallelDescriptor::ReduceRealMin(min);
