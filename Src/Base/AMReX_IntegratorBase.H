@@ -176,6 +176,16 @@ public:
         post_update = F;
     }
 
+    std::function<void(T&, const T&, const amrex::Real)> get_rhs ()
+    {
+        return Fun;
+    }
+
+    std::function<void (T&, amrex::Real)> get_post_update ()
+    {
+        return post_update;
+    }
+
     void rhs (T& S_rhs, const T& S_data, const amrex::Real time)
     {
         Fun(S_rhs, S_data, time);
