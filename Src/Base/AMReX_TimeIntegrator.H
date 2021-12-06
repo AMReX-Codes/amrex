@@ -114,7 +114,7 @@ public:
         return integrator_ptr->get_post_update();
     }
 
-    std::function<void(T&, const T&, const amrex::Real)> set_rhs ()
+    std::function<void(T&, const T&, const amrex::Real)> get_rhs ()
     {
         return integrator_ptr->get_rhs();
     }
