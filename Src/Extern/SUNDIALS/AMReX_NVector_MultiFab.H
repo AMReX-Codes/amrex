@@ -34,18 +34,19 @@ namespace sundials {
  * Vector content structure
  * -----------------------------------------------------------------*/
 
-struct N_VectorContent_MultiFab {
+struct N_VectorContent_MultiFab_notptr {
   sunindextype length;   /* vector length           */
   booleantype own_mf;    /* MultiFab ownership flag */
   amrex::MultiFab *mf;   /* wrapped MultiFab        */
 };
 
-typedef struct N_VectorContent_MultiFab *N_VectorContent_MultiFab;
+typedef struct N_VectorContent_MultiFab_notptr *N_VectorContent_MultiFab;
+
 /* -----------------------------------------------------------------
  * Accessor Macros
  * -----------------------------------------------------------------*/
 
-#define AMREX_NV_CONTENT_M(v) ( (N_VectorContent_MultiFab)(v->content) )
+#define AMREX_NV_CONTENT_M(v) ( (amrex::sundials::N_VectorContent_MultiFab)(v->content) )
 
 #define AMREX_NV_LENGTH_M(v)  ( AMREX_NV_CONTENT_M(v)->length )
 
@@ -71,7 +72,9 @@ SUNDIALS_EXPORT N_Vector N_VClone_MultiFab(N_Vector w);
 SUNDIALS_EXPORT void N_VDestroy_MultiFab(N_Vector v);
 SUNDIALS_EXPORT void N_VSpace_MultiFab(N_Vector v, sunindextype *lrw,
                                        sunindextype *liw);
+SUNDIALS_EXPORT N_VectorContent_MultiFab N_VGetContent_MultiFab(N_Vector v);
 SUNDIALS_EXPORT MultiFab* N_VGetVectorPointer_MultiFab(N_Vector v);
+SUNDIALS_EXPORT MultiFab N_VGetVectorAlias_MultiFab(N_Vector v);
 
 /* standard vector operations */
 SUNDIALS_EXPORT void N_VLinearSum_MultiFab(realtype a, N_Vector x,

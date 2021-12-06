@@ -169,7 +169,7 @@ N_Vector N_VMake_MultiFab(sunindextype length, amrex::MultiFab *v_mf)
  */
 sunindextype N_VGetLength_MultiFab(N_Vector v)
 {
-   return AMREX_NV_LENGTH_M(v);
+   return N_VGetLength_MultiFab(v);
 }
 
 /*
@@ -245,7 +245,7 @@ N_Vector N_VCloneEmpty_MultiFab(N_Vector w)
    content = (N_VectorContent_MultiFab) malloc(sizeof *content);
    if (content == NULL) { free(ops); free(v); return(NULL); }
 
-   content->length = AMREX_NV_LENGTH_M(w);
+   content->length = N_VGetLength_MultiFab(w);
    content->own_mf = SUNFALSE;
    content->mf     = NULL;
 
@@ -265,7 +265,7 @@ N_Vector N_VClone_MultiFab(N_Vector w)
    v = N_VCloneEmpty_MultiFab(w);
    if (v == NULL) return(NULL);
 
-   length = AMREX_NV_LENGTH_M(w);
+   length = N_VGetLength_MultiFab(w);
 
    if (length > 0)
    {
@@ -287,7 +287,7 @@ N_Vector N_VClone_MultiFab(N_Vector w)
 
 void N_VDestroy_MultiFab(N_Vector v)
 {
-   if (NV_OWN_MF_M(v) == SUNTRUE)
+   if (AMREX_NV_OWN_MF_M(v) == SUNTRUE)
    {
       delete AMREX_NV_MFAB(v);
       AMREX_NV_MFAB(v) = NULL;
@@ -301,19 +301,33 @@ void N_VDestroy_MultiFab(N_Vector v)
 
 void N_VSpace_MultiFab(N_Vector v, sunindextype *lrw, sunindextype *liw)
 {
-   *lrw = AMREX_NV_LENGTH_M(v);
+   *lrw = N_VGetLength_MultiFab(v);
    *liw = 1;
 
    return;
+}
+
+N_VectorContent_MultiFab N_VGetContent_MultiFab(N_Vector v)
+{
+  return (N_VectorContent_MultiFab)(v->content);
 }
 
 /* ----------------------------------------------------------------
  * Extract MultiFab*
  */
 
-MultiFab* N_VGetVectorPointer_MultiFab(N_Vector v)
+amrex::MultiFab* N_VGetVectorPointer_MultiFab(N_Vector v)
 {
   return ((N_VectorContent_MultiFab)(v->content) )->mf;
+}
+
+/* ----------------------------------------------------------------
+ * Extract alias MultiFab
+ */
+
+amrex::MultiFab N_VGetVectorAlias_MultiFab(N_Vector v)
+{
+    return amrex::MultiFab(*((N_VectorContent_MultiFab)(v->content) )->mf,amrex::make_alias,0,(((N_VectorContent_MultiFab)(v->content) )->mf)->nComp());
 }
 
 void N_VLinearSum_MultiFab(realtype a, N_Vector x, realtype b, N_Vector y,
@@ -480,7 +494,7 @@ realtype N_VWrmsNorm_MultiFab(N_Vector x, N_Vector w)
    MultiFab *mf_x = AMREX_NV_MFAB(x);
    MultiFab *mf_w = AMREX_NV_MFAB(w);
    sunindextype ncomp = mf_x->nComp();
-   sunindextype N = AMREX_NV_LENGTH_M(x);
+   sunindextype N = N_VGetLength_MultiFab(x);
    realtype sum = ZERO;
    realtype prodi;
 
@@ -518,7 +532,7 @@ realtype N_VWrmsNormMask_MultiFab(N_Vector x, N_Vector w, N_Vector id)
    MultiFab *mf_w = AMREX_NV_MFAB(w);
    MultiFab *mf_id = AMREX_NV_MFAB(id);
    sunindextype ncomp = mf_x->nComp();
-   sunindextype N = AMREX_NV_LENGTH_M(x);
+   sunindextype N = N_VGetLength_MultiFab(x);
    realtype sum = ZERO;
    realtype prodi;
 
