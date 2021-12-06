@@ -429,7 +429,7 @@ AmrMesh::LevelDefined (int lev) noexcept
 }
 
 void
-AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size, std::vector<int> refine_grid_layout_dims) const
+AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size, std::vector<int> refine_grid_layout_dims_in) const
 {
     for (int cnt = 1; cnt <= 4; cnt *= 2)
     {
@@ -437,7 +437,7 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size, std::vector<int> ref
 
         for (int j = AMREX_SPACEDIM-1; j >= 0 ; j--)
         {
-            if (refine_grid_layout_dims[j] == 1){
+            if (refine_grid_layout_dims_in[j] == 1){
                 chunk[j] /= 2;
 
                 if ( (ba.size() < target_size) && (chunk[j]%blocking_factor[lev][j] == 0) )
