@@ -16,12 +16,12 @@
 #ifndef AMREX_NVECTOR_MULTIFAB_H
 #define AMREX_NVECTOR_MULTIFAB_H
 
-#include <stdio.h>
-#include <sundials/sundials_nvector.h>
-
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_Array.H>
+
+#include <sundials/sundials_nvector.h>
+#include <cstdio>
 
 #ifdef __cplusplus  /* wrapper to enable C++ usage */
 extern "C" {
@@ -34,25 +34,24 @@ namespace sundials {
  * Vector content structure
  * -----------------------------------------------------------------*/
 
-struct _N_VectorContent_MultiFab {
+struct N_VectorContent_MultiFab {
   sunindextype length;   /* vector length           */
   booleantype own_mf;    /* MultiFab ownership flag */
   amrex::MultiFab *mf;   /* wrapped MultiFab        */
 };
 
-typedef struct _N_VectorContent_MultiFab *N_VectorContent_MultiFab;
-
+typedef struct N_VectorContent_MultiFab *N_VectorContent_MultiFab;
 /* -----------------------------------------------------------------
  * Accessor Macros
  * -----------------------------------------------------------------*/
 
-#define NV_CONTENT_M(v) ( (N_VectorContent_MultiFab)(v->content) )
+#define AMREX_NV_CONTENT_M(v) ( (N_VectorContent_MultiFab)(v->content) )
 
-#define NV_LENGTH_M(v)  ( NV_CONTENT_M(v)->length )
+#define AMREX_NV_LENGTH_M(v)  ( AMREX_NV_CONTENT_M(v)->length )
 
-#define NV_OWN_MF_M(v)  ( NV_CONTENT_M(v)->own_mf )
+#define AMREX_NV_OWN_MF_M(v)  ( AMREX_NV_CONTENT_M(v)->own_mf )
 
-#define NV_MFAB(v)      ( NV_CONTENT_M(v)->mf )
+#define AMREX_NV_MFAB(v)      ( AMREX_NV_CONTENT_M(v)->mf )
 
 /* -----------------------------------------------------------------
  * Exported functions
@@ -72,6 +71,7 @@ SUNDIALS_EXPORT N_Vector N_VClone_MultiFab(N_Vector w);
 SUNDIALS_EXPORT void N_VDestroy_MultiFab(N_Vector v);
 SUNDIALS_EXPORT void N_VSpace_MultiFab(N_Vector v, sunindextype *lrw,
                                        sunindextype *liw);
+SUNDIALS_EXPORT MultiFab* N_VGetVectorPointer_MultiFab(N_Vector v);
 
 /* standard vector operations */
 SUNDIALS_EXPORT void N_VLinearSum_MultiFab(realtype a, N_Vector x,
