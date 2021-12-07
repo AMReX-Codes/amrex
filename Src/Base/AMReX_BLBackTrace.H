@@ -27,7 +27,7 @@ struct BLBackTrace
     static void print_backtrace_info (const std::string& filename);
 
     static std::stack<std::pair<std::string, std::string> > bt_stack;
-// threadprivate here doesn't work with Cray, Intel and Fujitsu
+// threadprivate here doesn't work with Cray, Intel, and Fujitsu
 #if defined(AMREX_USE_OMP) && !defined(_CRAYC) && !defined(__INTEL_COMPILER) && !defined(__PGI) && !defined(__NVCOMPILER) && !defined(__FUJITSU)
 #pragma omp threadprivate(bt_stack)
 #endif
