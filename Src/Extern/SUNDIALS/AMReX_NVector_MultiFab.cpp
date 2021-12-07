@@ -543,8 +543,8 @@ realtype NormHelper_MultiFab(N_Vector x, N_Vector w, N_Vector id, int use_id, bo
     if (Gpu::inLaunchRegion()) {
         auto const& xma = mf_x->const_arrays();
         auto const& wma = mf_w->const_arrays();
-        auto const& idma = use_id ? mf_id->array(mfi) : mf_x->array(mfi);
-        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, x, IntVect(nghost),
+        auto const& idma = use_id ? mf_id->const_arrays() : mf_x->const_arrays();
+        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, *mf_x, IntVect(nghost),
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
         {
             Real t = Real(0.0);
@@ -553,7 +553,7 @@ realtype NormHelper_MultiFab(N_Vector x, N_Vector w, N_Vector id, int use_id, bo
             auto const& id_fab = use_id ? idma[box_no] : xma[box_no];
             for (int n = 0; n < numcomp; ++n) {
 	      if(use_id)
-		sm += id_fab(i,j,k,n) > ZERO ? std::sqrt(x_fab(i,j,k,n) * w_fab(i,j,k,n)) : 0.0_rt;
+		sm += (id_fab(i,j,k,n) > ZERO) ? std::sqrt(x_fab(i,j,k,n) * w_fab(i,j,k,n)) : 0.0;
             }
             return t;
         });
