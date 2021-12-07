@@ -16,7 +16,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-#INCLUDE <sundials/sundials_math.h>
+#include <sundials/sundials_math.h>
 
 #include "AMReX_NVector_MultiFab.H"
 
