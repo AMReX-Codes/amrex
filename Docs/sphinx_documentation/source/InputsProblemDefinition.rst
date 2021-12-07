@@ -24,4 +24,8 @@ The following inputs must be preceded by "geometry."
 +-----------------+-----------------------------------------------------------------------+-------------+-----------+
 | prob_hi         | High corner of physical domain (physical not index space)             |   Reals     | None      |
 +-----------------+-----------------------------------------------------------------------+-------------+-----------+
+| prob_extent     | Extent of physical domain (physical not index space)                  |   Reals     | None      |
++-----------------+-----------------------------------------------------------------------+-------------+-----------+
 
+Note that one can either specify both "prob_lo" and "prob_hi", or specify "prob_extent", but not both.  If "prob_extent" is
+specified, then internally prob_lo is set to 0 and prob_hi is set to prob_extent.
