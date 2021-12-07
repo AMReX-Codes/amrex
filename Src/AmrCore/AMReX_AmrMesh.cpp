@@ -364,6 +364,11 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
 
         // allow specification of dimensions that can be split
         pp.queryarr("refine_grid_layout_dims", refine_grid_layout_dims);
+
+        // more consistent naming scheme
+        pp.query("refine_grid_layout_x", refine_grid_layout_dims[0]);
+        pp.query("refine_grid_layout_y", refine_grid_layout_dims[1]);
+        pp.query("refine_grid_layout_z", refine_grid_layout_dims[2]);
     }
 
     pp.query("check_input", check_input);
@@ -434,10 +439,12 @@ void
 AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size, std::vector<int> refine_grid_layout_dims_in) const
 {
 
-    Print() << "IN:  ba.size() " << ba.size() << " target_size " << target_size << std::endl;
+    Print() << "IN:  ba.size() " << ba.size() << " target_size " << target_size << " lev " << lev << std::endl;
 
 
     for (int idim = AMREX_SPACEDIM-1; idim >=0; idim--){
+
+       Print() << "LOOP:  idim " << idim << std::endl;
 
        if ( refine_grid_layout_dims_in[idim] == 0 ) { continue; }
 
