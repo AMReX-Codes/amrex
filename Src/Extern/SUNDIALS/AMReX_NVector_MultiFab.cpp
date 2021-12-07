@@ -524,59 +524,32 @@ realtype NormHelper_MultiFab(N_Vector x, N_Vector w, N_Vector id, int use_id, bo
    using namespace amrex;
 
    MultiFab *mf_x = amrex::sundials::getMFptr(x);
-   MultiFab *mf_w = amrex::sundials::getMFptr(w);
+   //Call mf_y=mf_w is the MultiFab* from the N_Vector w
+   MultiFab *mf_y = amrex::sundials::getMFptr(w);
    MultiFab *mf_id = use_id ? amrex::sundials::getMFptr(id) : NULL;
    sunindextype numcomp = mf_x->nComp();
    sunindextype N = AMREX_NV_LENGTH_M(x);
    realtype prodi;
    bool local = true;
    int nghost = 0;
+   Real sum = 0;
+   int xcomp = 0;
+   int ycomp = 0;
 
    // ghost cells not included
-    Real sm = Real(0.0);
-#ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
-        auto const& xma = mf_x->const_arrays();
-        auto const& wma = mf_w->const_arrays();
-        auto const& idma = use_id ? mf_id->const_arrays() : mf_x->const_arrays();
-        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, *mf_x, IntVect(nghost),
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
-        {
-            Real t = Real(0.0);
-            auto const& x_fab = xma[box_no];
-            auto const& w_fab = wma[box_no];
-            auto const& id_fab = use_id ? idma[box_no] : xma[box_no];
-            for (int n = 0; n < numcomp; ++n) {
-              if(use_id)
-                t += (id_fab(i,j,k,n) > amrex::Real(0.0)) ? std::sqrt(x_fab(i,j,k,n) * w_fab(i,j,k,n)) : 0.0;
-            }
-            return t;
-        });
-    } else
-#endif
-    {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
-#endif
-        for (MFIter mfi(*mf_x,true); mfi.isValid(); ++mfi)
-        {
-            Box const& bx = mfi.growntilebox(nghost);
-            Array4<Real const> const& x_fab = mf_x->const_array(mfi);
-            Array4<Real const> const& w_fab = mf_w->const_array(mfi);
-            Array4<Real const> const& id_fab = use_id ? mf_id->const_array(mfi) : mf_x->const_array(mfi);
-            AMREX_LOOP_4D(bx, numcomp, i, j, k, n,
-            {
-              if(use_id)
-                sm += id_fab(i,j,k,n) > amrex::Real(0.0) ? std::sqrt(x_fab(i,j,k,n) * w_fab(i,j,k,n)) : 0.0_rt;
-            });
-        }
-    }
-
-    if (!local) {
-        ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
-    }
-
-    Real sum=sm;
+   if(use_id)
+     sum = amrex::NormHelper(*mf_id,
+               *mf_x, xcomp,
+               *mf_y, ycomp,
+	       [=] AMREX_GPU_HOST_DEVICE (amrex::Real m) -> amrex::Real { return m > amrex::Real(0.0); },
+               [=] AMREX_GPU_HOST_DEVICE (amrex::Real x, amrex::Real y) -> amrex::Real { return x*x*y*y; },
+               numcomp, nghost, local);
+   else
+     sum = amrex::NormHelper(
+	       *mf_x, xcomp,
+               *mf_y, ycomp,
+               [=] AMREX_GPU_HOST_DEVICE (amrex::Real x, amrex::Real y) -> amrex::Real { return x*x*y*y; },
+               numcomp, nghost, local);
    ParallelDescriptor::ReduceRealSum(sum);
 
    return rms ? SUNRsqrt(sum/N) : SUNRsqrt(sum);

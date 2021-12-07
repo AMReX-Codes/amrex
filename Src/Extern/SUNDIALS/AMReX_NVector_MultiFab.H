@@ -18,6 +18,7 @@
 
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_MultiFabUtil.H>
 #include <AMReX_Array.H>
 
 #include <sundials/sundials_nvector.h>
