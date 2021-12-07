@@ -439,45 +439,54 @@ void
 AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size, std::vector<int> refine_grid_layout_dims_in) const
 {
 
-    Print() << "IN:  ba.size() " << ba.size() << " target_size " << target_size << " lev " << lev << std::endl;
+    Print() << "START:  ba.size() " << ba.size() << " target_size " << target_size << " lev " << lev << std::endl;
 
+
+    int sum = 0;
 
     for (int idim = AMREX_SPACEDIM-1; idim >=0; idim--){
 
-       Print() << "LOOP:  idim " << idim << std::endl;
+       sum += refine_grid_layout_dims_in[idim];
+    }
 
-       if ( refine_grid_layout_dims_in[idim] == 0 ) { continue; }
+    if (sum == 0) { return; }  // do not cut along any dimension.
+
+
+
+       //if ( refine_grid_layout_dims_in[idim] == 0 ) { continue; }
+
+       //Print() << "LOOP1:  idim " << idim << std::endl;
 
        IntVect chunk = max_grid_size[lev];
 
        while (ba.size() < target_size)
        {
-          Print() << "LOOP:  ba.size() " << ba.size() << " target_size " << target_size << std::endl;
+          Print() << "IN:  ba.size() " << ba.size() << " target_size " << target_size << " lev " << lev << std::endl;
 
           IntVect chunk_prev = chunk;
 
           for (int jdim = AMREX_SPACEDIM-1; jdim >=0; jdim--){
+
              if (refine_grid_layout_dims_in[jdim]){
+                Print() << "LOOP2:  jdim " << jdim << std::endl;
                 int new_chunk_size = chunk[jdim] / 2;
-                if (new_chunk_size%blocking_factor[lev][jdim] == 0)
+                if ( (ba.size() < target_size) && (new_chunk_size%blocking_factor[lev][jdim] == 0))
                 {
                     chunk[jdim] = new_chunk_size;
                     ba.maxSize(chunk);
-                    Print() << "Chuck Size: " << chunk; //HACK
+                    Print() << "Chunk Size: " << chunk << std::endl; //HACK
                 }
              }
           }
 
-          Print() << std::endl;
 
           if (chunk == chunk_prev){
              Print() << "chunk = chunk_prev " << std::endl; //HACK
              break;
           }
-       }
-    }
-       Print() << std::endl;
        Print() << "OUT: ba.size() " << ba.size() << std::endl;
+       }
+       Print() << "FINAL: ba.size() " << ba.size() << std::endl << std::endl;
 }
 
 /*
