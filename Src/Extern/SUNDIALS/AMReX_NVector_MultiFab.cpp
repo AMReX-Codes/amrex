@@ -553,7 +553,7 @@ realtype NormHelper_MultiFab(N_Vector x, N_Vector w, N_Vector id, int use_id, bo
             auto const& id_fab = use_id ? idma[box_no] : xma[box_no];
             for (int n = 0; n < numcomp; ++n) {
 	      if(use_id)
-		sm += (id_fab(i,j,k,n) > ZERO) ? std::sqrt(x_fab(i,j,k,n) * w_fab(i,j,k,n)) : 0.0;
+		t += (id_fab(i,j,k,n) > ZERO) ? std::sqrt(x_fab(i,j,k,n) * w_fab(i,j,k,n)) : 0.0;
             }
             return t;
         });
