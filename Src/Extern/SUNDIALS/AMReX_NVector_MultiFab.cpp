@@ -16,7 +16,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include <sundials/sundials_math.h>
+#INCLUDE <sundials/sundials_math.h>
 
 #include "AMReX_NVector_MultiFab.H"
 
@@ -547,8 +547,8 @@ realtype NormHelper_MultiFab(N_Vector x, N_Vector w, N_Vector id, int use_id, bo
             auto const& w_fab = wma[box_no];
             auto const& id_fab = use_id ? idma[box_no] : xma[box_no];
             for (int n = 0; n < numcomp; ++n) {
-	      if(use_id)
-		t += (id_fab(i,j,k,n) > amrex::Real(0.0)) ? std::sqrt(x_fab(i,j,k,n) * w_fab(i,j,k,n)) : 0.0;
+              if(use_id)
+                t += (id_fab(i,j,k,n) > amrex::Real(0.0)) ? std::sqrt(x_fab(i,j,k,n) * w_fab(i,j,k,n)) : 0.0;
             }
             return t;
         });
@@ -563,11 +563,11 @@ realtype NormHelper_MultiFab(N_Vector x, N_Vector w, N_Vector id, int use_id, bo
             Box const& bx = mfi.growntilebox(nghost);
             Array4<Real const> const& x_fab = mf_x->const_array(mfi);
             Array4<Real const> const& w_fab = mf_w->const_array(mfi);
-	    Array4<Real const> const& id_fab = use_id ? mf_id->const_array(mfi) : mf_x->const_array(mfi);
+            Array4<Real const> const& id_fab = use_id ? mf_id->const_array(mfi) : mf_x->const_array(mfi);
             AMREX_LOOP_4D(bx, numcomp, i, j, k, n,
             {
-      	      if(use_id)
-		sm += id_fab(i,j,k,n) > amrex::Real(0.0) ? std::sqrt(x_fab(i,j,k,n) * w_fab(i,j,k,n)) : 0.0_rt;
+              if(use_id)
+                sm += id_fab(i,j,k,n) > amrex::Real(0.0) ? std::sqrt(x_fab(i,j,k,n) * w_fab(i,j,k,n)) : 0.0_rt;
             });
         }
     }
@@ -652,7 +652,7 @@ booleantype N_VInvTest_MultiFab(N_Vector x, N_Vector z)
 
    // ghost cells not included
    bool val = amrex::ReduceLogicalAnd(*mf_x, *mf_z, nghost,
-	       [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& x_fab, Array4<Real const> const& z_fab) -> bool
+               [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& x_fab, Array4<Real const> const& z_fab) -> bool
     {
     bool val_loc = true;
       const auto lo = lbound(bx);
@@ -664,11 +664,11 @@ booleantype N_VInvTest_MultiFab(N_Vector x, N_Vector z)
                for (int i = lo.x; i <= hi.x; ++i) {
                   if (x_fab(i,j,k,c) == amrex::Real(0.0))
                   {
-		    val_loc &= false;
-		  }
-		  /*
-		  else
-		  {
+                    val_loc &= false;
+                  }
+                  /*
+                  else
+                  {
                      z_fab(i,j,k,c) = amrex::Real(1.0) / x_fab(i,j,k,c);
                   }*/
                }
@@ -748,7 +748,7 @@ realtype N_VMinQuotient_MultiFab(N_Vector num, N_Vector denom)
    // ghost cells not included
    int nghost = 0;
    Real min = amrex::ReduceMin(*mf_num, *mf_denom, nghost,
-	       [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& num_fab, Array4<Real const> const& denom_fab) -> Real
+               [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& num_fab, Array4<Real const> const& denom_fab) -> Real
     {
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
     Real min_loc = std::numeric_limits<Real>::max();

@@ -74,7 +74,7 @@ N_VectorContent_MultiFab N_VGetContent_MultiFab(N_Vector v);
 MultiFab*& getMFptr(N_Vector v);
 MultiFab* N_VGetVectorPointer_MultiFab(N_Vector v);
 MultiFab N_VGetVectorAlias_MultiFab(N_Vector v);
-  realtype NormHelper_MultiFab(N_Vector x, N_Vector w, N_Vector id, int use_id, bool rms);
+realtype NormHelper_MultiFab(N_Vector x, N_Vector w, N_Vector id, int use_id, bool rms);
 /* standard vector operations */
 void N_VLinearSum_MultiFab(realtype a, N_Vector x,
                                            realtype b, N_Vector y, N_Vector z);
