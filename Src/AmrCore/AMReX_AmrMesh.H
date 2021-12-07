@@ -34,7 +34,7 @@ struct AmrInfo {
     //chop up grids to have the number of grids no less the number of procs
     bool refine_grid_layout = true;
 
-    /** Allow grids to be refined in these directions */
+    /** Allow grids to be refined in only the dimensions */
     std::vector<int> refine_grid_layout_dims = { 1, 1, 1};
 
     bool check_input = true;
