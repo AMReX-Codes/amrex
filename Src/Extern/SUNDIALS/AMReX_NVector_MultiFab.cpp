@@ -23,11 +23,6 @@
 namespace amrex {
 namespace sundials {
 
-#define ZERO   RCONST(0.0)
-#define HALF   RCONST(0.5)
-#define ONE    RCONST(1.0)
-#define ONEPT5 RCONST(1.5)
-
 /*
  * -----------------------------------------------------------------
  * exported functions
@@ -553,7 +548,7 @@ realtype NormHelper_MultiFab(N_Vector x, N_Vector w, N_Vector id, int use_id, bo
             auto const& id_fab = use_id ? idma[box_no] : xma[box_no];
             for (int n = 0; n < numcomp; ++n) {
 	      if(use_id)
-		t += (id_fab(i,j,k,n) > ZERO) ? std::sqrt(x_fab(i,j,k,n) * w_fab(i,j,k,n)) : 0.0;
+		t += (id_fab(i,j,k,n) > amrex::Real(0.0)) ? std::sqrt(x_fab(i,j,k,n) * w_fab(i,j,k,n)) : 0.0;
             }
             return t;
         });
@@ -572,7 +567,7 @@ realtype NormHelper_MultiFab(N_Vector x, N_Vector w, N_Vector id, int use_id, bo
             AMREX_LOOP_4D(bx, numcomp, i, j, k, n,
             {
       	      if(use_id)
-		sm += id_fab(i,j,k,n) > ZERO ? std::sqrt(x_fab(i,j,k,n) * w_fab(i,j,k,n)) : 0.0_rt;
+		sm += id_fab(i,j,k,n) > amrex::Real(0.0) ? std::sqrt(x_fab(i,j,k,n) * w_fab(i,j,k,n)) : 0.0_rt;
             });
         }
     }
@@ -592,59 +587,6 @@ realtype N_VWL2Norm_MultiFab(N_Vector x, N_Vector w)
    using namespace amrex;
 
    return NormHelper_MultiFab(x, w, N_VCloneEmpty_MultiFab(x), false, false);
-   /*
-   MultiFab *mf_x = amrex::sundials::getMFptr(x);
-   MultiFab *mf_w = amrex::sundials::getMFptr(w);
-   sunindextype numcomp = mf_x->nComp();
-   sunindextype N = AMREX_NV_LENGTH_M(x);
-   realtype prodi;
-   bool local = true;
-   int nghost = 0;
-
-   // ghost cells not included
-    Real sm = Real(0.0);
-#ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
-        auto const& xma = mf_x->const_arrays();
-        auto const& wma = mf_w->const_arrays();
-        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, x, IntVect(nghost),
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
-        {
-            Real t = Real(0.0);
-            auto const& xfab = xma[box_no];
-            auto const& wfab = wma[box_no];
-            for (int n = 0; n < numcomp; ++n) {
-	      sm += std::sqrt(x_fab(i,j,k,n) * w_fab(i,j,k,n));
-            }
-            return t;
-        });
-    } else
-#endif
-    {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
-#endif
-        for (MFIter mfi(*mf_x,true); mfi.isValid(); ++mfi)
-        {
-            Box const& bx = mfi.growntilebox(nghost);
-            Array4<Real const> const& x_fab = mf_x->const_array(mfi);
-            Array4<Real const> const& w_fab = mf_w->const_array(mfi);
-            AMREX_LOOP_4D(bx, numcomp, i, j, k, n,
-            {
-	        sm += std::sqrt(x_fab(i,j,k,n) * w_fab(i,j,k,n));
-            });
-        }
-    }
-
-    if (!local) {
-        ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
-    }
-
-    Real sum=sm;
-   ParallelDescriptor::ReduceRealSum(sum);
-
-   return SUNRsqrt(sum);
-   */
 }
 
 realtype N_VL1Norm_MultiFab(N_Vector x)
@@ -688,7 +630,7 @@ void N_VCompare_MultiFab(realtype a, N_Vector x, N_Vector z)
       amrex::ParallelFor(bx, ncomp,
       [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept
       {
-        z_fab(i,j,k,c) = (SUNRabs(x_fab(i,j,k,c)) >= a) ? ONE : ZERO;
+        z_fab(i,j,k,c) = (SUNRabs(x_fab(i,j,k,c)) >= a) ? amrex::Real(1.0) : amrex::Real(0.0);
       });
    }
 
@@ -720,14 +662,14 @@ booleantype N_VInvTest_MultiFab(N_Vector x, N_Vector z)
          for (int k = lo.z; k <= hi.z; ++k) {
             for (int j = lo.y; j <= hi.y; ++j) {
                for (int i = lo.x; i <= hi.x; ++i) {
-                  if (x_fab(i,j,k,c) == ZERO)
+                  if (x_fab(i,j,k,c) == amrex::Real(0.0))
                   {
 		    val_loc &= false;
 		  }
 		  /*
 		  else
 		  {
-                     z_fab(i,j,k,c) = ONE / x_fab(i,j,k,c);
+                     z_fab(i,j,k,c) = amrex::Real(1.0) / x_fab(i,j,k,c);
                   }*/
                }
             }
@@ -758,7 +700,7 @@ booleantype N_VConstrMask_MultiFab(N_Vector a, N_Vector x, N_Vector m)
    sunindextype ncomp = mf_x->nComp();
 
    // ghost cells not included
-   realtype temp = ZERO;
+   realtype temp = amrex::Real(0.0);
    for (MFIter mfi(*mf_x); mfi.isValid(); ++mfi)
    {
       const amrex::Box& bx = mfi.validbox();
@@ -769,20 +711,20 @@ booleantype N_VConstrMask_MultiFab(N_Vector a, N_Vector x, N_Vector m)
       amrex::ParallelFor(bx, ncomp,
       [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept
       {
-                  m_fab(i,j,k,c) = ZERO;
+                  m_fab(i,j,k,c) = amrex::Real(0.0);
 
                   /* Continue if no constraints were set for the variable */
-                  if (a_fab(i,j,k,c) != ZERO)
+                  if (a_fab(i,j,k,c) != amrex::Real(0.0))
                   {
 
                   /* Check if a set constraint has been violated */
                   realtype a, x;
                   a = a_fab(i,j,k,c);
                   x = x_fab(i,j,k,c);
-                  booleantype test = (SUNRabs(a) > ONEPT5 && x*a <= ZERO) ||
-                     (SUNRabs(a) > HALF   && x*a <  ZERO);
+                  booleantype test = (SUNRabs(a) > amrex::Real(1.5) && x*a <= amrex::Real(0.0)) ||
+                     (SUNRabs(a) > amrex::Real(0.5)   && x*a <  amrex::Real(0.0));
                   if (test) {
-                     m_fab(i,j,k,c) = ONE;
+                     m_fab(i,j,k,c) = amrex::Real(1.0);
                   }
                   }
       });
@@ -792,7 +734,7 @@ booleantype N_VConstrMask_MultiFab(N_Vector a, N_Vector x, N_Vector m)
    /* Return false if any constraint was violated */
    amrex::ParallelDescriptor::ReduceRealMax(temp);
 
-   return (temp == ONE) ? SUNFALSE : SUNTRUE;
+   return (temp == amrex::Real(1.0)) ? SUNFALSE : SUNTRUE;
 }
 
 realtype N_VMinQuotient_MultiFab(N_Vector num, N_Vector denom)
@@ -820,7 +762,7 @@ realtype N_VMinQuotient_MultiFab(N_Vector num, N_Vector denom)
          for (int k = lo.z; k <= hi.z; ++k) {
             for (int j = lo.y; j <= hi.y; ++j) {
                for (int i = lo.x; i <= hi.x; ++i) {
-                  if (denom_fab(i,j,k,c) != ZERO)
+                  if (denom_fab(i,j,k,c) != amrex::Real(0.0))
                   {
                      realtype num = num_fab(i,j,k,c);
                      realtype denom = denom_fab(i,j,k,c);

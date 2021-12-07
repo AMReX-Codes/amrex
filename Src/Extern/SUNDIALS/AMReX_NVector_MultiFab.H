@@ -56,48 +56,48 @@ typedef struct N_VectorContent_MultiFab_notptr *N_VectorContent_MultiFab;
  * Exported functions
  * -----------------------------------------------------------------*/
 
-SUNDIALS_EXPORT N_Vector N_VNewEmpty_MultiFab(sunindextype vec_length);
-SUNDIALS_EXPORT N_Vector N_VNew_MultiFab(sunindextype vec_length,
+N_Vector N_VNewEmpty_MultiFab(sunindextype vec_length);
+N_Vector N_VNew_MultiFab(sunindextype vec_length,
                                          const amrex::BoxArray &ba,
                                          const amrex::DistributionMapping &dm,
                                          sunindextype nComp,
                                          sunindextype nGhost);
-SUNDIALS_EXPORT N_Vector N_VMake_MultiFab(sunindextype vec_length,
+N_Vector N_VMake_MultiFab(sunindextype vec_length,
                                           amrex::MultiFab *mf);
-SUNDIALS_EXPORT sunindextype N_VGetLength_MultiFab(N_Vector v);
-SUNDIALS_EXPORT N_Vector N_VCloneEmpty_MultiFab(N_Vector w);
-SUNDIALS_EXPORT N_Vector N_VClone_MultiFab(N_Vector w);
-SUNDIALS_EXPORT void N_VDestroy_MultiFab(N_Vector v);
-SUNDIALS_EXPORT void N_VSpace_MultiFab(N_Vector v, sunindextype *lrw,
+sunindextype N_VGetLength_MultiFab(N_Vector v);
+N_Vector N_VCloneEmpty_MultiFab(N_Vector w);
+N_Vector N_VClone_MultiFab(N_Vector w);
+void N_VDestroy_MultiFab(N_Vector v);
+void N_VSpace_MultiFab(N_Vector v, sunindextype *lrw,
                                        sunindextype *liw);
-SUNDIALS_EXPORT N_VectorContent_MultiFab N_VGetContent_MultiFab(N_Vector v);
-SUNDIALS_EXPORT MultiFab*& getMFptr(N_Vector v);
-SUNDIALS_EXPORT MultiFab* N_VGetVectorPointer_MultiFab(N_Vector v);
-SUNDIALS_EXPORT MultiFab N_VGetVectorAlias_MultiFab(N_Vector v);
-  SUNDIALS_EXPORT realtype NormHelper_MultiFab(N_Vector x, N_Vector w, N_Vector id, int use_id, bool rms);
+N_VectorContent_MultiFab N_VGetContent_MultiFab(N_Vector v);
+MultiFab*& getMFptr(N_Vector v);
+MultiFab* N_VGetVectorPointer_MultiFab(N_Vector v);
+MultiFab N_VGetVectorAlias_MultiFab(N_Vector v);
+  realtype NormHelper_MultiFab(N_Vector x, N_Vector w, N_Vector id, int use_id, bool rms);
 /* standard vector operations */
-SUNDIALS_EXPORT void N_VLinearSum_MultiFab(realtype a, N_Vector x,
+void N_VLinearSum_MultiFab(realtype a, N_Vector x,
                                            realtype b, N_Vector y, N_Vector z);
-SUNDIALS_EXPORT void N_VConst_MultiFab(realtype c, N_Vector z);
-SUNDIALS_EXPORT void N_VProd_MultiFab(N_Vector x, N_Vector y, N_Vector z);
-SUNDIALS_EXPORT void N_VDiv_MultiFab(N_Vector x, N_Vector y, N_Vector z);
-SUNDIALS_EXPORT void N_VScale_MultiFab(realtype c, N_Vector x, N_Vector z);
-SUNDIALS_EXPORT void N_VAbs_MultiFab(N_Vector x, N_Vector z);
-SUNDIALS_EXPORT void N_VInv_MultiFab(N_Vector x, N_Vector z);
-SUNDIALS_EXPORT void N_VAddConst_MultiFab(N_Vector x, realtype b, N_Vector z);
-SUNDIALS_EXPORT realtype N_VDotProd_MultiFab(N_Vector x, N_Vector y);
-SUNDIALS_EXPORT realtype N_VMaxNorm_MultiFab(N_Vector x);
-SUNDIALS_EXPORT realtype N_VWrmsNorm_MultiFab(N_Vector x, N_Vector w);
-SUNDIALS_EXPORT realtype N_VWrmsNormMask_MultiFab(N_Vector x, N_Vector w,
+void N_VConst_MultiFab(realtype c, N_Vector z);
+void N_VProd_MultiFab(N_Vector x, N_Vector y, N_Vector z);
+void N_VDiv_MultiFab(N_Vector x, N_Vector y, N_Vector z);
+void N_VScale_MultiFab(realtype c, N_Vector x, N_Vector z);
+void N_VAbs_MultiFab(N_Vector x, N_Vector z);
+void N_VInv_MultiFab(N_Vector x, N_Vector z);
+void N_VAddConst_MultiFab(N_Vector x, realtype b, N_Vector z);
+realtype N_VDotProd_MultiFab(N_Vector x, N_Vector y);
+realtype N_VMaxNorm_MultiFab(N_Vector x);
+realtype N_VWrmsNorm_MultiFab(N_Vector x, N_Vector w);
+realtype N_VWrmsNormMask_MultiFab(N_Vector x, N_Vector w,
                                                   N_Vector id);
-SUNDIALS_EXPORT realtype N_VMin_MultiFab(N_Vector x);
-SUNDIALS_EXPORT realtype N_VWL2Norm_MultiFab(N_Vector x, N_Vector w);
-SUNDIALS_EXPORT realtype N_VL1Norm_MultiFab(N_Vector x);
-SUNDIALS_EXPORT void N_VCompare_MultiFab(realtype c, N_Vector x, N_Vector z);
-SUNDIALS_EXPORT booleantype N_VInvTest_MultiFab(N_Vector x, N_Vector z);
-SUNDIALS_EXPORT booleantype N_VConstrMask_MultiFab(N_Vector c, N_Vector x,
+realtype N_VMin_MultiFab(N_Vector x);
+realtype N_VWL2Norm_MultiFab(N_Vector x, N_Vector w);
+realtype N_VL1Norm_MultiFab(N_Vector x);
+void N_VCompare_MultiFab(realtype c, N_Vector x, N_Vector z);
+booleantype N_VInvTest_MultiFab(N_Vector x, N_Vector z);
+booleantype N_VConstrMask_MultiFab(N_Vector c, N_Vector x,
                                                    N_Vector m);
-SUNDIALS_EXPORT realtype N_VMinQuotient_MultiFab(N_Vector num, N_Vector denom);
+realtype N_VMinQuotient_MultiFab(N_Vector num, N_Vector denom);
 
 }
 
