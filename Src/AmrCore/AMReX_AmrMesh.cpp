@@ -361,6 +361,8 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
     {
         // chop up grids to have more grids than the number of procs
         pp.query("refine_grid_layout", refine_grid_layout);
+
+        // allow specification of dimensions that can be split
         pp.queryarr("refine_grid_layout_dims", refine_grid_layout_dims);
     }
 
@@ -435,44 +437,40 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size, std::vector<int> ref
     Print() << "IN:  ba.size() " << ba.size() << " target_size " << target_size << std::endl;
 
 
-    //IntVect Hack_BA = ba.size();
     for (int idim = AMREX_SPACEDIM-1; idim >=0; idim--){
-    //Print() << " HACK_BA: " << Hack_BA[idim];
 
-        if ( refine_grid_layout_dims_in[idim] == 0 ) { continue; }
+       if ( refine_grid_layout_dims_in[idim] == 0 ) { continue; }
 
+       IntVect chunk = max_grid_size[lev];
 
-    IntVect chunk = max_grid_size[lev];
+       while (ba.size() < target_size)
+       {
+          Print() << "LOOP:  ba.size() " << ba.size() << " target_size " << target_size << std::endl;
 
-    while (ba.size() < target_size)
-    {
-       Print() << "LOOP:  ba.size() " << ba.size() << " target_size " << target_size << std::endl;
+          IntVect chunk_prev = chunk;
 
-       IntVect chunk_prev = chunk;
-
-       for (int idim = AMREX_SPACEDIM-1; idim >=0; idim--){
-          if (refine_grid_layout_dims_in[idim]){
-             int new_chunk_size = chunk[idim] / 2;  //reduce by two each time
-             if (new_chunk_size%blocking_factor[lev][idim] == 0)  //blocking factor must be even
-             {
-                 chunk[idim] = new_chunk_size;
-                 ba.maxSize(chunk);
-   Print() << " HACK_chunk: " << chunk;
+          for (int jdim = AMREX_SPACEDIM-1; jdim >=0; jdim--){
+             if (refine_grid_layout_dims_in[jdim]){
+                int new_chunk_size = chunk[jdim] / 2;
+                if (new_chunk_size%blocking_factor[lev][jdim] == 0)
+                {
+                    chunk[jdim] = new_chunk_size;
+                    ba.maxSize(chunk);
+                    Print() << "Chuck Size: " << chunk; //HACK
+                }
              }
           }
-       }
-    Print() << std::endl;
 
-       if (chunk == chunk_prev){
-         Print() << " HACK_chunk = chunk_prev " << std::endl;
-          break;
+          Print() << std::endl;
+
+          if (chunk == chunk_prev){
+             Print() << "chunk = chunk_prev " << std::endl; //HACK
+             break;
+          }
        }
     }
-
-
-    } //end for
-    Print() << std::endl;
-    Print() << "OUT: ba.size() " << ba.size() << std::endl;
+       Print() << std::endl;
+       Print() << "OUT: ba.size() " << ba.size() << std::endl;
 }
 
 /*
