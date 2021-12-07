@@ -431,6 +431,54 @@ AmrMesh::LevelDefined (int lev) noexcept
 void
 AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size, std::vector<int> refine_grid_layout_dims_in) const
 {
+
+    Print() << "IN:  ba.size() " << ba.size() << " target_size " << target_size << std::endl;
+
+
+    //IntVect Hack_BA = ba.size();
+    for (int idim = AMREX_SPACEDIM-1; idim >=0; idim--){
+    //Print() << " HACK_BA: " << Hack_BA[idim];
+
+        if ( refine_grid_layout_dims_in[idim] == 0 ) { continue; }
+
+
+    IntVect chunk = max_grid_size[lev];
+
+    while (ba.size() < target_size)
+    {
+       Print() << "LOOP:  ba.size() " << ba.size() << " target_size " << target_size << std::endl;
+
+       IntVect chunk_prev = chunk;
+
+       for (int idim = AMREX_SPACEDIM-1; idim >=0; idim--){
+          if (refine_grid_layout_dims_in[idim]){
+             int new_chunk_size = chunk[idim] / 2;  //reduce by two each time
+             if (new_chunk_size%blocking_factor[lev][idim] == 0)  //blocking factor must be even
+             {
+                 chunk[idim] = new_chunk_size;
+                 ba.maxSize(chunk);
+   Print() << " HACK_chunk: " << chunk;
+             }
+          }
+       }
+    Print() << std::endl;
+
+       if (chunk == chunk_prev){
+         Print() << " HACK_chunk = chunk_prev " << std::endl;
+          break;
+       }
+    }
+
+
+    } //end for
+    Print() << std::endl;
+    Print() << "OUT: ba.size() " << ba.size() << std::endl;
+}
+
+/*
+void
+AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size, std::vector<int> refine_grid_layout_dims_in) const
+{
     for (int cnt = 1; cnt <= 4; cnt *= 2)
     {
         IntVect chunk = max_grid_size[lev] / cnt;
@@ -448,6 +496,7 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size, std::vector<int> ref
         }
     }
 }
+*/
 
 BoxArray
 AmrMesh::MakeBaseGrids () const
