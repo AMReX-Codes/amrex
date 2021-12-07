@@ -436,13 +436,13 @@ AmrMesh::LevelDefined (int lev) noexcept
 }
 
 void
-AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size, std::vector<int> refine_grid_layout_dims_in) const
+AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
 {
 
     // test if all dimensions do not allow splitting -- if none, return
     int sum = 0;
     for (int idim = AMREX_SPACEDIM-1; idim >=0; idim--){
-       sum += refine_grid_layout_dims_in[idim];
+        sum += refine_grid_layout_dims[idim];
     }
     if (sum == 0) { return; }
 
@@ -451,22 +451,22 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size, std::vector<int> ref
 
     while (ba.size() < target_size)
     {
-       IntVect chunk_prev = chunk;
+        IntVect chunk_prev = chunk;
 
-       for (int idim = AMREX_SPACEDIM-1; idim >=0; idim--){
-          if (refine_grid_layout_dims_in[idim]){
-             int new_chunk_size = chunk[idim] / 2;
-             if ( (ba.size() < target_size) && (new_chunk_size%blocking_factor[lev][idim] == 0))
-             {
-                 chunk[idim] = new_chunk_size;
-                 ba.maxSize(chunk);
-             }
-          }
-       }
+        for (int idim = AMREX_SPACEDIM-1; idim >=0; idim--){
+            if (refine_grid_layout_dims[idim]){
+                int new_chunk_size = chunk[idim] / 2;
+                if ( (ba.size() < target_size) && (new_chunk_size%blocking_factor[lev][idim] == 0))
+                {
+                    chunk[idim] = new_chunk_size;
+                    ba.maxSize(chunk);
+                }
+            }
+        }
 
-       if (chunk == chunk_prev){
-          break;
-       }
+        if (chunk == chunk_prev){
+            break;
+        }
     }
 }
 
@@ -487,7 +487,7 @@ AmrMesh::MakeBaseGrids () const
     // Boxes in ba have even number of cells in each direction
     // unless the domain has odd number of cells in that direction.
     if (refine_grid_layout) {
-        ChopGrids(0, ba, ParallelDescriptor::NProcs(), refine_grid_layout_dims);
+        ChopGrids(0, ba, ParallelDescriptor::NProcs());
     }
     if (ba == grids[0]) {
         ba = grids[0];  // to avoid duplicates
@@ -763,7 +763,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
         }
         else if (refine_grid_layout)
         {
-            ChopGrids(lev,new_grids[lev],ParallelDescriptor::NProcs(), refine_grid_layout_dims);
+            ChopGrids(lev,new_grids[lev],ParallelDescriptor::NProcs());
             if (new_grids[lev] == grids[lev]) {
                 new_grids[lev] = grids[lev]; // to avoid duplicates
             }
