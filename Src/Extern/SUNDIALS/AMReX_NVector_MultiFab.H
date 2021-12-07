@@ -52,8 +52,6 @@ typedef struct N_VectorContent_MultiFab_notptr *N_VectorContent_MultiFab;
 
 #define AMREX_NV_OWN_MF_M(v)  ( AMREX_NV_CONTENT_M(v)->own_mf )
 
-#define AMREX_NV_MFAB(v)      ( AMREX_NV_CONTENT_M(v)->mf )
-
 /* -----------------------------------------------------------------
  * Exported functions
  * -----------------------------------------------------------------*/
@@ -73,9 +71,10 @@ SUNDIALS_EXPORT void N_VDestroy_MultiFab(N_Vector v);
 SUNDIALS_EXPORT void N_VSpace_MultiFab(N_Vector v, sunindextype *lrw,
                                        sunindextype *liw);
 SUNDIALS_EXPORT N_VectorContent_MultiFab N_VGetContent_MultiFab(N_Vector v);
+SUNDIALS_EXPORT MultiFab*& getMFptr(N_Vector v);
 SUNDIALS_EXPORT MultiFab* N_VGetVectorPointer_MultiFab(N_Vector v);
 SUNDIALS_EXPORT MultiFab N_VGetVectorAlias_MultiFab(N_Vector v);
-
+  SUNDIALS_EXPORT realtype NormHelper_MultiFab(N_Vector x, N_Vector w, N_Vector id, int use_id, bool rms);
 /* standard vector operations */
 SUNDIALS_EXPORT void N_VLinearSum_MultiFab(realtype a, N_Vector x,
                                            realtype b, N_Vector y, N_Vector z);
