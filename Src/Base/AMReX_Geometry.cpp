@@ -143,8 +143,10 @@ Geometry::Setup (const RealBox* rb, int coord, int const* isper) noexcept
         AMREX_ALWAYS_ASSERT(  read_prob_hi || read_prob_extent);
         AMREX_ALWAYS_ASSERT(!(read_prob_hi && read_prob_extent));
 
-        for (int i = 0; i < AMREX_SPACEDIM; i++) {
-            prob_hi[i] = prob_lo[i] + prob_extent[i];
+        if (read_prob_extent)
+        {
+            for (int i = 0; i < AMREX_SPACEDIM; i++)
+                prob_hi[i] = prob_lo[i] + prob_extent[i];
         }
 
         gg->prob_domain.setLo(prob_lo);
