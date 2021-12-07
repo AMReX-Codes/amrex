@@ -497,36 +497,7 @@ realtype N_VWrmsNormMask_MultiFab(N_Vector x, N_Vector w, N_Vector id)
 {
    using namespace amrex;
 
-   MultiFab *mf_x = amrex::sundials::getMFptr(x);
-   MultiFab *mf_w = amrex::sundials::getMFptr(w);
-   MultiFab *mf_id = amrex::sundials::getMFptr(id);
-   sunindextype ncomp = mf_x->nComp();
-   sunindextype N = AMREX_NV_LENGTH_M(x);
-   realtype sum = ZERO;
-   realtype prodi;
-
-   // ghost cells not included
-   for (MFIter mfi(*mf_x); mfi.isValid(); ++mfi)
-   {
-      const amrex::Box& bx = mfi.validbox();
-      Array4<Real> const& x_fab = mf_x->array(mfi);
-      Array4<Real> const& w_fab = mf_w->array(mfi);
-      Array4<Real> const& id_fab = mf_id->array(mfi);
-
-      amrex::ParallelFor(bx, ncomp,
-      [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept
-      {
-         if (id_fab(i,j,k,c) > ZERO)
-         {
-             prodi = x_fab(i,j,k,c) * w_fab(i,j,k,c);
-             sum += SUNSQR(prodi);
-         }
-      });
-   }
-
-   ParallelDescriptor::ReduceRealSum(sum);
-
-   return SUNRsqrt(sum/N);
+   return NormHelper_MultiFab(x, w, id, true, true);
 }
 
 realtype N_VMin_MultiFab(N_Vector x)
@@ -572,16 +543,14 @@ realtype NormHelper_MultiFab(N_Vector x, N_Vector w, N_Vector id, int use_id, bo
     if (Gpu::inLaunchRegion()) {
         auto const& xma = mf_x->const_arrays();
         auto const& wma = mf_w->const_arrays();
-	if(use_id)
-            auto const& idma = mf_id->array(mfi);
+        auto const& idma = use_id ? mf_id->array(mfi) : mf_x->array(mfi);
         sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, x, IntVect(nghost),
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
         {
             Real t = Real(0.0);
             auto const& x_fab = xma[box_no];
             auto const& w_fab = wma[box_no];
-            if(use_id)
-            auto const& id_fab = idma[box_no];
+            auto const& id_fab = use_id ? idma[box_no] : xma[box_no];
             for (int n = 0; n < numcomp; ++n) {
 	      if(use_id)
 		sm += id_fab(i,j,k,n) > ZERO ? std::sqrt(x_fab(i,j,k,n) * w_fab(i,j,k,n)) : 0.0_rt;
@@ -599,6 +568,7 @@ realtype NormHelper_MultiFab(N_Vector x, N_Vector w, N_Vector id, int use_id, bo
             Box const& bx = mfi.growntilebox(nghost);
             Array4<Real const> const& x_fab = mf_x->const_array(mfi);
             Array4<Real const> const& w_fab = mf_w->const_array(mfi);
+	    Array4<Real const> const& id_fab = use_id ? mf_id->const_array(mfi) : mf_x->const_array(mfi);
             AMREX_LOOP_4D(bx, numcomp, i, j, k, n,
             {
       	      if(use_id)
@@ -621,6 +591,8 @@ realtype N_VWL2Norm_MultiFab(N_Vector x, N_Vector w)
 {
    using namespace amrex;
 
+   return NormHelper_MultiFab(x, w, N_VCloneEmpty_MultiFab(x), false, false);
+   /*
    MultiFab *mf_x = amrex::sundials::getMFptr(x);
    MultiFab *mf_w = amrex::sundials::getMFptr(w);
    sunindextype numcomp = mf_x->nComp();
@@ -672,6 +644,7 @@ realtype N_VWL2Norm_MultiFab(N_Vector x, N_Vector w)
    ParallelDescriptor::ReduceRealSum(sum);
 
    return SUNRsqrt(sum);
+   */
 }
 
 realtype N_VL1Norm_MultiFab(N_Vector x)
@@ -716,7 +689,7 @@ void N_VCompare_MultiFab(realtype a, N_Vector x, N_Vector z)
       [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept
       {
         z_fab(i,j,k,c) = (SUNRabs(x_fab(i,j,k,c)) >= a) ? ONE : ZERO;
-      }
+      });
    }
 
    return;
@@ -729,32 +702,43 @@ booleantype N_VInvTest_MultiFab(N_Vector x, N_Vector z)
    amrex::MultiFab *mf_x = amrex::sundials::getMFptr(x);
    amrex::MultiFab *mf_z = amrex::sundials::getMFptr(z);
    sunindextype ncomp = mf_x->nComp();
+   int nghost = 0;
+
+   //Lazily assume we're ok dividing by 0
+   amrex::MultiFab::Copy(*mf_z, *mf_x, 0, 0, ncomp, nghost);
+   mf_z->invert(1.0, 0, ncomp, nghost);
 
    // ghost cells not included
-   realtype val = ONE;
-   for (MFIter mfi(*mf_x); mfi.isValid(); ++mfi)
-   {
-      const amrex::Box& bx = mfi.validbox();
-      Array4<Real> const& x_fab = mf_x->array(mfi);
-      Array4<Real> const& z_fab = mf_z->array(mfi);
+   bool val = amrex::ReduceLogicalAnd(*mf_x, *mf_z, nghost,
+	       [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& x_fab, Array4<Real const> const& z_fab) -> bool
+    {
+    bool val_loc = true;
+      const auto lo = lbound(bx);
+      const auto hi = ubound(bx);
 
-      amrex::ParallelFor(bx, ncomp,
-      [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept
-      {
-         if(x_fab(i,j,k,c) == ZERO)
-         {
-            val = ZERO;
+      for (int c = 0; c < ncomp; ++c) {
+         for (int k = lo.z; k <= hi.z; ++k) {
+            for (int j = lo.y; j <= hi.y; ++j) {
+               for (int i = lo.x; i <= hi.x; ++i) {
+                  if (x_fab(i,j,k,c) == ZERO)
+                  {
+		    val_loc &= false;
+		  }
+		  /*
+		  else
+		  {
+                     z_fab(i,j,k,c) = ONE / x_fab(i,j,k,c);
+                  }*/
+               }
+            }
          }
-         else
-         {
-            z_fab(i,j,k,c) = ONE / x_fab(i,j,k,c);
-         }
-      });
-   }
+      }
+      return val_loc;
+    });
 
-   amrex::ParallelDescriptor::ReduceRealMin(val);
+   amrex::ParallelDescriptor::ReduceBoolAnd(val);
 
-   if (val == ZERO)
+   if (val == false)
    {
       return SUNFALSE;
    }
@@ -798,12 +782,13 @@ booleantype N_VConstrMask_MultiFab(N_Vector a, N_Vector x, N_Vector m)
                   booleantype test = (SUNRabs(a) > ONEPT5 && x*a <= ZERO) ||
                      (SUNRabs(a) > HALF   && x*a <  ZERO);
                   if (test) {
-                     temp = m_fab(i,j,k,c) = ONE;
+                     m_fab(i,j,k,c) = ONE;
                   }
                   }
       });
    }
 
+   temp = mf_m->norm1();
    /* Return false if any constraint was violated */
    amrex::ParallelDescriptor::ReduceRealMax(temp);
 
@@ -819,34 +804,34 @@ realtype N_VMinQuotient_MultiFab(N_Vector num, N_Vector denom)
    sunindextype ncomp = mf_num->nComp();
 
    // ghost cells not included
-   realtype min = BIG_REAL;
-   booleantype notEvenOnce = SUNTRUE;
-   for (MFIter mfi(*mf_num); mfi.isValid(); ++mfi)
-   {
-      const amrex::Box& bx = mfi.validbox();
-      Array4<Real> const& num_fab = mf_num->array(mfi);
-      Array4<Real> const& denom_fab = mf_denom->array(mfi);
+   int nghost = 0;
+   Real min = amrex::ReduceMin(*mf_num, *mf_denom, nghost,
+	       [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& num_fab, Array4<Real const> const& denom_fab) -> Real
+    {
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
+    Real min_loc = std::numeric_limits<Real>::max();
+#else
+    Real min_loc = Real(1.e37);
+#endif
+      const auto lo = lbound(bx);
+      const auto hi = ubound(bx);
 
-      //Changing continue to if check, min calculation should be changed to reduction
-      amrex::ParallelFor(bx, ncomp,
-      [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept
-      {
+      for (int c = 0; c < ncomp; ++c) {
+         for (int k = lo.z; k <= hi.z; ++k) {
+            for (int j = lo.y; j <= hi.y; ++j) {
+               for (int i = lo.x; i <= hi.x; ++i) {
                   if (denom_fab(i,j,k,c) != ZERO)
                   {
                      realtype num = num_fab(i,j,k,c);
                      realtype denom = denom_fab(i,j,k,c);
-                     if (!notEvenOnce)
-                     {
-                        min = SUNMIN(min, num / denom);
-                     }
-                     else
-                     {
-                        min = num / denom;
-                        notEvenOnce = SUNFALSE;
-                     }
+                     min_loc = SUNMIN(min_loc, num / denom);
                   }
-      });
-   }
+               }
+            }
+         }
+      }
+      return min_loc;
+    });
 
    amrex::ParallelDescriptor::ReduceRealMin(min);
 
