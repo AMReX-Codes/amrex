@@ -360,36 +360,14 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
 
     //chop up grids to have the number of grids be no less the number of procs
     {
-        bool refine_grid_layout = true;
+        pp.query("refine_grid_layout", refine_grid_layout);
 
-        // allow specification of dimensions that can be split -- Requires (0,1,0) format
-        pp.query("refine_grid_layout_dims", refine_grid_layout_dims);
+        refine_grid_layout_dims = IntVect(refine_grid_layout);
+        AMREX_D_TERM(pp.query("refine_grid_layout_x", refine_grid_layout_dims[0]);,
+                     pp.query("refine_grid_layout_y", refine_grid_layout_dims[1]);,
+                     pp.query("refine_grid_layout_z", refine_grid_layout_dims[2]));
 
-        // alternative naming scheme
-        pp.query("refine_grid_layout_x", refine_grid_layout_dims[0]);
-#if (AMREX_SPACEDIM>1)
-        pp.query("refine_grid_layout_y", refine_grid_layout_dims[1]);
-#elif (AMREX_SPACEDIM>2)
-        pp.query("refine_grid_layout_z", refine_grid_layout_dims[2]);
-#endif
-
-        if (pp.contains("refine_grid_layout") &&
-                !( pp.contains("refine_grid_layout_dims")
-                   || pp.contains("refine_grid_layout_x")
-#if (AMREX_SPACEDIM>1)
-                   || pp.contains("refine_grid_layout_y")
-#elif (AMREX_SPACEDIM>2)
-                   || pp.contains("refine_grid_layout_z")
-#endif
-                   ))
-        {
-            pp.get("refine_grid_layout", refine_grid_layout);
-            if (!refine_grid_layout)
-            {
-                refine_grid_layout_dims = IntVect(0);
-            }
-        }
-
+        refine_grid_layout = refine_grid_layout_dims != 0;
     }
 
     pp.query("check_input", check_input);
@@ -459,7 +437,6 @@ AmrMesh::LevelDefined (int lev) noexcept
 void
 AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
 {
-
     if (refine_grid_layout_dims == 0) { return; }
 
     IntVect chunk = max_grid_size[lev];
@@ -502,7 +479,7 @@ AmrMesh::MakeBaseGrids () const
     ba.refine(fac);
     // Boxes in ba have even number of cells in each direction
     // unless the domain has odd number of cells in that direction.
-    if (refine_grid_layout_dims!=0) {
+    if (refine_grid_layout) {
         ChopGrids(0, ba, ParallelDescriptor::NProcs());
     }
     if (ba == grids[0]) {
@@ -777,7 +754,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                 amrex::Abort("AmrMesh::MakeNewGrids: how did this happen?");
             }
         }
-        else if (refine_grid_layout_dims!=0)
+        else if (refine_grid_layout)
         {
             ChopGrids(lev,new_grids[lev],ParallelDescriptor::NProcs());
             if (new_grids[lev] == grids[lev]) {
