@@ -34,6 +34,7 @@ target_sources( amrex
    AMReX_ParticleBufferMap.cpp
    AMReX_ParticleCommunication.H
    AMReX_ParticleCommunication.cpp
+   AMReX_ParticleInterpolators.H
    AMReX_ParticleReduce.H
    AMReX_ParticleMesh.H
    AMReX_ParticleLocator.H

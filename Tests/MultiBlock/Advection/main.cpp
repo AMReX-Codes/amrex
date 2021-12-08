@@ -87,7 +87,9 @@ class AdvectionAmrCore : public AmrCore {
                                 next(i, j, k, n) = m(i, j, k, n) - a_dt_over_dx * (m(i, j, k, n) - m(i - 1, j, k, n));
                             });
             }
-        } else if (dir == Direction::y) {
+        }
+#if (AMREX_SPACEDIM >= 2)
+        else if (dir == Direction::y) {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -100,6 +102,7 @@ class AdvectionAmrCore : public AmrCore {
                             });
             }
         }
+#endif
         std::swap(mass, mass_next);
     }
 
@@ -231,10 +234,10 @@ void MyMain() {
     RealBox real_box1{{AMREX_D_DECL(-0.5, -0.3, 0.0)}, {AMREX_D_DECL(0.5, 0.7, 1.0)}};
     RealBox real_box2{{AMREX_D_DECL(+0.55, -0.3, 0.0)}, {AMREX_D_DECL(1.55, 0.7, 1.0)}};
 
-    Array<int, AMREX_SPACEDIM> is_periodic1{0, 1};
+    Array<int, AMREX_SPACEDIM> is_periodic1{AMREX_D_DECL(0, 1, 0)};
     Geometry geom1{domain, real_box1, CoordSys::cartesian, is_periodic1};
 
-    Array<int, AMREX_SPACEDIM> is_periodic2{1, 0};
+    Array<int, AMREX_SPACEDIM> is_periodic2{AMREX_D_DECL(1, 0, 0)};
     Geometry geom2{domain, real_box2, CoordSys::cartesian, is_periodic2};
 
     AmrInfo amr_info{};
@@ -243,7 +246,11 @@ void MyMain() {
 #endif
 
     AdvectionAmrCore core_x(Direction::x, geom1, amr_info);
+#if AMREX_SPACEDIM > 2
     AdvectionAmrCore core_y(Direction::y, geom2, amr_info);
+#else // too hack-ish?
+    AdvectionAmrCore core_y(Direction::x, geom2, amr_info);
+#endif
 
     std::vector<OnesidedMultiBlockBoundaryFn> multi_block_boundaries{};
     {   // Fill right boundary of core_x with lower mirror data of core_y

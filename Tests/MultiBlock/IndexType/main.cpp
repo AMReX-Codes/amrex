@@ -135,9 +135,9 @@ int MyMain()
     Box domain{IntVect{}, IntVect{AMREX_D_DECL(31, 31, 31)}};
     // Loop over all index types
     for (int i = 0; i < AMREX_D_TERM(2,*2,*2); ++i) {
-        const auto ix = static_cast<IndexType::CellIndex>(static_cast<bool>(i & 0b001));
-        const auto iy = static_cast<IndexType::CellIndex>(static_cast<bool>(i & 0b010));
-        const auto iz = static_cast<IndexType::CellIndex>(static_cast<bool>(i & 0b100));
+        AMREX_D_TERM(const auto ix = static_cast<IndexType::CellIndex>(static_cast<bool>(i & 0b001));,
+                     const auto iy = static_cast<IndexType::CellIndex>(static_cast<bool>(i & 0b010));,
+                     const auto iz = static_cast<IndexType::CellIndex>(static_cast<bool>(i & 0b100));)
         IndexType itype{AMREX_D_DECL(ix, iy, iz)};
         Box converted_domain = convert(domain, itype);
         iMultiFab mf = InitializeMultiFab(converted_domain);
