@@ -319,7 +319,7 @@ we provide the helper function ``setup_target_for_cuda_compilation()``:
 
 
 
-Enabling HIP support
+Enabling HIP Support
 ^^^^^^^^^^^^^^^^^^^^
 
 To build AMReX with HIP support in CMake, add
@@ -350,7 +350,7 @@ Below is an example configuration for HIP on Tulip:
    cmake --build build -j 6
 
 
-Enabling SYCL support
+Enabling SYCL Support
 ^^^^^^^^^^^^^^^^^^^^^
 
 To build AMReX with SYCL support in CMake, add
