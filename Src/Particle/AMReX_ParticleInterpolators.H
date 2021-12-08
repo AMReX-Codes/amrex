@@ -11,9 +11,9 @@ namespace amrex
 namespace ParticleInterpolator
 {
 
-/** \brief A base class for doing general particle/mesh interpolation operations
+/** \brief A base class for doing general particle/mesh interpolation operations.
  *
- *  Note that you don't call use the base class version of this directly,
+ *  Note that you don't call the base class version of this directly,
  *  you use one of the derived versions below that implement specific interpolations.
  */
 template <class Derived, class WeightType>
@@ -32,21 +32,24 @@ struct Base
      * \tparam F callable that generates the particle quantity to interpolate
      *
      * \param p the particle to interpolate
-     * \param arr the Array4 to interpolat to
+     * \param arr the Array4 to interpolate to
      * \param src_comp the particle component to start at
      * \param dst_comp the mesh component to start at
      * \param num_comps the number of components to interpolate
      * \param f function for computing the particle quantity to interpolate
      *
      * Usage:
+     * \code{.cpp}
      *    Interpolate particle comp 0 to mesh comp 0 with no weighting:
      *        interp.ParticleToMesh(p, rho, 0, 0, 1,
      *                [=] AMREX_GPU_DEVICE (const MyPC::ParticleType& part, int comp)
      *                {
      *                     return part.rdata(comp);  // no weighting
      *                 });
+     * \endcode
      *
      * Usage:
+     * \code{.cpp}
      *    Interpolate 3 particle components 1-3 to mesh components 1-3, weighting
      *    by particle comp 0:
      *        interp.ParticleToMesh(p, rho, 1, 1, 3,
@@ -54,6 +57,7 @@ struct Base
      *                {
      *                     return part.rdata(0)*part.rdata(comp);  // weight by comp0
      *                 });
+     * \endcode
      */
     template <typename P, typename V, typename F>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -88,7 +92,7 @@ struct Base
      * \tparam G callable that updates the particle given the mesh value
      *
      * \param p the particle to interpolate
-     * \param arr the Array4 to interpolat to
+     * \param arr the Array4 to interpolate to
      * \param src_comp the particle component to start at
      * \param dst_comp the mesh component to start at
      * \param num_comps the number of components to interpolate
@@ -96,6 +100,7 @@ struct Base
      * \tparam g function that updates the particle given the mesh value
      *
      * Usage:
+     * \code{.cpp}
      *    Interpolate mesh comps 0-2 to particle comps 4-6 with no weighting
      *    using addition:
      *    interp.MeshToParticle(p, acc, 0, 4, 3,
@@ -109,8 +114,10 @@ struct Base
      *            {
      *                part.rdata(comp) += val;
      *            });
+     * \endcode
      *
      * Usage:
+     * \code{.cpp}
      *    Interpolate mesh comp 0 to particle comp 0, simply setting the value for
      *    the result instead of adding:
      *        interp.MeshToParticle(p, count, 0, 0, 1,
@@ -124,6 +131,7 @@ struct Base
      *            {
      *                part.idata(comp) = val;
      *            });
+     * \endcode
      */
     template <typename P, typename V, typename F, typename G>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -151,6 +159,7 @@ struct Base
 /** \brief A class the implements nearest grid point particle/mesh interpolation.
  *
  *   Usage:
+ *   \code{.cpp}
  *      ParticleInterpolator::Nearest interp(p, plo, dxi);
  *
  *        interp.MeshToParticle(p, count, 0, 0, 1,
@@ -164,6 +173,7 @@ struct Base
  *                {
  *                    part.idata(comp) = val;
  *                });
+ *   \endcode
  */
 struct Nearest : public Base<Nearest, int>
 {
@@ -196,6 +206,7 @@ struct Nearest : public Base<Nearest, int>
 /** \brief A class the implements linear (CIC) particle/mesh interpolation.
  *
  *   Usage:
+ *   \code{.cpp}
  *        ParticleInterpolator::Linear interp(p, plo, dxi);
  *
  *        interp.ParticleToMesh(p, rho, 0, 0, 1,
@@ -203,6 +214,7 @@ struct Nearest : public Base<Nearest, int>
  *                    {
  *                        return part.rdata(comp);  // no weighting
  *                    });
+ *   \endcode
  */
 struct Linear : public Base<Linear, amrex::Real>
 {
