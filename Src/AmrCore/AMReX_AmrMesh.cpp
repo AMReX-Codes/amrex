@@ -367,12 +367,21 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
 
         // alternative naming scheme
         pp.query("refine_grid_layout_x", refine_grid_layout_dims[0]);
+#if (AMREX_SPACEDIM>1)
         pp.query("refine_grid_layout_y", refine_grid_layout_dims[1]);
+#elif (AMREX_SPACEDIM>2)
         pp.query("refine_grid_layout_z", refine_grid_layout_dims[2]);
+#endif
 
         if (pp.contains("refine_grid_layout") &&
-                !( pp.contains("refine_grid_layout_dims") || pp.contains("refine_grid_layout_x")
-                   || pp.contains("refine_grid_layout_y") || pp.contains("refine_grid_layout_z")))
+                !( pp.contains("refine_grid_layout_dims")
+                   || pp.contains("refine_grid_layout_x")
+#if (AMREX_SPACEDIM>1)
+                   || pp.contains("refine_grid_layout_y")
+#elif (AMREX_SPACEDIM>2)
+                   || pp.contains("refine_grid_layout_z")
+#endif
+                   ))
         {
             pp.get("refine_grid_layout", refine_grid_layout);
             if (!refine_grid_layout)
