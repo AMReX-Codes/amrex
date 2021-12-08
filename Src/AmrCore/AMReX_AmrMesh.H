@@ -31,11 +31,15 @@ struct AmrInfo {
     int n_proper = 1;
     int use_fixed_upto_level = 0;
     bool use_fixed_coarse_grids = false;
-    //chop up grids to have the number of grids no less the number of procs
-    bool refine_grid_layout = true;
+    
+    //HACK chop up grids to have the number of grids no less the number of procs
+    //bool refine_grid_layout = true;
 
-    /** Allow grids to be refined in only the dimensions specified*/
-    std::vector<int> refine_grid_layout_dims = { 1, 1, 1};
+    /**
+     * For each specified dimension, chop in that dimension so that
+     * the number of grids is no less than the number of procs 
+     */
+    IntVect refine_grid_layout_dims = IntVect(1);
 
     bool check_input = true;
     bool use_new_chop = false;

@@ -358,17 +358,39 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
         }
     }
 
-    {
-        // chop up grids to have more grids than the number of procs
-        pp.query("refine_grid_layout", refine_grid_layout);
+    //chop up grids to have the number of grids be no less the number of procs
 
+    {
+        bool refine_grid_layout = true;
+        
         // allow specification of dimensions that can be split
-        pp.queryarr("refine_grid_layout_dims", refine_grid_layout_dims);
+        //pp.query("refine_grid_layout_dims", refine_grid_layout_dims, 1, AMREX_SPACEDIM);
+        pp.query("refine_grid_layout_dims", refine_grid_layout_dims);
 
         // more consistent naming scheme
         pp.query("refine_grid_layout_x", refine_grid_layout_dims[0]);
         pp.query("refine_grid_layout_y", refine_grid_layout_dims[1]);
         pp.query("refine_grid_layout_z", refine_grid_layout_dims[2]);
+
+        if (pp.contains("refine_grid_layout") && !pp.contains("refine_grid_layout_dims")
+                                              && !pp.contains("refine_grid_layout_x")
+                                              && !pp.contains("refine_grid_layout_y")
+                                              && !pp.contains("refine_grid_layout_z"))
+        { 
+Print() << "Using COND1" << std::endl;
+            pp.get("refine_grid_layout", refine_grid_layout);
+            if (!refine_grid_layout) // refine_grid_layout turned off
+            {
+Print() << "Using COND2" << std::endl;
+                refine_grid_layout_dims = IntVect(0); 
+            } else {
+                //refine_grid_layout_dims = {0, 0, 0}; 
+Print() << "Using COND3" << std::endl;
+            }
+        } 
+Print() << "refine_grid_layout_dims " << refine_grid_layout_dims << std::endl; 
+
+
     }
 
     pp.query("check_input", check_input);
@@ -438,6 +460,7 @@ AmrMesh::LevelDefined (int lev) noexcept
 void
 AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
 {
+    Print() << "START ba.size()= " << ba.size() << " chunk = " << max_grid_size[lev] << std::endl;
 
     // test if all dimensions do not allow splitting -- if none, return
     int sum = 0;
@@ -452,6 +475,7 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
     while (ba.size() < target_size)
     {
         IntVect chunk_prev = chunk;
+        Print() << "Chunk = " << chunk << std::endl;
 
         for (int idim = AMREX_SPACEDIM-1; idim >=0; idim--){
             if (refine_grid_layout_dims[idim]){
@@ -468,6 +492,8 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
             break;
         }
     }
+
+    Print() << "END ba.size()= " << ba.size() << " chunk = " << chunk << std::endl;
 }
 
 BoxArray
@@ -486,7 +512,7 @@ AmrMesh::MakeBaseGrids () const
     ba.refine(fac);
     // Boxes in ba have even number of cells in each direction
     // unless the domain has odd number of cells in that direction.
-    if (refine_grid_layout) {
+    if (refine_grid_layout_dims!=0) {
         ChopGrids(0, ba, ParallelDescriptor::NProcs());
     }
     if (ba == grids[0]) {
@@ -761,7 +787,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                 amrex::Abort("AmrMesh::MakeNewGrids: how did this happen?");
             }
         }
-        else if (refine_grid_layout)
+        else if (refine_grid_layout_dims!=0)
         {
             ChopGrids(lev,new_grids[lev],ParallelDescriptor::NProcs());
             if (new_grids[lev] == grids[lev]) {
@@ -1041,7 +1067,7 @@ std::ostream& operator<< (std::ostream& os, AmrMesh const& amr_mesh)
     os << "  n_proper = " << amr_mesh.n_proper << "\n";
     os << "  use_fixed_upto_level = " << amr_mesh.use_fixed_upto_level << "\n";
     os << "  use_fixed_coarse_grids = " << amr_mesh.use_fixed_coarse_grids << "\n";
-    os << "  refine_grid_layout = " << amr_mesh.refine_grid_layout << "\n";
+    //os << "  refine_grid_layout = " << amr_mesh.refine_grid_layout << "\n";
     os << "  refine_grid_layout_dims = ";
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim){ os << " " << amr_mesh.refine_grid_layout_dims[idim] << "\n"; }
     os << "\n";
