@@ -89,20 +89,6 @@ void testParticleMesh (TestParams& parms)
                       });
       });
 
-  amrex::ParticleToMesh(myPC, partMF, 0,
-      [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& p,
-                            amrex::Array4<amrex::Real> const& rho)
-      {
-          ParticleInterpolator::Nearest interp(p, plo, dxi);
-
-          interp.ParticleToMesh(p, rho, 0, 0, 1,
-              [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& /*p*/,
-                                    int /*comp*/)
-              {
-                  return 1.0;  // no weighting
-              });
-      });
-
   MultiFab acceleration(ba, dmap, AMREX_SPACEDIM, 1);
   acceleration.setVal(5.0);
 
@@ -113,7 +99,7 @@ void testParticleMesh (TestParams& parms)
       {
           ParticleInterpolator::Linear interp(p, plo, dxi);
 
-          interp.MeshToParticle(p, acc, 0, 0, nc,
+          interp.MeshToParticle(p, acc, 0, 4, nc,
                   [=] AMREX_GPU_DEVICE (amrex::Array4<const amrex::Real> const& arr,
                                         int i, int j, int k, int comp)
                   {
