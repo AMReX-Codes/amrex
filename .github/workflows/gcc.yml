@@ -40,8 +40,8 @@ jobs:
         ctest --output-on-failure
 
   # Build libamrex and all tests
-  tests_build:
-    name: GNU@7.5 C++14 Debug Fortran [tests]
+  tests_build_3D:
+    name: GNU@7.5 C++14 3D Debug Fortran [tests]
     runs-on: ubuntu-18.04
     env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1"}
       # It's too slow with -O0
@@ -51,18 +51,65 @@ jobs:
       run: .github/workflows/dependencies/dependencies.sh
     - name: Build & Install
       run: |
-        mkdir build
-        cd build
-        cmake ..                        \
+        cmake -S . -B build             \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
-            -DAMReX_PARTICLES=ON
-        make -j 2
+            -DAMReX_PARTICLES=ON        \
+            -DAMReX_SPACEDIM=3
+        cmake --build build -j 2
 
-        ctest --output-on-failure
+        ctest --test-dir build --output-on-failure
+
+  tests_build_2D:
+    name: GNU@7.5 C++14 2D Debug Fortran [tests]
+    runs-on: ubuntu-18.04
+    env: {CXXFLAGS: "-fno-operator-names -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1"}
+      # -Werror temporarily skipped until we have functional testing established
+      # It's too slow with -O0
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+    - name: Build & Install
+      run: |
+        cmake -S . -B build             \
+            -DCMAKE_BUILD_TYPE=Debug    \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_EB=ON               \
+            -DAMReX_ENABLE_TESTS=ON     \
+            -DAMReX_FORTRAN=ON          \
+            -DAMReX_PARTICLES=ON        \
+            -DAMReX_SPACEDIM=2
+        cmake --build build -j 2
+
+        ctest --test-dir build --output-on-failure
+
+  tests_build_1D:
+    name: GNU@7.5 C++14 1D Debug Fortran [tests]
+    runs-on: ubuntu-18.04
+    env: {CXXFLAGS: "-fno-operator-names -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1"}
+      # -Werror temporarily skipped until we have functional testing established
+      # It's too slow with -O0
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+    - name: Build & Install
+      run: |
+        cmake -S . -B build             \
+            -DCMAKE_BUILD_TYPE=Debug    \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_EB=ON               \
+            -DAMReX_ENABLE_TESTS=ON     \
+            -DAMReX_FORTRAN=ON          \
+            -DAMReX_PARTICLES=ON        \
+            -DAMReX_SPACEDIM=1
+        cmake --build build -j 2
+
+        ctest --test-dir build --output-on-failure
 
   # Build libamrex and all tests
   tests_cxx20:

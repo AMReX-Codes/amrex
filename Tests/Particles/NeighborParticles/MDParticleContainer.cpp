@@ -2,6 +2,7 @@
 #include "Constants.H"
 
 #include "CheckPair.H"
+#include <AMReX_SPACE.H>
 
 using namespace amrex;
 
@@ -10,16 +11,24 @@ namespace
     void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
     {
         int nx = nppc[0];
+#if AMREX_SPACEDIM >= 2
         int ny = nppc[1];
+#else
+        int ny = 1;
+#endif
+#if AMREX_SPACEDIM == 3
         int nz = nppc[2];
+#else
+        int nz = 1;
+#endif
 
-        int ix_part = i_part/(ny * nz);
-        int iy_part = (i_part % (ny * nz)) % ny;
-        int iz_part = (i_part % (ny * nz)) / ny;
+        AMREX_D_TERM(int ix_part = i_part/(ny * nz);,
+                     int iy_part = (i_part % (ny * nz)) % ny;,
+                     int iz_part = (i_part % (ny * nz)) / ny;)
 
-        r[0] = (0.5+ix_part)/nx;
-        r[1] = (0.5+iy_part)/ny;
-        r[2] = (0.5+iz_part)/nz;
+        AMREX_D_TERM(r[0] = (0.5+ix_part)/nx;,
+                     r[1] = (0.5+iy_part)/ny;,
+                     r[2] = (0.5+iz_part)/nz;)
     }
 
     void get_gaussian_random_momentum(Real* u, Real u_mean, Real u_std) {
@@ -61,7 +70,7 @@ InitParticles(const IntVect& a_num_particles_per_cell,
 
         for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv)) {
             for (int i_part=0; i_part<num_ppc;i_part++) {
-                Real r[3];
+                Real r[AMREX_SPACEDIM];
                 Real v[3];
 
                 get_position_unit_cell(r, a_num_particles_per_cell, i_part);
@@ -69,16 +78,16 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                 get_gaussian_random_momentum(v, a_thermal_momentum_mean,
                                              a_thermal_momentum_std);
 
-                ParticleReal x = static_cast<ParticleReal> (plo[0] + (iv[0] + r[0])*dx[0]);
-                ParticleReal y = static_cast<ParticleReal> (plo[1] + (iv[1] + r[1])*dx[1]);
-                ParticleReal z = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);
+                AMREX_D_TERM(ParticleReal x = static_cast<ParticleReal> (plo[0] + (iv[0] + r[0])*dx[0]);,
+                             ParticleReal y = static_cast<ParticleReal> (plo[1] + (iv[1] + r[1])*dx[1]);,
+                             ParticleReal z = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);)
 
                 ParticleType p;
                 p.id()  = ParticleType::NextID();
                 p.cpu() = ParallelDescriptor::MyProc();
-                p.pos(0) = x;
-                p.pos(1) = y;
-                p.pos(2) = z;
+                AMREX_D_TERM(p.pos(0) = x;,
+                             p.pos(1) = y;,
+                             p.pos(2) = z;)
 
                 p.rdata(PIdx::vx) = static_cast<ParticleReal> (v[0]);
                 p.rdata(PIdx::vy) = static_cast<ParticleReal> (v[1]);
@@ -165,11 +174,11 @@ std::pair<Real, Real> MDParticleContainer::minAndMaxDistance()
 
             for (const auto& p2 : nbor_data.getNeighbors(i))
             {
-                Real dx = p1.pos(0) - p2.pos(0);
-                Real dy = p1.pos(1) - p2.pos(1);
-                Real dz = p1.pos(2) - p2.pos(2);
+                AMREX_D_TERM(Real dx = p1.pos(0) - p2.pos(0);,
+                             Real dy = p1.pos(1) - p2.pos(1);,
+                             Real dz = p1.pos(2) - p2.pos(2);)
 
-                Real r2 = dx*dx + dy*dy + dz*dz;
+                Real r2 = AMREX_D_TERM(dx*dx, + dy*dy, + dz*dz);
                 r2 = amrex::max(r2, Params::min_r*Params::min_r);
                 Real r = sqrt(r2);
 
@@ -211,9 +220,9 @@ void MDParticleContainer::moveParticles(amrex::ParticleReal dx)
         AMREX_FOR_1D ( np, i,
         {
             ParticleType& p = pstruct[i];
-            p.pos(0) += dx;
-            p.pos(1) += dx;
-            p.pos(2) += dx;
+            AMREX_D_TERM(p.pos(0) += dx;,
+                         p.pos(1) += dx;,
+                         p.pos(2) += dx;)
         });
     }
 }
@@ -314,11 +323,11 @@ void MDParticleContainer::checkNeighborList()
                 if ( i == j ) continue;
 
                 ParticleType& p2 = h_pstruct[j];
-                Real dx = p1.pos(0) - p2.pos(0);
-                Real dy = p1.pos(1) - p2.pos(1);
-                Real dz = p1.pos(2) - p2.pos(2);
+                AMREX_D_TERM(Real dx = p1.pos(0) - p2.pos(0);,
+                             Real dy = p1.pos(1) - p2.pos(1);,
+                             Real dz = p1.pos(2) - p2.pos(2);)
 
-                Real r2 = dx*dx + dy*dy + dz*dz;
+                Real r2 = AMREX_D_TERM(dx*dx, + dy*dy, + dz*dz);
 
                 Real cutoff_sq = 25.0*Params::cutoff*Params::cutoff;
 
