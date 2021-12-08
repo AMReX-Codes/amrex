@@ -31,13 +31,10 @@ struct AmrInfo {
     int n_proper = 1;
     int use_fixed_upto_level = 0;
     bool use_fixed_coarse_grids = false;
-    
-    //HACK chop up grids to have the number of grids no less the number of procs
-    //bool refine_grid_layout = true;
 
     /**
      * For each specified dimension, chop in that dimension so that
-     * the number of grids is no less than the number of procs 
+     * the number of grids is no less than the number of procs
      */
     IntVect refine_grid_layout_dims = IntVect(1);
 
