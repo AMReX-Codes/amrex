@@ -1054,7 +1054,6 @@ std::ostream& operator<< (std::ostream& os, AmrMesh const& amr_mesh)
     os << "  n_proper = " << amr_mesh.n_proper << "\n";
     os << "  use_fixed_upto_level = " << amr_mesh.use_fixed_upto_level << "\n";
     os << "  use_fixed_coarse_grids = " << amr_mesh.use_fixed_coarse_grids << "\n";
-    //os << "  refine_grid_layout = " << amr_mesh.refine_grid_layout << "\n";
     os << "  refine_grid_layout_dims = ";
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim){ os << " " << amr_mesh.refine_grid_layout_dims[idim] << "\n"; }
     os << "\n";

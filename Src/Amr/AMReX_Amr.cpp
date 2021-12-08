@@ -2516,7 +2516,7 @@ Amr::defBaseLevel (Real              strt_time,
         lev0 = *lev0_grids;
 
         if (refine_grid_layout) {
-            ChopGrids(0,lev0,ParallelDescriptor::NProcs(),refine_grid_layout_dims);
+            ChopGrids(0,lev0,ParallelDescriptor::NProcs());
         }
     }
     else
