@@ -895,14 +895,18 @@ space domain, a :cpp:`RealBox` specifying the
 physical domain, an :cpp:`int` specifying coordinate system type, and
 an :cpp:`int` pointer or array specifying periodicity. If a :cpp:`RealBox` is not
 given in the first constructor, AMReX  will construct one based on :cpp:`ParmParse` parameters,
-``geometry.prob_lo`` and ``geometry.prob_hi``, where each of the parameter is
-an array of ``AMREX_SPACEDIM`` real numbers. It's a runtime error if this
-fails. The argument for coordinate system is an integer type with
+``geometry.prob_lo`` / ``geometry.prob_hi`` / ``geometry.prob_extent``,
+where each of the parameter is an array of ``AMREX_SPACEDIM`` real numbers.
+See the section on :ref:`sec:inputs:pd` for more details about how to specify these.
+
+The argument for coordinate system is an integer type with
 valid values being 0 (Cartesian), or 1 (cylindrical), or 2 (spherical). If it
 is invalid as in the case of the default argument value of the first constructor, AMReX will query the
 :cpp:`ParmParse` database for ``geometry.coord_sys`` and use it if one is
 found. If it cannot find the parameter, the coordinate system is set to 0
-(i.e., Cartesian coordinates). The :cpp:`Geometry` class has the concept of
+(i.e., Cartesian coordinates).
+
+The :cpp:`Geometry` class has the concept of
 periodicity.  An argument can be passed specifying periodicity in each
 dimension. If it is not given in the first constructor, the domain is assumed to be non-periodic unless
 there is the :cpp:`ParmParse` integer array parameter ``geometry.is_periodic``
