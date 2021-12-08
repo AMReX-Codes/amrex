@@ -99,7 +99,7 @@ void testParticleMesh (TestParams& parms)
       {
           ParticleInterpolator::Linear interp(p, plo, dxi);
 
-          interp.MeshToParticle(p, acc, 0, 4, nc,
+          interp.MeshToParticle(p, acc, 0, 1+AMREX_SPACEDIM, nc,
                   [=] AMREX_GPU_DEVICE (amrex::Array4<const amrex::Real> const& arr,
                                         int i, int j, int k, int comp)
                   {
