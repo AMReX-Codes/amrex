@@ -452,12 +452,7 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
 {
 
     // test if all dimensions do not allow splitting -- if none, exit function
-    int sum = 0;
-    for (int idim = AMREX_SPACEDIM-1; idim >=0; idim--){
-        sum += refine_grid_layout_dims[idim];
-    }
-    if (sum == 0) { return; }
-
+    if (refine_grid_layout_dims == 0) { return; } // ask -- already checked before function called.
 
     IntVect chunk = max_grid_size[lev];
 
