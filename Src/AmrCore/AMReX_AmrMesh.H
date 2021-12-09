@@ -15,24 +15,35 @@ namespace amrex {
 
 struct AmrInfo {
     int verbose = 0;
-    // Maximum allowed level.
+    //! Maximum allowed level.
     int max_level = 0;
-    // Refinement ratios
+    //! Refinement ratios
     Vector<IntVect> ref_ratio {{IntVect(2)}};
-    // Blocking factor in grid generation (by level).
+    //! Blocking factor in grid generation (by level).
     Vector<IntVect> blocking_factor {{IntVect(8)}};
-    // Maximum allowable grid size (by level).
+    //! Maximum allowable grid size (by level).
     Vector<IntVect> max_grid_size {{IntVect(AMREX_D_PICK(128,128,32))}};
-    // Buffer cells around each tagged cell.
+    //! Buffer cells around each tagged cell.
     Vector<IntVect> n_error_buf {{IntVect(1)}};
-    // Grid efficiency.
+    //! Grid efficiency.
     Real grid_eff = static_cast<Real>(0.7);
-    // Cells required for proper nesting.
+    //! Cells required for proper nesting.
     int n_proper = 1;
     int use_fixed_upto_level = 0;
     bool use_fixed_coarse_grids = false;
-    //chop up grids to have the number of grids no less the number of procs
+
+    /**
+     * Split the number grids until the number of grids is no less than the
+     * number of procs. Overridden by refine_grid_layout_dims.
+     */
     bool refine_grid_layout = true;
+
+    /**
+     * For each specified dimension, chop in that dimension so that
+     * the number of grids is no less than the number of procs.
+     */
+    IntVect refine_grid_layout_dims = IntVect(1);
+
     bool check_input = true;
     bool use_new_chop = false;
     bool iterate_on_new_grids = true;
