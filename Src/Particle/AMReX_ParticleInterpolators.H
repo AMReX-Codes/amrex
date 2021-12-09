@@ -39,8 +39,9 @@ struct Base
      * \param f function for computing the particle quantity to interpolate
      *
      * Usage:
-     * \code{.cpp}
+     *
      *    Interpolate particle comp 0 to mesh comp 0 with no weighting:
+     * \code{.cpp}
      *        interp.ParticleToMesh(p, rho, 0, 0, 1,
      *                [=] AMREX_GPU_DEVICE (const MyPC::ParticleType& part, int comp)
      *                {
@@ -49,11 +50,10 @@ struct Base
      * \endcode
      *
      * Usage:
-     * \code{.cpp}
      *
-     * Usage:
      *    Interpolate 3 particle components 1-3 to mesh components 1-3, weighting
      *    by particle comp 0:
+     * \code{.cpp}
      *        interp.ParticleToMesh(p, rho, 1, 1, 3,
      *                [=] AMREX_GPU_DEVICE (const MyPC::ParticleType& part, int comp)
      *                {
@@ -102,9 +102,10 @@ struct Base
      * \tparam g function that updates the particle given the mesh value
      *
      * Usage:
-     * \code{.cpp}
+     *
      *    Interpolate mesh comps 0-2 to particle comps 4-6 with no weighting
      *    using addition:
+     * \code{.cpp}
      *    interp.MeshToParticle(p, acc, 0, 4, 3,
      *            [=] AMREX_GPU_DEVICE (amrex::Array4<const amrex::Real> const& arr,
      *                                  int i, int j, int k, int comp)
@@ -119,9 +120,10 @@ struct Base
      * \endcode
      *
      * Usage:
-     * \code{.cpp}
+     *
      *    Interpolate mesh comp 0 to particle comp 0, simply setting the value for
      *    the result instead of adding:
+     * \code{.cpp}
      *        interp.MeshToParticle(p, count, 0, 0, 1,
      *            [=] AMREX_GPU_DEVICE (amrex::Array4<const int> const& arr,
      *                                  int i, int j, int k, int comp)
