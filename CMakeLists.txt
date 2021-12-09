@@ -8,6 +8,16 @@ if(POLICY CMP0091)
 endif()
 
 #
+# We use use sometimes ;-connected AND syntax in cmake_dependent_option,
+# so we need to update some of those options once we require CMake 3.22+
+# only
+# https://cmake.org/cmake/help/v3.22/policy/CMP0127.html
+#
+if(POLICY CMP0127)
+    cmake_policy(SET CMP0127 OLD)
+endif()
+
+#
 # Prevent in-source builds
 #
 if (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
