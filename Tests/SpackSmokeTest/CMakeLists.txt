@@ -26,7 +26,7 @@ if (AMReX_GPU_BACKEND STREQUAL "CUDA")
    # find_package(AMReX REQUIRED)
 endif()
 
-find_package(AMReX REQUIRED)
+find_package(AMReX REQUIRED CUDA)
 
 
 if (AMReX_3D_FOUND)
@@ -68,5 +68,6 @@ target_sources(install_test
 
 target_link_libraries(install_test PUBLIC AMReX::amrex)
 
-set_target_properties(install_test PROPERTIES CUDA_ARCHITECTURES "70")
-include(AMReXCUDAOptions)
+set_target_properties(install_test PROPERTIES CUDA_ARCHITECTURES "60")
+
+include(AMReX_SetupCUDA)
