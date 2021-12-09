@@ -279,6 +279,28 @@ FabArray<FAB>::ParallelCopyToGhost (const FabArray<FAB>& src,
 
 template <class FAB>
 void
+FabArray<FAB>::ParallelCopyToGhost_nowait (const FabArray<FAB>& src,
+                                           int                  scomp,
+                                           int                  dcomp,
+                                           int                  ncomp,
+                                           const IntVect&       snghost,
+                                           const IntVect&       dnghost,
+                                           const Periodicity&   period)
+{
+    ParallelCopy_nowait(src, scomp, dcomp, ncomp, snghost, dnghost, period,
+                        FabArrayBase::COPY, nullptr, true);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::ParallelCopyToGhost_finish ()
+{
+    ParallelCopy_finish();
+}
+
+
+template <class FAB>
+void
 FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                                     int                  scomp,
                                     int                  dcomp,

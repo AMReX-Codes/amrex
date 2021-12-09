@@ -766,6 +766,16 @@ public:
                               const IntVect&       dst_nghost,
                               const Periodicity&   period = Periodicity::NonPeriodic());
 
+    void ParallelCopyToGhost_nowait (const FabArray<FAB>& src,
+                                     int                  src_comp,
+                                     int                  dest_comp,
+                                     int                  num_comp,
+                                     const IntVect&       src_nghost,
+                                     const IntVect&       dst_nghost,
+                                     const Periodicity&   period = Periodicity::NonPeriodic());
+
+    void ParallelCopyToGhost_finish();
+
     [[deprecated("Use FabArray::ParallelCopy() instead.")]]
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
