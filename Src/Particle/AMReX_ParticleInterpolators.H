@@ -50,6 +50,8 @@ struct Base
      *
      * Usage:
      * \code{.cpp}
+     *
+     * Usage:
      *    Interpolate 3 particle components 1-3 to mesh components 1-3, weighting
      *    by particle comp 0:
      *        interp.ParticleToMesh(p, rho, 1, 1, 3,
