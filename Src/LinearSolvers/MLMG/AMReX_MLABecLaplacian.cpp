@@ -308,7 +308,11 @@ MLABecLaplacian::applyRobinBCTermsCoeffs ()
     if (!hasRobinBC()) return;
 
     const int ncomp = getNComp();
-    if (m_a_scalar == Real(0.0)) m_a_scalar = Real(1.0);
+    bool reset_alpha = false;
+    if (m_a_scalar == Real(0.0)) {
+        m_a_scalar = Real(1.0);
+        reset_alpha = true;
+    }
     const Real bovera = m_b_scalar/m_a_scalar;
 
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
@@ -317,6 +321,10 @@ MLABecLaplacian::applyRobinBCTermsCoeffs ()
         const Real dxi = m_geom[amrlev][mglev].InvCellSize(0);
         const Real dyi = (AMREX_SPACEDIM >= 2) ? m_geom[amrlev][mglev].InvCellSize(1) : Real(1.0);
         const Real dzi = (AMREX_SPACEDIM == 3) ? m_geom[amrlev][mglev].InvCellSize(2) : Real(1.0);
+
+        if (reset_alpha) {
+            m_a_coeffs[amrlev][mglev].setVal(0.0);
+        }
 
         MFItInfo mfi_info;
         if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
@@ -414,6 +422,14 @@ MLABecLaplacian::prepareForSolve ()
 
     averageDownCoeffs();
 
+    update_singular_flags();
+
+    m_needs_update = false;
+}
+
+void
+MLABecLaplacian::update_singular_flags ()
+{
     m_is_singular.clear();
     m_is_singular.resize(m_num_amr_levels, false);
     auto itlo = std::find(m_lobc[0].begin(), m_lobc[0].end(), BCType::Dirichlet);
@@ -433,13 +449,11 @@ MLABecLaplacian::prepareForSolve ()
                 {
                     Real asum = m_a_coeffs[alev].back().sum();
                     Real amax = m_a_coeffs[alev].back().norm0();
-                    m_is_singular[alev] = (asum <= amax * 1.e-12);
+                    m_is_singular[alev] = (std::abs(asum) <= amax * 1.e-12);
                 }
             }
         }
     }
-
-    m_needs_update = false;
 }
 
 void
@@ -874,30 +888,7 @@ MLABecLaplacian::update ()
 
     averageDownCoeffs();
 
-    m_is_singular.clear();
-    m_is_singular.resize(m_num_amr_levels, false);
-    auto itlo = std::find(m_lobc[0].begin(), m_lobc[0].end(), BCType::Dirichlet);
-    auto ithi = std::find(m_hibc[0].begin(), m_hibc[0].end(), BCType::Dirichlet);
-    if (itlo == m_lobc[0].end() && ithi == m_hibc[0].end())
-    {  // No Dirichlet
-        for (int alev = 0; alev < m_num_amr_levels; ++alev)
-        {
-            // For now this assumes that overset regions are treated as Dirichlet bc's
-            if (m_domain_covered[alev] && !m_overset_mask[alev][0])
-            {
-                if (m_a_scalar == 0.0)
-                {
-                    m_is_singular[alev] = true;
-                }
-                else
-                {
-                    Real asum = m_a_coeffs[alev].back().sum();
-                    Real amax = m_a_coeffs[alev].back().norm0();
-                    m_is_singular[alev] = (asum <= amax * 1.e-12);
-                }
-            }
-        }
-    }
+    update_singular_flags();
 
     m_needs_update = false;
 }
