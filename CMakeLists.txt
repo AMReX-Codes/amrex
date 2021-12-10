@@ -8,6 +8,15 @@ if(POLICY CMP0091)
 endif()
 
 #
+# We use simple syntax in cmake_dependent_option, so we are compatible with the
+# extended syntax in CMake 3.22+
+# https://cmake.org/cmake/help/v3.22/policy/CMP0127.html
+#
+if(POLICY CMP0127)
+    cmake_policy(SET CMP0127 NEW)
+endif()
+
+#
 # Prevent in-source builds
 #
 if (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
