@@ -6,7 +6,7 @@ Gridding and Load Balancing
 The following inputs must be preceded by "amr" and determine how we create the grids and how often we regrid.
 
 +------------------------+-----------------------------------------------------------------------+-------------+-----------+
-|                        | Description                                                           |   Type      | Default   |
+| Parameter              | Description                                                           |   Type      | Default   |
 +========================+=======================================================================+=============+===========+
 | regrid_int             | How often to regrid (in number of steps at level 0)                   |   Int       |    -1     |
 |                        | if regrid_int = -1 then no regridding will occur                      |             |           |
@@ -27,23 +27,23 @@ The following inputs must be preceded by "amr" and determine how we create the g
 |                        | (must be 1 or power of 2)                                             |             |           |
 +------------------------+-----------------------------------------------------------------------+-------------+-----------+
 | refine_grid_layout     | Split grids in half until the number of grids is no less than the     |    Bool     |  true     |
-|                        | number of procs. ( Will be overridden if refine_grid_layout_[x,y,z]   |             |           |
-|                        | is specified )                                                        |             |           |
+|                        | number of procs. (Will be overridden if refine_grid_layout_[x,y,z]    |             |           |
+|                        | is specified)                                                         |             |           |
 +------------------------+-----------------------------------------------------------------------+-------------+-----------+
 | refine_grid_layout_x   | Allow grids to be split in the x-dimension when refining the layout.  |    Int      |  1        |
-|                        | ( 1 to allow or 0 to disallow)                                        |             |           |
+|                        | (1 to allow or 0 to disallow)                                         |             |           |
 +------------------------+-----------------------------------------------------------------------+-------------+-----------+
 | refine_grid_layout_y   | Allow grids to be split in the y-dimension when refining the layout.  |    Int      |  1        |
-|                        | ( 1 to allow or 0 to disallow)                                        |             |           |
+|                        | (1 to allow or 0 to disallow)                                         |             |           |
 +------------------------+-----------------------------------------------------------------------+-------------+-----------+
 | refine_grid_layout_z   | Allow grids to be split in the z-dimension when refining the layout.  |    Int      |  1        |
-|                        | ( 1 to allow or 0 to disallow)                                        |             |           |
+|                        | (1 to allow or 0 to disallow)                                         |             |           |
 +------------------------+-----------------------------------------------------------------------+-------------+-----------+
 
-The following inputs must be preceded by "particles"
+The following inputs must be preceded by "particles".
 
 +-------------------+-----------------------------------------------------------------------+-------------+-----------+
-|                   | Description                                                           |   Type      | Default   |
+|  Parameter        | Description                                                           |   Type      | Default   |
 +===================+=======================================================================+=============+===========+
 | max_grid_size_x   | Maximum number of cells at level 0 in each grid in x-direction        |    Int      | 32        |
 |                   | for grids in the ParticleBoxArray if dual_grid is true                |             |           |
