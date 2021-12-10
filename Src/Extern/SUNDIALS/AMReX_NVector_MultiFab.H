@@ -44,16 +44,6 @@ struct N_VectorContent_MultiFab_notptr {
 typedef struct N_VectorContent_MultiFab_notptr *N_VectorContent_MultiFab;
 
 /* -----------------------------------------------------------------
- * Accessor Macros
- * -----------------------------------------------------------------*/
-
-#define AMREX_NV_CONTENT_M(v) ( (amrex::sundials::N_VectorContent_MultiFab)(v->content) )
-
-#define AMREX_NV_LENGTH_M(v)  ( AMREX_NV_CONTENT_M(v)->length )
-
-#define AMREX_NV_OWN_MF_M(v)  ( AMREX_NV_CONTENT_M(v)->own_mf )
-
-/* -----------------------------------------------------------------
  * Exported functions
  * -----------------------------------------------------------------*/
 
@@ -66,6 +56,8 @@ N_Vector N_VNew_MultiFab(sunindextype vec_length,
 N_Vector N_VMake_MultiFab(sunindextype vec_length,
                                           amrex::MultiFab *mf);
 sunindextype N_VGetLength_MultiFab(N_Vector v);
+int N_VGetOwnMF_MultiFab(N_Vector v);
+void N_VSetOwnMF_MultiFab(N_Vector v, int own_mf);
 N_Vector N_VCloneEmpty_MultiFab(N_Vector w);
 N_Vector N_VClone_MultiFab(N_Vector w);
 void N_VDestroy_MultiFab(N_Vector v);

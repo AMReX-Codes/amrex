@@ -130,7 +130,7 @@ N_Vector N_VNew_MultiFab(sunindextype length,
    if (length > 0)
    {
       amrex::MultiFab *mf_v = new amrex::MultiFab(ba, dm, nComp, nGhost);
-      AMREX_NV_OWN_MF_M(v) = SUNTRUE;
+      amrex::sundials::N_VSetOwnMF_MultiFab(v, SUNTRUE);
       amrex::sundials::getMFptr(v)     = mf_v;
    }
 
@@ -152,7 +152,7 @@ N_Vector N_VMake_MultiFab(sunindextype length, amrex::MultiFab *v_mf)
    if (length > 0)
    {
       // Attach MultiFab
-      AMREX_NV_OWN_MF_M(v) = SUNFALSE;
+      amrex::sundials::N_VSetOwnMF_MultiFab(v, SUNFALSE);
       amrex::sundials::getMFptr(v)     = v_mf;
    }
 
@@ -164,7 +164,29 @@ N_Vector N_VMake_MultiFab(sunindextype length, amrex::MultiFab *v_mf)
  */
 sunindextype N_VGetLength_MultiFab(N_Vector v)
 {
-   return AMREX_NV_LENGTH_M(v);
+   const auto* content = (amrex::sundials::N_VectorContent_MultiFab)(v->content);
+
+   return content->length;
+}
+
+/* ----------------------------------------------------------------------------
+ * Function to return if v owns the MultiFab*
+ */
+int N_VGetOwnMF_MultiFab(N_Vector v)
+{
+   const auto* content = (amrex::sundials::N_VectorContent_MultiFab)(v->content);
+
+   return content->own_mf;
+}
+
+/* ----------------------------------------------------------------------------
+ * Function to set if v owns the MultiFab*
+ */
+  void N_VSetOwnMF_MultiFab(N_Vector v, int own_mf_in)
+{
+   auto* content = (amrex::sundials::N_VectorContent_MultiFab)(v->content);
+
+   content->own_mf = own_mf_in;
 }
 
 /*
@@ -240,7 +262,7 @@ N_Vector N_VCloneEmpty_MultiFab(N_Vector w)
    content = (N_VectorContent_MultiFab) malloc(sizeof *content);
    if (content == NULL) { free(ops); free(v); return(NULL); }
 
-   content->length = AMREX_NV_LENGTH_M(w);
+   content->length = amrex::sundials::N_VGetLength_MultiFab(w);
    content->own_mf = SUNFALSE;
    content->mf     = NULL;
 
@@ -260,7 +282,7 @@ N_Vector N_VClone_MultiFab(N_Vector w)
    v = N_VCloneEmpty_MultiFab(w);
    if (v == NULL) return(NULL);
 
-   length = AMREX_NV_LENGTH_M(w);
+   length = amrex::sundials::N_VGetLength_MultiFab(w);
 
    if (length > 0)
    {
@@ -273,7 +295,7 @@ N_Vector N_VClone_MultiFab(N_Vector w)
       amrex::MultiFab *mf_v = new amrex::MultiFab(ba, dm, nComp, nGhost);
 
       // Attach multifab
-      AMREX_NV_OWN_MF_M(v) = SUNTRUE;
+      amrex::sundials::N_VSetOwnMF_MultiFab(v, SUNTRUE);
       amrex::sundials::getMFptr(v)     = mf_v;
    }
 
@@ -282,7 +304,7 @@ N_Vector N_VClone_MultiFab(N_Vector w)
 
 void N_VDestroy_MultiFab(N_Vector v)
 {
-   if (AMREX_NV_OWN_MF_M(v) == SUNTRUE)
+   if (amrex::sundials::N_VGetOwnMF_MultiFab(v) == SUNTRUE)
    {
       delete amrex::sundials::getMFptr(v);
       amrex::sundials::getMFptr(v) = NULL;
@@ -296,7 +318,7 @@ void N_VDestroy_MultiFab(N_Vector v)
 
 void N_VSpace_MultiFab(N_Vector v, sunindextype *lrw, sunindextype *liw)
 {
-   *lrw = AMREX_NV_LENGTH_M(v);
+   *lrw = amrex::sundials::N_VGetLength_MultiFab(v);
    *liw = 1;
 
    return;
@@ -484,7 +506,7 @@ amrex::Real N_VWrmsNorm_MultiFab(N_Vector x, N_Vector w)
 {
 
    using namespace amrex;
-   sunindextype N = AMREX_NV_LENGTH_M(x);
+   sunindextype N = amrex::sundials::N_VGetLength_MultiFab(x);
    return N_VWL2Norm_MultiFab(x, w)*std::sqrt(1.0_rt/N);
 }
 
@@ -528,7 +550,7 @@ amrex::Real NormHelper_NVector_MultiFab(N_Vector x, N_Vector w, N_Vector id, int
    MultiFab *mf_y = amrex::sundials::getMFptr(w);
    MultiFab *mf_id = use_id ? amrex::sundials::getMFptr(id) : NULL;
    sunindextype numcomp = mf_x->nComp();
-   sunindextype N = AMREX_NV_LENGTH_M(x);
+   sunindextype N = amrex::sundials::N_VGetLength_MultiFab(x);
    bool local = true;
    int nghost = 0;
    Real sum = 0;
