@@ -1886,4 +1886,37 @@ DistributionMapping::writeOn (std::ostream& os) const
     return os;
 }
 
+DistributionMapping MakeSimilarDM (const BoxArray& ba, const MultiFab& mf, const IntVect& ng)
+{
+    Vector<int> pmap(ba.size());
+    const DistributionMapping& mf_dm = mf.DistributionMap();
+    const BoxArray& mf_ba = convert(mf.boxArray(),ba.ixType());
+
+    for (Long i = 0; i < ba.size(); ++i) {
+        Box box = ba[i];
+        box.grow(ng);
+        bool first_only = false;
+        auto isects = mf_ba.intersections(box, first_only, ng);
+        if (isects.empty()) {
+            // no intersection found, revert to round-robin
+            int nprocs = ParallelContext::NProcsSub();
+            pmap[i] = i % nprocs;
+        } else {
+            Long max_overlap = 0;
+            int max_overlap_index = -1;
+            for (const auto& isect : isects) {
+                int gid = isect.first;
+                const Box& isect_box = isect.second;
+                if (isect_box.numPts() > max_overlap) {
+                    max_overlap = isect_box.numPts();
+                    max_overlap_index = gid;
+                }
+            }
+            AMREX_ASSERT(max_overlap > 0);
+            pmap[i] = mf_dm[max_overlap_index];
+        }
+    }
+    return DistributionMapping(std::move(pmap));
+}
+
 }
