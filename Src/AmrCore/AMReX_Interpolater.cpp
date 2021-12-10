@@ -146,31 +146,32 @@ FaceLinear::interp (const FArrayBox&  crse,
     Array4<Real> const& fine_arr = fine.array(fine_comp);
     Array4<Real const> const& crse_arr = crse.const_array(crse_comp);
 
-    if (fine_region.type(0) == IndexType::NODE)
-    {
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
-        {
-            face_linear_interp_x(i,j,k,n,fine_arr,crse_arr,ratio);
-        });
-    }
-#if (AMREX_SPACEDIM >= 2)
-    else if (fine_region.type(1) == IndexType::NODE)
-    {
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
-        {
-            face_linear_interp_y(i,j,k,n,fine_arr,crse_arr,ratio);
-        });
-    }
-#if (AMREX_SPACEDIM == 3)
-    else
-    {
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
-        {
-            face_linear_interp_z(i,j,k,n,fine_arr,crse_arr,ratio);
-        });
-    }
-#endif
-#endif
+    amrex::Abort("How to implement face linear single comp???");
+//     if (fine_region.type(0) == IndexType::NODE)
+//     {
+//         AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+//         {
+//             face_linear_interp_x(i,j,k,n,fine_arr,crse_arr,ratio);
+//         });
+//     }
+// #if (AMREX_SPACEDIM >= 2)
+//     else if (fine_region.type(1) == IndexType::NODE)
+//     {
+//         AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+//         {
+//             face_linear_interp_y(i,j,k,n,fine_arr,crse_arr,ratio);
+//         });
+//     }
+// #if (AMREX_SPACEDIM == 3)
+//     else
+//     {
+//         AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+//         {
+//             face_linear_interp_z(i,j,k,n,fine_arr,crse_arr,ratio);
+//         });
+//     }
+// #endif
+// #endif
 }
 
 void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
@@ -180,7 +181,7 @@ void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                              const int         ncomp,
                              const Box&        fine_region,
                              const IntVect&    ratio,
-                             Array<IArrayBox*, AMREX_SPACEDIM> const& /*solve_mask*/,
+                             Array<IArrayBox*, AMREX_SPACEDIM> const& solve_mask,
                              const Geometry&   /*crse_geom*/,
                              const Geometry&   /*fine_geom*/,
                              Vector<Array<BCRec, AMREX_SPACEDIM> > const& /*bcr*/,
@@ -190,21 +191,68 @@ void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
 {
     BL_PROFILE("FaceLinear::interp_arr()");
 
-    // cell centered -- relevant or guaranteed by caller?
-    //AMREX_ASSERT(AMREX_D_TERM(fine_region.type(0),+fine_region.type(1),+fine_region.type(2)) == 1);
-
     Array<IndexType, AMREX_SPACEDIM> types;
     for (int d=0; d<AMREX_SPACEDIM; ++d)
         { types[d].set(d); }
 
     GpuArray<Array4<const Real>, AMREX_SPACEDIM> crse_arr;
     GpuArray<Array4<Real>, AMREX_SPACEDIM> fine_arr;
+    GpuArray<Array4<const int>, AMREX_SPACEDIM> mask_arr;
     for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
         crse_arr[d] = crse[d]->const_array(crse_comp);
         fine_arr[d] = fine[d]->array(fine_comp);
+        if (solve_mask[d] != nullptr)
+            { mask_arr[d] = solve_mask[d]->const_array(0); }
     }
 
+    const Box c_fine_region = amrex::coarsen(fine_region, ratio);
+
+    //
+    // Fill fine ghost faces with piecewise-constant interpolation of coarse data.
+    // Operate only on faces that overlap--ie, only fill the fine faces that make up each
+    // coarse face, leave the in-between faces alone.
+    // The mask ensures we do not overwrite valid fine cells.
+    //
+    // Fuse the launches, 1 for each dimension, into a single launch.
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(runon,
+              amrex::convert(c_fine_region,types[0]), bx0,
+              {
+                  AMREX_LOOP_3D(bx0, i, j, k,
+                  {
+                      for (int n=0; n<ncomp; ++n)
+                      {
+                          face_linear_face_interp(i,j,k,n,0,fine_arr[0],crse_arr[0],mask_arr[0],ratio);
+                      }
+                  });
+              },
+              amrex::convert(c_fine_region,types[1]), bx1,
+              {
+                  AMREX_LOOP_3D(bx1, i, j, k,
+                  {
+                      for (int n=0; n<ncomp; ++n)
+                      {
+                          face_linear_face_interp(i,j,k,n,1,fine_arr[1],crse_arr[1],mask_arr[1],ratio);
+                      }
+                  });
+              },
+              amrex::convert(c_fine_region,types[2]), bx2,
+              {
+                  AMREX_LOOP_3D(bx2, i, j, k,
+                  {
+                      for (int n=0; n<ncomp; ++n)
+                      {
+                          face_linear_face_interp(i,j,k,n,2,fine_arr[2],crse_arr[2],mask_arr[2],ratio);
+                      }
+                  });
+              });
+
+    // FIXME? We need data from the previous lambda in this one. Do we need a sync here?
+    //
+    // Interpolate unfilled grow cells using best data from
+    // surrounding faces of valid region, and pc-interpd data
+    // on fine faces overlaying coarse edges.
+    //
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(runon,
               amrex::convert(fine_region,types[0]), bx0,
               {
@@ -212,7 +260,7 @@ void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                   {
                       for (int n=0; n<ncomp; ++n)
                       {
-                          face_linear_interp_x(i,j,k,n,fine_arr[0],crse_arr[0],ratio);
+                          face_linear_interp_x(i,j,k,n,fine_arr[0],ratio);
                       }
                   });
               },
@@ -222,7 +270,7 @@ void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                   {
                       for (int n=0; n<ncomp; ++n)
                       {
-                          face_linear_interp_y(i,j,k,n,fine_arr[1],crse_arr[1],ratio);
+                          face_linear_interp_y(i,j,k,n,fine_arr[1],ratio);
                       }
                   });
               },
@@ -232,7 +280,7 @@ void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                   {
                       for (int n=0; n<ncomp; ++n)
                       {
-                          face_linear_interp_z(i,j,k,n,fine_arr[2],crse_arr[2],ratio);
+                          face_linear_interp_z(i,j,k,n,fine_arr[2],ratio);
                       }
                   });
               });
@@ -875,6 +923,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                   });
               });
 
+    // FIXME? We need data from the previous lambda in this one. Do we need a sync here?
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
     {
         amrex::facediv_int<Real>(i, j, k, fine_comp+n, finearr, ratio, cell_size);
