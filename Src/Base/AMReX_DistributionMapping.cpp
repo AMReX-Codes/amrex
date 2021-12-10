@@ -1896,6 +1896,8 @@ DistributionMapping MakeSimilarDM (const BoxArray& ba, const MultiFab& mf, const
 DistributionMapping MakeSimilarDM (const BoxArray& ba, const BoxArray& src_ba,
                                    const DistributionMapping& src_dm, const IntVect& ng)
 {
+    AMREX_ASSERT(ba.ixType() == src_ba.ixType());
+
     Vector<int> pmap(ba.size());
     for (Long i = 0; i < ba.size(); ++i) {
         Box box = ba[i];
