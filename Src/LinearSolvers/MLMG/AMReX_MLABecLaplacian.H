@@ -124,6 +124,8 @@ private:
     int m_ncomp = 1;
 
     void define_ab_coeffs ();
+
+    void update_singular_flags ();
 };
 
 }
