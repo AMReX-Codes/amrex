@@ -34,6 +34,7 @@ writePlotFile (const std::string&        dir,
                Real                      bgVal,
                const Vector<std::string>& names)
 {
+    amrex::ignore_unused(bgVal);
     //
     // Fake a level 0 data set, and then use incoming multifab as
     // level 1 data.
@@ -225,6 +226,7 @@ writePlotFile (const char*               name,
                Real                      bgVal,
                const Vector<std::string>& names)
 {
+    amrex::ignore_unused(bgVal);
 
     auto dPlotFileTime0 =ParallelDescriptor::second();
     //std::string pltfile = Concatenate(root, num);
@@ -249,7 +251,7 @@ writePlotFile (const char*               name,
 
     HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
-    int old_prec;
+    int old_prec = 0;
 
     if (ParallelDescriptor::IOProcessor())
     {

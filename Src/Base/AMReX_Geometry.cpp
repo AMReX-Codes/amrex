@@ -112,7 +112,7 @@ Geometry::Setup (const RealBox* rb, int coord, int const* isper) noexcept
 
     if (gg->ok) return;
 
-    BL_ASSERT(!OpenMP::in_parallel());
+    AMREX_ASSERT(!OpenMP::in_parallel());
 
     ParmParse pp("geometry");
 
@@ -127,10 +127,28 @@ Geometry::Setup (const RealBox* rb, int coord, int const* isper) noexcept
     if (rb == nullptr) {
         Vector<Real> prob_lo(AMREX_SPACEDIM);
         Vector<Real> prob_hi(AMREX_SPACEDIM);
-        pp.getarr("prob_lo",prob_lo,0,AMREX_SPACEDIM);
-        BL_ASSERT(prob_lo.size() == AMREX_SPACEDIM);
-        pp.getarr("prob_hi",prob_hi,0,AMREX_SPACEDIM);
-        BL_ASSERT(prob_hi.size() == AMREX_SPACEDIM);
+        Vector<Real> prob_extent(AMREX_SPACEDIM);
+
+        for (int i = 0; i < AMREX_SPACEDIM; i++) prob_lo[i] = 0.;
+        pp.queryarr("prob_lo",prob_lo,0,AMREX_SPACEDIM);
+        AMREX_ASSERT(prob_lo.size() == AMREX_SPACEDIM);
+
+        bool read_prob_hi = pp.queryarr("prob_hi",prob_hi,0,AMREX_SPACEDIM);
+        AMREX_ASSERT(prob_hi.size() == AMREX_SPACEDIM);
+
+        bool read_prob_extent = pp.queryarr("prob_extent",prob_extent,0,AMREX_SPACEDIM);
+        AMREX_ASSERT(prob_extent.size() == AMREX_SPACEDIM);
+
+        // We enforce that one and only one of prob_hi vs prob_extent is input
+        AMREX_ALWAYS_ASSERT(  read_prob_hi || read_prob_extent);
+        AMREX_ALWAYS_ASSERT(!(read_prob_hi && read_prob_extent));
+
+        if (read_prob_extent)
+        {
+            for (int i = 0; i < AMREX_SPACEDIM; i++)
+                prob_hi[i] = prob_lo[i] + prob_extent[i];
+        }
+
         gg->prob_domain.setLo(prob_lo);
         gg->prob_domain.setHi(prob_hi);
         gg->SetOffset(prob_lo.data());

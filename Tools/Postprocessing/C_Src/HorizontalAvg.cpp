@@ -72,7 +72,7 @@ main (int   argc,
         }
 
         int nComp = comps.size();
-        Vector<string> varNames(nComp);
+        Vector<std::string> varNames(nComp);
         for (int i=0; i<nComp; ++i)
             varNames[i] = amrData.PlotVarNames()[comps[i]];
 

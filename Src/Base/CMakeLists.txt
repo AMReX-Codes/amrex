@@ -62,10 +62,6 @@ target_sources( amrex
    AMReX_BArena.cpp
    AMReX_CArena.H
    AMReX_CArena.cpp
-   AMReX_DArena.H
-   AMReX_DArena.cpp
-   AMReX_EArena.H
-   AMReX_EArena.cpp
    AMReX_PArena.H
    AMReX_PArena.cpp
    AMReX_BLProfiler.H
@@ -76,6 +72,7 @@ target_sources( amrex
    AMReX_parstream.H
    AMReX_parstream.cpp
    # I/O stuff  --------------------------------------------------------------
+   AMReX_ANSIEscCode.H
    AMReX_FabConv.H
    AMReX_FabConv.cpp
    AMReX_FPC.H
@@ -179,6 +176,11 @@ target_sources( amrex
    AMReX_PlotFileUtil.H
    AMReX_PlotFileDataImpl.H
    AMReX_PlotFileDataImpl.cpp
+   # Time Integration
+   AMReX_FEIntegrator.H
+   AMReX_IntegratorBase.H
+   AMReX_RKIntegrator.H
+   AMReX_TimeIntegrator.H
    # GPU --------------------------------------------------------------------
    AMReX_Gpu.H
    AMReX_GpuQualifiers.H

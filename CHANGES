@@ -1,3 +1,129 @@
+# 21.12
+
+  -- AMREX_RELEASE_NUMBER (#2448)
+
+  -- Add a function for detecting whether amrex::Initialize has been called or not. (#2501)
+
+  -- Fix fcompare's --abs_tol (#2504)
+
+  -- HDF5: Fix an issue when some MPI ranks have no box at all (#2494)
+
+  -- Signed distance function in 2D (#2490)
+
+  -- Reduce ghost particles in particle communication. (#2480)
+
+  -- Assign initial value to prevent (likely spurious) -Wmaybe_unitialized compiler warning. (#2484)
+
+  -- Fix a corner case in fixing small cells. (#2489)
+
+  -- Added special case for Mac when using rpath (#2479)
+
+  -- Fix multi-level EB nodal solver solvability fix (#2473)
+
+  -- Disable warning on atomicAddNoRet in HIP (#2466)
+
+  -- DPCPP: workaround for the scan issue (#2462)
+
+  -- DPCPP: AOT in GNU Make (#2463)
+
+  -- Implement HOEXTRAPCC for more than single ghost cell (#2456)
+
+  -- Spack Smoke Test (#2460)
+
+  -- Support fmod in Parser (#2395)
+
+  -- HIP: ftrapv causes issues with DEBUG linking (#2455)
+
+  -- DPCPP:  Enable early optimizations (#2454)
+
+  -- New HDF5 schema with separate datasets for different variables (#2432)
+
+  -- InterpFaceRegister (#2452)
+    
+  -- Fix WarpX EB solver's grad phi computation (#2453)
+
+# 21.11
+
+  -- Set to never write fill values to the dataset for HDF5 output (#2450)
+
+  -- Lower Hypre minimum version to 2.20. (#2446)
+
+  -- Fix use-after-free in the flush of parallel copy meta-data cache. (#2443)
+
+  -- Update MPI config checking to include Intel MPI wrappers for DPCPP (#2435)
+
+  -- Add EBCellFlagFab::getNumRegularCells, getNumCutCells and getNumCoveredCells (#2422)
+
+  -- ExclusiveSum on GPU: return 0 when size of pointer is 0 (#2440)
+
+  -- Multi-component overset solver (#2429)
+
+  -- Use -rpath=dir instead of -rpath dir for dpcpp. (#2439)
+
+  -- DPCPP: Use -g1 for non-debug build (#2438)
+
+  -- DPCPP: Fix warning on tautological-constant-compare (#2436)
+
+  -- Tests: Safe-Guard Module Dirs (#2434)
+
+  -- Remove deprecated BaseUmap (#2425)
+
+  -- Update WarpX EB solver (#2421)
+
+  -- MLNodeLaplacian: Fix max coarsening level for enclosed EB (#2431)
+
+  -- Fix two IO overflow bugs uncovered by NyX. (#2417)
+
+  -- Cleanup of amrdata (#2430)
+
+  -- Set options to allow other Doxygen docs to link to AMReX. (#2424)
+
+  -- Remove DArena and EArena (#2426)
+
+  -- Update MLNodeTensorLap for WarpX (#2416)
+
+  -- Reduce peak memory usage when sorting particles. (#2414)
+
+  -- Extend CellQuadratic Interpolater to 3D (#2409)
+
+  -- Fix 2D bug in EB2::SplineIF (#2407)
+
+  -- Cleanup Tools/Postprocessing/C_src (#2398)
+
+  -- Port CellQuadratic to C++ with GPU support (#2369)
+
+  -- added bamg option to set restriction type (#2402)
+
+  -- Fix dot product mask in EB nodal solver (#2404)
+
+  -- Move Tools/C_util/Convergence/WritePlotFile to Src/Extern/amrdata. (#2397)
+
+  -- Arena Document and PrintUsage (#2403)
+
+  -- BArena: Make a static BArena object (#2401)
+
+  -- Make fcompare print usage and exit if only one plotfile is provided. (#2388)
+
+  -- Add Arena::PrintUsageToFiles for debugging (#2392)
+
+  -- Update c util (#2390)
+
+  -- Adding ILU smoothing parameters for Hypre interface. (#2382)
+
+  -- Avoid free after amrex::Finalize (#2389)
+
+  -- Workaround for nvcc bug that (sometimes) incorrectly complains about unused TinyProfiler variables. (#2383)
+
+  -- Add floor and ceil to parser (#2380)
+
+  -- CI: Groups Include Branch (#2379)
+
+  -- Fix bug in the particle communication routines when the number of chars in the message is > MAXINT. (#2376)
+
+  -- ROCm now supports __managed__ (#2377)
+
+  -- Fix read unitialized memory issue in MLMG solver (#2373)
+
 # 21.10
 
   -- Update for oneapi 2021.4.0 (#2368)

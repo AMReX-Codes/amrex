@@ -18,7 +18,7 @@ void set_eb_data (const int i, const int j,
     const Real axp = apx(i+1,j  ,0);
     const Real aym = apy(i  ,j  ,0);
     const Real ayp = apy(i  ,j+1,0);
-    const Real apnorm = std::hypot(axm-axp,aym-ayp);
+    const Real apnorm = std::hypot(axm-axp,aym-ayp) + 1.e-30;
     const Real nx = (axm-axp) * (1.0/apnorm);
     const Real ny = (aym-ayp) * (1.0/apnorm);
 
@@ -282,7 +282,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
     nmulticuts.copyToHost();
 
     if (*hp > 0 && !cover_multiple_cuts) {
-        amrex::Abort("amerx::EB2::build_faces: more than 2 cuts not supported");
+        amrex::Abort("amrex::EB2::build_faces: more than 2 cuts not supported");
     }
 
     return *hp;

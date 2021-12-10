@@ -56,11 +56,12 @@ target_compile_options( SYCL
      "$<${_cxx_dpcpp}:-mlong-double-64>"
      "$<${_cxx_dpcpp}:SHELL:-Xclang -mlong-double-64>")
 
-# Beta09 has enabled eary optimizations by default.  But this causes many
-# tests to crash.  So we disable it.
+# disable warning: comparison with infinity always evaluates to false in fast floating point modes [-Wtautological-constant-compare]
+#                  return std::isinf(m);
+# appeared since 2021.4.0
 target_compile_options( SYCL
    INTERFACE
-   $<${_cxx_dpcpp}:-fno-sycl-early-optimizations>)
+   $<${_cxx_dpcpp}:-Wno-tautological-constant-compare>)
 
 # Need this option to compile with mpiicpc
 if (AMReX_MPI)
@@ -111,38 +112,15 @@ target_link_options( SYCL
 
 
 if (AMReX_DPCPP_AOT)
-   message(FATAL_ERROR "\nAhead-of-time (AOT) compilation support not available yet.\nRe-configure with AMReX_DPCPP_AOT=OFF.")
+   target_compile_options( SYCL
+      INTERFACE
+      "$<${_cxx_dpcpp}:-fsycl-targets=spir64_gen-unknown-unknown-sycldevice>"
+      "$<${_cxx_dpcpp}:SHELL:-Xsycl-target-backend \"-device ${AMReX_INTEL_ARCH}\">" )
 
-   #
-   # TODO: remove comments to enable AOT support when the time comes
-   #       (main blocker: missing math library)
-   #
-   # if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-   #    ## TODO: use file(READ)
-   #    execute_process( COMMAND cat /sys/devices/cpu/caps/pmu_name OUTPUT_VARIABLE _cpu_long_name )
-   # else ()
-   #    message(FATAL_ERROR "\nAMReX_DPCPP_AOT is not supported on ${CMAKE_SYSTEM_NAME}\n")
-   # endif ()
-
-   # string(STRIP "${_cpu_long_name}" _cpu_long_name)
-   # if (_cpu_long_name STREQUAL "skylake")
-   #    set(_cpu_short_name "skl")
-   # elseif (_cpu_long_name STREQUAL "kabylake")
-   #    set(_cpu_short_name "kbl")
-   # elseif (_cpu_long_name STREQUAL "cascadelake")
-   #    set(_cpu_short_name "cfl")
-   # else ()
-   #    message(FATAL_ERROR "\n Ahead-of-time compilation for CPU ${_cpu_long_name} is not yet supported\n"
-   #       "Maybe set AMReX_DPCPP_AOT to OFF?\n")
-   # endif ()
-
-   # target_compile_options( amrex
-   #    PUBLIC
-   #    $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>,$<NOT:$<CONFIG:Debug>>>:
-   #    -fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xsycl-target-backend "-device ${_cpu_short_name}" >)
-   # target_link_options(amrex PUBLIC -fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xsycl-target-backend "-device ${_cpu_short_name}" )
-   # unset(_cpu_long_name)
-   # unset(_cpu_short_name)
+   target_link_options( SYCL
+      INTERFACE
+      "$<${_cxx_dpcpp}:-fsycl-targets=spir64_gen-unknown-unknown-sycldevice>"
+      "$<${_cxx_dpcpp}:SHELL:-Xsycl-target-backend \"-device ${AMReX_INTEL_ARCH}\">" )
 endif ()
 
 

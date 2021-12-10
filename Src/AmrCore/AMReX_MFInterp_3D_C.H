@@ -235,6 +235,66 @@ void mf_nodebilin_interp (int i, int j, int k, int n, Array4<Real> const& fine, 
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mf_cell_quadratic_calcslope (int i, int j, int k, int n,
+                                  Array4<Real const> const& crse,  int ccomp,
+                                  Array4<Real>       const& slope,
+                                  Box const& domain,
+                                  BCRec const* bc) noexcept
+{
+    int nu = ccomp + n;
+    Real sx  = mf_compute_slopes_x(i, j, k, crse, nu, domain, bc[n]);
+    Real sy  = mf_compute_slopes_y(i, j, k, crse, nu, domain, bc[n]);
+    Real sz  = mf_compute_slopes_z(i, j, k, crse, nu, domain, bc[n]);
+    Real sxx = mf_cell_quadratic_compute_slopes_xx (i, j, k, crse, nu, domain, bc[n]);
+    Real syy = mf_cell_quadratic_compute_slopes_yy (i, j, k, crse, nu, domain, bc[n]);
+    Real szz = mf_cell_quadratic_compute_slopes_zz (i, j, k, crse, nu, domain, bc[n]);
+    Real sxy = mf_cell_quadratic_compute_slopes_xy (i, j, k, crse, nu, domain, bc[n]);
+    Real sxz = mf_cell_quadratic_compute_slopes_xz (i, j, k, crse, nu, domain, bc[n]);
+    Real syz = mf_cell_quadratic_compute_slopes_yz (i, j, k, crse, nu, domain, bc[n]);
+
+    slope(i,j,k,9*n  ) = sx;  // x
+    slope(i,j,k,9*n+1) = sy;  // y
+    slope(i,j,k,9*n+2) = sz;  // z
+    slope(i,j,k,9*n+3) = sxx; // x^2
+    slope(i,j,k,9*n+4) = syy; // y^2
+    slope(i,j,k,9*n+5) = szz; // z^2
+    slope(i,j,k,9*n+6) = sxy; // xy
+    slope(i,j,k,9*n+7) = sxz; // xz
+    slope(i,j,k,9*n+8) = syz; // yz
 }
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mf_cell_quadratic_interp (int i, int j, int k, int n,
+                               Array4<Real>       const& fine,  int fcomp,
+                               Array4<Real const> const& crse,  int ccomp,
+                               Array4<Real const> const& slope,
+                               IntVect const& ratio) noexcept
+{
+    int ic = amrex::coarsen(i, ratio[0]);
+    int jc = amrex::coarsen(j, ratio[1]);
+    int kc = amrex::coarsen(k, ratio[2]);
+    int irx = i - ic*ratio[0]; // = abs(i % ratio[0])
+    int jry = j - jc*ratio[1]; // = abs(j % ratio[1])
+    int krz = k - kc*ratio[2]; // = abs(k % ratio[2])
+
+    // Compute offsets.
+    Real xoff = ( Real(irx) + 0.5_rt ) / Real(ratio[0]) - 0.5_rt;
+    Real yoff = ( Real(jry) + 0.5_rt ) / Real(ratio[1]) - 0.5_rt;
+    Real zoff = ( Real(krz) + 0.5_rt ) / Real(ratio[2]) - 0.5_rt;
+
+    fine(i,j,k,fcomp+n) = crse(ic,jc,kc,ccomp+n)
+                          +   xoff               * slope(ic,jc,kc,9*n  )  // x
+                          +          yoff        * slope(ic,jc,kc,9*n+1)  // y
+                          +                 zoff * slope(ic,jc,kc,9*n+2)  // z
+                          + 0.5_rt * xoff * xoff * slope(ic,jc,kc,9*n+3)  // x^2
+                          + 0.5_rt * yoff * yoff * slope(ic,jc,kc,9*n+4)  // y^2
+                          + 0.5_rt * zoff * zoff * slope(ic,jc,kc,9*n+5)  // z^2
+                          +   xoff * yoff        * slope(ic,jc,kc,9*n+6)  // xy
+                          +   xoff        * zoff * slope(ic,jc,kc,9*n+7)  // xz
+                          +          yoff * zoff * slope(ic,jc,kc,9*n+8); // yz
+}
+
+} // namespace amrex
 
 #endif

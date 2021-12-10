@@ -12,9 +12,8 @@ MLABecLaplacian::MLABecLaplacian (const Vector<Geometry>& a_geom,
                                   const LPInfo& a_info,
                                   const Vector<FabFactory<FArrayBox> const*>& a_factory,
                                   const int a_ncomp)
-    : m_ncomp(a_ncomp)
 {
-    define(a_geom, a_grids, a_dmap, a_info, a_factory);
+    define(a_geom, a_grids, a_dmap, a_info, a_factory, a_ncomp);
 }
 
 MLABecLaplacian::MLABecLaplacian (const Vector<Geometry>& a_geom,
@@ -22,9 +21,10 @@ MLABecLaplacian::MLABecLaplacian (const Vector<Geometry>& a_geom,
                                   const Vector<DistributionMapping>& a_dmap,
                                   const Vector<iMultiFab const*>& a_overset_mask,
                                   const LPInfo& a_info,
-                                  const Vector<FabFactory<FArrayBox> const*>& a_factory)
+                                  const Vector<FabFactory<FArrayBox> const*>& a_factory,
+                                  const int a_ncomp)
 {
-    define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory);
+    define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory, a_ncomp);
 }
 
 void
@@ -32,9 +32,11 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
                          const Vector<BoxArray>& a_grids,
                          const Vector<DistributionMapping>& a_dmap,
                          const LPInfo& a_info,
-                         const Vector<FabFactory<FArrayBox> const*>& a_factory)
+                         const Vector<FabFactory<FArrayBox> const*>& a_factory,
+                         const int a_ncomp)
 {
     BL_PROFILE("MLABecLaplacian::define()");
+    m_ncomp = a_ncomp;
     MLCellABecLap::define(a_geom, a_grids, a_dmap, a_info, a_factory);
     define_ab_coeffs();
 }
@@ -45,9 +47,11 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
                          const Vector<DistributionMapping>& a_dmap,
                          const Vector<iMultiFab const*>& a_overset_mask,
                          const LPInfo& a_info,
-                         const Vector<FabFactory<FArrayBox> const*>& a_factory)
+                         const Vector<FabFactory<FArrayBox> const*>& a_factory,
+                         const int a_ncomp)
 {
     BL_PROFILE("MLABecLaplacian::define(overset)");
+    m_ncomp = a_ncomp;
     MLCellABecLap::define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory);
     define_ab_coeffs();
 }

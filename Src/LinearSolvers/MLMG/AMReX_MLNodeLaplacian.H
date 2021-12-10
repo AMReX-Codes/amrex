@@ -164,6 +164,10 @@ public :
                           Real* const rhs, Array4<Real const> const& bfab) const override;
 #endif
 
+protected:
+
+    virtual void resizeMultiGrid (int new_size) override final;
+
 private:
 
     int m_is_rz = 0;
@@ -171,6 +175,7 @@ private:
     Real m_const_sigma = Real(0.0);
     Vector<Vector<Array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
     Vector<Vector<std::unique_ptr<MultiFab> > > m_stencil;
+    Vector<std::unique_ptr<MultiFab> > m_nosigma_stencil;
     Vector<Vector<Real> > m_s0_norm0;
 
     Real m_normalization_threshold = Real(1.e-8);

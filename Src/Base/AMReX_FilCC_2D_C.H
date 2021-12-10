@@ -61,7 +61,7 @@ struct FilccCell
                 }
                 case (BCType::hoextrapcc):
                 {
-                    q(i,j,0,n) = Real(2.)*q(i+1,j,0,n) - q(i+2,j,0,n);
+                    q(i,j,0,n) = Real(ilo-i)*(q(ilo,j,0,n) - q(ilo+1,j,0,n)) + q(ilo,j,0,n);
                     break;
                 }
                 case (BCType::reflect_even):
@@ -103,7 +103,7 @@ struct FilccCell
                 }
                 case (BCType::hoextrapcc):
                 {
-                    q(i,j,0,n) = Real(2.)*q(i-1,j,0,n) - q(i-2,j,0,n);
+                    q(i,j,0,n) = Real(i-ihi)*(q(ihi,j,0,n) - q(ihi-1,j,0,n)) + q(ihi,j,0,n);
                     break;
                 }
                 case (BCType::reflect_even):
@@ -146,7 +146,7 @@ struct FilccCell
                 }
                 case (BCType::hoextrapcc):
                 {
-                    q(i,j,0,n) = Real(2.)*q(i,j+1,0,n) - q(i,j+2,0,n);
+                    q(i,j,0,n) = Real(jlo-j)*(q(i,jlo,0,n) - q(i,jlo+1,0,n)) + q(i,jlo,0,n);
                     break;
                 }
                 case (BCType::reflect_even):
@@ -188,7 +188,7 @@ struct FilccCell
                 }
                 case (BCType::hoextrapcc):
                 {
-                    q(i,j,0,n) = Real(2.)*q(i,j-1,0,n) - q(i,j-2,0,n);
+                    q(i,j,0,n) = Real(j-jhi)*(q(i,jhi,0,n) - q(i,jhi-1,0,n)) + q(i,jhi,0,n);
                     break;
                 }
                 case (BCType::reflect_even):

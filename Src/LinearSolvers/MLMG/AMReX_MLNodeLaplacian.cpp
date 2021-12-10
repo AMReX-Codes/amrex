@@ -124,6 +124,30 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
 #endif
 
 void
+MLNodeLaplacian::resizeMultiGrid (int new_size)
+{
+    if (!   m_sigma.empty()) {
+        if (m_sigma[0].size() > new_size) {
+            m_sigma[0].resize(new_size);
+        }
+    }
+
+    if (!   m_stencil.empty()) {
+        if (m_stencil[0].size() > new_size) {
+            m_stencil[0].resize(new_size);
+        }
+    }
+
+    if (!   m_s0_norm0.empty()) {
+        if (m_s0_norm0[0].size() > new_size) {
+            m_s0_norm0[0].resize(new_size);
+        }
+    }
+
+    MLNodeLinOp::resizeMultiGrid(new_size);
+}
+
+void
 MLNodeLaplacian::unimposeNeumannBC (int amrlev, MultiFab& rhs) const
 {
     if (m_coarsening_strategy == CoarseningStrategy::RAP) {
@@ -510,7 +534,7 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
     const auto hibc = HiBC();
 
     const iMultiFab& fdmsk = *m_dirichlet_mask[camrlev+1][0];
-    const auto& stencil    =  m_stencil[camrlev+1][0];
+    const auto& stencil    =  m_nosigma_stencil[camrlev+1];
 
     MultiFab cfine(amrex::coarsen(fba, amrrr), fdm, 1, 0);
 

@@ -16,7 +16,7 @@ namespace amrex {
  *
  * CellConservativeProtected only works in 2D and 3D on cpu and gpu.
  *
- * CellQuadratic only works in 2D on cpu and gpu.
+ * CellQuadratic only works in 2D and 3D on cpu and gpu.
  *
  * CellConservativeQuartic only works with ref ratio of 2 on cpu and gpu.
  *
@@ -477,17 +477,12 @@ CellQuadratic::interp (const FArrayBox& crse,
                        int              /* actual_state */,
                        RunOn            runon)
 {
-#if (AMREX_SPACEDIM != 2)
+#if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(crse,crse_comp,fine,fine_comp,ncomp,fine_region,
                          ratio,crse_geom,fine_geom,bcr,runon);
-
-#if (AMREX_SPACEDIM == 1)
     amrex::Abort("1D CellQuadratic::interp not supported");
-#else /* (AMREX_SPACEDIM == 3) */
-    amrex::Abort("3D CellQuadratic::interp not supported");
-#endif
-
 #else
+
     BL_PROFILE("CellQuadratic::interp()");
     BL_ASSERT(bcr.size() >= ncomp);
 
@@ -511,7 +506,12 @@ CellQuadratic::interp (const FArrayBox& crse,
     BCRec const* bcrp = (run_on_gpu) ? async_bcr.data() : bcr.data();
 
     // Set up temporary fab (with elixir, as needed) for coarse grid slopes
-    FArrayBox sfab(cslope_bx, 5*ncomp); // x, y, x^2, y^2, xy, in that order.
+#if (AMREX_SPACEDIM == 2)
+    int nslp = 5; // x, y, x^2, y^2, xy, in that order.
+#else  /* AMREX_SPACEDIM == 3 */
+    int nslp = 9; // x, y, z, x^2, y^2, z^2, xy, xz, yz, in that order.
+#endif /* AMREX_SPACEDIM == 2 */
+    FArrayBox sfab(cslope_bx, nslp*ncomp);
     Elixir seli;
     if (run_on_gpu) seli = sfab.elixir();
 
@@ -530,7 +530,7 @@ CellQuadratic::interp (const FArrayBox& crse,
                                     cdomain, bcrp);
     });
 
-
+#if (AMREX_SPACEDIM == 2)
     if (crse_geom.IsRZ()) {
 
         // Get coarse and fine geometry data.
@@ -550,6 +550,7 @@ CellQuadratic::interp (const FArrayBox& crse,
         });
 
     } else { /* crse_geom.IsCartesian() */
+#endif /* AMREX_SPACEDIM == 2 */
 
         // No need for fine geometry data if using Cartesian coordinates.
         amrex::ignore_unused(fine_geom);
@@ -565,9 +566,11 @@ CellQuadratic::interp (const FArrayBox& crse,
                                      ratio);
         });
 
+#if (AMREX_SPACEDIM == 2)
     } // geom
+#endif /* AMREX_SPACEDIM == 2 */
 
-#endif /*(AMREX_SPACEDIM != 2)*/
+#endif /*(AMREX_SPACEDIM == 1)*/
 }
 
 PCInterp::~PCInterp () {}
