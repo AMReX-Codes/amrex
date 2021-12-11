@@ -332,7 +332,7 @@ void average_down_nodal (const FabArray<FAB>& fine, FabArray<FAB>& crse,
    /**
     * \brief Returns part of a norm based on two MultiFabs
     * The MultiFabs MUST have the same underlying BoxArray.
-    * The function f is applied elementwise as f(x(i,j,k,n)*y(i,j,k,n))
+    * The function f is applied elementwise as f(x(i,j,k,n),y(i,j,k,n))
     * inside the summation (subject to a valid mask entry pf(mask(i,j,k,n)
     */
 
@@ -392,7 +392,7 @@ NormHelper (const MultiFab& x, int xcomp,
     * \brief Returns part of a norm based on three MultiFabs
     * The MultiFabs MUST have the same underlying BoxArray.
     * The Predicate pf is used to test the mask
-    * The function f is applied elementwise as f(x(i,j,k,n)*y(i,j,k,n))
+    * The function f is applied elementwise as f(x(i,j,k,n),y(i,j,k,n))
     * inside the summation (subject to a valid mask entry pf(mask(i,j,k,n)
     */
 
@@ -410,7 +410,7 @@ NormHelper (const MMF& mask,
     BL_ASSERT(x.DistributionMap() == y.DistributionMap());
     BL_ASSERT(x.DistributionMap() == mask.DistributionMap());
     BL_ASSERT(x.nGrowVect().allGE(nghost) && y.nGrowVect().allGE(nghost));
-    BL_ASSERT(mask.nGrow() >= nghost);
+    BL_ASSERT(mask.nGrowVect().allGE(nghost));
 
     Real sm = Real(0.0);
 #ifdef AMREX_USE_GPU
