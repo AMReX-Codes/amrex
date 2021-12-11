@@ -332,7 +332,6 @@ void average_down_nodal (const FabArray<FAB>& fine, FabArray<FAB>& crse,
    /**
     * \brief Returns part of a norm based on two MultiFabs
     * The MultiFabs MUST have the same underlying BoxArray.
-    * The Predicate pf is used to test the mask
     * The function f is applied elementwise as f(x(i,j,k,n)*y(i,j,k,n))
     * inside the summation (subject to a valid mask entry pf(mask(i,j,k,n)
     */
@@ -342,18 +341,18 @@ Real
 NormHelper (const MultiFab& x, int xcomp,
             const MultiFab& y, int ycomp,
             F && f,
-            int numcomp, int nghost, bool local)
+            int numcomp, IntVect nghost, bool local)
 {
     BL_ASSERT(x.boxArray() == y.boxArray());
     BL_ASSERT(x.DistributionMap() == y.DistributionMap());
-    BL_ASSERT(x.nGrow() >= nghost && y.nGrow() >= nghost);
+    BL_ASSERT(x.nGrowVect().allGE(nghost) && y.nGrowVect().allGE(nghost));
 
     Real sm = Real(0.0);
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
         auto const& xma = x.const_arrays();
         auto const& yma = y.const_arrays();
-        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, x, IntVect(nghost),
+        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, x, nghost,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
         {
             Real t = Real(0.0);
@@ -404,13 +403,13 @@ NormHelper (const MMF& mask,
                const MultiFab& y, int ycomp,
                Pred && pf,
                F && f,
-               int numcomp, int nghost, bool local)
+               int numcomp, IntVect nghost, bool local)
 {
     BL_ASSERT(x.boxArray() == y.boxArray());
     BL_ASSERT(x.boxArray() == mask.boxArray());
     BL_ASSERT(x.DistributionMap() == y.DistributionMap());
     BL_ASSERT(x.DistributionMap() == mask.DistributionMap());
-    BL_ASSERT(x.nGrow() >= nghost && y.nGrow() >= nghost);
+    BL_ASSERT(x.nGrowVect().allGE(nghost) && y.nGrowVect().allGE(nghost));
     BL_ASSERT(mask.nGrow() >= nghost);
 
     Real sm = Real(0.0);
@@ -419,7 +418,7 @@ NormHelper (const MMF& mask,
         auto const& xma = x.const_arrays();
         auto const& yma = y.const_arrays();
         auto const& mma = mask.const_arrays();
-        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, x, IntVect(nghost),
+        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, x, nghost,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
         {
             Real t = Real(0.0);

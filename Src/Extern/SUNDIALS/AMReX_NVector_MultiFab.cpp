@@ -552,7 +552,7 @@ amrex::Real NormHelper_NVector_MultiFab(N_Vector x, N_Vector w, N_Vector id, int
    sunindextype numcomp = mf_x->nComp();
    sunindextype N = amrex::sundials::N_VGetLength_MultiFab(x);
    bool local = true;
-   int nghost = 0;
+   IntVect nghost = amrex::IntVect::TheZeroVector();
    Real sum = 0;
    int xcomp = 0;
    int ycomp = 0;
