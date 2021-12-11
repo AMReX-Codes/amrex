@@ -1888,15 +1888,23 @@ DistributionMapping::writeOn (std::ostream& os) const
 
 DistributionMapping MakeSimilarDM (const BoxArray& ba, const MultiFab& mf, const IntVect& ng)
 {
-    Vector<int> pmap(ba.size());
     const DistributionMapping& mf_dm = mf.DistributionMap();
     const BoxArray& mf_ba = convert(mf.boxArray(),ba.ixType());
+    return MakeSimilarDM(ba, mf_ba, mf_dm, ng);
+}
 
+DistributionMapping MakeSimilarDM (const BoxArray& ba, const BoxArray& src_ba,
+                                   const DistributionMapping& src_dm, const IntVect& ng)
+{
+    AMREX_ASSERT_WITH_MESSAGE(ba.ixType() == src_ba.ixType(),
+                              "input BoxArrays must have the same centering.";);
+
+    Vector<int> pmap(ba.size());
     for (Long i = 0; i < ba.size(); ++i) {
         Box box = ba[i];
         box.grow(ng);
         bool first_only = false;
-        auto isects = mf_ba.intersections(box, first_only, ng);
+        auto isects = src_ba.intersections(box, first_only, ng);
         if (isects.empty()) {
             // no intersection found, revert to round-robin
             int nprocs = ParallelContext::NProcsSub();
@@ -1913,7 +1921,7 @@ DistributionMapping MakeSimilarDM (const BoxArray& ba, const MultiFab& mf, const
                 }
             }
             AMREX_ASSERT(max_overlap > 0);
-            pmap[i] = mf_dm[max_overlap_index];
+            pmap[i] = src_dm[max_overlap_index];
         }
     }
     return DistributionMapping(std::move(pmap));
