@@ -13,9 +13,6 @@
   Implementation file for N_Vector wrap of AMReX 'MultiFab' structure.
   --------------------------------------------------------------------*/
 
-#include <cstdio>
-#include <cstdlib>
-
 #include <sundials/sundials_math.h>
 
 #include "AMReX_NVector_MultiFab.H"
@@ -560,17 +557,16 @@ amrex::Real NormHelper_NVector_MultiFab(N_Vector x, N_Vector w, N_Vector id, int
    // ghost cells not included
    if(use_id)
      sum = amrex::NormHelper(*mf_id,
-               *mf_x, xcomp,
-               *mf_y, ycomp,
-               [=] AMREX_GPU_HOST_DEVICE (amrex::Real m) -> amrex::Real { return m > amrex::Real(0.0); },
-               [=] AMREX_GPU_HOST_DEVICE (amrex::Real x, amrex::Real y) -> amrex::Real { return x*x*y*y; },
-               numcomp, nghost, local);
+                             *mf_x, xcomp,
+                             *mf_y, ycomp,
+                             [=] AMREX_GPU_HOST_DEVICE (amrex::Real m) -> amrex::Real { return m > amrex::Real(0.0); },
+                             [=] AMREX_GPU_HOST_DEVICE (amrex::Real x, amrex::Real y) -> amrex::Real { return x*x*y*y; },
+                             numcomp, nghost, local);
    else
-     sum = amrex::NormHelper(
-               *mf_x, xcomp,
-               *mf_y, ycomp,
-               [=] AMREX_GPU_HOST_DEVICE (amrex::Real x, amrex::Real y) -> amrex::Real { return x*x*y*y; },
-               numcomp, nghost, local);
+     sum = amrex::NormHelper(*mf_x, xcomp,
+                             *mf_y, ycomp,
+                             [=] AMREX_GPU_HOST_DEVICE (amrex::Real x, amrex::Real y) -> amrex::Real { return x*x*y*y; },
+                             numcomp, nghost, local);
    ParallelDescriptor::ReduceRealSum(sum);
 
    return rms ? SUNRsqrt(sum/N) : SUNRsqrt(sum);
@@ -686,12 +682,11 @@ int N_VConstrMask_MultiFab(N_Vector a, N_Vector x, N_Vector m)
       //Changing continue to if check, temp calculation should be changed to reduction
       amrex::ParallelFor(bx, ncomp,
       [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept
-      {
-                  m_fab(i,j,k,c) = amrex::Real(0.0);
+          {
+              m_fab(i,j,k,c) = amrex::Real(0.0);
 
-                  /* Continue if no constraints were set for the variable */
-                  if (a_fab(i,j,k,c) != amrex::Real(0.0))
-                  {
+              /* Continue if no constraints were set for the variable */
+              if (a_fab(i,j,k,c) != amrex::Real(0.0)) {
 
                   /* Check if a set constraint has been violated */
                   amrex::Real a, x;
@@ -702,8 +697,8 @@ int N_VConstrMask_MultiFab(N_Vector a, N_Vector x, N_Vector m)
                   if (test) {
                      m_fab(i,j,k,c) = amrex::Real(1.0);
                   }
-                  }
-      });
+              }
+          });
    }
 
    temp = mf_m->norm1();
