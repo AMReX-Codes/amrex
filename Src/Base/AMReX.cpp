@@ -377,6 +377,10 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     BL_PROFILE_INITIALIZE();
 
 #ifndef BL_AMRPROF
+    if (func_parm_parse) {
+        func_parm_parse();
+    }
+
     if (build_parm_parse)
     {
         if (argc == 1)
@@ -419,10 +423,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         }
     } else {
         ParmParse::Initialize(0,0,0);
-    }
-
-    if (func_parm_parse) {
-        func_parm_parse();
     }
 
     {
