@@ -689,6 +689,11 @@ inline void GccPlacaterMF ()
     std::allocator<MultiFab const*> a2;
     std::allocator<FabArray<FArrayBox>*> a3;
     std::allocator<FabArray<FArrayBox> const*> a4;
+
+    amrex::ignore_unused(a1);
+    amrex::ignore_unused(a2);
+    amrex::ignore_unused(a3);
+    amrex::ignore_unused(a4);
 }
 #endif
 

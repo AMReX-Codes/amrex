@@ -573,7 +573,17 @@ namespace {
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d)
                 {
-                    mf[d]->ParallelCopy(mf_refined_patch[d], 0, dcomp, ncomp, IntVect{0}, nghost);
+                    bool aliasing = false;
+                    for (auto const& fmf_a : fmf) {
+                        aliasing = aliasing || (mf[d] == fmf_a[d]);
+                    }
+                    if (aliasing) {
+                        mf[d]->ParallelCopyToGhost(mf_refined_patch[d], 0, dcomp, ncomp,
+                                                   IntVect{0}, nghost);
+                    } else {
+                        mf[d]->ParallelCopy(mf_refined_patch[d], 0, dcomp, ncomp,
+                                            IntVect{0}, nghost);
+                    }
                 }
             }
         }
@@ -581,7 +591,7 @@ namespace {
         for (int d=0; d<AMREX_SPACEDIM; ++d)
         {
             Vector<MF*> fmf_time;
-            for (auto ffab : fmf)
+            for (auto const& ffab : fmf)
                  { fmf_time.push_back(ffab[d]); }
 
             FillPatchSingleLevel(*mf[d], nghost, time, fmf_time, ft, scomp, dcomp, ncomp,

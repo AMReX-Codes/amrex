@@ -95,31 +95,14 @@ void testParticleMesh (TestParams& parms)
                               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi) noexcept
         {
-          amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
-          amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
-          amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] + 0.5;
+            ParticleInterpolator::Linear interp(p, plo, dxi);
 
-          int i = static_cast<int>(amrex::Math::floor(lx));
-          int j = static_cast<int>(amrex::Math::floor(ly));
-          int k = static_cast<int>(amrex::Math::floor(lz));
-
-          amrex::Real xint = lx - i;
-          amrex::Real yint = ly - j;
-          amrex::Real zint = lz - k;
-
-          amrex::Real sx[] = {1.-xint, xint};
-          amrex::Real sy[] = {1.-yint, yint};
-          amrex::Real sz[] = {1.-zint, zint};
-
-          for (int kk = 0; kk <= 1; ++kk) {
-              for (int jj = 0; jj <= 1; ++jj) {
-                  for (int ii = 0; ii <= 1; ++ii) {
-                      amrex::Gpu::Atomic::AddNoRet(&rho(i+ii-1, j+jj-1, k+kk-1, 0),
-                                                   sx[ii]*sy[jj]*sz[kk]*p.rdata(0));
-                  }
-              }
-          }
-      });
+            interp.ParticleToMesh(p, rho, 0, 0, 1,
+                [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& part, int comp)
+                {
+                    return part.rdata(comp);  // no weighting
+                });
+        });
 
     //
     // Here we provide an example of another way to call ParticleToMesh
@@ -128,8 +111,8 @@ void testParticleMesh (TestParams& parms)
     int start_mesh_comp = 0;
     int        num_comp = 1;
 
-    ParticleToMesh(myPC,GetVecOfPtrs(density2),0,parms.nlevs-1,
-                   TrilinearDeposition{start_part_comp,start_mesh_comp,num_comp});
+    amrex::ParticleToMesh(myPC,GetVecOfPtrs(density2),0,parms.nlevs-1,
+                          TrilinearDeposition{start_part_comp,start_mesh_comp,num_comp});
 
     //
     // Now write the output from each into separate plotfiles for comparison

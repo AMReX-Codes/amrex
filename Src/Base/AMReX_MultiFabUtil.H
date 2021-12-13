@@ -329,6 +329,136 @@ void average_down_nodal (const FabArray<FAB>& fine, FabArray<FAB>& crse,
     }
 }
 
+   /**
+    * \brief Returns part of a norm based on two MultiFabs
+    * The MultiFabs MUST have the same underlying BoxArray.
+    * The function f is applied elementwise as f(x(i,j,k,n),y(i,j,k,n))
+    * inside the summation (subject to a valid mask entry pf(mask(i,j,k,n)
+    */
+
+template <typename F>
+Real
+NormHelper (const MultiFab& x, int xcomp,
+            const MultiFab& y, int ycomp,
+            F && f,
+            int numcomp, IntVect nghost, bool local)
+{
+    BL_ASSERT(x.boxArray() == y.boxArray());
+    BL_ASSERT(x.DistributionMap() == y.DistributionMap());
+    BL_ASSERT(x.nGrowVect().allGE(nghost) && y.nGrowVect().allGE(nghost));
+
+    Real sm = Real(0.0);
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        auto const& xma = x.const_arrays();
+        auto const& yma = y.const_arrays();
+        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, x, nghost,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
+        {
+            Real t = Real(0.0);
+            auto const& xfab = xma[box_no];
+            auto const& yfab = yma[box_no];
+            for (int n = 0; n < numcomp; ++n) {
+                t += f(xfab(i,j,k,xcomp+n) , yfab(i,j,k,ycomp+n));
+            }
+            return t;
+        });
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
+#endif
+        for (MFIter mfi(x,true); mfi.isValid(); ++mfi)
+        {
+            Box const& bx = mfi.growntilebox(nghost);
+            Array4<Real const> const& xfab = x.const_array(mfi);
+            Array4<Real const> const& yfab = y.const_array(mfi);
+            AMREX_LOOP_4D(bx, numcomp, i, j, k, n,
+            {
+                sm += f(xfab(i,j,k,xcomp+n) , yfab(i,j,k,ycomp+n));
+            });
+        }
+    }
+
+    if (!local) {
+        ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
+    }
+
+    return sm;
+}
+
+   /**
+    * \brief Returns part of a norm based on three MultiFabs
+    * The MultiFabs MUST have the same underlying BoxArray.
+    * The Predicate pf is used to test the mask
+    * The function f is applied elementwise as f(x(i,j,k,n),y(i,j,k,n))
+    * inside the summation (subject to a valid mask entry pf(mask(i,j,k,n)
+    */
+
+template <typename MMF, typename Pred, typename F>
+Real
+NormHelper (const MMF& mask,
+               const MultiFab& x, int xcomp,
+               const MultiFab& y, int ycomp,
+               Pred && pf,
+               F && f,
+               int numcomp, IntVect nghost, bool local)
+{
+    BL_ASSERT(x.boxArray() == y.boxArray());
+    BL_ASSERT(x.boxArray() == mask.boxArray());
+    BL_ASSERT(x.DistributionMap() == y.DistributionMap());
+    BL_ASSERT(x.DistributionMap() == mask.DistributionMap());
+    BL_ASSERT(x.nGrowVect().allGE(nghost) && y.nGrowVect().allGE(nghost));
+    BL_ASSERT(mask.nGrowVect().allGE(nghost));
+
+    Real sm = Real(0.0);
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        auto const& xma = x.const_arrays();
+        auto const& yma = y.const_arrays();
+        auto const& mma = mask.const_arrays();
+        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, x, nghost,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
+        {
+            Real t = Real(0.0);
+            if (pf(mma[box_no](i,j,k))) {
+                auto const& xfab = xma[box_no];
+                auto const& yfab = yma[box_no];
+                for (int n = 0; n < numcomp; ++n) {
+                    t += f(xfab(i,j,k,xcomp+n) , yfab(i,j,k,ycomp+n));
+                }
+            }
+            return t;
+        });
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
+#endif
+        for (MFIter mfi(x,true); mfi.isValid(); ++mfi)
+        {
+            Box const& bx = mfi.growntilebox(nghost);
+            Array4<Real const> const& xfab = x.const_array(mfi);
+            Array4<Real const> const& yfab = y.const_array(mfi);
+            auto const& mfab = mask.const_array(mfi);
+            AMREX_LOOP_4D(bx, numcomp, i, j, k, n,
+            {
+                if (pf(mfab(i,j,k))) {
+                    sm += f(xfab(i,j,k,xcomp+n) , yfab(i,j,k,ycomp+n));
+                }
+            });
+        }
+    }
+
+    if (!local) {
+        ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
+    }
+
+    return sm;
+}
+
 }
 
 #endif
