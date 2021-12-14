@@ -18,7 +18,7 @@ ifeq ($(USE_FORTRAN_INTERFACE),TRUE)
     Pdirs += F_Interfaces/Base F_Interfaces/Octree F_Interfaces/AmrCore
 endif
 ifeq ($(USE_LINEAR_SOLVERS),TRUE)
-   Pdirs += LinearSolvers/MLMG LinearSolvers/Projections
+   Pdirs += LinearSolvers/MLMG
    ifeq ($(USE_FORTRAN_INTERFACE),TRUE)
      Pdirs += F_Interfaces/LinearSolvers
    endif
@@ -55,8 +55,6 @@ distclean: realclean
 
 install: install_lib install_headers install_fortran_modules install_pkg_config
 
-uninstall:
-	@echo Uninstalling...
-	$(SILENT) $(RM) -r $(AMREX_INSTALL_DIR)
+uninstall: uninstall_lib uninstall_headers uninstall_fortran_modules uninstall_pkg_config distclean
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules

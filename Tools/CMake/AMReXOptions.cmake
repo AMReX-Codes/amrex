@@ -157,6 +157,20 @@ cmake_dependent_option( AMReX_DPCPP_ONEDPL "Enable DPCPP's oneDPL algorithms"  O
    "AMReX_GPU_BACKEND STREQUAL SYCL" OFF)
 print_option(  AMReX_DPCPP_ONEDPL )
 
+if (AMReX_DPCPP)
+   set(AMReX_INTEL_ARCH_DEFAULT "IGNORE")
+   if (DEFINED ENV{AMREX_INTEL_ARCH})
+      set(AMReX_INTEL_ARCH_DEFAULT "$ENV{AMREX_INTEL_ARCH}")
+   endif()
+
+   set(AMReX_INTEL_ARCH ${AMReX_INTEL_ARCH_DEFAULT} CACHE STRING
+      "INTEL GPU architecture (Must be provided if AMReX_GPU_BACKEND=SYCL and AMReX_DPCPP_AOT=ON)")
+
+   if (AMReX_DPCPP_AOT AND NOT AMReX_INTEL_ARCH)
+      message(FATAL_ERROR "\nMust specify AMReX_INTEL_ARCH if AMReX_GPU_BACKEND=SYCL and AMReX_DPCPP_AOT=ON\n")
+   endif()
+endif ()
+
 # --- HIP ----
 if (AMReX_HIP)
    set(AMReX_AMD_ARCH_DEFAULT "IGNORE")
@@ -165,10 +179,10 @@ if (AMReX_HIP)
    endif()
 
    set(AMReX_AMD_ARCH ${AMReX_AMD_ARCH_DEFAULT} CACHE STRING
-      "AMD GPU architecture (Must be provided if AMReX_HIP=ON)")
+      "AMD GPU architecture (Must be provided if AMReX_GPU_BACKEND=HIP)")
 
    if (NOT AMReX_AMD_ARCH)
-      message(FATAL_ERROR "\nMust specify AMReX_AMD_ARCH if AMReX_HIP=ON\n")
+      message(FATAL_ERROR "\nMust specify AMReX_AMD_ARCH if AMReX_GPU_BACKEND=HIP\n")
    endif ()
 endif ()
 

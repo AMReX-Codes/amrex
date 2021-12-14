@@ -12,17 +12,25 @@ static constexpr int NAI = 2;
 
 void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
 {
-    int nx = nppc[0];
-    int ny = nppc[1];
-    int nz = nppc[2];
+        int nx = nppc[0];
+#if AMREX_SPACEDIM >= 2
+        int ny = nppc[1];
+#else
+        int ny = 1;
+#endif
+#if AMREX_SPACEDIM == 3
+        int nz = nppc[2];
+#else
+        int nz = 1;
+#endif
 
-    int ix_part = i_part/(ny * nz);
-    int iy_part = (i_part % (ny * nz)) % ny;
-    int iz_part = (i_part % (ny * nz)) / ny;
+        AMREX_D_TERM(int ix_part = i_part/(ny * nz);,
+                     int iy_part = (i_part % (ny * nz)) % ny;,
+                     int iz_part = (i_part % (ny * nz)) / ny;)
 
-    r[0] = (0.5+ix_part)/nx;
-    r[1] = (0.5+iy_part)/ny;
-    r[2] = (0.5+iz_part)/nz;
+        AMREX_D_TERM(r[0] = (0.5+ix_part)/nx;,
+                     r[1] = (0.5+iy_part)/ny;,
+                     r[2] = (0.5+iz_part)/nz;)
 }
 
 class TestParticleContainer
@@ -64,16 +72,16 @@ public:
                     Real r[3];
                     get_position_unit_cell(r, a_num_particles_per_cell, i_part);
 
-                    ParticleReal x = static_cast<ParticleReal> (plo[0] + (iv[0] + r[0])*dx[0]);
-                    ParticleReal y = static_cast<ParticleReal> (plo[1] + (iv[1] + r[1])*dx[1]);
-                    ParticleReal z = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);
+                    AMREX_D_TERM(ParticleReal x = static_cast<ParticleReal> (plo[0] + (iv[0] + r[0])*dx[0]);,
+                                 ParticleReal y = static_cast<ParticleReal> (plo[1] + (iv[1] + r[1])*dx[1]);,
+                                 ParticleReal z = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);)
 
                     ParticleType p;
                     p.id()  = ParticleType::NextID();
                     p.cpu() = ParallelDescriptor::MyProc();
-                    p.pos(0) = x;
-                    p.pos(1) = y;
-                    p.pos(2) = z;
+                    AMREX_D_TERM(p.pos(0) = x;,
+                                 p.pos(1) = y;,
+                                 p.pos(2) = z;)
 
                     for (int i = 0; i < NSR; ++i) p.rdata(i) = i;
                     for (int i = 0; i < NSI; ++i) p.idata(i) = i;
