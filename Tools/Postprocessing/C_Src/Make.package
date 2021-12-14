@@ -1,7 +1,8 @@
 CEXE_sources += ${EBASE}.cpp
 
-ifeq ($(EBASE), PtwisePltTransform)
-ifeq ($(EBASE), PlotfileToTurb)
+
+ifneq ($(EBASE), particle_compare)
+ifneq ($(EBASE), WritePlotfileToASCII)
 
   INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
   include $(AMREX_HOME)/Src/Base/Make.package
