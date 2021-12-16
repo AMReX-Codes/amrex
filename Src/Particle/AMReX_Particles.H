@@ -476,7 +476,7 @@ public:
     *              allows an optimized MPI communication pattern to be used.
     */
     void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
-                       bool remove_invalid=true);
+                       bool remove_negative=true);
 
     /**
      * \brief Sort the particles on each tile by cell, using Fortran ordering.
@@ -1186,10 +1186,10 @@ public:
     }
 
     void RedistributeCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
-                          bool remove_invalid=true);
+                          bool remove_negative=true);
 
     void RedistributeGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
-                          bool remove_invalid=true);
+                          bool remove_negative=true);
 
     Long superParticleSize() const { return superparticle_size; }
 

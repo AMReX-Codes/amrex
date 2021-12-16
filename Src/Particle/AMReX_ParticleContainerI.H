@@ -1064,19 +1064,19 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
-::Redistribute (int lev_min, int lev_max, int nGrow, int local, bool remove_invalid)
+::Redistribute (int lev_min, int lev_max, int nGrow, int local, bool remove_negative)
 {
 #ifdef AMREX_USE_GPU
     if ( Gpu::inLaunchRegion() )
     {
-        RedistributeGPU(lev_min, lev_max, nGrow, local, remove_invalid);
+        RedistributeGPU(lev_min, lev_max, nGrow, local, remove_negative);
     }
     else
     {
-        RedistributeCPU(lev_min, lev_max, nGrow, local, remove_invalid);
+        RedistributeCPU(lev_min, lev_max, nGrow, local, remove_negative);
     }
 #else
-    RedistributeCPU(lev_min, lev_max, nGrow, local, remove_invalid);
+    RedistributeCPU(lev_min, lev_max, nGrow, local, remove_negative);
 #endif
 }
 
@@ -1178,7 +1178,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
-::RedistributeGPU (int lev_min, int lev_max, int nGrow, int local, bool remove_invalid)
+::RedistributeGPU (int lev_min, int lev_max, int nGrow, int local, bool remove_negative)
 {
 #ifdef AMREX_USE_GPU
 
@@ -1228,7 +1228,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
             int num_stay = partitionParticlesByDest(src_tile, assign_grid, BufferMap(),
                                                     geom, lev, gid, tid,
-                                                    lev_min, lev_max, nGrow, remove_invalid);
+                                                    lev_min, lev_max, nGrow, remove_negative);
 
             int num_move = np - num_stay;
             new_sizes[lev][gid] = num_stay;
@@ -1328,7 +1328,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
-::RedistributeCPU (int lev_min, int lev_max, int nGrow, int local, bool remove_invalid)
+::RedistributeCPU (int lev_min, int lev_max, int nGrow, int local, bool remove_negative)
 {
   BL_PROFILE("ParticleContainer::RedistributeCPU()");
 
@@ -1436,7 +1436,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                   ParticleType& p = aos[pindex];
 
                   bool skip_invalid = false;
-                  if ((remove_invalid == true) && (p.id() < 0))
+                  if ((remove_negative == true) && (p.id() < 0))
                   {
                       skip_invalid = true;
                       aos[pindex] = aos[last];
