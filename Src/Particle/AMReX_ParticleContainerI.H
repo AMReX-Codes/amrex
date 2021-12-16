@@ -1069,14 +1069,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 #ifdef AMREX_USE_GPU
     if ( Gpu::inLaunchRegion() )
     {
-        RedistributeGPU(lev_min, lev_max, nGrow, local);
+        RedistributeGPU(lev_min, lev_max, nGrow, local, remove_invalid);
     }
     else
     {
-        RedistributeCPU(lev_min, lev_max, nGrow, local);
+        RedistributeCPU(lev_min, lev_max, nGrow, local, remove_invalid);
     }
 #else
-    RedistributeCPU(lev_min, lev_max, nGrow, local);
+    RedistributeCPU(lev_min, lev_max, nGrow, local, remove_invalid);
 #endif
 }
 
