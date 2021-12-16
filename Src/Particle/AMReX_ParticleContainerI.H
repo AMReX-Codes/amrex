@@ -1064,7 +1064,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
-::Redistribute (int lev_min, int lev_max, int nGrow, int local)
+::Redistribute (int lev_min, int lev_max, int nGrow, int local, bool remove_invalid)
 {
 #ifdef AMREX_USE_GPU
     if ( Gpu::inLaunchRegion() )
@@ -1178,7 +1178,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
-::RedistributeGPU (int lev_min, int lev_max, int nGrow, int local)
+::RedistributeGPU (int lev_min, int lev_max, int nGrow, int local, bool remove_invalid)
 {
 #ifdef AMREX_USE_GPU
 
@@ -1228,7 +1228,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
             int num_stay = partitionParticlesByDest(src_tile, assign_grid, BufferMap(),
                                                     geom, lev, gid, tid,
-                                                    lev_min, lev_max, nGrow);
+                                                    lev_min, lev_max, nGrow, remove_invalid);
 
             int num_move = np - num_stay;
             new_sizes[lev][gid] = num_stay;
@@ -1328,7 +1328,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
-::RedistributeCPU (int lev_min, int lev_max, int nGrow, int local)
+::RedistributeCPU (int lev_min, int lev_max, int nGrow, int local, bool remove_invalid)
 {
   BL_PROFILE("ParticleContainer::RedistributeCPU()");
 
@@ -1435,8 +1435,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
               while (pindex <= last) {
                   ParticleType& p = aos[pindex];
 
-                  if (p.id() < 0)
+                  bool skip_invalid = false;
+                  if ((remove_invalid == true) && (p.id() < 0))
                   {
+                      skip_invalid = true;
                       aos[pindex] = aos[last];
                       for (int comp = 0; comp < NumRealComps(); comp++)
                           soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
@@ -1451,7 +1453,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
                   particlePostLocate(p, pld, lev);
 
-                  if (p.id() < 0)
+                  if ((!skip_invalid) && (p.id() < 0))
                   {
                       aos[pindex] = aos[last];
                       for (int comp = 0; comp < NumRealComps(); comp++)
@@ -1505,7 +1507,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                       p.id() = -p.id(); // Invalidate the particle
                   }
 
-                  if (p.id() < 0)
+                  if ((!skip_invalid) && (p.id() < 0))
                   {
                       aos[pindex] = aos[last];
                       for (int comp = 0; comp < NumRealComps(); comp++)
