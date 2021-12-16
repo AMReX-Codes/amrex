@@ -1317,7 +1317,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     Gpu::Device::synchronize();
     AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max, nGrow) == 0);
 #else
-    amrex::ignore_unused(lev_min,lev_max,nGrow,local);
+    amrex::ignore_unused(lev_min,lev_max,nGrow,local,remove_negative);
 #endif
 }
 
