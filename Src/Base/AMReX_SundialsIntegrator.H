@@ -20,31 +20,6 @@ namespace amrex {
 //! The stepper strategies
 enum Strategy { UNDEFINED = -1, NATIVE, ERK, MRI, MRITEST };
 
-struct FastRhsData {
-  std::function<void(amrex::Vector<amrex::MultiFab> &,
-                     const amrex::Vector<amrex::MultiFab> &,
-                     const amrex::Vector<amrex::MultiFab> &,
-                     const Real)>  rhs_fun_fast;
-  std::function<void(amrex::Vector<amrex::MultiFab> &,
-                     const amrex::Vector<amrex::MultiFab> &,
-                     const Real)>  rhs_fun;
-  std::function<void(amrex::Vector<amrex::MultiFab> &,
-                     const Real)>  post_update;
-  void* inner_mem;
-  amrex::Vector<amrex::MultiFab>* S_stage_data; // hold previous slow stage data
-  N_Vector nv_stage_data; // hold previous slow stage data
-};
-
-/* User-supplied Functions Called by the Solver */
-static int f(realtype t, N_Vector y, N_Vector ydot, void *user_data);
-static int f_fast(realtype t, N_Vector y, N_Vector ydot, void *user_data);
-static int f0(realtype t, N_Vector y, N_Vector ydot, void *user_data);
-static int StoreStage(realtype t, N_Vector* f_data, int nvecs, void *user_data);
-static int PostStoreStage(realtype t, N_Vector y_data, void *user_data);
-static int ProcessStage(realtype t, N_Vector y_data, void *user_data);
-
-typedef IntegratorBase<Vector<MultiFab> > IBaseVM;
-
 template<class T>
 class SundialsIntegrator : public IntegratorBase<T>
 {
@@ -75,7 +50,7 @@ private:
     int NVar; // NOTE: expects S_data to be a Vector<MultiFab>
     N_Vector* nv_many_arr;              /* vector array composed of cons, xmom, ymom, zmom component vectors */
     N_Vector nv_S;
-    N_Vector nv_store;
+    N_Vector nv_stage_data;
 
     void initialize_parameters ()
     {
@@ -147,7 +122,7 @@ private:
         }
 
         nv_S = N_VNew_ManyVector(NVar, nv_many_arr);
-        nv_store = N_VClone(nv_S);
+        nv_stage_data = N_VClone(nv_S);
     }
 
 public:
@@ -168,7 +143,7 @@ public:
         ////STEP THIRTEEN
         N_VDestroyVectorArray(NVar, nv_many_arr);
         N_VDestroy(nv_S);
-        N_VDestroy(nv_store);
+        N_VDestroy(nv_stage_data);
 
         ////STEP FOURTEEN
         if(advance_mri) {
@@ -197,164 +172,145 @@ public:
         bool use_erk3 = true;
         bool use_linear = false;
 
-        Vector<T> temp_storage;
+        Vector<std::unique_ptr<T> > temp_storage;
         IntegratorOps<T>::CreateLike(temp_storage, S_old);
-        T& state_store = temp_storage.back();
+        T& state_store = *temp_storage.back();
+
+        struct FunctionSet {
+            std::function<int(realtype, N_Vector, N_Vector, void*)> f0;
+            std::function<int(realtype, N_Vector, N_Vector, void*)> f_fast;
+            std::function<int(realtype, N_Vector, N_Vector, void*)> f;
+            std::function<int(realtype, N_Vector*, int, void*)> StoreStage;
+            std::function<int(realtype, N_Vector, void*)> ProcessStage;
+            std::function<int(realtype, N_Vector, void*)> PostStoreStage;
+        };
+
+        FunctionSet functions;
+
+        /* Begin Section: SUNDIALS FUNCTION HOOKS */
+        /* f0 routine to compute a zero-valued ODE RHS function f(t,y). */
+        functions.f0 = [&](realtype t, N_Vector y, N_Vector ydot, void *user_data) -> int {
+            // Initialize ydot to zero and return
+            N_VConst(0.0, ydot);
+            return 0;
+        };
+
+        /* f routine to compute the ODE RHS function f(t,y). */
+        functions.f_fast = [&](realtype t, N_Vector y_data, N_Vector y_rhs, void *user_data) -> int {
+            amrex::Vector<amrex::MultiFab> S_data;
+            amrex::Vector<amrex::MultiFab> S_rhs;
+            amrex::Vector<amrex::MultiFab> S_stage_data;
+
+            N_VConst(0.0, y_rhs);
+
+            const int num_vecs = N_VGetNumSubvectors_ManyVector(y_data);
+            S_data.resize(num_vecs);
+            S_rhs.resize(num_vecs);
+            S_stage_data.resize(num_vecs);
+
+            for(int i=0; i<num_vecs; i++)
+            {
+                S_data.at(i)=amrex::MultiFab(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i)),amrex::make_alias,0,amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i))->nComp());
+                S_rhs.at(i)=amrex::MultiFab(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_rhs, i)),amrex::make_alias,0,amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_rhs, i))->nComp());
+                S_stage_data.at(i)=amrex::MultiFab(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_stage_data, i)),amrex::make_alias,0,amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_stage_data, i))->nComp());
+            }
+
+            // NOTE: we can optimize by calling a post_update_fast and only updating the variables the fast integration modifies
+            BaseT::post_update(S_data, t);
+            BaseT::post_update(S_stage_data, t);
+
+            BaseT::fast_rhs(S_rhs, S_stage_data, S_data, t);
+
+            return 0;
+        };
+
+        /* f routine to compute the ODE RHS function f(t,y). */
+        functions.f = [&](realtype t, N_Vector y_data, N_Vector y_rhs, void *user_data) -> int {
+            amrex::Vector<amrex::MultiFab> S_data;
+            amrex::Vector<amrex::MultiFab> S_rhs;
+
+            const int num_vecs = N_VGetNumSubvectors_ManyVector(y_data);
+            S_data.resize(num_vecs);
+            S_rhs.resize(num_vecs);
+
+            for(int i=0; i<num_vecs; i++)
+            {
+                S_data.at(i)=amrex::MultiFab(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i)),amrex::make_alias,0,amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i))->nComp());
+                S_rhs.at(i)=amrex::MultiFab(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_rhs, i)),amrex::make_alias,0,amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_rhs, i))->nComp());
+            }
+
+            BaseT::post_update(S_data, t);
+            BaseT::rhs(S_rhs, S_data, t);
+
+            return 0;
+        };
+
+        functions.StoreStage = [&](realtype t, N_Vector* f_data, int nvecs, void *user_data) -> int {
+            N_Vector y_data;
+            Real tcur;
+            ARKStepGetCurrentState(inner_mem, &y_data);
+            ARKStepGetCurrentTime(inner_mem, &tcur);
+
+            //This segfaults if this function is called as PreInner
+            const int num_vecs = N_VGetNumSubvectors_ManyVector(y_data);
+
+            for(int i=0; i<N_VGetNumSubvectors_ManyVector(y_data); i++)
+            {
+                MultiFab* mf_y = amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i));
+                MultiFab* mf_stage = amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_stage_data, i));
+                MultiFab::Copy(*mf_stage, *mf_y, 0, 0, mf_y->nComp(), mf_y->nGrow());
+            }
+
+            return 0;
+        };
+
+        functions.ProcessStage = [&](realtype t, N_Vector y_data, void *user_data) -> int {
+            amrex::Vector<amrex::MultiFab > S_data;
+
+            const int num_vecs = N_VGetNumSubvectors_ManyVector(y_data);
+            S_data.resize(num_vecs);
+
+            for(int i=0; i<num_vecs; i++)
+            {
+                S_data.at(i)=amrex::MultiFab(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i)),amrex::make_alias,0,amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i))->nComp());
+            }
+
+            BaseT::post_update(S_data, t);
+
+            return 0;
+        };
+
+        functions.PostStoreStage = [&](realtype t, N_Vector y_data, void *user_data) -> int {
+            const int num_vecs = N_VGetNumSubvectors_ManyVector(y_data);
+
+            functions.ProcessStage(t, y_data, user_data);
+
+            for(int i=0; i<N_VGetNumSubvectors_ManyVector(y_data); i++)
+            {
+                MultiFab* mf_y = amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i));
+                MultiFab* mf_stage = amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_stage_data, i));
+                MultiFab::Copy(*mf_stage, *mf_y, 0, 0, mf_y->nComp(), mf_y->nGrow());
+            }
+
+            return 0;
+        };
+        /* End Section: SUNDIALS FUNCTION HOOKS */
 
         ////STEP FOUR
         if(advance_mri_test)
         {
             if(use_erk3)
-                inner_mem = ARKStepCreate(f0, NULL, time, nv_S); // explicit bc (explicit f, implicit f, time, data)
+                inner_mem = ARKStepCreate(functions.f0, NULL, time, nv_S); // explicit bc (explicit f, implicit f, time, data)
             else
-                inner_mem = ARKStepCreate(NULL, f0, time, nv_S); // implicit
+                inner_mem = ARKStepCreate(NULL, functions.f0, time, nv_S); // implicit
         }
         else
         {
             if(use_erk3)
-                inner_mem = ARKStepCreate(f_fast, NULL, time, nv_S);
+                inner_mem = ARKStepCreate(functions.f_fast, NULL, time, nv_S);
             else
-                inner_mem = ARKStepCreate(NULL, f_fast, time, nv_S);
+                inner_mem = ARKStepCreate(NULL, functions.f_fast, time, nv_S);
         }
-
-        FastRhsData fast_userdata;
-        fast_userdata.rhs_fun_fast = BaseT::get_fast_rhs();
-        //For the sundials solve, use state_new as temporary data;
-        fast_userdata.S_stage_data = &state_store;
-        fast_userdata.nv_stage_data = nv_store;
-        fast_userdata.inner_mem = inner_mem;
-
-        /* BEGIN: SUNDIALS FUNCTION HOOKS */
-        // f0 routine to compute a zero-valued ODE RHS function f(t,y).
-        static int f0(realtype t, N_Vector y, N_Vector ydot, void *user_data)
-        {
-        // Initialize ydot to zero and return
-        N_VConst(0.0, ydot);
-        return 0;
-        }
-
-        /* f routine to compute the ODE RHS function f(t,y). */
-        static int f_fast(realtype t, N_Vector y_data, N_Vector y_rhs, void *user_data)
-        {
-        FastRhsData* fast_userdata = (FastRhsData*) user_data;
-        amrex::Vector<amrex::MultiFab> S_data;
-        amrex::Vector<amrex::MultiFab> S_rhs;
-        amrex::Vector<amrex::MultiFab> S_stage_data;
-        auto call_post_update = IBaseVM::get_post_update();
-        auto call_rhs = IBaseVM::get_rhs();
-
-        N_VConst(0.0, y_rhs);
-
-        const int num_vecs = N_VGetNumSubvectors_ManyVector(y_data);
-        S_data.resize(num_vecs);
-        S_rhs.resize(num_vecs);
-        S_stage_data.resize(num_vecs);
-
-        for(int i=0; i<num_vecs; i++)
-        {
-            S_data.at(i)=amrex::MultiFab(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i)),amrex::make_alias,0,amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i))->nComp());
-            S_rhs.at(i)=amrex::MultiFab(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_rhs, i)),amrex::make_alias,0,amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_rhs, i))->nComp());
-            S_stage_data.at(i)=amrex::MultiFab(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(fast_userdata->nv_stage_data, i)),amrex::make_alias,0,amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(fast_userdata->nv_stage_data, i))->nComp());
-        }
-
-        // NOTE: we can optimize by calling a post_update_fast and only updating the variables the fast integration modifies
-        call_post_update(S_data, t);
-        call_post_update(S_stage_data, t);
-
-        //Call rhs_fun_fast lambda stored in userdata which uses erf_fast_rhs
-        fast_userdata->rhs_fun_fast(S_rhs, S_stage_data, S_data, t);
-
-        return 0;
-        }
-
-        static int StoreStage(realtype t, N_Vector* f_data, int nvecs, void *user_data)
-        {
-
-        //Note that user_data may be different between mristep and inner stepper
-        FastRhsData* fast_userdata = (FastRhsData*) user_data;
-        void* inner_mem = fast_userdata->inner_mem;
-
-        N_Vector y_data;
-        Real tcur;
-        ARKStepGetCurrentState(inner_mem, &y_data);
-        ARKStepGetCurrentTime(inner_mem, &tcur);
-
-        //This segfaults if this function is called as PreInner
-        const int num_vecs = N_VGetNumSubvectors_ManyVector(y_data);
-
-        for(int i=0; i<N_VGetNumSubvectors_ManyVector(y_data); i++)
-        {
-            MultiFab* mf_y = amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i));
-            MultiFab* mf_stage = amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(fast_userdata->nv_stage_data, i));
-            MultiFab::Copy(*mf_stage, *mf_y, 0, 0, mf_y->nComp(), mf_y->nGrow());
-        }
-
-        return 0;
-        }
-
-        static int PostStoreStage(realtype t, N_Vector y_data, void *user_data)
-        {
-
-        FastRhsData* fast_userdata = (FastRhsData*) user_data;
-
-        const int num_vecs = N_VGetNumSubvectors_ManyVector(y_data);
-
-        ProcessStage(t, y_data, user_data);
-
-        for(int i=0; i<N_VGetNumSubvectors_ManyVector(y_data); i++)
-        {
-            MultiFab* mf_y = amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i));
-            MultiFab* mf_stage = amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(fast_userdata->nv_stage_data, i));
-            MultiFab::Copy(*mf_stage, *mf_y, 0, 0, mf_y->nComp(), mf_y->nGrow());
-        }
-
-        return 0;
-        }
-
-        /* f routine to compute the ODE RHS function f(t,y). */
-        static int f(realtype t, N_Vector y_data, N_Vector y_rhs, void *user_data)
-        {
-        FastRhsData* fast_userdata = (FastRhsData*) user_data;
-        amrex::Vector<amrex::MultiFab> S_data;
-        amrex::Vector<amrex::MultiFab> S_rhs;
-        auto call_post_update = IBaseVM::get_post_update();
-        auto call_rhs = IBaseVM::get_rhs();
-
-        const int num_vecs = N_VGetNumSubvectors_ManyVector(y_data);
-        S_data.resize(num_vecs);
-        S_rhs.resize(num_vecs);
-
-        for(int i=0; i<num_vecs; i++)
-        {
-            S_data.at(i)=amrex::MultiFab(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i)),amrex::make_alias,0,amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i))->nComp());
-            S_rhs.at(i)=amrex::MultiFab(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_rhs, i)),amrex::make_alias,0,amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_rhs, i))->nComp());
-        }
-
-        call_post_update(S_data, t);
-        call_rhs(S_rhs, S_data, t);
-
-        return 0;
-        }
-
-        static int ProcessStage(realtype t, N_Vector y_data, void *user_data)
-        {
-        FastRhsData* fast_userdata = (FastRhsData*) user_data;
-        amrex::Vector<amrex::MultiFab > S_data;
-        auto call_post_update = BaseT::get_post_update();
-
-        const int num_vecs = N_VGetNumSubvectors_ManyVector(y_data);
-        S_data.resize(num_vecs);
-
-        for(int i=0; i<num_vecs; i++)
-        {
-            S_data.at(i)=amrex::MultiFab(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i)),amrex::make_alias,0,amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i))->nComp());
-        }
-
-        call_post_update(S_data, t);
-
-        return 0;
-        }
-        /* END: SUNDIALS FUNCTION HOOKS */
 
         ////STEP FIVE
         ARKStepSetFixedStep(inner_mem, hfixed_mri);            // Specify fixed time step size
@@ -362,19 +318,19 @@ public:
         /* Call ERKStepCreate to initialize the inner ARK timestepper module and
         specify the right-hand side function in y'=f(t,y), the initial time
         T0, and the initial dependent variable vector y. */
-        arkode_mem = ERKStepCreate(f, time, nv_S); // NOTE: unused if we are doing multirate
-        ERKStepSetUserData(arkode_mem, (void *) &fast_userdata);  /* Pass udata to user functions */
-        ERKStepSetPostprocessStageFn(arkode_mem, ProcessStage);
+        arkode_mem = ERKStepCreate(functions.f, time, nv_S); // NOTE: unused if we are doing multirate
+        ERKStepSetUserData(arkode_mem, NULL);  /* Pass udata to user functions */
+        ERKStepSetPostprocessStageFn(arkode_mem, functions.ProcessStage);
         /* Specify tolerances */
         ERKStepSStolerances(arkode_mem, reltol, abstol);
         ERKStepSetFixedStep(arkode_mem, hfixed);
 
-        ARKStepSetUserData(inner_mem, (void *) &fast_userdata);  /* Pass udata to user functions */
+        ARKStepSetUserData(inner_mem, NULL);  /* Pass udata to user functions */
 
         for(int i=0; i<N_VGetNumSubvectors_ManyVector(nv_S); i++)
         {
             MultiFab::Copy(state_store[i], *amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_S, i)), 0, 0, state_store[i].nComp(), state_store[i].nGrow());
-            MultiFab::Copy(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_store, i)), *amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_S, i)), 0, 0, state_store[i].nComp(), state_store[i].nGrow());
+            MultiFab::Copy(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_stage_data, i)), *amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_S, i)), 0, 0, state_store[i].nComp(), state_store[i].nGrow());
         }
 
         ARKodeButcherTable B = ARKodeButcherTable_Alloc(3, SUNFALSE);
@@ -438,7 +394,7 @@ public:
         if(advance_mri)
         {
             ////STEP SIX
-            mristep_mem = MRIStepCreate(f, time, nv_S, MRISTEP_ARKSTEP, inner_mem);
+            mristep_mem = MRIStepCreate(functions.f, time, nv_S, MRISTEP_ARKSTEP, inner_mem);
 
             ////STEP SEVEN
             MRIStepSetFixedStep(mristep_mem, hfixed);
@@ -459,12 +415,12 @@ public:
                 MRIStepSetNonlinearSolver(mristep_mem, NLS);
 
             ////STEP NINE
-            MRIStepSetUserData(mristep_mem, (void *) &fast_userdata);  /* Pass udata to user functions */
+            // MRIStepSetUserData(mristep_mem, NULL);  /* Pass udata to user functions */
 
-            MRIStepSetPostInnerFn(mristep_mem, PostStoreStage);
+            MRIStepSetPostInnerFn(mristep_mem, functions.PostStoreStage);
             //    ARKStepSetPostprocessStepFn(inner_mem, PostStoreStage);
             //    MRIStepSetPreInnerFn(mristep_mem, StoreStage);
-            MRIStepSetPostprocessStageFn(mristep_mem, ProcessStage);
+            MRIStepSetPostprocessStageFn(mristep_mem, functions.ProcessStage);
         }
 
         //Set table
@@ -505,13 +461,9 @@ public:
         return timestep;
     }
 
-    void time_interpolate (const T& S_new, const T& S_old, amrex::Real timestep_fraction, T& data)
-    {
-    }
+    void time_interpolate (const T& S_new, const T& S_old, amrex::Real timestep_fraction, T& data) {}
 
-    void map_data (std::function<void(T&)> Map)
-    {
-    }
+    void map_data (std::function<void(T&)> Map) {}
 
 };
 
