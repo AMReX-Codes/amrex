@@ -58,6 +58,39 @@ public:
                          RunOn            gpu_or_cpu) = 0;
 
     /**
+    * \brief Coarse to fine interpolation in space for face-based data.
+    *
+    * \param crse
+    * \param crse_comp
+    * \param fine
+    * \param fine_comp
+    * \param ncomp
+    * \param fine_region
+    * \param fine_values
+    * \param fine_known
+    * \param ratio
+    * \param crse_geom
+    * \param fine_geom
+    * \param bcr
+    * \param actual_comp
+    * \param actual_state
+    */
+    virtual void interp_face (const FArrayBox& /*crse*/,
+                              int              /*crse_comp*/,
+                              FArrayBox&       /*fine*/,
+                              int              /*fine_comp*/,
+                              int              /*ncomp*/,
+                              const Box&       /*fine_region*/,
+                              const IntVect&   /*ratio*/,
+			      IArrayBox* const& /*solve_mask*/,
+                              const Geometry&  /*crse_geom*/,
+                              const Geometry&  /*fine_geom*/,
+                              Vector<BCRec> const & /*bcr*/,
+                              RunOn            /*gpu_or_cpu*/)
+    // FIXME? maybe we want to keep a bc_comp?
+    { amrex::Abort("The version of this Interpolater for face-based data is not implemented or does not apply. Call 'interp' instead."); }
+
+    /**
     * \brief Coarse to fine interpolation in space.
     *        Takes an Array of FArrayBox*s
     *
@@ -746,7 +779,36 @@ public:
                          int              actual_state,
                          RunOn            gpu_or_cpu) override;
 
-/**
+    /**
+    * \brief Coarse to fine interpolation in space for face-based data.
+    *
+    * \param crse
+    * \param crse_comp
+    * \param fine
+    * \param fine_comp
+    * \param ncomp
+    * \param fine_region
+    * \param ratio
+    * \param solve_mask
+    * \param crse_geom
+    * \param fine_geom
+    * \param bcr
+    * \param runon
+    */
+    virtual void interp_face (const FArrayBox& crse,
+                              int              crse_comp,
+                              FArrayBox&       fine,
+                              int              fine_comp,
+                              int              ncomp,
+                              const Box&       fine_region,
+                              const IntVect&   ratio,
+			      IArrayBox* const& solve_mask,
+                              const Geometry&  crse_geom,
+                              const Geometry&  fine_geom,
+                              Vector<BCRec> const & bcr,
+                              RunOn            gpu_or_cpu) override;
+
+    /**
     * \brief Coarse to fine interpolation in space.
     *
     * \param crse
@@ -755,8 +817,6 @@ public:
     * \param fine_comp
     * \param ncomp
     * \param fine_region
-    * \param fine_values
-    * \param fine_known
     * \param ratio
     * \param crse_geom
     * \param fine_geom
@@ -771,7 +831,7 @@ public:
                              const int         ncomp,
                              const Box&        fine_region,
                              const IntVect&    ratio,
-                             Array<IArrayBox*, AMREX_SPACEDIM> const& /*solve_mask*/,
+                             Array<IArrayBox*, AMREX_SPACEDIM> const& solve_mask,
                              const Geometry&   /*crse_geom*/,
                              const Geometry&   /*fine_geom*/,
                              Vector<Array<BCRec, AMREX_SPACEDIM> > const& /*bcr*/,

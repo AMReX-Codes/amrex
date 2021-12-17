@@ -20,12 +20,15 @@ face_linear_face_interp (int ci, int cj, int ck, int n, int idir, Array4<T> cons
                          IntVect const& ratio) noexcept
 {
     // Fill only overlapping faces.
-    const int fi = ci*ratio[0];
-    const int fj = cj*ratio[1];
-#if AMREX_SPACEDIM==3
-    const int fk = ck*ratio[2];
-#else
-    const int fk = 0;
+    int fi = ci*ratio[0];
+    int fj = 0;
+    int fk = 0;
+
+#if AMREX_SPACEDIM >= 2
+    fj = cj*ratio[1];
+#if AMREX_SPACEDIM == 3
+    fk = ck*ratio[2];
+#endif
 #endif
 
     // Check mask to ensure we don't overwrite valid fine data.
@@ -38,10 +41,12 @@ face_linear_face_interp (int ci, int cj, int ck, int n, int idir, Array4<T> cons
         case 0:
         {
             fine(fi,fj  ,fk  ,n) = crse(ci,cj,ck,n);
+#if AMREX_SPACEDIM >= 2
             fine(fi,fj+1,fk  ,n) = crse(ci,cj,ck,n);
-#if AMREX_SPACEDIM==3
+#if AMREX_SPACEDIM == 3
             fine(fi,fj  ,fk+1,n) = crse(ci,cj,ck,n);
             fine(fi,fj+1,fk+1,n) = crse(ci,cj,ck,n);
+#endif
 #endif
             break;
         }
@@ -49,7 +54,7 @@ face_linear_face_interp (int ci, int cj, int ck, int n, int idir, Array4<T> cons
         {
             fine(fi  ,fj,fk  ,n) = crse(ci,cj,ck,n);
             fine(fi+1,fj,fk  ,n) = crse(ci,cj,ck,n);
-#if AMREX_SPACEDIM==3
+#if AMREX_SPACEDIM == 3
             fine(fi  ,fj,fk+1,n) = crse(ci,cj,ck,n);
             fine(fi+1,fj,fk+1,n) = crse(ci,cj,ck,n);
 #endif
