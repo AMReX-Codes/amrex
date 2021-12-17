@@ -20,6 +20,47 @@ namespace amrex {
 //! The stepper strategies
 enum Strategy { UNDEFINED = -1, NATIVE, ERK, MRI, MRITEST };
 
+struct SundialsUserData {
+    std::function<int(realtype, N_Vector, N_Vector, void*)> f0;
+    std::function<int(realtype, N_Vector, N_Vector, void*)> f_fast;
+    std::function<int(realtype, N_Vector, N_Vector, void*)> f;
+    std::function<int(realtype, N_Vector*, int, void*)> StoreStage;
+    std::function<int(realtype, N_Vector, void*)> ProcessStage;
+    std::function<int(realtype, N_Vector, void*)> PostStoreStage;
+};
+
+namespace SundialsUserFun {
+    static int f0 (realtype t, N_Vector y, N_Vector ydot, void *user_data) {
+        SundialsUserData* udata = static_cast<SundialsUserData*>(user_data);
+        return udata->f0(t, y, ydot, user_data);
+    }
+
+    static int f_fast (realtype t, N_Vector y_data, N_Vector y_rhs, void *user_data) {
+        SundialsUserData* udata = static_cast<SundialsUserData*>(user_data);
+        return udata->f_fast(t, y_data, y_rhs, user_data);
+    }
+
+    static int f (realtype t, N_Vector y_data, N_Vector y_rhs, void *user_data) {
+        SundialsUserData* udata = static_cast<SundialsUserData*>(user_data);
+        return udata->f(t, y_data, y_rhs, user_data);
+    }
+
+    static int StoreStage (realtype t, N_Vector* f_data, int nvecs, void *user_data) {
+        SundialsUserData* udata = static_cast<SundialsUserData*>(user_data);
+        return udata->StoreStage(t, f_data, nvecs, user_data);
+    }
+
+    static int ProcessStage (realtype t, N_Vector y_data, void *user_data) {
+        SundialsUserData* udata = static_cast<SundialsUserData*>(user_data);
+        return udata->ProcessStage(t, y_data, user_data);
+    }
+
+    static int PostStoreStage(realtype t, N_Vector y_data, void *user_data) {
+        SundialsUserData* udata = static_cast<SundialsUserData*>(user_data);
+        return udata->PostStoreStage(t, y_data, user_data);
+    }
+}
+
 template<class T>
 class SundialsIntegrator : public IntegratorBase<T>
 {
@@ -83,11 +124,7 @@ private:
             msg += theStrategy;
             amrex::Error(msg.c_str());
         }
-    }
 
-    void initialize_stages (const T& S_data)
-    {
-        ////STEP ONE
         // Create SUNDIALS specific objects
         NLS = NULL;    /* empty nonlinear solver object */
         LS = NULL;    /* empty linear solver object */
@@ -97,32 +134,10 @@ private:
         inner_mem = NULL;      /* empty ARKode memory structure */
         mristep_mem = NULL;      /* empty ARKode memory structure */
 
-        // Create an N_Vector wrapper for the solution MultiFab
-        auto get_length = [&](int index) -> sunindextype {
-            auto* p_mf = &S_data[index];
-            return p_mf->nComp() * (p_mf->boxArray()).numPts();
-        };
-
-        ////STEP TWO
-
         //Arbitrary tolerances
         reltol          = 1e-4;
         abstol          = 1e-4;
         m               = 2;
-
-        ////STEP THREE
-        /* Create manyvector for solution */
-        NVar             = S_data.size(); // NOTE: expects S_data to be a Vector<MultiFab>
-        nv_many_arr = new N_Vector[NVar];              /* vector array composed of cons, xmom, ymom, zmom component vectors */
-
-        for (int i = 0; i < NVar; ++i) {
-            sunindextype length = get_length(i);
-            N_Vector nvi    = amrex::sundials::N_VMake_MultiFab(length, &S_data[i]);
-            nv_many_arr[i] = nvi;
-        }
-
-        nv_S = N_VNew_ManyVector(NVar, nv_many_arr);
-        nv_stage_data = N_VClone(nv_S);
     }
 
 public:
@@ -130,18 +145,22 @@ public:
 
     SundialsIntegrator (const T& S_data)
     {
-        initialize(S_data);
+        initialize();
     }
 
     void initialize (const T& S_data)
     {
         initialize_parameters();
-        initialize_stages(S_data);
+    }
+
+    void initialize ()
+    {
+        initialize_parameters();
     }
 
     virtual ~SundialsIntegrator () {
         ////STEP THIRTEEN
-        N_VDestroyVectorArray(NVar, nv_many_arr);
+        N_VDestroyVectorArray(nv_many_arr, NVar);
         N_VDestroy(nv_S);
         N_VDestroy(nv_stage_data);
 
@@ -172,31 +191,45 @@ public:
         bool use_erk3 = true;
         bool use_linear = false;
 
+        // We use S_new as our working space, so first copy S_old to S_new
+        IntegratorOps<T>::Copy(S_new, S_old);
+
+        // Create an N_Vector wrapper for the solution MultiFab
+        auto get_length = [&](int index) -> sunindextype {
+            auto* p_mf = &S_new[index];
+            return p_mf->nComp() * (p_mf->boxArray()).numPts();
+        };
+
+        /* Create manyvector for solution using S_new */
+        NVar             = S_new.size();  // NOTE: expects S_new to be a Vector<MultiFab>
+        nv_many_arr = new N_Vector[NVar]; // vector array composed of cons, xmom, ymom, zmom component vectors */
+
+        for (int i = 0; i < NVar; ++i) {
+            sunindextype length = get_length(i);
+            N_Vector nvi   = amrex::sundials::N_VMake_MultiFab(length, &S_new[i]);
+            nv_many_arr[i] = nvi;
+        }
+
+        nv_S = N_VNew_ManyVector(NVar, nv_many_arr);
+        nv_stage_data = N_VClone(nv_S);
+
+        /* Create a temporary storage space for MRI */
         Vector<std::unique_ptr<T> > temp_storage;
         IntegratorOps<T>::CreateLike(temp_storage, S_old);
         T& state_store = *temp_storage.back();
 
-        struct FunctionSet {
-            std::function<int(realtype, N_Vector, N_Vector, void*)> f0;
-            std::function<int(realtype, N_Vector, N_Vector, void*)> f_fast;
-            std::function<int(realtype, N_Vector, N_Vector, void*)> f;
-            std::function<int(realtype, N_Vector*, int, void*)> StoreStage;
-            std::function<int(realtype, N_Vector, void*)> ProcessStage;
-            std::function<int(realtype, N_Vector, void*)> PostStoreStage;
-        };
-
-        FunctionSet functions;
+        SundialsUserData udata;
 
         /* Begin Section: SUNDIALS FUNCTION HOOKS */
         /* f0 routine to compute a zero-valued ODE RHS function f(t,y). */
-        functions.f0 = [&](realtype t, N_Vector y, N_Vector ydot, void *user_data) -> int {
+        udata.f0 = [&](realtype t, N_Vector y, N_Vector ydot, void *user_data) -> int {
             // Initialize ydot to zero and return
             N_VConst(0.0, ydot);
             return 0;
         };
 
         /* f routine to compute the ODE RHS function f(t,y). */
-        functions.f_fast = [&](realtype t, N_Vector y_data, N_Vector y_rhs, void *user_data) -> int {
+        udata.f_fast = [&](realtype t, N_Vector y_data, N_Vector y_rhs, void *user_data) -> int {
             amrex::Vector<amrex::MultiFab> S_data;
             amrex::Vector<amrex::MultiFab> S_rhs;
             amrex::Vector<amrex::MultiFab> S_stage_data;
@@ -225,7 +258,7 @@ public:
         };
 
         /* f routine to compute the ODE RHS function f(t,y). */
-        functions.f = [&](realtype t, N_Vector y_data, N_Vector y_rhs, void *user_data) -> int {
+        udata.f = [&](realtype t, N_Vector y_data, N_Vector y_rhs, void *user_data) -> int {
             amrex::Vector<amrex::MultiFab> S_data;
             amrex::Vector<amrex::MultiFab> S_rhs;
 
@@ -245,7 +278,7 @@ public:
             return 0;
         };
 
-        functions.StoreStage = [&](realtype t, N_Vector* f_data, int nvecs, void *user_data) -> int {
+        udata.StoreStage = [&](realtype t, N_Vector* f_data, int nvecs, void *user_data) -> int {
             N_Vector y_data;
             Real tcur;
             ARKStepGetCurrentState(inner_mem, &y_data);
@@ -264,7 +297,7 @@ public:
             return 0;
         };
 
-        functions.ProcessStage = [&](realtype t, N_Vector y_data, void *user_data) -> int {
+        udata.ProcessStage = [&](realtype t, N_Vector y_data, void *user_data) -> int {
             amrex::Vector<amrex::MultiFab > S_data;
 
             const int num_vecs = N_VGetNumSubvectors_ManyVector(y_data);
@@ -280,10 +313,10 @@ public:
             return 0;
         };
 
-        functions.PostStoreStage = [&](realtype t, N_Vector y_data, void *user_data) -> int {
+        udata.PostStoreStage = [&](realtype t, N_Vector y_data, void *user_data) -> int {
             const int num_vecs = N_VGetNumSubvectors_ManyVector(y_data);
 
-            functions.ProcessStage(t, y_data, user_data);
+            udata.ProcessStage(t, y_data, user_data);
 
             for(int i=0; i<N_VGetNumSubvectors_ManyVector(y_data); i++)
             {
@@ -300,16 +333,16 @@ public:
         if(advance_mri_test)
         {
             if(use_erk3)
-                inner_mem = ARKStepCreate(functions.f0, NULL, time, nv_S); // explicit bc (explicit f, implicit f, time, data)
+                inner_mem = ARKStepCreate(SundialsUserFun::f0, NULL, time, nv_S); // explicit bc (explicit f, implicit f, time, data)
             else
-                inner_mem = ARKStepCreate(NULL, functions.f0, time, nv_S); // implicit
+                inner_mem = ARKStepCreate(NULL, SundialsUserFun::f0, time, nv_S); // implicit
         }
         else
         {
             if(use_erk3)
-                inner_mem = ARKStepCreate(functions.f_fast, NULL, time, nv_S);
+                inner_mem = ARKStepCreate(SundialsUserFun::f_fast, NULL, time, nv_S);
             else
-                inner_mem = ARKStepCreate(NULL, functions.f_fast, time, nv_S);
+                inner_mem = ARKStepCreate(NULL, SundialsUserFun::f_fast, time, nv_S);
         }
 
         ////STEP FIVE
@@ -318,14 +351,14 @@ public:
         /* Call ERKStepCreate to initialize the inner ARK timestepper module and
         specify the right-hand side function in y'=f(t,y), the initial time
         T0, and the initial dependent variable vector y. */
-        arkode_mem = ERKStepCreate(functions.f, time, nv_S); // NOTE: unused if we are doing multirate
-        ERKStepSetUserData(arkode_mem, NULL);  /* Pass udata to user functions */
-        ERKStepSetPostprocessStageFn(arkode_mem, functions.ProcessStage);
+        arkode_mem = ERKStepCreate(SundialsUserFun::f, time, nv_S); // NOTE: unused if we are doing multirate
+        ERKStepSetUserData(arkode_mem, &udata);  /* Pass udata to user functions */
+        ERKStepSetPostprocessStageFn(arkode_mem, SundialsUserFun::ProcessStage);
         /* Specify tolerances */
         ERKStepSStolerances(arkode_mem, reltol, abstol);
         ERKStepSetFixedStep(arkode_mem, hfixed);
 
-        ARKStepSetUserData(inner_mem, NULL);  /* Pass udata to user functions */
+        ARKStepSetUserData(inner_mem, &udata);  /* Pass udata to user functions */
 
         for(int i=0; i<N_VGetNumSubvectors_ManyVector(nv_S); i++)
         {
@@ -394,7 +427,7 @@ public:
         if(advance_mri)
         {
             ////STEP SIX
-            mristep_mem = MRIStepCreate(functions.f, time, nv_S, MRISTEP_ARKSTEP, inner_mem);
+            mristep_mem = MRIStepCreate(SundialsUserFun::f, time, nv_S, MRISTEP_ARKSTEP, inner_mem);
 
             ////STEP SEVEN
             MRIStepSetFixedStep(mristep_mem, hfixed);
@@ -415,12 +448,12 @@ public:
                 MRIStepSetNonlinearSolver(mristep_mem, NLS);
 
             ////STEP NINE
-            // MRIStepSetUserData(mristep_mem, NULL);  /* Pass udata to user functions */
+            MRIStepSetUserData(mristep_mem, &udata);  /* Pass udata to user functions */
 
-            MRIStepSetPostInnerFn(mristep_mem, functions.PostStoreStage);
+            MRIStepSetPostInnerFn(mristep_mem, SundialsUserFun::PostStoreStage);
             //    ARKStepSetPostprocessStepFn(inner_mem, PostStoreStage);
             //    MRIStepSetPreInnerFn(mristep_mem, StoreStage);
-            MRIStepSetPostprocessStageFn(mristep_mem, functions.ProcessStage);
+            MRIStepSetPostprocessStageFn(mristep_mem, SundialsUserFun::ProcessStage);
         }
 
         //Set table
