@@ -5,15 +5,15 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_IntegratorBase.H>
 #include <functional>
-#include <arkode/arkode_erkstep.h>     /* prototypes for ERKStep fcts., consts */
-#include <arkode/arkode_arkstep.h>     /* prototypes for ARKStep fcts., consts */
-#include <arkode/arkode_mristep.h>     /* prototypes for MRIStep fcts., consts */
-#include <nvector/nvector_manyvector.h>/* manyvector N_Vector types, fcts. etc */
+#include <arkode/arkode_erkstep.h>     /* prototypes for ERKStep fcts., consts   */
+#include <arkode/arkode_arkstep.h>     /* prototypes for ARKStep fcts., consts   */
+#include <arkode/arkode_mristep.h>     /* prototypes for MRIStep fcts., consts   */
+#include <nvector/nvector_manyvector.h>/* manyvector N_Vector types, fcts. etc   */
 #include <AMReX_NVector_MultiFab.H>    /* MultiFab N_Vector types, fcts., macros */
-#include <AMReX_Sundials.H>    /* MultiFab N_Vector types, fcts., macros */
-#include <sunlinsol/sunlinsol_spgmr.h> /* access to SPGMR SUNLinearSolver      */
-#include <sunnonlinsol/sunnonlinsol_fixedpoint.h> /* access to FixedPoint SUNNonlinearSolver      */
-#include <sundials/sundials_types.h>   /* defs. of realtype, sunindextype, etc */
+#include <AMReX_Sundials.H>            /* MultiFab N_Vector types, fcts., macros */
+#include <sunlinsol/sunlinsol_spgmr.h> /* access to SPGMR SUNLinearSolver        */
+#include <sunnonlinsol/sunnonlinsol_fixedpoint.h> /* access to FixedPoint SUNNonlinearSolver */
+#include <sundials/sundials_types.h>   /* defs. of realtype, sunindextype, etc   */
 
 namespace amrex {
 
@@ -73,12 +73,12 @@ private:
     bool advance_mri_test;
 
     SUNNonlinearSolver NLS;    /* empty nonlinear solver object */
-    SUNLinearSolver LS;    /* empty linear solver object */
-    void *arkode_mem;      /* empty ARKode memory structure */
-    SUNNonlinearSolver NLSf;    /* empty nonlinear solver object */
-    SUNLinearSolver LSf;    /* empty linear solver object */
-    void *inner_mem;      /* empty ARKode memory structure */
-    void *mristep_mem;      /* empty ARKode memory structure */
+    SUNLinearSolver LS;        /* empty linear solver object    */
+    void *arkode_mem;          /* empty ARKode memory structure */
+    SUNNonlinearSolver NLSf;   /* empty nonlinear solver object */
+    SUNLinearSolver LSf;       /* empty linear solver object    */
+    void *inner_mem;           /* empty ARKode memory structure */
+    void *mristep_mem;         /* empty ARKode memory structure */
 
     Real reltol;
     Real abstol;
@@ -89,7 +89,7 @@ private:
     Real hfixed_mri;
 
     int NVar; // NOTE: expects S_data to be a Vector<MultiFab>
-    N_Vector* nv_many_arr;              /* vector array composed of cons, xmom, ymom, zmom component vectors */
+    N_Vector* nv_many_arr;     /* vector array composed of cons, xmom, ymom, zmom component vectors */
     N_Vector nv_S;
     N_Vector nv_stage_data;
 
@@ -125,19 +125,19 @@ private:
             amrex::Error(msg.c_str());
         }
 
-        // Create SUNDIALS specific objects
-        NLS = NULL;    /* empty nonlinear solver object */
-        LS = NULL;    /* empty linear solver object */
-        arkode_mem = NULL;      /* empty ARKode memory structure */
-        NLSf = NULL;    /* empty nonlinear solver object */
-        LSf = NULL;    /* empty linear solver object */
+        // SUNDIALS specific objects
+        NLS = NULL;            /* empty nonlinear solver object */
+        LS = NULL;             /* empty linear solver object    */
+        arkode_mem = NULL;     /* empty ARKode memory structure */
+        NLSf = NULL;           /* empty nonlinear solver object */
+        LSf = NULL;            /* empty linear solver object    */
         inner_mem = NULL;      /* empty ARKode memory structure */
-        mristep_mem = NULL;      /* empty ARKode memory structure */
+        mristep_mem = NULL;    /* empty ARKode memory structure */
 
-        //Arbitrary tolerances
+        // Arbitrary tolerances
         reltol          = 1e-4;
         abstol          = 1e-4;
-        m               = 2;
+        m               = 2; // Slow/Fast MRI timestep ratio
     }
 
 public:
@@ -159,12 +159,10 @@ public:
     }
 
     virtual ~SundialsIntegrator () {
-        ////STEP THIRTEEN
         N_VDestroyVectorArray(nv_many_arr, NVar);
         N_VDestroy(nv_S);
         N_VDestroy(nv_stage_data);
 
-        ////STEP FOURTEEN
         if(advance_mri) {
             MRIStepFree(&mristep_mem);
         }
@@ -174,8 +172,8 @@ public:
 
         if(advance_mri)
         {
-            SUNLinSolFree(LS);    // Free nonlinear solvers
-            SUNNonlinSolFree(NLS);    // Free nonlinear solvers
+            SUNLinSolFree(LS);
+            SUNNonlinSolFree(NLS);
         }
     }
 
