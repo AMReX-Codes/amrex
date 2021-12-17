@@ -151,6 +151,7 @@ class IntegratorBase
 {
 private:
     std::function<void(T&, const T&, const amrex::Real)> Fun;
+    std::function<void(T&, const T&, const T&, const amrex::Real)> FastFun;
 
 protected:
     amrex::Real timestep;
@@ -170,14 +171,14 @@ public:
         Fun = F;
     }
 
+    void set_fast_rhs (std::function<void(T&, const T&, const T&, const amrex::Real)> F)
+    {
+        FastFun = F;
+    }
+
     void set_post_update (std::function<void (T&, amrex::Real)> F)
     {
         post_update = F;
-    }
-
-    std::function<void(T&, const T&, const amrex::Real)> get_rhs ()
-    {
-        return Fun;
     }
 
     std::function<void (T&, amrex::Real)> get_post_update ()
@@ -185,9 +186,24 @@ public:
         return post_update;
     }
 
+    std::function<void(T&, const T&, const amrex::Real)> get_rhs ()
+    {
+        return Fun;
+    }
+
+    std::function<void(T&, const T&, const T&, const amrex::Real)> get_fast_rhs ()
+    {
+        return FastFun;
+    }
+
     void rhs (T& S_rhs, const T& S_data, const amrex::Real time)
     {
         Fun(S_rhs, S_data, time);
+    }
+
+    void fast_rhs (T& S_rhs, const T& S_extra, const T& S_data, const amrex::Real time)
+    {
+        FastFun(S_rhs, S_extra, S_data, time);
     }
 
     virtual amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt) = 0;

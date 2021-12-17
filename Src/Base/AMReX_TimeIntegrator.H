@@ -6,13 +6,15 @@
 #include <AMReX_IntegratorBase.H>
 #include <AMReX_FEIntegrator.H>
 #include <AMReX_RKIntegrator.H>
+#include <AMReX_SundialsIntegrator.H>
 #include <functional>
 
 namespace amrex {
 
 enum struct IntegratorTypes {
     ForwardEuler = 0,
-    ExplicitRungeKutta
+    ExplicitRungeKutta,
+    Sundials
 };
 
 template<class T>
@@ -42,7 +44,8 @@ private:
         set_post_update([](T& /* S_data */, amrex::Real /* S_time */){});
 
         // By default, do nothing
-        set_rhs([](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){});
+        set_rhs([](T& S_rhs, const T& S_data, const amrex::Real time){});
+        set_fast_rhs([](T& S_rhs, const T& S_extra, const T& S_data, const amrex::Real time){});
     }
 
 public:
@@ -83,6 +86,9 @@ public:
             case IntegratorTypes::ExplicitRungeKutta:
                 integrator_ptr = std::make_unique<RKIntegrator<T> >(S_data);
                 break;
+            case IntegratorTypes::Sundials:
+                integrator_ptr = std::make_unique<SundialsIntegrator<T> >(S_data);
+                break;
             default:
                 amrex::Error("integrator type did not match a valid integrator type.");
                 break;
@@ -104,6 +110,11 @@ public:
         integrator_ptr->set_rhs(F);
     }
 
+    void set_fast_rhs (std::function<void(T&, const T&, const T&, const amrex::Real)> F)
+    {
+        integrator_ptr->set_fast_rhs(F);
+    }
+
     std::function<void ()> get_post_timestep ()
     {
         return post_timestep;
@@ -117,6 +128,11 @@ public:
     std::function<void(T&, const T&, const amrex::Real)> get_rhs ()
     {
         return integrator_ptr->get_rhs();
+    }
+
+    std::function<void(T&, const T&, const T&, const amrex::Real)> get_fast_rhs ()
+    {
+        return integrator_ptr->get_fast_rhs();
     }
 
     void advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real timestep)
