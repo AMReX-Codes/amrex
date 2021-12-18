@@ -72,22 +72,22 @@ public:
     * \param crse_geom
     * \param fine_geom
     * \param bcr
-    * \param actual_comp
-    * \param actual_state
+    * \param bccomp
+    * \param runon
     */
     virtual void interp_face (const FArrayBox& /*crse*/,
-                              int              /*crse_comp*/,
+                              const int        /*crse_comp*/,
                               FArrayBox&       /*fine*/,
-                              int              /*fine_comp*/,
-                              int              /*ncomp*/,
+                              const int        /*fine_comp*/,
+                              const int        /*ncomp*/,
                               const Box&       /*fine_region*/,
                               const IntVect&   /*ratio*/,
-			      IArrayBox* const& /*solve_mask*/,
+                              IArrayBox* const& /*solve_mask*/,
                               const Geometry&  /*crse_geom*/,
                               const Geometry&  /*fine_geom*/,
                               Vector<BCRec> const & /*bcr*/,
+                              const int        /*bccomp*/,
                               RunOn            /*gpu_or_cpu*/)
-    // FIXME? maybe we want to keep a bc_comp?
     { amrex::Abort("The version of this Interpolater for face-based data is not implemented or does not apply. Call 'interp' instead."); }
 
     /**
@@ -793,19 +793,21 @@ public:
     * \param crse_geom
     * \param fine_geom
     * \param bcr
+    * \param bccomp
     * \param runon
     */
     virtual void interp_face (const FArrayBox& crse,
-                              int              crse_comp,
+                              const int        crse_comp,
                               FArrayBox&       fine,
-                              int              fine_comp,
-                              int              ncomp,
+                              const int        fine_comp,
+                              const int        ncomp,
                               const Box&       fine_region,
                               const IntVect&   ratio,
-			      IArrayBox* const& solve_mask,
+                              IArrayBox* const& solve_mask,
                               const Geometry&  crse_geom,
                               const Geometry&  fine_geom,
                               Vector<BCRec> const & bcr,
+                              const int        bccomp,
                               RunOn            gpu_or_cpu) override;
 
     /**

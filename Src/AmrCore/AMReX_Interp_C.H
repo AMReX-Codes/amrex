@@ -13,6 +13,11 @@
 
 namespace amrex {
 
+//
+// Fill fine values with piecewise-constant interpolation of coarse data.
+// Operate only on faces that overlap--ie, only fill the fine faces that make up each
+// coarse face, leave the in-between faces alone.
+//
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 face_linear_face_interp (int ci, int cj, int ck, int n, int idir, Array4<T> const& fine,

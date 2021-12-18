@@ -381,10 +381,14 @@ namespace {
         {
             const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
 
-            if ( AMREX_D_TERM(mf.ixType().nodeCentered(0), != mf.ixType().nodeCentered(1), != mf.ixType().nodeCentered(2))
-                 && dynamic_cast<Interpolater*>(mapper) )
+            // Test for Face-centered data
+            if ( AMREX_D_TERM(   mf.ixType().nodeCentered(0),
+                              != mf.ixType().nodeCentered(1),
+                              != mf.ixType().nodeCentered(2)) )
             {
-                // Face-centered data
+                if ( !dynamic_cast<Interpolater*>(mapper) ){
+                    amrex::Abort("This interpolater has not yet implemented a version for face-based data");
+                }
 
                 // Convert to cell-centered MF meta-data for FPInfo.
                 MF mf_cc_dummy( amrex::convert(mf.boxArray(), IntVect::TheZeroVector()),
@@ -406,11 +410,10 @@ namespace {
                     using iFAB = typename iMultiFab::FABType::value_type;
 
                     MF mf_crse_patch     = make_mf_crse_patch<MF>      (fpc, ncomp, mf.boxArray().ixType());
-                    // need to make sure fine exists under needed coarse faces.
-                    // we need it to store values for final (interior) interpolation
-                    // which is done from the fine MF that's been partially filled
-                    // where only faces overlying coarse have valid data.
-                    Print()<<"Refined patch "<<fpc.ba_fine_patch<<std::endl;
+                    // Must make sure fine exists under needed coarse faces.
+                    // It stores values for the final (interior) interpolation,
+                    // which is done from this fine MF that's been partially filled
+                    // (with only faces overlying coarse having valid data).
                     MF mf_refined_patch  = make_mf_refined_patch<MF>   (fpc, ncomp, mf.boxArray().ixType(), ratio);
                     iMultiFab solve_mask = make_mf_crse_mask<iMultiFab>(fpc, ncomp, mf.boxArray().ixType(), ratio);
 
@@ -440,8 +443,7 @@ namespace {
                     {
                         FAB& sfab = mf_crse_patch[mfi];
                         FAB& dfab = mf_refined_patch[mfi];
-                        iFAB* mfab = &solve_mask[mfi];
-                        //FIMXE should mask really be a pointer???
+                        iFAB& mfab = solve_mask[mfi];
 
                         amrex::setBC(sfab.box(), amrex::convert(cgeom.Domain(), mf.ixType()),
                                      bcscomp,0,ncomp,bcs,bcr);
@@ -449,15 +451,12 @@ namespace {
 
                         pre_interp(sfab, sfab.box(), 0, ncomp);
 
-                        // Should I be using FillPatchInterp here???
-                        static_cast<Interpolater*>(mapper)->interp_face(sfab, 0, dfab, 0, ncomp, dfab.box(), ratio, mfab,
-                                                                        cgeom, fgeom, bcr, RunOn::Gpu);
+                        static_cast<Interpolater*>(mapper)->interp_face(sfab, 0, dfab, 0, ncomp, dfab.box(), ratio, &mfab,
+                                                                        cgeom, fgeom, bcr, bcscomp, RunOn::Gpu);
 
                         post_interp(dfab, dfab.box(), 0, ncomp);
                     }
 
-                    // Is this still needed with only 1 MF ??
-                    // I think the issue is more of whether interp holds the face values or not...
                     bool aliasing = false;
                     for (auto const& fmf_a : fmf) {
                         aliasing = aliasing || (&mf == fmf_a);

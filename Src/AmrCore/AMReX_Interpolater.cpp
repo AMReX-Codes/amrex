@@ -144,16 +144,17 @@ FaceLinear::interp (const FArrayBox&  /*crse*/,
 
 void
 FaceLinear::interp_face (const FArrayBox&  crse,
-                         int               crse_comp,
+                         const int         crse_comp,
                          FArrayBox&        fine,
-                         int               fine_comp,
-                         int               ncomp,
+                         const int         fine_comp,
+                         const int         ncomp,
                          const Box&        fine_region,
                          const IntVect&    ratio,
                          IArrayBox* const& solve_mask,
                          const Geometry& /*crse_geom */,
                          const Geometry& /*fine_geom */,
                          Vector<BCRec> const& /*bcr*/,
+                         const int         /*bccomp*/,
                          RunOn             runon)
 {
     BL_PROFILE("FaceLinear::interp()");
@@ -164,7 +165,7 @@ FaceLinear::interp_face (const FArrayBox&  crse,
     Array4<Real const> const& crse_arr = crse.const_array(crse_comp);
     Array4<const int> mask_arr;
     if (solve_mask != nullptr) {
-	mask_arr = solve_mask->const_array(0);
+        mask_arr = solve_mask->const_array(0);
     }
 
     const Box c_fine_region = amrex::coarsen(fine_region, ratio);
@@ -178,7 +179,7 @@ FaceLinear::interp_face (const FArrayBox&  crse,
     {
         AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
         {
-	    face_linear_face_interp(i,j,k,n,0,fine_arr,crse_arr,mask_arr,ratio);
+            face_linear_face_interp(i,j,k,n,0,fine_arr,crse_arr,mask_arr,ratio);
         });
     }
 #if (AMREX_SPACEDIM >= 2)
@@ -186,7 +187,7 @@ FaceLinear::interp_face (const FArrayBox&  crse,
     {
         AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
         {
-	    face_linear_face_interp(i,j,k,n,1,fine_arr,crse_arr,mask_arr,ratio);
+            face_linear_face_interp(i,j,k,n,1,fine_arr,crse_arr,mask_arr,ratio);
         });
     }
 #if (AMREX_SPACEDIM == 3)
@@ -194,7 +195,7 @@ FaceLinear::interp_face (const FArrayBox&  crse,
     {
         AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
         {
-	    face_linear_face_interp(i,j,k,n,2,fine_arr,crse_arr,mask_arr,ratio);
+            face_linear_face_interp(i,j,k,n,2,fine_arr,crse_arr,mask_arr,ratio);
         });
     }
 #endif
@@ -209,7 +210,7 @@ FaceLinear::interp_face (const FArrayBox&  crse,
     {
         AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
         {
-	    face_linear_interp_x(i,j,k,n,fine_arr,ratio);
+            face_linear_interp_x(i,j,k,n,fine_arr,ratio);
         });
     }
 #if (AMREX_SPACEDIM >= 2)
@@ -217,7 +218,7 @@ FaceLinear::interp_face (const FArrayBox&  crse,
     {
         AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
         {
-	    face_linear_interp_y(i,j,k,n,fine_arr,ratio);
+            face_linear_interp_y(i,j,k,n,fine_arr,ratio);
         });
     }
 #if (AMREX_SPACEDIM == 3)
@@ -225,7 +226,7 @@ FaceLinear::interp_face (const FArrayBox&  crse,
     {
         AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
         {
-	    face_linear_interp_z(i,j,k,n,fine_arr,ratio);
+            face_linear_interp_z(i,j,k,n,fine_arr,ratio);
         });
     }
 #endif
@@ -305,7 +306,7 @@ void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                   });
               });
 
-    // FIXME? We need data from the previous lambda in this one. Do we need a sync here?
+    // FIXME? We need data from the previous lambda in this one. Do we need a sync here? They're on different boxes...
     //
     // Interpolate unfilled grow cells using best data from
     // surrounding faces of valid region, and pc-interpd data
@@ -978,7 +979,6 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                   });
               });
 
-    // FIXME? We need data from the previous lambda in this one. Do we need a sync here?
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
     {
         amrex::facediv_int<Real>(i, j, k, fine_comp+n, finearr, ratio, cell_size);
