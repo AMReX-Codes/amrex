@@ -104,6 +104,21 @@ public:
         integrator_ptr->set_rhs(F);
     }
 
+    std::function<void ()> get_post_timestep ()
+    {
+        return post_timestep;
+    }
+
+    std::function<void (T&, amrex::Real)> get_post_update ()
+    {
+        return integrator_ptr->get_post_update();
+    }
+
+    std::function<void(T&, const T&, const amrex::Real)> get_rhs ()
+    {
+        return integrator_ptr->get_rhs();
+    }
+
     void advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real timestep)
     {
         integrator_ptr->advance(S_old, S_new, time, timestep);
