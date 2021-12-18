@@ -382,9 +382,9 @@ namespace {
             const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
 
             // Test for Face-centered data
-            if ( AMREX_D_TERM(   mf.ixType().nodeCentered(0),
-                              != mf.ixType().nodeCentered(1),
-                              != mf.ixType().nodeCentered(2)) )
+            if ( AMREX_D_TERM(  mf.ixType().nodeCentered(0),
+                              + mf.ixType().nodeCentered(1),
+                              + mf.ixType().nodeCentered(2) ) == 1 )
             {
                 if ( !dynamic_cast<Interpolater*>(mapper) ){
                     amrex::Abort("This interpolater has not yet implemented a version for face-based data");
