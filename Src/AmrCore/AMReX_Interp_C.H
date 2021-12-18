@@ -92,7 +92,7 @@ face_linear_interp_x (int i, int j, int k, int n, amrex::Array4<amrex::Real> con
         Real const w = static_cast<Real>(i-ci*ratio[0]) * (Real(1.)/ratio[0]);
         int i1 = ci*ratio[0];
         int i2 = (ci+1)*ratio[0];
-        fine(i,j,0,n) = (Real(1.)-w) * fine(i1,j,k,n) + w * fine(i2,j,k,n);
+        fine(i,j,k,n) = (Real(1.)-w) * fine(i1,j,k,n) + w * fine(i2,j,k,n);
     }
 }
 
@@ -107,7 +107,7 @@ face_linear_interp_y (int i, int j, int k, int n, amrex::Array4<amrex::Real> con
         Real const w = static_cast<Real>(j-cj*ratio[1]) * (Real(1.)/ratio[1]);
         int j1 = cj*ratio[1];
         int j2 = (cj+1)*ratio[1];
-        fine(i,j,0,n) = (Real(1.)-w) * fine(i,j1,k,n) + w * fine(i,j2,k,n);
+        fine(i,j,k,n) = (Real(1.)-w) * fine(i,j1,k,n) + w * fine(i,j2,k,n);
     }
 
 }
