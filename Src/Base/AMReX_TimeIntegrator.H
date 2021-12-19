@@ -39,10 +39,10 @@ private:
 
         // By default, do nothing after updating the state
         // In general, this is where BCs should be filled
-        set_post_update([](T& S_data, amrex::Real S_time){});
+        set_post_update([](T& /* S_data */, amrex::Real /* S_time */){});
 
         // By default, do nothing
-        set_rhs([](T& S_rhs, const T& S_data, const amrex::Real time){});
+        set_rhs([](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){});
     }
 
 public:
