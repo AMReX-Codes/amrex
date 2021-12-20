@@ -273,6 +273,15 @@ MLEBNodeFDLaplacian::prepareForSolve ()
     }
 
     Gpu::synchronize();
+
+#if (AMREX_SPACEDIM == 2)
+    if (m_rz) {
+        if (m_geom[0][0].ProbLo(0) == 0._rt) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_lobc[0][0] == BCType::Neumann,
+                                             "The lo-x BC must be Neumann for 2d RZ");
+        }
+    }
+#endif
 }
 
 #ifdef AMREX_USE_EB
