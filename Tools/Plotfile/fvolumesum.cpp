@@ -57,6 +57,8 @@ void main_main()
 
     if (varname_arg.empty()) {
         var_name = "density";
+    } else {
+        var_name = varname_arg;
     }
 
     // make sure that variable name is valid
@@ -127,6 +129,11 @@ void main_main()
                                         //                = pi dr * dz * (r_r + r_l)
                                         //                = 2 pi r dr dz
                                         vol = 2 * M_PI * p[0] * dx[0] * dx[1];
+                                    } else if (coord == 2) {
+                                        // 1-d spherical V = 4/3 pi (r_r**3 - r_l**3)
+                                        Real r_r = problo[0]+static_cast<Real>(i+1)*dx[0];
+                                        Real r_l = problo[0]+static_cast<Real>(i)*dx[0];
+                                        vol = (4.0_rt/3.0_rt) * M_PI * dx[0] * (r_r*r_r + r_l*r_r + r_l*r_l);
                                     }
 
                                     lsum += fab(i,j,k) * vol;
