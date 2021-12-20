@@ -153,11 +153,10 @@ private:
     std::function<void(T&, const T&, const amrex::Real)> Fun;
 
 protected:
+    amrex::Real timestep;
     std::function<void (T&, amrex::Real)> post_update;
 
 public:
-    amrex::Real timestep;
-
     IntegratorBase () {}
 
     IntegratorBase (const T& S_data) {}
