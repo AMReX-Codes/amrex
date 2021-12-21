@@ -10,7 +10,7 @@ namespace amrex {
 
 struct FilfcFace
 {
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void operator() (const IntVect& iv, Array4<Real> const& q,
                      const int dcomp, const int numcomp,
                      Box const& domain_box, const BCRec* bcr,
@@ -115,4 +115,3 @@ struct FilfcFace
 }
 
 #endif
-
