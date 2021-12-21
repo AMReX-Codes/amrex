@@ -596,7 +596,7 @@ MLEBNodeFDLaplacian::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>
     }
 }
 
-#if defined(AMREX_USE_HYPRE)
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 void
 MLEBNodeFDLaplacian::fillIJMatrix (MFIter const& mfi,
                                    Array4<HypreNodeLap::AtomicInt const> const& gid,

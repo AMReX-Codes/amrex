@@ -101,7 +101,7 @@ public:
     virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                            MultiFab& sol, Location /*loc*/) const override;
 
-#if defined(AMREX_USE_HYPRE)
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     virtual void fillIJMatrix (MFIter const& mfi,
                                Array4<HypreNodeLap::AtomicInt const> const& gid,
                                Array4<int const> const& lid,
