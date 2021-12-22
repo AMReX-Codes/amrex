@@ -692,7 +692,6 @@ FabArray<FAB>::PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
     std::size_t total_volume = 0;
     for (auto const& kv : SndTags)
     {
-        Vector<int> iss;
         auto const& cctc = kv.second;
 
         std::size_t nbytes = 0;
