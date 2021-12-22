@@ -879,6 +879,7 @@ public:
 
     void FillBoundary_nowait (bool cross = false);
     void FillBoundary_nowait (const Periodicity& period, bool cross = false);
+    void FillBoundary_nowait (const IntVect& nghost, const Periodicity& period, bool cross = false);
     void FillBoundary_nowait (int scomp, int ncomp, bool cross = false);
     void FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross = false);
     void FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost, const Periodicity& period, bool cross = false);
@@ -2567,6 +2568,13 @@ void
 FabArray<FAB>::FillBoundary_nowait (const Periodicity& period, bool cross)
 {
     FillBoundary_nowait(0, nComp(), nGrowVect(), period, cross);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FillBoundary_nowait (const IntVect& nghost, const Periodicity& period, bool cross)
+{
+    FillBoundary_nowait(0, nComp(), nghost, period, cross);
 }
 
 template <class FAB>
