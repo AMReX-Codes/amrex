@@ -1175,7 +1175,6 @@ Gatherv (const T* send, int sc,
 {
     std::vector<T> resl(sc);
     for (int j=0; j<sc; ++j) { recv[j] = send[j]; }
-    return resl;
 }
 
 template <class T>
