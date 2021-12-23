@@ -971,7 +971,7 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
 
     int nprocs = ParallelContext::NProcsSub();
     Vector<int> recvcount(nprocs, 0);
-    recvbuf.resize(nprocs);
+    recvbuf.resize(sendbuf.size());
     const Vector<int>& old_pmap = sendbuf.DistributionMap().ProcessorMap();
     for (int i=0; i<old_pmap.size(); ++i)
     {
