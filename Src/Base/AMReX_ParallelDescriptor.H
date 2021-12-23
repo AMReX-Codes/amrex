@@ -1173,7 +1173,6 @@ Gatherv (const T* send, int sc,
          T* recv, const std::vector<int>& /*rc*/,
          const std::vector<int>& /*disp*/, int /*root*/)
 {
-    std::vector<T> resl(sc);
     for (int j=0; j<sc; ++j) { recv[j] = send[j]; }
 }
 
