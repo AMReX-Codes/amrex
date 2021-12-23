@@ -1173,6 +1173,8 @@ void
 GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
                           Vector<T>& recvbuf, int /*root*/)
 {
+    recvbuf.resize(sendbuf.size());
+
     for (int i=0; i<sendbuf.size(); ++i)
     {
         recvbuf[i] = sendbuf[i];
