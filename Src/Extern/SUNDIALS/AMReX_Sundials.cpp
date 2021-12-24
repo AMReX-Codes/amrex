@@ -4,32 +4,52 @@ namespace amrex {
 namespace sundials {
 
 namespace {
-  bool initialized = false;
-  ::sundials::Context* the_sundials_context = nullptr;
+  std::vector<bool> initialized;
+  std::vector<::sundials::Context*> the_sundials_context;
 }
 
-void Initialize()
+void Initialize(int nthreads)
 {
-  if (initialized) return;
-  initialized = true;
+  amrex::Print() << "Initializing SUNDIALS with " << nthreads << " threads...\n";
 
-  BL_ASSERT(the_sundials_context == nullptr);
-  the_sundials_context = new ::sundials::Context();
-  MemoryHelper::Initialize(the_sundials_context);
+  // Initalize the sundials context
+  if (initialized.size() == 0) {
+    initialized.resize(nthreads);
+    std::fill(initialized.begin(), initialized.end(), false);
+    the_sundials_context.resize(nthreads);
+    std::fill(the_sundials_context.begin(), the_sundials_context.end(), nullptr);
+  }
+  for (int i = 0; i < nthreads; i++) {
+    if (initialized[i]) continue;
+    initialized[i] = true;
+    BL_ASSERT(the_sundials_context[i] == nullptr);
+    the_sundials_context[i] = new ::sundials::Context();
+  }
+
+  // Initialize the memory helper
+  MemoryHelper::Initialize(nthreads);
+  
+  amrex::Print() << "SUNDIALS initialized.\n";
 }
 
 void Finalize()
 {
-  BL_ASSERT(the_sundials_context != nullptr);
+  // Cleanup the memory helpers
   MemoryHelper::Finalize();
-  delete the_sundials_context;
-  the_sundials_context = nullptr;
+
+  // Clean up the sundials contexts
+  for (int i = 0; i < initialized.size(); i++) {
+    initialized[i] = false;
+    delete the_sundials_context[i];
+    the_sundials_context[i] = nullptr;
+  }
 }
 
-::sundials::Context* The_Sundials_Context()
+::sundials::Context* The_Sundials_Context(int i)
 {
-  BL_ASSERT(the_sundials_context != nullptr);
-  return the_sundials_context;
+  BL_ASSERT(the_sundials_context.size() <= i);
+  BL_ASSERT(the_sundials_context[i] != nullptr);
+  return the_sundials_context[i];
 }
 
 }//sundials

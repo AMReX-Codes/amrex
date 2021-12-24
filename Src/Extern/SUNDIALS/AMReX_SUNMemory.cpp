@@ -1,5 +1,6 @@
 #include <AMReX.H>
 #include <AMReX_Gpu.H>
+#include <AMReX_Sundials.H>
 #include <AMReX_SUNMemory.H>
 #include <sundials/sundials_context.h>
 #if defined(AMREX_USE_HIP)
@@ -35,7 +36,7 @@ namespace {
     }
   }
 
-  int Alloc(SUNMemoryHelper, SUNMemory* memptr, size_t memsize, SUNMemoryType mem_type)
+  int Alloc(SUNMemoryHelper, SUNMemory* memptr, size_t memsize, SUNMemoryType mem_type, void* /*queue*/)
   {
     SUNMemory mem = SUNMemoryNewEmpty();
 
@@ -58,7 +59,7 @@ namespace {
     return -1;
   }
 
-  int Dealloc(SUNMemoryHelper, SUNMemory mem)
+  int Dealloc(SUNMemoryHelper, SUNMemory mem, void* /*queue*/)
   {
 
     if (mem == nullptr) return 0;
@@ -88,16 +89,22 @@ namespace {
   int DestroyMemoryHelper(SUNMemoryHelper)
   {
     // We just return because we do not want our
-    // single memory helper instance to be destroyed
+    // memory helper instance to be destroyed
     // except when Finalize is called.
     return 0;
   }
 
-  SUNMemoryHelper CreateMemoryHelper(::sundials::Context& sunctx)
+  void ActuallyDestroySUNMemoryHelper(SUNMemoryHelper helper)
+  {
+    if (helper->ops) free(helper->ops);
+    free(helper);
+  }
+
+  SUNMemoryHelper CreateMemoryHelper(::sundials::Context* sunctx)
   {
     SUNMemoryHelper helper;
 
-    helper = SUNMemoryHelper_NewEmpty(sunctx);
+    helper = SUNMemoryHelper_NewEmpty(*sunctx);
 
     helper->content        = NULL;
     helper->ops->clone     = CloneMemoryHelper;
@@ -122,41 +129,85 @@ namespace {
     return helper;
   }
 
-  bool initialized = false;
-  MemoryHelper* the_sunmemory_helper = nullptr;
+  std::vector<bool> initialized;
+  std::vector<MemoryHelper*> the_sunmemory_helper;
 } //namespace
 
 MemoryHelper::MemoryHelper(::sundials::Context* sunctx)
+  : helper(CreateMemoryHelper(sunctx)),
+    sunctx(sunctx)
 {
-  helper = CreateMemoryHelper(*sunctx);
 }
 
 MemoryHelper::~MemoryHelper()
 {
-  if (helper->ops) free(helper->ops);
-  free(helper);
+  ActuallyDestroySUNMemoryHelper(helper);
+}
+  
+MemoryHelper::MemoryHelper(const MemoryHelper& rhs)
+  : helper(CreateMemoryHelper(rhs.sunctx)),
+    sunctx(rhs.sunctx)
+{}
+
+MemoryHelper::MemoryHelper(MemoryHelper&& rhs)
+  : helper(rhs.helper),
+    sunctx(rhs.sunctx)
+{
+  rhs.helper = nullptr;
+  rhs.sunctx = nullptr;
 }
 
-void MemoryHelper::Initialize(::sundials::Context* sunctx)
+MemoryHelper& MemoryHelper::operator=(MemoryHelper rhs)
 {
-  if (initialized) return;
-  initialized = true;
+  std::swap(helper, rhs.helper);
+  std::swap(sunctx, rhs.sunctx);
+  return *this;
+}
 
-  BL_ASSERT(the_sunmemory_helper == nullptr);
-  the_sunmemory_helper = new MemoryHelper(sunctx);
+MemoryHelper& MemoryHelper::operator=(MemoryHelper&& rhs)
+{
+  if (this != &rhs)
+  {
+    ActuallyDestroySUNMemoryHelper(helper);
+    helper = rhs.helper;
+    rhs.helper = nullptr;
+    delete sunctx;
+    sunctx = rhs.sunctx;
+    rhs.sunctx = nullptr;
+  }
+  return *this;
+}
+
+void MemoryHelper::Initialize(int nthreads)
+{
+  if (initialized.size() == 0) {
+    initialized.resize(nthreads);
+    std::fill(initialized.begin(), initialized.end(), false);
+    the_sunmemory_helper.resize(nthreads);
+    std::fill(the_sunmemory_helper.begin(), the_sunmemory_helper.end(), nullptr);
+  }
+  for (int i = 0; i < nthreads; i++) {
+    if (initialized[i]) continue;
+    initialized[i] = true;
+    BL_ASSERT(the_sunmemory_helper[i] == nullptr);
+    the_sunmemory_helper[i] = new MemoryHelper(The_Sundials_Context(i));
+  }
 }
 
 void MemoryHelper::Finalize()
 {
-  initialized = false;
-  delete the_sunmemory_helper;
-  the_sunmemory_helper = nullptr;
+  for (int i = 0; i < initialized.size(); i++) {
+    initialized[i] = false;
+    delete the_sunmemory_helper[i];
+    the_sunmemory_helper[i] = nullptr;
+  }
 }
 
-MemoryHelper* The_SUNMemory_Helper()
+MemoryHelper* The_SUNMemory_Helper(int i)
 {
-  BL_ASSERT(the_sunmemory_helper != nullptr);
-  return the_sunmemory_helper;
+  BL_ASSERT(the_sunmemory_helper.size() <= i);
+  BL_ASSERT(the_sunmemory_helper[i] != nullptr);
+  return the_sunmemory_helper[i];
 }
 
 }
