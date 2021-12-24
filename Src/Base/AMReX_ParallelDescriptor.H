@@ -971,6 +971,7 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
 
     int nprocs = ParallelContext::NProcsSub();
     Vector<int> recvcount(nprocs, 0);
+    recvbuf.resize(sendbuf.size());
     const Vector<int>& old_pmap = sendbuf.DistributionMap().ProcessorMap();
     for (int i=0; i<old_pmap.size(); ++i)
     {
@@ -1028,7 +1029,7 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
 
         for (int i=0; i<recvbuf.size(); ++i)
         {
-                recvbuf[i] = new_index_to_T[old_index_to_new_index[i]];
+            recvbuf[i] = new_index_to_T[old_index_to_new_index[i]];
         }
     }
 }
@@ -1172,6 +1173,8 @@ void
 GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
                           Vector<T>& recvbuf, int /*root*/)
 {
+    recvbuf.resize(sendbuf.size());
+
     for (int i=0; i<sendbuf.size(); ++i)
     {
         recvbuf[i] = sendbuf[i];
