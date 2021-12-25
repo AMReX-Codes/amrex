@@ -12,6 +12,16 @@
 namespace amrex {
 
 template <class T>
+struct Array4PairTag {
+    Array4<T      > dfab;
+    Array4<T const> sfab;
+    Box dbox;
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Box const& box () const noexcept { return dbox; }
+};
+
+template <class T>
 struct Array4CopyTag {
     Array4<T      > dfab;
     Array4<T const> sfab;
