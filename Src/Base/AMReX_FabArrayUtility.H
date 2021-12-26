@@ -5,7 +5,7 @@
 #include <AMReX_FabArray.H>
 #include <AMReX_LayoutData.H>
 #include <AMReX_Print.H>
-#include <AMReX_Reduce.H>
+#include <AMReX_ParReduce.H>
 #include <limits>
 
 namespace amrex {
@@ -52,23 +52,13 @@ ReduceMF (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
     using T = std::conditional_t<std::is_same<OP,ReduceOpLogicalAnd>::value ||
                                  std::is_same<OP,ReduceOpLogicalOr>::value,
                                  int, typename FAB::value_type>;
-    ReduceOps<OP> reduce_op;
-    ReduceData<T> reduce_data(reduce_op);
-    using ReduceTuple = typename decltype(reduce_data)::Type;
-
-    for (MFIter mfi(fa); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = amrex::grow(mfi.validbox(),nghost);
-        const auto& arr = fa.const_array(mfi);
-        reduce_op.eval(bx, reduce_data,
-        [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
-        {
-            return { static_cast<T>(f(b, arr)) };
-        });
-    }
-
-    ReduceTuple hv = reduce_data.value(reduce_op);
-    return amrex::get<0>(hv);
+    auto typ = fa.ixType();
+    auto const& ma = fa.const_arrays();
+    return ParReduce(TypeList<OP>{}, TypeList<T>{}, fa, nghost,
+           [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<T>
+           {
+               return { static_cast<T>(f(amrex::makeSingleCellBox(i,j,k,typ), ma[box_no])) };
+           });
 }
 
 template <class OP, class FAB1, class FAB2, class F>
@@ -81,24 +71,15 @@ ReduceMF (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& n
     using T = std::conditional_t<std::is_same<OP,ReduceOpLogicalAnd>::value ||
                                  std::is_same<OP,ReduceOpLogicalOr>::value,
                                  int, typename FAB1::value_type>;
-    ReduceOps<OP> reduce_op;
-    ReduceData<T> reduce_data(reduce_op);
-    using ReduceTuple = typename decltype(reduce_data)::Type;
-
-    for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = amrex::grow(mfi.validbox(),nghost);
-        const auto& arr1 = fa1.const_array(mfi);
-        const auto& arr2 = fa2.const_array(mfi);
-        reduce_op.eval(bx, reduce_data,
-        [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
-        {
-            return { static_cast<T>(f(b, arr1, arr2)) };
-        });
-    }
-
-    ReduceTuple hv = reduce_data.value(reduce_op);
-    return amrex::get<0>(hv);
+    auto typ = fa1.ixType();
+    auto const& ma1 = fa1.const_arrays();
+    auto const& ma2 = fa2.const_arrays();
+    return ParReduce(TypeList<OP>{}, TypeList<T>{}, fa1, nghost,
+           [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<T>
+           {
+               return { static_cast<T>(f(amrex::makeSingleCellBox(i,j,k,typ),
+                                         ma1[box_no], ma2[box_no])) };
+           });
 }
 
 template <class OP, class FAB1, class FAB2, class FAB3, class F>
@@ -112,25 +93,16 @@ ReduceMF (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     using T = std::conditional_t<std::is_same<OP,ReduceOpLogicalAnd>::value ||
                                  std::is_same<OP,ReduceOpLogicalOr>::value,
                                  int, typename FAB1::value_type>;
-    ReduceOps<OP> reduce_op;
-    ReduceData<T> reduce_data(reduce_op);
-    using ReduceTuple = typename decltype(reduce_data)::Type;
-
-    for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = amrex::grow(mfi.validbox(),nghost);
-        const auto& arr1 = fa1.const_array(mfi);
-        const auto& arr2 = fa2.const_array(mfi);
-        const auto& arr3 = fa3.const_array(mfi);
-        reduce_op.eval(bx, reduce_data,
-        [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
-        {
-            return { static_cast<T>(f(b, arr1, arr2, arr3)) };
-        });
-    }
-
-    ReduceTuple hv = reduce_data.value(reduce_op);
-    return amrex::get<0>(hv);
+    auto typ = fa1.ixType();
+    auto const& ma1 = fa1.const_arrays();
+    auto const& ma2 = fa2.const_arrays();
+    auto const& ma3 = fa3.const_arrays();
+    return ParReduce(TypeList<OP>{}, TypeList<T>{}, fa1, nghost,
+           [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<T>
+           {
+               return { static_cast<T>(f(amrex::makeSingleCellBox(i,j,k,typ),
+                                         ma1[box_no], ma2[box_no], ma3[box_no])) };
+           });
 }
 
 template <class FAB, class F>
@@ -1449,14 +1421,13 @@ indexFromValue (FabArray<FAB> const& mf, int comp, IntVect const& nghost,
         int* p = aa.data();
         // This is a device ptr to 1+AMREX_SPACEDIM int zeros.
         // The first is used as an atomic bool and the others for intvect.
-        for (MFIter mfi(mf,MFItInfo().SetDeviceSync(false)); mfi.isValid(); ++mfi) {
-            const Box& bx = amrex::grow(mfi.validbox(), nghost);
-            auto const& arr = mf.const_array(mfi);
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        if (mf.isFusingCandidate()) {
+            auto const& ma = mf.const_arrays();
+            ParallelFor(mf, nghost, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
             {
                 int* flag = p;
                 if (*flag == 0) {
-                    if (arr(i,j,k,comp) == value) {
+                    if (ma[box_no](i,j,k,comp) == value) {
                         if (Gpu::Atomic::Exch(flag,1) == 0) {
                             AMREX_D_TERM(p[1] = i;,
                                          p[2] = j;,
@@ -1465,6 +1436,24 @@ indexFromValue (FabArray<FAB> const& mf, int comp, IntVect const& nghost,
                     }
                 }
             });
+        } else {
+            for (MFIter mfi(mf,MFItInfo().SetDeviceSync(false)); mfi.isValid(); ++mfi) {
+                const Box& bx = amrex::grow(mfi.validbox(), nghost);
+                auto const& arr = mf.const_array(mfi);
+                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    int* flag = p;
+                    if (*flag == 0) {
+                        if (arr(i,j,k,comp) == value) {
+                            if (Gpu::Atomic::Exch(flag,1) == 0) {
+                                AMREX_D_TERM(p[1] = i;,
+                                             p[2] = j;,
+                                             p[3] = k;);
+                            }
+                        }
+                    }
+                });
+            }
         }
         int const* tmp = aa.copyToHost();
         AMREX_D_TERM(loc[0] = tmp[1];,
