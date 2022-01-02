@@ -112,6 +112,19 @@ install_lib:
 	  echo "$(amrexlib) does not exist!"; \
 	fi
 
+uninstall_lib:
+	@echo Uninstalling libamrex.a and objects from $(amrexLibDir) and $(objEXETempDir) ...
+	@if test -f $(amrexlib); then \
+	  $(SILENT) $(RM) $(amrexlib); \
+	  $(SILENT) $(RM) $(objForExecs); \
+	  $(SILENT) $(RM) $(amrexLibDir)/libamrex.a; \
+	else \
+	  echo "$(amrexlib) does not exist!"; \
+	fi
+	@if [ -d $(amrexLibDir) ]; then \
+	    $(SILENT) rmdir -p --ignore-fail-on-non-empty $(amrexLibDir); \
+	fi
+
 install_headers:
 	@echo Installing headers at $(amrexIncludeDir) ...
 	@if [ ! -d $(amrexIncludeDir) ]; then mkdir -p $(amrexIncludeDir); fi
@@ -125,12 +138,36 @@ install_headers:
 	done
 	@install -c -m 644 $(srcTempDir)/AMReX_Config.H $(amrexIncludeDir)
 
+uninstall_headers:
+	@echo Uninstall headers at $(amrexIncludeDir) ...
+	@for d in $(Pdirs); do \
+	  for h in $(CEXE_headers) $(cEXE_headers); do \
+	    f=Src/$$d/$$h; \
+	    if test -f "$$f"; then \
+	       $(SILENT) $(RM) $(amrexIncludeDir)/$$h; \
+	    fi; \
+	  done; \
+	done
+	@$(SILENT) $(RM) $(amrexIncludeDir)/AMReX_Config.H;
+	@if [ -d $(amrexIncludeDir) ]; then \
+	    $(SILENT) rmdir -p --ignore-fail-on-non-empty $(amrexIncludeDir); \
+	fi;
+
 install_fortran_modules:
 	@echo Install Fortran modules at $(amrexIncludeDir) ...
 	@if [ ! -d $(amrexIncludeDir) ]; then mkdir -p $(amrexIncludeDir); fi
 	@for m in $(amrexFortModules); do \
 	    install -c -m 644 "$$m" $(amrexIncludeDir); \
 	done
+
+uninstall_fortran_modules:
+	@echo Uninstall Fortran modules at $(amrexIncludeDir) ...
+	@for m in $(amrexFortModuleFiles); do \
+	    $(SILENT) $(RM) $(amrexIncludeDir)/$$m; \
+	done
+	@if [ -d $(amrexIncludeDir) ]; then \
+	    $(SILENT) rmdir -p --ignore-fail-on-non-empty $(amrexIncludeDir); \
+	fi;
 
 $(objEXETempDir)/amrex.pc: FORCE
 	@echo Generating amrex.pc ...
@@ -147,9 +184,20 @@ install_pkg_config: $(objEXETempDir)/amrex.pc
 	@if [ ! -d $(amrexPkgconfigDir) ]; then mkdir -p $(amrexPkgconfigDir); fi
 	$(SILENT) install -c -m 644 $< $(amrexPkgconfigDir)
 
+uninstall_pkg_config:
+	@echo Uninstalling amrex.pc ...
+	@$(SILENT) $(RM) $(objEXETempDir)/amrex.pc
+	@$(SILENT) $(RM) $(amrexPkgconfigDir)/amrex.pc
+	@if [ -d $(amrexPkgconfigDir) ]; then \
+	    $(SILENT) rmdir -p --ignore-fail-on-non-empty $(amrexPkgconfigDir); \
+	fi;
+	@if [ -d $(amrexLibDir) ]; then \
+	    $(SILENT) rmdir -p --ignore-fail-on-non-empty $(amrexLibDir); \
+	fi;
+
 cleanconfig::
 	@echo Cleaning...
-	$(SILENT) $(RM) $(f77EXETempDir)/*.f $(f77EXETempDir)/*.f90 $(f77EXETempDir)/*.F90
+	$(SILENT) $(RM) $(f77EXETempDir)/*.f $(f77EXETempDir)/*.f90 $(f77EXETempDir)/*.F90 $(objEXETempDir)/*.d $(depEXETempDir)/f90.depends
 	$(SILENT) $(RM) $(srcTempDir)/* $(objEXETempDir)/*.o $(objEXETempDir)/*.mod
 	$(SILENT) $(RM) $(tmpEXETempDir)/*
 	$(SILENT) $(RM) *.optrpt $(objEXETempDir)/*.optrpt

@@ -2,7 +2,6 @@
 # Sources in subdirectory MLMG
 #
 target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/MLMG>)
-target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/Projections>)
 
 target_sources(amrex
    PRIVATE
@@ -53,10 +52,10 @@ target_sources(amrex
    MLMG/AMReX_MLTensorOp_grad.cpp
    MLMG/AMReX_MLTensor_K.H
    MLMG/AMReX_MLTensor_${AMReX_SPACEDIM}D_K.H
-   Projections/AMReX_MacProjector.H
-   Projections/AMReX_MacProjector.cpp
-   Projections/AMReX_NodalProjector.H
-   Projections/AMReX_NodalProjector.cpp
+   MLMG/AMReX_MLEBNodeFDLaplacian.H
+   MLMG/AMReX_MLEBNodeFDLaplacian.cpp
+   MLMG/AMReX_MLEBNodeFDLap_K.H
+   MLMG/AMReX_MLEBNodeFDLap_${AMReX_SPACEDIM}D_K.H
    )
 
 if (AMReX_SPACEDIM EQUAL 3)
@@ -77,10 +76,6 @@ if (AMReX_EB)
       MLMG/AMReX_MLEBABecLap_F.cpp
       MLMG/AMReX_MLEBABecLap_K.H
       MLMG/AMReX_MLEBABecLap_${AMReX_SPACEDIM}D_K.H
-      MLMG/AMReX_MLEBNodeFDLaplacian.H
-      MLMG/AMReX_MLEBNodeFDLaplacian.cpp
-      MLMG/AMReX_MLEBNodeFDLap_K.H
-      MLMG/AMReX_MLEBNodeFDLap_${AMReX_SPACEDIM}D_K.H
       MLMG/AMReX_MLEBTensorOp.H
       MLMG/AMReX_MLEBTensorOp.cpp
       MLMG/AMReX_MLEBTensorOp_bc.cpp

@@ -40,15 +40,14 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f, bool zero_out_input=true)
         {
             const auto& tile = pti.GetParticleTile();
             const auto np = tile.numParticles();
-            const auto& aos = tile.GetArrayOfStructs();
-            const auto pstruct = aos().dataPtr();
+            const auto& ptd = tile.getConstParticleTileData();
 
             auto& fab = (*mf_pointer)[pti];
             auto fabarr = fab.array();
 
             AMREX_FOR_1D( np, i,
             {
-                particle_detail::call_f(f, pstruct[i], fabarr, plo, dxi);
+                particle_detail::call_f(f, ptd, i, fabarr, plo, dxi);
             });
         }
     }
@@ -64,8 +63,7 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f, bool zero_out_input=true)
             {
                 const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
-                const auto& aos = tile.GetArrayOfStructs();
-                const auto pstruct = aos().dataPtr();
+                const auto& ptd = tile.getConstParticleTileData();
 
                 auto& fab = (*mf_pointer)[pti];
 
@@ -77,7 +75,7 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f, bool zero_out_input=true)
 
                 AMREX_FOR_1D( np, i,
                 {
-                    particle_detail::call_f(f, pstruct[i], fabarr, plo, dxi);
+                    particle_detail::call_f(f, ptd, i, fabarr, plo, dxi);
                 });
 
                 fab.template atomicAdd<RunOn::Host>(local_fab, tile_box, tile_box,
@@ -120,15 +118,14 @@ MeshToParticle (PC& pc, MF const& mf, int lev, F&& f)
     {
         auto& tile = pti.GetParticleTile();
         const auto np = tile.numParticles();
-        auto& aos = tile.GetArrayOfStructs();
-        auto pstruct = aos().dataPtr();
+        const auto& ptd = tile.getParticleTileData();
 
         const auto& fab = (*mf_pointer)[pti];
         auto fabarr = fab.array();
 
         AMREX_FOR_1D( np, i,
         {
-            particle_detail::call_f(f, pstruct[i], fabarr, plo, dxi);
+            particle_detail::call_f(f, ptd, i, fabarr, plo, dxi);
         });
     }
 

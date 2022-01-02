@@ -25,8 +25,8 @@ int main(int argc, char* argv[])
       real_box.setHi(n,1.0);
     }
 
-  IntVect domain_lo(0 , 0, 0);
-  IntVect domain_hi(ncell-1, ncell-1, ncell-1);
+  IntVect domain_lo(AMREX_D_DECL(0 , 0, 0));
+  IntVect domain_hi(AMREX_D_DECL(ncell-1, ncell-1, ncell-1));
 
   const Box domain(domain_lo, domain_hi);
 

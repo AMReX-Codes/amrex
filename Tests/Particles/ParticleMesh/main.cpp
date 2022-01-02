@@ -6,6 +6,7 @@
 #include "AMReX_Particles.H"
 #include "AMReX_PlotFileUtil.H"
 #include <AMReX_ParticleMesh.H>
+#include <AMReX_ParticleInterpolators.H>
 
 using namespace amrex;
 
@@ -22,7 +23,7 @@ void testParticleMesh (TestParams& parms)
 {
 
   RealBox real_box;
-  for (int n = 0; n < BL_SPACEDIM; n++) {
+  for (int n = 0; n < AMREX_SPACEDIM; n++) {
     real_box.setLo(n, 0.0);
     real_box.setHi(n, 1.0);
   }
@@ -32,8 +33,8 @@ void testParticleMesh (TestParams& parms)
   const Box domain(domain_lo, domain_hi);
 
   // This sets the boundary conditions to be doubly or triply periodic
-  int is_per[BL_SPACEDIM];
-  for (int i = 0; i < BL_SPACEDIM; i++)
+  int is_per[AMREX_SPACEDIM];
+  for (int i = 0; i < AMREX_SPACEDIM; i++)
     is_per[i] = 1;
   Geometry geom(domain, &real_box, CoordSys::cartesian, is_per);
 
@@ -45,13 +46,13 @@ void testParticleMesh (TestParams& parms)
 
   DistributionMapping dmap(ba);
 
-  MultiFab partMF(ba, dmap, 1 + BL_SPACEDIM, 1);
+  MultiFab partMF(ba, dmap, 1 + AMREX_SPACEDIM, 1);
   partMF.setVal(0.0);
 
-  iMultiFab partiMF(ba, dmap, 1 + BL_SPACEDIM, 1);
+  iMultiFab partiMF(ba, dmap, 1 + AMREX_SPACEDIM, 1);
   partiMF.setVal(0);
 
-  typedef ParticleContainer<1 + 2*BL_SPACEDIM, 1> MyParticleContainer;
+  typedef ParticleContainer<1 + 2*AMREX_SPACEDIM, 1> MyParticleContainer;
   MyParticleContainer myPC(geom, dmap, ba);
   myPC.SetVerbose(false);
 
@@ -66,118 +67,86 @@ void testParticleMesh (TestParams& parms)
   MyParticleContainer::ParticleInitData pdata = {{mass, AMREX_D_DECL(1.0, 2.0, 3.0), AMREX_D_DECL(0.0, 0.0, 0.0)}, {},{},{}};
   myPC.InitRandom(num_particles, iseed, pdata, serialize);
 
-  int nc = 1 + BL_SPACEDIM;
+  int nc = 1 + AMREX_SPACEDIM;
   const auto plo = geom.ProbLoArray();
   const auto dxi = geom.InvCellSizeArray();
   amrex::ParticleToMesh(myPC, partMF, 0,
       [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& p,
                             amrex::Array4<amrex::Real> const& rho)
       {
-          amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
-          amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
-          amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] + 0.5;
+          ParticleInterpolator::Linear interp(p, plo, dxi);
 
-          int i = static_cast<int>(amrex::Math::floor(lx));
-          int j = static_cast<int>(amrex::Math::floor(ly));
-          int k = static_cast<int>(amrex::Math::floor(lz));
+          interp.ParticleToMesh(p, rho, 0, 0, 1,
+                      [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& part, int comp)
+                      {
+                          return part.rdata(comp);  // no weighting
+                      });
 
-          amrex::Real xint = lx - i;
-          amrex::Real yint = ly - j;
-          amrex::Real zint = lz - k;
-
-          amrex::Real sx[] = {1.-xint, xint};
-          amrex::Real sy[] = {1.-yint, yint};
-          amrex::Real sz[] = {1.-zint, zint};
-
-          for (int kk = 0; kk <= 1; ++kk) {
-              for (int jj = 0; jj <= 1; ++jj) {
-                  for (int ii = 0; ii <= 1; ++ii) {
-                      amrex::Gpu::Atomic::AddNoRet(&rho(i+ii-1, j+jj-1, k+kk-1, 0),
-                                              sx[ii]*sy[jj]*sz[kk]*p.rdata(0));
-                  }
-              }
-          }
-
-          for (int comp=1; comp < nc; ++comp) {
-             for (int kk = 0; kk <= 1; ++kk) {
-                  for (int jj = 0; jj <= 1; ++jj) {
-                      for (int ii = 0; ii <= 1; ++ii) {
-                          amrex::Gpu::Atomic::AddNoRet(&rho(i+ii-1, j+jj-1, k+kk-1, comp),
-                                                  sx[ii]*sy[jj]*sz[kk]*p.rdata(0)*p.rdata(comp));
-                      }
-                  }
-              }
-          }
+          interp.ParticleToMesh(p, rho, 1, 1, AMREX_SPACEDIM,
+                      [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& part, int comp)
+                      {
+                          return part.rdata(0) * p.rdata(comp);  // mass weight these comps
+                      });
       });
 
-  MultiFab acceleration(ba, dmap, BL_SPACEDIM, 1);
+  MultiFab acceleration(ba, dmap, AMREX_SPACEDIM, 1);
   acceleration.setVal(5.0);
 
-  nc = BL_SPACEDIM;
+  nc = AMREX_SPACEDIM;
   amrex::MeshToParticle(myPC, acceleration, 0,
       [=] AMREX_GPU_DEVICE (MyParticleContainer::ParticleType& p,
                             amrex::Array4<const amrex::Real> const& acc)
       {
-          amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
-          amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
-          amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] + 0.5;
+          ParticleInterpolator::Linear interp(p, plo, dxi);
 
-          int i = static_cast<int>(amrex::Math::floor(lx));
-          int j = static_cast<int>(amrex::Math::floor(ly));
-          int k = static_cast<int>(amrex::Math::floor(lz));
-
-          amrex::Real xint = lx - i;
-          amrex::Real yint = ly - j;
-          amrex::Real zint = lz - k;
-
-          amrex::Real sx[] = {1.-xint, xint};
-          amrex::Real sy[] = {1.-yint, yint};
-          amrex::Real sz[] = {1.-zint, zint};
-
-          for (int comp=0; comp < nc; ++comp) {
-              for (int kk = 0; kk <= 1; ++kk) {
-                  for (int jj = 0; jj <= 1; ++jj) {
-                      for (int ii = 0; ii <= 1; ++ii) {
-                          p.rdata(4+comp) += static_cast<ParticleReal> (sx[ii]*sy[jj]*sz[kk]*acc(i+ii-1,j+jj-1,k+kk-1,comp));
-                      }
-                  }
-              }
-          }
+          interp.MeshToParticle(p, acc, 0, 1+AMREX_SPACEDIM, nc,
+                  [=] AMREX_GPU_DEVICE (amrex::Array4<const amrex::Real> const& arr,
+                                        int i, int j, int k, int comp)
+                  {
+                      return arr(i, j, k, comp);  // no weighting
+                  },
+                  [=] AMREX_GPU_DEVICE (MyParticleContainer::ParticleType& part,
+                                        int comp, amrex::Real val)
+                  {
+                      part.rdata(comp) += val;
+                  });
       });
 
   // now also try the iMultiFab versions
   amrex::ParticleToMesh(myPC, partiMF, 0,
-      [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& p,
+      [=] AMREX_GPU_DEVICE (const MyParticleContainer::SuperParticleType& p,
                             amrex::Array4<int> const& count)
       {
-          amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
-          amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
-          amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] + 0.5;
+          ParticleInterpolator::Nearest interp(p, plo, dxi);
 
-          int i = static_cast<int>(amrex::Math::floor(lx));
-          int j = static_cast<int>(amrex::Math::floor(ly));
-          int k = static_cast<int>(amrex::Math::floor(lz));
-
-          amrex::Gpu::Atomic::AddNoRet(&count(i, j, k), 1);
+          interp.ParticleToMesh(p, count, 0, 0, 1,
+              [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& /*p*/, int /*comp*/) -> int
+              {
+                  return 1;  // just count the particles per cell
+              });
       });
 
   amrex::MeshToParticle(myPC, partiMF, 0,
       [=] AMREX_GPU_DEVICE (MyParticleContainer::ParticleType& p,
                             amrex::Array4<const int> const& count)
       {
-          amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
-          amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
-          amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] + 0.5;
+          ParticleInterpolator::Nearest interp(p, plo, dxi);
 
-          int i = static_cast<int>(amrex::Math::floor(lx));
-          int j = static_cast<int>(amrex::Math::floor(ly));
-          int k = static_cast<int>(amrex::Math::floor(lz));
-
-          p.idata(0) = count(i, j, k);
+          interp.MeshToParticle(p, count, 0, 0, 1,
+                  [=] AMREX_GPU_DEVICE (amrex::Array4<const int> const& arr,
+                                        int i, int j, int k, int comp)
+                  {
+                      return arr(i, j, k, comp);  // no weighting
+                  },
+                  [=] AMREX_GPU_DEVICE (MyParticleContainer::ParticleType& part,
+                                        int comp, int val)
+                  {
+                      part.idata(comp) = val;
+                  });
       });
 
   WriteSingleLevelPlotfile("plot", partMF,
-                           {"density", "vx", "vy", "vz"},
+                           {"density", AMREX_D_DECL("vx", "vy", "vz")},
                            geom, 0.0, 0);
 
   myPC.Checkpoint("plot", "particle0");

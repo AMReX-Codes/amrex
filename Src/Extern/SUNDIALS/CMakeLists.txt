@@ -5,6 +5,8 @@ target_include_directories( amrex
 target_sources( amrex
    PRIVATE
    AMReX_Sundials.H
+   AMReX_NVector_MultiFab.cpp
+   AMReX_NVector_MultiFab.H
    AMReX_SUNMemory.cpp
    AMReX_SUNMemory.H
    )

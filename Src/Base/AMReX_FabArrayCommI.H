@@ -262,6 +262,45 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 
 template <class FAB>
 void
+FabArray<FAB>::ParallelCopyToGhost (const FabArray<FAB>& src,
+                                    int                  scomp,
+                                    int                  dcomp,
+                                    int                  ncomp,
+                                    const IntVect&       snghost,
+                                    const IntVect&       dnghost,
+                                    const Periodicity&   period)
+{
+    BL_PROFILE("FabArray::ParallelCopyToGhost()");
+
+    ParallelCopy_nowait(src, scomp, dcomp, ncomp, snghost, dnghost, period,
+                        FabArrayBase::COPY, nullptr, true);
+    ParallelCopy_finish();
+}
+
+template <class FAB>
+void
+FabArray<FAB>::ParallelCopyToGhost_nowait (const FabArray<FAB>& src,
+                                           int                  scomp,
+                                           int                  dcomp,
+                                           int                  ncomp,
+                                           const IntVect&       snghost,
+                                           const IntVect&       dnghost,
+                                           const Periodicity&   period)
+{
+    ParallelCopy_nowait(src, scomp, dcomp, ncomp, snghost, dnghost, period,
+                        FabArrayBase::COPY, nullptr, true);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::ParallelCopyToGhost_finish ()
+{
+    ParallelCopy_finish();
+}
+
+
+template <class FAB>
+void
 FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                                     int                  scomp,
                                     int                  dcomp,
@@ -270,7 +309,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                                     const IntVect&       dnghost,
                                     const Periodicity&   period,
                                     CpOp                 op,
-                                    const FabArrayBase::CPC * a_cpc)
+                                    const FabArrayBase::CPC * a_cpc,
+                                    bool                 to_ghost_cells_only)
 {
     BL_PROFILE("FabArray::ParallelCopy_nowait()");
 
@@ -291,7 +331,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         (boxarray == src.boxarray && distributionMap == src.distributionMap) &&
         snghost == IntVect::TheZeroVector() &&
         dnghost == IntVect::TheZeroVector() &&
-        !period.isAnyPeriodic())
+        !period.isAnyPeriodic() && !to_ghost_cells_only)
     {
         //
         // Short-circuit full intersection code if we're doing copy()s or if
@@ -326,7 +366,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         return;
     }
 
-    const CPC& thecpc = (a_cpc) ? *a_cpc : getCPC(dnghost, src, snghost, period);
+    const CPC& thecpc = (a_cpc) ? *a_cpc : getCPC(dnghost, src, snghost, period, to_ghost_cells_only);
 
     if (ParallelContext::NProcsSub() == 1)
     {
@@ -381,9 +421,6 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         pcd = std::make_unique<PCData<FAB>>();
         pcd->cpc = &thecpc;
         pcd->src = &src;
-        pcd->snghost = snghost;
-        pcd->dnghost = dnghost;
-        pcd->period = period;
         pcd->op = op;
         pcd->tag = tag;
 
@@ -655,7 +692,6 @@ FabArray<FAB>::PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
     std::size_t total_volume = 0;
     for (auto const& kv : SndTags)
     {
-        Vector<int> iss;
         auto const& cctc = kv.second;
 
         std::size_t nbytes = 0;

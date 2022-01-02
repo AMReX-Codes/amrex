@@ -1,3 +1,85 @@
+# 22.01
+
+  -- Add Gatherv for USE_MPI=FALSE. (#2549)
+
+  -- Resize vector inside GatherLayoutDataToVector (#2548)
+
+  -- Add missing FillBoundary_nowait (#2546)
+
+  -- add a tool to compute the volume integral of a plotfile field (#2541)
+
+  -- Update MLEBNodeFDLaplacian (#2538)
+
+  -- Update NVector_MultiFab functionality from ATPESC-codes and add to Src/Extern/SUNDIALS (#2505)
+
+  -- Projections migrated to AMReX-Hydro (#2530)
+
+  -- Fix a bug in Robin BC (#2477)
+
+  -- Add ParallelCopyToGhost and fix a bug in FillPatch (#2523)
+
+  -- CMake 3.22+: Policy CMP0127 (#2525)
+
+  -- Add function for make a dmap that is similar to an input MultiFab. (#2526)
+
+  -- Specify dimensions that can be refined with `refine_grid_layout` (#2516)
+
+  -- DPCPP: AMREX_INTEL_ARCH (#2459)
+
+  -- Generalize problem size specification (#2518)
+
+  -- Use specific targets for make uninstall (#2471)
+
+  -- Move Basic Time Integration into AMReX (#2503)
+
+  -- allow the use of SuperParticle in amrex::ParticleToMesh (#2514)
+
+  -- ANSI Escape Codes (#2509)
+
+# 21.12
+
+  -- AMREX_RELEASE_NUMBER (#2448)
+
+  -- Add a function for detecting whether amrex::Initialize has been called or not. (#2501)
+
+  -- Fix fcompare's --abs_tol (#2504)
+
+  -- HDF5: Fix an issue when some MPI ranks have no box at all (#2494)
+
+  -- Signed distance function in 2D (#2490)
+
+  -- Reduce ghost particles in particle communication. (#2480)
+
+  -- Assign initial value to prevent (likely spurious) -Wmaybe_unitialized compiler warning. (#2484)
+
+  -- Fix a corner case in fixing small cells. (#2489)
+
+  -- Added special case for Mac when using rpath (#2479)
+
+  -- Fix multi-level EB nodal solver solvability fix (#2473)
+
+  -- Disable warning on atomicAddNoRet in HIP (#2466)
+
+  -- DPCPP: workaround for the scan issue (#2462)
+
+  -- DPCPP: AOT in GNU Make (#2463)
+
+  -- Implement HOEXTRAPCC for more than single ghost cell (#2456)
+
+  -- Spack Smoke Test (#2460)
+
+  -- Support fmod in Parser (#2395)
+
+  -- HIP: ftrapv causes issues with DEBUG linking (#2455)
+
+  -- DPCPP:  Enable early optimizations (#2454)
+
+  -- New HDF5 schema with separate datasets for different variables (#2432)
+
+  -- InterpFaceRegister (#2452)
+    
+  -- Fix WarpX EB solver's grad phi computation (#2453)
+
 # 21.11
 
   -- Set to never write fill values to the dataset for HDF5 output (#2450)

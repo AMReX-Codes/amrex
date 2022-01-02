@@ -73,6 +73,7 @@ target_sources( amrex
    AMReX_parstream.H
    AMReX_parstream.cpp
    # I/O stuff  --------------------------------------------------------------
+   AMReX_ANSIEscCode.H
    AMReX_FabConv.H
    AMReX_FabConv.cpp
    AMReX_FPC.H
@@ -176,6 +177,11 @@ target_sources( amrex
    AMReX_PlotFileUtil.H
    AMReX_PlotFileDataImpl.H
    AMReX_PlotFileDataImpl.cpp
+   # Time Integration
+   AMReX_FEIntegrator.H
+   AMReX_IntegratorBase.H
+   AMReX_RKIntegrator.H
+   AMReX_TimeIntegrator.H
    # GPU --------------------------------------------------------------------
    AMReX_Gpu.H
    AMReX_GpuQualifiers.H

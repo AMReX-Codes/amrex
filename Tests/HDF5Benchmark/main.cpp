@@ -205,6 +205,8 @@ void test ()
         }
     }
 
+    ParallelDescriptor::Barrier();
+
     char directory_path[512];
 
     if (restart_check && nparticlefile > 0)
@@ -212,10 +214,10 @@ void test ()
         MyPC newPC(geom, dmap, ba, ref_ratio);
 #ifdef AMREX_USE_HDF5
         sprintf(directory_path, "%s%s", directory.c_str(), "plt00000/particle0");
-        newPC.RestartHDF5("plt00000/particle0", "particle0");
+        newPC.RestartHDF5(directory_path, "particle0");
 #else
         sprintf(directory_path, "%s%s", directory.c_str(), "plt00000");
-        newPC.Restart("plt00000", "particle0");
+        newPC.Restart(directory_path, "particle0");
 #endif
 
         using PType = typename MyPC::SuperParticleType;

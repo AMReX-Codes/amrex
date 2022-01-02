@@ -387,6 +387,31 @@ ifndef AMREX_GIT_VERSION
 endif
 DEFINES += -DAMREX_GIT_VERSION=\"$(AMREX_GIT_VERSION)\"
 
+ifeq ($(findstring ., $(AMREX_GIT_VERSION)), .)
+  amrex_release_string := $(AMREX_GIT_VERSION)
+else
+  # AMREX_GIT_VERSION obtained from a shallow clone does not have the release version
+  amrex_release_string := $(shell grep -o -m 1 -E "[0-9]{2}\.[0-9]{2}(\.[0-9]+)?" $(AMREX_HOME)/CHANGES)
+endif
+amrex_release_words := $(subst ., ,$(firstword $(subst -, ,$(amrex_release_string))))
+amrex_release_numwords := $(words $(amrex_release_words))
+ifneq ($(amrex_release_numwords),2)
+ifneq ($(amrex_release_numwords),3)
+  amrex_release_numwords := 3
+  amrex_release_words := 00 00 00
+endif
+endif
+amrex_release_yy := $(word 1, $(amrex_release_words))
+amrex_release_mm := $(word 2, $(amrex_release_words))
+ifeq ($(amrex_release_numwords),2)
+  AMREX_RELEASE_NUMBER := $(amrex_release_yy)$(amrex_release_mm)00
+else
+  amrex_release_patch := $(shell printf '%02d' $(word 3, $(amrex_release_words)) | cut -c-2)
+  AMREX_RELEASE_NUMBER := $(amrex_release_yy)$(amrex_release_mm)$(amrex_release_patch)
+endif
+DEFINES += -DAMREX_RELEASE_NUMBER=$(AMREX_RELEASE_NUMBER)
+
+
 FORTLINK  	= UNDERSCORE
 
 FORT_CPP        = cpp -E -traditional-cpp -P
@@ -921,6 +946,7 @@ amrexLibDir = $(AMREX_INSTALL_DIR)/lib
 amrexIncludeDir = $(AMREX_INSTALL_DIR)/include
 # Do different compilers have different name convention for mod files?
 amrexFortModules = $(wildcard $(objEXETempDir)/*.mod)
+amrexFortModuleFiles = $(notdir $(amrexFortModules))
 amrexPkgconfigDir = $(AMREX_INSTALL_DIR)/lib/pkgconfig
 
 #
