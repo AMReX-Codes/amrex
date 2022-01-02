@@ -299,12 +299,22 @@ Geometry::periodicShift (const Box&      target,
 
     Box locsrc(src);
 
-    int nist,njst,nkst;
-    int niend,njend,nkend;
-    nist = njst = nkst = 0;
-    niend = njend = nkend = 0;
-    AMREX_D_TERM( nist , =njst , =nkst ) = -1;
-    AMREX_D_TERM( niend , =njend , =nkend ) = +1;
+    int nist  = -1;
+    int niend =  1;
+#if (AMREX_SPACEDIM > 1)
+    int njst  = -1;
+    int njend =  1;
+#else
+    int njst  = 0;
+    int njend = 0;
+#endif
+#if (AMREX_SPACEDIM > 2)
+    int nkst  = -1;
+    int nkend =  1;
+#else
+    int nkst  = 0;
+    int nkend = 0;
+#endif
 
     int ri,rj,rk;
     for (ri = nist; ri <= niend; ri++)
