@@ -34,7 +34,7 @@ EBFArrayBoxFactory::create (const Box& box, int ncomps,
     else
     {
         const EBCellFlagFab& ebcellflag = m_ebdc->getMultiEBCellFlagFab()[box_index];
-        return new EBFArrayBox(ebcellflag, box, ncomps, info.arena);
+        return new EBFArrayBox(ebcellflag, box, ncomps, info.arena, this, box_index);
     }
 }
 
