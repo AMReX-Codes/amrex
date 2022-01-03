@@ -14,7 +14,7 @@ class EBFArrayBox
 {
 public:
     EBFArrayBox ();
-    EBFArrayBox (Arena* ar);
+    explicit EBFArrayBox (Arena* ar);
     EBFArrayBox (const EBCellFlagFab& ebcellflag, const Box& box, int ncomps, Arena* ar,
                  const EBFArrayBoxFactory* factory=nullptr, int box_index=-1);
     EBFArrayBox (EBFArrayBox const& rhs, MakeType make_type, int scomp, int ncomp);
