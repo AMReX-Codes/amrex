@@ -9,4 +9,11 @@
 #else
 #include <AMReX_FilFC_3D_C.H>
 #endif
+
+namespace amrex {
+    void fab_filfc (Box const& bx, Array4<Real> const& q, int ncomp,
+                    Box const& domain, Real const* dx, Real const* xlo,
+                    BCRec const* bc);
+}
+
 #endif
