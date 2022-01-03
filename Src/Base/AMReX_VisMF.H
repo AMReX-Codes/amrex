@@ -518,7 +518,7 @@ Write (const FabArray<FAB>& fa, const std::string& name)
 
 namespace detail {
 template <typename FAB>
-void read_fab(FAB& fab, VisMF::FabOnDisk const& fod, std::string const& name)
+void read_fab (FAB& fab, VisMF::FabOnDisk const& fod, std::string const& name)
 {
     std::string fullname = VisMF::DirName(name);
     fullname += fod.m_name;
