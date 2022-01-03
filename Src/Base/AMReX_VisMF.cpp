@@ -1,24 +1,13 @@
-#include <AMReX_ccse-mpi.H>
+
+#include <AMReX_FabArrayUtility.H>
+#include <AMReX_FPC.H>
+#include <AMReX_ParmParse.H>
 #include <AMReX_Utility.H>
 #include <AMReX_VisMF.H>
-#include <AMReX_ParmParse.H>
-#include <AMReX_NFiles.H>
-#include <AMReX_FPC.H>
-#include <AMReX_FabArrayUtility.H>
-#include <AMReX_AsyncOut.H>
 
-#include <array>
-#include <atomic>
 #include <cerrno>
 #include <cstdio>
-#include <deque>
-#include <fstream>
-#include <iostream>
 #include <limits>
-#include <memory>
-#include <numeric>
-#include <sstream>
-#include <vector>
 
 namespace amrex {
 
@@ -40,7 +29,7 @@ bool VisMF::useSynchronousReads(false);
 bool VisMF::useDynamicSetSelection(true);
 bool VisMF::allowSparseWrites(true);
 
-Long VisMF::ioBufferSize(VisMF::IO_Buffer_Size);
+Long VisMFBuffer::ioBufferSize(VisMF::IO_Buffer_Size);
 
 //
 // Set these in Initialize().
@@ -937,17 +926,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 
     // ---- add stream retry
     // ---- add stream buffer (to nfiles)
-    RealDescriptor *whichRD = nullptr;
-    if(FArrayBox::getFormat() == FABio::FAB_NATIVE) {
-      whichRD = FPC::NativeRealDescriptor().clone();
-    } else if(FArrayBox::getFormat() == FABio::FAB_NATIVE_32) {
-      whichRD = FPC::Native32RealDescriptor().clone();
-    } else if(FArrayBox::getFormat() == FABio::FAB_IEEE_32) {
-      whichRD = FPC::Ieee32NormalRealDescriptor().clone();
-    } else {
-      whichRD = FPC::NativeRealDescriptor().clone(); // to quiet clang static analyzer
-      Abort("VisMF::Write unable to execute with the current fab.format setting.  Use NATIVE, NATIVE_32 or IEEE_32");
-    }
+    auto whichRD = FArrayBox::getDataDescriptor();
     bool doConvert(*whichRD != FPC::NativeRealDescriptor());
 
     if(set_ghost && mf.nGrowVect() != 0) {
@@ -1127,8 +1106,6 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 
     bytesWritten += VisMF::WriteHeader(mf_name, hdr, coordinatorProc);
 
-    delete whichRD;
-
     return bytesWritten;
 }
 
@@ -1253,14 +1230,7 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 
     } else {    // ---- calculate offsets
 
-      RealDescriptor *whichRD = nullptr;
-      if(FArrayBox::getFormat() == FABio::FAB_NATIVE) {
-        whichRD = FPC::NativeRealDescriptor().clone();
-      } else if(FArrayBox::getFormat() == FABio::FAB_NATIVE_32) {
-        whichRD = FPC::Native32RealDescriptor().clone();
-      } else if(FArrayBox::getFormat() == FABio::FAB_IEEE_32) {
-        whichRD = FPC::Ieee32NormalRealDescriptor().clone();
-      }
+      auto whichRD = FArrayBox::getDataDescriptor();
       const FABio &fio = FArrayBox::getFABio();
       int whichRDBytes(whichRD->numBytes());
       int nComps(mf.nComp());
@@ -1293,8 +1263,8 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
         if(nfi.GetDynamic()) {
           fileNumbers = nfi.FileNumbersWritten();
         }
-         else if(nfi.GetSparseFPP()) {        // if sparse, write to (file number = rank)
-           fileNumbers.resize(nProcs);
+        else if(nfi.GetSparseFPP()) {        // if sparse, write to (file number = rank)
+          fileNumbers.resize(nProcs);
           for(int i(0); i < nProcs; ++i) {
             fileNumbers[i] = i;
           }
@@ -1328,7 +1298,6 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
           }
         }
       }
-      delete whichRD;
     }
 }
 
@@ -1561,7 +1530,6 @@ VisMF::Read (FabArray<FArrayBox> &mf,
             amrex::Error("Empty box array");
         }
     }
-
 
     if (mf.empty()) {
         DistributionMapping dm(hdr.m_ba);

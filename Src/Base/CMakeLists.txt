@@ -50,6 +50,7 @@ target_sources( amrex
    AMReX_ForkJoin.cpp
    AMReX_ParallelContext.H
    AMReX_ParallelContext.cpp
+   AMReX_VisMFBuffer.H
    AMReX_VisMF.H
    AMReX_VisMF.cpp
    AMReX_AsyncOut.H
