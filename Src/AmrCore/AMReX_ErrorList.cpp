@@ -299,7 +299,7 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                         auto ax = amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k));
                         ax = amrex::max(ax,amrex::Math::abs(dat(i,j,k) - dat(i-1,j,k)));
 #if AMREX_SPACEDIM == 1
-                        if (ax >= threshold) tagma[bi](i,j,k) = tagval;
+                        if (ax >= threshold) { tagma[bi](i,j,k) = tagval;}
 #else
                         auto ay = amrex::Math::abs(dat(i,j+1,k) - dat(i,j,k));
                         ay = amrex::max(ay,amrex::Math::abs(dat(i,j,k) - dat(i,j-1,k)));
@@ -321,7 +321,7 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                         auto ax = amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k));
                         ax = amrex::max(ax,amrex::Math::abs(dat(i,j,k) - dat(i-1,j,k)));
 #if AMREX_SPACEDIM == 1
-                        if (ax >= threshold * amrex::Math::abs(dat(i,j,k))) tagma[bi](i,j,k) = tagval;
+                        if (ax >= threshold * amrex::Math::abs(dat(i,j,k))) { tagma[bi](i,j,k) = tagval;}
 #else
                         auto ay = amrex::Math::abs(dat(i,j+1,k) - dat(i,j,k));
                         ay = amrex::max(ay,amrex::Math::abs(dat(i,j,k) - dat(i,j-1,k)));
