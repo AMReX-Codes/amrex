@@ -1435,10 +1435,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
               while (pindex <= last) {
                   ParticleType& p = aos[pindex];
 
-                  bool skip_invalid = false;
-                  if ((remove_negative == true) && (p.id() < 0))
+                  if ((remove_negative == false) && (p.id() < 0)) {
+                      ++pindex;
+                      continue;
+                  }
+
+                  if (p.id() < 0)
                   {
-                      skip_invalid = true;
                       aos[pindex] = aos[last];
                       for (int comp = 0; comp < NumRealComps(); comp++)
                           soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
@@ -1453,7 +1456,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
                   particlePostLocate(p, pld, lev);
 
-                  if ((!skip_invalid) && (p.id() < 0))
+                  if (p.id() < 0)
                   {
                       aos[pindex] = aos[last];
                       for (int comp = 0; comp < NumRealComps(); comp++)
@@ -1507,7 +1510,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                       p.id() = -p.id(); // Invalidate the particle
                   }
 
-                  if ((!skip_invalid) && (p.id() < 0))
+                  if (p.id() < 0)
                   {
                       aos[pindex] = aos[last];
                       for (int comp = 0; comp < NumRealComps(); comp++)
