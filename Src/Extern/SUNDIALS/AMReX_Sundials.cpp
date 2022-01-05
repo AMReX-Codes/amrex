@@ -28,7 +28,7 @@ void Initialize(int nthreads)
 
   // Initialize the memory helper
   MemoryHelper::Initialize(nthreads);
-  
+
   amrex::Print() << "SUNDIALS initialized.\n";
 }
 

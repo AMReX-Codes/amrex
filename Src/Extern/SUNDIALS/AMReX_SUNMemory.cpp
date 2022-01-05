@@ -143,7 +143,7 @@ MemoryHelper::~MemoryHelper()
 {
   ActuallyDestroySUNMemoryHelper(helper);
 }
-  
+
 MemoryHelper::MemoryHelper(const MemoryHelper& rhs)
   : helper(CreateMemoryHelper(rhs.sunctx)),
     sunctx(rhs.sunctx)
