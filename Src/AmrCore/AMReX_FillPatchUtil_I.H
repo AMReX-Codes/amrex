@@ -451,7 +451,7 @@ namespace {
 
                         pre_interp(sfab, sfab.box(), 0, ncomp);
 
-                        static_cast<Interpolater*>(mapper)->interp_face(sfab, 0, dfab, 0, ncomp, dfab.box(), ratio, &mfab,
+                        static_cast<Interpolater*>(mapper)->interp_face(sfab, 0, dfab, 0, ncomp, dfab.box(), ratio, mfab,
                                                                         cgeom, fgeom, bcr, bcscomp, RunOn::Gpu);
 
                         post_interp(dfab, dfab.box(), 0, ncomp);
