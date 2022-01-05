@@ -4,8 +4,8 @@ namespace amrex {
 namespace sundials {
 
 namespace {
-  std::vector<bool> initialized;
-  std::vector<::sundials::Context*> the_sundials_context;
+  Vector<int> initialized;
+  Vector<::sundials::Context*> the_sundials_context;
 }
 
 void Initialize(int nthreads)
@@ -15,13 +15,13 @@ void Initialize(int nthreads)
   // Initalize the sundials context
   if (initialized.size() == 0) {
     initialized.resize(nthreads);
-    std::fill(initialized.begin(), initialized.end(), false);
+    std::fill(initialized.begin(), initialized.end(), 0);
     the_sundials_context.resize(nthreads);
     std::fill(the_sundials_context.begin(), the_sundials_context.end(), nullptr);
   }
   for (int i = 0; i < nthreads; i++) {
     if (initialized[i]) continue;
-    initialized[i] = true;
+    initialized[i] = 1;
     BL_ASSERT(the_sundials_context[i] == nullptr);
     the_sundials_context[i] = new ::sundials::Context();
   }
@@ -39,7 +39,7 @@ void Finalize()
 
   // Clean up the sundials contexts
   for (int i = 0; i < initialized.size(); i++) {
-    initialized[i] = false;
+    initialized[i] = 0;
     delete the_sundials_context[i];
     the_sundials_context[i] = nullptr;
   }

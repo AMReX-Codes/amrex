@@ -129,8 +129,8 @@ namespace {
     return helper;
   }
 
-  std::vector<bool> initialized;
-  std::vector<MemoryHelper*> the_sunmemory_helper;
+  Vector<int> initialized;
+  Vector<MemoryHelper*> the_sunmemory_helper;
 } //namespace
 
 MemoryHelper::MemoryHelper(::sundials::Context* sunctx)
@@ -182,13 +182,13 @@ void MemoryHelper::Initialize(int nthreads)
 {
   if (initialized.size() == 0) {
     initialized.resize(nthreads);
-    std::fill(initialized.begin(), initialized.end(), false);
+    std::fill(initialized.begin(), initialized.end(), 0);
     the_sunmemory_helper.resize(nthreads);
     std::fill(the_sunmemory_helper.begin(), the_sunmemory_helper.end(), nullptr);
   }
   for (int i = 0; i < nthreads; i++) {
     if (initialized[i]) continue;
-    initialized[i] = true;
+    initialized[i] = 1;
     BL_ASSERT(the_sunmemory_helper[i] == nullptr);
     the_sunmemory_helper[i] = new MemoryHelper(The_Sundials_Context(i));
   }
@@ -197,7 +197,7 @@ void MemoryHelper::Initialize(int nthreads)
 void MemoryHelper::Finalize()
 {
   for (int i = 0; i < initialized.size(); i++) {
-    initialized[i] = false;
+    initialized[i] = 0;
     delete the_sunmemory_helper[i];
     the_sunmemory_helper[i] = nullptr;
   }
