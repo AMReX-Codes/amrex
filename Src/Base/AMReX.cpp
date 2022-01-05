@@ -543,11 +543,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 #endif
 
 #ifdef AMREX_USE_SUNDIALS
-#ifdef AMREX_USE_OMP
-    sundials::Initialize(omp_get_max_threads());
-#else
-    sundials::Initialize(1);
-#endif
+    sundials::Initialize(amrex::OpenMP::get_max_threads());
 #endif
 
     if (system::verbose > 0)

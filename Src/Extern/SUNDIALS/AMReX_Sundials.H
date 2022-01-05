@@ -12,11 +12,7 @@ namespace sundials {
 
 void Initialize(int nthreads);
 void Finalize();
-#ifdef AMREX_USE_OMP
-::sundials::Context* The_Sundials_Context(int i = omp_get_thread_num());
-#else
-::sundials::Context* The_Sundials_Context(int i = 0);
-#endif
+::sundials::Context* The_Sundials_Context(int i = amrex::OpenMP::get_thread_num());
 
 }//sundials
 }//amrex
