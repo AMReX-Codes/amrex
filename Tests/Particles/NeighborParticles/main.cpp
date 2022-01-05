@@ -183,4 +183,10 @@ void testNeighborList ()
     pc.buildNeighborList(CheckPair());
 
     pc.checkNeighborList();
+
+    MultiFab dummy_mf(ba, dm, 1, 0);
+    dummy_mf.setVal(0.0);
+    WriteSingleLevelPlotfile("NeighborParticles_plt00001", dummy_mf,
+                             {"dummy"}, geom, 0.0, 0);
+    pc.WritePlotFile("NeighborParticles_plt00001", "neighbors");
 }
