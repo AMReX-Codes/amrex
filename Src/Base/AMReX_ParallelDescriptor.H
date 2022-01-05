@@ -937,7 +937,7 @@ ParallelDescriptor::Gather (const T& t, int root)
     if ( root == MyProc() ) {
         return resl;
     } else {
-        return std::vector<T>;
+        return std::vector<T>(0);
     }
 }
 
