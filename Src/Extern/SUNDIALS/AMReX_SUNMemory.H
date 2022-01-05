@@ -9,19 +9,19 @@ namespace sundials {
 
 class MemoryHelper {
 public:
-  MemoryHelper(::sundials::Context* sunctx);
-  ~MemoryHelper();
-  MemoryHelper(const MemoryHelper& helper);
-  MemoryHelper(MemoryHelper&& helper);
-  MemoryHelper& operator=(MemoryHelper other);
-  MemoryHelper& operator=(MemoryHelper&& other);
-  operator SUNMemoryHelper() const { return helper; }
+    MemoryHelper(::sundials::Context* sunctx);
+    ~MemoryHelper();
+    MemoryHelper(const MemoryHelper& helper);
+    MemoryHelper(MemoryHelper&& helper);
+    MemoryHelper& operator=(MemoryHelper other);
+    MemoryHelper& operator=(MemoryHelper&& other);
+    operator SUNMemoryHelper() const { return helper; }
 
-  static void Initialize(int nthreads);
-  static void Finalize();
+    static void Initialize(int nthreads);
+    static void Finalize();
 private:
-  ::sundials::Context* sunctx;
-  SUNMemoryHelper helper;
+    ::sundials::Context* sunctx;
+    SUNMemoryHelper helper;
 };
 
 #ifdef AMREX_USE_OMP
