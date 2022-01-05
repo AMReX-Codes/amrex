@@ -7,6 +7,12 @@
 namespace amrex {
 namespace sundials {
 
+/**
+ * \brief A SUNDIALS SUNMemoryHelper interface to the amrex::Arena.
+ *
+ * This class allows SUNDIALS to allocate memory using the amrex::Arena.
+ */
+
 class MemoryHelper {
 public:
     MemoryHelper(::sundials::Context* sunctx);
@@ -24,11 +30,23 @@ private:
     SUNMemoryHelper helper;
 };
 
-#ifdef AMREX_USE_OMP
-MemoryHelper* The_SUNMemory_Helper(int i = omp_get_thread_num());
-#else
-MemoryHelper* The_SUNMemory_Helper(int i = 0);
-#endif
+
+/**
+ * \brief Get the i-th SUNMemoryHelper instance.
+ *
+ * \param[in] i The index of the SUNMemoryHelper to return.
+ *
+ * SUNMemoryHelper_i is paired with the i-th SUNContext.
+ */
+
+MemoryHelper* The_SUNMemory_Helper(int i = amrex::OpenMP::get_thread_num());
+
+/**
+ * \brief Get the proper amrex::Arena based on the SUNMemoryType.
+ *
+ * \param[in] type A SUNDIALS SUNMemoryType.
+ */
+
 amrex::Arena* getArena (SUNMemoryType type);
 
 }//sundials
