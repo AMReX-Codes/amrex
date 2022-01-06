@@ -933,7 +933,6 @@ ParallelDescriptor::Gather (const T& t, int root)
                                root,
                                Communicator()) );
     BL_COMM_PROFILE(BLProfiler::GatherTi, sizeof(T), root, BLProfiler::NoTag());
-
     return resl;
 }
 
