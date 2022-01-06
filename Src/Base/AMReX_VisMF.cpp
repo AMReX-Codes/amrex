@@ -2160,6 +2160,7 @@ std::ifstream *VisMF::OpenStream(const std::string &fileName) {
     pifs.pstr->open(fileName.c_str(), std::ios::in | std::ios::binary);
     if( ! pifs.pstr->good()) {
       delete pifs.pstr;
+      pifs.pstr = nullptr;
       amrex::FileOpenFailed(fileName);
     }
     pifs.isOpen = true;
@@ -2267,36 +2268,38 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
     Vector<int64_t> localdata(n_local_nums);
 
     bool data_on_device = mf.arena()->isManaged() || mf.arena()->isDevice();
-    bool run_on_device = Gpu::inLaunchRegion() && data_on_device;
+    bool run_on_device = data_on_device && Gpu::inLaunchRegion();
 
     bool strip_ghost = valid_cells_only && mf.nGrowVect() != 0;
 
     int64_t total_bytes = 0;
-    char* pld = (localdata.size() > 1) ? (char*)(&(localdata[1])) : nullptr;
-    const FABio& fio = FArrayBox::getFABio();
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-    {
-        std::memcpy(pld, &total_bytes, sizeof(int64_t));
-        pld += sizeof(int64_t);
+    if (localdata.size() > 1) {
+        char* pld = (char*)(&(localdata[1]));
+        const FABio& fio = FArrayBox::getFABio();
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        {
+            std::memcpy(pld, &total_bytes, sizeof(int64_t));
+            pld += sizeof(int64_t);
 
-        const FArrayBox& fab = mf[mfi];
-        const Box& bx = mfi.validbox();
+            const FArrayBox& fab = mf[mfi];
+            const Box& bx = mfi.validbox();
 
-        std::stringstream hss;
-        FArrayBox valid_fab(bx, ncomp, false);
-        FArrayBox const& header_fab = (strip_ghost) ? valid_fab : fab;
-        fio.write_header(hss, header_fab, ncomp);
-        total_bytes += static_cast<std::streamoff>(hss.tellp());
-        total_bytes += header_fab.size() * whichRD.numBytes();
+            std::stringstream hss;
+            FArrayBox valid_fab(bx, ncomp, false);
+            FArrayBox const& header_fab = (strip_ghost) ? valid_fab : fab;
+            fio.write_header(hss, header_fab, ncomp);
+            total_bytes += static_cast<std::streamoff>(hss.tellp());
+            total_bytes += header_fab.size() * whichRD.numBytes();
 
-        // compute min and max
-        for (int icomp = 0; icomp < ncomp; ++icomp) {
-            auto mm = (run_on_device) ? fab.minmax<RunOn::Device>(bx,icomp)
-                                      : fab.minmax<RunOn::Host  >(bx,icomp);
-            std::memcpy(pld, &(mm.first), sizeof(Real));
-            pld += sizeof(Real);
-            std::memcpy(pld, &(mm.second), sizeof(Real));
-            pld += sizeof(Real);
+            // compute min and max
+            for (int icomp = 0; icomp < ncomp; ++icomp) {
+                auto mm = (run_on_device) ? fab.minmax<RunOn::Device>(bx,icomp)
+                                          : fab.minmax<RunOn::Host  >(bx,icomp);
+                std::memcpy(pld, &(mm.first), sizeof(Real));
+                pld += sizeof(Real);
+                std::memcpy(pld, &(mm.second), sizeof(Real));
+                pld += sizeof(Real);
+            }
         }
     }
     localdata[0] = total_bytes;
