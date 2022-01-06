@@ -125,19 +125,37 @@ FaceLinear::CoarseBox (const Box& fine, const IntVect& ratio)
 }
 
 void
-FaceLinear::interp (const FArrayBox&  crse,
-                    int               crse_comp,
-                    FArrayBox&        fine,
-                    int               fine_comp,
-                    int               ncomp,
-                    const Box&        fine_region,
-                    const IntVect&    ratio,
+FaceLinear::interp (const FArrayBox&  /*crse*/,
+                    int               /*crse_comp*/,
+                    FArrayBox&        /*fine*/,
+                    int               /*fine_comp*/,
+                    int               /*ncomp*/,
+                    const Box&        /*fine_region*/,
+                    const IntVect&    /*ratio*/,
                     const Geometry& /*crse_geom */,
                     const Geometry& /*fine_geom */,
                     Vector<BCRec> const& /*bcr*/,
                     int               /*actual_comp*/,
                     int               /*actual_state*/,
-                    RunOn             runon)
+                    RunOn             /*runon*/)
+{
+    Abort("FaceLinear: Calling wrong version of interp(). Call interp_face() instead.");
+}
+
+void
+FaceLinear::interp_face (const FArrayBox&  crse,
+                         const int         crse_comp,
+                         FArrayBox&        fine,
+                         const int         fine_comp,
+                         const int         ncomp,
+                         const Box&        fine_region,
+                         const IntVect&    ratio,
+                         const IArrayBox&  solve_mask,
+                         const Geometry& /*crse_geom */,
+                         const Geometry& /*fine_geom */,
+                         Vector<BCRec> const& /*bcr*/,
+                         const int         /*bccomp*/,
+                         RunOn             runon)
 {
     BL_PROFILE("FaceLinear::interp()");
 
@@ -145,12 +163,51 @@ FaceLinear::interp (const FArrayBox&  crse,
 
     Array4<Real> const& fine_arr = fine.array(fine_comp);
     Array4<Real const> const& crse_arr = crse.const_array(crse_comp);
+    Array4<const int> mask_arr = solve_mask.const_array(0);
 
+    const Box c_fine_region = amrex::coarsen(fine_region, ratio);
+    //
+    // Fill fine ghost faces with piecewise-constant interpolation of coarse data.
+    // Operate only on faces that overlap--ie, only fill the fine faces that make up each
+    // coarse face, leave the in-between faces alone.
+    // The mask ensures we do not overwrite valid fine cells.
+    //
+    if (fine_region.type(0) == IndexType::NODE)
+    {
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
+        {
+            face_linear_face_interp_x(i,j,k,n,fine_arr,crse_arr,mask_arr,ratio);
+        });
+    }
+#if (AMREX_SPACEDIM >= 2)
+    else if (fine_region.type(1) == IndexType::NODE)
+    {
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
+        {
+            face_linear_face_interp_y(i,j,k,n,fine_arr,crse_arr,mask_arr,ratio);
+        });
+    }
+#if (AMREX_SPACEDIM == 3)
+    else
+    {
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
+        {
+            face_linear_face_interp_z(i,j,k,n,fine_arr,crse_arr,mask_arr,ratio);
+        });
+    }
+#endif
+#endif
+
+    //
+    // Interpolate unfilled grow cells using best data from
+    // surrounding faces of valid region, and pc-interpd data
+    // on fine faces overlaying coarse edges.
+    //
     if (fine_region.type(0) == IndexType::NODE)
     {
         AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
         {
-            face_linear_interp_x(i,j,k,n,fine_arr,crse_arr,ratio);
+            face_linear_interp_x(i,j,k,n,fine_arr,ratio);
         });
     }
 #if (AMREX_SPACEDIM >= 2)
@@ -158,7 +215,7 @@ FaceLinear::interp (const FArrayBox&  crse,
     {
         AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
         {
-            face_linear_interp_y(i,j,k,n,fine_arr,crse_arr,ratio);
+            face_linear_interp_y(i,j,k,n,fine_arr,ratio);
         });
     }
 #if (AMREX_SPACEDIM == 3)
@@ -166,7 +223,7 @@ FaceLinear::interp (const FArrayBox&  crse,
     {
         AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
         {
-            face_linear_interp_z(i,j,k,n,fine_arr,crse_arr,ratio);
+            face_linear_interp_z(i,j,k,n,fine_arr,ratio);
         });
     }
 #endif
@@ -180,7 +237,7 @@ void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                              const int         ncomp,
                              const Box&        fine_region,
                              const IntVect&    ratio,
-                             Array<IArrayBox*, AMREX_SPACEDIM> const& /*solve_mask*/,
+                             Array<IArrayBox*, AMREX_SPACEDIM> const& solve_mask,
                              const Geometry&   /*crse_geom*/,
                              const Geometry&   /*fine_geom*/,
                              Vector<Array<BCRec, AMREX_SPACEDIM> > const& /*bcr*/,
@@ -190,21 +247,67 @@ void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
 {
     BL_PROFILE("FaceLinear::interp_arr()");
 
-    // cell centered -- relevant or guaranteed by caller?
-    //AMREX_ASSERT(AMREX_D_TERM(fine_region.type(0),+fine_region.type(1),+fine_region.type(2)) == 1);
-
     Array<IndexType, AMREX_SPACEDIM> types;
     for (int d=0; d<AMREX_SPACEDIM; ++d)
         { types[d].set(d); }
 
     GpuArray<Array4<const Real>, AMREX_SPACEDIM> crse_arr;
     GpuArray<Array4<Real>, AMREX_SPACEDIM> fine_arr;
+    GpuArray<Array4<const int>, AMREX_SPACEDIM> mask_arr;
     for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
         crse_arr[d] = crse[d]->const_array(crse_comp);
         fine_arr[d] = fine[d]->array(fine_comp);
+        if (solve_mask[d] != nullptr)
+            { mask_arr[d] = solve_mask[d]->const_array(0); }
     }
 
+    const Box c_fine_region = amrex::coarsen(fine_region, ratio);
+
+    //
+    // Fill fine ghost faces with piecewise-constant interpolation of coarse data.
+    // Operate only on faces that overlap--ie, only fill the fine faces that make up each
+    // coarse face, leave the in-between faces alone.
+    // The mask ensures we do not overwrite valid fine cells.
+    //
+    // Fuse the launches, 1 for each dimension, into a single launch.
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(runon,
+              amrex::convert(c_fine_region,types[0]), bx0,
+              {
+                  AMREX_LOOP_3D(bx0, i, j, k,
+                  {
+                      for (int n=0; n<ncomp; ++n)
+                      {
+                          face_linear_face_interp_x(i,j,k,n,fine_arr[0],crse_arr[0],mask_arr[0],ratio);
+                      }
+                  });
+              },
+              amrex::convert(c_fine_region,types[1]), bx1,
+              {
+                  AMREX_LOOP_3D(bx1, i, j, k,
+                  {
+                      for (int n=0; n<ncomp; ++n)
+                      {
+                          face_linear_face_interp_y(i,j,k,n,fine_arr[1],crse_arr[1],mask_arr[1],ratio);
+                      }
+                  });
+              },
+              amrex::convert(c_fine_region,types[2]), bx2,
+              {
+                  AMREX_LOOP_3D(bx2, i, j, k,
+                  {
+                      for (int n=0; n<ncomp; ++n)
+                      {
+                          face_linear_face_interp_z(i,j,k,n,fine_arr[2],crse_arr[2],mask_arr[2],ratio);
+                      }
+                  });
+              });
+
+    //
+    // Interpolate unfilled grow cells using best data from
+    // surrounding faces of valid region, and pc-interpd data
+    // on fine faces overlaying coarse edges.
+    //
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(runon,
               amrex::convert(fine_region,types[0]), bx0,
               {
@@ -212,7 +315,7 @@ void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                   {
                       for (int n=0; n<ncomp; ++n)
                       {
-                          face_linear_interp_x(i,j,k,n,fine_arr[0],crse_arr[0],ratio);
+                          face_linear_interp_x(i,j,k,n,fine_arr[0],ratio);
                       }
                   });
               },
@@ -222,7 +325,7 @@ void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                   {
                       for (int n=0; n<ncomp; ++n)
                       {
-                          face_linear_interp_y(i,j,k,n,fine_arr[1],crse_arr[1],ratio);
+                          face_linear_interp_y(i,j,k,n,fine_arr[1],ratio);
                       }
                   });
               },
@@ -232,7 +335,7 @@ void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                   {
                       for (int n=0; n<ncomp; ++n)
                       {
-                          face_linear_interp_z(i,j,k,n,fine_arr[2],crse_arr[2],ratio);
+                          face_linear_interp_z(i,j,k,n,fine_arr[2],ratio);
                       }
                   });
               });
@@ -632,18 +735,16 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
                                     const IntVect&   ratio,
                                     const Geometry&  crse_geom,
                                     const Geometry&  fine_geom,
-                                    Vector<BCRec>&   bcr,
+                                    Vector<BCRec>&   /*bcr*/,
                                     RunOn            runon)
 {
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(fine,fine_state,
                          ncomp,fine_region,ratio,
-                         crse_geom,fine_geom,bcr,runon);
+                         crse_geom,fine_geom,runon);
     amrex::Abort("1D CellConservativeProtected::protect not supported");
 #else
     BL_PROFILE("CellConservativeProtected::protect()");
-    BL_ASSERT(bcr.size() >= ncomp);
-    amrex::ignore_unused(bcr);
 
     //
     // Make box which is intersection of fine_region and domain of fine.
@@ -732,13 +833,12 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
                                  const IntVect&    ratio,
                                  const Geometry&   /* crse_geom */,
                                  const Geometry&   /* fine_geom */,
-                                 Vector<BCRec> const& bcr,
+                                 Vector<BCRec> const& /*bcr*/,
                                  int               /* actual_comp */,
                                  int               /* actual_state */,
                                  RunOn             runon)
 {
     BL_PROFILE("CellConservativeQuartic::interp()");
-    BL_ASSERT(bcr.size() >= ncomp);
     BL_ASSERT(ratio[0] == 2);
 #if (AMREX_SPACEDIM >= 2)
     BL_ASSERT(ratio[0] == ratio[1]);
@@ -746,7 +846,7 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
 #if (AMREX_SPACEDIM == 3)
     BL_ASSERT(ratio[1] == ratio[2]);
 #endif
-    amrex::ignore_unused(bcr,ratio);
+    amrex::ignore_unused(ratio);
 
     //
     // Make box which is intersection of fine_region and domain of fine.
