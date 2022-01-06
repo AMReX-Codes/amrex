@@ -922,12 +922,12 @@ ParallelDescriptor::Gather (const T& t, int root)
     BL_PROFILE_T_S("ParallelDescriptor::Gather(Ti)", T);
     BL_COMM_PROFILE(BLProfiler::GatherTi, BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
 
-    std::vector<T> resl(1);
+    std::vector<T> resl;
     if ( root == MyProc() ) resl.resize(NProcs());
     BL_MPI_REQUIRE( MPI_Gather(const_cast<T*>(&t),
                                1,
                                Mpi_typemap<T>::type(),
-                               &resl[0],
+                               resl.data(),
                                1,
                                Mpi_typemap<T>::type(),
                                root,
