@@ -25,11 +25,10 @@
 #include <cstdio>
 
 #ifdef __cplusplus  /* wrapper to enable C++ usage */
-extern "C" {
-#endif
-
 namespace amrex {
 namespace sundials {
+extern "C" {
+#endif
 
 /* -----------------------------------------------------------------
  * Vector content structure
@@ -64,9 +63,7 @@ void N_VDestroy_MultiFab(N_Vector v);
 void N_VSpace_MultiFab(N_Vector v, sunindextype *lrw,
                        sunindextype *liw);
 N_VectorContent_MultiFab N_VGetContent_MultiFab(N_Vector v);
-MultiFab*& getMFptr(N_Vector v);
 MultiFab* N_VGetVectorPointer_MultiFab(N_Vector v);
-MultiFab N_VGetVectorAlias_MultiFab(N_Vector v);
 amrex::Real NormHelper_NVector_MultiFab(N_Vector x, N_Vector w, N_Vector id, int use_id, bool rms);
 /* standard vector operations */
 void N_VLinearSum_MultiFab(amrex::Real a, N_Vector x,
@@ -92,11 +89,14 @@ int N_VConstrMask_MultiFab(N_Vector c, N_Vector x,
                            N_Vector m);
 amrex::Real N_VMinQuotient_MultiFab(N_Vector num, N_Vector denom);
 
-}
-
-}
 #ifdef __cplusplus
-}
+} // extern "C"
+
+MultiFab*& getMFptr(N_Vector v);
+MultiFab N_VGetVectorAlias_MultiFab(N_Vector v);
+
+}//namespace sundials
+}//namespace amrex
 #endif
 
 #endif
