@@ -41,6 +41,15 @@ namespace Gpu {
     using PinnedVector = PODVector<T, PinnedArenaAllocator<T> >;
 
     /**
+     * \brief A PODVector that uses the async memory arena.
+     *        Maybe useful for temporary vectors inside MFIters
+     *        that are accessed on the device.
+     *
+     */
+    template <class T>
+    using AsyncVector = PODVector<T, AsyncArenaAllocator<T> >;
+
+    /**
      * \brief A PODVector that uses pinned host memory. Same as PinnedVector.
      * For a vector class that uses std::allocator by default, see amrex::Vector.
      *
@@ -82,6 +91,9 @@ namespace Gpu {
 
     template <class T>
     using PinnedVector = PODVector<T>;
+
+    template <class T>
+    using AsyncVector = PODVector<T>;
 
     template <class T>
     using PolymorphicVector = PODVector<T>;

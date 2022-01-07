@@ -83,7 +83,7 @@ DeriveRec::DeriveRec (const std::string&      a_name,
 DeriveRec::DeriveRec (const std::string& a_name,
                       IndexType      result_type,
                       int            nvar_derive,
-                      Vector<std::string>& var_names,
+                      Vector<std::string> const& var_names,
                       DeriveFunc     der_func,
                       DeriveBoxMap   box_map,
                       Interpolater*  a_interp)
@@ -100,7 +100,7 @@ DeriveRec::DeriveRec (const std::string& a_name,
 DeriveRec::DeriveRec (const std::string& a_name,
                       IndexType      result_type,
                       int            nvar_derive,
-                      Vector<std::string>& var_names,
+                      Vector<std::string> const& var_names,
                       DeriveFunc3D   der_func_3d,
                       DeriveBoxMap   box_map,
                       Interpolater*  a_interp)
@@ -117,7 +117,7 @@ DeriveRec::DeriveRec (const std::string& a_name,
 DeriveRec::DeriveRec (const std::string& a_name,
                       IndexType      result_type,
                       int            nvar_derive,
-                      Vector<std::string>& var_names,
+                      Vector<std::string> const& var_names,
                       DeriveFuncFab  der_func_fab,
                       DeriveBoxMap   box_map,
                       Interpolater*  a_interp)
@@ -266,9 +266,11 @@ DeriveRec::getRange (int  k,
     for (r = rng; r != 0 && k > 0; k--, r = r->next)
         ;
     BL_ASSERT(r != 0);
-    state_indx = r->typ;
-    src_comp   = r->sc;
-    num_comp   = r->nc;
+    if (r != 0) {
+        state_indx = r->typ;
+        src_comp   = r->sc;
+        num_comp   = r->nc;
+    }
 }
 
 void
@@ -383,7 +385,7 @@ void
 DeriveList::add (const std::string&      name,
                  IndexType               res_typ,
                  int                     nvar_der,
-                 Vector<std::string>&    vars,
+                 Vector<std::string> const&    vars,
                  DeriveFunc              der_func,
                  DeriveRec::DeriveBoxMap bx_map,
                  Interpolater*           interp)
@@ -395,7 +397,7 @@ void
 DeriveList::add (const std::string&      name,
                  IndexType               res_typ,
                  int                     nvar_der,
-                 Vector<std::string>&    vars,
+                 Vector<std::string> const&    vars,
                  DeriveFunc3D            der_func_3d,
                  DeriveRec::DeriveBoxMap bx_map,
                  Interpolater*           interp)
@@ -407,7 +409,7 @@ void
 DeriveList::add (const std::string&      name,
                  IndexType               res_typ,
                  int                     nvar_der,
-                 Vector<std::string>&    vars,
+                 Vector<std::string> const&    vars,
                  DeriveFuncFab           der_func_fab,
                  DeriveRec::DeriveBoxMap bx_map,
                  Interpolater*           interp)

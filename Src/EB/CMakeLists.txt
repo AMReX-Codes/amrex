@@ -19,13 +19,14 @@ target_sources(amrex
    AMReX_EBSupport.H
    AMReX_EBInterpolater.H
    AMReX_EBInterpolater.cpp
+   AMReX_EBMFInterpolater.H
+   AMReX_EBMFInterpolater.cpp
    AMReX_EBFluxRegister.H
    AMReX_EBFluxRegister_C.H
    AMReX_EBFluxRegister_${AMReX_SPACEDIM}D_C.H
    AMReX_EBFluxRegister.cpp
    AMReX_EBAmrUtil.H
    AMReX_EBAmrUtil.cpp
-   AMReX_EB_slopes_K.H
    AMReX_EB_utils.H
    AMReX_EB_utils.cpp
    AMReX_algoim.H
@@ -50,6 +51,7 @@ target_sources(amrex
    AMReX_EB2_IF_Union.H
    AMReX_EB2_IF_Extrusion.H
    AMReX_EB2_IF_Difference.H
+   AMReX_EB2_IF_Parser.H
    AMReX_EB2_IF.H
    AMReX_EB2_IF_Base.H
    AMReX_distFcnElement.cpp

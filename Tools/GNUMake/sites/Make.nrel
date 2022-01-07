@@ -5,7 +5,7 @@ endif
 ifeq ($(which_computer), eagle)
 # Eagle is homogeneous at the moment
 # so we can be very specific about arch.
-# We are not accomodating older compilers
+# We are not accommodating older compilers
 # that will fail with these flags.
   ifeq ($(COMP), intel)
     CXXFLAGS += -xSKYLAKE-AVX512

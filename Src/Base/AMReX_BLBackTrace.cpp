@@ -296,6 +296,8 @@ BLBackTrace::print_backtrace_info (FILE* f)
 
 #endif
 
+#else
+    amrex::ignore_unused(f);
 #endif
 }
 

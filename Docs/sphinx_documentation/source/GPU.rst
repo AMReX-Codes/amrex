@@ -182,7 +182,6 @@ can run it and that will generate results like:
    Total GPU global memory (MB): 6069
    Free  GPU global memory (MB): 5896
    [The         Arena] space (MB): 4552
-   [The  Device Arena] space (MB): 8
    [The Managed Arena] space (MB): 8
    [The  Pinned Arena] space (MB): 8
    AMReX (19.06-404-g0455b168b69c-dirty) finalized
@@ -216,7 +215,7 @@ check the :ref:`table <tab:cmakecudavar>` below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_COMPILATION_TIMER |  CSV table with time for each compilation phase | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_CUDA_DEBUG             |  Device debug information (optimizations: off)  | NO          | YES, NO         |
+   | AMReX_CUDA_DEBUG             |  Device debug information (optimizations: off)  | YES: Debug  | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_ERROR_CAPTURE_THIS|  Error if a CUDA lambda captures a class' this  | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -320,12 +319,16 @@ we provide the helper function ``setup_target_for_cuda_compilation()``:
 
 
 
-Enabling HIP support (experimental)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Enabling HIP Support
+^^^^^^^^^^^^^^^^^^^^
 
 To build AMReX with HIP support in CMake, add
 ``-DAMReX_GPU_BACKEND=HIP -DAMReX_AMD_ARCH=<target-arch> -DCMAKE_CXX_COMPILER=<your-hip-compiler>``
 to the ``cmake`` invocation.
+If you don't need Fortran features (``AMReX_FORTRAN=OFF``), it is recommended to use AMD's ``clang++`` as the HIP compiler.
+(Please see these issues for reference in rocm/HIP <= 4.2.0
+`[1] <https://github.com/ROCm-Developer-Tools/HIP/issues/2275>`__
+`[2] <https://github.com/AMReX-Codes/amrex/pull/2031>`__.)
 
 In AMReX CMake, the HIP compiler is treated as a special C++ compiler and therefore
 the standard CMake variables used to customize the compilation process for C++,
@@ -333,21 +336,22 @@ for example ``CMAKE_CXX_FLAGS``, can be used for HIP as well.
 
 
 Since CMake does not support autodetection of HIP compilers/target architectures
-yet, ``CMAKE_CXX_COMPILER`` must be set to a valid HIP compiler, i.e. ``hipcc`` or ``nvcc``,
+yet, ``CMAKE_CXX_COMPILER`` must be set to a valid HIP compiler, i.e. ``clang++`` or ``hipcc`` or ``nvcc``,
 and ``AMReX_AMD_ARCH`` to the target architecture you are building for.
 Thus **AMReX_AMD_ARCH and CMAKE_CXX_COMPILER are required user-inputs when AMReX_GPU_BACKEND=HIP**.
-We again read also an *environment variable*: ``AMREX_AMD_ARCH`` (note: all caps).
+We again read also an *environment variable*: ``AMREX_AMD_ARCH`` (note: all caps) and the C++ compiler can be hinted as always, e.g. with ``export CXX=$(which clang++)``.
 Below is an example configuration for HIP on Tulip:
 
 .. highlight:: console
 
 ::
 
-   cmake -DAMReX_GPU_BACKEND=HIP -DCMAKE_CXX_COMPILER=$(which hipcc) -DAMReX_AMD_ARCH="gfx906,gfx908"  [other options] /path/to/amrex/source
+   cmake -S . -B build -DAMReX_GPU_BACKEND=HIP -DCMAKE_CXX_COMPILER=$(which clang++) -DAMReX_AMD_ARCH="gfx906;gfx908"  # [other options]
+   cmake --build build -j 6
 
 
-Enabling SYCL support (experimental)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Enabling SYCL Support
+^^^^^^^^^^^^^^^^^^^^^
 
 To build AMReX with SYCL support in CMake, add
 ``-DAMReX_GPU_BACKEND=SYCL -DCMAKE_CXX_COMPILER=<your-sycl-compiler>``
@@ -386,6 +390,8 @@ Below is an example configuration for SYCL:
    | Variable Name                | Description                                     | Default     | Possible values |
    +==============================+=================================================+=============+=================+
    | AMReX_DPCPP_AOT              | Enable DPCPP ahead-of-time compilation          | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | AMREX_INTEL_ARCH             | Specify target if AOT is enabled                | None        | Gen9, etc.      |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_DPCPP_SPLIT_KERNEL     | Enable DPCPP kernel splitting                   | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -457,17 +463,17 @@ specific type of GPU memory:
 
 .. table:: Memory Arenas
 
-    +---------------------+----------------------------+
-    | Arena               |        Memory Type         |
-    +=====================+============================+
-    | The_Arena()         |  managed or device memory  |
-    +---------------------+----------------------------+
-    | The_Device_Arena()  |  device memory             |
-    +---------------------+----------------------------+
-    | The_Managed_Arena() |  managed memory            |
-    +---------------------+----------------------------+
-    | The_Pinned_Arena()  |  pinned memory             |
-    +---------------------+----------------------------+
+    +---------------------+---------------------------------------------------+
+    | Arena               |        Memory Type                                |
+    +=====================+===================================================+
+    | The_Arena()         |  managed or device memory                         |
+    +---------------------+---------------------------------------------------+
+    | The_Device_Arena()  |  device memory, could be an alias to The_Arena()  |
+    +---------------------+---------------------------------------------------+
+    | The_Managed_Arena() |  managed memory, could be an alias to The_Arena() |
+    +---------------------+---------------------------------------------------+
+    | The_Pinned_Arena()  |  pinned memory                                    |
+    +---------------------+---------------------------------------------------+
 
 .. raw:: latex
 
@@ -489,9 +495,40 @@ a boolean runtime parameter ``amrex.the_arena_is_managed``.
 Therefore the data in a :cpp:`MultiFab` is placed in
 managed memory by default and is accessible from both CPU host and GPU device.
 This allows application codes to develop their GPU capability
-gradually.  :cpp:`The_Managed_Arena()` is a separate pool of
-managed memory, that is distinguished from :cpp:`The_Arena()` for
-performance reasons.  If you want to print out the current memory usage
+gradually. The behavior of :cpp:`The_Managed_Arena()` likewise depends on the
+``amrex.the_arena_is_managed`` parameter. If ``amrex.the_arena_is_managed=0``,
+:cpp:`The_Managed_Arena()` is a separate pool of managed memory. If
+``amrex.the_arena_is_managed=1``, :cpp:`The_Managed_Arena()` is simply aliased
+to :cpp:`The_Arena()` to reduce memory fragmentation.
+
+In :cpp:`amrex::Initialize`, a large amount of GPU device memory is
+allocated and is kept in :cpp:`The_Arena()`.  The default is 3/4 of the
+total device memory, and it can be changed with a :cpp:`ParmParse`
+parameter, ``amrex.the_arena_init_size``, in the unit of bytes.  The default
+initial size for other arenas is 8388608 (i.e., 8 MB).  For
+:cpp:`The_Managed_Arena()` and :cpp:`The_Device_Arena()`, it can be changed
+with ``amrex.the_managed_arena_init_size`` and
+``amrex.the_device_arena_init_size``, respectively, if they are not an alias
+to :cpp:`The_Arena()`.  For :cpp:`The_Pinned_Arena()`, it can be changed
+with ``amrex.the_pinned_arena_init_size``.  The user can also specify a
+release threshold for these arenas.  If the memory usage in an arena is
+below the threshold, the arena will keep the memory for later reuse,
+otherwise it will try to release memory back to the system if it is not
+being used.  By default, the release threshold for :cpp:`The_Arena()` is set
+to be a huge number that prevents the memory being released automatically,
+and it can be changed with a parameter,
+``amrex.the_arena_release_threshold``.  For :cpp:`The_Pinned_Arena()`, the
+default release threshold is the size of the total device memory, and the
+runtime parameter is ``amrex.the_pinned_arena_release_threshold``.  If it is
+a separate arena, the behavior of :cpp:`The_Device_Area()` or
+:cpp:`The_Managed_Arena()` can be changed with
+``amrex.the_device_arena_release_threshold`` or
+``amrex.the_managed_arena_release_threshold``.  Note that the units for all
+the parameter discussed above are bytes.  All these areans also have a
+member function :cpp:`freeUnused()` that can be used to manually release
+unused memory back to the system.
+
+If you want to print out the current memory usage
 of the Arenas, you can call :cpp:`amrex::Arena::PrintUsage()`.
 When AMReX is built with SUNDIALS turned on, :cpp:`amrex::sundials::The_SUNMemory_Helper()`
 can be provided to SUNDIALS data structures so that they use the appropriate
@@ -633,11 +670,9 @@ allocations and deallocations when (for example) resizing vectors.
     +================+======================+
     | DeviceVector   | The_Arena()          |
     +----------------+----------------------+
-    | HostVector     | None                 |
+    | HostVector     | The_Pinned_Arena()   |
     +----------------+----------------------+
     | ManagedVector  | The_Managed_Arena()  |
-    +----------------+----------------------+
-    | PinnedVector   | The_Pinned_Arena()   |
     +----------------+----------------------+
 
 .. raw:: latex
@@ -647,7 +682,8 @@ allocations and deallocations when (for example) resizing vectors.
 These classes behave identically to an
 :cpp:`amrex::Vector`, (see :ref:`sec:basics:vecandarr`), except that they
 can only hold "plain-old-data" objects (e.g. Reals, integers, amrex Particles,
-etc... ).
+etc... ). If you want a resizable vector that doesn't use a memory Arena,
+simply use :cpp:`amrex::Vector`.
 
 Note that, even if the data in the vector is  managed and available on GPUs,
 the member functions of e.g. :cpp:`Gpu::ManagedVector` are not.
@@ -683,48 +719,59 @@ AMReX provides functions for performing standard reduction operations on
 When ``USE_CUDA=TRUE``, these functions automatically implement the
 corresponding reductions on GPUs in an efficient manner.
 
-Function templates :cpp:`amrex::ReduceSum`, :cpp:`amrex::ReduceMin` and
-:cpp:`amrex::ReduceMax` can be used to implement user-defined reduction
-functions over :cpp:`MultiFab`\ s. These same templates are implemented
-in the :cpp:`MultiFab` functions, so they can be used as a reference to
-build a custom reduction. For example, the :cpp:`MultiFab:Dot`
-implementation is reproduced here:
+Function template :cpp:`ParallelFor` can be used to implement user-defined
+reduction functions over :cpp:`MultiFab`\ s.  For example, the following
+function computes the sum of total kinetic energy using the data in a
+:cpp:`MultiFab` storing the mass and momentum density.
 
 .. highlight:: c++
 
 ::
 
-    Real MultiFab::Dot (const MultiFab& x, int xcomp,
-                        const MultiFab& y, int ycomp,
-                        int numcomp, int nghost, bool local) {
-        Real sm = amrex::ReduceSum(x, y, nghost,
-        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& xfab, FArrayBox const& yfab) -> Real
-        {
-            return xfab.dot(bx,xcomp,yfab,bx,ycomp,numcomp);
-        });
-
-        if (!local) ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
-
-        return sm;
+    Real compute_ek (MultiFab const& mf)
+    {
+        auto const& ma = mf.const_arrays();
+        return ParallelFor(mf, IntVect(0), // zero ghost cells
+               [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
+                   noexcept -> GpuTuple<Real>
+               {
+                   Array4<Real const> const& a = ma[box_no];
+                   Real rho = a(i,j,k,0);
+                   Real rhovx = a(i,j,k,1);
+                   Real rhovy = a(i,j,k,2);
+                   Real rhovz = a(i,j,k,3);
+                   Real ek = (rhovx*rhovx+rhovy*rhovy+rhovz*rhovz)/(2.*rho);
+                   return { ek };
+               });
     }
 
-:cpp:`amrex::ReduceSum` takes two :cpp:`MultiFab`\ s, ``x`` and ``y`` and
-returns the sum of the value returned from the given lambda function.
-In this case, :cpp:`BaseFab::dot` is returned, yielding a sum of the
-dot product of each local pair of :cpp:`BaseFab`\ s. Finally,
-:cpp:`ParallelAllReduce` is used to sum the dot products across all
-MPI ranks and return the total dot product of the two
-:cpp:`MultiFab`\ s.
+As another example, the following function computes the max- and 1-norm of a
+:cpp:`MultiFab` in the masked region specified by an :cpp:`iMultiFab`.
 
-To implement a different reduction, replace the code block inside the
-lambda function with the operation that should be applied, being sure
-to return the value to be summed, minimized, or maximized.  The reduction
-templates have a few different interfaces to accommodate a variety of
-reductions.  The :cpp:`amrex::ReduceSum` reduction template has varieties
-that take either one, two or three ::cpp:`MultiFab`\ s.
-:cpp:`amrex::ReduceMin` and :cpp:`amrex::ReduceMax` can take either one
-or two.
+.. highlight:: c++
 
+::
+
+    GpuTuple<Real,Real> compute_norms (MultiFab const& mf,
+                                       iMulitiFab const& mask)
+    {
+        auto const& data_ma = mf.const_arrays();
+        auto const& mask_ma = mask.const_arrays();
+        return ParallelFor(mf, IntVect(0), // zero ghost cells
+               [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
+                   noexcept -> GpuTuple<Real,Real>
+               {
+                   if (mask_ma[box_no](i,j,k)) {
+                       Real a = amrex::Math::abs(data_ma[box_no](i,j,k));
+                       return { a, a };
+                   } else {
+                       return { 0., 0. };
+                   }
+               });
+    }
+
+It should be noted that the reduction result of :cpp:`ParallelFor` is local
+and it is the user's responsibility if MPI communication is needed.
 
 Box, IntVect and IndexType
 --------------------------
@@ -842,7 +889,7 @@ Instead of using :cpp:`Elixir`, we can write code like below,
       FArrayBox tmp_fab(bx, numcomps, The_Async_Arena());
       Array4<Real> const& tmp_arr = tmp_fab.array();
       FArrayBox tmp_fab_2;
-      tmp_fab_2.resize(bx, numcomps, The_Async_Async());
+      tmp_fab_2.resize(bx, numcomps, The_Async_Arena());
 
       // GPU kernels using the temporary
     }
@@ -878,9 +925,12 @@ function is executed.
 The available launch schema are presented here in three categories: launching
 nested loops over Boxes or 1D arrays, launching generic work and launching using
 OpenACC or  OpenMP pragmas. The latest versions of the examples used in this section
-of the documentation can be found in the AMReX source code at ``amrex/Tutorials/GPU/Launch``.
+of the documentation can be found in the AMReX source code in the `Launch`_ tutorials.
 Users should also refer to Chapter :ref:`Chap:Basics` as needed for information about basic
 AMReX classes.
+
+.. _`Launch`: https://amrex-codes.github.io/amrex/tutorials_html/GPU_Tutorial.html#launch
+
 
 AMReX also recommends writing primary floating point operation kernels
 in C++ using AMReX's :cpp:`Array4` object syntax.  It provides a
@@ -920,7 +970,7 @@ compact and readable format.
 
 AMReX also provides a variation of the launch function that is implemented as a
 C++ macro.  It behaves identically to the function, but hides the lambda function
-from to the user.  There are some subtle differences between the two implementations,
+from the user.  There are some subtle differences between the two implementations,
 that will be discussed.  It is up to the user to select which version they would like
 to use.  For simplicity, the function variation will be discussed throughout the rest of
 this documentation, however all code snippets will also include the macro variation
@@ -1477,7 +1527,9 @@ look like the following:
 Note the use of the :fortran:`!$acc parallel deviceptr` clause to specify which data has been placed
 in managed memory. This instructs OpenACC to treat those variables as if they already live on
 the device, bypassing the usual copies. For complete examples of a particle code that has been ported
-to GPUs using Cuda, OpenACC, and OpenMP, please see :cpp:`Tutorials/Particles/ElectromagneticPIC`.
+to GPUs using Cuda, OpenACC, and OpenMP, please see the tutorial `Electromagnetic PIC`_.
+
+.. _`Electromagnetic PIC`: https://amrex-codes.github.io/amrex/tutorials_html/Particles_Tutorial.html#electromagneticpic
 
 GPU-aware implementations of many common particle operations are provided with AMReX, including neighbor list
 construction and traversal, particle-mesh deposition and interpolation, parallel reductions of particle data,
@@ -1545,7 +1597,7 @@ AMReX for GPUs:
   performance and greatly reduces runtime.  Functions are written
   inline by putting their definitions in the ``.H`` file and using
   the ``AMREX_FORCE_INLINE`` AMReX macro.  Examples can be found in
-  ``Tutorials/GPU/Launch``. For example:
+  in the `Launch`_ tutorial. For example:
 
 .. highlight:: cpp
 
@@ -1606,40 +1658,3 @@ by "amrex" in your :cpp:`inputs` file.
 |                            | requested allocation, AMReX will call AMReX::Abort() with an error    |             |             |
 |                            | describing how much free memory there is and what was requested.      |             |             |
 +----------------------------+-----------------------------------------------------------------------+-------------+-------------+
-
-Basic Gpu Debugging
-===================
-
-- Turn off GPU offloading for some part of the code with
-
-.. highlight:: cpp
-
-::
-
-    Gpu::setLaunchRegion(0);
-    ... ;
-    Gpu::setLaunchRegion(1);
-
-Note that functions, ``amrex::launch`` and ``amrex::ParallelFor``, do
-not respect the launch region flag.  Only the macros (e.g.,
-``AMREX_LAUNCH_HOST_DEVICE_LAMBDA`` and ``AMREX_HOST_DEVICE_FOR_*D``) do.
-
-Cuda-specific tests
--------------------
-
-- To test if your kernels have launched, run
-
-::
-
-    nvprof ./main3d.xxx
-
-- Run under ``nvprof -o profile%p.nvvp ./main3d.xxxx`` for
-  a small problem and examine page faults using nvvp
-
-- Run under ``cuda-memcheck``
-
-- Run under ``cuda-gdb``
-
-- Run with ``CUDA_LAUNCH_BLOCKING=1``.  This means that only one
-  kernel will run at a time.  This can help identify if there are race
-  conditions.

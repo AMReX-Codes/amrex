@@ -22,6 +22,9 @@ int       CNS::do_reflux = 1;
 int       CNS::refine_max_dengrad_lev   = -1;
 Real      CNS::refine_dengrad           = 1.0e10;
 
+bool      CNS::do_visc        = true;  // diffusion is on by default
+bool      CNS::use_const_visc = false; // diffusion does not use constant viscosity by default
+
 Real      CNS::gravity = 0.0;
 
 CNS::CNS ()
@@ -98,6 +101,9 @@ CNS::initData ()
             cns_initdata(i, j, k, sfab, geomdata, *lparm, *lprobparm);
         });
     }
+
+    // Compute the initial temperature (will override what was set in initdata)
+    computeTemp(S_new,0);
 }
 
 void
@@ -349,12 +355,37 @@ CNS::read_params ()
 
     pp.query("do_reflux", do_reflux);
 
+    pp.query("do_visc", do_visc);
+
+    if (do_visc)
+    {
+        pp.query("use_const_visc",use_const_visc);
+        if (use_const_visc)
+        {
+            pp.get("const_visc_mu",h_parm->const_visc_mu);
+            pp.get("const_visc_ki",h_parm->const_visc_ki);
+            pp.get("const_lambda" ,h_parm->const_lambda);
+        }
+    } else {
+       use_const_visc = true;
+       h_parm->const_visc_mu = 0.0;
+       h_parm->const_visc_ki = 0.0;
+       h_parm->const_lambda  = 0.0;
+    }
+
     pp.query("refine_max_dengrad_lev", refine_max_dengrad_lev);
     pp.query("refine_dengrad", refine_dengrad);
 
     pp.query("gravity", gravity);
 
     pp.query("eos_gamma", h_parm->eos_gamma);
+    pp.query("eos_mu"   , h_parm->eos_mu);
+
+    pp.query("eos_gamma", h_parm->eos_gamma);
+    pp.query("eos_mu"   , h_parm->eos_mu);
+    pp.query("Pr"       , h_parm->Pr);
+    pp.query("C_S"      , h_parm->C_S);
+    pp.query("T_S"      , h_parm->T_S);
 
     h_parm->Initialize();
     amrex::Gpu::copy(amrex::Gpu::hostToDevice, h_parm, h_parm+1, d_parm);

@@ -271,14 +271,25 @@ CArena::PrintUsage (std::string const& name) const
     ParallelReduce::Max<Long>({max_megabytes, actual_max_megabytes},
                               IOProc, ParallelDescriptor::Communicator());
 #ifdef AMREX_USE_MPI
-    amrex::Print() << "[" << name << "]" << " space (MB) allocated spread across MPI: ["
+    amrex::Print() << "[" << name << "] space (MB) allocated spread across MPI: ["
                    << min_megabytes << " ... " << max_megabytes << "]\n"
-                   << "[" << name << "]" << " space (MB) used      spread across MPI: ["
+                   << "[" << name << "] space (MB) used      spread across MPI: ["
                    << actual_min_megabytes << " ... " << actual_max_megabytes << "]\n";
 #else
-    amrex::Print() << "[" << name << "]" << " space allocated (MB): " << min_megabytes << "\n";
-    amrex::Print() << "[" << name << "]" << " space used      (MB): " << actual_min_megabytes << "\n";
+    amrex::Print() << "[" << name << "] space allocated (MB): " << min_megabytes << "\n";
+    amrex::Print() << "[" << name << "] space used      (MB): " << actual_min_megabytes << "\n";
 #endif
+}
+
+void
+CArena::PrintUsage (std::ostream& os, std::string const& name, std::string const& space) const
+{
+    Long megabytes = heap_space_used() / (1024*1024);
+    Long actual_megabytes = heap_space_actually_used() / (1024*1024);
+    os << space << "[" << name << "] space allocated (MB): " << megabytes << "\n";
+    os << space << "[" << name << "] space used      (MB): " << actual_megabytes << "\n";
+    os << space << "[" << name << "]: " << m_alloc.size() << " allocs, "
+       << m_busylist.size() << " busy blocks, " << m_freelist.size() << " free blocks\n";
 }
 
 }

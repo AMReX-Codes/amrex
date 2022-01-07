@@ -15,7 +15,7 @@ Given a function defined on cell centroids.
    ```
    $ ./main2d.gnu.DEBUG.MPI.ex inputs.2d.askew-y
    ```
-3. View the resulting plot files through `amrvis` visualizaiton tool. Eg:
+3. View the resulting plot files through `amrvis` visualization tool. Eg:
    ```
    $ amrvis2d plot-askew-y
    $ amrvis2d plot-askew-y-analytic

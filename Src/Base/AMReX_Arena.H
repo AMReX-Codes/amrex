@@ -98,7 +98,7 @@ public:
     virtual void free (void* pt) = 0;
 
     /**
-    * \brief Free unused memory back to the sytem.  Return value is the
+    * \brief Free unused memory back to the system.  Return value is the
     * amount memory freed.
     */
     virtual std::size_t freeUnused () { return 0; }
@@ -107,7 +107,7 @@ public:
     virtual bool isDeviceAccessible () const;
     virtual bool isHostAccessible () const;
 
-    // Note that isManaged, isDevice and isPinned are mutually exlusive.
+    // Note that isManaged, isDevice and isPinned are mutually exclusive.
     // For memory allocated by cudaMalloc* etc., one of them returns true.
     // Otherwise, neither is true.
     virtual bool isManaged () const;
@@ -122,6 +122,7 @@ public:
 
     static void Initialize ();
     static void PrintUsage ();
+    static void PrintUsageToFiles (std::string const& filename, std::string const& message);
     static void Finalize ();
 
 #if 0

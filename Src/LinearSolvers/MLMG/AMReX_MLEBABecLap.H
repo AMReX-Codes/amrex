@@ -99,7 +99,7 @@ public:
         { return amrex::GetArrOfConstPtrs(m_b_coeffs[amrlev][mglev]); }
 
     virtual std::unique_ptr<MLLinOp> makeNLinOp (int /*grid_size*/) const final override {
-        amrex::Abort("MLABecLaplacian::makeNLinOp: Not implmented");
+        amrex::Abort("MLABecLaplacian::makeNLinOp: Not implemented");
         return std::unique_ptr<MLLinOp>{};
     }
 

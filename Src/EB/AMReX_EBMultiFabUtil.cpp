@@ -367,9 +367,9 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_f
 
         if (typ == FabType::regular || typ == FabType::covered)
         {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, b,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D(tbx, ncomp, i, j, k, n,
             {
-                amrex_avgdown_with_vol(b, crse_arr, fine_arr, vol, 0, scomp, ncomp, ratio);
+                amrex_avgdown_with_vol(i,j,k,n, crse_arr, fine_arr, vol, 0, scomp, ratio);
             });
         }
         else if (typ == FabType::singlevalued)
@@ -700,9 +700,14 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
         const auto& fcent = factory.getFaceCent();
 
         iMultiFab cc_mask;
+        // The "1,1,0,1" in BuildMask signifies that cells in the interior of the
+        // domain -- regardless of valid cells, ghost cells filled from other fine grid,
+        // or ghost cells interpolated from coarser level -- can be used in the
+        // tangential interpolation from face centers to face centroids.  That interpolation
+        // routine is the only routine which uses cc_mask.
         if (!already_on_centroids) {
             cc_mask.define(divu.boxArray(), divu.DistributionMap(), 1, 1);
-            cc_mask.BuildMask(geom.Domain(), geom.periodicity(), 1, 0, 0, 1);
+            cc_mask.BuildMask(geom.Domain(), geom.periodicity(), 1, 1, 0, 1);
         }
 
         const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
@@ -789,9 +794,9 @@ EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
                     ccfab(i,j,k,dcomp) = 0.0;
                 });
             } else if (fabtyp == FabType::regular) {
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, b,
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
                 {
-                    amrex_avg_fc_to_cc(b,ccfab,AMREX_D_DECL(xfab,yfab,zfab),dcomp);
+                    amrex_avg_fc_to_cc(i,j,k,ccfab,AMREX_D_DECL(xfab,yfab,zfab),dcomp);
                 });
             } else {
                 AMREX_D_TERM(Array4<Real const> const& apx = area[0]->const_array(mfi);,

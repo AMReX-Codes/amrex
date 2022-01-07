@@ -8,168 +8,10 @@ struct FabCopyTag {
     IntVect offset; // sbox.smallEnd() - dbox.smallEnd()
 };
 
-template <class T>
-struct Array4CopyTag {
-    Array4<T      > dfab;
-    Array4<T const> sfab;
-    Box dbox;
-    Dim3 offset; // sbox.smallEnd() - dbox.smallEnd()
-
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Box const& box () const noexcept { return dbox; }
-};
-
-template <class T>
-struct Array4MaskCopyTag {
-    Array4<T      > dfab;
-    Array4<T const> sfab;
-    Array4<int    > mask;
-    Box dbox;
-    Dim3 offset; // sbox.smallEnd() - dbox.smallEnd()
-
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Box const& box () const noexcept { return dbox; }
-};
-
 struct VoidCopyTag {
     char const* p;
     Box dbox;
 };
-
-template <class T>
-struct Array4BoxTag {
-    Array4<T> dfab;
-    Box       dbox;
-
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Box const& box () const noexcept { return dbox; }
-};
-
-#ifdef AMREX_USE_GPU
-namespace detail {
-template <class TagType, class F>
-void
-ParallelFor_doit (Vector<TagType> const& tags, F && f)
-{
-    const int ntags = tags.size();
-    if (ntags == 0) return;
-
-    int ntotwarps = 0;
-    Vector<int> nwarps;
-    nwarps.reserve(ntags+1);
-    for (int i = 0; i < ntags; ++i)
-    {
-        auto& tag = tags[i];
-        nwarps.push_back(ntotwarps);
-        ntotwarps += static_cast<int>(tag.box().numPts()+Gpu::Device::warp_size-1)/Gpu::Device::warp_size;
-    }
-    nwarps.push_back(ntotwarps);
-
-    std::size_t sizeof_tags = ntags*sizeof(TagType);
-    std::size_t offset_nwarps = Arena::align(sizeof_tags);
-    std::size_t sizeof_nwarps = (ntags+1)*sizeof(int);
-    std::size_t total_buf_size = offset_nwarps + sizeof_nwarps;
-
-    char* h_buffer = (char*)The_Pinned_Arena()->alloc(total_buf_size);
-    char* d_buffer = (char*)The_Arena()->alloc(total_buf_size);
-
-    std::memcpy(h_buffer, tags.data(), sizeof_tags);
-    std::memcpy(h_buffer+offset_nwarps, nwarps.data(), sizeof_nwarps);
-    Gpu::htod_memcpy_async(d_buffer, h_buffer, total_buf_size);
-
-    auto d_tags = reinterpret_cast<TagType*>(d_buffer);
-    auto d_nwarps = reinterpret_cast<int*>(d_buffer+offset_nwarps);
-
-    constexpr int nthreads = 256;
-    constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
-    int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
-
-    amrex::launch(nblocks, nthreads, Gpu::gpuStream(),
-#ifdef AMREX_USE_DPCPP
-    [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
-    AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
-#else
-    [=] AMREX_GPU_DEVICE () noexcept
-#endif
-    {
-#ifdef AMREX_USE_DPCPP
-        int g_tid = item.get_global_id(0);
-#else
-        int g_tid = blockDim.x*blockIdx.x + threadIdx.x;
-#endif
-        int g_wid = g_tid / Gpu::Device::warp_size;
-        if (g_wid >= ntotwarps) return;
-
-        int tag_id = -10000;
-        {
-            int lo = 0;
-            int hi = ntags;
-            while (lo <= hi)
-            {
-                int mid = (lo+hi)/2;
-                if (g_wid >= d_nwarps[mid] && g_wid < d_nwarps[mid+1]) {
-                    tag_id = mid;
-                    break;
-                } else if (g_wid < d_nwarps[mid]) {
-                    hi = mid-1;
-                } else {
-                    lo = mid+1;
-                }
-            };
-        }
-
-        auto tag = d_tags[tag_id];
-        int ncells = tag.box().numPts();
-        int b_wid = g_wid - d_nwarps[tag_id]; // b_wid'th warp on this box
-#ifdef AMREX_USE_DPCPP
-        int lane = item.get_local_id(0) % Gpu::Device::warp_size;
-#else
-        int lane = threadIdx.x % Gpu::Device::warp_size;
-#endif
-        int icell = b_wid*Gpu::Device::warp_size + lane;
-
-        const auto len = amrex::length(tag.box());
-        const auto lo  = amrex::lbound(tag.box());
-        int k =  icell /   (len.x*len.y);
-        int j = (icell - k*(len.x*len.y)) /   len.x;
-        int i = (icell - k*(len.x*len.y)) - j*len.x;
-        i += lo.x;
-        j += lo.y;
-        k += lo.z;
-
-#ifdef AMREX_USE_DPCPP
-        f(item, icell, ncells, i, j, k, tag);
-#else
-        f(icell, ncells, i, j, k, tag);
-#endif
-    });
-
-    Gpu::synchronize();
-    The_Pinned_Arena()->free(h_buffer);
-    The_Arena()->free(d_buffer);
-}
-}
-
-template <class TagType, class F>
-void
-ParallelFor (Vector<TagType> const& tags, int ncomp, F && f)
-{
-    detail::ParallelFor_doit(tags,
-        [=] AMREX_GPU_DEVICE (
-#ifdef AMREX_USE_DPCPP
-            sycl::nd_item<1> const& /*item*/,
-#endif
-            int icell, int ncells, int i, int j, int k, TagType const& tag) noexcept
-        {
-            if (icell < ncells) {
-                for (int n = 0; n < ncomp; ++n) {
-                    f(i,j,k,n,tag);
-                }
-            }
-        });
-}
-
-#endif
 
 namespace detail {
 
@@ -231,14 +73,14 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
 template <class T, class F>
 void
 fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, int ncomp,
-            F && f, Vector<Array4<int> > const& masks)
+            F && f, Vector<Array4Tag<int> > const& masks)
 {
     typedef Array4MaskCopyTag<T> TagType;
     Vector<TagType> tags;
     const int N = copy_tags.size();
     tags.reserve(N);
     for (int i = 0; i < N; ++i) {
-        tags.push_back(TagType{copy_tags[i].dfab, copy_tags[i].sfab, masks[i],
+        tags.push_back(TagType{copy_tags[i].dfab, copy_tags[i].sfab, masks[i].dfab,
                                copy_tags[i].dbox, copy_tags[i].offset});
     }
 
@@ -260,12 +102,24 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
         int to_try  = 1;
         while (true) {
             int msk = (m && to_try) ? Gpu::Atomic::CAS(m, 0, mypriority) : 0;
+#if (__INTEL_LLVM_COMPILER <= 20210300)
             if (sycl::ONEAPI::all_of(item.get_sub_group(), msk == 0)) {  // 0 means lock acquired
+#else
+            if (sycl::all_of_group(item.get_sub_group(), msk == 0)) {  // 0 means lock acquired
+#endif
                 break; // all threads have acquired.
             } else {
+#if (__INTEL_LLVM_COMPILER <= 20210300)
                 if (sycl::ONEAPI::any_of(item.get_sub_group(), msk > mypriority)) {
+#else
+                if (sycl::any_of_group(item.get_sub_group(), msk > mypriority)) {
+#endif
                     if (m) *m = 0; // yield
+#if (__INTEL_LLVM_COMPILER <= 20210300)
                     item.mem_fence(sycl::access::fence_space::global_and_local);
+#else
+                    sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
+#endif
                     to_try = 1;
                 } else {
                     to_try = (msk > 0); // hold on to my lock
@@ -328,7 +182,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
 template <typename T, std::enable_if_t<amrex::IsStoreAtomic<T>::value,int> = 0>
 void
 fab_to_fab_atomic_cpy (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, int ncomp,
-                       Vector<Array4<int> > const&)
+                       Vector<Array4Tag<int> > const&)
 {
     fab_to_fab<T>(copy_tags, scomp, dcomp, ncomp, CellStore<T>());
 }
@@ -336,7 +190,7 @@ fab_to_fab_atomic_cpy (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, in
 template <typename T, std::enable_if_t<!amrex::IsStoreAtomic<T>::value,int> = 0>
 void
 fab_to_fab_atomic_cpy (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, int ncomp,
-                       Vector<Array4<int> > const& masks)
+                       Vector<Array4Tag<int> > const& masks)
 {
     fab_to_fab<T>(copy_tags, scomp, dcomp, ncomp, CellStore<T>(), masks);
 }
@@ -344,7 +198,7 @@ fab_to_fab_atomic_cpy (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, in
 template <typename T, std::enable_if_t<amrex::HasAtomicAdd<T>::value,int> = 0>
 void
 fab_to_fab_atomic_add (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, int ncomp,
-                       Vector<Array4<int> > const&)
+                       Vector<Array4Tag<int> > const&)
 {
     fab_to_fab<T>(copy_tags, scomp, dcomp, ncomp, CellAtomicAdd<T>());
 }
@@ -352,7 +206,7 @@ fab_to_fab_atomic_add (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, in
 template <typename T, std::enable_if_t<!amrex::HasAtomicAdd<T>::value,int> = 0>
 void
 fab_to_fab_atomic_add (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, int ncomp,
-                       Vector<Array4<int> > const& masks)
+                       Vector<Array4Tag<int> > const& masks)
 {
     fab_to_fab<T>(copy_tags, scomp, dcomp, ncomp, CellAdd<T>(), masks);
 }
@@ -436,7 +290,7 @@ FabArray<FAB>::FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp)
     loc_copy_tags.reserve(N_locs);
 
     Vector<BaseFab<int> > maskfabs;
-    Vector<Array4<int> > masks;
+    Vector<Array4Tag<int> > masks;
     if (!amrex::IsStoreAtomic<value_type>::value && !is_thread_safe)
     {
         maskfabs.resize(this->local_size());
@@ -461,23 +315,16 @@ FabArray<FAB>::FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp)
             if (!maskfabs[li].isAllocated()) {
                 maskfabs[li].resize(this->atLocalIdx(li).box());
             }
-            masks.push_back(maskfabs[li].array());
+            masks.emplace_back(Array4Tag<int>{maskfabs[li].array()});
         }
     }
 
     if (maskfabs.size() > 0) {
-        Gpu::FuseSafeGuard fsg(maskfabs.size() >= Gpu::getFuseNumKernelsThreshold());
-        for (Gpu::StreamIter sit(maskfabs.size()); sit.isValid(); ++sit) {
-            BaseFab<int>& mskfab = maskfabs[sit()];
-            const Array4<int>& msk = mskfab.array();
-            const Box& bx = mskfab.box();
-            amrex::ParallelFor(Gpu::KernelInfo{}.setFusible(true), bx,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                msk(i,j,k) = 0;
-            });
-        }
-        Gpu::LaunchFusedKernels();
+        amrex::ParallelFor(masks,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, Array4Tag<int> const& msk) noexcept
+        {
+            msk.dfab(i,j,k) = 0;
+        });
     }
 
     if (is_thread_safe) {
@@ -976,7 +823,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
     recv_copy_tags.reserve(N_rcvs);
 
     Vector<BaseFab<int> > maskfabs;
-    Vector<Array4<int> > masks;
+    Vector<Array4Tag<int> > masks;
     if (!is_thread_safe)
     {
         if ((op == FabArrayBase::COPY && !amrex::IsStoreAtomic<value_type>::value) ||
@@ -1008,7 +855,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                     if (!maskfabs[li].isAllocated()) {
                         maskfabs[li].resize(dst.atLocalIdx(li).box());
                     }
-                    masks.push_back(maskfabs[li].array());
+                    masks.emplace_back(Array4Tag<int>{maskfabs[li].array()});
                 }
             }
             BL_ASSERT(dptr <= pbuffer + offset + recv_size[k]);
@@ -1016,18 +863,11 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
     }
 
     if (maskfabs.size() > 0) {
-        Gpu::FuseSafeGuard fsg(maskfabs.size() >= Gpu::getFuseNumKernelsThreshold());
-        for (Gpu::StreamIter sit(maskfabs.size()); sit.isValid(); ++sit) {
-            BaseFab<int>& mskfab = maskfabs[sit()];
-            const Array4<int>& msk = mskfab.array();
-            const Box& bx = mskfab.box();
-            amrex::ParallelFor(Gpu::KernelInfo().setFusible(true), bx,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                msk(i,j,k) = 0;
-            });
-        }
-        Gpu::LaunchFusedKernels();
+        amrex::ParallelFor(masks,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, Array4Tag<int> const& msk) noexcept
+        {
+            msk.dfab(i,j,k) = 0;
+        });
     }
 
     if (op == FabArrayBase::COPY)

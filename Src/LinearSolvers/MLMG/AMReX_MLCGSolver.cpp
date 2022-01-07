@@ -410,10 +410,7 @@ Real
 MLCGSolver::norm_inf (const MultiFab& res, bool local)
 {
     int ncomp = res.nComp();
-    Real result = std::numeric_limits<Real>::lowest();
-    for (int n=0; n<ncomp; n++)
-      result = std::max(result,res.norm0(n,0,true));
-
+    Real result = res.norm0(0,ncomp,IntVect(0),true);
     if (!local) {
         BL_PROFILE("MLCGSolver::ParallelAllReduce");
         ParallelAllReduce::Max(result, Lp.BottomCommunicator());

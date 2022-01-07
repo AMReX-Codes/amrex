@@ -9,15 +9,6 @@ namespace amrex {
 EBCellConservativeLinear  eb_lincc_interp;
 EBCellConservativeLinear  eb_cell_cons_interp(0);
 
-EBCellConservativeLinear::EBCellConservativeLinear (bool do_linear_limiting_)
-    : CellConservativeLinear(do_linear_limiting_)
-{
-}
-
-EBCellConservativeLinear::~EBCellConservativeLinear ()
-{
-}
-
 void
 EBCellConservativeLinear::interp (const FArrayBox& crse,
                                   int              crse_comp,

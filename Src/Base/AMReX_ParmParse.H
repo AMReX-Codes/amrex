@@ -71,16 +71,16 @@ class IntVect;
 // remaining four values are integers indexed 2, 3, 4, and 5.
 //
 // For a string value to represent an integer or float it must fit the
-// following regular experssion:
+// following regular expression:
 //   Sign    ::= '+' | '-'
 //   Digit   ::= '0' | '1' | ... | '9'
 //   Integer ::= [Sign]Digit+
 //   Exp     ::= ('e'|'E')Integer
 //   Float   ::= ( Integer[.Digit*][Exp] | [Integer].Digit+[Exp] )
 //
-// Where '+' indicates one or more occurences, '*' represents zero or
-// more occurences, '|' means one or the other and '[]' represents zero
-// or one occurence.
+// Where '+' indicates one or more occurrences, '*' represents zero or
+// more occurrences, '|' means one or the other and '[]' represents zero
+// or one occurrence.
 //
 // Note that floats and doubles have the same string representation and
 // that the FORTRAN "double" exponent format is not supported.
@@ -273,12 +273,18 @@ public:
     * for this particular ParmParse object.
     */
     explicit ParmParse (const std::string& prefix = std::string());
+
+    // To avoid error: definition of implicit copy constructor for
+    // 'ParmParse' is deprecated because it has a user-declared copy
+    // assignment operator.
+    ParmParse (ParmParse const& rhs) = default;
+
     //! Returns true if name is in table.
     bool contains (const char* name) const;
     /**
-    * \brief Returns the number of values associated with nth occurence of
+    * \brief Returns the number of values associated with nth occurrence of
     * name (prepended with the prefix) in the table.  n == -1 implies
-    * the last occurence.
+    * the last occurrence.
     */
     int countval (const char* name,
                   int         n = LAST) const;
@@ -930,14 +936,15 @@ public:
         return exist;
     }
 
+    //! Remove given name from the table.
+    int remove (const char* name);
+
     /**
     * \brief Construct an initial ParmParse object from the argc and argv
     * passed in to main().  An error will be signalled if another
     * ParmParse object currently exists.  If parfile is specified,
     * read the parameters in from that file first and then append
-    * those derived from argv to the table.  If prefix is specified,
-    * load this string as the code prefix for this particular
-    * ParmParse object.
+    * those derived from argv to the table.
     */
     static void Initialize(int         argc,
                            char**      argv,
@@ -980,7 +987,7 @@ protected:
     friend class Frame;
     friend class Record;
 
-    explicit ParmParse (const Table& tbl);
+    explicit ParmParse (Table& tbl);
     //
     //! Set/Get the prefix.
     std::string getPrefix() const;
@@ -991,7 +998,7 @@ protected:
     //
     //! Prefix used in keyword search.
     std::stack<std::string> m_pstack;
-    const Table& m_table;
+    Table& m_table;
 };
 
 struct ParmParse::PP_entry

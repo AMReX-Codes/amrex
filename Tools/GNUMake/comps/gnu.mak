@@ -86,7 +86,7 @@ else
 endif
 
 ifeq ($(WARN_ALL),TRUE)
-  warning_flags = -Wall -Wextra -Wunreachable-code
+  warning_flags = -Wall -Wextra
 
   ifeq ($(WARN_SIGN_COMPARE),FALSE)
     warning_flags += -Wno-sign-compare
@@ -111,6 +111,10 @@ ifeq ($(WARN_ALL),TRUE)
 
   ifeq ($(gcc_major_version),7)
     warning_flags += -Wno-array-bounds
+  endif
+
+  ifeq ($(gcc_major_ge10),1)
+    warning_flags += -Wextra-semi
   endif
 
   CXXFLAGS += $(warning_flags) -Woverloaded-virtual

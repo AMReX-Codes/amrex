@@ -4,9 +4,6 @@
 #include <AMReX_Particles.H>
 
 #include <unistd.h>
-#ifdef AMREX_USE_HDF5_ASYNC
-#include "h5_vol_external_async_native.h"
-#endif
 
 using namespace amrex;
 
@@ -32,6 +29,8 @@ void test ()
     int ncells, max_grid_size, ncomp, nlevs, nppc;
     int restart_check = 0, nplotfile = 1, nparticlefile = 1, sleeptime = 0;
     int grids_from_file = 0;
+    std::string compression = "None#0";
+    std::string directory = "";
 
     ParmParse pp;
     pp.get("ncells", ncells);
@@ -39,11 +38,18 @@ void test ()
     pp.get("ncomp", ncomp);
     pp.get("nlevs", nlevs);
     pp.get("nppc", nppc);
+    pp.query("hdf5compression", compression);
     pp.query("nplotfile", nplotfile);
     pp.query("nparticlefile", nparticlefile);
     pp.query("sleeptime", sleeptime);
     pp.query("restart_check", restart_check);
     pp.query("grids_from_file", grids_from_file);
+    pp.query("directory", directory);
+
+    if (directory != "" && directory.back() != '/') {
+        // Include separator if one was not provided
+        directory += "/";
+    }
 
     Vector<Box> domains;
     Vector<BoxArray> ba;
@@ -87,7 +93,7 @@ void test ()
 
     // these don't really matter, make something up
     const Real time = 0.0;
-    const Real dt = 0.0;
+    /* const Real dt = 0.0; */
 
     Vector<std::string> varnames;
     for (int i = 0; i < ncomp; ++i)
@@ -97,9 +103,12 @@ void test ()
 
     Vector<int> level_steps(nlevs, 0);
 
-    char fname[128];
+    /* if (compression.compare("None#0") != 0) */
+    /*     std::cout << "Compression: " << compression << std::endl; */
+
+    char fname[512];
     for (int ts = 0; ts < nplotfile; ts++) {
-        sprintf(fname, "plt%05d", ts);
+        sprintf(fname, "%splt%05d", directory.c_str(), ts);
 
         // Fake computation
         if (ts > 0 && sleeptime > 0) {
@@ -110,15 +119,24 @@ void test ()
             sleep(sleeptime);
         }
 
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "Writing plot file [" << fname << ".h5]" << std::endl;
+        if (ParallelDescriptor::IOProcessor()) {
+            std::cout << "Writing plot file [" << fname << ".h5] ...";
+            fflush(stdout);
+        }
 #ifdef AMREX_USE_HDF5
-        WriteMultiLevelPlotfileHDF5(fname, nlevs, amrex::GetVecOfConstPtrs(mf),
-                                    varnames, geom, time, level_steps, ref_ratio);
+#ifdef AMREX_USE_HDF5_ZFP
+        WriteMultiLevelPlotfileHDF5MultiDset(fname, nlevs, amrex::GetVecOfConstPtrs(mf), varnames,
+                                             geom, time, level_steps, ref_ratio, compression);
+#else
+        WriteMultiLevelPlotfileHDF5SingleDset(fname, nlevs, amrex::GetVecOfConstPtrs(mf), varnames,
+                                              geom, time, level_steps, ref_ratio);
+#endif
 #else
         WriteMultiLevelPlotfile(fname, nlevs, amrex::GetVecOfConstPtrs(mf),
                                 varnames, geom, time, level_steps, ref_ratio);
 #endif
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << " done" << std::endl;
     }
 
     /* ParallelDescriptor::Barrier(); */
@@ -141,13 +159,15 @@ void test ()
                                     12.0, 13.0, 14, 15, 16};
 
     if (nparticlefile > 0) {
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "Init particles..." << std::endl;
+        if (ParallelDescriptor::IOProcessor()) {
+            std::cout << "Init particles ...";
+            fflush(stdout);
+        }
 
         myPC.InitRandom(num_particles, iseed, pdata, serialize);
 
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "done" << std::endl;
+            std::cout << " done" << std::endl;
 
         Vector<std::string> particle_realnames;
         for (int i = 0; i < NStructReal + NArrayReal; ++i)
@@ -158,7 +178,7 @@ void test ()
             particle_intnames.push_back("particle_int_component_" + std::to_string(i));
 
         for (int ts = 0; ts < nparticlefile; ts++) {
-            sprintf(fname, "plt%05d", ts);
+            sprintf(fname, "%splt%05d", directory.c_str(), ts);
 
             // Fake computation
             if (ts > 0 && sleeptime > 0) {
@@ -169,8 +189,10 @@ void test ()
                 sleep(sleeptime);
             }
 
-            if (ParallelDescriptor::IOProcessor())
-                std::cout << "Writing particle file [" << fname << "/particle0.h5]" << std::endl;
+            if (ParallelDescriptor::IOProcessor()) {
+                std::cout << "Writing particle file [" << fname << "/particle0.h5] ...";
+                fflush(stdout);
+            }
 
 #ifdef AMREX_USE_HDF5
             myPC.CheckpointHDF5(fname, "particle0", false, particle_realnames, particle_intnames);
@@ -178,16 +200,24 @@ void test ()
             myPC.Checkpoint(fname, "particle0", false, particle_realnames, particle_intnames);
             /* myPC.WriteAsciiFile("particle0_ascii"); */
 #endif
+            if (ParallelDescriptor::IOProcessor())
+                std::cout << " done" << std::endl;
         }
     }
+
+    ParallelDescriptor::Barrier();
+
+    char directory_path[512];
 
     if (restart_check && nparticlefile > 0)
     {
         MyPC newPC(geom, dmap, ba, ref_ratio);
 #ifdef AMREX_USE_HDF5
-        newPC.RestartHDF5("plt00000", "particle0");
+        sprintf(directory_path, "%s%s", directory.c_str(), "plt00000/particle0");
+        newPC.RestartHDF5(directory_path, "particle0");
 #else
-        newPC.Restart("plt00000", "particle0");
+        sprintf(directory_path, "%s%s", directory.c_str(), "plt00000");
+        newPC.Restart(directory_path, "particle0");
 #endif
 
         using PType = typename MyPC::SuperParticleType;

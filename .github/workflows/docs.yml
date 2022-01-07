@@ -1,5 +1,11 @@
 name: Build and Deploy
+
 on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-docs
+  cancel-in-progress: true
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -13,6 +19,7 @@ jobs:
         run: |
           .github/workflows/dependencies/documentation.sh
           python3 -m pip install sphinx sphinx_rtd_theme breathe
+          python3 -m pip install -I docutils==0.16  # Downgrade docutils so that bullet points render properly with Sphinx
 
       - name: Install and Build
         run: |

@@ -1,10 +1,13 @@
 
 CEXE_headers += AMReX_AmrCore.H AMReX_Cluster.H AMReX_ErrorList.H AMReX_FillPatchUtil.H AMReX_FillPatchUtil_I.H AMReX_FluxRegister.H \
-                AMReX_Interpolater.H AMReX_TagBox.H AMReX_AmrMesh.H
+                AMReX_Interpolater.H AMReX_MFInterpolater.H AMReX_TagBox.H AMReX_AmrMesh.H \
+                AMReX_InterpBase.H
 CEXE_sources += AMReX_AmrCore.cpp AMReX_Cluster.cpp AMReX_ErrorList.cpp AMReX_FillPatchUtil.cpp AMReX_FluxRegister.cpp \
-                AMReX_Interpolater.cpp AMReX_TagBox.cpp AMReX_AmrMesh.cpp
+                AMReX_Interpolater.cpp AMReX_MFInterpolater.cpp AMReX_TagBox.cpp AMReX_AmrMesh.cpp \
+                AMReX_InterpBase.cpp
 
 CEXE_headers += AMReX_Interp_C.H AMReX_Interp_$(DIM)D_C.H
+CEXE_headers += AMReX_MFInterp_C.H AMReX_MFInterp_$(DIM)D_C.H
 
 CEXE_headers += AMReX_FluxReg_$(DIM)D_C.H AMReX_FluxReg_C.H
 
@@ -12,13 +15,15 @@ ifeq ($(USE_PARTICLES), TRUE)
   CEXE_headers += AMReX_AmrParGDB.H AMReX_AmrParticles.H
 endif
 
+CEXE_headers += AMReX_InterpFaceRegister.H
+CEXE_sources += AMReX_InterpFaceRegister.cpp
+CEXE_headers += AMReX_InterpFaceReg_C.H AMReX_InterpFaceReg_$(DIM)D_C.H
+
+CEXE_headers += AMReX_AmrCoreFwd.H
+
 ifneq ($(BL_NO_FORT),TRUE)
   FEXE_headers += AMReX_FillPatchUtil_F.H
   F90EXE_sources += AMReX_FillPatchUtil_$(DIM)d.F90
-  FEXE_headers += AMReX_FLUXREG_F.H
-  F90EXE_sources += AMReX_FLUXREG_nd.F90
-  FEXE_headers += AMReX_INTERP_F.H
-  F90EXE_sources += AMReX_INTERP_$(DIM)D.F90
 endif
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/AmrCore

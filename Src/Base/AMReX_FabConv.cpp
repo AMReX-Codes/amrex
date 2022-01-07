@@ -310,7 +310,7 @@ _pd_extract_field (char const* in,
     int ind;
     Long bit_field = 0L;
     //
-    // Move past the apropriate number of bytes so that the start bit is
+    // Move past the appropriate number of bytes so that the start bit is
     // in the first byte.  OFFY is the offset of the byte containing the
     // bit OFFS
     //
@@ -422,7 +422,7 @@ _pd_insert_field (Long  in_long,
     char* in = (char *) &in_long;
     //
     // If the output start bit is not in the first byte move past the
-    // apropriate number of bytes so that the start bit is in the first byte.
+    // appropriate number of bytes so that the start bit is in the first byte.
     //
     if (offs > 7)
     {
@@ -456,7 +456,7 @@ _pd_insert_field (Long  in_long,
     longmask = ~((1LL << dm) - 1LL);
     in_long  = (in_long << dm) & longmask;
     //
-    // Reorder the bytes apropriately.
+    // Reorder the bytes appropriately.
     //
     if (l_order == REVERSE_ORDER)
         _pd_btrvout(in, l_bytes, 1L);
@@ -571,7 +571,7 @@ permute_real_word_order (void*       out,
 // to relax, but there is no evidence that it should be.
 //
 // An issue which is not a problem in the current implementation is that
-// old machines with byte sizes other than 8 bits can be accomodated
+// old machines with byte sizes other than 8 bits can be accommodated
 // because the conversions treat the input and output as bitstreams
 // instead of bytestreams.
 //
@@ -992,7 +992,7 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
 
     while (nitems > 0)
     {
-        int get = int(nitems) > readBufferSize ? readBufferSize : int(nitems);
+        int get = nitems > readBufferSize ? readBufferSize : int(nitems);
         is.read(bufr, id.numBytes()*get);
         PD_convert(out,
                    bufr,
@@ -1062,7 +1062,7 @@ RealDescriptor::convertFromNativeFormat (std::ostream&         os,
 
     while (nitems > 0)
     {
-        int put = int(nitems) > writeBufferSize ? writeBufferSize : int(nitems);
+        int put = nitems > writeBufferSize ? writeBufferSize : int(nitems);
         PD_convert(bufr,
                    in,
                    put,
@@ -1104,7 +1104,7 @@ RealDescriptor::convertFromNativeFloatFormat (std::ostream&         os,
 
     while (nitems > 0)
     {
-        int put = int(nitems) > writeBufferSize ? writeBufferSize : int(nitems);
+        int put = nitems > writeBufferSize ? writeBufferSize : int(nitems);
         PD_convert(bufr,
                    in,
                    put,
@@ -1146,7 +1146,7 @@ RealDescriptor::convertFromNativeDoubleFormat (std::ostream&         os,
 
     while (nitems > 0)
     {
-        int put = int(nitems) > writeBufferSize ? writeBufferSize : int(nitems);
+        int put = nitems > writeBufferSize ? writeBufferSize : int(nitems);
         PD_convert(bufr,
                    in,
                    put,
@@ -1180,7 +1180,7 @@ RealDescriptor::convertToNativeFloatFormat (float*                out,
 
     while (nitems > 0)
     {
-        int get = int(nitems) > readBufferSize ? readBufferSize : int(nitems);
+        int get = nitems > readBufferSize ? readBufferSize : int(nitems);
         is.read(bufr, id.numBytes()*get);
         PD_convert(out,
                    bufr,
@@ -1222,7 +1222,7 @@ RealDescriptor::convertToNativeDoubleFormat (double*               out,
 
     while (nitems > 0)
     {
-        int get = int(nitems) > readBufferSize ? readBufferSize : int(nitems);
+        int get = nitems > readBufferSize ? readBufferSize : int(nitems);
         is.read(bufr, id.numBytes()*get);
         PD_convert(out,
                    bufr,

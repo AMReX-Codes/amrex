@@ -1,6 +1,7 @@
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
+#include "AMReX_PlotFileUtil.H"
 
 #include "CheckPair.H"
 
@@ -124,19 +125,19 @@ void testNeighborParticles ()
     amrex::PrintToFile("neighbor_test") << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n";
 
     amrex::PrintToFile("neighbor_test") << "Moving particles and updating neighbors \n";
-    pc.moveParticles(0.1);
+    pc.moveParticles(static_cast<amrex::ParticleReal> (0.1));
     pc.updateNeighbors();
 
     amrex::PrintToFile("neighbor_test") << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n";
 
     amrex::PrintToFile("neighbor_test") << "Moving particles and updating neighbors again \n";
-    pc.moveParticles(0.1);
+    pc.moveParticles(static_cast<amrex::ParticleReal> (0.1));
     pc.updateNeighbors();
 
     amrex::PrintToFile("neighbor_test") << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n";
 
     amrex::PrintToFile("neighbor_test") << "Moving particles and updating neighbors yet again \n";
-    pc.moveParticles(0.1);
+    pc.moveParticles(static_cast<amrex::ParticleReal> (0.1));
     pc.updateNeighbors();
 
     amrex::PrintToFile("neighbor_test") << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n";
@@ -183,4 +184,10 @@ void testNeighborList ()
     pc.buildNeighborList(CheckPair());
 
     pc.checkNeighborList();
+
+    MultiFab dummy_mf(ba, dm, 1, 0);
+    dummy_mf.setVal(0.0);
+    WriteSingleLevelPlotfile("NeighborParticles_plt00001", dummy_mf,
+                             {"dummy"}, geom, 0.0, 0);
+    pc.WritePlotFile("NeighborParticles_plt00001", "neighbors");
 }

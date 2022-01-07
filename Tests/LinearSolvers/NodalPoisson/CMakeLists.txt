@@ -1,6 +1,10 @@
+if(AMReX_SPACEDIM EQUAL 1)
+   return()
+endif()
+
 set(_sources main.cpp MyTest.cpp MyTest.H MyTestPlotfile.cpp)
 
-file( GLOB_RECURSE _input_files LIST_DIRECTORIES false ${CMAKE_CURRENT_LIST_DIR}/input*)
+set(_input_files inputs-ci)
 
 setup_test(_sources _input_files)
 

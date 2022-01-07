@@ -2,6 +2,7 @@
 #include <AMReX_EB_utils.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiCutFab.H>
+#include <AMReX_REAL.H>
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_EBFArrayBox.H>
 
@@ -274,8 +275,6 @@ namespace amrex {
     }
 #endif
 
-#if (AMREX_SPACEDIM == 3)
-
 void FillSignedDistance (MultiFab& mf, bool fluid_has_positive_sign)
 {
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(&(mf.Factory()));
@@ -328,7 +327,7 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
         RealVect facet_normal {AMREX_D_DECL(0._rt, 0._rt, 0._rt)};
         facet_normal[tmp_facet] = 1.; // whether facing inwards or outwards is not important here
 
-        // skip cases where cell faces conincide with the eb facets
+        // skip cases where cell faces coincide with the eb facets
         if (AMREX_D_TERM(amrex::Math::abs(eb_normal[0]) == amrex::Math::abs(facet_normal[0]),
                       && amrex::Math::abs(eb_normal[1]) == amrex::Math::abs(facet_normal[1]),
                       && amrex::Math::abs(eb_normal[2]) == amrex::Math::abs(facet_normal[2])))
@@ -372,6 +371,7 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
         RealVect edge_p0{AMREX_D_DECL(c1*eb_normal[0] + c2*facet_normal[0],
                                       c1*eb_normal[1] + c2*facet_normal[1],
                                       c1*eb_normal[2] + c2*facet_normal[2])};
+#if (AMREX_SPACEDIM == 3)
         RealVect edge_v = eb_normal.crossProduct(facet_normal);
 
         // this solution is a line representing the closest EB edge, now compute the point
@@ -379,7 +379,7 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
         //
         // Purpose: Given an a line an a point, this finds the point
         // one the line which minimizes the cartesian distance. It also finds
-        // the corresponing distance along the line corresponding to this point
+        // the corresponding distance along the line corresponding to this point
         //
         RealVect c = edge_p0 - r_vec;
         Real lambda_tmp = - edge_v.dotProduct(c) / edge_v.dotProduct(edge_v);
@@ -416,7 +416,7 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
         Real cz_hi =  3.4e38_rt;
         Real eps = 1.e-7_rt;
 #endif
-        // if the line runs parrallel to any of these dimensions (which is true for
+        // if the line runs parallel to any of these dimensions (which is true for
         // EB edges), then skip -> the min/max functions at the end will skip them
         // due to the +/-huge(c...) defaults (above).
         if ( amrex::Math::abs(edge_v[0]) > eps ) {
@@ -460,6 +460,19 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
             min_dist = min_dist_tmp;
             c_vec = c_vec_tmp;
         }
+#else
+        RealVect c_vec_tmp = edge_p0;
+        RealVect rc_vec = c_vec_tmp - r_vec;
+
+        // determine new distance to particle
+        Real min_dist_tmp = rc_vec.dotProduct(rc_vec);
+
+        // minimize distance
+        if (min_dist_tmp < min_dist) {
+            min_dist = min_dist_tmp;
+            c_vec = c_vec_tmp;
+        }
+#endif
     }
 
     return c_vec;
@@ -470,6 +483,8 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
                          EBFArrayBoxFactory const& eb_factory, int refratio,
                          bool fluid_has_positive_sign)
 {
+    AMREX_ALWAYS_ASSERT(mf.is_nodal());
+
     ls_lev.fillLevelSet(mf, ls_lev.Geom()); // This is the implicit function, not the SDF.
 
     const auto& bndrycent = eb_factory.getBndryCent();
@@ -479,7 +494,10 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
 
     const auto dx_ls = ls_lev.Geom().CellSizeArray();
     const auto dx_eb = eb_factory.Geom().CellSizeArray();
+    Real dx_eb_max = amrex::max(AMREX_D_DECL(dx_eb[0],dx_eb[1],dx_eb[2]));
     Real ls_roof = amrex::min(AMREX_D_DECL(dx_eb[0],dx_eb[1],dx_eb[2])) * (flags.nGrow()+1);
+
+    Real fluid_sign = fluid_has_positive_sign ? 1._rt : -1._rt;
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -489,15 +507,6 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
         Box const& gbx = mfi.fabbox();
         Array4<Real> const& fab = mf.array(mfi);
 
-        amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-            if (fab(i,j,k) <= 0._rt) {
-                fab(i,j,k) = (fluid_has_positive_sign) ? ls_roof : -ls_roof;
-            } else {
-                fab(i,j,k) = (fluid_has_positive_sign) ? -ls_roof : ls_roof;
-            }
-        });
-
         if (bndrycent.ok(mfi))
         {
             const auto& flag = flags.const_array(mfi);
@@ -506,21 +515,27 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
             eb_search.coarsen(refratio).enclosedCells().grow(eb_pad);
 
             const int nallcells = eb_search.numPts();
+
             Gpu::DeviceVector<int> is_cut(nallcells);
             int* p_is_cut = is_cut.data();
-            amrex::ParallelFor(nallcells, [=] AMREX_GPU_DEVICE (int icell) noexcept
-            {
-                GpuArray<int,3> ijk = eb_search.atOffset3d(icell);
-                if (flag(ijk[0],ijk[1],ijk[2]).isSingleValued()) {
-                    p_is_cut[icell] = 1;
-                } else {
-                    p_is_cut[icell] = 0;
-                }
-            });
 
             Gpu::DeviceVector<int> cutcell_offset(nallcells);
             int* p_cutcell_offset = cutcell_offset.data();
-            int ncutcells = Scan::ExclusiveSum(nallcells, p_is_cut, p_cutcell_offset);
+
+            int ncutcells = Scan::PrefixSum<int>
+                (nallcells,
+                 [=] AMREX_GPU_DEVICE (int icell) -> int
+                 {
+                     GpuArray<int,3> ijk = eb_search.atOffset3d(icell);
+                     int is_cut_cell = flag(ijk[0],ijk[1],ijk[2]).isSingleValued();
+                     p_is_cut[icell] = is_cut_cell;
+                     return is_cut_cell;
+                 },
+                 [=] AMREX_GPU_DEVICE (int icell, int const& x)
+                 {
+                     p_cutcell_offset[icell] = x;
+                 },
+                 Scan::Type::exclusive, Scan::retSum);
 
             if (ncutcells > 0) {
                 Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM*2> > facets(ncutcells);
@@ -608,7 +623,11 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
                                  int vi_z = static_cast<int>(amrex::Math::floor(eb_min_z * dzinv)));
 
                     bool min_pt_valid = false;
-                    if (AMREX_D_TERM(vi_cx == vi_x, && vi_cy == vi_y, && vi_cz == vi_z)) {
+                    if ((AMREX_D_TERM(vi_cx == vi_x, && vi_cy == vi_y, && vi_cz == vi_z))  ||
+                        amrex::Math::abs(dist_proj) > ls_roof + dx_eb_max)
+                    {
+                        // If the distance is very big, we can set it to true as well.
+                        // Later the signed distance will be assigned the roof value.
                         min_pt_valid = true;
                     } else { // rounding error might give false negatives
 #if (AMREX_SPACEDIM == 3)
@@ -651,17 +670,29 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
                                                            +(c_vec[2]-z)*(c_vec[2]-z));
                         min_dist = -std::sqrt(amrex::min(min_dist2, min_edge_dist2));
                     }
-                    fab(i,j,k) = amrex::min(ls_roof,amrex::Math::abs(min_dist))
-                        * amrex::Math::copysign(1._rt,fab(i,j,k));
+
+                    Real usd = amrex::min(ls_roof,amrex::Math::abs(min_dist));
+                    if (fab(i,j,k) <= 0._rt) {
+                        fab(i,j,k) = fluid_sign * usd;
+                    } else {
+                        fab(i,j,k) = (-fluid_sign) * usd;
+                    }
                 });
                 Gpu::synchronize();
             }
+        } else {
+            amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (fab(i,j,k) <= 0._rt) {
+                    fab(i,j,k) = fluid_sign * ls_roof;
+                } else {
+                    fab(i,j,k) = (-fluid_sign) * ls_roof;
+                }
+            });
         }
     }
 
     mf.FillBoundary(0,1,ls_lev.Geom().periodicity());
 }
-
-#endif
 
 } // end namespace

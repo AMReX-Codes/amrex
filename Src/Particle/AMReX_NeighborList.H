@@ -193,7 +193,7 @@ public:
                      });
 
         // first pass - count the number of neighbors for each particle
-        m_nbor_counts.resize(np_real+1);
+        m_nbor_counts.resize(np_real+1, 0);
         m_nbor_offsets.resize(np_real+1);
 
         auto pnbor_counts = m_nbor_counts.dataPtr();
@@ -311,7 +311,7 @@ public:
 
         for (int i = 0; i < numParticles(); ++i) {
             amrex::Print() << "Particle " << i << " could collide with: ";
-            for (int j = host_nbor_offsets[i]; j < host_nbor_offsets[i+1]; ++j) {
+            for (unsigned int j = host_nbor_offsets[i]; j < host_nbor_offsets[i+1]; ++j) {
                 amrex::Print() << host_nbor_list[j] << " ";
             }
             amrex::Print() << "\n";

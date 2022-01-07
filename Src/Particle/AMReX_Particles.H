@@ -48,9 +48,6 @@
 
 #ifdef AMREX_USE_HDF5
 #include <hdf5.h>
-#ifdef AMREX_USE_HDF5_ASYNC
-#include "h5_vol_external_async_native.h"
-#endif
 #endif
 
 #include <algorithm>
@@ -71,10 +68,10 @@
 namespace amrex {
 
 #ifdef AMREX_USE_HDF5_ASYNC
-extern hid_t es_par_g;
+    extern hid_t es_par_g;
 #endif
 /**
-* \brief A struct used for communicating particle data accross processes
+* \brief A struct used for communicating particle data across processes
 *  during multi-level operations.
 */
 struct ParticleCommData
@@ -124,7 +121,7 @@ struct ParticleInitType
 
 /**
  * \brief A distributed container for Particles sorted onto the levels, grids,
- * and tiles of a block-structured AMR hierarachy.
+ * and tiles of a block-structured AMR hierarchy.
  *
  * The data layout on a single tile is determined by the value of the following
  * template parameters:
@@ -140,13 +137,13 @@ template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArra
 class ParticleContainer : public ParticleContainerBase
 {
 public:
-    //! \brief number of extra Real components in the particle struct
+    //! \brief Number of extra Real components in the particle struct
     static constexpr int NStructReal = T_NStructReal;
-    //! \brief number of extra integer components in the particle struct
+    //! \brief Number of extra integer components in the particle struct
     static constexpr int NStructInt = T_NStructInt;
-    //! \brief number of extra Real components stored in struct-of-array form
+    //! \brief Number of extra Real components stored in struct-of-array form
     static constexpr int NArrayReal = T_NArrayReal;
-    //! \brief number of extra integer components stored in struct-of-array form
+    //! \brief Number of extra integer components stored in struct-of-array form
     static constexpr int NArrayInt = T_NArrayInt;
 
 private:
@@ -458,7 +455,7 @@ public:
     * In a local Redistribute, particles can only have moved a certain distance since the last
     * time Redistribute() was called. Thus, communication only needs to happen between neighboring
     * ranks. In a global Redistribute, the particles can potentially go from any rank to any rank.
-    * This usually happens after initialiation or when doing dynamic load balancing.
+    * This usually happens after initialization or when doing dynamic load balancing.
     *
     * \param lev_min The minimum level consider. Particles on levels less than this will not be
     *                touched, and particles on finer levels will not be assigned to levels less
@@ -470,7 +467,7 @@ public:
     *                Default: -1.
     * \param nGrow If particles are within nGrow cells of their current box, they will not moved.
     *              This is useful for subcycling methods, when fine level particles need to be
-    *              redistributed but are not neccessarily at the same time as those on the coarse
+    *              redistributed but are not necessarily at the same time as those on the coarse
     *              level.
     *              Default: 0
     * \param local If 0, this will be a non-local redistribute, meaning that particle can potentially
@@ -478,7 +475,8 @@ public:
     *              a particle can have moved since the last Redistribute() call. Knowing this number
     *              allows an optimized MPI communication pattern to be used.
     */
-    void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
+    void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
+                       bool remove_negative=true);
 
     /**
      * \brief Sort the particles on each tile by cell, using Fortran ordering.
@@ -488,7 +486,7 @@ public:
     /**
      * \brief Sort the particles on each tile by groups of cells, given an IntVect bin_size
      *
-     *        If bin_size is the zero vector, this operation is a no-op.
+     * If bin_size is the zero vector, this operation is a no-op.
      *
      */
     void SortParticlesByBin (IntVect bin_size);
@@ -693,11 +691,20 @@ public:
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param real_comp_names vector of real component names, optional
+     * \param int_comp_names vector of int component names, optional
      */
-    void Checkpoint (const std::string& dir, const std::string& name) const;
+    void Checkpoint (const std::string& dir, const std::string& name,
+                     const Vector<std::string>& real_comp_names = Vector<std::string>(),
+                     const Vector<std::string>& int_comp_names = Vector<std::string>()) const
+    {
+        Checkpoint(dir, name, true, real_comp_names, int_comp_names);
+    }
 
     /**
      * \brief Writes a particle checkpoint to file, suitable for restarting.
+     *        This version allows the particle component names to be passed in.
+     *        This overload exists for backwards comptability. The is_checkpoint parameter is ignored.
      */
     void Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint,
                      const Vector<std::string>& real_comp_names = Vector<std::string>(),
@@ -706,15 +713,15 @@ public:
      /**
       * \brief Writes particle data to disk in the AMReX native format.
       *
-          * \tparam F function type
-          *
+      * \tparam F function type
+      *
       * \param dir The base directory into which to write (i.e. "plt00000")
       * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
       * \param write_real_comp for each real component, whether or not we include that component in the file
       * \param write_int_comp for each integer component, whether or not we include that component in the file
       * \param real_comp_names for each real component, a name to label the data with
       * \param int_comp_names for each integer component, a name to label the data with
-          * \param f callable that returns whether a given particle should be written or not
+      * \param f callable that returns whether a given particle should be written or not
       */
     template <class F>
     void WriteBinaryParticleData (const std::string& dir,
@@ -729,59 +736,8 @@ public:
 
     void CheckpointPost ();
 
-#ifdef AMREX_USE_HDF5
     /**
-     * \brief Writes a particle checkpoint to HDF5 file, suitable for restarting.
-     *
-     * \param dir The base directory into which to write (i.e. "plt00000")
-     * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
-     */
-    void CheckpointHDF5 (const std::string& dir, const std::string& name) const;
-
-    /**
-     * \brief Writes a particle checkpoint to HDF5 file, suitable for restarting.
-     */
-    void CheckpointHDF5 (const std::string& dir, const std::string& name, bool is_checkpoint,
-                         const Vector<std::string>& real_comp_names = Vector<std::string>(),
-                         const Vector<std::string>& int_comp_names = Vector<std::string>()) const;
-
-     /**
-      * \brief Writes particle data to disk in the AMReX native format.
-      *
-      * \param dir The base directory into which to write (i.e. "plt00000")
-      * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
-      * \param write_real_comp for each real component, whether or not we include that component in the file
-      * \param write_int_comp for each integer component, whether or not we include that component in the file
-      * \param real_comp_names for each real component, a name to label the data with
-      * \param int_comp_names for each integer component, a name to label the data with
-     */
-    void WriteHDF5ParticleData (const std::string& dir,
-                                  const std::string& name,
-                                  const Vector<int>& write_real_comp,
-                                  const Vector<int>& write_int_comp,
-                                  const Vector<std::string>& real_comp_names,
-                                  const Vector<std::string>&  int_comp_names) const;
-    /**
-     *   \brief Restart from checkpoint in HDF5 format
-     *
-     * \param dir The base directory into which to write (i.e. "plt00000")
-     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
-     */
-    void RestartHDF5 (const std::string& dir, const std::string& file);
-
-    /**
-     *   \brief Older version, for backwards compatibility
-     *
-     * \param dir The base directory into which to write (i.e. "plt00000")
-     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
-     * \param is_checkpoint Whether the particle id and cpu are included in the file.
-     */
-    void RestartHDF5 (const std::string& dir, const std::string& file, bool is_checkpoint);
-
-#endif
-
-    /**
-     *   \brief Restart from checkpoint
+     * \brief Restart from checkpoint
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
@@ -789,7 +745,7 @@ public:
     void Restart (const std::string& dir, const std::string& file);
 
     /**
-     *   \brief Older version, for backwards compatibility
+     * \brief Older version, for backwards compatibility
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
@@ -798,7 +754,7 @@ public:
     void Restart (const std::string& dir, const std::string& file, bool is_checkpoint);
 
     /**
-     *  \brief This version of WritePlotFile writes all components and assigns component names
+     * \brief This version of WritePlotFile writes all components and assigns component names
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
@@ -806,9 +762,9 @@ public:
     void WritePlotFile (const std::string& dir, const std::string& name) const;
 
     /**
-     *  \brief This version of WritePlotFile writes all components and assigns component names
+     * \brief This version of WritePlotFile writes all components and assigns component names
      *
-     *  This version also lets you pass in a functor to toggle whether each particle gets output.
+     * This version also lets you pass in a functor to toggle whether each particle gets output.
      *
      * \tparam F function type
      *
@@ -820,7 +776,7 @@ public:
     void WritePlotFile (const std::string& dir, const std::string& name, F&& f) const;
 
     /**
-     *  \brief This version of WritePlotFile writes all components and allows the user to specify the names of the components.
+     * \brief This version of WritePlotFile writes all components and allows the user to specify the names of the components.
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
@@ -832,9 +788,9 @@ public:
                         const Vector<std::string>&  int_comp_names) const;
 
     /**
-     *  \brief This version of WritePlotFile writes all components and allows the user to specify the names of the components.
+     * \brief This version of WritePlotFile writes all components and allows the user to specify the names of the components.
      *
-     *  This version also lets you pass in a functor to toggle whether each particle gets output.
+     * This version also lets you pass in a functor to toggle whether each particle gets output.
      *
      * \tparam F function type
      *
@@ -842,7 +798,7 @@ public:
      * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param real_comp_names for each real component, a name to label the data with
      * \param int_comp_names for each integer component, a name to label the data with
-         * \param f callable that returns whether or not to write each particle
+     * \param f callable that returns whether or not to write each particle
      */
     template <class F>
     void WritePlotFile (const std::string& dir, const std::string& name,
@@ -850,8 +806,8 @@ public:
                         const Vector<std::string>&  int_comp_names, F&& f) const;
 
     /**
-     *  This version of WritePlotFile writes all components and allows the user to specify
-     *  the names of the components.
+     * \brief This version of WritePlotFile writes all components and allows the user to specify
+     * the names of the components.
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
@@ -861,10 +817,10 @@ public:
                         const Vector<std::string>& real_comp_names) const;
 
     /**
-     *  This version of WritePlotFile writes all components and allows the user to specify
-     *  the names of the components.
+     * \brief This version of WritePlotFile writes all components and allows the user to specify
+     * the names of the components.
      *
-     *  This version also lets you pass in a functor to toggle whether each particle gets output.
+     * This version also lets you pass in a functor to toggle whether each particle gets output.
      *
      * \tparam F function type
      *
@@ -878,8 +834,8 @@ public:
                         const Vector<std::string>& real_comp_names, F&& f) const;
 
     /**
-     *  This version of WritePlotFile assigns component names, but allows the user to pass
-     *  in a vector of ints that toggle on / off the writing of specfic components.
+     * \brief This version of WritePlotFile assigns component names, but allows the user to pass
+     * in a vector of ints that toggle on / off the writing of specific components.
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
@@ -892,10 +848,10 @@ public:
                         const Vector<int>& write_int_comp) const;
 
     /**
-     *  This version of WritePlotFile assigns component names, but allows the user to pass
-     *  in a vector of ints that toggle on / off the writing of specfic components.
+     * \brief This version of WritePlotFile assigns component names, but allows the user to pass
+     * in a vector of ints that toggle on / off the writing of specific components.
      *
-     *  This version also lets you pass in a functor to toggle whether each particle gets output.
+     * This version also lets you pass in a functor to toggle whether each particle gets output.
      *
      * \tparam F function type
      *
@@ -937,10 +893,10 @@ public:
      * the user should pass in vectors containing names of all the components, whether
      * they are written or not.
      *
-         *  This version also lets you pass in a functor to toggle whether each particle gets output.
-         *
-         * \tparam F function type
-         *
+     *  This version also lets you pass in a functor to toggle whether each particle gets output.
+     *
+     * \tparam F function type
+     *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param write_real_comp for each real component, whether to include that comp in the file
@@ -964,33 +920,197 @@ public:
 
     void WriteAsciiFile (const std::string& file);
 
+    /**
+     * \brief Return the underyling Vector (over AMR levels) of ParticleLevels.
+     *        Const version.
+     */
     const Vector<ParticleLevel>& GetParticles () const { return m_particles; }
+
+    /**
+     * \brief Return the underyling Vector (over AMR levels) of ParticleLevels.
+     *        Non-const version.
+     */
     Vector      <ParticleLevel>& GetParticles ()       { return m_particles; }
 
+    /**
+     * \brief Return the ParticleLevel for level "lev". Const version.
+     *
+     *        The ParticleLevel must already exist, meaning that the "resizeData()"
+     *        method of this ParticleContainer has been called.
+     *
+     *        Note that, when using a ParticleContainer that has been constructed
+     *        with an AmrCore*, "resizeData()" must be called *after* the grids
+     *        have been created, meaning after the call to AmrCore::InitFromScratch
+     *        or AmrCore::InitFromCheckpoint has been made.
+     *
+     *        \param lev the level at which to get the particles
+     */
     const ParticleLevel& GetParticles (int lev) const { return m_particles[lev]; }
 
+    /**
+     * \brief Return the ParticleLevel for level "lev". Non-const version.
+     *
+     *        The ParticleLevel must already exist, meaning that the "resizeData()"
+     *        method of this ParticleContainer has been called.
+     *
+     *        Note that, when using a ParticleContainer that has been constructed
+     *        with an AmrCore*, "resizeData()" must be called *after* the grids
+     *        have been created, meaning after the call to AmrCore::InitFromScratch
+     *        or AmrCore::InitFromCheckpoint has been made.
+     *
+     *        \param lev the level at which to get the particles
+     */
     ParticleLevel      & GetParticles (int lev)       { return m_particles[lev]; }
 
+    /**
+     * \brief Return the ParticleTile for level "lev", grid "grid" and tile "tile."
+     *        Const version.
+     *
+     *        Here, grid and tile are integers that give the index and LocalTileIndex
+     *        of the tile you want.
+     *
+     *        This is a runtime error if a ParticleTile at "grid" and "tile" has not been
+     *        created yet.
+     *
+     *        The ParticleLevel must already exist, meaning that the "resizeData()"
+     *        method of this ParticleContainer has been called.
+     *
+     *        Note that, when using a ParticleContainer that has been constructed
+     *        with an AmrCore*, "resizeData()" must be called *after* the grids
+     *        have been created, meaning after the call to AmrCore::InitFromScratch
+     *        or AmrCore::InitFromCheckpoint has been made.
+     *
+     *        \param lev  the level at which to get the particles
+     *        \param grid the index of the grid at which to get the particles
+     *        \param tile the LocalTileIndex of the tile at which to get the particles
+     */
     const ParticleTileType& ParticlesAt (int lev, int grid, int tile) const
     { return m_particles[lev].at(std::make_pair(grid, tile)); }
 
+    /**
+     * \brief Return the ParticleTile for level "lev", grid "grid" and tile "tile."
+     *        Non-const version.
+     *
+     *        Here, grid and tile are integers that give the index and LocalTileIndex
+     *        of the tile you want.
+     *
+     *        This is a runtime error if a ParticleTile at "grid" and "tile" has not been
+     *        created yet.
+     *
+     *        The ParticleLevel must already exist, meaning that the "resizeData()"
+     *        method of this ParticleContainer has been called.
+     *
+     *        Note that, when using a ParticleContainer that has been constructed
+     *        with an AmrCore*, "resizeData()" must be called *after* the grids
+     *        have been created, meaning after the call to AmrCore::InitFromScratch
+     *        or AmrCore::InitFromCheckpoint has been made.
+     *
+     *        \param lev  the level at which to get the particles
+     *        \param grid the index of the grid at which to get the particles
+     *        \param tile the LocalTileIndex of the tile at which to get the particles
+     */
     ParticleTileType&       ParticlesAt (int lev, int grid, int tile)
     { return m_particles[lev].at(std::make_pair(grid, tile)); }
 
+    /**
+     * \brief Return the ParticleTile for level "lev" and Iterator "iter".
+     *        Const version.
+     *
+     *        Here, iter is either an MFIter or ParIter object pointing to the
+     *        tile you want.
+     *
+     *        This is a runtime error if a ParticleTile at "iter" has not been
+     *        created yet.
+     *
+     *        The ParticleLevel must already exist, meaning that the "resizeData()"
+     *        method of this ParticleContainer has been called.
+     *
+     *        Note that, when using a ParticleContainer that has been constructed
+     *        with an AmrCore*, "resizeData()" must be called *after* the grids
+     *        have been created, meaning after the call to AmrCore::InitFromScratch
+     *        or AmrCore::InitFromCheckpoint has been made.
+     *
+     *        \param lev  the level at which to get the particles
+     *        \param iter MFIter or ParIter pointing to the tile to return
+     */
     template <class Iterator>
     const ParticleTileType& ParticlesAt (int lev, const Iterator& iter) const
         { return ParticlesAt(lev, iter.index(), iter.LocalTileIndex()); }
 
+    /**
+     * \brief Return the ParticleTile for level "lev" and Iterator "iter".
+     *        Non-const version.
+     *
+     *        Here, iter is either an MFIter or ParIter object pointing to the
+     *        tile you want.
+     *
+     *        This is a runtime error if a ParticleTile at "iter" has not been
+     *        created yet.
+     *
+     *        The ParticleLevel must already exist, meaning that the "resizeData()"
+     *        method of this ParticleContainer has been called.
+     *
+     *        Note that, when using a ParticleContainer that has been constructed
+     *        with an AmrCore*, "resizeData()" must be called *after* the grids
+     *        have been created, meaning after the call to AmrCore::InitFromScratch
+     *        or AmrCore::InitFromCheckpoint has been made.
+     *
+     *        \param lev  the level at which to get the particles
+     *        \param iter MFIter or ParIter pointing to the tile to return
+     */
     template <class Iterator>
     ParticleTileType&       ParticlesAt (int lev, const Iterator& iter)
         { return ParticlesAt(lev, iter.index(), iter.LocalTileIndex()); }
 
+    /**
+     * \brief Define and return the ParticleTile for level "lev", grid "grid" and tile "tile."
+     *
+     *        Here, grid and tile are integers that give the index and LocalTileIndex
+     *        of the tile you want.
+     *
+     *        If a ParticleTile at "grid" and "tile" has not been created yet,
+     *        this function call will add it. This call will also allocate space
+     *        for any runtime-added particle components.
+     *
+     *        The ParticleLevel must already exist, meaning that the "resizeData()"
+     *        method of this ParticleContainer has been called.
+     *
+     *        Note that, when using a ParticleContainer that has been constructed
+     *        with an AmrCore*, "resizeData()" must be called *after* the grids
+     *        have been created, meaning after the call to AmrCore::InitFromScratch
+     *        or AmrCore::InitFromCheckpoint has been made.
+     *
+     *        \param lev  the level at which to get the particles
+     *        \param grid the index of the grid at which to get the particles
+     *        \param tile the LocalTileIndex of the tile at which to get the particles
+     */
     ParticleTileType& DefineAndReturnParticleTile (int lev, int grid, int tile)
     {
         m_particles[lev][std::make_pair(grid, tile)].define(NumRuntimeRealComps(), NumRuntimeIntComps());
         return ParticlesAt(lev, grid, tile);
     }
 
+    /**
+     * \brief Define and return the ParticleTile for level "lev", and Iterator "iter".
+     *
+     *        Here, iter is either an MFIter or ParIter object pointing to the
+     *        tile you want.
+     *
+     *        If a ParticleTile at "grid" and "tile" has not been created yet,
+     *        this function call will add it. This call will also allocate space
+     *        for any runtime-added particle components.
+     *
+     *        The ParticleLevel must already exist, meaning that the "resizeData()"
+     *        method of this ParticleContainer has been called.
+     *
+     *        Note that, when using a ParticleContainer that has been constructed
+     *        with an AmrCore*, "resizeData()" must be called *after* the grids
+     *        have been created, meaning after the call to AmrCore::InitFromScratch
+     *        or AmrCore::InitFromCheckpoint has been made.
+     *
+     *        \param lev  the level at which to get the particles
+     *        \param iter MFIter or ParIter pointing to the tile to return
+     */
     template <class Iterator>
     ParticleTileType& DefineAndReturnParticleTile (int lev, const Iterator& iter)
     {
@@ -1065,9 +1185,11 @@ public:
       return doUnlink;
     }
 
-    void RedistributeCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
+    void RedistributeCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
+                          bool remove_negative=true);
 
-    void RedistributeGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
+    void RedistributeGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
+                          bool remove_negative=true);
 
     Long superParticleSize() const { return superparticle_size; }
 
@@ -1102,17 +1224,17 @@ public:
     Gpu::DeviceVector<int> d_communicate_real_comp;
     Gpu::DeviceVector<int> d_communicate_int_comp;
 
-    //! ---- variables for i/o optimization saved for pre and post checkpoint
+    //! Variables for i/o optimization saved for pre and post checkpoint
     mutable bool levelDirectoriesCreated;
     mutable bool usePrePost;
     mutable bool doUnlink;
     int maxnextidPrePost;
     mutable int nOutFilesPrePost;
     Long nparticlesPrePost;
-    Vector<Long> nParticlesAtLevelPrePost;          //!< ---- [level]
-    mutable Vector<Vector<int>>  whichPrePost;      //!< ---- [level]
-    mutable Vector<Vector<int>>  countPrePost;      //!< ---- [level]
-    mutable Vector<Vector<Long>> wherePrePost;      //!< ---- [level]
+    Vector<Long> nParticlesAtLevelPrePost;
+    mutable Vector<Vector<int>>  whichPrePost;
+    mutable Vector<Vector<int>>  countPrePost;
+    mutable Vector<Vector<Long>> wherePrePost;
     mutable std::string HdrFileNamePrePost;
     mutable Vector<std::string> filePrefixPrePost;
 
@@ -1155,14 +1277,11 @@ public:
                     Vector<int>& which, Vector<int>& count, Vector<Long>& where,
                     const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
                     const Vector<std::map<std::pair<int, int>,IntVector>>& particle_io_flags) const;
-protected:
-
 #ifdef AMREX_USE_HDF5
-void WriteParticlesHDF5 ( hid_t grp, int level, Vector<int>& count, Vector<Long>& where ) const;
-
-template <class RTYPE>
-void ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev, hid_t int_dset, hid_t real_dset, int finest_level_in_file);
+#include "AMReX_ParticlesHDF5.H"
 #endif
+
+protected:
 
     template <class RTYPE>
     void ReadParticles (int cnt, int grd, int lev, std::ifstream& ifs, int finest_level_in_file);
@@ -1172,7 +1291,6 @@ void ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev, hid_t int
     DenseBins<ParticleType> m_bins;
 
 private:
-
     virtual void particlePostLocate (ParticleType& /*p*/, const ParticleLocData& /*pld*/,
                                      const int /*lev*/) {}
 
@@ -1199,7 +1317,10 @@ private:
 #include "AMReX_ParticleInit.H"
 #include "AMReX_ParticleContainerI.H"
 #include "AMReX_ParticleIO.H"
+
+#ifdef AMREX_USE_HDF5
 #include "AMReX_ParticleHDF5.H"
+#endif
 
 }
 

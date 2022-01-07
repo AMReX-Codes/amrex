@@ -43,7 +43,7 @@ def main(files):
         coords, time = particles[n].flatten()
         dim = particles[n].dim
 
-        # output to a flie
+        # output to a file
         of = open("particle_history.%03d" % (n), 'w')
 
         # header

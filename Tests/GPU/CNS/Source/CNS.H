@@ -88,6 +88,7 @@ public:
     // Do work after init().
     virtual void post_init (amrex::Real stop_time) override;
 
+    // Do work after a restart().
     virtual void post_restart () override;
 
     // Error estimation for regridding.
@@ -155,6 +156,9 @@ protected:
     static amrex::Real cfl;
 
     static int do_reflux;
+
+    static bool do_visc;
+    static bool use_const_visc;
 
     static int refine_max_dengrad_lev;
     static amrex::Real refine_dengrad;

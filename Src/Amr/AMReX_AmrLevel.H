@@ -10,7 +10,6 @@
 #include <AMReX_LayoutData.H>
 #include <AMReX_Derive.H>
 #include <AMReX_BCRec.H>
-#include <AMReX_Interpolater.H>
 #include <AMReX_Amr.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_StateDescriptor.H>
@@ -18,7 +17,6 @@
 #include <AMReX_VisMF.H>
 #ifdef AMREX_USE_EB
 #include <AMReX_EBSupport.H>
-#include <AMReX_EBInterpolater.H>
 #endif
 
 #include <memory>
@@ -76,9 +74,7 @@ public:
         return the_plot_file_type;
     }
     /**
-    * \brief Write plot file stuff to specified directory.  This is a
-    * pure virtual function and hence MUST be implemented by
-    * derived classes.
+    * \brief Write plot file stuff to specified directory.
     */
     virtual void writePlotFile (const std::string& dir,
                                 std::ostream&      os,
@@ -94,8 +90,6 @@ public:
 
     /**
     * \brief Write small plot file stuff to specified directory.
-    * Unlike writePlotFile, this is NOT a pure virtual function
-    * so implementation by derived classes is optional.
     */
     virtual void writeSmallPlotFile (const std::string& /*dir*/,
                                      std::ostream&      /*os*/,
@@ -251,7 +245,7 @@ public:
     //! Get the area not to tag.
     const BoxArray& getAreaNotToTag() noexcept;
     const Box& getAreaToTag() noexcept;
-    //! Constuct the area not to tag.
+    //! Construct the area not to tag.
     void constructAreaNotToTag();
     //! Set the area not to tag.
     void setAreaNotToTag(BoxArray& ba) noexcept;
@@ -523,14 +517,14 @@ public:
                              int           state_indx,
                              int           scomp,
                              int           ncomp,
-                             Interpolater* mapper);
+                             InterpBase*   mapper);
 
     void Initialize (int           boxGrow,
                      Real          time,
                      int           state_indx,
                      int           scomp,
                      int           ncomp,
-                     Interpolater* mapper);
+                     InterpBase*   mapper);
 
     ~FillPatchIteratorHelper ();
 

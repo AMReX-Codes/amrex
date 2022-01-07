@@ -2,7 +2,6 @@
 #define AMREX_EBINTERPOLATER_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Extension.H>
 #include <AMReX_Interpolater.H>
 
 namespace amrex {
@@ -12,9 +11,9 @@ class EBCellConservativeLinear
 {
 public:
 
-    explicit EBCellConservativeLinear (bool do_linear_limiting_ = true);
+    using CellConservativeLinear::CellConservativeLinear;
 
-    virtual ~EBCellConservativeLinear () override;
+    virtual ~EBCellConservativeLinear () = default;
 
     virtual void interp (const FArrayBox& crse,
                          int              crse_comp,

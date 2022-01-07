@@ -307,7 +307,7 @@ ParticleContainerToBlueprint(const ParticleContainer<NStructReal,
     }
 
     conduit::Node info;
-    // blueprint verify makes sure we conform to whats expected
+    // blueprint verify makes sure we conform to what's expected
     // for a multi-domain mesh
     if(!conduit::blueprint::mesh::verify(res,info))
     {

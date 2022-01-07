@@ -2,6 +2,10 @@ name: Style
 
 on: [push, pull_request]
 
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-style
+  cancel-in-progress: true
+
 jobs:
   tabs:
     runs-on: ubuntu-latest

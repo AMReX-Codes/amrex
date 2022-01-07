@@ -46,7 +46,7 @@ int StateMap::GetName(int centering, int id, std::string &name)
         return -1;
     }
 
-    if (id >= cit->second.size())
+    if (size_t(id) >= cit->second.size())
     {
         SENSEI_ERROR("Array index " << id << " out of bounds " << cit->second.size())
         return -1;

@@ -8,6 +8,8 @@ int MyMain();
 int main(int argc, char** argv) {
 #ifdef AMREX_USE_MPI
     MPI_Init(&argc, &argv);
+#else
+    amrex::ignore_unused(argc,argv);
 #endif
     // Let me throw exceptions for triggering my debugger
     amrex::Initialize(MPI_COMM_WORLD, std::cout, std::cerr, [](const char* msg) { throw std::runtime_error(msg); });
@@ -115,7 +117,6 @@ bool ParallelCopyFaceToFace(amrex::iMultiFab& dest, const amrex::Box& domain_des
         const amrex::Box section = dest_box & mfi.tilebox();
         if (section.isEmpty()) continue;
         auto darray = dest.const_array(mfi);
-        auto sarray = src.const_array(mfi);
         amrex::LoopOnCpu(section, [&](int i, int j, int k)
         {
             amrex::Dim3 si = dtos(amrex::Dim3{i,j,k});
@@ -134,9 +135,9 @@ int MyMain()
     Box domain{IntVect{}, IntVect{AMREX_D_DECL(31, 31, 31)}};
     // Loop over all index types
     for (int i = 0; i < AMREX_D_TERM(2,*2,*2); ++i) {
-        const auto ix = static_cast<IndexType::CellIndex>(static_cast<bool>(i & 0b001));
-        const auto iy = static_cast<IndexType::CellIndex>(static_cast<bool>(i & 0b010));
-        const auto iz = static_cast<IndexType::CellIndex>(static_cast<bool>(i & 0b100));
+        AMREX_D_TERM(const auto ix = static_cast<IndexType::CellIndex>(static_cast<bool>(i & 0b001));,
+                     const auto iy = static_cast<IndexType::CellIndex>(static_cast<bool>(i & 0b010));,
+                     const auto iz = static_cast<IndexType::CellIndex>(static_cast<bool>(i & 0b100));)
         IndexType itype{AMREX_D_DECL(ix, iy, iz)};
         Box converted_domain = convert(domain, itype);
         iMultiFab mf = InitializeMultiFab(converted_domain);

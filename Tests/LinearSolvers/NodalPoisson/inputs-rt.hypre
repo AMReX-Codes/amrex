@@ -1,0 +1,25 @@
+max_level = 1
+ref_ratio = 2
+n_cell = 128
+max_grid_size = 64
+
+# For MLMG
+verbose = 5
+bottom_verbose = 1
+max_iter = 100
+max_fmg_iter = 0     # # of F-cycles before switching to V.  To do pure V-cycle, set to 0
+reltol = 1.e-12
+
+# For hypre
+amrex.fpe_trap_invalid = 1
+use_hypre = 1
+bottom_verbose = 2
+composite_solve = 0
+agglomeration = 1
+consolidation = 1
+max_coarsening_level = 0  # No. of GMG coarsening level before calling hypre
+linop_maxorder = 3
+hypre_interface = 3
+
+hypre.hypre_solver = BiCGSTAB
+hypre.hypre_preconditioner = BoomerAMG

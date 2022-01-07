@@ -12,9 +12,15 @@
 
 #if defined(AMREX_USE_DPCPP)
 #if defined(__SYCL_DEVICE_ONLY__)
-#  define AMREX_DEVICE_PRINTF(format,...) { \
-      static const __attribute__((opencl_constant)) char amrex_i_format[] = format ; \
-      sycl::ONEAPI::experimental::printf(amrex_i_format, __VA_ARGS__); }
+#  if (__INTEL_LLVM_COMPILER <= 20210300)
+#    define AMREX_DEVICE_PRINTF(format,...) { \
+         static const __attribute__((opencl_constant)) char amrex_i_format[] = format ; \
+         sycl::ONEAPI::experimental::printf(amrex_i_format, __VA_ARGS__); }
+#  else
+#    define AMREX_DEVICE_PRINTF(format,...) { \
+         static const __attribute__((opencl_constant)) char amrex_i_format[] = format ; \
+         sycl::ext::oneapi::experimental::printf(amrex_i_format, __VA_ARGS__); }
+#  endif
 #else
 #  define AMREX_DEVICE_PRINTF(format,...) { \
       std::printf(format, __VA_ARGS__); }
@@ -27,4 +33,3 @@
 
 #endif  // !defined(__APPLE__)
 #endif  // AMREX_GPU_PRINT_H_
-

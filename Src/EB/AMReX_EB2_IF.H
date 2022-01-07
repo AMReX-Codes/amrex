@@ -12,6 +12,7 @@
 #include <AMReX_EB2_IF_Extrusion.H>
 #include <AMReX_EB2_IF_Intersection.H>
 #include <AMReX_EB2_IF_Lathe.H>
+#include <AMReX_EB2_IF_Parser.H>
 #include <AMReX_EB2_IF_Plane.H>
 #include <AMReX_EB2_IF_Polynomial.H>
 #include <AMReX_EB2_IF_Rotation.H>

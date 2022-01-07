@@ -96,8 +96,8 @@ void test_assign_density(TestParams& parms)
     int num_particles = parms.nppc * AMREX_D_TERM(parms.nx, * parms.ny, * parms.nz);
     bool serialize = true;
     int iseed = 451;
-    Real mass = 10.0;
-    MyParticleContainer::ParticleInitData pdata = {mass};
+    double mass = 10.0;
+    MyParticleContainer::ParticleInitData pdata = {{mass},{},{},{}};
 
     //    myPC.InitRandom(num_particles, iseed, pdata, serialize, fine_box);
     myPC.InitRandom(num_particles, iseed, pdata, serialize);

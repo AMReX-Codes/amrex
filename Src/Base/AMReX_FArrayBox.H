@@ -5,6 +5,7 @@
 
 #include <AMReX_Box.H>
 #include <AMReX_BaseFab.H>
+#include <AMReX_FabConv.H>
 #include <AMReX_REAL.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_FabFactory.H>
@@ -13,7 +14,6 @@
 namespace amrex {
 
 class FArrayBox;
-class RealDescriptor;
 
 /**
 * \brief A Class Facilitating I/O for Fabs
@@ -101,7 +101,7 @@ public:
     /**
     * \brief Pure virtual function.  Derived classes MUST override this
     * function to read an FArrayBox from the istream, under the
-    * assumption that the header has alread been read.
+    * assumption that the header has already been read.
     */
     virtual void read (std::istream& is,
                        FArrayBox&    fb) const = 0;
@@ -463,6 +463,10 @@ public:
     * if the passed pointer rd is the null pointer.
     */
     static void setFABio (FABio* rd);
+
+    static std::unique_ptr<RealDescriptor> getDataDescriptor ();
+
+    static std::string getClassName ();
 
     static bool set_do_initval (bool tf);
     static bool get_do_initval ();

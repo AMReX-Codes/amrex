@@ -33,6 +33,7 @@ std::deque<std::tuple<double,double,std::string*> > TinyProfiler::ttstack;
 std::map<std::string,std::map<std::string, TinyProfiler::Stats> > TinyProfiler::statsmap;
 double TinyProfiler::t_init = std::numeric_limits<double>::max();
 int TinyProfiler::device_synchronize_around_region = 0;
+int TinyProfiler::n_print_tabs = 0;
 int TinyProfiler::verbose = 0;
 
 namespace {
@@ -110,9 +111,15 @@ TinyProfiler::start () noexcept
             ++st.depth;
             stats.push_back(&st);
         }
-    }
-    if (verbose) {
-        amrex::Print() << "  TP: Entering " << fname << std::endl;
+
+        if (verbose) {
+            ++n_print_tabs;
+            std::string whitespace;
+            for (int itab = 0; itab < n_print_tabs; ++itab) {
+                whitespace += "  ";
+            }
+            amrex::Print() << whitespace << "TP: Entering " << fname << std::endl;
+        }
     }
 }
 
@@ -194,9 +201,15 @@ TinyProfiler::stop () noexcept
         }
 
         stats.clear();
-    }
-    if (verbose) {
-        amrex::Print() << "  TP: Leaving " << fname << std::endl;
+
+        if (verbose) {
+            std::string whitespace;
+            for (int itab = 0; itab < n_print_tabs; ++itab) {
+                whitespace += "  ";
+            }
+            --n_print_tabs;
+            amrex::Print() << whitespace << "TP: Leaving  " << fname << std::endl;
+        }
     }
 }
 

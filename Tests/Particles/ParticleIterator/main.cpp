@@ -12,7 +12,7 @@ int main(int argc, char* argv[])
 {
 
   amrex::Initialize(argc,argv);
-
+  {
   int ncell = 48;
   int max_grid_size = 32;
   int nlevs = 1;
@@ -25,8 +25,8 @@ int main(int argc, char* argv[])
       real_box.setHi(n,1.0);
     }
 
-  IntVect domain_lo(0 , 0, 0);
-  IntVect domain_hi(ncell-1, ncell-1, ncell-1);
+  IntVect domain_lo(AMREX_D_DECL(0 , 0, 0));
+  IntVect domain_hi(AMREX_D_DECL(ncell-1, ncell-1, ncell-1));
 
   const Box domain(domain_lo, domain_hi);
 
@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
   typedef ParticleContainer<1+BL_SPACEDIM> MyParticleContainer;
   MyParticleContainer MyPC(geom, dmap, ba, rr);
 
-  MyParticleContainer::ParticleInitData pdata = {1.0};
+  MyParticleContainer::ParticleInitData pdata = {{1.0},AMREX_D_DECL({},{},{})};
   MyPC.InitOnePerCell(0.5, 0.5, 0.5, pdata);
   MyPC.do_tiling = true;
 
@@ -65,6 +65,6 @@ int main(int argc, char* argv[])
   for (ParIter<1+BL_SPACEDIM> mfi(MyPC, 0); mfi.isValid(); ++mfi) {
       amrex::AllPrintToFile("particle_iterator_out") << mfi.index() << " " << mfi.tileIndex() << "\n";
   }
-
+  }
   amrex::Finalize();
 }

@@ -346,7 +346,7 @@ CoordSys::GetEdgeVolCoord (Vector<Real>& vc,
 {
     //
     // In cartesian and Z direction of RZ volume coordinates
-    // are idential to physical distance from axis.
+    // are identical to physical distance from axis.
     //
     GetEdgeLoc(vc,region,dir);
     //
@@ -383,7 +383,7 @@ CoordSys::GetCellVolCoord (Vector<Real>& vc,
 {
     //
     // In cartesian and Z direction of RZ volume coordinates
-    // are idential to physical distance from axis.
+    // are identical to physical distance from axis.
     //
     GetCellLoc(vc,region,dir);
     //

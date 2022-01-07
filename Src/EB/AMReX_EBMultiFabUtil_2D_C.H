@@ -1,6 +1,7 @@
 #ifndef AMREX_EB_MULTIFAB_UTIL_2D_C_H_
 #define AMREX_EB_MULTIFAB_UTIL_2D_C_H_
 #include <AMReX_Config.H>
+#include <AMReX_REAL.H>
 
 namespace amrex {
 
@@ -179,29 +180,29 @@ void eb_compute_divergence (int i, int j, int k, int n, Array4<Real> const& divu
     {
         Real fxm = u(i,j,k,n);
         if (apx(i,j,k) != 0.0 && apx(i,j,k) != 1.0) {
-            int jj = j + static_cast<int>(amrex::Math::copysign(1.0,fcx(i,j,k)));
-            Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? amrex::Math::abs(fcx(i,j,k)) : 0.0;
+            int jj = j + static_cast<int>(amrex::Math::copysign(1.0_rt,fcx(i,j,k)));
+            Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? amrex::Math::abs(fcx(i,j,k)) : 0.0_rt;
             fxm = (1.0-fracy)*fxm + fracy*u(i,jj,k,n);
         }
 
         Real fxp = u(i+1,j,k,n);
         if (apx(i+1,j,k) != 0.0 && apx(i+1,j,k) != 1.0) {
-            int jj = j + static_cast<int>(amrex::Math::copysign(1.0,fcx(i+1,j,k)));
-            Real fracy = (ccm(i,jj,k) || ccm(i+1,jj,k)) ? amrex::Math::abs(fcx(i+1,j,k)) : 0.0;
+            int jj = j + static_cast<int>(amrex::Math::copysign(1.0_rt,fcx(i+1,j,k)));
+            Real fracy = (ccm(i,jj,k) || ccm(i+1,jj,k)) ? amrex::Math::abs(fcx(i+1,j,k)) : 0.0_rt;
             fxp = (1.0-fracy)*fxp + fracy*u(i+1,jj,k,n);
         }
 
         Real fym = v(i,j,k,n);
         if (apy(i,j,k) != 0.0 && apy(i,j,k) != 1.0) {
-            int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j,k)));
-            Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? amrex::Math::abs(fcy(i,j,k)) : 0.0;
+            int ii = i + static_cast<int>(amrex::Math::copysign(1.0_rt,fcy(i,j,k)));
+            Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? amrex::Math::abs(fcy(i,j,k)) : 0.0_rt;
             fym = (1.0-fracx)*fym + fracx*v(ii,j,k,n);
         }
 
         Real fyp = v(i,j+1,k,n);
         if (apy(i,j+1,k) != 0.0 && apy(i,j+1,k) != 1.0) {
-            int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j+1,k)));
-            Real fracx = (ccm(ii,j,k) || ccm(ii,j+1,k)) ? amrex::Math::abs(fcy(i,j+1,k)) : 0.0;
+            int ii = i + static_cast<int>(amrex::Math::copysign(1.0_rt,fcy(i,j+1,k)));
+            Real fracx = (ccm(ii,j,k) || ccm(ii,j+1,k)) ? amrex::Math::abs(fcy(i,j+1,k)) : 0.0_rt;
             fyp = (1.0-fracx)*fyp + fracx*v(ii,j+1,k,n);
         }
 

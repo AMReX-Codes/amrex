@@ -20,4 +20,8 @@
 #define QTEMP  7
 #define NPRIM  8
 
+#define CETA   0
+#define CXI    1
+#define CLAM   2
+
 #endif

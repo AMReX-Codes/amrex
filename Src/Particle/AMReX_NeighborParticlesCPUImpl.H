@@ -260,6 +260,8 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
             }
         }
     }
+#else
+    amrex::ignore_unused(not_ours, real_start_comp, real_num_comp, int_start_comp, int_num_comp);
 #endif
 }
 
@@ -301,9 +303,9 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
                                 if (! periodicity.isPeriodic(dir)) continue;
                                 if (tag.periodic_shift[dir] < 0)
-                                    p.pos(dir) += prob_domain.length(dir);
+                                    p.pos(dir) += static_cast<ParticleReal> (prob_domain.length(dir));
                                 else if (tag.periodic_shift[dir] > 0)
-                                    p.pos(dir) -= prob_domain.length(dir);
+                                    p.pos(dir) -= static_cast<ParticleReal> (prob_domain.length(dir));
                             }
                         }
 
@@ -324,9 +326,9 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
                                 if (! periodicity.isPeriodic(dir)) continue;
                                 if (tag.periodic_shift[dir] < 0)
-                                    p.pos(dir) += prob_domain.length(dir);
+                                    p.pos(dir) += static_cast<ParticleReal> (prob_domain.length(dir));
                                 else if (tag.periodic_shift[dir] > 0)
-                                    p.pos(dir) -= prob_domain.length(dir);
+                                    p.pos(dir) -= static_cast<ParticleReal> (prob_domain.length(dir));
                             }
                         }
 
@@ -639,6 +641,8 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
             }
         }
     }
+#else
+    amrex::ignore_unused(reuse_rcv_counts);
 #endif
 }
 

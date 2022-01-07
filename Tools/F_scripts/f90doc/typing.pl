@@ -231,7 +231,7 @@ sub make_character_type {
 # 
 # I could fix the above-mentioned problem by storing a 'default' entry just for
 # the default types.  Then is_default_kind just translates to an exists test.
-# This is much simpler and avoids the wierd checks for double precision numbers
+# This is much simpler and avoids the weird checks for double precision numbers
 # (0.0d0 ==> don't show a kind.  This is really "default").  This would be
 # kinda nice but 'default' is probably the wrong word.
 #####

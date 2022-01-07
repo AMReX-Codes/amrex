@@ -1,6 +1,5 @@
 
 #include <AMReX_StateDescriptor.H>
-#include <AMReX_Interpolater.H>
 #include <AMReX_BCRec.H>
 
 #include <algorithm>
@@ -130,7 +129,7 @@ DescriptorList::setComponent (int                               indx,
                               const std::string&                nm,
                               const BCRec&                      bc,
                               const StateDescriptor::BndryFunc& func,
-                              Interpolater*                     interp,
+                              InterpBase*                       interp,
                               int                               max_map_start_comp,
                               int                               min_map_end_comp)
 {
@@ -143,7 +142,7 @@ DescriptorList::setComponent (int                               indx,
                               const Vector<std::string>&         nm,
                               const Vector<BCRec>&               bc,
                               const StateDescriptor::BndryFunc& func,
-                              Interpolater*                     interp)
+                              InterpBase*                       interp)
 {
     for (int i = 0; i < nm.size(); i++)
     {
@@ -165,7 +164,7 @@ DescriptorList::addDescriptor (int                         indx,
                                StateDescriptor::TimeCenter ttyp,
                                int                         nextra,
                                int                         num_comp,
-                               Interpolater*               interp,
+                               InterpBase*                 interp,
                                bool                        extrap,
                                bool                        a_store_in_checkpoint)
 {
@@ -193,7 +192,7 @@ StateDescriptor::StateDescriptor (IndexType                   btyp,
                                   int                         ident,
                                   int                         nextra,
                                   int                         num_comp,
-                                  Interpolater*               a_interp,
+                                  InterpBase*                 a_interp,
                                   bool                        a_extrap,
                                   bool                        a_store_in_checkpoint)
     :
@@ -258,13 +257,13 @@ StateDescriptor::nExtra () const noexcept
     return ngrow;
 }
 
-Interpolater*
+InterpBase*
 StateDescriptor::interp () const noexcept
 {
     return mapper;
 }
 
-Interpolater*
+InterpBase*
 StateDescriptor::interp (int i) const noexcept
 {
     return mapper_comp[i] == 0 ? mapper : mapper_comp[i];
@@ -319,7 +318,7 @@ StateDescriptor::define (IndexType                   btyp,
                          int                         ident,
                          int                         nextra,
                          int                         num_comp,
-                         Interpolater*               a_interp,
+                         InterpBase*                 a_interp,
                          bool                        a_extrap,
                          bool                        a_store_in_checkpoint)
 {
@@ -349,7 +348,7 @@ StateDescriptor::setComponent (int                               comp,
                                const std::string&                nm,
                                const BCRec&                      bcr,
                                const StateDescriptor::BndryFunc& func,
-                               Interpolater*                     a_interp,
+                               InterpBase*                       a_interp,
                                int                               max_map_start_comp_,
                                int                               min_map_end_comp_)
 {
@@ -382,7 +381,7 @@ StateDescriptor::setComponent (int                               comp,
                                const std::string&                nm,
                                const BCRec&                      bcr,
                                const StateDescriptor::BndryFunc& func,
-                               Interpolater*                     a_interp,
+                               InterpBase*                       a_interp,
                                bool                              a_primary,
                                int                               a_groupsize)
 {
@@ -407,10 +406,10 @@ StateDescriptor::dumpNames (std::ostream& os,
 
 void
 StateDescriptor::setUpMaps (int&                use_default_map,
-                            const Interpolater* default_map,
+                            const InterpBase*   default_map,
                             int                 start_comp,
                             int                 num_comp,
-                            Interpolater**&     maps,
+                            InterpBase**&       maps,
                             int&                nmaps,
                             int*&               map_start_comp,
                             int*&               map_num_comp,
@@ -427,18 +426,18 @@ StateDescriptor::setUpMaps (int&                use_default_map,
     //
     // First, count number of interpolaters needed and allocate.
     //
-    Interpolater* map = mapper_comp[start_comp];
-    if (!map) map = (Interpolater*) default_map;
+    InterpBase* map = mapper_comp[start_comp];
+    if (!map) map = (InterpBase*) default_map;
     nmaps = 1;
     int icomp = start_comp+1;
 
     use_default_map = 1;
     while (icomp < start_comp+num_comp)
     {
-        Interpolater* mapper_icomp = mapper_comp[icomp];
+        InterpBase* mapper_icomp = mapper_comp[icomp];
         if (!mapper_icomp)
         {
-            mapper_icomp = (Interpolater *) default_map;
+            mapper_icomp = (InterpBase *) default_map;
         }
         else
         {
@@ -454,7 +453,7 @@ StateDescriptor::setUpMaps (int&                use_default_map,
 
     if (use_default_map) return;
 
-    maps           = new Interpolater*[nmaps];
+    maps           = new InterpBase*[nmaps];
     map_start_comp = new int[nmaps];
     map_num_comp   = new int[nmaps];
     min_end_comp   = new int[nmaps];
@@ -470,7 +469,7 @@ StateDescriptor::setUpMaps (int&                use_default_map,
     }
     else
     {
-        maps[imap] = (Interpolater *) default_map;
+        maps[imap] = (InterpBase *) default_map;
     }
 
     icomp                = start_comp+1;
@@ -481,10 +480,10 @@ StateDescriptor::setUpMaps (int&                use_default_map,
 
     while (icomp < start_comp+num_comp)
     {
-        Interpolater* mapper_icomp = mapper_comp[icomp];
+        InterpBase* mapper_icomp = mapper_comp[icomp];
 
         if (!mapper_icomp)
-            mapper_icomp = (Interpolater *) default_map;
+            mapper_icomp = (InterpBase *) default_map;
 
         if (maps[imap] != mapper_icomp)
         {
@@ -510,7 +509,7 @@ StateDescriptor::setUpMaps (int&                use_default_map,
 }
 
 void
-StateDescriptor::cleanUpMaps (Interpolater**& maps,
+StateDescriptor::cleanUpMaps (InterpBase**&   maps,
                               int*&           map_start_comp,
                               int*&           map_num_comp,
                               int*&           max_start_comp,
@@ -530,7 +529,7 @@ StateDescriptor::identicalInterps (int a_scomp,
     BL_ASSERT(a_scomp >= 0);
     BL_ASSERT(a_ncomp >= 1);
 
-    Interpolater* map = interp(a_scomp);
+    InterpBase* map = interp(a_scomp);
 
     for (int i = a_scomp+1; i < a_scomp+a_ncomp; i++)
         if (!(map == interp(i)))
@@ -548,7 +547,7 @@ StateDescriptor::sameInterps (int a_scomp,
 
     std::vector< std::pair<int,int> > range;
 
-    Interpolater* map = interp(a_scomp);
+    InterpBase* map = interp(a_scomp);
 
     int SComp = a_scomp, NComp = 1;
 
@@ -581,4 +580,3 @@ StateDescriptor::sameInterps (int a_scomp,
 }
 
 }
-

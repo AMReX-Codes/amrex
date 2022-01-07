@@ -23,6 +23,12 @@ public:
 
     ~TracerParticleContainer () {}
 
+    TracerParticleContainer ( const TracerParticleContainer &) = delete;
+    TracerParticleContainer& operator= ( const TracerParticleContainer & ) = delete;
+
+    TracerParticleContainer ( TracerParticleContainer && ) = default;
+    TracerParticleContainer& operator= ( TracerParticleContainer && ) = default;
+
     void AdvectWithUmac (MultiFab* umac, int level, Real dt);
 
     void AdvectWithUcc (const MultiFab& ucc, int level, Real dt);

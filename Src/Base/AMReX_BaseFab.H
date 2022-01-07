@@ -774,7 +774,7 @@ public:
 #endif
     IntVect minIndex (const Box& subbox, int comp = 0) const noexcept;
     /**
-    * \return return mininum value and location to allow
+    * \return return minimum value and location to allow
     * efficient looping over multiple boxes.
     */
 #if defined(AMREX_USE_GPU)

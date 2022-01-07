@@ -28,8 +28,6 @@ C$(AMREX_BASE)_sources += AMReX_FileSystem.cpp
 C$(AMREX_BASE)_headers += AMReX_Random.H AMReX_RandomEngine.H
 C$(AMREX_BASE)_sources += AMReX_Random.cpp
 
-C$(AMREX_BASE)_headers += AMReX_Slopes_K.H
-
 C$(AMREX_BASE)_headers += AMReX_REAL.H AMReX_INT.H AMReX_CONSTANTS.H AMReX_SPACE.H
 
 C$(AMREX_BASE)_sources += AMReX_DistributionMapping.cpp AMReX_ParallelDescriptor.cpp
@@ -41,8 +39,8 @@ C$(AMREX_BASE)_headers += AMReX_ParallelReduce.H
 C$(AMREX_BASE)_headers += AMReX_ForkJoin.H AMReX_ParallelContext.H
 C$(AMREX_BASE)_sources += AMReX_ForkJoin.cpp AMReX_ParallelContext.cpp
 
-C$(AMREX_BASE)_sources += AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp AMReX_DArena.cpp AMReX_EArena.cpp AMReX_PArena.cpp
-C$(AMREX_BASE)_headers += AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H AMReX_DArena.H AMReX_EArena.H AMReX_PArena.H
+C$(AMREX_BASE)_sources += AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp AMReX_PArena.cpp
+C$(AMREX_BASE)_headers += AMReX_VisMFBuffer.H AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H AMReX_PArena.H
 
 C$(AMREX_BASE)_sources += AMReX_AsyncOut.cpp
 C$(AMREX_BASE)_headers += AMReX_AsyncOut.H
@@ -71,8 +69,6 @@ C$(AMREX_BASE)_headers += AMReX_GpuLaunchMacrosG.H AMReX_GpuLaunchFunctsG.H
 C$(AMREX_BASE)_headers += AMReX_GpuLaunchMacrosC.H AMReX_GpuLaunchFunctsC.H
 C$(AMREX_BASE)_headers += AMReX_GpuLaunchGlobal.H
 C$(AMREX_BASE)_headers += AMReX_GpuLaunch.H
-C$(AMREX_BASE)_headers += AMReX_GpuFuse.H
-C$(AMREX_BASE)_sources += AMReX_GpuFuse.cpp
 
 C$(AMREX_BASE)_headers += AMReX_GpuControl.H
 C$(AMREX_BASE)_sources += AMReX_GpuControl.cpp
@@ -96,13 +92,18 @@ C$(AMREX_BASE)_headers += AMReX_CudaGraph.H AMReX_GpuContainers.H
 
 C$(AMREX_BASE)_headers += AMReX_GpuAllocators.H
 
+C$(AMREX_BASE)_headers += AMReX_MFParallelFor.H
 C$(AMREX_BASE)_headers += AMReX_MFParallelForC.H
 C$(AMREX_BASE)_headers += AMReX_MFParallelForG.H
+
+C$(AMREX_BASE)_headers += AMReX_TagParallelFor.H
+
+C$(AMREX_BASE)_headers += AMReX_ParReduce.H
 
 #
 # I/O stuff.
 #
-C${AMREX_BASE}_headers += AMReX_FabConv.H AMReX_FPC.H AMReX_Print.H AMReX_IntConv.H AMReX_VectorIO.H
+C${AMREX_BASE}_headers += AMReX_ANSIEscCode.H AMReX_FabConv.H AMReX_FPC.H AMReX_Print.H AMReX_IntConv.H AMReX_VectorIO.H
 C${AMREX_BASE}_sources += AMReX_FabConv.cpp AMReX_FPC.cpp AMReX_IntConv.cpp AMReX_VectorIO.cpp
 
 #
@@ -177,6 +178,8 @@ C$(AMREX_BASE)_sources += AMReX_FilCC_C.cpp
 C$(AMREX_BASE)_headers += AMReX_FilCC_C.H AMReX_FilCC_$(DIM)D_C.H
 C$(AMREX_BASE)_sources += AMReX_FilND_C.cpp
 C$(AMREX_BASE)_headers += AMReX_FilND_C.H
+C$(AMREX_BASE)_sources += AMReX_FilFC_C.cpp
+C$(AMREX_BASE)_headers += AMReX_FilFC_C.H AMReX_FilFC_$(DIM)D_C.H
 
 #
 # Non-Local BC
@@ -191,9 +194,13 @@ C$(AMREX_BASE)_sources += AMReX_PlotFileUtil.cpp AMReX_PlotFileDataImpl.cpp
 C$(AMREX_BASE)_headers += AMReX_PlotFileUtil.H AMReX_PlotFileDataImpl.H
 
 #
-# Misc
+# Time Integration
 #
-C$(AMREX_BASE)_headers += AMReX_BaseUmap.H
+C$(AMREX_BASE)_headers += AMReX_FEIntegrator.H
+C$(AMREX_BASE)_headers += AMReX_IntegratorBase.H
+C$(AMREX_BASE)_headers += AMReX_RKIntegrator.H
+C$(AMREX_BASE)_headers += AMReX_TimeIntegrator.H
+
 
 #
 # Fortran interface routines.
@@ -258,5 +265,37 @@ endif
 CEXE_headers += AMReX_Machine.H
 CEXE_sources += AMReX_Machine.cpp
 
+# Forward declaration
+CEXE_headers += AMReX_BaseFwd.H
+
+
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
+
+
+CEXE_headers += amrex_parser.lex.h amrex_parser.tab.h
+CEXE_sources += amrex_parser.lex.cpp amrex_parser.tab.cpp
+
+CEXE_headers += AMReX_Parser_Y.H
+CEXE_sources += AMReX_Parser_Y.cpp
+
+CEXE_headers += AMReX_Parser_Exe.H
+CEXE_sources += AMReX_Parser_Exe.cpp
+
+CEXE_headers += AMReX_Parser.H
+CEXE_sources += AMReX_Parser.cpp
+
+CEXE_headers += amrex_iparser.lex.h amrex_iparser.tab.h
+CEXE_sources += amrex_iparser.lex.cpp amrex_iparser.tab.cpp
+
+CEXE_headers += AMReX_IParser_Y.H
+CEXE_sources += AMReX_IParser_Y.cpp
+
+CEXE_headers += AMReX_IParser_Exe.H
+CEXE_sources += AMReX_IParser_Exe.cpp
+
+CEXE_headers += AMReX_IParser.H
+CEXE_sources += AMReX_IParser.cpp
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base/Parser
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base/Parser

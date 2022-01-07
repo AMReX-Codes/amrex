@@ -150,14 +150,14 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
     for (int i = 0; i < pc.NumIntComps() + PC::NStructInt; ++i)
         if (write_int_comp[i]) ++num_output_int;
 
-    const int iChunkSize = 2 + num_output_int;
+    const Long iChunkSize = 2 + num_output_int;
     idata.resize(np*iChunkSize);
 
     int num_output_real = 0;
     for (int i = 0; i < pc.NumRealComps() + PC::NStructReal; ++i)
         if (write_real_comp[i]) ++num_output_real;
 
-    const int rChunkSize = AMREX_SPACEDIM + num_output_real;
+    const Long rChunkSize = AMREX_SPACEDIM + num_output_real;
     rdata.resize(np*rChunkSize);
 
     typename PC::IntVector  idata_d(idata.size());
@@ -183,7 +183,6 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
         int num_copies = Scan::ExclusiveSum(np_tile, pflags.begin(), offsets.begin(), Scan::retSum);
 
         const auto flag_ptr = pflags.data();
-        const auto offsets_ptr = offsets.data();
 
         auto idata_d_ptr = idata_d.data();
         auto rdata_d_ptr = rdata_d.data();
@@ -242,14 +241,14 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
     for (int i = 0; i < pc.NumIntComps() + PC::NStructInt; ++i)
         if (write_int_comp[i]) ++num_output_int;
 
-    const int iChunkSize = 2 + num_output_int;
+    const Long iChunkSize = 2 + num_output_int;
     idata.resize(np*iChunkSize);
 
     int num_output_real = 0;
     for (int i = 0; i < pc.NumRealComps() + PC::NStructReal; ++i)
         if (write_real_comp[i]) ++num_output_real;
 
-    const int rChunkSize = AMREX_SPACEDIM + num_output_real;
+    const Long rChunkSize = AMREX_SPACEDIM + num_output_real;
     rdata.resize(np*rChunkSize);
 
     int* iptr = idata.dataPtr();
@@ -883,7 +882,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                 for (int i = 0; i < nic + NStructInt; ++i)
                     if (write_int_comp[i]) ++num_output_int;
 
-                const int iChunkSize = 2 + num_output_int;
+                const Long iChunkSize = 2 + num_output_int;
                 Vector<int> istuff(np_per_grid_local[lev][grid]*iChunkSize);
                 int* iptr = istuff.dataPtr();
 
@@ -932,7 +931,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                 for (int i = 0; i < nrc + NStructReal; ++i)
                     if (write_real_comp[i]) ++num_output_real;
 
-                const int rChunkSize = AMREX_SPACEDIM + num_output_real;
+                const Long rChunkSize = AMREX_SPACEDIM + num_output_real;
                 Vector<typename PC::ParticleType::RealType> rstuff(np_per_grid_local[lev][grid]*rChunkSize);
                 typename PC::ParticleType::RealType* rptr = rstuff.dataPtr();
 
@@ -987,4 +986,8 @@ void WriteBinaryParticleDataAsync (PC const& pc,
     });
 }
 
+#ifdef AMREX_USE_HDF5
+#include <AMReX_WriteBinaryParticleDataHDF5.H>
 #endif
+
+#endif /*AMREX_WRITE_BINARY_PARTICLE_DATA_H*/

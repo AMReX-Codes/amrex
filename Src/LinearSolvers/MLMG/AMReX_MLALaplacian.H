@@ -63,7 +63,7 @@ public:
         { return {{ AMREX_D_DECL(nullptr,nullptr,nullptr)}}; }
 
     virtual std::unique_ptr<MLLinOp> makeNLinOp (int /*grid_size*/) const final override {
-        amrex::Abort("MLALaplacian::makeNLinOp: Not implmented");
+        amrex::Abort("MLALaplacian::makeNLinOp: Not implemented");
         return std::unique_ptr<MLLinOp>{};
     }
 

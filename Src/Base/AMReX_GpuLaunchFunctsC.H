@@ -316,51 +316,6 @@ void ParallelFor (Gpu::KernelInfo const&,
                 box3, ncomp3, std::forward<L3>(f3));
 }
 
-template <typename N, typename T, typename L1, typename L2,
-          typename M=std::enable_if_t<std::is_integral<N>::value> >
-void FabReduce (Box const& box, N ncomp, T const& init_val,
-                L1&& f1, L2&& f2, std::size_t /*shared_mem_bytes*/=0) noexcept
-{
-    auto r = init_val;
-    const auto lo = amrex::lbound(box);
-    const auto hi = amrex::ubound(box);
-    for (N n = 0; n < ncomp; ++n) {
-        for (int k = lo.z; k <= hi.z; ++k) {
-        for (int j = lo.y; j <= hi.y; ++j) {
-        for (int i = lo.x; i <= hi.x; ++i) {
-            f1(i,j,k,n,&r);
-        }}}
-    }
-    f2(r);
-}
-
-template <typename T, typename L1, typename L2>
-void FabReduce (Box const& box, T const& init_val,
-                L1&& f1, L2&& f2, std::size_t /*shared_mem_bytes*/=0) noexcept
-{
-    auto r = init_val;
-    const auto lo = amrex::lbound(box);
-    const auto hi = amrex::ubound(box);
-    for (int k = lo.z; k <= hi.z; ++k) {
-    for (int j = lo.y; j <= hi.y; ++j) {
-    for (int i = lo.x; i <= hi.x; ++i) {
-        f1(i,j,k,&r);
-    }}}
-    f2(r);
-}
-
-template <typename N, typename T, typename L1, typename L2,
-          typename M=std::enable_if_t<std::is_integral<N>::value> >
-void VecReduce (N n, T const& init_val,
-                L1&& f1, L2&& f2, std::size_t /*shared_mem_bytes*/=0) noexcept
-{
-    auto r = init_val;
-    for (N i = 0; i < n; ++i) {
-        f1(i,&r);
-    }
-    f2(r);
-}
-
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
 void HostDeviceParallelFor (T n, L&& f) noexcept
 {

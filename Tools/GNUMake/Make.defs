@@ -42,8 +42,6 @@ ifeq ($(USE_DPCPP),TRUE)
   USE_HIP := FALSE
   # disable ccache for now
   USE_CCACHE := FALSE
-  # Make.unknown's mpi checking does not work with mpiicpc
-  NO_MPI_CHECKING := TRUE
   ifdef USE_ONEDPL
     USE_ONEDPL := $(strip $(USE_ONEDPL))
   else
@@ -287,8 +285,12 @@ endif
 
 ifdef USE_SENSEI_INSITU
   USE_SENSEI_INSITU := $(strip $(USE_SENSEI_INSITU))
+  ifdef NO_SENSEI_AMR_INST
+    NO_SENSEI_AMR_INST := $(strip $(NO_SENSEI_AMR_INST))
+  endif
 else
   USE_SENSEI_INSITU := FALSE
+  NO_SENSEI_AMR_INST := FALSE
 endif
 
 ifdef USE_HDF5
@@ -380,7 +382,35 @@ SKIP_LINKING ?= FALSE
 USE_COMPILE_PIC ?= FALSE
 
 AMREX_GIT_VERSION := $(shell cd $(AMREX_HOME); git describe --abbrev=12 --dirty --always --tags)
+ifndef AMREX_GIT_VERSION
+  AMREX_GIT_VERSION := $(shell grep -o -m 1 -E "[0-9]{2}\.[0-9]{2}(\.[0-9]+)?" $(AMREX_HOME)/CHANGES)
+endif
 DEFINES += -DAMREX_GIT_VERSION=\"$(AMREX_GIT_VERSION)\"
+
+ifeq ($(findstring ., $(AMREX_GIT_VERSION)), .)
+  amrex_release_string := $(AMREX_GIT_VERSION)
+else
+  # AMREX_GIT_VERSION obtained from a shallow clone does not have the release version
+  amrex_release_string := $(shell grep -o -m 1 -E "[0-9]{2}\.[0-9]{2}(\.[0-9]+)?" $(AMREX_HOME)/CHANGES)
+endif
+amrex_release_words := $(subst ., ,$(firstword $(subst -, ,$(amrex_release_string))))
+amrex_release_numwords := $(words $(amrex_release_words))
+ifneq ($(amrex_release_numwords),2)
+ifneq ($(amrex_release_numwords),3)
+  amrex_release_numwords := 3
+  amrex_release_words := 00 00 00
+endif
+endif
+amrex_release_yy := $(word 1, $(amrex_release_words))
+amrex_release_mm := $(word 2, $(amrex_release_words))
+ifeq ($(amrex_release_numwords),2)
+  AMREX_RELEASE_NUMBER := $(amrex_release_yy)$(amrex_release_mm)00
+else
+  amrex_release_patch := $(shell printf '%02d' $(word 3, $(amrex_release_words)) | cut -c-2)
+  AMREX_RELEASE_NUMBER := $(amrex_release_yy)$(amrex_release_mm)$(amrex_release_patch)
+endif
+DEFINES += -DAMREX_RELEASE_NUMBER=$(AMREX_RELEASE_NUMBER)
+
 
 FORTLINK  	= UNDERSCORE
 
@@ -422,29 +452,29 @@ endif
 
 ifdef AMREX_CCOMP
   lowercase_amrex_ccomp = $(shell echo $(AMREX_CCOMP) | tr A-Z a-z)
-  ifeq ($(lowercase_amrex_comp),$(filter $(lowercase_amrex_comp),gcc gnu g++))
+  ifeq ($(lowercase_amrex_ccomp),$(filter $(lowercase_amrex_ccomp),gcc gnu g++))
     AMREX_CCOMP = gnu
-  else ifeq ($(lowercase_amrex_comp),intel)
+  else ifeq ($(lowercase_amrex_ccomp),intel)
     AMREX_CCOMP = intel
-  else ifeq ($(lowercase_amrex_comp),dpcpp)
+  else ifeq ($(lowercase_amrex_ccomp),dpcpp)
     AMREX_CCOMP = dpcpp
-  else ifeq ($(lowercase_amrex_comp),cray)
+  else ifeq ($(lowercase_amrex_ccomp),cray)
     AMREX_CCOMP = cray
-  else ifeq ($(lowercase_amrex_comp),pgi)
+  else ifeq ($(lowercase_amrex_ccomp),pgi)
     AMREX_CCOMP = pgi
-  else ifeq ($(lowercase_amrex_comp),nvhpc)
+  else ifeq ($(lowercase_amrex_ccomp),nvhpc)
     AMREX_CCOMP = nvhpc
-  else ifeq ($(lowercase_amrex_comp),ibm)
+  else ifeq ($(lowercase_amrex_ccomp),ibm)
     AMREX_CCOMP = ibm
-  else ifeq ($(lowercase_amrex_comp),$(filter $(lowercase_amrex_comp),llvm clang clang++))
+  else ifeq ($(lowercase_amrex_ccomp),$(filter $(lowercase_amrex_ccomp),llvm clang clang++))
     AMREX_CCOMP = clang
-  else ifeq ($(lowercase_amrex_comp),$(filter $(lowercase_amrex_comp),llvm-flang flang))
+  else ifeq ($(lowercase_amrex_ccomp),$(filter $(lowercase_amrex_ccomp),llvm-flang flang))
     AMREX_CCOMP = clang
-  else ifeq ($(lowercase_amrex_comp),nag)
+  else ifeq ($(lowercase_amrex_ccomp),nag)
     AMREX_CCOMP = gnu
-  else ifeq ($(lowercase_amrex_comp),nec)
+  else ifeq ($(lowercase_amrex_ccomp),nec)
     AMREX_CCOMP = nec
-  else ifeq ($(lowercase_amrex_comp),armclang)
+  else ifeq ($(lowercase_amrex_ccomp),armclang)
     AMREX_CCOMP = armclang
   else
     $(error Unknown compiler $(AMREX_CCOMP). Supported compilers are gnu, intel, dpcpp, cray, pgi, nvhpc, ibm, llvm, nag, nec, and armclang)
@@ -686,10 +716,6 @@ ifeq ($(USE_CUPTI),TRUE)
   endif
 endif
 
-ifeq ($(USE_GPU_RDC),TRUE)
-    DEFINES += -DAMREX_USE_GPU_RDC
-endif
-
 ifeq ($(USE_HIP),TRUE)
 
     USE_GPU := TRUE
@@ -770,6 +796,9 @@ ifeq ($(USE_GPU),TRUE)
     DEFINES += -DAMREX_USE_GPU -DBL_COALESCE_FABS
     ifeq ($(GPU_ERROR_CHECK),FALSE)
         DEFINES += -DAMREX_GPU_NO_ERROR_CHECK
+    endif
+    ifeq ($(USE_GPU_RDC),TRUE)
+        DEFINES += -DAMREX_USE_GPU_RDC
     endif
 endif
 
@@ -873,7 +902,12 @@ CPPFLAGS	+= $(DEFINES)
 libraries	= $(XTRAOBJS) $(LIBRARIES) $(XTRALIBS)
 
 ifeq ($(USE_RPATH),TRUE)
-  LDFLAGS	+= -Xlinker -rpath -Xlinker '$(abspath .)' $(addprefix -Xlinker -rpath -Xlinker , $(abspath $(LIBRARY_LOCATIONS)))
+  ifeq ($(shell uname),Darwin)
+      # The mac loader, ld, does not like the "=" with rpath
+      LDFLAGS	+= -Xlinker -rpath '$(abspath .)' $(addprefix -Xlinker -rpath , $(abspath $(LIBRARY_LOCATIONS)))
+  else
+      LDFLAGS	+= -Xlinker -rpath='$(abspath .)' $(addprefix -Xlinker -rpath=, $(abspath $(LIBRARY_LOCATIONS)))
+  endif
 endif
 LDFLAGS	+= -L. $(addprefix -L, $(LIBRARY_LOCATIONS))
 
@@ -912,6 +946,7 @@ amrexLibDir = $(AMREX_INSTALL_DIR)/lib
 amrexIncludeDir = $(AMREX_INSTALL_DIR)/include
 # Do different compilers have different name convention for mod files?
 amrexFortModules = $(wildcard $(objEXETempDir)/*.mod)
+amrexFortModuleFiles = $(notdir $(amrexFortModules))
 amrexPkgconfigDir = $(AMREX_INSTALL_DIR)/lib/pkgconfig
 
 #
@@ -1011,14 +1046,6 @@ endif
 FINAL_LIBS = $(libraries)
 
 ifeq ($(USE_DPCPP),TRUE)
-
-    ifeq ($(USE_MPI),TRUE)
-        CC  = mpiicc
-        CXX = mpiicpc
-        FC  = mpiifort
-        F90 = mpiifort
-        CXXFLAGS += -cxx=dpcpp
-    endif
 
 else ifeq ($(USE_HIP),TRUE)
 

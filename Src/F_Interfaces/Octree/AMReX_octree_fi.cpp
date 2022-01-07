@@ -213,10 +213,9 @@ extern "C" {
                 });
             } else {
                 Array4<Real const> const& finevolarr = fvolume.const_array(mfi);
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
                 {
-                    amrex_avgdown_with_vol(tbx,crsearr,finearr,finevolarr,
-                                           0,scomp,ncomp,rr);
+                    amrex_avgdown_with_vol(i,j,k,n,crsearr,finearr,finevolarr,0,scomp,rr);
                 });
             }
         }

@@ -37,10 +37,19 @@ AmrMesh::AmrMesh (Geometry const& level_0_geom, AmrInfo const& amr_info)
     : AmrInfo(amr_info)
 {
     int nlev = max_level + 1;
-    ref_ratio.resize      (nlev, amr_info.ref_ratio.back());
-    blocking_factor.resize(nlev, amr_info.blocking_factor.back());
-    max_grid_size.resize  (nlev, amr_info.max_grid_size.back());
-    n_error_buf.resize    (nlev, amr_info.n_error_buf.back());
+    AmrInfo def_amr_info;
+    ref_ratio.resize      (nlev, amr_info.ref_ratio.empty()
+                           ? def_amr_info.ref_ratio.back()
+                           :     amr_info.ref_ratio.back());
+    blocking_factor.resize(nlev, amr_info.blocking_factor.empty()
+                           ? def_amr_info.blocking_factor.back()
+                           :     amr_info.blocking_factor.back());
+    max_grid_size.resize  (nlev, amr_info.max_grid_size.empty()
+                           ? def_amr_info.max_grid_size.back()
+                           :     amr_info.max_grid_size.back());
+    n_error_buf.resize    (nlev, amr_info.n_error_buf.empty()
+                           ? def_amr_info.n_error_buf.back()
+                           :     amr_info.n_error_buf.back());
 
     dmap.resize(nlev);
     grids.resize(nlev);
@@ -349,9 +358,16 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
         }
     }
 
+    //chop up grids to have the number of grids be no less the number of procs
     {
-        // chop up grids to have more grids than the number of procs
         pp.query("refine_grid_layout", refine_grid_layout);
+
+        refine_grid_layout_dims = IntVect(refine_grid_layout);
+        AMREX_D_TERM(pp.query("refine_grid_layout_x", refine_grid_layout_dims[0]);,
+                     pp.query("refine_grid_layout_y", refine_grid_layout_dims[1]);,
+                     pp.query("refine_grid_layout_z", refine_grid_layout_dims[2]));
+
+        refine_grid_layout = refine_grid_layout_dims != 0;
     }
 
     pp.query("check_input", check_input);
@@ -421,20 +437,30 @@ AmrMesh::LevelDefined (int lev) noexcept
 void
 AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
 {
-    for (int cnt = 1; cnt <= 4; cnt *= 2)
+    if (refine_grid_layout_dims == 0) { return; }
+
+    IntVect chunk = max_grid_size[lev];
+
+    while (ba.size() < target_size)
     {
-        IntVect chunk = max_grid_size[lev] / cnt;
+        IntVect chunk_prev = chunk;
 
-        for (int j = AMREX_SPACEDIM-1; j >= 0 ; j--)
-        {
-            chunk[j] /= 2;
-
-            if ( (ba.size() < target_size) && (chunk[j]%blocking_factor[lev][j] == 0) )
-            {
-                ba.maxSize(chunk);
+        for (int idim = AMREX_SPACEDIM-1; idim >=0; idim--){
+            if (refine_grid_layout_dims[idim]){
+                int new_chunk_size = chunk[idim] / 2;
+                if ( (ba.size() < target_size) && (new_chunk_size%blocking_factor[lev][idim] == 0))
+                {
+                    chunk[idim] = new_chunk_size;
+                    ba.maxSize(chunk);
+                }
             }
         }
+
+        if (chunk == chunk_prev){
+            break;
+        }
     }
+
 }
 
 BoxArray
@@ -732,7 +758,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
         {
             ChopGrids(lev,new_grids[lev],ParallelDescriptor::NProcs());
             if (new_grids[lev] == grids[lev]) {
-                new_grids[lev] = grids[lev]; // to avoid dupliates
+                new_grids[lev] = grids[lev]; // to avoid duplicates
             }
         }
     }
@@ -1008,7 +1034,7 @@ std::ostream& operator<< (std::ostream& os, AmrMesh const& amr_mesh)
     os << "  n_proper = " << amr_mesh.n_proper << "\n";
     os << "  use_fixed_upto_level = " << amr_mesh.use_fixed_upto_level << "\n";
     os << "  use_fixed_coarse_grids = " << amr_mesh.use_fixed_coarse_grids << "\n";
-    os << "  refine_grid_layout = " << amr_mesh.refine_grid_layout << "\n";
+    os << "  refine_grid_layout_dims = " << amr_mesh.refine_grid_layout_dims << "\n";
     os << "  check_input = " << amr_mesh.check_input  << "\n";
     os << "  use_new_chop = " << amr_mesh.use_new_chop << "\n";
     os << "  iterate_on_new_grids = " << amr_mesh.iterate_on_new_grids << "\n";

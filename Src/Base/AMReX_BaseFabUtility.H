@@ -38,6 +38,8 @@ void fill (BaseFab<STRUCT>& aos_fab, F && f)
     if (Gpu::inLaunchRegion()) {
         const auto lo  = amrex::lbound(box);
         const auto len = amrex::length(box);
+        const auto lenxy = len.x*len.y;
+        const auto lenx = len.x;
         int ntotcells = box.numPts();
         int nthreads_per_block = (STRUCTSIZE <= 8) ? 256 : 128;
         int nblocks = (ntotcells+nthreads_per_block-1)/nthreads_per_block;
@@ -54,9 +56,9 @@ void fill (BaseFab<STRUCT>& aos_fab, F && f)
             auto const shared = (T*)handler.sharedMemory();
             if (icell < ntotcells) {
                 auto ga = new(shared+threadIdxx*STRUCTSIZE) STRUCT;
-                int k =  icell /   (len.x*len.y);
-                int j = (icell - k*(len.x*len.y)) /   len.x;
-                int i = (icell - k*(len.x*len.y)) - j*len.x;
+                int k =  icell /   lenxy;
+                int j = (icell - k*lenxy) /   lenx;
+                int i = (icell - k*lenxy) - j*lenx;
                 i += lo.x;
                 j += lo.y;
                 k += lo.z;
@@ -78,9 +80,9 @@ void fill (BaseFab<STRUCT>& aos_fab, F && f)
             T* const shared = gsm.dataPtr();
             if (icell < ntotcells) {
                 auto ga = new(shared+threadIdx.x*STRUCTSIZE) STRUCT;
-                int k =  icell /   (len.x*len.y);
-                int j = (icell - k*(len.x*len.y)) /   len.x;
-                int i = (icell - k*(len.x*len.y)) - j*len.x;
+                int k =  icell /   lenxy;
+                int j = (icell - k*lenxy) /   lenx;
+                int i = (icell - k*lenxy) - j*lenx;
                 i += lo.x;
                 j += lo.y;
                 k += lo.z;

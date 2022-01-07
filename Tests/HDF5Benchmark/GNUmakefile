@@ -10,7 +10,7 @@ COMP    = gnu
 PRECISION = DOUBLE
 
 USE_MPI   = TRUE
-MPI_THREAD_MULTIPLE = TRUE
+MPI_THREAD_MULTIPLE = FALSE
 
 USE_OMP   = FALSE
 
@@ -21,7 +21,14 @@ TINY_PROFILE = TRUE
 EBASE     = main
 
 USE_HDF5  = TRUE
-HDF5_HOME = /gpfs/alpine/csc300/world-shared/gnu_build/hpc-io/hdf5/async_optional_build/hdf5
+# HDF5_HOME = /gpfs/alpine/csc300/world-shared/gnu_build/hdf5/develop_build/hdf5
+HDF5_HOME = $(OLCF_HDF5_ROOT)
+# HDF5_HOME = $(HDF5_ROOT)
+
+# To use HDF5 with ZFP compression, follow the instructions at https://h5z-zfp.readthedocs.io to compile ZFP and H5Z_ZFP plugin, or use the following gcc build on Summit
+USE_HDF5_ZFP = FALSE
+H5Z_HOME  = /gpfs/alpine/csc300/world-shared/gnu_build/H5Z-ZFP/install
+ZFP_HOME  = /gpfs/alpine/csc300/world-shared/gnu_build/zfp
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
@@ -31,10 +38,10 @@ include $(AMREX_HOME)/Src/Particle/Make.package
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
-# To use HDF5 asynchronous I/O VOL connector, follow the instructions at https://github.com/hpc-io/vol-async, use dset_memcpy branch
+# To use HDF5 asynchronous I/O VOL connector, follow the instructions at https://github.com/hpc-io/vol-async, add -DENABLE_WRITE_MEMCPY=1 to CFLAGS in src/Makefile, or use the following gcc build on Summit
 USE_HDF5_ASYNC = FALSE
-ABT_HOME       = /gpfs/alpine/csc300/world-shared/gnu_build/hpc-io/vol-async/argobots/build
-ASYNC_HOME     = /gpfs/alpine/csc300/world-shared/gnu_build/hpc-io/vol-async-memcpy/src
+ABT_HOME       = /gpfs/alpine/csc300/world-shared/gnu_build/argobots/install
+ASYNC_HOME     = /gpfs/alpine/csc300/world-shared/gnu_build/vol-async-memcpy/src
 
 ifeq ($(USE_HDF5_ASYNC), TRUE)
 DEFINES   	  += -DAMREX_USE_HDF5_ASYNC 

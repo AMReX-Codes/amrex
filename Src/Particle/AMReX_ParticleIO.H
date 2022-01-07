@@ -87,40 +87,6 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
-::Checkpoint (const std::string& dir, const std::string& name) const
-{
-    Vector<int> write_real_comp;
-    Vector<std::string> real_comp_names;
-    for (int i = 0; i < NStructReal + NumRealComps(); ++i )
-    {
-        write_real_comp.push_back(1);
-        std::stringstream ss;
-        ss << "real_comp" << i;
-        real_comp_names.push_back(ss.str());
-    }
-
-    Vector<int> write_int_comp;
-    Vector<std::string> int_comp_names;
-    for (int i = 0; i < NStructInt + NumIntComps(); ++i )
-    {
-        write_int_comp.push_back(1);
-        std::stringstream ss;
-        ss << "int_comp" << i;
-        int_comp_names.push_back(ss.str());
-    }
-
-    WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
-                            real_comp_names, int_comp_names,
-                            [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p) -> int
-                            {
-                                return p.id() > 0;
-                            });
-}
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
-void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::WritePlotFile (const std::string& dir, const std::string& name) const
 {
     Vector<int> write_real_comp;
@@ -730,6 +696,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     AMREX_ASSERT(finest_level_in_file >= 0);
 
     // Determine whether this is a dual-grid restart or not.
+    Vector<DistributionMapping> old_dms(finest_level_in_file + 1);
+    Vector<BoxArray> old_bas(finest_level_in_file + 1);
     Vector<BoxArray> particle_box_arrays(finest_level_in_file + 1);
     bool dual_grid = false;
 
@@ -750,6 +718,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     {
         for (int lev = 0; lev <= finest_level_in_file; lev++)
         {
+            old_dms[lev] = ParticleDistributionMap(lev);
+            old_bas[lev] = ParticleBoxArray(lev);
             std::string phdr_name = fullname;
             phdr_name = amrex::Concatenate(phdr_name + "/Level_", lev, 1);
             phdr_name += "/Particle_H";
@@ -777,6 +747,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
     if (dual_grid) {
         for (int lev = 0; lev <= finestLevel(); lev++) {
+            // this can happen if there are no particles at a given level in the checkpoint
+            if (particle_box_arrays[lev].size() == 0) {
+                particle_box_arrays[lev] = BoxArray(Geom(lev).Domain());
+            }
             SetParticleBoxArray(lev, particle_box_arrays[lev]);
             DistributionMapping pdm(particle_box_arrays[lev]);
             SetParticleDistributionMap(lev, pdm);
@@ -787,9 +761,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     for (int lev = 0; lev <= finest_level_in_file; lev++) {
         HdrFile >> ngrids[lev];
         AMREX_ASSERT(ngrids[lev] > 0);
-        if (lev <= finestLevel()) {
-            AMREX_ASSERT(ngrids[lev] == int(ParticleBoxArray(lev).size()));
-        }
     }
 
     resizeData();
@@ -880,6 +851,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
             if (!ParticleFile.good())
                 amrex::Abort("ParticleContainer::Restart(): problem reading particles");
+        }
+    }
+
+    if (dual_grid) {
+        for (int lev = 0; lev <= finest_level_in_file; lev++) {
+            SetParticleBoxArray(lev, old_bas[lev]);
+            SetParticleDistributionMap(lev, old_dms[lev]);
         }
     }
 

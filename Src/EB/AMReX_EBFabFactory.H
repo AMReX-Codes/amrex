@@ -48,6 +48,8 @@ public:
     const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const noexcept
         { return m_ebdc->getMultiEBCellFlagFab(); }
 
+    const MultiFab& getLevelSet () const noexcept { return m_ebdc->getLevelSet(); }
+
     const MultiFab& getVolFrac () const noexcept { return m_ebdc->getVolFrac(); }
 
     const MultiCutFab& getCentroid () const noexcept { return m_ebdc->getCentroid(); }

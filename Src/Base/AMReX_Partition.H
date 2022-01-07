@@ -69,7 +69,7 @@ namespace detail
  * \tparam T type of the data to be partitioned.
  * \tparam F type of the predicate function.
  *
- * \param data pointer to the data to be partitoned
+ * \param data pointer to the data to be partitioned
  * \param beg index at which to start
  * \param end index at which to stop (exclusive)
  * \param f predicate function that returns 1 or 0 for each input
@@ -99,7 +99,7 @@ int Partition (T* data, int beg, int end, F && f)
  * \tparam T type of the data to be partitioned.
  * \tparam F type of the predicate function.
  *
- * \param data pointer to the data to be partitoned
+ * \param data pointer to the data to be partitioned
  * \param N the number of elements in the array
  * \param f predicate function that returns 1 or 0 for each input
  *
@@ -154,7 +154,7 @@ int Partition (Gpu::DeviceVector<T>& v, F && f)
  * \tparam T type of the data to be partitioned.
  * \tparam F type of the predicate function.
  *
- * \param data pointer to the data to be partitoned
+ * \param data pointer to the data to be partitioned
  * \param beg index at which to start
  * \param end index at which to stop (exclusive)
  * \param f predicate function that returns 1 or 0 for each input
@@ -185,7 +185,7 @@ int StablePartition (T* data, int beg, int end, F && f)
  * \tparam T type of the data to be partitioned.
  * \tparam F type of the predicate function.
  *
- * \param data pointer to the data to be partitoned
+ * \param data pointer to the data to be partitioned
  * \param N the number of elements in the array
  * \param f predicate function that returns 1 or 0 for each input
  *
@@ -241,7 +241,7 @@ int StablePartition (Gpu::DeviceVector<T>& v, F && f)
  * \tparam T type of the data to be partitioned.
  * \tparam F type of the predicate function.
  *
- * \param data pointer to the data to be partitoned
+ * \param data pointer to the data to be partitioned
  * \param beg index at which to start
  * \param end index at which to stop (exclusive)
  * \param f predicate function that returns 1 or 0 for each input
@@ -268,7 +268,7 @@ int Partition (T* data, int beg, int end, F && f)
  * \tparam T type of the data to be partitioned.
  * \tparam F type of the predicate function.
  *
- * \param data pointer to the data to be partitoned
+ * \param data pointer to the data to be partitioned
  * \param N the number of elements in the array
  * \param f predicate function that returns 1 or 0 for each input
  *
@@ -320,7 +320,7 @@ int Partition (Gpu::DeviceVector<T>& v, F && f)
  * \tparam T type of the data to be partitioned.
  * \tparam F type of the predicate function.
  *
- * \param data pointer to the data to be partitoned
+ * \param data pointer to the data to be partitioned
  * \param beg index at which to start
  * \param end index at which to stop (exclusive)
  * \param f predicate function that returns 1 or 0 for each input
@@ -349,7 +349,7 @@ int StablePartition (T* data, int beg, int end, F && f)
  * \tparam T type of the data to be partitioned.
  * \tparam F type of the predicate function.
  *
- * \param data pointer to the data to be partitoned
+ * \param data pointer to the data to be partitioned
  * \param N the number of elements in the array
  * \param f predicate function that returns 1 or 0 for each input
  *

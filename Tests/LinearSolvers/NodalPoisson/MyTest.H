@@ -1,5 +1,8 @@
 #ifndef MY_TEST_H_
 #define MY_TEST_H_
+#ifdef AMREX_USE_HYPRE
+#include <AMReX_Hypre.H>
+#endif
 
 #include <AMReX_MLMG.H>
 
@@ -16,6 +19,9 @@ public:
     void writePlotfile () const;
 
     void initData ();
+
+    int getNumTrials() { return num_trials; }
+    int getDoPlots() { return do_plots; }
 
 private:
 
@@ -34,7 +40,6 @@ private:
     int max_iter = 100;
     int max_fmg_iter = 0;
     amrex::Real reltol = 1.e-11;
-
     int gpu_regtest = 0;
 
 
@@ -43,6 +48,16 @@ private:
     bool semicoarsening = false;
     int max_coarsening_level = 30;
     int max_semicoarsening_level = 0;
+    //int smooth_num_sweeps = 4;
+
+    bool use_hypre = false;
+    bool do_plots = true;
+    int num_trials = 1;
+
+#ifdef AMREX_USE_HYPRE
+    int hypre_interface_i = 1;  // 1. structed, 2. semi-structed, 3. ij
+    amrex::Hypre::Interface hypre_interface = amrex::Hypre::Interface::structed;
+#endif
 
     amrex::Vector<amrex::Geometry> geom;
     amrex::Vector<amrex::BoxArray> grids;

@@ -28,7 +28,8 @@ public:
                      const Vector<DistributionMapping>& a_dmap,
                      const Vector<iMultiFab const*>& a_overset_mask, // 1: unknown, 0: known
                      const LPInfo& a_info = LPInfo(),
-                     const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+                     const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
+                     const int a_ncomp = 1);
 
     virtual ~MLABecLaplacian ();
 
@@ -41,14 +42,16 @@ public:
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo(),
-                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
+                 const int a_ncomp = 1);
 
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const Vector<iMultiFab const*>& a_overset_mask,
                  const LPInfo& a_info = LPInfo(),
-                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
+                 const int a_ncomp = 1);
 
     void setScalars (Real a, Real b) noexcept;
     void setACoeffs (int amrlev, const MultiFab& alpha);
@@ -121,6 +124,8 @@ private:
     int m_ncomp = 1;
 
     void define_ab_coeffs ();
+
+    void update_singular_flags ();
 };
 
 }

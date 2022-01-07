@@ -1,0 +1,318 @@
+# -Wextra-semi: GCC < 10 does not have this.
+# -Wunreachable-code: GCC no longer has this option.
+
+name: Linux GCC
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-linux-gcc
+  cancel-in-progress: true
+
+jobs:
+  # Build and install libamrex as AMReX CMake project
+  # Note: this is an intentional "minimal" build that does not enable (many) options
+  library:
+    name: GNU@7.5 C++17 Release [lib]
+    runs-on: ubuntu-18.04
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual"}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+    - name: Build & Install
+      run: |
+        mkdir build
+        cd build
+        cmake ..                                  \
+            -DAMReX_FORTRAN=ON                    \
+            -DAMReX_PLOTFILE_TOOLS=ON             \
+            -DCMAKE_VERBOSE_MAKEFILE=ON           \
+            -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex  \
+            -DCMAKE_CXX_STANDARD=17
+        make -j 2
+        make install
+        make test_install
+
+        export PATH=/tmp/my-amrex/bin:$PATH
+        which fcompare
+
+        ctest --output-on-failure
+
+  # Build libamrex and all tests
+  tests_build_3D:
+    name: GNU@7.5 C++14 3D Debug Fortran [tests]
+    runs-on: ubuntu-18.04
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1"}
+      # It's too slow with -O0
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+    - name: Build & Install
+      run: |
+        cmake -S . -B build             \
+            -DCMAKE_BUILD_TYPE=Debug    \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_EB=ON               \
+            -DAMReX_ENABLE_TESTS=ON     \
+            -DAMReX_FORTRAN=ON          \
+            -DAMReX_PARTICLES=ON        \
+            -DAMReX_SPACEDIM=3
+        cmake --build build -j 2
+
+        ctest --test-dir build --output-on-failure
+
+  tests_build_2D:
+    name: GNU@7.5 C++14 2D Debug Fortran [tests]
+    runs-on: ubuntu-18.04
+    env: {CXXFLAGS: "-fno-operator-names -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1"}
+      # -Werror temporarily skipped until we have functional testing established
+      # It's too slow with -O0
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+    - name: Build & Install
+      run: |
+        cmake -S . -B build             \
+            -DCMAKE_BUILD_TYPE=Debug    \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_EB=ON               \
+            -DAMReX_ENABLE_TESTS=ON     \
+            -DAMReX_FORTRAN=ON          \
+            -DAMReX_PARTICLES=ON        \
+            -DAMReX_SPACEDIM=2
+        cmake --build build -j 2
+
+        ctest --test-dir build --output-on-failure
+
+  tests_build_1D:
+    name: GNU@7.5 C++14 1D Debug Fortran [tests]
+    runs-on: ubuntu-18.04
+    env: {CXXFLAGS: "-fno-operator-names -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1"}
+      # -Werror temporarily skipped until we have functional testing established
+      # It's too slow with -O0
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+    - name: Build & Install
+      run: |
+        cmake -S . -B build             \
+            -DCMAKE_BUILD_TYPE=Debug    \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_EB=ON               \
+            -DAMReX_ENABLE_TESTS=ON     \
+            -DAMReX_FORTRAN=ON          \
+            -DAMReX_PARTICLES=ON        \
+            -DAMReX_SPACEDIM=1
+        cmake --build build -j 2
+
+        ctest --test-dir build --output-on-failure
+
+  # Build libamrex and all tests
+  tests_cxx20:
+    name: GNU@10.1 C++20 OMP [tests]
+    runs-on: ubuntu-18.04
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi"}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_gcc10.sh
+    - name: Build & Install
+      run: |
+        mkdir build
+        cd build
+        cmake ..                        \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_ASSERTIONS=ON       \
+            -DAMReX_TESTING=ON          \
+            -DAMReX_EB=OFF              \
+            -DAMReX_ENABLE_TESTS=ON     \
+            -DAMReX_BOUND_CHECK=ON      \
+            -DAMReX_FPE=ON              \
+            -DAMReX_FORTRAN=ON          \
+            -DAMReX_OMP=ON              \
+            -DAMReX_PARTICLES=ON        \
+            -DCMAKE_CXX_STANDARD=20     \
+            -DCMAKE_C_COMPILER=$(which gcc-10)              \
+            -DCMAKE_CXX_COMPILER=$(which g++-10)            \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran-10)
+        make -j 2
+
+        ctest --output-on-failure
+
+  # Build libamrex and all tests w/o MPI
+  tests-nonmpi:
+    name: GNU@7.5 C++14 NOMPI [tests]
+    runs-on: ubuntu-18.04
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual"}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+    - name: Build & Install
+      run: |
+        mkdir build
+        cd build
+        cmake ..                        \
+            -DCMAKE_BUILD_TYPE=Release  \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_ASSERTIONS=ON       \
+            -DAMReX_TESTING=ON          \
+            -DAMReX_BOUND_CHECK=ON      \
+            -DAMReX_FPE=ON              \
+            -DAMReX_EB=ON               \
+            -DAMReX_ENABLE_TESTS=ON     \
+            -DAMReX_FORTRAN=ON          \
+            -DAMReX_MPI=OFF             \
+            -DAMReX_PARTICLES=ON
+        make -j 2
+
+        ctest --output-on-failure
+
+  # Build libamrex and all tests
+  tests-nofortran:
+    name: GNU@7.5 C++14 w/o Fortran [tests]
+    runs-on: ubuntu-18.04
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code"}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_nofortran.sh
+    - name: Build & Install
+      run: |
+        mkdir build
+        cd build
+        cmake ..                        \
+            -DCMAKE_BUILD_TYPE=RelWithDebINfo \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_ASSERTIONS=ON       \
+            -DAMReX_TESTING=ON          \
+            -DAMReX_BOUND_CHECK=ON      \
+            -DAMReX_FPE=ON              \
+            -DAMReX_EB=ON               \
+            -DAMReX_ENABLE_TESTS=ON     \
+            -DAMReX_FORTRAN=OFF         \
+            -DAMReX_PARTICLES=ON        \
+            -DAMReX_FORTRAN=OFF
+        make -j 2
+
+        ctest --output-on-failure
+
+  # Build 1D libamrex with configure
+  configure-1d:
+    name: GNU@7.5 Release [configure 1D]
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+    - name: Build & Install
+      run: |
+        ./configure --dim 1
+        make -j2 XTRA_CXXFLAGS=-fno-operator-names
+        make install
+
+  # Build 3D libamrex with configure
+  configure-3d:
+    name: GNU@7.5 Release [configure 3D]
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+    - name: Build & Install
+      run: |
+        ./configure --dim 3 --enable-eb yes --enable-xsdk-defaults yes
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
+        make install
+
+  # Build 3D libamrex with single precision and tiny profiler
+  configure-3d-single-tprof:
+    name: GNU@7.5 Release [configure 3D]
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+    - name: Build & Install
+      run: |
+        ./configure --dim 3 --enable-eb no --enable-xsdk-defaults no --single-precision yes --single-precision-particles yes --enable-tiny-profile yes
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
+        make install
+
+  # Build 3D libamrex debug omp build with configure
+  configure-3d-omp-debug:
+    name: GNU@7.5 OMP Debug [configure 3D]
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+    - name: Build & Install
+      run: |
+        ./configure --dim 3 --enable-eb yes --enable-xsdk-defaults yes --with-omp yes --debug yes
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
+        make install
+
+  # Build Tools/Plotfile
+  plotfile-tools:
+    name: GNU Plotfile Tools [tools]
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+    - name: Build & Install
+      run: |
+        cd Tools/Plotfile
+        make -j2 USE_MPI=FALSE USE_OMP=FALSE WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
+
+  # Build libamrex and run all tests
+  tests_run:
+    name: GNU@7.5 C++14 [tests]
+    runs-on: ubuntu-18.04
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code"}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+    - name: Build & Install
+      run: |
+        mkdir build
+        cd build
+        cmake ..                        \
+            -DAMReX_OMP=ON             \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_ENABLE_TESTS=ON     \
+            -DAMReX_PARTICLES=ON
+        make -j 2
+    - name: Run tests
+      run: |
+        cd build
+        ctest --output-on-failure -R
+
+  test_hdf5:
+    name: GNU@7.5 HDF5 I/O Test [tests]
+    runs-on: ubuntu-18.04
+    env:
+      CXX: h5pcc
+      CC: h5cc
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/dependencies.sh
+        sudo apt-get install libhdf5-openmpi-dev
+        sudo apt-get install hdf5-tools
+    - name: Build & Test
+      run: |
+        cd Tests/HDF5Benchmark
+        export OLCF_HDF5_ROOT=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
+        make -j 2
+        mpirun -np 2 ./main3d.gnu.TPROF.MPI.ex ./inputs
+        h5dump -d "level_0/data:offsets=0"  -s "1" -c "1" ./plt00000.h5
+        h5dump -d "level_0/data:datatype=1" -s "1" -c "1" ./plt00000/particle0/particle0.h5

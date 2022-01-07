@@ -53,8 +53,12 @@ void main_main ()
         else if (n_boxes_per_rank != 0)
         {
            n_cell_3d[0] = (max_grid_size) - 1;
+#if AMREX_SPACEDIM >= 2
            n_cell_3d[1] = (max_grid_size * n_boxes_per_rank) - 1;
+#endif
+#if AMREX_SPACEDIM == 3
            n_cell_3d[2] = (max_grid_size * ParallelDescriptor::NProcs()) - 1;
+#endif
         }
     }
 
@@ -63,7 +67,8 @@ void main_main ()
     DistributionMapping dm(ba);
 
     Vector<MultiFab> mfs(nwrites);
-    Gpu::ManagedVector< Array4<Real> > arrs(nwrites);
+    Gpu::HostVector< Array4<Real> > h_arrs(nwrites);
+    Gpu::DeviceVector< Array4<Real> > d_arrs(nwrites);
 
     for (int m = 0; m < nwrites; ++m) {
         mfs[m].define(ba, dm, 1, 0);
@@ -72,10 +77,12 @@ void main_main ()
     for (MFIter mfi(mfs[0]); mfi.isValid(); ++mfi) {
         const Box& bx = mfi.validbox();
         for (int m = 0; m < nwrites; ++m) {
-            arrs[m] = mfs[m].array(mfi);
+            h_arrs[m] = mfs[m].array(mfi);
         }
 
-        auto arrs_ptr = arrs.dataPtr();
+        amrex::Gpu::copyAsync(Gpu::hostToDevice, h_arrs.begin(), h_arrs.end(), d_arrs.begin());
+
+        auto arrs_ptr = d_arrs.dataPtr();
 
         amrex::ParallelForRNG(bx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept

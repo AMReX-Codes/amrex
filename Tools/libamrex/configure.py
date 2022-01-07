@@ -96,9 +96,13 @@ def configure(argv):
                         choices=["yes","no"],
                         default="no")
     parser.add_argument("--with-sensei-insitu",
-                        help="Use SENSEI in situ [default=no]",
+                        help="Enables the SENSEI in situ integration. [default=no]",
                         choices=["yes","no"],
                         default="no")
+    parser.add_argument("--sensei-amr-inst",
+                        help="Enables the SENSEI instrumentation in amrex::Amr. [default=yes]",
+                        choices=["yes","no"],
+                        default="yes")
     parser.add_argument("--with-omp-offload",
                         help="Use OpenMP-offload [default=no]",
                         choices=["yes","no"],
@@ -150,6 +154,7 @@ def configure(argv):
     f.write("AMREX_XSDK = {}\n".format("TRUE" if args.enable_xsdk_defaults == "yes" else "FALSE"))
     f.write("ALLOW_DIFFERENT_COMP = {}\n".format("FALSE" if args.allow_different_compiler == "no" else "TRUE"))
     f.write("USE_SENSEI_INSITU = {}\n".format("FALSE" if args.with_sensei_insitu == "no" else "TRUE"))
+    f.write("NO_SENSEI_AMR_INST = {}\n".format("FALSE" if args.sensei_amr_inst == "yes" else "TRUE"))
     f.write("USE_OMP_OFFLOAD = {}\n".format("FALSE" if args.with_omp_offload == "no" else "TRUE"))
     f.write("TINY_PROFILE = {}\n".format("FALSE" if args.enable_tiny_profile == "no" else "TRUE"))
     f.write("USE_COMPILE_PIC = {}\n".format("FALSE" if args.enable_pic == "no" else "TRUE"))

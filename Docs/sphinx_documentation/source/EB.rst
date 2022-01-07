@@ -5,206 +5,6 @@
    :language: fortran
 
 
-.. _sec:EB:EBOverview:
-
-Overview of Embedded Boundary Description
-=========================================
-
-For computations with complex geometries, AMReX provides data structures and
-algorithms to employ an embedded boundary (EB) approach to PDE discretizations.
-In this approach, the underlying computational mesh is uniform and
-block-structured, but the boundary of the irregular-shaped computational domain
-conceptually cuts through this mesh. Each cell in the mesh becomes labeled as
-regular, cut or covered, and the finite-volume based discretization methods
-traditionally used in AMReX applications can be modified to incorporate these
-cell shapes. See :numref:`fig::ebexample` for an illustration.
-
-.. raw:: latex
-
-   \begin{center}
-
-.. _fig::ebexample:
-
-.. figure:: ./EB/EB_example.png
-   :width: 50.0%
-
-   : In the embedded boundary approach to discretizing PDEs, the (uniform)
-   rectangular mesh is cut by the irregular shape of the computational domain.
-   The cells in the mesh are label as regular, cut or covered.
-
-.. raw:: latex
-
-   \end{center}
-
-Because this is a relatively simple grid generation technique, computational
-meshes for rather complex geometries can be generated quickly and robustly.
-However, the technique can produce arbitrarily small cut cells in the domain.
-In practice such small cells can have significant impact on the robustness and
-stability of traditional finite volume methods. In this chapter we overview a
-class of approaches to deal with this "small cell" problem in a robust and
-efficient way, and discuss the tools and data that AMReX provides in order to
-implement them.
-
-Note that in a completely general implementation of the EB approach, there
-would be no restrictions on the shape or complexity of the EB surface.  With
-this generality comes the possibility that the process of "cutting" the cells
-results in a single :math:`(i,j,k)` cell being broken into multiple cell
-fragments.  The current release of AMReX does not support multi-valued cells,
-thus there is a practical restriction on the complexity of domains (and
-numerical algorithms) supported.
-
-This chapter discusses the EB tools, data structures and algorithms currently
-supported by AMReX to enable the construction of discretizations of
-conservation law systems. The discussion will focus on general requirements
-associated with building fluxes and taking divergences of them to advance such
-systems. We also give examples of how to initialize the geometry data
-structures and access them to build the numerical difference
-operators.  Finally we present EB support of linear solvers.
-
-Finite Volume Discretizations
------------------------------
-
-Consider a system of PDEs to advance a conserved quantity :math:`U` with fluxes
-:math:`F`:
-
-.. math:: \frac{\partial U}{\partial t} + \nabla \cdot F = 0.
-  :label: eqn::hypsys
-
-A conservative, finite volume discretization starts with the divergence theorm
-
-.. math:: \int_V \nabla \cdot F dV = \int_{\partial V} F \cdot n dA.
-
-In an embedded boundary cell, the "conservative divergence" is discretized (as
-:math:`D^c(F)`) as follows
-
-.. math::
-  :label: eqn::ebdiv
-
-   D^c(F) = \frac{1}{\kappa h} \left( \sum^D_{d = 1}
-     (F_{d, \mathrm{hi}} \, \alpha_{d, \mathrm{hi}} - F_{d, \mathrm{lo}}\, \alpha_{d, \mathrm{lo}})
-     + F^{EB} \alpha^{EB} \right).
-
-Geometry is discretely represented by volumes (:math:`V = \kappa h^d`) and
-apertures (:math:`A= \alpha h^{d-1}`), where :math:`h` is the (uniform) mesh
-spacing at that AMR level, :math:`\kappa` is the volume fraction and
-:math:`\alpha` are the area fractions. Without multivalued cells the volume
-fractions, area fractions and cell and face centroids (see
-:numref:`fig::volume`) are the only geometric information needed to compute
-second-order fluxes centered at the face centroids, and to infer the
-connectivity of the cells. Cells are connected if adjacent on the Cartesian
-mesh, and only via coordinate-aligned faces on the mesh. If an aperture,
-:math:`\alpha = 0`, between two cells, they are not directly connected to each
-other.
-
-.. raw:: latex
-
-   \begin{center}
-
-.. |a| image:: ./EB/areas_and_volumes.png
-       :width: 100%
-
-.. |b| image:: ./EB/eb_fluxes.png
-       :width: 100%
-
-.. _fig::volume:
-
-.. table:: Illustration of embedded boundary cutting a two-dimensional cell.
-   :align: center
-
-   +-----------------------------------------------------+------------------------------------------------------+
-   |                        |a|                          |                        |b|                           |
-   +-----------------------------------------------------+------------------------------------------------------+
-   | | A typical two-dimensional uniform cell that is    | | Fluxes in a cut cell.                              |
-   | | cut by the embedded boundary. The grey area       | |                                                    |
-   | | represents the region excluded from the           | |                                                    |
-   | | calculation. The portion of the cell faces        | |                                                    |
-   | | faces (labelled with A) through which fluxes      | |                                                    |
-   | | flow are the "uncovered" regions of the full      | |                                                    |
-   | | cell faces. The volume (labelled V) is the        | |                                                    |
-   | | uncovered region of the interior.                 | |                                                    |
-   +-----------------------------------------------------+------------------------------------------------------+
-
-.. raw:: latex
-
-   \end{center}
-
-
-Small Cells And Stability
--------------------------
-
-In the context of time-explicit advance methods for, say hyperbolic
-conservation laws, a naive discretization in time of :eq:`eqn::hypsys` using
-:eq:`eqn::ebdiv`,
-
-.. math:: U^{n+1} = U^{n} - \delta t D^c(F)
-
-would have a time step constraint :math:`\delta t \sim h \kappa^{1/D}/V_m`,
-which goes to zero as the size of the smallest volume fraction :math:`\kappa` in
-the calculation. Since EB volume fractions can be arbitrarily small, this is an
-unacceptable constraint. One way to remedy this is to create "non-conservative"
-approximation to the divergence :math:`D^{nc}`, which at a cell :math:`{\bf i}`,
-can be formed as an average of the conservative divergences in the neighborhood,
-:math:`N_{\bf i}`, of :math:`{\bf i}`.
-
-.. math:: D^{nc}(F)_{\bf i}= \frac{\sum_{{\bf j}\in N_{\bf i}}\kappa_{\bf j}D(F)_{\bf j}}{\sum_{{\bf j}\in N_{\bf i}}\kappa_{\bf j}}
-
-Incorporating this form, the solution can be updated using a *hybrid
-divergence*, :math:`D^H(F) = \kappa D^c(F) + (1-\kappa)D^{nc}`:
-
-.. math:: U^{n+1,*} = U^n - \delta t D^H(F)
-
-However, we would like our finite-volume scheme to strictly conserve the field
-quantities over the domain. To enforce this, we calculate :math:`\delta M`, the
-mass gained or lost by not using :math:`D^c` directly,
-
-.. math:: \delta M_{\bf i}= \kappa (1-\kappa)(D^c(F)_{\bf i}- D^{nc}(F)_{\bf i})
-
-This "excess material" (mass, if :math:`U=\rho`) can be *redistributed* in a
-time-explicit fashion to neighboring cells, :math:`{\bf j}\in N_{\bf i}`:
-
-.. math:: \delta M_{\bf i}= \sum_{{\bf j}\in N_{\bf i}} \delta M_{{\bf j}, {\bf i}}.
-
-in order to preserve strict conservation over :math:`N_{\bf i}`.
-
-Note that the physics at hand may impact the optimal choice of precisely how the
-excess mass is distributed in this fashion. We introduce a weighting for
-redistribution, :math:`W`,
-
-.. math::
-  :label: eqn::massweight
-
-   \delta M_{{\bf j}, {\bf i}} =  \frac{\delta M_{\bf i}\kappa_{\bf j}
-     W_{\bf j}}{\sum_{{\bf k}\in N_{\bf i}} \kappa_{\bf k}W_{\bf k}}
-
-For all :math:`{\bf j}\in N_{\bf i}`,
-
-.. math::
-
-   U^{n+1}_{\bf j}= U^{n+1,*}_{\bf j}+
-    \frac{\delta M_{\bf i}
-     W_{\bf j}}{\sum_{{\bf k}\in N_{\bf i}} \kappa_{\bf k}W_{\bf k}}.
-
-Typically, the redistribution neighborhood for each cell is one that can be
-reached via a monotonic path in each coordinate direction of unit length (see,
-e.g., :numref:`fig::redistribution`)
-
-.. raw:: latex
-
-   \begin{center}
-
-.. _fig::redistribution:
-
-.. figure:: ./EB/redist.png
-   :width: 50.0%
-
-   : Redistribution illustration. Excess mass due to using a hybrid divergence
-   :math:`D^H` instead of the conservative divergence :math:`D^C` is
-   distributed to neighbor cells.
-
-.. raw:: latex
-
-   \end{center}
-
 .. _sec:EB:ebinit:
 
 Initializing the Geometric Database
@@ -432,8 +232,8 @@ building the :cpp:`MultiFab`. Using :cpp:`dynamic_cast`, we can test whether a
         // regular FabFactory<FArrayBox>
     }
 
-EB Data
-=======
+Embedded Boundary Data
+======================
 
 Through member functions of :cpp:`EBFArrayBoxFactory`, we have access to the
 following data:
@@ -460,12 +260,41 @@ following data:
     // face centroid
     Array<const MultiCutFab*,AMREX_SPACEDIM> getFaceCent () const;
 
-Volume fraction is in a single-component :cpp:`MultiFab`, and it is zero for
-covered cells, one for regular cells, and in between for cut cells. Centroid is
-in a :cpp:`MultiCutFab` with ``AMREX_SPACEDIM`` components with each component
-of the data is in the range of :math:`[-0.5,0.5]`. The centroid is based on each
-cell's local coordinates with respect to the embedded boundary. A
-:cpp:`MultiCutFab` is very similar to a :cpp:`MultiFab`. Its data can be
+- **Volume fraction** is in a single-component :cpp:`MultiFab`. Data are in the range
+  of :math:`[0,1]` with zero representing covered cells and one for regular
+  cells.
+
+- **Volume centroid** (also called cell centroid) is
+  in a :cpp:`MultiCutFab` with ``AMREX_SPACEDIM`` components. Each component
+  of the data is in the range of :math:`[-0.5,0.5]`, based on each
+  cell's local coordinates with respect to the regular cell's center.
+
+- **Boundary centroid** is also in a :cpp:`MultiCutFab` with
+  ``AMREX_SPACEDIM`` components.  Each component
+  of the data is in the range of :math:`[-0.5,0.5]`, based on each
+  cell's local coordinates with respect to the regular cell's center.
+
+- **Face centroid** is in a :cpp:`MultiCutFab` with ``AMREX_SPACEDIM`` components.
+  Each component of the data is in the range of :math:`[-0.5,0.5]`, based on
+  each cell's local coordinates with respect to the embedded boundary.
+
+- **Area fractions** are returned in an :cpp:`Array` of :cpp:`MultiCutFab`
+  pointers. For each direction, area fraction is for the face of that direction.
+  Data are in the range of :math:`[0,1]` with zero representing a covered face
+  and one an un-cut face.
+
+- **Face centroids** are returned in an :cpp:`Array` of :cpp:`MultiCutFab`
+  pointers. There are two components for each direction and the
+  ordering is always the same as the original ordering of the coordinates. For
+  example, for :math:`y` face, the component 0 is for :math:`x` coordinate and 1
+  for :math:`z`. The coordinates are in each face's local frame normalized to the
+  range of :math:`[-0.5,0.5]`.
+
+
+Embedded Boundary Data Structures
+=================================
+
+A :cpp:`MultiCutFab` is very similar to a :cpp:`MultiFab`. Its data can be
 accessed with subscript operator
 
 .. highlight: c++
@@ -479,15 +308,7 @@ just like :cpp:`FArrayBox`. The difference between :cpp:`MultiCutFab` and
 :cpp:`MultiFab` is that to save memory :cpp:`MultiCutFab` only has data on boxes
 that contain cut cells. It is an error to call :cpp:`operator[]` if that box
 does not have cut cells. Thus the call must be in a :cpp:`if` test block (see
-section :ref:`sec:EB:flag`). Boundary centroid is also a :cpp:`MultiCutFab` with
-``AMREX_SPACEDIM`` components, and it uses each cell's local coordinates. Area
-fractions and face centroids are returned in :cpp:`Array` of :cpp:`MultiCutFab`
-pointers. For each direction, area fraction is for the face of that direction.
-As for face centroids, there are two components for each direction and the
-ordering is always the same as the original ordering of the coordinates. For
-example, for :math:`y` face, the component 0 is for :math:`x` coordinate and 1
-for :math:`z`. The coordinates are in each face's local frame normalized to the
-range of :math:`[-0.5,0.5]`.
+section :ref:`sec:EB:flag`).
 
 .. _sec:EB:flag:
 
@@ -628,13 +449,26 @@ as living at face centroids, modify the setBCoeffs command to be
 Tutorials
 =========
 
-``amrex/Tutorials/EB/CNS`` is an AMR code for solving compressible
+`EB/CNS`_ is an AMR code for solving compressible
 Navier-Stokes equations with the embedded boundary approach.
 
-``amrex/Tutorials/EB/Poisson`` is a single-level code that is a proxy for
+`EB/Poisson`_ is a single-level code that is a proxy for
 solving the electrostatic Poisson equation for a grounded sphere with a point
 charge inside.
 
-``amrex/Tutorials/EB/MacProj`` is a single-level code that computes a divergence-free
+`EB/MacProj`_ is a single-level code that computes a divergence-free
 flow field around a sphere.  A MAC projection is performed on an initial velocity
 field of (1,0,0).
+
+.. _`EB/CNS`: https://amrex-codes.github.io/amrex/tutorials_html/EB_Tutorial.html
+
+.. _`EB/Poisson`: https://amrex-codes.github.io/amrex/tutorials_html/EB_Tutorial.html
+
+.. _`EB/MacProj`: https://amrex-codes.github.io/amrex/tutorials_html/EB_Tutorial.html
+
+
+
+
+
+
+

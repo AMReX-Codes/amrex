@@ -11,7 +11,6 @@
 #include <AMReX_GpuDevice.H>
 #include <AMReX_GpuMemory.H>
 #include <AMReX_GpuReduce.H>
-#include <AMReX_GpuFuse.H>
 #include <AMReX_Tuple.H>
 #include <AMReX_Box.H>
 #include <AMReX_Loop.H>
@@ -190,21 +189,6 @@ namespace Gpu {
                                                         AMREX_WRONG_NUM_ARGS, \
                                                         AMREX_WRONG_NUM_ARGS)(__VA_ARGS__)
 
-#if defined(AMREX_USE_GPU_RDC) && (defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION)))
-#define AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA(...) AMREX_GET_MACRO(__VA_ARGS__,\
-                                                        AMREX_GPU_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA_RANGE_3, \
-                                                        AMREX_WRONG_NUM_ARGS, \
-                                                        AMREX_WRONG_NUM_ARGS, \
-                                                        AMREX_GPU_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA_RANGE_2, \
-                                                        AMREX_WRONG_NUM_ARGS, \
-                                                        AMREX_WRONG_NUM_ARGS, \
-                                                        AMREX_GPU_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA_RANGE, \
-                                                        AMREX_WRONG_NUM_ARGS, \
-                                                        AMREX_WRONG_NUM_ARGS)(__VA_ARGS__)
-#else
-#define AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA(...) AMREX_LAUNCH_HOST_DEVICE_LAMBDA(__VA_ARGS__)
-#endif
-
 #if (AMREX_SPACEDIM == 1)
 #define AMREX_LAUNCH_DEVICE_LAMBDA_DIM(a1,a2,a3,b1,b2,b3,c1,c2,c3)      AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE     (a1,a2,a2)
 #define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM(a1,a2,a3,b1,b2,b3,c1,c2,c3) AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE(a1,a2,a3)
@@ -234,22 +218,6 @@ namespace Gpu {
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_1D(...) AMREX_GPU_HOST_DEVICE_PARALLEL_FOR_1D(__VA_ARGS__)
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_3D(...) AMREX_GPU_HOST_DEVICE_PARALLEL_FOR_3D(__VA_ARGS__)
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_4D(...) AMREX_GPU_HOST_DEVICE_PARALLEL_FOR_4D(__VA_ARGS__)
-
-#if defined(AMREX_USE_GPU_RDC) && (defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION)))
-#define AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FUSIBLE(...) AMREX_GPU_HOST_DEVICE_FOR_1D_FUSIBLE(__VA_ARGS__)
-#define AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE(...) AMREX_GPU_HOST_DEVICE_FOR_3D_FUSIBLE(__VA_ARGS__)
-#define AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE(...) AMREX_GPU_HOST_DEVICE_FOR_4D_FUSIBLE(__VA_ARGS__)
-#define AMREX_HOST_DEVICE_FOR_1D_FUSIBLE(...) AMREX_GPU_HOST_DEVICE_FOR_1D_FUSIBLE(__VA_ARGS__)
-#define AMREX_HOST_DEVICE_FOR_3D_FUSIBLE(...) AMREX_GPU_HOST_DEVICE_FOR_3D_FUSIBLE(__VA_ARGS__)
-#define AMREX_HOST_DEVICE_FOR_4D_FUSIBLE(...) AMREX_GPU_HOST_DEVICE_FOR_4D_FUSIBLE(__VA_ARGS__)
-#else
-#define AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FUSIBLE(...) AMREX_HOST_DEVICE_PARALLEL_FOR_1D(__VA_ARGS__)
-#define AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE(...) AMREX_HOST_DEVICE_PARALLEL_FOR_3D(__VA_ARGS__)
-#define AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE(...) AMREX_HOST_DEVICE_PARALLEL_FOR_4D(__VA_ARGS__)
-#define AMREX_HOST_DEVICE_FOR_1D_FUSIBLE(...) AMREX_GPU_HOST_DEVICE_FOR_1D(__VA_ARGS__)
-#define AMREX_HOST_DEVICE_FOR_3D_FUSIBLE(...) AMREX_GPU_HOST_DEVICE_FOR_3D(__VA_ARGS__)
-#define AMREX_HOST_DEVICE_FOR_4D_FUSIBLE(...) AMREX_GPU_HOST_DEVICE_FOR_4D(__VA_ARGS__)
-#endif
 
 #ifdef AMREX_USE_GPU
 

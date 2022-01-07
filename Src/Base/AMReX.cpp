@@ -385,19 +385,35 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         }
         else if (argc > 1)
         {
-            int ppargc = 1;
-            for (; ppargc < argc; ++ppargc) {
-                if (strcmp(argv[ppargc], "--") == 0) break;
-            }
-            if (ppargc > 1)
+            if (argv[1][0] == '-')
             {
-                if (strchr(argv[1],'='))
-                {
-                    ParmParse::Initialize(ppargc-1,argv+1,0);
+                // If arguments list starts with "-", do not use ParmParse.
+                // Application code can then parse the command line. This will
+                // prevent "-h" or "--help" from creating errors in ParmParse,
+                // but only if it's the first argument after the executable.
+                ParmParse::Initialize(0,0,0);
+            }
+            else
+            {
+                // This counts command line arguments before a "--"
+                // and only sends the preceeding arguments to ParmParse;
+                // the rest get ingored.
+                int ppargc = 1;
+                for (; ppargc < argc; ++ppargc) {
+                    if (strcmp(argv[ppargc], "--") == 0) break;
                 }
-                else
+                if (ppargc > 1)
                 {
-                    ParmParse::Initialize(ppargc-2,argv+2,argv[1]);
+                    if (strchr(argv[1],'=') || (argc > 2 ? argv[2][0] == '=' : false) )
+                    {
+                        // No inputs file to parse
+                        ParmParse::Initialize(ppargc-1,argv+1,0);
+                    }
+                    else
+                    {
+                        // argv[1] is an inputs file
+                        ParmParse::Initialize(ppargc-2,argv+2,argv[1]);
+                    }
                 }
             }
         }
@@ -516,10 +532,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     machine::Initialize();
 
-#ifdef AMREX_USE_GPU
-    Gpu::Fuser::Initialize();
-#endif
-
 #ifdef AMREX_USE_HYPRE
     if (init_hypre) {
         HYPRE_Init();
@@ -531,7 +543,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 #endif
 
 #ifdef AMREX_USE_SUNDIALS
-    sundials::Initialize();
+    sundials::Initialize(amrex::OpenMP::get_max_threads());
 #endif
 
     if (system::verbose > 0)
@@ -561,6 +573,12 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     AMReX::push(new AMReX());
     return AMReX::top();
+}
+
+bool
+amrex::Initialized ()
+{
+    return !amrex::AMReX::empty();
 }
 
 void

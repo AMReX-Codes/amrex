@@ -23,6 +23,10 @@ struct dim3 {
     constexpr dim3 (unsigned int x_, unsigned int y_=1, unsigned int z_=1) : x(x_),y(y_),z(z_) {}
 };
 
+struct Dim1 {
+    std::size_t x;
+};
+
 struct gpuStream_t {
     sycl::queue* queue = nullptr;
     bool operator== (gpuStream_t const& rhs) noexcept { return queue == rhs.queue; }

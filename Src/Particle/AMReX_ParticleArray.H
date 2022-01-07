@@ -99,7 +99,7 @@ struct DataLayoutPolicy<ContainerType, ParticleType<Types...>, DataLayout::AoS>
 };
 
 /**
-   A non-owning verion of AoS policy for passing to the GPU.
+   A non-owning version of AoS policy for passing to the GPU.
  */
 template <template<typename...> class ParticleType, typename... Types>
 struct DataLayoutPolicyRaw<ParticleType<Types...>, DataLayout::AoS>
@@ -178,7 +178,7 @@ private:
 };
 
 /**
-   A non-owning verion of SoA policy for passing to the GPU.
+   A non-owning version of SoA policy for passing to the GPU.
  */
 template <template<typename...> class ParticleType, typename... Types>
 struct DataLayoutPolicyRaw<ParticleType<Types...>, DataLayout::SoA> {

@@ -1,0 +1,80 @@
+name: intel
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-intel
+  cancel-in-progress: true
+
+jobs:
+  tests-dpcpp:
+    name: DPCPP GFortran@7.5 C++17 [tests]
+    runs-on: ubuntu-20.04
+    # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wno-sign-compare"}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_dpcpp.sh
+    - name: Build & Install
+      run: |
+        set +e
+        source /opt/intel/oneapi/setvars.sh
+        set -e
+        cmake -S . -B build                                \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                    \
+            -DAMReX_EB=OFF                                 \
+            -DAMReX_ENABLE_TESTS=ON                        \
+            -DAMReX_FORTRAN=ON                             \
+            -DAMReX_PARTICLES=ON                           \
+            -DAMReX_GPU_BACKEND=SYCL                       \
+            -DCMAKE_C_COMPILER=$(which clang)              \
+            -DCMAKE_CXX_COMPILER=$(which dpcpp)            \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran)
+        cmake --build build --parallel 2
+
+# "Classic" EDG Intel Compiler
+# Ref.: https://github.com/rscohn2/oneapi-ci
+# intel-basekit intel-hpckit are too large in size
+  tests-icc:
+    name: ICC [tests]
+    runs-on: ubuntu-20.04
+    env: {CXXFLAGS: "-Werror"}
+    steps:
+    - uses: actions/checkout@v2
+    - name: install dependencies
+      run: |
+        export DEBIAN_FRONTEND=noninteractive
+        sudo apt-get -qqq update
+        sudo apt-get install -y wget build-essential pkg-config cmake ca-certificates gnupg
+        sudo wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+        sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+        echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
+        sudo apt-get update
+        sudo apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic intel-oneapi-compiler-fortran intel-oneapi-mpi-devel
+    - name: build
+      run: |
+        set +e
+        source /opt/intel/oneapi/setvars.sh
+        set -e
+        export CXX=$(which icpc)
+        export CC=$(which icc)
+        export FC=$(which ifort)
+
+        cmake -S . -B build                                \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                    \
+            -DAMReX_EB=ON                                  \
+            -DAMReX_ENABLE_TESTS=ON                        \
+            -DAMReX_FORTRAN=ON                             \
+            -DAMReX_PARTICLES=ON
+        cmake --build build --parallel 2
+        cmake --build build --target install
+        cmake --build build --target test_install
+
+    - name: Run tests
+      run: |
+        set +e
+        source /opt/intel/oneapi/setvars.sh
+        set -e
+        cd build
+        ctest --output-on-failure

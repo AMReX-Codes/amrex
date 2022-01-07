@@ -5,6 +5,7 @@
 #include <AMReX_FabArray.H>
 #include <AMReX_LayoutData.H>
 #include <AMReX_Print.H>
+#include <AMReX_Reduce.H>
 #include <limits>
 
 namespace amrex {
@@ -41,35 +42,95 @@ ReduceSum_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 
 #ifdef AMREX_USE_GPU
 namespace fudetail {
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
-typename FAB::value_type
-ReduceSum_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+template <class OP, class FAB, class F>
+std::enable_if_t<IsBaseFab<FAB>::value,
+                 std::conditional_t<std::is_same<OP,ReduceOpLogicalAnd>::value ||
+                                    std::is_same<OP,ReduceOpLogicalOr>::value,
+                                    int, typename FAB::value_type> >
+ReduceMF (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
-    using value_type = typename FAB::value_type;
-    value_type sm = 0;
+    using T = std::conditional_t<std::is_same<OP,ReduceOpLogicalAnd>::value ||
+                                 std::is_same<OP,ReduceOpLogicalOr>::value,
+                                 int, typename FAB::value_type>;
+    ReduceOps<OP> reduce_op;
+    ReduceData<T> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
 
+    for (MFIter mfi(fa); mfi.isValid(); ++mfi)
     {
-        ReduceOps<ReduceOpSum> reduce_op;
-        ReduceData<value_type> reduce_data(reduce_op);
-        using ReduceTuple = typename decltype(reduce_data)::Type;
-
-        for (MFIter mfi(fa); mfi.isValid(); ++mfi)
+        const Box& bx = amrex::grow(mfi.validbox(),nghost);
+        const auto& arr = fa.const_array(mfi);
+        reduce_op.eval(bx, reduce_data,
+        [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
         {
-            const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr = fa.const_array(mfi);
-            reduce_op.eval(bx, reduce_data,
-            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
-            {
-                return { f(b,arr) };
-            });
-        }
-
-        ReduceTuple hv = reduce_data.value(reduce_op);
-        sm = amrex::get<0>(hv);
+            return { static_cast<T>(f(b, arr)) };
+        });
     }
 
-    return sm;
+    ReduceTuple hv = reduce_data.value(reduce_op);
+    return amrex::get<0>(hv);
+}
+
+template <class OP, class FAB1, class FAB2, class F>
+std::enable_if_t<IsBaseFab<FAB1>::value && IsBaseFab<FAB2>::value,
+                 std::conditional_t<std::is_same<OP,ReduceOpLogicalAnd>::value ||
+                                    std::is_same<OP,ReduceOpLogicalOr>::value,
+                                    int, typename FAB1::value_type> >
+ReduceMF (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& nghost, F&& f)
+{
+    using T = std::conditional_t<std::is_same<OP,ReduceOpLogicalAnd>::value ||
+                                 std::is_same<OP,ReduceOpLogicalOr>::value,
+                                 int, typename FAB1::value_type>;
+    ReduceOps<OP> reduce_op;
+    ReduceData<T> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+
+    for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = amrex::grow(mfi.validbox(),nghost);
+        const auto& arr1 = fa1.const_array(mfi);
+        const auto& arr2 = fa2.const_array(mfi);
+        reduce_op.eval(bx, reduce_data,
+        [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
+        {
+            return { static_cast<T>(f(b, arr1, arr2)) };
+        });
+    }
+
+    ReduceTuple hv = reduce_data.value(reduce_op);
+    return amrex::get<0>(hv);
+}
+
+template <class OP, class FAB1, class FAB2, class FAB3, class F>
+std::enable_if_t<IsBaseFab<FAB1>::value && IsBaseFab<FAB2>::value && IsBaseFab<FAB3>::value,
+                 std::conditional_t<std::is_same<OP,ReduceOpLogicalAnd>::value ||
+                                    std::is_same<OP,ReduceOpLogicalOr>::value,
+                                    int, typename FAB1::value_type> >
+ReduceMF (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+          FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
+{
+    using T = std::conditional_t<std::is_same<OP,ReduceOpLogicalAnd>::value ||
+                                 std::is_same<OP,ReduceOpLogicalOr>::value,
+                                 int, typename FAB1::value_type>;
+    ReduceOps<OP> reduce_op;
+    ReduceData<T> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+
+    for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = amrex::grow(mfi.validbox(),nghost);
+        const auto& arr1 = fa1.const_array(mfi);
+        const auto& arr2 = fa2.const_array(mfi);
+        const auto& arr3 = fa3.const_array(mfi);
+        reduce_op.eval(bx, reduce_data,
+        [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
+        {
+            return { static_cast<T>(f(b, arr1, arr2, arr3)) };
+        });
+    }
+
+    ReduceTuple hv = reduce_data.value(reduce_op);
+    return amrex::get<0>(hv);
 }
 
 template <class FAB, class F>
@@ -95,7 +156,7 @@ typename FAB::value_type
 ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
     if (Gpu::inLaunchRegion()) {
-        return fudetail::ReduceSum_device(fa, nghost, std::forward<F>(f));
+        return fudetail::ReduceMF<ReduceOpSum>(fa, nghost, std::forward<F>(f));
     } else {
         return fudetail::ReduceSum_host_wrapper(fa, nghost, std::forward<F>(f));
     }
@@ -145,41 +206,6 @@ ReduceSum_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 
 #ifdef AMREX_USE_GPU
 namespace fudetail {
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
-typename FAB1::value_type
-ReduceSum_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-                  IntVect const& nghost, F&& f)
-{
-    using value_type = typename FAB1::value_type;
-    value_type sm = 0;
-
-    BL_PROFILE("ReduceSum_device");
-
-    {
-        ReduceOps<ReduceOpSum> reduce_op;
-        ReduceData<value_type> reduce_data(reduce_op);
-        using ReduceTuple = typename decltype(reduce_data)::Type;
-        Gpu::FuseReductionSafeGuard rsg(true);
-        for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr1 = fa1.const_array(mfi);
-            const auto& arr2 = fa2.const_array(mfi);
-            reduce_op.eval(bx, reduce_data,
-            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
-            {
-                return { f(b, arr1, arr2) };
-            });
-        }
-
-        ReduceTuple hv = reduce_data.value(reduce_op);
-        sm = amrex::get<0>(hv);
-    }
-
-    return sm;
-}
-
 template <class FAB1, class FAB2, class F>
 std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
 ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
@@ -206,7 +232,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            IntVect const& nghost, F&& f)
 {
     if (Gpu::inLaunchRegion()) {
-        return fudetail::ReduceSum_device(fa1,fa2,nghost,std::forward<F>(f));
+        return fudetail::ReduceMF<ReduceOpSum>(fa1,fa2,nghost,std::forward<F>(f));
     } else {
         return fudetail::ReduceSum_host_wrapper(fa1,fa2,nghost,std::forward<F>(f));
     }
@@ -259,40 +285,6 @@ ReduceSum_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 
 #ifdef AMREX_USE_GPU
 namespace fudetail {
-template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
-typename FAB1::value_type
-ReduceSum_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-                  FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
-{
-    using value_type = typename FAB1::value_type;
-    value_type sm = 0;
-
-    {
-        ReduceOps<ReduceOpSum> reduce_op;
-        ReduceData<value_type> reduce_data(reduce_op);
-        using ReduceTuple = typename decltype(reduce_data)::Type;
-
-        for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr1 = fa1.const_array(mfi);
-            const auto& arr2 = fa2.const_array(mfi);
-            const auto& arr3 = fa3.const_array(mfi);
-            reduce_op.eval(bx, reduce_data,
-            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
-            {
-                return { f(b, arr1, arr2, arr3) };
-            });
-        }
-
-        ReduceTuple hv = reduce_data.value(reduce_op);
-        sm = amrex::get<0>(hv);
-    }
-
-    return sm;
-}
-
 template <class FAB1, class FAB2, class FAB3, class F>
 std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
 ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
@@ -319,7 +311,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
 {
     if (Gpu::inLaunchRegion()) {
-        return fudetail::ReduceSum_device(fa1,fa2,fa3,nghost,std::forward<F>(f));
+        return fudetail::ReduceMF<ReduceOpSum>(fa1,fa2,fa3,nghost,std::forward<F>(f));
     } else {
         return fudetail::ReduceSum_host_wrapper(fa1,fa2,fa3,nghost,std::forward<F>(f));
     }
@@ -350,8 +342,7 @@ typename FAB::value_type
 ReduceMin_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
     using value_type = typename FAB::value_type;
-    constexpr value_type value_max = std::numeric_limits<value_type>::max();
-    value_type r = value_max;
+    value_type r = std::numeric_limits<value_type>::max();
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(min:r)
@@ -368,38 +359,6 @@ ReduceMin_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 
 #ifdef AMREX_USE_GPU
 namespace fudetail {
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
-typename FAB::value_type
-ReduceMin_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-{
-    using value_type = typename FAB::value_type;
-    constexpr value_type value_max = std::numeric_limits<value_type>::max();
-    value_type r = value_max;
-
-    {
-        ReduceOps<ReduceOpMin> reduce_op;
-        ReduceData<value_type> reduce_data(reduce_op);
-        using ReduceTuple = typename decltype(reduce_data)::Type;
-
-        for (MFIter mfi(fa); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr = fa.const_array(mfi);
-            reduce_op.eval(bx, reduce_data,
-            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
-            {
-                return { f(b, arr) };
-            });
-        }
-
-        ReduceTuple hv = reduce_data.value(reduce_op);
-        r = amrex::get<0>(hv);
-    }
-
-    return r;
-}
-
 template <class FAB, class F>
 std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB::value_type>
 ReduceMin_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
@@ -423,7 +382,7 @@ typename FAB::value_type
 ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
     if (Gpu::inLaunchRegion()) {
-        return fudetail::ReduceMin_device(fa, nghost, std::forward<F>(f));
+        return fudetail::ReduceMF<ReduceOpMin>(fa, nghost, std::forward<F>(f));
     } else {
         return fudetail::ReduceMin_host_wrapper(fa, nghost, std::forward<F>(f));
     }
@@ -454,8 +413,7 @@ ReduceMin_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 IntVect const& nghost, F&& f)
 {
     using value_type = typename FAB1::value_type;
-    constexpr value_type value_max = std::numeric_limits<value_type>::max();
-    value_type r = value_max;
+    value_type r = std::numeric_limits<value_type>::max();
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(min:r)
@@ -474,40 +432,6 @@ ReduceMin_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 
 #ifdef AMREX_USE_GPU
 namespace fudetail {
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
-typename FAB1::value_type
-ReduceMin_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-                  IntVect const& nghost, F&& f)
-{
-    using value_type = typename FAB1::value_type;
-    constexpr value_type value_max = std::numeric_limits<value_type>::max();
-    value_type r = value_max;
-
-    {
-        ReduceOps<ReduceOpMin> reduce_op;
-        ReduceData<value_type> reduce_data(reduce_op);
-        using ReduceTuple = typename decltype(reduce_data)::Type;
-
-        for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr1 = fa1.const_array(mfi);
-            const auto& arr2 = fa2.const_array(mfi);
-            reduce_op.eval(bx, reduce_data,
-            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
-            {
-                return { f(b, arr1, arr2) };
-            });
-        }
-
-        ReduceTuple hv = reduce_data.value(reduce_op);
-        r = amrex::get<0>(hv);
-    }
-
-    return r;
-}
-
 template <class FAB1, class FAB2, class F>
 std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
 ReduceMin_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
@@ -534,7 +458,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            IntVect const& nghost, F&& f)
 {
     if (Gpu::inLaunchRegion()) {
-        return fudetail::ReduceMin_device(fa1,fa2,nghost,std::forward<F>(f));
+        return fudetail::ReduceMF<ReduceOpMin>(fa1,fa2,nghost,std::forward<F>(f));
     } else {
         return fudetail::ReduceMin_host_wrapper(fa1,fa2,nghost,std::forward<F>(f));
     }
@@ -567,8 +491,7 @@ ReduceMin_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
 {
     using value_type = typename FAB1::value_type;
-    constexpr value_type value_max = std::numeric_limits<value_type>::max();
-    value_type r = value_max;
+    value_type r = std::numeric_limits<value_type>::max();
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(min:r)
@@ -588,41 +511,6 @@ ReduceMin_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 
 #ifdef AMREX_USE_GPU
 namespace fudetail {
-template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
-typename FAB1::value_type
-ReduceMin_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-                  FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
-{
-    using value_type = typename FAB1::value_type;
-    constexpr value_type value_max = std::numeric_limits<value_type>::max();
-    value_type r = value_max;
-
-    {
-        ReduceOps<ReduceOpMin> reduce_op;
-        ReduceData<value_type> reduce_data(reduce_op);
-        using ReduceTuple = typename decltype(reduce_data)::Type;
-
-        for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr1 = fa1.const_array(mfi);
-            const auto& arr2 = fa2.const_array(mfi);
-            const auto& arr3 = fa3.const_array(mfi);
-            reduce_op.eval(bx, reduce_data,
-            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
-            {
-                return { f(b, arr1, arr2, arr3) };
-            });
-        }
-
-        ReduceTuple hv = reduce_data.value(reduce_op);
-        r = amrex::get<0>(hv);
-    }
-
-    return r;
-}
-
 template <class FAB1, class FAB2, class FAB3, class F>
 std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
 ReduceMin_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
@@ -649,7 +537,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
 {
     if (Gpu::inLaunchRegion()) {
-        return fudetail::ReduceMin_device(fa1,fa2,fa3,nghost,std::forward<F>(f));
+        return fudetail::ReduceMF<ReduceOpMin>(fa1,fa2,fa3,nghost,std::forward<F>(f));
     } else {
         return fudetail::ReduceMin_host_wrapper(fa1,fa2,fa3,nghost,std::forward<F>(f));
     }
@@ -680,8 +568,7 @@ typename FAB::value_type
 ReduceMax_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
     using value_type = typename FAB::value_type;
-    constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
-    value_type r = value_lowest;
+    value_type r = std::numeric_limits<value_type>::lowest();
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(max:r)
@@ -699,38 +586,6 @@ ReduceMax_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 
 #ifdef AMREX_USE_GPU
 namespace fudetail {
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
-typename FAB::value_type
-ReduceMax_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-{
-    using value_type = typename FAB::value_type;
-    constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
-    value_type r = value_lowest;
-
-    {
-        ReduceOps<ReduceOpMax> reduce_op;
-        ReduceData<value_type> reduce_data(reduce_op);
-        using ReduceTuple = typename decltype(reduce_data)::Type;
-
-        for (MFIter mfi(fa); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr = fa.const_array(mfi);
-            reduce_op.eval(bx, reduce_data,
-            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
-            {
-                return { f(b, arr) };
-            });
-        }
-
-        ReduceTuple hv = reduce_data.value(reduce_op);
-        r = amrex::get<0>(hv);
-    }
-
-    return r;
-}
-
 template <class FAB, class F>
 std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB::value_type>
 ReduceMax_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
@@ -754,7 +609,7 @@ typename FAB::value_type
 ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
     if (Gpu::inLaunchRegion()) {
-        return fudetail::ReduceMax_device(fa,nghost,std::forward<F>(f));
+        return fudetail::ReduceMF<ReduceOpMax>(fa,nghost,std::forward<F>(f));
     } else {
         return fudetail::ReduceMax_host_wrapper(fa,nghost,std::forward<F>(f));
     }
@@ -785,8 +640,7 @@ ReduceMax_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 IntVect const& nghost, F&& f)
 {
     using value_type = typename FAB1::value_type;
-    constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
-    value_type r = value_lowest;
+    value_type r = std::numeric_limits<value_type>::lowest();
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(max:r)
@@ -805,40 +659,6 @@ ReduceMax_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 
 #ifdef AMREX_USE_GPU
 namespace fudetail {
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
-typename FAB1::value_type
-ReduceMax_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-                  IntVect const& nghost, F&& f)
-{
-    using value_type = typename FAB1::value_type;
-    constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
-    value_type r = value_lowest;
-
-    {
-        ReduceOps<ReduceOpMax> reduce_op;
-        ReduceData<value_type> reduce_data(reduce_op);
-        using ReduceTuple = typename decltype(reduce_data)::Type;
-
-        for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr1 = fa1.const_array(mfi);
-            const auto& arr2 = fa2.const_array(mfi);
-            reduce_op.eval(bx, reduce_data,
-            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
-            {
-                return { f(b, arr1, arr2) };
-            });
-        }
-
-        ReduceTuple hv = reduce_data.value(reduce_op);
-        r = amrex::get<0>(hv);
-    }
-
-    return r;
-}
-
 template <class FAB1, class FAB2, class F>
 std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
 ReduceMax_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
@@ -865,7 +685,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            IntVect const& nghost, F&& f)
 {
     if (Gpu::inLaunchRegion()) {
-        return fudetail::ReduceMax_device(fa1,fa2,nghost,std::forward<F>(f));
+        return fudetail::ReduceMF<ReduceOpMax>(fa1,fa2,nghost,std::forward<F>(f));
     } else {
         return fudetail::ReduceMax_host_wrapper(fa1,fa2,nghost,std::forward<F>(f));
     }
@@ -898,8 +718,7 @@ ReduceMax_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
 {
     using value_type = typename FAB1::value_type;
-    constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
-    value_type r = value_lowest;
+    value_type r = std::numeric_limits<value_type>::lowest();
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(max:r)
@@ -919,41 +738,6 @@ ReduceMax_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 
 #ifdef AMREX_USE_GPU
 namespace fudetail {
-template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
-typename FAB1::value_type
-ReduceMax_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-                  FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
-{
-    using value_type = typename FAB1::value_type;
-    constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
-    value_type r = value_lowest;
-
-    {
-        ReduceOps<ReduceOpMax> reduce_op;
-        ReduceData<value_type> reduce_data(reduce_op);
-        using ReduceTuple = typename decltype(reduce_data)::Type;
-
-        for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr1 = fa1.const_array(mfi);
-            const auto& arr2 = fa2.const_array(mfi);
-            const auto& arr3 = fa3.const_array(mfi);
-            reduce_op.eval(bx, reduce_data,
-            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
-            {
-                return { f(b, arr1, arr2, arr3) };
-            });
-        }
-
-        ReduceTuple hv = reduce_data.value(reduce_op);
-        r = amrex::get<0>(hv);
-    }
-
-    return r;
-}
-
 template <class FAB1, class FAB2, class FAB3, class F>
 std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
 ReduceMax_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
@@ -980,7 +764,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
 {
     if (Gpu::inLaunchRegion()) {
-        return fudetail::ReduceMax_device(fa1,fa2,fa3,nghost,std::forward<F>(f));
+        return fudetail::ReduceMF<ReduceOpMax>(fa1,fa2,fa3,nghost,std::forward<F>(f));
     } else {
         return fudetail::ReduceMax_host_wrapper(fa1,fa2,fa3,nghost,std::forward<F>(f));
     }
@@ -1028,37 +812,6 @@ ReduceLogicalAnd_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 
 #ifdef AMREX_USE_GPU
 namespace fudetail {
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
-bool
-ReduceLogicalAnd_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-{
-    int r = true;
-
-    {
-        ReduceOps<ReduceOpLogicalAnd> reduce_op;
-        ReduceData<int> reduce_data(reduce_op);
-        using ReduceTuple = typename decltype(reduce_data)::Type;
-
-        for (MFIter mfi(fa); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr = fa.const_array(mfi);
-            reduce_op.eval(bx, reduce_data,
-            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
-            {
-                int tr = f(b,arr);
-                return {tr};
-            });
-        }
-
-        ReduceTuple hv = reduce_data.value(reduce_op);
-        r = amrex::get<0>(hv);
-    }
-
-    return r;
-}
-
 template <class FAB, class F>
 std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, bool>
 ReduceLogicalAnd_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
@@ -1082,7 +835,7 @@ bool
 ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
     if (Gpu::inLaunchRegion()) {
-        return fudetail::ReduceLogicalAnd_device(fa,nghost,std::forward<F>(f));
+        return fudetail::ReduceMF<ReduceOpLogicalAnd>(fa,nghost,std::forward<F>(f));
     } else {
         return fudetail::ReduceLogicalAnd_host_wrapper(fa,nghost,std::forward<F>(f));
     }
@@ -1132,39 +885,6 @@ ReduceLogicalAnd_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 
 #ifdef AMREX_USE_GPU
 namespace fudetail {
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
-bool
-ReduceLogicalAnd_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-                         IntVect const& nghost, F&& f)
-{
-    int r = true;
-
-    {
-        ReduceOps<ReduceOpLogicalAnd> reduce_op;
-        ReduceData<int> reduce_data(reduce_op);
-        using ReduceTuple = typename decltype(reduce_data)::Type;
-
-        for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr1 = fa1.const_array(mfi);
-            const auto& arr2 = fa2.const_array(mfi);
-            reduce_op.eval(bx, reduce_data,
-            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
-            {
-                int tr = f(b, arr1, arr2);
-                return {tr};
-            });
-        }
-
-        ReduceTuple hv = reduce_data.value(reduce_op);
-        r = amrex::get<0>(hv);
-    }
-
-    return r;
-}
-
 template <class FAB1, class FAB2, class F>
 std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, bool>
 ReduceLogicalAnd_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
@@ -1191,7 +911,7 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                   IntVect const& nghost, F&& f)
 {
     if (Gpu::inLaunchRegion()) {
-        return fudetail::ReduceLogicalAnd_device(fa1,fa2,nghost,std::forward<F>(f));
+        return fudetail::ReduceMF<ReduceOpLogicalAnd>(fa1,fa2,nghost,std::forward<F>(f));
     } else {
         return fudetail::ReduceLogicalAnd_host_wrapper(fa1,fa2,nghost,std::forward<F>(f));
     }
@@ -1239,37 +959,6 @@ ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 
 #ifdef AMREX_USE_GPU
 namespace fudetail {
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
-bool
-ReduceLogicalOr_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-{
-    int r = false;
-
-    {
-        ReduceOps<ReduceOpLogicalOr> reduce_op;
-        ReduceData<int> reduce_data(reduce_op);
-        using ReduceTuple = typename decltype(reduce_data)::Type;
-
-        for (MFIter mfi(fa); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr = fa.const_array(mfi);
-            reduce_op.eval(bx, reduce_data,
-            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
-            {
-                int tr = f(b, arr);
-                return {tr};
-            });
-        }
-
-        ReduceTuple hv = reduce_data.value(reduce_op);
-        r = amrex::get<0>(hv);
-    }
-
-    return r;
-}
-
 template <class FAB, class F>
 std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, bool>
 ReduceLogicalOr_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
@@ -1293,7 +982,7 @@ bool
 ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
     if (Gpu::inLaunchRegion()) {
-        return fudetail::ReduceLogicalOr_device(fa,nghost,std::forward<F>(f));
+        return fudetail::ReduceMF<ReduceOpLogicalOr>(fa,nghost,std::forward<F>(f));
     } else {
         return fudetail::ReduceLogicalOr_host_wrapper(fa,nghost,std::forward<F>(f));
     }
@@ -1343,39 +1032,6 @@ ReduceLogicalOr_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 
 #ifdef AMREX_USE_GPU
 namespace fudetail {
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
-bool
-ReduceLogicalOr_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-                        IntVect const& nghost, F&& f)
-{
-    int r = false;
-
-    {
-        ReduceOps<ReduceOpLogicalOr> reduce_op;
-        ReduceData<int> reduce_data(reduce_op);
-        using ReduceTuple = typename decltype(reduce_data)::Type;
-
-        for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr1 = fa1.const_array(mfi);
-            const auto& arr2 = fa2.const_array(mfi);
-            reduce_op.eval(bx, reduce_data,
-            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
-            {
-                int tr = f(b, arr1, arr2);
-                return {tr};
-            });
-        }
-
-        ReduceTuple hv = reduce_data.value(reduce_op);
-        r = amrex::get<0>(hv);
-    }
-
-    return r;
-}
-
 template <class FAB1, class FAB2, class F>
 std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, bool>
 ReduceLogicalOr_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
@@ -1402,7 +1058,7 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                  IntVect const& nghost, F&& f)
 {
     if (Gpu::inLaunchRegion()) {
-        return fudetail::ReduceLogicalOr_device(fa1,fa2,nghost,std::forward<F>(f));
+        return fudetail::ReduceMF<ReduceOpLogicalOr>(fa1,fa2,nghost,std::forward<F>(f));
     } else {
         return fudetail::ReduceLogicalOr_host_wrapper(fa1,fa2,nghost,std::forward<F>(f));
     }
@@ -1446,71 +1102,6 @@ printCell (FabArray<FAB> const& mf, const IntVect& cell, int comp = -1,
     }
 }
 
-
-template <class FAB,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
-void
-Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
-{
-    Add(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
-}
-
-template <class FAB,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
-void
-Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
-{
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.growntilebox(nghost);
-        if (bx.ok())
-        {
-            auto const srcFab = src.array(mfi);
-            auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
-            {
-                dstFab(i,j,k,n+dstcomp) += srcFab(i,j,k,n+srccomp);
-            });
-        }
-    }
-}
-
-
-template <class FAB,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
-void
-Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
-{
-    Copy(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
-}
-
-template <class FAB,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
-void
-Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
-{
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.growntilebox(nghost);
-        if (bx.ok())
-        {
-            auto const srcFab = src.array(mfi);
-            auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
-            {
-                dstFab(i,j,k,dstcomp+n) = srcFab(i,j,k,srccomp+n);
-            });
-        }
-    }
-}
-
-
 template <class FAB,
           class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 void
@@ -1524,20 +1115,34 @@ template <class FAB,
 void
 Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
+        auto const& dstfa = dst.arrays();
+        auto const& srcfa = src.const_arrays();
+        ParallelFor(dst, nghost, numcomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            dstfa[box_no](i,j,k,n+dstcomp) -= srcfa[box_no](i,j,k,n+srccomp);
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.growntilebox(nghost);
-        if (bx.ok())
+        for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            auto const srcFab = src.array(mfi);
-            auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
+            const Box& bx = mfi.growntilebox(nghost);
+            if (bx.ok())
             {
-                dstFab(i,j,k,n+dstcomp) -= srcFab(i,j,k,n+srccomp);
-            });
+                auto const srcFab = src.array(mfi);
+                auto       dstFab = dst.array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
+                {
+                    dstFab(i,j,k,n+dstcomp) -= srcFab(i,j,k,n+srccomp);
+                });
+            }
         }
     }
 }
@@ -1556,20 +1161,34 @@ template <class FAB,
 void
 Multiply (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
+        auto const& dstfa = dst.arrays();
+        auto const& srcfa = src.const_arrays();
+        ParallelFor(dst, nghost, numcomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            dstfa[box_no](i,j,k,n+dstcomp) *= srcfa[box_no](i,j,k,n+srccomp);
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.growntilebox(nghost);
-        if (bx.ok())
+        for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            auto const srcFab = src.array(mfi);
-            auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
+            const Box& bx = mfi.growntilebox(nghost);
+            if (bx.ok())
             {
-                dstFab(i,j,k,n+dstcomp) *= srcFab(i,j,k,n+srccomp);
-            });
+                auto const srcFab = src.array(mfi);
+                auto       dstFab = dst.array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
+                {
+                    dstFab(i,j,k,n+dstcomp) *= srcFab(i,j,k,n+srccomp);
+                });
+            }
         }
     }
 }
@@ -1588,20 +1207,34 @@ template <class FAB,
 void
 Divide (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
+        auto const& dstfa = dst.arrays();
+        auto const& srcfa = src.const_arrays();
+        ParallelFor(dst, nghost, numcomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            dstfa[box_no](i,j,k,n+dstcomp) /= srcfa[box_no](i,j,k,n+srccomp);
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.growntilebox(nghost);
-        if (bx.ok())
+        for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            auto const srcFab = src.array(mfi);
-            auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
+            const Box& bx = mfi.growntilebox(nghost);
+            if (bx.ok())
             {
-                dstFab(i,j,k,n+dstcomp) /= srcFab(i,j,k,n+srccomp);
-            });
+                auto const srcFab = src.array(mfi);
+                auto       dstFab = dst.array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
+                {
+                    dstFab(i,j,k,n+dstcomp) /= srcFab(i,j,k,n+srccomp);
+                });
+            }
         }
     }
 }
@@ -1619,19 +1252,32 @@ template <class FAB,
 void
 Abs (FabArray<FAB>& fa, int icomp, int numcomp, const IntVect& nghost)
 {
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && fa.isFusingCandidate()) {
+        auto const& fabarr = fa.arrays();
+        ParallelFor(fa, nghost, numcomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            fabarr[box_no](i,j,k,n+icomp) = amrex::Math::abs(fabarr[box_no](i,j,k,n+icomp));
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(fa,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.growntilebox(nghost);
-        if (bx.ok())
+        for (MFIter mfi(fa,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            auto const& fab = fa.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
+            const Box& bx = mfi.growntilebox(nghost);
+            if (bx.ok())
             {
-                fab(i,j,k,n+icomp) = amrex::Math::abs(fab(i,j,k,n+icomp));
-            });
+                auto const& fab = fa.array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
+                {
+                    fab(i,j,k,n+icomp) = amrex::Math::abs(fab(i,j,k,n+icomp));
+                });
+            }
         }
     }
 }
@@ -1666,6 +1312,7 @@ prefetchToDevice (FabArray<FAB> const& fa, const bool synchronous = true)
 #endif
 }
 
+
 template <class FAB, class IFAB, class bar = std::enable_if_t<IsBaseFab<FAB>::value
                                                                && IsBaseFab<IFAB>::value> >
 void
@@ -1673,30 +1320,69 @@ OverrideSync (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& 
 {
     BL_PROFILE("OverrideSync()");
 
+    OverrideSync_nowait(fa, msk, period);
+    OverrideSync_finish(fa);
+}
+
+
+template <class FAB, class IFAB, class bar = std::enable_if_t<IsBaseFab<FAB>::value
+                                                               && IsBaseFab<IFAB>::value> >
+void
+OverrideSync_nowait (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& period)
+{
+    BL_PROFILE("OverrideSync_nowait()");
+    AMREX_ASSERT_WITH_MESSAGE(!fa.os_temp, "OverrideSync_nowait() called when already in progress.");
+
     if (fa.ixType().cellCentered()) return;
 
     const int ncomp = fa.nComp();
 
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && fa.isFusingCandidate()) {
+        auto const&  fabarr = fa.arrays();
+        auto const& ifabarr = msk.const_arrays();
+        ParallelFor(fa, IntVect(0), ncomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            if (!ifabarr[box_no](i,j,k)) fabarr[box_no](i,j,k,n) = 0;
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(fa,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        auto fab = fa.array(mfi);
-        auto const ifab = msk.array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, ncomp, i, j, k, n,
+        for (MFIter mfi(fa,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            if (!ifab(i,j,k)) fab(i,j,k,n) = 0;
-        });
+            const Box& bx = mfi.tilebox();
+            auto fab = fa.array(mfi);
+            auto const ifab = msk.array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
+            {
+                if (!ifab(i,j,k)) fab(i,j,k,n) = 0;
+            });
+        }
     }
 
-    FabArray<FAB> tmpmf(fa.boxArray(), fa.DistributionMap(), ncomp, 0,
-                        MFInfo(), fa.Factory());
-    tmpmf.setVal(0);
-    tmpmf.ParallelCopy(fa, period, FabArrayBase::ADD);
+    fa.os_temp = std::make_unique< FabArray<FAB> > ( fa.boxArray(), fa.DistributionMap(),
+                                                     ncomp, 0, MFInfo(), fa.Factory() );
+    fa.os_temp->setVal(0);
+    fa.os_temp->ParallelCopy_nowait(fa, period, FabArrayBase::ADD);
+}
 
-    amrex::Copy(fa, tmpmf, 0, 0, ncomp, 0);
+template <class FAB, class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+void
+OverrideSync_finish (FabArray<FAB> & fa)
+{
+    BL_PROFILE("OverrideSync_finish()");
+
+    if (fa.ixType().cellCentered()) return;
+
+    fa.os_temp->ParallelCopy_finish();
+    amrex::Copy(fa, *(fa.os_temp), 0, 0, fa.nComp(), 0);
+
+    fa.os_temp.reset();
 }
 
 template <class FAB, class foo = std::enable_if_t<IsBaseFab<FAB>::value> >
@@ -1808,7 +1494,8 @@ indexFromValue (FabArray<FAB> const& mf, int comp, IntVect const& nghost,
                 bool old;
 // we should be able to test on _OPENMP < 201107 for capture (version 3.1)
 // but we must work around a bug in gcc < 4.9
-#if defined(AMREX_USE_OMP) && defined(_OPENMP) && _OPENMP < 201307 // OpenMP 4.0
+// And, with NVHPC 21.9, we see an ICE with the atomic capture (NV bug: #3390723)
+#if defined(AMREX_USE_OMP) && defined(_OPENMP) && (_OPENMP < 201307 || defined(__NVCOMPILER)) // OpenMP 4.0
 #pragma omp critical (amrex_indexfromvalue)
 #elif defined(AMREX_USE_OMP)
 #pragma omp atomic capture

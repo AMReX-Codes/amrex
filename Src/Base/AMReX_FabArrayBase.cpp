@@ -55,10 +55,8 @@ IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
 
 #if defined(AMREX_USE_GPU) || !defined(AMREX_USE_OMP)
 IntVect FabArrayBase::comm_tile_size(AMREX_D_DECL(1024000, 1024000, 1024000));
-IntVect FabArrayBase::mfghostiter_tile_size(AMREX_D_DECL(1024000, 1024000, 1024000));
 #else
 IntVect FabArrayBase::comm_tile_size(AMREX_D_DECL(1024000, 8, 8));
-IntVect FabArrayBase::mfghostiter_tile_size(AMREX_D_DECL(1024000, 8, 8));
 #endif
 
 FabArrayBase::TACache              FabArrayBase::m_TheTileArrayCache;
@@ -111,11 +109,6 @@ FabArrayBase::Initialize ()
     if (pp.queryarr("mfiter_tile_size", tilesize, 0, AMREX_SPACEDIM))
     {
         for (int i=0; i<AMREX_SPACEDIM; i++) FabArrayBase::mfiter_tile_size[i] = tilesize[i];
-    }
-
-    if (pp.queryarr("mfghostiter_tile_size", tilesize, 0, AMREX_SPACEDIM))
-    {
-        for (int i=0; i<AMREX_SPACEDIM; i++) FabArrayBase::mfghostiter_tile_size[i] = tilesize[i];
     }
 
     if (pp.queryarr("comm_tile_size", tilesize, 0, AMREX_SPACEDIM))
@@ -303,12 +296,13 @@ FabArrayBase::TileArray::bytes () const
 
 FabArrayBase::CPC::CPC (const FabArrayBase& dstfa, const IntVect& dstng,
                         const FabArrayBase& srcfa, const IntVect& srcng,
-                        const Periodicity& period)
+                        const Periodicity& period, bool to_ghost_cells_only)
     : m_srcbdk(srcfa.getBDKey()),
       m_dstbdk(dstfa.getBDKey()),
       m_srcng(srcng),
       m_dstng(dstng),
       m_period(period),
+      m_tgco(to_ghost_cells_only),
       m_srcba(srcfa.boxArray()),
       m_dstba(dstfa.boxArray()),
       m_nuse(0)
@@ -327,6 +321,7 @@ FabArrayBase::CPC::CPC (const BoxArray& dstba, const DistributionMapping& dstdm,
       m_srcng(srcng),
       m_dstng(dstng),
       m_period(period),
+      m_tgco(false),
       m_srcba(srcba),
       m_dstba(dstba),
       m_nuse(0)
@@ -384,7 +379,10 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
                     if (ParallelDescriptor::sameTeam(dst_owner)) {
                         continue; // local copy will be dealt with later
                     } else if (MyProc == dm_src[k_src]) {
-                        send_tags[dst_owner].push_back(CopyComTag(bx, bx-(*pit), k_dst, k_src));
+                        BoxList const bl_dst = m_tgco ? boxDiff(bx, ba_dst[k_dst]) : BoxList(bx);
+                        for (auto const& b : bl_dst) {
+                            send_tags[dst_owner].push_back(CopyComTag(b, b-(*pit), k_dst, k_src));
+                        }
                     }
                 }
             }
@@ -392,7 +390,9 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 
         auto& recv_tags = *m_RcvTags;
 
-        BaseFab<int> localtouch(The_Cpu_Arena()), remotetouch(The_Cpu_Arena());
+        BoxList bl_local(ba_dst.ixType());
+        BoxList bl_remote(ba_dst.ixType());
+
         bool check_local = false, check_remote = false;
 #if defined(AMREX_USE_GPU)
         check_local = true;
@@ -408,23 +408,11 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
             check_local = true;
         }
 
-        m_threadsafe_loc = ! check_local;
-        m_threadsafe_rcv = ! check_remote;
-
         for (int i = 0; i < nlocal_dst; ++i)
         {
             const int   k_dst = imap_dst[i];
-            const Box& bx_dst = amrex::grow(ba_dst[k_dst], ng_dst);
-
-            if (check_local) {
-                localtouch.resize(bx_dst);
-                localtouch.setVal<RunOn::Host>(0);
-            }
-
-            if (check_remote) {
-                remotetouch.resize(bx_dst);
-                remotetouch.setVal<RunOn::Host>(0);
-            }
+            const Box& bx_dst_valid = ba_dst[k_dst];
+            const Box& bx_dst = amrex::grow(bx_dst_valid, ng_dst);
 
             for (std::vector<IntVect>::const_iterator pit=pshifts.begin(); pit!=pshifts.end(); ++pit)
             {
@@ -436,35 +424,37 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
                     const Box& bx       = isects[j].second - *pit;
                     const int src_owner = dm_src[k_src];
 
-                    if (ParallelDescriptor::sameTeam(src_owner, MyProc)) { // local copy
-                        const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
-                        for (BoxList::const_iterator
-                                 it_tile  = tilelist.begin(),
-                                 End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
-                        {
-                            m_LocTags->push_back(CopyComTag(*it_tile, (*it_tile)+(*pit), k_dst, k_src));
-                        }
-                        if (check_local) {
-                            localtouch.plus<RunOn::Host>(1, bx);
-                        }
-                    } else if (MyProc == dm_dst[k_dst]) {
-                        recv_tags[src_owner].push_back(CopyComTag(bx, bx+(*pit), k_dst, k_src));
-                        if (check_remote) {
-                            remotetouch.plus<RunOn::Host>(1, bx);
+                    BoxList const bl_dst = m_tgco ? boxDiff(bx,bx_dst_valid) : BoxList(bx);
+                    for (auto const& b : bl_dst) {
+                        if (ParallelDescriptor::sameTeam(src_owner, MyProc)) { // local copy
+                            const BoxList tilelist(b, FabArrayBase::comm_tile_size);
+                            for (auto const& btile : tilelist) {
+                                m_LocTags->push_back(CopyComTag(btile, btile+(*pit), k_dst, k_src));
+                            }
+                            if (check_local) {
+                                bl_local.push_back(b);
+                            }
+                        } else if (MyProc == dm_dst[k_dst]) {
+                            recv_tags[src_owner].push_back(CopyComTag(b, b+(*pit), k_dst, k_src));
+                            if (check_remote) {
+                                bl_remote.push_back(b);
+                            }
                         }
                     }
                 }
             }
+        }
 
-            if (check_local) {
-                // safe if a cell is touched no more than once
-                // keep checking thread safety if it is safe so far
-                check_local = m_threadsafe_loc = localtouch.max<RunOn::Host>() <= 1;
-            }
+        if (bl_local.size() <= 1) {
+            m_threadsafe_loc = true;
+        } else {
+            m_threadsafe_loc = BoxArray(std::move(bl_local)).isDisjoint();
+        }
 
-            if (check_remote) {
-                check_remote = m_threadsafe_rcv = remotetouch.max<RunOn::Host>() <= 1;
-            }
+        if (bl_remote.size() <= 1) {
+            m_threadsafe_rcv = true;
+        } else {
+            m_threadsafe_rcv = BoxArray(std::move(bl_remote)).isDisjoint();
         }
 
         for (int ipass = 0; ipass < 2; ++ipass) // pass 0: send; pass 1: recv
@@ -487,6 +477,7 @@ FabArrayBase::CPC::CPC (const BoxArray& ba, const IntVect& ng,
       m_srcng(ng),
       m_dstng(ng),
       m_period(),
+      m_tgco(false),
       m_srcba(ba),
       m_dstba(ba),
       m_nuse(0)
@@ -571,12 +562,16 @@ FabArrayBase::flushCPC (bool no_assertion) const
 void
 FabArrayBase::flushCPCache ()
 {
+    std::vector<CPC*> cpcs;
     for (CPCacheIter it = m_TheCPCache.begin(); it != m_TheCPCache.end(); ++it)
     {
         if (it->first == it->second->m_srcbdk) {
             m_CPC_stats.recordErase(it->second->m_nuse);
-            delete it->second;
+            cpcs.push_back(it->second);
         }
+    }
+    for (auto& c : cpcs) {
+        delete c;
     }
     m_TheCPCache.clear();
 #ifdef AMREX_MEM_PROFILING
@@ -585,7 +580,8 @@ FabArrayBase::flushCPCache ()
 }
 
 const FabArrayBase::CPC&
-FabArrayBase::getCPC (const IntVect& dstng, const FabArrayBase& src, const IntVect& srcng, const Periodicity& period) const
+FabArrayBase::getCPC (const IntVect& dstng, const FabArrayBase& src, const IntVect& srcng,
+                      const Periodicity& period, bool to_ghost_cells_only) const
 {
     BL_PROFILE("FabArrayBase::getCPC()");
 
@@ -605,6 +601,7 @@ FabArrayBase::getCPC (const IntVect& dstng, const FabArrayBase& src, const IntVe
             it->second->m_srcbdk == srckey &&
             it->second->m_dstbdk == dstkey &&
             it->second->m_period == period &&
+            it->second->m_tgco   == to_ghost_cells_only &&
             it->second->m_srcba  == src.boxArray() &&
             it->second->m_dstba  == boxArray())
         {
@@ -615,7 +612,7 @@ FabArrayBase::getCPC (const IntVect& dstng, const FabArrayBase& src, const IntVe
     }
 
     // Have to build a new one
-    CPC* new_cpc = new CPC(*this, dstng, src, srcng, period);
+    CPC* new_cpc = new CPC(*this, dstng, src, srcng, period, to_ghost_cells_only);
 
 #ifdef AMREX_MEM_PROFILING
     m_CPC_stats.bytes += new_cpc->bytes();
@@ -627,8 +624,9 @@ FabArrayBase::getCPC (const IntVect& dstng, const FabArrayBase& src, const IntVe
     m_CPC_stats.recordUse();
 
     m_TheCPCache.insert(er_it.second, CPCache::value_type(dstkey,new_cpc));
-    if (srckey != dstkey)
+    if (srckey != dstkey) {
         m_TheCPCache.insert(          CPCache::value_type(srckey,new_cpc));
+    }
 
     return *new_cpc;
 }
@@ -726,24 +724,23 @@ FabArrayBase::FB::define_fb (const FabArrayBase& fa)
 
     auto& recv_tags = *m_RcvTags;
 
-    BaseFab<int> localtouch(The_Cpu_Arena()), remotetouch(The_Cpu_Arena());
+    BoxList bl_local(ba.ixType());
+    BoxList bl_remote(ba.ixType());
+
     bool check_local = false, check_remote = false;
-#if defined(AMREX_USE_OMP)
+#if defined(AMREX_USE_GPU)
+    check_local = true;
+    check_remote = true;
+#elif defined(AMREX_USE_OMP)
     if (omp_get_max_threads() > 1) {
         check_local = true;
         check_remote = true;
     }
-#elif defined(AMREX_USE_GPU)
-    check_local = true;
-    check_remote = true;
 #endif
 
     if (ParallelDescriptor::TeamSize() > 1) {
         check_local = true;
     }
-
-    m_threadsafe_loc = ! check_local;
-    m_threadsafe_rcv = ! check_remote;
 
     for (int i = 0; i < nlocal; ++i)
     {
@@ -751,16 +748,6 @@ FabArrayBase::FB::define_fb (const FabArrayBase& fa)
         const Box& vbx   = ba[krcv];
         const Box& vbx_ng  = amrex::grow(vbx,1);
         const Box& bxrcv = amrex::grow(vbx, ng);
-
-        if (check_local) {
-            localtouch.resize(bxrcv);
-            localtouch.setVal<RunOn::Host>(0);
-        }
-
-        if (check_remote) {
-            remotetouch.resize(bxrcv);
-            remotetouch.setVal<RunOn::Host>(0);
-        }
 
         for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
         {
@@ -801,26 +788,28 @@ FabArrayBase::FB::define_fb (const FabArrayBase& fa)
                             m_LocTags->push_back(CopyComTag(*it_tile, (*it_tile)+(*pit), krcv, ksnd));
                         }
                         if (check_local) {
-                            localtouch.plus<RunOn::Host>(1, blbx);
+                            bl_local.push_back(blbx);
                         }
                     } else if (MyProc == dm[krcv]) {
                         recv_tags[src_owner].push_back(CopyComTag(blbx, blbx+(*pit), krcv, ksnd));
                         if (check_remote) {
-                            remotetouch.plus<RunOn::Host>(1, blbx);
+                            bl_remote.push_back(blbx);
                         }
                     }
                 }
             }
         }
 
-        if (check_local) {
-            // safe if a cell is touched no more than once
-            // keep checking thread safety if it is safe so far
-            check_local = m_threadsafe_loc = localtouch.max<RunOn::Host>() <= 1;
+        if (bl_local.size() <= 1) {
+            m_threadsafe_loc = true;
+        } else {
+            m_threadsafe_loc = BoxArray(std::move(bl_local)).isDisjoint();
         }
 
-        if (check_remote) {
-            check_remote = m_threadsafe_rcv = remotetouch.max<RunOn::Host>() <= 1;
+        if (bl_remote.size() <= 1) {
+            m_threadsafe_rcv = true;
+        } else {
+            m_threadsafe_rcv = BoxArray(std::move(bl_remote)).isDisjoint();
         }
     }
 
@@ -946,24 +935,23 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 
     auto& recv_tags = *m_RcvTags;
 
-    BaseFab<int> localtouch(The_Cpu_Arena()), remotetouch(The_Cpu_Arena());
+    BoxList bl_local(ba.ixType());
+    BoxList bl_remote(ba.ixType());
+
     bool check_local = false, check_remote = false;
-#if defined(AMREX_USE_OMP)
+#if defined(AMREX_USE_GPU)
+    check_local = true;
+    check_remote = true;
+#elif defined(AMREX_USE_OMP)
     if (omp_get_max_threads() > 1) {
         check_local = true;
         check_remote = true;
     }
-#elif defined(AMREX_USE_GPU)
-    check_local = true;
-    check_remote = true;
 #endif
 
     if (ParallelDescriptor::TeamSize() > 1) {
         check_local = true;
     }
-
-    m_threadsafe_loc = ! check_local;
-    m_threadsafe_rcv = ! check_remote;
 
     for (int i = 0; i < nlocal; ++i)
     {
@@ -972,16 +960,6 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
         const Box& bxrcv = amrex::grow(vbx, ng);
 
         if (pdomain.contains(bxrcv)) continue;
-
-        if (check_local) {
-            localtouch.resize(bxrcv);
-            localtouch.setVal<RunOn::Host>(0);
-        }
-
-        if (check_remote) {
-            remotetouch.resize(bxrcv);
-            remotetouch.setVal<RunOn::Host>(0);
-        }
 
         for (std::vector<IntVect>::const_iterator pit=pshifts.begin(); pit!=pshifts.end(); ++pit)
         {
@@ -1013,12 +991,12 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
                                     m_LocTags->push_back(CopyComTag(*it_tile, (*it_tile)+(*pit), krcv, ksnd));
                                 }
                                 if (check_local) {
-                                    localtouch.plus<RunOn::Host>(1, dbx);
+                                    bl_local.push_back(dbx);
                                 }
                             } else if (MyProc == dm[krcv]) {
                                 recv_tags[src_owner].push_back(CopyComTag(dbx, sbx, krcv, ksnd));
                                 if (check_remote) {
-                                    remotetouch.plus<RunOn::Host>(1, dbx);
+                                    bl_remote.push_back(dbx);
                                 }
                             }
                         }
@@ -1027,14 +1005,16 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
             }
         }
 
-        if (check_local) {
-            // safe if a cell is touched no more than once
-            // keep checking thread safety if it is safe so far
-            check_local = m_threadsafe_loc = localtouch.max<RunOn::Host>() <= 1;
+        if (bl_local.size() <= 1) {
+            m_threadsafe_loc = true;
+        } else {
+            m_threadsafe_loc = BoxArray(std::move(bl_local)).isDisjoint();
         }
 
-        if (check_remote) {
-            check_remote = m_threadsafe_rcv = remotetouch.max<RunOn::Host>() <= 1;
+        if (bl_remote.size() <= 1) {
+            m_threadsafe_rcv = true;
+        } else {
+            m_threadsafe_rcv = BoxArray(std::move(bl_remote)).isDisjoint();
         }
     }
 
@@ -1227,7 +1207,7 @@ FabArrayBase::RB90::define (const FabArrayBase& fa)
                     const int ksnd = isects[j].first;
                     Box bxsnd = isects[j].second;
                     // the ghost cells at hi-x, hi-y, lo-z, and hi-z
-                    // boundares are also the source
+                    // boundaries are also the source
                     if (bxsnd.bigEnd(n) == m_domain.bigEnd(n)) {
                         bxsnd.growHi(n,m_ngrow[n]);
                     }
@@ -1395,7 +1375,7 @@ FabArrayBase::RB180::define (const FabArrayBase& fa)
                 const int ksnd = isects[j].first;
                 Box bxsnd = isects[j].second;
                 // the ghost cells at lo-y, hi-y, lo-z, and hi-z
-                // boundares are also the source
+                // boundaries are also the source
                 for (int idim = 1; idim < AMREX_SPACEDIM; ++idim) {
                     if (bxsnd.smallEnd(idim) == m_domain.smallEnd(idim)) {
                         bxsnd.growLo(idim, m_ngrow[idim]);
@@ -1754,7 +1734,11 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 #endif
                     numblk[longdir] *= 2;
                 }
-                numblk.min(len);
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    // make sure not to use too many blocks that could
+                    // result in very small boxes
+                    numblk[idim] = std::min(numblk[idim], (len[idim]+15)/16);
+                }
                 IntVect sz, extra;
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                     sz[idim] = len[idim] / numblk[idim];
@@ -2487,41 +2471,76 @@ FabArrayBase::is_cell_centered () const noexcept
     return boxArray().ixType().cellCentered();
 }
 
+bool
+FabArrayBase::isFusingCandidate () const noexcept
+{
+#ifdef AMREX_USE_GPU
+    // This is fine tuned on MI100.
+    // For V100 and A100, it is not very sensitive to the choice here.
+    const int n = local_size();
+    if (n <= 1) {
+        return false;
+    } else if (n > 8) {
+        return true;
+    } else {
+        for (int i = 0; i < n; ++i) {
+            if (boxarray[indexArray[i]].numPts() <= Long(65*65*65)) {
+                return true;
+            }
+        }
+        return false;
+    }
+#else
+    return false;
+#endif
+}
+
 #ifdef AMREX_USE_GPU
 
-FabArrayBase::ParForInfo::ParForInfo (const FabArrayBase& fa, const IntVect& nghost)
+FabArrayBase::ParForInfo::ParForInfo (const FabArrayBase& fa, const IntVect& nghost, int nthreads)
     : m_typ(fa.boxArray().ixType()),
       m_crse_ratio(fa.boxArray().crseRatio()),
+      m_ng(nghost),
+      m_nthreads(nthreads),
       m_nblocks_x({nullptr,nullptr})
 {
+    Vector<Box> boxes;
     Vector<Long> ncells;
     ncells.reserve(fa.indexArray.size());
     for (int K : fa.indexArray) {
-        Box const& b = amrex::grow(fa.box(K), nghost);
-        ncells.push_back(b.numPts());
+        Long N = 0;
+        Box b = fa.box(K);
+        if (b.ok()) {
+            b.grow(nghost);
+            N = b.numPts();
+        }
+        boxes.push_back(b);
+        ncells.push_back(N);
     }
-    m_nblocks_x = detail::build_par_for_nblocks(ncells);
+    detail::build_par_for_nblocks(m_hp, m_dp, m_nblocks_x, m_boxes, boxes, ncells, nthreads);
 }
 
 FabArrayBase::ParForInfo::~ParForInfo ()
 {
-    detail::destroy_par_for_nblocks(m_nblocks_x);
+    detail::destroy_par_for_nblocks(m_hp, m_dp);
 }
 
 FabArrayBase::ParForInfo const&
-FabArrayBase::getParForInfo (const IntVect& nghost) const
+FabArrayBase::getParForInfo (const IntVect& nghost, int nthreads) const
 {
     AMREX_ASSERT(getBDKey() == m_bdkey);
     auto er_it = m_TheParForCache.equal_range(m_bdkey);
     for (auto it = er_it.first; it != er_it.second; ++it) {
         if (it->second->m_typ        == boxArray().ixType()    &&
-            it->second->m_crse_ratio == boxArray().crseRatio())
+            it->second->m_crse_ratio == boxArray().crseRatio() &&
+            it->second->m_ng         == nghost                 &&
+            it->second->m_nthreads   == nthreads)
         {
             return *(it->second);
         }
     }
 
-    ParForInfo* new_pfi = new ParForInfo(*this, nghost);
+    ParForInfo* new_pfi = new ParForInfo(*this, nghost, nthreads);
     m_TheParForCache.insert(er_it.second,
                             std::multimap<BDKey,ParForInfo*>::value_type(m_bdkey,new_pfi));
     return *new_pfi;

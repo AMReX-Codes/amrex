@@ -35,7 +35,7 @@ void WritePlotfile(const std::string         &pfversion,
          amrex::CreateDirectoryFailed(oFile);
       }
     }
-    // Force other processors to wait untill directory is built.
+    // Force other processors to wait until directory is built.
     ParallelDescriptor::Barrier();
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);

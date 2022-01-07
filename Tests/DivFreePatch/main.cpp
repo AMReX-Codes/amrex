@@ -173,7 +173,7 @@ void main_main ()
     Array<MultiFab, AMREX_SPACEDIM> f_mf_copy;
     MultiFab div_coarse, div_refined_coarse, div_fine;
 
-    // For outputing ghost cells for debugging.
+    // For outputting ghost cells for debugging.
     Array<MultiFab, AMREX_SPACEDIM> f_mf_faces_wg;
     MultiFab div_fine_wg;
 

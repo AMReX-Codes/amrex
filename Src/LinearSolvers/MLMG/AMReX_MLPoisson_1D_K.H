@@ -194,18 +194,12 @@ void mlpoisson_gsrb_m (Box const& box, Array4<Real> const& phi, Array4<Real cons
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlpoisson_normalize (Box const& box, Array4<Real> const& x,
+void mlpoisson_normalize (int i, int, int, Array4<Real> const& x,
                           Real dhx, Real dx, Real probxlo) noexcept
 {
-    const auto lo = amrex::lbound(box);
-    const auto hi = amrex::ubound(box);
-
-    AMREX_PRAGMA_SIMD
-    for (int i = lo.x; i <= hi.x; ++i) {
-        Real rel = (probxlo + i   *dx) * (probxlo + i   *dx);
-        Real rer = (probxlo +(i+1)*dx) * (probxlo +(i+1)*dx);
-        x(i,0,0) /= (-dhx*(rel+rer));
-    }
+    Real rel = (probxlo + i   *dx) * (probxlo + i   *dx);
+    Real rer = (probxlo +(i+1)*dx) * (probxlo +(i+1)*dx);
+    x(i,0,0) /= (-dhx*(rel+rer));
 }
 
 }

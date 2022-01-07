@@ -15,6 +15,8 @@
 #define AMREX_CXX_CRAY
 #elif defined(__PGI)
 #define AMREX_CXX_PGI
+#elif defined(__NVCOMPILER)
+#define AMREX_CXX_NVHPC
 #elif defined(__NEC__)
 #define AMREX_CXX_NEC
 #elif defined(__ibmxl__)
@@ -61,6 +63,9 @@
 #elif defined(__PGI)
 #define AMREX_PRAGMA_SIMD _Pragma("loop ivdep")
 
+#elif defined(__NVCOMPILER)
+#define AMREX_PRAGMA_SIMD _Pragma("loop ivdep")
+
 #elif defined(__NEC__)
 #define AMREX_PRAGMA_SIMD
 
@@ -92,6 +97,9 @@
 #define AMREX_FORCE_INLINE inline
 
 #elif defined(__PGI)
+#define AMREX_FORCE_INLINE inline
+
+#elif defined(__NVCOMPILER)
 #define AMREX_FORCE_INLINE inline
 
 #elif defined(__NEC__)
@@ -159,14 +167,17 @@
 #include <ciso646>
 #endif
 
-#if defined(__has_cpp_attribute) && __has_cpp_attribute(fallthrough) >= 201603L
-#define AMREX_FALLTHROUGH [[fallthrough]]
+#if defined(__INTEL_COMPILER) && defined(__EDG__) && (__cplusplus < 201703L)
+// Classical EDG based Intel compiler does not support fallthrough when std=c++14
+#    define AMREX_FALLTHROUGH ((void)0)
+#elif defined(__has_cpp_attribute) && __has_cpp_attribute(fallthrough) >= 201603L
+#    define AMREX_FALLTHROUGH [[fallthrough]]
 #elif defined(__clang__)
-#define AMREX_FALLTHROUGH [[clang::fallthrough]]
-#elif defined(__GNUC__) && (__GNUC__ >= 7) && !defined(__INTEL_COMPILER)
-#define AMREX_FALLTHROUGH [[gnu::fallthrough]]
+#    define AMREX_FALLTHROUGH [[clang::fallthrough]]
+#elif defined(__GNUC__) && (__GNUC__ >= 7)
+#    define AMREX_FALLTHROUGH [[gnu::fallthrough]]
 #else
-#define AMREX_FALLTHROUGH ((void)0)
+#    define AMREX_FALLTHROUGH ((void)0)
 #endif
 
 // CI uses -Werror -Wc++17-extension, thus we need to add the __cplusplus clause

@@ -1,7 +1,7 @@
 ! Starting from gfortran 10, mismatches between actual and dummy argument
 ! lists in a single file have been rejected with an error.  This causes
 ! issues for mpich. https://lists.mpich.org/pipermail/discuss/2020-January/005863.html
-! This is a workaroung by splitting calls to int and real into two files.
+! This is a workaround by splitting calls to int and real into two files.
 
 module amrex_mpi_reduce_real_module
   use amrex_fi_mpi

@@ -63,11 +63,11 @@ void test_assign_density(TestParams& parms)
 
   bool serialize = true;
   int iseed = 451;
-  Real mass = 10.0;
+  double mass = 10.0;
 
   MyParticleContainer::ParticleInitData pdata = {{mass, AMREX_D_DECL(1.0, 2.0, 3.0)}, {}, {}, {}};
   myPC.InitRandom(num_particles, iseed, pdata, serialize);
-  myPC.AssignCellDensitySingleLevel(0, partMF, 0, 4, 0);
+  myPC.AssignCellDensitySingleLevel(0, partMF, 0, 1 + AMREX_SPACEDIM, 0);
 
   //  myPC.AssignDensitySingleLevel(0, partMF, 0, 4, 0);
 
@@ -76,7 +76,7 @@ void test_assign_density(TestParams& parms)
   MultiFab::Copy(density, partMF, 0, 0, 1, 0);
 
   WriteSingleLevelPlotfile("plt00000", partMF,
-                           {"density", "vx", "vy", "vz"},
+                           {"density", AMREX_D_DECL("vx", "vy", "vz")},
                            geom, 0.0, 0);
 
   myPC.Checkpoint("plt00000", "particle0");

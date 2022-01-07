@@ -26,7 +26,7 @@ class iMultiFab;
  * This class is useful for storing floating point data on a domain defined by
  * a union of rectangular regions embedded in a uniform index space.
  * MultiFab class extends the function of the underlying FabArray class just
- * as the FArrayBox class extends the funtion of BaseFab<Real>.
+ * as the FArrayBox class extends the function of BaseFab<Real>.
  * Additional member functions are defined for I/O and simple arithmetic operations on these aggregate objects.
  * This class does NOT provide a copy constructor or assignment operator.
  */
@@ -52,9 +52,9 @@ public:
     * \param ngrow number of cells the region grows
     * \param info MFInfo
 
-    * The size of the FArrayBox is given by the Box grown by ngrow and
-    * the number of components is given by ncomp.  If info is set to
-    * not allocateing memroy, then no FArrayBoxes are allocated at
+    * The size of the FArrayBox is given by the Box grown by ngrow, and
+    * the number of components is given by ncomp. If info is set to
+    * not allocating memory, then no FArrayBoxes are allocated at
     * this time but can be defined later.
     */
     MultiFab (const BoxArray&            bs,
@@ -169,6 +169,13 @@ public:
     Real norm0 (const iMultiFab& mask, int comp = 0, int nghost = 0, bool local = false) const;
     Real norminf (const iMultiFab& mask, int comp = 0, int nghost = 0, bool local = false) const {
         return norm0(mask,comp,nghost,local);
+    }
+
+    Real norm0 (int comp, int ncomp, IntVect const& nghost, bool local = false,
+                bool ignore_covered = false) const;
+    Real norminf (int comp, int ncomp, IntVect const& nghost, bool local = false,
+                  bool ignore_covered = false) const {
+        return norm0(comp, ncomp, nghost, local, ignore_covered);
     }
 
     /**
@@ -644,28 +651,6 @@ public:
     bool contains_inf (int scomp, int ncomp, const IntVect& ngrow, bool local=false) const;
 
     /**
-    * \brief Sum values in overlapped cells.  The destination is limited to valid cells.
-    */
-    void SumBoundary (const Periodicity& period = Periodicity::NonPeriodic());
-
-    void SumBoundary (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
-
-    void SumBoundary_nowait (const Periodicity& period = Periodicity::NonPeriodic());
-
-    void SumBoundary_nowait (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
-
-    /**
-    * \brief Sum values in overlapped cells.  The destination is limited to valid + ngrow cells.
-    */
-    void SumBoundary (int scomp, int ncomp, IntVect const& ngrow,
-                      const Periodicity& period = Periodicity::NonPeriodic());
-
-    void SumBoundary_nowait (int scomp, int ncomp, IntVect const& ngrow,
-                             const Periodicity& period = Periodicity::NonPeriodic());
-
-    void SumBoundary_finish ();
-
-    /**
      * \brief Return a mask indicating how many duplicates are in each point.
      */
     std::unique_ptr<MultiFab> OverlapMask (const Periodicity& period = Periodicity::NonPeriodic()) const;
@@ -679,6 +664,11 @@ public:
     //! Sync up nodal data with owners overriding non-owners
     void OverrideSync (const Periodicity& period = Periodicity::NonPeriodic());
     void OverrideSync (const iMultiFab& msk, const Periodicity& period = Periodicity::NonPeriodic());
+
+    void OverrideSync_nowait (const Periodicity& period = Periodicity::NonPeriodic());
+    void OverrideSync_nowait (const iMultiFab& msk, const Periodicity& period = Periodicity::NonPeriodic());
+    void OverrideSync_finish ();
+
 
     static void Initialize ();
     static void Finalize ();
@@ -699,6 +689,11 @@ inline void GccPlacaterMF ()
     std::allocator<MultiFab const*> a2;
     std::allocator<FabArray<FArrayBox>*> a3;
     std::allocator<FabArray<FArrayBox> const*> a4;
+
+    amrex::ignore_unused(a1);
+    amrex::ignore_unused(a2);
+    amrex::ignore_unused(a3);
+    amrex::ignore_unused(a4);
 }
 #endif
 

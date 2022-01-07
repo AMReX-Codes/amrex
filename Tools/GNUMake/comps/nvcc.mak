@@ -29,13 +29,13 @@ endif
 
 ifeq ($(shell expr $(nvcc_major_version) \= 11),1)
 ifeq ($(shell expr $(nvcc_minor_version) \= 0),1)
-  # -MP not supprted in 11.0
+  # -MP not supported in 11.0
   DEPFLAGS = -MMD
 endif
 endif
 
 ifeq ($(shell expr $(nvcc_major_version) \< 11),1)
-  # -MMD -MP not supprted in < 11
+  # -MMD -MP not supported in < 11
   USE_LEGACY_DEPFLAGS = TRUE
   DEPFLAGS =
 endif

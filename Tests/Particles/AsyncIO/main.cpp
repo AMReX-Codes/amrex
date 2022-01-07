@@ -93,12 +93,12 @@ public:
                     ParticleType p;
                     p.id()  = ParticleType::NextID();
                     p.cpu() = ParallelDescriptor::MyProc();
-                    p.pos(0) = plo[0] + (iv[0] + r[0])*dx[0];
+                    p.pos(0) = static_cast<ParticleReal> (plo[0] + (iv[0] + r[0])*dx[0]);
 #if AMREX_SPACEDIM > 1
-                    p.pos(1) = plo[1] + (iv[1] + r[1])*dx[1];
+                    p.pos(1) = static_cast<ParticleReal> (plo[1] + (iv[1] + r[1])*dx[1]);
 #endif
 #if AMREX_SPACEDIM > 2
-                    p.pos(2) = plo[2] + (iv[2] + r[2])*dx[2];
+                    p.pos(2) = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);
 #endif
 
                     for (int i = 0; i < NSR; ++i) p.rdata(i) = p.id();
@@ -238,7 +238,7 @@ void test_async_io(TestParams& parms)
     MyParticleContainer myPC(geom, dmap, ba, rr);
     myPC.SetVerbose(false);
 
-    myPC.InitParticles(IntVect(2, 2, 2));
+    myPC.InitParticles(IntVect(AMREX_D_DECL(2, 2, 2)));
 
     for (int step = 0; step < 4000; ++step)
     {

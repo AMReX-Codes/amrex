@@ -2,7 +2,7 @@
 This is a combination of weak and strong scaling
 Thread Multiple time
 
-* comit 37a0164e
+* commit 37a0164e
   | node |   time | TM time |
   |------+--------+---------+
   |    1 | 0.3183 |  0.3152 |

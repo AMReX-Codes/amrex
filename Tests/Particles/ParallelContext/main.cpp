@@ -15,25 +15,25 @@ int num_runtime_int = 0;
 
 void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
 {
-    int nx = nppc[0];
-#if AMREX_SPACEDIM > 1
-    int ny = nppc[1];
+        int nx = nppc[0];
+#if AMREX_SPACEDIM >= 2
+        int ny = nppc[1];
 #else
-    int ny = 1;
+        int ny = 1;
 #endif
-#if AMREX_SPACEDIM > 2
-    int nz = nppc[2];
+#if AMREX_SPACEDIM == 3
+        int nz = nppc[2];
 #else
-    int nz = 1;
+        int nz = 1;
 #endif
 
-    int ix_part = i_part/(ny * nz);
-    int iy_part = (i_part % (ny * nz)) % ny;
-    int iz_part = (i_part % (ny * nz)) / ny;
+        AMREX_D_TERM(int ix_part = i_part/(ny * nz);,
+                     int iy_part = (i_part % (ny * nz)) % ny;,
+                     int iz_part = (i_part % (ny * nz)) / ny;)
 
-    r[0] = (0.5+ix_part)/nx;
-    r[1] = (0.5+iy_part)/ny;
-    r[2] = (0.5+iz_part)/nz;
+        AMREX_D_TERM(r[0] = (0.5+ix_part)/nx;,
+                     r[1] = (0.5+iy_part)/ny;,
+                     r[2] = (0.5+iz_part)/nz;)
 }
 
 class TestParticleContainer
@@ -83,27 +83,27 @@ public:
             const Box& tile_box  = mfi.tilebox();
 
             Gpu::HostVector<ParticleType> host_particles;
-            std::array<Gpu::HostVector<Real>, NAR> host_real;
+            std::array<Gpu::HostVector<ParticleReal>, NAR> host_real;
             std::array<Gpu::HostVector<int>, NAI> host_int;
 
-            std::vector<Gpu::HostVector<Real> > host_runtime_real(NumRuntimeRealComps());
+            std::vector<Gpu::HostVector<ParticleReal> > host_runtime_real(NumRuntimeRealComps());
             std::vector<Gpu::HostVector<int> > host_runtime_int(NumRuntimeIntComps());
 
             for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
             {
                 for (int i_part=0; i_part<num_ppc;i_part++) {
-                    Real r[3];
+                    Real r[AMREX_SPACEDIM];
                     get_position_unit_cell(r, a_num_particles_per_cell, i_part);
 
                     ParticleType p;
                     p.id()  = ParticleType::NextID();
                     p.cpu() = ParallelDescriptor::MyProc();
-                    p.pos(0) = plo[0] + (iv[0] + r[0])*dx[0];
+                    p.pos(0) = static_cast<ParticleReal> (plo[0] + (iv[0] + r[0])*dx[0]);
 #if AMREX_SPACEDIM > 1
-                    p.pos(1) = plo[1] + (iv[1] + r[1])*dx[1];
+                    p.pos(1) = static_cast<ParticleReal> (plo[1] + (iv[1] + r[1])*dx[1]);
 #endif
 #if AMREX_SPACEDIM > 2
-                    p.pos(2) = plo[2] + (iv[2] + r[2])*dx[2];
+                    p.pos(2) = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);
 #endif
 
                     for (int i = 0; i < NSR; ++i) p.rdata(i) = p.id();
@@ -175,7 +175,6 @@ public:
 
         for (int lev = 0; lev <= finestLevel(); ++lev)
         {
-            const Geometry& geom = Geom(lev);
             const auto dx = Geom(lev).CellSizeArray();
             auto& plev  = GetParticles(lev);
 
@@ -194,12 +193,12 @@ public:
                     [=] AMREX_GPU_DEVICE (size_t i) noexcept
                     {
                         ParticleType& p = pstruct[i];
-                        p.pos(0) += move_dir[0]*dx[0];
+                        p.pos(0) += static_cast<ParticleReal> (move_dir[0]*dx[0]);
 #if AMREX_SPACEDIM > 1
-                        p.pos(1) += move_dir[1]*dx[1];
+                        p.pos(1) += static_cast<ParticleReal> (move_dir[1]*dx[1]);
 #endif
 #if AMREX_SPACEDIM > 2
-                        p.pos(2) += move_dir[2]*dx[2];
+                        p.pos(2) += static_cast<ParticleReal> (move_dir[2]*dx[2]);
 #endif
                     });
                 }
@@ -210,12 +209,12 @@ public:
                     {
                         ParticleType& p = pstruct[i];
 
-                        p.pos(0) += (2*amrex::Random(engine)-1)*move_dir[0]*dx[0];
+                        p.pos(0) += static_cast<ParticleReal> ((2*amrex::Random(engine)-1)*move_dir[0]*dx[0]);
 #if AMREX_SPACEDIM > 1
-                        p.pos(1) += (2*amrex::Random(engine)-1)*move_dir[1]*dx[1];
+                        p.pos(1) += static_cast<ParticleReal> ((2*amrex::Random(engine)-1)*move_dir[1]*dx[1]);
 #endif
 #if AMREX_SPACEDIM > 2
-                        p.pos(2) += (2*amrex::Random(engine)-1)*move_dir[2]*dx[2];
+                        p.pos(2) += static_cast<ParticleReal> ((2*amrex::Random(engine)-1)*move_dir[2]*dx[2]);
 #endif
                     });
                 }
@@ -234,8 +233,6 @@ public:
 
         for (int lev = 0; lev <= finestLevel(); ++lev)
         {
-            const Geometry& geom = Geom(lev);
-            const auto dx = Geom(lev).CellSizeArray();
             auto& plev  = GetParticles(lev);
 
             for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
@@ -324,8 +321,6 @@ void get_test_params(TestParams& params, const std::string& prefix)
 void testParallelContext ()
 {
     BL_PROFILE("testParallelContext");
-
-    AMREX_ALWAYS_ASSERT(AMREX_SPACEDIM == 3);
 
     // we always make two subcommunicators.
     // one takes the left half of the domain in direction 0, the other the right.

@@ -12,9 +12,8 @@ MLABecLaplacian::MLABecLaplacian (const Vector<Geometry>& a_geom,
                                   const LPInfo& a_info,
                                   const Vector<FabFactory<FArrayBox> const*>& a_factory,
                                   const int a_ncomp)
-    : m_ncomp(a_ncomp)
 {
-    define(a_geom, a_grids, a_dmap, a_info, a_factory);
+    define(a_geom, a_grids, a_dmap, a_info, a_factory, a_ncomp);
 }
 
 MLABecLaplacian::MLABecLaplacian (const Vector<Geometry>& a_geom,
@@ -22,9 +21,10 @@ MLABecLaplacian::MLABecLaplacian (const Vector<Geometry>& a_geom,
                                   const Vector<DistributionMapping>& a_dmap,
                                   const Vector<iMultiFab const*>& a_overset_mask,
                                   const LPInfo& a_info,
-                                  const Vector<FabFactory<FArrayBox> const*>& a_factory)
+                                  const Vector<FabFactory<FArrayBox> const*>& a_factory,
+                                  const int a_ncomp)
 {
-    define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory);
+    define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory, a_ncomp);
 }
 
 void
@@ -32,9 +32,11 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
                          const Vector<BoxArray>& a_grids,
                          const Vector<DistributionMapping>& a_dmap,
                          const LPInfo& a_info,
-                         const Vector<FabFactory<FArrayBox> const*>& a_factory)
+                         const Vector<FabFactory<FArrayBox> const*>& a_factory,
+                         const int a_ncomp)
 {
     BL_PROFILE("MLABecLaplacian::define()");
+    m_ncomp = a_ncomp;
     MLCellABecLap::define(a_geom, a_grids, a_dmap, a_info, a_factory);
     define_ab_coeffs();
 }
@@ -45,9 +47,11 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
                          const Vector<DistributionMapping>& a_dmap,
                          const Vector<iMultiFab const*>& a_overset_mask,
                          const LPInfo& a_info,
-                         const Vector<FabFactory<FArrayBox> const*>& a_factory)
+                         const Vector<FabFactory<FArrayBox> const*>& a_factory,
+                         const int a_ncomp)
 {
     BL_PROFILE("MLABecLaplacian::define(overset)");
+    m_ncomp = a_ncomp;
     MLCellABecLap::define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory);
     define_ab_coeffs();
 }
@@ -304,7 +308,11 @@ MLABecLaplacian::applyRobinBCTermsCoeffs ()
     if (!hasRobinBC()) return;
 
     const int ncomp = getNComp();
-    if (m_a_scalar == Real(0.0)) m_a_scalar = Real(1.0);
+    bool reset_alpha = false;
+    if (m_a_scalar == Real(0.0)) {
+        m_a_scalar = Real(1.0);
+        reset_alpha = true;
+    }
     const Real bovera = m_b_scalar/m_a_scalar;
 
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
@@ -313,6 +321,10 @@ MLABecLaplacian::applyRobinBCTermsCoeffs ()
         const Real dxi = m_geom[amrlev][mglev].InvCellSize(0);
         const Real dyi = (AMREX_SPACEDIM >= 2) ? m_geom[amrlev][mglev].InvCellSize(1) : Real(1.0);
         const Real dzi = (AMREX_SPACEDIM == 3) ? m_geom[amrlev][mglev].InvCellSize(2) : Real(1.0);
+
+        if (reset_alpha) {
+            m_a_coeffs[amrlev][mglev].setVal(0.0);
+        }
 
         MFItInfo mfi_info;
         if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
@@ -410,6 +422,14 @@ MLABecLaplacian::prepareForSolve ()
 
     averageDownCoeffs();
 
+    update_singular_flags();
+
+    m_needs_update = false;
+}
+
+void
+MLABecLaplacian::update_singular_flags ()
+{
     m_is_singular.clear();
     m_is_singular.resize(m_num_amr_levels, false);
     auto itlo = std::find(m_lobc[0].begin(), m_lobc[0].end(), BCType::Dirichlet);
@@ -429,13 +449,11 @@ MLABecLaplacian::prepareForSolve ()
                 {
                     Real asum = m_a_coeffs[alev].back().sum();
                     Real amax = m_a_coeffs[alev].back().norm0();
-                    m_is_singular[alev] = (asum <= amax * 1.e-12);
+                    m_is_singular[alev] = (std::abs(asum) <= amax * 1.e-12);
                 }
             }
         }
     }
-
-    m_needs_update = false;
 }
 
 void
@@ -455,31 +473,62 @@ MLABecLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
 
     const int ncomp = getNComp();
 
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && out.isFusingCandidate()) {
+        const auto& xma = in.const_arrays();
+        const auto& yma = out.arrays();
+        const auto& ama = acoef.arrays();
+        AMREX_D_TERM(const auto& bxma = bxcoef.const_arrays();,
+                     const auto& byma = bycoef.const_arrays();,
+                     const auto& bzma = bzcoef.const_arrays(););
+        if (m_overset_mask[amrlev][mglev]) {
+            const auto& osmma = m_overset_mask[amrlev][mglev]->const_arrays();
+            ParallelFor(out, IntVect(0), ncomp,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+            {
+                mlabeclap_adotx_os(i,j,k,n, yma[box_no], xma[box_no], ama[box_no],
+                                   AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
+                                   osmma[box_no], dxinv, ascalar, bscalar);
+            });
+        } else {
+            ParallelFor(out, IntVect(0), ncomp,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+            {
+                mlabeclap_adotx(i,j,k,n, yma[box_no], xma[box_no], ama[box_no],
+                                AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
+                                dxinv, ascalar, bscalar);
+            });
+        }
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(out, TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        const auto& xfab = in.array(mfi);
-        const auto& yfab = out.array(mfi);
-        const auto& afab = acoef.array(mfi);
-        AMREX_D_TERM(const auto& bxfab = bxcoef.array(mfi);,
-                     const auto& byfab = bycoef.array(mfi);,
-                     const auto& bzfab = bzcoef.array(mfi););
-        if (m_overset_mask[amrlev][mglev]) {
-            const auto& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
-            {
-                mlabeclap_adotx_os(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
-                                   osm, dxinv, ascalar, bscalar, ncomp);
-            });
-        } else {
-            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
-            {
-                mlabeclap_adotx(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
-                                dxinv, ascalar, bscalar, ncomp);
-            });
+        for (MFIter mfi(out, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            const auto& xfab = in.array(mfi);
+            const auto& yfab = out.array(mfi);
+            const auto& afab = acoef.array(mfi);
+            AMREX_D_TERM(const auto& bxfab = bxcoef.array(mfi);,
+                         const auto& byfab = bycoef.array(mfi);,
+                         const auto& bzfab = bzcoef.array(mfi););
+            if (m_overset_mask[amrlev][mglev]) {
+                const auto& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
+                {
+                    mlabeclap_adotx_os(i,j,k,n, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
+                                       osm, dxinv, ascalar, bscalar);
+                });
+            } else {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
+                {
+                    mlabeclap_adotx(i,j,k,n, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
+                                    dxinv, ascalar, bscalar);
+                });
+            }
         }
     }
 }
@@ -501,23 +550,42 @@ MLABecLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
 
     const int ncomp = getNComp();
 
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && mf.isFusingCandidate()) {
+        const auto& ma = mf.arrays();
+        const auto& ama = acoef.const_arrays();
+        AMREX_D_TERM(const auto& bxma = bxcoef.const_arrays();,
+                     const auto& byma = bycoef.const_arrays();,
+                     const auto& bzma = bzcoef.const_arrays(););
+        ParallelFor(mf, IntVect(0), ncomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            mlabeclap_normalize(i,j,k,n, ma[box_no], ama[box_no],
+                                AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
+                                dxinv, ascalar, bscalar);
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(mf, TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        const auto& fab = mf.array(mfi);
-        const auto& afab = acoef.array(mfi);
-        AMREX_D_TERM(const auto& bxfab = bxcoef.array(mfi);,
-                     const auto& byfab = bycoef.array(mfi);,
-                     const auto& bzfab = bzcoef.array(mfi););
-
-        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
+        for (MFIter mfi(mf, TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            mlabeclap_normalize(tbx, fab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
-                                dxinv, ascalar, bscalar, ncomp);
-        });
+            const Box& bx = mfi.tilebox();
+            const auto& fab = mf.array(mfi);
+            const auto& afab = acoef.array(mfi);
+            AMREX_D_TERM(const auto& bxfab = bxcoef.array(mfi);,
+                         const auto& byfab = bycoef.array(mfi);,
+                         const auto& bzfab = bzcoef.array(mfi););
+
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
+            {
+                mlabeclap_normalize(i,j,k,n, fab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
+                                    dxinv, ascalar, bscalar);
+            });
+        }
     }
 }
 
@@ -532,6 +600,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
     }
 
     const MultiFab& acoef = m_a_coeffs[amrlev][mglev];
+    AMREX_ALWAYS_ASSERT(acoef.nGrowVect() == 0);
     AMREX_D_TERM(const MultiFab& bxcoef = m_b_coeffs[amrlev][mglev][0];,
                  const MultiFab& bycoef = m_b_coeffs[amrlev][mglev][1];,
                  const MultiFab& bzcoef = m_b_coeffs[amrlev][mglev][2];);
@@ -569,85 +638,154 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                  const Real dhz = m_b_scalar/(h[2]*h[2]));
     const Real alpha = m_a_scalar;
 
-    MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
-
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(sol,mfi_info); mfi.isValid(); ++mfi)
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && sol.isFusingCandidate()
+        && (m_overset_mask[amrlev][mglev] || regular_coarsening))
     {
-        const auto& m0 = mm0.array(mfi);
-        const auto& m1 = mm1.array(mfi);
+        const auto& m0ma = mm0.const_arrays();
+        const auto& m1ma = mm1.const_arrays();
 #if (AMREX_SPACEDIM > 1)
-        const auto& m2 = mm2.array(mfi);
-        const auto& m3 = mm3.array(mfi);
+        const auto& m2ma = mm2.const_arrays();
+        const auto& m3ma = mm3.const_arrays();
 #if (AMREX_SPACEDIM > 2)
-        const auto& m4 = mm4.array(mfi);
-        const auto& m5 = mm5.array(mfi);
+        const auto& m4ma = mm4.const_arrays();
+        const auto& m5ma = mm5.const_arrays();
 #endif
 #endif
 
-        const Box& tbx = mfi.tilebox();
-        const Box& vbx = mfi.validbox();
-        const auto& solnfab = sol.array(mfi);
-        const auto& rhsfab  = rhs.array(mfi);
-        const auto& afab    = acoef.array(mfi);
+        const auto& solnma = sol.arrays();
+        const auto& rhsma = rhs.const_arrays();
+        const auto& ama = acoef.const_arrays();
 
-        AMREX_D_TERM(const auto& bxfab = bxcoef.array(mfi);,
-                     const auto& byfab = bycoef.array(mfi);,
-                     const auto& bzfab = bzcoef.array(mfi););
+        AMREX_D_TERM(const auto& bxma = bxcoef.const_arrays();,
+                     const auto& byma = bycoef.const_arrays();,
+                     const auto& bzma = bzcoef.const_arrays(););
 
-        const auto& f0fab = f0.array(mfi);
-        const auto& f1fab = f1.array(mfi);
+        const auto& f0ma = f0.const_arrays();
+        const auto& f1ma = f1.const_arrays();
 #if (AMREX_SPACEDIM > 1)
-        const auto& f2fab = f2.array(mfi);
-        const auto& f3fab = f3.array(mfi);
+        const auto& f2ma = f2.const_arrays();
+        const auto& f3ma = f3.const_arrays();
 #if (AMREX_SPACEDIM > 2)
-        const auto& f4fab = f4.array(mfi);
-        const auto& f5fab = f5.array(mfi);
+        const auto& f4ma = f4.const_arrays();
+        const auto& f5ma = f5.const_arrays();
 #endif
 #endif
 
         if (m_overset_mask[amrlev][mglev]) {
-            const auto& osm = m_overset_mask[amrlev][mglev]->array(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( tbx, thread_box,
+            const auto& osmma = m_overset_mask[amrlev][mglev]->const_arrays();
+            ParallelFor(sol, IntVect(0), nc,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
-                abec_gsrb_os(thread_box, solnfab, rhsfab, alpha, afab,
+                Box vbx(ama[box_no]);
+                abec_gsrb_os(i,j,k,n, solnma[box_no], rhsma[box_no], alpha, ama[box_no],
                              AMREX_D_DECL(dhx, dhy, dhz),
-                             AMREX_D_DECL(bxfab, byfab, bzfab),
-                             AMREX_D_DECL(m0,m2,m4),
-                             AMREX_D_DECL(m1,m3,m5),
-                             AMREX_D_DECL(f0fab,f2fab,f4fab),
-                             AMREX_D_DECL(f1fab,f3fab,f5fab),
-                             osm, vbx, redblack, nc);
+                             AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
+                             AMREX_D_DECL(m0ma[box_no],m2ma[box_no],m4ma[box_no]),
+                             AMREX_D_DECL(m1ma[box_no],m3ma[box_no],m5ma[box_no]),
+                             AMREX_D_DECL(f0ma[box_no],f2ma[box_no],f4ma[box_no]),
+                             AMREX_D_DECL(f1ma[box_no],f3ma[box_no],f5ma[box_no]),
+                             osmma[box_no], vbx, redblack);
             });
         } else if (regular_coarsening) {
-            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( tbx, thread_box,
+            ParallelFor(sol, IntVect(0), nc,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
-                abec_gsrb(thread_box, solnfab, rhsfab, alpha, afab,
+                Box vbx(ama[box_no]);
+                abec_gsrb(i,j,k,n, solnma[box_no], rhsma[box_no], alpha, ama[box_no],
                           AMREX_D_DECL(dhx, dhy, dhz),
-                          AMREX_D_DECL(bxfab, byfab, bzfab),
-                          AMREX_D_DECL(m0,m2,m4),
-                          AMREX_D_DECL(m1,m3,m5),
-                          AMREX_D_DECL(f0fab,f2fab,f4fab),
-                          AMREX_D_DECL(f1fab,f3fab,f5fab),
-                          vbx, redblack, nc);
+                          AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
+                          AMREX_D_DECL(m0ma[box_no],m2ma[box_no],m4ma[box_no]),
+                          AMREX_D_DECL(m1ma[box_no],m3ma[box_no],m5ma[box_no]),
+                          AMREX_D_DECL(f0ma[box_no],f2ma[box_no],f4ma[box_no]),
+                          AMREX_D_DECL(f1ma[box_no],f3ma[box_no],f5ma[box_no]),
+                          vbx, redblack);
             });
-        } else {
-            Gpu::LaunchSafeGuard lsg(false); // xxxxx gpu todo
-            // line solve does not with with GPU
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
-            {
-                abec_gsrb_with_line_solve(thread_box, solnfab, rhsfab, alpha, afab,
-                                          AMREX_D_DECL(dhx, dhy, dhz),
-                                          AMREX_D_DECL(bxfab, byfab, bzfab),
-                                          AMREX_D_DECL(m0,m2,m4),
-                                          AMREX_D_DECL(m1,m3,m5),
-                                          AMREX_D_DECL(f0fab,f2fab,f4fab),
-                                          AMREX_D_DECL(f1fab,f3fab,f5fab),
-                                          vbx, redblack, nc);
-            });
+        }
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
+        MFItInfo mfi_info;
+        if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(sol,mfi_info); mfi.isValid(); ++mfi)
+        {
+            const auto& m0 = mm0.array(mfi);
+            const auto& m1 = mm1.array(mfi);
+#if (AMREX_SPACEDIM > 1)
+            const auto& m2 = mm2.array(mfi);
+            const auto& m3 = mm3.array(mfi);
+#if (AMREX_SPACEDIM > 2)
+            const auto& m4 = mm4.array(mfi);
+            const auto& m5 = mm5.array(mfi);
+#endif
+#endif
+
+            const Box& tbx = mfi.tilebox();
+            const Box& vbx = mfi.validbox();
+            const auto& solnfab = sol.array(mfi);
+            const auto& rhsfab  = rhs.const_array(mfi);
+            const auto& afab    = acoef.const_array(mfi);
+
+            AMREX_D_TERM(const auto& bxfab = bxcoef.const_array(mfi);,
+                         const auto& byfab = bycoef.const_array(mfi);,
+                         const auto& bzfab = bzcoef.const_array(mfi););
+
+            const auto& f0fab = f0.const_array(mfi);
+            const auto& f1fab = f1.const_array(mfi);
+#if (AMREX_SPACEDIM > 1)
+            const auto& f2fab = f2.const_array(mfi);
+            const auto& f3fab = f3.const_array(mfi);
+#if (AMREX_SPACEDIM > 2)
+            const auto& f4fab = f4.const_array(mfi);
+            const auto& f5fab = f5.const_array(mfi);
+#endif
+#endif
+
+            if (m_overset_mask[amrlev][mglev]) {
+                const auto& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(tbx, nc, i, j, k, n,
+                {
+                    abec_gsrb_os(i,j,k,n, solnfab, rhsfab, alpha, afab,
+                                 AMREX_D_DECL(dhx, dhy, dhz),
+                                 AMREX_D_DECL(bxfab, byfab, bzfab),
+                                 AMREX_D_DECL(m0,m2,m4),
+                                 AMREX_D_DECL(m1,m3,m5),
+                                 AMREX_D_DECL(f0fab,f2fab,f4fab),
+                                 AMREX_D_DECL(f1fab,f3fab,f5fab),
+                                 osm, vbx, redblack);
+                });
+            } else if (regular_coarsening) {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(tbx, nc, i, j, k, n,
+                {
+                    abec_gsrb(i,j,k,n, solnfab, rhsfab, alpha, afab,
+                              AMREX_D_DECL(dhx, dhy, dhz),
+                              AMREX_D_DECL(bxfab, byfab, bzfab),
+                              AMREX_D_DECL(m0,m2,m4),
+                              AMREX_D_DECL(m1,m3,m5),
+                              AMREX_D_DECL(f0fab,f2fab,f4fab),
+                              AMREX_D_DECL(f1fab,f3fab,f5fab),
+                              vbx, redblack);
+                });
+            } else {
+                Gpu::LaunchSafeGuard lsg(false); // xxxxx gpu todo
+                // line solve does not with with GPU
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+                {
+                    abec_gsrb_with_line_solve(thread_box, solnfab, rhsfab, alpha, afab,
+                                              AMREX_D_DECL(dhx, dhy, dhz),
+                                              AMREX_D_DECL(bxfab, byfab, bzfab),
+                                              AMREX_D_DECL(m0,m2,m4),
+                                              AMREX_D_DECL(m1,m3,m5),
+                                              AMREX_D_DECL(f0fab,f2fab,f4fab),
+                                              AMREX_D_DECL(f1fab,f3fab,f5fab),
+                                              vbx, redblack, nc);
+                });
+            }
         }
     }
 }
@@ -676,9 +814,9 @@ MLABecLaplacian::FFlux (Box const& box, Real const* dxinv, Real bscalar,
                         Array<FArrayBox*,AMREX_SPACEDIM> const& flux,
                         FArrayBox const& sol, int face_only, int ncomp)
 {
-    AMREX_D_TERM(const auto bx = bcoef[0]->array();,
-                 const auto by = bcoef[1]->array();,
-                 const auto bz = bcoef[2]->array(););
+    AMREX_D_TERM(const auto bx = bcoef[0]->const_array();,
+                 const auto by = bcoef[1]->const_array();,
+                 const auto bz = bcoef[2]->const_array(););
     AMREX_D_TERM(const auto& fxarr = flux[0]->array();,
                  const auto& fyarr = flux[1]->array();,
                  const auto& fzarr = flux[2]->array(););
@@ -689,7 +827,7 @@ MLABecLaplacian::FFlux (Box const& box, Real const* dxinv, Real bscalar,
         Real fac = bscalar*dxinv[0];
         Box blo = amrex::bdryLo(box, 0);
         int blen = box.length(0);
-        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( blo, tbox,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
         {
             mlabeclap_flux_xface(tbox, fxarr, solarr, bx, fac, blen, ncomp);
         });
@@ -697,7 +835,7 @@ MLABecLaplacian::FFlux (Box const& box, Real const* dxinv, Real bscalar,
         fac = bscalar*dxinv[1];
         blo = amrex::bdryLo(box, 1);
         blen = box.length(1);
-        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( blo, tbox,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
         {
             mlabeclap_flux_yface(tbox, fyarr, solarr, by, fac, blen, ncomp);
         });
@@ -706,7 +844,7 @@ MLABecLaplacian::FFlux (Box const& box, Real const* dxinv, Real bscalar,
         fac = bscalar*dxinv[2];
         blo = amrex::bdryLo(box, 2);
         blen = box.length(2);
-        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( blo, tbox,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
         {
             mlabeclap_flux_zface(tbox, fzarr, solarr, bz, fac, blen, ncomp);
         });
@@ -716,14 +854,14 @@ MLABecLaplacian::FFlux (Box const& box, Real const* dxinv, Real bscalar,
     {
         Real fac = bscalar*dxinv[0];
         Box bflux = amrex::surroundingNodes(box, 0);
-        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bflux, tbox,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
         {
             mlabeclap_flux_x(tbox, fxarr, solarr, bx, fac, ncomp);
         });
 #if (AMREX_SPACEDIM >= 2)
         fac = bscalar*dxinv[1];
         bflux = amrex::surroundingNodes(box, 1);
-        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bflux, tbox,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
         {
             mlabeclap_flux_y(tbox, fyarr, solarr, by, fac, ncomp);
         });
@@ -731,7 +869,7 @@ MLABecLaplacian::FFlux (Box const& box, Real const* dxinv, Real bscalar,
 #if (AMREX_SPACEDIM == 3)
         fac = bscalar*dxinv[2];
         bflux = amrex::surroundingNodes(box, 2);
-        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bflux, tbox,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
         {
             mlabeclap_flux_z(tbox, fzarr, solarr, bz, fac, ncomp);
         });
@@ -750,30 +888,7 @@ MLABecLaplacian::update ()
 
     averageDownCoeffs();
 
-    m_is_singular.clear();
-    m_is_singular.resize(m_num_amr_levels, false);
-    auto itlo = std::find(m_lobc[0].begin(), m_lobc[0].end(), BCType::Dirichlet);
-    auto ithi = std::find(m_hibc[0].begin(), m_hibc[0].end(), BCType::Dirichlet);
-    if (itlo == m_lobc[0].end() && ithi == m_hibc[0].end())
-    {  // No Dirichlet
-        for (int alev = 0; alev < m_num_amr_levels; ++alev)
-        {
-            // For now this assumes that overset regions are treated as Dirichlet bc's
-            if (m_domain_covered[alev] && !m_overset_mask[alev][0])
-            {
-                if (m_a_scalar == 0.0)
-                {
-                    m_is_singular[alev] = true;
-                }
-                else
-                {
-                    Real asum = m_a_coeffs[alev].back().sum();
-                    Real amax = m_a_coeffs[alev].back().norm0();
-                    m_is_singular[alev] = (asum <= amax * 1.e-12);
-                }
-            }
-        }
-    }
+    update_singular_flags();
 
     m_needs_update = false;
 }
@@ -843,22 +958,41 @@ MLABecLaplacian::makeNLinOp (int /*grid_size*/) const
                                 std::abs(m_b_scalar)*bz_max*dxinv[2]*dxinv[2]));
     ParallelAllReduce::Max(huge_alpha, ParallelContext::CommunicatorSub());
 
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && alpha.isFusingCandidate()) {
+        auto const& ama = alpha.arrays();
+        auto const& abotma = alpha_bottom.const_arrays();
+        auto const& mma = osm_bottom.const_arrays();
+        ParallelFor(alpha, IntVect(0), ncomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            if (mma[box_no](i,j,k)) {
+                ama[box_no](i,j,k,n) = abotma[box_no](i,j,k,n);
+            } else {
+                ama[box_no](i,j,k,n) = huge_alpha;
+            }
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(alpha,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
-        Box const& bx = mfi.tilebox();
-        Array4<Real> const& a = alpha.array(mfi);
-        Array4<Real const> const& abot = alpha_bottom.const_array(mfi);
-        Array4<int const> const& m = osm_bottom.const_array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE(bx, ncomp, i, j, k, n,
-        {
-            if (m(i,j,k)) {
-                a(i,j,k,n) = abot(i,j,k,n);
-            } else {
-                a(i,j,k,n) = huge_alpha;
-            }
-        });
+        for (MFIter mfi(alpha,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+            Box const& bx = mfi.tilebox();
+            Array4<Real> const& a = alpha.array(mfi);
+            Array4<Real const> const& abot = alpha_bottom.const_array(mfi);
+            Array4<int const> const& m = osm_bottom.const_array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
+            {
+                if (m(i,j,k)) {
+                    a(i,j,k,n) = abot(i,j,k,n);
+                } else {
+                    a(i,j,k,n) = huge_alpha;
+                }
+            });
+        }
     }
 
     nop->setACoeffs(0, alpha);
@@ -873,22 +1007,42 @@ MLABecLaplacian::copyNSolveSolution (MultiFab& dst, MultiFab const& src) const
     if (m_overset_mask[0].back() == nullptr) return;
 
     const int ncomp = dst.nComp();
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
+        auto const& dstma = dst.arrays();
+        auto const& srcma = src.const_arrays();
+        auto const& mma = m_overset_mask[0].back()->const_arrays();
+        ParallelFor(dst, IntVect(0), ncomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            if (mma[box_no](i,j,k)) {
+                dstma[box_no](i,j,k,n) = srcma[box_no](i,j,k,n);
+            } else {
+                dstma[box_no](i,j,k,n) = Real(0.0);
+            }
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
-        Box const& bx = mfi.tilebox();
-        Array4<Real> const& dfab = dst.array(mfi);
-        Array4<Real const> const& sfab = src.const_array(mfi);
-        Array4<int const> const& m = m_overset_mask[0].back()->const_array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE(bx, ncomp, i, j, k, n,
-        {
-            if (m(i,j,k)) {
-                dfab(i,j,k,n) = sfab(i,j,k,n);
-            } else {
-                dfab(i,j,k,n) = Real(0.0);
-            }
-        });
+        for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+            Box const& bx = mfi.tilebox();
+            Array4<Real> const& dfab = dst.array(mfi);
+            Array4<Real const> const& sfab = src.const_array(mfi);
+            Array4<int const> const& m = m_overset_mask[0].back()->const_array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
+            {
+                if (m(i,j,k)) {
+                    dfab(i,j,k,n) = sfab(i,j,k,n);
+                } else {
+                    dfab(i,j,k,n) = Real(0.0);
+                }
+            });
+        }
     }
 }
 

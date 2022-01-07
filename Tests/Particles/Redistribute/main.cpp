@@ -13,6 +13,8 @@ static constexpr int NAI = 1;
 int num_runtime_real = 0;
 int num_runtime_int = 0;
 
+bool remove_negative = true;
+
 void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
 {
     int nx = nppc[0];
@@ -58,22 +60,22 @@ public:
         }
     }
 
-    void RedistributeLocal ()
+    void RedistributeLocal (bool remove_neg=true)
     {
         const int lev_min = 0;
         const int lev_max = finestLevel();
         const int nGrow = 0;
         const int local = 1;
-        Redistribute(lev_min, lev_max, nGrow, local);
+        Redistribute(lev_min, lev_max, nGrow, local, remove_neg);
     }
 
-    void RedistributeGlobal ()
+    void RedistributeGlobal (bool remove_neg=true)
     {
         const int lev_min = 0;
         const int lev_max = finestLevel();
         const int nGrow = 0;
         const int local = 0;
-        Redistribute(lev_min, lev_max, nGrow, local);
+        Redistribute(lev_min, lev_max, nGrow, local, remove_neg);
     }
 
     void InitParticles (const amrex::IntVect& a_num_particles_per_cell)
@@ -108,12 +110,12 @@ public:
                     ParticleType p;
                     p.id()  = ParticleType::NextID();
                     p.cpu() = ParallelDescriptor::MyProc();
-                    p.pos(0) = plo[0] + (iv[0] + r[0])*dx[0];
+                    p.pos(0) = static_cast<ParticleReal> (plo[0] + (iv[0] + r[0])*dx[0]);
 #if AMREX_SPACEDIM > 1
-                    p.pos(1) = plo[1] + (iv[1] + r[1])*dx[1];
+                    p.pos(1) = static_cast<ParticleReal> (plo[1] + (iv[1] + r[1])*dx[1]);
 #endif
 #if AMREX_SPACEDIM > 2
-                    p.pos(2) = plo[2] + (iv[2] + r[2])*dx[2];
+                    p.pos(2) = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);
 #endif
 
                     for (int i = 0; i < NSR; ++i) p.rdata(i) = p.id();
@@ -202,12 +204,12 @@ public:
                     amrex::ParallelFor( np, [=] AMREX_GPU_DEVICE (int i) noexcept
                     {
                         ParticleType& p = pstruct[i];
-                        p.pos(0) += move_dir[0]*dx[0];
+                        p.pos(0) += static_cast<ParticleReal> (move_dir[0]*dx[0]);
 #if AMREX_SPACEDIM > 1
-                        p.pos(1) += move_dir[1]*dx[1];
+                        p.pos(1) += static_cast<ParticleReal> (move_dir[1]*dx[1]);
 #endif
 #if AMREX_SPACEDIM > 2
-                        p.pos(2) += move_dir[2]*dx[2];
+                        p.pos(2) += static_cast<ParticleReal> (move_dir[2]*dx[2]);
 #endif
                     });
                 }
@@ -218,15 +220,41 @@ public:
                     {
                         ParticleType& p = pstruct[i];
 
-                        p.pos(0) += (2*amrex::Random(engine)-1)*move_dir[0]*dx[0];
+                        p.pos(0) += static_cast<ParticleReal> ((2*amrex::Random(engine)-1)*move_dir[0]*dx[0]);
 #if AMREX_SPACEDIM > 1
-                        p.pos(1) += (2*amrex::Random(engine)-1)*move_dir[1]*dx[1];
+                        p.pos(1) += static_cast<ParticleReal> ((2*amrex::Random(engine)-1)*move_dir[1]*dx[1]);
 #endif
 #if AMREX_SPACEDIM > 2
-                        p.pos(2) += (2*amrex::Random(engine)-1)*move_dir[2]*dx[2];
+                        p.pos(2) += static_cast<ParticleReal> ((2*amrex::Random(engine)-1)*move_dir[2]*dx[2]);
 #endif
                     });
                 }
+            }
+        }
+    }
+
+    void negateEven ()
+    {
+        BL_PROFILE("TestParticleContainer::invalidateEven");
+
+        for (int lev = 0; lev <= finestLevel(); ++lev)
+        {
+            auto& plev  = GetParticles(lev);
+            for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+            {
+                int gid = mfi.index();
+                int tid = mfi.LocalTileIndex();
+                auto& ptile = plev[std::make_pair(gid, tid)];
+                auto& aos   = ptile.GetArrayOfStructs();
+                ParticleType* pstruct = &(aos[0]);
+                const size_t np = aos.numParticles();
+                amrex::ParallelFor( np, [=] AMREX_GPU_DEVICE (int i) noexcept
+                {
+                    ParticleType& p = pstruct[i];
+                    if (p.id() % 2 == 0) {
+                        p.id() = -p.id();
+                    }
+                });
             }
         }
     }
@@ -323,6 +351,7 @@ void get_test_params(TestParams& params, const std::string& prefix)
     pp.get("do_regrid", params.do_regrid);
     pp.query("num_runtime_real", num_runtime_real);
     pp.query("num_runtime_int", num_runtime_int);
+    pp.query("remove_negative", remove_negative);
 
     params.sort = 0;
     pp.query("sort", params.sort);
@@ -386,9 +415,18 @@ void testRedistribute ()
 
     auto np_old = pc.TotalNumberOfParticles();
 
+    if (params.sort) pc.SortParticlesByCell();
+
     for (int i = 0; i < params.nsteps; ++i)
     {
         pc.moveParticles(params.move_dir, params.do_random);
+        if (!remove_negative) {
+            auto old = pc.TotalNumberOfParticles();
+            pc.negateEven();
+            pc.RedistributeLocal(false);
+            AMREX_ALWAYS_ASSERT(old == pc.TotalNumberOfParticles(false));
+            pc.negateEven();
+        }
         pc.RedistributeLocal();
         if (params.sort) pc.SortParticlesByCell();
         pc.checkAnswer();
@@ -406,6 +444,13 @@ void testRedistribute ()
                 new_dm.define(pmap);
                 pc.SetParticleDistributionMap(lev, new_dm);
             }
+            if (!remove_negative) {
+                auto old = pc.TotalNumberOfParticles();
+                pc.negateEven();
+                pc.RedistributeGlobal(false);
+                AMREX_ALWAYS_ASSERT(old == pc.TotalNumberOfParticles(false));
+                pc.negateEven();
+            }
             pc.RedistributeGlobal();
             pc.checkAnswer();
         }
@@ -418,6 +463,13 @@ void testRedistribute ()
                 for (int i = 0; i < ba[lev].size(); ++i) pmap.push_back((i+1) % NProcs);
                 new_dm.define(pmap);
                 pc.SetParticleDistributionMap(lev, new_dm);
+            }
+            if (!remove_negative) {
+                auto old = pc.TotalNumberOfParticles();
+                pc.negateEven();
+                pc.RedistributeGlobal(false);
+                AMREX_ALWAYS_ASSERT(old == pc.TotalNumberOfParticles(false));
+                pc.negateEven();
             }
             pc.RedistributeGlobal();
             pc.checkAnswer();

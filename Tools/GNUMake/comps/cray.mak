@@ -23,7 +23,7 @@ else
 endif
 
 ifeq ($(CRAY_IS_CLANG_BASED),FALSE)
-  # -MMD -MP not supprted
+  # -MMD -MP not supported
   USE_LEGACY_DEPFLAGS = TRUE
   DEPFLAGS =
   LEGACY_DEPFLAGS = -M

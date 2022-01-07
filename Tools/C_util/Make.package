@@ -1,7 +1,0 @@
-
-UTIL_BASE:=EXE
-
-C$(UTIL_BASE)_sources += WritePlotFile.cpp
-C$(UTIL_BASE)_headers += WritePlotFile.H
-
-C$(UTIL_BASE)_headers += TV_TempWrite.H

@@ -6,6 +6,8 @@
 #include <AMReX_Functional.H>
 #include <AMReX_INT.H>
 
+#include <utility>
+
 namespace amrex {
 
 namespace Gpu { namespace Atomic {
@@ -45,6 +47,36 @@ namespace detail {
 #endif
     }
 
+    template <typename R, typename I, typename Op, typename Cond>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    bool atomic_op_if (R* const address, R const val, Op&& op, Cond&& cond) noexcept
+    {
+#if defined(__SYCL_DEVICE_ONLY__)
+        constexpr auto mo = sycl::memory_order::relaxed;
+        constexpr auto as = sycl::access::address_space::global_space;
+        static_assert(sizeof(R) == sizeof(I), "sizeof R != sizeof I");
+        I* const add_as_I = reinterpret_cast<I*>(address);
+        sycl::atomic<I, as> a{sycl::multi_ptr<I,as>(add_as_I)};
+        I old_I = a.load(mo), new_I;
+        bool test_success;
+        do {
+            R const tmp = op(*(reinterpret_cast<R const*>(&old_I)), val);
+            new_I = *(reinterpret_cast<I const*>(&tmp));
+            test_success = cond(tmp);
+        } while (test_success && ! a.compare_exchange_strong(old_I, new_I, mo));
+        return test_success;
+#else
+        R old = *address;
+        R const tmp = op(*(reinterpret_cast<R const*>(&old)), val);
+        if (cond(tmp)) {
+            *address = tmp;
+            return true;
+        } else {
+            return false;
+        }
+#endif
+    }
+
 #elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
     template <typename R, typename I, typename F>
@@ -60,6 +92,25 @@ namespace detail {
             old_I = atomicCAS(add_as_I, assumed_I, *(reinterpret_cast<I const*>(&new_R)));
         } while (assumed_I != old_I);
         return *(reinterpret_cast<R const*>(&old_I));
+    }
+
+    template <typename R, typename I, typename Op, typename Cond>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    bool atomic_op_if (R* const address, R const val, Op&& op, Cond&& cond) noexcept
+    {
+        static_assert(sizeof(R) == sizeof(I), "sizeof R != sizeof I");
+        I* const add_as_I = reinterpret_cast<I*>(address);
+        I old_I = *add_as_I, assumed_I;
+        bool test_success;
+        do {
+            assumed_I = old_I;
+            R const new_R = op(*(reinterpret_cast<R const*>(&assumed_I)), val);
+            test_success = cond(new_R);
+            if (test_success) {
+                old_I = atomicCAS(add_as_I, assumed_I, *(reinterpret_cast<I const*>(&new_R)));
+            }
+        } while (test_success && assumed_I != old_I);
+        return test_success;
     }
 
 #endif
@@ -146,6 +197,64 @@ namespace detail {
     }
 
 ////////////////////////////////////////////////////////////////////////
+//  If
+////////////////////////////////////////////////////////////////////////
+
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_DPCPP)
+    template <typename T, typename Op, typename Cond,
+              std::enable_if_t<sizeof(T) == sizeof(unsigned int), int> foo = 0>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    bool If_device (T* const sum, T const value, Op&& op, Cond&& cond) noexcept
+    {
+        return detail::atomic_op_if<T, unsigned int>(sum, value,
+                   std::forward<Op>(op), std::forward<Cond>(cond));
+    }
+
+    template <typename T, typename Op, typename Cond,
+              std::enable_if_t<sizeof(T) == sizeof(unsigned long long), int> foo = 0>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    bool If_device (T* const sum, T const value, Op&& op, Cond&& cond) noexcept
+    {
+        return detail::atomic_op_if<T, unsigned long long>(sum, value,
+                   std::forward<Op>(op), std::forward<Cond>(cond));
+    }
+#endif
+
+/**
+*  \brief Conditionally perform an atomic operation.
+*
+*  Atomically updates the result at "add" with "value" using "op",
+*  but only if "cond" is true.
+*
+* \tparam T the type pointed to by add
+* \tparam Op callable that takes two T argument and combines them
+* \tparam Cond callable that takes a "T" a returns whether to do the update
+*
+* \param add address to atomically update
+* \param value value to combine
+* \param op callable specifying the operation to use to combine *add and value
+* \param cond callable specifying the condition to test on first.
+*        The value passed in to the cond function is the would-be combined value
+**/
+    template<class T, class Op, class Cond>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    bool If (T* const add, T const value, Op&& op, Cond&& cond) noexcept
+    {
+#if AMREX_DEVICE_COMPILE
+        return If_device(add, value, std::forward<Op>(op), std::forward<Cond>(cond));
+#else
+        T old = *add;
+        T const tmp = op(old, value);
+        if (cond(tmp)) {
+            *add = tmp;
+            return true;
+        } else {
+            return false;
+        }
+#endif
+    }
+
+////////////////////////////////////////////////////////////////////////
 //  AddNoRet
 ////////////////////////////////////////////////////////////////////////
 
@@ -165,7 +274,10 @@ namespace detail {
     void AddNoRet (float* const sum, float const value) noexcept
     {
 #if AMREX_DEVICE_COMPILE
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
         atomicAddNoRet(sum, value);
+#pragma clang diagnostic pop
 #else
         *sum += value;
 #endif

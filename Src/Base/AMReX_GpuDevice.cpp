@@ -734,7 +734,7 @@ Device::instantiateGraph(cudaGraph_t graph)
     cudaGraphExec_t graphExec;
 
 #ifdef AMREX_DEBUG
-//  Implementes cudaGraphInstantiate error logging feature.
+//  Implements cudaGraphInstantiate error logging feature.
 //  Upon error, delays abort until message is output.
     constexpr int log_size = 1028;
     char graph_log[log_size];

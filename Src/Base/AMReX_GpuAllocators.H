@@ -47,7 +47,7 @@ namespace amrex {
 
         inline void deallocate(value_type* ptr, std::size_t)
         {
-            The_Arena()->free(ptr);
+            if (ptr != nullptr) { The_Arena()->free(ptr); }
         }
     };
 
@@ -68,7 +68,7 @@ namespace amrex {
 
         inline void deallocate(value_type* ptr, std::size_t)
         {
-            The_Device_Arena()->free(ptr);
+            if (ptr != nullptr) { The_Device_Arena()->free(ptr); }
         }
     };
 
@@ -89,7 +89,7 @@ namespace amrex {
 
         inline void deallocate(value_type* ptr, std::size_t)
         {
-            The_Pinned_Arena()->free(ptr);
+            if (ptr != nullptr) { The_Pinned_Arena()->free(ptr); }
         }
     };
 
@@ -110,7 +110,28 @@ namespace amrex {
 
         inline void deallocate(value_type* ptr, std::size_t)
         {
-            The_Managed_Arena()->free(ptr);
+            if (ptr != nullptr) { The_Managed_Arena()->free(ptr); }
+        }
+    };
+
+    template<typename T>
+    class AsyncArenaAllocator
+        : public ArenaAllocatorTraits
+    {
+    public :
+
+        using value_type = T;
+
+        inline value_type* allocate(std::size_t n)
+        {
+            value_type* result = nullptr;
+            result = (value_type*) The_Async_Arena()->alloc(n * sizeof(T));
+            return result;
+        }
+
+        inline void deallocate(value_type* ptr, std::size_t)
+        {
+            if (ptr != nullptr) { The_Async_Arena()->free(ptr); }
         }
     };
 
@@ -139,13 +160,16 @@ namespace amrex {
 
         inline void deallocate(value_type* ptr, std::size_t)
         {
-            if (m_use_gpu_aware_mpi)
+            if (ptr != nullptr)
             {
-                The_Arena()->free(ptr);
-            }
-            else
-            {
-                The_Pinned_Arena()->free(ptr);
+                if (m_use_gpu_aware_mpi)
+                {
+                    The_Arena()->free(ptr);
+                }
+                else
+                {
+                    The_Pinned_Arena()->free(ptr);
+                }
             }
         }
 
@@ -176,6 +200,9 @@ namespace amrex {
 
     template <typename T>
     struct RunOnGpu<ManagedArenaAllocator<T> > : std::true_type {};
+
+    template <typename T>
+    struct RunOnGpu<AsyncArenaAllocator<T> > : std::true_type {};
 
 #endif // AMREX_USE_GPU
 

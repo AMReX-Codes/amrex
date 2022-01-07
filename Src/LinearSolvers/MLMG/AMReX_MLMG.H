@@ -185,7 +185,7 @@ private:
     int nu1 = 2;       //!< pre
     int nu2 = 2;       //!< post
     int nuf = 8;       //!< when smoother is used as bottom solver
-    int nub = 0;       //!< aditional smoothing after bottom cg solver
+    int nub = 0;       //!< additional smoothing after bottom cg solver
 
     int max_fmg_iters = 0;
 

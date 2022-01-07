@@ -28,7 +28,7 @@ def release(argv):
         sys.exit(1)
 
     if not os.path.exists(cwfile):
-        print "clean word file:",cwfile,"does't exist."
+        print "clean word file:",cwfile,"doesn't exist."
         sys.exit(1)
 
 

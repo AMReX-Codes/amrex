@@ -34,11 +34,11 @@ target_sources( amrex
    AMReX_ParticleBufferMap.cpp
    AMReX_ParticleCommunication.H
    AMReX_ParticleCommunication.cpp
+   AMReX_ParticleInterpolators.H
    AMReX_ParticleReduce.H
    AMReX_ParticleMesh.H
    AMReX_ParticleLocator.H
    AMReX_ParticleIO.H
-   AMReX_ParticleHDF5.H
    AMReX_DenseBins.H
    AMReX_BinIterator.H
    AMReX_ParticleTransformation.H

@@ -127,3 +127,10 @@ ifneq (,$(filter $(host_name_env),poplar redwood tulip))
   which_computer := $(host_name_env)
 endif
 
+ifeq ($(findstring "cray.com", $(host_name)),"cray.com")
+ifeq ($(findstring birch, $(host_name)),birch)
+  which_site := frontier-coe
+  which_computer := $(host_name_env)
+endif
+endif
+
