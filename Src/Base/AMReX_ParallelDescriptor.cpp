@@ -1524,15 +1524,16 @@ EndTeams ()
 std::string
 mpi_level_to_string (int mtlev)
 {
+    amrex::ignore_unused(mtlev);
 #ifdef AMREX_USE_MPI
     if (mtlev == MPI_THREAD_SINGLE)
-            return std::string("MPI_THREAD_SINGLE");
+        return std::string("MPI_THREAD_SINGLE");
     if (mtlev == MPI_THREAD_FUNNELED)
-            return std::string("MPI_THREAD_FUNNELED");
+        return std::string("MPI_THREAD_FUNNELED");
     if (mtlev == MPI_THREAD_SERIALIZED)
-            return std::string("MPI_THREAD_SERIALIZED");
+        return std::string("MPI_THREAD_SERIALIZED");
     if (mtlev == MPI_THREAD_MULTIPLE)
-            return std::string("MPI_THREAD_MULTIPLE");
+        return std::string("MPI_THREAD_MULTIPLE");
 #endif
     return std::string("UNKNOWN");
 }
