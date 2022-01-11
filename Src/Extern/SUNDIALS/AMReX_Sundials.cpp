@@ -47,7 +47,6 @@ void Finalize()
 
 ::sundials::Context* The_Sundials_Context(int i)
 {
-    BL_ASSERT(the_sundials_context.size() <= i);
     BL_ASSERT(the_sundials_context[i] != nullptr);
     return the_sundials_context[i];
 }
