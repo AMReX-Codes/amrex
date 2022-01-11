@@ -205,7 +205,6 @@ void MemoryHelper::Finalize()
 
 MemoryHelper* The_SUNMemory_Helper(int i)
 {
-    BL_ASSERT(the_sunmemory_helper.size() <= i);
     BL_ASSERT(the_sunmemory_helper[i] != nullptr);
     return the_sunmemory_helper[i];
 }
