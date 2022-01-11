@@ -5,7 +5,9 @@
 #include <AMReX_MLEBNodeFDLaplacian.H>
 #include <AMReX_LO_BCTYPES.H>
 
-#if (AMREX_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 1)
+#include <AMReX_MLEBNodeFDLap_1D_K.H>
+#elif (AMREX_SPACEDIM == 2)
 #include <AMReX_MLEBNodeFDLap_2D_K.H>
 #else
 #include <AMReX_MLEBNodeFDLap_3D_K.H>
@@ -146,6 +148,40 @@ void mlebndfdlap_grad_z (Box const& b, Array4<Real> const& pz, Array4<Real const
     });
 }
 
+#endif
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebndfdlap_grad_x (Box const& b, Array4<Real> const& px, Array4<Real const> const& p,
+                         Real dxi)
+{
+    AMREX_LOOP_3D(b, i, j, k,
+    {
+        px(i,j,k) = dxi * (p(i+1,j,k) - p(i,j,k));
+    });
+}
+
+#if (AMREX_SPACEDIM > 1)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebndfdlap_grad_y (Box const& b, Array4<Real> const& py, Array4<Real const> const& p,
+                         Real dyi)
+{
+    AMREX_LOOP_3D(b, i, j, k,
+    {
+        py(i,j,k) = dyi * (p(i,j+1,k) - p(i,j,k));
+    });
+}
+#endif
+
+#if (AMREX_SPACEDIM > 2)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebndfdlap_grad_z (Box const& b, Array4<Real> const& pz, Array4<Real const> const& p,
+                         Real dzi)
+{
+    AMREX_LOOP_3D(b, i, j, k,
+    {
+        pz(i,j,k) = dzi * (p(i,j,k+1) - p(i,j,k));
+    });
+}
 #endif
 
 }

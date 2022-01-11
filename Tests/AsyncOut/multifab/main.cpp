@@ -53,8 +53,12 @@ void main_main ()
         else if (n_boxes_per_rank != 0)
         {
            n_cell_3d[0] = (max_grid_size) - 1;
+#if AMREX_SPACEDIM >= 2
            n_cell_3d[1] = (max_grid_size * n_boxes_per_rank) - 1;
+#endif
+#if AMREX_SPACEDIM == 3
            n_cell_3d[2] = (max_grid_size * ParallelDescriptor::NProcs()) - 1;
+#endif
         }
     }
 

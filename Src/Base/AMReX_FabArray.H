@@ -183,8 +183,6 @@ struct PCData {
     FabArrayBase::CpOp  op;
     int                 tag = -1;
     int                 actual_n_rcvs = -1;
-    IntVect             snghost, dnghost;
-    Periodicity         period;
     int                 SC = -1, NC = -1, DC = -1;
 
     char*               the_recv_data = nullptr;
@@ -256,6 +254,51 @@ Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, in
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
                 {
                     dstFab(i,j,k,dstcomp+n) = srcFab(i,j,k,srccomp+n);
+                });
+            }
+        }
+    }
+}
+
+template <class FAB,
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+void
+Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
+{
+    Add(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+template <class FAB,
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+void
+Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+{
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
+        auto const& dstfa = dst.arrays();
+        auto const& srcfa = src.const_arrays();
+        ParallelFor(dst, nghost, numcomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            dstfa[box_no](i,j,k,n+dstcomp) += srcfa[box_no](i,j,k,n+srccomp);
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost);
+            if (bx.ok())
+            {
+                auto const srcFab = src.array(mfi);
+                auto       dstFab = dst.array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
+                {
+                    dstFab(i,j,k,n+dstcomp) += srcFab(i,j,k,n+srccomp);
                 });
             }
         }
@@ -755,9 +798,28 @@ public:
                               const IntVect&       dst_nghost,
                               const Periodicity&   period = Periodicity::NonPeriodic(),
                               CpOp                 op = FabArrayBase::COPY,
-                              const FabArrayBase::CPC* a_cpc = nullptr);
+                              const FabArrayBase::CPC* a_cpc = nullptr,
+                              bool                 to_ghost_cells_only = false);
 
     void ParallelCopy_finish ();
+
+    void ParallelCopyToGhost (const FabArray<FAB>& src,
+                              int                  src_comp,
+                              int                  dest_comp,
+                              int                  num_comp,
+                              const IntVect&       src_nghost,
+                              const IntVect&       dst_nghost,
+                              const Periodicity&   period = Periodicity::NonPeriodic());
+
+    void ParallelCopyToGhost_nowait (const FabArray<FAB>& src,
+                                     int                  src_comp,
+                                     int                  dest_comp,
+                                     int                  num_comp,
+                                     const IntVect&       src_nghost,
+                                     const IntVect&       dst_nghost,
+                                     const Periodicity&   period = Periodicity::NonPeriodic());
+
+    void ParallelCopyToGhost_finish();
 
     [[deprecated("Use FabArray::ParallelCopy() instead.")]]
     void copy (const FabArray<FAB>& src,
@@ -862,6 +924,7 @@ public:
 
     void FillBoundary_nowait (bool cross = false);
     void FillBoundary_nowait (const Periodicity& period, bool cross = false);
+    void FillBoundary_nowait (const IntVect& nghost, const Periodicity& period, bool cross = false);
     void FillBoundary_nowait (int scomp, int ncomp, bool cross = false);
     void FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross = false);
     void FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost, const Periodicity& period, bool cross = false);
@@ -2550,6 +2613,13 @@ void
 FabArray<FAB>::FillBoundary_nowait (const Periodicity& period, bool cross)
 {
     FillBoundary_nowait(0, nComp(), nGrowVect(), period, cross);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FillBoundary_nowait (const IntVect& nghost, const Periodicity& period, bool cross)
+{
+    FillBoundary_nowait(0, nComp(), nghost, period, cross);
 }
 
 template <class FAB>

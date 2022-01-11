@@ -238,7 +238,7 @@ void test_async_io(TestParams& parms)
     MyParticleContainer myPC(geom, dmap, ba, rr);
     myPC.SetVerbose(false);
 
-    myPC.InitParticles(IntVect(2, 2, 2));
+    myPC.InitParticles(IntVect(AMREX_D_DECL(2, 2, 2)));
 
     for (int step = 0; step < 4000; ++step)
     {

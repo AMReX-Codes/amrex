@@ -1,9 +1,7 @@
 
 #include <AMReX_FArrayBox.H>
-#include <AMReX_FabConv.H>
-#include <AMReX_ParmParse.H>
-#include <AMReX_FabConv.H>
 #include <AMReX_FPC.H>
+#include <AMReX_ParmParse.H>
 
 #include <AMReX_BLassert.H>
 #include <AMReX.H>
@@ -221,6 +219,29 @@ FArrayBox::setFABio (FABio* rd)
     BL_ASSERT(rd != 0);
     delete fabio;
     fabio = rd;
+}
+
+std::unique_ptr<RealDescriptor>
+FArrayBox::getDataDescriptor ()
+{
+    RealDescriptor *whichRD = nullptr;
+    if (FArrayBox::getFormat() == FABio::FAB_NATIVE) {
+        whichRD = FPC::NativeRealDescriptor().clone();
+    } else if (FArrayBox::getFormat() == FABio::FAB_NATIVE_32) {
+        whichRD = FPC::Native32RealDescriptor().clone();
+    } else if (FArrayBox::getFormat() == FABio::FAB_IEEE_32) {
+        whichRD = FPC::Ieee32NormalRealDescriptor().clone();
+    } else {
+        whichRD = FPC::NativeRealDescriptor().clone(); // to quiet clang static analyzer
+        Abort("FArrayBox::getDataDescriptor(): format not supported. Use NATIVE, NATIVE_32 or IEEE_32");
+    }
+    return std::unique_ptr<RealDescriptor>(whichRD);
+}
+
+std::string
+FArrayBox::getClassName ()
+{
+    return std::string("amrex::FArrayBox");
 }
 
 void

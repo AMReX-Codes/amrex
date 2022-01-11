@@ -40,7 +40,7 @@ C$(AMREX_BASE)_headers += AMReX_ForkJoin.H AMReX_ParallelContext.H
 C$(AMREX_BASE)_sources += AMReX_ForkJoin.cpp AMReX_ParallelContext.cpp
 
 C$(AMREX_BASE)_sources += AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp AMReX_PArena.cpp
-C$(AMREX_BASE)_headers += AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H AMReX_PArena.H
+C$(AMREX_BASE)_headers += AMReX_VisMFBuffer.H AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H AMReX_PArena.H
 
 C$(AMREX_BASE)_sources += AMReX_AsyncOut.cpp
 C$(AMREX_BASE)_headers += AMReX_AsyncOut.H
@@ -103,7 +103,7 @@ C$(AMREX_BASE)_headers += AMReX_ParReduce.H
 #
 # I/O stuff.
 #
-C${AMREX_BASE}_headers += AMReX_FabConv.H AMReX_FPC.H AMReX_Print.H AMReX_IntConv.H AMReX_VectorIO.H
+C${AMREX_BASE}_headers += AMReX_ANSIEscCode.H AMReX_FabConv.H AMReX_FPC.H AMReX_Print.H AMReX_IntConv.H AMReX_VectorIO.H
 C${AMREX_BASE}_sources += AMReX_FabConv.cpp AMReX_FPC.cpp AMReX_IntConv.cpp AMReX_VectorIO.cpp
 
 #
@@ -178,6 +178,7 @@ C$(AMREX_BASE)_sources += AMReX_FilCC_C.cpp
 C$(AMREX_BASE)_headers += AMReX_FilCC_C.H AMReX_FilCC_$(DIM)D_C.H
 C$(AMREX_BASE)_sources += AMReX_FilND_C.cpp
 C$(AMREX_BASE)_headers += AMReX_FilND_C.H
+C$(AMREX_BASE)_sources += AMReX_FilFC_C.cpp
 C$(AMREX_BASE)_headers += AMReX_FilFC_C.H AMReX_FilFC_$(DIM)D_C.H
 
 #
@@ -191,6 +192,15 @@ C$(AMREX_BASE)_sources += AMReX_NonLocalBC.cpp
 #
 C$(AMREX_BASE)_sources += AMReX_PlotFileUtil.cpp AMReX_PlotFileDataImpl.cpp
 C$(AMREX_BASE)_headers += AMReX_PlotFileUtil.H AMReX_PlotFileDataImpl.H
+
+#
+# Time Integration
+#
+C$(AMREX_BASE)_headers += AMReX_FEIntegrator.H
+C$(AMREX_BASE)_headers += AMReX_IntegratorBase.H
+C$(AMREX_BASE)_headers += AMReX_RKIntegrator.H
+C$(AMREX_BASE)_headers += AMReX_TimeIntegrator.H
+
 
 #
 # Fortran interface routines.

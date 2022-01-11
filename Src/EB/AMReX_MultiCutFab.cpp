@@ -57,6 +57,20 @@ MultiCutFab::operator[] (const MFIter& mfi) noexcept
     return m_data[mfi];
 }
 
+const CutFab&
+MultiCutFab::operator[] (int global_box_index) const noexcept
+{
+    AMREX_ASSERT(ok(global_box_index));
+    return m_data[global_box_index];
+}
+
+CutFab&
+MultiCutFab::operator[] (int global_box_index) noexcept
+{
+    AMREX_ASSERT(ok(global_box_index));
+    return m_data[global_box_index];
+}
+
 Array4<Real const>
 MultiCutFab::const_array (const MFIter& mfi) const noexcept
 {
@@ -82,6 +96,12 @@ bool
 MultiCutFab::ok (const MFIter& mfi) const noexcept
 {
     return (*m_cellflags)[mfi].getType() == FabType::singlevalued;
+}
+
+bool
+MultiCutFab::ok (int global_box_index) const noexcept
+{
+    return (*m_cellflags)[global_box_index].getType() == FabType::singlevalued;
 }
 
 void

@@ -53,44 +53,86 @@ auto call_f (F const& f, SrcData const& src, N i, amrex::RandomEngine const&) no
     return f(src,i);
 }
 
-template <typename F, typename P, typename T>
+// These next several functions are used by ParticleToMesh and MeshToParticle
+
+// Lambda takes a Particle
+template <typename F, typename T, int NSR, int NSI, int NAR, int NAI>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f, P const& p, Array4<T> const& fabarr,
+auto call_f (F const& f,
+             const ConstParticleTileData<NSR, NSI, NAR, NAI>& p,
+             const int i, Array4<T> const& fabarr,
              GpuArray<Real,AMREX_SPACEDIM> const& plo,
              GpuArray<Real,AMREX_SPACEDIM> const& dxi) noexcept
-    -> decltype(f(p, fabarr, plo, dxi))
+    -> decltype(f(p.m_aos[i], fabarr, plo, dxi))
 {
-    return f(p, fabarr, plo, dxi);
+    return f(p.m_aos[i], fabarr, plo, dxi);
 }
 
-template <typename F, typename P, typename T>
+// Lambda takes a Particle
+template <typename F, typename T, int NSR, int NSI, int NAR, int NAI>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f, P const& p, Array4<T> const& fabarr,
+auto call_f (F const& f,
+             const ConstParticleTileData<NSR, NSI, NAR, NAI>& p,
+             const int i, Array4<T> const& fabarr,
              GpuArray<Real,AMREX_SPACEDIM> const&,
              GpuArray<Real,AMREX_SPACEDIM> const&) noexcept
-    -> decltype(f(p, fabarr))
+    -> decltype(f(p.m_aos[i], fabarr))
 {
-    return f(p, fabarr);
+    return f(p.m_aos[i], fabarr);
 }
 
-template <typename F, typename P, typename T>
+// Lambda takes a Particle
+template <typename F, typename T, int NSR, int NSI, int NAR, int NAI>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f, P& p, Array4<const T> const& fabarr,
+auto call_f (F const& f,
+             const ParticleTileData<NSR, NSI, NAR, NAI>& p,
+             const int i, Array4<const T> const& fabarr,
              GpuArray<Real,AMREX_SPACEDIM> const& plo,
              GpuArray<Real,AMREX_SPACEDIM> const& dxi) noexcept
-    -> decltype(f(p, fabarr, plo, dxi))
+    -> decltype(f(p.m_aos[i], fabarr, plo, dxi))
 {
-    return f(p, fabarr, plo, dxi);
+    return f(p.m_aos[i], fabarr, plo, dxi);
 }
 
-template <typename F, typename P, typename T>
+// Lambda takes a Particle
+template <typename F, typename T, int NSR, int NSI, int NAR, int NAI>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f, P& p, Array4<const T> const& fabarr,
+auto call_f (F const& f,
+             const ParticleTileData<NSR, NSI, NAR, NAI>& p,
+             const int i, Array4<const T> const& fabarr,
              GpuArray<Real,AMREX_SPACEDIM> const&,
              GpuArray<Real,AMREX_SPACEDIM> const&) noexcept
-    -> decltype(f(p, fabarr))
+    -> decltype(f(p.m_aos[i], fabarr))
 {
-    return f(p, fabarr);
+    return f(p.m_aos[i], fabarr);
+}
+
+// Lambda takes a SuperParticle
+template <typename F, typename T, int NSR, int NSI, int NAR, int NAI,
+          typename std::enable_if<(NAR != 0) || (NAI != 0), int>::type = 0>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f,
+             const ConstParticleTileData<NSR, NSI, NAR, NAI>& p,
+             const int i, Array4<T> const& fabarr,
+             GpuArray<Real,AMREX_SPACEDIM> const& plo,
+             GpuArray<Real,AMREX_SPACEDIM> const& dxi) noexcept
+    -> decltype(f(p.getSuperParticle(i), fabarr, plo, dxi))
+{
+    return f(p.getSuperParticle(i), fabarr, plo, dxi);
+}
+
+// Lambda takes a SuperParticle
+template <typename F, typename T, int NSR, int NSI, int NAR, int NAI,
+          typename std::enable_if<(NAR != 0) || (NAI != 0), int>::type = 0>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f,
+             const ConstParticleTileData<NSR, NSI, NAR, NAI>& p,
+             const int i, Array4<T> const& fabarr,
+             GpuArray<Real,AMREX_SPACEDIM> const&,
+             GpuArray<Real,AMREX_SPACEDIM> const&) noexcept
+    -> decltype(f(p.getSuperParticle(i), fabarr))
+{
+    return f(p.getSuperParticle(i), fabarr);
 }
 
 }
@@ -421,7 +463,7 @@ template <typename PTile, typename PLocator>
 int
 partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBufferMap& pmap,
                           const Geometry& geom, int lev, int gid, int /*tid*/,
-                          int lev_min, int lev_max, int nGrow)
+                          int lev_min, int lev_max, int nGrow, bool remove_negative)
 {
     const auto plo    = geom.ProbLoArray();
     const auto phi    = geom.ProbHiArray();
@@ -485,6 +527,10 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                       assigned_grid = amrex::get<0>(tup);
                       assigned_lev  = amrex::get<1>(tup);
                     }
+                }
+
+                if ((remove_negative == false) && (p.id() < 0)) {
+                    return true;
                 }
 
                 return ((assigned_grid == gid) && (assigned_lev == lev) && (getPID(lev, gid) == pid));
