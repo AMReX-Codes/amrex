@@ -120,7 +120,7 @@ Geometry::Setup (const RealBox* rb, int coord, int const* isper) noexcept
         gg->SetCoord( (CoordType) coord );
     } else {
         coord = 0;  // default is Cartesian coordinates
-        pp.query("coord_sys",coord);
+        pp.queryAdd("coord_sys",coord);
         gg->SetCoord( (CoordType) coord );
     }
 
@@ -129,8 +129,8 @@ Geometry::Setup (const RealBox* rb, int coord, int const* isper) noexcept
         Vector<Real> prob_hi(AMREX_SPACEDIM);
         Vector<Real> prob_extent(AMREX_SPACEDIM);
 
-        for (int i = 0; i < AMREX_SPACEDIM; i++) prob_lo[i] = 0.;
-        pp.queryarr("prob_lo",prob_lo,0,AMREX_SPACEDIM);
+        for (int i = 0; i < AMREX_SPACEDIM; i++) { prob_lo[i] = 0.; }
+        pp.queryAdd("prob_lo", prob_lo, AMREX_SPACEDIM);
         AMREX_ASSERT(prob_lo.size() == AMREX_SPACEDIM);
 
         bool read_prob_hi = pp.queryarr("prob_hi",prob_hi,0,AMREX_SPACEDIM);
@@ -164,7 +164,7 @@ Geometry::Setup (const RealBox* rb, int coord, int const* isper) noexcept
     if (isper == nullptr)
     {
         Vector<int> is_per(AMREX_SPACEDIM,0);
-        pp.queryarr("is_periodic",is_per,0,AMREX_SPACEDIM);
+        pp.queryAdd("is_periodic", is_per);
         for (int n = 0; n < AMREX_SPACEDIM; n++) {
             gg->is_periodic[n] = is_per[n];
         }

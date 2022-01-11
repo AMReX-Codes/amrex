@@ -95,13 +95,13 @@ namespace {
 void MLLinOp::Initialize ()
 {
     ParmParse pp("mg");
-    pp.query("consolidation_threshold", consolidation_threshold);
-    pp.query("consolidation_ratio", consolidation_ratio);
-    pp.query("consolidation_strategy", consolidation_strategy);
-    pp.query("verbose_linop", flag_verbose_linop);
-    pp.query("comm_cache", flag_comm_cache);
-    pp.query("mota", flag_use_mota);
-    pp.query("remap_nbh_lb", remap_nbh_lb);
+    pp.queryAdd("consolidation_threshold", consolidation_threshold);
+    pp.queryAdd("consolidation_ratio", consolidation_ratio);
+    pp.queryAdd("consolidation_strategy", consolidation_strategy);
+    pp.queryAdd("verbose_linop", flag_verbose_linop);
+    pp.queryAdd("comm_cache", flag_comm_cache);
+    pp.queryAdd("mota", flag_use_mota);
+    pp.queryAdd("remap_nbh_lb", remap_nbh_lb);
 
 #ifdef BL_USE_MPI
     comm_cache = std::make_unique<CommCache>();

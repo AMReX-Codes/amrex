@@ -17,12 +17,12 @@ struct HypreOptParse
     //! Hypre solver/preconditioner whose options are being set
     HYPRE_Solver solver;
 
-    HypreOptParse(const std::string& prefix, HYPRE_Solver sinp)
+    HypreOptParse (const std::string& prefix, HYPRE_Solver sinp)
         : pp(prefix), solver(sinp)
     {}
 
     template <typename F>
-    void operator()(const std::string& key, F&& func)
+    void operator() (const std::string& key, F&& func)
     {
         if (pp.contains(key.c_str())) {
             int val;
@@ -32,23 +32,23 @@ struct HypreOptParse
     }
 
     template <typename F, typename T>
-    void operator()(const std::string& key, F&& func, T default_val)
+    void operator() (const std::string& key, F&& func, T default_val)
     {
         T val = default_val;
-        pp.query(key.c_str(), val);
+        pp.queryAdd(key.c_str(), val);
         func(solver, val);
     }
 
     template <typename F, typename T>
-    void operator()(const std::string& key, F&& func, T default_val, int index)
+    void operator() (const std::string& key, F&& func, T default_val, int index)
     {
         T val = default_val;
-        pp.query(key.c_str(), val);
+        pp.queryAdd(key.c_str(), val);
         func(solver, val, index);
     }
 
     template <typename T, typename F>
-    void set(const std::string& key, F&& func)
+    void set (const std::string& key, F&& func)
     {
         if (pp.contains(key.c_str())) {
             T val;
@@ -60,7 +60,7 @@ struct HypreOptParse
 
 } // namespace
 
-HypreIJIface::HypreIJIface(
+HypreIJIface::HypreIJIface (
     MPI_Comm comm, HypreIntType ilower, HypreIntType iupper, int verbose)
     : m_comm(comm), m_ilower(ilower), m_iupper(iupper), m_verbose(verbose)
 {
@@ -78,7 +78,7 @@ HypreIJIface::HypreIJIface(
     HYPRE_IJVectorInitialize(m_sln);
 }
 
-HypreIJIface::~HypreIJIface()
+HypreIJIface::~HypreIJIface ()
 {
     HYPRE_IJMatrixDestroy(m_mat);
     m_mat = nullptr;
@@ -98,7 +98,7 @@ HypreIJIface::~HypreIJIface()
     }
 }
 
-void HypreIJIface::solve(
+void HypreIJIface::solve (
     const HypreRealType rel_tol, const HypreRealType abs_tol, const HypreIntType max_iter)
 {
     // Assuming that Matrix/rhs etc. has been assembled by calling code
@@ -154,16 +154,16 @@ void HypreIJIface::solve(
                        << std::endl;
 }
 
-void HypreIJIface::parse_inputs(const std::string& prefix)
+void HypreIJIface::parse_inputs (const std::string& prefix)
 {
     amrex::ParmParse pp(prefix);
 
-    pp.query("hypre_solver", m_solver_name);
-    pp.query("hypre_preconditioner", m_preconditioner_name);
-    pp.query("recompute_preconditioner", m_recompute_preconditioner);
-    pp.query("write_matrix_files", m_write_files);
-    pp.query("overwrite_existing_matrix_files", m_overwrite_files);
-    pp.query("adjust_singular_matrix", m_adjust_singular_matrix);
+    pp.queryAdd("hypre_solver", m_solver_name);
+    pp.queryAdd("hypre_preconditioner", m_preconditioner_name);
+    pp.queryAdd("recompute_preconditioner", m_recompute_preconditioner);
+    pp.queryAdd("write_matrix_files", m_write_files);
+    pp.queryAdd("overwrite_existing_matrix_files", m_overwrite_files);
+    pp.queryAdd("adjust_singular_matrix", m_adjust_singular_matrix);
 
     if (m_verbose > 2)
         amrex::Print() << "HYPRE: solver = " << m_solver_name
@@ -180,7 +180,7 @@ void HypreIJIface::parse_inputs(const std::string& prefix)
     init_solver(prefix, m_solver_name);
 }
 
-void HypreIJIface::init_preconditioner(
+void HypreIJIface::init_preconditioner (
     const std::string& prefix, const std::string& name)
 {
     if (name == "BoomerAMG") {
@@ -192,7 +192,7 @@ void HypreIJIface::init_preconditioner(
     }
 }
 
-void HypreIJIface::init_solver(
+void HypreIJIface::init_solver (
     const std::string& prefix, const std::string& name)
 {
     if (name == "BoomerAMG") {
@@ -216,7 +216,7 @@ void HypreIJIface::init_solver(
     }
 }
 
-void HypreIJIface::boomeramg_precond_configure(const std::string& prefix)
+void HypreIJIface::boomeramg_precond_configure (const std::string& prefix)
 {
     if (m_verbose > 2)
         amrex::Print() << "Creating BoomerAMG preconditioner" << std::endl;
@@ -328,7 +328,7 @@ void HypreIJIface::boomeramg_precond_configure(const std::string& prefix)
     }
 }
 
-void HypreIJIface::euclid_precond_configure(const std::string& prefix)
+void HypreIJIface::euclid_precond_configure (const std::string& prefix)
 {
     HYPRE_EuclidCreate(m_comm, &m_precond);
 
@@ -348,7 +348,7 @@ void HypreIJIface::euclid_precond_configure(const std::string& prefix)
     hpp("euclid_mem", HYPRE_EuclidSetMem, 0);
 }
 
-void HypreIJIface::boomeramg_solver_configure(const std::string& prefix)
+void HypreIJIface::boomeramg_solver_configure (const std::string& prefix)
 {
     if (m_has_preconditioner) {
         amrex::Warning(
@@ -399,12 +399,12 @@ void HypreIJIface::boomeramg_solver_configure(const std::string& prefix)
     hpp("bamg_max_levels", HYPRE_BoomerAMGSetMaxLevels);
 
     bool use_old_default = true;
-    hpp.pp.query("bamg_use_old_default", use_old_default);
+    hpp.pp.queryAdd("bamg_use_old_default", use_old_default);
     if (use_old_default)
         HYPRE_BoomerAMGSetOldDefault(m_solver);
 }
 
-void HypreIJIface::gmres_solver_configure(const std::string& prefix)
+void HypreIJIface::gmres_solver_configure (const std::string& prefix)
 {
     if (m_verbose > 2)
         amrex::Print() << "Creating GMRES solver" << std::endl;
@@ -434,7 +434,7 @@ void HypreIJIface::gmres_solver_configure(const std::string& prefix)
     hpp.set<amrex::Real>("atol", HYPRE_ParCSRGMRESSetAbsoluteTol);
 }
 
-void HypreIJIface::cogmres_solver_configure(const std::string& prefix)
+void HypreIJIface::cogmres_solver_configure (const std::string& prefix)
 {
     HYPRE_ParCSRCOGMRESCreate(m_comm, &m_solver);
 
@@ -462,7 +462,7 @@ void HypreIJIface::cogmres_solver_configure(const std::string& prefix)
     hpp.set<amrex::Real>("atol", HYPRE_ParCSRCOGMRESSetAbsoluteTol);
 }
 
-void HypreIJIface::lgmres_solver_configure(const std::string& prefix)
+void HypreIJIface::lgmres_solver_configure (const std::string& prefix)
 {
     HYPRE_ParCSRLGMRESCreate(m_comm, &m_solver);
 
@@ -490,7 +490,7 @@ void HypreIJIface::lgmres_solver_configure(const std::string& prefix)
     hpp.set<amrex::Real>("atol", HYPRE_ParCSRLGMRESSetAbsoluteTol);
 }
 
-void HypreIJIface::flex_gmres_solver_configure(const std::string& prefix)
+void HypreIJIface::flex_gmres_solver_configure (const std::string& prefix)
 {
     HYPRE_ParCSRFlexGMRESCreate(m_comm, &m_solver);
 
@@ -518,7 +518,7 @@ void HypreIJIface::flex_gmres_solver_configure(const std::string& prefix)
     hpp.set<amrex::Real>("atol", HYPRE_ParCSRFlexGMRESSetAbsoluteTol);
 }
 
-void HypreIJIface::bicgstab_solver_configure(const std::string& prefix)
+void HypreIJIface::bicgstab_solver_configure (const std::string& prefix)
 {
     HYPRE_ParCSRBiCGSTABCreate(m_comm, &m_solver);
 
@@ -545,7 +545,7 @@ void HypreIJIface::bicgstab_solver_configure(const std::string& prefix)
     hpp.set<amrex::Real>("atol", HYPRE_ParCSRBiCGSTABSetAbsoluteTol);
 }
 
-void HypreIJIface::pcg_solver_configure(const std::string& prefix)
+void HypreIJIface::pcg_solver_configure (const std::string& prefix)
 {
     HYPRE_ParCSRPCGCreate(m_comm, &m_solver);
 
@@ -571,7 +571,7 @@ void HypreIJIface::pcg_solver_configure(const std::string& prefix)
     hpp.set<amrex::Real>("atol", HYPRE_ParCSRPCGSetAbsoluteTol);
 }
 
-void HypreIJIface::hybrid_solver_configure(const std::string& prefix)
+void HypreIJIface::hybrid_solver_configure (const std::string& prefix)
 {
     HYPRE_ParCSRHybridCreate(&m_solver);
 

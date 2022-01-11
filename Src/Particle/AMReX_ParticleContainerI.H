@@ -55,7 +55,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator> :: 
                       "sizeof ParticleType is not a multiple of sizeof RealType");
 
         ParmParse pp("particles");
-        pp.query("do_tiling", do_tiling);
+        pp.queryAdd("do_tiling", do_tiling);
         Vector<int> tilesize(AMREX_SPACEDIM);
         if (pp.queryarr("tile_size", tilesize, 0, AMREX_SPACEDIM)) {
             for (int i=0; i<AMREX_SPACEDIM; ++i) tile_size[i] = tilesize[i];
@@ -66,9 +66,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator> :: 
         //                   && std::is_trivial<ParticleType>::value,
         //                      "Particle type must be standard layout and trivial.");
 
-        pp.query("use_prepost", usePrePost);
-        pp.query("do_unlink", doUnlink);
-        pp.query("do_mem_efficient_sort", memEfficientSort);
+        pp.queryAdd("use_prepost", usePrePost);
+        pp.queryAdd("do_unlink", doUnlink);
+        pp.queryAdd("do_mem_efficient_sort", memEfficientSort);
 
         initialized = true;
     }
