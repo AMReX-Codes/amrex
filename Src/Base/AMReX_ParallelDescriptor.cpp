@@ -1524,20 +1524,17 @@ EndTeams ()
 std::string
 mpi_level_to_string (int mtlev)
 {
-    switch (mtlev) {
 #ifdef AMREX_USE_MPI
-        case MPI_THREAD_SINGLE:
+    if (mtlev == MPI_THREAD_SINGLE)
             return std::string("MPI_THREAD_SINGLE");
-        case MPI_THREAD_FUNNELED:
+    if (mtlev == MPI_THREAD_FUNNELED)
             return std::string("MPI_THREAD_FUNNELED");
-        case MPI_THREAD_SERIALIZED:
+    if (mtlev == MPI_THREAD_SERIALIZED)
             return std::string("MPI_THREAD_SERIALIZED");
-        case MPI_THREAD_MULTIPLE:
+    if (mtlev == MPI_THREAD_MULTIPLE)
             return std::string("MPI_THREAD_MULTIPLE");
 #endif
-        default:
-            return std::string("UNKNOWN");
-    }
+    return std::string("UNKNOWN");
 }
 
 #ifdef BL_USE_MPI
