@@ -728,6 +728,9 @@ class FaceLinear
 {
 public:
 
+    explicit FaceLinear (bool use_coarse_data = false)
+        : m_use_coarse_data(use_coarse_data) {}
+
     /**
     * \brief The destructor.
     */
@@ -841,7 +844,10 @@ public:
                              const int         /*actual_state*/,
                              const RunOn       runon) override;
 
+    bool useFineData () const { return !m_use_coarse_data; }
 
+private:
+    bool m_use_coarse_data = false; // use coarse data at coarse/fine interface?
 };
 
 
@@ -850,6 +856,7 @@ extern AMREX_EXPORT PCInterp                  pc_interp;
 extern AMREX_EXPORT NodeBilinear              node_bilinear_interp;
 extern AMREX_EXPORT FaceDivFree               face_divfree_interp;
 extern AMREX_EXPORT FaceLinear                face_linear_interp;
+extern AMREX_EXPORT FaceLinear                face_linear_coarse_interp;
 extern AMREX_EXPORT CellConservativeLinear    lincc_interp;
 extern AMREX_EXPORT CellConservativeLinear    cell_cons_interp;
 extern AMREX_EXPORT CellBilinear              cell_bilinear_interp;

@@ -30,6 +30,7 @@ namespace amrex {
 PCInterp                  pc_interp;
 NodeBilinear              node_bilinear_interp;
 FaceLinear                face_linear_interp;
+FaceLinear                face_linear_coarse_interp(true); // prefer coarse data at coarse/fine
 FaceDivFree               face_divfree_interp;
 CellConservativeLinear    lincc_interp;
 CellConservativeLinear    cell_cons_interp(0);
@@ -125,21 +126,53 @@ FaceLinear::CoarseBox (const Box& fine, const IntVect& ratio)
 }
 
 void
-FaceLinear::interp (const FArrayBox&  /*crse*/,
-                    int               /*crse_comp*/,
-                    FArrayBox&        /*fine*/,
-                    int               /*fine_comp*/,
-                    int               /*ncomp*/,
-                    const Box&        /*fine_region*/,
-                    const IntVect&    /*ratio*/,
+FaceLinear::interp (const FArrayBox&  crse,
+                    int               crse_comp,
+                    FArrayBox&        fine,
+                    int               fine_comp,
+                    int               ncomp,
+                    const Box&        fine_region,
+                    const IntVect&    ratio,
                     const Geometry& /*crse_geom */,
                     const Geometry& /*fine_geom */,
                     Vector<BCRec> const& /*bcr*/,
                     int               /*actual_comp*/,
                     int               /*actual_state*/,
-                    RunOn             /*runon*/)
+                    RunOn             runon)
 {
-    Abort("FaceLinear: Calling wrong version of interp(). Call interp_face() instead.");
+    BL_PROFILE("FaceLinear::interp_face()");
+
+    AMREX_ASSERT(m_use_coarse_data = true);
+    AMREX_ASSERT(AMREX_D_TERM(fine_region.type(0),+fine_region.type(1),+fine_region.type(2)) == 1);
+
+    Array4<Real> const& fine_arr = fine.array(fine_comp);
+    Array4<Real const> const& crse_arr = crse.const_array(crse_comp);
+
+    if (fine_region.type(0) == IndexType::NODE)
+    {
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+        {
+            face_linear_coarse_interp_x(i,j,k,n,fine_arr,crse_arr,ratio);
+        });
+    }
+#if (AMREX_SPACEDIM >= 2)
+    else if (fine_region.type(1) == IndexType::NODE)
+    {
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+        {
+            face_linear_coarse_interp_y(i,j,k,n,fine_arr,crse_arr,ratio);
+        });
+    }
+#if (AMREX_SPACEDIM == 3)
+    else
+    {
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+        {
+            face_linear_coarse_interp_z(i,j,k,n,fine_arr,crse_arr,ratio);
+        });
+    }
+#endif
+#endif
 }
 
 void
@@ -157,8 +190,9 @@ FaceLinear::interp_face (const FArrayBox&  crse,
                          const int         /*bccomp*/,
                          RunOn             runon)
 {
-    BL_PROFILE("FaceLinear::interp()");
+    BL_PROFILE("FaceLinear::interp_face()");
 
+    AMREX_ASSERT(m_use_coarse_data = false);
     AMREX_ASSERT(AMREX_D_TERM(fine_region.type(0),+fine_region.type(1),+fine_region.type(2)) == 1);
 
     Array4<Real> const& fine_arr = fine.array(fine_comp);
@@ -246,6 +280,8 @@ void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                              const RunOn       runon)
 {
     BL_PROFILE("FaceLinear::interp_arr()");
+
+    AMREX_ASSERT(m_use_coarse_data = false);
 
     Array<IndexType, AMREX_SPACEDIM> types;
     for (int d=0; d<AMREX_SPACEDIM; ++d)
