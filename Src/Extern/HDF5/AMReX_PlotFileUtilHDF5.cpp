@@ -499,18 +499,7 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
     if (fid < 0)
         FileOpenFailed(filename.c_str());
 
-    RealDescriptor *whichRD = nullptr;
-    if(FArrayBox::getFormat() == FABio::FAB_NATIVE) {
-        whichRD = FPC::NativeRealDescriptor().clone();
-    } else if(FArrayBox::getFormat() == FABio::FAB_NATIVE_32) {
-        whichRD = FPC::Native32RealDescriptor().clone();
-    } else if(FArrayBox::getFormat() == FABio::FAB_IEEE_32) {
-        whichRD = FPC::Ieee32NormalRealDescriptor().clone();
-    } else {
-        whichRD = FPC::NativeRealDescriptor().clone(); // to quiet clang static analyzer
-        Abort("VisMF::Write unable to execute with the current fab.format setting.  Use NATIVE, NATIVE_32 or IEEE_32");
-    }
-
+    auto whichRD = FArrayBox::getDataDescriptor();
     bool doConvert(*whichRD != FPC::NativeRealDescriptor());
     int whichRDBytes(whichRD->numBytes());
 
@@ -749,8 +738,6 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
 #else
     H5Fclose(fid);
 #endif
-
-    delete whichRD;
 } // WriteMultiLevelPlotfileHDF5SingleDset
 
 void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
@@ -924,18 +911,7 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
     if (fid < 0)
         FileOpenFailed(filename.c_str());
 
-    RealDescriptor *whichRD = nullptr;
-    if(FArrayBox::getFormat() == FABio::FAB_NATIVE) {
-        whichRD = FPC::NativeRealDescriptor().clone();
-    } else if(FArrayBox::getFormat() == FABio::FAB_NATIVE_32) {
-        whichRD = FPC::Native32RealDescriptor().clone();
-    } else if(FArrayBox::getFormat() == FABio::FAB_IEEE_32) {
-        whichRD = FPC::Ieee32NormalRealDescriptor().clone();
-    } else {
-        whichRD = FPC::NativeRealDescriptor().clone(); // to quiet clang static analyzer
-        Abort("VisMF::Write unable to execute with the current fab.format setting.  Use NATIVE, NATIVE_32 or IEEE_32");
-    }
-
+    auto whichRD = FArrayBox::getDataDescriptor();
     bool doConvert(*whichRD != FPC::NativeRealDescriptor());
     int whichRDBytes(whichRD->numBytes());
 
@@ -1185,15 +1161,13 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
 #else
     H5Fclose(fid);
 #endif
-
-    delete whichRD;
 } // WriteMultiLevelPlotfileHDF5MultiDset
 
 void
 WriteSingleLevelPlotfileHDF5 (const std::string& plotfilename,
                               const MultiFab& mf, const Vector<std::string>& varnames,
                               const Geometry& geom, Real time, int level_step,
-                              std::string &compression,
+                              const std::string &compression,
                               const std::string &versionName,
                               const std::string &levelPrefix,
                               const std::string &mfPrefix,
@@ -1212,7 +1186,7 @@ void
 WriteSingleLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
                                         const MultiFab& mf, const Vector<std::string>& varnames,
                                         const Geometry& geom, Real time, int level_step,
-                                        std::string &compression,
+                                        const std::string &compression,
                                         const std::string &versionName,
                                         const std::string &levelPrefix,
                                         const std::string &mfPrefix,
@@ -1231,7 +1205,7 @@ void
 WriteSingleLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
                                        const MultiFab& mf, const Vector<std::string>& varnames,
                                        const Geometry& geom, Real time, int level_step,
-                                       std::string &compression,
+                                       const std::string &compression,
                                        const std::string &versionName,
                                        const std::string &levelPrefix,
                                        const std::string &mfPrefix,

@@ -319,8 +319,8 @@ we provide the helper function ``setup_target_for_cuda_compilation()``:
 
 
 
-Enabling HIP support (experimental)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Enabling HIP Support
+^^^^^^^^^^^^^^^^^^^^
 
 To build AMReX with HIP support in CMake, add
 ``-DAMReX_GPU_BACKEND=HIP -DAMReX_AMD_ARCH=<target-arch> -DCMAKE_CXX_COMPILER=<your-hip-compiler>``
@@ -350,8 +350,8 @@ Below is an example configuration for HIP on Tulip:
    cmake --build build -j 6
 
 
-Enabling SYCL support (experimental)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Enabling SYCL Support
+^^^^^^^^^^^^^^^^^^^^^
 
 To build AMReX with SYCL support in CMake, add
 ``-DAMReX_GPU_BACKEND=SYCL -DCMAKE_CXX_COMPILER=<your-sycl-compiler>``
@@ -390,6 +390,8 @@ Below is an example configuration for SYCL:
    | Variable Name                | Description                                     | Default     | Possible values |
    +==============================+=================================================+=============+=================+
    | AMReX_DPCPP_AOT              | Enable DPCPP ahead-of-time compilation          | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | AMREX_INTEL_ARCH             | Specify target if AOT is enabled                | None        | Gen9, etc.      |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_DPCPP_SPLIT_KERNEL     | Enable DPCPP kernel splitting                   | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+

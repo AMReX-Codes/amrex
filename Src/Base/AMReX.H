@@ -226,6 +226,20 @@ namespace amrex
         std::allocator<float> a_f;
         std::allocator<double> a_d;
         std::allocator<std::string> a_s;
+
+        amrex::ignore_unused(a_b);
+        amrex::ignore_unused(a_c);
+        amrex::ignore_unused(a_i);
+        amrex::ignore_unused(a_l);
+        amrex::ignore_unused(a_ll);
+        amrex::ignore_unused(a_uc);
+        amrex::ignore_unused(a_ui);
+        amrex::ignore_unused(a_ul);
+        amrex::ignore_unused(a_ull);
+        amrex::ignore_unused(a_ll);
+        amrex::ignore_unused(a_f);
+        amrex::ignore_unused(a_d);
+        amrex::ignore_unused(a_s);
     }
 #endif
 

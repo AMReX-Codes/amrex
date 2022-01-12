@@ -198,20 +198,43 @@ In this case, the :cpp:`Vector<BoxArray>` and :cpp:`Vector<DistributionMap>`
 used by your :cpp:`ParticleContainer` will be updated automatically to match
 those in your :cpp:`AmrCore`.
 
+The ParticleTile
+----------------
+
 The :cpp:`ParticleContainer` stores the particle data in a manner prescribed by
-the set of AMR grids used to define it. If tiling is turned off, then every
-grid has its own Array-of-Structs and Struct-of-Arrays. Which AMR grid a
-particle is assigned to is determined by examining its position and binning it,
-using the domain left edge as an offset.  By default, a particle is assigned to
+the set of AMR grids used to define it. Local particle data is always stored in
+a data structure called a :cpp:`ParticleTile`, which contains a mixture of AoS
+and SoA components as described above. The tiling behavior of :cpp:`ParticleTile`
+is determined by the parameter, ``particle.do_tiling``:
+
+-  If ``particles.do_tiling=0``, then there is always exactly one
+   :cpp:`ParticleTile` per grid. This is equivalent to setting a very large
+   ``particles.tile_size`` in each direction.
+
+-  If ``particles.do_tiling=1``, then each grid can have multiple
+   :cpp:`ParticleTile` objects associated with it based on the
+   ``particles.tile_size`` parameter.
+
+The AMR grid to which a particle is assigned, is determined by examining its
+position and binning it, using the domain left edge as an offset. By default,
+a particle is assigned to
 the finest level that contains its position, although this behavior can be
-tweaked if desired.  When tiling is enabled, then each *tile* gets its own
-Struct-of-Arrays and Array-of-Structs instead. Note that this is different than
-what happens with mesh data. With mesh data, the tiling is strictly logical;
-the data is laid out in memory the same whether tiling is turned on or off.
-With particle data, however, the particles are actually stored in different
-arrays when tiling is enabled. As with mesh data, the particle tile size can be
-tuned so that an entire tile's worth of particles will fit into a cache line at
-once.
+tweaked if desired.
+
+
+.. note::
+
+   :cpp:`ParticleTile` data tiling with :ref:`MFIter<sec:basics:mfiter>` behaves differently than mesh
+   data. With mesh data, the tiling is strictly logical --the data is laid out in
+   memory the same way whether tiling is turned on or off.
+   With particle data, however, the particles are actually stored in different
+   arrays when tiling is enabled. As with mesh data, the particle tile size can be
+   tuned so that an entire tile's worth of particles will fit into a cache line at
+   once.
+
+
+Redistribute
+------------
 
 Once the particles move, their data may no longer be in the right place in the
 container. They can be reassigned by calling the :cpp:`Redistribute()` method
@@ -224,7 +247,6 @@ Application codes will likely want to create their own derived
 ParticleContainer class that specializes the template parameters and adds
 additional functionality, like setting the initial conditions, moving the
 particles, etc. See the `particle tutorials`_ for examples of this.
-
 .. _`particle tutorials`: https://amrex-codes.github.io/amrex/tutorials_html/Particles_Tutorial.html
 
 .. _sec:Particles:Initializing:

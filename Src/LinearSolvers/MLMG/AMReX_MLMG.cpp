@@ -1482,8 +1482,6 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
     BL_PROFILE("MLMG::compResidual()");
 
     const int ncomp = linop.getNComp();
-    int nghost = 0;
-    amrex::ignore_unused(nghost);
     IntVect ng_sol(1);
     if (linop.hasHiddenDimension()) ng_sol[linop.hiddenDirection()] = 0;
 
@@ -1493,7 +1491,6 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
     {
         if (cf_strategy == CFStrategy::ghostnodes)
         {
-            nghost = linop.getNGrow(alev);
             sol[alev] = a_sol[alev];
         }
         else if (a_sol[alev]->nGrowVect() == ng_sol)
@@ -1524,11 +1521,10 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
     const auto& amrrr = linop.AMRRefRatio();
 
     for (int alev = finest_amr_lev; alev >= 0; --alev) {
-        if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow(alev);
-
         const MultiFab* crse_bcdata = (alev > 0) ? sol[alev-1] : nullptr;
         const MultiFab* prhs = a_rhs[alev];
 #if (AMREX_SPACEDIM != 3)
+        int nghost = (cf_strategy == CFStrategy::ghostnodes) ? linop.getNGrow(alev) : 0;
         MultiFab rhstmp(prhs->boxArray(), prhs->DistributionMap(), ncomp, nghost,
                         MFInfo(), *linop.Factory(alev));
         MultiFab::Copy(rhstmp, *prhs, 0, 0, ncomp, nghost);

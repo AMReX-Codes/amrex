@@ -3,16 +3,23 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_Array.H>
+#ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
+#endif
 #include <AMReX_MLNodeLinOp.H>
 
 #include <limits>
 
 namespace amrex {
 
-// del dot (sigma grad phi) = rhs
+// Although the class has EB in the name, it works for non-EB build too.
+//
+// del dot (sigma grad phi) = rhs, for non-RZ
 // where phi and rhs are nodal multifab, and sigma is a tensor constant
 // with only diagonal components.  The EB is assumed to be Dirichlet.
+//
+// del dot grad phi - alpha/r^2 phi = rhs, for RZ
+// where alpha is a scalar constant.  For now, it is assumed alpha.
 
 class MLEBNodeFDLaplacian
     : public MLNodeLinOp
@@ -20,11 +27,19 @@ class MLEBNodeFDLaplacian
 public:
 
     MLEBNodeFDLaplacian () noexcept {}
+
+#ifdef AMREX_USE_EB
     MLEBNodeFDLaplacian (const Vector<Geometry>& a_geom,
                          const Vector<BoxArray>& a_grids,
                          const Vector<DistributionMapping>& a_dmap,
                          const LPInfo& a_info,
                          const Vector<EBFArrayBoxFactory const*>& a_factory);
+#endif
+
+    MLEBNodeFDLaplacian (const Vector<Geometry>& a_geom,
+                         const Vector<BoxArray>& a_grids,
+                         const Vector<DistributionMapping>& a_dmap,
+                         const LPInfo& a_info);
 
     virtual ~MLEBNodeFDLaplacian ();
 
@@ -34,6 +49,10 @@ public:
     MLEBNodeFDLaplacian& operator= (MLEBNodeFDLaplacian&&) = delete;
 
     void setSigma (Array<Real,AMREX_SPACEDIM> const& a_sigma) noexcept;
+
+    void setRZ (bool flag);
+
+#ifdef AMREX_USE_EB
 
     // Phi on EB
     void setEBDirichlet (Real a_phi_eb);
@@ -50,6 +69,15 @@ public:
 
     virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int amrlev, int mglev) const final override;
 
+    virtual void scaleRHS (int amrlev, MultiFab& rhs) const final;
+
+#endif
+
+    void define (const Vector<Geometry>& a_geom,
+                 const Vector<BoxArray>& a_grids,
+                 const Vector<DistributionMapping>& a_dmap,
+                 const LPInfo& a_info);
+
     virtual std::string name () const override { return std::string("MLEBNodeFDLaplacian"); }
 
     virtual void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const final override;
@@ -60,8 +88,6 @@ public:
     virtual void reflux (int crse_amrlev,
                          MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
                          MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const final override;
-
-    virtual void scaleRHS (int amrlev, MultiFab& rhs) const final;
 
     virtual void prepareForSolve () final override;
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final override;
@@ -75,7 +101,7 @@ public:
     virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                            MultiFab& sol, Location /*loc*/) const override;
 
-#if defined(AMREX_USE_HYPRE)
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     virtual void fillIJMatrix (MFIter const& mfi,
                                Array4<HypreNodeLap::AtomicInt const> const& gid,
                                Array4<int const> const& lid,
@@ -90,10 +116,13 @@ public:
 #endif
 
 private:
-    GpuArray<Real,AMREX_SPACEDIM> m_sigma;
+    GpuArray<Real,AMREX_SPACEDIM> m_sigma{AMREX_D_DECL(1_rt,1_rt,1_rt)};
     Real m_s_phi_eb = std::numeric_limits<Real>::lowest();
     Vector<MultiFab> m_phi_eb;
+    int m_rz = false;
 };
+
+#ifdef AMREX_USE_EB
 
 template <typename F>
 std::enable_if_t<IsCallableR<Real,F,AMREX_D_DECL(Real,Real,Real)>::value>
@@ -134,6 +163,8 @@ MLEBNodeFDLaplacian::setEBDirichlet (F&& f)
         }
     }
 }
+
+#endif
 
 }
 

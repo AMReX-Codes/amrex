@@ -922,12 +922,12 @@ ParallelDescriptor::Gather (const T& t, int root)
     BL_PROFILE_T_S("ParallelDescriptor::Gather(Ti)", T);
     BL_COMM_PROFILE(BLProfiler::GatherTi, BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
 
-    std::vector<T> resl(1);
+    std::vector<T> resl;
     if ( root == MyProc() ) resl.resize(NProcs());
     BL_MPI_REQUIRE( MPI_Gather(const_cast<T*>(&t),
                                1,
                                Mpi_typemap<T>::type(),
-                               &resl[0],
+                               resl.data(),
                                1,
                                Mpi_typemap<T>::type(),
                                root,
@@ -971,6 +971,7 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
 
     int nprocs = ParallelContext::NProcsSub();
     Vector<int> recvcount(nprocs, 0);
+    recvbuf.resize(sendbuf.size());
     const Vector<int>& old_pmap = sendbuf.DistributionMap().ProcessorMap();
     for (int i=0; i<old_pmap.size(); ++i)
     {
@@ -1028,7 +1029,7 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
 
         for (int i=0; i<recvbuf.size(); ++i)
         {
-                recvbuf[i] = new_index_to_T[old_index_to_new_index[i]];
+            recvbuf[i] = new_index_to_T[old_index_to_new_index[i]];
         }
     }
 }
@@ -1169,9 +1170,20 @@ Gather(const T& t, int /*root*/)
 
 template <class T>
 void
+Gatherv (const T* send, int sc,
+         T* recv, const std::vector<int>& /*rc*/,
+         const std::vector<int>& /*disp*/, int /*root*/)
+{
+    for (int j=0; j<sc; ++j) { recv[j] = send[j]; }
+}
+
+template <class T>
+void
 GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
                           Vector<T>& recvbuf, int /*root*/)
 {
+    recvbuf.resize(sendbuf.size());
+
     for (int i=0; i<sendbuf.size(); ++i)
     {
         recvbuf[i] = sendbuf[i];

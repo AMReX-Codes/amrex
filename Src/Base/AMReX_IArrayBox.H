@@ -5,10 +5,21 @@
 
 #include <AMReX_Box.H>
 #include <AMReX_BaseFab.H>
-#include <AMReX_REAL.H>
 #include <AMReX_SPACE.H>
 
+#include <iosfwd>
+
 namespace amrex {
+
+class IArrayBox;
+class IntDescriptor;
+
+class IFABio
+{
+public:
+    void write_header (std::ostream& os, const IArrayBox& fab, int nvar) const;
+    void read (std::istream& is, IArrayBox& fab, IntDescriptor const& data_descriptor) const;
+};
 
 /**
 * \brief  A Fortran Array of ints
@@ -36,6 +47,8 @@ class IArrayBox
     public BaseFab<int>
 {
 public:
+    friend class IFABio;
+
     //! Construct an invalid FAB with no memory.
     IArrayBox () noexcept;
 
@@ -80,13 +93,22 @@ public:
     //! For debugging purposes we hide BaseFab version and do some extra work.
     void resize (const Box& b, int N = 1, Arena* ar = nullptr);
 
+    void readFrom (std::istream& is);
+
     //! Initialize from ParmParse with "fab" prefix.
     static void Initialize ();
     static void Finalize ();
 
+    static std::unique_ptr<IntDescriptor> getDataDescriptor ();
+
+    static IFABio const& getFABio ();
+
+    static std::string getClassName ();
+
 private:
 
     static bool do_initval;
+    static std::unique_ptr<IFABio> ifabio;
 
 };
 

@@ -1,8 +1,7 @@
 
-#include <AMReX_Utility.H>
 #include <AMReX_NFiles.H>
 #include <deque>
-#include <fstream>
+#include <set>
 
 namespace amrex {
 
@@ -30,7 +29,7 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
   finishedWriting = false;
 
   if(setBuf) {
-    io_buffer.resize(VisMF::GetIOBufferSize());
+    io_buffer.resize(VisMFBuffer::GetIOBufferSize());
     fileStream.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
   }
 
@@ -189,7 +188,7 @@ NFilesIter::NFilesIter(const std::string &filename,
   }
 
   if(setBuf) {
-    io_buffer.resize(VisMF::GetIOBufferSize());
+    io_buffer.resize(VisMFBuffer::GetIOBufferSize());
     fileStream.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
   }
 

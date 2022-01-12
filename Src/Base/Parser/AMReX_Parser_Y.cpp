@@ -100,7 +100,7 @@ parser_newf3 (enum parser_f3_t ftype, struct parser_node* n1, struct parser_node
 struct parser_node*
 parser_newassign (struct parser_symbol* sym, struct parser_node* v)
 {
-    auto r = (struct parser_assign*) std::malloc(sizeof(struct parser_symbol));
+    auto r = (struct parser_assign*) std::malloc(sizeof(struct parser_assign));
     r->type = PARSER_ASSIGN;
     r->s = sym;
     r->v = v;

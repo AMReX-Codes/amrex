@@ -475,7 +475,8 @@ public:
     *              a particle can have moved since the last Redistribute() call. Knowing this number
     *              allows an optimized MPI communication pattern to be used.
     */
-    void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
+    void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
+                       bool remove_negative=true);
 
     /**
      * \brief Sort the particles on each tile by cell, using Fortran ordering.
@@ -1184,9 +1185,11 @@ public:
       return doUnlink;
     }
 
-    void RedistributeCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
+    void RedistributeCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
+                          bool remove_negative=true);
 
-    void RedistributeGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
+    void RedistributeGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
+                          bool remove_negative=true);
 
     Long superParticleSize() const { return superparticle_size; }
 
