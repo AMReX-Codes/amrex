@@ -47,7 +47,7 @@ AmrMesh and AmrCore
 -------------------
 
 For single-level simulations
-(see e.g., ``amrex/Tutorials/Basic/HeatEquation_EX1_C/main.cpp``)
+(see e.g., ``amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/main.cpp``)
 the user needs to build :cpp:`Geometry`, :cpp:`DistributionMapping`,
 and :cpp:`BoxArray` objects associated with the simulation. For simulations
 with multiple levels of refinement, the :cpp:`AmrMesh` class can be thought
@@ -157,7 +157,7 @@ class :cpp:`AmrCoreAdv`.
     virtual void ClearLevel (int lev) = 0;
 
 Refer to the :cpp:`AmrCoreAdv` class in the
-``amrex/Tutorials/Amr/AmrCore_Advection/Source``
+``amrex-tutorials/ExampleCodes/Amr/AmrCore_Advection/Source``
 code for a sample implementation.
 
 TagBox, and Cluster
@@ -184,7 +184,7 @@ FillPatchUtil and Interpolater
    up since the :cpp:`FillPatch` routines call them.  In fact it is possible to
    avoid using the single-level calls directly if you fill all your grids and
    ghost cells using the :cpp:`FillPatch` routines.  Refer to
-   ``amrex/Tutorials/Amr/Advection_AmrCore/`` for an example.  The class
+   ``amrex-tutorials/ExampleCodes/Amr/Advection_AmrCore/`` for an example.  The class
    :cpp:`PhysBCFunct` in ``amrex/Src/Base/AMReX_PhysBCFunct.cpp``
    contains a :cpp:`Vector<BCRec>`, :cpp:`Geometry`, and a functor
    handling external Dirichlet boundaries, and provides an
