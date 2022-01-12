@@ -281,6 +281,10 @@ if (AMReX_HIP)
 
    target_compile_options(amrex PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-m64>)
 
+   # ROCm 4.5: use unsafe floating point atomics, otherwise atomicAdd is much slower
+   # 
+   target_compile_options(amrex PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-munsafe-fp-atomics>)
+
    # Equivalently, relocatable-device-code (RDC) flags are needed for `extern`
    # device variable support (for codes that use global variables on device)
    # as well as our kernel fusion in AMReX, e.g. happening likely in amr regrid
