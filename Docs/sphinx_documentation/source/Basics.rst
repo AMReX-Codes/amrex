@@ -2685,13 +2685,11 @@ want AMReX to handle this, ``ParmParse`` parameter
 
 
 
-.. _sec:basics:heat1:
+Example Codes
+=============
 
-Tutorials
-=========
-
-To assist users we have multiple tutorials introducing AMReX functionality.
+To assist users we have multiple example codes introducing AMReX functionality.
 They range from HelloWorld walk-thrus to stand-alone examples of complex
-features in practice. To access the available tutorials, please see
+features in practice. To access the available examples, please see
 `AMReX Guided Tutorials and Example Codes
 <https://amrex-codes.github.io/amrex/tutorials_html/>`_.

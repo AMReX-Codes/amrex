@@ -188,9 +188,11 @@ and then taking the divergence to update the cells,
    + \frac{\Delta t}{\Delta x}\left(F_{i+^1\!/_2,\,j}-F_{i-^1\!/_2,\,j}\right)
    + \frac{\Delta t}{\Delta y}\left(F_{i,\,j+^1\!/_2}-F_{i,\,j-^1\!/_2}\right)
 
-The implementation details of the code are discussed in section
-:ref:`sec:basics:heat1`.  For now let's just build and run the code, and
+The implementation details of the code are discussed in the `Heat Equation`_ example
+section of the Guided Tutorials. For now let's just build and run the code, and
 visualize the results.
+
+.. _`Heat Equation`: https://amrex-codes.github.io/amrex/tutorials_html/HeatEquation_EX1_C.html#guided-heat
 
 Building and Running the Code
 -----------------------------
@@ -225,3 +227,13 @@ Profiling Tools` chapter for further details.) Plotfiles can also be viewed
 using the VisIt, ParaView, and yt packages.  Particle data can be viewed using
 ParaView.  Refer to Chapter on :ref:`Chap:Visualization` for how to use each of
 these tools.
+
+Guided Tutorials
+================
+
+Users new to AMReX may be interested in following the `Guided Tutorials`_.
+The Guided Tutorials are designed to provide an introduction to AMReX
+features by focusing on key concepts in a progressive way.
+
+.. _`Guided Tutorials`: https://amrex-codes.github.io/amrex/tutorials_html/
+
