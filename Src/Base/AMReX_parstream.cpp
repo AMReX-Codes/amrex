@@ -58,7 +58,7 @@ namespace amrex
   {
     int outInterv = 1;
     ParmParse pp("amrex");
-    pp.query("pout_int", outInterv);
+    pp.queryAdd("pout_int", outInterv);
     if (outInterv == 0) outInterv=ParallelDescriptor::NProcs();
 
     int thisProc = ParallelDescriptor::MyProc();
@@ -215,4 +215,3 @@ namespace amrex
     return s_pout_filename ;
   }
 }
-

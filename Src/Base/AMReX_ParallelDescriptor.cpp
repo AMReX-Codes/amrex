@@ -1446,7 +1446,7 @@ Initialize ()
 {
 #ifndef BL_AMRPROF
     ParmParse pp("amrex");
-    pp.query("use_gpu_aware_mpi", use_gpu_aware_mpi);
+    pp.queryAdd("use_gpu_aware_mpi", use_gpu_aware_mpi);
 
     StartTeams();
 #endif
@@ -1469,8 +1469,8 @@ StartTeams ()
 
 #if defined(BL_USE_MPI3)
     ParmParse pp("team");
-    pp.query("size", team_size);
-    pp.query("reduce", do_team_reduce);
+    pp.queryAdd("size", team_size);
+    pp.queryAdd("reduce", do_team_reduce);
 #endif
 
     int nprocs = ParallelDescriptor::NProcs();

@@ -442,9 +442,9 @@ FArrayBox::Initialize ()
             ? std::numeric_limits<Real>::quiet_NaN()
             : std::numeric_limits<Real>::max();
 
-    pp.query("initval",    initval);
-    pp.query("do_initval", do_initval);
-    pp.query("init_snan", init_snan);
+    pp.queryAdd("initval",    initval);
+    pp.queryAdd("do_initval", do_initval);
+    pp.queryAdd("init_snan", init_snan);
 
     amrex::ExecOnFinalize(FArrayBox::Finalize);
 }
