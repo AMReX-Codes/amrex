@@ -289,15 +289,19 @@ if (AMReX_HIP)
    # device variable support (for codes that use global variables on device)
    # as well as our kernel fusion in AMReX, e.g. happening likely in amr regrid
    # As of ROCm 4.1, we cannot enable this with hipcc, as it looks...
+   # As of ROCm 4.5 on Crusher, we saw that `--hip-link` is not always coming
+   # in (via hip::device) to link flags on Cray compilers, but this flag is
+   # required if `-fgpu-rdc` is used.
+   #   https://github.com/ROCm-Developer-Tools/HIP/issues/2203#issuecomment-740163037
    if(AMReX_GPU_RDC)
        target_compile_options(amrex PUBLIC
           $<$<COMPILE_LANGUAGE:CXX>:-fgpu-rdc> )
        if(CMAKE_VERSION VERSION_LESS 3.18)
            target_link_options(amrex PUBLIC
-              -fgpu-rdc)
+              -fgpu-rdc --hip-link)
        else()
            target_link_options(amrex PUBLIC
-              "$<$<LINK_LANGUAGE:CXX>:-fgpu-rdc>")
+              "$<$<LINK_LANGUAGE:CXX>:-fgpu-rdc;--hip-link>")
        endif()
    endif()
 
