@@ -426,7 +426,7 @@ we will assume a single vector has been stored as three separate variables,
    by its magnitude. To do this, look under the Scale heading, select the
    vector value as the Scale Array and select Scale by Magnitude.
 
-   Two adjust the number and location of vectors displayed, one may alter the
+   To adjust the number and location of vectors displayed, one may alter the
    settings under the Masking heading.
 
 .. figure:: ./Visualization/ParaView_vectorfield.png
