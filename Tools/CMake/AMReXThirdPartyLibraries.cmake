@@ -79,7 +79,7 @@ endif ()
 #
 if (AMReX_SUNDIALS)
     if (SUNDIALS_FOUND)
-        message(STATUS "SUNDIALS_FOUND is true, assuming nvecserial or gpu-specific vector found for version 5.7.0")
+        message(STATUS "SUNDIALS_FOUND is true, assuming nvecserial or gpu-specific vector found for version 6.0.0 or higher")
     else ()
        set(SUNDIALS_MINIMUM_VERSION 6.0.0 CACHE INTERNAL "Minimum required SUNDIALS version")
        find_package(SUNDIALS ${SUNDIALS_MINIMUM_VERSION} CONFIG QUIET )
