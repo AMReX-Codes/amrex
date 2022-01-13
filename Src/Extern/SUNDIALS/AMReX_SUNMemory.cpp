@@ -120,10 +120,6 @@ namespace {
 #elif defined(AMREX_USE_DPCPP)
         helper->ops->copy      = SUNMemoryHelper_Copy_Sycl;
         helper->ops->copyasync = SUNMemoryHelper_CopyAsync_Sycl;
-        helper->ops->clone       = SUNMemoryHelper_Clone_Sycl;
-
-        // Attach the queue pointer as the content
-        helper->content = (void*) &amrex::Gpu::Device::streamQueue();
 #endif
 
         return helper;
