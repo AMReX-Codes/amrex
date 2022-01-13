@@ -6,7 +6,10 @@
 #include <AMReX_Extension.H>
 
 #if defined(AMREX_USE_HIP)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-W#warnings"
 #include <hiprand.hpp>
+#pragma clang diagnostic pop
 #elif defined(AMREX_USE_CUDA)
 #include <curand.h>
 #include <curand_kernel.h>
