@@ -106,19 +106,19 @@ namespace {
 
         helper = SUNMemoryHelper_NewEmpty(*sunctx);
 
-        helper->content              = NULL;
+        helper->content          = NULL;
         helper->ops->clone       = CloneMemoryHelper;
         helper->ops->alloc       = Alloc;
         helper->ops->dealloc     = Dealloc;
         helper->ops->destroy     = DestroyMemoryHelper;
 #if defined(AMREX_USE_HIP)
-        helper->ops->copy            = SUNMemoryHelper_Copy_Hip;
+        helper->ops->copy      = SUNMemoryHelper_Copy_Hip;
         helper->ops->copyasync = SUNMemoryHelper_CopyAsync_Hip;
 #elif defined(AMREX_USE_CUDA)
-        helper->ops->copy            = SUNMemoryHelper_Copy_Cuda;
+        helper->ops->copy      = SUNMemoryHelper_Copy_Cuda;
         helper->ops->copyasync = SUNMemoryHelper_CopyAsync_Cuda;
 #elif defined(AMREX_USE_DPCPP)
-        helper->ops->copy            = SUNMemoryHelper_Copy_Sycl;
+        helper->ops->copy      = SUNMemoryHelper_Copy_Sycl;
         helper->ops->copyasync = SUNMemoryHelper_CopyAsync_Sycl;
         helper->ops->clone       = SUNMemoryHelper_Clone_Sycl;
 
