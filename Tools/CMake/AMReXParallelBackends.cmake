@@ -176,7 +176,7 @@ endif ()
 #
 if (AMReX_HIP)
 
-   set(_valid_hip_compilers clang++ hipcc nvcc CC)
+   set(_valid_hip_compilers clang++ amdclang++ hipcc nvcc CC)
    get_filename_component(_this_comp ${CMAKE_CXX_COMPILER} NAME)
 
    if (NOT (_this_comp IN_LIST _valid_hip_compilers) )
