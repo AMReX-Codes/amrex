@@ -176,7 +176,7 @@ endif ()
 #
 if (AMReX_HIP)
 
-   set(_valid_hip_compilers clang++ hipcc nvcc CC)
+   set(_valid_hip_compilers clang++ amdclang++ hipcc nvcc CC)
    get_filename_component(_this_comp ${CMAKE_CXX_COMPILER} NAME)
 
    if (NOT (_this_comp IN_LIST _valid_hip_compilers) )
@@ -280,6 +280,10 @@ if (AMReX_HIP)
    endif()
 
    target_compile_options(amrex PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-m64>)
+
+   # ROCm 4.5: use unsafe floating point atomics, otherwise atomicAdd is much slower
+   # 
+   target_compile_options(amrex PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-munsafe-fp-atomics>)
 
    # Equivalently, relocatable-device-code (RDC) flags are needed for `extern`
    # device variable support (for codes that use global variables on device)

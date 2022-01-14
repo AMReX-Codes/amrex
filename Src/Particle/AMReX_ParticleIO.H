@@ -607,7 +607,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
     int DATA_Digits_Read(5);
     ParmParse pp("particles");
-    pp.query("datadigits_read",DATA_Digits_Read);
+    pp.queryAdd("datadigits_read",DATA_Digits_Read);
 
     std::string fullname = dir;
     if (!fullname.empty() && fullname[fullname.size()-1] != '/')

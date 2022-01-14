@@ -116,7 +116,7 @@ FabArrayBase::Initialize ()
         for (int i=0; i<AMREX_SPACEDIM; i++) FabArrayBase::comm_tile_size[i] = tilesize[i];
     }
 
-    pp.query("maxcomp",             FabArrayBase::MaxComp);
+    pp.queryAdd("maxcomp",             FabArrayBase::MaxComp);
 
     if (MaxComp < 1) {
         MaxComp = 1;

@@ -771,4 +771,4 @@ running on GPU platforms like Summit. We recommend leaving it off.
    Note that for the extra particle components, which component refers to which
    variable is an application-specific convention - the particles have 4 extra real comps, but which one is "mass" is up
    to the user. We suggest using an :cpp:`enum` to keep these indices straight; please
-   see ``amrex/Tutorials/Particles/ElectrostaticPIC/ElectrosticParticleContainer.H`` for an example of this.
+   see ``amrex-tutorials/ExampleCodes/Particles/ElectrostaticPIC/ElectrosticParticleContainer.H`` for an example of this.

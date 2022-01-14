@@ -32,8 +32,8 @@ void Initialize ()
     amrex::ignore_unused(s_comm,s_info);
 
     ParmParse pp("amrex");
-    pp.query("async_out", s_asyncout);
-    pp.query("async_out_nfiles", s_noutfiles);
+    pp.queryAdd("async_out", s_asyncout);
+    pp.queryAdd("async_out_nfiles", s_noutfiles);
 
     int nprocs = ParallelDescriptor::NProcs();
     s_noutfiles = std::min(s_noutfiles, nprocs);

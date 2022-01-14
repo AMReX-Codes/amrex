@@ -231,7 +231,7 @@ done using the command:
 
 ::
 
-    ~/amrex/Tutorials/Basic/HeatEquation_EX1_C> ls -1 plt*/Header | tee movie.visit
+    ~/amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C> ls -1 plt*/Header | tee movie.visit
     plt00000/Header
     plt01000/Header
     plt02000/Header
@@ -908,7 +908,8 @@ simulation will periodically write images during the run.
    ssh cori.nersc.gov
    cd $SCRATCH
    git clone https://github.com/AMReX-Codes/amrex.git
-   cd amrex/Tutorials/Amr/Advection_AmrLevel/Exec/SingleVortex
+   git clone https://github.com/AMReX-Codes/amrex-tutorials.git
+   cd amrex-tutorials/ExampleCodes/Amr/Advection_AmrLevel/Exec/SingleVortex
    module use /usr/common/software/sensei/modulefiles
    module load sensei/2.1.0-catalyst-shared
    source sensei_config
@@ -919,7 +920,7 @@ simulation will periodically write images during the run.
    # sensei.enabled=1
    # sensei.config=sensei/render_iso_catalyst_2d.xml
    salloc -C haswell -N 1 -t 00:30:00 -q debug
-   cd $SCRATCH/amrex/Tutorials/Amr/Advection_AmrLevel/Exec/SingleVortex
+   cd $SCRATCH/amrex-tutorials/ExampleCodes/Amr/Advection_AmrLevel/Exec/SingleVortex
    ./main2d.gnu.haswell.MPI.ex inputs
 
 
@@ -933,7 +934,8 @@ simulation will periodically write images during the run.
    ssh cori.nersc.gov
    cd $SCRATCH
    git clone https://github.com/AMReX-Codes/amrex.git
-   cd amrex/Tutorials/Amr/Advection_AmrLevel/Exec/SingleVortex
+   git clone https://github.com/AMReX-Codes/amrex-tutorials.git
+   cd amrex-tutorials/ExampleCodes/Amr/Advection_AmrLevel/Exec/SingleVortex
    module use /usr/common/software/sensei/modulefiles
    module load sensei/2.1.0-libsim-shared
    source sensei_config
@@ -944,5 +946,6 @@ simulation will periodically write images during the run.
    # sensei.enabled=1
    # sensei.config=sensei/render_iso_libsim_2d.xml
    salloc -C haswell -N 1 -t 00:30:00 -q debug
+   cd $SCRATCH/amrex-tutorials/ExampleCodes/Amr/Advection_AmrLevel/Exec/SingleVortex
    ./main2d.gnu.haswell.MPI.ex inputs
 

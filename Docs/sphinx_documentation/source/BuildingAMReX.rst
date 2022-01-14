@@ -17,7 +17,7 @@ Dissecting a Simple Make File
 -----------------------------
 
 An example of building with GNU Make can be found in
-``amrex/Tutorials/Basic/HelloWorld_C``.  :numref:`tab:makevars` below shows a
+``amrex-tutorials/ExampleCodes/Basic/HelloWorld_C``.  :numref:`tab:makevars` below shows a
 list of important variables.
 
 .. raw:: latex
@@ -77,7 +77,7 @@ list of important variables.
 
    \end{center}
 
-At the beginning of ``amrex/Tutorials/Basic/HelloWorld_C/GNUmakefile``,
+At the beginning of ``amrex-tutorials/ExampleCodes/Basic/HelloWorld_C/GNUmakefile``,
 ``AMREX_HOME`` is set to the path to the top directory of AMReX.  Note that in
 the example :cpp:`?=` is a conditional variable assignment operator that only
 has an effect if ``AMREX_HOME`` has not been defined (including in the
