@@ -324,7 +324,15 @@ public:
 
     //
     //! Constructs an empty FabArray<FAB>.
-    FabArray ();
+    FabArray () noexcept;
+
+    /**
+     * \brief Construct an empty FabArray<FAB> that has a default Arena.  If
+     * `define` is called later with a nulltpr as MFInfo's arena, the
+     * default Arena `a` will be used.  If the arena in MFInfo is not a
+     * nullptr, the MFInfo's arena will be used.
+     */
+    explicit FabArray (Arena* a) noexcept;
 
     /**
     * \brief Construct a FabArray<FAB> with a valid region defined by bxs
@@ -1551,8 +1559,16 @@ FabArray<FAB>::setVal (value_type val, const Box& region, const IntVect& nghost)
 }
 
 template <class FAB>
-FabArray<FAB>::FabArray ()
+FabArray<FAB>::FabArray () noexcept
     : shmem()
+{
+    m_FA_stats.recordBuild();
+}
+
+template <class FAB>
+FabArray<FAB>::FabArray (Arena* a) noexcept
+    : m_dallocator(a),
+      shmem()
 {
     m_FA_stats.recordBuild();
 }
@@ -1714,10 +1730,11 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 {
     std::unique_ptr<FabFactory<FAB> > factory(a_factory.clone());
 
+    auto default_arena = m_dallocator.m_arena;
     clear();
 
     m_factory = std::move(factory);
-    m_dallocator.m_arena = info.arena;
+    m_dallocator.m_arena = info.arena ? info.arena : default_arena;
 
     define_function_called = true;
 
@@ -1728,7 +1745,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
     addThisBD();
 
     if(info.alloc) {
-        AllocFabs(*m_factory, info.arena, info.tags);
+        AllocFabs(*m_factory, m_dallocator.m_arena, info.tags);
         Gpu::synchronize();
 #ifdef BL_USE_TEAM
         ParallelDescriptor::MyTeam().MemoryBarrier();
