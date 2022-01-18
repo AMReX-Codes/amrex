@@ -332,7 +332,7 @@ public:
      * default Arena `a` will be used.  If the arena in MFInfo is not a
      * nullptr, the MFInfo's arena will be used.
      */
-    FabArray (Arena* a) noexcept;
+    explicit FabArray (Arena* a) noexcept;
 
     /**
     * \brief Construct a FabArray<FAB> with a valid region defined by bxs
