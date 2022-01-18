@@ -295,35 +295,48 @@ run with:
 Setting Parameter Values Inside Functions
 -----------------------------------------
 
-Sometimes an application code may want to set a default that differs from the
-default in AMReX.  In this case, it is often convenient to define a function that
-sets the variable(s), and pass the name of that function to :cpp:`amrex::Initialize`.
-As an example, we may define :cpp:`add_par` to set :cpp:`extend_domain_face`
-to false if it hasn't already been set in the inputs file.
+An application code may want to set values or defaults that differ from the
+those in AMReX in a function. This is accomplished in two steps:
 
-.. highlight:: c++
+- First, define a function that sets the variable(s).
 
-::
+- Second, pass the name of that function to :cpp:`amrex::Initialize`.
 
-    void add_par () {
-       ParmParse pp("eb2");
-       if(not pp.contains("extend_domain_face")) {
-          pp.add("extend_domain_face",false);
-       }
-    };
+The example function below sets variable values using two different
+approaches to highlight subtle differences in implementation:
 
-Then we would pass :cpp:`add_par` into :cpp:`amrex::Initialize`:
+.. code-block:: cpp
 
-.. highlight:: c++
+   void add_par () {
+      ParmParse pp("eb2");
 
-::
+      // `variable_one` can be overridden by an inputs file and/or command line argument.
+      if(not pp.contains("variable_one")) {
+         pp.add("variable_one",false);
+      }
 
-    amrex::Initialize(argc, argv, true, MPI_COMM_WORLD, add_par);
+      // The inputs file or command line arguments for `variable_two` are ignored.
+      pp.add("variable_two",false);
+   };
 
-.. note::
+First this function, :cpp:`add_par`, declares a ``ParmParse`` object that will be
+used to set variables. In the next section of code, we check if the value for
+``variable_one`` has already been set elsewhere before writing to it. This
+approach prevents the function
+from overriding a value set in the inputs file or at the command line.
+In the next section, we write a value to ``variable_two`` without a conditional
+statement. In this case, we will ignore values for ``variable_two`` set in the
+inputs file or as a command line argument ---effectively overriding them with
+the value set here in the function.
 
-   Although this value replaces the current default value of true in AMReX itself, it
-   will still be over-written by setting a value in the inputs file.
+In the second step, we pass the name of the function we defined to ``amrex::Initialize``.
+In the example above the function was called ``add_par``, and therefore we write,
+
+.. code-block:: cpp
+
+   amrex::Initialize(argc, argv, true, MPI_COMM_WORLD, add_par);
+
+Now AMReX will use the user defined function to appropriately set the desired values.
 
 .. _sec:basics:parmparse:sharingCL:
 
