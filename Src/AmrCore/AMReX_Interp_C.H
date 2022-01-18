@@ -20,87 +20,65 @@ namespace amrex {
 //
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-face_linear_face_interp_x (int ci, int cj, int ck, int n, Array4<T> const& fine,
+face_linear_face_interp_x (int fi, int fj, int fk, int n, Array4<T> const& fine,
                            Array4<T const> const& crse, Array4<int const> const& mask,
                            IntVect const& ratio) noexcept
 {
-    // Fill only overlapping faces.
-    int fi = ci*ratio[0];
-    int fj = 0;
-    int fk = 0;
-
-#if AMREX_SPACEDIM >= 2
-    fj = cj*ratio[1];
-#if AMREX_SPACEDIM == 3
-    fk = ck*ratio[2];
+    int ci = amrex::coarsen(fi, ratio[0]);
+    if (ci*ratio[0] == fi) {
+#if (AMREX_SPACEDIM >= 2)
+        int cj = amrex::coarsen(fj, ratio[1]);
+#else
+        int cj = 0;
 #endif
+#if (AMREX_SPACEDIM == 3)
+        int ck = amrex::coarsen(fk, ratio[2]);
+#else
+        int ck = 0;
 #endif
-
-    // Check mask to ensure we don't overwrite valid fine data.
-    if (!mask(ci, cj, ck, n)) {
-        return;
+        // Check mask to ensure we don't overwrite valid fine data.
+        if (mask(ci, cj, ck, n)) {
+            fine(fi, fj, fk, n) = crse(ci, cj, ck, n);
+        }
     }
-
-    fine(fi,fj  ,fk  ,n) = crse(ci,cj,ck,n);
-#if AMREX_SPACEDIM >= 2
-    fine(fi,fj+1,fk  ,n) = crse(ci,cj,ck,n);
-#if AMREX_SPACEDIM == 3
-    fine(fi,fj  ,fk+1,n) = crse(ci,cj,ck,n);
-    fine(fi,fj+1,fk+1,n) = crse(ci,cj,ck,n);
-#endif
-#endif
-
 }
 
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-face_linear_face_interp_y (int ci, int cj, int ck, int n, Array4<T> const& fine,
+face_linear_face_interp_y (int fi, int fj, int fk, int n, Array4<T> const& fine,
                            Array4<T const> const& crse, Array4<int const> const& mask,
                            IntVect const& ratio) noexcept
 {
-    // Fill only overlapping faces.
-    int fi = ci*ratio[0];
-    int fj = cj*ratio[1];
-    int fk = 0;
-
-#if AMREX_SPACEDIM == 3
-    fk = ck*ratio[2];
+    int cj = amrex::coarsen(fj, ratio[1]);
+    if (cj*ratio[1] == fj) {
+        int ci = amrex::coarsen(fi, ratio[0]);
+#if (AMREX_SPACEDIM == 3)
+        int ck = amrex::coarsen(fk, ratio[2]);
+#else
+        int ck = 0;
 #endif
-
-    // Check mask to ensure we don't overwrite valid fine data.
-    if (!mask(ci, cj, ck, n)) {
-        return;
+        // Check mask to ensure we don't overwrite valid fine data.
+        if (mask(ci, cj, ck, n)) {
+            fine(fi, fj, fk, n) = crse(ci, cj, ck, n);
+        }
     }
-
-    fine(fi  ,fj,fk  ,n) = crse(ci,cj,ck,n);
-    fine(fi+1,fj,fk  ,n) = crse(ci,cj,ck,n);
-#if AMREX_SPACEDIM == 3
-    fine(fi  ,fj,fk+1,n) = crse(ci,cj,ck,n);
-    fine(fi+1,fj,fk+1,n) = crse(ci,cj,ck,n);
-#endif
-
 }
 
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-face_linear_face_interp_z (int ci, int cj, int ck, int n, Array4<T> const& fine,
+face_linear_face_interp_z (int fi, int fj, int fk, int n, Array4<T> const& fine,
                            Array4<T const> const& crse, Array4<int const> const& mask,
                            IntVect const& ratio) noexcept
 {
-    // Fill only overlapping faces.
-    int fi = ci*ratio[0];
-    int fj = cj*ratio[1];
-    int fk = ck*ratio[2];
-
-    // Check mask to ensure we don't overwrite valid fine data.
-    if (!mask(ci, cj, ck, n)) {
-        return;
+    int ck = amrex::coarsen(fk, ratio[2]);
+    if (ck*ratio[2] == fk) {
+        int ci = amrex::coarsen(fi, ratio[0]);
+        int cj = amrex::coarsen(fj, ratio[1]);
+        // Check mask to ensure we don't overwrite valid fine data.
+        if (mask(ci, cj, ck, n)) {
+            fine(fi, fj, fk, n) = crse(ci, cj, ck, n);
+        }
     }
-
-    fine(fi  ,fj  ,fk,n) = crse(ci,cj,ck,n);
-    fine(fi+1,fj  ,fk,n) = crse(ci,cj,ck,n);
-    fine(fi  ,fj+1,fk,n) = crse(ci,cj,ck,n);
-    fine(fi+1,fj+1,fk,n) = crse(ci,cj,ck,n);
 }
 
 //
