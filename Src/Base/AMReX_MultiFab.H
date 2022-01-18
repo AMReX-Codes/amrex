@@ -51,7 +51,7 @@ public:
     * Arena `a` will be used.  If the arena in MFInfo is not a nullptr, the
     * MFInfo's arena will be used.
     */
-    MultiFab (Arena* a) noexcept;
+    explicit MultiFab (Arena* a) noexcept;
 
     /**
     * \brief
