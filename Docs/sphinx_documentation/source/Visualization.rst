@@ -314,12 +314,18 @@ To open a plotfile (for example, you could run the
 
    \end{center}
 
+Building an Iso-surface
+-----------------------
+
 Note that Paraview is not able to generate iso-surfaces from cell centered data. To build an iso-surface (or iso-line in 2D):
 
 #. Perform a cell to node interpolation: "Filters" :math:`\rightarrow` "Alphabetical" :math:`\rightarrow` "Cell Data to Point Data".
 
 #. Use the "Contour" icon (next to the calculator) to select the data from which to build the contour ("Contour by"), enters the iso-surfaces
    values and click "Apply".
+
+Visualizing Particle Data
+-------------------------
 
 To visualize particle data within plofile directories (for example, you could
 run the `NeighborList`_ example in `Tutorials/Particles`_):
@@ -383,6 +389,50 @@ Once you have loaded an AMReX plotfile time series (fluid and/or particles), you
 #. Enter a file name, select ".avi" as the Type of File and click "OK".
 
 #. Adjust the resolution, compression and framerate, and click "OK"
+
+Plot a Vector Field
+-------------------
+
+Paraview can be used to plot a vector field from AMR plotfile data. In this example
+we will assume a single vector has been stored as three separate variables,
+``V_x``, ``V_y`` and ``V_z``. The steps below outline a basic construction:
+
+#. Open a plotfile or plotfile group, using ``File`` :math:`\rightarrow` ``Open``.
+   A pop-up will appear, select "AMReX/Boxlib Grid Reader".
+
+#. Select the plotfile or group in the Pipeline Browser. The Cell Array Status
+   window of the Properties should populate with the values ``V_x``, ``V_y``
+   and ``V_z``. Select these values and click apply.
+
+#. Select the Cell Centers filter from ``Filters`` :math:`\rightarrow` ``Alphabetical``
+   :math:`\rightarrow` ``Cell Centers`` and apply.
+
+#. Next we'll define a vector variable using the Calculator filter. Select
+   ``Filters`` :math:`\rightarrow` ``Alphabetical`` :math:`\rightarrow` ``Calculator``.
+   Under the Properties heading, set the Attribute Type to Point Data. The
+   Result Array Name is the name of the vector value we will create. In the
+   line below that we define a new vector value with the equation:
+   ``V_x*iHat + V_y*jHat + V_z*kHat``
+   Note that, the values ``V_x``, ``V_y`` and ``V_z``, should be selectable
+   from the dropdown Scalars menu. Apply the filter.
+
+#. To plot the arrows, select the Glyph filter,
+   ``Filters`` :math:`\rightarrow` ``Alphabetical`` :math:`\rightarrow` ``Glyph``.
+   Under the heading, Glyph Source, select ``Arrow``. Under Orientation, select
+   the name of the vector value created in the last step. The default name is
+   ``Result``. Apply the filter to display the vector field.
+
+   One may want to adjust the appearance of the vector field by scaling each vector
+   by its magnitude. To do this, look under the Scale heading, select the
+   vector value as the Scale Array and select Scale by Magnitude.
+
+   Two adjust the number and location of vectors displayed, one may alter the
+   settings under the Masking heading.
+
+.. figure:: ./Visualization/ParaView_vectorfield.png
+   :width: 3.1in
+
+   Vector Field generated with ParaView
 
 
 .. _section-2:
