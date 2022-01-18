@@ -46,7 +46,7 @@ public:
     * Arena `a` will be used.  If the arena in MFInfo is not a nullptr, the
     * MFInfo's arena will be used.
     */
-    iMultiFab (Arena* a) noexcept;
+    explicit iMultiFab (Arena* a) noexcept;
 
     /**
     * \brief Constructs a iMultiFab with a valid region defined by bxs and
