@@ -174,7 +174,6 @@ FaceLinear::interp_face (const FArrayBox&  crse,
     Array4<Real const> const& crse_arr = crse.const_array(crse_comp);
     Array4<const int> mask_arr = solve_mask.const_array(0);
 
-    const Box c_fine_region = amrex::coarsen(fine_region, ratio);
     //
     // Fill fine ghost faces with piecewise-constant interpolation of coarse data.
     // Operate only on faces that overlap--ie, only fill the fine faces that make up each
@@ -183,7 +182,7 @@ FaceLinear::interp_face (const FArrayBox&  crse,
     //
     if (fine_region.type(0) == IndexType::NODE)
     {
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
         {
             face_linear_face_interp_x(i,j,k,n,fine_arr,crse_arr,mask_arr,ratio);
         });
@@ -191,7 +190,7 @@ FaceLinear::interp_face (const FArrayBox&  crse,
 #if (AMREX_SPACEDIM >= 2)
     else if (fine_region.type(1) == IndexType::NODE)
     {
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
         {
             face_linear_face_interp_y(i,j,k,n,fine_arr,crse_arr,mask_arr,ratio);
         });
@@ -199,7 +198,7 @@ FaceLinear::interp_face (const FArrayBox&  crse,
 #if (AMREX_SPACEDIM == 3)
     else
     {
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
         {
             face_linear_face_interp_z(i,j,k,n,fine_arr,crse_arr,mask_arr,ratio);
         });
@@ -271,8 +270,6 @@ void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
             { mask_arr[d] = solve_mask[d]->const_array(0); }
     }
 
-    const Box c_fine_region = amrex::coarsen(fine_region, ratio);
-
     //
     // Fill fine ghost faces with piecewise-constant interpolation of coarse data.
     // Operate only on faces that overlap--ie, only fill the fine faces that make up each
@@ -281,7 +278,7 @@ void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
     //
     // Fuse the launches, 1 for each dimension, into a single launch.
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(runon,
-              amrex::convert(c_fine_region,types[0]), bx0,
+              amrex::convert(fine_region,types[0]), bx0,
               {
                   AMREX_LOOP_3D(bx0, i, j, k,
                   {
@@ -291,7 +288,7 @@ void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                       }
                   });
               },
-              amrex::convert(c_fine_region,types[1]), bx1,
+              amrex::convert(fine_region,types[1]), bx1,
               {
                   AMREX_LOOP_3D(bx1, i, j, k,
                   {
@@ -301,7 +298,7 @@ void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                       }
                   });
               },
-              amrex::convert(c_fine_region,types[2]), bx2,
+              amrex::convert(fine_region,types[2]), bx2,
               {
                   AMREX_LOOP_3D(bx2, i, j, k,
                   {

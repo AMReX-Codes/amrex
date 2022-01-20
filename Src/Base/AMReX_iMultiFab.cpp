@@ -161,7 +161,11 @@ iMultiFab::Finalize ()
     initialized = false;
 }
 
-iMultiFab::iMultiFab () {}
+iMultiFab::iMultiFab () noexcept {}
+
+iMultiFab::iMultiFab (Arena* a) noexcept
+    : FabArray<IArrayBox>(a)
+{}
 
 iMultiFab::iMultiFab (const BoxArray&            bxs,
                       const DistributionMapping& dm,

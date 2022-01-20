@@ -651,6 +651,15 @@ MultiFab::MultiFab () noexcept
 #endif
 }
 
+MultiFab::MultiFab (Arena* a) noexcept
+    : FabArray<FArrayBox>(a)
+{
+#ifdef AMREX_MEM_PROFILING
+    ++num_multifabs;
+    num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
+#endif
+}
+
 MultiFab::MultiFab (const BoxArray&            bxs,
                     const DistributionMapping& dm,
                     int                        ncomp,

@@ -37,7 +37,17 @@ public:
     * time using the define member functions inherited
     * from FabArray.
     */
-    iMultiFab ();
+    iMultiFab () noexcept;
+
+    /**
+    * \brief Constructs an empty iMultiFab.  Data can be defined at a later
+    * time using the define member functions inherited from FabArray.  If
+    * `define` is called later with a nulltpr as MFInfo's arena, the default
+    * Arena `a` will be used.  If the arena in MFInfo is not a nullptr, the
+    * MFInfo's arena will be used.
+    */
+    explicit iMultiFab (Arena* a) noexcept;
+
     /**
     * \brief Constructs a iMultiFab with a valid region defined by bxs and
     * a region of definition defined by the grow factor ngrow.
