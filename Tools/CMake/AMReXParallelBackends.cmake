@@ -231,6 +231,13 @@ if (AMReX_HIP)
    # Cray's CC wrapper that points to AMD's clang++ underneath
    if(NOT ${_this_comp} STREQUAL hipcc)
        target_link_libraries(amrex PUBLIC hip::device)
+
+       # work-around for
+       #   https://github.com/ROCm-Developer-Tools/hipamd/issues/12
+       # not being added for Cray CC
+       target_compile_options(amrex PUBLIC
+          "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-mllvm;-amdgpu-early-inline-all=true;-mllvm;-amdgpu-function-calls=false>"
+       )
    endif()
 
    # Link to hiprand -- must include rocrand too
