@@ -1862,7 +1862,7 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
     const int mglev  = linop.NMGLevels(amrlev) - 1;
 
     const int ncomp = linop.getNComp();
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncomp == 1, "bottomSolveWithHypre doesn't work with ncomp > 1");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(x.nComp() == b.nComp(), "bottomSolveWithHypre doesn't work when the number of components doesn't match.");
 
     if (linop.isCellCentered())
     {
@@ -1899,9 +1899,13 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
         amrex::Real hypre_abstol =
             (hypre_interface == amrex::Hypre::Interface::ij)
             ? bottom_abstol : Real(-1.0);
-        hypre_solver->solve(
-            x, b, bottom_reltol, hypre_abstol, bottom_maxiter, *hypre_bndry,
+        for (int i=0; i<ncomp; ++i) {
+            MultiFab x_i(x, amrex::make_alias, i, 1);
+            MultiFab b_i(b, amrex::make_alias, i, 1);
+            hypre_solver->solve(
+                x_i, b_i, bottom_reltol, hypre_abstol, bottom_maxiter, *hypre_bndry,
             linop.getMaxOrder());
+        }
     }
     else
     {
