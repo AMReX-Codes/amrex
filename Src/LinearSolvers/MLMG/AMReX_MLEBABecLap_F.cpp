@@ -111,6 +111,10 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
 
             if (treat_phi_as_on_centroid) {
 #ifdef AMREX_USE_HIP
+                // This causes an abort in HIP 4.5 but works in earlier versions
+                // A follow-up release should fix this.
+                // Error message:
+                //   lld: error: ran out of registers during register allocation
                 amrex::Abort("MLEBABecLap::Fapply: phi on centroid not supported for HIP");
                 amrex::ignore_unused(AMREX_D_DECL(domlo_x, domlo_y, domlo_z),
                                      AMREX_D_DECL(domhi_x, domhi_y, domhi_z),
