@@ -106,7 +106,7 @@ do is start from an existing test and modify it. For example, this entry:
 ::
 
    [MLMG_FI_PoisCom]
-   buildDir = /Tests/LinearSolvers/ABecLaplacian_F
+   buildDir = Tests/LinearSolvers/ABecLaplacian_F
    inputFile = inputs-rt-poisson-com
    dim = 3
    restartTest = 0
