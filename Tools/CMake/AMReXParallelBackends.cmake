@@ -182,8 +182,8 @@ if (AMReX_HIP)
    if (NOT (_this_comp IN_LIST _valid_hip_compilers) )
       message(WARNING "\nCMAKE_CXX_COMPILER (${_this_comp}) is likely "
          "incompatible with HIP.\n"
-         "Set CMAKE_CXX_COMPILER to either AMD's clang++ (preferred) or "
-         "hipcc or nvcc for HIP builds.\n")
+         "Set CMAKE_CXX_COMPILER to either Cray's CC or AMD's clang++/amdclang++ "
+         "or hipcc or nvcc for HIP builds.\n")
    endif ()
 
    unset(_hip_compiler)
@@ -222,28 +222,21 @@ if (AMReX_HIP)
          " Ensure that HIP is either installed in /opt/rocm/hip or the variable HIP_PATH is set to point to the right location.")
    endif()
 
-   if(${_this_comp} STREQUAL hipcc AND NOT AMReX_FORTRAN)
+   if(${_this_comp} STREQUAL hipcc)
        message(WARNING "You are using the legacy wrapper 'hipcc' as the HIP compiler.\n"
-           "This is only needed when building with Fortran support and with ROCm/HIP <=4.2.0. "
-           "Use AMD's 'clang++' compiler instead.")
+           "Use AMD's 'clang++'/'amdclang++' compiler, or on Cray "
+           "the CC compiler wrapper instead.")
    endif()
    # AMD's or mainline clang++ with support for "-x hip"
    # Cray's CC wrapper that points to AMD's clang++ underneath
    if(NOT ${_this_comp} STREQUAL hipcc)
        target_link_libraries(amrex PUBLIC hip::device)
 
-       # work-around for https://github.com/ROCm-Developer-Tools/HIP/issues/2278
-       # CXX_STANDARD always adds -std=c++XX, even if the compiler default fulfills it
-       #set_property(TARGET amrex PROPERTY CXX_STANDARD 17)
-       # note: already bumped to C++17 (cxx_std_17) or newer in AMReX_Config.cmake
-
-       # work-around for ROCm <=4.2
-       # https://github.com/ROCm-Developer-Tools/HIP/pull/2190
+       # work-around for
+       #   https://github.com/ROCm-Developer-Tools/hipamd/issues/12
+       # not being added for Cray CC
        target_compile_options(amrex PUBLIC
           "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-mllvm;-amdgpu-early-inline-all=true;-mllvm;-amdgpu-function-calls=false>"
-       )
-       target_compile_options(amrex PUBLIC
-          "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-x hip>"
        )
    endif()
 
@@ -261,13 +254,7 @@ if (AMReX_HIP)
 
    # avoid forcing the rocm LLVM flags on a gfortran
    # https://github.com/ROCm-Developer-Tools/HIP/issues/2275
-   if(AMReX_FORTRAN)
-       message(WARNING "As of ROCm/HIP <= 4.2.0, Fortran support might be flaky.\n"
-                       "Especially, we cannot yet support reloctable device code (RDC)."
-                       "See https://github.com/ROCm-Developer-Tools/HIP/issues/2275 "
-                       "and https://github.com/AMReX-Codes/amrex/pull/2031 "
-                       "for details.")
-   elseif(${_this_comp} STREQUAL hipcc)
+   if(${_this_comp} STREQUAL hipcc)
        # hipcc expects a comma-separated list
        string(REPLACE ";" "," AMReX_AMD_ARCH_HIPCC "${AMReX_AMD_ARCH}")
 
