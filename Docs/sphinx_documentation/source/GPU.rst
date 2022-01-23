@@ -158,8 +158,8 @@ For example, ``COMP=pgi`` alone will compile C/C++ codes with NVCC/GCC
 and Fortran codes with PGI, and link with PGI.  Using ``COMP=pgi`` and
 ``NVCC_HOST_COMP=pgi`` will compile C/C++ codes with PGI and NVCC/PGI.
 
-You can use ``Tutorials/Basic/HelloWorld_C`` to test your programming
-environment.  For example, building with:
+You can use ``amrex-tutorials/ExampleCodes/Basic/HelloWorld_C/``
+to test your programming environment.  For example, building with:
 
 .. highlight:: console
 

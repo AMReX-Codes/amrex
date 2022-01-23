@@ -676,23 +676,23 @@ An example (implemented in the ``MultiComponent`` tutorial) might be:
   .. _fig::refluxfreecoarsefine:
 
   .. figure:: ./LinearSolvers/refluxfreecoarsefine.png
-      :height: 2cm
-      :align: center
+     :height: 4cm
+     :align: center
 
-      : Reflux-free coarse-fine boundary update.
-      Level 2 ghost nodes (small dark blue) are interpolated from coarse boundary.
-      Level 1 ghost nodes are updated during the relaxation along with all the other interior fine nodes.
-      Coarse nodes (large blue) on the coarse/fine boundary are updated by restricting with interior nodes
-      and the first level of ghost nodes.
-      Coarse nodes underneath level 2 ghost nodes are not updated.
-      The remaining coarse nodes are updates by restriction.
+     Reflux-free coarse-fine boundary update.
+     Level 2 ghost nodes (small dark blue) are interpolated from coarse boundary.
+     Level 1 ghost nodes are updated during the relaxation along with all the other interior fine nodes.
+     Coarse nodes (large blue) on the coarse/fine boundary are updated by restricting with interior nodes
+     and the first level of ghost nodes.
+     Coarse nodes underneath level 2 ghost nodes are not updated.
+     The remaining coarse nodes are updates by restriction.
 
   The MC nodal operator can inherit from the ``MCNodeLinOp`` class.
   ``Fapply``, ``Fsmooth``, and ``Fflux`` must update level 1 ghost nodes that are inside the domain.
   `interpolation` and `restriction` can be implemented as usual.
   `reflux` is a straightforward restriction from fine to coarse, using level 1 ghost nodes for restriction as described above.
 
-  See ``Tutorials/LinearSolvers/MultiComponent`` for a complete working example.
+See ``amrex-tutorials/ExampleCodes/LinearSolvers/MultiComponent`` for a complete working example.
 
 .. solver reuse
 
