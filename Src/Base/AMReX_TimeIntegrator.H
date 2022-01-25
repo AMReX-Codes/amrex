@@ -28,8 +28,26 @@ private:
     {
         amrex::ParmParse pp("integration");
 
-        int integrator_type = static_cast<int>(IntegratorTypes::ForwardEuler);
-        pp.get("type", integrator_type);
+        int integrator_type;
+        std::string integrator_str;
+        pp.get("type", integrator_str);
+
+        if (integrator_str == "ForwardEuler") {
+            integrator_type = static_cast<int>(IntegratorTypes::ForwardEuler);
+        } else if (integrator_str == "RungeKutta") {
+            integrator_type = static_cast<int>(IntegratorTypes::ExplicitRungeKutta);
+        } else if (integrator_str == "SUNDIALS") {
+            integrator_type = static_cast<int>(IntegratorTypes::Sundails);
+        } else {
+            try {
+                integrator_type = std::stoi(integrator_str, nullptr);
+            } catch (const std::invalid_argument& ia) {
+                Print() << "Invalid integration.type: " << ia.what() << std::endl;
+                Error("Failed to initialize AMReX TimeIntegrator class.")
+            }
+            AMREX_ALWAYS_ASSERT(integrator_type >= IntegratorTypes::ForwardEuler &&
+                                integrator_type <= IntegratorTypes::Sundials);
+        }
 
         return static_cast<IntegratorTypes>(integrator_type);
     }
@@ -113,6 +131,11 @@ public:
     void set_fast_rhs (std::function<void(T&, const T&, const T&, const amrex::Real)> F)
     {
         integrator_ptr->set_fast_rhs(F);
+    }
+
+    void set_slow_fast_timestep_ratio (const int timestep_ratio = 1)
+    {
+        integrator_ptr->set_slow_fast_timestep_ratio(timestep_ratio);
     }
 
     std::function<void ()> get_post_timestep ()
