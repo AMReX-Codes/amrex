@@ -79,13 +79,14 @@ private:
     SUNLinearSolver LSf;       /* empty linear solver object    */
     void *inner_mem;           /* empty ARKode memory structure */
     void *mristep_mem;         /* empty ARKode memory structure */
+    MPI_Comm mpi_comm;         /* the MPI communicator          */
+    SUNContext sunctx;         /* SUNDIALS Context object       */
 
     Real reltol;
     Real abstol;
     Real t;
     Real tout;
     Real hfixed;
-    Real m;
     Real hfixed_mri;
 
     int NVar; // NOTE: expects S_data to be a Vector<MultiFab>
@@ -137,7 +138,6 @@ private:
         // Arbitrary tolerances
         reltol          = 1e-4;
         abstol          = 1e-4;
-        m               = 2; // Slow/Fast MRI timestep ratio
     }
 
 public:
@@ -151,11 +151,15 @@ public:
     void initialize (const T& S_data)
     {
         initialize_parameters();
+        mpi_comm = ParallelContext::CommunicatorSub();
+        SUNContext_Create(&mpi_comm, &sunctx);
     }
 
     void initialize ()
     {
         initialize_parameters();
+        mpi_comm = ParallelContext::CommunicatorSub();
+        SUNContext_Create(&mpi_comm, &sunctx);
     }
 
     virtual ~SundialsIntegrator () {
@@ -175,14 +179,18 @@ public:
             SUNLinSolFree(LS);
             SUNNonlinSolFree(NLS);
         }
+
+        SUNContext_Free(&sunctx);
     }
 
     amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step)
     {
+        int mri_time_step_ratio = BaseT::get_slow_fast_timestep_ratio();
+        AMREX_ALWAYS_ASSERT(mri_time_step_ratio >= 1);
         t               = time;
         tout            = time+time_step;
         hfixed          = time_step;
-        hfixed_mri      = time_step / m;
+        hfixed_mri      = time_step / mri_time_step_ratio;
         timestep = time_step;
 
         // NOTE: hardcoded for now ...
@@ -208,7 +216,7 @@ public:
             nv_many_arr[i] = nvi;
         }
 
-        nv_S = N_VNew_ManyVector(NVar, nv_many_arr);
+        nv_S = N_VNew_ManyVector(NVar, nv_many_arr, sunctx);
         nv_stage_data = N_VClone(nv_S);
 
         /* Create a temporary storage space for MRI */
@@ -331,16 +339,16 @@ public:
         if(advance_mri_test)
         {
             if(use_erk3)
-                inner_mem = ARKStepCreate(SundialsUserFun::f0, NULL, time, nv_S); // explicit bc (explicit f, implicit f, time, data)
+                inner_mem = ARKStepCreate(SundialsUserFun::f0, NULL, time, nv_S, sunctx); // explicit bc (explicit f, implicit f, time, data)
             else
-                inner_mem = ARKStepCreate(NULL, SundialsUserFun::f0, time, nv_S); // implicit
+                inner_mem = ARKStepCreate(NULL, SundialsUserFun::f0, time, nv_S, sunctx); // implicit
         }
         else
         {
             if(use_erk3)
-                inner_mem = ARKStepCreate(SundialsUserFun::f_fast, NULL, time, nv_S);
+                inner_mem = ARKStepCreate(SundialsUserFun::f_fast, NULL, time, nv_S, sunctx);
             else
-                inner_mem = ARKStepCreate(NULL, SundialsUserFun::f_fast, time, nv_S);
+                inner_mem = ARKStepCreate(NULL, SundialsUserFun::f_fast, time, nv_S, sunctx);
         }
 
         ////STEP FIVE
@@ -349,7 +357,7 @@ public:
         /* Call ERKStepCreate to initialize the inner ARK timestepper module and
         specify the right-hand side function in y'=f(t,y), the initial time
         T0, and the initial dependent variable vector y. */
-        arkode_mem = ERKStepCreate(SundialsUserFun::f, time, nv_S); // NOTE: unused if we are doing multirate
+        arkode_mem = ERKStepCreate(SundialsUserFun::f, time, nv_S, sunctx); // NOTE: unused if we are doing multirate
         ERKStepSetUserData(arkode_mem, &udata);  /* Pass udata to user functions */
         ERKStepSetPostprocessStageFn(arkode_mem, SundialsUserFun::ProcessStage);
         /* Specify tolerances */
@@ -425,7 +433,12 @@ public:
         if(advance_mri)
         {
             ////STEP SIX
-            mristep_mem = MRIStepCreate(SundialsUserFun::f, time, nv_S, MRISTEP_ARKSTEP, inner_mem);
+            // Create fast time scale integrator from an ARKStep instance
+            MRIStepInnerStepper inner_stepper = NULL;
+            ARKStepCreateMRIStepInnerStepper(inner_mem, &inner_stepper);
+
+            // args: fast RHS, NULL, initial time, initial state, fast time scale integrator, sundials context
+            mristep_mem = MRIStepCreate(SundialsUserFun::f, NULL, time, nv_S, inner_stepper, sunctx);
 
             ////STEP SEVEN
             MRIStepSetFixedStep(mristep_mem, hfixed);
@@ -435,8 +448,8 @@ public:
             MRIStepSStolerances(mristep_mem, reltol, abstol);
             ////STEP 8.2
             /* Initialize spgmr solver */
-            LS = SUNLinSol_SPGMR(nv_S, PREC_NONE, 10);
-            NLS = SUNNonlinSol_FixedPoint(nv_S, 50);
+            LS = SUNLinSol_SPGMR(nv_S, PREC_NONE, 10, sunctx);
+            NLS = SUNNonlinSol_FixedPoint(nv_S, 50, sunctx);
 
             ////STEP 8.3
             //    ARKStepSetNonlinearSolver(inner_mem, NLS); // NOTE: uncomment for implicit
@@ -458,10 +471,13 @@ public:
         ERKStepSetTable(arkode_mem, B);
 
         if(advance_mri) {
-            if(advance_mri_test)
-                MRIStepSetTable(mristep_mem, B->q, B);
-            else
-                MRIStepSetTable(mristep_mem, B2->q, B2);
+            if(advance_mri_test) {
+                MRIStepCoupling mri_coupling = MRIStepCoupling_MIStoMRI(B, B->q, B->p);
+                MRIStepSetCoupling(mristep_mem, mri_coupling);
+            } else {
+                MRIStepCoupling mri_coupling = MRIStepCoupling_MIStoMRI(B2, B2->q, B2->p);
+                MRIStepSetCoupling(mristep_mem, mri_coupling);
+            }
         }
 
         // Free the Butcher table

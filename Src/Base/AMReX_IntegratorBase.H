@@ -155,6 +155,7 @@ private:
 
 protected:
     amrex::Real timestep;
+    int slow_fast_timestep_ratio;
     std::function<void (T&, amrex::Real)> post_update;
 
 public:
@@ -176,6 +177,11 @@ public:
         FastFun = F;
     }
 
+    void set_slow_fast_timestep_ratio (const int timestep_ratio = 1)
+    {
+        slow_fast_timestep_ratio = timestep_ratio;
+    }
+
     void set_post_update (std::function<void (T&, amrex::Real)> F)
     {
         post_update = F;
@@ -194,6 +200,11 @@ public:
     std::function<void(T&, const T&, const T&, const amrex::Real)> get_fast_rhs ()
     {
         return FastFun;
+    }
+
+    int get_slow_fast_timestep_ratio ()
+    {
+        return slow_fast_timestep_ratio;
     }
 
     void rhs (T& S_rhs, const T& S_data, const amrex::Real time)
