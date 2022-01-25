@@ -67,19 +67,32 @@ Picking A Time Integration Method
 
 The user can customize which integration method they wish to use with a set of
 runtime parameters that allow choosing between a simple Forward Euler method or
-a generic explicit Runge-Kutta method. If Runge-Kutta is selected, then the
-user can choose which of a set of predefined Butcher Tables to use, or can
-choose to use a custom table and supply it manually. The options are detailed as follows:
+a generic explicit Runge-Kutta method. If Runge-Kutta is selected, then the user
+can choose which of a set of predefined Butcher Tables to use, or can choose to
+use a custom table and supply it manually.
+
+When AMReX is compiled with SUNDIALS v.6 or later, the user also has an option
+to use the SUNDIALS ARKODE integrator as a backend for the AMReX Time Integrator
+class. The features of this interface evolve with the needs of our codes, so
+they may not yet support all SUNDIALS configurations available. If you find you
+need SUNDIALS options we have not implemented, please let us know.
+
+The options are detailed as follows:
 
 ::
 
   # INTEGRATION
-  ## integration.type can take on the following values:
-  ## 0 = Forward Euler
-  ## 1 = Explicit Runge Kutta
-  integration.type = 1
 
-  ## Explicit Runge-Kutta parameters
+  ## *** Selecting the integrator backend ***
+  ## integration.type can take on the following string or int values:
+  ## (without the quotation marks)
+  ## "ForwardEuler" or "0" = Native Forward Euler Integrator
+  ## "RungeKutta" or "1"   = Native Explicit Runge Kutta
+  ## "SUNDIALS" or "2"     = SUNDIALS ARKODE Integrator
+  ## for example:
+  integration.type = RungeKutta
+
+  ## *** Parameters Needed For Native Explicit Runge-Kutta ***
   #
   ## integration.rk.type can take the following values:
   ### 0 = User-specified Butcher Tableau
@@ -99,3 +112,11 @@ choose to use a custom table and supply it manually. The options are detailed as
   integration.rk.nodes = 0
   integration.rk.tableau = 0.0
 
+  ## *** Parameters Needed For SUNDIALS ARKODE Integrator ***
+  ## integration.sundials.strategy specifies which ARKODE strategy to use.
+  ## The available options are (without the quoatations):
+  ## "ERK" = Explicit Runge Kutta
+  ## "MRI" = Multirate Integrator
+  ## "MRITEST" = Tests the Multirate Integrator by setting a zero-valued fast RHS function
+  ## for example:
+  integration.sundials.strategy = ERK
