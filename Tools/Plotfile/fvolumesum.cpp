@@ -121,6 +121,7 @@ void main_main()
                                     Real vol;
                                     if (coord == 0) {
                                         // Cartesian
+                                        vol = 1.0_rt;
                                         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                                             vol *= dx[idim];
                                         }
@@ -163,6 +164,7 @@ void main_main()
                                     Real vol;
                                     if (coord == 0) {
                                         // Cartesian
+                                        vol = 1.0_rt;
                                         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                                             vol *= dx[idim];
                                         }

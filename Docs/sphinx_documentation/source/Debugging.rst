@@ -69,9 +69,11 @@ in ``AMReX_VisMF.H`` and examining it with ``Amrvis`` (section
 
 ::
 
-    void print_state(const MultiFab& mf, const IntVect& cell, const int n=-1);
+    void print_state(const MultiFab& mf, const IntVect& cell, const int n=-1,
+                     const IntVect& ng = IntVect::TheZeroVector());
 
-can output the data for a single cell.
+can output the data for a single cell. ``n`` is the component, with the default being
+to print all components. ``ng`` is the number of ghost cells to include.
 
 Valgrind is one of our favorite debugging tools.  For MPI runs, one can
 tell Valgrind to output to different files for different processes.
