@@ -12,6 +12,7 @@ target_sources( amrex
    AMReX_BlockMutex.cpp
    AMReX_GpuComplex.H
    AMReX_Vector.H
+   AMReX_TableData.H
    AMReX_Tuple.H
    AMReX.cpp
    AMReX_error_fi.cpp
@@ -65,6 +66,7 @@ target_sources( amrex
    AMReX_CArena.cpp
    AMReX_PArena.H
    AMReX_PArena.cpp
+   AMReX_DataAllocator.H
    AMReX_BLProfiler.H
    AMReX_BLBackTrace.H
    AMReX_BLFort.H
