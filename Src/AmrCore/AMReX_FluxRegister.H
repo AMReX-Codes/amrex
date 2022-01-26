@@ -147,6 +147,25 @@ public:
                    FrOp            op = FluxRegister::COPY);
 
     /**
+    * \brief Initialize flux correction with coarse data (DG).
+    *
+    * \param mflx
+    * \param dir
+    * \param srccomp
+    * \param destcomp
+    * \param numcomp
+    * \param mult
+    * \param op
+    */
+    void CrseInit_DG (const MultiFab& mflx,
+                   int             dir,
+                   int             srccomp,
+                   int             destcomp,
+                   int             numcomp,
+                   Real            mult = -1.0,
+                   FrOp            op = FluxRegister::COPY);
+
+    /**
     * \brief Add coarse fluxes to the flux register.
     * This is different from CrseInit with FluxRegister::ADD.
     * This is used for cases in which the grids covered by fine

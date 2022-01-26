@@ -19,6 +19,7 @@ module amrex_fluxregister_module
      generic   :: assignment(=) => amrex_fluxregister_assign   ! shallow copy
      generic   :: fineadd       => amrex_fluxregister_fineadd, amrex_fluxregister_fineadd_1fab
      procedure :: crseinit      => amrex_fluxregister_crseinit
+     procedure :: crseinit_dg   => amrex_fluxregister_crseinit_dg
      procedure :: crseadd       => amrex_fluxregister_crseadd
      procedure :: setval        => amrex_fluxregister_setval
      procedure :: reflux        => amrex_fluxregister_reflux
@@ -71,6 +72,14 @@ module amrex_fluxregister_module
        type(c_ptr), intent(in) :: flxs(*)
        real(amrex_real), value :: scale
      end subroutine amrex_fi_fluxregister_crseinit
+
+     subroutine amrex_fi_fluxregister_crseinit_dg (fr, flxs, scale) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: fr
+       type(c_ptr), intent(in) :: flxs(*)
+       real(amrex_real), value :: scale
+     end subroutine amrex_fi_fluxregister_crseinit_dg
 
      subroutine amrex_fi_fluxregister_crseadd (fr, flxs, scale, geom) bind(c)
        import
@@ -183,6 +192,18 @@ contains
     end do
     call amrex_fi_fluxregister_crseinit(this%p, mf, scale)
   end subroutine amrex_fluxregister_crseinit
+
+  subroutine amrex_fluxregister_crseinit_dg (this, fluxes, scale)
+    class(amrex_fluxregister), intent(inout) :: this
+    type(amrex_multifab), intent(in) :: fluxes(amrex_spacedim)
+    real(amrex_real), intent(in) :: scale
+    integer :: dim
+    type(c_ptr) :: mf(amrex_spacedim)
+    do dim = 1, amrex_spacedim
+       mf(dim) = fluxes(dim)%p
+    end do
+    call amrex_fi_fluxregister_crseinit_dg(this%p, mf, scale)
+  end subroutine amrex_fluxregister_crseinit_dg
 
   subroutine amrex_fluxregister_crseadd (this, fluxes, scale)
     use amrex_amrcore_module, only : amrex_geom

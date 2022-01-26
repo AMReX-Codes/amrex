@@ -246,6 +246,85 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 }
 
 void
+FluxRegister::CrseInit_DG ( const MultiFab& mflx,
+                            int             dir,
+                            int             srccomp,
+                            int             destcomp,
+                            int             numcomp,
+                            Real            mult,
+                            FrOp            op)
+{
+    /* Consistency checks */
+    BL_ASSERT( srccomp  >= 0 && srccomp  + numcomp <= mflx.nComp() );
+    BL_ASSERT( destcomp >= 0 && destcomp + numcomp <= ncomp );
+
+    /* face_lo = (0), face_hi = (1) */
+    const Orientation face_lo( dir, Orientation::low  );
+    const Orientation face_hi( dir, Orientation::high );
+
+    /* Define destination MultiFab */
+    MultiFab mf( mflx.boxArray(), mflx.DistributionMap(), numcomp, 0,
+                 MFInfo(), mflx.Factory() );
+
+    /* Populate destination MultiFab */
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for ( MFIter mfi( mflx, TilingIfNotGPU() ); mfi.isValid(); ++mfi )
+    {
+        const Box& bx   = mfi.tilebox();
+        auto       dfab = mf.array( mfi );
+        auto const sfab = mflx.const_array( mfi );
+
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
+        {
+            dfab(i,j,k,n) = sfab(i,j,k,n+srccomp) * mult;
+        });
+    }
+
+    /* pass <==> which side of face */
+    for ( int pass = 0; pass < 2; pass++ )
+    {
+        /* if pass == 0 then face = face_lo; else face = face_hi */
+        const Orientation face = ( ( pass == 0 ) ? face_lo : face_hi );
+
+        if ( op == FluxRegister::COPY )
+        {
+            bndry[face].copyFrom( mf, 0, 0, destcomp, numcomp );
+        }
+// This `else` never happens because `op` is always set to the default
+// (i.e., FluxRegister::COPY) in the Fortran interface, so it has been
+// commented out
+/*
+        else
+        {
+            FabSet fs( bndry[face].boxArray(), bndry[face].DistributionMap(),
+                       numcomp );
+
+            fs.setVal( 0 );
+
+            fs.copyFrom( mf, 0, 0, 0, numcomp );
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (FabSetIter mfi(fs); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.validbox();
+                auto const sfab = fs.const_array(mfi);
+                auto       dfab = bndry[face].array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (bx, numcomp, i, j, k, n,
+                {
+                    dfab(i,j,k,n+destcomp) += sfab(i,j,k,n);
+                });
+            }
+        }
+*/
+    } /* END for ( int pass = 0; pass < 2; pass++ ) */
+
+} /* END void FluxRegister::CrseInit_DG */
+
+void
 FluxRegister::CrseAdd (const MultiFab& mflx,
                        const MultiFab& area,
                        int             dir,
