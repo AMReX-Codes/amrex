@@ -37,16 +37,16 @@ private:
         } else if (integrator_str == "RungeKutta") {
             integrator_type = static_cast<int>(IntegratorTypes::ExplicitRungeKutta);
         } else if (integrator_str == "SUNDIALS") {
-            integrator_type = static_cast<int>(IntegratorTypes::Sundails);
+            integrator_type = static_cast<int>(IntegratorTypes::Sundials);
         } else {
             try {
                 integrator_type = std::stoi(integrator_str, nullptr);
             } catch (const std::invalid_argument& ia) {
                 Print() << "Invalid integration.type: " << ia.what() << std::endl;
-                Error("Failed to initialize AMReX TimeIntegrator class.")
+                Error("Failed to initialize AMReX TimeIntegrator class.");
             }
-            AMREX_ALWAYS_ASSERT(integrator_type >= IntegratorTypes::ForwardEuler &&
-                                integrator_type <= IntegratorTypes::Sundials);
+            AMREX_ALWAYS_ASSERT(integrator_type >= static_cast<int>(IntegratorTypes::ForwardEuler) &&
+                                integrator_type <= static_cast<int>(IntegratorTypes::Sundials));
         }
 
         return static_cast<IntegratorTypes>(integrator_type);
@@ -62,8 +62,8 @@ private:
         set_post_update([](T& /* S_data */, amrex::Real /* S_time */){});
 
         // By default, do nothing
-        set_rhs([](T& S_rhs, const T& S_data, const amrex::Real time){});
-        set_fast_rhs([](T& S_rhs, const T& S_extra, const T& S_data, const amrex::Real time){});
+        set_rhs([](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){});
+        set_fast_rhs([](T& /* S_rhs */, const T& /* S_extra */, const T& /* S_data */, const amrex::Real /* time */){});
     }
 
 public:
