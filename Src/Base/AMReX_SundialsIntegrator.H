@@ -187,6 +187,141 @@ public:
 
     amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step)
     {
+        if (advance_mri) {
+            mri_advance(S_old, S_new, time, time_step);
+        } else if (advance_erk) {
+            erk_advance(S_old, S_new, time, time_step);
+        } else {
+            Error("SUNDIALS integrator backend not specified (ERK or MRI).");
+        }
+    }
+
+    amrex::Real erk_advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step)
+    {
+        t               = time;
+        tout            = time+time_step;
+        hfixed          = time_step;
+        timestep = time_step;
+
+        // We use S_new as our working space, so first copy S_old to S_new
+        IntegratorOps<T>::Copy(S_new, S_old);
+
+        // Create an N_Vector wrapper for the solution MultiFab
+        auto get_length = [&](int index) -> sunindextype {
+            auto* p_mf = &S_new[index];
+            return p_mf->nComp() * (p_mf->boxArray()).numPts();
+        };
+
+        /* Create manyvector for solution using S_new */
+        NVar             = S_new.size();  // NOTE: expects S_new to be a Vector<MultiFab>
+        nv_many_arr = new N_Vector[NVar]; // vector array composed of cons, xmom, ymom, zmom component vectors */
+
+        for (int i = 0; i < NVar; ++i) {
+            sunindextype length = get_length(i);
+            N_Vector nvi   = amrex::sundials::N_VMake_MultiFab(length, &S_new[i]);
+            nv_many_arr[i] = nvi;
+        }
+
+        nv_S = N_VNew_ManyVector(NVar, nv_many_arr, sunctx);
+        nv_stage_data = N_VClone(nv_S);
+
+        /* Create a temporary storage space for MRI */
+        Vector<std::unique_ptr<T> > temp_storage;
+        IntegratorOps<T>::CreateLike(temp_storage, S_old);
+        T& state_store = *temp_storage.back();
+
+        SundialsUserData udata;
+
+        /* Begin Section: SUNDIALS FUNCTION HOOKS */
+        /* f routine to compute the ODE RHS function f(t,y). */
+        udata.f = [&](realtype rhs_time, N_Vector y_data, N_Vector y_rhs, void * /* user_data */) -> int {
+            amrex::Vector<amrex::MultiFab> S_data;
+            amrex::Vector<amrex::MultiFab> S_rhs;
+
+            const int num_vecs = N_VGetNumSubvectors_ManyVector(y_data);
+            S_data.resize(num_vecs);
+            S_rhs.resize(num_vecs);
+
+            for(int i=0; i<num_vecs; i++)
+            {
+                S_data.at(i)=amrex::MultiFab(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i)),amrex::make_alias,0,amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i))->nComp());
+                S_rhs.at(i)=amrex::MultiFab(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_rhs, i)),amrex::make_alias,0,amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_rhs, i))->nComp());
+            }
+
+            BaseT::post_update(S_data, rhs_time);
+            BaseT::rhs(S_rhs, S_data, rhs_time);
+
+            return 0;
+        };
+
+        udata.ProcessStage = [&](realtype rhs_time, N_Vector y_data, void * /* user_data */) -> int {
+            amrex::Vector<amrex::MultiFab > S_data;
+
+            const int num_vecs = N_VGetNumSubvectors_ManyVector(y_data);
+            S_data.resize(num_vecs);
+
+            for (int i=0; i<num_vecs; i++)
+            {
+                S_data.at(i)=amrex::MultiFab(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i)),amrex::make_alias,0,amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i))->nComp());
+            }
+
+            BaseT::post_update(S_data, rhs_time);
+
+            return 0;
+        };
+        /* End Section: SUNDIALS FUNCTION HOOKS */
+
+        /* Call ERKStepCreate to initialize the inner ARK timestepper module and
+        specify the right-hand side function in y'=f(t,y), the initial time
+        T0, and the initial dependent variable vector y. */
+        arkode_mem = ERKStepCreate(SundialsUserFun::f, time, nv_S, sunctx);
+        ERKStepSetUserData(arkode_mem, &udata);  /* Pass udata to user functions */
+        ERKStepSetPostprocessStageFn(arkode_mem, SundialsUserFun::ProcessStage);
+        /* Specify tolerances */
+        ERKStepSStolerances(arkode_mem, reltol, abstol);
+        ERKStepSetFixedStep(arkode_mem, hfixed);
+
+        for(int i=0; i<N_VGetNumSubvectors_ManyVector(nv_S); i++)
+        {
+            MultiFab::Copy(state_store[i], *amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_S, i)), 0, 0, state_store[i].nComp(), state_store[i].nGrow());
+            MultiFab::Copy(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_stage_data, i)), *amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_S, i)), 0, 0, state_store[i].nComp(), state_store[i].nGrow());
+        }
+
+        ARKodeButcherTable B = ARKodeButcherTable_Alloc(3, SUNFALSE);
+
+        // Use SSP-RK3
+        B->A[1][0] = 1.0;
+        B->A[2][0] = 0.25;
+        B->A[2][1] = 0.25;
+        B->b[0] = 1./6.;
+        B->b[1] = 1./6.;
+        B->b[2] = 2./3.;
+        B->c[1] = 1.0;
+        B->c[2] = 0.5;
+        B->q=3;
+
+        //Set table
+        ERKStepSetTable(arkode_mem, B);
+
+        // Free the Butcher table
+        ARKodeButcherTable_Free(B);
+
+        // Use ERKStep to evolve state_old data (wrapped in nv_S) from t to tout=t+dt
+        auto flag = ERKStepEvolve(arkode_mem, tout, nv_S, &t, ARK_NORMAL);
+        AMREX_ALWAYS_ASSERT(flag >= 0);
+
+        // Copy the result stored in nv_S to state_new
+        for(int i=0; i<N_VGetNumSubvectors_ManyVector(nv_S); i++)
+        {
+            MultiFab::Copy(S_new[i], *amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_S, i)), 0, 0, S_new[i].nComp(), S_new[i].nGrow());
+        }
+
+        // Return timestep
+        return timestep;
+    }
+
+    amrex::Real mri_advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step)
+    {
         int mri_time_step_ratio = BaseT::get_slow_fast_timestep_ratio();
         AMREX_ALWAYS_ASSERT(mri_time_step_ratio >= 1);
         t               = time;
@@ -286,24 +421,6 @@ public:
             return 0;
         };
 
-/*
-        udata.StoreStage = [&](realtype rhs_time, N_Vector* f_data, int nvecs, void * user_data) -> int {
-            N_Vector y_data;
-            Real tcur;
-            ARKStepGetCurrentState(inner_mem, &y_data);
-            ARKStepGetCurrentTime(inner_mem, &tcur);
-
-            for (int i=0; i<N_VGetNumSubvectors_ManyVector(y_data); i++)
-            {
-                MultiFab* mf_y = amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i));
-                MultiFab* mf_stage = amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_stage_data, i));
-                MultiFab::Copy(*mf_stage, *mf_y, 0, 0, mf_y->nComp(), mf_y->nGrow());
-            }
-
-            return 0;
-        };
-*/
-
         udata.ProcessStage = [&](realtype rhs_time, N_Vector y_data, void * /* user_data */) -> int {
             amrex::Vector<amrex::MultiFab > S_data;
 
@@ -334,7 +451,6 @@ public:
         };
         /* End Section: SUNDIALS FUNCTION HOOKS */
 
-        ////STEP FOUR
         if(advance_mri_test)
         {
             if(use_erk3)
@@ -350,18 +466,7 @@ public:
                 inner_mem = ARKStepCreate(NULL, SundialsUserFun::f_fast, time, nv_S, sunctx);
         }
 
-        ////STEP FIVE
         ARKStepSetFixedStep(inner_mem, hfixed_mri);            // Specify fixed time step size
-
-        /* Call ERKStepCreate to initialize the inner ARK timestepper module and
-        specify the right-hand side function in y'=f(t,y), the initial time
-        T0, and the initial dependent variable vector y. */
-        arkode_mem = ERKStepCreate(SundialsUserFun::f, time, nv_S, sunctx); // NOTE: unused if we are doing multirate
-        ERKStepSetUserData(arkode_mem, &udata);  /* Pass udata to user functions */
-        ERKStepSetPostprocessStageFn(arkode_mem, SundialsUserFun::ProcessStage);
-        /* Specify tolerances */
-        ERKStepSStolerances(arkode_mem, reltol, abstol);
-        ERKStepSetFixedStep(arkode_mem, hfixed);
 
         ARKStepSetUserData(inner_mem, &udata);  /* Pass udata to user functions */
 
@@ -376,45 +481,26 @@ public:
 
         if(use_erk3)
         {
-            if(advance_erk)
-            {
-                // Use SSP-RK3
-                B->A[1][0] = 1.0;
-                B->A[2][0] = 0.25;
-                B->A[2][1] = 0.25;
-                B->b[0] = 1./6.;
-                B->b[1] = 1./6.;
-                B->b[2] = 2./3.;
-                B->c[1] = 1.0;
-                B->c[2] = 0.5;
-                B->q=3;
-            }
+            B->A[1][0] = 1.0;
+            B->A[2][0] = 1.0;
+            B->A[2][2] = 0.0;
+            B->b[0] = 0.5;
+            B->b[2] = 0.5;
+            B->c[1] = 1.0;
+            B->c[2] = 1.0;
+            B->q=2;
+            B->p=0;
+            B2->A[1][0] = 1.0;
+            B2->b[0] = 0.5;
+            B2->b[1] = 0.5;
+            B2->c[1] = 1.0;
+            B2->q=2;
+            B2->p=0;
 
-            if(advance_mri)
-            {
-                B->A[1][0] = 1.0;
-                B->A[2][0] = 1.0;
-                B->A[2][2] = 0.0;
-                B->b[0] = 0.5;
-                B->b[2] = 0.5;
-                B->c[1] = 1.0;
-                B->c[2] = 1.0;
-                B->q=2;
-                B->p=0;
-                B2->A[1][0] = 1.0;
-                B2->b[0] = 0.5;
-                B2->b[1] = 0.5;
-                B2->c[1] = 1.0;
-                B2->q=2;
-                B2->p=0;
-            }
-
-            if(advance_mri) {
-                if(advance_mri_test)
-                    ARKStepSetTables(inner_mem, B->q, B->p, NULL, B);       // Specify Butcher table
-                else
-                    ARKStepSetTables(inner_mem, B2->q, B2->p, NULL, B2);       // Specify Butcher table
-            }
+            if(advance_mri_test)
+                ARKStepSetTables(inner_mem, B->q, B->p, NULL, B);       // Specify Butcher table
+            else
+                ARKStepSetTables(inner_mem, B2->q, B2->p, NULL, B2);       // Specify Butcher table
         } else {
             B->A[1][0] = 1.0;
             B->A[2][0] = 1.0;
@@ -428,74 +514,48 @@ public:
         }
 
         //Set table
-        //    ERKStepSetTable(arkode_mem, B);
-        if(advance_mri)
-        {
-            ////STEP SIX
-            // Create fast time scale integrator from an ARKStep instance
-            MRIStepInnerStepper inner_stepper = NULL;
-            ARKStepCreateMRIStepInnerStepper(inner_mem, &inner_stepper);
+        // Create fast time scale integrator from an ARKStep instance
+        MRIStepInnerStepper inner_stepper = NULL;
+        ARKStepCreateMRIStepInnerStepper(inner_mem, &inner_stepper);
 
-            // args: fast RHS, NULL, initial time, initial state, fast time scale integrator, sundials context
-            mristep_mem = MRIStepCreate(SundialsUserFun::f, NULL, time, nv_S, inner_stepper, sunctx);
+        // args: fast RHS, NULL, initial time, initial state, fast time scale integrator, sundials context
+        mristep_mem = MRIStepCreate(SundialsUserFun::f, NULL, time, nv_S, inner_stepper, sunctx);
 
-            ////STEP SEVEN
-            MRIStepSetFixedStep(mristep_mem, hfixed);
+        MRIStepSetFixedStep(mristep_mem, hfixed);
 
-            ////STEP 8.1
-            /* Specify tolerances */
-            MRIStepSStolerances(mristep_mem, reltol, abstol);
-            ////STEP 8.2
-            /* Initialize spgmr solver */
-            LS = SUNLinSol_SPGMR(nv_S, PREC_NONE, 10, sunctx);
-            NLS = SUNNonlinSol_FixedPoint(nv_S, 50, sunctx);
+        /* Specify tolerances */
+        MRIStepSStolerances(mristep_mem, reltol, abstol);
 
-            ////STEP 8.3
-            //    ARKStepSetNonlinearSolver(inner_mem, NLS); // NOTE: uncomment for implicit
-            if(use_linear)
-                MRIStepSetLinearSolver(mristep_mem, LS, NULL);
-            else
-                MRIStepSetNonlinearSolver(mristep_mem, NLS);
+        /* Initialize spgmr solver */
+        LS = SUNLinSol_SPGMR(nv_S, PREC_NONE, 10, sunctx);
+        NLS = SUNNonlinSol_FixedPoint(nv_S, 50, sunctx);
 
-            ////STEP NINE
-            MRIStepSetUserData(mristep_mem, &udata);  /* Pass udata to user functions */
+        //    ARKStepSetNonlinearSolver(inner_mem, NLS); // NOTE: uncomment for implicit
+        if(use_linear)
+            MRIStepSetLinearSolver(mristep_mem, LS, NULL);
+        else
+            MRIStepSetNonlinearSolver(mristep_mem, NLS);
 
-            MRIStepSetPostInnerFn(mristep_mem, SundialsUserFun::PostStoreStage);
-            //    ARKStepSetPostprocessStepFn(inner_mem, PostStoreStage);
-            //    MRIStepSetPreInnerFn(mristep_mem, StoreStage);
-            MRIStepSetPostprocessStageFn(mristep_mem, SundialsUserFun::ProcessStage);
+        MRIStepSetUserData(mristep_mem, &udata);  /* Pass udata to user functions */
+
+        MRIStepSetPostInnerFn(mristep_mem, SundialsUserFun::PostStoreStage);
+        MRIStepSetPostprocessStageFn(mristep_mem, SundialsUserFun::ProcessStage);
+
+        if(advance_mri_test) {
+            MRIStepCoupling mri_coupling = MRIStepCoupling_MIStoMRI(B, B->q, B->p);
+            MRIStepSetCoupling(mristep_mem, mri_coupling);
+        } else {
+            MRIStepCoupling mri_coupling = MRIStepCoupling_MIStoMRI(B2, B2->q, B2->p);
+            MRIStepSetCoupling(mristep_mem, mri_coupling);
         }
 
-        //Set table
-        ERKStepSetTable(arkode_mem, B);
-
-        if(advance_mri) {
-            if(advance_mri_test) {
-                MRIStepCoupling mri_coupling = MRIStepCoupling_MIStoMRI(B, B->q, B->p);
-                MRIStepSetCoupling(mristep_mem, mri_coupling);
-            } else {
-                MRIStepCoupling mri_coupling = MRIStepCoupling_MIStoMRI(B2, B2->q, B2->p);
-                MRIStepSetCoupling(mristep_mem, mri_coupling);
-            }
-        }
-
-        // Free the Butcher table
+        // Free the Butcher tables
         ARKodeButcherTable_Free(B);
+        ARKodeButcherTable_Free(B2);
 
-        if(advance_erk)
-        {
-            // Use ERKStep to evolve state_old data (wrapped in nv_S) from t to tout=t+dt
-            /* auto flag = */ ERKStepEvolve(arkode_mem, tout, nv_S, &t, ARK_NORMAL);
-            // check flag status w/ helper function using Assert macro 0 = success, <0 = hard error, >0 = not-catastrophic warning
-        }
-
-        ////STEP ELEVEN
-        if(advance_mri)
-        {
-            // Use MRIStep to evolve state_old data (wrapped in nv_S) from t to tout=t+dt
-            /* auto flag = */ MRIStepEvolve(mristep_mem, tout, nv_S, &t, ARK_NORMAL);
-            // check flag status w/ helper function
-        }
+        // Use MRIStep to evolve state_old data (wrapped in nv_S) from t to tout=t+dt
+        auto flag = MRIStepEvolve(mristep_mem, tout, nv_S, &t, ARK_NORMAL);
+        AMREX_ALWAYS_ASSERT(flag >= 0);
 
         // Copy the result stored in nv_S to state_new
         for(int i=0; i<N_VGetNumSubvectors_ManyVector(nv_S); i++)
