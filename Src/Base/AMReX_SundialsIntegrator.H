@@ -188,12 +188,14 @@ public:
     amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step)
     {
         if (advance_mri) {
-            mri_advance(S_old, S_new, time, time_step);
+            return mri_advance(S_old, S_new, time, time_step);
         } else if (advance_erk) {
-            erk_advance(S_old, S_new, time, time_step);
+            return erk_advance(S_old, S_new, time, time_step);
         } else {
             Error("SUNDIALS integrator backend not specified (ERK or MRI).");
         }
+
+        return 0;
     }
 
     amrex::Real erk_advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step)
