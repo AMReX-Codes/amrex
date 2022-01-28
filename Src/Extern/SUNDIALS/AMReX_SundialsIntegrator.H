@@ -61,6 +61,38 @@ namespace SundialsUserFun {
 }
 
 template<class T>
+class SundialsIntegrator<T, typename std::enable_if<std::is_same<amrex::MultiFab, T>::value>::type> : public IntegratorBase<T>
+{
+private:
+    typedef SundialsIntegrator<Vector<MultiFab> > SunIntV;
+    std::unique_ptr<SunIntV> vmf_integrator;
+
+public:
+    SundialsIntegrator ()
+    {
+        vmf_integrator = std::make_unique<SunIntV>();
+    }
+
+    SundialsIntegrator (const T& /* S_data */)
+    {
+        vmf_integrator = std::make_unique<SunIntV>();
+    }
+
+    amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step)
+    {
+        Vector<MultiFab> S_old_v, S_new_v;
+        S_old_v.push_back(amrex::MultiFab(S_old, amrex::make_alias, 0, S_old.nComp()));
+        S_new_v.push_back(amrex::MultiFab(S_new, amrex::make_alias, 0, S_new.nComp()));
+
+        return vmf_integrator->advance(S_old_v, S_new_v, time, time_step);
+    }
+
+    void time_interpolate (const T& /* S_new */, const T& /* S_old */, amrex::Real /* timestep_fraction */, T& /* data */) {}
+
+    void map_data (std::function<void(T&)> /* Map */) {}
+};
+
+template<class T>
 class SundialsIntegrator<T, typename std::enable_if<std::is_same<amrex::Vector<amrex::MultiFab>, T>::value>::type> : public IntegratorBase<T>
 {
 private:
