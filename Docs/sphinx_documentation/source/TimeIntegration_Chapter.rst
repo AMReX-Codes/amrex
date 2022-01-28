@@ -62,6 +62,94 @@ ghost cells are filled when the right hand side function is called on that solut
    integrator.advance(Sborder, S_new, time, dt);
 
 
+Using SUNDIALS
+^^^^^^^^^^^^^^
+
+The AMReX Time Integration interface also supports a SUNDIALS backend that
+wraps both the explicit Runge-Kutta (ERK) and multirate (MRI) integration
+schemes in the SUNDIALS ARKODE package. To use either of them, the user needs
+to compile AMReX with `USE_SUNDIALS=TRUE` and use SUNDIALS v. 6.0 or later.
+
+Afterwards, to use the ERK integrator with the code shown above, one needs only
+to add the following two input parameters at runtime:
+
+::
+
+  integration.type = SUNDIALS
+  integration.sundials.strategy = ERK
+  
+If one wishes to use the SUNDIALS multirate integrator, then the user will need
+to use the following runtime inputs parameters:
+
+::
+
+  integration.type = SUNDIALS
+  integration.sundials.strategy = MRI
+
+In addition, to set up the multirate problem, the user needs to supply a fast
+timescale right-hand-side function in addition to the usual right hand side
+function (which is interpreted as the slow timescale right-hand side). The user
+will also need to supply the ratio of the slow timestep size to the fast
+timestep size, which is an integer corresponding to the number of fast
+timesteps the integrator will take per every slow timestep. An example code
+snippet would look as follows:
+
+.. highlight:: c++
+
+::
+
+   #include <AMReX_TimeIntegrator.H>
+
+   MultiFab Sborder; // MultiFab containing old-time state data and ghost cells
+   MultiFab Snew;    // MultiFab where we want new-time state data
+   Geometry geom;    // The domain (or level) geometry
+
+   // [Fill Sborder here]
+
+   // Create a time integrator that will work with
+   // MultiFabs with the same BoxArray, DistributionMapping,
+   // and number of components as the state_data MultiFab.
+   TimeIntegrator<MultiFab> integrator(Sborder);
+
+   // Create a slow timescale RHS function we will integrate
+   auto rhs_fun = [&](MultiFab& rhs, const MultiFab& state, const Real time){
+       // User function to calculate the rhs MultiFab given the state MultiFab
+       fill_rhs(rhs, state, time);
+   };
+
+   // Create a fast timescale RHS function to integrate
+   auto rhs_fun_fast = [&](Vector<MultiFab>& rhs,
+                           const Vector<MultiFab>& stage_data,
+                           const Vector<MultiFab>& state, const Real time) {
+        // User function to calculate the fast-timescale rhs MultiFab given
+        // the state MultiFab and stage_data which holds the previously
+        // accessed slow-timescale stage state data.
+        fill_fast_rhs(rhs, stage_data, state, time);
+   };
+
+   // The post update function is called after updating state data or
+   // immediately before using state data to calculate a fast or slow right hand side.
+   // (it is a good place to e.g. fill boundary conditions)
+   auto post_update_fun = [&](MultiFab& S_data, const Real time) {
+       // Call user function to update state MultiFab, e.g. fill BCs
+       post_update(S_data, time, geom);
+   };
+
+   // Attach the slow and fast right hand side functions to integrator
+   integrator.set_rhs(rhs_fun);
+   integrator.set_fast_rhs(rhs_fun_fast);
+
+   // This sets the ratio of slow timestep size to fast timestep size as an integer,
+   // or equivalently, the number of fast timesteps per slow timestep.
+   integrator.set_slow_fast_timestep_ratio(2);
+
+   // Attach the post update function to the integrator
+   integrator.set_post_update(post_update_fun);
+
+   // integrate forward one step from `time` by `dt` to fill S_new
+   integrator.advance(Sborder, S_new, time, dt);
+
+
 Picking A Time Integration Method
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
