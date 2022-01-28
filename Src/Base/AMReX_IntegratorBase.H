@@ -150,12 +150,30 @@ template<class T>
 class IntegratorBase
 {
 private:
+   /**
+    * \brief Fun is the right-hand-side function the integrator will use.
+    */
     std::function<void(T&, const T&, const amrex::Real)> Fun;
+
+   /**
+    * \brief FastFun is the fast timescale right-hand-side function for a multirate integration problem.
+    */
     std::function<void(T&, const T&, const T&, const amrex::Real)> FastFun;
 
 protected:
+   /**
+    * \brief Integrator timestep size (Real)
+    */
     amrex::Real timestep;
+
+   /**
+    * \brief For multirate problems, the ratio of slow timestep size / fast timestep size (int)
+    */
     int slow_fast_timestep_ratio;
+
+   /**
+    * \brief The post_update function is called by the integrator on state data before using it to evaluate a right-hand side.
+    */
     std::function<void (T&, amrex::Real)> post_update;
 
 public:
