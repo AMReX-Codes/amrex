@@ -70,16 +70,61 @@ wraps both the explicit Runge-Kutta (ERK) and multirate (MRI) integration
 schemes in the SUNDIALS ARKODE package. To use either of them, the user needs
 to compile AMReX with `USE_SUNDIALS=TRUE` and use SUNDIALS v. 6.0 or later.
 
-Afterwards, to use the ERK integrator with the code shown above, one needs only
-to add the following two input parameters at runtime:
+There are only minor changes to the code above required to use the SUNDIALS
+interface. The first change is that the integration datatype is now a
+`Vector<MultiFab>` type instead of simply `MultiFab`. The reason for
+introducing a `Vector<MultiFab>` in this case, is to permit integrating state
+data with different spatial centering (e.g. cell centered, face centered, node
+centered) concurrently. Shown here is sample code equivalent to the code above,
+suitable for the SUNDIALS explicit Runge-Kutta integrator:
+
+.. highlight:: c++
+
+::
+
+   #include <AMReX_TimeIntegrator.H>
+
+   Vector<MultiFab> Sborder; // MultiFab(s) containing old-time state data and ghost cells
+   Vector<MultiFab> Snew;    // MultiFab(s) where we want new-time state data
+   Geometry geom;    // The domain (or level) geometry
+
+   // [Fill Sborder here]
+
+   // Create a time integrator that will work with
+   // MultiFabs with the same BoxArray, DistributionMapping,
+   // and number of components as the state_data MultiFab.
+   TimeIntegrator<Vector<MultiFab> > integrator(Sborder);
+
+   // Create a RHS source function we will integrate
+   auto source_fun = [&](Vector<MultiFab>& rhs, const Vector<MultiFab>& state, const Real time){
+       // User function to calculate the rhs MultiFab given the state MultiFab
+       fill_rhs(rhs, state, time);
+   };
+
+   // Create a function to call after updating a state
+   auto post_update_fun = [&](Vector<MultiFab>& S_data, const Real time) {
+       // Call user function to update state MultiFab, e.g. fill BCs
+       post_update(S_data, time, geom);
+   };
+
+   // Attach the right hand side and post-update functions
+   // to the integrator
+   integrator.set_rhs(source_fun);
+   integrator.set_post_update(post_update_fun);
+
+   // integrate forward one step from `time` by `dt` to fill S_new
+   integrator.advance(Sborder, S_new, time, dt);
+
+Afterwards, to select the ERK integrator, one needs only to add the following
+two input parameters at runtime:
 
 ::
 
   integration.type = SUNDIALS
   integration.sundials.strategy = ERK
   
-If one wishes to use the SUNDIALS multirate integrator, then the user will need
-to use the following runtime inputs parameters:
+If instead one wishes to use the SUNDIALS multirate integrator, then the user
+will need to use the following runtime inputs parameters:
 
 ::
 
@@ -100,8 +145,8 @@ snippet would look as follows:
 
    #include <AMReX_TimeIntegrator.H>
 
-   MultiFab Sborder; // MultiFab containing old-time state data and ghost cells
-   MultiFab Snew;    // MultiFab where we want new-time state data
+   Vector<MultiFab> Sborder; // Vector of MultiFab(s) containing old-time state data and ghost cells
+   Vector<MultiFab> Snew;    // Vector of MultiFab(s) where we want new-time state data
    Geometry geom;    // The domain (or level) geometry
 
    // [Fill Sborder here]
@@ -109,11 +154,11 @@ snippet would look as follows:
    // Create a time integrator that will work with
    // MultiFabs with the same BoxArray, DistributionMapping,
    // and number of components as the state_data MultiFab.
-   TimeIntegrator<MultiFab> integrator(Sborder);
+   TimeIntegrator<Vector<MultiFab> > integrator(Sborder);
 
    // Create a slow timescale RHS function we will integrate
-   auto rhs_fun = [&](MultiFab& rhs, const MultiFab& state, const Real time){
-       // User function to calculate the rhs MultiFab given the state MultiFab
+   auto rhs_fun = [&](Vector<MultiFab>& rhs, const Vector<MultiFab>& state, const Real time){
+       // User function to calculate the rhs MultiFab given the state MultiFab(s)
        fill_rhs(rhs, state, time);
    };
 
@@ -130,8 +175,8 @@ snippet would look as follows:
    // The post update function is called after updating state data or
    // immediately before using state data to calculate a fast or slow right hand side.
    // (it is a good place to e.g. fill boundary conditions)
-   auto post_update_fun = [&](MultiFab& S_data, const Real time) {
-       // Call user function to update state MultiFab, e.g. fill BCs
+   auto post_update_fun = [&](Vector<MultiFab>& S_data, const Real time) {
+       // Call user function to update state MultiFab(s), e.g. fill BCs
        post_update(S_data, time, geom);
    };
 
@@ -165,7 +210,7 @@ class. The features of this interface evolve with the needs of our codes, so
 they may not yet support all SUNDIALS configurations available. If you find you
 need SUNDIALS options we have not implemented, please let us know.
 
-The options are detailed as follows:
+The full set of integrator options are detailed as follows:
 
 ::
 
