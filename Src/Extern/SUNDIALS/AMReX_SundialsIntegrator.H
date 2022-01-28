@@ -61,7 +61,7 @@ namespace SundialsUserFun {
 }
 
 template<class T>
-class SundialsIntegrator : public IntegratorBase<T>
+class SundialsIntegrator<T, typename std::enable_if<std::is_same<amrex::Vector<amrex::MultiFab>, T>::value>::type> : public IntegratorBase<T>
 {
 private:
     amrex::Real timestep;
@@ -162,23 +162,6 @@ public:
     }
 
     virtual ~SundialsIntegrator () {
-        N_VDestroyVectorArray(nv_many_arr, NVar);
-        N_VDestroy(nv_S);
-        N_VDestroy(nv_stage_data);
-
-        if(advance_mri) {
-            MRIStepFree(&mristep_mem);
-        }
-
-        ARKStepFree(&inner_mem);
-        ERKStepFree(&arkode_mem);
-
-        if(advance_mri)
-        {
-            SUNLinSolFree(LS);
-            SUNNonlinSolFree(NLS);
-        }
-
         SUNContext_Free(&sunctx);
     }
 
@@ -314,6 +297,13 @@ public:
         {
             MultiFab::Copy(S_new[i], *amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_S, i)), 0, 0, S_new[i].nComp(), S_new[i].nGrow());
         }
+
+        // Clean up allocated memory
+        N_VDestroyVectorArray(nv_many_arr, NVar);
+        N_VDestroy(nv_S);
+        N_VDestroy(nv_stage_data);
+
+        ERKStepFree(&arkode_mem);
 
         // Return timestep
         return timestep;
@@ -561,6 +551,17 @@ public:
         {
             MultiFab::Copy(S_new[i], *amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_S, i)), 0, 0, S_new[i].nComp(), S_new[i].nGrow());
         }
+
+        // Clean up allocated memory
+        N_VDestroyVectorArray(nv_many_arr, NVar);
+        N_VDestroy(nv_S);
+        N_VDestroy(nv_stage_data);
+
+        MRIStepFree(&mristep_mem);
+        ARKStepFree(&inner_mem);
+
+        SUNLinSolFree(LS);
+        SUNNonlinSolFree(NLS);
 
         // Return timestep
         return timestep;
