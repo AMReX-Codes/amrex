@@ -99,9 +99,9 @@ private:
     amrex::Real timestep;
     typedef IntegratorBase<T> BaseT;
 
-    bool advance_erk;
-    bool advance_mri;
-    bool advance_mri_test;
+    bool use_erk_strategy;
+    bool use_mri_strategy;
+    bool use_mri_strategy_test;
 
     SUNNonlinearSolver NLS;    /* empty nonlinear solver object */
     SUNLinearSolver LS;        /* empty linear solver object    */
@@ -127,9 +127,9 @@ private:
 
     void initialize_parameters ()
     {
-        advance_erk=false;
-        advance_mri=false;
-        advance_mri_test=false;
+        use_erk_strategy=false;
+        use_mri_strategy=false;
+        use_mri_strategy_test=false;
 
         amrex::ParmParse pp("integration.sundials");
 
@@ -139,16 +139,16 @@ private:
 
         if (theStrategy == "ERK")
         {
-            advance_erk=true;
+            use_erk_strategy=true;
         }
         else if (theStrategy == "MRI")
         {
-            advance_mri=true;
+            use_mri_strategy=true;
         }
         else if (theStrategy == "MRITEST")
         {
-            advance_mri=true;
-            advance_mri_test=true;
+            use_mri_strategy=true;
+            use_mri_strategy_test=true;
         }
         else
         {
@@ -199,10 +199,10 @@ public:
 
     amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step)
     {
-        if (advance_mri) {
-            return mri_advance(S_old, S_new, time, time_step);
-        } else if (advance_erk) {
-            return erk_advance(S_old, S_new, time, time_step);
+        if (use_mri_strategy) {
+            return advance_mri(S_old, S_new, time, time_step);
+        } else if (use_erk_strategy) {
+            return advance_erk(S_old, S_new, time, time_step);
         } else {
             Error("SUNDIALS integrator backend not specified (ERK or MRI).");
         }
@@ -210,7 +210,7 @@ public:
         return 0;
     }
 
-    amrex::Real erk_advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step)
+    amrex::Real advance_erk (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step)
     {
         t               = time;
         tout            = time+time_step;
@@ -341,7 +341,7 @@ public:
         return timestep;
     }
 
-    amrex::Real mri_advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step)
+    amrex::Real advance_mri (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step)
     {
         int mri_time_step_ratio = BaseT::get_slow_fast_timestep_ratio();
         AMREX_ALWAYS_ASSERT(mri_time_step_ratio >= 1);
@@ -472,7 +472,7 @@ public:
         };
         /* End Section: SUNDIALS FUNCTION HOOKS */
 
-        if(advance_mri_test)
+        if(use_mri_strategy_test)
         {
             if(use_erk3)
                 inner_mem = ARKStepCreate(SundialsUserFun::f0, nullptr, time, nv_S, sunctx); // explicit bc (explicit f, implicit f, time, data)
@@ -518,7 +518,7 @@ public:
             B2->q=2;
             B2->p=0;
 
-            if(advance_mri_test)
+            if(use_mri_strategy_test)
                 ARKStepSetTables(inner_mem, B->q, B->p, nullptr, B);       // Specify Butcher table
             else
                 ARKStepSetTables(inner_mem, B2->q, B2->p, nullptr, B2);       // Specify Butcher table
@@ -562,7 +562,7 @@ public:
         MRIStepSetPostInnerFn(mristep_mem, SundialsUserFun::PostStoreStage);
         MRIStepSetPostprocessStageFn(mristep_mem, SundialsUserFun::ProcessStage);
 
-        if(advance_mri_test) {
+        if(use_mri_strategy_test) {
             MRIStepCoupling mri_coupling = MRIStepCoupling_MIStoMRI(B, B->q, B->p);
             MRIStepSetCoupling(mristep_mem, mri_coupling);
         } else {
