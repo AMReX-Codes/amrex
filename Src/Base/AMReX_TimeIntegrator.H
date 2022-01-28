@@ -6,7 +6,11 @@
 #include <AMReX_IntegratorBase.H>
 #include <AMReX_FEIntegrator.H>
 #include <AMReX_RKIntegrator.H>
+
+#ifdef AMREX_USE_SUNDIALS
 #include <AMReX_SundialsIntegrator.H>
+#endif
+
 #include <functional>
 
 namespace amrex {
@@ -45,9 +49,16 @@ private:
                 Print() << "Invalid integration.type: " << ia.what() << std::endl;
                 Error("Failed to initialize AMReX TimeIntegrator class.");
             }
+
             AMREX_ALWAYS_ASSERT(integrator_type >= static_cast<int>(IntegratorTypes::ForwardEuler) &&
                                 integrator_type <= static_cast<int>(IntegratorTypes::Sundials));
         }
+
+#ifndef AMREX_USE_SUNDIALS
+        if (integrator_type == static_cast<int>(IntegratorTypes::Sundials)) {
+            Error("AMReX has not been compiled with SUNDIALS. Recompile with USE_SUNDIALS=TRUE.");
+        }
+#endif
 
         return static_cast<IntegratorTypes>(integrator_type);
     }

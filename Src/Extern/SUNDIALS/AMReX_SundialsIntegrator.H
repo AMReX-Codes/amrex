@@ -17,9 +17,6 @@
 
 namespace amrex {
 
-//! The stepper strategies
-enum Strategy { UNDEFINED = -1, NATIVE, ERK, MRI, MRITEST };
-
 struct SundialsUserData {
     std::function<int(realtype, N_Vector, N_Vector, void*)> f0;
     std::function<int(realtype, N_Vector, N_Vector, void*)> f_fast;
@@ -129,13 +126,13 @@ private:
         }
 
         // SUNDIALS specific objects
-        NLS = NULL;            /* empty nonlinear solver object */
-        LS = NULL;             /* empty linear solver object    */
-        arkode_mem = NULL;     /* empty ARKode memory structure */
-        NLSf = NULL;           /* empty nonlinear solver object */
-        LSf = NULL;            /* empty linear solver object    */
-        inner_mem = NULL;      /* empty ARKode memory structure */
-        mristep_mem = NULL;    /* empty ARKode memory structure */
+        NLS = nullptr;            /* empty nonlinear solver object */
+        LS = nullptr;             /* empty linear solver object    */
+        arkode_mem = nullptr;     /* empty ARKode memory structure */
+        NLSf = nullptr;           /* empty nonlinear solver object */
+        LSf = nullptr;            /* empty linear solver object    */
+        inner_mem = nullptr;      /* empty ARKode memory structure */
+        mristep_mem = nullptr;    /* empty ARKode memory structure */
 
         // Arbitrary tolerances
         reltol          = 1e-4;
@@ -456,16 +453,16 @@ public:
         if(advance_mri_test)
         {
             if(use_erk3)
-                inner_mem = ARKStepCreate(SundialsUserFun::f0, NULL, time, nv_S, sunctx); // explicit bc (explicit f, implicit f, time, data)
+                inner_mem = ARKStepCreate(SundialsUserFun::f0, nullptr, time, nv_S, sunctx); // explicit bc (explicit f, implicit f, time, data)
             else
-                inner_mem = ARKStepCreate(NULL, SundialsUserFun::f0, time, nv_S, sunctx); // implicit
+                inner_mem = ARKStepCreate(nullptr, SundialsUserFun::f0, time, nv_S, sunctx); // implicit
         }
         else
         {
             if(use_erk3)
-                inner_mem = ARKStepCreate(SundialsUserFun::f_fast, NULL, time, nv_S, sunctx);
+                inner_mem = ARKStepCreate(SundialsUserFun::f_fast, nullptr, time, nv_S, sunctx);
             else
-                inner_mem = ARKStepCreate(NULL, SundialsUserFun::f_fast, time, nv_S, sunctx);
+                inner_mem = ARKStepCreate(nullptr, SundialsUserFun::f_fast, time, nv_S, sunctx);
         }
 
         ARKStepSetFixedStep(inner_mem, hfixed_mri);            // Specify fixed time step size
@@ -500,9 +497,9 @@ public:
             B2->p=0;
 
             if(advance_mri_test)
-                ARKStepSetTables(inner_mem, B->q, B->p, NULL, B);       // Specify Butcher table
+                ARKStepSetTables(inner_mem, B->q, B->p, nullptr, B);       // Specify Butcher table
             else
-                ARKStepSetTables(inner_mem, B2->q, B2->p, NULL, B2);       // Specify Butcher table
+                ARKStepSetTables(inner_mem, B2->q, B2->p, nullptr, B2);       // Specify Butcher table
         } else {
             B->A[1][0] = 1.0;
             B->A[2][0] = 1.0;
@@ -512,16 +509,16 @@ public:
             B->c[1] = 1.0;
             B->c[2] = 1.0;
             B->q=2;
-            ARKStepSetTables(inner_mem, B->q, B->p, B, NULL);       // Specify Butcher table
+            ARKStepSetTables(inner_mem, B->q, B->p, B, nullptr);       // Specify Butcher table
         }
 
         //Set table
         // Create fast time scale integrator from an ARKStep instance
-        MRIStepInnerStepper inner_stepper = NULL;
+        MRIStepInnerStepper inner_stepper = nullptr;
         ARKStepCreateMRIStepInnerStepper(inner_mem, &inner_stepper);
 
-        // args: fast RHS, NULL, initial time, initial state, fast time scale integrator, sundials context
-        mristep_mem = MRIStepCreate(SundialsUserFun::f, NULL, time, nv_S, inner_stepper, sunctx);
+        // args: fast RHS, nullptr, initial time, initial state, fast time scale integrator, sundials context
+        mristep_mem = MRIStepCreate(SundialsUserFun::f, nullptr, time, nv_S, inner_stepper, sunctx);
 
         MRIStepSetFixedStep(mristep_mem, hfixed);
 
@@ -534,7 +531,7 @@ public:
 
         //    ARKStepSetNonlinearSolver(inner_mem, NLS); // NOTE: uncomment for implicit
         if(use_linear)
-            MRIStepSetLinearSolver(mristep_mem, LS, NULL);
+            MRIStepSetLinearSolver(mristep_mem, LS, nullptr);
         else
             MRIStepSetNonlinearSolver(mristep_mem, NLS);
 

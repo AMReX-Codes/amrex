@@ -201,7 +201,6 @@ C$(AMREX_BASE)_headers += AMReX_PlotFileUtil.H AMReX_PlotFileDataImpl.H
 C$(AMREX_BASE)_headers += AMReX_FEIntegrator.H
 C$(AMREX_BASE)_headers += AMReX_IntegratorBase.H
 C$(AMREX_BASE)_headers += AMReX_RKIntegrator.H
-C$(AMREX_BASE)_headers += AMReX_SundialsIntegrator.H
 C$(AMREX_BASE)_headers += AMReX_TimeIntegrator.H
 
 
