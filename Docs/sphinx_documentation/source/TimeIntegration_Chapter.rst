@@ -122,7 +122,7 @@ two input parameters at runtime:
 
   integration.type = SUNDIALS
   integration.sundials.strategy = ERK
-  
+
 If instead one wishes to use the SUNDIALS multirate integrator, then the user
 will need to use the following runtime inputs parameters:
 
