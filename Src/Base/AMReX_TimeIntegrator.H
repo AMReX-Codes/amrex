@@ -115,9 +115,11 @@ public:
             case IntegratorTypes::ExplicitRungeKutta:
                 integrator_ptr = std::make_unique<RKIntegrator<T> >(S_data);
                 break;
+#ifdef AMREX_USE_SUNDIALS
             case IntegratorTypes::Sundials:
                 integrator_ptr = std::make_unique<SundialsIntegrator<T> >(S_data);
                 break;
+#endif
             default:
                 amrex::Error("integrator type did not match a valid integrator type.");
                 break;
