@@ -61,7 +61,7 @@ namespace SundialsUserFun {
 }
 
 template<class T>
-class SundialsIntegrator<T, typename std::enable_if<std::is_same<amrex::Vector<amrex::MultiFab>, T>::value>::type> : public IntegratorBase<T>
+class SundialsIntegrator : public IntegratorBase<T>
 {
 private:
     amrex::Real timestep;
