@@ -65,7 +65,7 @@ AmrCore::InitFromScratch (Real time)
 }
 
 void
-AmrCore::regrid (int lbase, Real time, bool)
+AmrCore::regrid (int lbase, Real time, bool, bool with_bittree)
 {
     if (lbase >= max_level) return;
 

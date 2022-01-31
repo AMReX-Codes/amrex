@@ -225,7 +225,7 @@ public:
     * this->grids.  It also does not modify new_grids's elements
     * outside the range [lbase+1,new_finest_level].
     */
-    void MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& new_grids);
+    void MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& new_grids, bool with_bittree=false);
 
     //! This function makes new grid for all levels (including level 0).
     void MakeNewGrids (Real time = 0.0);
