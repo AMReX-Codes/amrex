@@ -2542,7 +2542,7 @@ Amr::defBaseLevel (Real              strt_time,
 void
 Amr::regrid (int  lbase,
              Real time,
-             bool initial)
+             bool initial, bool with_bittree)
 {
     BL_PROFILE("Amr::regrid()");
 
