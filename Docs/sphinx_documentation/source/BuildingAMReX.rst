@@ -743,3 +743,38 @@ This capability is not supported on Windows.
 (3) Memory profiling is an optional feature in AMReX that is not enabled by default.  It reads
 memory system information from the OS to give us a summary of our memory usage.  This is not
 supported on Windows.
+
+
+.. _sec:build:spack:
+
+Spack
+=====
+
+AMReX can be installed using the scientific software package manager Spack. Spack
+supports multiple versions and configurations of AMReX across a wide variety of platforms
+and environments. To learn more about Spack visit http://www.spack.io. For system requirements and
+installation instructions please see https://spack.readthedocs.io/.
+
+Once Spack has been downloaded and the Spack environment enabled, AMReX can be
+installed with the command,
+
+.. code-block:: bash
+
+   spack install amrex
+
+This will install the latest release of AMReX and required dependencies if needed.
+
+AMReX can be built in several combinations of versions and configurations. Available options can
+be viewed by typing,
+
+.. code-block:: bash
+
+   spack info amrex
+
+For example, suppose we want to install the development version of AMReX for a two dimensional
+simulation with Cuda support for Cuda Architecture ``sm_60``. Then we would
+use the install commands,
+
+.. code-block:: bash
+
+   spack install amrex@develop dimensions=2 +cuda cuda_arch=60
