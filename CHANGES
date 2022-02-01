@@ -1,3 +1,87 @@
+# 22.02
+
+  -- Fix I/O bug in Amr class (#2609)
+
+  -- Spack install instructions for Building section. (#2602)
+
+  -- Kernel fusing in Geometry (#2606)
+
+  -- Kernel fusing in FluxRegister (#2605)
+
+  -- TableData: A Multi-Dimensional Array Class (#2601)
+
+  -- FabSet::multiFab (#2604)
+
+  -- Disable EB solver's phi-on-centroid for hip for now (#2598)
+
+  -- Update locations for tutorials and minor formatting. (#2583)
+
+  -- CI: AMD `hip::device` also for Fortran (#2595)
+
+  -- fix vol initialization for Cartesian in fvolumesum (#2596)
+
+  -- Add headings and steps to plot vector field in ParaView doc section (#2588)
+
+  -- Kernel fusing in FabArrayUtility (#2593)
+
+  -- Change FPinfo's fact_fine_patch to always have ng=1. (#2591)
+
+  -- Support arbitrary refinement ratio in FaceLinear Interpolater (#2590)
+
+  -- Default Arena for MultiFab/iMultiFab/FabArray (#2589)
+
+  -- `add_par` precedence in Docs. (#2575)
+
+  -- Fix typo in 1D version of AMREX_LAUNCH_DEVICE_LAMBDA_DIM (#2587)
+
+  -- CMake: remove nonexistent header file, update minimum sundials version (#2586)
+
+  -- Enable CUDA in CMakeLists.txt for Spack smoke test. (#2581)
+
+  -- Fix warning from hiprand header (#2585)
+
+  -- HIP: amdclang++ (#2582)
+
+  -- Update sundials sycl memory helper interface (#2580)
+
+  -- HIP: Add -munsafe-fp-atomics to CMake (#2577)
+
+  -- ParmPaser::queryAdd (#2573)
+
+  -- Fix regression test configuration (#2574)
+
+  -- Convert switch statement to if statement (#2570)
+
+  -- remove erroneous BL_ASSERT in sundials initialization (#2568)
+
+  -- Support implicit function class defined on host when using device memory explicitly.  (#2563)
+
+  -- HIP: Add -munsafe-fp-atomics to GNU Make (#2567)
+
+  -- GNU Make: Add a new machine, crusher (#2566)
+
+  -- Mapped solver support (#2088)
+
+  -- Update to SUNDIALS 6 (#2551)
+
+  -- Return a zero-size vector in ParallelDescriptor::Gather. (#2560)
+
+  -- Add option not to remove particles with negative ids when calling Redistribute. (#2561)
+
+  -- Update FillPatchTwoLevels for single component face-centered data (#2539)
+
+  -- Kernel fusing in FabArray Comm (#2559)
+
+  -- Use MF ParallelFor in error tagging (#2558)
+
+  -- iMultiFab I/O (#2495)
+
+  -- Embed more EB data in EBFArrayBox (#2550)
+
+  -- CpuBndryFuncFab: Face Data (#2545)
+
+  -- Fix bug in Parser (#2555)
+
 # 22.01
 
   -- Add Gatherv for USE_MPI=FALSE. (#2549)
