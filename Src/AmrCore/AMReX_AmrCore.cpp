@@ -69,6 +69,65 @@ AmrCore::regrid (int lbase, Real time, bool, bool with_bittree)
 {
     if (lbase >= max_level) return;
 
+    if(with_bittree) {
+      btmesh->refine_init();
+
+      int new_finest;
+      Vector<BoxArray> new_grids(finest_level+2);
+      Vector<DistributionMapping> new_dmap(finest_level+2);
+      MakeNewGrids(lbase, time, new_finest, new_grids, new_dmap);
+
+      BL_ASSERT(new_finest <= finest_level+1);
+
+      bool coarse_ba_changed = false;
+      for (int lev = lbase+1; lev <= new_finest; ++lev)
+      {
+          if (lev <= finest_level) // an old level
+          {
+              bool ba_changed = (new_grids[lev] != grids[lev]);
+              bool dm_changed = (new_dmap[lev] != dmap[lev] );
+              if (ba_changed || coarse_changed || dm_changed) {
+                  BoxArray level_grids = grids[lev];
+                  DistributionMapping level_dmap = dmap[lev];
+                  if (ba_changed) {
+                      level_grids = new_grids[lev];
+                  }
+                  if (dm_changed) {
+                      level_dmap = new_dmap[lev];
+                  }
+                  //const auto old_num_setdm = num_setdm;
+                  RemakeLevel(lev, time, level_grids, level_dmap);
+                  SetBoxArray(lev, level_grids);
+                  //if (old_num_setdm == num_setdm) {
+                      SetDistributionMap(lev, level_dmap);
+                  //}
+              }
+              coarse_changed = ba_changed || dm_changed;
+          }
+          else  // a new level
+          {
+              //const auto old_num_setdm = num_setdm;
+              MakeNewLevelFromCoarse(lev, time, new_grids[lev], new_dmap[lev]);
+              SetBoxArray(lev, new_grids[lev]);
+              //if (old_num_setdm == num_setdm) {
+                  SetDistributionMap(lev, new_dmap[lev]);
+              //}
+          }
+      }
+
+      for (int lev = new_finest+1; lev <= finest_level; ++lev) {
+          ClearLevel(lev);
+          ClearBoxArray(lev);
+          ClearDistributionMap(lev);
+      }
+
+      finest_level = new_finest;
+
+      btmesh->refine_apply();
+    } //if(with_bittree)
+
+    else {
+
     int new_finest;
     Vector<BoxArray> new_grids(finest_level+2);
     MakeNewGrids(lbase, time, new_finest, new_grids);
@@ -116,6 +175,8 @@ AmrCore::regrid (int lbase, Real time, bool, bool with_bittree)
     }
 
     finest_level = new_finest;
+    } // if(!with_bittree)
+
 }
 
 

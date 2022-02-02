@@ -491,7 +491,24 @@ AmrMesh::MakeBaseGrids () const
 
 
 void
-AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& new_grids, bool with_bittree)
+AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& new_grids, Vector<DistributionMapping>& new_dmap)
+{
+    BL_PROFILE("AmrMesh::MakeNewGrids()");
+
+    BL_ASSERT(lbase < max_level);
+
+    // Add at most one new level
+    int max_crse = std::min(finest_level, max_level-1);
+
+    if (new_grids.size() < max_crse+2) new_grids.resize(max_crse+2);
+
+    btUnit::btErrorEst(btmesh);
+    btUnit::btRefine(btmesh);
+    btUnit::btMakeNewGrids(btmesh,lbase,time,new_finest,new_grids,new_dmap);
+}
+
+void
+AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& new_grids)
 {
     BL_PROFILE("AmrMesh::MakeNewGrids()");
 

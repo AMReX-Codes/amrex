@@ -11,6 +11,8 @@
 #include <AMReX_BoxArray.H>
 #include <AMReX_TagBox.H>
 
+#include <Bittree_Amr.h>
+
 namespace amrex {
 
 struct AmrInfo {
@@ -225,7 +227,10 @@ public:
     * this->grids.  It also does not modify new_grids's elements
     * outside the range [lbase+1,new_finest_level].
     */
-    void MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& new_grids, bool with_bittree=false);
+    void MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& new_grids);
+
+    //! Use with Bittree
+    void MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& new_grids, Vector<DistributionMapping>& new_dmap);
 
     //! This function makes new grid for all levels (including level 0).
     void MakeNewGrids (Real time = 0.0);
@@ -259,6 +264,7 @@ protected:
     Vector<Geometry>            geom;
     Vector<DistributionMapping> dmap;
     Vector<BoxArray>            grids;
+    std::shared_ptr<BittreeAmr> btmesh;
 
     unsigned int num_setdm = 0;
     unsigned int num_setba = 0;
