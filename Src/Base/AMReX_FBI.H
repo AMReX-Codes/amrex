@@ -102,24 +102,12 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
         int to_try  = 1;
         while (true) {
             int msk = (m && to_try) ? Gpu::Atomic::CAS(m, 0, mypriority) : 0;
-#if (__INTEL_LLVM_COMPILER <= 20210300)
-            if (sycl::ONEAPI::all_of(item.get_sub_group(), msk == 0)) {  // 0 means lock acquired
-#else
             if (sycl::all_of_group(item.get_sub_group(), msk == 0)) {  // 0 means lock acquired
-#endif
                 break; // all threads have acquired.
             } else {
-#if (__INTEL_LLVM_COMPILER <= 20210300)
-                if (sycl::ONEAPI::any_of(item.get_sub_group(), msk > mypriority)) {
-#else
                 if (sycl::any_of_group(item.get_sub_group(), msk > mypriority)) {
-#endif
-                    if (m) *m = 0; // yield
-#if (__INTEL_LLVM_COMPILER <= 20210300)
-                    item.mem_fence(sycl::access::fence_space::global_and_local);
-#else
+                    if (m) { *m = 0; } // yield
                     sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
-#endif
                     to_try = 1;
                 } else {
                     to_try = (msk > 0); // hold on to my lock
