@@ -170,11 +170,13 @@ const char* buildInfoGetBuildGitName() {
   return NAME;
 }
 
+#ifdef AMREX_USE_CUDA
 const char* buildInfoGetCUDAVersion() {
 
   static const char CUDA_VERSION[] = "@@CUDA_VERSION@@";
   return CUDA_VERSION;
 }
+#endif
 
 }
 """
