@@ -29,6 +29,9 @@ const char* buildInfoGetGitBranch(int i);
 const char* buildInfoGetLinkerInfo(int i);
 const char* buildInfoGetBuildGitName();
 const char* buildInfoGetBuildGitHash();
+#ifdef AMREX_USE_CUDA
+const char* buildInfoGetCUDAVersion();
+#endif
 }
 
 #endif
