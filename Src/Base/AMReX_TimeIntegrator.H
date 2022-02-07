@@ -6,13 +6,19 @@
 #include <AMReX_IntegratorBase.H>
 #include <AMReX_FEIntegrator.H>
 #include <AMReX_RKIntegrator.H>
+
+#ifdef AMREX_USE_SUNDIALS
+#include <AMReX_SundialsIntegrator.H>
+#endif
+
 #include <functional>
 
 namespace amrex {
 
 enum struct IntegratorTypes {
     ForwardEuler = 0,
-    ExplicitRungeKutta
+    ExplicitRungeKutta,
+    Sundials
 };
 
 template<class T>
@@ -26,8 +32,33 @@ private:
     {
         amrex::ParmParse pp("integration");
 
-        int integrator_type = static_cast<int>(IntegratorTypes::ForwardEuler);
-        pp.get("type", integrator_type);
+        int integrator_type;
+        std::string integrator_str;
+        pp.get("type", integrator_str);
+
+        if (integrator_str == "ForwardEuler") {
+            integrator_type = static_cast<int>(IntegratorTypes::ForwardEuler);
+        } else if (integrator_str == "RungeKutta") {
+            integrator_type = static_cast<int>(IntegratorTypes::ExplicitRungeKutta);
+        } else if (integrator_str == "SUNDIALS") {
+            integrator_type = static_cast<int>(IntegratorTypes::Sundials);
+        } else {
+            try {
+                integrator_type = std::stoi(integrator_str, nullptr);
+            } catch (const std::invalid_argument& ia) {
+                Print() << "Invalid integration.type: " << ia.what() << std::endl;
+                Error("Failed to initialize AMReX TimeIntegrator class.");
+            }
+
+            AMREX_ALWAYS_ASSERT(integrator_type >= static_cast<int>(IntegratorTypes::ForwardEuler) &&
+                                integrator_type <= static_cast<int>(IntegratorTypes::Sundials));
+        }
+
+#ifndef AMREX_USE_SUNDIALS
+        if (integrator_type == static_cast<int>(IntegratorTypes::Sundials)) {
+            Error("AMReX has not been compiled with SUNDIALS. Recompile with USE_SUNDIALS=TRUE.");
+        }
+#endif
 
         return static_cast<IntegratorTypes>(integrator_type);
     }
@@ -43,6 +74,7 @@ private:
 
         // By default, do nothing
         set_rhs([](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){});
+        set_fast_rhs([](T& /* S_rhs */, const T& /* S_extra */, const T& /* S_data */, const amrex::Real /* time */){});
     }
 
 public:
@@ -83,6 +115,11 @@ public:
             case IntegratorTypes::ExplicitRungeKutta:
                 integrator_ptr = std::make_unique<RKIntegrator<T> >(S_data);
                 break;
+#ifdef AMREX_USE_SUNDIALS
+            case IntegratorTypes::Sundials:
+                integrator_ptr = std::make_unique<SundialsIntegrator<T> >(S_data);
+                break;
+#endif
             default:
                 amrex::Error("integrator type did not match a valid integrator type.");
                 break;
@@ -104,6 +141,16 @@ public:
         integrator_ptr->set_rhs(F);
     }
 
+    void set_fast_rhs (std::function<void(T&, const T&, const T&, const amrex::Real)> F)
+    {
+        integrator_ptr->set_fast_rhs(F);
+    }
+
+    void set_slow_fast_timestep_ratio (const int timestep_ratio = 1)
+    {
+        integrator_ptr->set_slow_fast_timestep_ratio(timestep_ratio);
+    }
+
     std::function<void ()> get_post_timestep ()
     {
         return post_timestep;
@@ -117,6 +164,11 @@ public:
     std::function<void(T&, const T&, const amrex::Real)> get_rhs ()
     {
         return integrator_ptr->get_rhs();
+    }
+
+    std::function<void(T&, const T&, const T&, const amrex::Real)> get_fast_rhs ()
+    {
+        return integrator_ptr->get_fast_rhs();
     }
 
     void advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real timestep)
