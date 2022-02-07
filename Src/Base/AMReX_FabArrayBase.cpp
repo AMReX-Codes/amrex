@@ -116,7 +116,7 @@ FabArrayBase::Initialize ()
         for (int i=0; i<AMREX_SPACEDIM; i++) FabArrayBase::comm_tile_size[i] = tilesize[i];
     }
 
-    pp.query("maxcomp",             FabArrayBase::MaxComp);
+    pp.queryAdd("maxcomp",             FabArrayBase::MaxComp);
 
     if (MaxComp < 1) {
         MaxComp = 1;
@@ -1795,7 +1795,7 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
                                            ba_crse_patch,
                                            dm_patch,
                                            {0,0,0}, EBSupport::basic);
-        int ng = boxtype.cellCentered() ? 0 : 1; // to avoid dengerate box
+        int ng = 1; // to avoid dengerate box
         fact_fine_patch = makeEBFabFactory(index_space,
                                            index_space->getGeometry(fdomain),
                                            ba_fine_patch,

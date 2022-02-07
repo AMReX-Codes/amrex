@@ -11,17 +11,17 @@
 
 namespace amrex {
 
-    std::int16_t swapBytes(std::int16_t value);
-    std::int32_t swapBytes(std::int32_t value);
-    std::int64_t swapBytes(std::int64_t value);
+    std::int16_t swapBytes (std::int16_t value);
+    std::int32_t swapBytes (std::int32_t value);
+    std::int64_t swapBytes (std::int64_t value);
 
-    std::uint16_t swapBytes(std::uint16_t value);
-    std::uint32_t swapBytes(std::uint32_t value);
-    std::uint64_t swapBytes(std::uint64_t value);
+    std::uint16_t swapBytes (std::uint16_t value);
+    std::uint32_t swapBytes (std::uint32_t value);
+    std::uint64_t swapBytes (std::uint64_t value);
 
     template <typename To, typename From>
-    void writeIntData(const From* data, std::size_t size, std::ostream& os,
-                      const amrex::IntDescriptor& id)
+    void writeIntData (const From* data, std::size_t size, std::ostream& os,
+                       const amrex::IntDescriptor& id)
     {
         To value;
         bool swapEndian = (id.order() != amrex::FPC::NativeIntDescriptor().order());
@@ -33,8 +33,8 @@ namespace amrex {
     }
 
     template <typename To, typename From>
-    void readIntData(To* data, std::size_t size, std::istream& is,
-                     const amrex::IntDescriptor& id)
+    void readIntData (To* data, std::size_t size, std::istream& is,
+                      const amrex::IntDescriptor& id)
     {
         From value;
         bool swapEndian = (id.order() != amrex::FPC::NativeIntDescriptor().order());
@@ -47,4 +47,3 @@ namespace amrex {
 }
 
 #endif
-

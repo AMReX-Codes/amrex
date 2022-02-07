@@ -129,7 +129,7 @@ int ParticleContainerBase::MaxReaders ()
         first = false;
         ParmParse pp("particles");
         Max_Readers = Max_Readers_def;
-        pp.query("nreaders", Max_Readers);
+        pp.queryAdd("nreaders", Max_Readers);
         Max_Readers = std::min(ParallelDescriptor::NProcs(),Max_Readers);
         if (Max_Readers <= 0)
         {
@@ -155,7 +155,7 @@ Long ParticleContainerBase::MaxParticlesPerRead ()
         first = false;
         ParmParse pp("particles");
         Max_Particles_Per_Read = Max_Particles_Per_Read_def;
-        pp.query("nparts_per_read", Max_Particles_Per_Read);
+        pp.queryAdd("nparts_per_read", Max_Particles_Per_Read);
         if (Max_Particles_Per_Read <= 0)
         {
             amrex::Abort("particles.nparts_per_read must be positive");
@@ -175,7 +175,7 @@ const std::string& ParticleContainerBase::AggregationType ()
         first = false;
         aggregation_type = "None";
         ParmParse pp("particles");
-        pp.query("aggregation_type", aggregation_type);
+        pp.queryAdd("aggregation_type", aggregation_type);
         if (!(aggregation_type == "None" || aggregation_type == "Cell"))
         {
             amrex::Abort("particles.aggregation_type not implemented.");
@@ -195,7 +195,7 @@ int ParticleContainerBase::AggregationBuffer ()
         first = false;
         aggregation_buffer = 2;
         ParmParse pp("particles");
-        pp.query("aggregation_buffer", aggregation_buffer);
+        pp.queryAdd("aggregation_buffer", aggregation_buffer);
         if (aggregation_buffer <= 0)
         {
             amrex::Abort("particles.aggregation_buffer must be positive");

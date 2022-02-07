@@ -46,6 +46,7 @@ source /etc/profile.d/rocm.sh
 hipcc --version
 which clang
 which clang++
+which flang
 
 # cmake-easyinstall
 #

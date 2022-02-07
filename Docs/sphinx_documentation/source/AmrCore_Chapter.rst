@@ -29,7 +29,7 @@ simulation code without these additional classes.
 In this Chapter, we restrict our use to the ``amrex/Src/AmrCore`` source code
 and present a tutorial that performs an adaptive, subcycling-in-time simulation
 of the advection equation for a passively advected scalar.  The accompanying
-tutorial code is available in ``amrex/Tutorials/Amr/Advection_AmrCore`` with
+tutorial code is available in ``amrex-tutorials/ExampleCodes/Amr/Advection_AmrCore`` with
 build/run directory ``Exec/SingleVortex``. In this example, the velocity field
 is a specified function of space and time, such that an initial Gaussian
 profile is displaced but returns to its original configuration at the final

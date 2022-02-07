@@ -35,8 +35,9 @@ public:
         initialize_stages(S_data);
     }
 
-    amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real timestep)
+    amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step)
     {
+        BaseT::timestep = time_step;
         // Assume before advance() that S_old is valid data at the current time ("time" argument)
         // So we initialize S_new by copying the old state.
         IntegratorOps<T>::Copy(S_new, S_old);
@@ -46,16 +47,16 @@ public:
         BaseT::rhs(F, S_new, time);
 
         // S_new += timestep * dS/dt
-        IntegratorOps<T>::Saxpy(S_new, timestep, F);
+        IntegratorOps<T>::Saxpy(S_new, BaseT::timestep, F);
 
         // Call the post-update hook for S_new
-        BaseT::post_update(S_new, time + timestep);
+        BaseT::post_update(S_new, time + BaseT::timestep);
 
         // Return timestep
-        return timestep;
+        return BaseT::timestep;
     }
 
-    virtual void time_interpolate (const T& S_new, const T& S_old, amrex::Real timestep_fraction, T& data) override
+    virtual void time_interpolate (const T& /* S_new */, const T& /* S_old */, amrex::Real /* timestep_fraction */, T& /* data */) override
     {
         amrex::Error("Time interpolation not yet supported by forward euler integrator.");
     }

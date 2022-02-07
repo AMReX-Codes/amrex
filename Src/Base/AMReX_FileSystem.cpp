@@ -147,9 +147,7 @@ CreateDirectories (std::string const& path, mode_t mode, bool verbose)
             errno = 0;
             if(mkdir(dir, mode) < 0 && errno != EEXIST) {
                 retVal = false;
-            } else {
-                retVal = true;
-            }
+            } // No `else` because the retVal has been set in the do-while loop above.
             pathError.push_back(std::make_pair(dir, errno));
         }
 

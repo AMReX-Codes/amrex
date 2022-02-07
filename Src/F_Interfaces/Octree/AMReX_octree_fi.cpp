@@ -40,17 +40,17 @@ extern "C" {
         pp.add("blocking_factor", blocking_factor);
 
         int max_grid_size_x = max_grid_size;
-        pp.query("max_grid_size_x", max_grid_size_x);
+        pp.queryAdd("max_grid_size_x", max_grid_size_x);
         int blocking_factor_x = 2*max_grid_size_x;
         pp.add("blocking_factor_x", blocking_factor_x);
 
         int max_grid_size_y = max_grid_size;
-        pp.query("max_grid_size_y", max_grid_size_y);
+        pp.queryAdd("max_grid_size_y", max_grid_size_y);
         int blocking_factor_y = 2*max_grid_size_y;
         pp.add("blocking_factor_y", blocking_factor_y);
 
         int max_grid_size_z = max_grid_size;
-        pp.query("max_grid_size_z", max_grid_size_z);
+        pp.queryAdd("max_grid_size_z", max_grid_size_z);
         int blocking_factor_z = 2*max_grid_size_z;
         pp.add("blocking_factor_z", blocking_factor_z);
 

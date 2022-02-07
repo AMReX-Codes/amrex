@@ -2096,8 +2096,10 @@ ParmParse::getRecord (const std::string& name, int n) const
     {
         amrex::ErrorStream() << "ParmParse::getRecord: record " << name << " not found" << std::endl;
         amrex::Abort();
+        return Record(ParmParse());
+    } else {
+        return Record(ParmParse(*pe->m_table));
     }
-    return Record(ParmParse(*pe->m_table));
 }
 
 //

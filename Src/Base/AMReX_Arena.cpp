@@ -253,17 +253,17 @@ Arena::Initialize ()
 #endif
 
     ParmParse pp("amrex");
-    pp.query(        "the_arena_init_size",         the_arena_init_size);
-    pp.query( "the_device_arena_init_size",  the_device_arena_init_size);
-    pp.query("the_managed_arena_init_size", the_managed_arena_init_size);
-    pp.query( "the_pinned_arena_init_size",  the_pinned_arena_init_size);
-    pp.query(       "the_arena_release_threshold" ,         the_arena_release_threshold);
-    pp.query( "the_device_arena_release_threshold",  the_device_arena_release_threshold);
-    pp.query("the_managed_arena_release_threshold", the_managed_arena_release_threshold);
-    pp.query( "the_pinned_arena_release_threshold",  the_pinned_arena_release_threshold);
-    pp.query(  "the_async_arena_release_threshold",   the_async_arena_release_threshold);
-    pp.query("the_arena_is_managed", the_arena_is_managed);
-    pp.query("abort_on_out_of_gpu_memory", abort_on_out_of_gpu_memory);
+    pp.queryAdd(        "the_arena_init_size",         the_arena_init_size);
+    pp.queryAdd( "the_device_arena_init_size",  the_device_arena_init_size);
+    pp.queryAdd("the_managed_arena_init_size", the_managed_arena_init_size);
+    pp.queryAdd( "the_pinned_arena_init_size",  the_pinned_arena_init_size);
+    pp.queryAdd(       "the_arena_release_threshold" ,         the_arena_release_threshold);
+    pp.queryAdd( "the_device_arena_release_threshold",  the_device_arena_release_threshold);
+    pp.queryAdd("the_managed_arena_release_threshold", the_managed_arena_release_threshold);
+    pp.queryAdd( "the_pinned_arena_release_threshold",  the_pinned_arena_release_threshold);
+    pp.queryAdd(  "the_async_arena_release_threshold",   the_async_arena_release_threshold);
+    pp.queryAdd("the_arena_is_managed", the_arena_is_managed);
+    pp.queryAdd("abort_on_out_of_gpu_memory", abort_on_out_of_gpu_memory);
 
     {
 #if defined(BL_COALESCE_FABS) || defined(AMREX_USE_GPU)

@@ -177,19 +177,34 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     MultiFab mf(mflx.boxArray(),mflx.DistributionMap(),numcomp,0,
                 MFInfo(), mflx.Factory());
 
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && mflx.isFusingCandidate()) {
+        auto const& dma = mf.arrays();
+        auto const& sma = mflx.const_arrays();
+        auto const& ama = area.const_arrays();
+        ParallelFor(mf, IntVect(0), numcomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            dma[box_no](i,j,k,n) = sma[box_no](i,j,k,n+srccomp)*mult*ama[box_no](i,j,k);
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(mflx,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        auto       dfab =   mf.array(mfi);
-        auto const sfab = mflx.const_array(mfi);
-        auto const afab = area.const_array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
+        for (MFIter mfi(mflx,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            dfab(i,j,k,n) = sfab(i,j,k,n+srccomp)*mult*afab(i,j,k);
-        });
+            const Box& bx = mfi.tilebox();
+            auto       dfab =   mf.array(mfi);
+            auto const sfab = mflx.const_array(mfi);
+            auto const afab = area.const_array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
+            {
+                dfab(i,j,k,n) = sfab(i,j,k,n+srccomp)*mult*afab(i,j,k);
+            });
+        }
     }
 
     for (int pass = 0; pass < 2; pass++)
@@ -208,6 +223,12 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
             fs.copyFrom(mf,0,0,0,numcomp);
 
+#ifdef AMREX_USE_GPU
+            using Tag = Array4PairTag<Real>;
+            Vector<Tag> tags;
+            tags.reserve(mflx.local_size()*AMREX_SPACEDIM*2);
+#endif
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -216,11 +237,26 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                 const Box& bx = mfi.validbox();
                 auto const sfab = fs.const_array(mfi);
                 auto       dfab = bndry[face].array(mfi);
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (bx, numcomp, i, j, k, n,
+#ifdef AMREX_USE_GPU
+                if (Gpu::inLaunchRegion()) {
+                    tags.push_back({dfab, sfab, bx});
+                } else
+#endif
                 {
-                    dfab(i,j,k,n+destcomp) += sfab(i,j,k,n);
-                });
+                    AMREX_LOOP_4D(bx, numcomp, i, j, k, n,
+                    {
+                        dfab(i,j,k,n+destcomp) += sfab(i,j,k,n);
+                    });
+                }
             }
+
+#ifdef AMREX_USE_GPU
+            ParallelFor(tags, numcomp,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Tag const& tag) noexcept
+            {
+                tag.dfab(i,j,k,n+destcomp) += tag.sfab(i,j,k,n);
+            });
+#endif
         }
     }
 }
@@ -264,19 +300,34 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
     MultiFab mf(mflx.boxArray(),mflx.DistributionMap(),numcomp,0,
                 MFInfo(), mflx.Factory());
 
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && mflx.isFusingCandidate()) {
+        auto const& dma = mf.arrays();
+        auto const& sma = mflx.const_arrays();
+        auto const& ama = area.const_arrays();
+        ParallelFor(mf, IntVect(0), numcomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            dma[box_no](i,j,k,n) = sma[box_no](i,j,k,n+srccomp)*mult*ama[box_no](i,j,k);
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(mflx,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        auto       dfab =   mf.array(mfi);
-        auto const sfab = mflx.const_array(mfi);
-        auto const afab = area.const_array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
+        for (MFIter mfi(mflx,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            dfab(i,j,k,n) = sfab(i,j,k,n+srccomp)*mult*afab(i,j,k);
-        });
+            const Box& bx = mfi.tilebox();
+            auto       dfab =   mf.array(mfi);
+            auto const sfab = mflx.const_array(mfi);
+            auto const afab = area.const_array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
+            {
+                dfab(i,j,k,n) = sfab(i,j,k,n+srccomp)*mult*afab(i,j,k);
+            });
+        }
     }
 
     for (int pass = 0; pass < 2; pass++)
@@ -555,19 +606,34 @@ FluxRegister::Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
 
     bndry[face].copyTo(flux, 0, scomp, 0, nc, geom.periodicity());
 
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && mf.isFusingCandidate()) {
+        auto const& sma = mf.arrays();
+        auto const& fma = flux.const_arrays();
+        auto const& vma = volume.const_arrays();
+        ParallelFor(mf, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+        {
+            fluxreg_reflux(Box(IntVect(AMREX_D_DECL(i,j,k)),IntVect(AMREX_D_DECL(i,j,k))),
+                           sma[box_no], dcomp, fma[box_no], vma[box_no], nc, scale, face);
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        Array4<Real> const& sfab = mf.array(mfi);
-        Array4<Real const> const& ffab = flux.const_array(mfi);
-        Array4<Real const> const& vfab = volume.const_array(mfi);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+        for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            fluxreg_reflux(tbx, sfab, dcomp, ffab, vfab, nc, scale, face);
-        });
+            const Box& bx = mfi.tilebox();
+            Array4<Real> const& sfab = mf.array(mfi);
+            Array4<Real const> const& ffab = flux.const_array(mfi);
+            Array4<Real const> const& vfab = volume.const_array(mfi);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+            {
+                fluxreg_reflux(tbx, sfab, dcomp, ffab, vfab, nc, scale, face);
+            });
+        }
     }
 }
 
@@ -681,6 +747,25 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
     constexpr int phbc_cell = 2;
     const BoxArray& cba = amrex::convert(crse_fluxes[0]->boxArray(), IntVect::TheCellVector());
     iMultiFab cc_mask(cba, crse_fluxes[0]->DistributionMap(), 1, 1);
+
+    bool inited = false;
+#ifdef AMREX_USE_GPU
+    if (run_on_gpu && cc_mask.isFusingCandidate()) {
+        auto const& ma = cc_mask.arrays();
+        ParallelFor(cc_mask, IntVect(1),
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+        {
+            if (cdomain.contains(i,j,k)) {
+                ma[box_no](i,j,k) = crse_cell;
+            } else {
+                ma[box_no](i,j,k) = phbc_cell;
+            }
+        });
+        // No need to call streamSynchronize here
+        inited = true;
+    }
+#endif
+
     {
         const std::vector<IntVect>& pshifts = cperiod.shiftIntVect();
         Vector<Array4BoxTag<int> > tags;
@@ -695,14 +780,17 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
             {
                 auto const& fab = cc_mask.array(mfi);
                 const Box& bx = mfi.fabbox();
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
-                {
-                    if (cdomain.contains(i,j,k)) {
-                        fab(i,j,k) = crse_cell;
-                    } else {
-                        fab(i,j,k) = phbc_cell;
-                    }
-                });
+
+                if (!inited) {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                    {
+                        if (cdomain.contains(i,j,k)) {
+                            fab(i,j,k) = crse_cell;
+                        } else {
+                            fab(i,j,k) = phbc_cell;
+                        }
+                    });
+                }
 
                 for (const auto& iv : pshifts)
                 {

@@ -4,6 +4,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BLassert.H>
+#include <AMReX_TypeTraits.H>
 
 #include <set>
 #include <stack>
@@ -932,6 +933,84 @@ public:
             for (std::size_t i = 0; i < N; ++i) {
                 ref[i] = v[i];
             }
+        }
+        return exist;
+    }
+
+    /**
+     * \brief If `name` is found, the value in the ParmParse database will
+     * be stored in the `ref` argument.  If not, the value in `ref` will be
+     * added to the ParmParse database.  The return value indicates if it
+     * existed previously.
+     */
+    template <typename T, std::enable_if_t<!IsStdVector<T>::value, int> = 0>
+    int queryAdd (const char* name, T& ref) {
+        int exist = this->query(name, ref);
+        if (!exist) {
+            this->add(name, ref);
+        }
+        return exist;
+    }
+
+    int queryAdd (const char* name, std::string& ref) {
+        int exist = this->query(name, ref);
+        if (!exist && !ref.empty()) {
+            this->add(name, ref);
+        }
+        return exist;
+    }
+
+    /**
+     * \brief If `name` is found, the value in the ParmParse database will
+     * be stored in the `ref` argument.  If not, the value in `ref` will be
+     * added to the ParmParse database.  The return value indicates if it
+     * existed previously.
+     */
+    template <typename T>
+    int queryAdd (const char* name, std::vector<T>& ref) {
+        int exist = this->queryarr(name, ref);
+        if (!exist && !ref.empty()) {
+            this->addarr(name, ref);
+        }
+        return exist;
+    }
+
+    /**
+     * \brief If `name` is found, the value in the ParmParse database will
+     * be stored in the `ref` argument.  If not, the value in `ref` will be
+     * added to the ParmParse database.  The return value indicates if it
+     * existed previously.
+     */
+    template <typename T>
+    int queryAdd (const char* name, std::vector<T>& ref, int num_val) {
+        int exist = this->queryarr(name, ref, 0, num_val);
+        if (!exist) {
+            this->addarr(name, ref);
+        }
+        return exist;
+    }
+
+    /**
+     * \brief If `name` is found, the value in the ParmParse database will
+     * be stored in the `ref` argument.  If not, the value in `ref` will be
+     * added to the ParmParse database.  The return value indicates if it
+     * existed previously.
+     */
+    template <typename T, std::size_t N>
+    int queryAdd (const char* name, std::array<T,N>& ref) {
+        std::vector<T> v;
+        int exist = this->queryarr(name, v);
+        if (exist) {
+            AMREX_ALWAYS_ASSERT(v.size() >= N);
+            for (std::size_t i = 0; i < N; ++i) {
+                ref[i] = v[i];
+            }
+        } else {
+            v.resize(N);
+            for (std::size_t i = 0; i < N; ++i) {
+                v[i] = ref[i];
+            }
+            this->addarr(name, v);
         }
         return exist;
     }

@@ -100,7 +100,7 @@ iparser_newf3 (enum iparser_f3_t ftype, struct iparser_node* n1, struct iparser_
 struct iparser_node*
 iparser_newassign (struct iparser_symbol* sym, struct iparser_node* v)
 {
-    auto r = (struct iparser_assign*) std::malloc(sizeof(struct iparser_symbol));
+    auto r = (struct iparser_assign*) std::malloc(sizeof(struct iparser_assign));
     r->type = IPARSER_ASSIGN;
     r->s = sym;
     r->v = v;

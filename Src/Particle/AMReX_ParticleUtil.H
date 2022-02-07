@@ -463,7 +463,7 @@ template <typename PTile, typename PLocator>
 int
 partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBufferMap& pmap,
                           const Geometry& geom, int lev, int gid, int /*tid*/,
-                          int lev_min, int lev_max, int nGrow)
+                          int lev_min, int lev_max, int nGrow, bool remove_negative)
 {
     const auto plo    = geom.ProbLoArray();
     const auto phi    = geom.ProbHiArray();
@@ -527,6 +527,10 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                       assigned_grid = amrex::get<0>(tup);
                       assigned_lev  = amrex::get<1>(tup);
                     }
+                }
+
+                if ((remove_negative == false) && (p.id() < 0)) {
+                    return true;
                 }
 
                 return ((assigned_grid == gid) && (assigned_lev == lev) && (getPID(lev, gid) == pid));

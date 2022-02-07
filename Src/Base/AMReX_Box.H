@@ -1767,6 +1767,18 @@ Box makeSlab (Box const& b, int direction, int slab_index) noexcept
     return r;
 }
 
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+Box makeSingleCellBox (int i, int j, int k, IndexType typ = IndexType::TheCellType())
+{
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(j,k);
+#elif (AMREX_SPACEDIM == 2)
+    amrex::ignore_unused(k);
+#endif
+    return Box(IntVect(AMREX_D_DECL(i,j,k)),IntVect(AMREX_D_DECL(i,j,k)),typ);
 }
 
-#endif /*BL_BOX_H*/
+}
+
+#endif /*AMREX_BOX_H*/

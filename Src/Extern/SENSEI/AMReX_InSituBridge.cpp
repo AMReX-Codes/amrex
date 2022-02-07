@@ -47,14 +47,14 @@ InSituBridge::initialize()
     // read config from ParmParse
     ParmParse pp("sensei");
 
-    pp.query("enabled", enabled);
+    pp.queryAdd("enabled", enabled);
 
     if (!enabled)
         return 0;
 
-    pp.query("config", config);
-    pp.query("frequency", frequency);
-    pp.query("pin_mesh", pinMesh);
+    pp.queryAdd("config", config);
+    pp.queryAdd("frequency", frequency);
+    pp.queryAdd("pin_mesh", pinMesh);
 
     amrex::Print() << "SENSEI Begin initialize..." << std::endl;
 

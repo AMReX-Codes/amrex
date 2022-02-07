@@ -43,6 +43,16 @@ public:
     * from FabArray.
     */
     MultiFab () noexcept;
+
+    /**
+    * \brief Constructs an empty MultiFab.  Data can be defined at a later
+    * time using the define member functions inherited from FabArray.  If
+    * `define` is called later with a nulltpr as MFInfo's arena, the default
+    * Arena `a` will be used.  If the arena in MFInfo is not a nullptr, the
+    * MFInfo's arena will be used.
+    */
+    explicit MultiFab (Arena* a) noexcept;
+
     /**
     * \brief
     * Constructs a MultiFab

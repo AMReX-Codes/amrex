@@ -384,7 +384,7 @@ interfaces:
         character(c_char), intent(in), value :: tagval, clearval
       end subroutine amrex_error_est_proc
 
-``Tutorials/Amr/Advection_F/Source/my_amr_mod.F90`` shows an
+``amrex-tutorials/ExampleCodes/FortranInterface/Advection_F/Source/my_amr_mod.F90`` shows an
 example of the setup process. The user provided
 :fortran:`procedure(amrex_error_est_proc)` has a tags argument that
 is of type :fortran:`c_ptr` and its value is a pointer to a
@@ -400,7 +400,7 @@ The module :fortran:`amrex_fillpatch_module` provides interface to
 C++ functions :cpp:`FillPatchSinglelevel` and :cpp:`FillPatchTwoLevels`. To use
 it, the application code needs to provide procedures for interpolation and
 filling physical boundaries.  See
-``Tutorials/Amr/Advection_F/Source/fillpatch_mod.F90`` for an example.
+``amrex-tutorials/ExampleCodes/FortranInterface/Advection_F/Source/fillpatch_mod.F90`` for an example.
 
 Module :fortran:`amrex_fluxregister_module` provides interface to
 :cpp:`FluxRegister` (see the section on :ref:`sec:amrcore:fluxreg`). Its usage
@@ -418,7 +418,7 @@ between levels. Therefore, grids in AMReX in general cannot be represented by
 trees. Nevertheless, octree type grids are supported via Fortran interface,
 because grids are more general than octree grids. A tutorial example using
 amrex_octree_module ( ``amrex/Src/F_Interfaces/Octree/AMReX_octree_mod.f90``) is
-available at ``amrex-tutorials/Amr/Advection_octree_F/``. Procedures
+available at ``amrex-tutorials/ExampleCodes/FortranInterface/Advection_F/Advection_octree_F/``. Procedures
 :fortran:`amrex_octree_init` and :fortran:`amrex_octree_finalize` must be
 called as follows,
 
