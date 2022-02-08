@@ -35,11 +35,12 @@ below
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
                      const LPInfo& a_info = LPInfo(),
-                     const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+                     const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
+                     const int a_ncomp = 1);
 
 It takes :cpp:`Vectors` of :cpp:`Geometry`, :cpp:`BoxArray` and
 :cpp:`DistributionMapping`.  The arguments are :cpp:`Vectors` because MLMG can
-do multi-level composite solve.  If you are using it for single-level,
+do multi-level composite solves.  If you are using it for single-level,
 you can do
 
 .. highlight:: c++
@@ -60,25 +61,57 @@ After the linear operator is built, we need to set up boundary
 conditions.  This will be discussed later in section
 :ref:`sec:linearsolver:bc`.
 
-For :cpp:`MLABecLaplacian`, we next need to call member functions
+Next, we consider the coefficients for equation :eq:`eqn::abeclap`.
+For :cpp:`MLPoisson`, there are no coefficients to set so nothing needs to be done.
+For :cpp:`MLABecLaplacian`, we need to call member functions :cpp:`setScalars`,
+:cpp:`setAcoeffs`, and :cpp:`setBCoeffs`.
 
 .. highlight:: c++
 
 ::
 
-    void setScalars (Real A, Real B);
+    void setScalars (Real a, Real b) noexcept;
     void setACoeffs (int amrlev, const MultiFab& alpha);
+    void setACoeffs (int amrlev, Real alpha);
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta);
+    void setBCoeffs (int amrlev, Real beta);
+    void setBCoeffs (int amrlev, Vector<Real> const& beta);
 
-to set up the coefficients for equation :eq:`eqn::abeclap`. This is unnecessary for
-:cpp:`MLPoisson`, as there are no coefficients to set.  For :cpp:`MLNodeLaplacian`,
-one needs to call the member function
+The option to pass :cpp:`Real alpha` or :cpp:`Real beta` will copy the scalar to a MultiFab
+internally, and not alter the workings of the solver as compared to the variable coefficient
+case.
+
+For :cpp:`MLNodeLaplacian`,
+one can set a variable :cpp:`sigma` with the member function
 
 .. highlight:: c++
 
 ::
 
     void setSigma (int amrlev, const MultiFab& a_sigma);
+
+or a constant :cpp:`sigma` during declaration or definition
+
+.. highlight:: c++
+
+::
+
+    MLNodeLaplacian (const Vector<Geometry>& a_geom,
+                     const Vector<BoxArray>& a_grids,
+                     const Vector<DistributionMapping>& a_dmap,
+                     const LPInfo& a_info = LPInfo(),
+                     const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
+                     Real  a_const_sigma = Real(0.0));
+
+    void define (const Vector<Geometry>& a_geom,
+                 const Vector<BoxArray>& a_grids,
+                 const Vector<DistributionMapping>& a_dmap,
+                 const LPInfo& a_info = LPInfo(),
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
+                 Real  a_const_sigma = Real(0.0));
+
+Here, seting a constant :cpp:`sigma` alters the internals of the solver making it more
+efficient for this special case.
 
 The :cpp:`int amrlev` parameter should be zero for single-level
 solves.  For multi-level solves, each level needs to be provided with
