@@ -1,6 +1,8 @@
 #ifndef AMREX_BUILDINFO_H_
 #define AMREX_BUILDINFO_H_
 
+#include <AMReX_Config.H>
+
 namespace amrex {
 const char* buildInfoGetBuildDate();
 const char* buildInfoGetBuildDir();
