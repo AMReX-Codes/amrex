@@ -13,7 +13,7 @@ quickly on every commit. For more extensive testing, we rely on the nightly regr
 Nightly Regression Testing
 ==========================
 
-Each night, we automically run a suite of tests, both on AMReX itself, and on a most of the major
+Each night, we automatically run a suite of tests, both on AMReX itself, and on a most of the major
 application codes that use it as a framework. We use an in-house test runner script to manage this
 operation, originally developed by Michael Zingale for the Castro code, and later expanded to other
 application codes as well. The results for each night are collected and stored on a web page; see
@@ -23,13 +23,15 @@ Running the test suite locally
 ==============================
 
 The test suite is mostly used internally by AMReX developers. However,
-f you are making a pull request to AMReX, it can be useful to run the test suite
-on your local machine, to reduce the liklihood that your changes break some existing functionality.
-To run the test suite on locally, you must first obtain a copy of the test runner source, available
+if you are making a pull request to AMReX, it can be useful to run the test suite
+on your local machine to reduce the liklihood that your changes break some existing functionality.
+To run the test suite locally, you must first obtain a copy of the test runner source, available
 on Github here: https://github.com/AMReX-Codes/regression_testing. The test runner requires Python
-version 2.7 or greater.
+version 2.7 or greater. Additional information on the test suite software can be found at,
+https://amrex-codes.github.io/regression_testing/.
 
-Next, you need a configuration file that defines which tests to run, which amrex repository to test,
+After obtaining the code, you will need a configuration file that defines which tests to run, which
+amrex repository to test,
 which branch to use, etc. A sample configuration file for AMReX is distributed with the amrex source
 code at :cpp:`amrex/Tools/RegressionTesting/AMReX-tests.ini`. You will need to modify a few of the entries
 to, for example, point the test runner to the clone of amrex on your local machine. Entries you will
@@ -56,24 +58,24 @@ The test runner is a Python script and can be invoked like so:
 
 ::
 
-   python regtest.py <options> AMReX-Tests.ini
+   python regtest.py <options> AMReX-tests.ini
 
 Before you can use it, you must first generate a set of "benchmarks" - i.e. known "good" answers to the
 tests that will be run. If you are testing a pull request, you can generate these by running the script
-with the a recent version of the :cpp:`development` branch of AMReX. You can generate the benchmarks like so:
+with a recent version of the :cpp:`development` branch of AMReX. You can generate the benchmarks like so:
 
 ::
 
-   python regtest.py --make_benchmarks 'generating initial benchmarks' AMReX-Tests.ini
+   python regtest.py --make_benchmarks 'generating initial benchmarks' AMReX-tests.ini
 
-Once that is finished, you can switch over to the branch you want to test in :cpp:`AMReX-Tests.ini`, and then
+Once that is finished, you can switch over to the branch you want to test in :cpp:`AMReX-tests.ini`, and then
 re-run the script without the :cpp:`--make_benchmarks` option:
 
 ::
 
-   python regtest.py --make_benchmarks 'generating initial benchmarks' AMReX-Tests.ini
+   python regtest.py --make_benchmarks 'generating initial benchmarks' AMReX-tests.ini
 
-The script will generate a set of html pages in the directory specified in your :cpp:`AMReX-Tests.ini`
+The script will generate a set of html pages in the directory specified in your :cpp:`AMReX-tests.ini`
 file that you can examine using the browser of your choice.
 
 For a complete set of script options, run
@@ -86,25 +88,25 @@ A particularly useful option lets you run just a subset of the complete test sui
 
 ::
 
-   python regtest.py --single_test <TestName> AMReX-Tests.ini
+   python regtest.py --single_test <TestName> AMReX-tests.ini
 
 To run an enumerated list of tests, do:
 
 ::
 
-   python regtest.py --tests '<TestName1> <TestName2> <TestName3>' AMReX-Tests.ini
+   python regtest.py --tests '<TestName1> <TestName2> <TestName3>' AMReX-tests.ini
 
 
 Adding a new test
 =================
 
-New tests can be added to the suite by modifying the :cpp:`AMReX-Tests.ini` file. The easiest thing to
+New tests can be added to the suite by modifying the :cpp:`AMReX-tests.ini` file. The easiest thing to
 do is start from an existing test and modify it. For example, this entry:
 
 ::
 
    [MLMG_FI_PoisCom]
-   buildDir = Tutorials/LinearSolvers/ABecLaplacian_F
+   buildDir = Tests/LinearSolvers/ABecLaplacian_F
    inputFile = inputs-rt-poisson-com
    dim = 3
    restartTest = 0

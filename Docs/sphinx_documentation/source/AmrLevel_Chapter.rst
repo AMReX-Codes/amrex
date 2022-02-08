@@ -38,7 +38,7 @@ inherit directly from :cpp:`AmrLevel`. These include:
    contains a derived class :cpp:`PeleLM` that also inherits from
    :cpp:`NavierStokesBase` (but does not use :cpp:`NavierStokes`).
 
-The tutorial code in ``amrex/Tutorials/Amr/Advection_AmrLevel`` gives a simple
+The tutorial code in ``amrex-tutorials/ExampleCodes/Amr/Advection_AmrLevel`` gives a simple
 example of a class derived from :cpp:`AmrLevel` that can be used to solve the
 advection equation on a subcycling-in-time AMR hierarchy. Note that example is
 essentially the same as the `Advection AmrCore`_ tutorial and

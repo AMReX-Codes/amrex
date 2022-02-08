@@ -1,9 +1,7 @@
 
 #include <AMReX_FArrayBox.H>
-#include <AMReX_FabConv.H>
-#include <AMReX_ParmParse.H>
-#include <AMReX_FabConv.H>
 #include <AMReX_FPC.H>
+#include <AMReX_ParmParse.H>
 
 #include <AMReX_BLassert.H>
 #include <AMReX.H>
@@ -223,6 +221,29 @@ FArrayBox::setFABio (FABio* rd)
     fabio = rd;
 }
 
+std::unique_ptr<RealDescriptor>
+FArrayBox::getDataDescriptor ()
+{
+    RealDescriptor *whichRD = nullptr;
+    if (FArrayBox::getFormat() == FABio::FAB_NATIVE) {
+        whichRD = FPC::NativeRealDescriptor().clone();
+    } else if (FArrayBox::getFormat() == FABio::FAB_NATIVE_32) {
+        whichRD = FPC::Native32RealDescriptor().clone();
+    } else if (FArrayBox::getFormat() == FABio::FAB_IEEE_32) {
+        whichRD = FPC::Ieee32NormalRealDescriptor().clone();
+    } else {
+        whichRD = FPC::NativeRealDescriptor().clone(); // to quiet clang static analyzer
+        Abort("FArrayBox::getDataDescriptor(): format not supported. Use NATIVE, NATIVE_32 or IEEE_32");
+    }
+    return std::unique_ptr<RealDescriptor>(whichRD);
+}
+
+std::string
+FArrayBox::getClassName ()
+{
+    return std::string("amrex::FArrayBox");
+}
+
 void
 FArrayBox::writeOn (std::ostream& os) const
 {
@@ -421,9 +442,9 @@ FArrayBox::Initialize ()
             ? std::numeric_limits<Real>::quiet_NaN()
             : std::numeric_limits<Real>::max();
 
-    pp.query("initval",    initval);
-    pp.query("do_initval", do_initval);
-    pp.query("init_snan", init_snan);
+    pp.queryAdd("initval",    initval);
+    pp.queryAdd("do_initval", do_initval);
+    pp.queryAdd("init_snan", init_snan);
 
     amrex::ExecOnFinalize(FArrayBox::Finalize);
 }

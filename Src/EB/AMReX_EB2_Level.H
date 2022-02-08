@@ -125,9 +125,9 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
     int maxiter = 32;
     {
         ParmParse pp("eb2");
-        pp.query("small_volfrac", small_volfrac);
-        pp.query("cover_multiple_cuts", cover_multiple_cuts);
-        pp.query("maxiter", maxiter);
+        pp.queryAdd("small_volfrac", small_volfrac);
+        pp.queryAdd("cover_multiple_cuts", cover_multiple_cuts);
+        pp.queryAdd("maxiter", maxiter);
     }
 
     // make sure ngrow is multiple of 16

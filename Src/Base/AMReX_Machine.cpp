@@ -329,8 +329,8 @@ class Machine
     void get_params ()
     {
         ParmParse pp("machine");
-        pp.query("verbose", flag_verbose);
-        pp.query("very_verbose", flag_very_verbose);
+        pp.queryAdd("verbose", flag_verbose);
+        pp.queryAdd("very_verbose", flag_very_verbose);
     }
 
     std::string get_env_str (std::string env_key)

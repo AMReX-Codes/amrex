@@ -12,6 +12,7 @@ target_sources( amrex
    AMReX_BlockMutex.cpp
    AMReX_GpuComplex.H
    AMReX_Vector.H
+   AMReX_TableData.H
    AMReX_Tuple.H
    AMReX.cpp
    AMReX_error_fi.cpp
@@ -50,6 +51,7 @@ target_sources( amrex
    AMReX_ForkJoin.cpp
    AMReX_ParallelContext.H
    AMReX_ParallelContext.cpp
+   AMReX_VisMFBuffer.H
    AMReX_VisMF.H
    AMReX_VisMF.cpp
    AMReX_AsyncOut.H
@@ -64,6 +66,7 @@ target_sources( amrex
    AMReX_CArena.cpp
    AMReX_PArena.H
    AMReX_PArena.cpp
+   AMReX_DataAllocator.H
    AMReX_BLProfiler.H
    AMReX_BLBackTrace.H
    AMReX_BLFort.H
@@ -162,9 +165,10 @@ target_sources( amrex
    AMReX_BC_TYPES.H
    AMReX_FilCC_${AMReX_SPACEDIM}D_C.H
    AMReX_FilCC_C.H
+   AMReX_FilCC_C.cpp
    AMReX_FilFC_${AMReX_SPACEDIM}D_C.H
    AMReX_FilFC_C.H
-   AMReX_FilCC_C.cpp
+   AMReX_FilFC_C.cpp
    AMReX_FilND_C.H
    AMReX_FilND_C.cpp
    # Non-Local BC

@@ -6,6 +6,7 @@
 
 namespace amrex {
 
+#ifdef AMREX_USE_EB
 MLEBNodeFDLaplacian::MLEBNodeFDLaplacian (
     const Vector<Geometry>& a_geom,
     const Vector<BoxArray>& a_grids,
@@ -14,6 +15,16 @@ MLEBNodeFDLaplacian::MLEBNodeFDLaplacian (
     const Vector<EBFArrayBoxFactory const*>& a_factory)
 {
     define(a_geom, a_grids, a_dmap, a_info, a_factory);
+}
+#endif
+
+MLEBNodeFDLaplacian::MLEBNodeFDLaplacian (
+    const Vector<Geometry>& a_geom,
+    const Vector<BoxArray>& a_grids,
+    const Vector<DistributionMapping>& a_dmap,
+    const LPInfo& a_info)
+{
+    define(a_geom, a_grids, a_dmap, a_info);
 }
 
 MLEBNodeFDLaplacian::~MLEBNodeFDLaplacian ()
@@ -26,6 +37,18 @@ MLEBNodeFDLaplacian::setSigma (Array<Real,AMREX_SPACEDIM> const& a_sigma) noexce
         m_sigma[i] = a_sigma[i];
     }
 }
+
+void
+MLEBNodeFDLaplacian::setRZ (bool flag)
+{
+#if (AMREX_SPACEDIM == 2)
+    m_rz = flag;
+#else
+    amrex::ignore_unused(flag, m_rz);
+#endif
+}
+
+#ifdef AMREX_USE_EB
 
 void
 MLEBNodeFDLaplacian::setEBDirichlet (Real a_phi_eb)
@@ -64,6 +87,33 @@ MLEBNodeFDLaplacian::define (const Vector<Geometry>& a_geom,
     MLNodeLinOp::define(a_geom, cc_grids, a_dmap, a_info, _factory, eb_limit_coarsening);
 }
 
+#endif
+
+void
+MLEBNodeFDLaplacian::define (const Vector<Geometry>& a_geom,
+                             const Vector<BoxArray>& a_grids,
+                             const Vector<DistributionMapping>& a_dmap,
+                             const LPInfo& a_info)
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMREX_SPACEDIM>1, "MLEBNodeFDLaplacian: 1D not supported");
+
+    BL_PROFILE("MLEBNodeFDLaplacian::define()");
+
+    // This makes sure grids are cell-centered;
+    Vector<BoxArray> cc_grids = a_grids;
+    for (auto& ba : cc_grids) {
+        ba.enclosedCells();
+    }
+
+    if (a_grids.size() > 1) {
+        amrex::Abort("MLEBNodeFDLaplacian: multi-level not supported");
+    }
+
+    m_coarsening_strategy = CoarseningStrategy::Sigma; // This will fill nodes outside Neumann BC
+    MLNodeLinOp::define(a_geom, cc_grids, a_dmap, a_info);
+}
+
+#ifdef AMREX_USE_EB
 std::unique_ptr<FabFactory<FArrayBox> >
 MLEBNodeFDLaplacian::makeFactory (int amrlev, int mglev) const
 {
@@ -72,6 +122,7 @@ MLEBNodeFDLaplacian::makeFactory (int amrlev, int mglev) const
                             m_dmap[amrlev][mglev],
                             {1,1,1}, EBSupport::full);
 }
+#endif
 
 void
 MLEBNodeFDLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const
@@ -171,6 +222,7 @@ MLEBNodeFDLaplacian::prepareForSolve ()
 
     buildMasks();
 
+#ifdef AMREX_USE_EB
     // Set covered nodes to Dirichlet, but with a negative value.
     // compGrad relies on the negative value to detect EB.
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
@@ -189,6 +241,7 @@ MLEBNodeFDLaplacian::prepareForSolve ()
             });
         }
     }
+#endif
 
     {
         int amrlev = 0;
@@ -220,8 +273,18 @@ MLEBNodeFDLaplacian::prepareForSolve ()
     }
 
     Gpu::synchronize();
+
+#if (AMREX_SPACEDIM == 2)
+    if (m_rz) {
+        if (m_geom[0][0].ProbLo(0) == 0._rt) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_lobc[0][0] == BCType::Neumann,
+                                             "The lo-x BC must be Neumann for 2d RZ");
+        }
+    }
+#endif
 }
 
+#ifdef AMREX_USE_EB
 void
 MLEBNodeFDLaplacian::scaleRHS (int amrlev, MultiFab& rhs) const
 {
@@ -249,6 +312,7 @@ MLEBNodeFDLaplacian::scaleRHS (int amrlev, MultiFab& rhs) const
         }
     }
 }
+#endif
 
 void
 MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const
@@ -256,15 +320,22 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
     BL_PROFILE("MLEBNodeFDLaplacian::Fapply()");
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
+#if (AMREX_SPACEDIM == 2)
+    const auto dx0 = m_geom[amrlev][mglev].CellSize(0);
+    const auto dx1 = m_geom[amrlev][mglev].CellSize(1);
+    const auto xlo = m_geom[amrlev][mglev].ProbLo(0);
+#endif
     AMREX_D_TERM(const Real bx = m_sigma[0]*dxinv[0]*dxinv[0];,
                  const Real by = m_sigma[1]*dxinv[1]*dxinv[1];,
                  const Real bz = m_sigma[2]*dxinv[2]*dxinv[2];)
-    const auto phieb = (m_in_solution_mode) ? m_s_phi_eb : Real(0.0);
 
     auto const& dmask = *m_dirichlet_mask[amrlev][mglev];
 
+#ifdef AMREX_USE_EB
+    const auto phieb = (m_in_solution_mode) ? m_s_phi_eb : Real(0.0);
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     auto const& edgecent = factory->getEdgeCent();
+#endif
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -275,6 +346,7 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
         Array4<Real const> const& xarr = in.const_array(mfi);
         Array4<Real> const& yarr = out.array(mfi);
         Array4<int const> const& dmarr = dmask.const_array(mfi);
+#ifdef AMREX_USE_EB
         bool cutfab = edgecent[0]->ok(mfi);
         if (cutfab) {
             AMREX_D_TERM(Array4<Real const> const& ecx = edgecent[0]->const_array(mfi);,
@@ -282,23 +354,57 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
                          Array4<Real const> const& ecz = edgecent[2]->const_array(mfi));
             if (phieb == std::numeric_limits<Real>::lowest()) {
                 auto const& phiebarr = m_phi_eb[amrlev].const_array(mfi);
-                AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+#if (AMREX_SPACEDIM == 2)
+                if (m_rz) {
+                    AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                    {
+                        mlebndfdlap_adotx_rz_eb(i,j,k,yarr,xarr,dmarr,AMREX_D_DECL(ecx,ecy,ecz),
+                                                phiebarr, dx0, dx1, xlo);
+                    });
+                } else
+#endif
                 {
-                    mlebndfdlap_adotx_eb(i,j,k,yarr,xarr,dmarr,AMREX_D_DECL(ecx,ecy,ecz),
-                                         phiebarr, AMREX_D_DECL(bx,by,bz));
-                });
+                    AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                    {
+                        mlebndfdlap_adotx_eb(i,j,k,yarr,xarr,dmarr,AMREX_D_DECL(ecx,ecy,ecz),
+                                             phiebarr, AMREX_D_DECL(bx,by,bz));
+                    });
+                }
             } else {
+#if (AMREX_SPACEDIM == 2)
+                if (m_rz) {
+                    AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                    {
+                        mlebndfdlap_adotx_rz_eb(i,j,k,yarr,xarr,dmarr,AMREX_D_DECL(ecx,ecy,ecz),
+                                                phieb, dx0, dx1, xlo);
+                    });
+                } else
+#endif
+                {
+                    AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                    {
+                        mlebndfdlap_adotx_eb(i,j,k,yarr,xarr,dmarr,AMREX_D_DECL(ecx,ecy,ecz),
+                                             phieb, AMREX_D_DECL(bx,by,bz));
+                    });
+                }
+            }
+        } else
+#endif // AMREX_USE_EB
+        {
+#if (AMREX_SPACEDIM == 2)
+            if (m_rz) {
                 AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
                 {
-                    mlebndfdlap_adotx_eb(i,j,k,yarr,xarr,dmarr,AMREX_D_DECL(ecx,ecy,ecz),
-                                         phieb, AMREX_D_DECL(bx,by,bz));
+                    mlebndfdlap_adotx_rz(i,j,k,yarr,xarr,dmarr,dx0,dx1,xlo);
+                });
+            } else
+#endif
+            {
+                AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                {
+                    mlebndfdlap_adotx(i,j,k,yarr,xarr,dmarr,AMREX_D_DECL(bx,by,bz));
                 });
             }
-        } else {
-            AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
-            {
-                mlebndfdlap_adotx(i,j,k,yarr,xarr,dmarr,AMREX_D_DECL(bx,by,bz));
-            });
         }
     }
 }
@@ -309,6 +415,11 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
     BL_PROFILE("MLEBNodeFDLaplacian::Fsmooth()");
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
+#if (AMREX_SPACEDIM == 2)
+    const auto dx0 = m_geom[amrlev][mglev].CellSize(0);
+    const auto dx1 = m_geom[amrlev][mglev].CellSize(1);
+    const auto xlo = m_geom[amrlev][mglev].ProbLo(0);
+#endif
     AMREX_D_TERM(const Real bx = m_sigma[0]*dxinv[0]*dxinv[0];,
                  const Real by = m_sigma[1]*dxinv[1]*dxinv[1];,
                  const Real bz = m_sigma[2]*dxinv[2]*dxinv[2];)
@@ -320,8 +431,10 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
             applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Correction);
         }
 
+#ifdef AMREX_USE_EB
         auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
         auto const& edgecent = factory->getEdgeCent();
+#endif
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -332,22 +445,47 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
             Array4<Real> const& solarr = sol.array(mfi);
             Array4<Real const> const& rhsarr = rhs.const_array(mfi);
             Array4<int const> const& dmskarr = dmask.const_array(mfi);
+#ifdef AMREX_USE_EB
             bool cutfab = edgecent[0]->ok(mfi);
             if (cutfab) {
                 AMREX_D_TERM(Array4<Real const> const& ecx = edgecent[0]->const_array(mfi);,
                              Array4<Real const> const& ecy = edgecent[1]->const_array(mfi);,
                              Array4<Real const> const& ecz = edgecent[2]->const_array(mfi));
-                AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+#if (AMREX_SPACEDIM == 2)
+                if (m_rz) {
+                    AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                    {
+                        mlebndfdlap_gsrb_rz_eb(i,j,k,solarr,rhsarr,dmskarr,ecx,ecy,
+                                               dx0, dx1, xlo, redblack);
+                    });
+                } else
+#endif
                 {
-                    mlebndfdlap_gsrb_eb(i,j,k,solarr,rhsarr,dmskarr,AMREX_D_DECL(ecx,ecy,ecz),
-                                        AMREX_D_DECL(bx,by,bz), redblack);
-                });
-            } else {
-                AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                    AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                    {
+                        mlebndfdlap_gsrb_eb(i,j,k,solarr,rhsarr,dmskarr,AMREX_D_DECL(ecx,ecy,ecz),
+                                            AMREX_D_DECL(bx,by,bz), redblack);
+                    });
+                }
+            } else
+#endif // AMREX_USE_EB
+            {
+#if (AMREX_SPACEDIM == 2)
+                if (m_rz) {
+                    AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                    {
+                        mlebndfdlap_gsrb_rz(i,j,k,solarr,rhsarr,dmskarr,
+                                            dx0, dx1, xlo, redblack);
+                    });
+                } else
+#endif
                 {
-                    mlebndfdlap_gsrb(i,j,k,solarr,rhsarr,dmskarr,
-                                     AMREX_D_DECL(bx,by,bz), redblack);
-                });
+                    AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                    {
+                        mlebndfdlap_gsrb(i,j,k,solarr,rhsarr,dmskarr,
+                                         AMREX_D_DECL(bx,by,bz), redblack);
+                    });
+                }
             }
         }
     }
@@ -380,13 +518,14 @@ MLEBNodeFDLaplacian::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>
     AMREX_D_TERM(const auto dxi = m_geom[amrlev][mglev].InvCellSize(0);,
                  const auto dyi = m_geom[amrlev][mglev].InvCellSize(1);,
                  const auto dzi = m_geom[amrlev][mglev].InvCellSize(2);)
-    const auto phieb = m_s_phi_eb;
 
+#ifdef AMREX_USE_EB
     auto const& dmask = *m_dirichlet_mask[amrlev][mglev];
-
+    const auto phieb = m_s_phi_eb;
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     AMREX_ASSERT(factory);
     auto const& edgecent = factory->getEdgeCent();
+#endif
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -400,6 +539,7 @@ MLEBNodeFDLaplacian::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>
         AMREX_D_TERM(Array4<Real> const& gpx = grad[0]->array(mfi);,
                      Array4<Real> const& gpy = grad[1]->array(mfi);,
                      Array4<Real> const& gpz = grad[2]->array(mfi);)
+#ifdef AMREX_USE_EB
         Array4<int const> const& dmarr = dmask.const_array(mfi);
         bool cutfab = edgecent[0]->ok(mfi);
         AMREX_D_TERM(Array4<Real const> const& ecx
@@ -438,10 +578,25 @@ MLEBNodeFDLaplacian::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>
                     mlebndfdlap_grad_z(tzbox, gpz, p, dmarr, ecz, phieb, dzi);
                 });
         }
+#else
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM(
+                xbox, txbox,
+                {
+                    mlebndfdlap_grad_x(txbox, gpx, p, dxi);
+                }
+                , ybox, tybox,
+                {
+                    mlebndfdlap_grad_y(tybox, gpy, p, dyi);
+                }
+                , zbox, tzbox,
+                {
+                    mlebndfdlap_grad_z(tzbox, gpz, p, dzi);
+                });
+#endif
     }
 }
 
-#if defined(AMREX_USE_HYPRE)
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 void
 MLEBNodeFDLaplacian::fillIJMatrix (MFIter const& mfi,
                                    Array4<HypreNodeLap::AtomicInt const> const& gid,

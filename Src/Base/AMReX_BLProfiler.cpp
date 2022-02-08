@@ -272,20 +272,12 @@ void BLProfiler::Initialize() {
 
 void BLProfiler::InitParams() {
   ParmParse pParse("blprofiler");
-  pParse.query("prof_nfiles", nProfFiles);
-  pParse.query("prof_csflushsize", csFlushSize);
-  pParse.query("prof_traceflushsize", traceFlushSize);
-  pParse.query("prof_flushinterval", flushInterval);
-  pParse.query("prof_flushtimeinterval", flushTimeInterval);
-  pParse.query("prof_flushprint", bFlushPrint);
-#if 0
-  amrex::Print() << "PPPPPPPP::  nProfFiles         = " << nProfFiles << '\n';
-  amrex::Print() << "PPPPPPPP::  csFlushSize        = " << csFlushSize << '\n';
-  amrex::Print() << "PPPPPPPP::  traceFlushSize     = " << traceFlushSize << '\n';
-  amrex::Print() << "PPPPPPPP::  flushInterval      = " << flushInterval << '\n';
-  amrex::Print() << "PPPPPPPP::  flushTimeInterval  = " << flushTimeInterval << " s." << '\n';
-  amrex::Print() << "PPPPPPPP::  flushPrint         = " << bFlushPrint << '\n';
-#endif
+  pParse.queryAdd("prof_nfiles", nProfFiles);
+  pParse.queryAdd("prof_csflushsize", csFlushSize);
+  pParse.queryAdd("prof_traceflushsize", traceFlushSize);
+  pParse.queryAdd("prof_flushinterval", flushInterval);
+  pParse.queryAdd("prof_flushtimeinterval", flushTimeInterval);
+  pParse.queryAdd("prof_flushprint", bFlushPrint);
 }
 
 

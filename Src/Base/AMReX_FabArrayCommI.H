@@ -338,31 +338,13 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         // we're doing plus()s on cell-centered data.  Don't do plus()s on
         // non-cell-centered data this simplistic way.
         //
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
-        {
-            const Box& bx = fai.tilebox();
-
-            // avoid self copy or plus
-            if (this != &src) {
-                auto const sfab = src.array(fai);
-                auto       dfab = this->array(fai);
-                if (op == FabArrayBase::COPY) {
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
-                    {
-                        dfab(i,j,k,dcomp+n) = sfab(i,j,k,scomp+n);
-                    });
-                } else {
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
-                    {
-                        dfab(i,j,k,dcomp+n) += sfab(i,j,k,scomp+n);
-                    });
-                }
+        if (this != &src) { // avoid self copy or plus
+            if (op == FabArrayBase::COPY) {
+                Copy(*this, src, scomp, dcomp, ncomp, IntVect(0));
+            } else {
+                Add(*this, src, scomp, dcomp, ncomp, IntVect(0));
             }
         }
-
         return;
     }
 
@@ -692,7 +674,6 @@ FabArray<FAB>::PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
     std::size_t total_volume = 0;
     for (auto const& kv : SndTags)
     {
-        Vector<int> iss;
         auto const& cctc = kv.second;
 
         std::size_t nbytes = 0;
@@ -846,20 +827,7 @@ FabArray<FAB>::Redistribute (const FabArray<FAB>& src,
 
     if (ParallelContext::NProcsSub() == 1)
     {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter fai(*this,true); fai.isValid(); ++fai)
-        {
-            const Box& bx = fai.growntilebox(nghost);
-            auto const sfab = src.array(fai);
-            auto       dfab = this->array(fai);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
-            {
-                dfab(i,j,k,n+dcomp) = sfab(i,j,k,n+scomp);
-            });
-        }
-
+        Copy(*this, src, scomp, dcomp, ncomp, nghost);
         return;
     }
 

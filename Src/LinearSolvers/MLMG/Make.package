@@ -68,17 +68,17 @@ CEXE_headers   += AMReX_MLTensorOp.H
 CEXE_sources   += AMReX_MLTensorOp.cpp AMReX_MLTensorOp_grad.cpp
 CEXE_headers   += AMReX_MLTensor_K.H AMReX_MLTensor_$(DIM)D_K.H
 
+CEXE_headers   += AMReX_MLEBNodeFDLaplacian.H
+CEXE_sources   += AMReX_MLEBNodeFDLaplacian.cpp
+CEXE_headers   += AMReX_MLEBNodeFDLap_K.H
+CEXE_headers   += AMReX_MLEBNodeFDLap_$(DIM)D_K.H
+
 ifeq ($(USE_EB),TRUE)
 CEXE_headers   += AMReX_MLEBABecLap.H
 CEXE_sources   += AMReX_MLEBABecLap.cpp
 CEXE_sources   += AMReX_MLEBABecLap_F.cpp
 CEXE_headers   += AMReX_MLEBABecLap_K.H
 CEXE_headers   += AMReX_MLEBABecLap_$(DIM)D_K.H
-
-CEXE_headers   += AMReX_MLEBNodeFDLaplacian.H
-CEXE_sources   += AMReX_MLEBNodeFDLaplacian.cpp
-CEXE_headers   += AMReX_MLEBNodeFDLap_K.H
-CEXE_headers   += AMReX_MLEBNodeFDLap_$(DIM)D_K.H
 
 CEXE_headers   += AMReX_MLEBTensorOp.H
 CEXE_sources   += AMReX_MLEBTensorOp.cpp

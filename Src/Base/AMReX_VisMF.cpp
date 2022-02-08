@@ -1,24 +1,13 @@
-#include <AMReX_ccse-mpi.H>
+
+#include <AMReX_FabArrayUtility.H>
+#include <AMReX_FPC.H>
+#include <AMReX_ParmParse.H>
 #include <AMReX_Utility.H>
 #include <AMReX_VisMF.H>
-#include <AMReX_ParmParse.H>
-#include <AMReX_NFiles.H>
-#include <AMReX_FPC.H>
-#include <AMReX_FabArrayUtility.H>
-#include <AMReX_AsyncOut.H>
 
-#include <array>
-#include <atomic>
 #include <cerrno>
 #include <cstdio>
-#include <deque>
-#include <fstream>
-#include <iostream>
 #include <limits>
-#include <memory>
-#include <numeric>
-#include <sstream>
-#include <vector>
 
 namespace amrex {
 
@@ -40,7 +29,7 @@ bool VisMF::useSynchronousReads(false);
 bool VisMF::useDynamicSetSelection(true);
 bool VisMF::allowSparseWrites(true);
 
-Long VisMF::ioBufferSize(VisMF::IO_Buffer_Size);
+Long VisMFBuffer::ioBufferSize(VisMF::IO_Buffer_Size);
 
 //
 // Set these in Initialize().
@@ -69,24 +58,24 @@ VisMF::Initialize ()
     amrex::ExecOnFinalize(VisMF::Finalize);
 
     ParmParse pp("vismf");
-    pp.query("v",verbose);
+    pp.queryAdd("v",verbose);
 
     int headerVersion(currentVersion);
-    pp.query("headerversion", headerVersion);
+    pp.queryAdd("headerversion", headerVersion);
     if(headerVersion != currentVersion) {
       currentVersion = static_cast<VisMF::Header::Version> (headerVersion);
     }
 
-    pp.query("groupsets", groupSets);
-    pp.query("setbuf", setBuf);
-    pp.query("usesingleread", useSingleRead);
-    pp.query("usesinglewrite", useSingleWrite);
-    pp.query("checkfilepositions", checkFilePositions);
-    pp.query("usepersistentifstreams", usePersistentIFStreams);
-    pp.query("usesynchronousreads", useSynchronousReads);
-    pp.query("usedynamicsetselection", useDynamicSetSelection);
-    pp.query("iobuffersize", ioBufferSize);
-    pp.query("allowsparsewrites", allowSparseWrites);
+    pp.queryAdd("groupsets", groupSets);
+    pp.queryAdd("setbuf", setBuf);
+    pp.queryAdd("usesingleread", useSingleRead);
+    pp.queryAdd("usesinglewrite", useSingleWrite);
+    pp.queryAdd("checkfilepositions", checkFilePositions);
+    pp.queryAdd("usepersistentifstreams", usePersistentIFStreams);
+    pp.queryAdd("usesynchronousreads", useSynchronousReads);
+    pp.queryAdd("usedynamicsetselection", useDynamicSetSelection);
+    pp.queryAdd("iobuffersize", ioBufferSize);
+    pp.queryAdd("allowsparsewrites", allowSparseWrites);
 
     initialized = true;
 }
@@ -937,17 +926,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 
     // ---- add stream retry
     // ---- add stream buffer (to nfiles)
-    RealDescriptor *whichRD = nullptr;
-    if(FArrayBox::getFormat() == FABio::FAB_NATIVE) {
-      whichRD = FPC::NativeRealDescriptor().clone();
-    } else if(FArrayBox::getFormat() == FABio::FAB_NATIVE_32) {
-      whichRD = FPC::Native32RealDescriptor().clone();
-    } else if(FArrayBox::getFormat() == FABio::FAB_IEEE_32) {
-      whichRD = FPC::Ieee32NormalRealDescriptor().clone();
-    } else {
-      whichRD = FPC::NativeRealDescriptor().clone(); // to quiet clang static analyzer
-      Abort("VisMF::Write unable to execute with the current fab.format setting.  Use NATIVE, NATIVE_32 or IEEE_32");
-    }
+    auto whichRD = FArrayBox::getDataDescriptor();
     bool doConvert(*whichRD != FPC::NativeRealDescriptor());
 
     if(set_ghost && mf.nGrowVect() != 0) {
@@ -1127,8 +1106,6 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 
     bytesWritten += VisMF::WriteHeader(mf_name, hdr, coordinatorProc);
 
-    delete whichRD;
-
     return bytesWritten;
 }
 
@@ -1253,14 +1230,7 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 
     } else {    // ---- calculate offsets
 
-      RealDescriptor *whichRD = nullptr;
-      if(FArrayBox::getFormat() == FABio::FAB_NATIVE) {
-        whichRD = FPC::NativeRealDescriptor().clone();
-      } else if(FArrayBox::getFormat() == FABio::FAB_NATIVE_32) {
-        whichRD = FPC::Native32RealDescriptor().clone();
-      } else if(FArrayBox::getFormat() == FABio::FAB_IEEE_32) {
-        whichRD = FPC::Ieee32NormalRealDescriptor().clone();
-      }
+      auto whichRD = FArrayBox::getDataDescriptor();
       const FABio &fio = FArrayBox::getFABio();
       int whichRDBytes(whichRD->numBytes());
       int nComps(mf.nComp());
@@ -1293,8 +1263,8 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
         if(nfi.GetDynamic()) {
           fileNumbers = nfi.FileNumbersWritten();
         }
-         else if(nfi.GetSparseFPP()) {        // if sparse, write to (file number = rank)
-           fileNumbers.resize(nProcs);
+        else if(nfi.GetSparseFPP()) {        // if sparse, write to (file number = rank)
+          fileNumbers.resize(nProcs);
           for(int i(0); i < nProcs; ++i) {
             fileNumbers[i] = i;
           }
@@ -1328,7 +1298,6 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
           }
         }
       }
-      delete whichRD;
     }
 }
 
@@ -1561,7 +1530,6 @@ VisMF::Read (FabArray<FArrayBox> &mf,
             amrex::Error("Empty box array");
         }
     }
-
 
     if (mf.empty()) {
         DistributionMapping dm(hdr.m_ba);
@@ -2192,6 +2160,7 @@ std::ifstream *VisMF::OpenStream(const std::string &fileName) {
     pifs.pstr->open(fileName.c_str(), std::ios::in | std::ios::binary);
     if( ! pifs.pstr->good()) {
       delete pifs.pstr;
+      pifs.pstr = nullptr;
       amrex::FileOpenFailed(fileName);
     }
     pifs.isOpen = true;
@@ -2299,36 +2268,38 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
     Vector<int64_t> localdata(n_local_nums);
 
     bool data_on_device = mf.arena()->isManaged() || mf.arena()->isDevice();
-    bool run_on_device = Gpu::inLaunchRegion() && data_on_device;
+    bool run_on_device = data_on_device && Gpu::inLaunchRegion();
 
     bool strip_ghost = valid_cells_only && mf.nGrowVect() != 0;
 
     int64_t total_bytes = 0;
-    char* pld = (localdata.size() > 1) ? (char*)(&(localdata[1])) : nullptr;
-    const FABio& fio = FArrayBox::getFABio();
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-    {
-        std::memcpy(pld, &total_bytes, sizeof(int64_t));
-        pld += sizeof(int64_t);
+    if (localdata.size() > 1) {
+        char* pld = (char*)(&(localdata[1]));
+        const FABio& fio = FArrayBox::getFABio();
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        {
+            std::memcpy(pld, &total_bytes, sizeof(int64_t));
+            pld += sizeof(int64_t);
 
-        const FArrayBox& fab = mf[mfi];
-        const Box& bx = mfi.validbox();
+            const FArrayBox& fab = mf[mfi];
+            const Box& bx = mfi.validbox();
 
-        std::stringstream hss;
-        FArrayBox valid_fab(bx, ncomp, false);
-        FArrayBox const& header_fab = (strip_ghost) ? valid_fab : fab;
-        fio.write_header(hss, header_fab, ncomp);
-        total_bytes += static_cast<std::streamoff>(hss.tellp());
-        total_bytes += header_fab.size() * whichRD.numBytes();
+            std::stringstream hss;
+            FArrayBox valid_fab(bx, ncomp, false);
+            FArrayBox const& header_fab = (strip_ghost) ? valid_fab : fab;
+            fio.write_header(hss, header_fab, ncomp);
+            total_bytes += static_cast<std::streamoff>(hss.tellp());
+            total_bytes += header_fab.size() * whichRD.numBytes();
 
-        // compute min and max
-        for (int icomp = 0; icomp < ncomp; ++icomp) {
-            auto mm = (run_on_device) ? fab.minmax<RunOn::Device>(bx,icomp)
-                                      : fab.minmax<RunOn::Host  >(bx,icomp);
-            std::memcpy(pld, &(mm.first), sizeof(Real));
-            pld += sizeof(Real);
-            std::memcpy(pld, &(mm.second), sizeof(Real));
-            pld += sizeof(Real);
+            // compute min and max
+            for (int icomp = 0; icomp < ncomp; ++icomp) {
+                auto mm = (run_on_device) ? fab.minmax<RunOn::Device>(bx,icomp)
+                                          : fab.minmax<RunOn::Host  >(bx,icomp);
+                std::memcpy(pld, &(mm.first), sizeof(Real));
+                pld += sizeof(Real);
+                std::memcpy(pld, &(mm.second), sizeof(Real));
+                pld += sizeof(Real);
+            }
         }
     }
     localdata[0] = total_bytes;

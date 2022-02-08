@@ -256,27 +256,27 @@ Amr::InitAmr ()
     //
     // Check for command line flags.
     //
-    pp.query("regrid_on_restart",regrid_on_restart);
-    pp.query("use_efficient_regrid",use_efficient_regrid);
-    pp.query("plotfile_on_restart",plotfile_on_restart);
-    pp.query("insitu_on_restart",insitu_on_restart);
-    pp.query("checkpoint_on_restart",checkpoint_on_restart);
+    pp.queryAdd("regrid_on_restart",regrid_on_restart);
+    pp.queryAdd("use_efficient_regrid",use_efficient_regrid);
+    pp.queryAdd("plotfile_on_restart",plotfile_on_restart);
+    pp.queryAdd("insitu_on_restart",insitu_on_restart);
+    pp.queryAdd("checkpoint_on_restart",checkpoint_on_restart);
 
-    pp.query("compute_new_dt_on_regrid",compute_new_dt_on_regrid);
+    pp.queryAdd("compute_new_dt_on_regrid",compute_new_dt_on_regrid);
 
-    pp.query("mffile_nstreams", mffile_nstreams);
+    pp.queryAdd("mffile_nstreams", mffile_nstreams);
 
 #ifndef AMREX_NO_PROBINIT
-    pp.query("probinit_natonce", probinit_natonce);
+    pp.queryAdd("probinit_natonce", probinit_natonce);
     probinit_natonce = std::max(1, std::min(ParallelDescriptor::NProcs(), probinit_natonce));
 #endif
 
-    pp.query("file_name_digits", file_name_digits);
+    pp.queryAdd("file_name_digits", file_name_digits);
 
-    pp.query("initial_grid_file",initial_grids_file);
-    pp.query("regrid_file"      , regrid_grids_file);
+    pp.queryAdd("initial_grid_file",initial_grids_file);
+    pp.queryAdd("regrid_file"      , regrid_grids_file);
 
-    pp.query("message_int", message_int);
+    pp.queryAdd("message_int", message_int);
 
     if (pp.contains("run_log"))
     {
@@ -318,11 +318,11 @@ Amr::InitAmr ()
     //
     // If set, then restart from checkpoint file.
     //
-    pp.query("restart", restart_chkfile);
+    pp.queryAdd("restart", restart_chkfile);
     //
     // If set, then restart from plotfile.
     //
-    pp.query("restart_from_plotfile", restart_pltfile);
+    pp.queryAdd("restart_from_plotfile", restart_pltfile);
 
     int nlev     = max_level+1;
     dt_level.resize(nlev);
@@ -492,13 +492,13 @@ Amr::InitAmr ()
     }
 
     loadbalance_with_workestimates = 0;
-    pp.query("loadbalance_with_workestimates", loadbalance_with_workestimates);
+    pp.queryAdd("loadbalance_with_workestimates", loadbalance_with_workestimates);
 
     loadbalance_level0_int = 2;
-    pp.query("loadbalance_level0_int", loadbalance_level0_int);
+    pp.queryAdd("loadbalance_level0_int", loadbalance_level0_int);
 
     loadbalance_max_fac = 1.5;
-    pp.query("loadbalance_max_fac", loadbalance_max_fac);
+    pp.queryAdd("loadbalance_max_fac", loadbalance_max_fac);
 }
 
 int
@@ -1037,7 +1037,8 @@ Amr::writePlotFileDoit (std::string const& pltfile, bool regular)
         } else {
             ParallelDescriptor::Barrier("Amr::writePlotFile::end");
             if(ParallelDescriptor::IOProcessor()) {
-            std::rename(pltfileTemp.c_str(), pltfile.c_str());
+                HeaderFile.close();
+                std::rename(pltfileTemp.c_str(), pltfile.c_str());
             }
             ParallelDescriptor::Barrier("Renaming temporary plotfile.");
             //
@@ -1865,6 +1866,7 @@ Amr::checkPoint ()
     } else {
         ParallelDescriptor::Barrier("Amr::checkPoint::end");
         if(ParallelDescriptor::IOProcessor()) {
+            HeaderFile.close();
             std::rename(ckfileTemp.c_str(), ckfile.c_str());
         }
         ParallelDescriptor::Barrier("Renaming temporary checkPoint file.");
@@ -3093,7 +3095,7 @@ Amr::initSubcycle ()
     else
     {
         subcycling_mode = "Auto";
-        pp.query("subcycling_mode",subcycling_mode);
+        pp.queryAdd("subcycling_mode",subcycling_mode);
     }
 
     if (subcycling_mode == "None")
@@ -3176,11 +3178,11 @@ Amr::initPltAndChk ()
 {
     ParmParse pp("amr");
 
-    pp.query("checkpoint_files_output", checkpoint_files_output);
-    pp.query("plot_files_output", plot_files_output);
+    pp.queryAdd("checkpoint_files_output", checkpoint_files_output);
+    pp.queryAdd("plot_files_output", plot_files_output);
 
-    pp.query("plot_nfiles", plot_nfiles);
-    pp.query("checkpoint_nfiles", checkpoint_nfiles);
+    pp.queryAdd("plot_nfiles", plot_nfiles);
+    pp.queryAdd("checkpoint_nfiles", checkpoint_nfiles);
     //
     // -1 ==> use ParallelDescriptor::NProcs().
     //
@@ -3188,13 +3190,13 @@ Amr::initPltAndChk ()
     if (checkpoint_nfiles == -1) checkpoint_nfiles = ParallelDescriptor::NProcs();
 
     check_file_root = "chk";
-    pp.query("check_file",check_file_root);
+    pp.queryAdd("check_file",check_file_root);
 
     check_int = -1;
-    pp.query("check_int",check_int);
+    pp.queryAdd("check_int",check_int);
 
     check_per = -1.0;
-    pp.query("check_per",check_per);
+    pp.queryAdd("check_per",check_per);
 
     if (check_int > 0 && check_per > 0)
     {
@@ -3203,16 +3205,16 @@ Amr::initPltAndChk ()
     }
 
     plot_file_root = "plt";
-    pp.query("plot_file",plot_file_root);
+    pp.queryAdd("plot_file",plot_file_root);
 
     plot_int = -1;
-    pp.query("plot_int",plot_int);
+    pp.queryAdd("plot_int",plot_int);
 
     plot_per = -1.0;
-    pp.query("plot_per",plot_per);
+    pp.queryAdd("plot_per",plot_per);
 
     plot_log_per = -1.0;
-    pp.query("plot_log_per",plot_log_per);
+    pp.queryAdd("plot_log_per",plot_log_per);
 
     if (plot_int > 0 && plot_per > 0)
     {
@@ -3221,16 +3223,16 @@ Amr::initPltAndChk ()
     }
 
     small_plot_file_root = "smallplt";
-    pp.query("small_plot_file",small_plot_file_root);
+    pp.queryAdd("small_plot_file",small_plot_file_root);
 
     small_plot_int = -1;
-    pp.query("small_plot_int",small_plot_int);
+    pp.queryAdd("small_plot_int",small_plot_int);
 
     small_plot_per = -1.0;
-    pp.query("small_plot_per",small_plot_per);
+    pp.queryAdd("small_plot_per",small_plot_per);
 
     small_plot_log_per = -1.0;
-    pp.query("small_plot_log_per",small_plot_log_per);
+    pp.queryAdd("small_plot_log_per",small_plot_log_per);
 
     if (small_plot_int > 0 && small_plot_per > 0)
     {
@@ -3239,24 +3241,24 @@ Amr::initPltAndChk ()
     }
 
     write_plotfile_with_checkpoint = 1;
-    pp.query("write_plotfile_with_checkpoint",write_plotfile_with_checkpoint);
+    pp.queryAdd("write_plotfile_with_checkpoint",write_plotfile_with_checkpoint);
 
     stream_max_tries = 4;
-    pp.query("stream_max_tries",stream_max_tries);
+    pp.queryAdd("stream_max_tries",stream_max_tries);
     stream_max_tries = std::max(stream_max_tries, 1);
 
     abort_on_stream_retry_failure = false;
-    pp.query("abort_on_stream_retry_failure",abort_on_stream_retry_failure);
+    pp.queryAdd("abort_on_stream_retry_failure",abort_on_stream_retry_failure);
 
-    pp.query("precreateDirectories", precreateDirectories);
-    pp.query("prereadFAHeaders", prereadFAHeaders);
+    pp.queryAdd("precreateDirectories", precreateDirectories);
+    pp.queryAdd("prereadFAHeaders", prereadFAHeaders);
 
     int phvInt(plot_headerversion), chvInt(checkpoint_headerversion);
-    pp.query("plot_headerversion", phvInt);
+    pp.queryAdd("plot_headerversion", phvInt);
     if(phvInt != plot_headerversion) {
       plot_headerversion = static_cast<VisMF::Header::Version> (phvInt);
     }
-    pp.query("checkpoint_headerversion", chvInt);
+    pp.queryAdd("checkpoint_headerversion", chvInt);
     if(chvInt != checkpoint_headerversion) {
       checkpoint_headerversion = static_cast<VisMF::Header::Version> (chvInt);
     }

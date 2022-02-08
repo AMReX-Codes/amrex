@@ -66,7 +66,7 @@ CpuBndryFuncFab::operator() (Box const& bx, FArrayBox& dest,
     } else if (bx.ixType().nodeCentered()) {
         fab_filnd(bx, dest.array(dcomp), numcomp, domain, dx, xlo, &(bcr[bcomp]));
     } else {
-        amrex::Abort("CpuBndryFuncFab: mixed index types are not supported");
+        fab_filfc(bx, dest.array(dcomp), numcomp, domain, dx, xlo, &(bcr[bcomp]));
     }
 
     if (f_user != nullptr)

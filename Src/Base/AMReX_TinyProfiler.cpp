@@ -300,9 +300,9 @@ TinyProfiler::Initialize () noexcept
 
     {
         amrex::ParmParse pp("tiny_profiler");
-        pp.query("device_synchronize_around_region", device_synchronize_around_region);
-        pp.query("verbose", verbose);
-        pp.query("v", verbose);
+        pp.queryAdd("device_synchronize_around_region", device_synchronize_around_region);
+        pp.queryAdd("verbose", verbose);
+        pp.queryAdd("v", verbose);
     }
 }
 
