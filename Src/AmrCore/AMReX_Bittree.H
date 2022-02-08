@@ -1,10 +1,19 @@
 #ifndef BL_BITTREE_H_
 #define BL_BITTREE_H_
 
+
+#include <AMReX_IntVect.H>
+#include <AMReX_BoxList.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_DistributionMapping.H>
+
+
 #include <AMReX_BoxArray.H>
 #include <Bittree_Amr.h>
 
 using namespace bittree;
+
+namespace amrex {
 
 class btUnit {
   // Functions
@@ -14,7 +23,8 @@ class btUnit {
     static void btMakeNewGrids( std::shared_ptr<BittreeAmr> mesh, int lbase,
                                 Real time, int& new_finest,
                                 Vector<BoxArray>& new_grids,
-                                Vector<DistributionMapping>& new_dm);
+                                Vector<DistributionMapping>& new_dm,
+                                Vector<IntVect>& max_grid_size);
 
   private:
     static void btCheckRefine( std::shared_ptr<BittreeAmr> mesh );
@@ -35,4 +45,5 @@ class btUnit {
 };
 
 
+}
 #endif

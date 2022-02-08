@@ -3,6 +3,10 @@
 #include <iostream>
 #include <functional>
 
+#define NVARS 2
+
+namespace amrex {
+
 // static variable initialization
 std::vector<bool> btUnit::refine;
 std::vector<bool> btUnit::derefine;
@@ -43,7 +47,7 @@ void btUnit::btErrorEst( std::shared_ptr<BittreeAmr> mesh ) {
     refine    = std::vector<bool>(lnblocks, false);
     derefine  = std::vector<bool>(lnblocks, false);
     lcoord    = std::vector<std::vector<unsigned>>(
-                      lnblocks, std::vector<unsigned>(NDIM,0u) );
+                      lnblocks, std::vector<unsigned>(AMREX_SPACEDIM,0u) );
     lev       = std::vector<unsigned>(lnblocks, 0 );
     is_par    = std::vector<bool>(lnblocks, false);
     bitid     = std::vector<unsigned>(lnblocks, 0 );
@@ -70,7 +74,7 @@ void btUnit::btErrorEst( std::shared_ptr<BittreeAmr> mesh ) {
         // Should probably check to make sure actual.lev == b.lev
 
         // Cache lev, lcoord, and is_par for later reference
-        for(unsigned d=0; d<NDIM; ++d)
+        for(unsigned d=0; d<AMREX_SPACEDIM; ++d)
             lcoord[blkID][d] = actual.coord[d];
         lev[blkID] = actual.level;
         is_par[blkID] = tree0->block_is_parent(b.id);
@@ -81,8 +85,8 @@ void btUnit::btErrorEst( std::shared_ptr<BittreeAmr> mesh ) {
         for(unsigned v=0; v<NVARS; ++v) {
             // TODO replace with actual calculation
             error_calc_result = 0; 
-            for(unsigned d=0; d<NDIM; ++d)
-              if(lcoord[blkID][d]==0) error_calc_result += 1.0/NDIM;
+            for(unsigned d=0; d<AMREX_SPACEDIM; ++d)
+              if(lcoord[blkID][d]==0) error_calc_result += 1.0/AMREX_SPACEDIM;
 
             error[blkID][v] = error_calc_result;
         }
@@ -96,12 +100,12 @@ void btUnit::btErrorEst( std::shared_ptr<BittreeAmr> mesh ) {
         if(is_par[lb]) {
           unsigned ch[3];
           unsigned lev_ch;
-          unsigned coord_ch[NDIM];
+          unsigned coord_ch[AMREX_SPACEDIM];
           for(ch[2]=0; ch[2]<=K3D; ++ch[2]) {
           for(ch[1]=0; ch[1]<=K2D; ++ch[1]) {
           for(ch[0]=0; ch[0]<=K1D; ++ch[0]) {
               lev_ch = lev[lb] + 1;
-              for(unsigned d=0; d<NDIM; ++d) {
+              for(unsigned d=0; d<AMREX_SPACEDIM; ++d) {
                   coord_ch[d] = lcoord[lb][d]*2 + ch[d];
               }
               auto b = tree0->identify(lev_ch, coord_ch);
@@ -179,8 +183,8 @@ void btUnit::btRefine( std::shared_ptr<BittreeAmr> mesh ) {
     // mark for derefinement
     for( unsigned lb = 0; lb<lnblocks; ++lb) {
       if (derefine[lb]) {
-        unsigned parCoord[NDIM];
-        for(unsigned d=0; d<NDIM; ++d) parCoord[d] = lcoord[lb][d]/2;
+        unsigned parCoord[AMREX_SPACEDIM];
+        for(unsigned d=0; d<AMREX_SPACEDIM; ++d) parCoord[d] = lcoord[lb][d]/2;
         
         auto p = tree0->identify(lev[lb]-1,parCoord);
         mesh->refine_mark(p.id, true);
@@ -202,7 +206,8 @@ void btUnit::btRefine( std::shared_ptr<BittreeAmr> mesh ) {
 void btUnit::btMakeNewGrids(std::shared_ptr<BittreeAmr> mesh, int lbase,
                             Real time,int& new_finest,
                             Vector<BoxArray>& new_grids,
-                            Vector<DistributionMapping>& new_dm) {
+                            Vector<DistributionMapping>& new_dm,
+                            Vector<IntVect>& max_grid_size) {
     auto tree1 = mesh->getTree(true);
     int nlevs = tree1->levels();
     new_finest = nlevs - 1;
@@ -219,7 +224,6 @@ void btUnit::btMakeNewGrids(std::shared_ptr<BittreeAmr> mesh, int lbase,
       BoxList bl;
       Vector<int> pmap;
 
-      //int lev_idx = 0
       for(int i=id0; i<id1; ++i) {
         //Get coordinates and morton index.
         auto b = tree1->locate(i);
@@ -233,12 +237,14 @@ void btUnit::btMakeNewGrids(std::shared_ptr<BittreeAmr> mesh, int lbase,
         //call calc_proc_locblk(nprocs,localMortUB,mort,proc,locblk)
         int proc = 0;
 
-        lo = {NXB*b.coord[0], NYB*b.coord[1], NZB*b.coord[2]};
-        hi = {NXB*(b.coord[0]+1)-1, NYB*(b.coord[1]+1)-1, NZB*(b.coord[2]+1)-1};
+        IntVect coordVec{AMREX_D_DECL(static_cast<int>(b.coord[0]),
+                                      static_cast<int>(b.coord[1]),
+                                      static_cast<int>(b.coord[2]))};
+        IntVect lo = max_grid_size[lev]*coordVec;
+        IntVect hi = max_grid_size[lev]*(coordVec+1) - 1;
         bl.push_back( Box{lo,hi} );
         pmap.push_back(proc);
 
-        //lev_idx = lev_idx + 1;
       }
 
       new_grids[lev].define(bl);
@@ -280,8 +286,8 @@ void btUnit::btCheckRefine( std::shared_ptr<BittreeAmr> mesh ) {
 
             auto neighCoord = calcNeighIntCoords(lev[lb], lcoord[lb].data(), gCell.data(), mesh);
             // TODO continue if any(neighCoords<0)
-            unsigned neighCoord_u[NDIM];
-            for(unsigned d=0; d<NDIM; ++d) neighCoord_u[d] = static_cast<unsigned>(neighCoord[d]);
+            unsigned neighCoord_u[AMREX_SPACEDIM];
+            for(unsigned d=0; d<AMREX_SPACEDIM; ++d) neighCoord_u[d] = static_cast<unsigned>(neighCoord[d]);
             auto b = tree0->identify(lev[lb], neighCoord_u);
             if (b.level == lev[lb]) { //neighbor exists
               if(b.is_parent) {
@@ -345,8 +351,8 @@ void btUnit::btCheckDerefine( std::shared_ptr<BittreeAmr> mesh ) {
 
             auto neighCoord = calcNeighIntCoords(lev[lb], lcoord[lb].data(), gCell.data(), mesh);
             // TODO continue if any(neighCoords<0)
-            unsigned neighCoord_u[NDIM];
-            for(unsigned d=0; d<NDIM; ++d) neighCoord_u[d] = static_cast<unsigned>(neighCoord[d]);
+            unsigned neighCoord_u[AMREX_SPACEDIM];
+            for(unsigned d=0; d<AMREX_SPACEDIM; ++d) neighCoord_u[d] = static_cast<unsigned>(neighCoord[d]);
             auto b = tree->identify(lev[lb], neighCoord_u);
 
             if (b.level == lev[lb]) { //neighbor exists
@@ -413,23 +419,23 @@ void btUnit::btCheckDerefine( std::shared_ptr<BittreeAmr> mesh ) {
 std::vector<int> btUnit::calcNeighIntCoords(unsigned lev, unsigned* lcoord, int* gCell, std::shared_ptr<BittreeAmr> mesh) {
     auto tree = mesh->getTree();
 
-    std::vector<int> neighCoord(NDIM);
+    std::vector<int> neighCoord(AMREX_SPACEDIM);
 
 //--Calculate integer coordinates of neighbor in direction
-    for(unsigned d=0;d<NDIM;++d)
+    for(unsigned d=0;d<AMREX_SPACEDIM;++d)
       neighCoord[d] = static_cast<int>(lcoord[d]) + gCell[d];
 
 //--Make sure not out-of-bounds. If periodic BCs, apply modulo
-    std::vector<int> maxcoord(NDIM);
-    for(unsigned d=0;d<NDIM;++d)
+    std::vector<int> maxcoord(AMREX_SPACEDIM);
+    for(unsigned d=0;d<AMREX_SPACEDIM;++d)
       maxcoord[d] = static_cast<int>(tree->top_size(d)) << lev;
 
     constexpr unsigned PERIODIC = 0;
     constexpr unsigned REFLECTING = 1;
-    std::vector<unsigned> bcLo(NDIM, PERIODIC);
-    std::vector<unsigned> bcHi(NDIM, PERIODIC);
+    std::vector<unsigned> bcLo(AMREX_SPACEDIM, PERIODIC);
+    std::vector<unsigned> bcHi(AMREX_SPACEDIM, PERIODIC);
 
-    for(unsigned d=0;d<NDIM;++d) {
+    for(unsigned d=0;d<AMREX_SPACEDIM;++d) {
       if (neighCoord[d] < 0 ) {
         if ( bcLo[d] == PERIODIC )
           neighCoord[d] = neighCoord[d] % maxcoord[d];
@@ -451,4 +457,6 @@ std::vector<int> btUnit::calcNeighIntCoords(unsigned lev, unsigned* lcoord, int*
     }
 
     return neighCoord;
+}
+
 }

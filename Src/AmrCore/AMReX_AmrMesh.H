@@ -264,7 +264,7 @@ protected:
     Vector<Geometry>            geom;
     Vector<DistributionMapping> dmap;
     Vector<BoxArray>            grids;
-    std::shared_ptr<BittreeAmr> btmesh;
+    std::shared_ptr<bittree::BittreeAmr> btmesh;
 
     unsigned int num_setdm = 0;
     unsigned int num_setba = 0;

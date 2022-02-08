@@ -6,6 +6,10 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
 
+#include <AMReX_Bittree.H>
+
+#include <memory>
+
 namespace amrex {
 
 AmrMesh::AmrMesh ()
@@ -502,9 +506,15 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
 
     if (new_grids.size() < max_crse+2) new_grids.resize(max_crse+2);
 
+    // Do ErrorEst tagging and convert those tags into two lists, `refine` and `derefine`
     btUnit::btErrorEst(btmesh);
+
+    // Using the `refine` and `derefine` lists, create new mesh in Bittree.
+    // Implements octree logic.
     btUnit::btRefine(btmesh);
-    btUnit::btMakeNewGrids(btmesh,lbase,time,new_finest,new_grids,new_dmap);
+
+    // Convert Bittree mesh to new Boxarrays and DistributionMappings
+    btUnit::btMakeNewGrids(btmesh,lbase,time,new_finest,new_grids,new_dmap,max_grid_size);
 }
 
 void
@@ -793,6 +803,21 @@ AmrMesh::MakeNewGrids (Real time)
         const auto old_num_setdm = num_setdm;
         const auto old_num_setba = num_setba;
 
+        //Initialize Bittree
+        {
+            IntVect ncells = geom[0].Domain().bigEnd() - geom[0].Domain().smallEnd() + 1;
+            unsigned top[AMREX_SPACEDIM];
+            for(unsigned d=0; d<AMREX_SPACEDIM; ++d) {
+                // number of grids on coarsest level
+                // TODO better way to do this?
+                top[d] = ncells[d] / max_grid_size[0][d];
+            }
+            int ngrids = AMREX_D_TERM(top[0],*top[1],*top[2]);
+            bool includes[100];
+            for(unsigned i=0;i<ngrids;++i) includes[i] = true;
+            btmesh = std::make_shared<bittree::BittreeAmr>(top,includes);
+        }
+
         MakeNewLevelFromScratch(0, time, ba, dm);
 
         if (old_num_setba == num_setba) {
@@ -806,26 +831,28 @@ AmrMesh::MakeNewGrids (Real time)
     if (max_level > 0) // build fine levels
     {
         Vector<BoxArray> new_grids(max_level+1);
+        Vector<DistributionMapping> new_dmap(max_level+1);
         new_grids[0] = grids[0];
+        new_dmap[0] = dmap[0];
         do
         {
             int new_finest;
 
             // Add (at most) one level at a time.
-            MakeNewGrids(finest_level,time,new_finest,new_grids);
+            MakeNewGrids(finest_level,time,new_finest,new_grids,new_dmap);
 
             if (new_finest <= finest_level) break;
             finest_level = new_finest;
 
-            DistributionMapping dm(new_grids[new_finest]);
-            const auto old_num_setdm = num_setdm;
+            //DistributionMapping dm(new_grids[new_finest]);
+            //const auto old_num_setdm = num_setdm;
 
-            MakeNewLevelFromScratch(new_finest, time, new_grids[finest_level], dm);
+            MakeNewLevelFromScratch(new_finest, time, new_grids[finest_level], new_dmap[finest_level]);
 
             SetBoxArray(new_finest, new_grids[new_finest]);
-            if (old_num_setdm == num_setdm) {
-                SetDistributionMap(new_finest, dm);
-            }
+            //if (old_num_setdm == num_setdm) {
+                SetDistributionMap(new_finest, new_dmap[new_finest]);
+            //}
         }
         while (finest_level < max_level);
 
@@ -839,24 +866,24 @@ AmrMesh::MakeNewGrids (Real time)
                 }
 
                 int new_finest;
-                MakeNewGrids(0, time, new_finest, new_grids);
+                MakeNewGrids(0, time, new_finest, new_grids,new_dmap);
 
                 if (new_finest < finest_level) break;
                 finest_level = new_finest;
 
                 bool grids_the_same = true;
                 for (int lev = 1; lev <= new_finest; ++lev) {
-                    if (new_grids[lev] != grids[lev]) {
+                    if (new_grids[lev] != grids[lev] || new_dmap[lev] != dmap[lev]) {
                         grids_the_same = false;
-                        DistributionMapping dm(new_grids[lev]);
-                        const auto old_num_setdm = num_setdm;
+                        //DistributionMapping dm(new_grids[lev]);
+                        //const auto old_num_setdm = num_setdm;
 
-                        MakeNewLevelFromScratch(lev, time, new_grids[lev], dm);
+                        MakeNewLevelFromScratch(lev, time, new_grids[lev], new_dmap[lev]);
 
                         SetBoxArray(lev, new_grids[lev]);
-                        if (old_num_setdm == num_setdm) {
-                            SetDistributionMap(lev, dm);
-                        }
+                        //if (old_num_setdm == num_setdm) {
+                            SetDistributionMap(lev, new_dmap[lev]);
+                        //}
                     }
                 }
                 if (grids_the_same) break;
