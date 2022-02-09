@@ -484,7 +484,10 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
 #endif
 
     if (!mode_env.empty() && mode_env != "None") {
-        if (mode_env == "ZFP_RATE")
+        if (mode_env == "ZLIB")
+            H5Pset_deflate(dcpl_id, (int)comp_value);
+#ifdef AMREX_USE_HDF5_ZFP
+        else if (mode_env == "ZFP_RATE")
             H5Pset_zfp_rate(dcpl_id, comp_value);
         else if (mode_env == "ZFP_PRECISION")
             H5Pset_zfp_precision(dcpl_id, (unsigned int)comp_value);
@@ -494,6 +497,7 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
             H5Pset_zfp_reversible(dcpl_id);
         else if (mode_env == "ZLIB")
             H5Pset_deflate(dcpl_id, (int)comp_value);
+#endif
 
         if (ParallelDescriptor::MyProc() == 0) {
             std::cout << "\nHDF5 checkpoint using " << mode_env << ", " <<
@@ -917,7 +921,10 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
 #endif
 
     if (!mode_env.empty() && mode_env != "None") {
-        if (mode_env == "ZFP_RATE")
+        if (mode_env == "ZLIB")
+            H5Pset_deflate(dcpl_id, (int)comp_value);
+#ifdef AMREX_USE_HDF5_ZFP
+        else if (mode_env == "ZFP_RATE")
             H5Pset_zfp_rate(dcpl_id, comp_value);
         else if (mode_env == "ZFP_PRECISION")
             H5Pset_zfp_precision(dcpl_id, (unsigned int)comp_value);
@@ -925,8 +932,7 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
             H5Pset_zfp_accuracy(dcpl_id, comp_value);
         else if (mode_env == "ZFP_REVERSIBLE")
             H5Pset_zfp_reversible(dcpl_id);
-        else if (mode_env == "ZLIB")
-            H5Pset_deflate(dcpl_id, (int)comp_value);
+#endif
 
         if (ParallelDescriptor::MyProc() == 0) {
             std::cout << "\nHDF5 checkpoint using " << mode_env << ", " <<

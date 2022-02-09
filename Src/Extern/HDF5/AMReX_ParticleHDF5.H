@@ -611,7 +611,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
     mode_env = getenv("HDF5_COMPRESSION_MODE");
     if (mode_env != NULL && strcmp(mode_env, "NONE") != 0) {
-        if (strcmp(mode_env, "ZFP_RATE") == 0) {
+        if (strcmp(mode_env, "ZLIB") == 0) {
+            H5Pset_deflate(dcpl_int, (int)comp_value);
+            H5Pset_deflate(dcpl_real, (int)comp_value);
+        }
+#ifdef AMREX_USE_HDF5_ZFP
+        else if (strcmp(mode_env, "ZFP_RATE") == 0) {
             H5Pset_zfp_rate(dcpl_int, comp_value);
             H5Pset_zfp_rate(dcpl_real, comp_value);
         }
@@ -627,10 +632,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             H5Pset_zfp_reversible(dcpl_int);
             H5Pset_zfp_reversible(dcpl_real);
         }
-        else if (strcmp(mode_env, "ZLIB") == 0) {
-            H5Pset_deflate(dcpl_int, (int)comp_value);
-            H5Pset_deflate(dcpl_real, (int)comp_value);
-        }
+#endif
 
         if (ParallelDescriptor::MyProc() == 0) {
             std::cout << "HDF5 checkpoint using " << mode_env << ", " <<
