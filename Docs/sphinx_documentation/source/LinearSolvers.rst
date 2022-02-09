@@ -61,25 +61,44 @@ After the linear operator is built, we need to set up boundary
 conditions.  This will be discussed later in section
 :ref:`sec:linearsolver:bc`.
 
+Coefficients
+------------
+
 Next, we consider the coefficients for equation :eq:`eqn::abeclap`.
 For :cpp:`MLPoisson`, there are no coefficients to set so nothing needs to be done.
 For :cpp:`MLABecLaplacian`, we need to call member functions :cpp:`setScalars`,
 :cpp:`setAcoeffs`, and :cpp:`setBCoeffs`.
+The ``setScalars`` function must always be called.
 
-.. highlight:: c++
-
-::
+.. code-block::
 
     void setScalars (Real a, Real b) noexcept;
-    void setACoeffs (int amrlev, const MultiFab& alpha);
-    void setACoeffs (int amrlev, Real alpha);
-    void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta);
-    void setBCoeffs (int amrlev, Real beta);
-    void setBCoeffs (int amrlev, Vector<Real> const& beta);
 
-The option to pass :cpp:`Real alpha` or :cpp:`Real beta` will copy the scalar to a MultiFab
-internally, and not alter the workings of the solver as compared to the variable coefficient
-case.
+
+The functions for setting alpha and beta will differ depending on their form:
+
+- For constant alpha or beta values across the multifab, one may use
+
+  .. code-block::
+
+      void setACoeffs (int amrlev, Real alpha);
+      void setBCoeffs (int amrlev, Real beta);
+
+  These functions will copy the single scalar value across the multifab used by the
+  MLMG solver with no effect on its internal behavior.
+
+- For situations where alpha and beta vary across the field, the following functions
+  can be used
+
+  .. code-block::
+
+      void setACoeffs (int amrlev, const MultiFab& alpha);
+      void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta);
+      void setBCoeffs (int amrlev, Vector<Real> const& beta);
+
+  Using one of these variable coefficient variations, will cause the MLMG solver to
+  adopt the appropriate internal behavior.
+
 
 For :cpp:`MLNodeLaplacian`,
 one can set a variable :cpp:`sigma` with the member function
@@ -110,7 +129,7 @@ or a constant :cpp:`sigma` during declaration or definition
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
                  Real  a_const_sigma = Real(0.0));
 
-Here, seting a constant :cpp:`sigma` alters the internals of the solver making it more
+Here, setting a constant :cpp:`sigma` alters the internal behavior of the solver making it more
 efficient for this special case.
 
 The :cpp:`int amrlev` parameter should be zero for single-level
