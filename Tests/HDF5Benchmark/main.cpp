@@ -124,9 +124,11 @@ void test ()
             fflush(stdout);
         }
 #ifdef AMREX_USE_HDF5
-#ifdef AMREX_USE_HDF5_ZFP
-        WriteMultiLevelPlotfileHDF5MultiDset(fname, nlevs, amrex::GetVecOfConstPtrs(mf), varnames,
+#if (defined AMREX_USE_HDF5_ZFP) || (defined AMREX_USE_HDF5_SZ)
+        WriteMultiLevelPlotfileHDF5SingleDset(fname, nlevs, amrex::GetVecOfConstPtrs(mf), varnames,
                                              geom, time, level_steps, ref_ratio, compression);
+        /* WriteMultiLevelPlotfileHDF5MultiDset(fname, nlevs, amrex::GetVecOfConstPtrs(mf), varnames, */
+        /*                                      geom, time, level_steps, ref_ratio, compression); */
 #else
         WriteMultiLevelPlotfileHDF5SingleDset(fname, nlevs, amrex::GetVecOfConstPtrs(mf), varnames,
                                               geom, time, level_steps, ref_ratio);

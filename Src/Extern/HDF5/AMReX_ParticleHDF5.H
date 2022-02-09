@@ -1,5 +1,6 @@
 #ifndef AMREX_PARTICLEHDF5_H
 #define AMREX_PARTICLEHDF5_H
+#include <AMReX.H>
 #include <AMReX_Config.H>
 
 #include <AMReX_WriteBinaryParticleData.H>
@@ -708,6 +709,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
         total_int_size += all_mfi_int_total_size[i];
 
+#ifdef AMREX_USE_HDF5_SZ
     if (strcmp(mode_env, "SZ") == 0) {
         size_t cd_nelmts;
         unsigned int* cd_values = NULL;
@@ -715,6 +717,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         SZ_metaDataToCdArray(&cd_nelmts, &cd_values, SZ_INT32, 0, 0, 0, 0, total_int_size);
         H5Pset_filter(dcpl_int, H5Z_FILTER_SZ, H5Z_FLAG_MANDATORY, cd_nelmts, cd_values);
     }
+#endif
 
     int_dset_space = H5Screate_simple(1, &total_int_size, NULL);
 #ifdef AMREX_USE_HDF5_ASYNC
@@ -736,6 +739,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
         total_real_size += all_mfi_real_total_size[i];
 
+#ifdef AMREX_USE_HDF5_SZ
     if (strcmp(mode_env, "SZ") == 0) {
         size_t cd_nelmts;
         unsigned int* cd_values = NULL;
@@ -749,6 +753,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             H5Pset_filter(dcpl_real, H5Z_FILTER_SZ, H5Z_FLAG_MANDATORY, cd_nelmts, cd_values);
         }
     }
+#endif
 
     real_dset_space = H5Screate_simple(1, &total_real_size, NULL);
     if (sizeof(typename ParticleType::RealType) == 4) {

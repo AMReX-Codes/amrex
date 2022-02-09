@@ -31,7 +31,7 @@ ZFP_HOME  = /gpfs/alpine/csc300/world-shared/gnu_build/zfp
 
 # To use HDF5 with SZ compression, follow the instructions at https://github.com/szcompressor/SZ/tree/master/hdf5-filter/H5Z-SZ to compile SZ and H5Z_SZ plugin, or use the following gcc build on Summit
 USE_HDF5_SZ = FALSE
-SZ_HOME  = /gpfs/alpine/csc300/world-shared/gnu_build/SZ-gnu/install
+SZ_HOME  = /gpfs/alpine/csc300/world-shared/gnu_build/SZ/install
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
