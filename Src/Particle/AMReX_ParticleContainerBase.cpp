@@ -102,8 +102,9 @@ const std::string& ParticleContainerBase::Version ()
     //
     //    "Version_One_Dot_Zero"
     //    "Version_One_Dot_One"
+    //    "Version_Two_Dot_Zero" (before checkpoints had expanded particle ids)
     //
-    static const std::string version("Version_Two_Dot_Zero");
+    static const std::string version("Version_Two_Dot_One");
 
     return version;
 }
