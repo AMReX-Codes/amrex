@@ -644,7 +644,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         how = "double";
     }
     else if (version.find("Version_One_Dot_One")  != std::string::npos ||
-             version.find("Version_Two_Dot_Zero") != std::string::npos) {
+             version.find("Version_Two_Dot_Zero") != std::string::npos ||
+             version.find("Version_Two_Dot_One") != std::string::npos) {
         if (version.find("_single") != std::string::npos) {
             how = "single";
         }
