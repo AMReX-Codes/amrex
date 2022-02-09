@@ -56,7 +56,7 @@ public:
                                 const Vector<int>& write_int_comp,
                                 const Vector<std::string>& real_comp_names,
                                 const Vector<std::string>&  int_comp_names,
-                                                                F&& f) const;
+                                F&& f, bool is_checkpoint=false) const;
 
 
     void CheckpointPreHDF5 ();

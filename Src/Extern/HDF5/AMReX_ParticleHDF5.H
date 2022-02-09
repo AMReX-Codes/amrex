@@ -60,7 +60,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                           [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p) -> int
                           {
                               return p.id() > 0;
-                          });
+                          }, true);
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
@@ -396,7 +396,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                          const Vector<int>& write_int_comp,
                          const Vector<std::string>& real_comp_names,
                          const Vector<std::string>& int_comp_names,
-                         F&& f) const
+                         F&& f, bool is_checkpoint) const
 {
     /* if (AsyncOut::UseAsyncOut()) { */
     /*     WriteHDF5ParticleDataAsync(*this, dir, name, */
@@ -407,7 +407,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         WriteHDF5ParticleDataSync(*this, dir, name,
                                   write_real_comp, write_int_comp,
                                   real_comp_names, int_comp_names,
-                                  std::forward<F>(f));
+                                  std::forward<F>(f), is_checkpoint);
     /* } */
 }
 
@@ -552,7 +552,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                       Vector<int>& which, Vector<int>& count, Vector<Long>& where,
                       const Vector<int>& write_real_comp,
                       const Vector<int>& write_int_comp,
-                      const Vector<std::map<std::pair<int, int>, IntVector>>& particle_io_flags) const
+                      const Vector<std::map<std::pair<int, int>, IntVector>>& particle_io_flags,
+                      bool is_checkpoint) const
 {
     BL_PROFILE("ParticleContainer::WriteParticlesHDF5()");
 
@@ -743,7 +744,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         Vector<ParticleReal> rstuff;
         particle_detail::packIOData(istuff, rstuff, *this, lev, grid,
                                     write_real_comp, write_int_comp,
-                                    particle_io_flags, tile_map[grid], count[grid]);
+                                    particle_io_flags, tile_map[grid], count[grid],
+                                    is_checkpoint);
 
         my_int_count = istuff.size();
         int_mem_space = H5Screate_simple(1, &my_int_count, NULL);
@@ -940,7 +942,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     // Appended to the latter version string are either "_single" or "_double" to
     // indicate how the particles were written.
     // "Version_Two_Dot_Zero" -- this is the AMReX particle file format
+    // "Version_Two_Dot_One" -- expanded particle ids to allow for 2**39-1 per proc
     std::string how;
+    bool convert_ids = false;
+    if (version.find("Version_Two_Dot_One") != std::string::npos) {
+        convert_ids = true;
+    }
     if (version.find("_single") != std::string::npos) {
         how = "single";
     }
@@ -1201,10 +1208,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             const int grid = grids_to_read[igrid];
 
             if (how == "single") {
-                ReadParticlesHDF5<float>(offset[grid], count[grid], grid, lev, int_dset, real_dset, finest_level_in_file);
+                ReadParticlesHDF5<float>(offset[grid], count[grid], grid, lev, int_dset, real_dset, finest_level_in_file, convert_ids);
             }
             else if (how == "double") {
-                ReadParticlesHDF5<double>(offset[grid], count[grid], grid, lev, int_dset, real_dset, finest_level_in_file);
+                ReadParticlesHDF5<double>(offset[grid], count[grid], grid, lev, int_dset, real_dset, finest_level_in_file, convert_ids);
             }
             else {
                 std::string msg("ParticleContainer::Restart(): bad parameter: ");
@@ -1238,7 +1245,8 @@ template <class RTYPE>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev,
-                     hid_t int_dset, hid_t real_dset, int finest_level_in_file)
+                     hid_t int_dset, hid_t real_dset, int finest_level_in_file,
+                     bool convert_ids)
 {
     BL_PROFILE("ParticleContainer::ReadParticlesHDF5()");
     AMREX_ASSERT(cnt > 0);
@@ -1299,9 +1307,19 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     host_int_attribs.resize(finest_level_in_file+1);
 
     for (hsize_t i = 0; i < cnt; i++) {
-        p.id()   = iptr[0];
-        p.cpu()  = iptr[1];
-
+        if (convert_ids) {
+            union punner {
+                std::int32_t i;
+                std::uint32_t u;
+            };
+            punner x, y;
+            x.i = iptr[0];
+            y.i = iptr[1];
+            p.m_idcpu = ((std::uint64_t)x.u) << 32 | y.u;
+        } else {
+            p.id()   = iptr[0];
+            p.cpu()  = iptr[1];
+        }
         iptr += 2;
 
         for (int j = 0; j < NStructInt; j++)
