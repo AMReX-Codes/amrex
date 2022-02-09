@@ -15,6 +15,10 @@
 #include "H5Zzfp_props.h"
 #endif
 
+#ifdef AMREX_USE_HDF5_SZ
+#include "H5Z_SZ.h"
+#endif
+
 #include <fstream>
 #include <iomanip>
 
@@ -439,11 +443,10 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
 #endif
 
     dcpl = H5Pcreate(H5P_DATASET_CREATE);
+    H5Pset_alloc_time(dcpl, H5D_ALLOC_TIME_LATE);
+    H5Pset_fill_time(dcpl, H5D_FILL_TIME_NEVER);
 
-#ifdef AMREX_USE_HDF5_ZFP
-    ret = H5Z_zfp_initialize();
-    if (ret < 0) amrex::Abort("ZFP initialize failed!");
-
+#if (defined AMREX_USE_HDF5_ZFP) || (defined AMREX_USE_HDF5_SZ)
     const char *chunk_env = NULL, *mode_env = NULL, *value_env = NULL;
     double comp_value = -1.0;
     hsize_t chunk_dim = 1024;
@@ -453,11 +456,6 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
         chunk_dim = atoi(chunk_env);
 
     H5Pset_chunk(dcpl, 1, &chunk_dim);
-    H5Pset_alloc_time(dcpl, H5D_ALLOC_TIME_LATE);
-    H5Pset_fill_time(dcpl, H5D_FILL_TIME_NEVER);
-
-    /* mode_env = getenv("HDF5_COMPRESSION_MODE"); */
-    /* value_env = getenv("HDF5_COMPRESSION_VALUE"); */
 
     std::string::size_type pos = compression.find('#');
     if (pos != std::string::npos) {
@@ -467,6 +465,21 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
             comp_value = atof(value_env);
         }
     }
+
+#ifdef AMREX_USE_HDF5_ZFP
+    if (strstr(mode_env, "ZFP")) {
+        ret = H5Z_zfp_initialize();
+        if (ret < 0) amrex::Abort("ZFP initialize failed!");
+    }
+#endif
+
+#ifdef AMREX_USE_HDF5_SZ
+    if (strstr(mode_env, "SZ")) {
+        char *cfgFile = getenv("HDF5_SZ_CONFIG_FILE");
+        ret = H5Z_SZ_Init((char*)value_env);
+        if (ret < 0) amrex::Abort("ZFP initialize failed, check SZ config file!");
+    }
+#endif
 
     if (mode_env != NULL && strcmp(mode_env, "None") != 0) {
         if (strcmp(mode_env, "ZFP_RATE") == 0)
@@ -686,6 +699,14 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
 
         BL_PROFILE_VAR("H5DwriteData", h5dwg);
 
+        if (strcmp(mode_env, "SZ") == 0) {
+            size_t cd_nelmts;
+            unsigned int* cd_values = NULL;
+            unsigned filter_config;
+            SZ_metaDataToCdArray(&cd_nelmts, &cd_values, SZ_DOUBLE, 0, 0, 0, 0, hs_allprocsize[0]);
+            H5Pset_filter(dcpl, H5Z_FILTER_SZ, H5Z_FLAG_MANDATORY, cd_nelmts, cd_values);
+        }
+
 #ifdef AMREX_USE_HDF5_ASYNC
         hid_t dataset = H5Dcreate_async(grp, dataname.c_str(), H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, dcpl, H5P_DEFAULT, es_id_g);
 #else
@@ -783,7 +804,7 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
     std::string filename(plotfilename + ".h5");
 
     // Write out root level metadata
-    hid_t fapl, dxpl_col, dxpl_ind, dcpl, fid, grp;
+    hid_t fapl, dxpl_col, dxpl_ind, fid, grp;
 
     if(ParallelDescriptor::IOProcessor()) {
         BL_PROFILE_VAR("H5writeMetadata", h5dwm);
@@ -850,7 +871,9 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
     SetHDF5fapl(fapl);
 #endif
 
-    dcpl = H5Pcreate(H5P_DATASET_CREATE);
+    hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
+    H5Pset_alloc_time(dcpl_id, H5D_ALLOC_TIME_LATE);
+    H5Pset_fill_time(dcpl_id, H5D_FILL_TIME_NEVER);
 
 #ifdef AMREX_USE_HDF5_ZFP
     ret = H5Z_zfp_initialize();
@@ -864,9 +887,9 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
     if (chunk_env != NULL)
         chunk_dim = atoi(chunk_env);
 
-    H5Pset_chunk(dcpl, 1, &chunk_dim);
-    H5Pset_alloc_time(dcpl, H5D_ALLOC_TIME_LATE);
-    H5Pset_fill_time(dcpl, H5D_FILL_TIME_NEVER);
+    H5Pset_chunk(dcpl_id, 1, &chunk_dim);
+    H5Pset_alloc_time(dcpl_id, H5D_ALLOC_TIME_LATE);
+    H5Pset_fill_time(dcpl_id, H5D_FILL_TIME_NEVER);
 
     /* mode_env = getenv("HDF5_COMPRESSION_MODE"); */
     /* value_env = getenv("HDF5_COMPRESSION_VALUE"); */
@@ -882,15 +905,15 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
 
     if (mode_env != NULL && strcmp(mode_env, "None") != 0) {
         if (strcmp(mode_env, "ZFP_RATE") == 0)
-            H5Pset_zfp_rate(dcpl, comp_value);
+            H5Pset_zfp_rate(dcpl_id, comp_value);
         else if (strcmp(mode_env, "ZFP_PRECISION") == 0)
-            H5Pset_zfp_precision(dcpl, (unsigned int)comp_value);
+            H5Pset_zfp_precision(dcpl_id, (unsigned int)comp_value);
         else if (strcmp(mode_env, "ZFP_ACCURACY") == 0)
-            H5Pset_zfp_accuracy(dcpl, comp_value);
+            H5Pset_zfp_accuracy(dcpl_id, comp_value);
         else if (strcmp(mode_env, "ZFP_REVERSIBLE") == 0)
-            H5Pset_zfp_reversible(dcpl);
+            H5Pset_zfp_reversible(dcpl_id);
         else if (strcmp(mode_env, "ZLIB") == 0)
-            H5Pset_deflate(dcpl, (int)comp_value);
+            H5Pset_deflate(dcpl_id, (int)comp_value);
 
         if (ParallelDescriptor::MyProc() == 0) {
             std::cout << "HDF5 checkpoint using " << mode_env << ", " <<
@@ -918,9 +941,6 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
     // Write data for each level
     char level_name[32];
 
-    hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
-    H5Pset_fill_time(dcpl_id, H5D_FILL_TIME_NEVER);
-
     for (int level = 0; level <= finest_level; ++level) {
         sprintf(level_name, "level_%d", level);
 #ifdef AMREX_USE_HDF5_ASYNC
@@ -946,9 +966,9 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
         boxdataspace = H5Screate_simple(1, flatdims, NULL);
 
 #ifdef AMREX_USE_HDF5_ASYNC
-        boxdataset = H5Dcreate_async(grp, bdsname.c_str(), babox_id, boxdataspace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT, es_id_g);
+        boxdataset = H5Dcreate_async(grp, bdsname.c_str(), babox_id, boxdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT, es_id_g);
 #else
-        boxdataset = H5Dcreate(grp, bdsname.c_str(), babox_id, boxdataspace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT);
+        boxdataset = H5Dcreate(grp, bdsname.c_str(), babox_id, boxdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 #endif
         if (boxdataset < 0) { std::cout << "H5Dcreate [" << bdsname << "] failed!" << std::endl; break; }
 
@@ -976,9 +996,9 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
         oflatdims[0] = sortedGrids.size() + 1;
         offsetdataspace = H5Screate_simple(1, oflatdims, NULL);
 #ifdef AMREX_USE_HDF5_ASYNC
-        offsetdataset = H5Dcreate_async(grp, odsname.c_str(), H5T_NATIVE_LLONG, offsetdataspace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT, es_id_g);
+        offsetdataset = H5Dcreate_async(grp, odsname.c_str(), H5T_NATIVE_LLONG, offsetdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT, es_id_g);
 #else
-        offsetdataset = H5Dcreate(grp, odsname.c_str(), H5T_NATIVE_LLONG, offsetdataspace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT);
+        offsetdataset = H5Dcreate(grp, odsname.c_str(), H5T_NATIVE_LLONG, offsetdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 #endif
         if(offsetdataset < 0) { std::cout << "create offset dataset failed! ret = " << offsetdataset << std::endl; break;}
 
@@ -986,9 +1006,9 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
         centerdims[0]   = sortedGrids.size() ;
         centerdataspace = H5Screate_simple(1, centerdims, NULL);
 #ifdef AMREX_USE_HDF5_ASYNC
-        centerdataset = H5Dcreate_async(grp, centername.c_str(), center_id, centerdataspace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT, es_id_g);
+        centerdataset = H5Dcreate_async(grp, centername.c_str(), center_id, centerdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT, es_id_g);
 #else
-        centerdataset = H5Dcreate(grp, centername.c_str(), center_id, centerdataspace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT);
+        centerdataset = H5Dcreate(grp, centername.c_str(), center_id, centerdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 #endif
         if(centerdataset < 0) { std::cout << "Create center dataset failed! ret = " << centerdataset << std::endl; break;}
 
@@ -1084,6 +1104,14 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
         hid_t dataset;
         char dataname[64];
 
+        if (strcmp(mode_env, "SZ") == 0) {
+            size_t cd_nelmts;
+            unsigned int* cd_values = NULL;
+            unsigned filter_config;
+            SZ_metaDataToCdArray(&cd_nelmts, &cd_values, SZ_DOUBLE, 0, 0, 0, 0, hs_allprocsize[0]);
+            H5Pset_filter(dcpl_id, H5Z_FILTER_SZ, H5Z_FLAG_MANDATORY, cd_nelmts, cd_values);
+        }
+
         BL_PROFILE_VAR("H5DwriteData", h5dwg);
 
         for (int jj = 0; jj < ncomp; jj++) {
@@ -1111,13 +1139,13 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
 
             sprintf(dataname, "data:datatype=%d", jj);
 #ifdef AMREX_USE_HDF5_ASYNC
-            dataset = H5Dcreate_async(grp, dataname, H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, dcpl, H5P_DEFAULT, es_id_g);
+            dataset = H5Dcreate_async(grp, dataname, H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT, es_id_g);
             if(dataset < 0) std::cout << ParallelDescriptor::MyProc() << "create data failed!  ret = " << dataset << std::endl;
             ret = H5Dwrite_async(dataset, H5T_NATIVE_DOUBLE, memdataspace, dataspace, dxpl_col, a_buffer_ind.dataPtr(), es_id_g);
             if(ret < 0) { std::cout << ParallelDescriptor::MyProc() << "Write data failed!  ret = " << ret << std::endl; break; }
             H5Dclose_async(dataset, es_id_g);
 #else
-            dataset = H5Dcreate(grp, dataname, H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, dcpl, H5P_DEFAULT);
+            dataset = H5Dcreate(grp, dataname, H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT);
             if(dataset < 0) std::cout << ParallelDescriptor::MyProc() << "create data failed!  ret = " << dataset << std::endl;
             ret = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, memdataspace, dataspace, dxpl_col, a_buffer_ind.dataPtr());
             if(ret < 0) { std::cout << ParallelDescriptor::MyProc() << "Write data failed!  ret = " << ret << std::endl; break; }
@@ -1154,7 +1182,6 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
     H5Pclose(dcpl_id);
     H5Pclose(dxpl_col);
     H5Pclose(dxpl_ind);
-    H5Pclose(dcpl);
 
 #ifdef AMREX_USE_HDF5_ASYNC
     H5Fclose_async(fid, es_id_g);

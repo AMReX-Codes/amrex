@@ -12,6 +12,10 @@
 #include "H5Zzfp_props.h"
 #endif
 
+#ifdef AMREX_USE_HDF5_SZ
+#include "H5Z_SZ.h"
+#endif
+
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
@@ -560,17 +564,29 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     std::map<int, Vector<int> > tile_map;
 
     int ret;
-    hid_t dxpl_col, dxpl_ind, dcpl;
+    hid_t dxpl_col, dxpl_ind, dcpl_int, dcpl_real;
     dxpl_col = H5Pcreate(H5P_DATASET_XFER);
     dxpl_ind = H5Pcreate(H5P_DATASET_XFER);
 #ifdef BL_USE_MPI
     H5Pset_dxpl_mpio(dxpl_col, H5FD_MPIO_COLLECTIVE);
 #endif
-    dcpl = H5Pcreate(H5P_DATASET_CREATE);
+    dcpl_int  = H5Pcreate(H5P_DATASET_CREATE);
+    dcpl_real = H5Pcreate(H5P_DATASET_CREATE);
+
+#if (defined AMREX_USE_HDF5_ZFP) || (defined AMREX_USE_HDF5_SZ)
 
 #ifdef AMREX_USE_HDF5_ZFP
     ret = H5Z_zfp_initialize();
     if (ret < 0) amrex::Abort("ZFP initialize failed!");
+#endif
+
+#ifdef AMREX_USE_HDF5_SZ
+    const char *cfgFile = getenv("HDF5_SZ_CONFIG_FILE");
+    if (NULL == cfgFile)
+        cfgFile = "sz.config";
+    ret = H5Z_SZ_Init((char*)cfgFile);
+    if (ret < 0) amrex::Abort("ZFP initialize failed, check env HDF5_SZ_CONFIG_FILE!");
+#endif
 
     char *chunk_env = NULL, *mode_env = NULL, *value_env = NULL;
     double comp_value = -1.0;
@@ -580,8 +596,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     if (chunk_env != NULL)
         chunk_dim = atoi(chunk_env);
 
-    H5Pset_chunk(dcpl, 1, &chunk_dim);
-    H5Pset_alloc_time(dcpl, H5D_ALLOC_TIME_LATE);
+    H5Pset_chunk(dcpl_int, 1, &chunk_dim);
+    H5Pset_alloc_time(dcpl_int, H5D_ALLOC_TIME_LATE);
+    H5Pset_fill_time(dcpl_int, H5D_FILL_TIME_NEVER);
+
+    H5Pset_chunk(dcpl_real, 1, &chunk_dim);
+    H5Pset_alloc_time(dcpl_real, H5D_ALLOC_TIME_LATE);
+    H5Pset_fill_time(dcpl_real, H5D_FILL_TIME_NEVER);
 
     value_env = getenv("HDF5_COMPRESSION_VALUE");
     if (value_env != NULL)
@@ -589,25 +610,33 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
     mode_env = getenv("HDF5_COMPRESSION_MODE");
     if (mode_env != NULL && strcmp(mode_env, "NONE") != 0) {
-        if (strcmp(mode_env, "ZFP_RATE") == 0)
-            H5Pset_zfp_rate(dcpl, comp_value);
-        else if (strcmp(mode_env, "ZFP_PRECISION") == 0)
-            H5Pset_zfp_precision(dcpl, (unsigned int)comp_value);
-        else if (strcmp(mode_env, "ZFP_ACCURACY") == 0)
-            H5Pset_zfp_accuracy(dcpl, comp_value);
-        else if (strcmp(mode_env, "ZFP_REVERSIBLE") == 0)
-            H5Pset_zfp_reversible(dcpl);
-        else if (strcmp(mode_env, "ZLIB") == 0)
-            H5Pset_deflate(dcpl, (int)comp_value);
+        if (strcmp(mode_env, "ZFP_RATE") == 0) {
+            H5Pset_zfp_rate(dcpl_int, comp_value);
+            H5Pset_zfp_rate(dcpl_real, comp_value);
+        }
+        else if (strcmp(mode_env, "ZFP_PRECISION") == 0) {
+            H5Pset_zfp_precision(dcpl_int, (unsigned int)comp_value);
+            H5Pset_zfp_precision(dcpl_real, (unsigned int)comp_value);
+        }
+        else if (strcmp(mode_env, "ZFP_ACCURACY") == 0) {
+            H5Pset_zfp_accuracy(dcpl_int, comp_value);
+            H5Pset_zfp_accuracy(dcpl_real, comp_value);
+        }
+        else if (strcmp(mode_env, "ZFP_REVERSIBLE") == 0) {
+            H5Pset_zfp_reversible(dcpl_int);
+            H5Pset_zfp_reversible(dcpl_real);
+        }
+        else if (strcmp(mode_env, "ZLIB") == 0) {
+            H5Pset_deflate(dcpl_int, (int)comp_value);
+            H5Pset_deflate(dcpl_real, (int)comp_value);
+        }
 
         if (ParallelDescriptor::MyProc() == 0) {
             std::cout << "HDF5 checkpoint using " << mode_env << ", " <<
                 comp_value << ", " << chunk_dim << std::endl;
         }
     }
-
 #endif
-
 
     for (const auto& kv : m_particles[lev])
     {
@@ -679,12 +708,19 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
         total_int_size += all_mfi_int_total_size[i];
 
-    int_dset_space = H5Screate_simple(1, &total_int_size, NULL);
+    if (strcmp(mode_env, "SZ") == 0) {
+        size_t cd_nelmts;
+        unsigned int* cd_values = NULL;
+        unsigned filter_config;
+        SZ_metaDataToCdArray(&cd_nelmts, &cd_values, SZ_INT32, 0, 0, 0, 0, total_int_size);
+        H5Pset_filter(dcpl_int, H5Z_FILTER_SZ, H5Z_FLAG_MANDATORY, cd_nelmts, cd_values);
+    }
 
+    int_dset_space = H5Screate_simple(1, &total_int_size, NULL);
 #ifdef AMREX_USE_HDF5_ASYNC
-    int_dset_id  = H5Dcreate_async(grp, "data:datatype=0", H5T_NATIVE_INT, int_dset_space, H5P_DEFAULT, dcpl, H5P_DEFAULT, es_par_g);
+    int_dset_id  = H5Dcreate_async(grp, "data:datatype=0", H5T_NATIVE_INT, int_dset_space, H5P_DEFAULT, dcpl_int, H5P_DEFAULT, es_par_g);
 #else
-    int_dset_id  = H5Dcreate(grp, "data:datatype=0", H5T_NATIVE_INT, int_dset_space, H5P_DEFAULT, dcpl, H5P_DEFAULT);
+    int_dset_id  = H5Dcreate(grp, "data:datatype=0", H5T_NATIVE_INT, int_dset_space, H5P_DEFAULT, dcpl_int, H5P_DEFAULT);
 #endif
 
     H5Sclose(int_dset_space);
@@ -700,23 +736,37 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
         total_real_size += all_mfi_real_total_size[i];
 
+    if (strcmp(mode_env, "SZ") == 0) {
+        size_t cd_nelmts;
+        unsigned int* cd_values = NULL;
+        unsigned filter_config;
+        if (sizeof(typename ParticleType::RealType) == 4) {
+            SZ_metaDataToCdArray(&cd_nelmts, &cd_values, SZ_FLOAT, 0, 0, 0, 0, total_real_size);
+            H5Pset_filter(dcpl_real, H5Z_FILTER_SZ, H5Z_FLAG_MANDATORY, cd_nelmts, cd_values);
+        }
+        else {
+            SZ_metaDataToCdArray(&cd_nelmts, &cd_values, SZ_DOUBLE, 0, 0, 0, 0, total_real_size);
+            H5Pset_filter(dcpl_real, H5Z_FILTER_SZ, H5Z_FLAG_MANDATORY, cd_nelmts, cd_values);
+        }
+    }
+
     real_dset_space = H5Screate_simple(1, &total_real_size, NULL);
     if (sizeof(typename ParticleType::RealType) == 4) {
 #ifdef AMREX_USE_HDF5_ASYNC
         real_dset_id  = H5Dcreate_async(grp, "data:datatype=1", H5T_NATIVE_FLOAT, real_dset_space,
-                                  H5P_DEFAULT, dcpl, H5P_DEFAULT, es_par_g);
+                                  H5P_DEFAULT, dcpl_real, H5P_DEFAULT, es_par_g);
 #else
         real_dset_id  = H5Dcreate(grp, "data:datatype=1", H5T_NATIVE_FLOAT, real_dset_space,
-                                  H5P_DEFAULT, dcpl, H5P_DEFAULT);
+                                  H5P_DEFAULT, dcpl_real, H5P_DEFAULT);
 #endif
     }
     else {
 #ifdef AMREX_USE_HDF5_ASYNC
         real_dset_id  = H5Dcreate_async(grp, "data:datatype=1", H5T_NATIVE_DOUBLE, real_dset_space,
-                                  H5P_DEFAULT, dcpl, H5P_DEFAULT, es_par_g);
+                                  H5P_DEFAULT, dcpl_real, H5P_DEFAULT, es_par_g);
 #else
         real_dset_id  = H5Dcreate(grp, "data:datatype=1", H5T_NATIVE_DOUBLE, real_dset_space,
-                                  H5P_DEFAULT, dcpl, H5P_DEFAULT);
+                                  H5P_DEFAULT, dcpl_real, H5P_DEFAULT);
 #endif
     }
     H5Sclose(real_dset_space);
@@ -852,7 +902,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 #endif
     if (ret < 0) amrex::Abort("H5Dwrite offset failed!");
 
-    H5Pclose(dcpl);
+    H5Pclose(dcpl_int);
+    H5Pclose(dcpl_real);
     H5Pclose(dxpl_col);
     H5Pclose(dxpl_ind);
 
