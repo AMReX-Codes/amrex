@@ -249,11 +249,11 @@ public:
     WriteParticlesHDF5 (int level, hid_t grp,
                         Vector<int>& which, Vector<int>& count, Vector<Long>& where,
                         const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
-                        const Vector<std::map<std::pair<int, int>,IntVector>>& particle_io_flags) const;
+                        const Vector<std::map<std::pair<int, int>,IntVector>>& particle_io_flags, bool is_checkpoint) const;
 
 protected:
 
 template <class RTYPE>
-    void ReadParticlesHDF5 (hsize_t offset, hsize_t count, int grd, int lev, hid_t int_dset, hid_t real_dset, int finest_level_in_file);
+void ReadParticlesHDF5 (hsize_t offset, hsize_t count, int grd, int lev, hid_t int_dset, hid_t real_dset, int finest_level_in_file, bool convert_ids);
 
 #endif
