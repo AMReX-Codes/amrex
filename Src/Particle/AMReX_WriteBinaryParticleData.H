@@ -144,15 +144,14 @@ AMREX_GPU_HOST_DEVICE
 void packParticleIDs (I* idata, const P& p, bool is_checkpoint) noexcept
 {
     if (is_checkpoint) {
-        union punner {
-            std::int32_t i;
-            std::uint32_t u;
-        };
-        punner x, y;
-        x.u = (std::uint32_t)((p.m_idcpu & 0xFFFFFFFF00000000LL) >> 32);
-        y.u = (std::uint32_t)( p.m_idcpu & 0xFFFFFFFFLL);
-        idata[0] = x.i;
-        idata[1] = y.i;
+        std::int32_t  xi, yi;
+        std::uint32_t xu, yu;
+        xu = (std::uint32_t)((p.m_idcpu & 0xFFFFFFFF00000000LL) >> 32);
+        yu = (std::uint32_t)( p.m_idcpu & 0xFFFFFFFFLL);
+        std::memcpy(&xi, &xu, sizeof(xu));
+        std::memcpy(&yi, &yu, sizeof(yu));
+        idata[0] = xi;
+        idata[1] = yi;
     } else {
         idata[0] = p.id();
         idata[1] = p.cpu();

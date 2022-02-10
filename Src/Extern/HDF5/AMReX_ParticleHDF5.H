@@ -1308,14 +1308,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
     for (hsize_t i = 0; i < cnt; i++) {
         if (convert_ids) {
-            union punner {
-                std::int32_t i;
-                std::uint32_t u;
-            };
-            punner x, y;
-            x.i = iptr[0];
-            y.i = iptr[1];
-            p.m_idcpu = ((std::uint64_t)x.u) << 32 | y.u;
+            std::int32_t  xi, yi;
+            std::uint32_t xu, yu;
+            xi = iptr[0];
+            yi = iptr[1];
+            std::memcpy(&xu, &xi, sizeof(xi));
+            std::memcpy(&yu, &yi, sizeof(yi));
+            p.m_idcpu = ((std::uint64_t)xu) << 32 | yu;
         } else {
             p.id()   = iptr[0];
             p.cpu()  = iptr[1];
