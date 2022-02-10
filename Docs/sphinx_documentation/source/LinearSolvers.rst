@@ -68,37 +68,32 @@ Next, we consider the coefficients for equation :eq:`eqn::abeclap`.
 For :cpp:`MLPoisson`, there are no coefficients to set so nothing needs to be done.
 For :cpp:`MLABecLaplacian`, we need to call member functions :cpp:`setScalars`,
 :cpp:`setAcoeffs`, and :cpp:`setBCoeffs`.
-The ``setScalars`` function must always be called.
+The :cpp:`setScalars` function sets the scalar constants :math:`A` and :math:`B`
 
 .. code-block::
 
     void setScalars (Real a, Real b) noexcept;
 
 
-The functions for setting alpha and beta will differ depending on their form:
-
-- For constant alpha or beta values across the multifab, one may use
-
-  .. code-block::
-
-      void setACoeffs (int amrlev, Real alpha);
-      void setBCoeffs (int amrlev, Real beta);
-
-  These functions will copy the single scalar value across the multifab used by the
-  MLMG solver with no effect on its internal behavior.
-
-- For situations where alpha and beta vary across the field, the following functions
-  can be used
+For the general case where
+:math:`\alpha` and :math:`\beta` are scalar fields, we use
 
   .. code-block::
 
       void setACoeffs (int amrlev, const MultiFab& alpha);
       void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta);
+
+For the case where :math:`\alpha` and/or :math:`\beta` are scalar constants,
+there is the option to use
+
+  .. code-block::
+
+      void setACoeffs (int amrlev, Real alpha);
+      void setBCoeffs (int amrlev, Real beta);
       void setBCoeffs (int amrlev, Vector<Real> const& beta);
 
-  Using one of these variable coefficient variations, will cause the MLMG solver to
-  adopt the appropriate internal behavior.
-
+Note, however, that these functions solely copy the constant value(s) to a MultiFab
+internal to ``MLMG`` and there is no effect on the behavior of the multigrid iterations.
 
 For :cpp:`MLNodeLaplacian`,
 one can set a variable :cpp:`sigma` with the member function
