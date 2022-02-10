@@ -93,7 +93,7 @@ there is the option to use
       void setBCoeffs (int amrlev, Vector<Real> const& beta);
 
 Note, however, that the solver behaviour is the same regardless of which functions you
-choose to set the coefficients. These functions solely copy the constant value(s) to a MultiFab
+use to set the coefficients. These functions solely copy the constant value(s) to a MultiFab
 internal to ``MLMG`` and there is no effect on the behavior of the multigrid iterations.
 
 For :cpp:`MLNodeLaplacian`,
