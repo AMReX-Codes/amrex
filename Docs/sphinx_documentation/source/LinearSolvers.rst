@@ -67,7 +67,7 @@ Coefficients
 Next, we consider the coefficients for equation :eq:`eqn::abeclap`.
 For :cpp:`MLPoisson`, there are no coefficients to set so nothing needs to be done.
 For :cpp:`MLABecLaplacian`, we need to call member functions :cpp:`setScalars`,
-:cpp:`setAcoeffs`, and :cpp:`setBCoeffs`.
+:cpp:`setACoeffs`, and :cpp:`setBCoeffs`.
 The :cpp:`setScalars` function sets the scalar constants :math:`A` and :math:`B`
 
 .. code-block::
