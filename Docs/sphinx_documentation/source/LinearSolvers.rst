@@ -94,7 +94,7 @@ there is the option to use
 
 Note, however, that the solver behaviour is the same regardless of which functions you
 use to set the coefficients. These functions solely copy the constant value(s) to a MultiFab
-internal to ``MLMG`` and there is no effect on the behavior of the multigrid iterations.
+internal to ``MLMG`` and so no appreciable efficiency gains can be expected.
 
 For :cpp:`MLNodeLaplacian`,
 one can set a variable :cpp:`sigma` with the member function
