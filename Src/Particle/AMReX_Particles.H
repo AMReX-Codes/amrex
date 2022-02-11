@@ -190,8 +190,8 @@ public:
     ParticleContainer ()
       :
       ParticleContainerBase(),
-      h_communicate_real_comp(NArrayReal, true),
-      h_communicate_int_comp(NArrayInt, true),
+      h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
+      h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
       m_runtime_comps_defined(false),
       m_num_runtime_real(0),
       m_num_runtime_int(0)
@@ -209,8 +209,8 @@ public:
     ParticleContainer (ParGDBBase* gdb)
         :
         ParticleContainerBase(gdb),
-        h_communicate_real_comp(NArrayReal, true),
-        h_communicate_int_comp(NArrayInt, true),
+        h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
+        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
         m_runtime_comps_defined(false),
         m_num_runtime_real(0),
         m_num_runtime_int(0)
@@ -232,8 +232,8 @@ public:
                        const BoxArray            & ba)
         :
         ParticleContainerBase(geom, dmap, ba),
-        h_communicate_real_comp(NArrayReal, true),
-        h_communicate_int_comp(NArrayInt, true),
+        h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
+        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
         m_runtime_comps_defined(false),
         m_num_runtime_real(0),
         m_num_runtime_int(0)
@@ -258,8 +258,8 @@ public:
                        const Vector<int>                 & rr)
         :
         ParticleContainerBase(geom, dmap, ba, rr),
-        h_communicate_real_comp(NArrayReal, true),
-        h_communicate_int_comp(NArrayInt, true),
+        h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
+        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
         m_runtime_comps_defined(false),
         m_num_runtime_real(0),
         m_num_runtime_int(0)
@@ -283,8 +283,8 @@ public:
                        const Vector<IntVect>             & rr)
         :
         ParticleContainerBase(geom, dmap, ba, rr),
-        h_communicate_real_comp(NArrayReal, true),
-        h_communicate_int_comp(NArrayInt, true),
+        h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
+        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
         m_runtime_comps_defined(false),
         m_num_runtime_real(0),
         m_num_runtime_int(0)
@@ -1199,7 +1199,7 @@ public:
     {
         m_runtime_comps_defined = true;
         m_num_runtime_real++;
-        h_communicate_real_comp.push_back(communicate);
+        h_redistribute_real_comp.push_back(communicate);
         SetParticleSize();
     }
 
@@ -1209,7 +1209,7 @@ public:
     {
         m_runtime_comps_defined = true;
         m_num_runtime_int++;
-        h_communicate_int_comp.push_back(communicate);
+        h_redistribute_int_comp.push_back(communicate);
         SetParticleSize();
     }
 
@@ -1219,10 +1219,8 @@ public:
     int NumRealComps () const { return NArrayReal + NumRuntimeRealComps(); }
     int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; }
 
-    Vector<int> h_communicate_real_comp;
-    Vector<int> h_communicate_int_comp;
-    Gpu::DeviceVector<int> d_communicate_real_comp;
-    Gpu::DeviceVector<int> d_communicate_int_comp;
+    Vector<int> h_redistribute_real_comp;
+    Vector<int> h_redistribute_int_comp;
 
     //! Variables for i/o optimization saved for pre and post checkpoint
     mutable bool levelDirectoriesCreated;

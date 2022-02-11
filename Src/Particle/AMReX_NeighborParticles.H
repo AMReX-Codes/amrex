@@ -276,7 +276,7 @@ public:
     {
         ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
             AddRealComp(communicate);
-        rc.push_back(communicate);
+        ghost_real_comp.push_back(communicate);
         calcCommSize();
     }
 
@@ -286,7 +286,7 @@ public:
     {
         ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
             AddIntComp(communicate);
-        ic.push_back(communicate);
+        ghost_int_comp.push_back(communicate);
         calcCommSize();
     }
 
@@ -397,8 +397,8 @@ protected:
     Long num_snds;
     std::map<int, Vector<char> > send_data;
 
-    Vector<int> rc;
-    Vector<int> ic;
+    Vector<int> ghost_real_comp;
+    Vector<int> ghost_int_comp;
 
     static bool use_mask;
 

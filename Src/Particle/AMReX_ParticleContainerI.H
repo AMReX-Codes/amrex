@@ -4,32 +4,16 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::SetParticleSize ()
 {
-    if (NumRealComps() > 0 || NumIntComps() > 0) {
-        if (NumRealComps() > 0) {
-            d_communicate_real_comp.resize(NumRealComps());
-            Gpu::copyAsync(Gpu::hostToDevice,
-                           h_communicate_real_comp.begin(),
-                           h_communicate_real_comp.end(),
-                           d_communicate_real_comp.begin());
-        }
-        if (NumIntComps() > 0) {
-            d_communicate_int_comp.resize(NumIntComps());
-            Gpu::copyAsync(Gpu::hostToDevice,
-                           h_communicate_int_comp.begin(),
-                           h_communicate_int_comp.end(),
-                           d_communicate_int_comp.begin());
-        }
-        Gpu::synchronize();
-    }
-
-    num_real_comm_comps = 0;
-    for (int i = 0; i < NumRealComps(); ++i) {
-        if (h_communicate_real_comp[i]) ++num_real_comm_comps;
+    num_real_comm_comps  = 0;
+    int comm_comps_start = AMREX_SPACEDIM + NStructReal;
+    for (int i = comm_comps_start; i < comm_comps_start + NumRealComps(); ++i) {
+        if (h_redistribute_real_comp[i]) {++num_real_comm_comps;}
     }
 
     num_int_comm_comps = 0;
-    for (int i = 0; i < NumIntComps(); ++i) {
-        if (h_communicate_int_comp[i]) ++num_int_comm_comps;
+    comm_comps_start   = 2 + NStructInt;
+    for (int i = comm_comps_start; i < comm_comps_start + NumIntComps(); ++i) {
+        if (h_redistribute_int_comp[i]) {++num_int_comm_comps;}
     }
 
     particle_size = sizeof(ParticleType);
@@ -1263,7 +1247,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
     ParticleCopyPlan plan;
 
-    plan.build(*this, op, local);
+    plan.build(*this, op, h_redistribute_int_comp,
+               h_redistribute_real_comp, local);
 
     Gpu::DeviceVector<char> snd_buffer;
     Gpu::DeviceVector<char> rcv_buffer;
@@ -1494,14 +1479,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                       particles_to_send.resize(new_size);
                       std::memcpy(&particles_to_send[old_size], &p, particle_size);
                       char* dst = &particles_to_send[old_size] + particle_size;
+                      int array_comp_start = AMREX_SPACEDIM + NStructReal;
                       for (int comp = 0; comp < NumRealComps(); comp++) {
-                          if (h_communicate_real_comp[comp]) {
+                          if (h_redistribute_real_comp[array_comp_start + comp]) {
                               std::memcpy(dst, &soa.GetRealData(comp)[pindex], sizeof(ParticleReal));
                               dst += sizeof(ParticleReal);
                           }
                       }
+                      array_comp_start = 2 + NStructInt;
                       for (int comp = 0; comp < NumIntComps(); comp++) {
-                          if (h_communicate_int_comp[comp]) {
+                          if (h_redistribute_int_comp[array_comp_start + comp]) {
                               std::memcpy(dst, &soa.GetIntData(comp)[pindex], sizeof(int));
                               dst += sizeof(int);
                           }
@@ -1814,8 +1801,9 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 std::memcpy(&p, pbuf, sizeof(ParticleType));
                 pbuf += sizeof(ParticleType);
                 ptile.push_back(p);
+                int array_comp_start = AMREX_SPACEDIM + NStructReal;
                 for (int comp = 0; comp < NumRealComps(); ++comp) {
-                    if (h_communicate_real_comp[comp]) {
+                    if (h_redistribute_real_comp[array_comp_start + comp]) {
                         ParticleReal rdata;
                         std::memcpy(&rdata, pbuf, sizeof(ParticleReal));
                         pbuf += sizeof(ParticleReal);
@@ -1825,8 +1813,9 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                     }
                 }
 
+                array_comp_start = 2 + NStructInt;
                 for (int comp = 0; comp < NumIntComps(); ++comp) {
-                    if (h_communicate_int_comp[comp]) {
+                    if (h_redistribute_int_comp[array_comp_start + comp]) {
                         int idata;
                         std::memcpy(&idata, pbuf, sizeof(int));
                         pbuf += sizeof(int);
@@ -1877,8 +1866,9 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 host_particles[lev][ind].push_back(p);
 
                 // add the real...
+                int array_comp_start = AMREX_SPACEDIM + NStructReal;
                 for (int comp = 0; comp < NumRealComps(); ++comp) {
-                    if (h_communicate_real_comp[comp]) {
+                    if (h_redistribute_real_comp[array_comp_start + comp]) {
                         Real rdata;
                         std::memcpy(&rdata, pbuf, sizeof(Real));
                         pbuf += sizeof(Real);
@@ -1889,8 +1879,9 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 }
 
                 // ... and int array data
+                array_comp_start = 2 + NStructInt;
                 for (int comp = 0; comp < NumIntComps(); ++comp) {
-                    if (h_communicate_int_comp[comp]) {
+                    if (h_redistribute_int_comp[array_comp_start + comp]) {
                         int idata;
                         std::memcpy(&idata, pbuf, sizeof(int));
                         pbuf += sizeof(int);
