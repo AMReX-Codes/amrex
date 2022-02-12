@@ -12,8 +12,9 @@ on a monthly basis with version number YY.MM (e.g., 17.04). The MM part of the
 version is incremented every month, and the YY part every year.  Bug fix
 releases are tagged with YY.MM.patch (e.g., 17.04.1).
 
-AMReX can also be obtained using spack (https://spack.io/).  Assuming
-you have spack installed, simply type "spack install amrex".
+AMReX can also be obtained using Spack (https://spack.io/).  Assuming
+you have Spack installed, simply type, ``spack install amrex``. For more
+information see the :ref:`sec:build:spack` section in Building AMReX.
 
 Example: Hello World
 ====================

@@ -1037,7 +1037,8 @@ Amr::writePlotFileDoit (std::string const& pltfile, bool regular)
         } else {
             ParallelDescriptor::Barrier("Amr::writePlotFile::end");
             if(ParallelDescriptor::IOProcessor()) {
-            std::rename(pltfileTemp.c_str(), pltfile.c_str());
+                HeaderFile.close();
+                std::rename(pltfileTemp.c_str(), pltfile.c_str());
             }
             ParallelDescriptor::Barrier("Renaming temporary plotfile.");
             //
@@ -1865,6 +1866,7 @@ Amr::checkPoint ()
     } else {
         ParallelDescriptor::Barrier("Amr::checkPoint::end");
         if(ParallelDescriptor::IOProcessor()) {
+            HeaderFile.close();
             std::rename(ckfileTemp.c_str(), ckfile.c_str());
         }
         ParallelDescriptor::Barrier("Renaming temporary checkPoint file.");

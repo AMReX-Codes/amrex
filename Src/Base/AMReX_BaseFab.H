@@ -11,6 +11,7 @@
 #include <AMReX_BoxList.H>
 #include <AMReX_BArena.H>
 #include <AMReX_CArena.H>
+#include <AMReX_DataAllocator.H>
 #include <AMReX_REAL.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BoxIterator.H>
@@ -176,34 +177,6 @@ placementDelete (T* const ptr, Long n)
         (ptr+i)->~T();
     });
 }
-
-struct DataAllocator {
-    Arena* m_arena = nullptr;
-
-    DataAllocator ()  noexcept : m_arena(nullptr) {}
-
-    DataAllocator (Arena* ar) noexcept : m_arena(ar) {}
-
-    void* alloc (std::size_t sz) const noexcept {
-        return arena()->alloc(sz);
-    }
-
-    void free (void* pt) const noexcept {
-        arena()->free(pt);
-    }
-
-    Arena* arena () const noexcept {
-        return (m_arena) ? m_arena : The_Arena();
-    }
-};
-
-struct DataDeleter {
-    Arena* m_arena = nullptr;
-    DataDeleter () noexcept : m_arena(nullptr) {}
-    DataDeleter (Arena* ar) noexcept : m_arena(ar) {}
-    Arena* arena () const noexcept { return (m_arena) ? m_arena : The_Arena(); }
-    void operator() (void* pt) const noexcept { arena()->free(pt); }
-};
 
 template <class T>
 class BaseFab

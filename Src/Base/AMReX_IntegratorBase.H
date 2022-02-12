@@ -150,10 +150,30 @@ template<class T>
 class IntegratorBase
 {
 private:
+   /**
+    * \brief Fun is the right-hand-side function the integrator will use.
+    */
     std::function<void(T&, const T&, const amrex::Real)> Fun;
 
+   /**
+    * \brief FastFun is the fast timescale right-hand-side function for a multirate integration problem.
+    */
+    std::function<void(T&, const T&, const T&, const amrex::Real)> FastFun;
+
 protected:
+   /**
+    * \brief Integrator timestep size (Real)
+    */
     amrex::Real timestep;
+
+   /**
+    * \brief For multirate problems, the ratio of slow timestep size / fast timestep size (int)
+    */
+    int slow_fast_timestep_ratio;
+
+   /**
+    * \brief The post_update function is called by the integrator on state data before using it to evaluate a right-hand side.
+    */
     std::function<void (T&, amrex::Real)> post_update;
 
 public:
@@ -170,14 +190,19 @@ public:
         Fun = F;
     }
 
+    void set_fast_rhs (std::function<void(T&, const T&, const T&, const amrex::Real)> F)
+    {
+        FastFun = F;
+    }
+
+    void set_slow_fast_timestep_ratio (const int timestep_ratio = 1)
+    {
+        slow_fast_timestep_ratio = timestep_ratio;
+    }
+
     void set_post_update (std::function<void (T&, amrex::Real)> F)
     {
         post_update = F;
-    }
-
-    std::function<void(T&, const T&, const amrex::Real)> get_rhs ()
-    {
-        return Fun;
     }
 
     std::function<void (T&, amrex::Real)> get_post_update ()
@@ -185,9 +210,29 @@ public:
         return post_update;
     }
 
+    std::function<void(T&, const T&, const amrex::Real)> get_rhs ()
+    {
+        return Fun;
+    }
+
+    std::function<void(T&, const T&, const T&, const amrex::Real)> get_fast_rhs ()
+    {
+        return FastFun;
+    }
+
+    int get_slow_fast_timestep_ratio ()
+    {
+        return slow_fast_timestep_ratio;
+    }
+
     void rhs (T& S_rhs, const T& S_data, const amrex::Real time)
     {
         Fun(S_rhs, S_data, time);
+    }
+
+    void fast_rhs (T& S_rhs, const T& S_extra, const T& S_data, const amrex::Real time)
+    {
+        FastFun(S_rhs, S_extra, S_data, time);
     }
 
     virtual amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt) = 0;

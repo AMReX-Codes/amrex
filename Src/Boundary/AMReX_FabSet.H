@@ -84,6 +84,9 @@ public:
     const DistributionMapping& DistributionMap () const noexcept
         { return m_mf.DistributionMap(); }
 
+    MultiFab      & multiFab ()       noexcept { return m_mf; }
+    MultiFab const& multiFab () const noexcept { return m_mf; }
+
     int nComp () const noexcept { return m_mf.nComp(); }
 
     void clear () { m_mf.clear(); }
