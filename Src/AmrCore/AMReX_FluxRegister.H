@@ -157,13 +157,29 @@ public:
     * \param mult
     * \param op
     */
-    void CrseInit_DG (const MultiFab& mflx,
-                   int             dir,
-                   int             srccomp,
-                   int             destcomp,
-                   int             numcomp,
-                   Real            mult = -1.0,
-                   FrOp            op = FluxRegister::COPY);
+    //void CrseInit_DG (const MultiFab& mflx,
+    //               int             dir,
+    //               int             srccomp,
+    //               int             destcomp,
+    //               int             numcomp,
+    //               Real            mult,
+    //               MultiFab&       FluxIncrement,
+    //               int             nDOFX_K,
+    //               int             nNodesX1,
+    //               Real            LX_X1_Dn_1D[],
+    //               Real            LX_X1_Up_1D[],
+    //               Real            WeightsX1[],
+    //               Real            dX1[],
+    //               FrOp            op = FluxRegister::COPY);
+    void CrseInit_DG (const MultiFab& SurfaceFlux,
+                      int             iDimX,
+                      int             nF,
+                      int             nDOFX_X,
+                      Real            WeightsX_X[],
+                      int             SrcComp,
+                      int             DestComp,
+                      Real            mult,
+                      FrOp            op = FluxRegister::COPY);
 
     /**
     * \brief Add coarse fluxes to the flux register.
@@ -228,6 +244,28 @@ public:
                   Real            mult);
 
     /**
+    * \brief Increment flux correction with fine data (DG).
+    *
+    * /in this version the area is assumed to muliplied into the flux (if not, use scale to fix)
+    *
+    * \param mflx
+    * \param dir
+    * \param srccomp
+    * \param destcomp
+    * \param numcomp
+    * \param mult
+    */
+    void FineAdd_DG (const MultiFab& SurfaceFluxes,
+                     int             iDimX,
+                     int             nF,
+                     int             nDOFX_X,
+                     Real            WeightsX_X[],
+                     Real            LX_X[],
+                     int             SrcComp,
+                     int             DestComp,
+                     Real            mult);
+
+    /**
     * \brief Increment flux correction with fine data.
     *
     * \param mflx
@@ -267,6 +305,31 @@ public:
                   int              numcomp,
                   Real             mult,
                   RunOn            gpu_or_cpu) noexcept;
+
+    /**
+    * \brief Increment flux correction with fine data (DG).
+    *
+    * in this version the area is assumed to muliplied into the flux (if not, use scale to fix)
+    *
+    * \param flux
+    * \param dir
+    * \param boxno
+    * \param srccomp
+    * \param destcomp
+    * \param numcomp
+    * \param mult
+    */
+    void FineAdd_DG (const FArrayBox& SurfaceFluxes,
+                     int              iDimX,
+                     int              boxno,
+                     int              nF,
+                     int              nDOFX_X,
+                     Real             WeightsX_X[],
+                     Real             LX_X[],
+                     int              SrcComp,
+                     int              DestComp,
+                     Real             mult,
+                     RunOn            gpu_or_cpu) noexcept;
 
     /**
     * \brief Increment flux correction with fine data.
@@ -336,6 +399,34 @@ public:
                  const Geometry& crse_geom);
 
     /**
+    * \brief Apply flux correction (DG).  Note that this takes the coarse Geometry.
+    *
+    * \param mf
+    * \param volume
+    * \param scale
+    * \param srccomp
+    * \param destcomp
+    * \param numcomp
+    * \param crse_geom
+    */
+    void Reflux_DG( MultiFab&       mf,
+                    int             nComp,
+                    const Geometry& crse_geom,
+                    int             nFields,
+                    int             nDOFX,
+                    int             nNodesX[],
+                    Real            WeightsX_q[],
+                    Real            dX1[],
+                    Real            dX2[],
+                    Real            dX3[],
+                    Real            LX_X1_Dn[],
+                    Real            LX_X1_Up[],
+                    Real            LX_X2_Dn[],
+                    Real            LX_X2_Up[],
+                    Real            LX_X3_Dn[],
+                    Real            LX_X3_Up[] );
+
+    /**
     * \brief Constant volume version of Reflux().  Note that this takes the coarse Geometry.
     *
     * \param mf
@@ -392,6 +483,14 @@ public:
 public:
     void Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
                  Real scale, int scomp, int dcomp, int nc, const Geometry& geom);
+    void Reflux_DG
+      ( MultiFab& mf, Orientation face,
+        int nComp, const Geometry& geom,
+        int nFields, int nDOFX, int nNodesX[],
+        Real WeightsX_q[], Real dX1[], Real dX2[], Real dX3[],
+        Real LX_X1_Up[], Real LX_X1_Dn[],
+        Real LX_X2_Up[], Real LX_X2_Dn[],
+        Real LX_X3_Up[], Real LX_X3_Dn[] );
 
 private:
 

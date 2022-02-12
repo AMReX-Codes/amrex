@@ -37,6 +37,43 @@ extern "C"
         flux_reg->FineAdd(fab, dir, boxno, 0, 0, flux_reg->nComp(), scale, RunOn::Cpu);
     }
 
+    void amrex_fi_fluxregister_fineadd_dg
+      ( FluxRegister* flux_reg, MultiFab* SurfaceFluxes[], Real scale,
+        int nF, int nDOFX_X1, int nDOFX_X2, int nDOFX_X3,
+        Real WeightsX_X1[], Real WeightsX_X2[], Real WeightsX_X3[],
+        Real LX_X1[], Real LX_X2[], Real LX_X3[] )
+    {
+        for (int iDimX = 0; iDimX < BL_SPACEDIM; ++iDimX)
+        {
+            BL_ASSERT( flux_reg->nComp() == SurfaceFluxes[iDimX]->nComp() );
+
+            if( iDimX == 0 )
+            {
+              flux_reg->FineAdd_DG( *SurfaceFluxes[iDimX], iDimX,
+                                    nF, nDOFX_X1, WeightsX_X1, LX_X1,
+                                    0, 0, scale );
+            }
+            else if( iDimX == 1 )
+            {
+              flux_reg->FineAdd_DG( *SurfaceFluxes[iDimX], iDimX,
+                                    nF, nDOFX_X2, WeightsX_X2, LX_X2,
+                                    0, 0, scale );
+            }
+            else if( iDimX == 2 )
+            {
+              flux_reg->FineAdd_DG( *SurfaceFluxes[iDimX], iDimX,
+                                    nF, nDOFX_X3, WeightsX_X3, LX_X3,
+                                    0, 0, scale );
+            }
+            else
+            {
+                std::cout<< "Src/F_Interfaces/AmrCore/AMReX_fluxregister_fi.cpp"
+                         << "\namrex_fi_fluxregister_fineadd_dg"
+                         << "\nThis should never print.\n";
+            }
+        }
+    } /* END void amrex_fi_fluxregister_fineadd_dg */
+
     void amrex_fi_fluxregister_crseinit (FluxRegister* flux_reg, MultiFab* flxs[], Real scale)
     {
         for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
@@ -46,14 +83,39 @@ extern "C"
     }
 
     void amrex_fi_fluxregister_crseinit_dg
-           ( FluxRegister* flux_reg, MultiFab* flxs[], Real scale )
+           ( FluxRegister* flux_reg, MultiFab* SurfaceFluxes[], Real scale,
+             int nF, int nDOFX_X1, int nDOFX_X2, int nDOFX_X3,
+             Real WeightsX_X1[], Real WeightsX_X2[], Real WeightsX_X3[] )
     {
-        for ( int dir = 0; dir < BL_SPACEDIM; ++dir )
-        {
-            BL_ASSERT( flux_reg->nComp() == flxs[dir]->nComp() );
 
-            flux_reg->CrseInit_DG( *flxs[dir], dir, 0, 0,
-                                   flux_reg->nComp(), scale );
+        for ( int iDimX = 0; iDimX < BL_SPACEDIM; ++iDimX )
+        {
+            BL_ASSERT( flux_reg->nComp() == SurfaceFluxes[iDimX]->nComp() );
+
+            if( iDimX == 0 )
+            {
+                flux_reg->CrseInit_DG
+                            ( *SurfaceFluxes[iDimX], iDimX, nF, nDOFX_X1,
+                              WeightsX_X1, 0, 0, scale );
+            }
+            else if( iDimX == 1 )
+            {
+                flux_reg->CrseInit_DG
+                            ( *SurfaceFluxes[iDimX], iDimX, nF, nDOFX_X2,
+                              WeightsX_X2, 0, 0, scale );
+            }
+            else if( iDimX == 2 )
+            {
+                flux_reg->CrseInit_DG
+                            ( *SurfaceFluxes[iDimX], iDimX, nF, nDOFX_X3,
+                              WeightsX_X3, 0, 0, scale );
+            }
+            else
+            {
+                std::cout<< "Src/F_Interfaces/AmrCore/AMReX_fluxregister_fi.cpp"
+                         << "\namrex_fi_fluxregister_crseinit_dg"
+                         << "\nThis should never print.\n";
+            }
         }
     }
 
@@ -76,8 +138,27 @@ extern "C"
     {
         MultiFab vol;
         geom->GetVolume(vol, mf->boxArray(), mf->DistributionMap(), 0);
+
+std::cout<<mf->nComp()<<std::endl;
+
         BL_ASSERT(flux_reg->nComp() == mf->nComp());
         flux_reg->Reflux(*mf, vol, scale, 0, 0, flux_reg->nComp(), *geom);
+    }
+
+    void amrex_fi_fluxregister_reflux_dg
+      ( FluxRegister* flux_reg, MultiFab* mf,
+        const Geometry* geom, int nFields, int nDOFX, int nNodesX[],
+        Real WeightsX_q[], Real dX1[], Real dX2[], Real dX3[],
+        Real LX_X1_Dn[], Real LX_X1_Up[],
+        Real LX_X2_Dn[], Real LX_X2_Up[],
+        Real LX_X3_Dn[], Real LX_X3_Up[] )
+    {
+        flux_reg->Reflux_DG( *mf, flux_reg->nComp(), *geom,
+                             nFields, nDOFX, nNodesX,
+                             WeightsX_q, dX1, dX2, dX3,
+                             LX_X1_Dn, LX_X1_Up,
+                             LX_X2_Dn, LX_X2_Up,
+                             LX_X3_Dn, LX_X3_Up );
     }
 
     void amrex_fi_fluxregister_overwrite (FluxRegister* flux_reg, MultiFab* crse_flxs[],
