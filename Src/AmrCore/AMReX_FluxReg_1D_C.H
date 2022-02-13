@@ -65,7 +65,7 @@ AMREX_GPU_HOST_DEVICE inline void
 fluxreg_fineadd_dg( Box const&                bx,
                     Array4<Real> const&       reg,
                     Array4<Real const> const& flx,
-                    const int                 /*dir*/,
+                    const int                 /*iDimX*/,
                     const int                 nFields,
                     const int                 nDOFX_X,
                     const Real                WeightsX_X[],
