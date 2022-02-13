@@ -512,11 +512,10 @@ FluxRegister::CrseInit_DG ( const MultiFab& SurfaceFlux,
                             int             nFields,
                             int             nDOFX_X,
                             Real            WeightsX_X[],
-                            int             SrcComp,
-                            int             DestComp,
-                            Real            mult,
                             FrOp            op)
 {
+
+    const Real One = 1.0;
 
     int swX[3];
     if( iDimX == 0 ) { swX[0] = 1; swX[1] = 0; swX[2] = 0; }
@@ -525,10 +524,6 @@ FluxRegister::CrseInit_DG ( const MultiFab& SurfaceFlux,
 
     int nComp = nDOFX_X * nFields;
 
-    /* Consistency checks */
-    BL_ASSERT( SrcComp  >= 0 && SrcComp  + nComp <= SurfaceFlux.nComp() );
-    BL_ASSERT( DestComp >= 0 && DestComp + nComp <= nComp );
-
     /* face_lo = (0), face_hi = (1) */
     const Orientation face_lo( iDimX, Orientation::low  );
     const Orientation face_hi( iDimX, Orientation::high );
@@ -536,7 +531,6 @@ FluxRegister::CrseInit_DG ( const MultiFab& SurfaceFlux,
     /* Define destination MultiFab */
     MultiFab mf( SurfaceFlux.boxArray(), SurfaceFlux.DistributionMap(),
                  nComp, 0, MFInfo(), SurfaceFlux.Factory() );
-    mf.setVal( 0.0 );
 
     int iX_B0[3];
     int iX_E0[3];
@@ -584,8 +578,8 @@ FluxRegister::CrseInit_DG ( const MultiFab& SurfaceFlux,
                 for( int iNX_X = 0; iNX_X < nDOFX_X; iNX_X++ )
                 {
                   dfab(i,j,k,iNX_X+iField*nDOFX_X)
-                    = mult * WeightsX_X[iNX_X]
-                        * sfab(i,j,k,SrcComp+iNX_X+iField*nDOFX_X);
+                    = -One * WeightsX_X[iNX_X]
+                        * sfab(i,j,k,iNX_X+iField*nDOFX_X);
                 } /* iNX_X */
             } /* iField */
 
@@ -601,7 +595,7 @@ FluxRegister::CrseInit_DG ( const MultiFab& SurfaceFlux,
 
         if ( op == FluxRegister::COPY )
         {
-            bndry[face].copyFrom( mf, 0, 0, DestComp, nComp );
+            bndry[face].copyFrom( mf, 0, 0, 0, nComp );
         }
 // This `else` never happens because `op` is always set to the default
 // (i.e., FluxRegister::COPY) in the Fortran interface, so it has been
@@ -627,7 +621,7 @@ std::cout<<"THIS SHOULD NEVER PRINT!\n";
                 auto       dfab = bndry[face].array(mfi);
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (bx, nComp, i, j, k, n,
                 {
-                    dfab(i,j,k,n+DestComp) += sfab(i,j,k,n);
+                    dfab(i,j,k,n) += sfab(i,j,k,n);
                 });
             }
 */
@@ -733,13 +727,10 @@ FluxRegister::FineAdd (const MultiFab& mflx,
 void
 FluxRegister::FineAdd_DG (const MultiFab& SurfaceFluxes,
                           int             iDimX,
-                          int             nF,
+                          int             nFields,
                           int             nDOFX_X,
                           Real            WeightsX_X[],
-                          Real            LX_X[],
-                          int             SrcComp,
-                          int             DestComp,
-                          Real            mult)
+                          Real            LX_X[])
 {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -747,8 +738,8 @@ FluxRegister::FineAdd_DG (const MultiFab& SurfaceFluxes,
     for (MFIter mfi(SurfaceFluxes); mfi.isValid(); ++mfi)
     {
         const int k = mfi.index();
-        FineAdd_DG( SurfaceFluxes[mfi], iDimX, k, nF, nDOFX_X,
-                    WeightsX_X, LX_X, SrcComp, DestComp, mult, RunOn::Gpu);
+        FineAdd_DG( SurfaceFluxes[mfi], iDimX, nFields, nDOFX_X,
+                    WeightsX_X, LX_X, k, RunOn::Gpu);
     }
 } /* END void FluxRegister::FineAdd_DG */
 
@@ -821,14 +812,11 @@ FluxRegister::FineAdd (const FArrayBox& flux,
 void
 FluxRegister::FineAdd_DG (const FArrayBox& SurfaceFluxes,
                           int              iDimX,
-                          int              boxno,
-                          int              nF,
+                          int              nFields,
                           int              nDOFX_X,
                           Real             WeightsX_X[],
                           Real             LX_X[],
-                          int              SrcComp,
-                          int              DestComp,
-                          Real             mult,
+                          int              BoxNo,
                           RunOn            runon) noexcept
 {
 //    /* Convert LX_X into 2D array */
@@ -843,13 +831,8 @@ FluxRegister::FineAdd_DG (const FArrayBox& SurfaceFluxes,
 //        LX_XX[iNX_X][iNX] = LX_X[k];
 //    }}
 
-    int nComp = nDOFX_X * nF;
-
-    BL_ASSERT( SrcComp  >= 0 && SrcComp  + nComp <= SurfaceFluxes.nComp() );
-    BL_ASSERT( DestComp >= 0 && DestComp + nComp <= ncomp );
-
-    FArrayBox& loreg = bndry[Orientation(iDimX,Orientation::low)][boxno];
-    FArrayBox& hireg = bndry[Orientation(iDimX,Orientation::high)][boxno];
+    FArrayBox& loreg = bndry[Orientation(iDimX,Orientation::low)][BoxNo];
+    FArrayBox& hireg = bndry[Orientation(iDimX,Orientation::high)][BoxNo];
     const Box& lobox = loreg.box();
     const Box& hibox = hireg.box();
 
@@ -863,26 +846,26 @@ FluxRegister::FineAdd_DG (const FArrayBox& SurfaceFluxes,
         AMREX_LAUNCH_DEVICE_LAMBDA
         ( lobox, tlobx,
           {
-              fluxreg_fineadd_dg(tlobx, loarr, farr,
-                                 iDimX, nF, nDOFX_X, WeightsX_X, LX_X,
-                                 local_ratio, mult);
+              fluxreg_fineadd_dg( tlobx, loarr, farr,
+                                  iDimX, nFields, nDOFX_X, WeightsX_X, LX_X,
+                                  local_ratio );
           },
           hibox, thibx,
           {
-              fluxreg_fineadd_dg(thibx, hiarr, farr,
-                                 iDimX, nF, nDOFX_X, WeightsX_X, LX_X,
-                                 local_ratio, mult);
+              fluxreg_fineadd_dg( thibx, hiarr, farr,
+                                  iDimX, nFields, nDOFX_X, WeightsX_X, LX_X,
+                                  local_ratio );
           }
         );
     }
     else
     {
-        fluxreg_fineadd_dg(lobox, loarr, farr,
-                           iDimX, nF, nDOFX_X, WeightsX_X, LX_X,
-                           local_ratio, mult);
-        fluxreg_fineadd_dg(hibox, hiarr, farr,
-                           iDimX, nF, nDOFX_X, WeightsX_X, LX_X,
-                           local_ratio, mult);
+        fluxreg_fineadd_dg( lobox, loarr, farr,
+                            iDimX, nFields, nDOFX_X, WeightsX_X, LX_X,
+                            local_ratio );
+        fluxreg_fineadd_dg( hibox, hiarr, farr,
+                            iDimX, nFields, nDOFX_X, WeightsX_X, LX_X,
+                            local_ratio );
     }
 
 //    for( int iNX = 0; iNX < nDOFX_X; iNX++ ) { delete LX_XX[iNX]; }

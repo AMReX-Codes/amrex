@@ -93,6 +93,46 @@ fluxreg_fineadd (Box const& bx, Array4<Real> const& reg, const int rcomp,
 
 
 /**
+* \brief Add fine grid flux to flux register (DG).
+* bx is a box defined on the coarse level.
+* reg is a coarse grid edge based object.
+* flx is a fine grid edge based object. It is assumed that the coarsened flux
+* region contains the register region.
+* nFields is the number of fields in the grid based objects.
+* nDOFX_X is the number of degrees of freedom per field on the interface in the
+* dir dimension.
+* WeightsX_X are the Gaussian quadrature weights on the interface in the dir
+* dimension. These Gaussian points are defined on the interval [-0.5,+0.5].
+* LX_X are the Lagrange polynomials evaluated at the quadrature points in the
+* AMREX_SPACDIM-1 dimensions on the interface in the dir dimension.
+* ratio is the refinement ratio. ratio must be 2.
+*
+* \param bx
+* \param reg
+* \param flx
+* \param dir
+* \param nFields
+* \param nDOFX_X
+* \param WeightsX_X
+* \param LX_X
+* \param ratio
+*/
+AMREX_GPU_HOST_DEVICE inline void
+fluxreg_fineadd_dg( Box const&                bx,
+                    Array4<Real> const&       reg,
+                    Array4<Real const> const& flx,
+                    const int                 dir,
+                    const int                 nFields,
+                    const int                 nDOFX_X,
+                    const                     Real WeightsX_X[],
+                    const                     Real LX_X[],
+                    Dim3 const&               ratio ) noexcept
+{
+
+} /* END fluxreg_fineadd_dg */
+
+
+/**
 * \brief Add fine grid flux times area to flux register.  Flux array is a fine grid
 * edge based object, Register is a coarse grid edge based object.
 * It is assumed that the coarsened flux region contains the register
@@ -243,6 +283,25 @@ fluxreg_reflux (Box const& bx, Array4<Real> const& s, const int scomp,
         }
     }
 }
+
+AMREX_GPU_HOST_DEVICE inline void
+fluxreg_reflux_dg
+  ( Box const& CrseBox,
+    Array4<Real> const& dU,
+    Array4<Real const> const& dF,
+    const Orientation face,
+    int nFields,
+    int nDOFX,
+    int nNodesX[],
+    Real WeightsX_q[],
+    Real dX1[], Real dX2[], Real dX3[],
+    Real LX_X1_Dn[], Real LX_X1_Up[],
+    Real LX_X2_Dn[], Real LX_X2_Up[],
+    Real LX_X3_Dn[], Real LX_X3_Up[] ) noexcept
+{
+
+} /* END fluxreg_reflux_dg */
+
 
 }
 

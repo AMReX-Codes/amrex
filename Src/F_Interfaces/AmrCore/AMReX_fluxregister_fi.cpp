@@ -38,8 +38,8 @@ extern "C"
     }
 
     void amrex_fi_fluxregister_fineadd_dg
-      ( FluxRegister* flux_reg, MultiFab* SurfaceFluxes[], Real scale,
-        int nF, int nDOFX_X1, int nDOFX_X2, int nDOFX_X3,
+      ( FluxRegister* flux_reg, MultiFab* SurfaceFluxes[],
+        int nFields, int nDOFX_X1, int nDOFX_X2, int nDOFX_X3,
         Real WeightsX_X1[], Real WeightsX_X2[], Real WeightsX_X3[],
         Real LX_X1[], Real LX_X2[], Real LX_X3[] )
     {
@@ -50,20 +50,17 @@ extern "C"
             if( iDimX == 0 )
             {
               flux_reg->FineAdd_DG( *SurfaceFluxes[iDimX], iDimX,
-                                    nF, nDOFX_X1, WeightsX_X1, LX_X1,
-                                    0, 0, scale );
+                                    nFields, nDOFX_X1, WeightsX_X1, LX_X1 );
             }
             else if( iDimX == 1 )
             {
               flux_reg->FineAdd_DG( *SurfaceFluxes[iDimX], iDimX,
-                                    nF, nDOFX_X2, WeightsX_X2, LX_X2,
-                                    0, 0, scale );
+                                    nFields, nDOFX_X2, WeightsX_X2, LX_X2 );
             }
             else if( iDimX == 2 )
             {
               flux_reg->FineAdd_DG( *SurfaceFluxes[iDimX], iDimX,
-                                    nF, nDOFX_X3, WeightsX_X3, LX_X3,
-                                    0, 0, scale );
+                                    nFields, nDOFX_X3, WeightsX_X3, LX_X3 );
             }
             else
             {
@@ -83,8 +80,8 @@ extern "C"
     }
 
     void amrex_fi_fluxregister_crseinit_dg
-           ( FluxRegister* flux_reg, MultiFab* SurfaceFluxes[], Real scale,
-             int nF, int nDOFX_X1, int nDOFX_X2, int nDOFX_X3,
+           ( FluxRegister* flux_reg, MultiFab* SurfaceFluxes[],
+             int nFields, int nDOFX_X1, int nDOFX_X2, int nDOFX_X3,
              Real WeightsX_X1[], Real WeightsX_X2[], Real WeightsX_X3[] )
     {
 
@@ -95,20 +92,20 @@ extern "C"
             if( iDimX == 0 )
             {
                 flux_reg->CrseInit_DG
-                            ( *SurfaceFluxes[iDimX], iDimX, nF, nDOFX_X1,
-                              WeightsX_X1, 0, 0, scale );
+                            ( *SurfaceFluxes[iDimX], iDimX, nFields, nDOFX_X1,
+                              WeightsX_X1 );
             }
             else if( iDimX == 1 )
             {
                 flux_reg->CrseInit_DG
-                            ( *SurfaceFluxes[iDimX], iDimX, nF, nDOFX_X2,
-                              WeightsX_X2, 0, 0, scale );
+                            ( *SurfaceFluxes[iDimX], iDimX, nFields, nDOFX_X2,
+                              WeightsX_X2 );
             }
             else if( iDimX == 2 )
             {
                 flux_reg->CrseInit_DG
-                            ( *SurfaceFluxes[iDimX], iDimX, nF, nDOFX_X3,
-                              WeightsX_X3, 0, 0, scale );
+                            ( *SurfaceFluxes[iDimX], iDimX, nFields, nDOFX_X3,
+                              WeightsX_X3 );
             }
             else
             {
