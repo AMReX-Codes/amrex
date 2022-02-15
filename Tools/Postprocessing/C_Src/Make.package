@@ -1,0 +1,20 @@
+CEXE_sources += ${EBASE}.cpp
+
+
+ifneq ($(EBASE), particle_compare)
+ifneq ($(EBASE), WritePlotfileToASCII)
+
+  INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
+  include $(AMREX_HOME)/Src/Base/Make.package
+  vpathdir += $(AMREX_HOME)/Src/Base
+
+  INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/amrdata
+  include $(AMREX_HOME)/Src/Extern/amrdata/Make.package
+  vpathdir += $(AMREX_HOME)/Src/Extern/amrdata
+
+  ifeq ($(NEEDS_f90_SRC),TRUE)
+    f90EXE_sources += ${EBASE}_nd.f90
+  endif
+
+endif
+endif

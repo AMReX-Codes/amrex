@@ -1,0 +1,59 @@
+\documentclass[class=minimal,border=0pt]{standalone}
+\usepackage{tikz}
+\begin{document}
+\begin{tikzpicture}
+\draw (0,0) -- (8,0);
+\draw (0,-0.2) -- (0,0.2);
+\draw (8,-0.2) -- (8,0.2);
+\draw (4,-0.3) node {$\Delta t$};
+\draw (0,2) -- (8,2);
+\draw (0,1.8) -- (0,2.2);
+\draw (4,1.8) -- (4,2.2);
+\draw (8,1.8) -- (8,2.2);
+\draw (2,1.7) node {$\Delta t/2$};
+\draw (6,1.7) node {$\Delta t/2$};
+\draw (0,4) -- (8,4);
+\draw (0,3.8) -- (0,4.2);
+\draw (2,3.8) -- (2,4.2);
+\draw (4,3.8) -- (4,4.2);
+\draw (6,3.8) -- (6,4.2);
+\draw (8,3.8) -- (8,4.2);
+\draw (1,3.7) node {$\Delta t/4$};
+\draw (3,3.7) node {$\Delta t/4$};
+\draw (5,3.7) node {$\Delta t/4$};
+\draw (7,3.7) node {$\Delta t/4$};
+%\node [circle,draw] at (4,0.5) {1};
+%\node [circle,draw] at (2,2.5) {2};
+%\node [circle,draw] at (1,4.5) {3};
+%\node [circle,draw] at (3,4.5) {4};
+%\node [circle,draw] at (4,5.25) {5};
+%\node [circle,draw] at (6,2.5) {6};
+%\node [circle,draw] at (5,4.5) {7};
+%\node [circle,draw] at (7,4.5) {8};
+%\node [circle,draw] at (8,5.25) {9};
+%\node [circle,draw] at (8,-1.25) {10};
+\draw (4,3) ellipse (0.2 and 1.75);
+\draw (8,3) ellipse (0.2 and 1.75);
+\draw (8,1) ellipse (0.2 and 1.75);
+\draw (9,0) node {$\ell=0$};
+\draw (9,2) node {$\ell=1$};
+\draw (9,4) node {$\ell=2$};
+\draw [-stealth] (0,0.1) .. controls (2,0.5) and (6,0.5) .. (8,0.1);
+\draw [-stealth] (0,2.1) .. controls (1,2.5) and (3,2.5) .. (4,2.1);
+\draw [-stealth] (4,2.1) .. controls (5,2.5) and (7,2.5) .. (8,2.1);
+\draw [-stealth] (0,4.1) .. controls (0.5,4.5) and (1.5,4.5) .. (2,4.1);
+\draw [-stealth] (2,4.1) .. controls (2.5,4.5) and (3.5,4.5) .. (4,4.1);
+\draw [-stealth] (4,4.1) .. controls (4.5,4.5) and (5.5,4.5) .. (6,4.1);
+\draw [-stealth] (6,4.1) .. controls (6.5,4.5) and (7.5,4.5) .. (8,4.1);
+\draw (0.5,0.6) node {1};
+\draw (0.5,2.6) node {2};
+\draw (0.5,4.6) node {3};
+\draw (2.5,4.6) node {4};
+\draw (4.0,5.00) node {5};
+\draw (4.5,2.6) node {6};
+\draw (4.5,4.6) node {7};
+\draw (6.5,4.6) node {8};
+\draw (8.0,5.00) node {9};
+\draw (8.0,-1.0) node {10};
+\end{tikzpicture}
+\end{document}

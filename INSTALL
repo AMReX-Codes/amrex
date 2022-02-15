@@ -1,0 +1,23 @@
+
+There are three ways to use AMReX.
+
+(1) Use AMReX's GNU Make build system.  There is no installation step
+    in this approach.  Application codes are compiled together with
+    AMReX codes.  Most of the examples in Tutorials can be built this
+    way.  See `Tools/GNUMake/README.md` for more details.
+
+(2) Build and install static library libamrex.a, AMReX headers and
+    Fortran modules via `./configure` followed by `make` and `make
+    install`.  Type `./configure -h` to show help message.  An
+    application code uses its build system to compile and link to the
+    AMReX library.  Because AMReX uses C++14 and Fortran, the linker
+    needs to link the libraries.  See
+    `Tutorials/Basic/Build_with_libamrex` for an example of this
+    approach.  Note that this approach relies the make system in
+    `Tools/GNUMake/`.  See `Tools/GNUMake/README.md` for more details
+    on the make system.
+
+(3) CMake. See the "Building with CMake" page in the AMReX documentation
+    page at the link below for more details.
+    https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html#building-with-cmake
+

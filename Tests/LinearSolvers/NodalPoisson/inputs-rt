@@ -1,0 +1,14 @@
+
+max_level = 1
+ref_ratio = 2
+n_cell = 128
+max_grid_size = 64
+
+composite_solve = 1   # composite solve or level by level?
+
+# For MLMG
+verbose = 2
+bottom_verbose = 0
+max_iter = 100
+max_fmg_iter = 0     # # of F-cycles before switching to V.  To do pure V-cycle, set to 0
+reltol = 1.e-11

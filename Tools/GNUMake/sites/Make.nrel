@@ -1,0 +1,66 @@
+ifneq ($(which_computer),$(filter $(which_computer),eagle rhodes))
+  $(error Unknown NREL computer, $(which_computer))
+endif
+
+ifeq ($(which_computer), eagle)
+# Eagle is homogeneous at the moment
+# so we can be very specific about arch.
+# We are not accommodating older compilers
+# that will fail with these flags.
+  ifeq ($(COMP), intel)
+    CXXFLAGS += -xSKYLAKE-AVX512
+    CFLAGS   += -xSKYLAKE-AVX512
+    FFLAGS   += -xSKYLAKE-AVX512
+    F90FLAGS += -xSKYLAKE-AVX512
+  else ifeq ($(COMP), $(filter $(COMP),gnu gcc llvm))
+    # CUDA fails with "machine" redefinition error with these flags
+    ifneq ($(USE_CUDA), TRUE)
+      CXXFLAGS += -march=skylake-avx512 -mtune=skylake-avx512
+      CFLAGS   += -march=skylake-avx512 -mtune=skylake-avx512
+      FFLAGS   += -march=skylake-avx512 -mtune=skylake-avx512
+      F90FLAGS += -march=skylake-avx512 -mtune=skylake-avx512
+    endif
+  endif
+  ifeq ($(USE_CUDA),TRUE)
+    ifneq ($(CUDA_HOME),)
+        SYSTEM_CUDA_PATH := $(CUDA_HOME)
+        COMPILE_CUDA_PATH := $(CUDA_HOME)
+    endif
+    CUDA_ARCH = 70
+    GPUS_PER_NODE = 2
+    GPUS_PER_SOCKET = 1
+  endif
+else ifeq ($(which_computer), rhodes)
+# Rhodes is dedicated single node machine for testing
+  ifeq ($(COMP), intel)
+    CXXFLAGS += -xCORE-AVX2
+    CFLAGS   += -xCORE-AVX2
+    FFLAGS   += -xCORE-AVX2
+    F90FLAGS += -xCORE-AVX2
+  endif
+endif
+
+# Account for Intel-MPI, MPICH, OpenMPI, and HPE MPT
+ifeq ($(USE_MPI),TRUE)
+  ifeq ($(COMP), intel)
+    CXX := mpiicpc
+    CC  := mpiicc
+    FC  := mpiifort
+    F90 := mpiifort
+  else
+    CXX := mpicxx
+    CC  := mpicc
+    FC  := mpif90
+    F90 := mpif90
+    ifneq ($(findstring mpich, $(shell $(F90) -show 2>&1)),)
+      mpif90_link_flags := $(shell $(F90) -link_info)
+      LIBRARIES += $(wordlist 2,1024,$(mpif90_link_flags))
+    else ifneq ($(findstring Open MPI, $(shell $(F90) -showme:version 2>&1)),)
+      mpif90_link_flags := $(shell $(F90) -showme:link)
+      LIBRARIES += $(mpif90_link_flags)
+    else
+      # MPT case (no option available to query link flags)
+      LIBRARIES += -lmpi
+    endif
+  endif
+endif

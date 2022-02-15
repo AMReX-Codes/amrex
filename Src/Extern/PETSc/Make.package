@@ -1,0 +1,13 @@
+
+CEXE_headers += AMReX_PETSc.H
+
+CEXE_sources += AMReX_PETSc.cpp
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/PETSc
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/PETSc
+
+CEXE_headers += AMReX_Habec_$(DIM)D_K.H
+CEXE_headers += AMReX_Habec_K.H
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/HYPRE
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/HYPRE

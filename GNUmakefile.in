@@ -1,0 +1,60 @@
+
+AMREX_HOME := $(shell pwd)
+
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
+
+ifeq ($(USE_CUDA),TRUE)
+  ALLOW_DIFFERENT_COMP = TRUE
+endif
+
+Pdirs := Base AmrCore Amr Boundary
+ifeq ($(USE_PARTICLES),TRUE)
+    Pdirs += Particle
+   ifeq ($(USE_FORTRAN_INTERFACE),TRUE)
+     Pdirs += F_Interfaces/Particle
+   endif
+endif
+ifeq ($(USE_FORTRAN_INTERFACE),TRUE)
+    Pdirs += F_Interfaces/Base F_Interfaces/Octree F_Interfaces/AmrCore
+endif
+ifeq ($(USE_LINEAR_SOLVERS),TRUE)
+   Pdirs += LinearSolvers/MLMG
+   ifeq ($(USE_FORTRAN_INTERFACE),TRUE)
+     Pdirs += F_Interfaces/LinearSolvers
+   endif
+endif
+ifeq ($(USE_EB),TRUE)
+   Pdirs += EB
+endif
+ifeq ($(USE_HYPRE),TRUE)
+   ifeq ($(USE_LINEAR_SOLVERS),TRUE)
+      Pdirs += Extern/HYPRE
+   endif
+endif
+ifeq ($(USE_PETSC),TRUE)
+   ifeq ($(USE_LINEAR_SOLVERS),TRUE)
+      Pdirs += Extern/PETSc
+   endif
+endif
+ifeq ($(USE_SENSEI_INSITU),TRUE)
+	Pdirs += Extern/SENSEI
+endif
+ifeq ($(USE_SUNDIALS),TRUE)
+    Pdirs += Extern/SUNDIALS
+endif
+Ppack := $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
+include $(Ppack)
+
+all: $(amrexlib)
+	@echo SUCCESS
+
+.PHONY: distclean install uninstall
+
+distclean: realclean
+	$(SILENT) $(RM) GNUmakefile
+
+install: install_lib install_headers install_fortran_modules install_pkg_config
+
+uninstall: uninstall_lib uninstall_headers uninstall_fortran_modules uninstall_pkg_config distclean
+
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules

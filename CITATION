@@ -1,0 +1,18 @@
+If you use AMReX, we ask you to cite the JOSS paper:
+
+    @ARTICLE{AMReX_JOSS,
+       author = {Zhang et al.},
+	title = "{AMReX: A Framework for Block-Structured Adaptive Mesh Refinement}", 
+      journal = {Journal of Open Source Software},
+	 year = 2019,
+       volume = 4,
+       number = 37,
+	pages = {1370},
+	  doi = {10.21105/joss.01370},
+     keywords = {methods:numerical, adaptive mesh refinement}
+    }
+
+You should also cite the zenodo DOI for the code release.  A bibtex
+entry for the latest release can be found here:
+
+  https://doi.org/10.5281/zenodo.2555438

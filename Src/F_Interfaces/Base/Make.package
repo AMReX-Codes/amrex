@@ -1,0 +1,25 @@
+USE_F_INTERFACES = TRUE
+DEFINES += -DBL_USE_F_INTERFACES
+
+F90EXE_sources += AMReX_init_mod.F90
+
+F90EXE_sources += AMReX_parallel_mod.F90
+
+F90EXE_sources += AMReX_base_mod.F90 AMReX_box_mod.F90 AMReX_boxarray_mod.F90 AMReX_distromap_mod.F90
+F90EXE_sources += AMReX_geometry_mod.F90 AMReX_multifab_mod.F90 AMReX_plotfile_mod.F90
+F90EXE_sources += AMReX_multifabutil_mod.F90 AMReX_physbc_mod.F90 AMReX_fab_mod.F90
+
+CEXE_sources += AMReX_init_fi.cpp
+CEXE_sources += AMReX_box_fi.cpp AMReX_boxarray_fi.cpp AMReX_distromap_fi.cpp AMReX_geometry_fi.cpp
+CEXE_sources += AMReX_multifab_fi.cpp AMReX_vismf_fi.cpp AMReX_plotfile_fi.cpp
+CEXE_sources += AMReX_multifabutil_fi.cpp AMReX_physbc_fi.cpp
+
+CEXE_headers += AMReX_FPhysBC.H
+CEXE_sources += AMReX_FPhysBC.cpp
+
+ifeq ($(USE_MPI),TRUE)
+  F90EXE_sources += AMReX_fi_mpi_mod.F90 AMReX_mpi_reduce_int.F90 AMReX_mpi_reduce_real.F90
+endif
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/F_Interfaces/Base
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_Interfaces/Base

@@ -1,0 +1,12 @@
+CEXE_headers += 
+
+CEXE_sources += AMReX_DataServices.cpp AMReX_AmrData.cpp
+
+CEXE_sources += ComputeAmrDataNorms.cpp
+CEXE_headers += ComputeAmrDataNorms.H
+FEXE_sources += AMReX_FABUTIL_$(DIM)D.F AMReX_AVGDOWN_$(DIM)D.F
+
+#ifeq ($(USE_ARRAYVIEW),TRUE)
+#  CEXE_sources += DatasetClient.cpp
+#  CEXE_headers += DatasetClient.H
+#endif

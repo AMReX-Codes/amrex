@@ -1,0 +1,303 @@
+
+AMREX_BASE=EXE
+
+C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Algorithm.H AMReX_Array.H AMReX_Vector.H AMReX_TableData.H AMReX_Tuple.H AMReX_Math.H
+
+#
+# Utility classes.
+#
+C$(AMREX_BASE)_headers += AMReX.H AMReX_Exception.H
+C$(AMREX_BASE)_sources += AMReX.cpp AMReX_error_fi.cpp
+
+C$(AMREX_BASE)_headers += AMReX_Extension.H
+
+C$(AMREX_BASE)_headers += AMReX_GpuComplex.H
+
+C$(AMREX_BASE)_headers += AMReX_PODVector.H
+
+C$(AMREX_BASE)_headers += AMReX_BlockMutex.H
+C$(AMREX_BASE)_sources += AMReX_BlockMutex.cpp
+
+C$(AMREX_BASE)_sources += AMReX_ParmParse.cpp AMReX_parmparse_fi.cpp AMReX_Utility.cpp
+C$(AMREX_BASE)_headers += AMReX_ParmParse.H AMReX_Utility.H AMReX_BLassert.H AMReX_ArrayLim.H
+C$(AMREX_BASE)_headers += AMReX_Functional.H AMReX_Reduce.H AMReX_Scan.H AMReX_Partition.H
+
+C$(AMREX_BASE)_headers += AMReX_FileSystem.H
+C$(AMREX_BASE)_sources += AMReX_FileSystem.cpp
+
+C$(AMREX_BASE)_headers += AMReX_Random.H AMReX_RandomEngine.H
+C$(AMREX_BASE)_sources += AMReX_Random.cpp
+
+C$(AMREX_BASE)_headers += AMReX_REAL.H AMReX_INT.H AMReX_CONSTANTS.H AMReX_SPACE.H
+
+C$(AMREX_BASE)_sources += AMReX_DistributionMapping.cpp AMReX_ParallelDescriptor.cpp
+C$(AMREX_BASE)_headers += AMReX_DistributionMapping.H AMReX_ParallelDescriptor.H
+C$(AMREX_BASE)_headers += AMReX_OpenMP.H
+
+C$(AMREX_BASE)_headers += AMReX_ParallelReduce.H
+
+C$(AMREX_BASE)_headers += AMReX_ForkJoin.H AMReX_ParallelContext.H
+C$(AMREX_BASE)_sources += AMReX_ForkJoin.cpp AMReX_ParallelContext.cpp
+
+C$(AMREX_BASE)_sources += AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp AMReX_PArena.cpp
+C$(AMREX_BASE)_headers += AMReX_VisMFBuffer.H AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H AMReX_PArena.H
+
+C$(AMREX_BASE)_headers += AMReX_DataAllocator.H
+
+C$(AMREX_BASE)_sources += AMReX_AsyncOut.cpp
+C$(AMREX_BASE)_headers += AMReX_AsyncOut.H
+
+C$(AMREX_BASE)_sources += AMReX_BackgroundThread.cpp
+C$(AMREX_BASE)_headers += AMReX_BackgroundThread.H
+
+C$(AMREX_BASE)_headers += AMReX_BLProfiler.H
+
+C$(AMREX_BASE)_headers += AMReX_BLBackTrace.H
+
+C$(AMREX_BASE)_headers += AMReX_BLFort.H
+
+C$(AMREX_BASE)_sources += AMReX_NFiles.cpp
+C$(AMREX_BASE)_headers += AMReX_NFiles.H
+
+C$(AMREX_BASE)_headers += AMReX_Morton.H
+
+C$(AMREX_BASE)_headers += AMReX_parstream.H
+C$(AMREX_BASE)_sources += AMReX_parstream.cpp
+
+C$(AMREX_BASE)_headers += AMReX_Gpu.H AMReX_GpuQualifiers.H AMReX_GpuPrint.H AMReX_GpuAssert.H AMReX_GpuTypes.H AMReX_GpuError.H
+C$(AMREX_BASE)_headers += AMReX_GpuKernelInfo.H
+
+C$(AMREX_BASE)_headers += AMReX_GpuLaunchMacrosG.H AMReX_GpuLaunchFunctsG.H
+C$(AMREX_BASE)_headers += AMReX_GpuLaunchMacrosC.H AMReX_GpuLaunchFunctsC.H
+C$(AMREX_BASE)_headers += AMReX_GpuLaunchGlobal.H
+C$(AMREX_BASE)_headers += AMReX_GpuLaunch.H
+
+C$(AMREX_BASE)_headers += AMReX_GpuControl.H
+C$(AMREX_BASE)_sources += AMReX_GpuControl.cpp
+
+C$(AMREX_BASE)_headers += AMReX_GpuMemory.H AMReX_GpuRange.H
+
+C$(AMREX_BASE)_headers += AMReX_GpuAtomic.H
+C$(AMREX_BASE)_sources += AMReX_GpuDevice.cpp AMReX_GpuUtility.cpp
+C$(AMREX_BASE)_headers += AMReX_GpuDevice.H   AMReX_GpuUtility.H
+C$(AMREX_BASE)_headers += AMReX_GpuBuffer.H
+
+C$(AMREX_BASE)_headers += AMReX_GpuAsyncArray.H
+C$(AMREX_BASE)_sources += AMReX_GpuAsyncArray.cpp
+
+C$(AMREX_BASE)_headers += AMReX_GpuElixir.H
+C$(AMREX_BASE)_sources += AMReX_GpuElixir.cpp
+
+C$(AMREX_BASE)_headers += AMReX_GpuReduce.H
+
+C$(AMREX_BASE)_headers += AMReX_CudaGraph.H AMReX_GpuContainers.H
+
+C$(AMREX_BASE)_headers += AMReX_GpuAllocators.H
+
+C$(AMREX_BASE)_headers += AMReX_MFParallelFor.H
+C$(AMREX_BASE)_headers += AMReX_MFParallelForC.H
+C$(AMREX_BASE)_headers += AMReX_MFParallelForG.H
+
+C$(AMREX_BASE)_headers += AMReX_TagParallelFor.H
+
+C$(AMREX_BASE)_headers += AMReX_ParReduce.H
+
+#
+# I/O stuff.
+#
+C${AMREX_BASE}_headers += AMReX_ANSIEscCode.H AMReX_FabConv.H AMReX_FPC.H AMReX_Print.H AMReX_IntConv.H AMReX_VectorIO.H
+C${AMREX_BASE}_sources += AMReX_FabConv.cpp AMReX_FPC.cpp AMReX_IntConv.cpp AMReX_VectorIO.cpp
+
+#
+# Index space.
+#
+C$(AMREX_BASE)_sources += AMReX_Box.cpp AMReX_BoxIterator.cpp AMReX_IntVect.cpp AMReX_IndexType.cpp AMReX_Orientation.cpp AMReX_Periodicity.cpp
+C$(AMREX_BASE)_headers += AMReX_Box.H AMReX_BoxIterator.H AMReX_IntVect.H AMReX_IndexType.H AMReX_Orientation.H AMReX_Periodicity.H
+
+C$(AMREX_BASE)_headers += AMReX_Dim3.H AMReX_Loop.H
+
+#
+# Real space.
+#
+C$(AMREX_BASE)_sources += AMReX_RealBox.cpp AMReX_RealVect.cpp
+C$(AMREX_BASE)_headers += AMReX_RealBox.H   AMReX_RealVect.H
+
+#
+# Unions of rectangles.
+#
+C$(AMREX_BASE)_sources += AMReX_BoxList.cpp AMReX_BoxArray.cpp AMReX_BoxDomain.cpp
+C$(AMREX_BASE)_headers += AMReX_BoxList.H AMReX_BoxArray.H AMReX_BoxDomain.H
+
+#
+# FORTRAN array data.
+#
+C$(AMREX_BASE)_sources += AMReX_FArrayBox.cpp
+C$(AMREX_BASE)_headers += AMReX_FArrayBox.H
+
+C$(AMREX_BASE)_sources += AMReX_IArrayBox.cpp
+C$(AMREX_BASE)_headers += AMReX_IArrayBox.H
+
+C$(AMREX_BASE)_headers += AMReX_MakeType.H
+C$(AMREX_BASE)_headers += AMReX_TypeTraits.H
+
+C$(AMREX_BASE)_headers += AMReX_Array4.H
+C$(AMREX_BASE)_sources += AMReX_BaseFab.cpp
+C$(AMREX_BASE)_headers += AMReX_BaseFab.H AMReX_BaseFabUtility.H
+C$(AMREX_BASE)_headers += AMReX_FabFactory.H
+
+#
+# FORTRAN data defined on unions of rectangles.
+#
+C$(AMREX_BASE)_sources += AMReX_MultiFab.cpp AMReX_MFCopyDescriptor.cpp
+C$(AMREX_BASE)_headers += AMReX_MultiFab.H AMReX_MFCopyDescriptor.H
+
+C$(AMREX_BASE)_sources += AMReX_iMultiFab.cpp
+C$(AMREX_BASE)_headers += AMReX_iMultiFab.H
+
+C$(AMREX_BASE)_sources += AMReX_FabArrayBase.cpp AMReX_MFIter.cpp
+C$(AMREX_BASE)_headers += AMReX_FabArray.H AMReX_FACopyDescriptor.H AMReX_FabArrayBase.H AMReX_MFIter.H
+C$(AMREX_BASE)_headers += AMReX_FabArrayCommI.H AMReX_FBI.H AMReX_PCI.H AMReX_FabArrayUtility.H
+C$(AMREX_BASE)_headers += AMReX_LayoutData.H
+
+#
+# Geometry / Coordinate system routines.
+#
+C$(AMREX_BASE)_sources += AMReX_CoordSys.cpp AMReX_Geometry.cpp
+C$(AMREX_BASE)_headers += AMReX_CoordSys.H AMReX_Geometry.H AMReX_COORDSYS_C.H AMReX_COORDSYS_$(DIM)D_C.H
+
+C$(AMREX_BASE)_headers += AMReX_MultiFabUtil.H AMReX_MultiFabUtil_C.H AMReX_MultiFabUtil_$(DIM)D_C.H AMReX_MultiFabUtil_nd_C.H
+C$(AMREX_BASE)_sources += AMReX_MultiFabUtil.cpp
+C$(AMREX_BASE)_headers += AMReX_MultiFabUtilI.H
+
+#
+# Boundary-related 
+#
+C$(AMREX_BASE)_sources += AMReX_BCRec.cpp
+C$(AMREX_BASE)_headers += AMReX_BCRec.H AMReX_BC_TYPES.H
+C$(AMREX_BASE)_sources += AMReX_PhysBCFunct.cpp AMReX_BCUtil.cpp
+C$(AMREX_BASE)_headers += AMReX_PhysBCFunct.H AMReX_BCUtil.H
+C$(AMREX_BASE)_sources += AMReX_FilCC_C.cpp
+C$(AMREX_BASE)_headers += AMReX_FilCC_C.H AMReX_FilCC_$(DIM)D_C.H
+C$(AMREX_BASE)_sources += AMReX_FilND_C.cpp
+C$(AMREX_BASE)_headers += AMReX_FilND_C.H
+C$(AMREX_BASE)_sources += AMReX_FilFC_C.cpp
+C$(AMREX_BASE)_headers += AMReX_FilFC_C.H AMReX_FilFC_$(DIM)D_C.H
+
+#
+# Non-Local BC
+#
+C$(AMREX_BASE)_headers += AMReX_NonLocalBC.H AMReX_NonLocalBCImpl.H
+C$(AMREX_BASE)_sources += AMReX_NonLocalBC.cpp
+
+#
+# Plotfile
+#
+C$(AMREX_BASE)_sources += AMReX_PlotFileUtil.cpp AMReX_PlotFileDataImpl.cpp
+C$(AMREX_BASE)_headers += AMReX_PlotFileUtil.H AMReX_PlotFileDataImpl.H
+
+#
+# Time Integration
+#
+C$(AMREX_BASE)_headers += AMReX_FEIntegrator.H
+C$(AMREX_BASE)_headers += AMReX_IntegratorBase.H
+C$(AMREX_BASE)_headers += AMReX_RKIntegrator.H
+C$(AMREX_BASE)_headers += AMReX_TimeIntegrator.H
+
+
+#
+# Fortran interface routines.
+#
+ifneq ($(BL_NO_FORT),TRUE)
+  F90$(AMREX_BASE)_sources += AMReX_FILCC_${DIM}D.F90
+  F90$(AMREX_BASE)_headers += AMReX_filcc_f.H
+
+  F90$(AMREX_BASE)_sources += AMReX_BLutil_F.F90
+  F90$(AMREX_BASE)_sources += AMReX_BLProfiler_F.F90
+
+  f90$(AMREX_BASE)_sources +=  AMReX_constants_mod.f90
+
+  F90$(AMREX_BASE)_sources += AMReX_filcc_mod.F90
+
+  F90$(AMREX_BASE)_sources += AMReX_omp_mod.F90 AMReX_acc_mod.F90
+  F90$(AMREX_BASE)_sources += AMReX_fort_mod.F90 AMReX_error_mod.F90
+  F90$(AMREX_BASE)_sources += AMReX_parmparse_mod.F90 AMReX_string_mod.F90
+
+  F90$(AMREX_BASE)_sources += AMReX_bc_types_mod.F90
+  F90$(AMREX_BASE)_sources += AMReX_io_mod.F90
+
+  F90$(AMREX_BASE)_sources += AMReX_ParallelDescriptor_F.F90
+
+endif
+
+C$(AMREX_BASE)_sources += AMReX_BLProfiler.cpp
+C$(AMREX_BASE)_sources += AMReX_BLBackTrace.cpp
+C$(AMREX_BASE)_headers += AMReX_ThirdPartyProfiling.H
+
+ifeq ($(LAZY),TRUE)
+  C$(AMREX_BASE)_sources += AMReX_Lazy.cpp
+  C$(AMREX_BASE)_headers += AMReX_Lazy.H
+endif
+
+# Memory pool
+C$(AMREX_BASE)_headers += AMReX_MemPool.H
+C$(AMREX_BASE)_sources += AMReX_MemPool.cpp
+ifneq ($(BL_NO_FORT),TRUE)
+  F90$(AMREX_BASE)_sources += AMReX_mempool_mod.F90
+endif
+
+# Memory Profiler
+ifeq ($(MEM_PROFILE),TRUE)
+  C$(AMREX_BASE)_sources += AMReX_MemProfiler.cpp
+  C$(AMREX_BASE)_headers += AMReX_MemProfiler.H
+endif
+
+# Basic Profiler
+ifeq ($(TINY_PROFILE),TRUE)
+  C$(AMREX_BASE)_headers += AMReX_TinyProfiler.H
+  C$(AMREX_BASE)_sources += AMReX_TinyProfiler.cpp
+endif
+
+# CUPTI Trace
+ifeq ($(USE_CUPTI),TRUE)
+  C$(AMREX_BASE)_headers += AMReX_CuptiTrace.H
+  C$(AMREX_BASE)_sources += AMReX_CuptiTrace.cpp
+endif
+
+# Machine model
+CEXE_headers += AMReX_Machine.H
+CEXE_sources += AMReX_Machine.cpp
+
+# Forward declaration
+CEXE_headers += AMReX_BaseFwd.H
+
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
+
+
+CEXE_headers += amrex_parser.lex.h amrex_parser.tab.h
+CEXE_sources += amrex_parser.lex.cpp amrex_parser.tab.cpp
+
+CEXE_headers += AMReX_Parser_Y.H
+CEXE_sources += AMReX_Parser_Y.cpp
+
+CEXE_headers += AMReX_Parser_Exe.H
+CEXE_sources += AMReX_Parser_Exe.cpp
+
+CEXE_headers += AMReX_Parser.H
+CEXE_sources += AMReX_Parser.cpp
+
+CEXE_headers += amrex_iparser.lex.h amrex_iparser.tab.h
+CEXE_sources += amrex_iparser.lex.cpp amrex_iparser.tab.cpp
+
+CEXE_headers += AMReX_IParser_Y.H
+CEXE_sources += AMReX_IParser_Y.cpp
+
+CEXE_headers += AMReX_IParser_Exe.H
+CEXE_sources += AMReX_IParser_Exe.cpp
+
+CEXE_headers += AMReX_IParser.H
+CEXE_sources += AMReX_IParser.cpp
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base/Parser
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base/Parser

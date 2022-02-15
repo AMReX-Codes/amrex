@@ -1,0 +1,90 @@
+
+CEXE_headers += AMReX_EBFArrayBox.H
+CEXE_sources += AMReX_EBFArrayBox.cpp
+
+CEXE_headers += AMReX_EBFabFactory.H
+CEXE_sources += AMReX_EBFabFactory.cpp
+
+CEXE_headers += AMReX_EBMultiFabUtil.H AMReX_EBMultiFabUtil_C.H
+CEXE_headers += AMReX_EBMultiFabUtil_$(DIM)D_C.H
+CEXE_sources += AMReX_EBMultiFabUtil.cpp
+
+CEXE_headers += AMReX_EBCellFlag.H
+CEXE_sources += AMReX_EBCellFlag.cpp
+
+CEXE_headers += AMReX_EBDataCollection.H
+CEXE_sources += AMReX_EBDataCollection.cpp
+
+CEXE_headers += AMReX_MultiCutFab.H
+CEXE_sources += AMReX_MultiCutFab.cpp
+
+CEXE_headers += AMReX_EBSupport.H
+
+CEXE_headers += AMReX_EBInterpolater.H
+CEXE_sources += AMReX_EBInterpolater.cpp
+
+CEXE_headers += AMReX_EBMFInterpolater.H
+CEXE_sources += AMReX_EBMFInterpolater.cpp
+
+CEXE_headers += AMReX_EBFluxRegister.H
+CEXE_headers += AMReX_EBFluxRegister_C.H AMReX_EBFluxRegister_$(DIM)D_C.H
+CEXE_sources += AMReX_EBFluxRegister.cpp
+
+CEXE_headers += AMReX_EBAmrUtil.H
+CEXE_sources += AMReX_EBAmrUtil.cpp
+
+CEXE_headers += AMReX_EB_utils.H
+CEXE_sources += AMReX_EB_utils.cpp
+
+CEXE_headers += AMReX_algoim.H AMReX_algoim_K.H
+CEXE_sources += AMReX_algoim.cpp
+
+CEXE_headers += AMReX_EB2_IF_AllRegular.H
+CEXE_headers += AMReX_EB2_IF_Box.H
+CEXE_headers += AMReX_EB2_IF_Cylinder.H
+CEXE_headers += AMReX_EB2_IF_Ellipsoid.H
+CEXE_headers += AMReX_EB2_IF_Plane.H
+CEXE_headers += AMReX_EB2_IF_Sphere.H
+CEXE_headers += AMReX_EB2_IF_Torus.H
+CEXE_headers += AMReX_distFcnElement.H
+CEXE_headers += AMReX_EB2_IF_Spline.H
+CEXE_headers += AMReX_EB2_IF_Polynomial.H
+CEXE_headers += AMReX_EB2_IF_Complement.H
+CEXE_headers += AMReX_EB2_IF_Intersection.H
+CEXE_headers += AMReX_EB2_IF_Lathe.H
+CEXE_headers += AMReX_EB2_IF_Rotation.H
+CEXE_headers += AMReX_EB2_IF_Scale.H
+CEXE_headers += AMReX_EB2_IF_Translation.H
+CEXE_headers += AMReX_EB2_IF_Union.H
+CEXE_headers += AMReX_EB2_IF_Extrusion.H
+CEXE_headers += AMReX_EB2_IF_Difference.H
+CEXE_headers += AMReX_EB2_IF_Parser.H
+CEXE_headers += AMReX_EB2_IF.H
+CEXE_headers += AMReX_EB2_IF_Base.H
+
+CEXE_sources += AMReX_distFcnElement.cpp
+
+CEXE_headers += AMReX_EB2_GeometryShop.H AMReX_EB2.H AMReX_EB2_IndexSpaceI.H AMReX_EB2_Level.H
+CEXE_headers += AMReX_EB2_Graph.H AMReX_EB2_MultiGFab.H
+
+CEXE_sources += AMReX_EB2.cpp AMReX_EB2_Level.cpp AMReX_EB2_MultiGFab.cpp
+
+CEXE_sources += AMReX_EB2_$(DIM)D_C.cpp AMReX_EB2_ND_C.cpp
+CEXE_headers += AMReX_EB2_C.H AMReX_EB2_$(DIM)D_C.H
+
+CEXE_sources += AMReX_EB_STL_utils.cpp
+CEXE_headers += AMReX_EB_STL_utils.H  
+CEXE_headers += AMReX_EB_triGeomOps_K.H
+
+ifeq ($(DIM),3)
+   CEXE_sources += AMReX_WriteEBSurface.cpp AMReX_EBToPVD.cpp
+   CEXE_headers += AMReX_WriteEBSurface.H AMReX_EBToPVD.H
+endif
+
+ifneq ($(BL_NO_FORT),TRUE)
+  F90EXE_sources += AMReX_ebcellflag_mod.F90
+  F90EXE_sources += AMReX_EBFluxRegister_nd.F90
+endif
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/EB
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/EB

@@ -1,0 +1,53 @@
+(***) We no longer edit the latex at all -- we edit the .rst files in amrex/Docs/sphinx_documentation/source in the *development* branch
+
+To update the online AMReX documentation using sphinx:
+
+      1. Checkout the development branch of AMReX
+
+      2. Go to amrex/Docs/sphinx_documentation/source and edit the relevant .rst file(s).
+
+      3. Commit your changes.
+
+The TravisCI script will build the html pages and commit them to AMReX's gh-pages branch for you. If you would like to
+preview the html locally, you can:
+
+        4. Go back into amrex/Docs/sphinx_documentation.
+
+        5. Type "make html".  This will build new html files in amrex/Docs/sphinx_documentation/build/html
+
+**********************************************************************************
+
+If you would like to build the web pages locally, you will need Python, the Sphinx software, and the "Read the Docs" theme. 
+
+If you have conda, you can install the necessary packages as follows:
+
+       1. Type "conda install sphinx"
+
+       2. Type "conda install sphinx_rtd_theme"
+
+If you don't have a conda Python installation, you get one by doing the following:
+
+       1.  Go to https://conda.io/miniconda.html and download the Python 3.6 64-bit (bash installer), "Miniconda3-latest-Linux-x86_64.sh".  Save this script to your hard drive.
+
+       2.  Type "bash Miniconda3-latest-Linux-x86_64.sh" and follow the installation prompts.
+
+       3.  The install script will prompt you to add some commands to your .bashrc that add the miniconda install location to your PATH environment variable.
+           If Bash is your default shell, choose "yes". Otherwise, you will need to manually do the same for your shell of choice. 
+
+       4.  Either open a new terminal, or re-source the configuration file you just added to. E.g., for bash:
+                  source ~/.bashrc
+
+You should now be able to successfully "make html" in amrex/Docs/sphinx_documentation.
+
+If you would like to make a pdf document from the *rst files, first 
+
+sudo apt-get install latexmk
+(if you are using macOS, latexmk is installed via the TexLive Utility)
+
+Then in the amrex/Docs/sphinx_documentation directory, type 
+
+make latexpdf
+(if you have the slimmed-down latex install, then you need to also install the following packages via TexLive Utility: tabulary, varwidth, framed, wrapfig, capt-of, needspace, courier)
+
+
+This will create amrex/Docs/sphinx_documentation/build/latex/amrex.pdf

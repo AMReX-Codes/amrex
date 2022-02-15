@@ -1,0 +1,12 @@
+ifeq ($(PROFILE),TRUE)
+  CEXE_sources += AMReX_BLProfUtilities.cpp AMReX_BLWritePlotFile.cpp
+  CEXE_sources += BLProfParser.tab.cpp BLProfParser.lex.yy.cpp
+  CEXE_sources += AMReX_BLProfStats.cpp AMReX_CommProfStats.cpp AMReX_RegionsProfStats.cpp
+  CEXE_sources += AMReX_XYPlotDataList.cpp AMReX_ProfParserBatch.cpp
+
+  CEXE_headers += AMReX_BLProfStats.H AMReX_BLProfUtilities.H AMReX_XYPlotDataList.H
+  FEXE_sources += AMReX_AVGDOWN_${DIM}D.F
+
+  VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/ProfParser
+  INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/ProfParser
+endif

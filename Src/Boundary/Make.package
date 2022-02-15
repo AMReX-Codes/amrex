@@ -1,0 +1,27 @@
+
+CEXE_sources += AMReX_FabSet.cpp AMReX_BndryRegister.cpp AMReX_Mask.cpp AMReX_MultiMask.cpp\
+                             AMReX_BndryData.cpp AMReX_InterpBndryData.cpp AMReX_MacBndry.cpp \
+                             AMReX_LO_BCTYPES.cpp
+
+CEXE_headers += AMReX_FabSet.H AMReX_BndryRegister.H AMReX_Mask.H AMReX_MultiMask.H\
+			     AMReX_BndryData.H AMReX_BoundCond.H AMReX_InterpBndryData.H \
+			     AMReX_LO_BCTYPES.H AMReX_MacBndry.H 
+
+CEXE_headers += AMReX_InterpBndryData_K.H AMReX_InterpBndryData_$(DIM)D_K.H
+
+CEXE_headers += AMReX_LOUtil_K.H
+
+CEXE_headers += AMReX_YAFluxRegister_K.H AMReX_YAFluxRegister_$(DIM)D_K.H
+CEXE_headers += AMReX_YAFluxRegister.H
+CEXE_sources += AMReX_YAFluxRegister.cpp
+
+CEXE_headers += AMReX_BoundaryFwd.H
+
+ifneq ($(BL_NO_FORT),TRUE)
+  F90EXE_sources += AMReX_LO_UTIL.F90
+  F90EXE_sources += AMReX_lo_bctypes_mod.F90
+endif
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Boundary
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Boundary
+

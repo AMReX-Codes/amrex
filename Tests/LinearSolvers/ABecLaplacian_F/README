@@ -1,0 +1,19 @@
+This tutorial demonstrates how to solve the linear system in a
+canonical ABecLaplacian form
+
+    alpha * a * phi - beta * del dot (b grad phi) = rhs.
+
+Here phi is the unknown in a cell-centered MultiFab, alpha and beta
+are scalar constants, a is a cell-centered MultiFab, and b lives on
+cell faces and is thus represented by D face based MultiFabs, where D
+is the number of spatial dimensions.  The right-hand side, rhs, is
+also cell-centered.  A more specialized version of the ABecLaplacian
+form is Poisson's equation.  This tutorial is written with AMReX's
+Fortran interfaces.
+
+After the solution is obtained, one can also ask for grad phi, or flux
+(defined as -b grad phi).  Note that they live on cell faces.  This
+step is not performed in this tutorial.  However, one can look at
+`amrex/Src/F_Interfaces/LinearSolvers/AMReX_multigrid_mod.F90` for the
+interface of `get_grad_solution` and `get_fluxes`.
+

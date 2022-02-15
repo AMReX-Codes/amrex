@@ -1,0 +1,115 @@
+#!/bin/ksh -p
+
+#
+#  This is a script that extracts files from HSI.  It allows you to extract multiple files
+#  simultaneously, and loops until all your specified files are extracted.
+
+echo WARNING! This script is not for use on Jaguar.
+# It will cause problems and the admin will ask you to tar in serial
+
+
+#----------------------------------------------------------------------------
+# user modifiable variables:
+
+# this is the max number of HSI processes you can have at one time
+# for hopper it is 15 (unless you ask for more)
+NCPUS=15
+
+
+# pidfile is a lock file that is used to make sure that only one instance 
+# of this script is working on the current directory
+pidfile=process.pid
+
+
+# set the prefix of the file
+prefix=plt
+
+# set file numbers to extract
+# initial must be smaller than final
+initial=29005
+final=29010
+increment=5
+
+# directory archive in HPSS 
+HPSS_DIR="IMmarch11_full"
+
+
+#----------------------------------------------------------------------------
+# the processing functions
+
+# Process Files.  Once a plotfile is successfully processed, we will output
+# a file pltXXXXX.processed (checkpoint files are only archived, with a
+# chkXXXXX.processed file appearing once the archiving is successful).  
+# Subsequent invocations of this routine will skip over any plotfiles or
+# checkpoint files that have a corresponding .processed file.
+
+function untar_file
+{
+
+    # the argument $1 is the name of the directory we are 
+    # operating on
+
+    echo "working on " $1
+    root=$(basename $1)
+    echo $1 > _process.$root
+
+    # get the file from HPSS
+    htar -xvf ${HPSS_DIR}/$1.tar > $1.htar
+
+    rm $1.htar
+    rm -f _process.$root
+
+}
+
+
+#----------------------------------------------------------------------------
+# The function freecpus looks counts the _process.XX files to determine 
+# how many files we are currently processing.  If we are processing <
+# NCPUS, return 1 to indicate that there are free CPUs available to 
+# do more processing.
+function freecpus
+{
+    num=$(ls -l _process.* | wc -l)
+
+    if [ $num -lt $NCPUS ]; then
+        return 1
+    else
+        return 0
+    fi
+}
+
+
+#----------------------------------------------------------------------------
+# the main loop
+
+# We process NCPUS files at a time.  We loop over files, waiting for free CPUs.
+# When a CPU becomes available, we launch the processing job in the 
+# background, and move to the next file, again waiting for an available
+# CPU.
+
+  if [ $initial -gt $final ]; then
+      echo "extract.parallel ERROR: need initial <= final"
+  else
+      count=$initial
+
+#      echo $prefix$count
+
+      while [[ $count -le $final ]]
+#     for count in 29000 28995 28990 28985 28980 28975 28970 28965 28960 28955 28950 28940 28935 28510 28515 28520 28525 28530 28535 28540 28545 28550 28555 28560 28565 28570 28575 28580
+      do
+
+          # wait for available CPUS
+	  freecpus
+	  while [ $? -eq 0 ]
+	  do
+              sleep 5
+              freecpus
+	  done
+      
+	  untar_file $prefix$count &
+
+	  (( count += $increment ))
+
+	  sleep 5
+      done
+  fi

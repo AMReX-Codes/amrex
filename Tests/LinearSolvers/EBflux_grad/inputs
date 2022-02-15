@@ -1,0 +1,19 @@
+amrex.fpe_trap_invalid = 1
+
+eb2.geom_type = sphere
+eb2.sphere_center = 0.5  0.5  0.5
+eb2.sphere_radius = 0.25
+eb2.sphere_has_fluid_inside = 0
+
+eb2.geom_type = box
+eb2.box_lo = 0.23 0.37  0.4
+eb2.box_hi = 0.55 0.88  0.7
+eb2.box_has_fluid_inside = 0
+
+eb2.geom_type = two_spheres
+
+eb2.geom_type = flower
+
+eb2.geom_type = rotated_box
+
+eb2.geom_type = sphere

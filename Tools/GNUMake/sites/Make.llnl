@@ -1,0 +1,120 @@
+#
+# For ray and rzmanta at LLNL
+#
+
+LLNL_MACHINES := ray rzmanta rzansel sierra butte lassen
+
+ifneq ($(which_computer), $(findstring $(which_computer), $(LLNL_MACHINES)))
+  $(error Unknown LLNL computer, $(which_computer))
+endif
+
+ifeq ($(which_computer),$(filter $(which_computer),ray rzmanta))
+
+  XLC_ROOT = /usr/tce/packages/xl/xl-beta-2018.06.01/xlC/16.1.1/
+  XLF_ROOT = /usr/tce/packages/xl/xl-beta-2018.06.01/xlf/16.1.1/
+  MPIROOT=/usr/tce/packages/spectrum-mpi/ibm/spectrum-mpi-rolling-release
+
+  ifeq ($(USE_MPI),TRUE)
+    CC  = mpicc
+    CXX = mpicxx
+    FC  = mpifort
+    F90 = mpifort
+
+    LIBRARIES += -lmpi_ibm
+    override XTRALIBS += -L$(MPIROOT)/lib
+  endif
+
+  ifeq ($(USE_CUDA),TRUE)
+
+    # Avoid the MPI wrappers when using CUDA
+
+    ifeq ($(USE_MPI),TRUE)
+      CC  = $(MPIROOT)/bin/mpicc
+      CXX = $(MPIROOT)/bin/mpicxx
+      FC  = $(MPIROOT)/bin/mpif90
+      F90 = $(MPIROOT)/bin/mpif90
+    endif
+
+    # If the cuda module is loaded, CUDA_HOME is set as the toolkit location.
+
+    SYSTEM_CUDA_PATH=$(CUDA_HOME)
+
+    SYSTEM_NVML_PATH=/usr/lib64/nvidia
+
+    # Specify that we want to build for Pascal
+
+    CUDA_ARCH = 60
+    COMPILE_CUDA_PATH = $(CUDA_HOME)
+
+    # Provide system configuration information.
+
+    GPUS_PER_NODE=4
+    GPUS_PER_SOCKET=2
+    
+  endif
+
+  ifeq ($(lowercase_comp),gnu)
+       override XTRALIBS += -lgfortran
+  endif
+
+  ifeq ($(lowercase_comp),ibm)
+       override XTRALIBS += -L$(XLF_ROOT)/lib -L$(XLC_ROOT)/lib
+  endif
+
+endif
+
+ifeq ($(which_computer),$(filter $(which_computer),sierra butte rzansel lassen))
+
+  XLC_ROOT = /usr/tce/packages/xl/xl-2019.02.07/xlC/16.1.1/
+  XLF_ROOT = /usr/tce/packages/xl/xl-2019.02.07/xlf/16.1.1/
+  MPIROOT=/usr/tce/packages/spectrum-mpi/ibm/spectrum-mpi-rolling-release
+
+  ifeq ($(USE_MPI),TRUE)
+    CC  = mpicc
+    CXX = mpicxx
+    FC  = mpifort
+    F90 = mpifort
+
+    LIBRARIES += -lmpi_ibm
+    override XTRALIBS += -L$(MPIROOT)/lib
+  endif
+
+  ifeq ($(USE_CUDA),TRUE)
+
+    # Avoid the MPI wrappers when using CUDA
+
+    ifeq ($(USE_MPI),TRUE)
+      CC  = $(MPIROOT)/bin/mpicc
+      CXX = $(MPIROOT)/bin/mpicxx
+      FC  = $(MPIROOT)/bin/mpif90
+      F90 = $(MPIROOT)/bin/mpif90
+    endif
+
+    # If the cuda module is loaded, CUDA_HOME is set as the toolkit location.
+
+    SYSTEM_CUDA_PATH=$(CUDA_HOME)
+
+    SYSTEM_NVML_PATH=/usr/lib64/nvidia
+
+    # Specify that we want to build for Volta
+
+    CUDA_ARCH = 70
+    COMPILE_CUDA_PATH = $(CUDA_HOME)
+
+    # Provide system configuration information.
+
+    GPUS_PER_NODE=4
+    GPUS_PER_SOCKET=2
+
+  endif
+
+  ifeq ($(lowercase_comp),gnu)
+       # Note we need gcc/8.3.1 at LLNL because gcc/7.3.1 does not contain libquadmath
+       override XTRALIBS += -lgfortran
+  endif
+
+  ifeq ($(lowercase_comp),ibm)
+       override XTRALIBS += -L$(XLF_ROOT)/lib -L$(XLC_ROOT)/lib
+  endif
+
+endif

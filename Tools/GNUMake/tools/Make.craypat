@@ -1,0 +1,15 @@
+DEFINES += -DAMREX_CRAYPAT
+
+ifeq ($(which_site),nersc)
+
+  # CrayPAT allows one to instrument one's code with calls to
+  # PAT_region_begin() and PAT_region_end() so that one can profile only
+  # certain regions, rather than profiling the entire code (which is the
+  # default behavior). Using this instrumentation requires access to CrayPAT
+  # header files and libraries. The "perftools-base" module on the Crays at
+  # NERSC defines the necessary header files; the libraries are linked
+  # automatically with the Cray compiler wrappers.
+
+  INCLUDE_LOCATIONS += $(CRAYPAT_ROOT)/include
+
+endif

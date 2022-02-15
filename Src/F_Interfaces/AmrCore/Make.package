@@ -1,0 +1,13 @@
+
+F90EXE_sources += AMReX_amr_mod.F90 AMReX_amrcore_mod.F90 AMReX_tagbox_mod.F90 AMReX_fillpatch_mod.F90
+F90EXE_sources += AMReX_fluxregister_mod.F90 AMReX_flash_fluxregister_mod.F90
+F90EXE_sources += AMReX_interpolater_mod.F90
+
+CEXE_sources += AMReX_amrcore_fi.cpp AMReX_tagbox_fi.cpp AMReX_fillpatch_fi.cpp
+CEXE_sources += AMReX_fluxregister_fi.cpp AMReX_flash_fluxregister_fi.cpp
+
+CEXE_headers += AMReX_FAmrCore.H AMReX_FlashFluxRegister.H
+CEXE_sources += AMReX_FAmrCore.cpp AMReX_FlashFluxRegister.cpp
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/F_Interfaces/AmrCore
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_Interfaces/AmrCore

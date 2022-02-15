@@ -1,0 +1,15 @@
+DEFINES += -DAMREX_FORGE
+
+ifeq ($(which_site),nersc)
+
+  # Allinea MAP allows one to instrument one's code with calls to
+  # allinea_start_sampling() and allinea_stop_sampling() so that one can profile only
+  # certain regions, rather than profiling the entire code (which is the
+  # default behavior). Using this instrumentation requires access to Allinea 
+  # header files and libraries. The "allineatools" module on the Crays at
+  # NERSC defines the necessary header files; the libraries are linked
+  # automatically with the Cray compiler wrappers.
+
+  INCLUDE_LOCATIONS += $ALLINEA_TOOLS_DIR/$ALLINEA_TOOLS_VERSION/map/wrapper
+
+endif

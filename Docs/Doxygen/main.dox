@@ -1,0 +1,72 @@
+// This is the main landing page for Doxygen
+
+/**
+\mainpage AMReX: Technical Reference 
+
+  \tableofcontents
+
+  \section welcome_to_AMReX Welcome to AMReX's Technical Reference 
+
+  This document 
+  provide searchable low-level information useful for developers and
+  experienced users. 
+  
+
+  \subsection Overview
+
+  AMReX is a software framework containing all the functionality to write 
+  massively parallel, block-structured adaptive mesh refinement (AMR) 
+  applications. AMReX is freely available on Github at 
+  <a href="https://github.com/AMReX-Codes/amrex">AMReX-Codes/amrex</a>.
+
+  AMReX is developed at LBNL, NREL, and ANL as part of the 
+  Block-Structured AMR Co-Design Center in DOE’s Exascale Computing Project.
+   
+
+  \subsection development Development
+
+  All of AMReX’s development is done in the github repository under the 
+  <a href="https://github.com/AMReX-Codes/amrex/tree/development"> 
+  development branch</a>; anyone can see the latest updates. A monthly release is 
+  tagged at the beginning of each month.
+  
+
+  \subsection contribute Contribute
+
+  We are always happy to have users contribute to the AMReX source code. To 
+  contribute, issue a pull request against the development branch 
+  (details here). Any level of changes are welcomed: documentation, bug fixes, 
+  new test problems, new solvers, etc. To obtain help, simply post a 
+  <a href="https://github.com/AMReX-Codes/amrex/discussions/new">discussion</a> 
+  or an 
+  <a href="https://github.com/AMReX-Codes/amrex/issues/new">issue</a>
+  on the AMReX GitHub webpage.
+  
+
+  \subsection tutorials Tutorials for New Users 
+
+  There are small stand-alone example codes that demonstrate how to use 
+  different parts of the AMReX functionality. The source code for these
+  tutorials can be found at 
+  <a href="https://github.com/AMReX-Codes/amrex-tutorials">AMReX Tutorials</a>.
+  Accompanying documentation for these tutorial codes is at 
+  <a href="https://amrex-codes.github.io/amrex/tutorials_html">Tutorials
+  Documentation</a>.
+
+
+  \subsection amrex_explained AMReX Explained
+
+  For users who are starting out on their own development, 
+  additional documentation is provided at 
+  <a href="https://amrex-codes.github.io/amrex/docs_html">AMReX Source Documentation</a>. 
+  In these docs you will find a thorough introduction and discussion
+  of AMReX features.
+
+
+  \subsection migration_from_boxlib Migration from BoxLib
+
+  Documentation on migration from BoxLib is available in the AMReX repository 
+  at <a href="https://github.com/AMReX-Codes/amrex/blob/development/Docs/Migration/Migration.md">
+  Docs/Migration</a>.
+
+*/

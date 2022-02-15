@@ -1,0 +1,3 @@
+
+CEXE_headers += cns_prob.H cns_prob_parm.H
+CEXE_sources += cns_prob.cpp

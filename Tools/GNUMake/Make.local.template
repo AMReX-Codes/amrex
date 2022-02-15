@@ -1,0 +1,71 @@
+####
+#### Examples of things you can do in Make.local
+####
+#### If it exists, the Make.local file is included at the end of
+#### Make.defs.  Thus one can override various variables here.
+####
+#### Do not check this file into git repo.  This is supposed to be purely local.
+####
+#### Here are some examples.
+####
+###
+#### Maybe AMReX fails to configure makefile for MPI on your machine.  You could set MPI stuff here,
+#### and then compile with NO_MPI_CHECKING=TRUE to tell AMReX not to check MPI stuff.
+####
+####   Wrappers for C++, C and Fortran compilers.
+###CXX := mpicxx
+###CC  := mpicc
+###FC  := mpif90
+###F90 := mpif90
+####   AMReX uses MPI in both C++ and Fortran.  Because CXX is used for linking, you MAY need to 
+####   provide path to MPI Fortran library.
+###LIBRARIES += -lmpif90
+###
+###
+#### Always have verbosity on even if GNUmakefile set it to FALSE.
+###VERBOSE=TRUE
+###
+###
+#### By default ccache is not used unless USE_CCACHE is TRUE.
+#### But I want the opposite.  That is ccache is used by default unless
+#### USE_CCACHE is FALSE.  But if I am using UPC++, I would like to turn
+#### ccache off.
+###ifeq ($(USE_CCACHE),FALSE)
+###  CCACHE =
+###else ifeq ($(USE_UPCXX),TRUE)
+###  CCACHE =
+###else
+###  CCACHE = ccache
+###endif
+###
+###
+#### When I run on my local desktop, I like to add this gfortran flag.
+###FFLAGS   += -fcheck=array-temps
+###F90FLAGS += -fcheck=array-temps
+###
+###
+#### Instead of linking to static gfortran library, I like to use shared libraries.
+###gfortran_libso_dir := $(dir $(shell $(F90) -print-file-name=libgfortran.so))
+###LIBRARY_LOCATIONS += $(gfortran_libso_dir)
+###gfortran_lib = -lgfortran
+###quadmath_lib = -lquadmath
+###
+###
+#### `make print-CXXFLAGS` shows "-O0" is used.  I would like to replace it with "-O2".
+#### Note that `:=` is needed to avoid recursive references. 
+###CXXFLAGS := $(subst -O0,-O2,$(CXXFLAGS))
+###
+###
+#### I don't like the CFLAGS shown by `print-CFLAGS`.  So I am going to
+#### completely replace it with my own flags.
+###CFLAGS = MY_AWESOME_CFLAGS 
+###
+###
+#### This compiler has a bug.  I have to remove an option from CXXFLAGS.
+#### The variable lowercase_comp is defined in Make.defs and it's the
+#### lower case version of $COMP.  Note that we are moving toward
+#### C++11/14.  So disabling C++11 is not an option.  This is just an
+#### example.
+###ifeq ($(lowercase_comp),pg?compiler)
+###  CXXFLAGS := $(filter-out --c++11,$(CXXFLAGS))
+###endif

@@ -1,0 +1,11 @@
+CEXE_sources += AdvancePhiAtLevel.cpp
+CEXE_sources += AdvancePhiAllLevels.cpp
+CEXE_sources += AmrCoreAdv.cpp 
+CEXE_sources += DefineVelocity.cpp 
+CEXE_sources += main.cpp 
+
+CEXE_headers += AmrCoreAdv.H 
+CEXE_headers += bc_fill.H
+CEXE_headers += face_velocity.H
+CEXE_headers += Kernels.H 
+CEXE_headers += Tagging.H

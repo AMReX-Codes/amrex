@@ -1,0 +1,29 @@
+amrex.fpe_trap_invalid = 1
+eb_is_dirichlet = 0
+eb_is_homog_dirichlet = 1
+
+eb2.geom_type = channel
+
+eb2.channel_askew = 0
+eb2.channel_lo =-50.0  -50.0  0.225
+eb2.channel_hi = 50.0   50.0  1.225
+eb2.channel_has_fluid_inside = 1
+
+max_level = 0
+ref_ratio = 2
+n_cell = 14
+max_grid_size = 64
+max_coarsening_level = 0
+prob_lo =  0.    0.   0.
+prob_hi = 1.4  1.4  1.4
+is_periodic = 1  1  0
+scalars = 0  1
+
+use_poiseuille = 1
+poiseuille_askew = 0
+poiseuille_flow_dir = 1
+poiseuille_bottom = 0.225
+poiseuille_height_dir = 2
+poiseuille_height = 1.0
+
+plot_file = "plot-xy-y"

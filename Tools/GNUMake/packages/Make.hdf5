@@ -1,0 +1,34 @@
+CPPFLAGS += -DAMREX_USE_HDF5
+include $(AMREX_HOME)/Src/Extern/HDF5/Make.package
+
+ifndef AMREX_HDF5_HOME
+ifdef HDF5_DIR
+  AMREX_HDF5_HOME = $(HDF5_DIR)
+endif
+ifdef HDF5_HOME
+  AMREX_HDF5_HOME = $(HDF5_HOME)
+endif
+endif
+
+LIBRARIES += -lhdf5 -lz -ldl
+
+ifdef AMREX_HDF5_HOME
+  HDF5_ABSPATH = $(abspath $(AMREX_HDF5_HOME))
+  INCLUDE_LOCATIONS += $(HDF5_ABSPATH)/include
+  LIBRARY_LOCATIONS += $(HDF5_ABSPATH)/lib
+  LDFLAGS += -Xlinker -rpath -Xlinker $(HDF5_ABSPATH)/lib
+endif
+
+ifeq ($(USE_HDF5_ZFP),TRUE)
+  ifdef ZFP_HOME
+    ifdef H5Z_HOME
+      CPPFLAGS += -DAMREX_USE_HDF5_ZFP
+      LIBRARIES += -lh5zzfp -lzfp
+      ZFP_ABSPATH = $(abspath $(ZFP_HOME))
+      H5Z_ABSPATH = $(abspath $(H5Z_HOME))
+      INCLUDE_LOCATIONS += $(ZFP_ABSPATH)/include $(H5Z_ABSPATH)/include
+      LIBRARY_LOCATIONS += $(ZFP_ABSPATH)/lib $(H5Z_ABSPATH)/lib
+      LDFLAGS += -Xlinker -rpath -Xlinker $(ZFP_ABSPATH)/lib
+    endif
+  endif
+endif

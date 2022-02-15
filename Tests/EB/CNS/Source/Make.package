@@ -1,0 +1,13 @@
+
+CEXE_sources += main.cpp
+
+CEXE_headers += CNS.H
+CEXE_headers += CNS_F.H
+
+CEXE_sources += CNS_advance.cpp
+CEXE_sources += CNS.cpp
+CEXE_sources += CNSBld.cpp
+CEXE_sources += CNS_io.cpp
+CEXE_sources += CNS_setup.cpp
+
+CEXE_sources += CNS_init_eb2.cpp

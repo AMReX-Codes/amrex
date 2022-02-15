@@ -1,0 +1,16 @@
+
+ifneq ($(DIM), 1)
+
+CEXE_sources += AMReX_HypreABecLap.cpp AMReX_HypreABecLap2.cpp AMReX_HypreABecLap3.cpp AMReX_Hypre.cpp
+
+CEXE_headers += AMReX_HypreABecLap.H AMReX_HypreABecLap2.H AMReX_HypreABecLap3.H AMReX_Hypre.H
+
+CEXE_headers += AMReX_Habec_$(DIM)D_K.H
+CEXE_headers += AMReX_Habec_K.H
+CEXE_headers += AMReX_HypreNodeLap.H AMReX_HypreIJIface.H
+CEXE_sources += AMReX_HypreNodeLap.cpp AMReX_HypreIJIface.cpp
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/HYPRE
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/HYPRE
+
+endif

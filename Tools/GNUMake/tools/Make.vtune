@@ -1,0 +1,45 @@
+
+ifeq ($(lowercase_comp),intel)
+
+  DEFINES += -DAMREX_VTUNE
+  
+  # Add more debugging output if we want to profile with Intel VTune. These flags
+  # probably do not slow down code execution, but we don't need this much
+  # debugging information in production runs.
+  
+  CXXFLAGS += -debug inline-debug-info -parallel-source-info=2
+  CFLAGS   += -debug inline-debug-info -parallel-source-info=2
+  FFLAGS   += -debug inline-debug-info -parallel-source-info=2
+  F90FLAGS += -debug inline-debug-info -parallel-source-info=2
+  
+  # On the Crays at NERSC, VTune can't resolve debug symbols unless we
+  # compile and link dynamically using the "-dynamic" flag with the Cray
+  # compiler wrappers.
+  ifeq ($(which_site),nersc)
+    CXXFLAGS += -dynamic
+    CFLAGS   += -dynamic
+    FFLAGS   += -dynamic
+    F90FLAGS += -dynamic
+
+    # VTune allows you to instrument your code with calls to __itt_resume()
+    # and __itt_pause() so that you can profile only certain regions, rather
+    # than profiling the entire code (which is the default behavior). Using
+    # these requires access to certain VTune header files and libraries. The
+    # "vtune" module on the Crays at NERSC defines the necessary include and
+    # library directories. Unfortunately the names of the defined environment
+    # variables change with VTune versions so these will need to be updated
+    # periodically.
+    # DEFINES += -DAMREX_ITTNOTIFY
+    INCLUDE_LOCATIONS += $(VTUNE_AMPLIFIER_XE_2018_DIR)/include
+    LIBRARY_LOCATIONS += $(VTUNE_AMPLIFIER_XE_2018_DIR)/lib64
+    LIBRARIES +=  -littnotify
+
+    # Intel Software Development Emulator (SDE) is a tool we use to count
+    # FLOPS in software, since Intel chips have not had working hardware
+    # FLOP counters since Sandy Bridge. One can manually instrument code
+    # regions with SDE, similarly to the way one does with VTune/ittnotify.
+    # DEFINES += -DAMREX_SDE
+
+  endif
+
+endif
