@@ -305,7 +305,7 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                      const Vector<std::string>& real_comp_names,
-                     const Vector<std::string>& int_comp_names, 
+                     const Vector<std::string>& int_comp_names,
                      const std::string& compression, F&& f) const
 {
     AMREX_ASSERT(real_comp_names.size() == NStructReal + NumRealComps());
@@ -329,7 +329,7 @@ template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::WritePlotFileHDF5 (const std::string& dir, const std::string& name,
-                     const Vector<std::string>& real_comp_names, 
+                     const Vector<std::string>& real_comp_names,
                      const std::string& compression, F&& f) const
 {
     AMREX_ASSERT(real_comp_names.size() == NStructReal + NumRealComps());
@@ -362,7 +362,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::WritePlotFileHDF5 (const std::string& dir,
                      const std::string& name,
                      const Vector<int>& write_real_comp,
-                     const Vector<int>& write_int_comp, 
+                     const Vector<int>& write_int_comp,
                      const std::string& compression, F&& f) const
 {
     AMREX_ASSERT(write_real_comp.size() == NStructReal + NumRealComps());

@@ -28,7 +28,7 @@ public:
      * \param fid The HDF5 file ID
      * \param compression compression parameter (i.e. "ZFP_ACCURACY@0.001", "SZ@sz.config")
      */
-    void CheckpointHDF5 (const std::string& dir, const std::string& name, 
+    void CheckpointHDF5 (const std::string& dir, const std::string& name,
                          const std::string& compression = "None@0") const;
 
     /**
@@ -137,7 +137,7 @@ public:
     template <class F>
     void WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                             const Vector<std::string>& real_comp_names,
-                            const Vector<std::string>&  int_comp_names, 
+                            const Vector<std::string>&  int_comp_names,
                             const std::string& compression, F&& f) const;
 
     /**
@@ -167,7 +167,7 @@ public:
      */
     template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>::value>::type* = nullptr>
     void WritePlotFileHDF5 (const std::string& dir, const std::string& name,
-                            const Vector<std::string>& real_comp_names, 
+                            const Vector<std::string>& real_comp_names,
                             const std::string& compression, F&& f) const;
 
     /**
@@ -203,7 +203,7 @@ public:
     void WritePlotFileHDF5 (const std::string& dir,
                             const std::string& name,
                             const Vector<int>& write_real_comp,
-                            const Vector<int>& write_int_comp, 
+                            const Vector<int>& write_int_comp,
                             const std::string& compression, F&& f) const;
 
     /**
