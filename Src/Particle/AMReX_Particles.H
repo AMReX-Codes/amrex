@@ -1220,6 +1220,35 @@ public:
     int NumRealComps () const { return NArrayReal + NumRuntimeRealComps(); }
     int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; }
 
+    /** type trait to translate one particle container to another, with changed allocator */
+    template <template<class> class NewAllocator=amrex::DefaultAllocator>
+    using ContainerLike = amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, NewAllocator>;
+
+    /** Create an empty particle container
+     *
+     * This creates a new AMReX particle container type with same compile-time
+     * and run-time attributes. But, it can change its allocator. This is
+     * helpful when creating temporary particle buffers for filter operations
+     * and device-to-host copies.
+     *
+     * @tparam Allocator AMReX allocator, e.g., amrex::PinnedArenaAllocator
+     * @return an empty particle container
+     * */
+    template <template<class> class NewAllocator=amrex::DefaultAllocator>
+    ContainerLike<NewAllocator>
+    make_alike () const
+    {
+        ContainerLike<NewAllocator> tmp(m_gdb);
+
+        // add runtime real comps to tmp
+        for (int ic = 0; ic < this->NumRuntimeRealComps(); ++ic) { tmp.AddRealComp(false); }
+
+        // add runtime int comps to tmp
+        for (int ic = 0; ic < this->NumRuntimeIntComps(); ++ic) { tmp.AddIntComp(false); }
+
+        return tmp;
+    }
+
     Vector<int> h_communicate_real_comp;
     Vector<int> h_communicate_int_comp;
     Gpu::DeviceVector<int> d_communicate_real_comp;
