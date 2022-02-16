@@ -29,7 +29,7 @@ void test ()
     int ncells, max_grid_size, ncomp, nlevs, nppc;
     int restart_check = 0, nplotfile = 1, nparticlefile = 1, sleeptime = 0;
     int grids_from_file = 0;
-    std::string compression = "None#0";
+    std::string compression = "None@0";
     std::string directory = "";
 
     ParmParse pp;
@@ -103,7 +103,7 @@ void test ()
 
     Vector<int> level_steps(nlevs, 0);
 
-    /* if (compression.compare("None#0") != 0) */
+    /* if (compression.compare("None@0") != 0) */
     /*     std::cout << "Compression: " << compression << std::endl; */
 
     char fname[512];
@@ -197,7 +197,7 @@ void test ()
             }
 
 #ifdef AMREX_USE_HDF5
-            myPC.CheckpointHDF5(fname, "particle0", false, particle_realnames, particle_intnames);
+            myPC.CheckpointHDF5(fname, "particle0", false, particle_realnames, particle_intnames, compression);
 #else
             myPC.Checkpoint(fname, "particle0", false, particle_realnames, particle_intnames);
             /* myPC.WriteAsciiFile("particle0_ascii"); */

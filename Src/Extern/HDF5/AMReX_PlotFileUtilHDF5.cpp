@@ -479,7 +479,10 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
     pos = compression.find("SZ");
     if (pos != std::string::npos) {
         ret = H5Z_SZ_Init((char*)value_env.c_str());
-        if (ret < 0) amrex::Abort("ZFP initialize failed, check SZ config file!");
+        if (ret < 0) {
+            std::cout << "SZ config file:" << value_env.c_str() << std::endl;
+            amrex::Abort("SZ initialize failed, check SZ config file!");
+        }
     }
 #endif
 
@@ -500,7 +503,7 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
 #endif
 
         if (ParallelDescriptor::MyProc() == 0) {
-            std::cout << "\nHDF5 checkpoint using " << mode_env << ", " <<
+            std::cout << "\nHDF5 plotfile using " << mode_env << ", " <<
                 value_env << ", " << chunk_dim << std::endl;
         }
     }
