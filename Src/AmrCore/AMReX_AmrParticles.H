@@ -90,7 +90,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     // configure this to do a no-op at the physical boundaries.
     int lo_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
     int hi_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
-    Vector<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
+    Vector<BCRec> bcs(ncomp, BCRec(lo_bc, hi_bc));
     PCInterp mapper;
 
     Vector<std::unique_ptr<MultiFab> > tmp(finest_level+1);
