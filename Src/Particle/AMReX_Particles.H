@@ -722,6 +722,7 @@ public:
       * \param real_comp_names for each real component, a name to label the data with
       * \param int_comp_names for each integer component, a name to label the data with
       * \param f callable that returns whether a given particle should be written or not
+      * \param is_checkpoint whether the data is written to a checkpoint or plotfile
       */
     template <class F>
     void WriteBinaryParticleData (const std::string& dir,
@@ -730,7 +731,7 @@ public:
                                   const Vector<int>& write_int_comp,
                                   const Vector<std::string>& real_comp_names,
                                   const Vector<std::string>&  int_comp_names,
-                                                                  F&& f) const;
+                                  F&& f, bool is_checkpoint=false) const;
 
     void CheckpointPre ();
 
@@ -1219,6 +1220,35 @@ public:
     int NumRealComps () const { return NArrayReal + NumRuntimeRealComps(); }
     int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; }
 
+    /** type trait to translate one particle container to another, with changed allocator */
+    template <template<class> class NewAllocator=amrex::DefaultAllocator>
+    using ContainerLike = amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, NewAllocator>;
+
+    /** Create an empty particle container
+     *
+     * This creates a new AMReX particle container type with same compile-time
+     * and run-time attributes. But, it can change its allocator. This is
+     * helpful when creating temporary particle buffers for filter operations
+     * and device-to-host copies.
+     *
+     * @tparam Allocator AMReX allocator, e.g., amrex::PinnedArenaAllocator
+     * @return an empty particle container
+     * */
+    template <template<class> class NewAllocator=amrex::DefaultAllocator>
+    ContainerLike<NewAllocator>
+    make_alike () const
+    {
+        ContainerLike<NewAllocator> tmp(m_gdb);
+
+        // add runtime real comps to tmp
+        for (int ic = 0; ic < this->NumRuntimeRealComps(); ++ic) { tmp.AddRealComp(false); }
+
+        // add runtime int comps to tmp
+        for (int ic = 0; ic < this->NumRuntimeIntComps(); ++ic) { tmp.AddIntComp(false); }
+
+        return tmp;
+    }
+
     Vector<int> h_redistribute_real_comp;
     Vector<int> h_redistribute_int_comp;
 
@@ -1274,7 +1304,7 @@ public:
     WriteParticles (int level, std::ofstream& ofs, int fnum,
                     Vector<int>& which, Vector<int>& count, Vector<Long>& where,
                     const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
-                    const Vector<std::map<std::pair<int, int>,IntVector>>& particle_io_flags) const;
+                    const Vector<std::map<std::pair<int, int>,IntVector>>& particle_io_flags, bool is_checkpoint) const;
 #ifdef AMREX_USE_HDF5
 #include "AMReX_ParticlesHDF5.H"
 #endif
@@ -1282,7 +1312,7 @@ public:
 protected:
 
     template <class RTYPE>
-    void ReadParticles (int cnt, int grd, int lev, std::ifstream& ifs, int finest_level_in_file);
+    void ReadParticles (int cnt, int grd, int lev, std::ifstream& ifs, int finest_level_in_file, bool convert_ids);
 
     void SetParticleSize ();
 
