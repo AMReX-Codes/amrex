@@ -335,14 +335,14 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                         char* dst_ptr = &send_data[who][tag.dst_index];
                         char* src_ptr = (char *) &p;
                         for (int ii = 0; ii < AMREX_SPACEDIM + NStructReal; ++ii) {
-                            if (rc[ii]) {
+                            if (ghost_real_comp[ii]) {
                                 std::memcpy(dst_ptr, src_ptr, sizeof(typename ParticleType::RealType));
                                 dst_ptr += sizeof(typename ParticleType::RealType);
                             }
                             src_ptr += sizeof(typename ParticleType::RealType);
                         }
                         for (int ii = 0; ii < this->NumRealComps(); ++ii) {
-                            if (rc[ii+AMREX_SPACEDIM+NStructReal])
+                            if (ghost_real_comp[ii+AMREX_SPACEDIM+NStructReal])
                             {
                                 std::memcpy(dst_ptr, &(soa.GetRealData(ii)[tag.src_index]),
                                             sizeof(typename ParticleType::RealType));
@@ -350,14 +350,14 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             }
                         }
                         for (int ii = 0; ii < 2 + NStructInt; ++ii) {
-                            if (ic[ii]) {
+                            if (ghost_int_comp[ii]) {
                                 std::memcpy(dst_ptr, src_ptr, sizeof(int));
                                 dst_ptr += sizeof(int);
                             }
                             src_ptr += sizeof(int);
                         }
                         for (int ii = 0; ii < this->NumIntComps(); ++ii) {
-                            if (ic[ii+2+NStructInt])
+                            if (ghost_int_comp[ii+2+NStructInt])
                             {
                                 std::memcpy(dst_ptr, &(soa.GetIntData(ii)[tag.src_index]),
                                             sizeof(int));
@@ -591,14 +591,14 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
                     char* dst_aos = (char*) &neighbors[lev][dst_index].GetArrayOfStructs()[old_size+n];
                     auto& dst_soa = neighbors[lev][dst_index].GetStructOfArrays();
                     for (int ii = 0; ii < AMREX_SPACEDIM + NStructReal; ++ii) {
-                        if (rc[ii]) {
+                        if (ghost_real_comp[ii]) {
                             std::memcpy(dst_aos, src, sizeof(typename ParticleType::RealType));
                             src += sizeof(typename ParticleType::RealType);
                         }
                         dst_aos += sizeof(typename ParticleType::RealType);
                     }
                     for (int ii = 0; ii < this->NumRealComps(); ++ii) {
-                        if (rc[ii+AMREX_SPACEDIM+NStructReal])
+                        if (ghost_real_comp[ii+AMREX_SPACEDIM+NStructReal])
                         {
                             std::memcpy(&(dst_soa.GetRealData(ii)[old_size+n]),
                                         src, sizeof(typename ParticleType::RealType));
@@ -606,14 +606,14 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
                         }
                     }
                     for (int ii = 0; ii < 2 + NStructInt; ++ii) {
-                        if (ic[ii]) {
+                        if (ghost_int_comp[ii]) {
                             std::memcpy(dst_aos, src, sizeof(int));
                             src += sizeof(int);
                         }
                         dst_aos += sizeof(int);
                     }
                     for (int ii = 0; ii < this->NumIntComps(); ++ii) {
-                        if (ic[ii+2+NStructInt])
+                        if (ghost_int_comp[ii+2+NStructInt])
                         {
                             std::memcpy(&(dst_soa.GetIntData(ii)[old_size+n]),
                                         src, sizeof(int));

@@ -235,7 +235,8 @@ fillNeighborsGPU ()
     neighbor_copy_op.clear();
     neighbor_copy_plan.clear();
     buildNeighborCopyOp();
-    neighbor_copy_plan.build(*this, neighbor_copy_op, true);
+    neighbor_copy_plan.build(*this, neighbor_copy_op, ghost_int_comp,
+                             ghost_real_comp, true);
     updateNeighborsGPU(false);
 }
 
@@ -250,7 +251,8 @@ updateNeighborsGPU (bool boundary_neighbors_only)
         neighbor_copy_op.clear();
         neighbor_copy_plan.clear();
         buildNeighborCopyOp(true);
-        neighbor_copy_plan.build(*this, neighbor_copy_op, true);
+        neighbor_copy_plan.build(*this, neighbor_copy_op, ghost_int_comp,
+                                 ghost_real_comp, true);
     }
 
     clearNeighbors();
