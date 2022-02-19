@@ -1,0 +1,8 @@
+CEXE_headers += AMReX_thornado.H
+CEXE_sources += AMReX_thornado.cpp
+
+F90EXE_sources += AMReX_ThornadoInterfaceModule.F90
+CEXE_sources   += AMReX_ThornadoInterfaceModule_fi.cpp
+
+VPATH_LOCATIONS   += $(AMREX_HOME)/Src/thornado
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/thornado
