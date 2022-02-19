@@ -101,9 +101,13 @@ fluxreg_fineadd_dg( Box const&                bx,
                     Dim3 const&               ratio ) noexcept
 {
 
-  std::cout<<"\n\nfluxreg_fineadd_dg not implemented for AMREX_SPACEDIM=2\n\n";
-  amrex::ignore_unused
-    ( bx, reg, sf_F, iDimX, nFields, nDOFX_X, WeightsX_X, LX_X, ratio );
+
+#ifndef AMREX_USE_GPU
+    std::cout<<"\n\nfluxreg_fineadd_dg not implemented for AMREX_SPACEDIM=2\n\n";
+#endif
+
+    amrex::ignore_unused
+      ( bx, reg, sf_F, iDimX, nFields, nDOFX_X, WeightsX_X, LX_X, ratio );
 
 } /* END fluxreg_fineadd_dg */
 
@@ -229,10 +233,13 @@ fluxreg_reflux_dg
     const Orientation face ) noexcept
 {
 
-//  std::cout<<"\n\nfluxreg_reflux_dg not implemented for AMREX_SPACEDIM=2\n\n";
-  amrex::ignore_unused
-    ( CrseBox, dU, dF, nFields, nDOFX, nNodesX, WeightsX_q, dX1, dX2, dX3,
-      LX_X1_Dn, LX_X1_Up, LX_X2_Dn, LX_X2_Up, LX_X3_Dn, LX_X3_Up, face );
+#ifndef AMREX_USE_GPU
+    std::cout<<"\n\nfluxreg_reflux_dg not implemented for AMREX_SPACEDIM=2\n\n";
+#endif
+
+    amrex::ignore_unused
+      ( CrseBox, dU, dF, nFields, nDOFX, nNodesX, WeightsX_q, dX1, dX2, dX3,
+        LX_X1_Dn, LX_X1_Up, LX_X2_Dn, LX_X2_Up, LX_X3_Dn, LX_X3_Up, face );
 
 } /* END fluxreg_reflux_dg */
 
