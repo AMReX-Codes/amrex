@@ -150,7 +150,7 @@ std::cout<<mf->nComp()<<std::endl;
         Real LX_X2_Dn[], Real LX_X2_Up[],
         Real LX_X3_Dn[], Real LX_X3_Up[] )
     {
-        flux_reg->Reflux_DG( *mf, flux_reg->nComp(), *geom,
+        flux_reg->Reflux_DG( *mf, *geom, flux_reg->nComp(),
                              nFields, nDOFX, nNodesX,
                              WeightsX_q, dX1, dX2, dX3,
                              LX_X1_Dn, LX_X1_Up,

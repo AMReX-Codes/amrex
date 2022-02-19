@@ -67,20 +67,21 @@ fluxreg_fineadd (Box const& bx, Array4<Real> const& reg, const int rcomp,
 * \brief Add fine grid flux to flux register (DG).
 * bx is a box defined on the coarse level.
 * reg is a coarse grid edge based object.
-* flx is a fine grid edge based object. It is assumed that the coarsened flux
+* sf_F is a fine grid edge based object. It is assumed that the coarsened flux
 * region contains the register region.
+* iDimX is the spatial dimension in which the fluxes are defined.
 * nFields is the number of fields in the grid based objects.
 * nDOFX_X is the number of degrees of freedom per field on the interface in the
-* dir dimension.
-* WeightsX_X are the Gaussian quadrature weights on the interface in the dir
+* iDimX dimension.
+* WeightsX_X are the Gaussian quadrature weights on the interface in the iDimX
 * dimension. These Gaussian points are defined on the interval [-0.5,+0.5].
 * LX_X are the Lagrange polynomials evaluated at the quadrature points in the
-* AMREX_SPACDIM-1 dimensions on the interface in the dir dimension.
+* AMREX_SPACDIM-1 dimensions on the interface in the iDimX dimension.
 * ratio is the refinement ratio. ratio must be 2.
 *
 * \param bx
 * \param reg
-* \param flx
+* \param sf_F
 * \param iDimX
 * \param nFields
 * \param nDOFX_X
@@ -91,7 +92,7 @@ fluxreg_fineadd (Box const& bx, Array4<Real> const& reg, const int rcomp,
 AMREX_GPU_HOST_DEVICE inline void
 fluxreg_fineadd_dg( Box const&                bx,
                     Array4<Real> const&       reg,
-                    Array4<Real const> const& flx,
+                    Array4<Real const> const& sf_F,
                     const int                 iDimX,
                     const int                 nFields,
                     const int                 nDOFX_X,
@@ -102,7 +103,7 @@ fluxreg_fineadd_dg( Box const&                bx,
 
   std::cout<<"\n\nfluxreg_fineadd_dg not implemented for AMREX_SPACEDIM=2\n\n";
   amrex::ignore_unused
-    ( bx, reg, flx, iDimX, nFields, nDOFX_X, WeightsX_X, LX_X, ratio );
+    ( bx, reg, sf_F, iDimX, nFields, nDOFX_X, WeightsX_X, LX_X, ratio );
 
 } /* END fluxreg_fineadd_dg */
 

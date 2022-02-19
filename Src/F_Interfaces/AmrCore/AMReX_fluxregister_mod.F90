@@ -141,6 +141,7 @@ module amrex_fluxregister_module
                                   LX_X2_Dn(*), LX_X2_Up(*), &
                                   LX_X3_Dn(*), LX_X3_Up(*)
      end subroutine amrex_fi_fluxregister_reflux_dg
+
      subroutine amrex_fi_fluxregister_overwrite (fr, flxs, scale, geom) bind(c)
        import
        implicit none
