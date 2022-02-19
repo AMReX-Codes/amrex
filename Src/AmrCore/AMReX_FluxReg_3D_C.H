@@ -294,7 +294,6 @@ fluxreg_reflux_dg
   ( Box const& CrseBox,
     Array4<Real> const& dU,
     Array4<Real const> const& dF,
-    const Orientation face,
     int nFields,
     int nDOFX,
     int nNodesX[],
@@ -302,13 +301,14 @@ fluxreg_reflux_dg
     Real dX1[], Real dX2[], Real dX3[],
     Real LX_X1_Dn[], Real LX_X1_Up[],
     Real LX_X2_Dn[], Real LX_X2_Up[],
-    Real LX_X3_Dn[], Real LX_X3_Up[] ) noexcept
+    Real LX_X3_Dn[], Real LX_X3_Up[],
+    const Orientation face ) noexcept
 {
 
-  std::cout<<"\n\nfluxreg_reflux_dg not implemented for AMREX_SPACEDIM=3\n\n";
+//  std::cout<<"\n\nfluxreg_reflux_dg not implemented for AMREX_SPACEDIM=3\n\n";
   amrex::ignore_unused
-    ( CrseBox, dU, dF, face, nFields, nDOFX, nNodesX, WeightsX_q, dX1, dX2, dX3,
-      LX_X1_Dn, LX_X1_Up, LX_X2_Dn, LX_X2_Up, LX_X3_Dn, LX_X3_Up );
+    ( CrseBox, dU, dF, nFields, nDOFX, nNodesX, WeightsX_q, dX1, dX2, dX3,
+      LX_X1_Dn, LX_X1_Up, LX_X2_Dn, LX_X2_Up, LX_X3_Dn, LX_X3_Up, face );
 
 } /* END fluxreg_reflux_dg */
 
