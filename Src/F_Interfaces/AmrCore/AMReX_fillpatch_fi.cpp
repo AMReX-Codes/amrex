@@ -16,9 +16,7 @@ namespace
         &amrex::protected_interp,        // 6
         &amrex::quartic_interp,          // 7
         &amrex::face_divfree_interp,     // 8
-        &amrex::dg_interp_order1,        // 9
-        &amrex::dg_interp_order2,        // 10
-        &amrex::dg_interp_order3         // 11
+        &amrex::dg_interp                // 9
     };
 }
 

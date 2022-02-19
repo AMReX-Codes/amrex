@@ -17,10 +17,12 @@ int nFine;
 Real *** ProjectionMatrix   = NULL;
 Real *** ProjectionMatrix_T = NULL;
 Real * WeightsX_q = NULL;
+Real VolumeRatio;
 
 void InitializeMeshRefinement_Thornado
        ( int N[], Real ProjMatrix[], Real WeightsX[] )
 {
+
     nNodes[0] = N[0];
     nNodes[1] = N[1];
     nNodes[2] = N[2];
@@ -45,6 +47,8 @@ void InitializeMeshRefinement_Thornado
     for( int iNX = 0; iNX < nDOFX; iNX++ ) {
       WeightsX_q[iNX] = WeightsX[iNX];
     }
+
+    VolumeRatio = One / pow(2,AMREX_SPACEDIM);
 
 } /* END void InitializeMeshRefinement_Thornado */
 

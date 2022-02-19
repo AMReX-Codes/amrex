@@ -8,12 +8,16 @@ namespace amrex
 namespace thornado
 {
 
+const Real Zero = 0.0;
+const Real One  = 1.0;
+
 extern int nNodes[3];
 extern int nDOFX;
 extern int nFine;
 extern Real *** ProjectionMatrix;
 extern Real *** ProjectionMatrix_T;
 extern Real * WeightsX_q;
+extern Real VolumeRatio;
 
 void InitializeMeshRefinement_Thornado
        ( int N[], Real ProjMatrix[], Real WeightsX[] );

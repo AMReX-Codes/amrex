@@ -11,30 +11,12 @@ extern "C"
         amrex::average_down(*S_fine, *S_crse, *fgeom, *cgeom, scomp, ncomp, rr);
     }
 
-    void amrex_fi_average_down_dg_order1
+    void amrex_fi_average_down_dg
            ( const MultiFab* S_fine, MultiFab* S_crse,
              const Geometry* fgeom, const Geometry* cgeom,
              int scomp, int ncomp, int rr )
     {
-        amrex::average_down_dg_order1
-          ( *S_fine, *S_crse, *fgeom, *cgeom, scomp, ncomp, rr );
-    }
-
-    void amrex_fi_average_down_dg_order2
-           ( const MultiFab* S_fine, MultiFab* S_crse,
-             const Geometry* fgeom, const Geometry* cgeom,
-             int scomp, int ncomp, int rr )
-    {
-        amrex::average_down_dg_order2
-          ( *S_fine, *S_crse, *fgeom, *cgeom, scomp, ncomp, rr );
-    }
-
-    void amrex_fi_average_down_dg_order3
-           ( const MultiFab* S_fine, MultiFab* S_crse,
-             const Geometry* fgeom, const Geometry* cgeom,
-             int scomp, int ncomp, int rr )
-    {
-        amrex::average_down_dg_order3
+        amrex::average_down_dg
           ( *S_fine, *S_crse, *fgeom, *cgeom, scomp, ncomp, rr );
     }
 
