@@ -445,17 +445,19 @@ namespace amrex
     // We do NOT assume that the coarse layout is a coarsened version
     // of the fine layout.
     // The volume-weighting is treated as a dummy variable
-    void average_down_dg_order1 (const MultiFab& S_fine, MultiFab& S_crse,
-		                 const Geometry& fgeom, const Geometry& cgeom,
-                                 int scomp, int ncomp, int rr)
+    void average_down_dg_order1
+           ( const MultiFab& S_fine, MultiFab& S_crse,
+             const Geometry& fgeom, const Geometry& cgeom,
+             int scomp, int ncomp, int rr )
     {
          average_down_dg_order1
            (S_fine,S_crse,fgeom,cgeom,scomp,ncomp,rr*IntVect::TheUnitVector());
     }
 
-    void average_down_dg_order1 (const MultiFab& S_fine, MultiFab& S_crse,
-		                 const Geometry& fgeom, const Geometry& cgeom,
-                                 int scomp, int ncomp, const IntVect& ratio)
+    void average_down_dg_order1
+           ( const MultiFab& S_fine, MultiFab& S_crse,
+             const Geometry& fgeom, const Geometry& cgeom,
+             int scomp, int ncomp, const IntVect& ratio)
     {
         amrex::ignore_unused(fgeom,cgeom);
 
@@ -467,8 +469,8 @@ namespace amrex
         }
 
 #if (AMREX_SPACEDIM == 3)
-	amrex::average_down(S_fine, S_crse, scomp, ncomp, ratio);
-	return;
+        amrex::average_down(S_fine, S_crse, scomp, ncomp, ratio);
+        return;
 #else
 
         AMREX_ASSERT(S_crse.nComp() == S_fine.nComp());
@@ -476,15 +478,16 @@ namespace amrex
         //
         // Coarsen() the fine stuff on processors owning the fine data.
         //
-	const BoxArray& fine_BA = S_fine.boxArray();
-	const DistributionMapping& fine_dm = S_fine.DistributionMap();
+        const BoxArray& fine_BA = S_fine.boxArray();
+        const DistributionMapping& fine_dm = S_fine.DistributionMap();
         BoxArray crse_S_fine_BA = fine_BA;
-	crse_S_fine_BA.coarsen(ratio);
+        crse_S_fine_BA.coarsen(ratio);
 
-        MultiFab crse_S_fine(crse_S_fine_BA,fine_dm,ncomp,0,MFInfo(),FArrayBoxFactory());
+        MultiFab crse_S_fine
+          (crse_S_fine_BA,fine_dm,ncomp,0,MFInfo(),FArrayBoxFactory());
 
-	MultiFab fvolume;
-	fgeom.GetVolume(fvolume, fine_BA, fine_dm, 0);
+        MultiFab fvolume;
+        fgeom.GetVolume(fvolume, fine_BA, fine_dm, 0);
 
 #ifdef AMREX_USE_GPU
 /*
@@ -533,16 +536,17 @@ namespace amrex
     // We do NOT assume that the coarse layout is a coarsened version
     // of the fine layout.
     // The volume-weighting is treated as a dummy variable
-    void average_down_dg_order2 (const MultiFab& S_fine, MultiFab& S_crse,
-		                 const Geometry& fgeom, const Geometry& cgeom,
-                                 int scomp, int ncomp, int rr)
+    void average_down_dg_order2
+         ( const MultiFab& S_fine, MultiFab& S_crse,
+           const Geometry& fgeom, const Geometry& cgeom,
+           int scomp, int ncomp, int rr )
     {
          average_down_dg_order2
            (S_fine,S_crse,fgeom,cgeom,scomp,ncomp,rr*IntVect::TheUnitVector());
     }
 
     void average_down_dg_order2 (const MultiFab& S_fine, MultiFab& S_crse,
-		                 const Geometry& fgeom, const Geometry& cgeom,
+                         const Geometry& fgeom, const Geometry& cgeom,
                                  int scomp, int ncomp, const IntVect& ratio)
     {
         amrex::ignore_unused(fgeom,cgeom);
@@ -555,8 +559,8 @@ namespace amrex
         }
 
 #if (AMREX_SPACEDIM == 3)
-	amrex::average_down(S_fine, S_crse, scomp, ncomp, ratio);
-	return;
+        amrex::average_down(S_fine, S_crse, scomp, ncomp, ratio);
+        return;
 #else
 
         AMREX_ASSERT(S_crse.nComp() == S_fine.nComp());
@@ -564,15 +568,16 @@ namespace amrex
         //
         // Coarsen() the fine stuff on processors owning the fine data.
         //
-	const BoxArray& fine_BA = S_fine.boxArray();
-	const DistributionMapping& fine_dm = S_fine.DistributionMap();
+        const BoxArray& fine_BA = S_fine.boxArray();
+        const DistributionMapping& fine_dm = S_fine.DistributionMap();
         BoxArray crse_S_fine_BA = fine_BA;
-	crse_S_fine_BA.coarsen(ratio);
+        crse_S_fine_BA.coarsen(ratio);
 
-        MultiFab crse_S_fine(crse_S_fine_BA,fine_dm,ncomp,0,MFInfo(),FArrayBoxFactory());
+        MultiFab crse_S_fine
+          (crse_S_fine_BA,fine_dm,ncomp,0,MFInfo(),FArrayBoxFactory());
 
-	MultiFab fvolume;
-	fgeom.GetVolume(fvolume, fine_BA, fine_dm, 0);
+        MultiFab fvolume;
+        fgeom.GetVolume(fvolume, fine_BA, fine_dm, 0);
 
 #ifdef AMREX_USE_GPU
 /*
@@ -621,17 +626,19 @@ namespace amrex
     // We do NOT assume that the coarse layout is a coarsened version
     // of the fine layout.
     // The volume-weighting is treated as a dummy variable
-    void average_down_dg_order3 (const MultiFab& S_fine, MultiFab& S_crse,
-		                 const Geometry& fgeom, const Geometry& cgeom,
-                                 int scomp, int ncomp, int rr)
+    void average_down_dg_order3
+           ( const MultiFab& S_fine, MultiFab& S_crse,
+             const Geometry& fgeom, const Geometry& cgeom,
+             int scomp, int ncomp, int rr )
     {
          average_down_dg_order3
            (S_fine,S_crse,fgeom,cgeom,scomp,ncomp,rr*IntVect::TheUnitVector());
     }
 
-    void average_down_dg_order3 (const MultiFab& S_fine, MultiFab& S_crse,
-		                 const Geometry& fgeom, const Geometry& cgeom,
-                                 int scomp, int ncomp, const IntVect& ratio)
+    void average_down_dg_order3
+           ( const MultiFab& S_fine, MultiFab& S_crse,
+             const Geometry& fgeom, const Geometry& cgeom,
+             int scomp, int ncomp, const IntVect& ratio )
     {
         amrex::ignore_unused(fgeom,cgeom);
 
@@ -643,8 +650,8 @@ namespace amrex
         }
 
 #if (AMREX_SPACEDIM == 3)
-	amrex::average_down(S_fine, S_crse, scomp, ncomp, ratio);
-	return;
+        amrex::average_down(S_fine, S_crse, scomp, ncomp, ratio);
+        return;
 #else
 
         AMREX_ASSERT(S_crse.nComp() == S_fine.nComp());
@@ -652,15 +659,16 @@ namespace amrex
         //
         // Coarsen() the fine stuff on processors owning the fine data.
         //
-	const BoxArray& fine_BA = S_fine.boxArray();
-	const DistributionMapping& fine_dm = S_fine.DistributionMap();
+        const BoxArray& fine_BA = S_fine.boxArray();
+        const DistributionMapping& fine_dm = S_fine.DistributionMap();
         BoxArray crse_S_fine_BA = fine_BA;
-	crse_S_fine_BA.coarsen(ratio);
+        crse_S_fine_BA.coarsen(ratio);
 
-        MultiFab crse_S_fine(crse_S_fine_BA,fine_dm,ncomp,0,MFInfo(),FArrayBoxFactory());
+        MultiFab crse_S_fine
+          (crse_S_fine_BA,fine_dm,ncomp,0,MFInfo(),FArrayBoxFactory());
 
-	MultiFab fvolume;
-	fgeom.GetVolume(fvolume, fine_BA, fine_dm, 0);
+        MultiFab fvolume;
+        fgeom.GetVolume(fvolume, fine_BA, fine_dm, 0);
 
 #ifdef AMREX_USE_GPU
 /*
