@@ -4,7 +4,7 @@
 using namespace amrex;
 using namespace thornado;
 
-/* names of declared functions must be all lowercase! */
+/* names of functions being defined must be all lowercase letters! */
 
 extern "C"
 {
@@ -12,5 +12,10 @@ extern "C"
     ( int nNodes[], Real ProjectionMatrix[], Real WeightsX_q[] )
   {
     InitializeMeshRefinement_Thornado( nNodes, ProjectionMatrix, WeightsX_q );
+  }
+
+  void amrex_fi_finalizemeshrefinement_thornado()
+  {
+    FinalizeMeshRefinement_Thornado();
   }
 }

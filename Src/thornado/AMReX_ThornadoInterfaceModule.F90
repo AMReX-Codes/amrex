@@ -9,6 +9,7 @@ MODULE AMReX_ThornadoInterfaceModule
   PRIVATE
 
   PUBLIC :: amrex_InitializeMeshRefinement_Thornado
+  PUBLIC :: amrex_FinalizeMeshRefinement_Thornado
 
   INTERFACE ThornadoInterface
 
@@ -20,6 +21,11 @@ MODULE AMReX_ThornadoInterfaceModule
        REAL(DP)      , INTENT(in) :: ProjectionMatrix(*)
        REAL(DP)      , INTENT(in) :: WeightsX_q(*)
     END SUBROUTINE amrex_fi_initializemeshrefinement_thornado
+
+    SUBROUTINE amrex_fi_finalizemeshrefinement_thornado() BIND(c)
+       IMPORT
+       IMPLICIT NONE
+    END SUBROUTINE amrex_fi_finalizemeshrefinement_thornado
 
   END INTERFACE ThornadoInterface
 
@@ -36,6 +42,11 @@ CONTAINS
     CALL amrex_fi_initializemeshrefinement_thornado &
            ( nNodes, ProjectionMatrix, WeightsX_q )
   END SUBROUTINE amrex_InitializeMeshRefinement_Thornado
+
+
+  SUBROUTINE amrex_FinalizeMeshRefinement_Thornado
+    CALL amrex_fi_finalizemeshrefinement_thornado
+  END SUBROUTINE amrex_FinalizeMeshRefinement_Thornado
 
 
 END MODULE AMReX_ThornadoInterfaceModule
