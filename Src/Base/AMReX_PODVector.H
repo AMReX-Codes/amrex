@@ -55,7 +55,7 @@ namespace amrex
         memCopyImpl (void* dst, const void* src, std::size_t count)
         {
 #ifdef AMREX_USE_GPU
-            Gpu::dtod_memcpy_async(dst, src, count);
+            Gpu::dtod_memcpy(dst, src, count);
 #else
             std::memcpy(dst, src, count);
 #endif
