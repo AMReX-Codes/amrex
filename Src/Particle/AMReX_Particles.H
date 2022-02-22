@@ -190,8 +190,8 @@ public:
     ParticleContainer ()
       :
       ParticleContainerBase(),
-      h_communicate_real_comp(NArrayReal, true),
-      h_communicate_int_comp(NArrayInt, true),
+      h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
+      h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
       m_runtime_comps_defined(false),
       m_num_runtime_real(0),
       m_num_runtime_int(0)
@@ -209,8 +209,8 @@ public:
     ParticleContainer (ParGDBBase* gdb)
         :
         ParticleContainerBase(gdb),
-        h_communicate_real_comp(NArrayReal, true),
-        h_communicate_int_comp(NArrayInt, true),
+        h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
+        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
         m_runtime_comps_defined(false),
         m_num_runtime_real(0),
         m_num_runtime_int(0)
@@ -232,8 +232,8 @@ public:
                        const BoxArray            & ba)
         :
         ParticleContainerBase(geom, dmap, ba),
-        h_communicate_real_comp(NArrayReal, true),
-        h_communicate_int_comp(NArrayInt, true),
+        h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
+        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
         m_runtime_comps_defined(false),
         m_num_runtime_real(0),
         m_num_runtime_int(0)
@@ -258,8 +258,8 @@ public:
                        const Vector<int>                 & rr)
         :
         ParticleContainerBase(geom, dmap, ba, rr),
-        h_communicate_real_comp(NArrayReal, true),
-        h_communicate_int_comp(NArrayInt, true),
+        h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
+        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
         m_runtime_comps_defined(false),
         m_num_runtime_real(0),
         m_num_runtime_int(0)
@@ -283,8 +283,8 @@ public:
                        const Vector<IntVect>             & rr)
         :
         ParticleContainerBase(geom, dmap, ba, rr),
-        h_communicate_real_comp(NArrayReal, true),
-        h_communicate_int_comp(NArrayInt, true),
+        h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
+        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
         m_runtime_comps_defined(false),
         m_num_runtime_real(0),
         m_num_runtime_int(0)
@@ -1200,7 +1200,7 @@ public:
     {
         m_runtime_comps_defined = true;
         m_num_runtime_real++;
-        h_communicate_real_comp.push_back(communicate);
+        h_redistribute_real_comp.push_back(communicate);
         SetParticleSize();
     }
 
@@ -1210,7 +1210,7 @@ public:
     {
         m_runtime_comps_defined = true;
         m_num_runtime_int++;
-        h_communicate_int_comp.push_back(communicate);
+        h_redistribute_int_comp.push_back(communicate);
         SetParticleSize();
     }
 
@@ -1220,10 +1220,37 @@ public:
     int NumRealComps () const { return NArrayReal + NumRuntimeRealComps(); }
     int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; }
 
-    Vector<int> h_communicate_real_comp;
-    Vector<int> h_communicate_int_comp;
-    Gpu::DeviceVector<int> d_communicate_real_comp;
-    Gpu::DeviceVector<int> d_communicate_int_comp;
+    /** type trait to translate one particle container to another, with changed allocator */
+    template <template<class> class NewAllocator=amrex::DefaultAllocator>
+    using ContainerLike = amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, NewAllocator>;
+
+    /** Create an empty particle container
+     *
+     * This creates a new AMReX particle container type with same compile-time
+     * and run-time attributes. But, it can change its allocator. This is
+     * helpful when creating temporary particle buffers for filter operations
+     * and device-to-host copies.
+     *
+     * @tparam Allocator AMReX allocator, e.g., amrex::PinnedArenaAllocator
+     * @return an empty particle container
+     * */
+    template <template<class> class NewAllocator=amrex::DefaultAllocator>
+    ContainerLike<NewAllocator>
+    make_alike () const
+    {
+        ContainerLike<NewAllocator> tmp(m_gdb);
+
+        // add runtime real comps to tmp
+        for (int ic = 0; ic < this->NumRuntimeRealComps(); ++ic) { tmp.AddRealComp(false); }
+
+        // add runtime int comps to tmp
+        for (int ic = 0; ic < this->NumRuntimeIntComps(); ++ic) { tmp.AddIntComp(false); }
+
+        return tmp;
+    }
+
+    Vector<int> h_redistribute_real_comp;
+    Vector<int> h_redistribute_int_comp;
 
     //! Variables for i/o optimization saved for pre and post checkpoint
     mutable bool levelDirectoriesCreated;

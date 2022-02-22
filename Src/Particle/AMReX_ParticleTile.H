@@ -38,33 +38,37 @@ struct ParticleTileData
         auto dst = buffer + dst_offset;
         memcpy(dst, m_aos + src_index, sizeof(ParticleType));
         dst += sizeof(ParticleType);
+        int array_start_index  = AMREX_SPACEDIM + NStructReal;
         for (int i = 0; i < NArrayReal; ++i)
         {
-            if (comm_real[i])
+            if (comm_real[array_start_index + i])
             {
                 memcpy(dst, m_rdata[i] + src_index, sizeof(ParticleReal));
                 dst += sizeof(ParticleReal);
             }
         }
+        int runtime_start_index  = AMREX_SPACEDIM + NStructReal + NArrayReal;
         for (int i = 0; i < m_num_runtime_real; ++i)
         {
-            if (comm_real[NArrayReal+i])
+            if (comm_real[runtime_start_index + i])
             {
                 memcpy(dst, m_runtime_rdata[i] + src_index, sizeof(ParticleReal));
                 dst += sizeof(ParticleReal);
             }
         }
+        array_start_index  = 2 + NStructInt;
         for (int i = 0; i < NArrayInt; ++i)
         {
-            if (comm_int[i])
+            if (comm_int[array_start_index + i])
             {
                 memcpy(dst, m_idata[i] + src_index, sizeof(int));
                 dst += sizeof(int);
             }
         }
+        runtime_start_index  = 2 + NStructInt + NArrayInt;
         for (int i = 0; i < m_num_runtime_int; ++i)
         {
-            if (comm_int[NArrayInt+i])
+            if (comm_int[runtime_start_index + i])
             {
                 memcpy(dst, m_runtime_idata[i] + src_index, sizeof(int));
                 dst += sizeof(int);
@@ -80,33 +84,37 @@ struct ParticleTileData
         auto src = buffer + src_offset;
         memcpy(m_aos + dst_index, src, sizeof(ParticleType));
         src += sizeof(ParticleType);
+        int array_start_index  = AMREX_SPACEDIM + NStructReal;
         for (int i = 0; i < NArrayReal; ++i)
         {
-            if (comm_real[i])
+            if (comm_real[array_start_index + i])
             {
                 memcpy(m_rdata[i] + dst_index, src, sizeof(ParticleReal));
                 src += sizeof(ParticleReal);
             }
         }
+        int runtime_start_index  = AMREX_SPACEDIM + NStructReal + NArrayReal;
         for (int i = 0; i < m_num_runtime_real; ++i)
         {
-            if (comm_real[NArrayReal+i])
+            if (comm_real[runtime_start_index + i])
             {
                 memcpy(m_runtime_rdata[i] + dst_index, src, sizeof(ParticleReal));
                 src += sizeof(ParticleReal);
             }
         }
+        array_start_index  = 2 + NStructInt;
         for (int i = 0; i < NArrayInt; ++i)
         {
-            if (comm_int[i])
+            if (comm_int[array_start_index + i])
             {
                 memcpy(m_idata[i] + dst_index, src, sizeof(int));
                 src += sizeof(int);
             }
         }
+        runtime_start_index  = 2 + NStructInt + NArrayInt;
         for (int i = 0; i < m_num_runtime_int; ++i)
         {
-            if (comm_int[NArrayInt+i])
+            if (comm_int[runtime_start_index + i])
             {
                 memcpy(m_runtime_idata[i] + dst_index, src, sizeof(int));
                 src += sizeof(int);
@@ -178,33 +186,37 @@ struct ConstParticleTileData
         auto dst = buffer + dst_offset;
         memcpy(dst, m_aos + src_index, sizeof(ParticleType));
         dst += sizeof(ParticleType);
+        int array_start_index  = AMREX_SPACEDIM + NStructReal;
         for (int i = 0; i < NArrayReal; ++i)
         {
-            if (comm_real[i])
+            if (comm_real[array_start_index + i])
             {
                 memcpy(dst, m_rdata[i] + src_index, sizeof(ParticleReal));
                 dst += sizeof(ParticleReal);
             }
         }
+        int runtime_start_index  = AMREX_SPACEDIM + NStructReal + NArrayReal;
         for (int i = 0; i < m_num_runtime_real; ++i)
         {
-            if (comm_real[NArrayReal+i])
+            if (comm_real[runtime_start_index + i])
             {
                 memcpy(dst, m_runtime_rdata[i] + src_index, sizeof(ParticleReal));
                 dst += sizeof(ParticleReal);
             }
         }
+        array_start_index  = 2 + NStructInt;
         for (int i = 0; i < NArrayInt; ++i)
         {
-            if (comm_int[i])
+            if (comm_int[array_start_index + i])
             {
                 memcpy(dst, m_idata[i] + src_index, sizeof(int));
                 dst += sizeof(int);
             }
         }
+        runtime_start_index  = 2 + NStructInt + NArrayInt;
         for (int i = 0; i < m_num_runtime_int; ++i)
         {
-            if (comm_int[NArrayInt+i])
+            if (comm_int[runtime_start_index + i])
             {
                 memcpy(dst, m_runtime_idata[i] + src_index, sizeof(int));
                 dst += sizeof(int);
