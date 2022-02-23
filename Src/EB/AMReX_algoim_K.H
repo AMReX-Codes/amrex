@@ -238,7 +238,7 @@ struct Interval
 
 // M-dimensional integral of an N-dimensional function restricted to
 // given implicitly defined domains
-template<int M, int N, typename Phi, typename F>
+template<int M, int N, typename Phi, typename F, bool S>
 struct ImplicitIntegral
 {
     const Phi& phi;
@@ -365,6 +365,62 @@ struct ImplicitIntegral
         // assumed tied and so one thread can only execute
         // "evalIntegrand" from start to end uninterrupted.
         GpuArray<Real,4> roots;
+
+        if (S)
+        {
+            // Surface integral
+            // This is the algoim implementation:
+            //
+            // assert(M == N && N >= 2); // x is thus valid in all variables except e0
+            // detail::rootFind<Phi,N>(phi, x, e0, xrange.min(e0), xrange.max(e0), roots, true);
+            // assert(roots.size() <= 1);
+            // for (int i = 0; i < static_cast<int>(roots.size()); ++i)
+            // {
+            //     x(e0) = roots[i];
+            //     TinyVector<Real,N> g = phi.grad(x);
+            //     f.evalIntegrand(x, mag(g)/std::abs(g(e0))*w);
+            // }
+            // return;
+
+            AMREX_ASSERT(M == N && N >= 2); // x is thus valid in all variables except e0
+
+            // Partition [xmin(e0), xmax(e0)] by roots found
+            Real x_min = xrange.min(e0);
+            Real x_max = xrange.max(e0);
+            roots[0] = x_min;
+            int nroots = 1;
+            if (phi.grad(e0) != Real(0.0)) {
+                for (int i = 0; i < psiCount; ++i)
+                {
+                    for (int dim = 0; dim < N; ++dim) {
+                        if (!free[dim]) {
+                            x[dim] = xrange(psi[i].side(dim),dim);
+                        }
+                    }
+                    // x is now valid in all variables except e0
+                    x[e0] = x_min;
+                    Real phi_lo = phi(x);
+                    Real xroot = x[e0] - phi_lo / phi.grad(e0);
+                    if (xroot > x_min && xroot < x_max) {
+                        roots[nroots++] = xroot;
+                    }
+                }
+                AMREX_ASSERT(nroots <= 3);
+            }
+            if (nroots == 3 && roots[1] > roots[2]) {
+                detail::swap(roots[1],roots[2]);
+            }
+
+            roots[nroots++] = x_max;
+
+            AMREX_ASSERT(nroots <= 3);
+            for (int i = 0; i < static_cast<int>(roots.size()); ++i)
+            {
+                x[e0] = roots[i];
+                f.evalIntegrand(x, w);
+            }
+            return;
+        }
 
         // Partition [xmin(e0), xmax(e0)] by roots found
         Real x_min = xrange.min(e0);
@@ -531,14 +587,14 @@ struct ImplicitIntegral
         // Dimension reduction call
         GpuArray<bool,N> new_free = free;
         new_free[e0] = false;
-        ImplicitIntegral<M-1,N,Phi,ImplicitIntegral<M,N,Phi,F> >
+        ImplicitIntegral<M-1,N,Phi,ImplicitIntegral<M,N,Phi,F,S>,false>
             (phi, *this, new_free, newPsi, newPsiCount);
     }
 };
 
 // Partial specialisation on M=0 as a dummy base case for the compiler
-template<int N, typename Phi, typename F>
-struct ImplicitIntegral<0,N,Phi,F>
+template<int N, typename Phi, typename F, bool S>
+struct ImplicitIntegral<0,N,Phi,F,S>
 {
     AMREX_GPU_HOST_DEVICE
     ImplicitIntegral (const Phi&, F&, const GpuArray<bool,N>&,
@@ -554,7 +610,19 @@ quadGen (EBPlane const& phi) noexcept
     GpuArray<bool,3> free{true,true,true};
     GpuArray<PsiCode<3>,4> psi;
     psi[0] = PsiCode<3>({0,0,0}, -1);
-    ImplicitIntegral<3,3,EBPlane,QuadratureRule>(phi, q, free, psi, 1);
+    ImplicitIntegral<3,3,EBPlane,QuadratureRule,false>(phi, q, free, psi, 1);
+    return q;
+}
+
+AMREX_GPU_HOST_DEVICE inline
+QuadratureRule
+quadGenSurf (EBPlane const& phi) noexcept
+{
+    QuadratureRule q;
+    GpuArray<bool,3> free{true,true,true};
+    GpuArray<PsiCode<3>,4> psi;
+    psi[0] = PsiCode<3>({0,0,0}, -1);
+    ImplicitIntegral<3,3,EBPlane,QuadratureRule,true>(phi, q, free, psi, 1);
     return q;
 }
 

@@ -139,6 +139,15 @@ compute_integrals (MultiFab& intgmf, IntVect nghost)
                                     bn(i,j,k,0),bn(i,j,k,1),bn(i,j,k,2));
 
                         const QuadratureRule q = quadGen(phi);
+                        const QuadratureRule qsurf = quadGenSurf(phi);
+
+                        if (i==2 && j==7 && k==7) {
+                            auto intg_S1_v = q.eval([](Real,Real,Real) noexcept {return 1;} );
+                            auto intg_S1_s = qsurf.eval([](Real,Real,Real) noexcept {return 1;} );
+
+                            amrex::Print() << "intg_S1 (volume) = " << intg_S1_v << std::endl;
+                            amrex::Print() << "intg_S1 (surface) = " << intg_S1_s << std::endl;
+                        }
 
                         intg(i,j,k,i_S_x    ) = q.eval([](Real x, Real /*y*/, Real /*z*/) noexcept
                                                    { return x; });
