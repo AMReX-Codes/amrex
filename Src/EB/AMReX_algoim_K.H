@@ -397,7 +397,7 @@ struct ImplicitIntegral
 
             AMREX_ASSERT(nroots <= 1);
 
-            for (int i = 0; i < static_cast<int>(roots.size()); ++i)
+            for (int i = 0; i < nroots; ++i)
             {
                 x[e0] = roots[i];
                 f.evalIntegrand(x, w);
