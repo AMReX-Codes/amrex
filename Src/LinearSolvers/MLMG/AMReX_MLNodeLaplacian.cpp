@@ -87,6 +87,8 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
     const int ncomp_i = algoim::numIntgs;
 #endif
     m_integral.resize(m_num_amr_levels);
+    m_surface_integral.resize(m_num_amr_levels);
+    m_eb_phi.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
 #ifdef AMREX_USE_EB
@@ -94,8 +96,16 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
                                                         m_dmap[amrlev][0],
                                                         ncomp_i, 1, MFInfo(),
                                                         *m_factory[amrlev][0]);
+
+        m_surface_integral[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][0],
+                                                        m_dmap[amrlev][0],
+                                                        ncomp_i, 1, MFInfo(),
+                                                        *m_factory[amrlev][0]);
 #else
         m_integral[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][0],
+                                                        m_dmap[amrlev][0], ncomp_i, 1));
+
+        m_surface_integral[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][0],
                                                         m_dmap[amrlev][0], ncomp_i, 1));
 #endif
     }
@@ -254,6 +264,7 @@ MLNodeLaplacian::prepareForSolve ()
 
 #ifdef AMREX_USE_EB
     buildIntegral();
+    buildSurfaceIntegral();
 #endif
 
     buildStencil();
@@ -796,6 +807,36 @@ MLNodeLaplacian::checkPoint (std::string const& file_name) const
             VisMF::Write(*m_sigma[ilev][0][0], file_name+"/Level_"+std::to_string(ilev)+"/sigma");
         }
     }
+}
+
+void
+MLNodeLaplacian::setEBDirichlet (int amrlev, const MultiFab& phi)
+{
+    if (m_eb_phi[amrlev] == nullptr) {
+        const int mglev = 0;
+        m_eb_phi[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][mglev],
+                                                      m_dmap[amrlev][mglev],
+                                                      AMREX_SPACEDIM, 1, MFInfo(),
+                                                      *m_factory[amrlev][mglev]);
+    }
+
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(*m_eb_phi[amrlev], mfi_info); mfi.isValid(); ++mfi)
+    {
+        const Box& gbx = mfi.growntilebox();
+        Array4<Real> const& phiout = m_eb_phi[amrlev]->array(mfi);
+        Array4<Real const> const& phiin = phi.const_array(mfi);
+
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D (gbx, AMREX_SPACEDIM, i, j, k, n,
+        {
+            phiout(i,j,k,n) = phiin(i,j,k,n);
+        });
+    }
+
 }
 
 }

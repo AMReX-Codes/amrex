@@ -136,6 +136,10 @@ public :
 
 #ifdef AMREX_USE_EB
     void buildIntegral ();
+    void buildSurfaceIntegral ();
+
+    // Tells the solver that EB boundaries have Dirichlet bc's specified by "phi"
+    void setEBDirichlet (int amrlev, const MultiFab& phi);
 #endif
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
@@ -186,6 +190,10 @@ private:
     // they could be MultiCutFab
     Vector<std::unique_ptr<MultiFab> > m_integral;
     bool m_integral_built = false;
+
+    Vector<std::unique_ptr<MultiFab> > m_surface_integral;
+    bool m_surface_integral_built = false;
+    Vector<std::unique_ptr<MultiFab> > m_eb_phi;
 #endif
 
     bool m_use_gauss_seidel     = true;

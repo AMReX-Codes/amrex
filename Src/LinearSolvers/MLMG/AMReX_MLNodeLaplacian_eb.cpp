@@ -80,4 +80,25 @@ MLNodeLaplacian::buildIntegral ()
 #endif
 }
 
+void
+MLNodeLaplacian::buildSurfaceIntegral ()
+{
+    if (m_surface_integral_built) return;
+
+    BL_PROFILE("MLNodeLaplacian::buildSurfaceIntegral()");
+
+    m_integral_built = true;
+
+#if (AMREX_SPACEDIM == 2)
+    //TODO: Support 2D
+#else
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        if (dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get())) {
+            amrex::algoim::compute_surface_integrals(*m_surface_integral[amrlev]);
+        }
+    }
+#endif
+}
+
 }

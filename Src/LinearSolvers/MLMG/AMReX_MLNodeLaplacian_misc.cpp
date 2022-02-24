@@ -894,6 +894,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 
 #ifdef AMREX_USE_EB
     if (!m_integral_built) buildIntegral();
+    if (!m_surface_integral_built) buildSurfaceIntegral();
 #endif
 
 #if (AMREX_SPACEDIM == 2)
@@ -979,6 +980,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
         const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
         const MultiFab* intg = m_integral[ilev].get();
+        const MultiFab* sintg = m_surface_integral[ilev].get();
 
         AMREX_ALWAYS_ASSERT(ilev == m_num_amr_levels-1 || AMRRefRatio(ilev) == 2
                             || factory == nullptr || factory->isAllRegular());
@@ -1015,9 +1017,14 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                 {
                     Array4<Real const> const& vfracarr = vfrac->const_array(mfi);
                     Array4<Real const> const& intgarr = intg->const_array(mfi);
+                    Array4<Real const> const& sintgarr = sintg->const_array(mfi);
+
+                    Array4<Real const> const& ebvel = m_eb_phi[ilev] ? m_eb_phi[ilev]->const_array(mfi) : Array4<Real>{};
+
                     AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                     {
-                        mlndlap_divu_eb(i,j,k,rhsarr,velarr,vfracarr,intgarr,dmskarr,dxinvarr,nddom,lobc,hibc);
+                        mlndlap_divu_eb(i,j,k,rhsarr,velarr,vfracarr,intgarr,
+                            dmskarr,dxinvarr,nddom,lobc,hibc,sintgarr,ebvel);
                     });
                 }
                 else

@@ -9,6 +9,9 @@ namespace amrex { namespace algoim {
 void compute_integrals (MultiFab& intg, int nghost = 100);
 void compute_integrals (MultiFab& intg, IntVect nghost);
 
+void compute_surface_integrals (MultiFab& intg, int nghost = 100);
+void compute_surface_integrals (MultiFab& intg, IntVect nghost);
+
 static constexpr int i_S_x     =  0;
 static constexpr int i_S_y     =  1;
 static constexpr int i_S_z     =  2;
