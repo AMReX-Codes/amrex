@@ -384,36 +384,19 @@ struct ImplicitIntegral
 
             AMREX_ASSERT(M == N && N >= 2); // x is thus valid in all variables except e0
 
-            // Partition [xmin(e0), xmax(e0)] by roots found
             Real x_min = xrange.min(e0);
             Real x_max = xrange.max(e0);
-            roots[0] = x_min;
-            int nroots = 1;
-            if (phi.grad(e0) != Real(0.0)) {
-                for (int i = 0; i < psiCount; ++i)
-                {
-                    for (int dim = 0; dim < N; ++dim) {
-                        if (!free[dim]) {
-                            x[dim] = xrange(psi[i].side(dim),dim);
-                        }
-                    }
-                    // x is now valid in all variables except e0
-                    x[e0] = x_min;
-                    Real phi_lo = phi(x);
-                    Real xroot = x[e0] - phi_lo / phi.grad(e0);
-                    if (xroot > x_min && xroot < x_max) {
-                        roots[nroots++] = xroot;
-                    }
-                }
-                AMREX_ASSERT(nroots <= 3);
-            }
-            if (nroots == 3 && roots[1] > roots[2]) {
-                detail::swap(roots[1],roots[2]);
+            int nroots = 0;
+
+            x[e0] = x_min;
+            Real phi_lo = phi(x);
+            Real xroot = x[e0] - phi_lo / phi.grad(e0);
+            if (xroot > x_min && xroot < x_max) {
+                roots[nroots++] = xroot;
             }
 
-            roots[nroots++] = x_max;
+            AMREX_ASSERT(nroots <= 1);
 
-            AMREX_ASSERT(nroots <= 3);
             for (int i = 0; i < static_cast<int>(roots.size()); ++i)
             {
                 x[e0] = roots[i];
