@@ -1973,6 +1973,11 @@ namespace {
     constexpr int i_S_y2    = 3;
     constexpr int i_S_xy    = 4;
     constexpr int n_Sintg   = 5;
+
+    constexpr int i_B_x     = 0;
+    constexpr int i_B_y     = 1;
+    constexpr int i_B_xy    = 2;
+    constexpr int n_Bintg   = 3;
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -2019,7 +2024,10 @@ void mlndlap_divu_eb (int i, int j, int, Array4<Real> const& rhs, Array4<Real co
                       Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                       Box const& nodal_domain,
                       GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bclo,
-                      GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
+                      GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi,
+                      Array4<Real const> const& bareaarr,
+                      Array4<Real const> const& sintg,
+                      Array4<Real const> const& eb_phi_dot_n) noexcept
 {
     Real facx = Real(0.5)*dxinv[0];
     Real facy = Real(0.5)*dxinv[1];
@@ -2053,6 +2061,9 @@ void mlndlap_divu_eb (int i, int j, int, Array4<Real> const& rhs, Array4<Real co
                            -vel(i  ,j-1,0,1)*(vfrac(i  ,j-1,0)-Real(2.)*intg(i  ,j-1,0,0))*zero_ihi
                            +vel(i-1,j  ,0,1)*(vfrac(i-1,j  ,0)+Real(2.)*intg(i-1,j  ,0,0))*zero_ilo
                            +vel(i  ,j  ,0,1)*(vfrac(i  ,j  ,0)-Real(2.)*intg(i  ,j  ,0,0))*zero_ihi);
+
+        // TODO: Add EB contribution
+        //
     } else {
         rhs(i,j,0) = Real(0.);
     }
@@ -2118,6 +2129,14 @@ void mlndlap_set_integral (int i, int j, int, Array4<Real> const& intg) noexcept
     intg(i,j,0,i_S_x2) = Real(1./12.);
     intg(i,j,0,i_S_y2) = Real(1./12.);
     intg(i,j,0,i_S_xy) = Real(0.);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_set_surface_integral (int i, int j, int, Array4<Real> const& intg) noexcept
+{
+    intg(i,j,0,i_B_x ) = Real(0.);
+    intg(i,j,0,i_B_y ) = Real(0.);
+    intg(i,j,0,i_B_xy) = Real(0.);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -2216,6 +2235,69 @@ void mlndlap_set_integral_eb (int i, int j, int, Array4<Real> const& intg,
         intg(i,j,0,i_S_x2) = Sx2;
         intg(i,j,0,i_S_y2) = Sy2;
         intg(i,j,0,i_S_xy) = Sxy;
+    }
+}
+
+//TODO: Check implementation and test
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& intg,
+                              Array4<EBCellFlag const> const& flag, Array4<Real const> const& vol,
+                              Array4<Real const> const& ax, Array4<Real const> const& ay,
+                              Array4<Real const> const& bcen) noexcept
+{
+    if (flag(i,j,0).isCovered()) {
+        intg(i,j,0,i_B_x ) = Real(0.);
+        intg(i,j,0,i_B_y ) = Real(0.);
+        intg(i,j,0,i_B_xy) = Real(0.);
+    } else if (flag(i,j,0).isRegular() || vol(i,j,0) >= almostone) {
+        intg(i,j,0,i_B_x ) = Real(0.);
+        intg(i,j,0,i_B_y ) = Real(0.);
+        intg(i,j,0,i_B_xy) = Real(0.);
+    } else {
+        Real axm = ax(i,j,0);
+        Real axp = ax(i+1,j,0);
+        Real aym = ay(i,j,0);
+        Real ayp = ay(i,j+1,0);
+
+        Real apnorm = std::sqrt((axm-axp)*(axm-axp) + (aym-ayp)*(aym-ayp));
+        if (apnorm == Real(0.)) {
+            amrex::Abort("amrex_mlndlap_set_surface_integral: we are in trouble");
+        }
+
+        Real apnorminv = Real(1.)/apnorm;
+        Real anrmx = (axm-axp) * apnorminv;  // pointing to the wall
+        Real anrmy = (aym-ayp) * apnorminv;
+
+        Real bcx = bcen(i,j,0,0);
+        Real bcy = bcen(i,j,0,1);
+
+        Real c = -(bcx * anrmx + bcy * anrmy);
+        Vector<RealVect> p;
+
+        if (axm > 0.0) {
+            p.push_back({-0.5, (-c + 0.5*anrmx)/anrmy});
+        } else if (axp > 0.0) {
+            p.push_back({ 0.5, (-c - 0.5*anrmx)/anrmy});
+        } else if (aym > 0.0) {
+            p.push_back({(-c + 0.5*anrmy)/anrmx, -0.5});
+        } else if (ayp > 0.0) {
+            p.push_back({(-c - 0.5*anrmy)/anrmx,  0.5});
+        }
+
+        if (p.size() == 2) {
+            amrex::Abort("amrex_mlndlap_set_surface_integral: we are in trouble");
+        }
+
+        Real x0 = p[0][0], x1 = p[1][0];
+        Real y0 = p[0][1], y1 = p[1][1];
+
+        Real Bx = 0.5*(x1 + x0);
+        Real By = 0.5*(y1 + y0);
+        Real Bxy = x0*y0 + (x0*(y1 - y0) + y0*(x1 - x0))/2 + (x1 - x0)*(y1 - y0)/3;
+
+        intg(i,j,0,i_B_x ) = Bx;
+        intg(i,j,0,i_B_y ) = By;
+        intg(i,j,0,i_B_xy) = Bxy;
     }
 }
 

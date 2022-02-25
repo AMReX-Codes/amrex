@@ -311,16 +311,6 @@ compute_surface_integrals (MultiFab& sintgmf, IntVect nghost)
                                                    { return y*z; });
                         sintg(i,j,k,i_B_xyz  ) = q.eval([](Real x, Real y, Real z) noexcept
                                                    { return x*y*z; });
-
-                        // TODO: Remove
-                        /*if (i==2 && j==7 && k==7) {
-                            Print() << "sintg_S_x   = " << sintg(i,j,k,i_S_x  ) << std::endl;
-                            Print() << "sintg_S_y   = " << sintg(i,j,k,i_S_y  ) << std::endl;
-                            Print() << "sintg_S_xy  = " << sintg(i,j,k,i_S_x_y ) << std::endl;
-                            Print() << "sintg_S_z   = " << sintg(i,j,k,i_S_z  ) << std::endl;
-                            Print() << "sintg_S_xz  = " << sintg(i,j,k,i_S_x_z ) << std::endl;
-                            Print() << "sintg_S_xyz = " << sintg(i,j,k,i_S_xyz) << std::endl;
-                        }*/
                     }
                 }
             }

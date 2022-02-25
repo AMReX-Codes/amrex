@@ -82,7 +82,8 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
 
 #ifdef AMREX_USE_EB
 #if (AMREX_SPACEDIM == 2)
-    const int ncomp_i = 5;
+    const int ncomp_i  = 5;
+    const int ncomp_si = 3;
 #else
     const int ncomp_i  = algoim::numIntgs;
     const int ncomp_si = algoim::numSurfIntgs;
