@@ -140,6 +140,8 @@ public :
 
     // Tells the solver that EB boundaries have Dirichlet bc's specified by "phi"
     void setEBDirichlet (int amrlev, const MultiFab& phi);
+
+    // TODO: void setEBDirichlet(int amrlev, const MultiFab& phi_dot_n);
 #endif
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
@@ -193,7 +195,7 @@ private:
 
     Vector<std::unique_ptr<MultiFab> > m_surface_integral;
     bool m_surface_integral_built = false;
-    Vector<std::unique_ptr<MultiFab> > m_eb_phi;
+    Vector<std::unique_ptr<MultiFab> > m_eb_phi_dot_n;
 #endif
 
     bool m_use_gauss_seidel     = true;

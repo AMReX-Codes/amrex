@@ -88,7 +88,7 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
 #endif
     m_integral.resize(m_num_amr_levels);
     m_surface_integral.resize(m_num_amr_levels);
-    m_eb_phi.resize(m_num_amr_levels);
+    m_eb_phi_dot_n.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
 #ifdef AMREX_USE_EB
@@ -812,30 +812,42 @@ MLNodeLaplacian::checkPoint (std::string const& file_name) const
 void
 MLNodeLaplacian::setEBDirichlet (int amrlev, const MultiFab& phi)
 {
-    if (m_eb_phi[amrlev] == nullptr) {
-        const int mglev = 0;
-        m_eb_phi[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][mglev],
+    const int mglev = 0;
+    if (m_eb_phi_dot_n[amrlev] == nullptr) {
+        m_eb_phi_dot_n[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][mglev],
                                                       m_dmap[amrlev][mglev],
-                                                      AMREX_SPACEDIM, 1, MFInfo(),
+                                                      1, 1, MFInfo(),
                                                       *m_factory[amrlev][mglev]);
     }
+
+    m_eb_phi_dot_n[amrlev]->setVal(0.0);
+
+    auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(*m_eb_phi[amrlev], mfi_info); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*m_eb_phi_dot_n[amrlev], mfi_info); mfi.isValid(); ++mfi)
     {
-        const Box& gbx = mfi.growntilebox();
-        Array4<Real> const& phiout = m_eb_phi[amrlev]->array(mfi);
+        const Box& bx = mfi.tilebox();
+        Array4<Real> const& phi_dot_n = m_eb_phi_dot_n[amrlev]->array(mfi);
         Array4<Real const> const& phiin = phi.const_array(mfi);
 
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D (gbx, AMREX_SPACEDIM, i, j, k, n,
+        Array4<Real const> const& bnorm = ebfactory->getBndryNormal().const_array(mfi);
+
+        ParallelFor(bx, [phi_dot_n,phiin,bnorm]
+         AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            phiout(i,j,k,n) = phiin(i,j,k,n);
+            for(int n = 0; n < AMREX_SPACEDIM; ++n)
+            {
+                phi_dot_n(i,j,k) += phiin(i,j,k,n)*bnorm(i,j,k,n);
+            }
         });
     }
+
+    m_eb_phi_dot_n[amrlev]->FillBoundary(m_geom[amrlev][mglev].periodicity());
 
 }
 

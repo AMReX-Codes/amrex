@@ -85,6 +85,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
     const MultiFab* intg = m_integral[0].get();
     const MultiFab* sintg = m_surface_integral[0].get();
     const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
+    const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
 #endif
 
     bool neumann_doubling = true; // yes even for RAP, because unimposeNeumannBC will be called on rhs
@@ -175,12 +176,13 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                     if (typ == FabType::singlevalued)
                     {
                         Array4<Real const> const& vfracarr = vfrac->const_array(mfi);
+                        Array4<Real const> const& bareaarr = barea->const_array(mfi);
                         Array4<Real const> const& intgarr = intg->const_array(mfi);
                         Array4<Real const> const& sintgarr = sintg->const_array(mfi);
                         AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                         {
                             mlndlap_divu_eb(i,j,k,rhsarr,uarr,vfracarr,intgarr,
-                                dmskarr,dxinv,nddom,lobc,hibc,sintgarr,Array4<Real>{});
+                                dmskarr,dxinv,nddom,lobc,hibc,bareaarr,sintgarr,Array4<Real>{});
                         });
                     }
                     else
@@ -352,6 +354,7 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
     const MultiFab* intg = m_integral[0].get();
     const MultiFab* sintg = m_surface_integral[0].get();
     const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
+    const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
 #endif
 
     const Geometry& geom = m_geom[0][0];
@@ -443,12 +446,13 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                 if (typ == FabType::singlevalued)
                 {
                     Array4<Real const> const& vfracarr = vfrac->const_array(mfi);
+                    Array4<Real const> const& bareaarr = barea->const_array(mfi);
                     Array4<Real const> const& intgarr = intg->const_array(mfi);
                     Array4<Real const> const& sintgarr = sintg->const_array(mfi);
                     AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                     {
                         mlndlap_divu_eb(i,j,k,rhsarr,uarr,vfracarr,intgarr,
-                            tmpmaskarr,dxinv,nddom,lobc,hibc,sintgarr,Array4<Real>{});
+                            tmpmaskarr,dxinv,nddom,lobc,hibc,bareaarr,sintgarr,Array4<Real>{});
                     });
                 }
                 else

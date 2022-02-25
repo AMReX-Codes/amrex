@@ -979,6 +979,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[ilev][0].get());
         const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
         const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
+        const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
         const MultiFab* intg = m_integral[ilev].get();
         const MultiFab* sintg = m_surface_integral[ilev].get();
 
@@ -1016,15 +1017,17 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                 else if (typ == FabType::singlevalued)
                 {
                     Array4<Real const> const& vfracarr = vfrac->const_array(mfi);
+                    Array4<Real const> const& bareaarr = barea->const_array(mfi);
                     Array4<Real const> const& intgarr = intg->const_array(mfi);
                     Array4<Real const> const& sintgarr = sintg->const_array(mfi);
 
-                    Array4<Real const> const& ebvel = m_eb_phi[ilev] ? m_eb_phi[ilev]->const_array(mfi) : Array4<Real>{};
+                    Array4<Real const> const& eb_phi_dot_n =
+                        m_eb_phi_dot_n[ilev] ? m_eb_phi_dot_n[ilev]->const_array(mfi) : Array4<Real>{};
 
                     AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                     {
                         mlndlap_divu_eb(i,j,k,rhsarr,velarr,vfracarr,intgarr,
-                            dmskarr,dxinvarr,nddom,lobc,hibc,sintgarr,ebvel);
+                            dmskarr,dxinvarr,nddom,lobc,hibc,bareaarr,sintgarr,eb_phi_dot_n);
                     });
                 }
                 else
