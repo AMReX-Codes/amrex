@@ -810,6 +810,7 @@ MLNodeLaplacian::checkPoint (std::string const& file_name) const
     }
 }
 
+#ifdef AMREX_USE_EB
 void
 MLNodeLaplacian::setEBDirichlet (int amrlev, const MultiFab& phi)
 {
@@ -851,5 +852,6 @@ MLNodeLaplacian::setEBDirichlet (int amrlev, const MultiFab& phi)
     m_eb_phi_dot_n[amrlev]->FillBoundary(m_geom[amrlev][mglev].periodicity());
 
 }
+#endif
 
 }
