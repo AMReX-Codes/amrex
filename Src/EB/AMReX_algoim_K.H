@@ -635,6 +635,30 @@ void set_regular (int i, int j, int k, Array4<Real> const& intg) noexcept
     intg(i,j,k,i_S_xyz  ) = 0.0;
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void surface_set_regular (int i, int j, int k, Array4<Real> const& sintg) noexcept
+{
+    sintg(i,j,k,i_S_x    ) = 0.0;
+    sintg(i,j,k,i_S_y    ) = 0.0;
+    sintg(i,j,k,i_S_z    ) = 0.0;
+    sintg(i,j,k,i_S_x2   ) = 0.0;
+    sintg(i,j,k,i_S_y2   ) = 0.0;
+    sintg(i,j,k,i_S_z2   ) = 0.0;
+    sintg(i,j,k,i_S_x_y  ) = 0.0;
+    sintg(i,j,k,i_S_x_z  ) = 0.0;
+    sintg(i,j,k,i_S_y_z  ) = 0.0;
+    sintg(i,j,k,i_S_x2_y ) = 0.0;
+    sintg(i,j,k,i_S_x2_z ) = 0.0;
+    sintg(i,j,k,i_S_x_y2 ) = 0.0;
+    sintg(i,j,k,i_S_y2_z ) = 0.0;
+    sintg(i,j,k,i_S_x_z2 ) = 0.0;
+    sintg(i,j,k,i_S_y_z2 ) = 0.0;
+    sintg(i,j,k,i_S_x2_y2) = 0.0;
+    sintg(i,j,k,i_S_x2_z2) = 0.0;
+    sintg(i,j,k,i_S_y2_z2) = 0.0;
+    sintg(i,j,k,i_S_xyz  ) = 0.0;
+}
+
 }}
 
 #endif
