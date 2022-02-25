@@ -366,6 +366,7 @@ struct ImplicitIntegral
         // "evalIntegrand" from start to end uninterrupted.
         GpuArray<Real,4> roots;
 
+        //TODO: Check implementation of surface integral
         if (S)
         {
             // Surface integral
@@ -636,27 +637,15 @@ void set_regular (int i, int j, int k, Array4<Real> const& intg) noexcept
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void surface_set_regular (int i, int j, int k, Array4<Real> const& sintg) noexcept
+void set_regular_surface (int i, int j, int k, Array4<Real> const& sintg) noexcept
 {
-    sintg(i,j,k,i_S_x    ) = 0.0;
-    sintg(i,j,k,i_S_y    ) = 0.0;
-    sintg(i,j,k,i_S_z    ) = 0.0;
-    sintg(i,j,k,i_S_x2   ) = 0.0;
-    sintg(i,j,k,i_S_y2   ) = 0.0;
-    sintg(i,j,k,i_S_z2   ) = 0.0;
-    sintg(i,j,k,i_S_x_y  ) = 0.0;
-    sintg(i,j,k,i_S_x_z  ) = 0.0;
-    sintg(i,j,k,i_S_y_z  ) = 0.0;
-    sintg(i,j,k,i_S_x2_y ) = 0.0;
-    sintg(i,j,k,i_S_x2_z ) = 0.0;
-    sintg(i,j,k,i_S_x_y2 ) = 0.0;
-    sintg(i,j,k,i_S_y2_z ) = 0.0;
-    sintg(i,j,k,i_S_x_z2 ) = 0.0;
-    sintg(i,j,k,i_S_y_z2 ) = 0.0;
-    sintg(i,j,k,i_S_x2_y2) = 0.0;
-    sintg(i,j,k,i_S_x2_z2) = 0.0;
-    sintg(i,j,k,i_S_y2_z2) = 0.0;
-    sintg(i,j,k,i_S_xyz  ) = 0.0;
+    sintg(i,j,k,i_B_x    ) = 0.0;
+    sintg(i,j,k,i_B_y    ) = 0.0;
+    sintg(i,j,k,i_B_z    ) = 0.0;
+    sintg(i,j,k,i_B_x_y  ) = 0.0;
+    sintg(i,j,k,i_B_x_z  ) = 0.0;
+    sintg(i,j,k,i_B_y_z  ) = 0.0;
+    sintg(i,j,k,i_B_xyz  ) = 0.0;
 }
 
 }}

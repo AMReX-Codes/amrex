@@ -192,17 +192,16 @@ compute_surface_integrals (MultiFab& sintg, int nghost)
     compute_surface_integrals(sintg, IntVect(nghost));
 }
 
-// TODO: Reduce size of surface intg, refactor in above method if possible
 void
 compute_surface_integrals (MultiFab& sintgmf, IntVect nghost)
 {
 #if (AMREX_SPACEDIM == 2)
-    amrex::ignore_unused(intgmf, nghost);
+    amrex::ignore_unused(sintgmf, nghost);
     amrex::Abort("amrex::algoim::compute_surface_integrals is 3D only");
 #else
 
     nghost.min(sintgmf.nGrowVect());
-    AMREX_ASSERT(sintgmf.nComp() >= numIntgs);
+    AMREX_ASSERT(sintgmf.nComp() >= numSurfIntgs);
 
     const auto& my_factory = dynamic_cast<EBFArrayBoxFactory const&>(sintgmf.Factory());
 
@@ -227,7 +226,7 @@ compute_surface_integrals (MultiFab& sintgmf, IntVect nghost)
 
         if (typ == FabType::covered)
         {
-            AMREX_HOST_DEVICE_FOR_4D ( bx, numIntgs, i, j, k, n,
+            AMREX_HOST_DEVICE_FOR_4D ( bx, numSurfIntgs, i, j, k, n,
             {
                 sintg(i,j,k,n) = 0.0;
             });
@@ -236,7 +235,7 @@ compute_surface_integrals (MultiFab& sintgmf, IntVect nghost)
         {
             AMREX_HOST_DEVICE_FOR_3D ( bx, i, j, k,
             {
-                surface_set_regular(i,j,k,sintg);
+                set_regular_surface(i,j,k,sintg);
             });
         }
         else
@@ -253,52 +252,28 @@ compute_surface_integrals (MultiFab& sintgmf, IntVect nghost)
                 {
                     const auto ebflag = fg(i,j,k);
                     if (ebflag.isRegular()) {
-                        surface_set_regular(i,j,k,sintg);
+                        set_regular_surface(i,j,k,sintg);
                     } else if (ebflag.isCovered()) {
-                        for (int n = 0; n < numIntgs; ++n) sintg(i,j,k,n) = 0.0;
+                        for (int n = 0; n < numSurfIntgs; ++n) sintg(i,j,k,n) = 0.0;
                     } else {
                         EBPlane phi(bc(i,j,k,0),bc(i,j,k,1),bc(i,j,k,2),
                                     bn(i,j,k,0),bn(i,j,k,1),bn(i,j,k,2));
 
                         const QuadratureRule q = quadGenSurf(phi);
 
-                        sintg(i,j,k,i_S_x    ) = q([] AMREX_GPU_DEVICE (Real x, Real /*y*/, Real /*z*/) noexcept
+                        sintg(i,j,k,i_B_x    ) = q([] AMREX_GPU_DEVICE (Real x, Real /*y*/, Real /*z*/) noexcept
                                                    { return x; });
-                        sintg(i,j,k,i_S_y    ) = q([] AMREX_GPU_DEVICE (Real /*x*/, Real y, Real /*z*/) noexcept
+                        sintg(i,j,k,i_B_y    ) = q([] AMREX_GPU_DEVICE (Real /*x*/, Real y, Real /*z*/) noexcept
                                                    { return y; });
-                        sintg(i,j,k,i_S_z    ) = q([] AMREX_GPU_DEVICE (Real /*x*/, Real /*y*/, Real z) noexcept
+                        sintg(i,j,k,i_B_z    ) = q([] AMREX_GPU_DEVICE (Real /*x*/, Real /*y*/, Real z) noexcept
                                                    { return z; });
-                        sintg(i,j,k,i_S_x2   ) = q([] AMREX_GPU_DEVICE (Real x, Real /*y*/, Real /*z*/) noexcept
-                                                   { return x*x; });
-                        sintg(i,j,k,i_S_y2   ) = q([] AMREX_GPU_DEVICE (Real /*x*/, Real y, Real /*z*/) noexcept
-                                                   { return y*y; });
-                        sintg(i,j,k,i_S_z2   ) = q([] AMREX_GPU_DEVICE (Real /*x*/, Real /*y*/, Real z) noexcept
-                                                   { return z*z; });
-                        sintg(i,j,k,i_S_x_y  ) = q([] AMREX_GPU_DEVICE (Real x, Real y, Real /*z*/) noexcept
+                        sintg(i,j,k,i_B_x_y  ) = q([] AMREX_GPU_DEVICE (Real x, Real y, Real /*z*/) noexcept
                                                    { return x*y; });
-                        sintg(i,j,k,i_S_x_z  ) = q([] AMREX_GPU_DEVICE (Real x, Real /*y*/, Real z) noexcept
+                        sintg(i,j,k,i_B_x_z  ) = q([] AMREX_GPU_DEVICE (Real x, Real /*y*/, Real z) noexcept
                                                    { return x*z; });
-                        sintg(i,j,k,i_S_y_z  ) = q([] AMREX_GPU_DEVICE (Real /*x*/, Real y, Real z) noexcept
+                        sintg(i,j,k,i_B_y_z  ) = q([] AMREX_GPU_DEVICE (Real /*x*/, Real y, Real z) noexcept
                                                    { return y*z; });
-                        sintg(i,j,k,i_S_x2_y ) = q([] AMREX_GPU_DEVICE (Real x, Real y, Real /*z*/) noexcept
-                                                   { return x*x*y; });
-                        sintg(i,j,k,i_S_x2_z ) = q([] AMREX_GPU_DEVICE (Real x, Real /*y*/, Real z) noexcept
-                                                   { return x*x*z; });
-                        sintg(i,j,k,i_S_x_y2 ) = q([] AMREX_GPU_DEVICE (Real x, Real y, Real /*z*/) noexcept
-                                                   { return x*y*y; });
-                        sintg(i,j,k,i_S_y2_z ) = q([] AMREX_GPU_DEVICE (Real /*x*/, Real y, Real z) noexcept
-                                                   { return y*y*z; });
-                        sintg(i,j,k,i_S_x_z2 ) = q([] AMREX_GPU_DEVICE (Real x, Real /*y*/, Real z) noexcept
-                                                   { return x*z*z; });
-                        sintg(i,j,k,i_S_y_z2 ) = q([] AMREX_GPU_DEVICE (Real /*x*/, Real y, Real z) noexcept
-                                                   { return y*z*z; });
-                        sintg(i,j,k,i_S_x2_y2) = q([] AMREX_GPU_DEVICE (Real x, Real y, Real /*z*/) noexcept
-                                                   { return x*x*y*y; });
-                        sintg(i,j,k,i_S_x2_z2) = q([] AMREX_GPU_DEVICE (Real x, Real /*y*/, Real z) noexcept
-                                                   { return x*x*z*z; });
-                        sintg(i,j,k,i_S_y2_z2) = q([] AMREX_GPU_DEVICE (Real /*x*/, Real y, Real z) noexcept
-                                                   { return y*y*z*z; });
-                        sintg(i,j,k,i_S_xyz  ) = q([] AMREX_GPU_DEVICE (Real x, Real y, Real z) noexcept
+                        sintg(i,j,k,i_B_xyz  ) = q([] AMREX_GPU_DEVICE (Real x, Real y, Real z) noexcept
                                                    { return x*y*z; });
                     }
                 });
@@ -313,52 +288,28 @@ compute_surface_integrals (MultiFab& sintgmf, IntVect nghost)
                 {
                     const auto ebflag = fg(i,j,k);
                     if (ebflag.isRegular()) {
-                        surface_set_regular(i,j,k,sintg);
+                        set_regular_surface(i,j,k,sintg);
                     } else if (ebflag.isCovered()) {
-                        for (int n = 0; n < numIntgs; ++n) sintg(i,j,k,n) = 0.0;
+                        for (int n = 0; n < numSurfIntgs; ++n) sintg(i,j,k,n) = 0.0;
                     } else {
                         EBPlane phi(bc(i,j,k,0),bc(i,j,k,1),bc(i,j,k,2),
                                     bn(i,j,k,0),bn(i,j,k,1),bn(i,j,k,2));
 
                         const QuadratureRule q = quadGenSurf(phi);
 
-                        sintg(i,j,k,i_S_x    ) = q.eval([](Real x, Real /*y*/, Real /*z*/) noexcept
+                        sintg(i,j,k,i_B_x    ) = q.eval([](Real x, Real /*y*/, Real /*z*/) noexcept
                                                    { return x; });
-                        sintg(i,j,k,i_S_y    ) = q.eval([](Real /*x*/, Real y, Real /*z*/) noexcept
+                        sintg(i,j,k,i_B_y    ) = q.eval([](Real /*x*/, Real y, Real /*z*/) noexcept
                                                    { return y; });
-                        sintg(i,j,k,i_S_z    ) = q.eval([](Real /*x*/, Real /*y*/, Real z) noexcept
+                        sintg(i,j,k,i_B_z    ) = q.eval([](Real /*x*/, Real /*y*/, Real z) noexcept
                                                    { return z; });
-                        sintg(i,j,k,i_S_x2   ) = q.eval([](Real x, Real /*y*/, Real /*z*/) noexcept
-                                                   { return x*x; });
-                        sintg(i,j,k,i_S_y2   ) = q.eval([](Real /*x*/, Real y, Real /*z*/) noexcept
-                                                   { return y*y; });
-                        sintg(i,j,k,i_S_z2   ) = q.eval([](Real /*x*/, Real /*y*/, Real z) noexcept
-                                                   { return z*z; });
-                        sintg(i,j,k,i_S_x_y  ) = q.eval([](Real x, Real y, Real /*z*/) noexcept
+                        sintg(i,j,k,i_B_x_y  ) = q.eval([](Real x, Real y, Real /*z*/) noexcept
                                                    { return x*y; });
-                        sintg(i,j,k,i_S_x_z  ) = q.eval([](Real x, Real /*y*/, Real z) noexcept
+                        sintg(i,j,k,i_B_x_z  ) = q.eval([](Real x, Real /*y*/, Real z) noexcept
                                                    { return x*z; });
-                        sintg(i,j,k,i_S_y_z  ) = q.eval([](Real /*x*/, Real y, Real z) noexcept
+                        sintg(i,j,k,i_B_y_z  ) = q.eval([](Real /*x*/, Real y, Real z) noexcept
                                                    { return y*z; });
-                        sintg(i,j,k,i_S_x2_y ) = q.eval([](Real x, Real y, Real /*z*/) noexcept
-                                                   { return x*x*y; });
-                        sintg(i,j,k,i_S_x2_z ) = q.eval([](Real x, Real /*y*/, Real z) noexcept
-                                                   { return x*x*z; });
-                        sintg(i,j,k,i_S_x_y2 ) = q.eval([](Real x, Real y, Real /*z*/) noexcept
-                                                   { return x*y*y; });
-                        sintg(i,j,k,i_S_y2_z ) = q.eval([](Real /*x*/, Real y, Real z) noexcept
-                                                   { return y*y*z; });
-                        sintg(i,j,k,i_S_x_z2 ) = q.eval([](Real x, Real /*y*/, Real z) noexcept
-                                                   { return x*z*z; });
-                        sintg(i,j,k,i_S_y_z2 ) = q.eval([](Real /*x*/, Real y, Real z) noexcept
-                                                   { return y*z*z; });
-                        sintg(i,j,k,i_S_x2_y2) = q.eval([](Real x, Real y, Real /*z*/) noexcept
-                                                   { return x*x*y*y; });
-                        sintg(i,j,k,i_S_x2_z2) = q.eval([](Real x, Real /*y*/, Real z) noexcept
-                                                   { return x*x*z*z; });
-                        sintg(i,j,k,i_S_y2_z2) = q.eval([](Real /*x*/, Real y, Real z) noexcept
-                                                   { return y*y*z*z; });
-                        sintg(i,j,k,i_S_xyz  ) = q.eval([](Real x, Real y, Real z) noexcept
+                        sintg(i,j,k,i_B_xyz  ) = q.eval([](Real x, Real y, Real z) noexcept
                                                    { return x*y*z; });
 
                         // TODO: Remove
