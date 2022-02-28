@@ -849,9 +849,19 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
     const iMultiFab& ccmask = m_cc_mask[amrlev][mglev];
 
     const auto dxinvarray = m_geom[amrlev][mglev].InvCellSizeArray();
+    const auto dxarray = m_geom[amrlev][mglev].CellSizeArray();
     AMREX_D_TERM(Real dhx = m_b_scalar*dxinvarray[0]*dxinvarray[0];,
                  Real dhy = m_b_scalar*dxinvarray[1]*dxinvarray[1];,
                  Real dhz = m_b_scalar*dxinvarray[2]*dxinvarray[2];);
+#if (AMREX_SPACEDIM == 1 )
+    const Real dh = m_b_scalar*dxinvarray[0];
+#endif
+#if (AMREX_SPACEDIM == 2 )
+    const Real dh = m_b_scalar*dxinvarray[0]*dxinvarray[1];
+#endif
+#if (AMREX_SPACEDIM == 3 )
+    const Real dh = m_b_scalar*dxinvarray[0]*dxinvarray[1]*dxinvarray[2];
+#endif
 
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
@@ -860,7 +870,6 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     auto fcent = (factory) ? factory->getFaceCent()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
-    const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
     const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
 
     bool is_eb_dirichlet =  isEBDirichlet();
@@ -908,7 +917,6 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
             AMREX_D_TERM(Array4<Real const> const& fcxfab = fcent[0]->const_array(mfi);,
                          Array4<Real const> const& fcyfab = fcent[1]->const_array(mfi);,
                          Array4<Real const> const& fczfab = fcent[2]->const_array(mfi););
-            Array4<Real const> const& bafab = barea->const_array(mfi);
             Array4<Real const> const& bcfab = bcent->const_array(mfi);
 
             bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
@@ -916,12 +924,13 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
                 mlebabeclap_normalize(tbx, fab, ascalar, afab,
-                                      AMREX_D_DECL(dhx, dhy, dhz),
+                                      AMREX_D_DECL(dhx, dhy, dhz), dh,
+                                      dxarray,
                                       AMREX_D_DECL(bxfab, byfab, bzfab),
                                       ccmfab, flagfab, vfracfab,
                                       AMREX_D_DECL(apxfab,apyfab,apzfab),
                                       AMREX_D_DECL(fcxfab,fcyfab,fczfab),
-                                      bafab, bcfab, bebfab, is_eb_dirichlet,
+                                      bcfab, bebfab, is_eb_dirichlet,
                                       beta_on_centroid, ncomp);
             });
         }

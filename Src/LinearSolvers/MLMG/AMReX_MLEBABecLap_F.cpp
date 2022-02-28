@@ -28,7 +28,6 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     auto fcent = (factory) ? factory->getFaceCent()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
-    const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
     const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
     const auto         ccent = (factory) ? &(factory->getCentroid()) : nullptr;
 
@@ -96,7 +95,6 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
             AMREX_D_TERM(Array4<Real const> const& fcxfab = fcent[0]->const_array(mfi);,
                          Array4<Real const> const& fcyfab = fcent[1]->const_array(mfi);,
                          Array4<Real const> const& fczfab = fcent[2]->const_array(mfi););
-            Array4<Real const> const& bafab = barea->const_array(mfi);
             Array4<Real const> const& bcfab = bcent->const_array(mfi);
             Array4<Real const> const& ccfab = ccent->const_array(mfi);
             Array4<Real const> const& bebfab = (is_eb_dirichlet)
@@ -127,7 +125,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                                      flagfab, vfracfab,
                                      AMREX_D_DECL(apxfab,apyfab,apzfab),
                                      AMREX_D_DECL(fcxfab,fcyfab,fczfab),
-                                     ccfab, bafab, bcfab, bebfab, phiebfab,
+                                     ccfab, bcfab, bebfab, phiebfab,
                                      AMREX_D_DECL(domlo_x, domlo_y, domlo_z),
                                      AMREX_D_DECL(domhi_x, domhi_y, domhi_z),
                                      AMREX_D_DECL(extdir_x, extdir_y, extdir_z),
@@ -142,7 +140,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                                      ccmfab, flagfab, vfracfab,
                                      AMREX_D_DECL(apxfab,apyfab,apzfab),
                                      AMREX_D_DECL(fcxfab,fcyfab,fczfab),
-                                     bafab, bcfab, bebfab,
+                                     bcfab, bebfab,
                                      is_eb_dirichlet,
                                      phiebfab,
                                      is_eb_inhomog, dxinvarr,
@@ -191,10 +189,19 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 #endif
 
     const int nc = getNComp();
-    const Real* h = m_geom[amrlev][mglev].CellSize();
+    const auto h = m_geom[amrlev][mglev].CellSizeArray();
     AMREX_D_TERM(const Real dhx = m_b_scalar/(h[0]*h[0]);,
                  const Real dhy = m_b_scalar/(h[1]*h[1]);,
                  const Real dhz = m_b_scalar/(h[2]*h[2]));
+#if (AMREX_SPACEDIM == 1 )
+    const Real dh = m_b_scalar/h[0];
+#endif
+#if (AMREX_SPACEDIM == 2 )
+    const Real dh = m_b_scalar/(h[0]*h[1]);
+#endif
+#if (AMREX_SPACEDIM == 3 )
+    const Real dh = m_b_scalar/(h[0]*h[1]*h[2]);
+#endif
     const Real alpha = m_a_scalar;
 
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
@@ -204,7 +211,6 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     auto fcent = (factory) ? factory->getFaceCent()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
-    const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
     const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
 
     bool is_eb_dirichlet =  isEBDirichlet();
@@ -283,7 +289,6 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
             AMREX_D_TERM(Array4<Real const> const& fcxfab = fcent[0]->const_array(mfi);,
                          Array4<Real const> const& fcyfab = fcent[1]->const_array(mfi);,
                          Array4<Real const> const& fczfab = fcent[2]->const_array(mfi););
-            Array4<Real const> const& bafab = barea->const_array(mfi);
             Array4<Real const> const& bcfab = bcent->const_array(mfi);
             Array4<Real const> const& bebfab = (is_eb_dirichlet)
                 ? m_eb_b_coeffs[amrlev][mglev]->const_array(mfi) : foo;
@@ -297,6 +302,8 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
             {
                 mlebabeclap_gsrb(thread_box, solnfab, rhsfab, alpha, afab,
                                  AMREX_D_DECL(dhx, dhy, dhz),
+                                 dh,
+                                 h,
                                  AMREX_D_DECL(bxfab,byfab,bzfab),
                                  AMREX_D_DECL(m0,m2,m4),
                                  AMREX_D_DECL(m1,m3,m5),
@@ -305,7 +312,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                                  ccmfab, flagfab, vfracfab,
                                  AMREX_D_DECL(apxfab,apyfab,apzfab),
                                  AMREX_D_DECL(fcxfab,fcyfab,fczfab),
-                                 bafab, bcfab, bebfab,
+                                 bcfab, bebfab,
                                  is_eb_dirichlet, beta_on_centroid, phi_on_centroid,
                                  vbx, redblack, nc);
             });
