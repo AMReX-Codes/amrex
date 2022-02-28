@@ -61,7 +61,7 @@ public:
     void InitFromScratch (Real time);
 
     //! Rebuild levels finer than lbase
-    virtual void regrid (int lbase, Real time, bool initial=false, bool with_bittree=false);
+    virtual void regrid (int lbase, Real time, bool initial=false, bool with_bittree=true);
 
     void printGridSummary (std::ostream& os, int min_lev, int max_lev) const noexcept;
 
