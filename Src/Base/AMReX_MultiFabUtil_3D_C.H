@@ -6,6 +6,7 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_IArrayBox.H>
 #include <cmath>
+#include <AMReX_thornado.H>
 
 namespace amrex {
 
