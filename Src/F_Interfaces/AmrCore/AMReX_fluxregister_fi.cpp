@@ -136,8 +136,6 @@ extern "C"
         MultiFab vol;
         geom->GetVolume(vol, mf->boxArray(), mf->DistributionMap(), 0);
 
-std::cout<<mf->nComp()<<std::endl;
-
         BL_ASSERT(flux_reg->nComp() == mf->nComp());
         flux_reg->Reflux(*mf, vol, scale, 0, 0, flux_reg->nComp(), *geom);
     }
