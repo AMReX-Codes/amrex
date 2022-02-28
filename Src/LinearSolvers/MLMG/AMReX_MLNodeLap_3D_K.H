@@ -6815,7 +6815,7 @@ void mlndlap_divu_eb (int i, int j, int k, Array4<Real> const& rhs, Array4<Real 
             Real fac_eb = Real(0.125) * dxinv[0];
 
             rhs(i,j,k) += fac_eb*(
-               +eb_phi_dot_n(i-1,j-1,k  )*(        bareaarr(i-1,j-1,k)
+                eb_phi_dot_n(i-1,j-1,k  )*(        bareaarr(i-1,j-1,k)
                                             +Real(2.)*sintg(i-1,j-1,k  ,i_B_x)
                                             +Real(2.)*sintg(i-1,j-1,k  ,i_B_y)
                                             +Real(4.)*sintg(i-1,j-1,k  ,i_B_x_y)

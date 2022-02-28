@@ -2062,8 +2062,29 @@ void mlndlap_divu_eb (int i, int j, int, Array4<Real> const& rhs, Array4<Real co
                            +vel(i-1,j  ,0,1)*(vfrac(i-1,j  ,0)+Real(2.)*intg(i-1,j  ,0,0))*zero_ilo
                            +vel(i  ,j  ,0,1)*(vfrac(i  ,j  ,0)-Real(2.)*intg(i  ,j  ,0,0))*zero_ihi);
 
-        // TODO: Add EB contribution
-        //
+        // TODO: Check implementation
+        if (eb_phi_dot_n.dataPtr()) {
+            Real fac_eb = 0.25 *dxinv[0];
+
+            rhs(i,j,0) += fac_eb*(
+               eb_phi_dot_n(i-1,j-1,0)*(         bareaarr(i-1,j-1,0)
+                                          +Real(2.)*sintg(i-1,j-1,0,i_B_x )
+                                          +Real(2.)*sintg(i-1,j-1,0,i_B_y )
+                                          +Real(4.)*sintg(i-1,j-1,0,i_B_xy))
+              +eb_phi_dot_n(i  ,j-1,0)*(         bareaarr(i  ,j-1,0)
+                                          -Real(2.)*sintg(i  ,j-1,0,i_B_x )
+                                          +Real(2.)*sintg(i  ,j-1,0,i_B_y )
+                                          -Real(4.)*sintg(i  ,j-1,0,i_B_xy))
+              +eb_phi_dot_n(i-1,j  ,0)*(         bareaarr(i-1,j  ,0)
+                                          +Real(2.)*sintg(i-1,j  ,0,i_B_x )
+                                          -Real(2.)*sintg(i-1,j  ,0,i_B_y )
+                                          -Real(4.)*sintg(i-1,j  ,0,i_B_xy))
+              +eb_phi_dot_n(i  ,j  ,0)*(         bareaarr(i  ,j  ,0)
+                                          -Real(2.)*sintg(i  ,j  ,0,i_B_x )
+                                          -Real(2.)*sintg(i  ,j  ,0,i_B_y )
+                                          +Real(4.)*sintg(i  ,j  ,0,i_B_xy)));
+        }
+
     } else {
         rhs(i,j,0) = Real(0.);
     }
@@ -2272,19 +2293,24 @@ void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& int
         Real bcy = bcen(i,j,0,1);
 
         Real c = -(bcx * anrmx + bcy * anrmy);
+
+        // TODO: Revisit this logic. Can be made cleaner?
         Vector<RealVect> p;
 
-        if (axm > 0.0) {
+        if (axm > 0.0 && axm < 1.0) {
             p.push_back({-0.5, (-c + 0.5*anrmx)/anrmy});
-        } else if (axp > 0.0) {
+        }
+        if (axp > 0.0 && axp < 1.0) {
             p.push_back({ 0.5, (-c - 0.5*anrmx)/anrmy});
-        } else if (aym > 0.0) {
+        }
+        if (aym > 0.0 && aym < 1.0) {
             p.push_back({(-c + 0.5*anrmy)/anrmx, -0.5});
-        } else if (ayp > 0.0) {
+        }
+        if (ayp > 0.0 && ayp < 1.0) {
             p.push_back({(-c - 0.5*anrmy)/anrmx,  0.5});
         }
 
-        if (p.size() == 2) {
+        if (p.size() != 2) {
             amrex::Abort("amrex_mlndlap_set_surface_integral: we are in trouble");
         }
 
