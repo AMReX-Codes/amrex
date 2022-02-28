@@ -515,6 +515,11 @@ FluxRegister::CrseInit_DG ( const MultiFab& SurfaceFlux,
                             FrOp            op)
 {
 
+    int swX[3];
+    if( iDimX == 0 ) { swX[0] = 1; swX[1] = 0; swX[2] = 0; }
+    if( iDimX == 1 ) { swX[0] = 0; swX[1] = 1; swX[2] = 0; }
+    if( iDimX == 2 ) { swX[0] = 0; swX[1] = 0; swX[2] = 1; }
+
     const Real Zero = 0.0;
 
     int nComp = nDOFX_X * nFields;
@@ -561,9 +566,9 @@ FluxRegister::CrseInit_DG ( const MultiFab& SurfaceFlux,
         iX_E0[2] = bx.hiVect()[2];
         }
 
-        for( int iCrse = iX_B0[0]; iCrse < iX_E0[0]; iCrse++ ) {
-        for( int jCrse = iX_B0[1]; jCrse < iX_E0[1]; jCrse++ ) {
-        for( int kCrse = iX_B0[2]; kCrse < iX_E0[2]; kCrse++ ) {
+        for( int iCrse = iX_B0[0]; iCrse < iX_E0[0]+swX[0]; iCrse++ ) {
+        for( int jCrse = iX_B0[1]; jCrse < iX_E0[1]+swX[1]; jCrse++ ) {
+        for( int kCrse = iX_B0[2]; kCrse < iX_E0[2]+swX[2]; kCrse++ ) {
 
             for( int iField = 0; iField < nFields; iField++ )
             {
@@ -812,23 +817,11 @@ FluxRegister::FineAdd_DG (const FArrayBox& SurfaceFluxes,
                           int              nDOFX_X,
                           Real             WeightsX_X[],
                           Real             LX_X[],
-                          int              BoxNo,
+                          int              BoxNumber,
                           RunOn            runon) noexcept
 {
-//    /* Convert LX_X into 2D array */
-//
-//    Real ** LX_XX = new Real * [nDOFX_X];
-//    for( int iNX = 0; iNX < nDOFX_X; iNX++ ) { LX_XX[iNX] = new Real[nDOFX_X]; }
-//
-//    int k = -1;
-//    for( int iNX_X = 0; iNX_X < nDOFX_X                      ; iNX_X++ ) {
-//    for( int iNX   = 0; iNX   < pow(2,AMREX_SPACEDIM)*nDOFX_X; iNX++   ) {
-//        k += 1;
-//        LX_XX[iNX_X][iNX] = LX_X[k];
-//    }}
-
-    FArrayBox& loreg = bndry[Orientation(iDimX,Orientation::low)][BoxNo];
-    FArrayBox& hireg = bndry[Orientation(iDimX,Orientation::high)][BoxNo];
+    FArrayBox& loreg = bndry[Orientation(iDimX,Orientation::low)][BoxNumber];
+    FArrayBox& hireg = bndry[Orientation(iDimX,Orientation::high)][BoxNumber];
     const Box& lobox = loreg.box();
     const Box& hibox = hireg.box();
 
@@ -863,9 +856,6 @@ FluxRegister::FineAdd_DG (const FArrayBox& SurfaceFluxes,
                             iDimX, nFields, nDOFX_X, WeightsX_X, LX_X,
                             local_ratio );
     }
-
-//    for( int iNX = 0; iNX < nDOFX_X; iNX++ ) { delete LX_XX[iNX]; }
-//    delete LX_XX;
 
 } /* END void FluxRegister::FineAdd_DG */
 

@@ -442,6 +442,86 @@ void amrex_avgdown_nodes (int i, int j, int k, int n, Array4<Real> const& crse,
     crse(i,j,k,n+ccomp) = fine(i*ratio[0],j*ratio[1],k*ratio[2],n+fcomp);
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void amrex_avgdown_dg
+       ( int iCrse, int jCrse, int, int nComp,
+         Array4<Real> const& crse,
+         Array4<Real const> const& fine,
+         IntVect const& ratio ) noexcept
+{
+
+  int iRefRatio = ratio[0];
+  int jRefRatio = ratio[1];
+  int kRefRatio = ratio[2];
+
+  // Number of fields in MultiFab
+  int nFields = nComp / amrex::thornado::nDOFX;
+
+  // Index for projection matrix
+  int iProj;
+
+  // Offset between fine and coarse elements
+  const int iOS = iCrse * iRefRatio;
+  const int jOS = jCrse * jRefRatio;
+  const int kOS = kCrse * kRefRatio;
+
+  // Loop over fields
+  for( int iField = 0; iField < nFields; iField++ )
+  {
+
+    // Loop over DOF of coarse element
+    for( int iNX = 0; iNX < amrex::thornado::nDOFX; iNX++ )
+    {
+
+      // Initialize coarse data to zero
+      crse(iCrse,jCrse,kCrse,amrex::thornado::nDOFX*iField+iNX)
+        = amrex::thornado::Zero;
+
+      iProj = -1;
+
+      // Loop over fine cells in z-direction
+      for( int kFine = 0; kFine < kRefRatio; kFine++ )
+      {
+
+        // Loop over fine cells in y-direction
+        for( int jFine = 0; jFine < jRefRatio; jFine++ )
+        {
+
+          // Loop over fine cells in x-direction
+          for( int iFine = 0; iFine < iRefRatio; iFine++ )
+          {
+
+            iProj += 1;
+
+            // Project fine data onto coarse data
+            for( int jNX = 0; jNX < amrex::thornado::nDOFX; jNX++ )
+            {
+
+              crse(iCrse,jCrse,kCrse,amrex::thornado::nDOFX*iField+iNX)
+                = crse(iCrse,jCrse,kCrse,amrex::thornado::nDOFX*iField+iNX)
+                    + amrex::thornado::ProjectionMatrix_T[iProj][iNX][jNX]
+                        * fine(iOS+iFine,jOS+jFine,kOS+kFine,
+                               amrex::thornado::nDOFX*iField+jNX);
+
+            } // jNX
+
+          } // iFine
+
+        } // jFine
+
+      } // kFine
+
+      crse(iCrse,jCrse,kCrse,amrex::thornado::nDOFX*iField+iNX)
+        = crse(iCrse,jCrse,kCrse,amrex::thornado::nDOFX*iField+iNX)
+            * amrex::thornado::VolumeRatio
+            / amrex::thornado::WeightsX_q[iNX];
+
+    } // iNX
+  } // iField
+
+} // END void amrex_avgdown_dg
+
+
 AMREX_GPU_HOST_DEVICE
 inline
 void amrex_compute_divergence (Box const& bx, Array4<Real> const& divu,

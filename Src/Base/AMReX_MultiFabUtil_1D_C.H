@@ -244,11 +244,8 @@ void amrex_avgdown_dg
        ( int iCrse, int, int, int nComp,
          Array4<Real> const& crse,
          Array4<Real const> const& fine,
-         Array4<Real const> const& fv,
-         int ccomp, int fcomp, IntVect const& ratio ) noexcept
+         IntVect const& ratio ) noexcept
 {
-
-  amrex::ignore_unused( fv, fcomp, ccomp );
 
   int iRefRatio = ratio[0];
 

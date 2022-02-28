@@ -292,7 +292,7 @@ public:
     * \param nDOFX_X
     * \param WeightsX_X
     * \param LX_X
-    * \param BoxNo
+    * \param BoxNumber
     * \param gpu_or_cpu
     */
     void FineAdd_DG (const FArrayBox& SurfaceFluxes,
@@ -301,7 +301,7 @@ public:
                      int              nDOFX_X,
                      Real             WeightsX_X[],
                      Real             LX_X[],
-                     int              BoxNo,
+                     int              BoxNumber,
                      RunOn            gpu_or_cpu) noexcept;
 
     /**
