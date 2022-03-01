@@ -95,9 +95,9 @@ fluxreg_fineadd_dg( Box const&                bx,
                     Array4<Real const> const& sf_F,
                     const int                 iDimX,
                     const int                 nFields,
-                    const int                 nDOFX_X,
-                    const Real                WeightsX_X[],
-                    const Real                LX_X[],
+                    int                       nDOFX_X,
+                    Real *                    WeightsX_X,
+                    Real ***                  LX_X,
                     Dim3 const&               ratio ) noexcept
 {
 

@@ -445,7 +445,7 @@ void amrex_avgdown_nodes (int i, int j, int k, int n, Array4<Real> const& crse,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void amrex_avgdown_dg
-       ( int iCrse, int jCrse, int, int nComp,
+       ( int iCrse, int jCrse, int kCrse, int nComp,
          Array4<Real> const& crse,
          Array4<Real const> const& fine,
          IntVect const& ratio ) noexcept
