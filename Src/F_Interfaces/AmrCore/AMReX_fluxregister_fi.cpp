@@ -80,39 +80,14 @@ extern "C"
     }
 
     void amrex_fi_fluxregister_crseinit_dg
-           ( FluxRegister* flux_reg, MultiFab* SurfaceFluxes[],
-             int nFields, int nDOFX_X1, int nDOFX_X2, int nDOFX_X3,
-             Real WeightsX_X1[], Real WeightsX_X2[], Real WeightsX_X3[] )
+           ( FluxRegister* flux_reg, MultiFab* SurfaceFluxes[], int nFields )
     {
 
         for ( int iDimX = 0; iDimX < BL_SPACEDIM; ++iDimX )
         {
             BL_ASSERT( flux_reg->nComp() == SurfaceFluxes[iDimX]->nComp() );
 
-            if( iDimX == 0 )
-            {
-                flux_reg->CrseInit_DG
-                            ( *SurfaceFluxes[iDimX], iDimX, nFields, nDOFX_X1,
-                              WeightsX_X1 );
-            }
-            else if( iDimX == 1 )
-            {
-                flux_reg->CrseInit_DG
-                            ( *SurfaceFluxes[iDimX], iDimX, nFields, nDOFX_X2,
-                              WeightsX_X2 );
-            }
-            else if( iDimX == 2 )
-            {
-                flux_reg->CrseInit_DG
-                            ( *SurfaceFluxes[iDimX], iDimX, nFields, nDOFX_X3,
-                              WeightsX_X3 );
-            }
-            else
-            {
-                std::cout<< "Src/F_Interfaces/AmrCore/AMReX_fluxregister_fi.cpp"
-                         << "\namrex_fi_fluxregister_crseinit_dg"
-                         << "\nThis should never print.\n";
-            }
+            flux_reg->CrseInit_DG( *SurfaceFluxes[iDimX], iDimX, nFields );
         }
     }
 

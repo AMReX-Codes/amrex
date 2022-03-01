@@ -5,6 +5,7 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_iMultiFab.H>
+#include <AMReX_thornado.H>
 
 namespace amrex {
 
@@ -510,24 +511,38 @@ void
 FluxRegister::CrseInit_DG ( const MultiFab& SurfaceFlux,
                             int             iDimX,
                             int             nFields,
-                            int             nDOFX_X,
-                            Real            WeightsX_X[],
                             FrOp            op)
 {
 
+    Real * WeightsX_X;
+    int nDOFX_X;
     int swX[3];
-    if( iDimX == 0 ) { swX[0] = 1; swX[1] = 0; swX[2] = 0; }
-    if( iDimX == 1 ) { swX[0] = 0; swX[1] = 1; swX[2] = 0; }
-    if( iDimX == 2 ) { swX[0] = 0; swX[1] = 0; swX[2] = 1; }
 
-    const Real Zero = 0.0;
+    if( iDimX == 0 )
+    {
+        WeightsX_X = amrex::thornado::WeightsX_X1;
+        nDOFX_X    = amrex::thornado::nDOFX_X1;
+        swX[0] = 1; swX[1] = 0; swX[2] = 0;
+    }
+    if( iDimX == 1 )
+    {
+        WeightsX_X = amrex::thornado::WeightsX_X2;
+        nDOFX_X    = amrex::thornado::nDOFX_X2;
+        swX[0] = 0; swX[1] = 1; swX[2] = 0;
+    }
+    if( iDimX == 2 )
+    {
+        WeightsX_X = amrex::thornado::WeightsX_X3;
+        nDOFX_X    = amrex::thornado::nDOFX_X3;
+        swX[0] = 0; swX[1] = 0; swX[2] = 1;
+    }
 
     int nComp = nDOFX_X * nFields;
 
     /* Define MultiFab for FluxRegister */
     MultiFab mf_reg( SurfaceFlux.boxArray(), SurfaceFlux.DistributionMap(),
                      nComp, 0, MFInfo(), SurfaceFlux.Factory() );
-    mf_reg.setVal( Zero );
+    mf_reg.setVal( amrex::thornado::Zero );
 
     int iX_B0[3];
     int iX_E0[3];
@@ -1095,15 +1110,13 @@ FluxRegister::Reflux_DG
 {
     BL_PROFILE("FluxRegister::Reflux_DG()");
 
-    const Real Zero = 0.0;
-
     int iDimX = face.coordDir();
 
     MultiFab mf_dF( amrex::convert( mf_dU.boxArray(),
                                    IntVect::TheDimensionVector(iDimX) ),
                    mf_dU.DistributionMap(), nComp, 0,
                    MFInfo(), mf_dU.Factory() );
-    mf_dF.setVal( Zero );
+    mf_dF.setVal( amrex::thornado::Zero );
     bndry[face].copyTo( mf_dF, 0, 0, 0, nComp, geom.periodicity() );
 
 #ifdef AMREX_USE_OMP

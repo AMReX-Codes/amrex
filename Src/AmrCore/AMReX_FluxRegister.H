@@ -152,15 +152,11 @@ public:
     * \param SurfaceFlux
     * \param iDimX
     * \param nFields
-    * \param nDOFX_X
-    * \param WeightsX_X
     * \param op
     */
     void CrseInit_DG (const MultiFab& SurfaceFlux,
                       int             iDimX,
                       int             nFields,
-                      int             nDOFX_X,
-                      Real            WeightsX_X[],
                       FrOp            op = FluxRegister::COPY);
 
     /**
