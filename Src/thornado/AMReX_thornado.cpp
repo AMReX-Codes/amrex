@@ -15,6 +15,7 @@ int nFineV;
 int nFineF;
 
 Real VolumeRatio;
+Real FaceRatio;
 
 int nNodes[3];
 int nDOFX;
@@ -48,6 +49,7 @@ void InitializeMeshRefinement_Thornado
     nFineF = pow( 2, AMREX_SPACEDIM-1 );
 
     VolumeRatio = One / (Real)nFineV;
+    FaceRatio   = One / (Real)nFineF;
 
     nNodes[0] = N[0];
     nNodes[1] = N[1];

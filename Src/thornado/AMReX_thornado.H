@@ -28,6 +28,7 @@ extern Real * WeightsX_X1;
 extern Real * WeightsX_X2;
 extern Real * WeightsX_X3;
 extern Real VolumeRatio;
+extern Real FaceRatio;
 
 void InitializeMeshRefinement_Thornado
        ( int N[], Real ProjMatrix[],

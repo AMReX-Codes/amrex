@@ -743,10 +743,7 @@ FluxRegister::FineAdd (const MultiFab& mflx,
 void
 FluxRegister::FineAdd_DG (const MultiFab& SurfaceFluxes,
                           int             iDimX,
-                          int             nFields,
-                          int             nDOFX_X,
-                          Real            WeightsX_X[],
-                          Real            LX_X[])
+                          int             nFields)
 {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -754,8 +751,7 @@ FluxRegister::FineAdd_DG (const MultiFab& SurfaceFluxes,
     for (MFIter mfi(SurfaceFluxes); mfi.isValid(); ++mfi)
     {
         const int k = mfi.index();
-        FineAdd_DG( SurfaceFluxes[mfi], iDimX, nFields, nDOFX_X,
-                    WeightsX_X, LX_X, k, RunOn::Gpu);
+        FineAdd_DG( SurfaceFluxes[mfi], iDimX, nFields, k, RunOn::Gpu);
     }
 } /* END void FluxRegister::FineAdd_DG */
 
@@ -829,12 +825,33 @@ void
 FluxRegister::FineAdd_DG (const FArrayBox& SurfaceFluxes,
                           int              iDimX,
                           int              nFields,
-                          int              nDOFX_X,
-                          Real             WeightsX_X[],
-                          Real             LX_X[],
                           int              BoxNumber,
                           RunOn            runon) noexcept
 {
+
+    Real * WeightsX_X;
+    Real *** LX_X;
+    int nDOFX_X;
+
+    if( iDimX == 0 )
+    {
+        WeightsX_X = amrex::thornado::WeightsX_X1;
+        LX_X       = amrex::thornado::LX_X1;
+        nDOFX_X    = amrex::thornado::nDOFX_X1;
+    }
+    if( iDimX == 1 )
+    {
+        WeightsX_X = amrex::thornado::WeightsX_X2;
+        LX_X       = amrex::thornado::LX_X2;
+        nDOFX_X    = amrex::thornado::nDOFX_X2;
+    }
+    if( iDimX == 2 )
+    {
+        WeightsX_X = amrex::thornado::WeightsX_X3;
+        LX_X       = amrex::thornado::LX_X3;
+        nDOFX_X    = amrex::thornado::nDOFX_X3;
+    }
+
     FArrayBox& loreg = bndry[Orientation(iDimX,Orientation::low)][BoxNumber];
     FArrayBox& hireg = bndry[Orientation(iDimX,Orientation::high)][BoxNumber];
     const Box& lobox = loreg.box();

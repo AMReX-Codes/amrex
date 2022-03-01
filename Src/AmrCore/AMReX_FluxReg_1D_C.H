@@ -67,35 +67,11 @@ fluxreg_fineadd_dg( Box const&                bx,
                     Array4<Real const> const& sf_F,
                     const int                 /*iDimX*/,
                     const int                 nFields,
-                    const int                 nDOFX_X,
-                    const Real                WeightsX_X[],
-                    const Real                LX_X[],
+                    int                       nDOFX_X,
+                    Real *                    WeightsX_X,
+                    Real ***                  LX_X,
                     Dim3 const&               ratio ) noexcept
 {
-
-    const int nFine = pow(2,AMREX_SPACEDIM-1);
-    const Real vol  = pow(2,AMREX_SPACEDIM-1);
-
-    /* Convert LX_X into 3D array */
-
-    Real *** LX_XX = new Real ** [nDOFX_X];
-    for( int iNX_C = 0; iNX_C < nDOFX_X; iNX_C++ )
-    {
-        LX_XX[iNX_C] = new Real * [nFine];
-
-        for( int iFine = 0; iFine < nFine; iFine++ )
-        {
-          LX_XX[iNX_C][iFine] = new Real [nDOFX_X];
-        }
-    }
-
-    int k = -1;
-    for( int iNX_C = 0; iNX_C < nDOFX_X; iNX_C++ ) {
-    for( int iFn   = 0; iFn   < nFine  ; iFn++   ) {
-    for( int iNX_F = 0; iNX_F < nDOFX_X; iNX_F++ ) {
-        k += 1;
-        LX_XX[iNX_C][iFn][iNX_F] = LX_X[k];
-    }}}
 
     const auto lo   = amrex::lbound(bx);
     const int iCrse = lo.x;
@@ -103,7 +79,7 @@ fluxreg_fineadd_dg( Box const&                bx,
 
     for( int iNX_C = 0; iNX_C < nDOFX_X; iNX_C++ )
     {
-        for( int iFn = 0; iFn < nFine; iFn++ )
+        for( int iFn = 0; iFn < amrex::thornado::nFineF; iFn++ )
         {
             for( int iField = 0; iField < nFields; iField++ )
             {
@@ -113,21 +89,12 @@ fluxreg_fineadd_dg( Box const&                bx,
                       += WeightsX_X[iNX_F]
                            * sf_F(iFine,0,0,
                                   iNX_F+iField*nDOFX_X+nFields*nDOFX_X*iFn)
-                           * LX_XX[iNX_C][iFn][iNX_F] / vol;
+                           * LX_X[iNX_C][iFn][iNX_F]
+                           * amrex::thornado::FaceRatio;
                 } /* iNX_F */
             } /* iField */
         } /* iFn */
     } /* iNX_C */
-
-    for( int iNX_C = 0; iNX_C < nDOFX_X; iNX_C++ )
-    {
-        for( int iFn = 0; iFn < nFine; iFn++ )
-        {
-            delete LX_XX[iNX_C][iFn];
-        }
-        delete LX_XX[iNX_C];
-    }
-    delete LX_XX;
 
 } /* END fluxreg_fineadd_dg */
 

@@ -227,16 +227,10 @@ public:
     * \param SurfaceFluxes
     * \param iDimX
     * \param nFields
-    * \param nDOFX_X
-    * \param WeightsX_X
-    * \param LX_X
     */
     void FineAdd_DG (const MultiFab& SurfaceFluxes,
                      int             iDimX,
-                     int             nFields,
-                     int             nDOFX_X,
-                     Real            WeightsX_X[],
-                     Real            LX_X[]);
+                     int             nFields);
 
     /**
     * \brief Increment flux correction with fine data.
@@ -285,18 +279,12 @@ public:
     * \param SurfaceFluxes
     * \param iDimX
     * \param nFields
-    * \param nDOFX_X
-    * \param WeightsX_X
-    * \param LX_X
     * \param BoxNumber
     * \param gpu_or_cpu
     */
     void FineAdd_DG (const FArrayBox& SurfaceFluxes,
                      int              iDimX,
                      int              nFields,
-                     int              nDOFX_X,
-                     Real             WeightsX_X[],
-                     Real             LX_X[],
                      int              BoxNumber,
                      RunOn            gpu_or_cpu) noexcept;
 

@@ -68,18 +68,12 @@ module amrex_fluxregister_module
      end subroutine amrex_fi_fluxregister_fineadd_1fab_1dir
 
      subroutine amrex_fi_fluxregister_fineadd_dg &
-       ( FluxRegister, SurfaceFluxes, &
-         nFields, nDOFX_X1, nDOFX_X2, nDOX_X3, &
-         WeightsX_X1, WeightsX_X2, WeightsX_X3, &
-         LX_X1, LX_X2, LX_X3 ) bind(c)
+       ( FluxRegister, SurfaceFluxes, nFields ) bind(c)
        import
        implicit none
        type(c_ptr)     , value      :: FluxRegister
        type(c_ptr)     , intent(in) :: SurfaceFluxes(*)
-       integer         , value      :: nFields, nDOFX_X1, nDOFX_X2, nDOX_X3
-       real(amrex_real), intent(in) :: WeightsX_X1(*), WeightsX_X2(*), &
-                                       WeightsX_X3(*), &
-                                       LX_X1(*), LX_X2(*), LX_X3(*)
+       integer         , value      :: nFields
      end subroutine amrex_fi_fluxregister_fineadd_dg
 
      subroutine amrex_fi_fluxregister_crseinit (fr, flxs, scale) bind(c)
@@ -215,24 +209,16 @@ contains
   end subroutine amrex_fluxregister_fineadd_1fab
 
   subroutine amrex_fluxregister_fineadd_dg &
-    ( this, SurfaceFluxes, nFields, nDOFX_X1, nDOFX_X2, nDOFX_X3, &
-      WeightsX_X1, WeightsX_X2, WeightsX_X3, LX_X1, LX_X2, LX_X3 )
+    ( this, SurfaceFluxes, nFields )
     class(amrex_fluxregister), intent(inout) :: this
     type(amrex_multifab)     , intent(in)    :: SurfaceFluxes(amrex_spacedim)
-    integer                  , intent(in)    :: nFields, &
-                                                nDOFX_X1, nDOFX_X2, nDOFX_X3
-    real(amrex_real)         , intent(in)    :: WeightsX_X1(*), &
-                                                WeightsX_X2(*), &
-                                                WeightsX_X3(*), &
-                                                LX_X1(*), LX_X2(*), LX_X3(*)
+    integer                  , intent(in)    :: nFields
     integer :: dim
     type(c_ptr) :: mf(amrex_spacedim)
     do dim = 1, amrex_spacedim
        mf(dim) = SurfaceFluxes(dim)%p
     end do
-    call amrex_fi_fluxregister_fineadd_dg &
-           ( this%p, mf, nFields, nDOFX_X1, nDOFX_X2, nDOFX_X3, &
-             WeightsX_X1, WeightsX_X2, WeightsX_X3, LX_X1, LX_X2, LX_X3 )
+    call amrex_fi_fluxregister_fineadd_dg( this%p, mf, nFields )
   end subroutine amrex_fluxregister_fineadd_dg
 
   subroutine amrex_fluxregister_crseinit (this, fluxes, scale)
