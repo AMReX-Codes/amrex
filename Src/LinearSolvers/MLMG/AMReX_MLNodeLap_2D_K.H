@@ -2294,19 +2294,26 @@ void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& int
 
         Real c = -(bcx * anrmx + bcy * anrmy);
 
-        // TODO: Revisit this logic. Can be made cleaner?
-        Vector<RealVect> p;
-
-        if (axm > 0.0 && axm < 1.0) {
+        // TODO: Revisit this logic
+        Vector<RealVect> p; //intersection points
+        if (    (axm > Real(0.) && axm  < Real(1.))
+             || (axm > Real(0.) && aym == Real(0.))
+             || (axm > Real(0.) && ayp == Real(0.))) {
             p.push_back({-0.5, Real(-c + 0.5*anrmx)/anrmy});
         }
-        if (axp > 0.0 && axp < 1.0) {
+        if (    (axp > Real(0.) && axp  < Real(1.))
+             || (axp > Real(0.) && aym == Real(0.))
+             || (axp > Real(0.) && ayp == Real(0.))) {
             p.push_back({ 0.5, Real(-c - 0.5*anrmx)/anrmy});
         }
-        if (aym > 0.0 && aym < 1.0) {
+        if (    (aym > Real(0.) && aym  < Real(1.))
+             || (aym > Real(0.) && axm == Real(0.))
+             || (aym > Real(0.) && axp == Real(0.))) {
             p.push_back({Real(-c + 0.5*anrmy)/anrmx, -0.5});
         }
-        if (ayp > 0.0 && ayp < 1.0) {
+        if (    (ayp > Real(0.) && ayp  < Real(1.))
+             || (ayp > Real(0.) && axm == Real(0.))
+             || (ayp > Real(0.) && axp == Real(0.))) {
             p.push_back({Real(-c - 0.5*anrmy)/anrmx,  0.5});
         }
 
