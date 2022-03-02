@@ -524,13 +524,13 @@ FluxRegister::CrseInit_DG ( const MultiFab& SurfaceFlux,
         nDOFX_X    = amrex::thornado::nDOFX_X1;
         swX[0] = 1; swX[1] = 0; swX[2] = 0;
     }
-    if( iDimX == 1 )
+    else if( iDimX == 1 )
     {
         WeightsX_X = amrex::thornado::WeightsX_X2;
         nDOFX_X    = amrex::thornado::nDOFX_X2;
         swX[0] = 0; swX[1] = 1; swX[2] = 0;
     }
-    if( iDimX == 2 )
+    else
     {
         WeightsX_X = amrex::thornado::WeightsX_X3;
         nDOFX_X    = amrex::thornado::nDOFX_X3;
