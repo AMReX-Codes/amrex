@@ -1232,7 +1232,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                             Real alpha, Array4<Real const> const& a,
                             Real dhx, Real dhy, Real dhz, Real dh,
-                            const amrex::GpuArray<double, 3> dx,
+                            const amrex::GpuArray<Real, AMREX_SPACEDIM> dx,
                             Array4<Real const> const& bX, Array4<Real const> const& bY,
                             Array4<Real const> const& bZ,
                             Array4<const int> const& ccm, Array4<EBCellFlag const> const& flag,
