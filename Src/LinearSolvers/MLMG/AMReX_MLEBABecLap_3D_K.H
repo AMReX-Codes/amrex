@@ -1342,7 +1342,7 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                 Real anorminv = 1.0/anorm;
                 Real anrmx = dapx * anorminv;
                 Real anrmy = dapy * anorminv;
-                Real anrmz = dapz * anorminv;           
+                Real anrmz = dapz * anorminv;
                 Real scaling = std::sqrt( (anrmx*dx[0])*(anrmx*dx[0]) +
                         (anrmy*dx[1])*(anrmy*dx[1]) +
                         (anrmz*dx[2])*(anrmz*dx[2]) );
