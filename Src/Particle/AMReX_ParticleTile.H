@@ -401,6 +401,22 @@ struct ParticleTile
     }
 
     ///
+    /// Add a range of Real values to the struct-of-arrays for the given comp.
+    /// This sets the data for several particles at once.
+    ///
+    void push_back_real (int comp, amrex::Vector<amrex::ParticleReal>::const_iterator beg, amrex::Vector<amrex::ParticleReal>::const_iterator end) {
+        push_back_real(comp, &(*beg), &(*end));
+    }
+
+    ///
+    /// Add a range of Real values to the struct-of-arrays for the given comp.
+    /// This sets the data for several particles at once.
+    ///
+    void push_back_real (int comp, amrex::Vector<amrex::ParticleReal> const & vec) {
+        push_back_real(comp, vec.cbegin(), vec.cend());
+    }
+
+    ///
     /// Add npar copies of the Real value v to the struct-of-arrays for the given comp.
     /// This sets the data for several particles at once.
     ///
@@ -434,6 +450,22 @@ struct ParticleTile
     void push_back_int (int comp, const int* beg, const int* end) {
         auto it = m_soa_tile.GetIntData(comp).end();
         m_soa_tile.GetIntData(comp).insert(it, beg, end);
+    }
+
+    ///
+    /// Add a range of int values to the struct-of-arrays for the given comp.
+    /// This sets the data for several particles at once.
+    ///
+    void push_back_int (int comp, amrex::Vector<int>::const_iterator beg, amrex::Vector<int>::const_iterator end) {
+        push_back_int(comp, &(*beg), &(*end));
+    }
+
+    ///
+    /// Add a range of int values to the struct-of-arrays for the given comp.
+    /// This sets the data for several particles at once.
+    ///
+    void push_back_int (int comp, amrex::Vector<int> const & vec) {
+        push_back_int(comp, vec.cbegin(), vec.cend());
     }
 
     ///
