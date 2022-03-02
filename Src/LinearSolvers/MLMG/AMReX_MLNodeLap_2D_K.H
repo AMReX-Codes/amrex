@@ -2295,34 +2295,35 @@ void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& int
         Real c = -(bcx * anrmx + bcy * anrmy);
 
         // TODO: Revisit this logic
-        Vector<RealVect> p; //intersection points
+        GpuArray<RealVect,2> pts; //intersection points
+        int np = 0;
         if (    (axm > Real(0.) && axm  < Real(1.))
              || (axm > Real(0.) && aym == Real(0.))
              || (axm > Real(0.) && ayp == Real(0.))) {
-            p.push_back({-0.5, Real(-c + 0.5*anrmx)/anrmy});
+            pts[np++] = RealVect{-0.5, Real(-c + 0.5*anrmx)/anrmy};
         }
         if (    (axp > Real(0.) && axp  < Real(1.))
              || (axp > Real(0.) && aym == Real(0.))
              || (axp > Real(0.) && ayp == Real(0.))) {
-            p.push_back({ 0.5, Real(-c - 0.5*anrmx)/anrmy});
+            pts[np++] = RealVect{ 0.5, Real(-c - 0.5*anrmx)/anrmy};
         }
         if (    (aym > Real(0.) && aym  < Real(1.))
              || (aym > Real(0.) && axm == Real(0.))
              || (aym > Real(0.) && axp == Real(0.))) {
-            p.push_back({Real(-c + 0.5*anrmy)/anrmx, -0.5});
+            pts[np++] = RealVect{Real(-c + 0.5*anrmy)/anrmx, -0.5};
         }
         if (    (ayp > Real(0.) && ayp  < Real(1.))
              || (ayp > Real(0.) && axm == Real(0.))
              || (ayp > Real(0.) && axp == Real(0.))) {
-            p.push_back({Real(-c - 0.5*anrmy)/anrmx,  0.5});
+            pts[np++] = RealVect{Real(-c - 0.5*anrmy)/anrmx,  0.5};
         }
 
-        if (p.size() != 2) {
+        if (np != 2) {
             amrex::Abort("amrex_mlndlap_set_surface_integral: we are in trouble");
         }
 
-        Real x0 = p[0][0], x1 = p[1][0];
-        Real y0 = p[0][1], y1 = p[1][1];
+        Real x0 = pts[0][0], x1 = pts[1][0];
+        Real y0 = pts[0][1], y1 = pts[1][1];
 
         Real Bx = 0.5*(x1 + x0);
         Real By = 0.5*(y1 + y0);
