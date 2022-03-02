@@ -57,10 +57,14 @@ public:
     int CoordInt () const  noexcept { return static_cast<int>(c_sys); }
 
     //! Is CoordType == SPHERICAL?
-    bool IsSPHERICAL () const noexcept;
+    bool IsSPHERICAL () const noexcept {
+        BL_ASSERT(c_sys != undef); return (c_sys == SPHERICAL);
+    }
 
     //! Is CoordType == RZ?
-    bool IsRZ () const noexcept;
+    bool IsRZ () const noexcept {
+        BL_ASSERT(c_sys != undef); return (c_sys == RZ);
+    }
 
     //! Is CoordType == cartesion?
     bool IsCartesian () const noexcept {
@@ -255,32 +259,6 @@ protected:
                         std::numeric_limits<Real>::infinity())};
     bool ok = false;
 };
-
-inline
-bool
-CoordSys::IsSPHERICAL () const noexcept
-{
-    BL_ASSERT(c_sys != undef);
-#if (AMREX_SPACEDIM <= 2)
-    return (c_sys == SPHERICAL);
-#endif
-#if (AMREX_SPACEDIM == 3)
-    return false;
-#endif
-}
-
-inline
-bool
-CoordSys::IsRZ () const noexcept
-{
-    BL_ASSERT(c_sys != undef);
-#if (AMREX_SPACEDIM <= 2)
-    return (c_sys == RZ);
-#endif
-#if (AMREX_SPACEDIM == 3)
-    return false;
-#endif
-}
 
 }
 
