@@ -13,7 +13,7 @@ MODULE AMReX_DGInterfaceModule
 
   INTERFACE DGInterface
 
-    SUBROUTINE amrex_fi_initializemeshrefinement_DG &
+    SUBROUTINE amrex_fi_initializemeshrefinement_dg &
       ( nNodes, ProjectionMatrix, WeightsX1, WeightsX2, WeightsX3, &
         LX_X1_Refined_Packed, &
         LX_X2_Refined_Packed, &
@@ -26,12 +26,12 @@ MODULE AMReX_DGInterfaceModule
        REAL(DP)      , INTENT(in) :: LX_X1_Refined_Packed(*), &
                                      LX_X2_Refined_Packed(*), &
                                      LX_X3_Refined_Packed(*)
-    END SUBROUTINE amrex_fi_initializemeshrefinement_DG
+    END SUBROUTINE amrex_fi_initializemeshrefinement_dg
 
-    SUBROUTINE amrex_fi_finalizemeshrefinement_DG() BIND(c)
+    SUBROUTINE amrex_fi_finalizemeshrefinement_dg() BIND(c)
        IMPORT
        IMPLICIT NONE
-    END SUBROUTINE amrex_fi_finalizemeshrefinement_DG
+    END SUBROUTINE amrex_fi_finalizemeshrefinement_dg
 
   END INTERFACE DGInterface
 
@@ -49,7 +49,7 @@ CONTAINS
                             LX_X2_Refined_Packed(*), &
                             LX_X3_Refined_Packed(*)
 
-    CALL amrex_fi_initializemeshrefinement_DG &
+    CALL amrex_fi_initializemeshrefinement_dg &
            ( nNodes, ProjectionMatrix, &
              WeightsX1, WeightsX2, WeightsX3, &
              LX_X1_Refined_Packed, &
@@ -59,7 +59,7 @@ CONTAINS
 
 
   SUBROUTINE amrex_FinalizeMeshRefinement_DG
-    CALL amrex_fi_finalizemeshrefinement_DG
+    CALL amrex_fi_finalizemeshrefinement_dg
   END SUBROUTINE amrex_FinalizeMeshRefinement_DG
 
 
