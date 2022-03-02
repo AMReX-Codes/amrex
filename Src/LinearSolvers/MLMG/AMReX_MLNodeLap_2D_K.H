@@ -2298,16 +2298,16 @@ void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& int
         Vector<RealVect> p;
 
         if (axm > 0.0 && axm < 1.0) {
-            p.push_back({-0.5, (-c + 0.5*anrmx)/anrmy});
+            p.push_back({-0.5, Real(-c + 0.5*anrmx)/anrmy});
         }
         if (axp > 0.0 && axp < 1.0) {
-            p.push_back({ 0.5, (-c - 0.5*anrmx)/anrmy});
+            p.push_back({ 0.5, Real(-c - 0.5*anrmx)/anrmy});
         }
         if (aym > 0.0 && aym < 1.0) {
-            p.push_back({(-c + 0.5*anrmy)/anrmx, -0.5});
+            p.push_back({Real(-c + 0.5*anrmy)/anrmx, -0.5});
         }
         if (ayp > 0.0 && ayp < 1.0) {
-            p.push_back({(-c - 0.5*anrmy)/anrmx,  0.5});
+            p.push_back({Real(-c - 0.5*anrmy)/anrmx,  0.5});
         }
 
         if (p.size() != 2) {
