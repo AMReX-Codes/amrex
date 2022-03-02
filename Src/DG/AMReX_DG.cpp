@@ -1,4 +1,4 @@
-#include <AMReX_thornado.H>
+#include <AMReX_DG.H>
 
 #include <cstddef> /* For NULL */
 #include <iostream> /* for std::cout/std::endl */
@@ -8,7 +8,7 @@
 
 namespace amrex
 {
-namespace thornado
+namespace DG
 {
 
 int nFineV;
@@ -35,7 +35,7 @@ Real *** LX_X1 = NULL;
 Real *** LX_X2 = NULL;
 Real *** LX_X3 = NULL;
 
-void InitializeMeshRefinement_Thornado
+void InitializeMeshRefinement_DG
        ( int N[], Real ProjMatrix[],
          Real WeightsX1[], Real WeightsX2[], Real WeightsX3[],
          Real LX_X1_Refined_Packed[],
@@ -135,9 +135,9 @@ void InitializeMeshRefinement_Thornado
         LX_X3[iNX_C][iFn][iNX_F] = LX_X3_Refined_Packed[k];
     }}}
 
-} /* END void InitializeMeshRefinement_Thornado */
+} /* END void InitializeMeshRefinement_DG */
 
-void FinalizeMeshRefinement_Thornado()
+void FinalizeMeshRefinement_DG()
 {
     DeallocateArray( nDOFX_X3, nFineF, LX_X3 );
     DeallocateArray( nDOFX_X2, nFineF, LX_X2 );
@@ -150,7 +150,7 @@ void FinalizeMeshRefinement_Thornado()
     DeallocateArray( WeightsX_X1 );
 
     return;
-} /* END void FinalizeMeshRefinement_Thornado */
+} /* END void FinalizeMeshRefinement_DG */
 
 
 /* PRIVATE FUNCTIONS */
@@ -186,5 +186,5 @@ void DeallocateArray( int n0, int n1, Real *** &A )
     delete [] A; A = NULL;
 } /* END void DeallocateArray */
 
-} /* END namespace thornado */
+} /* END namespace DG */
 } /* END namespace amrex */

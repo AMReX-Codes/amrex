@@ -6,7 +6,7 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_IArrayBox.H>
 #include <cmath>
-#include <AMReX_thornado.H>
+#include <AMReX_DG.H>
 
 namespace amrex {
 
@@ -350,7 +350,7 @@ void amrex_avgdown_dg
   int jRefRatio = ratio[1];
 
   // Number of fields in MultiFab
-  int nFields = nComp / amrex::thornado::nDOFX;
+  int nFields = nComp / amrex::DG::nDOFX;
 
   // Index for projection matrix
   int iProj;
@@ -364,12 +364,12 @@ void amrex_avgdown_dg
   {
 
     // Loop over DOF of coarse element
-    for( int iNX = 0; iNX < amrex::thornado::nDOFX; iNX++ )
+    for( int iNX = 0; iNX < amrex::DG::nDOFX; iNX++ )
     {
 
       // Initialize coarse data to zero
-      crse(iCrse,jCrse,0,amrex::thornado::nDOFX*iField+iNX)
-        = amrex::thornado::Zero;
+      crse(iCrse,jCrse,0,amrex::DG::nDOFX*iField+iNX)
+        = amrex::DG::Zero;
 
       iProj = -1;
 
@@ -384,14 +384,14 @@ void amrex_avgdown_dg
           iProj += 1;
 
           // Project fine data onto coarse data
-          for( int jNX = 0; jNX < amrex::thornado::nDOFX; jNX++ )
+          for( int jNX = 0; jNX < amrex::DG::nDOFX; jNX++ )
           {
 
-            crse(iCrse,jCrse,0,amrex::thornado::nDOFX*iField+iNX)
-              = crse(iCrse,jCrse,0,amrex::thornado::nDOFX*iField+iNX)
-                  + amrex::thornado::ProjectionMatrix_T[iProj][iNX][jNX]
+            crse(iCrse,jCrse,0,amrex::DG::nDOFX*iField+iNX)
+              = crse(iCrse,jCrse,0,amrex::DG::nDOFX*iField+iNX)
+                  + amrex::DG::ProjectionMatrix_T[iProj][iNX][jNX]
                       * fine(iOS+iFine,jOS+jFine,0,
-                             amrex::thornado::nDOFX*iField+jNX);
+                             amrex::DG::nDOFX*iField+jNX);
 
           } // jNX
 
@@ -399,10 +399,10 @@ void amrex_avgdown_dg
 
       } // jFine
 
-      crse(iCrse,jCrse,0,amrex::thornado::nDOFX*iField+iNX)
-        = crse(iCrse,jCrse,0,amrex::thornado::nDOFX*iField+iNX)
-            * amrex::thornado::VolumeRatio
-            / amrex::thornado::WeightsX_q[iNX];
+      crse(iCrse,jCrse,0,amrex::DG::nDOFX*iField+iNX)
+        = crse(iCrse,jCrse,0,amrex::DG::nDOFX*iField+iNX)
+            * amrex::DG::VolumeRatio
+            / amrex::DG::WeightsX_q[iNX];
 
     } // iNX
   } // iField

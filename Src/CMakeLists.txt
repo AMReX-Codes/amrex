@@ -69,7 +69,7 @@ configure_amrex ()
 add_subdirectory(Base)
 add_subdirectory(Boundary)
 add_subdirectory(AmrCore)
-add_subdirectory(thornado)
+add_subdirectory(DG)
 
 #
 # Optional components

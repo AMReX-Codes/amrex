@@ -1,0 +1,10 @@
+CEXE_headers += AMReX_DG.H
+CEXE_sources += AMReX_DG.cpp
+
+ifneq ($(BL_NO_FORT),TRUE)
+  F90EXE_sources += AMReX_DGInterfaceModule.F90
+  CEXE_sources += AMReX_DGInterfaceModule_fi.cpp
+endif
+
+VPATH_LOCATIONS   += $(AMREX_HOME)/Src/DG
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/DG

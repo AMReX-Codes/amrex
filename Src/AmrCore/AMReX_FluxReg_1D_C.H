@@ -3,7 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_FArrayBox.H>
-#include <AMReX_thornado.H>
+#include <AMReX_DG.H>
 
 namespace amrex {
 
@@ -79,7 +79,7 @@ fluxreg_fineadd_dg( Box const&                bx,
 
     for( int iNX_C = 0; iNX_C < nDOFX_X; iNX_C++ )
     {
-        for( int iFn = 0; iFn < amrex::thornado::nFineF; iFn++ )
+        for( int iFn = 0; iFn < amrex::DG::nFineF; iFn++ )
         {
             for( int iField = 0; iField < nFields; iField++ )
             {
@@ -90,7 +90,7 @@ fluxreg_fineadd_dg( Box const&                bx,
                            * sf_F(iFine,0,0,
                                   iNX_F+iField*nDOFX_X+nFields*nDOFX_X*iFn)
                            * LX_X[iNX_C][iFn][iNX_F]
-                           * amrex::thornado::FaceRatio;
+                           * amrex::DG::FaceRatio;
                 } /* iNX_F */
             } /* iField */
         } /* iFn */

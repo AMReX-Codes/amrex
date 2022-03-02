@@ -4,7 +4,7 @@
 
 #include <AMReX_Array.H>
 #include <AMReX_Geometry.H>
-#include <AMReX_thornado.H>
+#include <AMReX_DG.H>
 
 namespace amrex {
 
@@ -44,7 +44,7 @@ dginterp_interp
   const auto hiFine = amrex::ubound(bx);
 
   // Number of fields in MultiFab
-  int nFields = ncomp / amrex::thornado::nDOFX;
+  int nFields = ncomp / amrex::DG::nDOFX;
 
   // Index for projection matrix
   int iProj;
@@ -74,27 +74,27 @@ dginterp_interp
         const int iCrse = amrex::coarsen(iFine,ratio[0]);
 
         // Loop over DOF of fine element
-        for( int iNX = 0; iNX < amrex::thornado::nDOFX; iNX++ )
+        for( int iNX = 0; iNX < amrex::DG::nDOFX; iNX++ )
         {
 
           // Initialize fine data to zero
-          fine(iFine,jFine,0,amrex::thornado::nDOFX*iField+iNX)
-            = amrex::thornado::Zero;
+          fine(iFine,jFine,0,amrex::DG::nDOFX*iField+iNX)
+            = amrex::DG::Zero;
 
           // Project coarse data onto fine data
-          for( int jNX = 0; jNX < amrex::thornado::nDOFX; jNX++ )
+          for( int jNX = 0; jNX < amrex::DG::nDOFX; jNX++ )
           {
 
-            fine(iFine,jFine,0,amrex::thornado::nDOFX*iField+iNX)
-              = fine(iFine,jFine,0,amrex::thornado::nDOFX*iField+iNX)
-                  + amrex::thornado::ProjectionMatrix[iProj][iNX][jNX]
-                      * crse(iCrse,jCrse,0,amrex::thornado::nDOFX*iField+jNX);
+            fine(iFine,jFine,0,amrex::DG::nDOFX*iField+iNX)
+              = fine(iFine,jFine,0,amrex::DG::nDOFX*iField+iNX)
+                  + amrex::DG::ProjectionMatrix[iProj][iNX][jNX]
+                      * crse(iCrse,jCrse,0,amrex::DG::nDOFX*iField+jNX);
 
           } // jNX
 
-          fine(iFine,jFine,0,amrex::thornado::nDOFX*iField+iNX)
-            = fine(iFine,jFine,0,amrex::thornado::nDOFX*iField+iNX)
-                / amrex::thornado::WeightsX_q[iNX];
+          fine(iFine,jFine,0,amrex::DG::nDOFX*iField+iNX)
+            = fine(iFine,jFine,0,amrex::DG::nDOFX*iField+iNX)
+                / amrex::DG::WeightsX_q[iNX];
 
         } // iNX
       } // iFine

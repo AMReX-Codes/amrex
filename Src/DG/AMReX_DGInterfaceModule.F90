@@ -1,4 +1,4 @@
-MODULE AMReX_ThornadoInterfaceModule
+MODULE AMReX_DGInterfaceModule
 
   USE ISO_C_BINDING
 
@@ -8,12 +8,12 @@ MODULE AMReX_ThornadoInterfaceModule
   IMPLICIT NONE
   PRIVATE
 
-  PUBLIC :: amrex_InitializeMeshRefinement_Thornado
-  PUBLIC :: amrex_FinalizeMeshRefinement_Thornado
+  PUBLIC :: amrex_InitializeMeshRefinement_DG
+  PUBLIC :: amrex_FinalizeMeshRefinement_DG
 
-  INTERFACE ThornadoInterface
+  INTERFACE DGInterface
 
-    SUBROUTINE amrex_fi_initializemeshrefinement_thornado &
+    SUBROUTINE amrex_fi_initializemeshrefinement_DG &
       ( nNodes, ProjectionMatrix, WeightsX1, WeightsX2, WeightsX3, &
         LX_X1_Refined_Packed, &
         LX_X2_Refined_Packed, &
@@ -26,20 +26,20 @@ MODULE AMReX_ThornadoInterfaceModule
        REAL(DP)      , INTENT(in) :: LX_X1_Refined_Packed(*), &
                                      LX_X2_Refined_Packed(*), &
                                      LX_X3_Refined_Packed(*)
-    END SUBROUTINE amrex_fi_initializemeshrefinement_thornado
+    END SUBROUTINE amrex_fi_initializemeshrefinement_DG
 
-    SUBROUTINE amrex_fi_finalizemeshrefinement_thornado() BIND(c)
+    SUBROUTINE amrex_fi_finalizemeshrefinement_DG() BIND(c)
        IMPORT
        IMPLICIT NONE
-    END SUBROUTINE amrex_fi_finalizemeshrefinement_thornado
+    END SUBROUTINE amrex_fi_finalizemeshrefinement_DG
 
-  END INTERFACE ThornadoInterface
+  END INTERFACE DGInterface
 
 
 CONTAINS
 
 
-  SUBROUTINE amrex_InitializeMeshRefinement_Thornado &
+  SUBROUTINE amrex_InitializeMeshRefinement_DG &
     ( nNodes, ProjectionMatrix, WeightsX1, WeightsX2, WeightsX3, &
       LX_X1_Refined_Packed, LX_X2_Refined_Packed, LX_X3_Refined_Packed )
     INTEGER , INTENT(in) :: nNodes(*)
@@ -49,18 +49,18 @@ CONTAINS
                             LX_X2_Refined_Packed(*), &
                             LX_X3_Refined_Packed(*)
 
-    CALL amrex_fi_initializemeshrefinement_thornado &
+    CALL amrex_fi_initializemeshrefinement_DG &
            ( nNodes, ProjectionMatrix, &
              WeightsX1, WeightsX2, WeightsX3, &
              LX_X1_Refined_Packed, &
              LX_X2_Refined_Packed, &
              LX_X3_Refined_Packed )
-  END SUBROUTINE amrex_InitializeMeshRefinement_Thornado
+  END SUBROUTINE amrex_InitializeMeshRefinement_DG
 
 
-  SUBROUTINE amrex_FinalizeMeshRefinement_Thornado
-    CALL amrex_fi_finalizemeshrefinement_thornado
-  END SUBROUTINE amrex_FinalizeMeshRefinement_Thornado
+  SUBROUTINE amrex_FinalizeMeshRefinement_DG
+    CALL amrex_fi_finalizemeshrefinement_DG
+  END SUBROUTINE amrex_FinalizeMeshRefinement_DG
 
 
-END MODULE AMReX_ThornadoInterfaceModule
+END MODULE AMReX_DGInterfaceModule

@@ -1,11 +1,11 @@
-#ifndef AMREX_THORNADO_H_
-#define AMREX_THORNADO_H_
+#ifndef AMREX_DG_H_
+#define AMREX_DG_H_
 
 #include <AMReX_REAL.H>
 
 namespace amrex
 {
-namespace thornado
+namespace DG
 {
 
 const Real Zero = 0.0;
@@ -30,14 +30,14 @@ extern Real * WeightsX_X3;
 extern Real VolumeRatio;
 extern Real FaceRatio;
 
-void InitializeMeshRefinement_Thornado
+void InitializeMeshRefinement_DG
        ( int N[], Real ProjMatrix[],
          Real WeightsX1[], Real WeightsX2[], Real WeightsX3[],
          Real LX_X1_Refined_Packed[],
          Real LX_X2_Refined_Packed[],
          Real LX_X3_Refined_Packed[] );
 
-void FinalizeMeshRefinement_Thornado();
+void FinalizeMeshRefinement_DG();
 
 void AllocateArray( int n0, Real * &A );
 void DeallocateArray( Real * &A );
@@ -45,7 +45,7 @@ void DeallocateArray( Real * &A );
 void AllocateArray( int n0, int n1, int n2, Real *** &A );
 void DeallocateArray( int n0, int n1, Real *** &A );
 
-} /* END namespace thornado */
+} /* END namespace DG */
 } /* END namespace amrex */
 
-#endif // AMREX_THORNADO_H_
+#endif // AMREX_DG_H_

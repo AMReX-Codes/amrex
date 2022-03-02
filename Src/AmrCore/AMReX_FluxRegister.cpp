@@ -5,7 +5,7 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_iMultiFab.H>
-#include <AMReX_thornado.H>
+#include <AMReX_DG.H>
 
 namespace amrex {
 
@@ -520,20 +520,20 @@ FluxRegister::CrseInit_DG ( const MultiFab& SurfaceFlux,
 
     if( iDimX == 0 )
     {
-        WeightsX_X = amrex::thornado::WeightsX_X1;
-        nDOFX_X    = amrex::thornado::nDOFX_X1;
+        WeightsX_X = amrex::DG::WeightsX_X1;
+        nDOFX_X    = amrex::DG::nDOFX_X1;
         swX[0] = 1; swX[1] = 0; swX[2] = 0;
     }
     else if( iDimX == 1 )
     {
-        WeightsX_X = amrex::thornado::WeightsX_X2;
-        nDOFX_X    = amrex::thornado::nDOFX_X2;
+        WeightsX_X = amrex::DG::WeightsX_X2;
+        nDOFX_X    = amrex::DG::nDOFX_X2;
         swX[0] = 0; swX[1] = 1; swX[2] = 0;
     }
     else
     {
-        WeightsX_X = amrex::thornado::WeightsX_X3;
-        nDOFX_X    = amrex::thornado::nDOFX_X3;
+        WeightsX_X = amrex::DG::WeightsX_X3;
+        nDOFX_X    = amrex::DG::nDOFX_X3;
         swX[0] = 0; swX[1] = 0; swX[2] = 1;
     }
 
@@ -542,7 +542,7 @@ FluxRegister::CrseInit_DG ( const MultiFab& SurfaceFlux,
     /* Define MultiFab for FluxRegister */
     MultiFab mf_reg( SurfaceFlux.boxArray(), SurfaceFlux.DistributionMap(),
                      nComp, 0, MFInfo(), SurfaceFlux.Factory() );
-    mf_reg.setVal( amrex::thornado::Zero );
+    mf_reg.setVal( amrex::DG::Zero );
 
     int iX_B0[3];
     int iX_E0[3];
@@ -835,21 +835,21 @@ FluxRegister::FineAdd_DG (const FArrayBox& SurfaceFluxes,
 
     if( iDimX == 0 )
     {
-        WeightsX_X = amrex::thornado::WeightsX_X1;
-        LX_X       = amrex::thornado::LX_X1;
-        nDOFX_X    = amrex::thornado::nDOFX_X1;
+        WeightsX_X = amrex::DG::WeightsX_X1;
+        LX_X       = amrex::DG::LX_X1;
+        nDOFX_X    = amrex::DG::nDOFX_X1;
     }
     if( iDimX == 1 )
     {
-        WeightsX_X = amrex::thornado::WeightsX_X2;
-        LX_X       = amrex::thornado::LX_X2;
-        nDOFX_X    = amrex::thornado::nDOFX_X2;
+        WeightsX_X = amrex::DG::WeightsX_X2;
+        LX_X       = amrex::DG::LX_X2;
+        nDOFX_X    = amrex::DG::nDOFX_X2;
     }
     if( iDimX == 2 )
     {
-        WeightsX_X = amrex::thornado::WeightsX_X3;
-        LX_X       = amrex::thornado::LX_X3;
-        nDOFX_X    = amrex::thornado::nDOFX_X3;
+        WeightsX_X = amrex::DG::WeightsX_X3;
+        LX_X       = amrex::DG::LX_X3;
+        nDOFX_X    = amrex::DG::nDOFX_X3;
     }
 
     FArrayBox& loreg = bndry[Orientation(iDimX,Orientation::low)][BoxNumber];
@@ -1133,7 +1133,7 @@ FluxRegister::Reflux_DG
                                    IntVect::TheDimensionVector(iDimX) ),
                    mf_dU.DistributionMap(), nComp, 0,
                    MFInfo(), mf_dU.Factory() );
-    mf_dF.setVal( amrex::thornado::Zero );
+    mf_dF.setVal( amrex::DG::Zero );
     bndry[face].copyTo( mf_dF, 0, 0, 0, nComp, geom.periodicity() );
 
 #ifdef AMREX_USE_OMP

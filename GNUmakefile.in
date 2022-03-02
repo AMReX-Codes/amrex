@@ -7,7 +7,7 @@ ifeq ($(USE_CUDA),TRUE)
   ALLOW_DIFFERENT_COMP = TRUE
 endif
 
-Pdirs := Base AmrCore Amr Boundary thornado
+Pdirs := Base AmrCore Amr Boundary DG
 ifeq ($(USE_PARTICLES),TRUE)
     Pdirs += Particle
    ifeq ($(USE_FORTRAN_INTERFACE),TRUE)

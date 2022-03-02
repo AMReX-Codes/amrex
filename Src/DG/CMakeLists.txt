@@ -2,14 +2,14 @@ target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_D
 
 target_sources(amrex
    PRIVATE
-   AMReX_thornado.H
-   AMReX_thornado.cpp
+   AMReX_DG.H
+   AMReX_DG.cpp
    )
 
 if (AMReX_FORTRAN)
    target_sources(amrex
       PRIVATE
-      AMReX_ThornadoInterfaceModule.F90
-      AMReX_ThornadoInterfaceModule_fi.cpp
+      AMReX_DGInterfaceModule.F90
+      AMReX_DGInterfaceModule_fi.cpp
       )
 endif ()
