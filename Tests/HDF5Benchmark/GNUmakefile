@@ -34,6 +34,7 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 include ./Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
+include $(AMREX_HOME)/Src/DG/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
@@ -44,7 +45,7 @@ ABT_HOME       = /gpfs/alpine/csc300/world-shared/gnu_build/argobots/install
 ASYNC_HOME     = /gpfs/alpine/csc300/world-shared/gnu_build/vol-async-memcpy/src
 
 ifeq ($(USE_HDF5_ASYNC), TRUE)
-DEFINES   	  += -DAMREX_USE_HDF5_ASYNC 
+DEFINES   	  += -DAMREX_USE_HDF5_ASYNC
 INCLUDE_LOCATIONS += $(ABT_HOME)/include $(ASYNC_HOME)
 LIBRARIES 	  += -L$(ABT_HOME)/lib -L$(ASYNC_HOME) -lh5async -lasynchdf5 -labt -Wl,-rpath=$(ABT_HOME)/lib  -Wl,-rpath=$(ASYNC_HOME)
 endif
