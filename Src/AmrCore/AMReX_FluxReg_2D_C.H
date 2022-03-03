@@ -67,8 +67,8 @@ fluxreg_fineadd (Box const& bx, Array4<Real> const& reg, const int rcomp,
 * \brief Add fine grid flux to flux register (DG).
 * bx is a box defined on the coarse level.
 * reg is a coarse grid edge based object.
-* sf_F is a fine grid edge based object. It is assumed that the coarsened flux
-* region contains the register region.
+* SurfaceFluxes_Fine is a fine grid edge based object. It is assumed that the
+* coarsened flux region contains the register region.
 * iDimX is the spatial dimension in which the fluxes are defined.
 * nFields is the number of fields in the grid based objects.
 * nDOFX_X is the number of degrees of freedom per field on the interface in the
@@ -81,7 +81,7 @@ fluxreg_fineadd (Box const& bx, Array4<Real> const& reg, const int rcomp,
 *
 * \param bx
 * \param reg
-* \param sf_F
+* \param SurfaceFluxes_Fine
 * \param iDimX
 * \param nFields
 * \param nDOFX_X
@@ -92,7 +92,7 @@ fluxreg_fineadd (Box const& bx, Array4<Real> const& reg, const int rcomp,
 AMREX_GPU_HOST_DEVICE inline void
 fluxreg_fineadd_dg( Box const&                bx,
                     Array4<Real> const&       reg,
-                    Array4<Real const> const& sf_F,
+                    Array4<Real const> const& SurfaceFluxes_Fine,
                     const int                 iDimX,
                     const int                 nFields,
                     int                       nDOFX_X,
@@ -107,7 +107,7 @@ fluxreg_fineadd_dg( Box const&                bx,
 #endif
 
     amrex::ignore_unused
-      ( bx, reg, sf_F, iDimX, nFields, nDOFX_X, WeightsX_X, LX_X, ratio );
+      ( bx, reg, SurfaceFluxes_Fine, iDimX, nFields, nDOFX_X, WeightsX_X, LX_X, ratio );
 
 } /* END fluxreg_fineadd_dg */
 
@@ -217,19 +217,35 @@ fluxreg_reflux (Box const& bx, Array4<Real> const& s, const int scomp,
     }
 }
 
+/**
+* \brief Replace coarse flux with fine flux (DG).
+* CrseBox is a box defined on the coarse level.
+* dU is the increment for each DOF within an element.
+* dF is a coarse grid edge based object.
+* nFields is the number of fields in the grid based objects.
+* dX1 is the width of the coarse element in the X1-dimension.
+* dX2 is the width of the coarse element in the X2-dimension.
+* dX3 is the width of the coarse element in the X3-dimension.
+* face is ...
+*
+* \param CrseBox
+* \param dU
+* \param dF
+* \param nFields
+* \param dX1
+* \param dX2
+* \param dX3
+* \param face
+*/
 AMREX_GPU_HOST_DEVICE inline void
 fluxreg_reflux_dg
   ( Box const& CrseBox,
     Array4<Real> const& dU,
     Array4<Real const> const& dF,
     int nFields,
-    int nDOFX,
-    int nNodesX[],
-    Real WeightsX_q[],
-    Real dX1[], Real dX2[], Real dX3[],
-    Real LX_X1_Dn[], Real LX_X1_Up[],
-    Real LX_X2_Dn[], Real LX_X2_Up[],
-    Real LX_X3_Dn[], Real LX_X3_Up[],
+    Real dX1[],
+    Real dX2[],
+    Real dX3[],
     const Orientation face ) noexcept
 {
 
@@ -238,8 +254,7 @@ fluxreg_reflux_dg
 #endif
 
     amrex::ignore_unused
-      ( CrseBox, dU, dF, nFields, nDOFX, nNodesX, WeightsX_q, dX1, dX2, dX3,
-        LX_X1_Dn, LX_X1_Up, LX_X2_Dn, LX_X2_Up, LX_X3_Dn, LX_X3_Up, face );
+      ( CrseBox, dU, dF, dX1, dX2, dX3, face );
 
 } /* END fluxreg_reflux_dg */
 

@@ -1011,26 +1011,14 @@ FluxRegister::Reflux_DG ( MultiFab&       mf,
                           const Geometry& geom,
                           int             nComp, /* nDOFX_X * nFields */
                           int             nFields,
-                          int             nDOFX,
-                          int             nNodesX[],
-                          Real            WeightsX_q[],
                           Real            dX1[],
                           Real            dX2[],
-                          Real            dX3[],
-                          Real            LX_X1_Dn[],
-                          Real            LX_X1_Up[],
-                          Real            LX_X2_Dn[],
-                          Real            LX_X2_Up[],
-                          Real            LX_X3_Dn[],
-                          Real            LX_X3_Up[] )
+                          Real            dX3[] )
 {
     for( OrientationIter fi; fi; ++fi )
     {
         const Orientation& face = fi();
-        Reflux_DG( mf, geom, nComp,
-                   nFields, nDOFX, nNodesX, WeightsX_q, dX1, dX2, dX3,
-                   LX_X1_Dn, LX_X1_Up, LX_X2_Dn, LX_X2_Up, LX_X3_Dn, LX_X3_Up,
-                   face );
+        Reflux_DG( mf, geom, nComp, nFields, dX1, dX2, dX3, face );
     }
 } /* END void FluxRegister::Reflux_DG */
 
@@ -1119,12 +1107,7 @@ FluxRegister::Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
 void
 FluxRegister::Reflux_DG
   ( MultiFab& mf_dU, const Geometry& geom, int nComp,
-    int nFields, int nDOFX, int nNodesX[],
-    Real WeightsX_q[], Real dX1[], Real dX2[], Real dX3[],
-    Real LX_X1_Dn[], Real LX_X1_Up[],
-    Real LX_X2_Dn[], Real LX_X2_Up[],
-    Real LX_X3_Dn[], Real LX_X3_Up[],
-    Orientation face )
+    int nFields, Real dX1[], Real dX2[], Real dX3[], Orientation face )
 {
     BL_PROFILE("FluxRegister::Reflux_DG()");
 
@@ -1147,12 +1130,7 @@ FluxRegister::Reflux_DG
         Array4<Real const> const& dF = mf_dF.const_array(mfi);
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
         {
-            fluxreg_reflux_dg( tbx, dU, dF,
-                               nFields, nDOFX, nNodesX,
-                               WeightsX_q, dX1, dX2, dX3,
-                               LX_X1_Dn, LX_X1_Up,
-                               LX_X2_Dn, LX_X2_Up,
-                               LX_X3_Dn, LX_X3_Up, face );
+            fluxreg_reflux_dg( tbx, dU, dF, nFields, dX1, dX2, dX3, face );
         });
     }
 } /* END void FluxRegister::Reflux_DG */

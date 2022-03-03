@@ -363,35 +363,17 @@ public:
     * \param cres_geom
     * \param nComp
     * \param nFields
-    * \param nDOFX
-    * \param nNodesX
-    * \param WeightsX_q
     * \param dX1
     * \param dX2
     * \param dX3
-    * \param LX_X1_Dn
-    * \param LX_X1_Up
-    * \param LX_X2_Dn
-    * \param LX_X2_Up
-    * \param LX_X3_Dn
-    * \param LX_X3_Up
     */
     void Reflux_DG( MultiFab&       mf,
                     const Geometry& crse_geom,
                     int             nComp,
                     int             nFields,
-                    int             nDOFX,
-                    int             nNodesX[],
-                    Real            WeightsX_q[],
                     Real            dX1[],
                     Real            dX2[],
-                    Real            dX3[],
-                    Real            LX_X1_Dn[],
-                    Real            LX_X1_Up[],
-                    Real            LX_X2_Dn[],
-                    Real            LX_X2_Up[],
-                    Real            LX_X3_Dn[],
-                    Real            LX_X3_Up[] );
+                    Real            dX3[] );
 
     /**
     * \brief Constant volume version of Reflux().  Note that this takes the coarse Geometry.
@@ -452,12 +434,7 @@ public:
                  Real scale, int scomp, int dcomp, int nc, const Geometry& geom);
     void Reflux_DG
       ( MultiFab& mf, const Geometry& geom, int nComp,
-        int nFields, int nDOFX, int nNodesX[],
-        Real WeightsX_q[], Real dX1[], Real dX2[], Real dX3[],
-        Real LX_X1_Up[], Real LX_X1_Dn[],
-        Real LX_X2_Up[], Real LX_X2_Dn[],
-        Real LX_X3_Up[], Real LX_X3_Dn[],
-        Orientation face );
+        int nFields, Real dX1[], Real dX2[], Real dX3[], Orientation face );
 
 private:
 
