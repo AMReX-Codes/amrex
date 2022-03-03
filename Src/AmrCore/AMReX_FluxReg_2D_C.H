@@ -254,7 +254,7 @@ fluxreg_reflux_dg
 #endif
 
     amrex::ignore_unused
-      ( CrseBox, dU, dF, dX1, dX2, dX3, face );
+      ( CrseBox, dU, dF, nFields, dX1, dX2, dX3, face );
 
 } /* END fluxreg_reflux_dg */
 

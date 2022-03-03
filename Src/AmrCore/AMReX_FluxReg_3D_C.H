@@ -298,13 +298,9 @@ fluxreg_reflux_dg
     Array4<Real> const& dU,
     Array4<Real const> const& dF,
     int nFields,
-    int nDOFX,
-    int nNodesX[],
-    Real WeightsX_q[],
-    Real dX1[], Real dX2[], Real dX3[],
-    Real LX_X1_Dn[], Real LX_X1_Up[],
-    Real LX_X2_Dn[], Real LX_X2_Up[],
-    Real LX_X3_Dn[], Real LX_X3_Up[],
+    Real dX1[],
+    Real dX2[],
+    Real dX3[],
     const Orientation face ) noexcept
 {
 
@@ -313,8 +309,7 @@ fluxreg_reflux_dg
 #endif
 
     amrex::ignore_unused
-      ( CrseBox, dU, dF, nFields, nDOFX, nNodesX, WeightsX_q, dX1, dX2, dX3,
-        LX_X1_Dn, LX_X1_Up, LX_X2_Dn, LX_X2_Up, LX_X3_Dn, LX_X3_Up, face );
+      ( CrseBox, dU, dF, nFields, dX1, dX2, dX3, face );
 
 } /* END fluxreg_reflux_dg */
 
