@@ -830,9 +830,9 @@ FluxRegister::FineAdd_DG (const FArrayBox& SurfaceFluxes,
                           RunOn            runon) noexcept
 {
 
-    Real * WeightsX_X;
-    Real *** LX_X;
-    int nDOFX_X;
+    Real * WeightsX_X = NULL;
+    Real *** LX_X = NULL;
+    int nDOFX_X = -1;
 
     if( iDimX == 0 )
     {
