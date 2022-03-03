@@ -30,6 +30,7 @@ default: $(multiple_executables)
 
 include ./Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
+include $(AMREX_HOME)/Src/DG/Make.package
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
