@@ -254,7 +254,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         {
             box.refine(ref_fac);
         }
-        box.grow(computeRefFac(0, src_lev)*m_num_neighbor_cells);
+        box.grow(computeRefFac(0, lev)*m_num_neighbor_cells);
         const Periodicity& periodicity = this->Geom(lev).periodicity();
         const std::vector<IntVect>& pshifts = periodicity.shiftIntVect();
         const BoxArray& ba = this->ParticleBoxArray(lev);
