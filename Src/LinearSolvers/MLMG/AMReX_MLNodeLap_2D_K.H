@@ -2062,7 +2062,6 @@ void mlndlap_divu_eb (int i, int j, int, Array4<Real> const& rhs, Array4<Real co
                            +vel(i-1,j  ,0,1)*(vfrac(i-1,j  ,0)+Real(2.)*intg(i-1,j  ,0,0))*zero_ilo
                            +vel(i  ,j  ,0,1)*(vfrac(i  ,j  ,0)-Real(2.)*intg(i  ,j  ,0,0))*zero_ihi);
 
-        // TODO: Check implementation
         if (eb_phi_dot_n.dataPtr()) {
             Real fac_eb = 0.25 *dxinv[0];
 
@@ -2259,7 +2258,6 @@ void mlndlap_set_integral_eb (int i, int j, int, Array4<Real> const& intg,
     }
 }
 
-//TODO: Check implementation and test
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& intg,
                               Array4<EBCellFlag const> const& flag, Array4<Real const> const& vol,
@@ -2294,8 +2292,7 @@ void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& int
 
         Real c = -(bcx * anrmx + bcy * anrmy);
 
-        // TODO: Revisit this logic
-        GpuArray<RealVect,2> pts; //intersection points
+        GpuArray<RealVect,4> pts; //intersection points
         int np = 0;
         if (    (axm > Real(0.) && axm  < Real(1.))
              || (axm > Real(0.) && aym == Real(0.))

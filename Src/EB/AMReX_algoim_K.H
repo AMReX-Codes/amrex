@@ -366,23 +366,9 @@ struct ImplicitIntegral
         // "evalIntegrand" from start to end uninterrupted.
         GpuArray<Real,4> roots;
 
-        //TODO: Check implementation of surface integral
+        // Surface integral
         if (S)
         {
-            // Surface integral
-            // This is the algoim implementation:
-            //
-            // assert(M == N && N >= 2); // x is thus valid in all variables except e0
-            // detail::rootFind<Phi,N>(phi, x, e0, xrange.min(e0), xrange.max(e0), roots, true);
-            // assert(roots.size() <= 1);
-            // for (int i = 0; i < static_cast<int>(roots.size()); ++i)
-            // {
-            //     x(e0) = roots[i];
-            //     TinyVector<Real,N> g = phi.grad(x);
-            //     f.evalIntegrand(x, mag(g)/std::abs(g(e0))*w);
-            // }
-            // return;
-
             AMREX_ASSERT(M == N && N >= 2); // x is thus valid in all variables except e0
 
             Real x_min = xrange.min(e0);

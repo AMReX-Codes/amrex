@@ -141,7 +141,6 @@ public :
     // Tells the solver that EB boundaries have Dirichlet bc's specified by "phi"
     void setEBDirichlet (int amrlev, const MultiFab& phi);
 
-    // TODO: void setEBDirichlet(int amrlev, const MultiFab& phi_dot_n);
 #endif
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
