@@ -595,6 +595,45 @@ void eb_interp_cc2face_y (Box const& vbx,
     });
 }
 
+// TODO: Check implementation
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void eb_compute_divergence_from_flow (int i, int j, int k, int n, Array4<Real> const& divu,
+                            Array4<Real const> const& vel_eb, Array4<EBCellFlag const> const& flag,
+                            Array4<Real const> const& vfrc, Array4<Real const> const& apx,
+                            Array4<Real const> const& apy,
+                            Array4<Real const> const& barea, GpuArray<Real,2> const& dxinv)
+{
+    if (flag(i,j,k).isCovered())
+    {
+        divu(i,j,k,n) = 0.0;
+    }
+    else if (flag(i,j,k).isRegular())
+    {
+        divu(i,j,k,n) = 0.0;
+    }
+    else
+    {
+        Real apxm = apx(i,j,k);
+        Real apxp = apx(i+1,j,k);
+        Real apym = apy(i,j,k);
+        Real apyp = apy(i,j+1,k);
+
+        Real dapx = apxm-apxp;
+        Real dapy = apym-apyp;
+
+        Real anorm = std::sqrt(dapx*dapx+dapy*dapy);
+        Real anorminv = 1.0/anorm;
+
+        Real anrmx = dapx * anorminv;
+        Real anrmy = dapy * anorminv;
+
+        Real mag_eb_vel = vel_eb(i,j,k,0)*anrmx
+                        + vel_eb(i,j,k,1)*anrmy;
+
+        divu(i,j,k,n) += dxinv[0]*barea(i,j,k)*mag_eb_vel / vfrc(i,j,k);
+    }
+}
+
 }
 
 #endif
