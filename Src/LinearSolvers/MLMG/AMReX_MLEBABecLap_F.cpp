@@ -193,15 +193,8 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
     AMREX_D_TERM(const Real dhx = m_b_scalar/(h[0]*h[0]);,
                  const Real dhy = m_b_scalar/(h[1]*h[1]);,
                  const Real dhz = m_b_scalar/(h[2]*h[2]));
-#if (AMREX_SPACEDIM == 1 )
-    const Real dh = m_b_scalar/h[0];
-#endif
-#if (AMREX_SPACEDIM == 2 )
-    const Real dh = m_b_scalar/(h[0]*h[1]);
-#endif
-#if (AMREX_SPACEDIM == 3 )
-    const Real dh = m_b_scalar/(h[0]*h[1]*h[2]);
-#endif
+
+    const Real dh = m_b_scalar/(AMREX_D_TERM(h[0],*h[1],*h[2]));
     const Real alpha = m_a_scalar;
 
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());

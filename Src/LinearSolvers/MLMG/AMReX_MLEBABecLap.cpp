@@ -853,16 +853,7 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
     AMREX_D_TERM(Real dhx = m_b_scalar*dxinvarray[0]*dxinvarray[0];,
                  Real dhy = m_b_scalar*dxinvarray[1]*dxinvarray[1];,
                  Real dhz = m_b_scalar*dxinvarray[2]*dxinvarray[2];);
-#if (AMREX_SPACEDIM == 1 )
-    const Real dh = m_b_scalar*dxinvarray[0];
-#endif
-#if (AMREX_SPACEDIM == 2 )
-    const Real dh = m_b_scalar*dxinvarray[0]*dxinvarray[1];
-#endif
-#if (AMREX_SPACEDIM == 3 )
-    const Real dh = m_b_scalar*dxinvarray[0]*dxinvarray[1]*dxinvarray[2];
-#endif
-
+    const Real dh = m_b_scalar*AMREX_D_TERM(dxinvarray[0], *dxinvarray[1], *dxinvarray[2]);
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
