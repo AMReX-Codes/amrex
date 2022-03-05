@@ -473,12 +473,15 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<Int> const& ncols,
         }
 
         if (beb) {
-            Real anorm = std::sqrt((apx(i,j,k) - apx(i+1,j,k))*(apx(i,j,k) - apx(i+1,j,k))
-                                 + (apy(i,j,k) - apy(i,j+1,k))*(apy(i,j,k) - apy(i,j+1,k)));
+	    Real dapx = (apx(i,j,k) - apx(i+1,j,k))*dx[1];
+	    Real dapy = (apy(i,j,k) - apy(i,j+1,k))*dx[0];
+            Real anorm = std::sqrt(dapx*dapx
+                                 + dapy*dapy);
 
             Real anorminv = Real(1.0)/anorm;
-            Real anrmx = (apx(i,j,k) - apx(i+1,j,k))*anorminv;
-            Real anrmy = (apy(i,j,k) - apy(i,j+1,k))*anorminv;
+            Real anrmx = dapx*anorminv;
+            Real anrmy = dapy*anorminv;
+	    Real scaling = std::sqrt( (anrmx*dx[0])*(anrmx*dx[0]) + (anrmy*dy[1])*(anrmy*dy[1]) );
             Real sx   = Math::copysign(Real(1.0),anrmx);
             Real sy   = Math::copysign(Real(1.0),anrmy);
             Real bctx = bcen(i,j,k,0);
@@ -495,7 +498,7 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<Int> const& ncols,
 
             Array1D<Real,0,3> feb;
             for (int ii=0; ii<4; ii++){
-                feb(ii) = -phig1(ii) * (ba(i,j,k) * beb(i,j,k) / dg);
+	      feb(ii) = -phig1(ii) * (anorm * beb(i,j,k) / (dg*scaling));
             }
             mat_tmp(0   , 0  ) -= feb(0)*fac[0];
             mat_tmp(ioff, 0  ) -= feb(1)*fac[0];
