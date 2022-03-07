@@ -282,7 +282,6 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
                      Array4<Real const> const& fcx,
                      Array4<Real const> const& fcy,
                      Array4<Real const> const& fcz,
-                     Array4<Real const> const& ba,
                      Array4<Real const> const& bcen,
                      Array4<Real const> const& beb)
 {
