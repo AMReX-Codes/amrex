@@ -577,6 +577,7 @@ InitFromBinaryFile (const std::string& file,
             }
         }
 
+        AMREX_ASSERT(rprocs.size() < std::numeric_limits<int>::max())
         ParallelDescriptor::Bcast(rprocs.dataPtr(), rprocs.size(), IOProc);
     }
 
@@ -984,6 +985,11 @@ InitRandom (Long                    icount,
 
     if (serialize)
     {
+        AMREX_ASSERT(icount*AMREX_SPACEDIM < std::numeric_limits<int>::max());
+        if(icount*AMREX_SPACEDIM >= std::numeric_limits<int>::max())
+        {
+            amrex::Abort("InitRandom is attempting to initialize too many particles, set serialize=false");
+        }
         //
         // We'll let IOProc generate the particles so we get the same
         // positions no matter how many CPUs we have.  This is here

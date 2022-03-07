@@ -409,6 +409,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Nu
     {
         ParallelDescriptor::GatherLayoutDataToVector(np_per_grid_local, nparticles,
                                                      ParallelContext::IOProcessorNumberSub());
+        AMREX_ASSERT(nparticles.size() < std::numeric_limits<int>::max())
         ParallelDescriptor::Bcast(&nparticles[0], nparticles.size(),
                                   ParallelContext::IOProcessorNumberSub());
     }
