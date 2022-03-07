@@ -71,6 +71,10 @@ target_sources(amrex
    AMReX_EB_STL_utils.H
    AMReX_EB_STL_utils.cpp
    AMReX_EB_triGeomOps_K.H
+   AMReX_EB2_Level_STL.H
+   AMReX_EB2_Level_STL.cpp
+   AMReX_EB2_IndexSpace_STL.H
+   AMReX_EB2_IndexSpace_STL.cpp
    )
 
 if (AMReX_SPACEDIM EQUAL 3)

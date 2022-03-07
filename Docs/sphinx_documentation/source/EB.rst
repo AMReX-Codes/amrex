@@ -48,6 +48,24 @@ Here is a simple example of initialize the database for an embedded sphere.
     Geometry geom(...);
     EB2::Build(shop, geom, 0, 0);
 
+Alternatively, the EB information can be initialized from an STL file
+specified by a :cpp:`ParmParse` parameter ``eb2.stl_file`.  The
+initialization is done by calling
+
+.. highlight:: c++
+
+::
+
+   EB2::Build (const Geometry& geom,
+               int required_coarsening_level,
+               int max_coarsening_level,
+               int ngrow = 4,
+               bool build_coarse_level_by_coarsening = true);
+
+Additionally one can use ``eb2.stl_scale``, ``eb2.stl_center`` and
+``eb2.stl_reverse_normal`` to scale, translate and reverse the object,
+respectively.
+
 .. _sec:EB:ebinit:IF:
 
 Implicit Function
@@ -466,10 +484,3 @@ field of (1,0,0).
 .. _`EB/Poisson`: https://amrex-codes.github.io/amrex/tutorials_html/EB_Tutorial.html
 
 .. _`EB/MacProj`: https://amrex-codes.github.io/amrex/tutorials_html/EB_Tutorial.html
-
-
-
-
-
-
-
