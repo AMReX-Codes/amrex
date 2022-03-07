@@ -577,7 +577,7 @@ InitFromBinaryFile (const std::string& file,
             }
         }
 
-        AMREX_ASSERT(rprocs.size() < std::numeric_limits<int>::max())
+        AMREX_ASSERT(rprocs.size() < std::numeric_limits<int>::max());
         ParallelDescriptor::Bcast(rprocs.dataPtr(), rprocs.size(), IOProc);
     }
 

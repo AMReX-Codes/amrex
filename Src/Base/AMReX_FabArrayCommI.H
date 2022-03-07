@@ -585,7 +585,7 @@ FabArray<FAB>::copyTo (FAB& dest, int scomp, int dcomp, int ncomp, int nghost) c
     using T = typename FAB::value_type;
     if (ParallelContext::NProcsSub() > 1) {
         Long count = dest.numPts()*ncomp;
-        AMREX_ASSERT(count < std::numeric_limits<int>::max())
+        AMREX_ASSERT(count < std::numeric_limits<int>::max());
         T* const p0 = dest.dataPtr(dcomp);
         T* pb = p0;
 #ifdef AMREX_USE_GPU
