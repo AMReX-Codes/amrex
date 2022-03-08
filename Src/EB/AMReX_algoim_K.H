@@ -294,6 +294,7 @@ struct ImplicitIntegral
             }
             dphi_max *= 0.5*almostone;
             const Real phi_0 = phi(mid);
+            //HACK!!
             bool uniform_sign = (phi_0 > dphi_max) || (phi_0 < -dphi_max) || (phi_0 == Real(0.));
             if (uniform_sign)
             {
@@ -393,7 +394,7 @@ struct ImplicitIntegral
             x[e0] = x_min;
             Real phi_lo = phi(x);
             Real xroot = x[e0] - phi_lo / phi.grad(e0);
-            if (xroot > x_min && xroot < x_max) {
+            if (xroot >= x_min && xroot <= x_max) {
                 roots[nroots++] = xroot;
             }
 
