@@ -16,6 +16,14 @@
 
 using namespace amrex;
 
+
+
+#ifdef AMREX_PARTICLES
+std::unique_ptr<AmrTracerParticleContainer> AmrLevelAdv::TracerPC =  nullptr;
+int AmrLevelAdv::do_tracers = 0;
+#endif
+
+
 // constructor - reads in parameters from inputs file
 //             - sizes multilevel arrays and data structures
 //             - initializes BCRec boundary condition object
@@ -163,16 +171,40 @@ AmrCoreAdv::InitData ()
 
         if (chk_int > 0) {
             WriteCheckpointFile();
+
+#ifdef AMREX_PARTICLES
+            if (do_tracers) {
+                TracerPC->Checkpoint(dir, "Tracer", true);
+            }
+#endif
+
+
         }
 
     }
     else {
         // restart from a checkpoint
         ReadCheckpointFile();
+
+#ifdef AMREX_PARTICLES
+        if (do_tracers) {
+            BL_ASSERT(TracerPC == 0);
+            TracerPC = std::make_unique<AmrTracerParticleContainer>(parent);
+            TracerPC->Restart(parent->theRestartFile(), "Tracer");
+        }
+#endif
+
     }
 
     if (plot_int > 0) {
         WritePlotFile();
+
+        // Is this how you plot particles, with the Checkpoint call?
+#ifdef AMREX_PARTICLES
+        if (do_tracers) {
+            TracerPC->Checkpoint(dir, "Tracer", true);
+        }
+#endif
     }
 }
 
@@ -373,6 +405,13 @@ AmrCoreAdv::ReadParameters ()
         pp.query("do_reflux", do_reflux);
         pp.query("do_subcycle", do_subcycle);
     }
+#ifdef AMREX_PARTICLES
+    {
+        ParmParse pp("particles");
+
+        pp.query("do_tracers", do_tracers);
+    }
+#endif
 }
 
 // set covered coarse cells to be the average of overlying fine cells
@@ -827,6 +866,27 @@ AmrCoreAdv::WriteCheckpointFile () const
    }
 
 }
+
+#ifdef AMREX_PARTICLES
+void
+AmrCoreAdv::init_particles ()
+{
+  if (do_tracers)
+    {
+      BL_ASSERT(TracerPC == nullptr);
+
+      TracerPC = std::make_unique<AmrTracerParticleContainer>(parent);
+
+      AmrTracerParticleContainer::ParticleInitData pdata = {{AMREX_D_DECL(0.0, 0.0, 0.0)},{},{},{}};
+
+      TracerPC->SetVerbose(0);
+      TracerPC->InitOnePerCell(0.5, 0.5, 0.5, pdata);
+
+      TracerPC->Redistribute();
+    }
+}
+#endif
+
 
 namespace {
 // utility to skip to next line in Header

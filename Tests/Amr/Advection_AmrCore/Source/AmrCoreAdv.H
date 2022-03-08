@@ -9,6 +9,10 @@
 #include <omp.h>
 #endif
 
+#ifdef AMREX_PARTICLES
+#include <AMReX_AmrParticles.H>
+#endif
+
 #include <AMReX_AmrCore.H>
 #include <AMReX_FluxRegister.H>
 #include <AMReX_BCRec.H>
@@ -71,6 +75,18 @@ public:
 
     // compute dt from CFL considerations
     amrex::Real EstTimeStep (int lev, amrex::Real time);
+
+    // Added by me
+
+#ifdef AMREX_PARTICLES
+    static amrex::AmrTracerParticleContainer* theTracerPC () { return TracerPC.get(); }
+#endif
+
+#ifdef AMREX_PARTICLES
+    void init_particles ();
+    static int       do_tracers;
+    static std::unique_ptr<amrex::AmrTracerParticleContainer> TracerPC;
+#endif
 
 private:
 
