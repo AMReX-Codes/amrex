@@ -6860,7 +6860,7 @@ void mlndlap_divu_eb (int i, int j, int k, Array4<Real> const& rhs, Array4<Real 
                                             +Real(2.)*sintg(i  ,j-1,k-1,i_B_y)
                                             -Real(4.)*sintg(i  ,j-1,k-1,i_B_x_y)
                                             +Real(2.)*sintg(i  ,j-1,k-1,i_B_z)
-                                            -Real(4.)*sintg(i  ,j-1,k-1,i_B_y_z)
+                                            +Real(4.)*sintg(i  ,j-1,k-1,i_B_y_z)
                                             -Real(4.)*sintg(i  ,j-1,k-1,i_B_x_z)
                                             -Real(8.)*sintg(i  ,j-1,k-1,i_B_xyz))
                +eb_phi_dot_n(i-1,j  ,k-1)*(        bareaarr(i-1,j  ,k-1)

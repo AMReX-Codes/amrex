@@ -120,6 +120,7 @@ namespace detail
     // Defined Surfaces and Volumes in Hyperrectangles, SIAM
     // J. Sci. Comput., Vol. 37, No. 2, pp. A993-A1019,
     // http://dx.doi.org/10.1137/140966290].
+    template<bool S>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void
     determineSigns (bool positiveAbove, int sign, int& bottomSign, int& topSign) noexcept
@@ -132,18 +133,29 @@ namespace detail
         //      if positive above the height function: bottom = -, top = +/-
         //      if positive below the height function: bottom = +/-, top = -
         //   If integrating over both the positive and negative part (i.e. unrestricted in sign), keep it alive
-        if (sign == 1)
+        if (S)
         {
-            bottomSign = positiveAbove? 0 : 1;
-            topSign = positiveAbove? 1 : 0;
-        }
-        else if (sign == -1)
-        {
-            bottomSign = positiveAbove? -1 : 0;
-            topSign = positiveAbove? 0 : -1;
-        }
-        else {
-            bottomSign = topSign = 0;
+            // When evaluating a surface integral,
+            // if the function is positive above the height function, then
+            // the bottom side must be negative and the top side must be positive;
+            // if the function is positive below the height function,
+            // then the bottom side must be positive and the top side must be negative.
+            bottomSign = positiveAbove? -1 : 1;
+            topSign = positiveAbove? 1 : -1;
+        } else {
+            if (sign == 1)
+            {
+                bottomSign = positiveAbove? 0 : 1;
+                topSign = positiveAbove? 1 : 0;
+            }
+            else if (sign == -1)
+            {
+                bottomSign = positiveAbove? -1 : 0;
+                topSign = positiveAbove? 0 : -1;
+            }
+            else {
+                bottomSign = topSign = 0;
+            }
         }
     }
 } // namespace detail
@@ -265,7 +277,10 @@ struct ImplicitIntegral
 #else
         static constexpr Real eps = DBL_EPSILON;
 #endif
-        static constexpr Real almostone = 1.0-10.*eps;
+        Real almostone = 1.0-10.*eps;
+
+        if (S) almostone = 1.0;
+
         for (int i = 0; i < psiCount; )
         {
             GpuArray<Real,N> mid = xrange.midpoint();
@@ -279,7 +294,7 @@ struct ImplicitIntegral
             }
             dphi_max *= 0.5*almostone;
             const Real phi_0 = phi(mid);
-            bool uniform_sign = (phi_0 > dphi_max) || (phi_0 < -dphi_max);
+            bool uniform_sign = (phi_0 > dphi_max) || (phi_0 < -dphi_max) || (phi_0 == Real(0.));
             if (uniform_sign)
             {
                 if ((phi_0 >= 0.0 && psi[i].sign() >= 0) ||
@@ -389,6 +404,7 @@ struct ImplicitIntegral
                 x[e0] = roots[i];
                 f.evalIntegrand(x, w);
             }
+
             return;
         }
 
@@ -510,7 +526,8 @@ struct ImplicitIntegral
         // integral domain is the entire hyperrectangle.
         if (psiCount == 0)
         {
-            tensorProductIntegral();
+            if (!S)
+                tensorProductIntegral();
             return;
         }
 
@@ -547,7 +564,7 @@ struct ImplicitIntegral
 
             // w.z. We assume grad does not change.
             int bottomSign, topSign;
-            detail::determineSigns(phi.grad(e0) > 0.0, psi[i].sign(),
+            detail::determineSigns<S>(phi.grad(e0) > 0.0, psi[i].sign(),
                                    bottomSign, topSign);
             // w.z. There are sides 0 and 1.
             newPsi[newPsiCount++] = PsiCode<N>(psi[i], e0, 0, bottomSign);
