@@ -20,7 +20,7 @@ using namespace amrex;
 
 #ifdef AMREX_PARTICLES
 std::unique_ptr<AmrTracerParticleContainer> AmrLevelAdv::TracerPC =  nullptr;
-int AmrLevelAdv::do_tracers = 0;
+int AmrCoreAdv::do_tracers = 0;
 #endif
 
 
@@ -396,6 +396,9 @@ AmrCoreAdv::ReadParameters ()
         pp.query("chk_file", chk_file);
         pp.query("chk_int", chk_int);
         pp.query("restart",restart_chkfile);
+#ifdef AMREX_PARTICLES
+        pp.query("do_tracers", do_tracers);
+#endif
     }
 
     {
@@ -405,13 +408,6 @@ AmrCoreAdv::ReadParameters ()
         pp.query("do_reflux", do_reflux);
         pp.query("do_subcycle", do_subcycle);
     }
-#ifdef AMREX_PARTICLES
-    {
-        ParmParse pp("particles");
-
-        pp.query("do_tracers", do_tracers);
-    }
-#endif
 }
 
 // set covered coarse cells to be the average of overlying fine cells
