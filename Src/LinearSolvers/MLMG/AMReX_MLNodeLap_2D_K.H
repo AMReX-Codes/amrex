@@ -2062,6 +2062,7 @@ void mlndlap_divu_eb (int i, int j, int, Array4<Real> const& rhs, Array4<Real co
                            +vel(i-1,j  ,0,1)*(vfrac(i-1,j  ,0)+Real(2.)*intg(i-1,j  ,0,0))*zero_ilo
                            +vel(i  ,j  ,0,1)*(vfrac(i  ,j  ,0)-Real(2.)*intg(i  ,j  ,0,0))*zero_ihi);
 
+        // Add EB contribution
         if (eb_phi_dot_n.dataPtr()) {
             Real fac_eb = 0.25 *dxinv[0];
 
@@ -2268,7 +2269,7 @@ void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& int
         intg(i,j,0,i_B_x ) = Real(0.);
         intg(i,j,0,i_B_y ) = Real(0.);
         intg(i,j,0,i_B_xy) = Real(0.);
-    } else if (flag(i,j,0).isRegular() || vol(i,j,0) >= almostone) {
+    } else if (flag(i,j,0).isRegular()) {
         intg(i,j,0,i_B_x ) = Real(0.);
         intg(i,j,0,i_B_y ) = Real(0.);
         intg(i,j,0,i_B_xy) = Real(0.);
