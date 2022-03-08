@@ -2295,25 +2295,33 @@ void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& int
 
         GpuArray<RealVect,4> pts; //intersection points
         int np = 0;
-        if (    (axm > Real(0.) && axm  < Real(1.))
-             || (axm > Real(0.) && aym == Real(0.))
-             || (axm > Real(0.) && ayp == Real(0.))) {
+        if (anrmx == Real(0.)) {
             pts[np++] = RealVect{-0.5, Real(-c + 0.5*anrmx)/anrmy};
-        }
-        if (    (axp > Real(0.) && axp  < Real(1.))
-             || (axp > Real(0.) && aym == Real(0.))
-             || (axp > Real(0.) && ayp == Real(0.))) {
             pts[np++] = RealVect{ 0.5, Real(-c - 0.5*anrmx)/anrmy};
-        }
-        if (    (aym > Real(0.) && aym  < Real(1.))
-             || (aym > Real(0.) && axm == Real(0.))
-             || (aym > Real(0.) && axp == Real(0.))) {
+        } else if( anrmy == Real(0.)) {
             pts[np++] = RealVect{Real(-c + 0.5*anrmy)/anrmx, -0.5};
-        }
-        if (    (ayp > Real(0.) && ayp  < Real(1.))
-             || (ayp > Real(0.) && axm == Real(0.))
-             || (ayp > Real(0.) && axp == Real(0.))) {
             pts[np++] = RealVect{Real(-c - 0.5*anrmy)/anrmx,  0.5};
+        } else {
+            if (    (axm > Real(0.) && axm  < Real(1.))
+                 || (axm > Real(0.) && aym == Real(0.))
+                 || (axm > Real(0.) && ayp == Real(0.))) {
+                pts[np++] = RealVect{-0.5, Real(-c + 0.5*anrmx)/anrmy};
+            }
+            if (    (axp > Real(0.) && axp  < Real(1.))
+                 || (axp > Real(0.) && aym == Real(0.))
+                 || (axp > Real(0.) && ayp == Real(0.))) {
+                pts[np++] = RealVect{ 0.5, Real(-c - 0.5*anrmx)/anrmy};
+            }
+            if (    (aym > Real(0.) && aym  < Real(1.))
+                 || (aym > Real(0.) && axm == Real(0.))
+                 || (aym > Real(0.) && axp == Real(0.))) {
+                pts[np++] = RealVect{Real(-c + 0.5*anrmy)/anrmx, -0.5};
+            }
+            if (    (ayp > Real(0.) && ayp  < Real(1.))
+                 || (ayp > Real(0.) && axm == Real(0.))
+                 || (ayp > Real(0.) && axp == Real(0.))) {
+                pts[np++] = RealVect{Real(-c - 0.5*anrmy)/anrmx,  0.5};
+            }
         }
 
         if (np != 2) {
