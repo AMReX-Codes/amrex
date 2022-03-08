@@ -1362,7 +1362,7 @@ void eb_compute_divergence_from_flow (int i, int j, int k, int n, Array4<Real> c
                         + vel_eb(i,j,k,1)*anrmy
                         + vel_eb(i,j,k,2)*anrmz;
 
-        divu(i,j,k,n) += dxinv[0]*barea(i,j,k)*mag_eb_vel / vfrc(i,j,k);
+        divu(i,j,k,n) -= dxinv[0]*barea(i,j,k)*mag_eb_vel / vfrc(i,j,k);
     }
 }
 
