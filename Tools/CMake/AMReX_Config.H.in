@@ -28,6 +28,7 @@
 #cmakedefine BL_SPACEDIM @BL_SPACEDIM@
 #cmakedefine AMREX_USE_ASSERTION
 #cmakedefine AMREX_BOUND_CHECK
+#cmakedefine AMREX_EXPORT_DYNAMIC
 #cmakedefine BL_FORT_USE_UNDERSCORE
 #cmakedefine BL_FORT_USE_LOWERCASE
 #cmakedefine BL_FORT_USE_UPPERCASE
