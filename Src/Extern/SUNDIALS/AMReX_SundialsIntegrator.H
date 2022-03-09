@@ -312,11 +312,12 @@ public:
     amrex::Real advance_mri (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step)
     {
         int mri_time_step_ratio = BaseT::get_slow_fast_timestep_ratio();
-        AMREX_ALWAYS_ASSERT(mri_time_step_ratio >= 1);
+        Real mri_fast_time_step = BaseT::get_fast_timestep();
+        AMREX_ALWAYS_ASSERT(mri_time_step_ratio >= 1 || mri_fast_time_step >= 0.0);
         t               = time;
         tout            = time+time_step;
         hfixed          = time_step;
-        hfixed_mri      = time_step / mri_time_step_ratio;
+        hfixed_mri      = mri_fast_time_step >= 0.0 ? mri_fast_time_step : time_step / mri_time_step_ratio;
         timestep = time_step;
 
         // NOTE: hardcoded for now ...
