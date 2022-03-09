@@ -277,9 +277,7 @@ struct ImplicitIntegral
 #else
         static constexpr Real eps = DBL_EPSILON;
 #endif
-        Real almostone = 1.0-10.*eps;
-
-        if (S) almostone = 1.0;
+        static constexpr Real almostone = 1.0-10.*eps;
 
         for (int i = 0; i < psiCount; )
         {
@@ -294,8 +292,7 @@ struct ImplicitIntegral
             }
             dphi_max *= 0.5*almostone;
             const Real phi_0 = phi(mid);
-            //HACK!!
-            bool uniform_sign = (phi_0 > dphi_max) || (phi_0 < -dphi_max) || (phi_0 == Real(0.));
+            bool uniform_sign = (phi_0 > dphi_max) || (phi_0 < -dphi_max);
             if (uniform_sign)
             {
                 if ((phi_0 >= 0.0 && psi[i].sign() >= 0) ||
@@ -394,7 +391,7 @@ struct ImplicitIntegral
             x[e0] = x_min;
             Real phi_lo = phi(x);
             Real xroot = x[e0] - phi_lo / phi.grad(e0);
-            if (xroot >= x_min && xroot <= x_max) {
+            if (xroot > x_min && xroot < x_max) {
                 roots[nroots++] = xroot;
             }
 

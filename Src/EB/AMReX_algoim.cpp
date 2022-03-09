@@ -205,7 +205,7 @@ compute_surface_integrals (MultiFab& sintgmf, IntVect nghost)
 
     const auto& my_factory = dynamic_cast<EBFArrayBoxFactory const&>(sintgmf.Factory());
 
-    // const MultiFab&    vfrac = my_factory.getVolFrac();
+    const MultiFab&    vfrac = my_factory.getVolFrac();
     const MultiCutFab& bcent = my_factory.getBndryCent();
     const MultiCutFab& bnorm = my_factory.getBndryNormal();
     const auto&        flags = my_factory.getMultiEBCellFlagFab();
@@ -240,7 +240,7 @@ compute_surface_integrals (MultiFab& sintgmf, IntVect nghost)
         }
         else
         {
-            // auto const& vf = vfrac.array(mfi);
+            auto const& vf = vfrac.array(mfi);
             auto const& bc = bcent.array(mfi);
             auto const& bn = bnorm.array(mfi);
             auto const& fg = flagfab.array();
@@ -256,25 +256,51 @@ compute_surface_integrals (MultiFab& sintgmf, IntVect nghost)
                     } else if (ebflag.isCovered()) {
                         for (int n = 0; n < numSurfIntgs; ++n) sintg(i,j,k,n) = 0.0;
                     } else {
-                        EBPlane phi(bc(i,j,k,0),bc(i,j,k,1),bc(i,j,k,2),
-                                    bn(i,j,k,0),bn(i,j,k,1),bn(i,j,k,2));
+#if (BL_USE_FLOAT)
+                        constexpr float eps = 1.e-30_rt;
+#else
+                        constexpr double eps = 1.e-100_rt;
+#endif
+                        constexpr Real almostone = Real(1.) - Real(100.)*std::numeric_limits<Real>::epsilon();
 
-                        const QuadratureRule q = quadGenSurf(phi);
+                        if (vf(i,j,k) >= almostone) {
+                            for(int n = 0; n < numSurfIntgs; ++n) sintg(i,j,k,n) = 0.0;
+                            if (fg(i-1,j,k).isCovered()) {
+                                sintg(i,j,k,i_B_x) = -0.5;
+                            } else if (fg(i,j-1,k).isCovered()) {
+                                sintg(i,j,k,i_B_y) = -0.5;
+                            } else if (fg(i,j,k-1).isCovered()) {
+                                sintg(i,j,k,i_B_z) = -0.5;
+                            } else if (fg(i+1,j,k).isCovered()) {
+                                sintg(i,j,k,i_B_x) = 0.5;
+                            } else if (fg(i,j+1,k).isCovered()) {
+                                sintg(i,j,k,i_B_y) = 0.5;
+                            } else if (fg(i,j,k+1).isCovered()) {
+                                sintg(i,j,k,i_B_z) = 0.5;
+                            } else {
+                                 amrex::Abort("amrex::algoim::compute_surface_integrals: we are in trouble");
+                            }
+                        } else {
+                            EBPlane phi(bc(i,j,k,0),bc(i,j,k,1),bc(i,j,k,2),
+                                        bn(i,j,k,0),bn(i,j,k,1),bn(i,j,k,2));
 
-                        sintg(i,j,k,i_B_x    ) = q([] AMREX_GPU_DEVICE (Real x, Real /*y*/, Real /*z*/) noexcept
-                                                   { return x; });
-                        sintg(i,j,k,i_B_y    ) = q([] AMREX_GPU_DEVICE (Real /*x*/, Real y, Real /*z*/) noexcept
-                                                   { return y; });
-                        sintg(i,j,k,i_B_z    ) = q([] AMREX_GPU_DEVICE (Real /*x*/, Real /*y*/, Real z) noexcept
-                                                   { return z; });
-                        sintg(i,j,k,i_B_x_y  ) = q([] AMREX_GPU_DEVICE (Real x, Real y, Real /*z*/) noexcept
-                                                   { return x*y; });
-                        sintg(i,j,k,i_B_x_z  ) = q([] AMREX_GPU_DEVICE (Real x, Real /*y*/, Real z) noexcept
-                                                   { return x*z; });
-                        sintg(i,j,k,i_B_y_z  ) = q([] AMREX_GPU_DEVICE (Real /*x*/, Real y, Real z) noexcept
-                                                   { return y*z; });
-                        sintg(i,j,k,i_B_xyz  ) = q([] AMREX_GPU_DEVICE (Real x, Real y, Real z) noexcept
-                                                   { return x*y*z; });
+                            const QuadratureRule q = quadGenSurf(phi);
+
+                            sintg(i,j,k,i_B_x  ) = q([] AMREX_GPU_DEVICE (Real x, Real /*y*/, Real /*z*/) noexcept
+                                                       { return x; });
+                            sintg(i,j,k,i_B_y  ) = q([] AMREX_GPU_DEVICE (Real /*x*/, Real y, Real /*z*/) noexcept
+                                                       { return y; });
+                            sintg(i,j,k,i_B_z  ) = q([] AMREX_GPU_DEVICE (Real /*x*/, Real /*y*/, Real z) noexcept
+                                                       { return z; });
+                            sintg(i,j,k,i_B_x_y) = q([] AMREX_GPU_DEVICE (Real x, Real y, Real /*z*/) noexcept
+                                                       { return x*y; });
+                            sintg(i,j,k,i_B_x_z) = q([] AMREX_GPU_DEVICE (Real x, Real /*y*/, Real z) noexcept
+                                                       { return x*z; });
+                            sintg(i,j,k,i_B_y_z) = q([] AMREX_GPU_DEVICE (Real /*x*/, Real y, Real z) noexcept
+                                                       { return y*z; });
+                            sintg(i,j,k,i_B_xyz) = q([] AMREX_GPU_DEVICE (Real x, Real y, Real z) noexcept
+                                                       { return x*y*z; });
+                        }
                     }
                 });
             }
@@ -292,25 +318,51 @@ compute_surface_integrals (MultiFab& sintgmf, IntVect nghost)
                     } else if (ebflag.isCovered()) {
                         for (int n = 0; n < numSurfIntgs; ++n) sintg(i,j,k,n) = 0.0;
                     } else {
-                        EBPlane phi(bc(i,j,k,0),bc(i,j,k,1),bc(i,j,k,2),
-                                    bn(i,j,k,0),bn(i,j,k,1),bn(i,j,k,2));
+#if (BL_USE_FLOAT)
+                        constexpr float eps = 1.e-30_rt;
+#else
+                        constexpr double eps = 1.e-100_rt;
+#endif
+                        constexpr Real almostone = Real(1.) - Real(100.)*std::numeric_limits<Real>::epsilon();
 
-                        const QuadratureRule q = quadGenSurf(phi);
+                        if (vf(i,j,k) >= almostone) {
+                            for(int n = 0; n < numSurfIntgs; ++n) sintg(i,j,k,n) = 0.0;
+                            if (fg(i-1,j,k).isCovered()) {
+                                sintg(i,j,k,i_B_x) = -0.5;
+                            } else if (fg(i,j-1,k).isCovered()) {
+                                sintg(i,j,k,i_B_y) = -0.5;
+                            } else if (fg(i,j,k-1).isCovered()) {
+                                sintg(i,j,k,i_B_z) = -0.5;
+                            } else if (fg(i+1,j,k).isCovered()) {
+                                sintg(i,j,k,i_B_x) = 0.5;
+                            } else if (fg(i,j+1,k).isCovered()) {
+                                sintg(i,j,k,i_B_y) = 0.5;
+                            } else if (fg(i,j,k+1).isCovered()) {
+                                sintg(i,j,k,i_B_z) = 0.5;
+                            } else {
+                                 amrex::Abort("amrex::algoim::compute_surface_integrals: we are in trouble");
+                            }
+                        } else {
+                            EBPlane phi(bc(i,j,k,0),bc(i,j,k,1),bc(i,j,k,2),
+                                        bn(i,j,k,0),bn(i,j,k,1),bn(i,j,k,2));
 
-                        sintg(i,j,k,i_B_x    ) = q.eval([](Real x, Real /*y*/, Real /*z*/) noexcept
-                                                   { return x; });
-                        sintg(i,j,k,i_B_y    ) = q.eval([](Real /*x*/, Real y, Real /*z*/) noexcept
-                                                   { return y; });
-                        sintg(i,j,k,i_B_z    ) = q.eval([](Real /*x*/, Real /*y*/, Real z) noexcept
-                                                   { return z; });
-                        sintg(i,j,k,i_B_x_y  ) = q.eval([](Real x, Real y, Real /*z*/) noexcept
-                                                   { return x*y; });
-                        sintg(i,j,k,i_B_x_z  ) = q.eval([](Real x, Real /*y*/, Real z) noexcept
-                                                   { return x*z; });
-                        sintg(i,j,k,i_B_y_z  ) = q.eval([](Real /*x*/, Real y, Real z) noexcept
-                                                   { return y*z; });
-                        sintg(i,j,k,i_B_xyz  ) = q.eval([](Real x, Real y, Real z) noexcept
-                                                   { return x*y*z; });
+                            const QuadratureRule q = quadGenSurf(phi);
+
+                            sintg(i,j,k,i_B_x  ) = q.eval([](Real x, Real /*y*/, Real /*z*/) noexcept
+                                                       { return x; });
+                            sintg(i,j,k,i_B_y  ) = q.eval([](Real /*x*/, Real y, Real /*z*/) noexcept
+                                                       { return y; });
+                            sintg(i,j,k,i_B_z  ) = q.eval([](Real /*x*/, Real /*y*/, Real z) noexcept
+                                                       { return z; });
+                            sintg(i,j,k,i_B_x_y) = q.eval([](Real x, Real y, Real /*z*/) noexcept
+                                                       { return x*y; });
+                            sintg(i,j,k,i_B_x_z) = q.eval([](Real x, Real /*y*/, Real z) noexcept
+                                                       { return x*z; });
+                            sintg(i,j,k,i_B_y_z) = q.eval([](Real /*x*/, Real y, Real z) noexcept
+                                                       { return y*z; });
+                            sintg(i,j,k,i_B_xyz) = q.eval([](Real x, Real y, Real z) noexcept
+                                                       { return x*y*z; });
+                        }
                     }
                 }
             }

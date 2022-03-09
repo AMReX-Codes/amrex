@@ -2274,70 +2274,87 @@ void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& int
         intg(i,j,0,i_B_y ) = Real(0.);
         intg(i,j,0,i_B_xy) = Real(0.);
     } else {
-        Real axm = ax(i,j,0);
-        Real axp = ax(i+1,j,0);
-        Real aym = ay(i,j,0);
-        Real ayp = ay(i,j+1,0);
-
-        Real apnorm = std::sqrt((axm-axp)*(axm-axp) + (aym-ayp)*(aym-ayp));
-        if (apnorm == Real(0.)) {
-            amrex::Abort("amrex_mlndlap_set_surface_integral: we are in trouble");
-        }
-
-        Real apnorminv = Real(1.)/apnorm;
-        Real anrmx = (axm-axp) * apnorminv;  // pointing to the wall
-        Real anrmy = (aym-ayp) * apnorminv;
-
-        Real bcx = bcen(i,j,0,0);
-        Real bcy = bcen(i,j,0,1);
-
-        Real c = -(bcx * anrmx + bcy * anrmy);
-
-        GpuArray<RealVect,4> pts; //intersection points
-        int np = 0;
-        if (anrmx == Real(0.)) {
-            pts[np++] = RealVect{-0.5, Real(-c + 0.5*anrmx)/anrmy};
-            pts[np++] = RealVect{ 0.5, Real(-c - 0.5*anrmx)/anrmy};
-        } else if( anrmy == Real(0.)) {
-            pts[np++] = RealVect{Real(-c + 0.5*anrmy)/anrmx, -0.5};
-            pts[np++] = RealVect{Real(-c - 0.5*anrmy)/anrmx,  0.5};
+        if (vol(i,j,0) >= almostone) {
+            intg(i,j,0,i_B_x ) = Real(0.);
+            intg(i,j,0,i_B_y ) = Real(0.);
+            intg(i,j,0,i_B_xy) = Real(0.);
+            if (flag(i-1,j,0).isCovered()) {
+                intg(i,j,0,i_B_x) = -0.5;
+            } else if (flag(i,j-1,0).isCovered()) {
+                intg(i,j,0,i_B_y) = -0.5;
+            } else if (flag(i+1,j,0).isCovered()) {
+                intg(i,j,0,i_B_x) = 0.5;
+            } else if (flag(i,j+1,0).isCovered()) {
+                intg(i,j,0,i_B_y) = 0.5;
+            } else {
+                amrex::Abort("amrex_mlndlap_set_surface_integral: we are in trouble");
+            }
         } else {
-            if (    (axm > Real(0.) && axm  < Real(1.))
-                 || (axm > Real(0.) && aym == Real(0.))
-                 || (axm > Real(0.) && ayp == Real(0.))) {
+            Real axm = ax(i,j,0);
+            Real axp = ax(i+1,j,0);
+            Real aym = ay(i,j,0);
+            Real ayp = ay(i,j+1,0);
+
+            Real apnorm = std::sqrt((axm-axp)*(axm-axp) + (aym-ayp)*(aym-ayp));
+            if (apnorm == Real(0.)) {
+                amrex::Abort("amrex_mlndlap_set_surface_integral: we are in trouble");
+            }
+
+            Real apnorminv = Real(1.)/apnorm;
+            Real anrmx = (axm-axp) * apnorminv;  // pointing to the wall
+            Real anrmy = (aym-ayp) * apnorminv;
+
+            Real bcx = bcen(i,j,0,0);
+            Real bcy = bcen(i,j,0,1);
+
+            Real c = -(bcx * anrmx + bcy * anrmy);
+
+            GpuArray<RealVect,4> pts; //intersection points
+            int np = 0;
+            if (anrmx == Real(0.)) {
                 pts[np++] = RealVect{-0.5, Real(-c + 0.5*anrmx)/anrmy};
-            }
-            if (    (axp > Real(0.) && axp  < Real(1.))
-                 || (axp > Real(0.) && aym == Real(0.))
-                 || (axp > Real(0.) && ayp == Real(0.))) {
                 pts[np++] = RealVect{ 0.5, Real(-c - 0.5*anrmx)/anrmy};
-            }
-            if (    (aym > Real(0.) && aym  < Real(1.))
-                 || (aym > Real(0.) && axm == Real(0.))
-                 || (aym > Real(0.) && axp == Real(0.))) {
+            } else if( anrmy == Real(0.)) {
                 pts[np++] = RealVect{Real(-c + 0.5*anrmy)/anrmx, -0.5};
-            }
-            if (    (ayp > Real(0.) && ayp  < Real(1.))
-                 || (ayp > Real(0.) && axm == Real(0.))
-                 || (ayp > Real(0.) && axp == Real(0.))) {
                 pts[np++] = RealVect{Real(-c - 0.5*anrmy)/anrmx,  0.5};
+            } else {
+                if (    (axm > Real(0.) && axm  < Real(1.))
+                     || (axm > Real(0.) && aym == Real(0.))
+                     || (axm > Real(0.) && ayp == Real(0.))) {
+                    pts[np++] = RealVect{-0.5, Real(-c + 0.5*anrmx)/anrmy};
+                }
+                if (    (axp > Real(0.) && axp  < Real(1.))
+                     || (axp > Real(0.) && aym == Real(0.))
+                     || (axp > Real(0.) && ayp == Real(0.))) {
+                    pts[np++] = RealVect{ 0.5, Real(-c - 0.5*anrmx)/anrmy};
+                }
+                if (    (aym > Real(0.) && aym  < Real(1.))
+                     || (aym > Real(0.) && axm == Real(0.))
+                     || (aym > Real(0.) && axp == Real(0.))) {
+                    pts[np++] = RealVect{Real(-c + 0.5*anrmy)/anrmx, -0.5};
+                }
+                if (    (ayp > Real(0.) && ayp  < Real(1.))
+                     || (ayp > Real(0.) && axm == Real(0.))
+                     || (ayp > Real(0.) && axp == Real(0.))) {
+                    pts[np++] = RealVect{Real(-c - 0.5*anrmy)/anrmx,  0.5};
+                }
             }
+
+            if (np != 2) {
+                amrex::Abort("amrex_mlndlap_set_surface_integral: we are in trouble");
+            }
+
+            Real x0 = pts[0][0], x1 = pts[1][0];
+            Real y0 = pts[0][1], y1 = pts[1][1];
+
+            Real Bx = 0.5*(x1 + x0);
+            Real By = 0.5*(y1 + y0);
+            Real Bxy = x0*y0 + (x0*(y1 - y0) + y0*(x1 - x0))/2 + (x1 - x0)*(y1 - y0)/3;
+
+            intg(i,j,0,i_B_x ) = Bx;
+            intg(i,j,0,i_B_y ) = By;
+            intg(i,j,0,i_B_xy) = Bxy;
         }
-
-        if (np != 2) {
-            amrex::Abort("amrex_mlndlap_set_surface_integral: we are in trouble");
-        }
-
-        Real x0 = pts[0][0], x1 = pts[1][0];
-        Real y0 = pts[0][1], y1 = pts[1][1];
-
-        Real Bx = 0.5*(x1 + x0);
-        Real By = 0.5*(y1 + y0);
-        Real Bxy = x0*y0 + (x0*(y1 - y0) + y0*(x1 - x0))/2 + (x1 - x0)*(y1 - y0)/3;
-
-        intg(i,j,0,i_B_x ) = Bx;
-        intg(i,j,0,i_B_y ) = By;
-        intg(i,j,0,i_B_xy) = Bxy;
     }
 }
 
