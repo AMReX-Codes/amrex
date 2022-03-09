@@ -209,6 +209,8 @@ compute_surface_integrals (MultiFab& sintgmf, IntVect nghost)
     const MultiCutFab& bcent = my_factory.getBndryCent();
     const MultiCutFab& bnorm = my_factory.getBndryNormal();
     const auto&        flags = my_factory.getMultiEBCellFlagFab();
+    const auto&        area  = my_factory.getAreaFrac();
+    const auto&        barea = my_factory.getBndryArea();
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
@@ -240,10 +242,14 @@ compute_surface_integrals (MultiFab& sintgmf, IntVect nghost)
         }
         else
         {
-            auto const& vf = vfrac.array(mfi);
-            auto const& bc = bcent.array(mfi);
-            auto const& bn = bnorm.array(mfi);
-            auto const& fg = flagfab.array();
+            auto const& vf  = vfrac.array(mfi);
+            auto const& bc  = bcent.array(mfi);
+            auto const& bn  = bnorm.array(mfi);
+            auto const& fg  = flagfab.array();
+            auto const& apx = area[0]->const_array(mfi);
+            auto const& apy = area[1]->const_array(mfi);
+            auto const& apz = area[2]->const_array(mfi);
+            auto const& ba  = barea.array(mfi);
 
             if (Gpu::inLaunchRegion())
             {
@@ -256,27 +262,30 @@ compute_surface_integrals (MultiFab& sintgmf, IntVect nghost)
                     } else if (ebflag.isCovered()) {
                         for (int n = 0; n < numSurfIntgs; ++n) sintg(i,j,k,n) = 0.0;
                     } else {
-#if (BL_USE_FLOAT)
-                        constexpr float eps = 1.e-30_rt;
-#else
-                        constexpr double eps = 1.e-100_rt;
-#endif
                         constexpr Real almostone = Real(1.) - Real(100.)*std::numeric_limits<Real>::epsilon();
 
                         if (vf(i,j,k) >= almostone) {
                             for(int n = 0; n < numSurfIntgs; ++n) sintg(i,j,k,n) = 0.0;
-                            if (fg(i-1,j,k).isCovered()) {
-                                sintg(i,j,k,i_B_x) = -0.5;
-                            } else if (fg(i,j-1,k).isCovered()) {
-                                sintg(i,j,k,i_B_y) = -0.5;
-                            } else if (fg(i,j,k-1).isCovered()) {
-                                sintg(i,j,k,i_B_z) = -0.5;
-                            } else if (fg(i+1,j,k).isCovered()) {
-                                sintg(i,j,k,i_B_x) = 0.5;
-                            } else if (fg(i,j+1,k).isCovered()) {
-                                sintg(i,j,k,i_B_y) = 0.5;
-                            } else if (fg(i,j,k+1).isCovered()) {
-                                sintg(i,j,k,i_B_z) = 0.5;
+
+                            Real apxm = apx(i  ,j  ,k  );
+                            Real apxp = apx(i+1,j  ,k  );
+                            Real apym = apy(i  ,j  ,k  );
+                            Real apyp = apy(i  ,j+1,k  );
+                            Real apzm = apz(i  ,j  ,k  );
+                            Real apzp = apz(i  ,j  ,k+1);
+
+                            if (apxm < 1.0) {
+                                sintg(i,j,k,i_B_x) = -0.5*ba(i,j,k);
+                            } else if (apym < 1.0) {
+                                sintg(i,j,k,i_B_y) = -0.5*ba(i,j,k);
+                            } else if (apzm < 1.0) {
+                                sintg(i,j,k,i_B_z) = -0.5*ba(i,j,k);
+                            } else if (apxp < 1.0) {
+                                sintg(i,j,k,i_B_x) = 0.5*ba(i,j,k);
+                            } else if (apyp < 1.0) {
+                                sintg(i,j,k,i_B_y) = 0.5*ba(i,j,k);
+                            } else if (apzp < 1.0) {
+                                sintg(i,j,k,i_B_z) = 0.5*ba(i,j,k);
                             } else {
                                  amrex::Abort("amrex::algoim::compute_surface_integrals: we are in trouble");
                             }
@@ -318,27 +327,30 @@ compute_surface_integrals (MultiFab& sintgmf, IntVect nghost)
                     } else if (ebflag.isCovered()) {
                         for (int n = 0; n < numSurfIntgs; ++n) sintg(i,j,k,n) = 0.0;
                     } else {
-#if (BL_USE_FLOAT)
-                        constexpr float eps = 1.e-30_rt;
-#else
-                        constexpr double eps = 1.e-100_rt;
-#endif
                         constexpr Real almostone = Real(1.) - Real(100.)*std::numeric_limits<Real>::epsilon();
 
                         if (vf(i,j,k) >= almostone) {
                             for(int n = 0; n < numSurfIntgs; ++n) sintg(i,j,k,n) = 0.0;
-                            if (fg(i-1,j,k).isCovered()) {
-                                sintg(i,j,k,i_B_x) = -0.5;
-                            } else if (fg(i,j-1,k).isCovered()) {
-                                sintg(i,j,k,i_B_y) = -0.5;
-                            } else if (fg(i,j,k-1).isCovered()) {
-                                sintg(i,j,k,i_B_z) = -0.5;
-                            } else if (fg(i+1,j,k).isCovered()) {
-                                sintg(i,j,k,i_B_x) = 0.5;
-                            } else if (fg(i,j+1,k).isCovered()) {
-                                sintg(i,j,k,i_B_y) = 0.5;
-                            } else if (fg(i,j,k+1).isCovered()) {
-                                sintg(i,j,k,i_B_z) = 0.5;
+
+                            Real apxm = apx(i  ,j  ,k  );
+                            Real apxp = apx(i+1,j  ,k  );
+                            Real apym = apy(i  ,j  ,k  );
+                            Real apyp = apy(i  ,j+1,k  );
+                            Real apzm = apz(i  ,j  ,k  );
+                            Real apzp = apz(i  ,j  ,k+1);
+
+                            if (apxm < 1.0) {
+                                sintg(i,j,k,i_B_x) = -0.5*ba(i,j,k);
+                            } else if (apym < 1.0) {
+                                sintg(i,j,k,i_B_y) = -0.5*ba(i,j,k);
+                            } else if (apzm < 1.0) {
+                                sintg(i,j,k,i_B_z) = -0.5*ba(i,j,k);
+                            } else if (apxp < 1.0) {
+                                sintg(i,j,k,i_B_x) = 0.5*ba(i,j,k);
+                            } else if (apyp < 1.0) {
+                                sintg(i,j,k,i_B_y) = 0.5*ba(i,j,k);
+                            } else if (apzp < 1.0) {
+                                sintg(i,j,k,i_B_z) = 0.5*ba(i,j,k);
                             } else {
                                  amrex::Abort("amrex::algoim::compute_surface_integrals: we are in trouble");
                             }

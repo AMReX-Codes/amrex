@@ -102,6 +102,7 @@ MLNodeLaplacian::buildSurfaceIntegral ()
             const auto& vfrac = factory->getVolFrac();
             const auto& area = factory->getAreaFrac();
             const auto& bcent = factory->getBndryCent();
+            const auto& barea = factory->getBndryArea();
 
             MFItInfo mfi_info;
             if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
@@ -131,9 +132,10 @@ MLNodeLaplacian::buildSurfaceIntegral ()
                     Array4<Real const> const& axarr = area[0]->const_array(mfi);
                     Array4<Real const> const& ayarr = area[1]->const_array(mfi);
                     Array4<Real const> const& bcarr = bcent.const_array(mfi);
+                    Array4<Real const> const& baarr = barea.const_array(mfi);
                     AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                     {
-                        mlndlap_set_surface_integral_eb(i,j,k,garr,flagarr,vfracarr,axarr,ayarr,bcarr);
+                        mlndlap_set_surface_integral_eb(i,j,k,garr,flagarr,vfracarr,axarr,ayarr,bcarr,baarr);
                     });
                 }
             }

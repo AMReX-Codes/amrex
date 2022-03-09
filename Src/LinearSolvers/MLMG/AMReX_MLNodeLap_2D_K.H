@@ -2263,7 +2263,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& intg,
                               Array4<EBCellFlag const> const& flag, Array4<Real const> const& vol,
                               Array4<Real const> const& ax, Array4<Real const> const& ay,
-                              Array4<Real const> const& bcen) noexcept
+                              Array4<Real const> const& bcen,
+                              Array4<Real const> const& barea) noexcept
 {
     if (flag(i,j,0).isCovered()) {
         intg(i,j,0,i_B_x ) = Real(0.);
@@ -2274,32 +2275,32 @@ void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& int
         intg(i,j,0,i_B_y ) = Real(0.);
         intg(i,j,0,i_B_xy) = Real(0.);
     } else {
+        Real axm = ax(i,j,0);
+        Real axp = ax(i+1,j,0);
+        Real aym = ay(i,j,0);
+        Real ayp = ay(i,j+1,0);
+
+        Real apnorm = std::sqrt((axm-axp)*(axm-axp) + (aym-ayp)*(aym-ayp));
+        if (apnorm == Real(0.)) {
+            amrex::Abort("amrex_mlndlap_set_surface_integral: we are in trouble");
+        }
+
         if (vol(i,j,0) >= almostone) {
             intg(i,j,0,i_B_x ) = Real(0.);
             intg(i,j,0,i_B_y ) = Real(0.);
             intg(i,j,0,i_B_xy) = Real(0.);
-            if (flag(i-1,j,0).isCovered()) {
-                intg(i,j,0,i_B_x) = -0.5;
-            } else if (flag(i,j-1,0).isCovered()) {
-                intg(i,j,0,i_B_y) = -0.5;
-            } else if (flag(i+1,j,0).isCovered()) {
-                intg(i,j,0,i_B_x) = 0.5;
-            } else if (flag(i,j+1,0).isCovered()) {
-                intg(i,j,0,i_B_y) = 0.5;
+            if (axm < Real(1.)) {
+                intg(i,j,0,i_B_x) = -0.5*barea(i,j,0);
+            } else if (aym < Real(1.)) {
+                intg(i,j,0,i_B_y) = -0.5*barea(i,j,0);
+            } else if (axp < Real(1.)) {
+                intg(i,j,0,i_B_x) = 0.5*barea(i,j,0);
+            } else if (ayp < Real(1.)) {
+                intg(i,j,0,i_B_y) = 0.5*barea(i,j,0);
             } else {
                 amrex::Abort("amrex_mlndlap_set_surface_integral: we are in trouble");
             }
         } else {
-            Real axm = ax(i,j,0);
-            Real axp = ax(i+1,j,0);
-            Real aym = ay(i,j,0);
-            Real ayp = ay(i,j+1,0);
-
-            Real apnorm = std::sqrt((axm-axp)*(axm-axp) + (aym-ayp)*(aym-ayp));
-            if (apnorm == Real(0.)) {
-                amrex::Abort("amrex_mlndlap_set_surface_integral: we are in trouble");
-            }
-
             Real apnorminv = Real(1.)/apnorm;
             Real anrmx = (axm-axp) * apnorminv;  // pointing to the wall
             Real anrmy = (aym-ayp) * apnorminv;
