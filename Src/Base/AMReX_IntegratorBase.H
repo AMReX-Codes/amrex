@@ -169,7 +169,12 @@ protected:
    /**
     * \brief For multirate problems, the ratio of slow timestep size / fast timestep size (int)
     */
-    int slow_fast_timestep_ratio;
+    int slow_fast_timestep_ratio = 0;
+
+   /**
+    * \brief For multirate problems, the fast timestep size (Real)
+    */
+    Real fast_timestep = 0.0;
 
    /**
     * \brief The post_update function is called by the integrator on state data before using it to evaluate a right-hand side.
@@ -200,6 +205,11 @@ public:
         slow_fast_timestep_ratio = timestep_ratio;
     }
 
+    void set_fast_timestep (const Real fast_dt = 1.0)
+    {
+        fast_timestep = fast_dt;
+    }
+
     void set_post_update (std::function<void (T&, amrex::Real)> F)
     {
         post_update = F;
@@ -223,6 +233,11 @@ public:
     int get_slow_fast_timestep_ratio ()
     {
         return slow_fast_timestep_ratio;
+    }
+
+    Real get_fast_timestep ()
+    {
+        return fast_timestep;
     }
 
     void rhs (T& S_rhs, const T& S_data, const amrex::Real time)
