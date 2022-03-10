@@ -222,9 +222,9 @@ public:
 
     BaseFab (const BaseFab<T>& rhs) = delete;
     BaseFab<T>& operator= (const BaseFab<T>& rhs) = delete;
-    BaseFab<T>& operator= (BaseFab<T>&& rhs) = delete;
 
     BaseFab (BaseFab<T>&& rhs) noexcept;
+    BaseFab<T>& operator= (BaseFab<T>&& rhs) noexcept;
 
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
@@ -2002,6 +2002,26 @@ BaseFab<T>::BaseFab (BaseFab<T>&& rhs) noexcept
 {
     rhs.dptr = nullptr;
     rhs.ptr_owner = false;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::operator= (BaseFab<T>&& rhs) noexcept
+{
+    if (this != &rhs) {
+        clear();
+        DataAllocator::operator=(rhs);
+        dptr = rhs.dptr;
+        domain = rhs.domain;
+        nvar = rhs.nvar;
+        truesize = rhs.truesize;
+        ptr_owner = rhs.ptr_owner;
+        shared_memory = rhs.shared_memory;
+
+        rhs.dptr = nullptr;
+        rhs.ptr_owner = false;
+    }
+    return *this;
 }
 
 template <class T>
