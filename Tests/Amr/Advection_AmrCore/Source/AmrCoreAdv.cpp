@@ -323,6 +323,10 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
             initdata(tbx, fab, problo, dx);
         });
     }
+
+    AmrCoreAdv::init_particles();
+
+
 }
 
 // tag all cells for refinement
