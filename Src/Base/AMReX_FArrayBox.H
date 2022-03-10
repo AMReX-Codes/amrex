@@ -272,10 +272,10 @@ public:
     virtual ~FArrayBox () noexcept override {}
 
     FArrayBox (FArrayBox&& rhs) noexcept = default;
+    FArrayBox& operator= (FArrayBox&&) = default;
 
     FArrayBox (const FArrayBox&) = delete;
     FArrayBox& operator= (const FArrayBox&) = delete;
-    FArrayBox& operator= (FArrayBox&&) = delete;
 
     //! Set the fab to the value r.
 #if defined(AMREX_USE_GPU)
