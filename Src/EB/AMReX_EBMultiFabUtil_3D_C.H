@@ -1358,11 +1358,11 @@ void eb_compute_divergence_from_flow (int i, int j, int k, int n, Array4<Real> c
         Real anrmy = dapy * anorminv;
         Real anrmz = dapz * anorminv;
 
-        Real mag_eb_vel = vel_eb(i,j,k,0)*anrmx
-                        + vel_eb(i,j,k,1)*anrmy
-                        + vel_eb(i,j,k,2)*anrmz;
+        Real Ueb_dot_n = vel_eb(i,j,k,0)*anrmx
+                       + vel_eb(i,j,k,1)*anrmy
+                       + vel_eb(i,j,k,2)*anrmz;
 
-        divu(i,j,k,n) -= dxinv[0]*barea(i,j,k)*mag_eb_vel / vfrc(i,j,k);
+        divu(i,j,k,n) += Ueb_dot_n * barea(i,j,k) * dxinv[0] / vfrc(i,j,k);
     }
 }
 
