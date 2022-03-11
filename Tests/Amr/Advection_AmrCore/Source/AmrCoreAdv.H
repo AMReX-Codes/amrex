@@ -10,6 +10,7 @@
 #endif
 
 #ifdef AMREX_PARTICLES
+#include <AMReX_Particles.H>
 #include <AMReX_AmrParticles.H>
 #endif
 
@@ -77,16 +78,10 @@ public:
     amrex::Real EstTimeStep (int lev, amrex::Real time);
 
     // Added by me
-
 #ifdef AMREX_PARTICLES
     static amrex::AmrTracerParticleContainer* theTracerPC () { return TracerPC.get(); }
 #endif
 
-#ifdef AMREX_PARTICLES
-    void init_particles ();
-    static int       do_tracers;
-    static std::unique_ptr<amrex::AmrTracerParticleContainer> TracerPC;
-#endif
 
 private:
 
@@ -202,6 +197,12 @@ private:
     // checkpoint prefix and frequency
     std::string chk_file {"chk"};
     int chk_int = -1;
+
+#ifdef AMREX_PARTICLES
+    void init_particles ();
+    static int       do_tracers;
+    static std::unique_ptr<amrex::AmrTracerParticleContainer> TracerPC;
+#endif
 };
 
 #endif

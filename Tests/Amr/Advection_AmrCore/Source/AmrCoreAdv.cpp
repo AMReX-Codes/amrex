@@ -19,7 +19,7 @@ using namespace amrex;
 
 
 #ifdef AMREX_PARTICLES
-std::unique_ptr<AmrTracerParticleContainer> AmrLevelAdv::TracerPC =  nullptr;
+std::unique_ptr<AmrTracerParticleContainer> AmrCoreAdv::TracerPC =  nullptr;
 int AmrCoreAdv::do_tracers = 0;
 #endif
 
@@ -121,6 +121,9 @@ AmrCoreAdv::Evolve ()
         else
             timeStepNoSubcycling(cur_time, iteration);
 
+
+
+
         cur_time += dt[0];
 
         // sum phi to check conservation
@@ -169,14 +172,17 @@ AmrCoreAdv::InitData ()
         InitFromScratch(time);
         AverageDown();
 
+
+#ifdef AMREX_PARTICLES
+    init_particles();
+#endif
+
+
+
+
         if (chk_int > 0) {
             WriteCheckpointFile();
 
-#ifdef AMREX_PARTICLES
-            if (do_tracers) {
-                TracerPC->Checkpoint(dir, "Tracer", true);
-            }
-#endif
 
 
         }
@@ -199,12 +205,6 @@ AmrCoreAdv::InitData ()
     if (plot_int > 0) {
         WritePlotFile();
 
-        // Is this how you plot particles, with the Checkpoint call?
-#ifdef AMREX_PARTICLES
-        if (do_tracers) {
-            TracerPC->Checkpoint(dir, "Tracer", true);
-        }
-#endif
     }
 }
 
@@ -324,7 +324,7 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
         });
     }
 
-    AmrCoreAdv::init_particles();
+   // AmrCoreAdv::init_particles();
 
 
 }
@@ -640,6 +640,18 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
         AverageDownTo(lev); // average lev+1 down to lev
     }
 
+//HACK -- do I need to regrid after ever level change, or can I do it once after everything else
+// has been done?
+#ifdef AMREX_PARTICLES
+    TracerPC->AdvectWithUmac(facevel[lev].data(),lev,dt[lev]);
+    if (regrid_int > 0)  // If we needed to regrid
+    {
+        TracerPC->Redistribute();
+    }
+#endif
+
+
+
 }
 
 // Advance all the levels with the same dt
@@ -680,7 +692,6 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
             amrex::Print() << "Advanced " << CountCells(lev) << " cells" << std::endl;
         }
     }
-
 }
 
 // a wrapper for EstTimeStep
@@ -784,6 +795,14 @@ AmrCoreAdv::WritePlotFile () const
 
     amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1, mf, varnames,
                                    Geom(), t_new[0], istep, refRatio());
+    //
+    //
+        // Is this how you plot particles, with the Checkpoint call?
+#ifdef AMREX_PARTICLES
+        if (do_tracers) {
+            TracerPC->Checkpoint(plotfilename, "Tracer", true);
+        }
+#endif
 }
 
 void
@@ -864,6 +883,12 @@ AmrCoreAdv::WriteCheckpointFile () const
        VisMF::Write(phi_new[lev],
                     amrex::MultiFabFileFullPrefix(lev, checkpointname, "Level_", "phi"));
    }
+
+#ifdef AMREX_PARTICLES
+            if (do_tracers) {
+                TracerPC->Checkpoint(checkpointname, "Tracer", true);
+            }
+#endif
 
 }
 
