@@ -60,6 +60,7 @@ namespace amrex
         extern AMREX_EXPORT int abort_on_unused_inputs;
     }
 
+    /** the AMReX "git describe" version */
     std::string Version ();
 
     // The returned AMReX* is non-owning! To delete it, call Finalize(AMReX*).
