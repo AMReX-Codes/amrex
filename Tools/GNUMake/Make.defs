@@ -385,7 +385,7 @@ AMREX_GIT_VERSION := $(shell cd $(AMREX_HOME); git describe --abbrev=12 --dirty 
 ifndef AMREX_GIT_VERSION
   AMREX_GIT_VERSION := $(shell grep -o -m 1 -E "[0-9]{2}\.[0-9]{2}(\.[0-9]+)?" $(AMREX_HOME)/CHANGES)
 endif
-DEFINES += -DAMREX_GIT_VERSION=\"$(AMREX_GIT_VERSION)\"
+VERSION_DEFINES += -DAMREX_GIT_VERSION=\"$(AMREX_GIT_VERSION)\"
 
 ifeq ($(findstring ., $(AMREX_GIT_VERSION)), .)
   amrex_release_string := $(AMREX_GIT_VERSION)
@@ -409,7 +409,7 @@ else
   amrex_release_patch := $(shell printf '%02d' $(word 3, $(amrex_release_words)) | cut -c-2)
   AMREX_RELEASE_NUMBER := $(amrex_release_yy)$(amrex_release_mm)$(amrex_release_patch)
 endif
-DEFINES += -DAMREX_RELEASE_NUMBER=$(AMREX_RELEASE_NUMBER)
+VERSION_DEFINES += -DAMREX_RELEASE_NUMBER=$(AMREX_RELEASE_NUMBER)
 
 
 FORTLINK  	= UNDERSCORE
@@ -422,6 +422,7 @@ MKDEP		= perl $(AMREX_HOME)/Tools/C_scripts/mkdep
 MODDEP		= $(AMREX_HOME)/Tools/F_scripts/dep.py
 CHECKFORT       = $(AMREX_HOME)/Tools/typechecker/typechecker.py
 MKCONFIG        = $(AMREX_HOME)/Tools/libamrex/mkconfig.py
+MKVERSIONHEADER = $(AMREX_HOME)/Tools/libamrex/mkversionheader.py
 MKPKGCONFIG     = $(AMREX_HOME)/Tools/libamrex/mkpkgconfig.py
 GATHERBUILDTIME = $(AMREX_HOME)/Tools/C_scripts/gatherbuildtime.py
 
