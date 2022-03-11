@@ -151,6 +151,16 @@ public:
         integrator_ptr->set_slow_fast_timestep_ratio(timestep_ratio);
     }
 
+    void set_fast_timestep (const Real fast_dt = 1.0)
+    {
+        integrator_ptr->set_fast_timestep(fast_dt);
+    }
+
+    Real get_fast_timestep ()
+    {
+        return integrator_ptr->get_fast_timestep();
+    }
+
     std::function<void ()> get_post_timestep ()
     {
         return post_timestep;

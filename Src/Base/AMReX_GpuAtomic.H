@@ -269,7 +269,7 @@ namespace detail {
 #endif
     }
 
-#if defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_HIP) && defined(HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR < 5)
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void AddNoRet (float* const sum, float const value) noexcept
     {

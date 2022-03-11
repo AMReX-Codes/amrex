@@ -331,6 +331,14 @@ print_option( AMReX_ASSERTIONS )
 option(AMReX_BOUND_CHECK  "Enable bound checking in Array4 class" OFF)
 print_option( AMReX_BOUND_CHECK )
 
+if("${CMAKE_SYSTEM_NAME}" MATCHES "Darwin")
+    set(AMReX_EXPORT_DYNAMIC_DEFAULT ON)
+else()
+    set(AMReX_EXPORT_DYNAMIC_DEFAULT OFF)
+endif()
+option( AMReX_EXPORT_DYNAMIC "Enable Backtrace for macOS/Darwin" ${AMReX_EXPORT_DYNAMIC_DEFAULT})
+print_option( AMReX_EXPORT_DYNAMIC )
+
 #
 # Profiling options  =========================================================
 #
