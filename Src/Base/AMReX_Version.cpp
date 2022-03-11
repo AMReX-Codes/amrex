@@ -1,4 +1,4 @@
-#include <AMReX.H>
+//include <AMReX.H>  // contains declaration
 #include <AMReX_Version.H>
 
 #include <string>
