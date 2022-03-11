@@ -87,7 +87,7 @@ MLNodeLaplacian::buildSurfaceIntegral ()
 
     BL_PROFILE("MLNodeLaplacian::buildSurfaceIntegral()");
 
-    m_integral_built = true;
+    m_surface_integral_built = true;
 
 #if (AMREX_SPACEDIM == 2)
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
