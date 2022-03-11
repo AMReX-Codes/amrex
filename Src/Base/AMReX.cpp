@@ -13,7 +13,6 @@
 #include <AMReX_MemPool.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_Gpu.H>
-#include <AMReX_Version.H>
 
 #ifdef AMREX_USE_HYPRE
 #include <_hypre_utilities.h>
@@ -126,15 +125,6 @@ namespace {
     int init_hypre = 1;
 }
 #endif
-
-std::string amrex::Version ()
-{
-#ifdef AMREX_GIT_VERSION
-    return std::string(AMREX_GIT_VERSION);
-#else
-    return std::string("Unknown");
-#endif
-}
 
 int amrex::Verbose () noexcept { return amrex::system::verbose; }
 
