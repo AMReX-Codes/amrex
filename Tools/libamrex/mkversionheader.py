@@ -9,9 +9,9 @@ if sys.version_info < (2, 7):
 
 import argparse
 
-def doit(defines):
-    print("#ifndef AMREX_VERSION_H_")
-    print("#define AMREX_VERSION_H_")
+def doit(code, defines):
+    print("#ifndef "+code+"_VERSION_H_")
+    print("#define "+code+"_VERSION_H_")
 
     # Remove -I from input
     defines = re.sub(r'-I.*?(-D|$)', r'\1', defines)
@@ -28,18 +28,21 @@ def doit(defines):
                 print("#define",v[0],1)
             print("#endif")
 
-    print("#endif // AMREX_VERSION_H_")
+    print("#endif // "+code+"_VERSION_H_")
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
+    parser.add_argument("--code",
+                        help="code name",
+                        default="AMREX")
     parser.add_argument("--defines",
                         help="preprocessing macros: -Dxx -Dyy",
                         default="")
     args = parser.parse_args()
 
     try:
-        doit(defines=args.defines)
+        doit(code=args.code, defines=args.defines)
     except:
         # something went wrong
         print("$(error something went wrong in mkversionheader.py)")
