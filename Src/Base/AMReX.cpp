@@ -13,6 +13,7 @@
 #include <AMReX_MemPool.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_Gpu.H>
+#include <AMReX_Version.H>
 
 #ifdef AMREX_USE_HYPRE
 #include <_hypre_utilities.h>
