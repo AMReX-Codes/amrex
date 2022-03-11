@@ -2153,11 +2153,11 @@ void mlndlap_set_integral (int i, int j, int, Array4<Real> const& intg) noexcept
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_set_surface_integral (int i, int j, int, Array4<Real> const& intg) noexcept
+void mlndlap_set_surface_integral (int i, int j, int, Array4<Real> const& sintg) noexcept
 {
-    intg(i,j,0,i_B_x ) = Real(0.);
-    intg(i,j,0,i_B_y ) = Real(0.);
-    intg(i,j,0,i_B_xy) = Real(0.);
+    sintg(i,j,0,i_B_x ) = Real(0.);
+    sintg(i,j,0,i_B_y ) = Real(0.);
+    sintg(i,j,0,i_B_xy) = Real(0.);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -2260,20 +2260,20 @@ void mlndlap_set_integral_eb (int i, int j, int, Array4<Real> const& intg,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& intg,
+void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& sintg,
                               Array4<EBCellFlag const> const& flag, Array4<Real const> const& vol,
                               Array4<Real const> const& ax, Array4<Real const> const& ay,
                               Array4<Real const> const& bcen,
                               Array4<Real const> const& barea) noexcept
 {
     if (flag(i,j,0).isCovered()) {
-        intg(i,j,0,i_B_x ) = Real(0.);
-        intg(i,j,0,i_B_y ) = Real(0.);
-        intg(i,j,0,i_B_xy) = Real(0.);
+        sintg(i,j,0,i_B_x ) = Real(0.);
+        sintg(i,j,0,i_B_y ) = Real(0.);
+        sintg(i,j,0,i_B_xy) = Real(0.);
     } else if (flag(i,j,0).isRegular()) {
-        intg(i,j,0,i_B_x ) = Real(0.);
-        intg(i,j,0,i_B_y ) = Real(0.);
-        intg(i,j,0,i_B_xy) = Real(0.);
+        sintg(i,j,0,i_B_x ) = Real(0.);
+        sintg(i,j,0,i_B_y ) = Real(0.);
+        sintg(i,j,0,i_B_xy) = Real(0.);
     } else {
         Real axm = ax(i,j,0);
         Real axp = ax(i+1,j,0);
@@ -2286,17 +2286,17 @@ void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& int
         }
 
         if (vol(i,j,0) >= almostone) {
-            intg(i,j,0,i_B_x ) = Real(0.);
-            intg(i,j,0,i_B_y ) = Real(0.);
-            intg(i,j,0,i_B_xy) = Real(0.);
+            sintg(i,j,0,i_B_x ) = Real(0.);
+            sintg(i,j,0,i_B_y ) = Real(0.);
+            sintg(i,j,0,i_B_xy) = Real(0.);
             if (axm < Real(1.)) {
-                intg(i,j,0,i_B_x) = -0.5*barea(i,j,0);
+                sintg(i,j,0,i_B_x) = -0.5*barea(i,j,0);
             } else if (aym < Real(1.)) {
-                intg(i,j,0,i_B_y) = -0.5*barea(i,j,0);
+                sintg(i,j,0,i_B_y) = -0.5*barea(i,j,0);
             } else if (axp < Real(1.)) {
-                intg(i,j,0,i_B_x) = 0.5*barea(i,j,0);
+                sintg(i,j,0,i_B_x) = 0.5*barea(i,j,0);
             } else if (ayp < Real(1.)) {
-                intg(i,j,0,i_B_y) = 0.5*barea(i,j,0);
+                sintg(i,j,0,i_B_y) = 0.5*barea(i,j,0);
             } else {
                 amrex::Abort("amrex_mlndlap_set_surface_integral: we are in trouble");
             }
@@ -2352,9 +2352,9 @@ void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& int
             Real By = 0.5*(y1 + y0);
             Real Bxy = x0*y0 + (x0*(y1 - y0) + y0*(x1 - x0))/2 + (x1 - x0)*(y1 - y0)/3;
 
-            intg(i,j,0,i_B_x ) = Bx;
-            intg(i,j,0,i_B_y ) = By;
-            intg(i,j,0,i_B_xy) = Bxy;
+            sintg(i,j,0,i_B_x ) = Bx;
+            sintg(i,j,0,i_B_y ) = By;
+            sintg(i,j,0,i_B_xy) = Bxy;
         }
     }
 }

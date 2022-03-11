@@ -266,7 +266,7 @@ MLNodeLaplacian::prepareForSolve ()
 
 #ifdef AMREX_USE_EB
     buildIntegral();
-    buildSurfaceIntegral();
+    if (m_build_surface_integral) buildSurfaceIntegral();
 #endif
 
     buildStencil();
@@ -817,10 +817,9 @@ MLNodeLaplacian::setEBDirichlet (int amrlev, const MultiFab& phi)
 {
     const int mglev = 0;
     if (m_eb_phi_dot_n[amrlev] == nullptr) {
-        m_eb_phi_dot_n[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][mglev],
-                                                      m_dmap[amrlev][mglev],
-                                                      1, 1, MFInfo(),
-                                                      *m_factory[amrlev][mglev]);
+        m_eb_phi_dot_n[amrlev] = std::make_unique<MultiFab>(
+                m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
+                1, 1, MFInfo(), *m_factory[amrlev][mglev]);
     }
 
     m_eb_phi_dot_n[amrlev]->setVal(0.0);
@@ -854,6 +853,9 @@ MLNodeLaplacian::setEBDirichlet (int amrlev, const MultiFab& phi)
     }
 
     m_eb_phi_dot_n[amrlev]->FillBoundary(m_geom[amrlev][mglev].periodicity());
+
+    // Turn on flag for building surface integrals
+    m_build_surface_integral = true;
 
 }
 #endif

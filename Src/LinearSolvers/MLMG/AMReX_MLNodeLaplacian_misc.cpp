@@ -894,7 +894,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 
 #ifdef AMREX_USE_EB
     if (!m_integral_built) buildIntegral();
-    if (!m_surface_integral_built) buildSurfaceIntegral();
+    if (m_build_surface_integral && !m_surface_integral_built) buildSurfaceIntegral();
 #endif
 
 #if (AMREX_SPACEDIM == 2)

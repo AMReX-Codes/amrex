@@ -194,6 +194,7 @@ private:
 
     Vector<std::unique_ptr<MultiFab> > m_surface_integral;
     bool m_surface_integral_built = false;
+    bool m_build_surface_integral = false;
     Vector<std::unique_ptr<MultiFab> > m_eb_phi_dot_n;
 #endif
 
