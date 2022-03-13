@@ -39,7 +39,7 @@ fluxreg_fineadd (Box const& bx, Array4<Real> const& reg, const int rcomp,
 
 /**
 * \brief Add fine grid flux to flux register (DG).
-* CrseBx is a box defined on the coarse level.
+* CrseBox is a box defined on the coarse level.
 * reg is a coarse grid edge based object.
 * SurfaceFluxes_Fine is a fine grid edge based object. It is assumed that the
 * coarsened flux region contains the register region.
@@ -52,7 +52,7 @@ fluxreg_fineadd (Box const& bx, Array4<Real> const& reg, const int rcomp,
 * AMREX_SPACDIM-1 dimensions on the interface in the iDimX dimension.
 * ratio is the refinement ratio. ratio must be 2.
 *
-* \param CrseBx
+* \param CrseBox
 * \param reg
 * \param SurfaceFluxes_Fine
 * \param nFields
@@ -62,7 +62,7 @@ fluxreg_fineadd (Box const& bx, Array4<Real> const& reg, const int rcomp,
 * \param ratio
 */
 AMREX_GPU_HOST_DEVICE inline void
-fluxreg_fineadd_dg( Box const&                CrseBx,
+fluxreg_fineadd_dg( Box const&                CrseBox,
                     Array4<Real> const&       reg,
                     Array4<Real const> const& SurfaceFluxes_Fine,
                     const int                 /*iDimX*/,
@@ -72,30 +72,25 @@ fluxreg_fineadd_dg( Box const&                CrseBx,
                     Real ***                  LX_X,
                     Dim3 const&               ratio ) noexcept
 {
-
-    const auto lo   = amrex::lbound(CrseBx);
-    const int iCrse = lo.x;
-    const int iFine = iCrse*ratio.x;
+    const auto lo   = amrex::lbound(CrseBox);
+    const int iCrseF = lo.x;
+    const int iFineF = iCrse*ratio.x;
 
     for( int iNX_C = 0; iNX_C < nDOFX_X; iNX_C++ )
     {
-        for( int iFn = 0; iFn < amrex::DG::nFineF; iFn++ )
+        for( int iField = 0; iField < nFields; iField++ )
         {
-            for( int iField = 0; iField < nFields; iField++ )
+            for( int iNX_F = 0; iNX_F < nDOFX_X; iNX_F++ )
             {
-                for( int iNX_F = 0; iNX_F < nDOFX_X; iNX_F++ )
-                {
-                    reg(iCrse,0,0,iNX_C+iField*nDOFX_X)
-                      += WeightsX_X[iNX_F]
-                           * SurfaceFluxes_Fine(iFine,0,0,
-                                  iNX_F+iField*nDOFX_X+nFields*nDOFX_X*iFn)
-                           * LX_X[iNX_C][iFn][iNX_F]
-                           * amrex::DG::FaceRatio;
-                } /* iNX_F */
-            } /* iField */
-        } /* iFn */
+                reg(iCrseF,0,0,iNX_C+iField*nDOFX_X)
+                  += WeightsX_X[iNX_F]
+                       * SurfaceFluxes_Fine
+                           (iFineF,0,0,iNX_F+iField*nDOFX_X)
+                       * LX_X[iNX_C][0][iNX_F]
+                       * amrex::DG::FaceRatio;
+            } /* iNX_F */
+        } /* iField */
     } /* iNX_C */
-
 } /* END fluxreg_fineadd_dg */
 
 
