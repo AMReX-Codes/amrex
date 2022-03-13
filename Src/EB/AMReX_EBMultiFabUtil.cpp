@@ -783,23 +783,21 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
 
         if (flagfab.getType(bx) == FabType::singlevalued) {
             const auto& vfrac = factory.getVolFrac();
-            const auto& area = factory.getAreaFrac();
+            const auto& bnorm = factory.getBndryNormal();
             const auto& barea = factory.getBndryArea();
             const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
 
             Array4<Real> const& divuarr = divu.array(mfi);
-            Array4<Real const> const&& vel_eb_arr = vel_eb.const_array(mfi);
+            Array4<Real const> const& vel_eb_arr = vel_eb.const_array(mfi);
             Array4<Real const> const& vfracarr = vfrac.const_array(mfi);
-            AMREX_D_TERM(Array4<Real const> const& apx = area[0]->const_array(mfi);,
-                         Array4<Real const> const& apy = area[1]->const_array(mfi);,
-                         Array4<Real const> const& apz = area[2]->const_array(mfi));
+            Array4<Real const> const& bnormarr = bnorm.const_array(mfi);
             Array4<EBCellFlag const> const& flagarr = flagfab.const_array();
             Array4<Real const> const& bareaarr = barea.const_array(mfi);
 
             AMREX_HOST_DEVICE_FOR_4D(bx,divu.nComp(),i,j,k,n,
             {
                 eb_compute_divergence_from_flow(i,j,k,n,divuarr,vel_eb_arr,
-                    flagarr,vfracarr,AMREX_D_DECL(apx,apy,apz),bareaarr,dxinv);
+                    flagarr,vfracarr,bnormarr,bareaarr,dxinv);
             });
         }
     }

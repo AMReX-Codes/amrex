@@ -1326,8 +1326,7 @@ void eb_interp_cc2face_z (Box const& wbx,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void eb_compute_divergence_from_flow (int i, int j, int k, int n, Array4<Real> const& divu,
                             Array4<Real const> const& vel_eb, Array4<EBCellFlag const> const& flag,
-                            Array4<Real const> const& vfrc, Array4<Real const> const& apx,
-                            Array4<Real const> const& apy, Array4<Real const> const& apz,
+                            Array4<Real const> const& vfrc, Array4<Real const> const& bnorm,
                             Array4<Real const> const& barea, GpuArray<Real,3> const& dxinv)
 {
     if (flag(i,j,k).isCovered())
@@ -1340,27 +1339,9 @@ void eb_compute_divergence_from_flow (int i, int j, int k, int n, Array4<Real> c
     }
     else
     {
-        Real apxm = apx(i,j,k);
-        Real apxp = apx(i+1,j,k);
-        Real apym = apy(i,j,k);
-        Real apyp = apy(i,j+1,k);
-        Real apzm = apz(i,j,k);
-        Real apzp = apz(i,j,k+1);
-
-        Real dapx = apxm-apxp;
-        Real dapy = apym-apyp;
-        Real dapz = apzm-apzp;
-
-        Real anorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
-        Real anorminv = 1.0/anorm;
-
-        Real anrmx = dapx * anorminv;
-        Real anrmy = dapy * anorminv;
-        Real anrmz = dapz * anorminv;
-
-        Real Ueb_dot_n = vel_eb(i,j,k,0)*anrmx
-                       + vel_eb(i,j,k,1)*anrmy
-                       + vel_eb(i,j,k,2)*anrmz;
+        Real Ueb_dot_n = vel_eb(i,j,k,0)*bnorm(i,j,k,0)
+                       + vel_eb(i,j,k,1)*bnorm(i,j,k,1)
+                       + vel_eb(i,j,k,2)*bnorm(i,j,k,2);
 
         divu(i,j,k,n) += Ueb_dot_n * barea(i,j,k) * dxinv[0] / vfrc(i,j,k);
     }
