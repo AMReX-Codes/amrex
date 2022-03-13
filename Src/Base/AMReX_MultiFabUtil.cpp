@@ -517,7 +517,7 @@ namespace amrex
         }
 
         S_crse.ParallelCopy(crse_S_fine,0,scomp,ncomp);
-#endif
+//#endif
    }
 
 // ***************************************************************************
