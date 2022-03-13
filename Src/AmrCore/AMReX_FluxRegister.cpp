@@ -283,231 +283,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     CrseInit(mflx,area,dir,srccomp,destcomp,numcomp,mult,op);
 }
 
-//void
-//FluxRegister::CrseInit_DG ( const MultiFab& SurfaceFlux,
-//                            int             iDimX,
-//                            int             SrcComp,
-//                            int             DestComp,
-//                            int             nComp,
-//                            Real            mult,
-//                            MultiFab&       FluxIncrement,
-//                            int             nDOFX_K,
-//                            int             nNodesX1,
-//                            Real            LX_Dn_1D[],
-//                            Real            LX_Up_1D[],
-//                            Real            WeightsX[],
-//                            Real            dX[],
-//                            FrOp            op)
-//{
-//
-//    /* Consistency checks */
-////    BL_ASSERT( SrcComp  >= 0 && SrcComp  + nComp <= SurfaceFlux.nComp() );
-////    BL_ASSERT( DestComp >= 0 && DestComp + nComp <= ncomp );
-//
-//    /* face_lo = (0), face_hi = (1) */
-//    const Orientation face_lo( iDimX, Orientation::low  );
-//    const Orientation face_hi( iDimX, Orientation::high );
-//
-//    /* Define destination MultiFab */
-//    MultiFab mf( FluxIncrement.boxArray(), FluxIncrement.DistributionMap(),
-//                 nComp, 0, MFInfo(), FluxIncrement.Factory() );
-////    mf.setVal( (Real)0.0 );
-//
-//const Real One = 1.0;
-//
-///* Send these in */
-//const int nCF = 6;
-//const int swX[3] = { 1, 0, 0 };
-//int nNodesX[3] = { 2, 1, 1 };
-//const int nDOFX_X1 = 1;
-//const int nDOFX_X2 = 1;
-//const int nDOFX_X3 = 1;
-//const int nDOFX_X = nDOFX_X1;
-//const int nDOFX = 2;
-///* */
-//
-//int iNX;
-//int iNX1;
-//int iNX2;
-//int iNX3;
-//int iNX_X;
-//int iNX_X1;
-//int iNX_X2;
-//int iNX_X3;
-//
-//int iX_B0[3];
-//int iX_E0[3];
-//int iX1, iX2, iX3;
-//
-//int iCF;
-//
-//int NodeNumberTableX[3][nDOFX];
-//int NodeNumberTableX3D[2][2][2];
-//int NodeNumberTableX_X[nDOFX];
-//
-//iNX = -1;
-//for( iNX3 = 0; iNX3 < nNodesX[2]; iNX3++ ) {
-//for( iNX2 = 0; iNX2 < nNodesX[1]; iNX2++ ) {
-//for( iNX1 = 0; iNX1 < nNodesX[0]; iNX1++ ) {
-//  iNX += 1;
-//  NodeNumberTableX[0][iNX] = iNX1;
-//  NodeNumberTableX[1][iNX] = iNX2;
-//  NodeNumberTableX[2][iNX] = iNX3;
-//  NodeNumberTableX3D[iNX1][iNX2][iNX3] = iNX;
-//}}}
-//
-///* Break these up into dimension-dependent individual functions */
-//if( iDimX == 0 )
-//{
-//  for( iNX3 = 0; iNX3 < nNodesX[2]; iNX3++ ) {
-//  for( iNX2 = 0; iNX2 < nNodesX[1]; iNX2++ ) {
-//  for( iNX1 = 0; iNX1 < nNodesX[0]; iNX1++ ) {
-//    iNX = NodeNumberTableX3D[iNX1][iNX2][iNX3];
-//    NodeNumberTableX_X[iNX] = iNX / nNodesX[0];
-//  }}}
-//}
-//if( iDimX == 1 )
-//{
-//  for( iNX3 = 0; iNX3 < nNodesX[2]; iNX3++ ) {
-//  for( iNX2 = 0; iNX2 < nNodesX[1]; iNX2++ ) {
-//  for( iNX1 = 0; iNX1 < nNodesX[0]; iNX1++ ) {
-//    iNX = NodeNumberTableX3D[iNX1][iNX2][iNX3];
-//    NodeNumberTableX_X[iNX] = iNX % nNodesX[0] + nNodesX[0] * iNX3;
-//  }}}
-//}
-//if( iDimX == 2 )
-//{
-//  for( iNX3 = 0; iNX3 < nNodesX[2]; iNX3++ ) {
-//  for( iNX2 = 0; iNX2 < nNodesX[1]; iNX2++ ) {
-//  for( iNX1 = 0; iNX1 < nNodesX[0]; iNX1++ ) {
-//    iNX = NodeNumberTableX3D[iNX1][iNX2][iNX3];
-//    NodeNumberTableX_X[iNX] = iNX % nDOFX_X1;
-//  }}}
-//}
-//
-//    /* Populate destination MultiFab */
-//#ifdef AMREX_USE_OMP
-//#pragma omp parallel if (Gpu::notInLaunchRegion())
-//#endif
-//    for ( MFIter mfi( SurfaceFlux, TilingIfNotGPU() ); mfi.isValid(); ++mfi )
-//    {
-//        const Box& bx   = mfi.tilebox();
-//        auto       dfab = mf.array( mfi );
-//        auto const sfab = SurfaceFlux.const_array( mfi );
-//
-//        AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, nComp, i, j, k, n,
-//        {
-////          dfab(i,j,k,n) = sfab(i,j,k,n+SrcComp) * mult;
-//          for( iCF = 0; iCF < nCF; iCF++ )
-//          {
-//            for( iNX = 0; iNX < nDOFX; iNX++ )
-//              {
-//
-//                iNX1 = NodeNumberTableX[0][iNX];
-//
-//                iNX_X1 = NodeNumberTableX_X[iNX];
-//
-//                dfab(i,j,k,iNX+iCF*nDOFX)
-//                  = sfab(iX1,iX2,iX3,iNX_X1+iCF*nDOFX_X1) * mult;
-//
-//              } /* iNX */
-//          } /* iCF */
-//
-//        });
-//
-////        /* bx.loVect() has only amrex_spacedim components */
-////
-////        iX_B0[0] = bx.loVect()[0];
-////        iX_E0[0] = bx.hiVect()[0];
-////
-////        iX_B0[1] = 0;
-////        iX_E0[1] = 1;
-////        #if( BL_SPACEDIM > 1 )
-////        iX_B0[1] = bx.loVect()[1];
-////        iX_E0[1] = bx.hiVect()[1];
-////        #endif
-////
-////        iX_B0[2] = 0;
-////        iX_E0[2] = 1;
-////        #if( BL_SPACEDIM > 2 )
-////        iX_B0[2] = bx.loVect()[2];
-////        iX_E0[2] = bx.hiVect()[2];
-////        #endif
-////
-////        for( iX1 = iX_B0[0]; iX1 < iX_E0[0]; iX1++ ) {
-////        for( iX2 = iX_B0[1]; iX2 < iX_E0[1]; iX2++ ) {
-////        for( iX3 = iX_B0[2]; iX3 < iX_E0[2]; iX3++ ) {
-////
-////          for( iCF = 0; iCF < nCF; iCF++ )
-////          {
-////            for( iNX = 0; iNX < nDOFX; iNX++ )
-////              {
-////
-////                iNX1 = NodeNumberTableX[0][iNX];
-////
-////                iNX_X1 = NodeNumberTableX_X[iNX];
-////
-//////                dfab(iX1,iX2,iX3,iNX+iCF*nDOFX)
-//////                  = -One / ( WeightsX[iNX1] * dX[iX1] )
-//////                      * (   LX_Up_1D[iNX1]
-//////                              * sfab(iX1+1,iX2,iX3,iNX_X1+iCF*nDOFX_X1)
-//////                          - LX_Dn_1D[iNX1]
-//////                              * sfab(iX1  ,iX2,iX3,iNX_X1+iCF*nDOFX_X1) );
-////
-////                dfab(iX1,iX2,iX3,iNX+iCF*nDOFX)
-////                  = +One / ( WeightsX[iNX1] * dX[iX1] )
-////                      * LX_Dn_1D[iNX1] * sfab(iX1,iX2,iX3,iNX_X1+iCF*nDOFX_X1);
-////
-////              } /* iNX */
-////          } /* iCF */
-////
-////        }}}
-//
-//    } /* END for MFIter  */
-//
-//    /* pass <==> which side of face */
-//    for ( int pass = 0; pass < 2; pass++ )
-//    {
-//        /* if pass == 0 then face = face_lo; else face = face_hi */
-//        const Orientation face = ( ( pass == 0 ) ? face_lo : face_hi );
-//
-//        if ( op == FluxRegister::COPY )
-//        {
-//            bndry[face].copyFrom( mf, 0, 0, DestComp, nComp );
-//        }
-//// This `else` never happens because `op` is always set to the default
-//// (i.e., FluxRegister::COPY) in the Fortran interface, so it has been
-//// commented out
-//        else
-//        {
-//std::cout<<"THIS SHOULD NEVER PRINT!\n";
-///*
-//            FabSet fs( bndry[face].boxArray(), bndry[face].DistributionMap(),
-//                       nComp );
-//
-//            fs.setVal( 0 );
-//
-//            fs.copyFrom( mf, 0, 0, 0, nComp );
-//
-//#ifdef AMREX_USE_OMP
-//#pragma omp parallel if (Gpu::notInLaunchRegion())
-//#endif
-//            for (FabSetIter mfi(fs); mfi.isValid(); ++mfi)
-//            {
-//                const Box& bx = mfi.validbox();
-//                auto const sfab = fs.const_array(mfi);
-//                auto       dfab = bndry[face].array(mfi);
-//                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (bx, nComp, i, j, k, n,
-//                {
-//                    dfab(i,j,k,n+DestComp) += sfab(i,j,k,n);
-//                });
-//            }
-//*/
-//        }
-//    } /* END for ( int pass = 0; pass < 2; pass++ ) */
-//
-//} /* END void FluxRegister::CrseInit_DG */
-//
+
 void
 FluxRegister::CrseInit_DG ( const MultiFab& SurfaceFlux,
                             int             iDimX,
@@ -516,26 +292,22 @@ FluxRegister::CrseInit_DG ( const MultiFab& SurfaceFlux,
 {
 
     Real * WeightsX_X = NULL;
-    int nDOFX_X = -1;
-    int swX[3] = { 0, 0, 0 };
+    int nDOFX_X       = -1;
 
     if( iDimX == 0 )
     {
         WeightsX_X = amrex::DG::WeightsX_X1;
         nDOFX_X    = amrex::DG::nDOFX_X1;
-        swX[0] = 1; swX[1] = 0; swX[2] = 0;
     }
     else if( iDimX == 1 )
     {
         WeightsX_X = amrex::DG::WeightsX_X2;
         nDOFX_X    = amrex::DG::nDOFX_X2;
-        swX[0] = 0; swX[1] = 1; swX[2] = 0;
     }
     else
     {
         WeightsX_X = amrex::DG::WeightsX_X3;
         nDOFX_X    = amrex::DG::nDOFX_X3;
-        swX[0] = 0; swX[1] = 0; swX[2] = 1;
     }
 
     int nComp = nDOFX_X * nFields;
@@ -569,22 +341,22 @@ FluxRegister::CrseInit_DG ( const MultiFab& SurfaceFlux,
         iX_E0[0] = bx.hiVect()[0];
 
         iX_B0[1] = 0;
-        iX_E0[1] = 1;
+        iX_E0[1] = 0;
         if( AMREX_SPACEDIM > 1 ) {
         iX_B0[1] = bx.loVect()[1];
         iX_E0[1] = bx.hiVect()[1];
         }
 
         iX_B0[2] = 0;
-        iX_E0[2] = 1;
+        iX_E0[2] = 0;
         if( AMREX_SPACEDIM > 2 ) {
         iX_B0[2] = bx.loVect()[2];
         iX_E0[2] = bx.hiVect()[2];
         }
 
-        for( int iCrse = iX_B0[0]; iCrse < iX_E0[0]+swX[0]; iCrse++ ) {
-        for( int jCrse = iX_B0[1]; jCrse < iX_E0[1]+swX[1]; jCrse++ ) {
-        for( int kCrse = iX_B0[2]; kCrse < iX_E0[2]+swX[2]; kCrse++ ) {
+        for( int iCrse = iX_B0[0]; iCrse <= iX_E0[0]; iCrse++ ) {
+        for( int jCrse = iX_B0[1]; jCrse <= iX_E0[1]; jCrse++ ) {
+        for( int kCrse = iX_B0[2]; kCrse <= iX_E0[2]; kCrse++ ) {
 
             for( int iField = 0; iField < nFields; iField++ )
             {
@@ -831,8 +603,8 @@ FluxRegister::FineAdd_DG (const FArrayBox& SurfaceFluxes,
 {
 
     Real * WeightsX_X = NULL;
-    Real *** LX_X = NULL;
-    int nDOFX_X = -1;
+    Real *** LX_X     = NULL;
+    int nDOFX_X       = -1;
 
     if( iDimX == 0 )
     {
