@@ -16,6 +16,7 @@ target_sources( amrex
    AMReX_Tuple.H
    AMReX.cpp
    AMReX_error_fi.cpp
+   AMReX_Version.cpp
    AMReX.H
    AMReX_Exception.H
    AMReX_Extension.H
