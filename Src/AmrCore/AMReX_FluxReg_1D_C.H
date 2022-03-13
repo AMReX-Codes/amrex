@@ -74,7 +74,7 @@ fluxreg_fineadd_dg( Box const&                CrseBox,
 {
     const auto lo   = amrex::lbound(CrseBox);
     const int iCrseF = lo.x;
-    const int iFineF = iCrse*ratio.x;
+    const int iFineF = iCrseF*ratio.x;
 
     for( int iNX_C = 0; iNX_C < nDOFX_X; iNX_C++ )
     {
@@ -184,18 +184,17 @@ fluxreg_reflux_dg
     const auto CrseLo  = amrex::lbound(CrseBox);
     const auto CrseHi  = amrex::ubound(CrseBox);
 
-    int iNX, iNX1, iNX_X1;
-    int iCrse, iField;
+    int iNX1, iNX_X1;
 
     /* face.isLow(): face is on lower side of fine patch */
 
     if( face.isLow() )
     {
-        for( iCrse = CrseLo.x; iCrse <= CrseHi.x; ++iCrse )
+        for( int iCrse = CrseLo.x; iCrse <= CrseHi.x; ++iCrse )
         {
-            for( iField = 0; iField < nFields; iField++ )
+            for( int iField = 0; iField < nFields; iField++ )
             {
-                for( iNX = 0; iNX < amrex::DG::nDOFX; iNX++ )
+                for( int iNX = 0; iNX < amrex::DG::nDOFX; iNX++ )
                 {
                     iNX1   = amrex::DG::NodeNumberTableX[0][iNX];
                     iNX_X1 = amrex::DG::NodeNumberTableX_X1[iNX];
@@ -210,11 +209,11 @@ fluxreg_reflux_dg
     }
     else
     {
-        for( iCrse = CrseLo.x; iCrse <= CrseHi.x; ++iCrse )
+        for( int iCrse = CrseLo.x; iCrse <= CrseHi.x; ++iCrse )
         {
-            for( iField = 0; iField < nFields; iField++ )
+            for( int iField = 0; iField < nFields; iField++ )
             {
-                for( iNX = 0; iNX < amrex::DG::nDOFX; iNX++ )
+                for( int iNX = 0; iNX < amrex::DG::nDOFX; iNX++ )
                 {
                     iNX1   = amrex::DG::NodeNumberTableX[0][iNX];
                     iNX_X1 = amrex::DG::NodeNumberTableX_X1[iNX];
