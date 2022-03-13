@@ -4,6 +4,7 @@
 
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Array.H>
+#include <AMReX_DG.H>
 
 namespace amrex {
 
@@ -38,10 +39,86 @@ dginterp_interp
     Array4<Real const> const& crse, const int ccomp,
     IntVect const& ratio) noexcept
 {
-
-  amrex::ignore_unused( bx, fine, ncomp, crse, ratio );
   amrex::ignore_unused( fcomp, ccomp );
-}
+
+  // Get bounds on fine grid
+  const auto loFine = amrex::lbound(bx);
+  const auto hiFine = amrex::ubound(bx);
+
+  // Number of fields in MultiFab
+  int nFields = ncomp / amrex::DG::nDOFX;
+
+  // Index for projection matrix
+  int iProj;
+
+  // Loop over fields
+  for( int iField = 0; iField < nFields; iField++ )
+  {
+    // Loop over fine cells in z-direction
+    for( int kFine = loFine.z; kFine <= hiFine.z; kFine++ )
+    {
+      // Get coarse element corresponding to fine element kFine
+      const int kCrse = amrex::coarsen(kFine,ratio[2]);
+
+      // Loop over fine cells in y-direction
+      for( int jFine = loFine.y; jFine <= hiFine.y; jFine++ )
+      {
+        // Get coarse element corresponding to fine element jFine
+        const int jCrse = amrex::coarsen(jFine,ratio[1]);
+
+        // Loop over fine cells in x-direction
+        for( int iFine = loFine.x; iFine <= hiFine.x; iFine++ )
+        {
+          // Get coarse element corresponding to fine element iFine
+          const int iCrse = amrex::coarsen(iFine,ratio[0]);
+
+          if     ( ( iFine % 2 == 0 ) &
+                   ( jFine % 2 == 0 ) &
+                   ( kFine % 2 == 0 ) ) { iProj = 0; }
+          else if( ( iFine % 2 != 0 ) &
+                   ( jFine % 2 == 0 ) &
+                   ( kFine % 2 == 0 ) ) { iProj = 1; }
+          else if( ( iFine % 2 == 0 ) &
+                   ( jFine % 2 != 0 ) &
+                   ( kFine % 2 == 0 ) ) { iProj = 2; }
+          else if( ( iFine % 2 != 0 ) &
+                   ( jFine % 2 != 0 ) &
+                   ( kFine % 2 == 0 ) ) { iProj = 3; }
+          else if( ( iFine % 2 == 0 ) &
+                   ( jFine % 2 == 0 ) &
+                   ( kFine % 2 != 0 ) ) { iProj = 4; }
+          else if( ( iFine % 2 != 0 ) &
+                   ( jFine % 2 == 0 ) &
+                   ( kFine % 2 != 0 ) ) { iProj = 5; }
+          else if( ( iFine % 2 == 0 ) &
+                   ( jFine % 2 != 0 ) &
+                   ( kFine % 2 != 0 ) ) { iProj = 6; }
+          else                          { iProj = 7; }
+
+          // Loop over DOF of fine element
+          for( int iNX = 0; iNX < amrex::DG::nDOFX; iNX++ )
+          {
+            // Initialize fine data to zero
+            fine(iFine,jFine,kFine,amrex::DG::nDOFX*iField+iNX)
+              = amrex::DG::Zero;
+
+            // Project coarse data onto fine data
+            for( int jNX = 0; jNX < amrex::DG::nDOFX; jNX++ )
+            {
+              fine(iFine,jFine,kFine,amrex::DG::nDOFX*iField+iNX)
+                += amrex::DG::ProjectionMatrix[iProj][iNX][jNX]
+                     * crse(iCrse,jCrse,kCrse,amrex::DG::nDOFX*iField+jNX);
+            } // jNX
+
+            fine(iFine,jFine,kFine,amrex::DG::nDOFX*iField+iNX)
+              /= amrex::DG::WeightsX_q[iNX];
+
+          } // iNX
+        } // iFine
+      } // jFine
+    } // kFine
+  } // iField
+} // END void dginterp_interp
 
 namespace {
     static constexpr int ix   = 0;

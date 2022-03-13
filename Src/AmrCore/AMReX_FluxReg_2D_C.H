@@ -102,68 +102,70 @@ fluxreg_fineadd_dg( Box const&                CrseBox,
     const auto lo = amrex::lbound(CrseBox);
     const auto hi = amrex::ubound(CrseBox);
 
-    switch( iDimX ) {
-    case 0:
+    switch( iDimX )
     {
-        const int iCrseF = lo.x;
-        const int iFineF = iCrseF*ratio.x;
-        int jFineV;
-        int iFn;
-        for( int jCrseV = lo.y; jCrseV <= hi.y; jCrseV++ )
+        case 0:
         {
-            for( int iNX_C = 0; iNX_C < nDOFX_X; iNX_C++ )
-            {
-                for( int jFn = 0; jFn < ratio.y; jFn++ )
+            const int iCrseF = lo.x;
+            const int iFineF = iCrseF*ratio.x;
+            int jFineV;
+            int iFn;
+            for( int jCrseV = lo.y; jCrseV <= hi.y; jCrseV++ ) {
+                for( int iNX_C = 0; iNX_C < nDOFX_X; iNX_C++ )
                 {
-                    jFineV = jCrseV*ratio.y + jFn;
-                    iFn = jFn;
-                    for( int iField = 0; iField < nFields; iField++ )
-                    {
+                    iFn = -1;
+                    for( int jFn = 0; jFn < ratio.y; jFn++ ) {
+                        jFineV = jCrseV*ratio.y + jFn;
+                        iFn += 1;
                         for( int iNX_F = 0; iNX_F < nDOFX_X; iNX_F++ )
                         {
-                            reg(iCrseF,jCrseV,0,iNX_C+iField*nDOFX_X)
-                              += WeightsX_X[iNX_F]
-                                   * SurfaceFluxes_Fine
-                                       (iFineF,jFineV,0,iNX_F+iField*nDOFX_X)
-                                   * LX_X[iNX_C][iFn][iNX_F]
-                                   * amrex::DG::FaceRatio;
+                            for( int iField = 0; iField < nFields; iField++ )
+                            {
+                                reg(iCrseF,jCrseV,0,iNX_C+iField*nDOFX_X)
+                                  += WeightsX_X[iNX_F]
+                                       * SurfaceFluxes_Fine
+                                           (iFineF,jFineV,0,
+                                            iNX_F+iField*nDOFX_X)
+                                       * LX_X[iNX_C][iFn][iNX_F]
+                                       * amrex::DG::FaceRatio;
+                            } /* iField */
                         } /* iNX_F */
-                    } /* iField */
-                } /* jFn */
-            } /* iNX_C */
-        } /* jCrseV */
-        break;
-    } /* case 0 */
-    default:
-    {
-        const int jCrseF = lo.y;
-        const int jFineF = jCrseF*ratio.y;
-        int iFineV;
-        int jFn;
-        for( int iCrseV = lo.x; iCrseV <= hi.x; iCrseV++ )
+                    } /* Fine cells */
+                } /* iNX_C */
+            } /* Coarse cells */
+            break;
+        } /* case 0 */
+        default:
         {
-            for( int jNX_C = 0; jNX_C < nDOFX_X; jNX_C++ )
-            {
-                for( int iFn = 0; iFn < ratio.x; iFn++ )
+            const int jCrseF = lo.y;
+            const int jFineF = jCrseF*ratio.y;
+            int iFineV;
+            int jFn;
+            for( int iCrseV = lo.x; iCrseV <= hi.x; iCrseV++ ) {
+                for( int jNX_C = 0; jNX_C < nDOFX_X; jNX_C++ )
                 {
-                    iFineV = iCrseV*ratio.x + iFn;
-                    jFn = iFn;
-                    for( int iField = 0; iField < nFields; iField++ )
-                    {
+                    jFn = -1;
+                    for( int iFn = 0; iFn < ratio.x; iFn++ ) {
+                        iFineV = iCrseV*ratio.x + iFn;
+                        jFn += 1;
                         for( int jNX_F = 0; jNX_F < nDOFX_X; jNX_F++ )
                         {
-                            reg(iCrseV,jCrseF,0,jNX_C+iField*nDOFX_X)
-                              += WeightsX_X[jNX_F]
-                                   * SurfaceFluxes_Fine
-                                       (iFineV,jFineF,0,jNX_F+iField*nDOFX_X)
-                                   * LX_X[jNX_C][jFn][jNX_F]
-                                   * amrex::DG::FaceRatio;
+                            for( int iField = 0; iField < nFields; iField++ )
+                            {
+                                reg(iCrseV,jCrseF,0,jNX_C+iField*nDOFX_X)
+                                  += WeightsX_X[jNX_F]
+                                       * SurfaceFluxes_Fine
+                                           (iFineV,jFineF,0,
+                                            jNX_F+iField*nDOFX_X)
+                                       * LX_X[jNX_C][jFn][jNX_F]
+                                       * amrex::DG::FaceRatio;
+                            } /* iField */
                         } /* jNX_F */
-                    } /* iField */
-                } /* iFn */
-            } /* jNX_C */
-        } /* iCrseV */
-    } /* default */
+                    } /* Fine cells */
+                } /* jNX_C */
+            } /* Coarse cells */
+            break;
+        } /* default */
     } /* switch( iDimX ) */
 } /* END fluxreg_fineadd_dg */
 
@@ -318,97 +320,99 @@ fluxreg_reflux_dg
 
     if( face.isLow() )
     {
-        switch( iDimX ) {
-        case 0:
+        switch( iDimX )
         {
-            for( int jCrse = CrseLo.y; jCrse <= CrseHi.y; ++jCrse ) {
-            for( int iCrse = CrseLo.x; iCrse <= CrseHi.x; ++iCrse ) {
-                for( int iNX = 0; iNX < amrex::DG::nDOFX; iNX++ )
-                {
-                    iNX1   = amrex::DG::NodeNumberTableX[0][iNX];
-                    iNX_X1 = amrex::DG::NodeNumberTableX_X1[iNX];
-                    for( int iField = 0; iField < nFields; iField++ )
+            case 0:
+            {
+                for( int jCrse = CrseLo.y; jCrse <= CrseHi.y; ++jCrse ) {
+                for( int iCrse = CrseLo.x; iCrse <= CrseHi.x; ++iCrse ) {
+                    for( int iNX = 0; iNX < amrex::DG::nDOFX; iNX++ )
                     {
-                        dU(iCrse,jCrse,0,iNX+iField*amrex::DG::nDOFX)
-                          += -dF(iCrse+1,jCrse,0,
-                                 iNX_X1+iField*amrex::DG::nDOFX_X1)
-                               * amrex::DG::LX_X1_Up[iNX1]
-                               / ( amrex::DG::WeightsX_q[iNX] * dX1[iCrse] );
-                    } /* iField */
-                } /* iNX */
-            } /* iCrse */
-            } /* jCrse */
-            break;
-        } /* case 0 */
-        default:
-        {
-            for( int jCrse = CrseLo.y; jCrse <= CrseHi.y; ++jCrse ) {
-            for( int iCrse = CrseLo.x; iCrse <= CrseHi.x; ++iCrse ) {
-                for( int iNX = 0; iNX < amrex::DG::nDOFX; iNX++ )
-                {
-                    iNX2   = amrex::DG::NodeNumberTableX[1][iNX];
-                    iNX_X2 = amrex::DG::NodeNumberTableX_X2[iNX];
-                    for( int iField = 0; iField < nFields; iField++ )
+                        iNX1   = amrex::DG::NodeNumberTableX[0][iNX];
+                        iNX_X1 = amrex::DG::NodeNumberTableX_X1[iNX];
+                        for( int iField = 0; iField < nFields; iField++ )
+                        {
+                            dU(iCrse,jCrse,0,iNX+iField*amrex::DG::nDOFX)
+                              += -dF(iCrse+1,jCrse,0,
+                                     iNX_X1+iField*amrex::DG::nDOFX_X1)
+                                   * amrex::DG::LX_X1_Up[iNX1]
+                                   / ( amrex::DG::WeightsX_q[iNX]
+                                         * dX1[iCrse] );
+                        } /* iField */
+                    } /* iNX */
+                }} /* Coarse cells */
+                break;
+            } /* case 0 */
+            default:
+            {
+                for( int jCrse = CrseLo.y; jCrse <= CrseHi.y; ++jCrse ) {
+                for( int iCrse = CrseLo.x; iCrse <= CrseHi.x; ++iCrse ) {
+                    for( int iNX = 0; iNX < amrex::DG::nDOFX; iNX++ )
                     {
-                        dU(iCrse,jCrse,0,iNX+iField*amrex::DG::nDOFX)
-                          += -dF(iCrse,jCrse+1,0,
-                                 iNX_X2+iField*amrex::DG::nDOFX_X2)
-                               * amrex::DG::LX_X2_Up[iNX2]
-                               / ( amrex::DG::WeightsX_q[iNX] * dX2[jCrse] );
-                    } /* iField */
-                } /* iNX */
-            } /* iCrse */
-            } /* jCrse */
-            break;
-        } /* default */
+                        iNX2   = amrex::DG::NodeNumberTableX[1][iNX];
+                        iNX_X2 = amrex::DG::NodeNumberTableX_X2[iNX];
+                        for( int iField = 0; iField < nFields; iField++ )
+                        {
+                            dU(iCrse,jCrse,0,iNX+iField*amrex::DG::nDOFX)
+                              += -dF(iCrse,jCrse+1,0,
+                                     iNX_X2+iField*amrex::DG::nDOFX_X2)
+                                   * amrex::DG::LX_X2_Up[iNX2]
+                                   / ( amrex::DG::WeightsX_q[iNX]
+                                         * dX2[jCrse] );
+                        } /* iField */
+                    } /* iNX */
+                }} /* Coarse cells */
+                break;
+            } /* default */
         } /* switch( iDimX ) */
     }
     else /* face is on upper side of fine patch */
     {
-        switch( iDimX ) {
-        case 0:
+        switch( iDimX )
         {
-            for( int jCrse = CrseLo.y; jCrse <= CrseHi.y; ++jCrse ) {
-            for( int iCrse = CrseLo.x; iCrse <= CrseHi.x; ++iCrse ) {
-                for( int iNX = 0; iNX < amrex::DG::nDOFX; iNX++ )
-                {
-                    iNX1   = amrex::DG::NodeNumberTableX[0][iNX];
-                    iNX_X1 = amrex::DG::NodeNumberTableX_X1[iNX];
-                    for( int iField = 0; iField < nFields; iField++ )
+            case 0:
+            {
+                for( int jCrse = CrseLo.y; jCrse <= CrseHi.y; ++jCrse ) {
+                for( int iCrse = CrseLo.x; iCrse <= CrseHi.x; ++iCrse ) {
+                    for( int iNX = 0; iNX < amrex::DG::nDOFX; iNX++ )
                     {
-                        dU(iCrse,jCrse,0,iNX+iField*amrex::DG::nDOFX)
-                          += dF(iCrse,jCrse,0,
-                                iNX_X1+iField*amrex::DG::nDOFX_X1)
-                               * amrex::DG::LX_X1_Dn[iNX1]
-                               / ( amrex::DG::WeightsX_q[iNX] * dX1[iCrse] );
-                    } /* iField */
-                } /* iNX */
-            } /* iCrse */
-            } /* jCrse */
-            break;
-        } /* case 0 */
-        default:
-        {
-            for( int jCrse = CrseLo.y; jCrse <= CrseHi.y; ++jCrse ) {
-            for( int iCrse = CrseLo.x; iCrse <= CrseHi.x; ++iCrse ) {
-                for( int iNX = 0; iNX < amrex::DG::nDOFX; iNX++ )
-                {
-                    iNX2   = amrex::DG::NodeNumberTableX[1][iNX];
-                    iNX_X2 = amrex::DG::NodeNumberTableX_X2[iNX];
-                    for( int iField = 0; iField < nFields; iField++ )
+                        iNX1   = amrex::DG::NodeNumberTableX[0][iNX];
+                        iNX_X1 = amrex::DG::NodeNumberTableX_X1[iNX];
+                        for( int iField = 0; iField < nFields; iField++ )
+                        {
+                            dU(iCrse,jCrse,0,iNX+iField*amrex::DG::nDOFX)
+                              += dF(iCrse,jCrse,0,
+                                    iNX_X1+iField*amrex::DG::nDOFX_X1)
+                                   * amrex::DG::LX_X1_Dn[iNX1]
+                                   / ( amrex::DG::WeightsX_q[iNX]
+                                         * dX1[iCrse] );
+                        } /* iField */
+                    } /* iNX */
+                }} /* Coarse cells */
+                break;
+            } /* case 0 */
+            default:
+            {
+                for( int jCrse = CrseLo.y; jCrse <= CrseHi.y; ++jCrse ) {
+                for( int iCrse = CrseLo.x; iCrse <= CrseHi.x; ++iCrse ) {
+                    for( int iNX = 0; iNX < amrex::DG::nDOFX; iNX++ )
                     {
-                        dU(iCrse,jCrse,0,iNX+iField*amrex::DG::nDOFX)
-                          += dF(iCrse,jCrse,0,
-                                 iNX_X2+iField*amrex::DG::nDOFX_X2)
-                               * amrex::DG::LX_X2_Dn[iNX2]
-                               / ( amrex::DG::WeightsX_q[iNX] * dX2[jCrse] );
-                    } /* iField */
-                } /* iNX */
-            } /* iCrse */
-            } /* jCrse */
-            break;
-        } /* case default */
-    } /* switch( iDimX ) */
+                        iNX2   = amrex::DG::NodeNumberTableX[1][iNX];
+                        iNX_X2 = amrex::DG::NodeNumberTableX_X2[iNX];
+                        for( int iField = 0; iField < nFields; iField++ )
+                        {
+                            dU(iCrse,jCrse,0,iNX+iField*amrex::DG::nDOFX)
+                              += dF(iCrse,jCrse,0,
+                                     iNX_X2+iField*amrex::DG::nDOFX_X2)
+                                   * amrex::DG::LX_X2_Dn[iNX2]
+                                   / ( amrex::DG::WeightsX_q[iNX]
+                                         * dX2[jCrse] );
+                        } /* iField */
+                    } /* iNX */
+                }} /* Coarse elements */
+                break;
+            } /* case default */
+        } /* switch( iDimX ) */
     }
 } /* END fluxreg_reflux_dg */
 

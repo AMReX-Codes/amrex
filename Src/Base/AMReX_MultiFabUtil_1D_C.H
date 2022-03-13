@@ -246,59 +246,47 @@ void amrex_avgdown_dg
          Array4<Real const> const& fine,
          IntVect const& ratio ) noexcept
 {
+  // Number of fields in MultiFab
+  int nFields = nComp / amrex::DG::nDOFX;
 
   int iRefRatio = ratio[0];
 
-  // Number of fields in MultiFab
-  int nFields = nComp / amrex::DG::nDOFX;
+  // Corresponding fine element
+  const int iFine = iCrse * iRefRatio;
 
   // Index for projection matrix
   int iProj;
 
-  // Offset between fine and coarse elements
-  const int iOS = iCrse * iRefRatio;
-
   // Loop over fields
   for( int iField = 0; iField < nFields; iField++ )
   {
-
     // Loop over DOF of coarse element
     for( int iNX = 0; iNX < amrex::DG::nDOFX; iNX++ )
     {
-
       // Initialize coarse data to zero
-      crse(iCrse,0,0,amrex::DG::nDOFX*iField+iNX)
-        = amrex::DG::Zero;
+      crse(iCrse,0,0,amrex::DG::nDOFX*iField+iNX) = amrex::DG::Zero;
 
       iProj = -1;
 
-      // Loop over fine cells in x-direction
-      for( int iFine = 0; iFine < iRefRatio; iFine++ )
-      {
+      // Loop over fine cells
+      for( int iFn = 0; iFn < iRefRatio; iFn++ ) {
 
         iProj += 1;
 
         // Project fine data onto coarse data
         for( int jNX = 0; jNX < amrex::DG::nDOFX; jNX++ )
         {
-
           crse(iCrse,0,0,amrex::DG::nDOFX*iField+iNX)
-            = crse(iCrse,0,0,amrex::DG::nDOFX*iField+iNX)
-                + amrex::DG::ProjectionMatrix_T[iProj][iNX][jNX]
-                    * fine(iOS+iFine,0,0,amrex::DG::nDOFX*iField+jNX);
-
+            += amrex::DG::ProjectionMatrix_T[iProj][iNX][jNX]
+                 * fine(iFine+iFn,0,0,amrex::DG::nDOFX*iField+jNX);
         } // jNX
-
-      } // iFine
+      } // Fine cell
 
       crse(iCrse,0,0,amrex::DG::nDOFX*iField+iNX)
-        = crse(iCrse,0,0,amrex::DG::nDOFX*iField+iNX)
-            * amrex::DG::VolumeRatio
-            / amrex::DG::WeightsX_q[iNX];
+        *= amrex::DG::VolumeRatio / amrex::DG::WeightsX_q[iNX];
 
     } // iNX
   } // iField
-
 } // END void amrex_avgdown_dg
 
 template <typename T>
