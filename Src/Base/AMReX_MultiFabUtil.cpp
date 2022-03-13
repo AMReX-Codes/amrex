@@ -467,10 +467,10 @@ namespace amrex
             amrex::Error("Can't use amrex::average_down for nodal MultiFab!");
         }
 
-#if (AMREX_SPACEDIM == 3)
-        amrex::average_down(S_fine, S_crse, scomp, ncomp, ratio);
-        return;
-#else
+//#if (AMREX_SPACEDIM == 3)
+//        amrex::average_down(S_fine, S_crse, scomp, ncomp, ratio);
+//        return;
+//#else
 
         AMREX_ASSERT(S_crse.nComp() == S_fine.nComp());
 
