@@ -595,22 +595,13 @@ void eb_interp_cc2face_y (Box const& vbx,
     });
 }
 
-// TODO: Check implementation
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void eb_compute_divergence_from_flow (int i, int j, int k, int n, Array4<Real> const& divu,
+void eb_add_divergence_from_flow (int i, int j, int k, int n, Array4<Real> const& divu,
                             Array4<Real const> const& vel_eb, Array4<EBCellFlag const> const& flag,
                             Array4<Real const> const& vfrc, Array4<Real const> const& bnorm,
                             Array4<Real const> const& barea, GpuArray<Real,2> const& dxinv)
 {
-    if (flag(i,j,k).isCovered())
-    {
-        divu(i,j,k,n) = 0.0;
-    }
-    else if (flag(i,j,k).isRegular())
-    {
-        divu(i,j,k,n) = 0.0;
-    }
-    else
+    if (flag(i,j,k).isSingleValued())
     {
         Real Ueb_dot_n = vel_eb(i,j,k,0)*bnorm(i,j,k,0)
                        + vel_eb(i,j,k,1)*bnorm(i,j,k,1);

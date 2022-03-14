@@ -796,7 +796,7 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
 
             AMREX_HOST_DEVICE_FOR_4D(bx,divu.nComp(),i,j,k,n,
             {
-                eb_compute_divergence_from_flow(i,j,k,n,divuarr,vel_eb_arr,
+                eb_add_divergence_from_flow(i,j,k,n,divuarr,vel_eb_arr,
                     flagarr,vfracarr,bnormarr,bareaarr,dxinv);
             });
         }
