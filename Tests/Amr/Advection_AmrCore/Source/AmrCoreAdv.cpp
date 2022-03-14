@@ -192,13 +192,6 @@ AmrCoreAdv::InitData ()
         // restart from a checkpoint
         ReadCheckpointFile();
 
-#ifdef AMREX_PARTICLES
-        if (do_tracers) {
-            BL_ASSERT(TracerPC == 0);
-            TracerPC = std::make_unique<AmrTracerParticleContainer>(parent);
-            TracerPC->Restart(parent->theRestartFile(), "Tracer");
-        }
-#endif
 
     }
 
@@ -900,7 +893,7 @@ AmrCoreAdv::init_particles ()
     {
       BL_ASSERT(TracerPC == nullptr);
 
-      TracerPC = std::make_unique<AmrTracerParticleContainer>(parent);
+      TracerPC = std::make_unique<AmrTracerParticleContainer>(this);
 
       AmrTracerParticleContainer::ParticleInitData pdata = {{AMREX_D_DECL(0.0, 0.0, 0.0)},{},{},{}};
 
@@ -1013,5 +1006,14 @@ AmrCoreAdv::ReadCheckpointFile ()
         VisMF::Read(phi_new[lev],
                     amrex::MultiFabFileFullPrefix(lev, restart_chkfile, "Level_", "phi"));
     }
+
+#ifdef AMREX_PARTICLES
+    if (do_tracers) {
+        BL_ASSERT(TracerPC == 0);
+        TracerPC = std::make_unique<AmrTracerParticleContainer>(this);
+        TracerPC->Restart(this->restart_chkfile, "Tracer");
+    }
+#endif
+
 
 }
