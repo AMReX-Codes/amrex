@@ -307,6 +307,68 @@ namespace Gpu {
 #endif
     }
 
+    /**
+     * \brief Migrate elements of a container from device to host.
+     * This is a no-op for host-only code.
+     *
+     * This version is blocking - CPU execution will halt until the migration is finished.
+     */
+    template<class Iter>
+    void prefetchToHost (Iter begin, Iter end) noexcept
+    {
+        using value_type = typename std::iterator_traits<Iter>::value_type;
+        static_assert(std::is_trivially_copyable<value_type>(),
+                      "Can only copy trivially copyable types");
+
+        auto size = std::distance(begin, end);
+        if (size == 0) return;
+
+#ifdef AMREX_USE_GPU
+        // Currently only implemented for CUDA.
+#if defined(AMREX_USE_CUDA) && !defined(_WIN32)
+        if (Gpu::Device::devicePropMajor() >= 6) {
+            AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(&(*begin),
+                                                      size*sizeof(value_type),
+                                                      cudaCpuDeviceId,
+                                                      Gpu::gpuStream()));
+        }
+#endif
+#endif
+
+        Gpu::synchronize();
+    }
+
+    /**
+     * \brief Migrate elements of a container from host to device.
+     * This is a no-op for host-only code.
+     *
+     * This version is blocking - CPU execution will halt until the migration is finished.
+     */
+    template<class Iter>
+    void prefetchToDevice (Iter begin, Iter end) noexcept
+    {
+        using value_type = typename std::iterator_traits<Iter>::value_type;
+        static_assert(std::is_trivially_copyable<value_type>(),
+                      "Can only copy trivially copyable types");
+
+        auto size = std::distance(begin, end);
+        if (size == 0) return;
+
+#ifdef AMREX_USE_GPU
+        // Currently only implemented for CUDA.
+#if defined(AMREX_USE_CUDA) && !defined(_WIN32)
+        if (Gpu::Device::devicePropMajor() >= 6) {
+            AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(&(*begin),
+                                                      size*sizeof(value_type),
+                                                      Gpu::Device::deviceId(),
+                                                      Gpu::gpuStream()));
+        }
+#endif
+#endif
+
+        Gpu::synchronize();
+    }
+
 }}
 
 
