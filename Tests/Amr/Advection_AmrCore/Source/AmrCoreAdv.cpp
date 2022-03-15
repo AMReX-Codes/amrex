@@ -793,7 +793,7 @@ AmrCoreAdv::WritePlotFile () const
         // Is this how you plot particles, with the Checkpoint call?
 #ifdef AMREX_PARTICLES
         if (do_tracers) {
-            TracerPC->Checkpoint(plotfilename, "Tracer", true);
+            TracerPC->Checkpoint(plotfilename, "particles", true);
         }
 #endif
 }
@@ -879,7 +879,7 @@ AmrCoreAdv::WriteCheckpointFile () const
 
 #ifdef AMREX_PARTICLES
             if (do_tracers) {
-                TracerPC->Checkpoint(checkpointname, "Tracer", true);
+                TracerPC->Checkpoint(checkpointname, "particles", true);
             }
 #endif
 
@@ -1011,7 +1011,7 @@ AmrCoreAdv::ReadCheckpointFile ()
     if (do_tracers) {
         BL_ASSERT(TracerPC == 0);
         TracerPC = std::make_unique<AmrTracerParticleContainer>(this);
-        TracerPC->Restart(this->restart_chkfile, "Tracer");
+        TracerPC->Restart(this->restart_chkfile, "particles");
     }
 #endif
 
