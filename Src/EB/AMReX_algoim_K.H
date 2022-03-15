@@ -400,11 +400,12 @@ struct ImplicitIntegral
             for (int i = 0; i < nroots; ++i)
             {
                 x[e0] = roots[i];
-                Real mag = std::sqrt(
-                        phi.grad(0)*phi.grad(0) +
-                        phi.grad(1)*phi.grad(1) +
-                        phi.grad(2)*phi.grad(2));
-                f.evalIntegrand(x, (mag/std::abs(phi.grad(e0)))*w);
+                Real mag = 0.;
+                for (int dim = 0; dim < N; ++dim) {
+                    mag += phi.grad(dim)*phi.grad(dim);
+                }
+                mag = std::sqrt(mag);
+                f.evalIntegrand(x, (mag/amrex::Math::abs(phi.grad(e0)))*w);
             }
 
             return;
