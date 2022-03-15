@@ -607,6 +607,16 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
 
     DefineVelocityAtLevel(lev, t_nph);
     AdvancePhiAtLevel(lev, time, dt[lev], iteration, nsubsteps[lev]);
+    //
+//HACK -- do I need to regrid after ever level change, or can I do it once after everything else
+// has been done?
+#ifdef AMREX_PARTICLES
+    TracerPC->AdvectWithUmac(facevel[lev].data(),lev,dt[lev]);
+    if (regrid_int > 0)  // If we needed to regrid
+    {
+        TracerPC->Redistribute();
+    }
+#endif
 
     ++istep[lev];
 
@@ -633,15 +643,6 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
         AverageDownTo(lev); // average lev+1 down to lev
     }
 
-//HACK -- do I need to regrid after ever level change, or can I do it once after everything else
-// has been done?
-#ifdef AMREX_PARTICLES
-    TracerPC->AdvectWithUmac(facevel[lev].data(),lev,dt[lev]);
-    if (regrid_int > 0)  // If we needed to regrid
-    {
-        TracerPC->Redistribute();
-    }
-#endif
 
 
 
@@ -670,6 +671,17 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
 
     DefineVelocityAllLevels(time);
     AdvancePhiAllLevels (time, dt[0], iteration);
+
+#ifdef AMREX_PARTICLES
+    for (int lev = 0; lev <= finest_level; lev++)
+    {
+        TracerPC->AdvectWithUmac(facevel[lev].data(),lev,dt[0]);
+        if (regrid_int > 0)  // If we needed to regrid
+        {
+            TracerPC->Redistribute();
+        }
+    }
+#endif
 
     // Make sure the coarser levels are consistent with the finer levels
     AverageDown ();

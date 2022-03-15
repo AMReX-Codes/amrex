@@ -332,14 +332,14 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int /*iteration*/)
         } // end omp
     } // end lev
 
-#ifdef AMREX_PARTICLES
-    for (int lev = 0; lev <= finest_level; lev++)
-    {
-        TracerPC->AdvectWithUmac(facevel[lev].data(),lev,dt[lev]);
-    }
-    if (regrid_int > 0)  // If we needed to regrid
-    {
-        TracerPC->Redistribute();
-    }
-#endif
+//#ifdef AMREX_PARTICLES
+//    for (int lev = 0; lev <= finest_level; lev++)
+//    {
+//        TracerPC->AdvectWithUmac(facevel[lev].data(),lev,dt[lev]);
+//    }
+//    if (regrid_int > 0)  // If we needed to regrid
+//    {
+//        TracerPC->Redistribute();
+//    }
+//#endif
 }
