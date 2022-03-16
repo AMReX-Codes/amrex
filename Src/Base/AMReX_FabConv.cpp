@@ -390,6 +390,11 @@ _pd_btrvout (char* out,
         {
             char tmp = *p1;
             *p1 = *p2;
+            // In function 'void amrex::_pd_btrvout(char*, amrex::Long, amrex::Long)',
+            //    inlined from 'void amrex::_pd_insert_field(amrex::Long, int, char*, int, int, int)' at ./amrex/Src/Base/AMReX_FabConv.cpp:462:20,
+            //    inlined from 'void amrex::PD_fconvert(void*, const void*, amrex::Long, int, const Long*, const int*, const Long*, const int*, int, int, int)' at ./amrex/Src/Base/AMReX_FabConv.cpp:685:29:
+            // ./amrex/Src/Base/AMReX_FabConv.cpp:393:17:
+            //   warning: writing 1 byte into a region of size 0 [-Wstringop-overflow=]
             *p2 = tmp;
             p1 += nb;
             p2 += nb;
