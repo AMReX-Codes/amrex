@@ -172,32 +172,20 @@ AmrCoreAdv::InitData ()
         InitFromScratch(time);
         AverageDown();
 
-
 #ifdef AMREX_PARTICLES
     init_particles();
 #endif
 
-
-
-
         if (chk_int > 0) {
             WriteCheckpointFile();
-
-
-
         }
-
     }
     else {
         // restart from a checkpoint
         ReadCheckpointFile();
-
-
     }
-
     if (plot_int > 0) {
         WritePlotFile();
-
     }
 }
 
@@ -316,10 +304,6 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
             initdata(tbx, fab, problo, dx);
         });
     }
-
-   // AmrCoreAdv::init_particles();
-
-
 }
 
 // tag all cells for refinement
@@ -588,6 +572,11 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
                 for (int k = old_finest+1; k <= finest_level; ++k) {
                     dt[k] = dt[k-1] / MaxRefRatio(k-1);
                 }
+
+                //need here redistribute
+#ifdef AMREX_PARTICLES
+                TracerPC->Redistribute(lev);
+#endif
             }
         }
     }
@@ -612,10 +601,6 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
 // has been done?
 #ifdef AMREX_PARTICLES
     TracerPC->AdvectWithUmac(facevel[lev].data(),lev,dt[lev]);
-    if (regrid_int > 0)  // If we needed to regrid
-    {
-        TracerPC->Redistribute();
-    }
 #endif
 
     ++istep[lev];
@@ -643,7 +628,11 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
         AverageDownTo(lev); // average lev+1 down to lev
     }
 
+    // evolve_mod.F90 lines 128 - 135, does a redistribute with ngrow depending on level here.
 
+#ifdef AMREX_PARTICLES
+    TracerPC->Redistribute();
+#endif
 
 
 }
