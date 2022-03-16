@@ -126,15 +126,6 @@ namespace {
 }
 #endif
 
-std::string amrex::Version ()
-{
-#ifdef AMREX_GIT_VERSION
-    return std::string(AMREX_GIT_VERSION);
-#else
-    return std::string("Unknown");
-#endif
-}
-
 int amrex::Verbose () noexcept { return amrex::system::verbose; }
 
 void amrex::SetVerbose (int v) noexcept { amrex::system::verbose = v; }
