@@ -215,7 +215,7 @@ whether to enable data compression and its parameters. Currently supported
 options include:
 
 * No compression
-    * ``None@0 ``
+    * ``None@0``
 * SZ compression
     * ``SZ@/path/to/sz.config``
 * ZFP compression
