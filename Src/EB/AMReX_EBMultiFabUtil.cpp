@@ -758,7 +758,6 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
     }
 }
 
-// TODO: Check implementation
 void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
                            const Geometry& geom, bool already_on_centroids,
                            const MultiFab& vel_eb)
