@@ -38,13 +38,21 @@ Amrvis. Additional information is contained in the document
 
    If you want to build Amrvis with ``DIM=3`` for display of 3-dimensional data,
    you must first download and build ``volpack``. This can be done by cloning
-   the repository:
+   the repository or via package manager. To install by cloning the repository:
 
    .. code-block:: console
 
        git clone https://ccse.lbl.gov/pub/Downloads/volpack.git
 
    After downloading, ``cd`` into ``volpack/`` and type ``make``.
+
+   To install via package manager, it is necessary to install the package,
+   ``libvolpack1-dev``. This package is available for Debian Linux and
+   can be installed with the command:
+
+   .. code-block:: console
+
+      sudo apt install libvolpack1-dev
 
    |
 

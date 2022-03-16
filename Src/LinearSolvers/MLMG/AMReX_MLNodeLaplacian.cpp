@@ -489,7 +489,8 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
                     mlndlap_interpadd_c(i,j,k,ffab,cfab,mfab);
                 });
             }
-            else if (m_use_harmonic_average && fmglev > 0)
+            else if ( (m_use_harmonic_average && fmglev > 0) ||
+                       m_use_mapped )
             {
                 AMREX_D_TERM(Array4<Real const> const& sxfab = sigma[0]->const_array(mfi);,
                              Array4<Real const> const& syfab = sigma[1]->const_array(mfi);,
@@ -699,7 +700,8 @@ MLNodeLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
                     mlndlap_normalize_sten(i,j,k,arr,stenarr,dmskarr,s0_norm0);
                 });
             }
-            else if (m_use_harmonic_average && mglev > 0)
+            else if ( (m_use_harmonic_average && mglev > 0) ||
+                       m_use_mapped )
             {
                 AMREX_D_TERM(Array4<Real const> const& sxarr = sigma[0]->const_array(mfi);,
                              Array4<Real const> const& syarr = sigma[1]->const_array(mfi);,

@@ -1,9 +1,4 @@
-#!/usr/bin/env python
-
-import sys
-
-if sys.version_info < (2, 7):
-    sys.exit("ERROR: need python 2.7 or later for dep.py")
+#!/usr/bin/env python3
 
 import argparse
 
@@ -175,6 +170,14 @@ const char* buildInfoGetBuildGitName() {
   return NAME;
 }
 
+#ifdef AMREX_USE_CUDA
+const char* buildInfoGetCUDAVersion() {
+
+  static const char CUDA_VERSION[] = "@@CUDA_VERSION@@";
+  return CUDA_VERSION;
+}
+#endif
+
 }
 """
 
@@ -186,10 +189,12 @@ def runcommand(command):
 def get_git_hash(d):
     cwd = os.getcwd()
     os.chdir(d)
-    try: hash = runcommand("git describe --always --tags --dirty")
-    except: hash = ""
+    try:
+        ghash = runcommand("git describe --always --tags --dirty")
+    except:
+        ghash = ""
     os.chdir(cwd)
-    return hash
+    return ghash
 
 
 if __name__ == "__main__":
@@ -224,6 +229,9 @@ if __name__ == "__main__":
                         type=str, default="")
 
     parser.add_argument("--F_flags", help="Fortran compiler flags",
+                        type=str, default="")
+
+    parser.add_argument("--CUDA_VERSION", help="CUDA version",
                         type=str, default="")
 
     parser.add_argument("--link_flags", help="linker flags", type=str, default="")
@@ -278,7 +286,8 @@ if __name__ == "__main__":
             git_hashes.append("")
 
     if args.build_git_dir != "":
-        try: os.chdir(args.build_git_dir)
+        try:
+            os.chdir(args.build_git_dir)
         except:
             build_git_hash = "directory not valid"
         else:
@@ -422,14 +431,14 @@ if __name__ == "__main__":
                 fout.write(git_str)
 
             elif keyword == "BUILDGIT_NAME":
-                index = index
+                indent = index
                 git_str = '{}static const char NAME[] = "{}";\n'.format(
                     indent*" ", args.build_git_name)
                 fout.write(git_str)
 
             elif keyword in dargs:
                 # simple replacement using the commandline arguments
-                newline = line.replace("@@{}@@".format(keyword),
+                newline = line.replace(f"@@{keyword}@@",
                                        dargs[keyword].replace('"', r'\"'))
                 fout.write(newline)
 
