@@ -454,10 +454,10 @@ we will assume a single vector has been stored as three separate variables,
 ParaView HDF5 Format
 --------------------
 
-The plotfiles generated with the HDF5 format can be visualized by ParaView. 
-To open a single plotfile, run VisIt, select "File" :math:`\rightarrow` "Open", 
-then select the HDF5 plotfile (e.g.,``plt00000.h5``). You can select an 
-individual plotfile or select a group of files to read as time series, then 
+The plotfiles generated with the HDF5 format can be visualized by ParaView.
+To open a single plotfile, run VisIt, select "File" :math:`\rightarrow` "Open",
+then select the HDF5 plotfile (e.g.,``plt00000.h5``). You can select an
+individual plotfile or select a group of files to read as time series, then
 click OK. ParaView will ask you about the file type -- choose "VisItChomboReader".
 
 .. _section-2:
