@@ -923,12 +923,21 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         amrex::Abort(msg.c_str());
     }
 
-    hsize_t attr_len = H5Aget_storage_size(attr);
+    atype = H5Aget_type(attr);
+    if (atype < 0) {
+        std::string msg("ParticleContainer::RestartHDF5(): unable to get type of attribute ");
+        amrex::Abort(msg.c_str());
+    }
+
+    size_t attr_len = H5Tget_size(atype);
+    if (attr_len == 0) {
+        std::string msg("ParticleContainer::RestartHDF5(): unable to get size of attribute ");
+        amrex::Abort(msg.c_str());
+    }
 
     std::string version;
     version.resize(attr_len+1);
 
-    atype = H5Aget_type(attr);
     ret = H5Aread(attr, atype, &version[0]);
     H5Tclose(atype);
 
