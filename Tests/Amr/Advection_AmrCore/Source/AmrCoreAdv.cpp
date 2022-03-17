@@ -173,7 +173,9 @@ AmrCoreAdv::InitData ()
         AverageDown();
 
 #ifdef AMREX_PARTICLES
-    init_particles();
+    if (do_tracers) {
+        init_particles();
+    }
 #endif
 
         if (chk_int > 0) {
@@ -575,7 +577,9 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
 
                 //need here redistribute
 #ifdef AMREX_PARTICLES
-                TracerPC->Redistribute(lev);
+                if (do_tracers) {
+                    TracerPC->Redistribute(lev);
+                }
 #endif
             }
         }
@@ -600,7 +604,9 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
 //HACK -- do I need to regrid after ever level change, or can I do it once after everything else
 // has been done?
 #ifdef AMREX_PARTICLES
-    TracerPC->AdvectWithUmac(facevel[lev].data(),lev,dt[lev]);
+    if (do_tracers) {
+        TracerPC->AdvectWithUmac(facevel[lev].data(),lev,dt[lev]);
+    }
 #endif
 
     ++istep[lev];
@@ -631,7 +637,9 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
     // evolve_mod.F90 lines 128 - 135, does a redistribute with ngrow depending on level here.
 
 #ifdef AMREX_PARTICLES
-    TracerPC->Redistribute();
+    if (do_tracers) {
+        TracerPC->Redistribute();
+    }
 #endif
 
 
@@ -662,12 +670,14 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
     AdvancePhiAllLevels (time, dt[0], iteration);
 
 #ifdef AMREX_PARTICLES
-    for (int lev = 0; lev <= finest_level; lev++)
-    {
-        TracerPC->AdvectWithUmac(facevel[lev].data(),lev,dt[0]);
-        if (regrid_int > 0)  // If we needed to regrid
+    if (do_tracers) {
+        for (int lev = 0; lev <= finest_level; lev++)
         {
-            TracerPC->Redistribute();
+            TracerPC->AdvectWithUmac(facevel[lev].data(),lev,dt[0]);
+            if (regrid_int > 0)  // If we needed to regrid
+            {
+                TracerPC->Redistribute();
+            }
         }
     }
 #endif
