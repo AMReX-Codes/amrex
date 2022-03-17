@@ -32,6 +32,7 @@ restart_check = 1
 #ref_ratio_file = 4 2
 
 ## Uncomment to enable compression
-hdf5compression=ZFP_ACCURACY#0.001
+#hdf5compression=ZFP_ACCURACY@0.001
+#hdf5compression=SZ@sz.config
 
 directory=.
