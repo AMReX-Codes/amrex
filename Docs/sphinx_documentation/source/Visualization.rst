@@ -270,6 +270,15 @@ on-screen instructions.
     e.g. you name it ``pltx00100``, then VisIt will not be able to correctly recognize
     and print the value for ``Cycle``.  (It will still read and display the data itself.)
 
+VisIt HDF5 Format
+-----------------
+
+The plotfiles generated with the HDF5 format can be visualized by VisIt as well. To open
+a single plotfile, run VisIt, then select "File" :math:`\rightarrow` "Open file ...",
+then select the HDF5 plotfile of interest (e.g.,``plt00000.h5``), and select "Chombo"
+in the "Open file as type" dropdown menu. VisIt can also recognize the time steps
+automatically based on the numbers in the HDF5 plotfile names in a directory.
+
 .. _section-1:
 
 ParaView
@@ -442,6 +451,14 @@ we will assume a single vector has been stored as three separate variables,
 
    Vector Field generated with ParaView
 
+ParaView HDF5 Format
+--------------------
+
+The plotfiles generated with the HDF5 format can be visualized by ParaView.
+To open a single plotfile, run VisIt, select "File" :math:`\rightarrow` "Open",
+then select the HDF5 plotfile (e.g.,``plt00000.h5``). You can select an
+individual plotfile or select a group of files to read as time series, then
+click OK. ParaView will ask you about the file type -- choose "VisItChomboReader".
 
 .. _section-2:
 
