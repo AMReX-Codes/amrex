@@ -613,6 +613,11 @@ FluxRegister::Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
         auto const& vma = volume.const_arrays();
         ParallelFor(mf, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
         {
+#if (AMREX_SPACEDIM == 1)
+            amrex::ignore_unused(j,k);
+#elif (AMREX_SPACEDIM == 2)
+            amrex::ignore_unused(k);
+#endif
             fluxreg_reflux(Box(IntVect(AMREX_D_DECL(i,j,k)),IntVect(AMREX_D_DECL(i,j,k))),
                            sma[box_no], dcomp, fma[box_no], vma[box_no], nc, scale, face);
         });
