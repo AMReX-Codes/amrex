@@ -48,6 +48,8 @@ extern int *   NodeNumberTableX_X1;
 extern int *   NodeNumberTableX_X2;
 extern int *   NodeNumberTableX_X3;
 
+extern int iGF_SqrtGm;
+
 void InitializeMeshRefinement_DG
        ( int N[], Real ProjMatrix[],
          Real WeightsX1[], Real WeightsX2[], Real WeightsX3[],
@@ -56,7 +58,7 @@ void InitializeMeshRefinement_DG
          Real LX_X3_Refined_Packed[],
          Real LX_X1_Up_1D[], Real LX_X1_Dn_1D[],
          Real LX_X2_Up_1D[], Real LX_X2_Dn_1D[],
-         Real LX_X3_Up_1D[], Real LX_X3_Dn_1D[] );
+         Real LX_X3_Up_1D[], Real LX_X3_Dn_1D[], int iGF_SqtGm );
 
 void FinalizeMeshRefinement_DG();
 

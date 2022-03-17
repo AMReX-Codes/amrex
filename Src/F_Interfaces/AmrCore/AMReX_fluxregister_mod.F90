@@ -116,10 +116,10 @@ module amrex_fluxregister_module
      end subroutine amrex_fi_fluxregister_reflux
 
      subroutine amrex_fi_fluxregister_reflux_dg &
-       ( fr, mf, geom, nFields, dX1, dX2, dX3 ) bind(c)
+       ( FluxRegister, MF_G, MF_dU, geom, nFields, dX1, dX2, dX3 ) bind(c)
        import
        implicit none
-       type(c_ptr)     , value :: fr, mf, geom
+       type(c_ptr)     , value :: FluxRegister, MF_G, MF_dU, geom
        integer         , value :: nFields
        real(amrex_real)        :: dX1(*), dX2(*), dX3(*)
      end subroutine amrex_fi_fluxregister_reflux_dg
@@ -269,14 +269,15 @@ contains
   end subroutine amrex_fluxregister_reflux
 
   subroutine amrex_fluxregister_reflux_dg &
-    ( this, mf, nFields, dX1, dX2, dX3 )
+    ( this, MF_G, MF_dU, nFields, dX1, dX2, dX3 )
     use amrex_amrcore_module, only : amrex_geom
     class(amrex_fluxregister), intent(inout) :: this
-    type(amrex_multifab)     , intent(in)    :: mf
+    type(amrex_multifab)     , intent(in)    :: MF_G
+    type(amrex_multifab)     , intent(in)    :: MF_dU
     integer                  , intent(in)    :: nFields
     real(amrex_real)         , intent(in)    :: dX1(*), dX2(*), dX3(*)
     call amrex_fi_fluxregister_reflux_dg &
-           ( this%p, mf%p, amrex_geom(this%flev-1)%p, &
+           ( this%p, MF_G%p, MF_dU%p, amrex_geom(this%flev-1)%p, &
              nFields, dX1, dX2, dX3 )
   end subroutine amrex_fluxregister_reflux_dg
 

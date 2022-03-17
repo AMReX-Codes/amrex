@@ -20,7 +20,7 @@ MODULE AMReX_DGInterfaceModule
         LX_X3_Refined_Packed, &
         LX_X1_Up_1D, LX_X1_Dn_1D, &
         LX_X2_Up_1D, LX_X2_Dn_1D, &
-        LX_X3_Up_1D, LX_X3_Dn_1D ) BIND(c)
+        LX_X3_Up_1D, LX_X3_Dn_1D, iGF_SqrtGm ) BIND(c)
        IMPORT
        IMPLICIT NONE
        INTEGER(c_int), INTENT(in) :: nNodes(*)
@@ -32,6 +32,7 @@ MODULE AMReX_DGInterfaceModule
                                      LX_X1_Up_1D(*), LX_X1_Dn_1D(*), &
                                      LX_X2_Up_1D(*), LX_X2_Dn_1D(*), &
                                      LX_X3_Up_1D(*), LX_X3_Dn_1D(*)
+       INTEGER(c_int), INTENT(in), VALUE :: iGF_SqrtGm
     END SUBROUTINE amrex_fi_initializemeshrefinement_dg
 
     SUBROUTINE amrex_fi_finalizemeshrefinement_dg() BIND(c)
@@ -50,8 +51,8 @@ CONTAINS
       LX_X1_Refined_Packed, LX_X2_Refined_Packed, LX_X3_Refined_Packed, &
       LX_X1_Up_1D, LX_X1_Dn_1D, &
       LX_X2_Up_1D, LX_X2_Dn_1D, &
-      LX_X3_Up_1D, LX_X3_Dn_1D )
-    INTEGER , INTENT(in) :: nNodes(*)
+      LX_X3_Up_1D, LX_X3_Dn_1D, iGF_SqrtGm )
+    INTEGER , INTENT(in) :: nNodes(*), iGF_SqrtGm
     REAL(DP), INTENT(in) :: ProjectionMatrix(*)
     REAL(DP), INTENT(in) :: WeightsX1(*), WeightsX2(*), WeightsX3(*)
     REAL(DP), INTENT(in) :: LX_X1_Refined_Packed(*), &
@@ -69,7 +70,7 @@ CONTAINS
              LX_X3_Refined_Packed, &
              LX_X1_Up_1D, LX_X1_Dn_1D, &
              LX_X2_Up_1D, LX_X2_Dn_1D, &
-             LX_X3_Up_1D, LX_X3_Dn_1D  )
+             LX_X3_Up_1D, LX_X3_Dn_1D, iGF_SqrtGm  )
   END SUBROUTINE amrex_InitializeMeshRefinement_DG
 
 

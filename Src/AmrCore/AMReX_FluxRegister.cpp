@@ -779,7 +779,8 @@ FluxRegister::Reflux (MultiFab&       mf,
 }
 
 void
-FluxRegister::Reflux_DG ( MultiFab&       mf,
+FluxRegister::Reflux_DG ( MultiFab&       MF_G,
+                          MultiFab&       MF_dU,
                           const Geometry& geom,
                           int             nComp, /* nDOFX_X * nFields */
                           int             nFields,
@@ -790,7 +791,8 @@ FluxRegister::Reflux_DG ( MultiFab&       mf,
     for( OrientationIter fi; fi; ++fi )
     {
         const Orientation& face = fi();
-        Reflux_DG( mf, geom, nComp, nFields, dX1, dX2, dX3, face );
+        Reflux_DG( MF_G, MF_dU, geom, nComp, nFields,
+                   dX1, dX2, dX3, face );
     }
 } /* END void FluxRegister::Reflux_DG */
 
@@ -878,31 +880,34 @@ FluxRegister::Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
 
 void
 FluxRegister::Reflux_DG
-  ( MultiFab& mf_dU, const Geometry& geom, int nComp,
-    int nFields, Real dX1[], Real dX2[], Real dX3[], Orientation face )
+  ( MultiFab& MF_G, MultiFab& MF_dU, const Geometry& geom,
+    int nComp, int nFields, Real dX1[], Real dX2[], Real dX3[],
+    Orientation face )
 {
     BL_PROFILE("FluxRegister::Reflux_DG()");
 
     int iDimX = face.coordDir();
 
-    MultiFab mf_dF( amrex::convert( mf_dU.boxArray(),
+    MultiFab MF_dF( amrex::convert( MF_dU.boxArray(),
                                    IntVect::TheDimensionVector(iDimX) ),
-                   mf_dU.DistributionMap(), nComp, 0,
-                   MFInfo(), mf_dU.Factory() );
-    mf_dF.setVal( amrex::DG::Zero );
-    bndry[face].copyTo( mf_dF, 0, 0, 0, nComp, geom.periodicity() );
+                   MF_dU.DistributionMap(), nComp, 0,
+                   MFInfo(), MF_dU.Factory() );
+    MF_dF.setVal( amrex::DG::Zero );
+    bndry[face].copyTo( MF_dF, 0, 0, 0, nComp, geom.periodicity() );
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for( MFIter mfi( mf_dU, TilingIfNotGPU() ); mfi.isValid(); ++mfi )
+    for( MFIter mfi( MF_dU, TilingIfNotGPU() ); mfi.isValid(); ++mfi )
     {
         const Box& bx                = mfi.tilebox();
-        Array4<Real>       const& dU = mf_dU.array(mfi);
-        Array4<Real const> const& dF = mf_dF.const_array(mfi);
+        Array4<Real>       const& G  = MF_G.array(mfi);
+        Array4<Real>       const& dU = MF_dU.array(mfi);
+        Array4<Real const> const& dF = MF_dF.const_array(mfi);
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
         {
-            fluxreg_reflux_dg( tbx, dU, dF, nFields, dX1, dX2, dX3, face );
+            fluxreg_reflux_dg
+              ( tbx, G, dU, dF, nFields, dX1, dX2, dX3, face );
         });
     }
 } /* END void FluxRegister::Reflux_DG */

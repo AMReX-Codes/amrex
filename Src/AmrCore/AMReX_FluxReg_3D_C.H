@@ -396,6 +396,7 @@ fluxreg_reflux (Box const& bx, Array4<Real> const& s, const int scomp,
 AMREX_GPU_HOST_DEVICE inline void
 fluxreg_reflux_dg
   ( Box const& CrseBox,
+    Array4<Real> const& G,
     Array4<Real> const& dU,
     Array4<Real const> const& dF,
     int nFields,
@@ -435,6 +436,9 @@ fluxreg_reflux_dg
                                      iNX_X1+iField*amrex::DG::nDOFX_X1)
                                    * amrex::DG::LX_X1_Up[iNX1]
                                    / ( amrex::DG::WeightsX_q[iNX]
+                                         * G(iCrse,jCrse,kCrse,
+                                             (amrex::DG::iGF_SqrtGm-1)
+                                                *amrex::DG::nDOFX+iNX)
                                          * dX1[iCrse] );
                         } /* iField */
                     } /* iNX */
@@ -457,6 +461,9 @@ fluxreg_reflux_dg
                                      iNX_X2+iField*amrex::DG::nDOFX_X2)
                                    * amrex::DG::LX_X2_Up[iNX2]
                                    / ( amrex::DG::WeightsX_q[iNX]
+                                         * G(iCrse,jCrse,kCrse,
+                                             (amrex::DG::iGF_SqrtGm-1)
+                                                *amrex::DG::nDOFX+iNX)
                                          * dX2[jCrse] );
                         } /* iField */
                     } /* iNX */
@@ -479,6 +486,9 @@ fluxreg_reflux_dg
                                      iNX_X3+iField*amrex::DG::nDOFX_X3)
                                    * amrex::DG::LX_X3_Up[iNX3]
                                    / ( amrex::DG::WeightsX_q[iNX]
+                                         * G(iCrse,jCrse,kCrse,
+                                             (amrex::DG::iGF_SqrtGm-1)
+                                                *amrex::DG::nDOFX+iNX)
                                          * dX3[kCrse] );
                         } /* iField */
                     } /* iNX */
@@ -507,6 +517,9 @@ fluxreg_reflux_dg
                                     iNX_X1+iField*amrex::DG::nDOFX_X1)
                                    * amrex::DG::LX_X1_Dn[iNX1]
                                    / ( amrex::DG::WeightsX_q[iNX]
+                                         * G(iCrse,jCrse,kCrse,
+                                             (amrex::DG::iGF_SqrtGm-1)
+                                                *amrex::DG::nDOFX+iNX)
                                          * dX1[iCrse] );
                         } /* iField */
                     } /* iNX */
@@ -529,6 +542,9 @@ fluxreg_reflux_dg
                                      iNX_X2+iField*amrex::DG::nDOFX_X2)
                                    * amrex::DG::LX_X2_Dn[iNX2]
                                    / ( amrex::DG::WeightsX_q[iNX]
+                                         * G(iCrse,jCrse,kCrse,
+                                             (amrex::DG::iGF_SqrtGm-1)
+                                                *amrex::DG::nDOFX+iNX)
                                          * dX2[jCrse] );
                         } /* iField */
                     } /* iNX */
@@ -551,6 +567,9 @@ fluxreg_reflux_dg
                                      iNX_X3+iField*amrex::DG::nDOFX_X3)
                                    * amrex::DG::LX_X3_Dn[iNX3]
                                    / ( amrex::DG::WeightsX_q[iNX]
+                                         * G(iCrse,jCrse,kCrse,
+                                             (amrex::DG::iGF_SqrtGm-1)
+                                                *amrex::DG::nDOFX+iNX)
                                          * dX3[kCrse] );
                         } /* iField */
                     } /* iNX */

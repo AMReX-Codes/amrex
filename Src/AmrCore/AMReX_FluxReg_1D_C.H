@@ -169,6 +169,7 @@ fluxreg_reflux (Box const& bx, Array4<Real> const& s, const int scomp,
 AMREX_GPU_HOST_DEVICE inline void
 fluxreg_reflux_dg
   ( Box const& CrseBox,
+    Array4<Real> const& G,
     Array4<Real> const& dU,
     Array4<Real const> const& dF,
     int nFields,
@@ -200,6 +201,8 @@ fluxreg_reflux_dg
                              iNX_X1+iField*amrex::DG::nDOFX_X1)
                            * amrex::DG::LX_X1_Up[iNX1]
                            / ( amrex::DG::WeightsX_q[iNX]
+                                 * G(iCrse,0,0,(amrex::DG::iGF_SqrtGm-1)
+                                                  *amrex::DG::nDOFX+iNX)
                                  * dX1[iCrse] );
                 } /* iField */
             } /* iNX */
@@ -219,6 +222,8 @@ fluxreg_reflux_dg
                             iNX_X1+iField*amrex::DG::nDOFX_X1)
                           * amrex::DG::LX_X1_Dn[iNX1]
                           / ( amrex::DG::WeightsX_q[iNX]
+                                * G(iCrse,0,0,(amrex::DG::iGF_SqrtGm-1)
+                                                  *amrex::DG::nDOFX+iNX)
                                 * dX1[iCrse] );
                 } /* iField */
             } /* iNX */

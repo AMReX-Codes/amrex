@@ -359,15 +359,17 @@ public:
     * \brief Apply flux correction (DG).
     * Note that this takes the coarse Geometry.
     *
-    * \param mf
-    * \param cres_geom
+    * \param MF_G
+    * \param MF_dU
+    * \param crse_geom
     * \param nComp
     * \param nFields
     * \param dX1
     * \param dX2
     * \param dX3
     */
-    void Reflux_DG( MultiFab&       mf,
+    void Reflux_DG( MultiFab&       MF_G,
+                    MultiFab&       MF_dU,
                     const Geometry& crse_geom,
                     int             nComp,
                     int             nFields,
@@ -433,7 +435,7 @@ public:
     void Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
                  Real scale, int scomp, int dcomp, int nc, const Geometry& geom);
     void Reflux_DG
-      ( MultiFab& mf, const Geometry& geom, int nComp,
+      ( MultiFab& MF_G, MultiFab& MF_dU, const Geometry& geom, int nComp,
         int nFields, Real dX1[], Real dX2[], Real dX3[], Orientation face );
 
 private:

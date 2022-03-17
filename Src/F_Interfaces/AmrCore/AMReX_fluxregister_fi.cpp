@@ -93,11 +93,11 @@ extern "C"
     }
 
     void amrex_fi_fluxregister_reflux_dg
-      ( FluxRegister* flux_reg, MultiFab* mf,
+      ( FluxRegister* FluxReg, MultiFab* MF_G, MultiFab* MF_dU,
         const Geometry* geom, int nFields, Real dX1[], Real dX2[], Real dX3[] )
     {
-        flux_reg->Reflux_DG( *mf, *geom, flux_reg->nComp(),
-                             nFields, dX1, dX2, dX3 );
+        FluxReg->Reflux_DG( *MF_G, *MF_dU, *geom, FluxReg->nComp(),
+                            nFields, dX1, dX2, dX3 );
     }
 
     void amrex_fi_fluxregister_overwrite (FluxRegister* flux_reg, MultiFab* crse_flxs[],
