@@ -1,23 +1,24 @@
 #ifndef AmrCoreAdv_H_
 #define AmrCoreAdv_H_
 
-#include <string>
-#include <limits>
-#include <memory>
-
 #include <AMReX_Config.H>
-#ifdef AMREX_USE_OMP
-#include <omp.h>
-#endif
-
 #ifdef AMREX_PARTICLES
-#include <AMReX_Particles.H>
-#include <AMReX_AmrParticles.H>
+#   include <AMReX_AmrParticles.H>
+#   include <AMReX_Particles.H>
 #endif
 
 #include <AMReX_AmrCore.H>
-#include <AMReX_FluxRegister.H>
 #include <AMReX_BCRec.H>
+#include <AMReX_FluxRegister.H>
+
+#ifdef AMREX_USE_OMP
+#   include <omp.h>
+#endif
+
+#include <limits>
+#include <memory>
+#include <string>
+
 
 class AmrCoreAdv
     : public amrex::AmrCore
