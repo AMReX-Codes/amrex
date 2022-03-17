@@ -59,6 +59,9 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
     else ifneq ($(CUDA_PATH),)
         SYSTEM_CUDA_PATH := $(CUDA_PATH)
         COMPILE_CUDA_PATH := $(CUDA_PATH)
+    else ifneq ($(NVIDIA_PATH),)
+        SYSTEM_CUDA_PATH := $(NVIDIA_PATH)/cuda
+        COMPILE_CUDA_PATH := $(NVIDIA_PATH)/cuda
     else
         $(error No CUDA_ROOT nor CUDA_HOME nor CUDA_PATH found. Please load a cuda module.)
     endif

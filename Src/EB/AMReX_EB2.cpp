@@ -24,8 +24,8 @@ AMREX_EXPORT bool extend_domain_face = true;
 void Initialize ()
 {
     ParmParse pp("eb2");
-    pp.query("max_grid_size", max_grid_size);
-    pp.query("extend_domain_face", extend_domain_face);
+    pp.queryAdd("max_grid_size", max_grid_size);
+    pp.queryAdd("extend_domain_face", extend_domain_face);
 
     amrex::ExecOnFinalize(Finalize);
 }
@@ -112,7 +112,7 @@ Build (const Geometry& geom, int required_coarsening_level,
         pp.get("cylinder_radius", radius);
 
         Real height = -1.0;
-        pp.query("cylinder_height", height);
+        pp.queryAdd("cylinder_height", height);
 
         int direction;
         pp.get("cylinder_direction", direction);

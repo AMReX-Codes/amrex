@@ -448,7 +448,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
     int nOutFiles(256);
 
     ParmParse pp("particles");
-    pp.query("particles_nfiles",nOutFiles);
+    pp.queryAdd("particles_nfiles",nOutFiles);
     if(nOutFiles == -1) nOutFiles = NProcs;
     nOutFiles = std::max(1, std::min(nOutFiles,NProcs));
     pc.nOutFilesPrePost = nOutFiles;

@@ -39,7 +39,7 @@ void amrex_mempool_init ()
         initialized = true;
 
         ParmParse pp("fab");
-        pp.query("init_snan", init_snan);
+        pp.queryAdd("init_snan", init_snan);
 
         int nthreads = OpenMP::get_max_threads();
 

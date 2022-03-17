@@ -260,6 +260,51 @@ Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, in
     }
 }
 
+template <class FAB,
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+void
+Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
+{
+    Add(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+template <class FAB,
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+void
+Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+{
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
+        auto const& dstfa = dst.arrays();
+        auto const& srcfa = src.const_arrays();
+        ParallelFor(dst, nghost, numcomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            dstfa[box_no](i,j,k,n+dstcomp) += srcfa[box_no](i,j,k,n+srccomp);
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost);
+            if (bx.ok())
+            {
+                auto const srcFab = src.array(mfi);
+                auto       dstFab = dst.array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
+                {
+                    dstFab(i,j,k,n+dstcomp) += srcFab(i,j,k,n+srccomp);
+                });
+            }
+        }
+    }
+}
+
 template <class FAB>
 class FabArray
     :
@@ -279,7 +324,15 @@ public:
 
     //
     //! Constructs an empty FabArray<FAB>.
-    FabArray ();
+    FabArray () noexcept;
+
+    /**
+     * \brief Construct an empty FabArray<FAB> that has a default Arena.  If
+     * `define` is called later with a nulltpr as MFInfo's arena, the
+     * default Arena `a` will be used.  If the arena in MFInfo is not a
+     * nullptr, the MFInfo's arena will be used.
+     */
+    explicit FabArray (Arena* a) noexcept;
 
     /**
     * \brief Construct a FabArray<FAB> with a valid region defined by bxs
@@ -1506,8 +1559,16 @@ FabArray<FAB>::setVal (value_type val, const Box& region, const IntVect& nghost)
 }
 
 template <class FAB>
-FabArray<FAB>::FabArray ()
+FabArray<FAB>::FabArray () noexcept
     : shmem()
+{
+    m_FA_stats.recordBuild();
+}
+
+template <class FAB>
+FabArray<FAB>::FabArray (Arena* a) noexcept
+    : m_dallocator(a),
+      shmem()
 {
     m_FA_stats.recordBuild();
 }
@@ -1669,10 +1730,11 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 {
     std::unique_ptr<FabFactory<FAB> > factory(a_factory.clone());
 
+    auto default_arena = m_dallocator.m_arena;
     clear();
 
     m_factory = std::move(factory);
-    m_dallocator.m_arena = info.arena;
+    m_dallocator.m_arena = info.arena ? info.arena : default_arena;
 
     define_function_called = true;
 
@@ -1683,7 +1745,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
     addThisBD();
 
     if(info.alloc) {
-        AllocFabs(*m_factory, info.arena, info.tags);
+        AllocFabs(*m_factory, m_dallocator.m_arena, info.tags);
         Gpu::synchronize();
 #ifdef BL_USE_TEAM
         ParallelDescriptor::MyTeam().MemoryBarrier();

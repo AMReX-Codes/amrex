@@ -51,6 +51,11 @@ ifdef OLCF_ROCM_ROOT
     which_site := olcf
     which_computer := spock
   endif
+
+  ifeq ($(findstring crusher, $(host_name)), crusher)
+    which_site := olcf
+    which_computer := crusher
+  endif
 endif
 
 ifeq ($(findstring theta, $(host_name)), theta)

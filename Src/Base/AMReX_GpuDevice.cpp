@@ -134,13 +134,13 @@ Device::Initialize ()
 #endif
 
     ParmParse ppamrex("amrex");
-    ppamrex.query("max_gpu_streams", max_gpu_streams);
+    ppamrex.queryAdd("max_gpu_streams", max_gpu_streams);
     max_gpu_streams = std::min(max_gpu_streams, AMREX_GPU_MAX_STREAMS);
 
     ParmParse pp("device");
 
-    pp.query("v", verbose);
-    pp.query("verbose", verbose);
+    pp.queryAdd("v", verbose);
+    pp.queryAdd("verbose", verbose);
 
     if (amrex::Verbose()) {
         AMREX_HIP_OR_CUDA_OR_DPCPP
@@ -506,9 +506,9 @@ Device::initialize_gpu ()
     int ny = 0;
     int nz = 0;
 
-    pp.query("numThreads.x", nx);
-    pp.query("numThreads.y", ny);
-    pp.query("numThreads.z", nz);
+    pp.queryAdd("numThreads.x", nx);
+    pp.queryAdd("numThreads.y", ny);
+    pp.queryAdd("numThreads.z", nz);
 
     numThreadsOverride.x = (int) nx;
     numThreadsOverride.y = (int) ny;
@@ -518,9 +518,9 @@ Device::initialize_gpu ()
     ny = 0;
     nz = 0;
 
-    pp.query("numBlocks.x", nx);
-    pp.query("numBlocks.y", ny);
-    pp.query("numBlocks.z", nz);
+    pp.queryAdd("numBlocks.x", nx);
+    pp.queryAdd("numBlocks.y", ny);
+    pp.queryAdd("numBlocks.z", nz);
 
     numBlocksOverride.x = (int) nx;
     numBlocksOverride.y = (int) ny;
@@ -529,8 +529,8 @@ Device::initialize_gpu ()
     // Graph initialization
     int graph_init = 0;
     int graph_size = 10000;
-    pp.query("graph_init", graph_init);
-    pp.query("graph_init_nodes", graph_size);
+    pp.queryAdd("graph_init", graph_init);
+    pp.queryAdd("graph_init_nodes", graph_size);
 
     if (graph_init)
     {

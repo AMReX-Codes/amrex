@@ -71,7 +71,7 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
 {
     ParmParse pp("amr");
 
-    pp.query("v",verbose);
+    pp.queryAdd("v",verbose);
 
     if (max_level_in == -1) {
        pp.get("max_level", max_level);
@@ -103,8 +103,8 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
       ref_ratio[i] = 2 * IntVect::TheUnitVector();
     }
 
-    pp.query("n_proper",n_proper);
-    pp.query("grid_eff",grid_eff);
+    pp.queryAdd("n_proper",n_proper);
+    pp.queryAdd("grid_eff",grid_eff);
     int cnt = pp.countval("n_error_buf");
     if (cnt > 0) {
         Vector<int> neb;
@@ -360,17 +360,17 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
 
     //chop up grids to have the number of grids be no less the number of procs
     {
-        pp.query("refine_grid_layout", refine_grid_layout);
+        pp.queryAdd("refine_grid_layout", refine_grid_layout);
 
         refine_grid_layout_dims = IntVect(refine_grid_layout);
-        AMREX_D_TERM(pp.query("refine_grid_layout_x", refine_grid_layout_dims[0]);,
-                     pp.query("refine_grid_layout_y", refine_grid_layout_dims[1]);,
-                     pp.query("refine_grid_layout_z", refine_grid_layout_dims[2]));
+        AMREX_D_TERM(pp.queryAdd("refine_grid_layout_x", refine_grid_layout_dims[0]);,
+                     pp.queryAdd("refine_grid_layout_y", refine_grid_layout_dims[1]);,
+                     pp.queryAdd("refine_grid_layout_z", refine_grid_layout_dims[2]));
 
         refine_grid_layout = refine_grid_layout_dims != 0;
     }
 
-    pp.query("check_input", check_input);
+    pp.queryAdd("check_input", check_input);
 
     finest_level = -1;
 

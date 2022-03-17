@@ -100,11 +100,18 @@ public:
     const CutFab& operator[] (const MFIter& mfi) const noexcept;
     CutFab& operator[] (const MFIter& mfi) noexcept;
 
+    const CutFab& operator[] (int global_box_index) const noexcept;
+    CutFab& operator[] (int global_box_index) noexcept;
+
     Array4<Real      > array (const MFIter& mfi) noexcept;
     Array4<Real const> array (const MFIter& mfi) const noexcept;
     Array4<Real const> const_array (const MFIter& mfi) const noexcept;
 
+    //! Is it OK to call operator[] with this MFIter?
     bool ok (const MFIter& mfi) const noexcept;
+
+    //! Is it OK to call operator[] with this global box index?
+    bool ok (int global_box_index) const noexcept;
 
     void setVal (Real val);
 

@@ -67,10 +67,9 @@ MemProfiler::report (const std::string& prefix)
 {
     static std::string memory_log_name;
     if (memory_log_name.empty()) {
+        memory_log_name = "memlog";
         ParmParse pp("amrex");
-        pp.query("memory_log", memory_log_name);
-        if (memory_log_name.empty())
-            memory_log_name = "memlog";
+        pp.queryAdd("memory_log", memory_log_name);
     }
 
     getInstance().report_(prefix, memory_log_name);

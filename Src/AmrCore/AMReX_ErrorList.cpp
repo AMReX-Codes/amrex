@@ -229,227 +229,149 @@ operator << (std::ostream&    os,
     return os;
 }
 
-  inline
-  void
-  AMRErrorTag_GRAD(const Box&                bx,
-                   Array4<const Real> const& dat,
-                   Array4<char> const&       tag,
-                   Real                      threshold,
-                   char                      tagval)
-  {
-    amrex::ParallelFor(bx,
-    [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k)
-    {
-      auto ax = amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k));
-      ax = amrex::max(ax,amrex::Math::abs(dat(i,j,k) - dat(i-1,j,k)));
-#if AMREX_SPACEDIM == 1
-      if (ax >= threshold) tag(i,j,k) = tagval;
-#else
-      auto ay = amrex::Math::abs(dat(i,j+1,k) - dat(i,j,k));
-      ay = amrex::max(ay,amrex::Math::abs(dat(i,j,k) - dat(i,j-1,k)));
-#if AMREX_SPACEDIM > 2
-      auto az = amrex::Math::abs(dat(i,j,k+1) - dat(i,j,k));
-      az = amrex::max(az,amrex::Math::abs(dat(i,j,k) - dat(i,j,k-1)));
-#endif
-      if (amrex::max(AMREX_D_DECL(ax,ay,az)) >= threshold) {
-        tag(i,j,k) = tagval;
-      }
-#endif
-    });
-  }
-
-  inline
-  void
-  AMRErrorTag_RELGRAD(const Box&                bx,
-                      Array4<const Real> const& dat,
-                      Array4<char> const&       tag,
-                      Real                      threshold,
-                      char                      tagval)
-  {
-    amrex::ParallelFor(bx,
-    [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k)
-    {
-      auto ax = amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k));
-      ax = amrex::max(ax,amrex::Math::abs(dat(i,j,k) - dat(i-1,j,k)));
-#if AMREX_SPACEDIM == 1
-      if (ax >= threshold * amrex::Math::abs(dat(i,j,k))) tag(i,j,k) = tagval;
-#else
-      auto ay = amrex::Math::abs(dat(i,j+1,k) - dat(i,j,k));
-      ay = amrex::max(ay,amrex::Math::abs(dat(i,j,k) - dat(i,j-1,k)));
-#if AMREX_SPACEDIM > 2
-      auto az = amrex::Math::abs(dat(i,j,k+1) - dat(i,j,k));
-      az = amrex::max(az,amrex::Math::abs(dat(i,j,k) - dat(i,j,k-1)));
-#endif
-      if (amrex::max(AMREX_D_DECL(ax,ay,az)) >= threshold * amrex::Math::abs(dat(i,j,k))) {
-        tag(i,j,k) = tagval;
-      }
-#endif
-    });
-  }
-
-  int
-  AMRErrorTag::SetNGrow () const noexcept
-  {
+int
+AMRErrorTag::SetNGrow () const noexcept
+{
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_test != USER, "Do not call SetNGrow with USER test");
     static std::map<TEST,int> ng = { {GRAD,1}, {RELGRAD,1}, {LESS,0}, {GREATER,0}, {VORT,0}, {BOX,0} };
     return ng[m_test];
-  }
+}
 
-  inline
-  void
-  AMRErrorTag_LESS(const Box&                bx,
-                   Array4<const Real> const& dat,
-                   Array4<char> const&       tag,
-                   Real                      threshold,
-                   char                      tagval) noexcept
-  {
-    amrex::ParallelFor(bx,
-    [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k)
-    {
-      if (dat(i,j,k) <= threshold) {
-        tag(i,j,k) = tagval;
-      }
-    });
-  }
-
-  inline
-  void
-  AMRErrorTag_GREATER(const Box&                bx,
-                      Array4<const Real> const& dat,
-                      Array4<char> const&       tag,
-                      Real                      threshold,
-                      char                      tagval) noexcept
-  {
-    amrex::ParallelFor(bx,
-    [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k)
-    {
-      if (dat(i,j,k) >= threshold) {
-        tag(i,j,k) = tagval;
-      }
-    });
-  }
-
-  inline
-  void
-  AMRErrorTag_BOX(const Box&          bx,
-                  Array4<char> const& tag,
-                  const RealBox&      tag_rb,
-                  const Geometry&     geom,
-                  char                tagval) noexcept
-  {
-    auto plo = geom.ProbLoArray();
-    auto dx  = geom.CellSizeArray();
-    class RealBox trb(bx,dx.data(),plo.data());
-    if (tag_rb.intersects(trb))
-    {
-      amrex::ParallelFor(bx,
-      [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k)
-      {
-          GpuArray<Real,AMREX_SPACEDIM> pt = {{AMREX_D_DECL(plo[0]+(Real(i)+Real(0.5))*dx[0],
-                                                            plo[1]+(Real(j)+Real(0.5))*dx[1],
-                                                            plo[2]+(Real(k)+Real(0.5))*dx[2])}};
-        if (tag_rb.contains(pt.data())) {
-          tag(i,j,k) = tagval;
-        }
-      });
-    }
-  }
-
-  inline
-  void
-  AMRErrorTag_VORT(const Box&                bx,
-                   Array4<const Real> const& dat,
-                   Array4<char> const&       tag,
-                   int                       level,
-                   Real                      threshold,
-                   char                      tagval) noexcept
-  {
-    const Real fac = threshold * Real(std::pow(2,level));
-    amrex::ParallelFor(bx,
-    [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k)
-    {
-      if (dat(i,j,k) >= fac) {
-        tag(i,j,k) = tagval;
-      }
-    });
-  }
-
-  void
-  AMRErrorTag::operator() (TagBoxArray&    tba,
-                           const MultiFab* mf,
-                           char            clearval,
-                           char            tagval,
-                           Real            time,
-                           int             level,
-                           const Geometry& geom) const noexcept
-  {
+void
+AMRErrorTag::operator() (TagBoxArray&    tba,
+                         const MultiFab* mf,
+                         char            clearval,
+                         char            tagval,
+                         Real            time,
+                         int             level,
+                         const Geometry& geom) const noexcept
+{
     BL_PROFILE("AMRErrorTag::operator()");
 
     if (m_test == USER)
     {
-      AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_userfunc!=nullptr,"UserFunc not properly set in AMRErrorTag");
-
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-      for (MFIter mfi(tba,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-      {
-        const auto& bx    = mfi.tilebox();
-        auto const& dat   = mf->array(mfi);
-        auto tag          = tba.array(mfi);
-        (*m_userfunc)(bx,dat,tag,time,level,tagval,clearval);
-      }
-    }
-    else
-    {
-      if ((level <  m_info.m_max_level) &&
-          (time  >= m_info.m_min_time ) &&
-          (time  <= m_info.m_max_time ) )
-      {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_userfunc!=nullptr,
+                                         "UserFunc not properly set in AMRErrorTag");
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(tba,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-          const auto& bx    = mfi.tilebox();
-          auto tag          = tba.array(mfi);
-
-          if (m_test == BOX)
-          {
-            AMRErrorTag_BOX(bx, tag, m_info.m_realbox, geom, tagval);
-          }
-          else
-          {
+            const auto& bx    = mfi.tilebox();
             auto const& dat   = mf->array(mfi);
-
-            if (m_test == GRAD)
+            auto tag          = tba.array(mfi);
+            (*m_userfunc)(bx,dat,tag,time,level,tagval,clearval);
+        }
+    }
+    else
+    {
+        if ((level <  m_info.m_max_level) &&
+            (time  >= m_info.m_min_time ) &&
+            (time  <= m_info.m_max_time ) )
+        {
+            auto const& tagma = tba.arrays();
+            if (m_test == BOX)
             {
-              AMRErrorTag_GRAD(bx, dat, tag, m_value[level], tagval);
-            }
-            else if (m_test == RELGRAD)
-            {
-              AMRErrorTag_RELGRAD(bx, dat, tag, m_value[level], tagval);
-            }
-            else if (m_test == LESS)
-            {
-              AMRErrorTag_LESS(bx, dat, tag, m_value[level], tagval);
-            }
-            else if (m_test == GREATER)
-            {
-              AMRErrorTag_GREATER(bx, dat, tag, m_value[level], tagval);
-            }
-            else if (m_test == VORT)
-            {
-              AMRErrorTag_VORT(bx, dat, tag, level, m_value[level], tagval);
+                const auto plo = geom.ProbLoArray();
+                const auto dx  = geom.CellSizeArray();
+                const auto tag_rb = m_info.m_realbox;
+                ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
+                {
+                    GpuArray<Real,AMREX_SPACEDIM> pt
+                        {AMREX_D_DECL(plo[0]+(Real(i)+Real(0.5))*dx[0],
+                                      plo[1]+(Real(j)+Real(0.5))*dx[1],
+                                      plo[2]+(Real(k)+Real(0.5))*dx[2])};
+                    if (tag_rb.contains(pt.data())) {
+                        tagma[bi](i,j,k) = tagval;
+                    }
+                });
             }
             else
             {
-              Abort("Bad AMRErrorTag test flag");
+                auto const& datma   = mf->const_arrays();
+                auto threshold = m_value[level];
+                if (m_test == GRAD)
+                {
+                    ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
+                    {
+                        auto const& dat = datma[bi];
+                        auto ax = amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k));
+                        ax = amrex::max(ax,amrex::Math::abs(dat(i,j,k) - dat(i-1,j,k)));
+#if AMREX_SPACEDIM == 1
+                        if (ax >= threshold) { tagma[bi](i,j,k) = tagval;}
+#else
+                        auto ay = amrex::Math::abs(dat(i,j+1,k) - dat(i,j,k));
+                        ay = amrex::max(ay,amrex::Math::abs(dat(i,j,k) - dat(i,j-1,k)));
+#if AMREX_SPACEDIM > 2
+                        auto az = amrex::Math::abs(dat(i,j,k+1) - dat(i,j,k));
+                        az = amrex::max(az,amrex::Math::abs(dat(i,j,k) - dat(i,j,k-1)));
+#endif
+                        if (amrex::max(AMREX_D_DECL(ax,ay,az)) >= threshold) {
+                            tagma[bi](i,j,k) = tagval;
+                        }
+#endif
+                    });
+                }
+                else if (m_test == RELGRAD)
+                {
+                    ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
+                    {
+                        auto const& dat = datma[bi];
+                        auto ax = amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k));
+                        ax = amrex::max(ax,amrex::Math::abs(dat(i,j,k) - dat(i-1,j,k)));
+#if AMREX_SPACEDIM == 1
+                        if (ax >= threshold * amrex::Math::abs(dat(i,j,k))) { tagma[bi](i,j,k) = tagval;}
+#else
+                        auto ay = amrex::Math::abs(dat(i,j+1,k) - dat(i,j,k));
+                        ay = amrex::max(ay,amrex::Math::abs(dat(i,j,k) - dat(i,j-1,k)));
+#if AMREX_SPACEDIM > 2
+                        auto az = amrex::Math::abs(dat(i,j,k+1) - dat(i,j,k));
+                        az = amrex::max(az,amrex::Math::abs(dat(i,j,k) - dat(i,j,k-1)));
+#endif
+                        if (amrex::max(AMREX_D_DECL(ax,ay,az))
+                            >= threshold * amrex::Math::abs(dat(i,j,k))) {
+                            tagma[bi](i,j,k) = tagval;
+                        }
+#endif
+                    });
+                }
+                else if (m_test == LESS)
+                {
+                    ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
+                    {
+                        if (datma[bi](i,j,k) <= threshold) {
+                            tagma[bi](i,j,k) = tagval;
+                        }
+                    });
+                }
+                else if (m_test == GREATER)
+                {
+                    ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
+                    {
+                        if (datma[bi](i,j,k) >= threshold) {
+                            tagma[bi](i,j,k) = tagval;
+                        }
+                    });
+                }
+                else if (m_test == VORT)
+                {
+                    const Real fac = threshold * Real(std::pow(2,level));
+                    ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
+                    {
+                        if (datma[bi](i,j,k) >= fac) {
+                            tagma[bi](i,j,k) = tagval;
+                        }
+                    });
+                }
+                else
+                {
+                    Abort("Bad AMRErrorTag test flag");
+                }
             }
-          }
+            Gpu::streamSynchronize();
         }
-      }
     }
-  }
+}
+
 }

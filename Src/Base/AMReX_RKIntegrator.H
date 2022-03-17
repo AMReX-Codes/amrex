@@ -88,7 +88,7 @@ private:
         // By default, define no extended weights and no adaptive timestepping
         extended_weights = {};
         use_adaptive_timestep = false;
-        pp.query("use_adaptive_timestep", use_adaptive_timestep);
+        pp.queryAdd("use_adaptive_timestep", use_adaptive_timestep);
 
         if (tableau_type == ButcherTableauTypes::User)
         {

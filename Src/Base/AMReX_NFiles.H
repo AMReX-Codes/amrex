@@ -4,10 +4,11 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_ParallelDescriptor.H>
-#include <AMReX_VisMF.H>
+#include <AMReX_Utility.H>
+#include <AMReX_VisMFBuffer.H>
 
+#include <fstream>
 #include <string>
-#include <iosfwd>
 
 namespace amrex {
 
@@ -208,7 +209,7 @@ class NFilesIter
     int mySetPosition;
     std::string fullFileName;
     std::string filePrefix;
-    VisMF::IO_Buffer io_buffer;
+    VisMFBuffer::IO_Buffer io_buffer;
     std::fstream fileStream;
     bool finishedWriting;
     bool groupSets;
