@@ -140,7 +140,7 @@ CUDA-Specific Tests
   ``nsys profile -o nsys_out.%q{SLURM_PROCID}.%q{SLURM_JOBID} ./main3d.xxx`` for
   a small problem and examine page faults using ``nvvp`` or ``nsight-sys $(pwd)/nsys_out.#.######.qdrep``.
 
-- Run under ``cuda-memcheck`` to identify memory errors.
+- Run under ``cuda-memcheck`` or the newer version ``compute-sanitizer`` to identify memory errors.
 
 - Run under ``cuda-gdb`` to identify kernel errors.
 

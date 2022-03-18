@@ -118,7 +118,8 @@ void WriteHDF5ParticleDataSync (PC const& pc,
                                   const Vector<int>& write_int_comp,
                                   const Vector<std::string>& real_comp_names,
                                   const Vector<std::string>& int_comp_names,
-                                  F&& f)
+                                  const std::string& compression,
+                                  F&& f, bool is_checkpoint)
 {
     BL_PROFILE("WriteHDF5ParticleDataSync()");
     AMREX_ASSERT(pc.OK());
@@ -428,7 +429,9 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         if (gotsome)
         {
             pc.WriteParticlesHDF5(lev, grp, which, count, where,
-                                  write_real_comp, write_int_comp, particle_io_flags);
+                                  write_real_comp, write_int_comp,
+                                  compression,
+                                  particle_io_flags, is_checkpoint);
 
             if(pc.usePrePost) {
                 pc.whichPrePost[lev] = which;
@@ -458,6 +461,6 @@ void WriteHDF5ParticleDataSync (PC const& pc,
 #endif
 
     return;
-}
+} // End WriteHDF5ParticleDataSync
 
 #endif /*AMREX_WRITE_BINARY_PARTICLE_DATA_HDF5_H*/

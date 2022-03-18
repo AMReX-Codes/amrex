@@ -285,7 +285,8 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
                 });
 #endif
             }
-            else if (m_use_harmonic_average && mglev > 0)
+            else if ( (m_use_harmonic_average && mglev > 0) ||
+                       m_use_mapped )
             {
                 AMREX_D_TERM(Array4<Real const> const& sxarr = sigma[0]->const_array(mfi);,
                              Array4<Real const> const& syarr = sigma[1]->const_array(mfi);,

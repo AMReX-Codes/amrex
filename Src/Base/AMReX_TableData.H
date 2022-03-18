@@ -412,6 +412,7 @@ TableData<T,N>::operator= (TableData<T,N> && rhs) noexcept
     m_ptr_owner = rhs.m_ptr_owner;
     rhs.m_dptr = nullptr;
     rhs.m_ptr_owner = false;
+    return *this;
 }
 
 template <typename T, int N>

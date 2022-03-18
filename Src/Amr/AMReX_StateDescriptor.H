@@ -20,11 +20,11 @@
 
 namespace amrex {
 
-typedef void (*BndryFuncFabDefault) (Box const& bx, FArrayBox& data,
-                                     const int dcomp, const int numcomp,
-                                     Geometry const& geom, const Real time,
-                                     const Vector<BCRec>& bcr, const int bcomp,
-                                     const int scomp);
+  typedef std::function<void(Box const& bx, FArrayBox& data,
+                             const int dcomp, const int numcomp,
+                             Geometry const& geom, const Real time,
+                             const Vector<BCRec>& bcr, const int bcomp,
+                             const int scomp)> BndryFuncFabDefault;
 
 /**
 * \brief Attributes of StateData.

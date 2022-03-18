@@ -43,9 +43,9 @@ void
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::initializeCommComps () {
     for (int ii = 0; ii < AMREX_SPACEDIM + NStructReal + this->NumRealComps(); ++ii)
-        rc.push_back(1);
+        ghost_real_comp.push_back(1);
     for (int ii = 0; ii < 2 + NStructInt + this->NumIntComps(); ++ii)
-        ic.push_back(1);
+        ghost_int_comp.push_back(1);
     calcCommSize();
 }
 
@@ -53,7 +53,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::setRealCommComp (int i, bool value) {
-    rc[i] = value;
+    ghost_real_comp[i] = value;
     calcCommSize();
 }
 
@@ -61,7 +61,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::setIntCommComp (int i, bool value) {
-    ic[i] = value;
+    ghost_int_comp[i] = value;
     calcCommSize();
 }
 
@@ -71,12 +71,12 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::calcCommSize () {
     size_t comm_size = 0;
     for (int ii = 0; ii < AMREX_SPACEDIM + NStructReal + this->NumRealComps(); ++ii) {
-        if (rc[ii]) {
+        if (ghost_real_comp[ii]) {
             comm_size += sizeof(typename ParticleType::RealType);
         }
     }
     for (int ii = 0; ii < 2 + NStructInt + this->NumIntComps(); ++ii) {
-        if (ic[ii]) {
+        if (ghost_int_comp[ii]) {
             comm_size += sizeof(int);
         }
     }
@@ -254,7 +254,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         {
             box.refine(ref_fac);
         }
-        box.grow(computeRefFac(0, src_lev)*m_num_neighbor_cells);
+        box.grow(computeRefFac(0, lev)*m_num_neighbor_cells);
         const Periodicity& periodicity = this->Geom(lev).periodicity();
         const std::vector<IntVect>& pshifts = periodicity.shiftIntVect();
         const BoxArray& ba = this->ParticleBoxArray(lev);

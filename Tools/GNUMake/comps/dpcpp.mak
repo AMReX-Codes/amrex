@@ -95,7 +95,7 @@ ifeq ($(DPCPP_AOT),TRUE)
     endif
   endif
   endif
-  CXXFLAGS += -fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xsycl-target-backend '-device $(INTEL_CPU_SHORT_NAME)'
+  CXXFLAGS += -fsycl-targets=spir64_gen -Xsycl-target-backend '-device $(INTEL_CPU_SHORT_NAME)'
 endif
 endif
 

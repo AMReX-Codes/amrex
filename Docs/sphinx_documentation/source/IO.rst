@@ -142,6 +142,120 @@ when using Async Output and OpenMP, try using one less thread in
 ``OMP_NUM_THREADS`` to prevent oversubscription and get more consistent
 results.
 
+HDF5 Plotfile
+=============
+Besides AMReX's native plotfile, applications can also write plotfile in
+the HDF5 format, which is a cross-platform, self-describing file format.
+The HDF5 plotfiles store the same information as the native format, and
+has the additional compression capability that can reduce the file size.
+Currently supported compression libraries include `SZ`_ and `ZFP`_.
+
+.. _`SZ`: https://szcompressor.org
+.. _`ZFP`: https://zfp.llnl.gov
+
+To enable HDF5 output, AMReX must be compiled and linked to an HDF5 library
+with parallel I/O support, by adding ``USE_HDF5=TRUE`` and
+``HDF5_HOME=/path/to/hdf5/install/dir`` to the GNUMakefile.
+many HPC systems have an HDF5 module available that can be loaded with
+``module load hdf5`` or ``module load cray-hdf5-parallel``. To download
+and compile HDF5 from source code, please go to `HDF5 Download`_ webpage
+and follow the instructions (latest version is recommended and remember
+to turn on parallel I/O).
+
+.. _`HDF5 Download`: https://portal.hdfgroup.org/display/support/Downloads
+
+Following are two functions for writing a generic AMReX plotfile in HDF5
+format, which are very similar to the AMReX native write functions.
+
+.. highlight:: c++
+
+::
+
+        void WriteSingleLevelPlotfileHDF5 (const std::string &plotfilename,
+                                           const MultiFab &mf,
+                                           const Vector<std::string> &varnames,
+                                           const Geometry &geom,
+                                           Real t,
+                                           int level_step,
+                                           const std::string &compression);
+
+        void WriteMultiLevelPlotfileHDF5 (const std::string &plotfilename,
+                                          int nlevels,
+                                          const Vector<const MultiFab*> &mf,
+                                          const Vector<std::string> &varnames,
+                                          const Vector<Geometry> &geom,
+                                          Real time,
+                                          const Vector<int> &level_steps,
+                                          const Vector<IntVect> &ref_ratio,
+                                          const std::string &compression);
+
+:cpp:`WriteSingleLevelPlotfileHDF5` is for single level runs and
+:cpp:`WriteMultiLevelPlotfileHDF5` is for multiple levels. Their arguments are
+the same as the native ones except the last one, which optional, and specifies
+the compression parameters. These two functions write plotfiles with a
+Chombo-compatible HDF5 file schema, which can be read by visualization tools
+such as VisIt and ParaView using their built-in Chombo reader plugin (see the
+chapter on :ref:`Chap:Visualization`)
+
+HDF5 Plotfile Compression
+-------------------------
+To enable data compression on the HDF5 datasets, the corresponding compression
+library and its HDF5 plugin must be available. To compile `SZ`_ or `ZFP`_ plugin,
+please refer to their documentation: `H5Z-SZ`_ and `H5Z-ZFP`_, and adding
+``USE_HDF5_SZ=TRUE``, ``SZ_HOME=``, or ``USE_HDF5_ZFP=TRUE``, ``ZFP_HOME=``,
+``H5Z_HOME=`` to the GNUMakefile.
+
+.. _`SZ`: https://szcompressor.org
+.. _`ZFP`: https://zfp.llnl.gov
+.. _`H5Z-SZ`: https://github.com/szcompressor/SZ/tree/master/hdf5-filter/H5Z-SZ
+.. _`H5Z-ZFP`: https://github.com/LLNL/H5Z-ZFP
+
+The string argument :cpp:`compression` in the above two functions controls
+whether to enable data compression and its parameters. Currently supported
+options include:
+
+* No compression
+    * ``None@0``
+* SZ compression
+    * ``SZ@/path/to/sz.config``
+* ZFP compression
+    * ``ZFP_RATE@rate``
+    * ``ZFP_PRECISION@precision``
+    * ``ZFP_ACCURACY@accuracy``
+    * ``ZFP_REVERSIBLE@reversible``
+
+
+HDF5 Asynchronous Output
+------------------------
+The HDF5 output also comes with its own asynchronous I/O support, which is different
+from the native async output mentioned in the previous section. To use the HDF5
+asynchronous I/O VOL connector, download and compile by following the instructions
+at `vol-async`_.
+
+.. _`vol-async`: https://github.com/hpc-io/vol-async
+
+Since the HDF5 asynchronous I/O in AMReX does not use double buffering, vol-async
+must be compiled with ``-DENABLE_WRITE_MEMCPY=1`` added to ``CFLAGS``.
+When compiling AMReX, add ``USE_HDF5_ASYNC = TRUE``, ``ABT_HOME=``, ``ASYNC_HOME=``,
+and ``MPI_THREAD_MULTIPLE=TRUE`` to the GNUMakefile. Refer to
+``amrex/Tests/HDF5Benchmark/GNUmakefile`` for the example usage.
+
+
+Alternative HDF5 Plotfile Schema
+--------------------------------
+:cpp:`WriteSingleLevelPlotfileHDF5` and :cpp:`WriteMultiLevelPlotfileHDF5`
+write HDF5 plotfiles that store all the data on an AMR level as one 1D HDF5 dataset.
+Each AMR box's data is linearized and the data of different variables are
+concatenated, resulting in an interleaved pattern for each variable. This could
+be undesirable when compression is used, as it may lead to applying the
+compression algorithm to multiple variables with different value ranges and
+chararistics, and reduce the compression ratio. To overcome this issue, two
+additional functions are provided to write each variable into individual HDF5
+datasets: :cpp:`WriteSingleLevelPlotfileHDF5MultiDset` and
+:cpp:`WriteMultiLevelPlotfileHDF5MultiDset`. They use the exact same arguments
+as :cpp:`WriteSingleLevelPlotfileHDF5` and :cpp:`WriteMultiLevelPlotfileHDF5`.
+However, this alternative schema is not yet supported by the visualization tools.
+
 Checkpoint File
 ===============
 

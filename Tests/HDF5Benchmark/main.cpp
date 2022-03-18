@@ -29,7 +29,7 @@ void test ()
     int ncells, max_grid_size, ncomp, nlevs, nppc;
     int restart_check = 0, nplotfile = 1, nparticlefile = 1, sleeptime = 0;
     int grids_from_file = 0;
-    std::string compression = "None#0";
+    std::string compression = "None@0";
     std::string directory = "";
 
     ParmParse pp;
@@ -103,7 +103,7 @@ void test ()
 
     Vector<int> level_steps(nlevs, 0);
 
-    /* if (compression.compare("None#0") != 0) */
+    /* if (compression.compare("None@0") != 0) */
     /*     std::cout << "Compression: " << compression << std::endl; */
 
     char fname[512];
@@ -124,9 +124,11 @@ void test ()
             fflush(stdout);
         }
 #ifdef AMREX_USE_HDF5
-#ifdef AMREX_USE_HDF5_ZFP
-        WriteMultiLevelPlotfileHDF5MultiDset(fname, nlevs, amrex::GetVecOfConstPtrs(mf), varnames,
+#if (defined AMREX_USE_HDF5_ZFP) || (defined AMREX_USE_HDF5_SZ)
+        WriteMultiLevelPlotfileHDF5SingleDset(fname, nlevs, amrex::GetVecOfConstPtrs(mf), varnames,
                                              geom, time, level_steps, ref_ratio, compression);
+        /* WriteMultiLevelPlotfileHDF5MultiDset(fname, nlevs, amrex::GetVecOfConstPtrs(mf), varnames, */
+        /*                                      geom, time, level_steps, ref_ratio, compression); */
 #else
         WriteMultiLevelPlotfileHDF5SingleDset(fname, nlevs, amrex::GetVecOfConstPtrs(mf), varnames,
                                               geom, time, level_steps, ref_ratio);
@@ -195,7 +197,7 @@ void test ()
             }
 
 #ifdef AMREX_USE_HDF5
-            myPC.CheckpointHDF5(fname, "particle0", false, particle_realnames, particle_intnames);
+            myPC.CheckpointHDF5(fname, "particle0", false, particle_realnames, particle_intnames, compression);
 #else
             myPC.Checkpoint(fname, "particle0", false, particle_realnames, particle_intnames);
             /* myPC.WriteAsciiFile("particle0_ascii"); */
@@ -208,7 +210,6 @@ void test ()
     ParallelDescriptor::Barrier();
 
     char directory_path[512];
-
     if (restart_check && nparticlefile > 0)
     {
         MyPC newPC(geom, dmap, ba, ref_ratio);
