@@ -5,6 +5,8 @@
 
 #include <unistd.h>
 
+#include "TimingStats.h"
+
 using namespace amrex;
 
 void set_grids_nested (Vector<Box>& domains,
@@ -31,6 +33,7 @@ void test ()
     int grids_from_file = 0;
     std::string compression = "None@0";
     std::string directory = "";
+    double start, stop;
 
     ParmParse pp;
     pp.get("ncells", ncells);
@@ -123,6 +126,8 @@ void test ()
             std::cout << "Writing plot file [" << fname << ".h5] ...";
             fflush(stdout);
         }
+
+        start = MPI_Wtime();
 #ifdef AMREX_USE_HDF5
 #if (defined AMREX_USE_HDF5_ZFP) || (defined AMREX_USE_HDF5_SZ)
         WriteMultiLevelPlotfileHDF5SingleDset(fname, nlevs, amrex::GetVecOfConstPtrs(mf), varnames,
@@ -137,8 +142,8 @@ void test ()
         WriteMultiLevelPlotfile(fname, nlevs, amrex::GetVecOfConstPtrs(mf),
                                 varnames, geom, time, level_steps, ref_ratio);
 #endif
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << " done" << std::endl;
+        stop = MPI_Wtime();
+        printTimingStats(ParallelDescriptor::Communicator(), " done", stop-start);
     }
 
     /* ParallelDescriptor::Barrier(); */
@@ -196,14 +201,15 @@ void test ()
                 fflush(stdout);
             }
 
+            start = MPI_Wtime();
 #ifdef AMREX_USE_HDF5
             myPC.CheckpointHDF5(fname, "particle0", false, particle_realnames, particle_intnames, compression);
 #else
             myPC.Checkpoint(fname, "particle0", false, particle_realnames, particle_intnames);
             /* myPC.WriteAsciiFile("particle0_ascii"); */
 #endif
-            if (ParallelDescriptor::IOProcessor())
-                std::cout << " done" << std::endl;
+            stop = MPI_Wtime();
+            printTimingStats(ParallelDescriptor::Communicator(), " done", stop-start);
         }
     }
 
