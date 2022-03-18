@@ -58,7 +58,7 @@
 #ifdef __cplusplus@COMP_DECLS@
 @OMP_DECLS@
 #endif
-#if defined(AMREX_USE_OMP) && !defined(_OPENMP)
+#if defined(AMREX_USE_OMP) && !defined(_OPENMP) && !defined(AMREX_USE_HIP)
 #error "libamrex was built with OpenMP, so the downstream project must activate it, too"
 #endif
 #endif
