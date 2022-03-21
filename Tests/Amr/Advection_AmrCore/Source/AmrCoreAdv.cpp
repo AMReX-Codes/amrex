@@ -634,7 +634,23 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
         AverageDownTo(lev); // average lev+1 down to lev
     }
 
-    // evolve_mod.F90 lines 128 - 135, does a redistribute with ngrow depending on level here.
+// evolve_mod.F90 lines 128 - 135, does a redistribute with ngrow depending on level here.
+//
+// These two ifdef blocks ended up giving exactly the same answer ( at this point,
+// which could mean sometimes else is still wrong ..)
+
+//#ifdef AMREX_PARTICLES
+//    int redistribute_ngrow = 0;
+//    Print() << "-- Iteration: " << iteration << "\n";
+//    if ((iteration < nsubsteps[lev]) || (lev == 0)){
+//        if (lev == 0){
+//            redistribute_ngrow = 0;
+//        } else {
+//            redistribute_ngrow = iteration;
+//        }
+//        TracerPC->Redistribute(lev, -1, redistribute_ngrow, 0, true);
+//    }
+//#endif
 
 #ifdef AMREX_PARTICLES
     if (do_tracers) {
