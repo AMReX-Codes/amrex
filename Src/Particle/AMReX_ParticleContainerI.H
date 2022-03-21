@@ -1174,10 +1174,29 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     BL_PROFILE("ParticleContainer::RedistributeGPU()");
     BL_PROFILE_VAR_NS("Redistribute_partition", blp_partition);
 
-    resizeData();
+    int theEffectiveFinestLevel = m_gdb->finestLevel();
+    while (!m_gdb->LevelDefined(theEffectiveFinestLevel)) { theEffectiveFinestLevel--; }
 
-    if (lev_max < 0)
-        lev_max = GetParGDB()->finestLevel();
+    if (int(m_particles.size()) < theEffectiveFinestLevel+1) {
+        if (Verbose()) {
+            amrex::Print() << "ParticleContainer::Redistribute() resizing containers from "
+                           << m_particles.size() << " to "
+                           << theEffectiveFinestLevel + 1 << '\n';
+        }
+        m_particles.resize(theEffectiveFinestLevel+1);
+        m_dummy_mf.resize(theEffectiveFinestLevel+1);
+    }
+
+    for (int lev = 0; lev < theEffectiveFinestLevel+1; ++lev) { RedefineDummyMF(lev); }
+
+    int nlevs_particles;
+    if (lev_max == -1) {
+        lev_max = theEffectiveFinestLevel;
+        nlevs_particles = m_particles.size() - 1;
+    } else {
+        nlevs_particles = lev_max;
+    }
+    AMREX_ASSERT(lev_max <= finestLevel());
 
     this->defineBufferMap();
 
@@ -1190,7 +1209,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     int num_levels = numLevels();
     op.setNumLevels(num_levels);
     Vector<std::map<int, int> > new_sizes(num_levels);
-    for (int lev = lev_min; lev <= lev_max; ++lev)
+    for (int lev = lev_min; lev <= nlevs_particles; ++lev)
     {
         const Geometry& geom = Geom(lev);
 
@@ -1272,6 +1291,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     for (int lev = lev_min; lev <= lev_max; lev++)
     {
         particle_detail::clearEmptyEntries(m_particles[lev]);
+    }
+
+    if (int(m_particles.size()) > theEffectiveFinestLevel+1) {
+        if (m_verbose > 0) {
+            amrex::Print() << "ParticleContainer::Redistribute() resizing m_particles from "
+                        << m_particles.size() << " to " << theEffectiveFinestLevel+1 << '\n';
+        }
+        AMREX_ASSERT(int(m_particles.size()) >= 2);
+
+        m_particles.resize(theEffectiveFinestLevel + 1);
+        m_dummy_mf.resize(theEffectiveFinestLevel + 1);
     }
 
     if (ParallelDescriptor::UseGpuAwareMpi())
