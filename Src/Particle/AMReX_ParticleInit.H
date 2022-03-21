@@ -986,7 +986,7 @@ InitRandom (Long                    icount,
     {
         if(icount*AMREX_SPACEDIM >= std::numeric_limits<int>::max())
         {
-            amrex::Abort("InitRandom has serialize=true, but this would cause too much particle data to be sent from IOProc. Set serialize=false, or use fewer than "+std::to_string(std::numeric_limits<int>::max()/AMREX_SPACEDIM)+ "particles");
+            amrex::Abort("InitRandom has serialize=true, but this would cause too much particle data to be sent from IOProc. Set serialize=false, or use fewer than "+std::to_string(amrex::Math::ceil(std::numeric_limits<int>::max()/amrex::Real(AMREX_SPACEDIM)))+ "particles");
         }
         //
         // We'll let IOProc generate the particles so we get the same
