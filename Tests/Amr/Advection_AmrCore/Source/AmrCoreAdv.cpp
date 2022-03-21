@@ -173,9 +173,9 @@ AmrCoreAdv::InitData ()
         AverageDown();
 
 #ifdef AMREX_PARTICLES
-    if (do_tracers) {
-        init_particles();
-    }
+        if (do_tracers) {
+            init_particles();
+        }
 #endif
 
         if (chk_int > 0) {
