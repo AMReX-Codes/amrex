@@ -190,7 +190,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
                     + std::to_string(pid);
             }
         }
-        if (!have_eu_addr2line) {
+        {
             have_addr2line = file_exists("/usr/bin/addr2line");
             if (have_addr2line) {
                 cmd = "/usr/bin/addr2line -Cpfie " + amrex::system::exename;
@@ -220,8 +220,14 @@ BLBackTrace::print_backtrace_info (FILE* f)
                     const std::string full_cmd = cmd + " " + print_buff;
                     addr2line_result = run_command(full_cmd);
                 }
-            } else if (amrex::system::call_addr2line && have_addr2line &&
-                       !amrex::system::exename.empty())
+
+                if (addr2line_result.find('?') != std::string::npos) {
+                    addr2line_result.clear();
+                }
+            }
+
+            if ((!(amrex::system::call_addr2line && have_eu_addr2line) || addr2line_result.empty()) &&
+                amrex::system::call_addr2line && have_addr2line && !amrex::system::exename.empty())
             {
                 const std::string line = strings[i];
                 std::size_t found_libc = line.find("libc.so");
