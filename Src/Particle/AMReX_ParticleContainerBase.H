@@ -193,7 +193,8 @@ public:
     template <class MF>
     bool OnSameGrids (int level, const MF& mf) const { return m_gdb->OnSameGrids(level, mf); }
 
-    static const std::string& Version ();
+    static const std::string& CheckpointVersion ();
+    static const std::string& PlotfileVersion ();
     static const std::string& DataPrefix ();
     static int MaxReaders ();
     static Long MaxParticlesPerRead ();
