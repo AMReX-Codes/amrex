@@ -136,8 +136,7 @@ auto call_f (F const& f,
 }
 
 // Lambda takes a ConstParticleTileData
-template <typename F, typename T, int NSR, int NSI, int NAR, int NAI,
-          typename std::enable_if<(NAR != 0) || (NAI != 0), int>::type = 0>
+template <typename F, typename T, int NSR, int NSI, int NAR, int NAI>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 auto call_f (F const& f,
              const ConstParticleTileData<NSR, NSI, NAR, NAI>& p,
@@ -150,8 +149,7 @@ auto call_f (F const& f,
 }
 
 // Lambda takes a ConstParticleTileData
-template <typename F, typename T, int NSR, int NSI, int NAR, int NAI,
-          typename std::enable_if<(NAR != 0) || (NAI != 0), int>::type = 0>
+template <typename F, typename T, int NSR, int NSI, int NAR, int NAI>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 auto call_f (F const& f,
              const ConstParticleTileData<NSR, NSI, NAR, NAI>& p,
@@ -161,20 +159,6 @@ auto call_f (F const& f,
     -> decltype(f(p, i, fabarr, plo, dxi))
 {
     return f(p, i, fabarr, plo, dxi);
-}
-
-// Lambda takes a SuperParticle
-template <typename F, typename T, int NSR, int NSI, int NAR, int NAI,
-          typename std::enable_if<(NAR != 0) || (NAI != 0), int>::type = 0>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f,
-             const ConstParticleTileData<NSR, NSI, NAR, NAI>& p,
-             const int i, Array4<T> const& fabarr,
-             GpuArray<Real,AMREX_SPACEDIM> const&,
-             GpuArray<Real,AMREX_SPACEDIM> const&) noexcept
-    -> decltype(f(p.getSuperParticle(i), fabarr))
-{
-    return f(p.getSuperParticle(i), fabarr);
 }
 
 }
