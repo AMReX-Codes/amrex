@@ -406,18 +406,18 @@ void WriteBinaryParticleDataSync (PC const& pc,
         if ( ! HdrFile.good()) amrex::FileOpenFailed(HdrFileName);
 
         //
-        // First thing written is our Checkpoint/Restart version string.
+        // First thing written is our version string.
         // We append "_single" or "_double" to the version string indicating
-        // whether we're using "float" or "double" floating point data in the
-        // particles so that we can Restart from the checkpoint files.
+        // whether we're using "float" or "double" floating point data.
         //
+        std::string version_string = is_checkpoint ? PC::CheckpointVersion() : PC::PlotfileVersion();
         if (sizeof(typename PC::ParticleType::RealType) == 4)
         {
-            HdrFile << PC::Version() << "_single" << '\n';
+            HdrFile << version_string << "_single" << '\n';
         }
         else
         {
-            HdrFile << PC::Version() << "_double" << '\n';
+            HdrFile << version_string << "_double" << '\n';
         }
 
         int num_output_real = 0;
@@ -791,13 +791,14 @@ void WriteBinaryParticleDataAsync (PC const& pc,
 
             if ( ! HdrFile.good()) amrex::FileOpenFailed(HdrFileName);
 
+            std::string version_string = is_checkpoint ? PC::CheckpointVersion() : PC::PlotfileVersion();
             if (sizeof(typename PC::ParticleType::RealType) == 4)
             {
-                HdrFile << PC::Version() << "_single" << '\n';
+                HdrFile << version_string << "_single" << '\n';
             }
             else
             {
-                HdrFile << PC::Version() << "_double" << '\n';
+                HdrFile << version_string << "_double" << '\n';
             }
 
             int num_output_real = 0;

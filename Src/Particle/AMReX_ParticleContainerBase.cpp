@@ -93,7 +93,7 @@ void ParticleContainerBase::SetParticleGeometry (int lev, const Geometry& new_ge
     m_gdb->SetParticleGeometry(lev, new_geom);
 }
 
-const std::string& ParticleContainerBase::Version ()
+const std::string& ParticleContainerBase::CheckpointVersion ()
 {
     //
     // If we change the Checkpoint/Restart format we should increment this.
@@ -104,9 +104,24 @@ const std::string& ParticleContainerBase::Version ()
     //    "Version_One_Dot_One"
     //    "Version_Two_Dot_Zero" (before checkpoints had expanded particle ids)
     //
-    static const std::string version("Version_Two_Dot_One");
+    static const std::string checkpoint_version("Version_Two_Dot_One");
 
-    return version;
+    return checkpoint_version;
+}
+
+const std::string& ParticleContainerBase::PlotfileVersion ()
+{
+    //
+    // If we change the plotfile format we should increment this.
+    //
+    // Previous version strings:
+    //
+    //    "Version_One_Dot_Zero"
+    //    "Version_One_Dot_One"
+    //
+    static const std::string plotfile_version("Version_Two_Dot_Zero");
+
+    return plotfile_version;
 }
 
 const std::string& ParticleContainerBase::DataPrefix ()
