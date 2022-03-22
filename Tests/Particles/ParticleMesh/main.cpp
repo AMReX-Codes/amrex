@@ -131,7 +131,7 @@ void testParticleMesh (TestParams& parms)
                         [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleTileType::ParticleTileDataType& ptd, int ip,
                                               amrex::Array4<const int> const& count)
       {
-          auto p = ptd.m_aos[ip];
+          auto& p = ptd.m_aos[ip];
           ParticleInterpolator::Nearest interp(p, plo, dxi);
 
           interp.MeshToParticle(p, count, 0, 0, 1,
