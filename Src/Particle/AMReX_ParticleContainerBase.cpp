@@ -28,6 +28,15 @@ void ParticleContainerBase::Define (const Vector<Geometry>            & geom,
     m_gdb = &m_gdb_object;
 }
 
+void ParticleContainerBase::Define (const Vector<Geometry>            & geom,
+                                    const Vector<DistributionMapping> & dmap,
+                                    const Vector<BoxArray>            & ba,
+                                    const Vector<IntVect>             & rr)
+{
+    m_gdb_object = ParGDB(geom, dmap, ba, rr);
+    m_gdb = &m_gdb_object;
+}
+
 void ParticleContainerBase::reserveData ()
 {
     m_dummy_mf.reserve(maxLevel()+1);

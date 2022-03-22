@@ -90,6 +90,11 @@ public:
                  const Vector<BoxArray>            & ba,
                  const Vector<int>                 & rr);
 
+    void Define (const Vector<Geometry>            & geom,
+                 const Vector<DistributionMapping> & dmap,
+                 const Vector<BoxArray>            & ba,
+                 const Vector<IntVect>             & rr);
+
     bool isDefined () const { return m_gdb != nullptr; }
 
     void reserveData ();
