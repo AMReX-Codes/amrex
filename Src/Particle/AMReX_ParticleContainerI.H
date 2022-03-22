@@ -1189,12 +1189,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
     for (int lev = 0; lev < theEffectiveFinestLevel+1; ++lev) { RedefineDummyMF(lev); }
 
-    int nlevs_particles;
+    int finest_lev_particles;
     if (lev_max == -1) {
         lev_max = theEffectiveFinestLevel;
-        nlevs_particles = m_particles.size() - 1;
+        finest_lev_particles = m_particles.size() - 1;
     } else {
-        nlevs_particles = lev_max;
+        finest_lev_particles = lev_max;
     }
     AMREX_ASSERT(lev_max <= finestLevel());
 
@@ -1206,13 +1206,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
     BL_PROFILE_VAR_START(blp_partition);
     ParticleCopyOp op;
-    int num_levels = numLevels();
+    int num_levels = finest_lev_particles + 1;
     op.setNumLevels(num_levels);
     Vector<std::map<int, int> > new_sizes(num_levels);
-    for (int lev = lev_min; lev <= nlevs_particles; ++lev)
+    const auto plo    = Geom(0).ProbLoArray();
+    const auto phi    = Geom(0).ProbHiArray();
+    const auto is_per = Geom(0).isPeriodicArray();
+    for (int lev = lev_min; lev <= finest_lev_particles; ++lev)
     {
-        const Geometry& geom = Geom(lev);
-
         auto& plev = m_particles[lev];
         for (auto& kv : plev)
         {
@@ -1230,7 +1231,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                 "perhaps particles have not been initialized correctly?");
 
             int num_stay = partitionParticlesByDest(src_tile, assign_grid, BufferMap(),
-                                                    geom, lev, gid, tid,
+                                                    plo, phi, is_per, lev, gid, tid,
                                                     lev_min, lev_max, nGrow, remove_negative);
 
             int num_move = np - num_stay;
@@ -1374,12 +1375,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
   for (int lev = 0; lev < theEffectiveFinestLevel+1; ++lev)
       RedefineDummyMF(lev);
 
-  int nlevs_particles;
+  int finest_lev_particles;
   if (lev_max == -1) {
       lev_max = theEffectiveFinestLevel;
-      nlevs_particles = m_particles.size() - 1;
+      finest_lev_particles = m_particles.size() - 1;
   } else {
-      nlevs_particles = lev_max;
+      finest_lev_particles = lev_max;
   }
   AMREX_ASSERT(lev_max <= finestLevel());
 
@@ -1417,7 +1418,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
   // first pass: for each tile in parallel, in each thread copies the particles that
   // need to be moved into it's own, temporary buffer.
-  for (int lev = lev_min; lev <= nlevs_particles; lev++) {
+  for (int lev = lev_min; lev <= finest_lev_particles; lev++) {
       auto& pmap = m_particles[lev];
 
       Vector<std::pair<int, int> > grid_tile_ids;
