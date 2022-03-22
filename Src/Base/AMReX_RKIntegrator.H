@@ -160,7 +160,7 @@ public:
         initialize(S_data);
     }
 
-    void initialize (const T& S_data)
+    void initialize (const T& S_data) override
     {
         initialize_parameters();
         initialize_stages(S_data);
@@ -168,7 +168,7 @@ public:
 
     virtual ~RKIntegrator () {}
 
-    amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step)
+    amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step) override
     {
         BaseT::timestep = time_step;
         // Assume before advance() that S_old is valid data at the current time ("time" argument)
@@ -222,7 +222,7 @@ public:
         return BaseT::timestep;
     }
 
-    void time_interpolate (const T& /* S_new */, const T& S_old, amrex::Real timestep_fraction, T& data)
+    void time_interpolate (const T& /* S_new */, const T& S_old, amrex::Real timestep_fraction, T& data) override
     {
         // data = S_old*(1-time_step_fraction) + S_new*(time_step_fraction)
         /*
@@ -260,7 +260,7 @@ public:
 
     }
 
-    void map_data (std::function<void(T&)> Map)
+    void map_data (std::function<void(T&)> Map) override
     {
         for (auto& F : F_nodes) {
             Map(*F);

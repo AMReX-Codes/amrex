@@ -147,7 +147,7 @@ public:
         initialize();
     }
 
-    void initialize (const T& /* S_data */)
+    void initialize (const T& /* S_data */) override
     {
         initialize_parameters();
         mpi_comm = ParallelContext::CommunicatorSub();
@@ -165,7 +165,7 @@ public:
         SUNContext_Free(&sunctx);
     }
 
-    amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step)
+    amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step) override
     {
         if (use_mri_strategy) {
             return advance_mri(S_old, S_new, time, time_step);
@@ -568,9 +568,9 @@ public:
         return timestep;
     }
 
-    void time_interpolate (const T& /* S_new */, const T& /* S_old */, amrex::Real /* timestep_fraction */, T& /* data */) {}
+    void time_interpolate (const T& /* S_new */, const T& /* S_old */, amrex::Real /* timestep_fraction */, T& /* data */) override {}
 
-    void map_data (std::function<void(T&)> /* Map */) {}
+    void map_data (std::function<void(T&)> /* Map */) override {}
 
 };
 
