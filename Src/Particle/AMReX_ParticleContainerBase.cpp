@@ -52,9 +52,10 @@ void ParticleContainerBase::RedefineDummyMF (int lev)
         ! DistributionMapping::SameRefs(m_dummy_mf[lev]->DistributionMap(),
                                         ParticleDistributionMap(lev)))
     {
+        auto dm = (ParticleBoxArray(lev).size() == ParticleDistributionMap(lev).size()) ?
+            ParticleDistributionMap(lev) : DistributionMapping(ParticleBoxArray(lev));
         m_dummy_mf[lev] = std::make_unique<MultiFab>(ParticleBoxArray(lev),
-                                                     ParticleDistributionMap(lev),
-                                                     1,0,MFInfo().SetAlloc(false));
+                                                     dm, 1,0,MFInfo().SetAlloc(false));
     };
 }
 
