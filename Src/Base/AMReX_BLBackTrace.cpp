@@ -226,7 +226,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
                 }
             }
 
-            if ((!(amrex::system::call_addr2line && have_eu_addr2line) || addr2line_result.empty()) &&
+            if (addr2line_result.empty() &&
                 amrex::system::call_addr2line && have_addr2line && !amrex::system::exename.empty())
             {
                 const std::string line = strings[i];
