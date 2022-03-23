@@ -114,7 +114,7 @@ namespace {
 #if defined(__linux__)
     int           prev_fpe_excepts;
     int           curr_fpe_excepts;
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) && !defined(__arm64__)
     unsigned int  prev_fpe_mask;
     unsigned int  curr_fpe_excepts;
 #endif
