@@ -61,9 +61,10 @@ void ParticleContainerBase::RedefineDummyMF (int lev)
         ! DistributionMapping::SameRefs(m_dummy_mf[lev]->DistributionMap(),
                                         ParticleDistributionMap(lev)))
     {
+        auto dm = (ParticleBoxArray(lev).size() == ParticleDistributionMap(lev).size()) ?
+            ParticleDistributionMap(lev) : DistributionMapping(ParticleBoxArray(lev));
         m_dummy_mf[lev] = std::make_unique<MultiFab>(ParticleBoxArray(lev),
-                                                     ParticleDistributionMap(lev),
-                                                     1,0,MFInfo().SetAlloc(false));
+                                                     dm, 1,0,MFInfo().SetAlloc(false));
     };
 }
 
@@ -84,6 +85,7 @@ void ParticleContainerBase::SetParticleBoxArray (int lev, const BoxArray& new_ba
                           m_gdb->ParticleBoxArray(), m_gdb->refRatio());
     m_gdb = &m_gdb_object;
     m_gdb->SetParticleBoxArray(lev, new_ba);
+    RedefineDummyMF(lev);
 }
 
 void ParticleContainerBase::SetParticleDistributionMap (int lev, const DistributionMapping& new_dmap)
@@ -92,6 +94,7 @@ void ParticleContainerBase::SetParticleDistributionMap (int lev, const Distribut
                           m_gdb->ParticleBoxArray(), m_gdb->refRatio());
     m_gdb = &m_gdb_object;
     m_gdb->SetParticleDistributionMap(lev, new_dmap);
+    RedefineDummyMF(lev);
 }
 
 void ParticleContainerBase::SetParticleGeometry (int lev, const Geometry& new_geom)
