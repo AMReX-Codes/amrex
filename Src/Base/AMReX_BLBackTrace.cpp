@@ -180,17 +180,18 @@ BLBackTrace::print_backtrace_info (FILE* f)
     if (strings != NULL) {
         int have_eu_addr2line = 0;
         int have_addr2line = 0;
-        std::string cmd;
+        std::string eu_cmd;
         {
             have_eu_addr2line = file_exists("/usr/bin/eu-addr2line");
             if (have_eu_addr2line) {
                 const pid_t pid = getpid();
                 // cmd = "/usr/bin/eu-addr2line -C -f -i --pretty-print -p "
-                cmd = "/usr/bin/eu-addr2line -C -f -i -p "
+                eu_cmd = "/usr/bin/eu-addr2line -C -f -i -p "
                     + std::to_string(pid);
             }
         }
-        if (!have_eu_addr2line) {
+        std::string cmd;
+        {
             have_addr2line = file_exists("/usr/bin/addr2line");
             if (have_addr2line) {
                 cmd = "/usr/bin/addr2line -Cpfie " + amrex::system::exename;
@@ -218,7 +219,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
                 if (bt_buffer[i] != nullptr) {
                     char print_buff[32];
                     std::snprintf(print_buff,sizeof(print_buff),"%p",bt_buffer[i]);
-                    const std::string full_cmd = cmd + " " + print_buff;
+                    const std::string full_cmd = eu_cmd + " " + print_buff;
                     addr2line_result = run_command(full_cmd);
                     if (addr2line_result.find("??:") != std::string::npos) { // found ??:
                         try_addr2line = true;
