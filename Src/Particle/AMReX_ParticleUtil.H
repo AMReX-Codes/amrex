@@ -515,13 +515,12 @@ bool enforcePeriodic (P& p,
 template <typename PTile, typename PLocator>
 int
 partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBufferMap& pmap,
-                          const Geometry& geom, int lev, int gid, int /*tid*/,
+                          const GpuArray<Real,AMREX_SPACEDIM>& plo,
+                          const GpuArray<Real,AMREX_SPACEDIM>& phi,
+                          const GpuArray<int ,AMREX_SPACEDIM>& is_per,
+                          int lev, int gid, int /*tid*/,
                           int lev_min, int lev_max, int nGrow, bool remove_negative)
 {
-    const auto plo    = geom.ProbLoArray();
-    const auto phi    = geom.ProbHiArray();
-    const auto is_per = geom.isPeriodicArray();
-
     auto& aos = ptile.GetArrayOfStructs();
     const int np = aos.numParticles();
 

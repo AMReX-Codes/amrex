@@ -323,6 +323,7 @@ struct TestParams
     int nlevs;
     int do_regrid;
     int sort;
+    int test_level_lost = 0;
 };
 
 void testRedistribute();
@@ -349,6 +350,7 @@ void get_test_params(TestParams& params, const std::string& prefix)
     pp.get("nsteps", params.nsteps);
     pp.get("nlevs", params.nlevs);
     pp.get("do_regrid", params.do_regrid);
+    pp.query("test_level_lost", params.test_level_lost);
     pp.query("num_runtime_real", num_runtime_real);
     pp.query("num_runtime_int", num_runtime_int);
     pp.query("remove_negative", remove_negative);
@@ -473,6 +475,20 @@ void testRedistribute ()
             }
             pc.RedistributeGlobal();
             pc.checkAnswer();
+        }
+
+        if (params.test_level_lost) {
+            AMREX_ALWAYS_ASSERT(params.nlevs > 2);
+            auto np_before_level_lost = pc.TotalNumberOfParticles();
+            Vector<BoxArray> new_ba = ba; new_ba.resize(ba.size()-1);
+            Vector<DistributionMapping> new_dm = dm; new_dm.resize(dm.size()-1);
+            Vector<Geometry> new_geom = geom; new_geom.resize(geom.size()-1);
+            Vector<IntVect> new_rr = rr; new_rr.resize(rr.size()-1);
+            pc.ParticleContainerBase::Define(new_geom, new_dm, new_ba, new_rr);
+            pc.Redistribute();
+            amrex::Print() << np_before_level_lost << "\n";
+            amrex::Print() << pc.TotalNumberOfParticles() << "\n";
+            AMREX_ALWAYS_ASSERT(np_before_level_lost == pc.TotalNumberOfParticles());
         }
     }
 
