@@ -1,4 +1,5 @@
 
+#include <AMReX_ccse-mpi.H>
 #include <AMReX_GpuDevice.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParmParse.H>
