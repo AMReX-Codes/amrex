@@ -378,9 +378,9 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
 
     finest_level = -1;
 
-    if (check_input) checkInput();
-
     pp.get("use_bittree",use_bittree);
+
+    if (check_input) checkInput();
 }
 
 int
@@ -522,15 +522,19 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
         */
         btmesh->refine_apply();
 
-        std::cout << "In MakeNewGrids, bittree: " << std::endl;
+        std::cout << "In MakeNewGrids. Bittree would be updated here." << std::endl;
         std::cout << btmesh->slice_to_string(0) << std::endl;
 
 
         MakeNewGrids(lbase,time,new_finest,new_grids);
-        new_dmap[new_finest] = DistributionMapping(new_grids[new_finest]);
+        for(int lev=lbase+1; lev<=new_finest; ++lev) {
+            new_dmap[lev] = DistributionMapping(new_grids[lev]);
+        }
     } else {
         MakeNewGrids(lbase,time,new_finest,new_grids);
-        new_dmap[new_finest] = DistributionMapping(new_grids[new_finest]);
+        for(int lev=lbase+1; lev<=new_finest; ++lev) {
+            new_dmap[lev] = DistributionMapping(new_grids[lev]);
+        }
     }
 }
 

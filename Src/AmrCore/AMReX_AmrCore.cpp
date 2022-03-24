@@ -65,11 +65,11 @@ AmrCore::InitFromScratch (Real time)
 }
 
 void
-AmrCore::regrid (int lbase, Real time, bool, bool with_bittree)
+AmrCore::regrid (int lbase, Real time, bool)
 {
     if (lbase >= max_level) return;
 
-    if(with_bittree) {
+    if(use_bittree) {
       int new_finest;
       Vector<BoxArray> new_grids(finest_level+2);
       Vector<DistributionMapping> new_dmap(finest_level+2);

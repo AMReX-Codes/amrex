@@ -343,7 +343,7 @@ protected:
     //! Rebuild grid hierarchy finer than lbase.
     virtual void regrid (int  lbase,
                          Real time,
-                         bool initial = false, bool with_bittree = false) override;
+                         bool initial = false) override;
     //! Regrid level 0 on restart.
     virtual void regrid_level_0_on_restart ();
     //! Define new grid locations (called from regrid) and put into new_grids.
