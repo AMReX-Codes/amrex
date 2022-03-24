@@ -1019,7 +1019,6 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                 {
                     Array4<Real const> const& vfracarr = vfrac->const_array(mfi);
                     Array4<Real const> const& intgarr = intg->const_array(mfi);
-
                     AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                     {
                         mlndlap_divu_eb(i,j,k,rhsarr,velarr,vfracarr,intgarr,dmskarr,dxinvarr,nddom,lobc,hibc);
