@@ -2353,7 +2353,7 @@ void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& sin
 
             Real Bx = Real(0.5)*(x1 + x0);
             Real By = Real(0.5)*(y1 + y0);
-            Real Bxy = x0*y0 + (x0*(y1 - y0) + y0*(x1 - x0))/2 + (x1 - x0)*(y1 - y0)/3;
+            Real Bxy = x0*y0 + (x0*(y1 - y0) + y0*(x1 - x0))/Real(2.) + (x1 - x0)*(y1 - y0)/Real(3.);
 
             sintg(i,j,0,i_B_x ) = Bx;
             sintg(i,j,0,i_B_y ) = By;
