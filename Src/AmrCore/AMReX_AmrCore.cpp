@@ -70,8 +70,6 @@ AmrCore::regrid (int lbase, Real time, bool, bool with_bittree)
     if (lbase >= max_level) return;
 
     if(with_bittree) {
-      btmesh->refine_init();
-
       int new_finest;
       Vector<BoxArray> new_grids(finest_level+2);
       Vector<DistributionMapping> new_dmap(finest_level+2);
@@ -122,8 +120,6 @@ AmrCore::regrid (int lbase, Real time, bool, bool with_bittree)
       }
 
       finest_level = new_finest;
-
-      btmesh->refine_apply();
     } //if(with_bittree)
 
     else {

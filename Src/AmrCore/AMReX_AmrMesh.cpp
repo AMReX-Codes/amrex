@@ -500,7 +500,8 @@ void
 AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& new_grids, Vector<DistributionMapping>& new_dmap)
 {
     if(use_bittree) {
-        BL_PROFILE("AmrMesh::MakeNewGrids()");
+        btmesh->refine_init();
+        /*BL_PROFILE("AmrMesh::MakeNewGrids()");
 
         BL_ASSERT(lbase < max_level);
 
@@ -518,6 +519,15 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
 
         // Convert Bittree mesh to new Boxarrays and DistributionMappings
         btUnit::btMakeNewGrids(btmesh,lbase,time,new_finest,new_grids,new_dmap,max_grid_size);
+        */
+        btmesh->refine_apply();
+
+        std::cout << "In MakeNewGrids, bittree: " << std::endl;
+        std::cout << btmesh->slice_to_string(0) << std::endl;
+
+
+        MakeNewGrids(lbase,time,new_finest,new_grids);
+        new_dmap[new_finest] = DistributionMapping(new_grids[new_finest]);
     } else {
         MakeNewGrids(lbase,time,new_finest,new_grids);
         new_dmap[new_finest] = DistributionMapping(new_grids[new_finest]);
@@ -816,16 +826,24 @@ AmrMesh::MakeNewGrids (Real time)
 
             // top = number of grids on coarsest level in each direction
             // TODO better way to do this?
-            IntVect top = ncells / max_grid_size[0];
+            std::vector<int> top(AMREX_SPACEDIM,0);
+            for(int i=0; i<AMREX_SPACEDIM; ++i) {
+                top[i] = ncells[i] / max_grid_size[0][i];
+            }
+
             int ngrids = AMREX_D_TERM(top[0],*top[1],*top[2]);
-            std::vector<bool> includes(ngrids,true);
+            std::vector<int> includes(ngrids,1);
 
             // For debugging
-            //std::cout << "Top: " << top << ", Includes: ";
-            //for(int i=0; i<ngrids; ++i) std::cout << includes[i] << ", ";
-            //std::cout << std::endl;
+            std::cout << "Top: ";
+            for(int d=0; d<AMREX_SPACEDIM; ++d) std::cout << top[d] << ", ";
+            std::cout << ", Includes: ";
+            for(int i=0; i<ngrids; ++i) std::cout << includes[i] << ", ";
+            std::cout << std::endl;
 
+            std::cout << "Initializing bittree..." << std::endl;
             btmesh = std::make_shared<bittree::BittreeAmr>(top.data(),includes.data());
+            std::cout << "Done initializing bittree" << std::endl;
         }
 
         MakeNewLevelFromScratch(0, time, ba, dm);
