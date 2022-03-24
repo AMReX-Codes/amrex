@@ -138,8 +138,8 @@ public :
     void buildIntegral ();
     void buildSurfaceIntegral ();
 
-    // Tells the solver that EB boundaries have Dirichlet bc's specified by "phi"
-    void setEBDirichlet (int amrlev, const MultiFab& phi);
+    // Tells the solver that EB boundaries have inflow specified by "eb_vel"
+    void setEBInflowVelocity (int amrlev, const MultiFab& eb_vel);
 
 #endif
 
@@ -195,7 +195,7 @@ private:
     Vector<std::unique_ptr<MultiFab> > m_surface_integral;
     bool m_surface_integral_built = false;
     bool m_build_surface_integral = false;
-    Vector<std::unique_ptr<MultiFab> > m_eb_phi_dot_n;
+    Vector<std::unique_ptr<MultiFab> > m_eb_vel_dot_n;
 #endif
 
     bool m_use_gauss_seidel     = true;

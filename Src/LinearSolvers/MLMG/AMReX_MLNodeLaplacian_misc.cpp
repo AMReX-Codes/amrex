@@ -1025,14 +1025,15 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                         mlndlap_divu_eb(i,j,k,rhsarr,velarr,vfracarr,intgarr,dmskarr,dxinvarr,nddom,lobc,hibc);
                     });
 
-                    if (m_eb_phi_dot_n[ilev]) {
+                    if (m_eb_vel_dot_n[ilev]) {
+                        Array4<Real const> const& eb_vel_dot_n = m_eb_vel_dot_n[ilev]->const_array(mfi);
                         Array4<Real const> const& bareaarr = barea->const_array(mfi);
                         Array4<Real const> const& sintgarr = sintg->const_array(mfi);
 
                         AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                         {
                             add_eb_flow_contribution(i,j,k,rhsarr,dmskarr,
-                                dxinvarr,bareaarr,sintgarr,m_eb_phi_dot_n[ilev]->const_array(mfi));
+                                dxinvarr,bareaarr,sintgarr,eb_vel_dot_n);
                         });
                     }
                 }

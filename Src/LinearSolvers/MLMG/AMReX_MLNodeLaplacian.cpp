@@ -88,7 +88,7 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
 #endif
     m_integral.resize(m_num_amr_levels);
     m_surface_integral.resize(m_num_amr_levels);
-    m_eb_phi_dot_n.resize(m_num_amr_levels);
+    m_eb_vel_dot_n.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
 #ifdef AMREX_USE_EB
@@ -806,16 +806,16 @@ MLNodeLaplacian::checkPoint (std::string const& file_name) const
 
 #ifdef AMREX_USE_EB
 void
-MLNodeLaplacian::setEBDirichlet (int amrlev, const MultiFab& phi)
+MLNodeLaplacian::setEBInflowVelocity (int amrlev, const MultiFab& eb_vel)
 {
     const int mglev = 0;
-    if (m_eb_phi_dot_n[amrlev] == nullptr) {
-        m_eb_phi_dot_n[amrlev] = std::make_unique<MultiFab>(
+    if (m_eb_vel_dot_n[amrlev] == nullptr) {
+        m_eb_vel_dot_n[amrlev] = std::make_unique<MultiFab>(
                 m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
                 1, 1, MFInfo(), *m_factory[amrlev][mglev]);
     }
 
-    m_eb_phi_dot_n[amrlev]->setVal(0.0);
+    m_eb_vel_dot_n[amrlev]->setVal(0.0);
 
     auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
 
@@ -824,28 +824,28 @@ MLNodeLaplacian::setEBDirichlet (int amrlev, const MultiFab& phi)
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(*m_eb_phi_dot_n[amrlev], mfi_info); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*m_eb_vel_dot_n[amrlev], mfi_info); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
         const auto& flagfab = ebfactory->getMultiEBCellFlagFab()[mfi];
 
         if (flagfab.getType(bx) == FabType::singlevalued) {
-            Array4<Real> const& phi_dot_n = m_eb_phi_dot_n[amrlev]->array(mfi);
-            Array4<Real const> const& phiin = phi.const_array(mfi);
+            Array4<Real> const& eb_vel_dot_n = m_eb_vel_dot_n[amrlev]->array(mfi);
+            Array4<Real const> const& ebvelin = eb_vel.const_array(mfi);
             Array4<Real const> const& bnorm = ebfactory->getBndryNormal().const_array(mfi);
 
-            ParallelFor(bx, [phi_dot_n,phiin,bnorm]
+            ParallelFor(bx, [eb_vel_dot_n,ebvelin,bnorm]
              AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 for(int n = 0; n < AMREX_SPACEDIM; ++n)
                 {
-                    phi_dot_n(i,j,k) += phiin(i,j,k,n)*bnorm(i,j,k,n);
+                    eb_vel_dot_n(i,j,k) += ebvelin(i,j,k,n)*bnorm(i,j,k,n);
                 }
             });
         }
     }
 
-    m_eb_phi_dot_n[amrlev]->FillBoundary(m_geom[amrlev][mglev].periodicity());
+    m_eb_vel_dot_n[amrlev]->FillBoundary(m_geom[amrlev][mglev].periodicity());
 
 #if (AMREX_SPACEDIM == 2)
     const int ncomp_si = 3;

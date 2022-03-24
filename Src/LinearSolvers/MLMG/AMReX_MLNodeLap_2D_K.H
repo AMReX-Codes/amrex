@@ -2069,25 +2069,25 @@ void add_eb_flow_contribution (int i, int j, int, Array4<Real> const& rhs,
                       Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                       Array4<Real const> const& bareaarr,
                       Array4<Real const> const& sintg,
-                      Array4<Real const> const& eb_phi_dot_n) noexcept
+                      Array4<Real const> const& eb_vel_dot_n) noexcept
 {
     Real fac_eb = 0.25 *dxinv[0];
 
     if (!msk(i,j,0)) {
         rhs(i,j,0) += fac_eb*(
-           eb_phi_dot_n(i-1,j-1,0)*(         bareaarr(i-1,j-1,0)
+           eb_vel_dot_n(i-1,j-1,0)*(         bareaarr(i-1,j-1,0)
                                       +Real(2.)*sintg(i-1,j-1,0,i_B_x )
                                       +Real(2.)*sintg(i-1,j-1,0,i_B_y )
                                       +Real(4.)*sintg(i-1,j-1,0,i_B_xy))
-          +eb_phi_dot_n(i  ,j-1,0)*(         bareaarr(i  ,j-1,0)
+          +eb_vel_dot_n(i  ,j-1,0)*(         bareaarr(i  ,j-1,0)
                                       -Real(2.)*sintg(i  ,j-1,0,i_B_x )
                                       +Real(2.)*sintg(i  ,j-1,0,i_B_y )
                                       -Real(4.)*sintg(i  ,j-1,0,i_B_xy))
-          +eb_phi_dot_n(i-1,j  ,0)*(         bareaarr(i-1,j  ,0)
+          +eb_vel_dot_n(i-1,j  ,0)*(         bareaarr(i-1,j  ,0)
                                       +Real(2.)*sintg(i-1,j  ,0,i_B_x )
                                       -Real(2.)*sintg(i-1,j  ,0,i_B_y )
                                       -Real(4.)*sintg(i-1,j  ,0,i_B_xy))
-          +eb_phi_dot_n(i  ,j  ,0)*(         bareaarr(i  ,j  ,0)
+          +eb_vel_dot_n(i  ,j  ,0)*(         bareaarr(i  ,j  ,0)
                                       -Real(2.)*sintg(i  ,j  ,0,i_B_x )
                                       -Real(2.)*sintg(i  ,j  ,0,i_B_y )
                                       +Real(4.)*sintg(i  ,j  ,0,i_B_xy)));
