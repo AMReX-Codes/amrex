@@ -82,9 +82,9 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
 
 #ifdef AMREX_USE_EB
 #if (AMREX_SPACEDIM == 2)
-    const int ncomp_i  = 5;
+    const int ncomp_i = 5;
 #else
-    const int ncomp_i  = algoim::numIntgs;
+    const int ncomp_i = algoim::numIntgs;
 #endif
     m_integral.resize(m_num_amr_levels);
     m_surface_integral.resize(m_num_amr_levels);
@@ -100,9 +100,6 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
 #else
         m_integral[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][0],
                                                         m_dmap[amrlev][0], ncomp_i, 1));
-
-        m_surface_integral[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][0],
-                                                        m_dmap[amrlev][0], ncomp_si, 1));
 #endif
     }
 #endif
