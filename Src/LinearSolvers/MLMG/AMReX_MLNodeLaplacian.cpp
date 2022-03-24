@@ -96,7 +96,6 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
                                                         m_dmap[amrlev][0],
                                                         ncomp_i, 1, MFInfo(),
                                                         *m_factory[amrlev][0]);
-
 #else
         m_integral[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][0],
                                                         m_dmap[amrlev][0], ncomp_i, 1));
