@@ -184,7 +184,7 @@ protected:
 public:
     IntegratorBase () {}
 
-    IntegratorBase (const T& S_data) {}
+    IntegratorBase (const T& /* S_data */) {}
 
     virtual ~IntegratorBase () {}
 
