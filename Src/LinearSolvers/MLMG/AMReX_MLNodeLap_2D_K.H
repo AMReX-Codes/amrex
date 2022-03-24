@@ -2024,10 +2024,7 @@ void mlndlap_divu_eb (int i, int j, int, Array4<Real> const& rhs, Array4<Real co
                       Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                       Box const& nodal_domain,
                       GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bclo,
-                      GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi,
-                      Array4<Real const> const& bareaarr,
-                      Array4<Real const> const& sintg,
-                      Array4<Real const> const& eb_phi_dot_n) noexcept
+                      GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
 {
     Real facx = Real(0.5)*dxinv[0];
     Real facy = Real(0.5)*dxinv[1];
@@ -2062,31 +2059,38 @@ void mlndlap_divu_eb (int i, int j, int, Array4<Real> const& rhs, Array4<Real co
                            +vel(i-1,j  ,0,1)*(vfrac(i-1,j  ,0)+Real(2.)*intg(i-1,j  ,0,0))*zero_ilo
                            +vel(i  ,j  ,0,1)*(vfrac(i  ,j  ,0)-Real(2.)*intg(i  ,j  ,0,0))*zero_ihi);
 
-        // Add EB contribution
-        if (eb_phi_dot_n.dataPtr()) {
-            Real fac_eb = 0.25 *dxinv[0];
-
-            rhs(i,j,0) += fac_eb*(
-               eb_phi_dot_n(i-1,j-1,0)*(         bareaarr(i-1,j-1,0)
-                                          +Real(2.)*sintg(i-1,j-1,0,i_B_x )
-                                          +Real(2.)*sintg(i-1,j-1,0,i_B_y )
-                                          +Real(4.)*sintg(i-1,j-1,0,i_B_xy))
-              +eb_phi_dot_n(i  ,j-1,0)*(         bareaarr(i  ,j-1,0)
-                                          -Real(2.)*sintg(i  ,j-1,0,i_B_x )
-                                          +Real(2.)*sintg(i  ,j-1,0,i_B_y )
-                                          -Real(4.)*sintg(i  ,j-1,0,i_B_xy))
-              +eb_phi_dot_n(i-1,j  ,0)*(         bareaarr(i-1,j  ,0)
-                                          +Real(2.)*sintg(i-1,j  ,0,i_B_x )
-                                          -Real(2.)*sintg(i-1,j  ,0,i_B_y )
-                                          -Real(4.)*sintg(i-1,j  ,0,i_B_xy))
-              +eb_phi_dot_n(i  ,j  ,0)*(         bareaarr(i  ,j  ,0)
-                                          -Real(2.)*sintg(i  ,j  ,0,i_B_x )
-                                          -Real(2.)*sintg(i  ,j  ,0,i_B_y )
-                                          +Real(4.)*sintg(i  ,j  ,0,i_B_xy)));
-        }
-
     } else {
         rhs(i,j,0) = Real(0.);
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void add_eb_flow_contribution (int i, int j, int, Array4<Real> const& rhs,
+                      Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                      Array4<Real const> const& bareaarr,
+                      Array4<Real const> const& sintg,
+                      Array4<Real const> const& eb_phi_dot_n) noexcept
+{
+    Real fac_eb = 0.25 *dxinv[0];
+
+    if (!msk(i,j,0)) {
+        rhs(i,j,0) += fac_eb*(
+           eb_phi_dot_n(i-1,j-1,0)*(         bareaarr(i-1,j-1,0)
+                                      +Real(2.)*sintg(i-1,j-1,0,i_B_x )
+                                      +Real(2.)*sintg(i-1,j-1,0,i_B_y )
+                                      +Real(4.)*sintg(i-1,j-1,0,i_B_xy))
+          +eb_phi_dot_n(i  ,j-1,0)*(         bareaarr(i  ,j-1,0)
+                                      -Real(2.)*sintg(i  ,j-1,0,i_B_x )
+                                      +Real(2.)*sintg(i  ,j-1,0,i_B_y )
+                                      -Real(4.)*sintg(i  ,j-1,0,i_B_xy))
+          +eb_phi_dot_n(i-1,j  ,0)*(         bareaarr(i-1,j  ,0)
+                                      +Real(2.)*sintg(i-1,j  ,0,i_B_x )
+                                      -Real(2.)*sintg(i-1,j  ,0,i_B_y )
+                                      -Real(4.)*sintg(i-1,j  ,0,i_B_xy))
+          +eb_phi_dot_n(i  ,j  ,0)*(         bareaarr(i  ,j  ,0)
+                                      -Real(2.)*sintg(i  ,j  ,0,i_B_x )
+                                      -Real(2.)*sintg(i  ,j  ,0,i_B_y )
+                                      +Real(4.)*sintg(i  ,j  ,0,i_B_xy)));
     }
 }
 
@@ -2290,13 +2294,13 @@ void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& sin
             sintg(i,j,0,i_B_y ) = Real(0.);
             sintg(i,j,0,i_B_xy) = Real(0.);
             if (axm < Real(1.)) {
-                sintg(i,j,0,i_B_x) = -0.5*barea(i,j,0);
+                sintg(i,j,0,i_B_x) = Real(-0.5)*barea(i,j,0);
             } else if (aym < Real(1.)) {
-                sintg(i,j,0,i_B_y) = -0.5*barea(i,j,0);
+                sintg(i,j,0,i_B_y) = Real(-0.5)*barea(i,j,0);
             } else if (axp < Real(1.)) {
-                sintg(i,j,0,i_B_x) = 0.5*barea(i,j,0);
+                sintg(i,j,0,i_B_x) = Real( 0.5)*barea(i,j,0);
             } else if (ayp < Real(1.)) {
-                sintg(i,j,0,i_B_y) = 0.5*barea(i,j,0);
+                sintg(i,j,0,i_B_y) = Real( 0.5)*barea(i,j,0);
             } else {
                 amrex::Abort("amrex_mlndlap_set_surface_integral: we are in trouble");
             }
@@ -2313,31 +2317,31 @@ void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& sin
             GpuArray<RealVect,4> pts; //intersection points
             int np = 0;
             if (anrmx == Real(0.)) {
-                pts[np++] = RealVect{-0.5, Real(-c + 0.5*anrmx)/anrmy};
-                pts[np++] = RealVect{ 0.5, Real(-c - 0.5*anrmx)/anrmy};
+                pts[np++] = RealVect{Real(-0.5), Real(-c + Real(0.5)*anrmx)/anrmy};
+                pts[np++] = RealVect{Real( 0.5), Real(-c - Real(0.5)*anrmx)/anrmy};
             } else if( anrmy == Real(0.)) {
-                pts[np++] = RealVect{Real(-c + 0.5*anrmy)/anrmx, -0.5};
-                pts[np++] = RealVect{Real(-c - 0.5*anrmy)/anrmx,  0.5};
+                pts[np++] = RealVect{Real(-c + Real(0.5)*anrmy)/anrmx, Real(-0.5)};
+                pts[np++] = RealVect{Real(-c - Real(0.5)*anrmy)/anrmx, Real( 0.5)};
             } else {
                 if (    (axm > Real(0.) && axm  < Real(1.))
                      || (axm > Real(0.) && aym == Real(0.))
                      || (axm > Real(0.) && ayp == Real(0.))) {
-                    pts[np++] = RealVect{-0.5, Real(-c + 0.5*anrmx)/anrmy};
+                    pts[np++] = RealVect{Real(-0.5), Real(-c + Real(0.5)*anrmx)/anrmy};
                 }
                 if (    (axp > Real(0.) && axp  < Real(1.))
                      || (axp > Real(0.) && aym == Real(0.))
                      || (axp > Real(0.) && ayp == Real(0.))) {
-                    pts[np++] = RealVect{ 0.5, Real(-c - 0.5*anrmx)/anrmy};
+                    pts[np++] = RealVect{Real( 0.5), Real(-c - Real(0.5)*anrmx)/anrmy};
                 }
                 if (    (aym > Real(0.) && aym  < Real(1.))
                      || (aym > Real(0.) && axm == Real(0.))
                      || (aym > Real(0.) && axp == Real(0.))) {
-                    pts[np++] = RealVect{Real(-c + 0.5*anrmy)/anrmx, -0.5};
+                    pts[np++] = RealVect{Real(-c + Real(0.5)*anrmy)/anrmx, Real(-0.5)};
                 }
                 if (    (ayp > Real(0.) && ayp  < Real(1.))
                      || (ayp > Real(0.) && axm == Real(0.))
                      || (ayp > Real(0.) && axp == Real(0.))) {
-                    pts[np++] = RealVect{Real(-c - 0.5*anrmy)/anrmx,  0.5};
+                    pts[np++] = RealVect{Real(-c - Real(0.5)*anrmy)/anrmx, Real( 0.5)};
                 }
             }
 
@@ -2348,8 +2352,8 @@ void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& sin
             Real x0 = pts[0][0], x1 = pts[1][0];
             Real y0 = pts[0][1], y1 = pts[1][1];
 
-            Real Bx = 0.5*(x1 + x0);
-            Real By = 0.5*(y1 + y0);
+            Real Bx = Real(0.5)*(x1 + x0);
+            Real By = Real(0.5)*(y1 + y0);
             Real Bxy = x0*y0 + (x0*(y1 - y0) + y0*(x1 - x0))/2 + (x1 - x0)*(y1 - y0)/3;
 
             sintg(i,j,0,i_B_x ) = Bx;

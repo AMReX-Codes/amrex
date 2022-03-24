@@ -6674,10 +6674,7 @@ void mlndlap_divu_eb (int i, int j, int k, Array4<Real> const& rhs, Array4<Real 
                       Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                       Box const& nodal_domain,
                       GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bclo,
-                      GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi,
-                      Array4<Real const> const& bareaarr,
-                      Array4<Real const> const& sintg,
-                      Array4<Real const> const& eb_phi_dot_n) noexcept
+                      GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
 {
     Real facx = Real(0.25)*dxinv[0];
     Real facy = Real(0.25)*dxinv[1];
@@ -6809,80 +6806,86 @@ void mlndlap_divu_eb (int i, int j, int k, Array4<Real> const& rhs, Array4<Real 
                                +Real(2.)*intg(i  ,j  ,k-1,i_S_x)
                                +Real(2.)*intg(i  ,j  ,k-1,i_S_y)
                                -Real(4.)*intg(i  ,j  ,k-1,i_S_x_y))*zero_ihi*zero_jhi );
-
-        // Add EB contribution
-        if (eb_phi_dot_n.dataPtr()) {
-            Real fac_eb = Real(0.125) * dxinv[0];
-
-            rhs(i,j,k) += fac_eb*(
-                eb_phi_dot_n(i-1,j-1,k  )*(        bareaarr(i-1,j-1,k)
-                                            +Real(2.)*sintg(i-1,j-1,k  ,i_B_x)
-                                            +Real(2.)*sintg(i-1,j-1,k  ,i_B_y)
-                                            +Real(4.)*sintg(i-1,j-1,k  ,i_B_x_y)
-                                            -Real(2.)*sintg(i-1,j-1,k  ,i_B_z)
-                                            -Real(4.)*sintg(i-1,j-1,k  ,i_B_y_z)
-                                            -Real(4.)*sintg(i-1,j-1,k  ,i_B_x_z)
-                                            -Real(8.)*sintg(i-1,j-1,k  ,i_B_xyz))
-               +eb_phi_dot_n(i  ,j-1,k  )*(        bareaarr(i  ,j-1,k)
-                                            -Real(2.)*sintg(i  ,j-1,k  ,i_B_x)
-                                            +Real(2.)*sintg(i  ,j-1,k  ,i_B_y)
-                                            -Real(4.)*sintg(i  ,j-1,k  ,i_B_x_y)
-                                            -Real(2.)*sintg(i  ,j-1,k  ,i_B_z)
-                                            -Real(4.)*sintg(i  ,j-1,k  ,i_B_y_z)
-                                            +Real(4.)*sintg(i  ,j-1,k  ,i_B_x_z)
-                                            +Real(8.)*sintg(i  ,j-1,k  ,i_B_xyz))
-               +eb_phi_dot_n(i-1,j  ,k  )*(        bareaarr(i-1,j  ,k)
-                                            +Real(2.)*sintg(i-1,j  ,k  ,i_B_x)
-                                            -Real(2.)*sintg(i-1,j  ,k  ,i_B_y)
-                                            -Real(4.)*sintg(i-1,j  ,k  ,i_B_x_y)
-                                            -Real(2.)*sintg(i-1,j  ,k  ,i_B_z)
-                                            +Real(4.)*sintg(i-1,j  ,k  ,i_B_y_z)
-                                            -Real(4.)*sintg(i-1,j  ,k  ,i_B_x_z)
-                                            +Real(8.)*sintg(i-1,j  ,k  ,i_B_xyz))
-               +eb_phi_dot_n(i  ,j  ,k  )*(        bareaarr(i  ,j  ,k)
-                                            -Real(2.)*sintg(i  ,j  ,k  ,i_B_x)
-                                            -Real(2.)*sintg(i  ,j  ,k  ,i_B_y)
-                                            +Real(4.)*sintg(i  ,j  ,k  ,i_B_x_y)
-                                            -Real(2.)*sintg(i  ,j  ,k  ,i_B_z)
-                                            +Real(4.)*sintg(i  ,j  ,k  ,i_B_y_z)
-                                            +Real(4.)*sintg(i  ,j  ,k  ,i_B_x_z)
-                                            -Real(8.)*sintg(i  ,j  ,k  ,i_B_xyz))
-               +eb_phi_dot_n(i-1,j-1,k-1)*(        bareaarr(i-1,j-1,k-1)
-                                            +Real(2.)*sintg(i-1,j-1,k-1,i_B_x)
-                                            +Real(2.)*sintg(i-1,j-1,k-1,i_B_y)
-                                            +Real(4.)*sintg(i-1,j-1,k-1,i_B_x_y)
-                                            +Real(2.)*sintg(i-1,j-1,k-1,i_B_z)
-                                            +Real(4.)*sintg(i-1,j-1,k-1,i_B_y_z)
-                                            +Real(4.)*sintg(i-1,j-1,k-1,i_B_x_z)
-                                            +Real(8.)*sintg(i-1,j-1,k-1,i_B_xyz))
-               +eb_phi_dot_n(i  ,j-1,k-1)*(        bareaarr(i  ,j-1,k-1)
-                                            -Real(2.)*sintg(i  ,j-1,k-1,i_B_x)
-                                            +Real(2.)*sintg(i  ,j-1,k-1,i_B_y)
-                                            -Real(4.)*sintg(i  ,j-1,k-1,i_B_x_y)
-                                            +Real(2.)*sintg(i  ,j-1,k-1,i_B_z)
-                                            +Real(4.)*sintg(i  ,j-1,k-1,i_B_y_z)
-                                            -Real(4.)*sintg(i  ,j-1,k-1,i_B_x_z)
-                                            -Real(8.)*sintg(i  ,j-1,k-1,i_B_xyz))
-               +eb_phi_dot_n(i-1,j  ,k-1)*(        bareaarr(i-1,j  ,k-1)
-                                            +Real(2.)*sintg(i-1,j  ,k-1,i_B_x)
-                                            -Real(2.)*sintg(i-1,j  ,k-1,i_B_y)
-                                            -Real(4.)*sintg(i-1,j  ,k-1,i_B_x_y)
-                                            +Real(2.)*sintg(i-1,j  ,k-1,i_B_z)
-                                            -Real(4.)*sintg(i-1,j  ,k-1,i_B_y_z)
-                                            +Real(4.)*sintg(i-1,j  ,k-1,i_B_x_z)
-                                            -Real(8.)*sintg(i-1,j  ,k-1,i_B_xyz))
-               +eb_phi_dot_n(i  ,j  ,k-1)*(        bareaarr(i  ,j  ,k-1)
-                                            -Real(2.)*sintg(i  ,j  ,k-1,i_B_x)
-                                            -Real(2.)*sintg(i  ,j  ,k-1,i_B_y)
-                                            +Real(4.)*sintg(i  ,j  ,k-1,i_B_x_y)
-                                            +Real(2.)*sintg(i  ,j  ,k-1,i_B_z)
-                                            -Real(4.)*sintg(i  ,j  ,k-1,i_B_y_z)
-                                            -Real(4.)*sintg(i  ,j  ,k-1,i_B_x_z)
-                                            +Real(8.)*sintg(i  ,j  ,k-1,i_B_xyz)));
-        }
-
     } else {
         rhs(i,j,k) = Real(0.);
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void add_eb_flow_contribution (int i, int j, int k, Array4<Real> const& rhs,
+                      Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                      Array4<Real const> const& bareaarr,
+                      Array4<Real const> const& sintg,
+                      Array4<Real const> const& eb_phi_dot_n) noexcept
+{
+    Real fac_eb = Real(0.125) * dxinv[0];
+
+    if (!msk(i,j,k)) {
+        rhs(i,j,k) += fac_eb*(
+            eb_phi_dot_n(i-1,j-1,k  )*(        bareaarr(i-1,j-1,k)
+                                        +Real(2.)*sintg(i-1,j-1,k  ,i_B_x)
+                                        +Real(2.)*sintg(i-1,j-1,k  ,i_B_y)
+                                        +Real(4.)*sintg(i-1,j-1,k  ,i_B_x_y)
+                                        -Real(2.)*sintg(i-1,j-1,k  ,i_B_z)
+                                        -Real(4.)*sintg(i-1,j-1,k  ,i_B_y_z)
+                                        -Real(4.)*sintg(i-1,j-1,k  ,i_B_x_z)
+                                        -Real(8.)*sintg(i-1,j-1,k  ,i_B_xyz))
+           +eb_phi_dot_n(i  ,j-1,k  )*(        bareaarr(i  ,j-1,k)
+                                        -Real(2.)*sintg(i  ,j-1,k  ,i_B_x)
+                                        +Real(2.)*sintg(i  ,j-1,k  ,i_B_y)
+                                        -Real(4.)*sintg(i  ,j-1,k  ,i_B_x_y)
+                                        -Real(2.)*sintg(i  ,j-1,k  ,i_B_z)
+                                        -Real(4.)*sintg(i  ,j-1,k  ,i_B_y_z)
+                                        +Real(4.)*sintg(i  ,j-1,k  ,i_B_x_z)
+                                        +Real(8.)*sintg(i  ,j-1,k  ,i_B_xyz))
+           +eb_phi_dot_n(i-1,j  ,k  )*(        bareaarr(i-1,j  ,k)
+                                        +Real(2.)*sintg(i-1,j  ,k  ,i_B_x)
+                                        -Real(2.)*sintg(i-1,j  ,k  ,i_B_y)
+                                        -Real(4.)*sintg(i-1,j  ,k  ,i_B_x_y)
+                                        -Real(2.)*sintg(i-1,j  ,k  ,i_B_z)
+                                        +Real(4.)*sintg(i-1,j  ,k  ,i_B_y_z)
+                                        -Real(4.)*sintg(i-1,j  ,k  ,i_B_x_z)
+                                        +Real(8.)*sintg(i-1,j  ,k  ,i_B_xyz))
+           +eb_phi_dot_n(i  ,j  ,k  )*(        bareaarr(i  ,j  ,k)
+                                        -Real(2.)*sintg(i  ,j  ,k  ,i_B_x)
+                                        -Real(2.)*sintg(i  ,j  ,k  ,i_B_y)
+                                        +Real(4.)*sintg(i  ,j  ,k  ,i_B_x_y)
+                                        -Real(2.)*sintg(i  ,j  ,k  ,i_B_z)
+                                        +Real(4.)*sintg(i  ,j  ,k  ,i_B_y_z)
+                                        +Real(4.)*sintg(i  ,j  ,k  ,i_B_x_z)
+                                        -Real(8.)*sintg(i  ,j  ,k  ,i_B_xyz))
+           +eb_phi_dot_n(i-1,j-1,k-1)*(        bareaarr(i-1,j-1,k-1)
+                                        +Real(2.)*sintg(i-1,j-1,k-1,i_B_x)
+                                        +Real(2.)*sintg(i-1,j-1,k-1,i_B_y)
+                                        +Real(4.)*sintg(i-1,j-1,k-1,i_B_x_y)
+                                        +Real(2.)*sintg(i-1,j-1,k-1,i_B_z)
+                                        +Real(4.)*sintg(i-1,j-1,k-1,i_B_y_z)
+                                        +Real(4.)*sintg(i-1,j-1,k-1,i_B_x_z)
+                                        +Real(8.)*sintg(i-1,j-1,k-1,i_B_xyz))
+           +eb_phi_dot_n(i  ,j-1,k-1)*(        bareaarr(i  ,j-1,k-1)
+                                        -Real(2.)*sintg(i  ,j-1,k-1,i_B_x)
+                                        +Real(2.)*sintg(i  ,j-1,k-1,i_B_y)
+                                        -Real(4.)*sintg(i  ,j-1,k-1,i_B_x_y)
+                                        +Real(2.)*sintg(i  ,j-1,k-1,i_B_z)
+                                        +Real(4.)*sintg(i  ,j-1,k-1,i_B_y_z)
+                                        -Real(4.)*sintg(i  ,j-1,k-1,i_B_x_z)
+                                        -Real(8.)*sintg(i  ,j-1,k-1,i_B_xyz))
+           +eb_phi_dot_n(i-1,j  ,k-1)*(        bareaarr(i-1,j  ,k-1)
+                                        +Real(2.)*sintg(i-1,j  ,k-1,i_B_x)
+                                        -Real(2.)*sintg(i-1,j  ,k-1,i_B_y)
+                                        -Real(4.)*sintg(i-1,j  ,k-1,i_B_x_y)
+                                        +Real(2.)*sintg(i-1,j  ,k-1,i_B_z)
+                                        -Real(4.)*sintg(i-1,j  ,k-1,i_B_y_z)
+                                        +Real(4.)*sintg(i-1,j  ,k-1,i_B_x_z)
+                                        -Real(8.)*sintg(i-1,j  ,k-1,i_B_xyz))
+           +eb_phi_dot_n(i  ,j  ,k-1)*(        bareaarr(i  ,j  ,k-1)
+                                        -Real(2.)*sintg(i  ,j  ,k-1,i_B_x)
+                                        -Real(2.)*sintg(i  ,j  ,k-1,i_B_y)
+                                        +Real(4.)*sintg(i  ,j  ,k-1,i_B_x_y)
+                                        +Real(2.)*sintg(i  ,j  ,k-1,i_B_z)
+                                        -Real(4.)*sintg(i  ,j  ,k-1,i_B_y_z)
+                                        -Real(4.)*sintg(i  ,j  ,k-1,i_B_x_z)
+                                        +Real(8.)*sintg(i  ,j  ,k-1,i_B_xyz)));
     }
 }
 

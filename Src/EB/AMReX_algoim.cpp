@@ -274,18 +274,18 @@ compute_surface_integrals (MultiFab& sintgmf, IntVect nghost)
                             Real apzm = apz(i  ,j  ,k  );
                             Real apzp = apz(i  ,j  ,k+1);
 
-                            if (apxm < 1.0) {
-                                sintg(i,j,k,i_B_x) = -0.5*ba(i,j,k);
-                            } else if (apym < 1.0) {
-                                sintg(i,j,k,i_B_y) = -0.5*ba(i,j,k);
-                            } else if (apzm < 1.0) {
-                                sintg(i,j,k,i_B_z) = -0.5*ba(i,j,k);
-                            } else if (apxp < 1.0) {
-                                sintg(i,j,k,i_B_x) = 0.5*ba(i,j,k);
-                            } else if (apyp < 1.0) {
-                                sintg(i,j,k,i_B_y) = 0.5*ba(i,j,k);
-                            } else if (apzp < 1.0) {
-                                sintg(i,j,k,i_B_z) = 0.5*ba(i,j,k);
+                            if (apxm < Real(1.0)) {
+                                sintg(i,j,k,i_B_x) = Real(-0.5)*ba(i,j,k);
+                            } else if (apym < Real(1.0)) {
+                                sintg(i,j,k,i_B_y) = Real(-0.5)*ba(i,j,k);
+                            } else if (apzm < Real(1.0)) {
+                                sintg(i,j,k,i_B_z) = Real(-0.5)*ba(i,j,k);
+                            } else if (apxp < Real(1.0)) {
+                                sintg(i,j,k,i_B_x) = Real( 0.5)*ba(i,j,k);
+                            } else if (apyp < Real(1.0)) {
+                                sintg(i,j,k,i_B_y) = Real( 0.5)*ba(i,j,k);
+                            } else if (apzp < Real(1.0)) {
+                                sintg(i,j,k,i_B_z) = Real( 0.5)*ba(i,j,k);
                             } else {
                                  amrex::Abort("amrex::algoim::compute_surface_integrals: we are in trouble");
                             }
@@ -339,18 +339,18 @@ compute_surface_integrals (MultiFab& sintgmf, IntVect nghost)
                             Real apzm = apz(i  ,j  ,k  );
                             Real apzp = apz(i  ,j  ,k+1);
 
-                            if (apxm < 1.0) {
-                                sintg(i,j,k,i_B_x) = -0.5*ba(i,j,k);
-                            } else if (apym < 1.0) {
-                                sintg(i,j,k,i_B_y) = -0.5*ba(i,j,k);
-                            } else if (apzm < 1.0) {
-                                sintg(i,j,k,i_B_z) = -0.5*ba(i,j,k);
-                            } else if (apxp < 1.0) {
-                                sintg(i,j,k,i_B_x) = 0.5*ba(i,j,k);
-                            } else if (apyp < 1.0) {
-                                sintg(i,j,k,i_B_y) = 0.5*ba(i,j,k);
-                            } else if (apzp < 1.0) {
-                                sintg(i,j,k,i_B_z) = 0.5*ba(i,j,k);
+                            if (apxm < Real(1.0)) {
+                                sintg(i,j,k,i_B_x) = Real(-0.5)*ba(i,j,k);
+                            } else if (apym < Real(1.0)) {
+                                sintg(i,j,k,i_B_y) = Real(-0.5)*ba(i,j,k);
+                            } else if (apzm < Real(1.0)) {
+                                sintg(i,j,k,i_B_z) = Real(-0.5)*ba(i,j,k);
+                            } else if (apxp < Real(1.0)) {
+                                sintg(i,j,k,i_B_x) = Real( 0.5)*ba(i,j,k);
+                            } else if (apyp < Real(1.0)) {
+                                sintg(i,j,k,i_B_y) = Real( 0.5)*ba(i,j,k);
+                            } else if (apzp < Real(1.0)) {
+                                sintg(i,j,k,i_B_z) = Real( 0.5)*ba(i,j,k);
                             } else {
                                  amrex::Abort("amrex::algoim::compute_surface_integrals: we are in trouble");
                             }

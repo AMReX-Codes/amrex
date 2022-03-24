@@ -769,6 +769,9 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
     // Add EB flow contribution
     const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(divu.Factory());
     const auto& flags = factory.getMultiEBCellFlagFab();
+    const auto& vfrac = factory.getVolFrac();
+    const auto& bnorm = factory.getBndryNormal();
+    const auto& barea = factory.getBndryArea();
 
     MFItInfo info;
     if (Gpu::notInLaunchRegion()) info.EnableTiling().SetDynamic(true);
@@ -781,9 +784,6 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
         const auto& flagfab = flags[mfi];
 
         if (flagfab.getType(bx) == FabType::singlevalued) {
-            const auto& vfrac = factory.getVolFrac();
-            const auto& bnorm = factory.getBndryNormal();
-            const auto& barea = factory.getBndryArea();
             const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
 
             Array4<Real> const& divuarr = divu.array(mfi);

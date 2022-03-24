@@ -83,10 +83,8 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
 #ifdef AMREX_USE_EB
 #if (AMREX_SPACEDIM == 2)
     const int ncomp_i  = 5;
-    const int ncomp_si = 3;
 #else
     const int ncomp_i  = algoim::numIntgs;
-    const int ncomp_si = algoim::numSurfIntgs;
 #endif
     m_integral.resize(m_num_amr_levels);
     m_surface_integral.resize(m_num_amr_levels);
@@ -99,10 +97,6 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
                                                         ncomp_i, 1, MFInfo(),
                                                         *m_factory[amrlev][0]);
 
-        m_surface_integral[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][0],
-                                                        m_dmap[amrlev][0],
-                                                        ncomp_si, 1, MFInfo(),
-                                                        *m_factory[amrlev][0]);
 #else
         m_integral[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][0],
                                                         m_dmap[amrlev][0], ncomp_i, 1));
@@ -856,9 +850,17 @@ MLNodeLaplacian::setEBDirichlet (int amrlev, const MultiFab& phi)
 
     m_eb_phi_dot_n[amrlev]->FillBoundary(m_geom[amrlev][mglev].periodicity());
 
+#if (AMREX_SPACEDIM == 2)
+    const int ncomp_si = 3;
+#else
+    const int ncomp_si = algoim::numSurfIntgs;
+#endif
+    m_surface_integral[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][0],
+                                                    m_dmap[amrlev][0],
+                                                    ncomp_si, 1, MFInfo(),
+                                                    *m_factory[amrlev][0]);
     // Turn on flag for building surface integrals
     m_build_surface_integral = true;
-
 }
 #endif
 
