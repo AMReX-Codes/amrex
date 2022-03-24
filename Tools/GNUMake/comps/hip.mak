@@ -40,7 +40,7 @@ HIPCC_FLAGS += --amdgpu-target=$(AMD_ARCH)
 
 CXXFLAGS += $(HIPCC_FLAGS)
 
-# add fopenmp targetting the gnu library (assuming CXX wraps gnu)
+# add fopenmp targetting the gnu library
 ifeq ($(USE_OMP),TRUE)
   CXXFLAGS += -fopenmp=libgomp
   CFLAGS   += -fopenmp=libgomp
