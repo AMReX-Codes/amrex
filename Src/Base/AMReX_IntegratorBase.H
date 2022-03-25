@@ -65,7 +65,7 @@ struct IntegratorOps<T, typename std::enable_if<std::is_base_of<amrex::ParticleC
         {
             const int npy  = pty.numParticles();
             const int npx  = ptx.numParticles();
-            AMREX_ASSERT(npy == npx);
+            AMREX_ALWAYS_ASSERT(npy == npx);
 
             ParticleType* psy = &(pty.GetArrayOfStructs()[0]);
             ParticleType* psx = &(ptx.GetArrayOfStructs()[0]);
@@ -184,7 +184,7 @@ protected:
 public:
     IntegratorBase () {}
 
-    IntegratorBase (const T& S_data) {}
+    IntegratorBase (const T& /* S_data */) {}
 
     virtual ~IntegratorBase () {}
 
