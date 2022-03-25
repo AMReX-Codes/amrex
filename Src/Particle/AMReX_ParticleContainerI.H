@@ -224,9 +224,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     const auto& geom = Geom(0);
     const auto plo = geom.ProbLoArray();
     const auto phi = geom.ProbHiArray();
+    const auto rhi = geom.RoundoffHiArray();
     const auto is_per = geom.isPeriodicArray();
 
-    return enforcePeriodic(p, plo, phi, is_per);
+    return enforcePeriodic(p, plo, phi, rhi, is_per);
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
@@ -1211,6 +1212,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     Vector<std::map<int, int> > new_sizes(num_levels);
     const auto plo    = Geom(0).ProbLoArray();
     const auto phi    = Geom(0).ProbHiArray();
+    const auto rhi    = Geom(0).RoundoffHiArray();
     const auto is_per = Geom(0).isPeriodicArray();
     for (int lev = lev_min; lev <= finest_lev_particles; ++lev)
     {
@@ -1231,7 +1233,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                 "perhaps particles have not been initialized correctly?");
 
             int num_stay = partitionParticlesByDest(src_tile, assign_grid, BufferMap(),
-                                                    plo, phi, is_per, lev, gid, tid,
+                                                    plo, phi, rhi, is_per, lev, gid, tid,
                                                     lev_min, lev_max, nGrow, remove_negative);
 
             int num_move = np - num_stay;
