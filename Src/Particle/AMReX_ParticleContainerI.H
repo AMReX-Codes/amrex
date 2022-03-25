@@ -1212,6 +1212,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     Vector<std::map<int, int> > new_sizes(num_levels);
     const auto plo    = Geom(0).ProbLoArray();
     const auto phi    = Geom(0).ProbHiArray();
+    const auto rhi    = Geom(0).RoundoffHiArray();
     const auto is_per = Geom(0).isPeriodicArray();
     for (int lev = lev_min; lev <= finest_lev_particles; ++lev)
     {
