@@ -403,7 +403,8 @@ AMReX supports multi-level solvers for use with embedded boundaries.
 These include
 1) cell-centered solvers with homogeneous Neumann, homogeneous Dirichlet,
 or inhomogeneous Dirichlet boundary conditions on the EB faces, and
-2) nodal solvers with homogeneous Neumann boundary conditions on the EB faces.
+2) nodal solvers with homogeneous Neumann boundary conditions,
+or inflow velocity conditions on the EB faces.
 
 To use a cell-centered solver with EB, one builds a linear operator
 :cpp:`MLEBABecLap` with :cpp:`EBFArrayBoxFactory` (instead of a :cpp:`MLABecLaplacian`)

@@ -258,7 +258,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         // whether we're using "float" or "double" floating point data in the
         // particles so that we can Restart from the checkpoint files.
         //
-        std::string versionName = Version();
+        std::string versionName = is_checkpoint ? PC::CheckpointVersion() : PC::PlotfileVersion();
         if (sizeof(typename PC::ParticleType::RealType) == 4)
             versionName += "_single";
         else

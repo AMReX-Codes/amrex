@@ -90,6 +90,11 @@ public:
                  const Vector<BoxArray>            & ba,
                  const Vector<int>                 & rr);
 
+    void Define (const Vector<Geometry>            & geom,
+                 const Vector<DistributionMapping> & dmap,
+                 const Vector<BoxArray>            & ba,
+                 const Vector<IntVect>             & rr);
+
     bool isDefined () const { return m_gdb != nullptr; }
 
     void reserveData ();
@@ -193,7 +198,8 @@ public:
     template <class MF>
     bool OnSameGrids (int level, const MF& mf) const { return m_gdb->OnSameGrids(level, mf); }
 
-    static const std::string& Version ();
+    static const std::string& CheckpointVersion ();
+    static const std::string& PlotfileVersion ();
     static const std::string& DataPrefix ();
     static int MaxReaders ();
     static Long MaxParticlesPerRead ();
