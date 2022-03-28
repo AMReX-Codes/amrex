@@ -368,6 +368,14 @@ public:
         nv_S = N_VNew_ManyVector(NVar, nv_many_arr, sunctx);
         nv_stage_data = N_VClone(nv_S);
 
+	// Copy the initial step data to nv_stage_data
+        for(int i=0; i<N_VGetNumSubvectors_ManyVector(nv_S); i++)
+        {
+           MultiFab* mf_y = amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_S, i));
+           MultiFab* mf_stage = amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_stage_data, i));
+           MultiFab::Copy(*mf_stage, *mf_y, 0, 0, mf_y->nComp(), mf_y->nGrow());
+        }
+
         /* Create a temporary storage space for MRI */
         Vector<std::unique_ptr<T> > temp_storage;
         IntegratorOps<T>::CreateLike(temp_storage, S_old);
@@ -405,7 +413,7 @@ public:
 
             // NOTE: we can optimize by calling a post_update_fast and only updating the variables the fast integration modifies
             BaseT::post_update(S_data, rhs_time);
-            BaseT::post_update(S_stage_data, rhs_time);
+            // BaseT::post_update(S_stage_data, rhs_time);
 
             BaseT::fast_rhs(S_rhs, S_stage_data, S_data, rhs_time);
 
@@ -572,7 +580,7 @@ public:
 
         MRIStepSetUserData(mristep_mem, &udata);  /* Pass udata to user functions */
 
-        MRIStepSetPostInnerFn(mristep_mem, SundialsUserFun::PostStoreStage);
+//        MRIStepSetPostInnerFn(mristep_mem, SundialsUserFun::PostStoreStage);
         MRIStepSetPostprocessStageFn(mristep_mem, SundialsUserFun::ProcessStage);
 
         MRIStepCoupling mri_coupling = MRIStepCoupling_MIStoMRI(B_outer, B_outer->q, B_outer->p);
