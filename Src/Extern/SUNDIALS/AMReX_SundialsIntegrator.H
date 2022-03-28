@@ -133,6 +133,8 @@ private:
         {
             amrex::ParmParse pp_mri("integration.sundials.mri");
             pp_mri.query("implicit_inner", use_implicit_inner);
+	    pp_mri.get("outer_method", mri_outer_method);
+	    pp_mri.get("inner_method", mri_inner_method);
         }
 
         // SUNDIALS specific objects
