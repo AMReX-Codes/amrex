@@ -643,9 +643,9 @@ public:
     BoxArray& coarsen (int refinement_ratio);
 
     //! Coarsen each Box in the BoxArray to the specified ratio.
-    bool coarsenable(int refinement_ratio, int min_width=1) const;
-    bool coarsenable(const IntVect& refinement_ratio, int min_width=1) const;
-    bool coarsenable(const IntVect& refinement_ratio, const IntVect& min_width) const;
+    bool coarsenable (int refinement_ratio, int min_width=1) const;
+    bool coarsenable (const IntVect& refinement_ratio, int min_width=1) const;
+    bool coarsenable (const IntVect& refinement_ratio, const IntVect& min_width) const;
 
     //! Coarsen each Box in the BoxArray to the specified ratio.
     BoxArray& coarsen (const IntVect& refinement_ratio);

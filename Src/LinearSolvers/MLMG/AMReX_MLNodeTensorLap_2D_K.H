@@ -54,6 +54,36 @@ void mlndtslap_interpadd (int i, int j, int, Array4<Real> const& fine,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndtslap_semi_interpadd (int i, int j, int, Array4<Real> const& fine,
+                               Array4<Real const> const& crse, Array4<int const> const& msk,
+                               int semi_dir) noexcept
+{
+    if (!msk(i,j,0)) {
+        if (semi_dir == 0) {
+            int jc = amrex::coarsen(j,2);
+            bool j_is_odd = (jc*2 != j);
+            if (j_is_odd) {
+                // Node on Y line
+                fine(i,j,0) += ts_interp_line_y(crse,i,jc);
+            } else {
+                // Node coincident with coarse node
+                fine(i,j,0) += crse(i,jc,0);
+            }
+        } else {
+            int ic = amrex::coarsen(i,2);
+            bool i_is_odd = (ic*2 != i);
+            if (i_is_odd) {
+                // Node on X line
+                fine(i,j,0) += ts_interp_line_x(crse,ic,j);
+            } else {
+                // Node coincident with coarse node
+                fine(i,j,0) += crse(ic,j,0);
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndtslap_adotx (int i, int j, int k, Array4<Real> const& y, Array4<Real const> const& x,
                       Array4<int const> const& msk, GpuArray<Real,3> const& s) noexcept
 {
