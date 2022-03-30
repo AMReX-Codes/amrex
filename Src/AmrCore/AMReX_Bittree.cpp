@@ -84,11 +84,11 @@ void btUnit::btErrorEst( std::shared_ptr<BittreeAmr> mesh ) {
         double error_calc_result;
         for(unsigned v=0; v<NVARS; ++v) {
             // TODO replace with actual calculation
-            error_calc_result = 0; 
-            for(unsigned d=0; d<AMREX_SPACEDIM; ++d)
-              if(lcoord[blkID][d]==0) error_calc_result += 1.0/AMREX_SPACEDIM;
+            //error_calc_result = 0; 
+            //for(unsigned d=0; d<AMREX_SPACEDIM; ++d)
+            //  if(lcoord[blkID][d]==0) error_calc_result += 1.0/AMREX_SPACEDIM;
 
-            error[blkID][v] = error_calc_result;
+            error[blkID][v] = 0.5;
         }
     }
 
@@ -119,7 +119,7 @@ void btUnit::btErrorEst( std::shared_ptr<BittreeAmr> mesh ) {
     // Actual marking for refinement/derefinement
     double refineCutoff, derefineCutoff;
     bool allVarsDeref;
-    unsigned maxLevel = 4;
+    unsigned maxLevel = 2;
     unsigned minLevel = 0;
 
     for( unsigned lb = 0; lb<lnblocks; ++lb) {

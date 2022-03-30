@@ -501,35 +501,46 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
 {
     if(use_bittree) {
         btmesh->refine_init();
-        /*BL_PROFILE("AmrMesh::MakeNewGrids()");
 
-        BL_ASSERT(lbase < max_level);
+        //BL_PROFILE("AmrMesh::MakeNewGrids()");
 
-        // Add at most one new level
-        int max_crse = std::min(finest_level, max_level-1);
+        //BL_ASSERT(lbase < max_level);
 
-        if (new_grids.size() < max_crse+2) new_grids.resize(max_crse+2);
+        //// Add at most one new level
+        //int max_crse = std::min(finest_level, max_level-1);
+
+        //if (new_grids.size() < max_crse+2) new_grids.resize(max_crse+2);
 
         // Do ErrorEst tagging and convert those tags into two lists, `refine` and `derefine`
+        // As of now, error is 0 and refine/derefine are all false (i.e. no refinement).
         btUnit::btErrorEst(btmesh);
+
+        // Instead, do the regular MakeNewGrids and infer refine/derefine from there
+        { //temp
+            MakeNewGrids(lbase,time,new_finest,new_grids);
+
+            for(int lev=lbase+1; lev<=new_finest; ++lev) {
+                new_dmap[lev] = DistributionMapping(new_grids[lev]);
+
+                // use grids[lev] and new_grids[lev], infer which boxes were refined/derefined
+                //amrex::intersect??
+                
+            }
+        } //end temp
 
         // Using the `refine` and `derefine` lists, create new mesh in Bittree.
         // Implements octree logic.
         btUnit::btRefine(btmesh);
 
-        // Convert Bittree mesh to new Boxarrays and DistributionMappings
-        btUnit::btMakeNewGrids(btmesh,lbase,time,new_finest,new_grids,new_dmap,max_grid_size);
-        */
-        btmesh->refine_apply();
-
-        std::cout << "In MakeNewGrids. Bittree would be updated here." << std::endl;
+        std::cout << "Bittree should be updated by this point." << std::endl;
         std::cout << btmesh->slice_to_string(0) << std::endl;
 
+        // Convert Bittree mesh to new Boxarrays and DistributionMappings
+        //btUnit::btMakeNewGrids(btmesh,lbase,time,new_finest,new_grids,new_dmap,max_grid_size);
+        // should be able to compare new_grids from here to the new_grids made above
+        
+        btmesh->refine_apply();
 
-        MakeNewGrids(lbase,time,new_finest,new_grids);
-        for(int lev=lbase+1; lev<=new_finest; ++lev) {
-            new_dmap[lev] = DistributionMapping(new_grids[lev]);
-        }
     } else {
         MakeNewGrids(lbase,time,new_finest,new_grids);
         for(int lev=lbase+1; lev<=new_finest; ++lev) {
@@ -826,24 +837,19 @@ AmrMesh::MakeNewGrids (Real time)
 
         //Initialize Bittree
         if(use_bittree) {
-            IntVect ncells = geom[0].Domain().length();
 
             // top = number of grids on coarsest level in each direction
             // TODO better way to do this?
             std::vector<int> top(AMREX_SPACEDIM,0);
+            IntVect ncells = geom[0].Domain().length();
             for(int i=0; i<AMREX_SPACEDIM; ++i) {
                 top[i] = ncells[i] / max_grid_size[0][i];
             }
 
+            // includes = boolean to check each coarsest level grid exists
+            // (Bittree supports having "holes" in the mesh)
             int ngrids = AMREX_D_TERM(top[0],*top[1],*top[2]);
             std::vector<int> includes(ngrids,1);
-
-            // For debugging
-            std::cout << "Top: ";
-            for(int d=0; d<AMREX_SPACEDIM; ++d) std::cout << top[d] << ", ";
-            std::cout << ", Includes: ";
-            for(int i=0; i<ngrids; ++i) std::cout << includes[i] << ", ";
-            std::cout << std::endl;
 
             std::cout << "Initializing bittree..." << std::endl;
             btmesh = std::make_shared<bittree::BittreeAmr>(top.data(),includes.data());

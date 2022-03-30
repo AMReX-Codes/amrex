@@ -2,7 +2,7 @@
 # Run until nsteps == max_step or time == stop_time, 
 #     whichever comes first
 # *****************************************************************
-max_step  = 1000
+max_step  = 100
 stop_time = 2.0
 
 # *****************************************************************
@@ -31,6 +31,8 @@ amr.max_level       = 2       # maximum level number allowed --
 
 amr.ref_ratio       = 2 2 2 2 # refinement ratio between levels
 
+amr.use_bittree = true
+
 # *****************************************************************
 # Control of grid creation
 # *****************************************************************
@@ -50,7 +52,7 @@ amr.regrid_int      = 2       # how often to regrid
 # *****************************************************************
 adv.cfl            = 0.7     # CFL constraint for explicit advection
 
-adv.do_subcycle    = 1       # Do we subcycle in time?
+adv.do_subcycle    = 0       # Do we subcycle in time?
 
 # *****************************************************************
 # Should we reflux at coarse-fine boundaries?
