@@ -124,7 +124,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
           ba.intersections(Box(iv, iv), isects, findfirst, nGrow);
           grid = isects.empty() ? -1 : isects[0].first;
           if (nGrow > 0 && isects.size() > 1) {
-             for (int n = 0; n < isects.size(); ++n) {
+             for (std::size_t n = 0; n < isects.size(); ++n) {
                  Box bx = ba.getCellCenteredBox(isects[n].first);
                  for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
                      Box gbx = bx;
