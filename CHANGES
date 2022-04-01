@@ -1,3 +1,61 @@
+# 22.04
+
+  -- Fix parser expressions (#2682)
+
+  -- fixes to build CUDA with Clang (#2681)
+
+  -- CI: Apple Silicon (#2672)
+
+  -- Use the roundoff domain in enforcePeriodic. (#2679)
+
+  -- Catch CUDA 11.6 bug at compile time (#2677)
+
+  -- MPI+OMP+HIP build capability (#2676)
+
+  -- EB Flow (#2661)
+
+  -- BackTrace workarounds (#2667)
+
+  -- Redefine ParticleContainter multifab after setting particle boxarray and dmap (#2673)
+
+  -- Handle the case where we lose a level in RedistributeGPU (#2670)
+
+  -- Add int overflow assert check before Bcast wrapper (#2649)
+
+  -- Allow ParticleToMesh and MeshToParticle to access runtime particle components (#2668)
+
+  -- Fix bugs in the MultiBlock test (#2662)
+
+  -- Separate version strings for particle plotfiles and checkpoints. (#2663)
+
+  -- Add support for SZ compression in HDF5 output (#2644)
+
+  -- Removed the use of H5Aget_storage_size (#2656)
+
+  -- Add prefetchToHost and prefetchToDevice for GPU containers (#2655)
+
+  -- Introduce `AMReX_Version.H` (#2653)
+
+  -- Add move assignment operator to Fab (#2652)
+
+  -- Added an option to set fast MRI dt directly instead of using the integer ratio of slow/fast dt. (#2651)
+
+  -- AMReX_Config.H: AMREX_EXPORT_DYNAMIC (#2650)
+
+  -- Fix bug affecting neighbor proc calculation with mesh refinement. (#2646)
+
+  -- Update flags for DPC++ AOT (#2643)
+
+  -- Doc + CMake: AMREX_EXPORT_DYNAMIC (#2635)
+
+  -- Update SpackSmokeTest to run with Fortran and/or HIP. (#2629)
+
+  -- Simplify CoordSys::IsRZ and IsSPHERICAL (#2642)
+
+  -- Take advantage of async copies in PODVector. (#2641)
+
+  -- HIP: atomicAddNoRet (#1809)
+
 # 22.03
 
   -- ParticleTile: push_back_real/int w/ Vector (#2634)
