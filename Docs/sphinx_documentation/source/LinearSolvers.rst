@@ -388,13 +388,23 @@ to the ghost cell center; :cpp:`maxorder = 3` uses the boundary value and the fi
 Curvilinear Coordinates
 =======================
 
-The linear solvers support curvilinear coordinates including 1D
+Some of the linear solvers support curvilinear coordinates including 1D
 spherical and 2d cylindrical :math:`(r,z)`.  In those cases, the
 divergence operator has extra metric terms.  If one does not want the
 solver to include the metric terms because they have been handled in
-other ways, one can call :cpp:`setMetricTerm(bool)` with :cpp:`false`
+other ways, one can turn them off with a setter funtion. For
+the cell-centered linear solvers `MLABecLaplacian` and `MLPoisson`, one
+can call :cpp:`setMetricTerm(bool)` with :cpp:`false`
 on the :cpp:`LPInfo` object passed to the constructor of linear
 operators.
+For the node-based `MLNodeLaplacian`, one can call :cpp:`setRZCorrection (bool)`
+with :cpp:`false` on the `MLNodeLaplacian` object.
+
+`MLABecLaplacian` and `MLPoisson` support both spherical and cylindrical
+coordinates, while `MLNodeLaplacian` supports only cylindrical at this
+time. Note that to use cylindrical coordinates with `MLNodeLaplacian`,
+the application code must scale ``sigma`` by the radial coordinate
+before calling :cpp:`setSigma()`.
 
 Embedded Boundaries
 ===================
