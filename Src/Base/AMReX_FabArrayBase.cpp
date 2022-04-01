@@ -1158,7 +1158,7 @@ FabArrayBase::FB::define_os (const FabArrayBase& fa)
 #endif
 
     // No need to sort send and recv tags because they are already sorted
-    // dut to the way they are built.
+    // due to the way they are built.
 }
 
 FabArrayBase::FB::~FB ()
