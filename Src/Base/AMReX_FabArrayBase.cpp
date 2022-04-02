@@ -1065,42 +1065,50 @@ void FabArrayBase::FB::tag_one_box (int krcv, BoxArray const& ba, DistributionMa
         int const src_owner = dm[ksnd];
         bool is_sender = src_owner == ParallelDescriptor::MyProc();
 
-        bl.clear();
-        tmpbl.clear();
+        if ((build_recv_tag && (ParallelDescriptor::sameTeam(src_owner) || is_receiver))
+            || (is_sender && !ParallelDescriptor::sameTeam(dst_owner)))
+        {
+            bl.clear();
+            tmpbl.clear();
 
-        if (ksnd < krcv || (ksnd == krcv && shft < IntVect::TheZeroVector())) {
-            bl.push_back(dst_bx); // valid cells are allowed to override valid cells
-        } else {
-            bl = boxDiff(dst_bx, vbx); // exclude valid cells
-        }
-
-        for (auto const& o_is3 : isects3) {
-            int const      o_ksnd = std::get<int>(o_is3);
-            IntVect const& o_shft = std::get<IntVect>(o_is3);
-            Box const&   o_dst_bx = std::get<Box>(o_is3);
-            if ((o_ksnd < ksnd || (o_ksnd == ksnd && o_shft < shft))
-                && o_dst_bx.intersects(dst_bx))
-            {
-                for (auto const& b : bl) {
-                    tmpbl.join(boxDiff(b, o_dst_bx));
-                }
-                std::swap(bl, tmpbl);
-                tmpbl.clear();
+            if (ksnd < krcv || (ksnd == krcv && shft < IntVect::TheZeroVector())) {
+                bl.push_back(dst_bx); // valid cells are allowed to override valid cells
+            } else {
+                bl = boxDiff(dst_bx, vbx); // exclude valid cells
             }
-        }
 
-        for (auto const& b : bl) {
+            for (auto const& o_is3 : isects3) {
+                int const      o_ksnd = std::get<int>(o_is3);
+                IntVect const& o_shft = std::get<IntVect>(o_is3);
+                Box const&   o_dst_bx = std::get<Box>(o_is3);
+                if ((o_ksnd < ksnd || (o_ksnd == ksnd && o_shft < shft))
+                    && o_dst_bx.intersects(dst_bx))
+                {
+                    for (auto const& b : bl) {
+                        tmpbl.join(boxDiff(b, o_dst_bx));
+                    }
+                    std::swap(bl, tmpbl);
+                    tmpbl.clear();
+                }
+            }
+
             if (build_recv_tag) {
                 if (ParallelDescriptor::sameTeam(src_owner)) { // local copy
-                    const BoxList tilelist(b, FabArrayBase::comm_tile_size);
-                    for (auto const& tbx : tilelist) {
-                        m_LocTags->emplace_back(tbx, tbx+shft, krcv, ksnd);
+                    for (auto const& b : bl) {
+                        const BoxList tilelist(b, FabArrayBase::comm_tile_size);
+                        for (auto const& tbx : tilelist) {
+                            m_LocTags->emplace_back(tbx, tbx+shft, krcv, ksnd);
+                        }
                     }
                 } else if (is_receiver) {
-                    (*m_RcvTags)[src_owner].emplace_back(b, b+shft, krcv, ksnd);
+                    for (auto const& b : bl) {
+                        (*m_RcvTags)[src_owner].emplace_back(b, b+shft, krcv, ksnd);
+                    }
                 }
             } else if (is_sender && !ParallelDescriptor::sameTeam(dst_owner))  {
-                (*m_SndTags)[dst_owner].emplace_back(b, b+shft, krcv, ksnd);
+                for (auto const& b : bl) {
+                    (*m_SndTags)[dst_owner].emplace_back(b, b+shft, krcv, ksnd);
+                }
             }
         }
     }
