@@ -879,6 +879,9 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                           const Vector<const MultiFab*>& rhnd,
                           const Vector<MultiFab*>& a_rhcc)
 {
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(rhs,vel,rhnd,a_rhcc);
+#else
     //
     // Note that div vel we copmute on a coarse/fine nodes is not a
     // composite divergence.  It has been restricted so that it is suitable
@@ -1276,6 +1279,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
     for (int ilev = 0; ilev < m_num_amr_levels; ++ilev) {
         amrex::EB_set_covered(*rhs[ilev], 0.0);
     }
+#endif
 #endif
 }
 
