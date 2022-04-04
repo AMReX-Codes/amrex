@@ -888,16 +888,12 @@ Instead of using :cpp:`Elixir`, we can write code like below,
       const Box& bx = mfi.tilebox();
       FArrayBox tmp_fab(bx, numcomps, The_Async_Arena());
       Array4<Real> const& tmp_arr = tmp_fab.array();
-      FArrayBox tmp_fab_2;
-      tmp_fab_2.resize(bx, numcomps, The_Async_Arena());
 
       // GPU kernels using the temporary
     }
 
 This is now the recommended way because it's usually more efficient than
-:cpp:`Elixir`.  Unlike :cpp:`Elixir`, a temporary :cpp:FArrayBox object
-must be defined inside the :cpp:`MFIter` loop.
-Note that the code above works for CUDA older than 11.2, HIP
+:cpp:`Elixir`.  Note that the code above works for CUDA older than 11.2, HIP
 and DPC++ as well, and it's equivalent to using :cpp:`Elixir` in these
 cases.  By default, the release threshold for the memory pool is unlimited.
 One can adjust it with :cpp:`ParmParse` parameter,
