@@ -672,13 +672,9 @@ public:
     //! Sync up nodal data with weights
     void WeightedSync (const MultiFab& wgt, const Periodicity& period = Periodicity::NonPeriodic());
     //! Sync up nodal data with owners overriding non-owners
-    void OverrideSync (const Periodicity& period = Periodicity::NonPeriodic());
     void OverrideSync (const iMultiFab& msk, const Periodicity& period = Periodicity::NonPeriodic());
 
-    void OverrideSync_nowait (const Periodicity& period = Periodicity::NonPeriodic());
-    void OverrideSync_nowait (const iMultiFab& msk, const Periodicity& period = Periodicity::NonPeriodic());
-    void OverrideSync_finish ();
-
+    using FabArray<FArrayBox>::OverrideSync;
 
     static void Initialize ();
     static void Finalize ();

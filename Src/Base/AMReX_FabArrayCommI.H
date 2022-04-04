@@ -7,19 +7,23 @@ template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
 void
 FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             const Periodicity& period, bool cross,
-                            bool enforce_periodicity_only)
+                            bool enforce_periodicity_only,
+                            bool override_sync)
 {
     AMREX_ASSERT_WITH_MESSAGE(!fbd, "FillBoundary_nowait() called when comm operation already in progress.");
+    AMREX_ASSERT(!enforce_periodicity_only || !override_sync);
 
     bool work_to_do;
     if (enforce_periodicity_only) {
         work_to_do = period.isAnyPeriodic();
+    } else if (override_sync) {
+        work_to_do = (nghost.max() > 0) || !is_cell_centered();
     } else {
         work_to_do = nghost.max() > 0;
     }
     if (!work_to_do) { return; }
 
-    const FB& TheFB = getFB(nghost, period, cross, enforce_periodicity_only);
+    const FB& TheFB = getFB(nghost, period, cross, enforce_periodicity_only, override_sync);
 
     if (ParallelContext::NProcsSub() == 1)
     {
@@ -72,10 +76,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     fbd->fb    = &TheFB;
     fbd->scomp = scomp;
     fbd->ncomp = ncomp;
-    fbd->nghost = nghost;
-    fbd->period = period;
-    fbd->cross = cross;
-    fbd->epo   = enforce_periodicity_only;
     fbd->tag   = SeqNum;
 
     //
