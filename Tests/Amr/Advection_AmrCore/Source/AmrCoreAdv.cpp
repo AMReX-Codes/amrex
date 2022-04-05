@@ -575,7 +575,7 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
                     dt[k] = dt[k-1] / MaxRefRatio(k-1);
                 }
 
-                //need here redistribute
+                //need here redistribute -- VERIFIED
 #ifdef AMREX_PARTICLES
                 if (do_tracers) {
                     TracerPC->Redistribute(lev);
@@ -639,24 +639,25 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
 // These two ifdef blocks ended up giving exactly the same answer ( at this point,
 // which could mean sometimes else is still wrong ..)
 
-//#ifdef AMREX_PARTICLES
-//    int redistribute_ngrow = 0;
-//    Print() << "-- Iteration: " << iteration << "\n";
-//    if ((iteration < nsubsteps[lev]) || (lev == 0)){
-//        if (lev == 0){
-//            redistribute_ngrow = 0;
-//        } else {
-//            redistribute_ngrow = iteration;
-//        }
-//        TracerPC->Redistribute(lev, -1, redistribute_ngrow, 0, true);
-//    }
-//#endif
-
 #ifdef AMREX_PARTICLES
-    if (do_tracers) {
-        TracerPC->Redistribute();
+    int redistribute_ngrow = 0;
+    Print() << "-- Iteration: " << iteration << "\n";
+    if ((iteration < nsubsteps[lev]) || (lev == 0)){
+        if (lev == 0){
+            redistribute_ngrow = 0;
+        } else {
+            redistribute_ngrow = iteration;
+        }
+        TracerPC->Redistribute(lev, TracerPC->finestLevel(), redistribute_ngrow);
+        //TracerPC->Redistribute(lev, -1, redistribute_ngrow, 0, true);
     }
 #endif
+
+//#ifdef AMREX_PARTICLES
+//    if (do_tracers) {
+//        TracerPC->Redistribute();
+//    }
+//#endif
 
 
 }
@@ -670,6 +671,7 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
         if (istep[0] % regrid_int == 0)
         {
             regrid(0, time);
+            TracerPC->Redistribute();
         }
     }
 
@@ -690,11 +692,11 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
         for (int lev = 0; lev <= finest_level; lev++)
         {
             TracerPC->AdvectWithUmac(facevel[lev].data(),lev,dt[0]);
-            if (regrid_int > 0)  // If we needed to regrid
-            {
-                TracerPC->Redistribute();
-            }
+            //if (regrid_int > 0)  // If we needed to regrid
+            //{
+            //}
         }
+        TracerPC->Redistribute();
     }
 #endif
 
