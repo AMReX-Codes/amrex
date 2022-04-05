@@ -5,6 +5,7 @@
 #include <cmath> /* for pow */
 
 #include <AMReX_REAL.H>
+#include <AMReX_Gpu.H>
 
 namespace amrex
 {
@@ -208,20 +209,111 @@ void InitializeMeshRefinement_DG
     }}}
 
     iGF_SqrtGm = iGF_SqtGm;
+
+#ifdef AMREX_USE_GPU
+
+    amrex::Gpu::copy( amrex::Gpu::hostToDevice,
+                      &WeightsX_X1[0],
+                      &WeightsX_X1[nDOFX_X1],
+                      &WeightsX_X1[0]);
+    amrex::Gpu::copy( amrex::Gpu::hostToDevice,
+                      &WeightsX_X2[0],
+                      &WeightsX_X2[nDOFX_X2],
+                      &WeightsX_X2[0]);
+    amrex::Gpu::copy( amrex::Gpu::hostToDevice,
+                      &WeightsX_X3[0],
+                      &WeightsX_X3[nDOFX_X3],
+                      &WeightsX_X3[0]);
+    amrex::Gpu::copy( amrex::Gpu::hostToDevice,
+                      &WeightsX_q[0],
+                      &WeightsX_q[nDOFX],
+                      &WeightsX_q[0]);
+
+    amrex::Gpu::copy( amrex::Gpu::hostToDevice,
+                      &ProjectionMatrix[0],
+                      &ProjectionMatrix[nFineV*nDOFX*nDOFX],
+                      &ProjectionMatrix[0]);
+    amrex::Gpu::copy( amrex::Gpu::hostToDevice,
+                      &ProjectionMatrix_T[0],
+                      &ProjectionMatrix_T[nFineV*nDOFX*nDOFX],
+                      &ProjectionMatrix_T[0]);
+
+    amrex::Gpu::copy( amrex::Gpu::hostToDevice,
+                      &LX_X1[0],
+                      &LX_X1[nDOFX_X1*nFineF*nDOFX_X1],
+                      &LX_X1[0]);
+    amrex::Gpu::copy( amrex::Gpu::hostToDevice,
+                      &LX_X2[0],
+                      &LX_X2[nDOFX_X2*nFineF*nDOFX_X2],
+                      &LX_X2[0]);
+    amrex::Gpu::copy( amrex::Gpu::hostToDevice,
+                      &LX_X3[0],
+                      &LX_X3[nDOFX_X3*nFineF*nDOFX_X3],
+                      &LX_X3[0]);
+
+    amrex::Gpu::copy( amrex::Gpu::hostToDevice,
+                      &LX_X1_Up[0],
+                      &LX_X1_Up[nDOFX_X1],
+                      &LX_X1_Up[0]);
+    amrex::Gpu::copy( amrex::Gpu::hostToDevice,
+                      &LX_X1_Dn[0],
+                      &LX_X1_Dn[nDOFX_X1],
+                      &LX_X1_Dn[0]);
+    amrex::Gpu::copy( amrex::Gpu::hostToDevice,
+                      &LX_X2_Up[0],
+                      &LX_X2_Up[nDOFX_X2],
+                      &LX_X2_Up[0]);
+    amrex::Gpu::copy( amrex::Gpu::hostToDevice,
+                      &LX_X2_Dn[0],
+                      &LX_X2_Dn[nDOFX_X2],
+                      &LX_X2_Dn[0]);
+    amrex::Gpu::copy( amrex::Gpu::hostToDevice,
+                      &LX_X3_Up[0],
+                      &LX_X3_Up[nDOFX_X3],
+                      &LX_X3_Up[0]);
+    amrex::Gpu::copy( amrex::Gpu::hostToDevice,
+                      &LX_X3_Dn[0],
+                      &LX_X3_Dn[nDOFX_X3],
+                      &LX_X3_Dn[0]);
+
+    amrex::Gpu::copy( amrex::Gpu::hostToDevice,
+                      &NodeNumberTableX[0],
+                      &NodeNumberTableX[3*nDOFX],
+                      &NodeNumberTableX[0]);
+    amrex::Gpu::copy( amrex::Gpu::hostToDevice,
+                      &NodeNumberTableX3D[0],
+                      &NodeNumberTableX3D[nDOFX],
+                      &NodeNumberTableX3D[0]);
+
+    amrex::Gpu::copy( amrex::Gpu::hostToDevice,
+                      &NodeNumberTableX_X1[0],
+                      &NodeNumberTableX_X1[nDOFX],
+                      &NodeNumberTableX_X1[0]);
+    amrex::Gpu::copy( amrex::Gpu::hostToDevice,
+                      &NodeNumberTableX_X2[0],
+                      &NodeNumberTableX_X2[nDOFX],
+                      &NodeNumberTableX_X2[0]);
+    amrex::Gpu::copy( amrex::Gpu::hostToDevice,
+                      &NodeNumberTableX_X3[0],
+                      &NodeNumberTableX_X3[nDOFX],
+                      &NodeNumberTableX_X3[0]);
+
+#endif
+
 } /* END void InitializeMeshRefinement_DG */
 
 void FinalizeMeshRefinement_DG()
 {
-    DeallocateArray( 3, NodeNumberTableX );
-    DeallocateArray( nNodesX[0], nNodesX[1], NodeNumberTableX3D );
-    DeallocateArray( NodeNumberTableX_X1 );
-    DeallocateArray( NodeNumberTableX_X2 );
     DeallocateArray( NodeNumberTableX_X3 );
+    DeallocateArray( NodeNumberTableX_X2 );
+    DeallocateArray( NodeNumberTableX_X1 );
+    DeallocateArray( nNodesX[0], nNodesX[1], NodeNumberTableX3D );
+    DeallocateArray( 3, NodeNumberTableX );
     DeallocateArray( LX_X3_Dn );
     DeallocateArray( LX_X3_Up );
     DeallocateArray( LX_X2_Dn );
-    DeallocateArray( LX_X2_Dn );
-    DeallocateArray( LX_X1_Up );
+    DeallocateArray( LX_X2_Up );
+    DeallocateArray( LX_X1_Dn );
     DeallocateArray( LX_X1_Up );
     DeallocateArray( nDOFX_X3, nFineF, LX_X3 );
     DeallocateArray( nDOFX_X2, nFineF, LX_X2 );
@@ -241,17 +333,29 @@ void FinalizeMeshRefinement_DG()
 void AllocateArray( int n0, Real * &A )
 {
     A = new Real [n0];
+#ifdef AMREX_USE_GPU
+    A = (Real*)( The_Device_Arena() -> alloc( n0 * sizeof( Real ) ) );
+#endif
 }
 void DeallocateArray( Real * &A )
 {
+#ifdef AMREX_USE_GPU
+    The_Device_Arena() -> free( A );
+#endif
     delete [] A; A = NULL;
 }
 void AllocateArray( int n0, int * &A )
 {
     A = new int [n0];
+#ifdef AMREX_USE_GPU
+    A = (int*)( The_Device_Arena() -> alloc( n0 * sizeof( int ) ) );
+#endif
 }
 void DeallocateArray( int * &A )
 {
+#ifdef AMREX_USE_GPU
+    The_Device_Arena() -> free( A );
+#endif
     delete [] A; A = NULL;
 }
 
@@ -261,9 +365,21 @@ void AllocateArray( int n0, int n1, Real ** &A )
     for( int i0 = 0; i0 < n0; i0++ ) {
         A[i0] = new Real [n1];
     }
+#ifdef AMREX_USE_GPU
+    A = (Real**)( The_Device_Arena() -> alloc( n0*n1 * sizeof( Real ) ) );
+    for( int i0 = 0; i0 < n0; i0++ ) {
+        A[i0] = (Real*)( The_Device_Arena() -> alloc( n1 * sizeof( Real ) ) );
+    }
+#endif
 }
 void DeallocateArray( int n0, Real ** &A )
 {
+#ifdef AMREX_USE_GPU
+    for( int i0 = 0; i0 < n0; i0++ ) {
+        The_Device_Arena() -> free( A[i0] );
+    }
+    The_Device_Arena() -> free( A );
+#endif
     for( int i0 = 0; i0 < n0; i0++ ) {
         delete [] A[i0]; A[i0] = NULL;
     }
@@ -275,9 +391,21 @@ void AllocateArray( int n0, int n1, int ** &A )
     for( int i0 = 0; i0 < n0; i0++ ) {
         A[i0] = new int [n1];
     }
+#ifdef AMREX_USE_GPU
+    A = (int**)( The_Device_Arena() -> alloc( n0*n1 * sizeof( int ) ) );
+    for( int i0 = 0; i0 < n0; i0++ ) {
+        A[i0] = (int*)( The_Device_Arena() -> alloc( n1 * sizeof( int ) ) );
+    }
+#endif
 }
 void DeallocateArray( int n0, int ** &A )
 {
+#ifdef AMREX_USE_GPU
+    for( int i0 = 0; i0 < n0; i0++ ) {
+        The_Device_Arena() -> free( A[i0] );
+    }
+    The_Device_Arena() -> free( A );
+#endif
     for( int i0 = 0; i0 < n0; i0++ ) {
         delete [] A[i0]; A[i0] = NULL;
     }
@@ -293,9 +421,29 @@ void AllocateArray( int n0, int n1, int n2, Real *** &A )
             A[i0][i1] = new Real [n2];
         }
     }
+#ifdef AMREX_USE_GPU
+    A = (Real***)( The_Device_Arena() -> alloc( n0*n1*n2 * sizeof( Real ) ) );
+    for( int i0 = 0; i0 < n0; i0++ ) {
+        A[i0] = (Real**)( The_Device_Arena()
+                  -> alloc( n1*n2 * sizeof( Real ) ) );
+        for( int i1 = 0; i1 < n1; i1++ ) {
+            A[i0][i1] = (Real*)( The_Device_Arena()
+                          -> alloc( n2 * sizeof( Real ) ) );
+        }
+    }
+#endif
 }
 void DeallocateArray( int n0, int n1, Real *** &A )
 {
+#ifdef AMREX_USE_GPU
+    for( int i0 = 0; i0 < n0; i0++ ) {
+        for( int i1 = 0; i1 < n1; i1++ ) {
+            The_Device_Arena() -> free( A[i0][i1] );
+        }
+        The_Device_Arena() -> free( A[i0] );
+    }
+    The_Device_Arena() -> free( A );
+#endif
     for( int i0 = 0; i0 < n0; i0++ ) {
         for( int i1 = 0; i1 < n1; i1++ ) {
             delete [] A[i0][i1]; A[i0][i1] = NULL;
@@ -313,9 +461,29 @@ void AllocateArray( int n0, int n1, int n2, int *** &A )
             A[i0][i1] = new int [n2];
         }
     }
+#ifdef AMREX_USE_GPU
+    A = (int***)( The_Device_Arena() -> alloc( n0*n1*n2 * sizeof( int ) ) );
+    for( int i0 = 0; i0 < n0; i0++ ) {
+        A[i0] = (int**)( The_Device_Arena()
+                  -> alloc( n1*n2 * sizeof( int ) ) );
+        for( int i1 = 0; i1 < n1; i1++ ) {
+            A[i0][i1] = (int*)( The_Device_Arena()
+                          -> alloc( n2 * sizeof( int ) ) );
+        }
+    }
+#endif
 }
 void DeallocateArray( int n0, int n1, int *** &A )
 {
+#ifdef AMREX_USE_GPU
+    for( int i0 = 0; i0 < n0; i0++ ) {
+        for( int i1 = 0; i1 < n1; i1++ ) {
+            The_Device_Arena() -> free( A[i0][i1] );
+        }
+        The_Device_Arena() -> free( A[i0] );
+    }
+    The_Device_Arena() -> free( A );
+#endif
     for( int i0 = 0; i0 < n0; i0++ ) {
         for( int i1 = 0; i1 < n1; i1++ ) {
             delete [] A[i0][i1]; A[i0][i1] = NULL;
