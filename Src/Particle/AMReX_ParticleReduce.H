@@ -121,12 +121,19 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
             const auto& plev = pc.GetParticles(lev);
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
-#endif
-            for (const auto& kv : plev)
+            Vector<std::pair<int, int> > grid_tile_ids;
+            Vector<const typename PC::ParticleTileType*> ptile_ptrs;
+            for (auto& kv : plev)
             {
-                const auto& tile = plev.at(std::make_pair(kv.first.first, kv.first.second));
+                grid_tile_ids.push_back(kv.first);
+                ptile_ptrs.push_back(&(kv.second));
+            }
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for if (!system::regtest_reduction) reduction(+:sm)
+#endif
+            for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+            {
+                const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
                 const auto ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i) {
@@ -247,12 +254,19 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
             const auto& plev = pc.GetParticles(lev);
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(max:r)
-#endif
-            for (const auto& kv : plev)
+            Vector<std::pair<int, int> > grid_tile_ids;
+            Vector<const typename PC::ParticleTileType*> ptile_ptrs;
+            for (auto& kv : plev)
             {
-                const auto& tile = plev.at(std::make_pair(kv.first.first, kv.first.second));
+                grid_tile_ids.push_back(kv.first);
+                ptile_ptrs.push_back(&(kv.second));
+            }
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for if (!system::regtest_reduction) reduction(max:r)
+#endif
+            for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+            {
+                const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
                 const auto ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i) {
@@ -373,12 +387,19 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
             const auto& plev = pc.GetParticles(lev);
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(min:r)
-#endif
-            for (const auto& kv : plev)
+            Vector<std::pair<int, int> > grid_tile_ids;
+            Vector<const typename PC::ParticleTileType*> ptile_ptrs;
+            for (auto& kv : plev)
             {
-                const auto& tile = plev.at(std::make_pair(kv.first.first, kv.first.second));
+                grid_tile_ids.push_back(kv.first);
+                ptile_ptrs.push_back(&(kv.second));
+            }
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for if (!system::regtest_reduction) reduction(min:r)
+#endif
+            for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+            {
+                const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
                 const auto ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i) {
@@ -497,12 +518,19 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
             const auto& plev = pc.GetParticles(lev);
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(&&:r)
-#endif
-            for (const auto& kv : plev)
+            Vector<std::pair<int, int> > grid_tile_ids;
+            Vector<const typename PC::ParticleTileType*> ptile_ptrs;
+            for (auto& kv : plev)
             {
-                const auto& tile = plev.at(std::make_pair(kv.first.first, kv.first.second));
+                grid_tile_ids.push_back(kv.first);
+                ptile_ptrs.push_back(&(kv.second));
+            }
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for if (!system::regtest_reduction) reduction(&&:r)
+#endif
+            for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+            {
+                const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
                 const auto ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i) {
@@ -621,12 +649,19 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
             const auto& plev = pc.GetParticles(lev);
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(||:r)
-#endif
-            for (const auto& kv : plev)
+            Vector<std::pair<int, int> > grid_tile_ids;
+            Vector<const typename PC::ParticleTileType*> ptile_ptrs;
+            for (auto& kv : plev)
             {
-                const auto& tile = plev.at(std::make_pair(kv.first.first, kv.first.second));
+                grid_tile_ids.push_back(kv.first);
+                ptile_ptrs.push_back(&(kv.second));
+            }
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for if (!system::regtest_reduction) reduction(||:r)
+#endif
+            for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+            {
+                const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
                 const auto ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i) {
@@ -773,14 +808,21 @@ typename RD::Type
 ParticleReduce (PC const& pc, int lev_min, int lev_max, F&& f, ReduceOps& reduce_ops)
 {
     RD reduce_data(reduce_ops);
-#if !defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP)
-#pragma omp parallel
-#endif
     for (int lev = lev_min; lev <= lev_max; ++lev) {
         const auto& plev = pc.GetParticles(lev);
-        for (const auto& kv : plev)
+        Vector<std::pair<int, int> > grid_tile_ids;
+        Vector<const typename PC::ParticleTileType*> ptile_ptrs;
+        for (auto& kv : plev)
         {
-            const auto& tile = plev.at(std::make_pair(kv.first.first, kv.first.second));
+            grid_tile_ids.push_back(kv.first);
+            ptile_ptrs.push_back(&(kv.second));
+        }
+#if !defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP)
+#pragma omp parallel for
+#endif
+        for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+        {
+            const auto& tile = plev.at(grid_tile_ids[pmap_it]);
             const auto np = tile.numParticles();
             const auto ptd = tile.getConstParticleTileData();
             reduce_ops.eval(np, reduce_data,
