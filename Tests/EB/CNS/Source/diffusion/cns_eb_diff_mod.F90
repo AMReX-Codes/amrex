@@ -38,7 +38,6 @@ contains
     real(rt) :: tauxx, tauyy, tauzz, tauxy, tauxz, tauyz, muf, xif
     real(rt) :: dudx, dudy, dudz, dvdx, dvdy, dwdx, dwdz, divu, dTdx
     real(rt) :: dvdz, dwdy, dTdy, dTdz
-    integer  :: nbrlo(-1:1,-1:1,-1:1), nbrhi(-1:1,-1:1,-1:1)
     integer  :: ihip, ihim, ilop, ilom, jhip, jhim, jlop, jlom, khip, khim, klop, klom
     real(rt) :: wlo, whi
     real(rt), parameter :: weights(0:2) = [0.d0, 1.d0, 0.5d0]

@@ -76,6 +76,7 @@ jobs:
   tests-nvhpc21-11-nvcc:
     name: NVHPC@21.11 NVCC/NVC++ C++17 Release [tests]
     runs-on: ubuntu-20.04
+    env: {CXXFLAGS: "-Werror -Wall -Wextra -Wpedantic -Wshadow"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
