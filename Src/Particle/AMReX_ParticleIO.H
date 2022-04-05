@@ -234,7 +234,7 @@ WritePlotFile (const std::string& dir, const std::string& name,
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
-template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>::value>::type*>
+template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>&>::value>::type*>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::WritePlotFile (const std::string& dir, const std::string& name, F&& f) const
