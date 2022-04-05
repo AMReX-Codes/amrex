@@ -90,7 +90,6 @@ auto
 ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename PC::SuperParticleType()))
 {
     using value_type = decltype(f(typename PC::SuperParticleType()));
-    using ParIter = typename PC::ParConstIterType;
     value_type sm = 0;
 
 #ifdef AMREX_USE_GPU
@@ -216,7 +215,6 @@ auto
 ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename PC::SuperParticleType()))
 {
     using value_type = decltype(f(typename PC::SuperParticleType()));
-    using ParIter = typename PC::ParConstIterType;
     constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
     value_type r = value_lowest;
 
@@ -343,7 +341,6 @@ auto
 ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename PC::SuperParticleType()))
 {
     using value_type = decltype(f(typename PC::SuperParticleType()));
-    using ParIter = typename PC::ParConstIterType;
     constexpr value_type value_max = std::numeric_limits<value_type>::max();
     value_type r = value_max;
 
@@ -469,7 +466,6 @@ template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, in
 bool
 ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
 {
-    using ParIter = typename PC::ParConstIterType;
     int r = true;
 
 #ifdef AMREX_USE_GPU
@@ -594,7 +590,6 @@ template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, in
 bool
 ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
 {
-    using ParIter = typename PC::ParConstIterType;
     int r = false;
 
 #ifdef AMREX_USE_GPU
@@ -778,7 +773,6 @@ typename RD::Type
 ParticleReduce (PC const& pc, int lev_min, int lev_max, F&& f, ReduceOps& reduce_ops)
 {
     RD reduce_data(reduce_ops);
-    using ParIter = typename PC::ParConstIterType;
 #if !defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP)
 #pragma omp parallel
 #endif
