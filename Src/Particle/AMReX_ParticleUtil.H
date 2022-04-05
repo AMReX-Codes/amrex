@@ -53,6 +53,41 @@ auto call_f (F const& f, SrcData const& src, N i, amrex::RandomEngine const&) no
     return f(src,i);
 }
 
+// The next several functions are used by ParticleReduce
+
+// Lambda takes a Particle
+template <typename F, int NSR, int NSI, int NAR, int NAI>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f,
+             const ConstParticleTileData<NSR, NSI, NAR, NAI>& p,
+             const int i) noexcept
+    -> decltype(f(p.m_aos[i]))
+{
+    return f(p.m_aos[i]);
+}
+
+// Lambda takes a SuperParticle
+template <typename F, int NSR, int NSI, int NAR, int NAI>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f,
+             const ConstParticleTileData<NSR, NSI, NAR, NAI>& p,
+             const int i) noexcept
+    -> decltype(f(p.getSuperParticle(i)))
+{
+    return f(p.getSuperParticle(i));
+}
+
+// Lambda takes a ConstParticleTileData
+template <typename F, int NSR, int NSI, int NAR, int NAI>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f,
+             const ConstParticleTileData<NSR, NSI, NAR, NAI>& p,
+             const int i) noexcept
+    -> decltype(f(p, i))
+{
+    return f(p, i);
+}
+
 // These next several functions are used by ParticleToMesh and MeshToParticle
 
 // Lambda takes a Particle

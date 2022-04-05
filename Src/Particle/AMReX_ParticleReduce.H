@@ -8,6 +8,7 @@
 #include <AMReX_Print.H>
 #include <AMReX_GpuUtility.H>
 #include <AMReX_TypeTraits.H>
+#include <AMReX_ParticleUtil.H>
 
 #include <limits>
 
@@ -34,7 +35,8 @@ namespace amrex
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
-ReduceSum (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
+ReduceSum (PC const& pc, F&& f)
+    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
     return ReduceSum(pc, 0, pc.finestLevel(), std::forward<F>(f));
 }
@@ -60,7 +62,8 @@ ReduceSum (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
-ReduceSum (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticleType()))
+ReduceSum (PC const& pc, int lev, F&& f)
+    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
     return ReduceSum(pc, lev, lev, std::forward<F>(f));
 }
@@ -87,9 +90,10 @@ ReduceSum (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticl
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
-ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename PC::SuperParticleType()))
+ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f)
+    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
-    using value_type = decltype(f(typename PC::SuperParticleType()));
+    using value_type = decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()));
     using ParIter = typename PC::ParConstIterType;
     value_type sm = 0;
 
@@ -108,7 +112,9 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
                 const auto np = tile.numParticles();
                 const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
-                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {return {f(ptd.getSuperParticle(i))};});
+                               [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {
+                                   return particle_detail::call_f(f, ptd, i);
+                               });
             }
         }
 
@@ -129,7 +135,7 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
                 const auto np = tile.numParticles();
                                 const auto ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i)
-                    sm += f(ptd.getSuperParticle(i));
+                    sm += particle_detail::call_f(f, ptd, i);
             }
         }
     }
@@ -157,7 +163,8 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
-ReduceMax (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
+ReduceMax (PC const& pc, F&& f)
+    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
     return ReduceMax(pc, 0, pc.finestLevel(), std::forward<F>(f));
 }
@@ -183,7 +190,8 @@ ReduceMax (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
-ReduceMax (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticleType()))
+ReduceMax (PC const& pc, int lev, F&& f)
+    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
     return ReduceMax(pc, lev, lev, std::forward<F>(f));
 }
@@ -210,9 +218,10 @@ ReduceMax (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticl
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
-ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename PC::SuperParticleType()))
+ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f)
+    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
-    using value_type = decltype(f(typename PC::SuperParticleType()));
+    using value_type = decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()));
     using ParIter = typename PC::ParConstIterType;
     constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
     value_type r = value_lowest;
@@ -232,7 +241,9 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
                 const auto np = tile.numParticles();
                                 const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
-                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {return {f(ptd.getSuperParticle(i))};});
+                               [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {
+                                   return particle_detail::call_f(f, ptd, i);
+                               });
             }
         }
 
@@ -253,7 +264,7 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
                 const auto np = tile.numParticles();
                                 const auto ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i)
-                    r = std::max(r, f(ptd.getSuperParticle(i)));
+                    r = std::max(r, particle_detail::call_f(f, ptd, i));
             }
         }
     }
@@ -281,7 +292,8 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
-ReduceMin (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
+ReduceMin (PC const& pc, F&& f)
+    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
     return ReduceMin(pc, 0, pc.finestLevel(), std::forward<F>(f));
 }
@@ -307,7 +319,8 @@ ReduceMin (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
-ReduceMin (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticleType()))
+ReduceMin (PC const& pc, int lev, F&& f)
+    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
     return ReduceMin(pc, lev, lev, std::forward<F>(f));
 }
@@ -334,9 +347,10 @@ ReduceMin (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticl
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
-ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename PC::SuperParticleType()))
+ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f)
+    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
-    using value_type = decltype(f(typename PC::SuperParticleType()));
+    using value_type = decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()));
     using ParIter = typename PC::ParConstIterType;
     constexpr value_type value_max = std::numeric_limits<value_type>::max();
     value_type r = value_max;
@@ -356,7 +370,9 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
                 const auto np = tile.numParticles();
                                 const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
-                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {return {f(ptd.getSuperParticle(i))};});
+                               [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {
+                                   return particle_detail::call_f(f, ptd, i);
+                               });
             }
         }
 
@@ -377,7 +393,7 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
                 const auto np = tile.numParticles();
                                 const auto ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i)
-                    r = std::min(r, f(ptd.getSuperParticle(i)));
+                    r = std::min(r, particle_detail::call_f(f, ptd, i));
             }
         }
     }
@@ -478,7 +494,9 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
                 const auto np = tile.numParticles();
                                 const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
-                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {return {f(ptd.getSuperParticle(i))};});
+                               [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {
+                                   return particle_detail::call_f(f, ptd, i);
+                               });
             }
         }
 
@@ -499,7 +517,7 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
                 const auto np = tile.numParticles();
                                 const auto ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i)
-                    r = r && f(ptd.getSuperParticle(i));
+                    r = r && particle_detail::call_f(f, ptd, i);
             }
         }
     }
@@ -600,7 +618,10 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
                 const auto np = tile.numParticles();
                                 const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
-                                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {return {f(ptd.getSuperParticle(i))};});
+                               [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple
+                               {
+                                   return particle_detail::call_f(f, ptd, i);
+                               });
             }
         }
 
@@ -621,8 +642,7 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
                 const auto np = tile.numParticles();
                                 const auto ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i)
-                    r = r || f(ptd.getSuperParticle(i));
-
+                    r = r || particle_detail::call_f(f, ptd, i);
             }
         }
     }
@@ -775,7 +795,7 @@ ParticleReduce (PC const& pc, int lev_min, int lev_max, F&& f, ReduceOps& reduce
             reduce_ops.eval(np, reduce_data,
                             [=] AMREX_GPU_DEVICE (const int i) noexcept
                             {
-                                return f(ptd.getSuperParticle(i));
+                                return particle_detail::call_f(f, ptd, i);
                             });
         }
     }
