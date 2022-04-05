@@ -2,12 +2,14 @@
 #define AMREX_REALVECT_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_Array.H>
 #include <AMReX_Box.H>
 #include <AMReX_REAL.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Math.H>
+#include <AMReX_Vector.H>
 
 #include <cmath>
 #include <cstddef>
@@ -45,9 +47,11 @@ public:
   AMREX_GPU_HOST_DEVICE
   constexpr RealVect () noexcept : vect{AMREX_D_DECL(0.,0.,0.)} {}
 
-  explicit RealVect (const std::vector<Real>& vr) noexcept : vect{AMREX_D_DECL(vr[0],vr[1],vr[2])} {
+  explicit RealVect (const Vector<Real>& vr) noexcept : vect{AMREX_D_DECL(vr[0],vr[1],vr[2])} {
       BL_ASSERT(vr.size() == AMREX_SPACEDIM);
   }
+
+  explicit RealVect (const Array<Real,AMREX_SPACEDIM>& ar) noexcept : vect{AMREX_D_DECL(ar[0],ar[1],ar[2])} {}
 
   ///
   /**
