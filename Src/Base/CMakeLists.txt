@@ -16,6 +16,7 @@ target_sources( amrex
    AMReX_Tuple.H
    AMReX.cpp
    AMReX_error_fi.cpp
+   AMReX_Version.cpp
    AMReX.H
    AMReX_Exception.H
    AMReX_Extension.H
@@ -230,7 +231,6 @@ target_sources( amrex
    AMReX_MemPool.cpp
    AMReX_MemPool.H
    # Profiling ---------------------------------------------------------------
-   AMReX_BLProfiler.cpp
    AMReX_BLBackTrace.cpp
    # Parser ---------------------------------------------------------------
    Parser/AMReX_Parser.cpp
@@ -256,6 +256,16 @@ target_sources( amrex
    # Forward declaration -----------------------------------------------------
    AMReX_BaseFwd.H
    )
+
+# Profiling
+#   this source file has zero symbols in default conditions, which creates
+#   ranlib warnings, e.g., on macOS
+if(AMREX_PROFILING OR AMReX_FORTRAN)
+   target_sources( amrex
+     PRIVATE
+       AMReX_BLProfiler.cpp
+   )
+endif()
 
 # Fortran stuff
 if (AMReX_FORTRAN)

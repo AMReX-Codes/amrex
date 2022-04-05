@@ -69,6 +69,8 @@ struct ParticleCopyOp
         auto mit = m_boxes[lev].find(gid);
         return mit == m_boxes[lev].end() ? 0 : mit->second.size();
     }
+
+    int numLevels () const { return m_boxes.size(); }
 };
 
 struct ParticleCopyPlan
@@ -131,7 +133,7 @@ struct ParticleCopyPlan
 
         const int ngrow = 1;  // note - fix
 
-        const int num_levels = pc.BufferMap().numLevels();
+        const int num_levels = op.numLevels();
         const int num_buckets = pc.BufferMap().numBuckets();
 
         if (m_local)
@@ -292,7 +294,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 
     Long psize = plan.superParticleSize();
 
-    int num_levels = pc.BufferMap().numLevels();
+    int num_levels = op.numLevels();
     int num_buckets = pc.BufferMap().numBuckets();
 
     Long total_buffer_size = 0;
@@ -312,14 +314,12 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
     auto p_comm_real = plan.d_real_comp_mask.dataPtr();
     auto p_comm_int  = plan.d_int_comp_mask.dataPtr();
 
+    const auto plo = pc.Geom(0).ProbLoArray();
+    const auto phi = pc.Geom(0).ProbHiArray();
+    const auto is_per = pc.Geom(0).isPeriodicArray();
     for (int lev = 0; lev < num_levels; ++lev)
     {
-        const auto& geom = pc.Geom(lev);
         auto& plev = pc.GetParticles(lev);
-        const auto plo = geom.ProbLoArray();
-        const auto phi = geom.ProbHiArray();
-        const auto is_per = geom.isPeriodicArray();
-
         for (auto& kv : plev)
         {
             int gid = kv.first.first;

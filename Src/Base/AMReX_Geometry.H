@@ -193,6 +193,14 @@ public:
         return {{AMREX_D_DECL(prob_domain.hi(0),prob_domain.hi(1),prob_domain.hi(2))}};
     }
 
+    GpuArray<Real,AMREX_SPACEDIM> RoundoffLoArray () const noexcept {
+        return {{AMREX_D_DECL(roundoff_domain.lo(0),roundoff_domain.lo(1),roundoff_domain.lo(2))}};
+    }
+
+    GpuArray<Real,AMREX_SPACEDIM> RoundoffHiArray () const noexcept {
+        return {{AMREX_D_DECL(roundoff_domain.hi(0),roundoff_domain.hi(1),roundoff_domain.hi(2))}};
+    }
+
     //! Returns the overall size of the domain by multiplying the ProbLength's together
     Real ProbSize () const noexcept
     {

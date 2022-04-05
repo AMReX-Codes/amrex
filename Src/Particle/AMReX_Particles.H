@@ -352,6 +352,25 @@ public:
         resizeData();
     }
 
+    //! \brief Define a default-constructed ParticleContainer using a ParGDB object.
+    //! Multi-level version
+    //!
+    //! \param geom A Vector of Geometry objects, one for each level
+    //! \param dmap A Vector of DistributionMappings, one for each level
+    //! \param ba A Vector of BoxArrays, one for each level
+    //! \param rr A Vector of integer refinement ratios, of size num_levels - 1. rr[n] gives the
+    //! refinement ratio between levels n and n+1
+    //!
+    void Define (const Vector<Geometry>            & geom,
+                 const Vector<DistributionMapping> & dmap,
+                 const Vector<BoxArray>            & ba,
+                 const Vector<IntVect>             & rr)
+    {
+        this->ParticleContainerBase::Define(geom, dmap, ba, rr);
+        reserveData();
+        resizeData();
+    }
+
     //! \brief The total number of tiles on this rank on this level
     int numLocalTilesAtLevel (int lev) const { return m_particles[lev].size(); }
 

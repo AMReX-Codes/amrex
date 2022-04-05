@@ -7,7 +7,7 @@ C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Algorithm.H AMReX_Array.H AMReX
 # Utility classes.
 #
 C$(AMREX_BASE)_headers += AMReX.H AMReX_Exception.H
-C$(AMREX_BASE)_sources += AMReX.cpp AMReX_error_fi.cpp
+C$(AMREX_BASE)_sources += AMReX.cpp AMReX_error_fi.cpp AMReX_Version.cpp
 
 C$(AMREX_BASE)_headers += AMReX_Extension.H
 

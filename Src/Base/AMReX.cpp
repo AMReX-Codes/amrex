@@ -55,7 +55,7 @@
 #include <omp.h>
 #endif
 
-#if defined(__APPLE__) && !defined(__arm64__)
+#if defined(__APPLE__) && defined(__x86_64__)
 #include <xmmintrin.h>
 #endif
 
@@ -114,7 +114,7 @@ namespace {
 #if defined(__linux__)
     int           prev_fpe_excepts;
     int           curr_fpe_excepts;
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) && defined(__x86_64__)
     unsigned int  prev_fpe_mask;
     unsigned int  curr_fpe_excepts;
 #endif
@@ -125,15 +125,6 @@ namespace {
     int init_hypre = 1;
 }
 #endif
-
-std::string amrex::Version ()
-{
-#ifdef AMREX_GIT_VERSION
-    return std::string(AMREX_GIT_VERSION);
-#else
-    return std::string("Unknown");
-#endif
-}
 
 int amrex::Verbose () noexcept { return amrex::system::verbose; }
 
@@ -483,7 +474,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             }
 #endif
 
-#elif defined(__APPLE__) && !defined(__arm64__)
+#elif defined(__APPLE__) && defined(__x86_64__)
             prev_fpe_mask = _MM_GET_EXCEPTION_MASK();
             curr_fpe_excepts = 0u;
             if (invalid)   curr_fpe_excepts |= _MM_MASK_INVALID;
@@ -680,7 +671,7 @@ amrex::Finalize (amrex::AMReX* pamrex)
             feenableexcept(prev_fpe_excepts);
         }
 #endif
-#elif defined(__APPLE__) && !defined(__arm64__)
+#elif defined(__APPLE__) && defined(__x86_64__)
         if (curr_fpe_excepts != 0u) {
             _MM_SET_EXCEPTION_MASK(prev_fpe_mask);
         }

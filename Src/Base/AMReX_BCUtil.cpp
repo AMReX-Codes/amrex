@@ -1,6 +1,9 @@
 #include <AMReX_BCUtil.H>
 #include <AMReX_PhysBCFunct.H>
 
+// CUDA 11.6 bug: https://github.com/AMReX-Codes/amrex/issues/2607
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 11) || (__CUDACC_VER_MINOR__ != 6)
+
 namespace amrex
 {
 
@@ -53,3 +56,5 @@ void FillDomainBoundary (MultiFab& phi, const Geometry& geom, const Vector<BCRec
 }
 
 }
+
+#endif
