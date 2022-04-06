@@ -200,6 +200,9 @@ private:
     std::string chk_file {"chk"};
     int chk_int = -1;
 
+    //number of ghost cells on facevel
+    int nghost = 2;
+
 #ifdef AMREX_PARTICLES
     void init_particles ();
     static int       do_tracers;

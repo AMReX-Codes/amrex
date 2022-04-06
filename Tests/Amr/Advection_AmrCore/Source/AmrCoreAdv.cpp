@@ -199,10 +199,10 @@ AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
                                     const DistributionMapping& dm)
 {
     const int ncomp = phi_new[lev-1].nComp();
-    const int nghost = phi_new[lev-1].nGrow();
+    const int ng = phi_new[lev-1].nGrow();
 
-    phi_new[lev].define(ba, dm, ncomp, nghost);
-    phi_old[lev].define(ba, dm, ncomp, nghost);
+    phi_new[lev].define(ba, dm, ncomp, ng);
+    phi_old[lev].define(ba, dm, ncomp, ng);
 
     t_new[lev] = time;
     t_old[lev] = time - 1.e200;
@@ -210,7 +210,7 @@ AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
     // This clears the old MultiFab and allocates the new one
     for (int idim = 0; idim < AMREX_SPACEDIM; idim++)
     {
-        facevel[lev][idim] = MultiFab(amrex::convert(ba,IntVect::TheDimensionVector(idim)), dm, 1, 1);
+        facevel[lev][idim] = MultiFab(amrex::convert(ba,IntVect::TheDimensionVector(idim)), dm, 1, nghost);
     }
 
     if (lev > 0 && do_reflux) {
@@ -228,10 +228,10 @@ AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
                          const DistributionMapping& dm)
 {
     const int ncomp = phi_new[lev].nComp();
-    const int nghost = phi_new[lev].nGrow();
+    const int ng = phi_new[lev].nGrow();
 
-    MultiFab new_state(ba, dm, ncomp, nghost);
-    MultiFab old_state(ba, dm, ncomp, nghost);
+    MultiFab new_state(ba, dm, ncomp, ng);
+    MultiFab old_state(ba, dm, ncomp, ng);
 
     FillPatch(lev, time, new_state, 0, ncomp);
 
@@ -244,7 +244,7 @@ AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
     // This clears the old MultiFab and allocates the new one
     for (int idim = 0; idim < AMREX_SPACEDIM; idim++)
     {
-        facevel[lev][idim] = MultiFab(amrex::convert(ba,IntVect::TheDimensionVector(idim)), dm, 1, 1);
+        facevel[lev][idim] = MultiFab(amrex::convert(ba,IntVect::TheDimensionVector(idim)), dm, 1, nghost);
     }
 
     if (lev > 0 && do_reflux) {
@@ -269,10 +269,10 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
                                           const DistributionMapping& dm)
 {
     const int ncomp = 1;
-    const int nghost = 0;
+    const int ng = 0;
 
-    phi_new[lev].define(ba, dm, ncomp, nghost);
-    phi_old[lev].define(ba, dm, ncomp, nghost);
+    phi_new[lev].define(ba, dm, ncomp, ng);
+    phi_old[lev].define(ba, dm, ncomp, ng);
 
     t_new[lev] = time;
     t_old[lev] = time - 1.e200;
@@ -280,7 +280,7 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
     // This clears the old MultiFab and allocates the new one
     for (int idim = 0; idim < AMREX_SPACEDIM; idim++)
     {
-        facevel[lev][idim] = MultiFab(amrex::convert(ba,IntVect::TheDimensionVector(idim)), dm, 1, 1);
+        facevel[lev][idim] = MultiFab(amrex::convert(ba,IntVect::TheDimensionVector(idim)), dm, 1, nghost);
     }
 
     if (lev > 0 && do_reflux) {
@@ -600,9 +600,8 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
 
     DefineVelocityAtLevel(lev, t_nph);
     AdvancePhiAtLevel(lev, time, dt[lev], iteration, nsubsteps[lev]);
-    //
-//HACK -- do I need to regrid after ever level change, or can I do it once after everything else
-// has been done?
+
+
 #ifdef AMREX_PARTICLES
     if (do_tracers) {
         TracerPC->AdvectWithUmac(facevel[lev].data(),lev,dt[lev]);
@@ -634,10 +633,6 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
         AverageDownTo(lev); // average lev+1 down to lev
     }
 
-// evolve_mod.F90 lines 128 - 135, does a redistribute with ngrow depending on level here.
-//
-// These two ifdef blocks ended up giving exactly the same answer ( at this point,
-// which could mean sometimes else is still wrong ..)
 
 #ifdef AMREX_PARTICLES
     int redistribute_ngrow = 0;
@@ -649,16 +644,8 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
             redistribute_ngrow = iteration;
         }
         TracerPC->Redistribute(lev, TracerPC->finestLevel(), redistribute_ngrow);
-        //TracerPC->Redistribute(lev, -1, redistribute_ngrow, 0, true);
     }
 #endif
-
-//#ifdef AMREX_PARTICLES
-//    if (do_tracers) {
-//        TracerPC->Redistribute();
-//    }
-//#endif
-
 
 }
 
@@ -1015,9 +1002,9 @@ AmrCoreAdv::ReadCheckpointFile ()
 
         // build MultiFab and FluxRegister data
         int ncomp = 1;
-        int nghost = 0;
-        phi_old[lev].define(grids[lev], dmap[lev], ncomp, nghost);
-        phi_new[lev].define(grids[lev], dmap[lev], ncomp, nghost);
+        int ng = 0;
+        phi_old[lev].define(grids[lev], dmap[lev], ncomp, ng);
+        phi_new[lev].define(grids[lev], dmap[lev], ncomp, ng);
 
         if (lev > 0 && do_reflux) {
             flux_reg[lev] = std::make_unique<FluxRegister>(grids[lev], dmap[lev], refRatio(lev-1), lev, ncomp);
