@@ -792,7 +792,7 @@ public:
      * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>::value>::type* = nullptr>
+    template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>&>::value>::type* = nullptr>
     void WritePlotFile (const std::string& dir, const std::string& name, F&& f) const;
 
     /**
