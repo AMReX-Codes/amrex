@@ -133,8 +133,8 @@ private:
         {
             amrex::ParmParse pp_mri("integration.sundials.mri");
             pp_mri.query("implicit_inner", use_implicit_inner);
-	    pp_mri.get("outer_method", mri_outer_method);
-	    pp_mri.get("inner_method", mri_inner_method);
+            pp_mri.get("outer_method", mri_outer_method);
+            pp_mri.get("inner_method", mri_inner_method);
         }
 
         // SUNDIALS specific objects
@@ -368,7 +368,7 @@ public:
         nv_S = N_VNew_ManyVector(NVar, nv_many_arr, sunctx);
         nv_stage_data = N_VClone(nv_S);
 
-	// Copy the initial step data to nv_stage_data
+        // Copy the initial step data to nv_stage_data
         for(int i=0; i<N_VGetNumSubvectors_ManyVector(nv_S); i++)
         {
            MultiFab* mf_y = amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_S, i));
