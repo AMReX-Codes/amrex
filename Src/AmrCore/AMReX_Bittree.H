@@ -15,8 +15,20 @@ using namespace bittree;
 
 namespace amrex {
 
+/* 
+Include in Make.local:
+BITTREE_PATH = /path/to/bittree/installation
+INCLUDE_LOCATIONS += $(BITTREE_PATH)/include
+LIBRARY_LOCATIONS += $(BITTREE_PATH)/lib
+LIBRARIES += -lbittree
+
+Include in inputs:
+amr.use_bittree = true
+
+ */
+
 class btUnit {
-  // Functions
+  // Functions corresponding to the three steps of the Bittree version of MakeNewGrids
   public:
     static void btErrorEst( std::shared_ptr<BittreeAmr> mesh );
     static void btRefine( std::shared_ptr<BittreeAmr> mesh );
@@ -26,6 +38,7 @@ class btUnit {
                                 Vector<DistributionMapping>& new_dm,
                                 Vector<IntVect>& max_grid_size);
 
+  // Functions imported from Flash-X
   private:
     static void btCheckRefine( std::shared_ptr<BittreeAmr> mesh );
     static void btCheckDerefine( std::shared_ptr<BittreeAmr> mesh );

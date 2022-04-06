@@ -7,7 +7,6 @@
 
 namespace amrex {
 
-// static variable initialization
 std::vector<bool> btUnit::refine;
 std::vector<bool> btUnit::derefine;
 std::vector<std::vector<unsigned>> btUnit::lcoord;
@@ -17,25 +16,24 @@ std::vector<bool> btUnit::is_par;
 std::vector<std::vector<double>> btUnit::error;
 std::vector<std::vector<double>> btUnit::error_par;
 
-//NOTE: Create bittree in AmrMesh::MakeNewGrids (Real time)
-//   with
-//      `mesh = std::make_shared<BittreeAmr>(top,includes);`
+/*
+NOTE: Bittree object is created in AmrMesh::MakeNewGrids (Real time)
+   with
+      `mesh = std::make_shared<BittreeAmr>(top,includes);`
 
-/* Structure of AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& new_grids)
-The BT version of MakeNewGrids should have three steps:
-    - Error Estimation and tagging - this is TBD, can use either the
-      below routine or a more AMReX-style tagging
+The functions here are called in the BT version of MakeNewGrids which has three steps:
+    1. Error Estimation and tagging - btErrorEst
 
-    - Bitree mesh generated - btRefineInitalize
+    2. Bitree mesh generated/updated - btRefineInitalize
 
-    - AMReX updates grids based on bitree - adapt gr_btMakeNewGridsCallback.F90
+    3. AMReX updates grids based on bitree - btMakeNewGrids
 */
 
 /** Error estimation and tagging for refinement/derefinement.
-  * This is application specific, needs a callback to some error
-  * estimation routine.
+  * This is implemented below in a paramesh-like algorithm
+  * but this could be all changed to fit AMReX.
   *
-  * Requirements: two lists are created: `refine` and `derefine`, with
+  * The requirement is that two lists are created: `refine` and `derefine`, with
   * flags for all local blocks marking them for refinement/derefinement.
   */
 void btUnit::btErrorEst( std::shared_ptr<BittreeAmr> mesh ) {
@@ -58,16 +56,17 @@ void btUnit::btErrorEst( std::shared_ptr<BittreeAmr> mesh ) {
 
 
     // Loop over local blocks to cache metadata in order of morton curve.
-    // In this case I used bittree functionality to actually get the
-    // coordinates and level of the list of blocks, but
-    // in AMReX this data can be gotten elsewhere obviously.
     unsigned id0 = tree0->level_id0(0);
     unsigned id1 = tree0->id_upper_bound();
     for( unsigned lb = id0; lb < id1; ++lb) {
+        // In this case I used bittree functionality to actually get the
+        // coordinates and level of the list of blocks, but
+        // in AMReX this data can be gotten elsewhere obviously.
         MortonTree::Block actual = tree0->locate(lb);
 
-        // Bittree calcualtes blkID - the local ID the block would have
-        // in paramesh
+        // Bittree calcualtes blkID - such that the pair (rank, blkID)
+        // uniquely identifies a block (grid). For one rank, this is just equal
+        // to the index of the block in the morton curve.
         MortonTree::Block b = tree0->identify( actual.level, actual.coord);
         unsigned blkID = b.mort;
 
@@ -83,11 +82,7 @@ void btUnit::btErrorEst( std::shared_ptr<BittreeAmr> mesh ) {
         // Estimate error
         double error_calc_result;
         for(unsigned v=0; v<NVARS; ++v) {
-            // TODO replace with actual calculation
-            //error_calc_result = 0; 
-            //for(unsigned d=0; d<AMREX_SPACEDIM; ++d)
-            //  if(lcoord[blkID][d]==0) error_calc_result += 1.0/AMREX_SPACEDIM;
-
+            // TODO actually do error estimation and tagging
             error[blkID][v] = 0.5;
         }
     }
@@ -127,6 +122,8 @@ void btUnit::btErrorEst( std::shared_ptr<BittreeAmr> mesh ) {
       for(unsigned v=0; v<NVARS; ++v) { 
 
         // These are application parameters, could be different per var
+        // Since error is hard coded to 0.5 above, nothing is marked for
+        // refinement or derefinement.
         refineCutoff = 0.99;
         derefineCutoff = 0.0; 
 
@@ -161,16 +158,15 @@ void btUnit::btErrorEst( std::shared_ptr<BittreeAmr> mesh ) {
 
 /** New Bittree mesh is generated.
   *
-  * This routine should be more-or-less copy pasted into AMReX.
+  * This makes use of BT library functions and as well as routines adapted
+  * from Flash-X that enforce Octree logic.
   */
 void btUnit::btRefine( std::shared_ptr<BittreeAmr> mesh ) {
     // Tree before refinement. With only one rank, lnblocks = nblocks.
     auto tree0 = mesh->getTree();
     unsigned lnblocks = tree0->blocks();
 
-//--Initialize bittree refinement and mark leaves to be refined
-    //mesh->refine_init();
-
+//--Mark leaves to be refined
     for( unsigned lb = 0; lb<lnblocks; ++lb) {
       if (refine[lb]) {
         mesh->refine_mark(bitid[lb], true);
@@ -180,7 +176,7 @@ void btUnit::btRefine( std::shared_ptr<BittreeAmr> mesh ) {
 
     btCheckRefine(mesh);
 
-    // mark for derefinement
+//--Mark leaves for derefinement (on BT, parent is marked for nodetype change)
     for( unsigned lb = 0; lb<lnblocks; ++lb) {
       if (derefine[lb]) {
         unsigned parCoord[AMREX_SPACEDIM];
@@ -232,9 +228,7 @@ void btUnit::btMakeNewGrids(std::shared_ptr<BittreeAmr> mesh, int lbase,
             std::string msg = "Error identifying block in btMakeNewGrids";
         }
 
-        //Calculate the processor based on position in the global Morton curve.
-        //(This also calculates a local index that Paramesh uses, ignored here.)
-        //call calc_proc_locblk(nprocs,localMortUB,mort,proc,locblk)
+        //TODO Calculate the processor based on position in the global Morton curve.
         int proc = 0;
 
         IntVect coordVec{AMREX_D_DECL(static_cast<int>(b.coord[0]),
@@ -285,7 +279,7 @@ void btUnit::btCheckRefine( std::shared_ptr<BittreeAmr> mesh ) {
             std::vector<int> gCell{li,lj,lk};
 
             auto neighCoord = calcNeighIntCoords(lev[lb], lcoord[lb].data(), gCell.data(), mesh);
-            // TODO continue if any(neighCoords<0)
+            // TODO skip if any(neighCoords<0)
             unsigned neighCoord_u[AMREX_SPACEDIM];
             for(unsigned d=0; d<AMREX_SPACEDIM; ++d) neighCoord_u[d] = static_cast<unsigned>(neighCoord[d]);
             auto b = tree0->identify(lev[lb], neighCoord_u);
@@ -415,6 +409,7 @@ void btUnit::btCheckDerefine( std::shared_ptr<BittreeAmr> mesh ) {
 }
 
 /** Calculate integer coordinates of neighbors, taking into acount BCs.
+  * Currently assuming Periodic in all directions.
   */
 std::vector<int> btUnit::calcNeighIntCoords(unsigned lev, unsigned* lcoord, int* gCell, std::shared_ptr<BittreeAmr> mesh) {
     auto tree = mesh->getTree();
