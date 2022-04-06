@@ -9,8 +9,10 @@
 #include <AMReX_GpuUtility.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_ParticleUtil.H>
+#include <AMReX_Vector.H>
 
 #include <limits>
+#include <utility>
 
 namespace amrex
 {
@@ -94,7 +96,6 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f)
     -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
     using value_type = decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()));
-    using ParIter = typename PC::ParConstIterType;
     value_type sm = 0;
 
 #ifdef AMREX_USE_GPU
@@ -106,9 +107,10 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f)
 
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+            const auto& plev = pc.GetParticles(lev);
+            for (const auto& kv : plev)
             {
-                const auto& tile = pti.GetParticleTile();
+                const auto& tile = plev.at(std::make_pair(kv.first.first, kv.first.second));
                 const auto np = tile.numParticles();
                 const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
@@ -126,16 +128,25 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f)
     {
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
-#endif
-            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+            const auto& plev = pc.GetParticles(lev);
+            Vector<std::pair<int, int> > grid_tile_ids;
+            Vector<const typename PC::ParticleTileType*> ptile_ptrs;
+            for (auto& kv : plev)
             {
-                const auto& tile = pti.GetParticleTile();
+                grid_tile_ids.push_back(kv.first);
+                ptile_ptrs.push_back(&(kv.second));
+            }
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for if (!system::regtest_reduction) reduction(+:sm)
+#endif
+            for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+            {
+                const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
-                                const auto ptd = tile.getConstParticleTileData();
-                for (int i = 0; i < np; ++i)
+                const auto ptd = tile.getConstParticleTileData();
+                for (int i = 0; i < np; ++i) {
                     sm += particle_detail::call_f(f, ptd, i);
+                }
             }
         }
     }
@@ -222,7 +233,6 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f)
     -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
     using value_type = decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()));
-    using ParIter = typename PC::ParConstIterType;
     constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
     value_type r = value_lowest;
 
@@ -235,11 +245,12 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f)
 
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+            const auto& plev = pc.GetParticles(lev);
+            for (const auto& kv : plev)
             {
-                const auto& tile = pti.GetParticleTile();
+                const auto& tile = plev.at(std::make_pair(kv.first.first, kv.first.second));
                 const auto np = tile.numParticles();
-                                const auto ptd = tile.getConstParticleTileData();
+                const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
                                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {
                                    return particle_detail::call_f(f, ptd, i);
@@ -255,16 +266,25 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f)
     {
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(max:r)
-#endif
-            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+            const auto& plev = pc.GetParticles(lev);
+            Vector<std::pair<int, int> > grid_tile_ids;
+            Vector<const typename PC::ParticleTileType*> ptile_ptrs;
+            for (auto& kv : plev)
             {
-                const auto& tile = pti.GetParticleTile();
+                grid_tile_ids.push_back(kv.first);
+                ptile_ptrs.push_back(&(kv.second));
+            }
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for if (!system::regtest_reduction) reduction(max:r)
+#endif
+            for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+            {
+                const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
-                                const auto ptd = tile.getConstParticleTileData();
-                for (int i = 0; i < np; ++i)
+                const auto ptd = tile.getConstParticleTileData();
+                for (int i = 0; i < np; ++i) {
                     r = std::max(r, particle_detail::call_f(f, ptd, i));
+                }
             }
         }
     }
@@ -351,7 +371,6 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f)
     -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
     using value_type = decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()));
-    using ParIter = typename PC::ParConstIterType;
     constexpr value_type value_max = std::numeric_limits<value_type>::max();
     value_type r = value_max;
 
@@ -364,11 +383,12 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f)
 
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+            const auto& plev = pc.GetParticles(lev);
+            for (const auto& kv : plev)
             {
-                const auto& tile = pti.GetParticleTile();
+                const auto& tile = plev.at(std::make_pair(kv.first.first, kv.first.second));
                 const auto np = tile.numParticles();
-                                const auto ptd = tile.getConstParticleTileData();
+                const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
                                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {
                                    return particle_detail::call_f(f, ptd, i);
@@ -384,16 +404,25 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f)
     {
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(min:r)
-#endif
-            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+            const auto& plev = pc.GetParticles(lev);
+            Vector<std::pair<int, int> > grid_tile_ids;
+            Vector<const typename PC::ParticleTileType*> ptile_ptrs;
+            for (auto& kv : plev)
             {
-                const auto& tile = pti.GetParticleTile();
+                grid_tile_ids.push_back(kv.first);
+                ptile_ptrs.push_back(&(kv.second));
+            }
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for if (!system::regtest_reduction) reduction(min:r)
+#endif
+            for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+            {
+                const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
-                                const auto ptd = tile.getConstParticleTileData();
-                for (int i = 0; i < np; ++i)
+                const auto ptd = tile.getConstParticleTileData();
+                for (int i = 0; i < np; ++i) {
                     r = std::min(r, particle_detail::call_f(f, ptd, i));
+                }
             }
         }
     }
@@ -476,7 +505,6 @@ template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, in
 bool
 ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
 {
-    using ParIter = typename PC::ParConstIterType;
     int r = true;
 
 #ifdef AMREX_USE_GPU
@@ -488,11 +516,12 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
 
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+            const auto& plev = pc.GetParticles(lev);
+            for (const auto& kv : plev)
             {
-                const auto& tile = pti.GetParticleTile();
+                const auto& tile = plev.at(std::make_pair(kv.first.first, kv.first.second));
                 const auto np = tile.numParticles();
-                                const auto ptd = tile.getConstParticleTileData();
+                const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
                                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {
                                    return particle_detail::call_f(f, ptd, i);
@@ -508,16 +537,25 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
     {
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(&&:r)
-#endif
-            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+            const auto& plev = pc.GetParticles(lev);
+            Vector<std::pair<int, int> > grid_tile_ids;
+            Vector<const typename PC::ParticleTileType*> ptile_ptrs;
+            for (auto& kv : plev)
             {
-                const auto& tile = pti.GetParticleTile();
+                grid_tile_ids.push_back(kv.first);
+                ptile_ptrs.push_back(&(kv.second));
+            }
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for if (!system::regtest_reduction) reduction(&&:r)
+#endif
+            for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+            {
+                const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
-                                const auto ptd = tile.getConstParticleTileData();
-                for (int i = 0; i < np; ++i)
+                const auto ptd = tile.getConstParticleTileData();
+                for (int i = 0; i < np; ++i) {
                     r = r && particle_detail::call_f(f, ptd, i);
+                }
             }
         }
     }
@@ -600,7 +638,6 @@ template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, in
 bool
 ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
 {
-    using ParIter = typename PC::ParConstIterType;
     int r = false;
 
 #ifdef AMREX_USE_GPU
@@ -612,11 +649,12 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
 
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+            const auto& plev = pc.GetParticles(lev);
+            for (const auto& kv : plev)
             {
-                const auto& tile = pti.GetParticleTile();
+                const auto& tile = plev.at(std::make_pair(kv.first.first, kv.first.second));
                 const auto np = tile.numParticles();
-                                const auto ptd = tile.getConstParticleTileData();
+                const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
                                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple
                                {
@@ -633,16 +671,25 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
     {
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(||:r)
-#endif
-            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+            const auto& plev = pc.GetParticles(lev);
+            Vector<std::pair<int, int> > grid_tile_ids;
+            Vector<const typename PC::ParticleTileType*> ptile_ptrs;
+            for (auto& kv : plev)
             {
-                const auto& tile = pti.GetParticleTile();
+                grid_tile_ids.push_back(kv.first);
+                ptile_ptrs.push_back(&(kv.second));
+            }
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for if (!system::regtest_reduction) reduction(||:r)
+#endif
+            for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+            {
+                const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
-                                const auto ptd = tile.getConstParticleTileData();
-                for (int i = 0; i < np; ++i)
+                const auto ptd = tile.getConstParticleTileData();
+                for (int i = 0; i < np; ++i) {
                     r = r || particle_detail::call_f(f, ptd, i);
+                }
             }
         }
     }
@@ -783,13 +830,21 @@ typename RD::Type
 ParticleReduce (PC const& pc, int lev_min, int lev_max, F&& f, ReduceOps& reduce_ops)
 {
     RD reduce_data(reduce_ops);
-    using ParIter = typename PC::ParConstIterType;
-#if !defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP)
-#pragma omp parallel
-#endif
     for (int lev = lev_min; lev <= lev_max; ++lev) {
-        for (ParIter pti(pc, lev); pti.isValid(); ++pti) {
-            const auto& tile = pti.GetParticleTile();
+        const auto& plev = pc.GetParticles(lev);
+        Vector<std::pair<int, int> > grid_tile_ids;
+        Vector<const typename PC::ParticleTileType*> ptile_ptrs;
+        for (auto& kv : plev)
+        {
+            grid_tile_ids.push_back(kv.first);
+            ptile_ptrs.push_back(&(kv.second));
+        }
+#if !defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP)
+#pragma omp parallel for
+#endif
+        for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+        {
+            const auto& tile = plev.at(grid_tile_ids[pmap_it]);
             const auto np = tile.numParticles();
             const auto ptd = tile.getConstParticleTileData();
             reduce_ops.eval(np, reduce_data,

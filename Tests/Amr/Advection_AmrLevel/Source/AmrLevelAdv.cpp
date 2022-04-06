@@ -91,7 +91,7 @@ AmrLevelAdv::checkPoint (const std::string& dir,
   AmrLevel::checkPoint(dir, os, how, dump_old);
 #ifdef AMREX_PARTICLES
   if (do_tracers && level == 0) {
-    TracerPC->Checkpoint(dir, "Tracer", true);
+    TracerPC->WritePlotFile(dir, "Tracer");
   }
 #endif
 }
@@ -109,7 +109,7 @@ AmrLevelAdv::writePlotFile (const std::string& dir,
 
 #ifdef AMREX_PARTICLES
     if (do_tracers && level == 0) {
-      TracerPC->Checkpoint(dir, "Tracer", true);
+      TracerPC->WritePlotFile(dir, "Tracer");
     }
 #endif
 }
