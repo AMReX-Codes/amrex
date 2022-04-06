@@ -67,7 +67,8 @@ auto call_f (F const& f,
 }
 
 // Lambda takes a SuperParticle
-template <typename F, int NSR, int NSI, int NAR, int NAI>
+template <typename F, int NSR, int NSI, int NAR, int NAI,
+          typename std::enable_if<NAR != 0 || NAI != 0, int>::type = 0>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 auto call_f (F const& f,
              const ConstParticleTileData<NSR, NSI, NAR, NAI>& p,
