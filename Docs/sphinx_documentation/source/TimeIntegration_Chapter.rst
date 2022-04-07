@@ -253,3 +253,27 @@ The full set of integrator options are detailed as follows:
   ## "MRITEST" = Tests the Multirate Integrator by setting a zero-valued fast RHS function
   ## for example:
   integration.sundials.strategy = ERK
+
+  ## *** Parameters Specific to SUNDIALS ERK Strategy ***
+  ## (Requires integration.type=SUNDIALS and integration.sundials.strategy=ERK)
+  ## integration.sundials.erk.method specifies which explicit Runge Kutta method
+  ## for SUNDIALS to use. The following options are supported:
+  ## "SSPRK3" = 3rd order strong stability preserving RK (default)
+  ## "Trapezoid" = 2nd order trapezoidal rule
+  ## "ForwardEuler" = 1st order forward euler
+  ## for example:
+  integration.sundials.erk.method = SSPRK3
+
+  ## *** Parameters Specific to SUNDIALS MRI Strategy ***
+  ## (Requires integration.type=SUNDIALS and integration.sundials.strategy=MRI)
+  ## integration.sundials.mri.implicit_inner specifies whether or not to use an implicit inner solve
+  ## integration.sundials.mri.outer_method specifies which outer (slow) method to use
+  ## integration.sundials.mri.inner_method specifies which inner (fast) method to use
+  ## The following options are supported for both the inner and outer methods:
+  ## "KnothWolke3" = 3rd order Knoth-Wolke method (default for outer method)
+  ## "Trapezoid" = 2nd order trapezoidal rule
+  ## "ForwardEuler" = 1st order forward euler (default for inner method)
+  ## for example:
+  integration.sundials.mri.implicit_inner = false
+  integration.sundials.mri.outer_method = KnothWolke3
+  integration.sundials.mri.inner_method = Trapezoid
