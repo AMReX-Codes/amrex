@@ -434,7 +434,6 @@ public:
 
             // NOTE: we can optimize by calling a post_update_fast and only updating the variables the fast integration modifies
             BaseT::post_update(S_data, rhs_time);
-            // BaseT::post_update(S_stage_data, rhs_time);
 
             BaseT::fast_rhs(S_rhs, S_stage_data, S_data, rhs_time);
 
