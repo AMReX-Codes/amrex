@@ -600,8 +600,6 @@ public:
             MRIStepSetNonlinearSolver(mristep_mem, NLS);
 
         MRIStepSetUserData(mristep_mem, &udata);  /* Pass udata to user functions */
-
-//        MRIStepSetPostInnerFn(mristep_mem, SundialsUserFun::PostStoreStage);
         MRIStepSetPostprocessStageFn(mristep_mem, SundialsUserFun::ProcessStage);
 
         MRIStepCoupling mri_coupling = MRIStepCoupling_MIStoMRI(B_outer, B_outer->q, B_outer->p);
