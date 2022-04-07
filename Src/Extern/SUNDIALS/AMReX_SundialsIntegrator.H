@@ -111,7 +111,7 @@ private:
         if (theStrategy == "ERK")
         {
             use_erk_strategy=true;
-            erk_method = "SSPRK3"
+            erk_method = "SSPRK3";
             amrex::ParmParse pp_erk("integration.sundials.erk");
             pp_erk.query("method", erk_method);
         }
