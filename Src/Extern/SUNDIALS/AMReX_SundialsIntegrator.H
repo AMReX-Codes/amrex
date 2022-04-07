@@ -82,7 +82,7 @@ private:
     MPI_Comm mpi_comm;         /* the MPI communicator          */
     SUNContext sunctx;         /* SUNDIALS Context object       */
 
-    std::string mri_outer_method, mri_inner_method;
+    std::string mri_outer_method, mri_inner_method, erk_method;
 
     Real reltol;
     Real abstol;
@@ -101,7 +101,6 @@ private:
         use_erk_strategy=false;
         use_mri_strategy=false;
         use_mri_strategy_test=false;
-        use_implicit_inner = false;
 
         amrex::ParmParse pp("integration.sundials");
 
@@ -112,6 +111,9 @@ private:
         if (theStrategy == "ERK")
         {
             use_erk_strategy=true;
+            erk_method = "SSPRK3"
+            amrex::ParmParse pp_erk("integration.sundials.erk");
+            pp_erk.query("method", erk_method);
         }
         else if (theStrategy == "MRI")
         {
@@ -131,10 +133,13 @@ private:
 
         if (theStrategy == "MRI" || theStrategy == "MRITEST")
         {
+            use_implicit_inner = false;
+            mri_outer_method = "KnothWolke3";
+            mri_inner_method = "ForwardEuler";
             amrex::ParmParse pp_mri("integration.sundials.mri");
             pp_mri.query("implicit_inner", use_implicit_inner);
-            pp_mri.get("outer_method", mri_outer_method);
-            pp_mri.get("inner_method", mri_inner_method);
+            pp_mri.query("outer_method", mri_outer_method);
+            pp_mri.query("inner_method", mri_inner_method);
         }
 
         // SUNDIALS specific objects
@@ -281,28 +286,44 @@ public:
             MultiFab::Copy(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_stage_data, i)), *amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_S, i)), 0, 0, state_store[i].nComp(), state_store[i].nGrow());
         }
 
-        // ARKodeButcherTable B = ARKodeButcherTable_Alloc(3, SUNFALSE);
-        ARKodeButcherTable B = ARKodeButcherTable_Alloc(2, SUNFALSE);
+        auto make_butcher_table = [&](std::string method) -> ARKodeButcherTable {
+            ARKodeButcherTable B;
+            if (method == "SSPRK3") {
+                B = ARKodeButcherTable_Alloc(3, SUNFALSE);
 
-        // Use SSP-RK3
-        /*
-        B->A[1][0] = 1.0;
-        B->A[2][0] = 0.25;
-        B->A[2][1] = 0.25;
-        B->b[0] = 1./6.;
-        B->b[1] = 1./6.;
-        B->b[2] = 2./3.;
-        B->c[1] = 1.0;
-        B->c[2] = 0.5;
-        B->q=3;
-        */
+                // 3rd order Strong Stability Preserving RK3
+                B->A[1][0] = 1.0;
+                B->A[2][0] = 0.25;
+                B->A[2][1] = 0.25;
+                B->b[0] = 1./6.;
+                B->b[1] = 1./6.;
+                B->b[2] = 2./3.;
+                B->c[1] = 1.0;
+                B->c[2] = 0.5;
+                B->q=3;
+            } else if (method == "Trapezoid") {
+                B = ARKodeButcherTable_Alloc(2, SUNFALSE);
 
-        B->A[1][0] = 1.0;
-        B->b[0] = 0.5;
-        B->b[1] = 0.5;
-        B->c[1] = 1.0;
-        B->q=2;
-        B->p=0;
+                // Trapezoidal rule
+                B->A[1][0] = 1.0;
+                B->b[0] = 0.5;
+                B->b[1] = 0.5;
+                B->c[1] = 1.0;
+                B->q=2;
+                B->p=0;
+            } else if (method == "ForwardEuler") {
+                B = ARKodeButcherTable_Alloc(1, SUNFALSE);
+
+                // Forward Euler
+                B->b[0] = 1.0;
+                B->q=1;
+                B->p=0;
+            } else
+                amrex::Error("ERK method not implemented");
+            return B;
+        };
+
+        ARKodeButcherTable B = make_butcher_table(erk_method);
 
         //Set table
         ERKStepSetTable(arkode_mem, B);
