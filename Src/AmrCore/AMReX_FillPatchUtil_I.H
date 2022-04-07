@@ -216,7 +216,7 @@ FillPatchInterp (MF& mf_fine_patch, int fcomp, MF const& mf_crse_patch, int ccom
 
 template <typename MF, typename iMF, typename Interp>
 std::enable_if_t<IsFabArray<MF>::value  && !std::is_same<Interp,MFInterpolater>::value>
-InterpFace (Interp *interp, 
+InterpFace (Interp *interp,
             const MF& mf_crse_patch,    const int crse_comp,
             MF&       mf_refined_patch, const int fine_comp,
             const int ncomp, const IntVect&   ratio,
@@ -228,7 +228,7 @@ InterpFace (Interp *interp,
         auto& sfab = mf_crse_patch[mfi];
         auto& dfab = mf_refined_patch[mfi];
         auto& ifab = solve_mask[mfi];
-        
+
         interp->interp_face(sfab,crse_comp,dfab,fine_comp,ncomp,
                             dfab.box(), ratio, ifab, crse_geom, fine_geom,
                             bcr, bccomp, gpu_or_cpu);
@@ -237,7 +237,7 @@ InterpFace (Interp *interp,
 
 template <typename MF, typename iMF>
 std::enable_if_t<IsFabArray<MF>::value>
-InterpFace (InterpBase *interp, 
+InterpFace (InterpBase *interp,
             const MF& mf_crse_patch,    const int crse_comp,
             MF&       mf_refined_patch, const int fine_comp,
             const int ncomp, const IntVect&   ratio,
@@ -247,13 +247,13 @@ InterpFace (InterpBase *interp,
     if (dynamic_cast<MFInterpolater*>(interp)){
         InterpFace(static_cast<MFInterpolater*>(interp),
                     mf_crse_patch, crse_comp,mf_refined_patch, fine_comp,
-                    ncomp, ratio, solve_mask, crse_geom, fine_geom, bcr, bccomp, 
+                    ncomp, ratio, solve_mask, crse_geom, fine_geom, bcr, bccomp,
                     gpu_or_cpu);
     }
     else if (dynamic_cast<Interpolater*>(interp)){
         InterpFace(static_cast<Interpolater*>(interp),
                     mf_crse_patch, crse_comp,mf_refined_patch, fine_comp,
-                    ncomp, ratio, solve_mask, crse_geom, fine_geom, bcr, bccomp, 
+                    ncomp, ratio, solve_mask, crse_geom, fine_geom, bcr, bccomp,
                     gpu_or_cpu);
     }
     else {
@@ -455,7 +455,6 @@ namespace {
                 {
 
                     using FAB = typename MF::FABType::value_type;
-                    using iFAB = typename iMultiFab::FABType::value_type;
 
                     MF mf_crse_patch     = make_mf_crse_patch<MF>      (fpc, ncomp, mf.boxArray().ixType());
                     // Must make sure fine exists under needed coarse faces.
@@ -495,7 +494,7 @@ namespace {
                         pre_interp(sfab, sfab.box(), 0, ncomp);
                     }
 
-                    InterpFace(mapper, mf_crse_patch, 0, mf_refined_patch, 0, ncomp, 
+                    InterpFace(mapper, mf_crse_patch, 0, mf_refined_patch, 0, ncomp,
                                ratio, solve_mask, cgeom, fgeom, bcr, bcscomp, RunOn::Gpu);
 
                     for (MFIter mfi(mf_refined_patch); mfi.isValid(); ++mfi)
