@@ -518,7 +518,7 @@ public:
 
         auto make_butcher_table = [&](std::string method) -> ARKodeButcherTable {
             ARKodeButcherTable B;
-            if (method == "KnothWolke3") {
+            if (method == "KnothWolke3" || method == "Knoth-Wolke-3-3") {
                 B = ARKodeButcherTable_Alloc(3, SUNFALSE);
 
                 // 3rd order Knoth-Wolke method
