@@ -132,7 +132,7 @@ void test_assign_density(TestParams& parms)
 
     WriteMultiLevelPlotfile("plt00000", output_levs, outputMF,
                             varnames, geom, 0.0, level_steps, outputRR);
-    myPC.Checkpoint("plt00000", "particle0", true, particle_varnames);
+    myPC.WritePlotFile("plt00000", "particle0", particle_varnames);
 }
 
 int main(int argc, char* argv[])
