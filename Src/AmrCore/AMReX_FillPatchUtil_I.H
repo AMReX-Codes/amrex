@@ -214,6 +214,60 @@ FillPatchInterp (MF& mf_fine_patch, int fcomp, MF const& mf_crse_patch, int ccom
     }
 }
 
+template <typename MF, typename iMF, typename Interp>
+std::enable_if_t<IsFabArray<MF>::value  && !std::is_same<Interp,MFInterpolater>::value>
+InterpFace (Interp *interp,
+            MF const& mf_crse_patch,    const int crse_comp,
+            MF&       mf_refined_patch, const int fine_comp,
+            int ncomp, const IntVect&   ratio,
+            const iMF& solve_mask, const Geometry&  crse_geom, const Geometry&  fine_geom,
+            int bcscomp, RunOn gpu_or_cpu,
+            const Vector<BCRec>& bcs)
+{
+    Vector<BCRec> bcr(ncomp);
+    Box const& cdomain = amrex::convert(crse_geom.Domain(), mf_crse_patch.ixType());
+    for (MFIter mfi(mf_refined_patch);mfi.isValid(); ++mfi)
+    {
+        auto& sfab = mf_crse_patch[mfi];
+        const Box& sbx = sfab.box();
+        auto& dfab = mf_refined_patch[mfi];
+        Box const& dbx = dfab.box();
+        auto& ifab = solve_mask[mfi];
+        amrex::setBC(sbx,cdomain,bcscomp,0,ncomp,bcs,bcr);
+        interp->interp_face(sfab,crse_comp,dfab,fine_comp,ncomp,
+                            dbx, ratio, ifab, crse_geom, fine_geom,
+                            bcr, bcscomp, gpu_or_cpu);
+    }
+}
+
+template <typename MF, typename iMF>
+std::enable_if_t<IsFabArray<MF>::value>
+InterpFace (InterpBase *interp,
+            MF const& mf_crse_patch,    const int crse_comp,
+            MF&       mf_refined_patch, const int fine_comp,
+            int ncomp, const IntVect&   ratio,
+            const iMF& solve_mask, const Geometry&  crse_geom, const Geometry&  fine_geom,
+            int bccomp, RunOn gpu_or_cpu,
+            const Vector<BCRec>& bcs)
+{
+    if (dynamic_cast<MFInterpolater*>(interp)){
+        InterpFace(static_cast<MFInterpolater*>(interp),
+                    mf_crse_patch, crse_comp,mf_refined_patch, fine_comp,
+                    ncomp, ratio, solve_mask, crse_geom, fine_geom, bccomp,
+                    gpu_or_cpu, bcs);
+    }
+    else if (dynamic_cast<Interpolater*>(interp)){
+        InterpFace(static_cast<Interpolater*>(interp),
+                    mf_crse_patch, crse_comp,mf_refined_patch, fine_comp,
+                    ncomp, ratio, solve_mask, crse_geom, fine_geom, bccomp,
+                    gpu_or_cpu, bcs);
+    }
+    else {
+        amrex::Abort("InterpFace: unknown InterpBase");
+    }
+}
+
+
 namespace {
 
 // ======== FArrayBox
@@ -407,7 +461,6 @@ namespace {
                 {
 
                     using FAB = typename MF::FABType::value_type;
-                    using iFAB = typename iMultiFab::FABType::value_type;
 
                     MF mf_crse_patch     = make_mf_crse_patch<MF>      (fpc, ncomp, mf.boxArray().ixType());
                     // Must make sure fine exists under needed coarse faces.
@@ -438,22 +491,18 @@ namespace {
                     solve_mask.setVal(1);                   // Values to solve.
                     solve_mask.setVal(0, mask_cpc, 0, 1);   // Known values.
 
-                    Vector<BCRec> bcr(ncomp);
                     for (MFIter mfi(mf_refined_patch); mfi.isValid(); ++mfi)
                     {
                         FAB& sfab = mf_crse_patch[mfi];
-                        FAB& dfab = mf_refined_patch[mfi];
-                        iFAB& mfab = solve_mask[mfi];
-
-                        amrex::setBC(sfab.box(), amrex::convert(cgeom.Domain(), mf.ixType()),
-                                     bcscomp,0,ncomp,bcs,bcr);
-
-
                         pre_interp(sfab, sfab.box(), 0, ncomp);
+                    }
 
-                        static_cast<Interpolater*>(mapper)->interp_face(sfab, 0, dfab, 0, ncomp, dfab.box(), ratio, mfab,
-                                                                        cgeom, fgeom, bcr, bcscomp, RunOn::Gpu);
+                    InterpFace(mapper, mf_crse_patch, 0, mf_refined_patch, 0, ncomp,
+                               ratio, solve_mask, cgeom, fgeom, bcscomp, RunOn::Gpu, bcs);
 
+                    for (MFIter mfi(mf_refined_patch); mfi.isValid(); ++mfi)
+                    {
+                        FAB& dfab = mf_refined_patch[mfi];
                         post_interp(dfab, dfab.box(), 0, ncomp);
                     }
 
