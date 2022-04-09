@@ -279,7 +279,7 @@ updateNeighborsGPU (bool boundary_neighbors_only)
             Gpu::Device::synchronize();
             communicateParticlesStart(*this, neighbor_copy_plan, pinned_snd_buffer, pinned_rcv_buffer);
         }
-        
+
         rcv_buffer.resize(pinned_rcv_buffer.size());
         unpackBuffer(*this, neighbor_copy_plan, snd_buffer, NeighborUnpackPolicy());
         communicateParticlesFinish(neighbor_copy_plan);
