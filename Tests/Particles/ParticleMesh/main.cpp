@@ -151,7 +151,7 @@ void testParticleMesh (TestParams& parms)
                            {"density", AMREX_D_DECL("vx", "vy", "vz")},
                            geom, 0.0, 0);
 
-  myPC.Checkpoint("plot", "particle0");
+  myPC.WritePlotFile("plot", "particle0");
 }
 
 int main(int argc, char* argv[])

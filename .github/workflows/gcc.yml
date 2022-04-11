@@ -66,8 +66,7 @@ jobs:
   tests_build_2D:
     name: GNU@7.5 C++14 2D Debug Fortran [tests]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1"}
-      # -Werror temporarily skipped until we have functional testing established
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1"}
       # It's too slow with -O0
     steps:
     - uses: actions/checkout@v2
@@ -90,7 +89,7 @@ jobs:
   tests_build_1D:
     name: GNU@7.5 C++14 1D Debug Fortran [tests]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1"}
       # -Werror temporarily skipped until we have functional testing established
       # It's too slow with -O0
     steps:

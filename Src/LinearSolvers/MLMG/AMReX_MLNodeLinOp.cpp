@@ -40,21 +40,28 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!hasHiddenDimension(),
                                      "Nodal solver cannot have any hidden dimensions");
 
-    m_owner_mask.resize(m_num_amr_levels);
     m_dirichlet_mask.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
-        m_owner_mask[amrlev].resize(m_num_mg_levels[amrlev]);
         m_dirichlet_mask[amrlev].resize(m_num_mg_levels[amrlev]);
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
-            m_owner_mask[amrlev][mglev] = makeOwnerMask(m_grids[amrlev][mglev],
-                                                        m_dmap[amrlev][mglev],
-                                                        m_geom[amrlev][mglev]);
             m_dirichlet_mask[amrlev][mglev] = std::make_unique<iMultiFab>
                 (amrex::convert(m_grids[amrlev][mglev],IntVect::TheNodeVector()),
                  m_dmap[amrlev][mglev], 1, 0);
             m_dirichlet_mask[amrlev][mglev]->setVal(0); // non-Dirichlet by default
         }
+    }
+
+    m_owner_mask_top = makeOwnerMask(m_grids[0][0],
+                                      m_dmap[0][0],
+                                      m_geom[0][0]);
+    if (m_num_mg_levels[0] == 1) {
+        m_owner_mask_bottom = std::make_unique<iMultiFab>(*m_owner_mask_top, amrex::make_alias, 0,
+                                                          m_owner_mask_top->nComp());
+    } else {
+        m_owner_mask_bottom = makeOwnerMask(m_grids[0][m_num_mg_levels[0]-1],
+                                             m_dmap[0][m_num_mg_levels[0]-1],
+                                             m_geom[0][m_num_mg_levels[0]-1]);
     }
 
     m_cc_fine_mask.resize(m_num_amr_levels);
@@ -90,7 +97,7 @@ MLNodeLinOp::makeOwnerMask (const BoxArray& a_ba, const DistributionMapping& dm,
 void
 MLNodeLinOp::nodalSync (int amrlev, int mglev, MultiFab& mf) const
 {
-    mf.OverrideSync(*m_owner_mask[amrlev][mglev], m_geom[amrlev][mglev].periodicity());
+    mf.OverrideSync(m_geom[amrlev][mglev].periodicity());
 }
 
 void
@@ -314,7 +321,7 @@ MLNodeLinOp::buildMasks ()
         int amrlev = 0;
         int mglev = m_num_mg_levels[amrlev]-1;
         const Geometry& geom = m_geom[amrlev][mglev];
-        const iMultiFab& omask = *m_owner_mask[amrlev][mglev];
+        const iMultiFab& omask = *m_owner_mask_bottom;
         m_bottom_dot_mask.define(omask.boxArray(), omask.DistributionMap(), 1, 0);
         MLNodeLinOp_set_dot_mask(m_bottom_dot_mask, omask, geom, lobc, hibc, m_coarsening_strategy);
     }
@@ -324,7 +331,7 @@ MLNodeLinOp::buildMasks ()
         int amrlev = 0;
         int mglev = 0;
         const Geometry& geom = m_geom[amrlev][mglev];
-        const iMultiFab& omask = *m_owner_mask[amrlev][mglev];
+        const iMultiFab& omask = *m_owner_mask_top;
         m_coarse_dot_mask.define(omask.boxArray(), omask.DistributionMap(), 1, 0);
         MLNodeLinOp_set_dot_mask(m_coarse_dot_mask, omask, geom, lobc, hibc, m_coarsening_strategy);
     }
@@ -383,10 +390,6 @@ MLNodeLinOp::resizeMultiGrid (int new_size)
 {
     if (new_size <= 0 || new_size >= m_num_mg_levels[0]) { return; }
 
-    if (m_owner_mask[0].size() > new_size) {
-        m_owner_mask[0].resize(new_size);
-    }
-
     if (m_dirichlet_mask[0].size() > new_size) {
         m_dirichlet_mask[0].resize(new_size);
     }
@@ -397,8 +400,16 @@ MLNodeLinOp::resizeMultiGrid (int new_size)
         const auto hibc = HiBC();
         int amrlev = 0;
         int mglev = new_size-1;
+        if (mglev == 0) {
+            m_owner_mask_bottom = std::make_unique<iMultiFab>(*m_owner_mask_top, amrex::make_alias, 0,
+                                                              m_owner_mask_top->nComp());
+        } else {
+            m_owner_mask_bottom = makeOwnerMask(m_grids[0][mglev],
+                                                 m_dmap[0][mglev],
+                                                 m_geom[0][mglev]);
+        }
         const Geometry& geom = m_geom[amrlev][mglev];
-        const iMultiFab& omask = *m_owner_mask[amrlev][mglev];
+        const iMultiFab& omask = *m_owner_mask_bottom;
         m_bottom_dot_mask = MultiFab();
         m_bottom_dot_mask.define(omask.boxArray(), omask.DistributionMap(), 1, 0);
         MLNodeLinOp_set_dot_mask(m_bottom_dot_mask, omask, geom, lobc, hibc, m_coarsening_strategy);
@@ -415,7 +426,7 @@ MLNodeLinOp::makeHypreNodeLap (int bottom_verbose, const std::string& options_na
     const DistributionMapping& dm = m_dmap[0].back();
     const Geometry& geom = m_geom[0].back();
     const auto& factory = *(m_factory[0].back());
-    const auto& owner_mask = *(m_owner_mask[0].back());
+    const auto& owner_mask = *m_owner_mask_bottom;
     const auto& dirichlet_mask = *(m_dirichlet_mask[0].back());
     MPI_Comm comm = BottomCommunicator();
 

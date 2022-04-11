@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
   typedef ParticleContainer<1+BL_SPACEDIM> MyParticleContainer;
   MyParticleContainer MyPC(geom, dmap, ba, rr);
 
-  MyParticleContainer::ParticleInitData pdata = {{1.0},AMREX_D_DECL({},{},{})};
+  MyParticleContainer::ParticleInitData pdata = {{1.0},{},{},{}};
   MyPC.InitOnePerCell(0.5, 0.5, 0.5, pdata);
   MyPC.do_tiling = true;
 

@@ -1479,7 +1479,7 @@ void mlndlap_Ax_fine_contrib_cs (int i, int j, int /*k*/, Box const& ndbx, Box c
                                  GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
     mlndlap_Ax_fine_contrib_doit<rr>
-        ([&sig] (int, int, int) -> Real const& { return sig; },
+        ([=] (int, int, int) -> Real { return sig; },
          i,j,ndbx,ccbx,f,res,rhs,phi,msk,is_rz,dxinv);
 }
 
@@ -1538,7 +1538,7 @@ void mlndlap_res_cf_contrib_cs (int i, int j, int, Array4<Real> const& res,
                                      return ccdom_p.contains(ix,iy,0)
                                          && (ccmsk(ix,iy,0) == crse_cell);
                                  },
-                                 [&sig] (int, int, int) -> Real const&
+                                 [=] (int, int, int) -> Real
                                  {
                                      return sig;
                                  },

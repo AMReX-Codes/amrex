@@ -154,10 +154,6 @@ struct FBData {
     const FabArrayBase::FB*  fb = nullptr;
     int                 scomp;
     int                 ncomp;
-    IntVect             nghost;
-    Periodicity         period;
-    bool                cross;
-    bool                epo;
 
     //
     char*               the_recv_data = nullptr;
@@ -912,6 +908,69 @@ public:
 
     void FillBoundary_test ();
 
+
+    /**
+     * \brief Fill ghost cells and synchronize nodal data. Ghost regions are
+     * filled with data from the intersecting valid regions. The
+     * synchronization will override valid regions by the intersecting valid
+     * regions with a higher precedence.  The smaller the global box index
+     * is, the higher precedence the box has.  With periodic boundaries, for
+     * cells in the same box, those near the lower corner have higher
+     * precedence than those near the upper corner.
+     *
+     * \param period periodic length if it's non-zero
+     */
+    void FillBoundaryAndSync (const Periodicity& period = Periodicity::NonPeriodic());
+    /**
+     * \brief Fill ghost cells and synchronize nodal data. Ghost regions are
+     * filled with data from the intersecting valid regions. The
+     * synchronization will override valid regions by the intersecting valid
+     * regions with a higher precedence.  The smaller the global box index
+     * is, the higher precedence the box has.  With periodic boundaries, for
+     * cells in the same box, those near the lower corner have higher
+     * precedence than those near the upper corner.
+     *
+     * \param scomp starting component
+     * \param ncomp number of components
+     * \param nghost number of ghost cells to fill
+     * \param period periodic length if it's non-zero
+     */
+    void FillBoundaryAndSync (int scomp, int ncomp, const IntVect& nghost,
+                              const Periodicity& period);
+    void FillBoundaryAndSync_nowait (const Periodicity& period = Periodicity::NonPeriodic());
+    void FillBoundaryAndSync_nowait (int scomp, int ncomp, const IntVect& nghost,
+                                     const Periodicity& period);
+    void FillBoundaryAndSync_finish ();
+
+    /**
+     * \brief Synchronize nodal data.  The synchronization will override
+     * valid regions by the intersecting valid regions with a higher
+     * precedence.  The smaller the global box index is, the higher
+     * precedence the box has.  With periodic boundaries, for cells in the
+     * same box, those near the lower corner have higher precedence than
+     * those near the upper corner.
+     *
+     * \param period periodic length if it's non-zero
+     */
+    void OverrideSync (const Periodicity& period = Periodicity::NonPeriodic());
+    /**
+     * \brief Synchronize nodal data.  The synchronization will override
+     * valid regions by the intersecting valid regions with a higher
+     * precedence.  The smaller the global box index is, the higher
+     * precedence the box has.  With periodic boundaries, for cells in the
+     * same box, those near the lower corner have higher precedence than
+     * those near the upper corner.
+     *
+     * \param scomp starting component
+     * \param ncomp number of components
+     * \param nghost number of ghost cells to fill
+     * \param period periodic length if it's non-zero
+     */
+    void OverrideSync (int scomp, int ncomp, const Periodicity& period);
+    void OverrideSync_nowait (const Periodicity& period = Periodicity::NonPeriodic());
+    void OverrideSync_nowait (int scomp, int ncomp, const Periodicity& period);
+    void OverrideSync_finish ();
+
     /**
     * \brief Sum values in overlapped cells.  The destination is limited to valid cells.
     */
@@ -963,7 +1022,8 @@ public:
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
     void FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                       const Periodicity& period, bool cross,
-                      bool enforce_periodicity_only = false);
+                      bool enforce_periodicity_only = false,
+                      bool override_sync = false);
 
     void FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp);
     void PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
@@ -1171,7 +1231,7 @@ public:
     std::unique_ptr<FBData<FAB>> fbd;
     std::unique_ptr<PCData<FAB>> pcd;
 
-    // Pointer to temporary fab used in non-blocking OverrideSync
+    // Pointer to temporary fab used in non-blocking amrex::OverrideSync
     std::unique_ptr< FabArray<FAB> > os_temp;
 };
 
@@ -2590,6 +2650,98 @@ void
 FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 {
     FillBoundary_nowait(scomp, ncomp, nGrowVect(), Periodicity::NonPeriodic(), cross);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FillBoundaryAndSync (const Periodicity& period)
+{
+    BL_PROFILE("FAbArray::FillBoundaryAndSync()");
+    if (n_grow.max() > 0 || !is_cell_centered()) {
+        FillBoundaryAndSync_nowait(0, nComp(), n_grow, period);
+        FillBoundaryAndSync_finish();
+    }
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FillBoundaryAndSync (int scomp, int ncomp, const IntVect& nghost,
+                                    const Periodicity& period)
+{
+    BL_PROFILE("FAbArray::FillBoundaryAndSync()");
+    if (nghost.max() > 0 || !is_cell_centered()) {
+        FillBoundaryAndSync_nowait(scomp, ncomp, nghost, period);
+        FillBoundaryAndSync_finish();
+    }
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FillBoundaryAndSync_nowait (const Periodicity& period)
+{
+    FillBoundaryAndSync_nowait(0, nComp(), nGrowVect(), period);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FillBoundaryAndSync_nowait (int scomp, int ncomp, const IntVect& nghost,
+                                           const Periodicity& period)
+{
+    BL_PROFILE("FillBoundaryAndSync_nowait()");
+    FBEP_nowait(scomp, ncomp, nghost, period, false, false, true);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FillBoundaryAndSync_finish ()
+{
+    BL_PROFILE("FillBoundaryAndSync_finish()");
+    FillBoundary_finish();
+}
+
+template <class FAB>
+void
+FabArray<FAB>::OverrideSync (const Periodicity& period)
+{
+    BL_PROFILE("FAbArray::OverrideSync()");
+    if (!is_cell_centered()) {
+        OverrideSync_nowait(0, nComp(), period);
+        OverrideSync_finish();
+    }
+}
+
+template <class FAB>
+void
+FabArray<FAB>::OverrideSync (int scomp, int ncomp, const Periodicity& period)
+{
+    BL_PROFILE("FAbArray::OverrideSync()");
+    if (!is_cell_centered()) {
+        OverrideSync_nowait(scomp, ncomp, period);
+        OverrideSync_finish();
+    }
+}
+
+template <class FAB>
+void
+FabArray<FAB>::OverrideSync_nowait (const Periodicity& period)
+{
+    OverrideSync_nowait(0, nComp(), period);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::OverrideSync_nowait (int scomp, int ncomp, const Periodicity& period)
+{
+    BL_PROFILE("OverrideSync_nowait()");
+    FBEP_nowait(scomp, ncomp, IntVect(0), period, false, false, true);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::OverrideSync_finish ()
+{
+    BL_PROFILE("OverrideSync_finish()");
+    FillBoundary_finish();
 }
 
 template <class FAB>
