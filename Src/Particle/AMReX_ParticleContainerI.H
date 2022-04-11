@@ -120,8 +120,23 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
       AMREX_ASSERT(ba.ixType().cellCentered());
 
       if (local_grid < 0) {
-          ba.intersections(Box(iv, iv), isects, true, nGrow);
+          bool findfirst = (nGrow == 0) ? true : false;
+          ba.intersections(Box(iv, iv), isects, findfirst, nGrow);
           grid = isects.empty() ? -1 : isects[0].first;
+          if (nGrow > 0 && isects.size() > 1) {
+             for (std::size_t n = 0; n < isects.size(); ++n) {
+                 Box bx = ba.getCellCenteredBox(isects[n].first);
+                 for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+                     Box gbx = bx;
+                     IntVect gr(IntVect::TheZeroVector());
+                     gr[dir] = nGrow;
+                     gbx.grow(gr);
+                     if (gbx.contains(iv)) {
+                        grid = isects[n].first;
+                     }
+                 }
+             }
+          }
       } else {
           grid = (*redistribute_mask_ptr)[local_grid](iv, 0);
       }
