@@ -486,7 +486,6 @@ namespace amrex
           (crse_S_fine_BA,fine_dm,ncomp,0,MFInfo(),FArrayBoxFactory());
 
 #ifdef AMREX_USE_GPU
-/*
         if (Gpu::inLaunchRegion() && crse_S_fine.isFusingCandidate()) {
             auto const& crsema = crse_S_fine.arrays();
             auto const& finema = S_fine.const_arrays();
@@ -497,7 +496,6 @@ namespace amrex
             });
             Gpu::streamSynchronize();
         } else
-*/
 #endif
         {
 #ifdef AMREX_USE_OMP
