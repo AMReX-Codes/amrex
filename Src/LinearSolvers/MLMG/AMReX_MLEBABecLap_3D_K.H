@@ -17,7 +17,7 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
                         Array4<Real const> const& apy, Array4<Real const> const& apz,
                         Array4<Real const> const& fcx, Array4<Real const> const& fcy,
                         Array4<Real const> const& fcz,
-                        Array4<Real const> const& ccent,
+                        Array4<Real const> const& ccent, Array4<Real const> const& ba,
                         Array4<Real const> const& bcent, Array4<Real const> const& beb,
                         Array4<Real const> const& phieb,
                         const int& domlo_x, const int& domlo_y, const int& domlo_z,
@@ -30,7 +30,7 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
     Real dhx = beta*dxinv[0]*dxinv[0];
     Real dhy = beta*dxinv[1]*dxinv[1];
     Real dhz = beta*dxinv[2]*dxinv[2];
-    Real dh = beta*dxinv[0]*dxinv[1]*dxinv[2];
+    Real dh = beta*dxinv[0]*dxinv[1];//*dxinv[2];
 
     amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
@@ -196,9 +196,6 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
                 Real anrmx = dapx * anorminv;
                 Real anrmy = dapy * anorminv;
                 Real anrmz = dapz * anorminv;
-                Real scaling = std::sqrt( (anrmx/dxinv[0])*(anrmx/dxinv[0]) +
-                        (anrmy/dxinv[1])*(anrmy/dxinv[1]) +
-                        (anrmz/dxinv[2])*(anrmz/dxinv[2]));
 
 
                 feb = grad_eb_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,vfrc,
@@ -206,7 +203,7 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
                                                          on_x_face,domlo_x,domhi_x,
                                                          on_y_face,domlo_y,domhi_y,
                                                          on_z_face,domlo_z,domhi_z);
-                feb *= anorm/scaling * beb(i,j,k,n);
+                feb *= ba(i,j,k) * beb(i,j,k,n);
             }
 
             y(i,j,k,n) = alpha*a(i,j,k)*x(i,j,k,n) + (1.0/kappa) *
@@ -226,7 +223,7 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                         Array4<Real const> const& vfrc, Array4<Real const> const& apx,
                         Array4<Real const> const& apy, Array4<Real const> const& apz,
                         Array4<Real const> const& fcx, Array4<Real const> const& fcy,
-                        Array4<Real const> const& fcz,
+                        Array4<Real const> const& fcz, Array4<Real const> const& ba,
                         Array4<Real const> const& bc, Array4<Real const> const& beb,
                         bool is_dirichlet, Array4<Real const> const& phieb,
                         bool is_inhomog, GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
@@ -236,7 +233,7 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
     Real dhx = beta*dxinv[0]*dxinv[0];
     Real dhy = beta*dxinv[1]*dxinv[1];
     Real dhz = beta*dxinv[2]*dxinv[2];
-    Real dh  = beta*dxinv[0]*dxinv[1]*dxinv[2];
+    Real dh  = beta*dxinv[0]*dxinv[1];//*dxinv[2];
 
     bool beta_on_center = !(beta_on_centroid);
     bool  phi_on_center = !( phi_on_centroid);
@@ -420,10 +417,6 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                 Real anrmx = dapx * anorminv;
                 Real anrmy = dapy * anorminv;
                 Real anrmz = dapz * anorminv;
-                Real scaling = std::sqrt( (anrmx/dxinv[0])*(anrmx/dxinv[0]) +
-                        (anrmy/dxinv[1])*(anrmy/dxinv[1]) +
-                        (anrmz/dxinv[2])*(anrmz/dxinv[2]));
-
 
                 Real phib = is_inhomog ? phieb(i,j,k,n) : 0.0_rt;
 
@@ -460,9 +453,9 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                     +       (gxy + gxyz)                    * x(ii,jj,k ,n)
                     +       (-gxyz)                         * x(ii,jj,kk,n);
 
-                Real dphidn = (phib-phig)/(dg*scaling);
+                Real dphidn = (phib-phig)/dg;
 
-                feb = dphidn * anorm * beb(i,j,k,n);
+                feb = dphidn * ba(i,j,k) * beb(i,j,k,n);
             }
 
             y(i,j,k,n) = alpha*a(i,j,k)*x(i,j,k,n) + (1.0/kappa) *
@@ -511,9 +504,6 @@ void mlebabeclap_ebflux (int i, int j, int k, int n,
         Real anrmx = dapx * anorminv;
         Real anrmy = dapy * anorminv;
         Real anrmz = dapz * anorminv;
-        Real scaling = std::sqrt( (anrmx/dxinv[0])*(anrmx/dxinv[0]) +
-                (anrmy/dxinv[1])*(anrmy/dxinv[1]) +
-                (anrmz/dxinv[2])*(anrmz/dxinv[2]));
 
         Real phib = is_inhomog ? phieb(i,j,k,n) : 0.0_rt;
 
@@ -549,7 +539,7 @@ void mlebabeclap_ebflux (int i, int j, int k, int n,
             +       (gxy + gxyz)                    * x(ii,jj,k ,n)
             +       (-gxyz)                         * x(ii,jj,kk,n);
 
-        Real dphidn = (phib-phig)/(dg*scaling);
+        Real dphidn = (phib-phig)/dg;
         feb(i,j,k,n) = -beb(i,j,k,n) * dphidn;
     }
 }
@@ -575,7 +565,8 @@ void mlebabeclap_gsrb (Box const& box,
                        Array4<Real const> const& apx, Array4<Real const> const& apy,
                        Array4<Real const> const& apz,
                        Array4<Real const> const& fcx, Array4<Real const> const& fcy,
-                       Array4<Real const> const& fcz, Array4<Real const> const& bc,
+                       Array4<Real const> const& fcz,
+                       Array4<Real const> const& ba, Array4<Real const> const& bc,
                        Array4<Real const> const& beb,
                        bool is_dirichlet, bool beta_on_centroid, bool phi_on_centroid,
                        Box const& vbox, int redblack, int ncomp) noexcept
@@ -852,9 +843,6 @@ void mlebabeclap_gsrb (Box const& box,
                         Real anrmx = dapx * anorminv;
                         Real anrmy = dapy * anorminv;
                         Real anrmz = dapz * anorminv;
-                        Real scaling = std::sqrt( (anrmx*dx[0])*(anrmx*dx[0]) +
-                                (anrmy*dx[1])*(anrmy*dx[1]) +
-                                (anrmz*dx[2])*(anrmz*dx[2]));
 
                         Real bctx = bc(i,j,k,0);
                         Real bcty = bc(i,j,k,1);
@@ -890,10 +878,10 @@ void mlebabeclap_gsrb (Box const& box,
                             + (gxy + gxyz) * phi(ii,jj,k,n)
                             + (-gxyz) * phi(ii,jj,kk,n);
 
-                        Real dphidn    = (    -phig)/(dg*scaling);
-                        Real feb_gamma = -phig_gamma/(dg*scaling) * anorm * beb(i,j,k,n);
+                        Real dphidn    = (    -phig)/dg;
+                        Real feb_gamma = -phig_gamma/dg * ba(i,j,k) * beb(i,j,k,n);
                         gamma += vfrcinv*(-dh)*feb_gamma;
-                        Real feb = dphidn * anorm * beb(i,j,k,n);
+                        Real feb = dphidn * ba(i,j,k) * beb(i,j,k,n);
                         rho += -vfrcinv*(-dh)*feb;
                     }
 
@@ -1240,7 +1228,8 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                             Array4<Real const> const& apx, Array4<Real const> const& apy,
                             Array4<Real const> const& apz,
                             Array4<Real const> const& fcx, Array4<Real const> const& fcy,
-                            Array4<Real const> const& fcz, Array4<Real const> const& bc,
+                            Array4<Real const> const& fcz,
+                            Array4<Real const> const& ba, Array4<Real const> const& bc,
                             Array4<Real const> const& beb,
                             bool is_dirichlet, bool beta_on_centroid, int ncomp) noexcept
 {
@@ -1343,9 +1332,7 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                 Real anrmx = dapx * anorminv;
                 Real anrmy = dapy * anorminv;
                 Real anrmz = dapz * anorminv;
-                Real scaling = std::sqrt( (anrmx*dx[0])*(anrmx*dx[0]) +
-                        (anrmy*dx[1])*(anrmy*dx[1]) +
-                        (anrmz*dx[2])*(anrmz*dx[2]) );
+
                 Real bctx = bc(i,j,k,0);
                 Real bcty = bc(i,j,k,1);
                 Real bctz = bc(i,j,k,2);
@@ -1369,8 +1356,8 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                 Real gyz = gy*gz;
                 Real gxyz = gx*gy*gz;
                 Real phig_gamma = (1.0+gx+gy+gz+gxy+gxz+gyz+gxyz);
-                Real feb_gamma = -phig_gamma/(dg*scaling) * anorm * beb(i,j,k,n);
-                gamma += vfrcinv*(-dh)*feb_gamma;
+                Real feb_gamma = -phig_gamma/dg * ba(i,j,k) * beb(i,j,k,n);
+                gamma += vfrcinv*(-dhx)*feb_gamma;
             }
 
             phi(i,j,k,n) /= gamma;

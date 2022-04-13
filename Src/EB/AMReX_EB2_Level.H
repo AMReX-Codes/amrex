@@ -341,7 +341,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                 Elixir cellflagtmp_eli = cellflagtmp.elixir();
                 Array4<EBCellFlag> const& cfgtmp = cellflagtmp.array();
 
-                build_cells(vbx, cfg, ftx, fty, ftz, apx, apy, apz,
+                build_cells(vbx, cfg, ftx, fty, ftz, apx, apy, apz, dx,
                             fcx, fcy, fcz, xm2, ym2, zm2, vfr, ctr,
                             bar, bct, bnm, cfgtmp, lst,
                             small_volfrac, geom, extend_domain_face, cover_multiple_cuts,
@@ -385,7 +385,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                 nmc = build_faces(vbx, cfg, ftx, fty, clst, xip, yip, apx, apy, fcx, fcy,
                                   dx, problo, cover_multiple_cuts);
 
-                build_cells(vbx, cfg, ftx, fty, apx, apy, vfr, ctr,
+                build_cells(vbx, cfg, ftx, fty, apx, apy, dx, vfr, ctr,
                             bar, bct, bnm, lst, small_volfrac, geom, extend_domain_face,
                             nsm, nmc);
 #endif

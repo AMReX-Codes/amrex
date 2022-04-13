@@ -861,6 +861,7 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     auto fcent = (factory) ? factory->getFaceCent()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
+    const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
     const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
 
     bool is_eb_dirichlet =  isEBDirichlet();
@@ -908,6 +909,7 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
             AMREX_D_TERM(Array4<Real const> const& fcxfab = fcent[0]->const_array(mfi);,
                          Array4<Real const> const& fcyfab = fcent[1]->const_array(mfi);,
                          Array4<Real const> const& fczfab = fcent[2]->const_array(mfi););
+            Array4<Real const> const& bafab = barea->const_array(mfi);
             Array4<Real const> const& bcfab = bcent->const_array(mfi);
 
             bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
@@ -921,7 +923,7 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
                                       ccmfab, flagfab, vfracfab,
                                       AMREX_D_DECL(apxfab,apyfab,apzfab),
                                       AMREX_D_DECL(fcxfab,fcyfab,fczfab),
-                                      bcfab, bebfab, is_eb_dirichlet,
+                                      bafab, bcfab, bebfab, is_eb_dirichlet,
                                       beta_on_centroid, ncomp);
             });
         }
