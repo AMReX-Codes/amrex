@@ -109,13 +109,13 @@ class AdvectionAmrCore : public AmrCore {
     Direction velocity{};
 
   private:
-    void ErrorEst(int /*level*/, ::amrex::TagBoxArray& /*tags*/, double /*time_point*/,
+    void ErrorEst(int /*level*/, ::amrex::TagBoxArray& /*tags*/, Real /*time_point*/,
                   int /* ngrow */) override {
         throw std::runtime_error("For simplicity, this example supports only one level.");
     }
 
     void
-    MakeNewLevelFromScratch(int level, double, const ::amrex::BoxArray& box_array,
+    MakeNewLevelFromScratch(int level, Real, const ::amrex::BoxArray& box_array,
                             const ::amrex::DistributionMapping& distribution_mapping) override {
         if (level > 0) {
             throw std::runtime_error("For simplicity, this example supports only one level.");
@@ -125,12 +125,12 @@ class AdvectionAmrCore : public AmrCore {
         mass_next.define(box_array, distribution_mapping, three_components, ngrow);
     }
 
-    void MakeNewLevelFromCoarse(int /*level*/, double /*time_point*/, const ::amrex::BoxArray&,
+    void MakeNewLevelFromCoarse(int /*level*/, Real /*time_point*/, const ::amrex::BoxArray&,
                                 const ::amrex::DistributionMapping&) override {
         throw std::runtime_error("For simplicity, this example supports only one level.");
     }
 
-    void RemakeLevel(int /*level*/, double /*time_point*/, const ::amrex::BoxArray&,
+    void RemakeLevel(int /*level*/, Real /*time_point*/, const ::amrex::BoxArray&,
                      const ::amrex::DistributionMapping&) override {
         throw std::runtime_error("For simplicity, this example supports only one level.");
     }
@@ -200,7 +200,7 @@ struct FillBoundaryFn {
     }
 };
 
-void WritePlotfiles(const AdvectionAmrCore& core_x, const AdvectionAmrCore& core_y, double time_point, int step)
+void WritePlotfiles(const AdvectionAmrCore& core_x, const AdvectionAmrCore& core_y, Real time_point, int step)
 {
     static const Vector<std::string> varnames{"Mass", "Vector_X", "Vector_Y"};
     int nlevels = 1;
@@ -278,11 +278,11 @@ void MyMain() {
     FillBoundaryFn FillBoundary{std::move(multi_block_boundaries)};
 
     int step = 0;
-    const double min_dx1_dy2 = std::min(geom1.CellSize(0), geom2.CellSize(1));
-    const double cfl = 1.0;
-    const double dt = cfl * min_dx1_dy2;
-    const double final_time = 4.0;
-    double time_point = 0.0;
+    const Real min_dx1_dy2 = std::min(geom1.CellSize(0), geom2.CellSize(1));
+    const Real cfl = 1.0;
+    const Real dt = cfl * min_dx1_dy2;
+    const Real final_time = 4.0;
+    Real time_point = 0.0;
 
     WritePlotfiles(core_x, core_y, time_point, step);
     while (time_point < final_time) {
