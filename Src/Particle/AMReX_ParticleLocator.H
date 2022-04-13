@@ -63,21 +63,37 @@ struct AssignGrid
         int ix_hi = amrex::min((lo.x + nGrow - m_lo.x) / m_bin_size.x, m_num_bins.x-1);
         int iy_hi = amrex::min((lo.y + nGrow - m_lo.y) / m_bin_size.y, m_num_bins.y-1);
         int iz_hi = amrex::min((lo.z + nGrow - m_lo.z) / m_bin_size.z, m_num_bins.z-1);
-
+        int loc = -1;
         for (int ii = ix_lo; ii <= ix_hi; ++ii) {
             for (int jj = iy_lo; jj <= iy_hi; ++jj) {
                 for (int kk = iz_lo; kk <= iz_hi; ++kk) {
                     int index = (ii * m_num_bins.y + jj) * m_num_bins.z + kk;
                     for (const auto& nbor : m_bif.getBinIterator(index)) {
                         Box bx = nbor.second;
+                        if (bx.contains(iv)) {
+                          return nbor.first;
+                        }
                         bx.grow(nGrow);
-                        if (bx.contains(iv)) return nbor.first;
+                        if (bx.contains(iv)) {
+                           if (loc < 0) {
+                             loc = nbor.first;
+                           }
+                           // Prefer particle not in corner ghost cells
+                           for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+                               Box gbx = bx;
+                               IntVect gr(IntVect::TheZeroVector());
+                               gr[dir] = nGrow;
+                               gbx.grow(gr);
+                               if (gbx.contains(iv)) {
+                                  loc = nbor.first;
+                               }
+                           }
+                        }
                     }
                 }
             }
         }
-
-        return -1;
+        return loc;
     }
 };
 

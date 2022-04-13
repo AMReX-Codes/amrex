@@ -12,7 +12,6 @@
 #include <AMReX_Vector.H>
 
 #include <limits>
-#include <utility>
 
 namespace amrex
 {
@@ -173,7 +172,7 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f)
             const auto& plev = pc.GetParticles(lev);
             for (const auto& kv : plev)
             {
-                const auto& tile = plev.at(std::make_pair(kv.first.first, kv.first.second));
+                const auto& tile = plev.at(kv.first);
                 const auto np = tile.numParticles();
                 const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
@@ -374,7 +373,7 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f)
             const auto& plev = pc.GetParticles(lev);
             for (const auto& kv : plev)
             {
-                const auto& tile = plev.at(std::make_pair(kv.first.first, kv.first.second));
+                const auto& tile = plev.at(kv.first);
                 const auto np = tile.numParticles();
                 const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
@@ -575,7 +574,7 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f)
             const auto& plev = pc.GetParticles(lev);
             for (const auto& kv : plev)
             {
-                const auto& tile = plev.at(std::make_pair(kv.first.first, kv.first.second));
+                const auto& tile = plev.at(kv.first);
                 const auto np = tile.numParticles();
                 const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
@@ -771,7 +770,7 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
             const auto& plev = pc.GetParticles(lev);
             for (const auto& kv : plev)
             {
-                const auto& tile = plev.at(std::make_pair(kv.first.first, kv.first.second));
+                const auto& tile = plev.at(kv.first);
                 const auto np = tile.numParticles();
                 const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
@@ -967,7 +966,7 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
             const auto& plev = pc.GetParticles(lev);
             for (const auto& kv : plev)
             {
-                const auto& tile = plev.at(std::make_pair(kv.first.first, kv.first.second));
+                const auto& tile = plev.at(kv.first);
                 const auto np = tile.numParticles();
                 const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
