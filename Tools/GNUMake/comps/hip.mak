@@ -127,7 +127,7 @@ ifeq ($(HIP_COMPILER),clang)
   CXXFLAGS += -DAMREX_USE_ROCTX
   HIPCC_FLAGS += -DAMREX_USE_ROCTX
   SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include/roctracer $(ROC_PATH)/include/rocprofiler
-  LIBRARY_LOCATIONS += $(ROC_PATH)/lib $(ROC_PATH)/lib
+  LIBRARY_LOCATIONS += $(ROC_PATH)/lib
   LIBRARIES += -lroctracer64 -lroctx64
   endif
 
