@@ -158,7 +158,7 @@ private:
    /**
     * \brief FastFun is the fast timescale right-hand-side function for a multirate integration problem.
     */
-    std::function<void(T&, const T&, const T&, const amrex::Real)> FastFun;
+    std::function<void(T&, T&, const T&, const amrex::Real)> FastFun;
 
 protected:
    /**
@@ -195,7 +195,7 @@ public:
         Fun = F;
     }
 
-    void set_fast_rhs (std::function<void(T&, const T&, const T&, const amrex::Real)> F)
+    void set_fast_rhs (std::function<void(T&, T&, const T&, const amrex::Real)> F)
     {
         FastFun = F;
     }
@@ -225,7 +225,7 @@ public:
         return Fun;
     }
 
-    std::function<void(T&, const T&, const T&, const amrex::Real)> get_fast_rhs ()
+    std::function<void(T&, T&, const T&, const amrex::Real)> get_fast_rhs ()
     {
         return FastFun;
     }
@@ -245,7 +245,7 @@ public:
         Fun(S_rhs, S_data, time);
     }
 
-    void fast_rhs (T& S_rhs, const T& S_extra, const T& S_data, const amrex::Real time)
+    void fast_rhs (T& S_rhs, T& S_extra, const T& S_data, const amrex::Real time)
     {
         FastFun(S_rhs, S_extra, S_data, time);
     }

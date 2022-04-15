@@ -2693,7 +2693,6 @@ FabArrayBase::flushParForInfo (bool no_assertion) const
 {
     amrex::ignore_unused(no_assertion);
     AMREX_ASSERT(no_assertion || getBDKey() == m_bdkey);
-    AMREX_ASSERT(getBDKey() == m_bdkey);
     auto er_it = m_TheParForCache.equal_range(m_bdkey);
     for (auto it = er_it.first; it != er_it.second; ++it) {
         delete it->second;
