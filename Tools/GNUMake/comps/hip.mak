@@ -112,9 +112,9 @@ ifeq ($(HIP_COMPILER),clang)
   SYSTEM_INCLUDE_LOCATIONS += $(HIP_PATH)/include
 
   # rocRand
-  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/rocrand/include $(ROC_PATH)/hiprand/include
-  LIBRARY_LOCATIONS += $(ROC_PATH)/rocrand/lib $(ROC_PATH)/hiprand/lib
-  LIBRARIES += -Wl,--rpath=$(ROC_PATH)/rocrand/lib -Wl,--rpath=$(ROC_PATH)/hiprand/lib -lhiprand -lrocrand 
+  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include
+  LIBRARY_LOCATIONS += $(ROC_PATH)/lib
+  LIBRARIES += -Wl,--rpath=$(ROC_PATH)/lib -lhiprand -lrocrand
 
   # rocPrim - Header only
   SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/rocprim/include
