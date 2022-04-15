@@ -635,15 +635,17 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
 
 
 #ifdef AMREX_PARTICLES
-    int redistribute_ngrow = 0;
-    Print() << "-- Iteration: " << iteration << "\n";
-    if ((iteration < nsubsteps[lev]) || (lev == 0)){
-        if (lev == 0){
-            redistribute_ngrow = 0;
-        } else {
-            redistribute_ngrow = iteration;
+    if (do_tracers) {
+        int redistribute_ngrow = 0;
+        Print() << "-- Iteration: " << iteration << "\n";
+        if ((iteration < nsubsteps[lev]) || (lev == 0)){
+            if (lev == 0){
+                redistribute_ngrow = 0;
+            } else {
+                redistribute_ngrow = iteration;
+            }
+            TracerPC->Redistribute(lev, TracerPC->finestLevel(), redistribute_ngrow);
         }
-        TracerPC->Redistribute(lev, TracerPC->finestLevel(), redistribute_ngrow);
     }
 #endif
 
@@ -658,7 +660,13 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
         if (istep[0] % regrid_int == 0)
         {
             regrid(0, time);
-            TracerPC->Redistribute();
+
+#ifdef AMREX_PARTICLES
+            if (do_tracers)
+            {
+                    TracerPC->Redistribute();
+            }
+#endif
         }
     }
 
