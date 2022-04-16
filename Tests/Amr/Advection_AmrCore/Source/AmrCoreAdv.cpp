@@ -379,9 +379,6 @@ AmrCoreAdv::ReadParameters ()
         pp.query("chk_file", chk_file);
         pp.query("chk_int", chk_int);
         pp.query("restart",restart_chkfile);
-#ifdef AMREX_PARTICLES
-        pp.query("do_tracers", do_tracers);
-#endif
     }
 
     {
@@ -391,6 +388,24 @@ AmrCoreAdv::ReadParameters ()
         pp.query("do_reflux", do_reflux);
         pp.query("do_subcycle", do_subcycle);
     }
+
+#ifdef AMREX_PARTICLES
+    {
+        ParmParse pp("amr");
+        pp.query("do_tracers", do_tracers);
+
+        Vector<int> ref_ratio;
+        pp.queryarr("ref_ratio", ref_ratio);
+
+        if (do_subcycle && do_tracers){
+            for (int i : ref_ratio){
+                if (i != 2) {
+                    amrex::Abort("This code only supports subcycling with particles when all ref_ratios equal to 2.");
+                }
+            }
+        }
+    }
+#endif
 }
 
 // set covered coarse cells to be the average of overlying fine cells
