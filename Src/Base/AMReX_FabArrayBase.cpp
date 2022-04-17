@@ -2640,8 +2640,7 @@ FabArrayBase::isFusingCandidate () const noexcept
 #ifdef AMREX_USE_GPU
 
 FabArrayBase::ParForInfo::ParForInfo (const FabArrayBase& fa, const IntVect& nghost, int nthreads)
-    : m_typ(fa.boxArray().ixType()),
-      m_crse_ratio(fa.boxArray().crseRatio()),
+    : m_bat(fa.boxArray().transformer()),
       m_ng(nghost),
       m_nthreads(nthreads),
       m_nblocks_x({nullptr,nullptr})
@@ -2673,8 +2672,7 @@ FabArrayBase::getParForInfo (const IntVect& nghost, int nthreads) const
     AMREX_ASSERT(getBDKey() == m_bdkey);
     auto er_it = m_TheParForCache.equal_range(m_bdkey);
     for (auto it = er_it.first; it != er_it.second; ++it) {
-        if (it->second->m_typ        == boxArray().ixType()    &&
-            it->second->m_crse_ratio == boxArray().crseRatio() &&
+        if (it->second->m_bat        == boxArray().transformer() &&
             it->second->m_ng         == nghost                 &&
             it->second->m_nthreads   == nthreads)
         {

@@ -669,8 +669,7 @@ public:
         void operator= (ParForInfo const&) = delete;
         void operator= (ParForInfo &&) = delete;
 
-        IndexType m_typ;
-        IntVect m_crse_ratio;
+        BATransformer m_bat;
         IntVect m_ng;
         int m_nthreads;
         std::pair<int*,int*> m_nblocks_x;
