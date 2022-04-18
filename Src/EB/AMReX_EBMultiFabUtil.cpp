@@ -928,9 +928,9 @@ EB_interp_CC_to_FaceCentroid (const MultiFab& cc,
     const int nghost(4);
 
    // Initialize edge state
-    AMREX_D_TERM(fc_x.setVal(1e40,dcomp,ncomp);,
-                 fc_y.setVal(1e40,dcomp,ncomp);,
-                 fc_z.setVal(1e40,dcomp,ncomp));
+    AMREX_D_TERM(fc_x.setVal(1e30_rt,dcomp,ncomp);,
+                 fc_y.setVal(1e30_rt,dcomp,ncomp);,
+                 fc_z.setVal(1e30_rt,dcomp,ncomp));
 
     BCRec const* d_bcs;
 #ifdef AMREX_USE_GPU
