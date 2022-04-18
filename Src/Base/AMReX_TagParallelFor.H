@@ -21,10 +21,10 @@ struct Array4PairTag {
     Box const& box () const noexcept { return dbox; }
 };
 
-template <class T>
+template <class T0, class T1=T0>
 struct Array4CopyTag {
-    Array4<T      > dfab;
-    Array4<T const> sfab;
+    Array4<T0      > dfab;
+    Array4<T1 const> sfab;
     Box dbox;
     Dim3 offset; // sbox.smallEnd() - dbox.smallEnd()
 
@@ -32,11 +32,11 @@ struct Array4CopyTag {
     Box const& box () const noexcept { return dbox; }
 };
 
-template <class T>
+template <class T0, class T1=T0>
 struct Array4MaskCopyTag {
-    Array4<T      > dfab;
-    Array4<T const> sfab;
-    Array4<int    > mask;
+    Array4<T0      > dfab;
+    Array4<T1 const> sfab;
+    Array4<int     > mask;
     Box dbox;
     Dim3 offset; // sbox.smallEnd() - dbox.smallEnd()
 

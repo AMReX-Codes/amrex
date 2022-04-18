@@ -3,7 +3,7 @@
 #include <AMReX_PCI.H>
 
 template <class FAB>
-template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
+template <typename BUF, class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
 void
 FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             const Periodicity& period, bool cross,
@@ -83,9 +83,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     //
 
     if (N_rcvs > 0) {
-        PostRcvs(*TheFB.m_RcvTags, fbd->the_recv_data,
-                 fbd->recv_data, fbd->recv_size, fbd->recv_from, fbd->recv_reqs,
-                 ncomp, SeqNum);
+        PostRcvs<BUF>(*TheFB.m_RcvTags, fbd->the_recv_data,
+                      fbd->recv_data, fbd->recv_size, fbd->recv_from, fbd->recv_reqs,
+                      ncomp, SeqNum);
         fbd->recv_stat.resize(N_rcvs);
     }
 
@@ -101,7 +101,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 
     if (N_snds > 0)
     {
-        PrepareSendBuffers(*TheFB.m_SndTags, the_send_data, send_data, send_size, send_rank,
+        PrepareSendBuffers<BUF>(*TheFB.m_SndTags, the_send_data, send_data, send_size, send_rank,
                            send_reqs, send_cctc, ncomp);
 
 #ifdef AMREX_USE_GPU
@@ -114,13 +114,13 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             else
 #endif
             {
-                pack_send_buffer_gpu(*this, scomp, ncomp, send_data, send_size, send_cctc);
+                pack_send_buffer_gpu<BUF>(*this, scomp, ncomp, send_data, send_size, send_cctc);
             }
         }
         else
 #endif
         {
-            pack_send_buffer_cpu(*this, scomp, ncomp, send_data, send_size, send_cctc);
+            pack_send_buffer_cpu<BUF>(*this, scomp, ncomp, send_data, send_size, send_cctc);
         }
 
         AMREX_ASSERT(send_reqs.size() == N_snds);
@@ -160,7 +160,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 }
 
 template <class FAB>
-template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
+template <typename BUF, class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
 void
 FabArray<FAB>::FillBoundary_finish ()
 {
@@ -211,15 +211,15 @@ FabArray<FAB>::FillBoundary_finish ()
             else
 #endif
             {
-                unpack_recv_buffer_gpu(*this, fbd->scomp, fbd->ncomp, fbd->recv_data, fbd->recv_size,
-                                       recv_cctc, FabArrayBase::COPY, is_thread_safe);
+                unpack_recv_buffer_gpu<BUF>(*this, fbd->scomp, fbd->ncomp, fbd->recv_data, fbd->recv_size,
+                                            recv_cctc, FabArrayBase::COPY, is_thread_safe);
             }
         }
         else
 #endif
         {
-            unpack_recv_buffer_cpu(*this, fbd->scomp, fbd->ncomp, fbd->recv_data, fbd->recv_size,
-                                   recv_cctc, FabArrayBase::COPY, is_thread_safe);
+            unpack_recv_buffer_cpu<BUF>(*this, fbd->scomp, fbd->ncomp, fbd->recv_data, fbd->recv_size,
+                                        recv_cctc, FabArrayBase::COPY, is_thread_safe);
         }
 
         if (fbd->the_recv_data)
@@ -608,6 +608,7 @@ FabArray<FAB>::copyTo (FAB& dest, int scomp, int dcomp, int ncomp, int nghost) c
 
 #ifdef BL_USE_MPI
 template <class FAB>
+template <typename BUF>
 AMREX_NODISCARD TheFaArenaPointer
 FabArray<FAB>::PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
                                    Vector<char*>&                       send_data,
@@ -618,11 +619,12 @@ FabArray<FAB>::PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
                                    int                                  ncomp) const
 {
     char* pointer = nullptr;
-    PrepareSendBuffers(SndTags, pointer, send_data, send_size, send_rank, send_reqs, send_cctc, ncomp);
+    PrepareSendBuffers<BUF>(SndTags, pointer, send_data, send_size, send_rank, send_reqs, send_cctc, ncomp);
     return TheFaArenaPointer(pointer);
 }
 
 template <class FAB>
+template <typename BUF>
 void
 FabArray<FAB>::PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
                                    char*&                               the_send_data,
@@ -655,15 +657,14 @@ FabArray<FAB>::PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
         std::size_t nbytes = 0;
         for (auto const& cct : kv.second)
         {
-            nbytes += (*this)[cct.srcIndex].nBytes(cct.sbox,ncomp);
+            nbytes += cct.sbox.numPts() * ncomp * sizeof(BUF);
         }
 
         std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
         nbytes = amrex::aligned_size(acd, nbytes); // so that bytes are aligned
 
         // Also need to align the offset properly
-        total_volume = amrex::aligned_size(std::max(alignof(typename FAB::value_type),
-                                                    acd),
+        total_volume = amrex::aligned_size(std::max(alignof(BUF), acd),
                                            total_volume);
 
         offset.push_back(total_volume);
@@ -709,6 +710,7 @@ FabArray<FAB>::PostSnds (Vector<char*> const&       send_data,
 }
 
 template <class FAB>
+template <typename BUF>
 TheFaArenaPointer FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&       RcvTags,
                    Vector<char*>&                         recv_data,
                    Vector<std::size_t>&                   recv_size,
@@ -723,6 +725,7 @@ TheFaArenaPointer FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&     
 }
 
 template <class FAB>
+template <typename BUF>
 void
 FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  RcvTags,
                          char*&                            the_recv_data,
@@ -745,14 +748,14 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  RcvTags,
         std::size_t nbytes = 0;
         for (auto const& cct : kv.second)
         {
-            nbytes += (*this)[cct.dstIndex].nBytes(cct.dbox,ncomp);
+            nbytes += cct.dbox.numPts() * ncomp * sizeof(BUF);
         }
 
         std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
         nbytes = amrex::aligned_size(acd, nbytes);  // so that nbytes are aligned
 
         // Also need to align the offset properly
-        TotalRcvsVolume = amrex::aligned_size(std::max(alignof(typename FAB::value_type),acd),
+        TotalRcvsVolume = amrex::aligned_size(std::max(alignof(BUF),acd),
                                               TotalRcvsVolume);
 
         offset.push_back(TotalRcvsVolume);
