@@ -120,7 +120,11 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
 
     BL_PROFILE("EB2::GShopLevel()-fine");
 
+#ifdef AMREX_USE_FLOAT
+    Real small_volfrac = 1.e-5_rt;
+#else
     Real small_volfrac = 1.e-14;
+#endif
     bool cover_multiple_cuts = false;
     int maxiter = 32;
     {

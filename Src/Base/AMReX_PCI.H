@@ -139,19 +139,21 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
     if (op == FabArrayBase::COPY)
     {
         if (is_thread_safe) {
-            detail::fab_to_fab<value_type>(loc_copy_tags, scomp, dcomp, ncomp,
-                                           detail::CellStore<value_type>());
+            detail::fab_to_fab<value_type, value_type>(loc_copy_tags, scomp,
+                dcomp, ncomp, detail::CellStore<value_type, value_type>());
         } else {
-            detail::fab_to_fab_atomic_cpy<value_type>(loc_copy_tags, scomp, dcomp, ncomp, masks);
+            detail::fab_to_fab_atomic_cpy<value_type, value_type>(
+                loc_copy_tags, scomp, dcomp, ncomp, masks);
         }
     }
     else
     {
         if (is_thread_safe) {
-            detail::fab_to_fab<value_type>(loc_copy_tags, scomp, dcomp, ncomp,
-                                           detail::CellAdd<value_type>());
+            detail::fab_to_fab<value_type, value_type>(loc_copy_tags, scomp,
+                dcomp, ncomp, detail::CellAdd<value_type, value_type>());
         } else {
-            detail::fab_to_fab_atomic_add<value_type>(loc_copy_tags, scomp, dcomp, ncomp, masks);
+            detail::fab_to_fab_atomic_add<value_type, value_type>(
+                loc_copy_tags, scomp, dcomp, ncomp, masks);
         }
     }
 }

@@ -1579,6 +1579,12 @@ BoxArray::simplified () const
     return BoxArray(simplified_list()).convert(ixType());
 }
 
+BATransformer const&
+BoxArray::transformer () const
+{
+    return m_bat;
+}
+
 std::ostream&
 operator<< (std::ostream&   os,
             const BoxArray& ba)

@@ -56,8 +56,8 @@ amrex::Real SplineDistFcnElement2d::eval(amrex::Real t,
                                          amrex::Real D0, amrex::Real D1) const {
   amrex::Real c, d;
 
-  c = 3.0*(y1 - y0) - 2.0*D0 - D1;
-  d = 2.0*(y0-y1) + D0 + D1;
+  c = 3.0_rt*(y1 - y0) - 2.0_rt*D0 - D1;
+  d = 2.0_rt*(y0-y1) + D0 + D1;
   return y0 + D0*t + c*t*t + d*t*t*t;
 }
 
@@ -83,7 +83,7 @@ amrex::Real SplineDistFcnElement2d::dist(amrex::RealVect pt,
 
 amrex::Real SplineDistFcnElement2d::cpdist(amrex::RealVect pt,
                                            amrex::RealVect & cpmin) const {
-  amrex::Real dmin = 1.0e29;
+  amrex::Real dmin = 1.0e29_rt;
   amrex::Real t;
   amrex::RealVect cp;
   amrex::Real dist;

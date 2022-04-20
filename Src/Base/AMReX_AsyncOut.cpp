@@ -111,7 +111,9 @@ void Submit (std::function<void()> const& a_f)
 
 void Finish ()
 {
-    s_thread->Finish();
+    if (s_thread) {
+        s_thread->Finish();
+    }
 }
 
 void Wait ()
