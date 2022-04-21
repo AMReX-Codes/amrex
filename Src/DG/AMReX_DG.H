@@ -17,7 +17,7 @@ extern int nFineF;
 extern Real VolumeRatio;
 extern Real FaceRatio;
 
-extern int nNodesX[3];
+extern int nNodes[3];
 extern int nDOFX;
 extern int nDOFX_X1;
 extern int nDOFX_X2;
@@ -50,29 +50,6 @@ extern int *   NodeNumberTableX_X3;
 
 extern int iGF_SqrtGm;
 
-/* Host-only arrays */
-
-extern Real * WeightsX_X1_H;
-extern Real * WeightsX_X2_H;
-extern Real * WeightsX_X3_H;
-extern Real * WeightsX_q_H;
-extern Real *** ProjectionMatrix_H;
-extern Real *** ProjectionMatrix_T_H;
-extern Real *** LX_X1_H;
-extern Real *** LX_X2_H;
-extern Real *** LX_X3_H;
-extern Real * LX_X1_Up_H;
-extern Real * LX_X1_Dn_H;
-extern Real * LX_X2_Up_H;
-extern Real * LX_X2_Dn_H;
-extern Real * LX_X3_Up_H;
-extern Real * LX_X3_Dn_H;
-extern int **  NodeNumberTableX_H;
-extern int *** NodeNumberTableX3D_H;
-extern int *   NodeNumberTableX_X1_H;
-extern int *   NodeNumberTableX_X2_H;
-extern int *   NodeNumberTableX_X3_H;
-
 void InitializeMeshRefinement_DG
        ( int N[], Real ProjMatrix[],
          Real WeightsX1[], Real WeightsX2[], Real WeightsX3[],
@@ -85,20 +62,20 @@ void InitializeMeshRefinement_DG
 
 void FinalizeMeshRefinement_DG();
 
-void AllocateArray  ( int n0, Real * &A_H, Real * &A_D );
-void DeallocateArray(         Real * &A_H, Real * &A_D );
-void AllocateArray  ( int n0, int  * &A_H, int  * &A_D );
-void DeallocateArray(         int  * &A_H, int  * &A_D );
+void AllocateArray  ( int n0, Real * &A );
+void DeallocateArray(         Real * &A );
+void AllocateArray  ( int n0, int * &A );
+void DeallocateArray(         int * &A );
 
-void AllocateArray  ( int n0, int n1, Real ** &A_H, Real ** &A_D );
-void DeallocateArray( int n0        , Real ** &A_H, Real ** &A_D );
-void AllocateArray  ( int n0, int n1, int  ** &A_H, int  ** &A_D );
-void DeallocateArray( int n0        , int  ** &A_H, int  ** &A_D );
+void AllocateArray  ( int n0, int n1, Real ** &A );
+void DeallocateArray( int n0,         Real ** &A );
+void AllocateArray  ( int n0, int n1, int ** &A );
+void DeallocateArray( int n0,         int ** &A );
 
-void AllocateArray  ( int n0, int n1, int n2, Real *** &A_H, Real *** &A_D );
-void DeallocateArray( int n0, int n1        , Real *** &A_H, Real *** &A_D );
-void AllocateArray  ( int n0, int n1, int n2, int  *** &A_H, int  *** &A_D );
-void DeallocateArray( int n0, int n1        , int  *** &A_H, int  *** &A_D );
+void AllocateArray  ( int n0, int n1, int n2, Real *** &A );
+void DeallocateArray( int n0, int n1,         Real *** &A );
+void AllocateArray  ( int n0, int n1, int n2, int *** &A );
+void DeallocateArray( int n0, int n1,         int *** &A );
 
 } /* END namespace DG */
 } /* END namespace amrex */
