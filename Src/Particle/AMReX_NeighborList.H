@@ -13,18 +13,18 @@ namespace
 {
     template <typename F, typename P, typename N1, typename N2>
     AMREX_GPU_HOST_DEVICE
-    auto call_check_pair (F const& check_pair, const P* p_ptr, N1 i, N2 j)
-        noexcept -> decltype(check_pair(p_ptr[i], p_ptr[j]))
+    auto call_check_pair (F const& check_pair, const P* src_ptr, const P* dst_ptr, N1 i, N2 j)
+        noexcept -> decltype(check_pair(src_ptr[i], dst_ptr[j]))
     {
-        return check_pair(p_ptr[i], p_ptr[j]);
+        return check_pair(src_ptr[i], dst_ptr[j]);
     }
 
     template <typename F, typename P, typename N1, typename N2>
     AMREX_GPU_HOST_DEVICE
-    auto call_check_pair (F const& check_pair, const P* p_ptr, N1 i, N2 j)
-        noexcept -> decltype(check_pair(p_ptr, i, j))
+    auto call_check_pair (F const& check_pair, const P* src_ptr, const P* /*dst_ptr*/, N1 i, N2 j)
+        noexcept -> decltype(check_pair(src_ptr, i, j))
     {
-        return check_pair(p_ptr, i, j);
+        return check_pair(src_ptr, i, j);
     }
 }
 
@@ -176,6 +176,8 @@ public:
     {
         BL_PROFILE("NeighborList::build()");
 
+        bool is_same = (&src_tile == &target_tile);
+
         auto& vec = target_tile.GetArrayOfStructs()();
         m_pstruct = vec.dataPtr();
 
@@ -209,12 +211,14 @@ public:
         auto poffset = m_bins.offsetsPtr();
         auto pnbor_offset = m_nbor_offsets.dataPtr();
 
+        const auto src_pstruct_ptr = src_tile.GetArrayOfStructs()().dataPtr();
+
         AMREX_FOR_1D ( np_real, i,
         {
             IntVect iv(AMREX_D_DECL(
-                static_cast<int>(amrex::Math::floor((pstruct_ptr[i].pos(0)-plo[0])*dxi[0])) - lo.x,
-                static_cast<int>(amrex::Math::floor((pstruct_ptr[i].pos(1)-plo[1])*dxi[1])) - lo.y,
-                static_cast<int>(amrex::Math::floor((pstruct_ptr[i].pos(2)-plo[2])*dxi[2])) - lo.z));
+                static_cast<int>(amrex::Math::floor((src_pstruct_ptr[i].pos(0)-plo[0])*dxi[0])) - lo.x,
+                static_cast<int>(amrex::Math::floor((src_pstruct_ptr[i].pos(1)-plo[1])*dxi[1])) - lo.y,
+                static_cast<int>(amrex::Math::floor((src_pstruct_ptr[i].pos(2)-plo[2])*dxi[2])) - lo.z));
             auto iv3 = iv.dim3();
 
             int ix = iv3.x;
@@ -231,8 +235,8 @@ public:
                     for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
                         int index = (ii * ny + jj) * nz + kk;
                         for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
-                            if (pperm[p] == i) continue;
-                            if (call_check_pair(check_pair, pstruct_ptr, i, pperm[p])) {
+                            if (is_same && (pperm[p] == i)) continue;
+                            if (call_check_pair(check_pair, src_pstruct_ptr, pstruct_ptr, i, pperm[p])) {
                                 count += 1;
                             }
                         }
@@ -260,9 +264,9 @@ public:
         AMREX_FOR_1D ( np_real, i,
         {
             IntVect iv(AMREX_D_DECL(
-                static_cast<int>(amrex::Math::floor((pstruct_ptr[i].pos(0)-plo[0])*dxi[0])) - lo.x,
-                static_cast<int>(amrex::Math::floor((pstruct_ptr[i].pos(1)-plo[1])*dxi[1])) - lo.y,
-                static_cast<int>(amrex::Math::floor((pstruct_ptr[i].pos(2)-plo[2])*dxi[2])) - lo.z));
+                static_cast<int>(amrex::Math::floor((src_pstruct_ptr[i].pos(0)-plo[0])*dxi[0])) - lo.x,
+                static_cast<int>(amrex::Math::floor((src_pstruct_ptr[i].pos(1)-plo[1])*dxi[1])) - lo.y,
+                static_cast<int>(amrex::Math::floor((src_pstruct_ptr[i].pos(2)-plo[2])*dxi[2])) - lo.z));
             auto iv3 = iv.dim3();
 
             int ix = iv3.x;
@@ -279,8 +283,8 @@ public:
                     for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
                         int index = (ii * ny + jj) * nz + kk;
                         for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
-                            if (pperm[p] == i) continue;
-                            if (call_check_pair(check_pair, pstruct_ptr, i, pperm[p])) {
+                            if (is_same && (pperm[p] == i)) continue;
+                            if (call_check_pair(check_pair, src_pstruct_ptr, pstruct_ptr, i, pperm[p])) {
                                 pm_nbor_list[pnbor_offset[i] + n] = pperm[p];
                                 ++n;
                             }
