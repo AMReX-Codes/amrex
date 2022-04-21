@@ -16,7 +16,7 @@ namespace
         &amrex::protected_interp,        // 6
         &amrex::quartic_interp,          // 7
         &amrex::face_divfree_interp,     // 8
-        &amrex::face_linear_interp
+        &amrex::face_linear_interp       // 9
     };
 }
 
