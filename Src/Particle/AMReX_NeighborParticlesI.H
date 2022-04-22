@@ -736,7 +736,9 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 template <class CheckPair, class OtherPCType>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-buildNeighborList (CheckPair&& check_pair, OtherPCType& other, NeighborListContainerType& neighbor_lists, bool /*sort*/)
+buildNeighborList (CheckPair&& check_pair, OtherPCType& other,
+                   Vector<std::map<std::pair<int, int>, amrex::NeighborList<typename OtherPCType::ParticleType> > >& neighbor_lists,
+                   bool /*sort*/)
 {
     BL_PROFILE("NeighborParticleContainer::buildNeighborList");
 

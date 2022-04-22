@@ -256,7 +256,9 @@ public:
     /// Build a Neighbor List for each tile
     ///
     template <class CheckPair, class OtherPCType>
-    void buildNeighborList (CheckPair&& check_pair, OtherPCType& other, NeighborListContainerType& neighbor_lists, bool sort=false);
+    void buildNeighborList (CheckPair&& check_pair, OtherPCType& other,
+                            Vector<std::map<std::pair<int, int>, amrex::NeighborList<typename OtherPCType::ParticleType> > >& neighbor_lists,
+                            bool sort=false);
 
     template <class CheckPair>
     void selectActualNeighbors (CheckPair&& check_pair, int num_cells=1);

@@ -11,17 +11,17 @@ namespace amrex
 
 namespace
 {
-    template <typename F, typename P, typename N1, typename N2>
+    template <typename F, typename P1, typename P2, typename N1, typename N2>
     AMREX_GPU_HOST_DEVICE
-    auto call_check_pair (F const& check_pair, const P* src_ptr, const P* dst_ptr, N1 i, N2 j)
+    auto call_check_pair (F const& check_pair, const P1* src_ptr, const P2* dst_ptr, N1 i, N2 j)
         noexcept -> decltype(check_pair(src_ptr[i], dst_ptr[j]))
     {
         return check_pair(src_ptr[i], dst_ptr[j]);
     }
 
-    template <typename F, typename P, typename N1, typename N2>
+    template <typename F, typename P1, typename P2, typename N1, typename N2>
     AMREX_GPU_HOST_DEVICE
-    auto call_check_pair (F const& check_pair, const P* src_ptr, const P* /*dst_ptr*/, N1 i, N2 j)
+    auto call_check_pair (F const& check_pair, const P1* src_ptr, const P2* /*dst_ptr*/, N1 i, N2 j)
         noexcept -> decltype(check_pair(src_ptr, i, j))
     {
         return check_pair(src_ptr, i, j);
@@ -156,6 +156,22 @@ struct NeighborData
     ParticleType * m_pstruct;
 };
 
+template<typename A, typename B,
+         typename std::enable_if<std::is_same<std::remove_cv_t<A>,
+                                              std::remove_cv_t<B> >::value, int>::type = 0>
+bool isSame (A const* pa, B const* pb)
+{
+    return pa == pb;
+}
+
+template<typename A, typename B,
+         typename std::enable_if<!std::is_same<std::remove_cv_t<A>,
+                                               std::remove_cv_t<B> >::value, int>::type = 0>
+bool isSame (A const* pa, B const* pb)
+{
+    return false;
+}
+
 template <class ParticleType>
 class NeighborList
 {
@@ -176,7 +192,7 @@ public:
     {
         BL_PROFILE("NeighborList::build()");
 
-        bool is_same = (&src_tile == &target_tile);
+        bool is_same = isSame(&src_tile, &target_tile);
 
         auto& vec = target_tile.GetArrayOfStructs()();
         m_pstruct = vec.dataPtr();
@@ -185,7 +201,7 @@ public:
         const auto plo = geom.ProbLoArray();
 
         const size_t np_total = vec.size();
-        const ParticleType* pstruct_ptr = vec.dataPtr();
+        const auto pstruct_ptr = vec.dataPtr();
 
         const auto lo = lbound(bx);
         const auto hi = ubound(bx);
