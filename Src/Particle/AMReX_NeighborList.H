@@ -167,7 +167,7 @@ bool isSame (A const* pa, B const* pb)
 template<typename A, typename B,
          typename std::enable_if<!std::is_same<std::remove_cv_t<A>,
                                                std::remove_cv_t<B> >::value, int>::type = 0>
-bool isSame (A const* pa, B const* pb)
+bool isSame (A const* /*pa*/, B const* /*pb*/)
 {
     return false;
 }
