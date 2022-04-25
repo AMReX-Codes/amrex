@@ -11,20 +11,20 @@ namespace amrex
 
 namespace
 {
-    template <typename F, typename P, typename N1, typename N2>
+    template <typename F, typename P1, typename P2, typename N1, typename N2>
     AMREX_GPU_HOST_DEVICE
-    auto call_check_pair (F const& check_pair, const P* p_ptr, N1 i, N2 j)
-        noexcept -> decltype(check_pair(p_ptr[i], p_ptr[j]))
+    auto call_check_pair (F const& check_pair, const P1* src_ptr, const P2* dst_ptr, N1 i, N2 j)
+        noexcept -> decltype(check_pair(src_ptr[i], dst_ptr[j]))
     {
-        return check_pair(p_ptr[i], p_ptr[j]);
+        return check_pair(src_ptr[i], dst_ptr[j]);
     }
 
-    template <typename F, typename P, typename N1, typename N2>
+    template <typename F, typename P1, typename P2, typename N1, typename N2>
     AMREX_GPU_HOST_DEVICE
-    auto call_check_pair (F const& check_pair, const P* p_ptr, N1 i, N2 j)
-        noexcept -> decltype(check_pair(p_ptr, i, j))
+    auto call_check_pair (F const& check_pair, const P1* src_ptr, const P2* /*dst_ptr*/, N1 i, N2 j)
+        noexcept -> decltype(check_pair(src_ptr, i, j))
     {
-        return check_pair(p_ptr, i, j);
+        return check_pair(src_ptr, i, j);
     }
 }
 
@@ -156,6 +156,22 @@ struct NeighborData
     ParticleType * m_pstruct;
 };
 
+template<typename A, typename B,
+         typename std::enable_if<std::is_same<std::remove_cv_t<A>,
+                                              std::remove_cv_t<B> >::value, int>::type = 0>
+bool isSame (A const* pa, B const* pb)
+{
+    return pa == pb;
+}
+
+template<typename A, typename B,
+         typename std::enable_if<!std::is_same<std::remove_cv_t<A>,
+                                               std::remove_cv_t<B> >::value, int>::type = 0>
+bool isSame (A const* /*pa*/, B const* /*pb*/)
+{
+    return false;
+}
+
 template <class ParticleType>
 class NeighborList
 {
@@ -166,17 +182,26 @@ public:
                 const amrex::Box& bx, const amrex::Geometry& geom,
                 CheckPair&& check_pair, int num_cells=1)
     {
+        build(ptile, ptile, bx, geom, check_pair, num_cells);
+    }
+
+    template <class SrcTile, class TargetTile, class CheckPair>
+    void build (SrcTile& src_tile, TargetTile& target_tile,
+                const amrex::Box& bx, const amrex::Geometry& geom,
+                CheckPair&& check_pair, int num_cells=1)
+    {
         BL_PROFILE("NeighborList::build()");
 
-        auto& vec = ptile.GetArrayOfStructs()();
+        bool is_same = isSame(&src_tile, &target_tile);
+
+        auto& vec = target_tile.GetArrayOfStructs()();
         m_pstruct = vec.dataPtr();
 
         const auto dxi = geom.InvCellSizeArray();
         const auto plo = geom.ProbLoArray();
 
-        const size_t np_real  = ptile.numRealParticles();
         const size_t np_total = vec.size();
-        const ParticleType* pstruct_ptr = vec.dataPtr();
+        const auto pstruct_ptr = vec.dataPtr();
 
         const auto lo = lbound(bx);
         const auto hi = ubound(bx);
@@ -193,6 +218,7 @@ public:
                      });
 
         // first pass - count the number of neighbors for each particle
+        const size_t np_real  = src_tile.numRealParticles();
         m_nbor_counts.resize(np_real+1, 0);
         m_nbor_offsets.resize(np_real+1);
 
@@ -201,12 +227,14 @@ public:
         auto poffset = m_bins.offsetsPtr();
         auto pnbor_offset = m_nbor_offsets.dataPtr();
 
+        const auto src_pstruct_ptr = src_tile.GetArrayOfStructs()().dataPtr();
+
         AMREX_FOR_1D ( np_real, i,
         {
             IntVect iv(AMREX_D_DECL(
-                static_cast<int>(amrex::Math::floor((pstruct_ptr[i].pos(0)-plo[0])*dxi[0])) - lo.x,
-                static_cast<int>(amrex::Math::floor((pstruct_ptr[i].pos(1)-plo[1])*dxi[1])) - lo.y,
-                static_cast<int>(amrex::Math::floor((pstruct_ptr[i].pos(2)-plo[2])*dxi[2])) - lo.z));
+                static_cast<int>(amrex::Math::floor((src_pstruct_ptr[i].pos(0)-plo[0])*dxi[0])) - lo.x,
+                static_cast<int>(amrex::Math::floor((src_pstruct_ptr[i].pos(1)-plo[1])*dxi[1])) - lo.y,
+                static_cast<int>(amrex::Math::floor((src_pstruct_ptr[i].pos(2)-plo[2])*dxi[2])) - lo.z));
             auto iv3 = iv.dim3();
 
             int ix = iv3.x;
@@ -223,8 +251,8 @@ public:
                     for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
                         int index = (ii * ny + jj) * nz + kk;
                         for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
-                            if (pperm[p] == i) continue;
-                            if (call_check_pair(check_pair, pstruct_ptr, i, pperm[p])) {
+                            if (is_same && (pperm[p] == i)) continue;
+                            if (call_check_pair(check_pair, src_pstruct_ptr, pstruct_ptr, i, pperm[p])) {
                                 count += 1;
                             }
                         }
@@ -252,9 +280,9 @@ public:
         AMREX_FOR_1D ( np_real, i,
         {
             IntVect iv(AMREX_D_DECL(
-                static_cast<int>(amrex::Math::floor((pstruct_ptr[i].pos(0)-plo[0])*dxi[0])) - lo.x,
-                static_cast<int>(amrex::Math::floor((pstruct_ptr[i].pos(1)-plo[1])*dxi[1])) - lo.y,
-                static_cast<int>(amrex::Math::floor((pstruct_ptr[i].pos(2)-plo[2])*dxi[2])) - lo.z));
+                static_cast<int>(amrex::Math::floor((src_pstruct_ptr[i].pos(0)-plo[0])*dxi[0])) - lo.x,
+                static_cast<int>(amrex::Math::floor((src_pstruct_ptr[i].pos(1)-plo[1])*dxi[1])) - lo.y,
+                static_cast<int>(amrex::Math::floor((src_pstruct_ptr[i].pos(2)-plo[2])*dxi[2])) - lo.z));
             auto iv3 = iv.dim3();
 
             int ix = iv3.x;
@@ -271,8 +299,8 @@ public:
                     for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
                         int index = (ii * ny + jj) * nz + kk;
                         for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
-                            if (pperm[p] == i) continue;
-                            if (call_check_pair(check_pair, pstruct_ptr, i, pperm[p])) {
+                            if (is_same && (pperm[p] == i)) continue;
+                            if (call_check_pair(check_pair, src_pstruct_ptr, pstruct_ptr, i, pperm[p])) {
                                 pm_nbor_list[pnbor_offset[i] + n] = pperm[p];
                                 ++n;
                             }
