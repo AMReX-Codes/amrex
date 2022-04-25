@@ -527,9 +527,30 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     if (init_hypre) {
         HYPRE_Init();
 #ifdef HYPRE_USING_CUDA
+
+#if defined(HYPRE_RELEASE_NUMBER) && (HYPRE_RELEASE_NUMBER >= 22100)
+
+#ifdef HYPRE_USING_DEVICE_POOL
+        /* device pool allocator */
+        hypre_uint mempool_bin_growth   = 8,
+            mempool_min_bin      = 3,
+            mempool_max_bin      = 9;
+        size_t mempool_max_cached_bytes = 2000LL * 1024 * 1024;
+
+        /* To be effective, hypre_SetCubMemPoolSize must immediately follow HYPRE_Init */
+        HYPRE_SetGPUMemoryPoolSize( mempool_bin_growth, mempool_min_bin,
+                                    mempool_max_bin, mempool_max_cached_bytes );
+#endif
+        HYPRE_SetSpGemmUseCusparse(false);
+        HYPRE_SetMemoryLocation(HYPRE_MEMORY_DEVICE);
+        HYPRE_SetExecutionPolicy(HYPRE_EXEC_DEVICE);
+        HYPRE_SetUseGpuRand(true);
+#else
         hypre_HandleDefaultExecPolicy(hypre_handle()) = HYPRE_EXEC_DEVICE;
         hypre_HandleSpgemmUseCusparse(hypre_handle()) = 0;
 #endif
+#endif
+
     }
 #endif
 
