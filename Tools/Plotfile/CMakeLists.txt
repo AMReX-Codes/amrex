@@ -15,6 +15,7 @@ set(_exe_names
    fsnapshot
    ftime
    fvarnames
+   fscale
    )
 
 # Build targets one by one
