@@ -97,8 +97,8 @@ public:
 
     bool isDefined () const { return m_gdb != nullptr; }
 
-    void reserveData ();
-    void resizeData ();
+    virtual void reserveData ();
+    virtual void resizeData ();
     void RedefineDummyMF (int lev);
 
     MFIter MakeMFIter (int lev, const MFItInfo& info) const {
