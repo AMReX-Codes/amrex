@@ -116,6 +116,48 @@ public:
         return MFIter(*m_dummy_mf[lev], tile ? tile_size : IntVect::TheZeroVector());
     }
 
+    //! \brief Set the particle Geometry, DistributionMapping, and BoxArray. If the container
+    //! was previously set to to track the AMR hierarchy of an AmrCore or AmrLevel object, that
+    //! correspondence will be broken here. This is the single-level version.
+    //!
+    //! \param geom The new Geometry to use.
+    //! \param dmap The new DistributionMapping to use.
+    //! \param ba The new BoxArray to use.
+    //!
+    void SetParGDB (const Geometry            & geom,
+                    const DistributionMapping & dmap,
+                    const BoxArray            & ba);
+
+    //! \brief Set the particle Geometry, DistributionMapping, ref ratios, and BoxArray. If the container
+    //! was previously set to to track the AMR hierarchy of an AmrCore or AmrLevel object, that
+    //! correspondence will be broken here. This is the multi-level version.
+    //!
+    //! \param geom The new vector of Geometry objects to use.
+    //! \param dmap The new vector of DistributionMapping objects to use.
+    //! \param ba The new vector of BoxArray objects to use.
+    //! \param rr The new vector of refinement ratios to use.
+    //!
+    void SetParGDB (const Vector<Geometry>            & geom,
+                    const Vector<DistributionMapping> & dmap,
+                    const Vector<BoxArray>            & ba,
+                    const Vector<IntVect>             & rr);
+
+    //! \brief Set the particle Geometry, DistributionMapping, ref ratios, and BoxArray. If the container
+    //! was previously set to to track the AMR hierarchy of an AmrCore or AmrLevel object, that
+    //! correspondence will be broken here. This is the multi-level version.
+    //!
+    //! Like the above, except the refinement ratios are expressed as ints
+    //!
+    //! \param geom The new vector of Geometry objects to use.
+    //! \param dmap The new vector of DistributionMapping objects to use.
+    //! \param ba The new vector of BoxArray objects to use.
+    //! \param rr The new vector of refinement ratios to use.
+    //!
+    void SetParGDB (const Vector<Geometry>            & geom,
+                    const Vector<DistributionMapping> & dmap,
+                    const Vector<BoxArray>            & ba,
+                    const Vector<int>                 & rr);
+
     //! \brief Set the particle BoxArray. If the container was previously set to
     //! to track the AMR hierarchy of an AmrCore or AmrLevel object, that correspondence
     //! will be broken here.
