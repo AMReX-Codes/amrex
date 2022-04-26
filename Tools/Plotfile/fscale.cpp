@@ -92,7 +92,7 @@ void main_main() {
   amrex::Print() << " writing to new plotfile: " << fname_output << "\n";
 
   const Vector<const MultiFab *> vec_mf = GetVecOfConstPtrs(mf);
-  WriteMultiLevelPlotfileHeaders(fname_output, nlevels, vec_mf, varnames, geom,
+  WriteMultiLevelPlotfile(fname_output, nlevels, vec_mf, varnames, geom,
                                  plotfile.time(), level_step, ref_ratio);
 
   amrex::Print() << std::endl;
