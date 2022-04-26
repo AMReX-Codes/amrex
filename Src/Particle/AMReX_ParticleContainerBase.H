@@ -79,6 +79,8 @@ public:
         m_gdb = &m_gdb_object;
     }
 
+    virtual ~ParticleContainerBase () = default;
+
     void Define (ParGDBBase* gdb) { m_gdb = gdb;}
 
     void Define (const Geometry            & geom,
