@@ -720,11 +720,7 @@ amrex::Real N_VMinQuotient_MultiFab(N_Vector num, N_Vector denom)
     Real min = amrex::ReduceMin(*mf_num, *mf_denom, nghost,
                  [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& num_fab, Array4<Real const> const& denom_fab) -> Real
     {
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
          Real min_loc = std::numeric_limits<Real>::max();
-#else
-         Real min_loc = Real(1.e37);
-#endif
          const auto lo = lbound(bx);
          const auto hi = ubound(bx);
 

@@ -170,12 +170,10 @@ FArrayBox::initVal () noexcept
 #if defined(AMREX_USE_GPU)
             if (runon == RunOn::Gpu)
             {
-#if (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                 amrex::ParallelFor(s, [=] AMREX_GPU_DEVICE (Long i) noexcept
                 {
                     p[i] = std::numeric_limits<Real>::signaling_NaN();
                 });
-#endif
                 Gpu::streamSynchronize();
             }
             else
