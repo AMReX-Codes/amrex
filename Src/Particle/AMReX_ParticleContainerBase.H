@@ -81,6 +81,12 @@ public:
 
     virtual ~ParticleContainerBase () = default;
 
+    ParticleContainerBase ( const ParticleContainerBase &) = delete;
+    ParticleContainerBase& operator= ( const ParticleContainerBase & ) = delete;
+
+    ParticleContainerBase ( ParticleContainerBase && ) = default;
+    ParticleContainerBase& operator= ( ParticleContainerBase && ) = default;
+
     void Define (ParGDBBase* gdb) { m_gdb = gdb;}
 
     void Define (const Geometry            & geom,

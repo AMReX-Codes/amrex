@@ -294,7 +294,7 @@ public:
         resizeData();
     }
 
-    virtual ~ParticleContainer () {}
+    virtual ~ParticleContainer () = default;
 
     ParticleContainer ( const ParticleContainer &) = delete;
     ParticleContainer& operator= ( const ParticleContainer & ) = delete;
