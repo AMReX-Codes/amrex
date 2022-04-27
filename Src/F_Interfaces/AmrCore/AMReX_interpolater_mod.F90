@@ -11,5 +11,6 @@ module amrex_interpolater_module
   integer, parameter :: amrex_interp_protected     = 6
   integer, parameter :: amrex_interp_quartic       = 7
   integer, parameter :: amrex_interp_face_divfree  = 8
+  integer, parameter :: amrex_interp_face_linear   = 9
   integer, parameter :: amrex_interp_dg            = 10
 end module amrex_interpolater_module

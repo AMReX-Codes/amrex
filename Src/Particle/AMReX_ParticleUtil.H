@@ -671,6 +671,28 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
 
 #endif
 
+template <class PC1, class PC2>
+bool SameIteratorsOK (const PC1& pc1, const PC2& pc2) {
+    if (pc1.numLevels() != pc2.numLevels()) {return false;}
+    if (pc1.do_tiling != pc2.do_tiling) {return false;}
+    if (pc1.tile_size != pc2.tile_size) {return false;}
+    for (int lev = 0; lev < pc1.numLevels(); ++lev) {
+        if (pc1.ParticleBoxArray(lev) != pc2.ParticleBoxArray(lev)) {return false;}
+        if (pc1.ParticleDistributionMap(lev) != pc2.ParticleDistributionMap(lev)) {return false;}
+    }
+    return true;
+}
+
+template <class PC>
+void EnsureThreadSafeTiles(PC& pc) {
+    using Iter = typename PC::ParIterType;
+    for (int lev = 0; lev < pc.numLevels(); ++lev) {
+        for (Iter pti(pc, lev); pti.isValid(); ++pti) {
+            pc.DefineAndReturnParticleTile(lev, pti);
+        }
+    }
+}
+
 IntVect computeRefFac (const ParGDBBase* a_gdb, int src_lev, int lev);
 
 Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow);

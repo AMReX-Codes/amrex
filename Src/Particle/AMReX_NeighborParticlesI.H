@@ -1,3 +1,4 @@
+
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 bool NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::use_mask = false;
 
@@ -727,6 +728,61 @@ buildNeighborList (CheckPair&& check_pair, bool /*sort*/)
                 }
             }
 #endif
+        }
+    }
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <class CheckPair, class OtherPCType>
+void
+NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+buildNeighborList (CheckPair&& check_pair, OtherPCType& other,
+                   Vector<std::map<std::pair<int, int>, amrex::NeighborList<typename OtherPCType::ParticleType> > >& neighbor_lists,
+                   bool /*sort*/)
+{
+    BL_PROFILE("NeighborParticleContainer::buildNeighborList");
+
+    AMREX_ASSERT(numParticlesOutOfRange(*this, m_num_neighbor_cells) == 0);
+    AMREX_ASSERT(numParticlesOutOfRange(other, m_num_neighbor_cells) == 0);
+    AMREX_ASSERT(SameIteratorsOK(*this, other));
+
+    EnsureThreadSafeTiles(*this);
+    EnsureThreadSafeTiles(other);
+
+    resizeContainers(this->numLevels());
+    neighbor_lists.resize(this->numLevels());
+
+    for (int lev = 0; lev < this->numLevels(); ++lev)
+    {
+        neighbor_lists[lev].clear();
+
+        for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+            PairIndex index(pti.index(), pti.LocalTileIndex());
+            neighbor_lists[lev][index];
+        }
+
+              auto& plev = this->GetParticles(lev);
+        const auto& geom = this->Geom(lev);
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
+        {
+            int gid = pti.index();
+            int tid = pti.LocalTileIndex();
+            auto index = std::make_pair(gid, tid);
+
+            const auto& ptile = plev[index];
+            auto& other_ptile = other.ParticlesAt(lev, pti);
+            if (ptile.numParticles() == 0) continue;
+
+            Box bx = pti.tilebox();
+            bx.grow(computeRefFac(0, lev).max()*m_num_neighbor_cells);
+
+            neighbor_lists[lev][index].build(ptile, other_ptile, bx, geom,
+                                             std::forward<CheckPair>(check_pair),
+                                             computeRefFac(0, lev).max()*m_num_neighbor_cells);
         }
     }
 }
