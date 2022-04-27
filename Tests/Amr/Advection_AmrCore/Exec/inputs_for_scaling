@@ -1,5 +1,5 @@
 # *****************************************************************
-# Run until nsteps == max_step or time == stop_time, 
+# Run until nsteps == max_step or time == stop_time,
 #     whichever comes first
 # *****************************************************************
 max_step  = 1000
@@ -14,7 +14,7 @@ stop_time = 2.0
 # *****************************************************************
 # Problem size and geometry
 # *****************************************************************
-geometry.prob_lo     =  0.0  0.0  0.0 
+geometry.prob_lo     =  0.0  0.0  0.0
 geometry.prob_hi     =  1.0  1.0  0.25
 geometry.is_periodic =  1    1    1
 
@@ -27,7 +27,7 @@ amr.v              = 1       # verbosity in Amr
 # Resolution and refinement
 # *****************************************************************
 amr.n_cell          = 128 128 32
-amr.max_level       = 3       # maximum level number allowed -- 
+amr.max_level       = 3       # maximum level number allowed --
                               # number of levels = max_level + 1
 
 amr.ref_ratio       = 2 2 2 2 # refinement ratio between levels
@@ -59,9 +59,9 @@ adv.do_subcycle    = 1       # Do we subcycle in time?
 adv.do_reflux = 1
 
 # *****************************************************************
-# Tagging -  if phi > 1.01 at level 0, then refine 
-#            if phi > 1.1  at level 1, then refine 
-#            if phi > 1.5  at level 2, then refine 
+# Tagging -  if phi > 1.01 at level 0, then refine
+#            if phi > 1.1  at level 1, then refine
+#            if phi > 1.5  at level 2, then refine
 # *****************************************************************
 adv.phierr = 1.01  1.1  1.5
 
@@ -78,3 +78,8 @@ amr.plot_int   = -1     # number of timesteps between plot files
 amr.chk_file = chk      # root name of checkpoint file
 amr.chk_int  = -1       # number of timesteps between checkpoint files
                         # if negative then no checkpoint files will be written
+
+# *****************************************************************
+# Particles
+# *****************************************************************
+amr.do_tracers = 1      # Turn tracer particles on or off

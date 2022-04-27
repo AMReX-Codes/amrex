@@ -1,17 +1,24 @@
 #ifndef AmrCoreAdv_H_
 #define AmrCoreAdv_H_
 
-#include <string>
-#include <limits>
-#include <memory>
-
-#ifdef AMREX_USE_OMP
-#include <omp.h>
+#include <AMReX_Config.H>
+#ifdef AMREX_PARTICLES
+#   include <AMReX_AmrParticles.H>
+#   include <AMReX_Particles.H>
 #endif
 
 #include <AMReX_AmrCore.H>
-#include <AMReX_FluxRegister.H>
 #include <AMReX_BCRec.H>
+#include <AMReX_FluxRegister.H>
+
+#ifdef AMREX_USE_OMP
+#   include <omp.h>
+#endif
+
+#include <limits>
+#include <memory>
+#include <string>
+
 
 class AmrCoreAdv
     : public amrex::AmrCore
@@ -71,6 +78,11 @@ public:
 
     // compute dt from CFL considerations
     amrex::Real EstTimeStep (int lev, amrex::Real time);
+
+#ifdef AMREX_PARTICLES
+    static amrex::AmrTracerParticleContainer* theTracerPC () { return TracerPC.get(); }
+#endif
+
 
 private:
 
@@ -186,6 +198,15 @@ private:
     // checkpoint prefix and frequency
     std::string chk_file {"chk"};
     int chk_int = -1;
+
+    //number of ghost cells on facevel
+    int nghost = 2;
+
+#ifdef AMREX_PARTICLES
+    void init_particles ();
+    static int       do_tracers;
+    static std::unique_ptr<amrex::AmrTracerParticleContainer> TracerPC;
+#endif
 };
 
 #endif
