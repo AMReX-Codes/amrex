@@ -504,7 +504,7 @@ public:
         Long         m_nuse;
         bool         m_multi_ghost = false;
         //
-#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
+#if defined(__CUDACC__)
         CudaGraph<CopyMemory> m_localCopy;
         CudaGraph<CopyMemory> m_copyToBuffer;
         CudaGraph<CopyMemory> m_copyFromBuffer;

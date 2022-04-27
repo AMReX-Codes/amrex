@@ -10,11 +10,11 @@ else
   nvcc_minor_version := 9
 endif
 
-# Disallow CUDA toolkit versions < 8.0.
+# Disallow CUDA toolkit versions < 10
 
-nvcc_major_lt_8 = $(shell expr $(nvcc_major_version) \< 8)
-ifeq ($(nvcc_major_lt_8),1)
-  $(error Your nvcc version is $(nvcc_version). This is unsupported. Please use CUDA toolkit version 8.0 or newer.)
+nvcc_major_lt_10 = $(shell expr $(nvcc_major_version) \< 10)
+ifeq ($(nvcc_major_lt_10),1)
+  $(error Your nvcc version is $(nvcc_version). This is unsupported. Please use CUDA toolkit version 10.0 or newer.)
 endif
 
 nvcc_forward_unknowns = 0
@@ -192,13 +192,6 @@ ifeq ($(USE_GPU_RDC),TRUE)
 else
   CXXFLAGS += -c
   CFLAGS   += -c
-endif
-
-ifeq ($(nvcc_version),9.2)
-  # relaxed constexpr not supported
-  ifeq ($(USE_EB),TRUE)
-    $(error Cuda 9.2 is not supported with USE_EB=TRUE. Use 9.1 or 10.0 instead.)
-  endif
 endif
 
 CXX = nvcc

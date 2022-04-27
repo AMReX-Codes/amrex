@@ -451,8 +451,8 @@ Memory Allocation
 
 To provide portability and improve memory allocation performance,
 AMReX provides a number of memory pools.  When compiled without
-CUDA, all :cpp:`Arena`\ s use standard :cpp:`new` and :cpp:`delete`
-operators. With CUDA, the :cpp:`Arena`\ s each allocate with a
+GPU support, all :cpp:`Arena`\ s use standard :cpp:`new` and :cpp:`delete`
+operators. With GPU support, the :cpp:`Arena`\ s each allocate with a
 specific type of GPU memory:
 
 .. raw:: latex
@@ -1655,4 +1655,6 @@ by "amrex" in your :cpp:`inputs` file.
 | abort_on_out_of_gpu_memory | If the size of free memory on the GPU is less than the size of a      | Bool        | False       |
 |                            | requested allocation, AMReX will call AMReX::Abort() with an error    |             |             |
 |                            | describing how much free memory there is and what was requested.      |             |             |
++----------------------------+-----------------------------------------------------------------------+-------------+-------------+
+| the_arena_is_managed       | Whether :cpp:`The_Arena()` allocates managed memory.                  | Bool        | True        |
 +----------------------------+-----------------------------------------------------------------------+-------------+-------------+

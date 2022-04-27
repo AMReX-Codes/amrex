@@ -385,7 +385,7 @@ FabArray<FAB>::CMD_remote_setVal_gpu (typename FabArray<FAB>::value_type x,
     });
 }
 
-#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
+#if defined(__CUDACC__)
 template <class FAB>
 void
 FabArray<FAB>::FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp)
@@ -543,7 +543,7 @@ FabArray<FAB>::FB_local_copy_cuda_graph_n (const FB& TheFB, int scomp, int ncomp
 }
 #endif /* AMREX_USE_MPI */
 
-#endif /* CUDA >= 10 */
+#endif /* __CUDACC__ */
 
 #endif /* AMREX_USE_GPU */
 
@@ -551,7 +551,7 @@ FabArray<FAB>::FB_local_copy_cuda_graph_n (const FB& TheFB, int scomp, int ncomp
 
 #ifdef AMREX_USE_GPU
 
-#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
+#if defined(__CUDACC__)
 
 template <class FAB>
 void
@@ -722,7 +722,7 @@ FabArray<FAB>::FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int
     TheFB.m_copyFromBuffer.executeGraph();
 }
 
-#endif /* CUDA >= 10 */
+#endif /* __CUDACC__ */
 
 template <class FAB>
 template <typename BUF>

@@ -17,7 +17,7 @@ endif ()
 # Check CUDA compiler and host compiler
 #
 include(AMReXUtils)
-set_mininum_compiler_version(CUDA NVIDIA 9.0)
+set_mininum_compiler_version(CUDA NVIDIA 10.0)
 check_cuda_host_compiler()
 
 #

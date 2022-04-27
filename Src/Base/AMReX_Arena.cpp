@@ -43,11 +43,7 @@ namespace {
     Long the_managed_arena_release_threshold = std::numeric_limits<Long>::max();
     Long the_pinned_arena_release_threshold = std::numeric_limits<Long>::max();
     Long the_async_arena_release_threshold = std::numeric_limits<Long>::max();
-#ifdef AMREX_USE_HIP
-    bool the_arena_is_managed = false; // xxxxx HIP FIX HERE
-#else
     bool the_arena_is_managed = true;
-#endif
     bool abort_on_out_of_gpu_memory = false;
 }
 
