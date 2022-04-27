@@ -11,10 +11,22 @@ namespace {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool line_tri_intersects (Real a[3], Real b[3], STLtools::Triangle const& tri)
     {
-        Real t1[] = {tri.v1.x, tri.v1.y, tri.v1.z};
-        Real t2[] = {tri.v2.x, tri.v2.y, tri.v2.z};
-        Real t3[] = {tri.v3.x, tri.v3.y, tri.v3.z};
-        return 1-tri_geom_ops::lineseg_tri_intersect(a,b,t1,t2,t3);
+        if (amrex::max(a[0],b[0]) < amrex::min(tri.v1.x,tri.v2.x,tri.v3.x) ||
+            amrex::min(a[0],b[0]) > amrex::max(tri.v1.x,tri.v2.x,tri.v3.x) ||
+            amrex::max(a[1],b[1]) < amrex::min(tri.v1.y,tri.v2.y,tri.v3.y) ||
+            amrex::min(a[1],b[1]) > amrex::max(tri.v1.y,tri.v2.y,tri.v3.y) ||
+            amrex::max(a[2],b[2]) < amrex::min(tri.v1.z,tri.v2.z,tri.v3.z) ||
+            amrex::min(a[2],b[2]) > amrex::max(tri.v1.z,tri.v2.z,tri.v3.z))
+        {
+            return 0;
+        }
+        else
+        {
+            Real t1[] = {tri.v1.x, tri.v1.y, tri.v1.z};
+            Real t2[] = {tri.v2.x, tri.v2.y, tri.v2.z};
+            Real t3[] = {tri.v3.x, tri.v3.y, tri.v3.z};
+            return 1-tri_geom_ops::lineseg_tri_intersect(a,b,t1,t2,t3);
+        }
     }
 
     // Sign for 3 points on a plane.  This computes the sign of
