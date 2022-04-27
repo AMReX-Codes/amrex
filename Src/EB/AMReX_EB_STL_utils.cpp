@@ -308,7 +308,7 @@ STLtools::prepare ()
     // Choose a reference point by extending the normal vector of the first
     // triangle until it's slightly outside the bounding box.
     XDim3 cent0; // centroid of the first triangle
-    int is_ref_poisitive;
+    int is_ref_positive;
     {
         Triangle const& tri = m_tri_pts_h[0];
         cent0 = XDim3{(tri.v1.x + tri.v2.x + tri.v3.x) / 3._rt,
@@ -387,12 +387,12 @@ STLtools::prepare ()
             m_ptref.x = cent0.x + (Lp+Leps) * norm.x;
             m_ptref.y = cent0.y + (Lp+Leps) * norm.y;
             m_ptref.z = cent0.z + (Lp+Leps) * norm.z;
-            is_ref_poisitive = true;
+            is_ref_positive = true;
         } else {
             m_ptref.x = cent0.x + (Lm-Leps) * norm.x;
             m_ptref.y = cent0.y + (Lm-Leps) * norm.y;
             m_ptref.z = cent0.z + (Lm-Leps) * norm.z;
-            is_ref_poisitive = false;
+            is_ref_positive = false;
         }
     }
 
@@ -402,7 +402,7 @@ STLtools::prepare ()
     int num_isects = Reduce::Sum<int>(m_num_tri, [=] AMREX_GPU_DEVICE (int i) -> int
         {
             if (i == 0) {
-                return 1-is_ref_poisitive;
+                return 1-is_ref_positive;
             } else {
                 Real p1[] = {ptref.x, ptref.y, ptref.z};
                 Real p2[] = {cent0.x, cent0.y, cent0.z};
