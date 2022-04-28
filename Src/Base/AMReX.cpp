@@ -366,6 +366,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     }
 
     BL_PROFILE_INITIALIZE();
+    BL_TINY_PROFILE_INITIALIZE();
 
 #ifndef BL_AMRPROF
     if (build_parm_parse)
@@ -559,8 +560,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
         amrex::Print() << "AMReX (" << amrex::Version() << ") initialized" << std::endl;
     }
-
-    BL_TINY_PROFILE_INITIALIZE();
 
     AMReX::push(new AMReX());
     return AMReX::top();
