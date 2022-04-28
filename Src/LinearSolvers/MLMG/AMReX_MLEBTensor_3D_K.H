@@ -220,7 +220,7 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                              Array4<Real const> const& fcy,
                              Array4<Real const> const& fcz,
                              Array4<Real const> const& bc,
-                             int is_dirichlet, int is_inhomog,
+                             bool is_dirichlet, bool is_inhomog,
                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                              Real bscalar) noexcept
 {
