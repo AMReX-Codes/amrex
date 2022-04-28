@@ -7,15 +7,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Build libamrex and all tests with CUDA 9.2
-  tests-cuda9:
-    name: CUDA@9.2 GNU@6.5.0 C++14 Release [tests]
+  # Build libamrex and all tests with CUDA 10.2
+  tests-cuda10:
+    name: CUDA@10.2 GNU@6.5.0 C++14 Release [tests]
     runs-on: ubuntu-18.04
     env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_nvcc9.sh
+      run: .github/workflows/dependencies/dependencies_nvcc10.sh
     - name: Build & Install
       run: |
         export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
@@ -34,7 +34,7 @@ jobs:
             -DCMAKE_CXX_COMPILER=$(which g++-6)            \
             -DCMAKE_CUDA_HOST_COMPILER=$(which g++-6)      \
             -DCMAKE_Fortran_COMPILER=$(which gfortran-6)   \
-            -DAMReX_CUDA_ARCH=6.0 \
+            -DAMReX_CUDA_ARCH=7.0 \
             -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON
         make -j 2
 

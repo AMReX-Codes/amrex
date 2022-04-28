@@ -1067,7 +1067,7 @@ public:
     void CMD_local_setVal_gpu (value_type x, const CommMetaData& thecmd, int scomp, int ncomp);
     void CMD_remote_setVal_gpu (value_type x, const CommMetaData& thecmd, int scomp, int ncomp);
 
-#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
+#if defined(__CUDACC__)
 
     void FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp);
     void FB_local_copy_cuda_graph_n (const FB& TheFB, int scomp, int ncomp);
@@ -1078,7 +1078,7 @@ public:
 #ifdef AMREX_USE_MPI
 
 #ifdef AMREX_USE_GPU
-#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
+#if defined(__CUDACC__)
 
     void FB_pack_send_buffer_cuda_graph (const FB& TheFB, int scomp, int ncomp,
                                          Vector<char*>& send_data,

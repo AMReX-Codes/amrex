@@ -352,8 +352,8 @@ public:
         }
     }
 
-    void fillFab_Cpu(BaseFab<Real>& levelset, const Geometry& geom,
-                     Box const& bounding_box) const noexcept
+    void fillFab_Cpu (BaseFab<Real>& levelset, const Geometry& geom,
+                      Box const& bounding_box) const noexcept
     {
         const auto problo = geom.ProbLoArray();
         const auto dx = geom.CellSizeArray();
@@ -374,7 +374,7 @@ public:
     template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* FOO = nullptr >
     void getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                        Array<Array4<Type_t const>,AMREX_SPACEDIM> const& type_arr,
-                       Geometry const& geom, RunOn run_on,
+                       Array4<Real const> const&, Geometry const& geom, RunOn run_on,
                        Box const& bounding_box) const noexcept
     {
         auto const& dx = geom.CellSizeArray();
@@ -410,7 +410,7 @@ public:
     template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* BAR = nullptr >
     void getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                        Array<Array4<Type_t const>,AMREX_SPACEDIM> const& type_arr,
-                       Geometry const& geom, RunOn,
+                       Array4<Real const> const&, Geometry const& geom, RunOn,
                        Box const& bounding_box) const noexcept
     {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -442,11 +442,11 @@ public:
         }
     }
 
-    void getIntercept_Cpu(Array4<Real> const& inter,
-                          Array4<Type_t const> const& type,
-                          Geometry const& geom,
-                          Box const& bounding_box,
-                          const int idim) const noexcept
+    void getIntercept_Cpu (Array4<Real> const& inter,
+                           Array4<Type_t const> const& type,
+                           Geometry const& geom,
+                           Box const& bounding_box,
+                           const int idim) const noexcept
     {
         auto const& dx = geom.CellSizeArray();
         auto const& problo = geom.ProbLoArray();

@@ -2,43 +2,71 @@
 #define AMREX_EB_STL_UTILS_H_
 
 #include <AMReX_Config.H>
-#include <AMReX.H>
-#include <AMReX_ParmParse.H>
-#include <AMReX_MultiFab.H>
-#include <AMReX_REAL.H>
-#include <AMReX_Vector.H>
 #include <AMReX_Geometry.H>
-#include <AMReX_FArrayBox.H>
-#include <AMReX_Box.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_Dim3.H>
+#include <AMReX_EB2_Graph.H>
 
 namespace amrex
 {
-    class STLtools
-    {
-        private:
 
-            //host vectors
-            Gpu::PinnedVector<Real> m_tri_pts_h;
-            Gpu::PinnedVector<Real> m_tri_normals_h;
-
-            //device vectors
-            Gpu::DeviceVector<amrex::Real> m_tri_pts_d;
-            Gpu::DeviceVector<amrex::Real> m_tri_normals_d;
-
-            int  m_num_tri=0;
-            int  m_ndata_per_tri=9;    //three points x 3 coordinates
-            int  m_ndata_per_normal=3; //three components
-            int  m_nlines_per_facet=7; //specific to ASCII STLs
-            Real m_inside  = -1.0;
-            Real m_outside =  1.0;
-
-
-        public:
-
-            void read_ascii_stl_file(std::string fname);
-            void stl_to_markerfab(MultiFab& markerfab,
-                    Geometry geom,Real *point_outside);
-
+class STLtools
+{
+public:
+    struct Triangle {
+        XDim3 v1, v2, v3;
     };
+
+    static constexpr int allregular = -1;
+    static constexpr int mixedcells = 0;
+    static constexpr int allcovered = 1;
+
+private:
+
+    Gpu::PinnedVector<Triangle> m_tri_pts_h;
+    Gpu::DeviceVector<Triangle> m_tri_pts_d;
+    Gpu::DeviceVector<XDim3> m_tri_normals_d;
+
+    int m_num_tri=0;
+
+    XDim3 m_ptmin;  // All triangles are inside the bounding box defined by
+    XDim3 m_ptmax;  //     m_ptmin and m_ptmax.
+    XDim3 m_ptref;  // The reference point is slightly outside the bounding box.
+    bool m_boundry_is_outside; // Is the bounding box boundary outside or inside the object?
+
+    void read_ascii_stl_file (std::string const& fname, Real scale,
+                              Array<Real,3> const& center, int reverse_normal);
+    void read_binary_stl_file (std::string const& fname, Real scale,
+                               Array<Real,3> const& center, int reverse_normal);
+
+public: // for cuda
+    void prepare ();
+
+public:
+
+    void read_stl_file (std::string const& fname, Real scale, Array<Real,3> const& center,
+                        int reverse_normal);
+
+    void fill (MultiFab& mf, IntVect const& nghost, Geometry const& geom,
+               Real outside_value = -1._rt, Real inside_value = 1._rt) const;
+
+    int getBoxType (Box const& box, Geometry const& geom, RunOn) const;
+
+    bool isGPUable () const noexcept { return true; }
+
+    void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn,
+                  Box const& bounding_box) const;
+
+    void getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
+                       Array<Array4<EB2::Type_t const>,AMREX_SPACEDIM> const& type_arr,
+                       Array4<Real const> const& lst, Geometry const& geom, RunOn,
+                       Box const& bounding_box) const;
+
+    void updateIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
+                          Array<Array4<EB2::Type_t const>,AMREX_SPACEDIM> const& type_arr,
+                          Array4<Real const> const& lst, Geometry const& geom) const;
+
+};
+
 }
 #endif
