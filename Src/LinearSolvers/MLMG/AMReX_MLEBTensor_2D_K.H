@@ -180,7 +180,7 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                 Real kappa = vol(i,j,0);
                 Real feb_0 = 0.0;
                 Real feb_1 = 0.0;
-                if (is_dirichlet) {
+                if (is_dirichlet)
                 {
                     Real dapx = apx(i+1,j,0)-apx(i,j,0);
                     Real dapy = apy(i,j+1,0)-apy(i,j,0);
