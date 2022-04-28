@@ -1,8 +1,18 @@
+#include "AMReX_ParallelDescriptor.H"
 #include <AMReX.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_Print.H>
+#include <fstream>
+#include <sstream>
 
 using namespace amrex;
+
+namespace {
+void GotoNextLine(std::istream &is) {
+  constexpr std::streamsize bl_ignore_max{100000};
+  is.ignore(bl_ignore_max, '\n');
+}
+} // namespace
 
 void main_main() {
   bool b_scale = false;
@@ -50,50 +60,107 @@ void main_main() {
     return;
   }
 
-  PlotFileData plotfile(fname);
-  amrex::Print() << " reading plotfile: " << fname << "\n";
+  amrex::Print() << " reading plotfile header: " << fname << "\n";
 
-  const int nlevels = plotfile.finestLevel() + 1;
-  const Vector<std::string> &varnames = plotfile.varNames();
-  Vector<MultiFab> mf;
-  Vector<Geometry> geom;
-  Vector<int> level_step;
-  Vector<IntVect> ref_ratio;
+  // read header file from disk
+  std::string File(fname + "/Header");
+  Vector<char> fileCharPtr;
+  ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
+  std::istringstream is(std::string(fileCharPtr.dataPtr()),
+                        std::istringstream::in);
 
-  for (int ilev = 0; ilev < nlevels; ++ilev) {
-    // is this readable from the plotfile??
-    const Array<int, AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0, 0, 0)};
+  // stringstream for output header
+  std::ostringstream os;
 
-    // can this be anisotropic??
-    const int ref = plotfile.refRatio(ilev);
+  // parse input file line-by-line
+  std::string m_file_version;
+  is >> m_file_version;
+  os << m_file_version << '\n';
 
-    mf.push_back(plotfile.get(ilev));
-    ref_ratio.push_back(IntVect{AMREX_D_DECL(ref, ref, ref)});
-    level_step.push_back(plotfile.levelStep(ilev));
+  int m_ncomp;
+  is >> m_ncomp;
+  os << m_ncomp << '\n';
 
-    // rescale geometry
-    const Box prob_domain = plotfile.probDomain(ilev);
-    auto const &dlo = plotfile.probLo();
-    auto const &dhi = plotfile.probHi();
-    std::array<amrex::Real, AMREX_SPACEDIM> new_dlo;
-    std::array<amrex::Real, AMREX_SPACEDIM> new_dhi;
-
-    for (int k = 0; k < AMREX_SPACEDIM; ++k) {
-      new_dlo[k] = dlo[k] / length_unit;
-      new_dhi[k] = dhi[k] / length_unit;
-    }
-    amrex::RealBox rescaledRealBox(new_dlo, new_dhi);
-    const Geometry geom_l(prob_domain, rescaledRealBox, plotfile.coordSys(),
-                          is_periodic);
-    geom.push_back(geom_l);
+  Vector<std::string> m_var_names;
+  m_var_names.resize(m_ncomp);
+  for (int i = 0; i < m_ncomp; ++i) {
+    is >> m_var_names[i];
+    os << m_var_names[i] << '\n';
   }
 
-  // save to new plotfile
-  amrex::Print() << " writing to new plotfile: " << fname_output << "\n";
+  int m_spacedim;
+  int m_finest_level, m_nlevels;
+  Real m_time;
+  is >> m_spacedim >> m_time >> m_finest_level;
+  os << m_spacedim << '\n' << m_time << '\n' << m_finest_level << '\n';
+  m_nlevels = m_finest_level + 1;
 
-  const Vector<const MultiFab *> vec_mf = GetVecOfConstPtrs(mf);
-  WriteMultiLevelPlotfileHeaders(fname_output, nlevels, vec_mf, varnames, geom,
-                                 plotfile.time(), level_step, ref_ratio);
+  Array<Real, AMREX_SPACEDIM> m_prob_lo{{AMREX_D_DECL(0., 0., 0.)}};
+  for (int i = 0; i < m_spacedim; ++i) {
+    is >> m_prob_lo[i];
+    os << (m_prob_lo[i] / length_unit) << ' ';
+  }
+  os << '\n';
+
+  Array<Real, AMREX_SPACEDIM> m_prob_hi{{AMREX_D_DECL(1., 1., 1.)}};
+  for (int i = 0; i < m_spacedim; ++i) {
+    is >> m_prob_hi[i];
+    os << (m_prob_hi[i] / length_unit) << ' ';
+  }
+  os << '\n';
+
+  Vector<int> m_ref_ratio;
+  m_ref_ratio.resize(m_nlevels, 0);
+  for (int i = 0; i < m_finest_level; ++i) {
+    is >> m_ref_ratio[i];
+    os << m_ref_ratio[i] << ' ';
+  }
+  os << '\n';
+
+  GotoNextLine(is);
+
+  Vector<Box> m_prob_domain;
+  m_prob_domain.resize(m_nlevels);
+  for (int i = 0; i < m_nlevels; ++i) {
+    is >> m_prob_domain[i];
+    os << m_prob_domain[i] << ' ';
+  }
+  os << '\n';
+
+  Vector<int> m_level_steps;
+  m_level_steps.resize(m_nlevels);
+  for (int i = 0; i < m_nlevels; ++i) {
+    is >> m_level_steps[i];
+    os << m_level_steps[i] << ' ';
+  }
+  os << '\n';
+
+  Vector<Array<Real, AMREX_SPACEDIM>> m_cell_size;
+  m_cell_size.resize(m_nlevels,
+                     Array<Real, AMREX_SPACEDIM>{{AMREX_D_DECL(1., 1., 1.)}});
+  for (int ilev = 0; ilev < m_nlevels; ++ilev) {
+    for (int idim = 0; idim < m_spacedim; ++idim) {
+      is >> m_cell_size[ilev][idim];
+      os << (m_cell_size[ilev][idim] / length_unit) << ' ';
+    }
+    os << '\n';
+  }
+
+  GotoNextLine(is);
+
+  // process remaining lines and write out until EOF
+  for (std::string line; std::getline(is, line);) {
+    os << line << '\n';
+  }
+
+  // write ostringstream 'os' to file
+  if (ParallelDescriptor::IOProcessor()) {
+    amrex::Print() << " writing new header to plotfile: " << fname_output << "\n";
+    std::ofstream outfile;
+    outfile.open(fname_output + "/Header");
+    outfile << os.str();
+    outfile.close();
+  }
 
   amrex::Print() << std::endl;
 }
@@ -103,4 +170,5 @@ int main(int argc, char *argv[]) {
   amrex::Initialize(argc, argv, false);
   main_main();
   amrex::Finalize();
+  return 0;
 }
