@@ -272,11 +272,7 @@ struct ImplicitIntegral
     AMREX_GPU_HOST_DEVICE
     bool prune () noexcept
     {
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         static constexpr Real eps = std::numeric_limits<Real>::epsilon();
-#else
-        static constexpr Real eps = DBL_EPSILON;
-#endif
         static constexpr Real almostone = 1.0-10.*eps;
 
         for (int i = 0; i < psiCount; )
@@ -440,11 +436,7 @@ struct ImplicitIntegral
         roots[nroots++] = x_max;
 
         // In rare cases, degenerate segments can be found, filter out with a tolerance
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         static constexpr Real eps = std::numeric_limits<Real>::epsilon();
-#else
-        static constexpr Real eps = DBL_EPSILON;
-#endif
         constexpr Real tol = 50.0*eps;
 
         // Loop over segments of divided interval

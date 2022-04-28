@@ -10,6 +10,7 @@
 #include <AMReX_EB2_IF_Parser.H>
 #include <AMReX_EB2_GeometryShop.H>
 #include <AMReX_EB2.H>
+#include <AMReX_EB2_IndexSpace_STL.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX.H>
 #include <algorithm>
@@ -188,6 +189,24 @@ Build (const Geometry& geom, int required_coarsening_level,
         EB2::GeometryShop<EB2::ParserIF,Parser> gshop(pif,parser);
         EB2::Build(gshop, geom, required_coarsening_level,
                    max_coarsening_level, ngrow, build_coarse_level_by_coarsening);
+    }
+    else if (geom_type == "stl")
+    {
+        std::string stl_file;
+        pp.get("stl_file", stl_file);
+        Real stl_scale = 1._rt;
+        pp.queryAdd("stl_scale", stl_scale);
+        std::vector<Real> stl_center{0.0_rt, 0.0_rt, 0.0_rt};
+        pp.queryAdd("stl_center", stl_center);
+        int stl_reverse_normal = 0;
+        pp.queryAdd("stl_reverse_normal", stl_reverse_normal);
+        IndexSpace::push(new IndexSpaceSTL(stl_file, stl_scale,
+                                           {stl_center[0], stl_center[1], stl_center[2]},
+                                           stl_reverse_normal,
+                                           geom, required_coarsening_level,
+                                           max_coarsening_level, ngrow,
+                                           build_coarse_level_by_coarsening,
+                                           extend_domain_face));
     }
     else
     {

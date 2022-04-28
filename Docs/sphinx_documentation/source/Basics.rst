@@ -2429,7 +2429,7 @@ section :ref:`sec:gpu:for`.  It should be emphasized that
 region will be started by the pragma above the :cpp:`MFIter` loop if it is
 built with OpenMP and without enabling GPU.  Tiling is turned off if
 GPU is enabled so that more parallelism is exposed to GPU kernels.
-Also note that when tiling is off, :cpp:`tilbox` returns
+Also note that when tiling is off, :cpp:`tilebox` returns
 :cpp:`validbox`.
 
 There are other versions of :cpp:`ParallelFor`,
