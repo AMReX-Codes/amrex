@@ -89,10 +89,16 @@ void main_main() {
   }
 
   int m_spacedim;
-  int m_finest_level, m_nlevels;
+  is >> m_spacedim;
+  os << m_spacedim << '\n';
+
   Real m_time;
-  is >> m_spacedim >> m_time >> m_finest_level;
-  os << m_spacedim << '\n' << m_time << '\n' << m_finest_level << '\n';
+  is >> m_time;
+  os << std::setprecision(30) << m_time << '\n';
+
+  int m_finest_level, m_nlevels;
+  is >> m_finest_level;
+  os << m_finest_level << '\n';
   m_nlevels = m_finest_level + 1;
 
   Array<Real, AMREX_SPACEDIM> m_prob_lo{{AMREX_D_DECL(0., 0., 0.)}};
