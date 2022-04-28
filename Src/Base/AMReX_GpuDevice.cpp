@@ -121,17 +121,7 @@ namespace {
 void
 Device::Initialize ()
 {
-
-#if defined(AMREX_USE_CUDA) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
-    // Wrap cuda init to identify it appropriately in nvvp.
-    // Note: first substantial cuda call may cause a lengthy
-    // cuda API and cuda driver API initialization that will
-    // be captured by the profiler. It a necessary, system
-    // dependent step that is unavoidable.
-    nvtxRangeId_t nvtx_init;
-    const char* pname = "initialize_device";
-    nvtx_init = nvtxRangeStartA(pname);
-#endif
+    BL_PROFILE("Device::Initialize()");
 
     ParmParse ppamrex("amrex");
     ppamrex.queryAdd("max_gpu_streams", max_gpu_streams);
@@ -318,9 +308,6 @@ Device::Initialize ()
     delete[] recvbuf;
 #endif
 
-#if (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
-    nvtxRangeEnd(nvtx_init);
-#endif
     if (amrex::Verbose()) {
 #if defined(AMREX_USE_MPI) && (__CUDACC_VER_MAJOR__ >= 10)
         if (num_devices_used == ParallelDescriptor::NProcs())
