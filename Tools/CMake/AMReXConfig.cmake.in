@@ -209,7 +209,7 @@ if (@AMReX_PETSC@)
 endif ()
 
 if (@AMReX_SUNDIALS@)
-   find_dependency(SUNDIALS 5.7.0 REQUIRED)
+   find_dependency(SUNDIALS 6.0.0 REQUIRED)
 endif ()
 
 #
