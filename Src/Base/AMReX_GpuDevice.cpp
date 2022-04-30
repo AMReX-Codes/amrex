@@ -128,9 +128,7 @@ Device::Initialize ()
     // cuda API and cuda driver API initialization that will
     // be captured by the profiler. It a necessary, system
     // dependent step that is unavoidable.
-    nvtxRangeId_t nvtx_init;
-    const char* pname = "initialize_device";
-    nvtx_init = nvtxRangeStartA(pname);
+    nvtxRangePush("initialize_device");
 #endif
 
     ParmParse ppamrex("amrex");
@@ -317,7 +315,7 @@ Device::Initialize ()
     delete[] recvbuf;
 
 #if (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
-    nvtxRangeEnd(nvtx_init);
+    nvtxRangePop();
 #endif
     if (amrex::Verbose()) {
 #if defined(AMREX_USE_MPI)
