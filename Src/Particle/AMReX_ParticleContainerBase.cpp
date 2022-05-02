@@ -79,6 +79,35 @@ ParticleContainerBase::defineBufferMap () const
     }
 }
 
+void ParticleContainerBase::SetParGDB (const Geometry            & geom,
+                                       const DistributionMapping & dmap,
+                                       const BoxArray            & ba)
+{
+    m_gdb_object = ParGDB(geom, dmap, ba);
+    m_gdb = &m_gdb_object;
+    resizeData();
+}
+
+void ParticleContainerBase::SetParGDB (const Vector<Geometry>            & geom,
+                                       const Vector<DistributionMapping> & dmap,
+                                       const Vector<BoxArray>            & ba,
+                                       const Vector<int>                 & rr)
+{
+    m_gdb_object = ParGDB(geom, dmap, ba, rr);
+    m_gdb = &m_gdb_object;
+    resizeData();
+}
+
+void ParticleContainerBase::SetParGDB (const Vector<Geometry>            & geom,
+                                       const Vector<DistributionMapping> & dmap,
+                                       const Vector<BoxArray>            & ba,
+                                       const Vector<IntVect>             & rr)
+{
+    m_gdb_object = ParGDB(geom, dmap, ba, rr);
+    m_gdb = &m_gdb_object;
+    resizeData();
+}
+
 void ParticleContainerBase::SetParticleBoxArray (int lev, const BoxArray& new_ba)
 {
     m_gdb_object = ParGDB(m_gdb->ParticleGeom(), m_gdb->ParticleDistributionMap(),
