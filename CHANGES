@@ -1,3 +1,59 @@
+# 22.05
+
+  -- Update Required SUNDIALS version (#2743)
+
+  -- EB: Geometry generation from STL file (#2728)
+
+  -- Drop CUDA 9 support (#2736)
+
+  -- Disable AsyncOut by default for HIP and DPC++ (#2735)
+
+  -- Turn on managed memory by default in The_Arena for HIP (#2734)
+
+  -- Update WarpX's MLEBNodeFDLaplacian for 2D RZ (#2733)
+
+  -- Adding more recent Hypre APIs to initialize the library. (#2729)
+
+  -- Allow the computation of neighbor lists between particles of different types. (#2727)
+
+  -- Add option for face linear interpolater in fortran interface (#2726)
+
+  -- Allow some EB code to handle single precision (#2723, #2719)
+
+  -- Allow `FillBoundary` to cast messages from double to single precision. (#2708)
+
+  -- Fix FluxRegister::SumReg for GPU builds (#2718)
+
+  -- Swap hip lib and include ordering (#2717)
+
+  -- Fix integer overflow warnings in FabConv (#2716)
+
+  -- Make AsyncOut::Finish safe to call when async_out is not enabled. (#2715)
+
+  -- flushParForInfo: remove erroneous assertion (#2712)
+
+  -- Link particles in ghost cells to closest box (#2685)
+
+  -- Generalize the type of lambdas that can be passed into ParticleReduce (#2697)
+
+  -- Return non-zero if nans were found when using fnan. (#2704)
+
+  -- Reorganize Make.package in Src/Particle (#2703)
+
+  -- FillPatchUtil edge interpolater fix (#2701)
+
+  -- Adds SUNDIALS integrator options for flexibility. (#2700)
+
+  -- Only error if HDF5 is not parallel if MPI is enabled. (#2699)
+
+  -- Make the ParticleReduce functions not rely on ParIter. (#2695)
+
+  -- Semicoarsening in WarpX Linear Solvers (#2690)
+
+  -- FillBoundaryAndSync (#2683)
+
+  -- macOS: Fix Warning (ranlib, profiler) (#2688)
+
 # 22.04
 
   -- Fix parser expressions (#2682)
