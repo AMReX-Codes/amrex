@@ -865,7 +865,7 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
                             int nbr_cell_id = (ii * ny + jj) * nz + kk;
                             for (auto p = poffset[nbr_cell_id]; p < poffset[nbr_cell_id+1]; ++p) {
                                 if (pperm[p] == i) continue;
-                                if (call_check_pair(check_pair, pstruct, i, pperm[p])) {
+                                if (call_check_pair(check_pair, pstruct, pstruct, i, pperm[p])) {
                                     IntVect cell_ijk = getParticleCell(pstruct[pperm[p]], plo, dxi, domain);
                                     if (!box.contains(cell_ijk)) {
                                         int loc = Gpu::Atomic::Inc(p_np_boundary, max_unsigned_int);
