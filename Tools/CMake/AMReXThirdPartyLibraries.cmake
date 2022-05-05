@@ -29,16 +29,16 @@ endif ()
 if (AMReX_HDF5_ZFP)
    set(H5Z_ZFP_USE_STATIC_LIBS ON) # Static ON means using as a library, or OFF as an HDF5 plugin
    find_package(H5Z_ZFP 1.0.1 CONFIG)
-    if (NOT AMReX_HDF5)
-       message(FATAL_ERROR "\nHDF5 must be enabled for ZFP support in HDF5")
-    endif ()
+   if (NOT AMReX_HDF5)
+      message(FATAL_ERROR "\nHDF5 must be enabled for ZFP support in HDF5")
+   endif ()
 
-    if (TARGET h5z_zfp::h5z_zfp)  # CMake >= 3.19
-       target_link_libraries(amrex PUBLIC h5z_zfp::h5z_zfp)
-    else ()  # CMake < 3.19 -- Remove when minimum cmake version is bumped up
-       target_include_directories(amrex PUBLIC ${H5Z_ZFP_INCLUDE_DIR})
-       target_link_libraries(amrex PUBLIC ${H5Z_ZFP_LIBRARY})
-    endif ()
+   if (TARGET h5z_zfp::h5z_zfp)  # CMake >= 3.19
+      target_link_libraries(amrex PUBLIC h5z_zfp::h5z_zfp)
+   else ()  # CMake < 3.19 -- Remove when minimum cmake version is bumped up
+      target_include_directories(amrex PUBLIC ${H5Z_ZFP_INCLUDE_DIR})
+      target_link_libraries(amrex PUBLIC ${H5Z_ZFP_LIBRARY})
+   endif ()
 endif ()
 
 #
