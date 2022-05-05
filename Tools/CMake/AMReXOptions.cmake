@@ -303,7 +303,7 @@ if (AMReX_HDF5_ASYNC)
    message(FATAL_ERROR "\nAMReX_HDF5_ASYNC not yet supported\n")
 endif ()
 
-cmake_dependent_option(AMReX_HDF5_ZFP "Enable ZFP lossy compression in HDF5-based IO" OFF
+cmake_dependent_option(AMReX_HDF5_ZFP "Enable ZFP compression in HDF5-based IO" OFF
    "AMReX_HDF5" OFF )
 print_option(AMReX_HDF5_ZFP)
 
