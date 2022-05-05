@@ -222,7 +222,7 @@ namespace Gpu {
      *
      * Example usage:
      *
-     *    Gpu::copy(Gpu::hostToDevice, a.begin(), a.end(), b.begin());
+     *    Gpu::copyAsync(Gpu::hostToDevice, a.begin(), a.end(), b.begin());
      */
     template<class InIter, class OutIter>
     void copyAsync (HostToDevice, InIter begin, InIter end, OutIter result) noexcept
@@ -256,7 +256,7 @@ namespace Gpu {
      *
      * Example usage:
      *
-     *    Gpu::copy(Gpu::deviceToHost, a.begin(), a.end(), b.begin());
+     *    Gpu::copyAsync(Gpu::deviceToHost, a.begin(), a.end(), b.begin());
      */
     template<class InIter, class OutIter>
     void copyAsync (DeviceToHost, InIter begin, InIter end, OutIter result) noexcept
@@ -290,7 +290,7 @@ namespace Gpu {
      *
      * Example usage:
      *
-     *    Gpu::copy(Gpu::deviceToDevice, a.begin(), a.end(), b.begin());
+     *    Gpu::copyAsync(Gpu::deviceToDevice, a.begin(), a.end(), b.begin());
      */
     template<class InIter, class OutIter>
     void copyAsync (DeviceToDevice, InIter begin, InIter end, OutIter result) noexcept
@@ -335,7 +335,7 @@ namespace Gpu {
 #endif
 #endif
 
-        Gpu::synchronize();
+        Gpu::streamSynchronize();
     }
 
     /**
@@ -366,7 +366,7 @@ namespace Gpu {
 #endif
 #endif
 
-        Gpu::synchronize();
+        Gpu::streamSynchronize();
     }
 
 }}

@@ -53,11 +53,11 @@ void test ()
                                                });
                            });
     }
-    Gpu::synchronize();
+    Gpu::streamSynchronize();
 
     std::vector<T> v_h(N);
     Gpu::copyAsync(Gpu::deviceToHost, v_d.begin(), v_d.end(), v_h.begin());
-    Gpu::synchronize();
+    Gpu::streamSynchronize();
 
     // The first 4000 entries should all be 0.0
     for (int i = 0; i < 4000; ++i) {
@@ -81,4 +81,3 @@ int main (int argc, char* argv[])
     test<amrex::Long>();
     amrex::Finalize();
 }
-

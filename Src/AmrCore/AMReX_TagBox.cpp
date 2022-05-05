@@ -503,10 +503,7 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
 
     PODVector<int,DeviceArenaAllocator<int> > dv_tags_offset(ntotblocks);
     int* dp_tags_offset = dv_tags_offset.data();
-    Gpu::htod_memcpy(dp_tags_offset, hv_tags_offset.data(), ntotblocks*sizeof(int));
-#ifdef AMREX_USE_DPCPP
-    Gpu::synchronize();
-#endif
+    Gpu::htod_memcpy_async(dp_tags_offset, hv_tags_offset.data(), ntotblocks*sizeof(int));
 
     PODVector<IntVect,DeviceArenaAllocator<IntVect> > dv_tags(ntotaltags);
     IntVect* dp_tags = dv_tags.data();

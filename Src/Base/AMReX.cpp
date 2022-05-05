@@ -603,7 +603,7 @@ void
 amrex::Finalize (amrex::AMReX* pamrex)
 {
 #ifdef AMREX_USE_GPU
-    Gpu::synchronize();
+    Gpu::streamSynchronizeAll();
 #endif
 
     AMReX::erase(pamrex);

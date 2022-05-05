@@ -302,7 +302,7 @@ MLEBNodeFDLaplacian::prepareForSolve ()
         });
     }
 
-    Gpu::synchronize();
+    Gpu::streamSynchronize();
 
 #if (AMREX_SPACEDIM == 2)
     if (m_rz) {
