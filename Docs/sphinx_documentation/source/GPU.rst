@@ -575,9 +575,7 @@ that are important for programming GPUs.
 GpuArray, Array1D, Array2D, and Array3D
 ---------------------------------------
 
-As we have mentioned in :ref:`sec:basics:vecandarr`, :cpp:`std::array`
-cannot be used in device code, whereas :cpp:`GpuArray`,
-:cpp:`Array1D`, :cpp:`Array2D`, and :cpp:`Array3D` are trivial types
+:cpp:`GpuArray`, :cpp:`Array1D`, :cpp:`Array2D`, and :cpp:`Array3D` are trivial types
 that work on both host and device. They can be used whenever a fixed size array
 needs to be passed to the GPU or created on GPU.  A variety of
 functions in AMReX return :cpp:`GpuArray` and they can be
@@ -699,17 +697,6 @@ Also note: :cpp:`Gpu::ManagedVector` is not async-safe.  It cannot be safely
 constructed inside of an MFIter loop with GPU kernels and great care should
 be used when accessing :cpp:`Gpu::ManagedVector` data on GPUs to avoid race
 conditions.
-
-amrex::min and amrex::max
--------------------------
-
-GPU versions of ``std::min`` and ``std::max`` are not provided in CUDA.
-So, AMReX provides a templated :cpp:`min` and :cpp:`max` with host and
-device versions to allow functionality on GPUs. Invoke the explicitly
-namespaced :cpp:`amrex::min(A, B)` or :cpp:`amrex::max(x, y)` to use the
-GPU safe implementations. These functions are variadic, so they can take
-any number of arguments and can be invoked with any standard data type.
-
 
 MultiFab Reductions
 -------------------
