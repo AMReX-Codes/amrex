@@ -34,9 +34,9 @@ main difference between :cpp:`Vector` and :cpp:`std::vector` is that
 :cpp:`DEBUG=TRUE`.
 
 :cpp:`Array` class in ``AMReX_Array.H`` is simply an alias to :cpp:`std::array`.
-It is used throughout AMReX, however its functions are not defined
-for device code. :cpp:`GpuArray` is AMReX's built-in alternative.  It
-is a trivial type that works on both host and device.  It also works
+AMReX also provides :cpp:`GpuArray`, a trivial type that works on both host
+and device. (It was added when the minimal requirement for C++ standard was
+C++11, for which :cpp:`std::array` does not work on device.) It also works
 when compiled just for CPU.  Besides :cpp:`GpuArray`, AMReX also
 provides GPU safe :cpp:`Array1D`, :cpp:`Array2D` and :cpp:`Array3D` that are
 1, 2 and 3-dimensional fixed size arrays, respectively.  These three
