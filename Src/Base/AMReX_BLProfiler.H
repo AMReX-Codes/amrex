@@ -161,6 +161,8 @@ class BLProfiler
       Real timeStamp;
     };
 
+
+
     static std::map<std::string, BLProfiler *> mFortProfs;  // [fname, fortfunc]
     static Vector<std::string> mFortProfsErrors;     // [error string]
     static Vector<BLProfiler *> mFortProfsInt;     // [fortfuncindex]
@@ -314,6 +316,24 @@ private:
     std::string regname;
 };
 
+class BLProfileSync {
+
+    friend amrex::BLProfiler;
+
+public:
+    static void Sync() noexcept;
+    static void Sync(const std::string& name) noexcept;
+    static void Sync(const char* name) noexcept;
+
+    static void StartSyncRegion() noexcept;
+    static void StartSyncRegion(const std::string& name) noexcept;
+    static void StartSyncRegion(const char* name) noexcept;
+    static void EndSyncRegion() noexcept;
+
+private:
+    static int sync_counter;
+    static int use_prof_syncs;
+};
 
 namespace BLProfilerUtils {
   void WriteHeader(std::ostream &os, const int colWidth,
@@ -426,7 +446,11 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
                                             bl_profiler_##rvname.start();
 #define BL_PROFILE_REGION_VAR_STOP(fname, rvname)  bl_profiler_##rvname.stop();   \
     amrex::BLProfiler::RegionStop(fname);
-
+#define BL_PROFILE_SYNC()                       amrex::BLProfileSync::Sync()
+#define BL_PROFILE_SYNC_TIMED(fname)            amrex::BLProfileSync::Sync()
+#define BL_PROFILE_SYNC_START()                 amrex::BLProfileSync::StartSyncRegion()
+#define BL_PROFILE_SYNC_START_TIMED(fname)      amrex::BLProfileSync::StartSyncRegion(fname)
+#define BL_PROFILE_SYNC_STOP()                  amrex::BLProfileSync::EndSyncRegion()
 #define BL_PROFILE_TINY_FLUSH()
 #define BL_PROFILE_FLUSH() { amrex::BLProfiler::Finalize(true); }
 
@@ -508,6 +532,13 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_REGION_VAR(fname, rvname)
 #define BL_PROFILE_REGION_VAR_START(fname, rvname)
 #define BL_PROFILE_REGION_VAR_STOP(fname, rvname)
+
+#define BL_PROFILE_SYNC()                       amrex::TinyProfileSync::Sync()
+#define BL_PROFILE_SYNC_TIMED(fname)            amrex::TinyProfileSync::Sync()
+#define BL_PROFILE_SYNC_START()                 amrex::TinyProfileSync::StartSyncRegion()
+#define BL_PROFILE_SYNC_START_TIMED(fname)      amrex::TinyProfileSync::StartSyncRegion(fname)
+#define BL_PROFILE_SYNC_STOP()                  amrex::TinyProfileSync::EndSyncRegion()
+
 #define BL_PROFILE_TINY_FLUSH() amrex::TinyProfiler::Finalize(true)
 #define BL_PROFILE_FLUSH()
 #define BL_TRACE_PROFILE_FLUSH()
@@ -568,6 +599,11 @@ class BLProfiler
 #define BL_PROFILE_REGION_VAR(fname, rvname)
 #define BL_PROFILE_REGION_VAR_START(fname, rvname)
 #define BL_PROFILE_REGION_VAR_STOP(fname, rvname)
+#define BL_PROFILE_SYNC()
+#define BL_PROFILE_SYNC_TIMED(fname)
+#define BL_PROFILE_SYNC_START()
+#define BL_PROFILE_SYNC_START_TIMED(fname)
+#define BL_PROFILE_SYNC_STOP()
 #define BL_PROFILE_TINY_FLUSH()
 #define BL_PROFILE_FLUSH()
 #define BL_TRACE_PROFILE_FLUSH()

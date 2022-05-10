@@ -240,6 +240,8 @@ FabArray<FAB>::FillBoundary_finish ()
     fbd.reset();
 
 #endif
+
+    BL_PROFILE_SYNC_STOP();
 }
 
 template <class FAB>
@@ -254,10 +256,12 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                              CpOp                 op,
                              const FabArrayBase::CPC * a_cpc)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
     BL_PROFILE("FabArray::ParallelCopy()");
 
     ParallelCopy_nowait(src, scomp, dcomp, ncomp, snghost, dnghost, period, op, a_cpc);
     ParallelCopy_finish();
+    BL_PROFILE_SYNC_STOP();
 }
 
 template <class FAB>
@@ -270,11 +274,13 @@ FabArray<FAB>::ParallelCopyToGhost (const FabArray<FAB>& src,
                                     const IntVect&       dnghost,
                                     const Periodicity&   period)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
     BL_PROFILE("FabArray::ParallelCopyToGhost()");
 
     ParallelCopy_nowait(src, scomp, dcomp, ncomp, snghost, dnghost, period,
                         FabArrayBase::COPY, nullptr, true);
     ParallelCopy_finish();
+    BL_PROFILE_SYNC_STOP();
 }
 
 template <class FAB>
@@ -312,6 +318,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                                     const FabArrayBase::CPC * a_cpc,
                                     bool                 to_ghost_cells_only)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
     BL_PROFILE("FabArray::ParallelCopy_nowait()");
 
     AMREX_ASSERT_WITH_MESSAGE(!pcd, "ParallelCopy_nowait() called when comm operation already in progress.");
@@ -558,6 +565,8 @@ FabArray<FAB>::ParallelCopy_finish ()
     pcd.reset();
 
 #endif /*BL_USE_MPI*/
+
+    BL_PROFILE_SYNC_STOP();
 
 }
 

@@ -111,5 +111,25 @@ private:
     TinyProfiler tprof;
 };
 
+
+class TinyProfileSync {
+
+    friend amrex::TinyProfiler;
+
+public:
+    static void Sync() noexcept;
+    static void Sync(const std::string& name) noexcept;
+    static void Sync(const char* name) noexcept;
+
+    static void StartSyncRegion() noexcept;
+    static void StartSyncRegion(const std::string& name) noexcept;
+    static void StartSyncRegion(const char* name) noexcept;
+    static void EndSyncRegion() noexcept;
+
+private:
+    static int sync_counter;
+    static int use_prof_syncs;
+};
+
 }
 #endif

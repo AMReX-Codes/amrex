@@ -2588,11 +2588,13 @@ template <typename BUF>
 void
 FabArray<FAB>::FillBoundary (bool cross)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
     BL_PROFILE("FabArray::FillBoundary()");
     if ( n_grow.max() > 0 ) {
         FillBoundary_nowait<BUF>(0, nComp(), n_grow, Periodicity::NonPeriodic(), cross);
         FillBoundary_finish<BUF>();
     }
+    BL_PROFILE_SYNC_STOP();
 }
 
 template <class FAB>
@@ -2600,11 +2602,13 @@ template <typename BUF>
 void
 FabArray<FAB>::FillBoundary (const Periodicity& period, bool cross)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
     BL_PROFILE("FabArray::FillBoundary()");
     if ( n_grow.max() > 0 ) {
         FillBoundary_nowait<BUF>(0, nComp(), n_grow, period, cross);
         FillBoundary_finish<BUF>();
     }
+    BL_PROFILE_SYNC_STOP();
 }
 
 template <class FAB>
@@ -2612,6 +2616,7 @@ template <typename BUF>
 void
 FabArray<FAB>::FillBoundary (const IntVect& nghost, const Periodicity& period, bool cross)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
     BL_PROFILE("FabArray::FillBoundary()");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nghost.allLE(nGrowVect()),
                                      "FillBoundary: asked to fill more ghost cells than we have");
@@ -2619,6 +2624,7 @@ FabArray<FAB>::FillBoundary (const IntVect& nghost, const Periodicity& period, b
         FillBoundary_nowait<BUF>(0, nComp(), nghost, period, cross);
         FillBoundary_finish<BUF>();
     }
+    BL_PROFILE_SYNC_STOP();
 }
 
 template <class FAB>
@@ -2626,11 +2632,13 @@ template <typename BUF>
 void
 FabArray<FAB>::FillBoundary (int scomp, int ncomp, bool cross)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
     BL_PROFILE("FabArray::FillBoundary()");
     if ( n_grow.max() > 0 ) {
         FillBoundary_nowait<BUF>(scomp, ncomp, n_grow, Periodicity::NonPeriodic(), cross);
         FillBoundary_finish<BUF>();
     }
+    BL_PROFILE_SYNC_STOP();
 }
 
 template <class FAB>
@@ -2638,11 +2646,13 @@ template <typename BUF>
 void
 FabArray<FAB>::FillBoundary (int scomp, int ncomp, const Periodicity& period, bool cross)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
     BL_PROFILE("FabArray::FillBoundary()");
     if ( n_grow.max() > 0 ) {
         FillBoundary_nowait<BUF>(scomp, ncomp, n_grow, period, cross);
         FillBoundary_finish<BUF>();
     }
+    BL_PROFILE_SYNC_STOP();
 }
 
 template <class FAB>
@@ -2651,6 +2661,7 @@ void
 FabArray<FAB>::FillBoundary (int scomp, int ncomp, const IntVect& nghost,
                              const Periodicity& period, bool cross)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
     BL_PROFILE("FabArray::FillBoundary()");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nghost.allLE(nGrowVect()),
                                      "FillBoundary: asked to fill more ghost cells than we have");
@@ -2658,6 +2669,7 @@ FabArray<FAB>::FillBoundary (int scomp, int ncomp, const IntVect& nghost,
         FillBoundary_nowait<BUF>(scomp, ncomp, nghost, period, cross);
         FillBoundary_finish<BUF>();
     }
+    BL_PROFILE_SYNC_STOP();
 }
 
 template <class FAB>
@@ -2696,11 +2708,13 @@ template <class FAB>
 void
 FabArray<FAB>::FillBoundaryAndSync (const Periodicity& period)
 {
-    BL_PROFILE("FAbArray::FillBoundaryAndSync()");
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
+    BL_PROFILE("FabArray::FillBoundaryAndSync()");
     if (n_grow.max() > 0 || !is_cell_centered()) {
         FillBoundaryAndSync_nowait(0, nComp(), n_grow, period);
         FillBoundaryAndSync_finish();
     }
+    BL_PROFILE_SYNC_STOP();
 }
 
 template <class FAB>
@@ -2708,11 +2722,13 @@ void
 FabArray<FAB>::FillBoundaryAndSync (int scomp, int ncomp, const IntVect& nghost,
                                     const Periodicity& period)
 {
-    BL_PROFILE("FAbArray::FillBoundaryAndSync()");
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
+    BL_PROFILE("FabArray::FillBoundaryAndSync()");
     if (nghost.max() > 0 || !is_cell_centered()) {
         FillBoundaryAndSync_nowait(scomp, ncomp, nghost, period);
         FillBoundaryAndSync_finish();
     }
+    BL_PROFILE_SYNC_STOP();
 }
 
 template <class FAB>
@@ -2727,6 +2743,7 @@ void
 FabArray<FAB>::FillBoundaryAndSync_nowait (int scomp, int ncomp, const IntVect& nghost,
                                            const Periodicity& period)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
     BL_PROFILE("FillBoundaryAndSync_nowait()");
     FBEP_nowait(scomp, ncomp, nghost, period, false, false, true);
 }
@@ -2737,34 +2754,40 @@ FabArray<FAB>::FillBoundaryAndSync_finish ()
 {
     BL_PROFILE("FillBoundaryAndSync_finish()");
     FillBoundary_finish();
+    BL_PROFILE_SYNC_STOP();
 }
 
 template <class FAB>
 void
 FabArray<FAB>::OverrideSync (const Periodicity& period)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
     BL_PROFILE("FAbArray::OverrideSync()");
     if (!is_cell_centered()) {
         OverrideSync_nowait(0, nComp(), period);
         OverrideSync_finish();
     }
+    BL_PROFILE_SYNC_STOP();
 }
 
 template <class FAB>
 void
 FabArray<FAB>::OverrideSync (int scomp, int ncomp, const Periodicity& period)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
     BL_PROFILE("FAbArray::OverrideSync()");
     if (!is_cell_centered()) {
         OverrideSync_nowait(scomp, ncomp, period);
         OverrideSync_finish();
     }
+    BL_PROFILE_SYNC_STOP();
 }
 
 template <class FAB>
 void
 FabArray<FAB>::OverrideSync_nowait (const Periodicity& period)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
     OverrideSync_nowait(0, nComp(), period);
 }
 
@@ -2772,6 +2795,7 @@ template <class FAB>
 void
 FabArray<FAB>::OverrideSync_nowait (int scomp, int ncomp, const Periodicity& period)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
     BL_PROFILE("OverrideSync_nowait()");
     FBEP_nowait(scomp, ncomp, IntVect(0), period, false, false, true);
 }
@@ -2782,6 +2806,7 @@ FabArray<FAB>::OverrideSync_finish ()
 {
     BL_PROFILE("OverrideSync_finish()");
     FillBoundary_finish();
+    BL_PROFILE_SYNC_STOP();
 }
 
 template <class FAB>
@@ -2809,10 +2834,12 @@ template <class FAB>
 void
 FabArray<FAB>::SumBoundary (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost, const Periodicity& period)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
     BL_PROFILE("FabArray<FAB>::SumBoundary()");
 
     SumBoundary_nowait(scomp, ncomp, src_nghost, dst_nghost, period);
     SumBoundary_finish();
+    BL_PROFILE_SYNC_STOP();
 }
 
 template <class FAB>
@@ -2840,6 +2867,7 @@ template <class FAB>
 void
 FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost, const Periodicity& period)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
     BL_PROFILE("FabArray<FAB>::SumBoundary_nowait()");
 
     if ( n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) return;
@@ -2867,28 +2895,33 @@ FabArray<FAB>::SumBoundary_finish ()
     FabArray<FAB>* tmp = const_cast<FabArray<FAB>*> (this->pcd->src);
     this->ParallelCopy_finish();
     delete tmp;
+    BL_PROFILE_SYNC_STOP();
 }
 
 template <class FAB>
 void
 FabArray<FAB>::EnforcePeriodicity (const Periodicity& period)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
     BL_PROFILE("FabArray::EnforcePeriodicity");
     if (period.isAnyPeriodic()) {
         FBEP_nowait(0, nComp(), nGrowVect(), period, false, true);
         FillBoundary_finish(); // unsafe unless isAnyPeriodic()
     }
+    BL_PROFILE_SYNC_STOP();
 }
 
 template <class FAB>
 void
 FabArray<FAB>::EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
     BL_PROFILE("FabArray::EnforcePeriodicity");
     if (period.isAnyPeriodic()) {
         FBEP_nowait(scomp, ncomp, nGrowVect(), period, false, true);
         FillBoundary_finish(); // unsafe unless isAnyPeriodic()
     }
+    BL_PROFILE_SYNC_STOP();
 }
 
 template <class FAB>
@@ -2896,11 +2929,13 @@ void
 FabArray<FAB>::EnforcePeriodicity (int scomp, int ncomp, const IntVect& nghost,
                                    const Periodicity& period)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
     BL_PROFILE("FabArray::EnforcePeriodicity");
     if (period.isAnyPeriodic()) {
         FBEP_nowait(scomp, ncomp, nghost, period, false, true);
         FillBoundary_finish(); // unsafe unless isAnyPeriodic()
     }
+    BL_PROFILE_SYNC_STOP();
 }
 
 template <class FAB>
@@ -2908,6 +2943,7 @@ template <typename BUF>
 void
 FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
     BL_PROFILE("FillBoundary_nowait()");
     FBEP_nowait<BUF>(scomp, ncomp, nGrowVect(), period, cross);
 }
@@ -2918,6 +2954,7 @@ void
 FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost,
                                     const Periodicity& period, bool cross)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
     BL_PROFILE("FillBoundary_nowait()");
     FBEP_nowait<BUF>(scomp, ncomp, nghost, period, cross);
 }

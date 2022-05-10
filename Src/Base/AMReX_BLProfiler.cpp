@@ -271,13 +271,20 @@ void BLProfiler::Initialize() {
 
 
 void BLProfiler::InitParams() {
-  ParmParse pParse("blprofiler");
-  pParse.queryAdd("prof_nfiles", nProfFiles);
-  pParse.queryAdd("prof_csflushsize", csFlushSize);
-  pParse.queryAdd("prof_traceflushsize", traceFlushSize);
-  pParse.queryAdd("prof_flushinterval", flushInterval);
-  pParse.queryAdd("prof_flushtimeinterval", flushTimeInterval);
-  pParse.queryAdd("prof_flushprint", bFlushPrint);
+  {
+    ParmParse pParse("blprofiler");
+    pParse.queryAdd("prof_nfiles", nProfFiles);
+    pParse.queryAdd("prof_csflushsize", csFlushSize);
+    pParse.queryAdd("prof_traceflushsize", traceFlushSize);
+    pParse.queryAdd("prof_flushinterval", flushInterval);
+    pParse.queryAdd("prof_flushtimeinterval", flushTimeInterval);
+    pParse.queryAdd("prof_flushprint", bFlushPrint);
+  }
+
+  {
+    ParmParse pParse("amrex");
+    pParse.queryAdd("use_profiler_syncs", BLProfileSync::use_prof_syncs);
+  }
 }
 
 
@@ -1546,6 +1553,70 @@ void BLProfiler::CommStats::UnFilter(CommFuncType cft) {
   }
 }
 
+void
+BLProfileSync::Sync () noexcept
+{
+    if (use_prof_syncs)
+        { ParallelDescriptor::Barrier(ParallelContext::CommunicatorSub()); }
+}
+
+void
+BLProfileSync::Sync (const std::string& name) noexcept
+{
+    if (use_prof_syncs) {
+        TinyProfiler synctimer(name);
+        ParallelDescriptor::Barrier(ParallelContext::CommunicatorSub());
+    }
+}
+
+void
+BLProfileSync::Sync (const char* name) noexcept
+{
+    if (use_prof_syncs) {
+        BLProfiler synctimer(name);
+        ParallelDescriptor::Barrier(ParallelContext::CommunicatorSub());
+    }
+}
+
+void
+BLProfileSync::StartSyncRegion () noexcept
+{
+    if (use_prof_syncs) {
+        if (sync_counter == 0) {
+            ParallelDescriptor::Barrier(ParallelContext::CommunicatorSub());
+        }
+        sync_counter++;
+    }
+}
+
+void
+BLProfileSync::StartSyncRegion (const std::string& name) noexcept {
+    if (use_prof_syncs) {
+        if (sync_counter == 0) {
+            BLProfiler synctimer(name);
+            ParallelDescriptor::Barrier(ParallelContext::CommunicatorSub());
+        }
+        sync_counter++;
+    }
+}
+
+void
+BLProfileSync::StartSyncRegion (const char* name) noexcept {
+    if (use_prof_syncs) {
+        if (sync_counter == 0) {
+            BLProfiler synctimer(name);
+            ParallelDescriptor::Barrier(ParallelContext::CommunicatorSub());
+        }
+        sync_counter++;
+    }
+}
+
+void
+BLProfileSync::EndSyncRegion () noexcept {
+    if (use_prof_syncs) {
+        sync_counter--;
+    }
+}
 
 namespace {
   const int EOS(-1);
