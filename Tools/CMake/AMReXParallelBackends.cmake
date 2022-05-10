@@ -54,6 +54,9 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
       AND
       CMAKE_VERSION VERSION_GREATER_EQUAL 3.20 )
 
+   find_package(CUDAToolkit REQUIRED)
+   target_link_libraries(amrex PUBLIC CUDA::curand)
+
    # Check cuda compiler and host compiler
    set_mininum_compiler_version(CUDA NVIDIA 9.0)
    check_cuda_host_compiler()
