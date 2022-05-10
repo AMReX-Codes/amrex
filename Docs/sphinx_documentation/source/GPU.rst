@@ -1393,8 +1393,8 @@ minimize the number of synchronization calls.  For example,
    Gpu::streamSynchronize();
 
 In addition to stream synchronization, there is also
-`:cpp:Gpu::synchronize()` that will perform a device wide synchronization.
-However, a device wide synchronization is usually an overkill and it might
+:cpp:`Gpu::synchronize()` that will perform a device wide synchronization.
+However, a device wide synchronization is usually too excessive and it might
 interfere with other libraries (e.g., MPI).
 
 .. _sec:gpu:example:
