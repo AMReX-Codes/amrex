@@ -73,7 +73,8 @@ enum mathematicalBndryTypes : int {
     foextrap     =  2,
     ext_dir      =  3,
     hoextrap     =  4,
-    hoextrapcc   =  5
+    hoextrapcc   =  5,
+    robin        =  6
 };
 }
 
@@ -91,6 +92,7 @@ enum mathematicalBndryTypes : int {
 #define EXT_DIR 3
 #define HOEXTRAP 4
 #define HOEXTRAPCC 5
+#define ROBIN 6
 
 #define Interior 0
 #define Inflow 1
