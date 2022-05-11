@@ -85,6 +85,7 @@ set(AMReX_HYPRE_FOUND               @AMReX_HYPRE@)
 set(AMReX_PETSC_FOUND               @AMReX_PETSC@)
 set(AMReX_SUNDIALS_FOUND            @AMReX_SUNDIALS@)
 set(AMReX_HDF5_FOUND                @AMReX_HDF5@)
+set(AMReX_HDF5_ZFP_FOUND            @AMReX_HDF5_ZFP@)
 
 # Compilation options
 set(AMReX_FPE_FOUND                 @AMReX_FPE@)
@@ -131,6 +132,7 @@ set(AMReX_ASCENT                    @AMReX_ASCENT@)
 set(AMReX_HYPRE                     @AMReX_HYPRE@)
 set(AMReX_PETSC                     @AMReX_PETSC@)
 set(AMReX_HDF5                      @AMReX_HDF5@)
+set(AMReX_HDF5_ZFP                  @AMReX_HDF5_ZFP@)
 
 # Compilation options
 set(AMReX_FPE                       @AMReX_FPE@)
@@ -200,6 +202,10 @@ if (@AMReX_HDF5@)
     find_dependency(HDF5 REQUIRED)
 endif ()
 
+if (@AMReX_HDF5_ZFP@)
+    find_dependency(H5Z-ZFP REQUIRED)
+endif ()
+
 if (@AMReX_HYPRE@)
    find_dependency(HYPRE 2.20.0 REQUIRED)
 endif ()
@@ -209,7 +215,7 @@ if (@AMReX_PETSC@)
 endif ()
 
 if (@AMReX_SUNDIALS@)
-   find_dependency(SUNDIALS 5.7.0 REQUIRED)
+   find_dependency(SUNDIALS 6.0.0 REQUIRED)
 endif ()
 
 #

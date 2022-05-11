@@ -675,7 +675,7 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
                         bp[0] = Real(0.0);
                     }
                 });
-                Gpu::synchronize();
+                Gpu::streamSynchronize();
             }
 
             HYPRE_IJVectorSetValues(b, nrows, cell_id_vec[mfi].dataPtr(), rhs_diag[mfi].dataPtr());

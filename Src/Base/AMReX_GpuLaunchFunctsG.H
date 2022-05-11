@@ -9,7 +9,6 @@ namespace amrex {
 template <typename L>
 void single_task (gpuStream_t stream, L&& f) noexcept
 {
-    if (Gpu::onNullStream(stream)) Gpu::nonNullStreamSynchronize();
     auto& q = *(stream.queue);
     try {
         q.submit([&] (sycl::handler& h) {
@@ -24,7 +23,6 @@ template<typename L>
 void launch (int nblocks, int nthreads_per_block, std::size_t shared_mem_bytes,
              gpuStream_t stream, L&& f) noexcept
 {
-    if (Gpu::onNullStream(stream)) Gpu::nonNullStreamSynchronize();
     int nthreads_total = nthreads_per_block * nblocks;
     std::size_t shared_mem_numull = (shared_mem_bytes+sizeof(unsigned long long)-1)
         / sizeof(unsigned long long);
@@ -49,7 +47,6 @@ void launch (int nblocks, int nthreads_per_block, std::size_t shared_mem_bytes,
 template<typename L>
 void launch (int nblocks, int nthreads_per_block, gpuStream_t stream, L&& f) noexcept
 {
-    if (Gpu::onNullStream(stream)) Gpu::nonNullStreamSynchronize();
     int nthreads_total = nthreads_per_block * nblocks;
     auto& q = *(stream.queue);
     try {
@@ -72,8 +69,6 @@ void launch (T const& n, L&& f) noexcept
 {
     if (amrex::isEmpty(n)) return;
     const auto ec = Gpu::ExecutionConfig(n);
-    // If we are on default queue, block all other streams
-    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
     int nthreads_per_block = ec.numThreads.x;
     int nthreads_total = nthreads_per_block * ec.numBlocks.x;
     auto& q = Gpu::Device::streamQueue();
@@ -149,8 +144,6 @@ void ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
 {
     if (amrex::isEmpty(n)) return;
     const auto ec = Gpu::ExecutionConfig(n);
-    // If we are on default queue, block all other streams
-    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
     int nthreads_per_block = ec.numThreads.x;
     int nthreads_total = nthreads_per_block * ec.numBlocks.x;
     auto& q = Gpu::Device::streamQueue();
@@ -203,8 +196,6 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
     const auto lenxy = len.x*len.y;
     const auto lenx = len.x;
     const auto ec = Gpu::ExecutionConfig(ncells);
-    // If we are on default queue, block all other streams
-    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
     int nthreads_per_block = ec.numThreads.x;
     int nthreads_total = nthreads_per_block * ec.numBlocks.x;
     auto& q = Gpu::Device::streamQueue();
@@ -269,8 +260,6 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) n
     const auto lenxy = len.x*len.y;
     const auto lenx = len.x;
     const auto ec = Gpu::ExecutionConfig(ncells);
-    // If we are on default queue, block all other streams
-    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
     int nthreads_per_block = ec.numThreads.x;
     int nthreads_total = nthreads_per_block * ec.numBlocks.x;
     auto& q = Gpu::Device::streamQueue();
@@ -331,11 +320,9 @@ void ParallelForRNG (T n, L&& f) noexcept
 {
     if (amrex::isEmpty(n)) return;
     const auto ec = Gpu::ExecutionConfig(n);
-    // If we are on default queue, block all other streams
-    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
     int nthreads_per_block = ec.numThreads.x;
     int nthreads_total = nthreads_per_block * amrex::min(ec.numBlocks.x,Gpu::Device::maxBlocksPerLaunch());
-    auto& q = Gpu::Device::nullQueue();
+    auto& q = Gpu::Device::streamQueue();
     auto& engdescr = *(getRandEngineDescriptor());
     try {
         q.submit([&] (sycl::handler& h) {
@@ -370,11 +357,9 @@ void ParallelForRNG (Box const& box, L&& f) noexcept
     const auto lenxy = len.x*len.y;
     const auto lenx = len.x;
     const auto ec = Gpu::ExecutionConfig(ncells);
-    // If we are on default queue, block all other streams
-    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
     int nthreads_per_block = ec.numThreads.x;
     int nthreads_total = nthreads_per_block * amrex::min(ec.numBlocks.x,Gpu::Device::maxBlocksPerLaunch());
-    auto& q = Gpu::Device::nullQueue();
+    auto& q = Gpu::Device::streamQueue();
     auto& engdescr = *(getRandEngineDescriptor());
     try {
         q.submit([&] (sycl::handler& h) {
@@ -416,8 +401,6 @@ void ParallelForRNG (Box const& box, T ncomp, L&& f) noexcept
     const auto lenxy = len.x*len.y;
     const auto lenx = len.x;
     const auto ec = Gpu::ExecutionConfig(ncells);
-    // If we are on default queue, block all other streams
-    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
     int nthreads_per_block = ec.numThreads.x;
     int nthreads_total = nthreads_per_block * amrex::min(ec.numBlocks.x,Gpu::Device::maxBlocksPerLaunch());
     auto& q = Gpu::Device::streamQueue();
@@ -470,8 +453,6 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/, Box const& box1, Box const& b
     const auto len1x = len1.x;
     const auto len2x = len2.x;
     const auto ec = Gpu::ExecutionConfig(ncells);
-    // If we are on default queue, block all other streams
-    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
     int nthreads_per_block = ec.numThreads.x;
     int nthreads_total = nthreads_per_block * ec.numBlocks.x;
     auto& q = Gpu::Device::streamQueue();
@@ -533,8 +514,6 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
     const auto len2x = len2.x;
     const auto len3x = len3.x;
     const auto ec = Gpu::ExecutionConfig(ncells);
-    // If we are on default queue, block all other streams
-    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
     int nthreads_per_block = ec.numThreads.x;
     int nthreads_total = nthreads_per_block * ec.numBlocks.x;
     auto& q = Gpu::Device::streamQueue();
@@ -602,8 +581,6 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
     const auto len1x = len1.x;
     const auto len2x = len2.x;
     const auto ec = Gpu::ExecutionConfig(ncells);
-    // If we are on default queue, block all other streams
-    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
     int nthreads_per_block = ec.numThreads.x;
     int nthreads_total = nthreads_per_block * ec.numBlocks.x;
     auto& q = Gpu::Device::streamQueue();
@@ -673,8 +650,6 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
     const auto len2x = len2.x;
     const auto len3x = len3.x;
     const auto ec = Gpu::ExecutionConfig(ncells);
-    // If we are on default queue, block all other streams
-    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
     int nthreads_per_block = ec.numThreads.x;
     int nthreads_total = nthreads_per_block * ec.numBlocks.x;
     auto& q = Gpu::Device::streamQueue();
@@ -897,7 +872,7 @@ ParallelForRNG (T n, L&& f) noexcept
     randState_t* rand_state = getRandState();
     const auto ec = Gpu::ExecutionConfig(n);
     AMREX_LAUNCH_KERNEL(amrex::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch()),
-                        ec.numThreads, 0, Gpu::nullStream(),  // use null stream
+                        ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         int tid = blockDim.x*blockIdx.x+threadIdx.x;
         RandomEngine engine{&(rand_state[tid])};
@@ -905,6 +880,7 @@ ParallelForRNG (T n, L&& f) noexcept
             f(i,engine);
         }
     });
+    Gpu::streamSynchronize(); // To avoid multiple streams using RNG
     AMREX_GPU_ERROR_CHECK();
 }
 
@@ -921,7 +897,7 @@ ParallelForRNG (Box const& box, L&& f) noexcept
     const auto lenx = len.x;
     const auto ec = Gpu::ExecutionConfig(ncells);
     AMREX_LAUNCH_KERNEL(amrex::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch()),
-                        ec.numThreads, 0, Gpu::nullStream(),  // use null stream
+                        ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         int tid = blockDim.x*blockIdx.x+threadIdx.x;
         RandomEngine engine{&(rand_state[tid])};
@@ -935,6 +911,7 @@ ParallelForRNG (Box const& box, L&& f) noexcept
             f(i,j,k,engine);
         }
     });
+    Gpu::streamSynchronize(); // To avoid multiple streams using RNG
     AMREX_GPU_ERROR_CHECK();
 }
 
@@ -951,7 +928,7 @@ ParallelForRNG (Box const& box, T ncomp, L&& f) noexcept
     const auto lenx = len.x;
     const auto ec = Gpu::ExecutionConfig(ncells);
     AMREX_LAUNCH_KERNEL(amrex::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch()),
-                        ec.numThreads, 0, Gpu::nullStream(), // use null stream
+                        ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         int tid = blockDim.x*blockIdx.x+threadIdx.x;
         RandomEngine engine{&(rand_state[tid])};
@@ -967,6 +944,7 @@ ParallelForRNG (Box const& box, T ncomp, L&& f) noexcept
             }
         }
     });
+    Gpu::streamSynchronize(); // To avoid multiple streams using RNG
     AMREX_GPU_ERROR_CHECK();
 }
 

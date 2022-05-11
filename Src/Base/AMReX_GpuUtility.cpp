@@ -38,6 +38,12 @@ StreamIter::init() noexcept
     amrex::ignore_unused(m_threadsafe);
     amrex::ignore_unused(m_sync);
 #if defined(AMREX_USE_GPU)
+    if (m_sync) {
+#ifdef AMREX_USE_OMP
+#pragma omp single
+#endif
+        Gpu::streamSynchronize();
+    }
     Gpu::Device::setStreamIndex(m_i);
 #elif defined(AMREX_USE_OMP)
     int nthreads = omp_get_num_threads();
@@ -59,7 +65,7 @@ StreamIter::init() noexcept
 StreamIter::~StreamIter () {
 #ifdef AMREX_USE_GPU
     if (m_sync) {
-        Gpu::synchronize();
+        Gpu::streamSynchronizeAll();
     }
     AMREX_GPU_ERROR_CHECK();
     Gpu::Device::resetStreamIndex();
@@ -79,4 +85,3 @@ StreamIter::operator++ () noexcept
 #endif
 
 }}
-

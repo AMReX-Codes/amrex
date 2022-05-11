@@ -101,15 +101,13 @@ buildNeighborMask ()
             }
 
             m_code_array[grid].resize(h_code_arr.size());
-            Gpu::copy(Gpu::hostToDevice, h_code_arr.begin(), h_code_arr.end(),
+            Gpu::copyAsync(Gpu::hostToDevice, h_code_arr.begin(), h_code_arr.end(),
                       m_code_array[grid].begin());
             m_isec_boxes[grid].resize(h_isec_boxes.size());
-            Gpu::copy(Gpu::hostToDevice, h_isec_boxes.begin(), h_isec_boxes.end(),
+            Gpu::copyAsync(Gpu::hostToDevice, h_isec_boxes.begin(), h_isec_boxes.end(),
                       m_isec_boxes[grid].begin());
 
-
-
-            Gpu::Device::synchronize();
+            Gpu::streamSynchronize();
         }
 
         RemoveDuplicates(neighbor_procs);
@@ -186,7 +184,8 @@ buildNeighborCopyOp (bool use_boundary_neighbor)
         amrex::Gpu::exclusive_scan(counts.begin(), counts.end(), offsets.begin());
 
         int num_copies;
-        Gpu::dtoh_memcpy(&num_copies, offsets.data()+np, sizeof(int));
+        Gpu::dtoh_memcpy_async(&num_copies, offsets.data()+np, sizeof(int));
+        Gpu::streamSynchronize();
 
         neighbor_copy_op.resize(gid, lev, num_copies);
 
@@ -267,11 +266,11 @@ updateNeighborsGPU (bool boundary_neighbors_only)
     }
     else
     {
-        Gpu::Device::synchronize();
+        Gpu::streamSynchronize();
         pinned_snd_buffer.resize(snd_buffer.size());
         Gpu::dtoh_memcpy_async(pinned_snd_buffer.dataPtr(), snd_buffer.dataPtr(), snd_buffer.size());
         neighbor_copy_plan.buildMPIFinish(this->BufferMap());
-        Gpu::Device::synchronize();
+        Gpu::streamSynchronize();
         communicateParticlesStart(*this, neighbor_copy_plan, pinned_snd_buffer, pinned_rcv_buffer);
         rcv_buffer.resize(pinned_rcv_buffer.size());
         unpackBuffer(*this, neighbor_copy_plan, snd_buffer, NeighborUnpackPolicy());
@@ -280,7 +279,7 @@ updateNeighborsGPU (bool boundary_neighbors_only)
         unpackRemotes(*this, neighbor_copy_plan, rcv_buffer, NeighborUnpackPolicy());
     }
 
-    Gpu::Device::synchronize();
+    Gpu::streamSynchronize();
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
