@@ -161,8 +161,6 @@ class BLProfiler
       Real timeStamp;
     };
 
-
-
     static std::map<std::string, BLProfiler *> mFortProfs;  // [fname, fortfunc]
     static Vector<std::string> mFortProfsErrors;     // [error string]
     static Vector<BLProfiler *> mFortProfsInt;     // [fortfuncindex]
