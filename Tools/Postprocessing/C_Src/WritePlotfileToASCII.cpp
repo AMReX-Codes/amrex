@@ -83,13 +83,13 @@ main (int   argc,
     }
 
     int lev = 0;
-    
+
     do {
 
         if (lev > 9) {
             Abort("Utility only works for 10 levels of refinement or less");
         }
-        
+
         // storage for the MultiFab
         MultiFab mf;
 
@@ -97,7 +97,7 @@ main (int   argc,
 
         std::string levX  = "/Level_"+to_string(lev)+"/Cell";
         std::string levXX = "/Level_0"+to_string(lev)+"/Cell";
-    
+
         // now read in the plotfile data
         // check to see whether the user pointed to the plotfile base directory
         // or the data itself
