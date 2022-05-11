@@ -124,7 +124,7 @@ public:
 #ifdef AMREX_USE_GPU
         if (d_data)
         {
-            Gpu::dtoh_memcpy_async(h_p, d_data, n*sizeof(T));
+            Gpu::dtoh_memcpy(h_p, d_data, n*sizeof(T));
         }
         else
 #endif

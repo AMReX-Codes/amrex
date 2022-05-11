@@ -1807,7 +1807,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 
     if(info.alloc) {
         AllocFabs(*m_factory, m_dallocator.m_arena, info.tags);
-        Gpu::synchronize();
+        Gpu::streamSynchronizeAll();
 #ifdef BL_USE_TEAM
         ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif

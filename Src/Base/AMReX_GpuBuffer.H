@@ -33,9 +33,6 @@ public:
         {
             d_data = static_cast<T*>(The_Arena()->alloc(m_size*sizeof(T)));
             Gpu::htod_memcpy_async(d_data, h_data, m_size*sizeof(T));
-#ifdef AMREX_USE_DPCPP
-            if (Gpu::onNullStream()) Gpu::synchronize();
-#endif
         }
 #endif
     }
@@ -55,9 +52,6 @@ public:
         {
             d_data = static_cast<T*>(The_Arena()->alloc(m_size*sizeof(T)));
             Gpu::htod_memcpy_async(d_data, h_data, m_size*sizeof(T));
-#ifdef AMREX_USE_DPCPP
-            if (Gpu::onNullStream()) Gpu::synchronize();
-#endif
         }
 #endif
     }

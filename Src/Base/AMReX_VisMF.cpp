@@ -1022,7 +1022,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
                     fio.write_header(hss, fab, fab.nComp());
                     hLength = static_cast<std::streamoff>(hss.tellp());
                     auto tstr = hss.str();
-                    memcpy(afPtr, tstr.c_str(), hLength);  // ---- the fab header
+                    std::memcpy(afPtr, tstr.c_str(), hLength);  // ---- the fab header
                 }
                 Real const* fabdata = fab.dataPtr();
 #ifdef AMREX_USE_GPU
@@ -1721,7 +1721,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
                       RealDescriptor::convertToNativeFormat(fabdata, readDataItems,
                                                             afPtr, hdr.m_writtenRD);
                     } else {
-                      memcpy(fabdata, afPtr, fab.nBytes());
+                      std::memcpy(fabdata, afPtr, fab.nBytes());
                     }
                     currentOffset += readDataItems * hdr.m_writtenRD.numBytes();
 #ifdef AMREX_USE_GPU
@@ -2342,7 +2342,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
             if (strip_ghost) {
                 new_fab.copy<RunOn::Device>(mf[mfi], bx);
             } else {
-                Gpu::dtoh_memcpy(new_fab.dataPtr(), mf[mfi].dataPtr(), new_fab.size()*sizeof(Real));
+                Gpu::dtoh_memcpy_async(new_fab.dataPtr(), mf[mfi].dataPtr(), new_fab.size()*sizeof(Real));
             }
         } else
 #endif

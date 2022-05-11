@@ -583,7 +583,7 @@ struct ParticleTile
 
 #ifdef AMREX_USE_GPU
         if ((h_runtime_r_ptrs.size() > 0) || (h_runtime_i_ptrs.size() > 0)) {
-            Gpu::synchronize();
+            Gpu::streamSynchronize();
         }
 #endif
 
@@ -638,7 +638,7 @@ struct ParticleTile
 
 #ifdef AMREX_USE_GPU
         if ((h_runtime_r_cptrs.size() > 0) || (h_runtime_i_cptrs.size() > 0)) {
-            Gpu::synchronize();
+            Gpu::streamSynchronize();
         }
 #endif
 
