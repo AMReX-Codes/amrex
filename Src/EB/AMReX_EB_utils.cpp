@@ -213,7 +213,7 @@ namespace amrex {
             div(i,j,k,icomp+n) = divc(i,j,k,n) + optmp(i,j,k,n);
         });
 
-        Gpu::synchronize();
+        Gpu::streamSynchronize();
     }
 
     //
@@ -658,7 +658,7 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
                         fab(i,j,k) = (-fluid_sign) * usd;
                     }
                 });
-                Gpu::synchronize();
+                Gpu::streamSynchronize();
             }
         } else {
             amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept

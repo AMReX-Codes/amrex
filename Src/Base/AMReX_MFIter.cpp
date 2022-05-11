@@ -222,7 +222,7 @@ MFIter::~MFIter ()
 #endif
 
 #ifdef AMREX_USE_GPU
-    if (device_sync) Gpu::synchronize();
+    if (device_sync) Gpu::streamSynchronizeAll();
 #endif
 
 #ifdef AMREX_USE_GPU
@@ -250,6 +250,15 @@ MFIter::Initialize ()
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(depth == 1 || MFIter::allow_multiple_mfiters,
             "Nested or multiple active MFIters is not supported by default.  This can be changed by calling MFIter::allowMultipleMFIters(true)".);
     }
+
+#ifdef AMREX_USE_GPU
+    if (device_sync) {
+#ifdef AMREX_USE_OMP
+#pragma omp single
+#endif
+        Gpu::streamSynchronize();
+    }
+#endif
 
     if (flags & AllBoxes)  // a very special case
     {

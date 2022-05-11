@@ -217,7 +217,7 @@ public:
 
         Gpu::exclusive_scan(m_counts.begin(), m_counts.end(), m_offsets.begin());
 
-        Gpu::copy(Gpu::deviceToDevice, m_offsets.begin(), m_offsets.end(), m_counts.begin());
+        Gpu::copyAsync(Gpu::deviceToDevice, m_offsets.begin(), m_offsets.end(), m_counts.begin());
 
         index_type* pperm = m_perm.dataPtr();
         constexpr index_type max_index = std::numeric_limits<index_type>::max();

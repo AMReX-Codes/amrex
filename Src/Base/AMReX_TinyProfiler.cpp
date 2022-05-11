@@ -97,7 +97,7 @@ TinyProfiler::start () noexcept
 
 #ifdef AMREX_USE_GPU
             if (device_synchronize_around_region) {
-                amrex::Gpu::Device::synchronize();
+                amrex::Gpu::streamSynchronize();
             }
 #endif
 
@@ -189,7 +189,7 @@ TinyProfiler::stop () noexcept
 
 #ifdef AMREX_USE_GPU
             if (device_synchronize_around_region) {
-                amrex::Gpu::Device::synchronize();
+                amrex::Gpu::streamSynchronize();
             }
 #endif
 
@@ -273,7 +273,7 @@ TinyProfiler::stop (unsigned boxUintID) noexcept
             }
 
             if (device_synchronize_around_region) {
-                amrex::Gpu::Device::synchronize();
+                amrex::Gpu::streamSynchronize();
             }
 
 #ifdef AMREX_USE_CUDA

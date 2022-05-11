@@ -139,13 +139,15 @@ public:
         }
 
         m_bins.resize(host_bins.size());
-        Gpu::copy(Gpu::hostToDevice, host_bins.begin(), host_bins.end(), m_bins.begin());
+        Gpu::copyAsync(Gpu::hostToDevice, host_bins.begin(), host_bins.end(), m_bins.begin());
 
         m_offsets.resize(host_offsets.size());
-        Gpu::copy(Gpu::hostToDevice, host_offsets.begin(), host_offsets.end(), m_offsets.begin());
+        Gpu::copyAsync(Gpu::hostToDevice, host_offsets.begin(), host_offsets.end(), m_offsets.begin());
 
         m_perm.resize(host_perm.size());
-        Gpu::copy(Gpu::hostToDevice, host_perm.begin(), host_perm.end(), m_perm.begin());
+        Gpu::copyAsync(Gpu::hostToDevice, host_perm.begin(), host_perm.end(), m_perm.begin());
+
+        Gpu::streamSynchronize();
     }
 
     //! \brief the number of items in the container

@@ -18,7 +18,7 @@ for AMD and DPC++ for Intel. This will be designated with ``CUDA/HIP/DPC++``
 throughout the documentation.  However, application teams can also use
 OpenACC or OpenMP in their individual codes.
 
-At this time, AMReX does not support cross-native language compliation
+At this time, AMReX does not support cross-native language compilation
 (HIP for non-AMD systems and DPC++ for non Intel systems).  It may work with
 a given version, but AMReX does not track or guarantee such functionality.
 
@@ -1237,7 +1237,7 @@ the destructor of :cpp:`MFIter`.  This ensures that all GPU work
 inside of an :cpp:`MFIter` loop will complete before code outside of
 the loop is executed. Any CUDA kernel launches made outside of an
 :cpp:`MFIter` loop must ensure appropriate device synchronization
-occurs. This can be done by calling :cpp:`Gpu::synchronize()`.
+occurs. This can be done by calling :cpp:`Gpu::streamSynchronize()`.
 
 CUDA supports multiple streams and kernels. Kernels launched in the
 same stream are executed sequentially, but different streams of kernel
@@ -1342,6 +1342,48 @@ will show little improvement or even perform worse. So, this conditional stateme
 should be added to MFIter loops that contain GPU work, unless users specifically test
 the performance or are designing more complex workflows that require OpenMP.
 
+.. _sec:gpu:stream
+
+Stream and Synchronization
+==========================
+
+As mentioned in Section :ref:`sec:gpu:overview`, AMReX uses a number of GPU
+streams that are either CUDA streams or HIP streams or SYCL queues.  Many
+GPU functions (e.g., :cpp:`ParallelFor` and :cpp:`Gpu::copyAsync`) are
+asynchronous with respect to the host.  To facilitate synchronization that
+is sometimes necessary, AMReX provides :cpp:`Gpu::streamSynchronize()` and
+:cpp:`Gpu::streamSynchronizeAll()` to synchronize the current stream and all
+AMReX streams, respectively.  For performance reasons, one should try to
+minimize the number of synchronization calls.  For example,
+
+.. highlight:: c++
+
+::
+
+   // The synchronous version is NOT recommended
+   Gpu::copy(Gpu::deviceToHost, ....);
+   Gpu::copy(Gpu::deviceToHost, ....);
+   Gpu::copy(Gpu::deviceToHost, ....);
+
+   // NOT recommended because of unnecessary synchronization
+   Gpu::copyAsync(Gpu::deviceToHost, ....);
+   Gpu::streamSynchronize();
+   Gpu::copyAsync(Gpu::deviceToHost, ....);
+   Gpu::streamSynchronize();
+   Gpu::copyAsync(Gpu::deviceToHost, ....);
+   Gpu::streamSynchronize();
+
+   // recommended
+   Gpu::copyAsync(Gpu::deviceToHost, ....);
+   Gpu::copyAsync(Gpu::deviceToHost, ....);
+   Gpu::copyAsync(Gpu::deviceToHost, ....);
+   Gpu::streamSynchronize();
+
+In addition to stream synchronization, there is also
+:cpp:`Gpu::synchronize()` that will perform a device wide synchronization.
+However, a device wide synchronization is usually too excessive and it might
+interfere with other libraries (e.g., MPI).
+
 .. _sec:gpu:example:
 
 An Example of Migrating to GPU
@@ -1437,8 +1479,8 @@ portable way.
 .. _sec:gpu:assertion:
 
 
-Assertions, Error Checking and Synchronization
-================================================
+Assertions and Error Checking
+=============================
 
 To help debugging, we often use :cpp:`amrex::Assert` and
 :cpp:`amrex::Abort`.  These functions are GPU safe and can be used in
@@ -1461,10 +1503,11 @@ However, due to asynchronicity, determining the source of the error
 can be difficult.  Even if GPU kernels launched earlier in the code
 result in a CUDA error, the error may not be output at a nearby call to
 :cpp:`AMREX_GPU_ERROR_CHECK()` by the CPU.  When tracking down a CUDA
-launch error, :cpp:`Gpu::synchronize()` and
-:cpp:`Gpu::streamSynchronize()` can be used to synchronize
-the device or the CUDA stream, respectively, and track down the specific
-launch that causes the error.
+launch error, :cpp:`Gpu::synchronize()`,
+:cpp:`Gpu::streamSynchronize()`, or :cpp:`Gpu::streamSynchronizeAll()` can
+be used to synchronize the device, the current GPU stream, or all GPU
+streams, respectively, and track down the specific launch that causes the
+error.
 
 .. ===================================================================
 

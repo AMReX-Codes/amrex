@@ -403,7 +403,7 @@ Device::initialize_gpu ()
         AMREX_HIP_SAFE_CALL(hipDeviceSetSharedMemConfig(hipSharedMemBankSizeFourByte));
     }
 
-    gpu_default_stream = 0;
+    AMREX_HIP_SAFE_CALL(hipStreamCreate(&gpu_default_stream));
     for (int i = 0; i < max_gpu_streams; ++i) {
         AMREX_HIP_SAFE_CALL(hipStreamCreate(&gpu_stream_pool[i]));
     }
@@ -424,7 +424,7 @@ Device::initialize_gpu ()
         AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte));
     }
 
-    gpu_default_stream = 0;
+    AMREX_CUDA_SAFE_CALL(cudaStreamCreate(&gpu_default_stream));
     for (int i = 0; i < max_gpu_streams; ++i) {
         AMREX_CUDA_SAFE_CALL(cudaStreamCreate(&gpu_stream_pool[i]));
 #ifdef AMREX_USE_ACC
@@ -559,7 +559,7 @@ Device::numDevicesUsed () noexcept
 int
 Device::streamIndex (gpuStream_t s) noexcept
 {
-    if (s == nullStream()) {
+    if (s == gpu_default_stream) {
         return -1;
     } else {
         auto it = std::find(std::begin(gpu_stream_pool), std::end(gpu_stream_pool), s);
@@ -611,11 +611,18 @@ void
 Device::synchronize () noexcept
 {
 #ifdef AMREX_USE_DPCPP
-    nonNullStreamSynchronize();
+    auto& q = *(gpu_default_stream.queue);
     try {
-        gpu_default_stream.queue->wait_and_throw();
+        q.wait_and_throw();
     } catch (sycl::exception const& ex) {
         amrex::Abort(std::string("synchronize: ")+ex.what()+"!!!!!");
+    }
+    for (auto const& s : gpu_stream_pool) {
+        try {
+            s.queue->wait_and_throw();
+        } catch (sycl::exception const& ex) {
+            amrex::Abort(std::string("synchronize: ")+ex.what()+"!!!!!");
+        }
     }
 #else
     AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipDeviceSynchronize());,
@@ -634,24 +641,27 @@ Device::streamSynchronize () noexcept
         amrex::Abort(std::string("streamSynchronize: ")+ex.what()+"!!!!!");
     }
 #else
-    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamSynchronize(gpu_stream[OpenMP::get_thread_num()]));,
-                       AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(gpu_stream[OpenMP::get_thread_num()])); )
+    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamSynchronize(gpuStream()));,
+                       AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(gpuStream())); )
 #endif
 }
 
-#ifdef AMREX_USE_DPCPP
 void
-Device::nonNullStreamSynchronize () noexcept
+Device::streamSynchronizeAll () noexcept
 {
+#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_DPCPP
+    Device::synchronize();
+#else
+    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamSynchronize(gpu_default_stream));,
+                       AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(gpu_default_stream)); )
     for (auto const& s : gpu_stream_pool) {
-        try {
-            s.queue->wait_and_throw();
-        } catch (sycl::exception const& ex) {
-            amrex::Abort(std::string("nonNullStreamSynchronize: ")+ex.what()+"!!!!!");
-        }
+        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamSynchronize(s));,
+                           AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(s)); )
     }
-}
 #endif
+#endif
+}
 
 #if defined(__CUDACC__)
 

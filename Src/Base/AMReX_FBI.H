@@ -775,11 +775,11 @@ FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int nc
     detail::fab_to_fab<BUF, value_type>(snd_copy_tags, scomp, 0, ncomp,
                                         detail::CellStore<BUF, value_type>());
 
-    // There is Gpu::synchronize in fab_to_fab.
+    // There is Gpu::streamSynchronize in fab_to_fab.
 
     if (pbuffer != send_data[0]) {
         Gpu::copyAsync(Gpu::deviceToHost,pbuffer,pbuffer+szbuffer,send_data[0]);
-        Gpu::synchronize();
+        Gpu::streamSynchronize();
         The_Arena()->free(pbuffer);
     }
 }
@@ -808,7 +808,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
         szbuffer = (recv_data[N_rcvs-1]-recv_data[0]) + recv_size[N_rcvs-1];
         pbuffer = (char*)The_Arena()->alloc(szbuffer);
         Gpu::copyAsync(Gpu::hostToDevice,recv_data[0],recv_data[0]+szbuffer,pbuffer);
-        Gpu::synchronize();
+        Gpu::streamSynchronize();
     }
 #endif
 
@@ -885,7 +885,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
         }
     }
 
-    // There is Gpu::synchronize in fab_to_fab.
+    // There is Gpu::streamSynchronize in fab_to_fab.
 
     if (pbuffer != recv_data[0]) {
         The_Arena()->free(pbuffer);
