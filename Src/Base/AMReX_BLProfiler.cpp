@@ -104,6 +104,9 @@ int BLProfiler::CallStats::cstatsVersion(1);
 Vector<BLProfiler::CallStatsStack> BLProfiler::callIndexStack;
 Vector<BLProfiler::CallStatsPatch> BLProfiler::callIndexPatch;
 
+int BLProfileSync::use_prof_syncs = 0;
+int BLProfileSync::sync_counter = 0;
+
 #ifdef BL_TRACE_PROFILING
 int BLProfiler::callStackDepth(-1);
 int BLProfiler::prevCallStackDepth(0);
@@ -1564,7 +1567,7 @@ void
 BLProfileSync::Sync (const std::string& name) noexcept
 {
     if (use_prof_syncs) {
-        TinyProfiler synctimer(name);
+        BLProfiler synctimer(name);
         ParallelDescriptor::Barrier(ParallelContext::CommunicatorSub());
     }
 }
