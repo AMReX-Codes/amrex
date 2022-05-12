@@ -37,13 +37,13 @@ main (int   argc,
         PrintUsage(argv[0]);
     }
 
-    // plotfile names for the coarse, fine, and subtracted output
+    // plotfile name
     std::string iFile;
 
     // read in parameters from inputs file
     ParmParse pp;
 
-    // coarse MultiFab
+    // read in plotfile name
     pp.query("infile", iFile);
     if (iFile.empty())
         amrex::Abort("You must specify `infile'");
@@ -51,16 +51,13 @@ main (int   argc,
     int comp_in_line = 0;
     pp.query("comp_in_line", comp_in_line);
 
-    // single-level for now
-    // AMR comes later, where we iterate over each level in isolation
-
     // for the Header
-    std::string iFile2 = iFile;
-    iFile2 += "/Header";
+    std::string Header = iFile;
+    Header += "/Header";
 
     // open header
     ifstream x;
-    x.open(iFile2.c_str(), ios::in);
+    x.open(Header.c_str(), ios::in);
 
     // read in first line of header
     string str;
@@ -85,70 +82,72 @@ main (int   argc,
         Abort();
     }
 
-    // now read in the plotfile data
-    // check to see whether the user pointed to the plotfile base directory
-    // or the data itself
-    if (amrex::FileExists(iFile+"/Level_0/Cell_H")) {
-       iFile += "/Level_0/Cell";
-    }
-    if (amrex::FileExists(iFile+"/Level_00/Cell_H")) {
-       iFile += "/Level_00/Cell";
-    }
+    int lev = 0;
 
-    // storage for the input coarse and fine MultiFabs
-    MultiFab mf;
+    do {
 
-    // read in plotfiles, 'coarse' and 'fine' to MultiFabs
-    // note: fine could be the same resolution as coarse
-    VisMF::Read(mf, iFile);
-
-    ncomp = mf.nComp();
-    Print() << "ncomp = " << ncomp << std::endl;
-
-    // check nodality
-    IntVect c_nodality = mf.ixType().toIntVect();
-    Print() << "nodality " << c_nodality << std::endl;
-
-    // get boxArray
-    BoxArray ba = mf.boxArray();
-
-    // minimalBox() computes a single box to enclose all the boxes
-    // enclosedCells() converts it to a cell-centered Box
-    Box bx_onegrid = ba.minimalBox().enclosedCells();
-
-    // number of cells in the coarse domain
-    Print() << "npts in coarse domain = " << bx_onegrid.numPts() << std::endl;
-    long npts_coarsedomain = bx_onegrid.numPts();
-
-    // BoxArray, DistributionMapping, and MultiFab with one grid
-    BoxArray ba_onegrid(bx_onegrid);
-    DistributionMapping dmap_onegrid(ba_onegrid);
-    MultiFab mf_onegrid(ba_onegrid,dmap_onegrid,ncomp,0);
-
-    // copy data into MultiFab with one grid
-    mf_onegrid.ParallelCopy(mf,0,0,ncomp,0,0);
-
-    for ( MFIter mfi(mf_onegrid,false); mfi.isValid(); ++mfi ) {
-
-        const Box& bx = mfi.validbox();
-        const auto lo = amrex::lbound(bx);
-        const auto hi = amrex::ubound(bx);
-
-        const Array4<Real>& mfdata = mf_onegrid.array(mfi);
-
-        if (comp_in_line == 1){
-          std::cout << mf_onegrid[mfi];
-        }else{
-          for (auto n=0; n<ncomp; ++n) {
-            for (auto k = lo.z; k <= hi.z; ++k) {
-              for (auto j = lo.y; j <= hi.y; ++j) {
-                for (auto i = lo.x; i <= hi.x; ++i) {
-                  std::cout << i << " " << j << " " << k << " " << n << " " << mfdata(i,j,k,n) << "\n";
-                }
-              }
-            }
-          }
+        if (lev > 9) {
+            Abort("Utility only works for 10 levels of refinement or less");
         }
-    } // end MFIter
+
+        // storage for the MultiFab
+        MultiFab mf;
+
+        std::string iFile_lev = iFile;
+
+        std::string levX  = "/Level_"+to_string(lev)+"/Cell";
+        std::string levXX = "/Level_0"+to_string(lev)+"/Cell";
+
+        // now read in the plotfile data
+        // check to see whether the user pointed to the plotfile base directory
+        // or the data itself
+        if (amrex::FileExists(iFile+levX+"_H")) {
+            iFile_lev += levX;
+        } else if (amrex::FileExists(iFile+levXX+"_H")) {
+            iFile_lev += levXX;
+        } else {
+            break; // terminate while loop
+        }
+
+        // read in plotfile to MultiFab
+        VisMF::Read(mf, iFile_lev);
+
+        if (lev == 0) {
+            ncomp = mf.nComp();
+            Print() << "Number of components in the plotfile = " << ncomp << std::endl;
+            Print() << "Nodality of plotfile = " << mf.ixType().toIntVect() << std::endl;
+        }
+
+        // get boxArray to compute number of grid points at the level
+        BoxArray ba = mf.boxArray();
+        Print() << "Number of grid points at level " << lev << " = " << ba.numPts() << std::endl;
+
+        for ( MFIter mfi(mf,false); mfi.isValid(); ++mfi ) {
+
+            const Box& bx = mfi.validbox();
+            const auto lo = amrex::lbound(bx);
+            const auto hi = amrex::ubound(bx);
+
+            const Array4<Real>& mfdata = mf.array(mfi);
+
+            if (comp_in_line == 1) {
+                std::cout << mf[mfi];
+            } else {
+                for (auto n=0; n<ncomp; ++n) {
+                for (auto k = lo.z; k <= hi.z; ++k) {
+                for (auto j = lo.y; j <= hi.y; ++j) {
+                for (auto i = lo.x; i <= hi.x; ++i) {
+                    std::cout << i << " " << j << " " << k << " " << n << " " << mfdata(i,j,k,n) << "\n";
+                }
+                }
+                }
+                }
+            }
+        } // end MFIter
+
+        // proceed to next level of refinement
+        ++lev;
+
+    } while(true);
 
 }
