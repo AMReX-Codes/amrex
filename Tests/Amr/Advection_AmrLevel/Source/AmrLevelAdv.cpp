@@ -414,6 +414,10 @@ AmrLevelAdv::estTimeStep (Real)
     GpuArray<Real,BL_SPACEDIM> prob_lo = geom.ProbLoArray();
     const Real cur_time = state[Phi_Type].curTime();
     const MultiFab& S_new = get_new_data(Phi_Type);
+    Real pred_time = cur_time;
+    if (cur_time > 0._rt) {
+        pred_time += 0.5_rt*parent->dtLevel(level);
+    }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(min:dt_est)
@@ -431,7 +435,7 @@ AmrLevelAdv::estTimeStep (Real)
             // Note: no need to set elixir on uface[i] temporary fabs since
             //       norm<RunOn::Device> kernel launch is blocking.
 
-            get_face_velocity(cur_time,
+            get_face_velocity(pred_time,
                               AMREX_D_DECL(uface[0], uface[1], uface[2]),
                               dx, prob_lo);
 
