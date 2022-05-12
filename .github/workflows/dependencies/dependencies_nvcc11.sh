@@ -20,7 +20,7 @@ sudo apt-get install -y \
     wget
 
 sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub
-echo "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64 /" \
+echo "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64 /" \
     | sudo tee /etc/apt/sources.list.d/cuda.list
 sudo apt-get update
 sudo apt-get install -y \
