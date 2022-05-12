@@ -678,7 +678,7 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
         }
     }
 
-    DefineVelocityAllLevels(time);
+    DefineVelocityAllLevels(time+0.5_rt*dt[0]);
     AdvancePhiAllLevels (time, dt[0], iteration);
 
 #ifdef AMREX_PARTICLES
