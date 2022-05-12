@@ -171,7 +171,7 @@ FabArray<FAB>::FillBoundary_finish ()
 
     BL_PROFILE("FillBoundary_finish()");
 
-    if (!fbd) { n_filled = IntVect::TheZeroVector(); return; }
+    if (!fbd) { n_filled = IntVect::TheZeroVector(); BL_PROFILE_SYNC_STOP(); return; }
 
     const FB* TheFB = fbd->fb;
     const int N_rcvs = TheFB->m_RcvTags->size();
@@ -499,7 +499,7 @@ FabArray<FAB>::ParallelCopy_finish ()
 
     BL_PROFILE("FabArray::ParallelCopy_finish()");
 
-    if (!pcd) { return; }
+    if (!pcd) { BL_PROFILE_SYNC_STOP(); return; }
 
     const CPC* thecpc = pcd->cpc;
 
