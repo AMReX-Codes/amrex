@@ -432,7 +432,7 @@ operator<< (std::ostream& os, const Particle<NReal, NInt>& p)
     for (int i = 0; i < NReal; i++)
         os << p.rdata(i) << ' ';
 
-    for (int i = 2; i < NInt; i++)
+    for (int i = 0; i < NInt; i++)
         os << p.idata(i) << ' ';
 
     if (!os.good())
@@ -470,7 +470,7 @@ operator<< (std::ostream& os, const Particle<0, NInt>& p)
     for (int i = 0; i < AMREX_SPACEDIM; i++)
         os << p.pos(i) << ' ';
 
-    for (int i = 2; i < NInt; i++)
+    for (int i = 0; i < NInt; i++)
         os << p.idata(i) << ' ';
 
     if (!os.good())
