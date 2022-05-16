@@ -228,6 +228,64 @@ public:
                     const BoxArray& grds,
                     int             idx,
                     int             grow) const;
+
+    //! Return the volume of the specified cell.
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    static Real Volume (const IntVect& point, const GeometryData& geomdata)
+    {
+        auto dx = geomdata.CellSize();
+
+        Real vol;
+
+#if AMREX_SPACEDIM == 1
+
+        auto coord = geomdata.Coord();
+
+        if (coord == CoordSys::cartesian) {
+            // Cartesian
+
+            vol = dx[0];
+        }
+        else {
+            // Spherical
+
+            Real rl = geomdata.ProbLo()[0] + static_cast<Real>(point[0]) * dx[0];
+            Real rr = rl + dx[0];
+
+            vol = (4.0_rt / 3.0_rt) * M_PI * dx[0] * (rl * rl + rl * rr + rr * rr);
+        }
+
+#elif AMREX_SPACEDIM == 2
+
+        auto coord = geomdata.Coord();
+
+        if (coord == CoordSys::cartesian) {
+            // Cartesian
+
+            vol = dx[0] * dx[1];
+        }
+        else {
+            // Cylindrical
+
+            Real r_l = geomdata.ProbLo()[0] + static_cast<Real>(point[0]) * dx[0];
+            Real r_r = geomdata.ProbLo()[0] + static_cast<Real>(point[0]+1) * dx[0];
+
+            vol = M_PI * (r_l + r_r) * dx[0] * dx[1];
+        }
+
+#else
+
+        amrex::ignore_unused(point);
+
+        // Cartesian
+
+        vol = dx[0] * dx[1] * dx[2];
+
+#endif
+
+        return vol;
+    }
+
     /**
     * \brief Compute d(log(A))/dr at cell centers in given region and
     *           stuff the results into the passed MultiFab.
