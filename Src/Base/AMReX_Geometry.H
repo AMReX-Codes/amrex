@@ -233,6 +233,8 @@ public:
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     static Real Volume (const IntVect& point, const GeometryData& geomdata)
     {
+        amrex::ignore_unused(point);
+
         auto dx = geomdata.CellSize();
 
         Real vol;
