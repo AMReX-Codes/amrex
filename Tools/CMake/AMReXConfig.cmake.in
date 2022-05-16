@@ -114,6 +114,7 @@ set(AMReX_CUDA                      @AMReX_CUDA@)
 set(AMReX_SYCL                      @AMReX_DPCPP@)
 set(AMReX_HIP                       @AMReX_HIP@)
 set(AMReX_GPU_BACKEND               @AMReX_GPU_BACKEND@)
+set(AMReX_GPU_RDC                   @AMReX_GPU_RDC@)
 set(AMReX_PRECISION                 @AMReX_PRECISION@)
 set(AMReX_FORTRAN                   @AMReX_FORTRAN@)
 
