@@ -233,8 +233,6 @@ public:
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     static Real Volume (const IntVect& point, const GeometryData& geomdata)
     {
-        amrex::ignore_unused(point);
-
         auto dx = geomdata.CellSize();
 
         Real vol;
@@ -251,7 +249,7 @@ public:
         else {
             // Spherical
 
-            Real rl = geomdata.ProbLo()[0] + static_cast<Real>(i) * dx[0];
+            Real rl = geomdata.ProbLo()[0] + static_cast<Real>(point[0]) * dx[0];
             Real rr = rl + dx[0];
 
             vol = (4.0_rt / 3.0_rt) * M_PI * dx[0] * (rl * rl + rl * rr + rr * rr);
@@ -276,6 +274,8 @@ public:
         }
 
 #else
+
+        amrex::ignore_unused(point);
 
         // Cartesian
 
