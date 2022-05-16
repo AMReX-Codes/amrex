@@ -1342,7 +1342,7 @@ will show little improvement or even perform worse. So, this conditional stateme
 should be added to MFIter loops that contain GPU work, unless users specifically test
 the performance or are designing more complex workflows that require OpenMP.
 
-.. _sec:gpu:stream
+.. _sec:gpu:stream:
 
 Stream and Synchronization
 ==========================

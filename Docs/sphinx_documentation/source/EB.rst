@@ -49,7 +49,7 @@ Here is a simple example of initialize the database for an embedded sphere.
     EB2::Build(shop, geom, 0, 0);
 
 Alternatively, the EB information can be initialized from an STL file
-specified by a :cpp:`ParmParse` parameter ``eb2.stl_file`.  The
+specified by a :cpp:`ParmParse` parameter ``eb2.stl_file``.  The
 initialization is done by calling
 
 .. highlight:: c++

@@ -2695,14 +2695,3 @@ Backtrace files are produced by AMReX signal handler by default when
 segfault occurs or ``Abort`` is called.  If the application does not
 want AMReX to handle this, ``ParmParse`` parameter
 `amrex.signal_handling=0` can be used to disable it.
-
-
-
-Example Codes
-=============
-
-To assist users we have multiple example codes introducing AMReX functionality.
-They range from HelloWorld walk-thrus to stand-alone examples of complex
-features in practice. To access the available examples, please see
-`AMReX Guided Tutorials and Example Codes
-<https://amrex-codes.github.io/amrex/tutorials_html/>`_.
