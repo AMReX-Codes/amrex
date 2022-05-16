@@ -342,7 +342,7 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                 {
                     ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
                     {
-                        Real vol = volume_weighting ? Geometry::Volume(IntVect{i,j,k}, geomdata) : 1.0_rt;
+                        Real vol = volume_weighting ? Geometry::Volume(IntVect{AMREX_D_DECL(i,j,k)}, geomdata) : 1.0_rt;
                         if (datma[bi](i,j,k) * vol <= threshold) {
                             tagma[bi](i,j,k) = tagval;
                         }
@@ -352,7 +352,7 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                 {
                     ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
                     {
-                        Real vol = volume_weighting ? Geometry::Volume(IntVect{i,j,k}, geomdata) : 1.0_rt;
+                        Real vol = volume_weighting ? Geometry::Volume(IntVect{AMREX_D_DECL(i,j,k)}, geomdata) : 1.0_rt;
                         if (datma[bi](i,j,k) * vol >= threshold) {
                             tagma[bi](i,j,k) = tagval;
                         }
