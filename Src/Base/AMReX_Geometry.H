@@ -282,7 +282,7 @@ public:
 #endif
 
         return vol;
-    };
+    }
 
     /**
     * \brief Compute d(log(A))/dr at cell centers in given region and
