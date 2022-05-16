@@ -40,8 +40,8 @@ public:
 
     AmrCore (Geometry const& level_0_geom, AmrInfo const& amr_info);
 
-    AmrCore (AmrCore&& rhs) = default;
-    AmrCore& operator= (AmrCore&& rhs) = default;
+    AmrCore (AmrCore&& rhs);
+    AmrCore& operator= (AmrCore&& rhs);
 
     AmrCore (const AmrCore& rhs) = delete;
     AmrCore& operator= (const AmrCore& rhs) = delete;
