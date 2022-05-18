@@ -182,6 +182,36 @@ MLNodeLinOp::applyInhomogNeumannTerm (int /*amrlev*/, MultiFab& /*rhs*/) const
 {
 }
 
+Real
+MLNodeLinOp::getSolvabilityOffset (int amrlev, int mglev, MultiFab const& rhs) const
+{
+    amrex::ignore_unused(amrlev);
+    AMREX_ASSERT(amrlev==0);
+    AMREX_ASSERT(mglev+1==m_num_mg_levels[0] || mglev==0);
+    const auto& mask = (mglev+1 == m_num_mg_levels[0]) ? m_bottom_dot_mask : m_coarse_dot_mask;
+    const auto& mask_ma = mask.const_arrays();
+    const auto& rhs_ma = rhs.const_arrays();
+    auto r = ParReduce(TypeList<ReduceOpSum,ReduceOpSum>{}, TypeList<Real,Real>{},
+                       rhs, IntVect(0),
+                       [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                           -> GpuTuple<Real,Real>
+                       {
+                           return { mask_ma[box_no](i,j,k) * rhs_ma[box_no](i,j,k),
+                                    mask_ma[box_no](i,j,k) };
+                       });
+
+    Real s1 = amrex::get<0>(r);
+    Real s2 = amrex::get<1>(r);
+    ParallelAllReduce::Sum<Real>({s1,s2}, ParallelContext::CommunicatorSub());
+    return s1/s2;
+}
+
+void
+MLNodeLinOp::fixSolvabilityByOffset (int /*amrlev*/, int /*mglev*/, MultiFab& rhs, Real offset) const
+{
+    rhs.plus(-offset, 0, 1);
+}
+
 namespace {
 
 void MLNodeLinOp_set_dot_mask (MultiFab& dot_mask, iMultiFab const& omask, Geometry const& geom,

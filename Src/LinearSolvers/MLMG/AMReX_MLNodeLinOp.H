@@ -67,7 +67,10 @@ public:
         amrex::Abort("AMReX_MLNodeLinOp::fillSolutionBC::How did we get here?");
     }
 
-    virtual void applyInhomogNeumannTerm (int armlev, MultiFab& rhs) const override;
+    virtual void applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const override;
+
+    virtual Real getSolvabilityOffset (int amrlev, int mglev, MultiFab const& rhs) const override;
+    virtual void fixSolvabilityByOffset (int amrlev, int mglev, MultiFab& rhs, Real offset) const override;
 
     virtual void prepareForSolve () override {}
 
