@@ -25,6 +25,8 @@ template<class T>
 class TimeIntegrator
 {
 private:
+    amrex::Real time, timestep;
+    int step_number;
     std::unique_ptr<IntegratorBase<T> > integrator_ptr;
     std::function<void ()> post_timestep;
 
@@ -75,6 +77,11 @@ private:
         // By default, do nothing
         set_rhs([](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){});
         set_fast_rhs([](T& /* S_rhs */, T& /* S_extra */, const T& /* S_data */, const amrex::Real /* time */){});
+
+        // By default, initialize time, timestep, step number to 0's
+        time = 0.0_rt;
+        timestep = 0.0_rt;
+        step_number = 0;
     }
 
 public:
@@ -161,6 +168,26 @@ public:
         return integrator_ptr->get_fast_timestep();
     }
 
+    int get_step_number ()
+    {
+        return step_number;
+    }
+
+    amrex::Real get_time ()
+    {
+        return time;
+    }
+
+    amrex::Real get_timestep ()
+    {
+        return timestep;
+    }
+
+    void set_timestep (amrex::Real dt)
+    {
+        timestep = dt;
+    }
+
     std::function<void ()> get_post_timestep ()
     {
         return post_timestep;
@@ -187,12 +214,12 @@ public:
     }
 
     void integrate (T& S_old, T& S_new, amrex::Real start_time, const amrex::Real start_timestep,
-                    const amrex::Real end_time, const int nsteps)
+                    const amrex::Real end_time, const int start_step, const int max_steps)
     {
-        amrex::Real time = start_time;
-        amrex::Real timestep = start_timestep;
+        time = start_time;
+        timestep = start_timestep;
         bool stop_advance = false;
-        for (int step_number = 0; step_number < nsteps && !stop_advance; ++step_number)
+        for (step_number = start_step; step_number < max_steps && !stop_advance; ++step_number)
         {
             if (end_time - time < timestep) {
                 timestep = end_time - time;
