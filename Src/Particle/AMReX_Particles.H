@@ -373,9 +373,7 @@ public:
 
     //! \brief The total number of tiles on this rank on this level
     int numLocalTilesAtLevel (int lev) const {
-        reserveData();
-        resizeData();
-        return m_particles[lev].size();
+        return (lev < m_particles.size()) ? m_particles[lev].size() : 0;
     }
 
     void reserveData () override;
