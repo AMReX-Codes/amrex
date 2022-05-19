@@ -314,6 +314,7 @@ private:
     std::string regname;
 };
 
+
 namespace BLProfilerUtils {
   void WriteHeader(std::ostream &os, const int colWidth,
                    const Real maxlen, const bool bwriteavg);
@@ -425,6 +426,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
                                             bl_profiler_##rvname.start();
 #define BL_PROFILE_REGION_VAR_STOP(fname, rvname)  bl_profiler_##rvname.stop();   \
     amrex::BLProfiler::RegionStop(fname);
+
 #define BL_PROFILE_TINY_FLUSH()
 #define BL_PROFILE_FLUSH() { amrex::BLProfiler::Finalize(true); }
 

@@ -260,6 +260,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                              const FabArrayBase::CPC * a_cpc)
 {
     BL_PROFILE("FabArray::ParallelCopy()");
+
     ParallelCopy_nowait(src, scomp, dcomp, ncomp, snghost, dnghost, period, op, a_cpc);
     ParallelCopy_finish();
 }
