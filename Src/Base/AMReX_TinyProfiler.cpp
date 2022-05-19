@@ -35,8 +35,6 @@ double TinyProfiler::t_init = std::numeric_limits<double>::max();
 int TinyProfiler::device_synchronize_around_region = 0;
 int TinyProfiler::n_print_tabs = 0;
 int TinyProfiler::verbose = 0;
-int TinyProfileSync::use_prof_syncs = 0;
-int TinyProfileSync::sync_counter = 0;
 
 namespace {
     std::set<std::string> improperly_nested_timers;
@@ -300,16 +298,10 @@ TinyProfiler::Initialize () noexcept
     regionstack.push_back(mainregion);
     t_init = amrex::second();
 
-    {
-        amrex::ParmParse pp("tiny_profiler");
-        pp.queryAdd("device_synchronize_around_region", device_synchronize_around_region);
-        pp.queryAdd("verbose", verbose);
-        pp.queryAdd("v", verbose);
-    }
-    {
-        amrex::ParmParse pp("amrex");
-        pp.queryAdd("use_profiler_syncs", TinyProfileSync::use_prof_syncs);
-    }
+    amrex::ParmParse pp("tiny_profiler");
+    pp.queryAdd("device_synchronize_around_region", device_synchronize_around_region);
+    pp.queryAdd("verbose", verbose);
+    pp.queryAdd("v", verbose);
 }
 
 void
@@ -641,71 +633,6 @@ TinyProfiler::PrintCallStack (std::ostream& os)
     os << "===== TinyProfilers ======\n";
     for (auto const& x : ttstack) {
         os << *(std::get<2>(x)) << "\n";
-    }
-}
-
-void
-TinyProfileSync::Sync () noexcept
-{
-    if (use_prof_syncs)
-        { ParallelDescriptor::Barrier(ParallelContext::CommunicatorSub()); }
-}
-
-void
-TinyProfileSync::Sync (const std::string& name) noexcept
-{
-    if (use_prof_syncs) {
-        TinyProfiler synctimer(name);
-        ParallelDescriptor::Barrier(ParallelContext::CommunicatorSub());
-    }
-}
-
-void
-TinyProfileSync::Sync (const char* name) noexcept
-{
-    if (use_prof_syncs) {
-        TinyProfiler synctimer(name);
-        ParallelDescriptor::Barrier(ParallelContext::CommunicatorSub());
-    }
-}
-
-void
-TinyProfileSync::StartSyncRegion () noexcept
-{
-    if (use_prof_syncs) {
-        if (sync_counter == 0) {
-            ParallelDescriptor::Barrier(ParallelContext::CommunicatorSub());
-        }
-        sync_counter++;
-    }
-}
-
-void
-TinyProfileSync::StartSyncRegion (const std::string& name) noexcept {
-    if (use_prof_syncs) {
-        if (sync_counter == 0) {
-            TinyProfiler synctimer(name);
-            ParallelDescriptor::Barrier(ParallelContext::CommunicatorSub());
-        }
-        sync_counter++;
-    }
-}
-
-void
-TinyProfileSync::StartSyncRegion (const char* name) noexcept {
-    if (use_prof_syncs) {
-        if (sync_counter == 0) {
-            TinyProfiler synctimer(name);
-            ParallelDescriptor::Barrier(ParallelContext::CommunicatorSub());
-        }
-        sync_counter++;
-    }
-}
-
-void
-TinyProfileSync::EndSyncRegion () noexcept {
-    if (use_prof_syncs) {
-        sync_counter--;
     }
 }
 
