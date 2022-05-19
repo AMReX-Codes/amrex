@@ -10,6 +10,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             bool enforce_periodicity_only,
                             bool override_sync)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
+    BL_PROFILE("FillBoundary_nowait()");
+
     AMREX_ASSERT_WITH_MESSAGE(!fbd, "FillBoundary_nowait() called when comm operation already in progress.");
     AMREX_ASSERT(!enforce_periodicity_only || !override_sync);
 
@@ -168,7 +171,7 @@ FabArray<FAB>::FillBoundary_finish ()
 
     BL_PROFILE("FillBoundary_finish()");
 
-    if (!fbd) { n_filled = IntVect::TheZeroVector(); return; }
+    if (!fbd) { n_filled = IntVect::TheZeroVector(); BL_PROFILE_SYNC_STOP(); return; }
 
     const FB* TheFB = fbd->fb;
     const int N_rcvs = TheFB->m_RcvTags->size();
@@ -240,6 +243,8 @@ FabArray<FAB>::FillBoundary_finish ()
     fbd.reset();
 
 #endif
+
+    BL_PROFILE_SYNC_STOP();
 }
 
 template <class FAB>
@@ -255,7 +260,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                              const FabArrayBase::CPC * a_cpc)
 {
     BL_PROFILE("FabArray::ParallelCopy()");
-
     ParallelCopy_nowait(src, scomp, dcomp, ncomp, snghost, dnghost, period, op, a_cpc);
     ParallelCopy_finish();
 }
@@ -312,6 +316,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                                     const FabArrayBase::CPC * a_cpc,
                                     bool                 to_ghost_cells_only)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
     BL_PROFILE("FabArray::ParallelCopy_nowait()");
 
     AMREX_ASSERT_WITH_MESSAGE(!pcd, "ParallelCopy_nowait() called when comm operation already in progress.");
@@ -494,7 +499,7 @@ FabArray<FAB>::ParallelCopy_finish ()
 
     BL_PROFILE("FabArray::ParallelCopy_finish()");
 
-    if (!pcd) { return; }
+    if (!pcd) { BL_PROFILE_SYNC_STOP(); return; }
 
     const CPC* thecpc = pcd->cpc;
 
@@ -558,6 +563,8 @@ FabArray<FAB>::ParallelCopy_finish ()
     pcd.reset();
 
 #endif /*BL_USE_MPI*/
+
+    BL_PROFILE_SYNC_STOP();
 
 }
 

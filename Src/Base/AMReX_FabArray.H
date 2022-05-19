@@ -2696,7 +2696,7 @@ template <class FAB>
 void
 FabArray<FAB>::FillBoundaryAndSync (const Periodicity& period)
 {
-    BL_PROFILE("FAbArray::FillBoundaryAndSync()");
+    BL_PROFILE("FabArray::FillBoundaryAndSync()");
     if (n_grow.max() > 0 || !is_cell_centered()) {
         FillBoundaryAndSync_nowait(0, nComp(), n_grow, period);
         FillBoundaryAndSync_finish();
@@ -2708,7 +2708,7 @@ void
 FabArray<FAB>::FillBoundaryAndSync (int scomp, int ncomp, const IntVect& nghost,
                                     const Periodicity& period)
 {
-    BL_PROFILE("FAbArray::FillBoundaryAndSync()");
+    BL_PROFILE("FabArray::FillBoundaryAndSync()");
     if (nghost.max() > 0 || !is_cell_centered()) {
         FillBoundaryAndSync_nowait(scomp, ncomp, nghost, period);
         FillBoundaryAndSync_finish();
@@ -2908,7 +2908,6 @@ template <typename BUF>
 void
 FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross)
 {
-    BL_PROFILE("FillBoundary_nowait()");
     FBEP_nowait<BUF>(scomp, ncomp, nGrowVect(), period, cross);
 }
 
@@ -2918,7 +2917,6 @@ void
 FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost,
                                     const Periodicity& period, bool cross)
 {
-    BL_PROFILE("FillBoundary_nowait()");
     FBEP_nowait<BUF>(scomp, ncomp, nghost, period, cross);
 }
 
