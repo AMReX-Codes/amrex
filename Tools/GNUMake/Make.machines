@@ -30,6 +30,10 @@ ifeq ($(NERSC_HOST), perlmutter)
   which_site := nersc
   which_computer := perlmutter
 endif
+ifeq ($(NERSC_HOST), alvarez)
+  which_site := nersc
+  which_computer := perlmutter
+endif
 endif
 endif
 endif
