@@ -298,10 +298,12 @@ TinyProfiler::Initialize () noexcept
     regionstack.push_back(mainregion);
     t_init = amrex::second();
 
-    amrex::ParmParse pp("tiny_profiler");
-    pp.queryAdd("device_synchronize_around_region", device_synchronize_around_region);
-    pp.queryAdd("verbose", verbose);
-    pp.queryAdd("v", verbose);
+    {
+        amrex::ParmParse pp("tiny_profiler");
+        pp.queryAdd("device_synchronize_around_region", device_synchronize_around_region);
+        pp.queryAdd("verbose", verbose);
+        pp.queryAdd("v", verbose);
+    }
 }
 
 void
