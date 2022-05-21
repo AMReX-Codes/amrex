@@ -475,7 +475,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_INITPARAMS()
 #define BL_PROFILE_FINALIZE()
 
-#define BL_TINY_PROFILE_INITIALIZE()   amrex::TinyProfiler::Initialize(); BLProfileSync::InitParams()
+#define BL_TINY_PROFILE_INITIALIZE()   amrex::TinyProfiler::Initialize(); amrex::BLProfileSync::InitParams()
 #define BL_TINY_PROFILE_FINALIZE()     amrex::TinyProfiler::Finalize()
 
 #define BL_PROFILE(fname) BL_PROFILE_IMPL(fname, __COUNTER__)
