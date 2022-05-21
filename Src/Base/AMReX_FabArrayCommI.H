@@ -170,8 +170,9 @@ FabArray<FAB>::FillBoundary_finish ()
 #ifdef AMREX_USE_MPI
 
     BL_PROFILE("FillBoundary_finish()");
+    BL_PROFILE_SYNC_STOP();
 
-    if (!fbd) { n_filled = IntVect::TheZeroVector(); BL_PROFILE_SYNC_STOP(); return; }
+    if (!fbd) { n_filled = IntVect::TheZeroVector(); return; }
 
     const FB* TheFB = fbd->fb;
     const int N_rcvs = TheFB->m_RcvTags->size();
@@ -243,8 +244,6 @@ FabArray<FAB>::FillBoundary_finish ()
     fbd.reset();
 
 #endif
-
-    BL_PROFILE_SYNC_STOP();
 }
 
 template <class FAB>
@@ -499,8 +498,9 @@ FabArray<FAB>::ParallelCopy_finish ()
 #ifdef BL_USE_MPI
 
     BL_PROFILE("FabArray::ParallelCopy_finish()");
+    BL_PROFILE_SYNC_STOP();
 
-    if (!pcd) { BL_PROFILE_SYNC_STOP(); return; }
+    if (!pcd) { return; }
 
     const CPC* thecpc = pcd->cpc;
 
@@ -564,9 +564,6 @@ FabArray<FAB>::ParallelCopy_finish ()
     pcd.reset();
 
 #endif /*BL_USE_MPI*/
-
-    BL_PROFILE_SYNC_STOP();
-
 }
 
 template <class FAB>
