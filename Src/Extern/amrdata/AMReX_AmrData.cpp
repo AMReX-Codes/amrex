@@ -1061,7 +1061,7 @@ void AmrData::HiNodeLoc(int lev, IntVect ix, Vector<Real> &pos) const {
 void AmrData::IntVectFromLocation(const int finestFillLevel,
                                   const Vector<Real> &location,
                                   IntVect &ivLoc, int &ivLevel,
-                                  IntVect &ivFinestFillLev)
+                                  IntVect &ivFinestFillLev) const
 {
    BL_ASSERT(location.size() == BL_SPACEDIM);
    BL_ASSERT(finestFillLevel <= finestLevel);
