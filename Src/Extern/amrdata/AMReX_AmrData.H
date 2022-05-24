@@ -103,7 +103,7 @@ class AmrData {
   // returns the intvect, the finest level it is contained on,
   // and the intvect at the given finest level
   void IntVectFromLocation(const int finestFillLevel, const Vector<Real> &location,
-                           IntVect &ivLoc, int &ivLevel, IntVect &ivFinestFillLev);
+                           IntVect &ivLoc, int &ivLevel, IntVect &ivFinestFillLev) const;
 
   const Vector< Vector< Vector<Real> > > &GridLocLo() const { return gridLocLo; }
   const Vector< Vector< Vector<Real> > > &GridLocHi() const { return gridLocHi; }
