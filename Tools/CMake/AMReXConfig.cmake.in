@@ -204,7 +204,7 @@ if (@AMReX_HDF5@)
 endif ()
 
 if (@AMReX_HDF5_ZFP@)
-    find_dependency(H5Z-ZFP REQUIRED)
+    find_dependency(H5Z_ZFP REQUIRED)
 endif ()
 
 if (@AMReX_HYPRE@)
