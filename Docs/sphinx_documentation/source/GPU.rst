@@ -706,7 +706,7 @@ AMReX provides functions for performing standard reduction operations on
 When ``USE_CUDA=TRUE``, these functions automatically implement the
 corresponding reductions on GPUs in an efficient manner.
 
-Function template :cpp:`ParallelFor` can be used to implement user-defined
+Function template :cpp:`ParReduce` can be used to implement user-defined
 reduction functions over :cpp:`MultiFab`\ s.  For example, the following
 function computes the sum of total kinetic energy using the data in a
 :cpp:`MultiFab` storing the mass and momentum density.
@@ -718,7 +718,8 @@ function computes the sum of total kinetic energy using the data in a
     Real compute_ek (MultiFab const& mf)
     {
         auto const& ma = mf.const_arrays();
-        return ParallelFor(mf, IntVect(0), // zero ghost cells
+        return ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{},
+                         mf, IntVect(0), // zero ghost cells
                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
                    noexcept -> GpuTuple<Real>
                {
@@ -744,7 +745,9 @@ As another example, the following function computes the max- and 1-norm of a
     {
         auto const& data_ma = mf.const_arrays();
         auto const& mask_ma = mask.const_arrays();
-        return ParallelFor(mf, IntVect(0), // zero ghost cells
+        return ParReduce(TypeList<ReduceOpMax,ReduceOpSum>{},
+                         TypeList<Real,Real>{},
+                         mf, IntVect(0), // zero ghost cells
                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
                    noexcept -> GpuTuple<Real,Real>
                {
@@ -757,7 +760,7 @@ As another example, the following function computes the max- and 1-norm of a
                });
     }
 
-It should be noted that the reduction result of :cpp:`ParallelFor` is local
+It should be noted that the reduction result of :cpp:`ParReduce` is local
 and it is the user's responsibility if MPI communication is needed.
 
 Box, IntVect and IndexType
