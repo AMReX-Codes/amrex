@@ -10,6 +10,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             bool enforce_periodicity_only,
                             bool override_sync)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
+    BL_PROFILE("FillBoundary_nowait()");
+
     AMREX_ASSERT_WITH_MESSAGE(!fbd, "FillBoundary_nowait() called when comm operation already in progress.");
     AMREX_ASSERT(!enforce_periodicity_only || !override_sync);
 
@@ -167,6 +170,7 @@ FabArray<FAB>::FillBoundary_finish ()
 #ifdef AMREX_USE_MPI
 
     BL_PROFILE("FillBoundary_finish()");
+    BL_PROFILE_SYNC_STOP();
 
     if (!fbd) { n_filled = IntVect::TheZeroVector(); return; }
 
@@ -312,6 +316,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                                     const FabArrayBase::CPC * a_cpc,
                                     bool                 to_ghost_cells_only)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
     BL_PROFILE("FabArray::ParallelCopy_nowait()");
 
     AMREX_ASSERT_WITH_MESSAGE(!pcd, "ParallelCopy_nowait() called when comm operation already in progress.");
@@ -493,6 +498,7 @@ FabArray<FAB>::ParallelCopy_finish ()
 #ifdef BL_USE_MPI
 
     BL_PROFILE("FabArray::ParallelCopy_finish()");
+    BL_PROFILE_SYNC_STOP();
 
     if (!pcd) { return; }
 
@@ -558,7 +564,6 @@ FabArray<FAB>::ParallelCopy_finish ()
     pcd.reset();
 
 #endif /*BL_USE_MPI*/
-
 }
 
 template <class FAB>
