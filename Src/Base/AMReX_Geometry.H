@@ -12,6 +12,7 @@
 #include <omp.h>
 #endif
 
+#include <cmath>
 #include <iosfwd>
 #include <map>
 
