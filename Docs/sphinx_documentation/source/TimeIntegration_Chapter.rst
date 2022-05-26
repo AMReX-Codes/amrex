@@ -61,6 +61,7 @@ ghost cells are filled when the right hand side function is called on that solut
    // integrate forward one step from `time` by `dt` to fill S_new
    integrator.advance(Sborder, S_new, time, dt);
 
+.. _sec:time_int:sundials:
 
 Using SUNDIALS
 ^^^^^^^^^^^^^^
