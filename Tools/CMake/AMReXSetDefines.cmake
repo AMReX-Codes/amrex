@@ -186,3 +186,11 @@ if(WIN32 AND BUILD_SHARED_LIBS)
   add_amrex_define(AMREX_IS_DLL NO_LEGACY)
   target_compile_definitions( amrex PRIVATE AMREX_IS_DLL_BUILDING)
 endif()
+
+#
+# Windows math symbols <cmath>: M_PI
+# https://docs.microsoft.com/en-us/cpp/c-runtime-library/math-constants?view=msvc-170
+#
+if(WIN32)
+  target_compile_definitions(amrex PUBLIC _USE_MATH_DEFINES)
+endif()
