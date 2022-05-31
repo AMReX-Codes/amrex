@@ -24,10 +24,18 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
   endif
   endif
 
-  ifeq (($USE_CUDA),TRUE)
-    includes += -Xcompiler="-march=znver3" 
-  else
-    includes += -march=znver3
+  ifeq ($(USE_CUDA),TRUE)
+    ifeq ($(USE_MPI),TRUE)
+      ifeq ($(AMREX_CCOMP),gnu)
+        CFLAGS += -Xcompiler='-march-znver3'
+        CXXFLAGS += -Xcompiler='-march=znver3'
+      endif
+    endif
+  else ifeq ($(USE_MPI),FALSE)
+      ifeq ($(AMREX_CCOMP),gnu)
+        CFLAGS += -march=znver3
+        CXXFLAGS += -march=znver3
+      endif
   endif
 
   ifeq ($(USE_MPI),TRUE)
