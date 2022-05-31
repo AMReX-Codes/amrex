@@ -24,6 +24,12 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
   endif
   endif
 
+  ifeq (($USE_CUDA),TRUE)
+    includes += -Xcompiler="-march=znver3" 
+  else
+    includes += -march=znver3
+  endif
+
   ifeq ($(USE_MPI),TRUE)
     ifneq ($(USE_CUDA),TRUE)
       CC  = cc
