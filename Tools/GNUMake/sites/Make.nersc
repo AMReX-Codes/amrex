@@ -25,17 +25,19 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
   endif
 
   ifeq ($(USE_CUDA),TRUE)
-    ifeq ($(USE_MPI),TRUE)
-      ifeq ($(AMREX_CCOMP),gnu)
-        CFLAGS += -Xcompiler='-march-znver3'
-        CXXFLAGS += -Xcompiler='-march=znver3'
-      endif
+    ifeq ($(AMREX_CCOMP),gnu)
+      WRAPPER_FLAGS := $(filter-out g++ nvcc, $(shell CC -craype-verbose 2> /dev/null))
+
+      CFLAGS += -Xcompiler='$(WRAPPER_FLAGS)'
+      CXXFLAGS += -Xcompiler='$(WRAPPER_FLAGS)'
     endif
   else ifeq ($(USE_MPI),FALSE)
-      ifeq ($(AMREX_CCOMP),gnu)
-        CFLAGS += -march=znver3
-        CXXFLAGS += -march=znver3
-      endif
+    ifeq ($(AMREX_CCOMP),gnu)
+      WRAPPER_FLAGS := $(filter-out g++ nvcc, $(shell CC -craype-verbose 2> /dev/null))
+
+      CFLAGS += $(WRAPPER_FLAGS)
+      CXXFLAGS += $(WRAPPER_FLAGS)
+    endif
   endif
 
   ifeq ($(USE_MPI),TRUE)
