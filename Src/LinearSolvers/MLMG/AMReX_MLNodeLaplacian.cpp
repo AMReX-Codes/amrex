@@ -181,59 +181,55 @@ MLNodeLaplacian::getSolvabilityOffset (int amrlev, int mglev, MultiFab const& rh
     if (m_coarsening_strategy == CoarseningStrategy::RAP) {
 #ifdef AMREX_USE_EB
         auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
-        if (factory && !factory->isAllRegular()) {
-            if (mglev > 0) {
-                return 0._rt;
-            } else {
-                const MultiFab& vfrac = factory->getVolFrac();
-                const auto& vfrac_ma = vfrac.const_arrays();
+        if (mglev == 0 && factory && !factory->isAllRegular()) {
+            const MultiFab& vfrac = factory->getVolFrac();
+            const auto& vfrac_ma = vfrac.const_arrays();
 
-                Box dom = Geom(amrlev,mglev).Domain();
-                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                    if (m_lobc[0][idim] != LinOpBCType::Neumann &&
-                        m_lobc[0][idim] != LinOpBCType::inflow)
-                    {
-                        dom.growLo(idim, 10);
-                    }
-                    if (m_hibc[0][idim] != LinOpBCType::Neumann &&
-                        m_hibc[0][idim] != LinOpBCType::inflow)
-                    {
-                        dom.growHi(idim, 10);
-                    }
+            Box dom = Geom(amrlev,mglev).Domain();
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if (m_lobc[0][idim] != LinOpBCType::Neumann &&
+                    m_lobc[0][idim] != LinOpBCType::inflow)
+                {
+                    dom.growLo(idim, 10);
                 }
-
-                const auto& mask = (mglev+1 == m_num_mg_levels[0]) ? m_bottom_dot_mask : m_coarse_dot_mask;
-                const auto& mask_ma = mask.const_arrays();
-                const auto& rhs_ma = rhs.const_arrays();
-                auto r = ParReduce(TypeList<ReduceOpSum,ReduceOpSum>{}, TypeList<Real,Real>{},
-                                   rhs, IntVect(0),
-                                   [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-                                       -> GpuTuple<Real,Real>
-                                   {
-                                       Real scale = 0.0_rt;
-#if (AMREX_SPACEDIM == 3)
-                                       int const koff = 1;
-                                       Real const fac = 0.125_rt;
-#else
-                                       int const koff = 0;
-                                       Real const fac = 0.25_rt;
-#endif
-                                       for (int kc = k-koff; kc <= k; ++kc) {
-                                       for (int jc = j-1   ; jc <= j; ++jc) {
-                                       for (int ic = i-1   ; ic <= i; ++ic) {
-                                           if (dom.contains(ic,jc,kc)) {
-                                               scale += vfrac_ma[box_no](ic,jc,kc) * fac;
-                                           }
-                                       }}}
-                                       return { mask_ma[box_no](i,j,k) * rhs_ma[box_no](i,j,k),
-                                                mask_ma[box_no](i,j,k) * scale };
-                                   });
-
-                Real s1 = amrex::get<0>(r);
-                Real s2 = amrex::get<1>(r);
-                ParallelAllReduce::Sum<Real>({s1,s2}, ParallelContext::CommunicatorSub());
-                return s1/s2;
+                if (m_hibc[0][idim] != LinOpBCType::Neumann &&
+                    m_hibc[0][idim] != LinOpBCType::inflow)
+                {
+                    dom.growHi(idim, 10);
+                }
             }
+
+            const auto& mask = (mglev+1 == m_num_mg_levels[0]) ? m_bottom_dot_mask : m_coarse_dot_mask;
+            const auto& mask_ma = mask.const_arrays();
+            const auto& rhs_ma = rhs.const_arrays();
+            auto r = ParReduce(TypeList<ReduceOpSum,ReduceOpSum>{}, TypeList<Real,Real>{},
+                               rhs, IntVect(0),
+                               [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                               -> GpuTuple<Real,Real>
+                               {
+                                   Real scale = 0.0_rt;
+#if (AMREX_SPACEDIM == 3)
+                                   int const koff = 1;
+                                   Real const fac = 0.125_rt;
+#else
+                                   int const koff = 0;
+                                   Real const fac = 0.25_rt;
+#endif
+                                   for (int kc = k-koff; kc <= k; ++kc) {
+                                   for (int jc = j-1   ; jc <= j; ++jc) {
+                                   for (int ic = i-1   ; ic <= i; ++ic) {
+                                       if (dom.contains(ic,jc,kc)) {
+                                           scale += vfrac_ma[box_no](ic,jc,kc) * fac;
+                                       }
+                                   }}}
+                                   return { mask_ma[box_no](i,j,k) * rhs_ma[box_no](i,j,k),
+                                            mask_ma[box_no](i,j,k) * scale };
+                               });
+
+            Real s1 = amrex::get<0>(r);
+            Real s2 = amrex::get<1>(r);
+            ParallelAllReduce::Sum<Real>({s1,s2}, ParallelContext::CommunicatorSub());
+            return s1/s2;
         } else
 #endif
         {
@@ -296,47 +292,45 @@ MLNodeLaplacian::fixSolvabilityByOffset (int amrlev, int mglev, MultiFab& rhs, R
     if (m_coarsening_strategy == CoarseningStrategy::RAP) {
 #ifdef AMREX_USE_EB
         auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
-        if (factory && !factory->isAllRegular()) {
-            if (mglev == 0) {
-                const MultiFab& vfrac = factory->getVolFrac();
-                const auto& vfrac_ma = vfrac.const_arrays();
+        if (mglev == 0 && factory && !factory->isAllRegular()) {
+            const MultiFab& vfrac = factory->getVolFrac();
+            const auto& vfrac_ma = vfrac.const_arrays();
 
-                Box dom = Geom(amrlev,mglev).Domain();
-                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                    if (m_lobc[0][idim] != LinOpBCType::Neumann &&
-                        m_lobc[0][idim] != LinOpBCType::inflow)
-                    {
-                        dom.growLo(idim, 10);
-                    }
-                    if (m_hibc[0][idim] != LinOpBCType::Neumann &&
-                        m_hibc[0][idim] != LinOpBCType::inflow)
-                    {
-                        dom.growHi(idim, 10);
-                    }
+            Box dom = Geom(amrlev,mglev).Domain();
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if (m_lobc[0][idim] != LinOpBCType::Neumann &&
+                    m_lobc[0][idim] != LinOpBCType::inflow)
+                {
+                    dom.growLo(idim, 10);
                 }
-
-                auto const& rhs_ma = rhs.arrays();
-                ParallelFor(rhs, IntVect(0),
-                            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-                            {
-                                Real scale = 0.0_rt;
-#if (AMREX_SPACEDIM == 3)
-                                int const koff = 1;
-                                Real const fac = 0.125_rt;
-#else
-                                int const koff = 0;
-                                Real const fac = 0.25_rt;
-#endif
-                                for (int kc = k-koff; kc <= k; ++kc) {
-                                for (int jc = j-1   ; jc <= j; ++jc) {
-                                for (int ic = i-1   ; ic <= i; ++ic) {
-                                    if (dom.contains(ic,jc,kc)) {
-                                        scale += vfrac_ma[box_no](ic,jc,kc) * fac;
-                                    }
-                                }}}
-                                rhs_ma[box_no](i,j,k) -= offset * scale;
-                            });
+                if (m_hibc[0][idim] != LinOpBCType::Neumann &&
+                    m_hibc[0][idim] != LinOpBCType::inflow)
+                {
+                    dom.growHi(idim, 10);
+                }
             }
+
+            auto const& rhs_ma = rhs.arrays();
+            ParallelFor(rhs, IntVect(0),
+                        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                        {
+                            Real scale = 0.0_rt;
+#if (AMREX_SPACEDIM == 3)
+                            int const koff = 1;
+                            Real const fac = 0.125_rt;
+#else
+                            int const koff = 0;
+                            Real const fac = 0.25_rt;
+#endif
+                            for (int kc = k-koff; kc <= k; ++kc) {
+                            for (int jc = j-1   ; jc <= j; ++jc) {
+                            for (int ic = i-1   ; ic <= i; ++ic) {
+                                if (dom.contains(ic,jc,kc)) {
+                                    scale += vfrac_ma[box_no](ic,jc,kc) * fac;
+                                }
+                            }}}
+                            rhs_ma[box_no](i,j,k) -= offset * scale;
+                        });
         } else
 #endif
         {
