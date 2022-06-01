@@ -568,6 +568,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Sh
     }
 }
 
+/**
+ * Adds the number of particles in each cell to the values currently located in
+ * the input MultiFab.
+ */
+
+
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
