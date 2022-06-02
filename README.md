@@ -9,7 +9,6 @@
   <img src="https://zenodo.org/badge/DOI/10.5281/zenodo.2555438.svg" alt="DOI">
   </a>
   <img src="https://github.com/AMReX-codes/amrex/workflows/cmake/badge.svg?branch=development" alt="CI: CMake on Development">
-  <img src="https://img.shields.io/travis/AMReX-codes/amrex/development" alt="CI: Travis on development">
 </p>
 
 
