@@ -4,10 +4,12 @@
 #include <AMReX_MLCellLinOp.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Machine.H>
+#include <AMReX_MultiFabUtil.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EB2.H>
 #include <AMReX_EBFabFactory.H>
+#include <AMReX_EBMultiFabUtil.H>
 #endif
 
 #ifdef AMREX_USE_PETSC
@@ -544,7 +546,7 @@ MLLinOp::defineBC ()
 }
 
 void
-MLLinOp::make (Vector<Vector<MultiFab> >& mf, int nc, IntVect const& ng) const
+MLLinOp::make (Vector<Vector<Any> >& mf, IntVect const& ng) const
 {
     mf.clear();
     mf.resize(m_num_amr_levels);
@@ -553,8 +555,7 @@ MLLinOp::make (Vector<Vector<MultiFab> >& mf, int nc, IntVect const& ng) const
         mf[alev].resize(m_num_mg_levels[alev]);
         for (int mlev = 0; mlev < m_num_mg_levels[alev]; ++mlev)
         {
-            const auto& ba = amrex::convert(m_grids[alev][mlev], m_ixtype);
-            mf[alev][mlev].define(ba, m_dmap[alev][mlev], nc, ng, MFInfo(), *m_factory[alev][mlev]);
+            mf[alev][mlev] = AnyMake(alev, mlev, ng);
         }
     }
 }
@@ -893,6 +894,276 @@ MLLinOp::resizeMultiGrid (int new_size)
     if (m_bottom_comm != m_default_comm) {
         m_bottom_comm = makeSubCommunicator(m_dmap[0].back());
     }
+}
+
+Any
+MLLinOp::AnyMake (int amrlev, int mglev, IntVect const& ng) const
+{
+    return Any(MultiFab(amrex::convert(m_grids[amrlev][mglev], m_ixtype),
+                        m_dmap[amrlev][mglev], getNComp(), ng, MFInfo(),
+                        *m_factory[amrlev][mglev]));
+}
+
+Any
+MLLinOp::AnyMakeCoarseMG (int amrlev, int mglev, IntVect const& ng) const
+{
+    BoxArray cba = m_grids[amrlev][mglev];
+    IntVect ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[mglev];
+    cba.coarsen(ratio);
+    cba.convert(m_ixtype);
+    return Any(MultiFab(cba, m_dmap[amrlev][mglev], getNComp(), ng));
+}
+
+Any
+MLLinOp::AnyMakeCoarseAmr (int famrlev, IntVect const& ng) const
+{
+    BoxArray cba = m_grids[famrlev][0];
+    IntVect ratio(AMRRefRatio(famrlev-1));
+    cba.coarsen(ratio);
+    cba.convert(m_ixtype);
+    return Any(MultiFab(cba, m_dmap[famrlev][0], getNComp(), ng));
+}
+
+Any
+MLLinOp::AnyMakeAlias (Any const& a) const
+{
+    AMREX_ASSERT(a.is<MultiFab>());
+    MultiFab const& mf = a.get<MultiFab>();
+    return Any(MultiFab(mf, amrex::make_alias, 0, mf.nComp()));
+}
+
+IntVect
+MLLinOp::AnyGrowVect (Any const& a) const
+{
+    AMREX_ASSERT(a.is<MultiFab>());
+    MultiFab const& mf = a.get<MultiFab>();
+    return mf.nGrowVect();
+}
+
+void
+MLLinOp::AnySetToZero (Any& a) const
+{
+    AMREX_ASSERT(a.is<MultiFab>());
+    MultiFab& mf = a.get<MultiFab>();
+    mf.setVal(0._rt);
+}
+
+void
+MLLinOp::AnySetBndryToZero (Any& a) const
+{
+    AMREX_ASSERT(a.is<MultiFab>());
+    MultiFab& mf = a.get<MultiFab>();
+    mf.setBndry(0._rt, 0, getNComp());
+}
+
+#ifdef AMREX_USE_EB
+void
+MLLinOp::AnySetCoveredToZero (Any& a) const
+{
+    AMREX_ASSERT(a.is<MultiFab>());
+    auto& mf = a.get<MultiFab>();
+    EB_set_covered(mf, 0, getNComp(), 0, 0._rt);
+}
+#endif
+
+void
+MLLinOp::AnyCopy (Any& dst, Any const& src, IntVect const& ng) const
+{
+    AMREX_ASSERT(dst.is<MultiFab>() && src.is<MultiFab>());
+    MultiFab& dmf = dst.get<MultiFab>();
+    MultiFab const& smf = src.get<MultiFab>();
+    MultiFab::Copy(dmf, smf, 0, 0, getNComp(), ng);
+}
+
+void
+MLLinOp::AnyAdd (Any& dst, Any const& src, IntVect const& ng) const
+{
+    AMREX_ASSERT(dst.is<MultiFab>() && src.is<MultiFab>());
+    MultiFab& dmf = dst.get<MultiFab>();
+    MultiFab const& smf = src.get<MultiFab>();
+    MultiFab::Add(dmf, smf, 0, 0, getNComp(), ng);
+}
+
+void
+MLLinOp::AnyAverageDownSolutionRHS (int camrlev, Any& a_crse_sol, Any& a_crse_rhs,
+                                    const Any& a_fine_sol, const Any& a_fine_rhs)
+{
+    AMREX_ASSERT(a_crse_sol.is<MultiFab>() &&
+                 a_crse_rhs.is<MultiFab>() &&
+                 a_fine_sol.is<MultiFab>() &&
+                 a_fine_rhs.is<MultiFab>());
+    auto& crse_sol = a_crse_sol.get<MultiFab>();
+    auto& crse_rhs = a_crse_rhs.get<MultiFab>();
+    auto& fine_sol = a_fine_sol.get<MultiFab>();
+    auto& fine_rhs = a_fine_rhs.get<MultiFab>();
+    averageDownSolutionRHS(camrlev, crse_sol, crse_rhs, fine_sol, fine_rhs);
+}
+
+void
+MLLinOp::AnyParallelCopy (Any& dst, Any const& src,
+                          IntVect const& src_nghost, IntVect const& dst_nghost,
+                          Periodicity const& period) const
+{
+    AMREX_ASSERT(dst.is<MultiFab>());
+    MultiFab& dmf = dst.get<MultiFab>();
+    MultiFab const& smf = src.get<MultiFab>();
+    dmf.ParallelCopy(smf, 0, 0, getNComp(), src_nghost, dst_nghost, period);
+}
+
+Real
+MLLinOp::AnyNormInf (Any& a) const
+{
+    AMREX_ASSERT(a.is<MultiFab>());
+    return a.get<MultiFab>().norminf();
+}
+
+void
+MLLinOp::AnySolutionResidual (int amrlev, Any& resid, Any& x, Any const& b,
+                              Any const* crse_bcdata)
+{
+    AMREX_ASSERT(x.is<MultiFab>());
+    solutionResidual(amrlev, resid.get<MultiFab>(), x.get<MultiFab>(), b.get<MultiFab>(),
+                     (crse_bcdata) ? &(crse_bcdata->get<MultiFab>()) : nullptr);
+}
+
+void
+MLLinOp::AnyCorrectionResidual (int amrlev, int mglev, Any& resid, Any& x, const Any& b,
+                                BCMode bc_mode, const Any* crse_bcdata)
+{
+    AMREX_ASSERT(x.is<MultiFab>());
+    correctionResidual(amrlev, mglev, resid.get<MultiFab>(), x.get<MultiFab>(),
+                       b.get<MultiFab>(), bc_mode,
+                       (crse_bcdata) ? &(crse_bcdata->get<MultiFab>()) : nullptr);
+}
+
+void
+MLLinOp::AnyReflux (int clev, Any& res, const Any& crse_sol, const Any& crse_rhs,
+                    Any& fine_res, Any& fine_sol, const Any& fine_rhs)
+{
+    AMREX_ASSERT(res.is<MultiFab>());
+    reflux(clev,res.get<MultiFab>(), crse_sol.get<MultiFab>(), crse_rhs.get<MultiFab>(),
+           fine_res.get<MultiFab>(), fine_sol.get<MultiFab>(), fine_rhs.get<MultiFab>());
+}
+
+Real
+MLLinOp::MFNormInf (MultiFab const& mf, iMultiFab const* fine_mask, bool local) const
+{
+    const int ncomp = getNComp();
+    Real norm = 0._rt;
+
+    if (fine_mask == nullptr) {
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion()) {
+            auto const& ma = mf.const_arrays();
+            norm = ParReduce(TypeList<ReduceOpMax>{}, TypeList<Real>{},
+                             mf, IntVect(0), ncomp,
+                             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n)
+                                 -> GpuTuple<Real>
+                             {
+                                 return amrex::Math::abs(ma[box_no](i,j,k,n));
+                             });
+        } else
+#endif
+        {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel reduction(max:norm)
+#endif
+            for (MFIter mfi(mf,true); mfi.isValid(); ++mfi) {
+                Box const& bx = mfi.tilebox();
+                auto const& fab = mf.const_array(mfi);
+                AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
+                {
+                    norm = std::max(norm, amrex::Math::abs(fab(i,j,k,n)));
+                });
+            }
+        }
+    } else {
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion()) {
+            auto const& ma = mf.const_arrays();
+            auto const& mask_ma = fine_mask->const_arrays();
+            norm = ParReduce(TypeList<ReduceOpMax>{}, TypeList<Real>{},
+                             mf, IntVect(0), ncomp,
+                             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n)
+                                 -> GpuTuple<Real>
+                             {
+                                 if (mask_ma[box_no](i,j,k)) {
+                                     return amrex::Math::abs(ma[box_no](i,j,k,n));
+                                 } else {
+                                     return Real(0.0);
+                                 }
+                             });
+        } else
+#endif
+        {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel reduction(max:norm)
+#endif
+            for (MFIter mfi(mf,true); mfi.isValid(); ++mfi) {
+                Box const& bx = mfi.tilebox();
+                auto const& fab = mf.const_array(mfi);
+                auto const& mask = fine_mask->const_array(mfi);
+                AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
+                {
+                    if (mask(i,j,k)) {
+                        norm = std::max(norm, amrex::Math::abs(fab(i,j,k,n)));
+                    }
+                });
+            }
+        }
+    }
+
+    if (!local) ParallelAllReduce::Max(norm, ParallelContext::CommunicatorSub());
+    return norm;
+}
+
+void
+MLLinOp::AnyAvgDownResMG (int clev, Any& cres, Any const& fres) const
+{
+    AMREX_ASSERT(cres.is<MultiFab>());
+#ifdef AMREX_USE_EB
+    amrex::EB_average_down
+#else
+    amrex::average_down
+#endif
+        (fres.get<MultiFab>(), cres.get<MultiFab>(), 0, getNComp(),
+         mg_coarsen_ratio_vec[clev-1]);
+}
+
+void
+MLLinOp::AnySmooth (int amrlev, int mglev, Any& sol, const Any& rhs,
+                    bool skip_fillboundary) const
+{
+    AMREX_ASSERT(sol.is<MultiFab>() && rhs.is<MultiFab>());
+    smooth(amrlev, mglev, sol.get<MultiFab>(), rhs.get<MultiFab>(), skip_fillboundary);
+}
+
+void
+MLLinOp::AnyRestriction (int amrlev, int cmglev, Any& crse, Any& fine) const
+{
+    AMREX_ASSERT(crse.is<MultiFab>() && fine.is<MultiFab>());
+    restriction(amrlev, cmglev, crse.get<MultiFab>(), fine.get<MultiFab>());
+}
+
+void
+MLLinOp::AnyInterpolationMG (int amrlev, int fmglev, Any& fine, const Any& crse) const
+{
+    AMREX_ASSERT(crse.is<MultiFab>() && fine.is<MultiFab>());
+    interpolation(amrlev, fmglev, fine.get<MultiFab>(), crse.get<MultiFab>());
+}
+
+void
+MLLinOp::AnyInterpAssignMG (int amrlev, int fmglev, Any& fine, Any& crse) const
+{
+    AMREX_ASSERT(crse.is<MultiFab>() && fine.is<MultiFab>());
+    interpAssign(amrlev, fmglev, fine.get<MultiFab>(), crse.get<MultiFab>());
+}
+
+bool
+MLLinOp::isMFIterSafe (int amrlev, int mglev1, int mglev2) const
+{
+    return m_dmap[amrlev][mglev1] == m_dmap[amrlev][mglev2]
+        && BoxArray::SameRefs(m_grids[amrlev][mglev1], m_grids[amrlev][mglev2]);
 }
 
 #ifdef AMREX_USE_PETSC

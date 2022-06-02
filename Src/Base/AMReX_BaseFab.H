@@ -260,7 +260,7 @@ public:
      */
     void clear () noexcept;
 
-    // Release ownership of memory
+    //! Release ownership of memory
     std::unique_ptr<T,DataDeleter> release () noexcept;
 
     //! Returns how many bytes used

@@ -60,14 +60,17 @@ public:
 private:
     struct innards_base {
         virtual const std::type_info& Type () const = 0;
+        virtual ~innards_base () = default;
     };
 
     template <typename MF>
     struct innards : innards_base
     {
-        innards(MF && mf)
+        innards (MF && mf)
             : m_mf(std::forward<MF>(mf))
             {}
+
+        virtual ~innards () = default;
 
         virtual const std::type_info& Type () const override {
             return typeid(MF);

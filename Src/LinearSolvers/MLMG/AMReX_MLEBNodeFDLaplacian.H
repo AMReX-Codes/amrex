@@ -72,7 +72,7 @@ public:
 
     virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int amrlev, int mglev) const final override;
 
-    virtual void scaleRHS (int amrlev, MultiFab& rhs) const final;
+    virtual void scaleRHS (int amrlev, Any& rhs) const final;
 
 #endif
 

@@ -79,6 +79,13 @@ MLCGSolver::solve (MultiFab&       sol,
 }
 
 int
+MLCGSolver::solve (Any& sol, const Any& rhs, Real eps_rel, Real eps_abs)
+{
+    AMREX_ASSERT(sol.is<MultiFab>()); // xxxxx TODO: MLCGSolver Any
+    return solve(sol.get<MultiFab>(), rhs.get<MultiFab>(), eps_rel, eps_abs);
+}
+
+int
 MLCGSolver::solve_bicgstab (MultiFab&       sol,
                             const MultiFab& rhs,
                             Real            eps_rel,
