@@ -252,7 +252,8 @@ public:
             Real rl = geomdata.ProbLo()[0] + static_cast<Real>(point[0]) * dx[0];
             Real rr = rl + dx[0];
 
-            vol = (4.0_rt / 3.0_rt) * M_PI * dx[0] * (rl * rl + rl * rr + rr * rr);
+            constexpr Real pi = 3.1415926535897932;
+            vol = (4.0_rt / 3.0_rt) * pi * dx[0] * (rl * rl + rl * rr + rr * rr);
         }
 
 #elif AMREX_SPACEDIM == 2
@@ -270,7 +271,8 @@ public:
             Real r_l = geomdata.ProbLo()[0] + static_cast<Real>(point[0]) * dx[0];
             Real r_r = geomdata.ProbLo()[0] + static_cast<Real>(point[0]+1) * dx[0];
 
-            vol = M_PI * (r_l + r_r) * dx[0] * dx[1];
+            constexpr Real pi = 3.1415926535897932;
+            vol = pi * (r_l + r_r) * dx[0] * dx[1];
         }
 
 #else
