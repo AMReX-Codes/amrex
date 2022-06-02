@@ -579,11 +579,11 @@ namespace {
                              const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
                              int scomp, int dcomp, int ncomp,
                              const Geometry& cgeom, const Geometry& fgeom,
-                             Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
-                             Array<BC, AMREX_SPACEDIM>& fbc, int fbccomp,
+                             Array<BC, AMREX_SPACEDIM>& cbc, const Array<int, AMREX_SPACEDIM>& cbccomp,
+                             Array<BC, AMREX_SPACEDIM>& fbc, const Array<int, AMREX_SPACEDIM>& fbccomp,
                              const IntVect& ratio,
                              Interp* mapper,
-                             const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, int bcscomp,
+                             const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, const Array<int, AMREX_SPACEDIM>& bcscomp,
                              const PreInterpHook& pre_interp,
                              const PostInterpHook& post_interp,
                              EB2::IndexSpace const* index_space)
@@ -645,7 +645,7 @@ namespace {
                         { cmf_time.push_back(mfab[d]); }
 
                     FillPatchSingleLevel(mf_crse_patch[d], time, cmf_time, ct, scomp, 0, ncomp,
-                                         cgeom, cbc[d], cbccomp);
+                                         cgeom, cbc[d], cbccomp[d]);
 
                     mf_set_domain_bndry(mf_refined_patch[d], fgeom);
                     Vector<MF*> fmf_time;
@@ -653,7 +653,7 @@ namespace {
                         { fmf_time.push_back(mfab[d]); }
 
                     FillPatchSingleLevel(mf_refined_patch[d], time, fmf_time, ft, scomp, 0, ncomp,
-                                         fgeom, fbc[d], fbccomp);
+                                         fgeom, fbc[d], fbccomp[d]);
 
 
                     // Aliased MFs, used to allow CPC caching.
@@ -698,7 +698,7 @@ namespace {
                             Vector<BCRec> bcr_d(ncomp);
 
                             amrex::setBC(sfab[d]->box(), amrex::convert(cgeom.Domain(), mf[d]->ixType()),
-                                         bcscomp,0,ncomp,bcs[d],bcr_d);
+                                         bcscomp[d],0,ncomp,bcs[d],bcr_d);
 
                             for (int n=0; n<ncomp; ++n)
                                 { bcr[n][d] = bcr_d[n]; }
@@ -737,7 +737,7 @@ namespace {
                  { fmf_time.push_back(ffab[d]); }
 
             FillPatchSingleLevel(*mf[d], nghost, time, fmf_time, ft, scomp, dcomp, ncomp,
-                                 fgeom, fbc[d], fbccomp);
+                                 fgeom, fbc[d], fbccomp[d]);
         }
     }
 
@@ -803,6 +803,33 @@ FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost,
                     const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
                     int scomp, int dcomp, int ncomp,
                     const Geometry& cgeom, const Geometry& fgeom,
+                    Array<BC, AMREX_SPACEDIM>& cbc, const Array<int, AMREX_SPACEDIM>& cbccomp,
+                    Array<BC, AMREX_SPACEDIM>& fbc, const Array<int, AMREX_SPACEDIM>& fbccomp,
+                    const IntVect& ratio,
+                    Interp* mapper,
+                    const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, const Array<int, AMREX_SPACEDIM>& bcscomp,
+                    const PreInterpHook& pre_interp,
+                    const PostInterpHook& post_interp)
+{
+#ifdef AMREX_USE_EB
+    EB2::IndexSpace const* index_space = EB2::TopIndexSpaceIfPresent();
+#else
+    EB2::IndexSpace const* index_space = nullptr;
+#endif
+
+    FillPatchTwoLevels_doit(mf,nghost,time,cmf,ct,fmf,ft,
+                            scomp,dcomp,ncomp,cgeom,fgeom,
+                            cbc,cbccomp,fbc,fbccomp,ratio,mapper,bcs,bcscomp,
+                            pre_interp,post_interp,index_space);
+}
+
+template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
+std::enable_if_t<IsFabArray<MF>::value>
+FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
+                    const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
+                    const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
+                    int scomp, int dcomp, int ncomp,
+                    const Geometry& cgeom, const Geometry& fgeom,
                     Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
                     Array<BC, AMREX_SPACEDIM>& fbc, int fbccomp,
                     const IntVect& ratio,
@@ -817,9 +844,13 @@ FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost,
     EB2::IndexSpace const* index_space = nullptr;
 #endif
 
+    Array<int, AMREX_SPACEDIM> cbccomp_arr = {AMREX_D_DECL(cbccomp,cbccomp,cbccomp)};
+    Array<int, AMREX_SPACEDIM> fbccomp_arr = {AMREX_D_DECL(fbccomp,fbccomp,fbccomp)};
+    Array<int, AMREX_SPACEDIM> bcscomp_arr = {AMREX_D_DECL(bcscomp,bcscomp,bcscomp)};
+
     FillPatchTwoLevels_doit(mf,nghost,time,cmf,ct,fmf,ft,
                             scomp,dcomp,ncomp,cgeom,fgeom,
-                            cbc,cbccomp,fbc,fbccomp,ratio,mapper,bcs,bcscomp,
+                            cbc,cbccomp_arr,fbc,fbccomp_arr,ratio,mapper,bcs,bcscomp_arr,
                             pre_interp,post_interp,index_space);
 }
 
@@ -844,9 +875,13 @@ FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, Real time,
     EB2::IndexSpace const* index_space = nullptr;
 #endif
 
+    Array<int, AMREX_SPACEDIM> cbccomp_arr = {AMREX_D_DECL(cbccomp,cbccomp,cbccomp)};
+    Array<int, AMREX_SPACEDIM> fbccomp_arr = {AMREX_D_DECL(fbccomp,fbccomp,fbccomp)};
+    Array<int, AMREX_SPACEDIM> bcscomp_arr = {AMREX_D_DECL(bcscomp,bcscomp,bcscomp)};
+
     FillPatchTwoLevels_doit(mf,mf[0]->nGrowVect(),time,cmf,ct,fmf,ft,
                             scomp,dcomp,ncomp,cgeom,fgeom,
-                            cbc,cbccomp,fbc,fbccomp,ratio,mapper,bcs,bcscomp,
+                            cbc,cbccomp_arr,fbc,fbccomp_arr,ratio,mapper,bcs,bcscomp_arr,
                             pre_interp,post_interp,index_space);
 }
 

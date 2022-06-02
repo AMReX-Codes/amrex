@@ -1,3 +1,53 @@
+# 22.06
+
+  -- Fix solvability issue in the nodal solver RAP approach (#2783, #2801)
+
+  -- Profiler Sync Timers (#2784)
+
+  -- Implement Serial ParallelDescriptor::Gather (#2793)
+
+  -- Renamed new internal class variables using m_ convention to fix compiler warnings in debug mode. (#2790)
+
+  -- Make IntVectFromLocation const (#2789)
+
+  -- make sure m_particles is sized properly when numLocalTilesAtLevel is called (#2782)
+
+  -- Fix for small cells (#2781)
+
+  -- Add some timestep controls to the AMReX TimeIntegrator class for its integrate() driver function. (#2780)
+
+  -- Fix the bug in the CMake build with AMReX_BASE_PROFILE. (#2774)
+
+  -- configure value of AMReX_GPU_RDC flag for use in cmake find_package(AMReX ...) (#2770)
+
+  -- Add an optional volume weighting to AMRErrorTag (#2772)
+
+  -- Fix: AmrCore Move (#2773)
+
+  -- Update particle << operator after changes to id/cpu (#2769)
+
+  -- this updates to recent Hypre API changes (#2765)
+
+  -- multilevel version of writeplotfiletoascii (#2742)
+
+  -- Avoid the use of null stream (#2754)
+
+  -- add scomp and ncomp arguments to IntegratorOps functions. (#2759)
+
+  -- Add HDF5 H5Z-ZFP support in CMake (#2753)
+
+  -- CUDA On Cray: More Robust w/o Wrapper (#2757)
+
+  -- Reimplement amrex::min and max to Work around an nvcc bug (#2756)
+
+  -- Revert "Turn on managed memory by default in The_Arena for HIP (#2734)" (#2752)
+
+  -- Add methods for resetting the ParGDB of a ParticleContainer (#2732)
+
+  -- Switch nvtxRangeStart to nvtxRangePush (#2746)
+
+  -- Eb flow diffusive solve (#2741)
+
 # 22.05
 
   -- Update Required SUNDIALS version (#2743)

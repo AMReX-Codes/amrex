@@ -99,6 +99,23 @@ namespace amrex
                         const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
                         int scomp, int dcomp, int ncomp,
                         const Geometry& cgeom, const Geometry& fgeom,
+                        Array<BC, AMREX_SPACEDIM>& cbc, const Array<int, AMREX_SPACEDIM>& cbccomp,
+                        Array<BC, AMREX_SPACEDIM>& fbc, const Array<int, AMREX_SPACEDIM>& fbccomp,
+                        const IntVect& ratio,
+                        Interp* mapper,
+                        const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, const Array<int, AMREX_SPACEDIM>& bcscomp,
+                        const PreInterpHook& pre_interp = {},
+                        const PostInterpHook& post_interp = {});
+
+    template <typename MF, typename BC, typename Interp,
+              typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
+              typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
+    std::enable_if_t<IsFabArray<MF>::value>
+    FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
+                        const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
+                        const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
+                        int scomp, int dcomp, int ncomp,
+                        const Geometry& cgeom, const Geometry& fgeom,
                         Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
                         Array<BC, AMREX_SPACEDIM>& fbc, int fbccomp,
                         const IntVect& ratio,
