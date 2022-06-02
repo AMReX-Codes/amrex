@@ -21,3 +21,8 @@ endif
 ifeq ($(USE_CUDA),TRUE)
   LIBRARIES += -lcusparse -lcurand
 endif
+
+ifeq ($(USE_HIP),TRUE)
+  LIBRARIES += -lrocsparse
+endif
+

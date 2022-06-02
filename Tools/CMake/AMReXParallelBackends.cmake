@@ -246,6 +246,7 @@ if (AMReX_HIP)
    # Link to hiprand -- must include rocrand too
    find_package(rocrand REQUIRED CONFIG)
    find_package(rocprim REQUIRED CONFIG)
+   find_package(rocsparse REQUIRED CONFIG)
    find_package(hiprand REQUIRED CONFIG)
    if(AMReX_ROCTX)
        # To be modernized in the future, please see:
@@ -253,7 +254,7 @@ if (AMReX_HIP)
        target_include_directories(amrex PUBLIC ${HIP_PATH}/../roctracer/include ${HIP_PATH}/../rocprofiler/include)
        target_link_libraries(amrex PUBLIC "-L${HIP_PATH}/../roctracer/lib/ -lroctracer64" "-L${HIP_PATH}/../roctracer/lib -lroctx64")
    endif ()
-   target_link_libraries(amrex PUBLIC hip::hiprand roc::rocrand roc::rocprim)
+   target_link_libraries(amrex PUBLIC hip::hiprand roc::rocrand roc::rocprim roc::rocsparse)
 
    # avoid forcing the rocm LLVM flags on a gfortran
    # https://github.com/ROCm-Developer-Tools/HIP/issues/2275
@@ -272,7 +273,7 @@ if (AMReX_HIP)
    target_compile_options(amrex PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-m64>)
 
    # ROCm 4.5: use unsafe floating point atomics, otherwise atomicAdd is much slower
-   # 
+   #
    target_compile_options(amrex PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-munsafe-fp-atomics>)
 
    # Equivalently, relocatable-device-code (RDC) flags are needed for `extern`
