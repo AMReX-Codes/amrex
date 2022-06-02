@@ -49,8 +49,9 @@ void MyTest::initializePoiseuilleDataFor3D(int ilev) {
                                                   int k) noexcept {
         Real H = poiseuille_height;
         int nfdir = poiseuille_no_flow_dir;
-        Real alpha = (poiseuille_askew_rotation[0] / 180.) * M_PI;
-        Real gamma = (poiseuille_askew_rotation[1] / 180.) * M_PI;
+        constexpr Real pi = 3.1415926535897932;
+        Real alpha = (poiseuille_askew_rotation[0] / 180.) * pi;
+        Real gamma = (poiseuille_askew_rotation[1] / 180.) * pi;
 
         Real a = std::sin(gamma);
         Real b = -std::cos(alpha) * std::cos(gamma);

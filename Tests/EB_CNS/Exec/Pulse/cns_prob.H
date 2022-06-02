@@ -15,6 +15,8 @@ cns_initdata (int i, int j, int k, amrex::Array4<amrex::Real> const& state,
 {
     using amrex::Real;
 
+    constexpr Real pi = 3.1415926535897932;
+
     const Real* prob_lo = geomdata.ProbLo();
     const Real* prob_hi = geomdata.ProbHi();
     const Real* dx      = geomdata.CellSize();
@@ -31,7 +33,7 @@ cns_initdata (int i, int j, int k, amrex::Array4<amrex::Real> const& state,
     if (r > prob_parm.rpulse) {
         state(i,j,k,URHO ) = prob_parm.rho0;
     } else {
-        state(i,j,k,URHO ) = prob_parm.rho0 + prob_parm.drho0 * exp(-16.*r*r) * std::pow(std::cos(M_PI*r),6.0);
+        state(i,j,k,URHO ) = prob_parm.rho0 + prob_parm.drho0 * exp(-16.*r*r) * std::pow(std::cos(pi*r),6.0);
     }
 
     state(i,j,k,UMX  ) = Real(0.0);
