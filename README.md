@@ -36,7 +36,7 @@ applications solving partial differential equations on block-structured meshes. 
 massively parallel adaptive mesh refinement (AMR) algorithms focus computational
 resources and allow scalable performance on heterogeneous architectures so that
 scientists can efficiently resolve details in large simulations.
-AMReX is developed at [LNBL](https://www.lbl.gov/), [NREL](https://www.nrel.gov/),
+AMReX is developed at [LBNL](https://www.lbl.gov/), [NREL](https://www.nrel.gov/),
 and [ANL](https://www.anl.gov/) as part of the Block-Structured
 AMR Co-Design Center in the Department of Energy's Exascale Computing Project.
 
