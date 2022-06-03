@@ -11,20 +11,28 @@ namespace amrex
 
 namespace
 {
-    template <typename F, typename P1, typename P2, typename N1, typename N2>
+    template <typename F, typename SrcData, typename DstData, typename N1, typename N2>
     AMREX_GPU_HOST_DEVICE
-    auto call_check_pair (F const& check_pair, const P1* src_ptr, const P2* dst_ptr, N1 i, N2 j)
-        noexcept -> decltype(check_pair(src_ptr[i], dst_ptr[j]))
+    auto call_check_pair (F const& check_pair, const SrcData& src_tile, const DstData& /*dst_tile*/, N1 i, N2 j)
+        noexcept -> decltype(check_pair(src_tile, i, j))
     {
-        return check_pair(src_ptr[i], dst_ptr[j]);
+        return check_pair(src_tile, i, j);
     }
 
-    template <typename F, typename P1, typename P2, typename N1, typename N2>
+    template <typename F, typename SrcData, typename DstData, typename N1, typename N2>
     AMREX_GPU_HOST_DEVICE
-    auto call_check_pair (F const& check_pair, const P1* src_ptr, const P2* /*dst_ptr*/, N1 i, N2 j)
-        noexcept -> decltype(check_pair(src_ptr, i, j))
+    auto call_check_pair (F const& check_pair, const SrcData& src_tile, const DstData& dst_tile, N1 i, N2 j)
+        noexcept -> decltype(check_pair(src_tile.m_aos[i], dst_tile.m_aos[j]))
     {
-        return check_pair(src_ptr, i, j);
+        return check_pair(src_tile.m_aos[i], dst_tile.m_aos[j]);
+    }
+
+    template <typename F, typename SrcData, typename DstData, typename N1, typename N2>
+    AMREX_GPU_HOST_DEVICE
+    auto call_check_pair (F const& check_pair, const SrcData& src_tile, const DstData& /*dst_tile*/, N1 i, N2 j)
+        noexcept -> decltype(check_pair(src_tile.m_aos, i, j))
+    {
+        return check_pair(src_tile.m_aos, i, j);
     }
 }
 
@@ -202,6 +210,7 @@ public:
 
         const size_t np_total = vec.size();
         const auto pstruct_ptr = vec.dataPtr();
+        const auto dst_ptile_data  = target_tile.getConstParticleTileData();
 
         const auto lo = lbound(bx);
         const auto hi = ubound(bx);
@@ -227,6 +236,7 @@ public:
         auto poffset = m_bins.offsetsPtr();
         auto pnbor_offset = m_nbor_offsets.dataPtr();
 
+        const auto src_ptile_data  = src_tile.getConstParticleTileData();
         const auto src_pstruct_ptr = src_tile.GetArrayOfStructs()().dataPtr();
 
         AMREX_FOR_1D ( np_real, i,
@@ -252,7 +262,7 @@ public:
                         int index = (ii * ny + jj) * nz + kk;
                         for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
                             if (is_same && (pperm[p] == i)) continue;
-                            if (call_check_pair(check_pair, src_pstruct_ptr, pstruct_ptr, i, pperm[p])) {
+                            if (call_check_pair(check_pair, src_ptile_data, dst_ptile_data, i, pperm[p])) {
                                 count += 1;
                             }
                         }
@@ -300,7 +310,7 @@ public:
                         int index = (ii * ny + jj) * nz + kk;
                         for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
                             if (is_same && (pperm[p] == i)) continue;
-                            if (call_check_pair(check_pair, src_pstruct_ptr, pstruct_ptr, i, pperm[p])) {
+                            if (call_check_pair(check_pair, src_ptile_data, dst_ptile_data, i, pperm[p])) {
                                 pm_nbor_list[pnbor_offset[i] + n] = pperm[p];
                                 ++n;
                             }
