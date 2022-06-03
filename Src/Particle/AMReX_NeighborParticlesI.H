@@ -807,6 +807,7 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
 
             const auto& aos     = pti.GetArrayOfStructs();
             const auto* pstruct = aos().dataPtr();
+            const auto ptile_data = this->ParticlesAt(lev, pti).getConstParticleTileData();
 
             Box grownBox  = pti.tilebox();
             grownBox.grow(computeRefFac(0, lev).max()*m_num_neighbor_cells);
@@ -865,7 +866,7 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
                             int nbr_cell_id = (ii * ny + jj) * nz + kk;
                             for (auto p = poffset[nbr_cell_id]; p < poffset[nbr_cell_id+1]; ++p) {
                                 if (pperm[p] == i) continue;
-                                if (call_check_pair(check_pair, pstruct, pstruct, i, pperm[p])) {
+                                if (call_check_pair(check_pair, ptile_data, ptile_data, i, pperm[p])) {
                                     IntVect cell_ijk = getParticleCell(pstruct[pperm[p]], plo, dxi, domain);
                                     if (!box.contains(cell_ijk)) {
                                         int loc = Gpu::Atomic::Inc(p_np_boundary, max_unsigned_int);
