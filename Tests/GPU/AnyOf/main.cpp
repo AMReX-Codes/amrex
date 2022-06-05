@@ -54,7 +54,7 @@ void main_main ()
     {
         BL_PROFILE("Vector AnyOf");
 
-        Gpu::Device::synchronize();
+        Gpu::Device::streamSynchronize();
 
         bool anyof_M = Reduce::AnyOf(nitem, vec.dataPtr(),
                         [=] AMREX_GPU_DEVICE (Real item) noexcept -> int

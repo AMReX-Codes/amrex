@@ -2,7 +2,7 @@
 #
 # FUNCTION: generate_config_header
 #
-# Generate AMReX_Config.H by using the defines set in
+# Generate AMReX_Config.H and AMReX_Version.H by using the defines set in
 # AMREX_DEFINES property
 #
 #
@@ -60,14 +60,18 @@ function ( generate_config_header )
 
    configure_file(${AMREX_CMAKE_MODULES_PATH}/AMReX_Config.H.in
       "${AMReX_BINARY_DIR}/AMReX_Config.H")
+   configure_file(${AMREX_CMAKE_MODULES_PATH}/AMReX_Version.H.in
+      "${AMReX_BINARY_DIR}/AMReX_Version.H")
 
    target_sources(amrex PRIVATE ${AMReX_BINARY_DIR}/AMReX_Config.H)
+   target_sources(amrex PRIVATE ${AMReX_BINARY_DIR}/AMReX_Version.H)
    target_include_directories(amrex
       PUBLIC
       $<BUILD_INTERFACE:${AMReX_BINARY_DIR}>)
 
    if(AMReX_INSTALL)
       install(FILES "${AMReX_BINARY_DIR}/AMReX_Config.H" DESTINATION include)
+      install(FILES "${AMReX_BINARY_DIR}/AMReX_Version.H" DESTINATION include)
    endif()
 
 endfunction ()

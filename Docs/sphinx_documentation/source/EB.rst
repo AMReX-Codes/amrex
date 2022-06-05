@@ -48,6 +48,24 @@ Here is a simple example of initialize the database for an embedded sphere.
     Geometry geom(...);
     EB2::Build(shop, geom, 0, 0);
 
+Alternatively, the EB information can be initialized from an STL file
+specified by a :cpp:`ParmParse` parameter ``eb2.stl_file``.  The
+initialization is done by calling
+
+.. highlight:: c++
+
+::
+
+   EB2::Build (const Geometry& geom,
+               int required_coarsening_level,
+               int max_coarsening_level,
+               int ngrow = 4,
+               bool build_coarse_level_by_coarsening = true);
+
+Additionally one can use ``eb2.stl_scale``, ``eb2.stl_center`` and
+``eb2.stl_reverse_normal`` to scale, translate and reverse the object,
+respectively.
+
 .. _sec:EB:ebinit:IF:
 
 Implicit Function
@@ -379,7 +397,8 @@ have been discussed in chapter :ref:`Chap:LinearSolvers`.
 AMReX supports multi-level
 1) cell-centered solvers with homogeneous Neumann, homogeneous Dirichlet,
 or inhomogeneous Dirichlet boundary conditions on the EB faces, and
-2) nodal solvers with homogeneous Neumann boundary conditions on the EB faces.
+2) nodal solvers with homogeneous Neumann boundary conditions,
+or inflow velocity conditions on the EB faces.
 
 To use a cell-centered solver with EB, one builds a linear operator
 :cpp:`MLEBABecLap` with :cpp:`EBFArrayBoxFactory` (instead of a :cpp:`MLABecLaplacian`)
@@ -465,10 +484,3 @@ field of (1,0,0).
 .. _`EB/Poisson`: https://amrex-codes.github.io/amrex/tutorials_html/EB_Tutorial.html
 
 .. _`EB/MacProj`: https://amrex-codes.github.io/amrex/tutorials_html/EB_Tutorial.html
-
-
-
-
-
-
-

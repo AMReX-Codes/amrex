@@ -10,6 +10,8 @@ namespace amrex {
 class AmrParGDB
     : public ParGDBBase
 {
+    friend AmrCore;
+
 public:
 
     explicit AmrParGDB (AmrCore* amr) noexcept

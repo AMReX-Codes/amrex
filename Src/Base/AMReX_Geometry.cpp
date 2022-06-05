@@ -317,6 +317,7 @@ Geometry::GetFaceArea (MultiFab&       area,
 
     if (IsCartesian()) {
 #if (AMREX_SPACEDIM == 1)
+        amrex::ignore_unused(a_dx);
         const Real a0 = 1._rt;
 #elif (AMREX_SPACEDIM == 2)
         const Real a0 = (dir == 0) ? a_dx[1] : a_dx[0];

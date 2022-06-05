@@ -1,3 +1,199 @@
+# 22.06
+
+  -- Fix solvability issue in the nodal solver RAP approach (#2783, #2801)
+
+  -- Profiler Sync Timers (#2784)
+
+  -- Implement Serial ParallelDescriptor::Gather (#2793)
+
+  -- Renamed new internal class variables using m_ convention to fix compiler warnings in debug mode. (#2790)
+
+  -- Make IntVectFromLocation const (#2789)
+
+  -- make sure m_particles is sized properly when numLocalTilesAtLevel is called (#2782)
+
+  -- Fix for small cells (#2781)
+
+  -- Add some timestep controls to the AMReX TimeIntegrator class for its integrate() driver function. (#2780)
+
+  -- Fix the bug in the CMake build with AMReX_BASE_PROFILE. (#2774)
+
+  -- configure value of AMReX_GPU_RDC flag for use in cmake find_package(AMReX ...) (#2770)
+
+  -- Add an optional volume weighting to AMRErrorTag (#2772)
+
+  -- Fix: AmrCore Move (#2773)
+
+  -- Update particle << operator after changes to id/cpu (#2769)
+
+  -- this updates to recent Hypre API changes (#2765)
+
+  -- multilevel version of writeplotfiletoascii (#2742)
+
+  -- Avoid the use of null stream (#2754)
+
+  -- add scomp and ncomp arguments to IntegratorOps functions. (#2759)
+
+  -- Add HDF5 H5Z-ZFP support in CMake (#2753)
+
+  -- CUDA On Cray: More Robust w/o Wrapper (#2757)
+
+  -- Reimplement amrex::min and max to Work around an nvcc bug (#2756)
+
+  -- Revert "Turn on managed memory by default in The_Arena for HIP (#2734)" (#2752)
+
+  -- Add methods for resetting the ParGDB of a ParticleContainer (#2732)
+
+  -- Switch nvtxRangeStart to nvtxRangePush (#2746)
+
+  -- Eb flow diffusive solve (#2741)
+
+# 22.05
+
+  -- Update Required SUNDIALS version (#2743)
+
+  -- EB: Geometry generation from STL file (#2728)
+
+  -- Drop CUDA 9 support (#2736)
+
+  -- Disable AsyncOut by default for HIP and DPC++ (#2735)
+
+  -- Turn on managed memory by default in The_Arena for HIP (#2734)
+
+  -- Update WarpX's MLEBNodeFDLaplacian for 2D RZ (#2733)
+
+  -- Adding more recent Hypre APIs to initialize the library. (#2729)
+
+  -- Allow the computation of neighbor lists between particles of different types. (#2727)
+
+  -- Add option for face linear interpolater in fortran interface (#2726)
+
+  -- Allow some EB code to handle single precision (#2723, #2719)
+
+  -- Allow `FillBoundary` to cast messages from double to single precision. (#2708)
+
+  -- Fix FluxRegister::SumReg for GPU builds (#2718)
+
+  -- Swap hip lib and include ordering (#2717)
+
+  -- Fix integer overflow warnings in FabConv (#2716)
+
+  -- Make AsyncOut::Finish safe to call when async_out is not enabled. (#2715)
+
+  -- flushParForInfo: remove erroneous assertion (#2712)
+
+  -- Link particles in ghost cells to closest box (#2685)
+
+  -- Generalize the type of lambdas that can be passed into ParticleReduce (#2697)
+
+  -- Return non-zero if nans were found when using fnan. (#2704)
+
+  -- Reorganize Make.package in Src/Particle (#2703)
+
+  -- FillPatchUtil edge interpolater fix (#2701)
+
+  -- Adds SUNDIALS integrator options for flexibility. (#2700)
+
+  -- Only error if HDF5 is not parallel if MPI is enabled. (#2699)
+
+  -- Make the ParticleReduce functions not rely on ParIter. (#2695)
+
+  -- Semicoarsening in WarpX Linear Solvers (#2690)
+
+  -- FillBoundaryAndSync (#2683)
+
+  -- macOS: Fix Warning (ranlib, profiler) (#2688)
+
+# 22.04
+
+  -- Fix parser expressions (#2682)
+
+  -- fixes to build CUDA with Clang (#2681)
+
+  -- CI: Apple Silicon (#2672)
+
+  -- Use the roundoff domain in enforcePeriodic. (#2679)
+
+  -- Catch CUDA 11.6 bug at compile time (#2677)
+
+  -- MPI+OMP+HIP build capability (#2676)
+
+  -- EB Flow (#2661)
+
+  -- BackTrace workarounds (#2667)
+
+  -- Redefine ParticleContainter multifab after setting particle boxarray and dmap (#2673)
+
+  -- Handle the case where we lose a level in RedistributeGPU (#2670)
+
+  -- Add int overflow assert check before Bcast wrapper (#2649)
+
+  -- Allow ParticleToMesh and MeshToParticle to access runtime particle components (#2668)
+
+  -- Fix bugs in the MultiBlock test (#2662)
+
+  -- Separate version strings for particle plotfiles and checkpoints. (#2663)
+
+  -- Add support for SZ compression in HDF5 output (#2644)
+
+  -- Removed the use of H5Aget_storage_size (#2656)
+
+  -- Add prefetchToHost and prefetchToDevice for GPU containers (#2655)
+
+  -- Introduce `AMReX_Version.H` (#2653)
+
+  -- Add move assignment operator to Fab (#2652)
+
+  -- Added an option to set fast MRI dt directly instead of using the integer ratio of slow/fast dt. (#2651)
+
+  -- AMReX_Config.H: AMREX_EXPORT_DYNAMIC (#2650)
+
+  -- Fix bug affecting neighbor proc calculation with mesh refinement. (#2646)
+
+  -- Update flags for DPC++ AOT (#2643)
+
+  -- Doc + CMake: AMREX_EXPORT_DYNAMIC (#2635)
+
+  -- Update SpackSmokeTest to run with Fortran and/or HIP. (#2629)
+
+  -- Simplify CoordSys::IsRZ and IsSPHERICAL (#2642)
+
+  -- Take advantage of async copies in PODVector. (#2641)
+
+  -- HIP: atomicAddNoRet (#1809)
+
+# 22.03
+
+  -- ParticleTile: push_back_real/int w/ Vector (#2634)
+
+  -- Update Docs to reflect newer options in MLMG (#2620)
+
+  -- Allow the ghost-particle exchange to communicate different variables (#2627)
+
+  -- Fix AmrParticleContainer::AssignDensity when ncomp == AMREX_SPACEDIM+1. (#2632)
+
+  -- Use async version of cuda/hipMemcpy in PODVector::resize() (#2631)
+
+  -- ParticleContainer::make_alike (#2630)
+
+  -- Update checkpoint format to account for expanded particle ids. (#2624)
+
+  -- Update FabArray::copyTo (#2603)
+
+  -- explicitly request python3 for makebuildinfo_C.py (#2621)
+
+  -- store the CUDA version in build info (#2617)
+
+  -- missing check for mapped solver support when not using GPU (#2616)
+
+  -- Remove ifdefs for older compiler version. (#2614)
+
+  -- Allow a descriptor component's BndryFuncFabDefault to be stateful. (#2612)
+
+  -- TableData: fix missing return in operator= (#2613)
+
+  -- SUNDIALS MRI Interface for AMReX TimeIntegrator class (#2600)
+
 # 22.02
 
   -- Fix I/O bug in Amr class (#2609)

@@ -40,7 +40,8 @@ void MyTest::initializePoiseuilleDataFor2D(int ilev) {
 
     amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
       Real H = poiseuille_height;
-      Real t = (poiseuille_rotation / 180.) * M_PI;
+      constexpr Real pi = 3.1415926535897932;
+      Real t = (poiseuille_rotation / 180.) * pi;
 
       Real a = std::tan(t);
       Real b = -1.0;

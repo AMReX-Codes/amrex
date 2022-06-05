@@ -41,6 +41,7 @@ struct LPInfo
     bool has_metric_term = true;
     int max_coarsening_level = 30;
     int max_semicoarsening_level = 0;
+    int semicoarsening_direction = -1;
     int hidden_direction = -1;
 
     LPInfo& setAgglomeration (bool x) noexcept { do_agglomeration = x; return *this; }
@@ -51,6 +52,7 @@ struct LPInfo
     LPInfo& setMetricTerm (bool x) noexcept { has_metric_term = x; return *this; }
     LPInfo& setMaxCoarseningLevel (int n) noexcept { max_coarsening_level = n; return *this; }
     LPInfo& setMaxSemicoarseningLevel (int n) noexcept { max_semicoarsening_level = n; return *this; }
+    LPInfo& setSemicoarseningDirection (int n) noexcept { semicoarsening_direction = n; return *this; }
     LPInfo& setHiddenDirection (int n) noexcept { hidden_direction = n; return *this; }
 
     bool hasHiddenDimension () const noexcept {
@@ -229,6 +231,8 @@ public:
     virtual void applyInhomogNeumannTerm (int /*amrlev*/, MultiFab& /*rhs*/) const {}
     virtual void applyOverset (int /*amlev*/, MultiFab& /*rhs*/) const {}
     virtual void scaleRHS (int /*amrlev*/, MultiFab& /*rhs*/) const {}
+    virtual Real getSolvabilityOffset (int /*amrlev*/, int /*mglev*/, MultiFab const& /*rhs*/) const { return 0._rt; } // Only nodal solvers need it
+    virtual void fixSolvabilityByOffset (int /*amrlev*/, int /*mglev*/, MultiFab& /*rhs*/, Real /*offset*/) const {} // Only nodal solvers need it
 
     virtual void prepareForSolve () = 0;
     virtual bool isSingular (int amrlev) const = 0;

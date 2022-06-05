@@ -18,7 +18,7 @@ for AMD and DPC++ for Intel. This will be designated with ``CUDA/HIP/DPC++``
 throughout the documentation.  However, application teams can also use
 OpenACC or OpenMP in their individual codes.
 
-At this time, AMReX does not support cross-native language compliation
+At this time, AMReX does not support cross-native language compilation
 (HIP for non-AMD systems and DPC++ for non Intel systems).  It may work with
 a given version, but AMReX does not track or guarantee such functionality.
 
@@ -451,8 +451,8 @@ Memory Allocation
 
 To provide portability and improve memory allocation performance,
 AMReX provides a number of memory pools.  When compiled without
-CUDA, all :cpp:`Arena`\ s use standard :cpp:`new` and :cpp:`delete`
-operators. With CUDA, the :cpp:`Arena`\ s each allocate with a
+GPU support, all :cpp:`Arena`\ s use standard :cpp:`new` and :cpp:`delete`
+operators. With GPU support, the :cpp:`Arena`\ s each allocate with a
 specific type of GPU memory:
 
 .. raw:: latex
@@ -575,9 +575,7 @@ that are important for programming GPUs.
 GpuArray, Array1D, Array2D, and Array3D
 ---------------------------------------
 
-As we have mentioned in :ref:`sec:basics:vecandarr`, :cpp:`std::array`
-cannot be used in device code, whereas :cpp:`GpuArray`,
-:cpp:`Array1D`, :cpp:`Array2D`, and :cpp:`Array3D` are trivial types
+:cpp:`GpuArray`, :cpp:`Array1D`, :cpp:`Array2D`, and :cpp:`Array3D` are trivial types
 that work on both host and device. They can be used whenever a fixed size array
 needs to be passed to the GPU or created on GPU.  A variety of
 functions in AMReX return :cpp:`GpuArray` and they can be
@@ -700,17 +698,6 @@ constructed inside of an MFIter loop with GPU kernels and great care should
 be used when accessing :cpp:`Gpu::ManagedVector` data on GPUs to avoid race
 conditions.
 
-amrex::min and amrex::max
--------------------------
-
-GPU versions of ``std::min`` and ``std::max`` are not provided in CUDA.
-So, AMReX provides a templated :cpp:`min` and :cpp:`max` with host and
-device versions to allow functionality on GPUs. Invoke the explicitly
-namespaced :cpp:`amrex::min(A, B)` or :cpp:`amrex::max(x, y)` to use the
-GPU safe implementations. These functions are variadic, so they can take
-any number of arguments and can be invoked with any standard data type.
-
-
 MultiFab Reductions
 -------------------
 
@@ -719,7 +706,7 @@ AMReX provides functions for performing standard reduction operations on
 When ``USE_CUDA=TRUE``, these functions automatically implement the
 corresponding reductions on GPUs in an efficient manner.
 
-Function template :cpp:`ParallelFor` can be used to implement user-defined
+Function template :cpp:`ParReduce` can be used to implement user-defined
 reduction functions over :cpp:`MultiFab`\ s.  For example, the following
 function computes the sum of total kinetic energy using the data in a
 :cpp:`MultiFab` storing the mass and momentum density.
@@ -731,7 +718,8 @@ function computes the sum of total kinetic energy using the data in a
     Real compute_ek (MultiFab const& mf)
     {
         auto const& ma = mf.const_arrays();
-        return ParallelFor(mf, IntVect(0), // zero ghost cells
+        return ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{},
+                         mf, IntVect(0), // zero ghost cells
                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
                    noexcept -> GpuTuple<Real>
                {
@@ -757,7 +745,9 @@ As another example, the following function computes the max- and 1-norm of a
     {
         auto const& data_ma = mf.const_arrays();
         auto const& mask_ma = mask.const_arrays();
-        return ParallelFor(mf, IntVect(0), // zero ghost cells
+        return ParReduce(TypeList<ReduceOpMax,ReduceOpSum>{},
+                         TypeList<Real,Real>{},
+                         mf, IntVect(0), // zero ghost cells
                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
                    noexcept -> GpuTuple<Real,Real>
                {
@@ -770,7 +760,7 @@ As another example, the following function computes the max- and 1-norm of a
                });
     }
 
-It should be noted that the reduction result of :cpp:`ParallelFor` is local
+It should be noted that the reduction result of :cpp:`ParReduce` is local
 and it is the user's responsibility if MPI communication is needed.
 
 Box, IntVect and IndexType
@@ -888,8 +878,6 @@ Instead of using :cpp:`Elixir`, we can write code like below,
       const Box& bx = mfi.tilebox();
       FArrayBox tmp_fab(bx, numcomps, The_Async_Arena());
       Array4<Real> const& tmp_arr = tmp_fab.array();
-      FArrayBox tmp_fab_2;
-      tmp_fab_2.resize(bx, numcomps, The_Async_Arena());
 
       // GPU kernels using the temporary
     }
@@ -1252,7 +1240,7 @@ the destructor of :cpp:`MFIter`.  This ensures that all GPU work
 inside of an :cpp:`MFIter` loop will complete before code outside of
 the loop is executed. Any CUDA kernel launches made outside of an
 :cpp:`MFIter` loop must ensure appropriate device synchronization
-occurs. This can be done by calling :cpp:`Gpu::synchronize()`.
+occurs. This can be done by calling :cpp:`Gpu::streamSynchronize()`.
 
 CUDA supports multiple streams and kernels. Kernels launched in the
 same stream are executed sequentially, but different streams of kernel
@@ -1357,6 +1345,48 @@ will show little improvement or even perform worse. So, this conditional stateme
 should be added to MFIter loops that contain GPU work, unless users specifically test
 the performance or are designing more complex workflows that require OpenMP.
 
+.. _sec:gpu:stream:
+
+Stream and Synchronization
+==========================
+
+As mentioned in Section :ref:`sec:gpu:overview`, AMReX uses a number of GPU
+streams that are either CUDA streams or HIP streams or SYCL queues.  Many
+GPU functions (e.g., :cpp:`ParallelFor` and :cpp:`Gpu::copyAsync`) are
+asynchronous with respect to the host.  To facilitate synchronization that
+is sometimes necessary, AMReX provides :cpp:`Gpu::streamSynchronize()` and
+:cpp:`Gpu::streamSynchronizeAll()` to synchronize the current stream and all
+AMReX streams, respectively.  For performance reasons, one should try to
+minimize the number of synchronization calls.  For example,
+
+.. highlight:: c++
+
+::
+
+   // The synchronous version is NOT recommended
+   Gpu::copy(Gpu::deviceToHost, ....);
+   Gpu::copy(Gpu::deviceToHost, ....);
+   Gpu::copy(Gpu::deviceToHost, ....);
+
+   // NOT recommended because of unnecessary synchronization
+   Gpu::copyAsync(Gpu::deviceToHost, ....);
+   Gpu::streamSynchronize();
+   Gpu::copyAsync(Gpu::deviceToHost, ....);
+   Gpu::streamSynchronize();
+   Gpu::copyAsync(Gpu::deviceToHost, ....);
+   Gpu::streamSynchronize();
+
+   // recommended
+   Gpu::copyAsync(Gpu::deviceToHost, ....);
+   Gpu::copyAsync(Gpu::deviceToHost, ....);
+   Gpu::copyAsync(Gpu::deviceToHost, ....);
+   Gpu::streamSynchronize();
+
+In addition to stream synchronization, there is also
+:cpp:`Gpu::synchronize()` that will perform a device wide synchronization.
+However, a device wide synchronization is usually too excessive and it might
+interfere with other libraries (e.g., MPI).
+
 .. _sec:gpu:example:
 
 An Example of Migrating to GPU
@@ -1452,8 +1482,8 @@ portable way.
 .. _sec:gpu:assertion:
 
 
-Assertions, Error Checking and Synchronization
-================================================
+Assertions and Error Checking
+=============================
 
 To help debugging, we often use :cpp:`amrex::Assert` and
 :cpp:`amrex::Abort`.  These functions are GPU safe and can be used in
@@ -1476,10 +1506,11 @@ However, due to asynchronicity, determining the source of the error
 can be difficult.  Even if GPU kernels launched earlier in the code
 result in a CUDA error, the error may not be output at a nearby call to
 :cpp:`AMREX_GPU_ERROR_CHECK()` by the CPU.  When tracking down a CUDA
-launch error, :cpp:`Gpu::synchronize()` and
-:cpp:`Gpu::streamSynchronize()` can be used to synchronize
-the device or the CUDA stream, respectively, and track down the specific
-launch that causes the error.
+launch error, :cpp:`Gpu::synchronize()`,
+:cpp:`Gpu::streamSynchronize()`, or :cpp:`Gpu::streamSynchronizeAll()` can
+be used to synchronize the device, the current GPU stream, or all GPU
+streams, respectively, and track down the specific launch that causes the
+error.
 
 .. ===================================================================
 
@@ -1657,4 +1688,6 @@ by "amrex" in your :cpp:`inputs` file.
 | abort_on_out_of_gpu_memory | If the size of free memory on the GPU is less than the size of a      | Bool        | False       |
 |                            | requested allocation, AMReX will call AMReX::Abort() with an error    |             |             |
 |                            | describing how much free memory there is and what was requested.      |             |             |
++----------------------------+-----------------------------------------------------------------------+-------------+-------------+
+| the_arena_is_managed       | Whether :cpp:`The_Arena()` allocates managed memory.                  | Bool        | True        |
 +----------------------------+-----------------------------------------------------------------------+-------------+-------------+

@@ -28,6 +28,15 @@ void ParticleContainerBase::Define (const Vector<Geometry>            & geom,
     m_gdb = &m_gdb_object;
 }
 
+void ParticleContainerBase::Define (const Vector<Geometry>            & geom,
+                                    const Vector<DistributionMapping> & dmap,
+                                    const Vector<BoxArray>            & ba,
+                                    const Vector<IntVect>             & rr)
+{
+    m_gdb_object = ParGDB(geom, dmap, ba, rr);
+    m_gdb = &m_gdb_object;
+}
+
 void ParticleContainerBase::reserveData ()
 {
     m_dummy_mf.reserve(maxLevel()+1);
@@ -52,9 +61,10 @@ void ParticleContainerBase::RedefineDummyMF (int lev)
         ! DistributionMapping::SameRefs(m_dummy_mf[lev]->DistributionMap(),
                                         ParticleDistributionMap(lev)))
     {
+        auto dm = (ParticleBoxArray(lev).size() == ParticleDistributionMap(lev).size()) ?
+            ParticleDistributionMap(lev) : DistributionMapping(ParticleBoxArray(lev));
         m_dummy_mf[lev] = std::make_unique<MultiFab>(ParticleBoxArray(lev),
-                                                     ParticleDistributionMap(lev),
-                                                     1,0,MFInfo().SetAlloc(false));
+                                                     dm, 1,0,MFInfo().SetAlloc(false));
     };
 }
 
@@ -69,12 +79,42 @@ ParticleContainerBase::defineBufferMap () const
     }
 }
 
+void ParticleContainerBase::SetParGDB (const Geometry            & geom,
+                                       const DistributionMapping & dmap,
+                                       const BoxArray            & ba)
+{
+    m_gdb_object = ParGDB(geom, dmap, ba);
+    m_gdb = &m_gdb_object;
+    resizeData();
+}
+
+void ParticleContainerBase::SetParGDB (const Vector<Geometry>            & geom,
+                                       const Vector<DistributionMapping> & dmap,
+                                       const Vector<BoxArray>            & ba,
+                                       const Vector<int>                 & rr)
+{
+    m_gdb_object = ParGDB(geom, dmap, ba, rr);
+    m_gdb = &m_gdb_object;
+    resizeData();
+}
+
+void ParticleContainerBase::SetParGDB (const Vector<Geometry>            & geom,
+                                       const Vector<DistributionMapping> & dmap,
+                                       const Vector<BoxArray>            & ba,
+                                       const Vector<IntVect>             & rr)
+{
+    m_gdb_object = ParGDB(geom, dmap, ba, rr);
+    m_gdb = &m_gdb_object;
+    resizeData();
+}
+
 void ParticleContainerBase::SetParticleBoxArray (int lev, const BoxArray& new_ba)
 {
     m_gdb_object = ParGDB(m_gdb->ParticleGeom(), m_gdb->ParticleDistributionMap(),
                           m_gdb->ParticleBoxArray(), m_gdb->refRatio());
     m_gdb = &m_gdb_object;
     m_gdb->SetParticleBoxArray(lev, new_ba);
+    RedefineDummyMF(lev);
 }
 
 void ParticleContainerBase::SetParticleDistributionMap (int lev, const DistributionMapping& new_dmap)
@@ -83,6 +123,7 @@ void ParticleContainerBase::SetParticleDistributionMap (int lev, const Distribut
                           m_gdb->ParticleBoxArray(), m_gdb->refRatio());
     m_gdb = &m_gdb_object;
     m_gdb->SetParticleDistributionMap(lev, new_dmap);
+    RedefineDummyMF(lev);
 }
 
 void ParticleContainerBase::SetParticleGeometry (int lev, const Geometry& new_geom)
@@ -93,7 +134,7 @@ void ParticleContainerBase::SetParticleGeometry (int lev, const Geometry& new_ge
     m_gdb->SetParticleGeometry(lev, new_geom);
 }
 
-const std::string& ParticleContainerBase::Version ()
+const std::string& ParticleContainerBase::CheckpointVersion ()
 {
     //
     // If we change the Checkpoint/Restart format we should increment this.
@@ -104,9 +145,24 @@ const std::string& ParticleContainerBase::Version ()
     //    "Version_One_Dot_One"
     //    "Version_Two_Dot_Zero" (before checkpoints had expanded particle ids)
     //
-    static const std::string version("Version_Two_Dot_One");
+    static const std::string checkpoint_version("Version_Two_Dot_One");
 
-    return version;
+    return checkpoint_version;
+}
+
+const std::string& ParticleContainerBase::PlotfileVersion ()
+{
+    //
+    // If we change the plotfile format we should increment this.
+    //
+    // Previous version strings:
+    //
+    //    "Version_One_Dot_Zero"
+    //    "Version_One_Dot_One"
+    //
+    static const std::string plotfile_version("Version_Two_Dot_Zero");
+
+    return plotfile_version;
 }
 
 const std::string& ParticleContainerBase::DataPrefix ()

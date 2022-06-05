@@ -15,10 +15,8 @@
 extern "C" {
 #if defined(AMREX_USE_HIP)
     void amrex_asyncarray_delete ( hipStream_t stream,  hipError_t error, void* p);
-#elif defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10)
-    void CUDART_CB amrex_asyncarray_delete (void* p);
 #elif defined(AMREX_USE_CUDA)
-    void CUDART_CB amrex_asyncarray_delete (cudaStream_t stream, cudaError_t error, void* p);
+    void CUDART_CB amrex_asyncarray_delete (void* p);
 #endif
 }
 #endif
@@ -83,12 +81,9 @@ public:
 #if defined(AMREX_USE_HIP)
                 AMREX_HIP_SAFE_CALL ( hipStreamAddCallback(Gpu::gpuStream(),
                                                            amrex_asyncarray_delete, p, 0));
-#elif defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10)
+#elif defined(AMREX_USE_CUDA)
                 AMREX_CUDA_SAFE_CALL(cudaLaunchHostFunc(Gpu::gpuStream(),
                                                         amrex_asyncarray_delete, p));
-#elif defined(AMREX_USE_CUDA)
-                AMREX_CUDA_SAFE_CALL(cudaStreamAddCallback(Gpu::gpuStream(),
-                                                           amrex_asyncarray_delete, p, 0));
 #endif
 #elif defined(AMREX_USE_DPCPP)
 #ifdef AMREX_USE_CODEPLAY_HOST_TASK
@@ -129,7 +124,7 @@ public:
 #ifdef AMREX_USE_GPU
         if (d_data)
         {
-            Gpu::dtoh_memcpy_async(h_p, d_data, n*sizeof(T));
+            Gpu::dtoh_memcpy(h_p, d_data, n*sizeof(T));
         }
         else
 #endif

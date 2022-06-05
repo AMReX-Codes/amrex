@@ -70,6 +70,7 @@ private:
     bool use_erk_strategy;
     bool use_mri_strategy;
     bool use_mri_strategy_test;
+    bool use_implicit_inner;
 
     SUNNonlinearSolver NLS;    /* empty nonlinear solver object */
     SUNLinearSolver LS;        /* empty linear solver object    */
@@ -80,6 +81,8 @@ private:
     void *mristep_mem;         /* empty ARKode memory structure */
     MPI_Comm mpi_comm;         /* the MPI communicator          */
     SUNContext sunctx;         /* SUNDIALS Context object       */
+
+    std::string mri_outer_method, mri_inner_method, erk_method;
 
     Real reltol;
     Real abstol;
@@ -108,6 +111,9 @@ private:
         if (theStrategy == "ERK")
         {
             use_erk_strategy=true;
+            erk_method = "SSPRK3";
+            amrex::ParmParse pp_erk("integration.sundials.erk");
+            pp_erk.query("method", erk_method);
         }
         else if (theStrategy == "MRI")
         {
@@ -123,6 +129,17 @@ private:
             std::string msg("Unknown strategy: ");
             msg += theStrategy;
             amrex::Error(msg.c_str());
+        }
+
+        if (theStrategy == "MRI" || theStrategy == "MRITEST")
+        {
+            use_implicit_inner = false;
+            mri_outer_method = "KnothWolke3";
+            mri_inner_method = "ForwardEuler";
+            amrex::ParmParse pp_mri("integration.sundials.mri");
+            pp_mri.query("implicit_inner", use_implicit_inner);
+            pp_mri.query("outer_method", mri_outer_method);
+            pp_mri.query("inner_method", mri_inner_method);
         }
 
         // SUNDIALS specific objects
@@ -147,7 +164,7 @@ public:
         initialize();
     }
 
-    void initialize (const T& /* S_data */)
+    void initialize (const T& /* S_data */) override
     {
         initialize_parameters();
         mpi_comm = ParallelContext::CommunicatorSub();
@@ -165,7 +182,7 @@ public:
         SUNContext_Free(&sunctx);
     }
 
-    amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step)
+    amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step) override
     {
         if (use_mri_strategy) {
             return advance_mri(S_old, S_new, time, time_step);
@@ -269,18 +286,44 @@ public:
             MultiFab::Copy(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_stage_data, i)), *amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_S, i)), 0, 0, state_store[i].nComp(), state_store[i].nGrow());
         }
 
-        ARKodeButcherTable B = ARKodeButcherTable_Alloc(3, SUNFALSE);
+        auto make_butcher_table = [&](std::string method) -> ARKodeButcherTable {
+            ARKodeButcherTable B;
+            if (method == "SSPRK3") {
+                B = ARKodeButcherTable_Alloc(3, SUNFALSE);
 
-        // Use SSP-RK3
-        B->A[1][0] = 1.0;
-        B->A[2][0] = 0.25;
-        B->A[2][1] = 0.25;
-        B->b[0] = 1./6.;
-        B->b[1] = 1./6.;
-        B->b[2] = 2./3.;
-        B->c[1] = 1.0;
-        B->c[2] = 0.5;
-        B->q=3;
+                // 3rd order Strong Stability Preserving RK3
+                B->A[1][0] = 1.0;
+                B->A[2][0] = 0.25;
+                B->A[2][1] = 0.25;
+                B->b[0] = 1./6.;
+                B->b[1] = 1./6.;
+                B->b[2] = 2./3.;
+                B->c[1] = 1.0;
+                B->c[2] = 0.5;
+                B->q=3;
+            } else if (method == "Trapezoid") {
+                B = ARKodeButcherTable_Alloc(2, SUNFALSE);
+
+                // Trapezoidal rule
+                B->A[1][0] = 1.0;
+                B->b[0] = 0.5;
+                B->b[1] = 0.5;
+                B->c[1] = 1.0;
+                B->q=2;
+                B->p=0;
+            } else if (method == "ForwardEuler") {
+                B = ARKodeButcherTable_Alloc(1, SUNFALSE);
+
+                // Forward Euler
+                B->b[0] = 1.0;
+                B->q=1;
+                B->p=0;
+            } else
+                amrex::Error("ERK method not implemented");
+            return B;
+        };
+
+        ARKodeButcherTable B = make_butcher_table(erk_method);
 
         //Set table
         ERKStepSetTable(arkode_mem, B);
@@ -312,15 +355,16 @@ public:
     amrex::Real advance_mri (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step)
     {
         int mri_time_step_ratio = BaseT::get_slow_fast_timestep_ratio();
-        AMREX_ALWAYS_ASSERT(mri_time_step_ratio >= 1);
+        Real mri_fast_time_step = BaseT::get_fast_timestep();
+        AMREX_ALWAYS_ASSERT(mri_time_step_ratio >= 1 || mri_fast_time_step >= 0.0);
         t               = time;
         tout            = time+time_step;
         hfixed          = time_step;
-        hfixed_mri      = time_step / mri_time_step_ratio;
+        hfixed_mri      = mri_fast_time_step >= 0.0 ? mri_fast_time_step : time_step / mri_time_step_ratio;
         timestep = time_step;
 
         // NOTE: hardcoded for now ...
-        bool use_erk3 = true;
+        bool use_erk3 = !use_implicit_inner;
         bool use_linear = false;
 
         // We use S_new as our working space, so first copy S_old to S_new
@@ -344,6 +388,14 @@ public:
 
         nv_S = N_VNew_ManyVector(NVar, nv_many_arr, sunctx);
         nv_stage_data = N_VClone(nv_S);
+
+        // Copy the initial step data to nv_stage_data
+        for(int i=0; i<N_VGetNumSubvectors_ManyVector(nv_S); i++)
+        {
+           MultiFab* mf_y = amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_S, i));
+           MultiFab* mf_stage = amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_stage_data, i));
+           MultiFab::Copy(*mf_stage, *mf_y, 0, 0, mf_y->nComp(), mf_y->nGrow());
+        }
 
         /* Create a temporary storage space for MRI */
         Vector<std::unique_ptr<T> > temp_storage;
@@ -382,7 +434,6 @@ public:
 
             // NOTE: we can optimize by calling a post_update_fast and only updating the variables the fast integration modifies
             BaseT::post_update(S_data, rhs_time);
-            BaseT::post_update(S_stage_data, rhs_time);
 
             BaseT::fast_rhs(S_rhs, S_stage_data, S_data, rhs_time);
 
@@ -465,41 +516,63 @@ public:
             MultiFab::Copy(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_stage_data, i)), *amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_S, i)), 0, 0, state_store[i].nComp(), state_store[i].nGrow());
         }
 
-        ARKodeButcherTable B = ARKodeButcherTable_Alloc(3, SUNFALSE);
-        ARKodeButcherTable B2 = ARKodeButcherTable_Alloc(2, SUNFALSE);
+        auto make_butcher_table = [&](std::string method) -> ARKodeButcherTable {
+            ARKodeButcherTable B;
+            if (method == "KnothWolke3" || method == "Knoth-Wolke-3-3") {
+                B = ARKodeButcherTable_Alloc(3, SUNFALSE);
+
+                // 3rd order Knoth-Wolke method
+                B->A[1][0] = 1.0/3.0;
+                B->A[2][0] = -3.0/16.0;
+                B->A[2][1] = 15.0/16.0;
+                B->b[0] = 1./6.;
+                B->b[1] = 3./10.;
+                B->b[2] = 8./15.;
+                B->c[1] = 1.0/3.0;
+                B->c[2] = 3.0/4.0;
+                B->q=3;
+                B->p=0;
+            } else if (method == "Trapezoid") {
+                B = ARKodeButcherTable_Alloc(2, SUNFALSE);
+
+                // Trapezoidal rule
+                B->A[1][0] = 1.0;
+                B->b[0] = 0.5;
+                B->b[1] = 0.5;
+                B->c[1] = 1.0;
+                B->q=2;
+                B->p=0;
+            } else if (method == "ForwardEuler") {
+                B = ARKodeButcherTable_Alloc(1, SUNFALSE);
+
+                // Forward Euler
+                B->b[0] = 1.0;
+                B->q=1;
+                B->p=0;
+            } else
+                amrex::Error("MRI method not implemented");
+            return B;
+        };
+
+        ARKodeButcherTable B_outer = make_butcher_table(mri_outer_method);
+        ARKodeButcherTable B_inner = make_butcher_table(mri_inner_method);
 
         if(use_erk3)
         {
-            B->A[1][0] = 1.0;
-            B->A[2][0] = 1.0;
-            B->A[2][2] = 0.0;
-            B->b[0] = 0.5;
-            B->b[2] = 0.5;
-            B->c[1] = 1.0;
-            B->c[2] = 1.0;
-            B->q=2;
-            B->p=0;
-            B2->A[1][0] = 1.0;
-            B2->b[0] = 0.5;
-            B2->b[1] = 0.5;
-            B2->c[1] = 1.0;
-            B2->q=2;
-            B2->p=0;
-
-            if(use_mri_strategy_test)
-                ARKStepSetTables(inner_mem, B->q, B->p, nullptr, B);       // Specify Butcher table
-            else
-                ARKStepSetTables(inner_mem, B2->q, B2->p, nullptr, B2);       // Specify Butcher table
+            ARKStepSetTables(inner_mem, B_inner->q, B_inner->p, nullptr, B_inner);       // Specify Butcher table
         } else {
-            B->A[1][0] = 1.0;
-            B->A[2][0] = 1.0;
-            B->A[2][2] = 0.0;
-            B->b[0] = 0.5;
-            B->b[2] = 0.5;
-            B->c[1] = 1.0;
-            B->c[2] = 1.0;
-            B->q=2;
-            ARKStepSetTables(inner_mem, B->q, B->p, B, nullptr);       // Specify Butcher table
+            ARKodeButcherTable_Free(B_inner);
+            B_inner = ARKodeButcherTable_Alloc(2, SUNFALSE);
+
+            B_inner->A[1][0] = 1.0;
+            B_inner->A[2][0] = 1.0;
+            B_inner->A[2][2] = 0.0;
+            B_inner->b[0] = 0.5;
+            B_inner->b[2] = 0.5;
+            B_inner->c[1] = 1.0;
+            B_inner->c[2] = 1.0;
+            B_inner->q=2;
+            ARKStepSetTables(inner_mem, B_inner->q, B_inner->p, B_inner, nullptr);       // Specify Butcher table
         }
 
         //Set table
@@ -519,28 +592,21 @@ public:
         LS = SUNLinSol_SPGMR(nv_S, PREC_NONE, 10, sunctx);
         NLS = SUNNonlinSol_FixedPoint(nv_S, 50, sunctx);
 
-        //    ARKStepSetNonlinearSolver(inner_mem, NLS); // NOTE: uncomment for implicit
+        if (use_implicit_inner) ARKStepSetNonlinearSolver(inner_mem, NLS);
         if(use_linear)
             MRIStepSetLinearSolver(mristep_mem, LS, nullptr);
         else
             MRIStepSetNonlinearSolver(mristep_mem, NLS);
 
         MRIStepSetUserData(mristep_mem, &udata);  /* Pass udata to user functions */
-
-        MRIStepSetPostInnerFn(mristep_mem, SundialsUserFun::PostStoreStage);
         MRIStepSetPostprocessStageFn(mristep_mem, SundialsUserFun::ProcessStage);
 
-        if(use_mri_strategy_test) {
-            MRIStepCoupling mri_coupling = MRIStepCoupling_MIStoMRI(B, B->q, B->p);
-            MRIStepSetCoupling(mristep_mem, mri_coupling);
-        } else {
-            MRIStepCoupling mri_coupling = MRIStepCoupling_MIStoMRI(B2, B2->q, B2->p);
-            MRIStepSetCoupling(mristep_mem, mri_coupling);
-        }
+        MRIStepCoupling mri_coupling = MRIStepCoupling_MIStoMRI(B_outer, B_outer->q, B_outer->p);
+        MRIStepSetCoupling(mristep_mem, mri_coupling);
 
         // Free the Butcher tables
-        ARKodeButcherTable_Free(B);
-        ARKodeButcherTable_Free(B2);
+        ARKodeButcherTable_Free(B_outer);
+        ARKodeButcherTable_Free(B_inner);
 
         // Use MRIStep to evolve state_old data (wrapped in nv_S) from t to tout=t+dt
         auto flag = MRIStepEvolve(mristep_mem, tout, nv_S, &t, ARK_NORMAL);
@@ -567,9 +633,9 @@ public:
         return timestep;
     }
 
-    void time_interpolate (const T& /* S_new */, const T& /* S_old */, amrex::Real /* timestep_fraction */, T& /* data */) {}
+    void time_interpolate (const T& /* S_new */, const T& /* S_old */, amrex::Real /* timestep_fraction */, T& /* data */) override {}
 
-    void map_data (std::function<void(T&)> /* Map */) {}
+    void map_data (std::function<void(T&)> /* Map */) override {}
 
 };
 

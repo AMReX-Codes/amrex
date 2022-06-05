@@ -31,10 +31,10 @@ int test1 (std::string const& f,
     Real max_relerror = 0.;
     for (int i = 0; i < N; ++i) {
         Real x = lo[0] + i*dx[0];
-        double result = exe(x);
-        double benchmark = fb(x);
-        double abserror = std::abs(result-benchmark);
-        double relerror = abserror / (1.e-50 + std::max(std::abs(result),std::abs(benchmark)));
+        Real result = exe(x);
+        Real benchmark = fb(x);
+        Real abserror = std::abs(result-benchmark);
+        Real relerror = abserror / (1.e-50 + std::max(std::abs(result),std::abs(benchmark)));
         if (abserror > abstol && relerror > reltol) {
             amrex::Print() << "\n    f(" << x << ") = " << result << ", "
                            << benchmark;
@@ -79,10 +79,10 @@ int test3 (std::string const& f,
         Real x = lo[0] + i*dx[0];
         Real y = lo[1] + j*dx[1];
         Real z = lo[2] + k*dx[2];
-        double result = exe(x,y,z);
-        double benchmark = fb(x,y,z);
-        double abserror = std::abs(result-benchmark);
-        double relerror = abserror / (1.e-50 + std::max(std::abs(result),std::abs(benchmark)));
+        Real result = exe(x,y,z);
+        Real benchmark = fb(x,y,z);
+        Real abserror = std::abs(result-benchmark);
+        Real relerror = abserror / (1.e-50 + std::max(std::abs(result),std::abs(benchmark)));
         if (abserror > abstol && relerror > reltol) {
             amrex::Print() << "    f(" << x << "," << y << "," << z << ") = " << result << ", "
                            << benchmark << "\n";
@@ -128,10 +128,10 @@ int test4 (std::string const& f,
         Real y = lo[1] + j*dx[1];
         Real z = lo[2] + k*dx[2];
         Real t = lo[3] + m*dx[3];
-        double result = exe(x,y,z,t);
-        double benchmark = fb(x,y,z,t);
-        double abserror = std::abs(result-benchmark);
-        double relerror = abserror / (1.e-50 + std::max(std::abs(result),std::abs(benchmark)));
+        Real result = exe(x,y,z,t);
+        Real benchmark = fb(x,y,z,t);
+        Real abserror = std::abs(result-benchmark);
+        Real relerror = abserror / (1.e-50 + std::max(std::abs(result),std::abs(benchmark)));
         if (abserror > abstol && relerror > reltol) {
             amrex::Print() << "    f(" << x << "," << y << "," << z << "," << t << ") = " << result << ", "
                            << benchmark << "\n";

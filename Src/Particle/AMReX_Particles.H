@@ -294,7 +294,7 @@ public:
         resizeData();
     }
 
-    virtual ~ParticleContainer () {}
+    virtual ~ParticleContainer () = default;
 
     ParticleContainer ( const ParticleContainer &) = delete;
     ParticleContainer& operator= ( const ParticleContainer & ) = delete;
@@ -352,11 +352,32 @@ public:
         resizeData();
     }
 
-    //! \brief The total number of tiles on this rank on this level
-    int numLocalTilesAtLevel (int lev) const { return m_particles[lev].size(); }
+    //! \brief Define a default-constructed ParticleContainer using a ParGDB object.
+    //! Multi-level version
+    //!
+    //! \param geom A Vector of Geometry objects, one for each level
+    //! \param dmap A Vector of DistributionMappings, one for each level
+    //! \param ba A Vector of BoxArrays, one for each level
+    //! \param rr A Vector of integer refinement ratios, of size num_levels - 1. rr[n] gives the
+    //! refinement ratio between levels n and n+1
+    //!
+    void Define (const Vector<Geometry>            & geom,
+                 const Vector<DistributionMapping> & dmap,
+                 const Vector<BoxArray>            & ba,
+                 const Vector<IntVect>             & rr)
+    {
+        this->ParticleContainerBase::Define(geom, dmap, ba, rr);
+        reserveData();
+        resizeData();
+    }
 
-    void reserveData ();
-    void resizeData ();
+    //! \brief The total number of tiles on this rank on this level
+    int numLocalTilesAtLevel (int lev) const {
+        return (lev < m_particles.size()) ? m_particles[lev].size() : 0;
+    }
+
+    void reserveData () override;
+    void resizeData () override;
 
     void InitFromAsciiFile (const std::string& file, int extradata,
                             const IntVect* Nrep = nullptr);
@@ -773,7 +794,7 @@ public:
      * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>::value>::type* = nullptr>
+    template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>&>::value>::type* = nullptr>
     void WritePlotFile (const std::string& dir, const std::string& name, F&& f) const;
 
     /**

@@ -48,6 +48,16 @@ MLEBNodeFDLaplacian::setRZ (bool flag)
 #endif
 }
 
+void
+MLEBNodeFDLaplacian::setAlpha (Real a_alpha)
+{
+#if (AMREX_SPACEDIM == 2)
+    m_rz_alpha = a_alpha;
+#else
+    amrex::ignore_unused(a_alpha);
+#endif
+}
+
 #ifdef AMREX_USE_EB
 
 void
@@ -131,10 +141,13 @@ MLEBNodeFDLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiF
 
     applyBC(amrlev, cmglev-1, fine, BCMode::Homogeneous, StateMode::Solution);
 
+    IntVect const ratio = mg_coarsen_ratio_vec[cmglev-1];
+    int semicoarsening_dir = info.semicoarsening_direction;
+
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
     MultiFab cfine;
     if (need_parallel_copy) {
-        const BoxArray& ba = amrex::coarsen(fine.boxArray(), 2);
+        const BoxArray& ba = amrex::coarsen(fine.boxArray(), ratio);
         cfine.define(ba, fine.DistributionMap(), 1, 0);
     }
 
@@ -150,10 +163,17 @@ MLEBNodeFDLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiF
         Array4<Real> cfab = pcrse->array(mfi);
         Array4<Real const> const& ffab = fine.const_array(mfi);
         Array4<int const> const& mfab = dmsk.const_array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
-        {
-            mlndlap_restriction(i,j,k,cfab,ffab,mfab);
-        });
+        if (ratio == 2) {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                mlndlap_restriction(i,j,k,cfab,ffab,mfab);
+            });
+        } else {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                mlndlap_semi_restriction(i,j,k,cfab,ffab,mfab, semicoarsening_dir);
+            });
+        }
     }
 
     if (need_parallel_copy) {
@@ -167,11 +187,14 @@ MLEBNodeFDLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine,
 {
     BL_PROFILE("MLEBNodeFDLaplacian::interpolation()");
 
+    IntVect const ratio = mg_coarsen_ratio_vec[fmglev];
+    int semicoarsening_dir = info.semicoarsening_direction;
+
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
     MultiFab cfine;
     const MultiFab* cmf = &crse;
     if (need_parallel_copy) {
-        const BoxArray& ba = amrex::coarsen(fine.boxArray(), 2);
+        const BoxArray& ba = amrex::coarsen(fine.boxArray(), ratio);
         cfine.define(ba, fine.DistributionMap(), 1, 0);
         cfine.ParallelCopy(crse);
         cmf = &cfine;
@@ -188,10 +211,17 @@ MLEBNodeFDLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine,
         Array4<Real> const& ffab = fine.array(mfi);
         Array4<Real const> const& cfab = cmf->const_array(mfi);
         Array4<int const> const& mfab = dmsk.const_array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
-        {
-            mlndtslap_interpadd(i,j,k,ffab,cfab,mfab);
-        });
+        if (ratio == 2) {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                mlndtslap_interpadd(i,j,k,ffab,cfab,mfab);
+            });
+        } else {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                mlndtslap_semi_interpadd(i,j,k,ffab,cfab,mfab,semicoarsening_dir);
+            });
+        }
     }
 }
 
@@ -272,7 +302,7 @@ MLEBNodeFDLaplacian::prepareForSolve ()
         });
     }
 
-    Gpu::synchronize();
+    Gpu::streamSynchronize();
 
 #if (AMREX_SPACEDIM == 2)
     if (m_rz) {
@@ -280,6 +310,8 @@ MLEBNodeFDLaplacian::prepareForSolve ()
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_lobc[0][0] == BCType::Neumann,
                                              "The lo-x BC must be Neumann for 2d RZ");
         }
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_sigma[0] == 0._rt,
+                                         "r-direction sigma must be zero");
     }
 #endif
 }
@@ -322,8 +354,10 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
 #if (AMREX_SPACEDIM == 2)
     const auto dx0 = m_geom[amrlev][mglev].CellSize(0);
-    const auto dx1 = m_geom[amrlev][mglev].CellSize(1);
+    const auto dx1 = m_geom[amrlev][mglev].CellSize(1)/std::sqrt(m_sigma[1]);
     const auto xlo = m_geom[amrlev][mglev].ProbLo(0);
+    const auto alpha = m_rz_alpha;
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(alpha == 0._rt, "alpha != 0 not implemented yet");
 #endif
     AMREX_D_TERM(const Real bx = m_sigma[0]*dxinv[0]*dxinv[0];,
                  const Real by = m_sigma[1]*dxinv[1]*dxinv[1];,
@@ -358,7 +392,7 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
                 if (m_rz) {
                     AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
                     {
-                        mlebndfdlap_adotx_rz_eb(i,j,k,yarr,xarr,dmarr,AMREX_D_DECL(ecx,ecy,ecz),
+                        mlebndfdlap_adotx_rz_eb(i,j,k,yarr,xarr,dmarr,ecx,ecy,
                                                 phiebarr, dx0, dx1, xlo);
                     });
                 } else
@@ -375,7 +409,7 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
                 if (m_rz) {
                     AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
                     {
-                        mlebndfdlap_adotx_rz_eb(i,j,k,yarr,xarr,dmarr,AMREX_D_DECL(ecx,ecy,ecz),
+                        mlebndfdlap_adotx_rz_eb(i,j,k,yarr,xarr,dmarr,ecx,ecy,
                                                 phieb, dx0, dx1, xlo);
                     });
                 } else
@@ -417,8 +451,10 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
 #if (AMREX_SPACEDIM == 2)
     const auto dx0 = m_geom[amrlev][mglev].CellSize(0);
-    const auto dx1 = m_geom[amrlev][mglev].CellSize(1);
+    const auto dx1 = m_geom[amrlev][mglev].CellSize(1)/std::sqrt(m_sigma[1]);
     const auto xlo = m_geom[amrlev][mglev].ProbLo(0);
+    const auto alpha = m_rz_alpha;
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(alpha == 0._rt, "alpha != 0 not implemented yet");
 #endif
     AMREX_D_TERM(const Real bx = m_sigma[0]*dxinv[0]*dxinv[0];,
                  const Real by = m_sigma[1]*dxinv[1]*dxinv[1];,

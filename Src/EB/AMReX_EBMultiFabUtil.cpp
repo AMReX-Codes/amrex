@@ -758,6 +758,50 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
     }
 }
 
+void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
+                           const Geometry& geom, bool already_on_centroids,
+                           const MultiFab& vel_eb)
+{
+    AMREX_ASSERT(divu.hasEBFabFactory());
+
+    EB_computeDivergence(divu, umac, geom, already_on_centroids);
+
+    // Add EB flow contribution
+    const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(divu.Factory());
+    const auto& flags = factory.getMultiEBCellFlagFab();
+    const auto& vfrac = factory.getVolFrac();
+    const auto& bnorm = factory.getBndryNormal();
+    const auto& barea = factory.getBndryArea();
+
+    MFItInfo info;
+    if (Gpu::notInLaunchRegion()) info.EnableTiling().SetDynamic(true);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(divu,info); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        const auto& flagfab = flags[mfi];
+
+        if (flagfab.getType(bx) == FabType::singlevalued) {
+            const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
+
+            Array4<Real> const& divuarr = divu.array(mfi);
+            Array4<Real const> const& vel_eb_arr = vel_eb.const_array(mfi);
+            Array4<Real const> const& vfracarr = vfrac.const_array(mfi);
+            Array4<Real const> const& bnormarr = bnorm.const_array(mfi);
+            Array4<EBCellFlag const> const& flagarr = flagfab.const_array();
+            Array4<Real const> const& bareaarr = barea.const_array(mfi);
+
+            AMREX_HOST_DEVICE_FOR_4D(bx,divu.nComp(),i,j,k,n,
+            {
+                eb_add_divergence_from_flow(i,j,k,n,divuarr,vel_eb_arr,
+                    flagarr,vfracarr,bnormarr,bareaarr,dxinv);
+            });
+        }
+    }
+}
+
 void
 EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
                                const Array<MultiFab const*,AMREX_SPACEDIM>& fmf)
@@ -884,9 +928,9 @@ EB_interp_CC_to_FaceCentroid (const MultiFab& cc,
     const int nghost(4);
 
    // Initialize edge state
-    AMREX_D_TERM(fc_x.setVal(1e40,dcomp,ncomp);,
-                 fc_y.setVal(1e40,dcomp,ncomp);,
-                 fc_z.setVal(1e40,dcomp,ncomp));
+    AMREX_D_TERM(fc_x.setVal(1e30_rt,dcomp,ncomp);,
+                 fc_y.setVal(1e30_rt,dcomp,ncomp);,
+                 fc_z.setVal(1e30_rt,dcomp,ncomp));
 
     BCRec const* d_bcs;
 #ifdef AMREX_USE_GPU
@@ -895,7 +939,6 @@ EB_interp_CC_to_FaceCentroid (const MultiFab& cc,
     {
         Gpu::copy(Gpu::hostToDevice, a_bcs.begin(), a_bcs.begin()+ncomp, dv_bcs.begin());
         d_bcs = dv_bcs.dataPtr();
-        Gpu::synchronize();
     }
     else
 #endif
@@ -1034,7 +1077,6 @@ EB_interp_CellCentroid_to_FaceCentroid (const MultiFab& phi_centroid,
     {
         Gpu::copy(Gpu::hostToDevice, a_bcs.begin(), a_bcs.begin()+ncomp, dv_bcs.begin());
         d_bcs = dv_bcs.dataPtr();
-        Gpu::synchronize();
     }
     else
 #endif

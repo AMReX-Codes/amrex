@@ -38,7 +38,7 @@ public:
     //! inside: is the fluid inside the ellipsoid?
     PolyIF (const GpuArray<PolyTerm,N> & a_polynomial, bool a_inside = true)
         : m_polynomial(a_polynomial),
-          m_sign( a_inside ? 1.0 : -1.0 )
+          m_sign( a_inside ? 1.0_rt : -1.0_rt )
     {}
 
     PolyIF (const PolyIF& rhs) = default;
@@ -76,7 +76,7 @@ public:
     PolynomialIF (const Vector<PolyTerm> & a_polynomial, bool a_inside = true)
         : m_polynomial(a_polynomial),
           m_inside(a_inside),
-          m_sign( a_inside ? 1.0 : -1.0 ),
+          m_sign( a_inside ? 1.0_rt : -1.0_rt ),
           m_size(m_polynomial.size())
     {}
 

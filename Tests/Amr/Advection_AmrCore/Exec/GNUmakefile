@@ -11,10 +11,11 @@ DIM        = 2
 COMP	   = gnu
 
 USE_MPI    = TRUE
-USE_OMP    = FALSE 
+USE_OMP    = FALSE
 USE_CUDA   = FALSE
+USE_PARTICLES = TRUE
 
-Bpack   := ./Make.package 
-Blocs   := . 
+Bpack   := ./Make.package
+Blocs   := .
 
 include Make.Adv

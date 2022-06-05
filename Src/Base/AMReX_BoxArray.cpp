@@ -593,19 +593,19 @@ BoxArray::refine (const IntVect& iv)
 }
 
 bool
-BoxArray::coarsenable(int refinement_ratio, int min_width) const
+BoxArray::coarsenable (int refinement_ratio, int min_width) const
 {
     return coarsenable(IntVect{refinement_ratio}, IntVect(min_width));
 }
 
 bool
-BoxArray::coarsenable(const IntVect& refinement_ratio, int min_width) const
+BoxArray::coarsenable (const IntVect& refinement_ratio, int min_width) const
 {
     return coarsenable(refinement_ratio, IntVect(min_width));
 }
 
 bool
-BoxArray::coarsenable(const IntVect& refinement_ratio, const IntVect& min_width) const
+BoxArray::coarsenable (const IntVect& refinement_ratio, const IntVect& min_width) const
 {
     const Long sz = size();
     if(size() == 0) return false;
@@ -1577,6 +1577,12 @@ BoxArray
 BoxArray::simplified () const
 {
     return BoxArray(simplified_list()).convert(ixType());
+}
+
+BATransformer const&
+BoxArray::transformer () const
+{
+    return m_bat;
 }
 
 std::ostream&

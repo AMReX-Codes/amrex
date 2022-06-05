@@ -67,7 +67,10 @@ public:
         amrex::Abort("AMReX_MLNodeLinOp::fillSolutionBC::How did we get here?");
     }
 
-    virtual void applyInhomogNeumannTerm (int armlev, MultiFab& rhs) const override;
+    virtual void applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const override;
+
+    virtual Real getSolvabilityOffset (int amrlev, int mglev, MultiFab const& rhs) const override;
+    virtual void fixSolvabilityByOffset (int amrlev, int mglev, MultiFab& rhs, Real offset) const override;
 
     virtual void prepareForSolve () override {}
 
@@ -127,7 +130,8 @@ protected:
 
     virtual void resizeMultiGrid (int new_size) override;
 
-    Vector<Vector<std::unique_ptr<iMultiFab> > > m_owner_mask;      // ownership of nodes
+    std::unique_ptr<iMultiFab> m_owner_mask_top;  // ownership of nodes
+    std::unique_ptr<iMultiFab> m_owner_mask_bottom;
     Vector<Vector<std::unique_ptr<iMultiFab> > > m_dirichlet_mask;  // dirichlet?
     Vector<std::unique_ptr<iMultiFab> > m_cc_fine_mask;          // cell-centered mask for cells covered by fine
     Vector<std::unique_ptr<iMultiFab> > m_nd_fine_mask;          // nodal mask: 0: this level node, 1: c/f boundary, 2: fine node

@@ -193,6 +193,14 @@ public:
         return {{AMREX_D_DECL(prob_domain.hi(0),prob_domain.hi(1),prob_domain.hi(2))}};
     }
 
+    GpuArray<Real,AMREX_SPACEDIM> RoundoffLoArray () const noexcept {
+        return {{AMREX_D_DECL(roundoff_domain.lo(0),roundoff_domain.lo(1),roundoff_domain.lo(2))}};
+    }
+
+    GpuArray<Real,AMREX_SPACEDIM> RoundoffHiArray () const noexcept {
+        return {{AMREX_D_DECL(roundoff_domain.hi(0),roundoff_domain.hi(1),roundoff_domain.hi(2))}};
+    }
+
     //! Returns the overall size of the domain by multiplying the ProbLength's together
     Real ProbSize () const noexcept
     {
@@ -220,6 +228,66 @@ public:
                     const BoxArray& grds,
                     int             idx,
                     int             grow) const;
+
+    //! Return the volume of the specified cell.
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    static Real Volume (const IntVect& point, const GeometryData& geomdata)
+    {
+        auto dx = geomdata.CellSize();
+
+        Real vol;
+
+#if AMREX_SPACEDIM == 1
+
+        auto coord = geomdata.Coord();
+
+        if (coord == CoordSys::cartesian) {
+            // Cartesian
+
+            vol = dx[0];
+        }
+        else {
+            // Spherical
+
+            Real rl = geomdata.ProbLo()[0] + static_cast<Real>(point[0]) * dx[0];
+            Real rr = rl + dx[0];
+
+            constexpr Real pi = 3.1415926535897932;
+            vol = (4.0_rt / 3.0_rt) * pi * dx[0] * (rl * rl + rl * rr + rr * rr);
+        }
+
+#elif AMREX_SPACEDIM == 2
+
+        auto coord = geomdata.Coord();
+
+        if (coord == CoordSys::cartesian) {
+            // Cartesian
+
+            vol = dx[0] * dx[1];
+        }
+        else {
+            // Cylindrical
+
+            Real r_l = geomdata.ProbLo()[0] + static_cast<Real>(point[0]) * dx[0];
+            Real r_r = geomdata.ProbLo()[0] + static_cast<Real>(point[0]+1) * dx[0];
+
+            constexpr Real pi = 3.1415926535897932;
+            vol = pi * (r_l + r_r) * dx[0] * dx[1];
+        }
+
+#else
+
+        amrex::ignore_unused(point);
+
+        // Cartesian
+
+        vol = dx[0] * dx[1] * dx[2];
+
+#endif
+
+        return vol;
+    }
+
     /**
     * \brief Compute d(log(A))/dr at cell centers in given region and
     *           stuff the results into the passed MultiFab.

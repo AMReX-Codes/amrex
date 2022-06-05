@@ -1,7 +1,6 @@
 #ifndef AMREX_CONFIG_H_
 #define AMREX_CONFIG_H_
-#cmakedefine AMREX_GIT_VERSION @AMREX_GIT_VERSION@
-#cmakedefine AMREX_RELEASE_NUMBER @AMREX_RELEASE_NUMBER@
+
 #cmakedefine AMREX_XSDK
 #cmakedefine AMREX_DEBUG
 #cmakedefine AMREX_PROFILING
@@ -28,6 +27,7 @@
 #cmakedefine BL_SPACEDIM @BL_SPACEDIM@
 #cmakedefine AMREX_USE_ASSERTION
 #cmakedefine AMREX_BOUND_CHECK
+#cmakedefine AMREX_EXPORT_DYNAMIC
 #cmakedefine BL_FORT_USE_UNDERSCORE
 #cmakedefine BL_FORT_USE_LOWERCASE
 #cmakedefine BL_FORT_USE_UPPERCASE
@@ -50,6 +50,7 @@
 #cmakedefine AMREX_PARTICLES
 #cmakedefine AMREX_USE_HDF5
 #cmakedefine AMREX_USE_HDF5_ASYNC
+#cmakedefine AMREX_USE_HDF5_ZFP
 #cmakedefine AMREX_USE_HYPRE
 #cmakedefine AMREX_USE_PETSC
 #cmakedefine AMREX_USE_SUNDIALS
@@ -58,7 +59,12 @@
 #ifdef __cplusplus@COMP_DECLS@
 @OMP_DECLS@
 #endif
-#if defined(AMREX_USE_OMP) && !defined(_OPENMP)
+/*
+  hipcc does not necessarily set the _OPENMP macro
+  https://rocmdocs.amd.com/en/latest/Programming_Guides/HIP-FAQ.html?highlight=_openmp#openmp-is-undefined-when-compiling-with-fopenmp
+ */
+#if defined(AMREX_USE_OMP) && !defined(_OPENMP) && !defined(AMREX_USE_HIP)
 #error "libamrex was built with OpenMP, so the downstream project must activate it, too"
 #endif
-#endif
+
+#endif /* AMREX_CONFIG_H_ */

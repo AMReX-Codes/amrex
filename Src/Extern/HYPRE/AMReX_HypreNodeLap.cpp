@@ -348,6 +348,7 @@ HypreNodeLap::getSolution (MultiFab& soln)
             xvec.resize(nrows);
             Real* xp = xvec.data();
             HYPRE_IJVectorGetValues(x, nrows, rows_vec.data(), xp);
+            Gpu::synchronize();
 
             const Box& bx = mfi.validbox();
             const auto& xfab = tmpsoln.array(mfi);

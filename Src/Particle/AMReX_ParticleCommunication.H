@@ -69,6 +69,8 @@ struct ParticleCopyOp
         auto mit = m_boxes[lev].find(gid);
         return mit == m_boxes[lev].end() ? 0 : mit->second.size();
     }
+
+    int numLevels () const { return m_boxes.size(); }
 };
 
 struct ParticleCopyPlan
@@ -131,7 +133,7 @@ struct ParticleCopyPlan
 
         const int ngrow = 1;  // note - fix
 
-        const int num_levels = pc.BufferMap().numLevels();
+        const int num_levels = op.numLevels();
         const int num_buckets = pc.BufferMap().numBuckets();
 
         if (m_local)
@@ -184,22 +186,24 @@ struct ParticleCopyPlan
                                    m_box_offsets.begin());
 
         m_box_counts_h.resize(m_box_counts_d.size());
-        Gpu::copy(Gpu::deviceToHost, m_box_counts_d.begin(), m_box_counts_d.end(),
-                  m_box_counts_h.begin());
+        Gpu::copyAsync(Gpu::deviceToHost, m_box_counts_d.begin(), m_box_counts_d.end(),
+                       m_box_counts_h.begin());
 
         m_snd_pad_correction_h.resize(0);
         m_snd_pad_correction_h.resize(ParallelContext::NProcsSub()+1, 0);
 
         m_snd_pad_correction_d.resize(m_snd_pad_correction_h.size());
-        Gpu::copy(Gpu::hostToDevice, m_snd_pad_correction_h.begin(), m_snd_pad_correction_h.end(),
-                  m_snd_pad_correction_d.begin());
+        Gpu::copyAsync(Gpu::hostToDevice, m_snd_pad_correction_h.begin(), m_snd_pad_correction_h.end(),
+                       m_snd_pad_correction_d.begin());
 
         d_int_comp_mask.resize(int_comp_mask.size());
-        Gpu::copy(Gpu::hostToDevice,  int_comp_mask.begin(),  int_comp_mask.end(),
-                  d_int_comp_mask.begin());
+        Gpu::copyAsync(Gpu::hostToDevice,  int_comp_mask.begin(),  int_comp_mask.end(),
+                       d_int_comp_mask.begin());
         d_real_comp_mask.resize(real_comp_mask.size());
-        Gpu::copy(Gpu::hostToDevice, real_comp_mask.begin(), real_comp_mask.end(),
-                  d_real_comp_mask.begin());
+        Gpu::copyAsync(Gpu::hostToDevice, real_comp_mask.begin(), real_comp_mask.end(),
+                       d_real_comp_mask.begin());
+
+        Gpu::streamSynchronize();
 
         int NStructReal = PC::ParticleContainerType::NStructReal;
         int NStructInt  = PC::ParticleContainerType::NStructInt;
@@ -292,7 +296,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 
     Long psize = plan.superParticleSize();
 
-    int num_levels = pc.BufferMap().numLevels();
+    int num_levels = op.numLevels();
     int num_buckets = pc.BufferMap().numBuckets();
 
     Long total_buffer_size = 0;
@@ -312,14 +316,12 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
     auto p_comm_real = plan.d_real_comp_mask.dataPtr();
     auto p_comm_int  = plan.d_int_comp_mask.dataPtr();
 
+    const auto plo = pc.Geom(0).ProbLoArray();
+    const auto phi = pc.Geom(0).ProbHiArray();
+    const auto is_per = pc.Geom(0).isPeriodicArray();
     for (int lev = 0; lev < num_levels; ++lev)
     {
-        const auto& geom = pc.Geom(lev);
         auto& plev = pc.GetParticles(lev);
-        const auto plo = geom.ProbLoArray();
-        const auto phi = geom.ProbHiArray();
-        const auto is_per = geom.isPeriodicArray();
-
         for (auto& kv : plev)
         {
             int gid = kv.first.first;
@@ -572,7 +574,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
 
         Vector<int> offsets;
         policy.resizeTiles(tiles, sizes, offsets);
-        Gpu::Device::synchronize();
+        Gpu::streamSynchronize();
         int uindex = 0;
         int procindex = 0, rproc = plan.m_rcv_box_pids[0];
         for (int i = 0, N = plan.m_rcv_box_counts.size(); i < N; ++i)
@@ -604,7 +606,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
                                        p_comm_real, p_comm_int);
               });
 
-            Gpu::synchronize();
+            Gpu::streamSynchronize();
         }
     }
 #else

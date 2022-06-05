@@ -114,12 +114,12 @@ target_link_options( SYCL
 if (AMReX_DPCPP_AOT)
    target_compile_options( SYCL
       INTERFACE
-      "$<${_cxx_dpcpp}:-fsycl-targets=spir64_gen-unknown-unknown-sycldevice>"
+      "$<${_cxx_dpcpp}:-fsycl-targets=spir64_gen>"
       "$<${_cxx_dpcpp}:SHELL:-Xsycl-target-backend \"-device ${AMReX_INTEL_ARCH}\">" )
 
    target_link_options( SYCL
       INTERFACE
-      "$<${_cxx_dpcpp}:-fsycl-targets=spir64_gen-unknown-unknown-sycldevice>"
+      "$<${_cxx_dpcpp}:-fsycl-targets=spir64_gen>"
       "$<${_cxx_dpcpp}:SHELL:-Xsycl-target-backend \"-device ${AMReX_INTEL_ARCH}\">" )
 endif ()
 

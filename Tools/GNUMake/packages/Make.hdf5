@@ -32,3 +32,16 @@ ifeq ($(USE_HDF5_ZFP),TRUE)
     endif
   endif
 endif
+
+ifeq ($(USE_HDF5_SZ),TRUE)
+  ifdef SZ_HOME
+    ifdef H5Z_HOME
+      CPPFLAGS += -DAMREX_USE_HDF5_SZ
+      LIBRARIES += -lSZ -lzlib -lhdf5sz
+      SZ_ABSPATH = $(abspath $(SZ_HOME))
+      INCLUDE_LOCATIONS += $(SZ_ABSPATH)/include
+      LIBRARY_LOCATIONS += $(SZ_ABSPATH)/lib
+      LDFLAGS += -Xlinker -rpath -Xlinker $(SZ_ABSPATH)/lib
+    endif
+  endif
+endif

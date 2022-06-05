@@ -35,8 +35,8 @@ void eb_avgdown_with_vol (int i, int j, int k,
                           Dim3 const& ratio, int ncomp)
 {
     for (int n = 0; n < ncomp; ++n) {
-        Real c = 0.0;
-        Real cv = 0.0;
+        Real c = 0.0_rt;
+        Real cv = 0.0_rt;
         constexpr int kk = 0;
         for (int jj = j*ratio.y; jj < (j+1)*ratio.y; ++jj) {
         for (int ii = i*ratio.x; ii < (i+1)*ratio.x; ++ii) {
@@ -60,8 +60,8 @@ void eb_avgdown (int i, int j, int k,
                  Dim3 const& ratio, int ncomp)
 {
     for (int n = 0; n < ncomp; ++n) {
-        Real c = 0.0;
-        Real cv = 0.0;
+        Real c = 0.0_rt;
+        Real cv = 0.0_rt;
         constexpr int kk = 0;
         for (int jj = j*ratio.y; jj < (j+1)*ratio.y; ++jj) {
         for (int ii = i*ratio.x; ii < (i+1)*ratio.x; ++ii) {
@@ -87,8 +87,8 @@ void eb_avgdown_face_x (int i, int j, int k,
     int ii = i*ratio.x;
     constexpr int kk = 0;
     for (int n = 0; n < ncomp; ++n) {
-        Real c = 0.0;
-        Real a = 0.0;
+        Real c = 0.0_rt;
+        Real a = 0.0_rt;
         for (int jj = j*ratio.y; jj < (j+1)*ratio.y; ++jj) {
             Real tmp = area(ii,jj,kk);
             c += tmp*fine(ii,jj,kk,n+fcomp);
@@ -112,8 +112,8 @@ void eb_avgdown_face_y (int i, int j, int k,
     int jj = j*ratio.y;
     constexpr int kk = 0;
     for (int n = 0; n < ncomp; ++n) {
-        Real c = 0.0;
-        Real a = 0.0;
+        Real c = 0.0_rt;
+        Real a = 0.0_rt;
         for (int ii = i*ratio.x; ii < (i+1)*ratio.x; ++ii) {
             Real tmp = area(ii,jj,kk);
             c += tmp*fine(ii,jj,kk,n+fcomp);
@@ -135,8 +135,8 @@ void eb_avgdown_boundaries (int i, int j, int k,
                             Dim3 const& ratio, int ncomp)
 {
     for (int n = 0; n < ncomp; ++n) {
-        Real c = 0.0;
-        Real cv = 0.0;
+        Real c = 0.0_rt;
+        Real cv = 0.0_rt;
         constexpr int kk = 0;
         for (int jj = j*ratio.y; jj < (j+1)*ratio.y; ++jj) {
         for (int ii = i*ratio.x; ii < (i+1)*ratio.x; ++ii) {
@@ -147,7 +147,7 @@ void eb_avgdown_boundaries (int i, int j, int k,
         if (cv > 1.e-30) {
             crse(i,j,k,n+ccomp) = c/cv;
         } else {
-            crse(i,j,k,n+ccomp) = 0.0;
+            crse(i,j,k,n+ccomp) = 0.0_rt;
         }
     }
 }
@@ -163,7 +163,7 @@ void eb_compute_divergence (int i, int j, int k, int n, Array4<Real> const& divu
 {
     if (flag(i,j,k).isCovered())
     {
-        divu(i,j,k,n) = 0.0;
+        divu(i,j,k,n) = 0.0_rt;
     }
     else if (flag(i,j,k).isRegular())
     {
@@ -172,41 +172,41 @@ void eb_compute_divergence (int i, int j, int k, int n, Array4<Real> const& divu
     }
     else if (already_on_centroids)
     {
-        divu(i,j,k,n) = (1.0/vfrc(i,j,k)) *
+        divu(i,j,k,n) = (1.0_rt/vfrc(i,j,k)) *
             ( dxinv[0] * (apx(i+1,j,k)*u(i+1,j,k,n)-apx(i,j,k)*u(i,j,k,n))
             + dxinv[1] * (apy(i,j+1,k)*v(i,j+1,k,n)-apy(i,j,k)*v(i,j,k,n)) );
     }
     else
     {
         Real fxm = u(i,j,k,n);
-        if (apx(i,j,k) != 0.0 && apx(i,j,k) != 1.0) {
+        if (apx(i,j,k) != 0.0_rt && apx(i,j,k) != 1.0_rt) {
             int jj = j + static_cast<int>(amrex::Math::copysign(1.0_rt,fcx(i,j,k)));
             Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? amrex::Math::abs(fcx(i,j,k)) : 0.0_rt;
-            fxm = (1.0-fracy)*fxm + fracy*u(i,jj,k,n);
+            fxm = (1.0_rt-fracy)*fxm + fracy*u(i,jj,k,n);
         }
 
         Real fxp = u(i+1,j,k,n);
-        if (apx(i+1,j,k) != 0.0 && apx(i+1,j,k) != 1.0) {
+        if (apx(i+1,j,k) != 0.0_rt && apx(i+1,j,k) != 1.0_rt) {
             int jj = j + static_cast<int>(amrex::Math::copysign(1.0_rt,fcx(i+1,j,k)));
             Real fracy = (ccm(i,jj,k) || ccm(i+1,jj,k)) ? amrex::Math::abs(fcx(i+1,j,k)) : 0.0_rt;
-            fxp = (1.0-fracy)*fxp + fracy*u(i+1,jj,k,n);
+            fxp = (1.0_rt-fracy)*fxp + fracy*u(i+1,jj,k,n);
         }
 
         Real fym = v(i,j,k,n);
-        if (apy(i,j,k) != 0.0 && apy(i,j,k) != 1.0) {
+        if (apy(i,j,k) != 0.0_rt && apy(i,j,k) != 1.0_rt) {
             int ii = i + static_cast<int>(amrex::Math::copysign(1.0_rt,fcy(i,j,k)));
             Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? amrex::Math::abs(fcy(i,j,k)) : 0.0_rt;
-            fym = (1.0-fracx)*fym + fracx*v(ii,j,k,n);
+            fym = (1.0_rt-fracx)*fym + fracx*v(ii,j,k,n);
         }
 
         Real fyp = v(i,j+1,k,n);
-        if (apy(i,j+1,k) != 0.0 && apy(i,j+1,k) != 1.0) {
+        if (apy(i,j+1,k) != 0.0_rt && apy(i,j+1,k) != 1.0_rt) {
             int ii = i + static_cast<int>(amrex::Math::copysign(1.0_rt,fcy(i,j+1,k)));
             Real fracx = (ccm(ii,j,k) || ccm(ii,j+1,k)) ? amrex::Math::abs(fcy(i,j+1,k)) : 0.0_rt;
-            fyp = (1.0-fracx)*fyp + fracx*v(ii,j+1,k,n);
+            fyp = (1.0_rt-fracx)*fyp + fracx*v(ii,j+1,k,n);
         }
 
-        divu(i,j,k,n) = (1.0/vfrc(i,j,k)) *
+        divu(i,j,k,n) = (1.0_rt/vfrc(i,j,k)) *
             ( dxinv[0] * (apx(i+1,j,k)*fxp-apx(i,j,k)*fxm)
             + dxinv[1] * (apy(i,j+1,k)*fyp-apy(i,j,k)*fym) );
     }
@@ -219,23 +219,23 @@ void eb_avg_fc_to_cc (int i, int j, int k, int n, Array4<Real> const& cc,
                       Array4<EBCellFlag const> const& flag)
 {
     if (flag(i,j,k).isCovered()) {
-        cc(i,j,k,n+0) = 0.0;
-        cc(i,j,k,n+1) = 0.0;
+        cc(i,j,k,n+0) = 0.0_rt;
+        cc(i,j,k,n+1) = 0.0_rt;
     } else {
-        if (ax(i,j,k) == 0.0) {
+        if (ax(i,j,k) == 0.0_rt) {
             cc(i,j,k,n+0) = fx(i+1,j,k);
-        } else if (ax(i+1,j,k) == 0.0) {
+        } else if (ax(i+1,j,k) == 0.0_rt) {
             cc(i,j,k,n+0) = fx(i,j,k);
         } else {
-            cc(i,j,k,n+0) = 0.5 * (fx(i,j,k) + fx(i+1,j,k));
+            cc(i,j,k,n+0) = 0.5_rt * (fx(i,j,k) + fx(i+1,j,k));
         }
 
-        if (ay(i,j,k) == 0.0) {
+        if (ay(i,j,k) == 0.0_rt) {
             cc(i,j,k,n+1) = fy(i,j+1,k);
-        } else if (ay(i,j+1,k) == 0.0) {
+        } else if (ay(i,j+1,k) == 0.0_rt) {
             cc(i,j,k,n+1) = fy(i,j,k);
         } else {
-            cc(i,j,k,n+1) = 0.5 * (fy(i,j,k) + fy(i,j+1,k));
+            cc(i,j,k,n+1) = 0.5_rt * (fy(i,j,k) + fy(i,j+1,k));
         }
     }
 }
@@ -264,13 +264,13 @@ void eb_interp_cc2cent (Box const& box,
       {
         Real gx = cent(i,j,k,0);
         Real gy = cent(i,j,k,1);
-        int ii = (gx < 0.0) ? i - 1 : i + 1;
-        int jj = (gy < 0.0) ? j - 1 : j + 1;
+        int ii = (gx < 0.0_rt) ? i - 1 : i + 1;
+        int jj = (gy < 0.0_rt) ? j - 1 : j + 1;
         gx = amrex::Math::abs(gx);
         gy = amrex::Math::abs(gy);
         Real gxy = gx*gy;
 
-        phicent(i,j,k,n) = ( 1.0 - gx - gy + gxy ) * phicc(i ,j ,k ,n)
+        phicent(i,j,k,n) = ( 1.0_rt - gx - gy + gxy ) * phicc(i ,j ,k ,n)
           +                (            gy - gxy ) * phicc(i ,jj,k ,n)
           +                (       gx      - gxy ) * phicc(ii,j ,k ,n)
           +                (                 gxy ) * phicc(ii,jj,k ,n);
@@ -311,17 +311,17 @@ void eb_interp_cc2facecent_x (Box const& ubx,
           }
           else
           {
-            edg_x(i,j,k,n) = 0.5 * ( phi(i,j,k,n) + phi(i-1,j,k,n) );
+            edg_x(i,j,k,n) = 0.5_rt * ( phi(i,j,k,n) + phi(i-1,j,k,n) );
           }
         }
         else
         {
           int ii = i - 1;
-          int jj = (fcx(i,j,k) < 0.0) ? j - 1 : j + 1;
-          Real gx = 0.5;
+          int jj = (fcx(i,j,k) < 0.0_rt) ? j - 1 : j + 1;
+          Real gx = 0.5_rt;
           Real gy = amrex::Math::abs(fcx(i,j,k));
           Real gxy = gx*gy;
-          edg_x(i,j,k,n) = ( 1.0 - gx - gy + gxy ) * phi(i ,j ,k ,n)
+          edg_x(i,j,k,n) = ( 1.0_rt - gx - gy + gxy ) * phi(i ,j ,k ,n)
            +               (            gy - gxy ) * phi(i ,jj,k ,n)
            +               (       gx      - gxy ) * phi(ii,j ,k ,n)
            +               (                 gxy ) * phi(ii,jj,k ,n);
@@ -362,17 +362,17 @@ void eb_interp_cc2facecent_y (Box const& vbx,
           }
           else
           {
-            edg_y(i,j,k,n) = 0.5 * (phi(i,j  ,k,n) + phi(i,j-1,k,n));
+            edg_y(i,j,k,n) = 0.5_rt * (phi(i,j  ,k,n) + phi(i,j-1,k,n));
           }
         }
         else
         {
-          int ii = (fcy(i,j,k) < 0.0) ? i - 1 : i + 1;
+          int ii = (fcy(i,j,k) < 0.0_rt) ? i - 1 : i + 1;
           int jj = j - 1;
           Real gx = amrex::Math::abs(fcy(i,j,k));
-          Real gy = 0.5;
+          Real gy = 0.5_rt;
           Real gxy = gx*gy;
-          edg_y(i,j,k,n) = ( 1.0 - gx - gy + gxy ) * phi(i ,j ,k ,n)
+          edg_y(i,j,k,n) = ( 1.0_rt - gx - gy + gxy ) * phi(i ,j ,k ,n)
            +               (            gy - gxy ) * phi(i ,jj,k ,n)
            +               (       gx      - gxy ) * phi(ii,j ,k ,n)
            +               (                 gxy ) * phi(ii,jj,k ,n);
@@ -411,12 +411,12 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
       }
       else if ( apx(i,j,k) == 1 && (cvol(i,j,k) == 1 && cvol(i-1,j,k) == 1) )
       {
-          edg_x(i,j,k,n) = 0.5 * ( phi(i,j,k,n) + phi(i-1,j,k,n) );
+          edg_x(i,j,k,n) = 0.5_rt * ( phi(i,j,k,n) + phi(i-1,j,k,n) );
       }
       else if (apx(i,j,k) == 1 && (amrex::Math::abs(ccent(i,j,k,1)-ccent(i-1,j,k,1)) < 1.e-8) )
       {
-          Real d0 = 0.5 + ccent(i  ,j,k,0);                               // distance in x-dir from centroid(i  ,j) to face(i,j)
-          Real d1 = 0.5 - ccent(i-1,j,k,0);                               // distance in x-dir from centroid(i-1,j) to face(i,j)
+          Real d0 = 0.5_rt + ccent(i  ,j,k,0);                               // distance in x-dir from centroid(i  ,j) to face(i,j)
+          Real d1 = 0.5_rt - ccent(i-1,j,k,0);                               // distance in x-dir from centroid(i-1,j) to face(i,j)
           Real a0 = d1 / (d0 + d1);                                       // coefficient of phi(i  ,j,k,n)
           Real a1 = d0 / (d0 + d1);                                       // coefficient of phi(i-1,j,k,n)
           edg_x(i,j,k,n) = a0*phi(i,j,k,n) + a1*phi(i-1,j,k,n);           // interpolation of phi in x-direction
@@ -426,7 +426,7 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
           int ii = i - 1;
           int jj;
           if (amrex::Math::abs(fcx(i,j,k)) > 1.e-8) {
-              jj = (fcx(i,j,k) < 0.0) ? j - 1 : j + 1;
+              jj = (fcx(i,j,k) < 0.0_rt) ? j - 1 : j + 1;
           } else {
 
               // We must add an additional test to avoid the case where fcx is very close to zero,
@@ -436,11 +436,11 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
               jj = (min_vol_lo > min_vol_hi) ? j - 1 : j + 1;
           }
 
-          Real d0    = 0.5 + ccent( i,j,k,0);                                 // distance in x-dir from centroid(i  ,j) to face(i,j)
-          Real d1    = 0.5 - ccent(ii,j,k,0);                                 // distance in x-dir from centroid(i-1,j) to face(i,j)
+          Real d0    = 0.5_rt + ccent( i,j,k,0);                                 // distance in x-dir from centroid(i  ,j) to face(i,j)
+          Real d1    = 0.5_rt - ccent(ii,j,k,0);                                 // distance in x-dir from centroid(i-1,j) to face(i,j)
 
-          Real d0_jj = 0.5 + ccent( i,jj,k,0);                                 // distance in x-dir from centroid(i  ,jj) to face(i,jj)
-          Real d1_jj = 0.5 - ccent(ii,jj,k,0);                                 // distance in x-dir from centroid(i-1,jj) to face(i,jj)
+          Real d0_jj = 0.5_rt + ccent( i,jj,k,0);                                 // distance in x-dir from centroid(i  ,jj) to face(i,jj)
+          Real d1_jj = 0.5_rt - ccent(ii,jj,k,0);                                 // distance in x-dir from centroid(i-1,jj) to face(i,jj)
 
           Real a0    = d1 / (d0 + d1);                                         // coefficient of phi(i  ,j,k,n)
           Real a1    = d0 / (d0 + d1);                                         // coefficient of phi(i-1,j,k,n)
@@ -490,12 +490,12 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
       }
       else if (apy(i,j,k) == 1. && cvol(i,j,k) == 1 && cvol(i,j-1,k) == 1)
       {
-          edg_y(i,j,k,n) = 0.5 * (phi(i,j  ,k,n) + phi(i,j-1,k,n));
+          edg_y(i,j,k,n) = 0.5_rt * (phi(i,j  ,k,n) + phi(i,j-1,k,n));
       }
       else if (apy(i,j,k) == 1. && (amrex::Math::abs(ccent(i,j,k,0)-ccent(i,j-1,k,0)) < 1.e-8) )
       {
-          Real d0 = 0.5 + ccent(i,j  ,k,1);                                // distance in y-dir from centroid(i,j  ) to face(i,j)
-          Real d1 = 0.5 - ccent(i,j-1,k,1);                                // distance in y-dir from centroid(i,j-1) to face(i,j)
+          Real d0 = 0.5_rt + ccent(i,j  ,k,1);                                // distance in y-dir from centroid(i,j  ) to face(i,j)
+          Real d1 = 0.5_rt - ccent(i,j-1,k,1);                                // distance in y-dir from centroid(i,j-1) to face(i,j)
           Real a0 = d1 / (d0 + d1);                                        // coefficient of phi(i,j  ,k,n)
           Real a1 = d0 / (d0 + d1);                                        // coefficient of phi(i,j-1,k,n)
           edg_y(i,j,k,n) = a0*phi(i,j,k,n) + a1*phi(i,j-1,k,n);            // interpolation of phi in y-direction
@@ -508,7 +508,7 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
           // We must add an additional test to avoid the case where fcy is very close to zero, but (i-1) or (i+1)
           //    might be covered cells -- this can happen when the EB is exactly aligned with the horizontal grid lines
           if (amrex::Math::abs(fcy(i,j,k)) > 1.e-8) {
-              ii = (fcy(i,j,k) < 0.0) ? i - 1 : i + 1;
+              ii = (fcy(i,j,k) < 0.0_rt) ? i - 1 : i + 1;
           } else {
               // We must add an additional test to avoid the case where fcx is very close to zero,
               //     but the cells at (i-1) or (i+1) might be covered or very small cells
@@ -517,11 +517,11 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
               ii = (min_vol_lo > min_vol_hi) ? i - 1 : i + 1;
           }
 
-          Real d0    = 0.5 + ccent(i, j,k,1);                                 // distance in y-dir from centroid(i,j  ) to face(i,j)
-          Real d1    = 0.5 - ccent(i,jj,k,1);                                 // distance in y-dir from centroid(i,j-1) to face(i,j)
+          Real d0    = 0.5_rt + ccent(i, j,k,1);                                 // distance in y-dir from centroid(i,j  ) to face(i,j)
+          Real d1    = 0.5_rt - ccent(i,jj,k,1);                                 // distance in y-dir from centroid(i,j-1) to face(i,j)
 
-          Real d0_ii = 0.5 + ccent(ii, j,k,0);                                 // distance from centroid(ii,j  ) to face(ii,j)
-          Real d1_ii = 0.5 - ccent(ii,jj,k,0);                                 // distance from centroid(ii,j-1) to face(ii,j)
+          Real d0_ii = 0.5_rt + ccent(ii, j,k,0);                                 // distance from centroid(ii,j  ) to face(ii,j)
+          Real d1_ii = 0.5_rt - ccent(ii,jj,k,0);                                 // distance from centroid(ii,j-1) to face(ii,j)
 
           Real a0    = d1 / (d0 + d1);                                         // coefficient of phi(i,j  ,k,n)
           Real a1    = d0 / (d0 + d1);                                         // coefficient of phi(i,j-1,k,n)
@@ -563,7 +563,7 @@ void eb_interp_cc2face_x (Box const& ubx,
         }
         else
         {
-          edg_x(i,j,k,n) = 0.5 * ( phi(i,j,k,n) + phi(i-1,j,k,n) );
+          edg_x(i,j,k,n) = 0.5_rt * ( phi(i,j,k,n) + phi(i-1,j,k,n) );
         }
     });
 }
@@ -590,9 +590,24 @@ void eb_interp_cc2face_y (Box const& vbx,
         }
         else
         {
-          edg_y(i,j,k,n) = 0.5 * (phi(i,j  ,k,n) + phi(i,j-1,k,n));
+          edg_y(i,j,k,n) = 0.5_rt * (phi(i,j  ,k,n) + phi(i,j-1,k,n));
         }
     });
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void eb_add_divergence_from_flow (int i, int j, int k, int n, Array4<Real> const& divu,
+                            Array4<Real const> const& vel_eb, Array4<EBCellFlag const> const& flag,
+                            Array4<Real const> const& vfrc, Array4<Real const> const& bnorm,
+                            Array4<Real const> const& barea, GpuArray<Real,2> const& dxinv)
+{
+    if (flag(i,j,k).isSingleValued())
+    {
+        Real Ueb_dot_n = vel_eb(i,j,k,0)*bnorm(i,j,k,0)
+                       + vel_eb(i,j,k,1)*bnorm(i,j,k,1);
+
+        divu(i,j,k,n) += Ueb_dot_n * barea(i,j,k) * dxinv[0] / vfrc(i,j,k);
+    }
 }
 
 }

@@ -79,6 +79,14 @@ public:
         m_gdb = &m_gdb_object;
     }
 
+    virtual ~ParticleContainerBase () = default;
+
+    ParticleContainerBase ( const ParticleContainerBase &) = delete;
+    ParticleContainerBase& operator= ( const ParticleContainerBase & ) = delete;
+
+    ParticleContainerBase ( ParticleContainerBase && ) = default;
+    ParticleContainerBase& operator= ( ParticleContainerBase && ) = default;
+
     void Define (ParGDBBase* gdb) { m_gdb = gdb;}
 
     void Define (const Geometry            & geom,
@@ -90,10 +98,15 @@ public:
                  const Vector<BoxArray>            & ba,
                  const Vector<int>                 & rr);
 
+    void Define (const Vector<Geometry>            & geom,
+                 const Vector<DistributionMapping> & dmap,
+                 const Vector<BoxArray>            & ba,
+                 const Vector<IntVect>             & rr);
+
     bool isDefined () const { return m_gdb != nullptr; }
 
-    void reserveData ();
-    void resizeData ();
+    virtual void reserveData ();
+    virtual void resizeData ();
     void RedefineDummyMF (int lev);
 
     MFIter MakeMFIter (int lev, const MFItInfo& info) const {
@@ -110,6 +123,48 @@ public:
         AMREX_ASSERT(m_dummy_mf[lev] != nullptr);
         return MFIter(*m_dummy_mf[lev], tile ? tile_size : IntVect::TheZeroVector());
     }
+
+    //! \brief Set the particle Geometry, DistributionMapping, and BoxArray. If the container
+    //! was previously set to to track the AMR hierarchy of an AmrCore or AmrLevel object, that
+    //! correspondence will be broken here. This is the single-level version.
+    //!
+    //! \param geom The new Geometry to use.
+    //! \param dmap The new DistributionMapping to use.
+    //! \param ba The new BoxArray to use.
+    //!
+    void SetParGDB (const Geometry            & geom,
+                    const DistributionMapping & dmap,
+                    const BoxArray            & ba);
+
+    //! \brief Set the particle Geometry, DistributionMapping, ref ratios, and BoxArray. If the container
+    //! was previously set to to track the AMR hierarchy of an AmrCore or AmrLevel object, that
+    //! correspondence will be broken here. This is the multi-level version.
+    //!
+    //! \param geom The new vector of Geometry objects to use.
+    //! \param dmap The new vector of DistributionMapping objects to use.
+    //! \param ba The new vector of BoxArray objects to use.
+    //! \param rr The new vector of refinement ratios to use.
+    //!
+    void SetParGDB (const Vector<Geometry>            & geom,
+                    const Vector<DistributionMapping> & dmap,
+                    const Vector<BoxArray>            & ba,
+                    const Vector<IntVect>             & rr);
+
+    //! \brief Set the particle Geometry, DistributionMapping, ref ratios, and BoxArray. If the container
+    //! was previously set to to track the AMR hierarchy of an AmrCore or AmrLevel object, that
+    //! correspondence will be broken here. This is the multi-level version.
+    //!
+    //! Like the above, except the refinement ratios are expressed as ints
+    //!
+    //! \param geom The new vector of Geometry objects to use.
+    //! \param dmap The new vector of DistributionMapping objects to use.
+    //! \param ba The new vector of BoxArray objects to use.
+    //! \param rr The new vector of refinement ratios to use.
+    //!
+    void SetParGDB (const Vector<Geometry>            & geom,
+                    const Vector<DistributionMapping> & dmap,
+                    const Vector<BoxArray>            & ba,
+                    const Vector<int>                 & rr);
 
     //! \brief Set the particle BoxArray. If the container was previously set to
     //! to track the AMR hierarchy of an AmrCore or AmrLevel object, that correspondence
@@ -193,7 +248,8 @@ public:
     template <class MF>
     bool OnSameGrids (int level, const MF& mf) const { return m_gdb->OnSameGrids(level, mf); }
 
-    static const std::string& Version ();
+    static const std::string& CheckpointVersion ();
+    static const std::string& PlotfileVersion ();
     static const std::string& DataPrefix ();
     static int MaxReaders ();
     static Long MaxParticlesPerRead ();

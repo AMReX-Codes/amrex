@@ -65,7 +65,7 @@ struct IntegratorOps<T, typename std::enable_if<std::is_base_of<amrex::ParticleC
         {
             const int npy  = pty.numParticles();
             const int npx  = ptx.numParticles();
-            AMREX_ASSERT(npy == npx);
+            AMREX_ALWAYS_ASSERT(npy == npx);
 
             ParticleType* psy = &(pty.GetArrayOfStructs()[0]);
             ParticleType* psx = &(ptx.GetArrayOfStructs()[0]);
@@ -97,23 +97,33 @@ struct IntegratorOps<T, typename std::enable_if<std::is_same<amrex::Vector<amrex
         }
     }
 
-    static void Copy (T& Y, const T& Other, bool Grow = true)
+    static void Copy (T& Y, const T& Other, const Vector<int> scomp={}, const Vector<int> ncomp={}, bool Grow = true)
     {
         // Copy the contents of Other into Y
         const int size = Y.size();
+        bool specify_components = scomp.size() > 0 && ncomp.size() == scomp.size();
         for (int i = 0; i < size; ++i) {
             IntVect nGrow = Grow ? Other[i].nGrowVect() : IntVect(0);
-            amrex::MultiFab::Copy(Y[i], Other[i], 0, 0, Other[i].nComp(), nGrow);
+            const int iscomp = specify_components ? scomp[i] : 0;
+            const int incomp = specify_components ? ncomp[i] : Other[i].nComp();
+            if (incomp > 0) {
+                amrex::MultiFab::Copy(Y[i], Other[i], iscomp, iscomp, incomp, nGrow);
+            }
         }
     }
 
-    static void Saxpy (T& Y, const amrex::Real a, const T& X, bool Grow = false)
+    static void Saxpy (T& Y, const amrex::Real a, const T& X, const Vector<int> scomp={}, const Vector<int> ncomp={}, bool Grow = false)
     {
         // Calculate Y += a * X
         const int size = Y.size();
+        bool specify_components = scomp.size() > 0 && ncomp.size() == scomp.size();
         for (int i = 0; i < size; ++i) {
             IntVect nGrow = Grow ? X[i].nGrowVect() : IntVect(0);
-            amrex::MultiFab::Saxpy(Y[i], a, X[i], 0, 0, X[i].nComp(), nGrow);
+            const int iscomp = specify_components ? scomp[i] : 0;
+            const int incomp = specify_components ? ncomp[i] : X[i].nComp();
+            if (incomp > 0) {
+                amrex::MultiFab::Saxpy(Y[i], a, X[i], iscomp, iscomp, incomp, nGrow);
+            }
         }
     }
 
@@ -130,18 +140,20 @@ struct IntegratorOps<T, typename std::enable_if<std::is_same<amrex::MultiFab, T>
         V.emplace_back(std::make_unique<T>(Other.boxArray(), Other.DistributionMap(), Other.nComp(), nGrow));
     }
 
-    static void Copy (T& Y, const T& Other, bool Grow = true)
+    static void Copy (T& Y, const T& Other, const int scomp=0, const int ncomp=-1, bool Grow = true)
     {
         // Copy the contents of Other into Y
         IntVect nGrow = Grow ? Other.nGrowVect() : IntVect(0);
-        amrex::MultiFab::Copy(Y, Other, 0, 0, Other.nComp(), nGrow);
+        const int mf_ncomp = ncomp > 0 ? ncomp : Other.nComp();
+        amrex::MultiFab::Copy(Y, Other, scomp, scomp, mf_ncomp, nGrow);
     }
 
-    static void Saxpy (T& Y, const amrex::Real a, const T& X, bool Grow = false)
+    static void Saxpy (T& Y, const amrex::Real a, const T& X, const int scomp=0, const int ncomp=-1, bool Grow = false)
     {
         // Calculate Y += a * X
         IntVect nGrow = Grow ? X.nGrowVect() : IntVect(0);
-        amrex::MultiFab::Saxpy(Y, a, X, 0, 0, X.nComp(), nGrow);
+        const int mf_ncomp = ncomp > 0 ? ncomp : X.nComp();
+        amrex::MultiFab::Saxpy(Y, a, X, scomp, scomp, mf_ncomp, nGrow);
     }
 
 };
@@ -158,7 +170,7 @@ private:
    /**
     * \brief FastFun is the fast timescale right-hand-side function for a multirate integration problem.
     */
-    std::function<void(T&, const T&, const T&, const amrex::Real)> FastFun;
+    std::function<void(T&, T&, const T&, const amrex::Real)> FastFun;
 
 protected:
    /**
@@ -169,7 +181,12 @@ protected:
    /**
     * \brief For multirate problems, the ratio of slow timestep size / fast timestep size (int)
     */
-    int slow_fast_timestep_ratio;
+    int slow_fast_timestep_ratio = 0;
+
+   /**
+    * \brief For multirate problems, the fast timestep size (Real)
+    */
+    Real fast_timestep = 0.0;
 
    /**
     * \brief The post_update function is called by the integrator on state data before using it to evaluate a right-hand side.
@@ -179,7 +196,7 @@ protected:
 public:
     IntegratorBase () {}
 
-    IntegratorBase (const T& S_data) {}
+    IntegratorBase (const T& /* S_data */) {}
 
     virtual ~IntegratorBase () {}
 
@@ -190,7 +207,7 @@ public:
         Fun = F;
     }
 
-    void set_fast_rhs (std::function<void(T&, const T&, const T&, const amrex::Real)> F)
+    void set_fast_rhs (std::function<void(T&, T&, const T&, const amrex::Real)> F)
     {
         FastFun = F;
     }
@@ -198,6 +215,11 @@ public:
     void set_slow_fast_timestep_ratio (const int timestep_ratio = 1)
     {
         slow_fast_timestep_ratio = timestep_ratio;
+    }
+
+    void set_fast_timestep (const Real fast_dt = 1.0)
+    {
+        fast_timestep = fast_dt;
     }
 
     void set_post_update (std::function<void (T&, amrex::Real)> F)
@@ -215,7 +237,7 @@ public:
         return Fun;
     }
 
-    std::function<void(T&, const T&, const T&, const amrex::Real)> get_fast_rhs ()
+    std::function<void(T&, T&, const T&, const amrex::Real)> get_fast_rhs ()
     {
         return FastFun;
     }
@@ -225,12 +247,17 @@ public:
         return slow_fast_timestep_ratio;
     }
 
+    Real get_fast_timestep ()
+    {
+        return fast_timestep;
+    }
+
     void rhs (T& S_rhs, const T& S_data, const amrex::Real time)
     {
         Fun(S_rhs, S_data, time);
     }
 
-    void fast_rhs (T& S_rhs, const T& S_extra, const T& S_data, const amrex::Real time)
+    void fast_rhs (T& S_rhs, T& S_extra, const T& S_data, const amrex::Real time)
     {
         FastFun(S_rhs, S_extra, S_data, time);
     }

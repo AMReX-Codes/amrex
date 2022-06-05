@@ -118,6 +118,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
                                   const Vector<int>& write_int_comp,
                                   const Vector<std::string>& real_comp_names,
                                   const Vector<std::string>& int_comp_names,
+                                  const std::string& compression,
                                   F&& f, bool is_checkpoint)
 {
     BL_PROFILE("WriteHDF5ParticleDataSync()");
@@ -200,7 +201,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         }
     }
 
-    Gpu::Device::synchronize();
+    Gpu::streamSynchronize();
 
     if(pc.GetUsePrePost())
     {
@@ -257,7 +258,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         // whether we're using "float" or "double" floating point data in the
         // particles so that we can Restart from the checkpoint files.
         //
-        std::string versionName = Version();
+        std::string versionName = is_checkpoint ? PC::CheckpointVersion() : PC::PlotfileVersion();
         if (sizeof(typename PC::ParticleType::RealType) == 4)
             versionName += "_single";
         else
@@ -429,6 +430,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         {
             pc.WriteParticlesHDF5(lev, grp, which, count, where,
                                   write_real_comp, write_int_comp,
+                                  compression,
                                   particle_io_flags, is_checkpoint);
 
             if(pc.usePrePost) {
@@ -459,6 +461,6 @@ void WriteHDF5ParticleDataSync (PC const& pc,
 #endif
 
     return;
-}
+} // End WriteHDF5ParticleDataSync
 
 #endif /*AMREX_WRITE_BINARY_PARTICLE_DATA_HDF5_H*/

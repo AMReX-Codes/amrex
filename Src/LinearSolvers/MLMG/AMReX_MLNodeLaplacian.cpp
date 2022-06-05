@@ -87,6 +87,8 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
     const int ncomp_i = algoim::numIntgs;
 #endif
     m_integral.resize(m_num_amr_levels);
+    m_surface_integral.resize(m_num_amr_levels);
+    m_eb_vel_dot_n.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
 #ifdef AMREX_USE_EB
@@ -166,6 +168,213 @@ MLNodeLaplacian::unimposeNeumannBC (int amrlev, MultiFab& rhs) const
             Array4<Real> const& rhsarr = rhs.array(mfi);
             mlndlap_unimpose_neumann_bc(bx, rhsarr, nddom, lobc, hibc);
         }
+    }
+}
+
+Real
+MLNodeLaplacian::getSolvabilityOffset (int amrlev, int mglev, MultiFab const& rhs) const
+{
+    amrex::ignore_unused(amrlev);
+    AMREX_ASSERT(amrlev==0);
+    AMREX_ASSERT(mglev+1==m_num_mg_levels[0] || mglev==0);
+
+    if (m_coarsening_strategy == CoarseningStrategy::RAP) {
+#ifdef AMREX_USE_EB
+        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+        if (mglev == 0 && factory && !factory->isAllRegular()) {
+            const MultiFab& vfrac = factory->getVolFrac();
+            const auto& vfrac_ma = vfrac.const_arrays();
+
+            Box dom = Geom(amrlev,mglev).Domain();
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if (m_lobc[0][idim] != LinOpBCType::Neumann &&
+                    m_lobc[0][idim] != LinOpBCType::inflow)
+                {
+                    dom.growLo(idim, 10);
+                }
+                if (m_hibc[0][idim] != LinOpBCType::Neumann &&
+                    m_hibc[0][idim] != LinOpBCType::inflow)
+                {
+                    dom.growHi(idim, 10);
+                }
+            }
+
+            const auto& mask = (mglev+1 == m_num_mg_levels[0]) ? m_bottom_dot_mask : m_coarse_dot_mask;
+            const auto& mask_ma = mask.const_arrays();
+            const auto& rhs_ma = rhs.const_arrays();
+            auto r = ParReduce(TypeList<ReduceOpSum,ReduceOpSum>{}, TypeList<Real,Real>{},
+                               rhs, IntVect(0),
+                               [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                               -> GpuTuple<Real,Real>
+                               {
+                                   Real scale = 0.0_rt;
+#if (AMREX_SPACEDIM == 3)
+                                   int const koff = 1;
+                                   Real const fac = 0.125_rt;
+#else
+                                   int const koff = 0;
+                                   Real const fac = 0.25_rt;
+#endif
+                                   for (int kc = k-koff; kc <= k; ++kc) {
+                                   for (int jc = j-1   ; jc <= j; ++jc) {
+                                   for (int ic = i-1   ; ic <= i; ++ic) {
+                                       if (dom.contains(ic,jc,kc)) {
+                                           scale += vfrac_ma[box_no](ic,jc,kc) * fac;
+                                       }
+                                   }}}
+                                   return { mask_ma[box_no](i,j,k) * rhs_ma[box_no](i,j,k),
+                                            mask_ma[box_no](i,j,k) * scale };
+                               });
+
+            Real s1 = amrex::get<0>(r);
+            Real s2 = amrex::get<1>(r);
+            ParallelAllReduce::Sum<Real>({s1,s2}, ParallelContext::CommunicatorSub());
+            return s1/s2;
+        } else
+#endif
+        {
+            Box nddom = amrex::surroundingNodes(Geom(amrlev,mglev).Domain());
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if (m_lobc[0][idim] != LinOpBCType::Neumann &&
+                    m_lobc[0][idim] != LinOpBCType::inflow)
+                {
+                    nddom.growLo(idim, 10); // so that the test in ParReduce will faill
+                }
+                if (m_hibc[0][idim] != LinOpBCType::Neumann &&
+                    m_hibc[0][idim] != LinOpBCType::inflow)
+                {
+                    nddom.growHi(idim, 10);
+                }
+            }
+
+            const auto& mask = (mglev+1 == m_num_mg_levels[0]) ? m_bottom_dot_mask : m_coarse_dot_mask;
+            const auto& mask_ma = mask.const_arrays();
+            const auto& rhs_ma = rhs.const_arrays();
+            auto r = ParReduce(TypeList<ReduceOpSum,ReduceOpSum>{}, TypeList<Real,Real>{},
+                               rhs, IntVect(0),
+                               [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                                   -> GpuTuple<Real,Real>
+                               {
+                                   Real scale = 1.0_rt;
+                                   if (i == nddom.smallEnd(0) ||
+                                       i == nddom.bigEnd(0)) {
+                                       scale *= 0.5_rt;
+                                   }
+#if (AMREX_SPACEDIM >= 2)
+                                   if (j == nddom.smallEnd(1) ||
+                                       j == nddom.bigEnd(1)) {
+                                       scale *= 0.5_rt;
+                                   }
+#endif
+#if (AMREX_SPACEDIM == 3)
+                                   if (k == nddom.smallEnd(2) ||
+                                       k == nddom.bigEnd(2)) {
+                                       scale *= 0.5_rt;
+                                   }
+#endif
+                                   return { mask_ma[box_no](i,j,k) * rhs_ma[box_no](i,j,k),
+                                            mask_ma[box_no](i,j,k) * scale };
+                               });
+
+            Real s1 = amrex::get<0>(r);
+            Real s2 = amrex::get<1>(r);
+            ParallelAllReduce::Sum<Real>({s1,s2}, ParallelContext::CommunicatorSub());
+            return s1/s2;
+        }
+    } else {
+        return MLNodeLinOp::getSolvabilityOffset(amrlev, mglev, rhs);
+    }
+}
+
+void
+MLNodeLaplacian::fixSolvabilityByOffset (int amrlev, int mglev, MultiFab& rhs, Real offset) const
+{
+    if (m_coarsening_strategy == CoarseningStrategy::RAP) {
+#ifdef AMREX_USE_EB
+        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+        if (mglev == 0 && factory && !factory->isAllRegular()) {
+            const MultiFab& vfrac = factory->getVolFrac();
+            const auto& vfrac_ma = vfrac.const_arrays();
+
+            Box dom = Geom(amrlev,mglev).Domain();
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if (m_lobc[0][idim] != LinOpBCType::Neumann &&
+                    m_lobc[0][idim] != LinOpBCType::inflow)
+                {
+                    dom.growLo(idim, 10);
+                }
+                if (m_hibc[0][idim] != LinOpBCType::Neumann &&
+                    m_hibc[0][idim] != LinOpBCType::inflow)
+                {
+                    dom.growHi(idim, 10);
+                }
+            }
+
+            auto const& rhs_ma = rhs.arrays();
+            ParallelFor(rhs, IntVect(0),
+                        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                        {
+                            Real scale = 0.0_rt;
+#if (AMREX_SPACEDIM == 3)
+                            int const koff = 1;
+                            Real const fac = 0.125_rt;
+#else
+                            int const koff = 0;
+                            Real const fac = 0.25_rt;
+#endif
+                            for (int kc = k-koff; kc <= k; ++kc) {
+                            for (int jc = j-1   ; jc <= j; ++jc) {
+                            for (int ic = i-1   ; ic <= i; ++ic) {
+                                if (dom.contains(ic,jc,kc)) {
+                                    scale += vfrac_ma[box_no](ic,jc,kc) * fac;
+                                }
+                            }}}
+                            rhs_ma[box_no](i,j,k) -= offset * scale;
+                        });
+        } else
+#endif
+        {
+            Box nddom = amrex::surroundingNodes(Geom(amrlev,mglev).Domain());
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if (m_lobc[0][idim] != LinOpBCType::Neumann &&
+                    m_lobc[0][idim] != LinOpBCType::inflow)
+                {
+                    nddom.growLo(idim, 10); // so that the test in ParReduce will faill
+                }
+                if (m_hibc[0][idim] != LinOpBCType::Neumann &&
+                    m_hibc[0][idim] != LinOpBCType::inflow)
+                {
+                    nddom.growHi(idim, 10);
+                }
+            }
+
+            auto const& rhs_ma = rhs.arrays();
+            ParallelFor(rhs, IntVect(0),
+                        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                        {
+                            Real scale = 1.0_rt;
+                            if (i == nddom.smallEnd(0) ||
+                                i == nddom.bigEnd(0)) {
+                                scale *= 0.5_rt;
+                            }
+#if (AMREX_SPACEDIM >= 2)
+                            if (j == nddom.smallEnd(1) ||
+                                j == nddom.bigEnd(1)) {
+                                scale *= 0.5_rt;
+                            }
+#endif
+#if (AMREX_SPACEDIM == 3)
+                            if (k == nddom.smallEnd(2) ||
+                                k == nddom.bigEnd(2)) {
+                                scale *= 0.5_rt;
+                            }
+#endif
+                            rhs_ma[box_no](i,j,k) -= offset * scale;
+                        });
+        }
+        Gpu::streamSynchronize();
+    } else {
+        rhs.plus(-offset, 0, 1);
     }
 }
 
@@ -254,6 +463,7 @@ MLNodeLaplacian::prepareForSolve ()
 
 #ifdef AMREX_USE_EB
     buildIntegral();
+    if (m_build_surface_integral) buildSurfaceIntegral();
 #endif
 
     buildStencil();
@@ -320,7 +530,7 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
                 mlndlap_restriction_rap(i,j,k,pcrse_ma[box_no],fine_ma[box_no],st_ma[box_no],msk_ma[box_no]);
             });
         }
-        Gpu::synchronize();
+        Gpu::streamSynchronize();
     } else
 #endif
     {
@@ -448,7 +658,7 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
                 mlndlap_semi_interpadd_aa(i, j, k, fine_ma[box_no], crse_ma[box_no], sig_ma[box_no], msk_ma[box_no], idir);
             });
         }
-        Gpu::synchronize();
+        Gpu::streamSynchronize();
     } else
 #endif
     {
@@ -799,5 +1009,62 @@ MLNodeLaplacian::checkPoint (std::string const& file_name) const
         }
     }
 }
+
+#ifdef AMREX_USE_EB
+void
+MLNodeLaplacian::setEBInflowVelocity (int amrlev, const MultiFab& eb_vel)
+{
+    const int mglev = 0;
+    if (m_eb_vel_dot_n[amrlev] == nullptr) {
+        m_eb_vel_dot_n[amrlev] = std::make_unique<MultiFab>(
+                m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
+                1, 1, MFInfo(), *m_factory[amrlev][mglev]);
+    }
+
+    m_eb_vel_dot_n[amrlev]->setVal(0.0);
+
+    auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(*m_eb_vel_dot_n[amrlev], mfi_info); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        const auto& flagfab = ebfactory->getMultiEBCellFlagFab()[mfi];
+
+        if (flagfab.getType(bx) == FabType::singlevalued) {
+            Array4<Real> const& eb_vel_dot_n = m_eb_vel_dot_n[amrlev]->array(mfi);
+            Array4<Real const> const& ebvelin = eb_vel.const_array(mfi);
+            Array4<Real const> const& bnorm = ebfactory->getBndryNormal().const_array(mfi);
+
+            ParallelFor(bx, [eb_vel_dot_n,ebvelin,bnorm]
+             AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                for(int n = 0; n < AMREX_SPACEDIM; ++n)
+                {
+                    eb_vel_dot_n(i,j,k) += ebvelin(i,j,k,n)*bnorm(i,j,k,n);
+                }
+            });
+        }
+    }
+
+    m_eb_vel_dot_n[amrlev]->FillBoundary(m_geom[amrlev][mglev].periodicity());
+
+#if (AMREX_SPACEDIM == 2)
+    const int ncomp_si = 3;
+#else
+    const int ncomp_si = algoim::numSurfIntgs;
+#endif
+    m_surface_integral[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][0],
+                                                    m_dmap[amrlev][0],
+                                                    ncomp_si, 1, MFInfo(),
+                                                    *m_factory[amrlev][0]);
+    // Turn on flag for building surface integrals
+    m_build_surface_integral = true;
+}
+#endif
 
 }

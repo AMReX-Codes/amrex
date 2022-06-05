@@ -330,18 +330,19 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                 auto new_size = old_size + src_tile.size();
                 dst_tile.resize(new_size);
 
-                Gpu::copy(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
-                          dst_tile.GetArrayOfStructs().begin() + old_size);
+                Gpu::copyAsync(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
+                               dst_tile.GetArrayOfStructs().begin() + old_size);
 
                 if((host_real_attribs[lev][std::make_pair(grid, tile)]).size() > (long unsigned int) NArrayReal)
                   for (int i = 0; i < NArrayReal; ++i) {
-                    Gpu::copy(Gpu::hostToDevice,
-                              host_real_attribs[lev][std::make_pair(grid,tile)][i].begin(),
-                              host_real_attribs[lev][std::make_pair(grid,tile)][i].end(),
-                              dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
-         }
+                    Gpu::copyAsync(Gpu::hostToDevice,
+                                   host_real_attribs[lev][std::make_pair(grid,tile)][i].begin(),
+                                   host_real_attribs[lev][std::make_pair(grid,tile)][i].end(),
+                                   dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
+                  }
             }
         }
+        Gpu::streamSynchronize();
 
         Redistribute();
     }
@@ -402,17 +403,18 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                 auto new_size = old_size + src_tile.size();
                 dst_tile.resize(new_size);
 
-                Gpu::copy(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
-                          dst_tile.GetArrayOfStructs().begin() + old_size);
+                Gpu::copyAsync(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
+                               dst_tile.GetArrayOfStructs().begin() + old_size);
 
                 for (int i = 0; i < NArrayReal; ++i) {
-                    Gpu::copy(Gpu::hostToDevice,
-                              host_real_attribs[lev][std::make_pair(grid,tile)][i].begin(),
-                              host_real_attribs[lev][std::make_pair(grid,tile)][i].end(),
-                              dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
+                    Gpu::copyAsync(Gpu::hostToDevice,
+                                   host_real_attribs[lev][std::make_pair(grid,tile)][i].begin(),
+                                   host_real_attribs[lev][std::make_pair(grid,tile)][i].end(),
+                                   dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
                 }
             }
         }
+        Gpu::streamSynchronize();
 
         Redistribute();
 
@@ -836,10 +838,11 @@ InitFromBinaryFile (const std::string& file,
                 auto new_size = old_size + src_tile.size();
                 dst_tile.resize(new_size);
 
-                Gpu::copy(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
-                          dst_tile.GetArrayOfStructs().begin() + old_size);
+                Gpu::copyAsync(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
+                               dst_tile.GetArrayOfStructs().begin() + old_size);
             }
         }
+        Gpu::streamSynchronize();
 
         Redistribute();
 
@@ -984,6 +987,10 @@ InitRandom (Long                    icount,
 
     if (serialize)
     {
+        if(icount*AMREX_SPACEDIM >= std::numeric_limits<int>::max())
+        {
+            amrex::Abort("InitRandom has serialize=true, but this would cause too much particle data to be sent from IOProc. Set serialize=false, or use fewer than "+std::to_string(amrex::Math::ceil(std::numeric_limits<int>::max()/amrex::Real(AMREX_SPACEDIM)))+ "particles");
+        }
         //
         // We'll let IOProc generate the particles so we get the same
         // positions no matter how many CPUs we have.  This is here
@@ -1089,24 +1096,25 @@ InitRandom (Long                    icount,
                 auto new_size = old_size + src_tile.size();
                 dst_tile.resize(new_size);
 
-                Gpu::copy(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
-                          dst_tile.GetArrayOfStructs().begin() + old_size);
+                Gpu::copyAsync(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
+                               dst_tile.GetArrayOfStructs().begin() + old_size);
 
                 for (int i = 0; i < NArrayReal; ++i) {
-                    Gpu::copy(Gpu::hostToDevice,
-                              host_real_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
-                              host_real_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
-                              dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
+                    Gpu::copyAsync(Gpu::hostToDevice,
+                                   host_real_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
+                                   host_real_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
+                                   dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
                 }
 
                 for (int i = 0; i < NArrayInt; ++i) {
-                    Gpu::copy(Gpu::hostToDevice,
-                              host_int_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
-                              host_int_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
-                              dst_tile.GetStructOfArrays().GetIntData(i).begin() + old_size);
+                    Gpu::copyAsync(Gpu::hostToDevice,
+                                   host_int_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
+                                   host_int_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
+                                   dst_tile.GetStructOfArrays().GetIntData(i).begin() + old_size);
                 }
             }
         }
+        Gpu::streamSynchronize();
 
         AMREX_ASSERT(OK());
     }
@@ -1193,25 +1201,27 @@ InitRandom (Long                    icount,
                 auto new_size = old_size + src_tile.size();
                 dst_tile.resize(new_size);
 
-                Gpu::copy(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
-                          dst_tile.GetArrayOfStructs().begin() + old_size);
+                Gpu::copyAsync(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
+                               dst_tile.GetArrayOfStructs().begin() + old_size);
 
                 for (int i = 0; i < NArrayReal; ++i) {
-                    Gpu::copy(Gpu::hostToDevice,
-                              host_real_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
-                              host_real_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
-                              dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
+                    Gpu::copyAsync(Gpu::hostToDevice,
+                                   host_real_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
+                                   host_real_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
+                                   dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
                 }
 
                 for (int i = 0; i < NArrayInt; ++i) {
-                    Gpu::copy(Gpu::hostToDevice,
-                              host_int_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
-                              host_int_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
-                              dst_tile.GetStructOfArrays().GetIntData(i).begin() + old_size);
+                    Gpu::copyAsync(Gpu::hostToDevice,
+                                   host_int_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
+                                   host_int_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
+                                   dst_tile.GetStructOfArrays().GetIntData(i).begin() + old_size);
                 }
             }
         }
-        // Let Redistribute() sort out where the particles beLong.
+        Gpu::streamSynchronize();
+
+        // Let Redistribute() sort out where the particles belong.
         Redistribute();
     }
 
@@ -1395,7 +1405,7 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
 
         m_particles[0][ind].resize(ptile_tmp.numParticles());
         amrex::copyParticles(m_particles[0][ind], ptile_tmp);
-        Gpu::Device::synchronize();
+        Gpu::Device::streamSynchronize();
     }
 
     Redistribute();
@@ -1517,27 +1527,27 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
                 auto new_size = old_size + src_tid.size();
                 dst_tile.resize(new_size);
 
-                Gpu::copy(Gpu::hostToDevice, src_tid.begin(), src_tid.end(),
-                          dst_tile.GetArrayOfStructs().begin() + old_size);
+                Gpu::copyAsync(Gpu::hostToDevice, src_tid.begin(), src_tid.end(),
+                               dst_tile.GetArrayOfStructs().begin() + old_size);
 
                 for (int i = 0; i < NArrayReal; ++i)
                 {
-                    Gpu::copy(Gpu::hostToDevice,
-                              host_real_attribs[host_lev][std::make_pair(gid,tid)][i].begin(),
-                              host_real_attribs[host_lev][std::make_pair(gid,tid)][i].end(),
-                              dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
+                    Gpu::copyAsync(Gpu::hostToDevice,
+                                   host_real_attribs[host_lev][std::make_pair(gid,tid)][i].begin(),
+                                   host_real_attribs[host_lev][std::make_pair(gid,tid)][i].end(),
+                                   dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
                 }
 
                 for (int i = 0; i < NArrayInt; ++i)
                 {
-                    Gpu::copy(Gpu::hostToDevice,
-                              host_int_attribs[host_lev][std::make_pair(gid,tid)][i].begin(),
-                              host_int_attribs[host_lev][std::make_pair(gid,tid)][i].end(),
-                              dst_tile.GetStructOfArrays().GetIntData(i).begin() + old_size);
+                    Gpu::copyAsync(Gpu::hostToDevice,
+                                   host_int_attribs[host_lev][std::make_pair(gid,tid)][i].begin(),
+                                   host_int_attribs[host_lev][std::make_pair(gid,tid)][i].end(),
+                                   dst_tile.GetStructOfArrays().GetIntData(i).begin() + old_size);
                 }
             }
         }
-
+        Gpu::streamSynchronize();
     }
 
     if (m_verbose > 1)

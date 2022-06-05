@@ -126,7 +126,14 @@ Arena::allocate_system (std::size_t nbytes)
     if (arena_info.use_cpu_memory)
     {
         p = std::malloc(nbytes);
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
         if (p && arena_info.device_use_hostalloc) AMREX_MLOCK(p, nbytes);
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
     }
     else if (arena_info.device_use_hostalloc)
     {

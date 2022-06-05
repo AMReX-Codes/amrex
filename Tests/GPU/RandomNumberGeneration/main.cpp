@@ -45,7 +45,7 @@ void RandomNumGen ()
             z_d_ptr[i] = amrex::Random(engine);
         });
 
-        Gpu::synchronize();
+        Gpu::streamSynchronize();
     }
 
     std::vector<Real> x_h(Ndraw);
@@ -54,7 +54,7 @@ void RandomNumGen ()
     Gpu::copyAsync(Gpu::deviceToHost, x_d.begin(), x_d.end(), x_h.begin());
     Gpu::copyAsync(Gpu::deviceToHost, y_d.begin(), y_d.end(), y_h.begin());
     Gpu::copyAsync(Gpu::deviceToHost, z_d.begin(), z_d.end(), z_h.begin());
-    Gpu::synchronize();
+    Gpu::streamSynchronize();
 
     Real xmean=0., ymean=0., zmean=0., xvar=0., yvar=0., zvar=0.;
     for (int i = 0; i < Ndraw; ++i) {

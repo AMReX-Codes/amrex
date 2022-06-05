@@ -15,6 +15,8 @@ using namespace amrex;
 void
 MyTest::initializeEB ()
 {
+    constexpr Real pi = 3.1415926535897932;
+
     ParmParse pp("eb2");
     std::string geom_type;
     pp.get("geom_type", geom_type);
@@ -68,7 +70,7 @@ MyTest::initializeEB ()
         pp.getarr("channel_pt_on_top_wall", pt_on_top_wall, 0, 3);
         pp.get("channel_rotation", rotation);
         pp.get("channel_height", height);
-        rotation = (rotation/180.) * M_PI;
+        rotation = (rotation/180.) * pi;
 
         EB2::PlaneIF left({AMREX_D_DECL(pt_on_top_wall[0],pt_on_top_wall[1],0.0)},
                          {AMREX_D_DECL(-std::sin(rotation),std::cos(rotation),0.0)},
@@ -92,8 +94,8 @@ MyTest::initializeEB ()
            pp.getarr("channel_rotation", rotation, 0, 2);
            pp.get("channel_height", height);
 
-           Real alpha = (rotation[0]/180.) * M_PI;
-           Real gamma = (rotation[1]/180.) * M_PI;
+           Real alpha = (rotation[0]/180.) * pi;
+           Real gamma = (rotation[1]/180.) * pi;
 
            Vector<Real> norm(3);
            Real norm_mag = std::sqrt(std::sin(alpha)*std::sin(alpha) +

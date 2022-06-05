@@ -27,7 +27,7 @@ namespace Gpu {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T LDG (Array4<T> const& a, int i, int j, int k) noexcept {
 #ifdef __CUDA_ARCH__
-        return __ldg(a.ptr(i,j,k,n));
+        return __ldg(a.ptr(i,j,k));
 #else
         return a(i,j,k);
 #endif

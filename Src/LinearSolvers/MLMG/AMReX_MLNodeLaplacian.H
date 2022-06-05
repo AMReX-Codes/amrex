@@ -117,6 +117,8 @@ public :
     virtual void getFluxes (const Vector<MultiFab*>& a_flux,
                             const Vector<MultiFab*>& a_sol) const final override;
     virtual void unimposeNeumannBC (int amrlev, MultiFab& rhs) const final override;
+    virtual Real getSolvabilityOffset (int amrlev, int mglev, MultiFab const& rhs) const override;
+    virtual void fixSolvabilityByOffset (int amrlev, int mglev, MultiFab& rhs, Real offset) const override;
 
     virtual void compGrad (int /*amrlev*/, const Array<MultiFab*,AMREX_SPACEDIM>& /*grad*/,
                            MultiFab& /*sol*/, Location /*loc*/) const final override {
@@ -136,6 +138,11 @@ public :
 
 #ifdef AMREX_USE_EB
     void buildIntegral ();
+    void buildSurfaceIntegral ();
+
+    // Tells the solver that EB boundaries have inflow specified by "eb_vel"
+    void setEBInflowVelocity (int amrlev, const MultiFab& eb_vel);
+
 #endif
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
@@ -186,6 +193,11 @@ private:
     // they could be MultiCutFab
     Vector<std::unique_ptr<MultiFab> > m_integral;
     bool m_integral_built = false;
+
+    Vector<std::unique_ptr<MultiFab> > m_surface_integral;
+    bool m_surface_integral_built = false;
+    bool m_build_surface_integral = false;
+    Vector<std::unique_ptr<MultiFab> > m_eb_vel_dot_n;
 #endif
 
     bool m_use_gauss_seidel     = true;
