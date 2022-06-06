@@ -1495,13 +1495,13 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
                                          dcomp,
                                          m_scomp,
                                          m_ncomp);
-        Gpu::synchronize();  // In case this runs on GPU
+        Gpu::streamSynchronize();  // In case this runs on GPU
     }
 
     if (m_FixUpCorners)
     {
         FixUpPhysCorners(fab,m_amrlevel,m_index,m_time,m_scomp,dcomp,m_ncomp);
-        Gpu::synchronize();  // In case this runs on GPU
+        Gpu::streamSynchronize();  // In case this runs on GPU
     }
 }
 

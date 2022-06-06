@@ -9,7 +9,6 @@
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(amrex_i_tn); \
-        if (amrex::Gpu::onNullStream()) amrex::Gpu::nonNullStreamSynchronize(); \
         int amrex_i_nthreads_per_block = amrex_i_ec.numThreads.x; \
         int amrex_i_nthreads_total = amrex_i_nthreads_per_block * amrex_i_ec.numBlocks.x; \
         auto& amrex_i_q = amrex::Gpu::Device::streamQueue(); \
@@ -68,7 +67,6 @@
         dim3 amrex_i_nblocks = amrex::max(amrex_i_ec1.numBlocks.x, \
                                           amrex_i_ec2.numBlocks.x); \
         amrex_i_nblocks.y = 2; \
-        if (amrex::Gpu::onNullStream()) amrex::Gpu::nonNullStreamSynchronize(); \
         int amrex_i_nthreads_per_block = amrex_i_ec1.numThreads.x; \
         int amrex_i_nthreads_total = amrex_i_nthreads_per_block * amrex_i_nblocks.x; \
         auto& amrex_i_q = amrex::Gpu::Device::streamQueue(); \
@@ -151,7 +149,6 @@
                                                      amrex_i_ec2.numBlocks.x), \
                                                      amrex_i_ec3.numBlocks.x); \
         amrex_i_nblocks.y = 3; \
-        if (amrex::Gpu::onNullStream()) amrex::Gpu::nonNullStreamSynchronize(); \
         int amrex_i_nthreads_per_block = amrex_i_ec1.numThreads.x; \
         int amrex_i_nthreads_total = amrex_i_nthreads_per_block * amrex_i_nblocks.x; \
         auto& amrex_i_q = amrex::Gpu::Device::streamQueue(); \
@@ -243,7 +240,6 @@
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         auto amrex_i_ec = amrex::Gpu::ExecutionConfig(amrex_i_tn); \
-        if (amrex::Gpu::onNullStream()) amrex::Gpu::nonNullStreamSynchronize(); \
         int amrex_i_nthreads_per_block = amrex_i_ec.numThreads.x; \
         int amrex_i_nthreads_total = amrex_i_nthreads_per_block * amrex_i_ec.numBlocks.x; \
         auto& amrex_i_q = amrex::Gpu::Device::streamQueue(); \
@@ -298,7 +294,6 @@
         dim3 amrex_i_nblocks = amrex::max(amrex_i_ec1.numBlocks.x, \
                                           amrex_i_ec2.numBlocks.x); \
         amrex_i_nblocks.y = 2; \
-        if (amrex::Gpu::onNullStream()) amrex::Gpu::nonNullStreamSynchronize(); \
         int amrex_i_nthreads_per_block = amrex_i_ec1.numThreads.x; \
         int amrex_i_nthreads_total = amrex_i_nthreads_per_block * amrex_i_nblocks.x; \
         auto& amrex_i_q = amrex::Gpu::Device::streamQueue(); \
@@ -371,7 +366,6 @@
                                                      amrex_i_ec2.numBlocks.x), \
                                                      amrex_i_ec3.numBlocks.x); \
         amrex_i_nblocks.y = 3; \
-        if (amrex::Gpu::onNullStream()) amrex::Gpu::nonNullStreamSynchronize(); \
         int amrex_i_nthreads_per_block = amrex_i_ec1.numThreads.x; \
         int amrex_i_nthreads_total = amrex_i_nthreads_per_block * amrex_i_nblocks.x; \
         auto& amrex_i_q = amrex::Gpu::Device::streamQueue(); \

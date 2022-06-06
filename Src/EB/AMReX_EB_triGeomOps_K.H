@@ -1,7 +1,8 @@
 #ifndef AMREX_EB_TRIGEOMOPS_K_H_
 #define AMREX_EB_TRIGEOMOPS_K_H_
 #include <AMReX_Config.H>
-#include <AMReX.H>
+#include <AMReX_Math.H>
+#include <AMReX_REAL.H>
 
 namespace amrex
 {
@@ -20,6 +21,7 @@ namespace amrex
             return(v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]);
         }
         //================================================================================
+        // If this is zero, the two lines either intersect or are parallel.
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Real side_op(Real L1[6],Real L2[6])
         {
             return(    L1[0]*L2[4]

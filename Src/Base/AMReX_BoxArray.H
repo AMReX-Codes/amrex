@@ -497,25 +497,13 @@ struct BATransformer
     }
 
     friend bool operator== (BATransformer const& a, BATransformer const& b) noexcept {
-        switch (a.m_bat_type)
-        {
-        case BATType::bndryReg:
-            switch (b.m_bat_type)
-            {
-            case BATType::bndryReg:
-                return a.m_op.m_bndryReg == b.m_op.m_bndryReg;
-            default:
-                return false;
-            }
-        default:
-            switch (b.m_bat_type)
-            {
-            case BATType::bndryReg:
-                return false;
-            default:
-                return a.index_type() == b.index_type()
-                    && a.coarsen_ratio() == b.coarsen_ratio();
-            }
+        if (a.m_bat_type != BATType::bndryReg && b.m_bat_type != BATType::bndryReg) {
+            return a.index_type() == b.index_type()
+                && a.coarsen_ratio() == b.coarsen_ratio();
+        } else if (a.m_bat_type == BATType::bndryReg && b.m_bat_type == BATType::bndryReg) {
+            return a.m_op.m_bndryReg == b.m_op.m_bndryReg;
+        } else {
+            return false;
         }
     }
 
@@ -824,6 +812,8 @@ public:
 
     BoxList const& simplified_list () const; // For regular AMR grids only!!!
     BoxArray simplified () const; // For regular AMR grids only!!!
+
+    BATransformer const& transformer () const;
 
     friend class AmrMesh;
     friend class FabArrayBase;

@@ -213,7 +213,7 @@ namespace amrex {
             div(i,j,k,icomp+n) = divc(i,j,k,n) + optmp(i,j,k,n);
         });
 
-        Gpu::synchronize();
+        Gpu::streamSynchronize();
     }
 
     //
@@ -309,13 +309,7 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
 
     // scalar characterizing EB facet position
     Real eb_h = eb_normal.dotProduct(eb_p0);
-
-#if (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
     Real min_dist = std::numeric_limits<Real>::max();
-#else
-    Real min_dist = 3.4e38_rt;
-#endif
-
     RealVect c_vec;
 
     // iterate over EB facet edges and find whichever has the closest nearest point
@@ -399,7 +393,6 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
         // the min/max values of lambda, in order for the point described by
         // lambda to be contained within the box.
         //
-#if (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         Real cx_lo = -std::numeric_limits<Real>::max();
         Real cy_lo = -std::numeric_limits<Real>::max();
         Real cz_lo = -std::numeric_limits<Real>::max();
@@ -407,15 +400,6 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
         Real cy_hi = std::numeric_limits<Real>::max();
         Real cz_hi = std::numeric_limits<Real>::max();
         Real eps = std::numeric_limits<Real>::epsilon();
-#else
-        Real cx_lo = -3.4e38_rt;
-        Real cy_lo = -3.4e38_rt;
-        Real cz_lo = -3.4e38_rt;
-        Real cx_hi =  3.4e38_rt;
-        Real cy_hi =  3.4e38_rt;
-        Real cz_hi =  3.4e38_rt;
-        Real eps = 1.e-7_rt;
-#endif
         // if the line runs parallel to any of these dimensions (which is true for
         // EB edges), then skip -> the min/max functions at the end will skip them
         // due to the +/-huge(c...) defaults (above).
@@ -587,11 +571,7 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
                     AMREX_D_TERM(Real x = i*dx_ls[0];,
                                  Real y = j*dx_ls[1];,
                                  Real z = k*dx_ls[2]);
-#if (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                     Real min_dist2 = std::numeric_limits<Real>::max();
-#else
-                    Real min_dist2 = 3.4e38_rt;
-#endif
                     int i_nearest = 0;
                     for (int ifac  = 0; ifac < ncutcells; ++ifac) {
                         AMREX_D_TERM(Real cx = p_facets[ifac][0];,
@@ -678,7 +658,7 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
                         fab(i,j,k) = (-fluid_sign) * usd;
                     }
                 });
-                Gpu::synchronize();
+                Gpu::streamSynchronize();
             }
         } else {
             amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept

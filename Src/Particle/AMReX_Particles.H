@@ -294,7 +294,7 @@ public:
         resizeData();
     }
 
-    virtual ~ParticleContainer () {}
+    virtual ~ParticleContainer () = default;
 
     ParticleContainer ( const ParticleContainer &) = delete;
     ParticleContainer& operator= ( const ParticleContainer & ) = delete;
@@ -372,10 +372,12 @@ public:
     }
 
     //! \brief The total number of tiles on this rank on this level
-    int numLocalTilesAtLevel (int lev) const { return m_particles[lev].size(); }
+    int numLocalTilesAtLevel (int lev) const {
+        return (lev < m_particles.size()) ? m_particles[lev].size() : 0;
+    }
 
-    void reserveData ();
-    void resizeData ();
+    void reserveData () override;
+    void resizeData () override;
 
     void InitFromAsciiFile (const std::string& file, int extradata,
                             const IntVect* Nrep = nullptr);

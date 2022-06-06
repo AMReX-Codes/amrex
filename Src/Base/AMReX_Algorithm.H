@@ -20,7 +20,7 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE
     AMREX_FORCE_INLINE constexpr const T& min (const T& a, const T& b) noexcept
     {
-        return (b < a) ? b : a;
+        return std::min(a,b);
     }
 
     template <class T, class ... Ts>
@@ -34,7 +34,7 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE
     AMREX_FORCE_INLINE constexpr const T& max (const T& a, const T& b) noexcept
     {
-        return (a < b) ? b : a;
+        return std::max(a,b);
     }
 
     template <class T, class ... Ts>

@@ -226,20 +226,20 @@ struct PsiCode
 template <int N>
 struct BoundingBox
 {
-    static constexpr Real min (int /*dim*/) noexcept { return -0.5; }
+    static constexpr Real min (int /*dim*/) noexcept { return -0.5_rt; }
 
-    static constexpr Real max (int /*dim*/) noexcept { return  0.5; }
+    static constexpr Real max (int /*dim*/) noexcept { return  0.5_rt; }
 
-    static constexpr Real extent (int /*dim*/) noexcept { return 1.0; }
+    static constexpr Real extent (int /*dim*/) noexcept { return 1.0_rt; }
 
     static constexpr GpuArray<Real,N> midpoint () noexcept {
         return GpuArray<Real,N>{};
     }
 
-    static constexpr Real midpoint (int /*dim*/) noexcept { return 0.0; }
+    static constexpr Real midpoint (int /*dim*/) noexcept { return 0.0_rt; }
 
     constexpr Real operator() (int side, int /*dim*/) const noexcept {
-        return (side == 0) ? -0.5 : 0.5;
+        return (side == 0) ? -0.5_rt : 0.5_rt;
     }
 };
 
@@ -272,17 +272,13 @@ struct ImplicitIntegral
     AMREX_GPU_HOST_DEVICE
     bool prune () noexcept
     {
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         static constexpr Real eps = std::numeric_limits<Real>::epsilon();
-#else
-        static constexpr Real eps = DBL_EPSILON;
-#endif
         static constexpr Real almostone = 1.0-10.*eps;
 
         for (int i = 0; i < psiCount; )
         {
             GpuArray<Real,N> mid = xrange.midpoint();
-            Real dphi_max = 0.0;
+            Real dphi_max = 0.0_rt;
             for (int dim = 0; dim < N; ++dim) {
                 if (free[dim]) {
                     dphi_max += amrex::Math::abs(phi.grad(dim));
@@ -317,14 +313,14 @@ struct ImplicitIntegral
     AMREX_GPU_HOST_DEVICE
     void tensorProductIntegral () noexcept
     {
-        constexpr Real gauss_x[4]={0.069431844202973712388026755553595247452,
-                                   0.33000947820757186759866712044837765640,
-                                   0.66999052179242813240133287955162234360,
-                                   0.93056815579702628761197324444640475255};
-        constexpr Real gauss_w[4]={0.173927422568726928686531974610999703618,
-                                   0.326072577431273071313468025389000296382,
-                                   0.326072577431273071313468025389000296382,
-                                   0.173927422568726928686531974610999703618};
+        constexpr Real gauss_x[4]={0.069431844202973712388026755553595247452_rt,
+                                   0.33000947820757186759866712044837765640_rt,
+                                   0.66999052179242813240133287955162234360_rt,
+                                   0.93056815579702628761197324444640475255_rt};
+        constexpr Real gauss_w[4]={0.173927422568726928686531974610999703618_rt,
+                                   0.326072577431273071313468025389000296382_rt,
+                                   0.326072577431273071313468025389000296382_rt,
+                                   0.173927422568726928686531974610999703618_rt};
 
         int nloops = 1;
         for (int i = 0; i < M; ++i) {
@@ -334,7 +330,7 @@ struct ImplicitIntegral
         for (int iloop = 0; iloop < nloops; ++iloop)
         {
             GpuArray<Real,N> x{};
-            Real w = 1.0;
+            Real w = 1.0_rt;
             for (int dim = 0, k = 0; dim < N; ++dim) {
                 if (free[dim]) {
                     x[dim] = xrange.min(dim) + xrange.extent(dim) * gauss_x[i[k]];
@@ -362,14 +358,14 @@ struct ImplicitIntegral
     AMREX_GPU_HOST_DEVICE
     void evalIntegrand (GpuArray<Real,N> x, Real w) const noexcept
     {
-        constexpr Real gauss_x[4]={0.069431844202973712388026755553595247452,
-                                   0.33000947820757186759866712044837765640,
-                                   0.66999052179242813240133287955162234360,
-                                   0.93056815579702628761197324444640475255};
-        constexpr Real gauss_w[4]={0.173927422568726928686531974610999703618,
-                                   0.326072577431273071313468025389000296382,
-                                   0.326072577431273071313468025389000296382,
-                                   0.173927422568726928686531974610999703618};
+        constexpr Real gauss_x[4]={0.069431844202973712388026755553595247452_rt,
+                                   0.33000947820757186759866712044837765640_rt,
+                                   0.66999052179242813240133287955162234360_rt,
+                                   0.93056815579702628761197324444640475255_rt};
+        constexpr Real gauss_w[4]={0.173927422568726928686531974610999703618_rt,
+                                   0.326072577431273071313468025389000296382_rt,
+                                   0.326072577431273071313468025389000296382_rt,
+                                   0.173927422568726928686531974610999703618_rt};
 
         // Each thread has its own storage for computing roots. These
         // are not corrupted by the recursive chain of evalIntegrand()
@@ -400,7 +396,7 @@ struct ImplicitIntegral
             for (int i = 0; i < nroots; ++i)
             {
                 x[e0] = roots[i];
-                Real mag = 0.;
+                Real mag = 0._rt;
                 for (int dim = 0; dim < N; ++dim) {
                     mag += phi.grad(dim)*phi.grad(dim);
                 }
@@ -440,11 +436,7 @@ struct ImplicitIntegral
         roots[nroots++] = x_max;
 
         // In rare cases, degenerate segments can be found, filter out with a tolerance
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         static constexpr Real eps = std::numeric_limits<Real>::epsilon();
-#else
-        static constexpr Real eps = DBL_EPSILON;
-#endif
         constexpr Real tol = 50.0*eps;
 
         // Loop over segments of divided interval
@@ -515,7 +507,7 @@ struct ImplicitIntegral
             }
             else
             {
-                xint[dim].alpha = 0.0;
+                xint[dim].alpha = 0.0_rt;
             }
         }
 
@@ -619,39 +611,39 @@ quadGenSurf (EBPlane const& phi) noexcept
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void set_regular (int i, int j, int k, Array4<Real> const& intg) noexcept
 {
-    constexpr Real twelfth = 1./12.;
-    constexpr Real   offth = 1./144.;
-    intg(i,j,k,i_S_x    ) = 0.0;
-    intg(i,j,k,i_S_y    ) = 0.0;
-    intg(i,j,k,i_S_z    ) = 0.0;
+    constexpr Real twelfth = 1._rt/12._rt;
+    constexpr Real   offth = 1._rt/144._rt;
+    intg(i,j,k,i_S_x    ) = 0.0_rt;
+    intg(i,j,k,i_S_y    ) = 0.0_rt;
+    intg(i,j,k,i_S_z    ) = 0.0_rt;
     intg(i,j,k,i_S_x2   ) = twelfth;
     intg(i,j,k,i_S_y2   ) = twelfth;
     intg(i,j,k,i_S_z2   ) = twelfth;
-    intg(i,j,k,i_S_x_y  ) = 0.0;
-    intg(i,j,k,i_S_x_z  ) = 0.0;
-    intg(i,j,k,i_S_y_z  ) = 0.0;
-    intg(i,j,k,i_S_x2_y ) = 0.0;
-    intg(i,j,k,i_S_x2_z ) = 0.0;
-    intg(i,j,k,i_S_x_y2 ) = 0.0;
-    intg(i,j,k,i_S_y2_z ) = 0.0;
-    intg(i,j,k,i_S_x_z2 ) = 0.0;
-    intg(i,j,k,i_S_y_z2 ) = 0.0;
+    intg(i,j,k,i_S_x_y  ) = 0.0_rt;
+    intg(i,j,k,i_S_x_z  ) = 0.0_rt;
+    intg(i,j,k,i_S_y_z  ) = 0.0_rt;
+    intg(i,j,k,i_S_x2_y ) = 0.0_rt;
+    intg(i,j,k,i_S_x2_z ) = 0.0_rt;
+    intg(i,j,k,i_S_x_y2 ) = 0.0_rt;
+    intg(i,j,k,i_S_y2_z ) = 0.0_rt;
+    intg(i,j,k,i_S_x_z2 ) = 0.0_rt;
+    intg(i,j,k,i_S_y_z2 ) = 0.0_rt;
     intg(i,j,k,i_S_x2_y2) = offth;
     intg(i,j,k,i_S_x2_z2) = offth;
     intg(i,j,k,i_S_y2_z2) = offth;
-    intg(i,j,k,i_S_xyz  ) = 0.0;
+    intg(i,j,k,i_S_xyz  ) = 0.0_rt;
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void set_regular_surface (int i, int j, int k, Array4<Real> const& sintg) noexcept
 {
-    sintg(i,j,k,i_B_x    ) = 0.0;
-    sintg(i,j,k,i_B_y    ) = 0.0;
-    sintg(i,j,k,i_B_z    ) = 0.0;
-    sintg(i,j,k,i_B_x_y  ) = 0.0;
-    sintg(i,j,k,i_B_x_z  ) = 0.0;
-    sintg(i,j,k,i_B_y_z  ) = 0.0;
-    sintg(i,j,k,i_B_xyz  ) = 0.0;
+    sintg(i,j,k,i_B_x    ) = 0.0_rt;
+    sintg(i,j,k,i_B_y    ) = 0.0_rt;
+    sintg(i,j,k,i_B_z    ) = 0.0_rt;
+    sintg(i,j,k,i_B_x_y  ) = 0.0_rt;
+    sintg(i,j,k,i_B_x_z  ) = 0.0_rt;
+    sintg(i,j,k,i_B_y_z  ) = 0.0_rt;
+    sintg(i,j,k,i_B_xyz  ) = 0.0_rt;
 }
 
 }}

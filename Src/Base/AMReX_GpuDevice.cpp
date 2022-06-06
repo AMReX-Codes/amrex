@@ -86,7 +86,7 @@ std::unique_ptr<sycl::device>  Device::sycl_device;
 
 namespace {
 
-#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
+#if defined(__CUDACC__)
     AMREX_GPU_GLOBAL void emptyKernel() {}
 #endif
 
@@ -94,7 +94,7 @@ namespace {
     {
         amrex::ignore_unused(graph_size);
 
-#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
+#if defined(__CUDACC__)
 
         BL_PROFILE("InitGraph");
 
@@ -128,9 +128,7 @@ Device::Initialize ()
     // cuda API and cuda driver API initialization that will
     // be captured by the profiler. It a necessary, system
     // dependent step that is unavoidable.
-    nvtxRangeId_t nvtx_init;
-    const char* pname = "initialize_device";
-    nvtx_init = nvtxRangeStartA(pname);
+    nvtxRangePush("initialize_device");
 #endif
 
     ParmParse ppamrex("amrex");
@@ -293,7 +291,6 @@ Device::Initialize ()
     // is only available starting from CUDA 10.0, so we will
     // leave num_devices_used as 0 for older CUDA toolkits.
 
-#if (__CUDACC_VER_MAJOR__ >= 10)
     size_t uuid_length = 16;
     size_t recv_sz = uuid_length * ParallelDescriptor::NProcs();
     const char* sendbuf = &device_prop.uuid.bytes[0];
@@ -316,13 +313,12 @@ Device::Initialize ()
     ParallelDescriptor::Bcast<int>(&num_devices_used, 1);
 
     delete[] recvbuf;
-#endif
 
 #if (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
-    nvtxRangeEnd(nvtx_init);
+    nvtxRangePop();
 #endif
     if (amrex::Verbose()) {
-#if defined(AMREX_USE_MPI) && (__CUDACC_VER_MAJOR__ >= 10)
+#if defined(AMREX_USE_MPI)
         if (num_devices_used == ParallelDescriptor::NProcs())
         {
             amrex::Print() << "CUDA initialized with 1 GPU per MPI rank; "
@@ -333,9 +329,9 @@ Device::Initialize ()
             amrex::Print() << "CUDA initialized with " << num_devices_used << " GPU(s) and "
                            << ParallelDescriptor::NProcs() << " ranks.\n";
         }
-#else  // Should always be using NVCC >= 10 now, so not going to bother with other combinations.
+#else
         amrex::Print() << "CUDA initialized with 1 GPU\n";
-#endif // AMREX_USE_MPI && NVCC >= 10
+#endif // AMREX_USE_MPI
     }
 
 #elif defined(AMREX_USE_HIP)
@@ -407,7 +403,7 @@ Device::initialize_gpu ()
         AMREX_HIP_SAFE_CALL(hipDeviceSetSharedMemConfig(hipSharedMemBankSizeFourByte));
     }
 
-    gpu_default_stream = 0;
+    AMREX_HIP_SAFE_CALL(hipStreamCreate(&gpu_default_stream));
     for (int i = 0; i < max_gpu_streams; ++i) {
         AMREX_HIP_SAFE_CALL(hipStreamCreate(&gpu_stream_pool[i]));
     }
@@ -428,7 +424,7 @@ Device::initialize_gpu ()
         AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte));
     }
 
-    gpu_default_stream = 0;
+    AMREX_CUDA_SAFE_CALL(cudaStreamCreate(&gpu_default_stream));
     for (int i = 0; i < max_gpu_streams; ++i) {
         AMREX_CUDA_SAFE_CALL(cudaStreamCreate(&gpu_stream_pool[i]));
 #ifdef AMREX_USE_ACC
@@ -563,7 +559,7 @@ Device::numDevicesUsed () noexcept
 int
 Device::streamIndex (gpuStream_t s) noexcept
 {
-    if (s == nullStream()) {
+    if (s == gpu_default_stream) {
         return -1;
     } else {
         auto it = std::find(std::begin(gpu_stream_pool), std::end(gpu_stream_pool), s);
@@ -615,11 +611,18 @@ void
 Device::synchronize () noexcept
 {
 #ifdef AMREX_USE_DPCPP
-    nonNullStreamSynchronize();
+    auto& q = *(gpu_default_stream.queue);
     try {
-        gpu_default_stream.queue->wait_and_throw();
+        q.wait_and_throw();
     } catch (sycl::exception const& ex) {
         amrex::Abort(std::string("synchronize: ")+ex.what()+"!!!!!");
+    }
+    for (auto const& s : gpu_stream_pool) {
+        try {
+            s.queue->wait_and_throw();
+        } catch (sycl::exception const& ex) {
+            amrex::Abort(std::string("synchronize: ")+ex.what()+"!!!!!");
+        }
     }
 #else
     AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipDeviceSynchronize());,
@@ -638,26 +641,29 @@ Device::streamSynchronize () noexcept
         amrex::Abort(std::string("streamSynchronize: ")+ex.what()+"!!!!!");
     }
 #else
-    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamSynchronize(gpu_stream[OpenMP::get_thread_num()]));,
-                       AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(gpu_stream[OpenMP::get_thread_num()])); )
+    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamSynchronize(gpuStream()));,
+                       AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(gpuStream())); )
 #endif
 }
 
-#ifdef AMREX_USE_DPCPP
 void
-Device::nonNullStreamSynchronize () noexcept
+Device::streamSynchronizeAll () noexcept
 {
+#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_DPCPP
+    Device::synchronize();
+#else
+    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamSynchronize(gpu_default_stream));,
+                       AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(gpu_default_stream)); )
     for (auto const& s : gpu_stream_pool) {
-        try {
-            s.queue->wait_and_throw();
-        } catch (sycl::exception const& ex) {
-            amrex::Abort(std::string("nonNullStreamSynchronize: ")+ex.what()+"!!!!!");
-        }
+        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamSynchronize(s));,
+                           AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(s)); )
     }
-}
 #endif
+#endif
+}
 
-#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
+#if defined(__CUDACC__)
 
 void
 Device::startGraphRecording(bool first_iter, void* h_ptr, void* d_ptr, size_t sz)

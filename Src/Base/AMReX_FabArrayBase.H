@@ -504,7 +504,7 @@ public:
         Long         m_nuse;
         bool         m_multi_ghost = false;
         //
-#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
+#if defined(__CUDACC__)
         CudaGraph<CopyMemory> m_localCopy;
         CudaGraph<CopyMemory> m_copyToBuffer;
         CudaGraph<CopyMemory> m_copyFromBuffer;
@@ -669,8 +669,7 @@ public:
         void operator= (ParForInfo const&) = delete;
         void operator= (ParForInfo &&) = delete;
 
-        IndexType m_typ;
-        IntVect m_crse_ratio;
+        BATransformer m_bat;
         IntVect m_ng;
         int m_nthreads;
         std::pair<int*,int*> m_nblocks_x;

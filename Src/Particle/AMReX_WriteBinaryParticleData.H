@@ -184,11 +184,11 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
 
     typename PC::IntVector write_int_comp_d(write_int_comp.size());
     typename PC::IntVector write_real_comp_d(write_real_comp.size());
-    Gpu::copy(Gpu::hostToDevice, write_int_comp.begin(), write_int_comp.end(),
-              write_int_comp_d.begin());
-    Gpu::copy(Gpu::hostToDevice, write_real_comp.begin(), write_real_comp.end(),
-              write_real_comp_d.begin());
-    Gpu::Device::synchronize();
+    Gpu::copyAsync(Gpu::hostToDevice, write_int_comp.begin(), write_int_comp.end(),
+                   write_int_comp_d.begin());
+    Gpu::copyAsync(Gpu::hostToDevice, write_real_comp.begin(), write_real_comp.end(),
+                   write_real_comp_d.begin());
+    Gpu::Device::streamSynchronize();
 
     const auto write_int_comp_d_ptr = write_int_comp_d.data();
     const auto write_real_comp_d_ptr = write_real_comp_d.data();
@@ -243,9 +243,9 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
         poffset += num_copies;
     }
 
-    Gpu::copy(Gpu::deviceToHost, idata_d.begin(), idata_d.end(), idata.begin());
-    Gpu::copy(Gpu::deviceToHost, rdata_d.begin(), rdata_d.end(), rdata.begin());
-    Gpu::Device::synchronize();
+    Gpu::copyAsync(Gpu::deviceToHost, idata_d.begin(), idata_d.end(), idata.begin());
+    Gpu::copyAsync(Gpu::deviceToHost, rdata_d.begin(), rdata_d.end(), rdata.begin());
+    Gpu::Device::streamSynchronize();
 }
 
 template <class PC>
@@ -375,7 +375,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
         }
     }
 
-    Gpu::Device::synchronize();
+    Gpu::Device::streamSynchronize();
 
     if(pc.GetUsePrePost())
     {

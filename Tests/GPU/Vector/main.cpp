@@ -94,7 +94,7 @@ void async_test()
     amrex::Print() << "Async Synching -- should print second." << std::endl;
 #endif
 
-    Gpu::Device::synchronize();
+    Gpu::Device::streamSynchronize();
 }
 
 int main (int argc, char* argv[])
@@ -113,4 +113,3 @@ int main (int argc, char* argv[])
     }
     amrex::Finalize();
 }
-

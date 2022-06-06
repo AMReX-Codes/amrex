@@ -43,11 +43,13 @@ AMReX's relatively simple grid generation technique allows computational
 meshes for rather complex geometries to be generated quickly and robustly.
 However, the technique can produce arbitrarily small cut cells in the domain.
 In practice such small cells can have significant impact on the robustness and
-stability of traditional finite volume methods. Section
-:ref:`amrex_hydro:sec:redistribution` in AMReX-Hydro's documentation overviews the
+stability of traditional finite volume methods. The redistribution_ section
+in AMReX-Hydro's documentation overviews the
 finite volume discretization in an embedded boundary cell and a
 class of approaches to deal with this "small cell" problem in a robust and
 efficient way.
+
+.. _redistribution: https://amrex-codes.github.io/amrex/hydro_html/Redistribution.html
 
 This chapter discusses the EB tools, data structures and algorithms currently
 supported by AMReX to enable the construction of discretizations of

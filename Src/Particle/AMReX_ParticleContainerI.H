@@ -120,8 +120,23 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
       AMREX_ASSERT(ba.ixType().cellCentered());
 
       if (local_grid < 0) {
-          ba.intersections(Box(iv, iv), isects, true, nGrow);
+          bool findfirst = (nGrow == 0) ? true : false;
+          ba.intersections(Box(iv, iv), isects, findfirst, nGrow);
           grid = isects.empty() ? -1 : isects[0].first;
+          if (nGrow > 0 && isects.size() > 1) {
+             for (std::size_t n = 0; n < isects.size(); ++n) {
+                 Box bx = ba.getCellCenteredBox(isects[n].first);
+                 for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+                     Box gbx = bx;
+                     IntVect gr(IntVect::TheZeroVector());
+                     gr[dir] = nGrow;
+                     gbx.grow(gr);
+                     if (gbx.contains(iv)) {
+                        grid = isects[n].first;
+                     }
+                 }
+             }
+          }
       } else {
           grid = (*redistribute_mask_ptr)[local_grid](iv, 0);
       }
@@ -553,6 +568,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Sh
     }
 }
 
+/**
+ * Adds the number of particles in each cell to the values currently located in
+ * the input MultiFab.
+ */
+
+
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
@@ -849,7 +870,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
         });
         last_offset+=next_offset;
-        Gpu::synchronize();
+        Gpu::streamSynchronize();
     }
 
     // last_offset should equal virts.numParticles()
@@ -861,10 +882,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         auto np = src_tile.numParticles();
         virts.resize(virts_offset+np);
         virts_offset += filterAndTransformParticles(virts, src_tile, FilterVirt(assign_buffer_grid,plo,dxi,domain), TransformerVirt(),0,virts_offset);
-        Gpu::synchronize();
+        Gpu::streamSynchronize();
     }
-    //Resize implicitly includes a Gpu::synchronize()
     virts.resize(virts_offset);
+    Gpu::streamSynchronize();
     }
 }
 
@@ -951,8 +972,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         ghosts.resize(ghost_offset+np);
         ghost_offset += filterAndTransformParticles(ghosts, src_tile, AssignGridFilter(assign_grid,gid,level,nGrow), TransformerGhost(),0,ghost_offset);
     }
-    //Resize implicitly includes a Gpu::synchronize()
     ghosts.resize(ghost_offset);
+    Gpu::streamSynchronize();
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
@@ -1114,7 +1135,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::So
                         dst[i] = src.m_aos[inds[i]];
                     });
 
-                    Gpu::synchronize();
+                    Gpu::streamSynchronize();
                     ptile.GetArrayOfStructs()().swap(tmp_particles);
                 }
 
@@ -1127,7 +1148,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::So
                         dst[i] = src[inds[i]];
                     });
 
-                    Gpu::synchronize();
+                    Gpu::streamSynchronize();
 
                     ptile.GetStructOfArrays().GetRealData(comp).swap(tmp_real);
                 }
@@ -1141,7 +1162,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::So
                         dst[i] = src[inds[i]];
                     });
 
-                    Gpu::synchronize();
+                    Gpu::streamSynchronize();
 
                     ptile.GetStructOfArrays().GetIntData(comp).swap(tmp_int);
                 }
@@ -1317,19 +1338,19 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     }
     else
     {
-        Gpu::Device::synchronize();
+        Gpu::Device::streamSynchronize();
         Gpu::PinnedVector<char> pinned_snd_buffer;
         Gpu::PinnedVector<char> pinned_rcv_buffer;
 
         if (snd_buffer.arena()->isPinned()) {
             plan.buildMPIFinish(BufferMap());
-            Gpu::Device::synchronize();
+            Gpu::Device::streamSynchronize();
             communicateParticlesStart(*this, plan, snd_buffer, pinned_rcv_buffer);
         } else {
             pinned_snd_buffer.resize(snd_buffer.size());
             Gpu::dtoh_memcpy_async(pinned_snd_buffer.dataPtr(), snd_buffer.dataPtr(), snd_buffer.size());
             plan.buildMPIFinish(BufferMap());
-            Gpu::Device::synchronize();
+            Gpu::Device::streamSynchronize();
             communicateParticlesStart(*this, plan, pinned_snd_buffer, pinned_rcv_buffer);
         }
 
@@ -1340,7 +1361,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         unpackRemotes(*this, plan, rcv_buffer, RedistributeUnpackPolicy());
     }
 
-    Gpu::Device::synchronize();
+    Gpu::Device::streamSynchronize();
     AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max, nGrow) == 0);
 #else
     amrex::ignore_unused(lev_min,lev_max,nGrow,local,remove_negative);
@@ -1947,22 +1968,22 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
               auto new_size = old_size + src_tile.size();
               dst_tile.resize(new_size);
 
-              Gpu::copy(Gpu::hostToDevice,
-                        src_tile.begin(), src_tile.end(),
-                        dst_tile.GetArrayOfStructs().begin() + old_size);
+              Gpu::copyAsync(Gpu::hostToDevice,
+                             src_tile.begin(), src_tile.end(),
+                             dst_tile.GetArrayOfStructs().begin() + old_size);
 
               for (int i = 0; i < NumRealComps(); ++i) {
-                  Gpu::copy(Gpu::hostToDevice,
-                            host_real_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
-                            host_real_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
-                            dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
+                  Gpu::copyAsync(Gpu::hostToDevice,
+                                 host_real_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
+                                 host_real_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
+                                 dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
               }
 
               for (int i = 0; i < NumIntComps(); ++i) {
-                  Gpu::copy(Gpu::hostToDevice,
-                            host_int_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
-                            host_int_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
-                            dst_tile.GetStructOfArrays().GetIntData(i).begin() + old_size);
+                  Gpu::copyAsync(Gpu::hostToDevice,
+                                 host_int_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
+                                 host_int_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
+                                 dst_tile.GetStructOfArrays().GetIntData(i).begin() + old_size);
               }
             }
           }

@@ -248,7 +248,7 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
 #endif
             });
         }
-        Gpu::synchronize();
+        Gpu::streamSynchronize();
     } else
 #endif
     {
@@ -410,7 +410,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
             }
         }
 
-        Gpu::synchronize();
+        Gpu::streamSynchronize();
         if (m_smooth_num_sweeps > 1) nodalSync(amrlev, mglev, sol);
     }
     else // cpu

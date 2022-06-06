@@ -60,8 +60,8 @@ void testGPU (int nbins, const amrex::Vector<int>& items)
 {
     // copy to device
     Gpu::DeviceVector<int> items_d(items.size());
-    Gpu::copy(Gpu::hostToDevice, items.begin(), items.end(), items_d.begin());
-    Gpu::Device::synchronize();
+    Gpu::copyAsync(Gpu::hostToDevice, items.begin(), items.end(), items_d.begin());
+    Gpu::Device::streamSynchronize();
 
     amrex::DenseBins<int> bins;
     bins.build(BinPolicy::GPU, items_d.size(), items_d.data(), nbins, [=] AMREX_GPU_DEVICE (int j) noexcept -> unsigned int { return j ; });

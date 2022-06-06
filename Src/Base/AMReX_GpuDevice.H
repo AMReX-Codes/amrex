@@ -53,17 +53,13 @@ public:
 
 #if defined(AMREX_USE_GPU)
     static gpuStream_t gpuStream () noexcept { return gpu_stream[OpenMP::get_thread_num()]; }
-    static gpuStream_t nullStream () noexcept { return gpu_default_stream; }
 #ifdef AMREX_USE_CUDA
     /** for backward compatibility */
     static cudaStream_t cudaStream () noexcept { return gpu_stream[OpenMP::get_thread_num()]; }
 #endif
 #ifdef AMREX_USE_DPCPP
-    static sycl::queue& nullQueue () noexcept { return *(gpu_default_stream.queue); }
     static sycl::queue& streamQueue () noexcept { return *(gpu_stream[OpenMP::get_thread_num()].queue); }
     static sycl::queue& streamQueue (int i) noexcept { return *(gpu_stream_pool[i].queue); }
-    static bool onNullStream () noexcept { return gpu_stream[OpenMP::get_thread_num()] == gpu_default_stream; }
-    static bool onNullStream (gpuStream_t stream) noexcept { return stream == gpu_default_stream; }
 #endif
 #endif
 
@@ -90,15 +86,18 @@ public:
     static void synchronize () noexcept;
 
     /**
-     * Halt execution of code until GPU stream has finished processing all
+     * Halt execution of code until the current AMReX GPU stream has finished processing all
      * previously requested tasks.
      */
     static void streamSynchronize () noexcept;
-#ifdef AMREX_USE_DPCPP
-    static void nonNullStreamSynchronize () noexcept;
-#endif
 
-#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
+    /**
+     * Halt execution of code until all AMReX GPU streams have finished processing all
+     * previously requested tasks.
+     */
+    static void streamSynchronizeAll () noexcept;
+
+#if defined(__CUDACC__)
     /**  Generic graph selection. These should be called by users.  */
     static void startGraphRecording(bool first_iter, void* h_ptr, void* d_ptr, size_t sz);
     static cudaGraphExec_t stopGraphRecording(bool last_iter);
@@ -176,9 +175,12 @@ private:
     static dim3 numThreadsMin;
     static dim3 numBlocksOverride, numThreadsOverride;
 
+    // We build gpu_default_stream and gpu_stream_pool.
+    // The non-owning gpu_stream is used to store the current stream that will be used.
+    // gpu_stream is a vector so that it's thread safe to write to it.
     static gpuStream_t gpu_default_stream;
-    static Vector<gpuStream_t> gpu_stream_pool;
-    static Vector<gpuStream_t> gpu_stream;
+    static Vector<gpuStream_t> gpu_stream_pool; // The size of this is max_gpu_stream
+    static Vector<gpuStream_t> gpu_stream; // The size of this is omp_max_threads
     static gpuDeviceProp_t device_prop;
     static int memory_pools_supported;
     static unsigned int max_blocks_per_launch;
@@ -197,12 +199,6 @@ inline gpuStream_t
 gpuStream () noexcept
 {
     return Device::gpuStream();
-}
-
-inline gpuStream_t
-nullStream () noexcept
-{
-    return Device::nullStream();
 }
 #endif
 
@@ -224,84 +220,19 @@ streamSynchronize () noexcept
     Device::streamSynchronize();
 }
 
-#ifdef AMREX_USE_DPCPP
 inline void
-nonNullStreamSynchronize () noexcept
+streamSynchronizeAll () noexcept
 {
-    Device::nonNullStreamSynchronize();
+    Device::streamSynchronizeAll();
 }
-#endif
 
 #ifdef AMREX_USE_GPU
-
-inline void
-htod_memcpy (void* p_d, const void* p_h, const std::size_t sz) noexcept
-{
-    if (sz == 0) return;
-#ifdef AMREX_USE_DPCPP
-    Device::nonNullStreamSynchronize();
-    auto& q = Device::nullQueue();
-    q.submit([&] (sycl::handler& h) { h.memcpy(p_d, p_h, sz); });
-    try {
-        q.wait_and_throw();
-    } catch (sycl::exception const& ex) {
-        amrex::Abort(std::string("htod_memcpy: ")+ex.what()+"!!!!!");
-    }
-    if (Device::onNullStream()) Gpu::synchronize();
-#else
-    AMREX_HIP_OR_CUDA(
-        AMREX_HIP_SAFE_CALL(hipMemcpy(p_d, p_h, sz, hipMemcpyHostToDevice));,
-        AMREX_CUDA_SAFE_CALL(cudaMemcpy(p_d, p_h, sz, cudaMemcpyHostToDevice)); )
-#endif
-}
-
-inline void
-dtoh_memcpy (void* p_h, const void* p_d, const std::size_t sz) noexcept
-{
-    if (sz == 0) return;
-#ifdef AMREX_USE_DPCPP
-    Device::nonNullStreamSynchronize();
-    auto& q = Device::nullQueue();
-    q.submit([&] (sycl::handler& h) { h.memcpy(p_h, p_d, sz); });
-    try {
-        q.wait_and_throw();
-    } catch (sycl::exception const& ex) {
-        amrex::Abort(std::string("dtoh_memcpy: ")+ex.what()+"!!!!!");
-    }
-    Gpu::synchronize(); // To mimic cuda behavior
-#else
-    AMREX_HIP_OR_CUDA(
-        AMREX_HIP_SAFE_CALL(hipMemcpy(p_h, p_d, sz, hipMemcpyDeviceToHost));,
-        AMREX_CUDA_SAFE_CALL(cudaMemcpy(p_h, p_d, sz, cudaMemcpyDeviceToHost)); )
-#endif
-}
-
-inline void
-dtod_memcpy (void* p_d_dst, const void* p_d_src, const std::size_t sz) noexcept
-{
-    if (sz == 0) return;
-#ifdef AMREX_USE_DPCPP
-    Device::nonNullStreamSynchronize();
-    auto& q = Device::nullQueue();
-    q.submit([&] (sycl::handler& h) { h.memcpy(p_d_dst, p_d_src, sz); });
-    try {
-        q.wait_and_throw();
-    } catch (sycl::exception const& ex) {
-        amrex::Abort(std::string("dtod_memcpy: ")+ex.what()+"!!!!!");
-    }
-#else
-    AMREX_HIP_OR_CUDA(
-        AMREX_HIP_SAFE_CALL(hipMemcpy(p_d_dst, p_d_src, sz, hipMemcpyDeviceToDevice));,
-        AMREX_CUDA_SAFE_CALL(cudaMemcpy(p_d_dst, p_d_src, sz, cudaMemcpyDeviceToDevice)); )
-#endif
-}
 
 inline void
 htod_memcpy_async (void* p_d, const void* p_h, const std::size_t sz) noexcept
 {
     if (sz == 0) return;
 #ifdef AMREX_USE_DPCPP
-    if (Device::onNullStream()) Device::nonNullStreamSynchronize();
     auto& q = Device::streamQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_d, p_h, sz); });
 #else
@@ -316,7 +247,6 @@ dtoh_memcpy_async (void* p_h, const void* p_d, const std::size_t sz) noexcept
 {
     if (sz == 0) return;
 #ifdef AMREX_USE_DPCPP
-    if (Device::onNullStream()) Device::nonNullStreamSynchronize();
     auto& q = Device::streamQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_h, p_d, sz); });
 #else
@@ -331,7 +261,6 @@ dtod_memcpy_async (void* p_d_dst, const void* p_d_src, const std::size_t sz) noe
 {
     if (sz == 0) return;
 #ifdef AMREX_USE_DPCPP
-    if (Device::onNullStream()) Device::nonNullStreamSynchronize();
     auto& q = Device::streamQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_d_dst, p_d_src, sz); });
 #else
@@ -341,20 +270,30 @@ dtod_memcpy_async (void* p_d_dst, const void* p_d_src, const std::size_t sz) noe
 #endif
 }
 
-#endif
-
-#ifdef AMREX_USE_DPCPP
-inline bool
-onNullStream ()
+inline void
+htod_memcpy (void* p_d, const void* p_h, const std::size_t sz) noexcept
 {
-    return Device::onNullStream();
+    if (sz == 0) return;
+    htod_memcpy_async(p_d, p_h, sz);
+    Gpu::streamSynchronize();
 }
 
-inline bool
-onNullStream (gpuStream_t stream)
+inline void
+dtoh_memcpy (void* p_h, const void* p_d, const std::size_t sz) noexcept
 {
-    return Device::onNullStream(stream);
+    if (sz == 0) return;
+    dtoh_memcpy_async(p_h, p_d, sz);
+    Gpu::streamSynchronize();
 }
+
+inline void
+dtod_memcpy (void* p_d_dst, const void* p_d_src, const std::size_t sz) noexcept
+{
+    if (sz == 0) return;
+    dtod_memcpy_async(p_d_dst, p_d_src, sz);
+    Gpu::streamSynchronize();
+}
+
 #endif
 
 }}

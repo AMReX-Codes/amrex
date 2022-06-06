@@ -17,13 +17,13 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
     amrex::Loop(lo, hi,
     [=] (int i, int j, int k) noexcept
     {
-        if (    s(i,j  ,k) < 0.0 && s(i+1,j  ,k) < 0.0
-            && s(i,j+1,k) < 0.0 && s(i+1,j+1,k) < 0.0)
+        if (    s(i,j  ,k) < 0.0_rt && s(i+1,j  ,k) < 0.0_rt
+            && s(i,j+1,k) < 0.0_rt && s(i+1,j+1,k) < 0.0_rt)
         {
             cell(i,j,k).setRegular();
         }
-        else if (s(i,j  ,k) >= 0.0 && s(i+1,j  ,k) >= 0.0
-            &&  s(i,j+1,k) >= 0.0 && s(i+1,j+1,k) >= 0.0)
+        else if (s(i,j  ,k) >= 0.0_rt && s(i+1,j  ,k) >= 0.0_rt
+            &&  s(i,j+1,k) >= 0.0_rt && s(i+1,j+1,k) >= 0.0_rt)
         {
             cell(i,j,k).setCovered();
         }
@@ -40,9 +40,9 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
     amrex::Loop(lo, hi,
     [=] (int i, int j, int k) noexcept
     {
-        if (s(i,j,k) < 0.0 && s(i,j+1,k) < 0.0) {
+        if (s(i,j,k) < 0.0_rt && s(i,j+1,k) < 0.0_rt) {
             fx(i,j,k) = Type::regular;
-        } else if (s(i,j,k) >= 0.0 && s(i,j+1,k) >= 0.0) {
+        } else if (s(i,j,k) >= 0.0_rt && s(i,j+1,k) >= 0.0_rt) {
             fx(i,j,k) = Type::covered;
         } else {
             fx(i,j,k) = Type::irregular;
@@ -56,9 +56,9 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
     amrex::Loop(lo, hi,
     [=] (int i, int j, int k) noexcept
     {
-        if (s(i,j,k) < 0.0 && s(i+1,j,k) < 0.0) {
+        if (s(i,j,k) < 0.0_rt && s(i+1,j,k) < 0.0_rt) {
             fy(i,j,k) = Type::regular;
-        } else if (s(i,j,k) >= 0.0 && s(i+1,j,k) >= 0.0) {
+        } else if (s(i,j,k) >= 0.0_rt && s(i+1,j,k) >= 0.0_rt) {
             fy(i,j,k) = Type::covered;
         } else {
             fy(i,j,k) = Type::irregular;
@@ -69,7 +69,7 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
 namespace {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int num_cuts (Real a, Real b) noexcept {
-        return (a >= 0.0 && b < 0.0) || (b >= 0.0 && a < 0.0);
+        return (a >= 0.0_rt && b < 0.0_rt) || (b >= 0.0_rt && a < 0.0_rt);
     }
 }
 
@@ -122,61 +122,61 @@ int coarsen_from_fine (int i, int j, Box const& bx, int ngrow,
             fflag(ii,jj+1,k).isRegular() && fflag(ii+1,jj+1,k).isRegular())
         {
             cflag(i,j,k).setRegular();
-            cvol(i,j,k) = 1.0;
-            ccent(i,j,k,0) = 0.0;
-            ccent(i,j,k,1) = 0.0;
-            cba(i,j,k) = 0.0;
-            cbc(i,j,k,0) = -1.0;
-            cbc(i,j,k,1) = -1.0;
-            cbn(i,j,k,0) = 0.0;
-            cbn(i,j,k,1) = 0.0;
+            cvol(i,j,k) = 1.0_rt;
+            ccent(i,j,k,0) = 0.0_rt;
+            ccent(i,j,k,1) = 0.0_rt;
+            cba(i,j,k) = 0.0_rt;
+            cbc(i,j,k,0) = -1.0_rt;
+            cbc(i,j,k,1) = -1.0_rt;
+            cbn(i,j,k,0) = 0.0_rt;
+            cbn(i,j,k,1) = 0.0_rt;
         }
         else if (fflag(ii,jj  ,k).isCovered() && fflag(ii+1,jj  ,k).isCovered() &&
                  fflag(ii,jj+1,k).isCovered() && fflag(ii+1,jj+1,k).isCovered())
         {
             cflag(i,j,k).setCovered();
-            cvol(i,j,k) = 0.0;
-            ccent(i,j,k,0) = 0.0;
-            ccent(i,j,k,1) = 0.0;
-            cba(i,j,k) = 0.0;
-            cbc(i,j,k,0) = -1.0;
-            cbc(i,j,k,1) = -1.0;
-            cbn(i,j,k,0) = 0.0;
-            cbn(i,j,k,1) = 0.0;
+            cvol(i,j,k) = 0.0_rt;
+            ccent(i,j,k,0) = 0.0_rt;
+            ccent(i,j,k,1) = 0.0_rt;
+            cba(i,j,k) = 0.0_rt;
+            cbc(i,j,k,0) = -1.0_rt;
+            cbc(i,j,k,1) = -1.0_rt;
+            cbn(i,j,k,0) = 0.0_rt;
+            cbn(i,j,k,1) = 0.0_rt;
         }
         else
         {
             cflag(i,j,k).setSingleValued();
 
-            cvol(i,j,k) = 0.25*(fvol(ii,jj  ,k) + fvol(ii+1,jj  ,k) +
+            cvol(i,j,k) = 0.25_rt*(fvol(ii,jj  ,k) + fvol(ii+1,jj  ,k) +
                                 fvol(ii,jj+1,k) + fvol(ii+1,jj+1,k));
-            Real cvolinv = 1.0/cvol(i,j,k);
+            Real cvolinv = 1.0_rt/cvol(i,j,k);
 
-            ccent(i,j,k,0) = 0.25 * cvolinv *
-                (fvol(ii  ,jj  ,k)*(0.5*fcent(ii  ,jj  ,k,0)-0.25) +
-                 fvol(ii+1,jj  ,k)*(0.5*fcent(ii+1,jj  ,k,0)+0.25) +
-                 fvol(ii  ,jj+1,k)*(0.5*fcent(ii  ,jj+1,k,0)-0.25) +
-                 fvol(ii+1,jj+1,k)*(0.5*fcent(ii+1,jj+1,k,0)+0.25));
-            ccent(i,j,k,1) = 0.25 * cvolinv *
-                (fvol(ii  ,jj  ,k)*(0.5*fcent(ii  ,jj  ,k,1)-0.25) +
-                 fvol(ii+1,jj  ,k)*(0.5*fcent(ii+1,jj  ,k,1)-0.25) +
-                 fvol(ii  ,jj+1,k)*(0.5*fcent(ii  ,jj+1,k,1)+0.25) +
-                 fvol(ii+1,jj+1,k)*(0.5*fcent(ii+1,jj+1,k,1)+0.25));
+            ccent(i,j,k,0) = 0.25_rt * cvolinv *
+                (fvol(ii  ,jj  ,k)*(0.5_rt*fcent(ii  ,jj  ,k,0)-0.25_rt) +
+                 fvol(ii+1,jj  ,k)*(0.5_rt*fcent(ii+1,jj  ,k,0)+0.25_rt) +
+                 fvol(ii  ,jj+1,k)*(0.5_rt*fcent(ii  ,jj+1,k,0)-0.25_rt) +
+                 fvol(ii+1,jj+1,k)*(0.5_rt*fcent(ii+1,jj+1,k,0)+0.25_rt));
+            ccent(i,j,k,1) = 0.25_rt * cvolinv *
+                (fvol(ii  ,jj  ,k)*(0.5_rt*fcent(ii  ,jj  ,k,1)-0.25_rt) +
+                 fvol(ii+1,jj  ,k)*(0.5_rt*fcent(ii+1,jj  ,k,1)-0.25_rt) +
+                 fvol(ii  ,jj+1,k)*(0.5_rt*fcent(ii  ,jj+1,k,1)+0.25_rt) +
+                 fvol(ii+1,jj+1,k)*(0.5_rt*fcent(ii+1,jj+1,k,1)+0.25_rt));
 
-            cba(i,j,k) = 0.5*(fba(ii,jj  ,k) + fba(ii+1,jj  ,k) +
+            cba(i,j,k) = 0.5_rt*(fba(ii,jj  ,k) + fba(ii+1,jj  ,k) +
                               fba(ii,jj+1,k) + fba(ii+1,jj+1,k));
-            Real cbainv = 1.0/cba(i,j,k);
+            Real cbainv = 1.0_rt/cba(i,j,k);
 
-            cbc(i,j,k,0) = 0.5 * cbainv *
-                (fba(ii  ,jj  ,k)*(0.5*fbc(ii  ,jj  ,k,0)-0.25) +
-                 fba(ii+1,jj  ,k)*(0.5*fbc(ii+1,jj  ,k,0)+0.25) +
-                 fba(ii  ,jj+1,k)*(0.5*fbc(ii  ,jj+1,k,0)-0.25) +
-                 fba(ii+1,jj+1,k)*(0.5*fbc(ii+1,jj+1,k,0)+0.25));
-            cbc(i,j,k,1) = 0.5 * cbainv *
-                (fba(ii  ,jj  ,k)*(0.5*fbc(ii  ,jj  ,k,1)-0.25) +
-                 fba(ii+1,jj  ,k)*(0.5*fbc(ii+1,jj  ,k,1)-0.25) +
-                 fba(ii  ,jj+1,k)*(0.5*fbc(ii  ,jj+1,k,1)+0.25) +
-                 fba(ii+1,jj+1,k)*(0.5*fbc(ii+1,jj+1,k,1)+0.25));
+            cbc(i,j,k,0) = 0.5_rt * cbainv *
+                (fba(ii  ,jj  ,k)*(0.5_rt*fbc(ii  ,jj  ,k,0)-0.25_rt) +
+                 fba(ii+1,jj  ,k)*(0.5_rt*fbc(ii+1,jj  ,k,0)+0.25_rt) +
+                 fba(ii  ,jj+1,k)*(0.5_rt*fbc(ii  ,jj+1,k,0)-0.25_rt) +
+                 fba(ii+1,jj+1,k)*(0.5_rt*fbc(ii+1,jj+1,k,0)+0.25_rt));
+            cbc(i,j,k,1) = 0.5_rt * cbainv *
+                (fba(ii  ,jj  ,k)*(0.5_rt*fbc(ii  ,jj  ,k,1)-0.25_rt) +
+                 fba(ii+1,jj  ,k)*(0.5_rt*fbc(ii+1,jj  ,k,1)-0.25_rt) +
+                 fba(ii  ,jj+1,k)*(0.5_rt*fbc(ii  ,jj+1,k,1)+0.25_rt) +
+                 fba(ii+1,jj+1,k)*(0.5_rt*fbc(ii+1,jj+1,k,1)+0.25_rt));
 
              Real nx = fbn(ii  ,jj  ,k,0)*fba(ii  ,jj  ,k)
                  +     fbn(ii+1,jj  ,k,0)*fba(ii+1,jj  ,k)
@@ -186,37 +186,37 @@ int coarsen_from_fine (int i, int j, Box const& bx, int ngrow,
                  +     fbn(ii+1,jj  ,k,1)*fba(ii+1,jj  ,k)
                  +     fbn(ii  ,jj+1,k,1)*fba(ii  ,jj+1,k)
                  +     fbn(ii+1,jj+1,k,1)*fba(ii+1,jj+1,k);
-             Real nfac = 1.0/std::sqrt(nx*nx+ny*ny+1.e-50);
+             Real nfac = 1.0_rt/std::sqrt(nx*nx+ny*ny+1.e-30_rt);
              cbn(i,j,k,0) = nx*nfac;
              cbn(i,j,k,1) = ny*nfac;
-             ierr = (nx == 0.0 && ny == 0.0)
+             ierr = (nx == 0.0_rt && ny == 0.0_rt)
                  // we must check the enclosing surface to make sure the coarse cell does not
                  // fully contains the geometry object.
-                 || ( fapx(ii,jj  ,k)==1.0 && fapx(ii+2,jj  ,k)==1.0
-                  && fapx(ii,jj+1,k)==1.0 && fapx(ii+2,jj+1,k)==1.0
-                  && fapy(ii,jj  ,k)==1.0 && fapy(ii+1,jj  ,k)==1.0
-                  && fapy(ii,jj+2,k)==1.0 && fapy(ii+1,jj+2,k)==1.0);
+                 || ( fapx(ii,jj  ,k)==1.0_rt && fapx(ii+2,jj  ,k)==1.0_rt
+                  && fapx(ii,jj+1,k)==1.0_rt && fapx(ii+2,jj+1,k)==1.0_rt
+                  && fapy(ii,jj  ,k)==1.0_rt && fapy(ii+1,jj  ,k)==1.0_rt
+                  && fapy(ii,jj+2,k)==1.0_rt && fapy(ii+1,jj+2,k)==1.0_rt);
         }
     }
     else if (gbx.contains(i,j,k))
     {
-        cvol(i,j,k) = 1.0;
-        ccent(i,j,k,0) = 0.0;
-        ccent(i,j,k,1) = 0.0;
-        cba(i,j,k) = 0.0;
-        cbc(i,j,k,0) = -1.0;
-        cbc(i,j,k,1) = -1.0;
-        cbn(i,j,k,0) = 0.0;
-        cbn(i,j,k,1) = 0.0;
+        cvol(i,j,k) = 1.0_rt;
+        ccent(i,j,k,0) = 0.0_rt;
+        ccent(i,j,k,1) = 0.0_rt;
+        cba(i,j,k) = 0.0_rt;
+        cbc(i,j,k,0) = -1.0_rt;
+        cbc(i,j,k,1) = -1.0_rt;
+        cbn(i,j,k,0) = 0.0_rt;
+        cbn(i,j,k,1) = 0.0_rt;
     }
 
     if (xbx.contains(i,j,k))
     {
-        capx(i,j,k) = 0.5*(fapx(ii,jj,k) + fapx(ii,jj+1,k));
-        if (capx(i,j,k) != 0.0) {
-            cfcx(i,j,k) = 0.5 / capx(i,j,k) *
-                (fapx(ii,jj  ,k)*(0.5*ffcx(ii,jj  ,k)-0.25) +
-                 fapx(ii,jj+1,k)*(0.5*ffcx(ii,jj+1,k)+0.25));
+        capx(i,j,k) = 0.5_rt*(fapx(ii,jj,k) + fapx(ii,jj+1,k));
+        if (capx(i,j,k) != 0.0_rt) {
+            cfcx(i,j,k) = 0.5_rt / capx(i,j,k) *
+                (fapx(ii,jj  ,k)*(0.5_rt*ffcx(ii,jj  ,k)-0.25_rt) +
+                 fapx(ii,jj+1,k)*(0.5_rt*ffcx(ii,jj+1,k)+0.25_rt));
             if (fecy(ii,jj,k) == Real(1.0) && fecy(ii,jj+1,k) == Real(1.0)) {
                 cecy(i,j,k) = Real(1.0);
             } else {
@@ -224,39 +224,39 @@ int coarsen_from_fine (int i, int j, Box const& bx, int ngrow,
             }
         }
         else {
-            cfcx(i,j,k) = 0.0;
-            cecy(i,j,k) = -1.0;
+            cfcx(i,j,k) = 0.0_rt;
+            cecy(i,j,k) = -1.0_rt;
         }
     }
     else if (xgbx.contains(i,j,k))
     {
-        capx(i,j,k) = 1.0;
-        cfcx(i,j,k) = 0.0;
-        cecy(i,j,k) = 1.0;
+        capx(i,j,k) = 1.0_rt;
+        cfcx(i,j,k) = 0.0_rt;
+        cecy(i,j,k) = 1.0_rt;
     }
 
     if (ybx.contains(i,j,k))
     {
-        capy(i,j,k) = 0.5*(fapy(ii,jj,k) + fapy(ii+1,jj,k));
-        if (capy(i,j,k) != 0.0) {
-            cfcy(i,j,k) = 0.5 / capy(i,j,k) *
-                (fapy(ii  ,jj,k)*(0.5*ffcy(ii  ,jj,k)-0.25) +
-                 fapy(ii+1,jj,k)*(0.5*ffcy(ii+1,jj,k)+0.25));
+        capy(i,j,k) = 0.5_rt*(fapy(ii,jj,k) + fapy(ii+1,jj,k));
+        if (capy(i,j,k) != 0.0_rt) {
+            cfcy(i,j,k) = 0.5_rt / capy(i,j,k) *
+                (fapy(ii  ,jj,k)*(0.5_rt*ffcy(ii  ,jj,k)-0.25_rt) +
+                 fapy(ii+1,jj,k)*(0.5_rt*ffcy(ii+1,jj,k)+0.25_rt));
             if (fecx(ii,jj,k) == Real(1.0) && fecx(ii+1,jj,k) == Real(1.0)) {
                 cecx(i,j,k) = Real(1.0);
             } else {
                 cecx(i,j,k) = cfcy(i,j,k);
             }
         } else {
-            cfcy(i,j,k) = 0.0;
-            cecx(i,j,k) = -1.0;
+            cfcy(i,j,k) = 0.0_rt;
+            cecx(i,j,k) = -1.0_rt;
         }
     }
     else if (ygbx.contains(i,j,k))
     {
-        capy(i,j,k) = 1.0;
-        cfcy(i,j,k) = 0.0;
-        cecx(i,j,k) = 1.0;
+        capy(i,j,k) = 1.0_rt;
+        cfcy(i,j,k) = 0.0_rt;
+        cecx(i,j,k) = 1.0_rt;
     }
 
     return ierr;
@@ -271,31 +271,31 @@ void build_cellflag_from_ap (int i, int j, Array4<EBCellFlag> const& cflag,
     // By default, all neighbors are already set.
     auto flg = cflag(i,j,k);
 
-    if (apx(i  ,j  ,k) == 0.0) flg.setDisconnected(-1, 0, 0);
-    if (apx(i+1,j  ,k) == 0.0) flg.setDisconnected( 1, 0, 0);
-    if (apy(i  ,j  ,k) == 0.0) flg.setDisconnected( 0,-1, 0);
-    if (apy(i  ,j+1,k) == 0.0) flg.setDisconnected( 0, 1, 0);
+    if (apx(i  ,j  ,k) == 0.0_rt) flg.setDisconnected(-1, 0, 0);
+    if (apx(i+1,j  ,k) == 0.0_rt) flg.setDisconnected( 1, 0, 0);
+    if (apy(i  ,j  ,k) == 0.0_rt) flg.setDisconnected( 0,-1, 0);
+    if (apy(i  ,j+1,k) == 0.0_rt) flg.setDisconnected( 0, 1, 0);
 
-    if ((apx(i,j  ,k) == 0.0 || apy(i-1,j,k) == 0.0) &&
-        (apx(i,j-1,k) == 0.0 || apy(i  ,j,k) == 0.0))
+    if ((apx(i,j  ,k) == 0.0_rt || apy(i-1,j,k) == 0.0_rt) &&
+        (apx(i,j-1,k) == 0.0_rt || apy(i  ,j,k) == 0.0_rt))
     {
         flg.setDisconnected(-1,-1,0);
     }
 
-    if ((apx(i+1,j  ,k) == 0.0 || apy(i+1,j,k) == 0.0) &&
-        (apx(i+1,j-1,k) == 0.0 || apy(i  ,j,k) == 0.0))
+    if ((apx(i+1,j  ,k) == 0.0_rt || apy(i+1,j,k) == 0.0_rt) &&
+        (apx(i+1,j-1,k) == 0.0_rt || apy(i  ,j,k) == 0.0_rt))
     {
         flg.setDisconnected(1,-1,0);
     }
 
-    if ((apx(i,j  ,k) == 0.0 || apy(i-1,j+1,k) == 0.0) &&
-        (apx(i,j+1,k) == 0.0 || apy(i  ,j+1,k) == 0.0))
+    if ((apx(i,j  ,k) == 0.0_rt || apy(i-1,j+1,k) == 0.0_rt) &&
+        (apx(i,j+1,k) == 0.0_rt || apy(i  ,j+1,k) == 0.0_rt))
     {
         flg.setDisconnected(-1,1,0);
     }
 
-    if ((apx(i+1,j  ,k) == 0.0 || apy(i+1,j+1,k) == 0.0) &&
-        (apx(i+1,j+1,k) == 0.0 || apy(i  ,j+1,k) == 0.0))
+    if ((apx(i+1,j  ,k) == 0.0_rt || apy(i+1,j+1,k) == 0.0_rt) &&
+        (apx(i+1,j+1,k) == 0.0_rt || apy(i  ,j+1,k) == 0.0_rt))
     {
         flg.setDisconnected(1,1,0);
     }

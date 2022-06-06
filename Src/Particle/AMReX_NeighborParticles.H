@@ -35,7 +35,9 @@ class NeighborParticleContainer
 {
 public:
     using ParticleContainerType = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using ParticleType = typename ParticleContainerType::ParticleType;
     using SuperParticleType = typename ParticleContainerType::SuperParticleType;
+    using NeighborListContainerType = Vector<std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > >;
 private:
     struct MaskComps
     {
@@ -187,8 +189,6 @@ private:
 
 public:
 
-    using ParticleType = typename ParticleContainer<NStructReal,
-                                                    NStructInt, NArrayReal, NArrayInt>::ParticleType;
     using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using PairIndex = std::pair<int, int>;
     using NeighborCommMap = std::map<NeighborCommTag, Vector<char> >;
@@ -251,6 +251,14 @@ public:
     ///
     template <class CheckPair>
     void buildNeighborList (CheckPair&& check_pair, bool sort=false);
+
+    ///
+    /// Build a Neighbor List for each tile
+    ///
+    template <class CheckPair, class OtherPCType>
+    void buildNeighborList (CheckPair&& check_pair, OtherPCType& other,
+                            Vector<std::map<std::pair<int, int>, amrex::NeighborList<typename OtherPCType::ParticleType> > >& neighbor_lists,
+                            bool sort=false);
 
     template <class CheckPair>
     void selectActualNeighbors (CheckPair&& check_pair, int num_cells=1);
@@ -451,7 +459,7 @@ protected:
     Gpu::PinnedVector<char> pinned_rcv_buffer;
 #endif
 
-    Vector<std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > > m_neighbor_list;
+    NeighborListContainerType m_neighbor_list;
 
     Vector<std::map<std::pair<int, int>, amrex::Gpu::DeviceVector<int> > > m_boundary_particle_ids;
 

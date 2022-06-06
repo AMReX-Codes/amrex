@@ -57,6 +57,7 @@ public:
 
     void setEBShearViscosity (int amrlev, MultiFab const& eta);
     void setEBShearViscosity (int amrlev, Real eta);
+    void setEBShearViscosityWithInflow (int amrlev, MultiFab const& eta, MultiFab const& eb_vel);
 
     void setEBBulkViscosity (int amrlev, MultiFab const& kappa);
     void setEBBulkViscosity (int amrlev, Real eta);

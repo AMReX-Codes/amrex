@@ -260,7 +260,7 @@ target_sources( amrex
 # Profiling
 #   this source file has zero symbols in default conditions, which creates
 #   ranlib warnings, e.g., on macOS
-if(AMREX_PROFILING OR AMReX_FORTRAN)
+if(AMReX_BASE_PROFILE OR AMReX_TINY_PROFILE OR AMReX_FORTRAN)
    target_sources( amrex
      PRIVATE
        AMReX_BLProfiler.cpp
