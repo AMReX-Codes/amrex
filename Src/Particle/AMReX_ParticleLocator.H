@@ -82,7 +82,7 @@ struct AssignGrid
                            // Prefer particle not in corner ghost cells
                            for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
                                Box gdbx = bx;
-                               gdbx.grow(dir, gr);
+                               gdbx.grow(dir, nGrow);
                                if (gdbx.contains(iv)) {
                                   loc = nbor.first;
                                }
