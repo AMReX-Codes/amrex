@@ -594,7 +594,7 @@ IntVect::maxDir(bool a_doAbsValue) const noexcept
     int retval = 0;
     if(a_doAbsValue)
     {
-        int maxval = abs((*this)[0]);
+        int maxval = amrex::Math::abs((*this)[0]);
         for(int idir = 1; idir < SpaceDim; idir++)
         {
             int curval = amrex::Math::abs((*this)[idir]);
