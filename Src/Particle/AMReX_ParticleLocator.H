@@ -73,18 +73,17 @@ struct AssignGrid
                         if (bx.contains(iv)) {
                           return nbor.first;
                         }
-                        bx.grow(nGrow);
-                        if (bx.contains(iv)) {
+                        Box gbx = bx;
+                        gbx.grow(nGrow);
+                        if (gbx.contains(iv)) {
                            if (loc < 0) {
                              loc = nbor.first;
                            }
                            // Prefer particle not in corner ghost cells
                            for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
-                               Box gbx = bx;
-                               IntVect gr(IntVect::TheZeroVector());
-                               gr[dir] = nGrow;
-                               gbx.grow(gr);
-                               if (gbx.contains(iv)) {
+                               Box gdbx = bx;
+                               gdbx.grow(dir, nGrow);
+                               if (gdbx.contains(iv)) {
                                   loc = nbor.first;
                                }
                            }
