@@ -264,6 +264,7 @@ CArena::hasFreeDeviceMemory (std::size_t sz)
     } else
 #endif
     {
+        amrex::ignore_unused(sz);
         return true;
     }
 }
