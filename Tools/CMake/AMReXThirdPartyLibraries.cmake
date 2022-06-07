@@ -82,7 +82,14 @@ if (AMReX_HYPRE)
     find_package(HYPRE 2.20.0 REQUIRED)
     if(AMReX_CUDA)
         find_package(CUDAToolkit REQUIRED)
+
+        # mandatory CUDA dependencies: cuSPARSE, cuRAND
         target_link_libraries(amrex PUBLIC CUDA::cusparse CUDA::curand)
+
+        # nvToolsExt: if tiny profiler or base profiler are on.
+        if (AMReX_TINY_PROFILE OR AMReX_BASE_PROFILE)
+            target_link_libraries(amrex PUBLIC CUDA::nvToolsExt)
+        endif ()
     endif()
     target_link_libraries( amrex PUBLIC HYPRE )
 endif ()
