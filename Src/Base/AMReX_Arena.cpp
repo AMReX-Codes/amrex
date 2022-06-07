@@ -112,6 +112,12 @@ Arena::isPinned () const
 #endif
 }
 
+bool
+Arena::hasFreeDeviceMemory (std::size_t)
+{
+    return true;
+}
+
 std::size_t
 Arena::align (std::size_t s)
 {

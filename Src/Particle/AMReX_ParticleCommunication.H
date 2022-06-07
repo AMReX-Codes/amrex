@@ -286,7 +286,10 @@ struct GetSendBufferOffset
     }
 };
 
-template <class PC, class Buffer, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class Buffer,
+          std::enable_if_t<IsParticleContainer<PC>::value &&
+                           std::is_base_of<PolymorphicArenaAllocator<typename Buffer::value_type>,
+                                           Buffer>::value, int> foo = 0>
 void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan& plan,
                  Buffer& snd_buffer)
 {
@@ -312,7 +315,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
         total_buffer_size = plan.m_snd_offsets.back();
     }
 
-    if (total_buffer_size > Gpu::Device::freeMemAvailable()) {
+    if (! snd_buffer.arena()->hasFreeDeviceMemory(total_buffer_size)) {
         snd_buffer.m_arena = The_Pinned_Arena();
     }
     snd_buffer.resize(total_buffer_size);

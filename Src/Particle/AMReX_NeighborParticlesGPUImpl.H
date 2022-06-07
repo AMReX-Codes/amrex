@@ -269,7 +269,7 @@ updateNeighborsGPU (bool boundary_neighbors_only)
         Gpu::streamSynchronize();
         if (snd_buffer.arena()->isPinned()) {
             neighbor_copy_plan.buildMPIFinish(this->BufferMap());
-            Gpu::Device::synchronize();
+            Gpu::streamSynchronize();
             communicateParticlesStart(*this, neighbor_copy_plan, snd_buffer, pinned_rcv_buffer);
         } else {
             pinned_snd_buffer.resize(snd_buffer.size());
