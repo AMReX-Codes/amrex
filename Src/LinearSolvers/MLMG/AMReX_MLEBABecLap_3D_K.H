@@ -1357,7 +1357,7 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                 Real gxyz = gx*gy*gz;
                 Real phig_gamma = (1.0+gx+gy+gz+gxy+gxz+gyz+gxyz);
                 Real feb_gamma = -phig_gamma/dg * ba(i,j,k) * beb(i,j,k,n);
-                gamma += vfrcinv*(-dhx)*feb_gamma;
+                gamma += vfrcinv*(-dh)*feb_gamma;
             }
 
             phi(i,j,k,n) /= gamma;

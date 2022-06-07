@@ -33,7 +33,6 @@ void set_eb_data (const int i, const int j,
     const Real bareascaling = std::sqrt( (nx*dx[0])*(nx*dx[0]) +
             (ny*dx[1])*(ny*dx[1]) );
 
-   
     const Real nxabs = amrex::Math::abs(nx);
     const Real nyabs = amrex::Math::abs(ny);
 
