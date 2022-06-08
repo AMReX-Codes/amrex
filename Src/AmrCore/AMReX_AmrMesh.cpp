@@ -909,9 +909,8 @@ AmrMesh::MakeNewGrids (Real time)
             int ngrids = AMREX_D_TERM(top[0],*top[1],*top[2]);
             std::vector<int> includes(ngrids,1);
 
-            std::cout << "Initializing bittree..." << std::endl;
+            amrex::Print() << "Initializing Bittree..." << std::endl;
             btmesh = std::make_shared<bittree::BittreeAmr>(top.data(),includes.data());
-            std::cout << "Done initializing bittree" << std::endl;
         }
 
         MakeNewLevelFromScratch(0, time, ba, dm);
