@@ -16,6 +16,59 @@ std::vector<bool> btUnit::is_par;
 std::vector<std::vector<double>> btUnit::error;
 std::vector<std::vector<double>> btUnit::error_par;
 
+
+/** Creates new box arrays to match the new Bittree mesh.
+  * TODO: also calculate an appropriate DistributionMapping.
+  */
+void btUnit::btMakeNewGrids(std::shared_ptr<BittreeAmr> mesh, int lbase,
+                            Real time,int& new_finest,
+                            Vector<BoxArray>& new_grids,
+                            Vector<DistributionMapping>& new_dm,
+                            Vector<IntVect>& max_grid_size) {
+    auto tree1 = mesh->getTree(true);
+    int nlevs = tree1->levels();
+    new_finest = nlevs - 1;
+
+//--Calculate the new grid layout and distribution map based on Bittree
+    for(int lev=lbase; lev<nlevs; ++lev) {
+      //Bittree has its own indices for blocks which I call bitid; get
+      //the range of bitids for the level being made. Bitid range is
+      //contiguous for each level.
+      int id0 = tree1->level_id0(lev);
+      int id1 = tree1->level_id1(lev);
+      int nblocks = tree1->level_blocks(lev);
+
+      BoxList bl;
+      Vector<int> pmap;
+
+      for(int i=id0; i<id1; ++i) {
+        //Get coordinates and morton index.
+        auto b = tree1->locate(i);
+
+        if(b.level != lev) {
+            std::string msg = "Error identifying block in btMakeNewGrids";
+            //TODO throw error
+        }
+
+        IntVect coordVec{AMREX_D_DECL(static_cast<int>(b.coord[0]),
+                                      static_cast<int>(b.coord[1]),
+                                      static_cast<int>(b.coord[2]))};
+        IntVect lo = max_grid_size[lev]*coordVec;
+        IntVect hi = max_grid_size[lev]*(coordVec+1) - 1;
+        bl.push_back( Box{lo,hi} );
+
+        //TODO Calculate the processor based on position in the global Morton curve.
+        int proc = 0;
+        pmap.push_back(proc);
+
+      }
+
+      new_grids[lev].define(bl);
+      new_dm[lev].define(pmap);
+
+    }
+}
+
 /*
 NOTE: Bittree object is created in AmrMesh::MakeNewGrids (Real time)
    with
@@ -29,6 +82,9 @@ The functions here are called in the BT version of MakeNewGrids which has three 
     3. AMReX updates grids based on bitree - btMakeNewGrids
 */
 
+//---------------------------------------------------------------------
+//  Routines that need revising
+//---------------------------------------------------------------------
 /** Error estimation and tagging for refinement/derefinement.
   * This is implemented below in a paramesh-like algorithm
   * but this could be all changed to fit AMReX.
@@ -197,55 +253,6 @@ void btUnit::btRefine( std::shared_ptr<BittreeAmr> mesh ) {
 
 }
 
-/** Creates new box arrays to match the new Bittree mesh.
-  */
-void btUnit::btMakeNewGrids(std::shared_ptr<BittreeAmr> mesh, int lbase,
-                            Real time,int& new_finest,
-                            Vector<BoxArray>& new_grids,
-                            Vector<DistributionMapping>& new_dm,
-                            Vector<IntVect>& max_grid_size) {
-    auto tree1 = mesh->getTree(true);
-    int nlevs = tree1->levels();
-    new_finest = nlevs - 1;
-
-//--Calculate the new grid layout and distribution map based on Bittree
-    for(int lev=lbase; lev<nlevs; ++lev) {
-      //Bittree has its own indices for blocks which I call bitid; get
-      //the range of bitids for the level being made. Bitid range is
-      //contiguous for each level.
-      int id0 = tree1->level_id0(lev);
-      int id1 = tree1->level_id1(lev);
-      int nblocks = tree1->level_blocks(lev);
-
-      BoxList bl;
-      Vector<int> pmap;
-
-      for(int i=id0; i<id1; ++i) {
-        //Get coordinates and morton index.
-        auto b = tree1->locate(i);
-
-        if(b.level != lev) {
-            std::string msg = "Error identifying block in btMakeNewGrids";
-        }
-
-        //TODO Calculate the processor based on position in the global Morton curve.
-        int proc = 0;
-
-        IntVect coordVec{AMREX_D_DECL(static_cast<int>(b.coord[0]),
-                                      static_cast<int>(b.coord[1]),
-                                      static_cast<int>(b.coord[2]))};
-        IntVect lo = max_grid_size[lev]*coordVec;
-        IntVect hi = max_grid_size[lev]*(coordVec+1) - 1;
-        bl.push_back( Box{lo,hi} );
-        pmap.push_back(proc);
-
-      }
-
-      new_grids[lev].define(bl);
-      new_dm[lev].define(pmap);
-
-    }
-}
 
 //---------------------------------------------------------------------
 // Local Routines

@@ -500,28 +500,13 @@ void
 AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& new_grids, Vector<DistributionMapping>& new_dmap)
 {
     if(use_bittree) {
+        // Initialize BT refinement
         btmesh->refine_init();
 
-        /*
-        BL_PROFILE("AmrMesh::MakeNewGrids()");
-
-        BL_ASSERT(lbase < max_level);
-
-        // Add at most one new level
-        int max_crse = std::min(finest_level, max_level-1);
-
-        if (new_grids.size() < max_crse+2) new_grids.resize(max_crse+2);
-        */
-
-        // Do ErrorEst tagging and convert those tags into two lists, `refine` and `derefine`
-        // As of now, error is not calculated and refine/derefine are all false (i.e. no refinement).
-        /*
-        btUnit::btErrorEst(btmesh);
-        */
-
-        // Instead, do the regular MakeNewGrids and infer refine/derefine from there
+        // Do the regular MakeNewGrids and infer refine/derefine from there
+        // TODO replace this with actual logic to mark BT directly from the TagBoxArrays
         bool grid_changed = false;
-        { //temporary
+        {
             MPI_Comm comm = ParallelContext::CommunicatorSub();
             MakeNewGrids(lbase,time,new_finest,new_grids);
             auto tree0 = btmesh->getTree();
@@ -564,19 +549,13 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
             btmesh->refine_reduce(comm);
             btmesh->refine_update();
             if(grid_changed) {
-                amrex::Print() << "Mesh changed!\n"  << btmesh->slice_to_string(0) << std::endl;
+                amrex::Print() << "Mesh changed!" << std::endl;
+                amrex::Print() << btmesh->slice_to_string(0) << std::endl;
             }
-        } //end temporary
-
-        // Using the `refine` and `derefine` lists, create new mesh in Bittree.
-        // Implements octree logic.
-        /*
-        btUnit::btRefine(btmesh);
-        */
-
+        }
 
         // Convert Bittree mesh to new Boxarrays and DistributionMappings
-        // For testing, should be able to compare new_grids from here to the new_grids made above
+        // For testing, compare new_grids from here to the new_grids made above
         if(grid_changed) {
             Vector<BoxArray> new_grids_bt(new_finest+1);
             Vector<DistributionMapping> new_dmap_bt(new_finest+1);
@@ -586,6 +565,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
             // Generate new grids from BT.
             btUnit::btMakeNewGrids(btmesh,lbase,time,new_finest_bt,new_grids_bt,new_dmap_bt,max_grid_size);
 
+            // Make sure the results from btMakeNewGrids match the results of MakeNewGrids
             if(new_finest != new_finest_bt) all_good = false;
             for(int lev=lbase+1; lev<=new_finest; ++lev) {
                 auto btComplement = amrex::complementIn(geom[lev].Domain(),new_grids_bt[lev]);
@@ -593,10 +573,11 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                 if(!actualMinusBT.empty()) all_good = false;
             }
             amrex::Print() << "Comparing BT generated grids to actual grids: ";
-            if(all_good) amrex::Print() << "All good!" << std::endl;
+            if(all_good) amrex::Print() << "SUCCESS" << std::endl;
             else         amrex::Print() << "ERROR!" << std::endl;
         }
-        
+       
+        // Finalize BT refinement
         btmesh->refine_apply();
 
     } else {
