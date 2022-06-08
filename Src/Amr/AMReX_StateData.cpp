@@ -527,13 +527,7 @@ StateData::FillBoundary (Box const&      bx,
                          int             num_comp)
 {
     BL_PROFILE("StateData::FillBoundary(geom)");
-    //BL_ASSERT(bx.ixType() == desc->getType());
 
-    // Are we filling the domain face or not? It's part of the valid region
-    // for face-centered, so that would suggest no, but it is also ON the boundary.
-    // Would need to make sure bndryFill actually works for face if we want to do that...
-    // see StateDataPhysBCFunct::operator()
-    // NOT filling domain face
     if (domain.contains(enclosedCells(bx))) return;
 
     Vector<BCRec> bcr(num_comp);
@@ -874,9 +868,8 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
 {
     BL_PROFILE("StateDataPhysBCFunct::()");
 
-    // Match domain box type to MF type.
-    Box            domain_mt   = statedata->getDomain();
-    domain_mt.convert(mf.ixType());
+    // Match domain box type to MF index type.
+    const Box&     domain_mt   = amrex::convert(statedata->getDomain(),mf.ixType());
     const int*     domainlo    = domain_mt.loVect();
     const int*     domainhi    = domain_mt.hiVect();
     const Real*    dx          = geom.CellSize();
@@ -896,14 +889,11 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
             FArrayBox& dest = mf[mfi];
             Array4<Real> const& desta = dest.array();
             const Box& bx = dest.box();
-            // Box bx_cc = dest.box();
-            // bx_cc.convert(IntVect::TheZeroVector());
 
             bool has_phys_bc = false;
             bool is_periodic = false;
             for (int i = 0; i < AMREX_SPACEDIM; ++i) {
                 bool touch = bx.smallEnd(i) < domainlo[i] || bx.bigEnd(i) > domainhi[i];
-//		bool touch = bx_cc.smallEnd(i) < domainlo[i] || bx_cc.bigEnd(i) > domainhi[i];
                 if (geom.isPeriodic(i)) {
                     is_periodic = is_periodic || touch;
                 } else {
@@ -914,7 +904,6 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
             if (has_phys_bc)
             {
                 if (has_bndryfunc_fab) {
-		    //Print()<<"Calling statedata->FillBoundary"<<std::endl;
                     statedata->FillBoundary(bx, dest, time, geom, dest_comp, src_comp, num_comp);
                 } else {
                     statedata->FillBoundary(dest, time, dx, prob_domain, dest_comp, src_comp, num_comp);
@@ -928,26 +917,21 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
                     {
                         if (!geom.isPeriodic(dir))
                         {
-			    // Potentially nodal is okay here since valid region (at nodal hi+1)
-			    // should aready obey periodicity
                             const int lo = domainlo[dir] - bx.smallEnd(dir);
                             const int hi = bx.bigEnd(dir) - domainhi[dir];
                             if (lo > 0) GrownDomain.growLo(dir,lo);
                             if (hi > 0) GrownDomain.growHi(dir,hi);
                         }
                     }
-
-		    // // Make sure box types match so following will work
-		    // GrownDomain.convert(bx.type());
-		    
+                    
                     for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
                     {
                         if (!geom.isPeriodic(dir)) continue;
 
                         Box lo_slab = bx;
                         Box hi_slab = bx;
-                        lo_slab.shift(dir, geom.period(dir)); //domain.length(dir));
-			 hi_slab.shift(dir,-geom.period(dir)); //domain.length(dir));
+                        lo_slab.shift(dir, geom.period(dir));
+                        hi_slab.shift(dir,-geom.period(dir));
                         lo_slab &= GrownDomain;
                         hi_slab &= GrownDomain;
 
