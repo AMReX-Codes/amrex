@@ -527,9 +527,14 @@ StateData::FillBoundary (Box const&      bx,
                          int             num_comp)
 {
     BL_PROFILE("StateData::FillBoundary(geom)");
-    BL_ASSERT(bx.ixType() == desc->getType());
+    //BL_ASSERT(bx.ixType() == desc->getType());
 
-    if (domain.contains(bx)) return;
+    // Are we filling the domain face or not? It's part of the valid region
+    // for face-centered, so that would suggest no, but it is also ON the boundary.
+    // Would need to make sure bndryFill actually works for face if we want to do that...
+    // see StateDataPhysBCFunct::operator()
+    // NOT filling domain face
+    if (domain.contains(enclosedCells(bx))) return;
 
     Vector<BCRec> bcr(num_comp);
 
@@ -869,9 +874,11 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
 {
     BL_PROFILE("StateDataPhysBCFunct::()");
 
-    const Box&     domain      = statedata->getDomain();
-    const int*     domainlo    = domain.loVect();
-    const int*     domainhi    = domain.hiVect();
+    // Match domain box type to MF type.
+    Box            domain_mt   = statedata->getDomain();
+    domain_mt.convert(mf.ixType());
+    const int*     domainlo    = domain_mt.loVect();
+    const int*     domainhi    = domain_mt.hiVect();
     const Real*    dx          = geom.CellSize();
     const RealBox& prob_domain = geom.ProbDomain();
 
@@ -889,11 +896,14 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
             FArrayBox& dest = mf[mfi];
             Array4<Real> const& desta = dest.array();
             const Box& bx = dest.box();
+            // Box bx_cc = dest.box();
+            // bx_cc.convert(IntVect::TheZeroVector());
 
             bool has_phys_bc = false;
             bool is_periodic = false;
             for (int i = 0; i < AMREX_SPACEDIM; ++i) {
                 bool touch = bx.smallEnd(i) < domainlo[i] || bx.bigEnd(i) > domainhi[i];
+//		bool touch = bx_cc.smallEnd(i) < domainlo[i] || bx_cc.bigEnd(i) > domainhi[i];
                 if (geom.isPeriodic(i)) {
                     is_periodic = is_periodic || touch;
                 } else {
@@ -904,6 +914,7 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
             if (has_phys_bc)
             {
                 if (has_bndryfunc_fab) {
+		    //Print()<<"Calling statedata->FillBoundary"<<std::endl;
                     statedata->FillBoundary(bx, dest, time, geom, dest_comp, src_comp, num_comp);
                 } else {
                     statedata->FillBoundary(dest, time, dx, prob_domain, dest_comp, src_comp, num_comp);
@@ -911,12 +922,14 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
 
                 if (is_periodic) // fix up corner
                 {
-                    Box GrownDomain = domain;
+                    Box GrownDomain = domain_mt;
 
                     for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
                     {
                         if (!geom.isPeriodic(dir))
                         {
+			    // Potentially nodal is okay here since valid region (at nodal hi+1)
+			    // should aready obey periodicity
                             const int lo = domainlo[dir] - bx.smallEnd(dir);
                             const int hi = bx.bigEnd(dir) - domainhi[dir];
                             if (lo > 0) GrownDomain.growLo(dir,lo);
@@ -924,14 +937,17 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
                         }
                     }
 
+		    // // Make sure box types match so following will work
+		    // GrownDomain.convert(bx.type());
+		    
                     for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
                     {
                         if (!geom.isPeriodic(dir)) continue;
 
                         Box lo_slab = bx;
                         Box hi_slab = bx;
-                        lo_slab.shift(dir, domain.length(dir));
-                        hi_slab.shift(dir,-domain.length(dir));
+                        lo_slab.shift(dir, geom.period(dir)); //domain.length(dir));
+			 hi_slab.shift(dir,-geom.period(dir)); //domain.length(dir));
                         lo_slab &= GrownDomain;
                         hi_slab &= GrownDomain;
 
@@ -942,7 +958,7 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
                                 tmp.resize(lo_slab,num_comp);
                                 Elixir elitmp = tmp.elixir();
                                 Array4<Real> const& tmpa = tmp.array();
-                                const int ishift = -domain.length(dir);
+                                const int ishift = -geom.period(dir);
                                 amrex::launch(lo_slab,
                                 [=] AMREX_GPU_DEVICE (Box const& tbx) noexcept
                                 {
@@ -990,7 +1006,7 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
                             else
                             {
                                 tmp.resize(lo_slab,num_comp);
-                                const Box db = amrex::shift(lo_slab, dir, -domain.length(dir));
+                                const Box db = amrex::shift(lo_slab, dir, -geom.period(dir));
                                 tmp.copy<RunOn::Host>(dest, db, dest_comp, lo_slab, 0, num_comp);
                                 if (has_bndryfunc_fab) {
                                     statedata->FillBoundary(lo_slab, tmp, time, geom, 0, src_comp, num_comp);
@@ -1008,7 +1024,7 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
                                 tmp.resize(hi_slab,num_comp);
                                 Elixir elitmp = tmp.elixir();
                                 Array4<Real> const& tmpa = tmp.array();
-                                const int ishift = domain.length(dir);
+                                const int ishift = geom.period(dir);
                                 amrex::launch(hi_slab,
                                 [=] AMREX_GPU_DEVICE (Box const& tbx) noexcept
                                 {
@@ -1056,7 +1072,7 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
                             else
                             {
                                 tmp.resize(hi_slab,num_comp);
-                                const Box db = amrex::shift(hi_slab, dir, domain.length(dir));
+                                const Box db = amrex::shift(hi_slab, dir, geom.period(dir));
                                 tmp.copy<RunOn::Host>(dest, db, dest_comp, hi_slab, 0, num_comp);
                                 if (has_bndryfunc_fab) {
                                     statedata->FillBoundary(hi_slab, tmp, time, geom, 0, src_comp, num_comp);
