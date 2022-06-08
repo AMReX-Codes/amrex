@@ -923,7 +923,7 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
                             if (hi > 0) GrownDomain.growHi(dir,hi);
                         }
                     }
-                    
+
                     for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
                     {
                         if (!geom.isPeriodic(dir)) continue;
