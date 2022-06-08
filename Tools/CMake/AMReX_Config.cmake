@@ -131,16 +131,6 @@ function (configure_amrex)
          target_compile_options(amrex PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${_amrex_flags}>)
       endif ()
 
-      #
-      # Add manually nvToolsExt if tiny profiler or base profiler are on.
-      # CMake >= 3.17 provides the module FindCUDAToolkit to do this natively.
-      # TODO: Modernize me, now that we require CMake 3.17+.
-      #
-      if (AMReX_TINY_PROFILE OR AMReX_BASE_PROFILE )
-          find_library(LIBNVTOOLSEXT nvToolsExt PATHS ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
-          target_link_libraries(amrex PUBLIC ${LIBNVTOOLSEXT})
-      endif ()
-
    endif ()
 
    if ( AMReX_PIC OR BUILD_SHARED_LIBS )
