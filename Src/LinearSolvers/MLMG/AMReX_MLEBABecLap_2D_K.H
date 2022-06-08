@@ -139,7 +139,7 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
             Real feb = 0.0;
             if (is_eb_dirichlet && flag(i,j,k).isSingleValued())
             {
-                Real dapx = (apxm-apxp) /dxinv[1];
+                Real dapx = (apxm-apxp)/dxinv[1];
                 Real dapy = (apym-apyp)/dxinv[0];
                 Real anorm = std::hypot(dapx,dapy);
                 Real anorminv = 1.0/anorm;

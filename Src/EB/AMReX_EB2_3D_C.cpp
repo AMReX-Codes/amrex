@@ -142,7 +142,7 @@ void set_eb_data (const int i, const int j, const int k,
 
     Real Sz = (-2._rt*(b3 + b8*nx + b9*ny)*(-5._rt - 4._rt*ny2 + 4._rt*ny4) +
                (5._rt*(2._rt*b4 + 4._rt*b6 + b1*nx) + (3._rt*b2 + 8._rt*b7*nx)*ny -
-                2._rt*(7._rt*b4 - 3._rt*b5 - 8.*b6 + b1*nx)*ny2 +
+                2._rt*(7._rt*b4 - 3._rt*b5 - 8._rt*b6 + b1*nx)*ny2 +
                 2._rt*b2*ny3 + 4._rt*(b4 + b5 - 4._rt*b6)*ny4)*nz +
                (b3*(15._rt - 8._rt*ny2) - 6._rt*b9*ny*(-3._rt + ny2) -
                 10._rt*b8*nx*(-2._rt + ny2))*nz2 +

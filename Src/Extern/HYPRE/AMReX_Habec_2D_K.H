@@ -496,7 +496,7 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<Int> const& ncols,
 
             Array1D<Real,0,3> feb;
             for (int ii=0; ii<4; ii++){
-                feb(ii) = -phig1(ii) * (ba(i,j,k) * beb(i,j,k) / dg );
+                feb(ii) = -phig1(ii) * (ba(i,j,k) * beb(i,j,k) / dg);
             }
             mat_tmp(0   , 0  ) -= feb(0)*fac[0];
             mat_tmp(ioff, 0  ) -= feb(1)*fac[0];
