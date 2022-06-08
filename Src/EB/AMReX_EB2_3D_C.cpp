@@ -140,17 +140,17 @@ void set_eb_data (const int i, const int j, const int k,
                (-8._rt*(b2 + b7*nx) + 4._rt*(b4 - 4._rt*b5 + b6)*ny)*nz4 -
                8._rt*b9*nz5);
 
-    Real Sz = (-2.*(b3 + b8*nx + b9*ny)*(-5. - 4.*ny2 + 4.*ny4) +
-               (5.*(2.*b4 + 4.*b6 + b1*nx) + (3.*b2 + 8.*b7*nx)*ny -
-                2.*(7.*b4 - 3.*b5 - 8.*b6 + b1*nx)*ny2 +
-                2.*b2*ny3 + 4.*(b4 + b5 - 4.*b6)*ny4)*nz +
-               (b3*(15. - 8.*ny2) - 6.*b9*ny*(-3. + ny2) -
-                10.*b8*nx*(-2. + ny2))*nz2 +
-               2.*(-5.*b4 + 15.*b6 + (b2 + b7*nx)*ny +
-                   2.*(b4 + b5 - 4.*b6)*ny2)*nz3 + 2.*b9*ny*nz4);
+    Real Sz = (-2._rt*(b3 + b8*nx + b9*ny)*(-5._rt - 4._rt*ny2 + 4._rt*ny4) +
+               (5._rt*(2._rt*b4 + 4._rt*b6 + b1*nx) + (3._rt*b2 + 8._rt*b7*nx)*ny -
+                2._rt*(7._rt*b4 - 3._rt*b5 - 8.*b6 + b1*nx)*ny2 +
+                2._rt*b2*ny3 + 4._rt*(b4 + b5 - 4._rt*b6)*ny4)*nz +
+               (b3*(15._rt - 8._rt*ny2) - 6._rt*b9*ny*(-3._rt + ny2) -
+                10._rt*b8*nx*(-2._rt + ny2))*nz2 +
+               2._rt*(-5._rt*b4 + 15._rt*b6 + (b2 + b7*nx)*ny +
+                   2._rt*(b4 + b5 - 4._rt*b6)*ny2)*nz3 + 2._rt*b9*ny*nz4);
 
-    Real den = 1. / (10.*(5. + 4.*nz2 - 4.*nz4 + 2.*ny4*(-2. + nz2) +
-                                  2.*ny2*(2. - 3.*nz2 + nz4)) * (vfrac(i,j,k)+1.e-50) );
+    Real den = 1._rt / (10._rt*(5._rt + 4._rt*nz2 - 4._rt*nz4 + 2._rt*ny4*(-2._rt + nz2) +
+                                  2._rt*ny2*(2._rt - 3._rt*nz2 + nz4)) * (vfrac(i,j,k)+1.e-30_rt) );
 
     vcent(i,j,k,0) = Sx * den;
     vcent(i,j,k,1) = Sy * den;
@@ -232,9 +232,9 @@ void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
         Real dx2 = dxx * (x_ym + x_yp);
         Real dx3 = dxx * (x_ym*x_ym + x_ym*x_yp + x_yp*x_yp);
         Real dx4 = dxx * (x_ym + x_yp) * (x_ym*x_ym + x_yp*x_yp);
-        Real af1 = 0.5*(axm+axp) + aa*0.5*dx2;
-        centx = 0.125*(axp-axm) + aa*(1./6.)*dx3;
-        Sx2 = (1./24.)*(axm+axp) + aa*(1./12.)*dx4;
+        Real af1 = 0.5_rt*(axm+axp) + aa*0.5_rt*dx2;
+        centx = 0.125_rt*(axp-axm) + aa*(1._rt/6._rt)*dx3;
+        Sx2 = (1._rt/24._rt)*(axm+axp) + aa*(1._rt/12._rt)*dx4;
 
         Real signy = (ny > 0.0_rt) ? 1.0_rt : -1.0_rt;
         Real y_xm = (-0.5_rt + axm)*signy;
