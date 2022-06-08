@@ -515,33 +515,87 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
 
         // Do ErrorEst tagging and convert those tags into two lists, `refine` and `derefine`
         // As of now, error is not calculated and refine/derefine are all false (i.e. no refinement).
+        /*
         btUnit::btErrorEst(btmesh);
+        */
 
         // Instead, do the regular MakeNewGrids and infer refine/derefine from there
+        bool grid_changed = false;
         { //temporary
+            MPI_Comm comm = ParallelContext::CommunicatorSub();
             MakeNewGrids(lbase,time,new_finest,new_grids);
+            auto tree0 = btmesh->getTree();
 
             for(int lev=lbase+1; lev<=new_finest; ++lev) {
                 new_dmap[lev] = DistributionMapping(new_grids[lev]);
+            }
 
-                // use grids[lev] and new_grids[lev], infer which boxes were refined/derefined
-                //amrex::intersect??
+            // use grids[lev] and new_grids[lev], infer which boxes were refined/derefined
+            for(int lev=lbase+1; lev<=new_finest; ++lev) {
+                if(grids[lev]==new_grids[lev]) continue;
+                grid_changed = true;
+                auto sameBoxes = amrex::intersect(grids[lev],new_grids[lev]);
+                auto sameComplement = amrex::complementIn(geom[lev].Domain(),sameBoxes);
+                auto newBoxes = amrex::intersect(new_grids[lev],sameComplement);
+                auto goneBoxes = amrex::intersect(grids[lev],sameComplement);
+
+                unsigned parCoord[AMREX_SPACEDIM];
+                int plev = lev-1;
+                for (Box& bx : goneBoxes.boxList())
+                {
+                    // mark parents for derefine
+                    for(unsigned d=0; d<AMREX_SPACEDIM; ++d)
+                        parCoord[d] = bx.smallEnd(d)/(2*max_grid_size[lev][d]);
+                    auto p = tree0->identify(plev,parCoord);
+                    btmesh->refine_mark(p.id, true);
+                }
                 
+                for (Box& bx : newBoxes.boxList())
+                {
+                    // mark parents for refine
+                    for(unsigned d=0; d<AMREX_SPACEDIM; ++d)
+                        parCoord[d] = bx.smallEnd(d)/(2*max_grid_size[lev][d]);
+                    auto p = tree0->identify(plev,parCoord);
+                    btmesh->refine_mark(p.id, true);
+                }
+            }
+
+            // Not doing btCheckRefine and btCheckDerefine, trusting AMReX algorithm
+            btmesh->refine_reduce(comm);
+            btmesh->refine_update();
+            if(grid_changed) {
+                amrex::Print() << "Mesh changed!\n"  << btmesh->slice_to_string(0) << std::endl;
             }
         } //end temporary
 
         // Using the `refine` and `derefine` lists, create new mesh in Bittree.
         // Implements octree logic.
+        /*
         btUnit::btRefine(btmesh);
+        */
 
-        std::cout << "Bittree should be updated by this point." << std::endl;
-        std::cout << btmesh->slice_to_string(0) << std::endl;
 
         // Convert Bittree mesh to new Boxarrays and DistributionMappings
         // For testing, should be able to compare new_grids from here to the new_grids made above
-        /*
-        btUnit::btMakeNewGrids(btmesh,lbase,time,new_finest,new_grids,new_dmap,max_grid_size);
-        */
+        if(grid_changed) {
+            Vector<BoxArray> new_grids_bt(new_finest+1);
+            Vector<DistributionMapping> new_dmap_bt(new_finest+1);
+            int new_finest_bt;
+            bool all_good = true;
+
+            // Generate new grids from BT.
+            btUnit::btMakeNewGrids(btmesh,lbase,time,new_finest_bt,new_grids_bt,new_dmap_bt,max_grid_size);
+
+            if(new_finest != new_finest_bt) all_good = false;
+            for(int lev=lbase+1; lev<=new_finest; ++lev) {
+                auto btComplement = amrex::complementIn(geom[lev].Domain(),new_grids_bt[lev]);
+                auto actualMinusBT = amrex::intersect(new_grids[lev],btComplement);
+                if(!actualMinusBT.empty()) all_good = false;
+            }
+            amrex::Print() << "Comparing BT generated grids to actual grids: ";
+            if(all_good) amrex::Print() << "All good!" << std::endl;
+            else         amrex::Print() << "ERROR!" << std::endl;
+        }
         
         btmesh->refine_apply();
 

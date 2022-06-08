@@ -39,9 +39,9 @@ amr.use_bittree = true
 # Blocking factor for grid creation in each dimension --
 #   this ensures that every grid is coarsenable by a factor of 8 --
 #   this is mostly relevant for multigrid performance
-amr.blocking_factor_x = 8
-amr.blocking_factor_y = 8
-amr.blocking_factor_z = 8
+amr.blocking_factor_x = 32
+amr.blocking_factor_y = 32
+amr.blocking_factor_z = 32
 
 amr.max_grid_size   = 16
 
