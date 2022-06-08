@@ -136,6 +136,33 @@ namespace amrex {
     };
 
     template<typename T>
+    class PolymorphicArenaAllocator
+        : public ArenaAllocatorTraits
+    {
+    public :
+
+        using value_type = T;
+
+        inline value_type* allocate(std::size_t n)
+        {
+            value_type* result = nullptr;
+            result = (value_type*) arena()->alloc(n * sizeof(T));
+            return result;
+        }
+
+        inline void deallocate(value_type* ptr, std::size_t)
+        {
+            if (ptr != nullptr) { arena()->free(ptr); }
+        }
+
+        Arena* arena () const noexcept {
+            return (m_arena) ? m_arena : The_Arena();
+        }
+
+        Arena* m_arena = nullptr;
+    };
+
+    template<typename T>
     class PolymorphicAllocator
     {
     public :
