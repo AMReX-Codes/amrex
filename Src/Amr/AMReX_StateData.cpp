@@ -528,7 +528,7 @@ StateData::FillBoundary (Box const&      bx,
 {
     BL_PROFILE("StateData::FillBoundary(geom)");
 
-    if (domain.contains(enclosedCells(bx))) return;
+    if (domain.contains(convert(bx,domain.ixType()))) return;
 
     Vector<BCRec> bcr(num_comp);
 
