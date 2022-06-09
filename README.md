@@ -20,7 +20,7 @@ refinement applications.
 [Overview](#Overview) -
 [Features](#Features) -
 [Documentation](#Overview) -
-[Gallery](#Galley) -
+[Gallery](#Gallery) -
 [Get Help](#get-help) -
 [Contribute](#Contribute) -
 [License](#License) -
