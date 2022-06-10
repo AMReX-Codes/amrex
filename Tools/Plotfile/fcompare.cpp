@@ -24,7 +24,7 @@ void PrintUsage()
         << " variable.\n"
         << "\n"
         << " usage:\n"
-        << "    fcompare [-n|--norm num] [-d|--diffvar var] [-z|--zone_info var] [-a|--allow_diff_grids] [-r|rel_tol] [--abs_tol] file1 file2\n"
+        << "    fcompare [-n|--norm num] [-d|--diffvar var] [-z|--zone_info var] [-a|--allow_diff_grids] [-l|--allow_diff_num_levels] [-r|rel_tol] [--abs_tol] file1 file2\n"
         << "\n"
         << " optional arguments:\n"
         << "    -n|--norm num         : what norm to use (default is 0 for inf norm)\n"
@@ -33,6 +33,7 @@ void PrintUsage()
         << "    -z|--zone_info var    : output the information for a zone corresponding\n"
         << "                            to the maximum error for the given variable\n"
         << "    -a|--allow_diff_grids : allow different BoxArrays covering the same domain\n"
+        << "    -l|--allow_diff_num_levels : allow different number of levels (only the levels in common will be compared)\n"
         << "    -r|--rel_tol rtol     : relative tolerance (default is 0)\n"
         << "    --abs_tol atol        : absolute tolerance (default is 0)\n"
         << std::endl;
@@ -55,6 +56,7 @@ int main_main()
     std::string diffvar;
     int zone_info = false;
     int allow_diff_grids = false;
+    int allow_diff_num_levels = false;
     Real rtol = 0.0;
     Real atol = 0.0;
     std::string zone_info_var_name;
@@ -81,6 +83,8 @@ int main_main()
             plot_names[0] = diffvar;
         } else if (fname == "-a" || fname == "--allow_diff_grids") {
             allow_diff_grids = true;
+        } else if (fname == "-l" || fname == "--allow_diff_num_levels") {
+            allow_diff_num_levels = true;
         } else if (fname == "-r" || fname == "--rel_tol") {
             rtol = std::stod(amrex::get_command_argument(++farg));
         } else if (fname == "--abs_tol") {
@@ -113,10 +117,15 @@ int main_main()
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(pf_a.spaceDim() == pf_b.spaceDim(),
                                      "ERROR: plotfiles have different numbers of spatial dimensions");
 
-    const int finest_level = pf_a.finestLevel();
+    const int finest_level = std::min(pf_a.finestLevel(), pf_b.finestLevel());
     const int nlevels = finest_level+1;
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(pf_a.finestLevel() == pf_b.finestLevel(),
-                                     "ERROR: number of levels do not match");
+    if (allow_diff_num_levels) {
+        amrex::Print() << "\n WARNING: number of levels do not match\n";
+    }
+    else {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(pf_a.finestLevel() == pf_b.finestLevel(),
+                                         "ERROR: number of levels do not match");
+    }
 
     const int ncomp_a = pf_a.nComp();
     const int ncomp_b = pf_b.nComp();
