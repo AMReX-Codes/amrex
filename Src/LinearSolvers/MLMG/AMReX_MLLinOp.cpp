@@ -355,14 +355,16 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         }
 
         for (int lev = 1, nlevs = domainboxes.size(); lev < nlevs; ++lev) {
-            m_geom[0].emplace_back(domainboxes[lev],rb,coord,is_per);
-
             if (!agged && !agg_flag[lev] &&
                 a_grids[0].coarsenable(accum_coarsen_ratio[lev], mg_box_min_width_v))
             {
                 m_grids[0].push_back(amrex::coarsen(a_grids[0], accum_coarsen_ratio[lev]));
                 m_dmap[0].push_back(a_dmap[0]);
             } else {
+                IntVect cr = domainboxes[lev-1].length() / domainboxes[lev].length();
+                if (!m_grids[0].back().coarsenable(cr)) {
+                    break; // average_down would fail if fine boxarray is not coarsenable.
+                }
                 m_grids[0].emplace_back(boundboxes[lev]);
                 IntVect max_grid_size(info.agg_grid_size);
                 if (info.do_semicoarsening && info.max_semicoarsening_level >= lev
@@ -382,6 +384,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                     agg_lev = lev;
                 }
             }
+            m_geom[0].emplace_back(domainboxes[lev],rb,coord,is_per);
         }
     }
     else
