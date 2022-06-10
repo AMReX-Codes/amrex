@@ -20,7 +20,7 @@ refinement applications.
 [Overview](#Overview) -
 [Features](#Features) -
 [Documentation](#Overview) -
-[Gallery](#Galley) -
+[Gallery](#Gallery) -
 [Get Help](#get-help) -
 [Contribute](#Contribute) -
 [License](#License) -
@@ -45,14 +45,14 @@ More information is available at the [AMReX website](https://amrex-codes.github.
 
 - C++ and Fortran interfaces
 - Support for cell-centered, face-centered, edge-centered, and nodal data
-- Support for hyperbolic, parabolic, and elliptic solves on hierarchical adaptive grid structure
+- Support for hyperbolic, parabolic, and elliptic solves on a hierarchical adaptive grid structure
 - Optional subcycling in time for time-dependent PDEs
 - Support for particles
 - Embedded boundary description of irregular geometry
 - Parallelization via flat MPI, OpenMP, hybrid MPI/OpenMP, or MPI/MPI
 - GPU Acceleration with CUDA (NVidia), HIP (AMD) or SYCL (Intel) backends
 - Parallel I/O
-- Plotfile format supported by Amrvis, VisIt, and ParaView
+- Plotfile format supported by Amrvis, VisIt, ParaView and yt
 - Built-in profiling tools
 
 ## Documentation
