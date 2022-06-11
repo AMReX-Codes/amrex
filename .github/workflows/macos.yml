@@ -6,6 +6,9 @@ concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-macos
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   # Build libamrex and all tests
   tests-macos-universal-nompi:

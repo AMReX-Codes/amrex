@@ -8,6 +8,9 @@ concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-sensei
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   test_sensei:
     name: SENSEI Adaptor [test]

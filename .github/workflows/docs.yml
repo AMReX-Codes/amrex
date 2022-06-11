@@ -6,8 +6,13 @@ concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-docs
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   build-and-deploy:
+    permissions:
+      contents: write  # for JamesIves/github-pages-deploy-action to push changes in repo
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

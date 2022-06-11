@@ -6,6 +6,9 @@ concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-intel
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   tests-dpcpp:
     name: DPCPP GFortran@7.5 C++17 [tests]

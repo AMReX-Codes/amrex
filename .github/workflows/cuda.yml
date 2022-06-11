@@ -6,6 +6,9 @@ concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-cuda
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   # Build libamrex and all tests with CUDA 10.2
   tests-cuda10:

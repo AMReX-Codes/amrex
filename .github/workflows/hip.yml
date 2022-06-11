@@ -6,6 +6,9 @@ concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-hip
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   tests-hip:
     name: HIP ROCm Flang C++17 [tests]

@@ -6,6 +6,9 @@ concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-style
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   tabs:
     runs-on: ubuntu-latest
