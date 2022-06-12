@@ -152,9 +152,9 @@ FaceLinear::interp (const FArrayBox&  crse,
     IArrayBox solve_mask(crse.box());
     solve_mask.setVal(1);
     Array4<const int> mask_arr = solve_mask.const_array(0);
-    
+
     // FIXME? THis is not the most efficient way to do it if there's no masking....
-    
+
     //
     // Fill fine ghost faces with piecewise-constant interpolation of coarse data.
     // Operate only on faces that overlap--ie, only fill the fine faces that make up each
