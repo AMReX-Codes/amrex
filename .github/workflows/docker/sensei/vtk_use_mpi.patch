@@ -1,0 +1,39 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index a9d56e765c..6ce9d80cb2 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -178,10 +178,18 @@ set("_vtk_module_reason_VTK::Java"
+   "via `VTK_WRAP_JAVA`")
+ # For vtkTkRenderWidget (only useful with Python, since WRAP_TCL is gone)
+ if (VTK_USE_TK)
+-  set(VTK_GROUP_ENABLE_Tk YES)
++  if (VTK_GROUP_ENABLE_Tk STREQUAL "DEFAULT")
++    set(VTK_GROUP_ENABLE_Tk "WANT")
++  elseif (VTK_GROUP_ENABLE_Tk STREQUAL "NO")
++    message(FATAL_ERROR "VTK_USE_TK=ON is not compatible with VTK_GROUP_ENABLE_Tk=NO")
++  endif ()
+ endif ()
+ if (VTK_USE_MPI)
+-  set(VTK_GROUP_ENABLE_MPI YES)
++  if (VTK_GROUP_ENABLE_MPI STREQUAL "DEFAULT")
++    set(VTK_GROUP_ENABLE_MPI "WANT")
++  elseif (VTK_GROUP_ENABLE_MPI STREQUAL "NO")
++    message(FATAL_ERROR "VTK_USE_MPI=ON is not compatible with VTK_GROUP_ENABLE_MPI=NO")
++  endif ()
+ else ()
+   # Reject `VTK::mpi`, but allow those which happen to be part of the group to
+   # be built.
+diff --git a/Documentation/release/dev/change-vtk-use-mpi-tk-behavior.md b/Documentation/release/dev/change-vtk-use-mpi-tk-behavior.md
+new file mode 100644
+index 0000000000..4a59b225b0
+--- /dev/null
++++ b/Documentation/release/dev/change-vtk-use-mpi-tk-behavior.md
+@@ -0,0 +1,8 @@
++## `VTK_USE_MPI`/`VTK_USE_TK` are less aggresive
++
++The configure option `VTK_USE_MPI` and `VTK_USE_TK` no longer forces their
++respective Groups on. They will now either change the default to `WANT` or use
++the specified value for `VTK_GROUP_ENABLE_{MPI,Tk}`.
++
++There is now an explicit error when either `VTK_USE_{MPI,TK}` is `ON` but the
++respective group is configured as `NO`.
