@@ -146,7 +146,7 @@ FaceLinear::interp (const FArrayBox&  crse,
 
     // pass unallocated IArrayBox for solve_mask, so all fine values get filled.
     interp_face(crse, crse_comp, fine, fine_comp, ncomp, fine_region,
-		ratio, IArrayBox(), crse_geom, fine_geom, bcr, actual_comp, runon);
+                ratio, IArrayBox(), crse_geom, fine_geom, bcr, actual_comp, runon);
 }
 
 void
