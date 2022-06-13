@@ -39,7 +39,7 @@ face_linear_face_interp_x (int fi, int fj, int fk, int n, Array4<T> const& fine,
 
         if (mask) {
             // Check solve mask to ensure we don't overwrite valid fine data.
-	    if (!mask(ci, cj, ck, nc))
+	    if (!mask(ci, cj, ck, n))
             { return; }
 	}
 
@@ -64,7 +64,7 @@ face_linear_face_interp_y (int fi, int fj, int fk, int n, Array4<T> const& fine,
 
         if (mask) {
             // Check solve mask to ensure we don't overwrite valid fine data.
-	    if (!mask(ci, cj, ck, nc))
+	    if (!mask(ci, cj, ck, n))
             { return; }
 	}
 
@@ -85,7 +85,7 @@ face_linear_face_interp_z (int fi, int fj, int fk, int n, Array4<T> const& fine,
 
         if (mask) {
             // Check solve mask to ensure we don't overwrite valid fine data.
-	    if (!mask(ci, cj, ck, nc))
+	    if (!mask(ci, cj, ck, n))
             { return; }
 	}
 
