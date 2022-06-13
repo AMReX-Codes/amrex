@@ -36,10 +36,14 @@ face_linear_face_interp_x (int fi, int fj, int fk, int n, Array4<T> const& fine,
 #else
         int ck = 0;
 #endif
-        // Check mask to ensure we don't overwrite valid fine data.
-        if (mask(ci, cj, ck, n)) {
-            fine(fi, fj, fk, n) = crse(ci, cj, ck, n);
-        }
+
+        if (mask) {
+            // Check solve mask to ensure we don't overwrite valid fine data.
+	    if (!mask(ci, cj, ck, nc))
+            { return; }
+	}
+
+	fine(fi, fj, fk, n) = crse(ci, cj, ck, n);
     }
 }
 
@@ -57,10 +61,14 @@ face_linear_face_interp_y (int fi, int fj, int fk, int n, Array4<T> const& fine,
 #else
         int ck = 0;
 #endif
-        // Check mask to ensure we don't overwrite valid fine data.
-        if (mask(ci, cj, ck, n)) {
-            fine(fi, fj, fk, n) = crse(ci, cj, ck, n);
-        }
+
+        if (mask) {
+            // Check solve mask to ensure we don't overwrite valid fine data.
+	    if (!mask(ci, cj, ck, nc))
+            { return; }
+	}
+
+	fine(fi, fj, fk, n) = crse(ci, cj, ck, n);
     }
 }
 
@@ -74,10 +82,14 @@ face_linear_face_interp_z (int fi, int fj, int fk, int n, Array4<T> const& fine,
     if (ck*ratio[2] == fk) {
         int ci = amrex::coarsen(fi, ratio[0]);
         int cj = amrex::coarsen(fj, ratio[1]);
-        // Check mask to ensure we don't overwrite valid fine data.
-        if (mask(ci, cj, ck, n)) {
-            fine(fi, fj, fk, n) = crse(ci, cj, ck, n);
-        }
+
+        if (mask) {
+            // Check solve mask to ensure we don't overwrite valid fine data.
+	    if (!mask(ci, cj, ck, nc))
+            { return; }
+	}
+
+	fine(fi, fj, fk, n) = crse(ci, cj, ck, n);
     }
 }
 
