@@ -39,11 +39,11 @@ face_linear_face_interp_x (int fi, int fj, int fk, int n, Array4<T> const& fine,
 
         if (mask) {
             // Check solve mask to ensure we don't overwrite valid fine data.
-	    if (!mask(ci, cj, ck, n))
+            if (!mask(ci, cj, ck, n))
             { return; }
-	}
+        }
 
-	fine(fi, fj, fk, n) = crse(ci, cj, ck, n);
+        fine(fi, fj, fk, n) = crse(ci, cj, ck, n);
     }
 }
 
@@ -64,11 +64,11 @@ face_linear_face_interp_y (int fi, int fj, int fk, int n, Array4<T> const& fine,
 
         if (mask) {
             // Check solve mask to ensure we don't overwrite valid fine data.
-	    if (!mask(ci, cj, ck, n))
+            if (!mask(ci, cj, ck, n))
             { return; }
-	}
+        }
 
-	fine(fi, fj, fk, n) = crse(ci, cj, ck, n);
+        fine(fi, fj, fk, n) = crse(ci, cj, ck, n);
     }
 }
 
@@ -85,11 +85,11 @@ face_linear_face_interp_z (int fi, int fj, int fk, int n, Array4<T> const& fine,
 
         if (mask) {
             // Check solve mask to ensure we don't overwrite valid fine data.
-	    if (!mask(ci, cj, ck, n))
+            if (!mask(ci, cj, ck, n))
             { return; }
-	}
+        }
 
-	fine(fi, fj, fk, n) = crse(ci, cj, ck, n);
+        fine(fi, fj, fk, n) = crse(ci, cj, ck, n);
     }
 }
 
