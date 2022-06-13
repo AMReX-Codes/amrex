@@ -18,7 +18,7 @@ namespace amrex
     namespace detail
     {
         template <typename T, typename U, typename Size, typename Value>
-        typename std::enable_if<RunOnGpu<T>::value && !IsPolymorphic<T>::value>::type
+        typename std::enable_if<RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
         uninitializedFillNImpl (U* data, Size count, const Value& value, T& /*allocator*/)
         {
             amrex::ParallelFor(count, [=] AMREX_GPU_DEVICE (Size i) noexcept {
@@ -28,14 +28,14 @@ namespace amrex
         }
 
         template <typename T, typename U, typename Size, typename Value>
-        typename std::enable_if<!RunOnGpu<T>::value && !IsPolymorphic<T>::value>::type
+        typename std::enable_if<!RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
         uninitializedFillNImpl (U* data, Size count, const Value& value, T& /*allocator*/)
         {
             std::uninitialized_fill_n<U*, Size, Value>(data, count, value);
         }
 
         template <typename T, typename U, typename Size, typename Value>
-        typename std::enable_if<IsPolymorphic<T>::value>::type
+        typename std::enable_if<IsPolymorphicArenaAllocator<T>::value>::type
         uninitializedFillNImpl (U* data, Size count, const Value& value, T& allocator)
         {
 #ifdef AMREX_USE_GPU
@@ -53,7 +53,7 @@ namespace amrex
         }
 
         template <typename T, typename U, typename Size>
-        typename std::enable_if<RunOnGpu<T>::value && !IsPolymorphic<T>::value>::type
+        typename std::enable_if<RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
         fillValuesImpl (U* dst, const U* src, Size count, T& /*allocator*/)
         {
             amrex::ParallelFor(count, [=] AMREX_GPU_DEVICE (Size i) noexcept {
@@ -63,14 +63,14 @@ namespace amrex
         }
 
         template <typename T, typename U, typename Size>
-        typename std::enable_if<!RunOnGpu<T>::value && !IsPolymorphic<T>::value>::type
+        typename std::enable_if<!RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
         fillValuesImpl (U* dst, const U* src, Size count, T& /*allocator*/)
         {
             for (Size i = 0; i < count; ++i) { dst[i] = src[i];}
         }
 
         template <typename T, typename U, typename Size>
-        typename std::enable_if<IsPolymorphic<T>::value>::type
+        typename std::enable_if<IsPolymorphicArenaAllocator<T>::value>::type
         fillValuesImpl (U* dst, const U* src, Size count, T& allocator)
         {
 #ifdef AMREX_USE_GPU
@@ -88,7 +88,7 @@ namespace amrex
         }
 
         template <typename T>
-        typename std::enable_if<RunOnGpu<T>::value && !IsPolymorphic<T>::value>::type
+        typename std::enable_if<RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
         memCopyImpl (void* dst, const void* src, std::size_t count, T& /*allocator*/)
         {
 #ifdef AMREX_USE_GPU
@@ -99,14 +99,14 @@ namespace amrex
         }
 
         template <typename T>
-        typename std::enable_if<!RunOnGpu<T>::value && !IsPolymorphic<T>::value>::type
+        typename std::enable_if<!RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
         memCopyImpl (void* dst, const void* src, std::size_t count, T& /*allocator*/)
         {
             std::memcpy(dst, src, count);
         }
 
         template <typename T>
-        typename std::enable_if<IsPolymorphic<T>::value>::type
+        typename std::enable_if<IsPolymorphicArenaAllocator<T>::value>::type
         memCopyImpl (void* dst, const void* src, std::size_t count, T& allocator)
         {
 #ifdef AMREX_USE_GPU
@@ -121,7 +121,7 @@ namespace amrex
         }
 
         template <typename T>
-        typename std::enable_if<RunOnGpu<T>::value && !IsPolymorphic<T>::value>::type
+        typename std::enable_if<RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
         memMoveImpl (void* dst, const void* src, std::size_t count, T& allocator)
         {
             if (count == 0) { return; }
@@ -144,14 +144,14 @@ namespace amrex
         }
 
         template <typename T>
-        typename std::enable_if<!RunOnGpu<T>::value && !IsPolymorphic<T>::value>::type
+        typename std::enable_if<!RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
  memMoveImpl (void* dst, const void* src, std::size_t count, T& /*allocator*/)
         {
             std::memmove(dst, src, count);
         }
 
         template <typename T>
-        typename std::enable_if<IsPolymorphic<T>::value>::type
+        typename std::enable_if<IsPolymorphicArenaAllocator<T>::value>::type
         memMoveImpl (void* dst, const void* src, std::size_t count, T& allocator)
         {
 #ifdef AMREX_USE_GPU
@@ -178,7 +178,7 @@ namespace amrex
         }
 
         template <typename T, typename U>
-        typename std::enable_if<RunOnGpu<T>::value && !IsPolymorphic<T>::value>::type
+        typename std::enable_if<RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
         initFromListImpl (U* data, std::initializer_list<U> list, T& /*allocator*/)
         {
 #ifdef AMREX_USE_GPU
@@ -189,14 +189,14 @@ namespace amrex
         }
 
         template <typename T, typename U>
-        typename std::enable_if<!RunOnGpu<T>::value && !IsPolymorphic<T>::value>::type
+        typename std::enable_if<!RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
         initFromListImpl (U* data, std::initializer_list<U> list, T& /*allocator*/)
         {
             for (const auto& value : list) { *(data++) = value; }
         }
 
         template <typename T, typename U>
-        typename std::enable_if<IsPolymorphic<T>::value>::type
+        typename std::enable_if<IsPolymorphicArenaAllocator<T>::value>::type
         initFromListImpl (U* data, std::initializer_list<U> list, T& allocator)
         {
 #ifdef AMREX_USE_GPU

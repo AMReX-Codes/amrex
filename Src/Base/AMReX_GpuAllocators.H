@@ -24,7 +24,7 @@ namespace amrex {
     struct RunOnGpu : std::false_type {};
 
     template <typename T>
-    struct IsPolymorphic : std::false_type {};
+    struct IsPolymorphicArenaAllocator : std::false_type {};
 
     struct ArenaAllocatorTraits {
         typedef std::true_type propagate_on_container_copy_assignment;
