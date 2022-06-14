@@ -506,7 +506,6 @@ Geometry::computeRoundoffDomain ()
         inv_dx[k] = 1.0_rt/dx[k];
     }
 
-    roundoff_domain = prob_domain;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         int ilo = Domain().smallEnd(idim);
@@ -516,40 +515,37 @@ Geometry::computeRoundoffDomain ()
         Real idx = InvCellSize(idim);
         Real deltax = CellSize(idim);
 
-#ifdef AMREX_SINGLE_PRECISION_PARTICLES
-        Real tolerance = std::max(1.e-4_rt*deltax, 2.e-7_rt*phi);
-#else
-        Real tolerance = std::max(1.e-8_rt*deltax, 1.e-14_rt*phi);
-#endif
-        // bisect the point at which the cell no longer maps to inside the domain
-        Real lo = static_cast<Real>(phi) - Real(0.5)*static_cast<Real>(deltax);
-        Real hi = static_cast<Real>(phi) + Real(0.5)*static_cast<Real>(deltax);
+        Real ftol = std::max(1.e-4_rt*deltax, 2.e-7_rt*phi);
+        Real dtol = std::max(1.e-8_rt*deltax, 1.e-14_rt*phi);
 
-        Real mid = bisect(lo, hi,
-                          [=] AMREX_GPU_HOST_DEVICE (Real x) -> Real
-                          {
-                              int i = int(Math::floor((x - plo)*idx)) + ilo;
-                              bool inside = i >= ilo && i <= ihi;
-                              return static_cast<Real>(inside) - Real(0.5);
-                          }, tolerance);
-        roundoff_domain.setHi(idim, mid - tolerance);
+        roundoff_hi_f[idim] = detail::bisect_prob_hi<float> (plo, phi, idx, ilo, ihi, ftol);
+        roundoff_hi_d[idim] = detail::bisect_prob_hi<double>(plo, phi, idx, ilo, ihi, dtol);
     }
 }
 
 bool
-Geometry::outsideRoundoffDomain (AMREX_D_DECL(Real x, Real y, Real z)) const
+Geometry::outsideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const
 {
-    bool outside = AMREX_D_TERM(x <  roundoff_domain.lo(0)
-                             || x >= roundoff_domain.hi(0),
-                             || y <  roundoff_domain.lo(1)
-                             || y >= roundoff_domain.hi(1),
-                             || z <  roundoff_domain.lo(2)
-                             || z >= roundoff_domain.hi(2));
+#ifdef AMREX_SINGLE_PRECISION_PARTICLES
+    bool outside = AMREX_D_TERM(x <  prob_domain.lo(0)
+                             || x >= roundoff_hi_f[0],
+                             || y <  prob_domain.lo(1)
+                             || y >= roundoff_hi_f[1],
+                             || z <  prob_domain.lo(2)
+                             || z >= roundoff_hi_f[2]);
+#else
+    bool outside = AMREX_D_TERM(x <  prob_domain.lo(0)
+                             || x >= roundoff_hi_d[0],
+                             || y <  prob_domain.lo(1)
+                             || y >= roundoff_hi_d[1],
+                             || z <  prob_domain.lo(2)
+                             || z >= roundoff_hi_d[2]);
+#endif
     return outside;
 }
 
 bool
-Geometry::insideRoundoffDomain (AMREX_D_DECL(Real x, Real y, Real z)) const
+Geometry::insideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const
 {
     return !outsideRoundoffDomain(AMREX_D_DECL(x, y, z));
 }
