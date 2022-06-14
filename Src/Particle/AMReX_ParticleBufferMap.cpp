@@ -104,9 +104,10 @@ void ParticleBufferMap::define (const ParGDBBase* a_gdb)
     d_lev_offsets.resize(0);
     d_lev_offsets.resize(m_lev_offsets.size());
 
-    Gpu::copy(Gpu::hostToDevice, m_lev_gid_to_bucket.begin(),m_lev_gid_to_bucket.end(),d_lev_gid_to_bucket.begin());
-    Gpu::copy(Gpu::hostToDevice, m_lev_offsets.begin(),m_lev_offsets.end(),d_lev_offsets.begin());
-    Gpu::copy(Gpu::hostToDevice, m_bucket_to_pid.begin(),m_bucket_to_pid.end(),d_bucket_to_pid.begin());
+    Gpu::copyAsync(Gpu::hostToDevice, m_lev_gid_to_bucket.begin(),m_lev_gid_to_bucket.end(),d_lev_gid_to_bucket.begin());
+    Gpu::copyAsync(Gpu::hostToDevice, m_lev_offsets.begin(),m_lev_offsets.end(),d_lev_offsets.begin());
+    Gpu::copyAsync(Gpu::hostToDevice, m_bucket_to_pid.begin(),m_bucket_to_pid.end(),d_bucket_to_pid.begin());
+    Gpu::streamSynchronize();
 }
 
 bool ParticleBufferMap::isValid (const ParGDBBase* a_gdb) const

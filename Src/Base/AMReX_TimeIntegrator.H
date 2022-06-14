@@ -25,6 +25,8 @@ template<class T>
 class TimeIntegrator
 {
 private:
+    amrex::Real m_time, m_timestep;
+    int m_step_number;
     std::unique_ptr<IntegratorBase<T> > integrator_ptr;
     std::function<void ()> post_timestep;
 
@@ -75,6 +77,11 @@ private:
         // By default, do nothing
         set_rhs([](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){});
         set_fast_rhs([](T& /* S_rhs */, T& /* S_extra */, const T& /* S_data */, const amrex::Real /* time */){});
+
+        // By default, initialize time, timestep, step number to 0's
+        m_time = 0.0_rt;
+        m_timestep = 0.0_rt;
+        m_step_number = 0;
     }
 
 public:
@@ -161,6 +168,26 @@ public:
         return integrator_ptr->get_fast_timestep();
     }
 
+    int get_step_number ()
+    {
+        return m_step_number;
+    }
+
+    amrex::Real get_time ()
+    {
+        return m_time;
+    }
+
+    amrex::Real get_timestep ()
+    {
+        return m_timestep;
+    }
+
+    void set_timestep (amrex::Real dt)
+    {
+        m_timestep = dt;
+    }
+
     std::function<void ()> get_post_timestep ()
     {
         return post_timestep;
@@ -187,27 +214,27 @@ public:
     }
 
     void integrate (T& S_old, T& S_new, amrex::Real start_time, const amrex::Real start_timestep,
-                    const amrex::Real end_time, const int nsteps)
+                    const amrex::Real end_time, const int start_step, const int max_steps)
     {
-        amrex::Real time = start_time;
-        amrex::Real timestep = start_timestep;
+        m_time = start_time;
+        m_timestep = start_timestep;
         bool stop_advance = false;
-        for (int step_number = 0; step_number < nsteps && !stop_advance; ++step_number)
+        for (m_step_number = start_step; m_step_number < max_steps && !stop_advance; ++m_step_number)
         {
-            if (end_time - time < timestep) {
-                timestep = end_time - time;
+            if (end_time - m_time < m_timestep) {
+                m_timestep = end_time - m_time;
                 stop_advance = true;
             }
 
-            if (step_number > 0) {
+            if (m_step_number > 0) {
                 std::swap(S_old, S_new);
             }
 
             // Call the time integrator advance
-            integrator_ptr->advance(S_old, S_new, time, timestep);
+            integrator_ptr->advance(S_old, S_new, m_time, m_timestep);
 
             // Update our time variable
-            time += timestep;
+            m_time += m_timestep;
 
             // Call the post-timestep hook
             post_timestep();

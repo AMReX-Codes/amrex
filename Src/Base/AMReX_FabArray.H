@@ -1067,7 +1067,7 @@ public:
     void CMD_local_setVal_gpu (value_type x, const CommMetaData& thecmd, int scomp, int ncomp);
     void CMD_remote_setVal_gpu (value_type x, const CommMetaData& thecmd, int scomp, int ncomp);
 
-#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
+#if defined(__CUDACC__)
 
     void FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp);
     void FB_local_copy_cuda_graph_n (const FB& TheFB, int scomp, int ncomp);
@@ -1078,7 +1078,7 @@ public:
 #ifdef AMREX_USE_MPI
 
 #ifdef AMREX_USE_GPU
-#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
+#if defined(__CUDACC__)
 
     void FB_pack_send_buffer_cuda_graph (const FB& TheFB, int scomp, int ncomp,
                                          Vector<char*>& send_data,
@@ -1807,7 +1807,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 
     if(info.alloc) {
         AllocFabs(*m_factory, m_dallocator.m_arena, info.tags);
-        Gpu::synchronize();
+        Gpu::streamSynchronizeAll();
 #ifdef BL_USE_TEAM
         ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
@@ -2696,7 +2696,7 @@ template <class FAB>
 void
 FabArray<FAB>::FillBoundaryAndSync (const Periodicity& period)
 {
-    BL_PROFILE("FAbArray::FillBoundaryAndSync()");
+    BL_PROFILE("FabArray::FillBoundaryAndSync()");
     if (n_grow.max() > 0 || !is_cell_centered()) {
         FillBoundaryAndSync_nowait(0, nComp(), n_grow, period);
         FillBoundaryAndSync_finish();
@@ -2708,7 +2708,7 @@ void
 FabArray<FAB>::FillBoundaryAndSync (int scomp, int ncomp, const IntVect& nghost,
                                     const Periodicity& period)
 {
-    BL_PROFILE("FAbArray::FillBoundaryAndSync()");
+    BL_PROFILE("FabArray::FillBoundaryAndSync()");
     if (nghost.max() > 0 || !is_cell_centered()) {
         FillBoundaryAndSync_nowait(scomp, ncomp, nghost, period);
         FillBoundaryAndSync_finish();
@@ -2908,7 +2908,6 @@ template <typename BUF>
 void
 FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross)
 {
-    BL_PROFILE("FillBoundary_nowait()");
     FBEP_nowait<BUF>(scomp, ncomp, nGrowVect(), period, cross);
 }
 
@@ -2918,7 +2917,6 @@ void
 FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost,
                                     const Periodicity& period, bool cross)
 {
-    BL_PROFILE("FillBoundary_nowait()");
     FBEP_nowait<BUF>(scomp, ncomp, nghost, period, cross);
 }
 

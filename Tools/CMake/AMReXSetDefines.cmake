@@ -165,6 +165,7 @@ endif ()
 #
 add_amrex_define(AMREX_USE_HDF5 NO_LEGACY IF AMReX_HDF5)
 add_amrex_define(AMREX_USE_HDF5_ASYNC NO_LEGACY IF AMReX_HDF5_ASYNC)
+add_amrex_define(AMREX_USE_HDF5_ZFP NO_LEGACY IF AMReX_HDF5_ZFP)
 
 
 #

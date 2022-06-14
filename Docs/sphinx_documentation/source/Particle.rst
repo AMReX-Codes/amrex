@@ -117,16 +117,16 @@ Struct-of-Arrays as particle *attributes*. See the figure
 .. figure:: ./Particle/particle_arrays.png
 
    An illustration of how the particle data for a single tile is arranged in
-   memory. This particle container has been defined with :cpp:`NStructReal =
-   1`, :cpp:`NStructInt = 2`, :cpp:`NArrayReal = 2`, and :cpp:`NArrayInt = 2`.
+   memory. This particle container has been defined with ``NStructReal =
+   1``, ``NStructInt = 2``, ``NArrayReal = 2``, and ``NArrayInt = 2``.
    In this case, each tile in the particle container has five arrays: one with
    the particle struct data, two additional real arrays, and two additional
    integer arrays.  In the tile shown, there are only 2 particles. We have
    labelled the extra real data member of the particle struct to be
-   :cpp:`mass`, while the extra integer members of the particle struct are
-   labeled :cpp:`p`, and :cpp:`s`, for "phase" and "state". The variables in
-   the real and integer arrays are labelled :cpp:`foo`, :cpp:`bar`, :cpp:`l`,
-   and :cpp:`n`, respectively. We have assumed that the particles are double
+   ``mass``, while the extra integer members of the particle struct are
+   labeled ``p``, and ``s``, for "phase" and "state". The variables in
+   the real and integer arrays are labelled ``foo``, ``bar``, ``l``,
+   and ``n``, respectively. We have assumed that the particles are double
    precision.
 
 .. raw:: latex

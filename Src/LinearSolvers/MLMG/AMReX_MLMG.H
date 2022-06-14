@@ -156,7 +156,6 @@ public:
     void computeVolInv ();
     void makeSolvable ();
     void makeSolvable (int amrlev, int mglev, MultiFab& mf);
-    Real getNodalSum (int amrlev, int mglev, MultiFab& mf) const;
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     void bottomSolveWithHypre (MultiFab& x, const MultiFab& b);

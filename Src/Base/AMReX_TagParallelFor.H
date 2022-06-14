@@ -215,7 +215,7 @@ ParallelFor_doit (Vector<TagType> const& tags, F && f)
 #endif
     });
 
-    Gpu::synchronize();
+    Gpu::streamSynchronize();
     The_Pinned_Arena()->free(h_buffer);
     The_Arena()->free(d_buffer);
 }

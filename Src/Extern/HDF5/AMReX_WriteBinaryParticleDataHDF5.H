@@ -201,7 +201,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         }
     }
 
-    Gpu::Device::synchronize();
+    Gpu::streamSynchronize();
 
     if(pc.GetUsePrePost())
     {

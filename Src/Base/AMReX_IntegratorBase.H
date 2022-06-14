@@ -97,23 +97,33 @@ struct IntegratorOps<T, typename std::enable_if<std::is_same<amrex::Vector<amrex
         }
     }
 
-    static void Copy (T& Y, const T& Other, bool Grow = true)
+    static void Copy (T& Y, const T& Other, const Vector<int> scomp={}, const Vector<int> ncomp={}, bool Grow = true)
     {
         // Copy the contents of Other into Y
         const int size = Y.size();
+        bool specify_components = scomp.size() > 0 && ncomp.size() == scomp.size();
         for (int i = 0; i < size; ++i) {
             IntVect nGrow = Grow ? Other[i].nGrowVect() : IntVect(0);
-            amrex::MultiFab::Copy(Y[i], Other[i], 0, 0, Other[i].nComp(), nGrow);
+            const int iscomp = specify_components ? scomp[i] : 0;
+            const int incomp = specify_components ? ncomp[i] : Other[i].nComp();
+            if (incomp > 0) {
+                amrex::MultiFab::Copy(Y[i], Other[i], iscomp, iscomp, incomp, nGrow);
+            }
         }
     }
 
-    static void Saxpy (T& Y, const amrex::Real a, const T& X, bool Grow = false)
+    static void Saxpy (T& Y, const amrex::Real a, const T& X, const Vector<int> scomp={}, const Vector<int> ncomp={}, bool Grow = false)
     {
         // Calculate Y += a * X
         const int size = Y.size();
+        bool specify_components = scomp.size() > 0 && ncomp.size() == scomp.size();
         for (int i = 0; i < size; ++i) {
             IntVect nGrow = Grow ? X[i].nGrowVect() : IntVect(0);
-            amrex::MultiFab::Saxpy(Y[i], a, X[i], 0, 0, X[i].nComp(), nGrow);
+            const int iscomp = specify_components ? scomp[i] : 0;
+            const int incomp = specify_components ? ncomp[i] : X[i].nComp();
+            if (incomp > 0) {
+                amrex::MultiFab::Saxpy(Y[i], a, X[i], iscomp, iscomp, incomp, nGrow);
+            }
         }
     }
 
@@ -130,18 +140,20 @@ struct IntegratorOps<T, typename std::enable_if<std::is_same<amrex::MultiFab, T>
         V.emplace_back(std::make_unique<T>(Other.boxArray(), Other.DistributionMap(), Other.nComp(), nGrow));
     }
 
-    static void Copy (T& Y, const T& Other, bool Grow = true)
+    static void Copy (T& Y, const T& Other, const int scomp=0, const int ncomp=-1, bool Grow = true)
     {
         // Copy the contents of Other into Y
         IntVect nGrow = Grow ? Other.nGrowVect() : IntVect(0);
-        amrex::MultiFab::Copy(Y, Other, 0, 0, Other.nComp(), nGrow);
+        const int mf_ncomp = ncomp > 0 ? ncomp : Other.nComp();
+        amrex::MultiFab::Copy(Y, Other, scomp, scomp, mf_ncomp, nGrow);
     }
 
-    static void Saxpy (T& Y, const amrex::Real a, const T& X, bool Grow = false)
+    static void Saxpy (T& Y, const amrex::Real a, const T& X, const int scomp=0, const int ncomp=-1, bool Grow = false)
     {
         // Calculate Y += a * X
         IntVect nGrow = Grow ? X.nGrowVect() : IntVect(0);
-        amrex::MultiFab::Saxpy(Y, a, X, 0, 0, X.nComp(), nGrow);
+        const int mf_ncomp = ncomp > 0 ? ncomp : X.nComp();
+        amrex::MultiFab::Saxpy(Y, a, X, scomp, scomp, mf_ncomp, nGrow);
     }
 
 };

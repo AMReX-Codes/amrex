@@ -385,7 +385,7 @@ FabArray<FAB>::CMD_remote_setVal_gpu (typename FabArray<FAB>::value_type x,
     });
 }
 
-#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
+#if defined(__CUDACC__)
 template <class FAB>
 void
 FabArray<FAB>::FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp)
@@ -543,7 +543,7 @@ FabArray<FAB>::FB_local_copy_cuda_graph_n (const FB& TheFB, int scomp, int ncomp
 }
 #endif /* AMREX_USE_MPI */
 
-#endif /* CUDA >= 10 */
+#endif /* __CUDACC__ */
 
 #endif /* AMREX_USE_GPU */
 
@@ -551,7 +551,7 @@ FabArray<FAB>::FB_local_copy_cuda_graph_n (const FB& TheFB, int scomp, int ncomp
 
 #ifdef AMREX_USE_GPU
 
-#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
+#if defined(__CUDACC__)
 
 template <class FAB>
 void
@@ -722,7 +722,7 @@ FabArray<FAB>::FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int
     TheFB.m_copyFromBuffer.executeGraph();
 }
 
-#endif /* CUDA >= 10 */
+#endif /* __CUDACC__ */
 
 template <class FAB>
 template <typename BUF>
@@ -775,11 +775,11 @@ FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int nc
     detail::fab_to_fab<BUF, value_type>(snd_copy_tags, scomp, 0, ncomp,
                                         detail::CellStore<BUF, value_type>());
 
-    // There is Gpu::synchronize in fab_to_fab.
+    // There is Gpu::streamSynchronize in fab_to_fab.
 
     if (pbuffer != send_data[0]) {
         Gpu::copyAsync(Gpu::deviceToHost,pbuffer,pbuffer+szbuffer,send_data[0]);
-        Gpu::synchronize();
+        Gpu::streamSynchronize();
         The_Arena()->free(pbuffer);
     }
 }
@@ -808,7 +808,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
         szbuffer = (recv_data[N_rcvs-1]-recv_data[0]) + recv_size[N_rcvs-1];
         pbuffer = (char*)The_Arena()->alloc(szbuffer);
         Gpu::copyAsync(Gpu::hostToDevice,recv_data[0],recv_data[0]+szbuffer,pbuffer);
-        Gpu::synchronize();
+        Gpu::streamSynchronize();
     }
 #endif
 
@@ -885,7 +885,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
         }
     }
 
-    // There is Gpu::synchronize in fab_to_fab.
+    // There is Gpu::streamSynchronize in fab_to_fab.
 
     if (pbuffer != recv_data[0]) {
         The_Arena()->free(pbuffer);

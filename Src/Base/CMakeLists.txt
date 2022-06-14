@@ -7,6 +7,7 @@ target_sources( amrex
    AMReX_ccse-mpi.H
    AMReX_Math.H
    AMReX_Algorithm.H
+   AMReX_Any.H
    AMReX_Array.H
    AMReX_BlockMutex.H
    AMReX_BlockMutex.cpp
@@ -260,7 +261,7 @@ target_sources( amrex
 # Profiling
 #   this source file has zero symbols in default conditions, which creates
 #   ranlib warnings, e.g., on macOS
-if(AMREX_PROFILING OR AMReX_FORTRAN)
+if(AMReX_BASE_PROFILE OR AMReX_TINY_PROFILE OR AMReX_FORTRAN)
    target_sources( amrex
      PRIVATE
        AMReX_BLProfiler.cpp

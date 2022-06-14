@@ -101,7 +101,15 @@ public:
     GShopLevel (IndexSpace const* is, G const& gshop, const Geometry& geom, int max_grid_size, int ngrow, bool extend_domain_face);
     GShopLevel (IndexSpace const* is, int ilev, int max_grid_size, int ngrow,
                 const Geometry& geom, GShopLevel<G>& fineLevel);
+    GShopLevel (IndexSpace const* is, const Geometry& geom);
+    void define_fine (G const& gshop, const Geometry& geom,
+                      int max_grid_size, int ngrow, bool extend_domain_face);
 };
+
+template <typename G>
+GShopLevel<G>::GShopLevel (IndexSpace const* is, const Geometry& geom)
+    : Level(is, geom)
+{}
 
 template <typename G>
 GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry& geom,
@@ -114,6 +122,14 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
         return;
     }
 
+    define_fine(gshop, geom, max_grid_size, ngrow, extend_domain_face);
+}
+
+template <typename G>
+void
+GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
+                            int max_grid_size, int ngrow, bool extend_domain_face)
+{
     if (amrex::Verbose() > 0 && extend_domain_face == false) {
         amrex::Print() << "AMReX WARNING: extend_domain_face=false is not recommended!\n";
     }
@@ -316,7 +332,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                         }
                     }
 
-                    gshop.getIntercept({xip,yip,zip}, {xdg,ydg,zdg},
+                    gshop.getIntercept({xip,yip,zip}, {xdg,ydg,zdg}, clst,
                                        geom, gshop_run_on, bounding_box);
 
                     if (hybrid) {
@@ -372,7 +388,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                     //                         yes, factype[1] and then [0]
                     gshop.getIntercept({xip,yip},
                                        {facetype[1].const_array(), facetype[0].const_array()},
-                                       geom, gshop_run_on, bounding_box);
+                                       clst, geom, gshop_run_on, bounding_box);
 
                     if (hybrid) {
                         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {

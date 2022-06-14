@@ -532,19 +532,11 @@ public:
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static constexpr IntVect TheMaxVector () noexcept {
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         return IntVect(std::numeric_limits<int>::max());
-#else
-        return IntVect(INT_MAX);
-#endif
     }
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static constexpr IntVect TheMinVector () noexcept {
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         return IntVect(std::numeric_limits<int>::lowest());
-#else
-        return IntVect(INT_MIN);
-#endif
     }
 
 private:
@@ -602,7 +594,7 @@ IntVect::maxDir(bool a_doAbsValue) const noexcept
     int retval = 0;
     if(a_doAbsValue)
     {
-        int maxval = abs((*this)[0]);
+        int maxval = amrex::Math::abs((*this)[0]);
         for(int idir = 1; idir < SpaceDim; idir++)
         {
             int curval = amrex::Math::abs((*this)[idir]);

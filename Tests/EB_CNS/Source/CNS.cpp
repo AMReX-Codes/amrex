@@ -340,7 +340,7 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real /*time*/, int, int)
                 }
             }
         });
-        Gpu::synchronize();
+        Gpu::streamSynchronize();
     }
 
     if (level < refine_max_dengrad_lev)
@@ -361,7 +361,7 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real /*time*/, int, int)
         {
             cns_tag_denerror(i, j, k, tagma[box_no], rhoma[box_no], dengrad_threshold, tagval);
         });
-        Gpu::synchronize();
+        Gpu::streamSynchronize();
     }
 }
 
@@ -424,7 +424,7 @@ CNS::read_params ()
     if (!refine_boxes.empty()) {
 #ifdef AMREX_USE_GPU
         dp_refine_boxes = (RealBox*)The_Arena()->alloc(sizeof(RealBox)*refine_boxes.size());
-        Gpu::htod_memcpy(dp_refine_boxes, refine_boxes.data(), sizeof(RealBox)*refine_boxes.size());
+        Gpu::htod_memcpy_async(dp_refine_boxes, refine_boxes.data(), sizeof(RealBox)*refine_boxes.size());
 #else
         dp_refine_boxes = refine_boxes.data();
 #endif
@@ -439,7 +439,7 @@ CNS::read_params ()
     pp.query("T_S"      , h_parm->T_S);
 
     h_parm->Initialize();
-    amrex::Gpu::copy(amrex::Gpu::hostToDevice, h_parm, h_parm+1, d_parm);
+    amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, h_parm, h_parm+1, d_parm);
 
     // eb_weights_type:
     //   0 -- weights = 1
@@ -447,12 +447,16 @@ CNS::read_params ()
     //   2 -- use_mass_as_eb_weights
     //   3 -- use_volfrac_as_eb_weights
     pp.query("eb_weights_type", eb_weights_type);
-    if (eb_weights_type < 0 || eb_weights_type > 3)
+    if (eb_weights_type < 0 || eb_weights_type > 3) {
         amrex::Abort("CNS: eb_weights_type must be 0,1,2 or 3");
+    }
 
     pp.query("do_reredistribution", do_reredistribution);
-    if (do_reredistribution != 0 && do_reredistribution != 1)
+    if (do_reredistribution != 0 && do_reredistribution != 1) {
         amrex::Abort("CNS: do_reredistibution must be 0 or 1");
+    }
+
+    amrex::Gpu::streamSynchronize();
 }
 
 void
