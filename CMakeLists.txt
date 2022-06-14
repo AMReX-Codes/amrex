@@ -149,10 +149,10 @@ endif ()
 #
 # Install amrex  -- Export
 #
-if(AMReX_INSTALL)
-    include(AMReXInstallHelpers)
-    install_amrex_targets(${_amrex_targets})
+include(AMReXInstallHelpers)
+install_amrex_targets(${_amrex_targets})
 
+if(AMReX_INSTALL)
     # Add a test_install target to smoke-test
     # the installation
     add_test_install_target(
