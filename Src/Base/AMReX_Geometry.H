@@ -69,7 +69,7 @@ public:
 
     namespace detail {
         template <typename T>
-        T bisect_prob_hi (amrex::Real plo, amrex::Real phi, amrex::Real idx, int ilo, int ihi, T tol) {
+        T bisect_prob_hi (amrex::Real plo, amrex::Real phi, amrex::Real idx, int ilo, int ihi, amrex::Real tol) {
             T hi = static_cast<T>(phi - tol);
             bool safe;
             {
@@ -87,8 +87,8 @@ public:
                                        int i = int(Math::floor((x - plo)*idx)) + ilo;
                                        bool inside = i >= ilo && i <= ihi;
                                        return static_cast<T>(inside) - T(0.5);
-                                   }, tol);
-                return mid - tol;
+                                   }, static_cast<T>(tol));
+                return mid - static_cast<T>(tol);
             }
         }
     }
