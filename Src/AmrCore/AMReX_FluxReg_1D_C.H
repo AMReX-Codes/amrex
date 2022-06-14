@@ -149,6 +149,8 @@ fluxreg_reflux (Box const& bx, Array4<Real> const& s, const int scomp,
 /**
 * \brief Replace coarse flux with fine flux (DG).
 * CrseBox is a box defined on the coarse level.
+* G is the array of geometry fields, in paricular the square root of the
+*   spatial three-metric determinant
 * dU is the increment for each DOF within an element.
 * dF is a coarse grid edge based object.
 * nFields is the number of fields in the grid based objects.
@@ -158,6 +160,7 @@ fluxreg_reflux (Box const& bx, Array4<Real> const& s, const int scomp,
 * face is ...
 *
 * \param CrseBox
+* \param G
 * \param dU
 * \param dF
 * \param nFields
