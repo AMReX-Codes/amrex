@@ -71,12 +71,12 @@ public:
         template <typename T>
         T bisect_prob_hi (amrex::Real plo, amrex::Real phi, amrex::Real idx, int ilo, int ihi, T tol) {
             T hi = static_cast<T>(phi - tol);
-            bool inside;
+            bool safe;
             {
                 int i = int(Math::floor(hi - plo)*idx);
-                inside = i >= ilo && i <= ihi;
+                safe = i >= ilo && i <= ihi;
             }
-            if (inside) {
+            if (safe) {
                 return hi;
             } else {
                 // bisect the point at which the cell no longer maps to inside the domain
