@@ -82,7 +82,7 @@ public:
                 // bisect the point at which the cell no longer maps to inside the domain
                 T lo = static_cast<T>(phi - 0.5_rt/idx);
                 T mid = bisect(lo, hi,
-                               [=] AMREX_GPU_HOST_DEVICE (T x) -> Real
+                               [=] AMREX_GPU_HOST_DEVICE (T x) -> T
                                    {
                                        int i = int(Math::floor((x - plo)*idx)) + ilo;
                                        bool inside = i >= ilo && i <= ihi;
