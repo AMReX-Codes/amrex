@@ -359,7 +359,8 @@ contains
     else if (abs(time-told_c) .lt. teps) then
        c_mf = mfold_c%p
     else
-       call amrex_abort("amrex_fillcoarsepatch: how did this happen?")
+       c_mf = mfnew_c%p
+       !call amrex_abort("amrex_fillcoarsepatch: how did this happen?")
     end if
 
     do i = 1, scomp-1
