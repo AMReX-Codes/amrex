@@ -120,7 +120,7 @@ void main_main()
                                                         problo[2]+static_cast<Real>(k+0.5)*dx[2])};
 
                                     // compute the volume
-                                    Real vol;
+                                    Real vol = NAN;
                                     if (coord == 0) {
                                         // Cartesian
                                         vol = 1.0_rt;
