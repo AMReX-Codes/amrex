@@ -662,6 +662,8 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
         
             // [1] btTagging
             auto tree0 = btmesh->getTree();
+            std::vector<int> btTags(tree0->id_upper_bound(),0);
+
             for (int lev=max_crse; lev>=lbase; --lev) {
                 //
                 // Construct TagBoxArray with sufficient grow factor to contain
@@ -687,6 +689,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                 }
 
                 TagBoxArray tags(grids[lev],dmap[lev], ngt);
+
                 ErrorEst(lev, tags, time, 0);
                 for (MFIter mfi(tags); mfi.isValid(); ++mfi) {
                     auto const& tagbox = tags.const_array(mfi);
@@ -696,17 +699,19 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                                                                   return tagbox(i,j,k) == TagBox::SET;
                                                              });
 
+                    // Set the value of btUnit::btTags accordingly,
+                    // 1 if needs refine, -1 if needs derefine.
                     if(has_set_tags) {
+                        //amrex::Print()<< "Tagging box: " << grids[lev][mfi] << " with " << 1 << std::endl;
                         // For optimization, cache bitid for each box
                         unsigned coord[AMREX_SPACEDIM];
-                        //amrex::Print()<< "Tagged box: " << grids[lev][mfi] << std::endl;
 		    	        for(int d=0; d<AMREX_SPACEDIM; ++d) {
 		    	            coord[d] = grids[lev][mfi].smallEnd(d) / max_grid_size[lev][d];
                         }
 		    	        auto b = tree0->identify(lev,coord);
                         if(!b.is_parent and b.level<=max_crse){
-                            grid_changed=true;
-                            btmesh->refine_mark(b.id,true);
+                            //amrex::Print()<< "actually tagged" <<  std::endl;
+                            btTags[b.id] = 1;
                         }
                     }
                 }
@@ -714,9 +719,8 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
 
             // [2] btRefine
             MPI_Comm comm = ParallelContext::CommunicatorSub();
-            btmesh->refine_reduce(comm);
-            btmesh->refine_update();
-            if(grid_changed) {
+            int changed = btUnit::btRefine(btmesh, btTags, comm);
+            if(changed>0) {
                 amrex::Print() << "Mesh changed!" << std::endl;
                 amrex::Print() << btmesh->slice_to_string(0) << std::endl;
             }
