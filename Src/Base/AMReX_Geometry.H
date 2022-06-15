@@ -73,7 +73,7 @@ public:
             T hi = static_cast<T>(phi - tol);
             bool safe;
             {
-                int i = int(Math::floor(hi - plo)*idx) + ilo;
+                int i = int(Math::floor((x - plo)*idx)) + ilo;
                 safe = i >= ilo && i <= ihi;
             }
             if (safe) {
