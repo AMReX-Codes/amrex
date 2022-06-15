@@ -20,7 +20,7 @@ std::vector<std::vector<double>> btUnit::error_par;
 /** Creates new box arrays to match the new Bittree mesh.
   * TODO: also calculate an appropriate DistributionMapping.
   */
-void btUnit::btMakeNewGrids(std::shared_ptr<BittreeAmr> mesh, int lbase,
+void btUnit::btCalculateGrids(std::shared_ptr<BittreeAmr> mesh, int lbase,
                             Real time,int& new_finest,
                             Vector<BoxArray>& new_grids,
                             Vector<DistributionMapping>& new_dm,
@@ -46,7 +46,7 @@ void btUnit::btMakeNewGrids(std::shared_ptr<BittreeAmr> mesh, int lbase,
         auto b = tree1->locate(i);
 
         if(b.level != lev) {
-            std::string msg = "Error identifying block in btMakeNewGrids";
+            std::string msg = "Error identifying block in btCalculateGrids";
             //TODO throw error
         }
 
@@ -75,11 +75,11 @@ NOTE: Bittree object is created in AmrMesh::MakeNewGrids (Real time)
       `mesh = std::make_shared<BittreeAmr>(top,includes);`
 
 The functions here are called in the BT version of MakeNewGrids which has three steps:
-    1. Error Estimation and tagging - btErrorEst
+    1. Error Estimation and tagging - btTagging
 
-    2. Bitree mesh generated/updated - btRefineInitalize
+    2. Bitree's actual bitmap generated/updated - btRefine
 
-    3. AMReX updates grids based on bitree - btMakeNewGrids
+    3. AMReX updates grids based on bitree - btCalculateGrids
 */
 
 //---------------------------------------------------------------------

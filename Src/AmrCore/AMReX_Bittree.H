@@ -32,7 +32,7 @@ class btUnit {
   public:
     static void btErrorEst( std::shared_ptr<BittreeAmr> mesh );
     static void btRefine( std::shared_ptr<BittreeAmr> mesh );
-    static void btMakeNewGrids( std::shared_ptr<BittreeAmr> mesh, int lbase,
+    static void btCalculateGrids( std::shared_ptr<BittreeAmr> mesh, int lbase,
                                 Real time, int& new_finest,
                                 Vector<BoxArray>& new_grids,
                                 Vector<DistributionMapping>& new_dm,

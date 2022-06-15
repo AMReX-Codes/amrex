@@ -499,45 +499,47 @@ AmrMesh::MakeBaseGrids () const
 void
 AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& new_grids, Vector<DistributionMapping>& new_dmap)
 {
+    static bool infer_bt_grids = false;
+
     if(use_bittree) {
         // Initialize BT refinement
         btmesh->refine_init();
-
-        // Do the regular MakeNewGrids and infer refine/derefine from there
-        // TODO replace this with actual logic to mark BT directly from the TagBoxArrays
         bool grid_changed = false;
-        {
-            MPI_Comm comm = ParallelContext::CommunicatorSub();
-            MakeNewGrids(lbase,time,new_finest,new_grids);
-            auto tree0 = btmesh->getTree();
 
+        // (TEMPORARY) Do the regular MakeNewGrids and infer refine/derefine from there
+        if(infer_bt_grids) {
+            MakeNewGrids(lbase,time,new_finest,new_grids);
             for(int lev=lbase+1; lev<=new_finest; ++lev) {
                 new_dmap[lev] = DistributionMapping(new_grids[lev]);
             }
 
             // use grids[lev] and new_grids[lev], infer which boxes were refined/derefined
+            auto tree0 = btmesh->getTree();
             for(int lev=lbase+1; lev<=new_finest; ++lev) {
                 if(grids[lev]==new_grids[lev]) continue;
                 grid_changed = true;
+
+                // Use set logic to determine which boxes are new and which
+                // no longer exist.
                 auto sameBoxes = amrex::intersect(grids[lev],new_grids[lev]);
                 auto sameComplement = amrex::complementIn(geom[lev].Domain(),sameBoxes);
                 auto newBoxes = amrex::intersect(new_grids[lev],sameComplement);
                 auto goneBoxes = amrex::intersect(grids[lev],sameComplement);
 
+                // For boxes that no longer exist, mark parents for derefine
                 unsigned parCoord[AMREX_SPACEDIM];
                 int plev = lev-1;
                 for (Box& bx : goneBoxes.boxList())
                 {
-                    // mark parents for derefine
                     for(unsigned d=0; d<AMREX_SPACEDIM; ++d)
                         parCoord[d] = bx.smallEnd(d)/(2*max_grid_size[lev][d]);
                     auto p = tree0->identify(plev,parCoord);
                     btmesh->refine_mark(p.id, true);
                 }
                 
+                // For new boxes, mark parents for refine
                 for (Box& bx : newBoxes.boxList())
                 {
-                    // mark parents for refine
                     for(unsigned d=0; d<AMREX_SPACEDIM; ++d)
                         parCoord[d] = bx.smallEnd(d)/(2*max_grid_size[lev][d]);
                     auto p = tree0->identify(plev,parCoord);
@@ -546,35 +548,184 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
             }
 
             // Not doing btCheckRefine and btCheckDerefine, trusting AMReX algorithm
+            MPI_Comm comm = ParallelContext::CommunicatorSub();
             btmesh->refine_reduce(comm);
             btmesh->refine_update();
             if(grid_changed) {
                 amrex::Print() << "Mesh changed!" << std::endl;
                 amrex::Print() << btmesh->slice_to_string(0) << std::endl;
             }
-        }
 
-        // Convert Bittree mesh to new Boxarrays and DistributionMappings
-        // For testing, compare new_grids from here to the new_grids made above
-        if(grid_changed) {
-            Vector<BoxArray> new_grids_bt(new_finest+1);
-            Vector<DistributionMapping> new_dmap_bt(new_finest+1);
-            int new_finest_bt;
-            bool all_good = true;
+            // For testing, have BT generate grids and compare to the new_grids made above
+            if(grid_changed) {
+                Vector<BoxArray> new_grids_bt(new_finest+1);
+                Vector<DistributionMapping> new_dmap_bt(new_finest+1);
+                int new_finest_bt;
+                bool all_good = true;
 
-            // Generate new grids from BT.
-            btUnit::btMakeNewGrids(btmesh,lbase,time,new_finest_bt,new_grids_bt,new_dmap_bt,max_grid_size);
+                btUnit::btCalculateGrids(btmesh,lbase,time,new_finest_bt,new_grids_bt,new_dmap_bt,max_grid_size);
 
-            // Make sure the results from btMakeNewGrids match the results of MakeNewGrids
-            if(new_finest != new_finest_bt) all_good = false;
-            for(int lev=lbase+1; lev<=new_finest; ++lev) {
-                auto btComplement = amrex::complementIn(geom[lev].Domain(),new_grids_bt[lev]);
-                auto actualMinusBT = amrex::intersect(new_grids[lev],btComplement);
-                if(!actualMinusBT.empty()) all_good = false;
+                // Make sure the results from btMakeNewGrids match the results of MakeNewGrids
+                if(new_finest != new_finest_bt) all_good = false;
+                for(int lev=lbase+1; lev<=new_finest; ++lev) {
+                    auto btComplement = amrex::complementIn(geom[lev].Domain(),new_grids_bt[lev]);
+                    auto actualMinusBT = amrex::intersect(new_grids[lev],btComplement);
+                    if(!actualMinusBT.empty()) all_good = false;
+                }
+                amrex::Print() << "Comparing BT generated grids to actual grids: ";
+                if(all_good) amrex::Print() << "SUCCESS" << std::endl;
+                else         amrex::Print() << "ERROR" << std::endl;
             }
-            amrex::Print() << "Comparing BT generated grids to actual grids: ";
-            if(all_good) amrex::Print() << "SUCCESS" << std::endl;
-            else         amrex::Print() << "ERROR!" << std::endl;
+        }
+        // Use tagging data to mark BT for refinement, then use the new bitmap
+        // to calculate the new grids.
+        else {
+            //COPIED STUFF
+            BL_PROFILE("AmrMesh::MakeNewGrids()");
+            BL_ASSERT(lbase < max_level);
+            // Add at most one new level
+            int max_crse = std::min(finest_level, max_level-1);
+            if (new_grids.size() < max_crse+2) new_grids.resize(max_crse+2);
+            //
+            // Construct problem domain at each level.
+            //
+            Vector<IntVect> bf_lev(max_level); // Blocking factor at each level.
+            Vector<IntVect> rr_lev(max_level);
+            Vector<Box>     pc_domain(max_level);  // Coarsened problem domain.
+        
+            for (int i = 0; i <= max_crse; i++)
+            {
+                for (int n=0; n<AMREX_SPACEDIM; n++) {
+                    bf_lev[i][n] = std::max(1,blocking_factor[i+1][n]/ref_ratio[i][n]);
+                }
+            }
+            for (int i = lbase; i < max_crse; i++)
+            {
+                for (int n=0; n<AMREX_SPACEDIM; n++) {
+                    // Note that in AmrMesh we check that
+                    // ref ratio * coarse blocking factor >= fine blocking factor
+                    rr_lev[i][n] = (ref_ratio[i][n]*bf_lev[i][n])/bf_lev[i+1][n];
+                }
+            }
+            for (int i = lbase; i <= max_crse; i++) {
+                pc_domain[i] = amrex::coarsen(Geom(i).Domain(),bf_lev[i]);
+            }
+            //
+            // Construct proper nesting domains.
+            //
+            Vector<BoxArray> p_n_ba(max_level); // Proper nesting domain.
+            Vector<BoxArray> p_n_comp_ba(max_level); // Complement proper nesting domain.
+            BoxList p_n, p_n_comp;
+        
+            BoxList bl = grids[lbase].simplified_list();
+            bl.coarsen(bf_lev[lbase]);
+            p_n_comp.parallelComplementIn(pc_domain[lbase],bl);
+            bl.clear();
+            p_n_comp.simplify();
+            p_n_comp.accrete(n_proper);
+            if (geom[lbase].isAnyPeriodic()) {
+                ProjPeriodic(p_n_comp, pc_domain[lbase], geom[lbase].isPeriodic());
+            }
+        
+            p_n_comp_ba[lbase].define(std::move(p_n_comp));
+            p_n_comp = BoxList();
+        
+            p_n.parallelComplementIn(pc_domain[lbase],p_n_comp_ba[lbase]);
+            p_n.simplify();
+        
+            p_n_ba[lbase].define(std::move(p_n));
+            p_n = BoxList();
+        
+            for (int i = lbase+1; i <= max_crse; i++)
+            {
+                p_n_comp = p_n_comp_ba[i-1].boxList();
+        
+                // Need to simplify p_n_comp or the number of grids can too large for many levels.
+                p_n_comp.simplify();
+        
+                p_n_comp.refine(rr_lev[i-1]);
+                p_n_comp.accrete(n_proper);
+        
+                if (geom[i].isAnyPeriodic()) {
+                    ProjPeriodic(p_n_comp, pc_domain[i], geom[i].isPeriodic());
+                }
+        
+                p_n_comp_ba[i].define(std::move(p_n_comp));
+                p_n_comp = BoxList();
+        
+                p_n.parallelComplementIn(pc_domain[i],p_n_comp_ba[i]);
+                p_n.simplify();
+        
+                p_n_ba[i].define(std::move(p_n));
+                p_n = BoxList();
+            }
+        
+            // [1] btTagging
+            auto tree0 = btmesh->getTree();
+            for (int lev=max_crse; lev>=lbase; --lev) {
+                //
+                // Construct TagBoxArray with sufficient grow factor to contain
+                // new levels projected down to this level.
+                //
+                int levf = lev+1;
+                IntVect ngt = n_error_buf[lev];
+                BoxArray ba_proj;
+                if (levf < new_finest)
+                {
+                    ba_proj = new_grids[levf+1].simplified();
+                    ba_proj.coarsen(ref_ratio[levf]);
+                    ba_proj.growcoarsen(n_proper, ref_ratio[lev]);
+        
+                    BoxArray levcBA = grids[lev].simplified();
+                    int ngrow = 0;
+                    while (!levcBA.contains(ba_proj))
+                    {
+                        levcBA.grow(1);
+                        ++ngrow;
+                    }
+                    ngt.max(IntVect(ngrow));
+                }
+
+                TagBoxArray tags(grids[lev],dmap[lev], ngt);
+                ErrorEst(lev, tags, time, 0);
+                for (MFIter mfi(tags); mfi.isValid(); ++mfi) {
+                    auto const& tagbox = tags.const_array(mfi);
+                    bool has_set_tags = amrex::Reduce::AnyOf(mfi.validbox(),
+                                                             [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                                                             {
+                                                                  return tagbox(i,j,k) == TagBox::SET;
+                                                             });
+
+                    if(has_set_tags) {
+                        // For optimization, cache bitid for each box
+                        unsigned coord[AMREX_SPACEDIM];
+                        //amrex::Print()<< "Tagged box: " << grids[lev][mfi] << std::endl;
+		    	        for(int d=0; d<AMREX_SPACEDIM; ++d) {
+		    	            coord[d] = grids[lev][mfi].smallEnd(d) / max_grid_size[lev][d];
+                        }
+		    	        auto b = tree0->identify(lev,coord);
+                        if(!b.is_parent and b.level<=max_crse){
+                            grid_changed=true;
+                            btmesh->refine_mark(b.id,true);
+                        }
+                    }
+                }
+            }
+
+            // [2] btRefine
+            MPI_Comm comm = ParallelContext::CommunicatorSub();
+            btmesh->refine_reduce(comm);
+            btmesh->refine_update();
+            if(grid_changed) {
+                amrex::Print() << "Mesh changed!" << std::endl;
+                amrex::Print() << btmesh->slice_to_string(0) << std::endl;
+            }
+
+            // [3] btCalculate Grids
+            btUnit::btCalculateGrids(btmesh,lbase,time,new_finest,new_grids,new_dmap,max_grid_size);
+            for(int lev=lbase+1; lev<=new_finest; ++lev) {
+                new_dmap[lev] = DistributionMapping(new_grids[lev]);
+            }
         }
        
         // Finalize BT refinement
@@ -713,6 +864,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
         if ( ! (useFixedCoarseGrids() && levc < useFixedUpToLevel()) ) {
             ErrorEst(levc, tags, time, 0);
         }
+        //
 
         //
         // Buffer error cells.
