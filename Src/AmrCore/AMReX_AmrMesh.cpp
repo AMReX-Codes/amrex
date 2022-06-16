@@ -589,108 +589,87 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
             //
             // Construct problem domain at each level.
             //
-            Vector<IntVect> bf_lev(max_level); // Blocking factor at each level.
-            Vector<IntVect> rr_lev(max_level);
-            Vector<Box>     pc_domain(max_level);  // Coarsened problem domain.
+            //Vector<IntVect> bf_lev(max_level); // Blocking factor at each level.
+            //Vector<IntVect> rr_lev(max_level);
+            //Vector<Box>     pc_domain(max_level);  // Coarsened problem domain.
         
-            for (int i = 0; i <= max_crse; i++)
-            {
-                for (int n=0; n<AMREX_SPACEDIM; n++) {
-                    bf_lev[i][n] = std::max(1,blocking_factor[i+1][n]/ref_ratio[i][n]);
-                }
-            }
-            for (int i = lbase; i < max_crse; i++)
-            {
-                for (int n=0; n<AMREX_SPACEDIM; n++) {
-                    // Note that in AmrMesh we check that
-                    // ref ratio * coarse blocking factor >= fine blocking factor
-                    rr_lev[i][n] = (ref_ratio[i][n]*bf_lev[i][n])/bf_lev[i+1][n];
-                }
-            }
-            for (int i = lbase; i <= max_crse; i++) {
-                pc_domain[i] = amrex::coarsen(Geom(i).Domain(),bf_lev[i]);
-            }
-            //
-            // Construct proper nesting domains.
-            //
-            Vector<BoxArray> p_n_ba(max_level); // Proper nesting domain.
-            Vector<BoxArray> p_n_comp_ba(max_level); // Complement proper nesting domain.
-            BoxList p_n, p_n_comp;
+            //for (int i = 0; i <= max_crse; i++)
+            //{
+            //    for (int n=0; n<AMREX_SPACEDIM; n++) {
+            //        bf_lev[i][n] = std::max(1,blocking_factor[i+1][n]/ref_ratio[i][n]);
+            //    }
+            //}
+            //for (int i = lbase; i < max_crse; i++)
+            //{
+            //    for (int n=0; n<AMREX_SPACEDIM; n++) {
+            //        // Note that in AmrMesh we check that
+            //        // ref ratio * coarse blocking factor >= fine blocking factor
+            //        rr_lev[i][n] = (ref_ratio[i][n]*bf_lev[i][n])/bf_lev[i+1][n];
+            //    }
+            //}
+            //for (int i = lbase; i <= max_crse; i++) {
+            //    pc_domain[i] = amrex::coarsen(Geom(i).Domain(),bf_lev[i]);
+            //}
+            ////
+            //// Construct proper nesting domains.
+            ////
+            //Vector<BoxArray> p_n_ba(max_level); // Proper nesting domain.
+            //Vector<BoxArray> p_n_comp_ba(max_level); // Complement proper nesting domain.
+            //BoxList p_n, p_n_comp;
         
-            BoxList bl = grids[lbase].simplified_list();
-            bl.coarsen(bf_lev[lbase]);
-            p_n_comp.parallelComplementIn(pc_domain[lbase],bl);
-            bl.clear();
-            p_n_comp.simplify();
-            p_n_comp.accrete(n_proper);
-            if (geom[lbase].isAnyPeriodic()) {
-                ProjPeriodic(p_n_comp, pc_domain[lbase], geom[lbase].isPeriodic());
-            }
+            //BoxList bl = grids[lbase].simplified_list();
+            //bl.coarsen(bf_lev[lbase]);
+            //p_n_comp.parallelComplementIn(pc_domain[lbase],bl);
+            //bl.clear();
+            //p_n_comp.simplify();
+            //p_n_comp.accrete(n_proper);
+            //if (geom[lbase].isAnyPeriodic()) {
+            //    ProjPeriodic(p_n_comp, pc_domain[lbase], geom[lbase].isPeriodic());
+            //}
         
-            p_n_comp_ba[lbase].define(std::move(p_n_comp));
-            p_n_comp = BoxList();
+            //p_n_comp_ba[lbase].define(std::move(p_n_comp));
+            //p_n_comp = BoxList();
         
-            p_n.parallelComplementIn(pc_domain[lbase],p_n_comp_ba[lbase]);
-            p_n.simplify();
+            //p_n.parallelComplementIn(pc_domain[lbase],p_n_comp_ba[lbase]);
+            //p_n.simplify();
         
-            p_n_ba[lbase].define(std::move(p_n));
-            p_n = BoxList();
+            //p_n_ba[lbase].define(std::move(p_n));
+            //p_n = BoxList();
         
-            for (int i = lbase+1; i <= max_crse; i++)
-            {
-                p_n_comp = p_n_comp_ba[i-1].boxList();
+            //for (int i = lbase+1; i <= max_crse; i++)
+            //{
+            //    p_n_comp = p_n_comp_ba[i-1].boxList();
         
-                // Need to simplify p_n_comp or the number of grids can too large for many levels.
-                p_n_comp.simplify();
+            //    // Need to simplify p_n_comp or the number of grids can too large for many levels.
+            //    p_n_comp.simplify();
         
-                p_n_comp.refine(rr_lev[i-1]);
-                p_n_comp.accrete(n_proper);
+            //    p_n_comp.refine(rr_lev[i-1]);
+            //    p_n_comp.accrete(n_proper);
         
-                if (geom[i].isAnyPeriodic()) {
-                    ProjPeriodic(p_n_comp, pc_domain[i], geom[i].isPeriodic());
-                }
+            //    if (geom[i].isAnyPeriodic()) {
+            //        ProjPeriodic(p_n_comp, pc_domain[i], geom[i].isPeriodic());
+            //    }
         
-                p_n_comp_ba[i].define(std::move(p_n_comp));
-                p_n_comp = BoxList();
+            //    p_n_comp_ba[i].define(std::move(p_n_comp));
+            //    p_n_comp = BoxList();
         
-                p_n.parallelComplementIn(pc_domain[i],p_n_comp_ba[i]);
-                p_n.simplify();
+            //    p_n.parallelComplementIn(pc_domain[i],p_n_comp_ba[i]);
+            //    p_n.simplify();
         
-                p_n_ba[i].define(std::move(p_n));
-                p_n = BoxList();
-            }
+            //    p_n_ba[i].define(std::move(p_n));
+            //    p_n = BoxList();
+            //}
         
             // [1] btTagging
             auto tree0 = btmesh->getTree();
+            // btTags is indexed by bitid, Bittree's internal indexing scheme
             std::vector<int> btTags(tree0->id_upper_bound(),0);
 
             for (int lev=max_crse; lev>=lbase; --lev) {
-                //
-                // Construct TagBoxArray with sufficient grow factor to contain
-                // new levels projected down to this level.
-                //
-                int levf = lev+1;
-                IntVect ngt = n_error_buf[lev];
-                BoxArray ba_proj;
-                if (levf < new_finest)
-                {
-                    ba_proj = new_grids[levf+1].simplified();
-                    ba_proj.coarsen(ref_ratio[levf]);
-                    ba_proj.growcoarsen(n_proper, ref_ratio[lev]);
-        
-                    BoxArray levcBA = grids[lev].simplified();
-                    int ngrow = 0;
-                    while (!levcBA.contains(ba_proj))
-                    {
-                        levcBA.grow(1);
-                        ++ngrow;
-                    }
-                    ngt.max(IntVect(ngrow));
-                }
 
-                TagBoxArray tags(grids[lev],dmap[lev], ngt);
-
+                TagBoxArray tags(grids[lev],dmap[lev], n_error_buf[lev]);
                 ErrorEst(lev, tags, time, 0);
+
                 for (MFIter mfi(tags); mfi.isValid(); ++mfi) {
                     auto const& tagbox = tags.const_array(mfi);
                     bool has_set_tags = amrex::Reduce::AnyOf(mfi.validbox(),
@@ -699,18 +678,19 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                                                                   return tagbox(i,j,k) == TagBox::SET;
                                                              });
 
-                    // Set the value of btUnit::btTags accordingly,
-                    // 1 if needs refine, -1 if needs derefine.
+                    // Set the value of btTags according to some algorithm. For now,
+                    // if any cell is tagged, the whole block is marked for refine.
+                    // (btTags = 1 if needs refine, -1 if needs derefine.)
                     if(has_set_tags) {
                         //amrex::Print()<< "Tagging box: " << grids[lev][mfi] << " with " << 1 << std::endl;
-                        // For optimization, cache bitid for each box
+                        // For optimization, could cache bitid for each box
+                        // Here, calculate the integer coordinates and query BT for the bitid
                         unsigned coord[AMREX_SPACEDIM];
 		    	        for(int d=0; d<AMREX_SPACEDIM; ++d) {
 		    	            coord[d] = grids[lev][mfi].smallEnd(d) / max_grid_size[lev][d];
                         }
 		    	        auto b = tree0->identify(lev,coord);
                         if(!b.is_parent and b.level<=max_crse){
-                            //amrex::Print()<< "actually tagged" <<  std::endl;
                             btTags[b.id] = 1;
                         }
                     }
@@ -725,7 +705,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                 amrex::Print() << btmesh->slice_to_string(0) << std::endl;
             }
 
-            // [3] btCalculate Grids
+            // [3] btCalculateGrids
             btUnit::btCalculateGrids(btmesh,lbase,time,new_finest,new_grids,new_dmap,max_grid_size);
             for(int lev=lbase+1; lev<=new_finest; ++lev) {
                 new_dmap[lev] = DistributionMapping(new_grids[lev]);

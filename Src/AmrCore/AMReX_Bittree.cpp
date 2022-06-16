@@ -129,85 +129,47 @@ void btUnit::btCalculateGrids(std::shared_ptr<BittreeAmr> mesh, int lbase,
   * between surrounding leaf blocks.
   */
 void btUnit::btCheckRefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>& btTags, MPI_Comm comm ) {
-    int cIdx[3];
-    int nIdx[3];
-
-    // Tree before refinement. With only one rank, lnblocks = nblocks.
-    // TODO only check local blocks?
+    // Tree before refinement.
     auto tree0 = mesh->getTree();
-    unsigned lnblocks = tree0->blocks();
+
+    // Ref test is marked 1 if block needs a tag (and doesn't have one).
     unsigned id0 = tree0->level_id0(0);
     unsigned id1 = tree0->id_upper_bound();
-    std::vector<int> ref_test( tree0->id_upper_bound());
+    std::vector<int> ref_test(tree0->id_upper_bound());
 
+    // Repeat is made true if another round is needed
+    bool repeat = false;
 
-    bool repeat = true;
+    do {
+        // Clear out ref_test
+        std::fill(ref_test.begin(),ref_test.end(),0);
 
-//--Repeat is left true if another round is needed
-    while(repeat) {
-      std::fill(ref_test.begin(),ref_test.end(),0);
-
-//----Check adjacent children of neighbors of leaf blocks to see if they
-//----are marked for refinement.
-
-      for( int id = id0; id < id1; ++id) {
-        auto b = tree0->locate(id);
-        if( !b.is_parent && btTags[id]!=1 ) {
-
-//--------Loop over neighbors
-          for(nIdx[2]= -K3D; nIdx[2]<= K3D; ++nIdx[2]) {
-          for(nIdx[1]= -K2D; nIdx[1]<= K2D; ++nIdx[1]) {
-          for(nIdx[0]= -K1D; nIdx[0]<= K1D; ++nIdx[0]) {
-            std::vector<int> neighCoord = calcNeighIntCoords(b.level, b.coord, nIdx, mesh);
-
-            if(AMREX_D_TERM(neighCoord[0]<0, || neighCoord[1]<0, || neighCoord[2]<0 )) {
-                continue;
-            }
-
-            unsigned neighCoord_u[AMREX_SPACEDIM];
-            for(unsigned d=0; d<AMREX_SPACEDIM; ++d) neighCoord_u[d] = static_cast<unsigned>(neighCoord[d]);
-            auto n = tree0->identify(b.level, neighCoord_u);
-
-            if (b.level == n.level) { //neighbor exists
-              if(n.is_parent) {
-                // Check its children
-                unsigned childCoord_u[AMREX_SPACEDIM];
-
-                for(cIdx[2]= 0; cIdx[2]<= K3D; ++cIdx[2]) {
-                for(cIdx[1]= 0; cIdx[1]<= K2D; ++cIdx[1]) {
-                for(cIdx[0]= 0; cIdx[0]<= K1D; ++cIdx[0]) {
-                  for(unsigned d=0; d<AMREX_SPACEDIM; ++d) {
-                    childCoord_u[d] = neighCoord_u[d]*2 + cIdx[d];
-                  }
-                  auto c = tree0->identify(n.level+1, childCoord_u);
-                  if(c.is_parent or btTags[c.id]==1) {
+        // Check adjacent children of neighbors of leaf blocks to see if they
+        // are marked for refinement.
+        // TODO only check local blocks?
+        for( unsigned id = id0; id < id1; ++id) {
+            auto b = tree0->locate(id);
+            if( !b.is_parent && btTags[id]!=1 ) {
+                bool needsTag = checkNeighbors( mesh, b);
+                if(needsTag) {
                     ref_test[id] = 1;
-                    //goto endloops;
-                  }
-                }}}
-
-              }
+                }
             }
-          }}} // neighbor loop
-//endloops:
-          1+1;
-        } // if leaf block not already marked
-      } // local block loop
+        }
 
-      repeat = false;
+        repeat = false;
+        for( unsigned id = id0; id < id1; ++id) {
+            if( ref_test[id] && btTags[id]!=1 ) {
+                repeat = true;
+                btTags[id] = 1;
+                mesh->refine_mark(id,true);
+            }
+        }
 
-      for( unsigned id = id0; id < id1; ++id) {
-          if( ref_test[id] && btTags[id]!=1 ) {
-              repeat = true;
-              btTags[id] = 1;
-              mesh->refine_mark(id,true);
-          }
-      }
+        // TODO Check all processors to see if a repeat is necessary
+        //if(repeat) mesh->refine_reduce(comm);
 
-      // TODO Check all processors to see if a repeat is necessary
-      // if(repeat) mesh->refine_reduce(comm);
-
-    } // while repeat
+    } while(repeat);
 }
 
 
@@ -239,7 +201,7 @@ void btUnit::btCheckRefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>& 
 //          for(int li= -K1D; li<= K1D; ++li) {
 //            std::vector<int> gCell{li,lj,lk};
 //
-//            auto neighCoord = calcNeighIntCoords(lev[lb], lcoord[lb].data(), gCell.data(), mesh);
+//            auto neighCoord = neighIntCoords(lev[lb], lcoord[lb].data(), gCell.data(), mesh);
 //            // TODO continue if any(neighCoords<0)
 //            unsigned neighCoord_u[AMREX_SPACEDIM];
 //            for(unsigned d=0; d<AMREX_SPACEDIM; ++d) neighCoord_u[d] = static_cast<unsigned>(neighCoord[d]);
@@ -304,10 +266,62 @@ void btUnit::btCheckRefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>& 
 //    } // while repeat
 //}
 
+
+// Check all neighbors to see if their children are marked for refinement.
+// If so, the block in question also needs to be refined.
+bool btUnit::checkNeighbors( std::shared_ptr<BittreeAmr> mesh, MortonTree::Block b) {
+    auto tree0 = mesh->getTree();
+    int nIdx[3];
+    unsigned cIdx[3];
+    unsigned childCoord_u[AMREX_SPACEDIM];
+
+    // Loop over neighbors
+    for(nIdx[2]= -K3D; nIdx[2]<= K3D; ++nIdx[2]) {
+    for(nIdx[1]= -K2D; nIdx[1]<= K2D; ++nIdx[1]) {
+    for(nIdx[0]= -K1D; nIdx[0]<= K1D; ++nIdx[0]) {
+        std::vector<int> nCoord = neighIntCoords(mesh, b.level, b.coord, nIdx);
+
+        // If neighbor is outside domain or otherwise invalid, continue.
+        if(AMREX_D_TERM(nCoord[0]<0, || nCoord[1]<0, || nCoord[2]<0 )) {
+            continue;
+        }
+
+        // Identify neighbor from Bittree.
+        unsigned neighCoord_u[AMREX_SPACEDIM];
+        for(unsigned d=0; d<AMREX_SPACEDIM; ++d) {
+            neighCoord_u[d] = static_cast<unsigned>(nCoord[d]);
+        }
+        auto n = tree0->identify(b.level, neighCoord_u);
+
+        if(b.level==n.level && n.is_parent) {
+            // Loop over children of neighbor.
+            for(cIdx[2]= 0; cIdx[2]<= K3D; ++cIdx[2]) {
+            for(cIdx[1]= 0; cIdx[1]<= K2D; ++cIdx[1]) {
+            for(cIdx[0]= 0; cIdx[0]<= K1D; ++cIdx[0]) {
+                // Identify child
+                for(unsigned d=0; d<AMREX_SPACEDIM; ++d) {
+                  childCoord_u[d] = neighCoord_u[d]*2 + cIdx[d];
+                }
+                auto c = tree0->identify(n.level+1, childCoord_u);
+
+                if(!c.is_parent && mesh->check_refine_bit(c.id)) {
+                    // Need to tag block
+                    return true; 
+                }
+            }}}
+        }
+    }}}
+
+    // Don't need to tag block
+    return false;
+}
+
+
 /** Calculate integer coordinates of neighbors, taking into acount BCs.
   * Currently assuming Periodic in all directions.
   */
-std::vector<int> btUnit::calcNeighIntCoords(unsigned lev, unsigned* lcoord, int* gCell, std::shared_ptr<BittreeAmr> mesh) {
+std::vector<int> btUnit::neighIntCoords(std::shared_ptr<BittreeAmr> mesh,
+                                   unsigned lev, unsigned* lcoord, int* gCell) {
     auto tree = mesh->getTree();
 
     std::vector<int> neighCoord(AMREX_SPACEDIM);
