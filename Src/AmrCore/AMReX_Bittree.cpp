@@ -298,15 +298,22 @@ bool btUnit::checkNeighbors( std::shared_ptr<BittreeAmr> mesh, MortonTree::Block
             for(cIdx[2]= 0; cIdx[2]<= K3D; ++cIdx[2]) {
             for(cIdx[1]= 0; cIdx[1]<= K2D; ++cIdx[1]) {
             for(cIdx[0]= 0; cIdx[0]<= K1D; ++cIdx[0]) {
-                // Identify child
-                for(unsigned d=0; d<AMREX_SPACEDIM; ++d) {
-                  childCoord_u[d] = neighCoord_u[d]*2 + cIdx[d];
-                }
-                auto c = tree0->identify(n.level+1, childCoord_u);
 
-                if(!c.is_parent && mesh->check_refine_bit(c.id)) {
-                    // Need to tag block
-                    return true; 
+                // Only check adjacent children
+                if (( ((1-nIdx[0])/2)==cIdx[0] || nIdx[0] == 0 ) &&
+                    ( ((1-nIdx[1])/2)==cIdx[1] || nIdx[1] == 0 ) &&
+                    ( ((1-nIdx[2])/2)==cIdx[2] || nIdx[2] == 0 )) {
+
+                    // Identify child
+                    for(unsigned d=0; d<AMREX_SPACEDIM; ++d) {
+                      childCoord_u[d] = neighCoord_u[d]*2 + cIdx[d];
+                    }
+                    auto c = tree0->identify(n.level+1, childCoord_u);
+
+                    if(!c.is_parent && mesh->check_refine_bit(c.id)) {
+                        // Need to tag block
+                        return true;
+                    }
                 }
             }}}
         }
