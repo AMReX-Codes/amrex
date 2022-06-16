@@ -557,7 +557,7 @@ public:
     static std::string FileKeyword;
 
     //! Add keys and values from a file to the end of the PP table.
-    void addfile (std::string const filename);
+    static void addfile (std::string const filename);
 
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
@@ -1053,7 +1053,7 @@ public:
     static std::set<std::string> getEntries (const std::string& prefix = std::string());
 
     struct PP_entry;
-    typedef std::list<PP_entry> Table;
+    using Table = std::list<PP_entry>;
     static void appendTable(ParmParse::Table& tab);
     const Table& table() const {return m_table;}
 

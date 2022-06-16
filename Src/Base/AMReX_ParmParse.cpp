@@ -993,7 +993,7 @@ ParmParse::addfile (std::string const filename) {
     auto l = std::list<std::string>{filename};
     addDefn(FileKeyword,
             l,
-            m_table);
+            g_table);
 }
 
 void
