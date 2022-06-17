@@ -231,6 +231,8 @@ public:
     virtual void applyInhomogNeumannTerm (int /*amrlev*/, MultiFab& /*rhs*/) const {}
     virtual void applyOverset (int /*amlev*/, MultiFab& /*rhs*/) const {}
     virtual void scaleRHS (int /*amrlev*/, MultiFab& /*rhs*/) const {}
+    virtual Real getSolvabilityOffset (int /*amrlev*/, int /*mglev*/, MultiFab const& /*rhs*/) const { return 0._rt; } // Only nodal solvers need it
+    virtual void fixSolvabilityByOffset (int /*amrlev*/, int /*mglev*/, MultiFab& /*rhs*/, Real /*offset*/) const {} // Only nodal solvers need it
 
     virtual void prepareForSolve () = 0;
     virtual bool isSingular (int amrlev) const = 0;

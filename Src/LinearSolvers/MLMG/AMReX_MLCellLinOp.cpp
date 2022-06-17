@@ -1312,7 +1312,7 @@ MLCellLinOp::BndryCondLoc::setLOBndryConds (const Geometry& geom, const Real* dx
         }
     }
     Gpu::copyAsync(Gpu::hostToDevice, hv.begin(), hv.end(), bctl_dv.begin());
-    Gpu::synchronize();
+    Gpu::streamSynchronize();
 }
 
 void

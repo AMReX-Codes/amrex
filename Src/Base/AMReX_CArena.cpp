@@ -231,6 +231,44 @@ CArena::freeUnused_protected ()
     return nbytes;
 }
 
+bool
+CArena::hasFreeDeviceMemory (std::size_t sz)
+{
+#ifdef AMREX_USE_GPU
+    if (isDevice() || isManaged()) {
+        std::lock_guard<std::mutex> lock(carena_mutex);
+
+        std::size_t nbytes = Arena::align(sz == 0 ? 1 : sz);
+
+        if (static_cast<Long>(m_used+nbytes) >= arena_info.release_threshold) {
+            freeUnused_protected();
+        }
+
+        //
+        // Find node in freelist at lowest memory address that'll satisfy request.
+        //
+        NL::iterator free_it = m_freelist.begin();
+
+        for ( ; free_it != m_freelist.end(); ++free_it) {
+            if ((*free_it).size() >= nbytes) {
+                break;
+            }
+        }
+
+        if (free_it == m_freelist.end()) {
+            const std::size_t N = nbytes < m_hunk ? m_hunk : nbytes;
+            return Gpu::Device::freeMemAvailable() > N;
+        } else {
+            return true;
+        }
+    } else
+#endif
+    {
+        amrex::ignore_unused(sz);
+        return true;
+    }
+}
+
 std::size_t
 CArena::heap_space_used () const noexcept
 {

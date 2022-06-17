@@ -3,7 +3,7 @@
 # building and running the code
 # in Tests/Amr/Advection_AmrCore/
 #
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.17)
 
 project(amrex-test-install)
 

@@ -296,7 +296,7 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
         szbuffer = (recv_data[N_rcvs-1]-recv_data[0]) + recv_size[N_rcvs-1];
         pbuffer = (char*)The_Arena()->alloc(szbuffer);
         Gpu::copyAsync(Gpu::hostToDevice,recv_data[0],recv_data[0]+szbuffer,pbuffer);
-        Gpu::synchronize();
+        Gpu::streamSynchronize();
     }
 #endif
 
@@ -327,7 +327,7 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
         tag.dfab(i,j,k,scomp+n) = proj(tag.sfab, si ,n);
     });
 
-    // There is Gpu::synchronize in ParallelFor above
+    // There is Gpu::streamSynchronize in ParallelFor above
 
     if (pbuffer != recv_data[0]) {
         The_Arena()->free(pbuffer);

@@ -115,6 +115,14 @@ public:
     virtual bool isPinned () const;
 
     /**
+     * \brief Does the device have enough free memory for allocating this
+     * much memory?  For CPU builds, this always return true.  This is not a
+     * const funciton because it may attempt to release memory back to the
+     * system.
+     */
+    virtual bool hasFreeDeviceMemory (std::size_t sz);
+
+    /**
     * \brief Given a minimum required arena size of sz bytes, this returns
     * the next largest arena size that will align to align_size bytes
     */

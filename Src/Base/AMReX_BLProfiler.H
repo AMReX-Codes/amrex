@@ -388,7 +388,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 }
 
 #define BL_PROFILE_INITIALIZE()  amrex::BLProfiler::Initialize();
-#define BL_PROFILE_INITPARAMS()  amrex::BLProfiler::InitParams();
+#define BL_PROFILE_INITPARAMS()  amrex::BLProfiler::InitParams(); amrex::BLProfileSync::InitParams()
 #define BL_PROFILE_FINALIZE()    amrex::BLProfiler::Finalize();
 
 #define BL_TINY_PROFILE_INITIALIZE()
@@ -475,7 +475,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_INITPARAMS()
 #define BL_PROFILE_FINALIZE()
 
-#define BL_TINY_PROFILE_INITIALIZE()   amrex::TinyProfiler::Initialize()
+#define BL_TINY_PROFILE_INITIALIZE()   amrex::TinyProfiler::Initialize(); amrex::BLProfileSync::InitParams()
 #define BL_TINY_PROFILE_FINALIZE()     amrex::TinyProfiler::Finalize()
 
 #define BL_PROFILE(fname) BL_PROFILE_IMPL(fname, __COUNTER__)
@@ -596,6 +596,51 @@ class BLProfiler
 #define BL_COMM_PROFILE_TAGRANGE(tagmin, tagmax)
 #define BL_COMM_PROFILE_TAGWRAP()
 #define BL_COMM_PROFILE_INITAMR(flev, mlev, rr, pd)
+
+#endif
+
+// ============================================================
+// Sync macros
+// ============================================================
+
+#if (defined(BL_PROFILING) || defined(AMREX_TINY_PROFILING))
+
+namespace amrex {
+
+  class BLProfileSync {
+
+  public:
+    static void Sync() noexcept;
+    static void Sync(const std::string& name) noexcept;
+    static void Sync(const char* name) noexcept;
+
+    static void InitParams() noexcept;
+
+    static void StartSyncRegion() noexcept;
+    static void StartSyncRegion(const std::string& name) noexcept;
+    static void StartSyncRegion(const char* name) noexcept;
+    static void EndSyncRegion() noexcept;
+
+  private:
+    static int sync_counter;
+    static int use_prof_syncs;
+  };
+
+}
+
+#define BL_PROFILE_SYNC()                       amrex::BLProfileSync::Sync()
+#define BL_PROFILE_SYNC_TIMED(fname)            amrex::BLProfileSync::Sync(fname)
+#define BL_PROFILE_SYNC_START()                 amrex::BLProfileSync::StartSyncRegion()
+#define BL_PROFILE_SYNC_START_TIMED(fname)      amrex::BLProfileSync::StartSyncRegion(fname)
+#define BL_PROFILE_SYNC_STOP()                  amrex::BLProfileSync::EndSyncRegion()
+
+#else
+
+#define BL_PROFILE_SYNC()
+#define BL_PROFILE_SYNC_TIMED(fname)
+#define BL_PROFILE_SYNC_START()
+#define BL_PROFILE_SYNC_START_TIMED(fname)
+#define BL_PROFILE_SYNC_STOP()
 
 #endif
 

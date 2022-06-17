@@ -117,6 +117,8 @@ public :
     virtual void getFluxes (const Vector<MultiFab*>& a_flux,
                             const Vector<MultiFab*>& a_sol) const final override;
     virtual void unimposeNeumannBC (int amrlev, MultiFab& rhs) const final override;
+    virtual Real getSolvabilityOffset (int amrlev, int mglev, MultiFab const& rhs) const override;
+    virtual void fixSolvabilityByOffset (int amrlev, int mglev, MultiFab& rhs, Real offset) const override;
 
     virtual void compGrad (int /*amrlev*/, const Array<MultiFab*,AMREX_SPACEDIM>& /*grad*/,
                            MultiFab& /*sol*/, Location /*loc*/) const final override {

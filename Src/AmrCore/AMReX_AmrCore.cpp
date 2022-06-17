@@ -11,6 +11,7 @@
 #endif
 
 #include <algorithm>
+#include <utility>
 #include <ostream>
 
 namespace amrex {
@@ -44,6 +45,26 @@ AmrCore::AmrCore (Geometry const& level_0_geom, AmrInfo const& amr_info)
 #ifdef AMREX_PARTICLES
     m_gdb = std::make_unique<AmrParGDB>(this);
 #endif
+}
+
+AmrCore::AmrCore (AmrCore&& rhs)
+    : AmrMesh(std::move(rhs))
+{
+#ifdef AMREX_PARTICLES
+    m_gdb = std::move(rhs.m_gdb);
+    m_gdb->m_amrcore = this;
+#endif
+}
+
+AmrCore& AmrCore::operator= (AmrCore&& rhs)
+{
+    AmrMesh::operator=(std::move(rhs));
+#ifdef AMREX_PARTICLES
+    m_gdb = std::move(rhs.m_gdb);
+    m_gdb->m_amrcore = this;
+#endif
+
+    return *this;
 }
 
 AmrCore::~AmrCore ()

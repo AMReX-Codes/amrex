@@ -23,6 +23,9 @@ namespace amrex {
     template <typename T>
     struct RunOnGpu : std::false_type {};
 
+    template <typename T>
+    struct IsPolymorphicArenaAllocator : std::false_type {};
+
     struct ArenaAllocatorTraits {
         typedef std::true_type propagate_on_container_copy_assignment;
         typedef std::true_type propagate_on_container_move_assignment;
@@ -136,6 +139,33 @@ namespace amrex {
     };
 
     template<typename T>
+    class PolymorphicArenaAllocator
+        : public ArenaAllocatorTraits
+    {
+    public :
+
+        using value_type = T;
+
+        inline value_type* allocate(std::size_t n)
+        {
+            value_type* result = nullptr;
+            result = (value_type*) arena()->alloc(n * sizeof(T));
+            return result;
+        }
+
+        inline void deallocate(value_type* ptr, std::size_t)
+        {
+            if (ptr != nullptr) { arena()->free(ptr); }
+        }
+
+        Arena* arena () const noexcept {
+            return (m_arena) ? m_arena : The_Arena();
+        }
+
+        Arena* m_arena = nullptr;
+    };
+
+    template<typename T>
     class PolymorphicAllocator
     {
     public :
@@ -203,6 +233,9 @@ namespace amrex {
 
     template <typename T>
     struct RunOnGpu<AsyncArenaAllocator<T> > : std::true_type {};
+
+    template <typename T>
+    struct IsPolymorphicArenaAllocator<PolymorphicArenaAllocator<T> > : std::true_type {};
 
 #endif // AMREX_USE_GPU
 

@@ -2,7 +2,7 @@
 #define AMREX_CUDA_GRAPH_H_
 #include <AMReX_Config.H>
 
-#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
+#if defined(__CUDACC__)
 
 #include <AMReX.H>
 #include <AMReX_Array.H>

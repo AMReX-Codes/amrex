@@ -515,6 +515,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_HDF5                   |  Enable HDF5-based I/O                          | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_HDF5_ZFP               |  Enable compression with ZFP in HDF5-based I/O  | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_PLOTFILE_TOOLS         |  Build and install plotfile postprocessing tools| NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_ENABLE_TESTS           |  Enable CTest suite                             | NO                      | YES, NO               |
@@ -726,7 +728,7 @@ You can tell CMake to look for the AMReX library in non-standard paths by settin
 ``AMReX_ROOT`` to point to the AMReX installation directory or by adding
 ``-DAMReX_ROOT=<path/to/amrex/installation/directory>`` to the ``cmake`` invocation.
 More details on ``find_package`` can be found
-`here <https://cmake.org/cmake/help/v3.14/command/find_package.html>`_.
+`here <https://cmake.org/cmake/help/v3.17/command/find_package.html>`_.
 
 .. _sec:build:windows:
 
