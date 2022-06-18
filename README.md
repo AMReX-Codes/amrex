@@ -13,7 +13,7 @@
 
 
 <p>
-A software framework massively parallel block-structure adaptive mesh
+A software framework for massively parallel block-structure adaptive mesh
 refinement applications.
 </p>
 
