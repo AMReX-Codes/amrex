@@ -36,30 +36,21 @@ void set_eb_data (const int i, const int j,
     const Real nxabs = amrex::Math::abs(nx);
     const Real nyabs = amrex::Math::abs(ny);
 
-    Real x_ym;
-    Real x_yp;
-    Real signx;
-    Real y_xm;
-    Real y_xp;
-    Real signy;
+    Real x_ym, x_yp, y_xm, y_xp;
     if (nx > 0.0_rt) {
         x_ym = -0.5_rt*dx[0] + aym;
         x_yp = -0.5_rt*dx[0] + ayp;
-        signx = 1.0_rt;
     } else {
         x_ym = 0.5_rt*dx[0] - aym;
         x_yp = 0.5_rt*dx[0] - ayp;
-        signx = -1.0_rt;
     }
 
     if (ny > 0.0_rt) {
         y_xm = -0.5_rt*dx[1] + axm;
         y_xp = -0.5_rt*dx[1] + axp;
-        signy = 1.0_rt;
     } else {
         y_xm = 0.5_rt*dx[1] - axm;
         y_xp = 0.5_rt*dx[1] - axp;
-        signy = -1.0_rt;
     }
 
     barea(i,j,0) = (nx*daxp + ny*dayp)/bareascaling;
@@ -69,20 +60,20 @@ void set_eb_data (const int i, const int j,
     bnorm(i,j,0,1) = ny;
 
     if (nxabs < tiny || nyabs > almostone) {
-        barea(i,j,0) = 1.0_rt;
-        bcent(i,j,0,0) = 0.0_rt;
-        bnorm(i,j,0,0) = 0.0_rt;
-        bnorm(i,j,0,1) = signy;
         vfrac(i,j,0) = 0.5_rt*(axm+axp)*dx[0];
         vcent(i,j,0,0) = 0.0_rt;
-        vcent(i,j,0,1) = (0.125_rt*dayp*dx[1]*dx[1] + ny*dx[0]*0.5_rt*bcent(i,j,0,1)*bcent(i,j,0,1)) / (vfrac(i,j,0) + 1.e-30_rt);
+        if (vfrac(i,j,0)/dx[0] > almostone) {
+            vcent(i,j,0,1) = 0.0_rt;
+        } else {
+	  vcent(i,j,0,1) = (0.125_rt*dayp*dx[1]*dx[1] + ny*dx[0]*0.5_rt*bcent(i,j,0,1)*bcent(i,j,0,1)) / (vfrac(i,j,0) + 1.e-30_rt);
+        }
     } else if (nyabs < tiny || nxabs > almostone) {
-        barea(i,j,0) = 1.0_rt;
-        bcent(i,j,0,1) = 0.0_rt;
-        bnorm(i,j,0,0) = signx;
-        bnorm(i,j,0,1) = 0.0_rt;
-        vfrac(i,j,0) = 0.5_rt*(aym+ayp);
-        vcent(i,j,0,0) = (0.125_rt*daxp*dx[0]*dx[0] + nx*0.5_rt*bcent(i,j,0,0)*bcent(i,j,0,0)) / (vfrac(i,j,0) + 1.e-30_rt);
+        vfrac(i,j,0) = 0.5_rt*(aym+ayp)*dx[1];
+	if (vfrac(i,j,0)/dx[1] > almostone) {
+            vcent(i,j,0,0) = 0.0_rt;
+        } else {
+            vcent(i,j,0,0) = (0.125_rt*daxp*dx[0]*dx[0] + nx*0.5_rt*bcent(i,j,0,0)*bcent(i,j,0,0)) / (vfrac(i,j,0) + 1.e-30_rt);
+        }
         vcent(i,j,0,1) = 0.0_rt;
     } else {
         Real aa = nxabs/ny*dx[0]/dx[1];

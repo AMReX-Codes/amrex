@@ -286,7 +286,10 @@ struct GetSendBufferOffset
     }
 };
 
-template <class PC, class Buffer, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class Buffer,
+          std::enable_if_t<IsParticleContainer<PC>::value &&
+                           std::is_base_of<PolymorphicArenaAllocator<typename Buffer::value_type>,
+                                           Buffer>::value, int> foo = 0>
 void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan& plan,
                  Buffer& snd_buffer)
 {
@@ -299,7 +302,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
     int num_levels = op.numLevels();
     int num_buckets = pc.BufferMap().numBuckets();
 
-    Long total_buffer_size = 0;
+    std::size_t total_buffer_size = 0;
     if (plan.m_snd_offsets.size() == 0)
     {
         unsigned int np = 0;
@@ -310,6 +313,10 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
     else
     {
         total_buffer_size = plan.m_snd_offsets.back();
+    }
+
+    if (! snd_buffer.arena()->hasFreeDeviceMemory(total_buffer_size)) {
+        snd_buffer.m_arena = The_Pinned_Arena();
     }
     snd_buffer.resize(total_buffer_size);
 
@@ -443,9 +450,9 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
     }
 }
 
-template <class PC, class Buffer,
+template <class PC, class SndBuffer, class RcvBuffer,
           std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
-void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buffer& snd_buffer, Buffer& rcv_buffer)
+void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const SndBuffer& snd_buffer, RcvBuffer& rcv_buffer)
 {
     BL_PROFILE("amrex::communicateParticlesStart");
 

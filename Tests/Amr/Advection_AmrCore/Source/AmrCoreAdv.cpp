@@ -811,7 +811,7 @@ AmrCoreAdv::WritePlotFile () const
 
 #ifdef AMREX_PARTICLES
         if (do_tracers) {
-            TracerPC->Checkpoint(plotfilename, "particles", true);
+            TracerPC->WritePlotFile(plotfilename, "particles");
         }
 #endif
 }

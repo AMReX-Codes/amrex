@@ -50,6 +50,14 @@ public:
 
     virtual std::size_t freeUnused () override final;
 
+    /**
+     * \brief Does the device have enough free memory for allocating this
+     * much memory?  For CPU builds, this always return true.  This is not a
+     * const funciton because it may attempt to release memory back to the
+     * system.
+     */
+    virtual bool hasFreeDeviceMemory (std::size_t sz) override;
+
     //! The current amount of heap space used by the CArena object.
     std::size_t heap_space_used () const noexcept;
 

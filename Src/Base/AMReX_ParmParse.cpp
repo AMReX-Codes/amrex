@@ -34,6 +34,8 @@ static bool finalize_verbose = false;
 static bool finalize_verbose = true;
 #endif
 
+std::string ParmParse::FileKeyword = "FILE";
+
 //
 // Used by constructor to build table.
 //
@@ -575,7 +577,6 @@ addDefn (std::string&         def,
          std::list<std::string>&   val,
          std::list<ParmParse::PP_entry>& tab)
 {
-    static const std::string FileKeyword("FILE");
     //
     // Check that defn exists.
     //
@@ -595,7 +596,7 @@ addDefn (std::string&         def,
     //
     // Check if this defn is a file include directive.
     //
-    if ( def == FileKeyword && val.size() == 1 )
+    if ( def == ParmParse::FileKeyword && val.size() == 1 )
     {
         //
         // Read file and add to this table.
@@ -985,6 +986,14 @@ ParmParse::prefixedName (const std::string& str) const
         return m_pstack.top() + '.' + str;
     }
     return str;
+}
+
+void
+ParmParse::addfile (std::string const filename) {
+    auto l = std::list<std::string>{filename};
+    addDefn(FileKeyword,
+            l,
+            g_table);
 }
 
 void

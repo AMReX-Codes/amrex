@@ -49,7 +49,7 @@ function (configure_amrex)
       target_compile_features(amrex PUBLIC $<IF:$<STREQUAL:$<PLATFORM_ID>,Windows>,cxx_std_17,cxx_std_14>)
    endif ()
 
-   if (AMReX_CUDA AND (CMAKE_VERSION VERSION_GREATER_EQUAL 3.17) )
+   if (AMReX_CUDA)
       set_target_properties(amrex PROPERTIES CUDA_EXTENSIONS OFF)
       # minimum: C++14 on Linux, C++17 on Windows
       target_compile_features(amrex PUBLIC $<IF:$<STREQUAL:$<PLATFORM_ID>,Windows>,cuda_std_17,cuda_std_14>)
@@ -129,15 +129,6 @@ function (configure_amrex)
 
       if (_amrex_flags)
          target_compile_options(amrex PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${_amrex_flags}>)
-      endif ()
-
-      #
-      # Add manually nvToolsExt if tiny profiler or base profiler are on.n
-      # CMake >= 3.17 provides the module FindCUDAToolkit to do this natively.
-      #
-      if (AMReX_TINY_PROFILE OR AMReX_BASE_PROFILE )
-          find_library(LIBNVTOOLSEXT nvToolsExt PATHS ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
-          target_link_libraries(amrex PUBLIC ${LIBNVTOOLSEXT})
       endif ()
 
    endif ()

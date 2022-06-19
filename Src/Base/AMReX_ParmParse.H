@@ -552,6 +552,13 @@ public:
     //! Add a key 'name'with value 'ref' to the end of the PP table.
     void add (const char* name,
               const std::string&  val);
+
+    //! keyword for files to load
+    static std::string FileKeyword;
+
+    //! Add keys and values from a file to the end of the PP table.
+    static void addfile (std::string const filename);
+
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to an IntVect and stored
@@ -1046,7 +1053,7 @@ public:
     static std::set<std::string> getEntries (const std::string& prefix = std::string());
 
     struct PP_entry;
-    typedef std::list<PP_entry> Table;
+    using Table = std::list<PP_entry>;
     static void appendTable(ParmParse::Table& tab);
     const Table& table() const {return m_table;}
 

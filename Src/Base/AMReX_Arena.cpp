@@ -112,6 +112,12 @@ Arena::isPinned () const
 #endif
 }
 
+bool
+Arena::hasFreeDeviceMemory (std::size_t)
+{
+    return true;
+}
+
 std::size_t
 Arena::align (std::size_t s)
 {
@@ -159,6 +165,11 @@ Arena::allocate_system (std::size_t nbytes)
                 (AMREX_HIP_SAFE_CALL(hipMallocManaged(&p, nbytes));,
                  AMREX_CUDA_SAFE_CALL(cudaMallocManaged(&p, nbytes));,
                  p = sycl::malloc_shared(nbytes, Gpu::Device::syclDevice(), Gpu::Device::syclContext()));
+#ifdef AMREX_USE_HIP
+            // Otherwise atomiAdd won't work because we instruct the compiler to do unsafe atomics
+            AMREX_HIP_SAFE_CALL(hipMemAdvise(p, nbytes, hipMemAdviseSetCoarseGrain,
+                                             Gpu::Device::deviceId()));
+#endif
             if (arena_info.device_set_readonly)
             {
                 Gpu::Device::mem_advise_set_readonly(p, nbytes);

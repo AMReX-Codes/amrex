@@ -5,6 +5,13 @@
 #include <stdlib.h>
 #include <string.h>
 int amrex_iparserlex (void);
+/* Bison seems to have a bug. yyalloc etc. do not have the api.prefix. */
+#ifndef yyalloc
+#  define yyalloc amrex_iparseralloc
+#endif
+#ifndef yysymbol_kind_t
+#  define yysymbol_kind_t amrex_iparsersymbol_kind_t
+#endif
 %}
 
 /* We do not need to make this reentrant safe, because we use flex and
