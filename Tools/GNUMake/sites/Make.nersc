@@ -25,8 +25,8 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
   endif
 
   ifeq ($(USE_CUDA),TRUE)
-      CFLAGS += -Xcompiler='$(wordlist 2,1024,$(shell cc -craype-verbose 2> /dev/null))'
-      CXXFLAGS += -Xcompiler='$(wordlist 2,1024,$(shell CC -craype-verbose 2> /dev/null))'
+      CFLAGS += -Xcompiler="$(wordlist 2,1024,$(shell cc -craype-verbose 2> /dev/null))"
+      CXXFLAGS += -Xcompiler="$(wordlist 2,1024,$(shell CC -craype-verbose 2> /dev/null))"
   else ifeq ($(USE_MPI),FALSE)
       CFLAGS += $(wordlist 2,1024,$(shell cc -craype-verbose 2> /dev/null))
       CXXFLAGS += $(wordlist 2,1024,$(shell CC -craype-verbose 2> /dev/null))
