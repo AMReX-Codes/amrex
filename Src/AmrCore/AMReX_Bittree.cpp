@@ -14,9 +14,7 @@ NOTE: Bittree object is created in AmrMesh::MakeNewGrids (Real time)
 
 The functions here are called in the BT version of MakeNewGrids which has three steps:
     1. Error Estimation and tagging - btTagging
-
     2. Bitree's actual bitmap generated/updated - btRefine
-
     3. AMReX updates grids based on bitree - btCalculateGrids
 */
 
@@ -24,7 +22,7 @@ The functions here are called in the BT version of MakeNewGrids which has three 
 /** New Bittree mesh is generated.
   *
   * This makes use of BT library functions and as well as routines adapted
-  * from Flash-X that enforce Octree logic.
+  * from Flash-X that enforce Octree nesting.
   */
 int btUnit::btRefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>& btTags, MPI_Comm comm) {
     // Tree before refinement. With only one rank, lnblocks = nblocks.
@@ -75,7 +73,7 @@ void btUnit::btCalculateGrids(std::shared_ptr<BittreeAmr> mesh, int lbase,
     new_finest = nlevs - 1;
 
 //--Calculate the new grid layout and distribution map based on Bittree
-    for(int lev=lbase; lev<nlevs; ++lev) {
+    for(int lev=lbase; lev<=new_finest; ++lev) {
       //Bittree has its own indices for blocks which I call bitid; get
       //the range of bitids for the level being made. Bitid range is
       //contiguous for each level.
@@ -108,8 +106,8 @@ void btUnit::btCalculateGrids(std::shared_ptr<BittreeAmr> mesh, int lbase,
 
       }
 
-      new_grids[lev].define(bl);
-      new_dm[lev].define(pmap);
+      new_grids[lev] = BoxArray(bl);
+      new_dm[lev] = DistributionMapping(pmap);
 
     }
 }

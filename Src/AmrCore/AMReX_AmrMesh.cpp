@@ -504,10 +504,10 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
     if(use_bittree) {
         // Initialize BT refinement
         btmesh->refine_init();
-        bool grid_changed = false;
 
         // Do the regular MakeNewGrids and infer refine/derefine from there
         if(infer_bt_grids) {
+            bool grid_changed = false;
             MakeNewGrids(lbase,time,new_finest,new_grids);
             for(int lev=lbase+1; lev<=new_finest; ++lev) {
                 new_dmap[lev] = DistributionMapping(new_grids[lev]);
@@ -577,6 +577,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                 else         amrex::Print() << "ERROR" << std::endl;
             }
         }
+        // -------------------------------------------------------------------
         // Use tagging data to mark BT for refinement, then use the new bitmap
         // to calculate the new grids.
         else {
@@ -585,7 +586,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
             // Add at most one new level
             int max_crse = std::min(finest_level, max_level-1);
             if (new_grids.size() < max_crse+2) new_grids.resize(max_crse+2);
-       
+
             auto tree0 = btmesh->getTree();
 
             // [1] btTagging - Error Estimation and tagging
@@ -598,6 +599,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                 TagBoxArray tags(grids[lev],dmap[lev], n_error_buf[lev]);
                 ErrorEst(lev, tags, time, 0);
 
+                // TODO This algorithm needs to properly interpret tag data.
                 for (MFIter mfi(tags); mfi.isValid(); ++mfi) {
                     auto const& tagbox = tags.const_array(mfi);
                     bool has_set_tags = amrex::Reduce::AnyOf(mfi.validbox(),
@@ -606,9 +608,10 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                                                                   return tagbox(i,j,k) == TagBox::SET;
                                                              });
 
-                    // Set the value of btTags according to some algorithm. For now,
-                    // if any cell is tagged, the whole block is marked for refine.
-                    // (btTags = 1 if needs refine, -1 if needs derefine.)
+                    // Set the values of btTags.
+                    // (btTags = 1 if needs refine, -1 if needs derefine)
+                    // For proof of concept: if any cell is tagged, the whole block is marked for refine,
+                    // and no blocks are ever marked for derefine.
                     if(has_set_tags) {
                         // Calculate the integer coordinates and query BT for the bitid.
                         // For optimization, could cache bitid for each box.
@@ -624,7 +627,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                 }
             }
 
-            // [2] btRefine - check for proper octree nesting, then update bitmap
+            // [2] btRefine - check for proper octree nesting and update bitmap
             MPI_Comm comm = ParallelContext::CommunicatorSub();
             int changed = btUnit::btRefine(btmesh, btTags, comm);
             if(changed>0) {
@@ -938,7 +941,7 @@ AmrMesh::MakeNewGrids (Real time)
         const auto old_num_setdm = num_setdm;
         const auto old_num_setba = num_setba;
 
-        //Initialize Bittree
+        //Initialize Bittree (Bittree is not involved in MakeBaseGrids)
         if(use_bittree) {
 
             // top = number of grids on coarsest level in each direction
