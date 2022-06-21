@@ -24,16 +24,10 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
   endif
   endif
 
-  ifdef NPE_VERSION
-    NPE_CFLAGS   = $(filter-out -Wl%, $(wordlist 2,1024,$(shell mpicc -show 2> /dev/null))))
-    NPE_CXXFLAGS = $(filter-out -Wl%, $(wordlist 2,1024,$(shell mpicxx -show 2> /dev/null)))
-    NPE_FTNFLAGS = $(wordlist 2,1024,$(shell mpifort -show 2> /dev/null))
-  endif
-
   ifeq ($(USE_CUDA),TRUE)
     ifdef NPE_VERSION
-      CFLAGS += -Xcompiler="$(NPE_CFLAGS)"
-      CXXFLAGS += -Xcompiler="$(NPE_CXXFLAGS)"
+      CFLAGS += -Xcompiler="$(filter-out -Wl%, $(wordlist 2,1024,$(shell mpicc -show 2> /dev/null))))"
+      CXXFLAGS += -Xcompiler="$(filter-out -Wl%, $(wordlist 2,1024,$(shell mpicxx -show 2> /dev/null)))"
     else
       CFLAGS += -Xcompiler="$(wordlist 2,1024,$(shell cc -craype-verbose 2> /dev/null))"
       CXXFLAGS += -Xcompiler="$(wordlist 2,1024,$(shell CC -craype-verbose 2> /dev/null))"
