@@ -46,12 +46,8 @@ int btUnit::btRefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>& btTags
 //--Mark leaves for derefinement (on BT, parent is marked for nodetype change)
     for( unsigned id = id0; id < id1; ++id) {
       if (btTags[id]==-1) {
-        auto b = tree0->locate(id);
-        unsigned parCoord[AMREX_SPACEDIM];
-        for(unsigned d=0; d<AMREX_SPACEDIM; ++d) parCoord[d] = b.coord[d]/2;
-        auto p = tree0->identify(b.level-1,parCoord);
-
-        mesh->refine_mark(p.id, true);
+        unsigned pId = tree0->getParentId(id);
+        mesh->refine_mark(pId, true);
       }
     }
     mesh->refine_reduce(comm);
@@ -144,9 +140,8 @@ void btUnit::btCheckRefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>& 
         // Clear out ref_test
         std::fill(ref_test.begin(),ref_test.end(),0);
 
-        // Check adjacent children of neighbors of leaf blocks to see if they
-        // are marked for refinement.
-        // TODO only check local blocks?
+//------Check neighbors - if any adjacent child of a neighbor is either a parent
+//------or marked for refinement, this block needs to be refined.
         for( unsigned id = id0; id < id1; ++id) {
             auto b = tree0->locate(id);
             if( !b.is_parent && btTags[id]!=1 ) {
@@ -157,6 +152,7 @@ void btUnit::btCheckRefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>& 
             }
         }
 
+//------Mark blocks who need to be refined (as per above check).
         repeat = false;
         for( unsigned id = id0; id < id1; ++id) {
             if( ref_test[id]==1 && btTags[id]!=1 ) {
@@ -166,8 +162,10 @@ void btUnit::btCheckRefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>& 
             }
         }
 
-        // TODO Check all processors to see if a repeat is necessary
+        // If only processing local blocks, check all processors to see if
+        // a repeat is necessary, then reduce bittree to update on all ranks.
         //if(repeat) mesh->refine_reduce(comm);
+
         mesh->refine_update();
 
     } while(repeat);
@@ -206,46 +204,41 @@ void btUnit::btCheckDerefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>
             }
         }
 
+//------Unmark parents for any blocks who cannot derefine (as per above check).
         repeat = false;
         for( unsigned id = id0; id < id1; ++id) {
             if( deref_test[id]==0 && btTags[id]==-1 ) {
                 repeat = true;
                 btTags[id] = 0;
-                // Unmark for derefinement
-                // TODO: for optimization have BT library find id of parent
-                auto b = tree0->locate(id);
-                unsigned parCoord[AMREX_SPACEDIM];
-                for(unsigned d=0; d<AMREX_SPACEDIM; ++d)
-                    parCoord[d] = b.coord[d]/2;
-                auto p = tree0->identify(b.level-1,parCoord);
 
-                mesh->refine_mark(p.id, false);
+                // Unmark for derefinement
+                unsigned pId = tree0->getParentId(id);
+                mesh->refine_mark(pId, false);
             }
         }
 
 //------If any blocks are still marked for derefinement, check to make
-//------sure their parents are still marked on bittree. This ensures blocks
+//------sure their parents are still marked on bittree. Also, if parent is
+//------marked, but block is not tagged, unmark parent. This ensures blocks
 //------only derefine if ALL siblings are marked for derefine.
         for( unsigned id = id0; id < id1; ++id) {
-            if( btTags[id]==-1 ) {
-                // TODO: for optimization have BT library find id of parent
-                auto b = tree0->locate(id);
-                unsigned parCoord[AMREX_SPACEDIM];
-                for(unsigned d=0; d<AMREX_SPACEDIM; ++d)
-                    parCoord[d] = b.coord[d]/2;
-                auto p = tree0->identify(b.level-1,parCoord);
-
-                bool deref_mark = mesh->check_refine_bit(p.id);
-                if(!deref_mark) {
-                  repeat = true;
-                  btTags[id] = 0;
-                }
+            unsigned pId = tree0->getParentId(id);
+            bool deref_mark = mesh->check_refine_bit(pId);
+            if( btTags[id]==-1 && !deref_mark ) {
+                repeat = true;
+                btTags[id] = 0;
+            }
+            else if( btTags[id]!=-1 && deref_mark ) {
+                repeat = true;
+                mesh->refine_mark(pId,false);
             }
         }
 
 
-        // TODO Check all processors to see if a repeat is necessary
+        // If only processing local blocks, check all processors to see if
+        // a repeat is necessary, then reduce bittree to update on all ranks.
         //if(repeat) mesh->refine_reduce_and(comm);
+
         mesh->refine_update();
 
     } while(repeat);
