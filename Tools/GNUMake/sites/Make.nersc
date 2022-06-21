@@ -25,19 +25,15 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
   endif
 
   ifdef NPE_VERSION
-    WRAP_C_FLAGS = $(wordlist 2,1024,$(shell mpicc -show 2> /dev/null))
-    WRAP_CXX_FLAGS = $(wordlist 2,1024,$(shell mpicc -show 2> /dev/null))
-    WRAP_FTN_FLAGS = $(wordlist 2,1024,$(shell mpifort -show 2> /dev/null))
-
-    WRAP_C_FILTERED = $(filter-out -Wl%, $(WRAP_C_FLAGS))
-    WRAP_CXX_FILTERED = $(filter-out -Wl%, $(WRAP_CXX_FLAGS))
-
+    NPE_CFLAGS   = $(filter-out -Wl%, $(wordlist 2,1024,$(shell mpicc -show 2> /dev/null))))
+    NPE_CXXFLAGS = $(filter-out -Wl%, $(wordlist 2,1024,$(shell mpicxx -show 2> /dev/null)))
+    NPE_FTNFLAGS = $(wordlist 2,1024,$(shell mpifort -show 2> /dev/null))
   endif
 
   ifeq ($(USE_CUDA),TRUE)
     ifdef NPE_VERSION
-      CFLAGS += -Xcompiler="$(WRAP_C_FILTERED)"
-      CXXFLAGS += -Xcompiler="$(WRAP_CXX_FILTERED)"
+      CFLAGS += -Xcompiler="$(NPE_CFLAGS)"
+      CXXFLAGS += -Xcompiler="$(NPE_CXXFLAGS)"
     else
       CFLAGS += -Xcompiler="$(wordlist 2,1024,$(shell cc -craype-verbose 2> /dev/null))"
       CXXFLAGS += -Xcompiler="$(wordlist 2,1024,$(shell CC -craype-verbose 2> /dev/null))"
