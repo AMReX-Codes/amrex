@@ -53,7 +53,7 @@ int btUnit::btRefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>& btTags
     mesh->refine_reduce(comm);
     mesh->refine_update();
 
-    //btCheckDerefine(mesh);
+    btCheckDerefine(mesh,btTags,comm);
 
 
     //TODO sort (distribute over procs)
@@ -92,7 +92,7 @@ void btUnit::btCalculateGrids(std::shared_ptr<BittreeAmr> mesh, int lbase,
 
         if(b.level != lev) {
             std::string msg = "Error identifying block in btCalculateGrids";
-            //TODO throw error
+            //throw error?
         }
 
         IntVect coordVec{AMREX_D_DECL(static_cast<int>(b.coord[0]),
@@ -164,9 +164,10 @@ void btUnit::btCheckRefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>& 
 
         // If only processing local blocks, check all processors to see if
         // a repeat is necessary, then reduce bittree to update on all ranks.
-        //if(repeat) mesh->refine_reduce(comm);
-
-        mesh->refine_update();
+        if(repeat) {
+            mesh->refine_reduce(comm);
+            mesh->refine_update();
+        }
 
     } while(repeat);
 }
@@ -223,23 +224,26 @@ void btUnit::btCheckDerefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>
 //------only derefine if ALL siblings are marked for derefine.
         for( unsigned id = id0; id < id1; ++id) {
             unsigned pId = tree0->getParentId(id);
-            bool deref_mark = mesh->check_refine_bit(pId);
-            if( btTags[id]==-1 && !deref_mark ) {
-                repeat = true;
-                btTags[id] = 0;
-            }
-            else if( btTags[id]!=-1 && deref_mark ) {
-                repeat = true;
-                mesh->refine_mark(pId,false);
+            if(pId>id) {
+                bool deref_mark = mesh->check_refine_bit(pId);
+                if( btTags[id]==-1 && !deref_mark ) {
+                    repeat = true;
+                    btTags[id] = 0;
+                }
+                else if( btTags[id]!=-1 && deref_mark ) {
+                    repeat = true;
+                    mesh->refine_mark(pId,false);
+                }
             }
         }
 
 
         // If only processing local blocks, check all processors to see if
         // a repeat is necessary, then reduce bittree to update on all ranks.
-        //if(repeat) mesh->refine_reduce_and(comm);
-
-        mesh->refine_update();
+        if(repeat) {
+            mesh->refine_reduce_and(comm);
+            mesh->refine_update();
+        }
 
     } while(repeat);
 }
