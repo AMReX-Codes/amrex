@@ -40,10 +40,14 @@ class btUnit {
     static void btCheckRefine( std::shared_ptr<BittreeAmr> mesh,
                                std::vector<int>& btTags,
                                MPI_Comm comm);
-    static void btCheckDerefine( std::shared_ptr<BittreeAmr> mesh );
+    static void btCheckDerefine( std::shared_ptr<BittreeAmr> mesh,
+                                 std::vector<int>& btTags,
+                                 MPI_Comm comm);
 
     // Utility Functions
-    static bool checkNeighbors( std::shared_ptr<BittreeAmr> mesh,
+    static bool checkNeighborsRefine( std::shared_ptr<BittreeAmr> mesh,
+                                MortonTree::Block b);
+    static bool checkNeighborsDerefine( std::shared_ptr<BittreeAmr> mesh,
                                 MortonTree::Block b);
     static std::vector<int> neighIntCoords(std::shared_ptr<BittreeAmr> mesh,
                                            unsigned lev, unsigned* lcoord,
