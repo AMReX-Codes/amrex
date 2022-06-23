@@ -17,10 +17,10 @@
 #include "H5Z_SZ.h"
 #endif
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::CheckpointHDF5 (const std::string& dir,
                   const std::string& name, bool /*is_checkpoint*/,
                   const Vector<std::string>& real_comp_names,
@@ -70,10 +70,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                           }, true);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::CheckpointHDF5 (const std::string& dir, const std::string& name,
                   const std::string& compression) const
 {
@@ -106,10 +106,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                           });
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                      const std::string& compression) const
 {
@@ -142,10 +142,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                           });
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                      const Vector<std::string>& real_comp_names,
                      const Vector<std::string>& int_comp_names,
@@ -170,10 +170,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                           });
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                      const Vector<std::string>& real_comp_names,
                      const std::string& compression) const
@@ -204,10 +204,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                           });
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::WritePlotFileHDF5 (const std::string& dir,
                      const std::string& name,
                      const Vector<int>& write_real_comp,
@@ -242,10 +242,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                           });
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
 WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                    const Vector<int>& write_real_comp,
                    const Vector<int>& write_int_comp,
@@ -265,11 +265,11 @@ WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                           });
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>::value>::type*>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                      const std::string& compression, F&& f) const
 {
@@ -298,11 +298,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                           std::forward<F>(f));
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 template <class F>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                      const Vector<std::string>& real_comp_names,
                      const Vector<std::string>& int_comp_names,
@@ -323,11 +323,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                           compression, std::forward<F>(f));
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>::value>::type*>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                      const Vector<std::string>& real_comp_names,
                      const std::string& compression, F&& f) const
@@ -354,11 +354,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                           compression, std::forward<F>(f));
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 template <class F>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::WritePlotFileHDF5 (const std::string& dir,
                      const std::string& name,
                      const Vector<int>& write_real_comp,
@@ -389,11 +389,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                           compression, std::forward<F>(f));
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 template <class F>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
 WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                    const Vector<int>& write_real_comp,
                    const Vector<int>& write_int_comp,
@@ -409,11 +409,11 @@ WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                           compression, std::forward<F>(f));
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 template <class F>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::WriteHDF5ParticleData (const std::string& dir, const std::string& name,
                          const Vector<int>& write_real_comp,
                          const Vector<int>& write_int_comp,
@@ -437,10 +437,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     /* } */
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::CheckpointPreHDF5 ()
 {
     if( ! usePrePost) {
@@ -494,10 +494,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 }
 
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::CheckpointPostHDF5 ()
 {
     if( ! usePrePost) {
@@ -550,30 +550,30 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::WritePlotFilePreHDF5 ()
 {
     CheckpointPreHDF5();
 }
 
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::WritePlotFilePostHDF5 ()
 {
     CheckpointPostHDF5();
 }
 
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::WriteParticlesHDF5 (int lev, hid_t grp,
                       Vector<int>& which, Vector<int>& count, Vector<Long>& where,
                       const Vector<int>& write_real_comp,
@@ -964,19 +964,19 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     return;
 } // End WriteParticlesHDF5
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::RestartHDF5 (const std::string& dir, const std::string& file, bool /*is_checkpoint*/)
 {
     RestartHDF5(dir, file);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::RestartHDF5 (const std::string& dir, const std::string& file)
 {
     BL_PROFILE("ParticleContainer::RestartHDF5()");
@@ -1340,11 +1340,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 }
 
 // Read a batch of particles from the checkpoint file
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 template <class RTYPE>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev,
                      hid_t int_dset, hid_t real_dset, int finest_level_in_file,
                      bool convert_ids)

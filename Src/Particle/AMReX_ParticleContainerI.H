@@ -1,8 +1,8 @@
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::SetParticleSize ()
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::SetParticleSize ()
 {
     num_real_comm_comps  = 0;
     int comm_comps_start = AMREX_SPACEDIM + NStructReal;
@@ -21,10 +21,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Se
         num_real_comm_comps*sizeof(ParticleReal) + num_int_comm_comps*sizeof(int);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator> :: Initialize ()
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator> :: Initialize ()
 {
     levelDirectoriesCreated = false;
     usePrePost = false;
@@ -58,11 +58,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator> :: 
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 template <typename P>
 IntVect
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Index (const P& p, int lev) const
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::Index (const P& p, int lev) const
 {
     IntVect iv;
     const Geometry& geom = Geom(lev);
@@ -76,11 +76,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::In
     return iv;
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 template <typename P>
 bool
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::Where (const P& p,
          ParticleLocData&    pld,
          int                 lev_min,
@@ -156,10 +156,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
   return false;
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 bool
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::EnforcePeriodicWhere (ParticleType&    p,
                         ParticleLocData& pld,
                         int              lev_min,
@@ -230,10 +230,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 }
 
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 bool
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::PeriodicShift (ParticleType& p) const
 {
     const auto& geom = Geom(0);
@@ -245,10 +245,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     return enforcePeriodic(p, plo, phi, rhi, is_per);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 ParticleLocData
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
 Reset (ParticleType& p,
        bool          /*update*/,
        bool          verbose,
@@ -280,29 +280,29 @@ Reset (ParticleType& p,
     return pld;
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::reserveData ()
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::reserveData ()
 {
     this->ParticleContainerBase::reserveData();
     m_particles.reserve(maxLevel()+1);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::resizeData ()
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::resizeData ()
 {
     this->ParticleContainerBase::resizeData();
     int nlevs = std::max(0, finestLevel()+1);
     m_particles.resize(nlevs);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::locateParticle (ParticleType& p, ParticleLocData& pld,
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::locateParticle (ParticleType& p, ParticleLocData& pld,
                                                                                    int lev_min, int lev_max, int nGrow, int local_grid) const
 {
     bool outside = AMREX_D_TERM(p.pos(0) <  Geom(0).ProbLo(0)
@@ -360,10 +360,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::lo
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 Long
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::TotalNumberOfParticles (bool only_valid, bool only_local) const
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::TotalNumberOfParticles (bool only_valid, bool only_local) const
 {
     Long nparticles = 0;
     for (int lev = 0; lev <= finestLevel(); lev++) {
@@ -375,10 +375,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::To
     return nparticles;
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 Vector<Long>
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::NumberOfParticlesInGrid (int lev, bool only_valid, bool only_local) const
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::NumberOfParticlesInGrid (int lev, bool only_valid, bool only_local) const
 {
     AMREX_ASSERT(lev >= 0 && lev < int(m_particles.size()));
 
@@ -432,10 +432,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Nu
     return nparticles;
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 Long
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::NumberOfParticlesAtLevel (int lev, bool only_valid, bool only_local) const
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::NumberOfParticlesAtLevel (int lev, bool only_valid, bool only_local) const
 {
     Long nparticles = 0;
 
@@ -477,10 +477,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Nu
 // This includes both valid and invalid particles since invalid particles still take up space.
 //
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::ByteSpread () const
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::ByteSpread () const
 {
     Long cnt = 0;
 
@@ -516,10 +516,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::By
 #endif
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::PrintCapacity () const
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::PrintCapacity () const
 {
     Long cnt = 0;
 
@@ -554,10 +554,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Pr
 #endif
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::ShrinkToFit ()
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::ShrinkToFit ()
 {
     for (unsigned lev = 0; lev < m_particles.size(); lev++) {
         auto& pmap = m_particles[lev];
@@ -574,10 +574,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Sh
  */
 
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Increment (MultiFab& mf, int lev)
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::Increment (MultiFab& mf, int lev)
 {
     BL_PROFILE("ParticleContainer::Increment");
 
@@ -599,20 +599,20 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::In
         }, false);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 Long
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::IncrementWithTotal (MultiFab& mf, int lev, bool local)
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::IncrementWithTotal (MultiFab& mf, int lev, bool local)
 {
     BL_PROFILE("ParticleContainer::IncrementWithTotal(lev)");
     Increment(mf, lev);
     return TotalNumberOfParticles(true, local);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::RemoveParticlesAtLevel (int level)
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::RemoveParticlesAtLevel (int level)
 {
     BL_PROFILE("ParticleContainer::RemoveParticlesAtLevel()");
     if (level >= int(this->m_particles.size())) return;
@@ -623,10 +623,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Re
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::RemoveParticlesNotAtFinestLevel ()
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::RemoveParticlesNotAtFinestLevel ()
 {
   BL_PROFILE("ParticleContainer::RemoveParticlesNotAtFinestLevel()");
   AMREX_ASSERT(this->finestLevel()+1 == int(this->m_particles.size()));
@@ -689,10 +689,10 @@ struct TransformerVirt
 };
 
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::CreateVirtualParticles (int level, AoS& virts) const
 {
     ParticleTileType ptile;
@@ -700,10 +700,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     ptile.GetArrayOfStructs().swap(virts);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::CreateVirtualParticles (int level, ParticleTileType& virts) const
 {
     BL_PROFILE("ParticleContainer::CreateVirtualParticles()");
@@ -931,10 +931,10 @@ struct TransformerGhost
     }
 };
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::CreateGhostParticles (int level, int nGrow, AoS& ghosts) const
 {
     ParticleTileType ptile;
@@ -942,10 +942,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     ptile.GetArrayOfStructs().swap(ghosts);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::CreateGhostParticles (int level, int nGrow, ParticleTileType& ghosts) const
 {
     BL_PROFILE("ParticleContainer::CreateGhostParticles()");
@@ -976,10 +976,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     Gpu::streamSynchronize();
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
 clearParticles ()
 {
     BL_PROFILE("ParticleContainer::clearParticles()");
@@ -991,35 +991,35 @@ clearParticles ()
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 template <class PCType, std::enable_if_t<IsParticleContainer<PCType>::value, int> foo>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
 copyParticles (const PCType& other, bool local)
 {
     using PData = ConstParticleTileData<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     copyParticles(other, [=] AMREX_GPU_HOST_DEVICE (const PData& /*data*/, int /*i*/) { return 1; }, local);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 template <class PCType, std::enable_if_t<IsParticleContainer<PCType>::value, int> foo>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
 addParticles (const PCType& other, bool local)
 {
     using PData = ConstParticleTileData<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     addParticles(other, [=] AMREX_GPU_HOST_DEVICE (const PData& /*data*/, int /*i*/) { return 1; }, local);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 template <class F, class PCType,
           std::enable_if_t<IsParticleContainer<PCType>::value, int> foo,
           std::enable_if_t<! std::is_integral<F>::value, int> bar>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
 copyParticles (const PCType& other, F&& f, bool local)
 {
     BL_PROFILE("ParticleContainer::copyParticles");
@@ -1027,13 +1027,13 @@ copyParticles (const PCType& other, F&& f, bool local)
     addParticles(other, std::forward<F>(f), local);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 template <class F, class PCType,
           std::enable_if_t<IsParticleContainer<PCType>::value, int> foo,
           std::enable_if_t<! std::is_integral<F>::value, int> bar>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
 addParticles (const PCType& other, F&& f, bool local)
 {
     BL_PROFILE("ParticleContainer::addParticles");
@@ -1066,10 +1066,10 @@ addParticles (const PCType& other, F&& f, bool local)
 //
 // This redistributes valid particles and discards invalid ones.
 //
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::Redistribute (int lev_min, int lev_max, int nGrow, int local, bool remove_negative)
 {
 #ifdef AMREX_USE_GPU
@@ -1086,18 +1086,18 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 #endif
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::SortParticlesByCell ()
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::SortParticlesByCell ()
 {
     SortParticlesByBin(IntVect(AMREX_D_DECL(1, 1, 1)));
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::SortParticlesByBin (IntVect bin_size)
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::SortParticlesByBin (IntVect bin_size)
 {
     BL_PROFILE("ParticleContainer::SortParticlesByBin()");
 
@@ -1180,10 +1180,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::So
 //
 // The GPU implementation of Redistribute
 //
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::RedistributeGPU (int lev_min, int lev_max, int nGrow, int local, bool remove_negative)
 {
 #ifdef AMREX_USE_GPU
@@ -1371,10 +1371,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 //
 // The CPU implementation of Redistribute
 //
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::RedistributeCPU (int lev_min, int lev_max, int nGrow, int local, bool remove_negative)
 {
   BL_PROFILE("ParticleContainer::RedistributeCPU()");
@@ -1703,10 +1703,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
   }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
 RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                  int lev_min, int lev_max, int nGrow, int local)
 {
@@ -1998,10 +1998,10 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 #endif
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 bool
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::OK (int lev_min, int lev_max, int nGrow) const
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::OK (int lev_min, int lev_max, int nGrow) const
 {
     BL_PROFILE("ParticleContainer::OK()");
 
@@ -2011,10 +2011,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::OK
     return (numParticlesOutOfRange(*this, lev_min, lev_max, nGrow) == 0);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::AddParticlesAtLevel (AoS& particles, int level, int nGrow)
 {
     ParticleTileType ptile;
@@ -2022,10 +2022,10 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt, Allocator>
     AddParticlesAtLevel(ptile, level, nGrow);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::AddParticlesAtLevel (ParticleTileType& particles, int level, int nGrow)
 {
     BL_PROFILE("ParticleContainer::AddParticlesAtLevel()");
@@ -2057,10 +2057,10 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt, Allocator>
 }
 
 // This is the single-level version for cell-centered density
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
 AssignCellDensitySingleLevel (int rho_index,
                               MultiFab& mf_to_be_filled,
                               int       lev,
@@ -2195,10 +2195,10 @@ AssignCellDensitySingleLevel (int rho_index,
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Interpolate (Vector<std::unique_ptr<MultiFab> >& mesh_data,
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::Interpolate (Vector<std::unique_ptr<MultiFab> >& mesh_data,
                                                                                 int lev_min, int lev_max)
 {
     BL_PROFILE("ParticleContainer::Interpolate()");
@@ -2207,10 +2207,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::In
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
 InterpolateSingleLevel (MultiFab& mesh_data, int lev)
 {
     BL_PROFILE("ParticleContainer::InterpolateSingleLevel()");

@@ -8,9 +8,13 @@
 namespace amrex
 {
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
-class ParticleContainer;
+class ParticleContainer_impl;
+
+template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArrayInt=0,
+          template<class> class Allocator=DefaultAllocator>
+using ParticleContainer = ParticleContainer_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt, Allocator>;
 
 template <bool is_const, int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0,
           template<class> class Allocator=DefaultAllocator>
