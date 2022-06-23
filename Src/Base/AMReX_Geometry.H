@@ -67,6 +67,32 @@ public:
     int coord;
 };
 
+    namespace detail {
+        template <typename T>
+        T bisect_prob_hi (amrex::Real plo, amrex::Real phi, amrex::Real idx, int ilo, int ihi, amrex::Real tol) {
+            T hi = static_cast<T>(phi - tol);
+            bool safe;
+            {
+                int i = int(Math::floor((hi - plo)*idx)) + ilo;
+                safe = i >= ilo && i <= ihi;
+            }
+            if (safe) {
+                return hi;
+            } else {
+                // bisect the point at which the cell no longer maps to inside the domain
+                T lo = static_cast<T>(phi - 0.5_rt/idx);
+                T mid = bisect(lo, hi,
+                               [=] AMREX_GPU_HOST_DEVICE (T x) -> T
+                                   {
+                                       int i = int(Math::floor((x - plo)*idx)) + ilo;
+                                       bool inside = i >= ilo && i <= ihi;
+                                       return static_cast<T>(inside) - T(0.5);
+                                   }, static_cast<T>(tol));
+                return mid - static_cast<T>(tol);
+            }
+        }
+    }
+
 class Geometry
     :
     public CoordSys
@@ -168,8 +194,6 @@ public:
 
     //! Returns the problem domain.
     const RealBox& ProbDomain () const noexcept { return prob_domain; }
-    //! Returns the roundoff domain.
-    const RealBox& RoundoffDomain () const noexcept { return roundoff_domain; }
     //! Sets the problem domain.
     void ProbDomain (const RealBox& rb) noexcept
     {
@@ -193,12 +217,12 @@ public:
         return {{AMREX_D_DECL(prob_domain.hi(0),prob_domain.hi(1),prob_domain.hi(2))}};
     }
 
-    GpuArray<Real,AMREX_SPACEDIM> RoundoffLoArray () const noexcept {
-        return {{AMREX_D_DECL(roundoff_domain.lo(0),roundoff_domain.lo(1),roundoff_domain.lo(2))}};
-    }
-
-    GpuArray<Real,AMREX_SPACEDIM> RoundoffHiArray () const noexcept {
-        return {{AMREX_D_DECL(roundoff_domain.hi(0),roundoff_domain.hi(1),roundoff_domain.hi(2))}};
+    GpuArray<ParticleReal,AMREX_SPACEDIM> ProbHiArrayInParticleReal () const noexcept {
+#ifdef AMREX_SINGLE_PRECISION_PARTICLES
+        return roundoff_hi_f;
+#else
+        return roundoff_hi_d;
+#endif
     }
 
     //! Returns the overall size of the domain by multiplying the ProbLength's together
@@ -406,7 +430,7 @@ public:
     *        are sure to be mapped to cells inside the Domain() box. Note that
     *        the same need not be true for all points inside ProbDomain().
     */
-    bool outsideRoundoffDomain (AMREX_D_DECL(Real x, Real y, Real z)) const;
+    bool outsideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const;
 
     /**
     * \brief Returns true if a point is inside the roundoff domain.
@@ -414,7 +438,7 @@ public:
     *        are sure to be mapped to cells inside the Domain() box. Note that
     *        the same need not be true for all points inside ProbDomain().
     */
-    bool insideRoundoffDomain (AMREX_D_DECL(Real x, Real y, Real z)) const;
+    bool insideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const;
 
     /**
     * \brief Compute the roundoff domain. Public because it contains an
@@ -430,10 +454,11 @@ private:
     RealBox prob_domain;
 
     // Due to round-off errors, not all floating point numbers for which plo >= x < phi
-    // will map to a cell that is inside "domain". "roundoff_domain" stores a phi
-    // that is very close to that in prob_domain, and for which all floating point numbers
-    // inside it according to a naive inequality check will map to a cell inside domain.
-    RealBox roundoff_domain;
+    // will map to a cell that is inside "domain". "roundoff_hi_d" and "roundoff_hi_f" each store
+    // a phi that is very close to that in prob_domain, and for which all doubles and floats less than
+    // it will map to a cell inside domain.
+    GpuArray<double, AMREX_SPACEDIM> roundoff_hi_d;
+    GpuArray<float , AMREX_SPACEDIM> roundoff_hi_f;
 
     //
     Box     domain;
