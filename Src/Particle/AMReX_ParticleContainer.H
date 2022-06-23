@@ -1363,8 +1363,7 @@ private:
     Vector<ParticleLevel> m_particles;
 };
 
-template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArrayInt=0,
-          template<class> class Allocator=DefaultAllocator>
+template <int T_NStructReal, int T_NStructInt, int T_NArrayReal, int T_NArrayInt, template<class> class Allocator>
 using ParticleContainer = ParticleContainer_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt, Allocator>;
 
 #include "AMReX_ParticleInit.H"
