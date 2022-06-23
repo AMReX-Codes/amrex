@@ -26,7 +26,7 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
 
   ifeq ($(USE_CUDA),TRUE)
     ifdef NPE_VERSION
-      CFLAGS += -Xcompiler="$(filter-out -Wl%, $(wordlist 2,1024,$(shell mpicc -show 2> /dev/null))))"
+      CFLAGS += -Xcompiler="$(filter-out -Wl%, $(wordlist 2,1024,$(shell mpicc -show 2> /dev/null)))"
       CXXFLAGS += -Xcompiler="$(filter-out -Wl%, $(wordlist 2,1024,$(shell mpicxx -show 2> /dev/null)))"
     else
       CFLAGS += -Xcompiler="$(wordlist 2,1024,$(shell cc -craype-verbose 2> /dev/null))"
