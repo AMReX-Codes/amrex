@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """This routine parses plain-text parameter files that list runtime
 parameters for use in our codes.  The general format of a parameter
@@ -23,8 +23,6 @@ initialize the parameters, setup a namelist, and allow for
 commandline overriding of their defaults.
 
 """
-
-from __future__ import print_function
 
 import os
 import sys

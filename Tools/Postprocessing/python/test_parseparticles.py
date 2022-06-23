@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # simple script showing how to make plots of particles using the parseparticles
 # module
@@ -92,4 +92,3 @@ if __name__ == "__main__":
 
 # this is for profiling
 #    cProfile.run("main(sys.argv[1:])","profile.tmp2")
-
