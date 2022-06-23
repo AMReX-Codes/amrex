@@ -1,10 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # a simple script to plot 2-d or 3-d BoxLib data using the matplotlib
 # library
 #
-
-from __future__ import print_function
 
 import matplotlib
 matplotlib.use('agg')

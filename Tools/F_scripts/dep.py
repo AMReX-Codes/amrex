@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # automatically generate Makefile dependencies for Fortran 90 source.
 #
@@ -20,18 +20,7 @@
 #      (e.g. iso_c_binding).  Add any system-provided modules to the
 #      `IGNORES` list below
 
-from __future__ import print_function
-
 import sys
-
-if sys.version_info < (2, 7):
-    sys.exit("ERROR: need python 2.7 or later for dep.py")
-
-if sys.version[0] == "2":
-    reload(sys)
-    sys.setdefaultencoding('latin-1')
-
-
 import io
 import re
 import os

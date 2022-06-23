@@ -1,10 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
-
-if sys.version_info < (2, 7):
-    sys.exit("ERROR: need python 2.7 or later for dep.py")
-
 import argparse
 import os
 import subprocess
