@@ -720,7 +720,7 @@ int AmrMeshDataAdaptor::AddGhostCellsArray(svtkDataObject* mesh,
 
             // for debug can visualize the ghost cells
             // FIXME -- a bug in Catalyst ignores internal ghost zones
-            // when using the SVTK writrer. Until that bug gets fixed, one
+            // when using the SVTK writer. Until that bug gets fixed, one
             // can manually inject this copy using a PV Python filter
             ga = svtkUnsignedCharArray::New();
             ga->SetName("GhostType");
