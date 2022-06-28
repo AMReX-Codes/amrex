@@ -231,9 +231,23 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
                     }
                 }
 
+                for (int j = 0; j < ptd.m_num_runtime_int; j++) {
+                    if (write_int_comp_d_ptr[PC::SuperParticleType::NInt + j]) {
+                        idata_d_ptr[iout_index] = ptd.m_runtime_idata[j][pindex];
+                        iout_index++;
+                    }
+                }
+
                 for (int j = 0; j < PC::SuperParticleType::NReal; j++) {
                     if (write_real_comp_d_ptr[j]) {
                         rdata_d_ptr[rout_index] = p.rdata(j);
+                        rout_index++;
+                    }
+                }
+
+                for (int j = 0; j < ptd.m_num_runtime_real; j++) {
+                    if (write_real_comp_d_ptr[PC::SuperParticleType::NReal + j]) {
+                        rdata_d_ptr[rout_index] = ptd.m_runtime_rdata[j][pindex];
                         rout_index++;
                     }
                 }
