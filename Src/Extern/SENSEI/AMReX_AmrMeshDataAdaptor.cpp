@@ -2,18 +2,18 @@
 
 #include "Profiler.h"
 #include "Error.h"
-#include "VTKUtils.h"
+#include "SVTKUtils.h"
 
-#include <vtkObjectFactory.h>
-#include <vtkOverlappingAMR.h>
-#include <vtkAMRBox.h>
-#include <vtkUniformGrid.h>
-#include <vtkDataSetAttributes.h>
-#include <vtkUnsignedCharArray.h>
-#include <vtkFloatArray.h>
-#include <vtkDoubleArray.h>
-#include <vtkCellData.h>
-#include <vtkPointData.h>
+#include <svtkObjectFactory.h>
+#include <svtkOverlappingAMR.h>
+#include <svtkAMRBox.h>
+#include <svtkUniformGrid.h>
+#include <svtkDataSetAttributes.h>
+#include <svtkUnsignedCharArray.h>
+#include <svtkFloatArray.h>
+#include <svtkDoubleArray.h>
+#include <svtkCellData.h>
+#include <svtkPointData.h>
 
 #include <AMReX_BoxArray.H>
 #include <AMReX_Geometry.H>
@@ -58,11 +58,11 @@ int MeshStateMap::Initialize(
 
             if (state.is_cell_centered())
             {
-                this->Map[vtkDataObject::CELL][arrayName] = std::make_pair(i,j);
+                this->Map[svtkDataObject::CELL][arrayName] = std::make_pair(i,j);
             }
             else if (state.is_nodal())
             {
-                this->Map[vtkDataObject::POINT][arrayName] = std::make_pair(i,j);
+                this->Map[svtkDataObject::POINT][arrayName] = std::make_pair(i,j);
             }
         }
     }
@@ -83,7 +83,7 @@ struct AmrMeshDataAdaptor::InternalsType
     std::vector<std::vector<std::string>> Names;
     amrex::InSituUtils::MeshStateMap StateMetadata;
 #if SENSEI_VERSION_MAJOR < 3
-    std::vector<vtkDataObject*> ManagedObjects;
+    std::vector<svtkDataObject*> ManagedObjects;
 #endif
 };
 
@@ -149,13 +149,13 @@ int AmrMeshDataAdaptor::GetMeshMetadata(unsigned int id,
     metadata->GlobalView = true;
 
     metadata->MeshName = "mesh";
-    metadata->MeshType = VTK_OVERLAPPING_AMR;
-    metadata->BlockType = VTK_UNIFORM_GRID;
+    metadata->MeshType = SVTK_OVERLAPPING_AMR;
+    metadata->BlockType = SVTK_UNIFORM_GRID;
     metadata->NumBlocks = 0;
     metadata->NumCells = 0;
     metadata->NumPoints = 0;
     metadata->NumBlocksLocal = {-1};
-    metadata->CoordinateType = InSituUtils::amrex_tt<amrex_real>::vtk_type_enum();
+    metadata->CoordinateType = InSituUtils::amrex_tt<amrex_real>::svtk_type_enum();
     metadata->StaticMesh = 0;
 
     // num levels
@@ -224,7 +224,7 @@ int AmrMeshDataAdaptor::GetMeshMetadata(unsigned int id,
             {pdLo[0], pdHi[0], pdLo[1], pdHi[1], pdLo[2], pdHi[2]});
     }
 
-    // global extent (note: VTK uses point centered indexing)
+    // global extent (note: SVTK uses point centered indexing)
     const amrex::Box& cdom = this->Internals->Mesh->Geom(0).Domain();
     amrex::Box ndom = surroundingNodes(cdom);
 
@@ -261,19 +261,19 @@ int AmrMeshDataAdaptor::GetMeshMetadata(unsigned int id,
         // scalar, vector, tensor
         metadata->ArrayComponents[j] = 1;
         // POD type
-        metadata->ArrayType[j] = InSituUtils::amrex_tt<amrex_real>::vtk_type_enum();
+        metadata->ArrayType[j] = InSituUtils::amrex_tt<amrex_real>::svtk_type_enum();
         // mesh centering
         if (state0.is_cell_centered())
         {
-            metadata->ArrayCentering[j] = vtkDataObject::CELL;
+            metadata->ArrayCentering[j] = svtkDataObject::CELL;
         }
         else if (state0.is_nodal())
         {
-            metadata->ArrayCentering[j] = vtkDataObject::POINT;
+            metadata->ArrayCentering[j] = svtkDataObject::POINT;
         }
         else
         {
-            metadata->ArrayCentering[j] = vtkDataObject::FIELD;
+            metadata->ArrayCentering[j] = svtkDataObject::FIELD;
         }
     }
 
@@ -396,8 +396,8 @@ int AmrMeshDataAdaptor::GetNumberOfArrays(const std::string &meshName,
         return -1;
     }
 
-    if ((association != vtkDataObject::POINT) &&
-        (association != vtkDataObject::CELL))
+    if ((association != svtkDataObject::POINT) &&
+        (association != svtkDataObject::CELL))
     {
         SENSEI_ERROR("Invalid association " << association)
         return -1;
@@ -427,7 +427,7 @@ int AmrMeshDataAdaptor::GetArrayName(const std::string &meshName,
     if (this->Internals->StateMetadata.GetName(association, index, arrayName))
     {
         SENSEI_ERROR("No array named \"" << arrayName << "\" in "
-            << sensei::VTKUtils::GetAttributesName(association)
+            << sensei::SVTKUtils::GetAttributesName(association)
             << " data")
         return -1;
     }
@@ -475,7 +475,7 @@ int AmrMeshDataAdaptor::GetMeshHasGhostCells(const std::string &meshName, int &n
 
 //-----------------------------------------------------------------------------
 int AmrMeshDataAdaptor::GetMesh(const std::string &meshName,
-    bool structureOnly, vtkDataObject *&mesh)
+    bool structureOnly, svtkDataObject *&mesh)
 {
     amrex::ignore_unused(structureOnly);
 
@@ -498,8 +498,8 @@ int AmrMeshDataAdaptor::GetMesh(const std::string &meshName,
 
     int nLevels = this->Internals->Mesh->finestLevel() + 1;
 
-    // initialize new vtk datasets
-    vtkOverlappingAMR *amrMesh = vtkOverlappingAMR::New();
+    // initialize new svtk datasets
+    svtkOverlappingAMR *amrMesh = svtkOverlappingAMR::New();
 #if SENSEI_VERSION_MAJOR < 3
     Internals->ManagedObjects.push_back(amrMesh);
 #endif
@@ -560,12 +560,12 @@ int AmrMeshDataAdaptor::GetMesh(const std::string &meshName,
             int cboxLo[3] = {AMREX_ARLIM(cbox.loVect())};
             int cboxHi[3] = {AMREX_ARLIM(cbox.hiVect())};
 
-            // vtk's representation of box metadata
-            vtkAMRBox block(cboxLo, cboxHi);
+            // svtk's representation of box metadata
+            svtkAMRBox block(cboxLo, cboxHi);
             amrMesh->SetAMRBox(i, j, block);
             amrMesh->SetAMRBlockSourceIndex(i, j, gid++);
 
-            // skip building a vtk amrMesh for the non local boxes
+            // skip building a svtk amrMesh for the non local boxes
             if (dmap[j] != rank)
                 continue;
 
@@ -580,14 +580,14 @@ int AmrMeshDataAdaptor::GetMesh(const std::string &meshName,
             int nboxLo[3] = {AMREX_ARLIM(nbox.loVect())};
             int nboxHi[3] = {AMREX_ARLIM(nbox.hiVect())};
 
-            // new vtk uniform amrMesh, node centered
-            vtkUniformGrid *ug = vtkUniformGrid::New();
+            // new svtk uniform amrMesh, node centered
+            svtkUniformGrid *ug = svtkUniformGrid::New();
             ug->SetOrigin(origin);
             ug->SetSpacing(spacing);
             ug->SetExtent(nboxLo[0], nboxHi[0],
                 nboxLo[1], nboxHi[1], nboxLo[2], nboxHi[2]);
 
-            // pass the block into vtk
+            // pass the block into svtk
             amrMesh->SetDataSet(i, j, ug);
             ug->Delete();
         }
@@ -597,7 +597,7 @@ int AmrMeshDataAdaptor::GetMesh(const std::string &meshName,
 }
 
 //-----------------------------------------------------------------------------
-int AmrMeshDataAdaptor::AddGhostNodesArray(vtkDataObject *mesh,
+int AmrMeshDataAdaptor::AddGhostNodesArray(svtkDataObject *mesh,
     const std::string &meshName)
 {
     amrex::ignore_unused(mesh);
@@ -613,7 +613,7 @@ int AmrMeshDataAdaptor::AddGhostNodesArray(vtkDataObject *mesh,
 }
 
 //-----------------------------------------------------------------------------
-int AmrMeshDataAdaptor::AddGhostCellsArray(vtkDataObject* mesh,
+int AmrMeshDataAdaptor::AddGhostCellsArray(svtkDataObject* mesh,
     const std::string &meshName)
 {
     if (meshName != "mesh")
@@ -622,7 +622,7 @@ int AmrMeshDataAdaptor::AddGhostCellsArray(vtkDataObject* mesh,
         return -1;
     }
 
-    vtkOverlappingAMR *amrMesh = dynamic_cast<vtkOverlappingAMR*>(mesh);
+    svtkOverlappingAMR *amrMesh = dynamic_cast<svtkOverlappingAMR*>(mesh);
     if (!amrMesh)
     {
         SENSEI_ERROR("Invalid mesh type "
@@ -701,7 +701,7 @@ int AmrMeshDataAdaptor::AddGhostCellsArray(vtkDataObject* mesh,
             if (dmap[j] != rank)
                 continue;
 
-            vtkUniformGrid *blockMesh = amrMesh->GetDataSet(i, j);
+            svtkUniformGrid *blockMesh = amrMesh->GetDataSet(i, j);
 
             if (!blockMesh)
             {
@@ -711,18 +711,18 @@ int AmrMeshDataAdaptor::AddGhostCellsArray(vtkDataObject* mesh,
 
             long nCells = blockMesh->GetNumberOfCells();
 
-            // transfer mask array into vtk
-            vtkUnsignedCharArray *ga = vtkUnsignedCharArray::New();
-            ga->SetName("vtkGhostType");
+            // transfer mask array into svtk
+            svtkUnsignedCharArray *ga = svtkUnsignedCharArray::New();
+            ga->SetName("svtkGhostType");
             ga->SetArray(mask[j], nCells, 0);
             blockMesh->GetCellData()->AddArray(ga);
             ga->Delete();
 
             // for debug can visualize the ghost cells
             // FIXME -- a bug in Catalyst ignores internal ghost zones
-            // when using the VTK writrer. Until that bug gets fixed, one
+            // when using the SVTK writer. Until that bug gets fixed, one
             // can manually inject this copy using a PV Python filter
-            ga = vtkUnsignedCharArray::New();
+            ga = svtkUnsignedCharArray::New();
             ga->SetName("GhostType");
             ga->SetArray(mask[j], nCells, 1);
             blockMesh->GetCellData()->AddArray(ga);
@@ -734,7 +734,7 @@ int AmrMeshDataAdaptor::AddGhostCellsArray(vtkDataObject* mesh,
 }
 
 //-----------------------------------------------------------------------------
-int AmrMeshDataAdaptor::AddArray(vtkDataObject* mesh,
+int AmrMeshDataAdaptor::AddArray(svtkDataObject* mesh,
     const std::string &meshName, int association,
     const std::string &arrayName)
 {
@@ -747,7 +747,7 @@ int AmrMeshDataAdaptor::AddArray(vtkDataObject* mesh,
         return -1;
     }
 
-    vtkOverlappingAMR *amrMesh = dynamic_cast<vtkOverlappingAMR*>(mesh);
+    svtkOverlappingAMR *amrMesh = dynamic_cast<svtkOverlappingAMR*>(mesh);
     if (!amrMesh)
     {
         SENSEI_ERROR("Invalid mesh type "
@@ -760,8 +760,8 @@ int AmrMeshDataAdaptor::AddArray(vtkDataObject* mesh,
         return -1;
     }
 
-    if ((association != vtkDataObject::CELL) &&
-        (association != vtkDataObject::CELL))
+    if ((association != svtkDataObject::CELL) &&
+        (association != svtkDataObject::CELL))
     {
         SENSEI_ERROR("Invalid association " << association)
         return -1;
@@ -774,7 +774,7 @@ int AmrMeshDataAdaptor::AddArray(vtkDataObject* mesh,
     if (this->Internals->StateMetadata.GetIndex(arrayName, association, fab, comp))
     {
         SENSEI_ERROR("Failed to locate descriptor for "
-            << sensei::VTKUtils::GetAttributesName(association)
+            << sensei::SVTKUtils::GetAttributesName(association)
             << " data array \"" << arrayName << "\"")
         return -1;
     }
@@ -792,8 +792,8 @@ int AmrMeshDataAdaptor::AddArray(vtkDataObject* mesh,
         unsigned int ng = state.nGrow();
 
         // check centering
-        if (!((association == vtkDataObject::CELL) && state.is_cell_centered()) &&
-            !((association == vtkDataObject::POINT) && state.is_nodal()))
+        if (!((association == svtkDataObject::CELL) && state.is_cell_centered()) &&
+            !((association == svtkDataObject::POINT) && state.is_nodal()))
         {
             SENSEI_ERROR("association does not match MultiFab centering")
             return -1;
@@ -824,7 +824,7 @@ int AmrMeshDataAdaptor::AddArray(vtkDataObject* mesh,
             int cboxLo[3] = {AMREX_ARLIM(cbox.loVect())};
             int cboxHi[3] = {AMREX_ARLIM(cbox.hiVect())};
 
-            // skip building a vtk mesh for the non local boxes
+            // skip building a svtk mesh for the non local boxes
             if (dmap[j] != rank)
                 continue;
 
@@ -836,7 +836,7 @@ int AmrMeshDataAdaptor::AddArray(vtkDataObject* mesh,
             int nboxHi[3] = {AMREX_ARLIM(nbox.hiVect())};
 
             // get the block mesh
-            vtkUniformGrid *ug = amrMesh->GetDataSet(i, j);
+            svtkUniformGrid *ug = amrMesh->GetDataSet(i, j);
 
             // node centered size
             long nlen = 1;
@@ -851,9 +851,9 @@ int AmrMeshDataAdaptor::AddArray(vtkDataObject* mesh,
             // pointer to the data
             amrex_real *pcd = state[j].dataPtr(comp);
 
-            // allocate vtk array
-            InSituUtils::amrex_tt<amrex_real>::vtk_type *da =
-                InSituUtils::amrex_tt<amrex_real>::vtk_type::New();
+            // allocate svtk array
+            InSituUtils::amrex_tt<amrex_real>::svtk_type *da =
+                InSituUtils::amrex_tt<amrex_real>::svtk_type::New();
 
             // set component name
             da->SetName(arrayName.c_str());
@@ -879,7 +879,7 @@ int AmrMeshDataAdaptor::AddArray(vtkDataObject* mesh,
 
 #if defined(SENSEI_DEBUG)
             // mark level id
-            vtkFloatArray *la = vtkFloatArray::New();
+            svtkFloatArray *la = svtkFloatArray::New();
             la->SetName("amrex_level_id");
             la->SetNumberOfTuples(clen);
             la->Fill(i);
@@ -887,7 +887,7 @@ int AmrMeshDataAdaptor::AddArray(vtkDataObject* mesh,
             la->Delete();
 
             // mark mpi rank
-            vtkFloatArray *ra = vtkFloatArray::New();
+            svtkFloatArray *ra = svtkFloatArray::New();
             ra->SetName("amrex_mpi_rank");
             ra->SetNumberOfTuples(clen);
             ra->Fill(rank);

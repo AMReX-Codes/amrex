@@ -45,7 +45,7 @@ endif ()
 # Sensei
 #
 if (AMReX_SENSEI)
-    find_package(SENSEI REQUIRED)
+    find_package( SENSEI 4.0.0 REQUIRED )
     target_link_libraries( amrex PUBLIC sensei )
 endif ()
 
