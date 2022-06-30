@@ -123,6 +123,11 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 bool
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::areMasksValid () {
+
+    BL_PROFILE("NeighborParticleContainer::areMasksValid");
+
+    resizeContainers(this->numLevels());
+
     for (int lev = 0; lev < this->numLevels(); ++lev)
     {
         BoxArray ba = this->ParticleBoxArray(lev);
