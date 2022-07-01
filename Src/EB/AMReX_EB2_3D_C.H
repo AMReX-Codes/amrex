@@ -200,11 +200,8 @@ int check_mvmc (int i, int j, int k, Array4<Real const> const& fine)
         nxm = 0;
     } else if (n == 2) {
         nxm = 1;
-    } else if (n == 4) {
-        ierr = 1;
     } else {
         ierr = 1;
-        amrex::Abort("amrex::check_mvmc: how did this happen? wrong number of cuts on xlo-face");
     }
 
     int nxp = -1;
@@ -213,11 +210,8 @@ int check_mvmc (int i, int j, int k, Array4<Real const> const& fine)
         nxp = 0;
     } else if (n == 2) {
         nxp = 1;
-    } else if (n == 4) {
-        ierr = 1;
     } else {
         ierr = 1;
-        amrex::Abort("amrex::check_mvmc: how did this happen? wrong number of cuts on xhi-face");
     }
 
     // y-faces
@@ -227,11 +221,8 @@ int check_mvmc (int i, int j, int k, Array4<Real const> const& fine)
         nym = 0;
     } else if (n == 2) {
         nym = 1;
-    } else if (n == 4) {
-        ierr = 1;
     } else {
         ierr = 1;
-        amrex::Abort("amrex::check_mvmc: how did this happen? wrong number of cuts on ylo-face");
     }
 
     int nyp = -1;
@@ -240,11 +231,8 @@ int check_mvmc (int i, int j, int k, Array4<Real const> const& fine)
         nyp = 0;
     } else if (n == 2) {
         nyp = 1;
-    } else if (n == 4) {
-        ierr = 1;
     } else {
         ierr = 1;
-        amrex::Abort("amrex::check_mvmc: how did this happen? wrong number of cuts on yhi-face");
     }
 
     // z-faces
@@ -254,11 +242,8 @@ int check_mvmc (int i, int j, int k, Array4<Real const> const& fine)
         nzm = 0;
     } else if (n == 2) {
         nzm = 1;
-    } else if (n == 4) {
-        ierr = 1;
     } else {
         ierr = 1;
-        amrex::Abort("amrex::check_mvmc: how did this happen? wrong number of cuts on zlo-face");
     }
 
     int nzp = -1;
@@ -267,11 +252,8 @@ int check_mvmc (int i, int j, int k, Array4<Real const> const& fine)
         nzp = 0;
     } else if (n == 2) {
         nzp = 1;
-    } else if (n == 4) {
-        ierr = 1;
     } else {
         ierr = 1;
-        amrex::Abort("amrex::check_mvmc: how did this happen? wrong number of cuts on zhi-face");
     }
 
     if (nxm == 1 && nym == 1 && nzm == 1 && nxp == 1 && nyp == 1 && nzp == 1) {
