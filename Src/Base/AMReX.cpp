@@ -551,11 +551,13 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         HYPRE_SetGPUMemoryPoolSize( mempool_bin_growth, mempool_min_bin,
                                     mempool_max_bin, mempool_max_cached_bytes );
 #endif
-        /* This API below used to be HYPRE_SetSpGemmUseCusparse(). This was changed in commit
-           Hypre master commit dfdd1cd12f */
+#if (HYPRE_RELEASE_NUMBER >= 22500)
         HYPRE_SetSpGemmUseVendor(hypre_spgemm_use_vendor);
         HYPRE_SetSpMVUseVendor(hypre_spmv_use_vendor);
         HYPRE_SetSpTransUseVendor(hypre_sptrans_use_vendor);
+#elif (HYPRE_USING_CUDA)
+        HYPRE_SetSpGemmUseCusparse(hypre_spgemm_use_vendor);
+#endif
         HYPRE_SetMemoryLocation(HYPRE_MEMORY_DEVICE);
         HYPRE_SetExecutionPolicy(HYPRE_EXEC_DEVICE);
         HYPRE_SetUseGpuRand(true);
