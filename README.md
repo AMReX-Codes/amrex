@@ -1,5 +1,5 @@
 <div align="center">
-<img src="https://github.com/etpalmer63/etpalmer63.github.io/blob/bead0339d7fef46be8067a0f1122126652f024be/Images/AMReX_logo_small_banner.png" alt="AMReX Logo" style="width:500px">
+<img src="https://github.com/amrex-codes/amrex-codes.github.io/blob/main/images/AMReX_logo_small_banner_500.png" alt="AMReX Logo">
 
 <p align="center">
   <a href="https://doi.org/10.21105/joss.01370">
@@ -71,7 +71,7 @@ in a wide variety of other scientific simulations, some of which, can be seen
 in our application [gallery](https://amrex-codes.github.io/amrex/gallery.html).
 
 <div align="center">
-<img src="https://github.com/etpalmer63/etpalmer63.github.io/blob/f07ae02daf5f58d25c4cdad712f4024c62ea50b7/Images/gallery.gif" alt="Gallery Slideshow" style="width:500px">
+<img src="https://github.com/amrex-codes/amrex-codes.github.io/blob/main/images/gallery_small.gif" alt="Gallery Slideshow">
 </div>
 
 ## Get Help
