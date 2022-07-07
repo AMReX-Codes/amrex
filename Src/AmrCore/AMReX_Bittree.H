@@ -5,7 +5,7 @@
 #include <AMReX_BoxArray.H>
 #include <AMReX_DistributionMapping.H>
 
-#include <Bittree_Amr.h>
+#include <Bittree_BittreeAmr.h>
 
 using namespace bittree;
 

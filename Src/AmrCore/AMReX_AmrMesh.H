@@ -11,7 +11,7 @@
 #include <AMReX_BoxArray.H>
 #include <AMReX_TagBox.H>
 
-#include <Bittree_Amr.h>
+#include <Bittree_BittreeAmr.h>
 
 namespace amrex {
 
