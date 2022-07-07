@@ -27,7 +27,8 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
         MultiFab& volfrac, MultiFab& centroid, MultiFab& bndryarea, MultiFab& bndrycent,
         MultiFab& bndrynorm, Array<MultiFab,AMREX_SPACEDIM>& areafrac,
         Array<MultiFab,AMREX_SPACEDIM>& facecent,
-        Array<MultiFab,AMREX_SPACEDIM>& edgecent) const
+        Array<MultiFab,AMREX_SPACEDIM>& edgecent,
+        MultiFab& levelset) const
 {
     Real prob_lo[AMREX_SPACEDIM];
     Real prob_hi[AMREX_SPACEDIM];
@@ -185,6 +186,18 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
             VisMF::Read(mf, prefix);
             edgecent[idim].ParallelCopy(mf, 0, 0, 1, ng_to_copy, ng_to_copy);
         }
+    }
+
+    // levelset
+    {
+        Print() << "  Loading levelset" << std::endl;
+
+        levelset.define(convert(grids,IntVect::TheNodeVector()), dmap, 1, ng_to_copy);
+
+        auto prefix = MultiFabFileFullPrefix(0, m_restart_file, "Level_", "levelset");
+        MultiFab mf(The_Pinned_Arena());
+        VisMF::Read(mf, prefix);
+        levelset.ParallelCopy(mf, 0, 0, 1, ng_to_copy, ng_to_copy);
     }
 }
 

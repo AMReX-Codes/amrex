@@ -18,7 +18,8 @@ public:
             MultiFab& bndrycent,
             MultiFab& bndrynorm, Array<MultiFab,AMREX_SPACEDIM>& areafrac,
             Array<MultiFab,AMREX_SPACEDIM>& facecent,
-            Array<MultiFab,AMREX_SPACEDIM>& edgecent) const;
+            Array<MultiFab,AMREX_SPACEDIM>& edgecent,
+            MultiFab& levelset) const;
 };
 
 }}

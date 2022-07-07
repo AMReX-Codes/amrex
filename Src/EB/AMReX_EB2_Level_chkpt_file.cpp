@@ -24,13 +24,34 @@ ChkptFileLevel::ChkptFileLevel (IndexSpace const* is, ChkptFile const& chkpt_fil
     bounding_box.surroundingNodes();
 
     chkpt_file.fill_from_chkpt_file(m_grids, m_dmap, m_volfrac, m_centroid, m_bndryarea,
-            m_bndrycent, m_bndrynorm, m_areafrac, m_facecent, m_edgecent);
+            m_bndrycent, m_bndrynorm, m_areafrac, m_facecent, m_edgecent, m_levelset);
 
     m_mgf.define(m_grids, m_dmap);
     const int ng = GFab::ng;
     MFInfo mf_info;
     m_cellflag.define(m_grids, m_dmap, 1, ng, mf_info);
-    buildCellFlag();
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion()) reduction(+:nsmallcells,nmulticuts)
+#endif
+    {
+        for (MFIter mfi(m_mgf); mfi.isValid(); ++mfi)
+        {
+            auto& gfab = m_mgf[mfi];
+            const Box& vbx = gfab.validbox();
+
+            const auto& levelset = m_levelset.const_array(mfi);
+            const auto& ls = gfab.getLevelSet().array();
+
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(vbx, i, j, k,
+            {
+                ls(i,j,k) = levelset(i,j,k);
+            });
+
+            auto& cellflag = m_cellflag[mfi];
+            gfab.buildTypes(cellflag);
+        }
+    }
 
     Vector<Box> cut_boxes;
     Vector<Box> covered_boxes;
@@ -40,6 +61,9 @@ ChkptFileLevel::ChkptFileLevel (IndexSpace const* is, ChkptFile const& chkpt_fil
         const Box& gbx = amrex::surroundingNodes(amrex::grow(vbx,1));
 
         auto& flagfab = m_cellflag[mfi];
+        const auto& flag = m_cellflag[mfi].const_array();
+        const auto& vfrac = m_volfrac.const_array(mfi);
+        const auto& apx = m_areafrac[0].const_array(mfi);
         if (flagfab.getType(gbx & bounding_box) == FabType::covered) {
             covered_boxes.push_back(vbx);
         } else if (flagfab.getType(gbx & bounding_box) == FabType::singlevalued) {
@@ -50,8 +74,11 @@ ChkptFileLevel::ChkptFileLevel (IndexSpace const* is, ChkptFile const& chkpt_fil
     AllGatherBoxes(cut_boxes);
     AllGatherBoxes(covered_boxes);
 
+    //Print() << "cut_boxes = " << cut_boxes.size() << std::endl;
+    //Print() << "covered_boxes = " << covered_boxes.size() << std::endl;
+
     if ( cut_boxes.empty() &&
-        !covered_boxes.empty())
+            !covered_boxes.empty())
     {
         Abort("AMReX_EB2_Level.H: Domain is completely covered");
     }
@@ -70,8 +97,6 @@ ChkptFileLevel::ChkptFileLevel (IndexSpace const* is, ChkptFile const& chkpt_fil
 
     m_grids = BoxArray(BoxList(std::move(cut_boxes)));
     m_dmap = DistributionMapping(m_grids);
-
-    m_levelset = m_mgf.getLevelSet();
 
     m_ok = true;
 }
