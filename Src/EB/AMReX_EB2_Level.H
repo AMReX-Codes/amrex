@@ -204,9 +204,10 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
             }
 
             amrex::AllGatherBoxes(cut_boxes.data());
-            amrex::AllGatherBoxes(covered_boxes.data());
         }
     }
+
+    amrex::AllGatherBoxes(covered_boxes.data());
 
     if (m_ngrow != 0) {
         auto grow_at_domain_boundary = [&] (BoxList& bl)
