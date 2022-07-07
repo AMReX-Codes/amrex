@@ -2,7 +2,7 @@
 #define AMREX_OPENMP_H_
 #include <AMReX_Config.H>
 
-#ifdef AMREX_USE_OMP
+#if defined(AMREX_USE_OMP) || defined(AMREX_ALLOW_USER_OMP)
 #include <omp.h>
 
 namespace amrex {
