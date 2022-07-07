@@ -11,6 +11,7 @@
 #include <AMReX_EB2_GeometryShop.H>
 #include <AMReX_EB2.H>
 #include <AMReX_EB2_IndexSpace_STL.H>
+#include <AMReX_EB2_IndexSpace_chkpt_file.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX.H>
 #include <algorithm>
@@ -207,6 +208,15 @@ Build (const Geometry& geom, int required_coarsening_level,
                                            max_coarsening_level, ngrow,
                                            build_coarse_level_by_coarsening,
                                            extend_domain_face));
+    }
+    else if (geom_type == "chkptfile")
+    {
+        ChkptFile chkpt_file("geom_chk");
+        IndexSpace::push(new IndexSpaceChkptFile(chkpt_file,
+                    geom, required_coarsening_level,
+                    max_coarsening_level, ngrow,
+                    build_coarse_level_by_coarsening,
+                    extend_domain_face));
     }
     else
     {
