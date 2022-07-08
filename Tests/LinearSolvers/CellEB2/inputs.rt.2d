@@ -11,6 +11,7 @@ max_level = 1
 n_cell = 128
 max_grid_size = 64
 eb2.max_grid_size = 32
+eb2.num_coarsen_opt=3
 
 eb2.geom_type = sphere
 eb2.sphere_center = 0.5  0.5  0.5
