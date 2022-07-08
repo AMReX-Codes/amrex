@@ -649,7 +649,22 @@ TagBoxArray::collate (Gpu::PinnedVector<IntVect>& TheGlobalCollateSpace) const
     //
     const IntVect* psend = (count > 0) ? TheLocalCollateSpace.data() : nullptr;
     IntVect* precv = TheGlobalCollateSpace.data();
+
+#ifndef __FUJITSU
     ParallelDescriptor::Gatherv(psend, count, precv, countvec, offset, IOProcNumber);
+#else
+    const int* psend_int = psend->begin();
+    int* precv_int = precv->begin();
+    Long count_int = count * AMREX_SPACEDIM;
+    auto countvec_int = std::vector<int>(countvec.size());
+    auto offset_int = std::vector<int>(offset.size());
+    std::transform(countvec.begin(), countvec.end(), countvec_int.begin(),
+        [](const auto el){return el*AMREX_SPACEDIM;});
+    std::transform(offset.begin(), offset.end(), offset_int.begin(),
+        [](const auto el){return el*AMREX_SPACEDIM;});
+    ParallelDescriptor::Gatherv(
+        psend_int, count_int, precv_int, countvec_int, offset_int, IOProcNumber);
+#endif
 
 #else
     TheGlobalCollateSpace = std::move(TheLocalCollateSpace);
