@@ -5,10 +5,12 @@
 #include <AMReX_VisMF.H>    // amrex::VisMF::Write(MultiFab)
 #include <AMReX_VectorIO.H> // amrex::[read,write]IntData(array_of_ints)
 
+#include <AMReX_MultiFabUtil.H>
+
 
 namespace {
 
-const int ng_to_copy = 1;
+const int ng_to_copy = 0;
 
 void gotoNextLine (std::istream& is)
 {
@@ -28,7 +30,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
         MultiFab& bndrynorm, Array<MultiFab,AMREX_SPACEDIM>& areafrac,
         Array<MultiFab,AMREX_SPACEDIM>& facecent,
         Array<MultiFab,AMREX_SPACEDIM>& edgecent,
-        MultiFab& levelset) const
+        MultiFab& levelset, int ng) const
 {
     Real prob_lo[AMREX_SPACEDIM];
     Real prob_hi[AMREX_SPACEDIM];
@@ -93,7 +95,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
     {
         Print() << "  Loading volfrac" << std::endl;
 
-        volfrac.define(grids, dmap, 1, ng_to_copy);
+        volfrac.define(grids, dmap, 1, ng);
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, "Level_", "volfrac");
         MultiFab mf(The_Pinned_Arena());
@@ -105,7 +107,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
     {
         Print() << "  Loading centroid" << std::endl;
 
-        centroid.define(grids, dmap, AMREX_SPACEDIM, ng_to_copy);
+        centroid.define(grids, dmap, AMREX_SPACEDIM, ng);
 
         auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, "Level_", "centroid");
         MultiFab mf(The_Pinned_Arena());
@@ -117,7 +119,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
     {
         Print() << "  Loading bndryarea" << std::endl;
 
-        bndryarea.define(grids, dmap, 1, ng_to_copy);
+        bndryarea.define(grids, dmap, 1, ng);
 
         auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, "Level_", "bndryarea");
         MultiFab mf(The_Pinned_Arena());
@@ -129,7 +131,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
     {
         Print() << "  Loading bndrycent" << std::endl;
 
-        bndrycent.define(grids, dmap, AMREX_SPACEDIM, ng_to_copy);
+        bndrycent.define(grids, dmap, AMREX_SPACEDIM, ng);
 
         auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, "Level_", "bndrycent");
         MultiFab mf(The_Pinned_Arena());
@@ -141,7 +143,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
     {
         Print() << "  Loading bndrynorm" << std::endl;
 
-        bndrynorm.define(grids, dmap, AMREX_SPACEDIM, ng_to_copy);
+        bndrynorm.define(grids, dmap, AMREX_SPACEDIM, ng);
 
         auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, "Level_", "bndrynorm");
         MultiFab mf(The_Pinned_Arena());
@@ -154,7 +156,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
         {
             Print() << "  Loading areafrac " << idim << std::endl;
 
-            areafrac[idim].define(convert(grids, IntVect::TheDimensionVector(idim)), dmap, 1, ng_to_copy);
+            areafrac[idim].define(convert(grids, IntVect::TheDimensionVector(idim)), dmap, 1, ng);
 
             auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, "Level_", Concatenate("areafrac", idim, 1));
             MultiFab mf(The_Pinned_Arena());
@@ -166,7 +168,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
         {
             Print() << "  Loading facecent " << idim << std::endl;
 
-            facecent[idim].define(convert(grids, IntVect::TheDimensionVector(idim)), dmap, AMREX_SPACEDIM-1, ng_to_copy);
+            facecent[idim].define(convert(grids, IntVect::TheDimensionVector(idim)), dmap, AMREX_SPACEDIM-1, ng);
 
             auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, "Level_", Concatenate("facecent", idim, 1));
             MultiFab mf(The_Pinned_Arena());
@@ -179,7 +181,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
             Print() << "  Loading edgecent " << idim << std::endl;
 
             IntVect edge_type{1}; edge_type[idim] = 0;
-            edgecent[idim].define(convert(grids, edge_type), dmap, 1, ng_to_copy);
+            edgecent[idim].define(convert(grids, edge_type), dmap, 1, ng);
 
             auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, "Level_", Concatenate("edgecent", idim, 1));
             MultiFab mf(The_Pinned_Arena());
@@ -192,7 +194,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
     {
         Print() << "  Loading levelset" << std::endl;
 
-        levelset.define(convert(grids,IntVect::TheNodeVector()), dmap, 1, ng_to_copy);
+        levelset.define(convert(grids,IntVect::TheNodeVector()), dmap, 1, ng);
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, "Level_", "levelset");
         MultiFab mf(The_Pinned_Arena());

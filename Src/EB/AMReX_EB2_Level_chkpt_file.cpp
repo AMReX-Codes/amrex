@@ -24,7 +24,21 @@ ChkptFileLevel::ChkptFileLevel (IndexSpace const* is, ChkptFile const& chkpt_fil
     bounding_box.surroundingNodes();
 
     chkpt_file.fill_from_chkpt_file(m_grids, m_dmap, m_volfrac, m_centroid, m_bndryarea,
-            m_bndrycent, m_bndrynorm, m_areafrac, m_facecent, m_edgecent, m_levelset);
+            m_bndrycent, m_bndrynorm, m_areafrac, m_facecent, m_edgecent, m_levelset, GFab::ng);
+
+    m_volfrac.FillBoundary(m_geom.periodicity());
+    m_centroid.FillBoundary(m_geom.periodicity());
+    m_bndryarea.FillBoundary(m_geom.periodicity());
+    m_bndrycent.FillBoundary(m_geom.periodicity());
+    m_bndrynorm.FillBoundary(m_geom.periodicity());
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        m_areafrac[idim].FillBoundary(m_geom.periodicity());
+        m_facecent[idim].FillBoundary(m_geom.periodicity());
+        m_edgecent[idim].FillBoundary(m_geom.periodicity());
+    }
+
+    m_levelset.FillBoundary(m_geom.periodicity());
 
     m_mgf.define(m_grids, m_dmap);
     const int ng = GFab::ng;
@@ -53,6 +67,7 @@ ChkptFileLevel::ChkptFileLevel (IndexSpace const* is, ChkptFile const& chkpt_fil
         }
     }
 
+
     Vector<Box> cut_boxes;
     Vector<Box> covered_boxes;
     for (MFIter mfi(m_grids, m_dmap); mfi.isValid(); ++mfi)
@@ -64,6 +79,7 @@ ChkptFileLevel::ChkptFileLevel (IndexSpace const* is, ChkptFile const& chkpt_fil
         const auto& flag = m_cellflag[mfi].const_array();
         const auto& vfrac = m_volfrac.const_array(mfi);
         const auto& apx = m_areafrac[0].const_array(mfi);
+
         if (flagfab.getType(gbx & bounding_box) == FabType::covered) {
             covered_boxes.push_back(vbx);
         } else if (flagfab.getType(gbx & bounding_box) == FabType::singlevalued) {
