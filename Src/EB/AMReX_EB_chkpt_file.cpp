@@ -100,7 +100,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, "Level_", "volfrac");
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
-        volfrac.ParallelCopy(mf, 0, 0, 1, ng_to_copy, ng_to_copy);
+        volfrac.ParallelCopy(mf, 0, 0, 1, ng_to_copy, ng);
     }
 
     // centroid
@@ -112,7 +112,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
         auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, "Level_", "centroid");
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
-        centroid.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, ng_to_copy, ng_to_copy);
+        centroid.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, ng_to_copy, ng);
     }
 
     // bndryarea
@@ -124,7 +124,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
         auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, "Level_", "bndryarea");
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
-        bndryarea.ParallelCopy(mf, 0, 0, 1, ng_to_copy, ng_to_copy);
+        bndryarea.ParallelCopy(mf, 0, 0, 1, ng_to_copy, ng);
     }
 
     // bndrycent
@@ -136,7 +136,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
         auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, "Level_", "bndrycent");
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
-        bndrycent.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, ng_to_copy, ng_to_copy);
+        bndrycent.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, ng_to_copy, ng);
     }
 
     // bndrynorm
@@ -148,7 +148,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
         auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, "Level_", "bndrynorm");
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
-        bndrynorm.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, ng_to_copy, ng_to_copy);
+        bndrynorm.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, ng_to_copy, ng);
     }
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -161,7 +161,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
             auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, "Level_", Concatenate("areafrac", idim, 1));
             MultiFab mf(The_Pinned_Arena());
             VisMF::Read(mf, prefix);
-            areafrac[idim].ParallelCopy(mf, 0, 0, 1, ng_to_copy, ng_to_copy);
+            areafrac[idim].ParallelCopy(mf, 0, 0, 1, ng_to_copy, ng);
         }
 
         // facecent
@@ -173,7 +173,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
             auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, "Level_", Concatenate("facecent", idim, 1));
             MultiFab mf(The_Pinned_Arena());
             VisMF::Read(mf, prefix);
-            facecent[idim].ParallelCopy(mf, 0, 0, AMREX_SPACEDIM-1, ng_to_copy, ng_to_copy);
+            facecent[idim].ParallelCopy(mf, 0, 0, AMREX_SPACEDIM-1, ng_to_copy, ng);
         }
 
         // edgecent
@@ -186,7 +186,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
             auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, "Level_", Concatenate("edgecent", idim, 1));
             MultiFab mf(The_Pinned_Arena());
             VisMF::Read(mf, prefix);
-            edgecent[idim].ParallelCopy(mf, 0, 0, 1, ng_to_copy, ng_to_copy);
+            edgecent[idim].ParallelCopy(mf, 0, 0, 1, ng_to_copy, ng);
         }
     }
 
@@ -195,11 +195,12 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
         Print() << "  Loading levelset" << std::endl;
 
         levelset.define(convert(grids,IntVect::TheNodeVector()), dmap, 1, ng);
+        levelset.setVal(-1.);
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, "Level_", "levelset");
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
-        levelset.ParallelCopy(mf, 0, 0, 1, ng_to_copy, ng_to_copy);
+        levelset.ParallelCopy(mf, 0, 0, 1, ng_to_copy, ng);
     }
 }
 

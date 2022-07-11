@@ -52,12 +52,12 @@ ChkptFileLevel::ChkptFileLevel (IndexSpace const* is, ChkptFile const& chkpt_fil
         for (MFIter mfi(m_mgf); mfi.isValid(); ++mfi)
         {
             auto& gfab = m_mgf[mfi];
-            const Box& vbx = gfab.validbox();
 
             const auto& levelset = m_levelset.const_array(mfi);
+            const Box& bx = gfab.getLevelSet().box();
             const auto& ls = gfab.getLevelSet().array();
 
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(vbx, i, j, k,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
             {
                 ls(i,j,k) = levelset(i,j,k);
             });
