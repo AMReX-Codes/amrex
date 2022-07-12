@@ -383,6 +383,7 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
     Real m_min_time = std::numeric_limits<Real>::lowest();
     Real m_max_time = std::numeric_limits<Real>::max();
     int m_volume_weighting = 0;
+    int m_derefine = 0;
     RealBox m_realbox;
 
     AMRErrorTagInfo& SetMaxLevel (int max_level) noexcept {
@@ -403,6 +404,10 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
     }
     AMRErrorTagInfo& SetVolumeWeighting (int volume_weighting) noexcept {
       m_volume_weighting = volume_weighting;
+      return *this;
+    }
+    AMRErrorTagInfo& SetDerefine (int derefine) noexcept {
+      m_derefine = derefine;
       return *this;
     }
   };
