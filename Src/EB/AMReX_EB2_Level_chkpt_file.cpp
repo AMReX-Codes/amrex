@@ -26,12 +26,6 @@ ChkptFileLevel::ChkptFileLevel (IndexSpace const* is, ChkptFile const& chkpt_fil
     chkpt_file.fill_from_chkpt_file(m_grids, m_dmap, m_volfrac, m_centroid, m_bndryarea,
             m_bndrycent, m_bndrynorm, m_areafrac, m_facecent, m_edgecent, m_levelset, GFab::ng);
 
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        m_areafrac[idim].FillBoundary(m_geom.periodicity());
-        m_facecent[idim].FillBoundary(m_geom.periodicity());
-        m_edgecent[idim].FillBoundary(m_geom.periodicity());
-    }
-
     m_mgf.define(m_grids, m_dmap);
     const int ng = GFab::ng;
     MFInfo mf_info;
