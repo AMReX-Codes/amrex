@@ -10,16 +10,68 @@
 
 namespace {
 
-const int ng_to_copy = 0;
+const std::string level_prefix = "Level_";
 
 void gotoNextLine (std::istream& is)
 {
     constexpr std::streamsize bl_ignore_max { 100000 };
     is.ignore(bl_ignore_max, '\n');
 }
+
 }
 
 namespace amrex { namespace EB2 {
+
+void ChkptFile::writeHeader (const BoxArray& ba) const
+{
+    if (ParallelDescriptor::IOProcessor())
+    {
+        std::string HeaderFileName(m_restart_file + "/Header");
+        VisMF::IO_Buffer io_buffer(amrex::VisMF::IO_Buffer_Size);
+        std::ofstream HeaderFile;
+
+        HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
+        HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
+                std::ofstream::trunc |
+                std::ofstream::binary);
+
+        if ( ! HeaderFile.good() )
+            amrex::FileOpenFailed(HeaderFileName);
+
+        HeaderFile.precision(17);
+
+        HeaderFile << "Checkpoint version: 1\n";
+
+        const int nlevels = 1;
+        HeaderFile << nlevels << "\n";
+
+        Geometry geometry;
+
+        // Geometry
+        for (int i = 0; i < AMREX_SPACEDIM; ++i)
+            HeaderFile << geometry.ProbLo(i) << ' ';
+        HeaderFile << '\n';
+
+        for (int i = 0; i < AMREX_SPACEDIM; ++i)
+            HeaderFile << geometry.ProbHi(i) << ' ';
+        HeaderFile << '\n';
+
+        // BoxArray
+        for (int lev = 0; lev < nlevels; ++lev)
+        {
+            ba.writeOn(HeaderFile);
+            HeaderFile << '\n';
+        }
+    }
+}
+
+void ChkptFile::writeToFile (const MultiFab& mf, const std::string& mf_name) const
+{
+    amrex::VisMF::Write(mf, amrex::MultiFabFileFullPrefix(0, m_restart_file,
+                level_prefix, mf_name));
+}
+
 
 ChkptFile::ChkptFile (const std::string &fname)
     : m_restart_file(fname)
@@ -97,10 +149,10 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
 
         volfrac.define(grids, dmap, 1, ng);
 
-        auto prefix = MultiFabFileFullPrefix(0, m_restart_file, "Level_", "volfrac");
+        auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_volfrac_name);
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
-        volfrac.ParallelCopy(mf, 0, 0, 1, ng_to_copy, ng);
+        volfrac.ParallelCopy(mf, 0, 0, 1, 0, ng);
     }
 
     // centroid
@@ -109,10 +161,10 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
 
         centroid.define(grids, dmap, AMREX_SPACEDIM, ng);
 
-        auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, "Level_", "centroid");
+        auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_centroid_name);
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
-        centroid.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, ng_to_copy, ng);
+        centroid.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, 0, ng);
     }
 
     // bndryarea
@@ -121,10 +173,10 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
 
         bndryarea.define(grids, dmap, 1, ng);
 
-        auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, "Level_", "bndryarea");
+        auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndryarea_name);
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
-        bndryarea.ParallelCopy(mf, 0, 0, 1, ng_to_copy, ng);
+        bndryarea.ParallelCopy(mf, 0, 0, 1, 0, ng);
     }
 
     // bndrycent
@@ -133,10 +185,10 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
 
         bndrycent.define(grids, dmap, AMREX_SPACEDIM, ng);
 
-        auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, "Level_", "bndrycent");
+        auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndrycent_name);
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
-        bndrycent.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, ng_to_copy, ng);
+        bndrycent.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, 0, ng);
     }
 
     // bndrynorm
@@ -145,10 +197,10 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
 
         bndrynorm.define(grids, dmap, AMREX_SPACEDIM, ng);
 
-        auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, "Level_", "bndrynorm");
+        auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndrynorm_name);
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
-        bndrynorm.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, ng_to_copy, ng);
+        bndrynorm.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, 0, ng);
     }
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -158,10 +210,10 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
 
             areafrac[idim].define(convert(grids, IntVect::TheDimensionVector(idim)), dmap, 1, ng);
 
-            auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, "Level_", Concatenate("areafrac", idim, 1));
+            auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_areafrac_name[idim]);
             MultiFab mf(The_Pinned_Arena());
             VisMF::Read(mf, prefix);
-            areafrac[idim].ParallelCopy(mf, 0, 0, 1, ng_to_copy, ng);
+            areafrac[idim].ParallelCopy(mf, 0, 0, 1, 0, ng);
         }
 
         // facecent
@@ -170,10 +222,10 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
 
             facecent[idim].define(convert(grids, IntVect::TheDimensionVector(idim)), dmap, AMREX_SPACEDIM-1, ng);
 
-            auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, "Level_", Concatenate("facecent", idim, 1));
+            auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_facecent_name[idim]);
             MultiFab mf(The_Pinned_Arena());
             VisMF::Read(mf, prefix);
-            facecent[idim].ParallelCopy(mf, 0, 0, AMREX_SPACEDIM-1, ng_to_copy, ng);
+            facecent[idim].ParallelCopy(mf, 0, 0, AMREX_SPACEDIM-1, 0, ng);
         }
 
         // edgecent
@@ -183,10 +235,10 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
             IntVect edge_type{1}; edge_type[idim] = 0;
             edgecent[idim].define(convert(grids, edge_type), dmap, 1, ng);
 
-            auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, "Level_", Concatenate("edgecent", idim, 1));
+            auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_edgecent_name[idim]);
             MultiFab mf(The_Pinned_Arena());
             VisMF::Read(mf, prefix);
-            edgecent[idim].ParallelCopy(mf, 0, 0, 1, ng_to_copy, ng);
+            edgecent[idim].ParallelCopy(mf, 0, 0, 1, 0, ng);
         }
     }
 
@@ -197,10 +249,43 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
         levelset.define(convert(grids,IntVect::TheNodeVector()), dmap, 1, ng);
         levelset.setVal(-1.);
 
-        auto prefix = MultiFabFileFullPrefix(0, m_restart_file, "Level_", "levelset");
+        auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_levelset_name);
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
-        levelset.ParallelCopy(mf, 0, 0, 1, ng_to_copy, ng);
+        levelset.ParallelCopy(mf, 0, 0, 1, 0, ng);
+    }
+}
+
+void ChkptFile::write_to_chkpt_file (const BoxArray& ba,
+        const MultiFab& volfrac,
+        const MultiFab& centroid, const MultiFab& bndryarea,
+        const MultiFab& bndrycent, const MultiFab& bndrynorm,
+        const Array<MultiFab,AMREX_SPACEDIM>& areafrac,
+        const Array<MultiFab,AMREX_SPACEDIM>& facecent,
+        const Array<MultiFab,AMREX_SPACEDIM>& edgecent,
+        const MultiFab& levelset) const
+{
+
+    if (ParallelDescriptor::IOProcessor()) {
+        std::cout << "\n\t Writing checkpoint " << m_restart_file << std::endl;
+    }
+
+    const int nlevels = 1;
+    amrex::PreBuildDirectorHierarchy(m_restart_file, level_prefix, nlevels, true);
+
+    writeHeader(ba);
+
+    writeToFile(volfrac, m_volfrac_name);
+    writeToFile(centroid, m_centroid_name);
+    writeToFile(bndryarea, m_bndryarea_name);
+    writeToFile(bndrycent, m_bndrycent_name);
+    writeToFile(bndrynorm, m_bndrynorm_name);
+    writeToFile(levelset, m_levelset_name);
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        writeToFile(areafrac[idim], m_areafrac_name[idim]);
+        writeToFile(facecent[idim], m_facecent_name[idim]);
+        writeToFile(edgecent[idim], m_edgecent_name[idim]);
     }
 }
 

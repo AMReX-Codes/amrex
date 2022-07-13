@@ -60,6 +60,8 @@ public:
     const Geometry& Geom () const noexcept { return m_geom; }
     IndexSpace const* getEBIndexSpace () const noexcept { return m_parent; }
 
+    void write_to_chkpt_file (const std::string& fname) const;
+
 protected:
 
     Level (Level && rhs) = default;

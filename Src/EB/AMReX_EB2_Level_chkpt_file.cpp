@@ -26,20 +26,11 @@ ChkptFileLevel::ChkptFileLevel (IndexSpace const* is, ChkptFile const& chkpt_fil
     chkpt_file.fill_from_chkpt_file(m_grids, m_dmap, m_volfrac, m_centroid, m_bndryarea,
             m_bndrycent, m_bndrynorm, m_areafrac, m_facecent, m_edgecent, m_levelset, GFab::ng);
 
-    m_volfrac.FillBoundary(m_geom.periodicity());
-    m_centroid.FillBoundary(m_geom.periodicity());
-    m_bndryarea.FillBoundary(m_geom.periodicity());
-    m_bndrycent.FillBoundary(m_geom.periodicity());
-    m_bndrynorm.FillBoundary(m_geom.periodicity());
-
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         m_areafrac[idim].FillBoundary(m_geom.periodicity());
         m_facecent[idim].FillBoundary(m_geom.periodicity());
         m_edgecent[idim].FillBoundary(m_geom.periodicity());
     }
-
-    m_levelset.FillBoundary(m_geom.periodicity());
-
 
     m_mgf.define(m_grids, m_dmap);
     const int ng = GFab::ng;
@@ -125,67 +116,6 @@ ChkptFileLevel::ChkptFileLevel (IndexSpace const* is, ChkptFile const& chkpt_fil
             const Box& vbx = mfi.validbox();
             const Box& bxg1 = amrex::grow(vbx,1);
             Array4<EBCellFlag> const& cell = m_cellflag.array(mfi);
-
-            // set cells in the extended region to covered if the
-            // corresponding cell on the domain face is covered
-            if(extend_domain_face) {
-
-               Box gdomain = geom.Domain();
-               for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                   if (geom.isPeriodic(idim)) {
-                       gdomain.setSmall(idim, std::min(gdomain.smallEnd(idim), bxg1.smallEnd(idim)));
-                       gdomain.setBig(idim, std::max(gdomain.bigEnd(idim), bxg1.bigEnd(idim)));
-                   }
-               }
-
-               if (! gdomain.contains(bxg1)) {
-                  AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
-                  {
-                      const auto & dlo = gdomain.loVect();
-                      const auto & dhi = gdomain.hiVect();
-
-                      // find the cell(ii,jj,kk) on the corr. domain face
-                      // this would have already been set to correct value
-                      bool in_extended_domain = false;
-                      int ii = i;
-                      int jj = j;
-                      int kk = k;
-                      if(i < dlo[0]) {
-                          in_extended_domain = true;
-                          ii = dlo[0];
-                      }
-                      else if(i > dhi[0]) {
-                          in_extended_domain = true;
-                          ii = dhi[0];
-                      }
-
-                      if(j < dlo[1]) {
-                          in_extended_domain = true;
-                          jj = dlo[1];
-                      }
-                      else if(j > dhi[1]) {
-                          in_extended_domain = true;
-                          jj = dhi[1];
-                      }
-
-                      if(k < dlo[2]) {
-                          in_extended_domain = true;
-                          kk = dlo[2];
-                      }
-                      else if(k > dhi[2]) {
-                          in_extended_domain = true;
-                          kk = dhi[2];
-                      }
-
-                      // set cell in extendable region to covered if necessary
-                      if( in_extended_domain && (! cell(i,j,k).isCovered())
-                          && cell(ii,jj,kk).isCovered() )
-                      {
-                          cell(i,j,k).setCovered();
-                      }
-                  });
-               }
-            }
 
             cellflagtmp.resize(m_cellflag[mfi].box());
             Array4<EBCellFlag> const& ctmp = cellflagtmp.array();
