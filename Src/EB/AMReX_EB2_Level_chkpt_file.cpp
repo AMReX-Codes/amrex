@@ -19,9 +19,10 @@ ChkptFileLevel::ChkptFileLevel (IndexSpace const* is, ChkptFile const& chkpt_fil
             m_ngrow[idim] = std::min(m_ngrow[idim], domain_grown.length(idim));
         }
     }
-    domain_grown.grow(m_ngrow);
-    Box bounding_box = (extend_domain_face) ? domain : domain_grown;
-    bounding_box.surroundingNodes();
+
+   domain_grown.grow(m_ngrow);
+   Box bounding_box = (extend_domain_face) ? domain : domain_grown;
+   bounding_box.surroundingNodes();
 
    BoxList bl(domain);
    bl.maxSize(max_grid_size);
@@ -103,7 +104,6 @@ ChkptFileLevel::ChkptFileLevel (IndexSpace const* is, ChkptFile const& chkpt_fil
     AllGatherBoxes(cut_boxes);
 
     //Print() << "cut_boxes = " << cut_boxes.size() << std::endl;
-    //Print() << "covered_boxes = " << covered_boxes.size() << std::endl;
 
     if ( cut_boxes.empty() &&
             !covered_bl.isEmpty())
@@ -116,15 +116,10 @@ ChkptFileLevel::ChkptFileLevel (IndexSpace const* is, ChkptFile const& chkpt_fil
     }
 
     if (cut_boxes.empty()) {
-        m_grids = BoxArray();
-        m_dmap = DistributionMapping();
         m_allregular = true;
         m_ok = true;
         return;
     }
-
-    m_grids = BoxArray(BoxList(std::move(cut_boxes)));
-    m_dmap = DistributionMapping(m_grids);
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion()) reduction(+:nsmallcells,nmulticuts)
