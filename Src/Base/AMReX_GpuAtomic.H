@@ -140,6 +140,21 @@ namespace detail {
 #endif
     }
 
+#if defined(AMREX_USE_HIP) && defined(__gfx90a__)
+    // https://github.com/ROCm-Developer-Tools/hipamd/blob/rocm-4.5.x/include/hip/amd_detail/amd_hip_unsafe_atomics.h
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    float Add_device (float* const sum, float const value) noexcept
+    {
+        return unsafeAtomicAdd(sum, value);
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    double Add_device (double* const sum, double const value) noexcept
+    {
+        return unsafeAtomicAdd(sum, value);
+    }
+#endif
+
 #ifdef AMREX_USE_DPCPP
 
     // Valid atomic types are available at

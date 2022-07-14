@@ -60,7 +60,7 @@ ifeq ($(which_computer),spock)
     endif
     # for gpu aware mpi
     ifeq ($(USE_HIP),TRUE)
-      LIBRARIES += $(PE_MPICH_GTL_DIR_gfx908) -lmpi_gtl_hsa
+      LIBRARIES += $(PE_MPICH_GTL_DIR_amd_gfx908) -lmpi_gtl_hsa
     endif
   endif
 endif
@@ -80,7 +80,7 @@ ifeq ($(which_computer),crusher)
     endif
     # for gpu aware mpi
     ifeq ($(USE_HIP),TRUE)
-      LIBRARIES += -lmpi_gtl_hsa
+      LIBRARIES += $(PE_MPICH_GTL_DIR_amd_gfx90a) -lmpi_gtl_hsa
     endif
   endif
 endif

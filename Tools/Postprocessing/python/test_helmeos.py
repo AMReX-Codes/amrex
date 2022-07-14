@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # a script showing how to use the helmeos module
 # it reads T, rho, X data from a sample data file, calculates abar and zbar

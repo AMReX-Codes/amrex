@@ -21,6 +21,7 @@ ifeq ($(strip $(programs)),)
   programs += fsnapshot
   programs += ftime
   programs += fvarnames
+  programs += fvolumesum
 endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs

@@ -348,6 +348,11 @@ protected:
     ///
     void BuildMasks ();
 
+    ///
+    /// Are the masks computed by the above function still valid?
+    ///
+    bool areMasksValid ();
+
     void GetNeighborCommTags ();
 
     void GetCommTagsBox (Vector<NeighborCommTag>& tags, const int lev, const Box& in_box);

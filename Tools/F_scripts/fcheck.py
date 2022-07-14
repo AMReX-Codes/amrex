@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # a simple routine to parse Fortran files and make sure that things are
 # declared double precision, and constants are of the form 1.0_dp_t or
@@ -122,9 +122,3 @@ for ext in extensions:
 
         if (badFile == 1):
             print " "
-
-
-
-
-
-
