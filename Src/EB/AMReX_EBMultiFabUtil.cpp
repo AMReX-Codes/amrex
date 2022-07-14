@@ -928,9 +928,9 @@ EB_interp_CC_to_FaceCentroid (const MultiFab& cc,
     const int nghost(4);
 
    // Initialize edge state
-    AMREX_D_TERM(fc_x.setVal(1e40,dcomp,ncomp);,
-                 fc_y.setVal(1e40,dcomp,ncomp);,
-                 fc_z.setVal(1e40,dcomp,ncomp));
+    AMREX_D_TERM(fc_x.setVal(1e30_rt,dcomp,ncomp);,
+                 fc_y.setVal(1e30_rt,dcomp,ncomp);,
+                 fc_z.setVal(1e30_rt,dcomp,ncomp));
 
     BCRec const* d_bcs;
 #ifdef AMREX_USE_GPU
@@ -939,7 +939,6 @@ EB_interp_CC_to_FaceCentroid (const MultiFab& cc,
     {
         Gpu::copy(Gpu::hostToDevice, a_bcs.begin(), a_bcs.begin()+ncomp, dv_bcs.begin());
         d_bcs = dv_bcs.dataPtr();
-        Gpu::synchronize();
     }
     else
 #endif
@@ -1078,7 +1077,6 @@ EB_interp_CellCentroid_to_FaceCentroid (const MultiFab& phi_centroid,
     {
         Gpu::copy(Gpu::hostToDevice, a_bcs.begin(), a_bcs.begin()+ncomp, dv_bcs.begin());
         d_bcs = dv_bcs.dataPtr();
-        Gpu::synchronize();
     }
     else
 #endif

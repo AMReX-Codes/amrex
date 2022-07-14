@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.17)
 
 #
 # Allow for MSVC Runtime library controls
@@ -149,10 +149,10 @@ endif ()
 #
 # Install amrex  -- Export
 #
-if(AMReX_INSTALL)
-    include(AMReXInstallHelpers)
-    install_amrex_targets(${_amrex_targets})
+include(AMReXInstallHelpers)
+install_amrex_targets(${_amrex_targets})
 
+if(AMReX_INSTALL)
     # Add a test_install target to smoke-test
     # the installation
     add_test_install_target(

@@ -89,6 +89,8 @@ void main_main()
 
     int coord = pf.coordSys();
 
+    constexpr Real pi = 3.1415926535897932;
+
     for (int ilev = 0; ilev <= fine_level; ++ilev) {
 
         Array<Real,AMREX_SPACEDIM> dx = pf.cellSize(ilev);
@@ -118,7 +120,7 @@ void main_main()
                                                         problo[2]+static_cast<Real>(k+0.5)*dx[2])};
 
                                     // compute the volume
-                                    Real vol;
+                                    Real vol = std::numeric_limits<Real>::quiet_NaN();
                                     if (coord == 0) {
                                         // Cartesian
                                         vol = 1.0_rt;
@@ -129,12 +131,12 @@ void main_main()
                                         // axisymmetric V = pi (r_r**2 - r_l**2) * dz
                                         //                = pi dr * dz * (r_r + r_l)
                                         //                = 2 pi r dr dz
-                                        vol = 2 * M_PI * p[0] * dx[0] * dx[1];
+                                        vol = 2 * pi * p[0] * dx[0] * dx[1];
                                     } else if (coord == 2) {
                                         // 1-d spherical V = 4/3 pi (r_r**3 - r_l**3)
                                         Real r_r = problo[0]+static_cast<Real>(i+1)*dx[0];
                                         Real r_l = problo[0]+static_cast<Real>(i)*dx[0];
-                                        vol = (4.0_rt/3.0_rt) * M_PI * dx[0] * (r_r*r_r + r_l*r_r + r_l*r_l);
+                                        vol = (4.0_rt/3.0_rt) * pi * dx[0] * (r_r*r_r + r_l*r_r + r_l*r_l);
                                     }
 
                                     lsum += fab(i,j,k) * vol;
@@ -161,7 +163,7 @@ void main_main()
                                                     problo[2]+static_cast<Real>(k+0.5)*dx[2])};
 
                                     // compute the volume
-                                    Real vol;
+                                    Real vol = std::numeric_limits<Real>::quiet_NaN();
                                     if (coord == 0) {
                                         // Cartesian
                                         vol = 1.0_rt;
@@ -172,12 +174,12 @@ void main_main()
                                         // axisymmetric V = pi (r_r**2 - r_l**2) * dz
                                         //                = pi dr * dz * (r_r + r_l)
                                         //                = 2 pi r dr dz
-                                        vol = 2 * M_PI * p[0] * dx[0] * dx[1];
+                                        vol = 2 * pi * p[0] * dx[0] * dx[1];
                                     } else if (coord == 2) {
                                         // 1-d spherical V = 4/3 pi (r_r**3 - r_l**3)
                                         Real r_r = problo[0]+static_cast<Real>(i+1)*dx[0];
                                         Real r_l = problo[0]+static_cast<Real>(i)*dx[0];
-                                        vol = (4.0_rt/3.0_rt) * M_PI * dx[0] * (r_r*r_r + r_l*r_r + r_l*r_l);
+                                        vol = (4.0_rt/3.0_rt) * pi * dx[0] * (r_r*r_r + r_l*r_r + r_l*r_l);
                                     }
 
                                     lsum += fab(i,j,k) * vol;

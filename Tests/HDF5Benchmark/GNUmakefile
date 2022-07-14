@@ -16,6 +16,8 @@ USE_OMP   = FALSE
 
 TINY_PROFILE = TRUE
 
+USE_PARTICLES = TRUE
+
 ###################################################
 
 EBASE     = main

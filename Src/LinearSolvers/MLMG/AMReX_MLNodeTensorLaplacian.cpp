@@ -88,10 +88,13 @@ MLNodeTensorLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, Mult
 
     applyBC(amrlev, cmglev-1, fine, BCMode::Homogeneous, StateMode::Solution);
 
+    IntVect const ratio = mg_coarsen_ratio_vec[cmglev-1];
+    int semicoarsening_dir = info.semicoarsening_direction;
+
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
     MultiFab cfine;
     if (need_parallel_copy) {
-        const BoxArray& ba = amrex::coarsen(fine.boxArray(), 2);
+        const BoxArray& ba = amrex::coarsen(fine.boxArray(), ratio);
         cfine.define(ba, fine.DistributionMap(), 1, 0);
     }
 
@@ -107,10 +110,17 @@ MLNodeTensorLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, Mult
         Array4<Real> cfab = pcrse->array(mfi);
         Array4<Real const> const& ffab = fine.const_array(mfi);
         Array4<int const> const& mfab = dmsk.const_array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
-        {
-            mlndlap_restriction(i,j,k,cfab,ffab,mfab);
-        });
+        if (ratio == 2) {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                mlndlap_restriction(i,j,k,cfab,ffab,mfab);
+            });
+        } else {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                mlndlap_semi_restriction(i,j,k,cfab,ffab,mfab, semicoarsening_dir);
+            });
+        }
     }
 
     if (need_parallel_copy) {
@@ -124,11 +134,14 @@ MLNodeTensorLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine,
 {
     BL_PROFILE("MLNodeTensorLaplacian::interpolation()");
 
+    IntVect const ratio = mg_coarsen_ratio_vec[fmglev];
+    int semicoarsening_dir = info.semicoarsening_direction;
+
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
     MultiFab cfine;
     const MultiFab* cmf = &crse;
     if (need_parallel_copy) {
-        const BoxArray& ba = amrex::coarsen(fine.boxArray(), 2);
+        const BoxArray& ba = amrex::coarsen(fine.boxArray(), ratio);
         cfine.define(ba, fine.DistributionMap(), 1, 0);
         cfine.ParallelCopy(crse);
         cmf = &cfine;
@@ -145,10 +158,17 @@ MLNodeTensorLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine,
         Array4<Real> const& ffab = fine.array(mfi);
         Array4<Real const> const& cfab = cmf->const_array(mfi);
         Array4<int const> const& mfab = dmsk.const_array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
-        {
-            mlndtslap_interpadd(i,j,k,ffab,cfab,mfab);
-        });
+        if (ratio == 2) {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                mlndtslap_interpadd(i,j,k,ffab,cfab,mfab);
+            });
+        } else {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                mlndtslap_semi_interpadd(i,j,k,ffab,cfab,mfab,semicoarsening_dir);
+            });
+        }
     }
 }
 
@@ -202,7 +222,7 @@ MLNodeTensorLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const Multi
     {
         mlndtslap_adotx(i,j,k, out_a[box_no], in_a[box_no], dmsk_a[box_no], s);
     });
-    Gpu::synchronize();
+    Gpu::streamSynchronize();
 #endif
 }
 
@@ -244,7 +264,7 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
             mlndtslap_gauss_seidel(i, j, k, sol_a[box_no], rhs_a[box_no], dmsk_a[box_no], s);
         }
     });
-    Gpu::synchronize();
+    Gpu::streamSynchronize();
 #endif
 }
 

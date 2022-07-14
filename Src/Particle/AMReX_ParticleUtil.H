@@ -53,6 +53,42 @@ auto call_f (F const& f, SrcData const& src, N i, amrex::RandomEngine const&) no
     return f(src,i);
 }
 
+// The next several functions are used by ParticleReduce
+
+// Lambda takes a Particle
+template <typename F, int NSR, int NSI, int NAR, int NAI>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f,
+             const ConstParticleTileData<NSR, NSI, NAR, NAI>& p,
+             const int i) noexcept
+    -> decltype(f(p.m_aos[i]))
+{
+    return f(p.m_aos[i]);
+}
+
+// Lambda takes a SuperParticle
+template <typename F, int NSR, int NSI, int NAR, int NAI,
+          typename std::enable_if<NAR != 0 || NAI != 0, int>::type = 0>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f,
+             const ConstParticleTileData<NSR, NSI, NAR, NAI>& p,
+             const int i) noexcept
+    -> decltype(f(p.getSuperParticle(i)))
+{
+    return f(p.getSuperParticle(i));
+}
+
+// Lambda takes a ConstParticleTileData
+template <typename F, int NSR, int NSI, int NAR, int NAI>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f,
+             const ConstParticleTileData<NSR, NSI, NAR, NAI>& p,
+             const int i) noexcept
+    -> decltype(f(p, i))
+{
+    return f(p, i);
+}
+
 // These next several functions are used by ParticleToMesh and MeshToParticle
 
 // Lambda takes a Particle
@@ -481,7 +517,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 bool enforcePeriodic (P& p,
                       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& phi,
-                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& rhi,
+                      amrex::GpuArray<amrex::ParticleReal,AMREX_SPACEDIM> const& rhi,
                       amrex::GpuArray<int,AMREX_SPACEDIM> const& is_per) noexcept
 {
     bool shifted = false;
@@ -501,8 +537,8 @@ bool enforcePeriodic (P& p,
                 p.pos(idim) += static_cast<ParticleReal>(phi[idim] - plo[idim]);
             }
             // clamp to avoid precision issues;
-            if (p.pos(idim) >= rhi[idim]) {
-                p.pos(idim) = static_cast<ParticleReal>(plo[idim]);
+            if (p.pos(idim) > rhi[idim]) {
+                p.pos(idim) = static_cast<ParticleReal>(rhi[idim]);
             }
             shifted = true;
         }
@@ -519,7 +555,7 @@ int
 partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBufferMap& pmap,
                           const GpuArray<Real,AMREX_SPACEDIM>& plo,
                           const GpuArray<Real,AMREX_SPACEDIM>& phi,
-                          const GpuArray<Real,AMREX_SPACEDIM>& rhi,
+                          const GpuArray<ParticleReal,AMREX_SPACEDIM>& rhi,
                           const GpuArray<int ,AMREX_SPACEDIM>& is_per,
                           int lev, int gid, int /*tid*/,
                           int lev_min, int lev_max, int nGrow, bool remove_negative)
@@ -634,6 +670,28 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
 }
 
 #endif
+
+template <class PC1, class PC2>
+bool SameIteratorsOK (const PC1& pc1, const PC2& pc2) {
+    if (pc1.numLevels() != pc2.numLevels()) {return false;}
+    if (pc1.do_tiling != pc2.do_tiling) {return false;}
+    if (pc1.tile_size != pc2.tile_size) {return false;}
+    for (int lev = 0; lev < pc1.numLevels(); ++lev) {
+        if (pc1.ParticleBoxArray(lev) != pc2.ParticleBoxArray(lev)) {return false;}
+        if (pc1.ParticleDistributionMap(lev) != pc2.ParticleDistributionMap(lev)) {return false;}
+    }
+    return true;
+}
+
+template <class PC>
+void EnsureThreadSafeTiles(PC& pc) {
+    using Iter = typename PC::ParIterType;
+    for (int lev = 0; lev < pc.numLevels(); ++lev) {
+        for (Iter pti(pc, lev); pti.isValid(); ++pti) {
+            pc.DefineAndReturnParticleTile(lev, pti);
+        }
+    }
+}
 
 IntVect computeRefFac (const ParGDBBase* a_gdb, int src_lev, int lev);
 

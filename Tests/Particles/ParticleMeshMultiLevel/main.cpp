@@ -138,7 +138,7 @@ void testParticleMesh (TestParams& parms)
     }
     WriteMultiLevelPlotfile("plt00000_v1", output_levs, outputMF,
                             varnames, geom, 0.0, level_steps, outputRR);
-    myPC.Checkpoint("plt00000_v1", "particle0", true, particle_varnames);
+    myPC.WritePlotFile("plt00000_v1", "particle0", particle_varnames);
 
     for (int lev = 0; lev < output_levs; ++lev) {
         outputMF[lev] = &density2[lev];
@@ -146,7 +146,7 @@ void testParticleMesh (TestParams& parms)
     }
     WriteMultiLevelPlotfile("plt00000_v2", output_levs, outputMF,
                             varnames, geom, 0.0, level_steps, outputRR);
-    myPC.Checkpoint("plt00000_v2", "particle0", true, particle_varnames);
+    myPC.WritePlotFile("plt00000_v2", "particle0", particle_varnames);
 }
 
 int main(int argc, char* argv[])

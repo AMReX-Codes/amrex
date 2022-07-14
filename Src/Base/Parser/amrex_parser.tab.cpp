@@ -81,6 +81,13 @@
 #include <stdlib.h>
 #include <string.h>
 int amrex_parserlex (void);
+/* Bison seems to have a bug. yyalloc etc. do not have the api.prefix. */
+#ifndef yyalloc
+#  define yyalloc amrex_parseralloc
+#endif
+#ifndef yysymbol_kind_t
+#  define yysymbol_kind_t amrex_parsersymbol_kind_t
+#endif
 
 
 # ifndef YY_CAST
@@ -524,9 +531,9 @@ static const yytype_int8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int8 yyrline[] =
 {
-       0,    71,    71,    72,    81,    82,    83,    84,    85,    86,
-      87,    88,    89,    90,    91,    92,    93,    94,    95,    96,
-      97,    98,    99,   100,   101,   102,   103,   104
+       0,    78,    78,    79,    88,    89,    90,    91,    92,    93,
+      94,    95,    96,    97,    98,    99,   100,   101,   102,   103,
+     104,   105,   106,   107,   108,   109,   110,   111
 };
 #endif
 

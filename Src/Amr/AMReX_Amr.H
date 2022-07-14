@@ -196,6 +196,10 @@ public:
     int numGrids (int lev) noexcept;
     //! More work to be done?
     int okToContinue () noexcept;
+    //! Rebuild grid hierarchy finer than lbase.
+    virtual void regrid (int  lbase,
+                         Real time,
+                         bool initial = false) override;
     //! Regrid only!
     void RegridOnly (Real time, bool do_io = true);
     //! Should we regrid this level?
@@ -340,10 +344,6 @@ protected:
     void defBaseLevel (Real start_time, const BoxArray* lev0_grids = 0, const Vector<int>* pmap = 0);
     //! Define and initialize refined levels.
     void bldFineLevels (Real start_time);
-    //! Rebuild grid hierarchy finer than lbase.
-    virtual void regrid (int  lbase,
-                         Real time,
-                         bool initial = false) override;
     //! Regrid level 0 on restart.
     virtual void regrid_level_0_on_restart ();
     //! Define new grid locations (called from regrid) and put into new_grids.

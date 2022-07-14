@@ -125,12 +125,28 @@ Source Documentation.) and
 
 |
 
+**Q.** How do I generate random numbers with AMReX? Can I set the seed?
+Are they thread safe with MPI and OpenMP?
+
+**A.** (Thread safe) Yes, :cpp:`amrex::Random()` is thread safe. When OpenMP is on,
+each thread will have its own dedicated Random Number Generator that
+is totally independent of the others.
+
+|
+
 **Q.** Is Dirichlet boundary condition data loaded into cell-centered, or
 face-centered containers? How is it used in AMReX-based codes like MLMG and the
 advection routines in AMReX-Hydro?
 
 **A.** In the cell-centered MLMG solver, the Dirichlet boundary data are stored
 in containers that have the information of the location of the data.
+
+|
+
+**Q.** How does coarse-grained OpenMP parallelism work in AMReX? How is it
+different from the fine-grained approach?
+
+**A.** Our OpenMP strategy is explained in this paper, https://arxiv.org/abs/1604.03570.
 
 |
 |

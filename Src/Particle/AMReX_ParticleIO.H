@@ -234,7 +234,7 @@ WritePlotFile (const std::string& dir, const std::string& name,
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
-template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>::value>::type*>
+template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>&>::value>::type*>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::WritePlotFile (const std::string& dir, const std::string& name, F&& f) const
@@ -995,21 +995,21 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
           auto new_size = old_size + src_tile.size();
           dst_tile.resize(new_size);
 
-          Gpu::copy(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
-                    dst_tile.GetArrayOfStructs().begin() + old_size);
+          Gpu::copyAsync(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
+                         dst_tile.GetArrayOfStructs().begin() + old_size);
 
           for (int i = 0; i < NumRealComps(); ++i) {
-              Gpu::copy(Gpu::hostToDevice,
-                        host_real_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
-                        host_real_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
-                        dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
+              Gpu::copyAsync(Gpu::hostToDevice,
+                             host_real_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
+                             host_real_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
+                             dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
           }
 
           for (int i = 0; i < NumIntComps(); ++i) {
-              Gpu::copy(Gpu::hostToDevice,
-                        host_int_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
-                        host_int_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
-                        dst_tile.GetStructOfArrays().GetIntData(i).begin() + old_size);
+              Gpu::copyAsync(Gpu::hostToDevice,
+                             host_int_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
+                             host_int_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
+                             dst_tile.GetStructOfArrays().GetIntData(i).begin() + old_size);
           }
         }
       }

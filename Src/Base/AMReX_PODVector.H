@@ -2,10 +2,11 @@
 #define AMREX_PODVECTOR_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_TypeTraits.H>
+#include <AMReX_Arena.H>
 #include <AMReX_GpuLaunch.H>
 #include <AMReX_GpuAllocators.H>
 #include <AMReX_GpuDevice.H>
+#include <AMReX_TypeTraits.H>
 
 #include <type_traits>
 #include <utility>
@@ -17,8 +18,8 @@ namespace amrex
     namespace detail
     {
         template <typename T, typename U, typename Size, typename Value>
-        typename std::enable_if<RunOnGpu<T>::value>::type
-        uninitializedFillNImpl (U* data, Size count, const Value& value)
+        typename std::enable_if<RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
+        uninitializedFillNImpl (U* data, Size count, const Value& value, T& /*allocator*/)
         {
             amrex::ParallelFor(count, [=] AMREX_GPU_DEVICE (Size i) noexcept {
                 data[i] = value;
@@ -27,15 +28,33 @@ namespace amrex
         }
 
         template <typename T, typename U, typename Size, typename Value>
-        typename std::enable_if<!RunOnGpu<T>::value>::type
-        uninitializedFillNImpl (U* data, Size count, const Value& value)
+        typename std::enable_if<!RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
+        uninitializedFillNImpl (U* data, Size count, const Value& value, T& /*allocator*/)
         {
             std::uninitialized_fill_n<U*, Size, Value>(data, count, value);
         }
 
+        template <typename T, typename U, typename Size, typename Value>
+        typename std::enable_if<IsPolymorphicArenaAllocator<T>::value>::type
+        uninitializedFillNImpl (U* data, Size count, const Value& value, T& allocator)
+        {
+#ifdef AMREX_USE_GPU
+            if (allocator.arena()->isManaged() || allocator.arena()->isDevice()) {
+                amrex::ParallelFor(count, [=] AMREX_GPU_DEVICE (Size i) noexcept {
+                                              data[i] = value;
+                                          });
+                Gpu::Device::streamSynchronize();
+            } else
+#endif
+            {
+                amrex::ignore_unused(allocator);
+                std::uninitialized_fill_n<U*, Size, Value>(data, count, value);
+            }
+        }
+
         template <typename T, typename U, typename Size>
-        typename std::enable_if<RunOnGpu<T>::value>::type
-        fillValuesImpl (U* dst, const U* src, Size count)
+        typename std::enable_if<RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
+        fillValuesImpl (U* dst, const U* src, Size count, T& /*allocator*/)
         {
             amrex::ParallelFor(count, [=] AMREX_GPU_DEVICE (Size i) noexcept {
                 dst[i] = src[i];
@@ -44,15 +63,33 @@ namespace amrex
         }
 
         template <typename T, typename U, typename Size>
-        typename std::enable_if<!RunOnGpu<T>::value>::type
-        fillValuesImpl (U* dst, const U* src, Size count)
+        typename std::enable_if<!RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
+        fillValuesImpl (U* dst, const U* src, Size count, T& /*allocator*/)
         {
             for (Size i = 0; i < count; ++i) { dst[i] = src[i];}
         }
 
+        template <typename T, typename U, typename Size>
+        typename std::enable_if<IsPolymorphicArenaAllocator<T>::value>::type
+        fillValuesImpl (U* dst, const U* src, Size count, T& allocator)
+        {
+#ifdef AMREX_USE_GPU
+            if (allocator.arena()->isManaged() || allocator.arena()->isDevice()) {
+                amrex::ParallelFor(count, [=] AMREX_GPU_DEVICE (Size i) noexcept {
+                                              dst[i] = src[i];
+                                          });
+                Gpu::Device::streamSynchronize();
+            } else
+#endif
+            {
+                amrex::ignore_unused(allocator);
+                for (Size i = 0; i < count; ++i) { dst[i] = src[i];}
+            }
+        }
+
         template <typename T>
-        typename std::enable_if<RunOnGpu<T>::value>::type
-        memCopyImpl (void* dst, const void* src, std::size_t count)
+        typename std::enable_if<RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
+        memCopyImpl (void* dst, const void* src, std::size_t count, T& /*allocator*/)
         {
 #ifdef AMREX_USE_GPU
             Gpu::dtod_memcpy_async(dst, src, count);
@@ -62,14 +99,29 @@ namespace amrex
         }
 
         template <typename T>
-        typename std::enable_if<!RunOnGpu<T>::value>::type
-        memCopyImpl (void* dst, const void* src, std::size_t count)
+        typename std::enable_if<!RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
+        memCopyImpl (void* dst, const void* src, std::size_t count, T& /*allocator*/)
         {
             std::memcpy(dst, src, count);
         }
 
         template <typename T>
-        typename std::enable_if<RunOnGpu<T>::value>::type
+        typename std::enable_if<IsPolymorphicArenaAllocator<T>::value>::type
+        memCopyImpl (void* dst, const void* src, std::size_t count, T& allocator)
+        {
+#ifdef AMREX_USE_GPU
+            if (allocator.arena()->isManaged() || allocator.arena()->isDevice()) {
+                Gpu::dtod_memcpy_async(dst, src, count);
+            } else
+#endif
+            {
+                amrex::ignore_unused(allocator);
+                std::memcpy(dst, src, count);
+            }
+        }
+
+        template <typename T>
+        typename std::enable_if<RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
         memMoveImpl (void* dst, const void* src, std::size_t count, T& allocator)
         {
             if (count == 0) { return; }
@@ -92,15 +144,42 @@ namespace amrex
         }
 
         template <typename T>
-        typename std::enable_if<!RunOnGpu<T>::value>::type
-        memMoveImpl (void* dst, const void* src, std::size_t count, T& /*allocator*/)
+        typename std::enable_if<!RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
+ memMoveImpl (void* dst, const void* src, std::size_t count, T& /*allocator*/)
         {
             std::memmove(dst, src, count);
         }
 
+        template <typename T>
+        typename std::enable_if<IsPolymorphicArenaAllocator<T>::value>::type
+        memMoveImpl (void* dst, const void* src, std::size_t count, T& allocator)
+        {
+#ifdef AMREX_USE_GPU
+            if (allocator.arena()->isManaged() || allocator.arena()->isDevice()) {
+                if (count == 0) { return; }
+
+                AMREX_ASSERT(count % sizeof(typename T::value_type) == 0);
+
+                auto N = count / sizeof(typename T::value_type);
+                auto tmp = allocator.allocate(N);
+
+                Gpu::dtod_memcpy_async(tmp, src, count);
+                Gpu::dtod_memcpy_async(dst, tmp, count);
+
+                Gpu::Device::streamSynchronize();
+
+                allocator.deallocate(tmp, N);
+            } else
+#endif
+            {
+            amrex::ignore_unused(allocator);
+            std::memmove(dst, src, count);
+            }
+        }
+
         template <typename T, typename U>
-        typename std::enable_if<RunOnGpu<T>::value>::type
-        initFromListImpl (U* data, std::initializer_list<U> list)
+        typename std::enable_if<RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
+        initFromListImpl (U* data, std::initializer_list<U> list, T& /*allocator*/)
         {
 #ifdef AMREX_USE_GPU
             Gpu::htod_memcpy_async(data, &(*list.begin()), list.size() * sizeof(U));
@@ -110,10 +189,25 @@ namespace amrex
         }
 
         template <typename T, typename U>
-        typename std::enable_if<!RunOnGpu<T>::value>::type
-        initFromListImpl (U* data, std::initializer_list<U> list)
+        typename std::enable_if<!RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
+        initFromListImpl (U* data, std::initializer_list<U> list, T& /*allocator*/)
         {
             for (const auto& value : list) { *(data++) = value; }
+        }
+
+        template <typename T, typename U>
+        typename std::enable_if<IsPolymorphicArenaAllocator<T>::value>::type
+        initFromListImpl (U* data, std::initializer_list<U> list, T& allocator)
+        {
+#ifdef AMREX_USE_GPU
+            if (allocator.arena()->isManaged() || allocator.arena()->isDevice()) {
+                Gpu::htod_memcpy_async(data, &(*list.begin()), list.size() * sizeof(U));
+            } else
+#endif
+            {
+                amrex::ignore_unused(allocator);
+                for (const auto& value : list) { *(data++) = value; }
+            }
         }
     }
 
@@ -171,7 +265,7 @@ namespace amrex
         {
             AllocateBuffer(GetNewCapacity(a_size));
             m_size = a_size;
-            detail::uninitializedFillNImpl<Allocator>(m_data, a_size, a_value);
+            detail::uninitializedFillNImpl<Allocator>(m_data, a_size, a_value, *this);
         }
 
         PODVector (std::initializer_list<T> a_initializer_list,
@@ -181,7 +275,7 @@ namespace amrex
             size_type size = a_initializer_list.size();
             AllocateBuffer(GetNewCapacity(size));
             m_size = size;
-            detail::initFromListImpl<Allocator>(m_data, a_initializer_list);
+            detail::initFromListImpl<Allocator>(m_data, a_initializer_list, *this);
         }
 
         PODVector (const PODVector<T, Allocator>& a_vector) noexcept
@@ -190,7 +284,7 @@ namespace amrex
             using namespace detail;
             AllocateBuffer(a_vector.capacity());
             m_size = a_vector.size();
-            memCopyImpl<Allocator>(m_data, a_vector.m_data, a_vector.size() * sizeof(T));
+            memCopyImpl<Allocator>(m_data, a_vector.m_data, a_vector.size() * sizeof(T), *this);
         }
 
         PODVector (PODVector<T, Allocator>&& a_vector) noexcept
@@ -282,7 +376,7 @@ namespace amrex
                 m_size += a_count;
             }
 
-            detail::uninitializedFillNImpl<Allocator>(const_cast<iterator>(a_pos), a_count, a_value);
+            detail::uninitializedFillNImpl<Allocator>(const_cast<iterator>(a_pos), a_count, a_value, *this);
 
             return const_cast<iterator>(a_pos);
         }
@@ -302,7 +396,7 @@ namespace amrex
                 ++m_size;
             }
 
-            detail::uninitializedFillNImpl<Allocator>(const_cast<iterator>(a_pos), 1, a_item);
+            detail::uninitializedFillNImpl<Allocator>(const_cast<iterator>(a_pos), 1, a_item, *this);
             return const_cast<iterator>(a_pos);
         }
 
@@ -321,7 +415,7 @@ namespace amrex
                 detail::memMoveImpl<Allocator>(const_cast<iterator>(a_pos)+count, a_pos, (end() - a_pos) * sizeof(T), *this);
                 m_size += count;
             }
-            detail::initFromListImpl<Allocator>(const_cast<iterator>(a_pos), a_initializer_list);
+            detail::initFromListImpl<Allocator>(const_cast<iterator>(a_pos), a_initializer_list, *this);
             return const_cast<iterator>(a_pos);
         }
 
@@ -342,7 +436,7 @@ namespace amrex
                 detail::memMoveImpl<Allocator>(const_cast<iterator>(a_pos)+count, a_pos, (end() - a_pos) * sizeof(T), *this);
                 m_size += count;
             }        pointer dst = const_cast<iterator>(a_pos);
-            detail::fillValuesImpl<Allocator>(dst, a_first, count);
+            detail::fillValuesImpl<Allocator>(dst, a_first, count, *this);
             return const_cast<iterator>(a_pos);
         }
 
@@ -350,7 +444,7 @@ namespace amrex
         {
             if ( a_count > capacity() ) AllocateBuffer(GetNewCapacity(a_count));
             m_size = a_count;
-            detail::uninitializedFillNImpl<Allocator>(m_data, a_count, a_value);
+            detail::uninitializedFillNImpl<Allocator>(m_data, a_count, a_value, *this);
         }
 
         void assign (std::initializer_list<T> a_initializer_list) noexcept
@@ -358,7 +452,7 @@ namespace amrex
             if(a_initializer_list.size() > capacity())
                 AllocateBuffer(GetNewCapacity(a_initializer_list.size()));
             m_size = a_initializer_list.size();
-            detail::initFromListImpl<Allocator>(const_cast<iterator>(m_data), a_initializer_list);
+            detail::initFromListImpl<Allocator>(const_cast<iterator>(m_data), a_initializer_list, *this);
         }
 
         template <class InputIt, class bar = typename std::iterator_traits<InputIt>::difference_type>
@@ -367,7 +461,7 @@ namespace amrex
             size_t count = std::distance(a_first, a_last);
             if (count > capacity()) AllocateBuffer(GetNewCapacity(count));
             m_size = count;        pointer dst = const_cast<iterator>(m_data);
-            detail::fillValuesImpl<Allocator>(dst, a_first, count);
+            detail::fillValuesImpl<Allocator>(dst, a_first, count, *this);
         }
 
         // don't have the emplace methods, but not sure how often we use those.
@@ -383,7 +477,7 @@ namespace amrex
         void push_back (T&& a_value) noexcept
         {
             if (m_size == m_capacity) AllocateBuffer(GetNewCapacity(1));
-            detail::uninitializedFillNImpl<Allocator>(m_data+m_size, 1, a_value);
+            detail::uninitializedFillNImpl<Allocator>(m_data+m_size, 1, a_value, *this);
             ++m_size;
         }
 
@@ -457,7 +551,7 @@ namespace amrex
             {
                 detail::uninitializedFillNImpl<Allocator>(m_data + old_size,
                                                           size() - old_size,
-                                                          a_val);
+                                                          a_val, *this);
             }
         }
 
@@ -514,7 +608,7 @@ namespace amrex
         void AllocateBuffer (size_type a_capacity) noexcept
         {
             pointer new_data = allocate(a_capacity);
-            if (m_data) detail::memCopyImpl<Allocator>(new_data, m_data, size() * sizeof(T));
+            if (m_data) detail::memCopyImpl<Allocator>(new_data, m_data, size() * sizeof(T), *this);
             deallocate(m_data, capacity());
             m_data = new_data;
             m_capacity = a_capacity;
@@ -527,9 +621,9 @@ namespace amrex
             pointer new_data = allocate(a_capacity);
             if (m_data)
             {
-                memCopyImpl<Allocator>(new_data, m_data, a_index * sizeof(T));
+         memCopyImpl<Allocator>(new_data, m_data, a_index * sizeof(T), *this);
                 memCopyImpl<Allocator>(new_data + a_index + a_count, m_data + a_index,
-                                       (size() - a_index)*sizeof(T));
+                                       (size() - a_index)*sizeof(T), *this);
             }
             deallocate(m_data, capacity());
             m_data = new_data;
@@ -542,7 +636,7 @@ namespace amrex
             const size_t other_size = a_vector.size();
             if ( other_size > capacity() ) { AllocateBuffer(other_size); }
             m_size = other_size;
-            detail::memCopyImpl<Allocator>(m_data, a_vector.m_data, size() * sizeof(T));
+            detail::memCopyImpl<Allocator>(m_data, a_vector.m_data, size() * sizeof(T), *this);
             return *this;
         }
 
@@ -557,7 +651,7 @@ namespace amrex
                 const size_t other_size = a_vector.size();
                 if ( other_size > capacity() ) { AllocateBuffer(other_size); }
                 m_size = other_size;
-                detail::memCopyImpl<Allocator>(m_data, a_vector.m_data, size() * sizeof(T));
+                detail::memCopyImpl<Allocator>(m_data, a_vector.m_data, size() * sizeof(T), *this);
                 Allocator::operator=(static_cast<Allocator const&>(a_vector));
                 return *this;
             }

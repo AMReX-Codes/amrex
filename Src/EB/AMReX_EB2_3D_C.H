@@ -21,17 +21,17 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
     amrex::Loop(lo, hi,
     [=] (int i, int j, int k) noexcept
     {
-        if (    s(i,j  ,k  ) < 0.0 && s(i+1,j  ,k  ) < 0.0
-            && s(i,j+1,k  ) < 0.0 && s(i+1,j+1,k  ) < 0.0
-            && s(i,j  ,k+1) < 0.0 && s(i+1,j  ,k+1) < 0.0
-            && s(i,j+1,k+1) < 0.0 && s(i+1,j+1,k+1) < 0.0)
+        if (    s(i,j  ,k  ) < 0.0_rt && s(i+1,j  ,k  ) < 0.0_rt
+            && s(i,j+1,k  ) < 0.0_rt && s(i+1,j+1,k  ) < 0.0_rt
+            && s(i,j  ,k+1) < 0.0_rt && s(i+1,j  ,k+1) < 0.0_rt
+            && s(i,j+1,k+1) < 0.0_rt && s(i+1,j+1,k+1) < 0.0_rt)
         {
             cell(i,j,k).setRegular();
         }
-        else if (s(i,j  ,k  ) >= 0.0 && s(i+1,j  ,k  ) >= 0.0
-            &&  s(i,j+1,k  ) >= 0.0 && s(i+1,j+1,k  ) >= 0.0
-            &&  s(i,j  ,k+1) >= 0.0 && s(i+1,j  ,k+1) >= 0.0
-            &&  s(i,j+1,k+1) >= 0.0 && s(i+1,j+1,k+1) >= 0.0)
+        else if (s(i,j  ,k  ) >= 0.0_rt && s(i+1,j  ,k  ) >= 0.0_rt
+            &&  s(i,j+1,k  ) >= 0.0_rt && s(i+1,j+1,k  ) >= 0.0_rt
+            &&  s(i,j  ,k+1) >= 0.0_rt && s(i+1,j  ,k+1) >= 0.0_rt
+            &&  s(i,j+1,k+1) >= 0.0_rt && s(i+1,j+1,k+1) >= 0.0_rt)
         {
             cell(i,j,k).setCovered();
         }
@@ -48,13 +48,13 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
     amrex::Loop(lo, hi,
     [=] (int i, int j, int k) noexcept
     {
-        if (    s(i,j,k  ) < 0.0 && s(i,j+1,k  ) < 0.0
-            && s(i,j,k+1) < 0.0 && s(i,j+1,k+1) < 0.0 )
+        if (    s(i,j,k  ) < 0.0_rt && s(i,j+1,k  ) < 0.0_rt
+            && s(i,j,k+1) < 0.0_rt && s(i,j+1,k+1) < 0.0_rt )
         {
             fx(i,j,k) = Type::regular;
         }
-        else if (s(i,j,k  ) >= 0.0 && s(i,j+1,k  ) >= 0.0
-            &&  s(i,j,k+1) >= 0.0 && s(i,j+1,k+1) >= 0.0 )
+        else if (s(i,j,k  ) >= 0.0_rt && s(i,j+1,k  ) >= 0.0_rt
+            &&  s(i,j,k+1) >= 0.0_rt && s(i,j+1,k+1) >= 0.0_rt )
         {
             fx(i,j,k) = Type::covered;
         }
@@ -71,13 +71,13 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
     amrex::Loop(lo, hi,
     [=] (int i, int j, int k) noexcept
     {
-        if (    s(i,j,k  ) < 0.0 && s(i+1,j,k  ) < 0.0
-            && s(i,j,k+1) < 0.0 && s(i+1,j,k+1) < 0.0 )
+        if (    s(i,j,k  ) < 0.0_rt && s(i+1,j,k  ) < 0.0_rt
+            && s(i,j,k+1) < 0.0_rt && s(i+1,j,k+1) < 0.0_rt )
         {
             fy(i,j,k) = Type::regular;
         }
-        else if (s(i,j,k  ) >= 0.0 && s(i+1,j,k  ) >= 0.0
-            &&  s(i,j,k+1) >= 0.0 && s(i+1,j,k+1) >= 0.0 )
+        else if (s(i,j,k  ) >= 0.0_rt && s(i+1,j,k  ) >= 0.0_rt
+            &&  s(i,j,k+1) >= 0.0_rt && s(i+1,j,k+1) >= 0.0_rt )
         {
             fy(i,j,k) = Type::covered;
         }
@@ -94,13 +94,13 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
     amrex::Loop(lo, hi,
     [=] (int i, int j, int k) noexcept
     {
-        if (    s(i,j  ,k) < 0.0 && s(i+1,j  ,k) < 0.0
-            && s(i,j+1,k) < 0.0 && s(i+1,j+1,k) < 0.0)
+        if (    s(i,j  ,k) < 0.0_rt && s(i+1,j  ,k) < 0.0_rt
+            && s(i,j+1,k) < 0.0_rt && s(i+1,j+1,k) < 0.0_rt)
         {
             fz(i,j,k) = Type::regular;
         }
-        else if (s(i,j  ,k) >= 0.0 && s(i+1,j  ,k) >= 0.0
-            &&  s(i,j+1,k) >= 0.0 && s(i+1,j+1,k) >= 0.0)
+        else if (s(i,j  ,k) >= 0.0_rt && s(i+1,j  ,k) >= 0.0_rt
+            &&  s(i,j+1,k) >= 0.0_rt && s(i+1,j+1,k) >= 0.0_rt)
         {
             fz(i,j,k) = Type::covered;
         }
@@ -117,9 +117,9 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
     amrex::Loop(lo, hi,
     [=] (int i, int j, int k) noexcept
     {
-        if (s(i,j,k) < 0.0 && s(i+1,j,k) < 0.0) {
+        if (s(i,j,k) < 0.0_rt && s(i+1,j,k) < 0.0_rt) {
             ex(i,j,k) = Type::regular;
-        } else if (s(i,j,k) >= 0.0 && s(i+1,j,k) >= 0.0) {
+        } else if (s(i,j,k) >= 0.0_rt && s(i+1,j,k) >= 0.0_rt) {
             ex(i,j,k) = Type::covered;
         } else {
             ex(i,j,k) = Type::irregular;
@@ -133,9 +133,9 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
     amrex::Loop(lo, hi,
     [=] (int i, int j, int k) noexcept
     {
-        if (s(i,j,k) < 0.0 && s(i,j+1,k) < 0.0) {
+        if (s(i,j,k) < 0.0_rt && s(i,j+1,k) < 0.0_rt) {
             ey(i,j,k) = Type::regular;
-        } else if (s(i,j,k) >= 0.0 && s(i,j+1,k) >= 0.0) {
+        } else if (s(i,j,k) >= 0.0_rt && s(i,j+1,k) >= 0.0_rt) {
             ey(i,j,k) = Type::covered;
         } else {
             ey(i,j,k) = Type::irregular;
@@ -149,9 +149,9 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
     amrex::Loop(lo, hi,
     [=] (int i, int j, int k) noexcept
     {
-        if (s(i,j,k) < 0.0 && s(i,j,k+1) < 0.0) {
+        if (s(i,j,k) < 0.0_rt && s(i,j,k+1) < 0.0_rt) {
             ez(i,j,k) = Type::regular;
-        } else if (s(i,j,k) >= 0.0 && s(i,j,k+1) >= 0.0) {
+        } else if (s(i,j,k) >= 0.0_rt && s(i,j,k+1) >= 0.0_rt) {
             ez(i,j,k) = Type::covered;
         } else {
             ez(i,j,k) = Type::irregular;
@@ -162,7 +162,7 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
 namespace {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int num_cuts (Real a, Real b) noexcept {
-        return (a >= 0.0 && b < 0.0) || (b >= 0.0 && a < 0.0);
+        return (a >= 0.0_rt && b < 0.0_rt) || (b >= 0.0_rt && a < 0.0_rt);
     }
 }
 
@@ -200,11 +200,8 @@ int check_mvmc (int i, int j, int k, Array4<Real const> const& fine)
         nxm = 0;
     } else if (n == 2) {
         nxm = 1;
-    } else if (n == 4) {
-        ierr = 1;
     } else {
         ierr = 1;
-        amrex::Abort("amrex::check_mvmc: how did this happen? wrong number of cuts on xlo-face");
     }
 
     int nxp = -1;
@@ -213,11 +210,8 @@ int check_mvmc (int i, int j, int k, Array4<Real const> const& fine)
         nxp = 0;
     } else if (n == 2) {
         nxp = 1;
-    } else if (n == 4) {
-        ierr = 1;
     } else {
         ierr = 1;
-        amrex::Abort("amrex::check_mvmc: how did this happen? wrong number of cuts on xhi-face");
     }
 
     // y-faces
@@ -227,11 +221,8 @@ int check_mvmc (int i, int j, int k, Array4<Real const> const& fine)
         nym = 0;
     } else if (n == 2) {
         nym = 1;
-    } else if (n == 4) {
-        ierr = 1;
     } else {
         ierr = 1;
-        amrex::Abort("amrex::check_mvmc: how did this happen? wrong number of cuts on ylo-face");
     }
 
     int nyp = -1;
@@ -240,11 +231,8 @@ int check_mvmc (int i, int j, int k, Array4<Real const> const& fine)
         nyp = 0;
     } else if (n == 2) {
         nyp = 1;
-    } else if (n == 4) {
-        ierr = 1;
     } else {
         ierr = 1;
-        amrex::Abort("amrex::check_mvmc: how did this happen? wrong number of cuts on yhi-face");
     }
 
     // z-faces
@@ -254,11 +242,8 @@ int check_mvmc (int i, int j, int k, Array4<Real const> const& fine)
         nzm = 0;
     } else if (n == 2) {
         nzm = 1;
-    } else if (n == 4) {
-        ierr = 1;
     } else {
         ierr = 1;
-        amrex::Abort("amrex::check_mvmc: how did this happen? wrong number of cuts on zlo-face");
     }
 
     int nzp = -1;
@@ -267,18 +252,15 @@ int check_mvmc (int i, int j, int k, Array4<Real const> const& fine)
         nzp = 0;
     } else if (n == 2) {
         nzp = 1;
-    } else if (n == 4) {
-        ierr = 1;
     } else {
         ierr = 1;
-        amrex::Abort("amrex::check_mvmc: how did this happen? wrong number of cuts on zhi-face");
     }
 
     if (nxm == 1 && nym == 1 && nzm == 1 && nxp == 1 && nyp == 1 && nzp == 1) {
-        n = (fine(i  ,j  ,k  ) < 0.0) + (fine(i+2,j  ,k  ) < 0.0) +
-            (fine(i  ,j+2,k  ) < 0.0) + (fine(i+2,j+2,k  ) < 0.0) +
-            (fine(i  ,j  ,k+2) < 0.0) + (fine(i+2,j  ,k+2) < 0.0) +
-            (fine(i  ,j+2,k+2) < 0.0) + (fine(i+2,j+2,k+2) < 0.0);
+        n = (fine(i  ,j  ,k  ) < 0.0_rt) + (fine(i+2,j  ,k  ) < 0.0_rt) +
+            (fine(i  ,j+2,k  ) < 0.0_rt) + (fine(i+2,j+2,k  ) < 0.0_rt) +
+            (fine(i  ,j  ,k+2) < 0.0_rt) + (fine(i+2,j  ,k+2) < 0.0_rt) +
+            (fine(i  ,j+2,k+2) < 0.0_rt) + (fine(i+2,j+2,k+2) < 0.0_rt);
         if (n == 2 || n == 6) {
             ierr = 1;
         } else if (n != 4) {
@@ -365,17 +347,17 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, int ngrow,
             fflag(ii,jj+1,kk+1).isRegular() && fflag(ii+1,jj+1,kk+1).isRegular())
         {
             cflag(i,j,k).setRegular();
-            cvol(i,j,k) = 1.0;
-            ccent(i,j,k,0) = 0.0;
-            ccent(i,j,k,1) = 0.0;
-            ccent(i,j,k,2) = 0.0;
-            cba(i,j,k) = 0.0;
-            cbc(i,j,k,0) = -1.0;
-            cbc(i,j,k,1) = -1.0;
-            cbc(i,j,k,2) = -1.0;
-            cbn(i,j,k,0) = 0.0;
-            cbn(i,j,k,1) = 0.0;
-            cbn(i,j,k,2) = 0.0;
+            cvol(i,j,k) = 1.0_rt;
+            ccent(i,j,k,0) = 0.0_rt;
+            ccent(i,j,k,1) = 0.0_rt;
+            ccent(i,j,k,2) = 0.0_rt;
+            cba(i,j,k) = 0.0_rt;
+            cbc(i,j,k,0) = -1.0_rt;
+            cbc(i,j,k,1) = -1.0_rt;
+            cbc(i,j,k,2) = -1.0_rt;
+            cbn(i,j,k,0) = 0.0_rt;
+            cbn(i,j,k,1) = 0.0_rt;
+            cbn(i,j,k,2) = 0.0_rt;
         }
         else if (fflag(ii,jj  ,kk  ).isCovered() && fflag(ii+1,jj  ,kk  ).isCovered() &&
                  fflag(ii,jj+1,kk  ).isCovered() && fflag(ii+1,jj+1,kk  ).isCovered() &&
@@ -383,89 +365,89 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, int ngrow,
                  fflag(ii,jj+1,kk+1).isCovered() && fflag(ii+1,jj+1,kk+1).isCovered())
         {
             cflag(i,j,k).setCovered();
-            cvol(i,j,k) = 0.0;
-            ccent(i,j,k,0) = 0.0;
-            ccent(i,j,k,1) = 0.0;
-            ccent(i,j,k,2) = 0.0;
-            cba(i,j,k) = 0.0;
-            cbc(i,j,k,0) = -1.0;
-            cbc(i,j,k,1) = -1.0;
-            cbc(i,j,k,2) = -1.0;
-            cbn(i,j,k,0) = 0.0;
-            cbn(i,j,k,1) = 0.0;
-            cbn(i,j,k,2) = 0.0;
+            cvol(i,j,k) = 0.0_rt;
+            ccent(i,j,k,0) = 0.0_rt;
+            ccent(i,j,k,1) = 0.0_rt;
+            ccent(i,j,k,2) = 0.0_rt;
+            cba(i,j,k) = 0.0_rt;
+            cbc(i,j,k,0) = -1.0_rt;
+            cbc(i,j,k,1) = -1.0_rt;
+            cbc(i,j,k,2) = -1.0_rt;
+            cbn(i,j,k,0) = 0.0_rt;
+            cbn(i,j,k,1) = 0.0_rt;
+            cbn(i,j,k,2) = 0.0_rt;
         }
         else
         {
             cflag(i,j,k).setSingleValued();
 
-            cvol(i,j,k) = 0.125*(fvol(ii  ,jj  ,kk  ) + fvol(ii+1,jj  ,kk  ) +
+            cvol(i,j,k) = 0.125_rt*(fvol(ii  ,jj  ,kk  ) + fvol(ii+1,jj  ,kk  ) +
                                  fvol(ii  ,jj+1,kk  ) + fvol(ii+1,jj+1,kk  ) +
                                  fvol(ii  ,jj  ,kk+1) + fvol(ii+1,jj  ,kk+1) +
                                  fvol(ii  ,jj+1,kk+1) + fvol(ii+1,jj+1,kk+1));
-            Real cvolinv = 1.0 / cvol(i,j,k);
+            Real cvolinv = 1.0_rt / cvol(i,j,k);
 
-            ccent(i,j,k,0) = 0.125 * cvolinv *
-                (fvol(ii  ,jj  ,kk  )*(0.5*fcent(ii  ,jj  ,kk  ,0)-0.25) +
-                 fvol(ii+1,jj  ,kk  )*(0.5*fcent(ii+1,jj  ,kk  ,0)+0.25) +
-                 fvol(ii  ,jj+1,kk  )*(0.5*fcent(ii  ,jj+1,kk  ,0)-0.25) +
-                 fvol(ii+1,jj+1,kk  )*(0.5*fcent(ii+1,jj+1,kk  ,0)+0.25) +
-                 fvol(ii  ,jj  ,kk+1)*(0.5*fcent(ii  ,jj  ,kk+1,0)-0.25) +
-                 fvol(ii+1,jj  ,kk+1)*(0.5*fcent(ii+1,jj  ,kk+1,0)+0.25) +
-                 fvol(ii  ,jj+1,kk+1)*(0.5*fcent(ii  ,jj+1,kk+1,0)-0.25) +
-                 fvol(ii+1,jj+1,kk+1)*(0.5*fcent(ii+1,jj+1,kk+1,0)+0.25));
-            ccent(i,j,k,1) = 0.125 * cvolinv *
-                (fvol(ii  ,jj  ,kk  )*(0.5*fcent(ii  ,jj  ,kk  ,1)-0.25) +
-                 fvol(ii+1,jj  ,kk  )*(0.5*fcent(ii+1,jj  ,kk  ,1)-0.25) +
-                 fvol(ii  ,jj+1,kk  )*(0.5*fcent(ii  ,jj+1,kk  ,1)+0.25) +
-                 fvol(ii+1,jj+1,kk  )*(0.5*fcent(ii+1,jj+1,kk  ,1)+0.25) +
-                 fvol(ii  ,jj  ,kk+1)*(0.5*fcent(ii  ,jj  ,kk+1,1)-0.25) +
-                 fvol(ii+1,jj  ,kk+1)*(0.5*fcent(ii+1,jj  ,kk+1,1)-0.25) +
-                 fvol(ii  ,jj+1,kk+1)*(0.5*fcent(ii  ,jj+1,kk+1,1)+0.25) +
-                 fvol(ii+1,jj+1,kk+1)*(0.5*fcent(ii+1,jj+1,kk+1,1)+0.25));
-            ccent(i,j,k,2) = 0.125 * cvolinv *
-                (fvol(ii  ,jj  ,kk  )*(0.5*fcent(ii  ,jj  ,kk  ,2)-0.25) +
-                 fvol(ii+1,jj  ,kk  )*(0.5*fcent(ii+1,jj  ,kk  ,2)-0.25) +
-                 fvol(ii  ,jj+1,kk  )*(0.5*fcent(ii  ,jj+1,kk  ,2)-0.25) +
-                 fvol(ii+1,jj+1,kk  )*(0.5*fcent(ii+1,jj+1,kk  ,2)-0.25) +
-                 fvol(ii  ,jj  ,kk+1)*(0.5*fcent(ii  ,jj  ,kk+1,2)+0.25) +
-                 fvol(ii+1,jj  ,kk+1)*(0.5*fcent(ii+1,jj  ,kk+1,2)+0.25) +
-                 fvol(ii  ,jj+1,kk+1)*(0.5*fcent(ii  ,jj+1,kk+1,2)+0.25) +
-                 fvol(ii+1,jj+1,kk+1)*(0.5*fcent(ii+1,jj+1,kk+1,2)+0.25));
+            ccent(i,j,k,0) = 0.125_rt * cvolinv *
+                (fvol(ii  ,jj  ,kk  )*(0.5_rt*fcent(ii  ,jj  ,kk  ,0)-0.25_rt) +
+                 fvol(ii+1,jj  ,kk  )*(0.5_rt*fcent(ii+1,jj  ,kk  ,0)+0.25_rt) +
+                 fvol(ii  ,jj+1,kk  )*(0.5_rt*fcent(ii  ,jj+1,kk  ,0)-0.25_rt) +
+                 fvol(ii+1,jj+1,kk  )*(0.5_rt*fcent(ii+1,jj+1,kk  ,0)+0.25_rt) +
+                 fvol(ii  ,jj  ,kk+1)*(0.5_rt*fcent(ii  ,jj  ,kk+1,0)-0.25_rt) +
+                 fvol(ii+1,jj  ,kk+1)*(0.5_rt*fcent(ii+1,jj  ,kk+1,0)+0.25_rt) +
+                 fvol(ii  ,jj+1,kk+1)*(0.5_rt*fcent(ii  ,jj+1,kk+1,0)-0.25_rt) +
+                 fvol(ii+1,jj+1,kk+1)*(0.5_rt*fcent(ii+1,jj+1,kk+1,0)+0.25_rt));
+            ccent(i,j,k,1) = 0.125_rt * cvolinv *
+                (fvol(ii  ,jj  ,kk  )*(0.5_rt*fcent(ii  ,jj  ,kk  ,1)-0.25_rt) +
+                 fvol(ii+1,jj  ,kk  )*(0.5_rt*fcent(ii+1,jj  ,kk  ,1)-0.25_rt) +
+                 fvol(ii  ,jj+1,kk  )*(0.5_rt*fcent(ii  ,jj+1,kk  ,1)+0.25_rt) +
+                 fvol(ii+1,jj+1,kk  )*(0.5_rt*fcent(ii+1,jj+1,kk  ,1)+0.25_rt) +
+                 fvol(ii  ,jj  ,kk+1)*(0.5_rt*fcent(ii  ,jj  ,kk+1,1)-0.25_rt) +
+                 fvol(ii+1,jj  ,kk+1)*(0.5_rt*fcent(ii+1,jj  ,kk+1,1)-0.25_rt) +
+                 fvol(ii  ,jj+1,kk+1)*(0.5_rt*fcent(ii  ,jj+1,kk+1,1)+0.25_rt) +
+                 fvol(ii+1,jj+1,kk+1)*(0.5_rt*fcent(ii+1,jj+1,kk+1,1)+0.25_rt));
+            ccent(i,j,k,2) = 0.125_rt * cvolinv *
+                (fvol(ii  ,jj  ,kk  )*(0.5_rt*fcent(ii  ,jj  ,kk  ,2)-0.25_rt) +
+                 fvol(ii+1,jj  ,kk  )*(0.5_rt*fcent(ii+1,jj  ,kk  ,2)-0.25_rt) +
+                 fvol(ii  ,jj+1,kk  )*(0.5_rt*fcent(ii  ,jj+1,kk  ,2)-0.25_rt) +
+                 fvol(ii+1,jj+1,kk  )*(0.5_rt*fcent(ii+1,jj+1,kk  ,2)-0.25_rt) +
+                 fvol(ii  ,jj  ,kk+1)*(0.5_rt*fcent(ii  ,jj  ,kk+1,2)+0.25_rt) +
+                 fvol(ii+1,jj  ,kk+1)*(0.5_rt*fcent(ii+1,jj  ,kk+1,2)+0.25_rt) +
+                 fvol(ii  ,jj+1,kk+1)*(0.5_rt*fcent(ii  ,jj+1,kk+1,2)+0.25_rt) +
+                 fvol(ii+1,jj+1,kk+1)*(0.5_rt*fcent(ii+1,jj+1,kk+1,2)+0.25_rt));
 
-            cba(i,j,k) = 0.25*(fba(ii  ,jj  ,kk  ) + fba(ii+1,jj  ,kk  ) +
+            cba(i,j,k) = 0.25_rt*(fba(ii  ,jj  ,kk  ) + fba(ii+1,jj  ,kk  ) +
                                fba(ii  ,jj+1,kk  ) + fba(ii+1,jj+1,kk  ) +
                                fba(ii  ,jj  ,kk+1) + fba(ii+1,jj  ,kk+1) +
                                fba(ii  ,jj+1,kk+1) + fba(ii+1,jj+1,kk+1));
-            Real cbainv = 1.0 / cba(i,j,k);
+            Real cbainv = 1.0_rt / cba(i,j,k);
 
-            cbc(i,j,k,0) = 0.25 * cbainv *
-                  ( fba(ii  ,jj  ,kk  )*(0.5*fbc(ii  ,jj  ,kk  ,0)-0.25)
-                  + fba(ii+1,jj  ,kk  )*(0.5*fbc(ii+1,jj  ,kk  ,0)+0.25)
-                  + fba(ii  ,jj+1,kk  )*(0.5*fbc(ii  ,jj+1,kk  ,0)-0.25)
-                  + fba(ii+1,jj+1,kk  )*(0.5*fbc(ii+1,jj+1,kk  ,0)+0.25)
-                  + fba(ii  ,jj  ,kk+1)*(0.5*fbc(ii  ,jj  ,kk+1,0)-0.25)
-                  + fba(ii+1,jj  ,kk+1)*(0.5*fbc(ii+1,jj  ,kk+1,0)+0.25)
-                  + fba(ii  ,jj+1,kk+1)*(0.5*fbc(ii  ,jj+1,kk+1,0)-0.25)
-                  + fba(ii+1,jj+1,kk+1)*(0.5*fbc(ii+1,jj+1,kk+1,0)+0.25) );
-            cbc(i,j,k,1) = 0.25 * cbainv *
-                  ( fba(ii  ,jj  ,kk  )*(0.5*fbc(ii  ,jj  ,kk  ,1)-0.25)
-                  + fba(ii+1,jj  ,kk  )*(0.5*fbc(ii+1,jj  ,kk  ,1)-0.25)
-                  + fba(ii  ,jj+1,kk  )*(0.5*fbc(ii  ,jj+1,kk  ,1)+0.25)
-                  + fba(ii+1,jj+1,kk  )*(0.5*fbc(ii+1,jj+1,kk  ,1)+0.25)
-                  + fba(ii  ,jj  ,kk+1)*(0.5*fbc(ii  ,jj  ,kk+1,1)-0.25)
-                  + fba(ii+1,jj  ,kk+1)*(0.5*fbc(ii+1,jj  ,kk+1,1)-0.25)
-                  + fba(ii  ,jj+1,kk+1)*(0.5*fbc(ii  ,jj+1,kk+1,1)+0.25)
-                  + fba(ii+1,jj+1,kk+1)*(0.5*fbc(ii+1,jj+1,kk+1,1)+0.25) );
-            cbc(i,j,k,2) = 0.25 * cbainv *
-                  ( fba(ii  ,jj  ,kk  )*(0.5*fbc(ii  ,jj  ,kk  ,2)-0.25)
-                  + fba(ii+1,jj  ,kk  )*(0.5*fbc(ii+1,jj  ,kk  ,2)-0.25)
-                  + fba(ii  ,jj+1,kk  )*(0.5*fbc(ii  ,jj+1,kk  ,2)-0.25)
-                  + fba(ii+1,jj+1,kk  )*(0.5*fbc(ii+1,jj+1,kk  ,2)-0.25)
-                  + fba(ii  ,jj  ,kk+1)*(0.5*fbc(ii  ,jj  ,kk+1,2)+0.25)
-                  + fba(ii+1,jj  ,kk+1)*(0.5*fbc(ii+1,jj  ,kk+1,2)+0.25)
-                  + fba(ii  ,jj+1,kk+1)*(0.5*fbc(ii  ,jj+1,kk+1,2)+0.25)
-                  + fba(ii+1,jj+1,kk+1)*(0.5*fbc(ii+1,jj+1,kk+1,2)+0.25) );
+            cbc(i,j,k,0) = 0.25_rt * cbainv *
+                  ( fba(ii  ,jj  ,kk  )*(0.5_rt*fbc(ii  ,jj  ,kk  ,0)-0.25_rt)
+                  + fba(ii+1,jj  ,kk  )*(0.5_rt*fbc(ii+1,jj  ,kk  ,0)+0.25_rt)
+                  + fba(ii  ,jj+1,kk  )*(0.5_rt*fbc(ii  ,jj+1,kk  ,0)-0.25_rt)
+                  + fba(ii+1,jj+1,kk  )*(0.5_rt*fbc(ii+1,jj+1,kk  ,0)+0.25_rt)
+                  + fba(ii  ,jj  ,kk+1)*(0.5_rt*fbc(ii  ,jj  ,kk+1,0)-0.25_rt)
+                  + fba(ii+1,jj  ,kk+1)*(0.5_rt*fbc(ii+1,jj  ,kk+1,0)+0.25_rt)
+                  + fba(ii  ,jj+1,kk+1)*(0.5_rt*fbc(ii  ,jj+1,kk+1,0)-0.25_rt)
+                  + fba(ii+1,jj+1,kk+1)*(0.5_rt*fbc(ii+1,jj+1,kk+1,0)+0.25_rt) );
+            cbc(i,j,k,1) = 0.25_rt * cbainv *
+                  ( fba(ii  ,jj  ,kk  )*(0.5_rt*fbc(ii  ,jj  ,kk  ,1)-0.25_rt)
+                  + fba(ii+1,jj  ,kk  )*(0.5_rt*fbc(ii+1,jj  ,kk  ,1)-0.25_rt)
+                  + fba(ii  ,jj+1,kk  )*(0.5_rt*fbc(ii  ,jj+1,kk  ,1)+0.25_rt)
+                  + fba(ii+1,jj+1,kk  )*(0.5_rt*fbc(ii+1,jj+1,kk  ,1)+0.25_rt)
+                  + fba(ii  ,jj  ,kk+1)*(0.5_rt*fbc(ii  ,jj  ,kk+1,1)-0.25_rt)
+                  + fba(ii+1,jj  ,kk+1)*(0.5_rt*fbc(ii+1,jj  ,kk+1,1)-0.25_rt)
+                  + fba(ii  ,jj+1,kk+1)*(0.5_rt*fbc(ii  ,jj+1,kk+1,1)+0.25_rt)
+                  + fba(ii+1,jj+1,kk+1)*(0.5_rt*fbc(ii+1,jj+1,kk+1,1)+0.25_rt) );
+            cbc(i,j,k,2) = 0.25_rt * cbainv *
+                  ( fba(ii  ,jj  ,kk  )*(0.5_rt*fbc(ii  ,jj  ,kk  ,2)-0.25_rt)
+                  + fba(ii+1,jj  ,kk  )*(0.5_rt*fbc(ii+1,jj  ,kk  ,2)-0.25_rt)
+                  + fba(ii  ,jj+1,kk  )*(0.5_rt*fbc(ii  ,jj+1,kk  ,2)-0.25_rt)
+                  + fba(ii+1,jj+1,kk  )*(0.5_rt*fbc(ii+1,jj+1,kk  ,2)-0.25_rt)
+                  + fba(ii  ,jj  ,kk+1)*(0.5_rt*fbc(ii  ,jj  ,kk+1,2)+0.25_rt)
+                  + fba(ii+1,jj  ,kk+1)*(0.5_rt*fbc(ii+1,jj  ,kk+1,2)+0.25_rt)
+                  + fba(ii  ,jj+1,kk+1)*(0.5_rt*fbc(ii  ,jj+1,kk+1,2)+0.25_rt)
+                  + fba(ii+1,jj+1,kk+1)*(0.5_rt*fbc(ii+1,jj+1,kk+1,2)+0.25_rt) );
 
             Real nx = fbn(ii  ,jj  ,kk  ,0)*fba(ii  ,jj  ,kk  )
                 +     fbn(ii+1,jj  ,kk  ,0)*fba(ii+1,jj  ,kk  )
@@ -491,125 +473,125 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, int ngrow,
                 +     fbn(ii+1,jj  ,kk+1,2)*fba(ii+1,jj  ,kk+1)
                 +     fbn(ii  ,jj+1,kk+1,2)*fba(ii  ,jj+1,kk+1)
                 +     fbn(ii+1,jj+1,kk+1,2)*fba(ii+1,jj+1,kk+1);
-            Real nfac = 1.0 / std::sqrt(nx*nx+ny*ny+nz*nz+1.e-50);
+            Real nfac = 1.0_rt / std::sqrt(nx*nx+ny*ny+nz*nz+1.e-30_rt);
             cbn(i,j,k,0) = nx*nfac;
             cbn(i,j,k,1) = ny*nfac;
             cbn(i,j,k,2) = nz*nfac;
-            ierr = (nx == 0.0 && ny == 0.0 && nz == 0.0)
+            ierr = (nx == 0.0_rt && ny == 0.0_rt && nz == 0.0_rt)
                 // we must check the enclosing surface to make sure the coarse cell does not
                 // fully contains the geometry object.
-                || ( fapx(ii,jj  ,kk  )==1.0 && fapx(ii+2,jj  ,kk  )==1.0
-                 && fapx(ii,jj+1,kk  )==1.0 && fapx(ii+2,jj+1,kk  )==1.0
-                 && fapx(ii,jj  ,kk+1)==1.0 && fapx(ii+2,jj  ,kk+1)==1.0
-                 && fapx(ii,jj+1,kk+1)==1.0 && fapx(ii+2,jj+1,kk+1)==1.0
-                 && fapy(ii,jj  ,kk  )==1.0 && fapy(ii+1,jj  ,kk  )==1.0
-                 && fapy(ii,jj+2,kk  )==1.0 && fapy(ii+1,jj+2,kk  )==1.0
-                 && fapy(ii,jj  ,kk+1)==1.0 && fapy(ii+1,jj  ,kk+1)==1.0
-                 && fapy(ii,jj+2,kk+1)==1.0 && fapy(ii+1,jj+2,kk+1)==1.0
-                 && fapz(ii,jj  ,kk  )==1.0 && fapz(ii+1,jj  ,kk  )==1.0
-                 && fapz(ii,jj+1,kk  )==1.0 && fapz(ii+1,jj+1,kk  )==1.0
-                 && fapz(ii,jj  ,kk+2)==1.0 && fapz(ii+1,jj  ,kk+2)==1.0
-                 && fapz(ii,jj+1,kk+2)==1.0 && fapz(ii+1,jj+1,kk+2)==1.0);
+                || ( fapx(ii,jj  ,kk  )==1.0_rt && fapx(ii+2,jj  ,kk  )==1.0_rt
+                 && fapx(ii,jj+1,kk  )==1.0_rt && fapx(ii+2,jj+1,kk  )==1.0_rt
+                 && fapx(ii,jj  ,kk+1)==1.0_rt && fapx(ii+2,jj  ,kk+1)==1.0_rt
+                 && fapx(ii,jj+1,kk+1)==1.0_rt && fapx(ii+2,jj+1,kk+1)==1.0_rt
+                 && fapy(ii,jj  ,kk  )==1.0_rt && fapy(ii+1,jj  ,kk  )==1.0_rt
+                 && fapy(ii,jj+2,kk  )==1.0_rt && fapy(ii+1,jj+2,kk  )==1.0_rt
+                 && fapy(ii,jj  ,kk+1)==1.0_rt && fapy(ii+1,jj  ,kk+1)==1.0_rt
+                 && fapy(ii,jj+2,kk+1)==1.0_rt && fapy(ii+1,jj+2,kk+1)==1.0_rt
+                 && fapz(ii,jj  ,kk  )==1.0_rt && fapz(ii+1,jj  ,kk  )==1.0_rt
+                 && fapz(ii,jj+1,kk  )==1.0_rt && fapz(ii+1,jj+1,kk  )==1.0_rt
+                 && fapz(ii,jj  ,kk+2)==1.0_rt && fapz(ii+1,jj  ,kk+2)==1.0_rt
+                 && fapz(ii,jj+1,kk+2)==1.0_rt && fapz(ii+1,jj+1,kk+2)==1.0_rt);
 
         }
     }
     else if (gbx.contains(i,j,k))
     {
-        cvol(i,j,k) = 1.0;
-        ccent(i,j,k,0) = 0.0;
-        ccent(i,j,k,1) = 0.0;
-        ccent(i,j,k,2) = 0.0;
-        cba(i,j,k) = 0.0;
-        cbc(i,j,k,0) = -1.0;
-        cbc(i,j,k,1) = -1.0;
-        cbc(i,j,k,2) = -1.0;
-        cbn(i,j,k,0) = 0.0;
-        cbn(i,j,k,1) = 0.0;
-        cbn(i,j,k,2) = 0.0;
+        cvol(i,j,k) = 1.0_rt;
+        ccent(i,j,k,0) = 0.0_rt;
+        ccent(i,j,k,1) = 0.0_rt;
+        ccent(i,j,k,2) = 0.0_rt;
+        cba(i,j,k) = 0.0_rt;
+        cbc(i,j,k,0) = -1.0_rt;
+        cbc(i,j,k,1) = -1.0_rt;
+        cbc(i,j,k,2) = -1.0_rt;
+        cbn(i,j,k,0) = 0.0_rt;
+        cbn(i,j,k,1) = 0.0_rt;
+        cbn(i,j,k,2) = 0.0_rt;
     }
 
     if (xbx.contains(i,j,k))
     {
-        capx(i,j,k) = 0.25*(fapx(ii,jj  ,kk  ) + fapx(ii,jj+1,kk  ) +
+        capx(i,j,k) = 0.25_rt*(fapx(ii,jj  ,kk  ) + fapx(ii,jj+1,kk  ) +
                             fapx(ii,jj  ,kk+1) + fapx(ii,jj+1,kk+1));
-        if (capx(i,j,k) != 0.0) {
-            Real apinv = 1.0 / capx(i,j,k);
-            cfcx(i,j,k,0) = 0.25 * apinv *
-                (fapx(ii,jj  ,kk  )*(0.5*ffcx(ii,jj  ,kk  ,0)-0.25) +
-                 fapx(ii,jj+1,kk  )*(0.5*ffcx(ii,jj+1,kk  ,0)+0.25) +
-                 fapx(ii,jj  ,kk+1)*(0.5*ffcx(ii,jj  ,kk+1,0)-0.25) +
-                 fapx(ii,jj+1,kk+1)*(0.5*ffcx(ii,jj+1,kk+1,0)+0.25) );
-            cfcx(i,j,k,1) = 0.25 * apinv *
-                (fapx(ii,jj  ,kk  )*(0.5*ffcx(ii,jj  ,kk  ,1)-0.25) +
-                 fapx(ii,jj+1,kk  )*(0.5*ffcx(ii,jj+1,kk  ,1)-0.25) +
-                 fapx(ii,jj  ,kk+1)*(0.5*ffcx(ii,jj  ,kk+1,1)+0.25) +
-                 fapx(ii,jj+1,kk+1)*(0.5*ffcx(ii,jj+1,kk+1,1)+0.25) );
+        if (capx(i,j,k) != 0.0_rt) {
+            Real apinv = 1.0_rt / capx(i,j,k);
+            cfcx(i,j,k,0) = 0.25_rt * apinv *
+                (fapx(ii,jj  ,kk  )*(0.5_rt*ffcx(ii,jj  ,kk  ,0)-0.25_rt) +
+                 fapx(ii,jj+1,kk  )*(0.5_rt*ffcx(ii,jj+1,kk  ,0)+0.25_rt) +
+                 fapx(ii,jj  ,kk+1)*(0.5_rt*ffcx(ii,jj  ,kk+1,0)-0.25_rt) +
+                 fapx(ii,jj+1,kk+1)*(0.5_rt*ffcx(ii,jj+1,kk+1,0)+0.25_rt) );
+            cfcx(i,j,k,1) = 0.25_rt * apinv *
+                (fapx(ii,jj  ,kk  )*(0.5_rt*ffcx(ii,jj  ,kk  ,1)-0.25_rt) +
+                 fapx(ii,jj+1,kk  )*(0.5_rt*ffcx(ii,jj+1,kk  ,1)-0.25_rt) +
+                 fapx(ii,jj  ,kk+1)*(0.5_rt*ffcx(ii,jj  ,kk+1,1)+0.25_rt) +
+                 fapx(ii,jj+1,kk+1)*(0.5_rt*ffcx(ii,jj+1,kk+1,1)+0.25_rt) );
         } else {
-            cfcx(i,j,k,0) = 0.0;
-            cfcx(i,j,k,1) = 0.0;
+            cfcx(i,j,k,0) = 0.0_rt;
+            cfcx(i,j,k,1) = 0.0_rt;
         }
     }
     else if (xgbx.contains(i,j,k))
     {
-        capx(i,j,k) = 1.0;
-        cfcx(i,j,k,0) = 0.0;
-        cfcx(i,j,k,1) = 0.0;
+        capx(i,j,k) = 1.0_rt;
+        cfcx(i,j,k,0) = 0.0_rt;
+        cfcx(i,j,k,1) = 0.0_rt;
     }
 
     if (ybx.contains(i,j,k))
     {
-        capy(i,j,k) = 0.25*(fapy(ii  ,jj,kk  ) + fapy(ii+1,jj,kk  ) +
+        capy(i,j,k) = 0.25_rt*(fapy(ii  ,jj,kk  ) + fapy(ii+1,jj,kk  ) +
                             fapy(ii  ,jj,kk+1) + fapy(ii+1,jj,kk+1));
-        if (capy(i,j,k) != 0.0) {
-            Real apinv = 1.0 / capy(i,j,k);
-            cfcy(i,j,k,0) = 0.25 * apinv *
-                (fapy(ii  ,jj,kk  )*(0.5*ffcy(ii  ,jj,kk  ,0)-0.25) +
-                 fapy(ii+1,jj,kk  )*(0.5*ffcy(ii+1,jj,kk  ,0)+0.25) +
-                 fapy(ii  ,jj,kk+1)*(0.5*ffcy(ii  ,jj,kk+1,0)-0.25) +
-                 fapy(ii+1,jj,kk+1)*(0.5*ffcy(ii+1,jj,kk+1,0)+0.25) );
-            cfcy(i,j,k,1) = 0.25 * apinv *
-                (fapy(ii  ,jj,kk  )*(0.5*ffcy(ii  ,jj,kk  ,1)-0.25) +
-                 fapy(ii+1,jj,kk  )*(0.5*ffcy(ii+1,jj,kk  ,1)-0.25) +
-                 fapy(ii  ,jj,kk+1)*(0.5*ffcy(ii  ,jj,kk+1,1)+0.25) +
-                 fapy(ii+1,jj,kk+1)*(0.5*ffcy(ii+1,jj,kk+1,1)+0.25) );
+        if (capy(i,j,k) != 0.0_rt) {
+            Real apinv = 1.0_rt / capy(i,j,k);
+            cfcy(i,j,k,0) = 0.25_rt * apinv *
+                (fapy(ii  ,jj,kk  )*(0.5_rt*ffcy(ii  ,jj,kk  ,0)-0.25_rt) +
+                 fapy(ii+1,jj,kk  )*(0.5_rt*ffcy(ii+1,jj,kk  ,0)+0.25_rt) +
+                 fapy(ii  ,jj,kk+1)*(0.5_rt*ffcy(ii  ,jj,kk+1,0)-0.25_rt) +
+                 fapy(ii+1,jj,kk+1)*(0.5_rt*ffcy(ii+1,jj,kk+1,0)+0.25_rt) );
+            cfcy(i,j,k,1) = 0.25_rt * apinv *
+                (fapy(ii  ,jj,kk  )*(0.5_rt*ffcy(ii  ,jj,kk  ,1)-0.25_rt) +
+                 fapy(ii+1,jj,kk  )*(0.5_rt*ffcy(ii+1,jj,kk  ,1)-0.25_rt) +
+                 fapy(ii  ,jj,kk+1)*(0.5_rt*ffcy(ii  ,jj,kk+1,1)+0.25_rt) +
+                 fapy(ii+1,jj,kk+1)*(0.5_rt*ffcy(ii+1,jj,kk+1,1)+0.25_rt) );
         } else {
-            cfcy(i,j,k,0) = 0.0;
-            cfcy(i,j,k,1) = 0.0;
+            cfcy(i,j,k,0) = 0.0_rt;
+            cfcy(i,j,k,1) = 0.0_rt;
         }
     }
     else if (ygbx.contains(i,j,k))
     {
-        capy(i,j,k) = 1.0;
-        cfcy(i,j,k,0) = 0.0;
-        cfcy(i,j,k,1) = 0.0;
+        capy(i,j,k) = 1.0_rt;
+        cfcy(i,j,k,0) = 0.0_rt;
+        cfcy(i,j,k,1) = 0.0_rt;
     }
 
     if (zbx.contains(i,j,k))
     {
-        capz(i,j,k) = 0.25 * (fapz(ii  ,jj  ,kk) + fapz(ii+1,jj  ,kk) +
+        capz(i,j,k) = 0.25_rt * (fapz(ii  ,jj  ,kk) + fapz(ii+1,jj  ,kk) +
                               fapz(ii  ,jj+1,kk) + fapz(ii+1,jj+1,kk));
-        if (capz(i,j,k) != 0.0) {
-            Real apinv = 1.0 / capz(i,j,k);
-            cfcz(i,j,k,0) = 0.25 * apinv *
-                (fapz(ii  ,jj  ,kk)*(0.5*ffcz(ii  ,jj  ,kk,0)-0.25) +
-                 fapz(ii+1,jj  ,kk)*(0.5*ffcz(ii+1,jj  ,kk,0)+0.25) +
-                 fapz(ii  ,jj+1,kk)*(0.5*ffcz(ii  ,jj+1,kk,0)-0.25) +
-                 fapz(ii+1,jj+1,kk)*(0.5*ffcz(ii+1,jj+1,kk,0)+0.25) );
-            cfcz(i,j,k,1) = 0.25 * apinv *
-                (fapz(ii  ,jj  ,kk)*(0.5*ffcz(ii  ,jj  ,kk,1)-0.25) +
-                 fapz(ii+1,jj  ,kk)*(0.5*ffcz(ii+1,jj  ,kk,1)-0.25) +
-                 fapz(ii  ,jj+1,kk)*(0.5*ffcz(ii  ,jj+1,kk,1)+0.25) +
-                 fapz(ii+1,jj+1,kk)*(0.5*ffcz(ii+1,jj+1,kk,1)+0.25) );
+        if (capz(i,j,k) != 0.0_rt) {
+            Real apinv = 1.0_rt / capz(i,j,k);
+            cfcz(i,j,k,0) = 0.25_rt * apinv *
+                (fapz(ii  ,jj  ,kk)*(0.5_rt*ffcz(ii  ,jj  ,kk,0)-0.25_rt) +
+                 fapz(ii+1,jj  ,kk)*(0.5_rt*ffcz(ii+1,jj  ,kk,0)+0.25_rt) +
+                 fapz(ii  ,jj+1,kk)*(0.5_rt*ffcz(ii  ,jj+1,kk,0)-0.25_rt) +
+                 fapz(ii+1,jj+1,kk)*(0.5_rt*ffcz(ii+1,jj+1,kk,0)+0.25_rt) );
+            cfcz(i,j,k,1) = 0.25_rt * apinv *
+                (fapz(ii  ,jj  ,kk)*(0.5_rt*ffcz(ii  ,jj  ,kk,1)-0.25_rt) +
+                 fapz(ii+1,jj  ,kk)*(0.5_rt*ffcz(ii+1,jj  ,kk,1)-0.25_rt) +
+                 fapz(ii  ,jj+1,kk)*(0.5_rt*ffcz(ii  ,jj+1,kk,1)+0.25_rt) +
+                 fapz(ii+1,jj+1,kk)*(0.5_rt*ffcz(ii+1,jj+1,kk,1)+0.25_rt) );
         } else {
-            cfcz(i,j,k,0) = 0.0;
-            cfcz(i,j,k,1) = 0.0;
+            cfcz(i,j,k,0) = 0.0_rt;
+            cfcz(i,j,k,1) = 0.0_rt;
         }
     }
     else if (zgbx.contains(i,j,k))
     {
-        capz(i,j,k) = 1.0;
-        cfcz(i,j,k,0) = 0.0;
-        cfcz(i,j,k,1) = 0.0;
+        capz(i,j,k) = 1.0_rt;
+        cfcz(i,j,k,0) = 0.0_rt;
+        cfcz(i,j,k,1) = 0.0_rt;
     }
 
     if (exbx.contains(i,j,k))
@@ -618,7 +600,7 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, int ngrow,
     }
     else if (exgbx.contains(i,j,k))
     {
-        cecx(i,j,k) = 1.0;
+        cecx(i,j,k) = 1.0_rt;
     }
 
     if (eybx.contains(i,j,k))
@@ -627,7 +609,7 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, int ngrow,
     }
     else if (eygbx.contains(i,j,k))
     {
-        cecy(i,j,k) = 1.0;
+        cecy(i,j,k) = 1.0_rt;
     }
 
     if (ezbx.contains(i,j,k))
@@ -636,7 +618,7 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, int ngrow,
     }
     else if (ezgbx.contains(i,j,k))
     {
-        cecz(i,j,k) = 1.0;
+        cecz(i,j,k) = 1.0_rt;
     }
 
     return ierr;
@@ -654,107 +636,107 @@ void build_cellflag_from_ap (int i, int j, int k, Array4<EBCellFlag> const& cfla
     {
         flg.setConnected(0,0,0);
 
-        if (apx(i  ,j,k) != 0.0) flg.setConnected(-1,  0,  0);
-        if (apx(i+1,j,k) != 0.0) flg.setConnected( 1,  0,  0);
-        if (apy(i,j  ,k) != 0.0) flg.setConnected( 0, -1,  0);
-        if (apy(i,j+1,k) != 0.0) flg.setConnected( 0,  1,  0);
-        if (apz(i,j,k  ) != 0.0) flg.setConnected( 0,  0, -1);
-        if (apz(i,j,k+1) != 0.0) flg.setConnected( 0,  0,  1);
+        if (apx(i  ,j,k) != 0.0_rt) flg.setConnected(-1,  0,  0);
+        if (apx(i+1,j,k) != 0.0_rt) flg.setConnected( 1,  0,  0);
+        if (apy(i,j  ,k) != 0.0_rt) flg.setConnected( 0, -1,  0);
+        if (apy(i,j+1,k) != 0.0_rt) flg.setConnected( 0,  1,  0);
+        if (apz(i,j,k  ) != 0.0_rt) flg.setConnected( 0,  0, -1);
+        if (apz(i,j,k+1) != 0.0_rt) flg.setConnected( 0,  0,  1);
 
-        if ( (apx(i,j,k) != 0.0 && apy(i-1,j,k) != 0.0) ||
-             (apy(i,j,k) != 0.0 && apx(i,j-1,k) != 0.0) )
+        if ( (apx(i,j,k) != 0.0_rt && apy(i-1,j,k) != 0.0_rt) ||
+             (apy(i,j,k) != 0.0_rt && apx(i,j-1,k) != 0.0_rt) )
         {
             flg.setConnected(-1, -1, 0);
-            if (apz(i-1,j-1,k  ) != 0.0) flg.setConnected(-1,-1,-1);
-            if (apz(i-1,j-1,k+1) != 0.0) flg.setConnected(-1,-1, 1);
+            if (apz(i-1,j-1,k  ) != 0.0_rt) flg.setConnected(-1,-1,-1);
+            if (apz(i-1,j-1,k+1) != 0.0_rt) flg.setConnected(-1,-1, 1);
         }
 
-        if ( (apx(i+1,j,k) != 0.0 && apy(i+1,j  ,k) != 0.0) ||
-             (apy(i  ,j,k) != 0.0 && apx(i+1,j-1,k) != 0.0) )
+        if ( (apx(i+1,j,k) != 0.0_rt && apy(i+1,j  ,k) != 0.0_rt) ||
+             (apy(i  ,j,k) != 0.0_rt && apx(i+1,j-1,k) != 0.0_rt) )
         {
             flg.setConnected(1, -1, 0);
-            if (apz(i+1,j-1,k  ) != 0.0) flg.setConnected(1,-1,-1);
-            if (apz(i+1,j-1,k+1) != 0.0) flg.setConnected(1,-1, 1);
+            if (apz(i+1,j-1,k  ) != 0.0_rt) flg.setConnected(1,-1,-1);
+            if (apz(i+1,j-1,k+1) != 0.0_rt) flg.setConnected(1,-1, 1);
         }
 
-        if ( (apx(i,j  ,k) != 0.0 && apy(i-1,j+1,k) != 0.0) ||
-             (apy(i,j+1,k) != 0.0 && apx(i  ,j+1,k) != 0.0) )
+        if ( (apx(i,j  ,k) != 0.0_rt && apy(i-1,j+1,k) != 0.0_rt) ||
+             (apy(i,j+1,k) != 0.0_rt && apx(i  ,j+1,k) != 0.0_rt) )
         {
             flg.setConnected(-1, 1, 0);
-            if (apz(i-1,j+1,k  ) != 0.0) flg.setConnected(-1, 1,-1);
-            if (apz(i-1,j+1,k+1) != 0.0) flg.setConnected(-1, 1, 1);
+            if (apz(i-1,j+1,k  ) != 0.0_rt) flg.setConnected(-1, 1,-1);
+            if (apz(i-1,j+1,k+1) != 0.0_rt) flg.setConnected(-1, 1, 1);
         }
 
-        if ( (apx(i+1,j  ,k) != 0.0 && apy(i+1,j+1,k) != 0.0) ||
-             (apy(i  ,j+1,k) != 0.0 && apx(i+1,j+1,k) != 0.0) )
+        if ( (apx(i+1,j  ,k) != 0.0_rt && apy(i+1,j+1,k) != 0.0_rt) ||
+             (apy(i  ,j+1,k) != 0.0_rt && apx(i+1,j+1,k) != 0.0_rt) )
         {
             flg.setConnected(1, 1, 0);
-            if (apz(i+1,j+1,k  ) != 0.0) flg.setConnected(1, 1,-1);
-            if (apz(i+1,j+1,k+1) != 0.0) flg.setConnected(1, 1, 1);
+            if (apz(i+1,j+1,k  ) != 0.0_rt) flg.setConnected(1, 1,-1);
+            if (apz(i+1,j+1,k+1) != 0.0_rt) flg.setConnected(1, 1, 1);
         }
 
-        if ( (apx(i,j,k) != 0.0 && apz(i-1,j,k  ) != 0.0) ||
-             (apz(i,j,k) != 0.0 && apx(i  ,j,k-1) != 0.0) )
+        if ( (apx(i,j,k) != 0.0_rt && apz(i-1,j,k  ) != 0.0_rt) ||
+             (apz(i,j,k) != 0.0_rt && apx(i  ,j,k-1) != 0.0_rt) )
         {
             flg.setConnected(-1, 0, -1);
-            if (apy(i-1,j  ,k-1) != 0.0) flg.setConnected(-1,-1,-1);
-            if (apy(i-1,j+1,k-1) != 0.0) flg.setConnected(-1, 1,-1);
+            if (apy(i-1,j  ,k-1) != 0.0_rt) flg.setConnected(-1,-1,-1);
+            if (apy(i-1,j+1,k-1) != 0.0_rt) flg.setConnected(-1, 1,-1);
         }
 
-        if ( (apx(i+1,j,k) != 0.0 && apz(i+1,j,k  ) != 0.0) ||
-             (apz(i  ,j,k) != 0.0 && apx(i+1,j,k-1) != 0.0) )
+        if ( (apx(i+1,j,k) != 0.0_rt && apz(i+1,j,k  ) != 0.0_rt) ||
+             (apz(i  ,j,k) != 0.0_rt && apx(i+1,j,k-1) != 0.0_rt) )
         {
             flg.setConnected(1, 0, -1);
-            if (apy(i+1,j  ,k-1) != 0.0) flg.setConnected(1,-1,-1);
-            if (apy(i+1,j+1,k-1) != 0.0) flg.setConnected(1, 1,-1);
+            if (apy(i+1,j  ,k-1) != 0.0_rt) flg.setConnected(1,-1,-1);
+            if (apy(i+1,j+1,k-1) != 0.0_rt) flg.setConnected(1, 1,-1);
         }
 
-        if ( (apx(i,j,k  ) != 0.0 && apz(i-1,j,k+1) != 0.0) ||
-             (apz(i,j,k+1) != 0.0 && apx(i  ,j,k+1) != 0.0) )
+        if ( (apx(i,j,k  ) != 0.0_rt && apz(i-1,j,k+1) != 0.0_rt) ||
+             (apz(i,j,k+1) != 0.0_rt && apx(i  ,j,k+1) != 0.0_rt) )
         {
             flg.setConnected(-1, 0, 1);
-            if (apy(i-1,j  ,k+1) != 0.0) flg.setConnected(-1,-1, 1);
-            if (apy(i-1,j+1,k+1) != 0.0) flg.setConnected(-1, 1, 1);
+            if (apy(i-1,j  ,k+1) != 0.0_rt) flg.setConnected(-1,-1, 1);
+            if (apy(i-1,j+1,k+1) != 0.0_rt) flg.setConnected(-1, 1, 1);
         }
 
-        if ( (apx(i+1,j,k  ) != 0.0 && apz(i+1,j,k+1) != 0.0) ||
-             (apz(i  ,j,k+1) != 0.0 && apx(i+1,j,k+1) != 0.0) )
+        if ( (apx(i+1,j,k  ) != 0.0_rt && apz(i+1,j,k+1) != 0.0_rt) ||
+             (apz(i  ,j,k+1) != 0.0_rt && apx(i+1,j,k+1) != 0.0_rt) )
         {
             flg.setConnected(1, 0, 1);
-            if (apy(i+1,j  ,k+1) != 0.0) flg.setConnected(1,-1, 1);
-            if (apy(i+1,j+1,k+1) != 0.0) flg.setConnected(1, 1, 1);
+            if (apy(i+1,j  ,k+1) != 0.0_rt) flg.setConnected(1,-1, 1);
+            if (apy(i+1,j+1,k+1) != 0.0_rt) flg.setConnected(1, 1, 1);
         }
 
-        if ( (apy(i,j,k) != 0.0 && apz(i,j-1,k  ) != 0.0) ||
-             (apz(i,j,k) != 0.0 && apy(i,j  ,k-1) != 0.0) )
+        if ( (apy(i,j,k) != 0.0_rt && apz(i,j-1,k  ) != 0.0_rt) ||
+             (apz(i,j,k) != 0.0_rt && apy(i,j  ,k-1) != 0.0_rt) )
         {
             flg.setConnected(0, -1, -1);
-            if (apx(i  ,j-1,k-1) != 0.0) flg.setConnected(-1,-1,-1);
-            if (apx(i+1,j-1,k-1) != 0.0) flg.setConnected( 1,-1,-1);
+            if (apx(i  ,j-1,k-1) != 0.0_rt) flg.setConnected(-1,-1,-1);
+            if (apx(i+1,j-1,k-1) != 0.0_rt) flg.setConnected( 1,-1,-1);
         }
 
-        if ( (apy(i,j+1,k) != 0.0 && apz(i,j+1,k  ) != 0.0) ||
-             (apz(i,j  ,k) != 0.0 && apy(i,j+1,k-1) != 0.0) )
+        if ( (apy(i,j+1,k) != 0.0_rt && apz(i,j+1,k  ) != 0.0_rt) ||
+             (apz(i,j  ,k) != 0.0_rt && apy(i,j+1,k-1) != 0.0_rt) )
         {
             flg.setConnected(0, 1, -1);
-            if (apx(i  ,j+1,k-1) != 0.0) flg.setConnected(-1, 1,-1);
-            if (apx(i+1,j+1,k-1) != 0.0) flg.setConnected( 1, 1,-1);
+            if (apx(i  ,j+1,k-1) != 0.0_rt) flg.setConnected(-1, 1,-1);
+            if (apx(i+1,j+1,k-1) != 0.0_rt) flg.setConnected( 1, 1,-1);
         }
 
-        if ( (apy(i,j,k  ) != 0.0 && apz(i,j-1,k+1) != 0.0) ||
-             (apz(i,j,k+1) != 0.0 && apy(i,j  ,k+1) != 0.0) )
+        if ( (apy(i,j,k  ) != 0.0_rt && apz(i,j-1,k+1) != 0.0_rt) ||
+             (apz(i,j,k+1) != 0.0_rt && apy(i,j  ,k+1) != 0.0_rt) )
         {
             flg.setConnected(0, -1, 1);
-            if (apx(i  ,j-1,k+1) != 0.0) flg.setConnected(-1,-1, 1);
-            if (apx(i+1,j-1,k+1) != 0.0) flg.setConnected( 1,-1, 1);
+            if (apx(i  ,j-1,k+1) != 0.0_rt) flg.setConnected(-1,-1, 1);
+            if (apx(i+1,j-1,k+1) != 0.0_rt) flg.setConnected( 1,-1, 1);
         }
 
-        if ( (apy(i,j+1,k  ) != 0.0 && apz(i,j+1,k+1) != 0.0) ||
-             (apz(i,j  ,k+1) != 0.0 && apy(i,j+1,k+1) != 0.0) )
+        if ( (apy(i,j+1,k  ) != 0.0_rt && apz(i,j+1,k+1) != 0.0_rt) ||
+             (apz(i,j  ,k+1) != 0.0_rt && apy(i,j+1,k+1) != 0.0_rt) )
         {
             flg.setConnected(0, 1, 1);
-            if (apx(i  ,j+1,k+1) != 0.0) flg.setConnected(-1, 1, 1);
-            if (apx(i+1,j+1,k+1) != 0.0) flg.setConnected( 1, 1, 1);
+            if (apx(i  ,j+1,k+1) != 0.0_rt) flg.setConnected(-1, 1, 1);
+            if (apx(i+1,j+1,k+1) != 0.0_rt) flg.setConnected( 1, 1, 1);
         }
     }
 

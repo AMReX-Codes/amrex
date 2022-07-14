@@ -291,6 +291,8 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
             {
                 auto const& datma   = mf->const_arrays();
                 auto threshold = m_value[level];
+                auto const volume_weighting = m_info.m_volume_weighting;
+                auto geomdata = geom.data();
                 if (m_test == GRAD)
                 {
                     ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
@@ -340,7 +342,8 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                 {
                     ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
                     {
-                        if (datma[bi](i,j,k) <= threshold) {
+                        Real vol = volume_weighting ? Geometry::Volume(IntVect{AMREX_D_DECL(i,j,k)}, geomdata) : 1.0_rt;
+                        if (datma[bi](i,j,k) * vol <= threshold) {
                             tagma[bi](i,j,k) = tagval;
                         }
                     });
@@ -349,7 +352,8 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                 {
                     ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
                     {
-                        if (datma[bi](i,j,k) >= threshold) {
+                        Real vol = volume_weighting ? Geometry::Volume(IntVect{AMREX_D_DECL(i,j,k)}, geomdata) : 1.0_rt;
+                        if (datma[bi](i,j,k) * vol >= threshold) {
                             tagma[bi](i,j,k) = tagval;
                         }
                     });

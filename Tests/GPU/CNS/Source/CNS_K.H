@@ -20,11 +20,7 @@ cns_estdt (amrex::Box const& bx, amrex::Array4<Real const> const& state,
 
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
     Real dt = std::numeric_limits<Real>::max();
-#else
-    Real dt = Real(1.e37);
-#endif
 
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {

@@ -29,6 +29,8 @@ ifeq ($(USE_MPI),TRUE)
 
   ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
     MPI_OTHER_COMP := mpicxx
+  else ifeq ($(BL_NO_FORT),TRUE)
+    MPI_OTHER_COMP := mpicxx
   else
     MPI_OTHER_COMP := mpif90
   endif
@@ -55,7 +57,10 @@ ifeq ($(USE_MPI),TRUE)
      mpi_link_flags := $(filter-out $(mpi_filter), $(mpi_link_flags))
   endif
 
-  LIBRARIES += $(mpi_link_flags) $(mpicxx_link_libs)
+  LIBRARIES += $(mpi_link_flags)
+  ifneq ($(MPI_OTHER_COMP),mpicxx)
+    LIBRARIES += $(mpicxx_link_libs)
+  endif
 
   # OpenMPI specific flag
   # Uncomment if statement if flag causes issue with another compiler.

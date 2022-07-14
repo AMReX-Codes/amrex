@@ -125,21 +125,28 @@ FaceLinear::CoarseBox (const Box& fine, const IntVect& ratio)
 }
 
 void
-FaceLinear::interp (const FArrayBox&  /*crse*/,
-                    int               /*crse_comp*/,
-                    FArrayBox&        /*fine*/,
-                    int               /*fine_comp*/,
-                    int               /*ncomp*/,
-                    const Box&        /*fine_region*/,
-                    const IntVect&    /*ratio*/,
-                    const Geometry& /*crse_geom */,
-                    const Geometry& /*fine_geom */,
-                    Vector<BCRec> const& /*bcr*/,
-                    int               /*actual_comp*/,
+FaceLinear::interp (const FArrayBox&  crse,
+                    int               crse_comp,
+                    FArrayBox&        fine,
+                    int               fine_comp,
+                    int               ncomp,
+                    const Box&        fine_region,
+                    const IntVect&    ratio,
+                    const Geometry&   crse_geom ,
+                    const Geometry&   fine_geom ,
+                    Vector<BCRec> const& bcr,
+                    int               actual_comp,
                     int               /*actual_state*/,
-                    RunOn             /*runon*/)
+                    RunOn             runon)
 {
-    Abort("FaceLinear: Calling wrong version of interp(). Call interp_face() instead.");
+    //
+    // This version is called from InterpFromCoarseLevel
+    //
+    BL_PROFILE("FaceLinear::interp()");
+
+    // pass unallocated IArrayBox for solve_mask, so all fine values get filled.
+    interp_face(crse, crse_comp, fine, fine_comp, ncomp, fine_region,
+                ratio, IArrayBox(), crse_geom, fine_geom, bcr, actual_comp, runon);
 }
 
 void
@@ -157,13 +164,16 @@ FaceLinear::interp_face (const FArrayBox&  crse,
                          const int         /*bccomp*/,
                          RunOn             runon)
 {
-    BL_PROFILE("FaceLinear::interp()");
+    BL_PROFILE("FaceLinear::interp_face()");
 
     AMREX_ASSERT(AMREX_D_TERM(fine_region.type(0),+fine_region.type(1),+fine_region.type(2)) == 1);
 
     Array4<Real> const& fine_arr = fine.array(fine_comp);
     Array4<Real const> const& crse_arr = crse.const_array(crse_comp);
-    Array4<const int> mask_arr = solve_mask.const_array(0);
+    Array4<const int> mask_arr;
+    if (solve_mask.isAllocated()) {
+        mask_arr = solve_mask.const_array();
+    }
 
     //
     // Fill fine ghost faces with piecewise-constant interpolation of coarse data.

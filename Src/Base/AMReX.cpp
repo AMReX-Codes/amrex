@@ -123,6 +123,11 @@ namespace {
 #ifdef AMREX_USE_HYPRE
 namespace {
     int init_hypre = 1;
+#if defined(HYPRE_USING_CUDA) || defined(HYPRE_USING_HIP)
+    int hypre_spgemm_use_vendor = 0;
+    int hypre_spmv_use_vendor = 0;
+    int hypre_sptrans_use_vendor = 0;
+#endif
 }
 #endif
 
@@ -489,6 +494,11 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
 #ifdef AMREX_USE_HYPRE
         pp.queryAdd("init_hypre", init_hypre);
+#if defined(HYPRE_USING_CUDA) || defined(HYPRE_USING_HIP)
+        pp.queryAdd("hypre_spgemm_use_vendor", hypre_spgemm_use_vendor);
+        pp.queryAdd("hypre_spmv_use_vendor", hypre_spmv_use_vendor);
+        pp.queryAdd("hypre_sptrans_use_vendor", hypre_sptrans_use_vendor);
+#endif
 #endif
     }
 
@@ -526,10 +536,37 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 #ifdef AMREX_USE_HYPRE
     if (init_hypre) {
         HYPRE_Init();
-#ifdef HYPRE_USING_CUDA
+#if defined(HYPRE_USING_CUDA) || defined(HYPRE_USING_HIP)
+
+#if defined(HYPRE_RELEASE_NUMBER) && (HYPRE_RELEASE_NUMBER >= 22400)
+
+#ifdef HYPRE_USING_DEVICE_POOL
+        /* device pool allocator */
+        hypre_uint mempool_bin_growth   = 8,
+            mempool_min_bin      = 3,
+            mempool_max_bin      = 9;
+        size_t mempool_max_cached_bytes = 2000LL * 1024 * 1024;
+
+        /* To be effective, hypre_SetCubMemPoolSize must immediately follow HYPRE_Init */
+        HYPRE_SetGPUMemoryPoolSize( mempool_bin_growth, mempool_min_bin,
+                                    mempool_max_bin, mempool_max_cached_bytes );
+#endif
+#if (HYPRE_RELEASE_NUMBER >= 22500)
+        HYPRE_SetSpGemmUseVendor(hypre_spgemm_use_vendor);
+        HYPRE_SetSpMVUseVendor(hypre_spmv_use_vendor);
+        HYPRE_SetSpTransUseVendor(hypre_sptrans_use_vendor);
+#elif (HYPRE_USING_CUDA)
+        HYPRE_SetSpGemmUseCusparse(hypre_spgemm_use_vendor);
+#endif
+        HYPRE_SetMemoryLocation(HYPRE_MEMORY_DEVICE);
+        HYPRE_SetExecutionPolicy(HYPRE_EXEC_DEVICE);
+        HYPRE_SetUseGpuRand(true);
+#else
         hypre_HandleDefaultExecPolicy(hypre_handle()) = HYPRE_EXEC_DEVICE;
         hypre_HandleSpgemmUseCusparse(hypre_handle()) = 0;
 #endif
+#endif
+
     }
 #endif
 
@@ -582,7 +619,7 @@ void
 amrex::Finalize (amrex::AMReX* pamrex)
 {
 #ifdef AMREX_USE_GPU
-    Gpu::synchronize();
+    Gpu::streamSynchronizeAll();
 #endif
 
     AMReX::erase(pamrex);

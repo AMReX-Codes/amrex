@@ -1776,12 +1776,12 @@ MLMG::makeSolvable ()
     else
     {
         AMREX_ASSERT_WITH_MESSAGE(ncomp==1, "ncomp > 1 not supported for singular nodal problem");
-        Real offset = getNodalSum(0, 0, rhs[0]);
+        Real offset = linop.getSolvabilityOffset(0, 0, rhs[0]);
         if (verbose >= 4) {
             amrex::Print() << "MLMG: Subtracting " << offset << " from rhs\n";
         }
         for (int alev = 0; alev < namrlevs; ++alev) {
-            rhs[alev].plus(-offset, 0, 1);
+            linop.fixSolvabilityByOffset(alev, 0, rhs[alev], offset);
         }
     }
 }
@@ -1833,25 +1833,13 @@ MLMG::makeSolvable (int amrlev, int mglev, MultiFab& mf)
     else
     {
         AMREX_ASSERT_WITH_MESSAGE(ncomp==1, "ncomp > 1 not supported for singular nodal problem");
-        Real offset = getNodalSum(amrlev, mglev, mf);
+        Real offset = linop.getSolvabilityOffset(amrlev, mglev, mf);
         if (verbose >= 4) {
             amrex::Print() << "MLMG: Subtracting " << offset << " on level (" << amrlev << ", "
                            << mglev << ")\n";
         }
-        mf.plus(-offset, 0, 1);
+        linop.fixSolvabilityByOffset(amrlev, mglev, mf, offset);
     }
-}
-
-Real
-MLMG::getNodalSum (int amrlev, int mglev, MultiFab& mf) const
-{
-    MultiFab one(mf.boxArray(), mf.DistributionMap(), 1, 0, MFInfo(), mf.Factory());
-    one.setVal(Real(1.0));
-    const bool local = true;
-    Real s1 = linop.xdoty(amrlev, mglev, mf, one, local);
-    Real s2 = linop.xdoty(amrlev, mglev, one, one, local);
-    ParallelAllReduce::Sum<Real>({s1,s2}, ParallelContext::CommunicatorSub());
-    return s1/s2;
 }
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)

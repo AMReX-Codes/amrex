@@ -35,7 +35,9 @@ class NeighborParticleContainer
 {
 public:
     using ParticleContainerType = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using ParticleType = typename ParticleContainerType::ParticleType;
     using SuperParticleType = typename ParticleContainerType::SuperParticleType;
+    using NeighborListContainerType = Vector<std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > >;
 private:
     struct MaskComps
     {
@@ -187,8 +189,6 @@ private:
 
 public:
 
-    using ParticleType = typename ParticleContainer<NStructReal,
-                                                    NStructInt, NArrayReal, NArrayInt>::ParticleType;
     using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using PairIndex = std::pair<int, int>;
     using NeighborCommMap = std::map<NeighborCommTag, Vector<char> >;
@@ -251,6 +251,14 @@ public:
     ///
     template <class CheckPair>
     void buildNeighborList (CheckPair&& check_pair, bool sort=false);
+
+    ///
+    /// Build a Neighbor List for each tile
+    ///
+    template <class CheckPair, class OtherPCType>
+    void buildNeighborList (CheckPair&& check_pair, OtherPCType& other,
+                            Vector<std::map<std::pair<int, int>, amrex::NeighborList<typename OtherPCType::ParticleType> > >& neighbor_lists,
+                            bool sort=false);
 
     template <class CheckPair>
     void selectActualNeighbors (CheckPair&& check_pair, int num_cells=1);
@@ -339,6 +347,11 @@ protected:
     /// This builds the internal mask data structure used for looking up neighbors
     ///
     void BuildMasks ();
+
+    ///
+    /// Are the masks computed by the above function still valid?
+    ///
+    bool areMasksValid ();
 
     void GetNeighborCommTags ();
 
@@ -444,14 +457,14 @@ protected:
     ParticleCopyOp neighbor_copy_op;
     ParticleCopyPlan neighbor_copy_plan;
 
-    amrex::Gpu::DeviceVector<char> snd_buffer;
+    amrex::PODVector<char, PolymorphicArenaAllocator<char> > snd_buffer;
     amrex::Gpu::DeviceVector<char> rcv_buffer;
 
     Gpu::PinnedVector<char> pinned_snd_buffer;
     Gpu::PinnedVector<char> pinned_rcv_buffer;
 #endif
 
-    Vector<std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > > m_neighbor_list;
+    NeighborListContainerType m_neighbor_list;
 
     Vector<std::map<std::pair<int, int>, amrex::Gpu::DeviceVector<int> > > m_boundary_particle_ids;
 

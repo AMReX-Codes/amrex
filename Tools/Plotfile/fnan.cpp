@@ -5,9 +5,10 @@
 
 using namespace amrex;
 
-void main_main()
+int main_main()
 {
     const int narg = amrex::command_argument_count();
+    int has_nans = 0;
 
     if (narg == 0) {
         amrex::Print()
@@ -19,7 +20,7 @@ void main_main()
             << "      This program takes a single plotfile and reports for each\n"
             << "      variable whether there is a NaN."
             << std::endl;
-        return;
+        return 0;
     }
 
     const auto& fname = amrex::get_command_argument(1);
@@ -53,14 +54,17 @@ void main_main()
                 }
             }
             amrex::Print() << "\n";
+            has_nans = 1;
         }
     }
+    return has_nans;
 }
 
 int main (int argc, char* argv[])
 {
     amrex::SetVerbose(0);
     amrex::Initialize(argc, argv, false);
-    main_main();
+    const int has_nans = main_main();
     amrex::Finalize();
+    return has_nans;
 }

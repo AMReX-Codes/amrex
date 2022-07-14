@@ -85,6 +85,7 @@ set(AMReX_HYPRE_FOUND               @AMReX_HYPRE@)
 set(AMReX_PETSC_FOUND               @AMReX_PETSC@)
 set(AMReX_SUNDIALS_FOUND            @AMReX_SUNDIALS@)
 set(AMReX_HDF5_FOUND                @AMReX_HDF5@)
+set(AMReX_HDF5_ZFP_FOUND            @AMReX_HDF5_ZFP@)
 
 # Compilation options
 set(AMReX_FPE_FOUND                 @AMReX_FPE@)
@@ -113,6 +114,7 @@ set(AMReX_CUDA                      @AMReX_CUDA@)
 set(AMReX_SYCL                      @AMReX_DPCPP@)
 set(AMReX_HIP                       @AMReX_HIP@)
 set(AMReX_GPU_BACKEND               @AMReX_GPU_BACKEND@)
+set(AMReX_GPU_RDC                   @AMReX_GPU_RDC@)
 set(AMReX_PRECISION                 @AMReX_PRECISION@)
 set(AMReX_FORTRAN                   @AMReX_FORTRAN@)
 
@@ -131,6 +133,7 @@ set(AMReX_ASCENT                    @AMReX_ASCENT@)
 set(AMReX_HYPRE                     @AMReX_HYPRE@)
 set(AMReX_PETSC                     @AMReX_PETSC@)
 set(AMReX_HDF5                      @AMReX_HDF5@)
+set(AMReX_HDF5_ZFP                  @AMReX_HDF5_ZFP@)
 
 # Compilation options
 set(AMReX_FPE                       @AMReX_FPE@)
@@ -200,6 +203,10 @@ if (@AMReX_HDF5@)
     find_dependency(HDF5 REQUIRED)
 endif ()
 
+if (@AMReX_HDF5_ZFP@)
+    find_dependency(H5Z_ZFP REQUIRED)
+endif ()
+
 if (@AMReX_HYPRE@)
    find_dependency(HYPRE 2.20.0 REQUIRED)
 endif ()
@@ -209,17 +216,19 @@ if (@AMReX_PETSC@)
 endif ()
 
 if (@AMReX_SUNDIALS@)
-   find_dependency(SUNDIALS 5.7.0 REQUIRED)
+   find_dependency(SUNDIALS 6.0.0 REQUIRED)
 endif ()
 
 #
 # CUDA
 #
 # AMReX 21.06+ supports CUDA_ARCHITECTURES
-if(CMAKE_VERSION VERSION_LESS 3.20)
-   if (@AMReX_CUDA@)
-      include(AMReX_SetupCUDA)
-   endif ()
+if (@AMReX_CUDA@)
+    if (CMAKE_VERSION VERSION_LESS 3.20)
+        include(AMReX_SetupCUDA)
+    else ()
+        find_dependency(CUDAToolkit REQUIRED)
+    endif ()
 endif ()
 
 include( "${CMAKE_CURRENT_LIST_DIR}/AMReXTargets.cmake" )

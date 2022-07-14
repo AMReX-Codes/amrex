@@ -22,7 +22,7 @@ public:
     //! the whole domain.
     CylinderIF (Real a_radius, int a_direction,
                 const RealArray& a_center, bool a_inside)
-        : CylinderIF(a_radius, -1.0, a_direction, a_center, a_inside)
+        : CylinderIF(a_radius, -1.0_rt, a_direction, a_center, a_inside)
     { }
 
     //! Overloaded constructor for finite cylinder IF: if the user does specify a
@@ -32,7 +32,7 @@ public:
                 const RealArray& a_center, bool a_inside)
         : m_radius(a_radius), m_height(a_height), m_direction(a_direction),
           m_center(makeXDim3(a_center)),
-          m_sign(a_inside ? 1.0 : -1.0)
+          m_sign(a_inside ? 1.0_rt : -1.0_rt)
         {
             AMREX_ASSERT(m_direction < AMREX_SPACEDIM);
         }
@@ -48,9 +48,9 @@ public:
 #if (AMREX_SPACEDIM == 3)
         XDim3 pos{x-m_center.x, y-m_center.y, z-m_center.z};
 #else
-        XDim3 pos{x-m_center.x, y-m_center.y, 0.0};
+        XDim3 pos{x-m_center.x, y-m_center.y, 0.0_rt};
 #endif
-        Real d2 = 0.0;
+        Real d2 = 0.0_rt;
         Real pdir;
         switch (m_direction) {
         case 0 :
@@ -79,7 +79,7 @@ public:
 #if (AMREX_SPACEDIM == 3)
             pdir = pos.z;
 #else
-            pdir = 0.0;
+            pdir = 0.0_rt;
 #endif
             break;
         }
@@ -87,11 +87,11 @@ public:
 
         d2 -= m_radius*m_radius;
 
-        if (m_height < 0.0) {
+        if (m_height < 0.0_rt) {
             return d2*m_sign;
         } else {
-            Real rtop = ( pdir - 0.5*m_height);
-            Real rbot = (-pdir - 0.5*m_height);
+            Real rtop = ( pdir - 0.5_rt*m_height);
+            Real rbot = (-pdir - 0.5_rt*m_height);
             Real r = amrex::max(d2,rtop,rbot);
             return r*m_sign;
         }

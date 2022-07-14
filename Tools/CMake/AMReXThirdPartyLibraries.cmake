@@ -2,11 +2,16 @@
 # HDF5 -- here it would be best to create an imported target
 #
 if (AMReX_HDF5)
-    set(HDF5_PREFER_PARALLEL TRUE)
+    if (AMReX_MPI)
+       set(HDF5_PREFER_PARALLEL TRUE)
+    endif ()
     find_package(HDF5 1.10.4 REQUIRED)
-    if (NOT HDF5_IS_PARALLEL)
-        message(FATAL_ERROR "\nHDF5 library does not support parallel I/O")
-     endif ()
+    if (AMReX_MPI AND (NOT HDF5_IS_PARALLEL))
+       message(FATAL_ERROR "\nHDF5 library does not support parallel I/O")
+    endif ()
+    if (HDF5_IS_PARALLEL AND (NOT AMReX_MPI))
+       message(FATAL_ERROR "\nMPI enabled in HDF5 but not in AMReX, which will likely fail to build")
+    endif ()
 
     if (TARGET hdf5::hdf5)  # CMake >= 3.19
        target_link_libraries(amrex PUBLIC hdf5::hdf5)
@@ -18,12 +23,29 @@ if (AMReX_HDF5)
 
 endif ()
 
+#
+# H5Z-ZFP
+#
+if (AMReX_HDF5_ZFP)
+   set(H5Z_ZFP_USE_STATIC_LIBS ON) # Static ON means using as a library, or OFF as an HDF5 plugin
+   find_package(H5Z_ZFP 1.0.1 CONFIG)
+   if (NOT AMReX_HDF5)
+      message(FATAL_ERROR "\nHDF5 must be enabled for ZFP support in HDF5")
+   endif ()
+
+   if (TARGET h5z_zfp::h5z_zfp)  # CMake >= 3.19
+      target_link_libraries(amrex PUBLIC h5z_zfp::h5z_zfp)
+   else ()  # CMake < 3.19 -- Remove when minimum cmake version is bumped up
+      target_include_directories(amrex PUBLIC ${H5Z_ZFP_INCLUDE_DIR})
+      target_link_libraries(amrex PUBLIC ${H5Z_ZFP_LIBRARY})
+   endif ()
+endif ()
 
 #
 # Sensei
 #
 if (AMReX_SENSEI)
-    find_package(SENSEI REQUIRED)
+    find_package( SENSEI 4.0.0 REQUIRED )
     target_link_libraries( amrex PUBLIC sensei )
 endif ()
 
@@ -60,6 +82,8 @@ if (AMReX_HYPRE)
     find_package(HYPRE 2.20.0 REQUIRED)
     if(AMReX_CUDA)
         find_package(CUDAToolkit REQUIRED)
+
+        # mandatory CUDA dependencies: cuSPARSE, cuRAND
         target_link_libraries(amrex PUBLIC CUDA::cusparse CUDA::curand)
     endif()
     target_link_libraries( amrex PUBLIC HYPRE )

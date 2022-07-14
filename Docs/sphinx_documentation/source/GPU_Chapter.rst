@@ -8,8 +8,8 @@ NVIDIA, AMD and Intel GPUs using their native vendor language and therefore
 requires CUDA, HIP/ROCm and DPC++/SYCL, for NVIDIA, AMD and Intel GPUs, respectively.
 Users can also use OpenMP and/or OpenACC in their applications.
 
-AMReX supports NVIDIA GPUs with compute capability >= 6 and CUDA >= 10
-as well as CUDA 9.1.  While HIP and DPC++ compilers are in development in
+AMReX supports NVIDIA GPUs with compute capability >= 6 and CUDA >= 10.
+While HIP and DPC++ compilers are in development in
 preparation for Frontier and Aurora, AMReX only supports the latest
 publicly released versions of those compilers on the Iris and Tulip testbeds.
 

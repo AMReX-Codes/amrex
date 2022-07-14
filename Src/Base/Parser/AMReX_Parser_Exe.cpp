@@ -546,10 +546,10 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
                 t->i = AMREX_PARSER_LOCAL_IDX0 + lidx;
             } else {
                 t->i = node->rip;
-                    if (t->i < 0) {
-                        throw std::runtime_error(std::string("Unknown variable ")
-                                                 + ((struct parser_symbol*)node->r)->name);
-                    }
+                if (t->i < 0) {
+                  throw std::runtime_error(std::string("Unknown variable ")
+                                           + ((struct parser_symbol*)node->r)->name);
+                }
             }
             t->v = node->lvp.v;
         }
@@ -568,10 +568,10 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
                 t->i = AMREX_PARSER_LOCAL_IDX0 + lidx;
             } else {
                 t->i = node->rip;
-                    if (t->i < 0) {
-                        throw std::runtime_error(std::string("Unknown variable ")
-                                                 + ((struct parser_symbol*)node->r)->name);
-                    }
+                if (t->i < 0) {
+                  throw std::runtime_error(std::string("Unknown variable ")
+                                           + ((struct parser_symbol*)node->r)->name);
+                }
             }
             t->v = node->lvp.v;
         }
@@ -590,10 +590,10 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
                 t->i = AMREX_PARSER_LOCAL_IDX0 + lidx;
             } else {
                 t->i = node->rip;
-                    if (t->i < 0) {
-                        throw std::runtime_error(std::string("Unknown variable ")
-                                                 + ((struct parser_symbol*)node->r)->name);
-                    }
+                if (t->i < 0) {
+                  throw std::runtime_error(std::string("Unknown variable ")
+                                           + ((struct parser_symbol*)node->r)->name);
+                }
             }
             t->v = node->lvp.v;
         }
@@ -612,10 +612,10 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
                 t->i = AMREX_PARSER_LOCAL_IDX0 + lidx;
             } else {
                 t->i = node->rip;
-                    if (t->i < 0) {
-                        throw std::runtime_error(std::string("Unknown variable ")
-                                                 + ((struct parser_symbol*)node->r)->name);
-                    }
+                if (t->i < 0) {
+                  throw std::runtime_error(std::string("Unknown variable ")
+                                           + ((struct parser_symbol*)node->r)->name);
+                }
             }
             t->v = node->lvp.v;
         }
@@ -726,10 +726,10 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
                 t->i = AMREX_PARSER_LOCAL_IDX0 + lidx;
             } else {
                 t->i = node->lvp.ip;
-                    if (t->i < 0) {
-                        throw std::runtime_error(std::string("Unknown variable ")
-                                                 + ((struct parser_symbol*)node->l)->name);
-                    }
+                if (t->i < 0) {
+                  throw std::runtime_error(std::string("Unknown variable ")
+                                           + ((struct parser_symbol*)node->l)->name);
+                }
             }
         }
         exe_size += sizeof(ParserExeNEG_P);

@@ -6,7 +6,7 @@ dnf update -y
 # Development tools
 dnf install -y --setopt=install_weak_deps=False \
     libasan libtsan libubsan clang clang-tools-extra \
-    ninja-build cmake git which findutils
+    ninja-build cmake git which findutils patch
 
 # MPI dependencies
 dnf install -y --setopt=install_weak_deps=False \

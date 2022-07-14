@@ -126,7 +126,7 @@ AllGatherBoxes (Vector<Box>& bxs, int n_extra_reserve)
     if (count_tot == 0) return;
 
     if (count_tot > static_cast<Long>(std::numeric_limits<int>::max())) {
-        amrex::Abort("AllGatherBoxes: not many boxes");
+        amrex::Abort("AllGatherBoxes: too many boxes");
     }
 
     Vector<Box> recv_buffer;
@@ -161,7 +161,7 @@ AllGatherBoxes (Vector<Box>& bxs, int n_extra_reserve)
     if (count_tot == 0) return;
 
     if (count_tot > static_cast<Long>(std::numeric_limits<int>::max())) {
-        amrex::Abort("AllGatherBoxes: not many boxes");
+        amrex::Abort("AllGatherBoxes: too many boxes");
     }
 
     Vector<Box> recv_buffer;

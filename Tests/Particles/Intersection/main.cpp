@@ -83,7 +83,7 @@ void testIntersection()
             int num_cells = host_cells.size();
 
             Gpu::DeviceVector<IntVect> device_cells(num_cells);
-            Gpu::copy(Gpu::hostToDevice, host_cells.begin(), host_cells.end(), device_cells.begin());
+            Gpu::copyAsync(Gpu::hostToDevice, host_cells.begin(), host_cells.end(), device_cells.begin());
 
             Gpu::DeviceVector<int> device_grids(num_cells);
 

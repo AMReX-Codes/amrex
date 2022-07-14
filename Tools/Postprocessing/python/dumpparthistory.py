@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # a simple routine to parse particle files and dump out the particle
 # histories into separate files (1 file per particle) so that they can
@@ -96,8 +96,3 @@ if __name__== "__main__":
         sys.exit(2)
 
     main(sys.argv[1:])
-
-
-
-
-

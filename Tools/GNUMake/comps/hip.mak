@@ -112,22 +112,22 @@ ifeq ($(HIP_COMPILER),clang)
   SYSTEM_INCLUDE_LOCATIONS += $(HIP_PATH)/include
 
   # rocRand
-  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/rocrand/include $(ROC_PATH)/hiprand/include
-  LIBRARY_LOCATIONS += $(ROC_PATH)/rocrand/lib $(ROC_PATH)/hiprand/lib
-  LIBRARIES += -Wl,--rpath=$(ROC_PATH)/rocrand/lib -Wl,--rpath=$(ROC_PATH)/hiprand/lib -lhiprand -lrocrand 
+  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include/hiprand $(ROC_PATH)/include/rocrand
+  LIBRARY_LOCATIONS += $(ROC_PATH)/lib
+  LIBRARIES += -Wl,--rpath=$(ROC_PATH)/lib -lhiprand -lrocrand
 
   # rocPrim - Header only
-  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/rocprim/include
+  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include/rocprim
 
   # rocThrust - Header only
-  # SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/rocthrust/include
+  # SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include/rocthrust
 
   ifeq ($(USE_ROCTX),TRUE)
   # rocTracer
   CXXFLAGS += -DAMREX_USE_ROCTX
   HIPCC_FLAGS += -DAMREX_USE_ROCTX
-  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/roctracer/include $(ROC_PATH)/rocprofiler/include
-  LIBRARY_LOCATIONS += $(ROC_PATH)/roctracer/lib $(ROC_PATH)/rocprofiler/lib
+  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include/roctracer $(ROC_PATH)/include/rocprofiler
+  LIBRARY_LOCATIONS += $(ROC_PATH)/lib
   LIBRARIES += -lroctracer64 -lroctx64
   endif
 
