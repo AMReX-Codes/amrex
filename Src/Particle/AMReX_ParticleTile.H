@@ -7,6 +7,8 @@
 #include <AMReX_ArrayOfStructs.H>
 #include <AMReX_StructOfArrays.H>
 #include <AMReX_Vector.H>
+#include <AMReX_REAL.H>
+#include <AMReX_RealVect.H>
 
 #include <array>
 
@@ -160,6 +162,60 @@ struct ParticleTileData
     }
 };
 
+// SOA Particle Structure 
+template <int NArrayReal, int NArrayInt>
+struct SoAParticle : SoAParticleBase
+{
+
+    static constexpr bool is_soa_particle = true;
+
+    using RealType = ParticleReal;
+
+    SoAParticle(ParticleTileData<0, 0, NArrayReal, NArrayInt> *const ptd, int const index) 
+    {
+        m_particle_tile_data=ptd;
+        m_index=index;
+    }
+     
+    //functions to get id and cpu in the SOA data
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    ParticleCPUWrapper cpu () & { return ParticleCPUWrapper(this->m_particle_tile_data.m_idata[0][m_index]); }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    ParticleIDWrapper id () & { return ParticleIDWrapper(this->m_particle_tile_data.m_idata[1][m_index]); }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    ConstParticleCPUWrapper cpu () const & { return ConstParticleCPUWrapper(this->m_particle_tile_data.m_idata[0][m_index]); }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    ConstParticleIDWrapper id () const & { return ConstParticleIDWrapper(this->m_particle_tile_data.m_idata[1][m_index]); }
+
+    //functions to get positions of the particle in the SOA data
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    RealVect pos () const & {return RealVect(AMREX_D_DECL(this->m_particle_tile_data.m_rdata[0][m_index], this->m_particle_tile_data.m_rdata[1][m_index], this->m_particle_tile_data.m_rdata[2][m_index]));}
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    RealType& pos (int position_index) &
+    {
+        AMREX_ASSERT(position_index < AMREX_SPACEDIM);
+        return this->m_particle_tile_data.m_rdata[position_index][m_index];
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    RealType  pos (int position_index) const &
+    {
+        AMREX_ASSERT(position_index < AMREX_SPACEDIM);
+        return this->m_particle_tile_data.m_rdata[position_index][m_index];
+    }
+
+    private :
+
+    ParticleTileData<0, 0, NReal, NInt>* m_particle_tile_data;
+    int m_index;
+};
+
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 struct ConstParticleTileData
 {
@@ -255,6 +311,7 @@ struct ParticleTile
     using ParticleType = Particle<NStructReal, NStructInt>;
     static constexpr int NAR = NArrayReal;
     static constexpr int NAI = NArrayInt;
+    using RealType = typename ParticleType::RealType;
 
     using SuperParticleType = Particle<NStructReal + NArrayReal, NStructInt + NArrayInt>;
 
@@ -281,6 +338,63 @@ struct ParticleTile
         m_runtime_r_cptrs.resize(a_num_runtime_real);
         m_runtime_i_cptrs.resize(a_num_runtime_int);
     }
+
+    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
+    ParticleCPUWrapper cpu (int index) & {
+        ParticleType p(this->getParticleTileData(), index);
+        return p.cpu();
+    }
+
+    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
+    ParticleCPUWrapper cpu (int index) & {
+        // ... todo for AoS
+    }
+
+/* TODO:
+    ParticleIDWrapper id (int index) & { ... }
+
+    ConstParticleCPUWrapper cpu (int index) const & { .. }
+
+    ConstParticleIDWrapper id (int index) const & { ... }
+*/
+
+    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
+    RealVect pos (int index) & {
+        ParticleType p(this->getParticleTileData(), index);
+        return p.pos();
+    }
+
+    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
+    RealVect pos (int index) & {
+        // ... todo for AoS
+    }
+
+    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
+    RealType& pos (int index, int position_index) &
+    {
+        ParticleType p(this->getParticleTileData(), index);
+        return p.pos(position_index);
+    }
+
+    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
+    RealType& pos (int index, int position_index) &
+    {
+        // ... todo for AoS
+    }
+
+    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
+    RealType  pos (int index, int position_index) const &
+    {
+        ParticleType p(this->getParticleTileData(), index);
+        return p.pos(position_index);
+    }
+
+    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
+    RealType  pos (int index, int position_index) const &
+    {
+        // ... todo for AoS
+    }
+
 
     AoS&       GetArrayOfStructs ()       { return m_aos_tile; }
     const AoS& GetArrayOfStructs () const { return m_aos_tile; }
