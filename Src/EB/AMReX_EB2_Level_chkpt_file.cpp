@@ -95,9 +95,6 @@ void ChkptFileLevel::define_fine_chkpt_file(ChkptFile const& chkpt_file,
         const Box& gbx = amrex::surroundingNodes(amrex::grow(vbx,1));
 
         auto& flagfab = m_cellflag[mfi];
-        const auto& flag = m_cellflag[mfi].const_array();
-        const auto& vfrac = m_volfrac.const_array(mfi);
-        const auto& apx = m_areafrac[0].const_array(mfi);
 
         if (flagfab.getType(gbx & bounding_box) == FabType::singlevalued) {
             cut_boxes.push_back(vbx);
