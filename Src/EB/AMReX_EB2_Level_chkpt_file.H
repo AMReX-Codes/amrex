@@ -18,6 +18,11 @@ public:
     ChkptFileLevel (IndexSpace const* is, int ilev, int max_grid_size, int ngrow,
             const Geometry& geom, ChkptFileLevel& fineLevel);
 
+// for cuda support
+    void define_fine_chkpt_file (ChkptFile const& chkpt_file,
+            Geometry const& geom, int max_grid_size, int ngrow, bool extend_domain_face);
+
+
 };
 
 }}

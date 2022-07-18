@@ -251,7 +251,6 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
         Print() << "  Loading levelset" << std::endl;
 
         levelset.define(convert(grids,IntVect::TheNodeVector()), dmap, 1, ng);
-        levelset.setVal(-1.);
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_levelset_name);
         MultiFab mf(The_Pinned_Arena());
