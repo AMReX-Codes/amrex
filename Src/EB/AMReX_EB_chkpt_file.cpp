@@ -128,6 +128,10 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
         }
     }
 
+
+    ignore_unused(prob_lo);
+    ignore_unused(prob_hi);
+
     BoxArray orig_ba;
     orig_ba.readFrom(is);
     gotoNextLine(is);
