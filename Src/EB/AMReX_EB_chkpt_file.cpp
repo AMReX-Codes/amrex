@@ -103,8 +103,6 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
     std::getline(is, line);
 
     int  nlevs;
-    int  int_tmp;
-    Real real_tmp;
 
     is >> nlevs;
     gotoNextLine(is);
@@ -129,14 +127,15 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
     }
 
 
-    ignore_unused(prob_lo);
-    ignore_unused(prob_hi);
-
     BoxArray orig_ba;
     orig_ba.readFrom(is);
     gotoNextLine(is);
 
     Box orig_domain(orig_ba.minimalBox());
+
+    ignore_unused(prob_lo);
+    ignore_unused(prob_hi);
+    ignore_unused(orig_domain);
 
     BoxList bl;
     for (int nb = 0; nb < orig_ba.size(); nb++) {
