@@ -227,6 +227,8 @@ Build (const Geometry& geom, int required_coarsening_level,
     }
     else if (geom_type == "chkptfile")
     {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_num_coarsen_opt == 0,
+                                         "Check point file restart doesn't work with coarse optimization");
         ChkptFile chkpt_file("geom_chk");
         IndexSpace::push(new IndexSpaceChkptFile(chkpt_file,
                     geom, required_coarsening_level,
