@@ -339,47 +339,74 @@ struct ParticleTile
         m_runtime_i_cptrs.resize(a_num_runtime_int);
     }
 
+    // Get cpu data 
+
+    // SoA
     template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
     ParticleCPUWrapper cpu (int index) & {
         ParticleType p(this->getParticleTileData(), index);
         return p.cpu();
     }
 
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
-    ParticleCPUWrapper cpu (int index) & {
-        // ... todo for AoS
-    }
-
-/* TODO:
-    ParticleIDWrapper id (int index) & { ... }
-
-    ConstParticleCPUWrapper cpu (int index) const & { .. }
-
-    ConstParticleIDWrapper id (int index) const & { ... }
-*/
-
+    // const
     template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
-    RealVect pos (int index) & {
+    ConstParticleCPUWrapper cpu (int index) const & {
         ParticleType p(this->getParticleTileData(), index);
-        return p.pos();
+        return p.cpu();
     }
+
+    // AoS
+    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
+    ParticleCPUWrapper cpu () & {
+        ParticleType& p = m_aos_tile().dataPtr()[index];
+        return p.cpu();
+    }
+
+    // const 
 
     template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
-    RealVect pos (int index) & {
-        // ... todo for AoS
+    ConstParticleCPUWrapper cpu () const & {
+        ParticleType& p = m_aos_tile().dataPtr()[index];
+        return p.cpu();
     }
 
+    // Get id data
+
+    // SoA
     template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
-    RealType& pos (int index, int position_index) &
-    {
+    ParticleIDWrapper id (int index) & {
+        ParticleType p(this->getParticleTileData(), index);
+        return p.id();
+    }
+
+    // const
+    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
+    ConstParticleIDWrapper id (int index) const & {
+        ParticleType p(this->getParticleTileData(), index);
+        return p.id();
+    }
+
+    // AoS 
+    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
+    ParticleIDWrapper id (int index) & {
+        ParticleType& p = m_aos_tile().dataPtr()[index];
+        return p.id();
+    }
+
+    // const
+    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
+    ConstParticleIDWrapper id (int index) const & {
+        ParticleType& p = m_aos_tile().dataPtr()[index];
+        return p.id();
+    }
+
+
+    // Get positions data
+
+    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
+    RealType& pos (int index, int position_index) & {
         ParticleType p(this->getParticleTileData(), index);
         return p.pos(position_index);
-    }
-
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
-    RealType& pos (int index, int position_index) &
-    {
-        // ... todo for AoS
     }
 
     template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
@@ -390,9 +417,17 @@ struct ParticleTile
     }
 
     template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
+    RealType& pos (int index, int position_index) & {
+        ParticleType& p = m_aos_tile().dataPtr()[index];
+        return p.pos(position_index);
+    }
+
+
+    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
     RealType  pos (int index, int position_index) const &
     {
-        // ... todo for AoS
+        ParticleType& p = m_aos_tile().dataPtr()[index];
+        return p.pos(position_index);
     }
 
 
