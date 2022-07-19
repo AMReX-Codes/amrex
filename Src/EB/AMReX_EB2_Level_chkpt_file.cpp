@@ -166,6 +166,7 @@ void ChkptFileLevel::define_fine_chkpt_file(ChkptFile const& chkpt_file,
             }
         });
 
+#if (AMREX_SPACEDIM == 3)
         const Box& zbx = amrex::grow(amrex::surroundingNodes(vbx,2),0);
         AMREX_HOST_DEVICE_FOR_3D ( zbx, i, j, k,
         {
@@ -175,7 +176,68 @@ void ChkptFileLevel::define_fine_chkpt_file(ChkptFile const& chkpt_file,
                 fz(i,j,k) = Type::regular;
             }
         });
+#endif
 
+
+#if (AMREX_SPACEDIM == 2)
+        ignore_unused(ctmp);
+        AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
+        {
+            ignore_unused(k);
+            if (cell(i,j,0).isSingleValued()) {
+                if (fx(i,j,0) == Type::regular && fx(i+1,j,0) == Type::regular &&
+                    fy(i,j,0) == Type::regular && fy(i,j+1,0) == Type::regular)
+                {
+                    cell(i,j,0).setRegular();
+                }
+                else if (fx(i,j,0) == Type::covered && fx(i+1,j,0) == Type::covered &&
+                         fy(i,j,0) == Type::covered && fy(i,j+1,0) == Type::covered)
+                {
+                    cell(i,j,0).setCovered();
+                }
+            }
+        });
+
+        // Build neighbors.  By default, all neighbors are already set.
+        AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
+        {
+            amrex::ignore_unused(k);
+
+            auto flg = cell(i,j,0);
+
+            if (fx(i  ,j  ,0) == Type::covered) flg.setDisconnected(IntVect(-1, 0));
+            if (fx(i+1,j  ,0) == Type::covered) flg.setDisconnected(IntVect( 1, 0));
+            if (fy(i  ,j  ,0) == Type::covered) flg.setDisconnected(IntVect( 0,-1));
+            if (fy(i  ,j+1,0) == Type::covered) flg.setDisconnected(IntVect( 0, 1));
+
+            if (((fx(i,j,0) == Type::covered) || fy(i-1,j,0) == Type::covered) &&
+                ((fx(i,j-1,0) == Type::covered) || fy(i,j,0) == Type::covered))
+            {
+                flg.setDisconnected(IntVect(-1,-1));
+            }
+
+            if (((fx(i+1,j,0) == Type::covered) || fy(i+1,j,0) == Type::covered) &&
+                ((fx(i+1,j-1,0) == Type::covered) || fy(i,j,0) == Type::covered))
+            {
+                flg.setDisconnected(IntVect(1,-1));
+            }
+
+            if (((fx(i,j,0) == Type::covered) || fy(i-1,j+1,0) == Type::covered) &&
+                ((fx(i,j+1,0) == Type::covered) || fy(i,j+1,0) == Type::covered))
+            {
+                flg.setDisconnected(IntVect(-1,1));
+            }
+
+            if (((fx(i+1,j,0) == Type::covered) || fy(i+1,j+1,0) == Type::covered) &&
+                ((fx(i+1,j+1,0) == Type::covered) || fy(i,j+1,0) == Type::covered))
+            {
+                flg.setDisconnected(IntVect(1,1));
+            }
+
+            cell(i,j,0) = flg;
+        });
+
+#else
         AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
         {
             if (cell(i,j,k).isSingleValued()) {
@@ -193,7 +255,6 @@ void ChkptFileLevel::define_fine_chkpt_file(ChkptFile const& chkpt_file,
                 }
             }
         });
-
 
         // Build neighbors.  By default all 26 neighbors are already set.
         AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
@@ -376,6 +437,8 @@ void ChkptFileLevel::define_fine_chkpt_file(ChkptFile const& chkpt_file,
                 cell(i,j,k) = newflg;
             }
         });
+#endif
+
     }
 
     m_ok = true;
