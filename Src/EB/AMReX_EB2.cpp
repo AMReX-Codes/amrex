@@ -225,21 +225,26 @@ Build (const Geometry& geom, int required_coarsening_level,
                                            a_extend_domain_face,
                                            a_num_coarsen_opt));
     }
-    else if (geom_type == "chkptfile")
-    {
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_num_coarsen_opt == 0,
-                                         "Check point file restart doesn't work with coarse optimization");
-        ChkptFile chkpt_file("geom_chk");
-        IndexSpace::push(new IndexSpaceChkptFile(chkpt_file,
-                    geom, required_coarsening_level,
-                    max_coarsening_level, ngrow,
-                    build_coarse_level_by_coarsening,
-                    extend_domain_face));
-    }
     else
     {
         amrex::Abort("geom_type "+geom_type+ " not supported");
     }
+}
+
+void
+BuildFromChkptFile (std::string const& fname,
+        const Geometry& geom, int required_coarsening_level,
+        int max_coarsening_level, int ngrow, bool build_coarse_level_by_coarsening,
+        bool a_extend_domain_face, int a_num_coarsen_opt)
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_num_coarsen_opt == 0,
+                                     "Check point file restart doesn't work with coarse optimization");
+    ChkptFile chkpt_file(fname);
+    IndexSpace::push(new IndexSpaceChkptFile(chkpt_file,
+                geom, required_coarsening_level,
+                max_coarsening_level, ngrow,
+                build_coarse_level_by_coarsening,
+                extend_domain_face));
 }
 
 namespace {
