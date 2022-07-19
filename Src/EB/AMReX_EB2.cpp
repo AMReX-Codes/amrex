@@ -244,7 +244,7 @@ BuildFromChkptFile (std::string const& fname,
                 geom, required_coarsening_level,
                 max_coarsening_level, ngrow,
                 build_coarse_level_by_coarsening,
-                extend_domain_face));
+                a_extend_domain_face));
 }
 
 namespace {
