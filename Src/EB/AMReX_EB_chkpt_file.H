@@ -12,7 +12,7 @@ private:
 
     const std::string m_volfrac_name = "volfrac";
     const std::string m_centroid_name = "centroid";
-    const std::string m_bndryarea_name = "bndryareat";
+    const std::string m_bndryarea_name = "bndryarea";
     const std::string m_bndrycent_name = "bndrycent";
     const std::string m_bndrynorm_name = "bndrynrom";
     const std::string m_levelset_name = "levelset";

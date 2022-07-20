@@ -148,7 +148,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
 
     // volfrac
     {
-        Print() << "  Loading volfrac" << std::endl;
+        Print() << "  Loading " << m_volfrac_name << std::endl;
 
         volfrac.define(grids, dmap, 1, ng);
 
@@ -160,7 +160,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
 
     // centroid
     {
-        Print() << "  Loading centroid" << std::endl;
+        Print() << "  Loading " << m_centroid_name << std::endl;
 
         centroid.define(grids, dmap, AMREX_SPACEDIM, ng);
 
@@ -172,7 +172,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
 
     // bndryarea
     {
-        Print() << "  Loading bndryarea" << std::endl;
+        Print() << "  Loading " << m_bndryarea_name << std::endl;
 
         bndryarea.define(grids, dmap, 1, ng);
 
@@ -184,7 +184,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
 
     // bndrycent
     {
-        Print() << "  Loading bndrycent" << std::endl;
+        Print() << "  Loading " << m_bndrycent_name << std::endl;
 
         bndrycent.define(grids, dmap, AMREX_SPACEDIM, ng);
 
@@ -196,7 +196,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
 
     // bndrynorm
     {
-        Print() << "  Loading bndrynorm" << std::endl;
+        Print() << "  Loading " << m_bndrynorm_name << std::endl;
 
         bndrynorm.define(grids, dmap, AMREX_SPACEDIM, ng);
 
@@ -209,7 +209,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         // areafrac
         {
-            Print() << "  Loading areafrac " << idim << std::endl;
+            Print() << "  Loading " << m_areafrac_name[idim] << std::endl;
 
             areafrac[idim].define(convert(grids, IntVect::TheDimensionVector(idim)), dmap, 1, ng);
 
@@ -221,7 +221,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
 
         // facecent
         {
-            Print() << "  Loading facecent " << idim << std::endl;
+            Print() << "  Loading " << m_facecent_name[idim] << std::endl;
 
             facecent[idim].define(convert(grids, IntVect::TheDimensionVector(idim)), dmap, AMREX_SPACEDIM-1, ng);
 
@@ -233,7 +233,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
 
         // edgecent
         {
-            Print() << "  Loading edgecent " << idim << std::endl;
+            Print() << "  Loading " << m_edgecent_name[idim] << std::endl;
 
             IntVect edge_type{1}; edge_type[idim] = 0;
             edgecent[idim].define(convert(grids, edge_type), dmap, 1, ng);
@@ -247,7 +247,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& grids, DistributionMapping& dmap,
 
     // levelset
     {
-        Print() << "  Loading levelset" << std::endl;
+        Print() << "  Loading " << m_levelset_name << std::endl;
 
         levelset.define(convert(grids,IntVect::TheNodeVector()), dmap, 1, ng);
 
