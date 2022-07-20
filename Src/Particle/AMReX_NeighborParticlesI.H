@@ -814,6 +814,13 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
 {
     BL_PROFILE("NeighborParticleContainer::selectActualNeighbors");
 
+    // stop here if there are no particles for communication
+    const auto& ba   = this->ParticleBoxArray(0);
+    const auto& geom = this->Geom(0);
+    if (ba.size() == 1 && (! geom.isAnyPeriodic())) {
+      return;
+    }
+
     for (int lev = 0; lev < this->numLevels(); ++lev)
     {
         for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
