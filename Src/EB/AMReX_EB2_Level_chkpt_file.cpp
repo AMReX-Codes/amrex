@@ -121,6 +121,11 @@ void ChkptFileLevel::define_fine_chkpt_file(ChkptFile const& chkpt_file,
         return;
     }
 
+    finalize_cell_flags();
+}
+
+void ChkptFileLevel::finalize_cell_flags() {
+
     EBCellFlagFab cellflagtmp;
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
