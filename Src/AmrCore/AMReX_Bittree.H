@@ -39,6 +39,12 @@ class btUnit {
                                   BoxArray& ba,
                                   DistributionMapping& dm,
                                   IntVect& max_grid_size);
+  // Utils
+  public:
+    static int getBitid(std::shared_ptr<BittreeAmr> mesh, bool updated,
+                        int lev, int idx_on_lev);
+    static int getIndex(std::shared_ptr<BittreeAmr> mesh, bool updated,
+                        int lev, int bitid);
 
   // Functions for octree logic, adapted from PARAMESH
   private:

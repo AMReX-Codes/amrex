@@ -130,6 +130,16 @@ void btUnit::btCalculateLevel(std::shared_ptr<BittreeAmr> mesh, int lev,
 
 }
 
+int btUnit::getBitid(std::shared_ptr<BittreeAmr> mesh, bool updated,
+             int lev, int idx_on_lev) {
+    return idx_on_lev + mesh->getTree(updated)->level_id0(lev);
+}
+
+int btUnit::getIndex(std::shared_ptr<BittreeAmr> mesh, bool updated,
+             int lev, int bitid) {
+    return bitid - mesh->getTree(updated)->level_id0(lev);
+}
+
 
 
 //---------------------------------------------------------------------

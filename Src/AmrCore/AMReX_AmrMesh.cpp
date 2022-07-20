@@ -610,18 +610,12 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
 
                     // Set the values of btTags.
                     // (btTags = 1 if needs refine, -1 if needs derefine)
-                    // For proof of concept: if any cell is tagged, the whole block is marked for refine,
-                    // and no blocks are ever marked for derefine.
                     if(has_set_tags) {
-                        // Calculate the integer coordinates and query BT for the bitid.
-                        // For optimization, could cache bitid for each box.
-                        unsigned coord[AMREX_SPACEDIM];
-		    	        for(int d=0; d<AMREX_SPACEDIM; ++d) {
-		    	            coord[d] = grids[lev][mfi].smallEnd(d) / max_grid_size[lev][d];
-                        }
-		    	        auto b = tree0->identify(lev,coord);
-                        if(!b.is_parent and b.level<=max_crse){
-                            btTags[b.id] = 1;
+                        int bitid = btUnit::getBitid(btmesh,false,lev,mfi.index());
+                        // TODO Check lev == tree0->block_level(bitid)
+
+                        if(!( tree0->block_is_parent(bitid) or lev>max_crse)){
+                            btTags[bitid] = 1;
                         }
                     }
                 }
