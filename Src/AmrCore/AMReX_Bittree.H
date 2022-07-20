@@ -34,6 +34,11 @@ class btUnit {
                                   Vector<BoxArray>& new_grids,
                                   Vector<DistributionMapping>& new_dm,
                                   Vector<IntVect>& max_grid_size);
+    static void btCalculateLevel( std::shared_ptr<BittreeAmr> mesh,
+                                  int lev, Real time,
+                                  BoxArray& ba,
+                                  DistributionMapping& dm,
+                                  IntVect& max_grid_size);
 
   // Functions for octree logic, adapted from PARAMESH
   private:

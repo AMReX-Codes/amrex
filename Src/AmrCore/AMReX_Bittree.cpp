@@ -77,42 +77,57 @@ void btUnit::btCalculateGrids(std::shared_ptr<BittreeAmr> mesh, int lbase,
 
 //--Calculate the new grid layout and distribution map based on Bittree
     for(int lev=lbase; lev<=new_finest; ++lev) {
-      //Bittree has its own indices for blocks which I call bitid; get
-      //the range of bitids for the level being made. Bitid range is
-      //contiguous for each level.
-      int id0 = tree1->level_id0(lev);
-      int id1 = tree1->level_id1(lev);
-      int nblocks = tree1->level_blocks(lev);
-
-      BoxList bl;
-      Vector<int> pmap;
-
-      for(int i=id0; i<id1; ++i) {
-        //Get coordinates and morton index.
-        auto b = tree1->locate(i);
-
-        if(b.level != lev) {
-            std::string msg = "Error identifying block in btCalculateGrids";
-            //throw error?
-        }
-
-        IntVect coordVec{AMREX_D_DECL(static_cast<int>(b.coord[0]),
-                                      static_cast<int>(b.coord[1]),
-                                      static_cast<int>(b.coord[2]))};
-        IntVect lo = max_grid_size[lev]*coordVec;
-        IntVect hi = max_grid_size[lev]*(coordVec+1) - 1;
-        bl.push_back( Box{lo,hi} );
-
-        //TODO Calculate the processor based on position in the global Morton curve.
-        int proc = 0;
-        pmap.push_back(proc);
-
-      }
-
-      new_grids[lev] = BoxArray(bl);
-      new_dm[lev] = DistributionMapping(pmap);
+        btCalculateLevel(mesh, lev, time, new_grids[lev],
+                         new_dm[lev], max_grid_size[lev]);
 
     }
+}
+
+/** Creates a box array based on Bittree.
+  * TODO: also calculate an appropriate DistributionMapping.
+  */
+void btUnit::btCalculateLevel(std::shared_ptr<BittreeAmr> mesh, int lev,
+                            Real time,
+                            BoxArray& ba,
+                            DistributionMapping& dm,
+                            IntVect& max_grid_size) {
+    auto tree1 = mesh->getTree(true);
+
+    //Bittree has its own indices for blocks which I call bitid; get
+    //the range of bitids for the level being made. Bitid range is
+    //contiguous for each level.
+    int id0 = tree1->level_id0(lev);
+    int id1 = tree1->level_id1(lev);
+    int nblocks = tree1->level_blocks(lev);
+
+    BoxList bl;
+    Vector<int> pmap;
+
+    for(int i=id0; i<id1; ++i) {
+      //Get coordinates and morton index.
+      auto b = tree1->locate(i);
+
+      if(b.level != lev) {
+          std::string msg = "Error identifying block in btCalculateGrids";
+          //throw error?
+      }
+
+      IntVect coordVec{AMREX_D_DECL(static_cast<int>(b.coord[0]),
+                                    static_cast<int>(b.coord[1]),
+                                    static_cast<int>(b.coord[2]))};
+      IntVect lo = max_grid_size*coordVec;
+      IntVect hi = max_grid_size*(coordVec+1) - 1;
+      bl.push_back( Box{lo,hi} );
+
+      //TODO Calculate the processor based on position in the global Morton curve.
+      int proc = 0;
+      pmap.push_back(proc);
+
+    }
+
+    ba = BoxArray(bl);
+    dm = DistributionMapping(pmap);
+
 }
 
 

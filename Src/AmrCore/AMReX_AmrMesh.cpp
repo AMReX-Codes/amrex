@@ -936,16 +936,19 @@ AmrMesh::MakeNewGrids (Real time)
     {
         finest_level = 0;
 
-        const BoxArray& ba = MakeBaseGrids();
-        DistributionMapping dm(ba);
+        BoxArray ba;
+        DistributionMapping dm;
         const auto old_num_setdm = num_setdm;
         const auto old_num_setba = num_setba;
 
-        //Initialize Bittree (Bittree is not involved in MakeBaseGrids)
-        if(use_bittree) {
+        if(!use_bittree) {
+            ba = MakeBaseGrids();
+            dm = DistributionMapping(ba);
+        }
+        else {
+            //Initialize Bittree
 
             // top = number of grids on coarsest level in each direction
-            // TODO better way to do this?
             std::vector<int> top(AMREX_SPACEDIM,0);
             IntVect ncells = geom[0].Domain().length();
             for(int i=0; i<AMREX_SPACEDIM; ++i) {
@@ -959,6 +962,13 @@ AmrMesh::MakeNewGrids (Real time)
 
             amrex::Print() << "Initializing Bittree..." << std::endl;
             btmesh = std::make_shared<bittree::BittreeAmr>(top.data(),includes.data());
+
+
+            // Use Bittree to make coarsest level (don't need MakeBaseGrids)
+            // Need to use Bittree, so the indices of grids[lev] will be compatible with BT.
+            btUnit::btCalculateLevel(btmesh,0,time,ba,dm,max_grid_size[0]);
+            // TODO replace default DistributionMapping with a sort over Morton curve
+            dm = DistributionMapping(ba);
         }
 
         MakeNewLevelFromScratch(0, time, ba, dm);
