@@ -36,7 +36,9 @@ int btUnit::btRefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>& btTags
 //--Mark leaves to be refined
     for( unsigned id = id0; id < id1; ++id) {
       if (btTags[id]==1) {
-        mesh->refine_mark(id, true);
+        if(!tree0->block_is_parent(id)) {
+          mesh->refine_mark(id, true);
+        }
       }
     }
     mesh->refine_reduce(comm);
@@ -44,11 +46,12 @@ int btUnit::btRefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>& btTags
 
     btCheckRefine(mesh,btTags,comm);
 
-//--Mark leaves for derefinement (on BT, parent is marked for nodetype change)
+//--Mark derefinement
     for( unsigned id = id0; id < id1; ++id) {
       if (btTags[id]==-1) {
-        unsigned pId = tree0->getParentId(id);
-        mesh->refine_mark(pId, true);
+        if(tree0->block_is_parent(id)) {
+          mesh->refine_mark(id, true);
+        }
       }
     }
     mesh->refine_reduce(comm);
@@ -239,8 +242,7 @@ void btUnit::btCheckDerefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>
                 btTags[id] = 0;
 
                 // Unmark for derefinement
-                unsigned pId = tree0->getParentId(id);
-                mesh->refine_mark(pId, false);
+                mesh->refine_mark(id, false);
             }
         }
 
@@ -248,20 +250,21 @@ void btUnit::btCheckDerefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>
 //------sure their parents are still marked on bittree. Also, if parent is
 //------marked, but block is not tagged, unmark parent. This ensures blocks
 //------only derefine if ALL siblings are marked for derefine.
-        for( unsigned id = id0; id < id1; ++id) {
-            unsigned pId = tree0->getParentId(id);
-            if(pId>id) {
-                bool deref_mark = mesh->check_refine_bit(pId);
-                if( btTags[id]==-1 && !deref_mark ) {
-                    repeat = true;
-                    btTags[id] = 0;
-                }
-                else if( btTags[id]!=-1 && deref_mark ) {
-                    repeat = true;
-                    mesh->refine_mark(pId,false);
-                }
-            }
-        }
+        //for( unsigned id = id0; id < id1; ++id) {
+        //    unsigned pId = tree0->getParentId(id);
+        //    if(pId<id) {
+        //        bool deref_mark = mesh->check_refine_bit(pId);
+        //        if( btTags[id]==-1 && !deref_mark ) {
+        //            repeat = true;
+        //            btTags[id] = 0;
+        //        }
+        //        else if( btTags[id]!=-1 && deref_mark ) {
+        //            amrex::Print() << "Id=" << id << " not marked -1 but parent will change\n";
+        //            repeat = true;
+        //            mesh->refine_mark(pId,false);
+        //        }
+        //    }
+        //}
 
 
         // If only processing local blocks, check all processors to see if

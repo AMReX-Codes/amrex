@@ -591,7 +591,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
 
             // [1] btTagging - Error Estimation and tagging
             // btTags is indexed by bitid, Bittree's internal indexing scheme.
-            // For any id, btTags = 1 if needs refine, -1 if needs derefine.
+            // For any id, btTags = 1 if should be parent, -1 if should not be parent (or not exist).
             std::vector<int> btTags(tree0->id_upper_bound(),0);
 
             for (int lev=max_crse; lev>=lbase; --lev) {
@@ -599,7 +599,6 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                 TagBoxArray tags(grids[lev],dmap[lev], n_error_buf[lev]);
                 ErrorEst(lev, tags, time, 0);
 
-                // TODO This algorithm needs to properly interpret tag data.
                 for (MFIter mfi(tags); mfi.isValid(); ++mfi) {
                     auto const& tagbox = tags.const_array(mfi);
                     bool has_set_tags = amrex::Reduce::AnyOf(mfi.validbox(),
@@ -609,14 +608,13 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                                                              });
 
                     // Set the values of btTags.
-                    // (btTags = 1 if needs refine, -1 if needs derefine)
+                    int bitid = btUnit::getBitid(btmesh,false,lev,mfi.index());
+                    // TODO Check lev == tree0->block_level(bitid)
                     if(has_set_tags) {
-                        int bitid = btUnit::getBitid(btmesh,false,lev,mfi.index());
-                        // TODO Check lev == tree0->block_level(bitid)
-
-                        if(!( tree0->block_is_parent(bitid) or lev>max_crse)){
-                            btTags[bitid] = 1;
-                        }
+                        btTags[bitid] = 1;
+                    }
+                    else {
+                        btTags[bitid] = -1;
                     }
                 }
             }
