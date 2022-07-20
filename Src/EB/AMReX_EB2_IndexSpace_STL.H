@@ -33,6 +33,7 @@ public:
     virtual const Box& coarsestDomain () const final {
         return m_geom.back().Domain();
     }
+    virtual void addFineLevels (int num_new_fine_levels) final;
 
 private:
 
