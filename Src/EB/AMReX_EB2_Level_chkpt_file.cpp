@@ -204,7 +204,7 @@ void ChkptFileLevel::finalize_cell_flags() {
             }
         });
 
-        set_connection_flags(vbx, bxg1, cell, fx, fy);
+        set_connection_flags(bxg1, cell, fx, fy);
 
 #else
         AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,

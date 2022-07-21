@@ -36,8 +36,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Real small_volfrac, Geometry const& geom, bool extend_domain_face,
                   int& nsmallcells, int const nmulticuts) noexcept;
 
-void set_connection_flags(Box const& bx, Box const& bxg1,
-        Array4<EBCellFlag> const& cell,
+void set_connection_flags(Box const& bxg1, Array4<EBCellFlag> const& cell,
         Array4<Type_t> const& fx, Array4<Type_t> const& fy) noexcept;
 
 #elif (AMREX_SPACEDIM == 3)
