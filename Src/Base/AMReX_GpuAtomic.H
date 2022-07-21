@@ -5,6 +5,7 @@
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Functional.H>
 #include <AMReX_INT.H>
+#include <AMReX_Tuple.H>
 
 #include <utility>
 
@@ -360,6 +361,36 @@ namespace detail {
     }
 
 ////////////////////////////////////////////////////////////////////////
+//  MinLoc
+////////////////////////////////////////////////////////////////////////
+
+#ifdef AMREX_USE_GPU
+
+    template<class T>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    T MinLoc_device (T* const m, T const value) noexcept
+    {
+      return If_device(m, value,
+                       [](T x, T value) { return value; },
+                       [](T x) { return get<0>(value) < get<0>(x); });
+    }
+
+#endif
+
+    template<class T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    T MinLoc (T* const m, T const value) noexcept
+    {
+#if AMREX_DEVICE_COMPILE
+        return MinLoc_device(m, value);
+#else
+        auto const old = *m;
+        *m = (get<0>(*m) < get<0>(value)) ? (*m) : value;
+        return old;
+#endif
+    }
+
+////////////////////////////////////////////////////////////////////////
 //  Max
 ////////////////////////////////////////////////////////////////////////
 
@@ -603,6 +634,14 @@ namespace Gpu {
     {
         AMREX_GPU_DEVICE void operator() (T* const dest, T const source) noexcept {
             Gpu::Atomic::Min(dest, source);
+        }
+    };
+
+    template <typename T>
+    struct AtomicMinLoc
+    {
+        AMREX_GPU_DEVICE void operator() (T* const dest, T const source) noexcept {
+            Gpu::Atomic::MinLoc(dest, source);
         }
     };
 

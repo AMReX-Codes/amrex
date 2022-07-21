@@ -381,6 +381,15 @@ ForwardAsTuple (Ts&&... args) noexcept
     return GpuTuple<Ts&&...>(std::forward<Ts>(args)...);
 }
 
+template <typename T>
+struct LessTagged
+{
+    constexpr T operator() (const T & lhs, const T & rhs) const
+    {
+        return (get<0>(lhs) < get<0>(rhs)) ? lhs : rhs;
+    }
+};
+
 }
 
 #endif /*AMREX_TUPLE_H_*/

@@ -8,6 +8,7 @@
 #include <AMReX_GpuAtomic.H>
 #include <AMReX_GpuUtility.H>
 #include <AMReX_Functional.H>
+#include <AMReX_Tuple.H>
 
 #if !defined(AMREX_USE_CUB) && defined(AMREX_USE_CUDA) && defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 11)
 #define AMREX_USE_CUB 1
@@ -264,6 +265,23 @@ struct warpReduce
     }
 };
 
+template <int warpSize, typename T, typename F>
+struct warpReduceTagged
+{
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    T operator() (T x) const noexcept
+    {
+        for (int offset = warpSize/2; offset > 0; offset /= 2) {
+            AMREX_HIP_OR_CUDA(T y(__shfl_down(get<0>(x), offset),
+                                  __shfl_down(get<1>(x), offset));,
+                              T y(__shfl_down_sync(0xffffffff, get<0>(x), offset),
+                                  __shfl_down_sync(0xffffffff, get<1>(x), offset)); )
+            x = F()(x,y);
+        }
+        return x;
+    }
+};
+
 template <int warpSize, typename T, typename WARPREDUCE>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T blockReduce (T x, WARPREDUCE && warp_reduce, T x0)
@@ -447,6 +465,56 @@ void deviceReduceMax_full (T * dest, T source) noexcept
 {
     T aggregate = blockReduceMax<BLOCKDIMX>(source);
     if (threadIdx.x == 0) { Gpu::Atomic::Max(dest, aggregate); }
+}
+
+// Compute the block-wide reduction for thread0
+template <typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+T blockReduceMinLoc (T source) noexcept
+{
+    return Gpu::blockReduce<Gpu::Device::warp_size>
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::LessTagged<T> >(), source);
+}
+
+template <typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void deviceReduceMinLoc_full (T * dest, T source) noexcept
+{
+    T aggregate = blockReduceMinLoc(source);
+    if (threadIdx.x == 0) { Gpu::Atomic::MinLoc(dest, aggregate); }
+}
+
+// Compute the block-wide reduction for thread0
+template <int BLOCKDIMX, typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+T blockReduceMinLoc (T source) noexcept
+{
+#if defined(AMREX_USE_CUB)
+    typedef cub::BlockReduce<T,BLOCKDIMX> BlockReduce;
+    __shared__ typename BlockReduce::TempStorage temp_storage;
+    // __syncthreads() prior to writing to shared memory is necessary
+    // if this reduction call is occurring multiple times in a kernel,
+    // and since we don't know how many times the user is calling it,
+    // we do it always to be safe.
+    __syncthreads();
+    return BlockReduce(temp_storage).Reduce(source, cub::MinLoc());
+#elif defined(AMREX_USE_HIP)
+    typedef rocprim::block_reduce<T,BLOCKDIMX> BlockReduce;
+    __shared__ typename BlockReduce::storage_type temp_storage;
+    __syncthreads();
+    BlockReduce().reduce(source, source, temp_storage, rocprim::minimum_loc<T>());
+    return source;
+#else
+    return blockReduceMinLoc(source);
+#endif
+}
+
+template <int BLOCKDIMX, typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void deviceReduceMinLoc_full (T * dest, T source) noexcept
+{
+    T aggregate = blockReduceMinLoc<BLOCKDIMX>(source);
+    if (threadIdx.x == 0) { Gpu::Atomic::MinLoc(dest, aggregate); }
 }
 
 // Compute the block-wide reduction for thread0
