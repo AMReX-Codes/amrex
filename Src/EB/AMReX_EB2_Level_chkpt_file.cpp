@@ -29,12 +29,12 @@ void ChkptFileLevel::define_fine_chkpt_file(ChkptFile const& chkpt_file,
         }
     }
 
-   domain_grown.grow(m_ngrow);
-   Box bounding_box = (extend_domain_face) ? domain : domain_grown;
-   bounding_box.surroundingNodes();
+    domain_grown.grow(m_ngrow);
+    Box bounding_box = (extend_domain_face) ? domain : domain_grown;
+    bounding_box.surroundingNodes();
 
-   BoxList bl(domain);
-   bl.maxSize(max_grid_size);
+    BoxList bl(domain);
+    bl.maxSize(max_grid_size);
     if (m_ngrow != 0) {
         const IntVect& domlo = domain.smallEnd();
         const IntVect& domhi = domain.bigEnd();
