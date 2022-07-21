@@ -372,7 +372,7 @@ namespace detail {
     {
       return If_device(m, value,
                        [](T x, T value) { return value; },
-                       [](T x) { return get<0>(value) < get<0>(x); });
+                       [value](T x) { return get<0>(value) < get<0>(x); });
     }
 
 #endif
