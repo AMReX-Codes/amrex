@@ -397,11 +397,7 @@ Device::initialize_gpu ()
 
     // check compute capability
 
-    if (sizeof(Real) == 8) {
-        AMREX_HIP_SAFE_CALL(hipDeviceSetSharedMemConfig(hipSharedMemBankSizeEightByte));
-    } else if (sizeof(Real) == 4) {
-        AMREX_HIP_SAFE_CALL(hipDeviceSetSharedMemConfig(hipSharedMemBankSizeFourByte));
-    }
+    // AMD devices do not support shared cache banking.
 
     AMREX_HIP_SAFE_CALL(hipStreamCreate(&gpu_default_stream));
     for (int i = 0; i < max_gpu_streams; ++i) {
