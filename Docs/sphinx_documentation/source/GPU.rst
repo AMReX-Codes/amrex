@@ -207,7 +207,7 @@ check the :ref:`table <tab:cmakecudavar>` below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | Variable Name                | Description                                     | Default     | Possible values |
    +==============================+=================================================+=============+=================+
-   | AMReX_CUDA_ARCH              |  CUDA target architecture                       | Auto        | User-defined    |
+   | AMREX_CUDA_ARCH              |  CUDA target architecture                       | Auto        | User-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_FASTMATH          |  Enable CUDA fastmath library                   | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -244,16 +244,15 @@ check the :ref:`table <tab:cmakecudavar>` below.
 
 
 The target architecture to build for can be specified via the configuration option
-``-DAMReX_CUDA_ARCH=<target-architecture>``, where ``<target-architecture>`` can be either
-the name of the NVIDIA GPU generation, i.e. ``Turing``, ``Volta``, ``Ampere``, ``...`` , or its
-`compute capability <https://developer.nvidia.com/cuda-gpus>`_, i.e. ``10.0``, ``9.0``,  ``...`` .
+``-DAMREX_CUDA_ARCH=<target-architecture>``, where ``<target-architecture>`` is the
+`compute capability <https://developer.nvidia.com/cuda-gpus>`_ of the NVIDIA GPU genertaion, i.e. ``60`` for 6.0, ``70`` for 7.0,  ``...`` .
 For example, on Cori GPUs you can specify the architecture as follows:
 
 .. highlight:: console
 
 ::
 
-   cmake [options] -DAMReX_GPU_BACKEND=CUDA -DAMReX_CUDA_ARCH=Volta /path/to/amrex/source
+   cmake [options] -DAMReX_GPU_BACKEND=CUDA -DAMREX_CUDA_ARCH=70 /path/to/amrex/source
 
 
 If no architecture is specified, CMake will default to the architecture defined in the
@@ -261,7 +260,7 @@ If no architecture is specified, CMake will default to the architecture defined 
 If the latter is not defined, CMake will try to determine which GPU architecture is supported by the system.
 If more than one is found, CMake will build for all of them.
 If autodetection fails, a list of "common" architectures is assumed.
-`Multiple CUDA architectures <https://cmake.org/cmake/help/latest/module/FindCUDA.html#commands>`__ can also be set manually as semicolon-separated list, e.g. ``-DAMReX_CUDA_ARCH=7.0;8.0``.
+`Multiple CUDA architectures <https://cmake.org/cmake/help/latest/module/FindCUDA.html#commands>`__ can also be set manually as semicolon-separated list, e.g. ``-DAMReX_CUDA_ARCH=70;80``.
 Building for multiple CUDA architectures will generally result in a larger library and longer build times.
 
 **Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
