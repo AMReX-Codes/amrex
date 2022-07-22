@@ -33,35 +33,11 @@ void ChkptFileLevel::define_fine_chkpt_file(ChkptFile const& chkpt_file,
     Box bounding_box = (extend_domain_face) ? domain : domain_grown;
     bounding_box.surroundingNodes();
 
-    BoxList bl(domain);
-    bl.maxSize(max_grid_size);
-    if (m_ngrow != 0) {
-        const IntVect& domlo = domain.smallEnd();
-        const IntVect& domhi = domain.bigEnd();
-        for (auto& b : bl) {
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                if (m_ngrow[idim] != 0) {
-                    if (b.smallEnd(idim) == domlo[idim]) {
-                        b.growLo(idim,m_ngrow[idim]);
-                    }
-                    if (b.bigEnd(idim) == domhi[idim]) {
-                        b.growHi(idim,m_ngrow[idim]);
-                    }
-                }
-            }
-        }
-    }
 
-    chkpt_file.fill_from_chkpt_file(m_grids, m_dmap, m_volfrac, m_centroid, m_bndryarea,
-            m_bndrycent, m_bndrynorm, m_areafrac, m_facecent, m_edgecent, m_levelset, GFab::ng);
-
-    BoxList uncovered_bl = m_grids.boxList();
-    BoxList covered_bl;
-    for (const auto& bx: bl) {
-        if (!uncovered_bl.contains(BoxList(bx))) {
-            covered_bl.push_back(bx);
-        }
-    }
+    chkpt_file.fill_from_chkpt_file(m_grids, m_covered_grids,
+            m_dmap, m_volfrac, m_centroid, m_bndryarea,
+            m_bndrycent, m_bndrynorm, m_areafrac, m_facecent,
+            m_edgecent, m_levelset, GFab::ng);
 
     m_mgf.define(m_grids, m_dmap);
     const int ng = GFab::ng;
@@ -89,34 +65,13 @@ void ChkptFileLevel::define_fine_chkpt_file(ChkptFile const& chkpt_file,
         gfab.buildTypes(cellflag);
     }
 
-    Vector<Box> cut_boxes;
-    for (MFIter mfi(m_grids, m_dmap); mfi.isValid(); ++mfi)
-    {
-        const Box& vbx = mfi.validbox();
-        const Box& gbx = amrex::surroundingNodes(amrex::grow(vbx,1));
-
-        auto& flagfab = m_cellflag[mfi];
-
-        if (flagfab.getType(gbx & bounding_box) == FabType::singlevalued) {
-            cut_boxes.push_back(vbx);
-        }
-    }
-
-    AllGatherBoxes(cut_boxes);
-
-    //Print() << "cut_boxes = " << cut_boxes.size() << std::endl;
-
-    if ( cut_boxes.empty() &&
-            !covered_bl.isEmpty())
+    if ( m_grids.empty() &&
+            !m_covered_grids.empty())
     {
         Abort("AMReX_EB2_Level.H: Domain is completely covered");
     }
 
-    if (!covered_bl.isEmpty()) {
-        m_covered_grids = BoxArray(covered_bl);
-    }
-
-    if (cut_boxes.empty()) {
+    if (m_grids.empty()) {
         m_allregular = true;
         m_ok = true;
         return;

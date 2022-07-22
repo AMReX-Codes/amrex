@@ -921,7 +921,8 @@ void
 Level::write_to_chkpt_file (const std::string& fname) const
 {
     ChkptFile chkptFile(fname);
-    chkptFile.write_to_chkpt_file(m_grids, m_volfrac, m_centroid, m_bndryarea, m_bndrycent,
+    chkptFile.write_to_chkpt_file(m_grids, m_covered_grids,
+            m_volfrac, m_centroid, m_bndryarea, m_bndrycent,
             m_bndrynorm, m_areafrac, m_facecent, m_edgecent, m_levelset);
 }
 
