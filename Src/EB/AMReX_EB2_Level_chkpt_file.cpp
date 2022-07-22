@@ -17,6 +17,8 @@ void ChkptFileLevel::define_fine_chkpt_file(ChkptFile const& chkpt_file,
 {
     BL_PROFILE("EB2::ChkptFileLevel()-define-fine-chkptfile");
 
+    ignore_unused(max_grid_size);
+
     m_ngrow = IntVect{static_cast<int>(std::ceil(ngrow/16.)) * 16};
 
     Box const& domain = geom.Domain();
@@ -38,6 +40,19 @@ void ChkptFileLevel::define_fine_chkpt_file(ChkptFile const& chkpt_file,
             m_dmap, m_volfrac, m_centroid, m_bndryarea,
             m_bndrycent, m_bndrynorm, m_areafrac, m_facecent,
             m_edgecent, m_levelset, GFab::ng);
+
+    m_volfrac.FillBoundary(geom.periodicity());
+    m_centroid.FillBoundary(geom.periodicity());
+    m_bndryarea.FillBoundary(geom.periodicity());
+    m_bndrycent.FillBoundary(geom.periodicity());
+    m_bndrynorm.FillBoundary(geom.periodicity());
+    m_levelset.FillBoundary(geom.periodicity());
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        m_areafrac[idim].FillBoundary(geom.periodicity());
+        m_facecent[idim].FillBoundary(geom.periodicity());
+        m_edgecent[idim].FillBoundary(geom.periodicity());
+    }
 
     m_mgf.define(m_grids, m_dmap);
     const int ng = GFab::ng;
