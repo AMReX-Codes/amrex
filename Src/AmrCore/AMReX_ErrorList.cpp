@@ -293,6 +293,11 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                 auto threshold = m_value[level];
                 auto const volume_weighting = m_info.m_volume_weighting;
                 auto geomdata = geom.data();
+                auto tag_update = tagval;
+                if (m_info.m_derefine) {
+                    tag_update = clearval;
+                }
+
                 if (m_test == GRAD)
                 {
                     ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
@@ -301,7 +306,7 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                         auto ax = amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k));
                         ax = amrex::max(ax,amrex::Math::abs(dat(i,j,k) - dat(i-1,j,k)));
 #if AMREX_SPACEDIM == 1
-                        if (ax >= threshold) { tagma[bi](i,j,k) = tagval;}
+                        if (ax >= threshold) { tagma[bi](i,j,k) = tag_update;}
 #else
                         auto ay = amrex::Math::abs(dat(i,j+1,k) - dat(i,j,k));
                         ay = amrex::max(ay,amrex::Math::abs(dat(i,j,k) - dat(i,j-1,k)));
@@ -310,7 +315,7 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                         az = amrex::max(az,amrex::Math::abs(dat(i,j,k) - dat(i,j,k-1)));
 #endif
                         if (amrex::max(AMREX_D_DECL(ax,ay,az)) >= threshold) {
-                            tagma[bi](i,j,k) = tagval;
+                            tagma[bi](i,j,k) = tag_update;
                         }
 #endif
                     });
@@ -323,7 +328,7 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                         auto ax = amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k));
                         ax = amrex::max(ax,amrex::Math::abs(dat(i,j,k) - dat(i-1,j,k)));
 #if AMREX_SPACEDIM == 1
-                        if (ax >= threshold * amrex::Math::abs(dat(i,j,k))) { tagma[bi](i,j,k) = tagval;}
+                        if (ax >= threshold * amrex::Math::abs(dat(i,j,k))) { tagma[bi](i,j,k) = tag_update;}
 #else
                         auto ay = amrex::Math::abs(dat(i,j+1,k) - dat(i,j,k));
                         ay = amrex::max(ay,amrex::Math::abs(dat(i,j,k) - dat(i,j-1,k)));
@@ -333,7 +338,7 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
 #endif
                         if (amrex::max(AMREX_D_DECL(ax,ay,az))
                             >= threshold * amrex::Math::abs(dat(i,j,k))) {
-                            tagma[bi](i,j,k) = tagval;
+                            tagma[bi](i,j,k) = tag_update;
                         }
 #endif
                     });
@@ -344,7 +349,7 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                     {
                         Real vol = volume_weighting ? Geometry::Volume(IntVect{AMREX_D_DECL(i,j,k)}, geomdata) : 1.0_rt;
                         if (datma[bi](i,j,k) * vol <= threshold) {
-                            tagma[bi](i,j,k) = tagval;
+                            tagma[bi](i,j,k) = tag_update;
                         }
                     });
                 }
@@ -354,7 +359,7 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                     {
                         Real vol = volume_weighting ? Geometry::Volume(IntVect{AMREX_D_DECL(i,j,k)}, geomdata) : 1.0_rt;
                         if (datma[bi](i,j,k) * vol >= threshold) {
-                            tagma[bi](i,j,k) = tagval;
+                            tagma[bi](i,j,k) = tag_update;
                         }
                     });
                 }
@@ -364,7 +369,7 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                     ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
                     {
                         if (datma[bi](i,j,k) >= fac) {
-                            tagma[bi](i,j,k) = tagval;
+                            tagma[bi](i,j,k) = tag_update;
                         }
                     });
                 }
