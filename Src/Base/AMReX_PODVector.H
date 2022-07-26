@@ -608,7 +608,10 @@ namespace amrex
         void AllocateBuffer (size_type a_capacity) noexcept
         {
             pointer new_data = allocate(a_capacity);
-            if (m_data) detail::memCopyImpl<Allocator>(new_data, m_data, size() * sizeof(T), *this);
+            if (m_data) {
+                detail::memCopyImpl<Allocator>(new_data, m_data, size() * sizeof(T), *this);
+                amrex::Gpu::streamSynchronize();
+            }
             deallocate(m_data, capacity());
             m_data = new_data;
             m_capacity = a_capacity;
@@ -621,9 +624,10 @@ namespace amrex
             pointer new_data = allocate(a_capacity);
             if (m_data)
             {
-         memCopyImpl<Allocator>(new_data, m_data, a_index * sizeof(T), *this);
+                memCopyImpl<Allocator>(new_data, m_data, a_index * sizeof(T), *this);
                 memCopyImpl<Allocator>(new_data + a_index + a_count, m_data + a_index,
                                        (size() - a_index)*sizeof(T), *this);
+                amrex::Gpu::streamSynchronize();
             }
             deallocate(m_data, capacity());
             m_data = new_data;
