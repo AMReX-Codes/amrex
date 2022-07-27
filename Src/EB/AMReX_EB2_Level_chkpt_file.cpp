@@ -45,19 +45,21 @@ void ChkptFileLevel::define_fine_chkpt_file(ChkptFile const& chkpt_file,
 
     // Fill ghost values that overlap with covered grids with covered values
     // since they have been set with regular values by default
-    for (const auto& cb: m_covered_grids.boxList()) {
-        m_volfrac.setVal(0., cb, 0, 1, ng);
-    }
+    if (m_covered_grids.size() > 0) {
+        for (const auto& cb: m_covered_grids.boxList()) {
+            m_volfrac.setVal(0., cb, 0, 1, ng);
+        }
 
-    for (const auto& cb: convert(m_covered_grids, IntVect::TheNodeVector()).boxList()) {
-        m_levelset.setVal(0., cb, 0, 1, ng);
-    }
+        for (const auto& cb: convert(m_covered_grids, IntVect::TheNodeVector()).boxList()) {
+            m_levelset.setVal(0., cb, 0, 1, ng);
+        }
 
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        const auto& cba = convert(m_covered_grids, IntVect::TheDimensionVector(idim));
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            const auto& cba = convert(m_covered_grids, IntVect::TheDimensionVector(idim));
 
-        for (const auto& cb: cba.boxList()) {
-            m_areafrac[idim].setVal(0., cb, 0, 1, ng);
+            for (const auto& cb: cba.boxList()) {
+                m_areafrac[idim].setVal(0., cb, 0, 1, ng);
+            }
         }
     }
 
