@@ -379,6 +379,8 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
     finest_level = -1;
 
     pp.get("use_bittree",use_bittree);
+    if(use_bittree) pp.get("bt_derefine",bt_derefine);
+    if(use_bittree) pp.get("infer_bt_grids",infer_bt_grids);
 
     if (check_input) checkInput();
 }
@@ -499,8 +501,6 @@ AmrMesh::MakeBaseGrids () const
 void
 AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& new_grids, Vector<DistributionMapping>& new_dmap)
 {
-    static bool infer_bt_grids = false;
-
     if(use_bittree) {
         // Initialize BT refinement
         btmesh->refine_init();
@@ -613,7 +613,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                     if(has_set_tags) {
                         btTags[bitid] = 1;
                     }
-                    else {
+                    else if(bt_derefine) {
                         btTags[bitid] = -1;
                     }
                 }
