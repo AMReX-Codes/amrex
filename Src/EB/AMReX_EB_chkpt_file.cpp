@@ -209,7 +209,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
         Print() << "  Loading " << m_bndrycent_name << std::endl;
 
         bndrycent.define(cut_grids, dmap, AMREX_SPACEDIM, ng);
-        bndrycent.setVal(0.);
+        bndrycent.setVal(-1.);
 
         auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndrycent_name);
         MultiFab mf(The_Pinned_Arena());
@@ -236,7 +236,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
             Print() << "  Loading " << m_areafrac_name[idim] << std::endl;
 
             areafrac[idim].define(convert(cut_grids, IntVect::TheDimensionVector(idim)), dmap, 1, ng);
-            areafrac[idim].setVal(0.);
+            areafrac[idim].setVal(1.);
 
             auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_areafrac_name[idim]);
             MultiFab mf(The_Pinned_Arena());

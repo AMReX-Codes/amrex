@@ -1,6 +1,8 @@
 #include <AMReX_EB2_Level_chkpt_file.H>
 #include <AMReX_EB2_C.H>
 
+#include <AMReX_MultiFabUtil.H>
+
 namespace amrex { namespace EB2 {
 
 ChkptFileLevel::ChkptFileLevel (IndexSpace const* is, ChkptFile const& chkpt_file,
@@ -35,12 +37,31 @@ void ChkptFileLevel::define_fine_chkpt_file(ChkptFile const& chkpt_file,
     Box bounding_box = (extend_domain_face) ? domain : domain_grown;
     bounding_box.surroundingNodes();
 
-
+    const int ng = GFab::ng;
     chkpt_file.fill_from_chkpt_file(m_grids, m_covered_grids,
             m_dmap, m_volfrac, m_centroid, m_bndryarea,
             m_bndrycent, m_bndrynorm, m_areafrac, m_facecent,
-            m_edgecent, m_levelset, GFab::ng);
+            m_edgecent, m_levelset, ng);
 
+    // Fill ghost values that overlap with covered grids with covered values
+    // since they have been set with regular values by default
+    for (const auto& cb: m_covered_grids.boxList()) {
+        m_volfrac.setVal(0., cb, 0, 1, ng);
+    }
+
+    for (const auto& cb: convert(m_covered_grids, IntVect::TheNodeVector()).boxList()) {
+        m_levelset.setVal(0., cb, 0, 1, ng);
+    }
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        const auto& cba = convert(m_covered_grids, IntVect::TheDimensionVector(idim));
+
+        for (const auto& cb: cba.boxList()) {
+            m_areafrac[idim].setVal(0., cb, 0, 1, ng);
+        }
+    }
+
+    // FillBoundary calls
     m_volfrac.FillBoundary(geom.periodicity());
     m_centroid.FillBoundary(geom.periodicity());
     m_bndryarea.FillBoundary(geom.periodicity());
@@ -55,7 +76,6 @@ void ChkptFileLevel::define_fine_chkpt_file(ChkptFile const& chkpt_file,
     }
 
     m_mgf.define(m_grids, m_dmap);
-    const int ng = GFab::ng;
     MFInfo mf_info;
     m_cellflag.define(m_grids, m_dmap, 1, ng, mf_info);
 
@@ -122,7 +142,7 @@ void ChkptFileLevel::finalize_cell_flags() {
                      Array4<Real const> const& apy = m_areafrac[1].const_array(mfi);,
                      Array4<Real const> const& apz = m_areafrac[2].const_array(mfi););
 
-        const Box& xbx = amrex::grow(amrex::surroundingNodes(vbx,0),0);
+        const Box& xbx = amrex::grow(amrex::surroundingNodes(vbx,0),1);
         AMREX_HOST_DEVICE_FOR_3D ( xbx, i, j, k,
         {
             if (apx(i,j,k) == 0.0_rt) {
@@ -132,7 +152,7 @@ void ChkptFileLevel::finalize_cell_flags() {
             }
         });
 
-        const Box& ybx = amrex::grow(amrex::surroundingNodes(vbx,1),0);
+        const Box& ybx = amrex::grow(amrex::surroundingNodes(vbx,1),1);
         AMREX_HOST_DEVICE_FOR_3D ( ybx, i, j, k,
         {
             if (apy(i,j,k) == 0.0_rt) {
@@ -143,7 +163,7 @@ void ChkptFileLevel::finalize_cell_flags() {
         });
 
 #if (AMREX_SPACEDIM == 3)
-        const Box& zbx = amrex::grow(amrex::surroundingNodes(vbx,2),0);
+        const Box& zbx = amrex::grow(amrex::surroundingNodes(vbx,2),1);
         AMREX_HOST_DEVICE_FOR_3D ( zbx, i, j, k,
         {
             if (apz(i,j,k) == 0.0_rt) {
