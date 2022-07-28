@@ -20,11 +20,13 @@ LIBRARIES += -lbittree
 
 Include in inputs:
 amr.use_bittree = true
+amr.bt_derefine = true
+amr.infer_bt_grids = false
 
  */
 
 class btUnit {
-  // Functions corresponding to the three steps of the Bittree version of MakeNewGrids
+  // Functions used in AmrMesh
   public:
     static int  btRefine( std::shared_ptr<BittreeAmr> mesh,
                           std::vector<int>& btTags,
@@ -46,7 +48,7 @@ class btUnit {
     static int getIndex(std::shared_ptr<BittreeAmr> mesh, bool updated,
                         int lev, int bitid);
 
-  // Functions for octree logic, adapted from PARAMESH
+  // Functions to implement strict octree logic
   private:
     static void btCheckRefine( std::shared_ptr<BittreeAmr> mesh,
                                std::vector<int>& btTags,

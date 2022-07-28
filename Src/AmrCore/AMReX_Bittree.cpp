@@ -3,8 +3,6 @@
 
 #include <functional>
 
-#define NVARS 2
-
 namespace amrex {
 static constexpr int K1D = unsigned(AMREX_SPACEDIM>=1);
 static constexpr int K2D = unsigned(AMREX_SPACEDIM>=2);
