@@ -43,26 +43,6 @@ void ChkptFileLevel::define_fine_chkpt_file(ChkptFile const& chkpt_file,
             m_bndrycent, m_bndrynorm, m_areafrac, m_facecent,
             m_edgecent, m_levelset, ng);
 
-    // Fill ghost values that overlap with covered grids with covered values
-    // since they have been set with regular values by default
-    if (m_covered_grids.size() > 0) {
-        for (const auto& cb: m_covered_grids.boxList()) {
-            m_volfrac.setVal(0., cb, 0, 1, ng);
-        }
-
-        for (const auto& cb: convert(m_covered_grids, IntVect::TheNodeVector()).boxList()) {
-            m_levelset.setVal(0., cb, 0, 1, ng);
-        }
-
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            const auto& cba = convert(m_covered_grids, IntVect::TheDimensionVector(idim));
-
-            for (const auto& cb: cba.boxList()) {
-                m_areafrac[idim].setVal(0., cb, 0, 1, ng);
-            }
-        }
-    }
-
     // FillBoundary calls
     m_volfrac.FillBoundary(geom.periodicity());
     m_centroid.FillBoundary(geom.periodicity());
