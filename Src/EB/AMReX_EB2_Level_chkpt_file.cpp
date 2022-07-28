@@ -19,7 +19,7 @@ void ChkptFileLevel::define_fine_chkpt_file(ChkptFile const& chkpt_file,
 {
     BL_PROFILE("EB2::ChkptFileLevel()-define-fine-chkptfile");
 
-    ignore_unused(max_grid_size);
+    ignore_unused(max_grid_size, extend_domain_face);
 
     m_ngrow = IntVect{static_cast<int>(std::ceil(ngrow/16.)) * 16};
 
@@ -33,28 +33,23 @@ void ChkptFileLevel::define_fine_chkpt_file(ChkptFile const& chkpt_file,
         }
     }
 
-    domain_grown.grow(m_ngrow);
-    Box bounding_box = (extend_domain_face) ? domain : domain_grown;
-    bounding_box.surroundingNodes();
-
     const int ng = GFab::ng;
-    chkpt_file.fill_from_chkpt_file(m_grids, m_covered_grids,
+    chkpt_file.read_from_chkpt_file(m_grids, m_covered_grids,
             m_dmap, m_volfrac, m_centroid, m_bndryarea,
             m_bndrycent, m_bndrynorm, m_areafrac, m_facecent,
-            m_edgecent, m_levelset, ng);
+            m_edgecent, m_levelset, ng, geom);
 
-    // FillBoundary calls
-    m_volfrac.FillBoundary(geom.periodicity());
-    m_centroid.FillBoundary(geom.periodicity());
-    m_bndryarea.FillBoundary(geom.periodicity());
-    m_bndrycent.FillBoundary(geom.periodicity());
-    m_bndrynorm.FillBoundary(geom.periodicity());
-    m_levelset.FillBoundary(geom.periodicity());
 
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        m_areafrac[idim].FillBoundary(geom.periodicity());
-        m_facecent[idim].FillBoundary(geom.periodicity());
-        m_edgecent[idim].FillBoundary(geom.periodicity());
+    if ( m_grids.empty() &&
+            !m_covered_grids.empty())
+    {
+        Abort("AMReX_EB2_Level.H: Domain is completely covered");
+    }
+
+    if (m_grids.empty()) {
+        m_allregular = true;
+        m_ok = true;
+        return;
     }
 
     m_mgf.define(m_grids, m_dmap);
@@ -69,7 +64,7 @@ void ChkptFileLevel::define_fine_chkpt_file(ChkptFile const& chkpt_file,
         auto& gfab = m_mgf[mfi];
 
         const auto& levelset = m_levelset.const_array(mfi);
-        const Box& bxg2 = amrex::grow(gfab.validbox(),2);
+        const Box& bxg2 = amrex::grow(gfab.validbox(),ng);
         const Box& nodal_box = amrex::surroundingNodes(bxg2);
         const auto& ls = gfab.getLevelSet().array();
 
@@ -80,18 +75,6 @@ void ChkptFileLevel::define_fine_chkpt_file(ChkptFile const& chkpt_file,
 
         auto& cellflag = m_cellflag[mfi];
         gfab.buildTypes(cellflag);
-    }
-
-    if ( m_grids.empty() &&
-            !m_covered_grids.empty())
-    {
-        Abort("AMReX_EB2_Level.H: Domain is completely covered");
-    }
-
-    if (m_grids.empty()) {
-        m_allregular = true;
-        m_ok = true;
-        return;
     }
 
     finalize_cell_flags();

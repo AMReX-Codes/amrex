@@ -82,13 +82,13 @@ ChkptFile::ChkptFile (const std::string &fname)
     : m_restart_file(fname)
 {}
 
-void ChkptFile::fill_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grids,
+void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grids,
         DistributionMapping& dmap,
         MultiFab& volfrac, MultiFab& centroid, MultiFab& bndryarea, MultiFab& bndrycent,
         MultiFab& bndrynorm, Array<MultiFab,AMREX_SPACEDIM>& areafrac,
         Array<MultiFab,AMREX_SPACEDIM>& facecent,
         Array<MultiFab,AMREX_SPACEDIM>& edgecent,
-        MultiFab& levelset, int ng) const
+        MultiFab& levelset, int ng, const Geometry& geom) const
 {
     Real prob_lo[AMREX_SPACEDIM];
     Real prob_hi[AMREX_SPACEDIM];
@@ -132,6 +132,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
         }
     }
 
+    ignore_unused(prob_lo, prob_hi);
 
     BoxArray cut_grids_ba, covered_grids_ba;
 
@@ -144,9 +145,6 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
         covered_grids_ba.readFrom(is);
         gotoNextLine(is);
     }
-
-    ignore_unused(prob_lo);
-    ignore_unused(prob_hi);
 
     BoxList cut_bl;
     for (int nb = 0; nb < cut_grids_ba.size(); nb++) {
@@ -175,7 +173,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_volfrac_name);
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
-        volfrac.ParallelCopy(mf, 0, 0, 1, 0, ng);
+        volfrac.ParallelCopy(mf, 0, 0, 1, 0, ng, geom.periodicity());
     }
 
     // centroid
@@ -188,7 +186,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
         auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_centroid_name);
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
-        centroid.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, 0, ng);
+        centroid.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, 0, ng, geom.periodicity());
     }
 
     // bndryarea
@@ -201,7 +199,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
         auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndryarea_name);
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
-        bndryarea.ParallelCopy(mf, 0, 0, 1, 0, ng);
+        bndryarea.ParallelCopy(mf, 0, 0, 1, 0, ng, geom.periodicity());
     }
 
     // bndrycent
@@ -214,7 +212,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
         auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndrycent_name);
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
-        bndrycent.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, 0, ng);
+        bndrycent.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, 0, ng, geom.periodicity());
     }
 
     // bndrynorm
@@ -227,7 +225,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
         auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndrynorm_name);
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
-        bndrynorm.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, 0, ng);
+        bndrynorm.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, 0, ng, geom.periodicity());
     }
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -241,7 +239,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
             auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_areafrac_name[idim]);
             MultiFab mf(The_Pinned_Arena());
             VisMF::Read(mf, prefix);
-            areafrac[idim].ParallelCopy(mf, 0, 0, 1, 0, ng);
+            areafrac[idim].ParallelCopy(mf, 0, 0, 1, 0, ng, geom.periodicity());
         }
 
         // facecent
@@ -254,7 +252,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
             auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_facecent_name[idim]);
             MultiFab mf(The_Pinned_Arena());
             VisMF::Read(mf, prefix);
-            facecent[idim].ParallelCopy(mf, 0, 0, AMREX_SPACEDIM-1, 0, ng);
+            facecent[idim].ParallelCopy(mf, 0, 0, AMREX_SPACEDIM-1, 0, ng, geom.periodicity());
         }
 
         // edgecent
@@ -268,7 +266,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
             auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_edgecent_name[idim]);
             MultiFab mf(The_Pinned_Arena());
             VisMF::Read(mf, prefix);
-            edgecent[idim].ParallelCopy(mf, 0, 0, 1, 0, ng);
+            edgecent[idim].ParallelCopy(mf, 0, 0, 1, 0, ng, geom.periodicity());
         }
     }
 
@@ -282,7 +280,7 @@ void ChkptFile::fill_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_levelset_name);
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
-        levelset.ParallelCopy(mf, 0, 0, 1, 0, ng);
+        levelset.ParallelCopy(mf, 0, 0, 1, 0, ng, geom.periodicity());
     }
 }
 

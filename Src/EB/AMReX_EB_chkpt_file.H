@@ -31,14 +31,14 @@ private:
 public:
     ChkptFile(const std::string &fname);
 
-    void fill_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grids,
+    void read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grids,
             DistributionMapping& dmap,
             MultiFab& volfrac, MultiFab& centroid, MultiFab& bndryarea,
             MultiFab& bndrycent, MultiFab& bndrynorm,
             Array<MultiFab,AMREX_SPACEDIM>& areafrac,
             Array<MultiFab,AMREX_SPACEDIM>& facecent,
             Array<MultiFab,AMREX_SPACEDIM>& edgecent,
-            MultiFab& levelset, int ng) const;
+            MultiFab& levelset, int ng, const Geometry& geom) const;
 
     void write_to_chkpt_file (const BoxArray& cut_grids,
             const BoxArray& covered_grids,
