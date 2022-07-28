@@ -613,8 +613,8 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                     if(has_set_tags) {
                         btTags[bitid] = 1;
                     }
-                    else if(bt_derefine) {
-                        btTags[bitid] = -1;
+                    else {
+                        if(bt_derefine) btTags[bitid] = -1;
                     }
                 }
             }

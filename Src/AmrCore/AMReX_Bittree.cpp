@@ -1,14 +1,13 @@
 #include <AMReX_Bittree.H>
 
-#include <iostream>
 #include <functional>
 
 #define NVARS 2
 
 namespace amrex {
-static constexpr unsigned K1D = unsigned(AMREX_SPACEDIM>=1);
-static constexpr unsigned K2D = unsigned(AMREX_SPACEDIM>=2);
-static constexpr unsigned K3D = unsigned(AMREX_SPACEDIM>=3);
+static constexpr int K1D = unsigned(AMREX_SPACEDIM>=1);
+static constexpr int K2D = unsigned(AMREX_SPACEDIM>=2);
+static constexpr int K3D = unsigned(AMREX_SPACEDIM>=3);
 
 /*
 NOTE: Bittree object is created in AmrMesh::MakeNewGrids (Real time)
@@ -175,6 +174,7 @@ void btUnit::btCheckRefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>& 
             auto b = tree0->locate(id);
             if( !b.is_parent && btTags[id]!=1 ) {
                 bool needsTag = checkNeighborsRefine( mesh, b);
+                //amrex::Print() << "needsTag for " << id << " : " << needsTag <<std::endl;
                 if(needsTag) {
                     ref_test[id] = 1;
                 }
@@ -226,7 +226,7 @@ void btUnit::btCheckDerefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>
 //------or marked for refinement, do not derefine.
         for( unsigned id = id0; id < id1; ++id) {
             auto b = tree0->locate(id);
-            if( !b.is_parent && btTags[id]==-1 ) {
+            if( btTags[id]==-1 ) {
                 bool canDeref = checkNeighborsDerefine( mesh, b);
                 if(!canDeref) {
                     deref_test[id] = 0;
@@ -283,14 +283,13 @@ void btUnit::btCheckDerefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>
 bool btUnit::checkNeighborsRefine( std::shared_ptr<BittreeAmr> mesh, MortonTree::Block b) {
     auto tree0 = mesh->getTree();
     auto tree1 = mesh->getTree(true);
-    int nIdx[3];
-    unsigned cIdx[3];
+    int nIdx[3], cIdx[3];
     unsigned childCoord_u[AMREX_SPACEDIM];
 
     // Loop over neighbors
-    for(nIdx[2]= -K3D; nIdx[2]<= K3D; ++nIdx[2]) {
-    for(nIdx[1]= -K2D; nIdx[1]<= K2D; ++nIdx[1]) {
-    for(nIdx[0]= -K1D; nIdx[0]<= K1D; ++nIdx[0]) {
+    for(nIdx[2]= -1*K3D; nIdx[2]<= K3D; ++nIdx[2]) {
+    for(nIdx[1]= -1*K2D; nIdx[1]<= K2D; ++nIdx[1]) {
+    for(nIdx[0]= -1*K1D; nIdx[0]<= K1D; ++nIdx[0]) {
         std::vector<int> nCoord = neighIntCoords(mesh, b.level, b.coord, nIdx);
 
         // If neighbor is outside domain or otherwise invalid, continue.
@@ -304,7 +303,6 @@ bool btUnit::checkNeighborsRefine( std::shared_ptr<BittreeAmr> mesh, MortonTree:
             neighCoord_u[d] = static_cast<unsigned>(nCoord[d]);
         }
         auto n = tree0->identify(b.level, neighCoord_u);
-
         if(b.level==n.level && n.is_parent) {
             // Loop over children of neighbor.
             for(cIdx[2]= 0; cIdx[2]<= K3D; ++cIdx[2]) {
@@ -318,7 +316,7 @@ bool btUnit::checkNeighborsRefine( std::shared_ptr<BittreeAmr> mesh, MortonTree:
 
                     // Identify child on updated tree
                     for(unsigned d=0; d<AMREX_SPACEDIM; ++d) {
-                      childCoord_u[d] = neighCoord_u[d]*2 + cIdx[d];
+                      childCoord_u[d] = neighCoord_u[d]*2 + static_cast<unsigned>(cIdx[d]);
                     }
                     auto c = tree1->identify(n.level+1, childCoord_u);
 
@@ -341,13 +339,11 @@ bool btUnit::checkNeighborsDerefine( std::shared_ptr<BittreeAmr> mesh, MortonTre
     auto tree0 = mesh->getTree();
     auto tree1 = mesh->getTree(true);
     int nIdx[3];
-    unsigned cIdx[3];
-    unsigned childCoord_u[AMREX_SPACEDIM];
 
     // Loop over neighbors
-    for(nIdx[2]= -K3D; nIdx[2]<= K3D; ++nIdx[2]) {
-    for(nIdx[1]= -K2D; nIdx[1]<= K2D; ++nIdx[1]) {
-    for(nIdx[0]= -K1D; nIdx[0]<= K1D; ++nIdx[0]) {
+    for(nIdx[2]= -1*K3D; nIdx[2]<= K3D; ++nIdx[2]) {
+    for(nIdx[1]= -1*K2D; nIdx[1]<= K2D; ++nIdx[1]) {
+    for(nIdx[0]= -1*K1D; nIdx[0]<= K1D; ++nIdx[0]) {
         std::vector<int> nCoord = neighIntCoords(mesh, b.level, b.coord, nIdx);
 
         // If neighbor is outside domain or otherwise invalid, continue.
