@@ -70,6 +70,10 @@ public:
 
     virtual void copyNSolveSolution (MultiFab& dst, MultiFab const& src) const final override;
 
+    //! Compute dphi/dn on domain faces after the solver has converged.
+    void get_dpdn_on_domain_faces (Array<MultiFab*,AMREX_SPACEDIM> const& dpdn,
+                                   MultiFab const& phi);
+
 private:
 
     Vector<int> m_is_singular;
