@@ -1,4 +1,5 @@
 #include <AMReX_Bittree.H>
+#include <AMReX_ParallelDescriptor.H>
 
 #include <functional>
 
@@ -45,7 +46,7 @@ int btUnit::btRefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>& btTags
 
     btCheckRefine(mesh,btTags,comm);
 
-//--Mark derefinement
+//--Mark derefinement (parents who will nodetype change to leaf)
     for( unsigned id = id0; id < id1; ++id) {
       if (btTags[id]==-1) {
         if(tree0->block_is_parent(id)) {
@@ -193,6 +194,8 @@ void btUnit::btCheckRefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>& 
 
         // If only processing local blocks, check all processors to see if
         // a repeat is necessary, then reduce bittree to update on all ranks.
+        ParallelDescriptor::ReduceBoolOr(repeat);
+
         if(repeat) {
             mesh->refine_reduce(comm);
             mesh->refine_update();
@@ -222,19 +225,19 @@ void btUnit::btCheckDerefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>
         //Turn deref_test to default 0 if block can't be derefined
         deref_test = btTags;
 
-//------Check neighbors - if any neighbor is either a parent
+//------Check neighbors - if any adjacent child of neighbor is either a parent
 //------or marked for refinement, do not derefine.
         for( unsigned id = id0; id < id1; ++id) {
             auto b = tree0->locate(id);
             if( btTags[id]==-1 ) {
-                bool canDeref = checkNeighborsDerefine( mesh, b);
-                if(!canDeref) {
+                bool cantDeref = checkNeighborsRefine( mesh, b);
+                if(cantDeref) {
                     deref_test[id] = 0;
                 }
             }
         }
 
-//------Unmark parents for any blocks who cannot derefine (as per above check).
+//------Unmark any blocks who cannot derefine (as per above check).
         repeat = false;
         for( unsigned id = id0; id < id1; ++id) {
             if( deref_test[id]==0 && btTags[id]==-1 ) {
@@ -269,6 +272,8 @@ void btUnit::btCheckDerefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>
 
         // If only processing local blocks, check all processors to see if
         // a repeat is necessary, then reduce bittree to update on all ranks.
+        ParallelDescriptor::ReduceBoolOr(repeat);
+
         if(repeat) {
             mesh->refine_reduce_and(comm);
             mesh->refine_update();
@@ -278,8 +283,7 @@ void btUnit::btCheckDerefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>
 }
 
 
-// Check all neighbors to see if their children are marked for refinement.
-// If so, the block in question also needs to be refined.
+// Check all neighbors to see if their adjacent children are parents or marked for refinement.
 bool btUnit::checkNeighborsRefine( std::shared_ptr<BittreeAmr> mesh, MortonTree::Block b) {
     auto tree0 = mesh->getTree();
     auto tree1 = mesh->getTree(true);
@@ -320,7 +324,7 @@ bool btUnit::checkNeighborsRefine( std::shared_ptr<BittreeAmr> mesh, MortonTree:
                     }
                     auto c = tree1->identify(n.level+1, childCoord_u);
 
-                    // If child WILL be parent, need to tag block
+                    // If child WILL be parent, return true
                     if( c.level==(b.level+1) && c.is_parent) {
                         return true;
                     }
@@ -329,45 +333,9 @@ bool btUnit::checkNeighborsRefine( std::shared_ptr<BittreeAmr> mesh, MortonTree:
         }
     }}}
 
-    // Don't need to tag block
+    // Return false otherwise
     return false;
 }
-
-// Check all neighbors to see if it is a parent or marked for refinement.
-// If so, the block in question cannot be derefined.
-bool btUnit::checkNeighborsDerefine( std::shared_ptr<BittreeAmr> mesh, MortonTree::Block b) {
-    auto tree0 = mesh->getTree();
-    auto tree1 = mesh->getTree(true);
-    int nIdx[3];
-
-    // Loop over neighbors
-    for(nIdx[2]= -1*K3D; nIdx[2]<= K3D; ++nIdx[2]) {
-    for(nIdx[1]= -1*K2D; nIdx[1]<= K2D; ++nIdx[1]) {
-    for(nIdx[0]= -1*K1D; nIdx[0]<= K1D; ++nIdx[0]) {
-        std::vector<int> nCoord = neighIntCoords(mesh, b.level, b.coord, nIdx);
-
-        // If neighbor is outside domain or otherwise invalid, continue.
-        if(AMREX_D_TERM(nCoord[0]<0, || nCoord[1]<0, || nCoord[2]<0 )) {
-            continue;
-        }
-
-        // Identify neighbor on updated tree
-        unsigned neighCoord_u[AMREX_SPACEDIM];
-        for(unsigned d=0; d<AMREX_SPACEDIM; ++d) {
-            neighCoord_u[d] = static_cast<unsigned>(nCoord[d]);
-        }
-        auto n = tree1->identify(b.level, neighCoord_u);
-
-        // If neighbor WILL be parent, cannot derefine
-        if(b.level==n.level && n.is_parent) {
-            return false;
-        }
-    }}}
-
-    // Allowed to derefine
-    return true;
-}
-
 
 /** Calculate integer coordinates of neighbors, taking into acount BCs.
   * Currently assuming Periodic in all directions.
