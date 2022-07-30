@@ -397,11 +397,7 @@ Device::initialize_gpu ()
 
     // check compute capability
 
-    if (sizeof(Real) == 8) {
-        AMREX_HIP_SAFE_CALL(hipDeviceSetSharedMemConfig(hipSharedMemBankSizeEightByte));
-    } else if (sizeof(Real) == 4) {
-        AMREX_HIP_SAFE_CALL(hipDeviceSetSharedMemConfig(hipSharedMemBankSizeFourByte));
-    }
+    // AMD devices do not support shared cache banking.
 
     AMREX_HIP_SAFE_CALL(hipStreamCreate(&gpu_default_stream));
     for (int i = 0; i < max_gpu_streams; ++i) {
@@ -783,13 +779,14 @@ void
 Device::mem_advise_set_preferred (void* p, const std::size_t sz, const int device)
 {
     amrex::ignore_unused(p,sz,device);
-    // HIP does not support memory advise.
-#ifdef AMREX_USE_CUDA
-#ifndef AMREX_USE_HIP
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
     if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
-#endif
     {
-        AMREX_CUDA_SAFE_CALL(cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device));
+        AMREX_HIP_OR_CUDA
+            (AMREX_HIP_SAFE_CALL(
+                 hipMemAdvise(p, sz, hipMemAdviseSetPreferredLocation, device)),
+             AMREX_CUDA_SAFE_CALL(
+                 cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device)));
     }
 #elif defined(AMREX_USE_DPCPP)
     // xxxxx DPCPP todo: mem_advise
@@ -805,13 +802,14 @@ void
 Device::mem_advise_set_readonly (void* p, const std::size_t sz)
 {
     amrex::ignore_unused(p,sz);
-    // HIP does not support memory advise.
-#ifdef AMREX_USE_CUDA
-#ifndef AMREX_USE_HIP
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
     if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
-#endif
     {
-        AMREX_CUDA_SAFE_CALL(cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId));
+        AMREX_HIP_OR_CUDA
+            (AMREX_HIP_SAFE_CALL(
+                 hipMemAdvise(p, sz, hipMemAdviseSetReadMostly, hipCpuDeviceId)),
+             AMREX_CUDA_SAFE_CALL(
+                 cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId)));
     }
 #elif defined(AMREX_USE_DPCPP)
     // xxxxx DPCPP todo: mem_advise

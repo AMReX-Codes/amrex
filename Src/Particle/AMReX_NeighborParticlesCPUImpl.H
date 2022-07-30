@@ -7,8 +7,10 @@ void
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::fillNeighborsCPU () {
     BL_PROFILE("NeighborParticleContainer::fillNeighborsCPU");
-    BuildMasks();
-    GetNeighborCommTags();
+    if (!areMasksValid()) {
+        BuildMasks();
+        GetNeighborCommTags();
+    }
     cacheNeighborInfo();
     updateNeighborsCPU(false);
 }

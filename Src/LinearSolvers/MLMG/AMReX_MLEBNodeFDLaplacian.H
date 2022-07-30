@@ -119,7 +119,7 @@ public:
 #endif
 
 private:
-    GpuArray<Real,AMREX_SPACEDIM> m_sigma{AMREX_D_DECL(1_rt,1_rt,1_rt)};
+    GpuArray<Real,AMREX_SPACEDIM> m_sigma{{AMREX_D_DECL(1_rt,1_rt,1_rt)}};
     Real m_s_phi_eb = std::numeric_limits<Real>::lowest();
     Vector<MultiFab> m_phi_eb;
     int m_rz = false;

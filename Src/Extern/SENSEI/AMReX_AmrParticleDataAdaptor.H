@@ -43,10 +43,10 @@ public:
   int GetArrayName(const std::string &meshName, int association, unsigned int index, std::string &arrayName) override;
 #endif
   int GetNumberOfMeshes(unsigned int &numMeshes) override;
-  int GetMesh(const std::string &meshName, bool structureOnly, vtkDataObject *&mesh) override;
-  int AddGhostNodesArray(vtkDataObject* mesh, const std::string &meshName) override;
-  int AddGhostCellsArray(vtkDataObject* mesh, const std::string &meshName) override;
-  int AddArray(vtkDataObject* mesh, const std::string &meshName, int association, const std::string &arrayName) override;
+  int GetMesh(const std::string &meshName, bool structureOnly, svtkDataObject *&mesh) override;
+  int AddGhostNodesArray(svtkDataObject* mesh, const std::string &meshName) override;
+  int AddGhostCellsArray(svtkDataObject* mesh, const std::string &meshName) override;
+  int AddArray(svtkDataObject* mesh, const std::string &meshName, int association, const std::string &arrayName) override;
   int ReleaseData() override;
 
 protected:

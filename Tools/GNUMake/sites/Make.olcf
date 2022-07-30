@@ -2,7 +2,7 @@
 # For Summit et al. at OLCF
 #
 
-OLCF_MACHINES := summit ascent spock crusher
+OLCF_MACHINES := summit ascent spock crusher frontier
 
 ifneq ($(which_computer), $(findstring $(which_computer), $(OLCF_MACHINES)))
   $(error Unknown OLCF computer, $(which_computer))
@@ -60,7 +60,7 @@ ifeq ($(which_computer),spock)
     endif
     # for gpu aware mpi
     ifeq ($(USE_HIP),TRUE)
-      LIBRARIES += $(PE_MPICH_GTL_DIR_gfx908) -lmpi_gtl_hsa
+      LIBRARIES += $(PE_MPICH_GTL_DIR_amd_gfx908) -lmpi_gtl_hsa
     endif
   endif
 endif
@@ -80,7 +80,27 @@ ifeq ($(which_computer),crusher)
     endif
     # for gpu aware mpi
     ifeq ($(USE_HIP),TRUE)
-      LIBRARIES += -lmpi_gtl_hsa
+      LIBRARIES += $(PE_MPICH_GTL_DIR_amd_gfx90a) -lmpi_gtl_hsa
+    endif
+  endif
+endif
+
+ifeq ($(which_computer),frontier)
+  ifeq ($(USE_HIP),TRUE)
+    # MI250X
+    AMD_ARCH=gfx90a
+  endif
+
+  ifeq ($(USE_MPI),TRUE)
+    includes += $(shell CC --cray-print-opts=cflags)
+    ifneq ($(BL_NO_FORT),TRUE)
+      LIBRARIES += $(shell ftn --cray-print-opts=libs)
+    else
+      LIBRARIES += $(shell CC --cray-print-opts=libs)
+    endif
+    # for gpu aware mpi
+    ifeq ($(USE_HIP),TRUE)
+      LIBRARIES += $(PE_MPICH_GTL_DIR_amd_gfx90a) -lmpi_gtl_hsa
     endif
   endif
 endif

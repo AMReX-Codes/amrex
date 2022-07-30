@@ -873,9 +873,12 @@ and point to the CMake configuration installed with SENSEI.
 
 .. code-block:: bash
 
-   cmake -DAMReX_SENSEI=ON -DSENSEI_DIR=<path to install>/lib/cmake ..
+   cmake -DAMReX_SENSEI=ON -DSENSEI_DIR=<path to install>/<lib dir>/cmake ..
 
-When CMake generates the make files proceed as usual.
+When CMake generates the make files proceed as usual. Note: <lib dir> may be
+`lib` or `lib64` or something else depending on what CMake decided to use for
+your particular OS. See the CMake GNUInstallDirs documentation for more
+information.
 
 .. code-block:: bash
 
@@ -952,8 +955,7 @@ dataset.
 
 Obtaining SENSEI
 -----------------
-SENSEI is hosted on Kitware's Gitlab site at https://gitlab.kitware.com/sensei/sensei
-It's best to checkout the latest release rather than working on the master branch.
+SENSEI is hosted on github at https://github.com/SENSEI-insitu/SENSEI.git
 
 To ease the burden of wrangling back end installs SENSEI provides two platforms
 with all dependencies pre-installed, a VirtualBox VM, and a NERSC Cori

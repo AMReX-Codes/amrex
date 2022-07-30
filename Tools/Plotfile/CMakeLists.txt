@@ -15,6 +15,7 @@ set(_exe_names
    fsnapshot
    ftime
    fvarnames
+   fvolumesum
    )
 
 # Build targets one by one

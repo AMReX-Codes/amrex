@@ -10,7 +10,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             bool enforce_periodicity_only,
                             bool override_sync)
 {
-    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms: FB");
     BL_PROFILE("FillBoundary_nowait()");
 
     AMREX_ASSERT_WITH_MESSAGE(!fbd, "FillBoundary_nowait() called when comm operation already in progress.");
@@ -316,7 +316,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                                     const FabArrayBase::CPC * a_cpc,
                                     bool                 to_ghost_cells_only)
 {
-    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms: PC");
     BL_PROFILE("FabArray::ParallelCopy_nowait()");
 
     AMREX_ASSERT_WITH_MESSAGE(!pcd, "ParallelCopy_nowait() called when comm operation already in progress.");

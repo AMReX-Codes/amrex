@@ -148,7 +148,7 @@ template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrMeshParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh(
   const std::string &meshName,
   bool structureOnly,
-  vtkDataObject *&mesh)
+  svtkDataObject *&mesh)
 {
   if(meshName == m_meshName)
   {
@@ -164,7 +164,7 @@ int AmrMeshParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrMeshParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddGhostNodesArray(
-  vtkDataObject* mesh,
+  svtkDataObject* mesh,
   const std::string &meshName)
 {
   if(meshName == m_meshName)
@@ -181,7 +181,7 @@ int AmrMeshParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrMeshParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddGhostCellsArray(
-  vtkDataObject* mesh,
+  svtkDataObject* mesh,
   const std::string &meshName)
 {
   if(meshName == m_meshName)
@@ -198,7 +198,7 @@ int AmrMeshParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrMeshParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddArray(
-  vtkDataObject* mesh,
+  svtkDataObject* mesh,
   const std::string &meshName,
   int association,
   const std::string &arrayName)
