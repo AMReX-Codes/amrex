@@ -5,9 +5,6 @@
 #include <AMReX_VisMF.H>    // amrex::VisMF::Write(MultiFab)
 #include <AMReX_VectorIO.H> // amrex::[read,write]IntData(array_of_ints)
 
-#include <AMReX_MultiFabUtil.H>
-
-
 namespace {
 
 const std::string level_prefix = "Level_";
@@ -27,7 +24,7 @@ void ChkptFile::writeHeader (const BoxArray& cut_ba, const BoxArray& covered_ba)
     if (ParallelDescriptor::IOProcessor())
     {
         std::string HeaderFileName(m_restart_file + "/Header");
-        VisMF::IO_Buffer io_buffer(amrex::VisMF::IO_Buffer_Size);
+        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
         std::ofstream HeaderFile;
 
         HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
@@ -37,7 +34,7 @@ void ChkptFile::writeHeader (const BoxArray& cut_ba, const BoxArray& covered_ba)
                 std::ofstream::binary);
 
         if ( ! HeaderFile.good() )
-            amrex::FileOpenFailed(HeaderFileName);
+            FileOpenFailed(HeaderFileName);
 
         HeaderFile.precision(17);
 
@@ -73,7 +70,7 @@ void ChkptFile::writeHeader (const BoxArray& cut_ba, const BoxArray& covered_ba)
 
 void ChkptFile::writeToFile (const MultiFab& mf, const std::string& mf_name) const
 {
-    amrex::VisMF::Write(mf, amrex::MultiFabFileFullPrefix(0, m_restart_file,
+    VisMF::Write(mf, MultiFabFileFullPrefix(0, m_restart_file,
                 level_prefix, mf_name));
 }
 
@@ -183,7 +180,7 @@ void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
         centroid.define(cut_grids, dmap, AMREX_SPACEDIM, ng);
         centroid.setVal(0.);
 
-        auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_centroid_name);
+        auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_centroid_name);
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
         centroid.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, 0, ng, geom.periodicity());
@@ -196,7 +193,7 @@ void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
         bndryarea.define(cut_grids, dmap, 1, ng);
         bndryarea.setVal(0.);
 
-        auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndryarea_name);
+        auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndryarea_name);
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
         bndryarea.ParallelCopy(mf, 0, 0, 1, 0, ng, geom.periodicity());
@@ -209,7 +206,7 @@ void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
         bndrycent.define(cut_grids, dmap, AMREX_SPACEDIM, ng);
         bndrycent.setVal(-1.);
 
-        auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndrycent_name);
+        auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndrycent_name);
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
         bndrycent.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, 0, ng, geom.periodicity());
@@ -222,7 +219,7 @@ void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
         bndrynorm.define(cut_grids, dmap, AMREX_SPACEDIM, ng);
         bndrynorm.setVal(0.);
 
-        auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndrynorm_name);
+        auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndrynorm_name);
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
         bndrynorm.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, 0, ng, geom.periodicity());
@@ -236,7 +233,7 @@ void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
             areafrac[idim].define(convert(cut_grids, IntVect::TheDimensionVector(idim)), dmap, 1, ng);
             areafrac[idim].setVal(1.);
 
-            auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_areafrac_name[idim]);
+            auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_areafrac_name[idim]);
             MultiFab mf(The_Pinned_Arena());
             VisMF::Read(mf, prefix);
             areafrac[idim].ParallelCopy(mf, 0, 0, 1, 0, ng, geom.periodicity());
@@ -249,7 +246,7 @@ void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
             facecent[idim].define(convert(cut_grids, IntVect::TheDimensionVector(idim)), dmap, AMREX_SPACEDIM-1, ng);
             facecent[idim].setVal(0.);
 
-            auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_facecent_name[idim]);
+            auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_facecent_name[idim]);
             MultiFab mf(The_Pinned_Arena());
             VisMF::Read(mf, prefix);
             facecent[idim].ParallelCopy(mf, 0, 0, AMREX_SPACEDIM-1, 0, ng, geom.periodicity());
@@ -261,9 +258,9 @@ void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
 
             IntVect edge_type{1}; edge_type[idim] = 0;
             edgecent[idim].define(convert(cut_grids, edge_type), dmap, 1, ng);
-            edgecent[idim].setVal(0.);
+            edgecent[idim].setVal(1.);
 
-            auto prefix = amrex::MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_edgecent_name[idim]);
+            auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_edgecent_name[idim]);
             MultiFab mf(The_Pinned_Arena());
             VisMF::Read(mf, prefix);
             edgecent[idim].ParallelCopy(mf, 0, 0, 1, 0, ng, geom.periodicity());
@@ -300,7 +297,7 @@ void ChkptFile::write_to_chkpt_file (const BoxArray& cut_grids,
     }
 
     const int nlevels = 1;
-    amrex::PreBuildDirectorHierarchy(m_restart_file, level_prefix, nlevels, true);
+    PreBuildDirectorHierarchy(m_restart_file, level_prefix, nlevels, true);
 
     writeHeader(cut_grids, covered_grids);
 

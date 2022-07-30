@@ -21,8 +21,8 @@ public:
 // for cuda support
     void define_fine_chkpt_file (ChkptFile const& chkpt_file,
             Geometry const& geom, int max_grid_size, int ngrow, bool extend_domain_face);
-
     void finalize_cell_flags ();
+    void set_invalid_ghost_data ();
 
 
 };
