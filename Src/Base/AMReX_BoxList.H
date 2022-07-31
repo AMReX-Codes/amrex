@@ -206,9 +206,9 @@ public:
     BoxList& convert (IndexType typ) noexcept;
 
     //! Returns a reference to the Vector<Box>.
-    Vector<Box>& data() noexcept { return m_lbox; }
+    Vector<Box>& data () noexcept { return m_lbox; }
     //! Returns a constant reference to the Vector<Box>.
-    const Vector<Box>& data() const noexcept { return m_lbox; }
+    const Vector<Box>& data () const noexcept { return m_lbox; }
 
     void swap (BoxList& rhs) {
         std::swap(m_lbox, rhs.m_lbox);
