@@ -150,12 +150,15 @@ MLNodeLaplacian::resizeMultiGrid (int new_size)
 }
 
 void
-MLNodeLaplacian::unimposeNeumannBC (int amrlev, MultiFab& rhs) const
+MLNodeLaplacian::unimposeNeumannBC (int amrlev, Any& a_rhs) const
 {
     if (m_coarsening_strategy == CoarseningStrategy::RAP) {
         const Box& nddom = amrex::surroundingNodes(Geom(amrlev).Domain());
         const auto lobc = LoBC();
         const auto hibc = HiBC();
+
+        AMREX_ASSERT(a_rhs.is<MultiFab>());
+        MultiFab& rhs = a_rhs.get<MultiFab>();
 
         MFItInfo mfi_info;
         if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
@@ -171,14 +174,17 @@ MLNodeLaplacian::unimposeNeumannBC (int amrlev, MultiFab& rhs) const
     }
 }
 
-Real
-MLNodeLaplacian::getSolvabilityOffset (int amrlev, int mglev, MultiFab const& rhs) const
+Vector<Real>
+MLNodeLaplacian::getSolvabilityOffset (int amrlev, int mglev, Any const& a_rhs) const
 {
     amrex::ignore_unused(amrlev);
-    AMREX_ASSERT(amrlev==0);
-    AMREX_ASSERT(mglev+1==m_num_mg_levels[0] || mglev==0);
+    AMREX_ASSERT(amrlev==0 && (mglev+1==m_num_mg_levels[0] || mglev==0));
+    AMREX_ASSERT(getNComp() == 1);
 
     if (m_coarsening_strategy == CoarseningStrategy::RAP) {
+        AMREX_ASSERT(a_rhs.is<MultiFab>());
+        auto const& rhs = a_rhs.get<MultiFab>();
+
 #ifdef AMREX_USE_EB
         auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
         if (mglev == 0 && factory && !factory->isAllRegular()) {
@@ -229,7 +235,7 @@ MLNodeLaplacian::getSolvabilityOffset (int amrlev, int mglev, MultiFab const& rh
             Real s1 = amrex::get<0>(r);
             Real s2 = amrex::get<1>(r);
             ParallelAllReduce::Sum<Real>({s1,s2}, ParallelContext::CommunicatorSub());
-            return s1/s2;
+            return {s1/s2};
         } else
 #endif
         {
@@ -279,16 +285,21 @@ MLNodeLaplacian::getSolvabilityOffset (int amrlev, int mglev, MultiFab const& rh
             Real s1 = amrex::get<0>(r);
             Real s2 = amrex::get<1>(r);
             ParallelAllReduce::Sum<Real>({s1,s2}, ParallelContext::CommunicatorSub());
-            return s1/s2;
+            return {s1/s2};
         }
     } else {
-        return MLNodeLinOp::getSolvabilityOffset(amrlev, mglev, rhs);
+        return MLNodeLinOp::getSolvabilityOffset(amrlev, mglev, a_rhs);
     }
 }
 
 void
-MLNodeLaplacian::fixSolvabilityByOffset (int amrlev, int mglev, MultiFab& rhs, Real offset) const
+MLNodeLaplacian::fixSolvabilityByOffset (int amrlev, int mglev, Any& a_rhs,
+                                         Vector<Real> const& a_offset) const
 {
+    AMREX_ASSERT(a_rhs.is<MultiFab>());
+    auto& rhs = a_rhs.get<MultiFab>();
+    Real offset = a_offset[0];
+
     if (m_coarsening_strategy == CoarseningStrategy::RAP) {
 #ifdef AMREX_USE_EB
         auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());

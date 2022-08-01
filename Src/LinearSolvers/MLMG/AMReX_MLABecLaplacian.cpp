@@ -323,10 +323,10 @@ MLABecLaplacian::applyMetricTermsCoeffs ()
     for (int alev = 0; alev < m_num_amr_levels; ++alev)
     {
         const int mglev = 0;
-        applyMetricTerm(alev, mglev, m_a_coeffs[alev][mglev]);
+        applyMetricTermToMF(alev, mglev, m_a_coeffs[alev][mglev]);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
         {
-            applyMetricTerm(alev, mglev, m_b_coeffs[alev][mglev][idim]);
+            applyMetricTermToMF(alev, mglev, m_b_coeffs[alev][mglev][idim]);
         }
     }
 #endif
