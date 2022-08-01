@@ -31,8 +31,8 @@ void addParticles ()
         ptile1.pos(i, 2) = 12.0;
 
         // TODO
-        //ptile1.id(i) = ParticleType::NextID();
-        ptile1.cpu(i) = amrex::ParallelDescriptor::MyProc();
+        ptile1.id(i) = 1;
+        //ptile1.cpu(i) = 1;
     }
     //ptile1.push_back_int(3, ...std::vector);
     //ptile1.push_back_int(4, ...std::vector);
