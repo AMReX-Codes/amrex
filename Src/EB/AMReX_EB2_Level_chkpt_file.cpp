@@ -300,22 +300,24 @@ void ChkptFileLevel::set_invalid_ghost_data ()
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-                BoxArray const& covered_edge_grids = amrex::convert(m_covered_grids,
-                                                                    edgecent.ixType());
-                std::vector<std::pair<int,Box> > isects;
-                for (MFIter mfi(edgecent); mfi.isValid(); ++mfi)
                 {
-                    auto const& fab = edgecent.array(mfi);
-                    const Box& bx = mfi.fabbox();
-                    for (const auto& iv : pshifts)
+                    BoxArray const& covered_edge_grids = amrex::convert(m_covered_grids,
+                                                                        edgecent.ixType());
+                    std::vector<std::pair<int,Box> > isects;
+                    for (MFIter mfi(edgecent); mfi.isValid(); ++mfi)
                     {
-                        covered_edge_grids.intersections(bx+iv, isects);
-                        for (const auto& is : isects) {
-                            Box const& ibox = is.second-iv;
-                            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibox, i, j, k,
-                            {
-                                fab(i,j,k) = Real(-1.0);  // covered edges
-                            });
+                        auto const& fab = edgecent.array(mfi);
+                        const Box& bx = mfi.fabbox();
+                        for (const auto& iv : pshifts)
+                        {
+                            covered_edge_grids.intersections(bx+iv, isects);
+                            for (const auto& is : isects) {
+                                Box const& ibox = is.second-iv;
+                                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibox, i, j, k,
+                                {
+                                    fab(i,j,k) = Real(-1.0);  // covered edges
+                                });
+                            }
                         }
                     }
                 }
