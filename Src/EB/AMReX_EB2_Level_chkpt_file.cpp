@@ -55,9 +55,6 @@ void ChkptFileLevel::define_fine_chkpt_file(ChkptFile const& chkpt_file,
     set_invalid_ghost_data_covered();
     set_invalid_ghost_data_extended();
 
-    //print_state(m_volfrac, IntVect(-18,-18,-12), 0, IntVect(2,2,2));
-    //Abort();
-
     m_mgf.define(m_grids, m_dmap);
     MFInfo mf_info;
     m_cellflag.define(m_grids, m_dmap, 1, ng, mf_info);
