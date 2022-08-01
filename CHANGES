@@ -1,3 +1,39 @@
+# 22.08
+
+  -- Let `selectActualNeighbors` return right after starting if there are no
+     particles for communication. (#2886)
+
+  -- Add Comm Sync to Redistribute (#2891)
+
+  -- Multi-materials and derived variable output (#2888)
+
+  -- Fix host / device sync bug in PODVector (#2890)
+
+  -- MinLoc and MaxLoc Support (#2885)
+
+  -- HIP: Remove the call to hipDeviceSetSharedMemConfig (#2884)
+
+  -- Add Frontier to GNU Make (#2879)
+
+  -- Add option to derefine to AMRErrorTag (#2875)
+
+  -- Fix the segmentation fault in selecting actual neighbor particles. (#2877)
+
+  -- Workaround to bypass issue observed at very large scale with Fujitsu MPI (#2874)
+     `TagBoxArray::collate`: Fujitsu Clang (#2889)
+
+  -- Allow zero components MultiFab and BaseFab (#2873)
+
+  -- New EB optimization parameter: eb2.num_coarsen_opt (#2872)
+
+  -- SENSEI 4.0: Fix Build for Particles (#2869)
+
+  -- Cache the neighbor comm tags for the CPU implementation of fillNeighbors. (#2862)
+
+  -- Remove some hard checks in check_mvmc for 3D (#2864)
+
+  -- Carry over fix for ngbxy.smallEnd typo (#2868)
+
 # 22.07
 
   -- Adding control APIs and namespacing for core algorithm paths like SpGEMM, SpMV, and SpTrans. (#2859)
