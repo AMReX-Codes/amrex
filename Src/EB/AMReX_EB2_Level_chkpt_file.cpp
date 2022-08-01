@@ -52,7 +52,11 @@ void ChkptFileLevel::define_fine_chkpt_file(ChkptFile const& chkpt_file,
         return;
     }
 
-    set_invalid_ghost_data();
+    set_invalid_ghost_data_covered();
+    set_invalid_ghost_data_extended();
+
+    //print_state(m_volfrac, IntVect(-18,-18,-12), 0, IntVect(2,2,2));
+    //Abort();
 
     m_mgf.define(m_grids, m_dmap);
     MFInfo mf_info;
@@ -191,8 +195,7 @@ void ChkptFileLevel::finalize_cell_flags () {
     m_ok = true;
 }
 
-// TODO: Handle invalid ghost cells outside domain face
-void ChkptFileLevel::set_invalid_ghost_data ()
+void ChkptFileLevel::set_invalid_ghost_data_covered ()
 {
     const std::vector<IntVect>& pshifts = m_geom.periodicity().shiftIntVect();
 
@@ -318,6 +321,168 @@ void ChkptFileLevel::set_invalid_ghost_data ()
                                     fab(i,j,k) = Real(-1.0);  // covered edges
                                 });
                             }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void ChkptFileLevel::set_invalid_ghost_data_extended ()
+{
+    Box domain_grown = m_geom.Domain();
+    domain_grown.grow(m_ngrow);
+    const Box& bounding_box = domain_grown;
+
+    const std::vector<IntVect>& pshifts = m_geom.periodicity().shiftIntVect();
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    {
+        for (MFIter mfi(m_levelset); mfi.isValid(); ++mfi)
+        {
+            const auto& lsfab = m_levelset.array(mfi);
+            const Box& ccbx = amrex::enclosedCells(mfi.fabbox());
+            Box bbx = amrex::enclosedCells(bounding_box);
+            for (const auto& iv : pshifts)
+            {
+               if (!bbx.contains(ccbx+iv)) {
+                 bbx.surroundingNodes();
+                 const Box& fbx = amrex::surroundingNodes(ccbx);
+
+                 const auto blo = amrex::lbound(bbx);
+                 const auto bhi = amrex::ubound(bbx);
+
+                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D(fbx, i, j, k,
+                 {
+                     if (i < blo.x || i > bhi.x || j < blo.y ||
+                         i > bhi.y || k < blo.z || k > bhi.z) {
+                         lsfab(i,j,k) = lsfab(AMREX_D_DECL(amrex::Clamp(i,blo.x,bhi.x),
+                                                           amrex::Clamp(j,blo.y,bhi.y),
+                                                           amrex::Clamp(k,blo.z,bhi.z)));
+                     }
+                 });
+               }
+            }
+        }
+    }
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    {
+        for (MFIter mfi(m_volfrac); mfi.isValid(); ++mfi)
+        {
+            auto const& fab = m_volfrac.array(mfi);
+            const Box& bx = mfi.fabbox();
+            for (const auto& iv : pshifts)
+            {
+               if (!bounding_box.contains(bx+iv)) {
+                 const auto blo = amrex::lbound(bounding_box);
+                 const auto bhi = amrex::ubound(bounding_box);
+
+                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                 {
+                     if (i < blo.x || i > bhi.x || j < blo.y ||
+                         i > bhi.y || k < blo.z || k > bhi.z) {
+                         fab(i,j,k) = fab(AMREX_D_DECL(amrex::Clamp(i,blo.x,bhi.x),
+                                                       amrex::Clamp(j,blo.y,bhi.y),
+                                                       amrex::Clamp(k,blo.z,bhi.z)));
+                     }
+                 });
+               }
+            }
+        }
+    }
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    {
+        for (MFIter mfi(m_areafrac[0]); mfi.isValid(); ++mfi)
+        {
+            const Box& ccbx = amrex::enclosedCells((m_areafrac[0])[mfi].box());
+            const Box& bbx = amrex::enclosedCells(bounding_box);
+            AMREX_D_TERM(auto const& apx = m_areafrac[0].array(mfi);,
+                         auto const& apy = m_areafrac[1].array(mfi);,
+                         auto const& apz = m_areafrac[2].array(mfi););
+            for (const auto& iv : pshifts)
+            {
+                if (!bbx.contains(ccbx+iv)) {
+                    const auto blo = amrex::lbound(bbx);
+                    const auto bhi = amrex::ubound(bbx);
+
+                    AMREX_D_TERM(const Box& xbx = amrex::surroundingNodes(ccbx+iv,0);,
+                                 const Box& ybx = amrex::surroundingNodes(ccbx+iv,1);,
+                                 const Box& zbx = amrex::surroundingNodes(ccbx+iv,2););
+                    amrex::ParallelFor(AMREX_D_DECL(xbx,ybx,zbx),
+                      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                      {
+                          if (i < blo.x || i > bhi.x || j < blo.y ||
+                              i > bhi.y || k < blo.z || k > bhi.z) {
+                              apx(i,j,k) = apx(AMREX_D_DECL(amrex::Clamp(i,blo.x,bhi.x),
+                                                            amrex::Clamp(j,blo.y,bhi.y),
+                                                            amrex::Clamp(k,blo.z,bhi.z)));
+                          }
+                      }
+#if (AMREX_SPACEDIM >= 2)
+                    , [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                      {
+                          if (i < blo.x || i > bhi.x || j < blo.y ||
+                              i > bhi.y || k < blo.z || k > bhi.z) {
+                              apy(i,j,k) = apy(AMREX_D_DECL(amrex::Clamp(i,blo.x,bhi.x),
+                                                            amrex::Clamp(j,blo.y,bhi.y),
+                                                            amrex::Clamp(k,blo.z,bhi.z)));
+                          }
+                      }
+#if (AMREX_SPACEDIM == 3)
+                    , [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                      {
+                          if (i < blo.x || i > bhi.x || j < blo.y ||
+                              i > bhi.y || k < blo.z || k > bhi.z) {
+                              apz(i,j,k) = apz(AMREX_D_DECL(amrex::Clamp(i,blo.x,bhi.x),
+                                                            amrex::Clamp(j,blo.y,bhi.y),
+                                                            amrex::Clamp(k,blo.z,bhi.z)));
+                          }
+                      }
+#endif
+#endif
+                    );
+                }
+            }
+        }
+    }
+
+    {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            auto& edgecent = m_edgecent[idim];
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            {
+                Box const& bbx = amrex::convert(bounding_box, edgecent.ixType());
+                for (MFIter mfi(edgecent); mfi.isValid(); ++mfi)
+                {
+                    auto const& fab = edgecent.array(mfi);
+                    const Box& bx = mfi.fabbox();
+                    for (const auto& iv : pshifts)
+                    {
+                        if (!bbx.contains(bx+iv)) {
+                            const auto blo = amrex::lbound(bbx);
+                            const auto bhi = amrex::ubound(bbx);
+
+                            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                            {
+                                if (i < blo.x || i > bhi.x || j < blo.y ||
+                                    i > bhi.y || k < blo.z || k > bhi.z) {
+                                 fab(i,j,k) = fab(AMREX_D_DECL(amrex::Clamp(i,blo.x,bhi.x),
+                                                               amrex::Clamp(j,blo.y,bhi.y),
+                                                               amrex::Clamp(k,blo.z,bhi.z)));
+                                }
+                            });
                         }
                     }
                 }
