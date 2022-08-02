@@ -55,10 +55,10 @@ template <int warpSize, typename T, typename F>
 struct warpReduce
 {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    T operator() (T x, amrex::oneapi::sub_group const& sg) const noexcept
+    T operator() (T x, sycl::sub_group const& sg) const noexcept
     {
         for (int offset = warpSize/2; offset > 0; offset /= 2) {
-            T y = sg.shuffle_down(x, offset);
+            T y = sycl::shift_group_left(sg, x, offset);
             x = F()(x,y);
         }
         return x;
@@ -71,7 +71,7 @@ T blockReduce (T x, WARPREDUCE && warp_reduce, T x0, Gpu::Handler const& h)
 {
     T* shared = (T*)h.local;
     int tid = h.item->get_local_id(0);
-    amrex::oneapi::sub_group const& sg = h.item->get_sub_group();
+    sycl::sub_group const& sg = h.item->get_sub_group();
     int lane = sg.get_local_id()[0];
     int wid = sg.get_group_id()[0];
     int numwarps = sg.get_group_range()[0];
@@ -94,7 +94,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void blockReduce_partial (T* dest, T x, WARPREDUCE && warp_reduce, ATOMICOP && atomic_op,
                           Gpu::Handler const& handler)
 {
-   amrex::oneapi::sub_group const& sg = handler.item->get_sub_group();
+   sycl::sub_group const& sg = handler.item->get_sub_group();
    int wid = sg.get_group_id()[0];
    if ((wid+1)*warpSize <= handler.numActiveThreads) {
        x = warp_reduce(x, sg); // full warp
