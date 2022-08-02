@@ -356,9 +356,9 @@ void ChkptFileLevel::set_invalid_ghost_data_extended ()
                  {
                      if (i < blo.x || i > bhi.x || j < blo.y ||
                          i > bhi.y || k < blo.z || k > bhi.z) {
-                         lsfab(i,j,k) = lsfab(AMREX_D_DECL(amrex::Clamp(i,blo.x,bhi.x),
-                                                           amrex::Clamp(j,blo.y,bhi.y),
-                                                           amrex::Clamp(k,blo.z,bhi.z)));
+                         lsfab(i,j,k) = lsfab(amrex::Clamp(i,blo.x,bhi.x),
+                                              amrex::Clamp(j,blo.y,bhi.y),
+                                              amrex::Clamp(k,blo.z,bhi.z));
                      }
                  });
                }
@@ -384,9 +384,9 @@ void ChkptFileLevel::set_invalid_ghost_data_extended ()
                  {
                      if (i < blo.x || i > bhi.x || j < blo.y ||
                          i > bhi.y || k < blo.z || k > bhi.z) {
-                         fab(i,j,k) = fab(AMREX_D_DECL(amrex::Clamp(i,blo.x,bhi.x),
-                                                       amrex::Clamp(j,blo.y,bhi.y),
-                                                       amrex::Clamp(k,blo.z,bhi.z)));
+                         fab(i,j,k) = fab(amrex::Clamp(i,blo.x,bhi.x),
+                                          amrex::Clamp(j,blo.y,bhi.y),
+                                          amrex::Clamp(k,blo.z,bhi.z));
                      }
                  });
                }
@@ -419,9 +419,9 @@ void ChkptFileLevel::set_invalid_ghost_data_extended ()
                       {
                           if (i < blo.x || i > bhi.x || j < blo.y ||
                               i > bhi.y || k < blo.z || k > bhi.z) {
-                              apx(i,j,k) = apx(AMREX_D_DECL(amrex::Clamp(i,blo.x,bhi.x),
-                                                            amrex::Clamp(j,blo.y,bhi.y),
-                                                            amrex::Clamp(k,blo.z,bhi.z)));
+                              apx(i,j,k) = apx(amrex::Clamp(i,blo.x,bhi.x),
+                                               amrex::Clamp(j,blo.y,bhi.y),
+                                               amrex::Clamp(k,blo.z,bhi.z));
                           }
                       }
 #if (AMREX_SPACEDIM >= 2)
@@ -429,9 +429,9 @@ void ChkptFileLevel::set_invalid_ghost_data_extended ()
                       {
                           if (i < blo.x || i > bhi.x || j < blo.y ||
                               i > bhi.y || k < blo.z || k > bhi.z) {
-                              apy(i,j,k) = apy(AMREX_D_DECL(amrex::Clamp(i,blo.x,bhi.x),
-                                                            amrex::Clamp(j,blo.y,bhi.y),
-                                                            amrex::Clamp(k,blo.z,bhi.z)));
+                              apy(i,j,k) = apy(amrex::Clamp(i,blo.x,bhi.x),
+                                               amrex::Clamp(j,blo.y,bhi.y),
+                                               amrex::Clamp(k,blo.z,bhi.z));
                           }
                       }
 #if (AMREX_SPACEDIM == 3)
@@ -439,9 +439,9 @@ void ChkptFileLevel::set_invalid_ghost_data_extended ()
                       {
                           if (i < blo.x || i > bhi.x || j < blo.y ||
                               i > bhi.y || k < blo.z || k > bhi.z) {
-                              apz(i,j,k) = apz(AMREX_D_DECL(amrex::Clamp(i,blo.x,bhi.x),
-                                                            amrex::Clamp(j,blo.y,bhi.y),
-                                                            amrex::Clamp(k,blo.z,bhi.z)));
+                              apz(i,j,k) = apz(amrex::Clamp(i,blo.x,bhi.x),
+                                               amrex::Clamp(j,blo.y,bhi.y),
+                                               amrex::Clamp(k,blo.z,bhi.z));
                           }
                       }
 #endif
@@ -475,9 +475,9 @@ void ChkptFileLevel::set_invalid_ghost_data_extended ()
                             {
                                 if (i < blo.x || i > bhi.x || j < blo.y ||
                                     i > bhi.y || k < blo.z || k > bhi.z) {
-                                 fab(i,j,k) = fab(AMREX_D_DECL(amrex::Clamp(i,blo.x,bhi.x),
-                                                               amrex::Clamp(j,blo.y,bhi.y),
-                                                               amrex::Clamp(k,blo.z,bhi.z)));
+                                 fab(i,j,k) = fab(amrex::Clamp(i,blo.x,bhi.x),
+                                                  amrex::Clamp(j,blo.y,bhi.y),
+                                                  amrex::Clamp(k,blo.z,bhi.z));
                                 }
                             });
                         }
