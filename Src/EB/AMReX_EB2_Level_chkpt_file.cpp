@@ -354,12 +354,27 @@ void ChkptFileLevel::set_invalid_ghost_data_extended ()
 
                  AMREX_HOST_DEVICE_PARALLEL_FOR_3D(fbx, i, j, k,
                  {
-                     if (i < blo.x || i > bhi.x || j < blo.y ||
-                         i > bhi.y || k < blo.z || k > bhi.z) {
-                         lsfab(i,j,k) = lsfab(amrex::Clamp(i,blo.x,bhi.x),
-                                              amrex::Clamp(j,blo.y,bhi.y),
-                                              amrex::Clamp(k,blo.z,bhi.z));
-                     }
+                     int ii = i;
+                     int jj = j;
+                     int kk = k;
+
+                     if (i < blo.x)
+                        ii = blo.x;
+                     else if (i > bhi.x)
+                        ii = bhi.x;
+
+                     if (j < blo.y)
+                        jj = blo.y;
+                     else if (j > bhi.y)
+                        jj = bhi.y;
+
+                     if (k < blo.z)
+                        kk = blo.z;
+                     else if (k > bhi.z)
+                        kk = bhi.z;
+
+                     if (ii != i || jj != j || kk != k)
+                        lsfab(i,j,k) = lsfab(ii,jj,kk);
                  });
                }
             }
@@ -382,12 +397,27 @@ void ChkptFileLevel::set_invalid_ghost_data_extended ()
 
                  AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
                  {
-                     if (i < blo.x || i > bhi.x || j < blo.y ||
-                         i > bhi.y || k < blo.z || k > bhi.z) {
-                         fab(i,j,k) = fab(amrex::Clamp(i,blo.x,bhi.x),
-                                          amrex::Clamp(j,blo.y,bhi.y),
-                                          amrex::Clamp(k,blo.z,bhi.z));
-                     }
+                     int ii = i;
+                     int jj = j;
+                     int kk = k;
+
+                     if (i < blo.x)
+                        ii = blo.x;
+                     else if (i > bhi.x)
+                        ii = bhi.x;
+
+                     if (j < blo.y)
+                        jj = blo.y;
+                     else if (j > bhi.y)
+                        jj = bhi.y;
+
+                     if (k < blo.z)
+                        kk = blo.z;
+                     else if (k > bhi.z)
+                        kk = bhi.z;
+
+                     if (ii != i || jj != j || kk != k)
+                        fab(i,j,k) = fab(ii,jj,kk);
                  });
                }
             }
@@ -417,32 +447,77 @@ void ChkptFileLevel::set_invalid_ghost_data_extended ()
                     amrex::ParallelFor(AMREX_D_DECL(xbx,ybx,zbx),
                       [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                       {
-                          if (i < blo.x || i > bhi.x || j < blo.y ||
-                              i > bhi.y || k < blo.z || k > bhi.z) {
-                              apx(i,j,k) = apx(amrex::Clamp(i,blo.x,bhi.x),
-                                               amrex::Clamp(j,blo.y,bhi.y),
-                                               amrex::Clamp(k,blo.z,bhi.z));
-                          }
+                         int ii = i;
+                         int jj = j;
+                         int kk = k;
+
+                         if (i < blo.x)
+                            ii = blo.x;
+                         else if (i > bhi.x)
+                            ii = bhi.x;
+
+                         if (j < blo.y)
+                            jj = blo.y;
+                         else if (j > bhi.y)
+                            jj = bhi.y;
+
+                         if (k < blo.z)
+                            kk = blo.z;
+                         else if (k > bhi.z)
+                            kk = bhi.z;
+
+                         if (ii != i || jj != j || kk != k)
+                            apx(i,j,k) = apx(ii,jj,kk);
                       }
 #if (AMREX_SPACEDIM >= 2)
                     , [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                       {
-                          if (i < blo.x || i > bhi.x || j < blo.y ||
-                              i > bhi.y || k < blo.z || k > bhi.z) {
-                              apy(i,j,k) = apy(amrex::Clamp(i,blo.x,bhi.x),
-                                               amrex::Clamp(j,blo.y,bhi.y),
-                                               amrex::Clamp(k,blo.z,bhi.z));
-                          }
+                         int ii = i;
+                         int jj = j;
+                         int kk = k;
+
+                         if (i < blo.x)
+                            ii = blo.x;
+                         else if (i > bhi.x)
+                            ii = bhi.x;
+
+                         if (j < blo.y)
+                            jj = blo.y;
+                         else if (j > bhi.y)
+                            jj = bhi.y;
+
+                         if (k < blo.z)
+                            kk = blo.z;
+                         else if (k > bhi.z)
+                            kk = bhi.z;
+
+                         if (ii != i || jj != j || kk != k)
+                            apy(i,j,k) = apy(ii,jj,kk);
                       }
 #if (AMREX_SPACEDIM == 3)
                     , [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                       {
-                          if (i < blo.x || i > bhi.x || j < blo.y ||
-                              i > bhi.y || k < blo.z || k > bhi.z) {
-                              apz(i,j,k) = apz(amrex::Clamp(i,blo.x,bhi.x),
-                                               amrex::Clamp(j,blo.y,bhi.y),
-                                               amrex::Clamp(k,blo.z,bhi.z));
-                          }
+                         int ii = i;
+                         int jj = j;
+                         int kk = k;
+
+                         if (i < blo.x)
+                            ii = blo.x;
+                         else if (i > bhi.x)
+                            ii = bhi.x;
+
+                         if (j < blo.y)
+                            jj = blo.y;
+                         else if (j > bhi.y)
+                            jj = bhi.y;
+
+                         if (k < blo.z)
+                            kk = blo.z;
+                         else if (k > bhi.z)
+                            kk = bhi.z;
+
+                         if (ii != i || jj != j || kk != k)
+                            apz(i,j,k) = apz(ii,jj,kk);
                       }
 #endif
 #endif
@@ -473,12 +548,27 @@ void ChkptFileLevel::set_invalid_ghost_data_extended ()
 
                             AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
                             {
-                                if (i < blo.x || i > bhi.x || j < blo.y ||
-                                    i > bhi.y || k < blo.z || k > bhi.z) {
-                                 fab(i,j,k) = fab(amrex::Clamp(i,blo.x,bhi.x),
-                                                  amrex::Clamp(j,blo.y,bhi.y),
-                                                  amrex::Clamp(k,blo.z,bhi.z));
-                                }
+                               int ii = i;
+                               int jj = j;
+                               int kk = k;
+
+                               if (i < blo.x)
+                                  ii = blo.x;
+                               else if (i > bhi.x)
+                                  ii = bhi.x;
+
+                               if (j < blo.y)
+                                  jj = blo.y;
+                               else if (j > bhi.y)
+                                  jj = bhi.y;
+
+                               if (k < blo.z)
+                                  kk = blo.z;
+                               else if (k > bhi.z)
+                                  kk = bhi.z;
+
+                               if (ii != i || jj != j || kk != k)
+                                  fab(i,j,k) = fab(ii,jj,kk);
                             });
                         }
                     }
