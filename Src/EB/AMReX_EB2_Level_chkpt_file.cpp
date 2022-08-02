@@ -342,12 +342,11 @@ void ChkptFileLevel::set_invalid_ghost_data_extended ()
         {
             const auto& lsfab = m_levelset.array(mfi);
             const Box& ccbx = amrex::enclosedCells(mfi.fabbox());
-            Box bbx = amrex::enclosedCells(bounding_box);
             for (const auto& iv : pshifts)
             {
-               if (!bbx.contains(ccbx+iv)) {
-                 bbx.surroundingNodes();
+               if (!bounding_box.contains(ccbx+iv)) {
                  const Box& fbx = amrex::surroundingNodes(ccbx);
+                 const Box bbx = amrex::surroundingNodes(bounding_box);
 
                  const auto blo = amrex::lbound(bbx);
                  const auto bhi = amrex::ubound(bbx);
@@ -431,19 +430,29 @@ void ChkptFileLevel::set_invalid_ghost_data_extended ()
         for (MFIter mfi(m_areafrac[0]); mfi.isValid(); ++mfi)
         {
             const Box& ccbx = amrex::enclosedCells((m_areafrac[0])[mfi].box());
-            const Box& bbx = amrex::enclosedCells(bounding_box);
             AMREX_D_TERM(auto const& apx = m_areafrac[0].array(mfi);,
                          auto const& apy = m_areafrac[1].array(mfi);,
                          auto const& apz = m_areafrac[2].array(mfi););
             for (const auto& iv : pshifts)
             {
-                if (!bbx.contains(ccbx+iv)) {
-                    const auto blo = amrex::lbound(bbx);
-                    const auto bhi = amrex::ubound(bbx);
+                if (!bounding_box.contains(ccbx+iv)) {
 
-                    AMREX_D_TERM(const Box& xbx = amrex::surroundingNodes(ccbx+iv,0);,
-                                 const Box& ybx = amrex::surroundingNodes(ccbx+iv,1);,
-                                 const Box& zbx = amrex::surroundingNodes(ccbx+iv,2););
+                    AMREX_D_TERM(const Box& xbx = amrex::surroundingNodes(ccbx,0);,
+                                 const Box& ybx = amrex::surroundingNodes(ccbx,1);,
+                                 const Box& zbx = amrex::surroundingNodes(ccbx,2););
+
+                    AMREX_D_TERM(const Box& xbbx = amrex::surroundingNodes(bounding_box,0);,
+                                 const Box& ybbx = amrex::surroundingNodes(bounding_box,1);,
+                                 const Box& zbbx = amrex::surroundingNodes(bounding_box,2););
+
+                    AMREX_D_TERM(const auto xblo = amrex::lbound(xbbx);,
+                                 const auto yblo = amrex::lbound(ybbx);,
+                                 const auto zblo = amrex::lbound(zbbx););
+
+                    AMREX_D_TERM(const auto xbhi = amrex::ubound(xbbx);,
+                                 const auto ybhi = amrex::ubound(ybbx);,
+                                 const auto zbhi = amrex::ubound(zbbx););
+
                     amrex::ParallelFor(AMREX_D_DECL(xbx,ybx,zbx),
                       [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                       {
@@ -451,20 +460,20 @@ void ChkptFileLevel::set_invalid_ghost_data_extended ()
                          int jj = j;
                          int kk = k;
 
-                         if (i < blo.x)
-                            ii = blo.x;
-                         else if (i > bhi.x)
-                            ii = bhi.x;
+                         if (i < xblo.x)
+                            ii = xblo.x;
+                         else if (i > xbhi.x)
+                            ii = xbhi.x;
 
-                         if (j < blo.y)
-                            jj = blo.y;
-                         else if (j > bhi.y)
-                            jj = bhi.y;
+                         if (j < xblo.y)
+                            jj = xblo.y;
+                         else if (j > xbhi.y)
+                            jj = xbhi.y;
 
-                         if (k < blo.z)
-                            kk = blo.z;
-                         else if (k > bhi.z)
-                            kk = bhi.z;
+                         if (k < xblo.z)
+                            kk = xblo.z;
+                         else if (k > xbhi.z)
+                            kk = xbhi.z;
 
                          if (ii != i || jj != j || kk != k)
                             apx(i,j,k) = apx(ii,jj,kk);
@@ -476,20 +485,20 @@ void ChkptFileLevel::set_invalid_ghost_data_extended ()
                          int jj = j;
                          int kk = k;
 
-                         if (i < blo.x)
-                            ii = blo.x;
-                         else if (i > bhi.x)
-                            ii = bhi.x;
+                         if (i < yblo.x)
+                            ii = yblo.x;
+                         else if (i > ybhi.x)
+                            ii = ybhi.x;
 
-                         if (j < blo.y)
-                            jj = blo.y;
-                         else if (j > bhi.y)
-                            jj = bhi.y;
+                         if (j < yblo.y)
+                            jj = yblo.y;
+                         else if (j > ybhi.y)
+                            jj = ybhi.y;
 
-                         if (k < blo.z)
-                            kk = blo.z;
-                         else if (k > bhi.z)
-                            kk = bhi.z;
+                         if (k < yblo.z)
+                            kk = yblo.z;
+                         else if (k > ybhi.z)
+                            kk = ybhi.z;
 
                          if (ii != i || jj != j || kk != k)
                             apy(i,j,k) = apy(ii,jj,kk);
@@ -501,20 +510,20 @@ void ChkptFileLevel::set_invalid_ghost_data_extended ()
                          int jj = j;
                          int kk = k;
 
-                         if (i < blo.x)
-                            ii = blo.x;
-                         else if (i > bhi.x)
-                            ii = bhi.x;
+                         if (i < zblo.x)
+                            ii = zblo.x;
+                         else if (i > zbhi.x)
+                            ii = zbhi.x;
 
-                         if (j < blo.y)
-                            jj = blo.y;
-                         else if (j > bhi.y)
-                            jj = bhi.y;
+                         if (j < zblo.y)
+                            jj = zblo.y;
+                         else if (j > zbhi.y)
+                            jj = zbhi.y;
 
-                         if (k < blo.z)
-                            kk = blo.z;
-                         else if (k > bhi.z)
-                            kk = bhi.z;
+                         if (k < zblo.z)
+                            kk = zblo.z;
+                         else if (k > zbhi.z)
+                            kk = zbhi.z;
 
                          if (ii != i || jj != j || kk != k)
                             apz(i,j,k) = apz(ii,jj,kk);
