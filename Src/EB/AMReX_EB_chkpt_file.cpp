@@ -19,6 +19,8 @@ void gotoNextLine (std::istream& is)
 
 namespace amrex { namespace EB2 {
 
+// Header information includes the cut and covered boxes (if any)
+// Checkpoint file contains data for cut boxes
 void ChkptFile::writeHeader (const BoxArray& cut_ba, const BoxArray& covered_ba) const
 {
     if (ParallelDescriptor::IOProcessor())
@@ -79,6 +81,9 @@ ChkptFile::ChkptFile (const std::string &fname)
     : m_restart_file(fname)
 {}
 
+// When reading from checkpoint file, ghost cells that are not in valid cut grid regions
+// are initialized as regular cells by default and later corrected for extended
+// and covered regions
 void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grids,
         DistributionMapping& dmap,
         MultiFab& volfrac, MultiFab& centroid, MultiFab& bndryarea, MultiFab& bndrycent,
@@ -165,7 +170,7 @@ void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
         Print() << "  Loading " << m_volfrac_name << std::endl;
 
         volfrac.define(cut_grids, dmap, 1, ng);
-        volfrac.setVal(1.);
+        volfrac.setVal(1.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_volfrac_name);
         MultiFab mf(The_Pinned_Arena());
@@ -178,7 +183,7 @@ void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
         Print() << "  Loading " << m_centroid_name << std::endl;
 
         centroid.define(cut_grids, dmap, AMREX_SPACEDIM, ng);
-        centroid.setVal(0.);
+        centroid.setVal(0.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_centroid_name);
         MultiFab mf(The_Pinned_Arena());
@@ -191,7 +196,7 @@ void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
         Print() << "  Loading " << m_bndryarea_name << std::endl;
 
         bndryarea.define(cut_grids, dmap, 1, ng);
-        bndryarea.setVal(0.);
+        bndryarea.setVal(0.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndryarea_name);
         MultiFab mf(The_Pinned_Arena());
@@ -204,7 +209,7 @@ void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
         Print() << "  Loading " << m_bndrycent_name << std::endl;
 
         bndrycent.define(cut_grids, dmap, AMREX_SPACEDIM, ng);
-        bndrycent.setVal(-1.);
+        bndrycent.setVal(-1.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndrycent_name);
         MultiFab mf(The_Pinned_Arena());
@@ -217,7 +222,7 @@ void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
         Print() << "  Loading " << m_bndrynorm_name << std::endl;
 
         bndrynorm.define(cut_grids, dmap, AMREX_SPACEDIM, ng);
-        bndrynorm.setVal(0.);
+        bndrynorm.setVal(0.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndrynorm_name);
         MultiFab mf(The_Pinned_Arena());
@@ -231,7 +236,7 @@ void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
             Print() << "  Loading " << m_areafrac_name[idim] << std::endl;
 
             areafrac[idim].define(convert(cut_grids, IntVect::TheDimensionVector(idim)), dmap, 1, ng);
-            areafrac[idim].setVal(1.);
+            areafrac[idim].setVal(1.); // regular value
 
             auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_areafrac_name[idim]);
             MultiFab mf(The_Pinned_Arena());
@@ -244,7 +249,7 @@ void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
             Print() << "  Loading " << m_facecent_name[idim] << std::endl;
 
             facecent[idim].define(convert(cut_grids, IntVect::TheDimensionVector(idim)), dmap, AMREX_SPACEDIM-1, ng);
-            facecent[idim].setVal(0.);
+            facecent[idim].setVal(0.); // regular value
 
             auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_facecent_name[idim]);
             MultiFab mf(The_Pinned_Arena());
@@ -258,7 +263,7 @@ void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
 
             IntVect edge_type{1}; edge_type[idim] = 0;
             edgecent[idim].define(convert(cut_grids, edge_type), dmap, 1, ng);
-            edgecent[idim].setVal(1.);
+            edgecent[idim].setVal(1.); // regular value
 
             auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_edgecent_name[idim]);
             MultiFab mf(The_Pinned_Arena());
@@ -272,7 +277,7 @@ void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
         Print() << "  Loading " << m_levelset_name << std::endl;
 
         levelset.define(convert(cut_grids,IntVect::TheNodeVector()), dmap, 1, ng);
-        levelset.setVal(-1.);
+        levelset.setVal(-1.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_levelset_name);
         MultiFab mf(The_Pinned_Arena());
