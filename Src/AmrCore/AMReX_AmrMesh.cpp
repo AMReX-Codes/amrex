@@ -956,9 +956,9 @@ AmrMesh::MakeNewGrids (Real time)
             SetDistributionMap(0, dm);
         }
     }
+
     if (max_level > 0) // build fine levels
     {
-
         Vector<BoxArray> new_grids(max_level+1);
         new_grids[0] = grids[0];
         do
