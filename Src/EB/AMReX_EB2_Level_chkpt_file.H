@@ -25,8 +25,6 @@ public:
     void finalize_cell_flags (); //sets the connection flags and adjustments to cellflags
     void set_invalid_ghost_data_covered (); //sets the data for ghost cells which overlap covered regions
     void set_invalid_ghost_data_extended (); //sets the data for ghost cells that extend beyond the domain
-
-
 };
 
 }}

@@ -110,7 +110,7 @@ void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
 
     std::getline(is, line);
 
-    int  nlevs;
+    int nlevs;
 
     is >> nlevs;
     gotoNextLine(is);

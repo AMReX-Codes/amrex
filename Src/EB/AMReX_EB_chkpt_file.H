@@ -10,12 +10,12 @@ class ChkptFile
 private:
     std::string m_restart_file = "";
 
-    const std::string m_volfrac_name = "volfrac";
-    const std::string m_centroid_name = "centroid";
+    const std::string m_volfrac_name   = "volfrac";
+    const std::string m_centroid_name  = "centroid";
     const std::string m_bndryarea_name = "bndryarea";
     const std::string m_bndrycent_name = "bndrycent";
     const std::string m_bndrynorm_name = "bndrynorm";
-    const std::string m_levelset_name = "levelset";
+    const std::string m_levelset_name  = "levelset";
 
     const amrex::Vector<std::string> m_areafrac_name
         = {AMREX_D_DECL("areafrac_x", "areafrac_y", "areafrac_z")};
