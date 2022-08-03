@@ -229,9 +229,6 @@ public:
     */
     void MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& new_grids);
 
-    //! Use with Bittree
-    void MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& new_grids, Vector<DistributionMapping>& new_dmap);
-
     //! This function makes new grid for all levels (including level 0).
     void MakeNewGrids (Real time = 0.0);
 

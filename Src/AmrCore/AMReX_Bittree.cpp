@@ -68,12 +68,10 @@ int btUnit::btRefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>& btTags
 }
 
 /** Creates new box arrays to match the new Bittree mesh.
-  * TODO: also calculate an appropriate DistributionMapping.
   */
 void btUnit::btCalculateGrids(std::shared_ptr<BittreeAmr> mesh, int lbase,
                             Real time,int& new_finest,
                             Vector<BoxArray>& new_grids,
-                            Vector<DistributionMapping>& new_dm,
                             Vector<IntVect>& max_grid_size) {
     auto tree1 = mesh->getTree(true);
     int nlevs = tree1->levels();
@@ -82,18 +80,15 @@ void btUnit::btCalculateGrids(std::shared_ptr<BittreeAmr> mesh, int lbase,
 //--Calculate the new grid layout and distribution map based on Bittree
     for(int lev=lbase; lev<=new_finest; ++lev) {
         btCalculateLevel(mesh, lev, time, new_grids[lev],
-                         new_dm[lev], max_grid_size[lev]);
-
+                         max_grid_size[lev]);
     }
 }
 
 /** Creates a box array based on Bittree.
-  * TODO: also calculate an appropriate DistributionMapping.
   */
 void btUnit::btCalculateLevel(std::shared_ptr<BittreeAmr> mesh, int lev,
                             Real time,
                             BoxArray& ba,
-                            DistributionMapping& dm,
                             IntVect& max_grid_size) {
     auto tree1 = mesh->getTree(true);
 
@@ -105,7 +100,6 @@ void btUnit::btCalculateLevel(std::shared_ptr<BittreeAmr> mesh, int lev,
     int nblocks = tree1->level_blocks(lev);
 
     BoxList bl;
-    Vector<int> pmap;
 
     for(int i=id0; i<id1; ++i) {
       //Get coordinates and morton index.
@@ -122,16 +116,9 @@ void btUnit::btCalculateLevel(std::shared_ptr<BittreeAmr> mesh, int lev,
       IntVect lo = max_grid_size*coordVec;
       IntVect hi = max_grid_size*(coordVec+1) - 1;
       bl.push_back( Box{lo,hi} );
-
-      //TODO Calculate the processor based on position in the global Morton curve.
-      int proc = 0;
-      pmap.push_back(proc);
-
     }
 
     ba = BoxArray(bl);
-    dm = DistributionMapping(pmap);
-
 }
 
 int btUnit::getBitid(std::shared_ptr<BittreeAmr> mesh, bool updated,
