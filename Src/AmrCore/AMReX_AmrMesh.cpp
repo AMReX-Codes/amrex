@@ -625,7 +625,6 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
         if ( ! (useFixedCoarseGrids() && levc < useFixedUpToLevel()) ) {
             ErrorEst(levc, tags, time, 0);
         }
-        //
 
         //
         // Buffer error cells.
@@ -945,7 +944,6 @@ AmrMesh::MakeNewGrids (Real time)
             // Use Bittree to make coarsest level (don't need MakeBaseGrids)
             // Need to use Bittree, so the indices of grids[lev] will be compatible with BT.
             btUnit::btCalculateLevel(btmesh,0,time,ba,max_grid_size[0]);
-            // TODO replace default DistributionMapping with a sort over Morton curve
             dm = DistributionMapping(ba);
         }
 
@@ -960,6 +958,7 @@ AmrMesh::MakeNewGrids (Real time)
     }
     if (max_level > 0) // build fine levels
     {
+
         Vector<BoxArray> new_grids(max_level+1);
         new_grids[0] = grids[0];
         do
