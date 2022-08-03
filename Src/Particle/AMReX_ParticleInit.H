@@ -1365,7 +1365,7 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
         Box grid = ParticleBoxArray(0)[mfi.index()];
         auto ind = std::make_pair(mfi.index(), mfi.LocalTileIndex());
         RealBox grid_box (grid,dx,geom.ProbLo());
-        ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt, amrex::PinnedArenaAllocator> ptile_tmp;
+        ParticleTile<ParticleType, NArrayReal, NArrayInt, amrex::PinnedArenaAllocator> ptile_tmp;
         for (IntVect beg = grid.smallEnd(), end=grid.bigEnd(), cell = grid.smallEnd(); cell <= end; grid.next(cell))
         {
             // the real struct data

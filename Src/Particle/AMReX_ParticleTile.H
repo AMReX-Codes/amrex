@@ -301,21 +301,24 @@ struct ConstParticleTileData
     }
 };
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename T_ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator=DefaultAllocator>
 struct ParticleTile
 {
     template <typename T>
     using AllocatorType = Allocator<T>;
 
-    using ParticleType = Particle<NStructReal, NStructInt>;
+    using ParticleType = T_ParticleType;
     static constexpr int NAR = NArrayReal;
     static constexpr int NAI = NArrayInt;
     using RealType = typename ParticleType::RealType;
 
+    static constexpr int NStructReal = ParticleType::NReal;
+    static constexpr int NStructInt = ParticleType::NInt;
+
     using SuperParticleType = Particle<NStructReal + NArrayReal, NStructInt + NArrayInt>;
 
-    using AoS = ArrayOfStructs<NStructReal, NStructInt, Allocator>;
+    using AoS = ArrayOfStructs<ParticleType, Allocator>;
     using ParticleVector = typename AoS::ParticleVector;
 
     using SoA = StructOfArrays<NArrayReal, NArrayInt, Allocator>;
@@ -341,22 +344,22 @@ struct ParticleTile
 
     // Get cpu data 
 
-    // SoA
-    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
+    // AoS
+    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
     ParticleCPUWrapper cpu (int index) & {
         ParticleType p(this->getParticleTileData(), index);
         return p.cpu();
     }
 
     // const
-    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
+    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
     ConstParticleCPUWrapper cpu (int index) const & {
         ParticleType p(this->getParticleTileData(), index);
         return p.cpu();
     }
 
-    // AoS
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
+    // SoA
+    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
     ParticleCPUWrapper cpu () & {
         ParticleType& p = m_aos_tile().dataPtr()[index];
         return p.cpu();
@@ -364,7 +367,7 @@ struct ParticleTile
 
     // const 
 
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
+    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
     ConstParticleCPUWrapper cpu () const & {
         ParticleType& p = m_aos_tile().dataPtr()[index];
         return p.cpu();
@@ -372,29 +375,29 @@ struct ParticleTile
 
     // Get id data
 
-    // SoA
-    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
+    // AoS
+    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
     ParticleIDWrapper id (int index) & {
         ParticleType p(this->getParticleTileData(), index);
         return p.id();
     }
 
     // const
-    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
+    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
     ConstParticleIDWrapper id (int index) const & {
         ParticleType p(this->getParticleTileData(), index);
         return p.id();
     }
 
-    // AoS 
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
+    // SoA 
+    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
     ParticleIDWrapper id (int index) & {
         ParticleType& p = m_aos_tile().dataPtr()[index];
         return p.id();
     }
 
     // const
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
+    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
     ConstParticleIDWrapper id (int index) const & {
         ParticleType& p = m_aos_tile().dataPtr()[index];
         return p.id();
@@ -403,27 +406,27 @@ struct ParticleTile
 
     // Get positions data
 
-    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
+    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
     RealType& pos (int index, int position_index) & {
         ParticleType p(this->getParticleTileData(), index);
         return p.pos(position_index);
     }
 
-    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
+    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
     RealType  pos (int index, int position_index) const &
     {
         ParticleType p(this->getParticleTileData(), index);
         return p.pos(position_index);
     }
 
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
+    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
     RealType& pos (int index, int position_index) & {
         ParticleType& p = m_aos_tile().dataPtr()[index];
         return p.pos(position_index);
     }
 
 
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
+    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
     RealType  pos (int index, int position_index) const &
     {
         ParticleType& p = m_aos_tile().dataPtr()[index];
@@ -668,7 +671,7 @@ struct ParticleTile
         return nbytes;
     }
 
-    void swap (ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>& other)
+    void swap (ParticleTile<ParticleType, NArrayReal, NArrayInt, Allocator>& other)
     {
         m_aos_tile().swap(other.GetArrayOfStructs()());
         for (int j = 0; j < NumRealComps(); ++j)
@@ -811,3 +814,4 @@ private:
 } // namespace amrex;
 
 #endif // AMREX_PARTICLETILE_H_
+
