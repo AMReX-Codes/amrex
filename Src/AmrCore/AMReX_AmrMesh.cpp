@@ -955,6 +955,11 @@ AmrMesh::MakeNewGrids (Real time)
             amrex::Print() << "Initializing Bittree..." << std::endl;
             btmesh = std::make_shared<bittree::BittreeAmr>(top.data(),includes.data());
 
+            // Set BCs
+            for(int d=0; d<AMREX_SPACEDIM; ++d) {
+                btUnit::bcPeriodic[d] = geom[0].isPeriodic(d);
+            }
+
 
             // Use Bittree to make coarsest level (don't need MakeBaseGrids)
             // Need to use Bittree, so the indices of grids[lev] will be compatible with BT.

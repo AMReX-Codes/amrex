@@ -8,6 +8,9 @@ static constexpr int K1D = unsigned(AMREX_SPACEDIM>=1);
 static constexpr int K2D = unsigned(AMREX_SPACEDIM>=2);
 static constexpr int K3D = unsigned(AMREX_SPACEDIM>=3);
 
+
+bool btUnit::bcPeriodic[AMREX_SPACEDIM];
+
 /*
 NOTE: Bittree object is created in AmrMesh::MakeNewGrids (Real time)
    with
@@ -353,21 +356,16 @@ std::vector<int> btUnit::neighIntCoords(std::shared_ptr<BittreeAmr> mesh,
     for(unsigned d=0;d<AMREX_SPACEDIM;++d)
       maxcoord[d] = static_cast<int>(tree->top_size(d)) << lev;
 
-    constexpr unsigned PERIODIC = 0;
-    constexpr unsigned OUTFLOW = 1;
-    std::vector<unsigned> bcLo(AMREX_SPACEDIM, PERIODIC);
-    std::vector<unsigned> bcHi(AMREX_SPACEDIM, PERIODIC);
-
     for(unsigned d=0;d<AMREX_SPACEDIM;++d) {
       if (neighCoord[d] < 0 ) {
-        if ( bcLo[d] == PERIODIC )
+        if ( bcPeriodic[d] == true )
           neighCoord[d] = neighCoord[d] + maxcoord[d];
         else
           neighCoord[d] = -1;
       }
 
       if (neighCoord[d] >= maxcoord[d]) {
-        if ( bcHi[d] == PERIODIC )
+        if ( bcPeriodic[d] == true )
           neighCoord[d] = neighCoord[d] - maxcoord[d];
         else
           neighCoord[d] = -1;

@@ -63,6 +63,11 @@ class btUnit {
     static std::vector<int> neighIntCoords(std::shared_ptr<BittreeAmr> mesh,
                                            unsigned lev, unsigned* lcoord,
                                            int* gCell);
+
+  public:
+    // Represents whether domain has periodic BC in each direction
+    // true = Periodic, false = Non-Periodic
+    static bool bcPeriodic[AMREX_SPACEDIM];
 };
 
 
