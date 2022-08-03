@@ -512,267 +512,267 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
 
     if(!use_bittree or infer_bt_grids) {
 
-      //
-      // Construct problem domain at each level.
-      //
-      Vector<IntVect> bf_lev(max_level); // Blocking factor at each level.
-      Vector<IntVect> rr_lev(max_level);
-      Vector<Box>     pc_domain(max_level);  // Coarsened problem domain.
+    //
+    // Construct problem domain at each level.
+    //
+    Vector<IntVect> bf_lev(max_level); // Blocking factor at each level.
+    Vector<IntVect> rr_lev(max_level);
+    Vector<Box>     pc_domain(max_level);  // Coarsened problem domain.
 
-      for (int i = 0; i <= max_crse; i++)
-      {
-          for (int n=0; n<AMREX_SPACEDIM; n++) {
-              bf_lev[i][n] = std::max(1,blocking_factor[i+1][n]/ref_ratio[i][n]);
-          }
-      }
-      for (int i = lbase; i < max_crse; i++)
-      {
-          for (int n=0; n<AMREX_SPACEDIM; n++) {
-              // Note that in AmrMesh we check that
-              // ref ratio * coarse blocking factor >= fine blocking factor
-              rr_lev[i][n] = (ref_ratio[i][n]*bf_lev[i][n])/bf_lev[i+1][n];
-          }
-      }
-      for (int i = lbase; i <= max_crse; i++) {
-          pc_domain[i] = amrex::coarsen(Geom(i).Domain(),bf_lev[i]);
-      }
-      //
-      // Construct proper nesting domains.
-      //
-      Vector<BoxArray> p_n_ba(max_level); // Proper nesting domain.
-      Vector<BoxArray> p_n_comp_ba(max_level); // Complement proper nesting domain.
-      BoxList p_n, p_n_comp;
+    for (int i = 0; i <= max_crse; i++)
+    {
+        for (int n=0; n<AMREX_SPACEDIM; n++) {
+            bf_lev[i][n] = std::max(1,blocking_factor[i+1][n]/ref_ratio[i][n]);
+        }
+    }
+    for (int i = lbase; i < max_crse; i++)
+    {
+        for (int n=0; n<AMREX_SPACEDIM; n++) {
+            // Note that in AmrMesh we check that
+            // ref ratio * coarse blocking factor >= fine blocking factor
+            rr_lev[i][n] = (ref_ratio[i][n]*bf_lev[i][n])/bf_lev[i+1][n];
+        }
+    }
+    for (int i = lbase; i <= max_crse; i++) {
+        pc_domain[i] = amrex::coarsen(Geom(i).Domain(),bf_lev[i]);
+    }
+    //
+    // Construct proper nesting domains.
+    //
+    Vector<BoxArray> p_n_ba(max_level); // Proper nesting domain.
+    Vector<BoxArray> p_n_comp_ba(max_level); // Complement proper nesting domain.
+    BoxList p_n, p_n_comp;
 
-      BoxList bl = grids[lbase].simplified_list();
-      bl.coarsen(bf_lev[lbase]);
-      p_n_comp.parallelComplementIn(pc_domain[lbase],bl);
-      bl.clear();
-      p_n_comp.simplify();
-      p_n_comp.accrete(n_proper);
-      if (geom[lbase].isAnyPeriodic()) {
-          ProjPeriodic(p_n_comp, pc_domain[lbase], geom[lbase].isPeriodic());
-      }
+    BoxList bl = grids[lbase].simplified_list();
+    bl.coarsen(bf_lev[lbase]);
+    p_n_comp.parallelComplementIn(pc_domain[lbase],bl);
+    bl.clear();
+    p_n_comp.simplify();
+    p_n_comp.accrete(n_proper);
+    if (geom[lbase].isAnyPeriodic()) {
+        ProjPeriodic(p_n_comp, pc_domain[lbase], geom[lbase].isPeriodic());
+    }
 
-      p_n_comp_ba[lbase].define(std::move(p_n_comp));
-      p_n_comp = BoxList();
+    p_n_comp_ba[lbase].define(std::move(p_n_comp));
+    p_n_comp = BoxList();
 
-      p_n.parallelComplementIn(pc_domain[lbase],p_n_comp_ba[lbase]);
-      p_n.simplify();
+    p_n.parallelComplementIn(pc_domain[lbase],p_n_comp_ba[lbase]);
+    p_n.simplify();
 
-      p_n_ba[lbase].define(std::move(p_n));
-      p_n = BoxList();
+    p_n_ba[lbase].define(std::move(p_n));
+    p_n = BoxList();
 
-      for (int i = lbase+1; i <= max_crse; i++)
-      {
-          p_n_comp = p_n_comp_ba[i-1].boxList();
+    for (int i = lbase+1; i <= max_crse; i++)
+    {
+        p_n_comp = p_n_comp_ba[i-1].boxList();
 
-          // Need to simplify p_n_comp or the number of grids can too large for many levels.
-          p_n_comp.simplify();
+        // Need to simplify p_n_comp or the number of grids can too large for many levels.
+        p_n_comp.simplify();
 
-          p_n_comp.refine(rr_lev[i-1]);
-          p_n_comp.accrete(n_proper);
+        p_n_comp.refine(rr_lev[i-1]);
+        p_n_comp.accrete(n_proper);
 
-          if (geom[i].isAnyPeriodic()) {
-              ProjPeriodic(p_n_comp, pc_domain[i], geom[i].isPeriodic());
-          }
+        if (geom[i].isAnyPeriodic()) {
+            ProjPeriodic(p_n_comp, pc_domain[i], geom[i].isPeriodic());
+        }
 
-          p_n_comp_ba[i].define(std::move(p_n_comp));
-          p_n_comp = BoxList();
+        p_n_comp_ba[i].define(std::move(p_n_comp));
+        p_n_comp = BoxList();
 
-          p_n.parallelComplementIn(pc_domain[i],p_n_comp_ba[i]);
-          p_n.simplify();
+        p_n.parallelComplementIn(pc_domain[i],p_n_comp_ba[i]);
+        p_n.simplify();
 
-          p_n_ba[i].define(std::move(p_n));
-          p_n = BoxList();
-      }
+        p_n_ba[i].define(std::move(p_n));
+        p_n = BoxList();
+    }
 
-      //
-      // Now generate grids from finest level down.
-      //
-      new_finest = lbase;
+    //
+    // Now generate grids from finest level down.
+    //
+    new_finest = lbase;
 
-      for (int levc = max_crse; levc >= lbase; levc--)
-      {
-          int levf = levc+1;
-          //
-          // Construct TagBoxArray with sufficient grow factor to contain
-          // new levels projected down to this level.
-          //
-          IntVect ngt = n_error_buf[levc];
-          BoxArray ba_proj;
-          if (levf < new_finest)
-          {
-              ba_proj = new_grids[levf+1].simplified();
-              ba_proj.coarsen(ref_ratio[levf]);
-              ba_proj.growcoarsen(n_proper, ref_ratio[levc]);
+    for (int levc = max_crse; levc >= lbase; levc--)
+    {
+        int levf = levc+1;
+        //
+        // Construct TagBoxArray with sufficient grow factor to contain
+        // new levels projected down to this level.
+        //
+        IntVect ngt = n_error_buf[levc];
+        BoxArray ba_proj;
+        if (levf < new_finest)
+        {
+            ba_proj = new_grids[levf+1].simplified();
+            ba_proj.coarsen(ref_ratio[levf]);
+            ba_proj.growcoarsen(n_proper, ref_ratio[levc]);
 
-              BoxArray levcBA = grids[levc].simplified();
-              int ngrow = 0;
-              while (!levcBA.contains(ba_proj))
-              {
-                  levcBA.grow(1);
-                  ++ngrow;
-              }
-              ngt.max(IntVect(ngrow));
-          }
-          TagBoxArray tags(grids[levc],dmap[levc],ngt);
+            BoxArray levcBA = grids[levc].simplified();
+            int ngrow = 0;
+            while (!levcBA.contains(ba_proj))
+            {
+                levcBA.grow(1);
+                ++ngrow;
+            }
+            ngt.max(IntVect(ngrow));
+        }
+        TagBoxArray tags(grids[levc],dmap[levc],ngt);
 
-          //
-          // Only use error estimation to tag cells for the creation of new grids
-          //      if the grids at that level aren't already fixed.
-          //
+        //
+        // Only use error estimation to tag cells for the creation of new grids
+        //      if the grids at that level aren't already fixed.
+        //
 
-          if ( ! (useFixedCoarseGrids() && levc < useFixedUpToLevel()) ) {
-              ErrorEst(levc, tags, time, 0);
-          }
-          //
+        if ( ! (useFixedCoarseGrids() && levc < useFixedUpToLevel()) ) {
+            ErrorEst(levc, tags, time, 0);
+        }
+        //
 
-          //
-          // Buffer error cells.
-          //
-          tags.buffer(n_error_buf[levc]);
+        //
+        // Buffer error cells.
+        //
+        tags.buffer(n_error_buf[levc]);
 
-          if (useFixedCoarseGrids())
-          {
-              if (levc>=useFixedUpToLevel())
-              {
-                  tags.setVal(GetAreaNotToTag(levc), TagBox::CLEAR);
-              }
-              else
-              {
-                  new_finest = std::max(new_finest,levf);
-              }
-          }
+        if (useFixedCoarseGrids())
+        {
+            if (levc>=useFixedUpToLevel())
+            {
+                tags.setVal(GetAreaNotToTag(levc), TagBox::CLEAR);
+            }
+            else
+            {
+                new_finest = std::max(new_finest,levf);
+            }
+        }
 
-          //
-          // Coarsen the taglist by blocking_factor/ref_ratio.
-          //
-          int bl_max = 0;
-          for (int n=0; n<AMREX_SPACEDIM; n++) {
-              bl_max = std::max(bl_max,bf_lev[levc][n]);
-          }
-          if (bl_max >= 1) {
-              tags.coarsen(bf_lev[levc]);
-          } else {
-              amrex::Abort("blocking factor is too small relative to ref_ratio");
-          }
-          //
-          // Remove or add tagged points which violate/satisfy additional
-          // user-specified criteria.
-          //
-          ManualTagsPlacement(levc, tags, bf_lev);
-          //
-          // If new grids have been constructed above this level, project
-          // those grids down and tag cells on intersections to ensure
-          // proper nesting.
-          //
-          if (levf < new_finest) {
-              ba_proj.coarsen(bf_lev[levc]);
-              tags.setVal(ba_proj,TagBox::SET);
-          }
-          //
-          // Map tagged points through periodic boundaries, if any.
-          //
-          tags.mapPeriodicRemoveDuplicates(Geometry(pc_domain[levc],
-                                                    Geom(levc).ProbDomain(),
-                                                    Geom(levc).CoordInt(),
-                                                    Geom(levc).isPeriodic()));
-          //
-          // Remove cells outside proper nesting domain for this level.
-          //
-          tags.setVal(p_n_comp_ba[levc],TagBox::CLEAR);
-          p_n_comp_ba[levc].clear();
-          //
-          // Create initial cluster containing all tagged points.
-          //
-          Gpu::PinnedVector<IntVect> tagvec;
-          tags.collate(tagvec);
-          tags.clear();
+        //
+        // Coarsen the taglist by blocking_factor/ref_ratio.
+        //
+        int bl_max = 0;
+        for (int n=0; n<AMREX_SPACEDIM; n++) {
+            bl_max = std::max(bl_max,bf_lev[levc][n]);
+        }
+        if (bl_max >= 1) {
+            tags.coarsen(bf_lev[levc]);
+        } else {
+            amrex::Abort("blocking factor is too small relative to ref_ratio");
+        }
+        //
+        // Remove or add tagged points which violate/satisfy additional
+        // user-specified criteria.
+        //
+        ManualTagsPlacement(levc, tags, bf_lev);
+        //
+        // If new grids have been constructed above this level, project
+        // those grids down and tag cells on intersections to ensure
+        // proper nesting.
+        //
+        if (levf < new_finest) {
+            ba_proj.coarsen(bf_lev[levc]);
+            tags.setVal(ba_proj,TagBox::SET);
+        }
+        //
+        // Map tagged points through periodic boundaries, if any.
+        //
+        tags.mapPeriodicRemoveDuplicates(Geometry(pc_domain[levc],
+                                                  Geom(levc).ProbDomain(),
+                                                  Geom(levc).CoordInt(),
+                                                  Geom(levc).isPeriodic()));
+        //
+        // Remove cells outside proper nesting domain for this level.
+        //
+        tags.setVal(p_n_comp_ba[levc],TagBox::CLEAR);
+        p_n_comp_ba[levc].clear();
+        //
+        // Create initial cluster containing all tagged points.
+        //
+        Gpu::PinnedVector<IntVect> tagvec;
+        tags.collate(tagvec);
+        tags.clear();
 
-          if (tagvec.size() > 0)
-          {
-              //
-              // Created new level, now generate efficient grids.
-              //
-              if ( !(useFixedCoarseGrids() && levc<useFixedUpToLevel()) ) {
-                  new_finest = std::max(new_finest,levf);
-              }
+        if (tagvec.size() > 0)
+        {
+            //
+            // Created new level, now generate efficient grids.
+            //
+            if ( !(useFixedCoarseGrids() && levc<useFixedUpToLevel()) ) {
+                new_finest = std::max(new_finest,levf);
+            }
 
-              if (levf > useFixedUpToLevel()) {
-                  BoxList new_bx;
-                  if (ParallelDescriptor::IOProcessor()) {
-                      BL_PROFILE("AmrMesh-cluster");
-                      //
-                      // Construct initial cluster.
-                      //
-                      ClusterList clist(&tagvec[0], tagvec.size());
-                      if (use_new_chop) {
-                          clist.new_chop(grid_eff);
-                      } else {
-                          clist.chop(grid_eff);
-                      }
-                      clist.intersect(p_n_ba[levc]);
-                      //
-                      // Efficient properly nested Clusters have been constructed
-                      // now generate list of grids at level levf.
-                      //
-                      clist.boxList(new_bx);
-                      new_bx.refine(bf_lev[levc]);
-                      new_bx.simplify();
+            if (levf > useFixedUpToLevel()) {
+                BoxList new_bx;
+                if (ParallelDescriptor::IOProcessor()) {
+                    BL_PROFILE("AmrMesh-cluster");
+                    //
+                    // Construct initial cluster.
+                    //
+                    ClusterList clist(&tagvec[0], tagvec.size());
+                    if (use_new_chop) {
+                        clist.new_chop(grid_eff);
+                    } else {
+                        clist.chop(grid_eff);
+                    }
+                    clist.intersect(p_n_ba[levc]);
+                    //
+                    // Efficient properly nested Clusters have been constructed
+                    // now generate list of grids at level levf.
+                    //
+                    clist.boxList(new_bx);
+                    new_bx.refine(bf_lev[levc]);
+                    new_bx.simplify();
 
-                      if (new_bx.size()>0) {
-                          // Chop new grids outside domain
-                          new_bx.intersect(Geom(levc).Domain());
-                      }
-                  }
-                  new_bx.Bcast();  // Broadcast the new BoxList to other processes
+                    if (new_bx.size()>0) {
+                        // Chop new grids outside domain
+                        new_bx.intersect(Geom(levc).Domain());
+                    }
+                }
+                new_bx.Bcast();  // Broadcast the new BoxList to other processes
 
-                  //
-                  // Refine up to levf.
-                  //
-                  new_bx.refine(ref_ratio[levc]);
-                  BL_ASSERT(new_bx.isDisjoint());
+                //
+                // Refine up to levf.
+                //
+                new_bx.refine(ref_ratio[levc]);
+                BL_ASSERT(new_bx.isDisjoint());
 
-                  new_grids[levf] = BoxArray(std::move(new_bx), max_grid_size[levf]);
-              }
-          }
-      }
+                new_grids[levf] = BoxArray(std::move(new_bx), max_grid_size[levf]);
+            }
+        }
+    }
 
 #if 0
-      if (!useFixedCoarseGrids()) {
-          // check proper nesting
-          // This check does not consider periodic boundary and could fail if
-          // the blocking factor is not the same on all levels.
-          for (int lev = lbase+1; lev <= new_finest; ++lev) {
-              BoxArray const& cba = (lev == lbase+1) ? grids[lev-1] : new_grids[lev-1];
-              BoxArray const& fba = amrex::coarsen(new_grids[lev],ref_ratio[lev-1]);
-              IntVect np = bf_lev[lev-1] * n_proper;
-              Box const& cdomain = Geom(lev-1).Domain();
-              for (int i = 0, N = fba.size(); i < N; ++i) {
-                  Box const& fb = amrex::grow(fba[i],np) & cdomain;
-                  if (!cba.contains(fb,true)) {
-                      amrex::Abort("AmrMesh::MakeNewGrids: new grids not properly nested");
-                  }
-              }
-          }
-      }
+    if (!useFixedCoarseGrids()) {
+        // check proper nesting
+        // This check does not consider periodic boundary and could fail if
+        // the blocking factor is not the same on all levels.
+        for (int lev = lbase+1; lev <= new_finest; ++lev) {
+            BoxArray const& cba = (lev == lbase+1) ? grids[lev-1] : new_grids[lev-1];
+            BoxArray const& fba = amrex::coarsen(new_grids[lev],ref_ratio[lev-1]);
+            IntVect np = bf_lev[lev-1] * n_proper;
+            Box const& cdomain = Geom(lev-1).Domain();
+            for (int i = 0, N = fba.size(); i < N; ++i) {
+                Box const& fb = amrex::grow(fba[i],np) & cdomain;
+                if (!cba.contains(fb,true)) {
+                    amrex::Abort("AmrMesh::MakeNewGrids: new grids not properly nested");
+                }
+            }
+        }
+    }
 #endif
 
-      for (int lev = lbase+1; lev <= new_finest; ++lev) {
-          if (new_grids[lev].empty())
-          {
-              if (!(useFixedCoarseGrids() && lev<useFixedUpToLevel()) ) {
-                  amrex::Abort("AmrMesh::MakeNewGrids: how did this happen?");
-              }
-          }
-          else if (refine_grid_layout)
-          {
-              ChopGrids(lev,new_grids[lev],ParallelDescriptor::NProcs());
-              if (new_grids[lev] == grids[lev]) {
-                  new_grids[lev] = grids[lev]; // to avoid duplicates
-              }
-          }
-      }
+    for (int lev = lbase+1; lev <= new_finest; ++lev) {
+        if (new_grids[lev].empty())
+        {
+            if (!(useFixedCoarseGrids() && lev<useFixedUpToLevel()) ) {
+                amrex::Abort("AmrMesh::MakeNewGrids: how did this happen?");
+            }
+        }
+        else if (refine_grid_layout)
+        {
+            ChopGrids(lev,new_grids[lev],ParallelDescriptor::NProcs());
+            if (new_grids[lev] == grids[lev]) {
+                new_grids[lev] = grids[lev]; // to avoid duplicates
+            }
+        }
+    }
     }
 
     // Bittree version
