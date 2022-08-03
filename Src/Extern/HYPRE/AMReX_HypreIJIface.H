@@ -93,11 +93,11 @@ private:
     HypreIntType (*m_precondSolvePtr)(
         HYPRE_Solver, HYPRE_ParCSRMatrix, HYPRE_ParVector, HYPRE_ParVector){nullptr};
 
-    HypreIntType (*m_solverSetTolPtr)(HYPRE_Solver, double){nullptr};
-    HypreIntType (*m_solverSetAbsTolPtr)(HYPRE_Solver, double){nullptr};
+    HypreIntType (*m_solverSetTolPtr)(HYPRE_Solver, amrex::Real){nullptr};
+    HypreIntType (*m_solverSetAbsTolPtr)(HYPRE_Solver, amrex::Real){nullptr};
     HypreIntType (*m_solverSetMaxIterPtr)(HYPRE_Solver, HypreIntType){nullptr};
     HypreIntType (*m_solverNumItersPtr)(HYPRE_Solver, HypreIntType*){nullptr};
-    HypreIntType (*m_solverFinalResidualNormPtr)(HYPRE_Solver, double*){nullptr};
+    HypreIntType (*m_solverFinalResidualNormPtr)(HYPRE_Solver, amrex::Real*){nullptr};
 
     HypreIntType m_ilower{0};
     HypreIntType m_iupper{0};
