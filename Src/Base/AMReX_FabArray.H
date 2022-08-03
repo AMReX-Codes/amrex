@@ -2848,7 +2848,7 @@ FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& src_ngho
 
     FabArray<FAB>* tmp = new FabArray<FAB>( boxArray(), DistributionMap(), ncomp, src_nghost, MFInfo(), Factory() );
     amrex::Copy(*tmp, *this, scomp, 0, ncomp, src_nghost);
-    this->setVal(0.0, scomp, ncomp, dst_nghost);
+    this->setVal(typename FAB::value_type(0), scomp, ncomp, dst_nghost);
     this->ParallelCopy_nowait(*tmp,0,scomp,ncomp,src_nghost,dst_nghost,period,FabArrayBase::ADD);
 
     // All local. Operation complete.

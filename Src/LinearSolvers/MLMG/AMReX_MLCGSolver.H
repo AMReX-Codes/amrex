@@ -40,6 +40,11 @@ public:
                Real            eps_rel,
                Real            eps_abs);
 
+    int solve (Any&       solnL,
+               const Any& rhsL,
+               Real       eps_rel,
+               Real       eps_abs);
+
     void setVerbose (int _verbose) { verbose = _verbose; }
     int getVerbose () const { return verbose; }
 

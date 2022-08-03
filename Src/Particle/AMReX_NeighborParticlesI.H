@@ -813,6 +813,11 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 selectActualNeighbors (CheckPair&& check_pair, int num_cells)
 {
     BL_PROFILE("NeighborParticleContainer::selectActualNeighbors");
+    const auto& geom_fine = this->Geom(0);
+    const auto& ba_fine   = this->ParticleBoxArray(0);
+    if (ba_fine.size() == 1 && !geom_fine.isAnyPeriodic()) {
+        return;
+    }
 
     for (int lev = 0; lev < this->numLevels(); ++lev)
     {

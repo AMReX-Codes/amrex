@@ -650,10 +650,10 @@ TagBoxArray::collate (Gpu::PinnedVector<IntVect>& TheGlobalCollateSpace) const
     const IntVect* psend = (count > 0) ? TheLocalCollateSpace.data() : nullptr;
     IntVect* precv = TheGlobalCollateSpace.data();
 
-    //Issues have been observed with the following call at very large scale when using
-    //FujitsuMPI. The issue seems to be related to the use of MPI_Datatype. We can
-    //bypasses the issue by exchanging simpler integer arrays.
-#ifndef __FUJITSU
+    // Issues have been observed with the following call at very large scale when using
+    // FujitsuMPI. The issue seems to be related to the use of MPI_Datatype. We can
+    // bypasses the issue by exchanging simpler integer arrays.
+#if !(defined(__FUJITSU) || defined(__CLANG_FUJITSU))
     ParallelDescriptor::Gatherv(psend, count, precv, countvec, offset, IOProcNumber);
 #else
     const int* psend_int = psend->begin();
