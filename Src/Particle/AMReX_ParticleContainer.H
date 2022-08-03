@@ -168,7 +168,7 @@ public:
 #endif
 
     using ParticleContainerType = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>;
-    using ParticleTileType = ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>;
+    using ParticleTileType = ParticleTile<ParticleType, NArrayReal, NArrayInt, Allocator>;
     using ParticleInitData = ParticleInitType<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
     //! A single level worth of particles is indexed (grid id, tile id)

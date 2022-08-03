@@ -1108,7 +1108,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
             for (int lev = 0; lev < m_particles.size();  lev++) {
               auto& pmap = m_particles[lev];
               for (const auto& kv : pmap) {
-                ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt,
+                ParticleTile<ParticleType, NArrayReal, NArrayInt,
                              amrex::PinnedArenaAllocator> pinned_ptile;
                 pinned_ptile.define(NumRuntimeRealComps(), NumRuntimeIntComps());
                 pinned_ptile.resize(kv.second.numParticles());
