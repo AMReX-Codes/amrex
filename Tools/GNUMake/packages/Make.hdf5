@@ -29,6 +29,7 @@ ifeq ($(USE_HDF5_ZFP),TRUE)
       INCLUDE_LOCATIONS += $(ZFP_ABSPATH)/include $(H5Z_ABSPATH)/include
       LIBRARY_LOCATIONS += $(ZFP_ABSPATH)/lib $(ZFP_ABSPATH)/lib64 $(H5Z_ABSPATH)/lib
       LDFLAGS += -Xlinker -rpath -Xlinker $(ZFP_ABSPATH)/lib
+      LDFLAGS += -Xlinker -rpath -Xlinker $(ZFP_ABSPATH)/lib64
     endif
   endif
 endif
