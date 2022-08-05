@@ -49,6 +49,7 @@ public:
     virtual const Level& getLevel (const Geometry & geom) const = 0;
     virtual const Geometry& getGeometry (const Box& domain) const = 0;
     virtual const Box& coarsestDomain () const = 0;
+    virtual void addFineLevels (int num_new_fine_levels) = 0;
 
 protected:
     static AMREX_EXPORT Vector<std::unique_ptr<IndexSpace> > m_instance;
@@ -80,16 +81,21 @@ public:
     virtual const Box& coarsestDomain () const final {
         return m_geom.back().Domain();
     }
+    virtual void addFineLevels (int num_new_fine_levels) final;
 
     using F = typename G::FunctionType;
 
 private:
 
+    G m_gshop;
+    bool m_build_coarse_level_by_coarsening;
+    bool m_extend_domain_face;
+    int m_num_coarsen_opt;
+
     Vector<GShopLevel<G> > m_gslevel;
     Vector<Geometry> m_geom;
     Vector<Box> m_domain;
     Vector<int> m_ngrow;
-    std::unique_ptr<F> m_impfunc;
 };
 
 #include <AMReX_EB2_IndexSpaceI.H>
@@ -124,6 +130,8 @@ void Build (const Geometry& geom,
 
 int maxCoarseningLevel (const Geometry& geom);
 int maxCoarseningLevel (IndexSpace const* ebis, const Geometry& geom);
+
+void addFineLevels (int num_new_fine_levels);
 
 }}
 

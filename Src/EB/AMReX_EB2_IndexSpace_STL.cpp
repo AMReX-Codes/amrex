@@ -82,4 +82,10 @@ IndexSpaceSTL::getGeometry (const Box& dom) const
     return m_geom[i];
 }
 
+void
+IndexSpaceSTL::addFineLevels (int /*num_new_fine_levels*/)
+{
+    amrex::Abort("IndexSpaceSTL::addFineLevels: todo");
+}
+
 }}
