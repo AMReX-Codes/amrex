@@ -78,4 +78,10 @@ IndexSpaceChkptFile::getGeometry (const Box& dom) const
     return m_geom[i];
 }
 
+void
+IndexSpaceChkptFile::addFineLevels (int /*num_new_fine_levels*/)
+{
+    amrex::Abort("IndexSpaceChkptFile::addFineLevels: not supported");
+}
+
 }}
