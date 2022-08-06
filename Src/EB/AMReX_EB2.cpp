@@ -231,6 +231,15 @@ Build (const Geometry& geom, int required_coarsening_level,
     }
 }
 
+void addFineLevels (int num_new_fine_levels)
+{
+    BL_PROFILE("EB2::addFineLevels()");
+    auto p = const_cast<IndexSpace*>(TopIndexSpace());
+    if (p) {
+        p->addFineLevels(num_new_fine_levels);
+    }
+}
+
 void
 BuildFromChkptFile (std::string const& fname,
         const Geometry& geom, int required_coarsening_level,

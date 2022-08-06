@@ -275,7 +275,7 @@ void HypreIJIface::boomeramg_precond_configure (const std::string& prefix)
 
         if (hpp.pp.contains("bamg_non_galerkin_level_tols")) {
             std::vector<int> levels;
-            std::vector<double> tols;
+            std::vector<amrex::Real> tols;
             hpp.pp.getarr("bamg_non_galerkin_level_levels", levels);
             hpp.pp.getarr("bamg_non_galerkin_level_tols", tols);
 

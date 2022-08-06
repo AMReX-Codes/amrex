@@ -53,7 +53,13 @@ int main (int argc, char* argv[])
         AmrLevel::SetEBSupportLevel(EBSupport::full);
         AmrLevel::SetEBMaxGrowCells(CNS::numGrow(),4,2);
 
-        initialize_EB2(amr.Geom(amr.maxLevel()), amr.maxLevel(), amr.maxLevel());
+        int max_eb_level = amr.maxLevel();
+        ParmParse pp("amr");
+        pp.query("max_eb_level", max_eb_level);
+        initialize_EB2(amr.Geom(max_eb_level), max_eb_level, max_eb_level);
+        if (max_eb_level < amr.maxLevel()) {
+            EB2::addFineLevels(amr.maxLevel() - max_eb_level);
+        }
 
         amr.init(strt_time,stop_time);
 

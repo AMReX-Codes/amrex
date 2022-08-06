@@ -1152,7 +1152,7 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
     {
         if (cf_strategy == CFStrategy::ghostnodes || a_sol[alev]->nGrowVect() == ng_sol)
         {
-            sol[alev] = linop.AnyMakeAlias(a_sol[alev]);
+            sol[alev] = linop.AnyMakeAlias(*a_sol[alev]);
             sol_is_alias[alev] = true;
         }
         else
