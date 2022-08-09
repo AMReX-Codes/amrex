@@ -1593,8 +1593,6 @@ MultiFab::sum_unique (int comp,
 {
     BL_PROFILE("MultiFab::sum_unique()");
 
-    using namespace amrex::literals;
-
     // Owner is the grid with the lowest grid number containing the data
     std::unique_ptr<iMultiFab> owner_mask = OwnerMask(period);
 
@@ -1602,12 +1600,12 @@ MultiFab::sum_unique (int comp,
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
         auto const& ma = this->const_arrays();
-        auto const& msk = owner_mask->const_array();
+        auto const& msk = owner_mask->const_arrays();
         sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, *this, IntVect(0),
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                        -> GpuTuple<Real>
         {
-            return msk(i,j,k,comp) ? ma[box_no](i,j,k,comp) : 0.0_rt;
+            return msk[box_no](i,j,k) ? ma[box_no](i,j,k,comp) : 0.0_rt;
         });
     } else
 #endif
@@ -1623,7 +1621,7 @@ MultiFab::sum_unique (int comp,
             Real tmp = 0.0_rt;
             AMREX_LOOP_3D(bx, i, j, k,
             {
-                tmp += msk(i,j,k,comp) ? a(i,j,k,comp) : 0.0_rt;
+                tmp += msk(i,j,k) ? a(i,j,k,comp) : 0.0_rt;
             });
             sm += tmp; // Do it this way so that it does not break regression tests.
         }
