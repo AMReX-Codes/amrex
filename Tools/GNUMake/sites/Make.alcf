@@ -48,6 +48,20 @@ ifeq ($(which_computer),$(filter $(which_computer),polaris))
   ifeq ($(USE_CUDA),TRUE)
     CUDA_ARCH = 80
 
+    ifeq ($(NVCC_CCBIN_AUTOINITIALIZED),TRUE)
+      ifeq ($(lowercase_nvcc_host_comp),gnu)
+        CFLAGS := $(subst ccbin=g++,ccbin=CC,$(CFLAGS))
+        CXXFLAGS := $(subst ccbin=g++,ccbin=CC,$(CXXFLAGS))
+        CXXFLAGS_FROM_HOST := $(subst ccbin=g++,ccbin=CC,$(CXXFLAGS_FROM_HOST))
+      else
+      ifeq ($(lowercase_comp),nvhpc)
+        $(warning NVCC_CCBIN is auto-initialized)
+      else
+        $(error NVCC_CCBIN is auto-initialized and is likely wrong, try NVCC_CCBIN=CC)
+      endif
+      endif
+    endif
+
     ifeq ($(USE_MPI), FALSE)
       includes += $(CRAY_CUDATOOLKIT_INCLUDE_OPTS)
     endif
