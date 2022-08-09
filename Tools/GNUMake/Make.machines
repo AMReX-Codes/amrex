@@ -72,6 +72,11 @@ ifeq ($(findstring theta, $(host_name)), theta)
   which_computer := theta
 endif
 
+ifeq ($(findstring polaris, $(host_name)), polaris)
+  which_site := alcf
+  which_computer := polaris
+endif
+
 ifeq ($(findstring sierra, $(host_name)), sierra)
   which_site := llnl
   which_computer := sierra
