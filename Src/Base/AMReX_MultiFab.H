@@ -236,6 +236,7 @@ public:
     *        skips non-unique points that are owned by multiple boxes.
     */
     Real sum_unique (int comp = 0,
+                     bool local = false,
                      const Periodicity& period = Periodicity::NonPeriodic()) const;
     /**
     * \brief Adds the scalar value val to the value of each cell in the

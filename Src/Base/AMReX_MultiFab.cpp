@@ -1589,9 +1589,14 @@ MultiFab::sum (int comp, bool local) const
 
 Real
 MultiFab::sum_unique (int comp,
+                      bool local,
                       const Periodicity& period) const
 {
     BL_PROFILE("MultiFab::sum_unique()");
+
+    // no duplicatly distributed points if cell centered
+    if (ixType().cellCentered())
+        return this->sum(comp, local);
 
     // Owner is the grid with the lowest grid number containing the data
     std::unique_ptr<iMultiFab> owner_mask = OwnerMask(period);
@@ -1627,7 +1632,9 @@ MultiFab::sum_unique (int comp,
         }
     }
 
-    ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
+    if (!local) {
+        ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
+    }
 
     return sm;
 }
