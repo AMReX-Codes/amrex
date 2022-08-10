@@ -32,7 +32,7 @@ void addParticles ()
 
         // TODO
         ptile1.id(i) = 1;
-        //ptile1.cpu(i) = 1;
+        ptile1.cpu(i) = 1;
     }
     //ptile1.push_back_int(3, ...std::vector);
     //ptile1.push_back_int(4, ...std::vector);
