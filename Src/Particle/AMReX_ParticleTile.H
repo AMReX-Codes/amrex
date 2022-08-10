@@ -360,7 +360,7 @@ struct ParticleTile
 
     // SoA
     template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
-    ParticleCPUWrapper cpu () & {
+    ParticleCPUWrapper cpu (int index) & {
         ParticleType& p = m_aos_tile().dataPtr()[index];
         return p.cpu();
     }
@@ -368,7 +368,7 @@ struct ParticleTile
     // const 
 
     template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
-    ConstParticleCPUWrapper cpu () const & {
+    ConstParticleCPUWrapper cpu (int index) const & {
         ParticleType& p = m_aos_tile().dataPtr()[index];
         return p.cpu();
     }
