@@ -17,6 +17,7 @@ namespace amrex {
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 struct ParticleTileData
 {
+    
     static constexpr int NAR = NArrayReal;
     static constexpr int NAI = NArrayInt;
     using ParticleType = Particle<NStructReal, NStructInt>;
