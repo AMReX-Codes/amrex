@@ -463,8 +463,8 @@ Device::initialize_gpu ()
         device_prop.warpSize = warp_size;
         auto sgss = d.get_info<sycl::info::device::sub_group_sizes>();
         device_prop.maxMemAllocSize = d.get_info<sycl::info::device::max_mem_alloc_size>();
-        device_prop.managedMemory = d.get_info<sycl::info::device::host_unified_memory>();
-        device_prop.concurrentManagedAccess = d.get_info<sycl::info::device::usm_shared_allocations>();
+        device_prop.managedMemory = d.has(sycl::aspect::usm_host_allocations);
+        device_prop.concurrentManagedAccess = d.has(sycl::aspect::usm_shared_allocations);
         device_prop.maxParameterSize = d.get_info<sycl::info::device::max_parameter_size>();
         {
             amrex::Print() << "Device Properties:\n"
