@@ -271,7 +271,7 @@ namespace amrex
 
     private:
 
-        static std::vector<std::unique_ptr<AMReX> > m_instance;
+        static AMREX_EXPORT std::vector<std::unique_ptr<AMReX> > m_instance;
 
         Geometry* m_geom = nullptr;
     };
