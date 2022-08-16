@@ -60,9 +60,6 @@ int btUnit::btRefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>& btTags
 
     btCheckDerefine(mesh,btTags,comm);
 
-
-    //TODO sort (distribute over procs)
-
     // return delta count
     return static_cast<int>( mesh->delta_count() );
 }
@@ -236,26 +233,6 @@ void btUnit::btCheckDerefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>
                 mesh->refine_mark(id, false);
             }
         }
-
-//------If any blocks are still marked for derefinement, check to make
-//------sure their parents are still marked on bittree. Also, if parent is
-//------marked, but block is not tagged, unmark parent. This ensures blocks
-//------only derefine if ALL siblings are marked for derefine.
-        //for( unsigned id = id0; id < id1; ++id) {
-        //    unsigned pId = tree0->getParentId(id);
-        //    if(pId<id) {
-        //        bool deref_mark = mesh->check_refine_bit(pId);
-        //        if( btTags[id]==-1 && !deref_mark ) {
-        //            repeat = true;
-        //            btTags[id] = 0;
-        //        }
-        //        else if( btTags[id]!=-1 && deref_mark ) {
-        //            amrex::Print() << "Id=" << id << " not marked -1 but parent will change\n";
-        //            repeat = true;
-        //            mesh->refine_mark(pId,false);
-        //        }
-        //    }
-        //}
 
 
         // If only processing local blocks, check all processors to see if

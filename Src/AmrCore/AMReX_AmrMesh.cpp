@@ -379,8 +379,6 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
     finest_level = -1;
 
     pp.get("use_bittree",use_bittree);
-    if(use_bittree) pp.get("bt_derefine",bt_derefine);
-    if(use_bittree) pp.get("infer_bt_grids",infer_bt_grids);
 
     if (check_input) checkInput();
 }
@@ -510,7 +508,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
 
     if (new_grids.size() < max_crse+2) new_grids.resize(max_crse+2);
 
-    if(!use_bittree or infer_bt_grids) {
+    if(!use_bittree) {
 
     //
     // Construct problem domain at each level.
@@ -779,121 +777,54 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
         // Initialize BT refinement
         btmesh->refine_init();
 
-        // infer_bt_grids is a proof of concept which has BT follow the refinement, but not affect it
-        // Do the regular MakeNewGrids and infer refine/derefine from there
-        if(infer_bt_grids) {
-            bool grid_changed = false;
-
-            // use grids[lev] and new_grids[lev], infer which boxes are changed
-            auto tree0 = btmesh->getTree();
-            for(int lev=lbase+1; lev<=new_finest; ++lev) {
-                if(grids[lev]==new_grids[lev]) continue;
-                grid_changed = true;
-
-                // Use set logic to determine which boxes are new and which
-                // no longer exist.
-                auto sameBoxes = amrex::intersect(grids[lev],new_grids[lev]);
-                auto sameComplement = amrex::complementIn(geom[lev].Domain(),sameBoxes);
-                auto newBoxes = amrex::intersect(new_grids[lev],sameComplement);
-                auto goneBoxes = amrex::intersect(grids[lev],sameComplement);
-
-                // For boxes that no longer exist, mark parents for derefine
-                unsigned parCoord[AMREX_SPACEDIM];
-                int plev = lev-1;
-                for (Box& bx : goneBoxes.boxList())
-                {
-                    for(unsigned d=0; d<AMREX_SPACEDIM; ++d)
-                        parCoord[d] = bx.smallEnd(d)/(2*max_grid_size[lev][d]);
-                    auto p = tree0->identify(plev,parCoord);
-                    btmesh->refine_mark(p.id, true);
-                }
-                
-                // For new boxes, mark parents for refine
-                for (Box& bx : newBoxes.boxList())
-                {
-                    for(unsigned d=0; d<AMREX_SPACEDIM; ++d)
-                        parCoord[d] = bx.smallEnd(d)/(2*max_grid_size[lev][d]);
-                    auto p = tree0->identify(plev,parCoord);
-                    btmesh->refine_mark(p.id, true);
-                }
-            }
-
-            // Not doing btCheckRefine and btCheckDerefine, trusting AMReX algorithm
-            MPI_Comm comm = ParallelContext::CommunicatorSub();
-            btmesh->refine_reduce(comm);
-            btmesh->refine_update();
-            if(grid_changed) {
-                amrex::Print() << "Mesh changed!" << std::endl;
-                amrex::Print() << btmesh->slice_to_string(0) << std::endl;
-            }
-
-            // For testing, have BT generate grids and compare to the new_grids made above
-            if(grid_changed) {
-                Vector<BoxArray> new_grids_bt(new_finest+1);
-                int new_finest_bt;
-                bool all_good = true;
-
-                btUnit::btCalculateGrids(btmesh,lbase,time,new_finest_bt,new_grids_bt,max_grid_size);
-
-                // Make sure the results from btMakeNewGrids match the results of MakeNewGrids
-                if(new_finest != new_finest_bt) all_good = false;
-                for(int lev=lbase+1; lev<=new_finest; ++lev) {
-                    auto btComplement = amrex::complementIn(geom[lev].Domain(),new_grids_bt[lev]);
-                    auto actualMinusBT = amrex::intersect(new_grids[lev],btComplement);
-                    if(!actualMinusBT.empty()) all_good = false;
-                }
-                amrex::Print() << "Comparing BT generated grids to actual grids: ";
-                if(all_good) amrex::Print() << "SUCCESS" << std::endl;
-                else         amrex::Print() << "ERROR" << std::endl;
-            }
-        }
         // -------------------------------------------------------------------
         // Use tagging data to mark BT for refinement, then use the new bitmap
         // to calculate the new grids.
-        else {
-            auto tree0 = btmesh->getTree();
+        auto tree0 = btmesh->getTree();
 
-            // [1] btTagging - Error Estimation and tagging
-            // btTags is indexed by bitid, Bittree's internal indexing scheme.
-            // For any id, btTags = 1 if should be parent, -1 if should not be parent (or not exist).
-            std::vector<int> btTags(tree0->id_upper_bound(),0);
+        // [1] Error Estimation and tagging
+        // btTags is indexed by bitid, Bittree's internal indexing scheme.
+        // For any id, btTags = 1 if should be parent, -1 if should not be parent (or not exist).
+        std::vector<int> btTags(tree0->id_upper_bound(),0);
 
-            for (int lev=max_crse; lev>=lbase; --lev) {
+        for (int lev=max_crse; lev>=lbase; --lev) {
 
-                TagBoxArray tags(grids[lev],dmap[lev], n_error_buf[lev]);
-                ErrorEst(lev, tags, time, 0);
+            TagBoxArray tags(grids[lev],dmap[lev], n_error_buf[lev]);
+            ErrorEst(lev, tags, time, 0);
+            // ?? tags.buffer(n_error_buf[lev]);
 
-                for (MFIter mfi(tags); mfi.isValid(); ++mfi) {
-                    auto const& tagbox = tags.const_array(mfi);
-                    bool has_set_tags = amrex::Reduce::AnyOf(mfi.validbox(),
-                                                             [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                                                             {
-                                                                  return tagbox(i,j,k) == TagBox::SET;
-                                                             });
+            for (MFIter mfi(tags); mfi.isValid(); ++mfi) {
+                auto const& tagbox = tags.const_array(mfi);
+                bool has_set_tags = amrex::Reduce::AnyOf(mfi.validbox(),
+                                                         [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                                                         {
+                                                              return tagbox(i,j,k) == TagBox::SET;
+                                                         });
 
-                    // Set the values of btTags.
-                    int bitid = btUnit::getBitid(btmesh,false,lev,mfi.index());
-                    // TODO Check lev == tree0->block_level(bitid)
-                    if(has_set_tags) {
-                        btTags[bitid] = 1;
-                    }
-                    else {
-                        if(bt_derefine) btTags[bitid] = -1;
-                    }
+                // Set the values of btTags.
+                int bitid = btUnit::getBitid(btmesh,false,lev,mfi.index());
+                // TODO Check lev == tree0->block_level(bitid)
+                if(has_set_tags) {
+                    btTags[bitid] = 1;
+                }
+                else {
+                    btTags[bitid] = -1;
                 }
             }
+        }
 
-            // [2] btRefine - check for proper octree nesting and update bitmap
-            MPI_Comm comm = ParallelContext::CommunicatorSub();
-            int changed = btUnit::btRefine(btmesh, btTags, comm);
-            if(changed>0) {
-                amrex::Print() << "Mesh changed!" << std::endl;
-                amrex::Print() << btmesh->slice_to_string(0) << std::endl;
-            }
+        // [2] btRefine - check for proper octree nesting and update bitmap
+        MPI_Comm comm = ParallelContext::CommunicatorSub();
+        int changed = btUnit::btRefine(btmesh, btTags, comm);
 
-            // [3] btCalculateGrids - use new bitmap to generate new grids
+        // [3] btCalculateGrids - use new bitmap to generate new grids
+        if (changed>0) {
             btUnit::btCalculateGrids(btmesh,lbase,time,new_finest,new_grids,max_grid_size);
-
+        } else {
+            new_finest = finest_level;
+            for(int i=0; i<=finest_level; ++i) {
+                new_grids[i] = grids[i];
+            }
         }
        
         // Finalize BT refinement
@@ -932,7 +863,6 @@ AmrMesh::MakeNewGrids (Real time)
             int ngrids = AMREX_D_TERM(top[0],*top[1],*top[2]);
             std::vector<int> includes(ngrids,1);
 
-            amrex::Print() << "Initializing Bittree..." << std::endl;
             btmesh = std::make_shared<bittree::BittreeAmr>(top.data(),includes.data());
 
             // Set BCs

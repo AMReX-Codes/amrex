@@ -262,7 +262,7 @@ protected:
     Vector<DistributionMapping> dmap;
     Vector<BoxArray>            grids;
 
-    bool use_bittree, bt_derefine, infer_bt_grids;
+    bool use_bittree;
     std::shared_ptr<bittree::BittreeAmr> btmesh;
 
     unsigned int num_setdm = 0;
