@@ -70,10 +70,6 @@ ifeq ($(lowercase_nvcc_host_comp),$(filter $(lowercase_nvcc_host_comp),gcc gnu g
   endif
 endif
 
-ifndef NVCC_CCBIN
-  NVCC_CCBIN_AUTOINITIALIZED := TRUE
-endif
-
 ifeq ($(lowercase_nvcc_host_comp),gnu)
 
   ifeq ($(shell expr $(gcc_major_version) \< 5),1)

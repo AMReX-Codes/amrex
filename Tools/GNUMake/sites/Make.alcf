@@ -12,17 +12,17 @@ endif
 ifeq ($(which_computer),$(filter $(which_computer),polaris))
 
   ifdef PE_ENV
-  ifneq ($(USE_GPU),TRUE)
-    lowercase_peenv := $(shell echo $(PE_ENV) | tr A-Z a-z)
-    ifneq ($(lowercase_peenv),$(lowercase_comp))
-      has_compiler_mismatch = COMP=$(COMP) does not match PrgEnv-$(lowercase_peenv)
-    endif
-    ifeq ($(MAKECMDGOALS),)
-      ifeq ($(lowercase_peenv),nvidia)
-        $(error PrgEnv-nvidia cannot be used with CPU-only builds. Try PrgEnv-gnu instead.)
+    ifneq ($(USE_GPU),TRUE)
+      lowercase_peenv := $(shell echo $(PE_ENV) | tr A-Z a-z)
+      ifneq ($(lowercase_peenv),$(lowercase_comp))
+        has_compiler_mismatch = COMP=$(COMP) does not match PrgEnv-$(lowercase_peenv)
+      endif
+      ifeq ($(MAKECMDGOALS),)
+        ifeq ($(lowercase_peenv),nvidia)
+          $(error PrgEnv-nvidia cannot be used with CPU-only builds. Try PrgEnv-gnu instead.)
+        endif
       endif
     endif
-  endif
   endif
 
   ifeq ($(USE_CUDA),TRUE)
@@ -47,20 +47,6 @@ ifeq ($(which_computer),$(filter $(which_computer),polaris))
 
   ifeq ($(USE_CUDA),TRUE)
     CUDA_ARCH = 80
-
-    ifeq ($(NVCC_CCBIN_AUTOINITIALIZED),TRUE)
-      ifeq ($(lowercase_nvcc_host_comp),gnu)
-        CFLAGS := $(subst ccbin=g++,ccbin=CC,$(CFLAGS))
-        CXXFLAGS := $(subst ccbin=g++,ccbin=CC,$(CXXFLAGS))
-        CXXFLAGS_FROM_HOST := $(subst ccbin=g++,ccbin=CC,$(CXXFLAGS_FROM_HOST))
-      else
-      ifeq ($(lowercase_comp),nvhpc)
-        $(warning NVCC_CCBIN is auto-initialized)
-      else
-        $(error NVCC_CCBIN is auto-initialized and is likely wrong, try NVCC_CCBIN=CC)
-      endif
-      endif
-    endif
 
     ifeq ($(USE_MPI), FALSE)
       includes += $(CRAY_CUDATOOLKIT_INCLUDE_OPTS)
