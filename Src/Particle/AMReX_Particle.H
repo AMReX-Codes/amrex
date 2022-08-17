@@ -203,7 +203,8 @@ struct Particle
     : ParticleBase<ParticleReal,T_NReal,T_NInt>
 {
     static constexpr bool is_soa_particle = false;
-
+    using StorageParticleType = Particle;
+  
     //! \brief number of extra Real components in the particle struct
     static constexpr int NReal = T_NReal;
 

@@ -1369,6 +1369,7 @@ using ParticleContainer = ParticleContainer_impl<Particle<T_NStructReal, T_NStru
 template <int T_NArrayReal, int T_NArrayInt, template<class> class Allocator=DefaultAllocator>
 using ParticleContainerPureSoA = ParticleContainer_impl<SoAParticle<T_NArrayReal, T_NArrayInt>, T_NArrayReal, T_NArrayInt, Allocator>;
 
+
 #include "AMReX_ParticleInit.H"
 #include "AMReX_ParticleContainerI.H"
 #include "AMReX_ParticleIO.H"
