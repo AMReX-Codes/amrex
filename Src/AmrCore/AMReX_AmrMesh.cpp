@@ -802,7 +802,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                                                          });
 
                 // Set the values of btTags.
-                int bitid = btUnit::getBitid(btmesh,false,lev,mfi.index());
+                int bitid = btUnit::getBitid(btmesh.get(),false,lev,mfi.index());
                 // TODO Check lev == tree0->block_level(bitid)
                 if(has_set_tags) {
                     btTags[bitid] = 1;
@@ -815,11 +815,11 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
 
         // [2] btRefine - check for proper octree nesting and update bitmap
         MPI_Comm comm = ParallelContext::CommunicatorSub();
-        int changed = btUnit::btRefine(btmesh, btTags, comm);
+        int changed = btUnit::btRefine(btmesh.get(), btTags, comm);
 
         // [3] btCalculateGrids - use new bitmap to generate new grids
         if (changed>0) {
-            btUnit::btCalculateGrids(btmesh,lbase,time,new_finest,new_grids,max_grid_size);
+            btUnit::btCalculateGrids(btmesh.get(),lbase,time,new_finest,new_grids,max_grid_size);
         } else {
             new_finest = finest_level;
             for(int i=0; i<=finest_level; ++i) {
@@ -873,7 +873,7 @@ AmrMesh::MakeNewGrids (Real time)
 
             // Use Bittree to make coarsest level (don't need MakeBaseGrids)
             // Need to use Bittree, so the indices of grids[lev] will be compatible with BT.
-            btUnit::btCalculateLevel(btmesh,0,time,ba,max_grid_size[0]);
+            btUnit::btCalculateLevel(btmesh.get(),0,time,ba,max_grid_size[0]);
             dm = DistributionMapping(ba);
         }
 

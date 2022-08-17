@@ -28,7 +28,7 @@ The functions here are called in the BT version of MakeNewGrids which has three 
   * This makes use of BT library functions and as well as routines adapted
   * from Flash-X that enforce Octree nesting.
   */
-int btUnit::btRefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>& btTags, MPI_Comm comm) {
+int btUnit::btRefine( BittreeAmr* const mesh, std::vector<int>& btTags, MPI_Comm comm) {
     // Tree before refinement. With only one rank, lnblocks = nblocks.
     auto tree0 = mesh->getTree();
     unsigned id0 = tree0->level_id0(0);
@@ -66,7 +66,7 @@ int btUnit::btRefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>& btTags
 
 /** Creates new box arrays to match the new Bittree mesh.
   */
-void btUnit::btCalculateGrids(std::shared_ptr<BittreeAmr> mesh, int lbase,
+void btUnit::btCalculateGrids(BittreeAmr* const mesh, int lbase,
                             Real time,int& new_finest,
                             Vector<BoxArray>& new_grids,
                             Vector<IntVect>& max_grid_size) {
@@ -83,7 +83,7 @@ void btUnit::btCalculateGrids(std::shared_ptr<BittreeAmr> mesh, int lbase,
 
 /** Creates a box array based on Bittree.
   */
-void btUnit::btCalculateLevel(std::shared_ptr<BittreeAmr> mesh, int lev,
+void btUnit::btCalculateLevel(BittreeAmr* const mesh, int lev,
                             Real time,
                             BoxArray& ba,
                             IntVect& max_grid_size) {
@@ -118,12 +118,12 @@ void btUnit::btCalculateLevel(std::shared_ptr<BittreeAmr> mesh, int lev,
     ba = BoxArray(bl);
 }
 
-int btUnit::getBitid(std::shared_ptr<BittreeAmr> mesh, bool updated,
+int btUnit::getBitid(BittreeAmr* const mesh, bool updated,
              int lev, int idx_on_lev) {
     return idx_on_lev + mesh->getTree(updated)->level_id0(lev);
 }
 
-int btUnit::getIndex(std::shared_ptr<BittreeAmr> mesh, bool updated,
+int btUnit::getIndex(BittreeAmr* const mesh, bool updated,
              int lev, int bitid) {
     return bitid - mesh->getTree(updated)->level_id0(lev);
 }
@@ -138,7 +138,7 @@ int btUnit::getIndex(std::shared_ptr<BittreeAmr> mesh, bool updated,
   * to a strict octree structure with no more than one level difference
   * between surrounding leaf blocks.
   */
-void btUnit::btCheckRefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>& btTags, MPI_Comm comm ) {
+void btUnit::btCheckRefine(BittreeAmr* const mesh, std::vector<int>& btTags, MPI_Comm comm ) {
     // Tree before refinement.
     auto tree0 = mesh->getTree();
 
@@ -194,7 +194,7 @@ void btUnit::btCheckRefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>& 
   * to a strict octree structure with no more than one level difference
   * between surrounding leaf blocks.
   */
-void btUnit::btCheckDerefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>& btTags, MPI_Comm comm ) {
+void btUnit::btCheckDerefine(BittreeAmr* const mesh, std::vector<int>& btTags, MPI_Comm comm ) {
     // Tree before refinement. With only one rank, lnblocks = nblocks.
     auto tree0 = mesh->getTree();
 
@@ -249,7 +249,7 @@ void btUnit::btCheckDerefine( std::shared_ptr<BittreeAmr> mesh, std::vector<int>
 
 
 // Check all neighbors to see if their adjacent children are parents or marked for refinement.
-bool btUnit::checkNeighborsRefine( std::shared_ptr<BittreeAmr> mesh, MortonTree::Block b) {
+bool btUnit::checkNeighborsRefine(BittreeAmr* const mesh, MortonTree::Block b) {
     auto tree0 = mesh->getTree();
     auto tree1 = mesh->getTree(true);
     int nIdx[3], cIdx[3];
@@ -305,7 +305,7 @@ bool btUnit::checkNeighborsRefine( std::shared_ptr<BittreeAmr> mesh, MortonTree:
 /** Calculate integer coordinates of neighbors, taking into acount BCs.
   * Currently assuming Periodic in all directions.
   */
-std::vector<int> btUnit::neighIntCoords(std::shared_ptr<BittreeAmr> mesh,
+std::vector<int> btUnit::neighIntCoords(BittreeAmr* const mesh,
                                    unsigned lev, unsigned* lcoord, int* gCell) {
     auto tree = mesh->getTree();
 
