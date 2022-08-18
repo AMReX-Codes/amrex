@@ -15,10 +15,10 @@ class IndexSpaceChkptFile
 public:
 
     IndexSpaceChkptFile (const ChkptFile& chkptfile,
-            const Geometry& geom, int required_coarsening_level,
-            int max_coarsening_level, int ngrow,
-            bool build_coarse_level_by_coarsening,
-            bool extend_domain_face);
+                         const Geometry& geom, int required_coarsening_level,
+                         int max_coarsening_level, int ngrow,
+                         bool build_coarse_level_by_coarsening,
+                         bool extend_domain_face);
 
     IndexSpaceChkptFile (IndexSpaceChkptFile const&) = delete;
     IndexSpaceChkptFile (IndexSpaceChkptFile &&) = delete;

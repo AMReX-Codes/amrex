@@ -13,14 +13,15 @@ class ChkptFileLevel
 public:
 
     ChkptFileLevel (IndexSpace const* is, ChkptFile const& chkpt_file, const Geometry& geom,
-            int max_grid_size, int ngrow, bool extend_domain_face);
+                    int max_grid_size, int ngrow, bool extend_domain_face);
 
     ChkptFileLevel (IndexSpace const* is, int ilev, int max_grid_size, int ngrow,
-            const Geometry& geom, ChkptFileLevel& fineLevel);
+                    const Geometry& geom, ChkptFileLevel& fineLevel);
 
 // for cuda support
     void define_fine_chkpt_file (ChkptFile const& chkpt_file,
-            Geometry const& geom, int max_grid_size, int ngrow, bool extend_domain_face);
+                                 Geometry const& geom, int max_grid_size, int ngrow,
+                                 bool extend_domain_face);
 
     void finalize_cell_flags (); //sets the connection flags and adjustments to cellflags
     void set_invalid_ghost_data_covered (); //sets the data for ghost cells which overlap covered regions

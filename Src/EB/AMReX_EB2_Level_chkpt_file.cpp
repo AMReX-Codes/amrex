@@ -6,7 +6,7 @@
 namespace amrex { namespace EB2 {
 
 ChkptFileLevel::ChkptFileLevel (IndexSpace const* is, ChkptFile const& chkpt_file,
-        Geometry const& geom, int max_grid_size, int ngrow, bool extend_domain_face)
+                                Geometry const& geom, int max_grid_size, int ngrow, bool extend_domain_face)
     : GShopLevel<ChkptFile>(is, geom)
 {
     BL_PROFILE("EB2::ChkptFileLevel()-fine");
@@ -14,14 +14,12 @@ ChkptFileLevel::ChkptFileLevel (IndexSpace const* is, ChkptFile const& chkpt_fil
     define_fine_chkpt_file(chkpt_file, geom, max_grid_size, ngrow, extend_domain_face);
 }
 
-void ChkptFileLevel::define_fine_chkpt_file(ChkptFile const& chkpt_file,
-        Geometry const& geom, int max_grid_size, int ngrow, bool extend_domain_face)
+void
+ChkptFileLevel::define_fine_chkpt_file (ChkptFile const& chkpt_file,
+                                        Geometry const& geom, int max_grid_size,
+                                        int ngrow, bool extend_domain_face)
 {
     BL_PROFILE("EB2::ChkptFileLevel()-define-fine-chkptfile");
-
-    // These variables are not used since the data is directly read from
-    // the checkpoint file
-    ignore_unused(max_grid_size, extend_domain_face);
 
     m_ngrow = IntVect{static_cast<int>(std::ceil(ngrow/16.)) * 16};
 
@@ -37,9 +35,10 @@ void ChkptFileLevel::define_fine_chkpt_file(ChkptFile const& chkpt_file,
 
     const int ng = GFab::ng;
     chkpt_file.read_from_chkpt_file(m_grids, m_covered_grids,
-            m_dmap, m_volfrac, m_centroid, m_bndryarea,
-            m_bndrycent, m_bndrynorm, m_areafrac, m_facecent,
-            m_edgecent, m_levelset, ng, geom);
+                                    m_dmap, m_volfrac, m_centroid, m_bndryarea,
+                                    m_bndrycent, m_bndrynorm, m_areafrac, m_facecent,
+                                    m_edgecent, m_levelset, ng, geom, m_ngrow,
+                                    extend_domain_face, max_grid_size);
 
 
     if ( m_grids.empty() &&
@@ -86,7 +85,8 @@ void ChkptFileLevel::define_fine_chkpt_file(ChkptFile const& chkpt_file,
     finalize_cell_flags();
 }
 
-void ChkptFileLevel::finalize_cell_flags ()
+void
+ChkptFileLevel::finalize_cell_flags ()
 {
 
     EBCellFlagFab cellflagtmp;
@@ -196,7 +196,8 @@ void ChkptFileLevel::finalize_cell_flags ()
     m_ok = true;
 }
 
-void ChkptFileLevel::set_invalid_ghost_data_covered ()
+void
+ChkptFileLevel::set_invalid_ghost_data_covered ()
 {
     const std::vector<IntVect>& pshifts = m_geom.periodicity().shiftIntVect();
 
@@ -325,7 +326,8 @@ void ChkptFileLevel::set_invalid_ghost_data_covered ()
     }
 }
 
-void ChkptFileLevel::set_invalid_ghost_data_extended ()
+void
+ChkptFileLevel::set_invalid_ghost_data_extended ()
 {
     Box domain_grown = m_geom.Domain();
     domain_grown.grow(m_ngrow);
@@ -587,7 +589,7 @@ void ChkptFileLevel::set_invalid_ghost_data_extended ()
 }
 
 ChkptFileLevel::ChkptFileLevel (IndexSpace const* is, int ilev, int max_grid_size, int ngrow,
-        const Geometry& geom, ChkptFileLevel& fineLevel)
+                                const Geometry& geom, ChkptFileLevel& fineLevel)
 : GShopLevel<ChkptFile>(is, ilev, max_grid_size, ngrow, geom, fineLevel)
 {}
 

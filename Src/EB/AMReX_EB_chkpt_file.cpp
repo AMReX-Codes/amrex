@@ -21,7 +21,10 @@ namespace amrex { namespace EB2 {
 
 // Header information includes the cut and covered boxes (if any)
 // Checkpoint file contains data for cut boxes
-void ChkptFile::writeHeader (const BoxArray& cut_ba, const BoxArray& covered_ba) const
+void
+ChkptFile::writeHeader (const BoxArray& cut_ba, const BoxArray& covered_ba,
+                        const IntVect& ngrow, bool extend_domain_face,
+                        int max_grid_size) const
 {
     if (ParallelDescriptor::IOProcessor())
     {
@@ -56,6 +59,17 @@ void ChkptFile::writeHeader (const BoxArray& cut_ba, const BoxArray& covered_ba)
             HeaderFile << geometry.ProbHi(i) << ' ';
         HeaderFile << '\n';
 
+        // ngrow
+        for (int i = 0; i < AMREX_SPACEDIM; ++i)
+            HeaderFile << ngrow[i] << ' ';
+        HeaderFile << '\n';
+
+        // extend domain face
+        HeaderFile << extend_domain_face << "\n";
+
+        // max grid size
+        HeaderFile << max_grid_size << "\n";
+
         // BoxArray
         for (int lev = 0; lev < nlevels; ++lev)
         {
@@ -70,7 +84,8 @@ void ChkptFile::writeHeader (const BoxArray& cut_ba, const BoxArray& covered_ba)
     }
 }
 
-void ChkptFile::writeToFile (const MultiFab& mf, const std::string& mf_name) const
+void
+ChkptFile::writeToFile (const MultiFab& mf, const std::string& mf_name) const
 {
     VisMF::Write(mf, MultiFabFileFullPrefix(0, m_restart_file,
                 level_prefix, mf_name));
@@ -84,13 +99,17 @@ ChkptFile::ChkptFile (const std::string &fname)
 // When reading from checkpoint file, ghost cells that are not in valid cut grid regions
 // are initialized as regular cells by default and later corrected for extended
 // and covered regions
-void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grids,
-        DistributionMapping& dmap,
-        MultiFab& volfrac, MultiFab& centroid, MultiFab& bndryarea, MultiFab& bndrycent,
-        MultiFab& bndrynorm, Array<MultiFab,AMREX_SPACEDIM>& areafrac,
-        Array<MultiFab,AMREX_SPACEDIM>& facecent,
-        Array<MultiFab,AMREX_SPACEDIM>& edgecent,
-        MultiFab& levelset, int ng, const Geometry& geom) const
+void
+ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
+                                 DistributionMapping& dmap,
+                                 MultiFab& volfrac, MultiFab& centroid,
+                                 MultiFab& bndryarea, MultiFab& bndrycent,
+                                 MultiFab& bndrynorm, Array<MultiFab,AMREX_SPACEDIM>& areafrac,
+                                 Array<MultiFab,AMREX_SPACEDIM>& facecent,
+                                 Array<MultiFab,AMREX_SPACEDIM>& edgecent,
+                                 MultiFab& levelset, int ng_gfab, const Geometry& geom,
+                                 const IntVect& ngrow_finest, bool extend_domain_face,
+                                 int max_grid_size) const
 {
     Real prob_lo[AMREX_SPACEDIM];
     Real prob_hi[AMREX_SPACEDIM];
@@ -111,7 +130,6 @@ void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
     std::getline(is, line);
 
     int nlevs;
-
     is >> nlevs;
     gotoNextLine(is);
     AMREX_ASSERT(nlevs == 1);
@@ -134,7 +152,35 @@ void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
         }
     }
 
-    ignore_unused(prob_lo, prob_hi);
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(Math::abs(prob_lo[idim] - geom.ProbLo()[idim]) < std::numeric_limits<Real>::epsilon(),
+                                         "EB2::ChkptFile cannot read from a different problem domain");
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(Math::abs(prob_hi[idim] - geom.ProbHi()[idim]) < std::numeric_limits<Real>::epsilon(),
+                                         "EB2::ChkptFile cannot read from a different problem domain");
+    }
+
+    IntVect ngrow_chkptfile;
+    std::getline(is, line);
+    {
+        std::istringstream lis(line);
+        int i = 0;
+        while (lis >> word) {
+            ngrow_chkptfile[i++] = std::stoi(word);
+        }
+    }
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ngrow_chkptfile == ngrow_finest, "EB2::ChkptFile cannot read from different ngrow");
+
+    bool edf_chkptfile;
+    is >> edf_chkptfile;
+    gotoNextLine(is);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(extend_domain_face == edf_chkptfile,
+                                     "EB2::ChkptFile cannot read from different extend_domain_face");
+
+    int mgs_chkptfile;
+    is >> mgs_chkptfile;
+    gotoNextLine(is);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(max_grid_size == mgs_chkptfile,
+                                     "EB2::ChkptFile cannot read from different max_grid_size");
 
     BoxArray cut_grids_ba, covered_grids_ba;
 
@@ -169,65 +215,65 @@ void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
     {
         Print() << "  Loading " << m_volfrac_name << std::endl;
 
-        volfrac.define(cut_grids, dmap, 1, ng);
+        volfrac.define(cut_grids, dmap, 1, ng_gfab);
         volfrac.setVal(1.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_volfrac_name);
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
-        volfrac.ParallelCopy(mf, 0, 0, 1, 0, ng, geom.periodicity());
+        volfrac.ParallelCopy(mf, 0, 0, 1, 0, ng_gfab, geom.periodicity());
     }
 
     // centroid
     {
         Print() << "  Loading " << m_centroid_name << std::endl;
 
-        centroid.define(cut_grids, dmap, AMREX_SPACEDIM, ng);
+        centroid.define(cut_grids, dmap, AMREX_SPACEDIM, ng_gfab);
         centroid.setVal(0.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_centroid_name);
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
-        centroid.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, 0, ng, geom.periodicity());
+        centroid.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, 0, ng_gfab, geom.periodicity());
     }
 
     // bndryarea
     {
         Print() << "  Loading " << m_bndryarea_name << std::endl;
 
-        bndryarea.define(cut_grids, dmap, 1, ng);
+        bndryarea.define(cut_grids, dmap, 1, ng_gfab);
         bndryarea.setVal(0.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndryarea_name);
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
-        bndryarea.ParallelCopy(mf, 0, 0, 1, 0, ng, geom.periodicity());
+        bndryarea.ParallelCopy(mf, 0, 0, 1, 0, ng_gfab, geom.periodicity());
     }
 
     // bndrycent
     {
         Print() << "  Loading " << m_bndrycent_name << std::endl;
 
-        bndrycent.define(cut_grids, dmap, AMREX_SPACEDIM, ng);
+        bndrycent.define(cut_grids, dmap, AMREX_SPACEDIM, ng_gfab);
         bndrycent.setVal(-1.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndrycent_name);
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
-        bndrycent.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, 0, ng, geom.periodicity());
+        bndrycent.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, 0, ng_gfab, geom.periodicity());
     }
 
     // bndrynorm
     {
         Print() << "  Loading " << m_bndrynorm_name << std::endl;
 
-        bndrynorm.define(cut_grids, dmap, AMREX_SPACEDIM, ng);
+        bndrynorm.define(cut_grids, dmap, AMREX_SPACEDIM, ng_gfab);
         bndrynorm.setVal(0.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndrynorm_name);
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
-        bndrynorm.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, 0, ng, geom.periodicity());
+        bndrynorm.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, 0, ng_gfab, geom.periodicity());
     }
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -235,26 +281,26 @@ void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
         {
             Print() << "  Loading " << m_areafrac_name[idim] << std::endl;
 
-            areafrac[idim].define(convert(cut_grids, IntVect::TheDimensionVector(idim)), dmap, 1, ng);
+            areafrac[idim].define(convert(cut_grids, IntVect::TheDimensionVector(idim)), dmap, 1, ng_gfab);
             areafrac[idim].setVal(1.); // regular value
 
             auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_areafrac_name[idim]);
             MultiFab mf(The_Pinned_Arena());
             VisMF::Read(mf, prefix);
-            areafrac[idim].ParallelCopy(mf, 0, 0, 1, 0, ng, geom.periodicity());
+            areafrac[idim].ParallelCopy(mf, 0, 0, 1, 0, ng_gfab, geom.periodicity());
         }
 
         // facecent
         {
             Print() << "  Loading " << m_facecent_name[idim] << std::endl;
 
-            facecent[idim].define(convert(cut_grids, IntVect::TheDimensionVector(idim)), dmap, AMREX_SPACEDIM-1, ng);
+            facecent[idim].define(convert(cut_grids, IntVect::TheDimensionVector(idim)), dmap, AMREX_SPACEDIM-1, ng_gfab);
             facecent[idim].setVal(0.); // regular value
 
             auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_facecent_name[idim]);
             MultiFab mf(The_Pinned_Arena());
             VisMF::Read(mf, prefix);
-            facecent[idim].ParallelCopy(mf, 0, 0, AMREX_SPACEDIM-1, 0, ng, geom.periodicity());
+            facecent[idim].ParallelCopy(mf, 0, 0, AMREX_SPACEDIM-1, 0, ng_gfab, geom.periodicity());
         }
 
         // edgecent
@@ -262,13 +308,13 @@ void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
             Print() << "  Loading " << m_edgecent_name[idim] << std::endl;
 
             IntVect edge_type{1}; edge_type[idim] = 0;
-            edgecent[idim].define(convert(cut_grids, edge_type), dmap, 1, ng);
+            edgecent[idim].define(convert(cut_grids, edge_type), dmap, 1, ng_gfab);
             edgecent[idim].setVal(1.); // regular value
 
             auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_edgecent_name[idim]);
             MultiFab mf(The_Pinned_Arena());
             VisMF::Read(mf, prefix);
-            edgecent[idim].ParallelCopy(mf, 0, 0, 1, 0, ng, geom.periodicity());
+            edgecent[idim].ParallelCopy(mf, 0, 0, 1, 0, ng_gfab, geom.periodicity());
         }
     }
 
@@ -276,25 +322,27 @@ void ChkptFile::read_from_chkpt_file(BoxArray& cut_grids, BoxArray& covered_grid
     {
         Print() << "  Loading " << m_levelset_name << std::endl;
 
-        levelset.define(convert(cut_grids,IntVect::TheNodeVector()), dmap, 1, ng);
+        levelset.define(convert(cut_grids,IntVect::TheNodeVector()), dmap, 1, ng_gfab);
         levelset.setVal(-1.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_levelset_name);
         MultiFab mf(The_Pinned_Arena());
         VisMF::Read(mf, prefix);
-        levelset.ParallelCopy(mf, 0, 0, 1, 0, ng, geom.periodicity());
+        levelset.ParallelCopy(mf, 0, 0, 1, 0, ng_gfab, geom.periodicity());
     }
 }
 
-void ChkptFile::write_to_chkpt_file (const BoxArray& cut_grids,
-        const BoxArray& covered_grids,
-        const MultiFab& volfrac,
-        const MultiFab& centroid, const MultiFab& bndryarea,
-        const MultiFab& bndrycent, const MultiFab& bndrynorm,
-        const Array<MultiFab,AMREX_SPACEDIM>& areafrac,
-        const Array<MultiFab,AMREX_SPACEDIM>& facecent,
-        const Array<MultiFab,AMREX_SPACEDIM>& edgecent,
-        const MultiFab& levelset) const
+void
+ChkptFile::write_to_chkpt_file (const BoxArray& cut_grids,
+                                const BoxArray& covered_grids,
+                                const MultiFab& volfrac,
+                                const MultiFab& centroid, const MultiFab& bndryarea,
+                                const MultiFab& bndrycent, const MultiFab& bndrynorm,
+                                const Array<MultiFab,AMREX_SPACEDIM>& areafrac,
+                                const Array<MultiFab,AMREX_SPACEDIM>& facecent,
+                                const Array<MultiFab,AMREX_SPACEDIM>& edgecent,
+                                const MultiFab& levelset, const IntVect& ngrow,
+                                bool extend_domain_face, int max_grid_size) const
 {
 
     if (ParallelDescriptor::IOProcessor()) {
@@ -304,7 +352,7 @@ void ChkptFile::write_to_chkpt_file (const BoxArray& cut_grids,
     const int nlevels = 1;
     PreBuildDirectorHierarchy(m_restart_file, level_prefix, nlevels, true);
 
-    writeHeader(cut_grids, covered_grids);
+    writeHeader(cut_grids, covered_grids, ngrow, extend_domain_face, max_grid_size);
 
     writeToFile(volfrac, m_volfrac_name);
     writeToFile(centroid, m_centroid_name);

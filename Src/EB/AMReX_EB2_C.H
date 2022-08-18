@@ -37,7 +37,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   int& nsmallcells, int const nmulticuts) noexcept;
 
 void set_connection_flags(Box const& bxg1, Array4<EBCellFlag> const& cell,
-        Array4<Type_t> const& fx, Array4<Type_t> const& fy) noexcept;
+                          Array4<Type_t> const& fx, Array4<Type_t> const& fy) noexcept;
 
 #elif (AMREX_SPACEDIM == 3)
 
@@ -71,9 +71,9 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   int& nsmallcells, int& nmulticuts) noexcept;
 
 void set_connection_flags(Box const& bx, Box const& bxg1,
-        Array4<EBCellFlag> const& cell, Array4<EBCellFlag> const& ctmp,
-        Array4<Type_t> const& fx, Array4<Type_t> const& fy,
-        Array4<Type_t> const& fz) noexcept;
+                          Array4<EBCellFlag> const& cell, Array4<EBCellFlag> const& ctmp,
+                          Array4<Type_t> const& fx, Array4<Type_t> const& fy,
+                          Array4<Type_t> const& fz) noexcept;
 
 #endif
 
