@@ -626,10 +626,12 @@ struct ParticleTile
 
         ConstParticleTileDataType ptd;
         ptd.m_aos = m_aos_tile().dataPtr();
-        for (int i = 0; i < NArrayReal; ++i)
-            ptd.m_rdata[i] = m_soa_tile.GetRealData(i).dataPtr();
-        for (int i = 0; i < NArrayInt; ++i)
-            ptd.m_idata[i] = m_soa_tile.GetIntData(i).dataPtr();
+        AMREX_IF_CONSTEXPR(NArrayReal>0)
+            for (int i = 0; i < NArrayReal; ++i)
+                ptd.m_rdata[i] = m_soa_tile.GetRealData(i).dataPtr();
+        AMREX_IF_CONSTEXPR(NArrayInt>0)
+            for (int i = 0; i < NArrayInt; ++i)
+                ptd.m_idata[i] = m_soa_tile.GetIntData(i).dataPtr();
         ptd.m_size = size();
         ptd.m_num_runtime_real = m_runtime_r_cptrs.size();
         ptd.m_num_runtime_int = m_runtime_i_cptrs.size();
