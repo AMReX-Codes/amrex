@@ -522,6 +522,10 @@ MLMG::mgFcycle ()
 {
     BL_PROFILE("MLMG::mgFcycle()");
 
+#ifdef AMREX_USE_EB
+    AMREX_ASSERT(linop.isCellCentered());
+#endif
+
     const int amrlev = 0;
     const int mg_bottom_lev = linop.NMGLevels(amrlev) - 1;
     IntVect nghost(0);

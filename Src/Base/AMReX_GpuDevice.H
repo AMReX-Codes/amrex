@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX.H>
+#include <AMReX_Extension.H>
 #include <AMReX_Utility.H>
 #include <AMReX_GpuTypes.H>
 #include <AMReX_GpuError.H>
@@ -148,9 +149,9 @@ public:
     // definition: https://github.com/llvm/llvm-project/blob/62ec4ac90738a5f2d209ed28c822223e58aaaeb7/clang/lib/Basic/Targets/AMDGPU.cpp#L400
     // overview wavefront size: https://github.com/llvm/llvm-project/blob/efc063b621ea0c4d1e452bcade62f7fc7e1cc937/clang/test/Driver/amdgpu-macros.cl#L70-L115
     // gfx10XX has 32 threads per wavefront else 64
-    static constexpr int warp_size = __AMDGCN_WAVEFRONT_SIZE;
+    static AMREX_EXPORT constexpr int warp_size = __AMDGCN_WAVEFRONT_SIZE;
 #   else
-    static constexpr int warp_size = AMREX_HIP_OR_CUDA_OR_DPCPP(64,32,16);
+    static AMREX_EXPORT constexpr int warp_size = AMREX_HIP_OR_CUDA_OR_DPCPP(64,32,16);
 #   endif
 
     static unsigned int maxBlocksPerLaunch () noexcept { return max_blocks_per_launch; }
@@ -166,28 +167,28 @@ private:
 
     static void initialize_gpu ();
 
-    static int device_id;
-    static int num_devices_used;
-    static int verbose;
-    static int max_gpu_streams;
+    static AMREX_EXPORT int device_id;
+    static AMREX_EXPORT int num_devices_used;
+    static AMREX_EXPORT int verbose;
+    static AMREX_EXPORT int max_gpu_streams;
 
 #ifdef AMREX_USE_GPU
-    static dim3 numThreadsMin;
-    static dim3 numBlocksOverride, numThreadsOverride;
+    static AMREX_EXPORT dim3 numThreadsMin;
+    static AMREX_EXPORT dim3 numBlocksOverride, numThreadsOverride;
 
     // We build gpu_default_stream and gpu_stream_pool.
     // The non-owning gpu_stream is used to store the current stream that will be used.
     // gpu_stream is a vector so that it's thread safe to write to it.
-    static gpuStream_t gpu_default_stream;
-    static Vector<gpuStream_t> gpu_stream_pool; // The size of this is max_gpu_stream
-    static Vector<gpuStream_t> gpu_stream; // The size of this is omp_max_threads
-    static gpuDeviceProp_t device_prop;
-    static int memory_pools_supported;
-    static unsigned int max_blocks_per_launch;
+    static AMREX_EXPORT gpuStream_t gpu_default_stream;
+    static AMREX_EXPORT Vector<gpuStream_t> gpu_stream_pool; // The size of this is max_gpu_stream
+    static AMREX_EXPORT Vector<gpuStream_t> gpu_stream; // The size of this is omp_max_threads
+    static AMREX_EXPORT gpuDeviceProp_t device_prop;
+    static AMREX_EXPORT int memory_pools_supported;
+    static AMREX_EXPORT unsigned int max_blocks_per_launch;
 
 #ifdef AMREX_USE_DPCPP
-    static std::unique_ptr<sycl::context> sycl_context;
-    static std::unique_ptr<sycl::device>  sycl_device;
+    static AMREX_EXPORT std::unique_ptr<sycl::context> sycl_context;
+    static AMREX_EXPORT std::unique_ptr<sycl::device>  sycl_device;
 #endif
 #endif
 };
