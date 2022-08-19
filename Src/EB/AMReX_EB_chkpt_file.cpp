@@ -23,6 +23,7 @@ namespace amrex { namespace EB2 {
 // Checkpoint file contains data for cut boxes
 void
 ChkptFile::writeHeader (const BoxArray& cut_ba, const BoxArray& covered_ba,
+                        const Geometry& geom,
                         const IntVect& ngrow, bool extend_domain_face,
                         int max_grid_size) const
 {
@@ -48,15 +49,13 @@ ChkptFile::writeHeader (const BoxArray& cut_ba, const BoxArray& covered_ba,
         const int nlevels = 1;
         HeaderFile << nlevels << "\n";
 
-        Geometry geometry;
-
         // Geometry
         for (int i = 0; i < AMREX_SPACEDIM; ++i)
-            HeaderFile << geometry.ProbLo(i) << ' ';
+            HeaderFile << geom.ProbLo(i) << ' ';
         HeaderFile << '\n';
 
         for (int i = 0; i < AMREX_SPACEDIM; ++i)
-            HeaderFile << geometry.ProbHi(i) << ' ';
+            HeaderFile << geom.ProbHi(i) << ' ';
         HeaderFile << '\n';
 
         // ngrow
@@ -341,8 +340,9 @@ ChkptFile::write_to_chkpt_file (const BoxArray& cut_grids,
                                 const Array<MultiFab,AMREX_SPACEDIM>& areafrac,
                                 const Array<MultiFab,AMREX_SPACEDIM>& facecent,
                                 const Array<MultiFab,AMREX_SPACEDIM>& edgecent,
-                                const MultiFab& levelset, const IntVect& ngrow,
-                                bool extend_domain_face, int max_grid_size) const
+                                const MultiFab& levelset, const Geometry& geom,
+                                const IntVect& ngrow, bool extend_domain_face,
+                                int max_grid_size) const
 {
 
     if (ParallelDescriptor::IOProcessor()) {
@@ -352,7 +352,7 @@ ChkptFile::write_to_chkpt_file (const BoxArray& cut_grids,
     const int nlevels = 1;
     PreBuildDirectorHierarchy(m_restart_file, level_prefix, nlevels, true);
 
-    writeHeader(cut_grids, covered_grids, ngrow, extend_domain_face, max_grid_size);
+    writeHeader(cut_grids, covered_grids, geom, ngrow, extend_domain_face, max_grid_size);
 
     writeToFile(volfrac, m_volfrac_name);
     writeToFile(centroid, m_centroid_name);

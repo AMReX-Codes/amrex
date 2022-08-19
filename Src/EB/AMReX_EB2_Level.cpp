@@ -924,7 +924,7 @@ Level::write_to_chkpt_file (const std::string& fname, bool extend_domain_face, i
     chkptFile.write_to_chkpt_file(m_grids, m_covered_grids,
                                   m_volfrac, m_centroid, m_bndryarea, m_bndrycent,
                                   m_bndrynorm, m_areafrac, m_facecent, m_edgecent, m_levelset,
-                                  m_ngrow, extend_domain_face, max_grid_size);
+                                  m_geom, m_ngrow, extend_domain_face, max_grid_size);
 }
 
 }}

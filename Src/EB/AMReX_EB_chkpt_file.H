@@ -24,7 +24,7 @@ private:
     const amrex::Vector<std::string> m_edgecent_name
         = {AMREX_D_DECL("edgecent_x", "edgecent_y", "edgecent_z")};
 
-    void writeHeader (const BoxArray& cut_ba, const BoxArray& covered_ba,
+    void writeHeader (const BoxArray& cut_ba, const BoxArray& covered_ba, const Geometry& geom,
                       const IntVect& ngrow, bool extend_domain_face, int max_grid_size) const;
 
     void writeToFile (const MultiFab& mf, const std::string& mf_name) const;
@@ -51,7 +51,7 @@ public:
                               const Array<MultiFab,AMREX_SPACEDIM>& areafrac,
                               const Array<MultiFab,AMREX_SPACEDIM>& facecent,
                               const Array<MultiFab,AMREX_SPACEDIM>& edgecent,
-                              const MultiFab& levelset,
+                              const MultiFab& levelset, const Geometry& geom,
                               const IntVect& ngrow, bool extend_domain_face, int max_grid_size) const;
 };
 
