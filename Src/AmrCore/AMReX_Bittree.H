@@ -7,8 +7,6 @@
 
 #include <Bittree_BittreeAmr.h>
 
-using namespace bittree;
-
 namespace amrex {
 
 /* 
@@ -28,37 +26,38 @@ amr.infer_bt_grids = false
 class btUnit {
   // Functions used in AmrMesh
   public:
-    static int  btRefine(BittreeAmr* const mesh,
+    static int  btRefine(bittree::BittreeAmr* const mesh,
                          std::vector<int>& btTags,
                          MPI_Comm comm);
-    static void btCalculateGrids(BittreeAmr* const mesh,
-                                 int lbase, Real time, int& new_finest,
+    static void btCalculateGrids(bittree::BittreeAmr* const mesh,
+                                 int lbase,
+                                 int& new_finest,
                                  Vector<BoxArray>& new_grids,
-                                 Vector<IntVect>& max_grid_size);
-    static void btCalculateLevel(BittreeAmr* const mesh,
-                                 int lev, Real time,
+                                 Vector<IntVect> const& max_grid_size);
+    static void btCalculateLevel(bittree::BittreeAmr* const mesh,
+                                 int lev,
                                  BoxArray& ba,
-                                 IntVect& max_grid_size);
+                                 IntVect const& max_grid_size);
   // Utils
   public:
-    static int getBitid(BittreeAmr* const mesh, bool updated,
+    static int getBitid(bittree::BittreeAmr* const mesh, bool updated,
                         int lev, int idx_on_lev);
-    static int getIndex(BittreeAmr* const mesh, bool updated,
+    static int getIndex(bittree::BittreeAmr* const mesh, bool updated,
                         int lev, int bitid);
 
   // Functions to implement strict octree logic
   private:
-    static void btCheckRefine(BittreeAmr* const mesh,
+    static void btCheckRefine(bittree::BittreeAmr* const mesh,
                               std::vector<int>& btTags,
                               MPI_Comm comm);
-    static void btCheckDerefine(BittreeAmr* const mesh,
+    static void btCheckDerefine(bittree::BittreeAmr* const mesh,
                                 std::vector<int>& btTags,
                                 MPI_Comm comm);
 
     // Utility Functions
-    static bool checkNeighborsRefine(BittreeAmr* const mesh,
-                                     MortonTree::Block b);
-    static std::vector<int> neighIntCoords(BittreeAmr* const mesh,
+    static bool checkNeighborsRefine(bittree::BittreeAmr* const mesh,
+                                     bittree::MortonTree::Block b);
+    static std::vector<int> neighIntCoords(bittree::BittreeAmr* const mesh,
                                            unsigned lev, unsigned* lcoord,
                                            int* gCell);
 

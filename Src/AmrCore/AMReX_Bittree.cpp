@@ -3,6 +3,8 @@
 
 #include <functional>
 
+using namespace bittree;
+
 namespace amrex {
 static constexpr int K1D = unsigned(AMREX_SPACEDIM>=1);
 static constexpr int K2D = unsigned(AMREX_SPACEDIM>=2);
@@ -67,16 +69,16 @@ int btUnit::btRefine( BittreeAmr* const mesh, std::vector<int>& btTags, MPI_Comm
 /** Creates new box arrays to match the new Bittree mesh.
   */
 void btUnit::btCalculateGrids(BittreeAmr* const mesh, int lbase,
-                            Real time,int& new_finest,
+                            int& new_finest,
                             Vector<BoxArray>& new_grids,
-                            Vector<IntVect>& max_grid_size) {
+                            Vector<IntVect> const& max_grid_size) {
     auto tree1 = mesh->getTree(true);
     int nlevs = tree1->levels();
     new_finest = nlevs - 1;
 
 //--Calculate the new grid layout and distribution map based on Bittree
     for(int lev=lbase; lev<=new_finest; ++lev) {
-        btCalculateLevel(mesh, lev, time, new_grids[lev],
+        btCalculateLevel(mesh, lev, new_grids[lev],
                          max_grid_size[lev]);
     }
 }
@@ -84,9 +86,8 @@ void btUnit::btCalculateGrids(BittreeAmr* const mesh, int lbase,
 /** Creates a box array based on Bittree.
   */
 void btUnit::btCalculateLevel(BittreeAmr* const mesh, int lev,
-                            Real time,
                             BoxArray& ba,
-                            IntVect& max_grid_size) {
+                            IntVect const& max_grid_size) {
     auto tree1 = mesh->getTree(true);
 
     //Bittree has its own indices for blocks which I call bitid; get

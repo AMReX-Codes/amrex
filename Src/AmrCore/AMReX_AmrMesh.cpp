@@ -819,7 +819,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
 
         // [3] btCalculateGrids - use new bitmap to generate new grids
         if (changed>0) {
-            btUnit::btCalculateGrids(btmesh.get(),lbase,time,new_finest,new_grids,max_grid_size);
+            btUnit::btCalculateGrids(btmesh.get(),lbase,new_finest,new_grids,max_grid_size);
         } else {
             new_finest = finest_level;
             for(int i=0; i<=finest_level; ++i) {
@@ -873,7 +873,7 @@ AmrMesh::MakeNewGrids (Real time)
 
             // Use Bittree to make coarsest level (don't need MakeBaseGrids)
             // Need to use Bittree, so the indices of grids[lev] will be compatible with BT.
-            btUnit::btCalculateLevel(btmesh.get(),0,time,ba,max_grid_size[0]);
+            btUnit::btCalculateLevel(btmesh.get(),0,ba,max_grid_size[0]);
             dm = DistributionMapping(ba);
         }
 
