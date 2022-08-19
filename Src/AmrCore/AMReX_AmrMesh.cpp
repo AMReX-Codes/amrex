@@ -791,14 +791,14 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
 
             TagBoxArray tags(grids[lev],dmap[lev], n_error_buf[lev]);
             ErrorEst(lev, tags, time, 0);
-            // ?? tags.buffer(n_error_buf[lev]);
+            tags.buffer(n_error_buf[lev]);
 
             for (MFIter mfi(tags); mfi.isValid(); ++mfi) {
                 auto const& tagbox = tags.const_array(mfi);
                 bool has_set_tags = amrex::Reduce::AnyOf(mfi.validbox(),
                                                          [=] AMREX_GPU_DEVICE (int i, int j, int k)
                                                          {
-                                                              return tagbox(i,j,k) == TagBox::SET;
+                                                              return tagbox(i,j,k)!=TagBox::CLEAR;
                                                          });
 
                 // Set the values of btTags.
