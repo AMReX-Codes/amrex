@@ -14,24 +14,34 @@
 
 namespace amrex {
 
+// Forward Declaration
+template <int NArrayReal, int NArrayInt>
+struct SoAParticle;
+ 
 template <typename T_ParticleType, int NArrayReal, int NArrayInt>
-struct ParticleTileData
+struct ParticleTileData 
 {
 
     static constexpr int NAR = NArrayReal;
     static constexpr int NAI = NArrayInt;
 
     using ParticleType = T_ParticleType;
+    using Self = ParticleTileData<ParticleType, NAR, NAI>;
+
+    static_assert(!std::is_same<ParticleType, SoAParticle<3,4>>::value || ParticleType::NReal != 0, "ParticleTileData mismatch in R");
+    static_assert(!std::is_same<ParticleType, SoAParticle<3,4>>::value || ParticleType::NInt != 0, "ParticleTileData mismatch in R");
 
     static constexpr int NStructReal = ParticleType::NReal;
     static constexpr int NStructInt = ParticleType::NInt;
 
-    using SuperParticleType = Particle<NStructReal+NArrayReal, NStructInt+NArrayInt>;
+    using SuperParticleType = Particle<NStructReal+NAR, NStructInt+NAI>;
+
+    static_assert(!std::is_same<ParticleType, SoAParticle<3,4>>::value || NAR != 0, "ParticleTileData NAR==0");
 
     Long m_size;
     ParticleType* AMREX_RESTRICT m_aos;
-    GpuArray<ParticleReal* AMREX_RESTRICT, NArrayReal> m_rdata;
-    GpuArray<int* AMREX_RESTRICT, NArrayInt> m_idata;
+    GpuArray<ParticleReal* AMREX_RESTRICT, NAR> m_rdata;
+    GpuArray<int* AMREX_RESTRICT, NAI> m_idata;
 
     int m_num_runtime_real;
     int m_num_runtime_int;
@@ -47,7 +57,7 @@ struct ParticleTileData
         memcpy(dst, m_aos + src_index, sizeof(ParticleType));
         dst += sizeof(ParticleType);
         int array_start_index  = AMREX_SPACEDIM + NStructReal;
-        for (int i = 0; i < NArrayReal; ++i)
+        for (int i = 0; i < NAR; ++i)
         {
             if (comm_real[array_start_index + i])
             {
@@ -55,7 +65,7 @@ struct ParticleTileData
                 dst += sizeof(ParticleReal);
             }
         }
-        int runtime_start_index  = AMREX_SPACEDIM + NStructReal + NArrayReal;
+        int runtime_start_index  = AMREX_SPACEDIM + NStructReal + NAR;
         for (int i = 0; i < m_num_runtime_real; ++i)
         {
             if (comm_real[runtime_start_index + i])
@@ -65,7 +75,7 @@ struct ParticleTileData
             }
         }
         array_start_index  = 2 + NStructInt;
-        for (int i = 0; i < NArrayInt; ++i)
+        for (int i = 0; i < NAI; ++i)
         {
             if (comm_int[array_start_index + i])
             {
@@ -73,7 +83,7 @@ struct ParticleTileData
                 dst += sizeof(int);
             }
         }
-        runtime_start_index  = 2 + NStructInt + NArrayInt;
+        runtime_start_index  = 2 + NStructInt + NAI;
         for (int i = 0; i < m_num_runtime_int; ++i)
         {
             if (comm_int[runtime_start_index + i])
@@ -93,7 +103,7 @@ struct ParticleTileData
         memcpy(m_aos + dst_index, src, sizeof(ParticleType));
         src += sizeof(ParticleType);
         int array_start_index  = AMREX_SPACEDIM + NStructReal;
-        for (int i = 0; i < NArrayReal; ++i)
+        for (int i = 0; i < NAR; ++i)
         {
             if (comm_real[array_start_index + i])
             {
@@ -101,7 +111,7 @@ struct ParticleTileData
                 src += sizeof(ParticleReal);
             }
         }
-        int runtime_start_index  = AMREX_SPACEDIM + NStructReal + NArrayReal;
+        int runtime_start_index  = AMREX_SPACEDIM + NStructReal + NAR;
         for (int i = 0; i < m_num_runtime_real; ++i)
         {
             if (comm_real[runtime_start_index + i])
@@ -111,7 +121,7 @@ struct ParticleTileData
             }
         }
         array_start_index  = 2 + NStructInt;
-        for (int i = 0; i < NArrayInt; ++i)
+        for (int i = 0; i < NAI; ++i)
         {
             if (comm_int[array_start_index + i])
             {
@@ -119,7 +129,7 @@ struct ParticleTileData
                 src += sizeof(int);
             }
         }
-        runtime_start_index  = 2 + NStructInt + NArrayInt;
+        runtime_start_index  = 2 + NStructInt + NAI;
         for (int i = 0; i < m_num_runtime_int; ++i)
         {
             if (comm_int[runtime_start_index + i])
@@ -139,13 +149,13 @@ struct ParticleTileData
             sp.pos(i) = m_aos[index].pos(i);
         for (int i = 0; i < NStructReal; ++i)
             sp.rdata(i) = m_aos[index].rdata(i);
-        for (int i = 0; i < NArrayReal; ++i)
+        for (int i = 0; i < NAR; ++i)
             sp.rdata(NStructReal+i) = m_rdata[i][index];
         sp.id() = m_aos[index].id();
         sp.cpu() = m_aos[index].cpu();
         for (int i = 0; i < NStructInt; ++i)
             sp.idata(i) = m_aos[index].idata(i);
-        for (int i = 0; i < NArrayInt; ++i)
+        for (int i = 0; i < NAI; ++i)
             sp.idata(NStructInt+i) = m_idata[i][index];
         return sp;
     }
@@ -157,13 +167,13 @@ struct ParticleTileData
             m_aos[index].pos(i) = sp.pos(i);
         for (int i = 0; i < NStructReal; ++i)
             m_aos[index].rdata(i) = sp.rdata(i);
-        for (int i = 0; i < NArrayReal; ++i)
+        for (int i = 0; i < NAR; ++i)
             m_rdata[i][index] = sp.rdata(NStructReal+i);
         m_aos[index].id() = sp.id();
         m_aos[index].cpu() = sp.cpu();
         for (int i = 0; i < NStructInt; ++i)
             m_aos[index].idata(i) = sp.idata(i);
-        for (int i = 0; i < NArrayInt; ++i)
+        for (int i = 0; i < NAI; ++i)
             m_idata[i][index] = sp.idata(NStructInt+i);
     }
 };
@@ -173,12 +183,19 @@ template <int NArrayReal, int NArrayInt>
 struct SoAParticle : SoAParticleBase
 {
     using StorageParticleType = SoAParticleBase;
+    using PTD = ParticleTileData<SoAParticleBase, NArrayReal, NArrayInt>;
     static constexpr bool is_soa_particle = true;
 
     using RealType = ParticleReal;
 
-  SoAParticle (ParticleTileData<SoAParticleBase, NArrayReal, NArrayInt> ptd, int const index) 
+  SoAParticle (PTD ptd, int const index) 
     {
+
+        static_assert(NArrayReal == PTD::NAR, "ParticleTileData mismatch in R");
+        static_assert(NArrayInt == PTD::NAI, "ParticleTileData mismatch in I");
+        static_assert(NArrayReal == 3, "NArrayReal mismatch in R");
+        static_assert(NArrayInt == 4, "NArrayInt mismatch in R");
+
         m_particle_tile_data=ptd;
         m_index=index;
     }
@@ -218,7 +235,9 @@ struct SoAParticle : SoAParticleBase
 
     private :
 
-    ParticleTileData<SoAParticleBase, NArrayReal, NArrayInt> m_particle_tile_data;
+    static_assert(std::is_trivially_copyable<ParticleTileData<SoAParticleBase, NArrayReal, NArrayInt>>(), "ParticleTileData is not trivially copyable");
+
+    PTD m_particle_tile_data;
     int m_index;
 };
 
@@ -299,14 +318,16 @@ struct ConstParticleTileData
             sp.pos(i) = m_aos[index].pos(i);
         for (int i = 0; i < NStructReal; ++i)
             sp.rdata(i) = m_aos[index].rdata(i);
-        for (int i = 0; i < NArrayReal; ++i)
-            sp.rdata(NStructReal+i) = m_rdata[i][index];
+        if constexpr(NArrayReal > 0)    
+            for (int i = 0; i < NArrayReal; ++i)
+                sp.rdata(NStructReal+i) = m_rdata[i][index];
         sp.id() = m_aos[index].id();
         sp.cpu() = m_aos[index].cpu();
         for (int i = 0; i < NStructInt; ++i)
             sp.idata(i) = m_aos[index].idata(i);
-        for (int i = 0; i < NArrayInt; ++i)
-            sp.idata(NStructInt+i) = m_idata[i][index];
+        if constexpr(NArrayInt > 0)
+            for (int i = 0; i < NArrayInt; ++i)
+                sp.idata(NStructInt+i) = m_idata[i][index];
         return sp;
     }
 };
@@ -329,7 +350,7 @@ struct ParticleTile
     using SuperParticleType = Particle<NStructReal + NArrayReal, NStructInt + NArrayInt>;
 
     using AoS = ArrayOfStructs<ParticleType, Allocator>;
-    using ParticleVector = typename AoS::ParticleVector;
+    //using ParticleVector = typename AoS::ParticleVector;
 
     using SoA = StructOfArrays<NArrayReal, NArrayInt, Allocator>;
     using RealVector = typename SoA::RealVector;
@@ -418,7 +439,12 @@ struct ParticleTile
 
     template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
     RealType& pos (int index, int position_index) & {
-        ParticleType p(this->getParticleTileData(), index);
+        static_assert(NArrayReal == T::PTD::NAR, "ParticleTile mismatch in R");
+        static_assert(NArrayInt == T::PTD::NAI, "ParticleTile mismatch in I");
+        static_assert(0 == T::StorageParticleType::NReal, "ParticleTile 2 mismatch in R");
+        static_assert(0 == T::StorageParticleType::NInt, "ParticleTile 2 mismatch in I");
+        ParticleTileDataType x=this->getParticleTileData();
+        ParticleType p(x, index);
         return p.pos(position_index);
     }
 
@@ -733,10 +759,12 @@ struct ParticleTile
 
         ParticleTileDataType ptd;
         ptd.m_aos = m_aos_tile().dataPtr();
-        for (int i = 0; i < NArrayReal; ++i)
-            ptd.m_rdata[i] = m_soa_tile.GetRealData(i).dataPtr();
-        for (int i = 0; i < NArrayInt; ++i)
-            ptd.m_idata[i] = m_soa_tile.GetIntData(i).dataPtr();
+        if constexpr(NArrayReal > 0)
+            for (int i = 0; i < NArrayReal; ++i)
+                ptd.m_rdata[i] = m_soa_tile.GetRealData(i).dataPtr();
+        if constexpr(NArrayInt > 0)
+            for (int i = 0; i < NArrayInt; ++i)
+                ptd.m_idata[i] = m_soa_tile.GetIntData(i).dataPtr();
         ptd.m_size = size();
         ptd.m_num_runtime_real = m_runtime_r_ptrs.size();
         ptd.m_num_runtime_int = m_runtime_i_ptrs.size();
@@ -788,10 +816,12 @@ struct ParticleTile
 
         ConstParticleTileDataType ptd;
         ptd.m_aos = m_aos_tile().dataPtr();
-        for (int i = 0; i < NArrayReal; ++i)
-            ptd.m_rdata[i] = m_soa_tile.GetRealData(i).dataPtr();
-        for (int i = 0; i < NArrayInt; ++i)
-            ptd.m_idata[i] = m_soa_tile.GetIntData(i).dataPtr();
+        if constexpr(NArrayReal > 0)
+            for (int i = 0; i < NArrayReal; ++i)
+                ptd.m_rdata[i] = m_soa_tile.GetRealData(i).dataPtr();
+        if constexpr(NArrayInt > 0)
+            for (int i = 0; i < NArrayInt; ++i)
+                ptd.m_idata[i] = m_soa_tile.GetIntData(i).dataPtr();
         ptd.m_size = size();
         ptd.m_num_runtime_real = m_runtime_r_cptrs.size();
         ptd.m_num_runtime_int = m_runtime_i_cptrs.size();
