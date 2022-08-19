@@ -187,6 +187,7 @@ struct ParticleBase<T,0,0>
     uint64_t m_idcpu = 0;
 };
 
+
 struct SoAParticleBase
 {
     static constexpr int NReal=0;
