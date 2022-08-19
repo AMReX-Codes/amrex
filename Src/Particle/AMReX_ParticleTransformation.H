@@ -36,12 +36,14 @@ void copyParticle (const      ParticleTileData<T_ParticleType, NAR, NAI>& dst,
     AMREX_ASSERT(dst.m_num_runtime_int  == src.m_num_runtime_int );
 
     dst.m_aos[dst_i] = src.m_aos[src_i];
-    for (int j = 0; j < NAR; ++j)
-        dst.m_rdata[j][dst_i] = src.m_rdata[j][src_i];
+    if constexpr(NAR > 0)
+        for (int j = 0; j < NAR; ++j)
+            dst.m_rdata[j][dst_i] = src.m_rdata[j][src_i];
     for (int j = 0; j < dst.m_num_runtime_real; ++j)
         dst.m_runtime_rdata[j][dst_i] = src.m_runtime_rdata[j][src_i];
-    for (int j = 0; j < NAI; ++j)
-        dst.m_idata[j][dst_i] = src.m_idata[j][src_i];
+    if constexpr(NAI > 0)
+        for (int j = 0; j < NAI; ++j)
+            dst.m_idata[j][dst_i] = src.m_idata[j][src_i];
     for (int j = 0; j < dst.m_num_runtime_int; ++j)
         dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][src_i];
 }

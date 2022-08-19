@@ -189,8 +189,8 @@ struct ParticleBase<T,0,0>
 
 struct SoAParticleBase
 {
-    static constexpr int NReal = 0;
-    static constexpr int NInt = 0;
+    static constexpr int NReal=0;
+    static constexpr int NInt=0;
 };
 
 /** \brief The struct used to store particles.

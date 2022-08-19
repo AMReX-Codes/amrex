@@ -132,7 +132,7 @@ struct ParticleInitType
  * \tparam T_NArrayInt The number of extra integer components stored in struct-of-array form
  *
  */
-template <typename T_ParticleType, int T_NArrayReal=0, int T_NArrayInt=0,
+template <typename T_ParticleType, int T_NArrayReal, int T_NArrayInt,
           template<class> class Allocator=DefaultAllocator>
 class ParticleContainer_impl : public ParticleContainerBase
 {
