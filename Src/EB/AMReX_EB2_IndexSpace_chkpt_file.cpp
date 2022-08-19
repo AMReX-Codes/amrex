@@ -3,10 +3,10 @@
 namespace amrex { namespace EB2 {
 
 IndexSpaceChkptFile::IndexSpaceChkptFile (const ChkptFile& chkpt_file,
-        const Geometry& geom, int required_coarsening_level,
-        int max_coarsening_level, int ngrow,
-        bool build_coarse_level_by_coarsening,
-        bool extend_domain_face)
+                                          const Geometry& geom, int required_coarsening_level,
+                                          int max_coarsening_level, int ngrow,
+                                          bool build_coarse_level_by_coarsening,
+                                          bool extend_domain_face)
 {
     Gpu::LaunchSafeGuard lsg(true); // Always use GPU
 
