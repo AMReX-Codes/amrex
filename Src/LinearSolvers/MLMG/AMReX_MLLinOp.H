@@ -2,6 +2,7 @@
 #define AMREX_ML_LINOP_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_Any.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
@@ -177,10 +178,10 @@ public:
     * inhomogeneous Neumann BC, the value in leveldata is assumed to be
     * `d./dx`.
     */
-    virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata,
-                             const MultiFab* robinbc_a = nullptr,
-                             const MultiFab* robinbc_b = nullptr,
-                             const MultiFab* robinbc_f = nullptr) = 0;
+    virtual void setLevelBC (int /*amrlev*/, const MultiFab* /*levelbcdata*/,
+                             const MultiFab* /*robinbc_a*/ = nullptr,
+                             const MultiFab* /*robinbc_b*/ = nullptr,
+                             const MultiFab* /*robinbc_f*/ = nullptr) {}
 
     void setVerbose (int v) noexcept { verbose = v; }
 
@@ -197,52 +198,51 @@ public:
     virtual bool needsUpdate () const { return false; }
     virtual void update () {}
 
-    virtual void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const = 0;
-    virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const = 0;
-    virtual void averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
-                                         const MultiFab& fine_sol, const MultiFab& fine_rhs) = 0;
+    virtual void restriction (int /*amrlev*/, int /*cmglev*/, MultiFab& /*crse*/, MultiFab& /*fine*/) const {}
+    virtual void interpolation (int /*amrlev*/, int /*fmglev*/, MultiFab& /*fine*/, const MultiFab& /*crse*/) const {}
+    virtual void interpAssign (int /*amrlev*/, int /*fmglev*/, MultiFab& /*fine*/, MultiFab& /*crse*/) const {}
+    virtual void averageDownSolutionRHS (int /*camrlev*/, MultiFab& /*crse_sol*/, MultiFab& /*crse_rhs*/,
+                                         const MultiFab& /*fine_sol*/, const MultiFab& /*fine_rhs*/) {}
 
-    virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
-                        StateMode s_mode, const MLMGBndry* bndry=nullptr) const = 0;
-    virtual void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
-                         bool skip_fillboundary=false) const = 0;
+    virtual void apply (int /*amrlev*/, int /*mglev*/, MultiFab& /*out*/, MultiFab& /*in*/, BCMode /*bc_mode*/,
+                        StateMode /*s_mode*/, const MLMGBndry* /*bndry*/=nullptr) const {}
+    virtual void smooth (int /*amrlev*/, int /*mglev*/, MultiFab& /*sol*/, const MultiFab& /*rhs*/,
+                         bool /*skip_fillboundary*/=false) const {}
 
     // Divide mf by the diagonal component of the operator. Used by bicgstab.
     virtual void normalize (int /*amrlev*/, int /*mglev*/, MultiFab& /*mf*/) const {}
 
-    virtual void solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
-                                   const MultiFab* crse_bcdata=nullptr) = 0;
-    virtual void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
-                                     BCMode bc_mode, const MultiFab* crse_bcdata=nullptr) = 0;
+    virtual void solutionResidual (int /*amrlev*/, MultiFab& /*resid*/, MultiFab& /*x*/, const MultiFab& /*b*/,
+                                   const MultiFab* /*crse_bcdata*/=nullptr) {}
+    virtual void correctionResidual (int /*amrlev*/, int /*mglev*/, MultiFab& /*resid*/, MultiFab& /*x*/, const MultiFab& /*b*/,
+                                     BCMode /*bc_mode*/, const MultiFab* /*crse_bcdata*/=nullptr) {}
 
-    virtual void reflux (int crse_amrlev,
-                         MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
-                         MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const = 0;
-    virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
-                           MultiFab& sol, Location loc) const = 0;
-    virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
-                           MultiFab& sol, Location loc) const = 0;
+    virtual void reflux (int /*crse_amrlev*/,
+                         MultiFab& /*res*/, const MultiFab& /*crse_sol*/, const MultiFab& /*crse_rhs*/,
+                         MultiFab& /*fine_res*/, MultiFab& /*fine_sol*/, const MultiFab& /*fine_rhs*/) const {}
+    virtual void compFlux (int /*amrlev*/, const Array<MultiFab*,AMREX_SPACEDIM>& /*fluxes*/,
+                           MultiFab& /*sol*/, Location /*loc*/) const {}
+    virtual void compGrad (int /*amrlev*/, const Array<MultiFab*,AMREX_SPACEDIM>& /*grad*/,
+                           MultiFab& /*sol*/, Location /*loc*/) const {}
 
-    virtual void applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const = 0;
-    virtual void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const = 0;
-    virtual void fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata=nullptr) = 0;
+    virtual void applyMetricTerm (int /*amrlev*/, int /*mglev*/, Any& /*rhs*/) const {}
+    virtual void unapplyMetricTerm (int /*amrlev*/, int /*mglev*/, MultiFab& /*rhs*/) const {}
 
-    virtual void unimposeNeumannBC (int /*amrlev*/, MultiFab& /*rhs*/) const {} // only nodal solver might need it
-    virtual void applyInhomogNeumannTerm (int /*amrlev*/, MultiFab& /*rhs*/) const {}
-    virtual void applyOverset (int /*amlev*/, MultiFab& /*rhs*/) const {}
-    virtual void scaleRHS (int /*amrlev*/, MultiFab& /*rhs*/) const {}
-    virtual Real getSolvabilityOffset (int /*amrlev*/, int /*mglev*/, MultiFab const& /*rhs*/) const { return 0._rt; } // Only nodal solvers need it
-    virtual void fixSolvabilityByOffset (int /*amrlev*/, int /*mglev*/, MultiFab& /*rhs*/, Real /*offset*/) const {} // Only nodal solvers need it
+    virtual void unimposeNeumannBC (int /*amrlev*/, Any& /*rhs*/) const {} // only nodal solver might need it
+    virtual void applyInhomogNeumannTerm (int /*amrlev*/, Any& /*rhs*/) const {}
+    virtual void applyOverset (int /*amlev*/, Any& /*rhs*/) const {}
+    virtual void scaleRHS (int /*amrlev*/, Any& /*rhs*/) const {}
+    virtual Vector<Real> getSolvabilityOffset (int /*amrlev*/, int /*mglev*/,
+                                               Any const& /*rhs*/) const { return {}; }
+    virtual void fixSolvabilityByOffset (int /*amrlev*/, int /*mglev*/, Any& /*rhs*/,
+                                         Vector<Real> const& /*offset*/) const {}
 
     virtual void prepareForSolve () = 0;
-    virtual bool isSingular (int amrlev) const = 0;
-    virtual bool isBottomSingular () const = 0;
-    virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const = 0;
+    virtual bool isSingular (int /*amrlev*/) const { return false; }
+    virtual bool isBottomSingular () const { return false; }
+    virtual Real xdoty (int /*amrlev*/, int /*mglev*/, const MultiFab& /*x*/, const MultiFab& /*y*/, bool /*local*/) const { return 0._rt; }
 
-    virtual void fixUpResidualMask (int /*amrlev*/, iMultiFab& /*resmsk*/) { }
-    virtual void nodalSync (int /*amrlev*/, int /*mglev*/, MultiFab& /*mf*/) const {}
-
-    virtual std::unique_ptr<MLLinOp> makeNLinOp (int grid_size) const = 0;
+    virtual std::unique_ptr<MLLinOp> makeNLinOp (int /*grid_size*/) const { return {nullptr}; }
 
     virtual void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& /*a_flux*/,
                             const Vector<MultiFab*>& /*a_sol*/,
@@ -282,6 +282,57 @@ public:
     virtual bool supportNSolve () const { return false; }
 
     virtual void copyNSolveSolution (MultiFab&, MultiFab const&) const {}
+
+    virtual Any AnyMake (int amrlev, int mglev, IntVect const& ng) const;
+    virtual Any AnyMakeCoarseMG (int amrlev, int mglev, IntVect const& ng) const;
+    virtual Any AnyMakeCoarseAmr (int famrlev, IntVect const& ng) const;
+    virtual Any AnyMakeAlias (Any const& a) const;
+    virtual IntVect AnyGrowVect (Any const& a) const;
+    virtual void AnyCopy (Any& dst, Any const& src, IntVect const& ng) const;
+    virtual void AnyAdd (Any& dst, Any const& src, IntVect const& ng) const;
+    virtual void AnySetToZero (Any& a) const;
+    virtual void AnySetBndryToZero (Any& a) const;
+#ifdef AMREX_USE_EB
+    virtual void AnySetCoveredToZero (Any& a) const;
+#endif
+    virtual void AnyParallelCopy (Any& dst, Any const& src,
+                                  IntVect const& src_nghost, IntVect const& dst_nghost,
+                                  Periodicity const& period = Periodicity::NonPeriodic()) const;
+
+    virtual Real AnyNormInf (Any& a) const;
+
+    virtual Real AnyNormInfMask (int amrlev, Any const& a, bool local) const = 0;
+
+    virtual void AnySolutionResidual (int amrlev, Any& resid, Any& x, Any const& b,
+                                      Any const* crse_bcdata = nullptr);
+    virtual void AnyCorrectionResidual (int amrlev, int mglev, Any& resid, Any& x,
+                                        const Any& b, BCMode bc_mode,
+                                        const Any* crse_bcdata=nullptr);
+    virtual void AnyReflux (int crse_amrlev,
+                            Any& res, const Any& crse_sol, const Any& crse_rhs,
+                            Any& fine_res, Any& fine_sol, const Any& fine_rhs);
+
+    virtual void AnyAvgDownResAmr (int clev, Any& cres, Any const& fres) const = 0;
+    virtual void AnyAvgDownResMG (int clev, Any& cres, Any const& fres) const;
+
+    virtual void AnySmooth (int amrlev, int mglev, Any& sol, const Any& rhs,
+                            bool skip_fillboundary=false) const;
+
+    virtual void AnyRestriction (int amrlev, int cmglev, Any& crse, Any& fine) const;
+
+    virtual void AnyInterpolationMG (int amrlev, int fmglev, Any& fine, const Any& crse) const;
+    virtual void AnyInterpAssignMG (int amrlev, int fmglev, Any& fine, Any& crse) const;
+    virtual void AnyInterpolationAmr (int famrlev, Any& fine, const Any& crse,
+                                      IntVect const& /*nghost*/) const = 0;
+
+    virtual void AnyAverageDownSolutionRHS (int camrlev, Any& crse_sol, Any& crse_rhs,
+                                            const Any& fine_sol, const Any& fine_rhs);
+
+    virtual void AnyAverageDownAndSync (Vector<Any>& sol) const = 0;
+
+    Real MFNormInf (MultiFab const& mf, iMultiFab const* fine_mask, bool local) const;
+
+    bool isMFIterSafe (int amrlev, int mglev1, int mglev2) const;
 
 protected:
 
@@ -401,7 +452,7 @@ protected:
 
     bool isCellCentered () const noexcept { return m_ixtype == 0; }
 
-    virtual void make (Vector<Vector<MultiFab> >& mf, int nc, IntVect const& ng) const;
+    void make (Vector<Vector<Any> >& mf, IntVect const& ng) const;
 
     virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int /*amrlev*/, int /*mglev*/) const {
         return std::make_unique<FArrayBoxFactory>();

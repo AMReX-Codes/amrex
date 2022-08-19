@@ -813,9 +813,19 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 selectActualNeighbors (CheckPair&& check_pair, int num_cells)
 {
     BL_PROFILE("NeighborParticleContainer::selectActualNeighbors");
+    const auto& geom_fine = this->Geom(0);
+    const auto& ba_fine   = this->ParticleBoxArray(0);
+    if (ba_fine.size() == 1 && !geom_fine.isAnyPeriodic()) {
+        return;
+    }
 
     for (int lev = 0; lev < this->numLevels(); ++lev)
     {
+        // clear previous neighbor particle ids
+        for (auto& keyval: m_boundary_particle_ids[lev]) {
+          keyval.second.clear();
+        }
+
         for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
             PairIndex index(pti.index(), pti.LocalTileIndex());
 
@@ -857,8 +867,8 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
             auto pperm   = bins.permutationPtr();
             auto poffset = bins.offsetsPtr();
 
-            unsigned int  np_boundary    = 0;
-            unsigned int* p_np_boundary  = &np_boundary;
+            Gpu::Buffer<unsigned int> np_boundary({0});
+            unsigned int* p_np_boundary = np_boundary.data();
             constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
 
             AMREX_FOR_1D ( np_real, i,
@@ -899,9 +909,9 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
                     }
                 }
             });// end amrex_for_1d
-            Gpu::streamSynchronize();
 
-            m_boundary_particle_ids[lev][index].resize(np_boundary);
+            unsigned int* p_np_boundary_h = np_boundary.copyToHost();
+            m_boundary_particle_ids[lev][index].resize(*p_np_boundary_h);
 
         }// end mypariter
     }// end lev

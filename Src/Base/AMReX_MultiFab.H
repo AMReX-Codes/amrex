@@ -232,6 +232,13 @@ public:
     */
     Real sum (int comp = 0, bool local = false) const;
     /**
+    * \brief Same as sum with local=false, but for non-cell-centered data, this
+    *        skips non-unique points that are owned by multiple boxes.
+    */
+    Real sum_unique (int comp = 0,
+                     bool local = false,
+                     const Periodicity& period = Periodicity::NonPeriodic()) const;
+    /**
     * \brief Adds the scalar value val to the value of each cell in the
     * specified subregion of the MultiFab.  The subregion consists
     * of the num_comp components starting at component comp.

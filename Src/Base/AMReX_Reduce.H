@@ -9,8 +9,34 @@
 
 #include <algorithm>
 #include <functional>
+#include <limits>
 
 namespace amrex {
+
+template <typename TV, typename TI>
+struct ValLocPair
+{
+    TV value;
+    TI index;
+
+    static constexpr ValLocPair<TV,TI> max () {
+        return ValLocPair<TV,TI>{std::numeric_limits<TV>::max(), TI()};
+    }
+
+    static constexpr ValLocPair<TV,TI> lowest () {
+        return ValLocPair<TV,TI>{std::numeric_limits<TV>::lowest(), TI()};
+    }
+
+    friend constexpr bool operator< (ValLocPair<TV,TI> const& a, ValLocPair<TV,TI> const& b)
+    {
+        return a.value < b.value;
+    }
+
+    friend constexpr bool operator> (ValLocPair<TV,TI> const& a, ValLocPair<TV,TI> const& b)
+    {
+        return a.value > b.value;
+    }
+};
 
 namespace Reduce { namespace detail {
 
@@ -133,7 +159,12 @@ struct ReduceOpMin
     void local_update (T& d, T const& s) const noexcept { d = amrex::min(d,s); }
 
     template <typename T>
-    constexpr void init (T& t) const noexcept { t = std::numeric_limits<T>::max(); }
+    constexpr std::enable_if_t<std::numeric_limits<T>::is_specialized>
+    init (T& t) const noexcept { t = std::numeric_limits<T>::max(); }
+
+    template <typename T>
+    constexpr std::enable_if_t<!std::numeric_limits<T>::is_specialized>
+    init (T& t) const noexcept { t = T::max(); }
 };
 
 struct ReduceOpMax
@@ -161,7 +192,12 @@ struct ReduceOpMax
     void local_update (T& d, T const& s) const noexcept { d = amrex::max(d,s); }
 
     template <typename T>
-    constexpr void init (T& t) const noexcept { t = std::numeric_limits<T>::lowest(); }
+    constexpr std::enable_if_t<std::numeric_limits<T>::is_specialized>
+    init (T& t) const noexcept { t = std::numeric_limits<T>::lowest(); }
+
+    template <typename T>
+    constexpr std::enable_if_t<!std::numeric_limits<T>::is_specialized>
+    init (T& t) const noexcept { t = T::lowest(); }
 };
 
 struct ReduceOpLogicalAnd

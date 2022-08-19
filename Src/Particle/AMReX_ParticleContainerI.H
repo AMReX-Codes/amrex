@@ -1073,6 +1073,8 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::Redistribute (int lev_min, int lev_max, int nGrow, int local, bool remove_negative)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms: Redist");
+
 #ifdef AMREX_USE_GPU
     if ( Gpu::inLaunchRegion() )
     {
@@ -1085,6 +1087,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 #else
     RedistributeCPU(lev_min, lev_max, nGrow, local, remove_negative);
 #endif
+
+    BL_PROFILE_SYNC_STOP();
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,

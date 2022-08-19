@@ -197,7 +197,7 @@ T PrefixSum_mp (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum)
     amrex::launch(nblocks, nthreads, sm, stream,
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
     {
-        amrex::oneapi::sub_group const& sg = gh.item->get_sub_group();
+        sycl::sub_group const& sg = gh.item->get_sub_group();
         int lane = sg.get_local_id()[0];
         int warp = sg.get_group_id()[0];
         int nwarps = sg.get_group_range()[0];
@@ -226,7 +226,7 @@ T PrefixSum_mp (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum)
             T x = x0;
             // Scan within a warp
             for (int i = 1; i <= Gpu::Device::warp_size; i *= 2) {
-                T s = sg.shuffle_up(x, i);
+                T s = sycl::shift_group_right(sg, x, i);
                 if (lane >= i) x += s;
             }
 
@@ -244,7 +244,7 @@ T PrefixSum_mp (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum)
             if (warp == 0) {
                 T y = (lane < nwarps) ? shared[lane] : 0;
                 for (int i = 1; i <= Gpu::Device::warp_size; i *= 2) {
-                    T s = sg.shuffle_up(y, i);
+                    T s = sycl::shift_group_right(sg, y, i);
                     if (lane >= i) y += s;
                 }
 
@@ -277,7 +277,7 @@ T PrefixSum_mp (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum)
     amrex::launch(1, nthreads, sm, stream,
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
     {
-        amrex::oneapi::sub_group const& sg = gh.item->get_sub_group();
+        sycl::sub_group const& sg = gh.item->get_sub_group();
         int lane = sg.get_local_id()[0];
         int warp = sg.get_group_id()[0];
         int nwarps = sg.get_group_range()[0];
@@ -293,7 +293,7 @@ T PrefixSum_mp (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum)
             T x = (offset < nblocks) ? blocksum_p[offset] : 0;
             // Scan within a warp
             for (int i = 1; i <= Gpu::Device::warp_size; i *= 2) {
-                T s = sg.shuffle_up(x, i);
+                T s = sycl::shift_group_right(sg, x, i);
                 if (lane >= i) x += s;
             }
 
@@ -311,7 +311,7 @@ T PrefixSum_mp (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum)
             if (warp == 0) {
                 T y = (lane < nwarps) ? shared[lane] : 0;
                 for (int i = 1; i <= Gpu::Device::warp_size; i *= 2) {
-                    T s = sg.shuffle_up(y, i);
+                    T s = sycl::shift_group_right(sg, y, i);
                     if (lane >= i) y += s;
                 }
 
@@ -417,7 +417,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
     amrex::launch(nblocks, nthreads, sm, stream,
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
     {
-        amrex::oneapi::sub_group const& sg = gh.item->get_sub_group();
+        sycl::sub_group const& sg = gh.item->get_sub_group();
         int lane = sg.get_local_id()[0];
         int warp = sg.get_group_id()[0];
         int nwarps = sg.get_group_range()[0];
@@ -472,7 +472,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
             T x = x0;
             // Scan within a warp
             for (int i = 1; i <= Gpu::Device::warp_size; i *= 2) {
-                T s = sg.shuffle_up(x, i);
+                T s = sycl::shift_group_right(sg, x, i);
                 if (lane >= i) x += s;
             }
 
@@ -490,7 +490,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
             if (warp == 0) {
                 T y = (lane < nwarps) ? shared[lane] : 0;
                 for (int i = 1; i <= Gpu::Device::warp_size; i *= 2) {
-                    T s = sg.shuffle_up(y, i);
+                    T s = sycl::shift_group_right(sg, y, i);
                     if (lane >= i) y += s;
                 }
 
@@ -543,7 +543,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
                     // implement our own __ballot
                     unsigned status_bf = (stva.status == 'p') ? (0x1u << lane) : 0;
                     for (int i = 1; i < Gpu::Device::warp_size; i *= 2) {
-                        status_bf |= sg.shuffle_xor(status_bf, i);
+                        status_bf |= sycl::permute_group_by_xor(sg, status_bf, i);
                     }
 
                     bool stop_lookback = status_bf & 0x1u;
@@ -563,7 +563,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
                         }
 
                         for (int i = Gpu::Device::warp_size/2; i > 0; i /= 2) {
-                            x += sg.shuffle_down(x,i);
+                            x += sycl::shift_group_left(sg, x,i);
                         }
                     }
 
