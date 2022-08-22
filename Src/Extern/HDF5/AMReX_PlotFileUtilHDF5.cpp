@@ -232,11 +232,8 @@ WriteGenericPlotfileHeaderHDF5 (hid_t fid,
 
         int ratio = 1;
         if (ref_ratio.size() > 0)
-            ratio = ref_ratio[level][0];
+            ratio = (level == finest_level)? 1: ref_ratio[level][0];
 
-        if (level == finest_level) {
-            ratio = 1;
-        }
         CreateWriteHDF5AttrInt(grp, "ref_ratio", 1, &ratio);
 
         for (int k = 0; k < AMREX_SPACEDIM; ++k) {

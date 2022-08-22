@@ -41,10 +41,6 @@
 
 # include <CL/sycl.hpp>
 
-namespace amrex {
-    namespace oneapi = sycl::ext::oneapi;
-}
-
 # define AMREX_REQUIRE_SUBGROUP_SIZE(x) \
   _Pragma("clang diagnostic push") \
   _Pragma("clang diagnostic ignored \"-Wattributes\"") \
