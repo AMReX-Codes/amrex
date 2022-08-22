@@ -1038,4 +1038,13 @@ FillPolar (FabArray<FAB>& mf, Box const& domain);
 
 #include <AMReX_NonLocalBCImpl.H>
 
+namespace amrex {
+    using NonLocalBC::ParallelCopy;
+    using NonLocalBC::ParallelCopy_nowait;
+    using NonLocalBC::ParallelCopy_finish;
+    using NonLocalBC::MultiBlockIndexMapping;
+    using NonLocalBC::MultiBlockCommMetaData;
+    using NonLocalBC::CommHandler;
+}
+
 #endif
