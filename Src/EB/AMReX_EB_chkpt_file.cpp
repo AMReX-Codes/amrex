@@ -115,7 +115,7 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
 
     std::string File(m_restart_file + "/Header");
 
-    Print() << "file=" << File << std::endl;
+    if (amrex::Verbose()) Print() << "file=" << File << std::endl;
 
     VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
@@ -183,12 +183,12 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
 
     BoxArray cut_grids_ba, covered_grids_ba;
 
-    Print() << "Loading cut_grids\n";
+    if (amrex::Verbose()) Print() << "Loading cut_grids\n";
     cut_grids_ba.readFrom(is);
     gotoNextLine(is);
 
     if (is.peek() != EOF) {
-        Print() << "Loading covered_grids\n";
+        if (amrex::Verbose()) Print() << "Loading covered_grids\n";
         covered_grids_ba.readFrom(is);
         gotoNextLine(is);
     }
@@ -212,122 +212,105 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
 
     // volfrac
     {
-        Print() << "  Loading " << m_volfrac_name << std::endl;
+        if (amrex::Verbose()) Print() << "  Loading " << m_volfrac_name << std::endl;
 
         volfrac.define(cut_grids, dmap, 1, ng_gfab);
         volfrac.setVal(1.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_volfrac_name);
         MultiFab mf(The_Pinned_Arena());
-        VisMF::Read(mf, prefix);
-        volfrac.ParallelCopy(mf, 0, 0, 1, 0, ng_gfab, geom.periodicity());
+        VisMF::Read(volfrac, prefix);
     }
 
     // centroid
     {
-        Print() << "  Loading " << m_centroid_name << std::endl;
+        if (amrex::Verbose()) Print() << "  Loading " << m_centroid_name << std::endl;
 
         centroid.define(cut_grids, dmap, AMREX_SPACEDIM, ng_gfab);
         centroid.setVal(0.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_centroid_name);
-        MultiFab mf(The_Pinned_Arena());
-        VisMF::Read(mf, prefix);
-        centroid.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, 0, ng_gfab, geom.periodicity());
+        VisMF::Read(centroid, prefix);
     }
 
     // bndryarea
     {
-        Print() << "  Loading " << m_bndryarea_name << std::endl;
+        if (amrex::Verbose()) Print() << "  Loading " << m_bndryarea_name << std::endl;
 
         bndryarea.define(cut_grids, dmap, 1, ng_gfab);
         bndryarea.setVal(0.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndryarea_name);
-        MultiFab mf(The_Pinned_Arena());
-        VisMF::Read(mf, prefix);
-        bndryarea.ParallelCopy(mf, 0, 0, 1, 0, ng_gfab, geom.periodicity());
+        VisMF::Read(bndryarea, prefix);
     }
 
     // bndrycent
     {
-        Print() << "  Loading " << m_bndrycent_name << std::endl;
+        if (amrex::Verbose()) Print() << "  Loading " << m_bndrycent_name << std::endl;
 
         bndrycent.define(cut_grids, dmap, AMREX_SPACEDIM, ng_gfab);
         bndrycent.setVal(-1.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndrycent_name);
-        MultiFab mf(The_Pinned_Arena());
-        VisMF::Read(mf, prefix);
-        bndrycent.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, 0, ng_gfab, geom.periodicity());
+        VisMF::Read(bndrycent, prefix);
     }
 
     // bndrynorm
     {
-        Print() << "  Loading " << m_bndrynorm_name << std::endl;
+        if (amrex::Verbose()) Print() << "  Loading " << m_bndrynorm_name << std::endl;
 
         bndrynorm.define(cut_grids, dmap, AMREX_SPACEDIM, ng_gfab);
         bndrynorm.setVal(0.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndrynorm_name);
-        MultiFab mf(The_Pinned_Arena());
-        VisMF::Read(mf, prefix);
-        bndrynorm.ParallelCopy(mf, 0, 0, AMREX_SPACEDIM, 0, ng_gfab, geom.periodicity());
+        VisMF::Read(bndrynorm, prefix);
     }
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         // areafrac
         {
-            Print() << "  Loading " << m_areafrac_name[idim] << std::endl;
+            if (amrex::Verbose()) Print() << "  Loading " << m_areafrac_name[idim] << std::endl;
 
             areafrac[idim].define(convert(cut_grids, IntVect::TheDimensionVector(idim)), dmap, 1, ng_gfab);
             areafrac[idim].setVal(1.); // regular value
 
             auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_areafrac_name[idim]);
-            MultiFab mf(The_Pinned_Arena());
-            VisMF::Read(mf, prefix);
-            areafrac[idim].ParallelCopy(mf, 0, 0, 1, 0, ng_gfab, geom.periodicity());
+            VisMF::Read(areafrac[idim], prefix);
         }
 
         // facecent
         {
-            Print() << "  Loading " << m_facecent_name[idim] << std::endl;
+            if (amrex::Verbose()) Print() << "  Loading " << m_facecent_name[idim] << std::endl;
 
             facecent[idim].define(convert(cut_grids, IntVect::TheDimensionVector(idim)), dmap, AMREX_SPACEDIM-1, ng_gfab);
             facecent[idim].setVal(0.); // regular value
 
             auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_facecent_name[idim]);
-            MultiFab mf(The_Pinned_Arena());
-            VisMF::Read(mf, prefix);
-            facecent[idim].ParallelCopy(mf, 0, 0, AMREX_SPACEDIM-1, 0, ng_gfab, geom.periodicity());
+            VisMF::Read(facecent[idim], prefix);
         }
 
         // edgecent
         {
-            Print() << "  Loading " << m_edgecent_name[idim] << std::endl;
+            if (amrex::Verbose()) Print() << "  Loading " << m_edgecent_name[idim] << std::endl;
 
             IntVect edge_type{1}; edge_type[idim] = 0;
             edgecent[idim].define(convert(cut_grids, edge_type), dmap, 1, ng_gfab);
             edgecent[idim].setVal(1.); // regular value
 
             auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_edgecent_name[idim]);
-            MultiFab mf(The_Pinned_Arena());
-            VisMF::Read(mf, prefix);
-            edgecent[idim].ParallelCopy(mf, 0, 0, 1, 0, ng_gfab, geom.periodicity());
+            VisMF::Read(edgecent[idim], prefix);
         }
     }
 
     // levelset
     {
-        Print() << "  Loading " << m_levelset_name << std::endl;
+        if (amrex::Verbose()) Print() << "  Loading " << m_levelset_name << std::endl;
 
         levelset.define(convert(cut_grids,IntVect::TheNodeVector()), dmap, 1, ng_gfab);
         levelset.setVal(-1.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_levelset_name);
-        MultiFab mf(The_Pinned_Arena());
-        VisMF::Read(mf, prefix);
-        levelset.ParallelCopy(mf, 0, 0, 1, 0, ng_gfab, geom.periodicity());
+        VisMF::Read(levelset, prefix);
     }
 }
 

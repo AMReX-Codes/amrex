@@ -299,12 +299,12 @@ ChkptFileLevel::set_invalid_ghost_data_covered ()
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         auto& edgecent = m_edgecent[idim];
+        BoxArray const& covered_edge_grids = amrex::convert(m_covered_grids,
+                                                            edgecent.ixType());
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         {
-            BoxArray const& covered_edge_grids = amrex::convert(m_covered_grids,
-                                                                edgecent.ixType());
             std::vector<std::pair<int,Box> > isects;
             for (MFIter mfi(edgecent); mfi.isValid(); ++mfi)
             {
