@@ -28,20 +28,22 @@ struct ParticleTileData
     using ParticleType = T_ParticleType;
     using Self = ParticleTileData<ParticleType, NAR, NAI>;
 
-    static_assert(!std::is_same<ParticleType, SoAParticle<3,4>>::value || ParticleType::NReal != 0, "ParticleTileData mismatch in R");
-    static_assert(!std::is_same<ParticleType, SoAParticle<3,4>>::value || ParticleType::NInt != 0, "ParticleTileData mismatch in R");
-
     static constexpr int NStructReal = ParticleType::NReal;
     static constexpr int NStructInt = ParticleType::NInt;
+
+    static_assert(!std::is_same<ParticleType, SoAParticle<3,4>>::value || ParticleType::NReal != 0, "ParticleTileData mismatch in R");
+    static_assert(!std::is_same<ParticleType, SoAParticle<3,4>>::value || ParticleType::NInt != 0, "ParticleTileData mismatch in R");
 
     using SuperParticleType = Particle<NStructReal+NAR, NStructInt+NAI>;
 
     static_assert(!std::is_same<ParticleType, SoAParticle<3,4>>::value || NAR != 0, "ParticleTileData NAR==0");
 
     Long m_size;
+
     ParticleType* AMREX_RESTRICT m_aos;
-    GpuArray<ParticleReal* AMREX_RESTRICT, NAR> m_rdata;
-    GpuArray<int* AMREX_RESTRICT, NAI> m_idata;
+    
+    GpuArray<ParticleReal* , NAR> m_rdata;
+    GpuArray<int* , NAI> m_idata;
 
     int m_num_runtime_real;
     int m_num_runtime_int;
@@ -179,9 +181,11 @@ struct ParticleTileData
 };
 
 // SOA Particle Structure 
-template <int NArrayReal, int NArrayInt>
+template <int T_NArrayReal, int T_NArrayInt>
 struct SoAParticle : SoAParticleBase
 {
+    static constexpr int NArrayReal = T_NArrayReal;
+    static constexpr int NArrayInt = T_NArrayInt;
     using StorageParticleType = SoAParticleBase;
     using PTD = ParticleTileData<SoAParticleBase, NArrayReal, NArrayInt>;
     static constexpr bool is_soa_particle = true;
@@ -190,12 +194,6 @@ struct SoAParticle : SoAParticleBase
 
   SoAParticle (PTD ptd, int const index) 
     {
-
-        static_assert(NArrayReal == PTD::NAR, "ParticleTileData mismatch in R");
-        static_assert(NArrayInt == PTD::NAI, "ParticleTileData mismatch in I");
-        static_assert(NArrayReal == 3, "NArrayReal mismatch in R");
-        static_assert(NArrayInt == 4, "NArrayInt mismatch in R");
-
         m_particle_tile_data=ptd;
         m_index=index;
     }
@@ -209,7 +207,7 @@ struct SoAParticle : SoAParticleBase
     ParticleIDWrapper id () & { return ParticleIDWrapper(this->m_particle_tile_data.m_idata[0][m_index]); }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    ConstParticleCPUWrapper cpu () const & { return ConstParticleCPUWrapper(this->m_particle_tile_data.m_idata[1][m_index]); }
+    ConstParticleCPUWrapper cpu () const & { return ConstParticleCPUWrapper(this-> m_particle_tile_data.m_idata[1][m_index]); }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ConstParticleIDWrapper id () const & { return ConstParticleIDWrapper(this->m_particle_tile_data.m_idata[0][m_index]); }
