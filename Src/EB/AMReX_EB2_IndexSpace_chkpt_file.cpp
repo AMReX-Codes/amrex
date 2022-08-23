@@ -49,8 +49,7 @@ IndexSpaceChkptFile::IndexSpaceChkptFile (const ChkptFile& chkpt_file,
                 if (build_coarse_level_by_coarsening) {
                     amrex::Abort("Failed to build required coarse EB level "+std::to_string(ilev));
                 } else {
-                    m_chkpt_file_level.emplace_back(this, chkpt_file, cgeom, EB2::max_grid_size, ng,
-                            extend_domain_face);
+                    amrex::Abort("Chkptfile only stored for finest level. Failed to build "+std::to_string(ilev));
                 }
             } else {
                 break;

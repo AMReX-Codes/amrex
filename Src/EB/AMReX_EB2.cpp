@@ -246,8 +246,8 @@ BuildFromChkptFile (std::string const& fname,
                     int max_coarsening_level, int ngrow, bool build_coarse_level_by_coarsening,
                     bool a_extend_domain_face, int a_num_coarsen_opt)
 {
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_num_coarsen_opt == 0,
-                                     "Check point file restart doesn't work with coarse optimization");
+    amrex::ignore_unused(a_num_coarsen_opt);
+
     ChkptFile chkpt_file(fname);
     IndexSpace::push(new IndexSpaceChkptFile(chkpt_file,
                      geom, required_coarsening_level,
