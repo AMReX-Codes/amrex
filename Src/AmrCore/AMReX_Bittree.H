@@ -9,7 +9,7 @@
 
 namespace amrex {
 
-/* 
+/*
 Include in Make.local:
 BITTREE_PATH = /path/to/bittree/installation
 INCLUDE_LOCATIONS += $(BITTREE_PATH)/include
