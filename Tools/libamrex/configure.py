@@ -125,7 +125,7 @@ def configure(argv):
     parser.add_argument("--enable-bittree",
                         help="Enable Bittree mode [default=no]",
                         choices=["yes","no"],
-                        default="no")  
+                        default="no")
     args = parser.parse_args()
 
     if args.with_fortran == "no":
