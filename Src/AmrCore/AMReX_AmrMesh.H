@@ -11,7 +11,9 @@
 #include <AMReX_BoxArray.H>
 #include <AMReX_TagBox.H>
 
+#ifdef AMREX_USE_BITTREE
 #include <Bittree_BittreeAmr.h>
+#endif
 
 namespace amrex {
 
@@ -262,8 +264,10 @@ protected:
     Vector<DistributionMapping> dmap;
     Vector<BoxArray>            grids;
 
+#ifdef AMREX_USE_BITTREE
     bool use_bittree;
     std::shared_ptr<bittree::BittreeAmr> btmesh;
+#endif
 
     unsigned int num_setdm = 0;
     unsigned int num_setba = 0;

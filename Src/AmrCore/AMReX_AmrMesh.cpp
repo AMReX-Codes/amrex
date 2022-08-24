@@ -6,7 +6,9 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
 
+#ifdef AMREX_USE_BITTREE
 #include <AMReX_Bittree.H>
+#endif
 
 #include <memory>
 
@@ -378,7 +380,9 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
 
     finest_level = -1;
 
+#ifdef AMREX_USE_BITTREE
     pp.get("use_bittree",use_bittree);
+#endif
 
     if (check_input) checkInput();
 }
@@ -508,7 +512,9 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
 
     if (new_grids.size() < max_crse+2) new_grids.resize(max_crse+2);
 
+#ifdef AMREX_USE_BITTREE
     if(!use_bittree) {
+#endif
 
     //
     // Construct problem domain at each level.
@@ -770,8 +776,12 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
             }
         }
     }
-    }
 
+#ifdef AMREX_USE_BITTREE
+    }
+#endif
+
+#ifdef AMREX_USE_BITTREE
     // Bittree version
     if(use_bittree) {
         // Initialize BT refinement
@@ -830,6 +840,8 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
         // Finalize BT refinement
         btmesh->refine_apply();
     }
+#endif
+
 }
 
 void
@@ -844,9 +856,13 @@ AmrMesh::MakeNewGrids (Real time)
         const auto old_num_setdm = num_setdm;
         const auto old_num_setba = num_setba;
 
+#ifdef AMREX_USE_BITTREE
         if(!use_bittree) {
+#endif
             ba = MakeBaseGrids();
             dm = DistributionMapping(ba);
+
+#ifdef AMREX_USE_BITTREE
         }
         else {
             //Initialize Bittree
@@ -876,7 +892,7 @@ AmrMesh::MakeNewGrids (Real time)
             btUnit::btCalculateLevel(btmesh.get(),0,ba,max_grid_size[0]);
             dm = DistributionMapping(ba);
         }
-
+#endif
         MakeNewLevelFromScratch(0, time, ba, dm);
 
         if (old_num_setba == num_setba) {
