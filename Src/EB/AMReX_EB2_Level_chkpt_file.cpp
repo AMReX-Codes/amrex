@@ -338,250 +338,240 @@ ChkptFileLevel::set_invalid_ghost_data_extended ()
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
+    for (MFIter mfi(m_levelset); mfi.isValid(); ++mfi)
     {
-        for (MFIter mfi(m_levelset); mfi.isValid(); ++mfi)
+        const auto& lsfab = m_levelset.array(mfi);
+        const Box& ccbx = amrex::enclosedCells(mfi.fabbox());
+        for (const auto& iv : pshifts)
         {
-            const auto& lsfab = m_levelset.array(mfi);
-            const Box& ccbx = amrex::enclosedCells(mfi.fabbox());
-            for (const auto& iv : pshifts)
-            {
-               if (!bounding_box.contains(ccbx+iv)) {
-                 const Box& fbx = amrex::surroundingNodes(ccbx);
-                 const Box bbx = amrex::surroundingNodes(bounding_box);
+           if (!bounding_box.contains(ccbx+iv)) {
+             const Box& fbx = amrex::surroundingNodes(ccbx);
+             const Box bbx = amrex::surroundingNodes(bounding_box);
 
-                 const auto blo = amrex::lbound(bbx);
-                 const auto bhi = amrex::ubound(bbx);
+             const auto blo = amrex::lbound(bbx);
+             const auto bhi = amrex::ubound(bbx);
 
-                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D(fbx, i, j, k,
-                 {
-                     int ii = i;
-                     int jj = j;
-                     int kk = k;
+             AMREX_HOST_DEVICE_PARALLEL_FOR_3D(fbx, i, j, k,
+             {
+                 int ii = i;
+                 int jj = j;
+                 int kk = k;
 
-                     if (i < blo.x)
-                        ii = blo.x;
-                     else if (i > bhi.x)
-                        ii = bhi.x;
+                 if (i < blo.x)
+                    ii = blo.x;
+                 else if (i > bhi.x)
+                    ii = bhi.x;
 
-                     if (j < blo.y)
-                        jj = blo.y;
-                     else if (j > bhi.y)
-                        jj = bhi.y;
+                 if (j < blo.y)
+                    jj = blo.y;
+                 else if (j > bhi.y)
+                    jj = bhi.y;
 
-                     if (k < blo.z)
-                        kk = blo.z;
-                     else if (k > bhi.z)
-                        kk = bhi.z;
+                 if (k < blo.z)
+                    kk = blo.z;
+                 else if (k > bhi.z)
+                    kk = bhi.z;
 
-                     if (ii != i || jj != j || kk != k)
-                        lsfab(i,j,k) = lsfab(ii,jj,kk);
-                 });
-               }
-            }
+                 if (ii != i || jj != j || kk != k)
+                    lsfab(i,j,k) = lsfab(ii,jj,kk);
+             });
+           }
         }
     }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
+    for (MFIter mfi(m_volfrac); mfi.isValid(); ++mfi)
     {
-        for (MFIter mfi(m_volfrac); mfi.isValid(); ++mfi)
+        auto const& fab = m_volfrac.array(mfi);
+        const Box& bx = mfi.fabbox();
+        for (const auto& iv : pshifts)
         {
-            auto const& fab = m_volfrac.array(mfi);
+           if (!bounding_box.contains(bx+iv)) {
+             const auto blo = amrex::lbound(bounding_box);
+             const auto bhi = amrex::ubound(bounding_box);
+
+             AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+             {
+                 int ii = i;
+                 int jj = j;
+                 int kk = k;
+
+                 if (i < blo.x)
+                    ii = blo.x;
+                 else if (i > bhi.x)
+                    ii = bhi.x;
+
+                 if (j < blo.y)
+                    jj = blo.y;
+                 else if (j > bhi.y)
+                    jj = bhi.y;
+
+                 if (k < blo.z)
+                    kk = blo.z;
+                 else if (k > bhi.z)
+                    kk = bhi.z;
+
+                 if (ii != i || jj != j || kk != k)
+                    fab(i,j,k) = fab(ii,jj,kk);
+             });
+           }
+        }
+    }
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(m_areafrac[0]); mfi.isValid(); ++mfi)
+    {
+        const Box& ccbx = amrex::enclosedCells((m_areafrac[0])[mfi].box());
+        AMREX_D_TERM(auto const& apx = m_areafrac[0].array(mfi);,
+                     auto const& apy = m_areafrac[1].array(mfi);,
+                     auto const& apz = m_areafrac[2].array(mfi););
+        for (const auto& iv : pshifts)
+        {
+            if (!bounding_box.contains(ccbx+iv)) {
+
+                AMREX_D_TERM(const Box& xbx = amrex::surroundingNodes(ccbx,0);,
+                             const Box& ybx = amrex::surroundingNodes(ccbx,1);,
+                             const Box& zbx = amrex::surroundingNodes(ccbx,2););
+
+                AMREX_D_TERM(const Box& xbbx = amrex::surroundingNodes(bounding_box,0);,
+                             const Box& ybbx = amrex::surroundingNodes(bounding_box,1);,
+                             const Box& zbbx = amrex::surroundingNodes(bounding_box,2););
+
+                AMREX_D_TERM(const auto xblo = amrex::lbound(xbbx);,
+                             const auto yblo = amrex::lbound(ybbx);,
+                             const auto zblo = amrex::lbound(zbbx););
+
+                AMREX_D_TERM(const auto xbhi = amrex::ubound(xbbx);,
+                             const auto ybhi = amrex::ubound(ybbx);,
+                             const auto zbhi = amrex::ubound(zbbx););
+
+                amrex::ParallelFor(AMREX_D_DECL(xbx,ybx,zbx),
+                  [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                  {
+                     int ii = i;
+                     int jj = j;
+                     int kk = k;
+
+                     if (i < xblo.x)
+                        ii = xblo.x;
+                     else if (i > xbhi.x)
+                        ii = xbhi.x;
+
+                     if (j < xblo.y)
+                        jj = xblo.y;
+                     else if (j > xbhi.y)
+                        jj = xbhi.y;
+
+                     if (k < xblo.z)
+                        kk = xblo.z;
+                     else if (k > xbhi.z)
+                        kk = xbhi.z;
+
+                     if (ii != i || jj != j || kk != k)
+                        apx(i,j,k) = apx(ii,jj,kk);
+                  }
+#if (AMREX_SPACEDIM >= 2)
+                , [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                  {
+                     int ii = i;
+                     int jj = j;
+                     int kk = k;
+
+                     if (i < yblo.x)
+                        ii = yblo.x;
+                     else if (i > ybhi.x)
+                        ii = ybhi.x;
+
+                     if (j < yblo.y)
+                        jj = yblo.y;
+                     else if (j > ybhi.y)
+                        jj = ybhi.y;
+
+                     if (k < yblo.z)
+                        kk = yblo.z;
+                     else if (k > ybhi.z)
+                        kk = ybhi.z;
+
+                     if (ii != i || jj != j || kk != k)
+                        apy(i,j,k) = apy(ii,jj,kk);
+                  }
+#if (AMREX_SPACEDIM == 3)
+                , [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                  {
+                     int ii = i;
+                     int jj = j;
+                     int kk = k;
+
+                     if (i < zblo.x)
+                        ii = zblo.x;
+                     else if (i > zbhi.x)
+                        ii = zbhi.x;
+
+                     if (j < zblo.y)
+                        jj = zblo.y;
+                     else if (j > zbhi.y)
+                        jj = zbhi.y;
+
+                     if (k < zblo.z)
+                        kk = zblo.z;
+                     else if (k > zbhi.z)
+                        kk = zbhi.z;
+
+                     if (ii != i || jj != j || kk != k)
+                        apz(i,j,k) = apz(ii,jj,kk);
+                  }
+#endif
+#endif
+                );
+            }
+        }
+    }
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
+        auto& edgecent = m_edgecent[idim];
+        Box const& bbx = amrex::convert(bounding_box, edgecent.ixType());
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(edgecent); mfi.isValid(); ++mfi)
+        {
+            auto const& fab = edgecent.array(mfi);
             const Box& bx = mfi.fabbox();
             for (const auto& iv : pshifts)
             {
-               if (!bounding_box.contains(bx+iv)) {
-                 const auto blo = amrex::lbound(bounding_box);
-                 const auto bhi = amrex::ubound(bounding_box);
+                if (!bbx.contains(bx+iv)) {
+                    const auto blo = amrex::lbound(bbx);
+                    const auto bhi = amrex::ubound(bbx);
 
-                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
-                 {
-                     int ii = i;
-                     int jj = j;
-                     int kk = k;
-
-                     if (i < blo.x)
-                        ii = blo.x;
-                     else if (i > bhi.x)
-                        ii = bhi.x;
-
-                     if (j < blo.y)
-                        jj = blo.y;
-                     else if (j > bhi.y)
-                        jj = bhi.y;
-
-                     if (k < blo.z)
-                        kk = blo.z;
-                     else if (k > bhi.z)
-                        kk = bhi.z;
-
-                     if (ii != i || jj != j || kk != k)
-                        fab(i,j,k) = fab(ii,jj,kk);
-                 });
-               }
-            }
-        }
-    }
-
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    {
-        for (MFIter mfi(m_areafrac[0]); mfi.isValid(); ++mfi)
-        {
-            const Box& ccbx = amrex::enclosedCells((m_areafrac[0])[mfi].box());
-            AMREX_D_TERM(auto const& apx = m_areafrac[0].array(mfi);,
-                         auto const& apy = m_areafrac[1].array(mfi);,
-                         auto const& apz = m_areafrac[2].array(mfi););
-            for (const auto& iv : pshifts)
-            {
-                if (!bounding_box.contains(ccbx+iv)) {
-
-                    AMREX_D_TERM(const Box& xbx = amrex::surroundingNodes(ccbx,0);,
-                                 const Box& ybx = amrex::surroundingNodes(ccbx,1);,
-                                 const Box& zbx = amrex::surroundingNodes(ccbx,2););
-
-                    AMREX_D_TERM(const Box& xbbx = amrex::surroundingNodes(bounding_box,0);,
-                                 const Box& ybbx = amrex::surroundingNodes(bounding_box,1);,
-                                 const Box& zbbx = amrex::surroundingNodes(bounding_box,2););
-
-                    AMREX_D_TERM(const auto xblo = amrex::lbound(xbbx);,
-                                 const auto yblo = amrex::lbound(ybbx);,
-                                 const auto zblo = amrex::lbound(zbbx););
-
-                    AMREX_D_TERM(const auto xbhi = amrex::ubound(xbbx);,
-                                 const auto ybhi = amrex::ubound(ybbx);,
-                                 const auto zbhi = amrex::ubound(zbbx););
-
-                    amrex::ParallelFor(AMREX_D_DECL(xbx,ybx,zbx),
-                      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                      {
-                         int ii = i;
-                         int jj = j;
-                         int kk = k;
-
-                         if (i < xblo.x)
-                            ii = xblo.x;
-                         else if (i > xbhi.x)
-                            ii = xbhi.x;
-
-                         if (j < xblo.y)
-                            jj = xblo.y;
-                         else if (j > xbhi.y)
-                            jj = xbhi.y;
-
-                         if (k < xblo.z)
-                            kk = xblo.z;
-                         else if (k > xbhi.z)
-                            kk = xbhi.z;
-
-                         if (ii != i || jj != j || kk != k)
-                            apx(i,j,k) = apx(ii,jj,kk);
-                      }
-#if (AMREX_SPACEDIM >= 2)
-                    , [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                      {
-                         int ii = i;
-                         int jj = j;
-                         int kk = k;
-
-                         if (i < yblo.x)
-                            ii = yblo.x;
-                         else if (i > ybhi.x)
-                            ii = ybhi.x;
-
-                         if (j < yblo.y)
-                            jj = yblo.y;
-                         else if (j > ybhi.y)
-                            jj = ybhi.y;
-
-                         if (k < yblo.z)
-                            kk = yblo.z;
-                         else if (k > ybhi.z)
-                            kk = ybhi.z;
-
-                         if (ii != i || jj != j || kk != k)
-                            apy(i,j,k) = apy(ii,jj,kk);
-                      }
-#if (AMREX_SPACEDIM == 3)
-                    , [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                      {
-                         int ii = i;
-                         int jj = j;
-                         int kk = k;
-
-                         if (i < zblo.x)
-                            ii = zblo.x;
-                         else if (i > zbhi.x)
-                            ii = zbhi.x;
-
-                         if (j < zblo.y)
-                            jj = zblo.y;
-                         else if (j > zbhi.y)
-                            jj = zbhi.y;
-
-                         if (k < zblo.z)
-                            kk = zblo.z;
-                         else if (k > zbhi.z)
-                            kk = zbhi.z;
-
-                         if (ii != i || jj != j || kk != k)
-                            apz(i,j,k) = apz(ii,jj,kk);
-                      }
-#endif
-#endif
-                    );
-                }
-            }
-        }
-    }
-
-    {
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-        {
-            auto& edgecent = m_edgecent[idim];
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-            {
-                Box const& bbx = amrex::convert(bounding_box, edgecent.ixType());
-                for (MFIter mfi(edgecent); mfi.isValid(); ++mfi)
-                {
-                    auto const& fab = edgecent.array(mfi);
-                    const Box& bx = mfi.fabbox();
-                    for (const auto& iv : pshifts)
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
                     {
-                        if (!bbx.contains(bx+iv)) {
-                            const auto blo = amrex::lbound(bbx);
-                            const auto bhi = amrex::ubound(bbx);
+                       int ii = i;
+                       int jj = j;
+                       int kk = k;
 
-                            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
-                            {
-                               int ii = i;
-                               int jj = j;
-                               int kk = k;
+                       if (i < blo.x)
+                          ii = blo.x;
+                       else if (i > bhi.x)
+                          ii = bhi.x;
 
-                               if (i < blo.x)
-                                  ii = blo.x;
-                               else if (i > bhi.x)
-                                  ii = bhi.x;
+                       if (j < blo.y)
+                          jj = blo.y;
+                       else if (j > bhi.y)
+                          jj = bhi.y;
 
-                               if (j < blo.y)
-                                  jj = blo.y;
-                               else if (j > bhi.y)
-                                  jj = bhi.y;
+                       if (k < blo.z)
+                          kk = blo.z;
+                       else if (k > bhi.z)
+                          kk = bhi.z;
 
-                               if (k < blo.z)
-                                  kk = blo.z;
-                               else if (k > bhi.z)
-                                  kk = bhi.z;
-
-                               if (ii != i || jj != j || kk != k)
-                                  fab(i,j,k) = fab(ii,jj,kk);
-                            });
-                        }
-                    }
+                       if (ii != i || jj != j || kk != k)
+                          fab(i,j,k) = fab(ii,jj,kk);
+                    });
                 }
             }
         }
