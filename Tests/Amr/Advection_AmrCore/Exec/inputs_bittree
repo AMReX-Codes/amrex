@@ -2,7 +2,7 @@
 # Run until nsteps == max_step or time == stop_time, 
 #     whichever comes first
 # *****************************************************************
-max_step  = 100
+max_step  = 1000
 stop_time = 2.0
 
 # *****************************************************************
@@ -44,6 +44,8 @@ amr.blocking_factor_z = 8
 amr.max_grid_size   = 16
 
 amr.regrid_int      = 2       # how often to regrid
+
+amr.use_bittree = 1
 
 # *****************************************************************
 # Time step control
