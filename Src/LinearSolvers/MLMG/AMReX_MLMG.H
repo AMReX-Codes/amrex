@@ -36,6 +36,10 @@ public:
     Real solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
                 Real a_tol_rel, Real a_tol_abs, const char* checkpoint_file = nullptr);
 
+    // For this version of solve, Any holds MultiFab like objects.
+    Real solve (Vector<Any>& a_sol, const Vector<Any>& a_rhs,
+                Real a_tol_rel, Real a_tol_abs, const char* checkpoint_file = nullptr);
+
     void getGradSolution (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol,
                           Location a_loc = Location::FaceCenter);
 
@@ -121,7 +125,7 @@ public:
     void setHypreStrongThreshold (Real t) noexcept {hypre_strong_threshold = t;}
 #endif
 
-    void prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs);
+    void prepareForSolve (Vector<Any>& a_sol, const Vector<Any>& a_rhs);
 
     void prepareForNSolve ();
 
@@ -151,20 +155,16 @@ public:
     Real MLRhsNormInf (bool local = false);
     void buildFineMask ();
 
-    void averageDownAndSync ();
-
-    void computeVolInv ();
     void makeSolvable ();
-    void makeSolvable (int amrlev, int mglev, MultiFab& mf);
-    Real getNodalSum (int amrlev, int mglev, MultiFab& mf) const;
+    void makeSolvable (int amrlev, int mglev, Any& mf);
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-    void bottomSolveWithHypre (MultiFab& x, const MultiFab& b);
+    void bottomSolveWithHypre (Any& x, const Any& b);
 #endif
 
-    void bottomSolveWithPETSc (MultiFab& x, const MultiFab& b);
+    void bottomSolveWithPETSc (Any& x, const Any& b);
 
-    int bottomSolveWithCG (MultiFab& x, const MultiFab& b, MLCGSolver::Type type);
+    int bottomSolveWithCG (Any& x, const Any& b, MLCGSolver::Type type);
 
     Real getInitRHS () const noexcept { return m_rhsnorm0; }
     // Initial composite residual
@@ -243,26 +243,21 @@ private:
     * \brief To avoid confusion, terms like sol, cor, rhs, res, ... etc. are
     * in the frame of the original equation, not the correction form
     */
-    Vector<std::unique_ptr<MultiFab> > sol_raii;
-    Vector<MultiFab*>         sol;      //!< alias to argument a_sol
-    Vector<MultiFab>          rhs;      //!< Copy of original rhs
-                                        //! L(sol) = rhs
+    Vector<Any> sol;      //!< Might be alias to argument a_sol
+    Vector<Any> rhs;      //!< Copy of original rhs
+                          //! L(sol) = rhs
+
+    Vector<int> sol_is_alias;
 
     /**
     * \brief First Vector: Amr levels.  0 is the coarest level
     * Second Vector: MG levels.  0 is the finest level
     */
-    Vector<Vector<MultiFab> >                   res;     //! = rhs - L(sol)
-    Vector<Vector<std::unique_ptr<MultiFab> > > cor;     //!< L(cor) = res
-    Vector<Vector<std::unique_ptr<MultiFab> > > cor_hold;
-    Vector<Vector<MultiFab> >                   rescor;  //!< = res - L(cor)
-                                                         //!  Residual of the correction form
-
-    Vector<std::unique_ptr<iMultiFab> > fine_mask;
-
-    Vector<Vector<Real> > volinv;      //!< used by makeSolvable
-
-    Vector<std::unique_ptr<MultiFab> > scratch;
+    Vector<Vector<Any> > res;     //! = rhs - L(sol)
+    Vector<Vector<Any> > cor;     //!< L(cor) = res
+    Vector<Vector<Any> > cor_hold;
+    Vector<Vector<Any> > rescor;  //!< = res - L(cor)
+                                  //!  Residual of the correction form
 
     enum timer_types { solve_time=0, iter_time, bottom_time, ntimers };
     Vector<double> timer;

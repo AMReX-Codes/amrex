@@ -8,6 +8,8 @@
 #include <AMReX_Print.H>
 #include <AMReX_GpuUtility.H>
 #include <AMReX_TypeTraits.H>
+#include <AMReX_ParticleUtil.H>
+#include <AMReX_Vector.H>
 
 #include <limits>
 
@@ -29,12 +31,34 @@ namespace amrex
  * \tparam F a function object
  *
  * \param pc the ParticleContainer to operate on
- * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
+ * \param f a callable that operates on a single particle. Example forms:
+ *
+ *        using PType = typename PC::ParticleType;
+ *        auto sm = amrex::ReduceSum(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> ParticleReal
+ *                  {
+ *                      return p.rdata(0);
+ *                  });
+ *
+ *        using SPType  = typename PC::SuperParticleType;
+ *        auto sm = amrex::ReduceSum(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> int
+ *                  {
+ *                      return p.idata(0);
+ *                  });
+ *
+ *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        auto sm = amrex::ReduceSum(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> ParticleReal
+ *                  {
+ *                      return ptd.m_aos[i].rdata(0);
+ *                  });
  *
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
-ReduceSum (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
+ReduceSum (PC const& pc, F&& f)
+    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
     return ReduceSum(pc, 0, pc.finestLevel(), std::forward<F>(f));
 }
@@ -55,12 +79,34 @@ ReduceSum (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
  *
  * \param pc the ParticleContainer to operate on
  * \param lev the level to operate on
- * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
+ * \param f a callable that operates on a single particle. Example forms:
+ *
+ *        using PType = typename PC::ParticleType;
+ *        auto sm = amrex::ReduceSum(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> ParticleReal
+ *                  {
+ *                      return p.rdata(0);
+ *                  });
+ *
+ *        using SPType  = typename PC::SuperParticleType;
+ *        auto sm = amrex::ReduceSum(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> int
+ *                  {
+ *                      return p.idata(0);
+ *                  });
+ *
+ *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        auto sm = amrex::ReduceSum(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> ParticleReal
+ *                  {
+ *                      return ptd.m_aos[i].rdata(0);
+ *                  });
  *
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
-ReduceSum (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticleType()))
+ReduceSum (PC const& pc, int lev, F&& f)
+    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
     return ReduceSum(pc, lev, lev, std::forward<F>(f));
 }
@@ -82,15 +128,36 @@ ReduceSum (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticl
  * \param pc the ParticleContainer to operate on
  * \param lev_min the minimum level to include
  * \param lev_max the maximum level to include
- * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
+ * \param f a callable that operates on a single particle. Example forms:
+ *
+ *        using PType = typename PC::ParticleType;
+ *        auto sm = amrex::ReduceSum(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> ParticleReal
+ *                  {
+ *                      return p.rdata(0);
+ *                  });
+ *
+ *        using SPType  = typename PC::SuperParticleType;
+ *        auto sm = amrex::ReduceSum(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> int
+ *                  {
+ *                      return p.idata(0);
+ *                  });
+ *
+ *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        auto sm = amrex::ReduceSum(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> ParticleReal
+ *                  {
+ *                      return ptd.m_aos[i].rdata(0);
+ *                  });
  *
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
-ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename PC::SuperParticleType()))
+ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f)
+    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
-    using value_type = decltype(f(typename PC::SuperParticleType()));
-    using ParIter = typename PC::ParConstIterType;
+    using value_type = decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()));
     value_type sm = 0;
 
 #ifdef AMREX_USE_GPU
@@ -102,13 +169,16 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
 
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+            const auto& plev = pc.GetParticles(lev);
+            for (const auto& kv : plev)
             {
-                const auto& tile = pti.GetParticleTile();
+                const auto& tile = plev.at(kv.first);
                 const auto np = tile.numParticles();
                 const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
-                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {return {f(ptd.getSuperParticle(i))};});
+                               [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {
+                                   return particle_detail::call_f(f, ptd, i);
+                               });
             }
         }
 
@@ -120,16 +190,25 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
     {
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
-#endif
-            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+            const auto& plev = pc.GetParticles(lev);
+            Vector<std::pair<int, int> > grid_tile_ids;
+            Vector<const typename PC::ParticleTileType*> ptile_ptrs;
+            for (auto& kv : plev)
             {
-                const auto& tile = pti.GetParticleTile();
+                grid_tile_ids.push_back(kv.first);
+                ptile_ptrs.push_back(&(kv.second));
+            }
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for if (!system::regtest_reduction) reduction(+:sm)
+#endif
+            for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+            {
+                const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
-                                const auto ptd = tile.getConstParticleTileData();
-                for (int i = 0; i < np; ++i)
-                    sm += f(ptd.getSuperParticle(i));
+                const auto ptd = tile.getConstParticleTileData();
+                for (int i = 0; i < np; ++i) {
+                    sm += particle_detail::call_f(f, ptd, i);
+                }
             }
         }
     }
@@ -152,12 +231,34 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
  * \tparam F a function object
  *
  * \param pc the ParticleContainer to operate on
- * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
+ * \param f a callable that operates on a single particle. Example forms:
+ *
+ *        using PType = typename PC::ParticleType;
+ *        auto mx = amrex::ReduceMax(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> ParticleReal
+ *                  {
+ *                      return p.rdata(0);
+ *                  });
+ *
+ *        using SPType  = typename PC::SuperParticleType;
+ *        auto mx = amrex::ReduceMax(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> int
+ *                  {
+ *                      return p.idata(0);
+ *                  });
+ *
+ *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        auto mx = amrex::ReduceMax(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> ParticleReal
+ *                  {
+ *                      return ptd.m_aos[i].rdata(0);
+ *                  });
  *
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
-ReduceMax (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
+ReduceMax (PC const& pc, F&& f)
+    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
     return ReduceMax(pc, 0, pc.finestLevel(), std::forward<F>(f));
 }
@@ -178,12 +279,34 @@ ReduceMax (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
  *
  * \param pc the ParticleContainer to operate on
  * \param lev the level to operate on
- * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
+ * \param f a callable that operates on a single particle. Example forms:
+ *
+ *        using PType = typename PC::ParticleType;
+ *        auto mx = amrex::ReduceMax(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> ParticleReal
+ *                  {
+ *                      return p.rdata(0);
+ *                  });
+ *
+ *        using SPType  = typename PC::SuperParticleType;
+ *        auto mx = amrex::ReduceMax(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> int
+ *                  {
+ *                      return p.idata(0);
+ *                  });
+ *
+ *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        auto mx = amrex::ReduceMax(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> ParticleReal
+ *                  {
+ *                      return ptd.m_aos[i].rdata(0);
+ *                  });
  *
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
-ReduceMax (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticleType()))
+ReduceMax (PC const& pc, int lev, F&& f)
+    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
     return ReduceMax(pc, lev, lev, std::forward<F>(f));
 }
@@ -205,15 +328,36 @@ ReduceMax (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticl
  * \param pc the ParticleContainer to operate on
  * \param lev_min the minimum level to include
  * \param lev_max the maximum level to include
- * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
+ * \param f a callable that operates on a single particle. Example forms:
+ *
+ *        using PType = typename PC::ParticleType;
+ *        auto mx = amrex::ReduceMax(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> ParticleReal
+ *                  {
+ *                      return p.rdata(0);
+ *                  });
+ *
+ *        using SPType  = typename PC::SuperParticleType;
+ *        auto mx = amrex::ReduceMax(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> int
+ *                  {
+ *                      return p.idata(0);
+ *                  });
+ *
+ *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        auto mx = amrex::ReduceMax(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> ParticleReal
+ *                  {
+ *                      return ptd.m_aos[i].rdata(0);
+ *                  });
  *
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
-ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename PC::SuperParticleType()))
+ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f)
+    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
-    using value_type = decltype(f(typename PC::SuperParticleType()));
-    using ParIter = typename PC::ParConstIterType;
+    using value_type = decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()));
     constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
     value_type r = value_lowest;
 
@@ -226,13 +370,16 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
 
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+            const auto& plev = pc.GetParticles(lev);
+            for (const auto& kv : plev)
             {
-                const auto& tile = pti.GetParticleTile();
+                const auto& tile = plev.at(kv.first);
                 const auto np = tile.numParticles();
-                                const auto ptd = tile.getConstParticleTileData();
+                const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
-                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {return {f(ptd.getSuperParticle(i))};});
+                               [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {
+                                   return particle_detail::call_f(f, ptd, i);
+                               });
             }
         }
 
@@ -244,16 +391,25 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
     {
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(max:r)
-#endif
-            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+            const auto& plev = pc.GetParticles(lev);
+            Vector<std::pair<int, int> > grid_tile_ids;
+            Vector<const typename PC::ParticleTileType*> ptile_ptrs;
+            for (auto& kv : plev)
             {
-                const auto& tile = pti.GetParticleTile();
+                grid_tile_ids.push_back(kv.first);
+                ptile_ptrs.push_back(&(kv.second));
+            }
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for if (!system::regtest_reduction) reduction(max:r)
+#endif
+            for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+            {
+                const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
-                                const auto ptd = tile.getConstParticleTileData();
-                for (int i = 0; i < np; ++i)
-                    r = std::max(r, f(ptd.getSuperParticle(i)));
+                const auto ptd = tile.getConstParticleTileData();
+                for (int i = 0; i < np; ++i) {
+                    r = std::max(r, particle_detail::call_f(f, ptd, i));
+                }
             }
         }
     }
@@ -276,12 +432,34 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
  * \tparam F a function object
  *
  * \param pc the ParticleContainer to operate on
- * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
+ * \param f a callable that operates on a single particle. Example forms:
+ *
+ *        using PType = typename PC::ParticleType;
+ *        auto mn = amrex::ReduceMin(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> ParticleReal
+ *                  {
+ *                      return p.rdata(0);
+ *                  });
+ *
+ *        using SPType  = typename PC::SuperParticleType;
+ *        auto mn = amrex::ReduceMin(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> int
+ *                  {
+ *                      return p.idata(0);
+ *                  });
+ *
+ *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        auto mn = amrex::ReduceMin(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> ParticleReal
+ *                  {
+ *                      return ptd.m_aos[i].rdata(0);
+ *                  });
  *
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
-ReduceMin (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
+ReduceMin (PC const& pc, F&& f)
+    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
     return ReduceMin(pc, 0, pc.finestLevel(), std::forward<F>(f));
 }
@@ -302,12 +480,34 @@ ReduceMin (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
  *
  * \param pc the ParticleContainer to operate on
  * \param lev the level to operate on
- * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
+ * \param f a callable that operates on a single particle. Example forms:
+ *
+ *        using PType = typename PC::ParticleType;
+ *        auto mn = amrex::ReduceMin(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> ParticleReal
+ *                  {
+ *                      return p.rdata(0);
+ *                  });
+ *
+ *        using SPType  = typename PC::SuperParticleType;
+ *        auto mn = amrex::ReduceMin(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> int
+ *                  {
+ *                      return p.idata(0);
+ *                  });
+ *
+ *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        auto mn = amrex::ReduceMin(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> ParticleReal
+ *                  {
+ *                      return ptd.m_aos[i].rdata(0);
+ *                  });
  *
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
-ReduceMin (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticleType()))
+ReduceMin (PC const& pc, int lev, F&& f)
+    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
     return ReduceMin(pc, lev, lev, std::forward<F>(f));
 }
@@ -329,15 +529,36 @@ ReduceMin (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticl
  * \param pc the ParticleContainer to operate on
  * \param lev_min the minimum level to include
  * \param lev_max the maximum level to include
- * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
+ * \param f a callable that operates on a single particle. Example forms:
+ *
+ *        using PType = typename PC::ParticleType;
+ *        auto mn = amrex::ReduceMin(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> ParticleReal
+ *                  {
+ *                      return p.rdata(0);
+ *                  });
+ *
+ *        using SPType  = typename PC::SuperParticleType;
+ *        auto mn = amrex::ReduceMin(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> int
+ *                  {
+ *                      return p.idata(0);
+ *                  });
+ *
+ *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        auto mn = amrex::ReduceMin(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> ParticleReal
+ *                  {
+ *                      return ptd.m_aos[i].rdata(0);
+ *                  });
  *
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
-ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename PC::SuperParticleType()))
+ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f)
+    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
-    using value_type = decltype(f(typename PC::SuperParticleType()));
-    using ParIter = typename PC::ParConstIterType;
+    using value_type = decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()));
     constexpr value_type value_max = std::numeric_limits<value_type>::max();
     value_type r = value_max;
 
@@ -350,13 +571,16 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
 
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+            const auto& plev = pc.GetParticles(lev);
+            for (const auto& kv : plev)
             {
-                const auto& tile = pti.GetParticleTile();
+                const auto& tile = plev.at(kv.first);
                 const auto np = tile.numParticles();
-                                const auto ptd = tile.getConstParticleTileData();
+                const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
-                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {return {f(ptd.getSuperParticle(i))};});
+                               [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {
+                                   return particle_detail::call_f(f, ptd, i);
+                               });
             }
         }
 
@@ -368,16 +592,25 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
     {
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(min:r)
-#endif
-            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+            const auto& plev = pc.GetParticles(lev);
+            Vector<std::pair<int, int> > grid_tile_ids;
+            Vector<const typename PC::ParticleTileType*> ptile_ptrs;
+            for (auto& kv : plev)
             {
-                const auto& tile = pti.GetParticleTile();
+                grid_tile_ids.push_back(kv.first);
+                ptile_ptrs.push_back(&(kv.second));
+            }
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for if (!system::regtest_reduction) reduction(min:r)
+#endif
+            for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+            {
+                const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
-                                const auto ptd = tile.getConstParticleTileData();
-                for (int i = 0; i < np; ++i)
-                    r = std::min(r, f(ptd.getSuperParticle(i)));
+                const auto ptd = tile.getConstParticleTileData();
+                for (int i = 0; i < np; ++i) {
+                    r = std::min(r, particle_detail::call_f(f, ptd, i));
+                }
             }
         }
     }
@@ -400,7 +633,28 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
  * \tparam F a function object
  *
  * \param pc the ParticleContainer to operate on
- * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
+ * \param f a callable that operates on a single particle. Example forms:
+ *
+ *        using PType = typename PC::ParticleType;
+ *        auto rv = amrex::ReduceLogicalAnd(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> bool
+ *                  {
+ *                      return p.id() > 0;
+ *                  });
+ *
+ *        using SPType  = typename PC::SuperParticleType;
+ *        auto rv = amrex::ReduceLogicalAnd(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> bool
+ *                  {
+ *                      return p.id() > 0;
+ *                  });
+ *
+ *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        auto rv = amrex::ReduceLogicalAnd(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> bool
+ *                  {
+ *                      return ptd.m_aos[i].id() > 0;
+ *                  });
  *
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
@@ -426,7 +680,28 @@ ReduceLogicalAnd (PC const& pc, F&& f)
  *
  * \param pc the ParticleContainer to operate on
  * \param lev the level to operate on
- * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
+ * \param f a callable that operates on a single particle. Example forms:
+ *
+ *        using PType = typename PC::ParticleType;
+ *        auto rv = amrex::ReduceLogicalAnd(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> bool
+ *                  {
+ *                      return p.id() > 0;
+ *                  });
+ *
+ *        using SPType  = typename PC::SuperParticleType;
+ *        auto rv = amrex::ReduceLogicalAnd(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> bool
+ *                  {
+ *                      return p.id() > 0;
+ *                  });
+ *
+ *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        auto rv = amrex::ReduceLogicalAnd(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> bool
+ *                  {
+ *                      return ptd.m_aos[i].id() > 0;
+ *                  });
  *
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
@@ -453,14 +728,34 @@ ReduceLogicalAnd (PC const& pc, int lev, F&& f)
  * \param pc the ParticleContainer to operate on
  * \param lev_min the minimum level to include
  * \param lev_max the maximum level to include
- * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
+ * \param f a callable that operates on a single particle. Example forms:
+ *
+ *        using PType = typename PC::ParticleType;
+ *        auto rv = amrex::ReduceLogicalAnd(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> bool
+ *                  {
+ *                      return p.id() > 0;
+ *                  });
+ *
+ *        using SPType  = typename PC::SuperParticleType;
+ *        auto rv = amrex::ReduceLogicalAnd(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> bool
+ *                  {
+ *                      return p.id() > 0;
+ *                  });
+ *
+ *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        auto rv = amrex::ReduceLogicalAnd(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> bool
+ *                  {
+ *                      return ptd.m_aos[i].id() > 0;
+ *                  });
  *
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 bool
 ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
 {
-    using ParIter = typename PC::ParConstIterType;
     int r = true;
 
 #ifdef AMREX_USE_GPU
@@ -472,13 +767,16 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
 
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+            const auto& plev = pc.GetParticles(lev);
+            for (const auto& kv : plev)
             {
-                const auto& tile = pti.GetParticleTile();
+                const auto& tile = plev.at(kv.first);
                 const auto np = tile.numParticles();
-                                const auto ptd = tile.getConstParticleTileData();
+                const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
-                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {return {f(ptd.getSuperParticle(i))};});
+                               [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {
+                                   return particle_detail::call_f(f, ptd, i);
+                               });
             }
         }
 
@@ -490,16 +788,25 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
     {
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(&&:r)
-#endif
-            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+            const auto& plev = pc.GetParticles(lev);
+            Vector<std::pair<int, int> > grid_tile_ids;
+            Vector<const typename PC::ParticleTileType*> ptile_ptrs;
+            for (auto& kv : plev)
             {
-                const auto& tile = pti.GetParticleTile();
+                grid_tile_ids.push_back(kv.first);
+                ptile_ptrs.push_back(&(kv.second));
+            }
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for if (!system::regtest_reduction) reduction(&&:r)
+#endif
+            for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+            {
+                const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
-                                const auto ptd = tile.getConstParticleTileData();
-                for (int i = 0; i < np; ++i)
-                    r = r && f(ptd.getSuperParticle(i));
+                const auto ptd = tile.getConstParticleTileData();
+                for (int i = 0; i < np; ++i) {
+                    r = r && particle_detail::call_f(f, ptd, i);
+                }
             }
         }
     }
@@ -522,7 +829,28 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
  * \tparam F a function object
  *
  * \param pc the ParticleContainer to operate on
- * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
+ * \param f a callable that operates on a single particle. Example forms:
+ *
+ *        using PType = typename PC::ParticleType;
+ *        auto rv = amrex::ReduceLogicalOr(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> bool
+ *                  {
+ *                      return p.id() < 1;
+ *                  });
+ *
+ *        using SPType  = typename PC::SuperParticleType;
+ *        auto rv = amrex::ReduceLogicalOr(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> bool
+ *                  {
+ *                      return p.id() < 1;
+ *                  });
+ *
+ *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        auto rv = amrex::ReduceLogicalOr(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> bool
+ *                  {
+ *                      return ptd.m_aos[i].id() < 1;
+ *                  });
  *
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
@@ -548,7 +876,28 @@ ReduceLogicalOr (PC const& pc, F&& f)
  *
  * \param pc the ParticleContainer to operate on
  * \param lev the level to operate on
- * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
+ * \param f a callable that operates on a single particle. Example forms:
+ *
+ *        using PType = typename PC::ParticleType;
+ *        auto rv = amrex::ReduceLogicalOr(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> bool
+ *                  {
+ *                      return p.id() < 1;
+ *                  });
+ *
+ *        using SPType  = typename PC::SuperParticleType;
+ *        auto rv = amrex::ReduceLogicalOr(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> bool
+ *                  {
+ *                      return p.id() < 1;
+ *                  });
+ *
+ *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        auto rv = amrex::ReduceLogicalOr(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> bool
+ *                  {
+ *                      return ptd.m_aos[i].id() < 1;
+ *                  });
  *
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
@@ -575,14 +924,34 @@ ReduceLogicalOr (PC const& pc, int lev, F&& f)
  * \param pc the ParticleContainer to operate on
  * \param lev_min the minimum level to include
  * \param lev_max the maximum level to include
- * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
+ * \param f a callable that operates on a single particle. Example forms:
+ *
+ *        using PType = typename PC::ParticleType;
+ *        auto rv = amrex::ReduceLogicalOr(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> bool
+ *                  {
+ *                      return p.id() < 1;
+ *                  });
+ *
+ *        using SPType  = typename PC::SuperParticleType;
+ *        auto rv = amrex::ReduceLogicalOr(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> bool
+ *                  {
+ *                      return p.id() < 1;
+ *                  });
+ *
+ *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        auto rv = amrex::ReduceLogicalOr(pc,
+ *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> bool
+ *                  {
+ *                      return ptd.m_aos[i].id() < 1;
+ *                  });
  *
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 bool
 ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
 {
-    using ParIter = typename PC::ParConstIterType;
     int r = false;
 
 #ifdef AMREX_USE_GPU
@@ -594,13 +963,17 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
 
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+            const auto& plev = pc.GetParticles(lev);
+            for (const auto& kv : plev)
             {
-                const auto& tile = pti.GetParticleTile();
+                const auto& tile = plev.at(kv.first);
                 const auto np = tile.numParticles();
-                                const auto ptd = tile.getConstParticleTileData();
+                const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
-                                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {return {f(ptd.getSuperParticle(i))};});
+                               [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple
+                               {
+                                   return particle_detail::call_f(f, ptd, i);
+                               });
             }
         }
 
@@ -612,17 +985,25 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
     {
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(||:r)
-#endif
-            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+            const auto& plev = pc.GetParticles(lev);
+            Vector<std::pair<int, int> > grid_tile_ids;
+            Vector<const typename PC::ParticleTileType*> ptile_ptrs;
+            for (auto& kv : plev)
             {
-                const auto& tile = pti.GetParticleTile();
+                grid_tile_ids.push_back(kv.first);
+                ptile_ptrs.push_back(&(kv.second));
+            }
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for if (!system::regtest_reduction) reduction(||:r)
+#endif
+            for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+            {
+                const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
-                                const auto ptd = tile.getConstParticleTileData();
-                for (int i = 0; i < np; ++i)
-                    r = r || f(ptd.getSuperParticle(i));
-
+                const auto ptd = tile.getConstParticleTileData();
+                for (int i = 0; i < np; ++i) {
+                    r = r || particle_detail::call_f(f, ptd, i);
+                }
             }
         }
     }
@@ -650,10 +1031,11 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
  * \tparam ReduceOps a ReduceOps type
  *
  * \param pc the ParticleContainer to operate on
- * \param f a function that takes a "superparticle" and returns a tuple of values to be reduced over all particles.
+ * \param f a callable that operates on a single particle, see below for example forms.
  * \param reduce_ops specifies the reduction operations for each tuple element
  *
  * Example usage:
+ *    using PType = typename PC::ParticleType;
  *    amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
  *    auto r = amrex::ParticleReduce<ReduceData<amrex::Real, amrex::Real,int>> (
  *                 pc, [=] AMREX_GPU_DEVICE (const PType& p) noexcept
@@ -662,6 +1044,30 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
  *                 const amrex::Real a = p.rdata(1);
  *                 const amrex::Real b = p.rdata(2);
  *                 const int c = p.idata(1);
+ *                 return {a, b, c};
+ *             }, reduce_ops);
+ *
+ *    using SPType  = typename PC::SuperParticleType;
+ *    amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
+ *    auto r = amrex::ParticleReduce<ReduceData<amrex::Real, amrex::Real,int>> (
+ *                 pc, [=] AMREX_GPU_DEVICE (const SPType& p) noexcept
+ *                               -> amrex::GpuTuple<amrex::Real,amrex::Real,int>
+ *             {
+ *                 const amrex::Real a = p.rdata(1);
+ *                 const amrex::Real b = p.rdata(2);
+ *                 const int c = p.idata(1);
+ *                 return {a, b, c};
+ *             }, reduce_ops);
+ *
+ *    using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *    amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
+ *    auto r = amrex::ParticleReduce<ReduceData<amrex::Real, amrex::Real,int>> (
+ *                 pc, [=] AMREX_GPU_DEVICE (const PTDType& ptd, const int i) noexcept
+ *                               -> amrex::GpuTuple<amrex::Real,amrex::Real,int>
+ *             {
+ *                 const amrex::Real a = ptd.m_aos[i].rdata(1);
+ *                 const amrex::Real b = ptd.m_aos[i].rdata(2);
+ *                 const int c = ptd.m_aos[i].idata(1);
  *                 return {a, b, c};
  *             }, reduce_ops);
  *
@@ -695,18 +1101,43 @@ ParticleReduce (PC const& pc, F&& f, ReduceOps& reduce_ops)
  *
  * \param pc the ParticleContainer to operate on
  * \param lev the level to operate on
- * \param f a function that takes a "superparticle" and returns a tuple of values to be reduced over all particles.
+ * \param f a callable that operates on a single particle, see below for example forms.
  * \param reduce_ops specifies the reduction operations for each tuple element
  *
  * Example usage:
+ *    using PType = typename PC::ParticleType;
  *    amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
  *    auto r = amrex::ParticleReduce<ReduceData<amrex::Real, amrex::Real,int>> (
- *                 pc, 0, [=] AMREX_GPU_DEVICE (const PType& p) noexcept
+ *                 pc, [=] AMREX_GPU_DEVICE (const PType& p) noexcept
  *                               -> amrex::GpuTuple<amrex::Real,amrex::Real,int>
  *             {
  *                 const amrex::Real a = p.rdata(1);
  *                 const amrex::Real b = p.rdata(2);
  *                 const int c = p.idata(1);
+ *                 return {a, b, c};
+ *             }, reduce_ops);
+ *
+ *    using SPType  = typename PC::SuperParticleType;
+ *    amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
+ *    auto r = amrex::ParticleReduce<ReduceData<amrex::Real, amrex::Real,int>> (
+ *                 pc, [=] AMREX_GPU_DEVICE (const SPType& p) noexcept
+ *                               -> amrex::GpuTuple<amrex::Real,amrex::Real,int>
+ *             {
+ *                 const amrex::Real a = p.rdata(1);
+ *                 const amrex::Real b = p.rdata(2);
+ *                 const int c = p.idata(1);
+ *                 return {a, b, c};
+ *             }, reduce_ops);
+ *
+ *    using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *    amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
+ *    auto r = amrex::ParticleReduce<ReduceData<amrex::Real, amrex::Real,int>> (
+ *                 pc, [=] AMREX_GPU_DEVICE (const PTDType& ptd, const int i) noexcept
+ *                               -> amrex::GpuTuple<amrex::Real,amrex::Real,int>
+ *             {
+ *                 const amrex::Real a = ptd.m_aos[i].rdata(1);
+ *                 const amrex::Real b = ptd.m_aos[i].rdata(2);
+ *                 const int c = ptd.m_aos[i].idata(1);
  *                 return {a, b, c};
  *             }, reduce_ops);
  *
@@ -741,18 +1172,43 @@ ParticleReduce (PC const& pc, int lev, F&& f, ReduceOps& reduce_ops)
  * \param pc the ParticleContainer to operate on
  * \param lev_min the minimum level to include
  * \param lev_max the maximum level to include
- * \param f a function that takes a "superparticle" and returns a tuple of values to be reduced over all particles.
+ * \param f a callable that operates on a single particle, see below for example forms.
  * \param reduce_ops specifies the reduction operations for each tuple element
  *
  * Example usage:
+ *    using PType = typename PC::ParticleType;
  *    amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
  *    auto r = amrex::ParticleReduce<ReduceData<amrex::Real, amrex::Real,int>> (
- *                 pc, 0, 1, [=] AMREX_GPU_DEVICE (const PType& p) noexcept
+ *                 pc, [=] AMREX_GPU_DEVICE (const PType& p) noexcept
  *                               -> amrex::GpuTuple<amrex::Real,amrex::Real,int>
  *             {
  *                 const amrex::Real a = p.rdata(1);
  *                 const amrex::Real b = p.rdata(2);
  *                 const int c = p.idata(1);
+ *                 return {a, b, c};
+ *             }, reduce_ops);
+ *
+ *    using SPType  = typename PC::SuperParticleType;
+ *    amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
+ *    auto r = amrex::ParticleReduce<ReduceData<amrex::Real, amrex::Real,int>> (
+ *                 pc, [=] AMREX_GPU_DEVICE (const SPType& p) noexcept
+ *                               -> amrex::GpuTuple<amrex::Real,amrex::Real,int>
+ *             {
+ *                 const amrex::Real a = p.rdata(1);
+ *                 const amrex::Real b = p.rdata(2);
+ *                 const int c = p.idata(1);
+ *                 return {a, b, c};
+ *             }, reduce_ops);
+ *
+ *    using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *    amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
+ *    auto r = amrex::ParticleReduce<ReduceData<amrex::Real, amrex::Real,int>> (
+ *                 pc, [=] AMREX_GPU_DEVICE (const PTDType& ptd, const int i) noexcept
+ *                               -> amrex::GpuTuple<amrex::Real,amrex::Real,int>
+ *             {
+ *                 const amrex::Real a = ptd.m_aos[i].rdata(1);
+ *                 const amrex::Real b = ptd.m_aos[i].rdata(2);
+ *                 const int c = ptd.m_aos[i].idata(1);
  *                 return {a, b, c};
  *             }, reduce_ops);
  *
@@ -763,19 +1219,27 @@ typename RD::Type
 ParticleReduce (PC const& pc, int lev_min, int lev_max, F&& f, ReduceOps& reduce_ops)
 {
     RD reduce_data(reduce_ops);
-    using ParIter = typename PC::ParConstIterType;
-#if !defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP)
-#pragma omp parallel
-#endif
     for (int lev = lev_min; lev <= lev_max; ++lev) {
-        for (ParIter pti(pc, lev); pti.isValid(); ++pti) {
-            const auto& tile = pti.GetParticleTile();
+        const auto& plev = pc.GetParticles(lev);
+        Vector<std::pair<int, int> > grid_tile_ids;
+        Vector<const typename PC::ParticleTileType*> ptile_ptrs;
+        for (auto& kv : plev)
+        {
+            grid_tile_ids.push_back(kv.first);
+            ptile_ptrs.push_back(&(kv.second));
+        }
+#if !defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP)
+#pragma omp parallel for
+#endif
+        for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+        {
+            const auto& tile = plev.at(grid_tile_ids[pmap_it]);
             const auto np = tile.numParticles();
             const auto ptd = tile.getConstParticleTileData();
             reduce_ops.eval(np, reduce_data,
                             [=] AMREX_GPU_DEVICE (const int i) noexcept
                             {
-                                return f(ptd.getSuperParticle(i));
+                                return particle_detail::call_f(f, ptd, i);
                             });
         }
     }

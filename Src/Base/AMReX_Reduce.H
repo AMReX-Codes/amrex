@@ -9,8 +9,34 @@
 
 #include <algorithm>
 #include <functional>
+#include <limits>
 
 namespace amrex {
+
+template <typename TV, typename TI>
+struct ValLocPair
+{
+    TV value;
+    TI index;
+
+    static constexpr ValLocPair<TV,TI> max () {
+        return ValLocPair<TV,TI>{std::numeric_limits<TV>::max(), TI()};
+    }
+
+    static constexpr ValLocPair<TV,TI> lowest () {
+        return ValLocPair<TV,TI>{std::numeric_limits<TV>::lowest(), TI()};
+    }
+
+    friend constexpr bool operator< (ValLocPair<TV,TI> const& a, ValLocPair<TV,TI> const& b)
+    {
+        return a.value < b.value;
+    }
+
+    friend constexpr bool operator> (ValLocPair<TV,TI> const& a, ValLocPair<TV,TI> const& b)
+    {
+        return a.value > b.value;
+    }
+};
 
 namespace Reduce { namespace detail {
 
@@ -133,7 +159,12 @@ struct ReduceOpMin
     void local_update (T& d, T const& s) const noexcept { d = amrex::min(d,s); }
 
     template <typename T>
-    constexpr void init (T& t) const noexcept { t = std::numeric_limits<T>::max(); }
+    constexpr std::enable_if_t<std::numeric_limits<T>::is_specialized>
+    init (T& t) const noexcept { t = std::numeric_limits<T>::max(); }
+
+    template <typename T>
+    constexpr std::enable_if_t<!std::numeric_limits<T>::is_specialized>
+    init (T& t) const noexcept { t = T::max(); }
 };
 
 struct ReduceOpMax
@@ -161,7 +192,12 @@ struct ReduceOpMax
     void local_update (T& d, T const& s) const noexcept { d = amrex::max(d,s); }
 
     template <typename T>
-    constexpr void init (T& t) const noexcept { t = std::numeric_limits<T>::lowest(); }
+    constexpr std::enable_if_t<std::numeric_limits<T>::is_specialized>
+    init (T& t) const noexcept { t = std::numeric_limits<T>::lowest(); }
+
+    template <typename T>
+    constexpr std::enable_if_t<!std::numeric_limits<T>::is_specialized>
+    init (T& t) const noexcept { t = T::lowest(); }
 };
 
 struct ReduceOpLogicalAnd
@@ -813,7 +849,7 @@ bool AnyOf (N n, T const* v, P&& pred)
 #ifdef AMREX_USE_DPCPP
     const int num_ints = std::max(Gpu::Device::warp_size, int(ec.numThreads.x)/Gpu::Device::warp_size) + 1;
     const std::size_t shared_mem_bytes = num_ints*sizeof(int);
-    amrex::launch(ec.numBlocks.x, ec.numThreads.x, shared_mem_bytes, Gpu::nullStream(),
+    amrex::launch(ec.numBlocks.x, ec.numThreads.x, shared_mem_bytes, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept {
         int* has_any = &(static_cast<int*>(gh.sharedMemory())[num_ints-1]);
         if (gh.threadIdx() == 0) { *has_any = *dp; }
@@ -834,7 +870,7 @@ bool AnyOf (N n, T const* v, P&& pred)
         }
     });
 #else
-    amrex::launch(ec.numBlocks.x, ec.numThreads.x, 0, 0,
+    amrex::launch(ec.numBlocks.x, ec.numThreads.x, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         __shared__ int has_any;
         if (threadIdx.x == 0) has_any = *dp;
@@ -874,7 +910,7 @@ bool AnyOf (Box const& box, P&& pred)
 #ifdef AMREX_USE_DPCPP
     const int num_ints = std::max(Gpu::Device::warp_size, int(ec.numThreads.x)/Gpu::Device::warp_size) + 1;
     const std::size_t shared_mem_bytes = num_ints*sizeof(int);
-    amrex::launch(ec.numBlocks.x, ec.numThreads.x, shared_mem_bytes, Gpu::nullStream(),
+    amrex::launch(ec.numBlocks.x, ec.numThreads.x, shared_mem_bytes, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept {
         int* has_any = &(static_cast<int*>(gh.sharedMemory())[num_ints-1]);
         if (gh.threadIdx() == 0) { *has_any = *dp; }
@@ -899,7 +935,7 @@ bool AnyOf (Box const& box, P&& pred)
         }
     });
 #else
-    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, 0,
+    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         __shared__ int has_any;
         if (threadIdx.x == 0) has_any = *dp;

@@ -120,6 +120,7 @@ namespace detail
     // Defined Surfaces and Volumes in Hyperrectangles, SIAM
     // J. Sci. Comput., Vol. 37, No. 2, pp. A993-A1019,
     // http://dx.doi.org/10.1137/140966290].
+    template<bool S>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void
     determineSigns (bool positiveAbove, int sign, int& bottomSign, int& topSign) noexcept
@@ -132,18 +133,29 @@ namespace detail
         //      if positive above the height function: bottom = -, top = +/-
         //      if positive below the height function: bottom = +/-, top = -
         //   If integrating over both the positive and negative part (i.e. unrestricted in sign), keep it alive
-        if (sign == 1)
+        if (S)
         {
-            bottomSign = positiveAbove? 0 : 1;
-            topSign = positiveAbove? 1 : 0;
-        }
-        else if (sign == -1)
-        {
-            bottomSign = positiveAbove? -1 : 0;
-            topSign = positiveAbove? 0 : -1;
-        }
-        else {
-            bottomSign = topSign = 0;
+            // When evaluating a surface integral,
+            // if the function is positive above the height function, then
+            // the bottom side must be negative and the top side must be positive;
+            // if the function is positive below the height function,
+            // then the bottom side must be positive and the top side must be negative.
+            bottomSign = positiveAbove? -1 : 1;
+            topSign = positiveAbove? 1 : -1;
+        } else {
+            if (sign == 1)
+            {
+                bottomSign = positiveAbove? 0 : 1;
+                topSign = positiveAbove? 1 : 0;
+            }
+            else if (sign == -1)
+            {
+                bottomSign = positiveAbove? -1 : 0;
+                topSign = positiveAbove? 0 : -1;
+            }
+            else {
+                bottomSign = topSign = 0;
+            }
         }
     }
 } // namespace detail
@@ -214,20 +226,20 @@ struct PsiCode
 template <int N>
 struct BoundingBox
 {
-    static constexpr Real min (int /*dim*/) noexcept { return -0.5; }
+    static constexpr Real min (int /*dim*/) noexcept { return -0.5_rt; }
 
-    static constexpr Real max (int /*dim*/) noexcept { return  0.5; }
+    static constexpr Real max (int /*dim*/) noexcept { return  0.5_rt; }
 
-    static constexpr Real extent (int /*dim*/) noexcept { return 1.0; }
+    static constexpr Real extent (int /*dim*/) noexcept { return 1.0_rt; }
 
     static constexpr GpuArray<Real,N> midpoint () noexcept {
         return GpuArray<Real,N>{};
     }
 
-    static constexpr Real midpoint (int /*dim*/) noexcept { return 0.0; }
+    static constexpr Real midpoint (int /*dim*/) noexcept { return 0.0_rt; }
 
     constexpr Real operator() (int side, int /*dim*/) const noexcept {
-        return (side == 0) ? -0.5 : 0.5;
+        return (side == 0) ? -0.5_rt : 0.5_rt;
     }
 };
 
@@ -238,7 +250,7 @@ struct Interval
 
 // M-dimensional integral of an N-dimensional function restricted to
 // given implicitly defined domains
-template<int M, int N, typename Phi, typename F>
+template<int M, int N, typename Phi, typename F, bool S>
 struct ImplicitIntegral
 {
     const Phi& phi;
@@ -260,16 +272,13 @@ struct ImplicitIntegral
     AMREX_GPU_HOST_DEVICE
     bool prune () noexcept
     {
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         static constexpr Real eps = std::numeric_limits<Real>::epsilon();
-#else
-        static constexpr Real eps = DBL_EPSILON;
-#endif
         static constexpr Real almostone = 1.0-10.*eps;
+
         for (int i = 0; i < psiCount; )
         {
             GpuArray<Real,N> mid = xrange.midpoint();
-            Real dphi_max = 0.0;
+            Real dphi_max = 0.0_rt;
             for (int dim = 0; dim < N; ++dim) {
                 if (free[dim]) {
                     dphi_max += amrex::Math::abs(phi.grad(dim));
@@ -304,14 +313,14 @@ struct ImplicitIntegral
     AMREX_GPU_HOST_DEVICE
     void tensorProductIntegral () noexcept
     {
-        constexpr Real gauss_x[4]={0.069431844202973712388026755553595247452,
-                                   0.33000947820757186759866712044837765640,
-                                   0.66999052179242813240133287955162234360,
-                                   0.93056815579702628761197324444640475255};
-        constexpr Real gauss_w[4]={0.173927422568726928686531974610999703618,
-                                   0.326072577431273071313468025389000296382,
-                                   0.326072577431273071313468025389000296382,
-                                   0.173927422568726928686531974610999703618};
+        constexpr Real gauss_x[4]={0.069431844202973712388026755553595247452_rt,
+                                   0.33000947820757186759866712044837765640_rt,
+                                   0.66999052179242813240133287955162234360_rt,
+                                   0.93056815579702628761197324444640475255_rt};
+        constexpr Real gauss_w[4]={0.173927422568726928686531974610999703618_rt,
+                                   0.326072577431273071313468025389000296382_rt,
+                                   0.326072577431273071313468025389000296382_rt,
+                                   0.173927422568726928686531974610999703618_rt};
 
         int nloops = 1;
         for (int i = 0; i < M; ++i) {
@@ -321,7 +330,7 @@ struct ImplicitIntegral
         for (int iloop = 0; iloop < nloops; ++iloop)
         {
             GpuArray<Real,N> x{};
-            Real w = 1.0;
+            Real w = 1.0_rt;
             for (int dim = 0, k = 0; dim < N; ++dim) {
                 if (free[dim]) {
                     x[dim] = xrange.min(dim) + xrange.extent(dim) * gauss_x[i[k]];
@@ -349,14 +358,14 @@ struct ImplicitIntegral
     AMREX_GPU_HOST_DEVICE
     void evalIntegrand (GpuArray<Real,N> x, Real w) const noexcept
     {
-        constexpr Real gauss_x[4]={0.069431844202973712388026755553595247452,
-                                   0.33000947820757186759866712044837765640,
-                                   0.66999052179242813240133287955162234360,
-                                   0.93056815579702628761197324444640475255};
-        constexpr Real gauss_w[4]={0.173927422568726928686531974610999703618,
-                                   0.326072577431273071313468025389000296382,
-                                   0.326072577431273071313468025389000296382,
-                                   0.173927422568726928686531974610999703618};
+        constexpr Real gauss_x[4]={0.069431844202973712388026755553595247452_rt,
+                                   0.33000947820757186759866712044837765640_rt,
+                                   0.66999052179242813240133287955162234360_rt,
+                                   0.93056815579702628761197324444640475255_rt};
+        constexpr Real gauss_w[4]={0.173927422568726928686531974610999703618_rt,
+                                   0.326072577431273071313468025389000296382_rt,
+                                   0.326072577431273071313468025389000296382_rt,
+                                   0.173927422568726928686531974610999703618_rt};
 
         // Each thread has its own storage for computing roots. These
         // are not corrupted by the recursive chain of evalIntegrand()
@@ -365,6 +374,38 @@ struct ImplicitIntegral
         // assumed tied and so one thread can only execute
         // "evalIntegrand" from start to end uninterrupted.
         GpuArray<Real,4> roots;
+
+        // Surface integral
+        if (S)
+        {
+            AMREX_ASSERT(M == N && N >= 2); // x is thus valid in all variables except e0
+
+            Real x_min = xrange.min(e0);
+            Real x_max = xrange.max(e0);
+            int nroots = 0;
+
+            x[e0] = x_min;
+            Real phi_lo = phi(x);
+            Real xroot = x[e0] - phi_lo / phi.grad(e0);
+            if (xroot > x_min && xroot < x_max) {
+                roots[nroots++] = xroot;
+            }
+
+            AMREX_ASSERT(nroots <= 1);
+
+            for (int i = 0; i < nroots; ++i)
+            {
+                x[e0] = roots[i];
+                Real mag = 0._rt;
+                for (int dim = 0; dim < N; ++dim) {
+                    mag += phi.grad(dim)*phi.grad(dim);
+                }
+                mag = std::sqrt(mag);
+                f.evalIntegrand(x, (mag/amrex::Math::abs(phi.grad(e0)))*w);
+            }
+
+            return;
+        }
 
         // Partition [xmin(e0), xmax(e0)] by roots found
         Real x_min = xrange.min(e0);
@@ -395,11 +436,7 @@ struct ImplicitIntegral
         roots[nroots++] = x_max;
 
         // In rare cases, degenerate segments can be found, filter out with a tolerance
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         static constexpr Real eps = std::numeric_limits<Real>::epsilon();
-#else
-        static constexpr Real eps = DBL_EPSILON;
-#endif
         constexpr Real tol = 50.0*eps;
 
         // Loop over segments of divided interval
@@ -470,7 +507,7 @@ struct ImplicitIntegral
             }
             else
             {
-                xint[dim].alpha = 0.0;
+                xint[dim].alpha = 0.0_rt;
             }
         }
 
@@ -484,7 +521,8 @@ struct ImplicitIntegral
         // integral domain is the entire hyperrectangle.
         if (psiCount == 0)
         {
-            tensorProductIntegral();
+            if (!S)
+                tensorProductIntegral();
             return;
         }
 
@@ -521,7 +559,7 @@ struct ImplicitIntegral
 
             // w.z. We assume grad does not change.
             int bottomSign, topSign;
-            detail::determineSigns(phi.grad(e0) > 0.0, psi[i].sign(),
+            detail::determineSigns<S>(phi.grad(e0) > 0.0, psi[i].sign(),
                                    bottomSign, topSign);
             // w.z. There are sides 0 and 1.
             newPsi[newPsiCount++] = PsiCode<N>(psi[i], e0, 0, bottomSign);
@@ -531,14 +569,14 @@ struct ImplicitIntegral
         // Dimension reduction call
         GpuArray<bool,N> new_free = free;
         new_free[e0] = false;
-        ImplicitIntegral<M-1,N,Phi,ImplicitIntegral<M,N,Phi,F> >
+        ImplicitIntegral<M-1,N,Phi,ImplicitIntegral<M,N,Phi,F,S>,false>
             (phi, *this, new_free, newPsi, newPsiCount);
     }
 };
 
 // Partial specialisation on M=0 as a dummy base case for the compiler
-template<int N, typename Phi, typename F>
-struct ImplicitIntegral<0,N,Phi,F>
+template<int N, typename Phi, typename F, bool S>
+struct ImplicitIntegral<0,N,Phi,F,S>
 {
     AMREX_GPU_HOST_DEVICE
     ImplicitIntegral (const Phi&, F&, const GpuArray<bool,N>&,
@@ -554,34 +592,58 @@ quadGen (EBPlane const& phi) noexcept
     GpuArray<bool,3> free{true,true,true};
     GpuArray<PsiCode<3>,4> psi;
     psi[0] = PsiCode<3>({0,0,0}, -1);
-    ImplicitIntegral<3,3,EBPlane,QuadratureRule>(phi, q, free, psi, 1);
+    ImplicitIntegral<3,3,EBPlane,QuadratureRule,false>(phi, q, free, psi, 1);
+    return q;
+}
+
+AMREX_GPU_HOST_DEVICE inline
+QuadratureRule
+quadGenSurf (EBPlane const& phi) noexcept
+{
+    QuadratureRule q;
+    GpuArray<bool,3> free{true,true,true};
+    GpuArray<PsiCode<3>,4> psi;
+    psi[0] = PsiCode<3>({0,0,0}, -1);
+    ImplicitIntegral<3,3,EBPlane,QuadratureRule,true>(phi, q, free, psi, 1);
     return q;
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void set_regular (int i, int j, int k, Array4<Real> const& intg) noexcept
 {
-    constexpr Real twelfth = 1./12.;
-    constexpr Real   offth = 1./144.;
-    intg(i,j,k,i_S_x    ) = 0.0;
-    intg(i,j,k,i_S_y    ) = 0.0;
-    intg(i,j,k,i_S_z    ) = 0.0;
+    constexpr Real twelfth = 1._rt/12._rt;
+    constexpr Real   offth = 1._rt/144._rt;
+    intg(i,j,k,i_S_x    ) = 0.0_rt;
+    intg(i,j,k,i_S_y    ) = 0.0_rt;
+    intg(i,j,k,i_S_z    ) = 0.0_rt;
     intg(i,j,k,i_S_x2   ) = twelfth;
     intg(i,j,k,i_S_y2   ) = twelfth;
     intg(i,j,k,i_S_z2   ) = twelfth;
-    intg(i,j,k,i_S_x_y  ) = 0.0;
-    intg(i,j,k,i_S_x_z  ) = 0.0;
-    intg(i,j,k,i_S_y_z  ) = 0.0;
-    intg(i,j,k,i_S_x2_y ) = 0.0;
-    intg(i,j,k,i_S_x2_z ) = 0.0;
-    intg(i,j,k,i_S_x_y2 ) = 0.0;
-    intg(i,j,k,i_S_y2_z ) = 0.0;
-    intg(i,j,k,i_S_x_z2 ) = 0.0;
-    intg(i,j,k,i_S_y_z2 ) = 0.0;
+    intg(i,j,k,i_S_x_y  ) = 0.0_rt;
+    intg(i,j,k,i_S_x_z  ) = 0.0_rt;
+    intg(i,j,k,i_S_y_z  ) = 0.0_rt;
+    intg(i,j,k,i_S_x2_y ) = 0.0_rt;
+    intg(i,j,k,i_S_x2_z ) = 0.0_rt;
+    intg(i,j,k,i_S_x_y2 ) = 0.0_rt;
+    intg(i,j,k,i_S_y2_z ) = 0.0_rt;
+    intg(i,j,k,i_S_x_z2 ) = 0.0_rt;
+    intg(i,j,k,i_S_y_z2 ) = 0.0_rt;
     intg(i,j,k,i_S_x2_y2) = offth;
     intg(i,j,k,i_S_x2_z2) = offth;
     intg(i,j,k,i_S_y2_z2) = offth;
-    intg(i,j,k,i_S_xyz  ) = 0.0;
+    intg(i,j,k,i_S_xyz  ) = 0.0_rt;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void set_regular_surface (int i, int j, int k, Array4<Real> const& sintg) noexcept
+{
+    sintg(i,j,k,i_B_x    ) = 0.0_rt;
+    sintg(i,j,k,i_B_y    ) = 0.0_rt;
+    sintg(i,j,k,i_B_z    ) = 0.0_rt;
+    sintg(i,j,k,i_B_x_y  ) = 0.0_rt;
+    sintg(i,j,k,i_B_x_z  ) = 0.0_rt;
+    sintg(i,j,k,i_B_y_z  ) = 0.0_rt;
+    sintg(i,j,k,i_B_xyz  ) = 0.0_rt;
 }
 
 }}

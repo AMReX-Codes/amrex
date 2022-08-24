@@ -24,6 +24,19 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
   endif
   endif
 
+  ifeq ($(USE_CUDA),TRUE)
+    ifdef NPE_VERSION
+      CFLAGS += -Xcompiler='$(filter-out -Wl%, $(wordlist 2,1024,$(shell mpicc -show 2> /dev/null)))'
+      CXXFLAGS += -Xcompiler='$(filter-out -Wl%, $(wordlist 2,1024,$(shell mpicxx -show 2> /dev/null)))'
+    else
+      CFLAGS += -Xcompiler='$(wordlist 2,1024,$(shell cc -craype-verbose 2> /dev/null))'
+      CXXFLAGS += -Xcompiler='$(wordlist 2,1024,$(shell CC -craype-verbose 2> /dev/null))'
+    endif
+  else ifeq ($(USE_MPI),FALSE)
+    CFLAGS += $(wordlist 2,1024,$(shell cc -craype-verbose 2> /dev/null))
+    CXXFLAGS += $(wordlist 2,1024,$(shell CC -craype-verbose 2> /dev/null))
+  endif
+
   ifeq ($(USE_MPI),TRUE)
     ifneq ($(USE_CUDA),TRUE)
       CC  = cc
@@ -33,7 +46,9 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
       LIBRARIES += -lmpichf90
     endif
 
-    includes += $(shell CC --cray-print-opts=cflags)
+    ifndef NPE_VERSION
+      includes += $(shell CC --cray-print-opts=cflags)
+    endif
   endif
 
   ifeq ($(USE_CUDA),TRUE)
@@ -43,11 +58,23 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
       includes += $(CRAY_CUDATOOLKIT_INCLUDE_OPTS)
     endif
 
+    ifdef NPE_VERSION
+      includes += $(CRAY_CUDATOOLKIT_INCLUDE_OPTS)
+    endif
+
     comm := ,
     ifneq ($(BL_NO_FORT),TRUE)
+      ifdef NPE_VERSION
+        LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(wordlist 2,1024,$(shell mpifort -show)))
+      else
         LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(shell ftn --cray-print-opts=libs))
+      endif
     else
+      ifdef NPE_VERSION
+        LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(wordlist 2,1024,$(shell mpicxx -show)))
+      else
         LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(shell CC --cray-print-opts=libs))
+      endif
     endif
 
     ifneq ($(CUDA_ROOT),)

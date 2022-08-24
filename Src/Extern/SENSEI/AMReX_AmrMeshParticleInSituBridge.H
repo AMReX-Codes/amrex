@@ -86,7 +86,7 @@ int AmrMeshParticleInSituBridge::update(
 
     data_adaptor->SetDataTime(time);
     data_adaptor->SetDataTimeStep(step);
-    ret = analysis_adaptor->Execute(data_adaptor) ? 0 : -1;
+    ret = analysis_adaptor->Execute(data_adaptor, nullptr) ? 0 : -1;
     data_adaptor->ReleaseData();
     data_adaptor->Delete();
 

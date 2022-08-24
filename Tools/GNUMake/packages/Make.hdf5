@@ -27,8 +27,22 @@ ifeq ($(USE_HDF5_ZFP),TRUE)
       ZFP_ABSPATH = $(abspath $(ZFP_HOME))
       H5Z_ABSPATH = $(abspath $(H5Z_HOME))
       INCLUDE_LOCATIONS += $(ZFP_ABSPATH)/include $(H5Z_ABSPATH)/include
-      LIBRARY_LOCATIONS += $(ZFP_ABSPATH)/lib $(H5Z_ABSPATH)/lib
+      LIBRARY_LOCATIONS += $(ZFP_ABSPATH)/lib $(ZFP_ABSPATH)/lib64 $(H5Z_ABSPATH)/lib
       LDFLAGS += -Xlinker -rpath -Xlinker $(ZFP_ABSPATH)/lib
+      LDFLAGS += -Xlinker -rpath -Xlinker $(ZFP_ABSPATH)/lib64
+    endif
+  endif
+endif
+
+ifeq ($(USE_HDF5_SZ),TRUE)
+  ifdef SZ_HOME
+    ifdef H5Z_HOME
+      CPPFLAGS += -DAMREX_USE_HDF5_SZ
+      LIBRARIES += -lSZ -lzlib -lhdf5sz
+      SZ_ABSPATH = $(abspath $(SZ_HOME))
+      INCLUDE_LOCATIONS += $(SZ_ABSPATH)/include
+      LIBRARY_LOCATIONS += $(SZ_ABSPATH)/lib
+      LDFLAGS += -Xlinker -rpath -Xlinker $(SZ_ABSPATH)/lib
     endif
   endif
 endif

@@ -41,7 +41,10 @@ contains
     integer         , intent(in   ) :: mask (mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
     real(amrex_real), intent(in   ) :: bcval(blo(1):bhi(1),blo(2):bhi(2),blo(3):bhi(3),nc)
 
-    integer :: i, j, k, idim, lenx, m
+#if (AMREX_SPACEDIM > 1)
+    integer :: i
+#endif
+    integer :: j, k, idim, lenx, m
     logical :: inhomogeneous
     real(amrex_real) ::    x(-1:maxorder-2)
     real(amrex_real) :: coef(-1:maxorder-2), coef2(-maxorder+2:1)

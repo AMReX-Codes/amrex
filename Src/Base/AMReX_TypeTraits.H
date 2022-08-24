@@ -81,7 +81,7 @@ namespace amrex
     template <class T, class Enable = void>
     struct DefinitelyNotHostRunnable : std::false_type {};
 
-#if defined(AMREX_USE_CUDA)
+#if defined(AMREX_USE_CUDA) && defined(__NVCC__)
 
     template <class T>
     struct MaybeHostDeviceRunnable<T, std::enable_if_t<__nv_is_extended_device_lambda_closure_type(T)> >

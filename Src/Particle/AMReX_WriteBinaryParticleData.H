@@ -139,12 +139,31 @@ countFlags (const Container<int,Allocator>& pflags)
     return nparticles;
 }
 
+template <typename P, typename I>
+AMREX_GPU_HOST_DEVICE
+void packParticleIDs (I* idata, const P& p, bool is_checkpoint) noexcept
+{
+    if (is_checkpoint) {
+        std::int32_t  xi, yi;
+        std::uint32_t xu, yu;
+        xu = (std::uint32_t)((p.m_idcpu & 0xFFFFFFFF00000000LL) >> 32);
+        yu = (std::uint32_t)( p.m_idcpu & 0xFFFFFFFFLL);
+        std::memcpy(&xi, &xu, sizeof(xu));
+        std::memcpy(&yi, &yu, sizeof(yu));
+        idata[0] = xi;
+        idata[1] = yi;
+    } else {
+        idata[0] = p.id();
+        idata[1] = p.cpu();
+    }
+}
+
 template <class PC>
 typename std::enable_if<RunOnGpu<typename PC::template AllocatorType<int>>::value>::type
 packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int lev, int grid,
             const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
             const Vector<std::map<std::pair<int, int>, typename PC::IntVector>>& particle_io_flags,
-            const Vector<int>& tiles, int np)
+            const Vector<int>& tiles, int np, bool is_checkpoint)
 {
     int num_output_int = 0;
     for (int i = 0; i < pc.NumIntComps() + PC::NStructInt; ++i)
@@ -165,11 +184,11 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
 
     typename PC::IntVector write_int_comp_d(write_int_comp.size());
     typename PC::IntVector write_real_comp_d(write_real_comp.size());
-    Gpu::copy(Gpu::hostToDevice, write_int_comp.begin(), write_int_comp.end(),
-              write_int_comp_d.begin());
-    Gpu::copy(Gpu::hostToDevice, write_real_comp.begin(), write_real_comp.end(),
-              write_real_comp_d.begin());
-    Gpu::Device::synchronize();
+    Gpu::copyAsync(Gpu::hostToDevice, write_int_comp.begin(), write_int_comp.end(),
+                   write_int_comp_d.begin());
+    Gpu::copyAsync(Gpu::hostToDevice, write_real_comp.begin(), write_real_comp.end(),
+                   write_real_comp_d.begin());
+    Gpu::Device::streamSynchronize();
 
     const auto write_int_comp_d_ptr = write_int_comp_d.data();
     const auto write_real_comp_d_ptr = write_real_comp_d.data();
@@ -196,8 +215,7 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
 
             if (flag_ptr[pindex]) {
                 std::size_t iout_index = (pindex+poffset)*iChunkSize;
-                idata_d_ptr[iout_index] = p.id();
-                idata_d_ptr[iout_index+1] = p.cpu();
+                packParticleIDs(&idata_d_ptr[iout_index], p, is_checkpoint);
                 iout_index += 2;
 
                 std::size_t rout_index = (pindex+poffset)*rChunkSize;
@@ -213,9 +231,23 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
                     }
                 }
 
+                for (int j = 0; j < ptd.m_num_runtime_int; j++) {
+                    if (write_int_comp_d_ptr[PC::SuperParticleType::NInt + j]) {
+                        idata_d_ptr[iout_index] = ptd.m_runtime_idata[j][pindex];
+                        iout_index++;
+                    }
+                }
+
                 for (int j = 0; j < PC::SuperParticleType::NReal; j++) {
                     if (write_real_comp_d_ptr[j]) {
                         rdata_d_ptr[rout_index] = p.rdata(j);
+                        rout_index++;
+                    }
+                }
+
+                for (int j = 0; j < ptd.m_num_runtime_real; j++) {
+                    if (write_real_comp_d_ptr[PC::SuperParticleType::NReal + j]) {
+                        rdata_d_ptr[rout_index] = ptd.m_runtime_rdata[j][pindex];
                         rout_index++;
                     }
                 }
@@ -225,9 +257,9 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
         poffset += num_copies;
     }
 
-    Gpu::copy(Gpu::deviceToHost, idata_d.begin(), idata_d.end(), idata.begin());
-    Gpu::copy(Gpu::deviceToHost, rdata_d.begin(), rdata_d.end(), rdata.begin());
-    Gpu::Device::synchronize();
+    Gpu::copyAsync(Gpu::deviceToHost, idata_d.begin(), idata_d.end(), idata.begin());
+    Gpu::copyAsync(Gpu::deviceToHost, rdata_d.begin(), rdata_d.end(), rdata.begin());
+    Gpu::Device::streamSynchronize();
 }
 
 template <class PC>
@@ -235,7 +267,7 @@ typename std::enable_if<!RunOnGpu<typename PC::template AllocatorType<int>>::val
 packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int lev, int grid,
             const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
             const Vector<std::map<std::pair<int, int>, typename PC::IntVector>>& particle_io_flags,
-            const Vector<int>& tiles, int np)
+            const Vector<int>& tiles, int np, bool is_checkpoint)
 {
     int num_output_int = 0;
     for (int i = 0; i < pc.NumIntComps() + PC::NStructInt; ++i)
@@ -260,8 +292,9 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
             const auto& aos = ptile.GetArrayOfStructs();
             const auto& p = aos[pindex];
             if (pflags[pindex]) {
-                *iptr = p.id(); ++iptr;
-                *iptr = p.cpu(); ++iptr;
+                packParticleIDs(iptr, p, is_checkpoint);
+                iptr += 2;
+
                 for (int j = 0; j < AMREX_SPACEDIM; j++) rptr[j] = p.pos(j);
                 rptr += AMREX_SPACEDIM;
 
@@ -306,7 +339,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
                                   const Vector<int>& write_int_comp,
                                   const Vector<std::string>& real_comp_names,
                                   const Vector<std::string>& int_comp_names,
-                                  F&& f)
+                                  F&& f, bool is_checkpoint)
 {
     BL_PROFILE("WriteBinaryParticleData()");
     AMREX_ASSERT(pc.OK());
@@ -356,7 +389,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
         }
     }
 
-    Gpu::Device::synchronize();
+    Gpu::Device::streamSynchronize();
 
     if(pc.GetUsePrePost())
     {
@@ -387,18 +420,18 @@ void WriteBinaryParticleDataSync (PC const& pc,
         if ( ! HdrFile.good()) amrex::FileOpenFailed(HdrFileName);
 
         //
-        // First thing written is our Checkpoint/Restart version string.
+        // First thing written is our version string.
         // We append "_single" or "_double" to the version string indicating
-        // whether we're using "float" or "double" floating point data in the
-        // particles so that we can Restart from the checkpoint files.
+        // whether we're using "float" or "double" floating point data.
         //
+        std::string version_string = is_checkpoint ? PC::CheckpointVersion() : PC::PlotfileVersion();
         if (sizeof(typename PC::ParticleType::RealType) == 4)
         {
-            HdrFile << PC::Version() << "_single" << '\n';
+            HdrFile << version_string << "_single" << '\n';
         }
         else
         {
-            HdrFile << PC::Version() << "_double" << '\n';
+            HdrFile << version_string << "_double" << '\n';
         }
 
         int num_output_real = 0;
@@ -426,8 +459,8 @@ void WriteBinaryParticleDataSync (PC const& pc,
         for (int i = 0; i < NStructInt + pc.NumIntComps(); ++i )
             if (write_int_comp[i]) HdrFile << int_comp_names[i] << '\n';
 
-        bool is_checkpoint = true; // legacy
-        HdrFile << is_checkpoint << '\n';
+        bool is_checkpoint_legacy = true; // legacy
+        HdrFile << is_checkpoint_legacy << '\n';
 
         // The total number of particles.
         HdrFile << nparticles << '\n';
@@ -522,7 +555,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
             {
                 std::ofstream& myStream = (std::ofstream&) nfi.Stream();
                 pc.WriteParticles(lev, myStream, nfi.FileNumber(), which, count, where,
-                                  write_real_comp, write_int_comp, particle_io_flags);
+                                  write_real_comp, write_int_comp, particle_io_flags, is_checkpoint);
             }
 
             if(pc.usePrePost) {
@@ -585,7 +618,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                                    const Vector<int>& write_real_comp,
                                    const Vector<int>& write_int_comp,
                                    const Vector<std::string>& real_comp_names,
-                                   const Vector<std::string>& int_comp_names)
+                                   const Vector<std::string>& int_comp_names, bool is_checkpoint)
 {
     BL_PROFILE("WriteBinaryParticleDataAsync");
     AMREX_ASSERT(pc.OK());
@@ -772,13 +805,14 @@ void WriteBinaryParticleDataAsync (PC const& pc,
 
             if ( ! HdrFile.good()) amrex::FileOpenFailed(HdrFileName);
 
+            std::string version_string = is_checkpoint ? PC::CheckpointVersion() : PC::PlotfileVersion();
             if (sizeof(typename PC::ParticleType::RealType) == 4)
             {
-                HdrFile << PC::Version() << "_single" << '\n';
+                HdrFile << version_string << "_single" << '\n';
             }
             else
             {
-                HdrFile << PC::Version() << "_double" << '\n';
+                HdrFile << version_string << "_double" << '\n';
             }
 
             int num_output_real = 0;
@@ -806,8 +840,8 @@ void WriteBinaryParticleDataAsync (PC const& pc,
             for (int i = 0; i < NStructInt + nic; ++i )
                 if (write_int_comp[i]) HdrFile << int_comp_names[i] << '\n';
 
-            bool is_checkpoint = true; // legacy
-            HdrFile << is_checkpoint << '\n';
+            bool is_checkpoint_legacy = true; // legacy
+            HdrFile << is_checkpoint_legacy << '\n';
 
             // The total number of particles.
             HdrFile << total_np << '\n';
@@ -898,8 +932,8 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                         if (p.id() <= 0) continue;
 
                         // always write these
-                        *iptr = p.id(); ++iptr;
-                        *iptr = p.cpu(); ++iptr;
+                        particle_detail::packParticleIDs(iptr, p, is_checkpoint);
+                        iptr += 2;
 
                         // optionally write these
                         for (int j = 0; j < NStructInt; j++)

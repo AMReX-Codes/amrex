@@ -615,6 +615,9 @@ MLNodeLaplacian::reflux (int crse_amrlev,
                          MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
                          MultiFab& a_fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const
 {
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(crse_amrlev,res,crse_sol,crse_rhs,a_fine_res,fine_sol,fine_rhs);
+#else
     //
     //  Note that the residue we copmute on a coarse/fine node is not a
     //  composite divergence.  It has been restricted so that it is suitable
@@ -865,6 +868,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 #ifdef AMREX_USE_EB
     // Make sure to zero out the residual on any nodes completely surrounded by covered cells
     amrex::EB_set_covered(res,0.0);
+#endif
 #endif
 }
 

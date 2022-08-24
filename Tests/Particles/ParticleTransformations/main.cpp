@@ -100,23 +100,23 @@ public:
             auto new_size = old_size + host_particles.size();
             particle_tile.resize(new_size);
 
-            Gpu::copy(Gpu::hostToDevice, host_particles.begin(), host_particles.end(),
-                      particle_tile.GetArrayOfStructs().begin() + old_size);
+            Gpu::copyAsync(Gpu::hostToDevice, host_particles.begin(), host_particles.end(),
+                           particle_tile.GetArrayOfStructs().begin() + old_size);
 
             auto& soa = particle_tile.GetStructOfArrays();
             for (int i = 0; i < NAR; ++i)
             {
-                Gpu::copy(Gpu::hostToDevice, host_real[i].begin(), host_real[i].end(),
-                          soa.GetRealData(i).begin() + old_size);
+                Gpu::copyAsync(Gpu::hostToDevice, host_real[i].begin(), host_real[i].end(),
+                               soa.GetRealData(i).begin() + old_size);
             }
 
             for (int i = 0; i < NAI; ++i)
             {
-                Gpu::copy(Gpu::hostToDevice, host_int[i].begin(), host_int[i].end(),
-                          soa.GetIntData(i).begin() + old_size);
+                Gpu::copyAsync(Gpu::hostToDevice, host_int[i].begin(), host_int[i].end(),
+                               soa.GetIntData(i).begin() + old_size);
             }
 
-            Gpu::synchronize();
+            Gpu::streamSynchronize();
         }
     }
 };

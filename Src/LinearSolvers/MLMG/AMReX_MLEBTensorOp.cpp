@@ -115,6 +115,12 @@ MLEBTensorOp::setEBShearViscosity (int amrlev, Real eta)
 }
 
 void
+MLEBTensorOp::setEBShearViscosityWithInflow (int amrlev, MultiFab const& eta, MultiFab const& eb_vel)
+{
+    MLEBABecLap::setEBDirichlet(amrlev, eb_vel, eta);
+}
+
+void
 MLEBTensorOp::setEBBulkViscosity (int amrlev, MultiFab const& kappa)
 {
     MultiFab::Copy(m_eb_kappa[amrlev][0], kappa, 0, 0, 1, 0);
@@ -262,14 +268,21 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
                          Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
             Array4<Real const> const& bc = bcent->const_array(mfi);
 
+            Array4<Real const> foo;
+            const bool is_eb_dirichlet =  isEBDirichlet();
+            const bool is_eb_inhomog = m_is_eb_inhomog;
+            Array4<Real const> const& velbfab = (is_eb_dirichlet && is_eb_inhomog)
+                ? m_eb_phi[amrlev]->const_array(mfi) : foo;
+
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
                 mlebtensor_cross_terms(tbx, axfab,
                                        AMREX_D_DECL(fxfab,fyfab,fzfab),
-                                       vfab, etab, kapb, ccm, flag, vol,
+                                       vfab, velbfab, etab, kapb, ccm, flag, vol,
                                        AMREX_D_DECL(apx,apy,apz),
                                        AMREX_D_DECL(fcx,fcy,fcz),
-                                       bc, dxinv, bscalar);
+                                       bc, is_eb_dirichlet, is_eb_inhomog,
+                                       dxinv, bscalar);
             });
         }
     }

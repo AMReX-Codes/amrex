@@ -200,6 +200,14 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
                                 const Vector<BCRec>& bcr, const int bcomp,
                                 const int orig_comp)
 {
+#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ == 6)
+    // The compiler is allowed to always reject static_assert(false,..) even
+    // without instantiating this function.  The following is to work around
+    // the issue.  Now the compiler is not allowed to reject the code unless
+    // GpuBndryFuncFab::operator() is instantiated.
+    static_assert(std::is_same<F,int>::value,
+                  "CUDA 11.6 bug: https://github.com/AMReX-Codes/amrex/issues/2607");
+#endif
     if (bx.ixType().cellCentered()) {
         ccfcdoit(bx,dest,dcomp,numcomp,geom,time,bcr,bcomp,orig_comp, FilccCell{});
     } else if (bx.ixType().nodeCentered()) {

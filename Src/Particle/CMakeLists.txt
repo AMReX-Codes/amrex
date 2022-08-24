@@ -11,6 +11,7 @@ target_sources( amrex
    AMReX_TracerParticles.cpp
    AMReX_ParticleMPIUtil.cpp
    AMReX_Particles.H
+   AMReX_ParticleContainer.H
    AMReX_SparseBins.H
    AMReX_ParGDB.H
    AMReX_Particle_mod_K.H

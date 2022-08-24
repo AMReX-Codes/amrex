@@ -60,6 +60,7 @@ namespace amrex
         extern AMREX_EXPORT int abort_on_unused_inputs;
     }
 
+    /** the AMReX "git describe" version */
     std::string Version ();
 
     // The returned AMReX* is non-owning! To delete it, call Finalize(AMReX*).
@@ -270,7 +271,7 @@ namespace amrex
 
     private:
 
-        static std::vector<std::unique_ptr<AMReX> > m_instance;
+        static AMREX_EXPORT std::vector<std::unique_ptr<AMReX> > m_instance;
 
         Geometry* m_geom = nullptr;
     };

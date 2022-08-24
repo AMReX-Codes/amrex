@@ -36,10 +36,6 @@ public:
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
                  int a_eb_limit_coarsening = -1);
 
-    virtual void setLevelBC (int /*amrlev*/, const MultiFab* /*levelbcdata*/,
-                             const MultiFab* = nullptr, const MultiFab* = nullptr,
-                             const MultiFab* = nullptr) final override {}
-
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndry* bndry=nullptr) const final override;
 
@@ -59,17 +55,15 @@ public:
         amrex::Abort("AMReX_MLNodeLinOp::compGrad::How did we get here?");
     }
 
-    virtual void applyMetricTerm (int /*amrlev*/, int /*mglev*/, MultiFab& /*rhs*/) const final override {}
+    virtual void applyMetricTerm (int /*amrlev*/, int /*mglev*/, Any& /*rhs*/) const final override {}
     virtual void unapplyMetricTerm (int /*amrlev*/, int /*mglev*/, MultiFab& /*rhs*/) const final override {}
 
-    virtual void fillSolutionBC (int /*amrlev*/, MultiFab& /*sol*/,
-                                 const MultiFab* /*crse_bcdata*/=nullptr) final override {
-        amrex::Abort("AMReX_MLNodeLinOp::fillSolutionBC::How did we get here?");
-    }
+    virtual Vector<Real> getSolvabilityOffset (int amrlev, int mglev,
+                                               Any const& rhs) const override;
+    virtual void fixSolvabilityByOffset (int amrlev, int mglev, Any& rhs,
+                                         Vector<Real> const& offset) const override;
 
-    virtual void applyInhomogNeumannTerm (int armlev, MultiFab& rhs) const override;
-
-    virtual void prepareForSolve () override {}
+    virtual void prepareForSolve () override;
 
     virtual bool isSingular (int amrlev) const override
         { return (amrlev == 0) ? m_is_bottom_singular : false; }
@@ -83,7 +77,7 @@ public:
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh) const = 0;
 
-    virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const final override;
+    void nodalSync (int amrlev, int mglev, MultiFab& mf) const;
 
     virtual std::unique_ptr<MLLinOp> makeNLinOp (int /*grid_size*/) const final override {
         amrex::Abort("MLNodeLinOp::makeNLinOp: N-Solve not supported");
@@ -98,6 +92,19 @@ public:
 
     // omask is either 0 or 1. 1 means the node is an unknown. 0 means it's known.
     void setOversetMask (int amrlev, const iMultiFab& a_omask);
+
+    virtual void fixUpResidualMask (int /*amrlev*/, iMultiFab& /*resmsk*/) { }
+
+    virtual Real AnyNormInfMask (int amrlev, Any const& a, bool local) const override;
+
+    virtual void AnyAvgDownResAmr (int, Any&, Any const&) const final override { }
+
+    virtual void AnyInterpolationAmr (int famrlev, Any& fine, const Any& crse,
+                                      IntVect const& nghost) const override;
+
+    virtual void AnyAverageDownAndSync (Vector<Any>& sol) const override;
+
+    virtual void interpAssign (int amrlev, int fmglev, MultiFab& fine, MultiFab& crse) const override;
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap(
@@ -127,13 +134,16 @@ protected:
 
     virtual void resizeMultiGrid (int new_size) override;
 
-    Vector<Vector<std::unique_ptr<iMultiFab> > > m_owner_mask;      // ownership of nodes
+    std::unique_ptr<iMultiFab> m_owner_mask_top;  // ownership of nodes
+    std::unique_ptr<iMultiFab> m_owner_mask_bottom;
     Vector<Vector<std::unique_ptr<iMultiFab> > > m_dirichlet_mask;  // dirichlet?
     Vector<std::unique_ptr<iMultiFab> > m_cc_fine_mask;          // cell-centered mask for cells covered by fine
     Vector<std::unique_ptr<iMultiFab> > m_nd_fine_mask;          // nodal mask: 0: this level node, 1: c/f boundary, 2: fine node
     Vector<std::unique_ptr<LayoutData<int> > > m_has_fine_bndry; // does this fab contain c/f boundary?
     MultiFab m_bottom_dot_mask;
     MultiFab m_coarse_dot_mask;
+
+    Vector<std::unique_ptr<iMultiFab> > m_norm_fine_mask;
 
 #ifdef AMREX_USE_EB
     CoarseningStrategy m_coarsening_strategy = CoarseningStrategy::RAP;

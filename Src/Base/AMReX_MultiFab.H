@@ -8,6 +8,7 @@
 #include <AMReX_FabArray.H>
 #include <AMReX_FabArrayUtility.H>
 #include <AMReX_Periodicity.H>
+#include <AMReX_NonLocalBC.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBMultiFabUtil.H>
@@ -231,6 +232,13 @@ public:
     * \brief Returns the sum of component "comp" over the MultiFab -- no ghost cells are included.
     */
     Real sum (int comp = 0, bool local = false) const;
+    /**
+    * \brief Same as sum with local=false, but for non-cell-centered data, this
+    *        skips non-unique points that are owned by multiple boxes.
+    */
+    Real sum_unique (int comp = 0,
+                     bool local = false,
+                     const Periodicity& period = Periodicity::NonPeriodic()) const;
     /**
     * \brief Adds the scalar value val to the value of each cell in the
     * specified subregion of the MultiFab.  The subregion consists
@@ -672,13 +680,9 @@ public:
     //! Sync up nodal data with weights
     void WeightedSync (const MultiFab& wgt, const Periodicity& period = Periodicity::NonPeriodic());
     //! Sync up nodal data with owners overriding non-owners
-    void OverrideSync (const Periodicity& period = Periodicity::NonPeriodic());
     void OverrideSync (const iMultiFab& msk, const Periodicity& period = Periodicity::NonPeriodic());
 
-    void OverrideSync_nowait (const Periodicity& period = Periodicity::NonPeriodic());
-    void OverrideSync_nowait (const iMultiFab& msk, const Periodicity& period = Periodicity::NonPeriodic());
-    void OverrideSync_finish ();
-
+    using FabArray<FArrayBox>::OverrideSync;
 
     static void Initialize ();
     static void Finalize ();

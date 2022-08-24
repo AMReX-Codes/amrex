@@ -200,6 +200,7 @@ public:
 
         m_bins.resize(nitems);
         m_perm.resize(nitems);
+        m_local_offsets.resize(nitems);
 
         m_counts.resize(0);
         m_counts.resize(nbins+1, 0);
@@ -209,21 +210,21 @@ public:
 
         index_type* pbins   = m_bins.dataPtr();
         index_type* pcount  = m_counts.dataPtr();
+        index_type* plocal_offsets  = m_local_offsets.dataPtr();
         amrex::ParallelFor(nitems, [=] AMREX_GPU_DEVICE (int i) noexcept
         {
             pbins[i] = f(v[i]);
-            Gpu::Atomic::AddNoRet(&pcount[pbins[i]], index_type{ 1 });
+            index_type off = Gpu::Atomic::Add(&pcount[pbins[i]], index_type{ 1 });
+            plocal_offsets[i] = off;
         });
 
         Gpu::exclusive_scan(m_counts.begin(), m_counts.end(), m_offsets.begin());
 
-        Gpu::copy(Gpu::deviceToDevice, m_offsets.begin(), m_offsets.end(), m_counts.begin());
-
         index_type* pperm = m_perm.dataPtr();
-        constexpr index_type max_index = std::numeric_limits<index_type>::max();
+        index_type* poffsets = m_offsets.dataPtr();
         amrex::ParallelFor(nitems, [=] AMREX_GPU_DEVICE (int i) noexcept
         {
-            index_type index = Gpu::Atomic::Inc(&pcount[pbins[i]], max_index);
+            index_type index = poffsets[pbins[i]] + plocal_offsets[i];
             pperm[index] = i;
         });
 
@@ -503,6 +504,7 @@ private:
 
     Gpu::DeviceVector<index_type> m_bins;
     Gpu::DeviceVector<index_type> m_counts;
+    Gpu::DeviceVector<index_type> m_local_offsets;
     Gpu::DeviceVector<index_type> m_offsets;
     Gpu::DeviceVector<index_type> m_perm;
 };

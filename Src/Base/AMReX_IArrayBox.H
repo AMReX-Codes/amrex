@@ -81,10 +81,10 @@ public:
     virtual ~IArrayBox () noexcept override {}
 
     IArrayBox (IArrayBox&& rhs) noexcept = default;
+    IArrayBox& operator= (IArrayBox&&) = default;
 
     IArrayBox (const IArrayBox&) = delete;
     IArrayBox& operator= (const IArrayBox&) = delete;
-    IArrayBox& operator= (IArrayBox&&) = delete;
 
     //! Set the fab to the value r.
     template <RunOn run_on>

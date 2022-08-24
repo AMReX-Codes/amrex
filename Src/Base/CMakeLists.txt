@@ -7,6 +7,7 @@ target_sources( amrex
    AMReX_ccse-mpi.H
    AMReX_Math.H
    AMReX_Algorithm.H
+   AMReX_Any.H
    AMReX_Array.H
    AMReX_BlockMutex.H
    AMReX_BlockMutex.cpp
@@ -16,6 +17,7 @@ target_sources( amrex
    AMReX_Tuple.H
    AMReX.cpp
    AMReX_error_fi.cpp
+   AMReX_Version.cpp
    AMReX.H
    AMReX_Exception.H
    AMReX_Extension.H
@@ -69,6 +71,7 @@ target_sources( amrex
    AMReX_DataAllocator.H
    AMReX_BLProfiler.H
    AMReX_BLBackTrace.H
+   AMReX_BLBackTrace.cpp
    AMReX_BLFort.H
    AMReX_NFiles.H
    AMReX_NFiles.cpp
@@ -229,9 +232,6 @@ target_sources( amrex
    # Memory pool -------------------------------------------------------------
    AMReX_MemPool.cpp
    AMReX_MemPool.H
-   # Profiling ---------------------------------------------------------------
-   AMReX_BLProfiler.cpp
-   AMReX_BLBackTrace.cpp
    # Parser ---------------------------------------------------------------
    Parser/AMReX_Parser.cpp
    Parser/AMReX_Parser.H
@@ -256,6 +256,16 @@ target_sources( amrex
    # Forward declaration -----------------------------------------------------
    AMReX_BaseFwd.H
    )
+
+# Profiling
+#   this source file has zero symbols in default conditions, which creates
+#   ranlib warnings, e.g., on macOS
+if(AMReX_BASE_PROFILE OR AMReX_TINY_PROFILE OR AMReX_FORTRAN)
+   target_sources( amrex
+     PRIVATE
+       AMReX_BLProfiler.cpp
+   )
+endif()
 
 # Fortran stuff
 if (AMReX_FORTRAN)
@@ -293,4 +303,9 @@ endif ()
 # Tiny Profiler
 if (AMReX_TINY_PROFILE)
    target_sources(amrex PRIVATE AMReX_TinyProfiler.cpp AMReX_TinyProfiler.H )
+endif ()
+
+# MPMD
+if (AMReX_MPI)
+   target_sources(amrex PRIVATE AMReX_MPMD.cpp AMReX_MPMD.H )
 endif ()

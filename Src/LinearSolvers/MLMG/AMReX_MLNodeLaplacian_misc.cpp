@@ -248,7 +248,7 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
 #endif
             });
         }
-        Gpu::synchronize();
+        Gpu::streamSynchronize();
     } else
 #endif
     {
@@ -285,7 +285,8 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
                 });
 #endif
             }
-            else if (m_use_harmonic_average && mglev > 0)
+            else if ( (m_use_harmonic_average && mglev > 0) ||
+                       m_use_mapped )
             {
                 AMREX_D_TERM(Array4<Real const> const& sxarr = sigma[0]->const_array(mfi);,
                              Array4<Real const> const& syarr = sigma[1]->const_array(mfi);,
@@ -409,7 +410,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
             }
         }
 
-        Gpu::synchronize();
+        Gpu::streamSynchronize();
         if (m_smooth_num_sweeps > 1) nodalSync(amrlev, mglev, sol);
     }
     else // cpu
@@ -878,6 +879,9 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                           const Vector<const MultiFab*>& rhnd,
                           const Vector<MultiFab*>& a_rhcc)
 {
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(rhs,vel,rhnd,a_rhcc);
+#else
     //
     // Note that div vel we copmute on a coarse/fine nodes is not a
     // composite divergence.  It has been restricted so that it is suitable
@@ -894,6 +898,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 
 #ifdef AMREX_USE_EB
     if (!m_integral_built) buildIntegral();
+    if (m_build_surface_integral && !m_surface_integral_built) buildSurfaceIntegral();
 #endif
 
 #if (AMREX_SPACEDIM == 2)
@@ -978,7 +983,9 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[ilev][0].get());
         const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
         const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
+        const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
         const MultiFab* intg = m_integral[ilev].get();
+        const MultiFab* sintg = m_surface_integral[ilev].get();
 
         AMREX_ALWAYS_ASSERT(ilev == m_num_amr_levels-1 || AMRRefRatio(ilev) == 2
                             || factory == nullptr || factory->isAllRegular());
@@ -1019,6 +1026,18 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                     {
                         mlndlap_divu_eb(i,j,k,rhsarr,velarr,vfracarr,intgarr,dmskarr,dxinvarr,nddom,lobc,hibc);
                     });
+
+                    if (m_eb_vel_dot_n[ilev]) {
+                        Array4<Real const> const& eb_vel_dot_n = m_eb_vel_dot_n[ilev]->const_array(mfi);
+                        Array4<Real const> const& bareaarr = barea->const_array(mfi);
+                        Array4<Real const> const& sintgarr = sintg->const_array(mfi);
+
+                        AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+                        {
+                            add_eb_flow_contribution(i,j,k,rhsarr,dmskarr,
+                                dxinvarr,bareaarr,sintgarr,eb_vel_dot_n);
+                        });
+                    }
                 }
                 else
                 {
@@ -1260,6 +1279,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
     for (int ilev = 0; ilev < m_num_amr_levels; ++ilev) {
         amrex::EB_set_covered(*rhs[ilev], 0.0);
     }
+#endif
 #endif
 }
 

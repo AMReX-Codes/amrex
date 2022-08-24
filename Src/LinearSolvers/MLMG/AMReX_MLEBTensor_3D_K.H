@@ -207,7 +207,7 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                              Array4<Real const> const& fy,
                              Array4<Real const> const& fz,
                              Array4<Real const> const& vel,
-//                             Array4<Real const> const& velb,
+                             Array4<Real const> const& velb,
                              Array4<Real const> const& etab,
                              Array4<Real const> const& kapb,
                              Array4<int const> const& ccm,
@@ -220,7 +220,7 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                              Array4<Real const> const& fcy,
                              Array4<Real const> const& fcz,
                              Array4<Real const> const& bc,
-//                             int is_dirichlet, int is_inhomog,
+                             bool is_dirichlet, bool is_inhomog,
                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                              Real bscalar) noexcept
 {
@@ -384,7 +384,8 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                     Real feb_0 = 0.0;
                     Real feb_1 = 0.0;
                     Real feb_2 = 0.0;
-                    // if (is_dirichlet)
+
+                    if (is_dirichlet)
                     {
                         Real dapx = apx(i+1,j,k)-apx(i,j,k);
                         Real dapy = apy(i,j+1,k)-apy(i,j,k);
@@ -395,13 +396,12 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                         Real anrmz = -dapz * anorminv;
 
                         Real velb_0 = 0, velb_1 = 0, velb_2 = 0;
-#if 0
+
                         if (is_inhomog) {
                             velb_0 = velb(i,j,k,0);
                             velb_1 = velb(i,j,k,1);
                             velb_2 = velb(i,j,k,2);
                         }
-#endif
 
                         Real dx_eb = amrex::max(0.3, (kappa*kappa-0.25)/(2.*kappa));
                         Real dg = dx_eb / amrex::max(amrex::Math::abs(anrmx),

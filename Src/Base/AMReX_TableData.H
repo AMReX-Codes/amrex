@@ -77,8 +77,8 @@ struct Table2D
 {
     T* AMREX_RESTRICT p = nullptr;
     Long jstride = 0;
-    GpuArray<int,2> begin{1,1};
-    GpuArray<int,2> end{0,0};
+    GpuArray<int,2> begin{{1,1}};
+    GpuArray<int,2> end{{0,0}};
 
     AMREX_GPU_HOST_DEVICE
     constexpr Table2D () noexcept {}
@@ -142,8 +142,8 @@ struct Table3D
     T* AMREX_RESTRICT p = nullptr;
     Long jstride = 0;
     Long kstride = 0;
-    GpuArray<int,3> begin{1,1,1};
-    GpuArray<int,3> end{0,0,0};
+    GpuArray<int,3> begin{{1,1,1}};
+    GpuArray<int,3> end{{0,0,0}};
 
     AMREX_GPU_HOST_DEVICE
     constexpr Table3D () noexcept {}
@@ -213,8 +213,8 @@ struct Table4D
     Long jstride = 0;
     Long kstride = 0;
     Long nstride = 0;
-    GpuArray<int,4> begin{1,1,1,1};
-    GpuArray<int,4> end{0,0,0,0};
+    GpuArray<int,4> begin{{1,1,1,1}};
+    GpuArray<int,4> end{{0,0,0,0}};
 
     AMREX_GPU_HOST_DEVICE
     constexpr Table4D () noexcept {}
@@ -412,6 +412,7 @@ TableData<T,N>::operator= (TableData<T,N> && rhs) noexcept
     m_ptr_owner = rhs.m_ptr_owner;
     rhs.m_dptr = nullptr;
     rhs.m_ptr_owner = false;
+    return *this;
 }
 
 template <typename T, int N>

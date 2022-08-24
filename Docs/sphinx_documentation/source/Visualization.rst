@@ -38,13 +38,21 @@ Amrvis. Additional information is contained in the document
 
    If you want to build Amrvis with ``DIM=3`` for display of 3-dimensional data,
    you must first download and build ``volpack``. This can be done by cloning
-   the repository:
+   the repository or via package manager. To install by cloning the repository:
 
    .. code-block:: console
 
        git clone https://ccse.lbl.gov/pub/Downloads/volpack.git
 
    After downloading, ``cd`` into ``volpack/`` and type ``make``.
+
+   To install via package manager, it is necessary to install the package,
+   ``libvolpack1-dev``. This package is available for Debian Linux and
+   can be installed with the command:
+
+   .. code-block:: console
+
+      sudo apt install libvolpack1-dev
 
    |
 
@@ -262,6 +270,15 @@ on-screen instructions.
     e.g. you name it ``pltx00100``, then VisIt will not be able to correctly recognize
     and print the value for ``Cycle``.  (It will still read and display the data itself.)
 
+VisIt HDF5 Format
+-----------------
+
+The plotfiles generated with the HDF5 format can be visualized by VisIt as well. To open
+a single plotfile, run VisIt, then select "File" :math:`\rightarrow` "Open file ...",
+then select the HDF5 plotfile of interest (e.g.,``plt00000.h5``), and select "Chombo"
+in the "Open file as type" dropdown menu. VisIt can also recognize the time steps
+automatically based on the numbers in the HDF5 plotfile names in a directory.
+
 .. _section-1:
 
 ParaView
@@ -434,6 +451,14 @@ we will assume a single vector has been stored as three separate variables,
 
    Vector Field generated with ParaView
 
+ParaView HDF5 Format
+--------------------
+
+The plotfiles generated with the HDF5 format can be visualized by ParaView.
+To open a single plotfile, run VisIt, select "File" :math:`\rightarrow` "Open",
+then select the HDF5 plotfile (e.g.,``plt00000.h5``). You can select an
+individual plotfile or select a group of files to read as time series, then
+click OK. ParaView will ask you about the file type -- choose "VisItChomboReader".
 
 .. _section-2:
 
@@ -848,9 +873,12 @@ and point to the CMake configuration installed with SENSEI.
 
 .. code-block:: bash
 
-   cmake -DAMReX_SENSEI=ON -DSENSEI_DIR=<path to install>/lib/cmake ..
+   cmake -DAMReX_SENSEI=ON -DSENSEI_DIR=<path to install>/<lib dir>/cmake ..
 
-When CMake generates the make files proceed as usual.
+When CMake generates the make files proceed as usual. Note: <lib dir> may be
+`lib` or `lib64` or something else depending on what CMake decided to use for
+your particular OS. See the CMake GNUInstallDirs documentation for more
+information.
 
 .. code-block:: bash
 
@@ -927,8 +955,7 @@ dataset.
 
 Obtaining SENSEI
 -----------------
-SENSEI is hosted on Kitware's Gitlab site at https://gitlab.kitware.com/sensei/sensei
-It's best to checkout the latest release rather than working on the master branch.
+SENSEI is hosted on github at https://github.com/SENSEI-insitu/SENSEI.git
 
 To ease the burden of wrangling back end installs SENSEI provides two platforms
 with all dependencies pre-installed, a VirtualBox VM, and a NERSC Cori

@@ -5,6 +5,9 @@
 #include <AMReX_AsyncOut.H>
 #include <AMReX.H>
 #include <AMReX_Utility.H>
+#ifdef AMREX_USE_MPI
+#include <AMReX_MPMD.H>
+#endif
 
 #ifdef AMREX_TINY_PROFILING
 #include <AMReX_TinyProfiler.H>
@@ -71,7 +74,15 @@ BLBackTrace::handler(int s)
     std::string errfilename;
     {
         std::ostringstream ss;
-        ss << "Backtrace." << ParallelDescriptor::MyProc();
+#ifdef AMREX_USE_MPI
+        if (MPMD::Initialized()) {
+            ss << "Backtrace.prog" << MPMD::MyProgId() << ".";
+        } else
+#endif
+        {
+            ss << "Backtrace.";
+        }
+        ss << ParallelDescriptor::MyProc();
 #ifdef AMREX_USE_OMP
         ss << "." << omp_get_thread_num();
 #endif
@@ -180,17 +191,18 @@ BLBackTrace::print_backtrace_info (FILE* f)
     if (strings != NULL) {
         int have_eu_addr2line = 0;
         int have_addr2line = 0;
-        std::string cmd;
+        std::string eu_cmd;
         {
             have_eu_addr2line = file_exists("/usr/bin/eu-addr2line");
             if (have_eu_addr2line) {
                 const pid_t pid = getpid();
                 // cmd = "/usr/bin/eu-addr2line -C -f -i --pretty-print -p "
-                cmd = "/usr/bin/eu-addr2line -C -f -i -p "
+                eu_cmd = "/usr/bin/eu-addr2line -C -f -i -p "
                     + std::to_string(pid);
             }
         }
-        if (!have_eu_addr2line) {
+        std::string cmd;
+        {
             have_addr2line = file_exists("/usr/bin/addr2line");
             if (have_addr2line) {
                 cmd = "/usr/bin/addr2line -Cpfie " + amrex::system::exename;
@@ -213,16 +225,24 @@ BLBackTrace::print_backtrace_info (FILE* f)
 
 #if !defined(AMREX_USE_OMP) || !defined(__INTEL_COMPILER)
             std::string addr2line_result;
+            bool try_addr2line = false;
             if (amrex::system::call_addr2line && have_eu_addr2line) {
                 if (bt_buffer[i] != nullptr) {
                     char print_buff[32];
                     std::snprintf(print_buff,sizeof(print_buff),"%p",bt_buffer[i]);
-                    const std::string full_cmd = cmd + " " + print_buff;
+                    const std::string full_cmd = eu_cmd + " " + print_buff;
                     addr2line_result = run_command(full_cmd);
+                    if (addr2line_result.find("??:") != std::string::npos) { // found ??:
+                        try_addr2line = true;
+                    }
                 }
-            } else if (amrex::system::call_addr2line && have_addr2line &&
-                       !amrex::system::exename.empty())
+            } else {
+                try_addr2line = true;
+            }
+            if (try_addr2line && amrex::system::call_addr2line && have_addr2line &&
+                !amrex::system::exename.empty())
             {
+                addr2line_result.clear();
                 const std::string line = strings[i];
                 std::size_t found_libc = line.find("libc.so");
                 if (found_libc == std::string::npos) {

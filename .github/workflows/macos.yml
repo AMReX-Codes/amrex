@@ -8,10 +8,13 @@ concurrency:
 
 jobs:
   # Build libamrex and all tests
-  tests-macos-eb:
-    name: AppleClang@11.0 GFortran@9.3 [tests-eb]
+  tests-macos-universal-nompi:
+    name: AppleClang Universal w/o MPI [tests-universal]
     runs-on: macos-latest
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wno-c++17-extensions -Wno-range-loop-analysis -Wno-pass-failed"}
+    env:
+      # build universal binaries for M1 "Apple Silicon" and Intel CPUs
+      CMAKE_OSX_ARCHITECTURES: "arm64;x86_64"
+      CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wno-c++17-extensions -Wno-range-loop-analysis -Wno-pass-failed"
       # -Wno-range-loop-analysis: Apple clang has a bug in range-loop-analysis
     steps:
     - uses: actions/checkout@v2
@@ -24,22 +27,20 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release  \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_EB=ON               \
+            -DAMReX_MPI=OFF             \
             -DAMReX_ENABLE_TESTS=ON     \
-            -DAMReX_PARTICLES=ON        \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=$(which ccache)
+            -DAMReX_PARTICLES=ON
         cmake --build build --parallel 2
 
-        cd build
-        ctest --output-on-failure
-        cd ..
+        ctest --test-dir build --output-on-failure
 
   # Build libamrex and all tests
   tests-macos:
     name: AppleClang@11.0 GFortran@9.3 [tests]
     runs-on: macos-latest
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wno-c++17-extensions -Wno-range-loop-analysis -Wno-pass-failed -O1"}
+    env:
+      CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wno-c++17-extensions -Wno-range-loop-analysis -Wno-pass-failed"
       # -Wno-range-loop-analysis: Apple clang has a bug in range-loop-analysis
-      # It's too slow with -O0
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -49,12 +50,10 @@ jobs:
         cmake -S . -B build             \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DAMReX_EB=OFF              \
+            -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
-            -DAMReX_PARTICLES=ON        \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=$(which ccache)
+            -DAMReX_PARTICLES=ON
         cmake --build build --parallel 2
         cmake --build build --target install
 
-        cd build
-        ctest --output-on-failure
+        ctest --test-dir build --output-on-failure

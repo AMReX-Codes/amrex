@@ -12,6 +12,7 @@ vpath %.H    $(FINAL_VPATH_LOCATIONS)
 vpath %.hpp  $(FINAL_VPATH_LOCATIONS)
 
 vpath AMReX_Config.H $(srcTempDir)
+vpath AMReX_Version.H $(srcTempDir)
 
 FCPPFLAGS := $(addprefix $(CPP_PREFIX), $(CPPFLAGS))
 
@@ -88,6 +89,11 @@ $(srcTempDir)/AMReX_Config.H:
 	              --allow-different-compiler="$(ALLOW_DIFFERENT_COMP)" \
 	              > $@
 
+$(srcTempDir)/AMReX_Version.H:
+	@echo Generating AMReX_Version.H ...
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
+	@ $(MKVERSIONHEADER) --defines="$(VERSION_DEFINES)" > $@
+
 ifeq ($(USE_PROFPARSER),TRUE)
 BLProfParser.tab.H BLProfParser.tab.cpp: $(AMREX_HOME)/Src/Extern/ProfParser/BLProfParser.y
 	cat $(AMREX_HOME)/Src/Extern/ProfParser/BLProfParser.y $(SED0) $(SED1) > BLProfParserNC.y
@@ -137,6 +143,7 @@ install_headers:
 	  done; \
 	done
 	@install -c -m 644 $(srcTempDir)/AMReX_Config.H $(amrexIncludeDir)
+	@install -c -m 644 $(srcTempDir)/AMReX_Version.H $(amrexIncludeDir)
 
 uninstall_headers:
 	@echo Uninstall headers at $(amrexIncludeDir) ...
@@ -149,6 +156,7 @@ uninstall_headers:
 	  done; \
 	done
 	@$(SILENT) $(RM) $(amrexIncludeDir)/AMReX_Config.H;
+	@$(SILENT) $(RM) $(amrexIncludeDir)/AMReX_Version.H;
 	@if [ -d $(amrexIncludeDir) ]; then \
 	    $(SILENT) rmdir -p --ignore-fail-on-non-empty $(amrexIncludeDir); \
 	fi;
@@ -243,7 +251,7 @@ FORCE:
 #
 # Rules for objects.
 #
-$(objEXETempDir)/%.o: %.cpp $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
+$(objEXETempDir)/%.o: %.cpp $(srcTempDir)/AMReX_Config.H $(srcTempDir)/AMReX_Version.H $(AUTO_BUILD_SOURCES)
 	@echo Compiling $*.cpp ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 ifeq ($(LOG_BUILD_TIME),TRUE)
@@ -255,7 +263,7 @@ ifeq ($(LOG_BUILD_TIME),TRUE)
 	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
 endif
 
-$(objEXETempDir)/%.o: %.c $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
+$(objEXETempDir)/%.o: %.c $(srcTempDir)/AMReX_Config.H $(srcTempDir)/AMReX_Version.H $(AUTO_BUILD_SOURCES)
 	@echo Compiling $*.c ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 ifeq ($(LOG_BUILD_TIME),TRUE)
@@ -279,7 +287,7 @@ ifeq ($(LOG_BUILD_TIME),TRUE)
 	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
 endif
 
-$(objEXETempDir)/%.o: %.F $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
+$(objEXETempDir)/%.o: %.F $(srcTempDir)/AMReX_Config.H $(srcTempDir)/AMReX_Version.H $(AUTO_BUILD_SOURCES)
 	@echo Compiling $*.F ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(f77EXETempDir) ]; then mkdir -p $(f77EXETempDir); fi
@@ -305,7 +313,7 @@ ifeq ($(LOG_BUILD_TIME),TRUE)
 	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
 endif
 
-$(objEXETempDir)/%.o: %.F90 $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
+$(objEXETempDir)/%.o: %.F90 $(srcTempDir)/AMReX_Config.H $(srcTempDir)/AMReX_Version.H $(AUTO_BUILD_SOURCES)
 	@echo Compiling $*.F90 ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 ifeq ($(LOG_BUILD_TIME),TRUE)
@@ -321,7 +329,7 @@ endif
 # Rules for dependencies in bare object files.
 #
 
-$(depEXETempDir)/%.d: %.cpp $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
+$(depEXETempDir)/%.d: %.cpp $(srcTempDir)/AMReX_Config.H $(srcTempDir)/AMReX_Version.H $(AUTO_BUILD_SOURCES)
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 ifeq ($(USE_DPCPP),TRUE)
@@ -334,7 +342,7 @@ else
 endif
 	@$(SHELL) -ec 'sed -i -e '\''s,$*\.o,$(objEXETempDir)/& $@,g'\'' $@'
 
-$(depEXETempDir)/%.d: %.c $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
+$(depEXETempDir)/%.d: %.c $(srcTempDir)/AMReX_Config.H $(srcTempDir)/AMReX_Version.H $(AUTO_BUILD_SOURCES)
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 ifeq ($(USE_DPCPP),TRUE)
@@ -378,14 +386,14 @@ endif
 # The final result is `$(objEXETempDir)/x.o $(depEXETempDir)/x.d: /path/to/y.cpp`.
 #
 
-$(depEXETempDir)/%.d: %.F $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
+$(depEXETempDir)/%.d: %.F $(srcTempDir)/AMReX_Config.H $(srcTempDir)/AMReX_Version.H $(AUTO_BUILD_SOURCES)
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
 		sed -e '\''s,$*\.o,$(objEXETempDir)/& $@,'\'' > $@'
 
-$(depEXETempDir)/%.d: %.f $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
+$(depEXETempDir)/%.d: %.f $(srcTempDir)/AMReX_Config.H $(srcTempDir)/AMReX_Version.H $(AUTO_BUILD_SOURCES)
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
@@ -394,7 +402,7 @@ $(depEXETempDir)/%.d: %.f $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
 
 DEP_CHECK_OPTS :=
 
-$(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources) $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
+$(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources) $(srcTempDir)/AMReX_Config.H $(srcTempDir)/AMReX_Version.H $(AUTO_BUILD_SOURCES)
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@if [ ! -d $(f77EXETempDir) ]; then mkdir -p $(f77EXETempDir); fi
@@ -504,9 +512,14 @@ endif
 # e.g. libraries, simply do "make print-libraries".  This will
 # print out the value.
 print-%:
-	@echo $* is '$($*)'
+	@echo $* is "$($*)"
 	@echo '    origin = $(origin $*)'
-	@echo '     value = $(value  $*)'
+	@echo '     value = $(subst ','"'"',$(value  $*))'
+# We need to use subst on the result of $(value) because it contains single
+# quotes.  Shell command echo does not like things like 'x'$(filiter-out)'y',
+# because what it sees is 'x', $(filter-out), and 'y'.  With the substition, it
+# will see 'x', "'", '$(filter-out)', "'", and 'y', with $(filter-out) inside a
+# pair of single quotes.
 
 .PHONY: help
 help:

@@ -35,21 +35,21 @@ public:
     CutFab& operator= (const CutFab&) = delete;
     CutFab& operator= (CutFab&&) = delete;
 
-    template <RunOn run_on>
+    template <RunOn run_on, typename BUF = CutFab::value_type>
     std::size_t copyFromMem (const void* src) {
-        return copyFromMem<run_on>(box(), 0, nComp(), src);
+        return copyFromMem<run_on, BUF>(box(), 0, nComp(), src);
     }
 
-    template <RunOn run_on>
+    template <RunOn run_on, typename BUF = CutFab::value_type>
     std::size_t copyFromMem (const Box&  dstbox,
                              int         dstcomp,
                              int         numcomp,
                              const void* src)
     {
         if (dptr != nullptr) {
-            return FArrayBox::copyFromMem<run_on>(dstbox, dstcomp, numcomp, src);
+            return FArrayBox::copyFromMem<run_on, BUF>(dstbox, dstcomp, numcomp, src);
         } else {
-            return sizeof(CutFab::value_type)*static_cast<std::size_t>(dstbox.numPts()*numcomp);
+            return sizeof(BUF)*static_cast<std::size_t>(dstbox.numPts()*numcomp);
         }
     }
 

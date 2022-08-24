@@ -238,3 +238,11 @@ features by focusing on key concepts in a progressive way.
 
 .. _`Guided Tutorials`: https://amrex-codes.github.io/amrex/tutorials_html/
 
+Example Codes
+=============
+
+To assist users we have multiple example codes introducing AMReX functionality.
+They range from HelloWorld walk-thrus to stand-alone examples of complex
+features in practice. To access the available examples, please see
+`AMReX Guided Tutorials and Example Codes
+<https://amrex-codes.github.io/amrex/tutorials_html/>`_.

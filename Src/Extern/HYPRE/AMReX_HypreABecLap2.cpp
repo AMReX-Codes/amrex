@@ -137,6 +137,7 @@ HypreABecLap2::getSolution (MultiFab& a_soln)
         HYPRE_SStructVectorGetBoxValues(x, part, reglo.data(), reghi.data(),
                                         0, (*soln)[mfi].dataPtr());
     }
+    Gpu::synchronize();
 
     if (a_soln.nGrowVect() != 0) {
         MultiFab::Copy(a_soln, tmp, 0, 0, 1, 0);
@@ -324,7 +325,6 @@ HypreABecLap2::loadVectors (MultiFab& soln, const MultiFab& rhs)
     }
 
     const HYPRE_Int part = 0;
-    FArrayBox rhsfab;
     for (MFIter mfi(soln); mfi.isValid(); ++mfi)
     {
         const Box &reg = mfi.validbox();
@@ -335,6 +335,7 @@ HypreABecLap2::loadVectors (MultiFab& soln, const MultiFab& rhs)
         HYPRE_SStructVectorSetBoxValues(b, part, reglo.data(), reghi.data(),
                                         0, rhs_diag[mfi].dataPtr());
     }
+    Gpu::synchronize();
 }
 
 }

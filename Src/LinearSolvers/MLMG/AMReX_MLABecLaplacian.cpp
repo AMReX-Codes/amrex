@@ -87,6 +87,13 @@ MLABecLaplacian::define_ab_coeffs ()
 MLABecLaplacian::~MLABecLaplacian ()
 {}
 
+/**
+ * Set scalar constants A and B in the equation:
+ * (A \alpha - B \nabla \cdot \beta \nabla ) \phi = f
+ * for the Multi-Level AB Laplacian Solver.
+ *
+ */
+
 void
 MLABecLaplacian::setScalars (Real a, Real b) noexcept
 {
@@ -101,6 +108,16 @@ MLABecLaplacian::setScalars (Real a, Real b) noexcept
     }
 }
 
+/**
+ * Sets alpha as a scalar field to values from a single component
+ * mutlifab.
+ *
+ * \param [in] amrlev The level of the multifab for the solver, with
+ *                    \p amrlev = 0 always being the lowest level in the
+ *                    AMR hierarchy represented in the solve.
+ * \param [in] alpha  Multifab of alpha values.
+ */
+
 void
 MLABecLaplacian::setACoeffs (int amrlev, const MultiFab& alpha)
 {
@@ -110,12 +127,32 @@ MLABecLaplacian::setACoeffs (int amrlev, const MultiFab& alpha)
     m_needs_update = true;
 }
 
+/**
+ * Sets alpha as a single scalar constant value across
+ * the mutlifab.
+ *
+ * \param [in] amrlev The level of the multifab for the solver, with
+ *                    \p amrlev = 0 always being the lowest level in the
+ *                    AMR hierarchy represented in the solve.
+ * \param [in] alpha  Single scalar value to populate across mutlifab.
+ */
+
 void
 MLABecLaplacian::setACoeffs (int amrlev, Real alpha)
 {
     m_a_coeffs[amrlev][0].setVal(alpha);
     m_needs_update = true;
 }
+
+/**
+ * Sets beta as a scalar field to be the values defined
+ * in the supplied multifabs (one for each space dimension).
+ *
+ * \param [in] amrlev The level of the multifab for the solver, with
+ *                    \p amrlev = 0 always being the lowest level in the
+ *                    AMR hierarchy represented in the solve.
+ * \param [in] beta   Array of Multifabs of beta values.
+ */
 
 void
 MLABecLaplacian::setBCoeffs (int amrlev,
@@ -138,6 +175,16 @@ MLABecLaplacian::setBCoeffs (int amrlev,
     m_needs_update = true;
 }
 
+/**
+ * Sets beta as a single scalar constant value across
+ * the mutlifabs (one for each dimension).
+ *
+ * \param [in] amrlev The level of the multifab for the solver, with
+ *                    \p amrlev = 0 always being the lowest level in the
+ *                    AMR hierarchy represented in the solve.
+ * \param [in] beta   Single scalar value to populate across mutlifabs.
+ */
+
 void
 MLABecLaplacian::setBCoeffs (int amrlev, Real beta)
 {
@@ -146,6 +193,16 @@ MLABecLaplacian::setBCoeffs (int amrlev, Real beta)
     }
     m_needs_update = true;
 }
+
+/**
+ * Set each beta component to a single scalar constant value corresponding to the
+ * respective component of the supplied vector.
+ *
+ * \param [in] amrlev The level of the multifab for the solver, with
+ *                    \p amrlev = 0 always being the lowest level in the
+ *                    AMR hierarchy represented in the solve.
+ * \param [in] beta   Vector of scalar constant values.
+ */
 
 void
 MLABecLaplacian::setBCoeffs (int amrlev, Vector<Real> const& beta)
@@ -266,10 +323,10 @@ MLABecLaplacian::applyMetricTermsCoeffs ()
     for (int alev = 0; alev < m_num_amr_levels; ++alev)
     {
         const int mglev = 0;
-        applyMetricTerm(alev, mglev, m_a_coeffs[alev][mglev]);
+        applyMetricTermToMF(alev, mglev, m_a_coeffs[alev][mglev]);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
         {
-            applyMetricTerm(alev, mglev, m_b_coeffs[alev][mglev][idim]);
+            applyMetricTermToMF(alev, mglev, m_b_coeffs[alev][mglev][idim]);
         }
     }
 #endif

@@ -52,10 +52,9 @@ class AdvectionAmrCore : public AmrCore {
             Array4<Real> vx = mass.array(mfi, 1);
             Array4<Real> vy = mass.array(mfi, 2);
             amrex::ParallelFor(mfi.tilebox(), [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                Real x[] = {AMREX_D_DECL(problo[0] + (0.5+i)*dx[0],
-                                         problo[1] + (0.5+j)*dx[1],
-                                         problo[2] + (0.5+k)*dx[2])};
-                const double r2 = AMREX_D_TERM(x[0] * x[0], + x[1] * x[1], + x[2] * x[2]);
+                Real x[] = {problo[0] + (0.5+i)*dx[0],
+                            problo[1] + (0.5+j)*dx[1]};
+                const double r2 = x[0] * x[0] + x[1] * x[1];
                 constexpr double R = 0.1 * 0.1;
                 m(i, j, k) = r2 < R ? 1.0 : 0.0;
                 vx(i, j, k) = r2 < R ? 1.0 : 0.0;
@@ -87,8 +86,8 @@ class AdvectionAmrCore : public AmrCore {
                                 next(i, j, k, n) = m(i, j, k, n) - a_dt_over_dx * (m(i, j, k, n) - m(i - 1, j, k, n));
                             });
             }
+            std::swap(mass, mass_next);
         }
-#if (AMREX_SPACEDIM >= 2)
         else if (dir == Direction::y) {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -101,9 +100,8 @@ class AdvectionAmrCore : public AmrCore {
                                 next(i, j, k, n) = m(i, j, k, n) - a_dt_over_dx * (m(i, j, k, n) - m(i, j - 1, k, n));
                             });
             }
+            std::swap(mass, mass_next);
         }
-#endif
-        std::swap(mass, mass_next);
     }
 
     MultiFab mass{};
@@ -111,13 +109,13 @@ class AdvectionAmrCore : public AmrCore {
     Direction velocity{};
 
   private:
-    void ErrorEst(int /*level*/, ::amrex::TagBoxArray& /*tags*/, double /*time_point*/,
+    void ErrorEst(int /*level*/, ::amrex::TagBoxArray& /*tags*/, Real /*time_point*/,
                   int /* ngrow */) override {
         throw std::runtime_error("For simplicity, this example supports only one level.");
     }
 
     void
-    MakeNewLevelFromScratch(int level, double, const ::amrex::BoxArray& box_array,
+    MakeNewLevelFromScratch(int level, Real, const ::amrex::BoxArray& box_array,
                             const ::amrex::DistributionMapping& distribution_mapping) override {
         if (level > 0) {
             throw std::runtime_error("For simplicity, this example supports only one level.");
@@ -127,12 +125,12 @@ class AdvectionAmrCore : public AmrCore {
         mass_next.define(box_array, distribution_mapping, three_components, ngrow);
     }
 
-    void MakeNewLevelFromCoarse(int /*level*/, double /*time_point*/, const ::amrex::BoxArray&,
+    void MakeNewLevelFromCoarse(int /*level*/, Real /*time_point*/, const ::amrex::BoxArray&,
                                 const ::amrex::DistributionMapping&) override {
         throw std::runtime_error("For simplicity, this example supports only one level.");
     }
 
-    void RemakeLevel(int /*level*/, double /*time_point*/, const ::amrex::BoxArray&,
+    void RemakeLevel(int /*level*/, Real /*time_point*/, const ::amrex::BoxArray&,
                      const ::amrex::DistributionMapping&) override {
         throw std::runtime_error("For simplicity, this example supports only one level.");
     }
@@ -202,7 +200,7 @@ struct FillBoundaryFn {
     }
 };
 
-void WritePlotfiles(const AdvectionAmrCore& core_x, const AdvectionAmrCore& core_y, double time_point, int step)
+void WritePlotfiles(const AdvectionAmrCore& core_x, const AdvectionAmrCore& core_y, Real time_point, int step)
 {
     static const Vector<std::string> varnames{"Mass", "Vector_X", "Vector_Y"};
     int nlevels = 1;
@@ -246,11 +244,7 @@ void MyMain() {
 #endif
 
     AdvectionAmrCore core_x(Direction::x, geom1, amr_info);
-#if AMREX_SPACEDIM > 2
     AdvectionAmrCore core_y(Direction::y, geom2, amr_info);
-#else // too hack-ish?
-    AdvectionAmrCore core_y(Direction::x, geom2, amr_info);
-#endif
 
     std::vector<OnesidedMultiBlockBoundaryFn> multi_block_boundaries{};
     {   // Fill right boundary of core_x with lower mirror data of core_y
@@ -283,12 +277,12 @@ void MyMain() {
 
     FillBoundaryFn FillBoundary{std::move(multi_block_boundaries)};
 
-    int step = 1;
-    const double min_dx1_dy2 = std::min(geom1.CellSize(0), geom2.CellSize(1));
-    const double cfl = 1.0;
-    const double dt = cfl * min_dx1_dy2;
-    const double final_time = 4.0;
-    double time_point = 0.0;
+    int step = 0;
+    const Real min_dx1_dy2 = std::min(geom1.CellSize(0), geom2.CellSize(1));
+    const Real cfl = 1.0;
+    const Real dt = cfl * min_dx1_dy2;
+    const Real final_time = 4.0;
+    Real time_point = 0.0;
 
     WritePlotfiles(core_x, core_y, time_point, step);
     while (time_point < final_time) {
@@ -297,10 +291,11 @@ void MyMain() {
         core_x.AdvanceInTime(dt);
         core_y.AdvanceInTime(dt);
 
-        amrex::Print() << "Step #" << step << ", Time Point = " << time_point << '\n';
-
         time_point += dt;
         step += 1;
+
+        amrex::Print() << "Step #" << step << ", Time Point = " << time_point << '\n';
+
         WritePlotfiles(core_x, core_y, time_point, step);
     }
 }

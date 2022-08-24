@@ -503,10 +503,7 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
 
     PODVector<int,DeviceArenaAllocator<int> > dv_tags_offset(ntotblocks);
     int* dp_tags_offset = dv_tags_offset.data();
-    Gpu::htod_memcpy(dp_tags_offset, hv_tags_offset.data(), ntotblocks*sizeof(int));
-#ifdef AMREX_USE_DPCPP
-    Gpu::synchronize();
-#endif
+    Gpu::htod_memcpy_async(dp_tags_offset, hv_tags_offset.data(), ntotblocks*sizeof(int));
 
     PODVector<IntVect,DeviceArenaAllocator<IntVect> > dv_tags(ntotaltags);
     IntVect* dp_tags = dv_tags.data();
@@ -652,7 +649,24 @@ TagBoxArray::collate (Gpu::PinnedVector<IntVect>& TheGlobalCollateSpace) const
     //
     const IntVect* psend = (count > 0) ? TheLocalCollateSpace.data() : nullptr;
     IntVect* precv = TheGlobalCollateSpace.data();
+
+    // Issues have been observed with the following call at very large scale when using
+    // FujitsuMPI. The issue seems to be related to the use of MPI_Datatype. We can
+    // bypasses the issue by exchanging simpler integer arrays.
+#if !(defined(__FUJITSU) || defined(__CLANG_FUJITSU))
     ParallelDescriptor::Gatherv(psend, count, precv, countvec, offset, IOProcNumber);
+#else
+    const int* psend_int = psend->begin();
+    int* precv_int = precv->begin();
+    Long count_int = count * AMREX_SPACEDIM;
+    auto countvec_int = std::vector<int>(countvec.size());
+    auto offset_int = std::vector<int>(offset.size());
+    const auto mul_funct = [](const auto el){return el*AMREX_SPACEDIM;};
+    std::transform(countvec.begin(), countvec.end(), countvec_int.begin(), mul_funct);
+    std::transform(offset.begin(), offset.end(), offset_int.begin(), mul_funct);
+    ParallelDescriptor::Gatherv(
+        psend_int, count_int, precv_int, countvec_int, offset_int, IOProcNumber);
+#endif
 
 #else
     TheGlobalCollateSpace = std::move(TheLocalCollateSpace);

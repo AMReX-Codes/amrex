@@ -34,7 +34,8 @@ MLEBABecLap::MLEBABecLap (const Vector<Geometry>& a_geom,
 std::unique_ptr<FabFactory<FArrayBox> >
 MLEBABecLap::makeFactory (int amrlev, int mglev) const
 {
-    return makeEBFabFactory(m_geom[amrlev][mglev],
+    return makeEBFabFactory(static_cast<EBFArrayBoxFactory const*>(Factory(0,0))->getEBIndexSpace(),
+                            m_geom[amrlev][mglev],
                             m_grids[amrlev][mglev],
                             m_dmap[amrlev][mglev],
                             {1,1,1}, EBSupport::full);

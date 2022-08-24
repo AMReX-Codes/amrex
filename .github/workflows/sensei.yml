@@ -17,9 +17,9 @@ jobs:
       CC: clang
       CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"
       CMAKE_GENERATOR: Ninja
-      CMAKE_PREFIX_PATH: /root/install/sensei/develop/lib/cmake
+      CMAKE_PREFIX_PATH: /root/install/sensei/v4.0.0/lib64/cmake
     container:
-      image: ryankrattiger/sensei:fedora33-vtk-mpi-20210616
+      image: senseiinsitu/ci:fedora35-amrex-20220613
     steps:
     - uses: actions/checkout@v2
     - name: Setup
@@ -27,7 +27,7 @@ jobs:
     - name: Configure
       run: |
         cd build
-        cmake ..                  \
+        cmake ..                     \
             -DCMAKE_BUILD_TYPE=Debug \
             -DAMReX_ENABLE_TESTS=ON  \
             -DAMReX_FORTRAN=OFF      \

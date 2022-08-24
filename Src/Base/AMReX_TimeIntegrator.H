@@ -6,19 +6,27 @@
 #include <AMReX_IntegratorBase.H>
 #include <AMReX_FEIntegrator.H>
 #include <AMReX_RKIntegrator.H>
+
+#ifdef AMREX_USE_SUNDIALS
+#include <AMReX_SundialsIntegrator.H>
+#endif
+
 #include <functional>
 
 namespace amrex {
 
 enum struct IntegratorTypes {
     ForwardEuler = 0,
-    ExplicitRungeKutta
+    ExplicitRungeKutta,
+    Sundials
 };
 
 template<class T>
 class TimeIntegrator
 {
 private:
+    amrex::Real m_time, m_timestep;
+    int m_step_number;
     std::unique_ptr<IntegratorBase<T> > integrator_ptr;
     std::function<void ()> post_timestep;
 
@@ -26,8 +34,33 @@ private:
     {
         amrex::ParmParse pp("integration");
 
-        int integrator_type = static_cast<int>(IntegratorTypes::ForwardEuler);
-        pp.get("type", integrator_type);
+        int integrator_type;
+        std::string integrator_str;
+        pp.get("type", integrator_str);
+
+        if (integrator_str == "ForwardEuler") {
+            integrator_type = static_cast<int>(IntegratorTypes::ForwardEuler);
+        } else if (integrator_str == "RungeKutta") {
+            integrator_type = static_cast<int>(IntegratorTypes::ExplicitRungeKutta);
+        } else if (integrator_str == "SUNDIALS") {
+            integrator_type = static_cast<int>(IntegratorTypes::Sundials);
+        } else {
+            try {
+                integrator_type = std::stoi(integrator_str, nullptr);
+            } catch (const std::invalid_argument& ia) {
+                Print() << "Invalid integration.type: " << ia.what() << std::endl;
+                Error("Failed to initialize AMReX TimeIntegrator class.");
+            }
+
+            AMREX_ALWAYS_ASSERT(integrator_type >= static_cast<int>(IntegratorTypes::ForwardEuler) &&
+                                integrator_type <= static_cast<int>(IntegratorTypes::Sundials));
+        }
+
+#ifndef AMREX_USE_SUNDIALS
+        if (integrator_type == static_cast<int>(IntegratorTypes::Sundials)) {
+            Error("AMReX has not been compiled with SUNDIALS. Recompile with USE_SUNDIALS=TRUE.");
+        }
+#endif
 
         return static_cast<IntegratorTypes>(integrator_type);
     }
@@ -43,6 +76,12 @@ private:
 
         // By default, do nothing
         set_rhs([](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){});
+        set_fast_rhs([](T& /* S_rhs */, T& /* S_extra */, const T& /* S_data */, const amrex::Real /* time */){});
+
+        // By default, initialize time, timestep, step number to 0's
+        m_time = 0.0_rt;
+        m_timestep = 0.0_rt;
+        m_step_number = 0;
     }
 
 public:
@@ -83,6 +122,11 @@ public:
             case IntegratorTypes::ExplicitRungeKutta:
                 integrator_ptr = std::make_unique<RKIntegrator<T> >(S_data);
                 break;
+#ifdef AMREX_USE_SUNDIALS
+            case IntegratorTypes::Sundials:
+                integrator_ptr = std::make_unique<SundialsIntegrator<T> >(S_data);
+                break;
+#endif
             default:
                 amrex::Error("integrator type did not match a valid integrator type.");
                 break;
@@ -104,6 +148,46 @@ public:
         integrator_ptr->set_rhs(F);
     }
 
+    void set_fast_rhs (std::function<void(T&, T&, const T&, const amrex::Real)> F)
+    {
+        integrator_ptr->set_fast_rhs(F);
+    }
+
+    void set_slow_fast_timestep_ratio (const int timestep_ratio = 1)
+    {
+        integrator_ptr->set_slow_fast_timestep_ratio(timestep_ratio);
+    }
+
+    void set_fast_timestep (const Real fast_dt = 1.0)
+    {
+        integrator_ptr->set_fast_timestep(fast_dt);
+    }
+
+    Real get_fast_timestep ()
+    {
+        return integrator_ptr->get_fast_timestep();
+    }
+
+    int get_step_number ()
+    {
+        return m_step_number;
+    }
+
+    amrex::Real get_time ()
+    {
+        return m_time;
+    }
+
+    amrex::Real get_timestep ()
+    {
+        return m_timestep;
+    }
+
+    void set_timestep (amrex::Real dt)
+    {
+        m_timestep = dt;
+    }
+
     std::function<void ()> get_post_timestep ()
     {
         return post_timestep;
@@ -119,33 +203,38 @@ public:
         return integrator_ptr->get_rhs();
     }
 
+    std::function<void(T&, T&, const T&, const amrex::Real)> get_fast_rhs ()
+    {
+        return integrator_ptr->get_fast_rhs();
+    }
+
     void advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real timestep)
     {
         integrator_ptr->advance(S_old, S_new, time, timestep);
     }
 
     void integrate (T& S_old, T& S_new, amrex::Real start_time, const amrex::Real start_timestep,
-                    const amrex::Real end_time, const int nsteps)
+                    const amrex::Real end_time, const int start_step, const int max_steps)
     {
-        amrex::Real time = start_time;
-        amrex::Real timestep = start_timestep;
+        m_time = start_time;
+        m_timestep = start_timestep;
         bool stop_advance = false;
-        for (int step_number = 0; step_number < nsteps && !stop_advance; ++step_number)
+        for (m_step_number = start_step; m_step_number < max_steps && !stop_advance; ++m_step_number)
         {
-            if (end_time - time < timestep) {
-                timestep = end_time - time;
+            if (end_time - m_time < m_timestep) {
+                m_timestep = end_time - m_time;
                 stop_advance = true;
             }
 
-            if (step_number > 0) {
+            if (m_step_number > 0) {
                 std::swap(S_old, S_new);
             }
 
             // Call the time integrator advance
-            integrator_ptr->advance(S_old, S_new, time, timestep);
+            integrator_ptr->advance(S_old, S_new, m_time, m_timestep);
 
             // Update our time variable
-            time += timestep;
+            m_time += m_timestep;
 
             // Call the post-timestep hook
             post_timestep();

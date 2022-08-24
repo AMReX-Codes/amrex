@@ -29,7 +29,7 @@ AmrInSituBridge::update(Amr *dataSource)
         data_adaptor->SetDataSource(dataSource);
         data_adaptor->SetDataTime(dataSource->cumTime());
         data_adaptor->SetDataTimeStep(dataSource->levelSteps(0));
-        ret = analysis_adaptor->Execute(data_adaptor) ? 0 : -1;
+        ret = analysis_adaptor->Execute(data_adaptor, nullptr) ? 0 : -1;
         data_adaptor->ReleaseData();
         data_adaptor->Delete();
 

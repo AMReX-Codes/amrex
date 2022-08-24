@@ -79,7 +79,7 @@ void test_assign_density(TestParams& parms)
                            {"density", AMREX_D_DECL("vx", "vy", "vz")},
                            geom, 0.0, 0);
 
-  myPC.Checkpoint("plt00000", "particle0");
+  myPC.WritePlotFile("plt00000", "particle0");
 }
 
 int main(int argc, char* argv[])

@@ -18,7 +18,7 @@ public:
     EllipsoidIF (const RealArray& a_radii, const RealArray& a_center, bool a_inside)
         : m_radii(makeXDim3(a_radii)),
           m_center(makeXDim3(a_center)),
-          m_sign( a_inside ? 1.0 : -1.0 )
+          m_sign( a_inside ? 1.0_rt : -1.0_rt )
         {}
 
     EllipsoidIF (const EllipsoidIF& rhs) noexcept = default;
@@ -32,7 +32,7 @@ public:
         Real d2 = AMREX_D_TERM(  (x-m_center.x)*(x-m_center.x) / (m_radii.x*m_radii.x),
                                + (y-m_center.y)*(y-m_center.y) / (m_radii.y*m_radii.y),
                                + (z-m_center.z)*(z-m_center.z) / (m_radii.z*m_radii.z));
-        return m_sign*(d2-1.0);
+        return m_sign*(d2-1.0_rt);
     }
 
     inline Real operator() (const RealArray& p) const noexcept {

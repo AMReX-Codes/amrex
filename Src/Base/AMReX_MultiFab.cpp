@@ -5,6 +5,7 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_iMultiFab.H>
 #include <AMReX_FabArrayUtility.H>
+#include <AMReX_REAL.H>
 
 #ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
@@ -1586,6 +1587,58 @@ MultiFab::sum (int comp, bool local) const
     return sm;
 }
 
+Real
+MultiFab::sum_unique (int comp,
+                      bool local,
+                      const Periodicity& period) const
+{
+    BL_PROFILE("MultiFab::sum_unique()");
+
+    // no duplicatly distributed points if cell centered
+    if (ixType().cellCentered())
+        return this->sum(comp, local);
+
+    // Owner is the grid with the lowest grid number containing the data
+    std::unique_ptr<iMultiFab> owner_mask = OwnerMask(period);
+
+    Real sm = Real(0.0);
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        auto const& ma = this->const_arrays();
+        auto const& msk = owner_mask->const_arrays();
+        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, *this, IntVect(0),
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                       -> GpuTuple<Real>
+        {
+            return msk[box_no](i,j,k) ? ma[box_no](i,j,k,comp) : 0.0_rt;
+        });
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
+#endif
+        for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+        {
+            Box const& bx = mfi.tilebox();
+            Array4<Real const> const& a = this->const_array(mfi);
+            Array4<int const> const& msk = owner_mask->const_array(mfi);
+            Real tmp = 0.0_rt;
+            AMREX_LOOP_3D(bx, i, j, k,
+            {
+                tmp += msk(i,j,k) ? a(i,j,k,comp) : 0.0_rt;
+            });
+            sm += tmp; // Do it this way so that it does not break regression tests.
+        }
+    }
+
+    if (!local) {
+        ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
+    }
+
+    return sm;
+}
+
 void
 MultiFab::minus (const MultiFab& mf, int strt_comp, int num_comp, int nghost)
 {
@@ -1783,37 +1836,9 @@ MultiFab::WeightedSync (const MultiFab& wgt, const Periodicity& period)
 }
 
 void
-MultiFab::OverrideSync (const Periodicity& period)
-{
-    if (ixType().cellCentered()) return;
-    auto msk = this->OwnerMask(period);
-    amrex::OverrideSync(*this, *msk, period);
-}
-
-void
 MultiFab::OverrideSync (const iMultiFab& msk, const Periodicity& period)
 {
     amrex::OverrideSync(*this, msk, period);
-}
-
-void
-MultiFab::OverrideSync_nowait (const Periodicity& period)
-{
-    if (ixType().cellCentered()) return;
-    auto msk = this->OwnerMask(period);
-    amrex::OverrideSync_nowait(*this, *msk, period);
-}
-
-void
-MultiFab::OverrideSync_nowait (const iMultiFab& msk, const Periodicity& period)
-{
-    amrex::OverrideSync_nowait(*this, msk, period);
-}
-
-void
-MultiFab::OverrideSync_finish ()
-{
-    amrex::OverrideSync_finish(*this);
 }
 
 }

@@ -6,7 +6,7 @@
 # against a currently installed version of AMReX. The resulting
 # executable can then be ran to test functionality.
 
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.17)
 
 project(amrex-test-install)
 
@@ -17,9 +17,26 @@ set(_src_dir   ${_base_dir}/Source)
 set(_input_dir ${_base_dir}/Exec)
 
 
+if (AMReX_FORTRAN_INTERFACES)
+    enable_language(Fortran)
+endif()
+
 if (AMReX_GPU_BACKEND STREQUAL "CUDA")
+    if(CMAKE_VERSION VERSION_LESS 3.17)
+        message(FATAL_ERROR "Cuda requires CMake version 3.17 or newer")
+    endif()
     enable_language(CUDA)
     find_package(AMReX REQUIRED CUDA)
+
+elseif(AMReX_GPU_BACKEND STREQUAL "HIP")
+    if(CMAKE_VERSION VERSION_LESS 3.20)
+        message(FATAL_ERROR "HIP requires CMake version 3.20 or newer")
+    endif()
+    find_package(AMReX REQUIRED HIP)
+    find_package(rocrand REQUIRED CONFIG)
+    find_package(rocprim REQUIRED CONFIG)
+    find_package(hiprand REQUIRED CONFIG)
+
 else()
    # Use installed version of AMReX
    find_package(AMReX REQUIRED)
@@ -62,7 +79,6 @@ target_sources(install_test
     )
 
 target_link_libraries(install_test PUBLIC AMReX::amrex)
-
 
 # Additional CUDA configuration commands
 if (AMReX_GPU_BACKEND STREQUAL "CUDA")

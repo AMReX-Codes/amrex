@@ -2670,7 +2670,7 @@ void mlndlap_Ax_fine_contrib_cs (int i, int j, int k, Box const& ndbx, Box const
                                  GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
     mlndlap_Ax_fine_contrib_doit<rr>
-        ([&sig] (int, int, int) -> Real const& { return sig; },
+        ([=] (int, int, int) -> Real { return sig; },
          i,j,k,ndbx,ccbx,f,res,rhs,phi,msk,dxinv);
 }
 
@@ -2729,7 +2729,7 @@ void mlndlap_res_cf_contrib_cs (int i, int j, int k, Array4<Real> const& res,
                                      return ccdom_p.contains(ix,iy,iz)
                                          && (ccmsk(ix,iy,iz) == crse_cell);
                                  },
-                                 [&sig] (int, int, int) -> Real const&
+                                 [=] (int, int, int) -> Real
                                  {
                                      return sig;
                                  },
@@ -6437,6 +6437,15 @@ namespace {
     constexpr int i_c_ypzp = 26;
     constexpr int n_conn = 27;
 
+    constexpr int i_B_x        =  0;
+    constexpr int i_B_y        =  1;
+    constexpr int i_B_z        =  2;
+    constexpr int i_B_x_y      =  3;
+    constexpr int i_B_x_z      =  4;
+    constexpr int i_B_y_z      =  5;
+    constexpr int i_B_xyz      =  6;
+    constexpr int numSurfIntgs =  7;
+
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -6799,6 +6808,84 @@ void mlndlap_divu_eb (int i, int j, int k, Array4<Real> const& rhs, Array4<Real 
                                -Real(4.)*intg(i  ,j  ,k-1,i_S_x_y))*zero_ihi*zero_jhi );
     } else {
         rhs(i,j,k) = Real(0.);
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void add_eb_flow_contribution (int i, int j, int k, Array4<Real> const& rhs,
+                      Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                      Array4<Real const> const& bareaarr,
+                      Array4<Real const> const& sintg,
+                      Array4<Real const> const& eb_vel_dot_n) noexcept
+{
+    Real fac_eb = Real(0.125) * dxinv[0];
+
+    if (!msk(i,j,k)) {
+        rhs(i,j,k) += fac_eb*(
+            eb_vel_dot_n(i-1,j-1,k  )*(        bareaarr(i-1,j-1,k)
+                                        +Real(2.)*sintg(i-1,j-1,k  ,i_B_x)
+                                        +Real(2.)*sintg(i-1,j-1,k  ,i_B_y)
+                                        +Real(4.)*sintg(i-1,j-1,k  ,i_B_x_y)
+                                        -Real(2.)*sintg(i-1,j-1,k  ,i_B_z)
+                                        -Real(4.)*sintg(i-1,j-1,k  ,i_B_y_z)
+                                        -Real(4.)*sintg(i-1,j-1,k  ,i_B_x_z)
+                                        -Real(8.)*sintg(i-1,j-1,k  ,i_B_xyz))
+           +eb_vel_dot_n(i  ,j-1,k  )*(        bareaarr(i  ,j-1,k)
+                                        -Real(2.)*sintg(i  ,j-1,k  ,i_B_x)
+                                        +Real(2.)*sintg(i  ,j-1,k  ,i_B_y)
+                                        -Real(4.)*sintg(i  ,j-1,k  ,i_B_x_y)
+                                        -Real(2.)*sintg(i  ,j-1,k  ,i_B_z)
+                                        -Real(4.)*sintg(i  ,j-1,k  ,i_B_y_z)
+                                        +Real(4.)*sintg(i  ,j-1,k  ,i_B_x_z)
+                                        +Real(8.)*sintg(i  ,j-1,k  ,i_B_xyz))
+           +eb_vel_dot_n(i-1,j  ,k  )*(        bareaarr(i-1,j  ,k)
+                                        +Real(2.)*sintg(i-1,j  ,k  ,i_B_x)
+                                        -Real(2.)*sintg(i-1,j  ,k  ,i_B_y)
+                                        -Real(4.)*sintg(i-1,j  ,k  ,i_B_x_y)
+                                        -Real(2.)*sintg(i-1,j  ,k  ,i_B_z)
+                                        +Real(4.)*sintg(i-1,j  ,k  ,i_B_y_z)
+                                        -Real(4.)*sintg(i-1,j  ,k  ,i_B_x_z)
+                                        +Real(8.)*sintg(i-1,j  ,k  ,i_B_xyz))
+           +eb_vel_dot_n(i  ,j  ,k  )*(        bareaarr(i  ,j  ,k)
+                                        -Real(2.)*sintg(i  ,j  ,k  ,i_B_x)
+                                        -Real(2.)*sintg(i  ,j  ,k  ,i_B_y)
+                                        +Real(4.)*sintg(i  ,j  ,k  ,i_B_x_y)
+                                        -Real(2.)*sintg(i  ,j  ,k  ,i_B_z)
+                                        +Real(4.)*sintg(i  ,j  ,k  ,i_B_y_z)
+                                        +Real(4.)*sintg(i  ,j  ,k  ,i_B_x_z)
+                                        -Real(8.)*sintg(i  ,j  ,k  ,i_B_xyz))
+           +eb_vel_dot_n(i-1,j-1,k-1)*(        bareaarr(i-1,j-1,k-1)
+                                        +Real(2.)*sintg(i-1,j-1,k-1,i_B_x)
+                                        +Real(2.)*sintg(i-1,j-1,k-1,i_B_y)
+                                        +Real(4.)*sintg(i-1,j-1,k-1,i_B_x_y)
+                                        +Real(2.)*sintg(i-1,j-1,k-1,i_B_z)
+                                        +Real(4.)*sintg(i-1,j-1,k-1,i_B_y_z)
+                                        +Real(4.)*sintg(i-1,j-1,k-1,i_B_x_z)
+                                        +Real(8.)*sintg(i-1,j-1,k-1,i_B_xyz))
+           +eb_vel_dot_n(i  ,j-1,k-1)*(        bareaarr(i  ,j-1,k-1)
+                                        -Real(2.)*sintg(i  ,j-1,k-1,i_B_x)
+                                        +Real(2.)*sintg(i  ,j-1,k-1,i_B_y)
+                                        -Real(4.)*sintg(i  ,j-1,k-1,i_B_x_y)
+                                        +Real(2.)*sintg(i  ,j-1,k-1,i_B_z)
+                                        +Real(4.)*sintg(i  ,j-1,k-1,i_B_y_z)
+                                        -Real(4.)*sintg(i  ,j-1,k-1,i_B_x_z)
+                                        -Real(8.)*sintg(i  ,j-1,k-1,i_B_xyz))
+           +eb_vel_dot_n(i-1,j  ,k-1)*(        bareaarr(i-1,j  ,k-1)
+                                        +Real(2.)*sintg(i-1,j  ,k-1,i_B_x)
+                                        -Real(2.)*sintg(i-1,j  ,k-1,i_B_y)
+                                        -Real(4.)*sintg(i-1,j  ,k-1,i_B_x_y)
+                                        +Real(2.)*sintg(i-1,j  ,k-1,i_B_z)
+                                        -Real(4.)*sintg(i-1,j  ,k-1,i_B_y_z)
+                                        +Real(4.)*sintg(i-1,j  ,k-1,i_B_x_z)
+                                        -Real(8.)*sintg(i-1,j  ,k-1,i_B_xyz))
+           +eb_vel_dot_n(i  ,j  ,k-1)*(        bareaarr(i  ,j  ,k-1)
+                                        -Real(2.)*sintg(i  ,j  ,k-1,i_B_x)
+                                        -Real(2.)*sintg(i  ,j  ,k-1,i_B_y)
+                                        +Real(4.)*sintg(i  ,j  ,k-1,i_B_x_y)
+                                        +Real(2.)*sintg(i  ,j  ,k-1,i_B_z)
+                                        -Real(4.)*sintg(i  ,j  ,k-1,i_B_y_z)
+                                        -Real(4.)*sintg(i  ,j  ,k-1,i_B_x_z)
+                                        +Real(8.)*sintg(i  ,j  ,k-1,i_B_xyz)));
     }
 }
 

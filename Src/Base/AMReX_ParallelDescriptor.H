@@ -1156,8 +1156,14 @@ Bcast(T* /*t*/, size_t /*n*/, int /*root*/, const MPI_Comm & /*comm*/)
 
 template <class T, class T1>
 void
-Gather(const T* /*t*/, size_t /*n*/, T1* /*t1*/, size_t /*n1*/, int /*root*/)
-{}
+Gather (const T* t, size_t n, T1* t1, size_t n1, int /*root*/)
+{
+    BL_ASSERT(n == n1);
+    amrex::ignore_unused(n1);
+
+    int const sc = n;
+    for (int j=0; j<sc; ++j) { t1[j] = t[j]; }
+}
 
 template <class T>
 std::vector<T>

@@ -1,3 +1,4 @@
+
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 bool NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::use_mask = false;
 
@@ -43,9 +44,9 @@ void
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::initializeCommComps () {
     for (int ii = 0; ii < AMREX_SPACEDIM + NStructReal + this->NumRealComps(); ++ii)
-        rc.push_back(1);
+        ghost_real_comp.push_back(1);
     for (int ii = 0; ii < 2 + NStructInt + this->NumIntComps(); ++ii)
-        ic.push_back(1);
+        ghost_int_comp.push_back(1);
     calcCommSize();
 }
 
@@ -53,7 +54,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::setRealCommComp (int i, bool value) {
-    rc[i] = value;
+    ghost_real_comp[i] = value;
     calcCommSize();
 }
 
@@ -61,7 +62,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::setIntCommComp (int i, bool value) {
-    ic[i] = value;
+    ghost_int_comp[i] = value;
     calcCommSize();
 }
 
@@ -71,12 +72,12 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::calcCommSize () {
     size_t comm_size = 0;
     for (int ii = 0; ii < AMREX_SPACEDIM + NStructReal + this->NumRealComps(); ++ii) {
-        if (rc[ii]) {
+        if (ghost_real_comp[ii]) {
             comm_size += sizeof(typename ParticleType::RealType);
         }
     }
     for (int ii = 0; ii < 2 + NStructInt + this->NumIntComps(); ++ii) {
-        if (ic[ii]) {
+        if (ghost_int_comp[ii]) {
             comm_size += sizeof(int);
         }
     }
@@ -119,6 +120,30 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+bool
+NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::areMasksValid () {
+
+    BL_PROFILE("NeighborParticleContainer::areMasksValid");
+
+    resizeContainers(this->numLevels());
+
+    for (int lev = 0; lev < this->numLevels(); ++lev)
+    {
+        BoxArray ba = this->ParticleBoxArray(lev);
+        const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
+
+        if (mask_ptr[lev] == nullptr ||
+            ! BoxArray::SameRefs(mask_ptr[lev]->boxArray(), ba) ||
+            ! DistributionMapping::SameRefs(mask_ptr[lev]->DistributionMap(), dmap))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::BuildMasks () {
@@ -135,30 +160,25 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         BoxArray ba = this->ParticleBoxArray(lev);
         const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
 
-        if (mask_ptr[lev] == nullptr ||
-            ! BoxArray::SameRefs(mask_ptr[lev]->boxArray(), ba) ||
-            ! DistributionMapping::SameRefs(mask_ptr[lev]->DistributionMap(), dmap))
-        {
-            const Geometry& geom = this->Geom(lev);
+        const Geometry& geom = this->Geom(lev);
 
-            mask_ptr[lev] = std::make_unique<iMultiFab>(ba, dmap, int(num_mask_comps), m_num_neighbor_cells);
-            mask_ptr[lev]->setVal(-1, m_num_neighbor_cells);
+        mask_ptr[lev] = std::make_unique<iMultiFab>(ba, dmap, int(num_mask_comps), m_num_neighbor_cells);
+        mask_ptr[lev]->setVal(-1, m_num_neighbor_cells);
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
-            for (MFIter mfi(*mask_ptr[lev],this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
-                 mfi.isValid(); ++mfi) {
-                const Box& box = mfi.tilebox();
-                const int grid_id = mfi.index();
-                const int tile_id = mfi.LocalTileIndex();
-                (*mask_ptr[lev])[mfi].template setVal<RunOn::Host>(grid_id, box, MaskComps::grid,  1);
-                (*mask_ptr[lev])[mfi].template setVal<RunOn::Host>(tile_id, box, MaskComps::tile,  1);
-                (*mask_ptr[lev])[mfi].template setVal<RunOn::Host>(lev    , box, MaskComps::level, 1);
-            }
-
-            mask_ptr[lev]->FillBoundary(geom.periodicity());
+        for (MFIter mfi(*mask_ptr[lev],this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
+             mfi.isValid(); ++mfi) {
+            const Box& box = mfi.tilebox();
+            const int grid_id = mfi.index();
+            const int tile_id = mfi.LocalTileIndex();
+            (*mask_ptr[lev])[mfi].template setVal<RunOn::Host>(grid_id, box, MaskComps::grid,  1);
+            (*mask_ptr[lev])[mfi].template setVal<RunOn::Host>(tile_id, box, MaskComps::tile,  1);
+            (*mask_ptr[lev])[mfi].template setVal<RunOn::Host>(lev    , box, MaskComps::level, 1);
         }
+
+        mask_ptr[lev]->FillBoundary(geom.periodicity());
     }
 }
 
@@ -254,7 +274,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         {
             box.refine(ref_fac);
         }
-        box.grow(computeRefFac(0, src_lev)*m_num_neighbor_cells);
+        box.grow(computeRefFac(0, lev)*m_num_neighbor_cells);
         const Periodicity& periodicity = this->Geom(lev).periodicity();
         const std::vector<IntVect>& pshifts = periodicity.shiftIntVect();
         const BoxArray& ba = this->ParticleBoxArray(lev);
@@ -732,15 +752,80 @@ buildNeighborList (CheckPair&& check_pair, bool /*sort*/)
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <class CheckPair, class OtherPCType>
+void
+NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+buildNeighborList (CheckPair&& check_pair, OtherPCType& other,
+                   Vector<std::map<std::pair<int, int>, amrex::NeighborList<typename OtherPCType::ParticleType> > >& neighbor_lists,
+                   bool /*sort*/)
+{
+    BL_PROFILE("NeighborParticleContainer::buildNeighborList");
+
+    AMREX_ASSERT(numParticlesOutOfRange(*this, m_num_neighbor_cells) == 0);
+    AMREX_ASSERT(numParticlesOutOfRange(other, m_num_neighbor_cells) == 0);
+    AMREX_ASSERT(SameIteratorsOK(*this, other));
+
+    EnsureThreadSafeTiles(*this);
+    EnsureThreadSafeTiles(other);
+
+    resizeContainers(this->numLevels());
+    neighbor_lists.resize(this->numLevels());
+
+    for (int lev = 0; lev < this->numLevels(); ++lev)
+    {
+        neighbor_lists[lev].clear();
+
+        for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+            PairIndex index(pti.index(), pti.LocalTileIndex());
+            neighbor_lists[lev][index];
+        }
+
+              auto& plev = this->GetParticles(lev);
+        const auto& geom = this->Geom(lev);
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
+        {
+            int gid = pti.index();
+            int tid = pti.LocalTileIndex();
+            auto index = std::make_pair(gid, tid);
+
+            const auto& ptile = plev[index];
+            auto& other_ptile = other.ParticlesAt(lev, pti);
+            if (ptile.numParticles() == 0) continue;
+
+            Box bx = pti.tilebox();
+            bx.grow(computeRefFac(0, lev).max()*m_num_neighbor_cells);
+
+            neighbor_lists[lev][index].build(ptile, other_ptile, bx, geom,
+                                             std::forward<CheckPair>(check_pair),
+                                             computeRefFac(0, lev).max()*m_num_neighbor_cells);
+        }
+    }
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 template <class CheckPair>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 selectActualNeighbors (CheckPair&& check_pair, int num_cells)
 {
     BL_PROFILE("NeighborParticleContainer::selectActualNeighbors");
+    const auto& geom_fine = this->Geom(0);
+    const auto& ba_fine   = this->ParticleBoxArray(0);
+    if (ba_fine.size() == 1 && !geom_fine.isAnyPeriodic()) {
+        return;
+    }
 
     for (int lev = 0; lev < this->numLevels(); ++lev)
     {
+        // clear previous neighbor particle ids
+        for (auto& keyval: m_boundary_particle_ids[lev]) {
+          keyval.second.clear();
+        }
+
         for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
             PairIndex index(pti.index(), pti.LocalTileIndex());
 
@@ -751,6 +836,7 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
 
             const auto& aos     = pti.GetArrayOfStructs();
             const auto* pstruct = aos().dataPtr();
+            const auto ptile_data = this->ParticlesAt(lev, pti).getConstParticleTileData();
 
             Box grownBox  = pti.tilebox();
             grownBox.grow(computeRefFac(0, lev).max()*m_num_neighbor_cells);
@@ -781,8 +867,8 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
             auto pperm   = bins.permutationPtr();
             auto poffset = bins.offsetsPtr();
 
-            unsigned int  np_boundary    = 0;
-            unsigned int* p_np_boundary  = &np_boundary;
+            Gpu::Buffer<unsigned int> np_boundary({0});
+            unsigned int* p_np_boundary = np_boundary.data();
             constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
 
             AMREX_FOR_1D ( np_real, i,
@@ -809,7 +895,7 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
                             int nbr_cell_id = (ii * ny + jj) * nz + kk;
                             for (auto p = poffset[nbr_cell_id]; p < poffset[nbr_cell_id+1]; ++p) {
                                 if (pperm[p] == i) continue;
-                                if (call_check_pair(check_pair, pstruct, i, pperm[p])) {
+                                if (call_check_pair(check_pair, ptile_data, ptile_data, i, pperm[p])) {
                                     IntVect cell_ijk = getParticleCell(pstruct[pperm[p]], plo, dxi, domain);
                                     if (!box.contains(cell_ijk)) {
                                         int loc = Gpu::Atomic::Inc(p_np_boundary, max_unsigned_int);
@@ -823,9 +909,9 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
                     }
                 }
             });// end amrex_for_1d
-            Gpu::streamSynchronize();
 
-            m_boundary_particle_ids[lev][index].resize(np_boundary);
+            unsigned int* p_np_boundary_h = np_boundary.copyToHost();
+            m_boundary_particle_ids[lev][index].resize(*p_np_boundary_h);
 
         }// end mypariter
     }// end lev

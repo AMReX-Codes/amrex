@@ -54,6 +54,14 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
       AND
       CMAKE_VERSION VERSION_GREATER_EQUAL 3.20 )
 
+   find_package(CUDAToolkit REQUIRED)
+   target_link_libraries(amrex PUBLIC CUDA::curand)
+
+    # nvToolsExt: if tiny profiler or base profiler are on.
+    if (AMReX_TINY_PROFILE OR AMReX_BASE_PROFILE)
+        target_link_libraries(amrex PUBLIC CUDA::nvToolsExt)
+    endif ()
+
    # Check cuda compiler and host compiler
    set_mininum_compiler_version(CUDA NVIDIA 9.0)
    check_cuda_host_compiler()

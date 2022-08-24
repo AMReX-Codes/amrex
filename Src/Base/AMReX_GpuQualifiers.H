@@ -41,14 +41,6 @@
 
 # include <CL/sycl.hpp>
 
-namespace amrex {
-# if (__INTEL_LLVM_COMPILER <= 20210300)
-    namespace oneapi = sycl::ONEAPI;
-# else
-    namespace oneapi = sycl::ext::oneapi;
-# endif
-}
-
 # define AMREX_REQUIRE_SUBGROUP_SIZE(x) \
   _Pragma("clang diagnostic push") \
   _Pragma("clang diagnostic ignored \"-Wattributes\"") \

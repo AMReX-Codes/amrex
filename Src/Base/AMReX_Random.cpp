@@ -40,7 +40,7 @@ void ResizeRandomSeed (amrex::ULong gpu_seed)
 #ifdef AMREX_USE_DPCPP
 
     rand_engine_descr = new dpcpp_rng_descr
-        (Gpu::Device::nullQueue(), sycl::range<1>(N), gpu_seed, 1);
+        (Gpu::Device::streamQueue(), sycl::range<1>(N), gpu_seed, 1);
 
 #elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
@@ -54,7 +54,7 @@ void ResizeRandomSeed (amrex::ULong gpu_seed)
     });
 #endif
 
-    Gpu::synchronize();
+    Gpu::streamSynchronize();
 }
 }
 #endif
@@ -182,7 +182,7 @@ amrex::DeallocateRandomSeedDevArray ()
 #ifdef AMREX_USE_DPCPP
     if (rand_engine_descr) {
         delete rand_engine_descr;
-        Gpu::synchronize();
+        Gpu::streamSynchronize();
         rand_engine_descr = nullptr;
     }
 #else

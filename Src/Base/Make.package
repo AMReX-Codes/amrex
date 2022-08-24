@@ -1,13 +1,14 @@
 
 AMREX_BASE=EXE
 
-C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Algorithm.H AMReX_Array.H AMReX_Vector.H AMReX_TableData.H AMReX_Tuple.H AMReX_Math.H
+C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Algorithm.H AMReX_Any.H AMReX_Array.H
+C$(AMREX_BASE)_headers += AMReX_Vector.H AMReX_TableData.H AMReX_Tuple.H AMReX_Math.H
 
 #
 # Utility classes.
 #
 C$(AMREX_BASE)_headers += AMReX.H AMReX_Exception.H
-C$(AMREX_BASE)_sources += AMReX.cpp AMReX_error_fi.cpp
+C$(AMREX_BASE)_sources += AMReX.cpp AMReX_error_fi.cpp AMReX_Version.cpp
 
 C$(AMREX_BASE)_headers += AMReX_Extension.H
 
@@ -270,6 +271,10 @@ CEXE_sources += AMReX_Machine.cpp
 # Forward declaration
 CEXE_headers += AMReX_BaseFwd.H
 
+ifeq ($(USE_MPI),TRUE)
+  CEXE_headers += AMReX_MPMD.H
+  CEXE_sources += AMReX_MPMD.cpp
+endif
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base

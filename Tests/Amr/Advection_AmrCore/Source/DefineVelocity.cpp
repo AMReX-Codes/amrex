@@ -30,16 +30,16 @@ AmrCoreAdv::DefineVelocityAtLevel (int lev, Real time)
                          nbx[1] = mfi.nodaltilebox(1);,
                          nbx[2] = mfi.nodaltilebox(2););
 
-            AMREX_D_TERM(const Box& ngbxx = amrex::grow(mfi.nodaltilebox(0),1);,
-                         const Box& ngbxy = amrex::grow(mfi.nodaltilebox(1),1);,
-                         const Box& ngbxz = amrex::grow(mfi.nodaltilebox(2),1););
+            AMREX_D_TERM(const Box& ngbxx = amrex::grow(mfi.nodaltilebox(0),nghost);,
+                         const Box& ngbxy = amrex::grow(mfi.nodaltilebox(1),nghost);,
+                         const Box& ngbxz = amrex::grow(mfi.nodaltilebox(2),nghost););
 
             GpuArray<Array4<Real>, AMREX_SPACEDIM> vel{ AMREX_D_DECL( facevel[lev][0].array(mfi),
                                                                       facevel[lev][1].array(mfi),
                                                                       facevel[lev][2].array(mfi)) };
 
             const Box& psibox = Box(IntVect(AMREX_D_DECL(std::min(ngbxx.smallEnd(0)-1, ngbxy.smallEnd(0)-1),
-                                                         std::min(ngbxx.smallEnd(1)-1, ngbxy.smallEnd(0)-1),
+                                                         std::min(ngbxx.smallEnd(1)-1, ngbxy.smallEnd(1)-1),
                                                          0)),
                                     IntVect(AMREX_D_DECL(std::max(ngbxx.bigEnd(0),   ngbxy.bigEnd(0)+1),
                                                          std::max(ngbxx.bigEnd(1)+1, ngbxy.bigEnd(1)),

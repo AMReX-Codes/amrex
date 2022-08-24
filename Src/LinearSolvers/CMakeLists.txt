@@ -98,3 +98,15 @@ if (AMReX_HYPRE)
       MLMG/AMReX_MLNodeLaplacian_hypre.cpp
       )
 endif ()
+
+if (AMReX_SPACEDIM EQUAL 3)
+
+   target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/OpenBC>)
+
+   target_sources(amrex
+      PRIVATE
+      OpenBC/AMReX_OpenBC.H
+      OpenBC/AMReX_OpenBC_K.H
+      OpenBC/AMReX_OpenBC.cpp
+      )
+endif ()

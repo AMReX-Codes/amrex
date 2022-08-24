@@ -109,7 +109,7 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                              Array4<Real const> const& fx,
                              Array4<Real const> const& fy,
                              Array4<Real const> const& vel,
-//                             Array4<Real const> const& velb,
+                             Array4<Real const> const& velb,
                              Array4<Real const> const& etab,
                              Array4<Real const> const& kapb,
                              Array4<int const> const& ccm,
@@ -120,7 +120,7 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                              Array4<Real const> const& fcx,
                              Array4<Real const> const& fcy,
                              Array4<Real const> const& bc,
-//                             int is_dirichlet, int is_inhomog,
+                             bool is_dirichlet, bool is_inhomog,
                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                              Real bscalar) noexcept
 {
@@ -180,7 +180,7 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                 Real kappa = vol(i,j,0);
                 Real feb_0 = 0.0;
                 Real feb_1 = 0.0;
-//                if (is_dirichlet) {
+                if (is_dirichlet)
                 {
                     Real dapx = apx(i+1,j,0)-apx(i,j,0);
                     Real dapy = apy(i,j+1,0)-apy(i,j,0);
@@ -189,12 +189,11 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                     Real anrmy = -dapy * anorminv;
 
                     Real velb_0 = 0, velb_1 = 0;
-#if 0
+
                     if (is_inhomog) {
                         velb_0 = velb(i,j,0,0);
                         velb_1 = velb(i,j,0,1);
                     }
-#endif
 
                     Real dx_eb = amrex::max(0.3, (kappa*kappa-0.25)/(2.*kappa));
                     Real dg = dx_eb / amrex::max(amrex::Math::abs(anrmx),amrex::Math::abs(anrmy));

@@ -63,21 +63,36 @@ struct AssignGrid
         int ix_hi = amrex::min((lo.x + nGrow - m_lo.x) / m_bin_size.x, m_num_bins.x-1);
         int iy_hi = amrex::min((lo.y + nGrow - m_lo.y) / m_bin_size.y, m_num_bins.y-1);
         int iz_hi = amrex::min((lo.z + nGrow - m_lo.z) / m_bin_size.z, m_num_bins.z-1);
-
+        int loc = -1;
         for (int ii = ix_lo; ii <= ix_hi; ++ii) {
             for (int jj = iy_lo; jj <= iy_hi; ++jj) {
                 for (int kk = iz_lo; kk <= iz_hi; ++kk) {
                     int index = (ii * m_num_bins.y + jj) * m_num_bins.z + kk;
                     for (const auto& nbor : m_bif.getBinIterator(index)) {
                         Box bx = nbor.second;
-                        bx.grow(nGrow);
-                        if (bx.contains(iv)) return nbor.first;
+                        if (bx.contains(iv)) {
+                          return nbor.first;
+                        }
+                        Box gbx = bx;
+                        gbx.grow(nGrow);
+                        if (gbx.contains(iv)) {
+                           if (loc < 0) {
+                             loc = nbor.first;
+                           }
+                           // Prefer particle not in corner ghost cells
+                           for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+                               Box gdbx = bx;
+                               gdbx.grow(dir, nGrow);
+                               if (gdbx.contains(iv)) {
+                                  loc = nbor.first;
+                               }
+                           }
+                        }
                     }
                 }
             }
         }
-
-        return -1;
+        return loc;
     }
 };
 
@@ -100,7 +115,7 @@ public:
         for (int i = 0; i < num_boxes; ++i) m_host_boxes.push_back(ba[i]);
 
         m_device_boxes.resize(num_boxes);
-        Gpu::copy(Gpu::hostToDevice, m_host_boxes.begin(), m_host_boxes.end(), m_device_boxes.begin());
+        Gpu::copyAsync(Gpu::hostToDevice, m_host_boxes.begin(), m_host_boxes.end(), m_device_boxes.begin());
 
         // compute the lo, hi and the max box size in each direction
         ReduceOps<AMREX_D_DECL(ReduceOpMin, ReduceOpMin, ReduceOpMin),
@@ -258,9 +273,9 @@ public:
             m_locators[lev].build(a_ba[lev], a_geom[lev]);
             h_grid_assignors[lev] = m_locators[lev].getGridAssignor();
         }
-        Gpu::htod_memcpy(m_grid_assignors.data(), h_grid_assignors.data(),
-                         sizeof(AssignGrid<BinIteratorFactory>)*num_levels);
-        Gpu::synchronize();
+        Gpu::htod_memcpy_async(m_grid_assignors.data(), h_grid_assignors.data(),
+                               sizeof(AssignGrid<BinIteratorFactory>)*num_levels);
+        Gpu::streamSynchronize();
 #else
         for (int lev = 0; lev < num_levels; ++lev)
         {
@@ -313,9 +328,9 @@ public:
             m_locators[lev].setGeometry(a_gdb->Geom(lev));
             h_grid_assignors[lev] = m_locators[lev].getGridAssignor();
         }
-        Gpu::htod_memcpy(m_grid_assignors.data(), h_grid_assignors.data(),
-                         sizeof(AssignGrid<BinIteratorFactory>)*num_levels);
-        Gpu::synchronize();
+        Gpu::htod_memcpy_async(m_grid_assignors.data(), h_grid_assignors.data(),
+                               sizeof(AssignGrid<BinIteratorFactory>)*num_levels);
+        Gpu::streamSynchronize();
 #else
         for (int lev = 0; lev < num_levels; ++lev)
         {
