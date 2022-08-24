@@ -89,111 +89,113 @@ void
 ChkptFileLevel::finalize_cell_flags ()
 {
 
-    EBCellFlagFab cellflagtmp;
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(m_mgf); mfi.isValid(); ++mfi)
     {
-        auto& gfab = m_mgf[mfi];
-        const Box& vbx = mfi.validbox();
-        const Box& bxg1 = amrex::grow(vbx,1);
-        Array4<EBCellFlag> const& cell = m_cellflag.array(mfi);
-
-        cellflagtmp.resize(m_cellflag[mfi].box());
-        Elixir cellflagtmp_eli = cellflagtmp.elixir();
-        Array4<EBCellFlag> const& ctmp = cellflagtmp.array();
-
-        auto& facetype = gfab.getFaceType();
-        AMREX_D_TERM(Array4<Type_t> const& fx = facetype[0].array();,
-                     Array4<Type_t> const& fy = facetype[1].array();,
-                     Array4<Type_t> const& fz = facetype[2].array(););
-
-
-        AMREX_D_TERM(Array4<Real const> const& apx = m_areafrac[0].const_array(mfi);,
-                     Array4<Real const> const& apy = m_areafrac[1].const_array(mfi);,
-                     Array4<Real const> const& apz = m_areafrac[2].const_array(mfi););
-
-        const Box& xbx = amrex::grow(amrex::surroundingNodes(vbx,0),1);
-        AMREX_HOST_DEVICE_FOR_3D ( xbx, i, j, k,
+        EBCellFlagFab cellflagtmp;
+        for (MFIter mfi(m_mgf); mfi.isValid(); ++mfi)
         {
-            if (apx(i,j,k) == 0.0_rt) {
-                fx(i,j,k) = Type::covered;
-            } else if (apx(i,j,k) == 1.0_rt) {
-                fx(i,j,k) = Type::regular;
-            }
-        });
+            auto& gfab = m_mgf[mfi];
+            const Box& vbx = mfi.validbox();
+            const Box& bxg1 = amrex::grow(vbx,1);
+            Array4<EBCellFlag> const& cell = m_cellflag.array(mfi);
 
-        const Box& ybx = amrex::grow(amrex::surroundingNodes(vbx,1),1);
-        AMREX_HOST_DEVICE_FOR_3D ( ybx, i, j, k,
-        {
-            if (apy(i,j,k) == 0.0_rt) {
-                fy(i,j,k) = Type::covered;
-            } else if (apy(i,j,k) == 1.0_rt) {
-                fy(i,j,k) = Type::regular;
-            }
-        });
+            cellflagtmp.resize(m_cellflag[mfi].box());
+            Elixir cellflagtmp_eli = cellflagtmp.elixir();
+            Array4<EBCellFlag> const& ctmp = cellflagtmp.array();
 
-#if (AMREX_SPACEDIM == 3)
-        const Box& zbx = amrex::grow(amrex::surroundingNodes(vbx,2),1);
-        AMREX_HOST_DEVICE_FOR_3D ( zbx, i, j, k,
-        {
-            if (apz(i,j,k) == 0.0_rt) {
-                fz(i,j,k) = Type::covered;
-            } else if (apz(i,j,k) == 1.0_rt) {
-                fz(i,j,k) = Type::regular;
-            }
-        });
-#endif
+            auto& facetype = gfab.getFaceType();
+            AMREX_D_TERM(Array4<Type_t> const& fx = facetype[0].array();,
+                         Array4<Type_t> const& fy = facetype[1].array();,
+                         Array4<Type_t> const& fz = facetype[2].array(););
 
 
-#if (AMREX_SPACEDIM == 2)
-        ignore_unused(ctmp);
-        AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
-        {
-            ignore_unused(k);
-            if (cell(i,j,0).isSingleValued()) {
-                if (fx(i,j,0) == Type::regular && fx(i+1,j,0) == Type::regular &&
-                    fy(i,j,0) == Type::regular && fy(i,j+1,0) == Type::regular)
-                {
-                    cell(i,j,0).setRegular();
+            AMREX_D_TERM(Array4<Real const> const& apx = m_areafrac[0].const_array(mfi);,
+                         Array4<Real const> const& apy = m_areafrac[1].const_array(mfi);,
+                         Array4<Real const> const& apz = m_areafrac[2].const_array(mfi););
+
+            const Box& xbx = amrex::grow(amrex::surroundingNodes(vbx,0),1);
+            AMREX_HOST_DEVICE_FOR_3D ( xbx, i, j, k,
+            {
+                if (apx(i,j,k) == 0.0_rt) {
+                    fx(i,j,k) = Type::covered;
+                } else if (apx(i,j,k) == 1.0_rt) {
+                    fx(i,j,k) = Type::regular;
                 }
-                else if (fx(i,j,0) == Type::covered && fx(i+1,j,0) == Type::covered &&
-                         fy(i,j,0) == Type::covered && fy(i,j+1,0) == Type::covered)
-                {
-                    cell(i,j,0).setCovered();
+            });
+
+            const Box& ybx = amrex::grow(amrex::surroundingNodes(vbx,1),1);
+            AMREX_HOST_DEVICE_FOR_3D ( ybx, i, j, k,
+            {
+                if (apy(i,j,k) == 0.0_rt) {
+                    fy(i,j,k) = Type::covered;
+                } else if (apy(i,j,k) == 1.0_rt) {
+                    fy(i,j,k) = Type::regular;
                 }
-            }
-        });
+            });
 
-        set_connection_flags(bxg1, cell, fx, fy);
-
-#else
-        AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
-        {
-            if (cell(i,j,k).isSingleValued()) {
-                if (fx(i,j,k) == Type::covered && fx(i+1,j,k) == Type::covered &&
-                    fy(i,j,k) == Type::covered && fy(i,j+1,k) == Type::covered &&
-                    fz(i,j,k) == Type::covered && fz(i,j,k+1) == Type::covered)
-                {
-                    cell(i,j,k).setCovered();
+    #if (AMREX_SPACEDIM == 3)
+            const Box& zbx = amrex::grow(amrex::surroundingNodes(vbx,2),1);
+            AMREX_HOST_DEVICE_FOR_3D ( zbx, i, j, k,
+            {
+                if (apz(i,j,k) == 0.0_rt) {
+                    fz(i,j,k) = Type::covered;
+                } else if (apz(i,j,k) == 1.0_rt) {
+                    fz(i,j,k) = Type::regular;
                 }
-                else if (fx(i,j,k) == Type::regular && fx(i+1,j,k) == Type::regular &&
-                         fy(i,j,k) == Type::regular && fy(i,j+1,k) == Type::regular &&
-                         fz(i,j,k) == Type::regular && fz(i,j,k+1) == Type::regular)
-                {
-                    cell(i,j,k).setRegular();
+            });
+    #endif
+
+
+    #if (AMREX_SPACEDIM == 2)
+            ignore_unused(ctmp);
+            AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
+            {
+                ignore_unused(k);
+                if (cell(i,j,0).isSingleValued()) {
+                    if (fx(i,j,0) == Type::regular && fx(i+1,j,0) == Type::regular &&
+                        fy(i,j,0) == Type::regular && fy(i,j+1,0) == Type::regular)
+                    {
+                        cell(i,j,0).setRegular();
+                    }
+                    else if (fx(i,j,0) == Type::covered && fx(i+1,j,0) == Type::covered &&
+                             fy(i,j,0) == Type::covered && fy(i,j+1,0) == Type::covered)
+                    {
+                        cell(i,j,0).setCovered();
+                    }
                 }
-            }
-        });
+            });
 
-        set_connection_flags(vbx, bxg1, cell, ctmp, fx, fy, fz);
+            set_connection_flags(bxg1, cell, fx, fy);
 
-#endif
+    #else
+            AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
+            {
+                if (cell(i,j,k).isSingleValued()) {
+                    if (fx(i,j,k) == Type::covered && fx(i+1,j,k) == Type::covered &&
+                        fy(i,j,k) == Type::covered && fy(i,j+1,k) == Type::covered &&
+                        fz(i,j,k) == Type::covered && fz(i,j,k+1) == Type::covered)
+                    {
+                        cell(i,j,k).setCovered();
+                    }
+                    else if (fx(i,j,k) == Type::regular && fx(i+1,j,k) == Type::regular &&
+                             fy(i,j,k) == Type::regular && fy(i,j+1,k) == Type::regular &&
+                             fz(i,j,k) == Type::regular && fz(i,j,k+1) == Type::regular)
+                    {
+                        cell(i,j,k).setRegular();
+                    }
+                }
+            });
 
+            set_connection_flags(vbx, bxg1, cell, ctmp, fx, fy, fz);
+
+    #endif
+
+        }
+
+        m_ok = true;
     }
-
-    m_ok = true;
 }
 
 void
