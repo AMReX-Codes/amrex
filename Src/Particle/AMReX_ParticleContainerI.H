@@ -1,3 +1,42 @@
+#include <type_traits>
+
+// template<class T, class Enable = void>
+// class A {}; // primary template
+ 
+// template<class T>
+// class A<T, typename std::enable_if<std::is_floating_point<T>::value>::type> {
+// }; // specialization for floating point types
+template< class T >
+struct is_soa_particle
+     : std::integral_constant<
+         bool,
+         T::is_soa_particle
+     > {};
+ 
+
+template <typename T_ParticleType, class Enable = void>
+struct make_particle
+{
+    template <typename PTD>
+    auto
+    operator()(PTD, int)
+    {
+        // legacy Particle (AoS)
+        return T_ParticleType();
+    }
+};
+
+template <typename T_ParticleType>
+struct make_particle<T_ParticleType, typename std::enable_if<is_soa_particle<T_ParticleType>::value>::type>
+{
+    template <typename PTD>
+    auto
+    operator()(PTD ptd, int index)
+    {
+        // SoAParticle
+        return T_ParticleType(ptd, index);
+    }
+};
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
@@ -1832,7 +1871,11 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             for (int i = 0; i < int(Cnt); ++i)
             {
                 char* pbuf = ((char*) &recvdata[offset]) + i*superparticle_size;
-                ParticleType p;
+                auto& ptile = m_particles[rcv_levs[ipart]][std::make_pair(rcv_grid[ipart],
+                                                                          rcv_tile[ipart])];
+
+                auto p = make_particle<ParticleType>{}(ptile.getParticleTileData(),ipart);
+                
                 std::memcpy(&p, pbuf, sizeof(ParticleType));
                 locateParticle(p, pld, lev_min, lev_max, nGrow);
                 rcv_levs[ipart] = pld.m_lev;
@@ -1859,7 +1902,8 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                                                                           rcv_tile[ipart])];
                 char* pbuf = ((char*) &recvdata[offset]) + j*superparticle_size;
 
-                ParticleType p;
+                auto p = make_particle<ParticleType>{}(ptile.getParticleTileData(),ipart);
+
                 std::memcpy(&p, pbuf, sizeof(ParticleType));
                 pbuf += sizeof(ParticleType);
                 ptile.push_back(p);
@@ -1889,6 +1933,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 ++ipart;
             }
         }
+            
 #else
         Vector<std::map<std::pair<int, int>, Gpu::HostVector<ParticleType> > > host_particles;
         host_particles.reserve(15);

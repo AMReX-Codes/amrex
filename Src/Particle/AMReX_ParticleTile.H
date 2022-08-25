@@ -201,16 +201,28 @@ struct SoAParticle : SoAParticleBase
     //functions to get id and cpu in the SOA data
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    ParticleCPUWrapper cpu () & { return ParticleCPUWrapper(this->m_particle_tile_data.m_idata[1][m_index]); }
+    ParticleCPUWrapper cpu () & { 
+        uint64_t unsigned_cpu_value;
+        unsigned_cpu_value = (uint64_t) this->m_particle_tile_data.m_idata[1][m_index];
+        return ParticleCPUWrapper(unsigned_cpu_value); }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    ParticleIDWrapper id () & { return ParticleIDWrapper(this->m_particle_tile_data.m_idata[0][m_index]); }
+    ParticleIDWrapper id () & { 
+        uint64_t unsigned_id_value;
+        unsigned_id_value = (uint64_t) this->m_particle_tile_data.m_idata[0][m_index];
+        return ParticleIDWrapper(unsigned_id_value); }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    ConstParticleCPUWrapper cpu () const & { return ConstParticleCPUWrapper(this-> m_particle_tile_data.m_idata[1][m_index]); }
+    ConstParticleCPUWrapper cpu () const & { 
+        uint64_t unsigned_cpu_value;
+        unsigned_cpu_value = (uint64_t) this->m_particle_tile_data.m_idata[1][m_index];
+        return ConstParticleCPUWrapper(unsigned_cpu_value); }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    ConstParticleIDWrapper id () const & { return ConstParticleIDWrapper(this->m_particle_tile_data.m_idata[0][m_index]); }
+    ConstParticleIDWrapper id () const & { 
+        uint64_t unsigned_id_value;
+        unsigned_id_value = (uint64_t) this->m_particle_tile_data.m_idata[0][m_index];
+        return ConstParticleIDWrapper(unsigned_id_value); }
 
     //functions to get positions of the particle in the SOA data
 
