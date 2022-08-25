@@ -149,8 +149,8 @@ public:
     static constexpr int NArrayInt = T_NArrayInt;
 
 private:
-    friend class ParIterBase<true,NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>;
-    friend class ParIterBase<false,NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>;
+    friend class ParIterBase_impl<true,ParticleType, NArrayReal, NArrayInt, Allocator>;
+    friend class ParIterBase_impl<false,ParticleType, NArrayReal, NArrayInt, Allocator>;
 
 public:
     //! \brief The memory allocator in use.
@@ -183,7 +183,7 @@ public:
     using CharVector       = Gpu::DeviceVector<char>;
     using SendBuffer       = Gpu::PolymorphicVector<char>;
     using ParIterType      = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>;
-    using ParConstIterType = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>;
+    using ParConstIterType = ParConstIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
 
     //! \brief Default constructor - construct an empty particle container that has no concept
     //!  of a level hierarchy. Must be properly initialized later.

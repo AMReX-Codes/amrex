@@ -31,9 +31,6 @@ struct ParticleTileData
     static constexpr int NStructReal = ParticleType::NReal;
     static constexpr int NStructInt = ParticleType::NInt;
 
-    static_assert(!std::is_same<ParticleType, SoAParticle<3,4>>::value || ParticleType::NReal != 0, "ParticleTileData mismatch in R");
-    static_assert(!std::is_same<ParticleType, SoAParticle<3,4>>::value || ParticleType::NInt != 0, "ParticleTileData mismatch in R");
-
     using SuperParticleType = Particle<NStructReal+NAR, NStructInt+NAI>;
 
     static_assert(!std::is_same<ParticleType, SoAParticle<3,4>>::value || NAR != 0, "ParticleTileData NAR==0");
