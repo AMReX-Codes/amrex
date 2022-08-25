@@ -244,10 +244,8 @@ void
 BuildFromChkptFile (std::string const& fname,
                     const Geometry& geom, int required_coarsening_level,
                     int max_coarsening_level, int ngrow, bool build_coarse_level_by_coarsening,
-                    bool a_extend_domain_face, int a_num_coarsen_opt)
+                    bool a_extend_domain_face)
 {
-    amrex::ignore_unused(a_num_coarsen_opt);
-
     ChkptFile chkpt_file(fname);
     IndexSpace::push(new IndexSpaceChkptFile(chkpt_file,
                      geom, required_coarsening_level,

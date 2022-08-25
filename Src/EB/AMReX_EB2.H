@@ -135,8 +135,7 @@ void BuildFromChkptFile (std::string const& fname,
                          int max_coarsening_level,
                          int ngrow = 4,
                          bool build_coarse_level_by_coarsening = true,
-                         bool extend_domain_face = ExtendDomainFace(),
-                         int num_coarsen_opt = NumCoarsenOpt());
+                         bool extend_domain_face = ExtendDomainFace());
 
 int maxCoarseningLevel (const Geometry& geom);
 int maxCoarseningLevel (IndexSpace const* ebis, const Geometry& geom);
