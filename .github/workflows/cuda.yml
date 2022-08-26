@@ -1,6 +1,7 @@
 name: cuda
 
 on: [push, pull_request]
+# test
 
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-cuda
