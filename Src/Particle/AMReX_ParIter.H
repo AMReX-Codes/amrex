@@ -4,6 +4,7 @@
 
 #include <AMReX_MFIter.H>
 #include <AMReX_Gpu.H>
+#include <AMReX_ParticleContainer.H>
 
 namespace amrex
 {
@@ -12,13 +13,14 @@ template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 class ParticleContainer_impl;
 
+// for backwards compatibility
 template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArrayInt=0,
           template<class> class Allocator=DefaultAllocator>
 using ParticleContainer = ParticleContainer_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt, Allocator>;
 
-
 template <bool is_const, typename T_ParticleType, int NArrayReal=0, int NArrayInt=0,
           template<class> class Allocator=DefaultAllocator>
+
 class ParIterBase_impl
     : public MFIter
 {
@@ -113,8 +115,7 @@ public:
     static constexpr int NStructReal = ParticleType::NReal;
     static constexpr int NStructInt = ParticleType::NInt;
 
-    using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt,
-                                               Allocator>;
+    using ContainerType    = ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
     using ParticleTileType = typename ContainerType::ParticleTileType;
     using AoS              = typename ContainerType::AoS;
     using SoA              = typename ContainerType::SoA;
@@ -138,8 +139,7 @@ class ParConstIter_impl
 public:
 
     using ParticleType     = T_ParticleType;
-    using ContainerType    = ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt,
-                                               Allocator>;
+    using ContainerType    = ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
     using ParticleTileType = typename ContainerType::ParticleTileType;
     using AoS              = typename ContainerType::AoS;
     using SoA              = typename ContainerType::SoA;
