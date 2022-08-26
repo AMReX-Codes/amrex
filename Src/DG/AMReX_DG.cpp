@@ -91,12 +91,12 @@ void InitializeMeshRefinement_DG
     AllocateArray( nDOFX_X2, nFineF, nDOFX_X2, LX_X2 );
     AllocateArray( nDOFX_X3, nFineF, nDOFX_X3, LX_X3 );
 
-    AllocateArray( nDOFX_X1, LX_X1_Up );
-    AllocateArray( nDOFX_X1, LX_X1_Dn );
-    AllocateArray( nDOFX_X2, LX_X2_Up );
-    AllocateArray( nDOFX_X2, LX_X2_Dn );
-    AllocateArray( nDOFX_X3, LX_X3_Up );
-    AllocateArray( nDOFX_X3, LX_X3_Dn );
+    AllocateArray( nNodesX[0], LX_X1_Up );
+    AllocateArray( nNodesX[0], LX_X1_Dn );
+    AllocateArray( nNodesX[1], LX_X2_Up );
+    AllocateArray( nNodesX[1], LX_X2_Dn );
+    AllocateArray( nNodesX[2], LX_X3_Up );
+    AllocateArray( nNodesX[2], LX_X3_Dn );
 
     AllocateArray( 3, nDOFX, NodeNumberTableX );
     AllocateArray( nNodesX[0], nNodesX[1], nNodesX[2], NodeNumberTableX3D );
@@ -166,12 +166,18 @@ void InitializeMeshRefinement_DG
         LX_X3[iNX_C][iFn][iNX_F] = LX_X3_Refined_Packed[k];
     }}}
 
-    LX_X1_Up = LX_X1_Up_1D;
-    LX_X1_Dn = LX_X1_Dn_1D;
-    LX_X2_Up = LX_X2_Up_1D;
-    LX_X2_Dn = LX_X2_Dn_1D;
-    LX_X3_Up = LX_X3_Up_1D;
-    LX_X3_Dn = LX_X3_Dn_1D;
+    for( int iNX1 = 0; iNX1 < nNodesX[0]; iNX1++ ) {
+      LX_X1_Up[iNX1] = LX_X1_Up_1D[iNX1];
+      LX_X1_Dn[iNX1] = LX_X1_Dn_1D[iNX1];
+    }
+    for( int iNX2 = 0; iNX2 < nNodesX[1]; iNX2++ ) {
+      LX_X2_Up[iNX2] = LX_X2_Up_1D[iNX2];
+      LX_X2_Dn[iNX2] = LX_X2_Dn_1D[iNX2];
+    }
+    for( int iNX3 = 0; iNX3 < nNodesX[2]; iNX3++ ) {
+      LX_X3_Up[iNX3] = LX_X3_Up_1D[iNX3];
+      LX_X3_Dn[iNX3] = LX_X3_Dn_1D[iNX3];
+    }
 
     k = -1;
     for( int iNX3 = 0; iNX3 < nNodesX[2]; iNX3++ ) {
@@ -253,27 +259,27 @@ void InitializeMeshRefinement_DG
 
     amrex::Gpu::copy( amrex::Gpu::hostToDevice,
                       &LX_X1_Up[0],
-                      &LX_X1_Up[nDOFX_X1],
+                      &LX_X1_Up[nNodesX[0]],
                       &LX_X1_Up[0]);
     amrex::Gpu::copy( amrex::Gpu::hostToDevice,
                       &LX_X1_Dn[0],
-                      &LX_X1_Dn[nDOFX_X1],
+                      &LX_X1_Dn[nNodesX[0]],
                       &LX_X1_Dn[0]);
     amrex::Gpu::copy( amrex::Gpu::hostToDevice,
                       &LX_X2_Up[0],
-                      &LX_X2_Up[nDOFX_X2],
+                      &LX_X2_Up[nNodesX[1]],
                       &LX_X2_Up[0]);
     amrex::Gpu::copy( amrex::Gpu::hostToDevice,
                       &LX_X2_Dn[0],
-                      &LX_X2_Dn[nDOFX_X2],
+                      &LX_X2_Dn[nNodesX[1]],
                       &LX_X2_Dn[0]);
     amrex::Gpu::copy( amrex::Gpu::hostToDevice,
                       &LX_X3_Up[0],
-                      &LX_X3_Up[nDOFX_X3],
+                      &LX_X3_Up[nNodesX[2]],
                       &LX_X3_Up[0]);
     amrex::Gpu::copy( amrex::Gpu::hostToDevice,
                       &LX_X3_Dn[0],
-                      &LX_X3_Dn[nDOFX_X3],
+                      &LX_X3_Dn[nNodesX[2]],
                       &LX_X3_Dn[0]);
 
     amrex::Gpu::copy( amrex::Gpu::hostToDevice,
