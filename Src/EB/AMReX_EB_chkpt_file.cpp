@@ -218,7 +218,6 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
         volfrac.setVal(1.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_volfrac_name);
-        MultiFab mf(The_Pinned_Arena());
         VisMF::Read(volfrac, prefix);
     }
 
