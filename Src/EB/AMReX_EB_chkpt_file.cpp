@@ -181,41 +181,23 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(max_grid_size == mgs_chkptfile,
                                      "EB2::ChkptFile cannot read from different max_grid_size");
 
-    BoxArray cut_grids_ba, covered_grids_ba;
-
     if (amrex::Verbose()) amrex::Print() << "Loading cut_grids\n";
-    cut_grids_ba.readFrom(is);
+    cut_grids.readFrom(is);
     gotoNextLine(is);
 
     if (is.peek() != EOF) {
         if (amrex::Verbose()) amrex::Print() << "Loading covered_grids\n";
-        covered_grids_ba.readFrom(is);
+        covered_grids.readFrom(is);
         gotoNextLine(is);
     }
 
-    BoxList cut_bl;
-    for (int nb = 0; nb < cut_grids_ba.size(); nb++) {
-        Box b(cut_grids_ba[nb]);
-        cut_bl.push_back(b);
-    }
-
-    BoxList covered_bl;
-    for (int nb = 0; nb < covered_grids_ba.size(); nb++) {
-        Box b(covered_grids_ba[nb]);
-        covered_bl.push_back(b);
-    }
-
-    cut_grids.define(cut_bl);
     dmap.define(cut_grids, ParallelDescriptor::NProcs());
-
-    covered_grids.define(covered_bl);
 
     // volfrac
     {
         if (amrex::Verbose()) amrex::Print() << "  Loading " << m_volfrac_name << std::endl;
 
         volfrac.define(cut_grids, dmap, 1, ng_gfab);
-        volfrac.setVal(1.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_volfrac_name);
         VisMF::Read(volfrac, prefix);
@@ -226,7 +208,6 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
         if (amrex::Verbose()) amrex::Print() << "  Loading " << m_centroid_name << std::endl;
 
         centroid.define(cut_grids, dmap, AMREX_SPACEDIM, ng_gfab);
-        centroid.setVal(0.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_centroid_name);
         VisMF::Read(centroid, prefix);
@@ -237,7 +218,6 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
         if (amrex::Verbose()) amrex::Print() << "  Loading " << m_bndryarea_name << std::endl;
 
         bndryarea.define(cut_grids, dmap, 1, ng_gfab);
-        bndryarea.setVal(0.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndryarea_name);
         VisMF::Read(bndryarea, prefix);
@@ -248,7 +228,6 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
         if (amrex::Verbose()) amrex::Print() << "  Loading " << m_bndrycent_name << std::endl;
 
         bndrycent.define(cut_grids, dmap, AMREX_SPACEDIM, ng_gfab);
-        bndrycent.setVal(-1.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndrycent_name);
         VisMF::Read(bndrycent, prefix);
@@ -259,7 +238,6 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
         if (amrex::Verbose()) amrex::Print() << "  Loading " << m_bndrynorm_name << std::endl;
 
         bndrynorm.define(cut_grids, dmap, AMREX_SPACEDIM, ng_gfab);
-        bndrynorm.setVal(0.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_bndrynorm_name);
         VisMF::Read(bndrynorm, prefix);
@@ -271,7 +249,6 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
             if (amrex::Verbose()) amrex::Print() << "  Loading " << m_areafrac_name[idim] << std::endl;
 
             areafrac[idim].define(convert(cut_grids, IntVect::TheDimensionVector(idim)), dmap, 1, ng_gfab);
-            areafrac[idim].setVal(1.); // regular value
 
             auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_areafrac_name[idim]);
             VisMF::Read(areafrac[idim], prefix);
@@ -282,7 +259,6 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
             if (amrex::Verbose()) amrex::Print() << "  Loading " << m_facecent_name[idim] << std::endl;
 
             facecent[idim].define(convert(cut_grids, IntVect::TheDimensionVector(idim)), dmap, AMREX_SPACEDIM-1, ng_gfab);
-            facecent[idim].setVal(0.); // regular value
 
             auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_facecent_name[idim]);
             VisMF::Read(facecent[idim], prefix);
@@ -294,7 +270,6 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
 
             IntVect edge_type{1}; edge_type[idim] = 0;
             edgecent[idim].define(convert(cut_grids, edge_type), dmap, 1, ng_gfab);
-            edgecent[idim].setVal(1.); // regular value
 
             auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_edgecent_name[idim]);
             VisMF::Read(edgecent[idim], prefix);
@@ -306,7 +281,6 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
         if (amrex::Verbose()) amrex::Print() << "  Loading " << m_levelset_name << std::endl;
 
         levelset.define(convert(cut_grids,IntVect::TheNodeVector()), dmap, 1, ng_gfab);
-        levelset.setVal(-1.); // regular value
 
         auto prefix = MultiFabFileFullPrefix(0, m_restart_file, level_prefix, m_levelset_name);
         VisMF::Read(levelset, prefix);
