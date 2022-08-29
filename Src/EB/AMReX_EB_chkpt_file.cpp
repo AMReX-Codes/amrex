@@ -95,9 +95,6 @@ ChkptFile::ChkptFile (const std::string &fname)
     : m_restart_file(fname)
 {}
 
-// When reading from checkpoint file, ghost cells that are not in valid cut grid regions
-// are initialized as regular cells by default and later corrected for extended
-// and covered regions
 void
 ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
                                  DistributionMapping& dmap,
