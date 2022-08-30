@@ -603,7 +603,7 @@ MLEBABecLap::averageDownCoeffs ()
         auto& fine_b_coeffs = m_b_coeffs[amrlev];
 
         averageDownCoeffsSameAmrLevel(amrlev, fine_a_coeffs, fine_b_coeffs,
-                                      amrex::GetVecOfPtrs(m_eb_b_coeffs[0]));
+                                      amrex::GetVecOfPtrs(m_eb_b_coeffs[amrlev]));
         averageDownCoeffsToCoarseAmrLevel(amrlev);
     }
 
