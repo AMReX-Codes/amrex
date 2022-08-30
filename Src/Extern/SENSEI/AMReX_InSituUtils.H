@@ -2,10 +2,10 @@
 #define AMReX_InSituUtils_H
 #include <AMReX_Config.H>
 
-#include <vtkDataSetAttributes.h>
-#include <vtkUnsignedCharArray.h>
-#include <vtkFloatArray.h>
-#include <vtkDoubleArray.h>
+#include <svtkDataSetAttributes.h>
+#include <svtkUnsignedCharArray.h>
+#include <svtkFloatArray.h>
+#include <svtkDoubleArray.h>
 
 #include <AMReX_BoxArray.H>
 #include <AMReX_Geometry.H>
@@ -47,21 +47,21 @@ enum PointGhostTypes
 
 
 
-// traits helper for mapping between amrex_real and vtkDataArray
+// traits helper for mapping between amrex_real and svtkDataArray
 template <typename cpp_t> struct amrex_tt {};
 
-#define amrex_tt_specialize(cpp_t, vtk_t, vtk_t_e)      \
+#define amrex_tt_specialize(cpp_t, svtk_t, svtk_t_e)    \
 template <>                                             \
 struct amrex_tt<cpp_t>                                  \
 {                                                       \
-    using vtk_type = vtk_t;                             \
+    using svtk_type = svtk_t;                           \
                                                         \
     static                                              \
-    constexpr int vtk_type_enum() { return vtk_t_e; }   \
+    constexpr int svtk_type_enum() { return svtk_t_e; } \
 };
 
-amrex_tt_specialize(float, vtkFloatArray, VTK_FLOAT)
-amrex_tt_specialize(double, vtkDoubleArray, VTK_DOUBLE)
+amrex_tt_specialize(float, svtkFloatArray, SVTK_FLOAT)
+amrex_tt_specialize(double, svtkDoubleArray, SVTK_DOUBLE)
 
 
 // helpers to modify values

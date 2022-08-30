@@ -72,7 +72,7 @@ public:
 
     virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int amrlev, int mglev) const final override;
 
-    virtual void scaleRHS (int amrlev, MultiFab& rhs) const final;
+    virtual void scaleRHS (int amrlev, Any& rhs) const final;
 
 #endif
 
@@ -119,7 +119,7 @@ public:
 #endif
 
 private:
-    GpuArray<Real,AMREX_SPACEDIM> m_sigma{AMREX_D_DECL(1_rt,1_rt,1_rt)};
+    GpuArray<Real,AMREX_SPACEDIM> m_sigma{{AMREX_D_DECL(1_rt,1_rt,1_rt)}};
     Real m_s_phi_eb = std::numeric_limits<Real>::lowest();
     Vector<MultiFab> m_phi_eb;
     int m_rz = false;

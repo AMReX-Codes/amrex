@@ -318,8 +318,11 @@ MLEBNodeFDLaplacian::prepareForSolve ()
 
 #ifdef AMREX_USE_EB
 void
-MLEBNodeFDLaplacian::scaleRHS (int amrlev, MultiFab& rhs) const
+MLEBNodeFDLaplacian::scaleRHS (int amrlev, Any& a_rhs) const
 {
+    AMREX_ASSERT(a_rhs.is<MultiFab>());
+    auto& rhs = a_rhs.get<MultiFab>();
+
     auto const& dmask = *m_dirichlet_mask[amrlev][0];
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
     auto const& edgecent = factory->getEdgeCent();
@@ -634,19 +637,19 @@ MLEBNodeFDLaplacian::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 void
-MLEBNodeFDLaplacian::fillIJMatrix (MFIter const& mfi,
-                                   Array4<HypreNodeLap::AtomicInt const> const& gid,
-                                   Array4<int const> const& lid,
-                                   HypreNodeLap::Int* const ncols,
-                                   HypreNodeLap::Int* const cols,
-                                   Real* const mat) const
+MLEBNodeFDLaplacian::fillIJMatrix (MFIter const& /*mfi*/,
+                                   Array4<HypreNodeLap::AtomicInt const> const& /*gid*/,
+                                   Array4<int const> const& /*lid*/,
+                                   HypreNodeLap::Int* const /*ncols*/,
+                                   HypreNodeLap::Int* const /*cols*/,
+                                   Real* const /*mat*/) const
 {
     amrex::Abort("MLEBNodeFDLaplacian::fillIJMatrix: todo");
 }
 
 void
-MLEBNodeFDLaplacian::fillRHS (MFIter const& mfi, Array4<int const> const& lid,
-                              Real* const rhs, Array4<Real const> const& bfab) const
+MLEBNodeFDLaplacian::fillRHS (MFIter const& /*mfi*/, Array4<int const> const& /*lid*/,
+                              Real* const /*rhs*/, Array4<Real const> const& /*bfab*/) const
 {
     amrex::Abort("MLEBNodeFDLaplacian::fillRHS: todo");
 }

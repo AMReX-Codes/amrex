@@ -1,6 +1,7 @@
 
 #include <AMReX_MLCellLinOp.H>
 #include <AMReX_MLLinOp_K.H>
+#include <AMReX_MLMG_K.H>
 #include <AMReX_MultiFabUtil.H>
 
 #ifndef BL_NO_FORT
@@ -8,6 +9,11 @@
 #endif
 
 namespace amrex {
+
+#ifdef AMREX_SOFT_PERF_COUNTERS
+// perf_counters
+MLCellLinOp::Counters MLCellLinOp::perf_counters;
+#endif
 
 namespace {
     // Have to put it here due to CUDA extended lambda limitation
@@ -97,6 +103,7 @@ MLCellLinOp::defineAuxData ()
     m_undrrelxr.resize(m_num_amr_levels);
     m_maskvals.resize(m_num_amr_levels);
     m_fluxreg.resize(m_num_amr_levels-1);
+    m_norm_fine_mask.resize(m_num_amr_levels-1);
 
     const int ncomp = getNComp();
 
@@ -136,6 +143,9 @@ MLCellLinOp::defineAuxData ()
                                  m_dmap[amrlev+1][0], m_dmap[amrlev][0],
                                  m_geom[amrlev+1][0], m_geom[amrlev][0],
                                  ratio, amrlev+1, ncomp);
+        m_norm_fine_mask[amrlev] = std::make_unique<iMultiFab>
+            (makeFineMask(m_grids[amrlev][0], m_dmap[amrlev][0], m_grids[amrlev+1][0],
+                          ratio, 1, 0));
     }
 
 #if (AMREX_SPACEDIM != 3)
@@ -528,18 +538,6 @@ MLCellLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const M
 
     AMREX_ALWAYS_ASSERT(resid.nComp() == b.nComp());
     MultiFab::Xpay(resid, Real(-1.0), b, 0, 0, ncomp, 0);
-}
-
-void
-MLCellLinOp::fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata)
-{
-    BL_PROFILE("MLCellLinOp::fillSolutionBC()");
-    if (crse_bcdata != nullptr) {
-        updateSolBC(amrlev, *crse_bcdata);
-    }
-    const int mglev = 0;
-    applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution,
-            m_bndry_sol[amrlev].get());
 }
 
 void
@@ -1316,7 +1314,20 @@ MLCellLinOp::BndryCondLoc::setLOBndryConds (const Geometry& geom, const Real* dx
 }
 
 void
-MLCellLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
+MLCellLinOp::applyMetricTerm (int amrlev, int mglev, Any& rhs) const
+{
+    amrex::ignore_unused(amrlev,mglev,rhs);
+#if (AMREX_SPACEDIM != 3)
+
+    if (!m_has_metric_term) return;
+
+    AMREX_ASSERT(rhs.is<MultiFab>());
+    applyMetricTermToMF(amrlev, mglev, rhs.get<MultiFab>());
+#endif
+}
+
+void
+MLCellLinOp::applyMetricTermToMF (int amrlev, int mglev, MultiFab& rhs) const
 {
     amrex::ignore_unused(amrlev,mglev,rhs);
 #if (AMREX_SPACEDIM != 3)
@@ -1435,9 +1446,417 @@ MLCellLinOp::update ()
     if (MLLinOp::needsUpdate()) MLLinOp::update();
 }
 
-#ifdef AMREX_SOFT_PERF_COUNTERS
-// perf_counters
-MLCellLinOp::Counters MLCellLinOp::perf_counters;
+void
+MLCellLinOp::computeVolInv () const
+{
+    if (!m_volinv.empty()) return;
+
+    m_volinv.resize(m_num_amr_levels);
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+        m_volinv[amrlev].resize(NMGLevels(amrlev));
+    }
+
+    // We don't need to compute for every level
+
+    auto f = [&] (int amrlev, int mglev) {
+#ifdef AMREX_USE_EB
+        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(Factory(amrlev,mglev));
+        if (factory)
+        {
+            const MultiFab& vfrac = factory->getVolFrac();
+            m_volinv[amrlev][mglev] = vfrac.sum(0,true);
+        }
+        else
 #endif
+        {
+            m_volinv[amrlev][mglev]
+                = Real(1.0 / compactify(Geom(amrlev,mglev).Domain()).d_numPts());
+        }
+    };
+
+    // amrlev = 0, mglev = 0
+    f(0,0);
+
+    int mgbottom = NMGLevels(0)-1;
+    f(0,mgbottom);
+
+#ifdef AMREX_USE_EB
+    Real temp1, temp2;
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(Factory(0,0));
+    if (factory)
+    {
+        ParallelAllReduce::Sum<Real>({m_volinv[0][0], m_volinv[0][mgbottom]},
+                                     ParallelContext::CommunicatorSub());
+        temp1 = Real(1.0)/m_volinv[0][0];
+        temp2 = Real(1.0)/m_volinv[0][mgbottom];
+    }
+    else
+    {
+        temp1 = m_volinv[0][0];
+        temp2 = m_volinv[0][mgbottom];
+    }
+    m_volinv[0][0] = temp1;
+    m_volinv[0][mgbottom] = temp2;
+#endif
+}
+
+Vector<Real>
+MLCellLinOp::getSolvabilityOffset (int amrlev, int mglev, Any const& a_rhs) const
+{
+    AMREX_ASSERT(a_rhs.is<MultiFab>());
+    auto const& rhs = a_rhs.get<MultiFab>();
+
+    computeVolInv();
+
+    const int ncomp = getNComp();
+    Vector<Real> offset(ncomp);
+
+#ifdef AMREX_USE_EB
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(Factory(amrlev,mglev));
+    if (factory)
+    {
+        const MultiFab& vfrac = factory->getVolFrac();
+        for (int c = 0; c < ncomp; ++c) {
+            offset[c] = MultiFab::Dot(rhs, c, vfrac, 0, 1, 0, true) * m_volinv[amrlev][mglev];
+        }
+    }
+    else
+#endif
+    {
+        for (int c = 0; c < ncomp; ++c) {
+            offset[c] = rhs.sum(c,true) * m_volinv[amrlev][mglev];
+        }
+    }
+
+    ParallelAllReduce::Sum(offset.data(), ncomp, ParallelContext::CommunicatorSub());
+
+    return offset;
+}
+
+Real
+MLCellLinOp::AnyNormInfMask (int amrlev, Any const& a, bool local) const
+{
+    AMREX_ASSERT(a.is<MultiFab>());
+    auto& mf = a.get<MultiFab>();
+
+    const int finest_level = NAMRLevels() - 1;
+    Real norm = 0._rt;
+#ifdef AMREX_USE_EB
+    const int ncomp = getNComp();
+    if (! mf.isAllRegular()) {
+        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(Factory(amrlev));
+        const MultiFab& vfrac = factory->getVolFrac();
+        if (amrlev == finest_level) {
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion()) {
+                auto const& ma = mf.const_arrays();
+                auto const& vfrac_ma = vfrac.const_arrays();
+                norm = ParReduce(TypeList<ReduceOpMax>{}, TypeList<Real>{},
+                                 mf, IntVect(0), ncomp,
+                                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n)
+                                     -> GpuTuple<Real>
+                                 {
+                                     return amrex::Math::abs(ma[box_no](i,j,k,n)
+                                                             *vfrac_ma[box_no](i,j,k));
+                                 });
+            } else
+#endif
+            {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel reduction(max:norm)
+#endif
+                for (MFIter mfi(mf,true); mfi.isValid(); ++mfi) {
+                    Box const& bx = mfi.tilebox();
+                    auto const& fab = mf.const_array(mfi);
+                    auto const& v = vfrac.const_array(mfi);
+                    AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
+                    {
+                        norm = std::max(norm, amrex::Math::abs(fab(i,j,k,n)*v(i,j,k)));
+                    });
+                }
+            }
+        } else {
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion()) {
+                auto const& ma = mf.const_arrays();
+                auto const& mask_ma = m_norm_fine_mask[amrlev]->const_arrays();
+                auto const& vfrac_ma = vfrac.const_arrays();
+                norm = ParReduce(TypeList<ReduceOpMax>{}, TypeList<Real>{},
+                                 mf, IntVect(0), ncomp,
+                                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n)
+                                     -> GpuTuple<Real>
+                                 {
+                                     if (mask_ma[box_no](i,j,k)) {
+                                         return amrex::Math::abs(ma[box_no](i,j,k,n)
+                                                                 *vfrac_ma[box_no](i,j,k));
+                                     } else {
+                                         return Real(0.0);
+                                     }
+                                 });
+            } else
+#endif
+            {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel reduction(max:norm)
+#endif
+                for (MFIter mfi(mf,true); mfi.isValid(); ++mfi) {
+                    Box const& bx = mfi.tilebox();
+                    auto const& fab = mf.const_array(mfi);
+                    auto const& mask = m_norm_fine_mask[amrlev]->const_array(mfi);
+                    auto const& v = vfrac.const_array(mfi);
+                    AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
+                    {
+                        if (mask(i,j,k)) {
+                            norm = std::max(norm, amrex::Math::abs(fab(i,j,k,n)*v(i,j,k)));
+                        }
+                    });
+                }
+            }
+        }
+    } else
+#endif
+    {
+        iMultiFab const* fine_mask = (amrlev == finest_level)
+            ? nullptr : m_norm_fine_mask[amrlev].get();
+        norm = MFNormInf(mf, fine_mask, true);
+    }
+
+    if (!local) ParallelAllReduce::Max(norm, ParallelContext::CommunicatorSub());
+    return norm;
+}
+
+void
+MLCellLinOp::AnyAvgDownResAmr (int clev, Any& cres, Any const& fres) const
+{
+    AMREX_ASSERT(cres.is<MultiFab>() && fres.is<MultiFab>());
+#ifdef AMREX_USE_EB
+    amrex::EB_average_down
+#else
+    amrex::average_down
+#endif
+        (fres.get<MultiFab>(), cres.get<MultiFab>(), 0, getNComp(), AMRRefRatio(clev));
+}
+
+void
+MLCellLinOp::AnyInterpolationAmr (int famrlev, Any& a_fine, const Any& a_crse,
+                                  IntVect const& /*nghost*/) const
+{
+    AMREX_ASSERT(a_fine.is<MultiFab>());
+    MultiFab& fine = a_fine.get<MultiFab>();
+    MultiFab const& crse = a_crse.get<MultiFab>();
+
+    const int ncomp = getNComp();
+    const int refratio = AMRRefRatio(famrlev-1);
+
+#ifdef AMREX_USE_EB
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(Factory(famrlev));
+    const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+#endif
+
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(fine, mfi_info); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        Array4<Real> const& ff = fine.array(mfi);
+        Array4<Real const> const& cc = crse.const_array(mfi);
+#ifdef AMREX_USE_EB
+        bool call_lincc;
+        if (factory)
+        {
+            const auto& flag = (*flags)[mfi];
+            if (flag.getType(amrex::grow(bx,1)) == FabType::regular) {
+                call_lincc = true;
+            } else {
+                Array4<EBCellFlag const> const& flg = flag.const_array();
+                switch(refratio) {
+                case 2:
+                {
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                    {
+                        mlmg_eb_cc_interp_r<2>(tbx, ff, cc, flg, ncomp);
+                    });
+                    break;
+                }
+                case 4:
+                {
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                    {
+                        mlmg_eb_cc_interp_r<4>(tbx, ff, cc, flg, ncomp);
+                    });
+                    break;
+                }
+                default:
+                    amrex::Abort("mlmg_eb_cc_interp: only refratio 2 and 4 are supported");
+                }
+
+                call_lincc = false;
+            }
+        }
+        else
+        {
+            call_lincc = true;
+        }
+#else
+        const bool call_lincc = true;
+#endif
+        if (call_lincc)
+        {
+            switch(refratio) {
+            case 2:
+            {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                {
+                    mlmg_lin_cc_interp_r2(tbx, ff, cc, ncomp);
+                });
+                break;
+            }
+            case 4:
+            {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                {
+                    mlmg_lin_cc_interp_r4(tbx, ff, cc, ncomp);
+                });
+                break;
+            }
+            default:
+                amrex::Abort("mlmg_lin_cc_interp: only refratio 2 and 4 are supported");
+            }
+        }
+    }
+}
+
+void
+MLCellLinOp::interpAssign (int amrlev, int fmglev, MultiFab& fine, MultiFab& crse) const
+{
+    const int ncomp = getNComp();
+
+    const Geometry& crse_geom = Geom(amrlev,fmglev+1);
+    const IntVect refratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[fmglev];
+    const IntVect ng = crse.nGrowVect();
+
+    MultiFab cfine;
+    const MultiFab* cmf;
+
+    if (amrex::isMFIterSafe(crse, fine))
+    {
+        crse.FillBoundary(crse_geom.periodicity());
+        cmf = &crse;
+    }
+    else
+    {
+        BoxArray cba = fine.boxArray();
+        cba.coarsen(refratio);
+        cfine.define(cba, fine.DistributionMap(), ncomp, ng);
+        cfine.setVal(0.0);
+        cfine.ParallelCopy(crse, 0, 0, ncomp, IntVect(0), ng, crse_geom.periodicity());
+        cmf = & cfine;
+    }
+
+    bool isEB = fine.hasEBFabFactory();
+    ignore_unused(isEB);
+
+#ifdef AMREX_USE_EB
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(&(fine.Factory()));
+    const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+#endif
+
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(fine, mfi_info); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        const auto& ff = fine.array(mfi);
+        const auto& cc = cmf->array(mfi);
+#ifdef AMREX_USE_EB
+        bool call_lincc;
+        if (isEB)
+        {
+            const auto& flag = (*flags)[mfi];
+            if (flag.getType(amrex::grow(bx,1)) == FabType::regular) {
+                call_lincc = true;
+            } else {
+                Array4<EBCellFlag const> const& flg = flag.const_array();
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                {
+                    mlmg_eb_cc_interp_r<2>(tbx, ff, cc, flg, ncomp);
+                });
+
+                call_lincc = false;
+            }
+        }
+        else
+        {
+            call_lincc = true;
+        }
+#else
+        const bool call_lincc = true;
+#endif
+        if (call_lincc)
+        {
+#if (AMREX_SPACEDIM == 3)
+            if (hasHiddenDimension()) {
+                Box const& bx_2d = compactify(bx);
+                auto const& ff_2d = compactify(ff);
+                auto const& cc_2d = compactify(cc);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx_2d, tbx,
+                {
+                    TwoD::mlmg_lin_cc_interp_r2(tbx, ff_2d, cc_2d, ncomp);
+                });
+            } else
+#endif
+            {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                {
+                    mlmg_lin_cc_interp_r2(tbx, ff, cc, ncomp);
+                });
+            }
+        }
+    }
+}
+
+void
+MLCellLinOp::AnyAverageDownAndSync (Vector<Any>& sol) const
+{
+    AMREX_ASSERT(sol[0].is<MultiFab>());
+
+    int ncomp = getNComp();
+    for (int falev = NAMRLevels()-1; falev > 0; --falev)
+    {
+#ifdef AMREX_USE_EB
+        amrex::EB_average_down(sol[falev  ].get<MultiFab>(),
+                               sol[falev-1].get<MultiFab>(), 0, ncomp, AMRRefRatio(falev-1));
+#else
+        amrex::average_down(sol[falev  ].get<MultiFab>(),
+                            sol[falev-1].get<MultiFab>(), 0, ncomp, AMRRefRatio(falev-1));
+#endif
+    }
+}
+
+void
+MLCellLinOp::fixSolvabilityByOffset (int amrlev, int mglev, Any& a_rhs,
+                                     Vector<Real> const& offset) const
+{
+    amrex::ignore_unused(amrlev, mglev);
+    AMREX_ASSERT(a_rhs.is<MultiFab>());
+    auto& rhs = a_rhs.get<MultiFab>();
+
+    const int ncomp = getNComp();
+    for (int c = 0; c < ncomp; ++c) {
+        rhs.plus(-offset[c], c, 1);
+    }
+#ifdef AMREX_USE_EB
+    if (rhs.hasEBFabFactory()) {
+        Vector<Real> val(ncomp, 0.0_rt);
+        amrex::EB_set_covered(rhs, 0, ncomp, val);
+    }
+#endif
+}
 
 }

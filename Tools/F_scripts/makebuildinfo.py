@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # a simple script that writes the build_info.f90 file that is used
 # to store information for the job_info file that we store in plotfiles.

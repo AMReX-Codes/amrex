@@ -21,12 +21,14 @@ AMREX_EXPORT Vector<std::unique_ptr<IndexSpace> > IndexSpace::m_instance;
 
 AMREX_EXPORT int max_grid_size = 64;
 AMREX_EXPORT bool extend_domain_face = true;
+AMREX_EXPORT int num_coarsen_opt = 0;
 
 void Initialize ()
 {
     ParmParse pp("eb2");
     pp.queryAdd("max_grid_size", max_grid_size);
     pp.queryAdd("extend_domain_face", extend_domain_face);
+    pp.queryAdd("num_coarsen_opt", num_coarsen_opt);
 
     amrex::ExecOnFinalize(Finalize);
 }
@@ -39,6 +41,11 @@ void Finalize ()
 bool ExtendDomainFace ()
 {
     return extend_domain_face;
+}
+
+int NumCoarsenOpt ()
+{
+    return num_coarsen_opt;
 }
 
 void
@@ -74,7 +81,8 @@ const IndexSpace* TopIndexSpaceIfPresent() noexcept {
 
 void
 Build (const Geometry& geom, int required_coarsening_level,
-       int max_coarsening_level, int ngrow, bool build_coarse_level_by_coarsening)
+       int max_coarsening_level, int ngrow, bool build_coarse_level_by_coarsening,
+       bool a_extend_domain_face, int a_num_coarsen_opt)
 {
     ParmParse pp("eb2");
     std::string geom_type;
@@ -85,7 +93,8 @@ Build (const Geometry& geom, int required_coarsening_level,
         EB2::AllRegularIF rif;
         EB2::GeometryShop<EB2::AllRegularIF> gshop(rif);
         EB2::Build(gshop, geom, required_coarsening_level,
-                   max_coarsening_level, ngrow, build_coarse_level_by_coarsening);
+                   max_coarsening_level, ngrow, build_coarse_level_by_coarsening,
+                   a_extend_domain_face, a_num_coarsen_opt);
     }
     else if (geom_type == "box")
     {
@@ -102,7 +111,8 @@ Build (const Geometry& geom, int required_coarsening_level,
 
         EB2::GeometryShop<EB2::BoxIF> gshop(bf);
         EB2::Build(gshop, geom, required_coarsening_level,
-                   max_coarsening_level, ngrow, build_coarse_level_by_coarsening);
+                   max_coarsening_level, ngrow, build_coarse_level_by_coarsening,
+                   a_extend_domain_face, a_num_coarsen_opt);
     }
     else if (geom_type == "cylinder")
     {
@@ -127,7 +137,8 @@ Build (const Geometry& geom, int required_coarsening_level,
 
         EB2::GeometryShop<EB2::CylinderIF> gshop(cf);
         EB2::Build(gshop, geom, required_coarsening_level,
-                   max_coarsening_level, ngrow, build_coarse_level_by_coarsening);
+                   max_coarsening_level, ngrow, build_coarse_level_by_coarsening,
+                   a_extend_domain_face, a_num_coarsen_opt);
     }
     else if (geom_type == "plane")
     {
@@ -141,7 +152,8 @@ Build (const Geometry& geom, int required_coarsening_level,
 
         EB2::GeometryShop<EB2::PlaneIF> gshop(pf);
         EB2::Build(gshop, geom, required_coarsening_level,
-                   max_coarsening_level, ngrow, build_coarse_level_by_coarsening);
+                   max_coarsening_level, ngrow, build_coarse_level_by_coarsening,
+                   a_extend_domain_face, a_num_coarsen_opt);
     }
     else if (geom_type == "sphere")
     {
@@ -158,7 +170,8 @@ Build (const Geometry& geom, int required_coarsening_level,
 
         EB2::GeometryShop<EB2::SphereIF> gshop(sf);
         EB2::Build(gshop, geom, required_coarsening_level,
-                   max_coarsening_level, ngrow, build_coarse_level_by_coarsening);
+                   max_coarsening_level, ngrow, build_coarse_level_by_coarsening,
+                   a_extend_domain_face, a_num_coarsen_opt);
     }
     else if (geom_type == "torus")
     {
@@ -177,7 +190,8 @@ Build (const Geometry& geom, int required_coarsening_level,
 
         EB2::GeometryShop<EB2::TorusIF> gshop(sf);
         EB2::Build(gshop, geom, required_coarsening_level,
-                   max_coarsening_level, ngrow, build_coarse_level_by_coarsening);
+                   max_coarsening_level, ngrow, build_coarse_level_by_coarsening,
+                   a_extend_domain_face, a_num_coarsen_opt);
     }
     else if (geom_type == "parser")
     {
@@ -188,7 +202,8 @@ Build (const Geometry& geom, int required_coarsening_level,
         EB2::ParserIF pif(parser.compile<3>());
         EB2::GeometryShop<EB2::ParserIF,Parser> gshop(pif,parser);
         EB2::Build(gshop, geom, required_coarsening_level,
-                   max_coarsening_level, ngrow, build_coarse_level_by_coarsening);
+                   max_coarsening_level, ngrow, build_coarse_level_by_coarsening,
+                   a_extend_domain_face, a_num_coarsen_opt);
     }
     else if (geom_type == "stl")
     {
@@ -206,11 +221,21 @@ Build (const Geometry& geom, int required_coarsening_level,
                                            geom, required_coarsening_level,
                                            max_coarsening_level, ngrow,
                                            build_coarse_level_by_coarsening,
-                                           extend_domain_face));
+                                           a_extend_domain_face,
+                                           a_num_coarsen_opt));
     }
     else
     {
         amrex::Abort("geom_type "+geom_type+ " not supported");
+    }
+}
+
+void addFineLevels (int num_new_fine_levels)
+{
+    BL_PROFILE("EB2::addFineLevels()");
+    auto p = const_cast<IndexSpace*>(TopIndexSpace());
+    if (p) {
+        p->addFineLevels(num_new_fine_levels);
     }
 }
 

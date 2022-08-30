@@ -1,8 +1,3 @@
-# Check python version
-my_python_version := $(word 2, $(shell python --version 2>&1))
-ifneq ($(firstword $(sort 2.7 $(my_python_version))), 2.7)
-  $(error Python >= 2.7 required! Your version is $(my_python_version))
-endif
 
 ifneq (,$(findstring ~,$(AMREX_HOME)))
   $(warning *** AMREX_HOME string constains ~ and make will not like it. So it is replaced.)
@@ -762,6 +757,7 @@ else ifeq ($(USE_CUDA),TRUE)
         LINK_WITH_FORTRAN_COMPILER=TRUE
     endif
 
+    $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/nvcc.mak...)
     include $(AMREX_HOME)/Tools/GNUMake/comps/nvcc.mak
 
     ifeq ($(USE_MPI),TRUE)
@@ -971,17 +967,17 @@ endif
 F90CACHE =
 
 ifeq ($(TP_PROFILING),VTUNE)
-  $(into Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.vtune
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.vtune
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.vtune
 endif
 
 ifeq ($(TP_PROFILING),CRAYPAT)
-  $(into Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.craypat
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.craypat
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.craypat
 endif
 
 ifeq ($(TP_PROFILING),FORGE)
-  $(into Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.forge
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.forge
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.forge
 endif
 

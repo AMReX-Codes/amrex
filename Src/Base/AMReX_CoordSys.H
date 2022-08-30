@@ -47,6 +47,9 @@ public:
 //    //! Initialize after construction.
 //    void define (const Real* cell_dx);
 
+    //! Is ok?
+    bool Ok () const noexcept { return ok; }
+
     //! Set the CoordType.
     void SetCoord (CoordType coord) noexcept { c_sys = coord; }
 

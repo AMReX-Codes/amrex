@@ -271,6 +271,10 @@ CEXE_sources += AMReX_Machine.cpp
 # Forward declaration
 CEXE_headers += AMReX_BaseFwd.H
 
+ifeq ($(USE_MPI),TRUE)
+  CEXE_headers += AMReX_MPMD.H
+  CEXE_sources += AMReX_MPMD.cpp
+endif
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base

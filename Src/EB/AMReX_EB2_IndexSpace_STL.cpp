@@ -7,7 +7,7 @@ IndexSpaceSTL::IndexSpaceSTL (const std::string& stl_file, Real stl_scale,
                               const Geometry& geom, int required_coarsening_level,
                               int max_coarsening_level, int ngrow,
                               bool build_coarse_level_by_coarsening,
-                              bool extend_domain_face)
+                              bool extend_domain_face, int num_coarsen_opt)
 {
     Gpu::LaunchSafeGuard lsg(true); // Always use GPU
 
@@ -29,7 +29,7 @@ IndexSpaceSTL::IndexSpaceSTL (const std::string& stl_file, Real stl_scale,
     m_ngrow.push_back(ngrow_finest);
     m_stllevel.reserve(max_coarsening_level+1);
     m_stllevel.emplace_back(this, stl_tools, geom, EB2::max_grid_size, ngrow_finest,
-                            extend_domain_face);
+                            extend_domain_face, num_coarsen_opt);
 
     for (int ilev = 1; ilev <= max_coarsening_level; ++ilev)
     {
@@ -54,7 +54,7 @@ IndexSpaceSTL::IndexSpaceSTL (const std::string& stl_file, Real stl_scale,
                     amrex::Abort("Failed to build required coarse EB level "+std::to_string(ilev));
                 } else {
                     m_stllevel.emplace_back(this, stl_tools, cgeom, EB2::max_grid_size, ng,
-                                            extend_domain_face);
+                                            extend_domain_face, num_coarsen_opt-ilev);
                 }
             } else {
                 break;
@@ -80,6 +80,12 @@ IndexSpaceSTL::getGeometry (const Box& dom) const
     auto it = std::find(std::begin(m_domain), std::end(m_domain), dom);
     int i = std::distance(m_domain.begin(), it);
     return m_geom[i];
+}
+
+void
+IndexSpaceSTL::addFineLevels (int /*num_new_fine_levels*/)
+{
+    amrex::Abort("IndexSpaceSTL::addFineLevels: todo");
 }
 
 }}

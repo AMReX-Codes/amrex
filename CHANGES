@@ -1,3 +1,115 @@
+# 22.08
+
+  -- Let `selectActualNeighbors` return right after starting if there are no
+     particles for communication. (#2886)
+
+  -- Add Comm Sync to Redistribute (#2891)
+
+  -- Multi-materials and derived variable output (#2888)
+
+  -- Fix host / device sync bug in PODVector (#2890)
+
+  -- MinLoc and MaxLoc Support (#2885)
+
+  -- HIP: Remove the call to hipDeviceSetSharedMemConfig (#2884)
+
+  -- Add Frontier to GNU Make (#2879)
+
+  -- Add option to derefine to AMRErrorTag (#2875)
+
+  -- Fix the segmentation fault in selecting actual neighbor particles. (#2877)
+
+  -- Workaround to bypass issue observed at very large scale with Fujitsu MPI (#2874)
+     `TagBoxArray::collate`: Fujitsu Clang (#2889)
+
+  -- Allow zero components MultiFab and BaseFab (#2873)
+
+  -- New EB optimization parameter: eb2.num_coarsen_opt (#2872)
+
+  -- SENSEI 4.0: Fix Build for Particles (#2869)
+
+  -- Cache the neighbor comm tags for the CPU implementation of fillNeighbors. (#2862)
+
+  -- Remove some hard checks in check_mvmc for 3D (#2864)
+
+  -- Carry over fix for ngbxy.smallEnd typo (#2868)
+
+# 22.07
+
+  -- Adding control APIs and namespacing for core algorithm paths like SpGEMM, SpMV, and SpTrans. (#2859)
+
+  -- update the SENSEI in situ coupling for SENSEI v4.0.0 (#2785)
+
+  -- Write runtime attribs to checkpoints on GPUs (#2856)
+
+  -- Fix gnu make on Crusher for mpi_gtl_hsa (#2857)
+
+  -- CMake: FindDependency CUDAToolkit (#2849)
+
+  -- NERSC Programming Environment prototype (#2848)
+
+  -- GNU Make: No need to query mpif90 if Fortran is not used. (#2852)
+
+  -- Remove f90doc (#2851)
+
+  -- Explicitly invoke python3 (#2850)
+
+  -- Maintain the high end of the 'roundoff domain' in both float and double precision (#2839)
+
+  -- add Ok to coordsys (#2844)
+
+  -- ParamParse: Add Files at Runtime (#2842)
+
+  -- Fix a pathological case for 2d EB (#2840)
+
+  -- add fvolumesum to GNUmakefile (#2836)
+
+  -- Clamp particles shifted from plo boundary against rhi, rather than back to plo (#2814)
+
+  -- Fix: CMake NVTX not only Hypre (#2837)
+
+  -- Update sensei CI container for sensei v4.0 integration (#2834)
+
+  -- HIP Memory Advise : Set managed memory to coarse grain (#2835)
+
+  -- CMake: Fix `export` with `AMReX_INSTALL=OFF` (#2838)
+
+  -- make PODVector work with PolymorphicArenaAllocator (#2829)
+
+  -- Re-implement FaceLinear::interp() for InterpFromCoarseLevel (#2831)
+
+  -- Make regrid method of Amr class public (#2833)
+
+  -- amrex::Any (#2827)
+
+  -- Fix line integral computation (#2830)
+
+  -- Fix a bug in multigrid grids (#2823)
+
+  -- Add html, additional sections to README.md (#2775)
+
+  -- Allow StateDataPhysBCFunct to operate on face-centered data (#2819)
+
+  -- Fix Parser ODR (#2820)
+
+  -- CMake: Cleanup old nvToolsExt (#2817)
+
+  -- Handle the case where we don't have enough device memory for the snd_buffer (#2705)
+
+  -- CMake: 3.17+ (#2813)
+
+  -- Landon/fix bug ghost particles (#2812)
+
+  -- Follow-on to 2809; update selectActualNeighbors as well. (#2810)
+
+  -- Generalize the type of callables that can be passed into the neighbor list build function (#2809)
+
+  -- Add AVX2 instructions flag. (#2803)
+
+  -- Avoid M_PI because it's not in the C++ standard (#2807)
+
+  -- In the array version of FillPatchTwoLevels, allow specifying an (#2800)
+
 # 22.06
 
   -- Fix solvability issue in the nodal solver RAP approach (#2783, #2801)

@@ -239,7 +239,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     const auto& geom = Geom(0);
     const auto plo = geom.ProbLoArray();
     const auto phi = geom.ProbHiArray();
-    const auto rhi = geom.RoundoffHiArray();
+    const auto rhi = geom.ProbHiArrayInParticleReal();
     const auto is_per = geom.isPeriodicArray();
 
     return enforcePeriodic(p, plo, phi, rhi, is_per);
@@ -314,20 +314,21 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::lo
 
     if (! outside)
     {
-        if (Geom(0).outsideRoundoffDomain(AMREX_D_DECL(Real(p.pos(0)), Real(p.pos(1)), Real(p.pos(2)))))
+        if (Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))))
         {
-            RealBox roundoff_domain = Geom(0).RoundoffDomain();
+            RealBox prob_domain = Geom(0).ProbDomain();
+            GpuArray<ParticleReal, AMREX_SPACEDIM> phi = Geom(0).ProbHiArrayInParticleReal();
             for (int idim=0; idim < AMREX_SPACEDIM; ++idim)
             {
-                if (p.pos(idim) <= roundoff_domain.lo(idim)) {
-                    p.pos(idim) = std::nextafter((ParticleReal) roundoff_domain.lo(idim), (ParticleReal) roundoff_domain.hi(idim));
+                if (p.pos(idim) <= prob_domain.lo(idim)) {
+                    p.pos(idim) = std::nextafter((ParticleReal) prob_domain.lo(idim), phi[idim]);
                 }
-                if (p.pos(idim) >= roundoff_domain.hi(idim)) {
-                    p.pos(idim) = std::nextafter((ParticleReal) roundoff_domain.hi(idim), (ParticleReal) roundoff_domain.lo(idim));
+                if (p.pos(idim) >= phi[idim]) {
+                    p.pos(idim) = std::nextafter(phi[idim], (ParticleReal) prob_domain.lo(idim));
                 }
             }
 
-            AMREX_ASSERT(! Geom(0).outsideRoundoffDomain(AMREX_D_DECL(Real(p.pos(0)), Real(p.pos(1)), Real(p.pos(2)))));
+            AMREX_ASSERT(! Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))));
         }
     }
 
@@ -1072,6 +1073,8 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::Redistribute (int lev_min, int lev_max, int nGrow, int local, bool remove_negative)
 {
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms: Redist");
+
 #ifdef AMREX_USE_GPU
     if ( Gpu::inLaunchRegion() )
     {
@@ -1084,6 +1087,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 #else
     RedistributeCPU(lev_min, lev_max, nGrow, local, remove_negative);
 #endif
+
+    BL_PROFILE_SYNC_STOP();
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
@@ -1112,10 +1117,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::So
 
         for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
-            auto& ptile = ParticlesAt(lev, mfi);
-            auto& aos   = ptile.GetArrayOfStructs();
-            const size_t np = aos.numParticles();
-            auto pstruct_ptr = aos().dataPtr();
+            auto& ptile           = ParticlesAt(lev, mfi);
+            auto& aos             = ptile.GetArrayOfStructs();
+            auto  pstruct_ptr     = aos().dataPtr();
+            const size_t np       = aos.numParticles();
+            const size_t np_total = np + aos.numNeighborParticles();
 
             const Box& box = mfi.validbox();
 
@@ -1126,26 +1132,26 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::So
 
             if (memEfficientSort) {
                 {
-                    ParticleVector tmp_particles(np);
+                    ParticleVector tmp_particles(np_total);
                     auto src = ptile.getParticleTileData();
                     ParticleType* dst = tmp_particles.data();
 
-                    AMREX_HOST_DEVICE_FOR_1D( np, i,
+                    AMREX_HOST_DEVICE_FOR_1D( np_total, i,
                     {
-                        dst[i] = src.m_aos[inds[i]];
+                        dst[i] = i < np ? src.m_aos[inds[i]] : src.m_aos[i];
                     });
 
                     Gpu::streamSynchronize();
                     ptile.GetArrayOfStructs()().swap(tmp_particles);
                 }
 
-                RealVector tmp_real(np);
+                RealVector tmp_real(np_total);
                 for (int comp = 0; comp < NArrayReal + m_num_runtime_real; ++comp) {
                     auto src = ptile.GetStructOfArrays().GetRealData(comp).data();
                     ParticleReal* dst = tmp_real.data();
-                    AMREX_HOST_DEVICE_FOR_1D( np, i,
+                    AMREX_HOST_DEVICE_FOR_1D( np_total, i,
                     {
-                        dst[i] = src[inds[i]];
+                        dst[i] = i < np ? src[inds[i]] : src[i];
                     });
 
                     Gpu::streamSynchronize();
@@ -1153,13 +1159,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::So
                     ptile.GetStructOfArrays().GetRealData(comp).swap(tmp_real);
                 }
 
-                IntVector tmp_int(np);
+                IntVector tmp_int(np_total);
                 for (int comp = 0; comp < NArrayInt + m_num_runtime_int; ++comp) {
                     auto src = ptile.GetStructOfArrays().GetIntData(comp).data();
                     int* dst = tmp_int.data();
-                    AMREX_HOST_DEVICE_FOR_1D( np, i,
+                    AMREX_HOST_DEVICE_FOR_1D( np_total , i,
                     {
-                        dst[i] = src[inds[i]];
+                        dst[i] = i < np ? src[inds[i]] : src[i];
                     });
 
                     Gpu::streamSynchronize();
@@ -1169,8 +1175,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::So
             } else {
                 ParticleTileType ptile_tmp;
                 ptile_tmp.define(m_num_runtime_real, m_num_runtime_int);
-                ptile_tmp.resize(np);
+                ptile_tmp.resize(np_total);
+                // copy re-ordered particles
                 gatherParticles(ptile_tmp, ptile, np, m_bins.permutationPtr());
+                // copy neighbor particles
+                amrex::copyParticles(ptile_tmp, ptile, np, np, np_total-np);
                 ptile.swap(ptile_tmp);
             }
         }
@@ -1233,7 +1242,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     Vector<std::map<int, int> > new_sizes(num_levels);
     const auto plo    = Geom(0).ProbLoArray();
     const auto phi    = Geom(0).ProbHiArray();
-    const auto rhi    = Geom(0).RoundoffHiArray();
+    const auto rhi    = Geom(0).ProbHiArrayInParticleReal();
     const auto is_per = Geom(0).isPeriodicArray();
     for (int lev = lev_min; lev <= finest_lev_particles; ++lev)
     {

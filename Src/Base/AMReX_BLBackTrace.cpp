@@ -5,6 +5,9 @@
 #include <AMReX_AsyncOut.H>
 #include <AMReX.H>
 #include <AMReX_Utility.H>
+#ifdef AMREX_USE_MPI
+#include <AMReX_MPMD.H>
+#endif
 
 #ifdef AMREX_TINY_PROFILING
 #include <AMReX_TinyProfiler.H>
@@ -71,7 +74,15 @@ BLBackTrace::handler(int s)
     std::string errfilename;
     {
         std::ostringstream ss;
-        ss << "Backtrace." << ParallelDescriptor::MyProc();
+#ifdef AMREX_USE_MPI
+        if (MPMD::Initialized()) {
+            ss << "Backtrace.prog" << MPMD::MyProgId() << ".";
+        } else
+#endif
+        {
+            ss << "Backtrace.";
+        }
+        ss << ParallelDescriptor::MyProc();
 #ifdef AMREX_USE_OMP
         ss << "." << omp_get_thread_num();
 #endif

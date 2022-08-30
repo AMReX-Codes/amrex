@@ -260,7 +260,7 @@ public:
      */
     void clear () noexcept;
 
-    // Release ownership of memory
+    //! Release ownership of memory
     std::unique_ptr<T,DataDeleter> release () noexcept;
 
     //! Returns how many bytes used
@@ -350,10 +350,22 @@ public:
     * order, with the component index coming last.   In other words,
     * dataPtr returns a pointer to all the Nth components.
     */
-    T* dataPtr (int n = 0) noexcept { AMREX_ASSERT(!(this->dptr == 0)); return &(this->dptr[n*this->domain.numPts()]); }
+    T* dataPtr (int n = 0) noexcept {
+        if (this->dptr) {
+            return &(this->dptr[n*this->domain.numPts()]);
+        } else {
+            return nullptr;
+        }
+    }
 
     //! Same as above except works on const FABs.
-    const T* dataPtr (int n = 0) const noexcept { AMREX_ASSERT(!(this->dptr == 0)); return &(this->dptr[n*this->domain.numPts()]); }
+    const T* dataPtr (int n = 0) const noexcept {
+        if (this->dptr) {
+            return &(this->dptr[n*this->domain.numPts()]);
+        } else {
+            return nullptr;
+        }
+    }
 
     T* dataPtr (const IntVect& iv, int n = 0) noexcept;
 
@@ -1882,9 +1894,9 @@ BaseFab<T>::define ()
 {
     AMREX_ASSERT(this->dptr == 0);
     AMREX_ASSERT(this->domain.numPts() > 0);
-    AMREX_ASSERT(std::numeric_limits<Long>::max()/this->nvar > this->domain.numPts());
     AMREX_ASSERT(this->nvar >= 0);
     if (this->nvar == 0) return;
+    AMREX_ASSERT(std::numeric_limits<Long>::max()/this->nvar > this->domain.numPts());
 
     this->truesize  = this->nvar*this->domain.numPts();
     this->ptr_owner = true;

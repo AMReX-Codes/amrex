@@ -8,6 +8,7 @@
 #include <AMReX_GpuAtomic.H>
 #include <AMReX_GpuUtility.H>
 #include <AMReX_Functional.H>
+#include <AMReX_TypeTraits.H>
 
 #if !defined(AMREX_USE_CUB) && defined(AMREX_USE_CUDA) && defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 11)
 #define AMREX_USE_CUB 1
@@ -54,10 +55,10 @@ template <int warpSize, typename T, typename F>
 struct warpReduce
 {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    T operator() (T x, amrex::oneapi::sub_group const& sg) const noexcept
+    T operator() (T x, sycl::sub_group const& sg) const noexcept
     {
         for (int offset = warpSize/2; offset > 0; offset /= 2) {
-            T y = sg.shuffle_down(x, offset);
+            T y = sycl::shift_group_left(sg, x, offset);
             x = F()(x,y);
         }
         return x;
@@ -70,7 +71,7 @@ T blockReduce (T x, WARPREDUCE && warp_reduce, T x0, Gpu::Handler const& h)
 {
     T* shared = (T*)h.local;
     int tid = h.item->get_local_id(0);
-    amrex::oneapi::sub_group const& sg = h.item->get_sub_group();
+    sycl::sub_group const& sg = h.item->get_sub_group();
     int lane = sg.get_local_id()[0];
     int wid = sg.get_group_id()[0];
     int numwarps = sg.get_group_range()[0];
@@ -93,7 +94,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void blockReduce_partial (T* dest, T x, WARPREDUCE && warp_reduce, ATOMICOP && atomic_op,
                           Gpu::Handler const& handler)
 {
-   amrex::oneapi::sub_group const& sg = handler.item->get_sub_group();
+   sycl::sub_group const& sg = handler.item->get_sub_group();
    int wid = sg.get_group_id()[0];
    if ((wid+1)*warpSize <= handler.numActiveThreads) {
        x = warp_reduce(x, sg); // full warp
@@ -249,15 +250,54 @@ void deviceReduceLogicalOr (int * dest, int source, Gpu::Handler const& h) noexc
 
 #elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
+namespace detail {
+
+template <typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+T shuffle_down (T x, int offset) noexcept
+{
+    return AMREX_HIP_OR_CUDA(__shfl_down(x, offset),
+                             __shfl_down_sync(0xffffffff, x, offset));
+}
+
+// If other sizeof is needed, we can implement it later.
+template <class T, std::enable_if_t<sizeof(T)%sizeof(unsigned int) == 0, int> = 0>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+T multi_shuffle_down (T x, int offset) noexcept
+{
+    constexpr int nwords = (sizeof(T) + sizeof(unsigned int) - 1) / sizeof(unsigned int);
+    T y;
+    auto py = reinterpret_cast<unsigned int*>(&y);
+    auto px = reinterpret_cast<unsigned int*>(&x);
+    for (int i = 0; i < nwords; ++i) {
+        py[i] = shuffle_down(px[i],offset);
+    }
+    return y;
+}
+
+}
+
 template <int warpSize, typename T, typename F>
 struct warpReduce
 {
+    // Not all arithmetic types can be taken by shuffle_down, but it's good enough.
+    template <class U=T, std::enable_if_t<std::is_arithmetic<U>::value,int> = 0>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T operator() (T x) const noexcept
     {
         for (int offset = warpSize/2; offset > 0; offset /= 2) {
-            AMREX_HIP_OR_CUDA(T y = __shfl_down(x, offset);,
-                              T y = __shfl_down_sync(0xffffffff, x, offset); )
+            T y = detail::shuffle_down(x, offset);
+            x = F()(x,y);
+        }
+        return x;
+    }
+
+    template <class U=T, std::enable_if_t<!std::is_arithmetic<U>::value,int> = 0>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    T operator() (T x) const noexcept
+    {
+        for (int offset = warpSize/2; offset > 0; offset /= 2) {
+            T y = detail::multi_shuffle_down(x, offset);
             x = F()(x,y);
         }
         return x;

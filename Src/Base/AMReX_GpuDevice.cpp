@@ -397,11 +397,7 @@ Device::initialize_gpu ()
 
     // check compute capability
 
-    if (sizeof(Real) == 8) {
-        AMREX_HIP_SAFE_CALL(hipDeviceSetSharedMemConfig(hipSharedMemBankSizeEightByte));
-    } else if (sizeof(Real) == 4) {
-        AMREX_HIP_SAFE_CALL(hipDeviceSetSharedMemConfig(hipSharedMemBankSizeFourByte));
-    }
+    // AMD devices do not support shared cache banking.
 
     AMREX_HIP_SAFE_CALL(hipStreamCreate(&gpu_default_stream));
     for (int i = 0; i < max_gpu_streams; ++i) {
@@ -467,8 +463,8 @@ Device::initialize_gpu ()
         device_prop.warpSize = warp_size;
         auto sgss = d.get_info<sycl::info::device::sub_group_sizes>();
         device_prop.maxMemAllocSize = d.get_info<sycl::info::device::max_mem_alloc_size>();
-        device_prop.managedMemory = d.get_info<sycl::info::device::host_unified_memory>();
-        device_prop.concurrentManagedAccess = d.get_info<sycl::info::device::usm_shared_allocations>();
+        device_prop.managedMemory = d.has(sycl::aspect::usm_host_allocations);
+        device_prop.concurrentManagedAccess = d.has(sycl::aspect::usm_shared_allocations);
         device_prop.maxParameterSize = d.get_info<sycl::info::device::max_parameter_size>();
         {
             amrex::Print() << "Device Properties:\n"

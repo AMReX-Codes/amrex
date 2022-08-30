@@ -121,7 +121,7 @@ buildNeighborCopyOp (bool use_boundary_neighbor)
 {
     BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::buildNeighborCopyOp()");
 
-    AMREX_ASSERT(hasNeighbors() == false);
+    AMREX_ASSERT(!hasNeighbors() || use_boundary_neighbor);
 
     const int lev = 0;
     const auto& geom = this->Geom(lev);

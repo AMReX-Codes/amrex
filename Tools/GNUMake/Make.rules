@@ -512,9 +512,14 @@ endif
 # e.g. libraries, simply do "make print-libraries".  This will
 # print out the value.
 print-%:
-	@echo $* is '$($*)'
+	@echo $* is "$($*)"
 	@echo '    origin = $(origin $*)'
-	@echo '     value = $(value  $*)'
+	@echo '     value = $(subst ','"'"',$(value  $*))'
+# We need to use subst on the result of $(value) because it contains single
+# quotes.  Shell command echo does not like things like 'x'$(filiter-out)'y',
+# because what it sees is 'x', $(filter-out), and 'y'.  With the substition, it
+# will see 'x', "'", '$(filter-out)', "'", and 'y', with $(filter-out) inside a
+# pair of single quotes.
 
 .PHONY: help
 help:
