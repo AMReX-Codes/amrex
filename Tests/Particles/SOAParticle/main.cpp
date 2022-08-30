@@ -21,6 +21,7 @@ void addParticles ()
     int const NArrayInt = pc.NArrayInt;
 
     using ParticleType = typename T_PC::ParticleType;
+    using ParticleTileDataType = typename T_PC::ParticleTileType::ParticleTileDataType;
     using RealVector = amrex::PODVector<ParticleReal, Allocator<ParticleReal> >;
     using IntVector = amrex::PODVector<int, Allocator<int> >;
 
@@ -40,16 +41,55 @@ void addParticles ()
     }
     
     int lev=0;
-    int numparticles=0;
+    // int numparticles=0;
     using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
     for (MyParIter pti(pc, lev); pti.isValid(); ++pti) {
-        const auto& particles = pti.GetArrayOfStructs();
-        const auto& tile = pti.GetParticleTile();
-        int np = pti.numParticles();
+        const int np = pti.numParticles();
+        //const auto t_lev = pti.GetLevel();
+        //const auto index = pti.GetPairIndex();
+        // ...
+
+        // preparing access to particle data: AoS
+        //using PType = ImpactXParticleContainer::ParticleType;
+        auto& aos = pti.GetArrayOfStructs();
+        ParticleType* AMREX_RESTRICT aos_ptr = aos().dataPtr();
+
+        // preparing access to particle data: SoA of Reals
+        auto& soa_real = pti.GetStructOfArrays().GetRealData();
+        amrex::ParticleReal* const AMREX_RESTRICT part_x = soa_real[0].dataPtr();
+        amrex::ParticleReal* const AMREX_RESTRICT part_y = soa_real[1].dataPtr();
+        amrex::ParticleReal* const AMREX_RESTRICT part_z = soa_real[2].dataPtr();
+        amrex::ParticleReal* const AMREX_RESTRICT part_aaa = soa_real[3].dataPtr();
+        auto& soa_int = pti.GetStructOfArrays().GetIntData();
+
         ParallelFor( np, [=] AMREX_GPU_DEVICE (long ip)
-            {
-                tile.pos(ip,0)=1;
-            });
+        {
+            ParticleType& AMREX_RESTRICT p = aos_ptr[ip];
+            p.pos(0) += 1;
+            p.pos(1) += 1;
+            p.pos(2) += 1;
+            
+            amrex::ParticleReal & AMREX_RESTRICT x = part_x[ip];
+            amrex::ParticleReal & AMREX_RESTRICT y = part_y[ip];
+            amrex::ParticleReal & AMREX_RESTRICT z = part_z[ip];
+
+            x += 1.0;
+            y += 1.0;
+            z += 1.0;
+        });
+
+        // new way of creating
+        ParticleTileDataType ptd = pti.GetParticleTile().getParticleTileData(); 
+
+        ParallelFor( np, [=] AMREX_GPU_DEVICE (long ip)
+        {
+            ParticleType p(ptd, ip);
+            p.pos(0) += 1;
+            p.pos(1) += 1;
+            p.pos(2) += 1;
+        });
+
+
     }
 
     for (MyParIter pti(pc, lev); pti.isValid(); ++pti) {
