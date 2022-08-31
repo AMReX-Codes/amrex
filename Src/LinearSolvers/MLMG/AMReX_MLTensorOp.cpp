@@ -210,7 +210,7 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 
     if (mglev >= m_kappa[amrlev].size()) return;
 
-    applyBCTensor(amrlev, mglev, in, bc_mode, s_mode, bndry); // This only fills coarse/fine BC.
+    applyBCTensor(amrlev, mglev, in, bc_mode, s_mode, bndry);
 
     const auto& bcondloc = *m_bcondloc[amrlev][mglev];
 
@@ -218,6 +218,8 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
     const Box& domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
+    const auto dlo = amrex::lbound(domain);
+    const auto dhi = amrex::ubound(domain);
 
     Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][mglev];
     Array<MultiFab,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev][mglev];
@@ -297,17 +299,17 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
                 ( xbx, txbx,
                   {
                       mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv,
-                                              bvxlo, bvxhi, bct, domain);
+                                              bvxlo, bvxhi, bct, dlo, dhi);
                   }
                 , ybx, tybx,
                   {
                       mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv,
-                                              bvylo, bvyhi, bct, domain);
+                                              bvylo, bvyhi, bct, dlo, dhi);
                   }
                 , zbx, tzbx,
                   {
                       mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv,
-                                              bvzlo, bvzhi, bct, domain);
+                                              bvzlo, bvzhi, bct, dlo, dhi);
                   }
                 );
             }
@@ -348,6 +350,8 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
     const Box& domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
+    const auto dlo = amrex::lbound(domain);
+    const auto dhi = amrex::ubound(domain);
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
@@ -394,7 +398,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                                   mxlo, mylo, mxhi, myhi,
                                   bvxlo, bvylo, bvxhi, bvyhi,
                                   bct, bcl, inhomog, imaxorder,
-                                  dxinv, domain);
+                                  dxinv, dlo, dhi);
         });
 #else
         const auto& mzlo = maskvals[Orientation(2,Orientation::low )].array(mfi);
@@ -426,7 +430,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                                     mxlo, mylo, mzlo, mxhi, myhi, mzhi,
                                     bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
                                     bct, bcl, inhomog, imaxorder,
-                                    dxinv, domain);
+                                    dxinv, dlo, dhi);
             });
         } else
 #endif
@@ -435,12 +439,11 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                                 mxlo, mylo, mzlo, mxhi, myhi, mzhi,
                                 bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
                                 bct, bcl, inhomog, imaxorder,
-                                dxinv, domain);
+                                dxinv, dlo, dhi);
         }
 #endif
     }
 
-    // Notet that it is incorrect to call EnforcePeriodicity on vel.
 #endif
 }
 

@@ -666,7 +666,8 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                     0,2*AMREX_SPACEDIM,
                                     0,AMREX_SPACEDIM> const& bcl,
                             int inhomog, int maxorder,
-                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv, Box const& domain) noexcept
+                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                            Dim3 const& dlo, Dim3 const& dhi) noexcept
 {
     constexpr int xdir = 0;
     constexpr int ydir = 1;
@@ -674,8 +675,6 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
     const auto blen = amrex::length(vbox);
     const auto vlo  = amrex::lbound(vbox);
     const auto vhi  = amrex::ubound(vbox);
-    const auto dlo  = amrex::lbound(domain);
-    const auto dhi  = amrex::ubound(domain);
     for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
         switch (icorner) {
         case 0: {
@@ -1179,14 +1178,12 @@ void mltensor_fill_edges (Box const& vbox, // vbox: the valid box
                                   0,AMREX_SPACEDIM> const& bcl,
                           int inhomog, int maxorder,
                           GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                          Box const& domain) noexcept
+                          Dim3 const& dlo, Dim3 const& dhi) noexcept
 
 {
     const auto blen = amrex::length(vbox);
     const auto vlo  = amrex::lbound(vbox);
     const auto vhi  = amrex::ubound(vbox);
-    const auto dlo  = amrex::lbound(domain);
-    const auto dhi  = amrex::ubound(domain);
     bool xlo_domain = (vlo.x == dlo.x);
     bool ylo_domain = (vlo.y == dlo.y);
     bool zlo_domain = (vlo.z == dlo.z);
@@ -1253,13 +1250,11 @@ void mltensor_fill_edges (int const bid, int const tid, int const bdim,
                                   0,AMREX_SPACEDIM> const& bcl,
                           int inhomog, int maxorder,
                           GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                          Box const& domain) noexcept
+                          Dim3 const& dlo, Dim3 const& dhi) noexcept
 {
     const auto blen = amrex::length(vbox);
     const auto vlo  = amrex::lbound(vbox);
     const auto vhi  = amrex::ubound(vbox);
-    const auto dlo  = amrex::lbound(domain);
-    const auto dhi  = amrex::ubound(domain);
     bool xlo_domain = (vlo.x == dlo.x);
     bool ylo_domain = (vlo.y == dlo.y);
     bool zlo_domain = (vlo.z == dlo.z);
@@ -1331,6 +1326,42 @@ void mltensor_fill_edges (int const bid, int const tid, int const bdim,
 #endif
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mltensor_dy_on_xface (int i, int j, int k, int n, Array4<Real const> const& vel, Real dyi) noexcept
+{
+    return (vel(i,j+1,k,n)+vel(i-1,j+1,k,n)-vel(i,j-1,k,n)-vel(i-1,j-1,k,n))*(Real(0.25)*dyi);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mltensor_dz_on_xface (int i, int j, int k, int n, Array4<Real const> const& vel, Real dzi) noexcept
+{
+    return (vel(i,j,k+1,n)+vel(i-1,j,k+1,n)-vel(i,j,k-1,n)-vel(i-1,j,k-1,n))*(Real(0.25)*dzi);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mltensor_dx_on_yface (int i, int j, int k, int n, Array4<Real const> const& vel, Real dxi) noexcept
+{
+    return (vel(i+1,j,k,n)+vel(i+1,j-1,k,n)-vel(i-1,j,k,n)-vel(i-1,j-1,k,n))*(Real(0.25)*dxi);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mltensor_dz_on_yface (int i, int j, int k, int n, Array4<Real const> const& vel, Real dzi) noexcept
+{
+    return (vel(i,j,k+1,n)+vel(i,j-1,k+1,n)-vel(i,j,k-1,n)-vel(i,j-1,k-1,n))*(Real(0.25)*dzi);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mltensor_dx_on_zface (int i, int j, int k, int n, Array4<Real const> const& vel, Real dxi) noexcept
+{
+    return (vel(i+1,j,k,n)+vel(i+1,j,k-1,n)-vel(i-1,j,k,n)-vel(i-1,j,k-1,n))*(Real(0.25)*dxi);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mltensor_dy_on_zface (int i, int j, int k, int n, Array4<Real const> const& vel, Real dyi) noexcept
+{
+    return (vel(i,j+1,k,n)+vel(i,j+1,k-1,n)-vel(i,j-1,k,n)-vel(i,j-1,k-1,n))*(Real(0.25)*dyi);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                               Array4<Real const> const& vel,
                               Array4<Real const> const& etax,
@@ -1347,10 +1378,10 @@ void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
-                Real dudy = (vel(i,j+1,k,0)+vel(i-1,j+1,k,0)-vel(i,j-1,k,0)-vel(i-1,j-1,k,0))*(Real(0.25)*dyi);
-                Real dvdy = (vel(i,j+1,k,1)+vel(i-1,j+1,k,1)-vel(i,j-1,k,1)-vel(i-1,j-1,k,1))*(Real(0.25)*dyi);
-                Real dudz = (vel(i,j,k+1,0)+vel(i-1,j,k+1,0)-vel(i,j,k-1,0)-vel(i-1,j,k-1,0))*(Real(0.25)*dzi);
-                Real dwdz = (vel(i,j,k+1,2)+vel(i-1,j,k+1,2)-vel(i,j,k-1,2)-vel(i-1,j,k-1,2))*(Real(0.25)*dzi);
+                Real dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi);
+                Real dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi);
+                Real dudz = mltensor_dz_on_xface(i,j,k,0,vel,dzi);
+                Real dwdz = mltensor_dz_on_xface(i,j,k,2,vel,dzi);
                 Real divu = dvdy + dwdz;
                 Real xif = kapx(i,j,k);
                 Real mun = Real(0.75)*(etax(i,j,k,0)-xif);  // restore the original eta
@@ -1380,10 +1411,10 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
-                Real dudx = (vel(i+1,j,k,0)+vel(i+1,j-1,k,0)-vel(i-1,j,k,0)-vel(i-1,j-1,k,0))*(Real(0.25)*dxi);
-                Real dvdx = (vel(i+1,j,k,1)+vel(i+1,j-1,k,1)-vel(i-1,j,k,1)-vel(i-1,j-1,k,1))*(Real(0.25)*dxi);
-                Real dvdz = (vel(i,j,k+1,1)+vel(i,j-1,k+1,1)-vel(i,j,k-1,1)-vel(i,j-1,k-1,1))*(Real(0.25)*dzi);
-                Real dwdz = (vel(i,j,k+1,2)+vel(i,j-1,k+1,2)-vel(i,j,k-1,2)-vel(i,j-1,k-1,2))*(Real(0.25)*dzi);
+                Real dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi);
+                Real dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi);
+                Real dvdz = mltensor_dz_on_yface(i,j,k,1,vel,dzi);
+                Real dwdz = mltensor_dz_on_yface(i,j,k,2,vel,dzi);
                 Real divu = dudx + dwdz;
                 Real xif = kapy(i,j,k);
                 Real mun = Real(0.75)*(etay(i,j,k,1)-xif);  // restore the original eta
@@ -1413,10 +1444,10 @@ void mltensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
-                Real dudx = (vel(i+1,j,k,0)+vel(i+1,j,k-1,0)-vel(i-1,j,k,0)-vel(i-1,j,k-1,0))*(Real(0.25)*dxi);
-                Real dwdx = (vel(i+1,j,k,2)+vel(i+1,j,k-1,2)-vel(i-1,j,k,2)-vel(i-1,j,k-1,2))*(Real(0.25)*dxi);
-                Real dvdy = (vel(i,j+1,k,1)+vel(i,j+1,k-1,1)-vel(i,j-1,k,1)-vel(i,j-1,k-1,1))*(Real(0.25)*dyi);
-                Real dwdy = (vel(i,j+1,k,2)+vel(i,j+1,k-1,2)-vel(i,j-1,k,2)-vel(i,j-1,k-1,2))*(Real(0.25)*dyi);
+                Real dudx = mltensor_dx_on_zface(i,j,k,0,vel,dxi);
+                Real dwdx = mltensor_dx_on_zface(i,j,k,2,vel,dxi);
+                Real dvdy = mltensor_dy_on_zface(i,j,k,1,vel,dyi);
+                Real dwdy = mltensor_dy_on_zface(i,j,k,2,vel,dyi);
                 Real divu = dudx + dvdy;
                 Real xif = kapz(i,j,k);
                 Real mun = Real(0.75)*(etaz(i,j,k,2)-xif);  // restore the original eta
@@ -1430,6 +1461,312 @@ void mltensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mltensor_dy_on_xface (int i, int j, int k, int n, Array4<Real const> const& vel, Real dyi,
+                           Array4<Real const> const& bvxlo, Array4<Real const> const& bvxhi,
+                           Array2D<BoundCond,
+                                   0,2*AMREX_SPACEDIM,
+                                   0,AMREX_SPACEDIM> const& bct,
+                           Dim3 const& dlo, Dim3 const& dhi) noexcept
+{
+    Real ddy;
+    if (i == dlo.x) {
+        if (bct(Orientation::xlo(),n) == AMREX_LO_DIRICHLET && bvxlo) {
+            if (j == dlo.y) {
+                ddy = (bvxlo(i-1,j  ,k,n) * Real(-1.5) +
+                       bvxlo(i-1,j+1,k,n) * Real(2.) +
+                       bvxlo(i-1,j+2,k,n) * Real(-0.5)) * dyi;
+            } else if (j == dhi.y) {
+                ddy = -(bvxlo(i-1,j  ,k,n) * Real(-1.5) +
+                        bvxlo(i-1,j-1,k,n) * Real(2.) +
+                        bvxlo(i-1,j-2,k,n) * Real(-0.5)) * dyi;
+            } else {
+                ddy = (bvxlo(i-1,j+1,k,n)-bvxlo(i-1,j-1,k,n))*(Real(0.5)*dyi);
+            }
+        } else if (bct(Orientation::xlo(),n) == AMREX_LO_NEUMANN) {
+            ddy = (vel(i,j+1,k,n)-vel(i,j-1,k,n))*(Real(0.5)*dyi);
+        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
+            ddy = Real(0.);
+        }
+    } else if (i == dhi.x+1) {
+        if (bct(Orientation::xhi(),n) == AMREX_LO_DIRICHLET && bvxhi) {
+            if (j == dlo.y) {
+                ddy = (bvxhi(i,j  ,k,n) * Real(-1.5) +
+                       bvxhi(i,j+1,k,n) * Real(2.) +
+                       bvxhi(i,j+2,k,n) * Real(-0.5)) * dyi;
+            } else if (j == dhi.y) {
+                ddy = -(bvxhi(i,j  ,k,n) * Real(-1.5) +
+                        bvxhi(i,j-1,k,n) * Real(2.) +
+                        bvxhi(i,j-2,k,n) * Real(-0.5)) * dyi;
+            } else {
+                ddy = (bvxhi(i,j+1,k,n)-bvxhi(i,j-1,k,n))*(Real(0.5)*dyi);
+            }
+        } else if (bct(Orientation::xhi(),n) == AMREX_LO_NEUMANN) {
+            ddy = (vel(i-1,j+1,k,n)-vel(i-1,j-1,k,n))*(Real(0.5)*dyi);
+        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
+            ddy = Real(0.);
+        }
+    } else {
+        ddy = mltensor_dy_on_xface(i,j,k,n,vel,dyi);
+    }
+    return ddy;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mltensor_dz_on_xface (int i, int j, int k, int n, Array4<Real const> const& vel, Real dzi,
+                           Array4<Real const> const& bvxlo, Array4<Real const> const& bvxhi,
+                           Array2D<BoundCond,
+                                   0,2*AMREX_SPACEDIM,
+                                   0,AMREX_SPACEDIM> const& bct,
+                           Dim3 const& dlo, Dim3 const& dhi) noexcept
+{
+    Real ddz;
+    if (i == dlo.x) {
+        if (bct(Orientation::xlo(),n) == AMREX_LO_DIRICHLET && bvxlo) {
+            if (k == dlo.z) {
+                ddz = (bvxlo(i-1,j,k  ,n) * Real(-1.5) +
+                       bvxlo(i-1,j,k+1,n) * Real(2.) +
+                       bvxlo(i-1,j,k+2,n) * Real(-0.5)) * dzi;
+            } else if (k == dhi.z) {
+                ddz = -(bvxlo(i-1,j,k  ,n) * Real(-1.5) +
+                        bvxlo(i-1,j,k-1,n) * Real(2.) +
+                        bvxlo(i-1,j,k-2,n) * Real(-0.5)) * dzi;
+            } else {
+                ddz = (bvxlo(i-1,j,k+1,n)-bvxlo(i-1,j,k-1,n))*(Real(0.5)*dzi);
+            }
+        } else if (bct(Orientation::xlo(),n) == AMREX_LO_NEUMANN) {
+            ddz = (vel(i,j,k+1,n)-vel(i,j,k-1,n))*(Real(0.5)*dzi);
+        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
+            ddz = Real(0.);
+        }
+    } else if (i == dhi.x+1) {
+        if (bct(Orientation::xhi(),n) == AMREX_LO_DIRICHLET && bvxhi) {
+            if (k == dlo.z) {
+                ddz = (bvxhi(i,j,k  ,n) * Real(-1.5) +
+                       bvxhi(i,j,k+1,n) * Real(2.) +
+                       bvxhi(i,j,k+2,n) * Real(-0.5)) * dzi;
+            } else if (k == dhi.z) {
+                ddz = -(bvxhi(i,j,k  ,n) * Real(-1.5) +
+                        bvxhi(i,j,k-1,n) * Real(2.) +
+                        bvxhi(i,j,k-2,n) * Real(-0.5)) * dzi;
+            } else {
+                ddz = (bvxhi(i,j,k+1,n)-bvxhi(i,j,k-1,n))*(Real(0.5)*dzi);
+            }
+        } else if (bct(Orientation::xhi(),n) == AMREX_LO_NEUMANN) {
+            ddz = (vel(i-1,j,k+1,n)-vel(i-1,j,k-1,n))*(Real(0.5)*dzi);
+        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
+            ddz = Real(0.);
+        }
+    } else {
+        ddz = mltensor_dz_on_xface(i,j,k,n,vel,dzi);
+    }
+    return ddz;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mltensor_dx_on_yface (int i, int j, int k, int n, Array4<Real const> const& vel, Real dxi,
+                           Array4<Real const> const& bvylo, Array4<Real const> const& bvyhi,
+                           Array2D<BoundCond,
+                                   0,2*AMREX_SPACEDIM,
+                                   0,AMREX_SPACEDIM> const& bct,
+                           Dim3 const& dlo, Dim3 const& dhi) noexcept
+{
+    Real ddx;
+    if (j == dlo.y) {
+        if (bct(Orientation::ylo(),n) == AMREX_LO_DIRICHLET && bvylo) {
+            if (i == dlo.x) {
+                ddx = (bvylo(i  ,j-1,k,n) * Real(-1.5) +
+                       bvylo(i+1,j-1,k,n) * Real(2.) +
+                       bvylo(i+2,j-1,k,n) * Real(-0.5)) * dxi;
+            } else if (i == dhi.x) {
+                ddx = -(bvylo(i  ,j-1,k,n) * Real(-1.5) +
+                        bvylo(i-1,j-1,k,n) * Real(2.) +
+                        bvylo(i-2,j-1,k,n) * Real(-0.5)) * dxi;
+            } else {
+                ddx = (bvylo(i+1,j-1,k,n)-bvylo(i-1,j-1,k,n))*(Real(0.5)*dxi);
+            }
+        } else if (bct(Orientation::ylo(),n) == AMREX_LO_NEUMANN) {
+            ddx = (vel(i+1,j,k,n)-vel(i-1,j,k,n))*(Real(0.5)*dxi);
+        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
+            ddx = Real(0.);
+        }
+    } else if (j == dhi.y+1) {
+        if (bct(Orientation::yhi(),n) == AMREX_LO_DIRICHLET && bvyhi) {
+            if (i == dlo.x) {
+                ddx = (bvyhi(i  ,j,k,n) * Real(-1.5) +
+                       bvyhi(i+1,j,k,n) * Real(2.) +
+                       bvyhi(i+2,j,k,n) * Real(-0.5)) * dxi;
+            } else if (i == dhi.x) {
+                ddx = -(bvyhi(i  ,j,k,n) * Real(-1.5) +
+                        bvyhi(i-1,j,k,n) * Real(2.) +
+                        bvyhi(i-2,j,k,n) * Real(-0.5)) * dxi;
+            } else {
+                ddx = (bvyhi(i+1,j,k,n)-bvyhi(i-1,j,k,n))*(Real(0.5)*dxi);
+            }
+        } else if (bct(Orientation::yhi(),n) == AMREX_LO_NEUMANN) {
+            ddx = (vel(i+1,j-1,k,n)-vel(i-1,j-1,k,n))*(Real(0.5)*dxi);
+        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
+            ddx = Real(0.);
+        }
+    } else {
+        ddx = mltensor_dx_on_yface(i,j,k,n,vel,dxi);
+    }
+    return ddx;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mltensor_dz_on_yface (int i, int j, int k, int n, Array4<Real const> const& vel, Real dzi,
+                           Array4<Real const> const& bvylo, Array4<Real const> const& bvyhi,
+                           Array2D<BoundCond,
+                                   0,2*AMREX_SPACEDIM,
+                                   0,AMREX_SPACEDIM> const& bct,
+                           Dim3 const& dlo, Dim3 const& dhi) noexcept
+{
+    Real ddz;
+    if (j == dlo.y) {
+        if (bct(Orientation::ylo(),n) == AMREX_LO_DIRICHLET && bvylo) {
+            if (k == dlo.z) {
+                ddz = (bvylo(i,j-1,k  ,n) * Real(-1.5) +
+                       bvylo(i,j-1,k+1,n) * Real(2.) +
+                       bvylo(i,j-1,k+2,n) * Real(-0.5)) * dzi;
+            } else if (k == dhi.z) {
+                ddz = -(bvylo(i,j-1,k  ,n) * Real(-1.5) +
+                        bvylo(i,j-1,k-1,n) * Real(2.) +
+                        bvylo(i,j-1,k-2,n) * Real(-0.5)) * dzi;
+            } else {
+                ddz = (bvylo(i,j-1,k+1,n)-bvylo(i,j-1,k-1,n))*(Real(0.5)*dzi);
+            }
+        } else if (bct(Orientation::ylo(),n) == AMREX_LO_NEUMANN) {
+            ddz = (vel(i,j,k+1,n)-vel(i,j,k-1,n))*(Real(0.5)*dzi);
+        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
+            ddz = Real(0.);
+        }
+    } else if (j == dhi.y+1) {
+        if (bct(Orientation::yhi(),n) == AMREX_LO_DIRICHLET && bvyhi) {
+            if (k == dlo.z) {
+                ddz = (bvyhi(i,j,k  ,n) * Real(-1.5) +
+                       bvyhi(i,j,k+1,n) * Real(2.) +
+                       bvyhi(i,j,k+2,n) * Real(-0.5)) * dzi;
+            } else if (k == dhi.z) {
+                ddz = -(bvyhi(i,j,k  ,n) * Real(-1.5) +
+                        bvyhi(i,j,k-1,n) * Real(2.) +
+                        bvyhi(i,j,k-2,n) * Real(-0.5)) * dzi;
+            } else {
+                ddz = (bvyhi(i,j,k+1,n)-bvyhi(i,j,k-1,n))*(Real(0.5)*dzi);
+            }
+        } else if (bct(Orientation::yhi(),n) == AMREX_LO_NEUMANN) {
+            ddz = (vel(i,j-1,k+1,n)-vel(i,j-1,k-1,n))*(Real(0.5)*dzi);
+        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
+            ddz = Real(0.);
+        }
+    } else {
+        ddz = mltensor_dz_on_yface(i,j,k,n,vel,dzi);
+    }
+    return ddz;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mltensor_dx_on_zface (int i, int j, int k, int n, Array4<Real const> const& vel, Real dxi,
+                           Array4<Real const> const& bvzlo, Array4<Real const> const& bvzhi,
+                           Array2D<BoundCond,
+                                   0,2*AMREX_SPACEDIM,
+                                   0,AMREX_SPACEDIM> const& bct,
+                           Dim3 const& dlo, Dim3 const& dhi) noexcept
+{
+    Real ddx;
+    if (k == dlo.z) {
+        if (bct(Orientation::zlo(),n) == AMREX_LO_DIRICHLET && bvzlo) {
+            if (i == dlo.x) {
+                ddx = (bvzlo(i  ,j,k-1,n) * Real(-1.5) +
+                       bvzlo(i+1,j,k-1,n) * Real(2.) +
+                       bvzlo(i+2,j,k-1,n) * Real(-0.5)) * dxi;
+            } else if (i == dhi.x) {
+                ddx = -(bvzlo(i  ,j,k-1,n) * Real(-1.5) +
+                        bvzlo(i-1,j,k-1,n) * Real(2.) +
+                        bvzlo(i-2,j,k-1,n) * Real(-0.5)) * dxi;
+            } else {
+                ddx = (bvzlo(i+1,j,k-1,n)-bvzlo(i-1,j,k-1,n))*(Real(0.5)*dxi);
+            }
+        } else if (bct(Orientation::zlo(),n) == AMREX_LO_NEUMANN) {
+            ddx = (vel(i+1,j,k,n)-vel(i-1,j,k,n))*(Real(0.5)*dxi);
+        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
+            ddx = Real(0.);
+        }
+    } else if (k == dhi.z+1) {
+        if (bct(Orientation::zhi(),n) == AMREX_LO_DIRICHLET && bvzhi) {
+            if (i == dlo.x) {
+                ddx = (bvzhi(i  ,j,k,n) * Real(-1.5) +
+                       bvzhi(i+1,j,k,n) * Real(2.) +
+                       bvzhi(i+2,j,k,n) * Real(-0.5)) * dxi;
+            } else if (i == dhi.x) {
+                ddx = -(bvzhi(i  ,j,k,n) * Real(-1.5) +
+                        bvzhi(i-1,j,k,n) * Real(2.) +
+                        bvzhi(i-2,j,k,n) * Real(-0.5)) * dxi;
+            } else {
+                ddx = (bvzhi(i+1,j,k,n)-bvzhi(i-1,j,k,n))*(Real(0.5)*dxi);
+            }
+        } else if (bct(Orientation::zhi(),n) == AMREX_LO_NEUMANN) {
+            ddx = (vel(i+1,j,k-1,n)-vel(i-1,j,k-1,n))*(Real(0.5)*dxi);
+        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
+            ddx = Real(0.);
+        }
+    } else {
+        ddx = mltensor_dx_on_zface(i,j,k,n,vel,dxi);
+    }
+    return ddx;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mltensor_dy_on_zface (int i, int j, int k, int n, Array4<Real const> const& vel, Real dyi,
+                           Array4<Real const> const& bvzlo, Array4<Real const> const& bvzhi,
+                           Array2D<BoundCond,
+                                   0,2*AMREX_SPACEDIM,
+                                   0,AMREX_SPACEDIM> const& bct,
+                           Dim3 const& dlo, Dim3 const& dhi) noexcept
+{
+    Real ddy;
+    if (k == dlo.z) {
+        if (bct(Orientation::zlo(),n) == AMREX_LO_DIRICHLET && bvzlo) {
+            if (j == dlo.y) {
+                ddy = (bvzlo(i,j  ,k-1,n) * Real(-1.5) +
+                       bvzlo(i,j+1,k-1,n) * Real(2.) +
+                       bvzlo(i,j+2,k-1,n) * Real(-0.5)) * dyi;
+            } else if (j == dhi.y) {
+                ddy = -(bvzlo(i,j  ,k-1,n) * Real(-1.5) +
+                        bvzlo(i,j-1,k-1,n) * Real(2.) +
+                        bvzlo(i,j-2,k-1,n) * Real(-0.5)) * dyi;
+            } else {
+                ddy = (bvzlo(i,j+1,k-1,n)-bvzlo(i,j-1,k-1,n))*(Real(0.5)*dyi);
+            }
+        } else if (bct(Orientation::zlo(),n) == AMREX_LO_NEUMANN) {
+            ddy = (vel(i,j+1,k,n)-vel(i,j-1,k,n))*(Real(0.5)*dyi);
+        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
+            ddy = Real(0.);
+        }
+    } else if (k == dhi.z+1) {
+        if (bct(Orientation::zhi(),n) == AMREX_LO_DIRICHLET && bvzhi) {
+            if (j == dlo.y) {
+                ddy = (bvzhi(i,j  ,k,n) * Real(-1.5) +
+                       bvzhi(i,j+1,k,n) * Real(2.) +
+                       bvzhi(i,j+2,k,n) * Real(-0.5)) * dyi;
+            } else if (j == dhi.y) {
+                ddy = -(bvzhi(i,j  ,k,n) * Real(-1.5) +
+                        bvzhi(i,j-1,k,n) * Real(2.) +
+                        bvzhi(i,j-2,k,n) * Real(-0.5)) * dyi;
+            } else {
+                ddy = (bvzhi(i,j+1,k,n)-bvzhi(i,j-1,k,n))*(Real(0.5)*dyi);
+            }
+        } else if (bct(Orientation::zhi(),n) == AMREX_LO_NEUMANN) {
+            ddy = (vel(i,j+1,k-1,n)-vel(i,j-1,k-1,n))*(Real(0.5)*dyi);
+        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
+            ddy = Real(0.);
+        }
+    } else {
+        ddy = mltensor_dy_on_zface(i,j,k,n,vel,dyi);
+    }
+    return ddy;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                               Array4<Real const> const& vel,
                               Array4<Real const> const& etax,
@@ -1440,125 +1777,28 @@ void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                               Array2D<BoundCond,
                                       0,2*AMREX_SPACEDIM,
                                       0,AMREX_SPACEDIM> const& bct,
-                              Box const& domain) noexcept
+                              Dim3 const& dlo, Dim3 const& dhi) noexcept
 {
     const Real dyi = dxinv[1];
     const Real dzi = dxinv[2];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
-    const auto dlo = amrex::lbound(domain);
-    const auto dhi = amrex::ubound(domain);
     constexpr Real twoThirds = Real(2./3.);
 
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                Real dudy[AMREX_SPACEDIM];
-                Real dudz[AMREX_SPACEDIM];
-                for (int n = 0; n < AMREX_SPACEDIM; ++n) {
-                    if (i == dlo.x) {
-                        if (bct(Orientation::xlo(),n) == AMREX_LO_DIRICHLET && bvxlo) {
-                            if (n != 2) { // Don't need du_z/dy
-                                if (j == dlo.y) {
-                                    dudy[n] = (bvxlo(i-1,j  ,k,n) * Real(-1.5) +
-                                               bvxlo(i-1,j+1,k,n) * Real(2.) +
-                                               bvxlo(i-1,j+2,k,n) * Real(-0.5)) * dyi;
-                                } else if (j == dhi.y) {
-                                    dudy[n] = -(bvxlo(i-1,j  ,k,n) * Real(-1.5) +
-                                                bvxlo(i-1,j-1,k,n) * Real(2.) +
-                                                bvxlo(i-1,j-2,k,n) * Real(-0.5)) * dyi;
-                                } else {
-                                    dudy[n] = (bvxlo(i-1,j+1,k,n)-bvxlo(i-1,j-1,k,n))*(Real(0.5)*dyi);
-                                }
-                            }
-                            if (n != 1) { // Don't need du_y/dz
-                                if (k == dlo.z) {
-                                    dudz[n] = (bvxlo(i-1,j,k  ,n) * Real(-1.5) +
-                                               bvxlo(i-1,j,k+1,n) * Real(2.) +
-                                               bvxlo(i-1,j,k+2,n) * Real(-0.5)) * dzi;
-                                } else if (k == dhi.z) {
-                                    dudz[n] = -(bvxlo(i-1,j,k  ,n) * Real(-1.5) +
-                                                bvxlo(i-1,j,k-1,n) * Real(2.) +
-                                                bvxlo(i-1,j,k-2,n) * Real(-0.5)) * dzi;
-                                } else {
-                                    dudz[n] = (bvxlo(i-1,j,k+1,n)-bvxlo(i-1,j,k-1,n))*(Real(0.5)*dzi);
-                                }
-                            }
-                        } else if (bct(Orientation::xlo(),n) == AMREX_LO_NEUMANN) {
-                            if (n != 2) {
-                                dudy[n] = (vel(i,j+1,k,n)-vel(i,j-1,k,n))*(Real(0.5)*dyi);
-                            }
-                            if (n != 1) {
-                                dudz[n] = (vel(i,j,k+1,n)-vel(i,j,k-1,n))*(Real(0.5)*dzi);
-                            }
-                        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
-                            if (n != 2) {
-                                dudy[n] = Real(0.);
-                            }
-                            if (n != 1) {
-                                dudz[n] = Real(0.);
-                            }
-                        }
-                    } else if (i == dhi.x+1) {
-                        if (bct(Orientation::xhi(),n) == AMREX_LO_DIRICHLET && bvxhi) {
-                            if (n != 2) {
-                                if (j == dlo.y) {
-                                    dudy[n] = (bvxhi(i,j  ,k,n) * Real(-1.5) +
-                                               bvxhi(i,j+1,k,n) * Real(2.) +
-                                               bvxhi(i,j+2,k,n) * Real(-0.5)) * dyi;
-                                } else if (j == dhi.y) {
-                                    dudy[n] = -(bvxhi(i,j  ,k,n) * Real(-1.5) +
-                                                bvxhi(i,j-1,k,n) * Real(2.) +
-                                                bvxhi(i,j-2,k,n) * Real(-0.5)) * dyi;
-                                } else {
-                                    dudy[n] = (bvxhi(i,j+1,k,n)-bvxhi(i,j-1,k,n))*(Real(0.5)*dyi);
-                                }
-                            }
-                            if (n != 1) {
-                                if (k == dlo.z) {
-                                    dudz[n] = (bvxhi(i,j,k  ,n) * Real(-1.5) +
-                                               bvxhi(i,j,k+1,n) * Real(2.) +
-                                               bvxhi(i,j,k+2,n) * Real(-0.5)) * dzi;
-                                } else if (k == dhi.z) {
-                                    dudz[n] = -(bvxhi(i,j,k  ,n) * Real(-1.5) +
-                                                bvxhi(i,j,k-1,n) * Real(2.) +
-                                                bvxhi(i,j,k-2,n) * Real(-0.5)) * dzi;
-                                } else {
-                                    dudz[n] = (bvxhi(i,j,k+1,n)-bvxhi(i,j,k-1,n))*(Real(0.5)*dzi);
-                                }
-                            }
-                        } else if (bct(Orientation::xhi(),n) == AMREX_LO_NEUMANN) {
-                            if (n != 2) {
-                                dudy[n] = (vel(i-1,j+1,k,n)-vel(i-1,j-1,k,n))*(Real(0.5)*dyi);
-                            }
-                            if (n != 1) {
-                                dudz[n] = (vel(i-1,j,k+1,n)-vel(i-1,j,k-1,n))*(Real(0.5)*dzi);
-                            }
-                        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
-                            if (n != 2) {
-                                dudy[n] = Real(0.);
-                            }
-                            if (n != 1) {
-                                dudz[n] = Real(0.);
-                            }
-                        }
-                    } else {
-                        if (n != 2) {
-                            dudy[n] = (vel(i,j+1,k,n)+vel(i-1,j+1,k,n)-vel(i,j-1,k,n)-vel(i-1,j-1,k,n))*(Real(0.25)*dyi);
-                        }
-                        if (n != 1) {
-                            dudz[n] = (vel(i,j,k+1,n)+vel(i-1,j,k+1,n)-vel(i,j,k-1,n)-vel(i-1,j,k-1,n))*(Real(0.25)*dzi);
-                        }
-                    }
-                }
-
-                Real divu = dudy[1] + dudz[2];
+                Real dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+                Real dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+                Real dudz = mltensor_dz_on_xface(i,j,k,0,vel,dzi,bvxlo,bvxhi,bct,dlo,dhi);
+                Real dwdz = mltensor_dz_on_xface(i,j,k,2,vel,dzi,bvxlo,bvxhi,bct,dlo,dhi);
+                Real divu = dvdy + dwdz;
                 Real xif = kapx(i,j,k);
                 Real mun = Real(0.75)*(etax(i,j,k,0)-xif);  // restore the original eta
                 Real mut =             etax(i,j,k,1);
                 fx(i,j,k,0) = -mun*(-twoThirds*divu) - xif*divu;
-                fx(i,j,k,1) = -mut*(dudy[0]);
-                fx(i,j,k,2) = -mut*(dudz[0]);
+                fx(i,j,k,1) = -mut*(dudy);
+                fx(i,j,k,2) = -mut*(dudz);
             }
         }
     }
@@ -1575,125 +1815,28 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                               Array2D<BoundCond,
                                       0,2*AMREX_SPACEDIM,
                                       0,AMREX_SPACEDIM> const& bct,
-                              Box const& domain) noexcept
+                              Dim3 const& dlo, Dim3 const& dhi) noexcept
 {
     const Real dxi = dxinv[0];
     const Real dzi = dxinv[2];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
-    const auto dlo = amrex::lbound(domain);
-    const auto dhi = amrex::ubound(domain);
     constexpr Real twoThirds = Real(2./3.);
 
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                Real dudx[AMREX_SPACEDIM];
-                Real dudz[AMREX_SPACEDIM];
-                for (int n = 0; n < AMREX_SPACEDIM; ++n) {
-                    if (j == dlo.y) {
-                        if (bct(Orientation::ylo(),n) == AMREX_LO_DIRICHLET && bvylo) {
-                            if (n != 2) { // Don't need du_z/dx
-                                if (i == dlo.x) {
-                                    dudx[n] = (bvylo(i  ,j-1,k,n) * Real(-1.5) +
-                                               bvylo(i+1,j-1,k,n) * Real(2.) +
-                                               bvylo(i+2,j-1,k,n) * Real(-0.5)) * dxi;
-                                } else if (i == dhi.x) {
-                                    dudx[n] = -(bvylo(i  ,j-1,k,n) * Real(-1.5) +
-                                                bvylo(i-1,j-1,k,n) * Real(2.) +
-                                                bvylo(i-2,j-1,k,n) * Real(-0.5)) * dxi;
-                                } else {
-                                    dudx[n] = (bvylo(i+1,j-1,k,n)-bvylo(i-1,j-1,k,n))*(Real(0.5)*dxi);
-                                }
-                            }
-                            if (n != 0) { // Don't need du_x/dz
-                                if (k == dlo.z) {
-                                    dudz[n] = (bvylo(i,j-1,k  ,n) * Real(-1.5) +
-                                               bvylo(i,j-1,k+1,n) * Real(2.) +
-                                               bvylo(i,j-1,k+2,n) * Real(-0.5)) * dzi;
-                                } else if (k == dhi.z) {
-                                    dudz[n] = -(bvylo(i,j-1,k  ,n) * Real(-1.5) +
-                                                bvylo(i,j-1,k-1,n) * Real(2.) +
-                                                bvylo(i,j-1,k-2,n) * Real(-0.5)) * dzi;
-                                } else {
-                                    dudz[n] = (bvylo(i,j-1,k+1,n)-bvylo(i,j-1,k-1,n))*(Real(0.5)*dzi);
-                                }
-                            }
-                        } else if (bct(Orientation::ylo(),n) == AMREX_LO_NEUMANN) {
-                            if (n != 2) {
-                                dudx[n] = (vel(i+1,j,k,n)-vel(i-1,j,k,n))*(Real(0.5)*dxi);
-                            }
-                            if (n != 0) {
-                                dudz[n] = (vel(i,j,k+1,n)-vel(i,j,k-1,n))*(Real(0.5)*dzi);
-                            }
-                        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
-                            if (n != 2) {
-                                dudx[n] = Real(0.);
-                            }
-                            if (n != 0) {
-                                dudz[n] = Real(0.);
-                            }
-                        }
-                    } else if (j == dhi.y+1) {
-                        if (bct(Orientation::yhi(),n) == AMREX_LO_DIRICHLET && bvyhi) {
-                            if (n != 2) {
-                                if (i == dlo.x) {
-                                    dudx[n] = (bvyhi(i  ,j,k,n) * Real(-1.5) +
-                                               bvyhi(i+1,j,k,n) * Real(2.) +
-                                               bvyhi(i+2,j,k,n) * Real(-0.5)) * dxi;
-                                } else if (i == dhi.x) {
-                                    dudx[n] = -(bvyhi(i  ,j,k,n) * Real(-1.5) +
-                                                bvyhi(i-1,j,k,n) * Real(2.) +
-                                                bvyhi(i-2,j,k,n) * Real(-0.5)) * dxi;
-                                } else {
-                                    dudx[n] = (bvyhi(i+1,j,k,n)-bvyhi(i-1,j,k,n))*(Real(0.5)*dxi);
-                                }
-                            }
-                            if (n != 0) {
-                                if (k == dlo.z) {
-                                    dudz[n] = (bvyhi(i,j,k  ,n) * Real(-1.5) +
-                                               bvyhi(i,j,k+1,n) * Real(2.) +
-                                               bvyhi(i,j,k+2,n) * Real(-0.5)) * dzi;
-                                } else if (k == dhi.z) {
-                                    dudz[n] = -(bvyhi(i,j,k  ,n) * Real(-1.5) +
-                                                bvyhi(i,j,k-1,n) * Real(2.) +
-                                                bvyhi(i,j,k-2,n) * Real(-0.5)) * dzi;
-                                } else {
-                                    dudz[n] = (bvyhi(i,j,k+1,n)-bvyhi(i,j,k-1,n))*(Real(0.5)*dzi);
-                                }
-                            }
-                        } else if (bct(Orientation::yhi(),n) == AMREX_LO_NEUMANN) {
-                            if (n != 2) {
-                                dudx[n] = (vel(i+1,j-1,k,n)-vel(i-1,j-1,k,n))*(Real(0.5)*dxi);
-                            }
-                            if (n != 0) {
-                                dudz[n] = (vel(i,j-1,k+1,n)-vel(i,j-1,k-1,n))*(Real(0.5)*dzi);
-                            }
-                        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
-                            if (n != 2) {
-                                dudx[n] = Real(0.);
-                            }
-                            if (n != 0) {
-                                dudz[n] = Real(0.);
-                            }
-                        }
-                    } else {
-                        if (n != 2) {
-                            dudx[n] = (vel(i+1,j,k,n)+vel(i+1,j-1,k,n)-vel(i-1,j,k,n)-vel(i-1,j-1,k,n))*(Real(0.25)*dxi);
-                        }
-                        if (n != 0) {
-                            dudz[n] = (vel(i,j,k+1,n)+vel(i,j-1,k+1,n)-vel(i,j,k-1,n)-vel(i,j-1,k-1,n))*(Real(0.25)*dzi);
-                        }
-                    }
-                }
-
-                Real divu = dudx[0] + dudz[2];
+                Real dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
+                Real dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
+                Real dvdz = mltensor_dz_on_yface(i,j,k,1,vel,dzi,bvylo,bvyhi,bct,dlo,dhi);
+                Real dwdz = mltensor_dz_on_yface(i,j,k,2,vel,dzi,bvylo,bvyhi,bct,dlo,dhi);
+                Real divu = dudx + dwdz;
                 Real xif = kapy(i,j,k);
                 Real mun = Real(0.75)*(etay(i,j,k,1)-xif);  // restore the original eta
                 Real mut =             etay(i,j,k,0);
-                fy(i,j,k,0) = -mut*(dudx[1]);
+                fy(i,j,k,0) = -mut*(dvdx);
                 fy(i,j,k,1) = -mun*(-twoThirds*divu) - xif*divu;
-                fy(i,j,k,2) = -mut*(dudz[1]);
+                fy(i,j,k,2) = -mut*(dvdz);
             }
         }
     }
@@ -1710,124 +1853,27 @@ void mltensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
                               Array2D<BoundCond,
                                       0,2*AMREX_SPACEDIM,
                                       0,AMREX_SPACEDIM> const& bct,
-                              Box const& domain) noexcept
+                              Dim3 const& dlo, Dim3 const& dhi) noexcept
 {
     const Real dxi = dxinv[0];
     const Real dyi = dxinv[1];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
-    const auto dlo = amrex::lbound(domain);
-    const auto dhi = amrex::ubound(domain);
     constexpr Real twoThirds = Real(2./3.);
 
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                Real dudx[AMREX_SPACEDIM];
-                Real dudy[AMREX_SPACEDIM];
-                for (int n = 0; n < AMREX_SPACEDIM; ++n) {
-                    if (k == dlo.z) {
-                        if (bct(Orientation::zlo(),n) == AMREX_LO_DIRICHLET && bvzlo) {
-                            if (n != 1) { // Don't need du_y/dx
-                                if (i == dlo.x) {
-                                    dudx[n] = (bvzlo(i  ,j,k-1,n) * Real(-1.5) +
-                                               bvzlo(i+1,j,k-1,n) * Real(2.) +
-                                               bvzlo(i+2,j,k-1,n) * Real(-0.5)) * dxi;
-                                } else if (i == dhi.x) {
-                                    dudx[n] = -(bvzlo(i  ,j,k-1,n) * Real(-1.5) +
-                                                bvzlo(i-1,j,k-1,n) * Real(2.) +
-                                                bvzlo(i-2,j,k-1,n) * Real(-0.5)) * dxi;
-                                } else {
-                                    dudx[n] = (bvzlo(i+1,j,k-1,n)-bvzlo(i-1,j,k-1,n))*(Real(0.5)*dxi);
-                                }
-                            }
-                            if (n != 0) { // Don't need du_x/dy
-                                if (j == dlo.y) {
-                                    dudy[n] = (bvzlo(i,j  ,k-1,n) * Real(-1.5) +
-                                               bvzlo(i,j+1,k-1,n) * Real(2.) +
-                                               bvzlo(i,j+2,k-1,n) * Real(-0.5)) * dyi;
-                                } else if (j == dhi.y) {
-                                    dudy[n] = -(bvzlo(i,j  ,k-1,n) * Real(-1.5) +
-                                                bvzlo(i,j-1,k-1,n) * Real(2.) +
-                                                bvzlo(i,j-2,k-1,n) * Real(-0.5)) * dyi;
-                                } else {
-                                    dudy[n] = (bvzlo(i,j+1,k-1,n)-bvzlo(i,j-1,k-1,n))*(Real(0.5)*dyi);
-                                }
-                            }
-                        } else if (bct(Orientation::zlo(),n) == AMREX_LO_NEUMANN) {
-                            if (n != 1) {
-                                dudx[n] = (vel(i+1,j,k,n)-vel(i-1,j,k,n))*(Real(0.5)*dxi);
-                            }
-                            if (n != 0) {
-                                dudy[n] = (vel(i,j+1,k,n)-vel(i,j-1,k,n))*(Real(0.5)*dyi);
-                            }
-                        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
-                            if (n != 1) {
-                                dudx[n] = Real(0.);
-                            }
-                            if (n != 0) {
-                                dudy[n] = Real(0.);
-                            }
-                        }
-                    } else if (k == dhi.z+1) {
-                        if (bct(Orientation::zhi(),n) == AMREX_LO_DIRICHLET && bvzhi) {
-                            if (n != 1) {
-                                if (i == dlo.x) {
-                                    dudx[n] = (bvzhi(i  ,j,k,n) * Real(-1.5) +
-                                               bvzhi(i+1,j,k,n) * Real(2.) +
-                                               bvzhi(i+2,j,k,n) * Real(-0.5)) * dxi;
-                                } else if (i == dhi.x) {
-                                    dudx[n] = -(bvzhi(i  ,j,k,n) * Real(-1.5) +
-                                                bvzhi(i-1,j,k,n) * Real(2.) +
-                                                bvzhi(i-2,j,k,n) * Real(-0.5)) * dxi;
-                                } else {
-                                    dudx[n] = (bvzhi(i+1,j,k,n)-bvzhi(i-1,j,k,n))*(Real(0.5)*dxi);
-                                }
-                            }
-                            if (n != 0) {
-                                if (j == dlo.y) {
-                                    dudy[n] = (bvzhi(i,j  ,k,n) * Real(-1.5) +
-                                               bvzhi(i,j+1,k,n) * Real(2.) +
-                                               bvzhi(i,j+2,k,n) * Real(-0.5)) * dyi;
-                                } else if (j == dhi.y) {
-                                    dudy[n] = -(bvzhi(i,j  ,k,n) * Real(-1.5) +
-                                                bvzhi(i,j-1,k,n) * Real(2.) +
-                                                bvzhi(i,j-2,k,n) * Real(-0.5)) * dyi;
-                                } else {
-                                    dudy[n] = (bvzhi(i,j+1,k,n)-bvzhi(i,j-1,k,n))*(Real(0.5)*dyi);
-                                }
-                            }
-                        } else if (bct(Orientation::zhi(),n) == AMREX_LO_NEUMANN) {
-                            if (n != 1) {
-                                dudx[n] = (vel(i+1,j,k-1,n)-vel(i-1,j,k-1,n))*(Real(0.5)*dxi);
-                            }
-                            if (n != 0) {
-                                dudy[n] = (vel(i,j+1,k-1,n)-vel(i,j-1,k-1,n))*(Real(0.5)*dyi);
-                            }
-                        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
-                            if (n != 1) {
-                                dudx[n] = Real(0.);
-                            }
-                            if (n != 0) {
-                                dudy[n] = Real(0.);
-                            }
-                        }
-                    } else {
-                        if (n != 1) {
-                            dudx[n] = (vel(i+1,j,k,n)+vel(i+1,j,k-1,n)-vel(i-1,j,k,n)-vel(i-1,j,k-1,n))*(Real(0.25)*dxi);
-                        }
-                        if (n != 0) {
-                            dudy[n] = (vel(i,j+1,k,n)+vel(i,j+1,k-1,n)-vel(i,j-1,k,n)-vel(i,j-1,k-1,n))*(Real(0.25)*dyi);
-                        }
-                    }
-                }
-
-                Real divu = dudx[0] + dudy[1];
+                Real dudx = mltensor_dx_on_zface(i,j,k,0,vel,dxi,bvzlo,bvzhi,bct,dlo,dhi);
+                Real dwdx = mltensor_dx_on_zface(i,j,k,2,vel,dxi,bvzlo,bvzhi,bct,dlo,dhi);
+                Real dvdy = mltensor_dy_on_zface(i,j,k,1,vel,dyi,bvzlo,bvzhi,bct,dlo,dhi);
+                Real dwdy = mltensor_dy_on_zface(i,j,k,2,vel,dyi,bvzlo,bvzhi,bct,dlo,dhi);
+                Real divu = dudx + dvdy;
                 Real xif = kapz(i,j,k);
                 Real mun = Real(0.75)*(etaz(i,j,k,2)-xif);  // restore the original eta
                 Real mut =             etaz(i,j,k,0);
-                fz(i,j,k,0) = -mut*(dudx[2]);
-                fz(i,j,k,1) = -mut*(dudy[2]);
+                fz(i,j,k,0) = -mut*(dwdx);
+                fz(i,j,k,1) = -mut*(dwdy);
                 fz(i,j,k,2) = -mun*(-twoThirds*divu) - xif*divu;
             }
         }
@@ -2019,6 +2065,138 @@ void mltensor_vel_grads_fz (Box const& box, Array4<Real> const& fz,
                 Real dvdz = (vel(i,j,k,1) - vel(i,j,k-1,1))*dzi;
                 Real dwdz = (vel(i,j,k,2) - vel(i,j,k-1,2))*dzi;
 
+                fz(i,j,k,0) = dudx;
+                fz(i,j,k,1) = dvdx;
+                fz(i,j,k,2) = dwdx;
+                fz(i,j,k,3) = dudy;
+                fz(i,j,k,4) = dvdy;
+                fz(i,j,k,5) = dwdy;
+                fz(i,j,k,6) = dudz;
+                fz(i,j,k,7) = dvdz;
+                fz(i,j,k,8) = dwdz;
+
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
+                            Array4<Real const> const& vel,
+                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                            Array4<Real const> const& bvxlo,
+                            Array4<Real const> const& bvxhi,
+                            Array2D<BoundCond,
+                                    0,2*AMREX_SPACEDIM,
+                                    0,AMREX_SPACEDIM> const& bct,
+                            Dim3 const& dlo, Dim3 const& dhi) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const Real dzi = dxinv[2];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                Real dudx = (vel(i,j,k,0) - vel(i-1,j,k,0))*dxi;
+                Real dvdx = (vel(i,j,k,1) - vel(i-1,j,k,1))*dxi;
+                Real dwdx = (vel(i,j,k,2) - vel(i-1,j,k,2))*dxi;
+                Real dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+                Real dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+                Real dwdy = mltensor_dy_on_xface(i,j,k,2,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+                Real dudz = mltensor_dz_on_xface(i,j,k,0,vel,dzi,bvxlo,bvxhi,bct,dlo,dhi);
+                Real dvdz = mltensor_dz_on_xface(i,j,k,1,vel,dzi,bvxlo,bvxhi,bct,dlo,dhi);
+                Real dwdz = mltensor_dz_on_xface(i,j,k,2,vel,dzi,bvxlo,bvxhi,bct,dlo,dhi);
+                fx(i,j,k,0) = dudx;
+                fx(i,j,k,1) = dvdx;
+                fx(i,j,k,2) = dwdx;
+                fx(i,j,k,3) = dudy;
+                fx(i,j,k,4) = dvdy;
+                fx(i,j,k,5) = dwdy;
+                fx(i,j,k,6) = dudz;
+                fx(i,j,k,7) = dvdz;
+                fx(i,j,k,8) = dwdz;
+
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mltensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
+                            Array4<Real const> const& vel,
+                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                            Array4<Real const> const& bvylo,
+                            Array4<Real const> const& bvyhi,
+                            Array2D<BoundCond,
+                                    0,2*AMREX_SPACEDIM,
+                                    0,AMREX_SPACEDIM> const& bct,
+                            Dim3 const& dlo, Dim3 const& dhi) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const Real dzi = dxinv[2];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                Real dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
+                Real dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
+                Real dwdx = mltensor_dx_on_yface(i,j,k,2,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
+                Real dudy = (vel(i,j,k,0) - vel(i,j-1,k,0))*dyi;
+                Real dvdy = (vel(i,j,k,1) - vel(i,j-1,k,1))*dyi;
+                Real dwdy = (vel(i,j,k,2) - vel(i,j-1,k,2))*dyi;
+                Real dudz = mltensor_dz_on_yface(i,j,k,0,vel,dzi,bvylo,bvyhi,bct,dlo,dhi);
+                Real dvdz = mltensor_dz_on_yface(i,j,k,1,vel,dzi,bvylo,bvyhi,bct,dlo,dhi);
+                Real dwdz = mltensor_dz_on_yface(i,j,k,2,vel,dzi,bvylo,bvyhi,bct,dlo,dhi);
+                fy(i,j,k,0) = dudx;
+                fy(i,j,k,1) = dvdx;
+                fy(i,j,k,2) = dwdx;
+                fy(i,j,k,3) = dudy;
+                fy(i,j,k,4) = dvdy;
+                fy(i,j,k,5) = dwdy;
+                fy(i,j,k,6) = dudz;
+                fy(i,j,k,7) = dvdz;
+                fy(i,j,k,8) = dwdz;
+
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mltensor_vel_grads_fz (Box const& box, Array4<Real> const& fz,
+                            Array4<Real const> const& vel,
+                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                            Array4<Real const> const& bvzlo,
+                            Array4<Real const> const& bvzhi,
+                            Array2D<BoundCond,
+                                    0,2*AMREX_SPACEDIM,
+                                    0,AMREX_SPACEDIM> const& bct,
+                            Dim3 const& dlo, Dim3 const& dhi) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const Real dzi = dxinv[2];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                Real dudx = mltensor_dx_on_zface(i,j,k,0,vel,dxi,bvzlo,bvzhi,bct,dlo,dhi);
+                Real dvdx = mltensor_dx_on_zface(i,j,k,1,vel,dxi,bvzlo,bvzhi,bct,dlo,dhi);
+                Real dwdx = mltensor_dx_on_zface(i,j,k,2,vel,dxi,bvzlo,bvzhi,bct,dlo,dhi);
+                Real dudy = mltensor_dy_on_zface(i,j,k,0,vel,dyi,bvzlo,bvzhi,bct,dlo,dhi);
+                Real dvdy = mltensor_dy_on_zface(i,j,k,1,vel,dyi,bvzlo,bvzhi,bct,dlo,dhi);
+                Real dwdy = mltensor_dy_on_zface(i,j,k,2,vel,dyi,bvzlo,bvzhi,bct,dlo,dhi);
+                Real dudz = (vel(i,j,k,0) - vel(i,j,k-1,0))*dzi;
+                Real dvdz = (vel(i,j,k,1) - vel(i,j,k-1,1))*dzi;
+                Real dwdz = (vel(i,j,k,2) - vel(i,j,k-1,2))*dzi;
                 fz(i,j,k,0) = dudx;
                 fz(i,j,k,1) = dvdx;
                 fz(i,j,k,2) = dwdx;
