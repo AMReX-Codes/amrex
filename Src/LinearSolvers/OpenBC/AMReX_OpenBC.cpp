@@ -314,12 +314,11 @@ Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
         m_mlmg_2->setVerbose(m_verbose);
         m_mlmg_2->setBottomVerbose(m_bottom_verbose);
         m_mlmg_2->setBottomSolver(m_bottom_solver_type);
-        if (m_bottom_solver_type == BottomSolver::hypre) {
 #ifdef AMREX_USE_HYPRE
+        if (m_bottom_solver_type == BottomSolver::hypre) {
             m_mlmg_2->setHypreInterface(Hypre::Interface::structed);
-#else
-#endif
         }
+#endif
     }
     Vector<MultiFab*> solv_all = a_sol;
     Vector<MultiFab const*> rhsv_all = a_rhs;
