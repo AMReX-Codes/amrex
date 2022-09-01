@@ -822,8 +822,10 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
     for (int lev = 0; lev < this->numLevels(); ++lev)
     {
         // clear previous neighbor particle ids
-        for (auto& keyval: m_boundary_particle_ids[lev]) {
-          keyval.second.clear();
+        if (!m_boundary_particle_ids.empty()) {
+          for (auto& keyval: m_boundary_particle_ids[lev]) {
+            keyval.second.clear();
+          }
         }
 
         for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
