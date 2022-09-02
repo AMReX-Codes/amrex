@@ -30,7 +30,7 @@ namespace detail {
     {
 #if defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
-        constexpr auto ms = sycl::memory_scope::work_group;
+        constexpr auto ms = sycl::memory_scope::device;
         constexpr auto as = sycl::access::address_space::global_space;
         static_assert(sizeof(R) == sizeof(I), "sizeof R != sizeof I");
         I* const add_as_I = reinterpret_cast<I*>(address);
@@ -54,7 +54,7 @@ namespace detail {
     {
 #if defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
-        constexpr auto ms = sycl::memory_scope::work_group;
+        constexpr auto ms = sycl::memory_scope::device;
         constexpr auto as = sycl::access::address_space::global_space;
         static_assert(sizeof(R) == sizeof(I), "sizeof R != sizeof I");
         I* const add_as_I = reinterpret_cast<I*>(address);
@@ -133,7 +133,7 @@ namespace detail {
         return atomicAdd(sum, value);
 #elif defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
-        constexpr auto ms = sycl::memory_scope::work_group;
+        constexpr auto ms = sycl::memory_scope::device;
         constexpr auto as = sycl::access::address_space::global_space;
         sycl::atomic_ref<T,mo,ms,as> a{*sum};
         return a.fetch_add(value);
@@ -316,7 +316,7 @@ namespace detail {
         return atomicMin(m, value);
 #elif defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
-        constexpr auto ms = sycl::memory_scope::work_group;
+        constexpr auto ms = sycl::memory_scope::device;
         constexpr auto as = sycl::access::address_space::global_space;
         sycl::atomic_ref<T,mo,ms,as> a{*m};
         return a.fetch_min(value);
@@ -377,7 +377,7 @@ namespace detail {
         return atomicMax(m, value);
 #elif defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
-        constexpr auto ms = sycl::memory_scope::work_group;
+        constexpr auto ms = sycl::memory_scope::device;
         constexpr auto as = sycl::access::address_space::global_space;
         sycl::atomic_ref<T,mo,ms,as> a{*m};
         return a.fetch_max(value);
@@ -435,7 +435,7 @@ namespace detail {
         return atomicOr(m, value);
 #elif defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
-        constexpr auto ms = sycl::memory_scope::work_group;
+        constexpr auto ms = sycl::memory_scope::device;
         constexpr auto as = sycl::access::address_space::global_space;
         sycl::atomic_ref<int,mo,ms,as> a{*m};
         return a.fetch_or(value);
@@ -457,7 +457,7 @@ namespace detail {
         return atomicAnd(m, value ? ~0x0 : 0);
 #elif defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
-        constexpr auto ms = sycl::memory_scope::work_group;
+        constexpr auto ms = sycl::memory_scope::device;
         constexpr auto as = sycl::access::address_space::global_space;
         sycl::atomic_ref<int,mo,ms,as> a{*m};
         return a.fetch_and(value ? ~0x0 : 0);
@@ -479,7 +479,7 @@ namespace detail {
     {
 #if defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
-        constexpr auto ms = sycl::memory_scope::work_group;
+        constexpr auto ms = sycl::memory_scope::device;
         sycl::atomic_ref<unsigned int,mo,ms,AS> a{*m};
         unsigned int oldi = a.load(), newi;
         do {
@@ -517,7 +517,7 @@ namespace detail {
         return atomicDec(m, value);
 #elif defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
-        constexpr auto ms = sycl::memory_scope::work_group;
+        constexpr auto ms = sycl::memory_scope::device;
         constexpr auto as = sycl::access::address_space::global_space;
         sycl::atomic_ref<unsigned int,mo,ms,as> a{*m};
         unsigned int oldi = a.load(), newi;
@@ -544,7 +544,7 @@ namespace detail {
         return atomicExch(address, val);
 #elif defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
-        constexpr auto ms = sycl::memory_scope::work_group;
+        constexpr auto ms = sycl::memory_scope::device;
         constexpr auto as = sycl::access::address_space::global_space;
         sycl::atomic_ref<T,mo,ms,as> a{*address};
         return a.exchange(val);
@@ -567,7 +567,7 @@ namespace detail {
         return atomicCAS(address, compare, val);
 #elif defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
-        constexpr auto ms = sycl::memory_scope::work_group;
+        constexpr auto ms = sycl::memory_scope::device;
         constexpr auto as = sycl::access::address_space::global_space;
         sycl::atomic_ref<T,mo,ms,as> a{*address};
         a.compare_exchange_strong(compare, val);
