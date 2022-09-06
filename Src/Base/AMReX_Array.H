@@ -127,85 +127,7 @@ namespace amrex {
             return p;
         }
 
-        T arr[N];
-    };
-
-    template <class T>
-    struct GpuArray<T, 0u>
-    {
-        using value_type = T;
-        using reference_type = T&;
-
-        /**
-         * GpuArray elements are indexed using square brackets, as with any
-         * other array.
-         */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        const T& operator [] (int) const noexcept { return *static_cast<T*>(nullptr); }
-
-        /**
-         * GpuArray elements are indexed using square brackets, as with any
-         * other array.
-         */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T& operator [] (int) noexcept { return *static_cast<T*>(nullptr); }
-
-        /**
-         * Returns a \c const pointer to the underlying data of a GpuArray object.
-         */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        const T* data () const noexcept { return nullptr; }
-
-        /**
-         * Returns a pointer to the underlying data of a GpuArray object.
-         */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T* data () noexcept { return nullptr; }
-
-        /**
-         * Returns the number of elements in the GpuArray object as an
-         * unsigned integer.
-         */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        static constexpr unsigned int size () noexcept { return 0u; }
-
-        /**
-         * Returns a \c const pointer address to the first element of the
-         * GpuArray object.
-         */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        const T* begin () const noexcept { return nullptr; }
-
-        /**
-         * Returns a const pointer address right after the last element of the
-         * GpuArray object.
-         */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        const T* end () const noexcept { return nullptr; }
-
-        /**
-         * Returns a pointer address to the first element of the
-         * GpuArray object.
-         */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T* begin () noexcept { return nullptr; }
-
-        /**
-         * Returns a pointer address right after the last element of the
-         * GpuArray object.
-         */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T* end () noexcept { return nullptr; }
-
-        /**
-         * Fills in all of the elements in the GpuArray object to the same
-         * value.
-         *
-         * \param value The fill value
-         */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void fill ( const T& value ) noexcept
-        { (void) value; }
+        T arr[amrex::max(N,1u)];
     };
 }
 
@@ -975,3 +897,4 @@ namespace amrex
 }
 
 #endif
+
