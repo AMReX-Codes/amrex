@@ -78,6 +78,9 @@ public:
                  const LPInfo& a_info = LPInfo());
 
     void setVerbose (int v) noexcept;
+    void setBottomVerbose (int v) noexcept;
+
+    void useHypre (bool use_hypre) noexcept;
 
     Real solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
                 Real a_tol_rel, Real a_tol_abs);
@@ -95,6 +98,7 @@ private:
 #endif
 
     int m_verbose = 0;
+    int m_bottom_verbose = 0;
     Vector<Geometry> m_geom;
     Vector<BoxArray> m_grids;
     Vector<DistributionMapping> m_dmap;
@@ -103,6 +107,7 @@ private:
     std::unique_ptr<MLPoisson> m_poisson_2;
     std::unique_ptr<MLMG> m_mlmg_1;
     std::unique_ptr<MLMG> m_mlmg_2;
+    BottomSolver m_bottom_solver_type = BottomSolver::bicgstab;
 
     int m_coarsen_ratio = 0;
     Array<MultiFab,AMREX_SPACEDIM> m_dpdn;
