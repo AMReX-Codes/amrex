@@ -144,7 +144,7 @@ Arena::allocate_system (std::size_t nbytes)
     else if (arena_info.device_use_hostalloc)
     {
         AMREX_HIP_OR_CUDA_OR_DPCPP(
-            AMREX_HIP_SAFE_CALL (hipHostMalloc(&p, nbytes, hipHostMallocMapped));,
+            AMREX_HIP_SAFE_CALL (hipHostMalloc(&p, nbytes, hipHostMallocMapped|hipHostMallocNonCoherent));,
             AMREX_CUDA_SAFE_CALL(cudaHostAlloc(&p, nbytes, cudaHostAllocMapped));,
             p = sycl::malloc_host(nbytes, Gpu::Device::syclContext()));
     }
