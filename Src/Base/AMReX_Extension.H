@@ -57,7 +57,7 @@
 #elif defined(__INTEL_COMPILER)
 #define AMREX_PRAGMA_SIMD _Pragma("ivdep")
 
-#elif defined(_CRAYC)
+#elif defined(_CRAYC) || defined(__cray__)
 #define AMREX_PRAGMA_SIMD _Pragma("ivdep")
 
 #elif defined(__PGI)
@@ -73,7 +73,7 @@
 #define AMREX_PRAGMA_SIMD _Pragma("ibm independent_loop")
 
 #elif defined(__clang__)
-#define AMREX_PRAGMA_SIMD _Pragma("clang loop vectorize(enable)")
+#define AMREX_PRAGMA_SIMD
 
 #elif defined(__GNUC__)
 #define AMREX_PRAGMA_SIMD _Pragma("GCC ivdep")
