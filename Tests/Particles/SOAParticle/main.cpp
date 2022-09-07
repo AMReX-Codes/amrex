@@ -15,8 +15,8 @@ template <typename T_PC,template<class> class Allocator=DefaultAllocator>
 void addParticles ()
 {
     T_PC pc;
-    int const NReal = pc.NStructReal;
-    int const NInt = pc.NStructInt;
+    // int const NReal = pc.NStructReal;
+    // int const NInt = pc.NStructInt;
     int const NArrayReal = pc.NArrayReal;
     int const NArrayInt = pc.NArrayInt;
 
@@ -72,10 +72,12 @@ void addParticles ()
             amrex::ParticleReal & AMREX_RESTRICT x = part_x[ip];
             amrex::ParticleReal & AMREX_RESTRICT y = part_y[ip];
             amrex::ParticleReal & AMREX_RESTRICT z = part_z[ip];
+            amrex::ParticleReal & AMREX_RESTRICT a = part_aaa[ip];
 
             x += 1.0;
             y += 1.0;
             z += 1.0;
+            a += 1.0;
         });
 
         // new way of creating
