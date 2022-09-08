@@ -26,9 +26,19 @@ void mlebndfdlap_grad_x_doit (int i, int j, int k, Array4<Real> const& px,
     } else if (dmsk(i,j,k) < 0 && dmsk(i+1,j,k) < 0) {
         px(i,j,k) = Real(0.0);
     } else if (dmsk(i,j,k) < 0) {
-        px(i,j,k) = dxi * (p(i+1,j,k) - phieb(i,j,k)) / (Real(1.0) - Real(2.0) * ecx(i,j,k));
+        Real h = Real(1.0) - Real(2.0) * ecx(i,j,k);
+        if (h == Real(0.0)) {
+            px(i,j,k) = Real(0.0);
+        } else {
+            px(i,j,k) = dxi * (p(i+1,j,k) - phieb(i,j,k)) / h;
+        }
     } else { //
-        px(i,j,k) = dxi * (phieb(i+1,j,k) - p(i,j,k)) / (Real(1.0) + Real(2.0) * ecx(i,j,k));
+        Real h = Real(1.0) + Real(2.0) * ecx(i,j,k);
+        if (h == Real(0.0)) {
+            px(i,j,k) = Real(0.0);
+        } else {
+            px(i,j,k) = dxi * (phieb(i+1,j,k) - p(i,j,k)) / h;
+        }
     }
 }
 
@@ -43,9 +53,19 @@ void mlebndfdlap_grad_y_doit (int i, int j, int k, Array4<Real> const& py,
     } else if (dmsk(i,j,k) < 0 && dmsk(i,j+1,k) < 0) {
         py(i,j,k) = Real(0.0);
     } else if (dmsk(i,j,k) < 0) {
-        py(i,j,k) = dyi * (p(i,j+1,k) - phieb(i,j,k)) / (Real(1.0) - Real(2.0) * ecy(i,j,k));
+        Real h = Real(1.0) - Real(2.0) * ecy(i,j,k);
+        if (h == Real(0.0)) {
+            py(i,j,k) = Real(0.0);
+        } else {
+            py(i,j,k) = dyi * (p(i,j+1,k) - phieb(i,j,k)) / h;
+        }
     } else { //
-        py(i,j,k) = dyi * (phieb(i,j+1,k) - p(i,j,k)) / (Real(1.0) + Real(2.0) * ecy(i,j,k));
+        Real h = Real(1.0) + Real(2.0) * ecy(i,j,k);
+        if (h == Real(0.0)) {
+            py(i,j,k) = Real(0.0);
+        } else {
+            py(i,j,k) = dyi * (phieb(i,j+1,k) - p(i,j,k)) / h;
+        }
     }
 }
 
@@ -61,9 +81,19 @@ void mlebndfdlap_grad_z_doit (int i, int j, int k, Array4<Real> const& pz,
     } else if (dmsk(i,j,k) < 0 && dmsk(i,j,k+1) < 0) {
         pz(i,j,k) = Real(0.0);
     } else if (dmsk(i,j,k) < 0) {
-        pz(i,j,k) = dzi * (p(i,j,k+1) - phieb(i,j,k)) / (Real(1.0) - Real(2.0) * ecz(i,j,k));
+        Real h = Real(1.0) - Real(2.0) * ecz(i,j,k);
+        if (h == Real(0.0)) {
+            pz(i,j,k) = Real(0.0);
+        } else {
+            pz(i,j,k) = dzi * (p(i,j,k+1) - phieb(i,j,k)) / h;
+        }
     } else { //
-        pz(i,j,k) = dzi * (phieb(i,j,k+1) - p(i,j,k)) / (Real(1.0) + Real(2.0) * ecz(i,j,k));
+        Real h = Real(1.0) + Real(2.0) * ecz(i,j,k);
+        if (h == Real(0.0)) {
+            pz(i,j,k) = Real(0.0);
+        } else {
+            pz(i,j,k) = dzi * (phieb(i,j,k+1) - p(i,j,k)) / h;
+        }
     }
 }
 #endif

@@ -258,6 +258,7 @@ MLEBNodeFDLaplacian::prepareForSolve ()
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
             auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+            auto const& edgecent = factory->getEdgeCent();
             auto const& levset_mf = factory->getLevelSet();
             auto const& levset_ar = levset_mf.const_arrays();
             auto& dmask_mf = *m_dirichlet_mask[amrlev][mglev];
@@ -269,6 +270,38 @@ MLEBNodeFDLaplacian::prepareForSolve ()
                     dmask_ar[box_no](i,j,k) = -1;
                 }
             });
+#ifdef AMREX_USE_GPU
+            bool tiling = false;
+#else
+            bool tiling = true;
+#endif
+#if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
+#pragma omp parallel
+#endif
+            for (MFIter mfi(dmask_mf,tiling); mfi.isValid(); ++mfi) {
+                bool cutfab = edgecent[0]->ok(mfi);
+                if (cutfab) {
+                    AMREX_D_TERM(Array4<Real const> const& ecx = edgecent[0]->const_array(mfi);,
+                                 Array4<Real const> const& ecy = edgecent[1]->const_array(mfi);,
+                                 Array4<Real const> const& ecz = edgecent[2]->const_array(mfi));
+                    auto const& dmask_a = dmask_mf.array(mfi);
+                    amrex::ParallelFor(mfi.tilebox(),
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                    {
+                        if (!dmask_a(i,j,k) &&
+                            (AMREX_D_TERM(   1._rt+2._rt*ecx(i  ,j,k) == 0._rt
+                                          || 1._rt-2._rt*ecx(i-1,j,k) == 0._rt,
+                                          || 1._rt+2._rt*ecy(i,j  ,k) == 0._rt
+                                          || 1._rt-2._rt*ecy(i,j-1,k) == 0._rt,
+                                          || 1._rt+2._rt*ecz(i,j,k  ) == 0._rt
+                                          || 1._rt-2._rt*ecz(i,j,k-1) == 0._rt)))
+                        {
+                            // This node is really close to the wall.
+                            dmask_a(i,j,k) = -1;
+                        }
+                    });
+                }
+            }
         }
     }
 #endif
