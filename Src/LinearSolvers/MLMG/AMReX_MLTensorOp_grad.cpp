@@ -162,7 +162,7 @@ MLTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& flux
                      Box const zbx = mfi.nodaltilebox(2);)
         AMREX_D_TERM(Array4<Real> const fxfab = fluxes[0]->array(mfi);,
                      Array4<Real> const fyfab = fluxes[1]->array(mfi);,
-                     Array4<Real> const fzfab = fluxes[1]->array(mfi);)
+                     Array4<Real> const fzfab = fluxes[2]->array(mfi);)
 
 // The derivatives are put in the array with the following order:
 // component: 0    ,  1    ,  2    ,  3    ,  4    , 5    ,  6    ,  7    ,  8
