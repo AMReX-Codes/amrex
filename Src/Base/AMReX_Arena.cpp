@@ -472,20 +472,20 @@ Arena::Finalize ()
         if (the_device_arena != the_arena) {
             delete the_device_arena;
         }
-        the_device_arena = nullptr;
     }
+    the_device_arena = nullptr;
 
     if (!dynamic_cast<BArena*>(the_managed_arena)) {
         if (the_managed_arena != the_arena) {
             delete the_managed_arena;
         }
-        the_managed_arena = nullptr;
     }
+    the_managed_arena = nullptr;
 
     if (!dynamic_cast<BArena*>(the_arena)) {
         delete the_arena;
-        the_arena = nullptr;
     }
+    the_arena = nullptr;
 
     delete the_async_arena;
     the_async_arena = nullptr;
@@ -495,8 +495,8 @@ Arena::Finalize ()
 
     if (!dynamic_cast<BArena*>(the_cpu_arena)) {
         delete the_cpu_arena;
-        the_cpu_arena = nullptr;
     }
+    the_cpu_arena = nullptr;
 }
 
 Arena*
