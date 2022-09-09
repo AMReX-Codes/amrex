@@ -643,7 +643,6 @@ void mltensor_fill_edges_yhi_zhi (int const i, int const j, int const k, Dim3 co
 }
 
 #ifdef AMREX_USE_EB
-// xxxxx to be updated
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                             Array4<Real> const& vel,
@@ -669,482 +668,670 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                             Dim3 const& dlo, Dim3 const& dhi) noexcept
 {
-    constexpr int xdir = 0;
-    constexpr int ydir = 1;
-    constexpr int zdir = 2;
     const auto blen = amrex::length(vbox);
     const auto vlo  = amrex::lbound(vbox);
     const auto vhi  = amrex::ubound(vbox);
+    bool xlo_domain = (vlo.x == dlo.x);
+    bool ylo_domain = (vlo.y == dlo.y);
+    bool zlo_domain = (vlo.z == dlo.z);
+    bool xhi_domain = (vhi.x == dhi.x);
+    bool yhi_domain = (vhi.y == dhi.y);
+    bool zhi_domain = (vhi.z == dhi.z);
+
     for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
         switch (icorner) {
         case 0: {
             // xlo & ylo & zlo
-            Box bx = amrex::adjCellLo(amrex::adjCellLo(amrex::adjCellLo(vbox,xdir,1),ydir,1),zdir,1);
-            if (vlo.x == dlo.x && vlo.y == dlo.y && vlo.z == dlo.z) {
-                vel      (vlo.x-1,vlo.y-1,vlo.z-1,icomp)
-                    = vel(vlo.x-1,vlo.y  ,vlo.z  ,icomp)
-                    + vel(vlo.x  ,vlo.y-1,vlo.z  ,icomp)
-                    + vel(vlo.x  ,vlo.y  ,vlo.z-1,icomp)
-                    - vel(vlo.x  ,vlo.y  ,vlo.z  ,icomp) * Real(2.0);
-            } else if (vlo.x == dlo.x && vlo.y == dlo.y) {
-                vel      (vlo.x-1,vlo.y-1,vlo.z-1,icomp)
-                    = vel(vlo.x-1,vlo.y  ,vlo.z-1,icomp)
-                    + vel(vlo.x  ,vlo.y-1,vlo.z-1,icomp)
-                    - vel(vlo.x  ,vlo.y  ,vlo.z-1,icomp);
-            } else if (vlo.x == dlo.x && vlo.z == dlo.z) {
-                vel      (vlo.x-1,vlo.y-1,vlo.z-1,icomp)
-                    = vel(vlo.x-1,vlo.y-1,vlo.z  ,icomp)
-                    + vel(vlo.x  ,vlo.y-1,vlo.z-1,icomp)
-                    - vel(vlo.x  ,vlo.y-1,vlo.z  ,icomp);
-            } else if (vlo.y == dlo.y && vlo.z == dlo.z) {
-                vel      (vlo.x-1,vlo.y-1,vlo.z-1,icomp)
-                    = vel(vlo.x-1,vlo.y-1,vlo.z  ,icomp)
-                    + vel(vlo.x-1,vlo.y  ,vlo.z-1,icomp)
-                    - vel(vlo.x-1,vlo.y  ,vlo.z  ,icomp);
-            } else if (vlo.x == dlo.x) {
-                mllinop_apply_bc_x(Orientation::low, bx, blen.x, vel, mxlo,
-                                   bct(Orientation::xlo(), icomp),
-                                   bcl(Orientation::xlo(), icomp),
-                                   bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-            } else if (vlo.y == dlo.y) {
-                mllinop_apply_bc_y(Orientation::low, bx, blen.y, vel, mylo,
-                                   bct(Orientation::ylo(), icomp),
-                                   bcl(Orientation::ylo(), icomp),
-                                   bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
-            } else if (vlo.z == dlo.z) {
-                mllinop_apply_bc_z(Orientation::low, bx, blen.z, vel, mzlo,
-                                   bct(Orientation::zlo(), icomp),
-                                   bcl(Orientation::zlo(), icomp),
-                                   bcvalzlo, maxorder, dxinv[zdir], inhomog, icomp);
-            } else if (mxlo(vlo.x-1,vlo.y-1,vlo.z-1) != BndryData::covered) {
-                if (mylo(vlo.x,vlo.y-1,vlo.z-1) == BndryData::covered) {
-                    mllinop_apply_bc_x(Orientation::low, bx, blen.x, vel, mxlo,
+            int i = vlo.x-1;
+            int j = vlo.y-1;
+            int k = vlo.z-1;
+            if (mxlo(i,j,k) != BndryData::covered &&
+                (!xlo_domain || !ylo_domain || !zlo_domain)) {
+                bool x_interior = mylo(i+1,j  ,k  ) == BndryData::covered;
+                bool x_exterior = mylo(i+1,j  ,k  ) == BndryData::not_covered;
+                bool y_interior = mxlo(i  ,j+1,k  ) == BndryData::covered;
+                bool y_exterior = mxlo(i  ,j+1,k  ) == BndryData::not_covered;
+                bool z_interior = mxlo(i  ,j  ,k+1) == BndryData::covered;
+                bool z_exterior = mxlo(i  ,j  ,k+1) == BndryData::not_covered;
+                if ((x_interior && y_interior && z_interior) ||
+                    (x_exterior && y_exterior && z_exterior)) {
+                    mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
-                                       bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-                } else if (mxlo(vlo.x-1,vlo.y,vlo.z-1) == BndryData::covered) {
-                    mllinop_apply_bc_y(Orientation::low, bx, blen.y, vel, mylo,
+                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
-                                       bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
-                } else {
-                    mllinop_apply_bc_z(Orientation::low, bx, blen.z, vel, mzlo,
+                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp);
+                    tmp += vel(i,j,k,icomp);
+                    mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
                                        bct(Orientation::zlo(), icomp),
                                        bcl(Orientation::zlo(), icomp),
-                                       bcvalzlo, maxorder, dxinv[zdir], inhomog, icomp);
+                                       bcvalzlo, maxorder, dxinv[2], inhomog, icomp);
+                    vel(i,j,k,icomp) = Real(1./3.)*(tmp+vel(i,j,k,icomp));
+                } else if (x_interior && y_interior) {
+                    mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
+                                       bct(Orientation::xlo(), icomp),
+                                       bcl(Orientation::xlo(), icomp),
+                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
+                                       bct(Orientation::ylo(), icomp),
+                                       bcl(Orientation::ylo(), icomp),
+                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                } else if (x_interior && z_interior) {
+                    mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
+                                       bct(Orientation::xlo(), icomp),
+                                       bcl(Orientation::xlo(), icomp),
+                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
+                                       bct(Orientation::zlo(), icomp),
+                                       bcl(Orientation::zlo(), icomp),
+                                       bcvalzlo, maxorder, dxinv[2], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                } else if (y_interior && z_interior) {
+                    mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
+                                       bct(Orientation::ylo(), icomp),
+                                       bcl(Orientation::ylo(), icomp),
+                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
+                                       bct(Orientation::zlo(), icomp),
+                                       bcl(Orientation::zlo(), icomp),
+                                       bcvalzlo, maxorder, dxinv[2], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                } else if (x_interior) {
+                    mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
+                                       bct(Orientation::xlo(), icomp),
+                                       bcl(Orientation::xlo(), icomp),
+                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp);
+                } else if (y_interior) {
+                    mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
+                                       bct(Orientation::ylo(), icomp),
+                                       bcl(Orientation::ylo(), icomp),
+                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp);
+                } else if (z_interior) {
+                    mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
+                                       bct(Orientation::zlo(), icomp),
+                                       bcl(Orientation::zlo(), icomp),
+                                       bcvalzlo, maxorder, dxinv[2], inhomog, icomp);
                 }
             }
             break;
         }
         case 1: {
             // xhi & ylo & zlo
-            Box bx = amrex::adjCellLo(amrex::adjCellLo(amrex::adjCellHi(vbox,xdir,1),ydir,1),zdir,1);
-            if (vhi.x == dhi.x && vlo.y == dlo.y && vlo.z == dlo.z) {
-                vel      (vhi.x+1,vlo.y-1,vlo.z-1,icomp)
-                    = vel(vhi.x+1,vlo.y  ,vlo.z  ,icomp)
-                    + vel(vhi.x  ,vlo.y-1,vlo.z  ,icomp)
-                    + vel(vhi.x  ,vlo.y  ,vlo.z-1,icomp)
-                    - vel(vhi.x  ,vlo.y  ,vlo.z  ,icomp) * Real(2.0);
-            } else if (vhi.x == dhi.x && vlo.y == dlo.y) {
-                vel      (vhi.x+1,vlo.y-1,vlo.z-1,icomp)
-                    = vel(vhi.x+1,vlo.y  ,vlo.z-1,icomp)
-                    + vel(vhi.x  ,vlo.y-1,vlo.z-1,icomp)
-                    - vel(vhi.x  ,vlo.y  ,vlo.z-1,icomp);
-            } else if (vhi.x == dhi.x && vlo.z == dlo.z) {
-                vel      (vhi.x+1,vlo.y-1,vlo.z-1,icomp)
-                    = vel(vhi.x+1,vlo.y-1,vlo.z  ,icomp)
-                    + vel(vhi.x  ,vlo.y-1,vlo.z-1,icomp)
-                    - vel(vhi.x  ,vlo.y-1,vlo.z  ,icomp);
-            } else if (vlo.y == dlo.y && vlo.z == dlo.z) {
-                vel      (vhi.x+1,vlo.y-1,vlo.z-1,icomp)
-                    = vel(vhi.x+1,vlo.y-1,vlo.z  ,icomp)
-                    + vel(vhi.x+1,vlo.y  ,vlo.z-1,icomp)
-                    - vel(vhi.x+1,vlo.y  ,vlo.z  ,icomp);
-            } else if (vhi.x == dhi.x) {
-                mllinop_apply_bc_x(Orientation::high, bx, blen.x, vel, mxhi,
-                                   bct(Orientation::xhi(), icomp),
-                                   bcl(Orientation::xhi(), icomp),
-                                   bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
-            } else if (vlo.y == dlo.y) {
-                mllinop_apply_bc_y(Orientation::low, bx, blen.y, vel, mylo,
-                                   bct(Orientation::ylo(), icomp),
-                                   bcl(Orientation::ylo(), icomp),
-                                   bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
-            } else if (vlo.z == dlo.z) {
-                mllinop_apply_bc_z(Orientation::low, bx, blen.z, vel, mzlo,
-                                   bct(Orientation::zlo(), icomp),
-                                   bcl(Orientation::zlo(), icomp),
-                                   bcvalzlo, maxorder, dxinv[zdir], inhomog, icomp);
-            } else if (mxhi(vhi.x+1,vlo.y-1,vlo.z-1) != BndryData::covered) {
-                if (mylo(vhi.x,vlo.y-1,vlo.z-1) == BndryData::covered) {
-                    mllinop_apply_bc_x(Orientation::high, bx, blen.x, vel, mxhi,
+            int i = vhi.x+1;
+            int j = vlo.y-1;
+            int k = vlo.z-1;
+            bool x_interior = mylo(i+1,j  ,k  ) == BndryData::covered;
+            bool x_exterior = mylo(i+1,j  ,k  ) == BndryData::not_covered;
+            bool y_interior = mxhi(i  ,j+1,k  ) == BndryData::covered;
+            bool y_exterior = mxhi(i  ,j+1,k  ) == BndryData::not_covered;
+            bool z_interior = mxhi(i  ,j  ,k+1) == BndryData::covered;
+            bool z_exterior = mxhi(i  ,j  ,k+1) == BndryData::not_covered;
+            if (mxhi(i,j,k) != BndryData::covered &&
+                (!xhi_domain || !ylo_domain || !zlo_domain)) {
+                if ((x_interior && y_interior && z_interior) ||
+                    (x_exterior && y_exterior && z_exterior)) {
+                    mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
-                                       bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
-                } else if (mxhi(vhi.x+1,vlo.y,vlo.z-1) == BndryData::covered) {
-                    mllinop_apply_bc_y(Orientation::low, bx, blen.y, vel, mylo,
+                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
-                                       bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
-                } else {
-                    mllinop_apply_bc_z(Orientation::low, bx, blen.z, vel, mzlo,
+                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp);
+                    tmp += vel(i,j,k,icomp);
+                    mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
                                        bct(Orientation::zlo(), icomp),
                                        bcl(Orientation::zlo(), icomp),
-                                       bcvalzlo, maxorder, dxinv[zdir], inhomog, icomp);
+                                       bcvalzlo, maxorder, dxinv[2], inhomog, icomp);
+                    vel(i,j,k,icomp) = Real(1./3.)*(tmp+vel(i,j,k,icomp));
+                } else if (x_interior && y_interior) {
+                    mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
+                                       bct(Orientation::xhi(), icomp),
+                                       bcl(Orientation::xhi(), icomp),
+                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
+                                       bct(Orientation::ylo(), icomp),
+                                       bcl(Orientation::ylo(), icomp),
+                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                } else if (x_interior && z_interior) {
+                    mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
+                                       bct(Orientation::xhi(), icomp),
+                                       bcl(Orientation::xhi(), icomp),
+                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
+                                       bct(Orientation::zlo(), icomp),
+                                       bcl(Orientation::zlo(), icomp),
+                                       bcvalzlo, maxorder, dxinv[2], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                } else if (y_interior && z_interior) {
+                    mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
+                                       bct(Orientation::ylo(), icomp),
+                                       bcl(Orientation::ylo(), icomp),
+                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
+                                       bct(Orientation::zlo(), icomp),
+                                       bcl(Orientation::zlo(), icomp),
+                                       bcvalzlo, maxorder, dxinv[2], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                } else if (x_interior) {
+                    mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
+                                       bct(Orientation::xhi(), icomp),
+                                       bcl(Orientation::xhi(), icomp),
+                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp);
+                } else if (y_interior) {
+                    mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
+                                       bct(Orientation::ylo(), icomp),
+                                       bcl(Orientation::ylo(), icomp),
+                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp);
+                } else if (z_interior) {
+                    mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
+                                       bct(Orientation::zlo(), icomp),
+                                       bcl(Orientation::zlo(), icomp),
+                                       bcvalzlo, maxorder, dxinv[2], inhomog, icomp);
                 }
             }
             break;
         }
         case 2: {
             // xlo & yhi & zlo
-            Box bx = amrex::adjCellLo(amrex::adjCellHi(amrex::adjCellLo(vbox,xdir,1),ydir,1),zdir,1);
-            if (vlo.x == dlo.x && vhi.y == dhi.y && vlo.z == dlo.z) {
-                vel      (vlo.x-1,vhi.y+1,vlo.z-1,icomp)
-                    = vel(vlo.x-1,vhi.y  ,vlo.z  ,icomp)
-                    + vel(vlo.x  ,vhi.y+1,vlo.z  ,icomp)
-                    + vel(vlo.x  ,vhi.y  ,vlo.z-1,icomp)
-                    - vel(vlo.x  ,vhi.y  ,vlo.z  ,icomp) * Real(2.0);
-            } else if (vlo.x == dlo.x && vhi.y == dhi.y) {
-                vel      (vlo.x-1,vhi.y+1,vlo.z-1,icomp)
-                    = vel(vlo.x-1,vhi.y  ,vlo.z-1,icomp)
-                    + vel(vlo.x  ,vhi.y+1,vlo.z-1,icomp)
-                    - vel(vlo.x  ,vhi.y  ,vlo.z-1,icomp);
-            } else if (vlo.x == dlo.x && vlo.z == dlo.z) {
-                vel      (vlo.x-1,vhi.y+1,vlo.z-1,icomp)
-                    = vel(vlo.x-1,vhi.y+1,vlo.z  ,icomp)
-                    + vel(vlo.x  ,vhi.y+1,vlo.z-1,icomp)
-                    - vel(vlo.x  ,vhi.y+1,vlo.z  ,icomp);
-            } else if (vhi.y == dhi.y && vlo.z == dlo.z) {
-                vel      (vlo.x-1,vhi.y+1,vlo.z-1,icomp)
-                    = vel(vlo.x-1,vhi.y+1,vlo.z  ,icomp)
-                    + vel(vlo.x-1,vhi.y  ,vlo.z-1,icomp)
-                    - vel(vlo.x-1,vhi.y  ,vlo.z  ,icomp);
-            } else if (vlo.x == dlo.x) {
-                mllinop_apply_bc_x(Orientation::low, bx, blen.x, vel, mxlo,
-                                   bct(Orientation::xlo(), icomp),
-                                   bcl(Orientation::xlo(), icomp),
-                                   bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-            } else if (vhi.y == dhi.y) {
-                mllinop_apply_bc_y(Orientation::high, bx, blen.y, vel, myhi,
-                                   bct(Orientation::yhi(), icomp),
-                                   bcl(Orientation::yhi(), icomp),
-                                   bcvalyhi, maxorder, dxinv[ydir], inhomog, icomp);
-            } else if (vlo.z == dlo.z) {
-                mllinop_apply_bc_z(Orientation::low, bx, blen.z, vel, mzlo,
-                                   bct(Orientation::zlo(), icomp),
-                                   bcl(Orientation::zlo(), icomp),
-                                   bcvalzlo, maxorder, dxinv[zdir], inhomog, icomp);
-            } else if (mxlo(vlo.x-1,vhi.y+1,vlo.z-1) != BndryData::covered) {
-                if (myhi(vlo.x,vhi.y+1,vlo.z-1) == BndryData::covered) {
-                    mllinop_apply_bc_x(Orientation::low, bx, blen.x, vel, mxlo,
+            int i = vlo.x-1;
+            int j = vhi.y+1;
+            int k = vlo.z-1;
+            bool x_interior = myhi(i+1,j  ,k  ) == BndryData::covered;
+            bool x_exterior = myhi(i+1,j  ,k  ) == BndryData::not_covered;
+            bool y_interior = mxlo(i  ,j+1,k  ) == BndryData::covered;
+            bool y_exterior = mxlo(i  ,j+1,k  ) == BndryData::not_covered;
+            bool z_interior = mxlo(i  ,j  ,k+1) == BndryData::covered;
+            bool z_exterior = mxlo(i  ,j  ,k+1) == BndryData::not_covered;
+            if (mxlo(i,j,k) != BndryData::covered &&
+                (!xlo_domain || !yhi_domain || !zlo_domain)) {
+                if ((x_interior && y_interior && z_interior) ||
+                    (x_exterior && y_exterior && z_exterior)) {
+                    mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
-                                       bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-                } else if (mxlo(vlo.x-1,vhi.y,vlo.z-1) == BndryData::covered) {
-                    mllinop_apply_bc_y(Orientation::high, bx, blen.y, vel, myhi,
+                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
-                                       bcvalyhi, maxorder, dxinv[ydir], inhomog, icomp);
-                } else {
-                    mllinop_apply_bc_z(Orientation::low, bx, blen.z, vel, mzlo,
+                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
+                    tmp += vel(i,j,k,icomp);
+                    mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
                                        bct(Orientation::zlo(), icomp),
                                        bcl(Orientation::zlo(), icomp),
-                                       bcvalzlo, maxorder, dxinv[zdir], inhomog, icomp);
+                                       bcvalzlo, maxorder, dxinv[2], inhomog, icomp);
+                    vel(i,j,k,icomp) = Real(1./3.)*(tmp+vel(i,j,k,icomp));
+                } else if (x_interior && y_interior) {
+                    mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
+                                       bct(Orientation::xlo(), icomp),
+                                       bcl(Orientation::xlo(), icomp),
+                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
+                                       bct(Orientation::yhi(), icomp),
+                                       bcl(Orientation::yhi(), icomp),
+                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                } else if (x_interior && z_interior) {
+                    mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
+                                       bct(Orientation::xlo(), icomp),
+                                       bcl(Orientation::xlo(), icomp),
+                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
+                                       bct(Orientation::zlo(), icomp),
+                                       bcl(Orientation::zlo(), icomp),
+                                       bcvalzlo, maxorder, dxinv[2], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                } else if (y_interior && z_interior) {
+                    mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
+                                       bct(Orientation::yhi(), icomp),
+                                       bcl(Orientation::yhi(), icomp),
+                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
+                                       bct(Orientation::zlo(), icomp),
+                                       bcl(Orientation::zlo(), icomp),
+                                       bcvalzlo, maxorder, dxinv[2], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                } else if (x_interior) {
+                    mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
+                                       bct(Orientation::xlo(), icomp),
+                                       bcl(Orientation::xlo(), icomp),
+                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp);
+                } else if (y_interior) {
+                    mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
+                                       bct(Orientation::yhi(), icomp),
+                                       bcl(Orientation::yhi(), icomp),
+                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
+                } else if (z_interior) {
+                    mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
+                                       bct(Orientation::zlo(), icomp),
+                                       bcl(Orientation::zlo(), icomp),
+                                       bcvalzlo, maxorder, dxinv[2], inhomog, icomp);
                 }
             }
             break;
         }
         case 3: {
             // xhi & yhi & zlo
-            Box bx = amrex::adjCellLo(amrex::adjCellHi(amrex::adjCellHi(vbox,xdir,1),ydir,1),zdir,1);
-            if (vhi.x == dhi.x && vhi.y == dhi.y && vlo.z == dlo.z) {
-                vel      (vhi.x+1,vhi.y+1,vlo.z-1,icomp)
-                    = vel(vhi.x+1,vhi.y  ,vlo.z  ,icomp)
-                    + vel(vhi.x  ,vhi.y+1,vlo.z  ,icomp)
-                    + vel(vhi.x  ,vhi.y  ,vlo.z-1,icomp)
-                    - vel(vhi.x  ,vhi.y  ,vlo.z  ,icomp) * Real(2.0);
-            } else if (vhi.x == dhi.x && vhi.y == dhi.y) {
-                vel      (vhi.x+1,vhi.y+1,vlo.z-1,icomp)
-                    = vel(vhi.x+1,vhi.y  ,vlo.z-1,icomp)
-                    + vel(vhi.x  ,vhi.y+1,vlo.z-1,icomp)
-                    - vel(vhi.x  ,vhi.y  ,vlo.z-1,icomp);
-            } else if (vhi.x == dhi.x && vlo.z == dlo.z) {
-                vel      (vhi.x+1,vhi.y+1,vlo.z-1,icomp)
-                    = vel(vhi.x+1,vhi.y+1,vlo.z  ,icomp)
-                    + vel(vhi.x  ,vhi.y+1,vlo.z-1,icomp)
-                    - vel(vhi.x  ,vhi.y+1,vlo.z  ,icomp);
-            } else if (vhi.y == dhi.y && vlo.z == dlo.z) {
-                vel      (vhi.x+1,vhi.y+1,vlo.z-1,icomp)
-                    = vel(vhi.x+1,vhi.y+1,vlo.z  ,icomp)
-                    + vel(vhi.x+1,vhi.y  ,vlo.z-1,icomp)
-                    - vel(vhi.x+1,vhi.y  ,vlo.z  ,icomp);
-            } else if (vhi.x == dhi.x) {
-                mllinop_apply_bc_x(Orientation::high, bx, blen.x, vel, mxhi,
-                                   bct(Orientation::xhi(), icomp),
-                                   bcl(Orientation::xhi(), icomp),
-                                   bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
-            } else if (vhi.y == dhi.y) {
-                mllinop_apply_bc_y(Orientation::high, bx, blen.y, vel, myhi,
-                                   bct(Orientation::yhi(), icomp),
-                                   bcl(Orientation::yhi(), icomp),
-                                   bcvalyhi, maxorder, dxinv[ydir], inhomog, icomp);
-            } else if (vlo.z == dlo.z) {
-                mllinop_apply_bc_z(Orientation::low, bx, blen.z, vel, mzlo,
-                                   bct(Orientation::zlo(), icomp),
-                                   bcl(Orientation::zlo(), icomp),
-                                   bcvalzlo, maxorder, dxinv[zdir], inhomog, icomp);
-            } else if (mxhi(vhi.x+1,vhi.y+1,vlo.z-1) != BndryData::covered) {
-                if (myhi(vhi.x,vhi.y+1,vlo.z-1) == BndryData::covered) {
-                    mllinop_apply_bc_x(Orientation::high, bx, blen.x, vel, mxhi,
+            int i = vhi.x+1;
+            int j = vhi.y+1;
+            int k = vlo.z-1;
+            bool x_interior = myhi(i+1,j  ,k  ) == BndryData::covered;
+            bool x_exterior = myhi(i+1,j  ,k  ) == BndryData::not_covered;
+            bool y_interior = mxhi(i  ,j+1,k  ) == BndryData::covered;
+            bool y_exterior = mxhi(i  ,j+1,k  ) == BndryData::not_covered;
+            bool z_interior = mxhi(i  ,j  ,k+1) == BndryData::covered;
+            bool z_exterior = mxhi(i  ,j  ,k+1) == BndryData::not_covered;
+            if (mxhi(i,j,k) != BndryData::covered &&
+                (!xhi_domain || !yhi_domain || !zlo_domain)) {
+                if ((x_interior && y_interior && z_interior) ||
+                    (x_exterior && y_exterior && z_exterior)) {
+                    mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
-                                       bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
-                } else if (mxhi(vhi.x+1,vhi.y,vlo.z-1) == BndryData::covered) {
-                    mllinop_apply_bc_y(Orientation::high, bx, blen.y, vel, myhi,
+                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
-                                       bcvalyhi, maxorder, dxinv[ydir], inhomog, icomp);
-                } else {
-                    mllinop_apply_bc_z(Orientation::low, bx, blen.z, vel, mzlo,
+                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
+                    tmp += vel(i,j,k,icomp);
+                    mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
                                        bct(Orientation::zlo(), icomp),
                                        bcl(Orientation::zlo(), icomp),
-                                       bcvalzlo, maxorder, dxinv[zdir], inhomog, icomp);
+                                       bcvalzlo, maxorder, dxinv[2], inhomog, icomp);
+                    vel(i,j,k,icomp) = Real(1./3.)*(tmp+vel(i,j,k,icomp));
+                } else if (x_interior && y_interior) {
+                    mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
+                                       bct(Orientation::xhi(), icomp),
+                                       bcl(Orientation::xhi(), icomp),
+                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
+                                       bct(Orientation::yhi(), icomp),
+                                       bcl(Orientation::yhi(), icomp),
+                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                } else if (x_interior && z_interior) {
+                    mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
+                                       bct(Orientation::xhi(), icomp),
+                                       bcl(Orientation::xhi(), icomp),
+                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
+                                       bct(Orientation::zlo(), icomp),
+                                       bcl(Orientation::zlo(), icomp),
+                                       bcvalzlo, maxorder, dxinv[2], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                } else if (y_interior && z_interior) {
+                    mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
+                                       bct(Orientation::yhi(), icomp),
+                                       bcl(Orientation::yhi(), icomp),
+                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
+                                       bct(Orientation::zlo(), icomp),
+                                       bcl(Orientation::zlo(), icomp),
+                                       bcvalzlo, maxorder, dxinv[2], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                } else if (x_interior) {
+                    mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
+                                       bct(Orientation::xhi(), icomp),
+                                       bcl(Orientation::xhi(), icomp),
+                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp);
+                } else if (y_interior) {
+                    mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
+                                       bct(Orientation::yhi(), icomp),
+                                       bcl(Orientation::yhi(), icomp),
+                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
+                } else if (z_interior) {
+                    mllinop_apply_bc_z(Orientation::low, i,j,k, blen.z, vel, mzlo,
+                                       bct(Orientation::zlo(), icomp),
+                                       bcl(Orientation::zlo(), icomp),
+                                       bcvalzlo, maxorder, dxinv[2], inhomog, icomp);
                 }
             }
             break;
         }
         case 4: {
             // xlo & ylo & zhi
-            Box bx = amrex::adjCellHi(amrex::adjCellLo(amrex::adjCellLo(vbox,xdir,1),ydir,1),zdir,1);
-            if (vlo.x == dlo.x && vlo.y == dlo.y && vhi.z == dhi.z) {
-                vel      (vlo.x-1, vlo.y-1, vhi.z+1,icomp)
-                    = vel(vlo.x-1, vlo.y  , vhi.z  ,icomp)
-                    + vel(vlo.x  , vlo.y-1, vhi.z  ,icomp)
-                    + vel(vlo.x  , vlo.y  , vhi.z+1,icomp)
-                    - vel(vlo.x  , vlo.y  , vhi.z  ,icomp) * Real(2.0);
-            } else if (vlo.x == dlo.x && vlo.y == dlo.y) {
-                vel      (vlo.x-1, vlo.y-1, vhi.z+1,icomp)
-                    = vel(vlo.x-1, vlo.y  , vhi.z+1,icomp)
-                    + vel(vlo.x  , vlo.y-1, vhi.z+1,icomp)
-                    - vel(vlo.x  , vlo.y  , vhi.z+1,icomp);
-            } else if (vlo.x == dlo.x && vhi.z == dhi.z) {
-                vel      (vlo.x-1, vlo.y-1, vhi.z+1,icomp)
-                    = vel(vlo.x-1, vlo.y-1, vhi.z  ,icomp)
-                    + vel(vlo.x  , vlo.y-1, vhi.z+1,icomp)
-                    - vel(vlo.x  , vlo.y-1, vhi.z  ,icomp);
-            } else if (vlo.y == dlo.y && vhi.z == dhi.z) {
-                vel      (vlo.x-1, vlo.y-1, vhi.z+1,icomp)
-                    = vel(vlo.x-1, vlo.y-1, vhi.z  ,icomp)
-                    + vel(vlo.x-1, vlo.y  , vhi.z+1,icomp)
-                    - vel(vlo.x-1, vlo.y  , vhi.z  ,icomp);
-            } else if (vlo.x == dlo.x) {
-                mllinop_apply_bc_x(Orientation::low, bx, blen.x, vel, mxlo,
-                                   bct(Orientation::xlo(), icomp),
-                                   bcl(Orientation::xlo(), icomp),
-                                   bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-            } else if (vlo.y == dlo.y) {
-                mllinop_apply_bc_y(Orientation::low, bx, blen.y, vel, mylo,
-                                   bct(Orientation::ylo(), icomp),
-                                   bcl(Orientation::ylo(), icomp),
-                                   bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
-            } else if (vhi.z == dhi.z) {
-                mllinop_apply_bc_z(Orientation::high, bx, blen.z, vel, mzhi,
-                                   bct(Orientation::zhi(), icomp),
-                                   bcl(Orientation::zhi(), icomp),
-                                   bcvalzhi, maxorder, dxinv[zdir], inhomog, icomp);
-            } else if (mxlo(vlo.x-1,vlo.y-1,vhi.z+1) != BndryData::covered) {
-                if (mylo(vlo.x,vlo.y-1,vhi.z+1) == BndryData::covered) {
-                    mllinop_apply_bc_x(Orientation::low, bx, blen.x, vel, mxlo,
+            int i = vlo.x-1;
+            int j = vlo.y-1;
+            int k = vhi.z+1;
+            bool x_interior = mylo(i+1,j  ,k  ) == BndryData::covered;
+            bool x_exterior = mylo(i+1,j  ,k  ) == BndryData::not_covered;
+            bool y_interior = mxlo(i  ,j+1,k  ) == BndryData::covered;
+            bool y_exterior = mxlo(i  ,j+1,k  ) == BndryData::not_covered;
+            bool z_interior = mxlo(i  ,j  ,k+1) == BndryData::covered;
+            bool z_exterior = mxlo(i  ,j  ,k+1) == BndryData::not_covered;
+            if (mxlo(i,j,k) != BndryData::covered &&
+                (!xlo_domain || !ylo_domain || !zhi_domain)) {
+                if ((x_interior && y_interior && z_interior) ||
+                    (x_exterior && y_exterior && z_exterior)) {
+                    mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
-                                       bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-                } else if (mxlo(vlo.x-1,vlo.y,vhi.z+1) == BndryData::covered) {
-                    mllinop_apply_bc_y(Orientation::low, bx, blen.y, vel, mylo,
+                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
-                                       bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
-                } else {
-                    mllinop_apply_bc_z(Orientation::high, bx, blen.z, vel, mzhi,
+                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp);
+                    tmp += vel(i,j,k,icomp);
+                    mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
                                        bct(Orientation::zhi(), icomp),
                                        bcl(Orientation::zhi(), icomp),
-                                       bcvalzhi, maxorder, dxinv[zdir], inhomog, icomp);
+                                       bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
+                    vel(i,j,k,icomp) = Real(1./3.)*(tmp+vel(i,j,k,icomp));
+                } else if (x_interior && y_interior) {
+                    mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
+                                       bct(Orientation::xlo(), icomp),
+                                       bcl(Orientation::xlo(), icomp),
+                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
+                                       bct(Orientation::ylo(), icomp),
+                                       bcl(Orientation::ylo(), icomp),
+                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                } else if (x_interior && z_interior) {
+                    mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
+                                       bct(Orientation::xlo(), icomp),
+                                       bcl(Orientation::xlo(), icomp),
+                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
+                                       bct(Orientation::zhi(), icomp),
+                                       bcl(Orientation::zhi(), icomp),
+                                       bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                } else if (y_interior && z_interior) {
+                    mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
+                                       bct(Orientation::ylo(), icomp),
+                                       bcl(Orientation::ylo(), icomp),
+                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
+                                       bct(Orientation::zhi(), icomp),
+                                       bcl(Orientation::zhi(), icomp),
+                                       bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                } else if (x_interior) {
+                    mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
+                                       bct(Orientation::xlo(), icomp),
+                                       bcl(Orientation::xlo(), icomp),
+                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp);
+                } else if (y_interior) {
+                    mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
+                                       bct(Orientation::ylo(), icomp),
+                                       bcl(Orientation::ylo(), icomp),
+                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp);
+                } else if (z_interior) {
+                    mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
+                                       bct(Orientation::zhi(), icomp),
+                                       bcl(Orientation::zhi(), icomp),
+                                       bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
                 }
             }
             break;
         }
         case 5: {
             // xhi & ylo & zhi
-            Box bx = amrex::adjCellHi(amrex::adjCellLo(amrex::adjCellHi(vbox,xdir,1),ydir,1),zdir,1);
-            if (vhi.x == dhi.x && vlo.y == dlo.y && vhi.z == dhi.z) {
-                vel      (vhi.x+1,vlo.y-1,vhi.z+1,icomp)
-                    = vel(vhi.x+1,vlo.y  ,vhi.z  ,icomp)
-                    + vel(vhi.x  ,vlo.y-1,vhi.z  ,icomp)
-                    + vel(vhi.x  ,vlo.y  ,vhi.z+1,icomp)
-                    - vel(vhi.x  ,vlo.y  ,vhi.z  ,icomp) * Real(2.0);
-            } else if (vhi.x == dhi.x && vlo.y == dlo.y) {
-                vel      (vhi.x+1,vlo.y-1,vhi.z+1,icomp)
-                    = vel(vhi.x+1,vlo.y  ,vhi.z+1,icomp)
-                    + vel(vhi.x  ,vlo.y-1,vhi.z+1,icomp)
-                    - vel(vhi.x  ,vlo.y  ,vhi.z+1,icomp);
-            } else if (vhi.x == dhi.x && vhi.z == dhi.z) {
-                vel      (vhi.x+1,vlo.y-1,vhi.z+1,icomp)
-                    = vel(vhi.x+1,vlo.y-1,vhi.z  ,icomp)
-                    + vel(vhi.x  ,vlo.y-1,vhi.z+1,icomp)
-                    - vel(vhi.x  ,vlo.y-1,vhi.z  ,icomp);
-            } else if (vlo.y == dlo.y && vhi.z == dhi.z) {
-                vel      (vhi.x+1,vlo.y-1,vhi.z+1,icomp)
-                    = vel(vhi.x+1,vlo.y-1,vhi.z  ,icomp)
-                    + vel(vhi.x+1,vlo.y  ,vhi.z+1,icomp)
-                    - vel(vhi.x+1,vlo.y  ,vhi.z  ,icomp);
-            } else if (vhi.x == dhi.x) {
-                mllinop_apply_bc_x(Orientation::high, bx, blen.x, vel, mxhi,
-                                   bct(Orientation::xhi(), icomp),
-                                   bcl(Orientation::xhi(), icomp),
-                                   bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
-            } else if (vlo.y == dlo.y) {
-                mllinop_apply_bc_y(Orientation::low, bx, blen.y, vel, mylo,
-                                   bct(Orientation::ylo(), icomp),
-                                   bcl(Orientation::ylo(), icomp),
-                                   bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
-            } else if (vhi.z == dhi.z) {
-                mllinop_apply_bc_z(Orientation::high, bx, blen.z, vel, mzhi,
-                                   bct(Orientation::zhi(), icomp),
-                                   bcl(Orientation::zhi(), icomp),
-                                   bcvalzhi, maxorder, dxinv[zdir], inhomog, icomp);
-            } else  if (mxhi(vhi.x+1,vlo.y-1,vhi.z+1) != BndryData::covered) {
-                if (mylo(vhi.x,vlo.y-1,vhi.z+1) == BndryData::covered) {
-                    mllinop_apply_bc_x(Orientation::high, bx, blen.x, vel, mxhi,
+            int i = vhi.x+1;
+            int j = vlo.y-1;
+            int k = vhi.z+1;
+            bool x_interior = mylo(i+1,j  ,k  ) == BndryData::covered;
+            bool x_exterior = mylo(i+1,j  ,k  ) == BndryData::not_covered;
+            bool y_interior = mxhi(i  ,j+1,k  ) == BndryData::covered;
+            bool y_exterior = mxhi(i  ,j+1,k  ) == BndryData::not_covered;
+            bool z_interior = mxhi(i  ,j  ,k+1) == BndryData::covered;
+            bool z_exterior = mxhi(i  ,j  ,k+1) == BndryData::not_covered;
+            if (mxhi(i,j,k) != BndryData::covered &&
+                (!xhi_domain || !ylo_domain || !zhi_domain)) {
+                if ((x_interior && y_interior && z_interior) ||
+                    (x_exterior && y_exterior && z_exterior)) {
+                    mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
-                                       bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
-                } else if (mxhi(vhi.x+1,vlo.y,vhi.z+1) == BndryData::covered) {
-                    mllinop_apply_bc_y(Orientation::low, bx, blen.y, vel, mylo,
+                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
                                        bct(Orientation::ylo(), icomp),
                                        bcl(Orientation::ylo(), icomp),
-                                       bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
-                } else {
-                    mllinop_apply_bc_z(Orientation::high, bx, blen.z, vel, mzhi,
+                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp);
+                    tmp += vel(i,j,k,icomp);
+                    mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
                                        bct(Orientation::zhi(), icomp),
                                        bcl(Orientation::zhi(), icomp),
-                                       bcvalzhi, maxorder, dxinv[zdir], inhomog, icomp);
+                                       bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
+                    vel(i,j,k,icomp) = Real(1./3.)*(tmp+vel(i,j,k,icomp));
+                } else if (x_interior && y_interior) {
+                    mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
+                                       bct(Orientation::xhi(), icomp),
+                                       bcl(Orientation::xhi(), icomp),
+                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
+                                       bct(Orientation::ylo(), icomp),
+                                       bcl(Orientation::ylo(), icomp),
+                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                } else if (x_interior && z_interior) {
+                    mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
+                                       bct(Orientation::xhi(), icomp),
+                                       bcl(Orientation::xhi(), icomp),
+                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
+                                       bct(Orientation::zhi(), icomp),
+                                       bcl(Orientation::zhi(), icomp),
+                                       bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                } else if (y_interior && z_interior) {
+                    mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
+                                       bct(Orientation::ylo(), icomp),
+                                       bcl(Orientation::ylo(), icomp),
+                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
+                                       bct(Orientation::zhi(), icomp),
+                                       bcl(Orientation::zhi(), icomp),
+                                       bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                } else if (x_interior) {
+                    mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
+                                       bct(Orientation::xhi(), icomp),
+                                       bcl(Orientation::xhi(), icomp),
+                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp);
+                } else if (y_interior) {
+                    mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
+                                       bct(Orientation::ylo(), icomp),
+                                       bcl(Orientation::ylo(), icomp),
+                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp);
+                } else if (z_interior) {
+                    mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
+                                       bct(Orientation::zhi(), icomp),
+                                       bcl(Orientation::zhi(), icomp),
+                                       bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
                 }
             }
             break;
         }
         case 6: {
             // xlo & yhi & zhi
-            Box bx = amrex::adjCellHi(amrex::adjCellHi(amrex::adjCellLo(vbox,xdir,1),ydir,1),zdir,1);
-            if (vlo.x == dlo.x && vhi.y == dhi.y && vhi.z == dhi.z) {
-                vel      (vlo.x-1,vhi.y+1,vhi.z+1,icomp)
-                    = vel(vlo.x-1,vhi.y  ,vhi.z  ,icomp)
-                    + vel(vlo.x  ,vhi.y+1,vhi.z  ,icomp)
-                    + vel(vlo.x  ,vhi.y  ,vhi.z+1,icomp)
-                    - vel(vlo.x  ,vhi.y  ,vhi.z  ,icomp) * Real(2.0);
-            } else if (vlo.x == dlo.x && vhi.y == dhi.y) {
-                vel      (vlo.x-1,vhi.y+1,vhi.z+1,icomp)
-                    = vel(vlo.x-1,vhi.y  ,vhi.z+1,icomp)
-                    + vel(vlo.x  ,vhi.y+1,vhi.z+1,icomp)
-                    - vel(vlo.x  ,vhi.y  ,vhi.z+1,icomp);
-            } else if (vlo.x == dlo.x && vhi.z == dhi.z) {
-                vel      (vlo.x-1,vhi.y+1,vhi.z+1,icomp)
-                    = vel(vlo.x-1,vhi.y+1,vhi.z  ,icomp)
-                    + vel(vlo.x  ,vhi.y+1,vhi.z+1,icomp)
-                    - vel(vlo.x  ,vhi.y+1,vhi.z  ,icomp);
-            } else if (vhi.y == dhi.y && vhi.z == dhi.z) {
-                vel      (vlo.x-1,vhi.y+1,vhi.z+1,icomp)
-                    = vel(vlo.x-1,vhi.y+1,vhi.z  ,icomp)
-                    + vel(vlo.x-1,vhi.y  ,vhi.z+1,icomp)
-                    - vel(vlo.x-1,vhi.y  ,vhi.z  ,icomp);
-            } else if (vlo.x == dlo.x) {
-                mllinop_apply_bc_x(Orientation::low, bx, blen.x, vel, mxlo,
-                                   bct(Orientation::xlo(), icomp),
-                                   bcl(Orientation::xlo(), icomp),
-                                   bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-            } else if (vhi.y == dhi.y) {
-                mllinop_apply_bc_y(Orientation::high, bx, blen.y, vel, myhi,
-                                   bct(Orientation::yhi(), icomp),
-                                   bcl(Orientation::yhi(), icomp),
-                                   bcvalyhi, maxorder, dxinv[ydir], inhomog, icomp);
-            } else if (vhi.z == dhi.z) {
-                mllinop_apply_bc_z(Orientation::high, bx, blen.z, vel, mzhi,
-                                   bct(Orientation::zhi(), icomp),
-                                   bcl(Orientation::zhi(), icomp),
-                                   bcvalzhi, maxorder, dxinv[zdir], inhomog, icomp);
-            } else if (mxlo(vlo.x-1,vhi.y+1,vhi.z+1) != BndryData::covered) {
-                if (myhi(vlo.x,vhi.y+1,vhi.z+1) == BndryData::covered) {
-                    mllinop_apply_bc_x(Orientation::low, bx, blen.x, vel, mxlo,
+            int i = vlo.x-1;
+            int j = vhi.y+1;
+            int k = vhi.z+1;
+            bool x_interior = myhi(i+1,j  ,k  ) == BndryData::covered;
+            bool x_exterior = myhi(i+1,j  ,k  ) == BndryData::not_covered;
+            bool y_interior = mxlo(i  ,j+1,k  ) == BndryData::covered;
+            bool y_exterior = mxlo(i  ,j+1,k  ) == BndryData::not_covered;
+            bool z_interior = mxlo(i  ,j  ,k+1) == BndryData::covered;
+            bool z_exterior = mxlo(i  ,j  ,k+1) == BndryData::not_covered;
+            if (mxlo(i,j,k) != BndryData::covered &&
+                (!xlo_domain || !yhi_domain || !zhi_domain)) {
+                if ((x_interior && y_interior && z_interior) ||
+                    (x_exterior && y_exterior && z_exterior)) {
+                    mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
                                        bct(Orientation::xlo(), icomp),
                                        bcl(Orientation::xlo(), icomp),
-                                       bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-                } else if (mxlo(vlo.x-1,vhi.y,vhi.z+1) == BndryData::covered) {
-                    mllinop_apply_bc_y(Orientation::high, bx, blen.y, vel, myhi,
+                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
-                                       bcvalyhi, maxorder, dxinv[ydir], inhomog, icomp);
-                } else {
-                    mllinop_apply_bc_z(Orientation::high, bx, blen.z, vel, mzhi,
+                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
+                    tmp += vel(i,j,k,icomp);
+                    mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
                                        bct(Orientation::zhi(), icomp),
                                        bcl(Orientation::zhi(), icomp),
-                                       bcvalzhi, maxorder, dxinv[zdir], inhomog, icomp);
+                                       bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
+                    vel(i,j,k,icomp) = Real(1./3.)*(tmp+vel(i,j,k,icomp));
+                } else if (x_interior && y_interior) {
+                    mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
+                                       bct(Orientation::xlo(), icomp),
+                                       bcl(Orientation::xlo(), icomp),
+                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
+                                       bct(Orientation::yhi(), icomp),
+                                       bcl(Orientation::yhi(), icomp),
+                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                } else if (x_interior && z_interior) {
+                    mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
+                                       bct(Orientation::xlo(), icomp),
+                                       bcl(Orientation::xlo(), icomp),
+                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
+                                       bct(Orientation::zhi(), icomp),
+                                       bcl(Orientation::zhi(), icomp),
+                                       bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                } else if (y_interior && z_interior) {
+                    mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
+                                       bct(Orientation::yhi(), icomp),
+                                       bcl(Orientation::yhi(), icomp),
+                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
+                                       bct(Orientation::zhi(), icomp),
+                                       bcl(Orientation::zhi(), icomp),
+                                       bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                } else if (x_interior) {
+                    mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
+                                       bct(Orientation::xlo(), icomp),
+                                       bcl(Orientation::xlo(), icomp),
+                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp);
+                } else if (y_interior) {
+                    mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
+                                       bct(Orientation::yhi(), icomp),
+                                       bcl(Orientation::yhi(), icomp),
+                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
+                } else if (z_interior) {
+                    mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
+                                       bct(Orientation::zhi(), icomp),
+                                       bcl(Orientation::zhi(), icomp),
+                                       bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
                 }
             }
             break;
         }
         case 7: {
             // xhi & yhi & zhi
-            Box bx = amrex::adjCellHi(amrex::adjCellHi(amrex::adjCellHi(vbox,xdir,1),ydir,1),zdir,1);
-            if (vhi.x == dhi.x && vhi.y == dhi.y && vhi.z == dhi.z) {
-                vel      (vhi.x+1,vhi.y+1,vhi.z+1,icomp)
-                    = vel(vhi.x+1,vhi.y  ,vhi.z  ,icomp)
-                    + vel(vhi.x  ,vhi.y+1,vhi.z  ,icomp)
-                    + vel(vhi.x  ,vhi.y  ,vhi.z+1,icomp)
-                    - vel(vhi.x  ,vhi.y  ,vhi.z  ,icomp) * Real(2.0);
-            } else if (vhi.x == dhi.x && vhi.y == dhi.y) {
-                vel      (vhi.x+1,vhi.y+1,vhi.z+1,icomp)
-                    = vel(vhi.x+1,vhi.y  ,vhi.z+1,icomp)
-                    + vel(vhi.x  ,vhi.y+1,vhi.z+1,icomp)
-                    - vel(vhi.x  ,vhi.y  ,vhi.z+1,icomp);
-            } else if (vhi.x == dhi.x && vhi.z == dhi.z) {
-                vel      (vhi.x+1,vhi.y+1,vhi.z+1,icomp)
-                    = vel(vhi.x+1,vhi.y+1,vhi.z  ,icomp)
-                    + vel(vhi.x  ,vhi.y+1,vhi.z+1,icomp)
-                    - vel(vhi.x  ,vhi.y+1,vhi.z  ,icomp);
-            } else if (vhi.y == dhi.y && vhi.z == dhi.z) {
-                vel      (vhi.x+1,vhi.y+1,vhi.z+1,icomp)
-                    = vel(vhi.x+1,vhi.y+1,vhi.z  ,icomp)
-                    + vel(vhi.x+1,vhi.y  ,vhi.z+1,icomp)
-                    - vel(vhi.x+1,vhi.y  ,vhi.z  ,icomp);
-            } else if (vhi.x == dhi.x) {
-                mllinop_apply_bc_x(Orientation::high, bx, blen.x, vel, mxhi,
-                                   bct(Orientation::xhi(), icomp),
-                                   bcl(Orientation::xhi(), icomp),
-                                   bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
-            } else if (vhi.y == dhi.y) {
-                mllinop_apply_bc_y(Orientation::high, bx, blen.y, vel, myhi,
-                                   bct(Orientation::yhi(), icomp),
-                                   bcl(Orientation::yhi(), icomp),
-                                   bcvalyhi, maxorder, dxinv[ydir], inhomog, icomp);
-            } else if (vhi.z == dhi.z) {
-                mllinop_apply_bc_z(Orientation::high, bx, blen.z, vel, mzhi,
-                                   bct(Orientation::zhi(), icomp),
-                                   bcl(Orientation::zhi(), icomp),
-                                   bcvalzhi, maxorder, dxinv[zdir], inhomog, icomp);
-            } else if (mxhi(vhi.x+1,vhi.y+1,vhi.z+1) != BndryData::covered) {
-                if (myhi(vhi.x,vhi.y+1,vhi.z+1) == BndryData::covered) {
-                    mllinop_apply_bc_x(Orientation::high, bx, blen.x, vel, mxhi,
+            int i = vhi.x+1;
+            int j = vhi.y+1;
+            int k = vhi.z+1;
+            bool x_interior = myhi(i+1,j  ,k  ) == BndryData::covered;
+            bool x_exterior = myhi(i+1,j  ,k  ) == BndryData::not_covered;
+            bool y_interior = mxhi(i  ,j+1,k  ) == BndryData::covered;
+            bool y_exterior = mxhi(i  ,j+1,k  ) == BndryData::not_covered;
+            bool z_interior = mxhi(i  ,j  ,k+1) == BndryData::covered;
+            bool z_exterior = mxhi(i  ,j  ,k+1) == BndryData::not_covered;
+            if (mxhi(i,j,k) != BndryData::covered &&
+                (!xhi_domain || !yhi_domain || !zhi_domain)) {
+                if ((x_interior && y_interior && z_interior) ||
+                    (x_exterior && y_exterior && z_exterior)) {
+                    mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),
                                        bcl(Orientation::xhi(), icomp),
-                                       bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
-                } else if (mxhi(vhi.x+1,vhi.y,vhi.z+1) == BndryData::covered) {
-                    mllinop_apply_bc_y(Orientation::high, bx, blen.y, vel, myhi,
+                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                        bct(Orientation::yhi(), icomp),
                                        bcl(Orientation::yhi(), icomp),
-                                       bcvalyhi, maxorder, dxinv[ydir], inhomog, icomp);
-                } else {
-                    mllinop_apply_bc_z(Orientation::high, bx, blen.z, vel, mzhi,
+                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
+                    tmp += vel(i,j,k,icomp);
+                    mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
                                        bct(Orientation::zhi(), icomp),
                                        bcl(Orientation::zhi(), icomp),
-                                       bcvalzhi, maxorder, dxinv[zdir], inhomog, icomp);
+                                       bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
+                    vel(i,j,k,icomp) = Real(1./3.)*(tmp+vel(i,j,k,icomp));
+                } else if (x_interior && y_interior) {
+                    mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
+                                       bct(Orientation::xhi(), icomp),
+                                       bcl(Orientation::xhi(), icomp),
+                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
+                                       bct(Orientation::yhi(), icomp),
+                                       bcl(Orientation::yhi(), icomp),
+                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                } else if (x_interior && z_interior) {
+                    mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
+                                       bct(Orientation::xhi(), icomp),
+                                       bcl(Orientation::xhi(), icomp),
+                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
+                                       bct(Orientation::zhi(), icomp),
+                                       bcl(Orientation::zhi(), icomp),
+                                       bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                } else if (y_interior && z_interior) {
+                    mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
+                                       bct(Orientation::yhi(), icomp),
+                                       bcl(Orientation::yhi(), icomp),
+                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
+                                       bct(Orientation::zhi(), icomp),
+                                       bcl(Orientation::zhi(), icomp),
+                                       bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                } else if (x_interior) {
+                    mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
+                                       bct(Orientation::xhi(), icomp),
+                                       bcl(Orientation::xhi(), icomp),
+                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp);
+                } else if (y_interior) {
+                    mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
+                                       bct(Orientation::yhi(), icomp),
+                                       bcl(Orientation::yhi(), icomp),
+                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
+                } else if (z_interior) {
+                    mllinop_apply_bc_z(Orientation::high, i,j,k, blen.z, vel, mzhi,
+                                       bct(Orientation::zhi(), icomp),
+                                       bcl(Orientation::zhi(), icomp),
+                                       bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
                 }
             }
             break;

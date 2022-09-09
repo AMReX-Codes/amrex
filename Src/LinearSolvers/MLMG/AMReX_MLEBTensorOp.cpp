@@ -219,12 +219,18 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
 
     const Geometry& geom = m_geom[amrlev][mglev];
     const auto dxinv = geom.InvCellSizeArray();
+    const Box& domain = geom.growPeriodicDomain(1);
+    const auto dlo = amrex::lbound(domain);
+    const auto dhi = amrex::ubound(domain);
 
     Array<MultiFab,AMREX_SPACEDIM>& fluxmf = m_tauflux[amrlev][mglev];
     iMultiFab const& mask = m_cc_mask[amrlev][mglev];
     MultiFab const& etaebmf = *m_eb_b_coeffs[amrlev][mglev];
     MultiFab const& kapebmf = m_eb_kappa[amrlev][mglev];
     Real bscalar = m_b_scalar;
+
+    amrex::Abort("xxxxx MLEBTensorOp::apply");
+#if 0
 
     compCrossTerms(amrlev, mglev, in);
 
@@ -286,11 +292,14 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
             });
         }
     }
+#endif
 }
 
 void
 MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
 {
+    amrex::Abort("xxxxx compCrossTerms");
+#if 0
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     auto area = (factory) ? factory->getAreaFrac()
@@ -402,12 +411,15 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         fluxmf[idim].FillBoundary(0, AMREX_SPACEDIM, geom.periodicity());
     }
+#endif
 }
 
 void
 MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
                        MultiFab& sol, Location loc) const
 {
+    amrex::Abort("xxxxx MLEBTensorOp::compFlux");
+#if 0
     BL_PROFILE("MLEBTensorOp::compFlux()");
 
     if ( !(loc==Location::FaceCenter || loc==Location::FaceCentroid) )
@@ -512,12 +524,15 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
         }
 
     }
+#endif
 }
 
 void
 MLEBTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
                        MultiFab& sol, Location loc) const
 {
+// zzzzz xxxxx
+#if 0
     BL_PROFILE("MLEBTensorOp::compVelGrad()");
 
     if ( !(loc==Location::FaceCenter || loc==Location::FaceCentroid) )
@@ -613,6 +628,7 @@ MLEBTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fl
 
     }
   }
+#endif
 }
 
 }
