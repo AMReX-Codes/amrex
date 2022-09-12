@@ -4,7 +4,6 @@
 
 #include <AMReX_MFIter.H>
 #include <AMReX_Gpu.H>
-#include <AMReX_ParticleContainer.H>
 
 namespace amrex
 {

@@ -35,8 +35,8 @@
 #include <AMReX_SparseBins.H>
 #include <AMReX_ParticleTransformation.H>
 #include <AMReX_ParticleMesh.H>
-#include <AMReX_ParIter.H>
 #include <AMReX_OpenMP.H>
+#include <AMReX_ParIter.H>
 
 #ifdef AMREX_LAZY
 #include <AMReX_Lazy.H>
@@ -119,6 +119,11 @@ struct ParticleInitType
     std::array<int,    NArrayInt  > int_array_data;
 };
 
+template <bool is_const, typename T_ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
+
+class ParIterBase_impl;
+
 /**
  * \brief A distributed container for Particles sorted onto the levels, grids,
  * and tiles of a block-structured AMR hierarchy.
@@ -134,6 +139,7 @@ struct ParticleInitType
  */
 template <typename T_ParticleType, int T_NArrayReal, int T_NArrayInt,
           template<class> class Allocator=DefaultAllocator>
+
 class ParticleContainer_impl : public ParticleContainerBase
 {
 public:
@@ -167,7 +173,7 @@ public:
     RealDescriptor ParticleRealDescriptor = FPC::Native64RealDescriptor();
 #endif
 
-    using ParticleContainerType = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>;
+    using ParticleContainerType = ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
     using ParticleTileType = ParticleTile<ParticleType, NArrayReal, NArrayInt, Allocator>;
     using ParticleInitData = ParticleInitType<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
@@ -182,7 +188,7 @@ public:
     using ParticleVector   = typename AoS::ParticleVector;
     using CharVector       = Gpu::DeviceVector<char>;
     using SendBuffer       = Gpu::PolymorphicVector<char>;
-    using ParIterType      = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>;
+    using ParIterType      = ParIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
     using ParConstIterType = ParConstIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
 
     //! \brief Default constructor - construct an empty particle container that has no concept
