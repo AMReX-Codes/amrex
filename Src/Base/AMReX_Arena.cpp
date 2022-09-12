@@ -256,10 +256,10 @@ Arena::Initialize ()
     // see reason on allowed reuse of the default CPU BArena in Arena::Finalize
     BL_ASSERT(the_arena == nullptr || the_arena == The_BArena());
     BL_ASSERT(the_async_arena == nullptr);
-    BL_ASSERT(the_device_arena == nullptr || the_arena == The_BArena());
-    BL_ASSERT(the_managed_arena == nullptr || the_arena == The_BArena());
+    BL_ASSERT(the_device_arena == nullptr || the_device_arena == The_BArena());
+    BL_ASSERT(the_managed_arena == nullptr || the_managed_arena == The_BArena());
     BL_ASSERT(the_pinned_arena == nullptr);
-    BL_ASSERT(the_cpu_arena == nullptr || the_arena == The_BArena());
+    BL_ASSERT(the_cpu_arena == nullptr || the_cpu_arena == The_BArena());
 
 #ifdef AMREX_USE_GPU
 #ifdef AMREX_USE_DPCPP
