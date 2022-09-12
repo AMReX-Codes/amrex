@@ -191,7 +191,7 @@ public:
 
     /**
     * \brief Returns the maximum *absolute* values contained in
-    * each component of "comps" of the MultiFab.  No ghost cells are used.
+    * each component of "comps" of the MultiFab.  "nghost" ghost cells are used.
     */
     Vector<Real> norm0 (const Vector<int>& comps, int nghost = 0, bool local = false, bool ignore_covered = false ) const;
     Vector<Real> norminf (const Vector<int>& comps, int nghost = 0, bool local = false, bool ignore_covered = false) const {
