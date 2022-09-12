@@ -12,6 +12,12 @@ template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 class ParticleContainer_impl;
 
+template <int T_NReal, int T_NInt>
+struct Particle;
+
+template <int NArrayReal, int NArrayInt>
+struct SoAParticle;
+
 // for backwards compatibility
 template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArrayInt=0,
           template<class> class Allocator=DefaultAllocator>
