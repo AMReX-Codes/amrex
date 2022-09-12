@@ -8,6 +8,7 @@
 #include <AMReX_ParticleBufferMap.H>
 #include <AMReX_MFIter.H>
 #include <AMReX_TypeTraits.H>
+#include <AMReX_MakeParticle.H>
 
 #include <map>
 
@@ -367,7 +368,8 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 
                     if (do_periodic_shift)
                     {
-                        ParticleType p;
+                        auto p = make_particle<ParticleType>{}(ptd,kv);
+                        //ParticleType p;
                         amrex::Gpu::memcpy(&p, &p_snd_buffer[dst_offset], sizeof(ParticleType));
                         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                         {

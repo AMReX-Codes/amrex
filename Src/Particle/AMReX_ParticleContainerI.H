@@ -1,42 +1,5 @@
 #include <type_traits>
-
-// template<class T, class Enable = void>
-// class A {}; // primary template
- 
-// template<class T>
-// class A<T, typename std::enable_if<std::is_floating_point<T>::value>::type> {
-// }; // specialization for floating point types
-template< class T >
-struct is_soa_particle
-     : std::integral_constant<
-         bool,
-         T::is_soa_particle
-     > {};
- 
-
-template <typename T_ParticleType, class Enable = void>
-struct make_particle
-{
-    template <typename PTD>
-    auto
-    operator()(PTD, int)
-    {
-        // legacy Particle (AoS)
-        return T_ParticleType();
-    }
-};
-
-template <typename T_ParticleType>
-struct make_particle<T_ParticleType, typename std::enable_if<is_soa_particle<T_ParticleType>::value>::type>
-{
-    template <typename PTD>
-    auto
-    operator()(PTD ptd, int index)
-    {
-        // SoAParticle
-        return T_ParticleType(ptd, index);
-    }
-};
+#include <AMReX_MakeParticle.H>
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
