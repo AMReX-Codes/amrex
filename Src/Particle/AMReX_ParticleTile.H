@@ -189,6 +189,8 @@ struct SoAParticle : SoAParticleBase
 
     using RealType = ParticleReal;
 
+    static Long the_next_id;
+
   SoAParticle (PTD ptd, int const index) 
     {
         m_particle_tile_data=ptd;
@@ -240,6 +242,20 @@ struct SoAParticle : SoAParticleBase
         return this->m_particle_tile_data.m_rdata[position_index][m_index];
     }
 
+    static Long NextID ();
+
+    /**
+    * \brief This version can only be used inside omp critical.
+    */
+    static Long UnprotectedNextID ();
+
+    /**
+    * \brief Reset on restart.
+    *
+    * \param nextid
+    */
+    static void NextID (Long nextid);
+
     private :
 
     static_assert(std::is_trivially_copyable<ParticleTileData<SoAParticleBase, NArrayReal, NArrayInt>>(), "ParticleTileData is not trivially copyable");
@@ -247,6 +263,45 @@ struct SoAParticle : SoAParticleBase
     PTD m_particle_tile_data;
     int m_index;
 };
+
+template <int NArrayReal, int NArrayInt> Long SoAParticle<NArrayReal, NArrayInt>::the_next_id = 1;
+
+template <int NArrayReal, int NArrayInt>
+Long
+SoAParticle<NArrayReal, NArrayInt>::NextID ()
+{
+    Long next;
+// we should be able to test on _OPENMP < 201107 for capture (version 3.1)
+// but we must work around a bug in gcc < 4.9
+#if defined(AMREX_USE_OMP) && defined(_OPENMP) && _OPENMP < 201307
+#pragma omp critical (amrex_particle_nextid)
+#elif defined(AMREX_USE_OMP)
+#pragma omp atomic capture
+#endif
+    next = the_next_id++;
+
+    if (next > LastParticleID)
+        amrex::Abort("SoAParticle<NArrayReal, NArrayInt>::NextID() -- too many particles");
+
+    return next;
+}
+
+template <int NArrayReal, int NArrayInt>
+Long
+SoAParticle<NArrayReal, NArrayInt>::UnprotectedNextID ()
+{
+    Long next = the_next_id++;
+    if (next > LastParticleID)
+        amrex::Abort("SoAParticle<NArrayReal, NArrayInt>::NextID() -- too many particles");
+    return next;
+}
+
+template <int NArrayReal, int NArrayInt>
+void
+SoAParticle<NArrayReal, NArrayInt>::NextID (Long nextid)
+{
+    the_next_id = nextid;
+}
 
 template <typename T_ParticleType, int NArrayReal, int NArrayInt>
 struct ConstParticleTileData
