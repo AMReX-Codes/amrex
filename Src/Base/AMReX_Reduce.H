@@ -935,7 +935,8 @@ bool AnyOf (Box const& box, P&& pred)
         }
     });
 #else
-    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
+    AMREX_LAUNCH_KERNEL(AMREX_GPU_MAX_THREADS, ec.numBlocks, ec.numThreads, 0,
+                        Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         __shared__ int has_any;
         if (threadIdx.x == 0) has_any = *dp;
