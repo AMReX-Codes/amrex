@@ -177,6 +177,97 @@ struct ParticleTileData
     }
 };
 
+template <typename T_ParticleType, int NArrayReal, int NArrayInt>
+struct ConstParticleTileData
+{
+    static constexpr int NAR = NArrayReal;
+    static constexpr int NAI = NArrayInt;
+    using ParticleType = T_ParticleType;
+
+    static constexpr int NStructReal = ParticleType::NReal;
+    static constexpr int NStructInt = ParticleType::NInt;
+
+    using SuperParticleType = Particle<NStructReal+NArrayReal, NStructInt+NArrayInt>;
+
+    Long m_size;
+    const ParticleType* AMREX_RESTRICT m_aos;
+    GpuArray<const ParticleReal* AMREX_RESTRICT, NArrayReal> m_rdata;
+    GpuArray<const int* AMREX_RESTRICT, NArrayInt > m_idata;
+
+    int m_num_runtime_real;
+    int m_num_runtime_int;
+    const ParticleReal* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_rdata;
+    const int* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_idata;
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void packParticleData(char* buffer, int src_index, Long dst_offset,
+                          const int* comm_real, const int * comm_int) const noexcept
+    {
+        AMREX_ASSERT(src_index < m_size);
+        auto dst = buffer + dst_offset;
+        memcpy(dst, m_aos + src_index, sizeof(ParticleType));
+        dst += sizeof(ParticleType);
+        int array_start_index  = AMREX_SPACEDIM + NStructReal;
+        for (int i = 0; i < NArrayReal; ++i)
+        {
+            if (comm_real[array_start_index + i])
+            {
+                memcpy(dst, m_rdata[i] + src_index, sizeof(ParticleReal));
+                dst += sizeof(ParticleReal);
+            }
+        }
+        int runtime_start_index  = AMREX_SPACEDIM + NStructReal + NArrayReal;
+        for (int i = 0; i < m_num_runtime_real; ++i)
+        {
+            if (comm_real[runtime_start_index + i])
+            {
+                memcpy(dst, m_runtime_rdata[i] + src_index, sizeof(ParticleReal));
+                dst += sizeof(ParticleReal);
+            }
+        }
+        array_start_index  = 2 + NStructInt;
+        for (int i = 0; i < NArrayInt; ++i)
+        {
+            if (comm_int[array_start_index + i])
+            {
+                memcpy(dst, m_idata[i] + src_index, sizeof(int));
+                dst += sizeof(int);
+            }
+        }
+        runtime_start_index  = 2 + NStructInt + NArrayInt;
+        for (int i = 0; i < m_num_runtime_int; ++i)
+        {
+            if (comm_int[runtime_start_index + i])
+            {
+                memcpy(dst, m_runtime_idata[i] + src_index, sizeof(int));
+                dst += sizeof(int);
+            }
+        }
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    SuperParticleType getSuperParticle (int index) const noexcept
+    {
+        AMREX_ASSERT(index < m_size);
+        SuperParticleType sp;
+        for (int i = 0; i < AMREX_SPACEDIM; ++i)
+            sp.pos(i) = m_aos[index].pos(i);
+        for (int i = 0; i < NStructReal; ++i)
+            sp.rdata(i) = m_aos[index].rdata(i);
+        if constexpr(NArrayReal > 0)    
+            for (int i = 0; i < NArrayReal; ++i)
+                sp.rdata(NStructReal+i) = m_rdata[i][index];
+        sp.id() = m_aos[index].id();
+        sp.cpu() = m_aos[index].cpu();
+        for (int i = 0; i < NStructInt; ++i)
+            sp.idata(i) = m_aos[index].idata(i);
+        if constexpr(NArrayInt > 0)
+            for (int i = 0; i < NArrayInt; ++i)
+                sp.idata(NStructInt+i) = m_idata[i][index];
+        return sp;
+    }
+};
+
 // SOA Particle Structure 
 template <int T_NArrayReal, int T_NArrayInt>
 struct SoAParticle : SoAParticleBase
@@ -302,97 +393,6 @@ SoAParticle<NArrayReal, NArrayInt>::NextID (Long nextid)
 {
     the_next_id = nextid;
 }
-
-template <typename T_ParticleType, int NArrayReal, int NArrayInt>
-struct ConstParticleTileData
-{
-    static constexpr int NAR = NArrayReal;
-    static constexpr int NAI = NArrayInt;
-    using ParticleType = T_ParticleType;
-
-    static constexpr int NStructReal = ParticleType::NReal;
-    static constexpr int NStructInt = ParticleType::NInt;
-
-    using SuperParticleType = Particle<NStructReal+NArrayReal, NStructInt+NArrayInt>;
-
-    Long m_size;
-    const ParticleType* AMREX_RESTRICT m_aos;
-    GpuArray<const ParticleReal* AMREX_RESTRICT, NArrayReal> m_rdata;
-    GpuArray<const int* AMREX_RESTRICT, NArrayInt > m_idata;
-
-    int m_num_runtime_real;
-    int m_num_runtime_int;
-    const ParticleReal* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_rdata;
-    const int* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_idata;
-
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void packParticleData(char* buffer, int src_index, Long dst_offset,
-                          const int* comm_real, const int * comm_int) const noexcept
-    {
-        AMREX_ASSERT(src_index < m_size);
-        auto dst = buffer + dst_offset;
-        memcpy(dst, m_aos + src_index, sizeof(ParticleType));
-        dst += sizeof(ParticleType);
-        int array_start_index  = AMREX_SPACEDIM + NStructReal;
-        for (int i = 0; i < NArrayReal; ++i)
-        {
-            if (comm_real[array_start_index + i])
-            {
-                memcpy(dst, m_rdata[i] + src_index, sizeof(ParticleReal));
-                dst += sizeof(ParticleReal);
-            }
-        }
-        int runtime_start_index  = AMREX_SPACEDIM + NStructReal + NArrayReal;
-        for (int i = 0; i < m_num_runtime_real; ++i)
-        {
-            if (comm_real[runtime_start_index + i])
-            {
-                memcpy(dst, m_runtime_rdata[i] + src_index, sizeof(ParticleReal));
-                dst += sizeof(ParticleReal);
-            }
-        }
-        array_start_index  = 2 + NStructInt;
-        for (int i = 0; i < NArrayInt; ++i)
-        {
-            if (comm_int[array_start_index + i])
-            {
-                memcpy(dst, m_idata[i] + src_index, sizeof(int));
-                dst += sizeof(int);
-            }
-        }
-        runtime_start_index  = 2 + NStructInt + NArrayInt;
-        for (int i = 0; i < m_num_runtime_int; ++i)
-        {
-            if (comm_int[runtime_start_index + i])
-            {
-                memcpy(dst, m_runtime_idata[i] + src_index, sizeof(int));
-                dst += sizeof(int);
-            }
-        }
-    }
-
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    SuperParticleType getSuperParticle (int index) const noexcept
-    {
-        AMREX_ASSERT(index < m_size);
-        SuperParticleType sp;
-        for (int i = 0; i < AMREX_SPACEDIM; ++i)
-            sp.pos(i) = m_aos[index].pos(i);
-        for (int i = 0; i < NStructReal; ++i)
-            sp.rdata(i) = m_aos[index].rdata(i);
-        if constexpr(NArrayReal > 0)    
-            for (int i = 0; i < NArrayReal; ++i)
-                sp.rdata(NStructReal+i) = m_rdata[i][index];
-        sp.id() = m_aos[index].id();
-        sp.cpu() = m_aos[index].cpu();
-        for (int i = 0; i < NStructInt; ++i)
-            sp.idata(i) = m_aos[index].idata(i);
-        if constexpr(NArrayInt > 0)
-            for (int i = 0; i < NArrayInt; ++i)
-                sp.idata(NStructInt+i) = m_idata[i][index];
-        return sp;
-    }
-};
 
 template <typename T_ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator=DefaultAllocator>
