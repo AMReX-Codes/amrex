@@ -47,6 +47,7 @@ jobs:
             -DAMReX_LINEAR_SOLVERS=ON                     \
             -DAMReX_GPU_BACKEND=HIP                       \
             -DAMReX_AMD_ARCH=gfx908                       \
+            -DAMReX_ROCTX=ON                              \
             -DCMAKE_C_COMPILER=$(which clang)             \
             -DCMAKE_CXX_COMPILER=$(which clang++)         \
             -DCMAKE_Fortran_COMPILER=$(which flang)       \
@@ -91,6 +92,7 @@ jobs:
             -DAMReX_LINEAR_SOLVERS=ON                     \
             -DAMReX_GPU_BACKEND=HIP                       \
             -DAMReX_AMD_ARCH=gfx908                       \
+            -DAMReX_ROCTX=ON                              \
             -DCMAKE_C_COMPILER=$(which clang)             \
             -DCMAKE_CXX_COMPILER=$(which hipcc)           \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)    \
