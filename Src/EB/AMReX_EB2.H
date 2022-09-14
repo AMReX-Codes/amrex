@@ -128,6 +128,15 @@ void Build (const Geometry& geom,
             bool extend_domain_face = ExtendDomainFace(),
             int num_coarsen_opt = NumCoarsenOpt());
 
+
+void BuildFromChkptFile (std::string const& fname,
+                         const Geometry& geom,
+                         int required_coarsening_level,
+                         int max_coarsening_level,
+                         int ngrow = 4,
+                         bool build_coarse_level_by_coarsening = true,
+                         bool extend_domain_face = ExtendDomainFace());
+
 int maxCoarseningLevel (const Geometry& geom);
 int maxCoarseningLevel (IndexSpace const* ebis, const Geometry& geom);
 

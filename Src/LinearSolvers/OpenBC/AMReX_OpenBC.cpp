@@ -173,6 +173,22 @@ void OpenBCSolver::setVerbose (int v) noexcept
     m_verbose = v;
 }
 
+void OpenBCSolver::setBottomVerbose (int v) noexcept
+{
+    m_bottom_verbose = v;
+}
+
+void OpenBCSolver::useHypre (bool use_hypre) noexcept
+{
+    if (use_hypre) {
+        m_bottom_solver_type = BottomSolver::hypre;
+        m_info.setMaxCoarseningLevel(0);
+#ifndef AMREX_USE_HYPRE
+        amrex::Abort("OpenBCSolver: Must enable Hypre support to use it.");
+#endif
+    }
+}
+
 Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
                           const Vector<MultiFab const*>& a_rhs,
                           Real a_tol_rel, Real a_tol_abs)
@@ -201,6 +217,13 @@ Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
 
         m_mlmg_1 = std::make_unique<MLMG>(*m_poisson_1);
         m_mlmg_1->setVerbose(m_verbose);
+        m_mlmg_1->setBottomVerbose(m_bottom_verbose);
+        m_mlmg_1->setBottomSolver(m_bottom_solver_type);
+#ifdef AMREX_USE_HYPRE
+        if (m_bottom_solver_type == BottomSolver::hypre) {
+            m_mlmg_1->setHypreInterface(Hypre::Interface::structed);
+        }
+#endif
     }
     m_mlmg_1->solve(a_sol, a_rhs, a_tol_rel, a_tol_abs);
 
@@ -289,6 +312,13 @@ Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
 
         m_mlmg_2 = std::make_unique<MLMG>(*m_poisson_2);
         m_mlmg_2->setVerbose(m_verbose);
+        m_mlmg_2->setBottomVerbose(m_bottom_verbose);
+        m_mlmg_2->setBottomSolver(m_bottom_solver_type);
+#ifdef AMREX_USE_HYPRE
+        if (m_bottom_solver_type == BottomSolver::hypre) {
+            m_mlmg_2->setHypreInterface(Hypre::Interface::structed);
+        }
+#endif
     }
     Vector<MultiFab*> solv_all = a_sol;
     Vector<MultiFab const*> rhsv_all = a_rhs;

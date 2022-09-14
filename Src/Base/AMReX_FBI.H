@@ -924,7 +924,7 @@ FabArray<FAB>::pack_send_buffer_cpu (FabArray<FAB> const& src, int scomp, int nc
                 amrex::LoopConcurrentOnCpu( bx, ncomp,
                 [=] (int ii, int jj, int kk, int n) noexcept
                 {
-                    pfab(ii,jj,kk,n) = sfab(ii,jj,kk,n+scomp);
+                    pfab(ii,jj,kk,n) = static_cast<BUF>(sfab(ii,jj,kk,n+scomp));
                 });
                 dptr += (bx.numPts() * ncomp * sizeof(BUF));
             }

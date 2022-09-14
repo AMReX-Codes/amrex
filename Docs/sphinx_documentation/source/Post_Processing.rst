@@ -76,8 +76,8 @@ variable.
 
 **How to build and run**
 
-In ``amrex/Tools/Plotfile``, type ``make`` and then ``./fextract.gnu.ex`` to run.
-Typing ``./fextract.gnu.ex`` without inputs will bring up usage and options.
+In ``amrex/Tools/Plotfile``, type ``make`` and then ``./fcompare.gnu.ex`` to run.
+Typing ``./fcompare.gnu.ex`` without inputs will bring up usage and options.
 
 
 **Example**

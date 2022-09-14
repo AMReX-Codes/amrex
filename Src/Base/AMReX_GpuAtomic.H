@@ -30,15 +30,16 @@ namespace detail {
     {
 #if defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
+        constexpr auto ms = sycl::memory_scope::device;
         constexpr auto as = sycl::access::address_space::global_space;
         static_assert(sizeof(R) == sizeof(I), "sizeof R != sizeof I");
         I* const add_as_I = reinterpret_cast<I*>(address);
-        sycl::atomic<I,as> a{sycl::multi_ptr<I,as>(add_as_I)};
-        I old_I = a.load(mo), new_I;
+        sycl::atomic_ref<I,mo,ms,as> a{*add_as_I};
+        I old_I = a.load(), new_I;
         do {
             R const new_R = f(*(reinterpret_cast<R const*>(&old_I)), val);
             new_I = *(reinterpret_cast<I const*>(&new_R));
-        } while (! a.compare_exchange_strong(old_I, new_I, mo));
+        } while (! a.compare_exchange_strong(old_I, new_I));
         return *(reinterpret_cast<R const*>(&old_I));
 #else
         R old = *address;
@@ -53,17 +54,18 @@ namespace detail {
     {
 #if defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
+        constexpr auto ms = sycl::memory_scope::device;
         constexpr auto as = sycl::access::address_space::global_space;
         static_assert(sizeof(R) == sizeof(I), "sizeof R != sizeof I");
         I* const add_as_I = reinterpret_cast<I*>(address);
-        sycl::atomic<I, as> a{sycl::multi_ptr<I,as>(add_as_I)};
-        I old_I = a.load(mo), new_I;
+        sycl::atomic_ref<I,mo,ms,as> a{*add_as_I};
+        I old_I = a.load(), new_I;
         bool test_success;
         do {
             R const tmp = op(*(reinterpret_cast<R const*>(&old_I)), val);
             new_I = *(reinterpret_cast<I const*>(&tmp));
             test_success = cond(tmp);
-        } while (test_success && ! a.compare_exchange_strong(old_I, new_I, mo));
+        } while (test_success && ! a.compare_exchange_strong(old_I, new_I));
         return test_success;
 #else
         R old = *address;
@@ -131,9 +133,10 @@ namespace detail {
         return atomicAdd(sum, value);
 #elif defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
+        constexpr auto ms = sycl::memory_scope::device;
         constexpr auto as = sycl::access::address_space::global_space;
-        sycl::atomic<T,as> a{sycl::multi_ptr<T,as>(sum)};
-        return a.fetch_add(value, mo);
+        sycl::atomic_ref<T,mo,ms,as> a{*sum};
+        return a.fetch_add(value);
 #else
         amrex::ignore_unused(sum, value);
         return T(); // should never get here, but have to return something
@@ -313,9 +316,10 @@ namespace detail {
         return atomicMin(m, value);
 #elif defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
+        constexpr auto ms = sycl::memory_scope::device;
         constexpr auto as = sycl::access::address_space::global_space;
-        sycl::atomic<T,as> a{sycl::multi_ptr<T,as>(m)};
-        return a.fetch_min(value, mo);
+        sycl::atomic_ref<T,mo,ms,as> a{*m};
+        return a.fetch_min(value);
 #else
         amrex::ignore_unused(m,value);
         return T(); // should never get here, but have to return something
@@ -373,9 +377,10 @@ namespace detail {
         return atomicMax(m, value);
 #elif defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
+        constexpr auto ms = sycl::memory_scope::device;
         constexpr auto as = sycl::access::address_space::global_space;
-        sycl::atomic<T,as> a{sycl::multi_ptr<T,as>(m)};
-        return a.fetch_max(value, mo);
+        sycl::atomic_ref<T,mo,ms,as> a{*m};
+        return a.fetch_max(value);
 #else
         amrex::ignore_unused(m,value);
         return T(); // should never get here, but have to return something
@@ -430,9 +435,10 @@ namespace detail {
         return atomicOr(m, value);
 #elif defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
+        constexpr auto ms = sycl::memory_scope::device;
         constexpr auto as = sycl::access::address_space::global_space;
-        sycl::atomic<int,as> a{sycl::multi_ptr<int,as>(m)};
-        return a.fetch_or(value, mo);
+        sycl::atomic_ref<int,mo,ms,as> a{*m};
+        return a.fetch_or(value);
 #else
         int const old = *m;
         *m = (*m) || value;
@@ -451,9 +457,10 @@ namespace detail {
         return atomicAnd(m, value ? ~0x0 : 0);
 #elif defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
+        constexpr auto ms = sycl::memory_scope::device;
         constexpr auto as = sycl::access::address_space::global_space;
-        sycl::atomic<int,as> a{sycl::multi_ptr<int,as>(m)};
-        return a.fetch_and(value ? ~0x0 : 0, mo);
+        sycl::atomic_ref<int,mo,ms,as> a{*m};
+        return a.fetch_and(value ? ~0x0 : 0);
 #else
         int const old = *m;
         *m = (*m) && value;
@@ -472,11 +479,12 @@ namespace detail {
     {
 #if defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
-        sycl::atomic<unsigned int,AS> a{sycl::multi_ptr<unsigned int,AS>(m)};
-        unsigned int oldi = a.load(mo), newi;
+        constexpr auto ms = sycl::memory_scope::device;
+        sycl::atomic_ref<unsigned int,mo,ms,AS> a{*m};
+        unsigned int oldi = a.load(), newi;
         do {
             newi = (oldi >= value) ? 0u : (oldi+1u);
-        } while (! a.compare_exchange_strong(oldi, newi, mo));
+        } while (! a.compare_exchange_strong(oldi, newi));
         return oldi;
 #else
         auto const old = *m;
@@ -509,12 +517,13 @@ namespace detail {
         return atomicDec(m, value);
 #elif defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
+        constexpr auto ms = sycl::memory_scope::device;
         constexpr auto as = sycl::access::address_space::global_space;
-        sycl::atomic<unsigned int,as> a{sycl::multi_ptr<unsigned int,as>(m)};
-        unsigned int oldi = a.load(mo), newi;
+        sycl::atomic_ref<unsigned int,mo,ms,as> a{*m};
+        unsigned int oldi = a.load(), newi;
         do {
             newi = ((oldi == 0u) || (oldi > value)) ? value : (oldi-1u);
-        } while (! a.compare_exchange_strong(oldi, newi, mo));
+        } while (! a.compare_exchange_strong(oldi, newi));
         return oldi;
 #else
         auto const old = *m;
@@ -535,9 +544,10 @@ namespace detail {
         return atomicExch(address, val);
 #elif defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
+        constexpr auto ms = sycl::memory_scope::device;
         constexpr auto as = sycl::access::address_space::global_space;
-        sycl::atomic<T,as> a{sycl::multi_ptr<T,as>(address)};
-        return sycl::atomic_exchange(a, val, mo);
+        sycl::atomic_ref<T,mo,ms,as> a{*address};
+        return a.exchange(val);
 #else
         auto const old = *address;
         *address = val;
@@ -557,9 +567,10 @@ namespace detail {
         return atomicCAS(address, compare, val);
 #elif defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
+        constexpr auto ms = sycl::memory_scope::device;
         constexpr auto as = sycl::access::address_space::global_space;
-        sycl::atomic<T,as> a{sycl::multi_ptr<T,as>(address)};
-        a.compare_exchange_strong(compare, val, mo);
+        sycl::atomic_ref<T,mo,ms,as> a{*address};
+        a.compare_exchange_strong(compare, val);
         return compare;
 #else
         auto const old = *address;
