@@ -386,7 +386,6 @@ struct ConstParticleTileData
         }
     }
 
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     SuperParticleType getSuperParticle (int index) const noexcept
     {
@@ -403,29 +402,6 @@ struct ConstParticleTileData
         sp.cpu() = m_aos[index].cpu();
         for (int i = 0; i < NStructInt; ++i)
             sp.idata(i) = m_aos[index].idata(i);
-        if constexpr(NArrayInt > 0)
-            for (int i = 0; i < NArrayInt; ++i)
-                sp.idata(NStructInt+i) = m_idata[i][index];
-        return sp;
-    }
-
-    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    SuperParticleType getSuperParticle (int index) const noexcept
-    {
-        AMREX_ASSERT(index < m_size);
-        SuperParticleType sp;
-        for (int i = 0; i < AMREX_SPACEDIM; ++i)
-            sp.pos(i) = m_aos[index].pos(i);
-        for (int i = 0; i < NStructReal; ++i)
-            sp.rdata(i) = m_aos[index].m_particle_tile_data.rdata(i);
-        if constexpr(NArrayReal > 0)    
-            for (int i = 0; i < NArrayReal; ++i)
-                sp.rdata(NStructReal+i) = m_rdata[i][index];
-        sp.id() = m_aos[index].id();
-        sp.cpu() = m_aos[index].cpu();
-        for (int i = 0; i < NStructInt; ++i)
-            sp.idata(i) = m_aos[index].m_particle_tile_data.idata(i);
         if constexpr(NArrayInt > 0)
             for (int i = 0; i < NArrayInt; ++i)
                 sp.idata(NStructInt+i) = m_idata[i][index];
