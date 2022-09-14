@@ -480,9 +480,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Nu
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
-void
+std::array<Long, Long, Long>
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
-::ByteSpread (Long& a_mn, Long& a_mx, Long& a_cnt) const
+::ByteSpread () const
 {
     Long cnt = 0;
 
@@ -519,16 +519,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         });
 #endif
 
-    a_mn += mn*sz;
-    a_mx += mx*sz;
-    a_cnt += cnt*sz;
+    return {mn*sz, mx*sz, cnt*sz};
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
-void
+std::array<Long, Long, Long>
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
-::PrintCapacity (Long& a_mn, Long& a_mx, Long& a_cnt) const
+::PrintCapacity () const
 {
     Long cnt = 0;
 
@@ -561,9 +559,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 #ifdef AMREX_LAZY
         });
 #endif
-    a_mn += mn;
-    a_mx += mx;
-    a_cnt += cnt;
+
+    return {mn, mx, cnt};
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,

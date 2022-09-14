@@ -524,13 +524,9 @@ public:
     */
     bool OK (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
 
-    void ByteSpread () const;
+    std::array<Long, Long, Long> ByteSpread () const;
 
-    void PrintCapacity () const;
-
-    void ByteSpread (Long& a_mn, Long& a_mx, Long& a_cnt) const;
-
-    void PrintCapacity (Long& a_mn, Long& a_mx, Long& a_cnt) const;
+    std::array<Long, Long, Long> PrintCapacity () const;
 
     void ShrinkToFit ();
 
