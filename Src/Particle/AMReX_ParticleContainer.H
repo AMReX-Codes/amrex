@@ -528,6 +528,10 @@ public:
 
     void PrintCapacity () const;
 
+    void ByteSpread (Long& a_mn, Long& a_mx, Long& a_cnt) const;
+
+    void PrintCapacity (Long& a_mn, Long& a_mx, Long& a_cnt) const;
+    
     void ShrinkToFit ();
 
     /**
