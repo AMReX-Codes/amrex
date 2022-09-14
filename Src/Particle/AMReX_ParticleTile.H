@@ -504,11 +504,11 @@ struct ParticleTile
     Long capacity () const
     {
         Long nbytes = 0;
-        nbytes += m_aos_tile().capacity()*sizeof(ParticleType);
+        nbytes += m_aos_tile().capacity() * sizeof(ParticleType);
         for (int j = 0; j < NumRealComps(); ++j)
         {
             auto& rdata = GetStructOfArrays().GetRealData(j);
-            nbytes += rdata.capacity()*sizeof(ParticleReal);
+            nbytes += rdata.capacity() * sizeof(ParticleReal);
         }
 
         for (int j = 0; j < NumIntComps(); ++j)
