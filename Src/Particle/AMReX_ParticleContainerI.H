@@ -496,7 +496,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::By
     Long mn = cnt, mx = mn;
 
     const int IOProc = ParallelContext::IOProcessorNumberSub();
-    const std::size_t sz = sizeof(ParticleType)+NumRealComps()*sizeof(Real)+NumIntComps()*sizeof(int);
+    const std::size_t sz = sizeof(ParticleType)+NumRealComps()*sizeof(ParticleReal)+NumIntComps()*sizeof(int);
 
 #ifdef AMREX_LAZY
     Lazy::QueueReduction( [=] () mutable {
@@ -505,13 +505,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::By
             ParallelReduce::Max(mx,  IOProc, ParallelContext::CommunicatorSub());
             ParallelReduce::Sum(cnt, IOProc, ParallelContext::CommunicatorSub());
 
-            amrex::Print() << "ParticleContainer byte spread across MPI nodes: ["
+            amrex::Print() << "ParticleContainer byte spread across MPI nodes: [Min: "
                            << mn*sz
                            << " (" << mn << ")"
-                           << " ... "
+                           << ", Max:  "
                            << mx*sz
                            << " (" << mx << ")"
-                           << "] total particles: (" << cnt << ")\n";
+                           << ", Total: "
+                           << cnt*sz
+                           << " (" << cnt << ")]\n";
 #ifdef AMREX_LAZY
         });
 #endif
@@ -535,6 +537,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Pr
     Long mn = cnt, mx = mn;
 
     const int IOProc = ParallelContext::IOProcessorNumberSub();
+    const std::size_t sz = sizeof(ParticleType)+NumRealComps()*sizeof(ParticleReal)+NumIntComps()*sizeof(int);
 
 #ifdef AMREX_LAZY
     Lazy::QueueReduction( [=] () mutable {
@@ -543,13 +546,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Pr
             ParallelReduce::Max(mx,  IOProc, ParallelContext::CommunicatorSub());
             ParallelReduce::Sum(cnt, IOProc, ParallelContext::CommunicatorSub());
 
-            amrex::Print() << "ParticleContainer byte spread across MPI nodes: ["
-                           << mn
+            amrex::Print() << "ParticleContainer byte spread across MPI nodes: [Min: "
+                           << mn*sz
                            << " (" << mn << ")"
-                           << " ... "
-                           << mx
+                           << ", Max:  "
+                           << mx*sz
                            << " (" << mx << ")"
-                           << "] total memory: (" << cnt << ")\n";
+                           << ", Total: "
+                           << cnt*sz
+                           << " (" << cnt << ")]\n";
 #ifdef AMREX_LAZY
         });
 #endif

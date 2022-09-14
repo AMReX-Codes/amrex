@@ -503,20 +503,20 @@ struct ParticleTile
 
     Long capacity () const
     {
-        Long nbytes = 0;
-        nbytes += m_aos_tile().capacity() * sizeof(ParticleType);
+        Long nparts = 0;
+        nparts += m_aos_tile().capacity();
         for (int j = 0; j < NumRealComps(); ++j)
         {
             auto& rdata = GetStructOfArrays().GetRealData(j);
-            nbytes += rdata.capacity() * sizeof(ParticleReal);
+            nparts += rdata.capacity();
         }
 
         for (int j = 0; j < NumIntComps(); ++j)
         {
             auto& idata = GetStructOfArrays().GetIntData(j);
-            nbytes += idata.capacity()*sizeof(int);
+            nparts += idata.capacity();
         }
-        return nbytes;
+        return nparts;
     }
 
     void swap (ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>& other)
