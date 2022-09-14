@@ -519,7 +519,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         });
 #endif
 
-    return {mn*sz, mx*sz, cnt*sz};
+    return {(Long) mn*sz, (Long) mx*sz, (Long) cnt*sz};
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
