@@ -566,30 +566,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
-::ByteSpread () const
-{
-    Long mn = 0;
-    Long mx = 0;
-    Long cnt = 0;
-    ByteSpread(mn, mx, cnt);
-}
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
-void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
-::PrintCapacity () const
-{
-    Long mn = 0;
-    Long mx = 0;
-    Long cnt = 0;
-    PrintCapacity(mn, mx, cnt);
-}
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
-void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::ShrinkToFit ()
 {
     for (unsigned lev = 0; lev < m_particles.size(); lev++) {
