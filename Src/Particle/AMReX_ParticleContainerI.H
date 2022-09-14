@@ -497,7 +497,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     Long mn = cnt, mx = mn;
 
     const int IOProc = ParallelContext::IOProcessorNumberSub();
-    const std::size_t sz = sizeof(ParticleType)+NumRealComps()*sizeof(ParticleReal)+NumIntComps()*sizeof(int);
+    const Long sz = sizeof(ParticleType)+NumRealComps()*sizeof(ParticleReal)+NumIntComps()*sizeof(int);
 
 #ifdef AMREX_LAZY
     Lazy::QueueReduction( [=] () mutable {
@@ -519,7 +519,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         });
 #endif
 
-    return {(Long) mn*sz, (Long) mx*sz, (Long) cnt*sz};
+    return {mn*sz, mx*sz, cnt*sz};
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
