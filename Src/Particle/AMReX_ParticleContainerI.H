@@ -480,8 +480,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Nu
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
-void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::ByteSpread () const
+std::array<Long, 3>
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+::ByteSpread () const
 {
     Long cnt = 0;
 
@@ -496,7 +497,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::By
     Long mn = cnt, mx = mn;
 
     const int IOProc = ParallelContext::IOProcessorNumberSub();
-    const std::size_t sz = sizeof(ParticleType)+NumRealComps()*sizeof(Real)+NumIntComps()*sizeof(int);
+    const Long sz = sizeof(ParticleType)+NumRealComps()*sizeof(ParticleReal)+NumIntComps()*sizeof(int);
 
 #ifdef AMREX_LAZY
     Lazy::QueueReduction( [=] () mutable {
@@ -505,22 +506,27 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::By
             ParallelReduce::Max(mx,  IOProc, ParallelContext::CommunicatorSub());
             ParallelReduce::Sum(cnt, IOProc, ParallelContext::CommunicatorSub());
 
-            amrex::Print() << "ParticleContainer byte spread across MPI nodes: ["
+            amrex::Print() << "ParticleContainer spread across MPI nodes - bytes (num particles): [Min: "
                            << mn*sz
                            << " (" << mn << ")"
-                           << " ... "
+                           << ", Max: "
                            << mx*sz
                            << " (" << mx << ")"
-                           << "] total particles: (" << cnt << ")\n";
+                           << ", Total: "
+                           << cnt*sz
+                           << " (" << cnt << ")]\n";
 #ifdef AMREX_LAZY
         });
 #endif
+
+    return {mn*sz, mx*sz, cnt*sz};
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
-void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::PrintCapacity () const
+std::array<Long, 3>
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+::PrintCapacity () const
 {
     Long cnt = 0;
 
@@ -543,16 +549,18 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Pr
             ParallelReduce::Max(mx,  IOProc, ParallelContext::CommunicatorSub());
             ParallelReduce::Sum(cnt, IOProc, ParallelContext::CommunicatorSub());
 
-            amrex::Print() << "ParticleContainer byte spread across MPI nodes: ["
+            amrex::Print() << "ParticleContainer spread across MPI nodes - bytes: [Min: "
                            << mn
-                           << " (" << mn << ")"
-                           << " ... "
+                           << ", Max: "
                            << mx
-                           << " (" << mx << ")"
-                           << "] total memory: (" << cnt << ")\n";
+                           << ", Total: "
+                           << cnt
+                           << "]\n";
 #ifdef AMREX_LAZY
         });
 #endif
+
+    return {mn, mx, cnt};
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
