@@ -317,15 +317,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::lo
     {
         if (Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))))
         {
-            RealBox prob_domain = Geom(0).ProbDomain();
-            GpuArray<ParticleReal, AMREX_SPACEDIM> phi = Geom(0).ProbHiArrayInParticleReal();
+            GpuArray<ParticleReal, AMREX_SPACEDIM> rhi = Geom(0).ProbHiArrayInParticleReal();
+            GpuArray<ParticleReal, AMREX_SPACEDIM> rlo = Geom(0).ProbLoArrayInParticleReal();
             for (int idim=0; idim < AMREX_SPACEDIM; ++idim)
             {
-                if (p.pos(idim) <= prob_domain.lo(idim)) {
-                    p.pos(idim) = std::nextafter((ParticleReal) prob_domain.lo(idim), phi[idim]);
+                if (p.pos(idim) <= rlo[idim]) {
+                    p.pos(idim) = std::nextafter(rlo[idim], rhi[idim]);
                 }
-                if (p.pos(idim) >= phi[idim]) {
-                    p.pos(idim) = std::nextafter(phi[idim], (ParticleReal) prob_domain.lo(idim));
+                if (p.pos(idim) >= rhi[idim]) {
+                    p.pos(idim) = std::nextafter(rhi[idim], rlo[idim]);
                 }
             }
 
