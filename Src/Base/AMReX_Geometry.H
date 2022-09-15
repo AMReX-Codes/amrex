@@ -69,9 +69,29 @@ public:
 
     namespace detail {
         template <typename T>
-        T bisect_prob_lo (amrex::Real plo, amrex::Real phi, amrex::Real idx, int ilo, int ihi, amrex::Real tol) {
-	  return static_cast<T>(plo + tol);
+        T bisect_prob_lo (amrex::Real plo, amrex::Real /*phi*/, amrex::Real idx, int ilo, int ihi, amrex::Real tol) {
+            T lo = static_cast<T>(plo + tol);
+            bool safe;
+            {
+                int i = int(Math::floor((lo - plo)*idx)) + ilo;
+                safe = i >= ilo && i <= ihi;
+            }
+            if (safe) {
+                return lo;
+            } else {
+                // bisect the point at which the cell no longer maps to inside the domain
+                T hi = static_cast<T>(plo + 0.5_rt/idx);
+                T mid = bisect(lo, hi,
+                               [=] AMREX_GPU_HOST_DEVICE (T x) -> T
+                               {
+                                   int i = int(Math::floor((x - plo)*idx)) + ilo;
+                                   bool inside = i >= ilo && i <= ihi;
+                                   return static_cast<T>(inside) - T(0.5);
+                               }, static_cast<T>(tol));
+                return mid - static_cast<T>(tol);
+            }
         }
+
         template <typename T>
         T bisect_prob_hi (amrex::Real plo, amrex::Real phi, amrex::Real idx, int ilo, int ihi, amrex::Real tol) {
             T hi = static_cast<T>(phi - tol);
