@@ -512,16 +512,16 @@ Geometry::computeRoundoffDomain ()
         int ihi = Domain().bigEnd(idim);
         Real plo = ProbLo(idim);
         Real phi = ProbHi(idim);
-        Real idx = InvCellSize(idim);
+        Real dxinv = InvCellSize(idim);
         Real deltax = CellSize(idim);
 
         Real ftol = std::max(1.e-4_rt*deltax, 2.e-7_rt*phi);
         Real dtol = std::max(1.e-8_rt*deltax, 1.e-14_rt*phi);
 
-        roundoff_lo_f[idim] = detail::bisect_prob_lo<float> (plo, phi, idx, ilo, ihi, ftol);
-        roundoff_lo_d[idim] = detail::bisect_prob_lo<double>(plo, phi, idx, ilo, ihi, dtol);
-        roundoff_hi_f[idim] = detail::bisect_prob_hi<float> (plo, phi, idx, ilo, ihi, ftol);
-        roundoff_hi_d[idim] = detail::bisect_prob_hi<double>(plo, phi, idx, ilo, ihi, dtol);
+        roundoff_lo_f[idim] = detail::bisect_prob_lo<float> (plo, phi, dxinv, ilo, ihi, ftol);
+        roundoff_lo_d[idim] = detail::bisect_prob_lo<double>(plo, phi, dxinv, ilo, ihi, dtol);
+        roundoff_hi_f[idim] = detail::bisect_prob_hi<float> (plo, phi, dxinv, ilo, ihi, ftol);
+        roundoff_hi_d[idim] = detail::bisect_prob_hi<double>(plo, phi, dxinv, ilo, ihi, dtol);
     }
 }
 
