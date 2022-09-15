@@ -217,6 +217,13 @@ public:
         return {{AMREX_D_DECL(prob_domain.hi(0),prob_domain.hi(1),prob_domain.hi(2))}};
     }
 
+    GpuArray<ParticleReal,AMREX_SPACEDIM> ProbLoArrayInParticleReal () const noexcept {
+#ifdef AMREX_SINGLE_PRECISION_PARTICLES
+        return roundoff_lo_f;
+#else
+        return roundoff_lo_d;
+#endif
+    }
     GpuArray<ParticleReal,AMREX_SPACEDIM> ProbHiArrayInParticleReal () const noexcept {
 #ifdef AMREX_SINGLE_PRECISION_PARTICLES
         return roundoff_hi_f;
@@ -454,11 +461,11 @@ private:
     RealBox prob_domain;
 
     // Due to round-off errors, not all floating point numbers for which plo >= x < phi
-    // will map to a cell that is inside "domain". "roundoff_hi_d" and "roundoff_hi_f" each store
-    // a phi that is very close to that in prob_domain, and for which all doubles and floats less than
+    // will map to a cell that is inside "domain". "roundoff_{lo,hi}_{f,d}" each store
+    // a position that is very close to that in prob_domain, and for which all doubles and floats less than
     // it will map to a cell inside domain.
-    GpuArray<double, AMREX_SPACEDIM> roundoff_hi_d;
-    GpuArray<float , AMREX_SPACEDIM> roundoff_hi_f;
+    GpuArray<double, AMREX_SPACEDIM> roundoff_lo_d, roundoff_hi_d;
+    GpuArray<float , AMREX_SPACEDIM> roundoff_lo_f, roundoff_hi_f;
 
     //
     Box     domain;
