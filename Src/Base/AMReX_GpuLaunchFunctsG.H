@@ -1034,6 +1034,9 @@ ParallelFor (Gpu::KernelInfo const&,
              L1&& f1, L2&& f2, L3&& f3) noexcept
 {
     if (amrex::isEmpty(box1) && amrex::isEmpty(box2) && amrex::isEmpty(box3)) return;
+#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ == 6)
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(0, "CUDA 11.6 bug: https://github.com/AMReX-Codes/amrex/issues/2607");
+#endif
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells3 = box3.numPts();
