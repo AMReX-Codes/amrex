@@ -443,4 +443,6 @@ namespace Gpu {
 
 #endif
 
+#include <AMReX_CTOParallelForImpl.H>
+
 #endif

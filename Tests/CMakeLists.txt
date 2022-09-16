@@ -1,7 +1,7 @@
 #
 # List of subdirectories to search for CMakeLists.
 #
-set( AMREX_TESTS_SUBDIRS AsyncOut MultiBlock Amr CLZ Parser)
+set( AMREX_TESTS_SUBDIRS AsyncOut MultiBlock Amr CLZ Parser CTOParFor)
 
 if (AMReX_PARTICLES)
    list(APPEND AMREX_TESTS_SUBDIRS Particles)
