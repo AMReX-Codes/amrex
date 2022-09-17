@@ -554,7 +554,7 @@ public:
               const std::string&  val);
 
     //! keyword for files to load
-    static std::string FileKeyword;
+    static std::string const FileKeyword;
 
     //! Add keys and values from a file to the end of the PP table.
     static void addfile (std::string const filename);

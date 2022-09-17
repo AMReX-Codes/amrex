@@ -512,14 +512,16 @@ Geometry::computeRoundoffDomain ()
         int ihi = Domain().bigEnd(idim);
         Real plo = ProbLo(idim);
         Real phi = ProbHi(idim);
-        Real idx = InvCellSize(idim);
+        Real dxinv = InvCellSize(idim);
         Real deltax = CellSize(idim);
 
         Real ftol = std::max(1.e-4_rt*deltax, 2.e-7_rt*phi);
         Real dtol = std::max(1.e-8_rt*deltax, 1.e-14_rt*phi);
 
-        roundoff_hi_f[idim] = detail::bisect_prob_hi<float> (plo, phi, idx, ilo, ihi, ftol);
-        roundoff_hi_d[idim] = detail::bisect_prob_hi<double>(plo, phi, idx, ilo, ihi, dtol);
+        roundoff_lo_f[idim] = detail::bisect_prob_lo<float> (plo, phi, dxinv, ilo, ihi, ftol);
+        roundoff_lo_d[idim] = detail::bisect_prob_lo<double>(plo, phi, dxinv, ilo, ihi, dtol);
+        roundoff_hi_f[idim] = detail::bisect_prob_hi<float> (plo, phi, dxinv, ilo, ihi, ftol);
+        roundoff_hi_d[idim] = detail::bisect_prob_hi<double>(plo, phi, dxinv, ilo, ihi, dtol);
     }
 }
 
@@ -527,18 +529,18 @@ bool
 Geometry::outsideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const
 {
 #ifdef AMREX_SINGLE_PRECISION_PARTICLES
-    bool outside = AMREX_D_TERM(x <  prob_domain.lo(0)
+    bool outside = AMREX_D_TERM(x <  roundoff_lo_f[0]
                              || x >= roundoff_hi_f[0],
-                             || y <  prob_domain.lo(1)
+                             || y <  roundoff_lo_f[1]
                              || y >= roundoff_hi_f[1],
-                             || z <  prob_domain.lo(2)
+                             || z <  roundoff_lo_f[2]
                              || z >= roundoff_hi_f[2]);
 #else
-    bool outside = AMREX_D_TERM(x <  prob_domain.lo(0)
+    bool outside = AMREX_D_TERM(x <  roundoff_lo_d[0]
                              || x >= roundoff_hi_d[0],
-                             || y <  prob_domain.lo(1)
+                             || y <  roundoff_lo_d[1]
                              || y >= roundoff_hi_d[1],
-                             || z <  prob_domain.lo(2)
+                             || z <  roundoff_lo_d[2]
                              || z >= roundoff_hi_d[2]);
 #endif
     return outside;

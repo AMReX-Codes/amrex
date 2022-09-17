@@ -1,3 +1,38 @@
+# 22.09
+
+  -- Preserve neighbor particles when sorting particles. (#2923)
+
+  -- Scope of NonLocalBC::ParallelCopy (#2922)
+
+  -- Open Boundary Poisson Solver (#2912)
+     Add hypre as an option for OpenBCSolver (#2931)
+
+  -- Fix OOB access of ref ratio on HDF write header (#2919)
+
+  -- Add Polaris to GNUMake (#2908)
+
+  -- Export GpuDevice Globals (#2918)
+
+  -- enable LinOp to use the right Factory (fixes moving geometry problem) (#2916)
+
+  -- Use 1 atomic instead of two per item in DenseBins::build (#2911)
+
+  -- [SYCL] Remove amrex::oneapi and update deprecated device descriptors (#2910)
+
+  -- Add: `MultiFab::sum_unique` (#2909)
+
+  -- In MLMG::mgFcycle, assert that for EB the linop is cell-centered. (#2905)
+
+  -- EB: Add Fine Levels (#2881)
+
+  -- Add rpath to lib64 for ZFP. (#2902)
+
+  -- change data types from double to amrex::Real, and thus we can use single precision for the hypre IJ interface (#2896)
+
+  -- MPMD Support (#2895)
+
+  -- MLMG interface (#2858)
+
 # 22.08
 
   -- Let `selectActualNeighbors` return right after starting if there are no

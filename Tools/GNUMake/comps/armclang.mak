@@ -57,7 +57,7 @@ ifeq ($(WARN_ERROR),TRUE)
 endif
 
 # disable some warnings
-CXXFLAGS += -Wno-pass-failed -Wno-c++17-extensions
+CXXFLAGS += -Wno-c++17-extensions
 
 ########################################################################
 

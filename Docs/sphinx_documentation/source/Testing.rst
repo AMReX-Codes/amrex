@@ -18,6 +18,7 @@ application codes that use it as a framework. We use an in-house test runner scr
 operation, originally developed by Michael Zingale for the Castro code, and later expanded to other
 application codes as well. The results for each night are collected and stored on a web page; see
 https://ccse.lbl.gov/pub/RegressionTesting/ for the latest set of results.
+The runtime option ``amrex.abort_on_unused_inputs`` (``0`` or ``1``; default is ``0`` for false) is useful for making sure that tests always stay up to date with API changes as it will abort the application after the test run if any unused input parameters were detected.
 
 Running the test suite locally
 ==============================
@@ -73,7 +74,7 @@ re-run the script without the :cpp:`--make_benchmarks` option:
 
 ::
 
-   python regtest.py --make_benchmarks 'generating initial benchmarks' AMReX-tests.ini
+   python regtest.py AMReX-tests.ini
 
 The script will generate a set of html pages in the directory specified in your :cpp:`AMReX-tests.ini`
 file that you can examine using the browser of your choice.

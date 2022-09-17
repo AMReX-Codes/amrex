@@ -30,11 +30,11 @@
 #define AMREX_GPU_Z_STRIDE 1
 
 #ifdef AMREX_USE_CUDA
-#  define AMREX_LAUNCH_KERNEL(blocks, threads, sharedMem, stream, ... ) \
-        amrex::launch_global<AMREX_GPU_MAX_THREADS><<<blocks, threads, sharedMem, stream>>>(__VA_ARGS__);
+#  define AMREX_LAUNCH_KERNEL(MT, blocks, threads, sharedMem, stream, ... ) \
+        amrex::launch_global<MT><<<blocks, threads, sharedMem, stream>>>(__VA_ARGS__)
 #elif defined(AMREX_USE_HIP)
-#  define AMREX_LAUNCH_KERNEL(blocks, threads, sharedMem, stream, ... ) \
-        hipLaunchKernelGGL(launch_global<AMREX_GPU_MAX_THREADS>, blocks, threads, sharedMem, stream, __VA_ARGS__);
+#  define AMREX_LAUNCH_KERNEL(MT, blocks, threads, sharedMem, stream, ... ) \
+        hipLaunchKernelGGL(launch_global<MT>, blocks, threads, sharedMem, stream, __VA_ARGS__)
 #endif
 
 
@@ -151,6 +151,28 @@ namespace Gpu {
         dim3 numThreads;
         std::size_t sharedMem = 0;
     };
+
+    template <int MT>
+    ExecutionConfig
+    makeExecutionConfig (Long N) noexcept
+    {
+        ExecutionConfig ec(dim3{}, dim3{});
+        ec.numBlocks.x = (std::max(N,Long(1)) + MT - 1) / MT;
+        ec.numThreads.x = MT;
+        AMREX_ASSERT(MT % Gpu::Device::warp_size == 0);
+        return ec;
+    }
+
+    template <int MT>
+    ExecutionConfig
+    makeExecutionConfig (const Box& box) noexcept
+    {
+        ExecutionConfig ec(dim3{}, dim3{});
+        ec.numBlocks.x = (std::max(box.numPts(),Long(1)) + MT - 1) / MT;
+        ec.numThreads.x = MT;
+        AMREX_ASSERT(MT % Gpu::Device::warp_size == 0);
+        return ec;
+    }
 #endif
 
 }
