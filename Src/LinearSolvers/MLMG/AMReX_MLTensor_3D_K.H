@@ -767,8 +767,8 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             int i = vhi.x+1;
             int j = vlo.y-1;
             int k = vlo.z-1;
-            bool x_interior = mylo(i+1,j  ,k  ) == BndryData::covered;
-            bool x_exterior = mylo(i+1,j  ,k  ) == BndryData::not_covered;
+            bool x_interior = mylo(i-1,j  ,k  ) == BndryData::covered;
+            bool x_exterior = mylo(i-1,j  ,k  ) == BndryData::not_covered;
             bool y_interior = mxhi(i  ,j+1,k  ) == BndryData::covered;
             bool y_exterior = mxhi(i  ,j+1,k  ) == BndryData::not_covered;
             bool z_interior = mxhi(i  ,j  ,k+1) == BndryData::covered;
@@ -851,8 +851,8 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             int k = vlo.z-1;
             bool x_interior = myhi(i+1,j  ,k  ) == BndryData::covered;
             bool x_exterior = myhi(i+1,j  ,k  ) == BndryData::not_covered;
-            bool y_interior = mxlo(i  ,j+1,k  ) == BndryData::covered;
-            bool y_exterior = mxlo(i  ,j+1,k  ) == BndryData::not_covered;
+            bool y_interior = mxlo(i  ,j-1,k  ) == BndryData::covered;
+            bool y_exterior = mxlo(i  ,j-1,k  ) == BndryData::not_covered;
             bool z_interior = mxlo(i  ,j  ,k+1) == BndryData::covered;
             bool z_exterior = mxlo(i  ,j  ,k+1) == BndryData::not_covered;
             if (mxlo(i,j,k) != BndryData::covered &&
@@ -931,10 +931,10 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             int i = vhi.x+1;
             int j = vhi.y+1;
             int k = vlo.z-1;
-            bool x_interior = myhi(i+1,j  ,k  ) == BndryData::covered;
-            bool x_exterior = myhi(i+1,j  ,k  ) == BndryData::not_covered;
-            bool y_interior = mxhi(i  ,j+1,k  ) == BndryData::covered;
-            bool y_exterior = mxhi(i  ,j+1,k  ) == BndryData::not_covered;
+            bool x_interior = myhi(i-1,j  ,k  ) == BndryData::covered;
+            bool x_exterior = myhi(i-1,j  ,k  ) == BndryData::not_covered;
+            bool y_interior = mxhi(i  ,j-1,k  ) == BndryData::covered;
+            bool y_exterior = mxhi(i  ,j-1,k  ) == BndryData::not_covered;
             bool z_interior = mxhi(i  ,j  ,k+1) == BndryData::covered;
             bool z_exterior = mxhi(i  ,j  ,k+1) == BndryData::not_covered;
             if (mxhi(i,j,k) != BndryData::covered &&
@@ -1017,8 +1017,8 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             bool x_exterior = mylo(i+1,j  ,k  ) == BndryData::not_covered;
             bool y_interior = mxlo(i  ,j+1,k  ) == BndryData::covered;
             bool y_exterior = mxlo(i  ,j+1,k  ) == BndryData::not_covered;
-            bool z_interior = mxlo(i  ,j  ,k+1) == BndryData::covered;
-            bool z_exterior = mxlo(i  ,j  ,k+1) == BndryData::not_covered;
+            bool z_interior = mxlo(i  ,j  ,k-1) == BndryData::covered;
+            bool z_exterior = mxlo(i  ,j  ,k-1) == BndryData::not_covered;
             if (mxlo(i,j,k) != BndryData::covered &&
                 (!xlo_domain || !ylo_domain || !zhi_domain)) {
                 if ((x_interior && y_interior && z_interior) ||
@@ -1095,12 +1095,12 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             int i = vhi.x+1;
             int j = vlo.y-1;
             int k = vhi.z+1;
-            bool x_interior = mylo(i+1,j  ,k  ) == BndryData::covered;
-            bool x_exterior = mylo(i+1,j  ,k  ) == BndryData::not_covered;
+            bool x_interior = mylo(i-1,j  ,k  ) == BndryData::covered;
+            bool x_exterior = mylo(i-1,j  ,k  ) == BndryData::not_covered;
             bool y_interior = mxhi(i  ,j+1,k  ) == BndryData::covered;
             bool y_exterior = mxhi(i  ,j+1,k  ) == BndryData::not_covered;
-            bool z_interior = mxhi(i  ,j  ,k+1) == BndryData::covered;
-            bool z_exterior = mxhi(i  ,j  ,k+1) == BndryData::not_covered;
+            bool z_interior = mxhi(i  ,j  ,k-1) == BndryData::covered;
+            bool z_exterior = mxhi(i  ,j  ,k-1) == BndryData::not_covered;
             if (mxhi(i,j,k) != BndryData::covered &&
                 (!xhi_domain || !ylo_domain || !zhi_domain)) {
                 if ((x_interior && y_interior && z_interior) ||
@@ -1179,10 +1179,10 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             int k = vhi.z+1;
             bool x_interior = myhi(i+1,j  ,k  ) == BndryData::covered;
             bool x_exterior = myhi(i+1,j  ,k  ) == BndryData::not_covered;
-            bool y_interior = mxlo(i  ,j+1,k  ) == BndryData::covered;
-            bool y_exterior = mxlo(i  ,j+1,k  ) == BndryData::not_covered;
-            bool z_interior = mxlo(i  ,j  ,k+1) == BndryData::covered;
-            bool z_exterior = mxlo(i  ,j  ,k+1) == BndryData::not_covered;
+            bool y_interior = mxlo(i  ,j-1,k  ) == BndryData::covered;
+            bool y_exterior = mxlo(i  ,j-1,k  ) == BndryData::not_covered;
+            bool z_interior = mxlo(i  ,j  ,k-1) == BndryData::covered;
+            bool z_exterior = mxlo(i  ,j  ,k-1) == BndryData::not_covered;
             if (mxlo(i,j,k) != BndryData::covered &&
                 (!xlo_domain || !yhi_domain || !zhi_domain)) {
                 if ((x_interior && y_interior && z_interior) ||
@@ -1259,12 +1259,12 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             int i = vhi.x+1;
             int j = vhi.y+1;
             int k = vhi.z+1;
-            bool x_interior = myhi(i+1,j  ,k  ) == BndryData::covered;
-            bool x_exterior = myhi(i+1,j  ,k  ) == BndryData::not_covered;
-            bool y_interior = mxhi(i  ,j+1,k  ) == BndryData::covered;
-            bool y_exterior = mxhi(i  ,j+1,k  ) == BndryData::not_covered;
-            bool z_interior = mxhi(i  ,j  ,k+1) == BndryData::covered;
-            bool z_exterior = mxhi(i  ,j  ,k+1) == BndryData::not_covered;
+            bool x_interior = myhi(i-1,j  ,k  ) == BndryData::covered;
+            bool x_exterior = myhi(i-1,j  ,k  ) == BndryData::not_covered;
+            bool y_interior = mxhi(i  ,j-1,k  ) == BndryData::covered;
+            bool y_exterior = mxhi(i  ,j-1,k  ) == BndryData::not_covered;
+            bool z_interior = mxhi(i  ,j  ,k-1) == BndryData::covered;
+            bool z_exterior = mxhi(i  ,j  ,k-1) == BndryData::not_covered;
             if (mxhi(i,j,k) != BndryData::covered &&
                 (!xhi_domain || !yhi_domain || !zhi_domain)) {
                 if ((x_interior && y_interior && z_interior) ||
