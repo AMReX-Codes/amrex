@@ -414,11 +414,11 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
         if (Gpu::inLaunchRegion()) {
             amrex::launch(12, 64, Gpu::gpuStream(),
 #ifdef AMREX_USE_DPCPP
-            [=] AMREX_GPU_DEVICE (Gpu::Handler& h)
+            [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item)
             {
-                int bid = h.blockIdx();
-                int tid = h.threadIdx();
-                int bdim = h.blockDim();
+                int bid = item.get_group_linear_id();
+                int tid = item.get_local_linear_id();
+                int bdim = item->get_local_range(0);
 #else
             [=] AMREX_GPU_DEVICE ()
             {
