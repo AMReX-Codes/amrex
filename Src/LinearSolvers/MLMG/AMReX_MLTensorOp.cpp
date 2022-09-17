@@ -418,7 +418,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
             {
                 int bid = item.get_group_linear_id();
                 int tid = item.get_local_linear_id();
-                int bdim = item->get_local_range(0);
+                int bdim = item.get_local_range(0);
 #else
             [=] AMREX_GPU_DEVICE ()
             {
