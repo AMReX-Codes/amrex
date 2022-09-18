@@ -164,7 +164,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                        bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
                     vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
                 }
-            } if (x_interior || dhi.x == vhi.x) {
+            } else if (x_interior || dhi.x == vhi.x) {
                 for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                     mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                        bct(Orientation::xhi(), icomp),

@@ -200,7 +200,7 @@ void mltensor_fill_edges_xhi_yhi (int const i, int const j, int const k, Dim3 co
                                    bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
                 vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
             }
-        } if (x_interior || xhi_domain) {
+        } else if (x_interior || xhi_domain) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                 mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                    bct(Orientation::xhi(), icomp),
@@ -412,7 +412,7 @@ void mltensor_fill_edges_xhi_zhi (int const i, int const j, int const k, Dim3 co
                                    bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
                 vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
             }
-        } if (x_interior || xhi_domain) {
+        } else if (x_interior || xhi_domain) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                 mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
                                    bct(Orientation::xhi(), icomp),
@@ -624,7 +624,7 @@ void mltensor_fill_edges_yhi_zhi (int const i, int const j, int const k, Dim3 co
                                    bcvalzhi, maxorder, dxinv[2], inhomog, icomp);
                 vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
             }
-        } if (y_interior || yhi_domain) {
+        } else if (y_interior || yhi_domain) {
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                 mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
                                    bct(Orientation::yhi(), icomp),
