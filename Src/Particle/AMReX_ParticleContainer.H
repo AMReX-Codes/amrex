@@ -1249,7 +1249,7 @@ public:
 
     /** type trait to translate one particle container to another, with changed allocator */
     template <template<class> class NewAllocator=amrex::DefaultAllocator>
-    using ContainerLike = amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, NewAllocator>;
+    using ContainerLike = amrex::ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, NewAllocator>;
 
     /** Create an empty particle container
      *

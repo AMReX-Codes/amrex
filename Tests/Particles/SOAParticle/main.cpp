@@ -15,8 +15,8 @@ template <typename T_PC,template<class> class Allocator=DefaultAllocator>
 void addParticles ()
 {
     T_PC pc;
-    // int const NReal = pc.NStructReal;
-    // int const NInt = pc.NStructInt;
+    int const NReal = pc.NStructReal;
+    int const NInt = pc.NStructInt;
     int const NArrayReal = pc.NArrayReal;
     int const NArrayInt = pc.NArrayInt;
 
@@ -24,6 +24,7 @@ void addParticles ()
     using ParticleTileDataType = typename T_PC::ParticleTileType::ParticleTileDataType;
     using RealVector = amrex::PODVector<ParticleReal, Allocator<ParticleReal> >;
     using IntVector = amrex::PODVector<int, Allocator<int> >;
+    using SPType = typename T_PC::SuperParticleType;
 
     const int add_num_particles = 5;
 
@@ -62,6 +63,7 @@ void addParticles ()
         amrex::ParticleReal* const AMREX_RESTRICT part_aaa = soa_real[3].dataPtr();
         auto& soa_int = pti.GetStructOfArrays().GetIntData();
 
+        // Iterating over old Particles
         ParallelFor( np, [=] AMREX_GPU_DEVICE (long ip)
         {
             ParticleType& AMREX_RESTRICT p = aos_ptr[ip];
@@ -80,7 +82,7 @@ void addParticles ()
             a += 1.0;
         });
 
-        // new way of creating
+        // Iterating over SoA Particles
         ParticleTileDataType ptd = pti.GetParticleTile().getParticleTileData(); 
 
         ParallelFor( np, [=] AMREX_GPU_DEVICE (long ip)
@@ -105,6 +107,24 @@ void addParticles ()
     }
 
     pc.Redistribute();
+
+    // Reduce for SoA Particle Struct 
+    using PTDType = typename T_PC::ParticleTileType::ConstParticleTileDataType;
+    amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
+    auto r = amrex::ParticleReduce<ReduceData<amrex::Real, amrex::Real,int>> (
+                 pc, [=] AMREX_GPU_DEVICE (const PTDType& ptd, const int i) noexcept
+                               -> amrex::GpuTuple<amrex::Real,amrex::Real,int>
+             {
+
+                const amrex::Real a = ptd.rdata(1)[i];
+                const amrex::Real b = ptd.rdata(2)[i];
+                const int c = ptd.idata(1)[i];
+                return {a, b, c};
+             }, reduce_ops);
+  
+    AMREX_ALWAYS_ASSERT(amrex::get<0>(r) == amrex::Real(std::pow(256, AMREX_SPACEDIM))); 
+    AMREX_ALWAYS_ASSERT(amrex::get<1>(r) == 2.0); 
+    AMREX_ALWAYS_ASSERT(amrex::get<2>(r) == 1); 
 }
 
 
@@ -112,7 +132,6 @@ int main(int argc, char* argv[])
  {
     amrex::Initialize(argc,argv);
     {
-        //addParticles< ParticleContainer<1,2,3,4> > ();
         addParticles< ParticleContainerPureSoA<3,4> > ();
     }
     amrex::Finalize();

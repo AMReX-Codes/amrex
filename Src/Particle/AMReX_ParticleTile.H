@@ -42,6 +42,16 @@ struct ParticleTileData
     GpuArray<ParticleReal* , NAR> m_rdata;
     GpuArray<int* , NAI> m_idata;
 
+    amrex::Real Get_rdata(int index, int particle_index)
+    {
+        return this->m_rdata[index][particle_index];
+    }
+
+    int Get_idata(int index, int particle_index)
+    {
+        return this->m_idata[index][particle_index];
+    }
+
     int m_num_runtime_real;
     int m_num_runtime_int;
     ParticleReal* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_rdata;
@@ -218,6 +228,7 @@ struct SoAParticle : SoAParticleBase
         m_particle_tile_data=ptd;
         m_index=index;
     }
+
      
     //functions to get id and cpu in the SOA data
 
@@ -343,6 +354,16 @@ struct ConstParticleTileData
     GpuArray<const ParticleReal* AMREX_RESTRICT, NArrayReal> m_rdata;
     GpuArray<const int* AMREX_RESTRICT, NArrayInt > m_idata;
 
+    auto const* rdata(const int attribute_index) const
+    {
+        return this->m_rdata[attribute_index];
+    }
+
+    auto const* idata(const int attribute_index) const
+    {
+        return this->m_idata[attribute_index];
+    }
+
     int m_num_runtime_real;
     int m_num_runtime_int;
     const ParticleReal* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_rdata;
@@ -462,9 +483,10 @@ struct ParticleTile
     using SoA = StructOfArrays<NArrayReal, NArrayInt, Allocator>;
     using RealVector = typename SoA::RealVector;
     using IntVector = typename SoA::IntVector;
+    using StorageParticleType = typename ParticleType::StorageParticleType;
 
-    using ParticleTileDataType = ParticleTileData<typename ParticleType::StorageParticleType, NArrayReal, NArrayInt>;
-    using ConstParticleTileDataType = ConstParticleTileData<typename ParticleType::StorageParticleType, NArrayReal, NArrayInt>;
+    using ParticleTileDataType = ParticleTileData<StorageParticleType, NArrayReal, NArrayInt>;
+    using ConstParticleTileDataType = ConstParticleTileData<StorageParticleType, NArrayReal, NArrayInt>;
 
     ParticleTile ()
         : m_defined(false)
