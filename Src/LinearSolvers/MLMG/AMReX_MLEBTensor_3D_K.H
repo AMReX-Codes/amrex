@@ -122,8 +122,8 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                                                        whi,wlo,khip,khim,klop,klom);
                     Real divu = dvdy + dwdz;
                     Real xif = kapx(i,j,k);
-                    Real mun = 0.75*(etax(i,j,k,0)-xif);  // restore the original eta
-                    Real mut =       etax(i,j,k,1);
+                    Real mun = Real(0.75)*(etax(i,j,k,0)-xif);// restore the original eta
+                    Real mut =             etax(i,j,k,1);
                     fx(i,j,k,0) = -mun*(-twoThirds*divu) - xif*divu;
                     fx(i,j,k,1) = -mut*dudy;
                     fx(i,j,k,2) = -mut*dudz;
@@ -182,8 +182,8 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                                                        whi,wlo,khip,khim,klop,klom);
                     Real divu = dudx + dwdz;
                     Real xif = kapy(i,j,k);
-                    Real mun = 0.75*(etay(i,j,k,1)-xif);  // restore the original eta
-                    Real mut =       etay(i,j,k,0);
+                    Real mun = Real(0.75)*(etay(i,j,k,1)-xif);// restore the original eta
+                    Real mut =             etay(i,j,k,0);
                     fy(i,j,k,0) = -mut*dvdx;
                     fy(i,j,k,1) = -mun*(-twoThirds*divu) - xif*divu;
                     fy(i,j,k,2) = -mut*dvdz;
@@ -242,8 +242,8 @@ void mlebtensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
                                                        whi,wlo,jhip,jhim,jlop,jlom);
                     Real divu = dudx + dvdy;
                     Real xif = kapz(i,j,k);
-                    Real mun = 0.75*(etaz(i,j,k,2)-xif);  // restore the original eta
-                    Real mut =       etaz(i,j,k,0);
+                    Real mun = Real(0.75)*(etaz(i,j,k,2)-xif);// restore the original eta
+                    Real mut =             etaz(i,j,k,0);
 
                     fz(i,j,k,0) = -mut*dwdx;
                     fz(i,j,k,1) = -mut*dwdy;
@@ -645,8 +645,8 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                                                        whi,wlo,khip,khim,klop,klom);
                     Real divu = dvdy + dwdz;
                     Real xif = kapx(i,j,k);
-                    Real mun = 0.75*(etax(i,j,k,0)-xif);  // restore the original eta
-                    Real mut =       etax(i,j,k,1);
+                    Real mun = Real(0.75)*(etax(i,j,k,0)-xif);// restore the original eta
+                    Real mut =             etax(i,j,k,1);
                     fx(i,j,k,0) = -mun*(-twoThirds*divu) - xif*divu;
                     fx(i,j,k,1) = -mut*dudy;
                     fx(i,j,k,2) = -mut*dudz;
@@ -715,8 +715,8 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                                                        whi,wlo,khip,khim,klop,klom);
                     Real divu = dudx + dwdz;
                     Real xif = kapy(i,j,k);
-                    Real mun = 0.75*(etay(i,j,k,1)-xif);  // restore the original eta
-                    Real mut =       etay(i,j,k,0);
+                    Real mun = Real(0.75)*(etay(i,j,k,1)-xif);// restore the original eta
+                    Real mut =             etay(i,j,k,0);
                     fy(i,j,k,0) = -mut*dvdx;
                     fy(i,j,k,1) = -mun*(-twoThirds*divu) - xif*divu;
                     fy(i,j,k,2) = -mut*dvdz;
@@ -785,8 +785,8 @@ void mlebtensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
                                                        whi,wlo,jhip,jhim,jlop,jlom);
                     Real divu = dudx + dvdy;
                     Real xif = kapz(i,j,k);
-                    Real mun = 0.75*(etaz(i,j,k,2)-xif);  // restore the original eta
-                    Real mut =       etaz(i,j,k,0);
+                    Real mun = Real(0.75)*(etaz(i,j,k,2)-xif);// restore the original eta
+                    Real mut =             etaz(i,j,k,0);
 
                     fz(i,j,k,0) = -mut*dwdx;
                     fz(i,j,k,1) = -mut*dwdy;
