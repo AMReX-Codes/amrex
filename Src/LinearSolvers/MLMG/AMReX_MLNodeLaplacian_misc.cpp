@@ -26,7 +26,11 @@ MLNodeLaplacian::averageDownCoeffs ()
         {
             for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
             {
+#if (AMREX_SPACEDIM == 1)
+                int ndims = 1;
+#else
                 int ndims = (m_use_harmonic_average || m_use_mapped) ? AMREX_SPACEDIM : 1;
+#endif
                 for (int idim = 0; idim < ndims; ++idim)
                 {
                     if (m_sigma[amrlev][mglev][idim] == nullptr) {
@@ -101,7 +105,11 @@ MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
 
     if (m_coarsening_strategy != CoarseningStrategy::Sigma) return;
 
+#if (AMREX_SPACEDIM == 1)
+    const int nsigma = 1;
+#else
     const int nsigma = (m_use_harmonic_average || m_use_mapped) ? AMREX_SPACEDIM : 1;
+#endif
 
     for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev)
     {
