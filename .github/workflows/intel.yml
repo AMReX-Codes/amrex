@@ -11,7 +11,7 @@ jobs:
     name: DPCPP GFortran@7.5 C++17 [tests]
     runs-on: ubuntu-20.04
     # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wno-sign-compare"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
