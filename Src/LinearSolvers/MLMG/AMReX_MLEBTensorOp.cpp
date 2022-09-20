@@ -598,12 +598,12 @@ MLEBTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fl
 
 
         }
-        else if ( loc==Location::FaceCenter )
-        {
-
-          amrex::Abort("compVelGrad not yet implemented for cut-cells  ");
-
-        }
+//        else if ( loc==Location::FaceCenter )
+//        {
+//
+//          amrex::Abort("compVelGrad not yet implemented for cut-cells  ");
+//
+//        }
         else // loc==Location::FaceCentroid
         {
 

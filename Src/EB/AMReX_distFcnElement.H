@@ -12,7 +12,7 @@ class distFcnElement2d {
  public:
   //! Constructor
   distFcnElement2d() {}
-  ~distFcnElement2d() {}
+  virtual ~distFcnElement2d() {}
 
   virtual distFcnElement2d* newDistFcnElement2d() const = 0;
 
@@ -29,7 +29,7 @@ class distFcnElement2d {
 class LineDistFcnElement2d: public distFcnElement2d {
  public:
   LineDistFcnElement2d() {}
-  ~LineDistFcnElement2d() {}
+  virtual ~LineDistFcnElement2d() {}
 
   virtual distFcnElement2d* newDistFcnElement2d() const override;
 
@@ -58,7 +58,7 @@ class LineDistFcnElement2d: public distFcnElement2d {
 class SplineDistFcnElement2d: public distFcnElement2d {
  public:
   SplineDistFcnElement2d() {}
-  ~SplineDistFcnElement2d() {}
+  virtual ~SplineDistFcnElement2d() {}
 
   virtual distFcnElement2d* newDistFcnElement2d() const override;
 

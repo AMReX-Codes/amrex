@@ -97,7 +97,7 @@ else
 endif
 
 ifeq ($(WARN_ALL),TRUE)
-  warning_flags = -Wall -Wextra
+  warning_flags = -Wall -Wextra -Wlogical-op
 
   ifeq ($(WARN_SIGN_COMPARE),FALSE)
     warning_flags += -Wno-sign-compare
@@ -109,7 +109,7 @@ ifeq ($(WARN_ALL),TRUE)
   endif
 
   ifeq ($(gcc_major_ge_6),1)
-    warning_flags += -Wnull-dereference
+    warning_flags += -Wnull-dereference -Wmisleading-indentation -Wduplicated-cond
   endif
 
   ifeq ($(gcc_major_ge_5),1)
@@ -124,11 +124,15 @@ ifeq ($(WARN_ALL),TRUE)
     warning_flags += -Wno-array-bounds
   endif
 
+  ifeq ($(gcc_major_ge7),1)
+    warning_flags += -Wduplicated-branches
+  endif
+
   ifeq ($(gcc_major_ge10),1)
     warning_flags += -Wextra-semi
   endif
 
-  CXXFLAGS += $(warning_flags) -Woverloaded-virtual
+  CXXFLAGS += $(warning_flags) -Woverloaded-virtual -Wnon-virtual-dtor
   CFLAGS += $(warning_flags)
 endif
 

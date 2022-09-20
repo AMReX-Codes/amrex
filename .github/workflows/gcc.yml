@@ -15,7 +15,7 @@ jobs:
   library:
     name: GNU@7.5 C++17 Release [lib]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -43,7 +43,7 @@ jobs:
   tests_build_3D:
     name: GNU@7.5 C++14 3D Debug Fortran [tests]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1 -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches"}
       # It's too slow with -O0
     steps:
     - uses: actions/checkout@v2
@@ -66,7 +66,7 @@ jobs:
   tests_build_2D:
     name: GNU@7.5 C++14 2D Debug Fortran [tests]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1 -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches"}
       # It's too slow with -O0
     steps:
     - uses: actions/checkout@v2
@@ -89,7 +89,7 @@ jobs:
   tests_build_1D:
     name: GNU@7.5 C++14 1D Debug Fortran [tests]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1 -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches"}
       # -Werror temporarily skipped until we have functional testing established
       # It's too slow with -O0
     steps:
@@ -114,7 +114,7 @@ jobs:
   tests_cxx20:
     name: GNU@10.1 C++20 OMP [tests]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -147,7 +147,7 @@ jobs:
   tests-nonmpi:
     name: GNU@7.5 C++14 NOMPI [tests]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -176,7 +176,7 @@ jobs:
   tests-nofortran:
     name: GNU@7.5 C++14 w/o Fortran [tests]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -274,7 +274,7 @@ jobs:
   tests_run:
     name: GNU@7.5 C++14 [tests]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
