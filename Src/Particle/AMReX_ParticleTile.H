@@ -42,14 +42,14 @@ struct ParticleTileData
     GpuArray<ParticleReal* , NAR> m_rdata;
     GpuArray<int* , NAI> m_idata;
 
-    amrex::Real Get_rdata(int index, int particle_index)
+    auto * rdata(const int attribute_index) 
     {
-        return this->m_rdata[index][particle_index];
+        return this->m_rdata[attribute_index];
     }
 
-    int Get_idata(int index, int particle_index)
+    auto * idata(const int attribute_index) 
     {
-        return this->m_idata[index][particle_index];
+        return this->m_idata[attribute_index];
     }
 
     int m_num_runtime_real;
