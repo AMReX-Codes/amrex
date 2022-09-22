@@ -36,7 +36,7 @@ Real mlebtensor_dx_on_yface (int, int j, int k, int n,
 {
     return Real(0.5)*dxi * ((vel(ihip,j  ,k,n)-vel(ihim,j  ,k,n))*whi +
                             (vel(ilop,j-1,k,n)-vel(ilom,j-1,k,n))*wlo);
-}   
+}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real mlebtensor_dy_on_xface (int i, int j, int k, int n,

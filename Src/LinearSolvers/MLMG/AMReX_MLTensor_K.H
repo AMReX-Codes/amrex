@@ -26,7 +26,7 @@ Real mltensor_dx_on_yface (int i, int j, int k, int n, Array4<Real const> const&
 {
     return (vel(i+1,j,k,n)+vel(i+1,j-1,k,n)-vel(i-1,j,k,n)-vel(i-1,j-1,k,n))*(Real(0.25)*dxi);
 }
-    
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real mltensor_dy_on_xface (int i, int j, int k, int n, Array4<Real const> const& vel, Real dyi,
                            Array4<Real const> const& bvxlo, Array4<Real const> const& bvxhi,
