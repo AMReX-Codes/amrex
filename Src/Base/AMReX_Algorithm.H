@@ -158,7 +158,7 @@ namespace amrex
     }
 
     template<typename ItType, typename ValType>
-    AMREX_GPU_DEVICE
+    AMREX_GPU_HOST_DEVICE
     ItType upper_bound (ItType first, ItType last, const ValType& val)
     {
 #if AMREX_DEVICE_COMPILE
@@ -185,7 +185,7 @@ namespace amrex
     }
 
     template<typename ItType, typename ValType>
-    AMREX_GPU_DEVICE
+    AMREX_GPU_HOST_DEVICE
     ItType lower_bound (ItType first, ItType last, const ValType& val)
     {
 #ifdef AMREX_DEVICE_COMPILE
