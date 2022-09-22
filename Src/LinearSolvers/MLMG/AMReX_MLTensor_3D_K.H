@@ -2044,13 +2044,13 @@ void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
                 Real dvdx = (vel(i,j,k,1) - vel(i-1,j,k,1))*dxi;
                 Real dwdx = (vel(i,j,k,2) - vel(i-1,j,k,2))*dxi;
 
-                Real dudy = (vel(i,j+1,k,0)+vel(i-1,j+1,k,0)-vel(i,j-1,k,0)-vel(i-1,j-1,k,0))*(Real(0.25)*dyi);
-                Real dvdy = (vel(i,j+1,k,1)+vel(i-1,j+1,k,1)-vel(i,j-1,k,1)-vel(i-1,j-1,k,1))*(Real(0.25)*dyi);
-                Real dwdy = (vel(i,j+1,k,2)+vel(i-1,j+1,k,2)-vel(i,j-1,k,2)-vel(i-1,j-1,k,2))*(Real(0.25)*dyi);
+                Real dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi);
+                Real dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi);
+                Real dwdy = mltensor_dy_on_xface(i,j,k,2,vel,dyi);
 
-                Real dudz = (vel(i,j,k+1,0)+vel(i-1,j,k+1,0)-vel(i,j,k-1,0)-vel(i-1,j,k-1,0))*(Real(0.25)*dzi);
-                Real dvdz = (vel(i,j,k+1,1)+vel(i-1,j,k+1,1)-vel(i,j,k-1,1)-vel(i-1,j,k-1,1))*(Real(0.25)*dzi);
-                Real dwdz = (vel(i,j,k+1,2)+vel(i-1,j,k+1,2)-vel(i,j,k-1,2)-vel(i-1,j,k-1,2))*(Real(0.25)*dzi);
+                Real dudz = mltensor_dz_on_xface(i,j,k,0,vel,dzi);
+                Real dvdz = mltensor_dz_on_xface(i,j,k,1,vel,dzi);
+                Real dwdz = mltensor_dz_on_xface(i,j,k,2,vel,dzi);
 
                 fx(i,j,k,0) = dudx;
                 fx(i,j,k,1) = dvdx;
@@ -2083,17 +2083,17 @@ void mltensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
 
-                Real dudx = (vel(i+1,j,k,0)+vel(i+1,j-1,k,0)-vel(i-1,j,k,0)-vel(i-1,j-1,k,0))*(Real(0.25)*dxi);
-                Real dvdx = (vel(i+1,j,k,1)+vel(i+1,j-1,k,1)-vel(i-1,j,k,1)-vel(i-1,j-1,k,1))*(Real(0.25)*dxi);
-                Real dwdx = (vel(i+1,j,k,2)+vel(i+1,j-1,k,2)-vel(i-1,j,k,2)-vel(i-1,j-1,k,2))*(Real(0.25)*dxi);
+                Real dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi);
+                Real dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi);
+                Real dwdx = mltensor_dx_on_yface(i,j,k,2,vel,dxi);
 
                 Real dudy = (vel(i,j,k,0) - vel(i,j-1,k,0))*dyi;
                 Real dvdy = (vel(i,j,k,1) - vel(i,j-1,k,1))*dyi;
                 Real dwdy = (vel(i,j,k,2) - vel(i,j-1,k,2))*dyi;
 
-                Real dudz = (vel(i,j,k+1,0)+vel(i,j-1,k+1,0)-vel(i,j,k-1,0)-vel(i,j-1,k-1,0))*(Real(0.25)*dzi);
-                Real dvdz = (vel(i,j,k+1,1)+vel(i,j-1,k+1,1)-vel(i,j,k-1,1)-vel(i,j-1,k-1,1))*(Real(0.25)*dzi);
-                Real dwdz = (vel(i,j,k+1,2)+vel(i,j-1,k+1,2)-vel(i,j,k-1,2)-vel(i,j-1,k-1,2))*(Real(0.25)*dzi);
+                Real dudz = mltensor_dz_on_yface(i,j,k,0,vel,dzi);
+                Real dvdz = mltensor_dz_on_yface(i,j,k,1,vel,dzi);
+                Real dwdz = mltensor_dz_on_yface(i,j,k,2,vel,dzi);
 
                 fy(i,j,k,0) = dudx;
                 fy(i,j,k,1) = dvdx;
@@ -2126,13 +2126,13 @@ void mltensor_vel_grads_fz (Box const& box, Array4<Real> const& fz,
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
 
-                Real dudx = (vel(i+1,j,k,0)+vel(i+1,j,k-1,0)-vel(i-1,j,k,0)-vel(i-1,j,k-1,0))*(Real(0.25)*dxi);
-                Real dvdx = (vel(i+1,j,k,1)+vel(i+1,j,k-1,1)-vel(i-1,j,k,1)-vel(i-1,j,k-1,1))*(Real(0.25)*dxi);
-                Real dwdx = (vel(i+1,j,k,2)+vel(i+1,j,k-1,2)-vel(i-1,j,k,2)-vel(i-1,j,k-1,2))*(Real(0.25)*dxi);
+                Real dudx = mltensor_dx_on_zface(i,j,k,0,vel,dxi);
+                Real dvdx = mltensor_dx_on_zface(i,j,k,1,vel,dxi);
+                Real dwdx = mltensor_dx_on_zface(i,j,k,2,vel,dxi);
 
-                Real dudy = (vel(i,j+1,k,0)+vel(i,j+1,k-1,0)-vel(i,j-1,k,0)-vel(i,j-1,k-1,0))*(Real(0.25)*dyi);
-                Real dvdy = (vel(i,j+1,k,1)+vel(i,j+1,k-1,1)-vel(i,j-1,k,1)-vel(i,j-1,k-1,1))*(Real(0.25)*dyi);
-                Real dwdy = (vel(i,j+1,k,2)+vel(i,j+1,k-1,2)-vel(i,j-1,k,2)-vel(i,j-1,k-1,2))*(Real(0.25)*dyi);
+                Real dudy = mltensor_dy_on_zface(i,j,k,0,vel,dyi);
+                Real dvdy = mltensor_dy_on_zface(i,j,k,1,vel,dyi);
+                Real dwdy = mltensor_dy_on_zface(i,j,k,2,vel,dyi);
 
                 Real dudz = (vel(i,j,k,0) - vel(i,j,k-1,0))*dzi;
                 Real dvdz = (vel(i,j,k,1) - vel(i,j,k-1,1))*dzi;

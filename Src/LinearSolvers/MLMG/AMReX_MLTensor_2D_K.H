@@ -369,13 +369,14 @@ void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
+    int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             Real dudx = (vel(i,j,0,0) - vel(i-1,j,0,0))*dxi;
             Real dvdx = (vel(i,j,0,1) - vel(i-1,j,0,1))*dxi;
-            Real dudy = (vel(i,j+1,0,0)+vel(i-1,j+1,0,0)-vel(i,j-1,0,0)-vel(i-1,j-1,0,0))*(Real(0.25)*dyi);
-            Real dvdy = (vel(i,j+1,0,1)+vel(i-1,j+1,0,1)-vel(i,j-1,0,1)-vel(i-1,j-1,0,1))*(Real(0.25)*dyi);
+            Real dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi);
+            Real dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi);
             fx(i,j,0,0) = dudx;
             fx(i,j,0,1) = dvdx;
             fx(i,j,0,2) = dudy;
@@ -394,11 +395,12 @@ void mltensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
+    int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real dudx = (vel(i+1,j,0,0)+vel(i+1,j-1,0,0)-vel(i-1,j,0,0)-vel(i-1,j-1,0,0))*(Real(0.25)*dxi);
-            Real dvdx = (vel(i+1,j,0,1)+vel(i+1,j-1,0,1)-vel(i-1,j,0,1)-vel(i-1,j-1,0,1))*(Real(0.25)*dxi);
+            Real dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi);
+            Real dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi);
             Real dudy = (vel(i,j,0,0) - vel(i,j-1,0,0))*dyi;
             Real dvdy = (vel(i,j,0,1) - vel(i,j-1,0,1))*dyi;
             fy(i,j,0,0) = dudx;
