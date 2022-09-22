@@ -231,6 +231,18 @@ namespace amrex
      */
     Gpu::HostVector<Real> sumToLine (MultiFab const& mf, int icomp, int ncomp,
                                      Box const& domain, int direction, bool local = false);
+
+    /** \brief Volume weighted sum for a vector of MultiFabs
+     *
+     * Return a volume weighted sum of MultiFabs of AMR data.  The sum is
+     * perform on a single component of the data.  If the MultiFabs are
+     * built with EB Factories, the cut cell volume fraction will be
+     * included in the weight.
+     */
+    Real volumeWeightedSum (Vector<MultiFab const*> const& mf, int icomp,
+                            Vector<Geometry> const& geom,
+                            Vector<IntVect> const& ratio,
+                            bool local = false);
 }
 
 namespace amrex {
