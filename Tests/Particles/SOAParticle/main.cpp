@@ -96,7 +96,9 @@ void addParticles ()
 
     }
 
-    for (MyParIter pti(pc, lev); pti.isValid(); ++pti) {
+    auto tmp = pc.template make_alike<amrex::PinnedArenaAllocator>();
+
+    for (MyParIter pti(tmp, lev); pti.isValid(); ++pti) {
         auto& particle_attributes = pti.GetStructOfArrays();
         RealVector& real_comp0 = particle_attributes.GetRealData(0);
         IntVector&  int_comp1  = particle_attributes.GetIntData(1);
@@ -106,9 +108,33 @@ void addParticles ()
         }
     }
 
-    pc.Redistribute();
+    tmp.Redistribute();
+
+        using ConstPTDType = typename T_PC::ParticleTileType::ConstParticleTileDataType;
+        amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
+        auto r = amrex::ParticleReduce<
+            amrex::ReduceData<
+                amrex::ParticleReal, amrex::ParticleReal, amrex::ParticleReal,
+                amrex::ParticleReal, amrex::ParticleReal, amrex::ParticleReal,
+                amrex::ParticleReal>
+        >(
+            pc,
+            [=] AMREX_GPU_DEVICE(const ConstPTDType& ptd, const int i) noexcept
+            {
+
+                const amrex::ParticleReal x = ptd.rdata(0)[i];
+                const amrex::ParticleReal y = ptd.rdata(1)[i];
+                const amrex::ParticleReal z = ptd.rdata(2)[i];
+
+                amrex::ParticleReal const w = ptd.rdata(1)[i];
+
+                return amrex::makeTuple(x, x*x, y, y*y, z, z*z, w);
+            },
+            reduce_ops
+        );
 
     // Reduce for SoA Particle Struct 
+    /*
     using PTDType = typename T_PC::ParticleTileType::ConstParticleTileDataType;
     amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
     auto r = amrex::ParticleReduce<ReduceData<amrex::Real, amrex::Real,int>> (
@@ -125,7 +151,10 @@ void addParticles ()
     AMREX_ALWAYS_ASSERT(amrex::get<0>(r) == amrex::Real(std::pow(256, AMREX_SPACEDIM))); 
     AMREX_ALWAYS_ASSERT(amrex::get<1>(r) == 2.0); 
     AMREX_ALWAYS_ASSERT(amrex::get<2>(r) == 1); 
+    */
 }
+
+
 
 
 int main(int argc, char* argv[])
