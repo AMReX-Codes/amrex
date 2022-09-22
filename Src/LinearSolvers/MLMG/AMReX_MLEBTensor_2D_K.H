@@ -20,6 +20,7 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
     const auto hi = amrex::ubound(box);
     constexpr Real twoThirds = 2./3.;
 
+    int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
@@ -36,9 +37,9 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                 int jlom = j - flag(i-1,j,0).isConnected(0,-1,0);
                 Real whi = mlebtensor_weight(jhip-jhim);
                 Real wlo = mlebtensor_weight(jlop-jlom);
-                Real dudy = mlebtensor_dy_on_xface(i,j,0,vel,dyi,
+                Real dudy = mlebtensor_dy_on_xface(i,j,k,0,vel,dyi,
                                                    whi,wlo,jhip,jhim,jlop,jlom);
-                Real dvdy = mlebtensor_dy_on_xface(i,j,1,vel,dyi,
+                Real dvdy = mlebtensor_dy_on_xface(i,j,k,1,vel,dyi,
                                                    whi,wlo,jhip,jhim,jlop,jlom);
                 Real divu = dvdy;
                 Real xif = kapx(i,j,0);
@@ -65,6 +66,7 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
     const auto hi = amrex::ubound(box);
     constexpr Real twoThirds = 2./3.;
 
+    int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
@@ -81,9 +83,9 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                 int ilom = i - flag(i,j-1,0).isConnected(-1,0,0);
                 Real whi = mlebtensor_weight(ihip-ihim);
                 Real wlo = mlebtensor_weight(ilop-ilom);
-                Real dudx = mlebtensor_dx_on_yface(i,j,0,vel,dxi,
+                Real dudx = mlebtensor_dx_on_yface(i,j,k,0,vel,dxi,
                                                    whi,wlo,ihip,ihim,ilop,ilom);
-                Real dvdx = mlebtensor_dx_on_yface(i,j,1,vel,dxi,
+                Real dvdx = mlebtensor_dx_on_yface(i,j,k,1,vel,dxi,
                                                    whi,wlo,ihip,ihim,ilop,ilom);
                 Real divu = dudx;
                 Real xif = kapy(i,j,0);
@@ -116,6 +118,7 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
     const auto hi = amrex::ubound(box);
     constexpr Real twoThirds = 2./3.;
 
+    int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
@@ -132,10 +135,10 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                 int jlom = j - flag(i-1,j,0).isConnected(0,-1,0);
                 Real whi = mlebtensor_weight(jhip-jhim);
                 Real wlo = mlebtensor_weight(jlop-jlom);
-                Real dudy = mlebtensor_dy_on_xface(i,j,0,vel,dyi,
+                Real dudy = mlebtensor_dy_on_xface(i,j,k,0,vel,dyi,
                                                    bvxlo,bvxhi,bct,dlo,dhi,
                                                    whi,wlo,jhip,jhim,jlop,jlom);
-                Real dvdy = mlebtensor_dy_on_xface(i,j,1,vel,dyi,
+                Real dvdy = mlebtensor_dy_on_xface(i,j,k,1,vel,dyi,
                                                    bvxlo,bvxhi,bct,dlo,dhi,
                                                    whi,wlo,jhip,jhim,jlop,jlom);
                 Real divu = dvdy;
@@ -169,6 +172,7 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
     const auto hi = amrex::ubound(box);
     constexpr Real twoThirds = 2./3.;
 
+    int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
@@ -185,10 +189,10 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                 int ilom = i - flag(i,j-1,0).isConnected(-1,0,0);
                 Real whi = mlebtensor_weight(ihip-ihim);
                 Real wlo = mlebtensor_weight(ilop-ilom);
-                Real dudx = mlebtensor_dx_on_yface(i,j,0,vel,dxi,
+                Real dudx = mlebtensor_dx_on_yface(i,j,k,0,vel,dxi,
                                                    bvylo,bvyhi,bct,dlo,dhi,
                                                    whi,wlo,ihip,ihim,ilop,ilom);
-                Real dvdx = mlebtensor_dx_on_yface(i,j,1,vel,dxi,
+                Real dvdx = mlebtensor_dx_on_yface(i,j,k,1,vel,dxi,
                                                    bvylo,bvyhi,bct,dlo,dhi,
                                                    whi,wlo,ihip,ihim,ilop,ilom);
                 Real divu = dudx;

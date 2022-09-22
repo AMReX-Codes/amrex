@@ -195,11 +195,12 @@ void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
     const auto hi = amrex::ubound(box);
     constexpr Real twoThirds = Real(2./3.);
 
+    int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real dudy = mltensor_dy_on_xface(i,j,0,vel,dyi);
-            Real dvdy = mltensor_dy_on_xface(i,j,1,vel,dyi);
+            Real dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi);
+            Real dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi);
             Real divu = dvdy;
             Real xif = kapx(i,j,0);
             Real mun = Real(0.75)*(etax(i,j,0,0)-xif);  // restore the original eta
@@ -222,11 +223,12 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
     const auto hi = amrex::ubound(box);
     constexpr Real twoThirds = Real(2./3.);
 
+    int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real dudx = mltensor_dx_on_yface(i,j,0,vel,dxi);
-            Real dvdx = mltensor_dx_on_yface(i,j,1,vel,dxi);
+            Real dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi);
+            Real dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi);
             Real divu = dudx;
             Real xif = kapy(i,j,0);
             Real mun = Real(0.75)*(etay(i,j,0,1)-xif);  // restore the original eta
@@ -257,10 +259,11 @@ void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
 
     // Three BC types: reflect odd, neumann, and dirichlet
 
+    int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real dudy = mltensor_dy_on_xface(i,j,0,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
-            Real dvdy = mltensor_dy_on_xface(i,j,1,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+            Real dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+            Real dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
             Real divu = dvdy;
             Real xif = kapx(i,j,0);
             Real mun = Real(0.75)*(etax(i,j,0,0)-xif);  // restore the original eta
@@ -289,10 +292,11 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
     const auto hi = amrex::ubound(box);
     constexpr Real twoThirds = Real(2./3.);
 
+    int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real dudx = mltensor_dx_on_yface(i,j,0,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
-            Real dvdx = mltensor_dx_on_yface(i,j,1,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
+            Real dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
+            Real dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
             Real divu = dudx;
             Real xif = kapy(i,j,0);
             Real mun = Real(0.75)*(etay(i,j,0,1)-xif);  // restore the original eta
@@ -421,12 +425,13 @@ void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
+    int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
             Real dudx = (vel(i,j,0,0) - vel(i-1,j,0,0))*dxi;
             Real dvdx = (vel(i,j,0,1) - vel(i-1,j,0,1))*dxi;
-            Real dudy = mltensor_dy_on_xface(i,j,0,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
-            Real dvdy = mltensor_dy_on_xface(i,j,1,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+            Real dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+            Real dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
             fx(i,j,0,0) = dudx;
             fx(i,j,0,1) = dvdx;
             fx(i,j,0,2) = dudy;
@@ -451,10 +456,11 @@ void mltensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
+    int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real dudx = mltensor_dx_on_yface(i,j,0,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
-            Real dvdx = mltensor_dx_on_yface(i,j,1,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
+            Real dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
+            Real dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
             Real dudy = (vel(i,j,0,0) - vel(i,j-1,0,0))*dyi;
             Real dvdy = (vel(i,j,0,1) - vel(i,j-1,0,1))*dyi;
             fy(i,j,0,0) = dudx;
