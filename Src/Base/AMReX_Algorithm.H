@@ -163,7 +163,7 @@ namespace amrex
     {
 #if AMREX_DEVICE_COMPILE
         ItType it;
-        size_t count, step;
+        std::ptrdiff_t count, step;
         count = last-first;
         while(count>0){
             it = first;
@@ -189,7 +189,7 @@ namespace amrex
     ItType lower_bound (ItType first, ItType last, const ValType& val)
     {
 #ifdef AMREX_DEVICE_COMPILE
-        size_t count = last-first;
+        std::ptrdiff_t count = last-first;
         do{
             auto it = first;
             const auto step = count/2;
