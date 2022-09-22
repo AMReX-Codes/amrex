@@ -5,14 +5,6 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_BndryData.H>
 
-#if (AMREX_SPACEDIM == 1)
-#include <AMReX_MLTensor_1D_K.H>
-#elif (AMREX_SPACEDIM == 2)
-#include <AMReX_MLTensor_2D_K.H>
-#else
-#include <AMReX_MLTensor_3D_K.H>
-#endif
-
 namespace amrex {
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -128,6 +120,14 @@ Real mltensor_dx_on_yface (int i, int j, int k, int n, Array4<Real const> const&
     }
     return ddx;
 }
-
 }
+
+#if (AMREX_SPACEDIM == 1)
+#include <AMReX_MLTensor_1D_K.H>
+#elif (AMREX_SPACEDIM == 2)
+#include <AMReX_MLTensor_2D_K.H>
+#else
+#include <AMReX_MLTensor_3D_K.H>
+#endif
+
 #endif
