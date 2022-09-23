@@ -844,6 +844,74 @@ public:
 
 };
 
+/**
+* \brief Quartic interpolation on cell centered data.
+*
+* Quartic interpolation on cell centered data.
+*/
+
+class CellQuartic
+    :
+    public Interpolater
+{
+public:
+
+    /**
+    * \brief The constructor.
+    */
+    explicit CellQuartic ();
+
+    /**
+    * \brief The destructor.
+    */
+    virtual ~CellQuartic () override;
+
+    /**
+    * \brief Returns coarsened box given fine box and refinement ratio.
+    *
+    * \param fine
+    * \param ratio
+    */
+    virtual Box CoarseBox (const Box& fine, int ratio) override;
+
+    /**
+    * \brief Returns coarsened box given fine box and refinement ratio.
+    *
+    * \param fine
+    * \param ratio
+    */
+    virtual Box CoarseBox (const Box& fine, const IntVect& ratio) override;
+
+    /**
+    * \brief Coarse to fine interpolation in space.
+    *
+    * \param crse
+    * \param crse_comp
+    * \param fine
+    * \param fine_comp
+    * \param ncomp
+    * \param fine_region
+    * \param ratio
+    * \param crse_geom
+    * \param fine_geom
+    * \param bcr
+    * \param actual_comp
+    * \param actual_state
+    */
+    virtual void interp (const FArrayBox& crse,
+                         int              crse_comp,
+                         FArrayBox&       fine,
+                         int              fine_comp,
+                         int              ncomp,
+                         const Box&       fine_region,
+                         const IntVect&   ratio,
+                         const Geometry&  crse_geom,
+                         const Geometry&  fine_geom,
+                         Vector<BCRec> const& bcr,
+                         int              actual_comp,
+                         int              actual_state,
+                         RunOn            gpu_or_cpu) override;
+};
 
 //! CONSTRUCT A GLOBAL OBJECT OF EACH VERSION.
 extern AMREX_EXPORT PCInterp                  pc_interp;
@@ -856,6 +924,7 @@ extern AMREX_EXPORT CellBilinear              cell_bilinear_interp;
 extern AMREX_EXPORT CellConservativeProtected protected_interp;
 extern AMREX_EXPORT CellConservativeQuartic   quartic_interp;
 extern AMREX_EXPORT CellQuadratic             quadratic_interp;
+extern AMREX_EXPORT CellQuartic               cell_quartic_interp;
 
 }
 
