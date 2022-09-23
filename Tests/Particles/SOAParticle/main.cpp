@@ -96,7 +96,13 @@ void addParticles ()
 
     }
 
+    // create a host-side particle buffer
     auto tmp = pc.template make_alike<amrex::PinnedArenaAllocator>();
+
+    //  copy device-to-host
+    bool const local = true;
+    tmp.copyParticles(pc, local);
+
     using MyPinnedParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt, amrex::PinnedArenaAllocator>;
 
     for (MyPinnedParIter pti(tmp, lev); pti.isValid(); ++pti) {
