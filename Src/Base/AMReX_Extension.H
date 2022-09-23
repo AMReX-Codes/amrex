@@ -45,7 +45,7 @@
 #if defined(AMREX_DEBUG)
 #define AMREX_PRAGMA_SIMD
 
-#elif defined(__CUDA_ARCH__)
+#elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA)
 #define AMREX_PRAGMA_SIMD
 
 #elif defined(__HIP_DEVICE_COMPILE__)
@@ -84,7 +84,7 @@
 #endif /* simd */
 
 // force inline
-#if defined(__CUDA_ARCH__)
+#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA)
 #define AMREX_FORCE_INLINE __forceinline__
 
 #elif defined(__HIP_DEVICE_COMPILE__)

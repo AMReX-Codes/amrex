@@ -92,7 +92,7 @@ struct range_impl
 
     AMREX_GPU_HOST_DEVICE
     iterator begin () const noexcept {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || defined(__HIP_DEVICE_COMPILE__)
         return iterator(m_b, blockDim.x*blockIdx.x+threadIdx.x, blockDim.x*gridDim.x);
 #elif defined (__SYCL_DEVICE_ONLY__)
         return iterator(m_b, m_gid, m_grange);
