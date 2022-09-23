@@ -111,28 +111,28 @@ void addParticles ()
 
     tmp.Redistribute();
 
-        using ConstPTDType = typename T_PC::ParticleTileType::ConstParticleTileDataType;
-        amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
-        auto r = amrex::ParticleReduce<
-            amrex::ReduceData<
-                amrex::ParticleReal, amrex::ParticleReal, amrex::ParticleReal,
-                amrex::ParticleReal, amrex::ParticleReal, amrex::ParticleReal,
-                amrex::ParticleReal>
-        >(
-            pc,
-            [=] AMREX_GPU_DEVICE(const ConstPTDType& ptd, const int i) noexcept
-            {
+    using ConstPTDType = typename T_PC::ParticleTileType::ConstParticleTileDataType;
+    amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
+    auto r = amrex::ParticleReduce<
+        amrex::ReduceData<
+            amrex::ParticleReal, amrex::ParticleReal, amrex::ParticleReal,
+            amrex::ParticleReal, amrex::ParticleReal, amrex::ParticleReal,
+            amrex::ParticleReal>
+    >(
+        pc,
+        [=] AMREX_GPU_DEVICE(const ConstPTDType& ptd, const int i) noexcept
+        {
 
-                const amrex::ParticleReal x = ptd.rdata(0)[i];
-                const amrex::ParticleReal y = ptd.rdata(1)[i];
-                const amrex::ParticleReal z = ptd.rdata(2)[i];
+            const amrex::ParticleReal x = ptd.rdata(0)[i];
+            const amrex::ParticleReal y = ptd.rdata(1)[i];
+            const amrex::ParticleReal z = ptd.rdata(2)[i];
 
-                amrex::ParticleReal const w = ptd.rdata(1)[i];
+            amrex::ParticleReal const w = ptd.rdata(1)[i];
 
-                return amrex::makeTuple(x, x*x, y, y*y, z, z*z, w);
-            },
-            reduce_ops
-        );
+            return amrex::makeTuple(x, x*x, y, y*y, z, z*z, w);
+        },
+        reduce_ops
+    );
 
     // Reduce for SoA Particle Struct 
     /*
