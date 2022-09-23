@@ -97,11 +97,12 @@ void addParticles ()
     }
 
     auto tmp = pc.template make_alike<amrex::PinnedArenaAllocator>();
+    using MyPinnedParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt, amrex::PinnedArenaAllocator>;
 
-    for (MyParIter pti(tmp, lev); pti.isValid(); ++pti) {
+    for (MyPinnedParIter pti(tmp, lev); pti.isValid(); ++pti) {
         auto& particle_attributes = pti.GetStructOfArrays();
-        RealVector& real_comp0 = particle_attributes.GetRealData(0);
-        IntVector&  int_comp1  = particle_attributes.GetIntData(1);
+        auto& real_comp0 = particle_attributes.GetRealData(0);
+        auto&  int_comp1  = particle_attributes.GetIntData(1);
         for (int i = 0; i < pti.numParticles(); ++i) {
             real_comp0[i] += 1;
             int_comp1[i] += 1;
