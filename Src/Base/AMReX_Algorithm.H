@@ -162,12 +162,10 @@ namespace amrex
     ItType upper_bound (ItType first, ItType last, const ValType& val)
     {
 #if AMREX_DEVICE_COMPILE
-        ItType it;
-        std::ptrdiff_t count, step;
-        count = last-first;
+        std::ptrdiff_t count = last-first;
         while(count>0){
-            it = first;
-            step = count/2;
+            auto it = first;
+            const auto step = count/2;
             it += step;
             if (!(val<*it)){
                 first = ++it;
@@ -190,7 +188,8 @@ namespace amrex
     {
 #ifdef AMREX_DEVICE_COMPILE
         std::ptrdiff_t count = last-first;
-        do{
+        while(count>0)
+        {
             auto it = first;
             const auto step = count/2;
             it += step;
@@ -201,7 +200,7 @@ namespace amrex
             else{
                 count = step;
             }
-        } while(count>0);
+        }
 
         return first;
 #else
