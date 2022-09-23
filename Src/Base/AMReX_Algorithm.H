@@ -167,7 +167,7 @@ namespace amrex
             auto it = first;
             const auto step = count/2;
             it += step;
-            if (!(val<*it)){
+            if (!(val < *it)){
                 first = ++it;
                 count -= step + 1;
             }
@@ -193,7 +193,7 @@ namespace amrex
             auto it = first;
             const auto step = count/2;
             it += step;
-            if (!(val<=*it)){
+            if (*it < val){
                 first = ++it;
                 count -= step + 1;
             }
