@@ -638,7 +638,6 @@ Read (FabArray<FAB>& fa, const std::string& name)
         }
 
         int totalioreqs = nboxes;
-        int messtotal = 0;
         int reqspending = 0;
         int iopfileindex;
         std::deque<int> iopreads;
@@ -669,7 +668,6 @@ Read (FabArray<FAB>& fa, const std::string& name)
                             }
                         } else {
                             ParallelDescriptor::Send(vreads, tryproc, readtag);
-                            ++messtotal;
                             ++reqspending;
                         }
                         availablefiles.erase(afilesiter);
