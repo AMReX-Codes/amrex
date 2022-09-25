@@ -311,7 +311,6 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                             auto const& flag = flags[bi];
 
                             Real ax = 0.; Real ay = 0.;
-
                             if (flag(i,j,k).isConnected(1,0,0)) {
                                 ax = amrex::max(ax,amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k)));
                             }
@@ -344,15 +343,17 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                         {
                             auto const& dat = datma[bi];
 
-                            Real ax = 0.; Real ay = 0.; Real az = 0.;
+                            Real ax = 0.;
                             ax = amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k));
                             ax = amrex::max(ax,amrex::Math::abs(dat(i,j,k) - dat(i-1,j,k)));
 #if AMREX_SPACEDIM == 1
                             if (ax >= threshold) { tagma[bi](i,j,k) = tag_update;}
 #else
+                            Real ay = 0.;
                             ay = amrex::Math::abs(dat(i,j+1,k) - dat(i,j,k));
                             ay = amrex::max(ay,amrex::Math::abs(dat(i,j,k) - dat(i,j-1,k)));
 #if AMREX_SPACEDIM > 2
+                            Real az = 0.;
                             az = amrex::Math::abs(dat(i,j,k+1) - dat(i,j,k));
                             az = amrex::max(az,amrex::Math::abs(dat(i,j,k) - dat(i,j,k-1)));
 #endif // DIM > 2
@@ -410,16 +411,15 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                         {
                             auto const& dat = datma[bi];
 
-                            Real ax = 0.; Real ay = 0.; Real az = 0.;
-                            ax = amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k));
+                            Real ax = amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k));
                             ax = amrex::max(ax,amrex::Math::abs(dat(i,j,k) - dat(i-1,j,k)));
 #if AMREX_SPACEDIM == 1
                             if (ax >= threshold * amrex::Math::abs(dat(i,j,k))) { tagma[bi](i,j,k) = tag_update;}
 #else
-                            ay = amrex::Math::abs(dat(i,j+1,k) - dat(i,j,k));
+                            Real ay = amrex::Math::abs(dat(i,j+1,k) - dat(i,j,k));
                             ay = amrex::max(ay,amrex::Math::abs(dat(i,j,k) - dat(i,j-1,k)));
 #if AMREX_SPACEDIM > 2
-                            az = amrex::Math::abs(dat(i,j,k+1) - dat(i,j,k));
+                            Real az = amrex::Math::abs(dat(i,j,k+1) - dat(i,j,k));
                             az = amrex::max(az,amrex::Math::abs(dat(i,j,k) - dat(i,j,k-1)));
 #endif // DIM > 2
                             if (amrex::max(AMREX_D_DECL(ax,ay,az))
