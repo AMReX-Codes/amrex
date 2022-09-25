@@ -1226,4 +1226,158 @@ namespace amrex
         }
         return hv;
     }
+
+        Real volumeWeightedSum (Vector<MultiFab const*> const& mf, int icomp,
+                                Vector<Geometry> const& geom,
+                                Vector<IntVect> const& ratio,
+                                bool local)
+        {
+            ReduceOps<ReduceOpSum> reduce_op;
+            ReduceData<Real> reduce_data(reduce_op);
+
+#ifdef AMREX_USE_EB
+            bool has_eb = !(mf[0]->isAllRegular());
+#endif
+
+            int nlevels = mf.size();
+            for (int ilev = 0; ilev < nlevels-1; ++ilev) {
+                iMultiFab mask = makeFineMask(*mf[ilev], *mf[ilev+1], IntVect(0),
+                                              ratio[ilev],Periodicity::NonPeriodic(),
+                                              0, 1);
+                auto const& m = mask.const_arrays();
+                auto const& a = mf[ilev]->const_arrays();
+                auto const dx = geom[ilev].CellSizeArray();
+                Real dv = AMREX_D_TERM(dx[0],*dx[1],*dx[2]);
+#ifdef AMREX_USE_EB
+                if (has_eb) {
+                    AMREX_ASSERT(mf[ilev]->hasEBFabFactory());
+                    auto const& f = dynamic_cast<EBFArrayBoxFactory const&>
+                        (mf[ilev]->Factory());
+                    auto const& vfrac = f.getVolFrac();
+                    auto const& va = vfrac.const_arrays();
+                    reduce_op.eval(*mf[ilev], IntVect(0), reduce_data,
+                    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                                   -> Real
+                    {
+                        return m[box_no](i,j,k) ? Real(0.)
+                            : dv*a[box_no](i,j,k,icomp)*va[box_no](i,j,k);
+                    });
+                } else
+#endif
+                {
+#if (AMREX_SPACEDIM == 1)
+                    if (geom[ilev].IsSPHERICAL()) {
+                        const auto rlo = geom[ilev].CellSize(0);
+                        reduce_op.eval(*mf[ilev], IntVect(0), reduce_data,
+                        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
+                                       noexcept -> Real
+                        {
+                            if (m[box_no](i,j,k)) {
+                                return Real(0.);
+                            } else {
+                                constexpr Real pi = Real(3.1415926535897932);
+                                Real ri = rlo + dx[0]*i;
+                                Real ro = ri + dx[0];
+                                return Real(4./3.)*pi*(ro-ri)*(ro*ro+ro*ri+ri*ri)
+                                    * a[box_no](i,j,k,icomp);
+                            }
+                        });
+                    } else
+#elif (AMREX_SPACEDIM == 2)
+                    if (geom[ilev].IsRZ()) {
+                        const auto rlo = geom[ilev].CellSize(0);
+                        reduce_op.eval(*mf[ilev], IntVect(0), reduce_data,
+                        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
+                                       noexcept -> Real
+                        {
+                            if (m[box_no](i,j,k)) {
+                                return Real(0.);
+                            } else {
+                                Real ri = rlo + dx[0]*i;
+                                Real ro = ri + dx[0];
+                                constexpr Real pi = Real(3.1415926535897932);
+                                return pi*dx[1]*dx[0]*(ro+ri)
+                                    * a[box_no](i,j,k,icomp);
+                            }
+                        });
+                    } else
+#endif
+                    {
+                        reduce_op.eval(*mf[ilev], IntVect(0), reduce_data,
+                        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
+                                       noexcept -> Real
+                        {
+                            return m[box_no](i,j,k) ? Real(0.)
+                                : dv*a[box_no](i,j,k,icomp);
+                        });
+                    }
+                }
+                Gpu::streamSynchronize();
+            }
+
+            auto const& a = mf.back()->const_arrays();
+            auto const dx = geom[nlevels-1].CellSizeArray();
+            Real dv = AMREX_D_TERM(dx[0],*dx[1],*dx[2]);
+#ifdef AMREX_USE_EB
+            if (has_eb) {
+                AMREX_ASSERT(mf.back()->hasEBFabFactory());
+                auto const& f = dynamic_cast<EBFArrayBoxFactory const&>
+                    (mf.back()->Factory());
+                auto const& vfrac = f.getVolFrac();
+                auto const& va = vfrac.const_arrays();
+                reduce_op.eval(*mf.back(), IntVect(0), reduce_data,
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                               -> Real
+                {
+                    return dv*a[box_no](i,j,k,icomp)*va[box_no](i,j,k);
+                });
+            } else
+#endif
+            {
+#if (AMREX_SPACEDIM == 1)
+                if (geom[nlevels-1].IsSPHERICAL()) {
+                    const auto rlo = geom[nlevels-1].CellSize(0);
+                    reduce_op.eval(*mf.back(), IntVect(0), reduce_data,
+                    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
+                                   noexcept -> Real
+                    {
+                        constexpr Real pi = Real(3.1415926535897932);
+                        Real ri = rlo + dx[0]*i;
+                        Real ro = ri + dx[0];
+                        return Real(4./3.)*pi*(ro-ri)*(ro*ro+ro*ri+ri*ri)
+                            * a[box_no](i,j,k,icomp);
+                    });
+                } else
+#elif (AMREX_SPACEDIM == 2)
+                if (geom[nlevels-1].IsRZ()) {
+                    const auto rlo = geom[nlevels-1].CellSize(0);
+                    reduce_op.eval(*mf.back(), IntVect(0), reduce_data,
+                    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
+                                   noexcept -> Real
+                    {
+                        Real ri = rlo + dx[0]*i;
+                        Real ro = ri + dx[0];
+                        constexpr Real pi = Real(3.1415926535897932);
+                        return pi*dx[1]*dx[0]*(ro+ri)
+                            * a[box_no](i,j,k,icomp);
+                    });
+                } else
+#endif
+                {
+                    reduce_op.eval(*mf.back(), IntVect(0), reduce_data,
+                    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                    {
+                        return dv*a[box_no](i,j,k,icomp);
+                    });
+                }
+            }
+
+            auto const& hv = reduce_data.value(reduce_op);
+            Real r = amrex::get<0>(hv);
+
+            if (!local) {
+                ParallelAllReduce::Sum(r, ParallelContext::CommunicatorSub());
+            }
+            return r;
+        }
 }
