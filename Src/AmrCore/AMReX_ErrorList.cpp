@@ -308,7 +308,6 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                         ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
                         {
                             auto const& dat  = datma[bi];
-                            auto const& tag  = tagma[bi];
                             auto const& flag = flags[bi];
 
                             Real ax = 0.; Real ay = 0.;
@@ -335,7 +334,7 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                             }
 #endif
                             if (amrex::max(AMREX_D_DECL(ax,ay,az)) >= threshold) {
-                                tag(i,j,k) = tag_update;
+                                tagma[bi](i,j,k) = tag_update;
                             }
                         });
                     } else
@@ -344,7 +343,6 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                         ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
                         {
                             auto const& dat = datma[bi];
-                            auto const& tag  = tagma[bi];
 
                             Real ax = 0.; Real ay = 0.; Real az = 0.;
                             ax = amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k));
@@ -359,7 +357,7 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                             az = amrex::max(az,amrex::Math::abs(dat(i,j,k) - dat(i,j,k-1)));
 #endif // DIM > 2
                             if (amrex::max(AMREX_D_DECL(ax,ay,az)) >= threshold) {
-                                tag(i,j,k) = tag_update;
+                                tagma[bi](i,j,k) = tag_update;
                             }
 #endif // DIM > 1
                        });
@@ -375,7 +373,6 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                         ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
                         {
                             auto const& dat  = datma[bi];
-                            auto const& tag  = tagma[bi];
                             auto const& flag = flags[bi];
 
                             Real ax = 0.; Real ay = 0.;
@@ -400,19 +397,18 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                             if (flag(i,j,k).isConnected(0,0,-1)) {
                                 az = amrex::max(az,amrex::Math::abs(dat(i,j,k) - dat(i,j,k-1)));
                             }
+#endif // DIM > 2
                             if (amrex::max(AMREX_D_DECL(ax,ay,az))
                                 >= threshold * amrex::Math::abs(dat(i,j,k))) {
                                 tagma[bi](i,j,k) = tag_update;
                             }
                         });
-#endif // DIM > 2
                     } else
 #endif
                     {
                         ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
                         {
                             auto const& dat = datma[bi];
-                            auto const& tag  = tagma[bi];
 
                             Real ax = 0.; Real ay = 0.; Real az = 0.;
                             ax = amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k));
