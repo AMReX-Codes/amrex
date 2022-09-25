@@ -290,12 +290,6 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
             else
             {
                 auto const& datma   = mf->const_arrays();
-
-#ifdef AMREX_USE_EB
-                auto const& ebfact =
-                    dynamic_cast<amrex::EBFArrayBoxFactory const&>(mf->Factory());
-                auto const& flags = ebfact.getMultiEBCellFlagFab().arrays();
-#endif
                 auto threshold = m_value[level];
                 auto const volume_weighting = m_info.m_volume_weighting;
                 auto geomdata = geom.data();
@@ -306,158 +300,222 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
 
                 if (m_test == GRAD)
                 {
-                    ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
-                    {
-                        auto const& dat  = datma[bi];
-                        auto const& tag  = tagma[bi];
-
-                        Real ax = 0.; Real ay = 0.; Real az = 0.;
 #ifdef AMREX_USE_EB
-                        auto const& flag = flags[bi];
-                        if (flag(i,j,k).isConnected(1,0,0)) {
-                            ax = amrex::max(ax,amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k)));
-                        }
-                        if (flag(i,j,k).isConnected(-1,0,0)) {
-                            ax = amrex::max(ax,amrex::Math::abs(dat(i,j,k) - dat(i-1,j,k)));
-                        }
-                        if (flag(i,j,k).isConnected(0,1,0)) {
-                            ay = amrex::max(ay,amrex::Math::abs(dat(i,j+1,k) - dat(i,j,k)));
-                        }
-                        if (flag(i,j,k).isConnected(0,-1,0)) {
-                            ay = amrex::max(ay,amrex::Math::abs(dat(i,j,k) - dat(i,j-1,k)));
-                        }
+                    if (mf->hasEBFabFactory()) {
+                        auto const& ebfact =
+                            dynamic_cast<amrex::EBFArrayBoxFactory const&>(mf->Factory());
+                        auto const& flags = ebfact.getMultiEBCellFlagFab().arrays();
+                        ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
+                        {
+                            auto const& dat  = datma[bi];
+                            auto const& tag  = tagma[bi];
+                            auto const& flag = flags[bi];
+
+                            Real ax = 0.; Real ay = 0.;
+
+                            if (flag(i,j,k).isConnected(1,0,0)) {
+                                ax = amrex::max(ax,amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k)));
+                            }
+                            if (flag(i,j,k).isConnected(-1,0,0)) {
+                                ax = amrex::max(ax,amrex::Math::abs(dat(i,j,k) - dat(i-1,j,k)));
+                            }
+                            if (flag(i,j,k).isConnected(0,1,0)) {
+                                ay = amrex::max(ay,amrex::Math::abs(dat(i,j+1,k) - dat(i,j,k)));
+                            }
+                            if (flag(i,j,k).isConnected(0,-1,0)) {
+                                ay = amrex::max(ay,amrex::Math::abs(dat(i,j,k) - dat(i,j-1,k)));
+                            }
 #if AMREX_SPACEDIM > 2
-                        if (flag(i,j,k).isConnected(0,0,1)) {
-                            az = amrex::max(az,amrex::Math::abs(dat(i,j,k+1) - dat(i,j,k)));
-                        }
-                        if (flag(i,j,k).isConnected(0,0,-1)) {
-                            az = amrex::max(az,amrex::Math::abs(dat(i,j,k) - dat(i,j,k-1)));
-                        }
+                            Real az = 0.;
+                            if (flag(i,j,k).isConnected(0,0,1)) {
+                                az = amrex::max(az,amrex::Math::abs(dat(i,j,k+1) - dat(i,j,k)));
+                            }
+                            if (flag(i,j,k).isConnected(0,0,-1)) {
+                                az = amrex::max(az,amrex::Math::abs(dat(i,j,k) - dat(i,j,k-1)));
+                            }
 #endif
-                        if (amrex::max(AMREX_D_DECL(ax,ay,az)) >= threshold) {
-                            tag(i,j,k) = tag_update;
-                        }
-#else // no EB
-                        ax = amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k));
-                        ax = amrex::max(ax,amrex::Math::abs(dat(i,j,k) - dat(i-1,j,k)));
+                            if (amrex::max(AMREX_D_DECL(ax,ay,az)) >= threshold) {
+                                tag(i,j,k) = tag_update;
+                            }
+                        });
+                    } else
+#endif
+                    {
+                        ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
+                        {
+                            auto const& dat = datma[bi];
+                            auto const& tag  = tagma[bi];
+
+                            Real ax = 0.; Real ay = 0.; Real az = 0.;
+                            ax = amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k));
+                            ax = amrex::max(ax,amrex::Math::abs(dat(i,j,k) - dat(i-1,j,k)));
 #if AMREX_SPACEDIM == 1
-                        if (ax >= threshold) { tagma[bi](i,j,k) = tag_update;}
+                            if (ax >= threshold) { tagma[bi](i,j,k) = tag_update;}
 #else
-                        ay = amrex::Math::abs(dat(i,j+1,k) - dat(i,j,k));
-                        ay = amrex::max(ay,amrex::Math::abs(dat(i,j,k) - dat(i,j-1,k)));
+                            ay = amrex::Math::abs(dat(i,j+1,k) - dat(i,j,k));
+                            ay = amrex::max(ay,amrex::Math::abs(dat(i,j,k) - dat(i,j-1,k)));
 #if AMREX_SPACEDIM > 2
-                        az = amrex::Math::abs(dat(i,j,k+1) - dat(i,j,k));
-                        az = amrex::max(az,amrex::Math::abs(dat(i,j,k) - dat(i,j,k-1)));
+                            az = amrex::Math::abs(dat(i,j,k+1) - dat(i,j,k));
+                            az = amrex::max(az,amrex::Math::abs(dat(i,j,k) - dat(i,j,k-1)));
 #endif // DIM > 2
-                        if (amrex::max(AMREX_D_DECL(ax,ay,az)) >= threshold) {
-                            tag(i,j,k) = tag_update;
-                        }
+                            if (amrex::max(AMREX_D_DECL(ax,ay,az)) >= threshold) {
+                                tag(i,j,k) = tag_update;
+                            }
 #endif // DIM > 1
-#endif // not EB
-                    });
+                       });
+                    }
                 }
                 else if (m_test == RELGRAD)
                 {
-                    ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
-                    {
-                        auto const& dat = datma[bi];
-                        Real ax = 0.; Real ay = 0.; Real az = 0.;
 #ifdef AMREX_USE_EB
-                        auto const& flag = flags[bi];
-                        if (flag(i,j,k).isConnected(1,0,0)) {
-                            ax = amrex::max(ax,amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k)));
-                        }
-                        if (flag(i,j,k).isConnected(-1,0,0)) {
+                    if (mf->hasEBFabFactory()) {
+                        auto const& ebfact =
+                            dynamic_cast<amrex::EBFArrayBoxFactory const&>(mf->Factory());
+                        auto const& flags = ebfact.getMultiEBCellFlagFab().arrays();
+                        ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
+                        {
+                            auto const& dat  = datma[bi];
+                            auto const& tag  = tagma[bi];
+                            auto const& flag = flags[bi];
+
+                            Real ax = 0.; Real ay = 0.;
+
+                            if (flag(i,j,k).isConnected(1,0,0)) {
+                                ax = amrex::max(ax,amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k)));
+                            }
+                            if (flag(i,j,k).isConnected(-1,0,0)) {
+                                ax = amrex::max(ax,amrex::Math::abs(dat(i,j,k) - dat(i-1,j,k)));
+                            }
+                            if (flag(i,j,k).isConnected(0,1,0)) {
+                                ay = amrex::max(ay,amrex::Math::abs(dat(i,j+1,k) - dat(i,j,k)));
+                            }
+                            if (flag(i,j,k).isConnected(0,-1,0)) {
+                                ay = amrex::max(ay,amrex::Math::abs(dat(i,j,k) - dat(i,j-1,k)));
+                            }
+#if AMREX_SPACEDIM > 2
+                            Real az = 0.;
+                            if (flag(i,j,k).isConnected(0,0,1)) {
+                                az = amrex::max(az,amrex::Math::abs(dat(i,j,k+1) - dat(i,j,k)));
+                            }
+                            if (flag(i,j,k).isConnected(0,0,-1)) {
+                                az = amrex::max(az,amrex::Math::abs(dat(i,j,k) - dat(i,j,k-1)));
+                            }
+                            if (amrex::max(AMREX_D_DECL(ax,ay,az))
+                                >= threshold * amrex::Math::abs(dat(i,j,k))) {
+                                tagma[bi](i,j,k) = tag_update;
+                            }
+                        });
+#endif // DIM > 2
+                    } else
+#endif
+                    {
+                        ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
+                        {
+                            auto const& dat = datma[bi];
+                            auto const& tag  = tagma[bi];
+
+                            Real ax = 0.; Real ay = 0.; Real az = 0.;
+                            ax = amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k));
                             ax = amrex::max(ax,amrex::Math::abs(dat(i,j,k) - dat(i-1,j,k)));
-                        }
-                        if (flag(i,j,k).isConnected(0,1,0)) {
-                            ay = amrex::max(ay,amrex::Math::abs(dat(i,j+1,k) - dat(i,j,k)));
-                        }
-                        if (flag(i,j,k).isConnected(0,-1,0)) {
-                            ay = amrex::max(ay,amrex::Math::abs(dat(i,j,k) - dat(i,j-1,k)));
-                        }
-#if AMREX_SPACEDIM > 2
-                        if (flag(i,j,k).isConnected(0,0,1)) {
-                            az = amrex::max(az,amrex::Math::abs(dat(i,j,k+1) - dat(i,j,k)));
-                        }
-                        if (flag(i,j,k).isConnected(0,0,-1)) {
-                            az = amrex::max(az,amrex::Math::abs(dat(i,j,k) - dat(i,j,k-1)));
-                        }
-                        if (amrex::max(AMREX_D_DECL(ax,ay,az))
-                            >= threshold * amrex::Math::abs(dat(i,j,k))) {
-                            tagma[bi](i,j,k) = tag_update;
-                        }
-#endif // DIM > 2
-#else // no EB
-                        ax = amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k));
-                        ax = amrex::max(ax,amrex::Math::abs(dat(i,j,k) - dat(i-1,j,k)));
 #if AMREX_SPACEDIM == 1
-                        if (ax >= threshold * amrex::Math::abs(dat(i,j,k))) { tagma[bi](i,j,k) = tag_update;}
+                            if (ax >= threshold * amrex::Math::abs(dat(i,j,k))) { tagma[bi](i,j,k) = tag_update;}
 #else
-                        ay = amrex::Math::abs(dat(i,j+1,k) - dat(i,j,k));
-                        ay = amrex::max(ay,amrex::Math::abs(dat(i,j,k) - dat(i,j-1,k)));
+                            ay = amrex::Math::abs(dat(i,j+1,k) - dat(i,j,k));
+                            ay = amrex::max(ay,amrex::Math::abs(dat(i,j,k) - dat(i,j-1,k)));
 #if AMREX_SPACEDIM > 2
-                        az = amrex::Math::abs(dat(i,j,k+1) - dat(i,j,k));
-                        az = amrex::max(az,amrex::Math::abs(dat(i,j,k) - dat(i,j,k-1)));
+                            az = amrex::Math::abs(dat(i,j,k+1) - dat(i,j,k));
+                            az = amrex::max(az,amrex::Math::abs(dat(i,j,k) - dat(i,j,k-1)));
 #endif // DIM > 2
-                        if (amrex::max(AMREX_D_DECL(ax,ay,az))
-                            >= threshold * amrex::Math::abs(dat(i,j,k))) {
-                            tagma[bi](i,j,k) = tag_update;
-                        }
+                            if (amrex::max(AMREX_D_DECL(ax,ay,az))
+                                >= threshold * amrex::Math::abs(dat(i,j,k))) {
+                                tagma[bi](i,j,k) = tag_update;
+                            }
 #endif // DIM > 1
-#endif // not EB
-                    });
+                        });
+                    }
                 }
                 else if (m_test == LESS)
                 {
-                    ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
-                    {
-                        Real vol = volume_weighting ? Geometry::Volume(IntVect{AMREX_D_DECL(i,j,k)}, geomdata) : 1.0_rt;
 #ifdef AMREX_USE_EB
-                        auto const& flag = flags[bi];
-                        if (!flag(i,j,k).isCovered()) {
-#endif
-                            if (datma[bi](i,j,k) * vol <= threshold) {
-                                tagma[bi](i,j,k) = tag_update;
+                    if (mf->hasEBFabFactory()) {
+                        auto const& ebfact =
+                            dynamic_cast<amrex::EBFArrayBoxFactory const&>(mf->Factory());
+                        auto const& flags = ebfact.getMultiEBCellFlagFab().arrays();
+                        ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
+                        {
+                            Real vol = volume_weighting ? Geometry::Volume(IntVect{AMREX_D_DECL(i,j,k)}, geomdata) : 1.0_rt;
+                            auto const& flag = flags[bi];
+                            if (!flag(i,j,k).isCovered()) {
+                                if (datma[bi](i,j,k) * vol <= threshold) {
+                                    tagma[bi](i,j,k) = tag_update;
+                                }
                             }
-#ifdef AMREX_USE_EB
-                        }
+                        });
+                    } else
 #endif
+                    {
+                    ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept {
+                        Real vol = volume_weighting ? Geometry::Volume(IntVect{AMREX_D_DECL(i,j,k)}, geomdata) : 1.0_rt;
+                        if (datma[bi](i,j,k) * vol <= threshold) {
+                            tagma[bi](i,j,k) = tag_update;
+                        }
                     });
+                    }
                 }
                 else if (m_test == GREATER)
                 {
+#ifdef AMREX_USE_EB
+                    if (mf->hasEBFabFactory()) {
+                        auto const& ebfact =
+                            dynamic_cast<amrex::EBFArrayBoxFactory const&>(mf->Factory());
+                        auto const& flags = ebfact.getMultiEBCellFlagFab().arrays();
+                        ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
+                        {
+                            Real vol = volume_weighting ? Geometry::Volume(IntVect{AMREX_D_DECL(i,j,k)}, geomdata) : 1.0_rt;
+                            auto const& flag = flags[bi];
+                            if (!flag(i,j,k).isCovered()) {
+                                if (datma[bi](i,j,k) * vol >= threshold) {
+                                    tagma[bi](i,j,k) = tag_update;
+                                }
+                            }
+                        });
+                    } else
+#endif
                     ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
                     {
                         Real vol = volume_weighting ? Geometry::Volume(IntVect{AMREX_D_DECL(i,j,k)}, geomdata) : 1.0_rt;
-#ifdef AMREX_USE_EB
-                        auto const& flag = flags[bi];
-                        if (!flag(i,j,k).isCovered()) {
-#endif
                             if (datma[bi](i,j,k) * vol >= threshold) {
                                 tagma[bi](i,j,k) = tag_update;
                             }
-#ifdef AMREX_USE_EB
-                        }
-#endif
                     });
                 }
                 else if (m_test == VORT)
                 {
                     const Real fac = threshold * Real(std::pow(2,level));
-                    ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
-                    {
 #ifdef AMREX_USE_EB
-                        auto const& flag = flags[bi];
-                        if (!flag(i,j,k).isCovered()) {
+                    if (mf->hasEBFabFactory()) {
+                        auto const& ebfact =
+                            dynamic_cast<amrex::EBFArrayBoxFactory const&>(mf->Factory());
+                        auto const& flags = ebfact.getMultiEBCellFlagFab().arrays();
+                        ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
+                        {
+                            auto const& flag = flags[bi];
+                            if (!flag(i,j,k).isCovered()) {
+                                if (datma[bi](i,j,k) >= fac) {
+                                    tagma[bi](i,j,k) = tag_update;
+                                }
+                            }
+                        });
+                    } else
 #endif
+                    {
+                        ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
+                        {
                             if (datma[bi](i,j,k) >= fac) {
                                 tagma[bi](i,j,k) = tag_update;
                             }
-#ifdef AMREX_USE_EB
-                        }
-#endif
-                    });
+                        });
+                    }
                 }
                 else
                 {
