@@ -42,16 +42,6 @@ struct ParticleTileData
     GpuArray<ParticleReal* , NAR> m_rdata;
     GpuArray<int* , NAI> m_idata;
 
-    auto * rdata(const int attribute_index) 
-    {
-        return this->m_rdata[attribute_index];
-    }
-
-    auto * idata(const int attribute_index) 
-    {
-        return this->m_idata[attribute_index];
-    }
-
     int m_num_runtime_real;
     int m_num_runtime_int;
     ParticleReal* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_rdata;
