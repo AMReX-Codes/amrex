@@ -22,9 +22,9 @@
 #if defined(AMREX_USE_HIP)
 #include <hip/hip_runtime.h>
 #if defined(AMREX_USE_ROCTX)
-#include <roctracer_ext.h>
+#include <roctracer/roctracer_ext.h>
 #if defined(AMREX_PROFILING) || defined (AMREX_TINY_PROFILING)
-#include <roctx.h>
+#include <roctracer/roctx.h>
 #endif
 #endif
 #endif
