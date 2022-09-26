@@ -97,18 +97,13 @@ void addParticles ()
     }
 
     // create a host-side particle buffer
+    //ParticleContainer<1,1> pc_og;
     auto tmp = pc.template make_alike<amrex::PinnedArenaAllocator>();
-    using MyPinnedParIter = typename decltype(tmp);
-
-<<<<<<< HEAD
-=======
-    //  copy device-to-host
-    bool const local = true;
-    tmp.copyParticles(pc, local);
-
+    tmp.copyParticles(pc, true);
+    
+    /*
     using MyPinnedParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt, amrex::PinnedArenaAllocator>;
 
->>>>>>> b237dc5899de21b18b4d89b485c18540f25de6b3
     for (MyPinnedParIter pti(tmp, lev); pti.isValid(); ++pti) {
         auto& particle_attributes = pti.GetStructOfArrays();
         auto& real_comp0 = particle_attributes.GetRealData(0);
@@ -118,6 +113,7 @@ void addParticles ()
             int_comp1[i] += 1;
         }
     }
+    */
 
     tmp.Redistribute();
 
