@@ -96,13 +96,23 @@ void addParticles ()
 
     }
 
+    // create a host-side particle buffer
     auto tmp = pc.template make_alike<amrex::PinnedArenaAllocator>();
     using MyPinnedParIter = typename decltype(tmp);
 
+<<<<<<< HEAD
+=======
+    //  copy device-to-host
+    bool const local = true;
+    tmp.copyParticles(pc, local);
+
+    using MyPinnedParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt, amrex::PinnedArenaAllocator>;
+
+>>>>>>> b237dc5899de21b18b4d89b485c18540f25de6b3
     for (MyPinnedParIter pti(tmp, lev); pti.isValid(); ++pti) {
         auto& particle_attributes = pti.GetStructOfArrays();
-        RealVector& real_comp0 = particle_attributes.GetRealData(0);
-        IntVector&  int_comp1  = particle_attributes.GetIntData(1);
+        auto& real_comp0 = particle_attributes.GetRealData(0);
+        auto&  int_comp1  = particle_attributes.GetIntData(1);
         for (int i = 0; i < pti.numParticles(); ++i) {
             real_comp0[i] += 1;
             int_comp1[i] += 1;
@@ -111,28 +121,28 @@ void addParticles ()
 
     tmp.Redistribute();
 
-        using ConstPTDType = typename T_PC::ParticleTileType::ConstParticleTileDataType;
-        amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
-        auto r = amrex::ParticleReduce<
-            amrex::ReduceData<
-                amrex::ParticleReal, amrex::ParticleReal, amrex::ParticleReal,
-                amrex::ParticleReal, amrex::ParticleReal, amrex::ParticleReal,
-                amrex::ParticleReal>
-        >(
-            pc,
-            [=] AMREX_GPU_DEVICE(const ConstPTDType& ptd, const int i) noexcept
-            {
+    using ConstPTDType = typename T_PC::ParticleTileType::ConstParticleTileDataType;
+    amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
+    auto r = amrex::ParticleReduce<
+        amrex::ReduceData<
+            amrex::ParticleReal, amrex::ParticleReal, amrex::ParticleReal,
+            amrex::ParticleReal, amrex::ParticleReal, amrex::ParticleReal,
+            amrex::ParticleReal>
+    >(
+        pc,
+        [=] AMREX_GPU_DEVICE(const ConstPTDType& ptd, const int i) noexcept
+        {
 
-                const amrex::ParticleReal x = ptd.rdata(0)[i];
-                const amrex::ParticleReal y = ptd.rdata(1)[i];
-                const amrex::ParticleReal z = ptd.rdata(2)[i];
+            const amrex::ParticleReal x = ptd.rdata(0)[i];
+            const amrex::ParticleReal y = ptd.rdata(1)[i];
+            const amrex::ParticleReal z = ptd.rdata(2)[i];
 
-                amrex::ParticleReal const w = ptd.rdata(1)[i];
+            amrex::ParticleReal const w = ptd.rdata(1)[i];
 
-                return amrex::makeTuple(x, x*x, y, y*y, z, z*z, w);
-            },
-            reduce_ops
-        );
+            return amrex::makeTuple(x, x*x, y, y*y, z, z*z, w);
+        },
+        reduce_ops
+    );
 
     // Reduce for SoA Particle Struct 
     /*
