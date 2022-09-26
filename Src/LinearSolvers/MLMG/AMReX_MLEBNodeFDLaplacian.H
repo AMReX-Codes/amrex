@@ -100,6 +100,7 @@ public:
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) final override;
 
     virtual bool isSingular (int) const final override { return false; }
+    virtual bool isBottomSingular () const final override { return false; }
 
     virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                            MultiFab& sol, Location /*loc*/) const override;
