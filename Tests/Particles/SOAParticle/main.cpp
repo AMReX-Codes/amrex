@@ -101,7 +101,6 @@ void addParticles ()
     auto tmp = pc.template make_alike<amrex::PinnedArenaAllocator>();
     tmp.copyParticles(pc, true);
     
-    /*
     using MyPinnedParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt, amrex::PinnedArenaAllocator>;
 
     for (MyPinnedParIter pti(tmp, lev); pti.isValid(); ++pti) {
@@ -113,7 +112,6 @@ void addParticles ()
             int_comp1[i] += 1;
         }
     }
-    */
 
     tmp.Redistribute();
 

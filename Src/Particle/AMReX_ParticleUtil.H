@@ -89,16 +89,6 @@ auto call_f (F const& f,
     return f(p, i);
 }
 
-template <typename F, typename T_ParticleType, int NAR, int NAI>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f,
-             ConstParticleTileData<T_ParticleType, NAR, NAI>& p,
-             const int i) noexcept
-    -> decltype(f(p, i))
-{
-    return f(p, i);
-}
-
 // These next several functions are used by ParticleToMesh and MeshToParticle
 
 // Lambda takes a Particle

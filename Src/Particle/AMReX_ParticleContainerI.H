@@ -1000,7 +1000,7 @@ void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
 copyParticles (const PCType& other, bool local)
 {
-    using PData = ConstParticleTileData<ParticleType, NArrayReal, NArrayInt>;
+    using PData = ConstParticleTileData<typename ParticleType::StorageParticleType, NArrayReal, NArrayInt>;
     copyParticles(other, [=] AMREX_GPU_HOST_DEVICE (const PData& /*data*/, int /*i*/) { return 1; }, local);
 }
 
@@ -1011,7 +1011,7 @@ void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
 addParticles (const PCType& other, bool local)
 {
-    using PData = ConstParticleTileData<ParticleType, NArrayReal, NArrayInt>;
+    using PData = ConstParticleTileData<typename ParticleType::StorageParticleType, NArrayReal, NArrayInt>;
     addParticles(other, [=] AMREX_GPU_HOST_DEVICE (const PData& /*data*/, int /*i*/) { return 1; }, local);
 }
 
