@@ -56,7 +56,9 @@ void addParticles ()
         ParticleType* AMREX_RESTRICT aos_ptr = aos().dataPtr();
 
         // preparing access to particle data: SoA of Reals
-        auto& soa_real = pti.GetStructOfArrays().GetRealData();
+        auto& soa = pti.GetStructOfArrays();
+        auto soa_real = soa.GetRealData();
+        auto size = soa.size();
         amrex::ParticleReal* const AMREX_RESTRICT part_x = soa_real[0].dataPtr();
         amrex::ParticleReal* const AMREX_RESTRICT part_y = soa_real[1].dataPtr();
         amrex::ParticleReal* const AMREX_RESTRICT part_z = soa_real[2].dataPtr();

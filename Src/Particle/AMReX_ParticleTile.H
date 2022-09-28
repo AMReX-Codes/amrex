@@ -601,31 +601,51 @@ struct ParticleTile
     *
     */
 
+    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
     std::size_t size () const { return m_aos_tile.size(); }
 
-    /**
-    * \brief Returns the number of real particles (excluding neighbors)
-    *
-    */
-    int numParticles () const { return m_aos_tile.numParticles(); }
+    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
+    std::size_t size () const { return m_soa_tile.size(); }
 
     /**
     * \brief Returns the number of real particles (excluding neighbors)
     *
     */
+    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
+    int numParticles () const { return m_aos_tile.numParticles(); }
+
+    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
+    int numParticles () const { return m_soa_tile.numParticles(); }
+
+    /**
+    * \brief Returns the number of real particles (excluding neighbors)
+    *
+    */
+    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
     int numRealParticles () const { return m_aos_tile.numRealParticles(); }
+
+    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
+    int numRealParticles () const { return m_soa_tile.numRealParticles(); }
 
     /**
     * \brief Returns the number of neighbor particles (excluding reals)
     *
     */
+    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
     int numNeighborParticles () const { return m_aos_tile.numNeighborParticles(); }
+
+    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
+    int numNeighborParticles () const { return m_soa_tile.numNeighborParticles(); }
 
     /**
     * \brief Returns the total number of particles, real and neighbor
     *
     */
+    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
     int numTotalParticles () const { return m_aos_tile.numTotalParticles() ; }
+
+    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
+    int numTotalParticles () const { return m_soa_tile.numTotalParticles() ; }
 
     void setNumNeighbors (int num_neighbors)
     {
