@@ -53,10 +53,10 @@ else
     # CCE <= 8. So we adjust some flags to achieve similar optimization. See
     # this page:
     # http://pubs.cray.com/content/S-5212/9.0/cray-compiling-environment-cce-release-overview/cce-900-software-enhancements
-    CXXFLAGS += -O2 -ffast-math #-fsave-loopmark -fsave-decompile
-    CFLAGS   += -O2 -ffast-math #-fsave-loopmark -fsave-decompile
-    FFLAGS   += -O2 -h list=a
-    F90FLAGS += -O2 -h list=a
+    CXXFLAGS += -O3 -ffast-math #-fsave-loopmark -fsave-decompile
+    CFLAGS   += -O3 -ffast-math #-fsave-loopmark -fsave-decompile
+    FFLAGS   += -O3 -h list=a
+    F90FLAGS += -O3 -h list=a
   else
     GENERIC_COMP_FLAGS += -h list=a
 
@@ -120,7 +120,7 @@ else
 endif
 
 ifeq ($(CRAY_IS_CLANG_BASED),TRUE)
-  CXXFLAGS += -Wno-pass-failed -Wno-c++17-extensions
+  CXXFLAGS += -Wno-c++17-extensions
 endif
 
 CXXFLAGS += $(GENERIC_COMP_FLAGS)

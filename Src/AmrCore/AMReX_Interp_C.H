@@ -135,5 +135,53 @@ face_linear_interp_z (int i, int j, int k, int n, amrex::Array4<amrex::Real> con
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void cell_quartic_interp_x (int i, int j, int k, int n, Array4<Real> const& fine,
+                            Array4<Real const> const& crse) noexcept
+{
+    constexpr Array1D<Real,-2,2> c = {Real(0.01708984), Real(-0.12304688),
+                                      Real(0.92285156), Real(0.20507812),
+                                      Real(-0.02197266)};
+    int ii = amrex::coarsen(i,2);
+    int s = 2*(i-ii*2) - 1;  // if i == ii*2, s = -1; if i == ii*2+1, s = 1;
+    fine(i,j,k,n) = c(-2*s)*crse(ii-2,j,k,n)
+        +           c(  -s)*crse(ii-1,j,k,n)
+        +           c(   0)*crse(ii  ,j,k,n)
+        +           c(   s)*crse(ii+1,j,k,n)
+        +           c( 2*s)*crse(ii+2,j,k,n);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void cell_quartic_interp_y (int i, int j, int k, int n, Array4<Real> const& fine,
+                            Array4<Real const> const& crse) noexcept
+{
+    constexpr Array1D<Real,-2,2> c = {Real(0.01708984), Real(-0.12304688),
+                                      Real(0.92285156), Real(0.20507812),
+                                      Real(-0.02197266)};
+    int jj = amrex::coarsen(j,2);
+    int s = 2*(j-jj*2) - 1;  // if j == jj*2, s = -1; if j == jj*2+1, s = 1;
+    fine(i,j,k,n) = c(-2*s)*crse(i,jj-2,k,n)
+        +           c(  -s)*crse(i,jj-1,k,n)
+        +           c(   0)*crse(i,jj  ,k,n)
+        +           c(   s)*crse(i,jj+1,k,n)
+        +           c( 2*s)*crse(i,jj+2,k,n);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void cell_quartic_interp_z (int i, int j, int k, int n, Array4<Real> const& fine,
+                            Array4<Real const> const& crse) noexcept
+{
+    constexpr Array1D<Real,-2,2> c = {Real(0.01708984), Real(-0.12304688),
+                                      Real(0.92285156), Real(0.20507812),
+                                      Real(-0.02197266)};
+    int kk = amrex::coarsen(k,2);
+    int s = 2*(k-kk*2) - 1;  // if k == kk*2, s = -1; if k == kk*2+1, s = 1;
+    fine(i,j,k,n) = c(-2*s)*crse(i,j,kk-2,n)
+        +           c(  -s)*crse(i,j,kk-1,n)
+        +           c(   0)*crse(i,j,kk  ,n)
+        +           c(   s)*crse(i,j,kk+1,n)
+        +           c( 2*s)*crse(i,j,kk+2,n);
+}
+
 }
 #endif

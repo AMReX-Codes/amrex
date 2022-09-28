@@ -40,7 +40,7 @@
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(amrex_i_tn); \
-        AMREX_LAUNCH_KERNEL(amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream(), \
+        AMREX_LAUNCH_KERNEL(AMREX_GPU_MAX_THREADS, amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream(), \
         [=] AMREX_GPU_DEVICE () noexcept { \
             for (auto const TI : amrex::Gpu::Range(amrex_i_tn)) { \
                 block \
@@ -111,7 +111,7 @@
         dim3 amrex_i_nblocks = amrex::max(amrex_i_ec1.numBlocks.x, \
                                           amrex_i_ec2.numBlocks.x); \
         amrex_i_nblocks.y = 2; \
-        AMREX_LAUNCH_KERNEL(amrex_i_nblocks, amrex_i_ec1.numThreads, 0, amrex::Gpu::gpuStream(), \
+        AMREX_LAUNCH_KERNEL(AMREX_GPU_MAX_THREADS, amrex_i_nblocks, amrex_i_ec1.numThreads, 0, amrex::Gpu::gpuStream(), \
         [=] AMREX_GPU_DEVICE () noexcept { \
             switch (blockIdx.y) { \
             case 0: for (auto const TI1 : amrex::Gpu::Range(amrex_i_tn1)) { \
@@ -202,7 +202,7 @@
                                                      amrex_i_ec2.numBlocks.x), \
                                                      amrex_i_ec3.numBlocks.x); \
         amrex_i_nblocks.y = 3; \
-        AMREX_LAUNCH_KERNEL(amrex_i_nblocks, amrex_i_ec1.numThreads, 0, amrex::Gpu::gpuStream(), \
+        AMREX_LAUNCH_KERNEL(AMREX_GPU_MAX_THREADS, amrex_i_nblocks, amrex_i_ec1.numThreads, 0, amrex::Gpu::gpuStream(), \
         [=] AMREX_GPU_DEVICE () noexcept { \
             switch (blockIdx.y) { \
             case 0: for (auto const TI1 : amrex::Gpu::Range(amrex_i_tn1)) { \
@@ -269,7 +269,7 @@
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         auto amrex_i_ec = amrex::Gpu::ExecutionConfig(amrex_i_tn); \
-        AMREX_LAUNCH_KERNEL(amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream(), \
+        AMREX_LAUNCH_KERNEL(AMREX_GPU_MAX_THREADS, amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream(), \
         [=] AMREX_GPU_DEVICE () noexcept { \
             for (auto const TI : amrex::Gpu::Range(amrex_i_tn)) { \
                 block \
@@ -333,7 +333,7 @@
         dim3 amrex_i_nblocks = amrex::max(amrex_i_ec1.numBlocks.x, \
                                           amrex_i_ec2.numBlocks.x); \
         amrex_i_nblocks.y = 2; \
-        AMREX_LAUNCH_KERNEL(amrex_i_nblocks, amrex_i_ec1.numThreads, 0, amrex::Gpu::gpuStream(), \
+        AMREX_LAUNCH_KERNEL(AMREX_GPU_MAX_THREADS, amrex_i_nblocks, amrex_i_ec1.numThreads, 0, amrex::Gpu::gpuStream(), \
         [=] AMREX_GPU_DEVICE () noexcept { \
             switch (blockIdx.y) { \
             case 0: for (auto const TI1 : amrex::Gpu::Range(amrex_i_tn1)) { \
@@ -410,7 +410,7 @@
                                                      amrex_i_ec2.numBlocks.x), \
                                                      amrex_i_ec3.numBlocks.x); \
         amrex_i_nblocks.y = 3; \
-        AMREX_LAUNCH_KERNEL(amrex_i_nblocks, amrex_i_ec1.numThreads, 0, amrex::Gpu::gpuStream(), \
+        AMREX_LAUNCH_KERNEL(AMREX_GPU_MAX_THREADS, amrex_i_nblocks, amrex_i_ec1.numThreads, 0, amrex::Gpu::gpuStream(), \
         [=] AMREX_GPU_DEVICE () noexcept { \
             switch (blockIdx.y) { \
             case 0: for (auto const TI1 : amrex::Gpu::Range(amrex_i_tn1)) { \

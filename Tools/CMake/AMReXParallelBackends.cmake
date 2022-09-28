@@ -198,10 +198,12 @@ if (AMReX_HIP)
    unset(_valid_hip_compilers)
 
    if(NOT DEFINED HIP_PATH)
-      if(NOT DEFINED ENV{HIP_PATH})
-         set(HIP_PATH "/opt/rocm/hip" CACHE PATH "Path to which HIP has been installed")
-      else()
+      if(DEFINED ENV{HIP_PATH})
          set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "Path to which HIP has been installed")
+      elseif(DEFINED ENV{ROCM_PATH})
+         set(HIP_PATH "$ENV{ROCM_PATH}/hip" CACHE PATH "Path to which HIP has been installed")
+      else()
+         set(HIP_PATH "/opt/rocm/hip" CACHE PATH "Path to which HIP has been installed")
       endif()
    endif()
 
@@ -255,9 +257,15 @@ if (AMReX_HIP)
    if(AMReX_ROCTX)
        # To be modernized in the future, please see:
        # https://github.com/ROCm-Developer-Tools/roctracer/issues/56
-       target_include_directories(amrex PUBLIC ${HIP_PATH}/../roctracer/include ${HIP_PATH}/../rocprofiler/include)
-       target_link_libraries(amrex PUBLIC "-L${HIP_PATH}/../roctracer/lib/ -lroctracer64" "-L${HIP_PATH}/../roctracer/lib -lroctx64")
-   endif ()
+       target_include_directories(amrex SYSTEM PUBLIC
+           ${HIP_PATH}/../roctracer/include
+           ${HIP_PATH}/../rocprofiler/include
+       )
+       target_link_libraries(amrex PUBLIC
+           "-L${HIP_PATH}/../roctracer/lib -lroctracer64"
+           "-L${HIP_PATH}/../roctracer/lib -lroctx64"
+       )
+   endif()
    target_link_libraries(amrex PUBLIC hip::hiprand roc::rocrand roc::rocprim)
 
    # avoid forcing the rocm LLVM flags on a gfortran
@@ -271,7 +279,7 @@ if (AMReX_HIP)
        # else there will be a runtime issue (cannot find
        # missing gpu devices)
        target_compile_options(amrex PUBLIC
-          $<$<COMPILE_LANGUAGE:CXX>:--amdgpu-target=${AMReX_AMD_ARCH_HIPCC} -Wno-pass-failed>)
+          $<$<COMPILE_LANGUAGE:CXX>:--amdgpu-target=${AMReX_AMD_ARCH_HIPCC}>)
    endif()
 
    target_compile_options(amrex PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-m64>)

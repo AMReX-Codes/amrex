@@ -144,7 +144,7 @@ Arena::allocate_system (std::size_t nbytes)
     else if (arena_info.device_use_hostalloc)
     {
         AMREX_HIP_OR_CUDA_OR_DPCPP(
-            AMREX_HIP_SAFE_CALL (hipHostMalloc(&p, nbytes, hipHostMallocMapped));,
+            AMREX_HIP_SAFE_CALL (hipHostMalloc(&p, nbytes, hipHostMallocMapped|hipHostMallocNonCoherent));,
             AMREX_CUDA_SAFE_CALL(cudaHostAlloc(&p, nbytes, cudaHostAllocMapped));,
             p = sycl::malloc_host(nbytes, Gpu::Device::syclContext()));
     }
@@ -253,12 +253,13 @@ Arena::Initialize ()
     if (initialized) return;
     initialized = true;
 
-    BL_ASSERT(the_arena == nullptr);
+    // see reason on allowed reuse of the default CPU BArena in Arena::Finalize
+    BL_ASSERT(the_arena == nullptr || the_arena == The_BArena());
     BL_ASSERT(the_async_arena == nullptr);
-    BL_ASSERT(the_device_arena == nullptr);
-    BL_ASSERT(the_managed_arena == nullptr);
+    BL_ASSERT(the_device_arena == nullptr || the_device_arena == The_BArena());
+    BL_ASSERT(the_managed_arena == nullptr || the_managed_arena == The_BArena());
     BL_ASSERT(the_pinned_arena == nullptr);
-    BL_ASSERT(the_cpu_arena == nullptr);
+    BL_ASSERT(the_cpu_arena == nullptr || the_cpu_arena == The_BArena());
 
 #ifdef AMREX_USE_GPU
 #ifdef AMREX_USE_DPCPP
@@ -468,6 +469,13 @@ Arena::Finalize ()
 
     initialized = false;
 
+    // we reset Arenas unless they are the default "CPU malloc/free" BArena
+    // this is because we want to allow users to free their UB objects
+    // that they forgot to destruct after amrex::Finalize():
+    //   amrex::Initialize(...);
+    //   MultiFab mf(...);  // this should be scoped in { ... }
+    //   amrex::Finalize();
+    // mf cannot be used now, but it can at least be freed without a segfault
     if (!dynamic_cast<BArena*>(the_device_arena)) {
         if (the_device_arena != the_arena) {
             delete the_device_arena;

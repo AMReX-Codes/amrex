@@ -50,7 +50,7 @@ ifeq ($(WARN_ALL),TRUE)
     warning_flags += -Wshadow
   endif
 
-  CXXFLAGS += $(warning_flags) -Woverloaded-virtual
+  CXXFLAGS += $(warning_flags) -Woverloaded-virtual -Wnon-virtual-dtor
   CFLAGS += $(warning_flags)
 endif
 
@@ -60,7 +60,7 @@ ifeq ($(WARN_ERROR),TRUE)
 endif
 
 # disable some warnings
-CXXFLAGS += -Wno-pass-failed -Wno-c++17-extensions
+CXXFLAGS += -Wno-c++17-extensions
 
 ########################################################################
 

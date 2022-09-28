@@ -1001,7 +1001,7 @@ launch function.
 
 ``amrex::ParallelFor()`` expands into different variations of a quadruply-nested
 :cpp:`for` loop depending dimensionality and whether it is being implemented on CPU or GPU.
-The best way to understand this macro is to take a look at the 4D :cpp:`amrex::ParallelFor`
+The best way to understand this function is to take a look at the 4D :cpp:`amrex::ParallelFor`
 that is implemented when ``USE_CUDA=FALSE``. A simplified version is reproduced here:
 
 .. highlight:: c++
@@ -1103,6 +1103,15 @@ bounds, a :cpp:`long` or :cpp:`int` number of elements is passed to bound the si
 passing the number of elements to work on and indexing the pointer to the starting
 element: :cpp:`p[idx + 15]`.
 
+GPU block size
+--------------
+
+By default, :cpp:`ParallelFor` launches ``AMREX_GPU_MAX_THREADS`` threads
+per GPU block, where ``AMREX_GPU_MAX_THREADS`` is a compile-time constant
+with a default value of 256.  The users can also explcitly specify the
+number of threads per block by :cpp:`ParallelFor<MY_BLOCK_SIZE>(...)`, where
+``MY_BLOCK_SIZE`` is a multiple of the warp size (e.g., 128).  This allows
+the users to do performance tuning for individual kernels.
 
 Launching general kernels
 -------------------------

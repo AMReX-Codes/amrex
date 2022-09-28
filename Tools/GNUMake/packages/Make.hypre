@@ -19,5 +19,5 @@ ifdef AMREX_HYPRE_HOME
 endif
 
 ifeq ($(USE_CUDA),TRUE)
-  LIBRARIES += -lcusparse -lcurand
+  LIBRARIES += -lcusparse -lcurand -lcublas
 endif

@@ -45,7 +45,7 @@ target_compile_features(SYCL INTERFACE cxx_std_17)
 #
 target_compile_options( SYCL
    INTERFACE
-   $<${_cxx_dpcpp}:-Wno-error=sycl-strict -Wno-pass-failed -fsycl>
+   $<${_cxx_dpcpp}:-Wno-error=sycl-strict -fsycl>
    $<${_cxx_dpcpp}:$<$<BOOL:${AMReX_DPCPP_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
 
 # temporary work-around for DPC++ beta08 bug
