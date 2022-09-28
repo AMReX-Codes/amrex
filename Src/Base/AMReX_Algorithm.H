@@ -145,7 +145,7 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     I bisect (T const* d, I lo, I hi, T const& v) {
         while (lo <= hi) {
-            int mid = (lo+hi)/2;
+            int mid = lo + (hi-lo)/2;
             if (v >= d[mid] && v < d[mid+1]) {
                 return mid;
             } else if (v < d[mid]) {
