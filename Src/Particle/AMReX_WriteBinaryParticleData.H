@@ -766,7 +766,25 @@ void WriteBinaryParticleDataAsync (PC const& pc,
             if (np_per_grid_local[lev][mfi.index()] > 0)
             {
                 const auto& ptile = pc.ParticlesAt(lev, mfi);
-                new_ptile.resize(np_per_grid_local[lev][mfi.index()]);
+
+                const auto np = np_per_grid_local[lev][mfi.index()];
+
+                new_ptile.resize(np);
+
+                const auto runtime_real_comps = ptile.NumRuntimeRealComps();
+                const auto runtime_int_comps = ptile.NumRuntimeIntComps();
+
+                constexpr auto NReal = NArrayReal + NStructReal;
+                constexpr auto NInt = NArrayInt + NStructInt;
+
+                new_ptile.define(runtime_real_comps, runtime_int_comps);
+
+                for (auto comp(0); comp < runtime_real_comps; ++comp)
+                  new_ptile.push_back_real(NReal+comp, np, 0.);
+
+                for (auto comp(0); comp < runtime_int_comps; ++comp)
+                  new_ptile.push_back_int(NInt+comp, np, 0);
+
                 amrex::filterParticles(new_ptile, ptile, KeepValidFilter());
             }
         }
