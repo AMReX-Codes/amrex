@@ -102,6 +102,7 @@ AmrLevel::AmrLevel (Amr&            papa,
     }
 
     state.resize(desc_lst.size());
+    m_fillpatcher.resize(desc_lst.size());
 
 #ifdef AMREX_USE_EB
     if (EB2::TopIndexSpaceIfPresent()) {
@@ -450,6 +451,8 @@ AmrLevel::restart (Amr&          papa,
                              desc_lst[i], papa.theRestartFile());
         }
     }
+
+    m_fillpatcher.resize(ndesc);
 
     if (parent->useFixedCoarseGrids()) constructAreaNotToTag();
 
@@ -2093,6 +2096,59 @@ void AmrLevel::constructAreaNotToTag ()
         m_AreaToTag = tagarea;
         BoxArray tagba = amrex::boxComplement(parent->Geom(level).Domain(),m_AreaToTag);
         m_AreaNotToTag = tagba;
+    }
+}
+
+void
+AmrLevel::resetFillPatcher ()
+{
+    for (auto& fp : m_fillpatcher) {
+        fp.reset();
+    }
+}
+
+void
+AmrLevel::FillPatcherFill (MultiFab& mf, int nghost, Real time, int state_index)
+{
+    if (level == 0) {
+        FillPatch(*this, mf, nghost, time, state_index, 0, mf.nComp());
+    } else {
+        AmrLevel& fine_level = *this;
+        AmrLevel& crse_level = parent->getLevel(level-1);
+        const Geometry& geom_fine = fine_level.geom;
+        const Geometry& geom_crse = crse_level.geom;
+
+        Vector<MultiFab*> smf_crse;
+        Vector<Real> stime_crse;
+        StateData& statedata_crse = crse_level.state[state_index];
+        statedata_crse.getData(smf_crse,stime_crse,time);
+        StateDataPhysBCFunct physbcf_crse(statedata_crse,0,geom_crse);
+
+        Vector<MultiFab*> smf_fine;
+        Vector<Real> stime_fine;
+        StateData& statedata_fine = fine_level.state[state_index];
+        statedata_fine.getData(smf_fine,stime_fine,time);
+        StateDataPhysBCFunct physbcf_fine(statedata_fine,0,geom_fine);
+
+        const StateDescriptor& desc = AmrLevel::desc_lst[state_index];
+
+        if (level > 1 &&!amrex::ProperlyNested(fine_level.crse_ratio,
+                                               parent->blockingFactor(fine_level.level),
+                                               nghost, mf.ixType(), desc.interp(0))) {
+            amrex::Abort("FillPatcherFill: Grids are not properly nested.  Must increase blocking factor.");
+        }
+
+
+        auto& fillpatcher = m_fillpatcher[state_index];
+        if (fillpatcher == nullptr) {
+            fillpatcher = std::make_unique<FillPatcher<MultiFab>>
+                (parent->boxArray(level), parent->DistributionMap(level), geom_fine,
+                 parent->boxArray(level-1), parent->DistributionMap(level-1), geom_crse,
+                 IntVect(nghost), desc.interp(0));
+        }
+
+        fillpatcher->fill(mf, time, smf_crse, stime_crse, smf_fine, stime_fine,
+                          physbcf_crse, physbcf_fine, desc.getBCs());
     }
 }
 

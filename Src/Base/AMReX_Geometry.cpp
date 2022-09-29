@@ -473,27 +473,39 @@ Geometry::periodicShift (const Box&      target,
 }
 
 Box
-Geometry::growNonPeriodicDomain (int ngrow) const noexcept
+Geometry::growNonPeriodicDomain (IntVect const& ngrow) const noexcept
 {
     Box b = Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (!isPeriodic(idim)) {
-            b.grow(idim,ngrow);
+            b.grow(idim,ngrow[idim]);
         }
     }
     return b;
 }
 
 Box
-Geometry::growPeriodicDomain (int ngrow) const noexcept
+Geometry::growPeriodicDomain (IntVect const& ngrow) const noexcept
 {
     Box b = Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (isPeriodic(idim)) {
-            b.grow(idim,ngrow);
+            b.grow(idim,ngrow[idim]);
         }
     }
     return b;
+}
+
+Box
+Geometry::growNonPeriodicDomain (int ngrow) const noexcept
+{
+    return growNonPeriodicDomain(IntVect(ngrow));
+}
+
+Box
+Geometry::growPeriodicDomain (int ngrow) const noexcept
+{
+    return growPeriodicDomain(IntVect(ngrow));
 }
 
 void
