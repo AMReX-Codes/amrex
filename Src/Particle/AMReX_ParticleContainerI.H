@@ -1472,26 +1472,143 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
           int tile = grid_tile_ids[pmap_it].second;
           auto& aos = ptile_ptrs[pmap_it]->GetArrayOfStructs();
           auto& soa = ptile_ptrs[pmap_it]->GetStructOfArrays();
+
           AMREX_ASSERT_WITH_MESSAGE((NumRealComps() == 0 && NumIntComps() == 0)
                                     || aos.size() == soa.size(),
               "The AoS and SoA data on this tile are different sizes - "
               "perhaps particles have not been initialized correctly?");
           unsigned npart = aos.numParticles();
           ParticleLocData pld;
-          if (npart != 0) {
-              Long last = npart - 1;
-              Long pindex = 0;
-              while (pindex <= last) {
-                  ParticleType& p = aos[pindex];
+
+          if constexpr(!ParticleType::is_soa_particle){
+
+            if (npart != 0) {
+                Long last = npart - 1;
+                Long pindex = 0;
+                while (pindex <= last) {
+                      ParticleType& p = aos[pindex];
+
+                      if ((remove_negative == false) && (p.id() < 0)) {
+                          ++pindex;
+                          continue;
+                      }
+
+                     if (p.id() < 0)
+                     {
+                         aos[pindex] = aos[last];
+                         for (int comp = 0; comp < NumRealComps(); comp++)
+                           soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
+                       for (int comp = 0; comp < NumIntComps(); comp++)
+                           soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
+                       correctCellVectors(last, pindex, grid, aos[pindex]);
+                          --last;
+                          continue;
+                      }
+
+                    locateParticle(p, pld, lev_min, lev_max, nGrow, local ? grid : -1);
+
+                     particlePostLocate(p, pld, lev);
+
+                     if (p.id() < 0)
+                     {
+                         aos[pindex] = aos[last];
+                        for (int comp = 0; comp < NumRealComps(); comp++)
+                            soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
+                        for (int comp = 0; comp < NumIntComps(); comp++)
+                           soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
+                       correctCellVectors(last, pindex, grid, aos[pindex]);
+                          --last;
+                          continue;
+                      }
+
+                      const int who = ParallelContext::global_to_local_rank(ParticleDistributionMap(pld.m_lev)[pld.m_grid]);
+                      if (who == MyProc) {
+                         if (pld.m_lev != lev || pld.m_grid != grid || pld.m_tile != tile) {
+                             // We own it but must shift it to another place.
+                            auto index = std::make_pair(pld.m_grid, pld.m_tile);
+                            AMREX_ASSERT(tmp_local[pld.m_lev][index].size() == num_threads);
+                            tmp_local[pld.m_lev][index][thread_num].push_back(p);
+                            for (int comp = 0; comp < NumRealComps(); ++comp) {
+                                RealVector& arr = soa_local[pld.m_lev][index][thread_num].GetRealData(comp);
+                               arr.push_back(soa.GetRealData(comp)[pindex]);
+                            }
+                              for (int comp = 0; comp < NumIntComps(); ++comp) {
+                                  IntVector& arr = soa_local[pld.m_lev][index][thread_num].GetIntData(comp);
+                                  arr.push_back(soa.GetIntData(comp)[pindex]);
+                                }
+
+                            p.id() = -p.id(); // Invalidate the particle
+                            }
+                        }
+                    else {
+                       auto& particles_to_send = tmp_remote[who][thread_num];
+                       auto old_size = particles_to_send.size();
+                       auto new_size = old_size + superparticle_size;
+                       particles_to_send.resize(new_size);
+                       std::memcpy(&particles_to_send[old_size], &p, particle_size);
+                       char* dst = &particles_to_send[old_size] + particle_size;
+                       int array_comp_start = AMREX_SPACEDIM + NStructReal;
+                          for (int comp = 0; comp < NumRealComps(); comp++) {
+                               if (h_redistribute_real_comp[array_comp_start + comp]) {
+                                 std::memcpy(dst, &soa.GetRealData(comp)[pindex], sizeof(ParticleReal));
+                                 dst += sizeof(ParticleReal);
+                                }
+                            }
+                        array_comp_start = 2 + NStructInt;
+                        for (int comp = 0; comp < NumIntComps(); comp++) {
+                              if (h_redistribute_int_comp[array_comp_start + comp]) {
+                                  std::memcpy(dst, &soa.GetIntData(comp)[pindex], sizeof(int));
+                                  dst += sizeof(int);
+                                }
+                            }
+
+                        p.id() = -p.id(); // Invalidate the particle
+                  }
+
+                    if (p.id() < 0)
+                    {
+                      aos[pindex] = aos[last];
+                      for (int comp = 0; comp < NumRealComps(); comp++)
+                          soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
+                      for (int comp = 0; comp < NumIntComps(); comp++)
+                          soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
+                      correctCellVectors(last, pindex, grid, aos[pindex]);
+                      --last;
+                      continue;
+                    }
+
+                  ++pindex;
+                }
+
+                aos().erase(aos().begin() + last + 1, aos().begin() + npart);
+                for (int comp = 0; comp < NumRealComps(); comp++) {
+                    RealVector& rdata = soa.GetRealData(comp);
+                    rdata.erase(rdata.begin() + last + 1, rdata.begin() + npart);
+                }
+                for (int comp = 0; comp < NumIntComps(); comp++) {
+                    IntVector& idata = soa.GetIntData(comp);
+                    idata.erase(idata.begin() + last + 1, idata.begin() + npart);
+                }
+            }
+
+            } else{
+
+              auto particle_tile = ptile_ptrs[pmap_it];
+              if (npart != 0) {
+                Long last = npart - 1;
+                Long pindex = 0;
+                while (pindex <= last) {
+                  auto ptd = particle_tile->getParticleTileData();
+                  ParticleType p(ptd,pindex);
 
                   if ((remove_negative == false) && (p.id() < 0)) {
                       ++pindex;
                       continue;
-                  }
+                    }
 
-                  if (p.id() < 0)
-                  {
-                      aos[pindex] = aos[last];
+                  if (p.id() < 0){
+
+                      p = ParticleType(ptd,last);
                       for (int comp = 0; comp < NumRealComps(); comp++)
                           soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                       for (int comp = 0; comp < NumIntComps(); comp++)
@@ -1499,15 +1616,15 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                       correctCellVectors(last, pindex, grid, aos[pindex]);
                       --last;
                       continue;
-                  }
-
+                    }
+                //ParticleType& p2(ptd,last)
                   locateParticle(p, pld, lev_min, lev_max, nGrow, local ? grid : -1);
 
                   particlePostLocate(p, pld, lev);
 
-                  if (p.id() < 0)
-                  {
-                      aos[pindex] = aos[last];
+                  if (p.id() < 0){
+
+                      p = ParticleType(ptd,last);
                       for (int comp = 0; comp < NumRealComps(); comp++)
                           soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                       for (int comp = 0; comp < NumIntComps(); comp++)
@@ -1515,7 +1632,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                       correctCellVectors(last, pindex, grid, aos[pindex]);
                       --last;
                       continue;
-                  }
+                    }
 
                   const int who = ParallelContext::global_to_local_rank(ParticleDistributionMap(pld.m_lev)[pld.m_grid]);
                   if (who == MyProc) {
@@ -1534,8 +1651,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                           }
 
                           p.id() = -p.id(); // Invalidate the particle
-                      }
-                  }
+                        } 
+                    }
                   else {
                       auto& particles_to_send = tmp_remote[who][thread_num];
                       auto old_size = particles_to_send.size();
@@ -1548,22 +1665,21 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                           if (h_redistribute_real_comp[array_comp_start + comp]) {
                               std::memcpy(dst, &soa.GetRealData(comp)[pindex], sizeof(ParticleReal));
                               dst += sizeof(ParticleReal);
-                          }
-                      }
+                            }
+                        }
                       array_comp_start = 2 + NStructInt;
                       for (int comp = 0; comp < NumIntComps(); comp++) {
                           if (h_redistribute_int_comp[array_comp_start + comp]) {
                               std::memcpy(dst, &soa.GetIntData(comp)[pindex], sizeof(int));
                               dst += sizeof(int);
-                          }
-                      }
+                            }
+                        }
 
                       p.id() = -p.id(); // Invalidate the particle
-                  }
+                    }
 
-                  if (p.id() < 0)
-                  {
-                      aos[pindex] = aos[last];
+                  if (p.id() < 0){
+                      p = ParticleType(ptd,last);
                       for (int comp = 0; comp < NumRealComps(); comp++)
                           soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                       for (int comp = 0; comp < NumIntComps(); comp++)
@@ -1571,10 +1687,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                       correctCellVectors(last, pindex, grid, aos[pindex]);
                       --last;
                       continue;
-                  }
+                    }
 
                   ++pindex;
-              }
+                }
 
               aos().erase(aos().begin() + last + 1, aos().begin() + npart);
               for (int comp = 0; comp < NumRealComps(); comp++) {
@@ -1584,8 +1700,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
               for (int comp = 0; comp < NumIntComps(); comp++) {
                   IntVector& idata = soa.GetIntData(comp);
                   idata.erase(idata.begin() + last + 1, idata.begin() + npart);
-              }
-          }
+                }
+             }
+            }
       }
   }
 
@@ -2230,7 +2347,7 @@ InterpolateSingleLevel (MultiFab& mesh_data, int lev)
     const auto     plo = gm.ProbLoArray();
     const auto     dxi = gm.InvCellSizeArray();
 
-    using ParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>;
+    using ParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
