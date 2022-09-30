@@ -1,3 +1,47 @@
+# 22.10
+
+  -- Solve an issue with particles async IO when having runtime added variables (#2966)
+
+  -- Fix int overflow in amrex::bisect (#2964)
+
+  -- Fix MLEBNodeFDLaplacian bottom solver (#2963)
+
+  -- make tagging routines EB_aware (#2962)
+
+  -- Volume weighted sum (#2961)
+
+  -- CellData: data in a single cell (#2959)
+
+  -- Quartic interpolation for cell centered data (#2960)
+
+  -- Add GPU-compatible upper bound and lower bound algorithms to AMReX_Algorithm (#2958)
+
+  -- add option for makebuildsources to specify the style arguments for 'git describe'. (#2957)
+
+  -- Add roundoff_lo corresponding to roundoff_hi for domains that don't start at 0 (#2950)
+
+  -- Add template parameter to ParallelFor and launch specifying block size (#2947)
+
+  -- Byte spread fixes (#2949)
+
+  -- CMake: HIP_PATH from ROCM_PATH (#2948)
+
+  -- Fix: Make Finalize->Initialize->F->I->... Work (#2944)
+
+  -- Changes for Cray & Clang (#2941)
+
+  -- Link to cublas when using CUDA and Hypre (#2933)
+
+  -- HIP: use coarse grained host memory (#2932)
+
+  -- EB checkpoint files (#2897)
+
+  -- Fix: Loading Files Again (#2936)
+
+  -- Check if boundary particles container has been created before clearance. (#2935)
+
+  -- SYCL: Replace deprecated atomic types and operations (#2921)
+
 # 22.09
 
   -- Preserve neighbor particles when sorting particles. (#2923)
