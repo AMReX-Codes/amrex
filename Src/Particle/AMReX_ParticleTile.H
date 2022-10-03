@@ -210,8 +210,8 @@ struct SoAParticle : SoAParticleBase
     static constexpr int NArrayInt = T_NArrayInt;
     using StorageParticleType = SoAParticleBase;
     using PTD = ParticleTileData<SoAParticleBase, NArrayReal, NArrayInt>;
-    using ConstPTD = ConstParticleTileData<SoAParticleBase, NArrayReal, NArrayInt>;
     static constexpr bool is_soa_particle = true;
+    static constexpr bool is_constsoa_particle = false;
 
     using RealType = ParticleReal;
 
@@ -222,13 +222,6 @@ struct SoAParticle : SoAParticleBase
         m_particle_tile_data=ptd;
         m_index=index;
     }
-
-    SoAParticle (ConstPTD ptd, int const index) 
-    {
-        m_constparticle_tile_data=ptd;
-        m_index=index;
-    }
-
      
     //functions to get id and cpu in the SOA data
 
@@ -294,6 +287,94 @@ struct SoAParticle : SoAParticleBase
     static_assert(std::is_trivially_copyable<ParticleTileData<SoAParticleBase, NArrayReal, NArrayInt>>(), "ParticleTileData is not trivially copyable");
 
     PTD m_particle_tile_data;
+    int m_index;
+};
+
+// SOA Particle Structure 
+template <int T_NArrayReal, int T_NArrayInt>
+struct ConstSoAParticle : SoAParticleBase
+{
+    static constexpr int NArrayReal = T_NArrayReal;
+    static constexpr int NArrayInt = T_NArrayInt;
+    using StorageParticleType = SoAParticleBase;
+    using ConstPTD = ConstParticleTileData<SoAParticleBase, NArrayReal, NArrayInt>;
+    static constexpr bool is_soa_particle = false;
+    static constexpr bool is_constsoa_particle = true;
+
+    using RealType = ParticleReal;
+
+    static Long the_next_id;
+
+
+    ConstSoAParticle (ConstPTD ptd, int const index) 
+    {
+        m_constparticle_tile_data=ptd;
+        m_index=index;
+    }
+     
+    //functions to get id and cpu in the SOA data
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    const ParticleCPUWrapper cpu () & { 
+        uint64_t unsigned_cpu_value;
+        unsigned_cpu_value = (uint64_t) this->m_constparticle_tile_data.m_idata[1][m_index];
+        return ParticleCPUWrapper(unsigned_cpu_value); }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    const ParticleIDWrapper id () & { 
+        uint64_t unsigned_id_value;
+        unsigned_id_value = (uint64_t) this->m_constparticle_tile_data.m_idata[0][m_index];
+        return ParticleIDWrapper(unsigned_id_value); }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    const ConstParticleCPUWrapper cpu () const & { 
+        uint64_t unsigned_cpu_value;
+        unsigned_cpu_value = (uint64_t) this->m_constparticle_tile_data.m_idata[1][m_index];
+        return ConstParticleCPUWrapper(unsigned_cpu_value); }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    const ConstParticleIDWrapper id () const & { 
+        uint64_t unsigned_id_value;
+        unsigned_id_value = (uint64_t) this->m_constparticle_tile_data.m_idata[0][m_index];
+        return ConstParticleIDWrapper(unsigned_id_value); }
+
+    //functions to get positions of the particle in the SOA data
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    const RealVect pos () const & {return RealVect(AMREX_D_DECL(this->m_constparticle_tile_data->m_rdata[0][m_index], this->m_constparticle_tile_data.m_rdata[1][m_index], this->m_constparticle_tile_data->m_rdata[2][m_index]));}
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    const RealType& pos (int position_index) &
+    {
+        AMREX_ASSERT(position_index < AMREX_SPACEDIM);
+        return this->m_constparticle_tile_data.m_rdata[position_index][m_index];
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    const RealType  pos (int position_index) const &
+    {
+        AMREX_ASSERT(position_index < AMREX_SPACEDIM);
+        return this->m_constparticle_tile_data.m_rdata[position_index][m_index];
+    }
+
+    static Long NextID ();
+
+    /**
+    * \brief This version can only be used inside omp critical.
+    */
+    static Long UnprotectedNextID ();
+
+    /**
+    * \brief Reset on restart.
+    *
+    * \param nextid
+    */
+    static void NextID (Long nextid);
+
+    private :
+
+    static_assert(std::is_trivially_copyable<ParticleTileData<SoAParticleBase, NArrayReal, NArrayInt>>(), "ParticleTileData is not trivially copyable");
+
     ConstPTD m_constparticle_tile_data;
     int m_index;
 };
