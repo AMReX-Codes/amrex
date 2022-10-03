@@ -8,7 +8,7 @@
 #include <cstdlib>
 
 #ifdef AMREX_USE_DPCPP
-#include <sycl/sycl.hpp>
+#include <SYCL/sycl.hpp>
 #endif
 
 namespace amrex { inline namespace disabled {

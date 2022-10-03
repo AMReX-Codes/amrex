@@ -39,7 +39,7 @@
 
 #ifdef AMREX_USE_DPCPP
 
-# include <sycl/sycl.hpp>
+# include <SYCL/sycl.hpp>
 
 # define AMREX_REQUIRE_SUBGROUP_SIZE(x) \
   _Pragma("clang diagnostic push") \

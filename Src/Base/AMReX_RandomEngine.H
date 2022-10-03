@@ -14,7 +14,7 @@
 #include <curand.h>
 #include <curand_kernel.h>
 #elif defined(AMREX_USE_DPCPP)
-#include <sycl/sycl.hpp>
+#include <SYCL/sycl.hpp>
 #include <oneapi/mkl/rng/device.hpp>
 namespace mkl = oneapi::mkl;
 #endif
