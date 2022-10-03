@@ -157,7 +157,7 @@ public:
 
     ParConstIter_impl (ContainerType const& pc, int level, MFItInfo& info)
         : ParIterBase_impl<true,ParticleType,NArrayReal,NArrayInt,Allocator>(pc,level,info)
-        {}
+        {}    
 };
 
 template <bool is_const, typename ParticleType, int NArrayReal, int NArrayInt,

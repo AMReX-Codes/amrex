@@ -17,6 +17,9 @@ namespace amrex {
 // Forward Declaration
 template <int NArrayReal, int NArrayInt>
 struct SoAParticle;
+
+template <typename T_ParticleType, int NArrayReal, int NArrayInt>
+struct ConstParticleTileData;
  
 template <typename T_ParticleType, int NArrayReal, int NArrayInt>
 struct ParticleTileData 
@@ -207,15 +210,22 @@ struct SoAParticle : SoAParticleBase
     static constexpr int NArrayInt = T_NArrayInt;
     using StorageParticleType = SoAParticleBase;
     using PTD = ParticleTileData<SoAParticleBase, NArrayReal, NArrayInt>;
+    using ConstPTD = ConstParticleTileData<SoAParticleBase, NArrayReal, NArrayInt>;
     static constexpr bool is_soa_particle = true;
 
     using RealType = ParticleReal;
 
     static Long the_next_id;
 
-  SoAParticle (PTD ptd, int const index) 
+    SoAParticle (PTD ptd, int const index) 
     {
         m_particle_tile_data=ptd;
+        m_index=index;
+    }
+
+    SoAParticle (ConstPTD ptd, int const index) 
+    {
+        m_constparticle_tile_data=ptd;
         m_index=index;
     }
 
@@ -284,6 +294,7 @@ struct SoAParticle : SoAParticleBase
     static_assert(std::is_trivially_copyable<ParticleTileData<SoAParticleBase, NArrayReal, NArrayInt>>(), "ParticleTileData is not trivially copyable");
 
     PTD m_particle_tile_data;
+    ConstPTD m_constparticle_tile_data;
     int m_index;
 };
 
@@ -341,8 +352,8 @@ struct ConstParticleTileData
     Long m_size;
     const ParticleType* AMREX_RESTRICT m_aos;
 
-    GpuArray<const ParticleReal* AMREX_RESTRICT, NArrayReal> m_rdata;
-    GpuArray<const int* AMREX_RESTRICT, NArrayInt > m_idata;
+    GpuArray<const ParticleReal* , NArrayReal> m_rdata;
+    GpuArray<const int* , NArrayInt > m_idata;
 
     auto const* rdata(const int attribute_index) const
     {
