@@ -143,7 +143,6 @@ template <typename T_ParticleType, int T_NArrayReal, int T_NArrayInt,
 class ParticleContainer_impl : public ParticleContainerBase
 {
 public:
-    //! \brief The type of the "Particle"
     using ParticleType = T_ParticleType;
     //! \brief Number of extra Real components in the particle struct
     static constexpr int NStructReal = ParticleType::NReal;
@@ -153,7 +152,9 @@ public:
     static constexpr int NArrayReal = T_NArrayReal;
     //! \brief Number of extra integer components stored in struct-of-array form
     static constexpr int NArrayInt = T_NArrayInt;
-
+        //! \brief The type of the "Particle"
+    //using ConstParticleType = typename std::conditional<ParticleType::is_constsoa_particle, const ParticleType, ConstSoAParticle<NArrayReal, NArrayInt> >::type;
+    using ConstParticleType = ConstSoAParticle<NArrayReal, NArrayInt>;
 private:
     friend class ParIterBase_impl<true,ParticleType, NArrayReal, NArrayInt, Allocator>;
     friend class ParIterBase_impl<false,ParticleType, NArrayReal, NArrayInt, Allocator>;

@@ -315,18 +315,6 @@ struct ConstSoAParticle : SoAParticleBase
     //functions to get id and cpu in the SOA data
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    const ParticleCPUWrapper cpu () & { 
-        uint64_t unsigned_cpu_value;
-        unsigned_cpu_value = (uint64_t) this->m_constparticle_tile_data.m_idata[1][m_index];
-        return ParticleCPUWrapper(unsigned_cpu_value); }
-
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    const ParticleIDWrapper id () & { 
-        uint64_t unsigned_id_value;
-        unsigned_id_value = (uint64_t) this->m_constparticle_tile_data.m_idata[0][m_index];
-        return ParticleIDWrapper(unsigned_id_value); }
-
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const ConstParticleCPUWrapper cpu () const & { 
         uint64_t unsigned_cpu_value;
         unsigned_cpu_value = (uint64_t) this->m_constparticle_tile_data.m_idata[1][m_index];
@@ -342,13 +330,6 @@ struct ConstSoAParticle : SoAParticleBase
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const RealVect pos () const & {return RealVect(AMREX_D_DECL(this->m_constparticle_tile_data->m_rdata[0][m_index], this->m_constparticle_tile_data.m_rdata[1][m_index], this->m_constparticle_tile_data->m_rdata[2][m_index]));}
-
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    const RealType& pos (int position_index) &
-    {
-        AMREX_ASSERT(position_index < AMREX_SPACEDIM);
-        return this->m_constparticle_tile_data.m_rdata[position_index][m_index];
-    }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const RealType  pos (int position_index) const &

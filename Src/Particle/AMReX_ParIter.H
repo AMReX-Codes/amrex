@@ -121,6 +121,7 @@ public:
     static constexpr int NStructInt = ParticleType::NInt;
 
     using ContainerType    = ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
+    using ConstParticleType = typename ContainerType::ConstParticleType;
     using ParticleTileType = typename ContainerType::ParticleTileType;
     using AoS              = typename ContainerType::AoS;
     using SoA              = typename ContainerType::SoA;

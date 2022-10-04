@@ -294,11 +294,11 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
     return hv;
 }
 
-template <class Iterator, std::enable_if_t<IsParticleIterator<Iterator>::value && Iterator::ContainerType::ParticleType::is_constsoa_particle, int> foo = 0>
+template <class Iterator, std::enable_if_t<IsParticleIterator<Iterator>::value && Iterator::ContainerType::ParticleType::is_soa_particle, int> foo = 0>
 int
 numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
 {
-    using ParticleType = typename Iterator::ContainerType::ParticleType;
+    using ParticleType = typename Iterator::ContainerType::ConstParticleType;
 
     const auto tile = pti.GetParticleTile();
     const auto tile_data = tile.getConstParticleTileData();
@@ -319,7 +319,7 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
     reduce_op.eval(np, reduce_data,
     [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
     {
-        const ParticleType p(tile_data,i);
+        ParticleType p(tile_data,i);
         if ((p.id() < 0)) return false;
         IntVect iv = IntVect(
             AMREX_D_DECL(int(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0])),
