@@ -55,6 +55,17 @@ namespace amrex {
  * allowed to fill only some of the components with the fill function.
  *
  * (5) This only works for cell-centered and nodal data.
+ *
+ * This class also provides support for RungeKutta::RK3 and RungeKutta::RK4.
+ * The storeRKCoarseData function can be used to store coarse AMR level
+ * data that are needed for filling fine level data's ghost cells in this
+ * class.  The `fillRK` function can be used to fill ghost cells for fine
+ * AMR levels.  This operation at the coarse/fine boundary is non-trivial
+ * for RK orders higher than 2.  Note that it is expected that time stepping
+ * on the coarse level is perform before any fine level time stepping, and
+ * it's the user's reponsibility to properly create and destroy this object.
+ * See AmrLevel::RK for an example of using the RungeKutta functions and
+ * FillPatcher together.
  */
 
 template <class MF = MultiFab>
@@ -153,6 +164,37 @@ public:
                                  PreInterpHook const& pre_interp = {},
                                  PostInterpHook const& post_interp = {});
 
+    /**
+     * \brief Store coarse AMR level data for RK3 and RK4
+     *
+     * \tparam order RK order.  Must be 3 or 4.
+     * \param time   time at the beginning of the step
+     * \param dt     time step
+     * \param S_old  data at time
+     * \param RK_k   right-hand side at RK stages
+     */
+    template <std::size_t order>
+    void storeRKCoarseData (Real time, Real dt, MF const& S_old,
+                            Array<MF,order> const& RK_k);
+
+    /**
+     * \brief Fill ghost cells of fine AMR level for RK3 and RK4
+     *
+     * \param stage     RK stage number starting from 1
+     * \param iteration iteration number on fine level during a coarse time
+     *                  step.  For an AMR simulation with subcycling and a
+     *                  refinement ratio of 2, the number is either 1 or 2,
+     *                  denoting the first and second substep, respectively.
+     * \param ncycle    number of subcyling steps.  It's usually 2 or 4.
+     *                  Without subcycling, this will be 1.
+     * \param cbc       filling physical boundary on coarse level
+     * \param fbc       filling physical boundary on fine level
+     * \param bcs       physical BC types
+     */
+    template <typename BC>
+    void fillRK (int stage, int iteration, int ncycle, MF& mf, Real time,
+                 BC& cbc, BC& fbc, Vector<BCRec> const& bcs);
+
 private:
 
     BoxArray m_fba;
@@ -165,8 +207,14 @@ private:
     int m_ncomp;
     InterpBase* m_interp;
     EB2::IndexSpace const* m_eb_index_space = nullptr;
+    FabArrayBase m_sfine;
+    IntVect m_ratio;
     Vector<std::pair<Real,std::unique_ptr<MF>>> m_cf_crse_data;
+    std::unique_ptr<MF> m_cf_crse_data_tmp;
     std::unique_ptr<MF> m_cf_fine_data;
+    Real m_dt_coarse = std::numeric_limits<Real>::lowest();
+
+    FabArrayBase::FPinfo const& getFPinfo ();
 };
 
 template <class MF>
@@ -185,11 +233,17 @@ FillPatcher<MF>::FillPatcher (BoxArray const& fba, DistributionMapping const& fd
       m_nghost(nghost),
       m_ncomp(ncomp),
       m_interp(interp),
-      m_eb_index_space(eb_index_space)
+      m_eb_index_space(eb_index_space),
+      m_sfine(fba, fdm, 1, nghost)
 {
     static_assert(IsFabArray<MF>::value,
                   "FillPatcher<MF>: MF must be FabArray type");
     AMREX_ALWAYS_ASSERT(m_fba.ixType().cellCentered() || m_fba.ixType().nodeCentered());
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        m_ratio[idim] = m_fgeom.Domain().length(idim) / m_cgeom.Domain().length(idim);
+    }
+    AMREX_ASSERT(m_fgeom.Domain() == amrex::refine(m_cgeom.Domain(),m_ratio));
 }
 
 template <class MF>
@@ -218,6 +272,15 @@ FillPatcher<MF>::fill (MF& mf, IntVect const& nghost, Real time,
 }
 
 template <class MF>
+FabArrayBase::FPinfo const&
+FillPatcher<MF>::getFPinfo ()
+{
+    const InterpolaterBoxCoarsener& coarsener = m_interp->BoxCoarsener(m_ratio);
+    return FabArrayBase::TheFPinfo(m_sfine, m_sfine, m_nghost, coarsener,
+                                   m_fgeom, m_cgeom, m_eb_index_space);
+}
+
+template <class MF>
 template <typename BC, typename PreInterpHook, typename PostInterpHook>
 void
 FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real time,
@@ -239,19 +302,7 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
                         m_ncomp >= ncomp &&
                         m_ncomp == cmf[0]->nComp());
 
-    IntVect ratio;
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        ratio[idim] = m_fgeom.Domain().length(idim) / m_cgeom.Domain().length(idim);
-    }
-    AMREX_ASSERT(m_fgeom.Domain() == amrex::refine(m_cgeom.Domain(),ratio));
-
-    const InterpolaterBoxCoarsener& coarsener = m_interp->BoxCoarsener(ratio);
-    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(mf, mf,
-                                                              m_nghost,
-                                                              coarsener,
-                                                              m_fgeom,
-                                                              m_cgeom,
-                                                              m_eb_index_space);
+    auto const& fpc = getFPinfo();
 
     if ( ! fpc.ba_crse_patch.empty())
     {
@@ -294,7 +345,11 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
         }
         else if (m_cf_crse_data.size() == 2)
         {
-            mf_crse_patch = make_mf_crse_patch<MF>(fpc, ncomp);
+            if (m_cf_crse_data_tmp == nullptr) {
+                m_cf_crse_data_tmp = std::make_unique<MF>
+                    (make_mf_crse_patch<MF>(fpc, m_ncomp));
+            }
+            mf_crse_patch = MF(*m_cf_crse_data_tmp, amrex::make_alias, scomp, ncomp);
             int const ng_space_interp = 8; // Need to be big enough
             Box domain = m_cgeom.growPeriodicDomain(ng_space_interp);
             domain.convert(mf.ixType());
@@ -330,12 +385,200 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
                         ncomp, IntVect(0), m_cgeom, m_fgeom,
                         amrex::grow(amrex::convert(m_fgeom.Domain(),
                                                    mf.ixType()),nghost),
-                        ratio, m_interp, bcs, bcscomp);
+                        m_ratio, m_interp, bcs, bcscomp);
 
         post_interp(*m_cf_fine_data, scomp, ncomp);
 
         mf.ParallelCopy(*m_cf_fine_data, scomp, dcomp, ncomp, IntVect{0}, nghost);
     }
+}
+
+template <typename MF>
+template <std::size_t order>
+void FillPatcher<MF>::storeRKCoarseData (Real /*time*/, Real dt, MF const& S_old,
+                                         Array<MF,order> const& RK_k)
+{
+    m_dt_coarse = dt;
+    m_cf_crse_data.resize(order+1);
+
+    auto const& fpc = getFPinfo();
+
+    for (auto& tmf : m_cf_crse_data) {
+        tmf.first = std::numeric_limits<Real>::lowest(); // because we dont' need it
+        tmf.second = std::make_unique<MF>(make_mf_crse_patch<MF>(fpc, m_ncomp));
+    }
+    m_cf_crse_data[0].second->ParallelCopy(S_old, m_cgeom.periodicity());
+    for (std::size_t i = 0; i < order; ++i) {
+        m_cf_crse_data[i+1].second->ParallelCopy(RK_k[i], m_cgeom.periodicity());
+    }
+}
+
+template <typename MF>
+template <typename BC>
+void FillPatcher<MF>::fillRK (int stage, int iteration, int ncycle,
+                              MF& mf, Real time, BC& cbc, BC& fbc,
+                              Vector<BCRec> const& bcs)
+{
+    int rk_order = m_cf_crse_data.size()-1;
+    if (rk_order != 3 && rk_order != 4) {
+        amrex::Abort("FillPatcher: unsupported RK order "+std::to_string(rk_order));
+        return;
+    }
+    AMREX_ASSERT(stage > 0 && stage <= rk_order);
+
+    auto const& fpc = getFPinfo();
+    if (m_cf_crse_data_tmp == nullptr) {
+        m_cf_crse_data_tmp = std::make_unique<MF>
+            (make_mf_crse_patch<MF>(fpc, m_ncomp));
+    }
+
+    auto const& u = m_cf_crse_data_tmp->arrays();
+    auto const& u0 = m_cf_crse_data[0].second->const_arrays();
+    auto const& k1 = m_cf_crse_data[1].second->const_arrays();
+    auto const& k2 = m_cf_crse_data[2].second->const_arrays();
+    auto const& k3 = m_cf_crse_data[3].second->const_arrays();
+
+    Real dtc = m_dt_coarse;
+    Real r = Real(1) / Real(ncycle);
+    Real xsi = Real(iteration-1) / Real(ncycle);
+
+    if (rk_order == 3) {
+        // coefficients for U
+        Real b1 = xsi - Real(5./6.)*xsi*xsi;
+        Real b2 = Real(1./6.)*xsi*xsi;
+        Real b3 = Real(2./3)*xsi*xsi;
+        // coefficients for Ut
+        Real c1 = Real(1.) - Real(5./3.)*xsi;
+        Real c2 = Real(1./3.)*xsi;
+        Real c3 = Real(4./3.)*xsi;
+        // coefficients for Utt
+        constexpr Real d1 = Real(-5./3.);
+        constexpr Real d2 = Real(1./3.);
+        constexpr Real d3 = Real(4./3.);
+        if (stage == 1) {
+            amrex::ParallelFor(*m_cf_crse_data_tmp, IntVect(0), m_ncomp,
+            [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k, int n) noexcept
+            {
+                Real kk1 = k1[bi](i,j,k,n);
+                Real kk2 = k2[bi](i,j,k,n);
+                Real kk3 = k3[bi](i,j,k,n);
+                Real uu  = b1*kk1 + b2*kk2 + b3*kk3;
+                u[bi](i,j,k,n) = u0[bi](i,j,k,n) + dtc*uu;
+            });
+        } else if (stage == 2) {
+            amrex::ParallelFor(*m_cf_crse_data_tmp, IntVect(0), m_ncomp,
+            [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k, int n) noexcept
+            {
+                Real kk1 = k1[bi](i,j,k,n);
+                Real kk2 = k2[bi](i,j,k,n);
+                Real kk3 = k3[bi](i,j,k,n);
+                Real uu = b1*kk1 + b2*kk2 + b3*kk3;
+                Real ut = c1*kk1 + c2*kk2 + c3*kk3;
+                u[bi](i,j,k,n) = u0[bi](i,j,k,n) + dtc*(uu + r*ut);
+            });
+        } else if (stage == 3) {
+            amrex::ParallelFor(*m_cf_crse_data_tmp, IntVect(0), m_ncomp,
+            [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k, int n) noexcept
+            {
+                Real kk1 = k1[bi](i,j,k,n);
+                Real kk2 = k2[bi](i,j,k,n);
+                Real kk3 = k3[bi](i,j,k,n);
+                Real uu  = b1*kk1 + b2*kk2 + b3*kk3;
+                Real ut  = c1*kk1 + c2*kk2 + c3*kk3;
+                Real utt = d1*kk1 + d2*kk2 + d3*kk3;
+                u[bi](i,j,k,n) = u0[bi](i,j,k,n) + dtc*
+                    (uu + Real(0.5)*r*ut + Real(0.25)*r*r*utt);
+            });
+        }
+    } else if (rk_order == 4) {
+        auto const& k4 = m_cf_crse_data[4].second->const_arrays();
+        Real xsi2 = xsi*xsi;
+        Real xsi3 = xsi2*xsi;
+        // coefficients for U
+        Real b1 = xsi - Real(1.5)*xsi2 + Real(2./3.)*xsi3;
+        Real b2 = xsi2 - Real(2./3.)*xsi3;
+        Real b3 = b2;
+        Real b4 = Real(-0.5)*xsi2 + Real(2./3.)*xsi3;
+        // coefficients for Ut
+        Real c1 = Real(1.) - Real(3.)*xsi + Real(2.)*xsi2;
+        Real c2 = Real(2.)*xsi - Real(2.)*xsi2;
+        Real c3 = c2;
+        Real c4 = -xsi + Real(2.)*xsi2;
+        // coefficients for Utt
+        Real d1 = Real(-3.) + Real(4.)*xsi;
+        Real d2 = Real( 2.) - Real(4.)*xsi;
+        Real d3 = d2;
+        Real d4 = Real(-1.) + Real(4.)*xsi;
+        // coefficients for Uttt
+        constexpr Real e1 = Real( 4.);
+        constexpr Real e2 = Real(-4.);
+        constexpr Real e3 = Real(-4.);
+        constexpr Real e4 = Real( 4.);
+        if (stage == 1) {
+            amrex::ParallelFor(*m_cf_crse_data_tmp, IntVect(0), m_ncomp,
+            [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k, int n) noexcept
+            {
+                Real kk1 = k1[bi](i,j,k,n);
+                Real kk2 = k2[bi](i,j,k,n);
+                Real kk3 = k3[bi](i,j,k,n);
+                Real kk4 = k4[bi](i,j,k,n);
+                Real uu  = b1*kk1 + b2*kk2 + b3*kk3 + b4*kk4;
+                u[bi](i,j,k,n) = u0[bi](i,j,k,n) + dtc*uu;
+            });
+        } else if (stage == 2) {
+            amrex::ParallelFor(*m_cf_crse_data_tmp, IntVect(0), m_ncomp,
+            [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k, int n) noexcept
+            {
+                Real kk1 = k1[bi](i,j,k,n);
+                Real kk2 = k2[bi](i,j,k,n);
+                Real kk3 = k3[bi](i,j,k,n);
+                Real kk4 = k4[bi](i,j,k,n);
+                Real uu = b1*kk1 + b2*kk2 + b3*kk3 + b4*kk4;
+                Real ut = c1*kk1 + c2*kk2 + c3*kk3 + c4*kk4;
+                u[bi](i,j,k,n) = u0[bi](i,j,k,n) + dtc*(uu + Real(0.5)*r*ut);
+            });
+        } else if (stage == 3 || stage == 4) {
+            Real r2 = r*r;
+            Real r3 = r2*r;
+            Real at = (stage == 3) ? Real(0.5)*r : r;
+            Real att = (stage == 3) ? Real(0.25)*r2 : Real(0.5)*r2;
+            Real attt = (stage == 3) ? Real(0.0625)*r3 : Real(0.125)*r3;
+            Real akk = (stage == 3) ? Real(-4.) : Real(4.);
+            amrex::ParallelFor(*m_cf_crse_data_tmp, IntVect(0), m_ncomp,
+            [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k, int n) noexcept
+            {
+                Real kk1 = k1[bi](i,j,k,n);
+                Real kk2 = k2[bi](i,j,k,n);
+                Real kk3 = k3[bi](i,j,k,n);
+                Real kk4 = k4[bi](i,j,k,n);
+                Real uu   = b1*kk1 + b2*kk2 + b3*kk3 + b4*kk4;
+                Real ut   = c1*kk1 + c2*kk2 + c3*kk3 + c4*kk4;
+                Real utt  = d1*kk1 + d2*kk2 + d3*kk3 + d4*kk4;
+                Real uttt = e1*kk1 + e2*kk2 + e3*kk3 + e4*kk4;
+                u[bi](i,j,k,n) = u0[bi](i,j,k,n) + dtc *
+                    (uu + at*ut + att*utt + attt*(uttt+akk*(kk3-kk2)));
+            });
+        }
+    }
+    Gpu::streamSynchronize();
+
+    cbc(*m_cf_crse_data_tmp, 0, m_ncomp, m_nghost, time, 0);
+
+    if (m_cf_fine_data == nullptr) {
+        m_cf_fine_data = std::make_unique<MF>(make_mf_fine_patch<MF>(fpc, m_ncomp));
+    }
+
+    FillPatchInterp(*m_cf_fine_data, 0, *m_cf_crse_data_tmp, 0,
+                    m_ncomp, IntVect(0), m_cgeom, m_fgeom,
+                    amrex::grow(amrex::convert(m_fgeom.Domain(),
+                                               mf.ixType()),m_nghost),
+                    m_ratio, m_interp, bcs, 0);
+
+    // xxxxx We can optimize away this ParallelCopy by making a special fpinfo.
+    mf.ParallelCopy(*m_cf_fine_data, 0, 0, m_ncomp, IntVect(0), m_nghost);
+
+    mf.FillBoundary(m_fgeom.periodicity());
+    fbc(mf, 0, m_ncomp, m_nghost, time, 0);
 }
 
 }

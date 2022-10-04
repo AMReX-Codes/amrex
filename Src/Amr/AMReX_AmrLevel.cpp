@@ -32,6 +32,14 @@ DescriptorList AmrLevel::desc_lst;
 DeriveList     AmrLevel::derive_lst;
 
 void
+AmrLevel::post_timestep (int /*iteration*/)
+{
+    if (level < parent->finestLevel()) {
+        parent->getLevel(level+1).resetFillPatcher();
+    }
+}
+
+void
 AmrLevel::postCoarseTimeStep (Real time)
 {
     BL_ASSERT(level == 0);
@@ -2221,6 +2229,25 @@ AmrLevel::CreateLevelDirectory (const std::string &dir)
       }
     }
     levelDirectoryCreated = true;
+}
+
+void
+AmrLevel::FillRKPatch (int state_index, MultiFab& S, Real time,
+                       int stage, int iteration, int ncycle)
+{
+    StateDataPhysBCFunct physbcf(state[state_index], 0, geom);
+
+    if (level == 0) {
+        S.FillBoundary(geom.periodicity());
+        physbcf(S, 0, S.nComp(), S.nGrowVect(), time, 0);
+    } else {
+        auto& crse_level = parent->getLevel(level-1);
+        StateDataPhysBCFunct physbcf_crse(crse_level.state[state_index], 0,
+                                          crse_level.geom);
+        auto& fillpatcher = m_fillpatcher[state_index];
+        fillpatcher->fillRK(stage, iteration, ncycle, S, time, physbcf_crse,
+                            physbcf, AmrLevel::desc_lst[state_index].getBCs());
+    }
 }
 
 }
