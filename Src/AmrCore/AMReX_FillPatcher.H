@@ -49,10 +49,10 @@ namespace amrex {
  * should do this in the post_timestep virtual function (see
  * Tests/Amr/Advection_AmrLevel for an example).
  *
- * (4) This class will try to fill all the components.  Unlike the
- * FillPatchTwoLevels funcitons, one cannot specify the number of
- * components.  If you do not need to fill all the components, you should
- * create alias MulitFabs/FabArrays to work aroun it.
+ * (4) The source MultiFabs/FabArrays (i.e., the crse_data and fine_data
+ * arguments of the fill function) need to have exactly the same number of
+ * components as the ncomp argument of the constructor, even though it's
+ * allowed to fill only some of the components with the fill function.
  *
  * (5) This only works for cell-centered and nodal data.
  */
@@ -72,6 +72,7 @@ public:
      * \param cdm    coarse level DistributionMapping
      * \param cgeom  coarse level DistributionMapping
      * \param ngost  max number of ghost cells to be filled at coarse/fine boundary
+     * \param ncomp  the number of components
      * \param interp for spatial interpolation
      * \param eb_index_space optional argument for specifying EB IndexSpace
      */
@@ -79,7 +80,7 @@ public:
                  Geometry const& fgeom,
                  BoxArray const& cba, DistributionMapping const& cdm,
                  Geometry const& cgeom,
-                 IntVect const& nghost, InterpBase* interp,
+                 IntVect const& nghost, int ncomp, InterpBase* interp,
 #ifdef AMREX_USE_EB
                  EB2::IndexSpace const* eb_index_space = EB2::TopIndexSpaceIfPresent());
 #else
@@ -90,27 +91,34 @@ public:
      * \brief Function to fill data
      *
      * \param mf          destination MultiFab/FabArray
+     * \param nghost      number of ghost cells to fill. This must be <= what's
+     *                    provided to the constructor
      * \param time        time associated with the destination
      * \param crse_data   coarse level data
      * \param crse_time   time associated with the coarse data
      * \param fine_data   fine level data
      * \param fine_time   time associated with the fine data
+     * \param scomp       starting component of the source
+     * \param dcomp       starting component of the destination
+     * \param ncomp       the number of components to fill
      * \param cbc         for filling coarse level physical BC
+     * \param cbccomp     starting component of the coarse level BC functor
      * \param fbc         for filling fine level physical BC
+     * \param fbccomp     starting component of the fine level BC functor
      * \param bcs         BCRec specifying physical boundary types
-     * \param nghost      optional argument for specify number of ghost cell smaller
-     *                    than what's provided in the constructor
+     * \parame bcscomp    starting component of the BCRec Vector.
      * \param pre_interp  optional pre-interpolation hook for modifying the coarse data
      * \param post_interp optional post-interpolation hook for modifying the fine data
      */
     template <typename BC,
               typename PreInterpHook=NullInterpHook<MF>,
               typename PostInterpHook=NullInterpHook<MF> >
-    void fill (MF& mf, Real time,
+    void fill (MF& mf, IntVect const& nghost, Real time,
                Vector<MF*> const& crse_data, Vector<Real> const& crse_time,
                Vector<MF*> const& fine_data, Vector<Real> const& fine_time,
-               BC& cbc, BC& fbc, Vector<BCRec> const& bcs,
-               IntVect const& nghost = IntVect(-1),
+               int scomp, int dcomp, int ncomp,
+               BC& cbc, int cbccomp, BC& fbc, int fbccomp,
+               Vector<BCRec> const& bcs, int bcscomp,
                PreInterpHook const& pre_interp = {},
                PostInterpHook const& post_interp = {});
 
@@ -118,24 +126,30 @@ public:
      * \brief Function to fill data at coarse/fine boundary only
      *
      * \param mf          destination MultiFab/FabArray
+     * \param nghost      number of ghost cells to fill. This must be <= what's
+     *                    provided to the constructor
      * \param time        time associated with the destination
      * \param crse_data   coarse level data
      * \param crse_time   time associated with the coarse data
+     * \param scomp       starting component of the source
+     * \param dcomp       starting component of the destination
+     * \param ncomp       the number of components to fill
      * \param cbc         for filling coarse level physical BC
+     * \param cbccomp     starting component of the coarse level BC functor
      * \param bcs         BCRec specifying physical boundary types
-     * \param nghost      optional argument for specify number of ghost cell smaller
-     *                    than what's provided in the constructor
+     * \param bcscomp    starting component of the BCRec Vector.
      * \param pre_interp  optional pre-interpolation hook for modifying the coarse data
      * \param post_interp optional post-interpolation hook for modifying the fine data
      */
     template <typename BC,
               typename PreInterpHook=NullInterpHook<MF>,
               typename PostInterpHook=NullInterpHook<MF> >
-    void fillCoarseFineBoundary (MF& mf, Real time,
+    void fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real time,
                                  Vector<MF*> const& crse_data,
                                  Vector<Real> const& crse_time,
-                                 BC& cbc, Vector<BCRec> const& bcs,
-                                 IntVect const& nghost = IntVect(-1),
+                                 int scomp, int dcomp, int ncomp,
+                                 BC& cbc, int cbccomp,
+                                 Vector<BCRec> const& bcs, int bcscomp,
                                  PreInterpHook const& pre_interp = {},
                                  PostInterpHook const& post_interp = {});
 
@@ -148,6 +162,7 @@ private:
     Geometry m_fgeom;
     Geometry m_cgeom;
     IntVect m_nghost;
+    int m_ncomp;
     InterpBase* m_interp;
     EB2::IndexSpace const* m_eb_index_space = nullptr;
     Vector<std::pair<Real,std::unique_ptr<MF>>> m_cf_crse_data;
@@ -159,7 +174,7 @@ FillPatcher<MF>::FillPatcher (BoxArray const& fba, DistributionMapping const& fd
                               Geometry const& fgeom,
                               BoxArray const& cba, DistributionMapping const& cdm,
                               Geometry const& cgeom,
-                              IntVect const& nghost, InterpBase* interp,
+                              IntVect const& nghost, int ncomp, InterpBase* interp,
                               EB2::IndexSpace const* eb_index_space)
     : m_fba(fba),
       m_cba(cba),
@@ -168,6 +183,7 @@ FillPatcher<MF>::FillPatcher (BoxArray const& fba, DistributionMapping const& fd
       m_fgeom(fgeom),
       m_cgeom(cgeom),
       m_nghost(nghost),
+      m_ncomp(ncomp),
       m_interp(interp),
       m_eb_index_space(eb_index_space)
 {
@@ -179,54 +195,49 @@ FillPatcher<MF>::FillPatcher (BoxArray const& fba, DistributionMapping const& fd
 template <class MF>
 template <typename BC, typename PreInterpHook, typename PostInterpHook>
 void
-FillPatcher<MF>::fill (MF& mf, Real time,
+FillPatcher<MF>::fill (MF& mf, IntVect const& nghost, Real time,
                        Vector<MF*> const& cmf, Vector<Real> const& ct,
                        Vector<MF*> const& fmf, Vector<Real> const& ft,
-                       BC& cbc, BC& fbc, Vector<BCRec> const& bcs,
-                       IntVect const& a_nghost,
+                       int scomp, int dcomp, int ncomp,
+                       BC& cbc, int cbccomp,
+                       BC& fbc, int fbccomp,
+                       Vector<BCRec> const& bcs, int bcscomp,
                        PreInterpHook const& pre_interp,
                        PostInterpHook const& post_interp)
 {
     BL_PROFILE("FillPatcher::fill()");
 
-    IntVect nghost = (a_nghost == -1) ? m_nghost : a_nghost;
-    nghost.min(mf.nGrowVect());
+    AMREX_ALWAYS_ASSERT(m_fba == fmf[0]->boxArray() &&
+                        m_fdm == fmf[0]->DistributionMap());
 
-    AMREX_ASSERT(m_fba == fmf[0]->boxArray() &&
-                 m_fdm == fmf[0]->DistributionMap() &&
-                 mf.nComp() == fmf[0]->nComp());
+    fillCoarseFineBoundary(mf, nghost, time, cmf, ct, scomp, dcomp, ncomp,
+                           cbc, cbccomp, bcs, bcscomp, pre_interp, post_interp);
 
-    fillCoarseFineBoundary(mf, time, cmf, ct, cbc, bcs, nghost,
-                           pre_interp, post_interp);
-
-    FillPatchSingleLevel(mf, nghost, time, fmf, ft, 0, 0, mf.nComp(),
-                         m_fgeom, fbc, 0);
+    FillPatchSingleLevel(mf, nghost, time, fmf, ft, scomp, dcomp, ncomp,
+                         m_fgeom, fbc, fbccomp);
 }
 
 template <class MF>
 template <typename BC, typename PreInterpHook, typename PostInterpHook>
 void
-FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, Real time,
+FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real time,
                                          Vector<MF*> const& cmf,
                                          Vector<Real> const& ct,
-                                         BC& cbc, Vector<BCRec> const& bcs,
-                                         IntVect const& a_nghost,
+                                         int scomp, int dcomp, int ncomp,
+                                         BC& cbc, int cbccomp,
+                                         Vector<BCRec> const& bcs, int bcscomp,
                                          PreInterpHook const& pre_interp,
                                          PostInterpHook const& post_interp)
 {
     BL_PROFILE("FillPatcher::fillCFB");
 
-    IntVect nghost = (a_nghost == -1) ? m_nghost : a_nghost;
-    nghost.min(mf.nGrowVect());
-    AMREX_ALWAYS_ASSERT(nghost.allLE(m_nghost));
-
-    const int ncomp = mf.nComp();
-
-    AMREX_ASSERT(m_fba == mf.boxArray() &&
-                 m_fdm == mf.DistributionMap() &&
-                 m_cba == cmf[0]->boxArray() &&
-                 m_cdm == cmf[0]->DistributionMap() &&
-                 ncomp == cmf[0]->nComp());
+    AMREX_ALWAYS_ASSERT(nghost.allLE(m_nghost) &&
+                        m_fba == mf.boxArray() &&
+                        m_fdm == mf.DistributionMap() &&
+                        m_cba == cmf[0]->boxArray() &&
+                        m_cdm == cmf[0]->DistributionMap() &&
+                        m_ncomp >= ncomp &&
+                        m_ncomp == cmf[0]->nComp());
 
     IntVect ratio;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -246,7 +257,7 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, Real time,
     {
         if (m_cf_fine_data == nullptr) {
             m_cf_fine_data = std::make_unique<MF>
-                (make_mf_fine_patch<MF>(fpc, ncomp));
+                (make_mf_fine_patch<MF>(fpc, m_ncomp));
         }
 
         int ncmfs = cmf.size();
@@ -258,7 +269,7 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, Real time,
                                    });
 
             if (it == std::end(m_cf_crse_data)) {
-                MF mf_crse_patch = make_mf_crse_patch<MF>(fpc, ncomp);
+                MF mf_crse_patch = make_mf_crse_patch<MF>(fpc, m_ncomp);
                 mf_crse_patch.ParallelCopy(*cmf[icmf], m_cgeom.periodicity());
 
                 std::pair<Real,std::unique_ptr<MF>> tmp;
@@ -273,13 +284,13 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, Real time,
             amrex::almostEqual(time, m_cf_crse_data[0].first))
         {
             mf_crse_patch = MF(*m_cf_crse_data[0].second, amrex::make_alias,
-                               0, ncomp);
+                               scomp, ncomp);
         }
         else if (m_cf_crse_data.size() > 1 &&
                  amrex::almostEqual(time, m_cf_crse_data[1].first))
         {
             mf_crse_patch = MF(*m_cf_crse_data[1].second, amrex::make_alias,
-                               0, ncomp);
+                               scomp, ncomp);
         }
         else if (m_cf_crse_data.size() == 2)
         {
@@ -299,8 +310,9 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, Real time,
                                [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k, int n) noexcept
                                {
                                    if (domain.contains(i,j,k)) {
-                                       a[bi](i,j,k,n) = alpha*a0[bi](i,j,k,n)
-                                           +             beta*a1[bi](i,j,k,n);
+                                       a[bi](i,j,k,n)
+                                           = alpha*a0[bi](i,j,k,scomp+n)
+                                           +  beta*a1[bi](i,j,k,scomp+n);
                                    }
                                });
             Gpu::streamSynchronize();
@@ -310,19 +322,19 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, Real time,
             amrex::Abort("FillPatcher: High order interpolation in time not supported.  Or FillPatcher was not properly deleted.");
         }
 
-        cbc(mf_crse_patch, 0, ncomp, nghost, time, 0);
+        cbc(mf_crse_patch, 0, ncomp, nghost, time, cbccomp);
 
         pre_interp(mf_crse_patch, 0, ncomp);
 
-        FillPatchInterp(*m_cf_fine_data, 0, mf_crse_patch, 0,
+        FillPatchInterp(*m_cf_fine_data, scomp, mf_crse_patch, 0,
                         ncomp, IntVect(0), m_cgeom, m_fgeom,
                         amrex::grow(amrex::convert(m_fgeom.Domain(),
                                                    mf.ixType()),nghost),
-                        ratio, m_interp, bcs, 0);
+                        ratio, m_interp, bcs, bcscomp);
 
-        post_interp(*m_cf_fine_data, 0, ncomp);
+        post_interp(*m_cf_fine_data, scomp, ncomp);
 
-        mf.ParallelCopy(*m_cf_fine_data, 0, 0, ncomp, IntVect{0}, nghost);
+        mf.ParallelCopy(*m_cf_fine_data, scomp, dcomp, ncomp, IntVect{0}, nghost);
     }
 }
 

@@ -368,9 +368,19 @@ public:
     virtual void particle_redistribute (int /*lbase*/ = 0, bool /*a_init*/ = false) {;}
 #endif
 
-    // Fill with FillPatcher on level > 0 and AmrLevel::FillPatch on level 0.
-    void FillPatcherFill (amrex::MultiFab& mf, int nghost, amrex::Real time,
-                          int state_index);
+    /**
+     * \brief Fill with FillPatcher on level > 0 and AmrLevel::FillPatch on level 0.
+     *
+     * \param mf     destination MultiFab
+     * \param dcomp  starting component for the destination
+     * \param ncomp  number of component to fill
+     * \param nghost number of ghost cells to fill
+     * \param time   time
+     * \param state_index StateData index
+     * \param scomp  starting component in the StateData
+     */
+    void FillPatcherFill (amrex::MultiFab& mf, int dcomp, int ncomp, int nghost,
+                          amrex::Real time, int state_index, int scomp);
 
     static void FillPatch (AmrLevel& amrlevel,
                            MultiFab& leveldata,

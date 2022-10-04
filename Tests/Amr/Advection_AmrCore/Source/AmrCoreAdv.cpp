@@ -461,7 +461,7 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp,
                 fillpatcher[lev] = std::make_unique<FillPatcher<MultiFab>>
                     (boxArray(lev  ), DistributionMap(lev  ), Geom(lev  ),
                      boxArray(lev-1), DistributionMap(lev-1), Geom(lev-1),
-                     mf.nGrowVect(), mapper);
+                     mf.nGrowVect(), mf.nComp(), mapper);
             }
         }
 
@@ -474,8 +474,9 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp,
             if (fptype == FillPatchType::fillpatch_class) {
                 AMREX_ASSERT(icomp == 0); // Otherwise we will have to make some
                                           // alias multifabs.
-                fillpatcher[lev]->fill(mf, time, cmf, ctime, fmf, ftime,
-                                       cphysbc, fphysbc, bcs);
+                fillpatcher[lev]->fill(mf, mf.nGrowVect(), time,
+                                       cmf, ctime, fmf, ftime, 0, icomp, ncomp,
+                                       cphysbc, 0, fphysbc, 0, bcs, 0);
             } else {
                 amrex::FillPatchTwoLevels(mf, time, cmf, ctime, fmf, ftime,
                                           0, icomp, ncomp, geom[lev-1], geom[lev],
@@ -492,8 +493,9 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp,
             if (fptype == FillPatchType::fillpatch_class) {
                 AMREX_ASSERT(icomp == 0); // Otherwise we will have to make some
                                           // alias multifabs.
-                fillpatcher[lev]->fill(mf, time, cmf, ctime, fmf, ftime,
-                                       cphysbc, fphysbc, bcs);
+                fillpatcher[lev]->fill(mf, mf.nGrowVect(), time,
+                                       cmf, ctime, fmf, ftime, 0, icomp, ncomp,
+                                       cphysbc, 0, fphysbc, 0, bcs, 0);
             } else {
                 amrex::FillPatchTwoLevels(mf, time, cmf, ctime, fmf, ftime,
                                           0, icomp, ncomp, geom[lev-1], geom[lev],

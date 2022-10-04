@@ -284,7 +284,7 @@ AmrLevelAdv::advance (Real time,
     // State with ghost cells
     MultiFab Sborder(grids, dmap, NUM_STATE, NUM_GROW);
     // We use FillPatcher to do fillpatch here if we can
-    FillPatcherFill(Sborder, NUM_GROW, time, Phi_Type);
+    FillPatcherFill(Sborder, 0, NUM_STATE, NUM_GROW, time, Phi_Type, 0);
 
     // MF to hold the mac velocity
     MultiFab Umac[BL_SPACEDIM];

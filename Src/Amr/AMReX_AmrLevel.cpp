@@ -2108,10 +2108,11 @@ AmrLevel::resetFillPatcher ()
 }
 
 void
-AmrLevel::FillPatcherFill (MultiFab& mf, int nghost, Real time, int state_index)
+AmrLevel::FillPatcherFill (MultiFab& mf, int dcomp, int ncomp, int nghost,
+                           Real time, int state_index, int scomp)
 {
     if (level == 0) {
-        FillPatch(*this, mf, nghost, time, state_index, 0, mf.nComp());
+        FillPatch(*this, mf, nghost, time, state_index, scomp, ncomp, dcomp);
     } else {
         AmrLevel& fine_level = *this;
         AmrLevel& crse_level = parent->getLevel(level-1);
@@ -2122,33 +2123,36 @@ AmrLevel::FillPatcherFill (MultiFab& mf, int nghost, Real time, int state_index)
         Vector<Real> stime_crse;
         StateData& statedata_crse = crse_level.state[state_index];
         statedata_crse.getData(smf_crse,stime_crse,time);
-        StateDataPhysBCFunct physbcf_crse(statedata_crse,0,geom_crse);
+        StateDataPhysBCFunct physbcf_crse(statedata_crse,scomp,geom_crse);
 
         Vector<MultiFab*> smf_fine;
         Vector<Real> stime_fine;
         StateData& statedata_fine = fine_level.state[state_index];
         statedata_fine.getData(smf_fine,stime_fine,time);
-        StateDataPhysBCFunct physbcf_fine(statedata_fine,0,geom_fine);
+        StateDataPhysBCFunct physbcf_fine(statedata_fine,scomp,geom_fine);
 
         const StateDescriptor& desc = AmrLevel::desc_lst[state_index];
 
         if (level > 1 &&!amrex::ProperlyNested(fine_level.crse_ratio,
                                                parent->blockingFactor(fine_level.level),
-                                               nghost, mf.ixType(), desc.interp(0))) {
+                                               nghost, mf.ixType(),
+                                               desc.interp(scomp))) {
             amrex::Abort("FillPatcherFill: Grids are not properly nested.  Must increase blocking factor.");
         }
-
 
         auto& fillpatcher = m_fillpatcher[state_index];
         if (fillpatcher == nullptr) {
             fillpatcher = std::make_unique<FillPatcher<MultiFab>>
                 (parent->boxArray(level), parent->DistributionMap(level), geom_fine,
                  parent->boxArray(level-1), parent->DistributionMap(level-1), geom_crse,
-                 IntVect(nghost), desc.interp(0));
+                 IntVect(nghost), desc.nComp(), desc.interp(scomp));
         }
 
-        fillpatcher->fill(mf, time, smf_crse, stime_crse, smf_fine, stime_fine,
-                          physbcf_crse, physbcf_fine, desc.getBCs());
+        fillpatcher->fill(mf, IntVect(nghost), time,
+                          smf_crse, stime_crse, smf_fine, stime_fine,
+                          scomp, dcomp, ncomp,
+                          physbcf_crse, scomp, physbcf_fine, scomp,
+                          desc.getBCs(), scomp);
     }
 }
 
