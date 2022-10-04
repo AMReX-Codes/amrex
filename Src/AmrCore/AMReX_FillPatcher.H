@@ -30,7 +30,7 @@ namespace amrex {
  * regrid.  The fine level data passed as input must have the same BoxArray
  * and DistributionMapping as the destination.  It's OK they are the same
  * MultiFab.  For AmrLevel based codes, AmrLevel::FillPatcherFill wil try to
- * use FillPatcher if it can, and AmrLevel::Patch will use the fillpatch
+ * use FillPatcher if it can, and AmrLevel::FillPatch will use the fillpatch
  * functions.
  *
  * (2) When to build?  It is recommended that one uses `std::unique_ptr` to
@@ -67,11 +67,11 @@ public:
      *
      * \param fba    fine level BoxArray
      * \param fdm    fine level DistributionMapping
-     * \param fgeom  fine level DistributionMapping
+     * \param fgeom  fine level Geometry
      * \param cba    coarse level BoxArray
      * \param cdm    coarse level DistributionMapping
-     * \param cgeom  coarse level DistributionMapping
-     * \param ngost  max number of ghost cells to be filled at coarse/fine boundary
+     * \param cgeom  coarse level Geometry
+     * \param nghost max number of ghost cells to be filled at coarse/fine boundary
      * \param ncomp  the number of components
      * \param interp for spatial interpolation
      * \param eb_index_space optional argument for specifying EB IndexSpace
@@ -137,7 +137,7 @@ public:
      * \param cbc         for filling coarse level physical BC
      * \param cbccomp     starting component of the coarse level BC functor
      * \param bcs         BCRec specifying physical boundary types
-     * \param bcscomp    starting component of the BCRec Vector.
+     * \param bcscomp     starting component of the BCRec Vector.
      * \param pre_interp  optional pre-interpolation hook for modifying the coarse data
      * \param post_interp optional post-interpolation hook for modifying the fine data
      */
