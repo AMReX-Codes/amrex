@@ -546,12 +546,12 @@ AmrCoreAdv::GetData (int lev, Real time, Vector<MultiFab*>& data, Vector<Real>& 
     data.clear();
     datatime.clear();
 
-    if (amrex::almostEqual(time, t_new[lev]))
+    if (amrex::almostEqual(time, t_new[lev], 5))
     {
         data.push_back(&phi_new[lev]);
         datatime.push_back(t_new[lev]);
     }
-    else if (amrex::almostEqual(time, t_old[lev]))
+    else if (amrex::almostEqual(time, t_old[lev], 5))
     {
         data.push_back(&phi_old[lev]);
         datatime.push_back(t_old[lev]);

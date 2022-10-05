@@ -265,7 +265,7 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
             Real t = ct[icmf];
             auto it = std::find_if(m_cf_crse_data.begin(), m_cf_crse_data.end(),
                                    [=] (auto const& x) {
-                                       return amrex::almostEqual(x.first,t);
+                                       return amrex::almostEqual(x.first,t,5);
                                    });
 
             if (it == std::end(m_cf_crse_data)) {
@@ -281,13 +281,13 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
 
         MF mf_crse_patch;
         if (m_cf_crse_data.size() > 0 &&
-            amrex::almostEqual(time, m_cf_crse_data[0].first))
+            amrex::almostEqual(time, m_cf_crse_data[0].first,5))
         {
             mf_crse_patch = MF(*m_cf_crse_data[0].second, amrex::make_alias,
                                scomp, ncomp);
         }
         else if (m_cf_crse_data.size() > 1 &&
-                 amrex::almostEqual(time, m_cf_crse_data[1].first))
+                 amrex::almostEqual(time, m_cf_crse_data[1].first,5))
         {
             mf_crse_patch = MF(*m_cf_crse_data[1].second, amrex::make_alias,
                                scomp, ncomp);
