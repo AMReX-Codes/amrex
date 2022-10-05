@@ -421,7 +421,11 @@ public:
                         Vector<IntVect>& out) const noexcept;
 
     //! Return domain box with non-periodic directions grown by ngrow.
+    Box growNonPeriodicDomain (IntVect const& ngrow) const noexcept;
+    //! Return domain box with non-periodic directions grown by ngrow.
     Box growNonPeriodicDomain (int ngrow) const noexcept;
+    //! Return domain box with periodic directions grown by ngrow.
+    Box growPeriodicDomain (IntVect const& ngrow) const noexcept;
     //! Return domain box with periodic directions grown by ngrow.
     Box growPeriodicDomain (int ngrow) const noexcept;
 
