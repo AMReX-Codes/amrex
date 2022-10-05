@@ -13,11 +13,12 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     const auto& bcondloc = *m_bcondloc[amrlev][mglev];
     const auto& maskvals = m_maskvals[amrlev][mglev];
 
-    FArrayBox foofab(Box::TheUnitBox(),3);
-    const auto& foo = foofab.array();
+    Array4<Real const> foo;
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
     const Box& domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
+    const auto dlo = amrex::lbound(domain);
+    const auto dhi = amrex::ubound(domain);
 
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
@@ -39,14 +40,13 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
             const auto & bdlv = bcondloc.bndryLocs(mfi);
             const auto & bdcv = bcondloc.bndryConds(mfi);
 
-            GpuArray<BoundCond,2*AMREX_SPACEDIM*AMREX_SPACEDIM> bct;
-            GpuArray<Real,2*AMREX_SPACEDIM*AMREX_SPACEDIM> bcl;
-            for (OrientationIter face; face; ++face) {
-                Orientation ori = face();
-                const int iface = ori;
-                for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
-                    bct[iface*AMREX_SPACEDIM+icomp] = bdcv[icomp][ori];
-                    bcl[iface*AMREX_SPACEDIM+icomp] = bdlv[icomp][ori];
+            Array2D<BoundCond,0,2*AMREX_SPACEDIM,0,AMREX_SPACEDIM> bct;
+            Array2D<Real,0,2*AMREX_SPACEDIM,0,AMREX_SPACEDIM> bcl;
+            for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+                for (OrientationIter face; face; ++face) {
+                    Orientation ori = face();
+                    bct(ori,icomp) = bdcv[icomp][ori];
+                    bcl(ori,icomp) = bdlv[icomp][ori];
                 }
             }
 
@@ -72,7 +72,7 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                                       mxlo, mylo, mxhi, myhi,
                                       bvxlo, bvylo, bvxhi, bvyhi,
                                       bct, bcl, inhomog, imaxorder,
-                                      dxinv, domain);
+                                      dxinv, dlo, dhi);
             });
 #else
             const auto& mzlo = maskvals[Orientation(2,Orientation::low )].array(mfi);
@@ -83,14 +83,37 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
             const auto& bvzhi = (bndry != nullptr) ?
                 (*bndry)[Orientation(2,Orientation::high)].array(mfi) : foo;
 
-            AMREX_HOST_DEVICE_FOR_1D ( 12, iedge,
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion()) {
+                amrex::launch(12, 64, Gpu::gpuStream(),
+#ifdef AMREX_USE_DPCPP
+                [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item)
+                {
+                    int bid = item.get_group_linear_id();
+                    int tid = item.get_local_linear_id();
+                    int bdim = item.get_local_range(0);
+#else
+                [=] AMREX_GPU_DEVICE ()
+                {
+                    int bid = blockIdx.x;
+                    int tid = threadIdx.x;
+                    int bdim = blockDim.x;
+#endif
+                    mltensor_fill_edges(bid, tid, bdim, vbx, velfab,
+                                        mxlo, mylo, mzlo, mxhi, myhi, mzhi,
+                                        bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
+                                        bct, bcl, inhomog, imaxorder,
+                                        dxinv, dlo, dhi);
+                });
+            } else
+#endif
             {
-                mltensor_fill_edges(iedge, vbx, velfab,
+                mltensor_fill_edges(vbx, velfab,
                                     mxlo, mylo, mzlo, mxhi, myhi, mzhi,
                                     bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
                                     bct, bcl, inhomog, imaxorder,
-                                    dxinv, domain);
-            });
+                                    dxinv, dlo, dhi);
+            }
 
             AMREX_HOST_DEVICE_FOR_1D ( 8, icorner,
             {
@@ -98,13 +121,12 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                                       mxlo, mylo, mzlo, mxhi, myhi, mzhi,
                                       bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
                                       bct, bcl, inhomog, imaxorder,
-                                      dxinv, domain);
+                                      dxinv, dlo, dhi);
             });
+
 #endif
         }
     }
-
-    // Notet that it is incorrect to call EnforcePeriodicity on vel.
 }
 
 }

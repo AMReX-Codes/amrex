@@ -75,7 +75,7 @@ public:
     * according to the above ordering.
     */
     AMREX_GPU_HOST_DEVICE
-    operator int () const noexcept { return val; }
+    constexpr operator int () const noexcept { return val; }
     //! Return opposite orientation.
     AMREX_GPU_HOST_DEVICE
     Orientation flip () const noexcept
@@ -96,6 +96,30 @@ public:
     bool isHigh () const noexcept { return val >= AMREX_SPACEDIM; }
     //! Read from an istream.
     friend std::istream& operator>> (std::istream& os, Orientation& o);
+
+    //! Int value of the x-lo-face
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static constexpr int xlo () noexcept { return 0; }
+
+    //! Int value of the x-hi-face
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static constexpr int xhi () noexcept { return AMREX_SPACEDIM; }
+
+    //! Int value of the y-lo-face
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static constexpr int ylo () noexcept { return 1; }
+
+    //! Int value of the y-hi-face
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static constexpr int yhi () noexcept { return 1+AMREX_SPACEDIM; }
+
+    //! Int value of the z-lo-face
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static constexpr int zlo () noexcept { return 2; }
+
+    //! Int value of the z-hi-face
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static constexpr int zhi () noexcept { return 2+AMREX_SPACEDIM; }
 
 private:
     //! Used internally.

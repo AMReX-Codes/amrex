@@ -35,7 +35,8 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int /*iteration*/)
 
         // State with ghost cells
         MultiFab Sborder(grids[lev], dmap[lev], phi_new[lev].nComp(), num_grow);
-        FillPatch(lev, time, Sborder, 0, Sborder.nComp());
+        FillPatch(lev, time, Sborder, 0, Sborder.nComp(),
+                  FillPatchType::fillpatch_function);
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())

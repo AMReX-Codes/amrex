@@ -6,11 +6,44 @@
 
 namespace amrex {
 
-namespace {
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Real mlebtensor_weight (int d) {
-        return (d==2) ? 0.5 : ((d==1) ? 1.0 : 0.0);
-    }
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mlebtensor_dz_on_xface (int i, int j, int, int n,
+                             Array4<Real const> const& vel, Real dzi,
+                             Real whi, Real wlo,
+                             int khip, int khim, int klop, int klom) noexcept
+{
+    return Real(0.5)*dzi * ((vel(i  ,j,khip,n)-vel(i  ,j,khim,n))*whi +
+                            (vel(i-1,j,klop,n)-vel(i-1,j,klom,n))*wlo);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mlebtensor_dz_on_yface (int i, int j, int, int n,
+                             Array4<Real const> const& vel, Real dzi,
+                             Real whi, Real wlo,
+                             int khip, int khim, int klop, int klom) noexcept
+{
+    return Real(0.5)*dzi * ((vel(i,j  ,khip,n)-vel(i,j  ,khim,n))*whi +
+                            (vel(i,j-1,klop,n)-vel(i,j-1,klom,n))*wlo);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mlebtensor_dx_on_zface (int, int j, int k, int n,
+                             Array4<Real const> const& vel, Real dxi,
+                             Real whi, Real wlo,
+                             int ihip, int ihim, int ilop, int ilom) noexcept
+{
+    return Real(0.5)*dxi * ((vel(ihip,j,k  ,n)-vel(ihim,j,k  ,n))*whi +
+                            (vel(ilop,j,k-1,n)-vel(ilom,j,k-1,n))*wlo);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mlebtensor_dy_on_zface (int i, int, int k, int n,
+                             Array4<Real const> const& vel, Real dyi,
+                             Real whi, Real wlo,
+                             int jhip, int jhim, int jlop, int jlom) noexcept
+{
+    return Real(0.5)*dyi * ((vel(i,jhip,k  ,n)-vel(i,jhim,k  ,n))*whi +
+                            (vel(i,jlop,k-1,n)-vel(i,jlom,k-1,n))*wlo);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -46,26 +79,24 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                     int jlom = j - flag(i-1,j,k).isConnected(0,-1,0);
                     Real whi = mlebtensor_weight(jhip-jhim);
                     Real wlo = mlebtensor_weight(jlop-jlom);
-                    Real dudy = (0.5*dyi) * ((vel(i  ,jhip,k,0)-vel(i  ,jhim,k,0))*whi
-                                            +(vel(i-1,jlop,k,0)-vel(i-1,jlom,k,0))*wlo);
-                    Real dvdy = (0.5*dyi) * ((vel(i  ,jhip,k,1)-vel(i  ,jhim,k,1))*whi
-                                            +(vel(i-1,jlop,k,1)-vel(i-1,jlom,k,1))*wlo);
-
+                    Real dudy = mlebtensor_dy_on_xface(i,j,k,0,vel,dyi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+                    Real dvdy = mlebtensor_dy_on_xface(i,j,k,1,vel,dyi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
                     int khip = k + flag(i  ,j,k).isConnected(0,0, 1);
                     int khim = k - flag(i  ,j,k).isConnected(0,0,-1);
                     int klop = k + flag(i-1,j,k).isConnected(0,0, 1);
                     int klom = k - flag(i-1,j,k).isConnected(0,0,-1);
                     whi = mlebtensor_weight(khip-khim);
                     wlo = mlebtensor_weight(klop-klom);
-                    Real dudz = (0.5*dzi) * ((vel(i  ,j,khip,0)-vel(i  ,j,khim,0))*whi
-                                            +(vel(i-1,j,klop,0)-vel(i-1,j,klom,0))*wlo);
-                    Real dwdz = (0.5*dzi) * ((vel(i  ,j,khip,2)-vel(i  ,j,khim,2))*whi
-                                            +(vel(i-1,j,klop,2)-vel(i-1,j,klom,2))*wlo);
-
+                    Real dudz = mlebtensor_dz_on_xface(i,j,k,0,vel,dzi,
+                                                       whi,wlo,khip,khim,klop,klom);
+                    Real dwdz = mlebtensor_dz_on_xface(i,j,k,2,vel,dzi,
+                                                       whi,wlo,khip,khim,klop,klom);
                     Real divu = dvdy + dwdz;
                     Real xif = kapx(i,j,k);
-                    Real mun = 0.75*(etax(i,j,k,0)-xif);  // restore the original eta
-                    Real mut =       etax(i,j,k,1);
+                    Real mun = Real(0.75)*(etax(i,j,k,0)-xif);// restore the original eta
+                    Real mut =             etax(i,j,k,1);
                     fx(i,j,k,0) = -mun*(-twoThirds*divu) - xif*divu;
                     fx(i,j,k,1) = -mut*dudy;
                     fx(i,j,k,2) = -mut*dudz;
@@ -108,26 +139,24 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                     int ilom = i - flag(i,j-1,k).isConnected(-1,0,0);
                     Real whi = mlebtensor_weight(ihip-ihim);
                     Real wlo = mlebtensor_weight(ilop-ilom);
-                    Real dudx = (0.5*dxi) * ((vel(ihip,j  ,k,0)-vel(ihim,j  ,k,0))*whi
-                                            +(vel(ilop,j-1,k,0)-vel(ilom,j-1,k,0))*wlo);
-                    Real dvdx = (0.5*dxi) * ((vel(ihip,j  ,k,1)-vel(ihim,j  ,k,1))*whi
-                                            +(vel(ilop,j-1,k,1)-vel(ilom,j-1,k,1))*wlo);
-
+                    Real dudx = mlebtensor_dx_on_yface(i,j,k,0,vel,dxi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+                    Real dvdx = mlebtensor_dx_on_yface(i,j,k,1,vel,dxi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
                     int khip = k + flag(i,j  ,k).isConnected(0,0, 1);
                     int khim = k - flag(i,j  ,k).isConnected(0,0,-1);
                     int klop = k + flag(i,j-1,k).isConnected(0,0, 1);
                     int klom = k - flag(i,j-1,k).isConnected(0,0,-1);
                     whi = mlebtensor_weight(khip-khim);
                     wlo = mlebtensor_weight(klop-klom);
-                    Real dvdz = (0.5*dzi) * ((vel(i,j  ,khip,1)-vel(i,j  ,khim,1))*whi
-                                            +(vel(i,j-1,klop,1)-vel(i,j-1,klom,1))*wlo);
-                    Real dwdz = (0.5*dzi) * ((vel(i,j  ,khip,2)-vel(i,j  ,khim,2))*whi
-                                            +(vel(i,j-1,klop,2)-vel(i,j-1,klom,2))*wlo);
-
+                    Real dvdz = mlebtensor_dz_on_yface(i,j,k,1,vel,dzi,
+                                                       whi,wlo,khip,khim,klop,klom);
+                    Real dwdz = mlebtensor_dz_on_yface(i,j,k,2,vel,dzi,
+                                                       whi,wlo,khip,khim,klop,klom);
                     Real divu = dudx + dwdz;
                     Real xif = kapy(i,j,k);
-                    Real mun = 0.75*(etay(i,j,k,1)-xif);  // restore the original eta
-                    Real mut =       etay(i,j,k,0);
+                    Real mun = Real(0.75)*(etay(i,j,k,1)-xif);// restore the original eta
+                    Real mut =             etay(i,j,k,0);
                     fy(i,j,k,0) = -mut*dvdx;
                     fy(i,j,k,1) = -mun*(-twoThirds*divu) - xif*divu;
                     fy(i,j,k,2) = -mut*dvdz;
@@ -170,27 +199,457 @@ void mlebtensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
                     int ilom = i - flag(i,j,k-1).isConnected(-1,0,0);
                     Real whi = mlebtensor_weight(ihip-ihim);
                     Real wlo = mlebtensor_weight(ilop-ilom);
-
-                    Real dudx = (0.5*dxi) * ((vel(ihip,j,k  ,0)-vel(ihim,j,k  ,0))*whi
-                                            +(vel(ilop,j,k-1,0)-vel(ilom,j,k-1,0))*wlo);
-                    Real dwdx = (0.5*dxi) * ((vel(ihip,j,k  ,2)-vel(ihim,j,k  ,2))*whi
-                                            +(vel(ilop,j,k-1,2)-vel(ilom,j,k-1,2))*wlo);
-
+                    Real dudx = mlebtensor_dx_on_zface(i,j,k,0,vel,dxi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+                    Real dwdx = mlebtensor_dx_on_zface(i,j,k,2,vel,dxi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
                     int jhip = j + flag(i,j,k  ).isConnected(0, 1,0);
                     int jhim = j - flag(i,j,k  ).isConnected(0,-1,0);
                     int jlop = j + flag(i,j,k-1).isConnected(0, 1,0);
                     int jlom = j - flag(i,j,k-1).isConnected(0,-1,0);
                     whi = mlebtensor_weight(jhip-jhim);
                     wlo = mlebtensor_weight(jlop-jlom);
-                    Real dvdy = (0.5*dyi) * ((vel(i,jhip,k  ,1)-vel(i,jhim,k  ,1))*whi
-                                            +(vel(i,jlop,k-1,1)-vel(i,jlom,k-1,1))*wlo);
-                    Real dwdy = (0.5*dyi) * ((vel(i,jhip,k  ,2)-vel(i,jhim,k  ,2))*whi
-                                            +(vel(i,jlop,k-1,2)-vel(i,jlom,k-1,2))*wlo);
-
+                    Real dvdy = mlebtensor_dy_on_zface(i,j,k,1,vel,dyi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+                    Real dwdy = mlebtensor_dy_on_zface(i,j,k,2,vel,dyi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
                     Real divu = dudx + dvdy;
                     Real xif = kapz(i,j,k);
-                    Real mun = 0.75*(etaz(i,j,k,2)-xif);  // restore the original eta
-                    Real mut =       etaz(i,j,k,0);
+                    Real mun = Real(0.75)*(etaz(i,j,k,2)-xif);// restore the original eta
+                    Real mut =             etaz(i,j,k,0);
+
+                    fz(i,j,k,0) = -mut*dwdx;
+                    fz(i,j,k,1) = -mut*dwdy;
+                    fz(i,j,k,2) = -mun*(-twoThirds*divu) - xif*divu;
+                }
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mlebtensor_dz_on_xface (int i, int j, int k, int n,
+                             Array4<Real const> const& vel, Real dzi,
+                             Array4<Real const> const& bvxlo,
+                             Array4<Real const> const& bvxhi,
+                             Array2D<BoundCond,
+                                     0,2*AMREX_SPACEDIM,
+                                     0,AMREX_SPACEDIM> const& bct,
+                             Dim3 const& dlo, Dim3 const& dhi,
+                             Real whi, Real wlo,
+                             int khip, int khim, int klop, int klom) noexcept
+{
+    Real ddz;
+    if (i == dlo.x) {
+        if (bct(Orientation::xlo(),n) == AMREX_LO_DIRICHLET && bvxlo) {
+            if (k == dlo.z) {
+                ddz = (bvxlo(i-1,j,k  ,n) * Real(-1.5) +
+                       bvxlo(i-1,j,k+1,n) * Real(2.) +
+                       bvxlo(i-1,j,k+2,n) * Real(-0.5)) * dzi;
+            } else if (k == dhi.z) {
+                ddz = -(bvxlo(i-1,j,k  ,n) * Real(-1.5) +
+                        bvxlo(i-1,j,k-1,n) * Real(2.) +
+                        bvxlo(i-1,j,k-2,n) * Real(-0.5)) * dzi;
+            } else {
+                ddz = whi*dzi*(bvxlo(i-1,j,khip,n)-bvxlo(i-1,j,khim,n));
+            }
+        } else if (bct(Orientation::xlo(),n) == AMREX_LO_NEUMANN) {
+            ddz = whi*dzi*(vel(i,j,khip,n)-vel(i,j,khim,n));
+        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
+            ddz = Real(0.);
+        }
+    } else if (i == dhi.x+1) {
+        if (bct(Orientation::xhi(),n) == AMREX_LO_DIRICHLET && bvxhi) {
+            if (k == dlo.z) {
+                ddz = (bvxhi(i,j,k  ,n) * Real(-1.5) +
+                       bvxhi(i,j,k+1,n) * Real(2.) +
+                       bvxhi(i,j,k+2,n) * Real(-0.5)) * dzi;
+            } else if (k == dhi.z) {
+                ddz = -(bvxhi(i,j,k  ,n) * Real(-1.5) +
+                        bvxhi(i,j,k-1,n) * Real(2.) +
+                        bvxhi(i,j,k-2,n) * Real(-0.5)) * dzi;
+            } else {
+                ddz = wlo*dzi*(bvxhi(i,j,klop,n)-bvxhi(i,j,klom,n));
+            }
+        } else if (bct(Orientation::xhi(),n) == AMREX_LO_NEUMANN) {
+            ddz = wlo*dzi*(vel(i-1,j,klop,n)-vel(i-1,j,klom,n));
+        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
+            ddz = Real(0.);
+        }
+    } else {
+        ddz = mlebtensor_dz_on_xface(i,j,k,n,vel,dzi,whi,wlo,khip,khim,klop,klom);
+    }
+    return ddz;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mlebtensor_dz_on_yface (int i, int j, int k, int n,
+                             Array4<Real const> const& vel, Real dzi,
+                             Array4<Real const> const& bvylo,
+                             Array4<Real const> const& bvyhi,
+                             Array2D<BoundCond,
+                                     0,2*AMREX_SPACEDIM,
+                                     0,AMREX_SPACEDIM> const& bct,
+                             Dim3 const& dlo, Dim3 const& dhi,
+                             Real whi, Real wlo,
+                             int khip, int khim, int klop, int klom) noexcept
+{
+    Real ddz;
+    if (j == dlo.y) {
+        if (bct(Orientation::ylo(),n) == AMREX_LO_DIRICHLET && bvylo) {
+            if (k == dlo.z) {
+                ddz = (bvylo(i,j-1,k  ,n) * Real(-1.5) +
+                       bvylo(i,j-1,k+1,n) * Real(2.) +
+                       bvylo(i,j-1,k+2,n) * Real(-0.5)) * dzi;
+            } else if (k == dhi.z) {
+                ddz = -(bvylo(i,j-1,k  ,n) * Real(-1.5) +
+                        bvylo(i,j-1,k-1,n) * Real(2.) +
+                        bvylo(i,j-1,k-2,n) * Real(-0.5)) * dzi;
+            } else {
+                ddz = whi*dzi*(bvylo(i,j-1,khip,n)-bvylo(i,j-1,khim,n));
+            }
+        } else if (bct(Orientation::ylo(),n) == AMREX_LO_NEUMANN) {
+            ddz = whi*dzi*(vel(i,j,khip,n)-vel(i,j,khim,n));
+        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
+            ddz = Real(0.);
+        }
+    } else if (j == dhi.y+1) {
+        if (bct(Orientation::yhi(),n) == AMREX_LO_DIRICHLET && bvyhi) {
+            if (k == dlo.z) {
+                ddz = (bvyhi(i,j,k  ,n) * Real(-1.5) +
+                       bvyhi(i,j,k+1,n) * Real(2.) +
+                       bvyhi(i,j,k+2,n) * Real(-0.5)) * dzi;
+            } else if (k == dhi.z) {
+                ddz = -(bvyhi(i,j,k  ,n) * Real(-1.5) +
+                        bvyhi(i,j,k-1,n) * Real(2.) +
+                        bvyhi(i,j,k-2,n) * Real(-0.5)) * dzi;
+            } else {
+                ddz = wlo*dzi*(bvyhi(i,j,klop,n)-bvyhi(i,j,klom,n));
+            }
+        } else if (bct(Orientation::yhi(),n) == AMREX_LO_NEUMANN) {
+            ddz = wlo*dzi*(vel(i,j-1,klop,n)-vel(i,j-1,klom,n));
+        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
+            ddz = Real(0.);
+        }
+    } else {
+        ddz = mlebtensor_dz_on_yface(i,j,k,n,vel,dzi,whi,wlo,khip,khim,klop,klom);
+    }
+    return ddz;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mlebtensor_dx_on_zface (int i, int j, int k, int n,
+                             Array4<Real const> const& vel, Real dxi,
+                             Array4<Real const> const& bvzlo,
+                             Array4<Real const> const& bvzhi,
+                             Array2D<BoundCond,
+                                     0,2*AMREX_SPACEDIM,
+                                     0,AMREX_SPACEDIM> const& bct,
+                             Dim3 const& dlo, Dim3 const& dhi,
+                             Real whi, Real wlo,
+                             int ihip, int ihim, int ilop, int ilom) noexcept
+{
+    Real ddx;
+    if (k == dlo.z) {
+        if (bct(Orientation::zlo(),n) == AMREX_LO_DIRICHLET && bvzlo) {
+            if (i == dlo.x) {
+                ddx = (bvzlo(i  ,j,k-1,n) * Real(-1.5) +
+                       bvzlo(i+1,j,k-1,n) * Real(2.) +
+                       bvzlo(i+2,j,k-1,n) * Real(-0.5)) * dxi;
+            } else if (i == dhi.x) {
+                ddx = -(bvzlo(i  ,j,k-1,n) * Real(-1.5) +
+                        bvzlo(i-1,j,k-1,n) * Real(2.) +
+                        bvzlo(i-2,j,k-1,n) * Real(-0.5)) * dxi;
+            } else {
+                ddx = whi*dxi*(bvzlo(ihip,j,k-1,n)-bvzlo(ihim,j,k-1,n));
+            }
+        } else if (bct(Orientation::zlo(),n) == AMREX_LO_NEUMANN) {
+            ddx = whi*dxi*(vel(ihip,j,k,n)-vel(ihim,j,k,n));
+        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
+            ddx = Real(0.);
+        }
+    } else if (k == dhi.z+1) {
+        if (bct(Orientation::zhi(),n) == AMREX_LO_DIRICHLET && bvzhi) {
+            if (i == dlo.x) {
+                ddx = (bvzhi(i  ,j,k,n) * Real(-1.5) +
+                       bvzhi(i+1,j,k,n) * Real(2.) +
+                       bvzhi(i+2,j,k,n) * Real(-0.5)) * dxi;
+            } else if (i == dhi.x) {
+                ddx = -(bvzhi(i  ,j,k,n) * Real(-1.5) +
+                        bvzhi(i-1,j,k,n) * Real(2.) +
+                        bvzhi(i-2,j,k,n) * Real(-0.5)) * dxi;
+            } else {
+                ddx = wlo*dxi*(bvzhi(ilop,j,k,n)-bvzhi(ilom,j,k,n));
+            }
+        } else if (bct(Orientation::zhi(),n) == AMREX_LO_NEUMANN) {
+            ddx = wlo*dxi*(vel(ilop,j,k-1,n)-vel(ilom,j,k-1,n));
+        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
+            ddx = Real(0.);
+        }
+    } else {
+        ddx = mlebtensor_dx_on_zface(i,j,k,n,vel,dxi,whi,wlo,ihip,ihim,ilop,ilom);
+
+    }
+    return ddx;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mlebtensor_dy_on_zface (int i, int j, int k, int n,
+                             Array4<Real const> const& vel, Real dyi,
+                             Array4<Real const> const& bvzlo,
+                             Array4<Real const> const& bvzhi,
+                             Array2D<BoundCond,
+                                     0,2*AMREX_SPACEDIM,
+                                     0,AMREX_SPACEDIM> const& bct,
+                             Dim3 const& dlo, Dim3 const& dhi,
+                             Real whi, Real wlo,
+                             int jhip, int jhim, int jlop, int jlom) noexcept
+{
+    Real ddy;
+    if (k == dlo.z) {
+        if (bct(Orientation::zlo(),n) == AMREX_LO_DIRICHLET && bvzlo) {
+            if (j == dlo.y) {
+                ddy = (bvzlo(i,j  ,k-1,n) * Real(-1.5) +
+                       bvzlo(i,j+1,k-1,n) * Real(2.) +
+                       bvzlo(i,j+2,k-1,n) * Real(-0.5)) * dyi;
+            } else if (j == dhi.y) {
+                ddy = -(bvzlo(i,j  ,k-1,n) * Real(-1.5) +
+                        bvzlo(i,j-1,k-1,n) * Real(2.) +
+                        bvzlo(i,j-2,k-1,n) * Real(-0.5)) * dyi;
+            } else {
+                ddy = whi*dyi*(bvzlo(i,jhip,k-1,n)-bvzlo(i,jhim,k-1,n));
+            }
+        } else if (bct(Orientation::zlo(),n) == AMREX_LO_NEUMANN) {
+            ddy = whi*dyi*(vel(i,jhip,k,n)-vel(i,jhim,k,n));
+        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
+            ddy = Real(0.);
+        }
+    } else if (k == dhi.z+1) {
+        if (bct(Orientation::zhi(),n) == AMREX_LO_DIRICHLET && bvzhi) {
+            if (j == dlo.y) {
+                ddy = (bvzhi(i,j  ,k,n) * Real(-1.5) +
+                       bvzhi(i,j+1,k,n) * Real(2.) +
+                       bvzhi(i,j+2,k,n) * Real(-0.5)) * dyi;
+            } else if (j == dhi.y) {
+                ddy = -(bvzhi(i,j  ,k,n) * Real(-1.5) +
+                        bvzhi(i,j-1,k,n) * Real(2.) +
+                        bvzhi(i,j-2,k,n) * Real(-0.5)) * dyi;
+            } else {
+                ddy = wlo*dyi*(bvzhi(i,jlop,k,n)-bvzhi(i,jlom,k,n));
+            }
+        } else if (bct(Orientation::zhi(),n) == AMREX_LO_NEUMANN) {
+            ddy = wlo*dyi*(vel(i,jlop,k-1,n)-vel(i,jlom,k-1,n));
+        } else { // AMREX_LO_REFLECT_ODD or homogeneous Dirichlet
+            ddy = Real(0.);
+        }
+    } else {
+        ddy = mlebtensor_dy_on_zface(i,j,k,n,vel,dyi,whi,wlo,jhip,jhim,jlop,jlom);
+    }
+    return ddy;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
+                                Array4<Real const> const& vel,
+                                Array4<Real const> const& etax,
+                                Array4<Real const> const& kapx,
+                                Array4<Real const> const& apx,
+                                Array4<EBCellFlag const> const& flag,
+                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                                Array4<Real const> const& bvxlo,
+                                Array4<Real const> const& bvxhi,
+                                Array2D<BoundCond,
+                                        0,2*AMREX_SPACEDIM,
+                                        0,AMREX_SPACEDIM> const& bct,
+                                Dim3 const& dlo, Dim3 const& dhi) noexcept
+
+{
+    const Real dyi = dxinv[1];
+    const Real dzi = dxinv[2];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    constexpr Real twoThirds = 2./3.;
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+                if (apx(i,j,k) == 0.0)
+                {
+                    fx(i,j,k,0) = 0.0;
+                    fx(i,j,k,1) = 0.0;
+                    fx(i,j,k,2) = 0.0;
+                }
+                else
+                {
+                    int jhip = j + flag(i  ,j,k).isConnected(0, 1,0);
+                    int jhim = j - flag(i  ,j,k).isConnected(0,-1,0);
+                    int jlop = j + flag(i-1,j,k).isConnected(0, 1,0);
+                    int jlom = j - flag(i-1,j,k).isConnected(0,-1,0);
+                    Real whi = mlebtensor_weight(jhip-jhim);
+                    Real wlo = mlebtensor_weight(jlop-jlom);
+                    Real dudy = mlebtensor_dy_on_xface(i,j,k,0,vel,dyi,
+                                                       bvxlo,bvxhi,bct,dlo,dhi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+                    Real dvdy = mlebtensor_dy_on_xface(i,j,k,1,vel,dyi,
+                                                       bvxlo,bvxhi,bct,dlo,dhi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+                    int khip = k + flag(i  ,j,k).isConnected(0,0, 1);
+                    int khim = k - flag(i  ,j,k).isConnected(0,0,-1);
+                    int klop = k + flag(i-1,j,k).isConnected(0,0, 1);
+                    int klom = k - flag(i-1,j,k).isConnected(0,0,-1);
+                    whi = mlebtensor_weight(khip-khim);
+                    wlo = mlebtensor_weight(klop-klom);
+                    Real dudz = mlebtensor_dz_on_xface(i,j,k,0,vel,dzi,
+                                                       bvxlo,bvxhi,bct,dlo,dhi,
+                                                       whi,wlo,khip,khim,klop,klom);
+                    Real dwdz = mlebtensor_dz_on_xface(i,j,k,2,vel,dzi,
+                                                       bvxlo,bvxhi,bct,dlo,dhi,
+                                                       whi,wlo,khip,khim,klop,klom);
+                    Real divu = dvdy + dwdz;
+                    Real xif = kapx(i,j,k);
+                    Real mun = Real(0.75)*(etax(i,j,k,0)-xif);// restore the original eta
+                    Real mut =             etax(i,j,k,1);
+                    fx(i,j,k,0) = -mun*(-twoThirds*divu) - xif*divu;
+                    fx(i,j,k,1) = -mut*dudy;
+                    fx(i,j,k,2) = -mut*dudz;
+                }
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
+                                Array4<Real const> const& vel,
+                                Array4<Real const> const& etay,
+                                Array4<Real const> const& kapy,
+                                Array4<Real const> const& apy,
+                                Array4<EBCellFlag const> const& flag,
+                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                                Array4<Real const> const& bvylo,
+                                Array4<Real const> const& bvyhi,
+                                Array2D<BoundCond,
+                                        0,2*AMREX_SPACEDIM,
+                                        0,AMREX_SPACEDIM> const& bct,
+                                Dim3 const& dlo, Dim3 const& dhi) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dzi = dxinv[2];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    constexpr Real twoThirds = 2./3.;
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+                if (apy(i,j,k) == 0.0)
+                {
+                    fy(i,j,k,0) = 0.0;
+                    fy(i,j,k,1) = 0.0;
+                    fy(i,j,k,2) = 0.0;
+                }
+                else
+                {
+                    int ihip = i + flag(i,j  ,k).isConnected( 1,0,0);
+                    int ihim = i - flag(i,j  ,k).isConnected(-1,0,0);
+                    int ilop = i + flag(i,j-1,k).isConnected( 1,0,0);
+                    int ilom = i - flag(i,j-1,k).isConnected(-1,0,0);
+                    Real whi = mlebtensor_weight(ihip-ihim);
+                    Real wlo = mlebtensor_weight(ilop-ilom);
+                    Real dudx = mlebtensor_dx_on_yface(i,j,k,0,vel,dxi,
+                                                       bvylo,bvyhi,bct,dlo,dhi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+                    Real dvdx = mlebtensor_dx_on_yface(i,j,k,1,vel,dxi,
+                                                       bvylo,bvyhi,bct,dlo,dhi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+                    int khip = k + flag(i,j  ,k).isConnected(0,0, 1);
+                    int khim = k - flag(i,j  ,k).isConnected(0,0,-1);
+                    int klop = k + flag(i,j-1,k).isConnected(0,0, 1);
+                    int klom = k - flag(i,j-1,k).isConnected(0,0,-1);
+                    whi = mlebtensor_weight(khip-khim);
+                    wlo = mlebtensor_weight(klop-klom);
+                    Real dvdz = mlebtensor_dz_on_yface(i,j,k,1,vel,dzi,
+                                                       bvylo,bvyhi,bct,dlo,dhi,
+                                                       whi,wlo,khip,khim,klop,klom);
+                    Real dwdz = mlebtensor_dz_on_yface(i,j,k,2,vel,dzi,
+                                                       bvylo,bvyhi,bct,dlo,dhi,
+                                                       whi,wlo,khip,khim,klop,klom);
+                    Real divu = dudx + dwdz;
+                    Real xif = kapy(i,j,k);
+                    Real mun = Real(0.75)*(etay(i,j,k,1)-xif);// restore the original eta
+                    Real mut =             etay(i,j,k,0);
+                    fy(i,j,k,0) = -mut*dvdx;
+                    fy(i,j,k,1) = -mun*(-twoThirds*divu) - xif*divu;
+                    fy(i,j,k,2) = -mut*dvdz;
+                }
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebtensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
+                                Array4<Real const> const& vel,
+                                Array4<Real const> const& etaz,
+                                Array4<Real const> const& kapz,
+                                Array4<Real const> const& apz,
+                                Array4<EBCellFlag const> const& flag,
+                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                                Array4<Real const> const& bvzlo,
+                                Array4<Real const> const& bvzhi,
+                                Array2D<BoundCond,
+                                        0,2*AMREX_SPACEDIM,
+                                        0,AMREX_SPACEDIM> const& bct,
+                                Dim3 const& dlo, Dim3 const& dhi) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    constexpr Real twoThirds = 2./3.;
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+                if (apz(i,j,k) == 0.0)
+                {
+                    fz(i,j,k,0) = 0.0;
+                    fz(i,j,k,1) = 0.0;
+                    fz(i,j,k,2) = 0.0;
+                }
+                else
+                {
+                    int ihip = i + flag(i,j,k  ).isConnected( 1,0,0);
+                    int ihim = i - flag(i,j,k  ).isConnected(-1,0,0);
+                    int ilop = i + flag(i,j,k-1).isConnected( 1,0,0);
+                    int ilom = i - flag(i,j,k-1).isConnected(-1,0,0);
+                    Real whi = mlebtensor_weight(ihip-ihim);
+                    Real wlo = mlebtensor_weight(ilop-ilom);
+                    Real dudx = mlebtensor_dx_on_zface(i,j,k,0,vel,dxi,
+                                                       bvzlo,bvzhi,bct,dlo,dhi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+                    Real dwdx = mlebtensor_dx_on_zface(i,j,k,2,vel,dxi,
+                                                       bvzlo,bvzhi,bct,dlo,dhi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+                    int jhip = j + flag(i,j,k  ).isConnected(0, 1,0);
+                    int jhim = j - flag(i,j,k  ).isConnected(0,-1,0);
+                    int jlop = j + flag(i,j,k-1).isConnected(0, 1,0);
+                    int jlom = j - flag(i,j,k-1).isConnected(0,-1,0);
+                    whi = mlebtensor_weight(jhip-jhim);
+                    wlo = mlebtensor_weight(jlop-jlom);
+                    Real dvdy = mlebtensor_dy_on_zface(i,j,k,1,vel,dyi,
+                                                       bvzlo,bvzhi,bct,dlo,dhi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+                    Real dwdy = mlebtensor_dy_on_zface(i,j,k,2,vel,dyi,
+                                                       bvzlo,bvzhi,bct,dlo,dhi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+                    Real divu = dudx + dvdy;
+                    Real xif = kapz(i,j,k);
+                    Real mun = Real(0.75)*(etaz(i,j,k,2)-xif);// restore the original eta
+                    Real mut =             etaz(i,j,k,0);
 
                     fz(i,j,k,0) = -mut*dwdx;
                     fz(i,j,k,1) = -mut*dwdy;

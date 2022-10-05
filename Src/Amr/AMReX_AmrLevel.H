@@ -15,6 +15,7 @@
 #include <AMReX_StateDescriptor.H>
 #include <AMReX_StateData.H>
 #include <AMReX_VisMF.H>
+#include <AMReX_FillPatcher.H>
 #ifdef AMREX_USE_EB
 #include <AMReX_EBSupport.H>
 #endif
@@ -243,12 +244,14 @@ public:
     Long countCells () const noexcept;
 
     //! Get the area not to tag.
-    const BoxArray& getAreaNotToTag() noexcept;
-    const Box& getAreaToTag() noexcept;
+    const BoxArray& getAreaNotToTag () noexcept;
+    const Box& getAreaToTag () noexcept;
     //! Construct the area not to tag.
-    void constructAreaNotToTag();
+    void constructAreaNotToTag ();
     //! Set the area not to tag.
-    void setAreaNotToTag(BoxArray& ba) noexcept;
+    void setAreaNotToTag (BoxArray& ba) noexcept;
+
+    void resetFillPatcher ();
 
     /**
     * \brief Error estimation for regridding. This is a pure virtual
@@ -365,6 +368,20 @@ public:
     virtual void particle_redistribute (int /*lbase*/ = 0, bool /*a_init*/ = false) {;}
 #endif
 
+    /**
+     * \brief Fill with FillPatcher on level > 0 and AmrLevel::FillPatch on level 0.
+     *
+     * \param mf     destination MultiFab
+     * \param dcomp  starting component for the destination
+     * \param ncomp  number of component to fill
+     * \param nghost number of ghost cells to fill
+     * \param time   time
+     * \param state_index StateData index
+     * \param scomp  starting component in the StateData
+     */
+    void FillPatcherFill (amrex::MultiFab& mf, int dcomp, int ncomp, int nghost,
+                          amrex::Real time, int state_index, int scomp);
+
     static void FillPatch (AmrLevel& amrlevel,
                            MultiFab& leveldata,
                            int       boxGrow,
@@ -425,7 +442,7 @@ protected:
     IntVect               fine_ratio;   // Refinement ratio to finer level.
     static DeriveList     derive_lst;   // List of derived quantities.
     static DescriptorList desc_lst;     // List of state variables.
-    Vector<StateData>      state;        // Array of state data.
+    Vector<StateData>     state;        // Array of state data.
 
     BoxArray              m_AreaNotToTag; //Area which shouldn't be tagged on this level.
     Box                   m_AreaToTag;    //Area which is allowed to be tagged on this level.
@@ -435,6 +452,8 @@ protected:
     bool                  levelDirectoryCreated;    // for checkpoints and plotfiles
 
     std::unique_ptr<FabFactory<FArrayBox> > m_factory;
+
+    Vector<std::unique_ptr<FillPatcher<MultiFab>>> m_fillpatcher;
 
 private:
 
