@@ -453,7 +453,7 @@ Device::initialize_gpu ()
         device_prop.multiProcessorCount = d.get_info<sycl::info::device::max_compute_units>();
         device_prop.maxThreadsPerMultiProcessor = -1; // xxxxx DPCPP todo: d.get_info<sycl::info::device::max_work_items_per_compute_unit>(); // unknown
         device_prop.maxThreadsPerBlock = d.get_info<sycl::info::device::max_work_group_size>();
-        auto mtd = d.get_info<sycl::info::device::max_work_item_sizes>();
+        auto mtd = d.get_info<sycl::info::device::max_work_item_sizes<3>>();
         device_prop.maxThreadsDim[0] = mtd[0];
         device_prop.maxThreadsDim[1] = mtd[1];
         device_prop.maxThreadsDim[2] = mtd[2];
