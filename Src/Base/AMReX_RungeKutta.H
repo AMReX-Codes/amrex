@@ -10,14 +10,19 @@ namespace amrex {
  * \brief Functions for Runge-Kutta methods
  *
  * This namespace RungeKutta has functions for a number RK methods, RK2, RK3
- * and RK4.  The function templates take the old data in FabArray/MultiFab
- * as input, and evolve the system for one time step.  The result is stored
- * in another FabArray/MultiFab.  These two FabArrays must have ghost cells
- * if they are needed for evaluating the right-hand side.  The functions
- * take three callable objects for computing the right-hand side, filling
- * ghost cells, and optionally post-processing RK stage results.  For RK3
- * and RK4, they also need a callable object for storing the data needed for
- * filling coarse/fine boundaries in AMR simulations.
+ * and RK4.  Here, RK2 refers to the explicit trapezoid rule, RK3 refers to
+ * the SSPRK3
+ * (https://en.wikipedia.org/wiki/List_of_Runge%E2%80%93Kutta_methods#Third-order_Strong_Stability_Preserving_Runge-Kutta_(SSPRK3)),
+ * and RK4 is the classical fourth-order method
+ * (https://en.wikipedia.org/wiki/List_of_Runge%E2%80%93Kutta_methods#Classic_fourth-order_method).
+ * The function templates take the old data in FabArray/MultiFab as input,
+ * and evolve the system for one time step.  The result is stored in another
+ * FabArray/MultiFab.  These two FabArrays must have ghost cells if they are
+ * needed for evaluating the right-hand side.  The functions take three
+ * callable objects for computing the right-hand side, filling ghost cells,
+ * and optionally post-processing RK stage results.  For RK3 and RK4, they
+ * also need a callable object for storing the data needed for filling
+ * coarse/fine boundaries in AMR simulations.
  *
  * The callable object for right-hand side has the signature of `void(int
  * stage, MF& dudt, MF const& u, Real dt)`, where `stage` is the RK stage
