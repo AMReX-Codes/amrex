@@ -19,7 +19,7 @@ namespace amrex {
  * and RK4, they also need a callable object for storing the data needed for
  * filling coarse/fine boundaries in AMR simulations.
  *
- * The callable object for righ-hand side has the signature of `void(int
+ * The callable object for right-hand side has the signature of `void(int
  * stage, MF& dudt, MF const& u, Real dt)`, where `stage` is the RK stage
  * number starting from 1, `dudt` is the output, `u` is the input, and `dt`
  * is the sub-time step, which can be used for reflux operations in AMR
