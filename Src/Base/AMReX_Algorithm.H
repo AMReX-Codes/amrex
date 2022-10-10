@@ -145,7 +145,7 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     I bisect (T const* d, I lo, I hi, T const& v) {
         while (lo <= hi) {
-            int mid = (lo+hi)/2;
+            int mid = lo + (hi-lo)/2;
             if (v >= d[mid] && v < d[mid+1]) {
                 return mid;
             } else if (v < d[mid]) {
@@ -155,6 +155,57 @@ namespace amrex
             }
         };
         return hi;
+    }
+
+    template<typename ItType, typename ValType>
+    AMREX_GPU_HOST_DEVICE
+    ItType upper_bound (ItType first, ItType last, const ValType& val)
+    {
+#if AMREX_DEVICE_COMPILE
+        std::ptrdiff_t count = last-first;
+        while(count>0){
+            auto it = first;
+            const auto step = count/2;
+            it += step;
+            if (!(val < *it)){
+                first = ++it;
+                count -= step + 1;
+            }
+            else{
+                count = step;
+            }
+        }
+
+        return first;
+#else
+        return std::upper_bound(first, last, val);
+#endif
+    }
+
+    template<typename ItType, typename ValType>
+    AMREX_GPU_HOST_DEVICE
+    ItType lower_bound (ItType first, ItType last, const ValType& val)
+    {
+#ifdef AMREX_DEVICE_COMPILE
+        std::ptrdiff_t count = last-first;
+        while(count>0)
+        {
+            auto it = first;
+            const auto step = count/2;
+            it += step;
+            if (*it < val){
+                first = ++it;
+                count -= step + 1;
+            }
+            else{
+                count = step;
+            }
+        }
+
+        return first;
+#else
+        return std::lower_bound(first, last, val);
+#endif
     }
 
 namespace detail {

@@ -50,7 +50,7 @@ ifeq ($(WARN_ALL),TRUE)
     warning_flags += -Wshadow
   endif
 
-  CXXFLAGS += $(warning_flags) -Woverloaded-virtual
+  CXXFLAGS += $(warning_flags) -Woverloaded-virtual -Wnon-virtual-dtor
   CFLAGS += $(warning_flags)
 endif
 

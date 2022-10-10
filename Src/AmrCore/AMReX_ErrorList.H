@@ -420,6 +420,8 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
 
     struct UserFunc
     {
+      virtual ~UserFunc () {}
+
       virtual void operator() (const amrex::Box&                       bx,
                                amrex::Array4<const amrex::Real> const& dat,
                                amrex::Array4<char> const&              tag,
@@ -469,6 +471,8 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
                  int                    ngrow,
                  const AMRErrorTagInfo& info = AMRErrorTagInfo()) noexcept
       : m_userfunc(userfunc), m_field(field), m_info(info), m_ngrow(ngrow) {}
+
+    virtual ~AMRErrorTag () {}
 
     virtual void operator() (amrex::TagBoxArray&    tb,
                              const amrex::MultiFab* mf,

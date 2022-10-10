@@ -30,11 +30,11 @@
 #define AMREX_GPU_Z_STRIDE 1
 
 #ifdef AMREX_USE_CUDA
-#  define AMREX_LAUNCH_KERNEL(blocks, threads, sharedMem, stream, ... ) \
-        amrex::launch_global<AMREX_GPU_MAX_THREADS><<<blocks, threads, sharedMem, stream>>>(__VA_ARGS__);
+#  define AMREX_LAUNCH_KERNEL(MT, blocks, threads, sharedMem, stream, ... ) \
+        amrex::launch_global<MT><<<blocks, threads, sharedMem, stream>>>(__VA_ARGS__)
 #elif defined(AMREX_USE_HIP)
-#  define AMREX_LAUNCH_KERNEL(blocks, threads, sharedMem, stream, ... ) \
-        hipLaunchKernelGGL(launch_global<AMREX_GPU_MAX_THREADS>, blocks, threads, sharedMem, stream, __VA_ARGS__);
+#  define AMREX_LAUNCH_KERNEL(MT, blocks, threads, sharedMem, stream, ... ) \
+        hipLaunchKernelGGL(launch_global<MT>, blocks, threads, sharedMem, stream, __VA_ARGS__)
 #endif
 
 
@@ -151,6 +151,28 @@ namespace Gpu {
         dim3 numThreads;
         std::size_t sharedMem = 0;
     };
+
+    template <int MT>
+    ExecutionConfig
+    makeExecutionConfig (Long N) noexcept
+    {
+        ExecutionConfig ec(dim3{}, dim3{});
+        ec.numBlocks.x = (std::max(N,Long(1)) + MT - 1) / MT;
+        ec.numThreads.x = MT;
+        AMREX_ASSERT(MT % Gpu::Device::warp_size == 0);
+        return ec;
+    }
+
+    template <int MT>
+    ExecutionConfig
+    makeExecutionConfig (const Box& box) noexcept
+    {
+        ExecutionConfig ec(dim3{}, dim3{});
+        ec.numBlocks.x = (std::max(box.numPts(),Long(1)) + MT - 1) / MT;
+        ec.numThreads.x = MT;
+        AMREX_ASSERT(MT % Gpu::Device::warp_size == 0);
+        return ec;
+    }
 #endif
 
 }
@@ -220,6 +242,8 @@ namespace Gpu {
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_4D(...) AMREX_GPU_HOST_DEVICE_PARALLEL_FOR_4D(__VA_ARGS__)
 
 #ifdef AMREX_USE_GPU
+
+#ifndef AMREX_USE_DPCPP
 
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG(where_to_run,n,i,block) \
     {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
@@ -343,6 +367,111 @@ namespace Gpu {
         block2; \
         block3; \
     }
+
+#else
+// xxxxx DPCPP todo: host disabled in host device
+
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG(where_to_run,n,i,block) \
+    {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept \
+            block \
+        ); \
+    } \
+    else { \
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    }}
+
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(where_to_run,box,i,j,k,block) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept \
+            block \
+        ); \
+    } \
+    else { \
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    }
+
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
+            block \
+        ); \
+    } \
+    else { \
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    }
+
+#define AMREX_HOST_DEVICE_FOR_1D_FLAG(where_to_run,n,i,block) \
+    {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept \
+            block \
+        ); \
+    } \
+    else { \
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    }}
+
+#define AMREX_HOST_DEVICE_FOR_3D_FLAG(where_to_run,box,i,j,k,block) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept \
+            block \
+        ); \
+    } \
+    else { \
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    }
+
+#define AMREX_HOST_DEVICE_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
+            block \
+        ); \
+    } \
+    else { \
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    }
+
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(where_to_run,box,tbox,block) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        AMREX_LAUNCH_DEVICE_LAMBDA(box,tbox,block); \
+    } else { \
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    }
+
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_FLAG(where_to_run,bx1,tbx1,block1) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        AMREX_LAUNCH_DEVICE_LAMBDA(bx1,tbx1,block1); \
+    } else { \
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    }
+
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2_FLAG(where_to_run,bx1,tbx1,block1,bx2,tbx2,block2) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        AMREX_LAUNCH_DEVICE_LAMBDA(bx1,tbx1,block1,bx2,tbx2,block2); \
+    } else { \
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    }
+
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3_FLAG(where_to_run,bx1,tbx1,block1,bx2,tbx2,block2,bx3,tbx3,block3) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        AMREX_LAUNCH_DEVICE_LAMBDA(bx1,tbx1,block1,bx2,tbx2,block2,bx3,tbx3,block3); \
+    } else { \
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    }
+
+#endif
 
 #else
 

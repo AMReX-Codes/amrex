@@ -12,6 +12,50 @@
 namespace amrex {
 
     template <typename T>
+    struct CellData // Data in a single cell
+    {
+        T* AMREX_RESTRICT p = nullptr;
+        Long stride = 0;
+        int ncomp = 0;
+
+        AMREX_GPU_HOST_DEVICE
+        constexpr CellData (T* a_p, Long a_stride, int a_ncomp)
+            : p(a_p), stride(a_stride), ncomp(a_ncomp)
+            {}
+
+        template <class U=T,
+                  std::enable_if_t<std::is_const<U>::value,int> = 0>
+        AMREX_GPU_HOST_DEVICE
+        constexpr CellData (CellData<typename std::remove_const<T>::type> const& rhs) noexcept
+            : p(rhs.p), stride(rhs.stride), ncomp(rhs.ncomp)
+            {}
+
+        AMREX_GPU_HOST_DEVICE
+        explicit operator bool() const noexcept { return p != nullptr; }
+
+        AMREX_GPU_HOST_DEVICE
+        int nComp() const noexcept { return ncomp; }
+
+        template <class U=T,
+                  std::enable_if_t<!std::is_void<U>::value,int> = 0>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        U& operator[] (int n) const noexcept {
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+            if (n < 0 || n >= ncomp) {
+#if AMREX_DEVICE_COMPILE
+                AMREX_DEVICE_PRINTF(" %d is out of bound (0:%d)", n, ncomp-1);
+#else
+                std::stringstream ss;
+                ss << " " << n << " is out of bound: (0:" << ncomp-1 << ")";
+                amrex::Abort(ss.str());
+#endif
+            }
+#endif
+            return p[n*stride];
+        }
+    };
+
+    template <typename T>
     struct Array4
     {
         T* AMREX_RESTRICT p;
@@ -207,6 +251,11 @@ namespace amrex {
             }
         }
 #endif
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        CellData<T> cellData (int i, int j, int k) const noexcept {
+            return CellData<T>{this->ptr(i,j,k), nstride, ncomp};
+        }
     };
 
     template <class Tto, class Tfrom>

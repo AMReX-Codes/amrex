@@ -64,11 +64,24 @@ void launch (int nblocks, int nthreads_per_block, gpuStream_t stream, L&& f) noe
     }
 }
 
-template<typename T, typename L>
+template <int MT, typename L>
+void launch (int nblocks, std::size_t shared_mem_bytes, gpuStream_t stream,
+             L&& f) noexcept
+{
+    launch(nblocks, MT, shared_mem_bytes, stream, std::forward<L>(f));
+}
+
+template <int MT, typename L>
+void launch (int nblocks, gpuStream_t stream, L&& f) noexcept
+{
+    launch(nblocks, MT, stream, std::forward<L>(f));
+}
+
+template<int MT, typename T, typename L>
 void launch (T const& n, L&& f) noexcept
 {
     if (amrex::isEmpty(n)) return;
-    const auto ec = Gpu::ExecutionConfig(n);
+    const auto ec = Gpu::makeExecutionConfig<MT>(n);
     int nthreads_per_block = ec.numThreads.x;
     int nthreads_total = nthreads_per_block * ec.numBlocks.x;
     auto& q = Gpu::Device::streamQueue();
@@ -139,11 +152,11 @@ namespace detail {
     }
 }
 
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
+template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
 void ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
 {
     if (amrex::isEmpty(n)) return;
-    const auto ec = Gpu::ExecutionConfig(n);
+    const auto ec = Gpu::makeExecutionConfig<MT>(n);
     int nthreads_per_block = ec.numThreads.x;
     int nthreads_total = nthreads_per_block * ec.numBlocks.x;
     auto& q = Gpu::Device::streamQueue();
@@ -186,7 +199,7 @@ void ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
     }
 }
 
-template <typename L>
+template <int MT, typename L>
 void ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
 {
     if (amrex::isEmpty(box)) return;
@@ -195,7 +208,7 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
     const auto len = amrex::length(box);
     const auto lenxy = len.x*len.y;
     const auto lenx = len.x;
-    const auto ec = Gpu::ExecutionConfig(ncells);
+    const auto ec = Gpu::makeExecutionConfig<MT>(ncells);
     int nthreads_per_block = ec.numThreads.x;
     int nthreads_total = nthreads_per_block * ec.numBlocks.x;
     auto& q = Gpu::Device::streamQueue();
@@ -250,7 +263,7 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
     }
 }
 
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
+template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
 void ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) noexcept
 {
     if (amrex::isEmpty(box)) return;
@@ -259,7 +272,7 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) n
     const auto len = amrex::length(box);
     const auto lenxy = len.x*len.y;
     const auto lenx = len.x;
-    const auto ec = Gpu::ExecutionConfig(ncells);
+    const auto ec = Gpu::makeExecutionConfig<MT>(ncells);
     int nthreads_per_block = ec.numThreads.x;
     int nthreads_total = nthreads_per_block * ec.numBlocks.x;
     auto& q = Gpu::Device::streamQueue();
@@ -437,7 +450,7 @@ void ParallelForRNG (Box const& box, T ncomp, L&& f) noexcept
     }
 }
 
-template <typename L1, typename L2>
+template <int MT, typename L1, typename L2>
 void ParallelFor (Gpu::KernelInfo const& /*info*/, Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
 {
     if (amrex::isEmpty(box1) && amrex::isEmpty(box2)) return;
@@ -452,7 +465,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/, Box const& box1, Box const& b
     const auto len2xy = len2.x*len2.y;
     const auto len1x = len1.x;
     const auto len2x = len2.x;
-    const auto ec = Gpu::ExecutionConfig(ncells);
+    const auto ec = Gpu::makeExecutionConfig<MT>(ncells);
     int nthreads_per_block = ec.numThreads.x;
     int nthreads_total = nthreads_per_block * ec.numBlocks.x;
     auto& q = Gpu::Device::streamQueue();
@@ -491,7 +504,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/, Box const& box1, Box const& b
     }
 }
 
-template <typename L1, typename L2, typename L3>
+template <int MT, typename L1, typename L2, typename L3>
 void ParallelFor (Gpu::KernelInfo const& /*info*/,
                   Box const& box1, Box const& box2, Box const& box3,
                   L1&& f1, L2&& f2, L3&& f3) noexcept
@@ -513,7 +526,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
     const auto len1x = len1.x;
     const auto len2x = len2.x;
     const auto len3x = len3.x;
-    const auto ec = Gpu::ExecutionConfig(ncells);
+    const auto ec = Gpu::makeExecutionConfig<MT>(ncells);
     int nthreads_per_block = ec.numThreads.x;
     int nthreads_total = nthreads_per_block * ec.numBlocks.x;
     auto& q = Gpu::Device::streamQueue();
@@ -561,7 +574,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
     }
 }
 
-template <typename T1, typename T2, typename L1, typename L2,
+template <int MT, typename T1, typename T2, typename L1, typename L2,
           typename M1=std::enable_if_t<std::is_integral<T1>::value>,
           typename M2=std::enable_if_t<std::is_integral<T2>::value> >
 void ParallelFor (Gpu::KernelInfo const& /*info*/,
@@ -580,7 +593,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
     const auto len2xy = len2.x*len2.y;
     const auto len1x = len1.x;
     const auto len2x = len2.x;
-    const auto ec = Gpu::ExecutionConfig(ncells);
+    const auto ec = Gpu::makeExecutionConfig<MT>(ncells);
     int nthreads_per_block = ec.numThreads.x;
     int nthreads_total = nthreads_per_block * ec.numBlocks.x;
     auto& q = Gpu::Device::streamQueue();
@@ -623,7 +636,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
     }
 }
 
-template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
+template <int MT, typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
           typename M1=std::enable_if_t<std::is_integral<T1>::value>,
           typename M2=std::enable_if_t<std::is_integral<T2>::value>,
           typename M3=std::enable_if_t<std::is_integral<T3>::value> >
@@ -649,7 +662,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
     const auto len1x = len1.x;
     const auto len2x = len2.x;
     const auto len3x = len3.x;
-    const auto ec = Gpu::ExecutionConfig(ncells);
+    const auto ec = Gpu::makeExecutionConfig<MT>(ncells);
     int nthreads_per_block = ec.numThreads.x;
     int nthreads_total = nthreads_per_block * ec.numBlocks.x;
     auto& q = Gpu::Device::streamQueue();
@@ -709,8 +722,25 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
 template <typename L>
 void single_task (gpuStream_t stream, L&& f) noexcept
 {
-    AMREX_LAUNCH_KERNEL(1, 1, 0, stream,
+    AMREX_LAUNCH_KERNEL(Gpu::Device::warp_size, 1, 1, 0, stream,
                         [=] AMREX_GPU_DEVICE () noexcept {f();});
+    AMREX_GPU_ERROR_CHECK();
+}
+
+template <int MT, typename L>
+void launch (int nblocks, std::size_t shared_mem_bytes, gpuStream_t stream,
+             L&& f) noexcept
+{
+    AMREX_LAUNCH_KERNEL(MT, nblocks, MT, shared_mem_bytes, stream,
+                        [=] AMREX_GPU_DEVICE () noexcept { f(); });
+    AMREX_GPU_ERROR_CHECK();
+}
+
+template <int MT, typename L>
+void launch (int nblocks, gpuStream_t stream, L&& f) noexcept
+{
+    AMREX_LAUNCH_KERNEL(MT, nblocks, MT, 0, stream,
+                        [=] AMREX_GPU_DEVICE () noexcept { f(); });
     AMREX_GPU_ERROR_CHECK();
 }
 
@@ -718,7 +748,8 @@ template<typename L>
 void launch (int nblocks, int nthreads_per_block, std::size_t shared_mem_bytes,
              gpuStream_t stream, L&& f) noexcept
 {
-    AMREX_LAUNCH_KERNEL(nblocks, nthreads_per_block, shared_mem_bytes,
+    AMREX_ASSERT(nthreads_per_block <= AMREX_GPU_MAX_THREADS);
+    AMREX_LAUNCH_KERNEL(AMREX_GPU_MAX_THREADS, nblocks, nthreads_per_block, shared_mem_bytes,
                         stream, [=] AMREX_GPU_DEVICE () noexcept { f(); });
     AMREX_GPU_ERROR_CHECK();
 }
@@ -729,12 +760,12 @@ void launch (int nblocks, int nthreads_per_block, gpuStream_t stream, L&& f) noe
     launch(nblocks, nthreads_per_block, 0, stream, std::forward<L>(f));
 }
 
-template<typename T, typename L>
+template<int MT, typename T, typename L>
 void launch (T const& n, L&& f) noexcept
 {
     if (amrex::isEmpty(n)) return;
-    const auto ec = Gpu::ExecutionConfig(n);
-    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
+    const auto ec = Gpu::makeExecutionConfig<MT>(n);
+    AMREX_LAUNCH_KERNEL(MT, ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         for (auto const i : Gpu::Range(n)) {
             f(i);
@@ -793,13 +824,13 @@ namespace detail {
     }
 }
 
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
+template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
 ParallelFor (Gpu::KernelInfo const&, T n, L&& f) noexcept
 {
     if (amrex::isEmpty(n)) return;
-    const auto ec = Gpu::ExecutionConfig(n);
-    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
+    const auto ec = Gpu::makeExecutionConfig<MT>(n);
+    AMREX_LAUNCH_KERNEL(MT, ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         for (T i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              i < n; i += stride) {
@@ -809,7 +840,7 @@ ParallelFor (Gpu::KernelInfo const&, T n, L&& f) noexcept
     AMREX_GPU_ERROR_CHECK();
 }
 
-template <typename L>
+template <int MT, typename L>
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
 ParallelFor (Gpu::KernelInfo const&, Box const& box, L&& f) noexcept
 {
@@ -819,8 +850,8 @@ ParallelFor (Gpu::KernelInfo const&, Box const& box, L&& f) noexcept
     const auto len = amrex::length(box);
     const auto lenxy = len.x*len.y;
     const auto lenx = len.x;
-    const auto ec = Gpu::ExecutionConfig(ncells);
-    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
+    const auto ec = Gpu::makeExecutionConfig<MT>(ncells);
+    AMREX_LAUNCH_KERNEL(MT, ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              icell < ncells; icell += stride)
@@ -837,7 +868,7 @@ ParallelFor (Gpu::KernelInfo const&, Box const& box, L&& f) noexcept
     AMREX_GPU_ERROR_CHECK();
 }
 
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
+template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
 ParallelFor (Gpu::KernelInfo const&, Box const& box, T ncomp, L&& f) noexcept
 {
@@ -847,8 +878,8 @@ ParallelFor (Gpu::KernelInfo const&, Box const& box, T ncomp, L&& f) noexcept
     const auto len = amrex::length(box);
     const auto lenxy = len.x*len.y;
     const auto lenx = len.x;
-    const auto ec = Gpu::ExecutionConfig(ncells);
-    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
+    const auto ec = Gpu::makeExecutionConfig<MT>(ncells);
+    AMREX_LAUNCH_KERNEL(MT, ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              icell < ncells; icell += stride) {
@@ -871,7 +902,8 @@ ParallelForRNG (T n, L&& f) noexcept
     if (amrex::isEmpty(n)) return;
     randState_t* rand_state = getRandState();
     const auto ec = Gpu::ExecutionConfig(n);
-    AMREX_LAUNCH_KERNEL(amrex::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch()),
+    AMREX_LAUNCH_KERNEL(AMREX_GPU_MAX_THREADS,
+                        amrex::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch()),
                         ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         int tid = blockDim.x*blockIdx.x+threadIdx.x;
@@ -896,7 +928,8 @@ ParallelForRNG (Box const& box, L&& f) noexcept
     const auto lenxy = len.x*len.y;
     const auto lenx = len.x;
     const auto ec = Gpu::ExecutionConfig(ncells);
-    AMREX_LAUNCH_KERNEL(amrex::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch()),
+    AMREX_LAUNCH_KERNEL(AMREX_GPU_MAX_THREADS,
+                        amrex::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch()),
                         ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         int tid = blockDim.x*blockIdx.x+threadIdx.x;
@@ -927,7 +960,8 @@ ParallelForRNG (Box const& box, T ncomp, L&& f) noexcept
     const auto lenxy = len.x*len.y;
     const auto lenx = len.x;
     const auto ec = Gpu::ExecutionConfig(ncells);
-    AMREX_LAUNCH_KERNEL(amrex::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch()),
+    AMREX_LAUNCH_KERNEL(AMREX_GPU_MAX_THREADS,
+                        amrex::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch()),
                         ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         int tid = blockDim.x*blockIdx.x+threadIdx.x;
@@ -948,7 +982,7 @@ ParallelForRNG (Box const& box, T ncomp, L&& f) noexcept
     AMREX_GPU_ERROR_CHECK();
 }
 
-template <typename L1, typename L2>
+template <int MT, typename L1, typename L2>
 std::enable_if_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value>
 ParallelFor (Gpu::KernelInfo const&,
              Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
@@ -965,8 +999,8 @@ ParallelFor (Gpu::KernelInfo const&,
     const auto len2xy = len2.x*len2.y;
     const auto len1x = len1.x;
     const auto len2x = len2.x;
-    const auto ec = Gpu::ExecutionConfig(ncells);
-    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
+    const auto ec = Gpu::makeExecutionConfig<MT>(ncells);
+    AMREX_LAUNCH_KERNEL(MT, ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              icell < ncells; icell += stride) {
@@ -993,7 +1027,7 @@ ParallelFor (Gpu::KernelInfo const&,
     AMREX_GPU_ERROR_CHECK();
 }
 
-template <typename L1, typename L2, typename L3>
+template <int MT, typename L1, typename L2, typename L3>
 std::enable_if_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value && MaybeDeviceRunnable<L3>::value>
 ParallelFor (Gpu::KernelInfo const&,
              Box const& box1, Box const& box2, Box const& box3,
@@ -1016,8 +1050,8 @@ ParallelFor (Gpu::KernelInfo const&,
     const auto len1x = len1.x;
     const auto len2x = len2.x;
     const auto len3x = len3.x;
-    const auto ec = Gpu::ExecutionConfig(ncells);
-    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
+    const auto ec = Gpu::makeExecutionConfig<MT>(ncells);
+    AMREX_LAUNCH_KERNEL(MT, ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              icell < ncells; icell += stride) {
@@ -1053,7 +1087,7 @@ ParallelFor (Gpu::KernelInfo const&,
     AMREX_GPU_ERROR_CHECK();
 }
 
-template <typename T1, typename T2, typename L1, typename L2,
+template <int MT, typename T1, typename T2, typename L1, typename L2,
           typename M1=std::enable_if_t<std::is_integral<T1>::value>,
           typename M2=std::enable_if_t<std::is_integral<T2>::value> >
 std::enable_if_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value>
@@ -1073,8 +1107,8 @@ ParallelFor (Gpu::KernelInfo const&,
     const auto len2xy = len2.x*len2.y;
     const auto len1x = len1.x;
     const auto len2x = len2.x;
-    const auto ec = Gpu::ExecutionConfig(ncells);
-    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
+    const auto ec = Gpu::makeExecutionConfig<MT>(ncells);
+    AMREX_LAUNCH_KERNEL(MT, ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              icell < ncells; icell += stride) {
@@ -1105,7 +1139,7 @@ ParallelFor (Gpu::KernelInfo const&,
     AMREX_GPU_ERROR_CHECK();
 }
 
-template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
+template <int MT, typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
           typename M1=std::enable_if_t<std::is_integral<T1>::value>,
           typename M2=std::enable_if_t<std::is_integral<T2>::value>,
           typename M3=std::enable_if_t<std::is_integral<T3>::value> >
@@ -1132,8 +1166,8 @@ ParallelFor (Gpu::KernelInfo const&,
     const auto len1x = len1.x;
     const auto len2x = len2.x;
     const auto len3x = len3.x;
-    const auto ec = Gpu::ExecutionConfig(ncells);
-    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
+    const auto ec = Gpu::makeExecutionConfig<MT>(ncells);
+    AMREX_LAUNCH_KERNEL(MT, ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              icell < ncells; icell += stride) {
@@ -1183,29 +1217,127 @@ void single_task (L&& f) noexcept
     single_task(Gpu::gpuStream(), std::forward<L>(f));
 }
 
+template<typename T, typename L>
+void launch (T const& n, L&& f) noexcept
+{
+    launch<AMREX_GPU_MAX_THREADS>(n, std::forward<L>(f));
+}
+
+template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
+std::enable_if_t<MaybeDeviceRunnable<L>::value>
+ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
+{
+    ParallelFor<AMREX_GPU_MAX_THREADS>(info, n, std::forward<L>(f));
+}
+
+template <typename L>
+std::enable_if_t<MaybeDeviceRunnable<L>::value>
+ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
+{
+    ParallelFor<AMREX_GPU_MAX_THREADS>(info, box, std::forward<L>(f));
+}
+
+template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
+std::enable_if_t<MaybeDeviceRunnable<L>::value>
+ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) noexcept
+{
+    ParallelFor<AMREX_GPU_MAX_THREADS>(info, box, ncomp, std::forward<L>(f));
+}
+
+template <typename L1, typename L2>
+std::enable_if_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value>
+ParallelFor (Gpu::KernelInfo const& info,
+             Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
+{
+    ParallelFor<AMREX_GPU_MAX_THREADS>(info, box1, box2, std::forward<L1>(f1),
+                                       std::forward<L2>(f2));
+}
+
+template <typename L1, typename L2, typename L3>
+std::enable_if_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value && MaybeDeviceRunnable<L3>::value>
+ParallelFor (Gpu::KernelInfo const& info,
+             Box const& box1, Box const& box2, Box const& box3,
+             L1&& f1, L2&& f2, L3&& f3) noexcept
+{
+    ParallelFor<AMREX_GPU_MAX_THREADS>(info, box1, box2, box3, std::forward<L1>(f1),
+                                       std::forward<L2>(f2), std::forward<L3>(f3));
+}
+
+template <typename T1, typename T2, typename L1, typename L2,
+          typename M1=std::enable_if_t<std::is_integral<T1>::value>,
+          typename M2=std::enable_if_t<std::is_integral<T2>::value> >
+std::enable_if_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value>
+ParallelFor (Gpu::KernelInfo const& info,
+             Box const& box1, T1 ncomp1, L1&& f1,
+             Box const& box2, T2 ncomp2, L2&& f2) noexcept
+{
+    ParallelFor<AMREX_GPU_MAX_THREADS>(info, box1, ncomp1, std::forward<L1>(f1),
+                                             box2, ncomp2, std::forward<L2>(f2));
+}
+
+template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
+          typename M1=std::enable_if_t<std::is_integral<T1>::value>,
+          typename M2=std::enable_if_t<std::is_integral<T2>::value>,
+          typename M3=std::enable_if_t<std::is_integral<T3>::value> >
+std::enable_if_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value && MaybeDeviceRunnable<L3>::value>
+ParallelFor (Gpu::KernelInfo const& info,
+             Box const& box1, T1 ncomp1, L1&& f1,
+             Box const& box2, T2 ncomp2, L2&& f2,
+             Box const& box3, T3 ncomp3, L3&& f3) noexcept
+{
+    ParallelFor<AMREX_GPU_MAX_THREADS>(info, box1, ncomp1, std::forward<L1>(f1),
+                                             box2, ncomp2, std::forward<L2>(f2),
+                                             box3, ncomp3, std::forward<L3>(f3));
+}
+
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
 void For (Gpu::KernelInfo const& info, T n, L&& f) noexcept
 {
-    ParallelFor(info, n,std::forward<L>(f));
+    ParallelFor<AMREX_GPU_MAX_THREADS>(info, n,std::forward<L>(f));
+}
+
+template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
+void For (Gpu::KernelInfo const& info, T n, L&& f) noexcept
+{
+    ParallelFor<MT>(info, n,std::forward<L>(f));
 }
 
 template <typename L>
 void For (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
 {
-    ParallelFor(info, box,std::forward<L>(f));
+    ParallelFor<AMREX_GPU_MAX_THREADS>(info, box,std::forward<L>(f));
+}
+
+template <int MT, typename L>
+void For (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
+{
+    ParallelFor<MT>(info, box,std::forward<L>(f));
 }
 
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
 void For (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) noexcept
 {
-    ParallelFor(info,box,ncomp,std::forward<L>(f));
+    ParallelFor<AMREX_GPU_MAX_THREADS>(info,box,ncomp,std::forward<L>(f));
+}
+
+template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
+void For (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) noexcept
+{
+    ParallelFor<MT>(info,box,ncomp,std::forward<L>(f));
 }
 
 template <typename L1, typename L2>
 void For (Gpu::KernelInfo const& info,
           Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
 {
-    ParallelFor(info,box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
+    ParallelFor<AMREX_GPU_MAX_THREADS>(info,box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
+}
+
+template <int MT, typename L1, typename L2>
+void For (Gpu::KernelInfo const& info,
+          Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
+{
+    ParallelFor<MT>(info,box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
 }
 
 template <typename L1, typename L2, typename L3>
@@ -1213,7 +1345,15 @@ void For (Gpu::KernelInfo const& info,
           Box const& box1, Box const& box2, Box const& box3,
           L1&& f1, L2&& f2, L3&& f3) noexcept
 {
-    ParallelFor(info,box1,box2,box3,std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
+    ParallelFor<AMREX_GPU_MAX_THREADS>(info,box1,box2,box3,std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
+}
+
+template <int MT, typename L1, typename L2, typename L3>
+void For (Gpu::KernelInfo const& info,
+          Box const& box1, Box const& box2, Box const& box3,
+          L1&& f1, L2&& f2, L3&& f3) noexcept
+{
+    ParallelFor<MT>(info,box1,box2,box3,std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
 }
 
 template <typename T1, typename T2, typename L1, typename L2,
@@ -1223,7 +1363,17 @@ void For (Gpu::KernelInfo const& info,
           Box const& box1, T1 ncomp1, L1&& f1,
           Box const& box2, T2 ncomp2, L2&& f2) noexcept
 {
-    ParallelFor(info,box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
+    ParallelFor<AMREX_GPU_MAX_THREADS>(info,box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
+}
+
+template <int MT, typename T1, typename T2, typename L1, typename L2,
+          typename M1=std::enable_if_t<std::is_integral<T1>::value>,
+          typename M2=std::enable_if_t<std::is_integral<T2>::value> >
+void For (Gpu::KernelInfo const& info,
+          Box const& box1, T1 ncomp1, L1&& f1,
+          Box const& box2, T2 ncomp2, L2&& f2) noexcept
+{
+    ParallelFor<MT>(info,box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
 template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
@@ -1235,7 +1385,22 @@ void For (Gpu::KernelInfo const& info,
           Box const& box2, T2 ncomp2, L2&& f2,
           Box const& box3, T3 ncomp3, L3&& f3) noexcept
 {
-    ParallelFor(info,
+    ParallelFor<AMREX_GPU_MAX_THREADS>(info,
+                box1,ncomp1,std::forward<L1>(f1),
+                box2,ncomp2,std::forward<L2>(f2),
+                box3,ncomp3,std::forward<L3>(f3));
+}
+
+template <int MT, typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
+          typename M1=std::enable_if_t<std::is_integral<T1>::value>,
+          typename M2=std::enable_if_t<std::is_integral<T2>::value>,
+          typename M3=std::enable_if_t<std::is_integral<T3>::value> >
+void For (Gpu::KernelInfo const& info,
+          Box const& box1, T1 ncomp1, L1&& f1,
+          Box const& box2, T2 ncomp2, L2&& f2,
+          Box const& box3, T3 ncomp3, L3&& f3) noexcept
+{
+    ParallelFor<MT>(info,
                 box1,ncomp1,std::forward<L1>(f1),
                 box2,ncomp2,std::forward<L2>(f2),
                 box3,ncomp3,std::forward<L3>(f3));
@@ -1244,32 +1409,63 @@ void For (Gpu::KernelInfo const& info,
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
 void ParallelFor (T n, L&& f) noexcept
 {
-    ParallelFor(Gpu::KernelInfo{}, n, std::forward<L>(f));
+    ParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{}, n, std::forward<L>(f));
+}
+
+template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
+void ParallelFor (T n, L&& f) noexcept
+{
+    ParallelFor<MT>(Gpu::KernelInfo{}, n, std::forward<L>(f));
 }
 
 template <typename L>
 void ParallelFor (Box const& box, L&& f) noexcept
 {
-    ParallelFor(Gpu::KernelInfo{}, box, std::forward<L>(f));
+    ParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{}, box, std::forward<L>(f));
+}
+
+template <int MT, typename L>
+void ParallelFor (Box const& box, L&& f) noexcept
+{
+    ParallelFor<MT>(Gpu::KernelInfo{}, box, std::forward<L>(f));
 }
 
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
 void ParallelFor (Box const& box, T ncomp, L&& f) noexcept
 {
-    ParallelFor(Gpu::KernelInfo{},box,ncomp,std::forward<L>(f));
+    ParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{},box,ncomp,std::forward<L>(f));
+}
+
+template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
+void ParallelFor (Box const& box, T ncomp, L&& f) noexcept
+{
+    ParallelFor<MT>(Gpu::KernelInfo{},box,ncomp,std::forward<L>(f));
 }
 
 template <typename L1, typename L2>
 void ParallelFor (Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
 {
-    ParallelFor(Gpu::KernelInfo{},box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
+    ParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{},box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
+}
+
+template <int MT, typename L1, typename L2>
+void ParallelFor (Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
+{
+    ParallelFor<MT>(Gpu::KernelInfo{},box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
 }
 
 template <typename L1, typename L2, typename L3>
 void ParallelFor (Box const& box1, Box const& box2, Box const& box3,
                   L1&& f1, L2&& f2, L3&& f3) noexcept
 {
-    ParallelFor(Gpu::KernelInfo{},box1,box2,box3,std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
+    ParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{},box1,box2,box3,std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
+}
+
+template <int MT, typename L1, typename L2, typename L3>
+void ParallelFor (Box const& box1, Box const& box2, Box const& box3,
+                  L1&& f1, L2&& f2, L3&& f3) noexcept
+{
+    ParallelFor<MT>(Gpu::KernelInfo{},box1,box2,box3,std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
 }
 
 template <typename T1, typename T2, typename L1, typename L2,
@@ -1278,7 +1474,16 @@ template <typename T1, typename T2, typename L1, typename L2,
 void ParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
                   Box const& box2, T2 ncomp2, L2&& f2) noexcept
 {
-    ParallelFor(Gpu::KernelInfo{},box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
+    ParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{},box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
+}
+
+template <int MT, typename T1, typename T2, typename L1, typename L2,
+          typename M1=std::enable_if_t<std::is_integral<T1>::value>,
+          typename M2=std::enable_if_t<std::is_integral<T2>::value> >
+void ParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
+                  Box const& box2, T2 ncomp2, L2&& f2) noexcept
+{
+    ParallelFor<MT>(Gpu::KernelInfo{},box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
 template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
@@ -1289,7 +1494,21 @@ void ParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
                   Box const& box2, T2 ncomp2, L2&& f2,
                   Box const& box3, T3 ncomp3, L3&& f3) noexcept
 {
-    ParallelFor(Gpu::KernelInfo{},
+    ParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{},
+                box1,ncomp1,std::forward<L1>(f1),
+                box2,ncomp2,std::forward<L2>(f2),
+                box3,ncomp3,std::forward<L3>(f3));
+}
+
+template <int MT, typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
+          typename M1=std::enable_if_t<std::is_integral<T1>::value>,
+          typename M2=std::enable_if_t<std::is_integral<T2>::value>,
+          typename M3=std::enable_if_t<std::is_integral<T3>::value> >
+void ParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
+                  Box const& box2, T2 ncomp2, L2&& f2,
+                  Box const& box3, T3 ncomp3, L3&& f3) noexcept
+{
+    ParallelFor<MT>(Gpu::KernelInfo{},
                 box1,ncomp1,std::forward<L1>(f1),
                 box2,ncomp2,std::forward<L2>(f2),
                 box3,ncomp3,std::forward<L3>(f3));
@@ -1298,32 +1517,63 @@ void ParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
 void For (T n, L&& f) noexcept
 {
-    ParallelFor(Gpu::KernelInfo{}, n,std::forward<L>(f));
+    ParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{}, n,std::forward<L>(f));
+}
+
+template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
+void For (T n, L&& f) noexcept
+{
+    ParallelFor<MT>(Gpu::KernelInfo{}, n,std::forward<L>(f));
 }
 
 template <typename L>
 void For (Box const& box, L&& f) noexcept
 {
-    ParallelFor(Gpu::KernelInfo{}, box,std::forward<L>(f));
+    ParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{}, box,std::forward<L>(f));
+}
+
+template <int MT, typename L>
+void For (Box const& box, L&& f) noexcept
+{
+    ParallelFor<MT>(Gpu::KernelInfo{}, box,std::forward<L>(f));
 }
 
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
 void For (Box const& box, T ncomp, L&& f) noexcept
 {
-    ParallelFor(Gpu::KernelInfo{},box,ncomp,std::forward<L>(f));
+    ParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{},box,ncomp,std::forward<L>(f));
+}
+
+template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
+void For (Box const& box, T ncomp, L&& f) noexcept
+{
+    ParallelFor<MT>(Gpu::KernelInfo{},box,ncomp,std::forward<L>(f));
 }
 
 template <typename L1, typename L2>
 void For (Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
 {
-    ParallelFor(Gpu::KernelInfo{},box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
+    ParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{},box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
+}
+
+template <int MT, typename L1, typename L2>
+void For (Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
+{
+    ParallelFor<MT>(Gpu::KernelInfo{},box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
 }
 
 template <typename L1, typename L2, typename L3>
 void For (Box const& box1, Box const& box2, Box const& box3,
           L1&& f1, L2&& f2, L3&& f3) noexcept
 {
-    ParallelFor(Gpu::KernelInfo{},box1,box2,box3,std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
+    ParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{},box1,box2,box3,std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
+}
+
+template <int MT, typename L1, typename L2, typename L3>
+void For (Box const& box1, Box const& box2, Box const& box3,
+          L1&& f1, L2&& f2, L3&& f3) noexcept
+{
+    ParallelFor<MT>(Gpu::KernelInfo{},box1,box2,box3,std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
 }
 
 template <typename T1, typename T2, typename L1, typename L2,
@@ -1332,7 +1582,16 @@ template <typename T1, typename T2, typename L1, typename L2,
 void For (Box const& box1, T1 ncomp1, L1&& f1,
           Box const& box2, T2 ncomp2, L2&& f2) noexcept
 {
-    ParallelFor(Gpu::KernelInfo{},box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
+    ParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{},box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
+}
+
+template <int MT, typename T1, typename T2, typename L1, typename L2,
+          typename M1=std::enable_if_t<std::is_integral<T1>::value>,
+          typename M2=std::enable_if_t<std::is_integral<T2>::value> >
+void For (Box const& box1, T1 ncomp1, L1&& f1,
+          Box const& box2, T2 ncomp2, L2&& f2) noexcept
+{
+    ParallelFor<MT>(Gpu::KernelInfo{},box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
 template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
@@ -1343,7 +1602,21 @@ void For (Box const& box1, T1 ncomp1, L1&& f1,
           Box const& box2, T2 ncomp2, L2&& f2,
           Box const& box3, T3 ncomp3, L3&& f3) noexcept
 {
-    ParallelFor(Gpu::KernelInfo{},
+    ParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{},
+                box1,ncomp1,std::forward<L1>(f1),
+                box2,ncomp2,std::forward<L2>(f2),
+                box3,ncomp3,std::forward<L3>(f3));
+}
+
+template <int MT, typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
+          typename M1=std::enable_if_t<std::is_integral<T1>::value>,
+          typename M2=std::enable_if_t<std::is_integral<T2>::value>,
+          typename M3=std::enable_if_t<std::is_integral<T3>::value> >
+void For (Box const& box1, T1 ncomp1, L1&& f1,
+          Box const& box2, T2 ncomp2, L2&& f2,
+          Box const& box3, T3 ncomp3, L3&& f3) noexcept
+{
+    ParallelFor<MT>(Gpu::KernelInfo{},
                 box1,ncomp1,std::forward<L1>(f1),
                 box2,ncomp2,std::forward<L2>(f2),
                 box3,ncomp3,std::forward<L3>(f3));
@@ -1354,10 +1627,30 @@ std::enable_if_t<MaybeHostDeviceRunnable<L>::value>
 HostDeviceParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
 {
     if (Gpu::inLaunchRegion()) {
-        ParallelFor(info,n,std::forward<L>(f));
+        ParallelFor<AMREX_GPU_MAX_THREADS>(info,n,std::forward<L>(f));
     } else {
+#ifdef AMREX_USE_DPCPP
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
+#else
         AMREX_PRAGMA_SIMD
         for (T i = 0; i < n; ++i) f(i);
+#endif
+    }
+}
+
+template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
+std::enable_if_t<MaybeHostDeviceRunnable<L>::value>
+HostDeviceParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
+{
+    if (Gpu::inLaunchRegion()) {
+        ParallelFor<MT>(info,n,std::forward<L>(f));
+    } else {
+#ifdef AMREX_USE_DPCPP
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
+#else
+        AMREX_PRAGMA_SIMD
+        for (T i = 0; i < n; ++i) f(i);
+#endif
     }
 }
 
@@ -1365,7 +1658,14 @@ template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T
 std::enable_if_t<MaybeHostDeviceRunnable<L>::value>
 HostDeviceParallelFor (T n, L&& f) noexcept
 {
-    HostDeviceParallelFor(Gpu::KernelInfo{}, n, std::forward<L>(f));
+    HostDeviceParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{}, n, std::forward<L>(f));
+}
+
+template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
+std::enable_if_t<MaybeHostDeviceRunnable<L>::value>
+HostDeviceParallelFor (T n, L&& f) noexcept
+{
+    HostDeviceParallelFor<MT>(Gpu::KernelInfo{}, n, std::forward<L>(f));
 }
 
 template <typename L>
@@ -1373,9 +1673,28 @@ std::enable_if_t<MaybeHostDeviceRunnable<L>::value>
 HostDeviceParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
 {
     if (Gpu::inLaunchRegion()) {
-        ParallelFor(info, box,std::forward<L>(f));
+        ParallelFor<AMREX_GPU_MAX_THREADS>(info, box,std::forward<L>(f));
     } else {
+#ifdef AMREX_USE_DPCPP
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
+#else
         LoopConcurrentOnCpu(box,std::forward<L>(f));
+#endif
+    }
+}
+
+template <int MT, typename L>
+std::enable_if_t<MaybeHostDeviceRunnable<L>::value>
+HostDeviceParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
+{
+    if (Gpu::inLaunchRegion()) {
+        ParallelFor<MT>(info, box,std::forward<L>(f));
+    } else {
+#ifdef AMREX_USE_DPCPP
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
+#else
+        LoopConcurrentOnCpu(box,std::forward<L>(f));
+#endif
     }
 }
 
@@ -1384,9 +1703,28 @@ std::enable_if_t<MaybeHostDeviceRunnable<L>::value>
 HostDeviceParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) noexcept
 {
     if (Gpu::inLaunchRegion()) {
-        ParallelFor(info, box,ncomp,std::forward<L>(f));
+        ParallelFor<AMREX_GPU_MAX_THREADS>(info, box,ncomp,std::forward<L>(f));
     } else {
+#ifdef AMREX_USE_DPCPP
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
+#else
         LoopConcurrentOnCpu(box,ncomp,std::forward<L>(f));
+#endif
+    }
+}
+
+template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
+std::enable_if_t<MaybeHostDeviceRunnable<L>::value>
+HostDeviceParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) noexcept
+{
+    if (Gpu::inLaunchRegion()) {
+        ParallelFor<MT>(info, box,ncomp,std::forward<L>(f));
+    } else {
+#ifdef AMREX_USE_DPCPP
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
+#else
+        LoopConcurrentOnCpu(box,ncomp,std::forward<L>(f));
+#endif
     }
 }
 
@@ -1396,26 +1734,51 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
 {
     if (Gpu::inLaunchRegion()) {
-        ParallelFor(info,box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
+        ParallelFor<AMREX_GPU_MAX_THREADS>(info,box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
     } else {
+#ifdef AMREX_USE_DPCPP
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
+#else
         LoopConcurrentOnCpu(box1,std::forward<L1>(f1));
         LoopConcurrentOnCpu(box2,std::forward<L2>(f2));
+#endif
     }
 }
 
-template <typename L1, typename L2, typename L3>
+template <int MT, typename L1, typename L2>
+std::enable_if_t<MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value>
+HostDeviceParallelFor (Gpu::KernelInfo const& info,
+                       Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
+{
+    if (Gpu::inLaunchRegion()) {
+        ParallelFor<MT>(info,box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
+    } else {
+#ifdef AMREX_USE_DPCPP
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
+#else
+        LoopConcurrentOnCpu(box1,std::forward<L1>(f1));
+        LoopConcurrentOnCpu(box2,std::forward<L2>(f2));
+#endif
+    }
+}
+
+template <int MT, typename L1, typename L2, typename L3>
 std::enable_if_t<MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value && MaybeHostDeviceRunnable<L3>::value>
 HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        Box const& box1, Box const& box2, Box const& box3,
                        L1&& f1, L2&& f2, L3&& f3) noexcept
 {
     if (Gpu::inLaunchRegion()) {
-        ParallelFor(info,box1,box2,box3,
+        ParallelFor<MT>(info,box1,box2,box3,
                     std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
     } else {
+#ifdef AMREX_USE_DPCPP
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
+#else
         LoopConcurrentOnCpu(box1,std::forward<L1>(f1));
         LoopConcurrentOnCpu(box2,std::forward<L2>(f2));
         LoopConcurrentOnCpu(box3,std::forward<L3>(f3));
+#endif
     }
 }
 
@@ -1428,10 +1791,34 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        Box const& box2, T2 ncomp2, L2&& f2) noexcept
 {
     if (Gpu::inLaunchRegion()) {
-        ParallelFor(info,box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
+        ParallelFor<AMREX_GPU_MAX_THREADS>(info,box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
     } else {
+#ifdef AMREX_USE_DPCPP
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
+#else
         LoopConcurrentOnCpu(box1,ncomp1,std::forward<L1>(f1));
         LoopConcurrentOnCpu(box2,ncomp2,std::forward<L2>(f2));
+#endif
+    }
+}
+
+template <int MT, typename T1, typename T2, typename L1, typename L2,
+          typename M1=std::enable_if_t<std::is_integral<T1>::value>,
+          typename M2=std::enable_if_t<std::is_integral<T2>::value> >
+std::enable_if_t<MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value>
+HostDeviceParallelFor (Gpu::KernelInfo const& info,
+                       Box const& box1, T1 ncomp1, L1&& f1,
+                       Box const& box2, T2 ncomp2, L2&& f2) noexcept
+{
+    if (Gpu::inLaunchRegion()) {
+        ParallelFor<MT>(info,box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
+    } else {
+#ifdef AMREX_USE_DPCPP
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
+#else
+        LoopConcurrentOnCpu(box1,ncomp1,std::forward<L1>(f1));
+        LoopConcurrentOnCpu(box2,ncomp2,std::forward<L2>(f2));
+#endif
     }
 }
 
@@ -1446,40 +1833,95 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        Box const& box3, T3 ncomp3, L3&& f3) noexcept
 {
     if (Gpu::inLaunchRegion()) {
-        ParallelFor(info,
+        ParallelFor<AMREX_GPU_MAX_THREADS>(info,
                     box1,ncomp1,std::forward<L1>(f1),
                     box2,ncomp2,std::forward<L2>(f2),
                     box3,ncomp3,std::forward<L3>(f3));
     } else {
+#ifdef AMREX_USE_DPCPP
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
+#else
         LoopConcurrentOnCpu(box1,ncomp1,std::forward<L1>(f1));
         LoopConcurrentOnCpu(box2,ncomp2,std::forward<L2>(f2));
         LoopConcurrentOnCpu(box3,ncomp3,std::forward<L3>(f3));
+#endif
+    }
+}
+
+template <int MT, typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
+          typename M1=std::enable_if_t<std::is_integral<T1>::value>,
+          typename M2=std::enable_if_t<std::is_integral<T2>::value>,
+          typename M3=std::enable_if_t<std::is_integral<T3>::value> >
+std::enable_if_t<MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value && MaybeHostDeviceRunnable<L3>::value>
+HostDeviceParallelFor (Gpu::KernelInfo const& info,
+                       Box const& box1, T1 ncomp1, L1&& f1,
+                       Box const& box2, T2 ncomp2, L2&& f2,
+                       Box const& box3, T3 ncomp3, L3&& f3) noexcept
+{
+    if (Gpu::inLaunchRegion()) {
+        ParallelFor<MT>(info,
+                    box1,ncomp1,std::forward<L1>(f1),
+                    box2,ncomp2,std::forward<L2>(f2),
+                    box3,ncomp3,std::forward<L3>(f3));
+    } else {
+#ifdef AMREX_USE_DPCPP
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
+#else
+        LoopConcurrentOnCpu(box1,ncomp1,std::forward<L1>(f1));
+        LoopConcurrentOnCpu(box2,ncomp2,std::forward<L2>(f2));
+        LoopConcurrentOnCpu(box3,ncomp3,std::forward<L3>(f3));
+#endif
     }
 }
 
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
 void HostDeviceFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
 {
-    HostDeviceParallelFor(info,n,std::forward<L>(f));
+    HostDeviceParallelFor<AMREX_GPU_MAX_THREADS>(info,n,std::forward<L>(f));
+}
+
+template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
+void HostDeviceFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
+{
+    HostDeviceParallelFor<MT>(info,n,std::forward<L>(f));
 }
 
 template <typename L>
 void HostDeviceFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
 {
-    HostDeviceParallelFor(info,box,std::forward<L>(f));
+    HostDeviceParallelFor<AMREX_GPU_MAX_THREADS>(info,box,std::forward<L>(f));
+}
+
+template <int MT, typename L>
+void HostDeviceFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
+{
+    HostDeviceParallelFor<MT>(info,box,std::forward<L>(f));
 }
 
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
 void HostDeviceFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) noexcept
 {
-    HostDeviceParallelFor(info,box,ncomp,std::forward<L>(f));
+    HostDeviceParallelFor<AMREX_GPU_MAX_THREADS>(info,box,ncomp,std::forward<L>(f));
+}
+
+template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
+void HostDeviceFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) noexcept
+{
+    HostDeviceParallelFor<MT>(info,box,ncomp,std::forward<L>(f));
 }
 
 template <typename L1, typename L2>
 void HostDeviceFor (Gpu::KernelInfo const& info,
                     Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
 {
-    HostDeviceParallelFor(info,box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
+    HostDeviceParallelFor<AMREX_GPU_MAX_THREADS>(info,box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
+}
+
+template <int MT, typename L1, typename L2>
+void HostDeviceFor (Gpu::KernelInfo const& info,
+                    Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
+{
+    HostDeviceParallelFor<MT>(info,box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
 }
 
 template <typename L1, typename L2, typename L3>
@@ -1487,7 +1929,16 @@ void HostDeviceFor (Gpu::KernelInfo const& info,
                     Box const& box1, Box const& box2, Box const& box3,
                     L1&& f1, L2&& f2, L3&& f3) noexcept
 {
-    HostDeviceParallelFor(info, box1,box2,box3,
+    HostDeviceParallelFor<AMREX_GPU_MAX_THREADS>(info, box1,box2,box3,
+                          std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
+}
+
+template <int MT, typename L1, typename L2, typename L3>
+void HostDeviceFor (Gpu::KernelInfo const& info,
+                    Box const& box1, Box const& box2, Box const& box3,
+                    L1&& f1, L2&& f2, L3&& f3) noexcept
+{
+    HostDeviceParallelFor<MT>(info, box1,box2,box3,
                           std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
 }
 
@@ -1498,7 +1949,17 @@ void HostDeviceFor (Gpu::KernelInfo const& info,
                     Box const& box1, T1 ncomp1, L1&& f1,
                     Box const& box2, T2 ncomp2, L2&& f2) noexcept
 {
-    HostDeviceParallelFor(info,box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
+    HostDeviceParallelFor<AMREX_GPU_MAX_THREADS>(info,box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
+}
+
+template <int MT, typename T1, typename T2, typename L1, typename L2,
+          typename M1=std::enable_if_t<std::is_integral<T1>::value>,
+          typename M2=std::enable_if_t<std::is_integral<T2>::value> >
+void HostDeviceFor (Gpu::KernelInfo const& info,
+                    Box const& box1, T1 ncomp1, L1&& f1,
+                    Box const& box2, T2 ncomp2, L2&& f2) noexcept
+{
+    HostDeviceParallelFor<MT>(info,box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
 template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
@@ -1510,7 +1971,22 @@ void HostDeviceFor (Gpu::KernelInfo const& info,
                     Box const& box2, T2 ncomp2, L2&& f2,
                     Box const& box3, T3 ncomp3, L3&& f3) noexcept
 {
-    HostDeviceParallelFor(info,
+    HostDeviceParallelFor<AMREX_GPU_MAX_THREADS>(info,
+                          box1,ncomp1,std::forward<L1>(f1),
+                          box2,ncomp2,std::forward<L2>(f2),
+                          box3,ncomp3,std::forward<L3>(f3));
+}
+
+template <int MT, typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
+          typename M1=std::enable_if_t<std::is_integral<T1>::value>,
+          typename M2=std::enable_if_t<std::is_integral<T2>::value>,
+          typename M3=std::enable_if_t<std::is_integral<T3>::value> >
+void HostDeviceFor (Gpu::KernelInfo const& info,
+                    Box const& box1, T1 ncomp1, L1&& f1,
+                    Box const& box2, T2 ncomp2, L2&& f2,
+                    Box const& box3, T3 ncomp3, L3&& f3) noexcept
+{
+    HostDeviceParallelFor<MT>(info,
                           box1,ncomp1,std::forward<L1>(f1),
                           box2,ncomp2,std::forward<L2>(f2),
                           box3,ncomp3,std::forward<L3>(f3));
@@ -1519,32 +1995,64 @@ void HostDeviceFor (Gpu::KernelInfo const& info,
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
 void HostDeviceParallelFor (T n, L&& f) noexcept
 {
-    HostDeviceParallelFor(Gpu::KernelInfo{},n,std::forward<L>(f));
+    HostDeviceParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{},n,std::forward<L>(f));
+}
+
+template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
+void HostDeviceParallelFor (T n, L&& f) noexcept
+{
+    HostDeviceParallelFor<MT>(Gpu::KernelInfo{},n,std::forward<L>(f));
 }
 
 template <typename L>
 void HostDeviceParallelFor (Box const& box, L&& f) noexcept
 {
-    HostDeviceParallelFor(Gpu::KernelInfo{},box,std::forward<L>(f));
+    HostDeviceParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{},box,std::forward<L>(f));
+}
+
+template <int MT, typename L>
+void HostDeviceParallelFor (Box const& box, L&& f) noexcept
+{
+    HostDeviceParallelFor<MT>(Gpu::KernelInfo{},box,std::forward<L>(f));
 }
 
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
 void HostDeviceParallelFor (Box const& box, T ncomp, L&& f) noexcept
 {
-    HostDeviceParallelFor(Gpu::KernelInfo{},box,ncomp,std::forward<L>(f));
+    HostDeviceParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{},box,ncomp,std::forward<L>(f));
+}
+
+template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
+void HostDeviceParallelFor (Box const& box, T ncomp, L&& f) noexcept
+{
+    HostDeviceParallelFor<MT>(Gpu::KernelInfo{},box,ncomp,std::forward<L>(f));
 }
 
 template <typename L1, typename L2>
 void HostDeviceParallelFor (Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
 {
-    HostDeviceParallelFor(Gpu::KernelInfo{},box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
+    HostDeviceParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{},box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
+}
+
+template <int MT, typename L1, typename L2>
+void HostDeviceParallelFor (Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
+{
+    HostDeviceParallelFor<MT>(Gpu::KernelInfo{},box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
 }
 
 template <typename L1, typename L2, typename L3>
 void HostDeviceParallelFor (Box const& box1, Box const& box2, Box const& box3,
                             L1&& f1, L2&& f2, L3&& f3) noexcept
 {
-    HostDeviceParallelFor(Gpu::KernelInfo{}, box1,box2,box3,
+    HostDeviceParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{}, box1,box2,box3,
+                          std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
+}
+
+template <int MT, typename L1, typename L2, typename L3>
+void HostDeviceParallelFor (Box const& box1, Box const& box2, Box const& box3,
+                            L1&& f1, L2&& f2, L3&& f3) noexcept
+{
+    HostDeviceParallelFor<MT>(Gpu::KernelInfo{}, box1,box2,box3,
                           std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
 }
 
@@ -1554,7 +2062,16 @@ template <typename T1, typename T2, typename L1, typename L2,
 void HostDeviceParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
                             Box const& box2, T2 ncomp2, L2&& f2) noexcept
 {
-    HostDeviceParallelFor(Gpu::KernelInfo{},box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
+    HostDeviceParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{},box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
+}
+
+template <int MT, typename T1, typename T2, typename L1, typename L2,
+          typename M1=std::enable_if_t<std::is_integral<T1>::value>,
+          typename M2=std::enable_if_t<std::is_integral<T2>::value> >
+void HostDeviceParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
+                            Box const& box2, T2 ncomp2, L2&& f2) noexcept
+{
+    HostDeviceParallelFor<MT>(Gpu::KernelInfo{},box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
 template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
@@ -1565,7 +2082,21 @@ void HostDeviceParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
                             Box const& box2, T2 ncomp2, L2&& f2,
                             Box const& box3, T3 ncomp3, L3&& f3) noexcept
 {
-    HostDeviceParallelFor(Gpu::KernelInfo{},
+    HostDeviceParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{},
+                          box1,ncomp1,std::forward<L1>(f1),
+                          box2,ncomp2,std::forward<L2>(f2),
+                          box3,ncomp3,std::forward<L3>(f3));
+}
+
+template <int MT, typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
+          typename M1=std::enable_if_t<std::is_integral<T1>::value>,
+          typename M2=std::enable_if_t<std::is_integral<T2>::value>,
+          typename M3=std::enable_if_t<std::is_integral<T3>::value> >
+void HostDeviceParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
+                            Box const& box2, T2 ncomp2, L2&& f2,
+                            Box const& box3, T3 ncomp3, L3&& f3) noexcept
+{
+    HostDeviceParallelFor<MT>(Gpu::KernelInfo{},
                           box1,ncomp1,std::forward<L1>(f1),
                           box2,ncomp2,std::forward<L2>(f2),
                           box3,ncomp3,std::forward<L3>(f3));

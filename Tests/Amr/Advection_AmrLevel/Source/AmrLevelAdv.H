@@ -231,7 +231,7 @@ protected:
     /*
      * The data.
      */
-    amrex::FluxRegister*        flux_reg;
+    std::unique_ptr<amrex::FluxRegister> flux_reg;
 
     /*
      * Static data members.
