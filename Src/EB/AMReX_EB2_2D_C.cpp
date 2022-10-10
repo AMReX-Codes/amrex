@@ -62,14 +62,14 @@ void set_eb_data (const int i, const int j,
     if (nxabs < tiny || nyabs > almostone) {
         vfrac(i,j,0) = 0.5_rt*(axm+axp)*dx[0];
         vcent(i,j,0,0) = 0.0_rt;
-        if (vfrac(i,j,0)/dx[0] > almostone) {
+        if (vfrac(i,j,0)/(dx[0]*dx[1]) > almostone) {
             vcent(i,j,0,1) = 0.0_rt;
         } else {
             vcent(i,j,0,1) = (0.125_rt*dayp*dx[1]*dx[1] + ny*dx[0]*0.5_rt*bcent(i,j,0,1)*bcent(i,j,0,1)) / (vfrac(i,j,0) + 1.e-30_rt);
         }
     } else if (nyabs < tiny || nxabs > almostone) {
         vfrac(i,j,0) = 0.5_rt*(aym+ayp)*dx[1];
-        if (vfrac(i,j,0)/dx[1] > almostone) {
+        if (vfrac(i,j,0)/(dx[0]*dx[1]) > almostone) {
             vcent(i,j,0,0) = 0.0_rt;
         } else {
             vcent(i,j,0,0) = (0.125_rt*daxp*dx[0]*dx[0] + nx*0.5_rt*bcent(i,j,0,0)*bcent(i,j,0,0)) / (vfrac(i,j,0) + 1.e-30_rt);
