@@ -128,9 +128,10 @@ void mf_cell_cons_lin_interp (int i, int j, int k, int ns, Array4<Real> const& f
         + zoff * slope(ic,jc,kc,ns+ncomp*2);
 }
 
+template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mf_cell_bilin_interp (int i, int j, int k, int n, Array4<Real> const& fine, int fcomp,
-                           Array4<Real const> const& crse, int ccomp, IntVect const& ratio) noexcept
+void mf_cell_bilin_interp (int i, int j, int k, int n, Array4<T> const& fine, int fcomp,
+                           Array4<T const> const& crse, int ccomp, IntVect const& ratio) noexcept
 {
     int ic = amrex::coarsen(i,ratio[0]);
     int jc = amrex::coarsen(j,ratio[1]);
