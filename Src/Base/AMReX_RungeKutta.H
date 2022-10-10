@@ -38,7 +38,7 @@ namespace amrex {
  *
  * For RK3 and RK4, one must also provide a callable object with the
  * signature of `void(Array<MF,order> const& rkk)`, where `order` is the RK
- * order and `rkk` contains the righ-hand side at all the RK stages.  The
+ * order and `rkk` contains the right-hand side at all the RK stages.  The
  * FillPatcher class can be useful for implementing such a callable.  See
  * AmrLevel::RK for an example.
  */
