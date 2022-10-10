@@ -272,7 +272,7 @@ void RK4 (MF& Uold, MF& Unew, Real time, Real dt, F&& frhs, FB&& fillbndry,
     detail::rk_update(Unew, Uold, rkk[2], dt);
     post_stage(3, Unew);
 
-    // Step 4 of RK4
+    // RK4 stage 4
     fillbndry(4, Unew, time+dt);
     frhs(4, rkk[3], Unew, dt/Real(6.));
     // Unew = Uold + (k1/6 + k2/3 + k3/3 + k4/6) * dt
