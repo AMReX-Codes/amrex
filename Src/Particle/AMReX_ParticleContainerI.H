@@ -392,79 +392,43 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::NumberOf
         int gid = pti.index();
         if (only_valid)
         {
-            const auto& ptile = ParticlesAt(lev, pti);
-            const auto& aos = ptile.GetArrayOfStructs();
-            const auto pstruct = aos().dataPtr();
-            const int np = ptile.numParticles();
+            if constexpr(!ParticleType::is_soa_particle){
+                const auto& ptile = ParticlesAt(lev, pti);
+                const auto& aos = ptile.GetArrayOfStructs();
+                const auto pstruct = aos().dataPtr();
+                const int np = ptile.numParticles();
 
-            ReduceOps<ReduceOpSum> reduce_op;
-            ReduceData<int> reduce_data(reduce_op);
-            using ReduceTuple = typename decltype(reduce_data)::Type;
+                ReduceOps<ReduceOpSum> reduce_op;
+                ReduceData<int> reduce_data(reduce_op);
+                using ReduceTuple = typename decltype(reduce_data)::Type;
 
-            reduce_op.eval(np, reduce_data,
+                reduce_op.eval(np, reduce_data,
                            [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
-                           {
+                            {
                                return (pstruct[i].id() > 0) ? 1 : 0;
-                           });
+                            });
 
-            int np_valid = amrex::get<0>(reduce_data.value(reduce_op));
-            np_per_grid_local[gid] += np_valid;
-        } else
-        {
-            np_per_grid_local[gid] += pti.numParticles();
-        }
-    }
+                int np_valid = amrex::get<0>(reduce_data.value(reduce_op));
+                np_per_grid_local[gid] += np_valid;
 
-    Vector<Long> nparticles(np_per_grid_local.size(), 0);
-    if (only_local)
-    {
-        for (ParConstIterType pti(*this, lev); pti.isValid(); ++pti)
-        {
-            nparticles[pti.index()] = np_per_grid_local[pti.index()];
-        }
-    }
-    else
-    {
-        ParallelDescriptor::GatherLayoutDataToVector(np_per_grid_local, nparticles,
-                                                     ParallelContext::IOProcessorNumberSub());
-        ParallelDescriptor::Bcast(&nparticles[0], nparticles.size(),
-                                  ParallelContext::IOProcessorNumberSub());
-    }
+            } else{
+                const auto& ptile = ParticlesAt(lev, pti);
+                const int np = ptile.numParticles();
+                auto const tile_data = ptile.getParticleTileData();
 
-    return nparticles;
-}
+                ReduceOps<ReduceOpSum> reduce_op;
+                ReduceData<int> reduce_data(reduce_op);
+                using ReduceTuple = typename decltype(reduce_data)::Type;
 
-template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
-Vector<Long>
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::NumberOfParticlesInGrid (int lev, bool only_valid, bool only_local) const
-{
-    AMREX_ASSERT(lev >= 0 && lev < int(m_particles.size()));
-
-    LayoutData<Long> np_per_grid_local(ParticleBoxArray(lev),
-                                       ParticleDistributionMap(lev));
-
-    for (ParConstIterType pti(*this, lev); pti.isValid(); ++pti)
-    {
-        int gid = pti.index();
-        if (only_valid)
-        {
-            const auto& ptile = ParticlesAt(lev, pti);
-            const int np = ptile.numParticles();
-            auto const tile_data = ptile.getParticleTileData();
-
-            ReduceOps<ReduceOpSum> reduce_op;
-            ReduceData<int> reduce_data(reduce_op);
-            using ReduceTuple = typename decltype(reduce_data)::Type;
-
-            reduce_op.eval(np, reduce_data,
-                           [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
-                           {
+                reduce_op.eval(np, reduce_data,
+                            [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
+                            {
                                return (tile_data.idata(0)[i] > 0) ? 1 : 0;
-                           });
+                            });
 
-            int np_valid = amrex::get<0>(reduce_data.value(reduce_op));
-            np_per_grid_local[gid] += np_valid;
+                int np_valid = amrex::get<0>(reduce_data.value(reduce_op));
+                np_per_grid_local[gid] += np_valid;
+            }
         } else
         {
             np_per_grid_local[gid] += pti.numParticles();
@@ -490,12 +454,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::NumberOf
     return nparticles;
 }
 
-
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
-template<typename T>
-auto ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::NumberOfParticlesAtLevel (int level, bool only_valid, bool only_local) const->
-typename std::enable_if<!is_soa_particle<T>::value, Long>::type
+Long ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::NumberOfParticlesAtLevel (int level, bool only_valid, bool only_local) const
 {
     Long nparticles = 0;
 
@@ -506,53 +467,24 @@ typename std::enable_if<!is_soa_particle<T>::value, Long>::type
         ReduceData<unsigned long long> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
 
-        for (const auto& kv : GetParticles(level)) {
-            const auto& ptile = kv.second;
-            auto const& ptaos = ptile.GetArrayOfStructs();
-            ParticleType const* pp = ptaos().data();
+        if constexpr(!ParticleType::is_soa_particle){
 
-            reduce_op.eval(ptaos.numParticles(), reduce_data,
-                           [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
-                           {
+            for (const auto& kv : GetParticles(level)) {
+                const auto& ptile = kv.second;
+                auto const& ptaos = ptile.GetArrayOfStructs();
+                ParticleType const* pp = ptaos().data();
+
+                reduce_op.eval(ptaos.numParticles(), reduce_data,
+                            [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
+                            {
                                return (pp[i].id() > 0) ? 1 : 0;
-                           });
-        }
-        nparticles = static_cast<Long>(amrex::get<0>(reduce_data.value(reduce_op)));
-    }
-    else {
-        for (const auto& kv : GetParticles(level)) {
+                            });
+            }
+
+        } else{
+            for (const auto& kv : GetParticles(level)) {
             const auto& ptile = kv.second;
-            nparticles += ptile.numParticles();
-        }
-    }
-
-    if (!only_local) {
-        ParallelAllReduce::Sum(nparticles, ParallelContext::CommunicatorSub());
-    }
-
-    return nparticles;
-}
-
-
-template <typename ParticleType, int NArrayReal, int NArrayInt,
-        template<class> class Allocator>
-template<typename T>
-auto ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::NumberOfParticlesAtLevel (int lev, bool only_valid, bool only_local) const ->
-typename std::enable_if<is_soa_particle<T>::value, Long>::type
-{
-    /*
-    Long nparticles = 0;
-
-    if (lev < 0 || lev >= int(m_particles.size())) return nparticles;
-
-    if (only_valid) {
-        ReduceOps<ReduceOpSum> reduce_op;
-        ReduceData<unsigned long long> reduce_data(reduce_op);
-        using ReduceTuple = typename decltype(reduce_data)::Type;
-
-        for (const auto& kv : GetParticles(lev)) {
-            const auto& ptile = kv.second;
-            auto const tile_data = ptile.getParticleTileData();
+            auto const tile_data = ptile.getConstParticleTileData();
             auto const& ptaos = ptile.GetStructOfArrays();
 
             reduce_op.eval(ptaos.numParticles(), reduce_data,
@@ -560,11 +492,13 @@ typename std::enable_if<is_soa_particle<T>::value, Long>::type
                            {
                                return (tile_data.idata(0)[i] > 0) ? 1 : 0; //get the id in SoA particle way
                            });
+            }
         }
+
         nparticles = static_cast<Long>(amrex::get<0>(reduce_data.value(reduce_op)));
     }
     else {
-        for (const auto& kv : GetParticles(lev)) {
+        for (const auto& kv : GetParticles(level)) {
             const auto& ptile = kv.second;
             nparticles += ptile.numParticles();
         }
@@ -575,8 +509,6 @@ typename std::enable_if<is_soa_particle<T>::value, Long>::type
     }
 
     return nparticles;
-    */
-   return 0;
 }
 
 //
@@ -2345,6 +2277,7 @@ AssignCellDensitySingleLevel (int rho_index,
             const auto& particles = pti.GetArrayOfStructs();
             const auto pstruct = particles().data();
             const Long np = pti.numParticles();
+            auto ptd = pti.GetParticleTile().getConstParticleTileData();
             FArrayBox& fab = (*mf_pointer)[pti];
             auto rhoarr = fab.array();
 #ifdef AMREX_USE_OMP
@@ -2363,14 +2296,16 @@ AssignCellDensitySingleLevel (int rho_index,
             {
                 AMREX_HOST_DEVICE_FOR_1D( np, i,
                 {
-                    amrex_deposit_cic(pstruct[i], ncomp, rhoarr, plo, dxi);
+                    auto p = make_particle<ParticleType>{}(ptd,i);
+                    amrex_deposit_cic(p, ncomp, rhoarr, plo, dxi);
                 });
             }
             else
             {
                 AMREX_HOST_DEVICE_FOR_1D( np, i,
                 {
-                    amrex_deposit_particle_dx_cic(pstruct[i], ncomp, rhoarr, plo, dxi, pdxi);
+                    auto p = make_particle<ParticleType>{}(ptd,i);
+                    amrex_deposit_particle_dx_cic(p, ncomp, rhoarr, plo, dxi, pdxi);
                 });
             }
 

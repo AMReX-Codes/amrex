@@ -547,13 +547,7 @@ public:
     * \param only_local
     */
 
-    template <typename T=ParticleType>
-    auto NumberOfParticlesAtLevel (int level, bool only_valid = true, bool only_local = false) const->
-    typename std::enable_if<!is_soa_particle<T>::value, Long>::type;
-
-    template <typename T=ParticleType>
-    auto NumberOfParticlesAtLevel (int level, bool only_valid = true, bool only_local = false) const->
-    typename std::enable_if<is_soa_particle<T>::value, Long>::type;
+    Long NumberOfParticlesAtLevel (int level, bool only_valid = true, bool only_local = false) const;
 
     Vector<Long> NumberOfParticlesInGrid  (int level, bool only_valid = true, bool only_local = false) const;
 
