@@ -436,6 +436,63 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::NumberOf
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
+Vector<Long>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::NumberOfParticlesInGrid (int lev, bool only_valid, bool only_local) const
+{
+    AMREX_ASSERT(lev >= 0 && lev < int(m_particles.size()));
+
+    LayoutData<Long> np_per_grid_local(ParticleBoxArray(lev),
+                                       ParticleDistributionMap(lev));
+
+    for (ParConstIterType pti(*this, lev); pti.isValid(); ++pti)
+    {
+        int gid = pti.index();
+        if (only_valid)
+        {
+            const auto& ptile = ParticlesAt(lev, pti);
+            const int np = ptile.numParticles();
+            auto const tile_data = ptile.getParticleTileData();
+
+            ReduceOps<ReduceOpSum> reduce_op;
+            ReduceData<int> reduce_data(reduce_op);
+            using ReduceTuple = typename decltype(reduce_data)::Type;
+
+            reduce_op.eval(np, reduce_data,
+                           [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
+                           {
+                               return (tile_data.idata(0)[i] > 0) ? 1 : 0;
+                           });
+
+            int np_valid = amrex::get<0>(reduce_data.value(reduce_op));
+            np_per_grid_local[gid] += np_valid;
+        } else
+        {
+            np_per_grid_local[gid] += pti.numParticles();
+        }
+    }
+
+    Vector<Long> nparticles(np_per_grid_local.size(), 0);
+    if (only_local)
+    {
+        for (ParConstIterType pti(*this, lev); pti.isValid(); ++pti)
+        {
+            nparticles[pti.index()] = np_per_grid_local[pti.index()];
+        }
+    }
+    else
+    {
+        ParallelDescriptor::GatherLayoutDataToVector(np_per_grid_local, nparticles,
+                                                     ParallelContext::IOProcessorNumberSub());
+        ParallelDescriptor::Bcast(&nparticles[0], nparticles.size(),
+                                  ParallelContext::IOProcessorNumberSub());
+    }
+
+    return nparticles;
+}
+
+
+template <typename ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 template<typename T>
 auto ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::NumberOfParticlesAtLevel (int level, bool only_valid, bool only_local) const->
 typename std::enable_if<!is_soa_particle<T>::value, Long>::type
@@ -476,12 +533,14 @@ typename std::enable_if<!is_soa_particle<T>::value, Long>::type
     return nparticles;
 }
 
+
 template <typename ParticleType, int NArrayReal, int NArrayInt,
         template<class> class Allocator>
 template<typename T>
-auto ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::NumberOfParticlesAtLevel (int lev, bool only_valid, bool only_local) const->
+auto ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::NumberOfParticlesAtLevel (int lev, bool only_valid, bool only_local) const ->
 typename std::enable_if<is_soa_particle<T>::value, Long>::type
 {
+    /*
     Long nparticles = 0;
 
     if (lev < 0 || lev >= int(m_particles.size())) return nparticles;
@@ -494,7 +553,7 @@ typename std::enable_if<is_soa_particle<T>::value, Long>::type
         for (const auto& kv : GetParticles(lev)) {
             const auto& ptile = kv.second;
             auto const tile_data = ptile.getParticleTileData();
-            auto const& ptaos = ptile.GetStructsOfArray();
+            auto const& ptaos = ptile.GetStructOfArrays();
 
             reduce_op.eval(ptaos.numParticles(), reduce_data,
                            [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
@@ -516,6 +575,8 @@ typename std::enable_if<is_soa_particle<T>::value, Long>::type
     }
 
     return nparticles;
+    */
+   return 0;
 }
 
 //
@@ -2398,7 +2459,7 @@ InterpolateSingleLevel (MultiFab& mesh_data, int lev)
     for (ParIter pti(*this, lev); pti.isValid(); ++pti)
     {
         auto& particles = pti.GetArrayOfStructs();
-        auto pstruct = particles().data();
+        auto ptd = pti.GetParticleTile().getParticleTileData();
         FArrayBox& fab = mesh_data[pti];
         const auto fabarr = fab.array();
         const Long np = particles.numParticles();
@@ -2406,7 +2467,8 @@ InterpolateSingleLevel (MultiFab& mesh_data, int lev)
         int nComp = fab.nComp();
         AMREX_FOR_1D( np, i,
         {
-            amrex_interpolate_cic(pstruct[i], nComp, fabarr, plo, dxi);
+            auto p = make_particle<ParticleType>{}(ptd,i);
+            amrex_interpolate_cic(p, nComp, fabarr, plo, dxi);
         });
     }
 }
