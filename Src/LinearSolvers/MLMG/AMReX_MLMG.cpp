@@ -218,6 +218,8 @@ MLMG::solve (Vector<Any>& a_sol, const Vector<Any>& a_rhs,
         timer[iter_time] = amrex::second() - iter_start_time;
     }
 
+    linop.postSolve(sol);
+
     IntVect ng_back = final_fill_bc ? IntVect(1) : IntVect(0);
     if (linop.hasHiddenDimension()) {
         ng_back[linop.hiddenDirection()] = 0;
