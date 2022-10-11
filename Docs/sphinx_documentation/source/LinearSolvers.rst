@@ -222,6 +222,8 @@ The supported BC types at the physical domain boundaries are
 
 - :cpp:`LinOpBCType::inhomogNeumann` for inhomogeneous Neumann boundary condition.
 
+- :cpp:`LinOpBCType::Robin` for Robin boundary conditions, :math:`a\phi + b\frac{\partial\phi}{\partial n} = f`.
+
 - :cpp:`LinOpBCType::reflect_odd` for reflection with sign changed.
 
 2) Cell-centered solvers only:
@@ -255,12 +257,12 @@ before the solve one must always call the :cpp:`MLLinOp` member function
 ::
 
     virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata,
-                             const MultiFab* robinbc_a,
-                             const MultiFab* robinbc_b,
-                             const MultiFab* robinbc_f) = 0;
+                             const MultiFab* robinbc_a = nullptr,
+                             const MultiFab* robinbc_b = nullptr,
+                             const MultiFab* robinbc_f = nullptr) = 0;
 
-If we want to supply an inhomogeneous Dirichlet, inhomogeneous Neumann, or
-Robin boundary conditions at the domain boundaries, we must supply those values
+If we want to supply an inhomogeneous Dirichlet or inhomogeneous Neumann
+boundary condition at the domain boundaries, we must supply those values
 in ``MultiFab* levelbcdata``, which must have at least one ghost cell.
 Note that the argument :cpp:`amrlev` is relative to the solve, not
 necessarily the full AMR hierarchy; amrlev = 0 refers to the coarsest
@@ -285,6 +287,11 @@ It should be emphasized that the data in ``levelbcdata`` for
 Dirichlet or Neumann boundaries are assumed to be exactly on the face
 of the physical domain; storing these values in the ghost cell of
 a cell-centered array is a convenience of implementation.
+
+For Robin boundary conditions, the ghost cells in
+``MultiFab* robinbc_a``, ``MultiFab* robinbc_b``, and ``MultiFab* robinbc_f``
+store the numerical values in the condition,
+:math:`a\phi + b\frac{\partial\phi}{\partial n} = f`.
 
 .. _sec:linearsolver:pars:
 
