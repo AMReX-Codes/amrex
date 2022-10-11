@@ -60,19 +60,19 @@ void set_eb_data (const int i, const int j,
     bnorm(i,j,0,1) = ny;
 
     if (nxabs < tiny || nyabs > almostone) {
-        vfrac(i,j,0) = 0.5_rt*(axm+axp)*dx[0];
+        vfrac(i,j,0) = 0.5_rt*(axm+axp)/dx[1];
         vcent(i,j,0,0) = 0.0_rt;
-        if (vfrac(i,j,0)/(dx[0]*dx[1]) > almostone) {
+        if (vfrac(i,j,0) > almostone) {
             vcent(i,j,0,1) = 0.0_rt;
         } else {
-            vcent(i,j,0,1) = (-0.125_rt*dayp*dx[1]*dx[1] + ny*dx[0]*0.5_rt*bcent(i,j,0,1)*bcent(i,j,0,1)) / (vfrac(i,j,0) + 1.e-30_rt);
+	    vcent(i,j,0,1) = (-0.125_rt*dayp*dx[1]*dx[1] + ny*dx[0]*0.5_rt*bcent(i,j,0,1)*bcent(i,j,0,1)) / (vfrac(i,j,0)*dx[0]*dx[1] + 1.e-30_rt)  / dx[1];
         }
     } else if (nyabs < tiny || nxabs > almostone) {
-        vfrac(i,j,0) = 0.5_rt*(aym+ayp)*dx[1];
-        if (vfrac(i,j,0)/(dx[0]*dx[1]) > almostone) {
+        vfrac(i,j,0) = 0.5_rt*(aym+ayp)/dx[0];
+        if (vfrac(i,j,0) > almostone) {
             vcent(i,j,0,0) = 0.0_rt;
         } else {
-            vcent(i,j,0,0) = (-0.125_rt*daxp*dx[0]*dx[0] + nx*0.5_rt*bcent(i,j,0,0)*bcent(i,j,0,0)) / (vfrac(i,j,0) + 1.e-30_rt);
+	    vcent(i,j,0,0) = (-0.125_rt*daxp*dx[0]*dx[0] + nx*0.5_rt*bcent(i,j,0,0)*bcent(i,j,0,0)) / (vfrac(i,j,0)*dx[0]*dx[1] + 1.e-30_rt) / dx[0];
         }
         vcent(i,j,0,1) = 0.0_rt;
     } else {
@@ -91,26 +91,27 @@ void set_eb_data (const int i, const int j,
         vcent(i,j,0,1) = -0.125_rt*dayp*dx[1]*dx[1] + aa*(1._rt/6._rt)*dy3;
 
         vfrac(i,j,0) = 0.5_rt*(af1+af2);
-        if (vfrac(i,j,0)/(dx[0]*dx[1]) > 1.0_rt-small) {
-            vfrac(i,j,0) = dx[0]*dx[1];
+	
+	vcent(i,j,0,0) /= dx[0];
+	vcent(i,j,0,1) /= dx[1];
+	vfrac(i,j,0) = vfrac(i,j,0)/(dx[0]*dx[1]);
+        if (vfrac(i,j,0) > 1.0_rt-small) {
+            vfrac(i,j,0) = 1.0_f64;
             vcent(i,j,0,0) = 0.0_rt;
             vcent(i,j,0,1) = 0.0_rt;
-        } else if (vfrac(i,j,0)/(dx[0]*dx[1]) < small) {
+        } else if (vfrac(i,j,0) < small) {
             vfrac(i,j,0) = 0.0_rt;
             vcent(i,j,0,0) = 0.0_rt;
             vcent(i,j,0,1) = 0.0_rt;
         } else {
-            vcent(i,j,0,0) *= (1.0_rt/vfrac(i,j,0));
-            vcent(i,j,0,1) *= (1.0_rt/vfrac(i,j,0));
-            vcent(i,j,0,0) = amrex::min(amrex::max(vcent(i,j,0,0),Real(-0.5)*dx[0]),Real(0.5)*dx[0]);
-            vcent(i,j,0,1) = amrex::min(amrex::max(vcent(i,j,0,1),Real(-0.5)*dx[1]),Real(0.5)*dx[1]);
+	    vcent(i,j,0,0) *= (1.0_rt/(vfrac(i,j,0)*dx[0]*dx[1]));
+	    vcent(i,j,0,1) *= (1.0_rt/(vfrac(i,j,0)*dx[0]*dx[1]));
+            vcent(i,j,0,0) = amrex::min(amrex::max(vcent(i,j,0,0),Real(-0.5)),Real(0.5));
+            vcent(i,j,0,1) = amrex::min(amrex::max(vcent(i,j,0,1),Real(-0.5)),Real(0.5));
         }
     }
     bcent(i,j,0,0) /= dx[0];
     bcent(i,j,0,1) /= dx[1];
-    vcent(i,j,0,0) /= dx[0];
-    vcent(i,j,0,1) /= dx[1];
-    vfrac(i,j,0) = vfrac(i,j,0)/(dx[0]*dx[1]);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
