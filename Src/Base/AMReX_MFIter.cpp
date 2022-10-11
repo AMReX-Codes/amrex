@@ -215,10 +215,13 @@ MFIter::~MFIter ()
 void
 MFIter::Finalize ()
 {
+    if (!initialized) return;
+
 #ifdef AMREX_USE_OMP
 #pragma omp master
 #endif
     {
+        initialized = false;
         depth = 0;
     }
 
@@ -353,6 +356,13 @@ MFIter::Initialize ()
 #endif
 
         typ = fabArray.boxArray().ixType();
+    }
+
+#ifdef AMREX_USE_OMP
+#pragma omp master
+#endif
+    {
+        initialized = true;
     }
 }
 
