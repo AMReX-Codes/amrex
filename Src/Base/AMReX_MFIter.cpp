@@ -209,6 +209,12 @@ MFIter::MFIter (const FabArrayBase& fabarray_, const MFItInfo& info)
 
 MFIter::~MFIter ()
 {
+    Finalize();
+}
+
+void
+MFIter::Finalize ()
+{
 #ifdef AMREX_USE_OMP
 #pragma omp master
 #endif
