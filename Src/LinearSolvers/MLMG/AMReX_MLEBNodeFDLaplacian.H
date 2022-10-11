@@ -119,6 +119,8 @@ public:
                           Array4<Real const> const& bfab) const override;
 #endif
 
+    virtual void postSolve (Vector<Any>& sol) const override;
+
 private:
     GpuArray<Real,AMREX_SPACEDIM> m_sigma{{AMREX_D_DECL(1_rt,1_rt,1_rt)}};
     Real m_s_phi_eb = std::numeric_limits<Real>::lowest();

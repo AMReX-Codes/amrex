@@ -1159,6 +1159,9 @@ MLLinOp::AnyInterpAssignMG (int amrlev, int fmglev, Any& fine, Any& crse) const
     interpAssign(amrlev, fmglev, fine.get<MultiFab>(), crse.get<MultiFab>());
 }
 
+void
+MLLinOp::postSolve (Vector<Any>& /* sol */) const {}
+
 bool
 MLLinOp::isMFIterSafe (int amrlev, int mglev1, int mglev2) const
 {

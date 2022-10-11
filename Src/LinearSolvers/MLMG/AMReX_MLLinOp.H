@@ -330,6 +330,8 @@ public:
 
     virtual void AnyAverageDownAndSync (Vector<Any>& sol) const = 0;
 
+    virtual void postSolve (Vector<Any>& sol) const;
+
     Real MFNormInf (MultiFab const& mf, iMultiFab const* fine_mask, bool local) const;
 
     bool isMFIterSafe (int amrlev, int mglev1, int mglev2) const;

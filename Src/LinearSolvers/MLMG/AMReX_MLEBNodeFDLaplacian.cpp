@@ -655,4 +655,39 @@ MLEBNodeFDLaplacian::fillRHS (MFIter const& /*mfi*/, Array4<int const> const& /*
 }
 #endif
 
+void
+MLEBNodeFDLaplacian::postSolve (Vector<Any>& sol) const
+{
+#ifdef AMREX_USE_EB
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+        const auto phieb = m_s_phi_eb;
+        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+        auto const& levset_mf = factory->getLevelSet();
+        auto const& levset_ar = levset_mf.const_arrays();
+        MultiFab& mf = sol[amrlev].get<MultiFab>();
+        auto const& sol_ar = mf.arrays();
+        if (phieb == std::numeric_limits<Real>::lowest()) {
+            auto const& phieb_ar = m_phi_eb[amrlev].const_arrays();
+            amrex::ParallelFor(mf, IntVect(1),
+            [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
+            {
+                if (levset_ar[bi](i,j,k) >= Real(0.0)) {
+                    sol_ar[bi](i,j,k) = phieb_ar[bi](i,j,k);
+                }
+            });
+        } else {
+            amrex::ParallelFor(mf, IntVect(1),
+            [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
+            {
+                if (levset_ar[bi](i,j,k) >= Real(0.0)) {
+                    sol_ar[bi](i,j,k) = phieb;
+                }
+            });
+        }
+    }
+#else
+    amrex::ignore_unused(sol);
+#endif
+}
+
 }
