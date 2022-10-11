@@ -180,7 +180,7 @@ protected:
     IndexType     typ;
 
     bool          dynamic;
-    bool          initialized;
+    bool          finalized = false;
 
     struct DeviceSync {
         DeviceSync () = default;
