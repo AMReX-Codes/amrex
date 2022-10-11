@@ -180,6 +180,7 @@ protected:
     IndexType     typ;
 
     bool          dynamic;
+    bool          finalized = false;
 
     struct DeviceSync {
         DeviceSync () = default;
@@ -201,6 +202,7 @@ protected:
     static AMREX_EXPORT int allow_multiple_mfiters;
 
     void Initialize ();
+    void Finalize ();
 };
 
 //! Is it safe to have these two MultiFabs in the same MFiter?
