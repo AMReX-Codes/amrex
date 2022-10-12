@@ -164,6 +164,8 @@ public:
 
     static int allowMultipleMFIters (int allow);
 
+    void Finalize ();
+
 protected:
 
     std::unique_ptr<FabArrayBase> m_fa;  //!< This must be the first member!
@@ -202,7 +204,6 @@ protected:
     static AMREX_EXPORT int allow_multiple_mfiters;
 
     void Initialize ();
-    void Finalize ();
 };
 
 //! Is it safe to have these two MultiFabs in the same MFiter?
