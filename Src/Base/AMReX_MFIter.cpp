@@ -215,8 +215,12 @@ MFIter::~MFIter ()
 void
 MFIter::Finalize ()
 {
+    // avoid double finalize
     if (finalized) return;
     finalized = true;
+
+    // mark as invalid
+    currentIndex = endIndex;
 
 #ifdef AMREX_USE_OMP
 #pragma omp master
