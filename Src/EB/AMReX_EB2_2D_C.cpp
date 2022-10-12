@@ -96,7 +96,7 @@ void set_eb_data (const int i, const int j,
         vcent(i,j,0,1) /= dx[1];
         vfrac(i,j,0) = vfrac(i,j,0)/(dx[0]*dx[1]);
         if (vfrac(i,j,0) > 1.0_rt-small) {
-            vfrac(i,j,0) = 1.0_f64;
+            vfrac(i,j,0) = 1.0_rt;
             vcent(i,j,0,0) = 0.0_rt;
             vcent(i,j,0,1) = 0.0_rt;
         } else if (vfrac(i,j,0) < small) {
