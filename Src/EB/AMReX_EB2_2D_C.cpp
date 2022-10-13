@@ -91,10 +91,10 @@ void set_eb_data (const int i, const int j,
 	
         vcent(i,j,0,1) = -0.125_rt*dayp*dx[1]*dx[1] + aa*(1._rt/6._rt)*dy3;
         vfrac(i,j,0) = 0.5_rt*(af1+af2);
-	
-	vcent(i,j,0,0) /= dx[0];
-	vcent(i,j,0,1) /= dx[1];
-	vfrac(i,j,0) = vfrac(i,j,0)/(dx[0]*dx[1]);
+
+        vcent(i,j,0,0) /= dx[0];
+        vcent(i,j,0,1) /= dx[1];
+        vfrac(i,j,0) = vfrac(i,j,0)/(dx[0]*dx[1]);
         if (vfrac(i,j,0) > 1.0_rt-small) {
             vfrac(i,j,0) = 1.0_rt;
             vcent(i,j,0,0) = 0.0_rt;
