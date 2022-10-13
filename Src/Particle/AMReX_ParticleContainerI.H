@@ -1697,7 +1697,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                       /*
                       std::memcpy(&particles_to_send[old_size], &p, particle_size);
                       */
-                      char* dst = &particles_to_send[old_size] + particle_size;
+                      char* dst = &particles_to_send[old_size];
                       int array_comp_start = AMREX_SPACEDIM + NStructReal;
                       for (int comp = 0; comp < NumRealComps(); comp++) {
                           if (h_redistribute_real_comp[array_comp_start + comp]) {
