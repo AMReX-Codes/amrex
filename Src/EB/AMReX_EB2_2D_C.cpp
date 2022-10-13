@@ -72,7 +72,7 @@ void set_eb_data (const int i, const int j,
         if (vfrac(i,j,0) > almostone) {
             vcent(i,j,0,0) = 0.0_rt;
         } else {
-            vcent(i,j,0,0) = (-0.125_rt*daxp*dx[0]*dx[0] + nx*0.5_rt*bcent(i,j,0,0)*bcent(i,j,0,0)) / (vfrac(i,j,0)*dx[0]*dx[1] + 1.e-30_rt) / dx[0];
+            vcent(i,j,0,0) = (-0.125_rt*daxp*dx[0]*dx[0] + nx*dx[1]*0.5_rt*bcent(i,j,0,0)*bcent(i,j,0,0)) / (vfrac(i,j,0)*dx[0]*dx[1] + 1.e-30_rt) / dx[0];
         }
         vcent(i,j,0,1) = 0.0_rt;
     } else {
