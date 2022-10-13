@@ -18,7 +18,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::SetParti
         if (h_redistribute_int_comp[i]) {++num_int_comm_comps;}
     }
 
-    particle_size = sizeof(ParticleType);
+    particle_size = 0;
     superparticle_size = particle_size +
         num_real_comm_comps*sizeof(ParticleReal) + num_int_comm_comps*sizeof(int);
 }
