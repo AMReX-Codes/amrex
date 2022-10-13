@@ -18,7 +18,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::SetParti
         if (h_redistribute_int_comp[i]) {++num_int_comm_comps;}
     }
 
-    particle_size = 0;
+    particle_size = sizeof(ParticleType);
     superparticle_size = particle_size +
         num_real_comm_comps*sizeof(ParticleReal) + num_int_comm_comps*sizeof(int);
 }
@@ -1873,6 +1873,11 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 
 #ifdef AMREX_USE_MPI
 
+    int particle_size=0;
+    int superparticle_size = particle_size +
+        num_real_comm_comps*sizeof(ParticleReal) + num_int_comm_comps*sizeof(int);
+
+}
     using buffer_type = unsigned long long;
 
     std::map<int, Vector<buffer_type> > mpi_snd_data;
@@ -2269,7 +2274,7 @@ AssignCellDensitySingleLevel (int rho_index,
 
     mf_pointer->setVal(0);
 
-    using ParConstIter = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>;
+    using ParConstIter = ParConstIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
