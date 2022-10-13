@@ -243,6 +243,23 @@ namespace amrex
                             Vector<Geometry> const& geom,
                             Vector<IntVect> const& ratio,
                             bool local = false);
+
+    /**
+     * \brief Fourth-order interpolation from fine to coarse level.
+     *
+     * This is for high-order "average-down" of finite-difference data.  If
+     * ghost cell data are used, it's the caller's responsibility to fill
+     * the ghost cells before calling this function.
+     *
+     * \param cmf   coarse data
+     * \param scomp starting component
+     * \param ncomp number of component
+     * \param fmf   fine data
+     * \param ratio refinement ratio.
+     */
+    void FourthOrderInterpFromFineToCoarse (MultiFab& cmf, int scomp, int ncomp,
+                                            MultiFab const& fmf,
+                                            IntVect const& ratio);
 }
 
 namespace amrex {
