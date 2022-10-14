@@ -33,7 +33,8 @@ CNS::advance (Real time, Real dt, int iteration, int ncycle)
 
     RK(rk_order, State_Type, time, dt, iteration, ncycle,
        // Given state S, compute dSdt. dtsub is needed for flux register operations
-       [&] (int /*stage*/, MultiFab& dSdt, MultiFab const& S, Real dtsub) {
+       [&] (int /*stage*/, MultiFab& dSdt, MultiFab const& S,
+            Real /*t*/, Real dtsub) {
            compute_dSdt(S, dSdt, dtsub, fr_as_crse, fr_as_fine);
        },
        // Optional. In case if there is anything needed after each RK substep.

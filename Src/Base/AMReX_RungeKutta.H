@@ -25,9 +25,10 @@ namespace amrex {
  * coarse/fine boundaries in AMR simulations.
  *
  * The callable object for right-hand side has the signature of `void(int
- * stage, MF& dudt, MF const& u, Real dt)`, where `stage` is the RK stage
- * number starting from 1, `dudt` is the output, `u` is the input, and `dt`
- * is the sub-time step, which can be used for reflux operations in AMR
+ * stage, MF& dudt, MF const& u, Real t, Real dt)`, where `stage` is the RK
+ * stage number starting from 1, `dudt` is the output, `u` is the input, `t`
+ * is the first-order approximate time of the stage, and `dt` is the
+ * sub-time step, which can be used for reflux operations in AMR
  * simulations.
  *
  * The callable object for filling ghost cells has the signature of
@@ -166,14 +167,14 @@ void RK2 (MF& Uold, MF& Unew, Real time, Real dt, F&& frhs, FB&& fillbndry,
 
     // RK2 stage 1
     fillbndry(1, Uold, time);
-    frhs(1, dUdt, Uold, Real(0.5)*dt);
+    frhs(1, dUdt, Uold, time, Real(0.5)*dt);
     // Unew = Uold + dt * dUdt
     detail::rk_update(Unew, Uold, dUdt, dt);
     post_stage(1, Unew);
 
     // RK2 stage 2
     fillbndry(2, Unew, time+dt);
-    frhs(2, dUdt, Unew, Real(0.5)*dt);
+    frhs(2, dUdt, Unew, time, Real(0.5)*dt);
     // Unew = (Uold+Unew)/2 + dUdt_2 * dt/2,
     // which is Unew = Uold + dt/2 * (dUdt_1 + dUdt_2)
     detail::rk2_update_2(Unew, Uold, dUdt, dt);
@@ -207,14 +208,14 @@ void RK3 (MF& Uold, MF& Unew, Real time, Real dt, F&& frhs, FB&& fillbndry,
 
     // RK3 stage 1
     fillbndry(1, Uold, time);
-    frhs(1, rkk[0], Uold, dt/Real(6.));
+    frhs(1, rkk[0], Uold, time, dt/Real(6.));
     // Unew = Uold + k1 * dt
     detail::rk_update(Unew, Uold, rkk[0], dt);
     post_stage(1, Unew);
 
     // RK3 stage 2
     fillbndry(2, Unew, time+dt);
-    frhs(2, rkk[1], Unew, dt/Real(6.));
+    frhs(2, rkk[1], Unew, time+dt, dt/Real(6.));
     // Unew = Uold + (k1+k2) * dt/4
     detail::rk_update(Unew, Uold, rkk[0], rkk[1], Real(0.25)*dt);
     post_stage(2, Unew);
@@ -222,7 +223,7 @@ void RK3 (MF& Uold, MF& Unew, Real time, Real dt, F&& frhs, FB&& fillbndry,
     // RK3 stage 3
     Real t_half = time + Real(0.5)*dt;
     fillbndry(3, Unew, t_half);
-    frhs(3, rkk[2], Unew, dt*Real(2./3.));
+    frhs(3, rkk[2], Unew, t_half, dt*Real(2./3.));
     // Unew = Uold + (k1/6 + k2/6 + k3*(2/3)) * dt
     detail::rk3_update_3(Unew, Uold, rkk, Real(1./6.)*dt);
     post_stage(3, Unew);
@@ -257,7 +258,7 @@ void RK4 (MF& Uold, MF& Unew, Real time, Real dt, F&& frhs, FB&& fillbndry,
 
     // RK4 stage 1
     fillbndry(1, Uold, time);
-    frhs(1, rkk[0], Uold, dt/Real(6.));
+    frhs(1, rkk[0], Uold, time, dt/Real(6.));
     // Unew = Uold + k1 * dt/2
     detail::rk_update(Unew, Uold, rkk[0], Real(0.5)*dt);
     post_stage(1, Unew);
@@ -265,21 +266,21 @@ void RK4 (MF& Uold, MF& Unew, Real time, Real dt, F&& frhs, FB&& fillbndry,
     // RK4 stage 2
     Real t_half = time + Real(0.5)*dt;
     fillbndry(2, Unew, t_half);
-    frhs(2, rkk[1], Unew, dt/Real(3.));
+    frhs(2, rkk[1], Unew, t_half, dt/Real(3.));
     // Unew = Uold + k2 * dt/2
     detail::rk_update(Unew, Uold, rkk[1], Real(0.5)*dt);
     post_stage(2, Unew);
 
     // RK4 stage 3
     fillbndry(3, Unew, t_half);
-    frhs(3, rkk[2], Unew, dt/Real(3.));
+    frhs(3, rkk[2], Unew, t_half, dt/Real(3.));
     // Unew = Uold + k3 * dt;
     detail::rk_update(Unew, Uold, rkk[2], dt);
     post_stage(3, Unew);
 
     // RK4 stage 4
     fillbndry(4, Unew, time+dt);
-    frhs(4, rkk[3], Unew, dt/Real(6.));
+    frhs(4, rkk[3], Unew, time+dt, dt/Real(6.));
     // Unew = Uold + (k1/6 + k2/3 + k3/3 + k4/6) * dt
     detail::rk4_update_4(Unew, Uold, rkk, Real(1./6.)*dt);
     post_stage(4, Unew);
