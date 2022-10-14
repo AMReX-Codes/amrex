@@ -188,6 +188,7 @@ target_sources( amrex
    AMReX_IntegratorBase.H
    AMReX_RKIntegrator.H
    AMReX_TimeIntegrator.H
+   AMReX_RungeKutta.H
    # GPU --------------------------------------------------------------------
    AMReX_Gpu.H
    AMReX_GpuQualifiers.H
