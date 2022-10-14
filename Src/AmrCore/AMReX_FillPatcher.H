@@ -207,7 +207,7 @@ private:
     int m_ncomp;
     InterpBase* m_interp;
     EB2::IndexSpace const* m_eb_index_space = nullptr;
-    FabArrayBase m_sfine;
+    MF m_sfine;
     IntVect m_ratio;
     Vector<std::pair<Real,std::unique_ptr<MF>>> m_cf_crse_data;
     std::unique_ptr<MF> m_cf_crse_data_tmp;
@@ -234,7 +234,7 @@ FillPatcher<MF>::FillPatcher (BoxArray const& fba, DistributionMapping const& fd
       m_ncomp(ncomp),
       m_interp(interp),
       m_eb_index_space(eb_index_space),
-      m_sfine(fba, fdm, 1, nghost)
+      m_sfine(fba, fdm, 1, nghost, MFInfo().SetAlloc(false))
 {
     static_assert(IsFabArray<MF>::value,
                   "FillPatcher<MF>: MF must be FabArray type");
