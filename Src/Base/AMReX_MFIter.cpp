@@ -249,6 +249,7 @@ MFIter::Finalize ()
 #pragma omp single
 #endif
         m_fa->clearThisBD();
+        m_fa.reset(nullptr);
     }
 }
 
