@@ -584,7 +584,7 @@ the following line in the appropriate CMakeLists.txt file:
 
 ::
 
-    target_link_libraries( <your-target-name>  AMReX::<amrex-target-name> )
+    target_link_libraries( <your-target-name> PUBLIC AMReX::<amrex-target-name> )
 
 
 In the above snippet, ``<amrex-target-name>`` is any of the targets listed in the table below.
@@ -709,7 +709,7 @@ As an example, consider the following CMake code:
 ::
 
     find_package(AMReX REQUIRED 3D EB)
-    target_link_libraries( Foo  AMReX::amrex AMReX::Flags_CXX )
+    target_link_libraries( Foo PUBLIC AMReX::amrex )
 
 The code in the snippet above checks whether an AMReX installation with 3D and Embedded Boundary support
 is available on the system. If so, AMReX is linked to target ``Foo`` and AMReX flags preset is used
