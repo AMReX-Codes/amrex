@@ -14,7 +14,29 @@ using namespace amrex;
 template <typename T_PC,template<class> class Allocator=DefaultAllocator>
 void addParticles ()
 {
-    T_PC pc;
+    int is_per[BL_SPACEDIM];
+    for (int i = 0; i < BL_SPACEDIM; i++)
+        is_per[i] = 1;
+
+    RealBox real_box;
+    for (int n = 0; n < AMREX_SPACEDIM; n++)
+    {
+        real_box.setLo(n, 0.0);
+        real_box.setHi(n, 100.0);
+    }
+
+    IntVect domain_lo(AMREX_D_DECL(0, 0, 0));
+    IntVect domain_hi(AMREX_D_DECL(127, 127, 127));
+    const Box base_domain(domain_lo, domain_hi);
+
+    Geometry geom(base_domain, &real_box, CoordSys::cartesian, is_per);
+    BoxArray ba(base_domain);
+    ba.maxSize(64);
+
+    DistributionMapping dm(ba);
+
+    T_PC pc(geom, dm, ba);
+
     int const NReal = pc.NStructReal;
     int const NInt = pc.NStructInt;
     int const NArrayReal = pc.NArrayReal;
@@ -29,6 +51,7 @@ void addParticles ()
     const int add_num_particles = 5;
 
     auto& ptile1 = pc.DefineAndReturnParticleTile(0, 0, 0);
+    ptile1.resize(add_num_particles);
 
     for (int i = 0; i < add_num_particles; ++i)
     {
@@ -66,26 +89,26 @@ void addParticles ()
         auto& soa_int = pti.GetStructOfArrays().GetIntData();
 
         // Iterating over old Particles
-        ParallelFor( np, [=] AMREX_GPU_DEVICE (long ip)
-        {
-            ParticleType& AMREX_RESTRICT p = aos_ptr[ip];
-            p.pos(0) += 1;
-            p.pos(1) += 1;
-            p.pos(2) += 1;
-            
-            amrex::ParticleReal & AMREX_RESTRICT x = part_x[ip];
-            amrex::ParticleReal & AMREX_RESTRICT y = part_y[ip];
-            amrex::ParticleReal & AMREX_RESTRICT z = part_z[ip];
-            amrex::ParticleReal & AMREX_RESTRICT a = part_aaa[ip];
+        // ParallelFor( np, [=] AMREX_GPU_DEVICE (long ip)
+        // {
+        //     ParticleType& AMREX_RESTRICT p = aos_ptr[ip];
+        //     p.pos(0) += 1;
+        //     p.pos(1) += 1;
+        //     p.pos(2) += 1;
 
-            x += 1.0;
-            y += 1.0;
-            z += 1.0;
-            a += 1.0;
-        });
+        //     amrex::ParticleReal & AMREX_RESTRICT x = part_x[ip];
+        //     amrex::ParticleReal & AMREX_RESTRICT y = part_y[ip];
+        //     amrex::ParticleReal & AMREX_RESTRICT z = part_z[ip];
+        //     amrex::ParticleReal & AMREX_RESTRICT a = part_aaa[ip];
+
+        //     x += 1.0;
+        //     y += 1.0;
+        //     z += 1.0;
+        //     a += 1.0;
+        // });
 
         // Iterating over SoA Particles
-        ParticleTileDataType ptd = pti.GetParticleTile().getParticleTileData(); 
+        ParticleTileDataType ptd = pti.GetParticleTile().getParticleTileData();
 
         ParallelFor( np, [=] AMREX_GPU_DEVICE (long ip)
         {
