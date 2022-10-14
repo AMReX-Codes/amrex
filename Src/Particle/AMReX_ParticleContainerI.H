@@ -1877,7 +1877,6 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     int superparticle_size = particle_size +
         num_real_comm_comps*sizeof(ParticleReal) + num_int_comm_comps*sizeof(int);
 
-}
     using buffer_type = unsigned long long;
 
     std::map<int, Vector<buffer_type> > mpi_snd_data;
