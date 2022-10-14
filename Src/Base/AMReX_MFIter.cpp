@@ -250,6 +250,9 @@ MFIter::Finalize ()
 #endif
         m_fa->clearThisBD();
     }
+    if (m_fa) {
+        m_fa.reset(nullptr);
+    }
 }
 
 void
