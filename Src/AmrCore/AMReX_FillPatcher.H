@@ -379,7 +379,7 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
 
         cbc(mf_crse_patch, 0, ncomp, nghost, time, cbccomp);
 
-        pre_interp(mf_crse_patch, 0, ncomp);
+        detail::call_interp_hook(pre_interp, mf_crse_patch, 0, ncomp);
 
         FillPatchInterp(*m_cf_fine_data, scomp, mf_crse_patch, 0,
                         ncomp, IntVect(0), m_cgeom, m_fgeom,
@@ -387,7 +387,7 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
                                                    mf.ixType()),nghost),
                         m_ratio, m_interp, bcs, bcscomp);
 
-        post_interp(*m_cf_fine_data, scomp, ncomp);
+        detail::call_interp_hook(post_interp, *m_cf_fine_data, scomp, ncomp);
 
         mf.ParallelCopy(*m_cf_fine_data, scomp, dcomp, ncomp, IntVect{0}, nghost);
     }
