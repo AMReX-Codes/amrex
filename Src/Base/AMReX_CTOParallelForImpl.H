@@ -1,6 +1,13 @@
 #ifndef AMREX_CTO_PARALLEL_FOR_H_
 #define AMREX_CTO_PARALLEL_FOR_H_
 
+#include <AMReX_BLassert.H>
+#include <AMReX_Box.H>
+#include <AMReX_Tuple.H>
+
+#include <array>
+#include <type_traits>
+
 /* This header is not for the users to include directly.  It's meant to be
  * included in AMReX_GpuLaunch.H, which has included the headers needed
  * here. */
