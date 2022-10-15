@@ -310,8 +310,9 @@ MLEBNodeFDLaplacian::prepareForSolve ()
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_lobc[0][0] == BCType::Neumann,
                                              "The lo-x BC must be Neumann for 2d RZ");
         }
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_sigma[0] == 0._rt,
-                                         "r-direction sigma must be zero");
+        if (m_sigma[0] == 0._rt) {
+            m_sigma[0] = 1._rt; // For backward compatibility
+        }
     }
 #endif
 }
@@ -356,6 +357,7 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
 #if (AMREX_SPACEDIM == 2)
+    const auto sig0 = m_sigma[0];
     const auto dx0 = m_geom[amrlev][mglev].CellSize(0);
     const auto dx1 = m_geom[amrlev][mglev].CellSize(1)/std::sqrt(m_sigma[1]);
     const auto xlo = m_geom[amrlev][mglev].ProbLo(0);
@@ -396,7 +398,7 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
                     AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
                     {
                         mlebndfdlap_adotx_rz_eb(i,j,k,yarr,xarr,dmarr,ecx,ecy,
-                                                phiebarr, dx0, dx1, xlo);
+                                                phiebarr, sig0, dx0, dx1, xlo);
                     });
                 } else
 #endif
@@ -413,7 +415,7 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
                     AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
                     {
                         mlebndfdlap_adotx_rz_eb(i,j,k,yarr,xarr,dmarr,ecx,ecy,
-                                                phieb, dx0, dx1, xlo);
+                                                phieb, sig0, dx0, dx1, xlo);
                     });
                 } else
 #endif
@@ -432,7 +434,7 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
             if (m_rz) {
                 AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
                 {
-                    mlebndfdlap_adotx_rz(i,j,k,yarr,xarr,dmarr,dx0,dx1,xlo);
+                    mlebndfdlap_adotx_rz(i,j,k,yarr,xarr,dmarr,sig0,dx0,dx1,xlo);
                 });
             } else
 #endif
@@ -453,6 +455,7 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
 #if (AMREX_SPACEDIM == 2)
+    const auto sig0 = m_sigma[0];
     const auto dx0 = m_geom[amrlev][mglev].CellSize(0);
     const auto dx1 = m_geom[amrlev][mglev].CellSize(1)/std::sqrt(m_sigma[1]);
     const auto xlo = m_geom[amrlev][mglev].ProbLo(0);
@@ -495,7 +498,7 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
                     AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
                     {
                         mlebndfdlap_gsrb_rz_eb(i,j,k,solarr,rhsarr,dmskarr,ecx,ecy,
-                                               dx0, dx1, xlo, redblack);
+                                               sig0, dx0, dx1, xlo, redblack);
                     });
                 } else
 #endif
@@ -514,7 +517,7 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
                     AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
                     {
                         mlebndfdlap_gsrb_rz(i,j,k,solarr,rhsarr,dmskarr,
-                                            dx0, dx1, xlo, redblack);
+                                            sig0, dx0, dx1, xlo, redblack);
                     });
                 } else
 #endif
