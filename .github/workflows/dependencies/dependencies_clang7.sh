@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright 2020 The AMReX Community
+# Copyright 2020-2022 The AMReX Community
 #
 # License: BSD-3-Clause-LBNL
 # Authors: Axel Huebl
@@ -11,4 +11,4 @@ sudo apt-get update
 
 sudo apt-get install -y  \
     build-essential      \
-    clang gfortran
+    clang-7 gfortran
