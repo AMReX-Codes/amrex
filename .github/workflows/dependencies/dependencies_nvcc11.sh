@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright 2020 Axel Huebl
+# Copyright 2020-2022 Axel Huebl
 #
 # License: BSD-3-Clause-LBNL
 
@@ -19,9 +19,8 @@ sudo apt-get install -y \
     pkg-config          \
     wget
 
-sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub
-echo "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64 /" \
-    | sudo tee /etc/apt/sources.list.d/cuda.list
+curl -O https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb
+sudo dpkg -i cuda-keyring_1.0-1_all.deb
 sudo apt-get update
 sudo apt-get install -y \
     cuda-command-line-tools-11-2 \
