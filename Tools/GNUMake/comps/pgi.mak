@@ -87,20 +87,18 @@ endif
 
 # The logic here should be consistent with what's in nvcc.mak
 
-ifeq ($(shell expr $(gcc_major_version) \< 5),1)
-  $(error C++14 support requires GCC 5 or newer.)
+ifeq ($(shell expr $(gcc_major_version) \< 8),1)
+  $(error GCC >= 8 required)
 endif
 
 ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
   CXXFLAGS += -std=$(CXXSTD)
 else
-  ifeq ($(gcc_major_version),5)
-    CXXFLAGS += -std=c++14
-  endif
+  CXXFLAGS += -std=c++17
 endif
 
-CFLAGS   += -c99
+CFLAGS   += -c11
 
 CXXFLAGS += $(GENERIC_PGI_FLAGS)
 CFLAGS   += $(GENERIC_PGI_FLAGS)

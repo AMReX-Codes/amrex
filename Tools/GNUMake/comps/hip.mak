@@ -23,7 +23,7 @@ endif
 
 # Generic flags, always used
 CXXFLAGS = -std=$(CXXSTD) -m64
-CFLAGS   = -std=c99 -m64
+CFLAGS   = -std=c11 -m64
 
 FFLAGS   = -ffixed-line-length-none -fno-range-check -fno-second-underscore
 F90FLAGS = -ffree-line-length-none -fno-range-check -fno-second-underscore -fimplicit-none

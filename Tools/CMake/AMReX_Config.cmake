@@ -37,7 +37,7 @@ function (configure_amrex)
    #
    # Setup compilers
    #
-   # Set C++ standard and disable compiler-specific extensions, like "-std=gnu++14" for GNU
+   # Set C++ standard and disable compiler-specific extensions, like "-std=gnu++17" for GNU
    # This will also enforce the same standard with the CUDA compiler
    # Moreover, it will also enforce such standard on all the consuming targets
    #
