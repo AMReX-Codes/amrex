@@ -88,7 +88,7 @@ void set_eb_data (const int i, const int j,
         const Real dy2 = dy * (y_xm + y_xp);
         const Real dy3 = dy * (y_xm*y_xm + y_xm*y_xp + y_xp*y_xp);
         const Real af2 = 0.5_rt*(aym+ayp)*dx[1] + aa*0.5_rt*dy2;
-	
+
         vcent(i,j,0,1) = -0.125_rt*dayp*dx[1]*dx[1] + aa*(1._rt/6._rt)*dy3;
         vfrac(i,j,0) = 0.5_rt*(af1+af2);
 
