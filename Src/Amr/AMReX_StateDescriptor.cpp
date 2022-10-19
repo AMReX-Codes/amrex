@@ -77,6 +77,7 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
 {
     BL_ASSERT(m_gfunc != 0 || m_gfunc3D != 0);
 
+    amrex::ignore_unused(ng);
 #ifdef AMREX_USE_OMP
     bool thread_safe = bf_thread_safety(lo, hi, dom_lo, dom_hi, a_bc, ng);
     if (thread_safe) {
