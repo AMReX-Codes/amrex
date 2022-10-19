@@ -209,8 +209,8 @@ function
 
 ::
 
-    void setDomainBC (const Array<BCType,AMREX_SPACEDIM>& lobc,  // for lower ends
-                      const Array<BCType,AMREX_SPACEDIM>& hibc); // for higher ends
+    void setDomainBC (const Array<LinOpBCType,AMREX_SPACEDIM>& lobc,  // for lower ends
+                      const Array<LinOpBCType,AMREX_SPACEDIM>& hibc); // for higher ends
 
 The supported BC types at the physical domain boundaries are
 
@@ -761,4 +761,3 @@ An example (implemented in the ``MultiComponent`` tutorial) might be:
 See ``amrex-tutorials/ExampleCodes/LinearSolvers/MultiComponent`` for a complete working example.
 
 .. solver reuse
-
