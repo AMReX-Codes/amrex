@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-20.04
     env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches"}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies_nvcc11.sh
     - name: Build & Install
@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-20.04
     env: {CXXFLAGS: "-Werror -Wall -Wextra -Wpedantic -Wshadow"}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies_nvhpc21-11.sh
     - name: Build & Install
@@ -84,7 +84,7 @@ jobs:
     name: CUDA@11.2 GNU@9.3.0 [configure 3D]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies_nvcc11.sh
     - name: Build & Install

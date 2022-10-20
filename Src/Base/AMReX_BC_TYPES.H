@@ -73,7 +73,10 @@ enum mathematicalBndryTypes : int {
     foextrap     =  2,
     ext_dir      =  3,
     hoextrap     =  4,
-    hoextrapcc   =  5
+    hoextrapcc   =  5,
+    user_1       = 1001,
+    user_2       = 1002,
+    user_3       = 1003
 };
 }
 
@@ -102,4 +105,3 @@ enum mathematicalBndryTypes : int {
 #endif
 
 #endif
-
