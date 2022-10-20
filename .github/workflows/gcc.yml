@@ -30,7 +30,7 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
             -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex  \
             -DCMAKE_C_COMPILER=$(which gcc-8)     \
-            -DCMAKE_CXX_COMPILER=$(which gcc-8)   \
+            -DCMAKE_CXX_COMPILER=$(which g++-8)   \
             -DCMAKE_Fortran_COMPILER=$(which gfortran-8)
         make -j 2
         make install
@@ -171,7 +171,7 @@ jobs:
             -DAMReX_MPI=OFF             \
             -DAMReX_PARTICLES=ON        \
             -DCMAKE_C_COMPILER=$(which gcc-8)     \
-            -DCMAKE_CXX_COMPILER=$(which gcc-8)   \
+            -DCMAKE_CXX_COMPILER=$(which g++-8)   \
             -DCMAKE_Fortran_COMPILER=$(which gfortran-8)
         make -j 2
 
