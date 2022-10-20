@@ -222,8 +222,8 @@ jobs:
 
   # Build 3D libamrex with configure
   configure-3d:
-    name: GNU@9.3 Release [configure 3D]
-    runs-on: ubuntu-20.04
+    name: GNU@11.2 Release [configure 3D]
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
