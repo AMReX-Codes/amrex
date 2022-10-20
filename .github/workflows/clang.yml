@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-18.04
     env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wno-c++17-extensions -Wnon-virtual-dtor"}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies_clang6.sh
     - name: Build & Install
@@ -53,7 +53,7 @@ jobs:
     env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wno-c++17-extensions -O1 -Wnon-virtual-dtor"}
       # It's too slow with -O0
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies_clang6.sh
     - name: Build & Install
@@ -83,7 +83,7 @@ jobs:
     name: Clang@6.0 NOMPI Release [configure 2D]
     runs-on: ubuntu-18.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies_clang6.sh
     - name: Build & Install
