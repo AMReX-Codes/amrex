@@ -7,7 +7,7 @@
 using namespace amrex;
 
 Real
-CNS::advance (Real time, Real dt, int /*iteration*/, int /*ncycle*/)
+CNS::advance (Real time, Real dt, int iteration, int ncycle)
 {
     BL_PROFILE("CNS::advance()");
 
@@ -15,11 +15,6 @@ CNS::advance (Real time, Real dt, int /*iteration*/, int /*ncycle*/)
         state[i].allocOldData();
         state[i].swapTimeLevels(dt);
     }
-
-    MultiFab& S_new = get_new_data(State_Type);
-    MultiFab& S_old = get_old_data(State_Type);
-    MultiFab dSdt(grids,dmap,NUM_STATE,0,MFInfo(),Factory());
-    MultiFab Sborder(grids,dmap,NUM_STATE,NUM_GROW,MFInfo(),Factory());
 
     FluxRegister* fr_as_crse = nullptr;
     if (do_reflux && level < parent->finestLevel()) {
@@ -36,23 +31,14 @@ CNS::advance (Real time, Real dt, int /*iteration*/, int /*ncycle*/)
         fr_as_crse->setVal(Real(0.0));
     }
 
-    // RK2 stage 1
-    FillPatch(*this, Sborder, NUM_GROW, time, State_Type, 0, NUM_STATE);
-    compute_dSdt(Sborder, dSdt, Real(0.5)*dt, fr_as_crse, fr_as_fine);
-    // U^* = U^n + dt*dUdt^n
-    MultiFab::LinComb(S_new, Real(1.0), Sborder, 0, dt, dSdt, 0, 0, NUM_STATE, 0);
-    computeTemp(S_new,0);
-
-    // RK2 stage 2
-    // After fillpatch Sborder = U^n+dt*dUdt^n
-    FillPatch(*this, Sborder, NUM_GROW, time+dt, State_Type, 0, NUM_STATE);
-    compute_dSdt(Sborder, dSdt, Real(0.5)*dt, fr_as_crse, fr_as_fine);
-    // S_new = 0.5*(Sborder+S_old) = U^n + 0.5*dt*dUdt^n
-    MultiFab::LinComb(S_new, Real(0.5), Sborder, 0, Real(0.5), S_old, 0, 0, NUM_STATE, 0);
-    // S_new += 0.5*dt*dSdt
-    MultiFab::Saxpy(S_new, Real(0.5)*dt, dSdt, 0, 0, NUM_STATE, 0);
-    // We now have S_new = U^{n+1} = (U^n+0.5*dt*dUdt^n) + 0.5*dt*dUdt^*
-    computeTemp(S_new,0);
+    RK(rk_order, State_Type, time, dt, iteration, ncycle,
+       // Given state S, compute dSdt. dtsub is needed for flux register operations
+       [&] (int /*stage*/, MultiFab& dSdt, MultiFab const& S,
+            Real /*t*/, Real dtsub) {
+           compute_dSdt(S, dSdt, dtsub, fr_as_crse, fr_as_fine);
+       },
+       // Optional. In case if there is anything needed after each RK substep.
+       [&] (int /*stage*/, MultiFab& S) { computeTemp(S,0); });
 
     return dt;
 }
@@ -254,5 +240,3 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
         }
     }
 }
-
-

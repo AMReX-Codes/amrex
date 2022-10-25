@@ -938,6 +938,8 @@ MLCellLinOp::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
         });
 #endif
     }
+
+    addInhomogNeumannFlux(amrlev, grad, sol, false);
 }
 
 void

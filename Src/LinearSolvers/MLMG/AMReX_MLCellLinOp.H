@@ -164,6 +164,11 @@ public:
 
     virtual void AnyAverageDownAndSync (Vector<Any>& sol) const override;
 
+    virtual void addInhomogNeumannFlux (int /*amrlev*/,
+                                        const Array<MultiFab*,AMREX_SPACEDIM>& /*grad*/,
+                                        MultiFab const& /*sol*/,
+                                        bool /*mult_bcoef*/) const {}
+
     struct BCTL {
         BoundCond type;
         Real location;

@@ -61,6 +61,10 @@ public:
 
     virtual void applyInhomogNeumannTerm (int amrlev, Any& rhs) const final override;
 
+    virtual void addInhomogNeumannFlux (
+        int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
+        MultiFab const& sol, bool mult_bcoef) const final override;
+
     virtual void applyOverset (int amlev, Any& rhs) const override;
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
