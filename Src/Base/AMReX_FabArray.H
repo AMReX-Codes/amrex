@@ -440,7 +440,10 @@ public:
 
     /** Has define() been called on this rank?
      *
-     * \return true if define has been called on this MultiFab to allocate it
+     * \return true if `define` has been called on this `FabArray`.  Note that all constructors except `FabArray ()`
+     * and `FabArray(Arena*a)` call `define`, even if the `MFInfo` argument has `alloc=false`.  One could
+     * also use `FabArrayBase::empty()` to find whether `define` is called or not, although they are not exactly
+     * the same.
      */
     bool isDefined () const;
 
