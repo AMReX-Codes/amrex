@@ -27,6 +27,13 @@ namespace Gpu {
     using DeviceVector = PODVector<T, ArenaAllocator<T> >;
 
     /**
+     * \brief A PODVector that uses the non-managed device memory arena.
+     *
+     */
+    template <class T>
+    using NonManagedDeviceVector = PODVector<T, DeviceArenaAllocator<T> >;
+
+    /**
      * \brief A PODVector that uses the managed memory arena.
      *
      */
@@ -82,6 +89,9 @@ namespace Gpu {
 
     template <class T>
     using HostVector = PODVector<T>;
+
+    template <class T>
+    using NonManagedVector = PODVector<T>;
 
     template <class T>
     using ManagedVector = PODVector<T>;
