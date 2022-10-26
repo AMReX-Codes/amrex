@@ -330,26 +330,25 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
             }
         }
 
-        MF mf_crse_patch;
+        if (m_cf_crse_data_tmp == nullptr) {
+            m_cf_crse_data_tmp = std::make_unique<MF>
+                (make_mf_crse_patch<MF>(fpc, m_ncomp));
+        }
+
         if (m_cf_crse_data.size() > 0 &&
             amrex::almostEqual(time, m_cf_crse_data[0].first,5))
         {
-            mf_crse_patch = MF(*m_cf_crse_data[0].second, amrex::make_alias,
-                               scomp, ncomp);
+            amrex::Copy(*m_cf_crse_data_tmp, *m_cf_crse_data[0].second,
+                        scomp, 0, ncomp, 0);
         }
         else if (m_cf_crse_data.size() > 1 &&
                  amrex::almostEqual(time, m_cf_crse_data[1].first,5))
         {
-            mf_crse_patch = MF(*m_cf_crse_data[1].second, amrex::make_alias,
-                               scomp, ncomp);
+            amrex::Copy(*m_cf_crse_data_tmp, *m_cf_crse_data[1].second,
+                        scomp, 0, ncomp, 0);
         }
         else if (m_cf_crse_data.size() == 2)
         {
-            if (m_cf_crse_data_tmp == nullptr) {
-                m_cf_crse_data_tmp = std::make_unique<MF>
-                    (make_mf_crse_patch<MF>(fpc, m_ncomp));
-            }
-            mf_crse_patch = MF(*m_cf_crse_data_tmp, amrex::make_alias, scomp, ncomp);
             int const ng_space_interp = 8; // Need to be big enough
             Box domain = m_cgeom.growPeriodicDomain(ng_space_interp);
             domain.convert(mf.ixType());
@@ -358,10 +357,10 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
             Real alpha = (t1-time)/(t1-t0);
             Real beta = (time-t0)/(t1-t0);
             AMREX_ASSERT(alpha >= 0._rt && beta >= 0._rt);
-            auto const& a = mf_crse_patch.arrays();
+            auto const& a = m_cf_crse_data_tmp->arrays();
             auto const& a0 = m_cf_crse_data[0].second->const_arrays();
             auto const& a1 = m_cf_crse_data[1].second->const_arrays();
-            amrex::ParallelFor(mf_crse_patch, IntVect(0), ncomp,
+            amrex::ParallelFor(*m_cf_crse_data_tmp, IntVect(0), ncomp,
                                [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k, int n) noexcept
                                {
                                    if (domain.contains(i,j,k)) {
@@ -377,11 +376,11 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
             amrex::Abort("FillPatcher: High order interpolation in time not supported.  Or FillPatcher was not properly deleted.");
         }
 
-        cbc(mf_crse_patch, 0, ncomp, nghost, time, cbccomp);
+        cbc(*m_cf_crse_data_tmp, 0, ncomp, nghost, time, cbccomp);
 
-        detail::call_interp_hook(pre_interp, mf_crse_patch, 0, ncomp);
+        detail::call_interp_hook(pre_interp, *m_cf_crse_data_tmp, 0, ncomp);
 
-        FillPatchInterp(*m_cf_fine_data, scomp, mf_crse_patch, 0,
+        FillPatchInterp(*m_cf_fine_data, scomp, *m_cf_crse_data_tmp, 0,
                         ncomp, IntVect(0), m_cgeom, m_fgeom,
                         amrex::grow(amrex::convert(m_fgeom.Domain(),
                                                    mf.ixType()),nghost),
