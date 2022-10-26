@@ -305,7 +305,7 @@ Arena::Initialize ()
     the_async_arena = new PArena(the_async_arena_release_threshold);
 
 #ifdef AMREX_USE_GPU
-    if (the_arena->isDevice() || the_arena->isManaged()) {
+    if (the_arena->isDevice()) {
         the_device_arena = the_arena;
     } else {
         the_device_arena = new CArena(0, ArenaInfo{}.SetDeviceMemory().SetReleaseThreshold
