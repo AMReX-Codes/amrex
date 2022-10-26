@@ -438,6 +438,15 @@ public:
     */
     bool ok () const;
 
+    /** Has define() been called on this rank?
+     *
+     * \return true if `define` has been called on this `FabArray`.  Note that all constructors except `FabArray ()`
+     * and `FabArray(Arena*a)` call `define`, even if the `MFInfo` argument has `alloc=false`.  One could
+     * also use `FabArrayBase::empty()` to find whether `define` is called or not, although they are not exactly
+     * the same.
+     */
+    bool isDefined () const;
+
     //! Return a constant reference to the FAB associated with mfi.
     const FAB& operator[] (const MFIter& mfi) const noexcept { return *(this->fabPtr(mfi)); }
 
@@ -1128,6 +1137,7 @@ protected:
     std::unique_ptr<FabFactory<FAB> > m_factory;
     DataAllocator m_dallocator;
 
+    //! has define() been called?
     bool define_function_called = false;
 
     //
@@ -1766,6 +1776,13 @@ FabArray<FAB>::ok () const
     ParallelAllReduce::Min(isok, ParallelContext::CommunicatorSub());
 
     return isok == 1;
+}
+
+template <class FAB>
+bool
+FabArray<FAB>::isDefined () const
+{
+    return define_function_called;
 }
 
 template <class FAB>
