@@ -274,6 +274,8 @@ class ReduceData
 public:
     using Type = GpuTuple<Ts...>;
 
+    template <typename... Ps> friend class ReduceOps;
+
     template <typename... Ps>
     explicit ReduceData (ReduceOps<Ps...>& reduce_op)
         : m_max_blocks(Gpu::Device::maxBlocksPerLaunch()),
@@ -330,6 +332,7 @@ private:
     Type* m_device_tuple = nullptr;
     GpuArray<int,AMREX_GPU_MAX_STREAMS+1> m_nblocks;
     std::function<Type()> m_fn_value;
+    bool m_device_tuple_set = false;
 };
 
 namespace Reduce { namespace detail {
@@ -450,6 +453,7 @@ public:
                 Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r);
 #endif
             });
+            reduce_data.m_device_tuple_set = true;
         }
     }
 
@@ -567,6 +571,7 @@ public:
 #endif
         });
         nblocks = std::max(nblocks, nblocks_ec);
+        reduce_data.m_device_tuple_set = true;
     }
 
     template <typename N, typename D, typename F,
@@ -627,6 +632,7 @@ public:
 #endif
         });
         nblocks = std::max(nblocks, nblocks_ec);
+        reduce_data.m_device_tuple_set = true;
     }
 
     template <typename N, typename D, typename F,
@@ -675,14 +681,20 @@ public:
 #endif
         });
         nblocks = amrex::max(nblocks, nblocks_ec);
+        reduce_data.m_device_tuple_set = true;
     }
 
     template <typename D>
     typename D::Type value (D & reduce_data)
     {
         using ReduceTuple = typename D::Type;
-        auto const& stream = Gpu::gpuStream();
         auto hp = reduce_data.hostPtr();
+        if (!reduce_data.m_device_tuple_set) {
+            Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(*hp);
+            return *hp;
+        }
+
+        auto const& stream = Gpu::gpuStream();
         auto dp = reduce_data.devicePtr();
         auto const& nblocks = reduce_data.nBlocks();
         int maxblocks = reduce_data.maxBlocks();
