@@ -377,4 +377,10 @@ YAFluxRegister::getFineData ()
     return m_cfpatch;
 }
 
+MultiFab&
+YAFluxRegister::getCrseData ()
+{
+    return m_crse_data;
+}
+
 }
