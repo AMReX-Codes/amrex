@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX.H>
+#include <AMReX_Functional.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
 #include <AMReX_Vector.H>
@@ -120,6 +121,32 @@ namespace ParallelGather {
 
 namespace ParallelAllReduce {
 
+    template<typename TV, typename TI>
+    void Max (ValLocPair<TV,TI>& vi, MPI_Comm comm) {
+#ifdef AMREX_USE_MPI
+        auto tmp = vi;
+        using T = ValLocPair<TV,TI>;
+        MPI_Allreduce(&tmp, &vi, 1,
+                      ParallelDescriptor::Mpi_typemap<T>::type(),
+                      ParallelDescriptor::Mpi_op<T,amrex::Greater<T>>(), comm);
+#else
+        amrex::ignore_unused(vi, comm);
+#endif
+    }
+
+    template<typename TV, typename TI>
+    void Min (ValLocPair<TV,TI>& vi, MPI_Comm comm) {
+#ifdef AMREX_USE_MPI
+        auto tmp = vi;
+        using T = ValLocPair<TV,TI>;
+        MPI_Allreduce(&tmp, &vi, 1,
+                      ParallelDescriptor::Mpi_typemap<T>::type(),
+                      ParallelDescriptor::Mpi_op<T,amrex::Less<T>>(), comm);
+#else
+        amrex::ignore_unused(vi, comm);
+#endif
+    }
+
     template<typename T>
     void Max (T& v, MPI_Comm comm) {
         detail::Reduce(detail::ReduceOp::max, v, -1, comm);
@@ -173,6 +200,34 @@ namespace ParallelAllReduce {
 }
 
 namespace ParallelReduce {
+
+    template<typename TV, typename TI>
+    void Max (ValLocPair<TV,TI>& vi, int root, MPI_Comm comm) {
+#ifdef AMREX_USE_MPI
+        auto tmp = vi;
+        using T = ValLocPair<TV,TI>;
+        MPI_Reduce(&tmp, &vi, 1,
+                   ParallelDescriptor::Mpi_typemap<T>::type(),
+                   ParallelDescriptor::Mpi_op<T,amrex::Greater<T>>(),
+                   root, comm);
+#else
+        amrex::ignore_unused(vi, root, comm);
+#endif
+    }
+
+    template<typename TV, typename TI>
+    void Min (ValLocPair<TV,TI>& vi, int root, MPI_Comm comm) {
+#ifdef AMREX_USE_MPI
+        auto tmp = vi;
+        using T = ValLocPair<TV,TI>;
+        MPI_Reduce(&tmp, &vi, 1,
+                   ParallelDescriptor::Mpi_typemap<T>::type(),
+                   ParallelDescriptor::Mpi_op<T,amrex::Less<T>>(),
+                   root, comm);
+#else
+        amrex::ignore_unused(vi, root, comm);
+#endif
+    }
 
     template<typename T>
     void Max (T& v, int root, MPI_Comm comm) {

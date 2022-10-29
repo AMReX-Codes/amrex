@@ -30,6 +30,7 @@ target_sources( amrex
    AMReX_Utility.cpp
    AMReX_FileSystem.H
    AMReX_FileSystem.cpp
+   AMReX_ValLocPair.H
    AMReX_Reduce.H
    AMReX_Scan.H
    AMReX_Partition.H
