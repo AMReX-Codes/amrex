@@ -1,13 +1,13 @@
 
-#include <petscksp.h>
-#include <AMReX_PETSc.H>
-
 #ifdef AMREX_USE_EB
 #include <AMReX_MultiCutFab.H>
 #include <AMReX_EBFabFactory.H>
 #endif
 
 #include <AMReX_Habec_K.H>
+
+#include <petscksp.h>
+#include <AMReX_PETSc.H>
 
 #include <cmath>
 #include <numeric>
