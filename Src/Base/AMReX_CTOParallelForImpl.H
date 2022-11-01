@@ -24,8 +24,8 @@ struct CompileTimeOptions {
 
 #if (__cplusplus >= 201703L)
 
-namespace meta
-{
+//namespace meta
+//{
     template <typename... As, typename... Bs>
     constexpr auto operator+ (TypeList<As...>, TypeList<Bs...>) {
         return TypeList<As..., Bs...>{};
@@ -45,7 +45,7 @@ namespace meta
     constexpr auto cartesian_product_n (TypeList<Ls...>) {
         return (TypeList<TypeList<>>{} * ... * Ls{});
     }
-}
+//}
 
 namespace detail
 {
@@ -124,7 +124,7 @@ ParallelFor (TypeList<CTOs...> /*list_of_compile_time_options*/,
 #if (__cplusplus >= 201703L)
     using OptionsListList = TypeList<typename CTOs::list_type...>;
     detail::ParallelFor_helper1<MT>(N, std::forward<F>(f),
-                                    meta::cartesian_product_n(OptionsListList{}),
+                                    cartesian_product_n(OptionsListList{}),
                                     runtime_options);
 #else
     amrex::ignore_unused(N, f, runtime_options);
@@ -140,7 +140,7 @@ void ParallelFor (TypeList<CTOs...> /*list_of_compile_time_options*/,
 #if (__cplusplus >= 201703L)
     using OptionsListList = TypeList<typename CTOs::list_type...>;
     detail::ParallelFor_helper1<MT>(box, std::forward<F>(f),
-                                    meta::cartesian_product_n(OptionsListList{}),
+                                    cartesian_product_n(OptionsListList{}),
                                     runtime_options);
 #else
     amrex::ignore_unused(box, f, runtime_options);
@@ -157,7 +157,7 @@ ParallelFor (TypeList<CTOs...> /*list_of_compile_time_options*/,
 #if (__cplusplus >= 201703L)
     using OptionsListList = TypeList<typename CTOs::list_type...>;
     detail::ParallelFor_helper1<MT>(box, ncomp, std::forward<F>(f),
-                                    meta::cartesian_product_n(OptionsListList{}),
+                                    cartesian_product_n(OptionsListList{}),
                                     runtime_options);
 #else
     amrex::ignore_unused(box, ncomp, f, runtime_options);

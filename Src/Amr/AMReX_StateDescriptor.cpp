@@ -42,23 +42,31 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
 {
     BL_ASSERT(m_func != 0 || m_func3D != 0);
 
+#ifdef AMREX_USE_OMP
     bool thread_safe = bf_thread_safety(lo, hi, dom_lo, dom_hi, a_bc, 1);
     if (thread_safe) {
-      if (m_func != 0)
-          m_func(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,a_bc);
-      else
-          m_func3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
-                   AMREX_ZFILL(dx),AMREX_ZFILL(grd_lo),time,a_bc);
-    } else {
-#ifdef AMREX_USE_OMP
-#pragma omp critical (bndryfunc)
 #endif
-      if (m_func != 0)
-          m_func(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,a_bc);
-      else
-          m_func3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
-                   AMREX_ZFILL(dx),AMREX_ZFILL(grd_lo),time,a_bc);
+        {
+            if (m_func != 0) {
+                m_func(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,a_bc);
+            } else {
+                m_func3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
+                         AMREX_ZFILL(dx),AMREX_ZFILL(grd_lo),time,a_bc);
+            }
+        }
+#ifdef AMREX_USE_OMP
+    } else {
+#pragma omp critical (bndryfunc)
+        {
+            if (m_func != 0) {
+                m_func(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,a_bc);
+            } else {
+                m_func3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
+                         AMREX_ZFILL(dx),AMREX_ZFILL(grd_lo),time,a_bc);
+            }
+        }
     }
+#endif
 }
 
 void
@@ -69,23 +77,32 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
 {
     BL_ASSERT(m_gfunc != 0 || m_gfunc3D != 0);
 
+    amrex::ignore_unused(ng);
+#ifdef AMREX_USE_OMP
     bool thread_safe = bf_thread_safety(lo, hi, dom_lo, dom_hi, a_bc, ng);
     if (thread_safe) {
-        if (m_gfunc != 0)
-            m_gfunc(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,a_bc);
-        else
-            m_gfunc3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
-                      AMREX_ZFILL(dx),AMREX_ZFILL(grd_lo),time,a_bc);
-    } else {
-#ifdef AMREX_USE_OMP
-#pragma omp critical (bndryfunc)
 #endif
-        if (m_gfunc != 0)
-            m_gfunc(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,a_bc);
-        else
-            m_gfunc3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
-                      AMREX_ZFILL(dx),AMREX_ZFILL(grd_lo),time,a_bc);
+        {
+            if (m_gfunc != 0) {
+                m_gfunc(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,a_bc);
+            } else {
+                m_gfunc3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
+                          AMREX_ZFILL(dx),AMREX_ZFILL(grd_lo),time,a_bc);
+            }
+        }
+#ifdef AMREX_USE_OMP
+    } else {
+#pragma omp critical (bndryfunc)
+        {
+            if (m_gfunc != 0) {
+                m_gfunc(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,a_bc);
+            } else {
+                m_gfunc3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
+                          AMREX_ZFILL(dx),AMREX_ZFILL(grd_lo),time,a_bc);
+            }
+        }
     }
+#endif
 }
 
 void

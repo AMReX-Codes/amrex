@@ -69,7 +69,7 @@ else
 endif
 
 CXXFLAGS += -Wno-error=sycl-strict -fsycl
-CFLAGS   += -std=c99
+CFLAGS   += -std=c11
 
 ifneq ($(DEBUG),TRUE)  # There is currently a bug that DEBUG build will crash.
 ifeq ($(DPCPP_AOT),TRUE)

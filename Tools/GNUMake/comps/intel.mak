@@ -39,21 +39,12 @@ endif
 
 ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
-  ifneq ($(firstword $(sort 17.0 $(intel_version))), 17.0)
-    ifeq ($(CXXSTD),c++14)
-      $(error C++14 support requires Intel icpc 17.0 or newer.)
-    endif
-  endif
   CXXFLAGS += -std=$(CXXSTD)
 else
-  ifeq ($(firstword $(sort 17.0 $(intel_version))), 17.0)
-    CXXFLAGS += -std=c++14
-  else
-    $(error Intel icpc 17.0 or newer is required.)
-  endif
+  CXXFLAGS += -std=c++17
 endif
 
-CFLAGS   += -std=c99
+CFLAGS   += -std=c11
 
 F90FLAGS += -implicitnone
 
@@ -64,11 +55,7 @@ FMODULES = -module $(fmoddir) -I$(fmoddir)
 GENERIC_COMP_FLAGS =
 
 ifeq ($(USE_OMP),TRUE)
-  ifeq ($(firstword $(sort 16.0 $(intel_version))), 16.0) 
-    GENERIC_COMP_FLAGS += -qopenmp
-  else
-    GENERIC_COMP_FLAGS += -openmp
-  endif
+  GENERIC_COMP_FLAGS += -qopenmp
 endif
 
 CXXFLAGS += $(GENERIC_COMP_FLAGS) -pthread

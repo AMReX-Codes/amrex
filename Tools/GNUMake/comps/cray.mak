@@ -73,15 +73,15 @@ endif
 ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
 else
-  CXXSTD := c++14
+  CXXSTD := c++17
 endif
 
 ifeq ($(CRAY_IS_CLANG_BASED),TRUE)
   CXXFLAGS += -std=$(CXXSTD)
-  CFLAGS   += -std=c99
+  CFLAGS   += -std=c11
 else
   CXXFLAGS += -h std=$(CXXSTD)
-  CFLAGS   += -h c99
+  CFLAGS   += -h c11
 endif
 
 F90FLAGS += -N 255 -em
@@ -117,10 +117,6 @@ else
   ifeq ($(CRAY_IS_CLANG_BASED),FALSE)
     GENERIC_COMP_FLAGS += -h noacc
   endif
-endif
-
-ifeq ($(CRAY_IS_CLANG_BASED),TRUE)
-  CXXFLAGS += -Wno-c++17-extensions
 endif
 
 CXXFLAGS += $(GENERIC_COMP_FLAGS)

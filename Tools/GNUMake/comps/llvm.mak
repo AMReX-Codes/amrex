@@ -67,11 +67,11 @@ CXXFLAGS += -Wno-c++17-extensions
 ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
 else
-  CXXSTD := c++14
+  CXXSTD := c++17
 endif
 
 CXXFLAGS += -std=$(CXXSTD)
-CFLAGS   += -std=c99
+CFLAGS   += -std=c11
 
 FFLAGS   += -ffixed-line-length-none -fno-range-check -fno-second-underscore
 F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -fimplicit-none
