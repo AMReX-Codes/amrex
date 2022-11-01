@@ -1,3 +1,45 @@
+# 22.11
+
+  -- MPI Reduce for ValLocPair (#3003)
+
+  -- `FabArray::isDefined` (#2997)
+
+  -- Make The_Device_Arena non-managed (#2998)
+
+  -- Add alias template Gpu::NonManagedDeviceVector (#2999)
+
+  -- Pre- and Post-interpolation hook interface (#2991)
+
+  -- Add user defined BC types (#2995)
+
+  -- Add BCRec::set for convenience (#2993)
+
+  -- ParallelFor with compile time optimization of kernels with run time parameters (#2954)
+
+  -- 2D RZ solver for WarpX: Arbitrary coefficient (#2986)
+
+  -- Runge-Kutta support for AMR (#2974)
+
+  -- Fourth-order interpolation from fine to coarse level (#2987)
+
+  -- Fix EB data inconsistency when fixing small cells and multiple cuts (#2943)
+
+  -- MFIter::Finalize (#2983, #2985, #2988)
+
+  -- Fix MLMG::getGradSolution & getFluxes for inhomogeneous Neumann and Robin BC (#2984)
+
+  -- MLLinOp::postSolve (#2981)
+
+  -- add templating for the cell bilinear interpolators (#2979)
+
+  -- FillPatcher class (#2972)
+
+  -- Remove sycl namespace alias (#2971)
+
+  -- Fix Tensor Solver BC (#2930)
+
+  -- Disable host device for macros for SYCL/DPC++ (#2969)
+
 # 22.10
 
   -- Solve an issue with particles async IO when having runtime added variables (#2966)

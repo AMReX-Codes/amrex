@@ -12,6 +12,7 @@
 #include <AMReX_REAL.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
+#include <AMReX_ValLocPair.H>
 
 #ifndef BL_AMRPROF
 #include <AMReX_Box.H>
@@ -210,6 +211,11 @@ while ( false )
 
     extern AMREX_EXPORT MPI_Comm m_comm;
     inline MPI_Comm Communicator () noexcept { return m_comm; }
+
+#ifdef AMREX_USE_MPI
+    extern Vector<MPI_Datatype*> m_mpi_types;
+    extern Vector<MPI_Op*> m_mpi_ops;
+#endif
 
     //! return the number of MPI ranks local to the current Parallel Context
     inline int
@@ -1478,6 +1484,73 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
 
 #endif
 }
+
+#ifdef AMREX_USE_MPI
+namespace ParallelDescriptor {
+
+template<typename TV, typename TI>
+struct Mpi_typemap<ValLocPair<TV,TI>>
+{
+    static MPI_Datatype type ()
+    {
+        static MPI_Datatype mpi_type = MPI_DATATYPE_NULL;
+        if (mpi_type == MPI_DATATYPE_NULL) {
+            using T = ValLocPair<TV,TI>;
+            static_assert(std::is_trivially_copyable<T>::value,
+                          "To communicate with MPI, ValLocPair must be trivially copyable.");
+            static_assert(std::is_standard_layout<T>::value,
+                          "To communicate with MPI, ValLocPair must be standard layout");
+
+            T vlp[2];
+            MPI_Datatype types[] = {
+                Mpi_typemap<TV>::type(),
+                Mpi_typemap<TI>::type(),
+            };
+            int blocklens[] = { 1, 1 };
+            MPI_Aint disp[2];
+            BL_MPI_REQUIRE( MPI_Get_address(&vlp[0].value, &disp[0]) );
+            BL_MPI_REQUIRE( MPI_Get_address(&vlp[0].index, &disp[1]) );
+            disp[1] -= disp[0];
+            disp[0] = 0;
+            BL_MPI_REQUIRE( MPI_Type_create_struct(2, blocklens, disp, types,
+                                               &mpi_type) );
+            MPI_Aint lb, extent;
+            BL_MPI_REQUIRE( MPI_Type_get_extent(mpi_type, &lb, &extent) );
+            if (extent != sizeof(T)) {
+                MPI_Datatype tmp = mpi_type;
+                BL_MPI_REQUIRE( MPI_Type_create_resized(tmp, 0, sizeof(vlp[0]), &mpi_type) );
+                BL_MPI_REQUIRE( MPI_Type_free(&tmp) );
+            }
+            BL_MPI_REQUIRE( MPI_Type_commit( &mpi_type ) );
+
+            m_mpi_types.push_back(&mpi_type);
+        }
+        return mpi_type;
+    }
+};
+
+template <typename T, typename F>
+MPI_Op Mpi_op ()
+{
+    static MPI_Op mpi_op = MPI_OP_NULL;
+    if (mpi_op == MPI_OP_NULL) {
+        static auto user_fn = [] (void *invec, void *inoutvec, int* len,
+                                  MPI_Datatype * /*datatype*/)
+        {
+            auto in = static_cast<T const*>(invec);
+            auto out = static_cast<T*>(inoutvec);
+            for (int i = 0; i < *len; ++i) {
+                out[i] = F()(in[i],out[i]);
+            }
+        };
+        BL_MPI_REQUIRE( MPI_Op_create(user_fn, 1, &mpi_op) );
+        m_mpi_ops.push_back(&mpi_op);
+    }
+    return mpi_op;
+}
+
+}
+#endif
 
 }
 
