@@ -248,6 +248,7 @@ public:
         return roundoff_lo_d;
 #endif
     }
+
     GpuArray<ParticleReal,AMREX_SPACEDIM> ProbHiArrayInParticleReal () const noexcept {
 #ifdef AMREX_SINGLE_PRECISION_PARTICLES
         return roundoff_hi_f;

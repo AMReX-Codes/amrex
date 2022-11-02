@@ -580,7 +580,7 @@ bool enforcePeriodic (P& p,
             }
             // clamp to avoid precision issues;
             if (p.pos(idim) > rhi[idim]) {
-                p.pos(idim) = rhi[idim];
+                p.pos(idim) = static_cast<ParticleReal>(rhi[idim]);
             }
             shifted = true;
         }
