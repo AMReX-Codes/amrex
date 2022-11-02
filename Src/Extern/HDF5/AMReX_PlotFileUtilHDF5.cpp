@@ -175,7 +175,7 @@ WriteGenericPlotfileHeaderHDF5 (hid_t fid,
 
     char comp_name[32];
     for (int ivar = 0; ivar < varnames.size(); ++ivar) {
-        sprintf(comp_name, "component_%d", ivar);
+        snprintf(comp_name, sizeof comp_name, "component_%d", ivar);
         CreateWriteHDF5AttrString(fid, comp_name, varnames[ivar].c_str());
     }
 
@@ -222,8 +222,8 @@ WriteGenericPlotfileHeaderHDF5 (hid_t fid,
     }
 
     for (int level = 0; level <= finest_level; ++level) {
-        sprintf(level_name, "level_%d", level);
-        /* sprintf(level_name, "%s%d", levelPrefix.c_str(), level); */
+        snprintf(level_name, sizeof level_name, "level_%d", level);
+        /* snprintf(level_name, sizeof level_name, "%s%d", levelPrefix.c_str(), level); */
         grp = H5Gcreate(fid, level_name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         if (grp < 0) {
             std::cout << "H5Gcreate [" << level_name << "] failed!" << std::endl;
@@ -525,7 +525,7 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
     // Write data for each level
     char level_name[32];
     for (int level = 0; level <= finest_level; ++level) {
-        sprintf(level_name, "level_%d", level);
+        snprintf(level_name, sizeof level_name, "level_%d", level);
 #ifdef AMREX_USE_HDF5_ASYNC
         grp = H5Gopen_async(fid, level_name, H5P_DEFAULT, es_id_g);
 #else
@@ -961,7 +961,7 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
     char level_name[32];
 
     for (int level = 0; level <= finest_level; ++level) {
-        sprintf(level_name, "level_%d", level);
+        snprintf(level_name, sizeof level_name, "level_%d", level);
 #ifdef AMREX_USE_HDF5_ASYNC
         grp = H5Gopen_async(fid, level_name, H5P_DEFAULT, es_id_g);
 #else
@@ -1158,7 +1158,7 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
                 writeDataSize += writeDataItems;
             }
 
-            sprintf(dataname, "data:datatype=%d", jj);
+            snprintf(dataname, sizeof dataname, "data:datatype=%d", jj);
 #ifdef AMREX_USE_HDF5_ASYNC
             dataset = H5Dcreate_async(grp, dataname, H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT, es_id_g);
             if(dataset < 0) std::cout << ParallelDescriptor::MyProc() << "create data failed!  ret = " << dataset << std::endl;
