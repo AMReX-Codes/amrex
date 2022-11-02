@@ -266,7 +266,7 @@ AmrLevel::writePlotFile (const std::string& dir,
     //
     static const std::string BaseName = "/Cell";
     char buf[64];
-    sprintf(buf, "Level_%d", level);
+    snprintf(buf, sizeof buf, "Level_%d", level);
     std::string sLevel = buf;
     //
     // Now for the full pathname of that directory.
