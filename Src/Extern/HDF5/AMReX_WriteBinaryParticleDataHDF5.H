@@ -244,7 +244,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
             set_stripe = 1;
         }
         if (set_stripe == 1) {
-            sprintf(setstripe, "lfs setstripe -c %d -S %dm %s", stripe_count, stripe_size, pdir.c_str());
+            snprintf(setstripe, sizeof setstripe, "lfs setstripe -c %d -S %dm %s", stripe_count, stripe_size, pdir.c_str());
             std::cout << "Setting stripe parameters for HDF5 output: " << setstripe << std::endl;
             amrex::ignore_unused(std::system(setstripe));
         }
@@ -290,7 +290,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         for (int i = 0; i < NStructReal + pc.NumRealComps(); ++i ) {
             if (write_real_comp[i]) {
                 /* HdrFile << real_comp_names[i] << '\n'; */
-                sprintf(comp_name, "real_component_%d", i);
+                snprintf(comp_name, sizeof comp_name, "real_component_%d", i);
                 CreateWriteHDF5AttrString(fid, comp_name, real_comp_names[i].c_str());
             }
         }
@@ -301,7 +301,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         // int component names
         for (int i = 0; i < NStructInt + pc.NumIntComps(); ++i ) {
             if (write_int_comp[i]) {
-                sprintf(comp_name, "int_component_%d", i);
+                snprintf(comp_name, sizeof comp_name, "int_component_%d", i);
                 CreateWriteHDF5AttrString(fid, comp_name, int_comp_names[i].c_str());
             }
         }
@@ -323,7 +323,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         H5Pset_fill_time(dcpl_id, H5D_FILL_TIME_NEVER);
 
         for (int lev = 0; lev <= finest_level; ++lev) {
-            sprintf(level_name, "level_%d", lev);
+            snprintf(level_name, sizeof level_name, "level_%d", lev);
 
             grp = H5Gcreate(fid, level_name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
             if (grp < 0) {
@@ -398,7 +398,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
     char level_name[64];
     for (int lev = 0; lev <= pc.finestLevel(); lev++)
     {
-        sprintf(level_name, "level_%d", lev);
+        snprintf(level_name, sizeof level_name, "level_%d", lev);
 #ifdef AMREX_USE_HDF5_ASYNC
         grp = H5Gopen_async(fid, level_name, H5P_DEFAULT, es_par_g);
 #else
