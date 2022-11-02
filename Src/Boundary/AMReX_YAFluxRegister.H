@@ -56,6 +56,10 @@ public:
         return !(m_cfp_fab[mfi.LocalIndex()].empty());
     }
 
+    MultiFab& getFineData ();
+
+    MultiFab& getCrseData ();
+
     enum CellType : int {
         // must be same as in AMReX_YAFluxRegiser_K.H
         crse_cell = 0, crse_fine_boundary_cell, fine_cell

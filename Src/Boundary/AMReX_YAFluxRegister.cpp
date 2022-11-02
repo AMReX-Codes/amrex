@@ -371,4 +371,16 @@ YAFluxRegister::Reflux (MultiFab& state, int dc)
     MultiFab::Add(state, m_crse_data, 0, dc, m_ncomp, 0);
 }
 
+MultiFab&
+YAFluxRegister::getFineData ()
+{
+    return m_cfpatch;
+}
+
+MultiFab&
+YAFluxRegister::getCrseData ()
+{
+    return m_crse_data;
+}
+
 }
