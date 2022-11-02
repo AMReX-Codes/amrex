@@ -89,7 +89,7 @@ protected:
         //! The "less-than" operator.
         bool operator< (const Node& rhs) const noexcept
         {
-            return m_block < rhs.m_block;
+            return std::less<void*>()(m_block, rhs.m_block);
         }
 
         //! The equality operator.
