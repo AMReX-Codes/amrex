@@ -1,10 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-from __future__ import print_function
 import sys, os, glob, operator, time
-
-if sys.version_info < (2, 7):
-    sys.exit("ERROR: need python 2.7 or later for dep.py")
 
 if __name__ == "__main__":
     dt = float(sys.argv[3])-float(sys.argv[2])

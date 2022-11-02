@@ -42,8 +42,8 @@ struct ParticleTileData
 
     ParticleType* AMREX_RESTRICT m_aos;
     
-    GpuArray<ParticleReal* , NAR> m_rdata;
-    GpuArray<int* , NAI> m_idata;
+    GpuArray<ParticleReal* AMREX_RESTRICT, NAR> m_rdata;
+    GpuArray<int* AMREX_RESTRICT, NAI> m_idata;
 
     int m_num_runtime_real;
     int m_num_runtime_int;
@@ -202,7 +202,7 @@ struct ParticleTileData
     }
 };
 
-// SOA Particle Structure 
+// SOA Particle Structure
 template <int T_NArrayReal, int T_NArrayInt>
 struct SoAParticle : SoAParticleBase
 {
@@ -217,37 +217,25 @@ struct SoAParticle : SoAParticleBase
 
     static Long the_next_id;
 
-    SoAParticle (PTD ptd, int const index) 
+    SoAParticle (PTD ptd, int const index)
     {
         m_particle_tile_data=ptd;
         m_index=index;
     }
-     
+
     //functions to get id and cpu in the SOA data
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    ParticleCPUWrapper cpu () & { 
-        uint64_t unsigned_cpu_value;
-        unsigned_cpu_value = (uint64_t) this->m_particle_tile_data.m_idata[1][m_index];
-        return ParticleCPUWrapper(unsigned_cpu_value); }
+    int& cpu () & { return this->m_particle_tile_data.m_idata[1][m_index]; }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    ParticleIDWrapper id () & { 
-        uint64_t unsigned_id_value;
-        unsigned_id_value = (uint64_t) this->m_particle_tile_data.m_idata[0][m_index];
-        return ParticleIDWrapper(unsigned_id_value); }
+    int& id () & { return this->m_particle_tile_data.m_idata[0][m_index]; }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    ConstParticleCPUWrapper cpu () const & { 
-        uint64_t unsigned_cpu_value;
-        unsigned_cpu_value = (uint64_t) this->m_particle_tile_data.m_idata[1][m_index];
-        return ConstParticleCPUWrapper(unsigned_cpu_value); }
+    const int& cpu () const & { return this->m_particle_tile_data.m_idata[1][m_index]; }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    ConstParticleIDWrapper id () const & { 
-        uint64_t unsigned_id_value;
-        unsigned_id_value = (uint64_t) this->m_particle_tile_data.m_idata[0][m_index];
-        return ConstParticleIDWrapper(unsigned_id_value); }
+    const int& id () const & { return this->m_particle_tile_data.m_idata[0][m_index]; }
 
     //functions to get positions of the particle in the SOA data
 
@@ -414,8 +402,8 @@ struct ConstParticleTileData
     Long m_size;
     const ParticleType* AMREX_RESTRICT m_aos;
 
-    GpuArray<const ParticleReal* , NArrayReal> m_rdata;
-    GpuArray<const int* , NArrayInt > m_idata;
+    GpuArray<const ParticleReal* AMREX_RESTRICT, NArrayReal> m_rdata;
+    GpuArray<const int* AMREX_RESTRICT, NArrayInt > m_idata;
 
     auto const* rdata(const int attribute_index) const
     {

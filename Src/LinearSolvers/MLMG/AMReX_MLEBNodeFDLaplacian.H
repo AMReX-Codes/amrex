@@ -19,8 +19,8 @@ namespace amrex {
 // with only diagonal components.  The EB is assumed to be Dirichlet.
 //
 // del dot (simga grad phi) - alpha/r^2 phi = rhs, for RZ where alpha is a
-// scalar constant that is zero by default.  sigma is non-zero in
-// z-direction only.  For now the `alpha` term has not been implemented yet.
+// scalar constant that is zero by default.  For now the `alpha` term has
+// not been implemented yet
 
 class MLEBNodeFDLaplacian
     : public MLNodeLinOp
@@ -72,7 +72,7 @@ public:
 
     virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int amrlev, int mglev) const final override;
 
-    virtual void scaleRHS (int amrlev, MultiFab& rhs) const final;
+    virtual void scaleRHS (int amrlev, Any& rhs) const final;
 
 #endif
 
@@ -100,6 +100,7 @@ public:
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) final override;
 
     virtual bool isSingular (int) const final override { return false; }
+    virtual bool isBottomSingular () const final override { return false; }
 
     virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                            MultiFab& sol, Location /*loc*/) const override;
@@ -118,8 +119,10 @@ public:
                           Array4<Real const> const& bfab) const override;
 #endif
 
+    virtual void postSolve (Vector<Any>& sol) const override;
+
 private:
-    GpuArray<Real,AMREX_SPACEDIM> m_sigma{AMREX_D_DECL(1_rt,1_rt,1_rt)};
+    GpuArray<Real,AMREX_SPACEDIM> m_sigma{{AMREX_D_DECL(1_rt,1_rt,1_rt)}};
     Real m_s_phi_eb = std::numeric_limits<Real>::lowest();
     Vector<MultiFab> m_phi_eb;
     int m_rz = false;

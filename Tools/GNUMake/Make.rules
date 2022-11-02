@@ -441,7 +441,7 @@ $(tmpEXETempDir)/%.F.orig: %.F
 # & --> *
 $(tmpEXETempDir)/%-cppd.h: %.H
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
-	$(SILENT) $(CC) $(CPPFLAGS) -DAMREX_TYPECHECK $(includes) -E -P -x c -std=c99 $< -o $@
+	$(SILENT) $(CC) $(CPPFLAGS) -DAMREX_TYPECHECK $(includes) -E -P -x c -std=c11 $< -o $@
 	@$(SHELL) -ec 'sed -i -e '\''s/amrex::Real/$(amrex_real)/g'\'' $@ ; \
 	               sed -i -e '\''s/amrex_real/$(amrex_real)/g'\''  $@ ; \
 	               sed -i -e '\''s/amrex_particle_real/$(amrex_particle_real)/g'\''  $@ ; \
@@ -512,9 +512,14 @@ endif
 # e.g. libraries, simply do "make print-libraries".  This will
 # print out the value.
 print-%:
-	@echo $* is '$($*)'
+	@echo $* is "$($*)"
 	@echo '    origin = $(origin $*)'
-	@echo '     value = $(value  $*)'
+	@echo '     value = $(subst ','"'"',$(value  $*))'
+# We need to use subst on the result of $(value) because it contains single
+# quotes.  Shell command echo does not like things like 'x'$(filiter-out)'y',
+# because what it sees is 'x', $(filter-out), and 'y'.  With the substition, it
+# will see 'x', "'", '$(filter-out)', "'", and 'y', with $(filter-out) inside a
+# pair of single quotes.
 
 .PHONY: help
 help:

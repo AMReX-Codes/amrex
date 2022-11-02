@@ -14,10 +14,10 @@ jobs:
     env:
       # build universal binaries for M1 "Apple Silicon" and Intel CPUs
       CMAKE_OSX_ARCHITECTURES: "arm64;x86_64"
-      CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wno-c++17-extensions -Wno-range-loop-analysis -Wno-pass-failed"
+      CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-c++17-extensions -Wno-range-loop-analysis"
       # -Wno-range-loop-analysis: Apple clang has a bug in range-loop-analysis
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies_mac.sh
     - name: Build & Install
@@ -39,10 +39,10 @@ jobs:
     name: AppleClang@11.0 GFortran@9.3 [tests]
     runs-on: macos-latest
     env:
-      CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wno-c++17-extensions -Wno-range-loop-analysis -Wno-pass-failed"
+      CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-c++17-extensions -Wno-range-loop-analysis"
       # -Wno-range-loop-analysis: Apple clang has a bug in range-loop-analysis
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies_mac.sh
     - name: Build & Install

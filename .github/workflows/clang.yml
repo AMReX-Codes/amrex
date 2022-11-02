@@ -12,13 +12,13 @@ jobs:
   # Build and install libamrex as AMReX CMake project
   # Note: this is an intentional "minimal" build that does not enable (many) options
   library_clang:
-    name: Clang@6.0 C++14 SP NOMPI Debug [lib]
-    runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wno-c++17-extensions"}
+    name: Clang@7.0 C++17 SP NOMPI Debug [lib]
+    runs-on: ubuntu-20.04
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_clang6.sh
+      run: .github/workflows/dependencies/dependencies_clang7.sh
     - name: Build & Install
       run: |
         mkdir build
@@ -34,7 +34,6 @@ jobs:
             -DAMReX_PLOTFILE_TOOLS=ON                 \
             -DAMReX_PRECISION=SINGLE                  \
             -DAMReX_PARTICLES_PRECISION=SINGLE        \
-            -DCMAKE_CXX_STANDARD=14                   \
             -DCMAKE_C_COMPILER=$(which clang)         \
             -DCMAKE_CXX_COMPILER=$(which clang++)     \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)
@@ -48,14 +47,14 @@ jobs:
         ctest --output-on-failure
 
   tests_clang:
-    name: Clang@6.0 C++14 SP Particles DP Mesh Debug [tests]
-    runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wno-c++17-extensions -O1"}
+    name: Clang@7.0 C++17 SP Particles DP Mesh Debug [tests]
+    runs-on: ubuntu-20.04
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -O1 -Wnon-virtual-dtor"}
       # It's too slow with -O0
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_clang6.sh
+      run: .github/workflows/dependencies/dependencies_clang7.sh
     - name: Build & Install
       run: |
         mkdir build
@@ -70,7 +69,6 @@ jobs:
             -DAMReX_PARTICLES=ON                      \
             -DAMReX_PRECISION=DOUBLE                  \
             -DAMReX_PARTICLES_PRECISION=SINGLE        \
-            -DCMAKE_CXX_STANDARD=14                   \
             -DCMAKE_C_COMPILER=$(which clang)         \
             -DCMAKE_CXX_COMPILER=$(which clang++)     \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)
@@ -80,14 +78,14 @@ jobs:
 
   # Build 2D libamrex with configure
   configure-2d:
-    name: Clang@6.0 NOMPI Release [configure 2D]
-    runs-on: ubuntu-18.04
+    name: Clang@7.0 NOMPI Release [configure 2D]
+    runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_clang6.sh
+      run: .github/workflows/dependencies/dependencies_clang7.sh
     - name: Build & Install
       run: |
         ./configure --dim 2 --with-fortran no --comp llvm --with-mpi no
-        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names -Wno-c++17-extensions"
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names"
         make install

@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_MLLinOp.H>
+#include <AMReX_iMultiFab.H>
 
 namespace amrex {
 
@@ -109,6 +110,8 @@ public:
 
     virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const override;
 
+    virtual void interpAssign (int amrlev, int fmglev, MultiFab& fine, MultiFab& crse) const override;
+
     virtual void averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
                                          const MultiFab& fine_sol, const MultiFab& fine_rhs) override;
 
@@ -132,9 +135,12 @@ public:
     virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                            MultiFab& sol, Location loc) const override;
 
-    virtual void applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const final override;
+    virtual void applyMetricTerm (int amrlev, int mglev, Any& rhs) const final override;
     virtual void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const final override;
-    virtual void fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata=nullptr) final override;
+    virtual Vector<Real> getSolvabilityOffset (int amrlev, int mglev,
+                                               Any const& rhs) const override;
+    virtual void fixSolvabilityByOffset (int amrlev, int mglev, Any& rhs,
+                                         Vector<Real> const& offset) const override;
 
     virtual void prepareForSolve () override;
 
@@ -145,6 +151,23 @@ public:
     virtual void FFlux (int amrlev, const MFIter& mfi,
                         const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, Location loc, const int face_only=0) const = 0;
+
+    // This could be turned into template if needed.
+    void applyMetricTermToMF (int amrlev, int mglev, MultiFab& rhs) const;
+
+    virtual Real AnyNormInfMask (int amrlev, Any const& a, bool local) const override;
+
+    virtual void AnyAvgDownResAmr (int clev, Any& cres, Any const& fres) const override;
+
+    virtual void AnyInterpolationAmr (int famrlev, Any& fine, const Any& crse,
+                                      IntVect const& /*nghost*/) const override;
+
+    virtual void AnyAverageDownAndSync (Vector<Any>& sol) const override;
+
+    virtual void addInhomogNeumannFlux (int /*amrlev*/,
+                                        const Array<MultiFab*,AMREX_SPACEDIM>& /*grad*/,
+                                        MultiFab const& /*sol*/,
+                                        bool /*mult_bcoef*/) const {}
 
     struct BCTL {
         BoundCond type;
@@ -210,12 +233,17 @@ protected:
     // boundary cell flags for covered, not_covered, outside_domain
     Vector<Vector<Array<MultiMask,2*AMREX_SPACEDIM> > > m_maskvals;
 
+    Vector<std::unique_ptr<iMultiFab> > m_norm_fine_mask;
+
     mutable Vector<YAFluxRegister> m_fluxreg;
 
 private:
 
     void defineAuxData ();
     void defineBC ();
+
+    void computeVolInv () const;
+    mutable Vector<Vector<Real> > m_volinv; // used by solvability fix
 };
 
 }

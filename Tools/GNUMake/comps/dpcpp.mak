@@ -36,8 +36,6 @@ else
 
 endif
 
-CXXFLAGS += -Wno-pass-failed # disable this warning
-
 ifeq ($(WARN_ALL),TRUE)
   warning_flags = -Wall -Wextra -Wno-sign-compare -Wunreachable-code -Wnull-dereference
   warning_flags += -Wfloat-conversion -Wextra-semi
@@ -71,7 +69,7 @@ else
 endif
 
 CXXFLAGS += -Wno-error=sycl-strict -fsycl
-CFLAGS   += -std=c99
+CFLAGS   += -std=c11
 
 ifneq ($(DEBUG),TRUE)  # There is currently a bug that DEBUG build will crash.
 ifeq ($(DPCPP_AOT),TRUE)

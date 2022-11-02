@@ -49,6 +49,7 @@ public:
     virtual const Level& getLevel (const Geometry & geom) const = 0;
     virtual const Geometry& getGeometry (const Box& domain) const = 0;
     virtual const Box& coarsestDomain () const = 0;
+    virtual void addFineLevels (int num_new_fine_levels) = 0;
 
 protected:
     static AMREX_EXPORT Vector<std::unique_ptr<IndexSpace> > m_instance;
@@ -66,7 +67,7 @@ public:
     IndexSpaceImp (const G& gshop, const Geometry& geom,
                    int required_coarsening_level, int max_coarsening_level,
                    int ngrow, bool build_coarse_level_by_coarsening,
-                   bool extend_domain_face);
+                   bool extend_domain_face, int num_coarsen_opt);
 
     IndexSpaceImp (IndexSpaceImp<G> const&) = delete;
     IndexSpaceImp (IndexSpaceImp<G> &&) = delete;
@@ -80,45 +81,66 @@ public:
     virtual const Box& coarsestDomain () const final {
         return m_geom.back().Domain();
     }
+    virtual void addFineLevels (int num_new_fine_levels) final;
 
     using F = typename G::FunctionType;
 
 private:
 
+    G m_gshop;
+    bool m_build_coarse_level_by_coarsening;
+    bool m_extend_domain_face;
+    int m_num_coarsen_opt;
+
     Vector<GShopLevel<G> > m_gslevel;
     Vector<Geometry> m_geom;
     Vector<Box> m_domain;
     Vector<int> m_ngrow;
-    std::unique_ptr<F> m_impfunc;
 };
 
 #include <AMReX_EB2_IndexSpaceI.H>
 
 bool ExtendDomainFace ();
+int NumCoarsenOpt ();
 
 template <typename G>
 void
 Build (const G& gshop, const Geometry& geom,
        int required_coarsening_level, int max_coarsening_level,
        int ngrow = 4, bool build_coarse_level_by_coarsening = true,
-       bool extend_domain_face = ExtendDomainFace())
+       bool extend_domain_face = ExtendDomainFace(),
+       int num_coarsen_opt = NumCoarsenOpt())
 {
     BL_PROFILE("EB2::Initialize()");
     IndexSpace::push(new IndexSpaceImp<G>(gshop, geom,
                                           required_coarsening_level,
                                           max_coarsening_level,
                                           ngrow, build_coarse_level_by_coarsening,
-                                          extend_domain_face));
+                                          extend_domain_face,
+                                          num_coarsen_opt));
 }
 
 void Build (const Geometry& geom,
             int required_coarsening_level,
             int max_coarsening_level,
             int ngrow = 4,
-            bool build_coarse_level_by_coarsening = true);
+            bool build_coarse_level_by_coarsening = true,
+            bool extend_domain_face = ExtendDomainFace(),
+            int num_coarsen_opt = NumCoarsenOpt());
+
+
+void BuildFromChkptFile (std::string const& fname,
+                         const Geometry& geom,
+                         int required_coarsening_level,
+                         int max_coarsening_level,
+                         int ngrow = 4,
+                         bool build_coarse_level_by_coarsening = true,
+                         bool extend_domain_face = ExtendDomainFace());
 
 int maxCoarseningLevel (const Geometry& geom);
 int maxCoarseningLevel (IndexSpace const* ebis, const Geometry& geom);
+
+void addFineLevels (int num_new_fine_levels);
 
 }}
 

@@ -164,6 +164,8 @@ public:
 
     static int allowMultipleMFIters (int allow);
 
+    void Finalize ();
+
 protected:
 
     std::unique_ptr<FabArrayBase> m_fa;  //!< This must be the first member!
@@ -180,6 +182,7 @@ protected:
     IndexType     typ;
 
     bool          dynamic;
+    bool          finalized = false;
 
     struct DeviceSync {
         DeviceSync () = default;

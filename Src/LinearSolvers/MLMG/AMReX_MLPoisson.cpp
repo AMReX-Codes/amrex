@@ -702,4 +702,63 @@ MLPoisson::copyNSolveSolution (MultiFab& dst, MultiFab const& src) const
     dst.ParallelCopy(src);
 }
 
+void
+MLPoisson::get_dpdn_on_domain_faces (Array<MultiFab*,AMREX_SPACEDIM> const& dpdn,
+                                     MultiFab const& phi)
+{
+    BL_PROFILE("MLPoisson::dpdn_faces()");
+
+    // We do not need to call applyBC because this function is used by the
+    // OpenBC solver after solver has converged.  That means the BC has been
+    // filled to check the residual.
+
+    Box const& domain0 = m_geom[0][0].Domain();
+    AMREX_D_TERM(const Real dxi = m_geom[0][0].InvCellSize(0);,
+                 const Real dyi = m_geom[0][0].InvCellSize(1);,
+                 const Real dzi = m_geom[0][0].InvCellSize(2);)
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(phi);  mfi.isValid(); ++mfi)
+    {
+        Box const& vbx = mfi.validbox();
+        for (OrientationIter oit; oit.isValid(); ++oit) {
+            Orientation face = oit();
+            if (vbx[face] == domain0[face]) {
+                int dir = face.coordDir();
+                Array4<Real const> const& p = phi.const_array(mfi);
+                Array4<Real> const& gp = dpdn[dir]->array(mfi);
+                Box const& b2d = amrex::bdryNode(vbx,face);
+                if (dir == 0) {
+                    // because it's dphi/dn, not dphi/dx.
+                    Real fac = dxi * (face.isLow() ? -1.0_rt : 1._rt);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(b2d, i, j, k,
+                    {
+                        gp(i,j,k) = fac * (p(i,j,k) - p(i-1,j,k));
+                    });
+                }
+#if (AMREX_SPACEDIM > 1)
+                else if (dir == 1) {
+                    Real fac = dyi * (face.isLow() ? -1.0_rt : 1._rt);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(b2d, i, j, k,
+                    {
+                        gp(i,j,k) = fac * (p(i,j,k) - p(i,j-1,k));
+                    });
+                }
+#if (AMREX_SPACEDIM > 2)
+                else {
+                    Real fac = dzi * (face.isLow() ? -1.0_rt : 1._rt);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(b2d, i, j, k,
+                    {
+                        gp(i,j,k) = fac * (p(i,j,k) - p(i,j,k-1));
+                    });
+                }
+#endif
+#endif
+            }
+        }
+    }
+}
+
 }

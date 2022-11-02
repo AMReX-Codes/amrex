@@ -19,7 +19,7 @@ public:
                   const Geometry& geom, int required_coarsening_level,
                   int max_coarsening_level, int ngrow,
                   bool build_coarse_level_by_coarsening,
-                  bool extend_domain_face);
+                  bool extend_domain_face, int num_coarsen_opt);
 
     IndexSpaceSTL (IndexSpaceSTL const&) = delete;
     IndexSpaceSTL (IndexSpaceSTL &&) = delete;
@@ -33,6 +33,7 @@ public:
     virtual const Box& coarsestDomain () const final {
         return m_geom.back().Domain();
     }
+    virtual void addFineLevels (int num_new_fine_levels) final;
 
 private:
 

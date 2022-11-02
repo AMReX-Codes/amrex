@@ -19,12 +19,18 @@ namespace Gpu {
 
     /**
      * \brief A PODVector that uses the standard memory Arena.
-     * Note that, on NVIDIA architectures, this Arena is actually
-     * managed.
-     *
+     * Note that the memory might or might not be managed depending
+     * on the amrex.the_arena_is_managed ParmParse parameter.
      */
     template <class T>
     using DeviceVector = PODVector<T, ArenaAllocator<T> >;
+
+    /**
+     * \brief A PODVector that uses the non-managed device memory arena.
+     *
+     */
+    template <class T>
+    using NonManagedDeviceVector = PODVector<T, DeviceArenaAllocator<T> >;
 
     /**
      * \brief A PODVector that uses the managed memory arena.
@@ -82,6 +88,9 @@ namespace Gpu {
 
     template <class T>
     using HostVector = PODVector<T>;
+
+    template <class T>
+    using NonManagedVector = PODVector<T>;
 
     template <class T>
     using ManagedVector = PODVector<T>;

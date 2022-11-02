@@ -7,44 +7,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Build libamrex and all tests with CUDA 10.2
-  tests-cuda10:
-    name: CUDA@10.2 GNU@6.5.0 C++14 Release [tests]
-    runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code"}
-    steps:
-    - uses: actions/checkout@v2
-    - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_nvcc10.sh
-    - name: Build & Install
-      run: |
-        export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
-        export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
-        which nvcc || echo "nvcc not in PATH!"
-        mkdir build
-        cd build
-        cmake ..                                           \
-            -DCMAKE_VERBOSE_MAKEFILE=ON                    \
-            -DAMReX_EB=OFF                                 \
-            -DAMReX_ENABLE_TESTS=ON                        \
-            -DAMReX_FORTRAN=OFF                            \
-            -DAMReX_PARTICLES=ON                           \
-            -DAMReX_GPU_BACKEND=CUDA                       \
-            -DCMAKE_C_COMPILER=$(which gcc-6)              \
-            -DCMAKE_CXX_COMPILER=$(which g++-6)            \
-            -DCMAKE_CUDA_HOST_COMPILER=$(which g++-6)      \
-            -DCMAKE_Fortran_COMPILER=$(which gfortran-6)   \
-            -DAMReX_CUDA_ARCH=7.0 \
-            -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON
-        make -j 2
-
   # Build libamrex and all tests with CUDA 11.0.2 (recent supported)
   tests-cuda11:
     name: CUDA@11.2 GNU@9.3.0 C++17 Release [tests]
     runs-on: ubuntu-20.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches"}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies_nvcc11.sh
     - name: Build & Install
@@ -64,9 +33,7 @@ jobs:
             -DCMAKE_CXX_COMPILER=$(which g++)            \
             -DCMAKE_CUDA_HOST_COMPILER=$(which g++)      \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)   \
-            -DCMAKE_CUDA_STANDARD=17                     \
-            -DCMAKE_CXX_STANDARD=17                      \
-            -DAMReX_CUDA_ARCH=8.0                        \
+            -DAMReX_CUDA_ARCH=7.0                        \
             -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
             -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON
 
@@ -78,7 +45,7 @@ jobs:
     runs-on: ubuntu-20.04
     env: {CXXFLAGS: "-Werror -Wall -Wextra -Wpedantic -Wshadow"}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies_nvhpc21-11.sh
     - name: Build & Install
@@ -106,8 +73,6 @@ jobs:
             -DCMAKE_CXX_COMPILER=$(which nvc++)          \
             -DCMAKE_CUDA_HOST_COMPILER=$(which nvc++)    \
             -DCMAKE_Fortran_COMPILER=$(which nvfortran)  \
-            -DCMAKE_CUDA_STANDARD=17                     \
-            -DCMAKE_CXX_STANDARD=17                      \
             -DAMReX_CUDA_ARCH=8.0                        \
             -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
             -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON
@@ -119,12 +84,12 @@ jobs:
     name: CUDA@11.2 GNU@9.3.0 [configure 3D]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies_nvcc11.sh
     - name: Build & Install
       run: |
         export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
         ./configure --dim 3 --with-cuda yes --enable-eb yes --enable-xsdk-defaults yes --with-fortran no
-        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names CXXSTD=c++17
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
         make install

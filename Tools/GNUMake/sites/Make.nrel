@@ -40,27 +40,32 @@ else ifeq ($(which_computer), rhodes)
   endif
 endif
 
-# Account for Intel-MPI, MPICH, OpenMPI, and HPE MPT
 ifeq ($(USE_MPI),TRUE)
+  CXX := mpicxx
+  CC  := mpicc
+  FC  := mpif90
+  F90 := mpif90
   ifeq ($(COMP), intel)
-    CXX := mpiicpc
-    CC  := mpiicc
-    FC  := mpiifort
-    F90 := mpiifort
-  else
-    CXX := mpicxx
-    CC  := mpicc
-    FC  := mpif90
-    F90 := mpif90
-    ifneq ($(findstring mpich, $(shell $(F90) -show 2>&1)),)
-      mpif90_link_flags := $(shell $(F90) -link_info)
-      LIBRARIES += $(wordlist 2,1024,$(mpif90_link_flags))
-    else ifneq ($(findstring Open MPI, $(shell $(F90) -showme:version 2>&1)),)
-      mpif90_link_flags := $(shell $(F90) -showme:link)
-      LIBRARIES += $(mpif90_link_flags)
-    else
-      # MPT case (no option available to query link flags)
-      LIBRARIES += -lmpi
+    ifeq ($(which_computer), eagle)
+        # Always assume MPT on Eagle
+        export MPICXX_CXX := icpc
+        export MPICC_CC   := icc
+        export MPIF90_F90 := ifort
+    else ifeq ($(which_computer), rhodes)
+        CXX := mpiicpc
+        CC  := mpiicc
+        FC  := mpiifort
+        F90 := mpiifort
     endif
+  endif
+  ifneq ($(findstring mpich, $(shell $(F90) -show 2>&1)),)
+    mpif90_link_flags := $(shell $(F90) -link_info)
+    LIBRARIES += $(wordlist 2,1024,$(mpif90_link_flags))
+  else ifneq ($(findstring Open MPI, $(shell $(F90) -showme:version 2>&1)),)
+    mpif90_link_flags := $(shell $(F90) -showme:link)
+    LIBRARIES += $(mpif90_link_flags)
+  else
+    # MPT case (no option available to query link flags)
+    LIBRARIES += -lmpi
   endif
 endif

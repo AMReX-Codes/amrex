@@ -1,6 +1,7 @@
 
 #include <AMReX_MLNodeLinOp.H>
 #include <AMReX_MLNodeLap_K.H>
+#include <AMReX_MLMG_K.H>
 #include <AMReX_MultiFabUtil.H>
 
 #ifdef AMREX_USE_OMP
@@ -82,6 +83,22 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
         }
         m_has_fine_bndry[amrlev] = std::make_unique<LayoutData<int> >(m_grids[amrlev][0],
                                                                       m_dmap[amrlev][0]);
+    }
+
+    m_norm_fine_mask.resize(m_num_amr_levels-1);
+    for (int amrlev = 0; amrlev < m_num_amr_levels-1; ++amrlev) {
+        m_norm_fine_mask[amrlev] = std::make_unique<iMultiFab>
+            (makeFineMask(amrex::convert(m_grids[amrlev][0], IntVect(1)), m_dmap[amrlev][0],
+                          amrex::convert(m_grids[amrlev+1][0], IntVect(1)),
+                          IntVect(m_amr_ref_ratio[amrlev]), 1, 0));
+    }
+}
+
+void
+MLNodeLinOp::prepareForSolve ()
+{
+    for (int amrlev = 0; amrlev < m_num_amr_levels-1; ++amrlev) {
+        fixUpResidualMask(amrlev, *m_norm_fine_mask[amrlev]);
     }
 }
 
@@ -177,17 +194,16 @@ MLNodeLinOp::xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y,
     return result;
 }
 
-void
-MLNodeLinOp::applyInhomogNeumannTerm (int /*amrlev*/, MultiFab& /*rhs*/) const
-{
-}
-
-Real
-MLNodeLinOp::getSolvabilityOffset (int amrlev, int mglev, MultiFab const& rhs) const
+Vector<Real>
+MLNodeLinOp::getSolvabilityOffset (int amrlev, int mglev, Any const& a_rhs) const
 {
     amrex::ignore_unused(amrlev);
-    AMREX_ASSERT(amrlev==0);
-    AMREX_ASSERT(mglev+1==m_num_mg_levels[0] || mglev==0);
+    AMREX_ASSERT(amrlev==0 && (mglev+1==m_num_mg_levels[0] || mglev==0));
+    AMREX_ASSERT(getNComp() == 1);
+
+    AMREX_ASSERT(a_rhs.is<MultiFab>());
+    auto const& rhs = a_rhs.get<MultiFab>();
+
     const auto& mask = (mglev+1 == m_num_mg_levels[0]) ? m_bottom_dot_mask : m_coarse_dot_mask;
     const auto& mask_ma = mask.const_arrays();
     const auto& rhs_ma = rhs.const_arrays();
@@ -203,13 +219,16 @@ MLNodeLinOp::getSolvabilityOffset (int amrlev, int mglev, MultiFab const& rhs) c
     Real s1 = amrex::get<0>(r);
     Real s2 = amrex::get<1>(r);
     ParallelAllReduce::Sum<Real>({s1,s2}, ParallelContext::CommunicatorSub());
-    return s1/s2;
+    return {s1/s2};
 }
 
 void
-MLNodeLinOp::fixSolvabilityByOffset (int /*amrlev*/, int /*mglev*/, MultiFab& rhs, Real offset) const
+MLNodeLinOp::fixSolvabilityByOffset (int /*amrlev*/, int /*mglev*/, Any& a_rhs,
+                                     Vector<Real> const& offset) const
 {
-    rhs.plus(-offset, 0, 1);
+    AMREX_ASSERT(a_rhs.is<MultiFab>());
+    auto& rhs = a_rhs.get<MultiFab>();
+    rhs.plus(-offset[0], 0, 1);
 }
 
 namespace {
@@ -446,6 +465,119 @@ MLNodeLinOp::resizeMultiGrid (int new_size)
     }
 
     MLLinOp::resizeMultiGrid(new_size);
+}
+
+Real
+MLNodeLinOp::AnyNormInfMask (int amrlev, Any const& a, bool local) const
+{
+    AMREX_ASSERT(a.is<MultiFab>());
+    auto& mf = a.get<MultiFab>();
+
+    const int finest_level = NAMRLevels() - 1;
+    iMultiFab const* fine_mask = (amrlev == finest_level)
+        ? nullptr : m_norm_fine_mask[amrlev].get();
+    return MFNormInf(mf, fine_mask, local);
+}
+
+void
+MLNodeLinOp::AnyInterpolationAmr (int famrlev, Any& a_fine, const Any& a_crse,
+                                  IntVect const& nghost) const
+{
+    AMREX_ASSERT(a_fine.is<MultiFab>());
+    MultiFab& fine = a_fine.get<MultiFab>();
+    MultiFab const& crse = a_crse.get<MultiFab>();
+
+    const int ncomp = getNComp();
+    const int refratio = AMRRefRatio(famrlev-1);
+
+    AMREX_ALWAYS_ASSERT(refratio == 2 || refratio == 4);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(fine, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        Box fbx = mfi.tilebox();
+        fbx.grow(nghost);
+        Array4<Real> const& ffab = fine.array(mfi);
+        Array4<Real const> const& cfab = crse.const_array(mfi);
+
+        if (refratio == 2) {
+            AMREX_HOST_DEVICE_FOR_4D ( fbx, ncomp, i, j, k, n,
+            {
+                mlmg_lin_nd_interp_r2(i,j,k,n,ffab,cfab);
+            });
+        } else {
+            AMREX_HOST_DEVICE_FOR_4D ( fbx, ncomp, i, j, k, n,
+            {
+                mlmg_lin_nd_interp_r4(i,j,k,n,ffab,cfab);
+            });
+        }
+    }
+}
+
+void
+MLNodeLinOp::AnyAverageDownAndSync (Vector<Any>& sol) const
+{
+    AMREX_ASSERT(sol[0].is<MultiFab>());
+
+    const int ncomp = getNComp();
+    const int finest_amr_lev = NAMRLevels() - 1;
+
+    nodalSync(finest_amr_lev, 0, sol[finest_amr_lev].get<MultiFab>());
+
+    for (int falev = finest_amr_lev; falev > 0; --falev)
+    {
+        const auto& fmf = sol[falev  ].get<MultiFab>();
+        auto&       cmf = sol[falev-1].get<MultiFab>();
+
+        auto rr = AMRRefRatio(falev-1);
+        MultiFab tmpmf(amrex::coarsen(fmf.boxArray(), rr), fmf.DistributionMap(), ncomp, 0);
+        amrex::average_down(fmf, tmpmf, 0, ncomp, rr);
+        cmf.ParallelCopy(tmpmf, 0, 0, ncomp);
+        nodalSync(falev-1, 0, cmf);
+    }
+}
+
+void
+MLNodeLinOp::interpAssign (int amrlev, int fmglev, MultiFab& fine, MultiFab& crse) const
+{
+    const int ncomp = getNComp();
+
+    const Geometry& crse_geom = Geom(amrlev,fmglev+1);
+    const IntVect refratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[fmglev];
+    AMREX_ALWAYS_ASSERT(refratio == 2);
+
+    MultiFab cfine;
+    const MultiFab* cmf;
+
+    if (amrex::isMFIterSafe(crse, fine))
+    {
+        crse.FillBoundary(crse_geom.periodicity());
+        cmf = &crse;
+    }
+    else
+    {
+        BoxArray cba = fine.boxArray();
+        cba.coarsen(refratio);
+        cfine.define(cba, fine.DistributionMap(), ncomp, 0);
+        cfine.ParallelCopy(crse, 0, 0, ncomp, 0, 0, crse_geom.periodicity());
+        cmf = & cfine;
+    }
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(fine, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& fbx = mfi.tilebox();
+        Array4<Real> const& ffab = fine.array(mfi);
+        Array4<Real const> const& cfab = cmf->const_array(mfi);
+
+        AMREX_HOST_DEVICE_FOR_4D ( fbx, ncomp, i, j, k, n,
+        {
+            mlmg_lin_nd_interp_r2(i,j,k,n,ffab,cfab);
+        });
+    }
 }
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)

@@ -14,11 +14,11 @@
 ///#include <memoryapi.h>
 //#define AMREX_MLOCK(x,y) VirtualLock(x,y)
 //#define AMREX_MUNLOCK(x,y) VirtualUnlock(x,y)
-#define AMREX_MLOCK(x,y) ((void)0)
+//#define AMREX_MLOCK(x,y) ((void)0)
 #define AMREX_MUNLOCK(x,y) ((void)0)
 #else
 #include <sys/mman.h>
-#define AMREX_MLOCK(x,y) mlock(x,y)
+//#define AMREX_MLOCK(x,y) mlock(x,y)
 #define AMREX_MUNLOCK(x,y) munlock(x,y)
 #endif
 
@@ -132,19 +132,21 @@ Arena::allocate_system (std::size_t nbytes)
     if (arena_info.use_cpu_memory)
     {
         p = std::malloc(nbytes);
+#ifndef _WIN32
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
-        if (p && arena_info.device_use_hostalloc) AMREX_MLOCK(p, nbytes);
+        if (p && (nbytes > 0) && arena_info.device_use_hostalloc) mlock(p, nbytes);
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
+#endif
 #endif
     }
     else if (arena_info.device_use_hostalloc)
     {
         AMREX_HIP_OR_CUDA_OR_DPCPP(
-            AMREX_HIP_SAFE_CALL (hipHostMalloc(&p, nbytes, hipHostMallocMapped));,
+            AMREX_HIP_SAFE_CALL (hipHostMalloc(&p, nbytes, hipHostMallocMapped|hipHostMallocNonCoherent));,
             AMREX_CUDA_SAFE_CALL(cudaHostAlloc(&p, nbytes, cudaHostAllocMapped));,
             p = sycl::malloc_host(nbytes, Gpu::Device::syclContext()));
     }
@@ -190,7 +192,16 @@ Arena::allocate_system (std::size_t nbytes)
     }
 #else
     p = std::malloc(nbytes);
-    if (p && arena_info.device_use_hostalloc) AMREX_MLOCK(p, nbytes);
+#ifndef _WIN32
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+    if (p && (nbytes > 0) && arena_info.device_use_hostalloc) mlock(p, nbytes);
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+#endif
 #endif
     if (p == nullptr) amrex::Abort("Sorry, malloc failed");
     return p;
@@ -253,12 +264,13 @@ Arena::Initialize ()
     if (initialized) return;
     initialized = true;
 
-    BL_ASSERT(the_arena == nullptr);
+    // see reason on allowed reuse of the default CPU BArena in Arena::Finalize
+    BL_ASSERT(the_arena == nullptr || the_arena == The_BArena());
     BL_ASSERT(the_async_arena == nullptr);
-    BL_ASSERT(the_device_arena == nullptr);
-    BL_ASSERT(the_managed_arena == nullptr);
+    BL_ASSERT(the_device_arena == nullptr || the_device_arena == The_BArena());
+    BL_ASSERT(the_managed_arena == nullptr || the_managed_arena == The_BArena());
     BL_ASSERT(the_pinned_arena == nullptr);
-    BL_ASSERT(the_cpu_arena == nullptr);
+    BL_ASSERT(the_cpu_arena == nullptr || the_cpu_arena == The_BArena());
 
 #ifdef AMREX_USE_GPU
 #ifdef AMREX_USE_DPCPP
@@ -304,7 +316,7 @@ Arena::Initialize ()
     the_async_arena = new PArena(the_async_arena_release_threshold);
 
 #ifdef AMREX_USE_GPU
-    if (the_arena->isDevice() || the_arena->isManaged()) {
+    if (the_arena->isDevice()) {
         the_device_arena = the_arena;
     } else {
         the_device_arena = new CArena(0, ArenaInfo{}.SetDeviceMemory().SetReleaseThreshold
@@ -468,6 +480,13 @@ Arena::Finalize ()
 
     initialized = false;
 
+    // we reset Arenas unless they are the default "CPU malloc/free" BArena
+    // this is because we want to allow users to free their UB objects
+    // that they forgot to destruct after amrex::Finalize():
+    //   amrex::Initialize(...);
+    //   MultiFab mf(...);  // this should be scoped in { ... }
+    //   amrex::Finalize();
+    // mf cannot be used now, but it can at least be freed without a segfault
     if (!dynamic_cast<BArena*>(the_device_arena)) {
         if (the_device_arena != the_arena) {
             delete the_device_arena;

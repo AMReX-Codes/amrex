@@ -209,6 +209,19 @@ MFIter::MFIter (const FabArrayBase& fabarray_, const MFItInfo& info)
 
 MFIter::~MFIter ()
 {
+    Finalize();
+}
+
+void
+MFIter::Finalize ()
+{
+    // avoid double finalize
+    if (finalized) return;
+    finalized = true;
+
+    // mark as invalid
+    currentIndex = endIndex;
+
 #ifdef AMREX_USE_OMP
 #pragma omp master
 #endif
@@ -236,6 +249,9 @@ MFIter::~MFIter ()
 #pragma omp single
 #endif
         m_fa->clearThisBD();
+    }
+    if (m_fa) {
+        m_fa.reset(nullptr);
     }
 }
 

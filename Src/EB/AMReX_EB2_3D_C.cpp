@@ -853,89 +853,96 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
     nsmallcells += hp[0];
     nmulticuts  += hp[1];
 
+    Box const& nbxg1 = amrex::surroundingNodes(bxg1);
+    Box const& bxg1x = amrex::surroundingNodes(bxg1,0);
+    Box const& bxg1y = amrex::surroundingNodes(bxg1,1);
+    Box const& bxg1z = amrex::surroundingNodes(bxg1,2);
+    AMREX_HOST_DEVICE_FOR_3D(nbxg1, i, j, k,
+    {
+        if (levset(i,j,k) < Real(0.0)) {
+            bool zero_levset = false;
+            if        (bxg1.contains(i-1,j-1,k-1)
+                       &&       cell(i-1,j-1,k-1).isCovered()) {
+                zero_levset = true;
+            } else if (bxg1.contains(i  ,j-1,k-1)
+                       &&       cell(i  ,j-1,k-1).isCovered()) {
+                zero_levset = true;
+            } else if (bxg1.contains(i-1,j  ,k-1)
+                       &&       cell(i-1,j  ,k-1).isCovered()) {
+                zero_levset = true;
+            } else if (bxg1.contains(i  ,j  ,k-1)
+                       &&       cell(i  ,j  ,k-1).isCovered()) {
+                zero_levset = true;
+            } else if (bxg1.contains(i-1,j-1,k  )
+                       &&       cell(i-1,j-1,k  ).isCovered()) {
+                zero_levset = true;
+            } else if (bxg1.contains(i  ,j-1,k  )
+                       &&       cell(i  ,j-1,k  ).isCovered()) {
+                zero_levset = true;
+            } else if (bxg1.contains(i-1,j  ,k  )
+                       &&       cell(i-1,j  ,k  ).isCovered()) {
+                zero_levset = true;
+            } else if (bxg1.contains(i  ,j  ,k  )
+                       &&       cell(i  ,j  ,k  ).isCovered()) {
+                zero_levset = true;
+            } else if (bxg1x.contains(i  ,j-1,k-1)
+                       &&          fx(i  ,j-1,k-1) == Type::covered) {
+                zero_levset = true;
+            } else if (bxg1x.contains(i  ,j  ,k-1)
+                       &&          fx(i  ,j  ,k-1) == Type::covered) {
+                zero_levset = true;
+            } else if (bxg1x.contains(i  ,j-1,k  )
+                       &&          fx(i  ,j-1,k  ) == Type::covered) {
+                zero_levset = true;
+            } else if (bxg1x.contains(i  ,j  ,k  )
+                       &&          fx(i  ,j  ,k  ) == Type::covered) {
+                zero_levset = true;
+            } else if (bxg1y.contains(i-1,j  ,k-1)
+                       &&          fy(i-1,j  ,k-1) == Type::covered) {
+                zero_levset = true;
+            } else if (bxg1y.contains(i  ,j  ,k-1)
+                       &&          fy(i  ,j  ,k-1) == Type::covered) {
+                zero_levset = true;
+            } else if (bxg1y.contains(i-1,j  ,k  )
+                       &&          fy(i-1,j  ,k  ) == Type::covered) {
+                zero_levset = true;
+            } else if (bxg1y.contains(i  ,j  ,k  )
+                       &&          fy(i  ,j  ,k  ) == Type::covered) {
+                zero_levset = true;
+            } else if (bxg1z.contains(i-1,j-1,k  )
+                       &&          fz(i-1,j-1,k  ) == Type::covered) {
+                zero_levset = true;
+            } else if (bxg1z.contains(i  ,j-1,k  )
+                       &&          fz(i  ,j-1,k  ) == Type::covered) {
+                zero_levset = true;
+            } else if (bxg1z.contains(i-1,j  ,k  )
+                       &&          fz(i-1,j  ,k  ) == Type::covered) {
+                zero_levset = true;
+            } else if (bxg1z.contains(i  ,j  ,k  )
+                       &&          fz(i  ,j  ,k  ) == Type::covered) {
+                zero_levset = true;
+            }
+            if (zero_levset) {
+                levset(i,j,k) = Real(0.0);
+            }
+        }
+    });
+
     if (nsmallcells > 0 || nmulticuts > 0) {
         if (!cover_multiple_cuts && nmulticuts > 0) {
             amrex::Abort("amrex::EB2::build_cells: multi-cuts not supported");
         }
-        Box const& nbxg1 = amrex::surroundingNodes(bxg1);
-        Box const& bxg1x = amrex::surroundingNodes(bxg1,0);
-        Box const& bxg1y = amrex::surroundingNodes(bxg1,1);
-        Box const& bxg1z = amrex::surroundingNodes(bxg1,2);
-        AMREX_HOST_DEVICE_FOR_3D(nbxg1, i, j, k,
-        {
-            if (levset(i,j,k) < Real(0.0)) {
-                bool zero_levset = false;
-                if        (bxg1.contains(i-1,j-1,k-1)
-                           &&       cell(i-1,j-1,k-1).isCovered()) {
-                    zero_levset = true;
-                } else if (bxg1.contains(i  ,j-1,k-1)
-                           &&       cell(i  ,j-1,k-1).isCovered()) {
-                    zero_levset = true;
-                } else if (bxg1.contains(i-1,j  ,k-1)
-                           &&       cell(i-1,j  ,k-1).isCovered()) {
-                    zero_levset = true;
-                } else if (bxg1.contains(i  ,j  ,k-1)
-                           &&       cell(i  ,j  ,k-1).isCovered()) {
-                    zero_levset = true;
-                } else if (bxg1.contains(i-1,j-1,k  )
-                           &&       cell(i-1,j-1,k  ).isCovered()) {
-                    zero_levset = true;
-                } else if (bxg1.contains(i  ,j-1,k  )
-                           &&       cell(i  ,j-1,k  ).isCovered()) {
-                    zero_levset = true;
-                } else if (bxg1.contains(i-1,j  ,k  )
-                           &&       cell(i-1,j  ,k  ).isCovered()) {
-                    zero_levset = true;
-                } else if (bxg1.contains(i  ,j  ,k  )
-                           &&       cell(i  ,j  ,k  ).isCovered()) {
-                    zero_levset = true;
-                } else if (cover_multiple_cuts) {
-                    if        (bxg1x.contains(i  ,j-1,k-1)
-                               &&          fx(i  ,j-1,k-1) == Type::covered) {
-                        zero_levset = true;
-                    } else if (bxg1x.contains(i  ,j  ,k-1)
-                               &&          fx(i  ,j  ,k-1) == Type::covered) {
-                        zero_levset = true;
-                    } else if (bxg1x.contains(i  ,j-1,k  )
-                               &&          fx(i  ,j-1,k  ) == Type::covered) {
-                        zero_levset = true;
-                    } else if (bxg1x.contains(i  ,j  ,k  )
-                               &&          fx(i  ,j  ,k  ) == Type::covered) {
-                        zero_levset = true;
-                    } else if (bxg1y.contains(i-1,j  ,k-1)
-                               &&          fy(i-1,j  ,k-1) == Type::covered) {
-                        zero_levset = true;
-                    } else if (bxg1y.contains(i  ,j  ,k-1)
-                               &&          fy(i  ,j  ,k-1) == Type::covered) {
-                        zero_levset = true;
-                    } else if (bxg1y.contains(i-1,j  ,k  )
-                               &&          fy(i-1,j  ,k  ) == Type::covered) {
-                        zero_levset = true;
-                    } else if (bxg1y.contains(i  ,j  ,k  )
-                               &&          fy(i  ,j  ,k  ) == Type::covered) {
-                        zero_levset = true;
-                    } else if (bxg1z.contains(i-1,j-1,k  )
-                               &&          fz(i-1,j-1,k  ) == Type::covered) {
-                        zero_levset = true;
-                    } else if (bxg1z.contains(i  ,j-1,k  )
-                               &&          fz(i  ,j-1,k  ) == Type::covered) {
-                        zero_levset = true;
-                    } else if (bxg1z.contains(i-1,j  ,k  )
-                               &&          fz(i-1,j  ,k  ) == Type::covered) {
-                        zero_levset = true;
-                    } else if (bxg1z.contains(i  ,j  ,k  )
-                               &&          fz(i  ,j  ,k  ) == Type::covered) {
-                        zero_levset = true;
-                    }
-                }
-                if (zero_levset) {
-                    levset(i,j,k) = Real(0.0);
-                }
-            }
-        });
         return;
+    } else {
+        set_connection_flags(bx, bxg1, cell, ctmp, fx, fy, fz);
     }
+}
 
+void set_connection_flags (Box const& bx,
+                           Box const& bxg1, Array4<EBCellFlag> const& cell,
+                           Array4<EBCellFlag> const& ctmp, Array4<Type_t> const& fx,
+                           Array4<Type_t> const& fy, Array4<Type_t> const& fz) noexcept
+{
     // Build neighbors.  By default all 26 neighbors are already set.
     AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
     {

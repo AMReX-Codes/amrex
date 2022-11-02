@@ -1300,7 +1300,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray& boxes,
 
         for (int i = 0, N = boxes.size(); i < N; ++i)
         {
-            wgts.push_back(boxes[i].volume());
+            wgts.push_back(boxes[i].numPts());
         }
 
         SFCProcessorMapDoIt(boxes,wgts,nprocs);
@@ -1769,7 +1769,7 @@ DistributionMapping::makeSFC (const BoxArray& ba, bool use_box_vol, const int np
     {
         const Box& bx = ba[i];
         tokens.push_back(makeSFCToken(i, bx.smallEnd()));
-        const Long v = use_box_vol ? bx.volume() : Long(1);
+        const Long v = use_box_vol ? bx.numPts() : Long(1);
         vol_sum += v;
         wgts.push_back(v);
     }

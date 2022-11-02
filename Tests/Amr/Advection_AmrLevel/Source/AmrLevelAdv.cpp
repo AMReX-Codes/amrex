@@ -36,7 +36,6 @@ int AmrLevelAdv::do_tracers                       =  0;
  */
 AmrLevelAdv::AmrLevelAdv ()
 {
-    flux_reg = 0;
 }
 
 /**
@@ -51,9 +50,9 @@ AmrLevelAdv::AmrLevelAdv (Amr&            papa,
     :
     AmrLevel(papa,lev,level_geom,bl,dm,time)
 {
-    flux_reg = 0;
-    if (level > 0 && do_reflux)
-        flux_reg = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
+    if (level > 0 && do_reflux) {
+        flux_reg = std::make_unique<FluxRegister>(grids,dmap,crse_ratio,level,NUM_STATE);
+    }
 }
 
 /**
@@ -61,7 +60,6 @@ AmrLevelAdv::AmrLevelAdv (Amr&            papa,
  */
 AmrLevelAdv::~AmrLevelAdv ()
 {
-    delete flux_reg;
 }
 
 /**
@@ -74,9 +72,9 @@ AmrLevelAdv::restart (Amr&          papa,
 {
     AmrLevel::restart(papa,is,bReadSpecial);
 
-    BL_ASSERT(flux_reg == 0);
-    if (level > 0 && do_reflux)
-        flux_reg = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
+    if (level > 0 && do_reflux) {
+        flux_reg = std::make_unique<FluxRegister>(grids,dmap,crse_ratio,level,NUM_STATE);
+    }
 }
 
 /**
@@ -88,11 +86,11 @@ AmrLevelAdv::checkPoint (const std::string& dir,
                          VisMF::How         how,
                          bool               dump_old)
 {
-  AmrLevel::checkPoint(dir, os, how, dump_old);
+    AmrLevel::checkPoint(dir, os, how, dump_old);
 #ifdef AMREX_PARTICLES
-  if (do_tracers && level == 0) {
-    TracerPC->WritePlotFile(dir, "Tracer");
-  }
+    if (do_tracers && level == 0) {
+        TracerPC->WritePlotFile(dir, "Tracer");
+    }
 #endif
 }
 
@@ -285,7 +283,8 @@ AmrLevelAdv::advance (Real time,
 
     // State with ghost cells
     MultiFab Sborder(grids, dmap, NUM_STATE, NUM_GROW);
-    FillPatch(*this, Sborder, NUM_GROW, time, Phi_Type, 0, NUM_STATE);
+    // We use FillPatcher to do fillpatch here if we can
+    FillPatcherFill(Sborder, 0, NUM_STATE, NUM_GROW, time, Phi_Type, 0);
 
     // MF to hold the mac velocity
     MultiFab Umac[BL_SPACEDIM];
@@ -601,11 +600,19 @@ AmrLevelAdv::post_timestep (int iteration)
     //
     int finest_level = parent->finestLevel();
 
-    if (do_reflux && level < finest_level)
+    if (do_reflux && level < finest_level) {
         reflux();
+    }
 
-    if (level < finest_level)
+    if (level < finest_level) {
         avgDown();
+    }
+
+    if (level < finest_level) {
+        // fillpatcher on level+1 needs to be reset because data on this
+        // level have changed.
+        getLevel(level+1).resetFillPatcher();
+    }
 
 #ifdef AMREX_PARTICLES
     if (TracerPC)

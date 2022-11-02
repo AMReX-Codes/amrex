@@ -19,6 +19,9 @@ ifeq ($(USE_FORTRAN_INTERFACE),TRUE)
 endif
 ifeq ($(USE_LINEAR_SOLVERS),TRUE)
    Pdirs += LinearSolvers/MLMG
+   ifeq ($(DIM),3)
+     Pdirs += LinearSolvers/OpenBC
+   endif
    ifeq ($(USE_FORTRAN_INTERFACE),TRUE)
      Pdirs += F_Interfaces/LinearSolvers
    endif

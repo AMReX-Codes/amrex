@@ -8,6 +8,7 @@
 #include <AMReX_FabArray.H>
 #include <AMReX_FabArrayUtility.H>
 #include <AMReX_Periodicity.H>
+#include <AMReX_NonLocalBC.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBMultiFabUtil.H>
@@ -190,7 +191,7 @@ public:
 
     /**
     * \brief Returns the maximum *absolute* values contained in
-    * each component of "comps" of the MultiFab.  No ghost cells are used.
+    * each component of "comps" of the MultiFab.  "nghost" ghost cells are used.
     */
     Vector<Real> norm0 (const Vector<int>& comps, int nghost = 0, bool local = false, bool ignore_covered = false ) const;
     Vector<Real> norminf (const Vector<int>& comps, int nghost = 0, bool local = false, bool ignore_covered = false) const {
@@ -231,6 +232,13 @@ public:
     * \brief Returns the sum of component "comp" over the MultiFab -- no ghost cells are included.
     */
     Real sum (int comp = 0, bool local = false) const;
+    /**
+    * \brief Same as sum with local=false, but for non-cell-centered data, this
+    *        skips non-unique points that are owned by multiple boxes.
+    */
+    Real sum_unique (int comp = 0,
+                     bool local = false,
+                     const Periodicity& period = Periodicity::NonPeriodic()) const;
     /**
     * \brief Adds the scalar value val to the value of each cell in the
     * specified subregion of the MultiFab.  The subregion consists

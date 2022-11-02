@@ -391,6 +391,13 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         });
     }
 
+    set_connection_flags(bxg1, cell, fx, fy);
+}
+
+void set_connection_flags (Box const& bxg1,
+                           Array4<EBCellFlag> const& cell,
+                           Array4<Type_t> const& fx, Array4<Type_t> const& fy) noexcept
+{
     // Build neighbors.  By default, all neighbors are already set.
     AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
     {

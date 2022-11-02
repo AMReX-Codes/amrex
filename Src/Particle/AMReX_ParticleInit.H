@@ -1022,8 +1022,6 @@ InitRandom (Long                    icount,
 
         ParticleLocData pld;
 
-        int cnt = 0;
-
         Vector<std::map<std::pair<int, int>, Gpu::HostVector<ParticleType> > > host_particles;
         host_particles.reserve(15);
         host_particles.resize(finestLevel()+1);
@@ -1079,8 +1077,6 @@ InitRandom (Long                    icount,
                 for (int i = 0; i < NArrayInt; i++) {
                     host_int_attribs[pld.m_lev][ind][i].push_back(pdata.int_array_data[i]);
                 }
-
-                cnt++;
               }
         }
 

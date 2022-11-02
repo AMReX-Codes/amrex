@@ -910,7 +910,7 @@ Amr::writeSmallPlotFile ()
 
     // Don't continue if we have no variables to plot.
 
-    if (stateSmallPlotVars().size() == 0) {
+    if (stateSmallPlotVars().size() == 0 && deriveSmallPlotVars().size() == 0) {
         return;
     }
 

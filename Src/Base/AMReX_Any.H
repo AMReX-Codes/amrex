@@ -48,11 +48,25 @@ public:
 
     //! Returns a reference to the contained object.
     template <typename MF>
-    MF& get () { return dynamic_cast<innards<MF>&>(*m_ptr).m_mf; }
+    MF& get () {
+        if (auto p0 = dynamic_cast<innards<MF>*>(m_ptr.get())) {
+            return p0->m_mf;
+        } else {
+            return dynamic_cast<innards<MF&>&>(*m_ptr).m_mf;
+        }
+    }
 
     //! Returns a const reference to the contained object.
     template <typename MF>
-    MF const& get () const { return dynamic_cast<innards<MF> const&>(*m_ptr).m_mf; }
+    MF const& get () const {
+        if (auto p0 = dynamic_cast<innards<MF>*>(m_ptr.get())) {
+            return p0->m_mf;
+        } else if (auto p1 = dynamic_cast<innards<MF&>*>(m_ptr.get())) {
+            return p1->m_mf;
+        } else {
+            return dynamic_cast<innards<MF const&> const&>(*m_ptr).m_mf;
+        }
+    }
 
     template <typename MF>
     bool is () const { return m_ptr->Type() == typeid(MF); }
@@ -60,14 +74,17 @@ public:
 private:
     struct innards_base {
         virtual const std::type_info& Type () const = 0;
+        virtual ~innards_base () = default;
     };
 
     template <typename MF>
     struct innards : innards_base
     {
-        innards(MF && mf)
+        innards (MF && mf)
             : m_mf(std::forward<MF>(mf))
             {}
+
+        virtual ~innards () = default;
 
         virtual const std::type_info& Type () const override {
             return typeid(MF);

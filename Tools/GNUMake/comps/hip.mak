@@ -23,7 +23,7 @@ endif
 
 # Generic flags, always used
 CXXFLAGS = -std=$(CXXSTD) -m64
-CFLAGS   = -std=c99 -m64
+CFLAGS   = -std=c11 -m64
 
 FFLAGS   = -ffixed-line-length-none -fno-range-check -fno-second-underscore
 F90FLAGS = -ffree-line-length-none -fno-range-check -fno-second-underscore -fimplicit-none
@@ -86,8 +86,6 @@ ifeq ($(HIP_COMPILER),clang)
 
   endif
 
-  CXXFLAGS += -Wno-pass-failed  # disable this warning
-
   ifeq ($(WARN_ALL),TRUE)
     warning_flags = -Wall -Wextra -Wunreachable-code -Wnull-dereference
     warning_flags += -Wfloat-conversion -Wextra-semi
@@ -109,7 +107,7 @@ ifeq ($(HIP_COMPILER),clang)
 
   # Generic HIP info
   ROC_PATH=$(realpath $(dir $(HIP_PATH)))
-  SYSTEM_INCLUDE_LOCATIONS += $(HIP_PATH)/include
+  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include $(HIP_PATH)/include
 
   # rocRand
   SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include/hiprand $(ROC_PATH)/include/rocrand
@@ -122,13 +120,12 @@ ifeq ($(HIP_COMPILER),clang)
   # rocThrust - Header only
   # SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include/rocthrust
 
-  ifeq ($(USE_ROCTX),TRUE)
   # rocTracer
-  CXXFLAGS += -DAMREX_USE_ROCTX
-  HIPCC_FLAGS += -DAMREX_USE_ROCTX
-  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include/roctracer $(ROC_PATH)/include/rocprofiler
-  LIBRARY_LOCATIONS += $(ROC_PATH)/lib
-  LIBRARIES += -lroctracer64 -lroctx64
+  ifeq ($(USE_ROCTX),TRUE)
+    CXXFLAGS += -DAMREX_USE_ROCTX
+    HIPCC_FLAGS += -DAMREX_USE_ROCTX
+    LIBRARY_LOCATIONS += $(ROC_PATH)/lib
+    LIBRARIES += -Wl,--rpath=$(ROC_PATH)/lib -lroctracer64 -lroctx64
   endif
 
   # hipcc passes a lot of unused arguments to clang

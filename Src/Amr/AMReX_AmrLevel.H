@@ -15,6 +15,8 @@
 #include <AMReX_StateDescriptor.H>
 #include <AMReX_StateData.H>
 #include <AMReX_VisMF.H>
+#include <AMReX_RungeKutta.H>
+#include <AMReX_FillPatcher.H>
 #ifdef AMREX_USE_EB
 #include <AMReX_EBSupport.H>
 #endif
@@ -152,11 +154,10 @@ public:
                           int  ncycle) = 0;
 
     /**
-    * \brief Contains operations to be done after a timestep.  This is a
-    * pure virtual function and hence MUST be implemented by derived
-    * classes.
+    * \brief Contains operations to be done after a timestep.  If this
+    * function is overridden, don't forget to reset FillPatcher.
     */
-    virtual  void post_timestep (int iteration) = 0;
+    virtual void post_timestep (int iteration);
     /**
     * \brief Contains operations to be done only after a full coarse
     * timestep.  The default implementation does nothing.
@@ -243,12 +244,14 @@ public:
     Long countCells () const noexcept;
 
     //! Get the area not to tag.
-    const BoxArray& getAreaNotToTag() noexcept;
-    const Box& getAreaToTag() noexcept;
+    const BoxArray& getAreaNotToTag () noexcept;
+    const Box& getAreaToTag () noexcept;
     //! Construct the area not to tag.
-    void constructAreaNotToTag();
+    void constructAreaNotToTag ();
     //! Set the area not to tag.
-    void setAreaNotToTag(BoxArray& ba) noexcept;
+    void setAreaNotToTag (BoxArray& ba) noexcept;
+
+    void resetFillPatcher ();
 
     /**
     * \brief Error estimation for regridding. This is a pure virtual
@@ -365,6 +368,20 @@ public:
     virtual void particle_redistribute (int /*lbase*/ = 0, bool /*a_init*/ = false) {;}
 #endif
 
+    /**
+     * \brief Fill with FillPatcher on level > 0 and AmrLevel::FillPatch on level 0.
+     *
+     * \param mf     destination MultiFab
+     * \param dcomp  starting component for the destination
+     * \param ncomp  number of component to fill
+     * \param nghost number of ghost cells to fill
+     * \param time   time
+     * \param state_index StateData index
+     * \param scomp  starting component in the StateData
+     */
+    void FillPatcherFill (amrex::MultiFab& mf, int dcomp, int ncomp, int nghost,
+                          amrex::Real time, int state_index, int scomp);
+
     static void FillPatch (AmrLevel& amrlevel,
                            MultiFab& leveldata,
                            int       boxGrow,
@@ -380,8 +397,33 @@ public:
                               Real      time,
                               int       index,
                               int       scomp,
-                             int       ncomp,
-                             int       dcomp=0);
+                              int       ncomp,
+                              int       dcomp=0);
+
+    /**
+     * \brief Evolve one step with Runge-Kutta (2, 3, or 4)
+     *
+     * To use RK, the StateData must have all the ghost cells needed.  See
+     * namespace RungeKutta for expected function signatures of the callable
+     * parameters.
+     *
+     * \param order      order of RK
+     * \param state_type index of StateData
+     * \param time       time at the beginning of the step.
+     * \param dt         time step
+     * \param iteration  iteration number on fine level during a coarse time
+     *                   step.  For an AMR simulation with subcycling and a
+     *                   refinement ratio of 2, the number is either 1 or 2,
+     *                   denoting the first and second substep, respectively.
+     * \param ncycle     number of subcyling steps.  It's usually 2 or 4.
+     *                   Without subcycling, this will be 1.
+     * \param f          computing right-hand side for evolving the StateData.
+     *                   One can also register data for flux registers in this.
+     * \param p          optionally post-processing RK stage results
+     */
+    template <typename F, typename P = RungeKutta::PostStageNoOp>
+    void RK (int order, int state_type, Real time, Real dt, int iteration,
+             int ncycle, F&& f, P&& p = RungeKutta::PostStageNoOp());
 
 #ifdef AMREX_USE_EB
     static void SetEBMaxGrowCells (int nbasic, int nvolume, int nfull) noexcept {
@@ -425,7 +467,7 @@ protected:
     IntVect               fine_ratio;   // Refinement ratio to finer level.
     static DeriveList     derive_lst;   // List of derived quantities.
     static DescriptorList desc_lst;     // List of state variables.
-    Vector<StateData>      state;        // Array of state data.
+    Vector<StateData>     state;        // Array of state data.
 
     BoxArray              m_AreaNotToTag; //Area which shouldn't be tagged on this level.
     Box                   m_AreaToTag;    //Area which is allowed to be tagged on this level.
@@ -436,7 +478,17 @@ protected:
 
     std::unique_ptr<FabFactory<FArrayBox> > m_factory;
 
+    Vector<std::unique_ptr<FillPatcher<MultiFab>>> m_fillpatcher;
+
 private:
+
+    template <std::size_t order>
+    void storeRKCoarseData (int state_type, Real time, Real dt,
+                            MultiFab const& S_old,
+                            Array<MultiFab,order> const& rkk);
+
+    void FillRKPatch (int state_index, MultiFab& S, Real time,
+                      int stage, int iteration, int ncycle);
 
     mutable BoxArray      edge_grids[AMREX_SPACEDIM];  // face-centered grids
     mutable BoxArray      nodal_grids;              // all nodal grids
@@ -557,6 +609,74 @@ private:
     std::map< int,Vector< Vector<Box> > >                m_cbox; // [grid][level][fillablesubbox]
     std::map< int,Vector< Vector< Vector<FillBoxId> > > > m_fbid; // [grid][level][fillablesubbox][oldnew]
 };
+
+template <typename F, typename P>
+void AmrLevel::RK (int order, int state_type, Real time, Real dt, int iteration,
+                   int ncycle, F&& f, P&& p)
+{
+    BL_PROFILE("AmrLevel::RK()");
+
+    AMREX_ASSERT(AmrLevel::desc_lst[state_type].nExtra() > 0); // Need ghost cells in StateData
+
+    MultiFab& S_old = get_old_data(state_type);
+    MultiFab& S_new = get_new_data(state_type);
+    const Real t_old = state[state_type].prevTime();
+    const Real t_new = state[state_type].curTime();
+    AMREX_ALWAYS_ASSERT(amrex::almostEqual(time,t_old) && amrex::almostEqual(time+dt,t_new));
+
+    if (order == 2) {
+        RungeKutta::RK2(S_old, S_new, time, dt, std::forward<F>(f),
+                        [&] (int /*stage*/, MultiFab& mf, Real t) {
+                            FillPatcherFill(mf, 0, mf.nComp(), mf.nGrow(), t,
+                                            state_type, 0); },
+                        std::forward<P>(p));
+    } else if (order == 3) {
+        RungeKutta::RK3(S_old, S_new, time, dt, std::forward<F>(f),
+                        [&] (int stage, MultiFab& mf, Real t) {
+                            FillRKPatch(state_type, mf, t, stage, iteration, ncycle);
+                        },
+                        [&] (Array<MultiFab,3> const& rkk) {
+                            if (level < parent->finestLevel()) {
+                                storeRKCoarseData(state_type, time, dt, S_old, rkk);
+                            }
+                        },
+                        std::forward<P>(p));
+    } else if (order == 4) {
+        RungeKutta::RK4(S_old, S_new, time, dt, std::forward<F>(f),
+                        [&] (int stage, MultiFab& mf, Real t) {
+                            FillRKPatch(state_type, mf, t, stage, iteration, ncycle);
+                        },
+                        [&] (Array<MultiFab,4> const& rkk) {
+                            if (level < parent->finestLevel()) {
+                                storeRKCoarseData(state_type, time, dt, S_old, rkk);
+                            }
+                        },
+                        std::forward<P>(p));
+    } else {
+        amrex::Abort("AmrLevel::RK: order = "+std::to_string(order)+" is not supported");
+    }
+}
+
+template <std::size_t order>
+void AmrLevel::storeRKCoarseData (int state_type, Real time, Real dt,
+                                  MultiFab const& S_old,
+                                  Array<MultiFab,order> const& rkk)
+{
+    if (level == parent->finestLevel()) { return; }
+
+    const StateDescriptor& desc = AmrLevel::desc_lst[state_type];
+
+    auto& fillpatcher = parent->getLevel(level+1).m_fillpatcher[state_type];
+    fillpatcher = std::make_unique<FillPatcher<MultiFab>>
+        (parent->boxArray(level+1), parent->DistributionMap(level+1),
+         parent->Geom(level+1),
+         parent->boxArray(level), parent->DistributionMap(level),
+         parent->Geom(level),
+         IntVect(desc.nExtra()), desc.nComp(), desc.interp(0));
+
+    fillpatcher->storeRKCoarseData(time, dt, S_old, rkk);
+}
+
 
 }
 

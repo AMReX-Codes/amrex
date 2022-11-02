@@ -108,7 +108,7 @@ MLCellABecLap::define (const Vector<Geometry>& a_geom,
     amrlev = 0;
     for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev) {
         MultiFab foo(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 0, MFInfo().SetAlloc(false));
-        if (! isMFIterSafe(*m_overset_mask[amrlev][mglev], foo)) {
+        if (! amrex::isMFIterSafe(*m_overset_mask[amrlev][mglev], foo)) {
             auto osm = std::make_unique<iMultiFab>(m_grids[amrlev][mglev],
                                                    m_dmap[amrlev][mglev], 1, 1);
             osm->ParallelCopy(*m_overset_mask[amrlev][mglev]);
@@ -189,16 +189,20 @@ MLCellABecLap::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux
                 a_flux[alev][idim]->mult(betainv);
             }
         }
+        addInhomogNeumannFlux(alev, a_flux[alev], *a_sol[alev], true);
     }
 }
 
 void
-MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
+MLCellABecLap::applyInhomogNeumannTerm (int amrlev, Any& a_rhs) const
 {
     bool has_inhomog_neumann = hasInhomogNeumannBC();
     bool has_robin = hasRobinBC();
 
     if (!has_inhomog_neumann && !has_robin) return;
+
+    AMREX_ASSERT(a_rhs.is<MultiFab>());
+    MultiFab& rhs = a_rhs.get<MultiFab>();
 
     int ncomp = getNComp();
     const int mglev = 0;
@@ -414,9 +418,121 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
 }
 
 void
-MLCellABecLap::applyOverset (int amrlev, MultiFab& rhs) const
+MLCellABecLap::addInhomogNeumannFlux (
+    int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab const& sol,
+    bool mult_bcoef) const
+{
+    /*
+     * if (mult_bcoef == true)
+     *     grad is -bceof*grad phi
+     * else
+     *     grad is grad phi
+     */
+    Real fac = mult_bcoef ? Real(-1.0) : Real(1.0);
+
+    bool has_inhomog_neumann = hasInhomogNeumannBC();
+    bool has_robin = hasRobinBC();
+
+    if (!has_inhomog_neumann && !has_robin) return;
+
+    int ncomp = getNComp();
+    const int mglev = 0;
+
+    const auto dxinv = m_geom[amrlev][mglev].InvCellSize();
+    const Box domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
+
+    Array<MultiFab const*, AMREX_SPACEDIM> bcoef = {AMREX_D_DECL(nullptr,nullptr,nullptr)};
+    if (mult_bcoef) {
+        bcoef = getBCoeffs(amrlev,mglev);
+    }
+
+    const auto& bndry = *m_bndry_sol[amrlev];
+
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(sol, mfi_info); mfi.isValid(); ++mfi)
+    {
+        Box const& vbx = mfi.validbox();
+        for (OrientationIter orit; orit.isValid(); ++orit) {
+            const Orientation ori = orit();
+            const int idim = ori.coordDir();
+            const Box& ccb = amrex::adjCell(vbx, ori);
+            const Dim3 os = IntVect::TheDimensionVector(idim).dim3();
+            const Real dxi = dxinv[idim];
+            if (! domain.contains(ccb)) {
+                for (int icomp = 0; icomp < ncomp; ++icomp) {
+                    auto const& phi = sol.const_array(mfi,icomp);
+                    auto const bv = bndry.bndryValues(ori).multiFab().const_array(mfi,icomp);
+                    auto const bc = bcoef[idim] ? bcoef[idim]->const_array(mfi,icomp)
+                        : Array4<Real const>{};
+                    auto const& f = grad[idim]->array(mfi,icomp);
+                    if (ori.isLow()) {
+                        if (m_lobc_orig[icomp][idim] ==
+                            LinOpBCType::inhomogNeumann) {
+                            AMREX_HOST_DEVICE_FOR_3D(ccb, i, j, k,
+                            {
+                                int ii = i+os.x;
+                                int jj = j+os.y;
+                                int kk = k+os.z;
+                                Real b = bc ? bc(ii,jj,kk) : Real(1.0);
+                                f(ii,jj,kk) = fac*b*bv(i,j,k);
+                            });
+                        } else if (m_lobc_orig[icomp][idim] ==
+                                   LinOpBCType::Robin) {
+                            Array4<Real const> const& rbc = (*m_robin_bcval[amrlev])[mfi].const_array(icomp*3);
+                            AMREX_HOST_DEVICE_FOR_3D(ccb, i, j, k,
+                            {
+                                int ii = i+os.x;
+                                int jj = j+os.y;
+                                int kk = k+os.z;
+                                Real tmp = Real(1.0) /
+                                    (rbc(i,j,k,1)*dxi + rbc(i,j,k,0)*Real(0.5));
+                                Real RA = rbc(i,j,k,2) * tmp;
+                                Real RB = (rbc(i,j,k,1)*dxi - rbc(i,j,k,0)*Real(0.5)) * tmp;
+                                Real b = bc ? bc(ii,jj,kk) : Real(1.0);
+                                f(ii,jj,kk) = fac*b*dxi*((Real(1.0)-RB)*phi(ii,jj,kk)-RA);
+                            });
+                        }
+                    } else {
+                        if (m_hibc_orig[icomp][idim] ==
+                            LinOpBCType::inhomogNeumann) {
+                            AMREX_HOST_DEVICE_FOR_3D(ccb, i, j, k,
+                            {
+                                Real b = bc ? bc(i,j,k) : Real(1.0);
+                                f(i,j,k) = fac*b*bv(i,j,k);
+                            });
+                        } else if (m_hibc_orig[icomp][idim] ==
+                                   LinOpBCType::Robin) {
+                            Array4<Real const> const& rbc = (*m_robin_bcval[amrlev])[mfi].const_array(icomp*3);
+                            AMREX_HOST_DEVICE_FOR_3D(ccb, i, j, k,
+                            {
+                                Real tmp = Real(1.0) /
+                                    (rbc(i,j,k,1)*dxi + rbc(i,j,k,0)*Real(0.5));
+                                Real RA = rbc(i,j,k,2) * tmp;
+                                Real RB = (rbc(i,j,k,1)*dxi - rbc(i,j,k,0)*Real(0.5)) * tmp;
+                                Real b = bc ? bc(i,j,k) : Real(1.0);
+                                f(i,j,k) = fac*b*dxi*(RA+(RB-Real(1.0))*
+                                                      phi(i-os.x,j-os.y,k-os.z));
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+void
+MLCellABecLap::applyOverset (int amrlev, Any& a_rhs) const
 {
     if (m_overset_mask[amrlev][0]) {
+        AMREX_ASSERT(a_rhs.is<MultiFab>());
+        auto& rhs = a_rhs.get<MultiFab>();
         const int ncomp = getNComp();
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())

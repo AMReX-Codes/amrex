@@ -231,6 +231,35 @@ namespace amrex
      */
     Gpu::HostVector<Real> sumToLine (MultiFab const& mf, int icomp, int ncomp,
                                      Box const& domain, int direction, bool local = false);
+
+    /** \brief Volume weighted sum for a vector of MultiFabs
+     *
+     * Return a volume weighted sum of MultiFabs of AMR data.  The sum is
+     * perform on a single component of the data.  If the MultiFabs are
+     * built with EB Factories, the cut cell volume fraction will be
+     * included in the weight.
+     */
+    Real volumeWeightedSum (Vector<MultiFab const*> const& mf, int icomp,
+                            Vector<Geometry> const& geom,
+                            Vector<IntVect> const& ratio,
+                            bool local = false);
+
+    /**
+     * \brief Fourth-order interpolation from fine to coarse level.
+     *
+     * This is for high-order "average-down" of finite-difference data.  If
+     * ghost cell data are used, it's the caller's responsibility to fill
+     * the ghost cells before calling this function.
+     *
+     * \param cmf   coarse data
+     * \param scomp starting component
+     * \param ncomp number of component
+     * \param fmf   fine data
+     * \param ratio refinement ratio.
+     */
+    void FourthOrderInterpFromFineToCoarse (MultiFab& cmf, int scomp, int ncomp,
+                                            MultiFab const& fmf,
+                                            IntVect const& ratio);
 }
 
 namespace amrex {

@@ -60,6 +60,8 @@ public:
     const Geometry& Geom () const noexcept { return m_geom; }
     IndexSpace const* getEBIndexSpace () const noexcept { return m_parent; }
 
+    void write_to_chkpt_file (const std::string& fname, bool extend_domain_face, int max_grid_size) const;
+
 protected:
 
     Level (Level && rhs) = default;
@@ -98,12 +100,13 @@ class GShopLevel
     : public Level
 {
 public:
-    GShopLevel (IndexSpace const* is, G const& gshop, const Geometry& geom, int max_grid_size, int ngrow, bool extend_domain_face);
+    GShopLevel (IndexSpace const* is, G const& gshop, const Geometry& geom, int max_grid_size,
+                int ngrow, bool extend_domain_face, int num_crse_opt);
     GShopLevel (IndexSpace const* is, int ilev, int max_grid_size, int ngrow,
                 const Geometry& geom, GShopLevel<G>& fineLevel);
     GShopLevel (IndexSpace const* is, const Geometry& geom);
     void define_fine (G const& gshop, const Geometry& geom,
-                      int max_grid_size, int ngrow, bool extend_domain_face);
+                      int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt);
 };
 
 template <typename G>
@@ -113,7 +116,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, const Geometry& geom)
 
 template <typename G>
 GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry& geom,
-                           int max_grid_size, int ngrow, bool extend_domain_face)
+                           int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt)
     : Level(is, geom)
 {
     if (std::is_same<typename G::FunctionType, AllRegularIF>::value) {
@@ -122,13 +125,13 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
         return;
     }
 
-    define_fine(gshop, geom, max_grid_size, ngrow, extend_domain_face);
+    define_fine(gshop, geom, max_grid_size, ngrow, extend_domain_face, num_crse_opt);
 }
 
 template <typename G>
 void
 GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
-                            int max_grid_size, int ngrow, bool extend_domain_face)
+                            int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt)
 {
     if (amrex::Verbose() > 0 && extend_domain_face == false) {
         amrex::Print() << "AMReX WARNING: extend_domain_face=false is not recommended!\n";
@@ -166,57 +169,84 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
     Box bounding_box = (extend_domain_face) ? domain : domain_grown;
     bounding_box.surroundingNodes();
 
-    BoxList bl(domain);
-    bl.maxSize(max_grid_size);
+    BoxList cut_boxes;
+    BoxList covered_boxes;
+
+    const int nprocs = ParallelDescriptor::NProcs();
+    const int iproc = ParallelDescriptor::MyProc();
+
+    num_crse_opt = std::max(0,std::min(8,num_crse_opt));
+    for (int clev = num_crse_opt; clev >= 0; --clev) {
+        IntVect crse_ratio(1 << clev);
+        if (domain.coarsenable(crse_ratio)) {
+            Box const& crse_bounding_box = amrex::coarsen(bounding_box, crse_ratio);
+            Geometry const& crse_geom = amrex::coarsen(geom, crse_ratio);
+            BoxList test_boxes;
+            if (cut_boxes.isEmpty()) {
+                covered_boxes.clear();
+                test_boxes = BoxList(crse_geom.Domain());
+                test_boxes.maxSize(max_grid_size);
+            } else {
+                test_boxes.swap(cut_boxes);
+                test_boxes.coarsen(crse_ratio);
+                test_boxes.maxSize(max_grid_size);
+            }
+
+            const Long nboxes = test_boxes.size();
+            const auto& boxes = test_boxes.data();
+            for (Long i = iproc; i < nboxes; i += nprocs) {
+                const Box& vbx = boxes[i];
+                const Box& gbx = amrex::surroundingNodes(amrex::grow(vbx,1));
+                auto box_type = gshop.getBoxType(gbx&crse_bounding_box,crse_geom,RunOn::Gpu);
+                if (box_type == gshop.allcovered) {
+                    covered_boxes.push_back(amrex::refine(vbx, crse_ratio));
+                } else if (box_type == gshop.mixedcells) {
+                    cut_boxes.push_back(amrex::refine(vbx, crse_ratio));
+                }
+            }
+
+            amrex::AllGatherBoxes(cut_boxes.data());
+        }
+    }
+
+    amrex::AllGatherBoxes(covered_boxes.data());
+
     if (m_ngrow != 0) {
-        const IntVect& domlo = domain.smallEnd();
-        const IntVect& domhi = domain.bigEnd();
-        for (auto& b : bl) {
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                if (m_ngrow[idim] != 0) {
-                    if (b.smallEnd(idim) == domlo[idim]) {
-                        b.growLo(idim,m_ngrow[idim]);
-                    }
-                    if (b.bigEnd(idim) == domhi[idim]) {
-                        b.growHi(idim,m_ngrow[idim]);
+        auto grow_at_domain_boundary = [&] (BoxList& bl)
+        {
+            const IntVect& domlo = domain.smallEnd();
+            const IntVect& domhi = domain.bigEnd();
+            for (auto& b : bl) {
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    if (m_ngrow[idim] != 0) {
+                        if (b.smallEnd(idim) == domlo[idim]) {
+                            b.growLo(idim,m_ngrow[idim]);
+                        }
+                        if (b.bigEnd(idim) == domhi[idim]) {
+                            b.growHi(idim,m_ngrow[idim]);
+                        }
                     }
                 }
             }
-        }
+        };
+        grow_at_domain_boundary(covered_boxes);
+        grow_at_domain_boundary(cut_boxes);
     }
 
-    m_grids.define(std::move(bl));
-    m_dmap.define(m_grids);
-
-    Vector<Box> cut_boxes;
-    Vector<Box> covered_boxes;
-
-    for (MFIter mfi(m_grids, m_dmap); mfi.isValid(); ++mfi)
-    {
-        const Box& vbx = mfi.validbox();
-        const Box& gbx = amrex::surroundingNodes(amrex::grow(vbx,1));
-        int box_type = gshop.getBoxType(gbx & bounding_box, geom, RunOn::Gpu);
-        if (box_type == gshop.allcovered) {
-            covered_boxes.push_back(vbx);
-        } else if (box_type == gshop.mixedcells) {
-            cut_boxes.push_back(vbx);
-        }
-    }
-
-    amrex::AllGatherBoxes(cut_boxes);
-    amrex::AllGatherBoxes(covered_boxes);
-
-    if ( cut_boxes.empty() &&
-        !covered_boxes.empty())
+    if ( cut_boxes.isEmpty() &&
+        !covered_boxes.isEmpty())
     {
         amrex::Abort("AMReX_EB2_Level.H: Domain is completely covered");
     }
 
-    if (!covered_boxes.empty()) {
-        m_covered_grids = BoxArray(BoxList(std::move(covered_boxes)));
+    if (!covered_boxes.isEmpty()) {
+        if (num_crse_opt > 2) { // don't want the box too big
+            covered_boxes.maxSize(max_grid_size*4);
+        }
+        m_covered_grids = BoxArray(std::move(covered_boxes));
     }
 
-    if (cut_boxes.empty()) {
+    if (cut_boxes.isEmpty()) {
         m_grids = BoxArray();
         m_dmap = DistributionMapping();
         m_allregular = true;
@@ -224,7 +254,7 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
         return;
     }
 
-    m_grids = BoxArray(BoxList(std::move(cut_boxes)));
+    m_grids = BoxArray(std::move(cut_boxes));
     m_dmap = DistributionMapping(m_grids);
 
     m_mgf.define(m_grids, m_dmap);

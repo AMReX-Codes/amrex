@@ -320,7 +320,7 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
     [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
     {
         ParticleType p(tile_data,i);
-        if ((p.id() < 0)) return false;
+        if ((p.id() < 0)) { return false; }
         IntVect iv = IntVect(
             AMREX_D_DECL(int(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0])),
                          int(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1])),
@@ -556,7 +556,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 bool enforcePeriodic (P& p,
                       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& phi,
-                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& rhi,
+                      amrex::GpuArray<amrex::ParticleReal,AMREX_SPACEDIM> const& rlo,
+                      amrex::GpuArray<amrex::ParticleReal,AMREX_SPACEDIM> const& rhi,
                       amrex::GpuArray<int,AMREX_SPACEDIM> const& is_per) noexcept
 {
     bool shifted = false;
@@ -568,7 +569,9 @@ bool enforcePeriodic (P& p,
                 p.pos(idim) -= static_cast<ParticleReal>(phi[idim] - plo[idim]);
             }
             // clamp to avoid precision issues;
-            if (p.pos(idim) < plo[idim]) p.pos(idim) = static_cast<ParticleReal>(plo[idim]);
+            if (p.pos(idim) < rlo[idim]) {
+                p.pos(idim) = rlo[idim];
+            }
             shifted = true;
         }
         else if (p.pos(idim) < plo[idim]) {
@@ -576,8 +579,8 @@ bool enforcePeriodic (P& p,
                 p.pos(idim) += static_cast<ParticleReal>(phi[idim] - plo[idim]);
             }
             // clamp to avoid precision issues;
-            if (p.pos(idim) >= rhi[idim]) {
-                p.pos(idim) = static_cast<ParticleReal>(rhi[idim]);
+            if (p.pos(idim) > rhi[idim]) {
+                p.pos(idim) = rhi[idim];
             }
             shifted = true;
         }
@@ -594,7 +597,8 @@ int
 partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBufferMap& pmap,
                           const GpuArray<Real,AMREX_SPACEDIM>& plo,
                           const GpuArray<Real,AMREX_SPACEDIM>& phi,
-                          const GpuArray<Real,AMREX_SPACEDIM>& rhi,
+                          const GpuArray<ParticleReal,AMREX_SPACEDIM>& rlo,
+                          const GpuArray<ParticleReal,AMREX_SPACEDIM>& rhi,
                           const GpuArray<int ,AMREX_SPACEDIM>& is_per,
                           int lev, int gid, int /*tid*/,
                           int lev_min, int lev_max, int nGrow, bool remove_negative)
@@ -641,7 +645,7 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                 else
                 {
                     auto p_prime = p;
-                    enforcePeriodic(p_prime, plo, phi, rhi, is_per);
+                    enforcePeriodic(p_prime, plo, phi, rlo, rhi, is_per);
                     auto tup_prime = ploc(p_prime, lev_min, lev_max, nGrow);
                     assigned_grid = amrex::get<0>(tup_prime);
                     assigned_lev  = amrex::get<1>(tup_prime);

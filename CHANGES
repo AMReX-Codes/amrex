@@ -1,3 +1,236 @@
+# 22.11
+
+  -- MPI Reduce for ValLocPair (#3003)
+
+  -- `FabArray::isDefined` (#2997)
+
+  -- Make The_Device_Arena non-managed (#2998)
+
+  -- Add alias template Gpu::NonManagedDeviceVector (#2999)
+
+  -- Pre- and Post-interpolation hook interface (#2991)
+
+  -- Add user defined BC types (#2995)
+
+  -- Add BCRec::set for convenience (#2993)
+
+  -- ParallelFor with compile time optimization of kernels with run time parameters (#2954)
+
+  -- 2D RZ solver for WarpX: Arbitrary coefficient (#2986)
+
+  -- Runge-Kutta support for AMR (#2974)
+
+  -- Fourth-order interpolation from fine to coarse level (#2987)
+
+  -- Fix EB data inconsistency when fixing small cells and multiple cuts (#2943)
+
+  -- MFIter::Finalize (#2983, #2985, #2988)
+
+  -- Fix MLMG::getGradSolution & getFluxes for inhomogeneous Neumann and Robin BC (#2984)
+
+  -- MLLinOp::postSolve (#2981)
+
+  -- add templating for the cell bilinear interpolators (#2979)
+
+  -- FillPatcher class (#2972)
+
+  -- Remove sycl namespace alias (#2971)
+
+  -- Fix Tensor Solver BC (#2930)
+
+  -- Disable host device for macros for SYCL/DPC++ (#2969)
+
+# 22.10
+
+  -- Solve an issue with particles async IO when having runtime added variables (#2966)
+
+  -- Fix int overflow in amrex::bisect (#2964)
+
+  -- Fix MLEBNodeFDLaplacian bottom solver (#2963)
+
+  -- make tagging routines EB_aware (#2962)
+
+  -- Volume weighted sum (#2961)
+
+  -- CellData: data in a single cell (#2959)
+
+  -- Quartic interpolation for cell centered data (#2960)
+
+  -- Add GPU-compatible upper bound and lower bound algorithms to AMReX_Algorithm (#2958)
+
+  -- add option for makebuildsources to specify the style arguments for 'git describe'. (#2957)
+
+  -- Add roundoff_lo corresponding to roundoff_hi for domains that don't start at 0 (#2950)
+
+  -- Add template parameter to ParallelFor and launch specifying block size (#2947)
+
+  -- Byte spread fixes (#2949)
+
+  -- CMake: HIP_PATH from ROCM_PATH (#2948)
+
+  -- Fix: Make Finalize->Initialize->F->I->... Work (#2944)
+
+  -- Changes for Cray & Clang (#2941)
+
+  -- Link to cublas when using CUDA and Hypre (#2933)
+
+  -- HIP: use coarse grained host memory (#2932)
+
+  -- EB checkpoint files (#2897)
+
+  -- Fix: Loading Files Again (#2936)
+
+  -- Check if boundary particles container has been created before clearance. (#2935)
+
+  -- SYCL: Replace deprecated atomic types and operations (#2921)
+
+# 22.09
+
+  -- Preserve neighbor particles when sorting particles. (#2923)
+
+  -- Scope of NonLocalBC::ParallelCopy (#2922)
+
+  -- Open Boundary Poisson Solver (#2912)
+     Add hypre as an option for OpenBCSolver (#2931)
+
+  -- Fix OOB access of ref ratio on HDF write header (#2919)
+
+  -- Add Polaris to GNUMake (#2908)
+
+  -- Export GpuDevice Globals (#2918)
+
+  -- enable LinOp to use the right Factory (fixes moving geometry problem) (#2916)
+
+  -- Use 1 atomic instead of two per item in DenseBins::build (#2911)
+
+  -- [SYCL] Remove amrex::oneapi and update deprecated device descriptors (#2910)
+
+  -- Add: `MultiFab::sum_unique` (#2909)
+
+  -- In MLMG::mgFcycle, assert that for EB the linop is cell-centered. (#2905)
+
+  -- EB: Add Fine Levels (#2881)
+
+  -- Add rpath to lib64 for ZFP. (#2902)
+
+  -- change data types from double to amrex::Real, and thus we can use single precision for the hypre IJ interface (#2896)
+
+  -- MPMD Support (#2895)
+
+  -- MLMG interface (#2858)
+
+# 22.08
+
+  -- Let `selectActualNeighbors` return right after starting if there are no
+     particles for communication. (#2886)
+
+  -- Add Comm Sync to Redistribute (#2891)
+
+  -- Multi-materials and derived variable output (#2888)
+
+  -- Fix host / device sync bug in PODVector (#2890)
+
+  -- MinLoc and MaxLoc Support (#2885)
+
+  -- HIP: Remove the call to hipDeviceSetSharedMemConfig (#2884)
+
+  -- Add Frontier to GNU Make (#2879)
+
+  -- Add option to derefine to AMRErrorTag (#2875)
+
+  -- Fix the segmentation fault in selecting actual neighbor particles. (#2877)
+
+  -- Workaround to bypass issue observed at very large scale with Fujitsu MPI (#2874)
+     `TagBoxArray::collate`: Fujitsu Clang (#2889)
+
+  -- Allow zero components MultiFab and BaseFab (#2873)
+
+  -- New EB optimization parameter: eb2.num_coarsen_opt (#2872)
+
+  -- SENSEI 4.0: Fix Build for Particles (#2869)
+
+  -- Cache the neighbor comm tags for the CPU implementation of fillNeighbors. (#2862)
+
+  -- Remove some hard checks in check_mvmc for 3D (#2864)
+
+  -- Carry over fix for ngbxy.smallEnd typo (#2868)
+
+# 22.07
+
+  -- Adding control APIs and namespacing for core algorithm paths like SpGEMM, SpMV, and SpTrans. (#2859)
+
+  -- update the SENSEI in situ coupling for SENSEI v4.0.0 (#2785)
+
+  -- Write runtime attribs to checkpoints on GPUs (#2856)
+
+  -- Fix gnu make on Crusher for mpi_gtl_hsa (#2857)
+
+  -- CMake: FindDependency CUDAToolkit (#2849)
+
+  -- NERSC Programming Environment prototype (#2848)
+
+  -- GNU Make: No need to query mpif90 if Fortran is not used. (#2852)
+
+  -- Remove f90doc (#2851)
+
+  -- Explicitly invoke python3 (#2850)
+
+  -- Maintain the high end of the 'roundoff domain' in both float and double precision (#2839)
+
+  -- add Ok to coordsys (#2844)
+
+  -- ParamParse: Add Files at Runtime (#2842)
+
+  -- Fix a pathological case for 2d EB (#2840)
+
+  -- add fvolumesum to GNUmakefile (#2836)
+
+  -- Clamp particles shifted from plo boundary against rhi, rather than back to plo (#2814)
+
+  -- Fix: CMake NVTX not only Hypre (#2837)
+
+  -- Update sensei CI container for sensei v4.0 integration (#2834)
+
+  -- HIP Memory Advise : Set managed memory to coarse grain (#2835)
+
+  -- CMake: Fix `export` with `AMReX_INSTALL=OFF` (#2838)
+
+  -- make PODVector work with PolymorphicArenaAllocator (#2829)
+
+  -- Re-implement FaceLinear::interp() for InterpFromCoarseLevel (#2831)
+
+  -- Make regrid method of Amr class public (#2833)
+
+  -- amrex::Any (#2827)
+
+  -- Fix line integral computation (#2830)
+
+  -- Fix a bug in multigrid grids (#2823)
+
+  -- Add html, additional sections to README.md (#2775)
+
+  -- Allow StateDataPhysBCFunct to operate on face-centered data (#2819)
+
+  -- Fix Parser ODR (#2820)
+
+  -- CMake: Cleanup old nvToolsExt (#2817)
+
+  -- Handle the case where we don't have enough device memory for the snd_buffer (#2705)
+
+  -- CMake: 3.17+ (#2813)
+
+  -- Landon/fix bug ghost particles (#2812)
+
+  -- Follow-on to 2809; update selectActualNeighbors as well. (#2810)
+
+  -- Generalize the type of callables that can be passed into the neighbor list build function (#2809)
+
+  -- Add AVX2 instructions flag. (#2803)
+
+  -- Avoid M_PI because it's not in the C++ standard (#2807)
+
+  -- In the array version of FillPatchTwoLevels, allow specifying an (#2800)
+
 # 22.06
 
   -- Fix solvability issue in the nodal solver RAP approach (#2783, #2801)

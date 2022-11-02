@@ -200,7 +200,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_adotx_rz_eb_doit (int i, int j, int k, Array4<Real> const& y,
                                    Array4<Real const> const& x, Array4<int const> const& dmsk,
                                    Array4<Real const> const& ecx, Array4<Real const> const& ecy,
-                                   F && xeb, Real dr, Real dz, Real rlo) noexcept
+                                   F && xeb, Real sigr, Real dr, Real dz, Real rlo) noexcept
 {
     if (dmsk(i,j,k)) {
         y(i,j,k) = Real(0.0);
@@ -211,11 +211,11 @@ void mlebndfdlap_adotx_rz_eb_doit (int i, int j, int k, Array4<Real> const& y,
         Real const r = rlo + Real(i) * dr;
         if (r == Real(0.0)) {
             if (ecx(i,j,k) == Real(1.0)) { // regular
-                out = Real(4.0) * (x(i+1,j,k)-x(i,j,k)) / (dr*dr);
+                out = Real(4.0) * sigr * (x(i+1,j,k)-x(i,j,k)) / (dr*dr);
                 scale = Real(1.0);
             } else {
                 hp = Real(1.0) + Real(2.) * ecx(i,j,k);
-                out = Real(4.0) * (xeb(i+1,j,k)-x(i,j,k)) / (dr*dr*hp*hp);
+                out = Real(4.0) * sigr * (xeb(i+1,j,k)-x(i,j,k)) / (dr*dr*hp*hp);
                 scale = hp;
             }
         } else {
@@ -235,7 +235,7 @@ void mlebndfdlap_adotx_rz_eb_doit (int i, int j, int k, Array4<Real> const& y,
                 tmp += (xeb(i-1,j,k) - x(i,j,k)) / hm * (r - Real(0.5) * hp * dr);
             }
 
-            out = tmp * Real(2.0) / ((hp+hm) * r * dr * dr);
+            out = tmp * Real(2.0) * sigr / ((hp+hm) * r * dr * dr);
             scale = amrex::min(hm, hp);
         }
 
@@ -266,29 +266,29 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_adotx_rz_eb (int i, int j, int k, Array4<Real> const& y,
                               Array4<Real const> const& x, Array4<int const> const& dmsk,
                               Array4<Real const> const& ecx, Array4<Real const> const& ecy,
-                              Real xeb, Real dr, Real dz, Real rlo) noexcept
+                              Real xeb, Real sigr, Real dr, Real dz, Real rlo) noexcept
 {
     mlebndfdlap_adotx_rz_eb_doit(i, j, k, y, x, dmsk, ecx, ecy,
                                  [=] (int, int, int) -> Real { return xeb; },
-                                 dr, dz, rlo);
+                                 sigr, dr, dz, rlo);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_adotx_rz_eb (int i, int j, int k, Array4<Real> const& y,
                               Array4<Real const> const& x, Array4<int const> const& dmsk,
                               Array4<Real const> const& ecx, Array4<Real const> const& ecy,
-                              Array4<Real const> const& xeb, Real dr, Real dz, Real rlo) noexcept
+                              Array4<Real const> const& xeb, Real sigr, Real dr, Real dz, Real rlo) noexcept
 {
     mlebndfdlap_adotx_rz_eb_doit(i, j, k, y, x, dmsk, ecx, ecy,
                                  [=] (int i1, int i2, int i3) -> Real {
                                      return xeb(i1,i2,i3); },
-                                 dr, dz, rlo);
+                                 sigr, dr, dz, rlo);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_adotx_rz (int i, int j, int k, Array4<Real> const& y,
                            Array4<Real const> const& x, Array4<int const> const& dmsk,
-                           Real dr, Real dz, Real rlo) noexcept
+                           Real sigr, Real dr, Real dz, Real rlo) noexcept
 {
     if (dmsk(i,j,k)) {
         y(i,j,k) = Real(0.0);
@@ -296,11 +296,11 @@ void mlebndfdlap_adotx_rz (int i, int j, int k, Array4<Real> const& y,
         Real Ax = (x(i,j-1,k) - Real(2.0)*x(i,j,k) + x(i,j+1,k)) / (dz*dz);
         Real const r = rlo + Real(i)*dr;
         if (r == Real(0.0)) {
-            Ax += Real(4.0) * (x(i+1,j,k)-x(i,j,k)) / (dr*dr);
+            Ax += Real(4.0) * sigr * (x(i+1,j,k)-x(i,j,k)) / (dr*dr);
         } else {
             Real const rp = r + Real(0.5)*dr;
             Real const rm = r - Real(0.5)*dr;
-            Ax += (rp*x(i+1,j,k) - (rp+rm)*x(i,j,k) + rm*x(i-1,j,k)) / (r*dr*dr);
+            Ax += sigr * (rp*x(i+1,j,k) - (rp+rm)*x(i,j,k) + rm*x(i-1,j,k)) / (r*dr*dr);
         }
         y(i,j,k) = Ax;
     }
@@ -310,7 +310,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_gsrb_rz_eb (int i, int j, int k, Array4<Real> const& x,
                              Array4<Real const> const& rhs, Array4<int const> const& dmsk,
                              Array4<Real const> const& ecx, Array4<Real const> const& ecy,
-                             Real dr, Real dz, Real rlo, int redblack) noexcept
+                             Real sigr, Real dr, Real dz, Real rlo, int redblack) noexcept
 {
     if ((i+j+k+redblack)%2 == 0) {
         if (dmsk(i,j,k)) {
@@ -322,12 +322,12 @@ void mlebndfdlap_gsrb_rz_eb (int i, int j, int k, Array4<Real> const& x,
             Real const r = rlo + Real(i) * dr;
             if (r == Real(0.0)) {
                 if (ecx(i,j,k) == Real(1.0)) { // regular
-                    Ax = (Real(4.0) / (dr*dr)) * (x(i+1,j,k)-x(i,j,k));
-                    gamma = -(Real(4.0) / (dr*dr));
+                    Ax = (Real(4.0) * sigr / (dr*dr)) * (x(i+1,j,k)-x(i,j,k));
+                    gamma = -(Real(4.0) * sigr / (dr*dr));
                     scale = Real(1.0);
                 } else {
                     hp = Real(1.0) + Real(2.) * ecx(i,j,k);
-                    gamma = -(Real(4.0) / (dr*dr*hp*hp));
+                    gamma = -(Real(4.0) * sigr / (dr*dr*hp*hp));
                     Ax = gamma * x(i,j,k);
                     scale = hp;
                 }
@@ -352,8 +352,8 @@ void mlebndfdlap_gsrb_rz_eb (int i, int j, int k, Array4<Real> const& x,
                     tmp0 += Real(-1.0) / hm * (r - Real(0.5) * hp * dr);
                 }
 
-                Ax = tmp * Real(2.0) / ((hp+hm) * r * dr * dr);
-                gamma = tmp0 * Real(2.0) / ((hp+hm) * r * dr * dr);
+                Ax = tmp * Real(2.0) * sigr / ((hp+hm) * r * dr * dr);
+                gamma = tmp0 * Real(2.0) * sigr / ((hp+hm) * r * dr * dr);
                 scale = amrex::min(hm, hp);
             }
 
@@ -390,7 +390,7 @@ void mlebndfdlap_gsrb_rz_eb (int i, int j, int k, Array4<Real> const& x,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_gsrb_rz (int i, int j, int k, Array4<Real> const& x,
                           Array4<Real const> const& rhs, Array4<int const> const& dmsk,
-                          Real dr, Real dz, Real rlo, int redblack) noexcept
+                          Real sigr, Real dr, Real dz, Real rlo, int redblack) noexcept
 {
     if ((i+j+k+redblack)%2 == 0) {
         if (dmsk(i,j,k)) {
@@ -400,13 +400,13 @@ void mlebndfdlap_gsrb_rz (int i, int j, int k, Array4<Real> const& x,
             Real gamma = -Real(2.0) / (dz*dz);
             Real const r = rlo + Real(i)*dr;
             if (r == Real(0.0)) {
-                Ax += (Real(4.0)/(dr*dr)) * (x(i+1,j,k)-x(i,j,k));
-                gamma += -(Real(4.0)/(dr*dr));
+                Ax += (Real(4.0)*sigr/(dr*dr)) * (x(i+1,j,k)-x(i,j,k));
+                gamma += -(Real(4.0)*sigr/(dr*dr));
             } else {
                 Real const rp = r + Real(0.5)*dr;
                 Real const rm = r - Real(0.5)*dr;
-                Ax += (rp*x(i+1,j,k) - (rp+rm)*x(i,j,k) + rm*x(i-1,j,k)) / (r*dr*dr);
-                gamma += -(rp+rm) / (r*dr*dr);
+                Ax += sigr*(rp*x(i+1,j,k) - (rp+rm)*x(i,j,k) + rm*x(i-1,j,k)) / (r*dr*dr);
+                gamma += -sigr*(rp+rm) / (r*dr*dr);
             }
             constexpr Real omega = Real(1.25);
             x(i,j,k) += (rhs(i,j,k) - Ax) * (omega / gamma);

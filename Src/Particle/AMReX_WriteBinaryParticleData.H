@@ -231,9 +231,23 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
                     }
                 }
 
+                for (int j = 0; j < ptd.m_num_runtime_int; j++) {
+                    if (write_int_comp_d_ptr[PC::SuperParticleType::NInt + j]) {
+                        idata_d_ptr[iout_index] = ptd.m_runtime_idata[j][pindex];
+                        iout_index++;
+                    }
+                }
+
                 for (int j = 0; j < PC::SuperParticleType::NReal; j++) {
                     if (write_real_comp_d_ptr[j]) {
                         rdata_d_ptr[rout_index] = p.rdata(j);
+                        rout_index++;
+                    }
+                }
+
+                for (int j = 0; j < ptd.m_num_runtime_real; j++) {
+                    if (write_real_comp_d_ptr[PC::SuperParticleType::NReal + j]) {
+                        rdata_d_ptr[rout_index] = ptd.m_runtime_rdata[j][pindex];
                         rout_index++;
                     }
                 }
@@ -752,7 +766,25 @@ void WriteBinaryParticleDataAsync (PC const& pc,
             if (np_per_grid_local[lev][mfi.index()] > 0)
             {
                 const auto& ptile = pc.ParticlesAt(lev, mfi);
-                new_ptile.resize(np_per_grid_local[lev][mfi.index()]);
+
+                const auto np = np_per_grid_local[lev][mfi.index()];
+
+                new_ptile.resize(np);
+
+                const auto runtime_real_comps = ptile.NumRuntimeRealComps();
+                const auto runtime_int_comps = ptile.NumRuntimeIntComps();
+
+                constexpr auto NReal = NArrayReal + NStructReal;
+                constexpr auto NInt = NArrayInt + NStructInt;
+
+                new_ptile.define(runtime_real_comps, runtime_int_comps);
+
+                for (auto comp(0); comp < runtime_real_comps; ++comp)
+                  new_ptile.push_back_real(NReal+comp, np, 0.);
+
+                for (auto comp(0); comp < runtime_int_comps; ++comp)
+                  new_ptile.push_back_int(NInt+comp, np, 0);
+
                 amrex::filterParticles(new_ptile, ptile, KeepValidFilter());
             }
         }

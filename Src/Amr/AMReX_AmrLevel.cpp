@@ -32,6 +32,14 @@ DescriptorList AmrLevel::desc_lst;
 DeriveList     AmrLevel::derive_lst;
 
 void
+AmrLevel::post_timestep (int /*iteration*/)
+{
+    if (level < parent->finestLevel()) {
+        parent->getLevel(level+1).resetFillPatcher();
+    }
+}
+
+void
 AmrLevel::postCoarseTimeStep (Real time)
 {
     BL_ASSERT(level == 0);
@@ -102,6 +110,7 @@ AmrLevel::AmrLevel (Amr&            papa,
     }
 
     state.resize(desc_lst.size());
+    m_fillpatcher.resize(desc_lst.size());
 
 #ifdef AMREX_USE_EB
     if (EB2::TopIndexSpaceIfPresent()) {
@@ -450,6 +459,8 @@ AmrLevel::restart (Amr&          papa,
                              desc_lst[i], papa.theRestartFile());
         }
     }
+
+    m_fillpatcher.resize(ndesc);
 
     if (parent->useFixedCoarseGrids()) constructAreaNotToTag();
 
@@ -2097,6 +2108,63 @@ void AmrLevel::constructAreaNotToTag ()
 }
 
 void
+AmrLevel::resetFillPatcher ()
+{
+    for (auto& fp : m_fillpatcher) {
+        fp.reset();
+    }
+}
+
+void
+AmrLevel::FillPatcherFill (MultiFab& mf, int dcomp, int ncomp, int nghost,
+                           Real time, int state_index, int scomp)
+{
+    if (level == 0) {
+        FillPatch(*this, mf, nghost, time, state_index, scomp, ncomp, dcomp);
+    } else {
+        AmrLevel& fine_level = *this;
+        AmrLevel& crse_level = parent->getLevel(level-1);
+        const Geometry& geom_fine = fine_level.geom;
+        const Geometry& geom_crse = crse_level.geom;
+
+        Vector<MultiFab*> smf_crse;
+        Vector<Real> stime_crse;
+        StateData& statedata_crse = crse_level.state[state_index];
+        statedata_crse.getData(smf_crse,stime_crse,time);
+        StateDataPhysBCFunct physbcf_crse(statedata_crse,scomp,geom_crse);
+
+        Vector<MultiFab*> smf_fine;
+        Vector<Real> stime_fine;
+        StateData& statedata_fine = fine_level.state[state_index];
+        statedata_fine.getData(smf_fine,stime_fine,time);
+        StateDataPhysBCFunct physbcf_fine(statedata_fine,scomp,geom_fine);
+
+        const StateDescriptor& desc = AmrLevel::desc_lst[state_index];
+
+        if (level > 1 &&!amrex::ProperlyNested(fine_level.crse_ratio,
+                                               parent->blockingFactor(fine_level.level),
+                                               nghost, mf.ixType(),
+                                               desc.interp(scomp))) {
+            amrex::Abort("FillPatcherFill: Grids are not properly nested.  Must increase blocking factor.");
+        }
+
+        auto& fillpatcher = m_fillpatcher[state_index];
+        if (fillpatcher == nullptr) {
+            fillpatcher = std::make_unique<FillPatcher<MultiFab>>
+                (parent->boxArray(level), parent->DistributionMap(level), geom_fine,
+                 parent->boxArray(level-1), parent->DistributionMap(level-1), geom_crse,
+                 IntVect(nghost), desc.nComp(), desc.interp(scomp));
+        }
+
+        fillpatcher->fill(mf, IntVect(nghost), time,
+                          smf_crse, stime_crse, smf_fine, stime_fine,
+                          scomp, dcomp, ncomp,
+                          physbcf_crse, scomp, physbcf_fine, scomp,
+                          desc.getBCs(), scomp);
+    }
+}
+
+void
 AmrLevel::FillPatch (AmrLevel& amrlevel,
                      MultiFab& leveldata,
                      int       boxGrow,
@@ -2161,6 +2229,25 @@ AmrLevel::CreateLevelDirectory (const std::string &dir)
       }
     }
     levelDirectoryCreated = true;
+}
+
+void
+AmrLevel::FillRKPatch (int state_index, MultiFab& S, Real time,
+                       int stage, int iteration, int ncycle)
+{
+    StateDataPhysBCFunct physbcf(state[state_index], 0, geom);
+
+    if (level == 0) {
+        S.FillBoundary(geom.periodicity());
+        physbcf(S, 0, S.nComp(), S.nGrowVect(), time, 0);
+    } else {
+        auto& crse_level = parent->getLevel(level-1);
+        StateDataPhysBCFunct physbcf_crse(crse_level.state[state_index], 0,
+                                          crse_level.geom);
+        auto& fillpatcher = m_fillpatcher[state_index];
+        fillpatcher->fillRK(stage, iteration, ncycle, S, time, physbcf_crse,
+                            physbcf, AmrLevel::desc_lst[state_index].getBCs());
+    }
 }
 
 }

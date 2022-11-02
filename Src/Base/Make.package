@@ -22,6 +22,7 @@ C$(AMREX_BASE)_sources += AMReX_BlockMutex.cpp
 C$(AMREX_BASE)_sources += AMReX_ParmParse.cpp AMReX_parmparse_fi.cpp AMReX_Utility.cpp
 C$(AMREX_BASE)_headers += AMReX_ParmParse.H AMReX_Utility.H AMReX_BLassert.H AMReX_ArrayLim.H
 C$(AMREX_BASE)_headers += AMReX_Functional.H AMReX_Reduce.H AMReX_Scan.H AMReX_Partition.H
+C$(AMREX_BASE)_headers += AMReX_ValLocPair.H
 
 C$(AMREX_BASE)_headers += AMReX_FileSystem.H
 C$(AMREX_BASE)_sources += AMReX_FileSystem.cpp
@@ -100,6 +101,7 @@ C$(AMREX_BASE)_headers += AMReX_MFParallelForC.H
 C$(AMREX_BASE)_headers += AMReX_MFParallelForG.H
 
 C$(AMREX_BASE)_headers += AMReX_TagParallelFor.H
+C$(AMREX_BASE)_headers += AMReX_CTOParallelForImpl.H
 
 C$(AMREX_BASE)_headers += AMReX_ParReduce.H
 
@@ -203,7 +205,7 @@ C$(AMREX_BASE)_headers += AMReX_FEIntegrator.H
 C$(AMREX_BASE)_headers += AMReX_IntegratorBase.H
 C$(AMREX_BASE)_headers += AMReX_RKIntegrator.H
 C$(AMREX_BASE)_headers += AMReX_TimeIntegrator.H
-
+C$(AMREX_BASE)_headers += AMReX_RungeKutta.H
 
 #
 # Fortran interface routines.
@@ -271,6 +273,10 @@ CEXE_sources += AMReX_Machine.cpp
 # Forward declaration
 CEXE_headers += AMReX_BaseFwd.H
 
+ifeq ($(USE_MPI),TRUE)
+  CEXE_headers += AMReX_MPMD.H
+  CEXE_sources += AMReX_MPMD.cpp
+endif
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base

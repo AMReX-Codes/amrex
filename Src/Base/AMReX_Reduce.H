@@ -6,9 +6,11 @@
 #include <AMReX_Arena.H>
 #include <AMReX_OpenMP.H>
 #include <AMReX_MFIter.H>
+#include <AMReX_ValLocPair.H>
 
 #include <algorithm>
 #include <functional>
+#include <limits>
 
 namespace amrex {
 
@@ -133,7 +135,12 @@ struct ReduceOpMin
     void local_update (T& d, T const& s) const noexcept { d = amrex::min(d,s); }
 
     template <typename T>
-    constexpr void init (T& t) const noexcept { t = std::numeric_limits<T>::max(); }
+    constexpr std::enable_if_t<std::numeric_limits<T>::is_specialized>
+    init (T& t) const noexcept { t = std::numeric_limits<T>::max(); }
+
+    template <typename T>
+    constexpr std::enable_if_t<!std::numeric_limits<T>::is_specialized>
+    init (T& t) const noexcept { t = T::max(); }
 };
 
 struct ReduceOpMax
@@ -161,7 +168,12 @@ struct ReduceOpMax
     void local_update (T& d, T const& s) const noexcept { d = amrex::max(d,s); }
 
     template <typename T>
-    constexpr void init (T& t) const noexcept { t = std::numeric_limits<T>::lowest(); }
+    constexpr std::enable_if_t<std::numeric_limits<T>::is_specialized>
+    init (T& t) const noexcept { t = std::numeric_limits<T>::lowest(); }
+
+    template <typename T>
+    constexpr std::enable_if_t<!std::numeric_limits<T>::is_specialized>
+    init (T& t) const noexcept { t = T::lowest(); }
 };
 
 struct ReduceOpLogicalAnd
@@ -899,7 +911,8 @@ bool AnyOf (Box const& box, P&& pred)
         }
     });
 #else
-    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
+    AMREX_LAUNCH_KERNEL(AMREX_GPU_MAX_THREADS, ec.numBlocks, ec.numThreads, 0,
+                        Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         __shared__ int has_any;
         if (threadIdx.x == 0) has_any = *dp;

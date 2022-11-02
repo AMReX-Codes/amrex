@@ -35,8 +35,8 @@ list of important variables.
    +-----------------+-------------------------------------+--------------------+
    | COMP            | gnu, cray, ibm, intel, llvm, or pgi | none               |
    +-----------------+-------------------------------------+--------------------+
-   | CXXSTD          | C++ standard (``c++14``, ``c++17``, | compiler default,  |
-   |                 | ``c++20``)                          | at least ``c++14`` |
+   | CXXSTD          | C++ standard (``c++17``, ``c++20``) | compiler default,  |
+   |                 |                                     | at least ``c++17`` |
    +-----------------+-------------------------------------+--------------------+
    | DEBUG           | TRUE or FALSE                       | FALSE              |
    +-----------------+-------------------------------------+--------------------+
@@ -584,7 +584,7 @@ the following line in the appropriate CMakeLists.txt file:
 
 ::
 
-    target_link_libraries( <your-target-name>  AMReX::<amrex-target-name> )
+    target_link_libraries( <your-target-name> PUBLIC AMReX::<amrex-target-name> )
 
 
 In the above snippet, ``<amrex-target-name>`` is any of the targets listed in the table below.
@@ -709,7 +709,7 @@ As an example, consider the following CMake code:
 ::
 
     find_package(AMReX REQUIRED 3D EB)
-    target_link_libraries( Foo  AMReX::amrex AMReX::Flags_CXX )
+    target_link_libraries( Foo PUBLIC AMReX::amrex )
 
 The code in the snippet above checks whether an AMReX installation with 3D and Embedded Boundary support
 is available on the system. If so, AMReX is linked to target ``Foo`` and AMReX flags preset is used
@@ -740,8 +740,8 @@ The AMReX team does development on Linux machines, from laptops to supercomputer
 We do not officially support AMReX on Windows, and many of us do not have access to any Windows
 machines.  However, we believe there are no fundamental issues for it to work on Windows.
 
-(1) AMReX mostly uses standard C++14, but for Windows C++17 is required.  This is because we use
-    C++17 to support file system operations when POSIX I/O is not available.
+(1) AMReX mostly uses standard C++17.
+We run continous integration tests on Windows with MSVC and Clang compilers.
 
 (2) We use POSIX signal handling when floating point exceptions, segmentation faults, etc. happen.
 This capability is not supported on Windows.

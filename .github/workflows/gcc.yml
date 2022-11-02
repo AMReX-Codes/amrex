@@ -13,13 +13,13 @@ jobs:
   # Build and install libamrex as AMReX CMake project
   # Note: this is an intentional "minimal" build that does not enable (many) options
   library:
-    name: GNU@7.5 C++17 Release [lib]
-    runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual"}
+    name: GNU@8.4 C++17 Release [lib]
+    runs-on: ubuntu-20.04
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches"}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies.sh
+      run: .github/workflows/dependencies/dependencies_gcc8.sh
     - name: Build & Install
       run: |
         mkdir build
@@ -29,7 +29,9 @@ jobs:
             -DAMReX_PLOTFILE_TOOLS=ON             \
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
             -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex  \
-            -DCMAKE_CXX_STANDARD=17
+            -DCMAKE_C_COMPILER=$(which gcc-8)     \
+            -DCMAKE_CXX_COMPILER=$(which g++-8)   \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran-8)
         make -j 2
         make install
         make test_install
@@ -41,12 +43,12 @@ jobs:
 
   # Build libamrex and all tests
   tests_build_3D:
-    name: GNU@7.5 C++14 3D Debug Fortran [tests]
-    runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1"}
+    name: GNU@9.3 C++17 3D Debug Fortran [tests]
+    runs-on: ubuntu-20.04
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1 -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches"}
       # It's too slow with -O0
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies.sh
     - name: Build & Install
@@ -64,12 +66,12 @@ jobs:
         ctest --test-dir build --output-on-failure
 
   tests_build_2D:
-    name: GNU@7.5 C++14 2D Debug Fortran [tests]
-    runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1"}
+    name: GNU@9.3 C++17 2D Debug Fortran [tests]
+    runs-on: ubuntu-20.04
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1 -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches"}
       # It's too slow with -O0
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies.sh
     - name: Build & Install
@@ -87,13 +89,13 @@ jobs:
         ctest --test-dir build --output-on-failure
 
   tests_build_1D:
-    name: GNU@7.5 C++14 1D Debug Fortran [tests]
-    runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1"}
+    name: GNU@9.3 C++17 1D Debug Fortran [tests]
+    runs-on: ubuntu-20.04
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1 -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches"}
       # -Werror temporarily skipped until we have functional testing established
       # It's too slow with -O0
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies.sh
     - name: Build & Install
@@ -113,10 +115,10 @@ jobs:
   # Build libamrex and all tests
   tests_cxx20:
     name: GNU@10.1 C++20 OMP [tests]
-    runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi"}
+    runs-on: ubuntu-20.04
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches"}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies_gcc10.sh
     - name: Build & Install
@@ -145,13 +147,13 @@ jobs:
 
   # Build libamrex and all tests w/o MPI
   tests-nonmpi:
-    name: GNU@7.5 C++14 NOMPI [tests]
-    runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual"}
+    name: GNU@8.4 C++17 NOMPI [tests]
+    runs-on: ubuntu-20.04
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches"}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies.sh
+      run: .github/workflows/dependencies/dependencies_gcc8.sh
     - name: Build & Install
       run: |
         mkdir build
@@ -167,18 +169,21 @@ jobs:
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
             -DAMReX_MPI=OFF             \
-            -DAMReX_PARTICLES=ON
+            -DAMReX_PARTICLES=ON        \
+            -DCMAKE_C_COMPILER=$(which gcc-8)     \
+            -DCMAKE_CXX_COMPILER=$(which g++-8)   \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran-8)
         make -j 2
 
         ctest --output-on-failure
 
   # Build libamrex and all tests
   tests-nofortran:
-    name: GNU@7.5 C++14 w/o Fortran [tests]
-    runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code"}
+    name: GNU@9.3 C++17 w/o Fortran [tests]
+    runs-on: ubuntu-20.04
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches"}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies_nofortran.sh
     - name: Build & Install
@@ -203,10 +208,10 @@ jobs:
 
   # Build 1D libamrex with configure
   configure-1d:
-    name: GNU@7.5 Release [configure 1D]
-    runs-on: ubuntu-18.04
+    name: GNU@9.3 Release [configure 1D]
+    runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies.sh
     - name: Build & Install
@@ -217,10 +222,10 @@ jobs:
 
   # Build 3D libamrex with configure
   configure-3d:
-    name: GNU@7.5 Release [configure 3D]
-    runs-on: ubuntu-18.04
+    name: GNU@11.2 Release [configure 3D]
+    runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies.sh
     - name: Build & Install
@@ -231,10 +236,10 @@ jobs:
 
   # Build 3D libamrex with single precision and tiny profiler
   configure-3d-single-tprof:
-    name: GNU@7.5 Release [configure 3D]
-    runs-on: ubuntu-18.04
+    name: GNU@9.3 Release [configure 3D]
+    runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies.sh
     - name: Build & Install
@@ -245,10 +250,10 @@ jobs:
 
   # Build 3D libamrex debug omp build with configure
   configure-3d-omp-debug:
-    name: GNU@7.5 OMP Debug [configure 3D]
-    runs-on: ubuntu-18.04
+    name: GNU@9.3 OMP Debug [configure 3D]
+    runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies.sh
     - name: Build & Install
@@ -260,9 +265,9 @@ jobs:
   # Build Tools/Plotfile
   plotfile-tools:
     name: GNU Plotfile Tools [tools]
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies.sh
     - name: Build & Install
@@ -272,11 +277,11 @@ jobs:
 
   # Build libamrex and run all tests
   tests_run:
-    name: GNU@7.5 C++14 [tests]
-    runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code"}
+    name: GNU@9.3 C++17 [tests]
+    runs-on: ubuntu-20.04
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches"}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies.sh
     - name: Build & Install
@@ -295,13 +300,13 @@ jobs:
         ctest --output-on-failure -R
 
   test_hdf5:
-    name: GNU@7.5 HDF5 I/O Test [tests]
-    runs-on: ubuntu-18.04
+    name: GNU@9.3 HDF5 I/O Test [tests]
+    runs-on: ubuntu-20.04
     env:
       CXX: h5pcc
       CC: h5cc
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh

@@ -226,7 +226,7 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
     MultiFab const& kapebmf = m_eb_kappa[amrlev][mglev];
     Real bscalar = m_b_scalar;
 
-    compCrossTerms(amrlev, mglev, in);
+    compCrossTerms(amrlev, mglev, in, bndry);
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
@@ -289,15 +289,23 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
 }
 
 void
-MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
+MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf,
+                             const MLMGBndry* bndry) const
 {
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     auto area = (factory) ? factory->getAreaFrac()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
 
+    const auto& bcondloc = *m_bcondloc[amrlev][mglev];
+
+    Array4<Real const> foo;
+
     const Geometry& geom = m_geom[amrlev][mglev];
     const auto dxinv = geom.InvCellSizeArray();
+    const Box& domain = geom.growPeriodicDomain(1);
+    const auto dlo = amrex::lbound(domain);
+    const auto dhi = amrex::ubound(domain);
 
     Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][mglev];
     Array<MultiFab,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev][mglev];
@@ -346,56 +354,143 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
             }
           );
         } else {
-          AMREX_D_TERM(Array4<Real> const fxfab = fluxmf[0].array(mfi);,
-                       Array4<Real> const fyfab = fluxmf[1].array(mfi);,
-                       Array4<Real> const fzfab = fluxmf[2].array(mfi););
-          Array4<Real const> const vfab = mf.const_array(mfi);
-          AMREX_D_TERM(Array4<Real const> const etaxfab = etamf[0].const_array(mfi);,
-                       Array4<Real const> const etayfab = etamf[1].const_array(mfi);,
-                       Array4<Real const> const etazfab = etamf[2].const_array(mfi););
-          AMREX_D_TERM(Array4<Real const> const kapxfab = kapmf[0].const_array(mfi);,
-                       Array4<Real const> const kapyfab = kapmf[1].const_array(mfi);,
-                       Array4<Real const> const kapzfab = kapmf[2].const_array(mfi););
+            AMREX_D_TERM(Array4<Real> const fxfab = fluxmf[0].array(mfi);,
+                         Array4<Real> const fyfab = fluxmf[1].array(mfi);,
+                         Array4<Real> const fzfab = fluxmf[2].array(mfi););
+            Array4<Real const> const vfab = mf.const_array(mfi);
+            AMREX_D_TERM(Array4<Real const> const etaxfab = etamf[0].const_array(mfi);,
+                         Array4<Real const> const etayfab = etamf[1].const_array(mfi);,
+                         Array4<Real const> const etazfab = etamf[2].const_array(mfi););
+            AMREX_D_TERM(Array4<Real const> const kapxfab = kapmf[0].const_array(mfi);,
+                         Array4<Real const> const kapyfab = kapmf[1].const_array(mfi);,
+                         Array4<Real const> const kapzfab = kapmf[2].const_array(mfi););
 
-          if (fabtyp == FabType::regular)
-          {
-              AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
-              ( xbx, txbx,
-                {
-                  mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv);
-                }
-                , ybx, tybx,
-                {
-                  mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv);
-                }
-                , zbx, tzbx,
-                {
-                  mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv);
-                }
-              );
-          }
-          else
-          {
-            AMREX_D_TERM(Array4<Real const> const& apx = area[0]->const_array(mfi);,
-                         Array4<Real const> const& apy = area[1]->const_array(mfi);,
-                         Array4<Real const> const& apz = area[2]->const_array(mfi););
-            Array4<EBCellFlag const> const& flag = flags->const_array(mfi);
+            if (fabtyp == FabType::regular)
+            {
+                if (domain.strictly_contains(bx)) {
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
+                    ( xbx, txbx,
+                      {
+                        mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv);
+                      }
+                      , ybx, tybx,
+                      {
+                        mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv);
+                      }
+                      , zbx, tzbx,
+                      {
+                        mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv);
+                      }
+                    );
+                } else {
+                    const auto & bdcv = bcondloc.bndryConds(mfi);
 
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
-            ( xbx, txbx,
-              {
-                mlebtensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,apx,flag,dxinv);
-              }
-              , ybx, tybx,
-              {
-                mlebtensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,apy,flag,dxinv);
-              }
-              , zbx, tzbx,
-              {
-                mlebtensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,apz,flag,dxinv);
-              }
-              );
-          }
+                    Array2D<BoundCond,0,2*AMREX_SPACEDIM,0,AMREX_SPACEDIM> bct;
+                    for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+                        for (OrientationIter face; face; ++face) {
+                            Orientation ori = face();
+                            bct(ori,icomp) = bdcv[icomp][ori];
+                        }
+                    }
+
+                    const auto& bvxlo = (bndry != nullptr) ?
+                        (*bndry)[Orientation(0,Orientation::low )].array(mfi) : foo;
+                    const auto& bvylo = (bndry != nullptr) ?
+                        (*bndry)[Orientation(1,Orientation::low )].array(mfi) : foo;
+                    const auto& bvxhi = (bndry != nullptr) ?
+                        (*bndry)[Orientation(0,Orientation::high)].array(mfi) : foo;
+                    const auto& bvyhi = (bndry != nullptr) ?
+                        (*bndry)[Orientation(1,Orientation::high)].array(mfi) : foo;
+#if (AMREX_SPACEDIM == 3)
+                    const auto& bvzlo = (bndry != nullptr) ?
+                        (*bndry)[Orientation(2,Orientation::low )].array(mfi) : foo;
+                    const auto& bvzhi = (bndry != nullptr) ?
+                        (*bndry)[Orientation(2,Orientation::high)].array(mfi) : foo;
+#endif
+
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
+                    ( xbx, txbx,
+                      {
+                          mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv,
+                                                  bvxlo, bvxhi, bct, dlo, dhi);
+                      }
+                    , ybx, tybx,
+                      {
+                          mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv,
+                                                  bvylo, bvyhi, bct, dlo, dhi);
+                      }
+                    , zbx, tzbx,
+                      {
+                          mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv,
+                                                  bvzlo, bvzhi, bct, dlo, dhi);
+                      }
+                    );
+                }
+            }
+            else
+            {
+                AMREX_D_TERM(Array4<Real const> const& apx = area[0]->const_array(mfi);,
+                             Array4<Real const> const& apy = area[1]->const_array(mfi);,
+                             Array4<Real const> const& apz = area[2]->const_array(mfi););
+                Array4<EBCellFlag const> const& flag = flags->const_array(mfi);
+
+                if (domain.strictly_contains(bx)) {
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
+                    ( xbx, txbx,
+                      {
+                        mlebtensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,apx,flag,dxinv);
+                      }
+                      , ybx, tybx,
+                      {
+                        mlebtensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,apy,flag,dxinv);
+                      }
+                      , zbx, tzbx,
+                      {
+                        mlebtensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,apz,flag,dxinv);
+                      }
+                    );
+                } else {
+                    const auto & bdcv = bcondloc.bndryConds(mfi);
+
+                    Array2D<BoundCond,0,2*AMREX_SPACEDIM,0,AMREX_SPACEDIM> bct;
+                    for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+                        for (OrientationIter face; face; ++face) {
+                            Orientation ori = face();
+                            bct(ori,icomp) = bdcv[icomp][ori];
+                        }
+                    }
+
+                    const auto& bvxlo = (bndry != nullptr) ?
+                        (*bndry)[Orientation(0,Orientation::low )].array(mfi) : foo;
+                    const auto& bvylo = (bndry != nullptr) ?
+                        (*bndry)[Orientation(1,Orientation::low )].array(mfi) : foo;
+                    const auto& bvxhi = (bndry != nullptr) ?
+                        (*bndry)[Orientation(0,Orientation::high)].array(mfi) : foo;
+                    const auto& bvyhi = (bndry != nullptr) ?
+                        (*bndry)[Orientation(1,Orientation::high)].array(mfi) : foo;
+#if (AMREX_SPACEDIM == 3)
+                    const auto& bvzlo = (bndry != nullptr) ?
+                        (*bndry)[Orientation(2,Orientation::low )].array(mfi) : foo;
+                    const auto& bvzhi = (bndry != nullptr) ?
+                        (*bndry)[Orientation(2,Orientation::high)].array(mfi) : foo;
+#endif
+
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
+                    ( xbx, txbx,
+                      {
+                        mlebtensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,apx,flag,dxinv, bvxlo, bvxhi, bct, dlo, dhi);
+                      }
+                      , ybx, tybx,
+                      {
+                        mlebtensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,apy,flag,dxinv, bvylo, bvyhi, bct, dlo, dhi);
+                      }
+                      , zbx, tzbx,
+                      {
+                        mlebtensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,apz,flag,dxinv, bvzlo, bvzhi, bct, dlo, dhi);
+                      }
+                    );
+                }
+            }
         }
     }
 
@@ -411,7 +506,7 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
     BL_PROFILE("MLEBTensorOp::compFlux()");
 
     if ( !(loc==Location::FaceCenter || loc==Location::FaceCentroid) )
-      amrex::Abort("MLEBTensorOp::compFlux() unknown location for fluxes.");
+        amrex::Abort("MLEBTensorOp::compFlux() unknown location for fluxes.");
 
     const int mglev = 0;
     const int ncomp = getNComp();
@@ -429,7 +524,7 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
     Array<MultiFab,AMREX_SPACEDIM>& fluxmf = m_tauflux[amrlev][mglev];
     Real bscalar = m_b_scalar;
 
-    compCrossTerms(amrlev, mglev, sol);
+    compCrossTerms(amrlev, mglev, sol, m_bndry_sol[amrlev].get());
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
@@ -515,104 +610,11 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
 }
 
 void
-MLEBTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
-                       MultiFab& sol, Location loc) const
+MLEBTensorOp::compVelGrad (int /*amrlev*/,
+                           const Array<MultiFab*,AMREX_SPACEDIM>& /*fluxes*/,
+                           MultiFab& /*sol*/, Location /*loc*/) const
 {
-    BL_PROFILE("MLEBTensorOp::compVelGrad()");
-
-    if ( !(loc==Location::FaceCenter || loc==Location::FaceCentroid) )
-      amrex::Abort("MLEBTensorOp::compVelGrad() unknown location for VelGradients.");
-
-    const int mglev = 0;
-
-    applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution, m_bndry_sol[amrlev].get());
-
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
-    const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
-
-    const Geometry& geom = m_geom[amrlev][mglev];
-    const auto dxinv = geom.InvCellSizeArray();
-
-    const int dim_fluxes = AMREX_SPACEDIM*AMREX_SPACEDIM;
-
-    MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-  {
-    Array<FArrayBox,AMREX_SPACEDIM> fluxfab_tmp;
-    for (MFIter mfi(sol, mfi_info); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-
-        auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
-        if (fabtyp == FabType::covered) continue;
-
-        if (fabtyp == FabType::regular)
-        {
-
-            Array4<Real const> const vfab = sol.const_array(mfi);
-            AMREX_D_TERM(Box const xbx = mfi.nodaltilebox(0);,
-                         Box const ybx = mfi.nodaltilebox(1);,
-                         Box const zbx = mfi.nodaltilebox(2););
-            AMREX_D_TERM(fluxfab_tmp[0].resize(xbx,dim_fluxes);,
-                         fluxfab_tmp[1].resize(ybx,dim_fluxes);,
-                         fluxfab_tmp[2].resize(zbx,dim_fluxes););
-            AMREX_D_TERM(Elixir fxeli = fluxfab_tmp[0].elixir();,
-                         Elixir fyeli = fluxfab_tmp[1].elixir();,
-                         Elixir fzeli = fluxfab_tmp[2].elixir(););
-            AMREX_D_TERM(Array4<Real> const fxfab = fluxfab_tmp[0].array();,
-                         Array4<Real> const fyfab = fluxfab_tmp[1].array();,
-                         Array4<Real> const fzfab = fluxfab_tmp[2].array(););
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
-            ( xbx, txbx,
-              {
-                  mltensor_vel_grads_fx(txbx,fxfab,vfab,dxinv);
-              }
-            , ybx, tybx,
-              {
-                  mltensor_vel_grads_fy(tybx,fyfab,vfab,dxinv);
-              }
-            , zbx, tzbx,
-              {
-                  mltensor_vel_grads_fz(tzbx,fzfab,vfab,dxinv);
-              }
-            );
-
-// The derivatives are put in the array with the following order:
-// component: 0    ,  1    ,  2    ,  3    ,  4    , 5    ,  6    ,  7    ,  8
-// in 2D:     dU/dx,  dV/dx,  dU/dy,  dV/dy
-// in 3D:     dU/dx,  dV/dx,  dW/dx,  dU/dy,  dV/dy, dW/dy,  dU/dz,  dV/dz,  dW/dz
-
-
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                const Box& nbx = mfi.nodaltilebox(idim);
-                Array4<Real      > dst = fluxes[idim]->array(mfi);
-                Array4<Real const> src = fluxfab_tmp[idim].const_array();
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (nbx, dim_fluxes, i, j, k, n,
-                {
-                    dst(i,j,k,n) = src(i,j,k,n);
-                });
-            }
-
-
-        }
-        else if ( loc==Location::FaceCenter )
-        {
-
-          amrex::Abort("compVelGrad not yet implemented for cut-cells  ");
-
-        }
-        else // loc==Location::FaceCentroid
-        {
-
-          amrex::Abort("compVelGrad not yet implemented for cut-cells  ");
-
-        }
-
-    }
-  }
+    amrex::Abort("compVelGrad not yet implemented for EB.");
 }
 
 }
