@@ -20,9 +20,9 @@ struct SoAParticle;
 
 template <typename T_ParticleType, int NArrayReal, int NArrayInt>
 struct ConstParticleTileData;
- 
+
 template <typename T_ParticleType, int NArrayReal, int NArrayInt>
-struct ParticleTileData 
+struct ParticleTileData
 {
 
     static constexpr int NAR = NArrayReal;
@@ -41,7 +41,7 @@ struct ParticleTileData
     Long m_size;
 
     ParticleType* AMREX_RESTRICT m_aos;
-    
+
     GpuArray<ParticleReal* AMREX_RESTRICT, NAR> m_rdata;
     GpuArray<int* AMREX_RESTRICT, NAI> m_idata;
 
@@ -278,7 +278,7 @@ struct SoAParticle : SoAParticleBase
     int m_index;
 };
 
-// SOA Particle Structure 
+// SOA Particle Structure
 template <int T_NArrayReal, int T_NArrayInt>
 struct ConstSoAParticle : SoAParticleBase
 {
@@ -294,22 +294,22 @@ struct ConstSoAParticle : SoAParticleBase
     static Long the_next_id;
 
 
-    ConstSoAParticle (ConstPTD ptd, int const index) 
+    ConstSoAParticle (ConstPTD ptd, int const index)
     {
         m_constparticle_tile_data=ptd;
         m_index=index;
     }
-     
+
     //functions to get id and cpu in the SOA data
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    const ConstParticleCPUWrapper cpu () const & { 
+    const ConstParticleCPUWrapper cpu () const & {
         uint64_t unsigned_cpu_value;
         unsigned_cpu_value = (uint64_t) this->m_constparticle_tile_data.m_idata[1][m_index];
         return ConstParticleCPUWrapper(unsigned_cpu_value); }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    const ConstParticleIDWrapper id () const & { 
+    const ConstParticleIDWrapper id () const & {
         uint64_t unsigned_id_value;
         unsigned_id_value = (uint64_t) this->m_constparticle_tile_data.m_idata[0][m_index];
         return ConstParticleIDWrapper(unsigned_id_value); }
@@ -317,10 +317,10 @@ struct ConstSoAParticle : SoAParticleBase
     //functions to get positions of the particle in the SOA data
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    const RealVect pos () const & {return RealVect(AMREX_D_DECL(this->m_constparticle_tile_data->m_rdata[0][m_index], this->m_constparticle_tile_data.m_rdata[1][m_index], this->m_constparticle_tile_data->m_rdata[2][m_index]));}
+    RealVect pos () const & {return RealVect(AMREX_D_DECL(this->m_constparticle_tile_data->m_rdata[0][m_index], this->m_constparticle_tile_data.m_rdata[1][m_index], this->m_constparticle_tile_data->m_rdata[2][m_index]));}
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    const RealType  pos (int position_index) const &
+    const RealType&  pos (int position_index) const &
     {
         AMREX_ASSERT(position_index < AMREX_SPACEDIM);
         return this->m_constparticle_tile_data.m_rdata[position_index][m_index];
