@@ -2006,8 +2006,6 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             for (int i = 0; i < int(Cnt); ++i)
             {
                 char* pbuf = ((char*) &recvdata[offset]) + i*superparticle_size;
-                auto& ptile = m_particles[rcv_levs[ipart]][std::make_pair(rcv_grid[ipart],
-                                                                          rcv_tile[ipart])];
 
                 Particle<ParticleType::NReal, ParticleType::NInt> p;
                 if constexpr(!ParticleType::is_soa_particle)
