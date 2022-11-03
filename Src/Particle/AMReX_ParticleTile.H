@@ -303,16 +303,10 @@ struct ConstSoAParticle : SoAParticleBase
     //functions to get id and cpu in the SOA data
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    const ConstParticleCPUWrapper cpu () const & {
-        uint64_t unsigned_cpu_value;
-        unsigned_cpu_value = (uint64_t) this->m_constparticle_tile_data.m_idata[1][m_index];
-        return ConstParticleCPUWrapper(unsigned_cpu_value); }
+    int cpu () const { return this->m_constparticle_tile_data.m_idata[1][m_index]; }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    const ConstParticleIDWrapper id () const & {
-        uint64_t unsigned_id_value;
-        unsigned_id_value = (uint64_t) this->m_constparticle_tile_data.m_idata[0][m_index];
-        return ConstParticleIDWrapper(unsigned_id_value); }
+    int id () const { return this->m_constparticle_tile_data.m_idata[0][m_index]; }
 
     //functions to get positions of the particle in the SOA data
 
