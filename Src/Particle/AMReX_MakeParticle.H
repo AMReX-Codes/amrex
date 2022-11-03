@@ -6,7 +6,7 @@ struct is_soa_particle
          bool,
          T::is_soa_particle
      > {};
- 
+
 
 template <typename T_ParticleType, class Enable = void>
 struct make_particle
