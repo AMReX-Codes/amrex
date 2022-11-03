@@ -2314,7 +2314,6 @@ AssignCellDensitySingleLevel (int rho_index,
         FArrayBox local_rho;
         for (ParConstIter pti(*this, lev); pti.isValid(); ++pti) {
             const auto& particles = pti.GetArrayOfStructs();
-            const auto pstruct = particles().data();
             const Long np = pti.numParticles();
             auto ptd = pti.GetParticleTile().getConstParticleTileData();
             FArrayBox& fab = (*mf_pointer)[pti];
