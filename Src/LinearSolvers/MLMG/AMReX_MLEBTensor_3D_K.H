@@ -251,7 +251,7 @@ Real mlebtensor_dz_on_xface (int i, int j, int k, int n,
                         bvxlo(i-1,j,k-1,n) * Real(2.) +
                         bvxlo(i-1,j,k-2,n) * Real(-0.5)) * dzi;
             } else {
-                ddz = whi*dzi*(bvxlo(i-1,j,khip,n)-bvxlo(i-1,j,khim,n));
+                ddz = wlo*dzi*(bvxlo(i-1,j,klop,n)-bvxlo(i-1,j,klom,n));
             }
         } else if (bct(Orientation::xlo(),n) == AMREX_LO_NEUMANN) {
             ddz = whi*dzi*(vel(i,j,khip,n)-vel(i,j,khim,n));
@@ -269,7 +269,7 @@ Real mlebtensor_dz_on_xface (int i, int j, int k, int n,
                         bvxhi(i,j,k-1,n) * Real(2.) +
                         bvxhi(i,j,k-2,n) * Real(-0.5)) * dzi;
             } else {
-                ddz = wlo*dzi*(bvxhi(i,j,klop,n)-bvxhi(i,j,klom,n));
+                ddz = whi*dzi*(bvxhi(i,j,khip,n)-bvxhi(i,j,khim,n));
             }
         } else if (bct(Orientation::xhi(),n) == AMREX_LO_NEUMANN) {
             ddz = wlo*dzi*(vel(i-1,j,klop,n)-vel(i-1,j,klom,n));
@@ -306,7 +306,7 @@ Real mlebtensor_dz_on_yface (int i, int j, int k, int n,
                         bvylo(i,j-1,k-1,n) * Real(2.) +
                         bvylo(i,j-1,k-2,n) * Real(-0.5)) * dzi;
             } else {
-                ddz = whi*dzi*(bvylo(i,j-1,khip,n)-bvylo(i,j-1,khim,n));
+                ddz = wlo*dzi*(bvylo(i,j-1,klop,n)-bvylo(i,j-1,klom,n));
             }
         } else if (bct(Orientation::ylo(),n) == AMREX_LO_NEUMANN) {
             ddz = whi*dzi*(vel(i,j,khip,n)-vel(i,j,khim,n));
@@ -324,7 +324,7 @@ Real mlebtensor_dz_on_yface (int i, int j, int k, int n,
                         bvyhi(i,j,k-1,n) * Real(2.) +
                         bvyhi(i,j,k-2,n) * Real(-0.5)) * dzi;
             } else {
-                ddz = wlo*dzi*(bvyhi(i,j,klop,n)-bvyhi(i,j,klom,n));
+                ddz = whi*dzi*(bvyhi(i,j,khip,n)-bvyhi(i,j,khim,n));
             }
         } else if (bct(Orientation::yhi(),n) == AMREX_LO_NEUMANN) {
             ddz = wlo*dzi*(vel(i,j-1,klop,n)-vel(i,j-1,klom,n));
@@ -361,7 +361,7 @@ Real mlebtensor_dx_on_zface (int i, int j, int k, int n,
                         bvzlo(i-1,j,k-1,n) * Real(2.) +
                         bvzlo(i-2,j,k-1,n) * Real(-0.5)) * dxi;
             } else {
-                ddx = whi*dxi*(bvzlo(ihip,j,k-1,n)-bvzlo(ihim,j,k-1,n));
+                ddx = wlo*dxi*(bvzlo(ilop,j,k-1,n)-bvzlo(ilom,j,k-1,n));
             }
         } else if (bct(Orientation::zlo(),n) == AMREX_LO_NEUMANN) {
             ddx = whi*dxi*(vel(ihip,j,k,n)-vel(ihim,j,k,n));
@@ -379,7 +379,7 @@ Real mlebtensor_dx_on_zface (int i, int j, int k, int n,
                         bvzhi(i-1,j,k,n) * Real(2.) +
                         bvzhi(i-2,j,k,n) * Real(-0.5)) * dxi;
             } else {
-                ddx = wlo*dxi*(bvzhi(ilop,j,k,n)-bvzhi(ilom,j,k,n));
+                ddx = whi*dxi*(bvzhi(ihip,j,k,n)-bvzhi(ihim,j,k,n));
             }
         } else if (bct(Orientation::zhi(),n) == AMREX_LO_NEUMANN) {
             ddx = wlo*dxi*(vel(ilop,j,k-1,n)-vel(ilom,j,k-1,n));
@@ -417,7 +417,7 @@ Real mlebtensor_dy_on_zface (int i, int j, int k, int n,
                         bvzlo(i,j-1,k-1,n) * Real(2.) +
                         bvzlo(i,j-2,k-1,n) * Real(-0.5)) * dyi;
             } else {
-                ddy = whi*dyi*(bvzlo(i,jhip,k-1,n)-bvzlo(i,jhim,k-1,n));
+                ddy = wlo*dyi*(bvzlo(i,jlop,k-1,n)-bvzlo(i,jlom,k-1,n));
             }
         } else if (bct(Orientation::zlo(),n) == AMREX_LO_NEUMANN) {
             ddy = whi*dyi*(vel(i,jhip,k,n)-vel(i,jhim,k,n));
@@ -435,7 +435,7 @@ Real mlebtensor_dy_on_zface (int i, int j, int k, int n,
                         bvzhi(i,j-1,k,n) * Real(2.) +
                         bvzhi(i,j-2,k,n) * Real(-0.5)) * dyi;
             } else {
-                ddy = wlo*dyi*(bvzhi(i,jlop,k,n)-bvzhi(i,jlom,k,n));
+                ddy = whi*dyi*(bvzhi(i,jhip,k,n)-bvzhi(i,jhim,k,n));
             }
         } else if (bct(Orientation::zhi(),n) == AMREX_LO_NEUMANN) {
             ddy = wlo*dyi*(vel(i,jlop,k-1,n)-vel(i,jlom,k-1,n));
