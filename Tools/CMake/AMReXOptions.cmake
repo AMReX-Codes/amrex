@@ -54,12 +54,28 @@ print_option( USE_XSDK_DEFAULTS )
 #
 # Option to control the type of library: static vs shared  ===================
 #
-if ( USE_XSDK_DEFAULTS )
-   option( BUILD_SHARED_LIBS "Build AMReX shared library" ON )
-else ()
-   option( BUILD_SHARED_LIBS "Build AMReX shared library" OFF )
-endif ()
-print_option( BUILD_SHARED_LIBS )
+# Defaults:
+#   CMake: static
+#   xSDK: shared
+# Precendence of user options:
+#   AMReX_BUILD_SHARED_LIBS > BUILD_SHARED_LIBS > USE_XSDK_DEFAULTS
+#   default:    unset              unset               OFF
+#
+get_property(SHARED_LIBS_SUPPORTED GLOBAL PROPERTY TARGET_SUPPORTS_SHARED_LIBS)
+mark_as_advanced(BUILD_SHARED_LIBS)
+if(DEFINED BUILD_SHARED_LIBS)
+    set(AMReX_BUILD_SHARED_LIBS_DEFAULT ${BUILD_SHARED_LIBS})
+elseif(USE_XSDK_DEFAULTS)
+    set(AMReX_BUILD_SHARED_LIBS_DEFAULT ON)
+else()
+    set(AMReX_BUILD_SHARED_LIBS_DEFAULT OFF)
+endif()
+option(AMReX_BUILD_SHARED_LIBS "Build AMReX shared library"
+    ${AMReX_BUILD_SHARED_LIBS_DEFAULT})
+if(AMReX_BUILD_SHARED_LIBS AND NOT SHARED_LIBS_SUPPORTED)
+    message(FATAL_ERROR "AMReX_BUILD_SHARED_LIBS requested but not supported by platform")
+endif()
+print_option( AMReX_BUILD_SHARED_LIBS )
 
 #
 # Option to control generation of install targets
@@ -403,7 +419,7 @@ option(AMReX_DIFFERENT_COMPILER
    "Allow an application to use a different compiler than the one used to build AMReX" OFF)
 print_option(AMReX_DIFFERENT_COMPILER)
 
-if (BUILD_SHARED_LIBS AND NOT (CMAKE_SYSTEM_NAME STREQUAL "Linux") )
+if (AMReX_BUILD_SHARED_LIBS AND NOT (CMAKE_SYSTEM_NAME STREQUAL "Linux") )
    option(AMReX_PROBINIT "Enable support for probin file" OFF)
 else ()
    cmake_dependent_option(AMReX_PROBINIT "Enable support for probin file" ON
