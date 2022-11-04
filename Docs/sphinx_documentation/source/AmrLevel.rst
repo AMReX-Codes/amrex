@@ -74,7 +74,7 @@ using integer keys (defined via an :cpp:`enum` in, e.g., ``AmrLevelAdv.H``):
     enum StateType { Phi_Type = 0,
                      NUM_STATE_TYPE };
 
-In our tutorial code, we use the function :cpp:`AmrLevelAdv::variableSetup` to
+In our tutorial code, we use the function :cpp:`AmrLevelAdv::variableSetUp` to
 tell our simulation about the :cpp:`StateData` (e.g., how many variables, ghost
 cells, nodality, etc.). Note that if you have more than one :cpp:`StateType`,
 each of the different :cpp:`StateData` carried in the state array can have
