@@ -31,6 +31,8 @@ void mf_cell_cons_lin_interp_limit_minmax_llslope (int i, int, int, Array4<Real>
     for (int ns = 0; ns < ncomp; ++ns) {
         slope(i,0,0,ns) *= sfx;
     }
+
+    amrex::ignore_unused(ratio);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
