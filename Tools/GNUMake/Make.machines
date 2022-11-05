@@ -30,6 +30,9 @@ ifeq ($(NERSC_HOST), perlmutter)
   which_site := nersc
   which_computer := perlmutter
 endif
+
+# Test machines for Perlmutter.
+# Uses "which_computer=perlmutter" to get the same configuration.
 ifeq ($(NERSC_HOST), alvarez)
   which_site := nersc
   which_computer := perlmutter
