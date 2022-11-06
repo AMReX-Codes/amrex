@@ -366,16 +366,16 @@ for example ``CMAKE_CXX_FLAGS``, can be used for DPCPP as well.
 
 
 Since CMake does not support autodetection of SYCL compilers yet,
-``CMAKE_CXX_COMPILER`` must be set to a valid SYCL compiler. i.e. ``dpcpp``.
+``CMAKE_CXX_COMPILER`` must be set to a valid SYCL compiler. i.e. ``icpx``.
 Thus **CMAKE_CXX_COMPILER is a required user-input when AMReX_GPU_BACKEND=SYCL**.
-At this time, **the only supported SYCL compiler is dpcpp**.
+At this time, **the only supported SYCL compiler is icpx**.
 Below is an example configuration for SYCL:
 
 .. highlight:: console
 
 ::
 
-   cmake -DAMReX_GPU_BACKEND=SYCL -DCMAKE_CXX_COMPILER=$(which dpcpp)  [other options] /path/to/amrex/source
+   cmake -DAMReX_GPU_BACKEND=SYCL -DCMAKE_CXX_COMPILER=$(which icpx)  [other options] /path/to/amrex/source
 
 
 .. raw:: latex

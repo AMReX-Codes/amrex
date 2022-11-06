@@ -1,8 +1,8 @@
 #
 # Generic setup for using gcc
 #
-CXX = dpcpp
-CC  = dpcpp
+CXX = icpx
+CC  = icx
 FC  = ifx
 F90 = ifx
 
@@ -68,7 +68,7 @@ else
   CXXFLAGS += -std=c++17
 endif
 
-CXXFLAGS += -Wno-error=sycl-strict -fsycl
+CXXFLAGS += -fsycl
 CFLAGS   += -std=c11
 
 ifneq ($(DEBUG),TRUE)  # There is currently a bug that DEBUG build will crash.

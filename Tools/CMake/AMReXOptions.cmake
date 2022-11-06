@@ -140,7 +140,7 @@ if (AMReX_DPCPP)
    if (NOT (CMAKE_CXX_COMPILER_ID IN_LIST _valid_dpcpp_compiler_ids) )
       message(WARNING "\nAMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} is tested with "
          "DPCPP. Verify '${CMAKE_CXX_COMPILER_ID}' is correct and potentially "
-         "set CMAKE_CXX_COMPILER=dpcpp.")
+         "set CMAKE_CXX_COMPILER=icpx.")
    endif ()
    unset(_valid_dpcpp_compiler_ids)
 endif ()
