@@ -972,7 +972,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
         // add the real...
         for (int icomp = 0; icomp < NumRealComps(); icomp++) {
-            host_real_attribs[lev][ind][icomp].push_back(ParticleReal(*rptr));
+            host_real_attribs[lev][ind][icomp].push_back(*rptr);
             ++rptr;
         }
 
