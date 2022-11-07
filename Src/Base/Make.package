@@ -12,7 +12,7 @@ C$(AMREX_BASE)_headers += AMReX_TypeList.H
 C$(AMREX_BASE)_headers += AMReX.H AMReX_Exception.H
 C$(AMREX_BASE)_sources += AMReX.cpp AMReX_error_fi.cpp AMReX_Version.cpp
 
-C$(AMREX_BASE)_headers += AMReX_Extension.H
+C$(AMREX_BASE)_headers += AMReX_Demangle.H AMReX_Extension.H
 
 C$(AMREX_BASE)_headers += AMReX_GpuComplex.H
 

@@ -20,6 +20,7 @@ target_sources( amrex
    AMReX_error_fi.cpp
    AMReX_Version.cpp
    AMReX.H
+   AMReX_Demangle.H
    AMReX_Exception.H
    AMReX_Extension.H
    AMReX_PODVector.H
