@@ -44,7 +44,7 @@ public:
     /**
     * \brief The destructor.
     */
-    virtual ~FluxRegister ();
+    ~FluxRegister ();
 
     FluxRegister (FluxRegister&& rhs) noexcept = default;
 

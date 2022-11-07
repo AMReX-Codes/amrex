@@ -20,7 +20,7 @@ public:
                int             _ncomp,
                const Geometry& _geom);
 
-    virtual ~MLMGBndry ()  override;
+    ~MLMGBndry ();
 
     MLMGBndry (MLMGBndry&& rhs) = delete;
     MLMGBndry (const MLMGBndry& rhs) = delete;
