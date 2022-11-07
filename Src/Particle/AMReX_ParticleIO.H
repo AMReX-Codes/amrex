@@ -916,7 +916,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     host_particles.resize(finest_level_in_file+1);
 
     Vector<std::map<std::pair<int, int>,
-                    std::vector<Gpu::HostVector<Real> > > > host_real_attribs;
+                    std::vector<Gpu::HostVector<RTYPE> > > > host_real_attribs;
     host_real_attribs.reserve(15);
     host_real_attribs.resize(finest_level_in_file+1);
 
