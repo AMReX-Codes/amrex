@@ -842,11 +842,22 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
             ParticleFile.seekg(where[grid], std::ios::beg);
 
+            // Use if constexpr to avoid instantiating the mis-matched
+            // type case and triggering the static_assert on the
+            // underlying copy calls
             if (how == "single") {
-                ReadParticles<float>(count[grid], grid, lev, ParticleFile, finest_level_in_file, convert_ids);
+                if constexpr (std::is_same_v<ParticleReal, float>) {
+                    ReadParticles<float>(count[grid], grid, lev, ParticleFile, finest_level_in_file, convert_ids);
+                } else {
+                    amrex::Error("File contains single-precision data, while AMReX is compiled with ParticleReal==double");
+                }
             }
             else if (how == "double") {
-                ReadParticles<double>(count[grid], grid, lev, ParticleFile, finest_level_in_file, convert_ids);
+                if constexpr (std::is_same_v<ParticleReal, double>) {
+                    ReadParticles<double>(count[grid], grid, lev, ParticleFile, finest_level_in_file, convert_ids);
+                } else {
+                    amrex::Error("File contains double-precision data, while AMReX is compiled with ParticleReal==float");
+                }
             }
             else {
                 std::string msg("ParticleContainer::Restart(): bad parameter: ");
