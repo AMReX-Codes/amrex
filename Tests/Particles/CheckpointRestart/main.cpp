@@ -3,8 +3,6 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_Particles.H>
 
-#include <unistd.h>
-
 using namespace amrex;
 
 void set_grids_nested (Vector<Box>& domains,
@@ -23,7 +21,7 @@ void test ()
 {
     const int nghost = 0;
     int ncells, max_grid_size, ncomp, nlevs, nppc;
-    int restart_check = 0, nplotfile = 1, nparticlefile = 1, sleeptime = 0;
+    int restart_check = 0, nplotfile = 1, nparticlefile = 1;
     std::string directory = "";
 
     ParmParse pp;
@@ -34,7 +32,6 @@ void test ()
     pp.get("nppc", nppc);
     pp.query("nplotfile", nplotfile);
     pp.query("nparticlefile", nparticlefile);
-    pp.query("sleeptime", sleeptime);
     pp.query("restart_check", restart_check);
     pp.query("directory", directory);
 
@@ -91,12 +88,6 @@ void test ()
     for (int ts = 0; ts < nplotfile; ts++) {
         sprintf(fname, "%splt%05d", directory.c_str(), ts);
 
-        // Fake computation
-        if (ts > 0 && sleeptime > 0) {
-            amrex::Print() << "Sleep for " << sleeptime << " seconds." << std::endl;
-            sleep(sleeptime);
-        }
-
         amrex::Print() << "Writing plot file [" << fname << "] ..." << std::endl;
 
         WriteMultiLevelPlotfile(fname, nlevs, amrex::GetVecOfConstPtrs(mf),
@@ -140,12 +131,6 @@ void test ()
 
         for (int ts = 0; ts < nparticlefile; ts++) {
             sprintf(fname, "%splt%05d", directory.c_str(), ts);
-
-            // Fake computation
-            if (ts > 0 && sleeptime > 0) {
-                amrex::Print() << "Sleep for " << sleeptime << " seconds." << std::endl;
-                sleep(sleeptime);
-            }
 
             amrex::Print() << "Writing particle file [" << fname << "] ..." << std::endl;
 
