@@ -183,7 +183,7 @@ void test ()
             ParallelDescriptor::ReduceRealSum(sm_new);
             ParallelDescriptor::ReduceRealSum(sm_old);
 
-            AMREX_ALWAYS_ASSERT(sm_old = sm_new);
+            AMREX_ALWAYS_ASSERT(sm_old == sm_new);
         }
     }
 }
