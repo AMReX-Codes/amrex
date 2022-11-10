@@ -25,7 +25,6 @@ target_sources(amrex
    AMReX_YAFluxRegister.H
    AMReX_YAFluxRegister_K.H
    AMReX_YAFluxRegister_${AMReX_SPACEDIM}D_K.H
-   AMReX_YAFluxRegister.cpp
    AMReX_BoundaryFwd.H
    )
 

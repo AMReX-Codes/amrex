@@ -13,7 +13,6 @@ CEXE_headers += AMReX_LOUtil_K.H
 
 CEXE_headers += AMReX_YAFluxRegister_K.H AMReX_YAFluxRegister_$(DIM)D_K.H
 CEXE_headers += AMReX_YAFluxRegister.H
-CEXE_sources += AMReX_YAFluxRegister.cpp
 
 CEXE_headers += AMReX_BoundaryFwd.H
 
