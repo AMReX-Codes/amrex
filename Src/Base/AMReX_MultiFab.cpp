@@ -426,37 +426,7 @@ MultiFab::Xpay (MultiFab& dst, Real a, const MultiFab& src,
     BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
 
     BL_PROFILE("MultiFab::Xpay()");
-
-#ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
-        auto const& dstma = dst.arrays();
-        auto const& srcma = src.const_arrays();
-        ParallelFor(dst, nghost, numcomp,
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
-        {
-            dstma[box_no](i,j,k,n+dstcomp) = srcma[box_no](i,j,k,n+srccomp)
-                +                        a * dstma[box_no](i,j,k,n+dstcomp);
-        });
-        Gpu::streamSynchronize();
-    } else
-#endif
-    {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.growntilebox(nghost);
-            if (bx.ok()) {
-                auto const sfab = src.array(mfi);
-                auto       dfab = dst.array(mfi);
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
-                {
-                    dfab(i,j,k,n+dstcomp) = sfab(i,j,k,n+srccomp) + a * dfab(i,j,k,n+dstcomp);
-                });
-            }
-        }
-    }
+    amrex::Xpay(dst, a, src, srccomp, dstcomp, numcomp, nghost);
 }
 
 void
