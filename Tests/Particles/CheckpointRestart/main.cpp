@@ -3,18 +3,12 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_Particles.H>
 
-#include <unistd.h>
-
 using namespace amrex;
 
 void set_grids_nested (Vector<Box>& domains,
                        Vector<BoxArray>& grids,
                        Vector<IntVect>& ref_ratio);
-void set_grids_file (Vector<Box>& domains,
-                     Vector<BoxArray>& grids,
-                     Vector<IntVect>& ref_ratio);
 void test ();
-BoxArray readBoxList (const std::string& file, Box& domain);
 
 int main(int argc, char* argv[])
 {
@@ -27,9 +21,7 @@ void test ()
 {
     const int nghost = 0;
     int ncells, max_grid_size, ncomp, nlevs, nppc;
-    int restart_check = 0, nplotfile = 1, nparticlefile = 1, sleeptime = 0;
-    int grids_from_file = 0;
-    std::string compression = "None@0";
+    int restart_check = 0, nplotfile = 1, nparticlefile = 1;
     std::string directory = "";
 
     ParmParse pp;
@@ -38,12 +30,9 @@ void test ()
     pp.get("ncomp", ncomp);
     pp.get("nlevs", nlevs);
     pp.get("nppc", nppc);
-    pp.query("hdf5compression", compression);
     pp.query("nplotfile", nplotfile);
     pp.query("nparticlefile", nparticlefile);
-    pp.query("sleeptime", sleeptime);
     pp.query("restart_check", restart_check);
-    pp.query("grids_from_file", grids_from_file);
     pp.query("directory", directory);
 
     if (directory != "" && directory.back() != '/') {
@@ -55,14 +44,7 @@ void test ()
     Vector<BoxArray> ba;
     Vector<IntVect> ref_ratio;
 
-    if (grids_from_file)
-    {
-        set_grids_file(domains, ba, ref_ratio);
-    }
-    else
-    {
-        set_grids_nested(domains, ba, ref_ratio);
-    }
+    set_grids_nested(domains, ba, ref_ratio);
 
     RealBox real_box;
     for (int n = 0; n < AMREX_SPACEDIM; n++) {
@@ -93,7 +75,6 @@ void test ()
 
     // these don't really matter, make something up
     const Real time = 0.0;
-    /* const Real dt = 0.0; */
 
     Vector<std::string> varnames;
     for (int i = 0; i < ncomp; ++i)
@@ -103,45 +84,17 @@ void test ()
 
     Vector<int> level_steps(nlevs, 0);
 
-    /* if (compression.compare("None@0") != 0) */
-    /*     std::cout << "Compression: " << compression << std::endl; */
-
     char fname[512];
     for (int ts = 0; ts < nplotfile; ts++) {
         sprintf(fname, "%splt%05d", directory.c_str(), ts);
 
-        // Fake computation
-        if (ts > 0 && sleeptime > 0) {
-            if (ParallelDescriptor::IOProcessor()) {
-                std::cout << "Sleep for " << sleeptime << " seconds." << std::endl;
-                fflush(stdout);
-            }
-            sleep(sleeptime);
-        }
+        amrex::Print() << "Writing plot file [" << fname << "] ..." << std::endl;
 
-        if (ParallelDescriptor::IOProcessor()) {
-            std::cout << "Writing plot file [" << fname << ".h5] ...";
-            fflush(stdout);
-        }
-#ifdef AMREX_USE_HDF5
-#if (defined AMREX_USE_HDF5_ZFP) || (defined AMREX_USE_HDF5_SZ)
-        WriteMultiLevelPlotfileHDF5SingleDset(fname, nlevs, amrex::GetVecOfConstPtrs(mf), varnames,
-                                             geom, time, level_steps, ref_ratio, compression);
-        /* WriteMultiLevelPlotfileHDF5MultiDset(fname, nlevs, amrex::GetVecOfConstPtrs(mf), varnames, */
-        /*                                      geom, time, level_steps, ref_ratio, compression); */
-#else
-        WriteMultiLevelPlotfileHDF5SingleDset(fname, nlevs, amrex::GetVecOfConstPtrs(mf), varnames,
-                                              geom, time, level_steps, ref_ratio);
-#endif
-#else
         WriteMultiLevelPlotfile(fname, nlevs, amrex::GetVecOfConstPtrs(mf),
                                 varnames, geom, time, level_steps, ref_ratio);
-#endif
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << " done" << std::endl;
-    }
 
-    /* ParallelDescriptor::Barrier(); */
+        amrex::Print() << " done \n";
+    }
 
     // Add some particles
     constexpr int NStructReal = 4;
@@ -156,20 +109,17 @@ void test ()
     int num_particles = nppc * AMREX_D_TERM(ncells, * ncells, * ncells);
     bool serialize = false;
     int iseed = 451;
-    MyPC::ParticleInitData pdata = {1.0, 2.0, 3.0, 4.0, 5, 6.0,
-                                    7.0, 8.0, 9.0, 10.0, 11.0,
-                                    12.0, 13.0, 14, 15, 16};
+    MyPC::ParticleInitData pdata = {{1.0, 2.0, 3.0, 4.0},
+                                    {5},
+                                    {6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0},
+                                    {14, 15, 16}};
 
     if (nparticlefile > 0) {
-        if (ParallelDescriptor::IOProcessor()) {
-            std::cout << "Init particles ...";
-            fflush(stdout);
-        }
+        amrex::Print() << "Init particles ..." << std::endl;
 
         myPC.InitRandom(num_particles, iseed, pdata, serialize);
 
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << " done" << std::endl;
+        amrex::Print() << " done \n";
 
         Vector<std::string> particle_realnames;
         for (int i = 0; i < NStructReal + NArrayReal; ++i)
@@ -182,28 +132,11 @@ void test ()
         for (int ts = 0; ts < nparticlefile; ts++) {
             sprintf(fname, "%splt%05d", directory.c_str(), ts);
 
-            // Fake computation
-            if (ts > 0 && sleeptime > 0) {
-                if (ParallelDescriptor::IOProcessor()) {
-                    std::cout << "Sleep for " << sleeptime << " seconds." << std::endl;
-                    fflush(stdout);
-                }
-                sleep(sleeptime);
-            }
+            amrex::Print() << "Writing particle file [" << fname << "] ..." << std::endl;
 
-            if (ParallelDescriptor::IOProcessor()) {
-                std::cout << "Writing particle file [" << fname << "/particle0.h5] ...";
-                fflush(stdout);
-            }
-
-#ifdef AMREX_USE_HDF5
-            myPC.CheckpointHDF5(fname, "particle0", false, particle_realnames, particle_intnames, compression);
-#else
             myPC.Checkpoint(fname, "particle0", false, particle_realnames, particle_intnames);
-            /* myPC.WriteAsciiFile("particle0_ascii"); */
-#endif
-            if (ParallelDescriptor::IOProcessor())
-                std::cout << " done" << std::endl;
+
+            amrex::Print() << " done \n";
         }
     }
 
@@ -213,13 +146,8 @@ void test ()
     if (restart_check && nparticlefile > 0)
     {
         MyPC newPC(geom, dmap, ba, ref_ratio);
-#ifdef AMREX_USE_HDF5
-        sprintf(directory_path, "%s%s", directory.c_str(), "plt00000/particle0");
-        newPC.RestartHDF5(directory_path, "particle0");
-#else
         sprintf(directory_path, "%s%s", directory.c_str(), "plt00000");
         newPC.Restart(directory_path, "particle0");
-#endif
 
         using PType = typename MyPC::SuperParticleType;
 
@@ -243,22 +171,6 @@ void test ()
             AMREX_ALWAYS_ASSERT(sm_old == sm_new);
         }
     }
-}
-
-BoxArray
-readBoxList (const std::string& file, Box& domain)
-{
-    BoxArray retval;
-
-    Vector<char> fileCharPtr;
-    ParallelDescriptor::ReadAndBcastFile(file, fileCharPtr);
-    std::istringstream is(fileCharPtr.data());
-
-    is >> domain;
-    is.ignore(1000,'\n');
-    retval.readFrom(is);
-
-    return retval;
 }
 
 void set_grids_nested (Vector<Box>& domains,
@@ -306,39 +218,5 @@ void set_grids_nested (Vector<Box>& domains,
 
     for (int lev = 1; lev < nlevs; lev++) {
         domains[lev] = amrex::refine(domains[lev-1], ref_ratio[lev-1]);
-    }
-}
-
-void set_grids_file (Vector<Box>& domains,
-                     Vector<BoxArray>& grids,
-                     Vector<IntVect>& ref_ratio)
-{
-    int ncells, max_grid_size, nlevs;
-    Vector<int> ref_ratio_file;
-
-    ParmParse pp;
-    pp.get("ncells", ncells);
-    pp.get("max_grid_size", max_grid_size);
-    pp.get("nlevs", nlevs);
-
-    ref_ratio_file.resize(nlevs-1);
-    pp.getarr("ref_ratio_file", ref_ratio_file);
-
-    domains.resize(nlevs);
-    grids.resize(nlevs);
-    ref_ratio.resize(nlevs-1);
-
-    for (int lev=0; lev < nlevs-1; ++lev)
-    {
-        ref_ratio[lev] = IntVect(AMREX_D_DECL(ref_ratio_file[lev],
-                                              ref_ratio_file[lev],
-                                              ref_ratio_file[lev]));
-    }
-
-    for (int lev=0; lev < nlevs; ++lev)
-    {
-        Box domain;
-        grids[lev] = readBoxList("grids/Level_"+std::to_string(lev), domain);
-        domains[lev] = domain;
     }
 }
