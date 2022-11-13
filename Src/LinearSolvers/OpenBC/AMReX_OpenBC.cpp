@@ -32,6 +32,11 @@ void OpenBCSolver::define (const Vector<Geometry>& a_geom,
         grids.enclosedCells();
     }
 
+    int nlevels = m_geom.size();
+    m_ba_all.resize(nlevels);
+    m_dm_all.resize(nlevels);
+    m_geom_all.resize(nlevels);
+
     Box const domain0 = m_geom[0].Domain();
     m_coarsen_ratio = 8;
     AMREX_ALWAYS_ASSERT(domain0.coarsenable(m_coarsen_ratio));
@@ -149,12 +154,13 @@ void OpenBCSolver::define (const Vector<Geometry>& a_geom,
     Vector<int> p1 = dmg.ProcessorMap();
     bl0.join(bl1);
     p0.insert(p0.end(), p1.begin(), p1.end());
-    IntVect const offset = -domain1.smallEnd();
+    IntVect offset = -domain1.smallEnd();
     for (auto& b : bl0) {
         b.shift(offset);
     }
-    m_ba_all = BoxArray(std::move(bl0));
-    m_dm_all = DistributionMapping(std::move(p0));
+    m_ba_all[0] = BoxArray(std::move(bl0));
+    m_dm_all[0] = DistributionMapping(std::move(p0));
+    m_box_offset.push_back(offset);
 
     auto const problo = m_geom[0].ProbLo();
     auto const probhi = m_geom[0].ProbHi();
@@ -163,9 +169,20 @@ void OpenBCSolver::define (const Vector<Geometry>& a_geom,
         problo_all[idim] = problo[idim] - m_ngrowdomain[idim]*dx[idim];
         probhi_all[idim] = probhi[idim] + m_ngrowdomain[idim]*dx[idim];
     }
-    m_geom_all = Geometry(amrex::shift(domain1,offset),
-                          RealBox(problo_all,probhi_all),
-                          m_geom[0].Coord(), m_geom[0].isPeriodic());
+    m_geom_all[0] = Geometry(amrex::shift(domain1,offset),
+                             RealBox(problo_all,probhi_all),
+                             m_geom[0].Coord(), m_geom[0].isPeriodic());
+
+    for (int ilev = 1; ilev < nlevels; ++ilev) {
+        IntVect rr = m_geom[ilev].Domain().length()
+                   / m_geom[ilev-1].Domain().length();
+        offset *= rr;
+        m_box_offset.push_back(offset);
+        m_geom_all[ilev] = amrex::refine(m_geom_all[ilev-1], rr);
+        m_ba_all[ilev] = a_grids[ilev];
+        m_ba_all[ilev].shift(offset);
+        m_dm_all[ilev] = a_dmap[ilev];
+    }
 }
 
 void OpenBCSolver::setVerbose (int v) noexcept
@@ -255,23 +272,24 @@ Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
     interpolate_potential(solg);
 
     const int nboxes0 = m_grids[0].size();
-    MultiFab sol_all(m_ba_all, m_dm_all, 1, solg.nGrowVect(),
-                     MFInfo().SetAlloc(false));
-    MultiFab rhs_all(m_ba_all, m_dm_all, 1, rhsg.nGrowVect(),
-                     MFInfo().SetAlloc(false));
+    Vector<MultiFab> sol_all(nlevels);
+    Vector<MultiFab> rhs_all(nlevels);
 
-    Box const domain1 = amrex::grow(m_geom[0].Domain(), m_ngrowdomain);
-    IntVect const offset = -domain1.smallEnd();
-    for (MFIter mfi(sol_all); mfi.isValid(); ++mfi) {
+    sol_all[0].define(m_ba_all[0], m_dm_all[0], 1, solg.nGrowVect(),
+                      MFInfo().SetAlloc(false));
+    rhs_all[0].define(m_ba_all[0], m_dm_all[0], 1, rhsg.nGrowVect(),
+                      MFInfo().SetAlloc(false));
+
+    for (MFIter mfi(sol_all[0]); mfi.isValid(); ++mfi) {
         const int index = mfi.index();
         FArrayBox solfab, rhsfab;
         if (index < nboxes0) {
             FArrayBox& sfab0 = (*a_sol[0])[index];
-            if (sol_all.nGrowVect() == a_sol[0]->nGrowVect()) {
+            if (sol_all[0].nGrowVect() == a_sol[0]->nGrowVect()) {
                 solfab = FArrayBox(sfab0, amrex::make_alias, 0, 1);
             } else {
                 Box b = sfab0.box();
-                b.grow(sol_all.nGrowVect()-a_sol[0]->nGrowVect());
+                b.grow(sol_all[0].nGrowVect()-a_sol[0]->nGrowVect());
                 solfab.resize(b,1);
                 solfab.template setVal<RunOn::Device>(0._rt);
             }
@@ -280,23 +298,35 @@ Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
             solfab = FArrayBox(solg[index-nboxes0], amrex::make_alias, 0, 1);
             rhsfab = FArrayBox(rhsg[index-nboxes0], amrex::make_alias, 0, 1);
         }
-        solfab.shift(offset);
-        rhsfab.shift(offset);
-        sol_all.setFab(index, std::move(solfab));
-        rhs_all.setFab(index, std::move(rhsfab));
+        solfab.shift(m_box_offset[0]);
+        rhsfab.shift(m_box_offset[0]);
+        sol_all[0].setFab(mfi, std::move(solfab));
+        rhs_all[0].setFab(mfi, std::move(rhsfab));
+    }
+
+    for (int ilev = 1; ilev < nlevels; ++ilev) {
+        sol_all[ilev].define(m_ba_all[ilev], m_dm_all[ilev], 1,
+                             a_sol[ilev]->nGrowVect(), MFInfo().SetAlloc(false));
+        rhs_all[ilev].define(m_ba_all[ilev], m_dm_all[ilev], 1,
+                             a_rhs[ilev]->nGrowVect(), MFInfo().SetAlloc(false));
+        for (MFIter mfi(sol_all[ilev]); mfi.isValid(); ++mfi) {
+            const int index = mfi.index();
+            auto const& a_sol_fab = (*a_sol[ilev])[index];
+            auto const& a_rhs_fab = (*a_rhs[ilev])[index];
+            FArrayBox solfab(a_sol_fab, amrex::make_alias, 0, 1);
+            FArrayBox rhsfab(a_rhs_fab, amrex::make_alias, 0, 1);
+            solfab.shift(m_box_offset[ilev]);
+            rhsfab.shift(m_box_offset[ilev]);
+            sol_all[ilev].setFab(mfi, std::move(solfab));
+            rhs_all[ilev].setFab(mfi, std::move(rhsfab));
+        }
     }
 
     BL_PROFILE_VAR("OpenBCSolver::MG2", blp_mg2);
 
     if (m_poisson_2 == nullptr) {
-        Vector<Geometry> geom_all = m_geom;
-        Vector<BoxArray> grids_all = m_grids;
-        Vector<DistributionMapping> dmap_all = m_dmap;
-        geom_all[0] = m_geom_all;
-        grids_all[0] = m_ba_all;
-        dmap_all[0] = m_dm_all;
-        m_poisson_2 = std::make_unique<MLPoisson>(geom_all, grids_all, dmap_all,
-                                                  m_info);
+        m_poisson_2 = std::make_unique<MLPoisson>(m_geom_all, m_ba_all,
+                                                  m_dm_all, m_info);
         m_poisson_2->setVerbose(m_verbose);
         m_poisson_2->setMaxOrder(4);
         m_poisson_2->setDomainBC({AMREX_D_DECL(LinOpBCType::Dirichlet,
@@ -305,7 +335,7 @@ Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
                                  {AMREX_D_DECL(LinOpBCType::Dirichlet,
                                                LinOpBCType::Dirichlet,
                                                LinOpBCType::Dirichlet)});
-        m_poisson_2->setLevelBC(0, &sol_all);
+        m_poisson_2->setLevelBC(0, &sol_all[0]);
         for (int ilev = 1; ilev < nlevels; ++ilev) {
             m_poisson_2->setLevelBC(ilev, nullptr);
         }
@@ -320,26 +350,25 @@ Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
         }
 #endif
     }
-    Vector<MultiFab*> solv_all = a_sol;
-    Vector<MultiFab const*> rhsv_all = a_rhs;
-    solv_all[0] = &sol_all;
-    rhsv_all[0] = &rhs_all;
-    Real err = m_mlmg_2->solve(solv_all, rhsv_all, a_tol_rel, a_tol_abs);
+
+    Real err = m_mlmg_2->solve(GetVecOfPtrs(sol_all), GetVecOfConstPtrs(rhs_all),
+                               a_tol_rel, a_tol_abs);
 
     BL_PROFILE_VAR_STOP(blp_mg2);
 
-    if (sol_all.nGrowVect() != a_sol[0]->nGrowVect()) {
+    if (sol_all[0].nGrowVect() != a_sol[0]->nGrowVect()) {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(*a_sol[0], TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             Box const& bx = mfi.tilebox();
-            Array4<Real const> const& sall = sol_all.const_array(mfi.index());
+            Array4<Real const> const& sall = sol_all[0].const_array(mfi.index());
             Array4<Real> const& s = a_sol[0]->array(mfi);
+            auto const offset = m_box_offset[0].dim3();
             AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
             {
-                s(i,j,k) = sall(i,j,k);
+                s(i,j,k) = sall(i+offset.x,j+offset.y,k+offset.z);
             });
         }
     }
