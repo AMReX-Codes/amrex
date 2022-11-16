@@ -29,7 +29,11 @@ void launch (int nblocks, int nthreads_per_block, std::size_t shared_mem_bytes,
     auto& q = *(stream.queue);
     try {
         q.submit([&] (sycl::handler& h) {
+#if defined(__INTEL_LLVM_COMPILER) && (__INTEL_LLVM_COMPILER < 20230100)
             sycl::accessor<unsigned long long, 1, sycl::access::mode::read_write, sycl::access::target::local>
+#else
+            sycl::local_accessor<unsigned long long>
+#endif
                 shared_data(sycl::range<1>(shared_mem_numull), h);
             h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                              sycl::range<1>(nthreads_per_block)),
@@ -163,8 +167,12 @@ void ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
     try {
         if (info.hasReduction()) {
             q.submit([&] (sycl::handler& h) {
+#if defined(__INTEL_LLVM_COMPILER) && (__INTEL_LLVM_COMPILER < 20230100)
                 sycl::accessor<unsigned long long, 1, sycl::access::mode::read_write,
                                sycl::access::target::local>
+#else
+                sycl::local_accessor<unsigned long long>
+#endif
                     shared_data(sycl::range<1>(Gpu::Device::warp_size), h);
                 h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                                  sycl::range<1>(nthreads_per_block)),
@@ -215,8 +223,12 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
     try {
         if (info.hasReduction()) {
             q.submit([&] (sycl::handler& h) {
+#if defined(__INTEL_LLVM_COMPILER) && (__INTEL_LLVM_COMPILER < 20230100)
                 sycl::accessor<unsigned long long, 1, sycl::access::mode::read_write,
                                sycl::access::target::local>
+#else
+                sycl::local_accessor<unsigned long long>
+#endif
                     shared_data(sycl::range<1>(Gpu::Device::warp_size), h);
                 h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                                  sycl::range<1>(nthreads_per_block)),
@@ -279,8 +291,12 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) n
     try {
         if (info.hasReduction()) {
             q.submit([&] (sycl::handler& h) {
+#if defined(__INTEL_LLVM_COMPILER) && (__INTEL_LLVM_COMPILER < 20230100)
                 sycl::accessor<unsigned long long, 1, sycl::access::mode::read_write,
                                sycl::access::target::local>
+#else
+                sycl::local_accessor<unsigned long long>
+#endif
                     shared_data(sycl::range<1>(Gpu::Device::warp_size), h);
                 h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                                  sycl::range<1>(nthreads_per_block)),

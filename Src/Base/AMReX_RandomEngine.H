@@ -14,7 +14,11 @@
 #include <curand.h>
 #include <curand_kernel.h>
 #elif defined(AMREX_USE_DPCPP)
-#include <CL/sycl.hpp>
+#  if defined(__INTEL_LLVM_COMPILER) && (__INTEL_LLVM_COMPILER < 20230100)
+#    include <CL/sycl.hpp>
+#  else
+#    include <sycl/sycl.hpp>
+#  endif
 #include <oneapi/mkl/rng/device.hpp>
 namespace mkl = oneapi::mkl;
 #endif

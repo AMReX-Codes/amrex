@@ -8,7 +8,11 @@
 #include <cstdlib>
 
 #ifdef AMREX_USE_DPCPP
-#include <CL/sycl.hpp>
+#  if defined(__INTEL_LLVM_COMPILER) && (__INTEL_LLVM_COMPILER < 20230100)
+#    include <CL/sycl.hpp>
+#  else
+#    include <sycl/sycl.hpp>
+#  endif
 #endif
 
 namespace amrex { inline namespace disabled {
