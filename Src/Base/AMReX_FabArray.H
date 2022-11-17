@@ -1132,6 +1132,34 @@ public:
 
 #endif
 
+    /**
+     * \brief Return infinity norm
+     *
+     * \param comp           starting component
+     * \param ncomp          number of components
+     * \param nghost         number of ghost cells
+     * \param local          If true, MPI communciation is skipped.
+     * \param ignore_covered ignore covered cells. Only relevant for cell-centered EB data.
+     */
+    template <typename F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    typename F::value_type
+    norminf (int comp, int ncomp, IntVect const& nghost, bool local = false,
+             [[maybe_unused]] bool ignore_covered = false) const;
+
+    /**
+     * \brief Return infinity norm in masked region
+     *
+     * \param mask   only mask=true region is included
+     * \param comp   starting component
+     * \param ncomp  number of components
+     * \param nghost number of ghost cells
+     * \param local  If true, MPI communciation is skipped.
+     */
+    template <typename IFAB, typename F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    typename F::value_type
+    norminf (FabArray<IFAB> const& mask, int comp, int ncomp, IntVect const& nghost,
+             bool local = false) const;
+
 protected:
 
     std::unique_ptr<FabFactory<FAB> > m_factory;
@@ -3075,6 +3103,153 @@ FabArray<FAB>::RecvLayoutMask (const CommMetaData& thecmd)
         }
     }
     return r;
+}
+
+template <class FAB>
+template <typename F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
+typename F::value_type
+FabArray<FAB>::norminf (int comp, int ncomp, IntVect const& nghost, bool local,
+                        [[maybe_unused]] bool ignore_covered) const
+{
+    BL_PROFILE("FabArray::norminf()");
+
+    using RT = typename F::value_type;
+
+    auto nm0 = RT(0.0);
+
+#ifdef AMREX_USE_EB
+    if ( this->is_cell_centered() && this->hasEBFabFactory() && ignore_covered )
+    {
+        const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(this->Factory());
+        auto const& flags = ebfactory.getMultiEBCellFlagFab();
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion()) {
+            auto const& flagsma = flags.const_arrays();
+            auto const& ma = this->const_arrays();
+            nm0 = ParReduce(TypeList<ReduceOpMax>{}, TypeList<RT>{}, *this, nghost,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<RT>
+            {
+                if (flagsma[box_no](i,j,k).isCovered()) {
+                    return RT(0.0);
+                } else {
+                    auto tmp = RT(0.0);
+                    auto const& a = ma[box_no];
+                    for (int n = 0; n < ncomp; ++n) {
+                        tmp = amrex::max(tmp, amrex::Math::abs(a(i,j,k,comp+n)));
+                    }
+                    return tmp;
+                }
+            });
+        } else
+#endif
+        {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel reduction(max:nm0)
+#endif
+            for (MFIter mfi(*this,true); mfi.isValid(); ++mfi) {
+                Box const& bx = mfi.growntilebox(nghost);
+                if (flags[mfi].getType(bx) != FabType::covered) {
+                    auto const& flag = flags.const_array(mfi);
+                    auto const& a = this->const_array(mfi);
+                    AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
+                    {
+                        if (!flag(i,j,k).isCovered()) {
+                            nm0 = std::max(nm0, amrex::Math::abs(a(i,j,k,comp+n)));
+                        }
+                    });
+                }
+            }
+        }
+    }
+    else
+#endif
+    {
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion()) {
+            auto const& ma = this->const_arrays();
+            nm0 = ParReduce(TypeList<ReduceOpMax>{}, TypeList<RT>{}, *this, nghost, ncomp,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<RT>
+            {
+                return amrex::Math::abs(ma[box_no](i,j,k,comp+n));
+            });
+        } else
+#endif
+        {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel reduction(max:nm0)
+#endif
+            for (MFIter mfi(*this,true); mfi.isValid(); ++mfi) {
+                Box const& bx = mfi.growntilebox(nghost);
+                auto const& a = this->const_array(mfi);
+                AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
+                {
+                    nm0 = std::max(nm0, amrex::Math::abs(a(i,j,k,comp+n)));
+                });
+            }
+        }
+    }
+
+    if (!local) {
+        ParallelAllReduce::Max(nm0, ParallelContext::CommunicatorSub());
+    }
+
+    return nm0;
+}
+
+template <class FAB>
+template <typename IFAB, typename F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
+typename F::value_type
+FabArray<FAB>::norminf (FabArray<IFAB> const& mask, int comp, int ncomp,
+                        IntVect const& nghost, bool local) const
+{
+    BL_PROFILE("FabArray::norminf(mask)");
+
+    using RT = typename F::value_type;
+
+    auto nm0 = RT(0.0);
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        auto const& ma = this->const_arrays();
+        auto const& maskma = mask.const_arrays();
+        nm0 = ParReduce(TypeList<ReduceOpMax>{}, TypeList<RT>{}, *this, IntVect(nghost),
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<RT>
+        {
+            if (maskma[box_no](i,j,k)) {
+                auto tmp = RT(0.0);
+                auto const& a = ma[box_no];
+                for (int n = 0; n < ncomp; ++n) {
+                    tmp = amrex::max(tmp, amrex::Math::abs(a(i,j,k,comp+n)));
+                }
+                return tmp;
+            } else {
+                return RT(0.0);
+            }
+        });
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel reduction(max:nm0)
+#endif
+        for (MFIter mfi(*this,true); mfi.isValid(); ++mfi) {
+            Box const& bx = mfi.growntilebox(nghost);
+            auto const& a = this->const_array(mfi);
+            auto const& mskfab = mask.const_array(mfi);
+            AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
+            {
+                if (mskfab(i,j,k)) {
+                    nm0 = std::max(nm0, amrex::Math::abs(a(i,j,k,comp+n)));
+                }
+            });
+        }
+    }
+
+    if (!local) {
+        ParallelAllReduce::Max(nm0, ParallelContext::CommunicatorSub());
+    }
+
+    return nm0;
 }
 
 }

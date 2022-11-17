@@ -184,10 +184,8 @@ public:
 
     Real norm0 (int comp, int ncomp, IntVect const& nghost, bool local = false,
                 bool ignore_covered = false) const;
-    Real norminf (int comp, int ncomp, IntVect const& nghost, bool local = false,
-                  bool ignore_covered = false) const {
-        return norm0(comp, ncomp, nghost, local, ignore_covered);
-    }
+
+    using FabArray<FArrayBox>::norminf;
 
     /**
     * \brief Returns the maximum *absolute* values contained in
