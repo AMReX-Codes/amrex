@@ -49,7 +49,7 @@ void amrex_avg_fc_to_cc (int i, int, int,
         const Real dx = gd.CellSize(0);
         Real rlo = problo + i*dx;
         Real rhi = problo + (i+1)*dx;
-        Real rcen = 0.5*(rlo+rhi);
+        Real rcen = Real(0.5)*(rlo+rhi);
         cc(i,0,0,cccomp) = Real(0.5) * ( rlo*fx(i,0,0) + rhi*fx(i+1,0,0) ) / rcen;
         break;
     }
@@ -156,7 +156,7 @@ void amrex_avgdown_edges (Box const& bx, Array4<Real> const& crse,
     const auto chi = ubound(bx);
 
     const int facx = ratio[0];
-    Real facInv = 1./facx;
+    Real facInv = Real(1.)/facx;
 
     for (int n = 0; n < ncomp; ++n) {
         for (int i = clo.x; i <= chi.x; ++i) {
@@ -193,7 +193,7 @@ void amrex_avgdown (Box const& bx, Array4<Real> const& crse,
     const auto chi = ubound(bx);
 
     const int facx = ratio[0];
-    const Real volfrac = 1.0/static_cast<Real>(facx);
+    const Real volfrac = Real(1.0)/static_cast<Real>(facx);
 
     for (int n = 0; n < ncomp; ++n) {
         for (int i = clo.x; i <= chi.x; ++i) {
@@ -213,7 +213,7 @@ void amrex_avgdown (int i, int, int, int n, Array4<Real> const& crse,
                     int ccomp, int fcomp, IntVect const& ratio) noexcept
 {
     const int facx = ratio[0];
-    const Real volfrac = 1.0/static_cast<Real>(facx);
+    const Real volfrac = Real(1.0)/static_cast<Real>(facx);
     const int ii = i*facx;
     Real c = Real(0.);
     for (int iref = 0; iref < facx; ++iref) {
