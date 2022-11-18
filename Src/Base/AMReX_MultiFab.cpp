@@ -38,51 +38,7 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
                const MultiFab& y, int ycomp,
                int numcomp, int nghost, bool local)
 {
-    BL_ASSERT(x.boxArray() == y.boxArray());
-    BL_ASSERT(x.DistributionMap() == y.DistributionMap());
-    BL_ASSERT(x.nGrow() >= nghost && y.nGrow() >= nghost);
-
-    BL_PROFILE("MultiFab::Dot()");
-
-    Real sm = Real(0.0);
-#ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
-        auto const& xma = x.const_arrays();
-        auto const& yma = y.const_arrays();
-        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, x, IntVect(nghost),
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
-        {
-            Real t = Real(0.0);
-            auto const& xfab = xma[box_no];
-            auto const& yfab = yma[box_no];
-            for (int n = 0; n < numcomp; ++n) {
-                t += xfab(i,j,k,xcomp+n) * yfab(i,j,k,ycomp+n);
-            }
-            return t;
-        });
-    } else
-#endif
-    {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
-#endif
-        for (MFIter mfi(x,true); mfi.isValid(); ++mfi)
-        {
-            Box const& bx = mfi.growntilebox(nghost);
-            Array4<Real const> const& xfab = x.const_array(mfi);
-            Array4<Real const> const& yfab = y.const_array(mfi);
-            AMREX_LOOP_4D(bx, numcomp, i, j, k, n,
-            {
-                sm += xfab(i,j,k,xcomp+n) * yfab(i,j,k,ycomp+n);
-            });
-        }
-    }
-
-    if (!local) {
-        ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
-    }
-
-    return sm;
+    return amrex::Dot(x,xcomp,y,ycomp,numcomp,IntVect(nghost),local);
 }
 
 Real

@@ -1551,6 +1551,70 @@ indexFromValue (FabArray<FAB> const& mf, int comp, IntVect const& nghost,
     return loc;
 }
 
+/**
+ * \brief Compute dot products of two FabArrays
+ *
+ * \param x      first FabArray
+ * \param xcomp  starting component of x
+ * \param y      second FabArray
+ * \param ycomp  starting component of y
+ * \param ncomp  number of components
+ * \param nghost number of ghost cells
+ * \param local  If true, MPI communciation is skipped.
+ */
+template <typename FAB, std::enable_if_t<IsBaseFab<FAB>::value,int> FOO = 0>
+typename FAB::value_type
+Dot (FabArray<FAB> const& x, int xcomp, FabArray<FAB> const& y, int ycomp, int ncomp,
+     IntVect const& nghost, bool local = false)
+{
+    BL_ASSERT(x.boxArray() == y.boxArray());
+    BL_ASSERT(x.DistributionMap() == y.DistributionMap());
+    BL_ASSERT(x.nGrowVect().allGE(nghost) && y.nGrowVect().allGE(nghost));
+
+    BL_PROFILE("amrex::Dot()");
+
+    using T = typename FAB::value_type;
+    auto sm = T(0.0);
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        auto const& xma = x.const_arrays();
+        auto const& yma = y.const_arrays();
+        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<T>{}, x, nghost,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<T>
+        {
+            auto t = T(0.0);
+            auto const& xfab = xma[box_no];
+            auto const& yfab = yma[box_no];
+            for (int n = 0; n < ncomp; ++n) {
+                t += xfab(i,j,k,xcomp+n) * yfab(i,j,k,ycomp+n);
+            }
+            return t;
+        });
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
+#endif
+        for (MFIter mfi(x,true); mfi.isValid(); ++mfi)
+        {
+            Box const& bx = mfi.growntilebox(nghost);
+            auto const& xfab = x.const_array(mfi);
+            auto const& yfab = y.const_array(mfi);
+            AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
+            {
+                sm += xfab(i,j,k,xcomp+n) * yfab(i,j,k,ycomp+n);
+            });
+        }
+    }
+
+    if (!local) {
+        ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
+    }
+
+    return sm;
+}
+
 }
 
 #endif
