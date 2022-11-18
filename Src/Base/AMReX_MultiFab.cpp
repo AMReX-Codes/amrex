@@ -1519,42 +1519,7 @@ MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
 Real
 MultiFab::sum (int comp, bool local) const
 {
-    BL_PROFILE("MultiFab::sum()");
-
-    Real sm = Real(0.0);
-#ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
-        auto const& ma = this->const_arrays();
-        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, *this, IntVect(0),
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-                       -> GpuTuple<Real>
-        {
-            return ma[box_no](i,j,k,comp);
-        });
-    } else
-#endif
-    {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
-#endif
-        for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
-        {
-            Box const& bx = mfi.tilebox();
-            Array4<Real const> const& a = this->const_array(mfi);
-            Real tmp = Real(0.0);
-            AMREX_LOOP_3D(bx, i, j, k,
-            {
-                tmp += a(i,j,k,comp);
-            });
-            sm += tmp; // Do it this way so that it does not break regression tests.
-        }
-    }
-
-    if (!local) {
-        ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
-    }
-
-    return sm;
+    return FabArray<FArrayBox>::sum(comp, IntVect(0), local);
 }
 
 Real

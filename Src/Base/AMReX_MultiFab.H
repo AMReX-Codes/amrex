@@ -232,6 +232,9 @@ public:
     * \brief Returns the sum of component "comp" over the MultiFab -- no ghost cells are included.
     */
     Real sum (int comp = 0, bool local = false) const;
+
+    using FabArray<FArrayBox>::sum;
+
     /**
     * \brief Same as sum with local=false, but for non-cell-centered data, this
     *        skips non-unique points that are owned by multiple boxes.
