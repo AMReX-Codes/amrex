@@ -211,19 +211,27 @@ struct MultiArray4
 
 template <class FAB> class FabArray;
 
-template <class FAB,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <class DFAB, class SFAB,
+          typename DT = typename DFAB::value_type,
+          typename ST = typename SFAB::value_type,
+          std::enable_if_t<IsBaseFab<DFAB>::value && IsBaseFab<SFAB>::value &&
+                           std::is_convertible_v<ST,DT>, int> BAR = 0>
 void
-Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
+Copy (FabArray<DFAB>& dst, FabArray<SFAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
 {
     Copy(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
 
-template <class FAB,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <class DFAB, class SFAB,
+          typename DT = typename DFAB::value_type,
+          typename ST = typename SFAB::value_type,
+          std::enable_if_t<IsBaseFab<DFAB>::value && IsBaseFab<SFAB>::value &&
+                           std::is_convertible_v<ST,DT>, int> BAR = 0>
 void
-Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+Copy (FabArray<DFAB>& dst, FabArray<SFAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
+    BL_PROFILE("amrex::Copy()");
+
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
         auto const& srcarr = src.const_arrays();
@@ -231,7 +239,7 @@ Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, in
         ParallelFor(dst, nghost, numcomp,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
         {
-            dstarr[box_no](i,j,k,dstcomp+n) = srcarr[box_no](i,j,k,srccomp+n);
+            dstarr[box_no](i,j,k,dstcomp+n) = DT(srcarr[box_no](i,j,k,srccomp+n));
         });
         Gpu::streamSynchronize();
     } else
@@ -245,11 +253,11 @@ Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, in
             const Box& bx = mfi.growntilebox(nghost);
             if (bx.ok())
             {
-                auto const srcFab = src.array(mfi);
-                auto       dstFab = dst.array(mfi);
+                auto const& srcFab = src.const_array(mfi);
+                auto const& dstFab = dst.array(mfi);
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
                 {
-                    dstFab(i,j,k,dstcomp+n) = srcFab(i,j,k,srccomp+n);
+                    dstFab(i,j,k,dstcomp+n) = DT(srcFab(i,j,k,srccomp+n));
                 });
             }
         }
@@ -269,6 +277,8 @@ template <class FAB,
 void
 Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
+    BL_PROFILE("amrex::Add()");
+
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
         auto const& dstfa = dst.arrays();
@@ -556,6 +566,44 @@ public:
 
     //! Releases FAB memory in the FabArray.
     void clear ();
+
+    /**
+     * \brief Perform local copy of FabArray data.
+     *
+     * The two FabArrays must have the same BoxArray and
+     * DistributionMapping, although they could have different data types.
+     * For example, this could be used to copy from FabArray<BaseFab<float>>
+     * to FabArray<BaseFab<double>>.
+     *
+     * \param src    source FabArray
+     * \param scomp  starting component of source
+     * \param dcomp  starting component of this FabArray
+     * \param ncomp  number of components
+     * \param nghost number of ghost cells
+     */
+    template <typename SFAB,
+              std::enable_if_t<IsBaseFab<FAB>::value && IsBaseFab<SFAB>::value &&
+                               std::is_convertible_v<typename SFAB::value_type,
+                                                     typename  FAB::value_type>,
+                               int> = 0>
+    void LocalCopy (FabArray<SFAB> const& src, int scomp, int dcomp, int ncomp,
+                    IntVect const& nghost);
+
+    /**
+     * \brief Perform local addition of FabArray data.
+     *
+     * The two FabArrays must have the same BoxArray and
+     * DistributionMapping.
+     *
+     * \param src    source FabArray
+     * \param scomp  starting component of source
+     * \param dcomp  starting component of this FabArray
+     * \param ncomp  number of components
+     * \param nghost number of ghost cells
+     */
+    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    void LocalAdd (FabArray<FAB> const& src, int scomp, int dcomp, int ncomp,
+                   IntVect const& nghost);
 
     //! Set all components in the entire region of each FAB to val.
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
@@ -1595,6 +1643,27 @@ FabArray<FAB>::clear ()
     m_tags.clear();
 
     FabArrayBase::clear();
+}
+
+template <class FAB>
+template <typename SFAB,
+          std::enable_if_t<IsBaseFab<FAB>::value && IsBaseFab<SFAB>::value &&
+                           std::is_convertible_v<typename SFAB::value_type,
+                                                 typename  FAB::value_type>, int>>
+void
+FabArray<FAB>::LocalCopy (FabArray<SFAB> const& src, int scomp, int dcomp, int ncomp,
+                          IntVect const& nghost)
+{
+    amrex::Copy(*this, src, scomp, dcomp, ncomp, nghost);
+}
+
+template <class FAB>
+template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
+void
+FabArray<FAB>::LocalAdd (FabArray<FAB> const& src, int scomp, int dcomp, int ncomp,
+                         IntVect const& nghost)
+{
+    amrex::Add(*this, src, scomp, dcomp, ncomp, nghost);
 }
 
 template <class FAB>
