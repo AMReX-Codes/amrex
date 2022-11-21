@@ -131,9 +131,10 @@ private:
     MultiFab m_phind;
     BoxArray m_bag;
 
-    BoxArray m_ba_all;
-    DistributionMapping m_dm_all;
-    Geometry m_geom_all;
+    Vector<IntVect> m_box_offset;
+    Vector<BoxArray> m_ba_all;
+    Vector<DistributionMapping> m_dm_all;
+    Vector<Geometry> m_geom_all;
 };
 
 }
