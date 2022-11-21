@@ -120,9 +120,10 @@ void amrex_avg_cc_to_fc (int i, int, int, int n, Box const& xbx,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void amrex_avgdown_faces (Box const& bx, Array4<Real> const& crse,
-                          Array4<Real const> const& fine,
+void amrex_avgdown_faces (Box const& bx, Array4<T> const& crse,
+                          Array4<T const> const& fine,
                           int ccomp, int fcomp, int ncomp,
                           IntVect const& ratio, int /*idir*/) noexcept
 {
@@ -138,9 +139,10 @@ void amrex_avgdown_faces (Box const& bx, Array4<Real> const& crse,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void amrex_avgdown_faces (int i, int, int, int n, Array4<Real> const& crse,
-                          Array4<Real const> const& fine,
+void amrex_avgdown_faces (int i, int, int, int n, Array4<T> const& crse,
+                          Array4<T const> const& fine,
                           int ccomp, int fcomp, IntVect const& ratio, int /*idir*/) noexcept
 {
     crse(i,0,0,n+ccomp) = fine(ratio[0]*i,0,0,n+fcomp);

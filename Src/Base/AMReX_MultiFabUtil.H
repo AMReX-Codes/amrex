@@ -53,34 +53,41 @@ namespace amrex
                                      bool use_harmonic_averaging = false);
 
     //! Average fine face-based MultiFab onto crse face-based MultiFab.
-    void average_down_faces (const Vector<const MultiFab*>& fine,
-                             const Vector<MultiFab*>& crse,
+    template <typename MF, std::enable_if_t<IsFabArray<MF>::value,int> = 0>
+    void average_down_faces (const Vector<const MF*>& fine,
+                             const Vector<MF*>& crse,
                              const IntVect& ratio,
                              int ngcrse = 0);
-    void average_down_faces (const Vector<const MultiFab*>& fine,
-                             const Vector<MultiFab*>& crse,
+    template <typename MF, std::enable_if_t<IsFabArray<MF>::value,int> = 0>
+    void average_down_faces (const Vector<const MF*>& fine,
+                             const Vector<MF*>& crse,
                              int ratio,
                              int ngcrse = 0);
-    void average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
-                             const Array<MultiFab*,AMREX_SPACEDIM>& crse,
+    template <typename MF, std::enable_if_t<IsFabArray<MF>::value,int> = 0>
+    void average_down_faces (const Array<const MF*,AMREX_SPACEDIM>& fine,
+                             const Array<MF*,AMREX_SPACEDIM>& crse,
                              const IntVect& ratio,
                              int ngcrse = 0);
-    void average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
-                             const Array<MultiFab*,AMREX_SPACEDIM>& crse,
+    template <typename MF, std::enable_if_t<IsFabArray<MF>::value,int> = 0>
+    void average_down_faces (const Array<const MF*,AMREX_SPACEDIM>& fine,
+                             const Array<MF*,AMREX_SPACEDIM>& crse,
                              int ratio,
                              int ngcrse = 0);
     //! This version does average down for one direction.
     //! It uses the IndexType of MultiFabs to determine the direction.
     //! It is expected that one direction is nodal and the rest are cell-centered.
-    void average_down_faces (const MultiFab& fine, MultiFab& crse,
+    template <typename FAB>
+    void average_down_faces (const FabArray<FAB>& fine, FabArray<FAB>& crse,
                              const IntVect& ratio, int ngcrse=0);
 
     //  This version takes periodicity into account.
-    void average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
-                             const Array<MultiFab*,AMREX_SPACEDIM>& crse,
+    template <typename MF, std::enable_if_t<IsFabArray<MF>::value,int> = 0>
+    void average_down_faces (const Array<const MF*,AMREX_SPACEDIM>& fine,
+                             const Array<MF*,AMREX_SPACEDIM>& crse,
                              const IntVect& ratio, const Geometry& crse_geom);
     //  This version takes periodicity into account.
-    void average_down_faces (const MultiFab& fine, MultiFab& crse,
+    template <typename FAB>
+    void average_down_faces (const FabArray<FAB>& fine, FabArray<FAB>& crse,
                              const IntVect& ratio, const Geometry& crse_geom);
 
     //! Average fine edge-based MultiFab onto crse edge-based MultiFab.
@@ -486,6 +493,122 @@ NormHelper (const MMF& mask,
     }
 
     return sm;
+}
+
+template <typename MF, std::enable_if_t<IsFabArray<MF>::value,int>>
+void average_down_faces (const Vector<const MF*>& fine,
+                         const Vector<MF*>& crse,
+                         const IntVect& ratio, int ngcrse)
+{
+    AMREX_ASSERT(fine.size() == AMREX_SPACEDIM && crse.size() == AMREX_SPACEDIM);
+    average_down_faces(Array<const MF*,AMREX_SPACEDIM>
+                               {{AMREX_D_DECL(fine[0],fine[1],fine[2])}},
+                       Array<MF*,AMREX_SPACEDIM>
+                               {{AMREX_D_DECL(crse[0],crse[1],crse[2])}},
+                       ratio, ngcrse);
+}
+
+template <typename MF, std::enable_if_t<IsFabArray<MF>::value,int>>
+void average_down_faces (const Vector<const MF*>& fine,
+                         const Vector<MF*>& crse, int ratio, int ngcrse)
+{
+    average_down_faces(fine,crse,IntVect{ratio},ngcrse);
+}
+
+template <typename MF, std::enable_if_t<IsFabArray<MF>::value,int>>
+void average_down_faces (const Array<const MF*,AMREX_SPACEDIM>& fine,
+                         const Array<MF*,AMREX_SPACEDIM>& crse,
+                         int ratio, int ngcrse)
+{
+    average_down_faces(fine,crse,IntVect{ratio},ngcrse);
+}
+
+template <typename MF, std::enable_if_t<IsFabArray<MF>::value,int>>
+void average_down_faces (const Array<const MF*,AMREX_SPACEDIM>& fine,
+                         const Array<MF*,AMREX_SPACEDIM>& crse,
+                         const IntVect& ratio, int ngcrse)
+{
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        average_down_faces(*fine[idim], *crse[idim], ratio, ngcrse);
+    }
+}
+
+template <typename FAB>
+void average_down_faces (const FabArray<FAB>& fine, FabArray<FAB>& crse,
+                         const IntVect& ratio, int ngcrse)
+{
+    BL_PROFILE("average_down_faces");
+
+    AMREX_ASSERT(crse.nComp() == fine.nComp());
+    AMREX_ASSERT(fine.ixType() == crse.ixType());
+    const auto type = fine.ixType();
+    int dir;
+    for (dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+        if (type.nodeCentered(dir)) break;
+    }
+    auto tmptype = type;
+    tmptype.unset(dir);
+    if (dir >= AMREX_SPACEDIM || !tmptype.cellCentered()) {
+        amrex::Abort("average_down_faces: not face index type");
+    }
+    const int ncomp = crse.nComp();
+    if (isMFIterSafe(fine, crse))
+    {
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion() && crse.isFusingCandidate()) {
+            auto const& crsema = crse.arrays();
+            auto const& finema = fine.const_arrays();
+            ParallelFor(crse, IntVect(ngcrse), ncomp,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+            {
+                amrex_avgdown_faces(i,j,k,n, crsema[box_no], finema[box_no], 0, 0, ratio, dir);
+            });
+            Gpu::streamSynchronize();
+        } else
+#endif
+        {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.growntilebox(ngcrse);
+                auto const& crsearr = crse.array(mfi);
+                auto const& finearr = fine.const_array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
+                {
+                    amrex_avgdown_faces(i,j,k,n, crsearr, finearr, 0, 0, ratio, dir);
+                });
+            }
+        }
+    }
+    else
+    {
+        FabArray<FAB> ctmp(amrex::coarsen(fine.boxArray(),ratio), fine.DistributionMap(),
+                      ncomp, ngcrse, MFInfo(), DefaultFabFactory<FAB>());
+        average_down_faces(fine, ctmp, ratio, ngcrse);
+        crse.ParallelCopy(ctmp,0,0,ncomp,ngcrse,ngcrse);
+    }
+}
+
+template <typename MF, std::enable_if_t<IsFabArray<MF>::value,int>>
+void average_down_faces (const Array<const MF*,AMREX_SPACEDIM>& fine,
+                         const Array<MF*,AMREX_SPACEDIM>& crse,
+                         const IntVect& ratio, const Geometry& crse_geom)
+{
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        average_down_faces(*fine[idim], *crse[idim], ratio, crse_geom);
+    }
+}
+
+template <typename FAB>
+void average_down_faces (const FabArray<FAB>& fine, FabArray<FAB>& crse,
+                         const IntVect& ratio, const Geometry& crse_geom)
+{
+    FabArray<FAB> ctmp(amrex::coarsen(fine.boxArray(),ratio), fine.DistributionMap(),
+                  crse.nComp(), 0);
+    average_down_faces(fine, ctmp, ratio, 0);
+    crse.ParallelCopy(ctmp,0,0,crse.nComp(),0,0,crse_geom.periodicity());
 }
 
 }
