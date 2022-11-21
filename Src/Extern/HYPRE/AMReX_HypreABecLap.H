@@ -6,7 +6,7 @@
 #include <AMReX_Array.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_MacBndry.H>
+#include <AMReX_BndryData.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_LO_BCTYPES.H>
 
@@ -46,4 +46,3 @@ public: // for cuda
 }
 
 #endif
-

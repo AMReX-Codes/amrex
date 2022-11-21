@@ -208,7 +208,7 @@ MLCellLinOp::defineBC ()
         bc_data.setVal(0.0);
 
         m_bndry_cor[amrlev]->setBndryValues(*m_crse_cor_br[amrlev], 0, bc_data, 0, 0, ncomp,
-                                            m_amr_ref_ratio[amrlev-1], BCRec());
+                                            IntVect(m_amr_ref_ratio[amrlev-1]));
 
         Vector<Array<LinOpBCType,AMREX_SPACEDIM> > bclohi
             (ncomp,Array<LinOpBCType,AMREX_SPACEDIM>{{AMREX_D_DECL(BCType::Dirichlet,
@@ -279,19 +279,18 @@ MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata, const MultiF
                 m_crse_sol_br[amrlev]->setVal(0.0);
             }
             m_bndry_sol[amrlev]->setBndryValues(*m_crse_sol_br[amrlev], 0,
-                                                bcdata, 0, 0, ncomp,
-                                                br_ref_ratio, BCRec());
+                                                bcdata, 0, 0, ncomp, IntVect(br_ref_ratio));
             br_ref_ratio = m_coarse_data_crse_ratio;
         }
         else
         {
-            m_bndry_sol[amrlev]->setBndryValues(bcdata,0,0,ncomp,BCRec());
+            m_bndry_sol[amrlev]->setPhysBndryValues(bcdata,0,0,ncomp);
             br_ref_ratio = 1;
         }
     }
     else
     {
-        m_bndry_sol[amrlev]->setBndryValues(bcdata,0,0,ncomp, m_amr_ref_ratio[amrlev-1], BCRec());
+        m_bndry_sol[amrlev]->setPhysBndryValues(bcdata,0,0,ncomp);
         br_ref_ratio = m_amr_ref_ratio[amrlev-1];
     }
 
@@ -510,7 +509,8 @@ MLCellLinOp::updateSolBC (int amrlev, const MultiFab& crse_bcdata) const
     AMREX_ALWAYS_ASSERT(amrlev > 0);
     const int ncomp = getNComp();
     m_crse_sol_br[amrlev]->copyFrom(crse_bcdata, 0, 0, 0, ncomp, m_geom[amrlev-1][0].periodicity());
-    m_bndry_sol[amrlev]->updateBndryValues(*m_crse_sol_br[amrlev], 0, 0, ncomp, m_amr_ref_ratio[amrlev-1]);
+    m_bndry_sol[amrlev]->updateBndryValues(*m_crse_sol_br[amrlev], 0, 0, ncomp,
+                                           IntVect(m_amr_ref_ratio[amrlev-1]));
 }
 
 void
@@ -520,7 +520,8 @@ MLCellLinOp::updateCorBC (int amrlev, const MultiFab& crse_bcdata) const
     AMREX_ALWAYS_ASSERT(amrlev > 0);
     const int ncomp = getNComp();
     m_crse_cor_br[amrlev]->copyFrom(crse_bcdata, 0, 0, 0, ncomp, m_geom[amrlev-1][0].periodicity());
-    m_bndry_cor[amrlev]->updateBndryValues(*m_crse_cor_br[amrlev], 0, 0, ncomp, m_amr_ref_ratio[amrlev-1]);
+    m_bndry_cor[amrlev]->updateBndryValues(*m_crse_cor_br[amrlev], 0, 0, ncomp,
+                                           IntVect(m_amr_ref_ratio[amrlev-1]));
 }
 
 void

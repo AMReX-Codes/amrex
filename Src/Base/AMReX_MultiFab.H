@@ -19,6 +19,8 @@
 namespace amrex
 {
 
+typedef FabArray<BaseFab<float> > fMultiFab;
+
 class iMultiFab;
 
 /**

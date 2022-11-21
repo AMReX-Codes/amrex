@@ -3,12 +3,11 @@
 
 namespace amrex {
 
-class BndryData;
-class BndryRegister;
+class BndryDataT;
+class BndryRegisterT;
 class BoundCond;
-class FabSet;
-class InterpBndryData;
-class MacBndry;
+class FabSetT;
+class InterpBndryDataT;
 class Mask;
 class MultiMask;
 class YAFluxRegisterT;
