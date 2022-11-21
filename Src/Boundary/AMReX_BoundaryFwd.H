@@ -11,7 +11,7 @@ class InterpBndryData;
 class MacBndry;
 class Mask;
 class MultiMask;
-class YAFluxRegister;
+class YAFluxRegisterT;
 
 }
 

@@ -318,6 +318,8 @@ public:
     */
     using value_type = typename std::conditional<IsBaseFab<FAB>::value, FAB, FABType>::type::value_type;
 
+    using fab_type = FAB;
+
     //
     //! Constructs an empty FabArray<FAB>.
     FabArray () noexcept;
