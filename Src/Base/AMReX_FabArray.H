@@ -665,6 +665,17 @@ public:
     void setDomainBndry (value_type val, int strt_comp, int ncomp, const Geometry& geom);
 
     /**
+    * \brief Returns the sum of component "comp"
+    *
+    * \param comp   component
+    * \param nghost number of ghost cells
+    * \param local  If true, MPI communciation is skipped.
+    */
+    template <typename F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    typename F::value_type
+    sum (int comp, IntVect const& nghost, bool local = false) const;
+
+    /**
     * \brief This function copies data from fa to this FabArray.  Each FAB
     * in fa is intersected with all FABs in this FabArray and a copy
     * is performed on the region of intersection.  The intersection
@@ -2268,6 +2279,50 @@ FabArray<FAB>::setDomainBndry (value_type val,
             get(fai).template setComplement<RunOn::Device>(val, domain_box, strt_comp, ncomp);
         }
     }
+}
+
+template <class FAB>
+template <class F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
+typename F::value_type
+FabArray<FAB>::sum (int comp, IntVect const& nghost, bool local) const
+{
+    BL_PROFILE("FabArray::sum()");
+
+    using T = typename FAB::value_type;
+    auto sm = T(0.0);
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        auto const& ma = this->const_arrays();
+        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<T>{}, *this, nghost,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                       -> GpuTuple<T>
+        {
+            return ma[box_no](i,j,k,comp);
+        });
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
+#endif
+        for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+        {
+            Box const& bx = mfi.growntilebox(nghost);
+            auto const& a = this->const_array(mfi);
+            auto tmp = T(0.0);
+            AMREX_LOOP_3D(bx, i, j, k,
+            {
+                tmp += a(i,j,k,comp);
+            });
+            sm += tmp; // Do it this way so that it does not break regression tests.
+        }
+    }
+
+    if (!local) {
+        ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
+    }
+
+    return sm;
 }
 
 template <class FAB>
