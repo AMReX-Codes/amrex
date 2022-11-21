@@ -1273,6 +1273,58 @@ public:
 
     // Pointer to temporary fab used in non-blocking amrex::OverrideSync
     std::unique_ptr< FabArray<FAB> > os_temp;
+
+public:
+
+    /**
+     * \brief y += a*x
+     *
+     * \param y      FabArray y
+     * \param a      scalar a
+     * \param x      FabArray x
+     * \param xcomp  starting component of x
+     * \param ycomp  starting component of y
+     * \param ncomp  number of components
+     * \param nghost number of ghost cells
+     */
+    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    static void Saxpy (FabArray<FAB>& y, value_type a, FabArray<FAB> const& x,
+                       int xcomp, int ycomp, int ncomp, IntVect const& nghost);
+
+    /**
+     * \brief y = x + a*y
+     *
+     * \param y      FabArray y
+     * \param a      scalar a
+     * \param x      FabArray x
+     * \param xcomp  starting component of x
+     * \param ycomp  starting component of y
+     * \param ncomp  number of components
+     * \param nghost number of ghost cells
+     */
+    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    static void Xpay (FabArray<FAB>& y, value_type a, FabArray<FAB> const& x,
+                      int xcomp, int ycomp, int ncomp, IntVect const& nghost);
+
+    /**
+     * \brief dst = a*x + b*y
+     *
+     * \param dst     destination FabArray
+     * \param a       scalar a
+     * \param x       FabArray x
+     * \param xcomp   starting component of x
+     * \param b       scalar b
+     * \param y       FabArray y
+     * \param ycomp   starting component of y
+     * \param dstcomp starting component of destination
+     * \param numcomp number of components
+     * \param nghost  number of ghost cells
+     */
+    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    static void LinComb (FabArray<FAB>& dst,
+                         value_type a, const FabArray<FAB>& x, int xcomp,
+                         value_type b, const FabArray<FAB>& y, int ycomp,
+                         int dstcomp, int numcomp, const IntVect& nghost);
 };
 
 
@@ -2597,6 +2649,140 @@ FabArray<FAB>::shift (const IntVect& v)
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
         get(fai).shift(v);
+    }
+}
+
+template <class FAB>
+template <class F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
+void FabArray<FAB>::Saxpy (FabArray<FAB>& y, value_type a, FabArray<FAB> const& x,
+                           int xcomp, int ycomp, int ncomp, IntVect const& nghost)
+{
+    BL_ASSERT(y.boxArray() == x.boxArray());
+    BL_ASSERT(y.distributionMap == x.distributionMap);
+    BL_ASSERT(y.nGrowVect().allGE(nghost) && x.nGrowVect().allGE(nghost));
+
+    BL_PROFILE("FabArray::Saxpy()");
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && y.isFusingCandidate()) {
+        auto const& yma = y.arrays();
+        auto const& xma = x.const_arrays();
+        ParallelFor(y, nghost, ncomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            yma[box_no](i,j,k,ycomp+n) += a * xma[box_no](i,j,k,xcomp+n);
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(y,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost);
+
+            if (bx.ok()) {
+                auto const& xfab = x.const_array(mfi);
+                auto const& yfab = y.array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
+                {
+                    yfab(i,j,k,ycomp+n) += a * xfab(i,j,k,xcomp+n);
+                });
+            }
+        }
+    }
+}
+
+template <class FAB>
+template <class F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
+void
+FabArray<FAB>::Xpay (FabArray<FAB>& y, value_type a, FabArray<FAB> const& x,
+                     int xcomp, int ycomp, int ncomp, IntVect const& nghost)
+{
+    BL_ASSERT(y.boxArray() == x.boxArray());
+    BL_ASSERT(y.distributionMap == x.distributionMap);
+    BL_ASSERT(y.nGrowVect().allGE(nghost) && x.nGrowVect().allGE(nghost));
+
+    BL_PROFILE("FabArray::Xpay()");
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && y.isFusingCandidate()) {
+        auto const& yfa = y.arrays();
+        auto const& xfa = x.const_arrays();
+        ParallelFor(y, nghost, ncomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            yfa[box_no](i,j,k,n+ycomp) = xfa[box_no](i,j,k,n+xcomp)
+                +                    a * yfa[box_no](i,j,k,n+ycomp);
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(y,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost);
+            auto const& xFab = x.const_array(mfi);
+            auto const& yFab = y.array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
+            {
+                yFab(i,j,k,n+ycomp) = xFab(i,j,k,n+xcomp)
+                    +             a * yFab(i,j,k,n+ycomp);
+            });
+        }
+    }
+}
+
+template <class FAB>
+template <class F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
+void
+FabArray<FAB>::LinComb (FabArray<FAB>& dst,
+                        value_type a, const FabArray<FAB>& x, int xcomp,
+                        value_type b, const FabArray<FAB>& y, int ycomp,
+                        int dstcomp, int numcomp, const IntVect& nghost)
+{
+    BL_ASSERT(dst.boxArray() == x.boxArray());
+    BL_ASSERT(dst.distributionMap == x.distributionMap);
+    BL_ASSERT(dst.boxArray() == y.boxArray());
+    BL_ASSERT(dst.distributionMap == y.distributionMap);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) && x.nGrowVect().allGE(nghost) && y.nGrowVect().allGE(nghost));
+
+    BL_PROFILE("FabArray::LinComb()");
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
+        auto const& dstma = dst.arrays();
+        auto const& xma = x.const_arrays();
+        auto const& yma = y.const_arrays();
+        ParallelFor(dst, nghost, numcomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            dstma[box_no](i,j,k,dstcomp+n) = a*xma[box_no](i,j,k,xcomp+n)
+                +                            b*yma[box_no](i,j,k,ycomp+n);
+        });
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost);
+            auto const& xfab = x.const_array(mfi);
+            auto const& yfab = y.const_array(mfi);
+            auto const& dfab = dst.array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
+            {
+                dfab(i,j,k,dstcomp+n) = a*xfab(i,j,k,xcomp+n) + b*yfab(i,j,k,ycomp+n);
+            });
+        }
     }
 }
 

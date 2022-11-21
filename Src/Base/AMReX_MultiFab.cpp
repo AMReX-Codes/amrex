@@ -369,64 +369,10 @@ MultiFab::Saxpy (MultiFab& dst, Real a, const MultiFab& src,
 }
 
 void
-MultiFab::Saxpy (MultiFab& dst, Real a, const MultiFab& src,
-                 int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
-{
-    BL_ASSERT(dst.boxArray() == src.boxArray());
-    BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
-
-    BL_PROFILE("MultiFab::Saxpy()");
-
-#ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
-        auto const& dstma = dst.arrays();
-        auto const& srcma = src.const_arrays();
-        ParallelFor(dst, nghost, numcomp,
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
-        {
-            dstma[box_no](i,j,k,dstcomp+n) += a * srcma[box_no](i,j,k,srccomp+n);
-        });
-        Gpu::streamSynchronize();
-    } else
-#endif
-    {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.growntilebox(nghost);
-
-            if (bx.ok()) {
-                auto const sfab = src.array(mfi);
-                auto       dfab = dst.array(mfi);
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
-                {
-                    dfab(i,j,k,dstcomp+n) += a * sfab(i,j,k,srccomp+n);
-                });
-            }
-        }
-    }
-}
-
-void
 MultiFab::Xpay (MultiFab& dst, Real a, const MultiFab& src,
                 int srccomp, int dstcomp, int numcomp, int nghost)
 {
     Xpay(dst,a,src,srccomp,dstcomp,numcomp,IntVect(nghost));
-}
-
-void
-MultiFab::Xpay (MultiFab& dst, Real a, const MultiFab& src,
-                int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
-{
-    BL_ASSERT(dst.boxArray() == src.boxArray());
-    BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
-
-    BL_PROFILE("MultiFab::Xpay()");
-    amrex::Xpay(dst, a, src, srccomp, dstcomp, numcomp, nghost);
 }
 
 void
@@ -436,55 +382,6 @@ MultiFab::LinComb (MultiFab& dst,
                    int dstcomp, int numcomp, int nghost)
 {
     LinComb(dst,a,x,xcomp,b,y,ycomp,dstcomp,numcomp,IntVect(nghost));
-}
-
-void
-MultiFab::LinComb (MultiFab& dst,
-                   Real a, const MultiFab& x, int xcomp,
-                   Real b, const MultiFab& y, int ycomp,
-                   int dstcomp, int numcomp, const IntVect& nghost)
-{
-    BL_ASSERT(dst.boxArray() == x.boxArray());
-    BL_ASSERT(dst.distributionMap == x.distributionMap);
-    BL_ASSERT(dst.boxArray() == y.boxArray());
-    BL_ASSERT(dst.distributionMap == y.distributionMap);
-    BL_ASSERT(dst.nGrowVect().allGE(nghost) && x.nGrowVect().allGE(nghost) && y.nGrowVect().allGE(nghost));
-
-    BL_PROFILE("MultiFab::LinComb()");
-
-#ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
-        auto const& dstma = dst.arrays();
-        auto const& xma = x.const_arrays();
-        auto const& yma = y.const_arrays();
-        ParallelFor(dst, nghost, numcomp,
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
-        {
-            dstma[box_no](i,j,k,dstcomp+n) = a*xma[box_no](i,j,k,xcomp+n)
-                +                            b*yma[box_no](i,j,k,ycomp+n);
-        });
-        Gpu::streamSynchronize();
-    } else
-#endif
-    {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.growntilebox(nghost);
-
-            if (bx.ok()) {
-                auto const xfab =   x.array(mfi);
-                auto const yfab =   y.array(mfi);
-                auto       dfab = dst.array(mfi);
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
-                {
-                    dfab(i,j,k,dstcomp+n) = a*xfab(i,j,k,xcomp+n) + b*yfab(i,j,k,ycomp+n);
-                });
-            }
-        }
-    }
 }
 
 void
