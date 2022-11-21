@@ -576,13 +576,7 @@ public:
                        int             numcomp,
                        int             nghost);
 
-    static void Saxpy (MultiFab&       dst,
-                       Real            a,
-                       const MultiFab& src,
-                       int             srccomp,
-                       int             dstcomp,
-                       int             numcomp,
-                       const IntVect&  nghost);
+    using FabArray<FArrayBox>::Saxpy;
 
     /**
     * \brief dst = src + a*dst
@@ -595,13 +589,8 @@ public:
                       int             numcomp,
                       int             nghost);
 
-    static void Xpay (MultiFab&       dst,
-                      Real            a,
-                      const MultiFab& src,
-                      int             srccomp,
-                      int             dstcomp,
-                      int             numcomp,
-                      const IntVect&  nghost);
+    using FabArray<FArrayBox>::Xpay;
+
     /**
     * \brief dst = a*x + b*y
     */
@@ -616,16 +605,7 @@ public:
                          int             numcomp,
                          int             nghost);
 
-    static void LinComb (MultiFab&       dst,
-                         Real            a,
-                         const MultiFab& x,
-                         int             xcomp,
-                         Real            b,
-                         const MultiFab& y,
-                         int             ycomp,
-                         int             dstcomp,
-                         int             numcomp,
-                         const IntVect&  nghost);
+    using FabArray<FArrayBox>::LinComb;
 
     /**
     * \brief dst += src1*src2
