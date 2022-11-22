@@ -212,10 +212,10 @@ struct MultiArray4
 template <class FAB> class FabArray;
 
 template <class DFAB, class SFAB,
-          typename DT = typename DFAB::value_type,
-          typename ST = typename SFAB::value_type,
-          std::enable_if_t<IsBaseFab<DFAB>::value && IsBaseFab<SFAB>::value &&
-                           std::is_convertible_v<ST,DT>, int> BAR = 0>
+          std::enable_if_t<std::conjunction_v<
+              IsBaseFab<DFAB>, IsBaseFab<SFAB>,
+              std::is_convertible<typename SFAB::value_type,
+                                  typename DFAB::value_type>>, int> BAR = 0>
 void
 Copy (FabArray<DFAB>& dst, FabArray<SFAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
 {
@@ -223,14 +223,16 @@ Copy (FabArray<DFAB>& dst, FabArray<SFAB> const& src, int srccomp, int dstcomp, 
 }
 
 template <class DFAB, class SFAB,
-          typename DT = typename DFAB::value_type,
-          typename ST = typename SFAB::value_type,
-          std::enable_if_t<IsBaseFab<DFAB>::value && IsBaseFab<SFAB>::value &&
-                           std::is_convertible_v<ST,DT>, int> BAR = 0>
+          std::enable_if_t<std::conjunction_v<
+              IsBaseFab<DFAB>, IsBaseFab<SFAB>,
+              std::is_convertible<typename SFAB::value_type,
+                                  typename DFAB::value_type>>, int> BAR = 0>
 void
 Copy (FabArray<DFAB>& dst, FabArray<SFAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
     BL_PROFILE("amrex::Copy()");
+
+    using DT = typename DFAB::value_type;
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
@@ -583,11 +585,11 @@ public:
      * \param ncomp  number of components
      * \param nghost number of ghost cells
      */
-    template <typename SFAB,
-              std::enable_if_t<IsBaseFab<FAB>::value && IsBaseFab<SFAB>::value &&
-                               std::is_convertible_v<typename SFAB::value_type,
-                                                     typename  FAB::value_type>,
-                               int> = 0>
+    template <typename SFAB, typename DFAB = FAB,
+              std::enable_if_t<std::conjunction_v<
+                  IsBaseFab<DFAB>, IsBaseFab<SFAB>,
+                  std::is_convertible<typename SFAB::value_type,
+                                      typename DFAB::value_type>>, int> = 0>
     void LocalCopy (FabArray<SFAB> const& src, int scomp, int dcomp, int ncomp,
                     IntVect const& nghost);
 
@@ -1739,10 +1741,11 @@ FabArray<FAB>::clear ()
 }
 
 template <class FAB>
-template <typename SFAB,
-          std::enable_if_t<IsBaseFab<FAB>::value && IsBaseFab<SFAB>::value &&
-                           std::is_convertible_v<typename SFAB::value_type,
-                                                 typename  FAB::value_type>, int>>
+template <typename SFAB, typename DFAB,
+          std::enable_if_t<std::conjunction_v<
+              IsBaseFab<DFAB>, IsBaseFab<SFAB>,
+              std::is_convertible<typename SFAB::value_type,
+                                  typename DFAB::value_type>>, int>>
 void
 FabArray<FAB>::LocalCopy (FabArray<SFAB> const& src, int scomp, int dcomp, int ncomp,
                           IntVect const& nghost)
