@@ -158,24 +158,7 @@ namespace detail {
     }
 #endif
 
-#ifdef AMREX_USE_DPCPP
-
-    // Valid atomic types are available at
-    // https://github.com/intel/llvm/blob/sycl/sycl/include/CL/sycl/atomic.hpp
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    double Add_device (double* const sum, double const value) noexcept
-    {
-        return detail::atomic_op<double, unsigned long long>(sum, value, amrex::Plus<double>());
-    }
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    float Add_device (float* const sum, float const value) noexcept
-    {
-        return detail::atomic_op<float, unsigned int>(sum, value, amrex::Plus<float>());
-    }
-
-#elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
     // https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#atomicadd
     // https://rocmdocs.amd.com/en/latest/Programming_Guides/Kernel_language.html?#atomic-functions
