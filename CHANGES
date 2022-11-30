@@ -1,3 +1,65 @@
+# 22.12
+
+  -- SYCL: Remove floating-point specialisations for atomic adds (#3050)
+
+  -- Template average down (#2980)
+
+  -- fix compilation of RichardsonConvergenceTest (#3046)
+
+  -- Refactor Boundary Registers (#3028)
+
+  -- Fix Multi-Level Open BC Solver (#3032)
+
+  -- Template average_down_faces (#3040)
+
+  -- Add FabArray::LocalCopy and LocalAdd (#3043)
+
+  -- FabArray::sum (#3041)
+
+  -- amrex::Any::hasValue() (#3025)
+
+  -- Make YAFluxRegister template (#3030)
+
+  -- FabArray::norminf (#3039)
+
+  -- amrex::Dot (#3042)
+
+  -- template FabArray::Saxpy, Xpay and LinComb (#3044)
+
+  -- Use std::max when coarsening a TagBox to preserve TagBox::SET values (#3045)
+
+  -- Update for oneAPI 2023 (#3024)
+
+  -- min/max- and linear combination-preserving interpolater (#3020)
+
+  -- template Xpay (#3031)
+
+  -- CMake: AMReX_BUILD_SHARED_LIBS (#3013)
+
+  -- Fix mis-matched array type that broke mixed-precision restarts (#3026)
+
+  -- Add amrex::demangle for demangling C++ names (#3022)
+
+  -- Add more functionalities to TypeList (#3021)
+
+  -- Add muller to NERSC machines (#3019)
+
+  -- Fix -lquadmath in GNU Make (#3018)
+
+  -- Fix EB tensor solver's boundary when EB is tilted. (#3002)
+
+  -- Add -Wmissing-include-dirs to gcc warning flags (#3012)
+
+  -- A better fix for the PETSc compilation issue (#3011)
+
+  -- Replace all `sprintf` by `snprintf` (#3010)
+
+  -- Use std::less for comparison of pointers (#3007)
+
+  -- Add YAFluxRegister::getFineData (#3004)
+
+  -- C++17 Transition (#2992)
+
 # 22.11
 
   -- MPI Reduce for ValLocPair (#3003)
