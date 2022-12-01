@@ -187,6 +187,18 @@ BLBackTrace::print_backtrace_info (FILE* f)
 
 #ifdef __linux__
 
+    {
+        constexpr std::size_t len = 64;
+        char host_name[len];
+        host_name[len-1] = '\n';
+        // The returned buffer may not include '\n', when truncation occurs.
+        // So we insert one just in case.
+        const int ret = gethostname(host_name, len-1);
+        if (ret == 0) {
+            fprintf(f, "Host Name: %s\n", host_name);
+        }
+    }
+
     char **strings = backtrace_symbols(bt_buffer, nentries);
     if (strings != NULL) {
         int have_eu_addr2line = 0;
