@@ -15,6 +15,7 @@
 #include <AMReX_MultiCutFab.H>
 #endif
 
+#include <AMReX_Any.H>
 #include <AMReX_BndryRegister.H>
 #include <AMReX_MLMGBndry.H>
 #include <AMReX_MultiFabUtil.H>
@@ -77,6 +78,13 @@ struct LPInfo
     }
 };
 
+struct LinOpEnumType
+{
+    enum struct BCMode { Homogeneous, Inhomogeneous };
+    enum struct StateMode { Solution, Correction };
+    enum struct Location { FaceCenter, FaceCentroid, CellCenter, CellCentroid };
+};
+
 template <typename MF>
 class MLLinOpT
 {
@@ -91,9 +99,9 @@ public:
     using RT  = typename MF::value_type;
 
     using BCType = LinOpBCType;
-    enum struct BCMode { Homogeneous, Inhomogeneous };
-    enum struct StateMode { Solution, Correction };
-    enum struct Location { FaceCenter, FaceCentroid, CellCenter, CellCentroid };
+    using BCMode    = LinOpEnumType::BCMode;
+    using StateMode = LinOpEnumType::StateMode;
+    using Location  = LinOpEnumType::Location;
 
     MLLinOpT () {}
     virtual ~MLLinOpT () {}

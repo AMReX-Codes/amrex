@@ -36,19 +36,53 @@ public:
               std::initializer_list<AMF const*> a_rhs,
               RT a_tol_rel, RT a_tol_abs, const char* checkpoint_file = nullptr);
 
-    void getGradSolution (const Vector<Array<MF*,AMREX_SPACEDIM> >& a_grad_sol,
+    template <typename AMF>
+    void getGradSolution (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_grad_sol,
+                          Location a_loc = Location::FaceCenter);
+
+    template <typename AMF>
+    void getGradSolution (std::initializer_list<Array<AMF*,AMREX_SPACEDIM>> a_grad_sol,
                           Location a_loc = Location::FaceCenter);
 
     /**
     * \brief For ``(alpha * a - beta * (del dot b grad)) phi = rhs``, flux means ``-b grad phi``
     */
-    void getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& a_flux,
+    template <typename AMF>
+    void getFluxes (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_flux,
                     Location a_loc = Location::FaceCenter);
-    void getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& a_flux,
-                    const Vector<MF*> & a_sol,
+
+    template <typename AMF>
+    void getFluxes (std::initializer_list<Array<AMF*,AMREX_SPACEDIM>> a_flux,
                     Location a_loc = Location::FaceCenter);
-    void getFluxes (const Vector<MF*> & a_flux, Location a_loc = Location::CellCenter);
-    void getFluxes (const Vector<MF*> & a_flux, const Vector<MF*> & a_sol, Location a_loc = Location::CellCenter);
+
+    template <typename AMF>
+    void getFluxes (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_flux,
+                    const Vector<AMF*> & a_sol,
+                    Location a_loc = Location::FaceCenter);
+
+    template <typename AMF>
+    void getFluxes (std::initializer_list<Array<AMF*,AMREX_SPACEDIM>> a_flux,
+                    std::initializer_list<AMF*>  a_sol,
+                    Location a_loc = Location::FaceCenter);
+
+    template <typename AMF>
+    void getFluxes (const Vector<AMF*> & a_flux,
+                    Location a_loc = Location::CellCenter);
+
+    template <typename AMF>
+    void getFluxes (std::initializer_list<AMF*> a_flux,
+                    Location a_loc = Location::CellCenter);
+
+    template <typename AMF>
+    void getFluxes (const Vector<AMF*> & a_flux,
+                    const Vector<AMF*> & a_sol,
+                    Location a_loc = Location::CellCenter);
+
+    template <typename AMF>
+    void getFluxes (std::initializer_list<AMF*> a_flux,
+                    std::initializer_list<AMF*> a_sol,
+                    Location a_loc = Location::CellCenter);
+
     void compResidual (const Vector<MF*>& a_res, const Vector<MF*>& a_sol,
                        const Vector<MF const*>& a_rhs);
 
@@ -468,31 +502,81 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
 }
 
 template <typename MF>
+template <typename AMF>
 void
-MLMGT<MF>::getGradSolution (const Vector<Array<MF*,AMREX_SPACEDIM> >& a_grad_sol, Location a_loc)
+MLMGT<MF>::getGradSolution (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_grad_sol, Location a_loc)
 {
     BL_PROFILE("MLMG::getGradSolution()");
     for (int alev = 0; alev <= finest_amr_lev; ++alev) {
-        linop.compGrad(alev, a_grad_sol[alev], sol[alev], a_loc);
+        if constexpr (std::is_same<AMF,MF>()) {
+            linop.compGrad(alev, a_grad_sol[alev], sol[alev], a_loc);
+        } else {
+            Array<MF,AMREX_SPACEDIM> grad_sol;
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                auto const& amf = *(a_grad_sol[alev][idim]);
+                grad_sol[idim].define(amf.boxArray(), amf.DistributionMap(), ncomp, 0);
+            }
+            linop.compGrad(alev, GetArrOfPtrs(grad_sol), sol[alev], a_loc);
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                a_grad_sol[alev][idim]->LocalCopy(grad_sol, 0, 0, ncomp, IntVect(0));
+            }
+        }
     }
 }
 
 template <typename MF>
+template <typename AMF>
 void
-MLMGT<MF>::getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& a_flux, Location a_loc)
+MLMGT<MF>::getGradSolution (std::initializer_list<Array<AMF*,AMREX_SPACEDIM>> a_grad_sol, Location a_loc)
+{
+    getGradSolution(Vector<Array<AMF*,AMREX_SPACEDIM>>(std::move(a_grad_sol)), a_loc);
+}
+
+template <typename MF>
+template <typename AMF>
+void
+MLMGT<MF>::getFluxes (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_flux,
+                      Location a_loc)
 {
     if (!linop.isCellCentered()) {
         amrex::Abort("Calling wrong getFluxes for nodal solver");
     }
 
     AMREX_ASSERT(sol.size() == a_flux.size());
-    getFluxes(a_flux, GetVecOfPtrs(sol), a_loc);
+
+    if constexpr (std::is_same<AMF,MF>()) {
+        getFluxes(a_flux, GetVecOfPtrs(sol), a_loc);
+    } else {
+        Vector<Array<MF,AMREX_SPACEDIM>> fluxes(namrlevs);
+        for (int ilev = 0; ilev < namrlevs; ++ilev) {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                auto const& amf = *(a_flux[ilev][idim]);
+                fluxes[ilev][idim].define(amf.boxArray(), amf.DistributionMap(), ncomp, 0);
+            }
+        }
+        getFluxes(GetVecOfArrOfPtrs(fluxes), GetVecOfPtrs(sol), a_loc);
+        for (int ilev = 0; ilev < namrlevs; ++ilev) {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                a_flux[ilev][idim]->LocalCopy(fluxes[ilev][idim], 0, 0, ncomp, IntVect(0));
+            }
+        }
+    }
 }
 
 template <typename MF>
+template <typename AMF>
 void
-MLMGT<MF>::getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& a_flux, const Vector<MF*>& a_sol,
+MLMGT<MF>::getFluxes (std::initializer_list<Array<AMF*,AMREX_SPACEDIM>> a_flux,
                       Location a_loc)
+{
+    getFluxes(Vector<Array<AMF*,AMREX_SPACEDIM>>(std::move(a_flux)), a_loc);
+}
+
+template <typename MF>
+template <typename AMF>
+void
+MLMGT<MF>::getFluxes (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_flux,
+                      const Vector<AMF*>& a_sol, Location a_loc)
 {
     BL_PROFILE("MLMG::getFluxes()");
 
@@ -500,22 +584,78 @@ MLMGT<MF>::getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& a_flux, const Ve
        amrex::Abort("Calling wrong getFluxes for nodal solver");
     }
 
-    linop.getFluxes(a_flux, a_sol, a_loc);
+    if constexpr (std::is_same<AMF,MF>()) {
+        linop.getFluxes(a_flux, a_sol, a_loc);
+    } else {
+        Vector<Array<MF,AMREX_SPACEDIM>> fluxes(namrlevs);
+        for (int ilev = 0; ilev < namrlevs; ++ilev) {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                auto const& amf = *(a_flux[ilev][idim]);
+                fluxes[ilev][idim].define(amf.boxArray(), amf.DistributionMap(), ncomp, 0);
+            }
+            sol[ilev].LocalCopy(*a_sol[ilev], 0, 0, ncomp, sol[ilev].nGrowVect());
+        }
+        linop.getFluxes(GetVecOfArrOfPtrs(fluxes), GetVecOfPtrs(sol), a_loc);
+        for (int ilev = 0; ilev < namrlevs; ++ilev) {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                a_flux[ilev][idim]->LocalCopy(fluxes[ilev][idim], 0, 0, ncomp, IntVect(0));
+            }
+        }
+    }
 }
 
 template <typename MF>
+template <typename AMF>
 void
-MLMGT<MF>::getFluxes (const Vector<MF*> & a_flux, Location a_loc)
+MLMGT<MF>::getFluxes (std::initializer_list<Array<AMF*,AMREX_SPACEDIM>> a_flux,
+                      std::initializer_list<AMF*> a_sol, Location a_loc)
+{
+    getFluxes(Vector<Array<AMF*,AMREX_SPACEDIM>>(std::move(a_flux)),
+              Vector<AMF*>(std::move(a_sol)), a_loc);
+}
+
+template <typename MF>
+template <typename AMF>
+void
+MLMGT<MF>::getFluxes (const Vector<AMF*> & a_flux, Location a_loc)
 {
     AMREX_ASSERT(sol.size() == a_flux.size());
-    getFluxes(a_flux, GetVecOfPtrs(sol), a_loc);
+    if constexpr (std::is_same<AMF,MF>()) {
+        getFluxes(a_flux, GetVecOfPtrs(sol), a_loc);
+    } else {
+        Vector<MF> fluxes(namrlevs);
+        for (int ilev = 0; ilev < namrlevs; ++ilev) {
+            auto const& amf = *a_flux[ilev];
+            fluxes[ilev].define(amf.boxArray(), amf.DistributionMap(), ncomp, 0);
+        }
+        getFluxes(GetVecOfPtrs(fluxes), GetVecOfPtrs(sol), a_loc);
+        for (int ilev = 0; ilev < namrlevs; ++ilev) {
+            a_flux[ilev]->LocalCopy(fluxes[ilev], 0, 0, ncomp, IntVect(0));
+        }
+    }
 }
 
 template <typename MF>
+template <typename AMF>
 void
-MLMGT<MF>::getFluxes (const Vector<MF*> & a_flux, const Vector<MF*>& a_sol, Location /*a_loc*/)
+MLMGT<MF>::getFluxes (std::initializer_list<AMF*> a_flux, Location a_loc)
+{
+    getFluxes(Vector<AMF*>(std::move(a_flux)), a_loc);
+}
+
+template <typename MF>
+template <typename AMF>
+void
+MLMGT<MF>::getFluxes (const Vector<AMF*> & a_flux,
+                      const Vector<AMF*>& a_sol, Location /*a_loc*/)
 {
     AMREX_ASSERT(a_flux[0]->nComp() >= AMREX_SPACEDIM);
+
+    if constexpr (! std::is_same<AMF,MF>()) {
+        for (int alev = 0; alev < namrlevs; ++alev) {
+            sol[alev].LocalCopy(*a_sol[alev], 0, 0, ncomp, sol[alev].nGrowVect());
+        }
+    }
 
     if (linop.isCellCentered())
     {
@@ -531,7 +671,11 @@ MLMGT<MF>::getFluxes (const Vector<MF*> & a_flux, const Vector<MF*>& a_sol, Loca
                                            *linop.m_factory[alev][mglev]);
             }
         }
-        getFluxes(amrex::GetVecOfArrOfPtrs(ffluxes), a_sol, Location::FaceCenter);
+        if constexpr (std::is_same<AMF,MF>()) {
+            getFluxes(amrex::GetVecOfArrOfPtrs(ffluxes), a_sol, Location::FaceCenter);
+        } else {
+            getFluxes(amrex::GetVecOfArrOfPtrs(ffluxes), GetVecOfPtrs(sol), Location::FaceCenter);
+        }
         for (int alev = 0; alev < namrlevs; ++alev) {
 #ifdef AMREX_USE_EB
             EB_average_face_to_cellcenter(*a_flux[alev], 0, amrex::GetArrOfConstPtrs(ffluxes[alev]));
@@ -541,8 +685,30 @@ MLMGT<MF>::getFluxes (const Vector<MF*> & a_flux, const Vector<MF*>& a_sol, Loca
         }
 
     } else {
-        linop.getFluxes(a_flux, a_sol);
+        if constexpr (std::is_same<AMF,MF>()) {
+            linop.getFluxes(a_flux, a_sol);
+        } else {
+            Vector<MF> fluxes(namrlevs);
+            for (int ilev = 0; ilev < namrlevs; ++ilev) {
+                auto const& amf = *a_flux[ilev];
+                fluxes[ilev].define(amf.boxArray(), amf.DistributionMap(), ncomp, 0);
+            }
+            linop.getFluxes(GetVecOfPtrs(fluxes), GetVecOfPtrs(sol));
+            for (int ilev = 0; ilev < namrlevs; ++ilev) {
+                a_flux[ilev]->LocalCopy(fluxes[ilev], 0, 0, ncomp, IntVect(0));
+            }
+        }
     }
+}
+
+template <typename MF>
+template <typename AMF>
+void
+MLMGT<MF>::getFluxes (std::initializer_list<AMF*> a_flux,
+                      std::initializer_list<AMF*> a_sol, Location a_loc)
+{
+    getFluxes(Vector<AMF*>(std::move(a_flux)),
+              Vector<AMF*>(std::move(a_sol)), a_loc);
 }
 
 #ifdef AMREX_USE_EB
