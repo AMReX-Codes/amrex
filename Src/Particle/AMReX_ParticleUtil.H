@@ -474,9 +474,10 @@ struct GetParticleBin
     IntVect bin_size;
     Box box;
 
+    // AML
     template <typename ParticleType>
     AMREX_GPU_HOST_DEVICE
-    unsigned int operator() (const ParticleType& p) const noexcept
+    unsigned int operator() (const ParticleType& p, int type) const noexcept
     {
         Box tbx;
         auto iv = getParticleCell(p, plo, dxi, domain);

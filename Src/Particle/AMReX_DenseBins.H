@@ -123,51 +123,9 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (N nitems, T const* v, int nbins, F&& f)
+    void build (N nitems, T const* v, int nbins, F&& f, int* bin_type_array=nullptr)
     {
-        build(BinPolicy::Default, nitems, v, nbins, std::forward<F>(f));
-    }
-
-    /**
-     * \brief Populate the bins with a set of items.
-     *
-     * The algorithm is similar to a counting sort. First, we count the number
-     * of items in each bin. Then, we perform a prefix sum on the resulting counts.
-     * Finally, the set of partial sums is incremented in parallel using atomicInc,
-     * which results in a permutation array that places the items in bin-sorted order.
-     *
-     * This version uses a 3D box to specificy the index space over which the bins
-     * are defined.
-     *
-     * This overload uses the "GPU" parallelization strategy. If AMReX has been
-     * compiled for GPU, it runs on the GPU. Otherwise, it executes in serial.
-     *
-     * \tparam N the 'size' type that can enumerate all the items
-     * \tparam F a function that maps items to IntVect bins
-     *
-     * \param nitems the number of items to put in the bins
-     * \param v pointer to the start of the items
-     * \param bx the Box that defines the space over which the bins will be defined
-     * \param f a function object that maps items to bins
-     */
-    template <typename N, typename F>
-    void build (BinPolicy::GPUBinPolicy, N nitems, T const* v, const Box& bx, F&& f)
-    {
-        const auto lo = lbound(bx);
-        const auto hi = ubound(bx);
-        build(BinPolicy::GPU, nitems, v, bx.numPts(),
-              [=] AMREX_GPU_DEVICE (const T& t) noexcept
-              {
-                  auto iv = f(t);
-                  auto iv3 = iv.dim3();
-                  int nx = hi.x-lo.x+1;
-                  int ny = hi.y-lo.y+1;
-                  int nz = hi.z-lo.z+1;
-                  index_type uix = amrex::min(nx-1,amrex::max(0,iv3.x));
-                  index_type uiy = amrex::min(ny-1,amrex::max(0,iv3.y));
-                  index_type uiz = amrex::min(nz-1,amrex::max(0,iv3.z));
-                  return (uix * ny + uiy) * nz + uiz;
-              });
+        build(BinPolicy::Default, nitems, v, nbins, f, bin_type_array);
     }
 
     /**
@@ -192,7 +150,7 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (BinPolicy::GPUBinPolicy, N nitems, T const* v, int nbins, F&& f)
+    void build (BinPolicy::GPUBinPolicy, N nitems, T const* v, int nbins, F&& f, int* bin_type_array=nullptr)
     {
         BL_PROFILE("DenseBins<T>::buildGPU");
 
@@ -213,7 +171,8 @@ public:
         index_type* plocal_offsets  = m_local_offsets.dataPtr();
         amrex::ParallelFor(nitems, [=] AMREX_GPU_DEVICE (int i) noexcept
         {
-            pbins[i] = f(v[i]);
+            auto type = bin_type_array ? bin_type_array[i] : 0;
+            pbins[i] = f(v[i],type);
             index_type off = Gpu::Atomic::Add(&pcount[pbins[i]], index_type{ 1 });
             plocal_offsets[i] = off;
         });
@@ -239,49 +198,6 @@ public:
      * Finally, the set of partial sums is incremented in parallel using atomicInc,
      * which results in a permutation array that places the items in bin-sorted order.
      *
-     * This version uses a 3D box to specificy the index space over which the bins
-     * are defined.
-     *
-     * This overload uses the "OpenMP" parallelization strategy and always runs on the
-     * host. If AMReX has been compiled with OpenMP support, the executation will be
-     * parallelized, otherwise it will be serial.
-     *
-     * \tparam N the 'size' type that can enumerate all the items
-     * \tparam F a function that maps items to IntVect bins
-     *
-     * \param nitems the number of items to put in the bins
-     * \param v pointer to the start of the items
-     * \param bx the Box that defines the space over which the bins will be defined
-     * \param f a function object that maps items to bins
-     */
-    template <typename N, typename F>
-    void build (BinPolicy::OpenMPBinPolicy, N nitems, T const* v, const Box& bx, F&& f)
-    {
-        const auto lo = lbound(bx);
-        const auto hi = ubound(bx);
-        build(BinPolicy::OpenMP, nitems, v, bx.numPts(),
-              [=] (const T& t) noexcept
-              {
-                  auto iv = f(t);
-                  auto iv3 = iv.dim3();
-                  int nx = hi.x-lo.x+1;
-                  int ny = hi.y-lo.y+1;
-                  int nz = hi.z-lo.z+1;
-                  index_type uix = amrex::min(nx-1,amrex::max(0,iv3.x));
-                  index_type uiy = amrex::min(ny-1,amrex::max(0,iv3.y));
-                  index_type uiz = amrex::min(nz-1,amrex::max(0,iv3.z));
-                  return (uix * ny + uiy) * nz + uiz;
-              });
-    }
-
-    /**
-     * \brief Populate the bins with a set of items.
-     *
-     * The algorithm is similar to a counting sort. First, we count the number
-     * of items in each bin. Then, we perform a prefix sum on the resulting counts.
-     * Finally, the set of partial sums is incremented in parallel using atomicInc,
-     * which results in a permutation array that places the items in bin-sorted order.
-     *
      * This version uses a 1D index space for the set of bins.
      *
      * This overload uses the "OpenMP" parallelization strategy and always runs on the
@@ -297,7 +213,7 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (BinPolicy::OpenMPBinPolicy, N nitems, T const* v, int nbins, F&& f)
+    void build (BinPolicy::OpenMPBinPolicy, N nitems, T const* v, int nbins, F&& f, int* bin_type_array=nullptr)
     {
         BL_PROFILE("DenseBins<T>::buildOpenMP");
 
@@ -324,7 +240,8 @@ public:
             int istart = j*chunksize;
             int istop = (j == nchunks-1) ? nitems : (j+1)*chunksize;
             for (int i = istart; i < istop; ++i) {
-                m_bins[i] = f(v[i]);
+                auto type = bin_type_array ? bin_type_array[i] : 0;
+                m_bins[i] = f(v[i],type);
                 ++counts[nbins*j+m_bins[i]];
             }
         }
@@ -378,49 +295,6 @@ public:
      * Finally, the set of partial sums is incremented in parallel using atomicInc,
      * which results in a permutation array that places the items in bin-sorted order.
      *
-     * This version uses a 3D box to specificy the index space over which the bins
-     * are defined.
-     *
-     * This overload uses the "Serial" parallelization strategy. It always runs in
-     * serial on the host, regardless of whether AMREX_USE_GPU or AMREX_USE_OMP
-     * has been defined.
-     *
-     * \tparam N the 'size' type that can enumerate all the items
-     * \tparam F a function that maps items to IntVect bins
-     *
-     * \param nitems the number of items to put in the bins
-     * \param v pointer to the start of the items
-     * \param bx the Box that defines the space over which the bins will be defined
-     * \param f a function object that maps items to bins
-     */
-    template <typename N, typename F>
-    void build (BinPolicy::SerialBinPolicy, N nitems, T const* v, const Box& bx, F&& f)
-    {
-        const auto lo = lbound(bx);
-        const auto hi = ubound(bx);
-        build(BinPolicy::Serial, nitems, v, bx.numPts(),
-              [=] (const T& t) noexcept
-              {
-                  auto iv = f(t);
-                  auto iv3 = iv.dim3();
-                  int nx = hi.x-lo.x+1;
-                  int ny = hi.y-lo.y+1;
-                  int nz = hi.z-lo.z+1;
-                  index_type uix = amrex::min(nx-1,amrex::max(0,iv3.x));
-                  index_type uiy = amrex::min(ny-1,amrex::max(0,iv3.y));
-                  index_type uiz = amrex::min(nz-1,amrex::max(0,iv3.z));
-                  return (uix * ny + uiy) * nz + uiz;
-              });
-    }
-
-    /**
-     * \brief Populate the bins with a set of items.
-     *
-     * The algorithm is similar to a counting sort. First, we count the number
-     * of items in each bin. Then, we perform a prefix sum on the resulting counts.
-     * Finally, the set of partial sums is incremented in parallel using atomicInc,
-     * which results in a permutation array that places the items in bin-sorted order.
-     *
      * This version uses a 1D index space for the set of bins.
      *
      * This overload uses the "Serial" parallelization strategy. It always runs in
@@ -436,7 +310,7 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (BinPolicy::SerialBinPolicy, N nitems, T const* v, int nbins, F&& f)
+    void build (BinPolicy::SerialBinPolicy, N nitems, T const* v, int nbins, F&& f, int* bin_type_array=nullptr)
     {
         BL_PROFILE("DenseBins<T>::buildSerial");
 
@@ -452,7 +326,8 @@ public:
         m_offsets.resize(nbins+1);
 
         for (int i = 0; i < nitems; ++i) {
-            m_bins[i] = f(v[i]);
+            auto type = bin_type_array ? bin_type_array[i] : 0;
+            m_bins[i] = f(v[i],type);
             ++m_counts[m_bins[i]];
         }
 

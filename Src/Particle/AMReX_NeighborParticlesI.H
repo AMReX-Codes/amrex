@@ -729,9 +729,26 @@ buildNeighborList (CheckPair&& check_pair, bool /*sort*/)
             Box bx = pti.tilebox();
             bx.grow(computeRefFac(0, lev).max()*m_num_neighbor_cells);
 
-            m_neighbor_list[lev][index].build(ptile, bx, geom,
-                          std::forward<CheckPair>(check_pair),
-                          computeRefFac(0, lev).max()*m_num_neighbor_cells);
+            // AML
+            Gpu::DeviceVector<int> off_bins_v;
+            Gpu::DeviceVector<int>    nbins_v;
+            Gpu::DeviceVector<Dim3>      lo_v;
+            Gpu::DeviceVector<Dim3>      hi_v;
+            Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> dxi_v;
+            Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> plo_v;
+
+            off_bins_v.push_back(0);
+            nbins_v.push_back(bx.numPts());
+            lo_v.push_back(lbound(bx));
+            hi_v.push_back(ubound(bx));
+            dxi_v.push_back(geom.InvCellSizeArray());
+            plo_v.push_back(geom.ProbLoArray());
+                
+            m_neighbor_list[lev][index].build(ptile,
+                                              std::forward<CheckPair>(check_pair),
+                                              off_bins_v, nbins_v,
+                                              dxi_v, plo_v, lo_v, hi_v);
+
 #ifndef AMREX_USE_GPU
             const auto& counts = m_neighbor_list[lev][index].GetCounts();
             const auto& list   = m_neighbor_list[lev][index].GetList();
@@ -799,11 +816,192 @@ buildNeighborList (CheckPair&& check_pair, OtherPCType& other,
             Box bx = pti.tilebox();
             bx.grow(computeRefFac(0, lev).max()*m_num_neighbor_cells);
 
-            neighbor_lists[lev][index].build(ptile, other_ptile, bx, geom,
-                                             std::forward<CheckPair>(check_pair),
-                                             computeRefFac(0, lev).max()*m_num_neighbor_cells);
+            // AML
+            Gpu::DeviceVector<int> off_bins_v;
+            Gpu::DeviceVector<int>    nbins_v;
+            Gpu::DeviceVector<Dim3>      lo_v;
+            Gpu::DeviceVector<Dim3>      hi_v;
+            Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> dxi_v;
+            Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> plo_v;
+
+            off_bins_v.push_back(0);
+            nbins_v.push_back(bx.numPts());
+            lo_v.push_back(lbound(bx));
+            hi_v.push_back(ubound(bx));
+            dxi_v.push_back(geom.InvCellSizeArray());
+            plo_v.push_back(geom.ProbLoArray());
+                
+            m_neighbor_list[lev][index].build(ptile, other_ptile,
+                                              std::forward<CheckPair>(check_pair),
+                                              off_bins_v, nbins_v,
+                                              dxi_v, plo_v, lo_v, hi_v);
         }
     }
+}
+
+// AML
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <class CheckPair>
+void
+NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+buildNeighborList (CheckPair&& check_pair, int typeInd, int* RefRatio,
+                   int num_bin_types, bool sort)
+{   
+    AMREX_ASSERT(numParticlesOutOfRange(*this, m_num_neighbor_cells) == 0);
+
+    if (num_bin_types == 1) AMREX_ASSERT(RefRatio[0] == 1);
+
+    BL_PROFILE("NeighborParticleContainer::buildNeighborList");
+
+    resizeContainers(this->numLevels());
+
+    for (int lev = 0; lev < this->numLevels(); ++lev)
+    {
+        m_neighbor_list[lev].clear();
+
+        for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+            PairIndex index(pti.index(), pti.LocalTileIndex());
+            m_neighbor_list[lev][index];
+        }
+
+#ifndef AMREX_USE_GPU
+        neighbor_list[lev].clear();
+        for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+            PairIndex index(pti.index(), pti.LocalTileIndex());
+            neighbor_list[lev][index];
+        }
+#endif
+
+              auto& plev = this->GetParticles(lev);
+        const auto& geom = this->Geom(lev);
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
+        {
+            int gid = pti.index();
+            int tid = pti.LocalTileIndex();
+            auto index = std::make_pair(gid, tid);
+
+            auto& ptile   = plev[index];
+                
+            if (ptile.numParticles() == 0) continue;
+
+            Box bx = pti.tilebox();
+
+            auto& soa      = pti.GetStructOfArrays();
+            auto  TypeVec  = soa.GetIntData(typeInd);
+            int*  bin_type_array = TypeVec.data();
+ 
+            Gpu::DeviceVector<int> off_bins_v(num_bin_types+1,0);
+            Gpu::DeviceVector<int>    nbins_v(num_bin_types+1,0);
+            Gpu::DeviceVector<Dim3>      lo_v(num_bin_types);
+            Gpu::DeviceVector<Dim3>      hi_v(num_bin_types);
+            Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> dxi_v(num_bin_types);
+            Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> plo_v(num_bin_types); 
+                                        
+            for (int type(0); type<num_bin_types; ++type) {    
+                // Domain, RB, Coord, Per
+                Box dom = geom.Domain();                    
+                const Real* plo = geom.ProbLo();
+                const Real* phi = geom.ProbHi();
+                auto lcoord = geom.Coord();
+                Array<int,AMREX_SPACEDIM> lper = geom.isPeriodic();
+                
+                // Refined tile box and domain
+                Box  lbx(  bx.smallEnd(), bx.bigEnd(), bx.ixType() );
+                Box ldom( dom.smallEnd(),dom.bigEnd(),dom.ixType() );
+                 lbx.refine( RefRatio[type] );
+                ldom.refine( RefRatio[type] );
+                    
+                // Local copy of RB for refined geom
+                RealBox lrb(plo,phi);
+                
+                // New geometry with refined domain
+                Geometry lgeom(ldom,lrb,lcoord,lper);
+
+                // Grow for ghost cells
+                int NGhost = RefRatio[type]*m_num_neighbor_cells;
+                lbx.grow(NGhost);
+                
+                // Store for memcpy
+                int nbins = lbx.numPts();
+                Dim3 lo = lbound( lbx );
+                Dim3 hi = ubound( lbx );
+                
+                auto dxInv = lgeom.InvCellSizeArray();
+                auto ploa  = lgeom.ProbLoArray();
+                
+#ifdef AMREX_USE_GPU
+                Gpu::htod_memcpy( dxi_v.data()   + type, dxInv.data(), sizeof(dxInv) );
+                Gpu::htod_memcpy( plo_v.data()   + type, ploa.data() , sizeof(ploa) );
+                Gpu::htod_memcpy( lo_v.data()    + type, &lo         , sizeof(lo)    );
+                Gpu::htod_memcpy( hi_v.data()    + type, &hi         , sizeof(hi)    );
+                Gpu::htod_memcpy( nbins_v.data() + type, &nbins      , sizeof(nbins) );
+#else
+                std::memcpy( dxi_v.data()   + type, dxInv.data(), sizeof(dxInv) );
+                std::memcpy( plo_v.data()   + type, ploa.data() , sizeof(ploa)  );
+                std::memcpy( lo_v.data()    + type, &lo         , sizeof(lo)    );
+                std::memcpy( hi_v.data()    + type, &hi         , sizeof(hi)    );
+                std::memcpy( nbins_v.data() + type, &nbins      , sizeof(nbins) );
+#endif
+            }
+            
+            Gpu::exclusive_scan(nbins_v.begin(), nbins_v.end(), off_bins_v.begin());
+            
+            m_neighbor_list[lev][index].build(ptile, std::forward<CheckPair>(check_pair),
+                                              off_bins_v, nbins_v,
+                                              dxi_v, plo_v, lo_v, hi_v,
+                                              bin_type_array, num_bin_types);
+            
+            if(sort) {
+                BL_PROFILE_VAR("CPU_SortNeighborList()",CPUSNL);
+                
+                const auto& offset = m_neighbor_list[lev][index].GetOffsets();
+                auto& nlist        = m_neighbor_list[lev][index].GetList();
+                int npar = offset.size() - 1;
+                for (int i = 0; i < npar; ++i) {
+                    
+                    unsigned int size = offset[i+1] - offset[i]; 
+                    Gpu::HostVector<unsigned int> nbor_list_sort(size);
+                    int k = 0;
+                    for (unsigned int j = offset[i]; j < offset[i+1]; ++j) {
+                        nbor_list_sort[k] = nlist[j];
+                        ++k;
+                    }
+                    
+                    std::sort(nbor_list_sort.begin(), nbor_list_sort.end());
+                      
+                      k = 0;
+                      for (unsigned int j = offset[i]; j < offset[i+1]; ++j) {
+                          nlist[j] = nbor_list_sort[k];
+                          ++k;
+                      }
+                  }
+                
+                BL_PROFILE_VAR_STOP(CPUSNL);
+              }
+            
+#ifndef AMREX_USE_GPU
+              BL_PROFILE_VAR("CPU_CopyNeighborList()",CPUCNL);
+            
+              const auto& counts = m_neighbor_list[lev][index].GetCounts();
+              const auto& list   = m_neighbor_list[lev][index].GetList();
+            
+              int li = 0;
+              for (int i = 0; i < ptile.numParticles(); ++i) {
+                  auto cnt = counts[i];
+                  neighbor_list[lev][index].push_back(cnt);
+                  for (size_t j = 0; j < cnt; ++j) {
+                      neighbor_list[lev][index].push_back(list[li++]+1);
+                  } 
+              }
+
+              BL_PROFILE_VAR_STOP(CPUCNL);
+#endif
+        } //ParIter  
+    } //Lev
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
