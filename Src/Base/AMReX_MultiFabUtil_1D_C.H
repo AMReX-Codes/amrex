@@ -28,10 +28,11 @@ void amrex_avg_eg_to_cc (int i, int, int,
     cc(i,0,0,cccomp) = Ex(i,0,0);
 }
 
+template <typename CT, typename FT>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void amrex_avg_fc_to_cc (int i, int, int,
-                         Array4<Real      > const& cc,
-                         Array4<Real const> const& fx,
+                         Array4<CT      > const& cc,
+                         Array4<FT const> const& fx,
                          int cccomp, GeometryData const& gd) noexcept
 {
     const int coord_type = gd.Coord();
@@ -40,7 +41,7 @@ void amrex_avg_fc_to_cc (int i, int, int,
     {
     case 0:
     {
-        cc(i,0,0,cccomp) = Real(0.5) * ( fx(i,0,0) + fx(i+1,0,0) );
+        cc(i,0,0,cccomp) = CT(0.5) * CT( fx(i,0,0) + fx(i+1,0,0) );
         break;
     }
     case 1:
@@ -50,7 +51,7 @@ void amrex_avg_fc_to_cc (int i, int, int,
         Real rlo = problo + i*dx;
         Real rhi = problo + (i+1)*dx;
         Real rcen = Real(0.5)*(rlo+rhi);
-        cc(i,0,0,cccomp) = Real(0.5) * ( rlo*fx(i,0,0) + rhi*fx(i+1,0,0) ) / rcen;
+        cc(i,0,0,cccomp) = CT(Real(0.5) * ( rlo*fx(i,0,0) + rhi*fx(i+1,0,0) ) / rcen);
         break;
     }
     case 2:
@@ -60,11 +61,13 @@ void amrex_avg_fc_to_cc (int i, int, int,
         Real rlo = problo + i*dx;
         Real rhi = problo + (i+1)*dx;
         Real rcen = Real(0.5)*(rlo+rhi);
-        cc(i,0,0,cccomp) = Real(0.5) * ( rlo*rlo*fx(i,0,0) + rhi*rhi*fx(i+1,0,0) ) / (rcen*rcen);
+        cc(i,0,0,cccomp) = CT(Real(0.5) * ( rlo*rlo*fx(i,0,0) + rhi*rhi*fx(i+1,0,0) ) / (rcen*rcen));
         break;
     }
     default:
-        amrex::Abort("amrex_avg_fc_to_cc: wrong coord_type");
+    {
+        // amrex::Abort("amrex_avg_fc_to_cc: wrong coord_type");
+    }
     }
 }
 
@@ -115,7 +118,9 @@ void amrex_avg_cc_to_fc (int i, int, int, int n, Box const& xbx,
             break;
         }
         default:
-            amrex::Abort("amrex_avg_cc_to_fc: wrong coord_type");
+        {
+            // amrex::Abort("amrex_avg_cc_to_fc: wrong coord_type");
+        }
         };
     }
 }

@@ -30,15 +30,16 @@ void amrex_avg_eg_to_cc (int i, int j, int,
     cc(i,j,0,1+cccomp) = Real(0.5) * ( Ey(i,j,0) + Ey(i+1,j,0) );
 }
 
+template <typename CT, typename FT>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void amrex_avg_fc_to_cc (int i, int j, int,
-                         Array4<Real      > const& cc,
-                         Array4<Real const> const& fx,
-                         Array4<Real const> const& fy,
+                         Array4<CT      > const& cc,
+                         Array4<FT const> const& fx,
+                         Array4<FT const> const& fy,
                          int cccomp) noexcept
 {
-    cc(i,j,0,0+cccomp) = Real(0.5) * ( fx(i,j,0) + fx(i+1,j,0) );
-    cc(i,j,0,1+cccomp) = Real(0.5) * ( fy(i,j,0) + fy(i,j+1,0) );
+    cc(i,j,0,0+cccomp) = CT(0.5) * CT( fx(i,j,0) + fx(i+1,j,0) );
+    cc(i,j,0,1+cccomp) = CT(0.5) * CT( fy(i,j,0) + fy(i,j+1,0) );
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
