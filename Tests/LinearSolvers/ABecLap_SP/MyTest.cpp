@@ -14,7 +14,11 @@ void
 MyTest::solve ()
 {
     if (prob_type == 1) {
-        solvePoisson<MultiFab>();
+        if (single_precision) {
+            solvePoisson<fMultiFab>();
+        } else {
+            solvePoisson<MultiFab>();
+        }
     } else if (prob_type == 2) {
         if (single_precision) {
             solveABecLaplacian<fMultiFab>();

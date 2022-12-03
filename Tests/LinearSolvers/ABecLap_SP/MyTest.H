@@ -35,7 +35,7 @@ private:
     int n_cell = 128;
     int max_grid_size = 64;
 
-    bool composite_solve = true;
+    bool composite_solve = false;
 
     int prob_type = 1;  // 1. Poisson,  2. ABecLaplacian
 
@@ -76,7 +76,9 @@ MyTest::solvePoisson ()
     info.setConsolidation(consolidation);
     info.setMaxCoarseningLevel(max_coarsening_level);
 
-    const Real tol_rel = 1.e-10;
+    using T = typename MF::value_type;
+    const T tol_rel = std::is_same<double,typename MF::value_type>::value ?
+        T(1.e-10) : T(1.e-4);
     const Real tol_abs = 0.0;
 
     const int nlevels = geom.size();
@@ -84,7 +86,7 @@ MyTest::solvePoisson ()
     if (composite_solve)
     {
 
-        MLPoisson mlpoisson(geom, grids, dmap, info);
+        MLPoissonT<MF> mlpoisson(geom, grids, dmap, info);
 
         mlpoisson.setMaxOrder(linop_maxorder);
 
@@ -124,7 +126,7 @@ MyTest::solvePoisson ()
     {
         for (int ilev = 0; ilev < nlevels; ++ilev)
         {
-            MLPoisson mlpoisson({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, info);
+            MLPoissonT<MF> mlpoisson({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, info);
 
             mlpoisson.setMaxOrder(linop_maxorder);
 
@@ -142,7 +144,7 @@ MyTest::solvePoisson ()
 
             mlpoisson.setLevelBC(0, &solution[ilev]);
 
-            MLMG mlmg(mlpoisson);
+            MLMGT<MF> mlmg(mlpoisson);
             mlmg.setMaxIter(max_iter);
             mlmg.setMaxFmgIter(max_fmg_iter);
             mlmg.setVerbose(verbose);

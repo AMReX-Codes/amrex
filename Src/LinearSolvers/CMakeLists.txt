@@ -23,11 +23,9 @@ target_sources(amrex
    MLMG/AMReX_MLABecLap_K.H
    MLMG/AMReX_MLABecLap_${AMReX_SPACEDIM}D_K.H
    MLMG/AMReX_MLALaplacian.H
-   MLMG/AMReX_MLALaplacian.cpp
    MLMG/AMReX_MLALap_K.H
    MLMG/AMReX_MLALap_${AMReX_SPACEDIM}D_K.H
    MLMG/AMReX_MLPoisson.H
-   MLMG/AMReX_MLPoisson.cpp
    MLMG/AMReX_MLPoisson_K.H
    MLMG/AMReX_MLPoisson_${AMReX_SPACEDIM}D_K.H
    MLMG/AMReX_MLNodeLaplacian.H

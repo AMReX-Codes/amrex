@@ -4,14 +4,15 @@
 
 namespace amrex {
 
+template <typename RT>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlalap_adotx (Box const& box, Array4<Real> const& y,
-                   Array4<Real const> const& x,
-                   Array4<Real const> const& a,
-                   GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                   Real alpha, Real beta, int ncomp) noexcept
+void mlalap_adotx (Box const& box, Array4<RT> const& y,
+                   Array4<RT const> const& x,
+                   Array4<RT const> const& a,
+                   GpuArray<RT,AMREX_SPACEDIM> const& dxinv,
+                   RT alpha, RT beta, int ncomp) noexcept
 {
-    const Real dhx = beta*dxinv[0]*dxinv[0];
+    const RT dhx = beta*dxinv[0]*dxinv[0];
 
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -20,20 +21,21 @@ void mlalap_adotx (Box const& box, Array4<Real> const& y,
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             y(i,0,0,n) = alpha*a(i,0,0,n)*x(i,0,0,n)
-                - dhx * (x(i+1,0,0,n) - Real(2.)*x(i,0,0,n) + x(i-1,0,0,n));
+                - dhx * (x(i+1,0,0,n) - RT(2.)*x(i,0,0,n) + x(i-1,0,0,n));
         }
     }
 }
 
+template <typename RT>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlalap_adotx_m (Box const& box, Array4<Real> const& y,
-                     Array4<Real const> const& x,
-                     Array4<Real const> const& a,
-                     GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                     Real alpha, Real beta,
-                     Real dx, Real probxlo, int ncomp) noexcept
+void mlalap_adotx_m (Box const& box, Array4<RT> const& y,
+                     Array4<RT const> const& x,
+                     Array4<RT const> const& a,
+                     GpuArray<RT,AMREX_SPACEDIM> const& dxinv,
+                     RT alpha, RT beta,
+                     RT dx, RT probxlo, int ncomp) noexcept
 {
-    const Real dhx = beta*dxinv[0]*dxinv[0];
+    const RT dhx = beta*dxinv[0]*dxinv[0];
 
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -41,9 +43,9 @@ void mlalap_adotx_m (Box const& box, Array4<Real> const& y,
     for (int n = 0; n < ncomp; ++n) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real rel = (probxlo + i   *dx) * (probxlo + i   *dx);
-            Real rer = (probxlo +(i+1)*dx) * (probxlo +(i+1)*dx);
-            Real rc  = (probxlo +(i+Real(.5))*dx) * (probxlo +(i+Real(.5))*dx);
+            RT rel = (probxlo + i   *dx) * (probxlo + i   *dx);
+            RT rer = (probxlo +(i+1)*dx) * (probxlo +(i+1)*dx);
+            RT rc  = (probxlo +(i+RT(.5))*dx) * (probxlo +(i+RT(.5))*dx);
             y(i,0,0,n) = alpha*a(i,0,0,n)*x(i,0,0,n)*rc
                 - dhx * (rer*(x(i+1,0,0,n) - x(i  ,0,0,n))
                        - rel*(x(i  ,0,0,n) - x(i-1,0,0,n)));
@@ -51,13 +53,14 @@ void mlalap_adotx_m (Box const& box, Array4<Real> const& y,
     }
 }
 
+template <typename RT>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlalap_normalize (Box const& box, Array4<Real> const& x,
-                       Array4<Real const> const& a,
-                       GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                       Real alpha, Real beta, int ncomp) noexcept
+void mlalap_normalize (Box const& box, Array4<RT> const& x,
+                       Array4<RT const> const& a,
+                       GpuArray<RT,AMREX_SPACEDIM> const& dxinv,
+                       RT alpha, RT beta, int ncomp) noexcept
 {
-    const Real dhx = beta*dxinv[0]*dxinv[0];
+    const RT dhx = beta*dxinv[0]*dxinv[0];
 
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -65,18 +68,19 @@ void mlalap_normalize (Box const& box, Array4<Real> const& x,
     for (int n = 0; n < ncomp; ++n) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            x(i,0,0,n) /= alpha*a(i,0,0,n) + dhx*Real(2.0);
+            x(i,0,0,n) /= alpha*a(i,0,0,n) + dhx*RT(2.0);
         }
     }
 }
 
+template <typename RT>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlalap_normalize_m (Box const& box, Array4<Real> const& x,
-                         Array4<Real const> const& a,
-                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                         Real alpha, Real beta, Real dx, Real probxlo, int ncomp) noexcept
+void mlalap_normalize_m (Box const& box, Array4<RT> const& x,
+                         Array4<RT const> const& a,
+                         GpuArray<RT,AMREX_SPACEDIM> const& dxinv,
+                         RT alpha, RT beta, RT dx, RT probxlo, int ncomp) noexcept
 {
-    const Real dhx = beta*dxinv[0]*dxinv[0];
+    const RT dhx = beta*dxinv[0]*dxinv[0];
 
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -84,17 +88,18 @@ void mlalap_normalize_m (Box const& box, Array4<Real> const& x,
     for (int n = 0; n < ncomp; ++n) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real rel = (probxlo + i   *dx) * (probxlo + i   *dx);
-            Real rer = (probxlo +(i+1)*dx) * (probxlo +(i+1)*dx);
-            Real rc  = (probxlo +(i+Real(.5))*dx) * (probxlo +(i+Real(.5))*dx);
+            RT rel = (probxlo + i   *dx) * (probxlo + i   *dx);
+            RT rer = (probxlo +(i+1)*dx) * (probxlo +(i+1)*dx);
+            RT rc  = (probxlo +(i+RT(.5))*dx) * (probxlo +(i+RT(.5))*dx);
             x(i,0,0,n) /= alpha*a(i,0,0,n)*rc + dhx*(rel+rer);
         }
     }
 }
 
+template <typename RT>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlalap_flux_x (Box const& box, Array4<Real> const& fx,
-                    Array4<Real const> const& sol, Real fac, int ncomp) noexcept
+void mlalap_flux_x (Box const& box, Array4<RT> const& fx,
+                    Array4<RT const> const& sol, RT fac, int ncomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -107,10 +112,11 @@ void mlalap_flux_x (Box const& box, Array4<Real> const& fx,
     }
 }
 
+template <typename RT>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlalap_flux_x_m (Box const& box, Array4<Real> const& fx,
-                      Array4<Real const> const& sol, Real fac,
-                      Real dx, Real probxlo, int ncomp) noexcept
+void mlalap_flux_x_m (Box const& box, Array4<RT> const& fx,
+                      Array4<RT const> const& sol, RT fac,
+                      RT dx, RT probxlo, int ncomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -118,15 +124,16 @@ void mlalap_flux_x_m (Box const& box, Array4<Real> const& fx,
     for (int n = 0; n < ncomp; ++n) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real re = (probxlo + i*dx) * (probxlo + i*dx);
+            RT re = (probxlo + i*dx) * (probxlo + i*dx);
             fx(i,0,0,n) = -fac*re*(sol(i,0,0,n)-sol(i-1,0,0,n));
         }
     }
 }
 
+template <typename RT>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlalap_flux_xface (Box const& box, Array4<Real> const& fx,
-                        Array4<Real const> const& sol, Real fac, int xlen, int ncomp) noexcept
+void mlalap_flux_xface (Box const& box, Array4<RT> const& fx,
+                        Array4<RT const> const& sol, RT fac, int xlen, int ncomp) noexcept
 {
     const auto lo = amrex::lbound(box);
 
@@ -138,16 +145,17 @@ void mlalap_flux_xface (Box const& box, Array4<Real> const& fx,
     }
 }
 
+template <typename RT>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlalap_flux_xface_m (Box const& box, Array4<Real> const& fx,
-                          Array4<Real const> const& sol, Real fac, int xlen,
-                          Real dx, Real probxlo, int ncomp) noexcept
+void mlalap_flux_xface_m (Box const& box, Array4<RT> const& fx,
+                          Array4<RT const> const& sol, RT fac, int xlen,
+                          RT dx, RT probxlo, int ncomp) noexcept
 {
     const auto lo = amrex::lbound(box);
 
     for (int n = 0; n < ncomp; ++n) {
         int i = lo.x;
-        Real re = (probxlo + i*dx) * (probxlo + i*dx);
+        RT re = (probxlo + i*dx) * (probxlo + i*dx);
         fx(i,0,0,n) = -fac*re*(sol(i,0,0,n)-sol(i-1,0,0,n));
         i += xlen;
         re = (probxlo + i*dx) * (probxlo + i*dx);
@@ -155,12 +163,13 @@ void mlalap_flux_xface_m (Box const& box, Array4<Real> const& fx,
     }
 }
 
+template <typename RT>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlalap_gsrb (Box const& box, Array4<Real> const& phi,
-                  Array4<Real const> const& rhs, Real alpha,
-                  Real dhx, Array4<Real const> const& a,
-                  Array4<Real const> const& f0, Array4<int const> const& m0,
-                  Array4<Real const> const& f1, Array4<int const> const& m1,
+void mlalap_gsrb (Box const& box, Array4<RT> const& phi,
+                  Array4<RT const> const& rhs, RT alpha,
+                  RT dhx, Array4<RT const> const& a,
+                  Array4<RT const> const& f0, Array4<int const> const& m0,
+                  Array4<RT const> const& f1, Array4<int const> const& m1,
                   Box const& vbox, int redblack, int ncomp) noexcept
 {
     const auto lo = amrex::lbound(box);
@@ -172,16 +181,16 @@ void mlalap_gsrb (Box const& box, Array4<Real> const& phi,
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             if ((i+redblack)%2 == 0) {
-                Real cf0 = (i == vlo.x && m0(vlo.x-1,0,0) > 0)
-                    ? f0(vlo.x,0,0,n) : Real(0.0);
-                Real cf1 = (i == vhi.x && m1(vhi.x+1,0,0) > 0)
-                    ? f1(vhi.x,0,0,n) : Real(0.0);
+                RT cf0 = (i == vlo.x && m0(vlo.x-1,0,0) > 0)
+                    ? f0(vlo.x,0,0,n) : RT(0.0);
+                RT cf1 = (i == vhi.x && m1(vhi.x+1,0,0) > 0)
+                    ? f1(vhi.x,0,0,n) : RT(0.0);
 
-                Real delta = dhx*(cf0+cf1);
+                RT delta = dhx*(cf0+cf1);
 
-                Real gamma = alpha*a(i,0,0,n) + dhx*Real(2.0);
+                RT gamma = alpha*a(i,0,0,n) + dhx*RT(2.0);
 
-                Real rho = dhx*(phi(i-1,0,0,n) + phi(i+1,0,0,n));
+                RT rho = dhx*(phi(i-1,0,0,n) + phi(i+1,0,0,n));
 
                 phi(i,0,0,n) = (rhs(i,0,0,n) + rho - phi(i,0,0,n)*delta)
                     / (gamma - delta);
@@ -190,14 +199,15 @@ void mlalap_gsrb (Box const& box, Array4<Real> const& phi,
     }
 }
 
+template <typename RT>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlalap_gsrb_m (Box const& box, Array4<Real> const& phi,
-                    Array4<Real const> const& rhs, Real alpha,
-                    Real dhx, Array4<Real const> const& a,
-                    Array4<Real const> const& f0, Array4<int const> const& m0,
-                    Array4<Real const> const& f1, Array4<int const> const& m1,
+void mlalap_gsrb_m (Box const& box, Array4<RT> const& phi,
+                    Array4<RT const> const& rhs, RT alpha,
+                    RT dhx, Array4<RT const> const& a,
+                    Array4<RT const> const& f0, Array4<int const> const& m0,
+                    Array4<RT const> const& f1, Array4<int const> const& m1,
                     Box const& vbox, int redblack,
-                    Real dx, Real probxlo, int ncomp)
+                    RT dx, RT probxlo, int ncomp)
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -208,20 +218,20 @@ void mlalap_gsrb_m (Box const& box, Array4<Real> const& phi,
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             if ((i+redblack)%2 == 0) {
-                Real cf0 = (i == vlo.x && m0(vlo.x-1,0,0) > 0)
-                    ? f0(vlo.x,0,0,n) : Real(0.0);
-                Real cf1 = (i == vhi.x && m1(vhi.x+1,0,0) > 0)
-                    ? f1(vhi.x,0,0,n) : Real(0.0);
+                RT cf0 = (i == vlo.x && m0(vlo.x-1,0,0) > 0)
+                    ? f0(vlo.x,0,0,n) : RT(0.0);
+                RT cf1 = (i == vhi.x && m1(vhi.x+1,0,0) > 0)
+                    ? f1(vhi.x,0,0,n) : RT(0.0);
 
-                Real rel = (probxlo + i   *dx) * (probxlo + i   *dx);
-                Real rer = (probxlo +(i+1)*dx) * (probxlo +(i+1)*dx);
-                Real rc  = (probxlo +(i+Real(.5))*dx) * (probxlo +(i+Real(.5))*dx);
+                RT rel = (probxlo + i   *dx) * (probxlo + i   *dx);
+                RT rer = (probxlo +(i+1)*dx) * (probxlo +(i+1)*dx);
+                RT rc  = (probxlo +(i+RT(.5))*dx) * (probxlo +(i+RT(.5))*dx);
 
-                Real delta = dhx*(rel*cf0 + rer*cf1);
+                RT delta = dhx*(rel*cf0 + rer*cf1);
 
-                Real gamma = alpha*a(i,0,0,n)*rc + dhx*(rel+rer);
+                RT gamma = alpha*a(i,0,0,n)*rc + dhx*(rel+rer);
 
-                Real rho = dhx*(rel*phi(i-1,0,0,n) + rer*phi(i+1,0,0,n));
+                RT rho = dhx*(rel*phi(i-1,0,0,n) + rer*phi(i+1,0,0,n));
 
                 phi(i,0,0,n) = (rhs(i,0,0,n) + rho - phi(i,0,0,n)*delta)
                     / (gamma - delta);

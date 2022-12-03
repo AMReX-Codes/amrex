@@ -1,5 +1,7 @@
 #include <AMReX_MLMG.H>
 #include <AMReX_MLABecLaplacian.H>
+#include <AMReX_MLALaplacian.H>
+#include <AMReX_MLPoisson.H>
 
 namespace amrex {
 
@@ -11,5 +13,7 @@ template class MLLinOpT<MultiFab>;
 template class MLCellLinOpT<MultiFab>;
 template class MLCellABecLapT<MultiFab>;
 template class MLABecLaplacianT<MultiFab>;
+template class MLALaplacianT<MultiFab>;
+template class MLPoissonT<MultiFab>;
 
 }

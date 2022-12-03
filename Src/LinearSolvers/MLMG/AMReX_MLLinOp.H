@@ -92,7 +92,7 @@ public:
 
     template <typename T> friend class MLMGT;
     template <typename T> friend class MLCGSolverT;
-    friend class MLPoisson;
+    template <typename T> friend class MLPoissonT;
     template <typename T> friend class MLABecLaplacianT;
 
     using FAB = typename MF::fab_type;
