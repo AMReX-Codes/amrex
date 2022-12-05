@@ -731,14 +731,13 @@ buildNeighborList (CheckPair&& check_pair, bool /*sort*/)
 
             // AML
             Gpu::DeviceVector<int> off_bins_v;
-            Gpu::DeviceVector<int>    nbins_v;
             Gpu::DeviceVector<Dim3>      lo_v;
             Gpu::DeviceVector<Dim3>      hi_v;
             Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> dxi_v;
             Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> plo_v;
 
             off_bins_v.push_back(0);
-            nbins_v.push_back(bx.numPts());
+            off_bins_v.push_back(bx.numPts());
             lo_v.push_back(lbound(bx));
             hi_v.push_back(ubound(bx));
             dxi_v.push_back(geom.InvCellSizeArray());
@@ -746,8 +745,7 @@ buildNeighborList (CheckPair&& check_pair, bool /*sort*/)
                 
             m_neighbor_list[lev][index].build(ptile,
                                               std::forward<CheckPair>(check_pair),
-                                              off_bins_v, nbins_v,
-                                              dxi_v, plo_v, lo_v, hi_v);
+                                              off_bins_v, dxi_v, plo_v, lo_v, hi_v);
 
 #ifndef AMREX_USE_GPU
             const auto& counts = m_neighbor_list[lev][index].GetCounts();
@@ -818,14 +816,13 @@ buildNeighborList (CheckPair&& check_pair, OtherPCType& other,
 
             // AML
             Gpu::DeviceVector<int> off_bins_v;
-            Gpu::DeviceVector<int>    nbins_v;
             Gpu::DeviceVector<Dim3>      lo_v;
             Gpu::DeviceVector<Dim3>      hi_v;
             Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> dxi_v;
             Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> plo_v;
 
             off_bins_v.push_back(0);
-            nbins_v.push_back(bx.numPts());
+            off_bins_v.push_back(bx.numPts());
             lo_v.push_back(lbound(bx));
             hi_v.push_back(ubound(bx));
             dxi_v.push_back(geom.InvCellSizeArray());
@@ -833,8 +830,7 @@ buildNeighborList (CheckPair&& check_pair, OtherPCType& other,
                 
             m_neighbor_list[lev][index].build(ptile, other_ptile,
                                               std::forward<CheckPair>(check_pair),
-                                              off_bins_v, nbins_v,
-                                              dxi_v, plo_v, lo_v, hi_v);
+                                              off_bins_v, dxi_v, plo_v, lo_v, hi_v);
         }
     }
 }
@@ -950,9 +946,9 @@ buildNeighborList (CheckPair&& check_pair, int typeInd, int* RefRatio,
             
             Gpu::exclusive_scan(nbins_v.begin(), nbins_v.end(), off_bins_v.begin());
             
-            m_neighbor_list[lev][index].build(ptile, std::forward<CheckPair>(check_pair),
-                                              off_bins_v, nbins_v,
-                                              dxi_v, plo_v, lo_v, hi_v,
+            m_neighbor_list[lev][index].build(ptile,
+                                              std::forward<CheckPair>(check_pair),
+                                              off_bins_v, dxi_v, plo_v, lo_v, hi_v,
                                               bin_type_array, num_bin_types);
             
             if(sort) {
@@ -1038,12 +1034,13 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
             const auto* pstruct = aos().dataPtr();
             const auto ptile_data = this->ParticlesAt(lev, pti).getConstParticleTileData();
 
+            Box box       = pti.validbox();
+            
             Box grownBox  = pti.tilebox();
             grownBox.grow(computeRefFac(0, lev).max()*m_num_neighbor_cells);
             const auto lo = lbound(grownBox);
             const auto hi = ubound(grownBox);
-            Box box       = pti.validbox();
-
+            
             const auto& geom    = this->Geom(lev);
             const auto  domain  = geom.Domain();
             const auto  dxi     = geom.InvCellSizeArray();
@@ -1052,17 +1049,29 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
             const size_t  np_real        = pti.numRealParticles();
             const size_t  np_total       = aos().size();
 
-            DenseBins<ParticleType> bins;
-            bins.build(np_total, pstruct, grownBox,
-                      [=] AMREX_GPU_DEVICE (const ParticleType& p) noexcept -> IntVect
-                      {
-                          int i = static_cast<int>(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0]) - lo.x);
-                          int j = static_cast<int>(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1]) - lo.y);
-                          int k = static_cast<int>(amrex::Math::floor((p.pos(2)-plo[2])*dxi[2]) - lo.z);
-                          AMREX_D_TERM(AMREX_ASSERT(i >= 0);, AMREX_ASSERT(j >= 0);, AMREX_ASSERT(k >= 0));
+            // AML
+            Gpu::DeviceVector<int> off_bins_v;
+            Gpu::DeviceVector<Dim3>      lo_v;
+            Gpu::DeviceVector<Dim3>      hi_v;
+            Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> dxi_v;
+            Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> plo_v;
 
-                          return IntVect(AMREX_D_DECL(i, j, k));
-                        });
+            off_bins_v.push_back(0);
+            off_bins_v.push_back(grownBox.numPts());
+            lo_v.push_back(lo);
+            hi_v.push_back(hi);
+            dxi_v.push_back(dxi);
+            plo_v.push_back(plo);
+
+            auto off_bins_p = off_bins_v.data();
+            auto dxi_p      = dxi_v.data();
+            auto plo_p      = plo_v.data();
+            auto  lo_p      =  lo_v.data();
+            auto  hi_p      =  hi_v.data();
+            BinMapper bm(off_bins_p, dxi_p, plo_p, lo_p, hi_p);
+            
+            DenseBins<ParticleType> bins;
+            bins.build(np_total, pstruct, off_bins_v.back(), bm);
 
             auto pperm   = bins.permutationPtr();
             auto poffset = bins.offsetsPtr();

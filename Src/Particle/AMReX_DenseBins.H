@@ -81,34 +81,6 @@ public:
      * Finally, the set of partial sums is incremented in parallel using atomicInc,
      * which results in a permutation array that places the items in bin-sorted order.
      *
-     * This version uses a 3D box to specificy the index space over which the bins
-     * are defined.
-     *
-     * This overload uses the "default" parallelization strategy. If AMReX has been
-     * compiled for GPU, it runs on the GPU. Otherwise, it executes in serial.
-     *
-     * \tparam N the 'size' type that can enumerate all the items
-     * \tparam F a function that maps items to IntVect bins
-     *
-     * \param nitems the number of items to put in the bins
-     * \param v pointer to the start of the items
-     * \param bx the Box that defines the space over which the bins will be defined
-     * \param f a function object that maps items to bins
-     */
-    template <typename N, typename F>
-    void build (N nitems, T const* v, const Box& bx, F&& f)
-    {
-        build(BinPolicy::Default, nitems, v, bx, std::forward<F>(f));
-    }
-
-    /**
-     * \brief Populate the bins with a set of items.
-     *
-     * The algorithm is similar to a counting sort. First, we count the number
-     * of items in each bin. Then, we perform a prefix sum on the resulting counts.
-     * Finally, the set of partial sums is incremented in parallel using atomicInc,
-     * which results in a permutation array that places the items in bin-sorted order.
-     *
      * This version uses a 1D index space for the set of bins.
      *
      * This overload uses the "default" parallelization strategy. If AMReX has been

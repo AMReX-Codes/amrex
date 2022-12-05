@@ -11,25 +11,31 @@ namespace amrex
 
 namespace
 {
-    template <typename F, typename SrcData, typename DstData, typename N1, typename N2>
+    template <typename F, typename SrcData, typename DstData, typename N1, typename N2, typename N3>
     AMREX_GPU_HOST_DEVICE
-    auto call_check_pair (F const& check_pair, const SrcData& src_tile, const DstData& /*dst_tile*/, N1 i, N2 j)
+    auto call_check_pair (F const& check_pair,
+                          const SrcData& src_tile, const DstData& /*dst_tile*/,
+                          N1 i, N2 j, N3 /*type*/)
         noexcept -> decltype(check_pair(src_tile, i, j))
     {
         return check_pair(src_tile, i, j);
     }
 
-    template <typename F, typename SrcData, typename DstData, typename N1, typename N2>
+    template <typename F, typename SrcData, typename DstData, typename N1, typename N2, typename N3>
     AMREX_GPU_HOST_DEVICE
-    auto call_check_pair (F const& check_pair, const SrcData& src_tile, const DstData& dst_tile, N1 i, N2 j)
+    auto call_check_pair (F const& check_pair,
+                          const SrcData& src_tile, const DstData& dst_tile,
+                          N1 i, N2 j, N3 /*type*/)
         noexcept -> decltype(check_pair(src_tile.m_aos[i], dst_tile.m_aos[j]))
     {
         return check_pair(src_tile.m_aos[i], dst_tile.m_aos[j]);
     }
 
-    template <typename F, typename SrcData, typename DstData, typename N1, typename N2>
+    template <typename F, typename SrcData, typename DstData, typename N1, typename N2, typename N3>
     AMREX_GPU_HOST_DEVICE
-    auto call_check_pair (F const& check_pair, const SrcData& src_tile, const DstData& /*dst_tile*/, N1 i, N2 j)
+    auto call_check_pair (F const& check_pair,
+                          const SrcData& src_tile, const DstData& /*dst_tile*/,
+                          N1 i, N2 j, N3 /*type*/)
         noexcept -> decltype(check_pair(src_tile.m_aos, i, j))
     {
         return check_pair(src_tile.m_aos, i, j);
@@ -38,57 +44,14 @@ namespace
     // AML
     template <typename F, typename SrcData, typename DstData, typename N1, typename N2, typename N3>
     AMREX_GPU_HOST_DEVICE
-    auto call_check_poly_pair (F const& check_pair,
+    auto call_check_pair (F const& check_pair,
                           const SrcData& src_tile, const DstData& /*dst_tile*/,
-                          N1 i, N2 j, N3 n)
-        noexcept -> decltype(check_pair(src_tile, i, j, n))
+                          N1 i, N2 j, N3 type)
+        noexcept -> decltype(check_pair(src_tile, i, j, type))
     {
-        return check_pair(src_tile, i, j, n);
+        return check_pair(src_tile, i, j, type);
     }
 }
-
-// AML
-struct BinMapper
-{  
-    BinMapper(int* off_bins_p,
-              GpuArray<Real,AMREX_SPACEDIM>* dxi_p,
-              GpuArray<Real,AMREX_SPACEDIM>* plo_p,
-              Dim3* lo_p,
-              Dim3* hi_p)
-      : m_off_bins_p(off_bins_p), m_dxi_p(dxi_p), m_plo_p(plo_p), 
-        m_lo_p(lo_p)            , m_hi_p(hi_p) {}
-
-    template <typename T>
-    AMREX_GPU_HOST_DEVICE
-    int operator() (const T& p, int type) const
-    {
-        int offset = m_off_bins_p[type];
-      
-        AMREX_D_TERM(AMREX_ASSERT((p.pos(0)-m_plo_p[type][0])*m_dxi_p[type][0] - m_lo_p[type].x >= 0.0);,
-                     AMREX_ASSERT((p.pos(1)-m_plo_p[type][1])*m_dxi_p[type][1] - m_lo_p[type].y >= 0.0);,
-                     AMREX_ASSERT((p.pos(2)-m_plo_p[type][2])*m_dxi_p[type][2] - m_lo_p[type].z >= 0.0));
-          
-        auto iv = IntVect(AMREX_D_DECL(static_cast<int>(amrex::Math::floor((p.pos(0)-m_plo_p[type][0])*m_dxi_p[type][0])) - m_lo_p[type].x,
-                                       static_cast<int>(amrex::Math::floor((p.pos(1)-m_plo_p[type][1])*m_dxi_p[type][1])) - m_lo_p[type].y,
-                                       static_cast<int>(amrex::Math::floor((p.pos(2)-m_plo_p[type][2])*m_dxi_p[type][2])) - m_lo_p[type].z));
-        auto iv3 = iv.dim3();
-        int nx   = m_hi_p[type].x-m_lo_p[type].x+1;
-        int ny   = m_hi_p[type].y-m_lo_p[type].y+1;
-        int nz   = m_hi_p[type].z-m_lo_p[type].z+1;
-        int uix = amrex::min(nx-1,amrex::max(0,iv3.x));
-        int uiy = amrex::min(ny-1,amrex::max(0,iv3.y));
-        int uiz = amrex::min(nz-1,amrex::max(0,iv3.z));
-        return (uix * ny + uiy) * nz + uiz + offset;;
-    }
-
-private:
-    int* m_off_bins_p;
-    GpuArray<Real,AMREX_SPACEDIM>* m_dxi_p;
-    GpuArray<Real,AMREX_SPACEDIM>* m_plo_p;
-    Dim3* m_lo_p;
-    Dim3* m_hi_p;
-       
-};
 
 template <class ParticleType>
 struct Neighbors
@@ -244,7 +207,6 @@ public:
     void build (PTile& ptile,
                 CheckPair&& check_pair,
                 Gpu::DeviceVector<int> off_bins_v,
-                Gpu::DeviceVector<int> nbins_v,
                 Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> dxi_v,
                 Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> plo_v,
                 Gpu::DeviceVector<Dim3> lo_v,
@@ -253,8 +215,8 @@ public:
                 int  num_bin_types=1,
                 int  num_cells=1)
     {
-        build(ptile, ptile, check_pair, off_bins_v, nbins_v,
-              dxi_v, plo_v, lo_v, hi_v, bin_type_array, num_bin_types, num_cells);
+        build(ptile, ptile, check_pair, off_bins_v, dxi_v, plo_v,
+              lo_v, hi_v, bin_type_array, num_bin_types, num_cells);
     }
 
     template <class SrcTile, class TargetTile, class CheckPair>
@@ -262,7 +224,6 @@ public:
                 TargetTile& target_tile,
                 CheckPair&& check_pair,
                 Gpu::DeviceVector<int> off_bins_v,
-                Gpu::DeviceVector<int> nbins_v,
                 Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> dxi_v,
                 Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> plo_v,
                 Gpu::DeviceVector<Dim3> lo_v,
@@ -341,32 +302,14 @@ public:
                 for (int jj = amrex::max(iy-num_cells, 0); jj <= amrex::min(iy+num_cells, ny-1); ++jj) {
                   for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
                     int index = (ii * ny + jj) * nz + kk + off_bins;
-
                     for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
                       const auto& pid       = pperm[p];
-                      const auto& type_pid  = bin_type_array ? bin_type_array[pid] : 0;
                       const auto  ghost_pid = (pid >= np_real);
                       if (is_same && (pid == i)) continue;
                       if (ghost_i && ghost_pid)  continue;
-                      
-                      // TODO: move this to CheckPair functor
-                      if ((type_i != type) && (type_pid != type)) continue;
-                      if ((i < pid) || (type_i < type_pid)) {
-                          // Get index for NEIGHBORHOOD from analytical partial sums
-                          int imin = amrex::min(type_i,type_pid);
-                          int imax = amrex::max(type_i,type_pid);
-                          int k    = imin - 1;
-                          // \Sum_{i=N-k}^{N} (i)
-                          int indx = num_bin_types*(k+1) - (k*(k+1))/2;
-                          // \Sum_{i=1}^{l} (i)
-                          indx += imax - imin;
-                          
-                          if (call_check_poly_pair(check_pair, src_ptile_data, dst_ptile_data, i, pid, indx)) {
-                              count += 1;
-                          }
+                      if (call_check_pair(check_pair, src_ptile_data, dst_ptile_data, i, pid, type)) {
+                          count += 1;
                       }
-
-                      
                     } // p
                   } // kk
                 } // jj
@@ -386,11 +329,11 @@ public:
         // Now we can allocate and build our neighbor list
         unsigned int total_nbors;
 #ifdef AMREX_USE_GPU
-        Gpu::dtoh_memcpy(&total_nbors,m_nbor_offsets.dataPtr()+np_real,sizeof(unsigned int));
+        Gpu::dtoh_memcpy(&total_nbors,m_nbor_offsets.dataPtr()+np_size,sizeof(unsigned int));
 #else
-        std::memcpy(&total_nbors,m_nbor_offsets.dataPtr()+np_real,sizeof(unsigned int));
+        std::memcpy(&total_nbors,m_nbor_offsets.dataPtr()+np_size,sizeof(unsigned int));
 #endif
-
+        
         m_nbor_list.resize(total_nbors);
         auto pm_nbor_list = m_nbor_list.dataPtr();
 
@@ -422,34 +365,15 @@ public:
               for (int jj = amrex::max(iy-num_cells, 0); jj <= amrex::min(iy+num_cells, ny-1); ++jj) {
                 for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
                   int index = (ii * ny + jj) * nz + kk + off_bins;
-                  
                   for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
                     const auto& pid       = pperm[p];                    
-                    const auto& type_pid  = bin_type_array ? bin_type_array[pid] : 0;
                     const auto  ghost_pid = (pid >= np_real);
                     if (is_same && (pid == i)) continue;
                     if (ghost_i && ghost_pid)  continue;
-
-                    // TODO: move this to CheckPair functor
-                    if ((type_i != type) && (type_pid != type)) continue;
-                    if ((i < pid) || (type_i < type_pid)) { 
-                        // Get index for NEIGHBORHOOD from analytical partial sums
-                        int imin = amrex::min(type_i,type_pid);
-                        int imax = amrex::max(type_i,type_pid);
-                        int k    = imin - 1;
-                        // \Sum_{i=N-k}^{N} (i)
-                        int indx = num_bin_types*(k+1) - (k*(k+1))/2;
-                        // \Sum_{i=1}^{l} (i)
-                        indx += imax - imin;                    
-                        if (call_check_poly_pair(check_pair,
-                                                 src_ptile_data, dst_ptile_data,
-                                                 i, pid, indx)) {
-                            pm_nbor_list[pnbor_offset[i] + n] = pid;
-                            ++n;
-                        }
+                    if (call_check_pair(check_pair, src_ptile_data, dst_ptile_data, i, pid, type)) {
+                        pm_nbor_list[pnbor_offset[i] + n] = pid;
+                        ++n;
                     }
-
-                    
                   }// p
                 }// kk
               }// jj
