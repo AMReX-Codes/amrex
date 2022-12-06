@@ -16,9 +16,6 @@ class MLNodeLinOp
 {
 public:
 
-    template <typename T> friend class MLMGT;
-    template <typename T> friend class MLCGSolverT;
-
     enum struct CoarseningStrategy : int { Sigma, RAP };
 
     MLNodeLinOp ();

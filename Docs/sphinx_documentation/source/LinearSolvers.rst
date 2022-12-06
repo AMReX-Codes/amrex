@@ -369,7 +369,7 @@ Available choices are
   continue to transfer a multigrid problem to fewer MPI ranks.
   There are more setting sucsh as :cpp:`LPInfo::setConsolidationGridSize(int)`,
   :cpp:`LPInfo::setConsolidationRatio(int)`, and
-  :cpp:`LPInfo::setConsolidationStrategy(in)`, to give control over how this
+  :cpp:`LPInfo::setConsolidationStrategy(int)`, to give control over how this
   process works.
 
 Boundary Stencils for Cell-Centered Solvers

@@ -13,9 +13,6 @@ class MLCellABecLapT
 {
 public:
 
-    template <typename T> friend class MLMGT;
-    template <typename T> friend class MLCGSolverT;
-
     using FAB = typename MF::fab_type;
     using RT  = typename MF::value_type;
 
