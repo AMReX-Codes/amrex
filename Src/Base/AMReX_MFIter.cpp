@@ -153,7 +153,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, const MFItInf
     fabArray(*m_fa),
     tile_size(info.tilesize),
     flags(info.do_tiling ? Tiling : 0),
-    streams(info.num_streams),
+    streams(std::max(1,std::min(Gpu::numGpuStreams(),info.num_streams))),
     dynamic(info.dynamic && (OpenMP::get_num_threads() > 1)),
     device_sync(info.device_sync),
     index_map(nullptr),
@@ -185,7 +185,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_, const MFItInfo& info)
     fabArray(fabarray_),
     tile_size(info.tilesize),
     flags(info.do_tiling ? Tiling : 0),
-    streams(info.num_streams),
+    streams(std::max(1,std::min(Gpu::numGpuStreams(),info.num_streams))),
     dynamic(info.dynamic && (OpenMP::get_num_threads() > 1)),
     device_sync(info.device_sync),
     index_map(nullptr),
@@ -235,10 +235,14 @@ MFIter::Finalize ()
 #endif
 
 #ifdef AMREX_USE_GPU
-    if (device_sync) Gpu::streamSynchronizeAll();
-#endif
+    if (device_sync) {
+        const int nstreams = std::min(endIndex, streams);
+        for (int i = 0; i < nstreams; ++i) {
+            Gpu::Device::setStreamIndex(i);
+            Gpu::streamSynchronize();
+        }
+    }
 
-#ifdef AMREX_USE_GPU
     AMREX_GPU_ERROR_CHECK();
     Gpu::Device::resetStreamIndex();
 #endif
@@ -266,15 +270,6 @@ MFIter::Initialize ()
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(depth == 1 || MFIter::allow_multiple_mfiters,
             "Nested or multiple active MFIters is not supported by default.  This can be changed by calling MFIter::allowMultipleMFIters(true)".);
     }
-
-#ifdef AMREX_USE_GPU
-    if (device_sync) {
-#ifdef AMREX_USE_OMP
-#pragma omp single
-#endif
-        Gpu::streamSynchronize();
-    }
-#endif
 
     if (flags & AllBoxes)  // a very special case
     {
@@ -359,7 +354,7 @@ MFIter::Initialize ()
         currentIndex = beginIndex;
 
 #ifdef AMREX_USE_GPU
-        Gpu::Device::setStreamIndex((streams > 0) ? currentIndex%streams : -1);
+        Gpu::Device::setStreamIndex(currentIndex%streams);
 #endif
 
         typ = fabArray.boxArray().ixType();
@@ -519,7 +514,7 @@ MFIter::operator++ () noexcept
 
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion()) {
-            Gpu::Device::setStreamIndex((streams > 0) ? currentIndex%streams : -1);
+            Gpu::Device::setStreamIndex(currentIndex%streams);
             AMREX_GPU_ERROR_CHECK();
 #ifdef AMREX_DEBUG
 //            Gpu::synchronize();
