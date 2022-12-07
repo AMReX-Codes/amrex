@@ -15,6 +15,17 @@ void actual_init_poisson (int i, int j, int k,
     constexpr amrex::Real fac = tpi*tpi*static_cast<amrex::Real>(AMREX_SPACEDIM);
     amrex::Real x = prob_lo[0] + dx[0] * (i + 0.5);
     amrex::Real y = prob_lo[1] + dx[1] * (j + 0.5);
+
+#if (AMREX_SPACEDIM == 2)
+
+    exact(i,j,k) = (std::sin(tpi*x) * std::sin(tpi*y))
+           + .25 * (std::sin(fpi*x) * std::sin(fpi*y));
+
+    rhs(i,j,k) = -fac * (std::sin(tpi*x) * std::sin(tpi*y))
+                 -fac * (std::sin(fpi*x) * std::sin(fpi*y));
+
+#else
+
     amrex::Real z = prob_lo[2] + dx[2] * (k + 0.5);
 
     exact(i,j,k) = (std::sin(tpi*x) * std::sin(tpi*y) * std::sin(tpi*z))
@@ -22,6 +33,8 @@ void actual_init_poisson (int i, int j, int k,
 
     rhs(i,j,k) = -fac * (std::sin(tpi*x) * std::sin(tpi*y) * std::sin(tpi*z))
                  -fac * (std::sin(fpi*x) * std::sin(fpi*y) * std::sin(fpi*z));
+
+#endif
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -37,11 +50,19 @@ void actual_init_bcoef (int i, int j, int k,
 
     amrex::Real xc = (prob_hi[0] + prob_lo[0])*0.5;
     amrex::Real yc = (prob_hi[1] + prob_lo[1])*0.5;
+#if (AMREX_SPACEDIM == 2)
+    amrex::Real zc = 0.0;
+#else
     amrex::Real zc = (prob_hi[2] + prob_lo[2])*0.5;
+#endif
 
     amrex::Real x = prob_lo[0] + dx[0] * (i + 0.5);
     amrex::Real y = prob_lo[1] + dx[1] * (j + 0.5);
+#if (AMREX_SPACEDIM == 2)
+    amrex::Real z = 0.0;
+#else
     amrex::Real z = prob_lo[2] + dx[2] * (k + 0.5);
+#endif
 
     amrex::Real r = std::sqrt((x-xc)*(x-xc) + (y-yc)*(y-yc) + (z-zc)*(z-zc));
     beta(i,j,k) = (sigma-1.)/2.*std::tanh(theta*(r-0.25)) + (sigma+1.)/2.;
@@ -69,11 +90,19 @@ void actual_init_abeclap (int i, int j, int k,
 
     amrex::Real xc = (prob_hi[0] + prob_lo[0])*0.5;
     amrex::Real yc = (prob_hi[1] + prob_lo[1])*0.5;
+#if (AMREX_SPACEDIM == 2)
+    amrex::Real zc = 0.0;
+#else
     amrex::Real zc = (prob_hi[2] + prob_lo[2])*0.5;
+#endif
 
     amrex::Real x = prob_lo[0] + dx[0] * (i + 0.5);
     amrex::Real y = prob_lo[1] + dx[1] * (j + 0.5);
+#if (AMREX_SPACEDIM == 2)
+    amrex::Real z = 0.0;
+#else
     amrex::Real z = prob_lo[2] + dx[2] * (k + 0.5);
+#endif
 
     amrex::Real r = std::sqrt((x-xc)*(x-xc) + (y-yc)*(y-yc) + (z-zc)*(z-zc));
     amrex::Real tmp = std::cosh(theta*(r-0.25));
@@ -119,11 +148,19 @@ void actual_init_abeclap_in (int i, int j, int k,
 
     amrex::Real xc = (prob_hi[0] + prob_lo[0])*0.5;
     amrex::Real yc = (prob_hi[1] + prob_lo[1])*0.5;
+#if (AMREX_SPACEDIM == 2)
+    amrex::Real zc = 0.0;
+#else
     amrex::Real zc = (prob_hi[2] + prob_lo[2])*0.5;
+#endif
 
     amrex::Real x = prob_lo[0] + dx[0] * (i + 0.5);
     amrex::Real y = prob_lo[1] + dx[1] * (j + 0.5);
+#if (AMREX_SPACEDIM == 2)
+    amrex::Real z = 0.0;
+#else
     amrex::Real z = prob_lo[2] + dx[2] * (k + 0.5);
+#endif
 
     amrex::Real r = std::sqrt((x-xc)*(x-xc) + (y-yc)*(y-yc) + (z-zc)*(z-zc));
     amrex::Real tmp = std::cosh(theta*(r-0.25));
@@ -158,7 +195,11 @@ void actual_init_dphi_dx_lo (int i, int j, int k, amrex::Array4<amrex::Real> con
 
     amrex::Real x = prob_lo[0] + dx[0] * (i + 1.0);
     amrex::Real y = prob_lo[1] + dx[1] * (j + 0.5);
+#if (AMREX_SPACEDIM == 2)
+    amrex::Real z = 0.0;
+#else
     amrex::Real z = prob_lo[2] + dx[2] * (k + 0.5);
+#endif
 
     fx(i,j,k) = tpi * std::cos(tpi*x) * std::cos(tpi*y) * std::cos(tpi*z)
         - .25 * fpi * std::sin(fpi*x) * std::sin(fpi*y) * std::cos(fpi*z);
@@ -175,7 +216,11 @@ void actual_init_dphi_dx_hi (int i, int j, int k, amrex::Array4<amrex::Real> con
 
     amrex::Real x = prob_lo[0] + dx[0] * (i + 0.0);
     amrex::Real y = prob_lo[1] + dx[1] * (j + 0.5);
+#if (AMREX_SPACEDIM == 2)
+    amrex::Real z = 0.0;
+#else
     amrex::Real z = prob_lo[2] + dx[2] * (k + 0.5);
+#endif
 
     fx(i,j,k) = tpi * std::cos(tpi*x) * std::cos(tpi*y) * std::cos(tpi*z)
         - .25 * fpi * std::sin(fpi*x) * std::sin(fpi*y) * std::cos(fpi*z);
@@ -192,7 +237,11 @@ void actual_init_dphi_dy_lo (int i, int j, int k, amrex::Array4<amrex::Real> con
 
     amrex::Real x = prob_lo[0] + dx[0] * (i + 0.5);
     amrex::Real y = prob_lo[1] + dx[1] * (j + 1.0 );
+#if (AMREX_SPACEDIM == 2)
+    amrex::Real z = 0.0;
+#else
     amrex::Real z = prob_lo[2] + dx[2] * (k + 0.5);
+#endif
 
     fy(i,j,k) = std::sin(tpi*x) * (-tpi) * std::sin(tpi*y) * std::cos(tpi*z)
         + .25 * std::cos(fpi*x) * ( fpi) * std::cos(fpi*y) * std::cos(fpi*z);
@@ -209,7 +258,11 @@ void actual_init_dphi_dy_hi (int i, int j, int k, amrex::Array4<amrex::Real> con
 
     amrex::Real x = prob_lo[0] + dx[0] * (i + 0.5);
     amrex::Real y = prob_lo[1] + dx[1] * (j + 0.0);
+#if (AMREX_SPACEDIM == 2)
+    amrex::Real z = 0.0;
+#else
     amrex::Real z = prob_lo[2] + dx[2] * (k + 0.5);
+#endif
 
     fy(i,j,k) = std::sin(tpi*x) * (-tpi) * std::sin(tpi*y) * std::cos(tpi*z)
         + .25 * std::cos(fpi*x) * ( fpi) * std::cos(fpi*y) * std::cos(fpi*z);
@@ -226,7 +279,11 @@ void actual_init_dphi_dz_lo (int i, int j, int k, amrex::Array4<amrex::Real> con
 
     amrex::Real x = prob_lo[0] + dx[0] * (i + 0.5);
     amrex::Real y = prob_lo[1] + dx[1] * (j + 0.5);
+#if (AMREX_SPACEDIM == 2)
+    amrex::Real z = 0.0;
+#else
     amrex::Real z = prob_lo[2] + dx[2] * (k + 1.0);
+#endif
 
     fz(i,j,k) = std::sin(tpi*x) * std::cos(tpi*y) * (-tpi) * std::sin(tpi*z)
         + .25 * std::cos(fpi*x) * std::sin(fpi*y) * (-fpi) * std::sin(fpi*z);
@@ -243,7 +300,11 @@ void actual_init_dphi_dz_hi (int i, int j, int k, amrex::Array4<amrex::Real> con
 
     amrex::Real x = prob_lo[0] + dx[0] * (i + 0.5);
     amrex::Real y = prob_lo[1] + dx[1] * (j + 0.5);
+#if (AMREX_SPACEDIM == 2)
+    amrex::Real z = 0.0;
+#else
     amrex::Real z = prob_lo[2] + dx[2] * (k + 0.0);
+#endif
 
     fz(i,j,k) = std::sin(tpi*x) * std::cos(tpi*y) * (-tpi) * std::sin(tpi*z)
         + .25 * std::cos(fpi*x) * std::sin(fpi*y) * (-fpi) * std::sin(fpi*z);

@@ -147,66 +147,6 @@ namespace amrex
                                    geom);
     }
 
-    void average_face_to_cellcenter (MultiFab& cc, int dcomp,
-                                     const Array<const MultiFab*,AMREX_SPACEDIM>& fc, int ngrow)
-    {
-        AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
-        AMREX_ASSERT(fc[0]->nComp() == 1);
-
-#ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion() && cc.isFusingCandidate()) {
-            auto const& ccma = cc.arrays();
-            AMREX_D_TERM(auto const& fxma = fc[0]->const_arrays();,
-                         auto const& fyma = fc[1]->const_arrays();,
-                         auto const& fzma = fc[2]->const_arrays(););
-            ParallelFor(cc, IntVect(ngrow),
-            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-            {
-#if (AMREX_SPACEDIM == 1)
-                GeometryData gd{};
-                gd.coord = 0;
-#endif
-                amrex_avg_fc_to_cc(i,j,k, ccma[box_no], AMREX_D_DECL(fxma[box_no],
-                                                                     fyma[box_no],
-                                                                     fzma[box_no]),
-                                   dcomp
-#if (AMREX_SPACEDIM == 1)
-                                   , gd
-#endif
-                    );
-            });
-            Gpu::streamSynchronize();
-        } else
-#endif
-        {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-            for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-            {
-                const Box bx = mfi.growntilebox(ngrow);
-                Array4<Real> const& ccarr = cc.array(mfi);
-                AMREX_D_TERM(Array4<Real const> const& fxarr = fc[0]->const_array(mfi);,
-                             Array4<Real const> const& fyarr = fc[1]->const_array(mfi);,
-                             Array4<Real const> const& fzarr = fc[2]->const_array(mfi););
-
-#if (AMREX_SPACEDIM == 1)
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D( bx, i, j, k,
-                {
-                    GeometryData gd;
-                    gd.coord = 0;
-                    amrex_avg_fc_to_cc(i,j,k, ccarr, fxarr, dcomp, gd);
-                });
-#else
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D( bx, i, j, k,
-                {
-                    amrex_avg_fc_to_cc(i,j,k, ccarr, AMREX_D_DECL(fxarr,fyarr,fzarr), dcomp);
-                });
-#endif
-            }
-        }
-    }
-
     void average_face_to_cellcenter (MultiFab& cc,
                                      const Array<const MultiFab*,AMREX_SPACEDIM>& fc,
                                      const Geometry& geom)

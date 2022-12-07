@@ -9,13 +9,14 @@
 
 namespace amrex {
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_bc_x (int side, Box const& box, int blen,
-                         Array4<Real> const& phi,
+                         Array4<T> const& phi,
                          Array4<int const> const& mask,
-                         BoundCond bct, Real bcl,
-                         Array4<Real const> const& bcval,
-                         int maxorder, Real dxinv, int inhomog, int icomp) noexcept
+                         BoundCond bct, T bcl,
+                         Array4<T const> const& bcval,
+                         int maxorder, T dxinv, int inhomog, int icomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -47,13 +48,13 @@ void mllinop_apply_bc_x (int side, Box const& box, int blen,
     case AMREX_LO_DIRICHLET:
     {
         const int NX = amrex::min(blen+1, maxorder);
-        GpuArray<Real,4> x{{-bcl * dxinv, Real(0.5), Real(1.5), Real(2.5)}};
-        GpuArray<Real,4> coef{};
-        poly_interp_coeff(-Real(0.5), &x[0], NX, &coef[0]);
+        GpuArray<T,4> x{{-bcl * dxinv, T(0.5), T(1.5), T(2.5)}};
+        GpuArray<T,4> coef{};
+        poly_interp_coeff(-T(0.5), &x[0], NX, &coef[0]);
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int j = lo.y; j <= hi.y; ++j) {
                 if (mask(i,j,k) > 0) {
-                    Real tmp = Real(0.0);
+                    T tmp = T(0.0);
                     for (int m = 1; m < NX; ++m) {
                         tmp += phi(i+m*s,j,k,icomp) * coef[m];
                     }
@@ -70,13 +71,14 @@ void mllinop_apply_bc_x (int side, Box const& box, int blen,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_bc_x (int side, int i, int j, int k, int blen,
-                         Array4<Real> const& phi,
+                         Array4<T> const& phi,
                          Array4<int const> const& mask,
-                         BoundCond bct, Real bcl,
-                         Array4<Real const> const& bcval,
-                         int maxorder, Real dxinv, int inhomog, int icomp) noexcept
+                         BoundCond bct, T bcl,
+                         Array4<T const> const& bcval,
+                         int maxorder, T dxinv, int inhomog, int icomp) noexcept
 {
     if (mask(i,j,k) > 0) {
         const int s = 1-2*side;  // +1 for lo and -1 for hi
@@ -94,10 +96,10 @@ void mllinop_apply_bc_x (int side, int i, int j, int k, int blen,
         case AMREX_LO_DIRICHLET:
         {
             const int NX = amrex::min(blen+1, maxorder);
-            GpuArray<Real,4> x{{-bcl * dxinv, Real(0.5), Real(1.5), Real(2.5)}};
-            GpuArray<Real,4> coef{};
-            poly_interp_coeff(-Real(0.5), &x[0], NX, &coef[0]);
-            Real tmp = Real(0.0);
+            GpuArray<T,4> x{{-bcl * dxinv, T(0.5), T(1.5), T(2.5)}};
+            GpuArray<T,4> coef{};
+            poly_interp_coeff(-T(0.5), &x[0], NX, &coef[0]);
+            T tmp = T(0.0);
             for (int m = 1; m < NX; ++m) {
                 tmp += phi(i+m*s,j,k,icomp) * coef[m];
             }
@@ -112,13 +114,14 @@ void mllinop_apply_bc_x (int side, int i, int j, int k, int blen,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_bc_y (int side, Box const& box, int blen,
-                         Array4<Real> const& phi,
+                         Array4<T> const& phi,
                          Array4<int const> const& mask,
-                         BoundCond bct, Real bcl,
-                         Array4<Real const> const& bcval,
-                         int maxorder, Real dyinv, int inhomog, int icomp) noexcept
+                         BoundCond bct, T bcl,
+                         Array4<T const> const& bcval,
+                         int maxorder, T dyinv, int inhomog, int icomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -150,13 +153,13 @@ void mllinop_apply_bc_y (int side, Box const& box, int blen,
     case AMREX_LO_DIRICHLET:
     {
         const int NX = amrex::min(blen+1, maxorder);
-        GpuArray<Real,4> x{{-bcl * dyinv, Real(0.5), Real(1.5), Real(2.5)}};
-        GpuArray<Real,4> coef{};
-        poly_interp_coeff(-Real(0.5), &x[0], NX, &coef[0]);
+        GpuArray<T,4> x{{-bcl * dyinv, T(0.5), T(1.5), T(2.5)}};
+        GpuArray<T,4> coef{};
+        poly_interp_coeff(-T(0.5), &x[0], NX, &coef[0]);
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int i = lo.x; i <= hi.x; ++i) {
                 if (mask(i,j,k) > 0) {
-                    Real tmp = Real(0.0);
+                    T tmp = T(0.0);
                     for (int m = 1; m < NX; ++m) {
                         tmp += phi(i,j+m*s,k,icomp) * coef[m];
                     }
@@ -173,13 +176,14 @@ void mllinop_apply_bc_y (int side, Box const& box, int blen,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_bc_y (int side, int i, int j, int k, int blen,
-                         Array4<Real> const& phi,
+                         Array4<T> const& phi,
                          Array4<int const> const& mask,
-                         BoundCond bct, Real bcl,
-                         Array4<Real const> const& bcval,
-                         int maxorder, Real dyinv, int inhomog, int icomp) noexcept
+                         BoundCond bct, T bcl,
+                         Array4<T const> const& bcval,
+                         int maxorder, T dyinv, int inhomog, int icomp) noexcept
 {
     if (mask(i,j,k) > 0) {
         const int s = 1-2*side; // +1 for lo and -1 for hi
@@ -197,10 +201,10 @@ void mllinop_apply_bc_y (int side, int i, int j, int k, int blen,
         case AMREX_LO_DIRICHLET:
         {
             const int NX = amrex::min(blen+1, maxorder);
-            GpuArray<Real,4> x{{-bcl * dyinv, Real(0.5), Real(1.5), Real(2.5)}};
-            GpuArray<Real,4> coef{};
-            poly_interp_coeff(-Real(0.5), &x[0], NX, &coef[0]);
-            Real tmp = Real(0.0);
+            GpuArray<T,4> x{{-bcl * dyinv, T(0.5), T(1.5), T(2.5)}};
+            GpuArray<T,4> coef{};
+            poly_interp_coeff(-T(0.5), &x[0], NX, &coef[0]);
+            T tmp = T(0.0);
             for (int m = 1; m < NX; ++m) {
                 tmp += phi(i,j+m*s,k,icomp) * coef[m];
             }
@@ -215,13 +219,14 @@ void mllinop_apply_bc_y (int side, int i, int j, int k, int blen,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_bc_z (int side, Box const& box, int blen,
-                         Array4<Real> const& phi,
+                         Array4<T> const& phi,
                          Array4<int const> const& mask,
-                         BoundCond bct, Real bcl,
-                         Array4<Real const> const& bcval,
-                         int maxorder, Real dzinv, int inhomog, int icomp) noexcept
+                         BoundCond bct, T bcl,
+                         Array4<T const> const& bcval,
+                         int maxorder, T dzinv, int inhomog, int icomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -253,13 +258,13 @@ void mllinop_apply_bc_z (int side, Box const& box, int blen,
     case AMREX_LO_DIRICHLET:
     {
         const int NX = amrex::min(blen+1, maxorder);
-        GpuArray<Real,4> x{{-bcl * dzinv, Real(0.5), Real(1.5), Real(2.5)}};
-        GpuArray<Real,4> coef{};
-        poly_interp_coeff(-Real(0.5), &x[0], NX, &coef[0]);
+        GpuArray<T,4> x{{-bcl * dzinv, T(0.5), T(1.5), T(2.5)}};
+        GpuArray<T,4> coef{};
+        poly_interp_coeff(-T(0.5), &x[0], NX, &coef[0]);
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
                 if (mask(i,j,k) > 0) {
-                    Real tmp = Real(0.0);
+                    T tmp = T(0.0);
                     for (int m = 1; m < NX; ++m) {
                         tmp += phi(i,j,k+m*s,icomp) * coef[m];
                     }
@@ -276,13 +281,14 @@ void mllinop_apply_bc_z (int side, Box const& box, int blen,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_bc_z (int side, int i, int j, int k, int blen,
-                         Array4<Real> const& phi,
+                         Array4<T> const& phi,
                          Array4<int const> const& mask,
-                         BoundCond bct, Real bcl,
-                         Array4<Real const> const& bcval,
-                         int maxorder, Real dzinv, int inhomog, int icomp) noexcept
+                         BoundCond bct, T bcl,
+                         Array4<T const> const& bcval,
+                         int maxorder, T dzinv, int inhomog, int icomp) noexcept
 {
     if (mask(i,j,k) > 0) {
         const int s = 1-2*side; // +1 for lo and -1 for hi
@@ -300,10 +306,10 @@ void mllinop_apply_bc_z (int side, int i, int j, int k, int blen,
         case AMREX_LO_DIRICHLET:
         {
             const int NX = amrex::min(blen+1, maxorder);
-            GpuArray<Real,4> x{{-bcl * dzinv, Real(0.5), Real(1.5), Real(2.5)}};
-            GpuArray<Real,4> coef{};
-            poly_interp_coeff(-Real(0.5), &x[0], NX, &coef[0]);
-            Real tmp = Real(0.0);
+            GpuArray<T,4> x{{-bcl * dzinv, T(0.5), T(1.5), T(2.5)}};
+            GpuArray<T,4> coef{};
+            poly_interp_coeff(-T(0.5), &x[0], NX, &coef[0]);
+            T tmp = T(0.0);
             for (int m = 1; m < NX; ++m) {
                 tmp += phi(i,j,k+m*s,icomp) * coef[m];
             }
@@ -318,12 +324,13 @@ void mllinop_apply_bc_z (int side, int i, int j, int k, int blen,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_comp_interp_coef0_x (int side, Box const& box, int blen,
-                                  Array4<Real> const& f,
+                                  Array4<T> const& f,
                                   Array4<int const> const& mask,
-                                  BoundCond bct, Real bcl,
-                                  int maxorder, Real dxinv, int icomp) noexcept
+                                  BoundCond bct, T bcl,
+                                  int maxorder, T dxinv, int icomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -334,7 +341,7 @@ void mllinop_comp_interp_coef0_x (int side, Box const& box, int blen,
     {
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int j = lo.y; j <= hi.y; ++j) {
-                f(ii,j,k,icomp) = Real(1.0);
+                f(ii,j,k,icomp) = T(1.0);
             }
         }
         break;
@@ -343,7 +350,7 @@ void mllinop_comp_interp_coef0_x (int side, Box const& box, int blen,
     {
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int j = lo.y; j <= hi.y; ++j) {
-                f(ii,j,k,icomp) = (mask(ib,j,k) > 0) ? Real(1.0) : Real(0.0);
+                f(ii,j,k,icomp) = (mask(ib,j,k) > 0) ? T(1.0) : T(0.0);
             }
         }
         break;
@@ -351,12 +358,12 @@ void mllinop_comp_interp_coef0_x (int side, Box const& box, int blen,
     case AMREX_LO_DIRICHLET:
     {
         const int NX = amrex::min(blen+1, maxorder);
-        GpuArray<Real,4> x{{-bcl * dxinv, Real(0.5), Real(1.5), Real(2.5)}};
-        GpuArray<Real,4> coef{};
-        poly_interp_coeff(-Real(0.5), &x[0], NX, &coef[0]);
+        GpuArray<T,4> x{{-bcl * dxinv, T(0.5), T(1.5), T(2.5)}};
+        GpuArray<T,4> coef{};
+        poly_interp_coeff(-T(0.5), &x[0], NX, &coef[0]);
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int j = lo.y; j <= hi.y; ++j) {
-                f(ii,j,k,icomp) = (mask(ib,j,k) > 0) ? coef[1] : Real(0.0);
+                f(ii,j,k,icomp) = (mask(ib,j,k) > 0) ? coef[1] : T(0.0);
             }
         }
         break;
@@ -365,44 +372,46 @@ void mllinop_comp_interp_coef0_x (int side, Box const& box, int blen,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_comp_interp_coef0_x (int side, int i, int j, int k, int blen,
-                                  Array4<Real> const& f,
+                                  Array4<T> const& f,
                                   Array4<int const> const& mask,
-                                  BoundCond bct, Real bcl,
-                                  int maxorder, Real dxinv, int icomp) noexcept
+                                  BoundCond bct, T bcl,
+                                  int maxorder, T dxinv, int icomp) noexcept
 {
     const int ii = i + (1-2*side); // interior cell
     switch (bct) {
     case AMREX_LO_NEUMANN:
     {
-        f(ii,j,k,icomp) = Real(1.0);
+        f(ii,j,k,icomp) = T(1.0);
         break;
     }
     case AMREX_LO_REFLECT_ODD:
     {
-        f(ii,j,k,icomp) = (mask(i,j,k) > 0) ? Real(1.0) : Real(0.0);
+        f(ii,j,k,icomp) = (mask(i,j,k) > 0) ? T(1.0) : T(0.0);
         break;
     }
     case AMREX_LO_DIRICHLET:
     {
         const int NX = amrex::min(blen+1, maxorder);
-        GpuArray<Real,4> x{{-bcl * dxinv, Real(0.5), Real(1.5), Real(2.5)}};
-        GpuArray<Real,4> coef{};
-        poly_interp_coeff(-Real(0.5), &x[0], NX, &coef[0]);
-        f(ii,j,k,icomp) = (mask(i,j,k) > 0) ? coef[1] : Real(0.0);
+        GpuArray<T,4> x{{-bcl * dxinv, T(0.5), T(1.5), T(2.5)}};
+        GpuArray<T,4> coef{};
+        poly_interp_coeff(-T(0.5), &x[0], NX, &coef[0]);
+        f(ii,j,k,icomp) = (mask(i,j,k) > 0) ? coef[1] : T(0.0);
         break;
     }
     default: {}
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_comp_interp_coef0_y (int side, Box const& box, int blen,
-                                  Array4<Real> const& f,
+                                  Array4<T> const& f,
                                   Array4<int const> const& mask,
-                                  BoundCond bct, Real bcl,
-                                  int maxorder, Real dyinv, int icomp) noexcept
+                                  BoundCond bct, T bcl,
+                                  int maxorder, T dyinv, int icomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -413,7 +422,7 @@ void mllinop_comp_interp_coef0_y (int side, Box const& box, int blen,
     {
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                f(i,ji,k,icomp) = Real(1.0);
+                f(i,ji,k,icomp) = T(1.0);
             }
         }
         break;
@@ -422,7 +431,7 @@ void mllinop_comp_interp_coef0_y (int side, Box const& box, int blen,
     {
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                f(i,ji,k,icomp) = (mask(i,jb,k) > 0) ? Real(1.0) : Real(0.0);
+                f(i,ji,k,icomp) = (mask(i,jb,k) > 0) ? T(1.0) : T(0.0);
             }
         }
         break;
@@ -430,12 +439,12 @@ void mllinop_comp_interp_coef0_y (int side, Box const& box, int blen,
     case AMREX_LO_DIRICHLET:
     {
         const int NX = amrex::min(blen+1, maxorder);
-        GpuArray<Real,4> x{{-bcl * dyinv, Real(0.5), Real(1.5), Real(2.5)}};
-        GpuArray<Real,4> coef{};
-        poly_interp_coeff(-Real(0.5), &x[0], NX, &coef[0]);
+        GpuArray<T,4> x{{-bcl * dyinv, T(0.5), T(1.5), T(2.5)}};
+        GpuArray<T,4> coef{};
+        poly_interp_coeff(-T(0.5), &x[0], NX, &coef[0]);
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                f(i,ji,k,icomp) = (mask(i,jb,k) > 0) ? coef[1] : Real(0.0);
+                f(i,ji,k,icomp) = (mask(i,jb,k) > 0) ? coef[1] : T(0.0);
             }
         }
         break;
@@ -444,44 +453,46 @@ void mllinop_comp_interp_coef0_y (int side, Box const& box, int blen,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_comp_interp_coef0_y (int side, int i, int j, int k, int blen,
-                                  Array4<Real> const& f,
+                                  Array4<T> const& f,
                                   Array4<int const> const& mask,
-                                  BoundCond bct, Real bcl,
-                                  int maxorder, Real dyinv, int icomp) noexcept
+                                  BoundCond bct, T bcl,
+                                  int maxorder, T dyinv, int icomp) noexcept
 {
     const int ji = j + (1-2*side); // interior cell
     switch (bct) {
     case AMREX_LO_NEUMANN:
     {
-        f(i,ji,k,icomp) = Real(1.0);
+        f(i,ji,k,icomp) = T(1.0);
         break;
     }
     case AMREX_LO_REFLECT_ODD:
     {
-        f(i,ji,k,icomp) = (mask(i,j,k) > 0) ? Real(1.0) : Real(0.0);
+        f(i,ji,k,icomp) = (mask(i,j,k) > 0) ? T(1.0) : T(0.0);
         break;
     }
     case AMREX_LO_DIRICHLET:
     {
         const int NX = amrex::min(blen+1, maxorder);
-        GpuArray<Real,4> x{{-bcl * dyinv, Real(0.5), Real(1.5), Real(2.5)}};
-        GpuArray<Real,4> coef{};
-        poly_interp_coeff(-Real(0.5), &x[0], NX, &coef[0]);
-        f(i,ji,k,icomp) = (mask(i,j,k) > 0) ? coef[1] : Real(0.0);
+        GpuArray<T,4> x{{-bcl * dyinv, T(0.5), T(1.5), T(2.5)}};
+        GpuArray<T,4> coef{};
+        poly_interp_coeff(-T(0.5), &x[0], NX, &coef[0]);
+        f(i,ji,k,icomp) = (mask(i,j,k) > 0) ? coef[1] : T(0.0);
         break;
     }
     default: {}
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_comp_interp_coef0_z (int side, Box const& box, int blen,
-                                  Array4<Real> const& f,
+                                  Array4<T> const& f,
                                   Array4<int const> const& mask,
-                                  BoundCond bct, Real bcl,
-                                  int maxorder, Real dzinv, int icomp) noexcept
+                                  BoundCond bct, T bcl,
+                                  int maxorder, T dzinv, int icomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -492,7 +503,7 @@ void mllinop_comp_interp_coef0_z (int side, Box const& box, int blen,
     {
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                f(i,j,ki,icomp) = Real(1.0);
+                f(i,j,ki,icomp) = T(1.0);
             }
         }
         break;
@@ -501,7 +512,7 @@ void mllinop_comp_interp_coef0_z (int side, Box const& box, int blen,
     {
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                f(i,j,ki,icomp) = (mask(i,j,kb) > 0) ? Real(1.0) : Real(0.0);
+                f(i,j,ki,icomp) = (mask(i,j,kb) > 0) ? T(1.0) : T(0.0);
             }
         }
         break;
@@ -509,12 +520,12 @@ void mllinop_comp_interp_coef0_z (int side, Box const& box, int blen,
     case AMREX_LO_DIRICHLET:
     {
         const int NX = amrex::min(blen+1, maxorder);
-        GpuArray<Real,4> x{{-bcl * dzinv, Real(0.5), Real(1.5), Real(2.5)}};
-        GpuArray<Real,4> coef{};
-        poly_interp_coeff(-Real(0.5), &x[0], NX, &coef[0]);
+        GpuArray<T,4> x{{-bcl * dzinv, T(0.5), T(1.5), T(2.5)}};
+        GpuArray<T,4> coef{};
+        poly_interp_coeff(-T(0.5), &x[0], NX, &coef[0]);
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                f(i,j,ki,icomp) = (mask(i,j,kb) > 0) ? coef[1] : Real(0.0);
+                f(i,j,ki,icomp) = (mask(i,j,kb) > 0) ? coef[1] : T(0.0);
             }
         }
         break;
@@ -523,32 +534,33 @@ void mllinop_comp_interp_coef0_z (int side, Box const& box, int blen,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_comp_interp_coef0_z (int side, int i, int j, int k, int blen,
-                                  Array4<Real> const& f,
+                                  Array4<T> const& f,
                                   Array4<int const> const& mask,
-                                  BoundCond bct, Real bcl,
-                                  int maxorder, Real dzinv, int icomp) noexcept
+                                  BoundCond bct, T bcl,
+                                  int maxorder, T dzinv, int icomp) noexcept
 {
     const int ki = k + (1-2*side); // interior cell
     switch (bct) {
     case AMREX_LO_NEUMANN:
     {
-        f(i,j,ki,icomp) = Real(1.0);
+        f(i,j,ki,icomp) = T(1.0);
         break;
     }
     case AMREX_LO_REFLECT_ODD:
     {
-        f(i,j,ki,icomp) = (mask(i,j,k) > 0) ? Real(1.0) : Real(0.0);
+        f(i,j,ki,icomp) = (mask(i,j,k) > 0) ? T(1.0) : T(0.0);
         break;
     }
     case AMREX_LO_DIRICHLET:
     {
         const int NX = amrex::min(blen+1, maxorder);
-        GpuArray<Real,4> x{{-bcl * dzinv, Real(0.5), Real(1.5), Real(2.5)}};
-        GpuArray<Real,4> coef{};
-        poly_interp_coeff(-Real(0.5), &x[0], NX, &coef[0]);
-        f(i,j,ki,icomp) = (mask(i,j,k) > 0) ? coef[1] : Real(0.0);
+        GpuArray<T,4> x{{-bcl * dzinv, T(0.5), T(1.5), T(2.5)}};
+        GpuArray<T,4> coef{};
+        poly_interp_coeff(-T(0.5), &x[0], NX, &coef[0]);
+        f(i,j,ki,icomp) = (mask(i,j,k) > 0) ? coef[1] : T(0.0);
         break;
     }
     default: {}
@@ -915,120 +927,128 @@ void mllinop_comp_interp_coef0_z_eb (int side, int i, int j, int k, int blen,
 }
 #endif
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_innu_xlo (int i, int j, int k,
-                             Array4<Real> const& rhs,
+                             Array4<T> const& rhs,
                              Array4<int const> const& mask,
-                             Array4<Real const> const& bcoef,
-                             BoundCond bct, Real /*bcl*/,
-                             Array4<Real const> const& bcval,
-                             Real fac, bool has_bcoef, int icomp) noexcept
+                             Array4<T const> const& bcoef,
+                             BoundCond bct, T /*bcl*/,
+                             Array4<T const> const& bcval,
+                             T fac, bool has_bcoef, int icomp) noexcept
 {
     if (bct == AMREX_LO_NEUMANN && mask(i,j,k) == 2) {
-        Real b = (has_bcoef) ? bcoef(i+1,j,k,icomp) : Real(1.0);
+        T b = (has_bcoef) ? bcoef(i+1,j,k,icomp) : T(1.0);
         rhs(i+1,j,k,icomp) -= fac*b*bcval(i,j,k,icomp);
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_innu_xhi (int i, int j, int k,
-                             Array4<Real> const& rhs,
+                             Array4<T> const& rhs,
                              Array4<int const> const& mask,
-                             Array4<Real const> const& bcoef,
-                             BoundCond bct, Real /*bcl*/,
-                             Array4<Real const> const& bcval,
-                             Real fac, bool has_bcoef, int icomp) noexcept
+                             Array4<T const> const& bcoef,
+                             BoundCond bct, T /*bcl*/,
+                             Array4<T const> const& bcval,
+                             T fac, bool has_bcoef, int icomp) noexcept
 {
     if (bct == AMREX_LO_NEUMANN && mask(i,j,k) == 2) {
-        Real b = (has_bcoef) ? bcoef(i,j,k,icomp) : Real(1.0);
+        T b = (has_bcoef) ? bcoef(i,j,k,icomp) : T(1.0);
         rhs(i-1,j,k,icomp) += fac*b*bcval(i,j,k,icomp);
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_innu_ylo (int i, int j, int k,
-                             Array4<Real> const& rhs,
+                             Array4<T> const& rhs,
                              Array4<int const> const& mask,
-                             Array4<Real const> const& bcoef,
-                             BoundCond bct, Real /*bcl*/,
-                             Array4<Real const> const& bcval,
-                             Real fac, bool has_bcoef, int icomp) noexcept
+                             Array4<T const> const& bcoef,
+                             BoundCond bct, T /*bcl*/,
+                             Array4<T const> const& bcval,
+                             T fac, bool has_bcoef, int icomp) noexcept
 {
     if (bct == AMREX_LO_NEUMANN && mask(i,j,k) == 2) {
-        Real b = (has_bcoef) ? bcoef(i,j+1,k,icomp) : Real(1.0);
+        T b = (has_bcoef) ? bcoef(i,j+1,k,icomp) : T(1.0);
         rhs(i,j+1,k,icomp) -= fac*b*bcval(i,j,k,icomp);
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_innu_ylo_m (int i, int j, int k,
-                               Array4<Real> const& rhs,
+                               Array4<T> const& rhs,
                                Array4<int const> const& mask,
-                               BoundCond bct, Real /*bcl*/,
-                               Array4<Real const> const& bcval,
-                               Real fac, Real xlo, Real dx, int icomp) noexcept
+                               BoundCond bct, T /*bcl*/,
+                               Array4<T const> const& bcval,
+                               T fac, T xlo, T dx, int icomp) noexcept
 {
     if (bct == AMREX_LO_NEUMANN && mask(i,j,k) == 2) {
-        Real b = xlo + (i+Real(0.5))*dx;
+        T b = xlo + (i+T(0.5))*dx;
         rhs(i,j+1,k,icomp) -= fac*b*bcval(i,j,k,icomp);
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_innu_yhi (int i, int j, int k,
-                             Array4<Real> const& rhs,
+                             Array4<T> const& rhs,
                              Array4<int const> const& mask,
-                             Array4<Real const> const& bcoef,
-                             BoundCond bct, Real /*bcl*/,
-                             Array4<Real const> const& bcval,
-                             Real fac, bool has_bcoef, int icomp) noexcept
+                             Array4<T const> const& bcoef,
+                             BoundCond bct, T /*bcl*/,
+                             Array4<T const> const& bcval,
+                             T fac, bool has_bcoef, int icomp) noexcept
 {
     if (bct == AMREX_LO_NEUMANN && mask(i,j,k) == 2) {
-        Real b = (has_bcoef) ? bcoef(i,j,k,icomp) : Real(1.0);
+        T b = (has_bcoef) ? bcoef(i,j,k,icomp) : T(1.0);
         rhs(i,j-1,k,icomp) += fac*b*bcval(i,j,k,icomp);
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_innu_yhi_m (int i, int j, int k,
-                               Array4<Real> const& rhs,
+                               Array4<T> const& rhs,
                                Array4<int const> const& mask,
-                               BoundCond bct, Real /*bcl*/,
-                               Array4<Real const> const& bcval,
-                               Real fac, Real xlo, Real dx, int icomp) noexcept
+                               BoundCond bct, T /*bcl*/,
+                               Array4<T const> const& bcval,
+                               T fac, T xlo, T dx, int icomp) noexcept
 {
     if (bct == AMREX_LO_NEUMANN && mask(i,j,k) == 2) {
-        Real b = xlo + (i+Real(0.5))*dx;
+        T b = xlo + (i+T(0.5))*dx;
         rhs(i,j-1,k,icomp) += fac*b*bcval(i,j,k,icomp);
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_innu_zlo (int i, int j, int k,
-                             Array4<Real> const& rhs,
+                             Array4<T> const& rhs,
                              Array4<int const> const& mask,
-                             Array4<Real const> const& bcoef,
-                             BoundCond bct, Real /*bcl*/,
-                             Array4<Real const> const& bcval,
-                             Real fac, bool has_bcoef, int icomp) noexcept
+                             Array4<T const> const& bcoef,
+                             BoundCond bct, T /*bcl*/,
+                             Array4<T const> const& bcval,
+                             T fac, bool has_bcoef, int icomp) noexcept
 {
     if (bct == AMREX_LO_NEUMANN && mask(i,j,k) == 2) {
-        Real b = (has_bcoef) ? bcoef(i,j,k+1,icomp) : Real(1.0);
+        T b = (has_bcoef) ? bcoef(i,j,k+1,icomp) : T(1.0);
         rhs(i,j,k+1,icomp) -= fac*b*bcval(i,j,k,icomp);
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_innu_zhi (int i, int j, int k,
-                             Array4<Real> const& rhs,
+                             Array4<T> const& rhs,
                              Array4<int const> const& mask,
-                             Array4<Real const> const& bcoef,
-                             BoundCond bct, Real /*bcl*/,
-                             Array4<Real const> const& bcval,
-                             Real fac, bool has_bcoef, int icomp) noexcept
+                             Array4<T const> const& bcoef,
+                             BoundCond bct, T /*bcl*/,
+                             Array4<T const> const& bcval,
+                             T fac, bool has_bcoef, int icomp) noexcept
 {
     if (bct == AMREX_LO_NEUMANN && mask(i,j,k) == 2) {
-        Real b = (has_bcoef) ? bcoef(i,j,k,icomp) : Real(1.0);
+        T b = (has_bcoef) ? bcoef(i,j,k,icomp) : T(1.0);
         rhs(i,j,k-1,icomp) += fac*b*bcval(i,j,k,icomp);
     }
 }
