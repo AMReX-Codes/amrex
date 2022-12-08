@@ -271,6 +271,15 @@ MFIter::Initialize ()
             "Nested or multiple active MFIters is not supported by default.  This can be changed by calling MFIter::allowMultipleMFIters(true)".);
     }
 
+#ifdef AMREX_USE_GPU
+    if (device_sync) {
+#ifdef AMREX_USE_OMP
+#pragma omp single
+#endif
+        Gpu::streamSynchronize();
+    }
+#endif
+
     if (flags & AllBoxes)  // a very special case
     {
         index_map    = &(fabArray.IndexArray());
