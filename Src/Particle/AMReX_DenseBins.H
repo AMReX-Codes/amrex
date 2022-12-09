@@ -50,6 +50,26 @@ struct DenseBinIteratorFactory
     const T* m_items;
 };
 
+// AML
+namespace
+{
+    template <typename F, typename T, typename I>
+    AMREX_GPU_HOST_DEVICE
+    auto call_f(F const& f, T* pstruct_ptr, I& index)
+        noexcept -> decltype(f(pstruct_ptr,index))
+    {
+        return f(pstruct_ptr[index],index);
+    }
+
+    template <typename F, typename T, typename I>
+    AMREX_GPU_HOST_DEVICE
+    auto call_f(F const& f, T* pstruct_ptr, I& index)
+        noexcept -> decltype(f(pstruct_ptr[index]))
+    {
+        return f(pstruct_ptr[index]);
+    }
+}
+
 /**
  * \brief A container for storing items in a set of bins.
  *
@@ -95,9 +115,9 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (N nitems, T const* v, int nbins, F&& f, int* bin_type_array=nullptr)
+    void build (N nitems, T const* v, int nbins, F&& f)
     {
-        build(BinPolicy::Default, nitems, v, nbins, f, bin_type_array);
+        build(BinPolicy::Default, nitems, v, nbins, f);
     }
 
     /**
@@ -122,7 +142,7 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (BinPolicy::GPUBinPolicy, N nitems, T const* v, int nbins, F&& f, int* bin_type_array=nullptr)
+    void build (BinPolicy::GPUBinPolicy, N nitems, T const* v, int nbins, F&& f)
     {
         BL_PROFILE("DenseBins<T>::buildGPU");
 
@@ -143,8 +163,7 @@ public:
         index_type* plocal_offsets  = m_local_offsets.dataPtr();
         amrex::ParallelFor(nitems, [=] AMREX_GPU_DEVICE (int i) noexcept
         {
-            auto type = bin_type_array ? bin_type_array[i] : 0;
-            pbins[i] = f(v[i],type);
+            pbins[i] = call_f(f,v,i);
             index_type off = Gpu::Atomic::Add(&pcount[pbins[i]], index_type{ 1 });
             plocal_offsets[i] = off;
         });
@@ -185,7 +204,7 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (BinPolicy::OpenMPBinPolicy, N nitems, T const* v, int nbins, F&& f, int* bin_type_array=nullptr)
+    void build (BinPolicy::OpenMPBinPolicy, N nitems, T const* v, int nbins, F&& f)
     {
         BL_PROFILE("DenseBins<T>::buildOpenMP");
 
@@ -212,8 +231,7 @@ public:
             int istart = j*chunksize;
             int istop = (j == nchunks-1) ? nitems : (j+1)*chunksize;
             for (int i = istart; i < istop; ++i) {
-                auto type = bin_type_array ? bin_type_array[i] : 0;
-                m_bins[i] = f(v[i],type);
+                m_bins[i] = call_f(f,v,i);
                 ++counts[nbins*j+m_bins[i]];
             }
         }
@@ -282,7 +300,7 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (BinPolicy::SerialBinPolicy, N nitems, T const* v, int nbins, F&& f, int* bin_type_array=nullptr)
+    void build (BinPolicy::SerialBinPolicy, N nitems, T const* v, int nbins, F&& f)
     {
         BL_PROFILE("DenseBins<T>::buildSerial");
 
@@ -298,8 +316,7 @@ public:
         m_offsets.resize(nbins+1);
 
         for (int i = 0; i < nitems; ++i) {
-            auto type = bin_type_array ? bin_type_array[i] : 0;
-            m_bins[i] = f(v[i],type);
+            m_bins[i] = call_f(f,v,i);
             ++m_counts[m_bins[i]];
         }
 

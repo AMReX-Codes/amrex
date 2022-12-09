@@ -210,7 +210,7 @@ public:
                 Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> dxi_v,
                 Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> plo_v,
                 Gpu::DeviceVector<Dim3> lo_v,
-                Gpu::DeviceVector<Dim3> hi_v, 
+                Gpu::DeviceVector<Dim3> hi_v,
                 int* bin_type_array=nullptr,
                 int  num_bin_types=1,
                 int  num_cells=1)
@@ -236,16 +236,16 @@ public:
 
         bool is_same = isSame(&src_tile, &target_tile);
 
-        
+
         // Bin particles to their respective grid(s)
         //---------------------------------------------------------------------------------------------------------
-        auto& vec = target_tile.GetArrayOfStructs()();
+        auto& aos = target_tile.GetArrayOfStructs();
         const auto dst_ptile_data = target_tile.getConstParticleTileData();
-        
-        m_pstruct = vec.dataPtr();
-        const auto pstruct_ptr = vec.dataPtr();
-        
-        const size_t np_total = vec.size();
+
+        m_pstruct = aos().dataPtr();
+        const auto pstruct_ptr = aos().dataPtr();
+
+        const size_t np_total = aos.size();
         const size_t np_real  = src_tile.numRealParticles();
 
         auto off_bins_p = off_bins_v.data();
@@ -253,12 +253,12 @@ public:
         auto plo_p      = plo_v.data();
         auto  lo_p      =  lo_v.data();
         auto  hi_p      =  hi_v.data();
-        BinMapper bm(off_bins_p, dxi_p, plo_p, lo_p, hi_p);
+        BinMapper bm(off_bins_p, dxi_p, plo_p, lo_p, hi_p, bin_type_array);
 
         // TODO: bin_type_array will live inside BinMapper (f)
-        m_bins.build(np_total, pstruct_ptr, off_bins_v.back(), bm, bin_type_array);
+        m_bins.build(np_total, pstruct_ptr, off_bins_v.back(), bm);
 
-        
+
         // First pass: count the number of neighbors for each particle
         //---------------------------------------------------------------------------------------------------------
         const size_t np_size  = (num_bin_types > 1) ? np_total : np_real;
@@ -267,15 +267,15 @@ public:
 
         auto pnbor_counts = m_nbor_counts.dataPtr();
         auto pnbor_offset = m_nbor_offsets.dataPtr();
-        
+
         auto pperm   = m_bins.permutationPtr();
         auto poffset = m_bins.offsetsPtr();
-        
+
         const auto src_ptile_data  = src_tile.getConstParticleTileData();
         const auto src_pstruct_ptr = src_tile.GetArrayOfStructs()().dataPtr();
 
         BL_PROFILE_VAR("NeighborList::build()->count",PNC);
-        
+
         AMREX_FOR_1D ( np_size, i,
         {
             int count    = 0;
@@ -283,7 +283,7 @@ public:
             bool ghost_i = (i >= np_real);
             for (int type(type_i); type<num_bin_types; ++type) {
               int off_bins = off_bins_p[type];
-              
+
               IntVect iv(AMREX_D_DECL(
                 static_cast<int>(amrex::Math::floor((src_pstruct_ptr[i].pos(0)-plo_p[type][0])*dxi_p[type][0])) - lo_p[type].x,
                 static_cast<int>(amrex::Math::floor((src_pstruct_ptr[i].pos(1)-plo_p[type][1])*dxi_p[type][1])) - lo_p[type].y,
@@ -297,7 +297,7 @@ public:
               int nx = hi_p[type].x-lo_p[type].x+1;
               int ny = hi_p[type].y-lo_p[type].y+1;
               int nz = hi_p[type].z-lo_p[type].z+1;
-              
+
               for (int ii = amrex::max(ix-num_cells, 0); ii <= amrex::min(ix+num_cells, nx-1); ++ii) {
                 for (int jj = amrex::max(iy-num_cells, 0); jj <= amrex::min(iy+num_cells, ny-1); ++jj) {
                   for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
@@ -315,13 +315,13 @@ public:
                 } // jj
               } // ii
             } // type
-            
+
             pnbor_counts[i] = count;
         });
-        
+
         BL_PROFILE_VAR_STOP(PNC);
 
-        
+
         // Second-pass: build the offsets (partial sums) and neighbor list
         //--------------------------------------------------------------------------------------------------------
         Gpu::exclusive_scan(m_nbor_counts.begin(), m_nbor_counts.end(), m_nbor_offsets.begin());
@@ -333,20 +333,20 @@ public:
 #else
         std::memcpy(&total_nbors,m_nbor_offsets.dataPtr()+np_size,sizeof(unsigned int));
 #endif
-        
+
         m_nbor_list.resize(total_nbors);
         auto pm_nbor_list = m_nbor_list.dataPtr();
 
         BL_PROFILE_VAR("NeighborList::build()->list",PNL);
 
         AMREX_FOR_1D ( np_size, i,
-        {          
+        {
           int n        = 0;
           int type_i   = bin_type_array ? bin_type_array[i] : 0;
           bool ghost_i = (i >= np_real);
           for (int type(type_i); type<num_bin_types; ++type) {
             int off_bins = off_bins_p[type];
-            
+
             IntVect iv(AMREX_D_DECL(
                 static_cast<int>(amrex::Math::floor((src_pstruct_ptr[i].pos(0)-plo_p[type][0])*dxi_p[type][0])) - lo_p[type].x,
                 static_cast<int>(amrex::Math::floor((src_pstruct_ptr[i].pos(1)-plo_p[type][1])*dxi_p[type][1])) - lo_p[type].y,
@@ -356,17 +356,17 @@ public:
             int ix = iv3.x;
             int iy = iv3.y;
             int iz = iv3.z;
-                
+
             int nx = hi_p[type].x-lo_p[type].x+1;
             int ny = hi_p[type].y-lo_p[type].y+1;
             int nz = hi_p[type].z-lo_p[type].z+1;
-                
+
             for (int ii = amrex::max(ix-num_cells, 0); ii <= amrex::min(ix+num_cells, nx-1); ++ii) {
               for (int jj = amrex::max(iy-num_cells, 0); jj <= amrex::min(iy+num_cells, ny-1); ++jj) {
                 for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
                   int index = (ii * ny + jj) * nz + kk + off_bins;
                   for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
-                    const auto& pid       = pperm[p];                    
+                    const auto& pid       = pperm[p];
                     const auto  ghost_pid = (pid >= np_real);
                     if (is_same && (pid == i)) continue;
                     if (ghost_i && ghost_pid)  continue;

@@ -433,11 +433,11 @@ operator<< (std::ostream& os, const Particle<NReal, NInt>& p)
     for (int i = 0; i < NReal; i++)
         os << p.rdata(i) << ' ';
     os << "\n";
-    
+
     for (int i = 0; i < NInt; i++)
         os << p.idata(i) << ' ';
     os << "\n";
-    
+
     if (!os.good())
         amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
 
