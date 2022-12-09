@@ -33,6 +33,7 @@ ErrorRec::ErrorFunc::clone () const
 
 ErrorRec::ErrorFunc::~ErrorFunc () {}
 
+// \cond CODEGEN
 void
 ErrorRec::ErrorFunc::operator () (int* tag, AMREX_D_DECL(const int&tlo0,const int&tlo1,const int&tlo2),
                                   AMREX_D_DECL(const int&thi0,const int&thi1,const int&thi2),
@@ -70,7 +71,7 @@ ErrorRec::ErrorFunc::operator () (int* tag, const int* tlo, const int* thi,
              AMREX_ARLIM_3D(domain_lo),AMREX_ARLIM_3D(domain_hi),
              AMREX_ZFILL(dx),AMREX_ZFILL(xlo),AMREX_ZFILL(prob_lo),time,level);
 }
-
+// \endcond
 
 ErrorRec::ErrorFunc2::ErrorFunc2 ()
     :

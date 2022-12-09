@@ -246,6 +246,7 @@ FabArray<FAB>::FillBoundary_finish ()
 #endif
 }
 
+// \cond CODEGEN
 template <class FAB>
 void
 FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
@@ -610,7 +611,7 @@ FabArray<FAB>::copyTo (FAB& dest, int scomp, int dcomp, int ncomp, int nghost) c
     }
 #endif
 }
-
+// \endcond
 #ifdef BL_USE_MPI
 template <class FAB>
 template <typename BUF>
