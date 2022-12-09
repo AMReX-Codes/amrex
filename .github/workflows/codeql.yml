@@ -24,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ cpp ]
+        language: [ python, cpp ]
 
     steps:
       - name: Checkout
