@@ -20,3 +20,12 @@ jobs:
       - uses: actions/checkout@v3
       - name: Trailing Whitespaces
         run: .github/workflows/style/check_trailing_whitespaces.sh
+
+  doxygen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Doxygen
+        run: |
+          sudo apt-get install -y --no-install-recommends doxygen
+          .github/workflows/style/doxygen.sh
