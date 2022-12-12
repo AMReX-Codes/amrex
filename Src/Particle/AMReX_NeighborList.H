@@ -41,7 +41,6 @@ namespace
         return check_pair(src_tile.m_aos, i, j);
     }
 
-    // AML
     template <typename F, typename SrcData, typename DstData, typename N1, typename N2, typename N3>
     AMREX_GPU_HOST_DEVICE
     auto call_check_pair (F const& check_pair,
@@ -202,7 +201,6 @@ class NeighborList
 {
 public:
 
-    // AML
     template <class PTile, class CheckPair>
     void build (PTile& ptile,
                 CheckPair&& check_pair,
@@ -255,7 +253,6 @@ public:
         auto  hi_p      =  hi_v.data();
         BinMapper bm(off_bins_p, dxi_p, plo_p, lo_p, hi_p, bin_type_array);
 
-        // TODO: bin_type_array will live inside BinMapper (f)
         m_bins.build(np_total, pstruct_ptr, off_bins_v.back(), bm);
 
 

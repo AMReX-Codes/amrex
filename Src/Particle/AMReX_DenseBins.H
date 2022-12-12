@@ -50,7 +50,6 @@ struct DenseBinIteratorFactory
     const T* m_items;
 };
 
-// AML
 namespace
 {
     template <typename F, typename T, typename I>

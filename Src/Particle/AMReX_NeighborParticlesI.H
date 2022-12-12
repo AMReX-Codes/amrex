@@ -729,7 +729,6 @@ buildNeighborList (CheckPair&& check_pair, bool /*sort*/)
             Box bx = pti.tilebox();
             bx.grow(computeRefFac(0, lev).max()*m_num_neighbor_cells);
 
-            // AML
             Gpu::DeviceVector<int> off_bins_v;
             Gpu::DeviceVector<Dim3>      lo_v;
             Gpu::DeviceVector<Dim3>      hi_v;
@@ -814,7 +813,6 @@ buildNeighborList (CheckPair&& check_pair, OtherPCType& other,
             Box bx = pti.tilebox();
             bx.grow(computeRefFac(0, lev).max()*m_num_neighbor_cells);
 
-            // AML
             Gpu::DeviceVector<int> off_bins_v;
             Gpu::DeviceVector<Dim3>      lo_v;
             Gpu::DeviceVector<Dim3>      hi_v;
@@ -835,7 +833,6 @@ buildNeighborList (CheckPair&& check_pair, OtherPCType& other,
     }
 }
 
-// AML
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 template <class CheckPair>
 void

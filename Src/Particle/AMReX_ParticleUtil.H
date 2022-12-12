@@ -466,7 +466,6 @@ int numTilesInBox (const Box& box, const bool a_do_tiling, const IntVect& a_tile
     }
 }
 
-// AML
 struct BinMapper
 {
     BinMapper(int* off_bins_p,
