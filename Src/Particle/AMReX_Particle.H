@@ -424,19 +424,16 @@ std::ostream&
 operator<< (std::ostream& os, const Particle<NReal, NInt>& p)
 {
     os << p.id()   << ' '
-       << p.cpu()  << "\n";
+       << p.cpu()  << ' ';
 
     for (int i = 0; i < AMREX_SPACEDIM; i++)
         os << p.pos(i) << ' ';
-    os << "\n";
 
     for (int i = 0; i < NReal; i++)
         os << p.rdata(i) << ' ';
-    os << "\n";
 
     for (int i = 0; i < NInt; i++)
         os << p.idata(i) << ' ';
-    os << "\n";
 
     if (!os.good())
         amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
