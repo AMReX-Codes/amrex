@@ -1047,29 +1047,17 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
             const size_t  np_real  = pti.numRealParticles();
             const size_t  np_total = aos().size();
 
-            // AML
-            Gpu::DeviceVector<int> off_bins_v;
-            Gpu::DeviceVector<Dim3>      lo_v;
-            Gpu::DeviceVector<Dim3>      hi_v;
-            Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> dxi_v;
-            Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> plo_v;
-
-            off_bins_v.push_back(0);
-            off_bins_v.push_back(grownBox.numPts());
-            lo_v.push_back(lo);
-            hi_v.push_back(hi);
-            dxi_v.push_back(dxi);
-            plo_v.push_back(plo);
-
-            auto off_bins_p = off_bins_v.data();
-            auto dxi_p      = dxi_v.data();
-            auto plo_p      = plo_v.data();
-            auto  lo_p      =  lo_v.data();
-            auto  hi_p      =  hi_v.data();
-            BinMapper bm(off_bins_p, dxi_p, plo_p, lo_p, hi_p);
-
             DenseBins<ParticleType> bins;
-            bins.build(np_total, pstruct, off_bins_v.back(), bm);
+            bins.build(np_total, pstruct, grownBox,
+                      [=] AMREX_GPU_DEVICE (const ParticleType& p) noexcept -> IntVect
+                      {
+                          int i = static_cast<int>(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0]) - lo.x);
+                          int j = static_cast<int>(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1]) - lo.y);
+                          int k = static_cast<int>(amrex::Math::floor((p.pos(2)-plo[2])*dxi[2]) - lo.z);
+                          AMREX_D_TERM(AMREX_ASSERT(i >= 0);, AMREX_ASSERT(j >= 0);, AMREX_ASSERT(k >= 0));
+
+                          return IntVect(AMREX_D_DECL(i, j, k));
+                        });
 
             auto pperm   = bins.permutationPtr();
             auto poffset = bins.offsetsPtr();
