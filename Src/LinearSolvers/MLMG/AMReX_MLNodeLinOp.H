@@ -16,9 +16,6 @@ class MLNodeLinOp
 {
 public:
 
-    friend class MLMG;
-    friend class MLCGSolver;
-
     enum struct CoarseningStrategy : int { Sigma, RAP };
 
     MLNodeLinOp ();
@@ -35,6 +32,10 @@ public:
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
                  int a_eb_limit_coarsening = -1);
+
+    virtual void setLevelBC (int /*amrlev*/, const MultiFab* /*levelbcdata*/,
+                             const MultiFab* = nullptr, const MultiFab* = nullptr,
+                             const MultiFab* = nullptr) final override {}
 
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndry* bndry=nullptr) const final override;
@@ -55,12 +56,12 @@ public:
         amrex::Abort("AMReX_MLNodeLinOp::compGrad::How did we get here?");
     }
 
-    virtual void applyMetricTerm (int /*amrlev*/, int /*mglev*/, Any& /*rhs*/) const final override {}
+    virtual void applyMetricTerm (int /*amrlev*/, int /*mglev*/, MultiFab& /*rhs*/) const final override {}
     virtual void unapplyMetricTerm (int /*amrlev*/, int /*mglev*/, MultiFab& /*rhs*/) const final override {}
 
     virtual Vector<Real> getSolvabilityOffset (int amrlev, int mglev,
-                                               Any const& rhs) const override;
-    virtual void fixSolvabilityByOffset (int amrlev, int mglev, Any& rhs,
+                                               MultiFab const& rhs) const override;
+    virtual void fixSolvabilityByOffset (int amrlev, int mglev, MultiFab& rhs,
                                          Vector<Real> const& offset) const override;
 
     virtual void prepareForSolve () override;
@@ -95,14 +96,14 @@ public:
 
     virtual void fixUpResidualMask (int /*amrlev*/, iMultiFab& /*resmsk*/) { }
 
-    virtual Real AnyNormInfMask (int amrlev, Any const& a, bool local) const override;
+    virtual Real normInf (int amrlev, MultiFab const& a, bool local) const override;
 
-    virtual void AnyAvgDownResAmr (int, Any&, Any const&) const final override { }
+    virtual void avgDownResAmr (int, MultiFab&, MultiFab const&) const final override { }
 
-    virtual void AnyInterpolationAmr (int famrlev, Any& fine, const Any& crse,
-                                      IntVect const& nghost) const override;
+    virtual void interpolationAmr (int famrlev, MultiFab& fine, const MultiFab& crse,
+                                   IntVect const& nghost) const override;
 
-    virtual void AnyAverageDownAndSync (Vector<Any>& sol) const override;
+    virtual void averageDownAndSync (Vector<MultiFab>& sol) const override;
 
     virtual void interpAssign (int amrlev, int fmglev, MultiFab& fine, MultiFab& crse) const override;
 

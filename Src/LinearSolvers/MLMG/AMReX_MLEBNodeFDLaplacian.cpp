@@ -319,11 +319,8 @@ MLEBNodeFDLaplacian::prepareForSolve ()
 
 #ifdef AMREX_USE_EB
 void
-MLEBNodeFDLaplacian::scaleRHS (int amrlev, Any& a_rhs) const
+MLEBNodeFDLaplacian::scaleRHS (int amrlev, MultiFab& rhs) const
 {
-    AMREX_ASSERT(a_rhs.is<MultiFab>());
-    auto& rhs = a_rhs.get<MultiFab>();
-
     auto const& dmask = *m_dirichlet_mask[amrlev][0];
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
     auto const& edgecent = factory->getEdgeCent();
@@ -659,7 +656,7 @@ MLEBNodeFDLaplacian::fillRHS (MFIter const& /*mfi*/, Array4<int const> const& /*
 #endif
 
 void
-MLEBNodeFDLaplacian::postSolve (Vector<Any>& sol) const
+MLEBNodeFDLaplacian::postSolve (Vector<MultiFab>& sol) const
 {
 #ifdef AMREX_USE_EB
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
@@ -667,7 +664,7 @@ MLEBNodeFDLaplacian::postSolve (Vector<Any>& sol) const
         auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
         auto const& levset_mf = factory->getLevelSet();
         auto const& levset_ar = levset_mf.const_arrays();
-        MultiFab& mf = sol[amrlev].get<MultiFab>();
+        MultiFab& mf = sol[amrlev];
         auto const& sol_ar = mf.arrays();
         if (phieb == std::numeric_limits<Real>::lowest()) {
             auto const& phieb_ar = m_phi_eb[amrlev].const_arrays();

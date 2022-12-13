@@ -34,17 +34,18 @@ void amrex_avg_eg_to_cc (int i, int j, int k,
     cc(i,j,k,2+cccomp) = Real(0.25) * ( Ez(i,j,k) + Ez(i+1,j,k) + Ez(i,j+1,k) + Ez(i+1,j+1,k) );
 }
 
+template <typename CT, typename FT>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void amrex_avg_fc_to_cc (int i, int j, int k,
-                         Array4<Real      > const& cc,
-                         Array4<Real const> const& fx,
-                         Array4<Real const> const& fy,
-                         Array4<Real const> const& fz,
+                         Array4<CT      > const& cc,
+                         Array4<FT const> const& fx,
+                         Array4<FT const> const& fy,
+                         Array4<FT const> const& fz,
                          int cccomp) noexcept
 {
-    cc(i,j,k,0+cccomp) = Real(0.5) * ( fx(i,j,k) + fx(i+1,j,k) );
-    cc(i,j,k,1+cccomp) = Real(0.5) * ( fy(i,j,k) + fy(i,j+1,k) );
-    cc(i,j,k,2+cccomp) = Real(0.5) * ( fz(i,j,k) + fz(i,j,k+1) );
+    cc(i,j,k,0+cccomp) = CT(0.5) * CT( fx(i,j,k) + fx(i+1,j,k) );
+    cc(i,j,k,1+cccomp) = CT(0.5) * CT( fy(i,j,k) + fy(i,j+1,k) );
+    cc(i,j,k,2+cccomp) = CT(0.5) * CT( fz(i,j,k) + fz(i,j,k+1) );
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

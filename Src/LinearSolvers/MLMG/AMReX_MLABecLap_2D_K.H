@@ -4,17 +4,18 @@
 
 namespace amrex {
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlabeclap_adotx (int i, int j, int, int n, Array4<Real> const& y,
-                      Array4<Real const> const& x,
-                      Array4<Real const> const& a,
-                      Array4<Real const> const& bX,
-                      Array4<Real const> const& bY,
-                      GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                      Real alpha, Real beta) noexcept
+void mlabeclap_adotx (int i, int j, int, int n, Array4<T> const& y,
+                      Array4<T const> const& x,
+                      Array4<T const> const& a,
+                      Array4<T const> const& bX,
+                      Array4<T const> const& bY,
+                      GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                      T alpha, T beta) noexcept
 {
-    const Real dhx = beta*dxinv[0]*dxinv[0];
-    const Real dhy = beta*dxinv[1]*dxinv[1];
+    const T dhx = beta*dxinv[0]*dxinv[0];
+    const T dhy = beta*dxinv[1]*dxinv[1];
     y(i,j,0,n) = alpha*a(i,j,0)*x(i,j,0,n)
             - dhx * (bX(i+1,j,0,n)*(x(i+1,j,0,n) - x(i  ,j,0,n))
                    - bX(i  ,j,0,n)*(x(i  ,j,0,n) - x(i-1,j,0,n)))
@@ -22,20 +23,21 @@ void mlabeclap_adotx (int i, int j, int, int n, Array4<Real> const& y,
                    - bY(i,j  ,0,n)*(x(i,j  ,0,n) - x(i,j-1,0,n)));
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlabeclap_adotx_os (int i, int j, int, int n, Array4<Real> const& y,
-                         Array4<Real const> const& x,
-                         Array4<Real const> const& a,
-                         Array4<Real const> const& bX,
-                         Array4<Real const> const& bY,
+void mlabeclap_adotx_os (int i, int j, int, int n, Array4<T> const& y,
+                         Array4<T const> const& x,
+                         Array4<T const> const& a,
+                         Array4<T const> const& bX,
+                         Array4<T const> const& bY,
                          Array4<int const> const& osm,
-                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                         Real alpha, Real beta) noexcept
+                         GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                         T alpha, T beta) noexcept
 {
-    const Real dhx = beta*dxinv[0]*dxinv[0];
-    const Real dhy = beta*dxinv[1]*dxinv[1];
+    const T dhx = beta*dxinv[0]*dxinv[0];
+    const T dhy = beta*dxinv[1]*dxinv[1];
     if (osm(i,j,0) == 0) {
-        y(i,j,0,n) = Real(0.0);
+        y(i,j,0,n) = T(0.0);
     } else {
         y(i,j,0,n) = alpha*a(i,j,0)*x(i,j,0,n)
             - dhx * (bX(i+1,j,0,n)*(x(i+1,j,0,n) - x(i  ,j,0,n))
@@ -45,24 +47,26 @@ void mlabeclap_adotx_os (int i, int j, int, int n, Array4<Real> const& y,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlabeclap_normalize (int i, int j, int, int n, Array4<Real> const& x,
-                          Array4<Real const> const& a,
-                          Array4<Real const> const& bX,
-                          Array4<Real const> const& bY,
-                          GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                          Real alpha, Real beta) noexcept
+void mlabeclap_normalize (int i, int j, int, int n, Array4<T> const& x,
+                          Array4<T const> const& a,
+                          Array4<T const> const& bX,
+                          Array4<T const> const& bY,
+                          GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                          T alpha, T beta) noexcept
 {
-    const Real dhx = beta*dxinv[0]*dxinv[0];
-    const Real dhy = beta*dxinv[1]*dxinv[1];
+    const T dhx = beta*dxinv[0]*dxinv[0];
+    const T dhy = beta*dxinv[1]*dxinv[1];
     x(i,j,0,n) /= alpha*a(i,j,0)
         + dhx*(bX(i,j,0,n)+bX(i+1,j,0,n))
         + dhy*(bY(i,j,0,n)+bY(i,j+1,0,n));
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlabeclap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real const> const& sol,
-                       Array4<Real const> const& bx, Real fac, int ncomp) noexcept
+void mlabeclap_flux_x (Box const& box, Array4<T> const& fx, Array4<T const> const& sol,
+                       Array4<T const> const& bx, T fac, int ncomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -77,9 +81,10 @@ void mlabeclap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real const
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlabeclap_flux_xface (Box const& box, Array4<Real> const& fx, Array4<Real const> const& sol,
-                           Array4<Real const> const& bx, Real fac, int xlen, int ncomp) noexcept
+void mlabeclap_flux_xface (Box const& box, Array4<T> const& fx, Array4<T const> const& sol,
+                           Array4<T const> const& bx, T fac, int xlen, int ncomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -94,9 +99,10 @@ void mlabeclap_flux_xface (Box const& box, Array4<Real> const& fx, Array4<Real c
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlabeclap_flux_y (Box const& box, Array4<Real> const& fy, Array4<Real const> const& sol,
-                       Array4<Real const> const& by, Real fac, int ncomp) noexcept
+void mlabeclap_flux_y (Box const& box, Array4<T> const& fy, Array4<T const> const& sol,
+                       Array4<T const> const& by, T fac, int ncomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -111,9 +117,10 @@ void mlabeclap_flux_y (Box const& box, Array4<Real> const& fy, Array4<Real const
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlabeclap_flux_yface (Box const& box, Array4<Real> const& fy, Array4<Real const> const& sol,
-                           Array4<Real const> const& by, Real fac, int ylen, int ncomp) noexcept
+void mlabeclap_flux_yface (Box const& box, Array4<T> const& fy, Array4<T const> const& sol,
+                           Array4<T const> const& by, T fac, int ylen, int ncomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -132,86 +139,88 @@ void mlabeclap_flux_yface (Box const& box, Array4<Real> const& fy, Array4<Real c
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void abec_gsrb (int i, int j, int, int n, Array4<Real> const& phi, Array4<Real const> const& rhs,
-                Real alpha, Array4<Real const> const& a,
-                Real dhx, Real dhy,
-                Array4<Real const> const& bX, Array4<Real const> const& bY,
+void abec_gsrb (int i, int j, int, int n, Array4<T> const& phi, Array4<T const> const& rhs,
+                T alpha, Array4<T const> const& a,
+                T dhx, T dhy,
+                Array4<T const> const& bX, Array4<T const> const& bY,
                 Array4<int const> const& m0, Array4<int const> const& m2,
                 Array4<int const> const& m1, Array4<int const> const& m3,
-                Array4<Real const> const& f0, Array4<Real const> const& f2,
-                Array4<Real const> const& f1, Array4<Real const> const& f3,
+                Array4<T const> const& f0, Array4<T const> const& f2,
+                Array4<T const> const& f1, Array4<T const> const& f3,
                 Box const& vbox, int redblack) noexcept
 {
     if ((i+j+redblack)%2 == 0) {
         const auto vlo = amrex::lbound(vbox);
         const auto vhi = amrex::ubound(vbox);
 
-        Real cf0 = (i == vlo.x && m0(vlo.x-1,j,0) > 0)
-            ? f0(vlo.x,j,0,n) : Real(0.0);
-        Real cf1 = (j == vlo.y && m1(i,vlo.y-1,0) > 0)
-            ? f1(i,vlo.y,0,n) : Real(0.0);
-        Real cf2 = (i == vhi.x && m2(vhi.x+1,j,0) > 0)
-            ? f2(vhi.x,j,0,n) : Real(0.0);
-        Real cf3 = (j == vhi.y && m3(i,vhi.y+1,0) > 0)
-            ? f3(i,vhi.y,0,n) : Real(0.0);
+        T cf0 = (i == vlo.x && m0(vlo.x-1,j,0) > 0)
+            ? f0(vlo.x,j,0,n) : T(0.0);
+        T cf1 = (j == vlo.y && m1(i,vlo.y-1,0) > 0)
+            ? f1(i,vlo.y,0,n) : T(0.0);
+        T cf2 = (i == vhi.x && m2(vhi.x+1,j,0) > 0)
+            ? f2(vhi.x,j,0,n) : T(0.0);
+        T cf3 = (j == vhi.y && m3(i,vhi.y+1,0) > 0)
+            ? f3(i,vhi.y,0,n) : T(0.0);
 
-        Real delta = dhx*(bX(i,j,0,n)*cf0 + bX(i+1,j,0,n)*cf2)
+        T delta = dhx*(bX(i,j,0,n)*cf0 + bX(i+1,j,0,n)*cf2)
             +  dhy*(bY(i,j,0,n)*cf1 + bY(i,j+1,0,n)*cf3);
 
-        Real gamma = alpha*a(i,j,0)
+        T gamma = alpha*a(i,j,0)
             +   dhx*( bX(i,j,0,n) + bX(i+1,j,0,n) )
             +   dhy*( bY(i,j,0,n) + bY(i,j+1,0,n) );
 
-        Real rho = dhx*(bX(i  ,j  ,0,n)*phi(i-1,j  ,0,n)
-                      + bX(i+1,j  ,0,n)*phi(i+1,j  ,0,n))
-                  +dhy*(bY(i  ,j  ,0,n)*phi(i  ,j-1,0,n)
-                      + bY(i  ,j+1,0,n)*phi(i  ,j+1,0,n));
+        T rho = dhx*(bX(i  ,j  ,0,n)*phi(i-1,j  ,0,n)
+                   + bX(i+1,j  ,0,n)*phi(i+1,j  ,0,n))
+               +dhy*(bY(i  ,j  ,0,n)*phi(i  ,j-1,0,n)
+                   + bY(i  ,j+1,0,n)*phi(i  ,j+1,0,n));
 
         phi(i,j,0,n) = (rhs(i,j,0,n) + rho - phi(i,j,0,n)*delta)
             / (gamma - delta);
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void abec_gsrb_os (int i, int j, int, int n, Array4<Real> const& phi, Array4<Real const> const& rhs,
-                   Real alpha, Array4<Real const> const& a,
-                   Real dhx, Real dhy,
-                   Array4<Real const> const& bX, Array4<Real const> const& bY,
+void abec_gsrb_os (int i, int j, int, int n, Array4<T> const& phi, Array4<T const> const& rhs,
+                   T alpha, Array4<T const> const& a,
+                   T dhx, T dhy,
+                   Array4<T const> const& bX, Array4<T const> const& bY,
                    Array4<int const> const& m0, Array4<int const> const& m2,
                    Array4<int const> const& m1, Array4<int const> const& m3,
-                   Array4<Real const> const& f0, Array4<Real const> const& f2,
-                   Array4<Real const> const& f1, Array4<Real const> const& f3,
+                   Array4<T const> const& f0, Array4<T const> const& f2,
+                   Array4<T const> const& f1, Array4<T const> const& f3,
                    Array4<int const> const& osm,
                    Box const& vbox, int redblack) noexcept
 {
     if ((i+j+redblack)%2 == 0) {
         if (osm(i,j,0) == 0) {
-            phi(i,j,0,n) = Real(0.0);
+            phi(i,j,0,n) = T(0.0);
         } else {
             const auto vlo = amrex::lbound(vbox);
             const auto vhi = amrex::ubound(vbox);
 
-            Real cf0 = (i == vlo.x && m0(vlo.x-1,j,0) > 0)
-                ? f0(vlo.x,j,0,n) : Real(0.0);
-            Real cf1 = (j == vlo.y && m1(i,vlo.y-1,0) > 0)
-                ? f1(i,vlo.y,0,n) : Real(0.0);
-            Real cf2 = (i == vhi.x && m2(vhi.x+1,j,0) > 0)
-                ? f2(vhi.x,j,0,n) : Real(0.0);
-            Real cf3 = (j == vhi.y && m3(i,vhi.y+1,0) > 0)
-                ? f3(i,vhi.y,0,n) : Real(0.0);
+            T cf0 = (i == vlo.x && m0(vlo.x-1,j,0) > 0)
+                ? f0(vlo.x,j,0,n) : T(0.0);
+            T cf1 = (j == vlo.y && m1(i,vlo.y-1,0) > 0)
+                ? f1(i,vlo.y,0,n) : T(0.0);
+            T cf2 = (i == vhi.x && m2(vhi.x+1,j,0) > 0)
+                ? f2(vhi.x,j,0,n) : T(0.0);
+            T cf3 = (j == vhi.y && m3(i,vhi.y+1,0) > 0)
+                ? f3(i,vhi.y,0,n) : T(0.0);
 
-            Real delta = dhx*(bX(i,j,0,n)*cf0 + bX(i+1,j,0,n)*cf2)
-                      +  dhy*(bY(i,j,0,n)*cf1 + bY(i,j+1,0,n)*cf3);
+            T delta = dhx*(bX(i,j,0,n)*cf0 + bX(i+1,j,0,n)*cf2)
+                   +  dhy*(bY(i,j,0,n)*cf1 + bY(i,j+1,0,n)*cf3);
 
-            Real gamma = alpha*a(i,j,0)
+            T gamma = alpha*a(i,j,0)
                 +   dhx*( bX(i,j,0,n) + bX(i+1,j,0,n) )
                 +   dhy*( bY(i,j,0,n) + bY(i,j+1,0,n) );
 
-            Real rho = dhx*(bX(i  ,j  ,0,n)*phi(i-1,j  ,0,n)
-                          + bX(i+1,j  ,0,n)*phi(i+1,j  ,0,n))
-                      +dhy*(bY(i  ,j  ,0,n)*phi(i  ,j-1,0,n)
-                         + bY(i  ,j+1,0,n)*phi(i  ,j+1,0,n));
+            T rho = dhx*(bX(i  ,j  ,0,n)*phi(i-1,j  ,0,n)
+                       + bX(i+1,j  ,0,n)*phi(i+1,j  ,0,n))
+                   +dhy*(bY(i  ,j  ,0,n)*phi(i  ,j-1,0,n)
+                      + bY(i  ,j+1,0,n)*phi(i  ,j+1,0,n));
 
             phi(i,j,0,n) = (rhs(i,j,0,n) + rho - phi(i,j,0,n)*delta)
                 / (gamma - delta);
@@ -219,16 +228,17 @@ void abec_gsrb_os (int i, int j, int, int n, Array4<Real> const& phi, Array4<Rea
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void abec_gsrb_with_line_solve (
-                Box const& box, Array4<Real> const& phi, Array4<Real const> const& rhs,
-                Real alpha, Array4<Real const> const& a,
-                Real dhx, Real dhy,
-                Array4<Real const> const& bX, Array4<Real const> const& bY,
+                Box const& box, Array4<T> const& phi, Array4<T const> const& rhs,
+                T alpha, Array4<T const> const& a,
+                T dhx, T dhy,
+                Array4<T const> const& bX, Array4<T const> const& bY,
                 Array4<int const> const& m0, Array4<int const> const& m2,
                 Array4<int const> const& m1, Array4<int const> const& m3,
-                Array4<Real const> const& f0, Array4<Real const> const& f2,
-                Array4<Real const> const& f1, Array4<Real const> const& f3,
+                Array4<T const> const& f0, Array4<T const> const& f2,
+                Array4<T const> const& f1, Array4<T const> const& f3,
                 Box const& vbox, int redblack, int nc) noexcept
 {
 
@@ -252,37 +262,37 @@ void abec_gsrb_with_line_solve (
     // This should be moved outside the kernel!
     if (ilen > 32) amrex::Abort("abec_gsrb_with_line_solve is hard-wired to be no longer than 32");
 
-    Array1D<Real,0,31> a_ls;
-    Array1D<Real,0,31> b_ls;
-    Array1D<Real,0,31> c_ls;
-    Array1D<Real,0,31> r_ls;
-    Array1D<Real,0,31> u_ls;
-    Array1D<Real,0,31> gam;
+    Array1D<T,0,31> a_ls;
+    Array1D<T,0,31> b_ls;
+    Array1D<T,0,31> c_ls;
+    Array1D<T,0,31> r_ls;
+    Array1D<T,0,31> u_ls;
+    Array1D<T,0,31> gam;
 
     for (int n = 0; n < nc; ++n) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             if ((i+redblack)%2 == 0) {
                 for (int j = lo.y; j <= hi.y; ++j) {
-                    Real gamma = alpha*a(i,j,0)
+                    T gamma = alpha*a(i,j,0)
                         +   dhx*(bX(i,j,0,n)+bX(i+1,j,0,n))
                         +   dhy*(bY(i,j,0,n)+bY(i,j+1,0,n));
 
-                    Real cf0 = (i == vlo.x && m0(vlo.x-1,j,0) > 0)
-                        ? f0(vlo.x,j,0,n) : Real(0.0);
-                    Real cf1 = (j == vlo.y && m1(i,vlo.y-1,0) > 0)
-                        ? f1(i,vlo.y,0,n) : Real(0.0);
-                    Real cf2 = (i == vhi.x && m2(vhi.x+1,j,0) > 0)
-                        ? f2(vhi.x,j,0,n) : Real(0.0);
-                    Real cf3 = (j == vhi.y && m3(i,vhi.y+1,0) > 0)
-                        ? f3(i,vhi.y,0,n) : Real(0.0);
+                    T cf0 = (i == vlo.x && m0(vlo.x-1,j,0) > 0)
+                        ? f0(vlo.x,j,0,n) : T(0.0);
+                    T cf1 = (j == vlo.y && m1(i,vlo.y-1,0) > 0)
+                        ? f1(i,vlo.y,0,n) : T(0.0);
+                    T cf2 = (i == vhi.x && m2(vhi.x+1,j,0) > 0)
+                        ? f2(vhi.x,j,0,n) : T(0.0);
+                    T cf3 = (j == vhi.y && m3(i,vhi.y+1,0) > 0)
+                        ? f3(i,vhi.y,0,n) : T(0.0);
 
-                    Real g_m_d = gamma
+                    T g_m_d = gamma
                         - (dhx*(bX(i,j,0,n)*cf0 + bX(i+1,j,0,n)*cf2)
                         +  dhy*(bY(i,j,0,n)*cf1 + bY(i,j+1,0,n)*cf3));
 
-                    Real rho =  dhx*( bX(i  ,j,0,n)*phi(i-1,j,0,n)
-                              +       bX(i+1,j,0,n)*phi(i+1,j,0,n) );
+                    T rho =  dhx*( bX(i  ,j,0,n)*phi(i-1,j,0,n)
+                           +       bX(i+1,j,0,n)*phi(i+1,j,0,n) );
 
                     // We have already accounted for this external boundary in the coefficient of phi(i,j,k,n)
                     if (i == vlo.x && m0(vlo.x-1,j,0) > 0)
@@ -293,21 +303,21 @@ void abec_gsrb_with_line_solve (
                     a_ls(j-lo.y) = -dhy*bY(i,j,0,n);
                     b_ls(j-lo.y) =  g_m_d;
                     c_ls(j-lo.y) = -dhy*bY(i,j+1,0,n);
-                    u_ls(j-lo.y) = Real(0.);
+                    u_ls(j-lo.y) = T(0.);
                     r_ls(j-lo.y) = rhs(i,j,0,n) + rho;
 
                     if (j == lo.y) {
-                        a_ls(j-lo.y) = Real(0.);
+                        a_ls(j-lo.y) = T(0.);
                         if (!(m1(i,vlo.y-1,0) > 0)) r_ls(j-lo.y) += dhy*bY(i,j,0,n)*phi(i,j-1,0,n);
                     }
                     if (j == hi.y) {
-                        c_ls(j-lo.y) = Real(0.);
+                        c_ls(j-lo.y) = T(0.);
                         if (!(m3(i,vhi.y+1,0) > 0)) r_ls(j-lo.y) += dhy*bY(i,j+1,0,n)*phi(i,j+1,0,n);
                     }
                 }
 //                      This is the tridiagonal solve
                 {
-                    Real bet = b_ls(0);
+                    T bet = b_ls(0);
                     u_ls(0) = r_ls(0) / bet;
 
                     for (int jj = 1; jj <= ilen-1; jj++) {
@@ -330,9 +340,10 @@ void abec_gsrb_with_line_solve (
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void overset_rescale_bcoef_x (Box const& box, Array4<Real> const& bX, Array4<int const> const& osm,
-                              int ncomp, Real osfac) noexcept
+void overset_rescale_bcoef_x (Box const& box, Array4<T> const& bX, Array4<int const> const& osm,
+                              int ncomp, T osfac) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -346,9 +357,10 @@ void overset_rescale_bcoef_x (Box const& box, Array4<Real> const& bX, Array4<int
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void overset_rescale_bcoef_y (Box const& box, Array4<Real> const& bY, Array4<int const> const& osm,
-                              int ncomp, Real osfac) noexcept
+void overset_rescale_bcoef_y (Box const& box, Array4<T> const& bY, Array4<int const> const& osm,
+                              int ncomp, T osfac) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);

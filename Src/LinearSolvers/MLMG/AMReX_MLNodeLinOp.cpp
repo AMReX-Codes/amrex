@@ -195,14 +195,11 @@ MLNodeLinOp::xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y,
 }
 
 Vector<Real>
-MLNodeLinOp::getSolvabilityOffset (int amrlev, int mglev, Any const& a_rhs) const
+MLNodeLinOp::getSolvabilityOffset (int amrlev, int mglev, MultiFab const& rhs) const
 {
     amrex::ignore_unused(amrlev);
     AMREX_ASSERT(amrlev==0 && (mglev+1==m_num_mg_levels[0] || mglev==0));
     AMREX_ASSERT(getNComp() == 1);
-
-    AMREX_ASSERT(a_rhs.is<MultiFab>());
-    auto const& rhs = a_rhs.get<MultiFab>();
 
     const auto& mask = (mglev+1 == m_num_mg_levels[0]) ? m_bottom_dot_mask : m_coarse_dot_mask;
     const auto& mask_ma = mask.const_arrays();
@@ -223,11 +220,9 @@ MLNodeLinOp::getSolvabilityOffset (int amrlev, int mglev, Any const& a_rhs) cons
 }
 
 void
-MLNodeLinOp::fixSolvabilityByOffset (int /*amrlev*/, int /*mglev*/, Any& a_rhs,
+MLNodeLinOp::fixSolvabilityByOffset (int /*amrlev*/, int /*mglev*/, MultiFab& rhs,
                                      Vector<Real> const& offset) const
 {
-    AMREX_ASSERT(a_rhs.is<MultiFab>());
-    auto& rhs = a_rhs.get<MultiFab>();
     rhs.plus(-offset[0], 0, 1);
 }
 
@@ -468,25 +463,21 @@ MLNodeLinOp::resizeMultiGrid (int new_size)
 }
 
 Real
-MLNodeLinOp::AnyNormInfMask (int amrlev, Any const& a, bool local) const
+MLNodeLinOp::normInf (int amrlev, MultiFab const& mf, bool local) const
 {
-    AMREX_ASSERT(a.is<MultiFab>());
-    auto& mf = a.get<MultiFab>();
-
+    const int ncomp = this->getNComp();
     const int finest_level = NAMRLevels() - 1;
-    iMultiFab const* fine_mask = (amrlev == finest_level)
-        ? nullptr : m_norm_fine_mask[amrlev].get();
-    return MFNormInf(mf, fine_mask, local);
+    if (amrlev == finest_level) {
+        return mf.norminf(0, ncomp, IntVect(0), local);
+    } else {
+        return mf.norminf(*m_norm_fine_mask[amrlev], 0, ncomp, IntVect(0), local);
+    }
 }
 
 void
-MLNodeLinOp::AnyInterpolationAmr (int famrlev, Any& a_fine, const Any& a_crse,
-                                  IntVect const& nghost) const
+MLNodeLinOp::interpolationAmr (int famrlev, MultiFab& fine, const MultiFab& crse,
+                               IntVect const& nghost) const
 {
-    AMREX_ASSERT(a_fine.is<MultiFab>());
-    MultiFab& fine = a_fine.get<MultiFab>();
-    MultiFab const& crse = a_crse.get<MultiFab>();
-
     const int ncomp = getNComp();
     const int refratio = AMRRefRatio(famrlev-1);
 
@@ -516,19 +507,17 @@ MLNodeLinOp::AnyInterpolationAmr (int famrlev, Any& a_fine, const Any& a_crse,
 }
 
 void
-MLNodeLinOp::AnyAverageDownAndSync (Vector<Any>& sol) const
+MLNodeLinOp::averageDownAndSync (Vector<MultiFab>& sol) const
 {
-    AMREX_ASSERT(sol[0].is<MultiFab>());
-
     const int ncomp = getNComp();
     const int finest_amr_lev = NAMRLevels() - 1;
 
-    nodalSync(finest_amr_lev, 0, sol[finest_amr_lev].get<MultiFab>());
+    nodalSync(finest_amr_lev, 0, sol[finest_amr_lev]);
 
     for (int falev = finest_amr_lev; falev > 0; --falev)
     {
-        const auto& fmf = sol[falev  ].get<MultiFab>();
-        auto&       cmf = sol[falev-1].get<MultiFab>();
+        const auto& fmf = sol[falev  ];
+        auto&       cmf = sol[falev-1];
 
         auto rr = AMRRefRatio(falev-1);
         MultiFab tmpmf(amrex::coarsen(fmf.boxArray(), rr), fmf.DistributionMap(), ncomp, 0);
