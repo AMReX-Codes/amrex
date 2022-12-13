@@ -11,44 +11,52 @@ namespace amrex
 
 namespace
 {
-    template <typename F, typename SrcData, typename DstData, typename N1, typename N2, typename N3>
+    template <typename F,
+              typename SrcData, typename DstData,
+              typename N1, typename N2, typename N3, typename N4, typename N5>
     AMREX_GPU_HOST_DEVICE
     auto call_check_pair (F const& check_pair,
                           const SrcData& src_tile, const DstData& /*dst_tile*/,
-                          N1 i, N2 j, N3 /*type*/)
+                          N1 i, N2 j, N3 /*type*/, N4 /*ghost_i*/, N5 /*ghost_pid*/)
         noexcept -> decltype(check_pair(src_tile, i, j))
     {
         return check_pair(src_tile, i, j);
     }
 
-    template <typename F, typename SrcData, typename DstData, typename N1, typename N2, typename N3>
+    template <typename F,
+              typename SrcData, typename DstData,
+              typename N1, typename N2, typename N3, typename N4, typename N5>
     AMREX_GPU_HOST_DEVICE
     auto call_check_pair (F const& check_pair,
                           const SrcData& src_tile, const DstData& dst_tile,
-                          N1 i, N2 j, N3 /*type*/)
+                          N1 i, N2 j, N3 /*type*/, N4 /*ghost_i*/, N5 /*ghost_pid*/)
         noexcept -> decltype(check_pair(src_tile.m_aos[i], dst_tile.m_aos[j]))
     {
         return check_pair(src_tile.m_aos[i], dst_tile.m_aos[j]);
     }
 
-    template <typename F, typename SrcData, typename DstData, typename N1, typename N2, typename N3>
+    template <typename F,
+              typename SrcData, typename DstData,
+              typename N1, typename N2, typename N3, typename N4, typename N5>
     AMREX_GPU_HOST_DEVICE
     auto call_check_pair (F const& check_pair,
                           const SrcData& src_tile, const DstData& /*dst_tile*/,
-                          N1 i, N2 j, N3 /*type*/)
+                          N1 i, N2 j, N3 /*type*/, N4 /*ghost_i*/, N5 /*ghost_pid*/)
         noexcept -> decltype(check_pair(src_tile.m_aos, i, j))
     {
         return check_pair(src_tile.m_aos, i, j);
     }
 
-    template <typename F, typename SrcData, typename DstData, typename N1, typename N2, typename N3>
+    template <typename F,
+              typename SrcData, typename DstData,
+              typename N1, typename N2, typename N3, typename N4, typename N5>
     AMREX_GPU_HOST_DEVICE
     auto call_check_pair (F const& check_pair,
                           const SrcData& src_tile, const DstData& /*dst_tile*/,
-                          N1 i, N2 j, N3 type)
-        noexcept -> decltype(check_pair(src_tile, i, j, type))
+                          N1 i, N2 j, N3 type, N4 ghost_i, N5 ghost_pid)
+        noexcept -> decltype(check_pair(src_tile, i, j, type, ghost_i, ghost_pid))
     {
-        return check_pair(src_tile, i, j, type);
+        return check_pair(src_tile, i, j, type, ghost_i, ghost_pid);
     }
 }
 
@@ -271,15 +279,13 @@ public:
         const auto src_ptile_data  = src_tile.getConstParticleTileData();
         const auto src_pstruct_ptr = src_tile.GetArrayOfStructs()().dataPtr();
 
-        BL_PROFILE_VAR("NeighborList::build()->count",PNC);
-
         AMREX_FOR_1D ( np_size, i,
         {
             int count    = 0;
             int type_i   = bin_type_array ? bin_type_array[i] : 0;
             bool ghost_i = (i >= np_real);
             for (int type(type_i); type<num_bin_types; ++type) {
-              int off_bins = off_bins_p[type];
+                int off_bins = off_bins_p[type];
 
               IntVect iv(AMREX_D_DECL(
                 static_cast<int>(amrex::Math::floor((src_pstruct_ptr[i].pos(0)-plo_p[type][0])*dxi_p[type][0])) - lo_p[type].x,
@@ -300,11 +306,12 @@ public:
                   for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
                     int index = (ii * ny + jj) * nz + kk + off_bins;
                     for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
-                      const auto& pid       = pperm[p];
-                      const auto  ghost_pid = (pid >= np_real);
+                      const auto& pid = pperm[p];
+                      bool  ghost_pid = (pid >= np_real);
                       if (is_same && (pid == i)) continue;
-                      if (ghost_i && ghost_pid)  continue;
-                      if (call_check_pair(check_pair, src_ptile_data, dst_ptile_data, i, pid, type)) {
+                      if (call_check_pair(check_pair,
+                                          src_ptile_data, dst_ptile_data,
+                                          i, pid, type, ghost_i, ghost_pid)) {
                           count += 1;
                       }
                     } // p
@@ -315,8 +322,6 @@ public:
 
             pnbor_counts[i] = count;
         });
-
-        BL_PROFILE_VAR_STOP(PNC);
 
 
         // Second-pass: build the offsets (partial sums) and neighbor list
@@ -334,15 +339,13 @@ public:
         m_nbor_list.resize(total_nbors);
         auto pm_nbor_list = m_nbor_list.dataPtr();
 
-        BL_PROFILE_VAR("NeighborList::build()->list",PNL);
-
         AMREX_FOR_1D ( np_size, i,
         {
           int n        = 0;
           int type_i   = bin_type_array ? bin_type_array[i] : 0;
           bool ghost_i = (i >= np_real);
           for (int type(type_i); type<num_bin_types; ++type) {
-            int off_bins = off_bins_p[type];
+              int off_bins = off_bins_p[type];
 
             IntVect iv(AMREX_D_DECL(
                 static_cast<int>(amrex::Math::floor((src_pstruct_ptr[i].pos(0)-plo_p[type][0])*dxi_p[type][0])) - lo_p[type].x,
@@ -363,11 +366,12 @@ public:
                 for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
                   int index = (ii * ny + jj) * nz + kk + off_bins;
                   for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
-                    const auto& pid       = pperm[p];
-                    const auto  ghost_pid = (pid >= np_real);
+                    const auto& pid = pperm[p];
+                    bool  ghost_pid = (pid >= np_real);
                     if (is_same && (pid == i)) continue;
-                    if (ghost_i && ghost_pid)  continue;
-                    if (call_check_pair(check_pair, src_ptile_data, dst_ptile_data, i, pid, type)) {
+                    if (call_check_pair(check_pair,
+                                        src_ptile_data, dst_ptile_data,
+                                        i, pid, type, ghost_i, ghost_pid)) {
                         pm_nbor_list[pnbor_offset[i] + n] = pid;
                         ++n;
                     }
@@ -377,8 +381,6 @@ public:
             }// ii
           } // type
         });
-
-        BL_PROFILE_VAR_STOP(PNL);
     }
 
     NeighborData<ParticleType> data ()
