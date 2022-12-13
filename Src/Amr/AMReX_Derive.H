@@ -111,7 +111,7 @@ public:
     * \brief A pointer to function taking and returning a Box.
     *
     */
-    typedef Box (*DeriveBoxMap)(const Box&);
+    typedef std::function<Box(const Box&)> DeriveBoxMap;
 
     static Box TheSameBox (const Box& box) noexcept;
 
@@ -313,7 +313,7 @@ private:
     Interpolater* mapper = nullptr;
 
     //! Box mapper that specifies constituent region given derived region.
-    DeriveBoxMap bx_map;
+    DeriveBoxMap bx_map = nullptr;
 
     //! Total number of state variables.
     int n_state = 0;
