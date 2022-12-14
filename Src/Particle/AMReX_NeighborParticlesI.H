@@ -727,7 +727,8 @@ buildNeighborList (CheckPair&& check_pair, bool /*sort*/)
             if (ptile.numParticles() == 0) continue;
 
             Box bx = pti.tilebox();
-            bx.grow(computeRefFac(0, lev).max()*m_num_neighbor_cells);
+            int ng = computeRefFac(0, lev).max()*m_num_neighbor_cells;
+            bx.grow(ng);
 
             Gpu::DeviceVector<int> off_bins_v;
             Gpu::DeviceVector<Dim3>      lo_v;
@@ -744,7 +745,7 @@ buildNeighborList (CheckPair&& check_pair, bool /*sort*/)
 
             m_neighbor_list[lev][index].build(ptile,
                                               std::forward<CheckPair>(check_pair),
-                                              off_bins_v, dxi_v, plo_v, lo_v, hi_v);
+                                              off_bins_v, dxi_v, plo_v, lo_v, hi_v, ng);
 
 #ifndef AMREX_USE_GPU
             const auto& counts = m_neighbor_list[lev][index].GetCounts();
@@ -811,7 +812,8 @@ buildNeighborList (CheckPair&& check_pair, OtherPCType& other,
             if (ptile.numParticles() == 0) continue;
 
             Box bx = pti.tilebox();
-            bx.grow(computeRefFac(0, lev).max()*m_num_neighbor_cells);
+            int ng = computeRefFac(0, lev).max()*m_num_neighbor_cells;
+            bx.grow(ng);
 
             Gpu::DeviceVector<int> off_bins_v;
             Gpu::DeviceVector<Dim3>      lo_v;
@@ -828,7 +830,7 @@ buildNeighborList (CheckPair&& check_pair, OtherPCType& other,
 
             m_neighbor_list[lev][index].build(ptile, other_ptile,
                                               std::forward<CheckPair>(check_pair),
-                                              off_bins_v, dxi_v, plo_v, lo_v, hi_v);
+                                              off_bins_v, dxi_v, plo_v, lo_v, hi_v, ng);
         }
     }
 }
@@ -881,6 +883,7 @@ buildNeighborList (CheckPair&& check_pair, int type_ind, int* ref_ratio,
             if (ptile.numParticles() == 0) continue;
 
             Box bx = pti.tilebox();
+            int ng = 1;
 
             auto& soa     = pti.GetStructOfArrays();
             auto  TypeVec = soa.GetIntData(type_ind);
@@ -945,7 +948,7 @@ buildNeighborList (CheckPair&& check_pair, int type_ind, int* ref_ratio,
             m_neighbor_list[lev][index].build(ptile,
                                               std::forward<CheckPair>(check_pair),
                                               off_bins_v, dxi_v, plo_v, lo_v, hi_v,
-                                              bin_type_array, num_bin_types);
+                                              ng, num_bin_types, bin_type_array);
 
             if(sort) {
                 BL_PROFILE_VAR("CPU_SortNeighborList()",CPUSNL);

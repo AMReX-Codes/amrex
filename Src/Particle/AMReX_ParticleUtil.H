@@ -479,7 +479,7 @@ struct BinMapper
 
     template <typename T>
     AMREX_GPU_HOST_DEVICE
-    int operator() (const T& p, int i) const
+    unsigned int operator() (const T& p, int i) const
     {
         int type   = (m_bin_type_array) ? m_bin_type_array[i] : 0;
         int offset = m_off_bins_p[type];
@@ -498,7 +498,7 @@ struct BinMapper
         int uix = amrex::min(nx-1,amrex::max(0,iv3.x));
         int uiy = amrex::min(ny-1,amrex::max(0,iv3.y));
         int uiz = amrex::min(nz-1,amrex::max(0,iv3.z));
-        return (uix * ny + uiy) * nz + uiz + offset;;
+        return static_cast<unsigned int>( (uix * ny + uiy) * nz + uiz + offset );
     }
 
 private:
@@ -508,7 +508,6 @@ private:
     Dim3* m_lo_p;
     Dim3* m_hi_p;
     int* m_bin_type_array;
-
 };
 
 struct GetParticleBin

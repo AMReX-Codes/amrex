@@ -13,11 +13,11 @@ namespace
 {
     template <typename F,
               typename SrcData, typename DstData,
-              typename N1, typename N2, typename N3, typename N4, typename N5>
+              typename N1, typename N2, typename N3=int, typename N4=int, typename N5=int>
     AMREX_GPU_HOST_DEVICE
     auto call_check_pair (F const& check_pair,
                           const SrcData& src_tile, const DstData& /*dst_tile*/,
-                          N1 i, N2 j, N3 /*type*/, N4 /*ghost_i*/, N5 /*ghost_pid*/)
+                          N1 i, N2 j, N3 type=0, N4 ghost_i=0, N5 ghost_pid=0)
         noexcept -> decltype(check_pair(src_tile, i, j))
     {
         return check_pair(src_tile, i, j);
@@ -25,11 +25,11 @@ namespace
 
     template <typename F,
               typename SrcData, typename DstData,
-              typename N1, typename N2, typename N3, typename N4, typename N5>
+              typename N1, typename N2, typename N3=int, typename N4=int, typename N5=int>
     AMREX_GPU_HOST_DEVICE
     auto call_check_pair (F const& check_pair,
                           const SrcData& src_tile, const DstData& dst_tile,
-                          N1 i, N2 j, N3 /*type*/, N4 /*ghost_i*/, N5 /*ghost_pid*/)
+                          N1 i, N2 j, N3 type=0, N4 ghost_i=0, N5 ghost_pid=0)
         noexcept -> decltype(check_pair(src_tile.m_aos[i], dst_tile.m_aos[j]))
     {
         return check_pair(src_tile.m_aos[i], dst_tile.m_aos[j]);
@@ -37,11 +37,11 @@ namespace
 
     template <typename F,
               typename SrcData, typename DstData,
-              typename N1, typename N2, typename N3, typename N4, typename N5>
+              typename N1, typename N2, typename N3=int, typename N4=int, typename N5=int>
     AMREX_GPU_HOST_DEVICE
     auto call_check_pair (F const& check_pair,
                           const SrcData& src_tile, const DstData& /*dst_tile*/,
-                          N1 i, N2 j, N3 /*type*/, N4 /*ghost_i*/, N5 /*ghost_pid*/)
+                          N1 i, N2 j, N3 type=0, N4 ghost_i=0, N5 ghost_pid=0)
         noexcept -> decltype(check_pair(src_tile.m_aos, i, j))
     {
         return check_pair(src_tile.m_aos, i, j);
@@ -49,11 +49,11 @@ namespace
 
     template <typename F,
               typename SrcData, typename DstData,
-              typename N1, typename N2, typename N3, typename N4, typename N5>
+              typename N1, typename N2, typename N3=int, typename N4=int, typename N5=int>
     AMREX_GPU_HOST_DEVICE
     auto call_check_pair (F const& check_pair,
                           const SrcData& src_tile, const DstData& /*dst_tile*/,
-                          N1 i, N2 j, N3 type, N4 ghost_i, N5 ghost_pid)
+                          N1 i, N2 j, N3 type=0, N4 ghost_i=0, N5 ghost_pid=0)
         noexcept -> decltype(check_pair(src_tile, i, j, type, ghost_i, ghost_pid))
     {
         return check_pair(src_tile, i, j, type, ghost_i, ghost_pid);
@@ -212,31 +212,31 @@ public:
     template <class PTile, class CheckPair>
     void build (PTile& ptile,
                 CheckPair&& check_pair,
-                Gpu::DeviceVector<int> off_bins_v,
-                Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> dxi_v,
-                Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> plo_v,
-                Gpu::DeviceVector<Dim3> lo_v,
-                Gpu::DeviceVector<Dim3> hi_v,
-                int* bin_type_array=nullptr,
+                const Gpu::DeviceVector<int>& off_bins_v,
+                const Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>>& dxi_v,
+                const Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>>& plo_v,
+                const Gpu::DeviceVector<Dim3>& lo_v,
+                const Gpu::DeviceVector<Dim3>& hi_v,
+                int  num_cells=1,
                 int  num_bin_types=1,
-                int  num_cells=1)
+                int* bin_type_array=nullptr)
     {
         build(ptile, ptile, check_pair, off_bins_v, dxi_v, plo_v,
-              lo_v, hi_v, bin_type_array, num_bin_types, num_cells);
+              lo_v, hi_v, num_cells, num_bin_types, bin_type_array );
     }
 
     template <class SrcTile, class TargetTile, class CheckPair>
     void build (SrcTile& src_tile,
                 TargetTile& target_tile,
                 CheckPair&& check_pair,
-                Gpu::DeviceVector<int> off_bins_v,
-                Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> dxi_v,
-                Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> plo_v,
-                Gpu::DeviceVector<Dim3> lo_v,
-                Gpu::DeviceVector<Dim3> hi_v,
-                int* bin_type_array=nullptr,
+                const Gpu::DeviceVector<int>& off_bins_v,
+                const Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>>& dxi_v,
+                const Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>>& plo_v,
+                const Gpu::DeviceVector<Dim3>& lo_v,
+                const Gpu::DeviceVector<Dim3>& hi_v,
+                int  num_cells=1,
                 int  num_bin_types=1,
-                int  num_cells=1)
+                int* bin_type_array=nullptr)
     {
         BL_PROFILE("NeighborList::build()");
 
