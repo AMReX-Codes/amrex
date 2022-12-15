@@ -261,6 +261,14 @@ public:
         auto  hi_p      =  hi_v.data();
         BinMapper bm(off_bins_p, dxi_p, plo_p, lo_p, hi_p, bin_type_array);
 
+        // Get tot bin count on host
+        int tot_bins;
+#ifdef AMREX_USE_GPU
+        Gpu::dtoh_memcpy( &tot_bins, off_bins_p + num_bin_types, sizeof(int) );
+#else
+        std::memcpy( &tot_bins, off_bins_p + num_bin_types, sizeof(int) );
+#endif
+
         m_bins.build(np_total, pstruct_ptr, off_bins_v.back(), bm);
 
 
