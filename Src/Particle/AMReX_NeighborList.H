@@ -269,7 +269,7 @@ public:
         std::memcpy( &tot_bins, off_bins_p + num_bin_types, sizeof(int) );
 #endif
 
-        m_bins.build(np_total, pstruct_ptr, off_bins_v.back(), bm);
+        m_bins.build(np_total, pstruct_ptr, tot_bins, bm);
 
 
         // First pass: count the number of neighbors for each particle
