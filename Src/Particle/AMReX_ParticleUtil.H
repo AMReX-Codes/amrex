@@ -468,11 +468,11 @@ int numTilesInBox (const Box& box, const bool a_do_tiling, const IntVect& a_tile
 
 struct BinMapper
 {
-    BinMapper(int* off_bins_p,
-              GpuArray<Real,AMREX_SPACEDIM>* dxi_p,
-              GpuArray<Real,AMREX_SPACEDIM>* plo_p,
-              Dim3* lo_p,
-              Dim3* hi_p,
+    BinMapper(const int* off_bins_p,
+              const GpuArray<Real,AMREX_SPACEDIM>* dxi_p,
+              const GpuArray<Real,AMREX_SPACEDIM>* plo_p,
+              const Dim3* lo_p,
+              const Dim3* hi_p,
               int* bin_type_array=nullptr)
         : m_off_bins_p(off_bins_p), m_dxi_p(dxi_p), m_plo_p(plo_p)                  ,
           m_lo_p(lo_p)            , m_hi_p(hi_p)  , m_bin_type_array(bin_type_array) {}
@@ -502,11 +502,11 @@ struct BinMapper
     }
 
 private:
-    int* m_off_bins_p;
-    GpuArray<Real,AMREX_SPACEDIM>* m_dxi_p;
-    GpuArray<Real,AMREX_SPACEDIM>* m_plo_p;
-    Dim3* m_lo_p;
-    Dim3* m_hi_p;
+    const int* m_off_bins_p;
+    const GpuArray<Real,AMREX_SPACEDIM>* m_dxi_p;
+    const GpuArray<Real,AMREX_SPACEDIM>* m_plo_p;
+    const Dim3* m_lo_p;
+    const Dim3* m_hi_p;
     int* m_bin_type_array;
 };
 
