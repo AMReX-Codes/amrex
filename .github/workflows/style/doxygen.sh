@@ -10,7 +10,7 @@ set -eu -o pipefail
 
 cd Docs/Doxygen
 
-# treat all warnings as errors
-echo "WARN_AS_ERROR = YES" >> doxygen.conf
+# treat all warnings as errors (TODO)
+#echo "WARN_AS_ERROR = YES" >> doxygen.conf
 
 doxygen doxygen.conf
