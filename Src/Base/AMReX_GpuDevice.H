@@ -64,7 +64,9 @@ public:
 #endif
 #endif
 
-    static int numGpuStreams () noexcept { return max_gpu_streams; }
+    static int numGpuStreams () noexcept {
+        return inSingleStreamRegion() ? 1 : max_gpu_streams;
+    }
 
     static void setStreamIndex (const int idx) noexcept;
     static void resetStreamIndex () noexcept { setStreamIndex(0); }

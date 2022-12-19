@@ -24,7 +24,7 @@ struct MFItInfo
     int  num_streams;
     IntVect tilesize;
     MFItInfo () noexcept
-        : do_tiling(false), dynamic(false), device_sync(true), num_streams(Gpu::numGpuStreams()),
+        : do_tiling(false), dynamic(false), device_sync(!Gpu::inNoSyncRegion()), num_streams(Gpu::numGpuStreams()),
           tilesize(IntVect::TheZeroVector()) {}
     MFItInfo& EnableTiling (const IntVect& ts = FabArrayBase::mfiter_tile_size) noexcept {
         do_tiling = true;

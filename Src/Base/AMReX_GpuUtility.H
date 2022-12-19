@@ -165,7 +165,7 @@ namespace Gpu {
     {
         bool device_sync;
         StreamItInfo () noexcept
-            : device_sync(true) {}
+            : device_sync(!Gpu::inNoSyncRegion()) {}
         StreamItInfo& DisableDeviceSync () noexcept {
             device_sync = false;
             return *this;
