@@ -441,6 +441,9 @@ beginning with ``SyncBeforeComms`` immediately prior to the start of the FillBou
 ParallelCopy and particle Redistribute functions, isolating any prior load imbalance to that timer
 before beginning the comm operation.
 
+This is a diagnostic tool and may slow your code down, so it is not recommended to turn this
+on for production runs.
+
 .. note::
   Note: the ``SyncBeforeComms`` timer is not equal to your load imbalance. It only captures imbalance
   between the comm functions and the previous sync point; there may be other load imbalances
