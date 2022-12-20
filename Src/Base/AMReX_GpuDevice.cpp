@@ -151,12 +151,7 @@ Device::Initialize ()
     int gpu_device_count = 0;
 #ifdef AMREX_USE_DPCPP
     {
-#if defined(__INTEL_LLVM_COMPILER) && (__INTEL_LLVM_COMPILER < 20230100)
-        sycl::gpu_selector device_selector;
-        sycl::platform platform(device_selector);
-#else
         sycl::platform platform(sycl::gpu_selector_v);
-#endif
         auto const& gpu_devices = platform.get_devices();
         gpu_device_count = gpu_devices.size();
         if (gpu_device_count <= 0) {
@@ -432,12 +427,7 @@ Device::initialize_gpu ()
 
 #elif defined(AMREX_USE_DPCPP)
     { // create device, context and queues
-#if defined(__INTEL_LLVM_COMPILER) && (__INTEL_LLVM_COMPILER < 20230100)
-        sycl::gpu_selector gpu_device_selector;
-        sycl::platform platform(gpu_device_selector);
-#else
         sycl::platform platform(sycl::gpu_selector_v);
-#endif
         auto const& gpu_devices = platform.get_devices();
         sycl_device = std::make_unique<sycl::device>(gpu_devices[device_id]);
         sycl_context = std::make_unique<sycl::context>(*sycl_device, amrex_sycl_error_handler);
@@ -455,11 +445,7 @@ Device::initialize_gpu ()
         device_prop.multiProcessorCount = d.get_info<sycl::info::device::max_compute_units>();
         device_prop.maxThreadsPerMultiProcessor = -1; // xxxxx DPCPP todo: d.get_info<sycl::info::device::max_work_items_per_compute_unit>(); // unknown
         device_prop.maxThreadsPerBlock = d.get_info<sycl::info::device::max_work_group_size>();
-#if defined(__INTEL_LLVM_COMPILER) && (__INTEL_LLVM_COMPILER < 20230100)
-        auto mtd = d.get_info<sycl::info::device::max_work_item_sizes>();
-#else
         auto mtd = d.get_info<sycl::info::device::max_work_item_sizes<3>>();
-#endif
         device_prop.maxThreadsDim[0] = mtd[0];
         device_prop.maxThreadsDim[1] = mtd[1];
         device_prop.maxThreadsDim[2] = mtd[2];

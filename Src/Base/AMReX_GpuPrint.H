@@ -7,11 +7,7 @@
 #include <cstdio>
 
 #ifdef AMREX_USE_DPCPP
-#  if defined(__INTEL_LLVM_COMPILER) && (__INTEL_LLVM_COMPILER < 20230100)
-#    include <CL/sycl.hpp>
-#  else
-#    include <sycl/sycl.hpp>
-#  endif
+#  include <sycl/sycl.hpp>
 #endif
 
 #if defined(AMREX_USE_DPCPP)
