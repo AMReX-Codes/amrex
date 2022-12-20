@@ -439,7 +439,7 @@ To better understand if this is occuring and by how much, you can turn on an AMR
 synchronization with the runtime variable: ``amrex.use_profiler_syncs=1`` This adds named timers
 beginning with ``SyncBeforeComms`` immediately prior to the start of the FillBoundary,
 ParallelCopy and particle Redistribute functions, isolating any prior load imbalance to that timer
-before beginning the comm operation. 
+before beginning the comm operation.
 
 .. note::
   Note: the ``SyncBeforeComms`` timer is not equal to your load imbalance. It only captures imbalance
@@ -449,7 +449,7 @@ before beginning the comm operation.
 
   The effect on the communication timers may be more helpful: they will show the time to complete
   communications if there was no load imbalance. This means the difference between a case
-  with and without this profiler sync may be a more useful metric for analysis. 
+  with and without this profiler sync may be a more useful metric for analysis.
 
 .. _sec:amrprofparse:
 
