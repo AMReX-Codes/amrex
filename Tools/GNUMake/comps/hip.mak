@@ -36,7 +36,7 @@ ifeq ($(USE_GPU_RDC),TRUE)
 endif
 
 # amd gpu target
-HIPCC_FLAGS += --amdgpu-target=$(AMD_ARCH)
+HIPCC_FLAGS += --offload-arch=$(AMD_ARCH)
 
 CXXFLAGS += $(HIPCC_FLAGS)
 
