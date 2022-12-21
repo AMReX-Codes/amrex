@@ -611,18 +611,34 @@ MLCellABecLapT<MF>::applyOverset (int amrlev, MF& rhs) const
 {
     if (m_overset_mask[amrlev][0]) {
         const int ncomp = this->getNComp();
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion() && m_overset_mask[amrlev][0]->isFusingCandidate()) {
+            auto const& osma = m_overset_mask[amrlev][0]->const_arrays();
+            auto const& rhsa = rhs.arrays();
+            ParallelFor(*m_overset_mask[amrlev][0], IntVect(0), ncomp,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+            {
+                if (osma[box_no](i,j,k) == 0) {
+                    rhsa[box_no](i,j,k,n) = RT(0.0);
+                }
+            });
+            Gpu::streamSynchronize();
+        } else
+#endif
+        {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(*m_overset_mask[amrlev][0],TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.tilebox();
-            auto const& rfab = rhs.array(mfi);
-            auto const& osm = m_overset_mask[amrlev][0]->const_array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
+            for (MFIter mfi(*m_overset_mask[amrlev][0],TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
-                if (osm(i,j,k) == 0) rfab(i,j,k,n) = RT(0.0);
-            });
+                const Box& bx = mfi.tilebox();
+                auto const& rfab = rhs.array(mfi);
+                auto const& osm = m_overset_mask[amrlev][0]->const_array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
+                {
+                    if (osm(i,j,k) == 0) rfab(i,j,k,n) = RT(0.0);
+                });
+            }
         }
     }
 }

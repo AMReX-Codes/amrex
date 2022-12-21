@@ -152,7 +152,7 @@ void mlpoisson_flux_zface (Box const& box, Array4<T> const& fz,
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlpoisson_gsrb (Box const& box, Array4<T> const& phi,
+void mlpoisson_gsrb (int i, int j, int k, Array4<T> const& phi,
                      Array4<T const> const& rhs,
                      T dhx, T dhy, T dhz,
                      Array4<T const> const& f0, Array4<int const> const& m0,
@@ -163,8 +163,6 @@ void mlpoisson_gsrb (Box const& box, Array4<T> const& phi,
                      Array4<T const> const& f5, Array4<int const> const& m5,
                      Box const& vbox, int redblack) noexcept
 {
-    const auto lo = amrex::lbound(box);
-    const auto hi = amrex::ubound(box);
     const auto vlo = amrex::lbound(vbox);
     const auto vhi = amrex::ubound(vbox);
 
@@ -172,41 +170,34 @@ void mlpoisson_gsrb (Box const& box, Array4<T> const& phi,
 
     const T gamma = T(-2.)*(dhx+dhy+dhz);
 
-    for         (int k = lo.z; k <= hi.z; ++k) {
-        for     (int j = lo.y; j <= hi.y; ++j) {
-            AMREX_PRAGMA_SIMD
-            for (int i = lo.x; i <= hi.x; ++i) {
-                if ((i+j+k+redblack)%2 == 0) {
-                    T cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
-                        ? f0(vlo.x,j,k) : T(0.0);
-                    T cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
-                        ? f1(i,vlo.y,k) : T(0.0);
-                    T cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
-                        ? f2(i,j,vlo.z) : T(0.0);
-                    T cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
-                        ? f3(vhi.x,j,k) : T(0.0);
-                    T cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
-                        ? f4(i,vhi.y,k) : T(0.0);
-                    T cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
-                        ? f5(i,j,vhi.z) : T(0.0);
+    if ((i+j+k+redblack)%2 == 0) {
+        T cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
+            ? f0(vlo.x,j,k) : T(0.0);
+        T cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
+            ? f1(i,vlo.y,k) : T(0.0);
+        T cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
+            ? f2(i,j,vlo.z) : T(0.0);
+        T cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
+            ? f3(vhi.x,j,k) : T(0.0);
+        T cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
+            ? f4(i,vhi.y,k) : T(0.0);
+        T cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
+            ? f5(i,j,vhi.z) : T(0.0);
 
-                    T g_m_d = gamma + dhx*(cf0+cf3) + dhy*(cf1+cf4) + dhz*(cf2+cf5);
+        T g_m_d = gamma + dhx*(cf0+cf3) + dhy*(cf1+cf4) + dhz*(cf2+cf5);
 
-                    T res = rhs(i,j,k) - gamma*phi(i,j,k)
-                        - dhx*(phi(i-1,j,k) + phi(i+1,j,k))
-                        - dhy*(phi(i,j-1,k) + phi(i,j+1,k))
-                        - dhz*(phi(i,j,k-1) + phi(i,j,k+1));
+        T res = rhs(i,j,k) - gamma*phi(i,j,k)
+            - dhx*(phi(i-1,j,k) + phi(i+1,j,k))
+            - dhy*(phi(i,j-1,k) + phi(i,j+1,k))
+            - dhz*(phi(i,j,k-1) + phi(i,j,k+1));
 
-                    phi(i,j,k) = phi(i,j,k) + omega/g_m_d * res;
-                }
-            }
-        }
+        phi(i,j,k) = phi(i,j,k) + omega/g_m_d * res;
     }
 }
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlpoisson_gsrb_os (Box const& box, Array4<T> const& phi,
+void mlpoisson_gsrb_os (int i, int j, int k, Array4<T> const& phi,
                         Array4<T const> const& rhs,
                         Array4<int const> const& osm,
                         T dhx, T dhy, T dhz,
@@ -218,8 +209,6 @@ void mlpoisson_gsrb_os (Box const& box, Array4<T> const& phi,
                         Array4<T const> const& f5, Array4<int const> const& m5,
                         Box const& vbox, int redblack) noexcept
 {
-    const auto lo = amrex::lbound(box);
-    const auto hi = amrex::ubound(box);
     const auto vlo = amrex::lbound(vbox);
     const auto vhi = amrex::ubound(vbox);
 
@@ -227,38 +216,31 @@ void mlpoisson_gsrb_os (Box const& box, Array4<T> const& phi,
 
     const T gamma = T(-2.)*(dhx+dhy+dhz);
 
-    for         (int k = lo.z; k <= hi.z; ++k) {
-        for     (int j = lo.y; j <= hi.y; ++j) {
-            AMREX_PRAGMA_SIMD
-            for (int i = lo.x; i <= hi.x; ++i) {
-                if ((i+j+k+redblack)%2 == 0) {
-                    if (osm(i,j,k) == 0) {
-                        phi(i,j,k) = T(0.0);
-                    } else {
-                        T cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
-                            ? f0(vlo.x,j,k) : T(0.0);
-                        T cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
-                            ? f1(i,vlo.y,k) : T(0.0);
-                        T cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
-                            ? f2(i,j,vlo.z) : T(0.0);
-                        T cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
-                            ? f3(vhi.x,j,k) : T(0.0);
-                        T cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
-                            ? f4(i,vhi.y,k) : T(0.0);
-                        T cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
-                            ? f5(i,j,vhi.z) : T(0.0);
+    if ((i+j+k+redblack)%2 == 0) {
+        if (osm(i,j,k) == 0) {
+            phi(i,j,k) = T(0.0);
+        } else {
+            T cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
+                ? f0(vlo.x,j,k) : T(0.0);
+            T cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
+                ? f1(i,vlo.y,k) : T(0.0);
+            T cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
+                ? f2(i,j,vlo.z) : T(0.0);
+            T cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
+                ? f3(vhi.x,j,k) : T(0.0);
+            T cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
+                ? f4(i,vhi.y,k) : T(0.0);
+            T cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
+                ? f5(i,j,vhi.z) : T(0.0);
 
-                        T g_m_d = gamma + dhx*(cf0+cf3) + dhy*(cf1+cf4) + dhz*(cf2+cf5);
+            T g_m_d = gamma + dhx*(cf0+cf3) + dhy*(cf1+cf4) + dhz*(cf2+cf5);
 
-                        T res = rhs(i,j,k) - gamma*phi(i,j,k)
-                            - dhx*(phi(i-1,j,k) + phi(i+1,j,k))
-                            - dhy*(phi(i,j-1,k) + phi(i,j+1,k))
-                            - dhz*(phi(i,j,k-1) + phi(i,j,k+1));
+            T res = rhs(i,j,k) - gamma*phi(i,j,k)
+                - dhx*(phi(i-1,j,k) + phi(i+1,j,k))
+                - dhy*(phi(i,j-1,k) + phi(i,j+1,k))
+                - dhz*(phi(i,j,k-1) + phi(i,j,k+1));
 
-                        phi(i,j,k) = phi(i,j,k) + omega/g_m_d * res;
-                    }
-                }
-            }
+            phi(i,j,k) = phi(i,j,k) + omega/g_m_d * res;
         }
     }
 }
