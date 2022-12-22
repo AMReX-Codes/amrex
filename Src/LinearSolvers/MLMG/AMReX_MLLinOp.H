@@ -85,6 +85,11 @@ struct LinOpEnumType
     enum struct Location { FaceCenter, FaceCentroid, CellCenter, CellCentroid };
 };
 
+template <typename T> class MLMGT;
+template <typename T> class MLCGSolverT;
+template <typename T> class MLPoissonT;
+template <typename T> class MLABecLaplacianT;
+
 template <typename MF>
 class MLLinOpT
 {
