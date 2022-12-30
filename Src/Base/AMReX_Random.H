@@ -29,7 +29,7 @@ namespace amrex
 #else
         return 1.0 - curand_uniform_double(random_engine.rand_state);
 #endif
-#elif defined(__HIP_DEVICE_COMPILE__)
+#elif defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
 #ifdef BL_USE_FLOAT
         return 1.0f - hiprand_uniform(random_engine.rand_state);
 #else
@@ -62,7 +62,7 @@ namespace amrex
 #else
         return stddev * curand_normal_double(random_engine.rand_state) + mean;
 #endif
-#elif defined(__HIP_DEVICE_COMPILE__)
+#elif defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
 #ifdef BL_USE_FLOAT
         return stddev * hiprand_normal(random_engine.rand_state) + mean;
 #else
@@ -93,7 +93,7 @@ namespace amrex
     {
 #if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA)
         return curand_poisson(random_engine.rand_state, lambda);
-#elif defined(__HIP_DEVICE_COMPILE__)
+#elif defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
         return hiprand_poisson(random_engine.rand_state, lambda);
 #elif defined (__SYCL_DEVICE_ONLY__)
         mkl::rng::device::poisson<unsigned int> distr(lambda);
