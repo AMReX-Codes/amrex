@@ -391,7 +391,7 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
                 Elixir cellflagtmp_eli = cellflagtmp.elixir();
                 Array4<EBCellFlag> const& cfgtmp = cellflagtmp.array();
 
-                build_cells(vbx, cfg, ftx, fty, ftz, apx, apy, apz, dx,
+                build_cells(vbx, cfg, ftx, fty, ftz, apx, apy, apz,
                             fcx, fcy, fcz, xm2, ym2, zm2, vfr, ctr,
                             bar, bct, bnm, cfgtmp, lst,
                             small_volfrac, geom, extend_domain_face, cover_multiple_cuts,

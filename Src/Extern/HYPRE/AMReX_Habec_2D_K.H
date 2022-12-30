@@ -212,6 +212,7 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<Int> const& ncols,
                      Array4<Real const> const& apy,
                      Array4<Real const> const& fcx,
                      Array4<Real const> const& fcy,
+                     Array4<Real const> const& ba,
                      Array4<Real const> const& bcen,
                      Array4<Real const> const& beb)
 {
@@ -472,14 +473,12 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<Int> const& ncols,
         }
 
         if (beb) {
-            Real dapx = (apx(i,j,k) - apx(i+1,j,k))*dx[1];
-            Real dapy = (apy(i,j,k) - apy(i,j+1,k))*dx[0];
-            Real anorm = std::sqrt(dapx*dapx
-                                 + dapy*dapy);
+            Real anorm = std::sqrt((apx(i,j,k) - apx(i+1,j,k))*(apx(i,j,k) - apx(i+1,j,k))
+                                 + (apy(i,j,k) - apy(i,j+1,k))*(apy(i,j,k) - apy(i,j+1,k)));
 
             Real anorminv = Real(1.0)/anorm;
-            Real anrmx = dapx*anorminv;
-            Real anrmy = dapy*anorminv;
+            Real anrmx = (apx(i,j,k) - apx(i+1,j,k))*anorminv;
+            Real anrmy = (apy(i,j,k) - apy(i,j+1,k))*anorminv;
             Real sx   = Math::copysign(Real(1.0),anrmx);
             Real sy   = Math::copysign(Real(1.0),anrmy);
             Real bctx = bcen(i,j,k,0);

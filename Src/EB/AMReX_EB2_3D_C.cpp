@@ -29,7 +29,6 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void set_eb_data (const int i, const int j, const int k,
                   Array4<EBCellFlag> const& cell, Array4<Real> const& apx,
                   Array4<Real> const& apy, Array4<Real> const& apz,
-                  GpuArray<Real,AMREX_SPACEDIM> const& /*dx*/,
                   Array4<Real const> const& fcx, Array4<Real const> const& fcy,
                   Array4<Real const> const& fcz, Array4<Real const> const& m2x,
                   Array4<Real const> const& m2y, Array4<Real const> const& m2z,
@@ -228,13 +227,13 @@ void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
         Real x_ym = (-0.5_rt + aym)*signx;
         Real x_yp = (-0.5_rt + ayp)*signx;
         Real aa = nxabs/ny;
-        Real dxx = x_ym - x_yp;
-        Real dx2 = dxx * (x_ym + x_yp);
-        Real dx3 = dxx * (x_ym*x_ym + x_ym*x_yp + x_yp*x_yp);
-        Real dx4 = dxx * (x_ym + x_yp) * (x_ym*x_ym + x_yp*x_yp);
+        Real dx = x_ym - x_yp;
+        Real dx2 = dx * (x_ym + x_yp);
+        Real dx3 = dx * (x_ym*x_ym + x_ym*x_yp + x_yp*x_yp);
+        Real dx4 = dx * (x_ym + x_yp) * (x_ym*x_ym + x_yp*x_yp);
         Real af1 = 0.5_rt*(axm+axp) + aa*0.5_rt*dx2;
-        centx = 0.125_rt*(axp-axm) + aa*(1._rt/6._rt)*dx3;
-        Sx2 = (1._rt/24._rt)*(axm+axp) + aa*(1._rt/12._rt)*dx4;
+        centx = 0.125_rt*(axp-axm) + aa*(1.0_rt/6._rt)*dx3;
+        Sx2 = (1.0_rt/24._rt)*(axm+axp) + aa*(1.0_rt/12._rt)*dx4;
 
         Real signy = (ny > 0.0_rt) ? 1.0_rt : -1.0_rt;
         Real y_xm = (-0.5_rt + axm)*signy;
@@ -282,7 +281,6 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void set_eb_cell (int i, int j, int k,
                   Array4<EBCellFlag> const& cell, Array4<Real> const& apx,
                   Array4<Real> const& apy, Array4<Real> const& apz,
-                  GpuArray<Real,AMREX_SPACEDIM> const& dx,
                   Array4<Real const> const& fcx, Array4<Real const> const& fcy,
                   Array4<Real const> const& fcz, Array4<Real const> const& m2x,
                   Array4<Real const> const& m2y, Array4<Real const> const& m2z,
@@ -316,7 +314,7 @@ void set_eb_cell (int i, int j, int k,
         bnorm(i,j,k,2) = 0.0_rt;
         barea(i,j,k) = 0.0_rt;
     } else {
-        set_eb_data(i, j , k, cell, apx, apy, apz, dx, fcx, fcy, fcz, m2x, m2y, m2z,
+        set_eb_data(i, j , k, cell, apx, apy, apz, fcx, fcy, fcz, m2x, m2y, m2z,
                     vfrac, vcent, barea, bcent, bnorm, small_volfrac,
                     is_small_cell, is_multicut);
     }
@@ -759,7 +757,6 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Type_t> const& fx, Array4<Type_t> const& fy,
                   Array4<Type_t> const& fz, Array4<Real> const& apx,
                   Array4<Real> const& apy, Array4<Real> const& apz,
-                  GpuArray<Real,AMREX_SPACEDIM> const& dx,
                   Array4<Real const> const& fcx, Array4<Real const> const& fcy,
                   Array4<Real const> const& fcz, Array4<Real const> const& m2x,
                   Array4<Real const> const& m2y, Array4<Real const> const& m2z,
@@ -779,7 +776,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
     {
         bool is_small_cell = false;
         bool is_multicut = false;
-        set_eb_cell(i, j, k, cell, apx, apy, apz, dx, fcx, fcy, fcz, m2x, m2y, m2z,
+        set_eb_cell(i, j, k, cell, apx, apy, apz, fcx, fcy, fcz, m2x, m2y, m2z,
                     vfrac, vcent, barea, bcent, bnorm, small_volfrac,
                     is_small_cell, is_multicut);
         if (is_small_cell) {

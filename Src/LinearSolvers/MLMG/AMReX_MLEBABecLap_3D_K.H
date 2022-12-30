@@ -187,9 +187,9 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
 
             Real feb = 0.0;
             if (is_eb_dirichlet && flag(i,j,k).isSingleValued()) {
-                Real dapx = (apxm-apxp);
-                Real dapy = (apym-apyp);
-                Real dapz = (apzm-apzp);
+                Real dapx = apxm-apxp;
+                Real dapy = apym-apyp;
+                Real dapz = apzm-apzp;
                 Real anorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
                 Real anorminv = 1.0/anorm;
                 Real anrmx = dapx * anorminv;
@@ -406,9 +406,9 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
 
             Real feb = 0.0;
             if (is_dirichlet) {
-                Real dapx = (apxm-apxp);
-                Real dapy = (apym-apyp);
-                Real dapz = (apzm-apzp);
+                Real dapx = apxm-apxp;
+                Real dapy = apym-apyp;
+                Real dapz = apzm-apzp;
                 Real anorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
                 Real anorminv = 1.0/anorm;
                 Real anrmx = dapx * anorminv;
@@ -494,9 +494,9 @@ void mlebabeclap_ebflux (int i, int j, int k, int n,
         Real apzm = apz(i,j,k);
         Real apzp = apz(i,j,k+1);
 
-        Real dapx = (apxm-apxp);
-        Real dapy = (apym-apyp);
-        Real dapz = (apzm-apzp);
+        Real dapx = apxm-apxp;
+        Real dapy = apym-apyp;
+        Real dapz = apzm-apzp;
         Real anorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
         Real anorminv = 1.0/anorm;
         Real anrmx = dapx * anorminv;
@@ -546,8 +546,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_gsrb (Box const& box,
                        Array4<Real> const& phi, Array4<Real const> const& rhs,
                        Real alpha, Array4<Real const> const& a,
-                       Real dhx, Real dhy, Real dhz, Real /* dh */,
-                       GpuArray<Real,AMREX_SPACEDIM> const& /* dx */,
+                       Real dhx, Real dhy, Real dhz,
                        Array4<Real const> const& bX, Array4<Real const> const& bY,
                        Array4<Real const> const& bZ,
                        Array4<int const> const& m0, Array4<int const> const& m2,
@@ -833,15 +832,14 @@ void mlebabeclap_gsrb (Box const& box,
                          dhz*(apzm*ozm-apzp*ozp));
 
                     if (is_dirichlet) {
-                        Real dapx = (apxm-apxp);
-                        Real dapy = (apym-apyp);
-                        Real dapz = (apzm-apzp);
+                        Real dapx = apxm-apxp;
+                        Real dapy = apym-apyp;
+                        Real dapz = apzm-apzp;
                         Real anorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
                         Real anorminv = 1.0/anorm;
                         Real anrmx = dapx * anorminv;
                         Real anrmy = dapy * anorminv;
                         Real anrmz = dapz * anorminv;
-
                         Real bctx = bc(i,j,k,0);
                         Real bcty = bc(i,j,k,1);
                         Real bctz = bc(i,j,k,2);
@@ -1217,8 +1215,7 @@ void mlebabeclap_grad_z_0 (Box const& box, Array4<Real> const& gz, Array4<Real c
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                             Real alpha, Array4<Real const> const& a,
-                            Real dhx, Real dhy, Real dhz, Real /* dh */,
-                            const amrex::GpuArray<Real, AMREX_SPACEDIM> /* dx */,
+                            Real dhx, Real dhy, Real dhz,
                             Array4<Real const> const& bX, Array4<Real const> const& bY,
                             Array4<Real const> const& bZ,
                             Array4<const int> const& ccm, Array4<EBCellFlag const> const& flag,
@@ -1322,15 +1319,14 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                  dhz*(apzm*szm-apzp*szp));
 
             if (is_dirichlet) {
-                Real dapx = (apxm-apxp);
-                Real dapy = (apym-apyp);
-                Real dapz = (apzm-apzp);
+                Real dapx = apxm-apxp;
+                Real dapy = apym-apyp;
+                Real dapz = apzm-apzp;
                 Real anorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
                 Real anorminv = 1.0/anorm;
                 Real anrmx = dapx * anorminv;
                 Real anrmy = dapy * anorminv;
                 Real anrmz = dapz * anorminv;
-
                 Real bctx = bc(i,j,k,0);
                 Real bcty = bc(i,j,k,1);
                 Real bctz = bc(i,j,k,2);

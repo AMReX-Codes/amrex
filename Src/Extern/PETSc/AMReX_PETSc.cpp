@@ -490,7 +490,7 @@ PETScABecLap::prepareSolver ()
                     habec_ijmat_eb(sten, ncols_a, diaginvfab, i, j, k, cid_a,
                                    sa, afab, sb, dx, bfabs, bctype, bcl, bho,
                                    flag_a, vfrac_a, AMREX_D_DECL(apx,apy,apz),
-                                   AMREX_D_DECL(fcx,fcy,fcz),bcent_a,beb);
+                                   AMREX_D_DECL(fcx,fcy,fcz),barea_a,bcent_a,beb);
                 });
 
                 BaseFab<GpuArray<PetscInt,stencil_size> > tmpcolfab
