@@ -4,6 +4,31 @@
 
 namespace amrex {
 
+namespace detail {
+
+template <typename F, typename MF>
+auto call_interp_hook (F const& f, MF& mf, int icomp, int ncomp)
+    -> decltype(f(mf[0],Box(),icomp,ncomp))
+{
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+        auto& dfab = mf[mfi];
+        const Box& dbx = dfab.box();
+        f(dfab, dbx, icomp, ncomp);
+    }
+}
+
+template <typename F, typename MF>
+auto call_interp_hook (F const& f, MF& mf, int icomp, int ncomp)
+    -> decltype(f(mf,icomp,ncomp))
+{
+    f(mf, icomp, ncomp);
+}
+
+}
+
 template <typename Interp>
 bool ProperlyNested (const IntVect& ratio, const IntVect& blocking_factor, int ngrow,
                      const IndexType& boxType, Interp* mapper)
@@ -459,9 +484,6 @@ namespace {
 
                 if ( ! fpc.ba_crse_patch.empty())
                 {
-
-                    using FAB = typename MF::FABType::value_type;
-
                     MF mf_crse_patch     = make_mf_crse_patch<MF>      (fpc, ncomp, mf.boxArray().ixType());
                     // Must make sure fine exists under needed coarse faces.
                     // It stores values for the final (interior) interpolation,
@@ -491,20 +513,12 @@ namespace {
                     solve_mask.setVal(1);                   // Values to solve.
                     solve_mask.setVal(0, mask_cpc, 0, 1);   // Known values.
 
-                    for (MFIter mfi(mf_refined_patch); mfi.isValid(); ++mfi)
-                    {
-                        FAB& sfab = mf_crse_patch[mfi];
-                        pre_interp(sfab, sfab.box(), 0, ncomp);
-                    }
+                    detail::call_interp_hook(pre_interp, mf_crse_patch, 0, ncomp);
 
                     InterpFace(mapper, mf_crse_patch, 0, mf_refined_patch, 0, ncomp,
                                ratio, solve_mask, cgeom, fgeom, bcscomp, RunOn::Gpu, bcs);
 
-                    for (MFIter mfi(mf_refined_patch); mfi.isValid(); ++mfi)
-                    {
-                        FAB& dfab = mf_refined_patch[mfi];
-                        post_interp(dfab, dfab.box(), 0, ncomp);
-                    }
+                    detail::call_interp_hook(post_interp, mf_refined_patch, 0, ncomp);
 
                     bool aliasing = false;
                     for (auto const& fmf_a : fmf) {
@@ -538,30 +552,14 @@ namespace {
 
                     MF mf_fine_patch = make_mf_fine_patch<MF>(fpc, ncomp);
 
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-                    for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
-                    {
-                        auto& sfab = mf_crse_patch[mfi];
-                        const Box& sbx = sfab.box();
-                        pre_interp(sfab, sbx, 0, ncomp);
-                    }
+                    detail::call_interp_hook(pre_interp, mf_crse_patch, 0, ncomp);
 
                     FillPatchInterp(mf_fine_patch, 0, mf_crse_patch, 0,
                                     ncomp, IntVect(0), cgeom, fgeom,
                                     amrex::grow(amrex::convert(fgeom.Domain(),mf.ixType()),nghost),
                                     ratio, mapper, bcs, bcscomp);
 
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-                    for (MFIter mfi(mf_fine_patch); mfi.isValid(); ++mfi)
-                    {
-                        auto& dfab = mf_fine_patch[mfi];
-                        const Box& dbx = dfab.box();
-                        post_interp(dfab, dbx, 0, ncomp);
-                    }
+                    detail::call_interp_hook(post_interp, mf_fine_patch, 0, ncomp);
 
                     mf.ParallelCopy(mf_fine_patch, 0, dcomp, ncomp, IntVect{0}, nghost);
                 }
@@ -1024,14 +1022,7 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
 
     cbc(mf_crse_patch, 0, ncomp, mf_crse_patch.nGrowVect(), time, cbccomp);
 
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
-    {
-        FAB& sfab   = mf_crse_patch[mfi];
-        pre_interp(sfab, sfab.box(), 0, ncomp);
-    }
+    detail::call_interp_hook(pre_interp, mf_crse_patch, 0, ncomp);
 
     FillPatchInterp(mf, dcomp, mf_crse_patch, 0, ncomp, nghost, cgeom, fgeom, fdomain_g,
                     ratio, mapper, bcs, bcscomp);

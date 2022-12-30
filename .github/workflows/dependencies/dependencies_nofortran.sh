@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 #
-# Copyright 2020 Axel Huebl
+# Copyright 2020-2022 The AMReX Community
 #
 # License: BSD-3-Clause-LBNL
+# Authors: Axel Huebl
 
 # search recursive inside a folder if a file contains tabs
 #

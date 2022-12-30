@@ -15,10 +15,12 @@ target_sources( amrex
    AMReX_Vector.H
    AMReX_TableData.H
    AMReX_Tuple.H
+   AMReX_TypeList.H
    AMReX.cpp
    AMReX_error_fi.cpp
    AMReX_Version.cpp
    AMReX.H
+   AMReX_Demangle.H
    AMReX_Exception.H
    AMReX_Extension.H
    AMReX_PODVector.H
@@ -30,6 +32,7 @@ target_sources( amrex
    AMReX_Utility.cpp
    AMReX_FileSystem.H
    AMReX_FileSystem.cpp
+   AMReX_ValLocPair.H
    AMReX_Reduce.H
    AMReX_Scan.H
    AMReX_Partition.H

@@ -48,7 +48,7 @@ struct MFItInfo
         return *this;
     }
     MFItInfo& UseDefaultStream () noexcept {
-        num_streams = -1;
+        num_streams = 1;
         return *this;
     }
 };

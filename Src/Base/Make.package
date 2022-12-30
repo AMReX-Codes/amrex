@@ -4,13 +4,15 @@ AMREX_BASE=EXE
 C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Algorithm.H AMReX_Any.H AMReX_Array.H
 C$(AMREX_BASE)_headers += AMReX_Vector.H AMReX_TableData.H AMReX_Tuple.H AMReX_Math.H
 
+C$(AMREX_BASE)_headers += AMReX_TypeList.H
+
 #
 # Utility classes.
 #
 C$(AMREX_BASE)_headers += AMReX.H AMReX_Exception.H
 C$(AMREX_BASE)_sources += AMReX.cpp AMReX_error_fi.cpp AMReX_Version.cpp
 
-C$(AMREX_BASE)_headers += AMReX_Extension.H
+C$(AMREX_BASE)_headers += AMReX_Demangle.H AMReX_Extension.H
 
 C$(AMREX_BASE)_headers += AMReX_GpuComplex.H
 
@@ -22,6 +24,7 @@ C$(AMREX_BASE)_sources += AMReX_BlockMutex.cpp
 C$(AMREX_BASE)_sources += AMReX_ParmParse.cpp AMReX_parmparse_fi.cpp AMReX_Utility.cpp
 C$(AMREX_BASE)_headers += AMReX_ParmParse.H AMReX_Utility.H AMReX_BLassert.H AMReX_ArrayLim.H
 C$(AMREX_BASE)_headers += AMReX_Functional.H AMReX_Reduce.H AMReX_Scan.H AMReX_Partition.H
+C$(AMREX_BASE)_headers += AMReX_ValLocPair.H
 
 C$(AMREX_BASE)_headers += AMReX_FileSystem.H
 C$(AMREX_BASE)_sources += AMReX_FileSystem.cpp

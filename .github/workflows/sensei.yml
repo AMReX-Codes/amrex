@@ -32,8 +32,7 @@ jobs:
             -DAMReX_ENABLE_TESTS=ON  \
             -DAMReX_FORTRAN=OFF      \
             -DAMReX_PARTICLES=ON     \
-            -DAMReX_SENSEI=ON        \
-            -DCMAKE_CXX_STANDARD=14
+            -DAMReX_SENSEI=ON
     - name: Build
       run: |
         cd build

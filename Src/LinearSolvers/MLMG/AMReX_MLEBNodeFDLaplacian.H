@@ -72,7 +72,7 @@ public:
 
     virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int amrlev, int mglev) const final override;
 
-    virtual void scaleRHS (int amrlev, Any& rhs) const final;
+    virtual void scaleRHS (int amrlev, MultiFab& rhs) const final;
 
 #endif
 
@@ -119,7 +119,7 @@ public:
                           Array4<Real const> const& bfab) const override;
 #endif
 
-    virtual void postSolve (Vector<Any>& sol) const override;
+    virtual void postSolve (Vector<MultiFab>& sol) const override;
 
 private:
     GpuArray<Real,AMREX_SPACEDIM> m_sigma{{AMREX_D_DECL(1_rt,1_rt,1_rt)}};

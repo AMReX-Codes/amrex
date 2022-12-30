@@ -2,13 +2,8 @@ target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_D
 
 target_sources(amrex
    PRIVATE
-   AMReX_FabSet.cpp
-   AMReX_BndryRegister.cpp
    AMReX_Mask.cpp
    AMReX_MultiMask.cpp
-   AMReX_BndryData.cpp
-   AMReX_InterpBndryData.cpp
-   AMReX_MacBndry.cpp
    AMReX_FabSet.H
    AMReX_BndryRegister.H
    AMReX_Mask.H
@@ -18,14 +13,12 @@ target_sources(amrex
    AMReX_InterpBndryData.H
    AMReX_LO_BCTYPES.H
    AMReX_LO_BCTYPES.cpp
-   AMReX_MacBndry.H
    AMReX_InterpBndryData_K.H
    AMReX_InterpBndryData_${AMReX_SPACEDIM}D_K.H
    AMReX_LOUtil_K.H
    AMReX_YAFluxRegister.H
    AMReX_YAFluxRegister_K.H
    AMReX_YAFluxRegister_${AMReX_SPACEDIM}D_K.H
-   AMReX_YAFluxRegister.cpp
    AMReX_BoundaryFwd.H
    )
 

@@ -7,7 +7,7 @@
 #ifdef AMREX_USE_GPU
 
 #ifdef AMREX_USE_DPCPP
-#include <CL/sycl.hpp>
+#  include <sycl/sycl.hpp>
 #endif
 
 namespace amrex {

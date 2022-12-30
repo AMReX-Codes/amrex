@@ -3,21 +3,18 @@
 #define AMREX_TUPLE_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_TypeTraits.H>
 #include <AMReX_Functional.H>
 #include <AMReX_GpuQualifiers.H>
+#include <AMReX_TypeList.H>
+#include <AMReX_TypeTraits.H>
 
 #include <array>
-#include <tuple>
 #include <functional>
-#include <type_traits>
-#include <utility>
+#include <tuple>
 
 namespace amrex {
     template <class... Ts>
     using Tuple = std::tuple<Ts...>;
-
-    template <class... Ts> struct TypeList {};
 }
 
 namespace amrex {

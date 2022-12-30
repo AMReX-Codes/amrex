@@ -71,7 +71,6 @@ dim3 Device::numThreadsOverride = dim3(0, 0, 0);
 dim3 Device::numBlocksOverride  = dim3(0, 0, 0);
 unsigned int Device::max_blocks_per_launch = 2560;
 
-gpuStream_t         Device::gpu_default_stream;
 Vector<gpuStream_t> Device::gpu_stream_pool;
 Vector<gpuStream_t> Device::gpu_stream;
 gpuDeviceProp_t     Device::device_prop;
@@ -134,6 +133,7 @@ Device::Initialize ()
     ParmParse ppamrex("amrex");
     ppamrex.queryAdd("max_gpu_streams", max_gpu_streams);
     max_gpu_streams = std::min(max_gpu_streams, AMREX_GPU_MAX_STREAMS);
+    max_gpu_streams = std::max(max_gpu_streams, 1);
 
     ParmParse pp("device");
 
@@ -151,8 +151,7 @@ Device::Initialize ()
     int gpu_device_count = 0;
 #ifdef AMREX_USE_DPCPP
     {
-        sycl::gpu_selector device_selector;
-        sycl::platform platform(device_selector);
+        sycl::platform platform(sycl::gpu_selector_v);
         auto const& gpu_devices = platform.get_devices();
         gpu_device_count = gpu_devices.size();
         if (gpu_device_count <= 0) {
@@ -375,8 +374,6 @@ Device::Finalize ()
         s.queue = nullptr;
     }
     gpu_stream.clear();
-    delete gpu_default_stream.queue;
-    gpu_default_stream.queue = nullptr;
 #endif
 
 #ifdef AMREX_USE_ACC
@@ -399,7 +396,6 @@ Device::initialize_gpu ()
 
     // AMD devices do not support shared cache banking.
 
-    AMREX_HIP_SAFE_CALL(hipStreamCreate(&gpu_default_stream));
     for (int i = 0; i < max_gpu_streams; ++i) {
         AMREX_HIP_SAFE_CALL(hipStreamCreate(&gpu_stream_pool[i]));
     }
@@ -420,7 +416,6 @@ Device::initialize_gpu ()
         AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte));
     }
 
-    AMREX_CUDA_SAFE_CALL(cudaStreamCreate(&gpu_default_stream));
     for (int i = 0; i < max_gpu_streams; ++i) {
         AMREX_CUDA_SAFE_CALL(cudaStreamCreate(&gpu_stream_pool[i]));
 #ifdef AMREX_USE_ACC
@@ -432,13 +427,10 @@ Device::initialize_gpu ()
 
 #elif defined(AMREX_USE_DPCPP)
     { // create device, context and queues
-        sycl::gpu_selector gpu_device_selector;
-        sycl::platform platform(gpu_device_selector);
+        sycl::platform platform(sycl::gpu_selector_v);
         auto const& gpu_devices = platform.get_devices();
         sycl_device = std::make_unique<sycl::device>(gpu_devices[device_id]);
         sycl_context = std::make_unique<sycl::context>(*sycl_device, amrex_sycl_error_handler);
-        gpu_default_stream.queue = new sycl::queue(*sycl_context, *sycl_device,
-                                         sycl::property_list{sycl::property::queue::in_order{}});
         for (int i = 0; i < max_gpu_streams; ++i) {
             gpu_stream_pool[i].queue = new sycl::queue(*sycl_context, *sycl_device,
                                          sycl::property_list{sycl::property::queue::in_order{}});
@@ -453,7 +445,7 @@ Device::initialize_gpu ()
         device_prop.multiProcessorCount = d.get_info<sycl::info::device::max_compute_units>();
         device_prop.maxThreadsPerMultiProcessor = -1; // xxxxx DPCPP todo: d.get_info<sycl::info::device::max_work_items_per_compute_unit>(); // unknown
         device_prop.maxThreadsPerBlock = d.get_info<sycl::info::device::max_work_group_size>();
-        auto mtd = d.get_info<sycl::info::device::max_work_item_sizes>();
+        auto mtd = d.get_info<sycl::info::device::max_work_item_sizes<3>>();
         device_prop.maxThreadsDim[0] = mtd[0];
         device_prop.maxThreadsDim[1] = mtd[1];
         device_prop.maxThreadsDim[2] = mtd[2];
@@ -490,7 +482,7 @@ Device::initialize_gpu ()
     }
 #endif
 
-    gpu_stream.resize(OpenMP::get_max_threads(), gpu_default_stream);
+    gpu_stream.resize(OpenMP::get_max_threads(), gpu_stream_pool[0]);
 
     ParmParse pp("device");
 
@@ -555,12 +547,8 @@ Device::numDevicesUsed () noexcept
 int
 Device::streamIndex (gpuStream_t s) noexcept
 {
-    if (s == gpu_default_stream) {
-        return -1;
-    } else {
-        auto it = std::find(std::begin(gpu_stream_pool), std::end(gpu_stream_pool), s);
-        return static_cast<int>(std::distance(std::begin(gpu_stream_pool), it));
-    }
+    auto it = std::find(std::begin(gpu_stream_pool), std::end(gpu_stream_pool), s);
+    return static_cast<int>(std::distance(std::begin(gpu_stream_pool), it));
 }
 #endif
 
@@ -569,19 +557,10 @@ Device::setStreamIndex (const int idx) noexcept
 {
     amrex::ignore_unused(idx);
 #ifdef AMREX_USE_GPU
-    if (idx < 0) {
-        gpu_stream[OpenMP::get_thread_num()] = gpu_default_stream;
-
+    gpu_stream[OpenMP::get_thread_num()] = gpu_stream_pool[idx % max_gpu_streams];
 #ifdef AMREX_USE_ACC
-        amrex_set_acc_stream(acc_async_sync);
+    amrex_set_acc_stream(idx % max_gpu_streams);
 #endif
-    } else {
-        gpu_stream[OpenMP::get_thread_num()] = gpu_stream_pool[idx % max_gpu_streams];
-
-#ifdef AMREX_USE_ACC
-        amrex_set_acc_stream(idx % max_gpu_streams);
-#endif
-    }
 #endif
 }
 
@@ -590,7 +569,7 @@ gpuStream_t
 Device::resetStream () noexcept
 {
     gpuStream_t r = gpu_stream[OpenMP::get_thread_num()];
-    gpu_stream[OpenMP::get_thread_num()] = gpu_default_stream;
+    gpu_stream[OpenMP::get_thread_num()] = gpu_stream_pool[0];
     return r;
 }
 
@@ -607,12 +586,6 @@ void
 Device::synchronize () noexcept
 {
 #ifdef AMREX_USE_DPCPP
-    auto& q = *(gpu_default_stream.queue);
-    try {
-        q.wait_and_throw();
-    } catch (sycl::exception const& ex) {
-        amrex::Abort(std::string("synchronize: ")+ex.what()+"!!!!!");
-    }
     for (auto const& s : gpu_stream_pool) {
         try {
             s.queue->wait_and_throw();
@@ -649,8 +622,6 @@ Device::streamSynchronizeAll () noexcept
 #ifdef AMREX_USE_DPCPP
     Device::synchronize();
 #else
-    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamSynchronize(gpu_default_stream));,
-                       AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(gpu_default_stream)); )
     for (auto const& s : gpu_stream_pool) {
         AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamSynchronize(s));,
                            AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(s)); )

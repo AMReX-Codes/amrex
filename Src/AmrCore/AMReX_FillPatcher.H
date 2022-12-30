@@ -330,38 +330,52 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
             }
         }
 
-        MF mf_crse_patch;
+        if (m_cf_crse_data_tmp == nullptr) {
+            m_cf_crse_data_tmp = std::make_unique<MF>
+                (make_mf_crse_patch<MF>(fpc, m_ncomp));
+        }
+
+        int const ng_space_interp = 8; // Need to be big enough
+        Box domain = m_cgeom.growPeriodicDomain(ng_space_interp);
+        domain.convert(mf.ixType());
+
         if (m_cf_crse_data.size() > 0 &&
             amrex::almostEqual(time, m_cf_crse_data[0].first,5))
         {
-            mf_crse_patch = MF(*m_cf_crse_data[0].second, amrex::make_alias,
-                               scomp, ncomp);
+            auto const& dst = m_cf_crse_data_tmp->arrays();
+            auto const& src = m_cf_crse_data[0].second->const_arrays();
+            amrex::ParallelFor(*m_cf_crse_data_tmp, IntVect(0), ncomp,
+                               [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k, int n) noexcept
+                               {
+                                   if (domain.contains(i,j,k)) {
+                                       dst[bi](i,j,k,n) = src[bi](i,j,k,n+scomp);
+                                   }
+                               });
         }
         else if (m_cf_crse_data.size() > 1 &&
                  amrex::almostEqual(time, m_cf_crse_data[1].first,5))
         {
-            mf_crse_patch = MF(*m_cf_crse_data[1].second, amrex::make_alias,
-                               scomp, ncomp);
+            auto const& dst = m_cf_crse_data_tmp->arrays();
+            auto const& src = m_cf_crse_data[1].second->const_arrays();
+            amrex::ParallelFor(*m_cf_crse_data_tmp, IntVect(0), ncomp,
+                               [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k, int n) noexcept
+                               {
+                                   if (domain.contains(i,j,k)) {
+                                       dst[bi](i,j,k,n) = src[bi](i,j,k,n+scomp);
+                                   }
+                               });
         }
         else if (m_cf_crse_data.size() == 2)
         {
-            if (m_cf_crse_data_tmp == nullptr) {
-                m_cf_crse_data_tmp = std::make_unique<MF>
-                    (make_mf_crse_patch<MF>(fpc, m_ncomp));
-            }
-            mf_crse_patch = MF(*m_cf_crse_data_tmp, amrex::make_alias, scomp, ncomp);
-            int const ng_space_interp = 8; // Need to be big enough
-            Box domain = m_cgeom.growPeriodicDomain(ng_space_interp);
-            domain.convert(mf.ixType());
             Real t0 = m_cf_crse_data[0].first;
             Real t1 = m_cf_crse_data[1].first;
             Real alpha = (t1-time)/(t1-t0);
             Real beta = (time-t0)/(t1-t0);
             AMREX_ASSERT(alpha >= 0._rt && beta >= 0._rt);
-            auto const& a = mf_crse_patch.arrays();
+            auto const& a = m_cf_crse_data_tmp->arrays();
             auto const& a0 = m_cf_crse_data[0].second->const_arrays();
             auto const& a1 = m_cf_crse_data[1].second->const_arrays();
-            amrex::ParallelFor(mf_crse_patch, IntVect(0), ncomp,
+            amrex::ParallelFor(*m_cf_crse_data_tmp, IntVect(0), ncomp,
                                [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k, int n) noexcept
                                {
                                    if (domain.contains(i,j,k)) {
@@ -370,24 +384,24 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
                                            +  beta*a1[bi](i,j,k,scomp+n);
                                    }
                                });
-            Gpu::streamSynchronize();
         }
         else
         {
             amrex::Abort("FillPatcher: High order interpolation in time not supported.  Or FillPatcher was not properly deleted.");
         }
+        Gpu::streamSynchronize();
 
-        cbc(mf_crse_patch, 0, ncomp, nghost, time, cbccomp);
+        cbc(*m_cf_crse_data_tmp, 0, ncomp, nghost, time, cbccomp);
 
-        pre_interp(mf_crse_patch, 0, ncomp);
+        detail::call_interp_hook(pre_interp, *m_cf_crse_data_tmp, 0, ncomp);
 
-        FillPatchInterp(*m_cf_fine_data, scomp, mf_crse_patch, 0,
+        FillPatchInterp(*m_cf_fine_data, scomp, *m_cf_crse_data_tmp, 0,
                         ncomp, IntVect(0), m_cgeom, m_fgeom,
                         amrex::grow(amrex::convert(m_fgeom.Domain(),
                                                    mf.ixType()),nghost),
                         m_ratio, m_interp, bcs, bcscomp);
 
-        post_interp(*m_cf_fine_data, scomp, ncomp);
+        detail::call_interp_hook(post_interp, *m_cf_fine_data, scomp, ncomp);
 
         mf.ParallelCopy(*m_cf_fine_data, scomp, dcomp, ncomp, IntVect{0}, nghost);
     }
@@ -442,6 +456,10 @@ void FillPatcher<MF>::fillRK (int stage, int iteration, int ncycle,
     Real r = Real(1) / Real(ncycle);
     Real xsi = Real(iteration-1) / Real(ncycle);
 
+    int const ng_space_interp = 8; // Need to be big enough
+    Box cdomain = m_cgeom.growPeriodicDomain(ng_space_interp);
+    cdomain.convert(m_cf_crse_data_tmp->ixType());
+
     if (rk_order == 3) {
         // coefficients for U
         Real b1 = xsi - Real(5./6.)*xsi*xsi;
@@ -459,35 +477,41 @@ void FillPatcher<MF>::fillRK (int stage, int iteration, int ncycle,
             amrex::ParallelFor(*m_cf_crse_data_tmp, IntVect(0), m_ncomp,
             [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k, int n) noexcept
             {
-                Real kk1 = k1[bi](i,j,k,n);
-                Real kk2 = k2[bi](i,j,k,n);
-                Real kk3 = k3[bi](i,j,k,n);
-                Real uu  = b1*kk1 + b2*kk2 + b3*kk3;
-                u[bi](i,j,k,n) = u0[bi](i,j,k,n) + dtc*uu;
+                if (cdomain.contains(i,j,k)) {
+                    Real kk1 = k1[bi](i,j,k,n);
+                    Real kk2 = k2[bi](i,j,k,n);
+                    Real kk3 = k3[bi](i,j,k,n);
+                    Real uu  = b1*kk1 + b2*kk2 + b3*kk3;
+                    u[bi](i,j,k,n) = u0[bi](i,j,k,n) + dtc*uu;
+                }
             });
         } else if (stage == 2) {
             amrex::ParallelFor(*m_cf_crse_data_tmp, IntVect(0), m_ncomp,
             [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k, int n) noexcept
             {
-                Real kk1 = k1[bi](i,j,k,n);
-                Real kk2 = k2[bi](i,j,k,n);
-                Real kk3 = k3[bi](i,j,k,n);
-                Real uu = b1*kk1 + b2*kk2 + b3*kk3;
-                Real ut = c1*kk1 + c2*kk2 + c3*kk3;
-                u[bi](i,j,k,n) = u0[bi](i,j,k,n) + dtc*(uu + r*ut);
+                if (cdomain.contains(i,j,k)) {
+                    Real kk1 = k1[bi](i,j,k,n);
+                    Real kk2 = k2[bi](i,j,k,n);
+                    Real kk3 = k3[bi](i,j,k,n);
+                    Real uu = b1*kk1 + b2*kk2 + b3*kk3;
+                    Real ut = c1*kk1 + c2*kk2 + c3*kk3;
+                    u[bi](i,j,k,n) = u0[bi](i,j,k,n) + dtc*(uu + r*ut);
+                }
             });
         } else if (stage == 3) {
             amrex::ParallelFor(*m_cf_crse_data_tmp, IntVect(0), m_ncomp,
             [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k, int n) noexcept
             {
-                Real kk1 = k1[bi](i,j,k,n);
-                Real kk2 = k2[bi](i,j,k,n);
-                Real kk3 = k3[bi](i,j,k,n);
-                Real uu  = b1*kk1 + b2*kk2 + b3*kk3;
-                Real ut  = c1*kk1 + c2*kk2 + c3*kk3;
-                Real utt = d1*kk1 + d2*kk2 + d3*kk3;
-                u[bi](i,j,k,n) = u0[bi](i,j,k,n) + dtc*
-                    (uu + Real(0.5)*r*ut + Real(0.25)*r*r*utt);
+                if (cdomain.contains(i,j,k)) {
+                    Real kk1 = k1[bi](i,j,k,n);
+                    Real kk2 = k2[bi](i,j,k,n);
+                    Real kk3 = k3[bi](i,j,k,n);
+                    Real uu  = b1*kk1 + b2*kk2 + b3*kk3;
+                    Real ut  = c1*kk1 + c2*kk2 + c3*kk3;
+                    Real utt = d1*kk1 + d2*kk2 + d3*kk3;
+                    u[bi](i,j,k,n) = u0[bi](i,j,k,n) + dtc*
+                        (uu + Real(0.5)*r*ut + Real(0.25)*r*r*utt);
+                }
             });
         }
     } else if (rk_order == 4) {
@@ -518,24 +542,28 @@ void FillPatcher<MF>::fillRK (int stage, int iteration, int ncycle,
             amrex::ParallelFor(*m_cf_crse_data_tmp, IntVect(0), m_ncomp,
             [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k, int n) noexcept
             {
-                Real kk1 = k1[bi](i,j,k,n);
-                Real kk2 = k2[bi](i,j,k,n);
-                Real kk3 = k3[bi](i,j,k,n);
-                Real kk4 = k4[bi](i,j,k,n);
-                Real uu  = b1*kk1 + b2*kk2 + b3*kk3 + b4*kk4;
-                u[bi](i,j,k,n) = u0[bi](i,j,k,n) + dtc*uu;
+                if (cdomain.contains(i,j,k)) {
+                    Real kk1 = k1[bi](i,j,k,n);
+                    Real kk2 = k2[bi](i,j,k,n);
+                    Real kk3 = k3[bi](i,j,k,n);
+                    Real kk4 = k4[bi](i,j,k,n);
+                    Real uu  = b1*kk1 + b2*kk2 + b3*kk3 + b4*kk4;
+                    u[bi](i,j,k,n) = u0[bi](i,j,k,n) + dtc*uu;
+                }
             });
         } else if (stage == 2) {
             amrex::ParallelFor(*m_cf_crse_data_tmp, IntVect(0), m_ncomp,
             [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k, int n) noexcept
             {
-                Real kk1 = k1[bi](i,j,k,n);
-                Real kk2 = k2[bi](i,j,k,n);
-                Real kk3 = k3[bi](i,j,k,n);
-                Real kk4 = k4[bi](i,j,k,n);
-                Real uu = b1*kk1 + b2*kk2 + b3*kk3 + b4*kk4;
-                Real ut = c1*kk1 + c2*kk2 + c3*kk3 + c4*kk4;
-                u[bi](i,j,k,n) = u0[bi](i,j,k,n) + dtc*(uu + Real(0.5)*r*ut);
+                if (cdomain.contains(i,j,k)) {
+                    Real kk1 = k1[bi](i,j,k,n);
+                    Real kk2 = k2[bi](i,j,k,n);
+                    Real kk3 = k3[bi](i,j,k,n);
+                    Real kk4 = k4[bi](i,j,k,n);
+                    Real uu = b1*kk1 + b2*kk2 + b3*kk3 + b4*kk4;
+                    Real ut = c1*kk1 + c2*kk2 + c3*kk3 + c4*kk4;
+                    u[bi](i,j,k,n) = u0[bi](i,j,k,n) + dtc*(uu + Real(0.5)*r*ut);
+                }
             });
         } else if (stage == 3 || stage == 4) {
             Real r2 = r*r;
@@ -547,16 +575,18 @@ void FillPatcher<MF>::fillRK (int stage, int iteration, int ncycle,
             amrex::ParallelFor(*m_cf_crse_data_tmp, IntVect(0), m_ncomp,
             [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k, int n) noexcept
             {
-                Real kk1 = k1[bi](i,j,k,n);
-                Real kk2 = k2[bi](i,j,k,n);
-                Real kk3 = k3[bi](i,j,k,n);
-                Real kk4 = k4[bi](i,j,k,n);
-                Real uu   = b1*kk1 + b2*kk2 + b3*kk3 + b4*kk4;
-                Real ut   = c1*kk1 + c2*kk2 + c3*kk3 + c4*kk4;
-                Real utt  = d1*kk1 + d2*kk2 + d3*kk3 + d4*kk4;
-                Real uttt = e1*kk1 + e2*kk2 + e3*kk3 + e4*kk4;
-                u[bi](i,j,k,n) = u0[bi](i,j,k,n) + dtc *
-                    (uu + at*ut + att*utt + attt*(uttt+akk*(kk3-kk2)));
+                if (cdomain.contains(i,j,k)) {
+                    Real kk1 = k1[bi](i,j,k,n);
+                    Real kk2 = k2[bi](i,j,k,n);
+                    Real kk3 = k3[bi](i,j,k,n);
+                    Real kk4 = k4[bi](i,j,k,n);
+                    Real uu   = b1*kk1 + b2*kk2 + b3*kk3 + b4*kk4;
+                    Real ut   = c1*kk1 + c2*kk2 + c3*kk3 + c4*kk4;
+                    Real utt  = d1*kk1 + d2*kk2 + d3*kk3 + d4*kk4;
+                    Real uttt = e1*kk1 + e2*kk2 + e3*kk3 + e4*kk4;
+                    u[bi](i,j,k,n) = u0[bi](i,j,k,n) + dtc *
+                        (uu + at*ut + att*utt + attt*(uttt+akk*(kk3-kk2)));
+                }
             });
         }
     }
