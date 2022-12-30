@@ -315,7 +315,7 @@ we provide the helper function ``setup_target_for_cuda_compilation()``:
    setup_target_for_cuda_compilation(my_target)
 
    # Link against amrex
-   target_link_libraries(my_target AMReX::amrex)
+   target_link_libraries(my_target PUBLIC AMReX::amrex)
 
 
 

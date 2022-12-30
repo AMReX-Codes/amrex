@@ -74,6 +74,17 @@ public:
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setHi (int dir, int bc_val) noexcept { bc[AMREX_SPACEDIM+dir] = bc_val; }
     /**
+    * \brief Explicitly set bndry value for given face.
+    */
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void set (Orientation face, int bc_val) noexcept {
+        if (face.isLow()) {
+            setLo(face.coordDir(), bc_val);
+        } else {
+            setHi(face.coordDir(), bc_val);
+        }
+    }
+    /**
     * \brief  Return bndry values (used in calls to FORTRAN).
     */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

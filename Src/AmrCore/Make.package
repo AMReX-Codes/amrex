@@ -6,6 +6,8 @@ CEXE_sources += AMReX_AmrCore.cpp AMReX_Cluster.cpp AMReX_ErrorList.cpp AMReX_Fi
                 AMReX_Interpolater.cpp AMReX_MFInterpolater.cpp AMReX_TagBox.cpp AMReX_AmrMesh.cpp \
                 AMReX_InterpBase.cpp
 
+CEXE_headers += AMReX_FillPatcher.H
+
 CEXE_headers += AMReX_Interp_C.H AMReX_Interp_$(DIM)D_C.H
 CEXE_headers += AMReX_MFInterp_C.H AMReX_MFInterp_$(DIM)D_C.H
 

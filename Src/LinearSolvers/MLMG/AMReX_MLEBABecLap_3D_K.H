@@ -30,7 +30,6 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
     Real dhx = beta*dxinv[0]*dxinv[0];
     Real dhy = beta*dxinv[1]*dxinv[1];
     Real dhz = beta*dxinv[2]*dxinv[2];
-    Real dh = beta*dxinv[0]*dxinv[1];//*dxinv[2];
 
     amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
@@ -188,15 +187,14 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
 
             Real feb = 0.0;
             if (is_eb_dirichlet && flag(i,j,k).isSingleValued()) {
-                Real dapx = (apxm-apxp)/(dxinv[1]*dxinv[2]);
-                Real dapy = (apym-apyp)/(dxinv[0]*dxinv[2]);
-                Real dapz = (apzm-apzp)/(dxinv[0]*dxinv[1]);
+                Real dapx = (apxm-apxp);
+                Real dapy = (apym-apyp);
+                Real dapz = (apzm-apzp);
                 Real anorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
                 Real anorminv = 1.0/anorm;
                 Real anrmx = dapx * anorminv;
                 Real anrmy = dapy * anorminv;
                 Real anrmz = dapz * anorminv;
-
 
                 feb = grad_eb_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,vfrc,
                                                          anrmx,anrmy,anrmz,is_eb_inhomog,
@@ -209,7 +207,7 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
             y(i,j,k,n) = alpha*a(i,j,k)*x(i,j,k,n) + (1.0/kappa) *
                 (dhx*(apxm*fxm - apxp*fxp) +
                  dhy*(apym*fym - apyp*fyp) +
-                 dhz*(apzm*fzm - apzp*fzp) - dh*feb);
+                 dhz*(apzm*fzm - apzp*fzp) - dhx*feb);
         }
     });
 }
@@ -233,7 +231,6 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
     Real dhx = beta*dxinv[0]*dxinv[0];
     Real dhy = beta*dxinv[1]*dxinv[1];
     Real dhz = beta*dxinv[2]*dxinv[2];
-    Real dh  = beta*dxinv[0]*dxinv[1];//*dxinv[2];
 
     bool beta_on_center = !(beta_on_centroid);
     bool  phi_on_center = !( phi_on_centroid);
@@ -409,9 +406,9 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
 
             Real feb = 0.0;
             if (is_dirichlet) {
-                Real dapx = (apxm-apxp)/(dxinv[1]*dxinv[2]);
-                Real dapy = (apym-apyp)/(dxinv[0]*dxinv[2]);
-                Real dapz = (apzm-apzp)/(dxinv[0]*dxinv[1]);
+                Real dapx = (apxm-apxp);
+                Real dapy = (apym-apyp);
+                Real dapz = (apzm-apzp);
                 Real anorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
                 Real anorminv = 1.0/anorm;
                 Real anrmx = dapx * anorminv;
@@ -461,7 +458,7 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
             y(i,j,k,n) = alpha*a(i,j,k)*x(i,j,k,n) + (1.0/kappa) *
                 (dhx*(apxm*fxm - apxp*fxp) +
                  dhy*(apym*fym - apyp*fyp) +
-                 dhz*(apzm*fzm - apzp*fzp) - dh*feb);
+                 dhz*(apzm*fzm - apzp*fzp) - dhx*feb);
         }
     });
 }
@@ -481,6 +478,7 @@ void mlebabeclap_ebflux (int i, int j, int k, int n,
                          bool is_inhomog,
                          GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
+    Real dhx = dxinv[0];
 
     if (!flag(i,j,k).isSingleValued())
     {
@@ -496,9 +494,9 @@ void mlebabeclap_ebflux (int i, int j, int k, int n,
         Real apzm = apz(i,j,k);
         Real apzp = apz(i,j,k+1);
 
-        Real dapx = (apxm-apxp)/(dxinv[1]*dxinv[2]);
-        Real dapy = (apym-apyp)/(dxinv[0]*dxinv[2]);
-        Real dapz = (apzm-apzp)/(dxinv[0]*dxinv[1]);
+        Real dapx = (apxm-apxp);
+        Real dapy = (apym-apyp);
+        Real dapz = (apzm-apzp);
         Real anorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
         Real anorminv = 1.0/anorm;
         Real anrmx = dapx * anorminv;
@@ -539,7 +537,7 @@ void mlebabeclap_ebflux (int i, int j, int k, int n,
             +       (gxy + gxyz)                    * x(ii,jj,k ,n)
             +       (-gxyz)                         * x(ii,jj,kk,n);
 
-        Real dphidn = (phib-phig)/dg;
+        Real dphidn = dhx*(phib-phig)/dg;
         feb(i,j,k,n) = -beb(i,j,k,n) * dphidn;
     }
 }
@@ -548,8 +546,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_gsrb (Box const& box,
                        Array4<Real> const& phi, Array4<Real const> const& rhs,
                        Real alpha, Array4<Real const> const& a,
-                       Real dhx, Real dhy, Real dhz, Real dh,
-                       GpuArray<Real,AMREX_SPACEDIM> const& dx,
+                       Real dhx, Real dhy, Real dhz, Real /* dh */,
+                       GpuArray<Real,AMREX_SPACEDIM> const& /* dx */,
                        Array4<Real const> const& bX, Array4<Real const> const& bY,
                        Array4<Real const> const& bZ,
                        Array4<int const> const& m0, Array4<int const> const& m2,
@@ -835,9 +833,9 @@ void mlebabeclap_gsrb (Box const& box,
                          dhz*(apzm*ozm-apzp*ozp));
 
                     if (is_dirichlet) {
-                        Real dapx = (apxm-apxp)*(dx[1]*dx[2]);
-                        Real dapy = (apym-apyp)*(dx[0]*dx[2]);
-                        Real dapz = (apzm-apzp)*(dx[0]*dx[1]);
+                        Real dapx = (apxm-apxp);
+                        Real dapy = (apym-apyp);
+                        Real dapz = (apzm-apzp);
                         Real anorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
                         Real anorminv = 1.0/anorm;
                         Real anrmx = dapx * anorminv;
@@ -880,9 +878,9 @@ void mlebabeclap_gsrb (Box const& box,
 
                         Real dphidn    = (    -phig)/dg;
                         Real feb_gamma = -phig_gamma/dg * ba(i,j,k) * beb(i,j,k,n);
-                        gamma += vfrcinv*(-dh)*feb_gamma;
+                        gamma += vfrcinv*(-dhx)*feb_gamma;
                         Real feb = dphidn * ba(i,j,k) * beb(i,j,k,n);
-                        rho += -vfrcinv*(-dh)*feb;
+                        rho += -vfrcinv*(-dhx)*feb;
                     }
 
                     Real res = rhs(i,j,k,n) - (gamma*phi(i,j,k,n) - rho);
@@ -1219,8 +1217,8 @@ void mlebabeclap_grad_z_0 (Box const& box, Array4<Real> const& gz, Array4<Real c
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                             Real alpha, Array4<Real const> const& a,
-                            Real dhx, Real dhy, Real dhz, Real dh,
-                            const amrex::GpuArray<Real, AMREX_SPACEDIM> dx,
+                            Real dhx, Real dhy, Real dhz, Real /* dh */,
+                            const amrex::GpuArray<Real, AMREX_SPACEDIM> /* dx */,
                             Array4<Real const> const& bX, Array4<Real const> const& bY,
                             Array4<Real const> const& bZ,
                             Array4<const int> const& ccm, Array4<EBCellFlag const> const& flag,
@@ -1324,9 +1322,9 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                  dhz*(apzm*szm-apzp*szp));
 
             if (is_dirichlet) {
-                Real dapx = (apxm-apxp)*dx[1]*dx[2];
-                Real dapy = (apym-apyp)*dx[0]*dx[2];
-                Real dapz = (apzm-apzp)*dx[0]*dx[1];
+                Real dapx = (apxm-apxp);
+                Real dapy = (apym-apyp);
+                Real dapz = (apzm-apzp);
                 Real anorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
                 Real anorminv = 1.0/anorm;
                 Real anrmx = dapx * anorminv;
@@ -1357,7 +1355,7 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                 Real gxyz = gx*gy*gz;
                 Real phig_gamma = (1.0+gx+gy+gz+gxy+gxz+gyz+gxyz);
                 Real feb_gamma = -phig_gamma/dg * ba(i,j,k) * beb(i,j,k,n);
-                gamma += vfrcinv*(-dh)*feb_gamma;
+                gamma += vfrcinv*(-dhx)*feb_gamma;
             }
 
             phi(i,j,k,n) /= gamma;

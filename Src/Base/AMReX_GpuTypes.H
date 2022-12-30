@@ -8,7 +8,6 @@
 
 #ifdef AMREX_USE_DPCPP
 #include <CL/sycl.hpp>
-namespace sycl = cl::sycl;
 #endif
 
 namespace amrex {

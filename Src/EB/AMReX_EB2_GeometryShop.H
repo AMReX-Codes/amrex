@@ -244,6 +244,7 @@ public:
                 }
             }
         }
+        amrex::ignore_unused(nzero);
 
         if (nbody == 0) {
             return allregular;

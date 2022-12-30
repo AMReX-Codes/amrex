@@ -914,9 +914,9 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
 
         if (beb) {
 
-            Real dapx = (apx(i,j,k) - apx(i+1,j,k))*dx[1]*dx[2];
-            Real dapy = (apy(i,j,k) - apy(i,j+1,k))*dx[0]*dx[2];
-            Real dapz = (apz(i,j,k) - apz(i,j,k+1))*dx[1]*dx[2];
+            Real dapx = (apx(i,j,k) - apx(i+1,j,k));
+            Real dapy = (apy(i,j,k) - apy(i,j+1,k));
+            Real dapz = (apz(i,j,k) - apz(i,j,k+1));
             Real anorm = std::sqrt(dapx*dapx + dapy*dapy + dapz*dapz);
 
             Real anorminv = Real(1.0)/anorm;

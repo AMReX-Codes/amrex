@@ -272,7 +272,7 @@ public:
     virtual ~FArrayBox () noexcept override {}
 
     FArrayBox (FArrayBox&& rhs) noexcept = default;
-    FArrayBox& operator= (FArrayBox&&) = default;
+    FArrayBox& operator= (FArrayBox&&) noexcept = default;
 
     FArrayBox (const FArrayBox&) = delete;
     FArrayBox& operator= (const FArrayBox&) = delete;

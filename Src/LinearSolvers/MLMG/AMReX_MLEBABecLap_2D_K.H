@@ -329,6 +329,8 @@ void mlebabeclap_ebflux (int i, int j, int k, int n,
         Real anorminv = 1.0/anorm;
         Real anrmx = dapx * anorminv;
         Real anrmy = dapy * anorminv;
+        const Real bareascaling = std::sqrt( (anrmx/dxinv[0])*(anrmx/dxinv[0]) +
+                (anrmy/dxinv[1])*(anrmy/dxinv[1]) );
 
 
         Real phib = is_inhomog ? phieb(i,j,k,n) : 0.0_rt;
@@ -356,7 +358,7 @@ void mlebabeclap_ebflux (int i, int j, int k, int n,
             +       (            - gy*sy - gx*gy*sx*sy) * x(i ,jj,k,n)
             +       (                    + gx*gy*sx*sy) * x(ii,jj,k,n) ;
 
-        Real dphidn = (phib-phig)/dg;
+        Real dphidn = (phib-phig)/dg * bareascaling;
         feb(i,j,k,n) = -beb(i,j,k,n) * dphidn;
     }
 }

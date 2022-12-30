@@ -10,6 +10,7 @@
 #include <AMReX_AmrCore.H>
 #include <AMReX_BCRec.H>
 #include <AMReX_FluxRegister.H>
+#include <AMReX_FillPatcher.H>
 
 #ifdef AMREX_USE_OMP
 #   include <omp.h>
@@ -98,15 +99,18 @@ private:
     // more flexible version of AverageDown() that lets you average down across multiple levels
     void AverageDownTo (int crse_lev);
 
+    enum class FillPatchType { fillpatch_class, fillpatch_function };
+
     // compute a new multifab by coping in phi from valid region and filling ghost cells
     // works for single level and 2-level cases (fill fine grid ghost by interpolating from coarse)
-    void FillPatch (int lev, amrex::Real time, amrex::MultiFab& mf, int icomp, int ncomp);
+    void FillPatch (int lev, amrex::Real time, amrex::MultiFab& mf, int icomp,
+                    int ncomp, FillPatchType fptype);
 
     // fill an entire multifab by interpolating from the coarser level
     // this comes into play when a new level of refinement appears
     void FillCoarsePatch (int lev, amrex::Real time, amrex::MultiFab& mf, int icomp, int ncomp);
 
-    // utility to copy in data from phi_old and/or phi_new into another multifab
+    // Pack pointers to phi_old and/or phi_new and associated times.
     void GetData (int lev, amrex::Real time, amrex::Vector<amrex::MultiFab*>& data,
                   amrex::Vector<amrex::Real>& datatime);
 
@@ -164,6 +168,9 @@ private:
     // therefore flux_reg[0] and flux_reg[nlevs_max] are never actually
     // used in the reflux operation
     amrex::Vector<std::unique_ptr<amrex::FluxRegister> > flux_reg;
+
+    // This is for fillpatch during timestepping, but not for regridding.
+    amrex::Vector<std::unique_ptr<amrex::FillPatcher<amrex::MultiFab>>> fillpatcher;
 
     // Velocity on all faces at all levels
     amrex::Vector< amrex::Array<amrex::MultiFab, AMREX_SPACEDIM> > facevel;

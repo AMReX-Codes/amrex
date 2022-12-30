@@ -98,7 +98,7 @@ AMReX contains two SWFFT tutorials, `SWFFT Poisson`_ and `SWFFT Simple`_:
 .. _`SWFFT Simple`: https://amrex-codes.github.io/amrex/tutorials_html/SWFFT_Tutorial.html#swfft-simple
 
 .. [1]
-   https://xgitlab.cels.anl.gov/hacc/SWFFT
+   https://git.cels.anl.gov/hacc/SWFFT
 
 .. [2]
    SWFFT source code directory in AMReX: amrex/Src/Extern/SWFFT

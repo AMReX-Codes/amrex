@@ -243,6 +243,8 @@ namespace Gpu {
 
 #ifdef AMREX_USE_GPU
 
+#ifndef AMREX_USE_DPCPP
+
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG(where_to_run,n,i,block) \
     {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
@@ -367,6 +369,111 @@ namespace Gpu {
     }
 
 #else
+// xxxxx DPCPP todo: host disabled in host device
+
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG(where_to_run,n,i,block) \
+    {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept \
+            block \
+        ); \
+    } \
+    else { \
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    }}
+
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(where_to_run,box,i,j,k,block) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept \
+            block \
+        ); \
+    } \
+    else { \
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    }
+
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
+            block \
+        ); \
+    } \
+    else { \
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    }
+
+#define AMREX_HOST_DEVICE_FOR_1D_FLAG(where_to_run,n,i,block) \
+    {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept \
+            block \
+        ); \
+    } \
+    else { \
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    }}
+
+#define AMREX_HOST_DEVICE_FOR_3D_FLAG(where_to_run,box,i,j,k,block) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept \
+            block \
+        ); \
+    } \
+    else { \
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    }
+
+#define AMREX_HOST_DEVICE_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
+            block \
+        ); \
+    } \
+    else { \
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    }
+
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(where_to_run,box,tbox,block) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        AMREX_LAUNCH_DEVICE_LAMBDA(box,tbox,block); \
+    } else { \
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    }
+
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_FLAG(where_to_run,bx1,tbx1,block1) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        AMREX_LAUNCH_DEVICE_LAMBDA(bx1,tbx1,block1); \
+    } else { \
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    }
+
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2_FLAG(where_to_run,bx1,tbx1,block1,bx2,tbx2,block2) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        AMREX_LAUNCH_DEVICE_LAMBDA(bx1,tbx1,block1,bx2,tbx2,block2); \
+    } else { \
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    }
+
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3_FLAG(where_to_run,bx1,tbx1,block1,bx2,tbx2,block2,bx3,tbx3,block3) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        AMREX_LAUNCH_DEVICE_LAMBDA(bx1,tbx1,block1,bx2,tbx2,block2,bx3,tbx3,block3); \
+    } else { \
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    }
+
+#endif
+
+#else
 
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG(where_to_run,n,i,block) \
     {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
@@ -442,5 +549,7 @@ namespace Gpu {
     }
 
 #endif
+
+#include <AMReX_CTOParallelForImpl.H>
 
 #endif
