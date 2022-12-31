@@ -427,6 +427,26 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         pp.queryAdd("verbose", system::verbose);
     }
 
+#ifdef AMREX_USE_MPI
+    if (system::verbose > 0) {
+        amrex::Print() << "MPI initialized with "
+                       << ParallelDescriptor::NProcs()
+                       << " MPI processes\n";
+        int provided = -1;
+        MPI_Query_thread(&provided);
+        amrex::Print() << "MPI initialized with thread support level " << provided << std::endl;
+    }
+#endif
+
+#ifdef AMREX_USE_OMP
+    if (system::verbose > 0) {
+//    static_assert(_OPENMP >= 201107, "OpenMP >= 3.1 is required.");
+        amrex::Print() << "OMP initialized with "
+                       << omp_get_max_threads()
+                       << " OMP threads\n";
+    }
+#endif
+
 #ifdef AMREX_USE_GPU
     // Initialize after ParmParse so that we can read inputs.
     Gpu::Device::Initialize();
@@ -574,26 +594,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     sundials::Initialize(amrex::OpenMP::get_max_threads());
 #endif
 
-    if (system::verbose > 0)
-    {
-#ifdef BL_USE_MPI
-
-        amrex::Print() << "MPI initialized with "
-                       << ParallelDescriptor::NProcs()
-                       << " MPI processes\n";
-
-        int provided = -1;
-        MPI_Query_thread(&provided);
-        amrex::Print() << "MPI initialized with thread support level " << provided << std::endl;
-#endif
-
-#ifdef AMREX_USE_OMP
-//    static_assert(_OPENMP >= 201107, "OpenMP >= 3.1 is required.");
-        amrex::Print() << "OMP initialized with "
-                       << omp_get_max_threads()
-                       << " OMP threads\n";
-#endif
-
+    if (system::verbose > 0) {
         amrex::Print() << "AMReX (" << amrex::Version() << ") initialized" << std::endl;
     }
 

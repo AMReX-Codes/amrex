@@ -276,7 +276,7 @@ Arena::Initialize ()
 #ifdef AMREX_USE_DPCPP
     the_arena_init_size = 1024L*1024L*1024L; // xxxxx DPCPP: todo
 #else
-    the_arena_init_size = Gpu::Device::totalGlobalMem() / 4L * 3L;
+    the_arena_init_size = Gpu::Device::totalGlobalMem() / Gpu::Device::numDevicePartners() / 4L * 3L;
 #endif
 
     the_pinned_arena_release_threshold = Gpu::Device::totalGlobalMem();
