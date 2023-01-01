@@ -198,6 +198,8 @@ namespace amrex
 #  define AMREX_3D_ONLY(a) a
 #endif
 
+#ifdef __cplusplus
+
 #if (AMREX_SPACEDIM == 1)
 #define AMREX_1D_ONLY_ARGS(...) __VA_ARGS__ ,
 #else
@@ -216,5 +218,6 @@ namespace amrex
 #define AMREX_3D_ONLY_ARGS(...)
 #endif
 
+#endif
 
 #endif /*AMREX_SPACE_H*/
