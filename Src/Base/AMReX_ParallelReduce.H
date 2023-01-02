@@ -128,7 +128,7 @@ namespace ParallelAllReduce {
         using T = ValLocPair<TV,TI>;
         MPI_Allreduce(&tmp, &vi, 1,
                       ParallelDescriptor::Mpi_typemap<T>::type(),
-                      ParallelDescriptor::Mpi_op<T,amrex::Greater<T>>(), comm);
+                      (ParallelDescriptor::Mpi_op<T,amrex::Greater<T>>()), comm);
 #else
         amrex::ignore_unused(vi, comm);
 #endif
@@ -141,7 +141,7 @@ namespace ParallelAllReduce {
         using T = ValLocPair<TV,TI>;
         MPI_Allreduce(&tmp, &vi, 1,
                       ParallelDescriptor::Mpi_typemap<T>::type(),
-                      ParallelDescriptor::Mpi_op<T,amrex::Less<T>>(), comm);
+                      (ParallelDescriptor::Mpi_op<T,amrex::Less<T>>()), comm);
 #else
         amrex::ignore_unused(vi, comm);
 #endif
@@ -208,7 +208,7 @@ namespace ParallelReduce {
         using T = ValLocPair<TV,TI>;
         MPI_Reduce(&tmp, &vi, 1,
                    ParallelDescriptor::Mpi_typemap<T>::type(),
-                   ParallelDescriptor::Mpi_op<T,amrex::Greater<T>>(),
+                   (ParallelDescriptor::Mpi_op<T,amrex::Greater<T>>()),
                    root, comm);
 #else
         amrex::ignore_unused(vi, root, comm);
@@ -222,7 +222,7 @@ namespace ParallelReduce {
         using T = ValLocPair<TV,TI>;
         MPI_Reduce(&tmp, &vi, 1,
                    ParallelDescriptor::Mpi_typemap<T>::type(),
-                   ParallelDescriptor::Mpi_op<T,amrex::Less<T>>(),
+                   (ParallelDescriptor::Mpi_op<T,amrex::Less<T>>()),
                    root, comm);
 #else
         amrex::ignore_unused(vi, root, comm);

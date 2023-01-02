@@ -279,7 +279,7 @@ if (AMReX_HIP)
        # else there will be a runtime issue (cannot find
        # missing gpu devices)
        target_compile_options(amrex PUBLIC
-          $<$<COMPILE_LANGUAGE:CXX>:--amdgpu-target=${AMReX_AMD_ARCH_HIPCC}>)
+          $<$<COMPILE_LANGUAGE:CXX>:--offload-arch=${AMReX_AMD_ARCH_HIPCC}>)
    endif()
 
    target_compile_options(amrex PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-m64>)

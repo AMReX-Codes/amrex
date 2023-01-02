@@ -16,11 +16,7 @@ class Any
 {
 public:
 
-    //! Default constructor.  By default it stores an int.
-    Any ()
-        : m_ptr(std::make_unique<innards<int> >(0))
-        {}
-
+    Any () = default;
     ~Any () = default;
 
     Any (Any const& rhs) = delete;
@@ -43,7 +39,11 @@ public:
 
     //! Returns the contained type.
     const std::type_info& Type () const {
-        return m_ptr->Type();
+        if (m_ptr) {
+            return m_ptr->Type();
+        } else {
+            return typeid(void);
+        }
     }
 
     //! Returns a reference to the contained object.
@@ -69,7 +69,9 @@ public:
     }
 
     template <typename MF>
-    bool is () const { return m_ptr->Type() == typeid(MF); }
+    bool is () const { return Type() == typeid(MF); }
+
+    bool hasValue () const { return m_ptr != nullptr; }
 
 private:
     struct innards_base {

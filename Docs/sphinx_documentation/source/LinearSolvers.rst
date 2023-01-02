@@ -368,8 +368,9 @@ Available choices are
 - :cpp:`LPInfo::setConsolidation(bool)` (by default true) can be used
   continue to transfer a multigrid problem to fewer MPI ranks.
   There are more setting sucsh as :cpp:`LPInfo::setConsolidationGridSize(int)`,
-  :cpp:`consolidation_threshold`, :cpp:`consolidation_ratio`, and
-  :cpp:`consolidation_strategy`, to give control over how this process works.
+  :cpp:`LPInfo::setConsolidationRatio(int)`, and
+  :cpp:`LPInfo::setConsolidationStrategy(int)`, to give control over how this
+  process works.
 
 Boundary Stencils for Cell-Centered Solvers
 ===========================================

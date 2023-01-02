@@ -150,15 +150,12 @@ MLNodeLaplacian::resizeMultiGrid (int new_size)
 }
 
 void
-MLNodeLaplacian::unimposeNeumannBC (int amrlev, Any& a_rhs) const
+MLNodeLaplacian::unimposeNeumannBC (int amrlev, MultiFab& rhs) const
 {
     if (m_coarsening_strategy == CoarseningStrategy::RAP) {
         const Box& nddom = amrex::surroundingNodes(Geom(amrlev).Domain());
         const auto lobc = LoBC();
         const auto hibc = HiBC();
-
-        AMREX_ASSERT(a_rhs.is<MultiFab>());
-        MultiFab& rhs = a_rhs.get<MultiFab>();
 
         MFItInfo mfi_info;
         if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
@@ -175,16 +172,13 @@ MLNodeLaplacian::unimposeNeumannBC (int amrlev, Any& a_rhs) const
 }
 
 Vector<Real>
-MLNodeLaplacian::getSolvabilityOffset (int amrlev, int mglev, Any const& a_rhs) const
+MLNodeLaplacian::getSolvabilityOffset (int amrlev, int mglev, MultiFab const& rhs) const
 {
     amrex::ignore_unused(amrlev);
     AMREX_ASSERT(amrlev==0 && (mglev+1==m_num_mg_levels[0] || mglev==0));
     AMREX_ASSERT(getNComp() == 1);
 
     if (m_coarsening_strategy == CoarseningStrategy::RAP) {
-        AMREX_ASSERT(a_rhs.is<MultiFab>());
-        auto const& rhs = a_rhs.get<MultiFab>();
-
 #ifdef AMREX_USE_EB
         auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
         if (mglev == 0 && factory && !factory->isAllRegular()) {
@@ -288,16 +282,14 @@ MLNodeLaplacian::getSolvabilityOffset (int amrlev, int mglev, Any const& a_rhs) 
             return {s1/s2};
         }
     } else {
-        return MLNodeLinOp::getSolvabilityOffset(amrlev, mglev, a_rhs);
+        return MLNodeLinOp::getSolvabilityOffset(amrlev, mglev, rhs);
     }
 }
 
 void
-MLNodeLaplacian::fixSolvabilityByOffset (int amrlev, int mglev, Any& a_rhs,
+MLNodeLaplacian::fixSolvabilityByOffset (int amrlev, int mglev, MultiFab& rhs,
                                          Vector<Real> const& a_offset) const
 {
-    AMREX_ASSERT(a_rhs.is<MultiFab>());
-    auto& rhs = a_rhs.get<MultiFab>();
     Real offset = a_offset[0];
 
     if (m_coarsening_strategy == CoarseningStrategy::RAP) {
@@ -499,7 +491,11 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
 
     const auto& stencil = m_stencil[amrlev][cmglev-1];
 
-    bool regular_coarsening = true; int idir = 2;
+    bool regular_coarsening = true;
+#if (AMREX_SPACEDIM == 1)
+    int idir = 0;
+#else
+    int idir = 2;
     if (cmglev > 0) {
         regular_coarsening = mg_coarsen_ratio_vec[cmglev-1] == mg_coarsen_ratio;
         IntVect ratio = mg_coarsen_ratio_vec[cmglev-1];
@@ -509,6 +505,7 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
             idir = 0;
         }
     }
+#endif
 
 #ifdef AMREX_USE_GPU
     auto pcrse_ma = pcrse->arrays();
@@ -607,7 +604,11 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
 
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][fmglev];
 
-    bool regular_coarsening = true; int idir = 2;
+    bool regular_coarsening = true;
+#if (AMREX_SPACEDIM == 1)
+    int idir = 0;
+#else
+    int idir = 2;
     if (fmglev > 0) {
         regular_coarsening = mg_coarsen_ratio_vec[fmglev] == mg_coarsen_ratio;
         IntVect ratio = mg_coarsen_ratio_vec[fmglev];
@@ -617,6 +618,7 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
             idir = 0;
         }
     }
+#endif
     if (sigma[0] == nullptr) {
         AMREX_ALWAYS_ASSERT(regular_coarsening);
     }

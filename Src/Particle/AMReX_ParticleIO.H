@@ -842,11 +842,22 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 
             ParticleFile.seekg(where[grid], std::ios::beg);
 
+            // Use if constexpr to avoid instantiating the mis-matched
+            // type case and triggering the static_assert on the
+            // underlying copy calls
             if (how == "single") {
-                ReadParticles<float>(count[grid], grid, lev, ParticleFile, finest_level_in_file, convert_ids);
+                if constexpr (std::is_same_v<ParticleReal, float>) {
+                    ReadParticles<float>(count[grid], grid, lev, ParticleFile, finest_level_in_file, convert_ids);
+                } else {
+                    amrex::Error("File contains single-precision data, while AMReX is compiled with ParticleReal==double");
+                }
             }
             else if (how == "double") {
-                ReadParticles<double>(count[grid], grid, lev, ParticleFile, finest_level_in_file, convert_ids);
+                if constexpr (std::is_same_v<ParticleReal, double>) {
+                    ReadParticles<double>(count[grid], grid, lev, ParticleFile, finest_level_in_file, convert_ids);
+                } else {
+                    amrex::Error("File contains double-precision data, while AMReX is compiled with ParticleReal==float");
+                }
             }
             else {
                 std::string msg("ParticleContainer::Restart(): bad parameter: ");
@@ -916,7 +927,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
     host_particles.resize(finest_level_in_file+1);
 
     Vector<std::map<std::pair<int, int>,
-                    std::vector<Gpu::HostVector<Real> > > > host_real_attribs;
+                    std::vector<Gpu::HostVector<RTYPE> > > > host_real_attribs;
     host_real_attribs.reserve(15);
     host_real_attribs.resize(finest_level_in_file+1);
 
@@ -972,7 +983,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 
         // add the real...
         for (int icomp = 0; icomp < NumRealComps(); icomp++) {
-            host_real_attribs[lev][ind][icomp].push_back(ParticleReal(*rptr));
+            host_real_attribs[lev][ind][icomp].push_back(*rptr);
             ++rptr;
         }
 

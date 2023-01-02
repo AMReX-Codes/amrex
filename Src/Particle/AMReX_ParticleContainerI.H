@@ -2093,7 +2093,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
         host_particles.resize(finestLevel()+1);
 
         Vector<std::map<std::pair<int, int>,
-                        std::vector<Gpu::HostVector<Real> > > > host_real_attribs;
+                        std::vector<Gpu::HostVector<ParticleReal> > > > host_real_attribs;
         host_real_attribs.reserve(15);
         host_real_attribs.resize(finestLevel()+1);
 

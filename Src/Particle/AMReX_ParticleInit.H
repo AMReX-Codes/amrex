@@ -273,7 +273,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
         host_particles.reserve(15);
         host_particles.resize(finestLevel()+1);
 
-        Vector<std::map<std::pair<int, int>, std::array<Gpu::HostVector<Real>, NArrayReal > > > host_real_attribs;
+        Vector<std::map<std::pair<int, int>, std::array<Gpu::HostVector<ParticleReal>, NArrayReal > > > host_real_attribs;
         host_real_attribs.reserve(15);
         host_real_attribs.resize(finestLevel()+1);
 
@@ -361,7 +361,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
         host_particles.reserve(15);
         host_particles.resize(finestLevel()+1);
 
-        Vector<std::map<std::pair<int, int>, std::array<Gpu::HostVector<Real>, NArrayReal > > > host_real_attribs;
+        Vector<std::map<std::pair<int, int>, std::array<Gpu::HostVector<ParticleReal>, NArrayReal > > > host_real_attribs;
         host_real_attribs.reserve(15);
         host_real_attribs.resize(finestLevel()+1);
 
@@ -1451,7 +1451,7 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
         host_particles.reserve(15);
         host_particles.resize(finestLevel()+1);
 
-        Vector<std::map<std::pair<int, int>, std::array<Gpu::HostVector<Real>, NArrayReal > > > host_real_attribs;
+        Vector<std::map<std::pair<int, int>, std::array<Gpu::HostVector<ParticleReal>, NArrayReal > > > host_real_attribs;
         host_real_attribs.reserve(15);
         host_real_attribs.resize(finestLevel()+1);
 

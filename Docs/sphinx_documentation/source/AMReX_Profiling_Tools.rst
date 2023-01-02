@@ -428,6 +428,32 @@ in the ``bl_proffortfuncstart_int/bl_proffortfuncstop_int`` calls.
    You will need to turn on the Full Profiler to receive the results from
    fortran instrumentation.
 
+.. _sec:profopts:
+
+Profiling Options
+=================
+
+AMReX's communication algorithms are often regions of code that increase in wall clock time
+when the application is load imbalanced, due to the MPI_Wait calls in these functions.
+To better understand if this is occuring and by how much, you can turn on an AMReX timed
+synchronization with the runtime variable: ``amrex.use_profiler_syncs=1`` This adds named timers
+beginning with ``SyncBeforeComms`` immediately prior to the start of the FillBoundary,
+ParallelCopy and particle Redistribute functions, isolating any prior load imbalance to that timer
+before beginning the comm operation.
+
+This is a diagnostic tool and may slow your code down, so it is not recommended to turn this
+on for production runs.
+
+.. note::
+  Note: the ``SyncBeforeComms`` timer is not equal to your load imbalance. It only captures imbalance
+  between the comm functions and the previous sync point; there may be other load imbalances
+  captured elsewhere. Also, the timer reports in terms of MPI rank, so if the most imbalanced
+  rank changes throughout the simulation, the timer will be an underestimation.
+
+  The effect on the communication timers may be more helpful: they will show the time to complete
+  communications if there was no load imbalance. This means the difference between a case
+  with and without this profiler sync may be a more useful metric for analysis.
+
 .. _sec:amrprofparse:
 
 AMRProfParser

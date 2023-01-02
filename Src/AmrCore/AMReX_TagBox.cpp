@@ -55,7 +55,7 @@ TagBox::coarsen (const IntVect& ratio, const Box& cbox) noexcept
                 for (int ioff = 0; ioff < r.x; ++ioff) {
                     int ii = i*r.x + ioff;
                     if (fdomain.contains(IntVect(AMREX_D_DECL(ii,jj,kk)))) {
-                        t = t || farr(ii,jj,kk);
+                        t = std::max(t, farr(ii,jj,kk));
                     }
                 }
             }

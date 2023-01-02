@@ -9,6 +9,7 @@
 #include <AMReX_Vector.H>
 #include <AMReX_Box.H>
 #include <AMReX_BoxArray.H>
+#include <AMReX_Demangle.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Random.H>
@@ -24,6 +25,7 @@
 #include <map>
 #include <sstream>
 #include <string>
+#include <typeinfo>
 #include <type_traits>
 
 namespace amrex

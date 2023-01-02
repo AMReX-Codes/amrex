@@ -1,0 +1,59 @@
+name: Hypre
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-hypre
+  cancel-in-progress: true
+
+jobs:
+  compile-hypre-cuda-eb-2d:
+    name: CUDA EB 2D Hypre@2.26.0
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v3
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/dependencies_nvcc11.sh
+        sudo apt-get install -y libcublas-dev-11-2 libcusparse-dev-11-2
+    - name: Build Hypre
+      run: |
+        wget -q https://github.com/hypre-space/hypre/archive/refs/tags/v2.26.0.tar.gz
+        tar xfz v2.26.0.tar.gz
+        cd hypre-2.26.0/src
+        ./configure --with-cxxstandard=17 --with-cuda --enable-unified-memory \
+            --with-cuda-home=/usr/local/cuda --with-gpu-arch="80"
+        make -j 2
+        make install
+        cd ../../
+    - name: Compile Test
+      run: |
+        export AMREX_HYPRE_HOME=${PWD}/hypre-2.26.0/src/hypre
+        export AMREX_CUDA_ARCH=80
+        export CUDA_PATH=/usr/local/cuda
+        export PATH=${PATH}:/usr/local/cuda/bin
+        cd Tests/LinearSolvers/CellEB
+        make -j2 USE_MPI=TRUE USE_HYPRE=TRUE DIM=2 USE_CUDA=TRUE
+
+  test-hypre-cpu-3d:
+    name: GCC 3D Hypre@2.21.0
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+    - name: Build Hypre
+      run: |
+        wget -q https://github.com/hypre-space/hypre/archive/refs/tags/v2.21.0.tar.gz
+        tar xfz v2.21.0.tar.gz
+        cd hypre-2.21.0/src
+        ./configure --with-cxxstandard=17 --enable-bigint
+        make -j 2
+        make install
+        cd ../../
+    - name: Build and Run Test
+      run: |
+        export AMREX_HYPRE_HOME=${PWD}/hypre-2.21.0/src/hypre
+        cd Tests/LinearSolvers/ABecLaplacian_C
+        make -j2 USE_MPI=TRUE USE_HYPRE=TRUE DIM=3
+        mpiexec -n 2 ./main3d.gnu.MPI.ex inputs.hypre

@@ -65,7 +65,11 @@ StreamIter::init() noexcept
 StreamIter::~StreamIter () {
 #ifdef AMREX_USE_GPU
     if (m_sync) {
-        Gpu::streamSynchronizeAll();
+        const int nstreams = std::min(m_n, Gpu::numGpuStreams());
+        for (int i = 0; i < nstreams; ++i) {
+            Gpu::Device::setStreamIndex(i);
+            Gpu::streamSynchronize();
+        }
     }
     AMREX_GPU_ERROR_CHECK();
     Gpu::Device::resetStreamIndex();

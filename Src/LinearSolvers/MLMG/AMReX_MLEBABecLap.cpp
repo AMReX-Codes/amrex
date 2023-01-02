@@ -603,7 +603,7 @@ MLEBABecLap::averageDownCoeffs ()
         auto& fine_b_coeffs = m_b_coeffs[amrlev];
 
         averageDownCoeffsSameAmrLevel(amrlev, fine_a_coeffs, fine_b_coeffs,
-                                      amrex::GetVecOfPtrs(m_eb_b_coeffs[0]));
+                                      amrex::GetVecOfPtrs(m_eb_b_coeffs[amrlev]));
         averageDownCoeffsToCoarseAmrLevel(amrlev);
     }
 
@@ -853,7 +853,10 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
     AMREX_D_TERM(Real dhx = m_b_scalar*dxinvarray[0]*dxinvarray[0];,
                  Real dhy = m_b_scalar*dxinvarray[1]*dxinvarray[1];,
                  Real dhz = m_b_scalar*dxinvarray[2]*dxinvarray[2];);
-
+#if (AMREX_SPACEDIM == 2)
+    const auto dxarray = m_geom[amrlev][mglev].CellSizeArray();
+    const Real dh = m_b_scalar*AMREX_D_TERM(dxinvarray[0], *dxinvarray[1], *dxinvarray[2]);
+#endif
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
@@ -918,6 +921,7 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
             {
                 mlebabeclap_normalize(tbx, fab, ascalar, afab,
                                       AMREX_D_DECL(dhx, dhy, dhz),
+                                      AMREX_2D_ONLY_ARGS(dh, dxarray)
                                       AMREX_D_DECL(bxfab, byfab, bzfab),
                                       ccmfab, flagfab, vfracfab,
                                       AMREX_D_DECL(apxfab,apyfab,apzfab),

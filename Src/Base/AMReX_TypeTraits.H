@@ -22,7 +22,9 @@ namespace amrex
                             std::is_base_of<BaseFab<typename D::value_type>,
                                             D>::value>::type>
         : std::true_type {};
-
+    //
+    template <class A>
+    inline constexpr bool IsBaseFab_v = IsBaseFab<A>::value;
 
     template <class A, class Enable = void> struct IsFabArray : std::false_type {};
     //
@@ -31,6 +33,9 @@ namespace amrex
                              std::is_base_of<FabArray<typename D::FABType::value_type>,
                                              D>::value>::type>
         : std::true_type {};
+    //
+    template <class A>
+    inline constexpr bool IsFabArray_v = IsFabArray<A>::value;
 
     template <bool B, class T = void>
     using EnableIf_t = typename std::enable_if<B,T>::type;

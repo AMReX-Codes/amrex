@@ -26,8 +26,11 @@ PlotFileDataImpl::PlotFileDataImpl (std::string const& plotfile_name)
 
     is >> m_ncomp;
     m_var_names.resize(m_ncomp);
+    GotoNextLine(is); // This is needed, otherwise the next getline will get an empty string.
     for (int i = 0; i < m_ncomp; ++i) {
-        is >> m_var_names[i];
+        std::string tmp;
+        std::getline(is, tmp);
+        m_var_names[i] = amrex::trim(tmp);
     }
 
     is >> m_spacedim >> m_time >> m_finest_level;
