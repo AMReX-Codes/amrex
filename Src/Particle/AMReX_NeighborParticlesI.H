@@ -840,7 +840,7 @@ template <class CheckPair>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 buildNeighborList (CheckPair&& check_pair, int type_ind, int* ref_ratio,
-                   int num_bin_types, bool sort)
+                   int num_bin_types, bool /*sort*/)
 {
     AMREX_ASSERT(numParticlesOutOfRange(*this, m_num_neighbor_cells) == 0);
 
@@ -949,34 +949,6 @@ buildNeighborList (CheckPair&& check_pair, int type_ind, int* ref_ratio,
                                               std::forward<CheckPair>(check_pair),
                                               off_bins_v, dxi_v, plo_v, lo_v, hi_v,
                                               ng, num_bin_types, bin_type_array);
-
-            if(sort) {
-                BL_PROFILE_VAR("CPU_SortNeighborList()",CPUSNL);
-
-                const auto& offset = m_neighbor_list[lev][index].GetOffsets();
-                auto& nlist        = m_neighbor_list[lev][index].GetList();
-                int npar = offset.size() - 1;
-                for (int i = 0; i < npar; ++i) {
-
-                    unsigned int size = offset[i+1] - offset[i];
-                    Gpu::HostVector<unsigned int> nbor_list_sort(size);
-                    int k = 0;
-                    for (unsigned int j = offset[i]; j < offset[i+1]; ++j) {
-                        nbor_list_sort[k] = nlist[j];
-                        ++k;
-                    }
-
-                    std::sort(nbor_list_sort.begin(), nbor_list_sort.end());
-
-                      k = 0;
-                      for (unsigned int j = offset[i]; j < offset[i+1]; ++j) {
-                          nlist[j] = nbor_list_sort[k];
-                          ++k;
-                      }
-                  }
-
-                BL_PROFILE_VAR_STOP(CPUSNL);
-              }
 
 #ifndef AMREX_USE_GPU
               BL_PROFILE_VAR("CPU_CopyNeighborList()",CPUCNL);

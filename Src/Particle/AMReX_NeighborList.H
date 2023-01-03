@@ -249,6 +249,27 @@ public:
 
     template <class PTile, class CheckPair>
     void build (PTile& ptile,
+                const amrex::Box& bx, const amrex::Geometry& geom,
+                CheckPair&& check_pair, int num_cells=1)
+    {
+        Gpu::DeviceVector<int> off_bins_v;
+        Gpu::DeviceVector<Dim3>      lo_v;
+        Gpu::DeviceVector<Dim3>      hi_v;
+        Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> dxi_v;
+        Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> plo_v;
+        off_bins_v.push_back(0);
+        off_bins_v.push_back(bx.numPts());
+        lo_v.push_back(lbound(bx));
+        hi_v.push_back(ubound(bx));
+        dxi_v.push_back(geom.InvCellSizeArray());
+        plo_v.push_back(geom.ProbLoArray());
+
+        build(ptile, ptile, check_pair, off_bins_v, dxi_v, plo_v,
+              lo_v, hi_v, num_cells, 1, nullptr );
+    }
+
+    template <class PTile, class CheckPair>
+    void build (PTile& ptile,
                 CheckPair&& check_pair,
                 const Gpu::DeviceVector<int>& off_bins_v,
                 const Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>>& dxi_v,
