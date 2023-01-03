@@ -421,8 +421,7 @@ namespace Gpu {
               typename T = typename std::iterator_traits<IT>::value_type,
               std::enable_if_t<(sizeof(T) <= 36*8) &&  // so there is enough shared memory
                                std::is_trivially_copyable_v<T> &&
-                               // std::is_invocable_v<F, T&, Long>,       // HIP does not like this.
-                               !std::is_convertible_v<std::decay_t<F>,T>, // So we use this instead.
+                               amrex::IsCallable<F, T&, Long>::value,
                                int> FOO = 0>
     void fillAsync (IT first, IT last, F&& f) noexcept
     {
