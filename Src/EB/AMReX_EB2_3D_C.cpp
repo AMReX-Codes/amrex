@@ -56,9 +56,9 @@ void set_eb_data (const int i, const int j, const int k,
                        azp >= 0.5_rt && azp < 1.0_rt);
     // Secondly, we also need to check if area fractions became 0
     // at any opposite face when building the faces
-    if (axm == 0.0_rt && axp == 0.0_rt ||
-        aym == 0.0_rt && ayp == 0.0_rt ||
-        azm == 0.0_rt && azp == 0.0_rt) {
+    if ((axm == 0.0_rt && axp == 0.0_rt) ||
+        (aym == 0.0_rt && ayp == 0.0_rt) ||
+        (azm == 0.0_rt && azp == 0.0_rt)) {
         multi_cuts = true;
     }
 
