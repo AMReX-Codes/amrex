@@ -58,6 +58,7 @@ namespace Gpu {
 
 int Device::device_id = 0;
 int Device::num_devices_used = 0;
+int Device::num_device_partners = 1;
 int Device::verbose = 0;
 #ifdef AMREX_USE_GPU
 int Device::max_gpu_streams = 4;
@@ -120,6 +121,7 @@ namespace {
 void
 Device::Initialize ()
 {
+#ifdef AMREX_USE_GPU
 
 #if defined(AMREX_USE_CUDA) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
     // Wrap cuda init to identify it appropriately in nvvp.
@@ -213,8 +215,10 @@ Device::Initialize ()
 
 #if defined(AMREX_USE_CUDA)
 #if (!defined(AMREX_GPUS_PER_SOCKET) && !defined(AMREX_GPUS_PER_NODE))
-        amrex::Warning("Multiple GPUs are visible to each MPI rank, but the number of GPUs per socket or node has not been provided.\n"
-                       "This may lead to incorrect or suboptimal rank-to-GPU mapping.");
+        if (amrex::Verbose()) {
+            amrex::Warning("Multiple GPUs are visible to each MPI rank, but the number of GPUs per socket or node has not been provided.\n"
+                           "This may lead to incorrect or suboptimal rank-to-GPU mapping.");
+        }
 #endif
 #endif
 
@@ -256,7 +260,7 @@ Device::Initialize ()
         // that this will fail in the case where the devices are
         // set to exclusive process mode and MPS is not enabled.
 
-        if (n_local_procs > gpu_device_count) {
+        if (n_local_procs > gpu_device_count && amrex::Verbose()) {
             amrex::Print() << "Mapping more than one rank per GPU. This will fail if the GPUs are in exclusive process mode\n"
                            << "and MPS is not enabled. In that case you will see an error such as: 'all CUDA-capable devices are\n"
                            << "busy'. To resolve that issue, set the GPUs to the default compute mode, or enable MPS. If you are\n"
@@ -276,88 +280,109 @@ Device::Initialize ()
 
     initialize_gpu();
 
+    num_devices_used = ParallelDescriptor::NProcs();
+
+#ifdef AMREX_USE_MPI
+    if (ParallelDescriptor::NProcs() > 1) {
+
+#if defined(HIP_VERSION_MAJOR) && defined(HIP_VERSION_MINOR) && ((HIP_VERSION_MAJOR < 5) || ((HIP_VERSION_MAJOR == 5) && (HIP_VERSION_MINOR < 2)))
+
+        // hip < 5.2: uuid not supported
+        num_device_partners = 1;
+
+#elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+
+        constexpr int len = 16;
+        static_assert(std::is_same<decltype(AMREX_HIP_OR_CUDA(hipUUID,cudaUUID_t)::bytes),
+                                   char[len]>());
+        std::vector<char> buf(ParallelDescriptor::NProcs()*len);
+        char* pbuf = buf.data();
 #ifdef AMREX_USE_CUDA
-
-    // Count up the total number of devices used by
-    // all MPI ranks. Since we have to consider the
-    // case of multiple ranks per GPU, we cannot simply
-    // set it to the number of MPI ranks. A reliable way
-    // to do this instead is to collect the UUID of each
-    // GPU used by every rank, perform a gather, and then
-    // count the number of unique UUIDs in the result.
-
-    // Note: the field we need from the CUDA device properties
-    // is only available starting from CUDA 10.0, so we will
-    // leave num_devices_used as 0 for older CUDA toolkits.
-
-    size_t uuid_length = 16;
-    size_t recv_sz = uuid_length * ParallelDescriptor::NProcs();
-    const char* sendbuf = &device_prop.uuid.bytes[0];
-    char* recvbuf = new char[recv_sz];
-
-    ParallelDescriptor::Gather<char,char>(sendbuf, uuid_length,
-                                          recvbuf, uuid_length,
-                                          ParallelDescriptor::IOProcessorNumber());
-
-    if (ParallelDescriptor::IOProcessor()) {
-        std::unordered_set<std::string> uuids;
-        for (int i = 0; i < ParallelDescriptor::NProcs(); ++i) {
-            std::string uuid(&recvbuf[16 * i], 16);
-            if (uuids.find(uuid) == uuids.end()) {
-                uuids.insert(uuid);
-            }
-        }
-        num_devices_used = uuids.size();
-    }
-    ParallelDescriptor::Bcast<int>(&num_devices_used, 1);
-
-    delete[] recvbuf;
-
-#if (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
-    nvtxRangePop();
+        auto const& uuid = device_prop.uuid;
+#else
+        hipUUID uuid;
+        AMREX_HIP_SAFE_CALL(hipDeviceGetUuid(&uuid, device_id));
 #endif
-    if (amrex::Verbose()) {
-#if defined(AMREX_USE_MPI)
-        if (num_devices_used == ParallelDescriptor::NProcs())
-        {
-            amrex::Print() << "CUDA initialized with 1 GPU per MPI rank; "
-                           << num_devices_used << " GPU(s) used in total\n";
+        char const* sbuf = uuid.bytes;
+        MPI_Allgather(sbuf, len, MPI_CHAR, pbuf, len, MPI_CHAR,
+                      ParallelDescriptor::Communicator());
+        std::map<std::string,int> uuid_counts;
+        std::string my_uuid;
+        for (int i = 0; i < ParallelDescriptor::NProcs(); ++i) {
+            std::string iuuid(pbuf+i*len, len);
+            if (i == ParallelDescriptor::MyProc()) {
+                my_uuid = iuuid;
+            }
+            ++uuid_counts[iuuid];
         }
-        else
-        {
-            amrex::Print() << "CUDA initialized with " << num_devices_used << " GPU(s) and "
-                           << ParallelDescriptor::NProcs() << " ranks.\n";
+        num_devices_used = uuid_counts.size();
+        num_device_partners = uuid_counts[my_uuid];
+
+#elif defined(AMREX_USE_DPCPP)
+
+#if 0
+        auto const& d = *sycl_device;
+        if (d.has(sycl::aspect::ext_intel_device_info_uuid)) {
+            auto uuid = d.get_info<sycl::ext::intel::info::device::uuid>();
+            using id_t = decltype(uuid); // std::array<unsigned char,16>
+            using char_t = id_t::value_type; // unsigned char
+            int len = std::tuple_size<id_t>::value;
+            std::vector<char_t> buf(ParallelDescriptor::NProcs()*len);
+            char_t* pbuf = buf.data();
+            MPI_Allgather(uuid.data(), len,
+                          ParallelDescriptor::Mpi_typemap<char_t>::type(),
+                          pbuf, len,
+                          ParallelDescriptor::Mpi_typemap<char_t>::type(),
+                          ParallelDescriptor::Communicator());
+            using str_t = std::basic_string<char_t>;
+            std::map<str_t,int> uuid_counts;
+            str_t my_uuid;
+            for (int i = 0; i < ParallelDescriptor::NProcs(); ++i) {
+                str_t iuuid(pbuf+i*len, len);
+                if (i == ParallelDescriptor::MyProc()) {
+                    my_uuid = iuuid;
+                }
+                ++uuid_counts[iuuid];
+            }
+            num_devices_used = uuid_counts.size();
+            num_device_partners = uuid_counts[my_uuid];
         }
 #else
-        amrex::Print() << "CUDA initialized with 1 GPU\n";
-#endif // AMREX_USE_MPI
+        num_device_partners = 1;  // xxxxx DPCPP: todo, also check memory available when implicit scaling is off.
+#endif
+
+#endif
+
+        AMREX_ALWAYS_ASSERT(num_device_partners > 0);
+    }
+#endif /* AMREX_USE_MPI */
+
+    if (amrex::Verbose()) {
+#if defined(AMREX_USE_CUDA)
+        amrex::Print() << "CUDA"
+#elif defined(AMREX_USE_HIP)
+        amrex::Print() << "HIP"
+#elif defined(AMREX_USE_DPCPP)
+        amrex::Print() << "SYCL"
+#endif
+                       << " initialized with " << num_devices_used
+                       << ((num_devices_used == 1) ? " device.\n"
+                                                   : " devices.\n");
     }
 
-#elif defined(AMREX_USE_HIP)
-    if (amrex::Verbose()) {
-        if (ParallelDescriptor::NProcs() > 1) {
-#ifdef BL_USE_MPI
-            amrex::Print() << "HIP initialized.  On the first node/socket, there are "
-                           << n_local_procs << " processes and " << gpu_device_count << " GPUs\n";
-#endif
-        } else {
-            amrex::Print() << "HIP initialized.\n";
-        }
-    }
-#elif defined(AMREX_USE_DPCPP)
-    if (amrex::Verbose()) {
-        amrex::Print() << "oneAPI initialized.\n";
-    }
+#if defined(AMREX_USE_CUDA) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
+    nvtxRangePop();
 #endif
 
     Device::profilerStart();
 
+#endif /* AMREX_USE_GPU */
 }
 
 void
 Device::Finalize ()
 {
-
+#ifdef AMREX_USE_GPU
     Device::profilerStop();
 
     for (int i = 0; i < max_gpu_streams; ++i)
@@ -378,6 +403,8 @@ Device::Finalize ()
 
 #ifdef AMREX_USE_ACC
     amrex_finalize_acc();
+#endif
+
 #endif
 }
 
@@ -541,6 +568,11 @@ int
 Device::numDevicesUsed () noexcept
 {
     return num_devices_used;
+}
+
+int Device::numDevicePartners () noexcept
+{
+    return num_device_partners;
 }
 
 #ifdef AMREX_USE_GPU

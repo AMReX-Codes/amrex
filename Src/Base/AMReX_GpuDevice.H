@@ -77,7 +77,8 @@ public:
 #endif
 
     static int deviceId () noexcept;
-    static int numDevicesUsed () noexcept;
+    static int numDevicesUsed () noexcept; // Total number of device used
+    static int numDevicePartners () noexcept; // Number of partners sharing my device
 
     /**
      * Halt execution of code until GPU has finished processing all previously requested
@@ -168,6 +169,7 @@ private:
 
     static AMREX_EXPORT int device_id;
     static AMREX_EXPORT int num_devices_used;
+    static AMREX_EXPORT int num_device_partners;
     static AMREX_EXPORT int verbose;
     static AMREX_EXPORT int max_gpu_streams;
 
