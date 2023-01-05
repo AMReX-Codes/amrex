@@ -44,6 +44,21 @@ void set_eb_data (const int i, const int j, const int k,
     Real azm = apz(i,j,k);
     Real azp = apz(i,j,k+1);
 
+    // Check for small cell first
+    if (((axm == 0.0_rt && axp == 0.0_rt) &&
+         (aym == 0.0_rt && ayp == 0.0_rt) &&
+         (azm == 0.0_rt || azp == 0.0_rt)) ||
+        ((axm == 0.0_rt && axp == 0.0_rt) &&
+         (aym == 0.0_rt || ayp == 0.0_rt) &&
+         (azm == 0.0_rt && azp == 0.0_rt)) ||
+        ((axm == 0.0_rt || axp == 0.0_rt) &&
+         (aym == 0.0_rt && ayp == 0.0_rt) &&
+         (azm == 0.0_rt && azp == 0.0_rt))) {
+        set_covered(i, j, k, cell, vfrac, vcent, barea, bcent, bnorm);
+        is_small_cell = true;
+        return;
+    }
+
     // Check for multiple cuts
     // We know there are no multiple cuts on faces by now.
     // Firstly, we need to check the case that there are two cuts
