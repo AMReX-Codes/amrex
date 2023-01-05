@@ -132,17 +132,21 @@ class DistributionMapping
     //! Are the distributions different?
     bool operator!= (const DistributionMapping& rhs) const noexcept;
 
-    void SFCProcessorMap(const BoxArray& boxes, const std::vector<Long>& wgts, int nprocs,
-                         bool sort=true);
-    void SFCProcessorMap(const BoxArray& boxes, const std::vector<Long>& wgts, int nprocs,
-                         Real& efficiency, bool sort=true);
-    void KnapSackProcessorMap(const std::vector<Long>& wgts, int nprocs,
-                              Real* efficiency=0,
-                              bool do_full_knapsack=true,
-                              int nmax=std::numeric_limits<int>::max(),
-                              bool sort=true);
-    void RoundRobinProcessorMap(int nboxes, int nprocs, bool sort=true);
-    void RoundRobinProcessorMap(const std::vector<Long>& wgts, int nprocs, bool sort=true);
+    void SFCProcessorMap (const BoxArray& boxes, const std::vector<Long>& wgts, int nprocs,
+                          bool sort=true);
+    void SFCProcessorMap (const BoxArray& boxes, const std::vector<Long>& wgts, int nprocs,
+                          Real& efficiency, bool sort=true);
+    void KnapSackProcessorMap (const std::vector<Long>& wgts, int nprocs,
+                               Real* efficiency=0,
+                               bool do_full_knapsack=true,
+                               int nmax=std::numeric_limits<int>::max(),
+                               bool sort=true);
+    void KnapSackProcessorMap (const DistributionMapping& olddm,
+                               const std::vector<Long>& wgts, Real keep_ratio,
+                               Real& old_efficiency, Real& new_efficiency,
+                               int nmax=std::numeric_limits<int>::max());
+    void RoundRobinProcessorMap (int nboxes, int nprocs, bool sort=true);
+    void RoundRobinProcessorMap (const std::vector<Long>& wgts, int nprocs, bool sort=true);
 
     /**
     * \brief Initializes distribution strategy from ParmParse.
@@ -192,13 +196,16 @@ class DistributionMapping
      *            mapping
      * @param[in] root which process to collect the local costs from others and
      *            compute the proposed distribution mapping
+     * @param[in] keep_ratio controls the fraction of load that should be kept on
+     *            the original process.
      * @return the proposed load-balanced distribution mapping
      */
     static DistributionMapping makeKnapSack (const LayoutData<Real>& rcost_local,
                                              Real& currentEfficiency, Real& proposedEfficiency,
                                              int nmax=std::numeric_limits<int>::max(),
                                              bool broadcastToAll=true,
-                                             int root=ParallelDescriptor::IOProcessorNumber());
+                                             int root=ParallelDescriptor::IOProcessorNumber(),
+                                             Real keep_ratio = Real(0.0));
 
     static DistributionMapping makeRoundRobin (const MultiFab& weight);
     static DistributionMapping makeSFC (const MultiFab& weight, bool sort=true);
@@ -248,8 +255,9 @@ class DistributionMapping
      * @param[in,out] efficiency average cost per MPI process, as computed from
      *                the given distribution mapping and cost
      */
+    template <typename T>
     static void ComputeDistributionMappingEfficiency (const DistributionMapping& dm,
-                                                      const Vector<Real>& cost,
+                                                      const std::vector<T>& cost,
                                                       Real* efficiency);
 
 private:
@@ -404,6 +412,30 @@ DistributionMapping MakeSimilarDM (const BoxArray& ba, const MultiFab& mf, const
  */
 DistributionMapping MakeSimilarDM (const BoxArray& ba, const BoxArray& src_ba,
                                    const DistributionMapping& src_dm, const IntVect& ng);
+
+template <typename T>
+void DistributionMapping::ComputeDistributionMappingEfficiency (
+    const DistributionMapping& dm, const std::vector<T>& cost, Real* efficiency)
+{
+    const int nprocs = ParallelDescriptor::NProcs();
+    Vector<T> wgts(nprocs, T(0));
+
+    const Long nboxes = dm.size();
+    for (Long ibox = 0; ibox < nboxes; ++ibox) {
+        wgts[dm[ibox]] += cost[ibox];
+    }
+
+    T max_weight = 0;
+    T sum_weight = 0;
+    for (auto const& w : wgts) {
+        max_weight = std::max(w, max_weight);
+        sum_weight += w;
+    }
+
+    *efficiency = static_cast<Real>(sum_weight) /
+        (static_cast<Real>(nprocs) * static_cast<Real>(max_weight));
+}
+
 }
 
 #endif /*BL_DISTRIBUTIONMAPPING_H*/
