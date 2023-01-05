@@ -44,9 +44,24 @@ void set_eb_data (const int i, const int j, const int k,
     Real azm = apz(i,j,k);
     Real azp = apz(i,j,k+1);
 
+    // Check for small cell first
+    if (((axm == 0.0_rt && axp == 0.0_rt) &&
+         (aym == 0.0_rt && ayp == 0.0_rt) &&
+         (azm == 0.0_rt || azp == 0.0_rt)) ||
+        ((axm == 0.0_rt && axp == 0.0_rt) &&
+         (aym == 0.0_rt || ayp == 0.0_rt) &&
+         (azm == 0.0_rt && azp == 0.0_rt)) ||
+        ((axm == 0.0_rt || axp == 0.0_rt) &&
+         (aym == 0.0_rt && ayp == 0.0_rt) &&
+         (azm == 0.0_rt && azp == 0.0_rt))) {
+        set_covered(i, j, k, cell, vfrac, vcent, barea, bcent, bnorm);
+        is_small_cell = true;
+        return;
+    }
+
     // Check for multiple cuts
     // We know there are no multiple cuts on faces by now.
-    // Firstly, we need to check the case that there are two cuts
+    // We need to check the case that there are two cuts
     // at the opposite corners.
     bool multi_cuts = (axm >= 0.5_rt && axm < 1.0_rt &&
                        axp >= 0.5_rt && axp < 1.0_rt &&
@@ -54,13 +69,6 @@ void set_eb_data (const int i, const int j, const int k,
                        ayp >= 0.5_rt && ayp < 1.0_rt &&
                        azm >= 0.5_rt && azm < 1.0_rt &&
                        azp >= 0.5_rt && azp < 1.0_rt);
-    // Secondly, we also need to check if area fractions became 0
-    // at any opposite face when building the faces
-    if ((axm == 0.0_rt && axp == 0.0_rt) ||
-        (aym == 0.0_rt && ayp == 0.0_rt) ||
-        (azm == 0.0_rt && azp == 0.0_rt)) {
-        multi_cuts = true;
-    }
 
     if (multi_cuts) {
         set_covered(i, j, k, cell, vfrac, vcent, barea, bcent, bnorm);
@@ -72,8 +80,18 @@ void set_eb_data (const int i, const int j, const int k,
     Real dapy = aym - ayp;
     Real dapz = azm - azp;
     Real apnorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(apnorm != 0.0_rt,
-                                     "amrex::EB2:build_cells: apnorm==0");
+    if (apnorm == 0.0_rt) {
+        bool maybe_multi_cuts = (axm == 0.0_rt && axp == 0.0_rt) ||
+                                (aym == 0.0_rt && ayp == 0.0_rt) ||
+                                (azm == 0.0_rt && azp == 0.0_rt);
+        if (maybe_multi_cuts) {
+            set_covered(i, j, k, cell, vfrac, vcent, barea, bcent, bnorm);
+            is_multicut = true;
+            return;
+        } else {
+            amrex::Abort("amrex::EB2:build_cells: apnorm==0");
+        }
+    }
     Real apnorminv = 1.0_rt/apnorm;
     Real nx = dapx * apnorminv;
     Real ny = dapy * apnorminv;
