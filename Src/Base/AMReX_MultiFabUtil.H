@@ -419,7 +419,9 @@ void average_down (const FabArray<FAB>& S_fine, FabArray<FAB>& S_crse,
                                 amrex_avgdown_nodes(i,j,k,n,crsema[box_no],finema[box_no],scomp,scomp,ratio);
                             });
             }
-            Gpu::streamSynchronize();
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
         } else
 #endif
         {
@@ -468,7 +470,9 @@ void average_down (const FabArray<FAB>& S_fine, FabArray<FAB>& S_crse,
                                 amrex_avgdown_nodes(i,j,k,n,crsema[box_no],finema[box_no],0,scomp,ratio);
                             });
             }
-            Gpu::streamSynchronize();
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
         } else
 #endif
         {
@@ -669,7 +673,9 @@ void average_face_to_cellcenter (CMF& cc, int dcomp,
 #endif
                 );
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -769,7 +775,9 @@ void average_down_faces (const FabArray<FAB>& fine, FabArray<FAB>& crse,
             {
                 amrex_avgdown_faces(i,j,k,n, crsema[box_no], finema[box_no], 0, 0, ratio, dir);
             });
-            Gpu::streamSynchronize();
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
         } else
 #endif
         {
