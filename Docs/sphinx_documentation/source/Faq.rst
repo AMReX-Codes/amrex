@@ -151,7 +151,7 @@ different from the fine-grained approach?
 |
 
 **Q.** How to avoid running into :cpp:`Formal parameter space overflowed` CUDA error
-while building complex EB geometries using AMReX implicit function and CSG functionalities ?
+while building complex EB geometries using AMReX implicit functions and CSG functionalities ?
 
 **A.** AMReX enables logical operations and transformations to assemble basic shapes `Implicit Functions`_
 into complex geometries. Each operation results in a more complex type which can eventually overflow the
@@ -164,8 +164,8 @@ to the device and pass a device pointer function object `DevicePtrIF` into the `
  IF_t* dp = (IF_t*)The_Arena()->alloc(sizeof(myComplexIF));
  Gpu::htod_memcpy_async(dp, &myComplexIF, sizeof(IF_t));
  Gpu::streamSynchronize();
- DevicePtrIF<IF_t> dp_myComplexIF{dp};
- auto gshop = amrex::EB2::makeShop(dp_myComplexIF);
+ EB2::DevicePtrIF<IF_t> dp_myComplexIF{dp};
+ auto gshop = EB2::makeShop(dp_myComplexIF);
 
 .. _`Implicit Functions`: https://amrex-codes.github.io/amrex/docs_html/EB.html#initializing-the-geometric-database
 
