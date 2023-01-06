@@ -1,6 +1,8 @@
 #ifndef AMREX_EB2_IF_DEVICEPTR_H_
 #define AMREX_EB2_IF_DEVICEPTR_H_
 
+namespace amrex { namespace EB2 {
+
 template <typename T>
 class DevicePtrIF
     : public GPUable
@@ -23,4 +25,7 @@ public:
 protected:
     T* p = nullptr;
 };
+
+}}
+
 #endif
