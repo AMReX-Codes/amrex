@@ -149,6 +149,27 @@ different from the fine-grained approach?
 **A.** Our OpenMP strategy is explained in this paper, https://arxiv.org/abs/1604.03570.
 
 |
+
+**Q.** How to avoid running into :cpp:`Formal parameter space overflowed` CUDA error
+while building complex EB geometries using AMReX implicit functions and CSG functionalities ?
+
+**A.** AMReX enables logical operations and transformations to assemble basic shapes `Implicit Functions`_
+into complex geometries. Each operation results in a more complex type which can eventually overflow the
+parameter space (4096 bytes on CUDA 11.4 for instance). To circumvent the problem, explicitly copy the object
+to the device and pass a device pointer function object `DevicePtrIF` into the `EB2` function using:
+
+.. code-block::
+
+ using IF_t = decltype(myComplexIF);
+ IF_t* dp = (IF_t*)The_Arena()->alloc(sizeof(myComplexIF));
+ Gpu::htod_memcpy_async(dp, &myComplexIF, sizeof(IF_t));
+ Gpu::streamSynchronize();
+ EB2::DevicePtrIF<IF_t> dp_myComplexIF{dp};
+ auto gshop = EB2::makeShop(dp_myComplexIF);
+
+.. _`Implicit Functions`: https://amrex-codes.github.io/amrex/docs_html/EB.html#initializing-the-geometric-database
+
+|
 |
 
 More Questions

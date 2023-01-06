@@ -61,6 +61,7 @@ CEXE_headers += AMReX_EB2_IF_Difference.H
 CEXE_headers += AMReX_EB2_IF_Parser.H
 CEXE_headers += AMReX_EB2_IF.H
 CEXE_headers += AMReX_EB2_IF_Base.H
+CEXE_headers += AMReX_EB2_IF_DevicePtr.H
 
 CEXE_sources += AMReX_distFcnElement.cpp
 
