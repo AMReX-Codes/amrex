@@ -148,7 +148,9 @@ different from the fine-grained approach?
 
 **A.** Our OpenMP strategy is explained in this paper, https://arxiv.org/abs/1604.03570.
 
-**Q.** How to avoid running into `Formal parameter space overflowed` CUDA error
+|
+
+**Q.** How to avoid running into :cpp:`Formal parameter space overflowed` CUDA error
 while building complex EB geometries using AMReX implicit function and CSG functionalities ?
 
 **A.** AMReX enables logical operations and transformations to assemble basic shapes `Implicit Functions`_
