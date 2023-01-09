@@ -26,7 +26,7 @@ namespace Gpu {
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T LDG (Array4<T> const& a, int i, int j, int k) noexcept {
-#ifdef __CUDA_ARCH__
+#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA)
         return __ldg(a.ptr(i,j,k));
 #else
         return a(i,j,k);
@@ -36,7 +36,7 @@ namespace Gpu {
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T LDG (Array4<T> const& a, int i, int j, int k, int n) noexcept {
-#ifdef __CUDA_ARCH__
+#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA)
         return __ldg(a.ptr(i,j,k,n));
 #else
         return a(i,j,k,n);
@@ -139,7 +139,8 @@ namespace Gpu {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isnan (T m) noexcept
     {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
+    defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
         return ::isnan(m);
 #elif defined(__SYCL_DEVICE_ONLY__)
         return sycl::isnan(m);
@@ -152,7 +153,8 @@ namespace Gpu {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isinf (T m) noexcept
     {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
+    defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
         return ::isinf(m);
 #elif defined(__SYCL_DEVICE_ONLY__)
         return sycl::isinf(m);
@@ -207,7 +209,7 @@ namespace Gpu {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void* memcpy (void* dest, const void* src, std::size_t count)
 {
-#ifdef __HIP_DEVICE_COMPILE__
+#if defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
     return ::memcpy(dest, src, count);
 #else
     return std::memcpy(dest, src, count);

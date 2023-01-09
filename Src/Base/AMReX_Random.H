@@ -23,13 +23,13 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real Random (RandomEngine const& random_engine)
     {
-#if defined(__CUDA_ARCH__)
+#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA)
 #ifdef BL_USE_FLOAT
         return 1.0f - curand_uniform(random_engine.rand_state);
 #else
         return 1.0 - curand_uniform_double(random_engine.rand_state);
 #endif
-#elif defined(__HIP_DEVICE_COMPILE__)
+#elif defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
 #ifdef BL_USE_FLOAT
         return 1.0f - hiprand_uniform(random_engine.rand_state);
 #else
@@ -56,13 +56,13 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real RandomNormal (Real mean, Real stddev, RandomEngine const& random_engine)
     {
-#if defined(__CUDA_ARCH__)
+#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA)
 #ifdef BL_USE_FLOAT
         return stddev * curand_normal(random_engine.rand_state) + mean;
 #else
         return stddev * curand_normal_double(random_engine.rand_state) + mean;
 #endif
-#elif defined(__HIP_DEVICE_COMPILE__)
+#elif defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
 #ifdef BL_USE_FLOAT
         return stddev * hiprand_normal(random_engine.rand_state) + mean;
 #else
@@ -91,9 +91,9 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     unsigned int RandomPoisson (Real lambda, RandomEngine const& random_engine)
     {
-#if defined(__CUDA_ARCH__)
+#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA)
         return curand_poisson(random_engine.rand_state, lambda);
-#elif defined(__HIP_DEVICE_COMPILE__)
+#elif defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
         return hiprand_poisson(random_engine.rand_state, lambda);
 #elif defined (__SYCL_DEVICE_ONLY__)
         mkl::rng::device::poisson<unsigned int> distr(lambda);
