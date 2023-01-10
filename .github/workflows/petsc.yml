@@ -1,0 +1,32 @@
+name: PETSc
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-petsc
+  cancel-in-progress: true
+
+jobs:
+  test-petsc-cpu-2d:
+    name: GCC 2D EB PETSc@3.18.1
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+    - name: Build PETSc
+      run: |
+        wget -q https://github.com/petsc/petsc/archive/refs/tags/v3.18.1.tar.gz
+        tar xfz v3.18.1.tar.gz
+        cd petsc-3.18.1
+        export PETSC_DIR=${PWD}
+        ./configure --prefix=${PWD}/petsc
+        make -j 2
+        make install
+        cd ../
+    - name: Build and Run Test
+      run: |
+        export AMREX_PETSC_HOME=${PWD}/petsc-3.18.1/petsc
+        cd Tests/LinearSolvers/CellEB
+        make -j2 USE_MPI=TRUE USE_PETSC=TRUE DIM=2 TEST=TRUE
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.rt.2d.petsc

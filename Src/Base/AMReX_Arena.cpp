@@ -14,11 +14,11 @@
 ///#include <memoryapi.h>
 //#define AMREX_MLOCK(x,y) VirtualLock(x,y)
 //#define AMREX_MUNLOCK(x,y) VirtualUnlock(x,y)
-#define AMREX_MLOCK(x,y) ((void)0)
+//#define AMREX_MLOCK(x,y) ((void)0)
 #define AMREX_MUNLOCK(x,y) ((void)0)
 #else
 #include <sys/mman.h>
-#define AMREX_MLOCK(x,y) mlock(x,y)
+//#define AMREX_MLOCK(x,y) mlock(x,y)
 #define AMREX_MUNLOCK(x,y) munlock(x,y)
 #endif
 
@@ -132,13 +132,15 @@ Arena::allocate_system (std::size_t nbytes)
     if (arena_info.use_cpu_memory)
     {
         p = std::malloc(nbytes);
+#ifndef _WIN32
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
-        if (p && arena_info.device_use_hostalloc) AMREX_MLOCK(p, nbytes);
+        if (p && (nbytes > 0) && arena_info.device_use_hostalloc) mlock(p, nbytes);
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
+#endif
 #endif
     }
     else if (arena_info.device_use_hostalloc)
@@ -190,7 +192,16 @@ Arena::allocate_system (std::size_t nbytes)
     }
 #else
     p = std::malloc(nbytes);
-    if (p && arena_info.device_use_hostalloc) AMREX_MLOCK(p, nbytes);
+#ifndef _WIN32
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+    if (p && (nbytes > 0) && arena_info.device_use_hostalloc) mlock(p, nbytes);
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+#endif
 #endif
     if (p == nullptr) amrex::Abort("Sorry, malloc failed");
     return p;
@@ -265,7 +276,7 @@ Arena::Initialize ()
 #ifdef AMREX_USE_DPCPP
     the_arena_init_size = 1024L*1024L*1024L; // xxxxx DPCPP: todo
 #else
-    the_arena_init_size = Gpu::Device::totalGlobalMem() / 4L * 3L;
+    the_arena_init_size = Gpu::Device::totalGlobalMem() / Gpu::Device::numDevicePartners() / 4L * 3L;
 #endif
 
     the_pinned_arena_release_threshold = Gpu::Device::totalGlobalMem();
@@ -305,7 +316,7 @@ Arena::Initialize ()
     the_async_arena = new PArena(the_async_arena_release_threshold);
 
 #ifdef AMREX_USE_GPU
-    if (the_arena->isDevice() || the_arena->isManaged()) {
+    if (the_arena->isDevice()) {
         the_device_arena = the_arena;
     } else {
         the_device_arena = new CArena(0, ArenaInfo{}.SetDeviceMemory().SetReleaseThreshold

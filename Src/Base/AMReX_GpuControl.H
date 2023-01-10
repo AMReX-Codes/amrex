@@ -5,6 +5,8 @@
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuTypes.H>
 
+#include <utility>
+
 #ifndef AMREX_GPU_MAX_THREADS
 #define AMREX_GPU_MAX_THREADS 256
 #endif
@@ -81,8 +83,8 @@ namespace Gpu {
 
     extern bool in_launch_region;
 
-    inline bool inLaunchRegion() noexcept { return in_launch_region; }
-    inline bool notInLaunchRegion() noexcept { return !in_launch_region; }
+    inline bool inLaunchRegion () noexcept { return in_launch_region; }
+    inline bool notInLaunchRegion () noexcept { return !in_launch_region; }
 
     /**
      * Enable/disable GPU kernel launches.
@@ -137,13 +139,51 @@ namespace Gpu {
         bool m_old;
     };
 
-    struct ScopedDefaultStream
+    extern bool in_single_stream_region;
+    extern bool in_nosync_region;
+
+    inline bool inSingleStreamRegion () noexcept { return in_single_stream_region; }
+    inline bool inNoSyncRegion () noexcept { return in_nosync_region; }
+
+    inline bool setSingleStreamRegion (bool b) noexcept {
+        return std::exchange(in_single_stream_region, b);
+    }
+
+    inline bool setNoSyncRegion (bool b) noexcept {
+        return std::exchange(in_nosync_region, b);
+    }
+
+    /**
+     * This struct provides a RAII-style mechansim for changing the number
+     * of streams returned by Gpu::numStreams() to a single stream.
+     */
+    struct SingleStreamRegion
     {
-    public:
-        ScopedDefaultStream () noexcept;
-        ~ScopedDefaultStream ();
+        SingleStreamRegion () noexcept
+            : m_prev_flag(std::exchange(in_single_stream_region,true))
+        {}
+
+        ~SingleStreamRegion () { in_single_stream_region = m_prev_flag; }
+
     private:
-        gpuStream_t m_prev_stream;
+        bool m_prev_flag;
+    };
+
+    /**
+     * This struct provides a RAII-style mechansim for disabling GPU
+     * synchronization in MFITer by default.  Note that explicit calls to
+     * Gpu::steramSynchronize and Gpu::deviceSynchronize still work.
+     */
+    struct NoSyncRegion
+    {
+        NoSyncRegion () noexcept
+            : m_prev_flag(std::exchange(in_nosync_region,true))
+        {}
+
+        ~NoSyncRegion () { in_nosync_region = m_prev_flag; }
+
+    private:
+        bool m_prev_flag;
     };
 
 #else
@@ -166,7 +206,12 @@ namespace Gpu {
         explicit GraphSafeGuard (bool) {}
     };
 
-    struct ScopedDefaultStream {};
+    inline static constexpr bool inSingleStreamRegion () { return false; }
+    inline static constexpr bool inNoSyncRegion () { return true; }
+    inline static constexpr bool setSingleStreamRegion (bool) { return false; }
+    inline static constexpr bool setNoSyncRegion (bool) { return true; }
+    struct SingleStreamRegion {};
+    struct NoSyncRegion {};
 
 #endif
 

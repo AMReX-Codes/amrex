@@ -19,6 +19,8 @@
 namespace amrex
 {
 
+typedef FabArray<BaseFab<float> > fMultiFab;
+
 class iMultiFab;
 
 /**
@@ -184,10 +186,8 @@ public:
 
     Real norm0 (int comp, int ncomp, IntVect const& nghost, bool local = false,
                 bool ignore_covered = false) const;
-    Real norminf (int comp, int ncomp, IntVect const& nghost, bool local = false,
-                  bool ignore_covered = false) const {
-        return norm0(comp, ncomp, nghost, local, ignore_covered);
-    }
+
+    using FabArray<FArrayBox>::norminf;
 
     /**
     * \brief Returns the maximum *absolute* values contained in
@@ -232,6 +232,9 @@ public:
     * \brief Returns the sum of component "comp" over the MultiFab -- no ghost cells are included.
     */
     Real sum (int comp = 0, bool local = false) const;
+
+    using FabArray<FArrayBox>::sum;
+
     /**
     * \brief Same as sum with local=false, but for non-cell-centered data, this
     *        skips non-unique points that are owned by multiple boxes.
@@ -576,13 +579,7 @@ public:
                        int             numcomp,
                        int             nghost);
 
-    static void Saxpy (MultiFab&       dst,
-                       Real            a,
-                       const MultiFab& src,
-                       int             srccomp,
-                       int             dstcomp,
-                       int             numcomp,
-                       const IntVect&  nghost);
+    using FabArray<FArrayBox>::Saxpy;
 
     /**
     * \brief dst = src + a*dst
@@ -595,13 +592,8 @@ public:
                       int             numcomp,
                       int             nghost);
 
-    static void Xpay (MultiFab&       dst,
-                      Real            a,
-                      const MultiFab& src,
-                      int             srccomp,
-                      int             dstcomp,
-                      int             numcomp,
-                      const IntVect&  nghost);
+    using FabArray<FArrayBox>::Xpay;
+
     /**
     * \brief dst = a*x + b*y
     */
@@ -616,16 +608,7 @@ public:
                          int             numcomp,
                          int             nghost);
 
-    static void LinComb (MultiFab&       dst,
-                         Real            a,
-                         const MultiFab& x,
-                         int             xcomp,
-                         Real            b,
-                         const MultiFab& y,
-                         int             ycomp,
-                         int             dstcomp,
-                         int             numcomp,
-                         const IntVect&  nghost);
+    using FabArray<FArrayBox>::LinComb;
 
     /**
     * \brief dst += src1*src2

@@ -9,7 +9,6 @@ USE_OMP      = FALSE
 TINY_PROFILE = TRUE
 #USE_CUDA     = TRUE
 USE_DPCPP    = TRUE
-COMP         = dpcpp 
 DIM          = 3 
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs

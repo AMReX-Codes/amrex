@@ -11,7 +11,7 @@ ifeq ($(USE_DPCPP),TRUE)
       CXX := mpiicpc
       FC  := mpiifort
       F90 := mpiifort
-      CXXFLAGS += -cxx=dpcpp
+      CXXFLAGS += -cxx=icpx
       NO_MPI_CHECKING = TRUE
    endif
 endif

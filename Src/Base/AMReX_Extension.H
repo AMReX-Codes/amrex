@@ -45,10 +45,10 @@
 #if defined(AMREX_DEBUG)
 #define AMREX_PRAGMA_SIMD
 
-#elif defined(__CUDA_ARCH__)
+#elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA)
 #define AMREX_PRAGMA_SIMD
 
-#elif defined(__HIP_DEVICE_COMPILE__)
+#elif defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
 #define AMREX_PRAGMA_SIMD
 
 //#elif defined(AMREX_USE_OMP) && defined(_OPENMP) && (_OPENMP >= 201307) && !defined(__PGI)
@@ -84,10 +84,10 @@
 #endif /* simd */
 
 // force inline
-#if defined(__CUDA_ARCH__)
+#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA)
 #define AMREX_FORCE_INLINE __forceinline__
 
-#elif defined(__HIP_DEVICE_COMPILE__)
+#elif defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
 #define AMREX_FORCE_INLINE __forceinline__
 
 #elif defined(__INTEL_COMPILER)

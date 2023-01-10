@@ -54,6 +54,7 @@ target_sources(amrex
    AMReX_EB2_IF_Parser.H
    AMReX_EB2_IF.H
    AMReX_EB2_IF_Base.H
+   AMReX_EB2_IF_DevicePtr.H
    AMReX_distFcnElement.cpp
    AMReX_EB2_GeometryShop.H
    AMReX_EB2.H

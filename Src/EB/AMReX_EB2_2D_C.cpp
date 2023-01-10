@@ -6,6 +6,7 @@ namespace {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void set_eb_data (const int i, const int j,
                   Array4<Real> const& apx, Array4<Real> const& apy,
+                  GpuArray<Real,AMREX_SPACEDIM> const& dx,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
                   Array4<Real> const& bnorm) noexcept
@@ -20,72 +21,77 @@ void set_eb_data (const int i, const int j,
     constexpr Real tiny = 1.e-15;
 #endif
 
-    const Real axm = apx(i  ,j  ,0);
-    const Real axp = apx(i+1,j  ,0);
-    const Real aym = apy(i  ,j  ,0);
-    const Real ayp = apy(i  ,j+1,0);
-    const Real apnorm = std::hypot(axm-axp,aym-ayp) + 1.e-30_rt;
-    const Real nx = (axm-axp) * (1.0_rt/apnorm);
-    const Real ny = (aym-ayp) * (1.0_rt/apnorm);
+    const Real axm = apx(i  ,j  ,0)*dx[1];
+    const Real axp = apx(i+1,j  ,0)*dx[1];
+    const Real aym = apy(i  ,j  ,0)*dx[0];
+    const Real ayp = apy(i  ,j+1,0)*dx[0];
+    const Real daxp = (axm-axp);
+    const Real dayp = (aym-ayp);
+    const Real apnorm = std::hypot(daxp,dayp) + 1.e-30_rt*std::sqrt(dx[0]*dx[1]);
+    const Real nx = daxp * (1.0_rt/apnorm);
+    const Real ny = dayp * (1.0_rt/apnorm);
+    const Real bareascaling = std::sqrt( (nx*dx[0])*(nx*dx[0]) +
+            (ny*dx[1])*(ny*dx[1]) );
 
     const Real nxabs = amrex::Math::abs(nx);
     const Real nyabs = amrex::Math::abs(ny);
 
     Real x_ym, x_yp, y_xm, y_xp;
     if (nx > 0.0_rt) {
-        x_ym = -0.5_rt + aym;
-        x_yp = -0.5_rt + ayp;
+        x_ym = -0.5_rt*dx[0] + aym;
+        x_yp = -0.5_rt*dx[0] + ayp;
     } else {
-        x_ym = 0.5_rt - aym;
-        x_yp = 0.5_rt - ayp;
+        x_ym = 0.5_rt*dx[0] - aym;
+        x_yp = 0.5_rt*dx[0] - ayp;
     }
 
     if (ny > 0.0_rt) {
-        y_xm = -0.5_rt + axm;
-        y_xp = -0.5_rt + axp;
+        y_xm = -0.5_rt*dx[1] + axm;
+        y_xp = -0.5_rt*dx[1] + axp;
     } else {
-        y_xm = 0.5_rt - axm;
-        y_xp = 0.5_rt - axp;
+        y_xm = 0.5_rt*dx[1] - axm;
+        y_xp = 0.5_rt*dx[1] - axp;
     }
 
-    barea(i,j,0) = nx*(axm-axp) + ny*(aym-ayp);
+    barea(i,j,0) = (nx*daxp + ny*dayp)/bareascaling;
     bcent(i,j,0,0) = 0.5_rt*(x_ym+x_yp);
     bcent(i,j,0,1) = 0.5_rt*(y_xm+y_xp);
     bnorm(i,j,0,0) = nx;
     bnorm(i,j,0,1) = ny;
 
     if (nxabs < tiny || nyabs > almostone) {
-        vfrac(i,j,0) = 0.5_rt*(axm+axp);
+        vfrac(i,j,0) = 0.5_rt*(axm+axp)/dx[1];
         vcent(i,j,0,0) = 0.0_rt;
         if (vfrac(i,j,0) > almostone) {
             vcent(i,j,0,1) = 0.0_rt;
         } else {
-            vcent(i,j,0,1) = (0.125_rt*(ayp-aym) + ny*0.5_rt*bcent(i,j,0,1)*bcent(i,j,0,1)) / (vfrac(i,j,0) + 1.e-30_rt);
+            vcent(i,j,0,1) = (-0.125_rt*dayp*dx[1]*dx[1] + ny*dx[0]*0.5_rt*bcent(i,j,0,1)*bcent(i,j,0,1)) / ((vfrac(i,j,0) + 1.e-30_rt) * (dx[0]*dx[1]*dx[1]));
         }
     } else if (nyabs < tiny || nxabs > almostone) {
-        vfrac(i,j,0) = 0.5_rt*(aym+ayp);
+        vfrac(i,j,0) = 0.5_rt*(aym+ayp)/dx[0];
         if (vfrac(i,j,0) > almostone) {
             vcent(i,j,0,0) = 0.0_rt;
         } else {
-            vcent(i,j,0,0) = (0.125_rt*(axp-axm) + nx*0.5_rt*bcent(i,j,0,0)*bcent(i,j,0,0)) / (vfrac(i,j,0) + 1.e-30_rt);
+            vcent(i,j,0,0) = (-0.125_rt*daxp*dx[0]*dx[0] + nx*dx[1]*0.5_rt*bcent(i,j,0,0)*bcent(i,j,0,0)) / ((vfrac(i,j,0) + 1.e-30_rt) * (dx[0]*dx[0]*dx[1]));
         }
         vcent(i,j,0,1) = 0.0_rt;
     } else {
-        Real aa = nxabs/ny;
-        const Real dx = x_ym - x_yp;
-        const Real dx2 = dx * (x_ym + x_yp);
-        const Real dx3 = dx * (x_ym*x_ym + x_ym*x_yp + x_yp*x_yp);
-        const Real af1 = 0.5_rt*(axm+axp) + aa*0.5_rt*dx2;
-        vcent(i,j,0,0) = 0.125_rt*(axp-axm) + aa*(1._rt/6._rt)*dx3;
+        Real aa = nxabs/ny*dx[0]/dx[1];
+        const Real dxx = x_ym - x_yp;
+        const Real dx2 = dxx * (x_ym + x_yp);
+        const Real dx3 = dxx * (x_ym*x_ym + x_ym*x_yp + x_yp*x_yp);
+        const Real af1 = 0.5_rt*(axm+axp)*dx[0] + aa*0.5_rt*dx2;
+        vcent(i,j,0,0) = -0.125_rt*daxp*dx[0]*dx[0] + aa*(1._rt/6._rt)*dx3;
 
-        aa = nyabs/nx;
+        aa = nyabs/nx*dx[1]/dx[0];
         const Real dy = y_xm - y_xp;
         const Real dy2 = dy * (y_xm + y_xp);
         const Real dy3 = dy * (y_xm*y_xm + y_xm*y_xp + y_xp*y_xp);
-        const Real af2 = 0.5_rt*(aym+ayp) + aa*0.5_rt*dy2;
-        vcent(i,j,0,1) = 0.125_rt*(ayp-aym) + aa*(1._rt/6._rt)*dy3;
+        const Real af2 = 0.5_rt*(aym+ayp)*dx[1] + aa*0.5_rt*dy2;
+        vcent(i,j,0,1) = -0.125_rt*dayp*dx[1]*dx[1] + aa*(1._rt/6._rt)*dy3;
 
-        vfrac(i,j,0) = 0.5_rt*(af1+af2);
+        vfrac(i,j,0) = 0.5_rt*(af1+af2)/(dx[0]*dx[1]);
+
         if (vfrac(i,j,0) > 1.0_rt-small) {
             vfrac(i,j,0) = 1.0_rt;
             vcent(i,j,0,0) = 0.0_rt;
@@ -95,12 +101,14 @@ void set_eb_data (const int i, const int j,
             vcent(i,j,0,0) = 0.0_rt;
             vcent(i,j,0,1) = 0.0_rt;
         } else {
-            vcent(i,j,0,0) *= (1.0_rt/vfrac(i,j,0));
-            vcent(i,j,0,1) *= (1.0_rt/vfrac(i,j,0));
+            vcent(i,j,0,0) *= (1.0_rt/(vfrac(i,j,0)*dx[0]*dx[0]*dx[1]));
+            vcent(i,j,0,1) *= (1.0_rt/(vfrac(i,j,0)*dx[0]*dx[1]*dx[1]));
             vcent(i,j,0,0) = amrex::min(amrex::max(vcent(i,j,0,0),Real(-0.5)),Real(0.5));
             vcent(i,j,0,1) = amrex::min(amrex::max(vcent(i,j,0,1),Real(-0.5)),Real(0.5));
         }
     }
+    bcent(i,j,0,0) /= dx[0];
+    bcent(i,j,0,1) /= dx[1];
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -124,6 +132,7 @@ void set_covered(const int i, const int j,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 bool set_eb_cell (int i, int j, Array4<EBCellFlag> const& cell,
                   Array4<Real> const& apx, Array4<Real> const& apy,
+                  GpuArray<Real,AMREX_SPACEDIM> const& dx,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
                   Array4<Real> const& bnorm, Real small_volfrac) noexcept
@@ -148,7 +157,7 @@ bool set_eb_cell (int i, int j, Array4<EBCellFlag> const& cell,
         bnorm(i,j,0,0) = 0.0_rt;
         bnorm(i,j,0,1) = 0.0_rt;
     } else {
-        set_eb_data(i,j,apx,apy,vfrac,vcent,barea,bcent,bnorm);
+        set_eb_data(i,j,apx,apy,dx,vfrac,vcent,barea,bcent,bnorm);
         // remove small cells
         if (vfrac(i,j,0) < small_volfrac) {
             set_covered(i,j,cell,vfrac,vcent,barea,bcent,bnorm);
@@ -292,6 +301,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
 void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Type_t> const& fx, Array4<Type_t> const& fy,
                   Array4<Real> const& apx, Array4<Real> const& apy,
+                  GpuArray<Real,AMREX_SPACEDIM> const& dx,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
                   Array4<Real> const& bnorm, Array4<Real> const& levset,
@@ -306,7 +316,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
     AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bxg1, i, j, k,
     {
         amrex::ignore_unused(k);
-        bool is_small = set_eb_cell(i, j, cell, apx, apy, vfrac, vcent, barea, bcent,
+        bool is_small = set_eb_cell(i, j, cell, apx, apy, dx, vfrac, vcent, barea, bcent,
                                     bnorm, small_volfrac);
         if (is_small) {
             Gpu::Atomic::Add(dp, 1);

@@ -466,6 +466,50 @@ int numTilesInBox (const Box& box, const bool a_do_tiling, const IntVect& a_tile
     }
 }
 
+struct BinMapper
+{
+    BinMapper(const int* off_bins_p,
+              const GpuArray<Real,AMREX_SPACEDIM>* dxi_p,
+              const GpuArray<Real,AMREX_SPACEDIM>* plo_p,
+              const Dim3* lo_p,
+              const Dim3* hi_p,
+              int* bin_type_array=nullptr)
+        : m_off_bins_p(off_bins_p), m_dxi_p(dxi_p), m_plo_p(plo_p)                  ,
+          m_lo_p(lo_p)            , m_hi_p(hi_p)  , m_bin_type_array(bin_type_array) {}
+
+    template <typename T>
+    AMREX_GPU_HOST_DEVICE
+    unsigned int operator() (const T& p, int i) const
+    {
+        int type   = (m_bin_type_array) ? m_bin_type_array[i] : 0;
+        int offset = m_off_bins_p[type];
+
+        AMREX_D_TERM(AMREX_ASSERT((p.pos(0)-m_plo_p[type][0])*m_dxi_p[type][0] - m_lo_p[type].x >= 0.0);,
+                     AMREX_ASSERT((p.pos(1)-m_plo_p[type][1])*m_dxi_p[type][1] - m_lo_p[type].y >= 0.0);,
+                     AMREX_ASSERT((p.pos(2)-m_plo_p[type][2])*m_dxi_p[type][2] - m_lo_p[type].z >= 0.0));
+
+        auto iv = IntVect(AMREX_D_DECL(static_cast<int>(amrex::Math::floor((p.pos(0)-m_plo_p[type][0])*m_dxi_p[type][0])) - m_lo_p[type].x,
+                                       static_cast<int>(amrex::Math::floor((p.pos(1)-m_plo_p[type][1])*m_dxi_p[type][1])) - m_lo_p[type].y,
+                                       static_cast<int>(amrex::Math::floor((p.pos(2)-m_plo_p[type][2])*m_dxi_p[type][2])) - m_lo_p[type].z));
+        auto iv3 = iv.dim3();
+        int nx   = m_hi_p[type].x-m_lo_p[type].x+1;
+        int ny   = m_hi_p[type].y-m_lo_p[type].y+1;
+        int nz   = m_hi_p[type].z-m_lo_p[type].z+1;
+        int uix = amrex::min(nx-1,amrex::max(0,iv3.x));
+        int uiy = amrex::min(ny-1,amrex::max(0,iv3.y));
+        int uiz = amrex::min(nz-1,amrex::max(0,iv3.z));
+        return static_cast<unsigned int>( (uix * ny + uiy) * nz + uiz + offset );
+    }
+
+private:
+    const int* m_off_bins_p;
+    const GpuArray<Real,AMREX_SPACEDIM>* m_dxi_p;
+    const GpuArray<Real,AMREX_SPACEDIM>* m_plo_p;
+    const Dim3* m_lo_p;
+    const Dim3* m_hi_p;
+    int* m_bin_type_array;
+};
+
 struct GetParticleBin
 {
     GpuArray<Real,AMREX_SPACEDIM> plo;

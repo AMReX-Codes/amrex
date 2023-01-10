@@ -38,51 +38,7 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
                const MultiFab& y, int ycomp,
                int numcomp, int nghost, bool local)
 {
-    BL_ASSERT(x.boxArray() == y.boxArray());
-    BL_ASSERT(x.DistributionMap() == y.DistributionMap());
-    BL_ASSERT(x.nGrow() >= nghost && y.nGrow() >= nghost);
-
-    BL_PROFILE("MultiFab::Dot()");
-
-    Real sm = Real(0.0);
-#ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
-        auto const& xma = x.const_arrays();
-        auto const& yma = y.const_arrays();
-        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, x, IntVect(nghost),
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
-        {
-            Real t = Real(0.0);
-            auto const& xfab = xma[box_no];
-            auto const& yfab = yma[box_no];
-            for (int n = 0; n < numcomp; ++n) {
-                t += xfab(i,j,k,xcomp+n) * yfab(i,j,k,ycomp+n);
-            }
-            return t;
-        });
-    } else
-#endif
-    {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
-#endif
-        for (MFIter mfi(x,true); mfi.isValid(); ++mfi)
-        {
-            Box const& bx = mfi.growntilebox(nghost);
-            Array4<Real const> const& xfab = x.const_array(mfi);
-            Array4<Real const> const& yfab = y.const_array(mfi);
-            AMREX_LOOP_4D(bx, numcomp, i, j, k, n,
-            {
-                sm += xfab(i,j,k,xcomp+n) * yfab(i,j,k,ycomp+n);
-            });
-        }
-    }
-
-    if (!local) {
-        ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
-    }
-
-    return sm;
+    return amrex::Dot(x,xcomp,y,ycomp,numcomp,IntVect(nghost),local);
 }
 
 Real
@@ -275,7 +231,9 @@ MultiFab::Swap (MultiFab& dst, MultiFab& src,
                 dstma[box_no](i,j,k,n+dstcomp) = srcma[box_no](i,j,k,n+srccomp);
                 srcma[box_no](i,j,k,n+srccomp) = tmp;
             });
-            Gpu::streamSynchronize();
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
         } else
 #endif
         {
@@ -369,94 +327,10 @@ MultiFab::Saxpy (MultiFab& dst, Real a, const MultiFab& src,
 }
 
 void
-MultiFab::Saxpy (MultiFab& dst, Real a, const MultiFab& src,
-                 int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
-{
-    BL_ASSERT(dst.boxArray() == src.boxArray());
-    BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
-
-    BL_PROFILE("MultiFab::Saxpy()");
-
-#ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
-        auto const& dstma = dst.arrays();
-        auto const& srcma = src.const_arrays();
-        ParallelFor(dst, nghost, numcomp,
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
-        {
-            dstma[box_no](i,j,k,dstcomp+n) += a * srcma[box_no](i,j,k,srccomp+n);
-        });
-        Gpu::streamSynchronize();
-    } else
-#endif
-    {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.growntilebox(nghost);
-
-            if (bx.ok()) {
-                auto const sfab = src.array(mfi);
-                auto       dfab = dst.array(mfi);
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
-                {
-                    dfab(i,j,k,dstcomp+n) += a * sfab(i,j,k,srccomp+n);
-                });
-            }
-        }
-    }
-}
-
-void
 MultiFab::Xpay (MultiFab& dst, Real a, const MultiFab& src,
                 int srccomp, int dstcomp, int numcomp, int nghost)
 {
     Xpay(dst,a,src,srccomp,dstcomp,numcomp,IntVect(nghost));
-}
-
-void
-MultiFab::Xpay (MultiFab& dst, Real a, const MultiFab& src,
-                int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
-{
-    BL_ASSERT(dst.boxArray() == src.boxArray());
-    BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
-
-    BL_PROFILE("MultiFab::Xpay()");
-
-#ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
-        auto const& dstma = dst.arrays();
-        auto const& srcma = src.const_arrays();
-        ParallelFor(dst, nghost, numcomp,
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
-        {
-            dstma[box_no](i,j,k,n+dstcomp) = srcma[box_no](i,j,k,n+srccomp)
-                +                        a * dstma[box_no](i,j,k,n+dstcomp);
-        });
-        Gpu::streamSynchronize();
-    } else
-#endif
-    {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.growntilebox(nghost);
-            if (bx.ok()) {
-                auto const sfab = src.array(mfi);
-                auto       dfab = dst.array(mfi);
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
-                {
-                    dfab(i,j,k,n+dstcomp) = sfab(i,j,k,n+srccomp) + a * dfab(i,j,k,n+dstcomp);
-                });
-            }
-        }
-    }
 }
 
 void
@@ -466,55 +340,6 @@ MultiFab::LinComb (MultiFab& dst,
                    int dstcomp, int numcomp, int nghost)
 {
     LinComb(dst,a,x,xcomp,b,y,ycomp,dstcomp,numcomp,IntVect(nghost));
-}
-
-void
-MultiFab::LinComb (MultiFab& dst,
-                   Real a, const MultiFab& x, int xcomp,
-                   Real b, const MultiFab& y, int ycomp,
-                   int dstcomp, int numcomp, const IntVect& nghost)
-{
-    BL_ASSERT(dst.boxArray() == x.boxArray());
-    BL_ASSERT(dst.distributionMap == x.distributionMap);
-    BL_ASSERT(dst.boxArray() == y.boxArray());
-    BL_ASSERT(dst.distributionMap == y.distributionMap);
-    BL_ASSERT(dst.nGrowVect().allGE(nghost) && x.nGrowVect().allGE(nghost) && y.nGrowVect().allGE(nghost));
-
-    BL_PROFILE("MultiFab::LinComb()");
-
-#ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
-        auto const& dstma = dst.arrays();
-        auto const& xma = x.const_arrays();
-        auto const& yma = y.const_arrays();
-        ParallelFor(dst, nghost, numcomp,
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
-        {
-            dstma[box_no](i,j,k,dstcomp+n) = a*xma[box_no](i,j,k,xcomp+n)
-                +                            b*yma[box_no](i,j,k,ycomp+n);
-        });
-        Gpu::streamSynchronize();
-    } else
-#endif
-    {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.growntilebox(nghost);
-
-            if (bx.ok()) {
-                auto const xfab =   x.array(mfi);
-                auto const yfab =   y.array(mfi);
-                auto       dfab = dst.array(mfi);
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
-                {
-                    dfab(i,j,k,dstcomp+n) = a*xfab(i,j,k,xcomp+n) + b*yfab(i,j,k,ycomp+n);
-                });
-            }
-        }
-    }
 }
 
 void
@@ -551,7 +376,9 @@ MultiFab::AddProduct (MultiFab& dst,
             dstma[box_no](i,j,k,n+dstcomp) += src1ma[box_no](i,j,k,n+comp1)
                 *                             src2ma[box_no](i,j,k,n+comp2);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -1172,214 +999,19 @@ MultiFab::maxIndex (int comp, int nghost) const
 Real
 MultiFab::norm0 (const iMultiFab& mask, int comp, int nghost, bool local) const
 {
-    BL_PROFILE("MultiFab::norm0(mask)");
-
-    Real nm0 = Real(0.0);
-
-#ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
-        auto const& ma = this->const_arrays();
-        auto const& maskma = mask.const_arrays();
-        nm0 = ParReduce(TypeList<ReduceOpMax>{}, TypeList<Real>{}, *this, IntVect(nghost),
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
-        {
-            if (maskma[box_no](i,j,k)) {
-                return amrex::Math::abs(ma[box_no](i,j,k,comp));
-            } else {
-                return Real(0.0);
-            }
-        });
-    } else
-#endif
-    {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel reduction(max:nm0)
-#endif
-        for (MFIter mfi(*this,true); mfi.isValid(); ++mfi) {
-            Box const& bx = mfi.growntilebox(nghost);
-            auto const& a = this->const_array(mfi);
-            auto const& mskfab = mask.const_array(mfi);
-            AMREX_LOOP_3D(bx, i, j, k,
-            {
-                if (mskfab(i,j,k)) {
-                    nm0 = std::max(nm0, amrex::Math::abs(a(i,j,k,comp)));
-                }
-            });
-        }
-    }
-
-    if (!local) {
-        ParallelAllReduce::Max(nm0, ParallelContext::CommunicatorSub());
-    }
-
-    return nm0;
+    return FabArray<FArrayBox>::norminf(mask, comp, 1, IntVect(nghost), local);
 }
 
 Real
 MultiFab::norm0 (int comp, int nghost, bool local, bool ignore_covered ) const
 {
-    amrex::ignore_unused(ignore_covered);
-
-    Real nm0 = Real(0.0);
-
-#ifdef AMREX_USE_EB
-    if ( this->hasEBFabFactory() && ignore_covered )
-    {
-        const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(this->Factory());
-        auto const& flags = ebfactory.getMultiEBCellFlagFab();
-#ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion()) {
-            auto const& flagsma = flags.const_arrays();
-            auto const& ma = this->const_arrays();
-            nm0 = ParReduce(TypeList<ReduceOpMax>{}, TypeList<Real>{}, *this, IntVect(nghost),
-            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
-            {
-                if (flagsma[box_no](i,j,k).isCovered()) {
-                    return Real(0.0);
-                } else {
-                    return amrex::Math::abs(ma[box_no](i,j,k,comp));
-                }
-            });
-        } else
-#endif
-        {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel reduction(max:nm0)
-#endif
-            for (MFIter mfi(*this,true); mfi.isValid(); ++mfi) {
-                Box const& bx = mfi.growntilebox(nghost);
-                if (flags[mfi].getType(bx) != FabType::covered) {
-                    auto const& flag = flags.const_array(mfi);
-                    auto const& a = this->const_array(mfi);
-                    AMREX_LOOP_3D(bx, i, j, k,
-                    {
-                        if (!flag(i,j,k).isCovered()) {
-                            nm0 = std::max(nm0, amrex::Math::abs(a(i,j,k,comp)));
-                        }
-                    });
-                }
-            }
-        }
-    }
-    else
-#endif
-    {
-#ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion()) {
-            auto const& ma = this->const_arrays();
-            nm0 = ParReduce(TypeList<ReduceOpMax>{}, TypeList<Real>{}, *this, IntVect(nghost),
-            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
-            {
-                return amrex::Math::abs(ma[box_no](i,j,k,comp));
-            });
-        } else
-#endif
-        {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel reduction(max:nm0)
-#endif
-            for (MFIter mfi(*this,true); mfi.isValid(); ++mfi) {
-                Box const& bx = mfi.growntilebox(nghost);
-                auto const& a = this->const_array(mfi);
-                AMREX_LOOP_3D(bx, i, j, k,
-                {
-                    nm0 = std::max(nm0, amrex::Math::abs(a(i,j,k,comp)));
-                });
-            }
-        }
-    }
-
-    if (!local) {
-        ParallelAllReduce::Max(nm0, ParallelContext::CommunicatorSub());
-    }
-
-    return nm0;
+    return FabArray<FArrayBox>::norminf(comp, 1, IntVect(nghost), local, ignore_covered);
 }
 
 Real
 MultiFab::norm0 (int comp, int ncomp, IntVect const& nghost, bool local, bool ignore_covered ) const
 {
-    amrex::ignore_unused(ignore_covered);
-
-    Real nm0 = Real(0.0);
-
-#ifdef AMREX_USE_EB
-    if ( this->hasEBFabFactory() && ignore_covered )
-    {
-        const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(this->Factory());
-        auto const& flags = ebfactory.getMultiEBCellFlagFab();
-#ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion()) {
-            auto const& flagsma = flags.const_arrays();
-            auto const& ma = this->const_arrays();
-            nm0 = ParReduce(TypeList<ReduceOpMax>{}, TypeList<Real>{}, *this, nghost,
-            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
-            {
-                if (flagsma[box_no](i,j,k).isCovered()) {
-                    return Real(0.0);
-                } else {
-                    Real tmp = Real(0.0);
-                    auto const& a = ma[box_no];
-                    for (int n = 0; n < ncomp; ++n) {
-                        tmp = amrex::max(tmp, amrex::Math::abs(a(i,j,k,comp+n)));
-                    }
-                    return tmp;
-                }
-            });
-        } else
-#endif
-        {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel reduction(max:nm0)
-#endif
-            for (MFIter mfi(*this,true); mfi.isValid(); ++mfi) {
-                Box const& bx = mfi.growntilebox(nghost);
-                if (flags[mfi].getType(bx) != FabType::covered) {
-                    auto const& flag = flags.const_array(mfi);
-                    auto const& a = this->const_array(mfi);
-                    AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
-                    {
-                        if (!flag(i,j,k).isCovered()) {
-                            nm0 = std::max(nm0, amrex::Math::abs(a(i,j,k,comp+n)));
-                        }
-                    });
-                }
-            }
-        }
-    }
-    else
-#endif
-    {
-#ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion()) {
-            auto const& ma = this->const_arrays();
-            nm0 = ParReduce(TypeList<ReduceOpMax>{}, TypeList<Real>{}, *this, nghost, ncomp,
-            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<Real>
-            {
-                return amrex::Math::abs(ma[box_no](i,j,k,comp+n));
-            });
-        } else
-#endif
-        {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel reduction(max:nm0)
-#endif
-            for (MFIter mfi(*this,true); mfi.isValid(); ++mfi) {
-                Box const& bx = mfi.growntilebox(nghost);
-                auto const& a = this->const_array(mfi);
-                AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
-                {
-                    nm0 = std::max(nm0, amrex::Math::abs(a(i,j,k,comp+n)));
-                });
-            }
-        }
-    }
-
-    if (!local) {
-        ParallelAllReduce::Max(nm0, ParallelContext::CommunicatorSub());
-    }
-
-    return nm0;
+    return FabArray<FArrayBox>::norminf(comp, ncomp, nghost, local, ignore_covered);
 }
 
 Vector<Real>
@@ -1549,42 +1181,7 @@ MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
 Real
 MultiFab::sum (int comp, bool local) const
 {
-    BL_PROFILE("MultiFab::sum()");
-
-    Real sm = Real(0.0);
-#ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion()) {
-        auto const& ma = this->const_arrays();
-        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, *this, IntVect(0),
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-                       -> GpuTuple<Real>
-        {
-            return ma[box_no](i,j,k,comp);
-        });
-    } else
-#endif
-    {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
-#endif
-        for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
-        {
-            Box const& bx = mfi.tilebox();
-            Array4<Real const> const& a = this->const_array(mfi);
-            Real tmp = Real(0.0);
-            AMREX_LOOP_3D(bx, i, j, k,
-            {
-                tmp += a(i,j,k,comp);
-            });
-            sm += tmp; // Do it this way so that it does not break regression tests.
-        }
-    }
-
-    if (!local) {
-        ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
-    }
-
-    return sm;
+    return FabArray<FArrayBox>::sum(comp, IntVect(0), local);
 }
 
 Real

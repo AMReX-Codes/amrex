@@ -10,30 +10,22 @@ target_sources(amrex
    MLMG/AMReX_MLMG_K.H
    MLMG/AMReX_MLMG_${AMReX_SPACEDIM}D_K.H
    MLMG/AMReX_MLMGBndry.H
-   MLMG/AMReX_MLMGBndry.cpp
    MLMG/AMReX_MLLinOp.H
-   MLMG/AMReX_MLLinOp.cpp
    MLMG/AMReX_MLLinOp_K.H
    MLMG/AMReX_MLCellLinOp.H
-   MLMG/AMReX_MLCellLinOp.cpp
    MLMG/AMReX_MLNodeLinOp.H
    MLMG/AMReX_MLNodeLinOp.cpp
    MLMG/AMReX_MLCellABecLap.H
-   MLMG/AMReX_MLCellABecLap.cpp
    MLMG/AMReX_MLCellABecLap_K.H
    MLMG/AMReX_MLCellABecLap_${AMReX_SPACEDIM}D_K.H
    MLMG/AMReX_MLCGSolver.H
-   MLMG/AMReX_MLCGSolver.cpp
    MLMG/AMReX_MLABecLaplacian.H
-   MLMG/AMReX_MLABecLaplacian.cpp
    MLMG/AMReX_MLABecLap_K.H
    MLMG/AMReX_MLABecLap_${AMReX_SPACEDIM}D_K.H
    MLMG/AMReX_MLALaplacian.H
-   MLMG/AMReX_MLALaplacian.cpp
    MLMG/AMReX_MLALap_K.H
    MLMG/AMReX_MLALap_${AMReX_SPACEDIM}D_K.H
    MLMG/AMReX_MLPoisson.H
-   MLMG/AMReX_MLPoisson.cpp
    MLMG/AMReX_MLPoisson_K.H
    MLMG/AMReX_MLPoisson_${AMReX_SPACEDIM}D_K.H
    MLMG/AMReX_MLNodeLaplacian.H

@@ -45,7 +45,7 @@ target_compile_features(SYCL INTERFACE cxx_std_17)
 #
 target_compile_options( SYCL
    INTERFACE
-   $<${_cxx_dpcpp}:-Wno-error=sycl-strict -fsycl>
+   $<${_cxx_dpcpp}:-fsycl>
    $<${_cxx_dpcpp}:$<$<BOOL:${AMReX_DPCPP_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
 
 # temporary work-around for DPC++ beta08 bug
@@ -62,13 +62,6 @@ target_compile_options( SYCL
 target_compile_options( SYCL
    INTERFACE
    $<${_cxx_dpcpp}:-Wno-tautological-constant-compare>)
-
-# Need this option to compile with mpiicpc
-if (AMReX_MPI)
-  target_compile_options( SYCL
-    INTERFACE
-    $<${_cxx_dpcpp}:-fsycl-unnamed-lambda>)
-endif ()
 
 if(AMReX_DPCPP_ONEDPL)
     # TBB and PSTL are broken in oneAPI 2021.3.0

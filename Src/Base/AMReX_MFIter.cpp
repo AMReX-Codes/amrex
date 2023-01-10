@@ -25,7 +25,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     flags(flags_),
     streams(Gpu::numGpuStreams()),
     dynamic(false),
-    device_sync(true),
+    device_sync(!Gpu::inNoSyncRegion()),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -43,7 +43,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     flags(do_tiling_ ? Tiling : 0),
     streams(Gpu::numGpuStreams()),
     dynamic(false),
-    device_sync(true),
+    device_sync(!Gpu::inNoSyncRegion()),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -62,7 +62,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     flags(flags_ | Tiling),
     streams(Gpu::numGpuStreams()),
     dynamic(false),
-    device_sync(true),
+    device_sync(!Gpu::inNoSyncRegion()),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -80,7 +80,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, unsigned char
     flags(flags_),
     streams(Gpu::numGpuStreams()),
     dynamic(false),
-    device_sync(true),
+    device_sync(!Gpu::inNoSyncRegion()),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -104,7 +104,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, bool do_tilin
     flags(do_tiling_ ? Tiling : 0),
     streams(Gpu::numGpuStreams()),
     dynamic(false),
-    device_sync(true),
+    device_sync(!Gpu::inNoSyncRegion()),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -130,7 +130,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm,
     flags(flags_ | Tiling),
     streams(Gpu::numGpuStreams()),
     dynamic(false),
-    device_sync(true),
+    device_sync(!Gpu::inNoSyncRegion()),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -153,7 +153,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, const MFItInf
     fabArray(*m_fa),
     tile_size(info.tilesize),
     flags(info.do_tiling ? Tiling : 0),
-    streams(info.num_streams),
+    streams(std::max(1,std::min(Gpu::numGpuStreams(),info.num_streams))),
     dynamic(info.dynamic && (OpenMP::get_num_threads() > 1)),
     device_sync(info.device_sync),
     index_map(nullptr),
@@ -185,7 +185,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_, const MFItInfo& info)
     fabArray(fabarray_),
     tile_size(info.tilesize),
     flags(info.do_tiling ? Tiling : 0),
-    streams(info.num_streams),
+    streams(std::max(1,std::min(Gpu::numGpuStreams(),info.num_streams))),
     dynamic(info.dynamic && (OpenMP::get_num_threads() > 1)),
     device_sync(info.device_sync),
     index_map(nullptr),
@@ -209,6 +209,19 @@ MFIter::MFIter (const FabArrayBase& fabarray_, const MFItInfo& info)
 
 MFIter::~MFIter ()
 {
+    Finalize();
+}
+
+void
+MFIter::Finalize ()
+{
+    // avoid double finalize
+    if (finalized) return;
+    finalized = true;
+
+    // mark as invalid
+    currentIndex = endIndex;
+
 #ifdef AMREX_USE_OMP
 #pragma omp master
 #endif
@@ -222,10 +235,14 @@ MFIter::~MFIter ()
 #endif
 
 #ifdef AMREX_USE_GPU
-    if (device_sync) Gpu::streamSynchronizeAll();
-#endif
+    if (device_sync) {
+        const int nstreams = std::min(endIndex, streams);
+        for (int i = 0; i < nstreams; ++i) {
+            Gpu::Device::setStreamIndex(i);
+            Gpu::streamSynchronize();
+        }
+    }
 
-#ifdef AMREX_USE_GPU
     AMREX_GPU_ERROR_CHECK();
     Gpu::Device::resetStreamIndex();
 #endif
@@ -236,6 +253,9 @@ MFIter::~MFIter ()
 #pragma omp single
 #endif
         m_fa->clearThisBD();
+    }
+    if (m_fa) {
+        m_fa.reset(nullptr);
     }
 }
 
@@ -343,7 +363,7 @@ MFIter::Initialize ()
         currentIndex = beginIndex;
 
 #ifdef AMREX_USE_GPU
-        Gpu::Device::setStreamIndex((streams > 0) ? currentIndex%streams : -1);
+        Gpu::Device::setStreamIndex(currentIndex%streams);
 #endif
 
         typ = fabArray.boxArray().ixType();
@@ -503,7 +523,7 @@ MFIter::operator++ () noexcept
 
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion()) {
-            Gpu::Device::setStreamIndex((streams > 0) ? currentIndex%streams : -1);
+            Gpu::Device::setStreamIndex(currentIndex%streams);
             AMREX_GPU_ERROR_CHECK();
 #ifdef AMREX_DEBUG
 //            Gpu::synchronize();

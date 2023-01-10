@@ -94,19 +94,15 @@ endif
 # The logic here should be consistent with what's in nvcc.mak
 ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
-  ifeq ($(shell expr $(gcc_major_version) \< 5),1)
-    ifeq ($(CXXSTD),c++14)
-      $(error C++14 support requires GCC 5 or newer.)
-    endif
+  ifeq ($(shell expr $(gcc_major_version) \< 8),1)
+    $(error GCC >= 8 required.)
   endif
   CXXFLAGS += -std=$(CXXSTD)
 else
-  ifeq ($(gcc_major_version),5)
-    CXXFLAGS += -std=c++14
-  endif
+  CXXFLAGS += -std=c++17
 endif
 
-CFLAGS   += -c99
+CFLAGS   += -c11
 
 CXXFLAGS += $(GENERIC_NVHPC_FLAGS)
 CFLAGS   += $(GENERIC_NVHPC_FLAGS)

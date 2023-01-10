@@ -65,6 +65,11 @@ namespace amrex { namespace ParallelDescriptor {
 
     MPI_Comm m_comm = MPI_COMM_NULL;    // communicator for all ranks, probably MPI_COMM_WORLD
 
+#ifdef AMREX_USE_MPI
+    Vector<MPI_Datatype*> m_mpi_types;
+    Vector<MPI_Op*> m_mpi_ops;
+#endif
+
     int m_MinTag = 1000, m_MaxTag = -1;
 
     const int ioProcessor = 0;
@@ -357,10 +362,20 @@ EndParallel ()
         BL_MPI_REQUIRE( MPI_Type_free(&mpi_type_indextype) );
         BL_MPI_REQUIRE( MPI_Type_free(&mpi_type_box) );
         BL_MPI_REQUIRE( MPI_Type_free(&mpi_type_lull_t) );
+        for (auto t : m_mpi_types) {
+            BL_MPI_REQUIRE( MPI_Type_free(t) );
+            *t = MPI_DATATYPE_NULL;
+        }
+        for (auto op : m_mpi_ops) {
+            BL_MPI_REQUIRE( MPI_Op_free(op) );
+            *op = MPI_OP_NULL;
+        }
         mpi_type_intvect   = MPI_DATATYPE_NULL;
         mpi_type_indextype = MPI_DATATYPE_NULL;
         mpi_type_box       = MPI_DATATYPE_NULL;
         mpi_type_lull_t    = MPI_DATATYPE_NULL;
+        m_mpi_types.clear();
+        m_mpi_ops.clear();
     }
 
     if (!call_mpi_finalize) {

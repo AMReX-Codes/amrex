@@ -129,7 +129,8 @@ namespace detail {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T Add_device (T* const sum, T const value) noexcept
     {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
+    defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
         return atomicAdd(sum, value);
 #elif defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
@@ -158,24 +159,7 @@ namespace detail {
     }
 #endif
 
-#ifdef AMREX_USE_DPCPP
-
-    // Valid atomic types are available at
-    // https://github.com/intel/llvm/blob/sycl/sycl/include/CL/sycl/atomic.hpp
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    double Add_device (double* const sum, double const value) noexcept
-    {
-        return detail::atomic_op<double, unsigned long long>(sum, value, amrex::Plus<double>());
-    }
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    float Add_device (float* const sum, float const value) noexcept
-    {
-        return detail::atomic_op<float, unsigned int>(sum, value, amrex::Plus<float>());
-    }
-
-#elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
     // https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#atomicadd
     // https://rocmdocs.amd.com/en/latest/Programming_Guides/Kernel_language.html?#atomic-functions
@@ -312,7 +296,8 @@ namespace detail {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T Min_device (T* const m, T const value) noexcept
     {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
+    defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
         return atomicMin(m, value);
 #elif defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
@@ -373,7 +358,8 @@ namespace detail {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T Max_device (T* const m, T const value) noexcept
     {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
+    defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
         return atomicMax(m, value);
 #elif defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
@@ -431,7 +417,8 @@ namespace detail {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int LogicalOr (int* const m, int const value) noexcept
     {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
+    defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
         return atomicOr(m, value);
 #elif defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
@@ -453,7 +440,8 @@ namespace detail {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int LogicalAnd (int* const m, int const value) noexcept
     {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
+    defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
         return atomicAnd(m, value ? ~0x0 : 0);
 #elif defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
@@ -496,7 +484,8 @@ namespace detail {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     unsigned int Inc (unsigned int* const m, unsigned int const value) noexcept
     {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
+    defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
         return atomicInc(m, value);
 #else
         auto const old = *m;
@@ -513,7 +502,8 @@ namespace detail {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     unsigned int Dec (unsigned int* const m, unsigned int const value) noexcept
     {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
+    defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
         return atomicDec(m, value);
 #elif defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
@@ -540,7 +530,8 @@ namespace detail {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T Exch (T* const address, T const val) noexcept
     {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
+    defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
         return atomicExch(address, val);
 #elif defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
@@ -563,7 +554,8 @@ namespace detail {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T CAS (T* const address, T compare, T const val) noexcept
     {           // cannot be T const compare because of compare_exchange_strong
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
+    defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
         return atomicCAS(address, compare, val);
 #elif defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;

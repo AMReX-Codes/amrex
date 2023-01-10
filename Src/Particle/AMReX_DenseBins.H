@@ -50,6 +50,25 @@ struct DenseBinIteratorFactory
     const T* m_items;
 };
 
+namespace
+{
+    template <typename F, typename T, typename I>
+    AMREX_GPU_HOST_DEVICE
+    auto call_f(F const& f, T* pstruct_ptr, I& index)
+        noexcept -> decltype(f(pstruct_ptr,index))
+    {
+        return f(pstruct_ptr[index],index);
+    }
+
+    template <typename F, typename T, typename I>
+    AMREX_GPU_HOST_DEVICE
+    auto call_f(F const& f, T* pstruct_ptr, I& index)
+        noexcept -> decltype(f(pstruct_ptr[index]))
+    {
+        return f(pstruct_ptr[index]);
+    }
+}
+
 /**
  * \brief A container for storing items in a set of bins.
  *
@@ -213,7 +232,7 @@ public:
         index_type* plocal_offsets  = m_local_offsets.dataPtr();
         amrex::ParallelFor(nitems, [=] AMREX_GPU_DEVICE (int i) noexcept
         {
-            pbins[i] = f(v[i]);
+            pbins[i] = call_f(f,v,i);
             index_type off = Gpu::Atomic::Add(&pcount[pbins[i]], index_type{ 1 });
             plocal_offsets[i] = off;
         });
@@ -324,7 +343,7 @@ public:
             int istart = j*chunksize;
             int istop = (j == nchunks-1) ? nitems : (j+1)*chunksize;
             for (int i = istart; i < istop; ++i) {
-                m_bins[i] = f(v[i]);
+                m_bins[i] = call_f(f,v,i);
                 ++counts[nbins*j+m_bins[i]];
             }
         }
@@ -452,7 +471,7 @@ public:
         m_offsets.resize(nbins+1);
 
         for (int i = 0; i < nitems; ++i) {
-            m_bins[i] = f(v[i]);
+            m_bins[i] = call_f(f,v,i);
             ++m_counts[m_bins[i]];
         }
 

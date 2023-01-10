@@ -13,7 +13,7 @@ jobs:
     # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
     env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare"}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies_dpcpp.sh
     - name: Build & Install
@@ -29,7 +29,7 @@ jobs:
             -DAMReX_PARTICLES=ON                           \
             -DAMReX_GPU_BACKEND=SYCL                       \
             -DCMAKE_C_COMPILER=$(which clang)              \
-            -DCMAKE_CXX_COMPILER=$(which dpcpp)            \
+            -DCMAKE_CXX_COMPILER=$(which icpx)             \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)
         cmake --build build --parallel 2
 
@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-20.04
     env: {CXXFLAGS: "-Werror"}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: install dependencies
       run: |
         export DEBIAN_FRONTEND=noninteractive

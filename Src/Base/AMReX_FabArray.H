@@ -211,19 +211,29 @@ struct MultiArray4
 
 template <class FAB> class FabArray;
 
-template <class FAB,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <class DFAB, class SFAB,
+          std::enable_if_t<std::conjunction_v<
+              IsBaseFab<DFAB>, IsBaseFab<SFAB>,
+              std::is_convertible<typename SFAB::value_type,
+                                  typename DFAB::value_type>>, int> BAR = 0>
 void
-Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
+Copy (FabArray<DFAB>& dst, FabArray<SFAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
 {
     Copy(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
 
-template <class FAB,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <class DFAB, class SFAB,
+          std::enable_if_t<std::conjunction_v<
+              IsBaseFab<DFAB>, IsBaseFab<SFAB>,
+              std::is_convertible<typename SFAB::value_type,
+                                  typename DFAB::value_type>>, int> BAR = 0>
 void
-Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+Copy (FabArray<DFAB>& dst, FabArray<SFAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
+    BL_PROFILE("amrex::Copy()");
+
+    using DT = typename DFAB::value_type;
+
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
         auto const& srcarr = src.const_arrays();
@@ -231,7 +241,7 @@ Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, in
         ParallelFor(dst, nghost, numcomp,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
         {
-            dstarr[box_no](i,j,k,dstcomp+n) = srcarr[box_no](i,j,k,srccomp+n);
+            dstarr[box_no](i,j,k,dstcomp+n) = DT(srcarr[box_no](i,j,k,srccomp+n));
         });
         Gpu::streamSynchronize();
     } else
@@ -245,11 +255,11 @@ Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, in
             const Box& bx = mfi.growntilebox(nghost);
             if (bx.ok())
             {
-                auto const srcFab = src.array(mfi);
-                auto       dstFab = dst.array(mfi);
+                auto const& srcFab = src.const_array(mfi);
+                auto const& dstFab = dst.array(mfi);
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
                 {
-                    dstFab(i,j,k,dstcomp+n) = srcFab(i,j,k,srccomp+n);
+                    dstFab(i,j,k,dstcomp+n) = DT(srcFab(i,j,k,srccomp+n));
                 });
             }
         }
@@ -269,6 +279,8 @@ template <class FAB,
 void
 Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
+    BL_PROFILE("amrex::Add()");
+
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
         auto const& dstfa = dst.arrays();
@@ -278,7 +290,9 @@ Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int
         {
             dstfa[box_no](i,j,k,n+dstcomp) += srcfa[box_no](i,j,k,n+srccomp);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -317,6 +331,8 @@ public:
     * else                              value_type = FAB;
     */
     using value_type = typename std::conditional<IsBaseFab<FAB>::value, FAB, FABType>::type::value_type;
+
+    using fab_type = FAB;
 
     //
     //! Constructs an empty FabArray<FAB>.
@@ -438,6 +454,15 @@ public:
     */
     bool ok () const;
 
+    /** Has define() been called on this rank?
+     *
+     * \return true if `define` has been called on this `FabArray`.  Note that all constructors except `FabArray ()`
+     * and `FabArray(Arena*a)` call `define`, even if the `MFInfo` argument has `alloc=false`.  One could
+     * also use `FabArrayBase::empty()` to find whether `define` is called or not, although they are not exactly
+     * the same.
+     */
+    bool isDefined () const;
+
     //! Return a constant reference to the FAB associated with mfi.
     const FAB& operator[] (const MFIter& mfi) const noexcept { return *(this->fabPtr(mfi)); }
 
@@ -548,6 +573,44 @@ public:
     //! Releases FAB memory in the FabArray.
     void clear ();
 
+    /**
+     * \brief Perform local copy of FabArray data.
+     *
+     * The two FabArrays must have the same BoxArray and
+     * DistributionMapping, although they could have different data types.
+     * For example, this could be used to copy from FabArray<BaseFab<float>>
+     * to FabArray<BaseFab<double>>.
+     *
+     * \param src    source FabArray
+     * \param scomp  starting component of source
+     * \param dcomp  starting component of this FabArray
+     * \param ncomp  number of components
+     * \param nghost number of ghost cells
+     */
+    template <typename SFAB, typename DFAB = FAB,
+              std::enable_if_t<std::conjunction_v<
+                  IsBaseFab<DFAB>, IsBaseFab<SFAB>,
+                  std::is_convertible<typename SFAB::value_type,
+                                      typename DFAB::value_type>>, int> = 0>
+    void LocalCopy (FabArray<SFAB> const& src, int scomp, int dcomp, int ncomp,
+                    IntVect const& nghost);
+
+    /**
+     * \brief Perform local addition of FabArray data.
+     *
+     * The two FabArrays must have the same BoxArray and
+     * DistributionMapping.
+     *
+     * \param src    source FabArray
+     * \param scomp  starting component of source
+     * \param dcomp  starting component of this FabArray
+     * \param ncomp  number of components
+     * \param nghost number of ghost cells
+     */
+    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    void LocalAdd (FabArray<FAB> const& src, int scomp, int dcomp, int ncomp,
+                   IntVect const& nghost);
+
     //! Set all components in the entire region of each FAB to val.
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
     void setVal (value_type val);
@@ -652,6 +715,17 @@ public:
     //! Set ncomp values outside the Geometry domain to val, starting at start_comp.
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
     void setDomainBndry (value_type val, int strt_comp, int ncomp, const Geometry& geom);
+
+    /**
+    * \brief Returns the sum of component "comp"
+    *
+    * \param comp   component
+    * \param nghost number of ghost cells
+    * \param local  If true, MPI communciation is skipped.
+    */
+    template <typename F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    typename F::value_type
+    sum (int comp, IntVect const& nghost, bool local = false) const;
 
     /**
     * \brief This function copies data from fa to this FabArray.  Each FAB
@@ -1123,11 +1197,40 @@ public:
 
 #endif
 
+    /**
+     * \brief Return infinity norm
+     *
+     * \param comp           starting component
+     * \param ncomp          number of components
+     * \param nghost         number of ghost cells
+     * \param local          If true, MPI communciation is skipped.
+     * \param ignore_covered ignore covered cells. Only relevant for cell-centered EB data.
+     */
+    template <typename F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    typename F::value_type
+    norminf (int comp, int ncomp, IntVect const& nghost, bool local = false,
+             [[maybe_unused]] bool ignore_covered = false) const;
+
+    /**
+     * \brief Return infinity norm in masked region
+     *
+     * \param mask   only mask=true region is included
+     * \param comp   starting component
+     * \param ncomp  number of components
+     * \param nghost number of ghost cells
+     * \param local  If true, MPI communciation is skipped.
+     */
+    template <typename IFAB, typename F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    typename F::value_type
+    norminf (FabArray<IFAB> const& mask, int comp, int ncomp, IntVect const& nghost,
+             bool local = false) const;
+
 protected:
 
     std::unique_ptr<FabFactory<FAB> > m_factory;
     DataAllocator m_dallocator;
 
+    //! has define() been called?
     bool define_function_called = false;
 
     //
@@ -1263,6 +1366,58 @@ public:
 
     // Pointer to temporary fab used in non-blocking amrex::OverrideSync
     std::unique_ptr< FabArray<FAB> > os_temp;
+
+public:
+
+    /**
+     * \brief y += a*x
+     *
+     * \param y      FabArray y
+     * \param a      scalar a
+     * \param x      FabArray x
+     * \param xcomp  starting component of x
+     * \param ycomp  starting component of y
+     * \param ncomp  number of components
+     * \param nghost number of ghost cells
+     */
+    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    static void Saxpy (FabArray<FAB>& y, value_type a, FabArray<FAB> const& x,
+                       int xcomp, int ycomp, int ncomp, IntVect const& nghost);
+
+    /**
+     * \brief y = x + a*y
+     *
+     * \param y      FabArray y
+     * \param a      scalar a
+     * \param x      FabArray x
+     * \param xcomp  starting component of x
+     * \param ycomp  starting component of y
+     * \param ncomp  number of components
+     * \param nghost number of ghost cells
+     */
+    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    static void Xpay (FabArray<FAB>& y, value_type a, FabArray<FAB> const& x,
+                      int xcomp, int ycomp, int ncomp, IntVect const& nghost);
+
+    /**
+     * \brief dst = a*x + b*y
+     *
+     * \param dst     destination FabArray
+     * \param a       scalar a
+     * \param x       FabArray x
+     * \param xcomp   starting component of x
+     * \param b       scalar b
+     * \param y       FabArray y
+     * \param ycomp   starting component of y
+     * \param dstcomp starting component of destination
+     * \param numcomp number of components
+     * \param nghost  number of ghost cells
+     */
+    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    static void LinComb (FabArray<FAB>& dst,
+                         value_type a, const FabArray<FAB>& x, int xcomp,
+                         value_type b, const FabArray<FAB>& y, int ycomp,
+                         int dstcomp, int numcomp, const IntVect& nghost);
 };
 
 
@@ -1588,6 +1743,28 @@ FabArray<FAB>::clear ()
 }
 
 template <class FAB>
+template <typename SFAB, typename DFAB,
+          std::enable_if_t<std::conjunction_v<
+              IsBaseFab<DFAB>, IsBaseFab<SFAB>,
+              std::is_convertible<typename SFAB::value_type,
+                                  typename DFAB::value_type>>, int>>
+void
+FabArray<FAB>::LocalCopy (FabArray<SFAB> const& src, int scomp, int dcomp, int ncomp,
+                          IntVect const& nghost)
+{
+    amrex::Copy(*this, src, scomp, dcomp, ncomp, nghost);
+}
+
+template <class FAB>
+template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
+void
+FabArray<FAB>::LocalAdd (FabArray<FAB> const& src, int scomp, int dcomp, int ncomp,
+                         IntVect const& nghost)
+{
+    amrex::Add(*this, src, scomp, dcomp, ncomp, nghost);
+}
+
+template <class FAB>
 template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type>
 void
 FabArray<FAB>::setVal (value_type val, int nghost)
@@ -1769,6 +1946,13 @@ FabArray<FAB>::ok () const
 }
 
 template <class FAB>
+bool
+FabArray<FAB>::isDefined () const
+{
+    return define_function_called;
+}
+
+template <class FAB>
 void
 FabArray<FAB>::define (const BoxArray&            bxs,
                        const DistributionMapping& dm,
@@ -1807,7 +1991,6 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 
     if(info.alloc) {
         AllocFabs(*m_factory, m_dallocator.m_arena, info.tags);
-        Gpu::streamSynchronizeAll();
 #ifdef BL_USE_TEAM
         ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
@@ -2172,6 +2355,50 @@ FabArray<FAB>::setDomainBndry (value_type val,
 }
 
 template <class FAB>
+template <class F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
+typename F::value_type
+FabArray<FAB>::sum (int comp, IntVect const& nghost, bool local) const
+{
+    BL_PROFILE("FabArray::sum()");
+
+    using T = typename FAB::value_type;
+    auto sm = T(0.0);
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        auto const& ma = this->const_arrays();
+        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<T>{}, *this, nghost,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                       -> GpuTuple<T>
+        {
+            return ma[box_no](i,j,k,comp);
+        });
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
+#endif
+        for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+        {
+            Box const& bx = mfi.growntilebox(nghost);
+            auto const& a = this->const_array(mfi);
+            auto tmp = T(0.0);
+            AMREX_LOOP_3D(bx, i, j, k,
+            {
+                tmp += a(i,j,k,comp);
+            });
+            sm += tmp; // Do it this way so that it does not break regression tests.
+        }
+    }
+
+    if (!local) {
+        ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
+    }
+
+    return sm;
+}
+
+template <class FAB>
 void
 FabArray<FAB>::copyTo (FAB& dest, int  nghost) const
 {
@@ -2226,7 +2453,9 @@ FabArray<FAB>::setVal (value_type val,
         {
             fa[box_no](i,j,k,n+comp) = val;
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -2281,7 +2510,9 @@ FabArray<FAB>::setVal (value_type val,
                 fa[box_no](i,j,k,n+comp) = val;
             }
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -2329,7 +2560,9 @@ FabArray<FAB>::abs (int comp, int ncomp, const IntVect& nghost)
         {
             fa[box_no](i,j,k,n+comp) = amrex::Math::abs(fa[box_no](i,j,k,n+comp));
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -2363,7 +2596,9 @@ FabArray<FAB>::plus (value_type val, int comp, int num_comp, int nghost)
         {
             fa[box_no](i,j,k,n+comp) += val;
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -2399,7 +2634,9 @@ FabArray<FAB>::plus (value_type val, const Box& region, int comp, int num_comp, 
                 fa[box_no](i,j,k,n+comp) += val;
             }
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -2435,7 +2672,9 @@ FabArray<FAB>::mult (value_type val, int comp, int num_comp, int nghost)
         {
             fa[box_no](i,j,k,n+comp) *= val;
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -2471,7 +2710,9 @@ FabArray<FAB>::mult (value_type val, const Box& region, int comp, int num_comp, 
                 fa[box_no](i,j,k,n+comp) *= val;
             }
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -2507,7 +2748,9 @@ FabArray<FAB>::invert (value_type numerator, int comp, int num_comp, int nghost)
         {
             fa[box_no](i,j,k,n+comp) = numerator / fa[box_no](i,j,k,n+comp);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -2543,7 +2786,9 @@ FabArray<FAB>::invert (value_type numerator, const Box& region, int comp, int nu
                 fa[box_no](i,j,k,n+comp) = numerator / fa[box_no](i,j,k,n+comp);
             }
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -2580,6 +2825,146 @@ FabArray<FAB>::shift (const IntVect& v)
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
         get(fai).shift(v);
+    }
+}
+
+template <class FAB>
+template <class F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
+void FabArray<FAB>::Saxpy (FabArray<FAB>& y, value_type a, FabArray<FAB> const& x,
+                           int xcomp, int ycomp, int ncomp, IntVect const& nghost)
+{
+    BL_ASSERT(y.boxArray() == x.boxArray());
+    BL_ASSERT(y.distributionMap == x.distributionMap);
+    BL_ASSERT(y.nGrowVect().allGE(nghost) && x.nGrowVect().allGE(nghost));
+
+    BL_PROFILE("FabArray::Saxpy()");
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && y.isFusingCandidate()) {
+        auto const& yma = y.arrays();
+        auto const& xma = x.const_arrays();
+        ParallelFor(y, nghost, ncomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            yma[box_no](i,j,k,ycomp+n) += a * xma[box_no](i,j,k,xcomp+n);
+        });
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(y,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost);
+
+            if (bx.ok()) {
+                auto const& xfab = x.const_array(mfi);
+                auto const& yfab = y.array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
+                {
+                    yfab(i,j,k,ycomp+n) += a * xfab(i,j,k,xcomp+n);
+                });
+            }
+        }
+    }
+}
+
+template <class FAB>
+template <class F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
+void
+FabArray<FAB>::Xpay (FabArray<FAB>& y, value_type a, FabArray<FAB> const& x,
+                     int xcomp, int ycomp, int ncomp, IntVect const& nghost)
+{
+    BL_ASSERT(y.boxArray() == x.boxArray());
+    BL_ASSERT(y.distributionMap == x.distributionMap);
+    BL_ASSERT(y.nGrowVect().allGE(nghost) && x.nGrowVect().allGE(nghost));
+
+    BL_PROFILE("FabArray::Xpay()");
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && y.isFusingCandidate()) {
+        auto const& yfa = y.arrays();
+        auto const& xfa = x.const_arrays();
+        ParallelFor(y, nghost, ncomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            yfa[box_no](i,j,k,n+ycomp) = xfa[box_no](i,j,k,n+xcomp)
+                +                    a * yfa[box_no](i,j,k,n+ycomp);
+        });
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(y,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost);
+            auto const& xFab = x.const_array(mfi);
+            auto const& yFab = y.array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
+            {
+                yFab(i,j,k,n+ycomp) = xFab(i,j,k,n+xcomp)
+                    +             a * yFab(i,j,k,n+ycomp);
+            });
+        }
+    }
+}
+
+template <class FAB>
+template <class F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
+void
+FabArray<FAB>::LinComb (FabArray<FAB>& dst,
+                        value_type a, const FabArray<FAB>& x, int xcomp,
+                        value_type b, const FabArray<FAB>& y, int ycomp,
+                        int dstcomp, int numcomp, const IntVect& nghost)
+{
+    BL_ASSERT(dst.boxArray() == x.boxArray());
+    BL_ASSERT(dst.distributionMap == x.distributionMap);
+    BL_ASSERT(dst.boxArray() == y.boxArray());
+    BL_ASSERT(dst.distributionMap == y.distributionMap);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) && x.nGrowVect().allGE(nghost) && y.nGrowVect().allGE(nghost));
+
+    BL_PROFILE("FabArray::LinComb()");
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
+        auto const& dstma = dst.arrays();
+        auto const& xma = x.const_arrays();
+        auto const& yma = y.const_arrays();
+        ParallelFor(dst, nghost, numcomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            dstma[box_no](i,j,k,dstcomp+n) = a*xma[box_no](i,j,k,xcomp+n)
+                +                            b*yma[box_no](i,j,k,ycomp+n);
+        });
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost);
+            auto const& xfab = x.const_array(mfi);
+            auto const& yfab = y.const_array(mfi);
+            auto const& dfab = dst.array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
+            {
+                dfab(i,j,k,dstcomp+n) = a*xfab(i,j,k,xcomp+n) + b*yfab(i,j,k,ycomp+n);
+            });
+        }
     }
 }
 
@@ -2956,7 +3341,9 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
                 fab(i,j,k,n) = physbnd;
             }
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -3058,6 +3445,153 @@ FabArray<FAB>::RecvLayoutMask (const CommMetaData& thecmd)
         }
     }
     return r;
+}
+
+template <class FAB>
+template <typename F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
+typename F::value_type
+FabArray<FAB>::norminf (int comp, int ncomp, IntVect const& nghost, bool local,
+                        [[maybe_unused]] bool ignore_covered) const
+{
+    BL_PROFILE("FabArray::norminf()");
+
+    using RT = typename F::value_type;
+
+    auto nm0 = RT(0.0);
+
+#ifdef AMREX_USE_EB
+    if ( this->is_cell_centered() && this->hasEBFabFactory() && ignore_covered )
+    {
+        const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(this->Factory());
+        auto const& flags = ebfactory.getMultiEBCellFlagFab();
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion()) {
+            auto const& flagsma = flags.const_arrays();
+            auto const& ma = this->const_arrays();
+            nm0 = ParReduce(TypeList<ReduceOpMax>{}, TypeList<RT>{}, *this, nghost,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<RT>
+            {
+                if (flagsma[box_no](i,j,k).isCovered()) {
+                    return RT(0.0);
+                } else {
+                    auto tmp = RT(0.0);
+                    auto const& a = ma[box_no];
+                    for (int n = 0; n < ncomp; ++n) {
+                        tmp = amrex::max(tmp, amrex::Math::abs(a(i,j,k,comp+n)));
+                    }
+                    return tmp;
+                }
+            });
+        } else
+#endif
+        {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel reduction(max:nm0)
+#endif
+            for (MFIter mfi(*this,true); mfi.isValid(); ++mfi) {
+                Box const& bx = mfi.growntilebox(nghost);
+                if (flags[mfi].getType(bx) != FabType::covered) {
+                    auto const& flag = flags.const_array(mfi);
+                    auto const& a = this->const_array(mfi);
+                    AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
+                    {
+                        if (!flag(i,j,k).isCovered()) {
+                            nm0 = std::max(nm0, amrex::Math::abs(a(i,j,k,comp+n)));
+                        }
+                    });
+                }
+            }
+        }
+    }
+    else
+#endif
+    {
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion()) {
+            auto const& ma = this->const_arrays();
+            nm0 = ParReduce(TypeList<ReduceOpMax>{}, TypeList<RT>{}, *this, nghost, ncomp,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<RT>
+            {
+                return amrex::Math::abs(ma[box_no](i,j,k,comp+n));
+            });
+        } else
+#endif
+        {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel reduction(max:nm0)
+#endif
+            for (MFIter mfi(*this,true); mfi.isValid(); ++mfi) {
+                Box const& bx = mfi.growntilebox(nghost);
+                auto const& a = this->const_array(mfi);
+                AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
+                {
+                    nm0 = std::max(nm0, amrex::Math::abs(a(i,j,k,comp+n)));
+                });
+            }
+        }
+    }
+
+    if (!local) {
+        ParallelAllReduce::Max(nm0, ParallelContext::CommunicatorSub());
+    }
+
+    return nm0;
+}
+
+template <class FAB>
+template <typename IFAB, typename F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
+typename F::value_type
+FabArray<FAB>::norminf (FabArray<IFAB> const& mask, int comp, int ncomp,
+                        IntVect const& nghost, bool local) const
+{
+    BL_PROFILE("FabArray::norminf(mask)");
+
+    using RT = typename F::value_type;
+
+    auto nm0 = RT(0.0);
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        auto const& ma = this->const_arrays();
+        auto const& maskma = mask.const_arrays();
+        nm0 = ParReduce(TypeList<ReduceOpMax>{}, TypeList<RT>{}, *this, IntVect(nghost),
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<RT>
+        {
+            if (maskma[box_no](i,j,k)) {
+                auto tmp = RT(0.0);
+                auto const& a = ma[box_no];
+                for (int n = 0; n < ncomp; ++n) {
+                    tmp = amrex::max(tmp, amrex::Math::abs(a(i,j,k,comp+n)));
+                }
+                return tmp;
+            } else {
+                return RT(0.0);
+            }
+        });
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel reduction(max:nm0)
+#endif
+        for (MFIter mfi(*this,true); mfi.isValid(); ++mfi) {
+            Box const& bx = mfi.growntilebox(nghost);
+            auto const& a = this->const_array(mfi);
+            auto const& mskfab = mask.const_array(mfi);
+            AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
+            {
+                if (mskfab(i,j,k)) {
+                    nm0 = std::max(nm0, amrex::Math::abs(a(i,j,k,comp+n)));
+                }
+            });
+        }
+    }
+
+    if (!local) {
+        ParallelAllReduce::Max(nm0, ParallelContext::CommunicatorSub());
+    }
+
+    return nm0;
 }
 
 }

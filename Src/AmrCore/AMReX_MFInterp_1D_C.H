@@ -4,6 +4,38 @@
 namespace amrex {
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mf_cell_cons_lin_interp_limit_minmax_llslope (int i, int, int, Array4<Real> const& slope,
+                                      Array4<Real const> const& u, int scomp, int ncomp,
+                                      Box const& domain, IntVect const& ratio, BCRec const* bc) noexcept
+{
+    Real sfx = Real(1.0);
+
+    for (int ns = 0; ns < ncomp; ++ns) {
+        int nu = ns + scomp;
+
+        // x-direction
+        Real dc = mf_compute_slopes_x(i, 0, 0, u, nu, domain, bc[ns]);
+        Real df = Real(2.0) * (u(i+1,0,0,nu) - u(i  ,0,0,nu));
+        Real db = Real(2.0) * (u(i  ,0,0,nu) - u(i-1,0,0,nu));
+        Real sx = (df*db >= Real(0.0)) ? amrex::min(amrex::Math::abs(df),amrex::Math::abs(db)) : Real(0.);
+        sx = amrex::Math::copysign(Real(1.),dc)*amrex::min(sx,amrex::Math::abs(dc));
+        slope(i,0,0,ns) = dc;
+
+        // additional limiting is unnecessary in 1D
+
+        if (dc != Real(0.0)) {
+            sfx = amrex::min(sfx, sx / dc);
+        }
+    }
+
+    for (int ns = 0; ns < ncomp; ++ns) {
+        slope(i,0,0,ns) *= sfx;
+    }
+
+    amrex::ignore_unused(ratio);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mf_cell_cons_lin_interp_llslope (int i, int, int, Array4<Real> const& slope,
                                       Array4<Real const> const& u, int scomp, int ncomp,
                                       Box const& domain, BCRec const* bc) noexcept
@@ -149,9 +181,10 @@ void mf_cell_cons_lin_interp_sph (int i, int ns, Array4<Real> const& fine, int f
         + xoff * slope(ic,0,0,ns);
 }
 
+template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mf_cell_bilin_interp (int i, int, int, int n, Array4<Real> const& fine, int fcomp,
-                           Array4<Real const> const& crse, int ccomp, IntVect const& ratio) noexcept
+void mf_cell_bilin_interp (int i, int, int, int n, Array4<T> const& fine, int fcomp,
+                           Array4<T const> const& crse, int ccomp, IntVect const& ratio) noexcept
 {
     int ic = amrex::coarsen(i,ratio[0]);
     int ioff = i - ic*ratio[0];

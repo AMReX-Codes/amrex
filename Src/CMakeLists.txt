@@ -5,7 +5,11 @@
 # the properties of this object, like setting the sources,
 # setting the compile definitions and so on
 #
-add_library( amrex )
+if (AMReX_BUILD_SHARED_LIBS)
+    add_library( amrex SHARED )
+else ()
+    add_library( amrex STATIC )
+endif ()
 add_library( AMReX::amrex ALIAS amrex )
 
 #

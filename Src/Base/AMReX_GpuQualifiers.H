@@ -13,7 +13,6 @@
 #define AMREX_GPU_GLOBAL __global__
 #define AMREX_GPU_HOST_DEVICE __host__ __device__
 #define AMREX_GPU_CONSTANT __constant__
-#define AMREX_GPU_EXTERNAL
 
 #define AMREX_GPU_MANAGED __managed__
 #define AMREX_GPU_DEVICE_MANAGED __device__ __managed__
@@ -27,11 +26,6 @@
 #define AMREX_GPU_CONSTANT
 #define AMREX_GPU_MANAGED
 #define AMREX_GPU_DEVICE_MANAGED
-#ifdef AMREX_USE_DPCPP
-#define AMREX_GPU_EXTERNAL SYCL_EXTERNAL
-#else
-#define AMREX_GPU_EXTERNAL
-#endif
 
 #endif
 
@@ -39,7 +33,7 @@
 
 #ifdef AMREX_USE_DPCPP
 
-# include <CL/sycl.hpp>
+# include <sycl/sycl.hpp>
 
 # define AMREX_REQUIRE_SUBGROUP_SIZE(x) \
   _Pragma("clang diagnostic push") \

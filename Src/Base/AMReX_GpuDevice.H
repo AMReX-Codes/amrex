@@ -64,13 +64,14 @@ public:
 #endif
 #endif
 
-    static int numGpuStreams () noexcept { return max_gpu_streams; }
+    static int numGpuStreams () noexcept {
+        return inSingleStreamRegion() ? 1 : max_gpu_streams;
+    }
 
     static void setStreamIndex (const int idx) noexcept;
-    static void resetStreamIndex () noexcept { setStreamIndex(-1); }
+    static void resetStreamIndex () noexcept { setStreamIndex(0); }
 
 #ifdef AMREX_USE_GPU
-    /** For Index, the null stream is -1, and the other streams are 0, 1, 2, ...  */
     static int streamIndex (gpuStream_t s = gpuStream()) noexcept;
 
     static gpuStream_t setStream (gpuStream_t s) noexcept;
@@ -78,7 +79,8 @@ public:
 #endif
 
     static int deviceId () noexcept;
-    static int numDevicesUsed () noexcept;
+    static int numDevicesUsed () noexcept; // Total number of device used
+    static int numDevicePartners () noexcept; // Number of partners sharing my device
 
     /**
      * Halt execution of code until GPU has finished processing all previously requested
@@ -169,6 +171,7 @@ private:
 
     static AMREX_EXPORT int device_id;
     static AMREX_EXPORT int num_devices_used;
+    static AMREX_EXPORT int num_device_partners;
     static AMREX_EXPORT int verbose;
     static AMREX_EXPORT int max_gpu_streams;
 
@@ -176,11 +179,9 @@ private:
     static AMREX_EXPORT dim3 numThreadsMin;
     static AMREX_EXPORT dim3 numBlocksOverride, numThreadsOverride;
 
-    // We build gpu_default_stream and gpu_stream_pool.
+    static AMREX_EXPORT Vector<gpuStream_t> gpu_stream_pool; // The size of this is max_gpu_stream
     // The non-owning gpu_stream is used to store the current stream that will be used.
     // gpu_stream is a vector so that it's thread safe to write to it.
-    static AMREX_EXPORT gpuStream_t gpu_default_stream;
-    static AMREX_EXPORT Vector<gpuStream_t> gpu_stream_pool; // The size of this is max_gpu_stream
     static AMREX_EXPORT Vector<gpuStream_t> gpu_stream; // The size of this is omp_max_threads
     static AMREX_EXPORT gpuDeviceProp_t device_prop;
     static AMREX_EXPORT int memory_pools_supported;
