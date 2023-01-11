@@ -59,8 +59,10 @@ void ResizeRandomSeed (amrex::ULong gpu_seed)
 }
 #endif
 
+namespace amrex {
+
 void
-amrex::InitRandom (amrex::ULong cpu_seed, int nprocs, amrex::ULong gpu_seed)
+InitRandom (ULong cpu_seed, int nprocs, ULong gpu_seed)
 {
     nthreads = OpenMP::get_max_threads();
     generators.resize(nthreads);
@@ -70,54 +72,54 @@ amrex::InitRandom (amrex::ULong cpu_seed, int nprocs, amrex::ULong gpu_seed)
 #endif
     {
         int tid = OpenMP::get_thread_num();
-        amrex::ULong init_seed = cpu_seed + tid*nprocs;
+        ULong init_seed = cpu_seed + tid*nprocs;
         generators[tid].seed(init_seed);
     }
 
 #ifdef AMREX_USE_GPU
     ResizeRandomSeed(gpu_seed);
 #else
-    amrex::ignore_unused(gpu_seed);
+    ignore_unused(gpu_seed);
 #endif
 }
 
-amrex::Real amrex::RandomNormal (amrex::Real mean, amrex::Real stddev)
+Real RandomNormal (Real mean, Real stddev)
 {
-    std::normal_distribution<amrex::Real> distribution(mean, stddev);
+    std::normal_distribution<Real> distribution(mean, stddev);
     int tid = OpenMP::get_thread_num();
     return distribution(generators[tid]);
 }
 
-amrex::Real amrex::Random ()
+Real Random ()
 {
-    std::uniform_real_distribution<amrex::Real> distribution(0.0, 1.0);
+    std::uniform_real_distribution<Real> distribution(0.0, 1.0);
     int tid = OpenMP::get_thread_num();
     return distribution(generators[tid]);
 }
 
-unsigned int amrex::RandomPoisson (amrex::Real lambda)
+unsigned int RandomPoisson (Real lambda)
 {
     std::poisson_distribution<unsigned int> distribution(lambda);
     int tid = OpenMP::get_thread_num();
     return distribution(generators[tid]);
 }
 
-unsigned int amrex::Random_int (unsigned int n)
+unsigned int Random_int (unsigned int n)
 {
     std::uniform_int_distribution<unsigned int> distribution(0, n-1);
     int tid = OpenMP::get_thread_num();
     return distribution(generators[tid]);
 }
 
-amrex::ULong amrex::Random_long (amrex::ULong n)
+ULong Random_long (ULong n)
 {
-    std::uniform_int_distribution<amrex::ULong> distribution(0, n-1);
+    std::uniform_int_distribution<ULong> distribution(0, n-1);
     int tid = OpenMP::get_thread_num();
     return distribution(generators[tid]);
 }
 
 void
-amrex::SaveRandomState (std::ostream& os)
+SaveRandomState (std::ostream& os)
 {
     for (int i = 0; i < nthreads; i++) {
         os << generators[i] << "\n";
@@ -125,7 +127,7 @@ amrex::SaveRandomState (std::ostream& os)
 }
 
 void
-amrex::RestoreRandomState (std::istream& is, int nthreads_old, int nstep_old)
+RestoreRandomState (std::istream& is, int nthreads_old, int nstep_old)
 {
     int N = std::min(nthreads, nthreads_old);
     for (int i = 0; i < N; i++)
@@ -134,9 +136,9 @@ amrex::RestoreRandomState (std::istream& is, int nthreads_old, int nstep_old)
         const int NProcs = ParallelDescriptor::NProcs();
         const int MyProc = ParallelDescriptor::MyProc();
         for (int i = nthreads_old; i < nthreads; i++) {
-            amrex::ULong seed = MyProc+1 + i*NProcs;
-            if (std::numeric_limits<amrex::ULong>::max()/(amrex::ULong)(nstep_old+1)
-                > static_cast<amrex::ULong>(nthreads*NProcs)) // avoid overflow
+            ULong seed = MyProc+1 + i*NProcs;
+            if (std::numeric_limits<ULong>::max()/(ULong)(nstep_old+1)
+                > static_cast<ULong>(nthreads*NProcs)) // avoid overflow
             {
                 seed += nstep_old*nthreads*NProcs;
             }
@@ -147,16 +149,16 @@ amrex::RestoreRandomState (std::istream& is, int nthreads_old, int nstep_old)
 }
 
 void
-amrex::UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
-                           bool printSet)
+UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
+                    bool printSet)
 {
   if(setSize > poolSize) {
-    amrex::Abort("**** Error in UniqueRandomSubset:  setSize > poolSize.");
+    Abort("**** Error in UniqueRandomSubset:  setSize > poolSize.");
   }
   std::set<int> copySet;
   Vector<int> uSetTemp;
   while(static_cast<int>(copySet.size()) < setSize) {
-    int r(amrex::Random_int(poolSize));
+    int r(Random_int(poolSize));
     if(copySet.find(r) == copySet.end()) {
       copySet.insert(r);
       uSetTemp.push_back(r);
@@ -165,18 +167,18 @@ amrex::UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
   uSet = uSetTemp;
   if(printSet) {
     for(int i(0); i < uSet.size(); ++i) {
-        amrex::AllPrint() << "uSet[" << i << "]  = " << uSet[i] << std::endl;
+        AllPrint() << "uSet[" << i << "]  = " << uSet[i] << std::endl;
     }
   }
 }
 
-void amrex::ResetRandomSeed (amrex::ULong cpu_seed, amrex::ULong gpu_seed)
+void ResetRandomSeed (ULong cpu_seed, ULong gpu_seed)
 {
     InitRandom(cpu_seed, ParallelDescriptor::NProcs(), gpu_seed);
 }
 
 void
-amrex::DeallocateRandomSeedDevArray ()
+DeallocateRandomSeedDevArray ()
 {
 #ifdef AMREX_USE_GPU
 #ifdef AMREX_USE_DPCPP
@@ -196,7 +198,7 @@ amrex::DeallocateRandomSeedDevArray ()
 }
 
 void
-amrex::NItemsPerBin (int totalItems, Vector<int> &binCounts)
+NItemsPerBin (int totalItems, Vector<int> &binCounts)
 {
   if(binCounts.size() == 0) {
     return;
@@ -205,7 +207,7 @@ amrex::NItemsPerBin (int totalItems, Vector<int> &binCounts)
   int countForAll(totalItems / binCounts.size());
   int remainder(totalItems % binCounts.size());
   if(verbose) {
-      amrex::Print() << "amrex::NItemsPerBin:  countForAll remainder = " << countForAll
+      Print() << "amrex::NItemsPerBin:  countForAll remainder = " << countForAll
                      << "  " << remainder << std::endl;
   }
   for(int i(0); i < binCounts.size(); ++i) {
@@ -216,10 +218,12 @@ amrex::NItemsPerBin (int totalItems, Vector<int> &binCounts)
   }
   for(int i(0); i < binCounts.size(); ++i) {
     if(verbose) {
-        amrex::Print() << "amrex::NItemsPerBin::  binCounts[" << i << "] = " << binCounts[i] << std::endl;
+        Print() << "amrex::NItemsPerBin::  binCounts[" << i << "] = " << binCounts[i] << std::endl;
     }
   }
 }
+
+} // namespace amrex
 
 
 //
