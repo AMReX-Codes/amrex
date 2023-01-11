@@ -299,12 +299,12 @@ print_option( AMReX_ASCENT )
 
 # Hypre
 cmake_dependent_option(AMReX_HYPRE "Enable Hypre interfaces" OFF
-   "AMReX_LINEAR_SOLVERS" OFF)
+   "AMReX_LINEAR_SOLVERS;NOT AMReX_SPACEDIM EQUAL 1" OFF)
 print_option(AMReX_HYPRE)
 
 # PETSc
 cmake_dependent_option(AMReX_PETSC "Enable PETSc interfaces" OFF
-   "AMReX_LINEAR_SOLVERS" OFF )
+   "AMReX_LINEAR_SOLVERS;NOT AMReX_SPACEDIM EQUAL 1" OFF )
 print_option(AMReX_PETSC)
 
 # HDF5
