@@ -4,30 +4,6 @@
 # For the time being, only dpc++ is supported
 #
 
-# Provide a cache variable for the dpc++ root directory installation by probing
-# the compiler
-execute_process(COMMAND ${CMAKE_CXX_COMPILER} --version  OUTPUT_VARIABLE _tmp)
-string(REGEX MATCH "InstalledDir: (.*)" _tmp "${_tmp}")
-unset(_tmp)
-
-get_filename_component(DPCPP_ROOT ${CMAKE_MATCH_1} DIRECTORY CACHE)
-message(STATUS "dpc++ root directory: ${DPCPP_ROOT}")
-
-# Provide cache variable to identify the dpc++ version, including the "beta"
-string(REGEX MATCH "[^//]*beta(.[^//])" DPCPP_VERSION "${DPCPP_ROOT}")
-set(DPCPP_VERSION ${DPCPP_VERSION} CACHE INTERNAL "dpc++ version")
-set(DPCPP_BETA_VERSION ${CMAKE_MATCH_1} CACHE INTERNAL "dpc++ beta version")
-message(STATUS "dpc++ version: ${DPCPP_VERSION}")
-
-# We do not support anything lower than beta09
-if (DPCPP_BETA_VERSION LESS "09")
-   message(FATAL_ERROR
-      "\nUnsupported dpc++ compiler version."
-      "\nAMReX requires dpc++ \"beta\" version >= 08. "
-      "The current compiler \"beta\" version is ${DPCPP_BETA_VERSION}.\n")
-endif ()
-
-
 set(_cxx_dpcpp "$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:IntelClang>,$<CXX_COMPILER_ID:IntelDPCPP>,$<CXX_COMPILER_ID:IntelLLVM>>")
 set(_cxx_dpcpp "$<AND:$<COMPILE_LANGUAGE:CXX>,${_cxx_dpcpp}>")
 
@@ -75,27 +51,9 @@ endif()
 #
 # Link options
 #
-if (DPCPP_BETA_VERSION LESS "10")   # If beta < 10
-
-   find_file(LIBSYCL_GLIBC_OBJ libsycl-glibc.o
-      PATHS ${DPCPP_ROOT} ENV LD_LIBRARY_PATH
-      PATH_SUFFIXES lib
-      DOC "Full path to libsycl-glibc.o")
-
-   target_link_libraries(SYCL INTERFACE ${LIBSYCL_GLIBC_OBJ})
-
-   target_link_options( SYCL
-      INTERFACE
-      $<${_cxx_dpcpp}:-fsycl -device-math-lib=fp32,fp64> )
-
-else ()  # for beta >= 10
-
-   target_link_options( SYCL
-      INTERFACE
-      $<${_cxx_dpcpp}:-fsycl -fsycl-device-lib=libc,libm-fp32,libm-fp64> )
-
-endif ()
-
+target_link_options( SYCL
+   INTERFACE
+   $<${_cxx_dpcpp}:-fsycl -fsycl-device-lib=libc,libm-fp32,libm-fp64> )
 
 
 # TODO: use $<LINK_LANG_AND_ID:> genex for CMake >=3.17

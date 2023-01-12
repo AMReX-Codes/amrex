@@ -164,6 +164,8 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
 
    target_compile_options( amrex PUBLIC $<${_genex}:${_cuda_flags}> )
 
+   unset(_genex)
+   # _cuda_flags will be used later in AMReX_Config.cmake
 endif ()
 
 #
