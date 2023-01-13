@@ -282,6 +282,10 @@ if (AMReX_HIP)
           $<$<COMPILE_LANGUAGE:CXX>:--offload-arch=${AMReX_AMD_ARCH_HIPCC}>)
    endif()
 
+   # ROCm 5.5: hipcc now relies on clang to offload code objects from (.a) archive files,
+   # so we need to tell the offload-linker to include all code objects in archives.
+   target_link_options(amrex PUBLIC -Xoffload-linker --whole-archive)
+
    target_compile_options(amrex PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-m64>)
 
    # ROCm 4.5: use unsafe floating point atomics, otherwise atomicAdd is much slower
