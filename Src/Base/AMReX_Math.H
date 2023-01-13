@@ -130,7 +130,7 @@ std::pair<double,double> sincos (double x)
     r.first = sycl::sincos(x, &r.second);
 #elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
       defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP) || \
-      (defined(_GNU_SOURCE) && !defined(__apple_build_version__))
+      (defined(_GNU_SOURCE) && !defined(__APPLE__))
     ::sincos(x, &r.first, &r.second);
 #else
     r.first  = std::sin(x);
@@ -148,7 +148,7 @@ std::pair<float,float> sincos (float x)
     r.first = sycl::sincos(x, &r.second);
 #elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
       defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP) || \
-      (defined(_GNU_SOURCE) && !defined(__apple_build_version__))
+      (defined(_GNU_SOURCE) && !defined(__APPLE__))
     ::sincosf(x, &r.first, &r.second);
 #else
     r.first  = std::sin(x);
