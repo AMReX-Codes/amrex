@@ -723,10 +723,31 @@ TinyProfiler::PrintMemStats(int mem_type)
     std::vector<std::vector<std::string>> allstatsstr;
 
     if (nprocs == 1) {
-        allstatsstr.push_back({"Name", "Nalloc", "Nfree", "Max Memory (MiB)"});
+        allstatsstr.push_back({"Name", "Nalloc", "Nfree", "Max Memory"});
     } else {
-        allstatsstr.push_back({"Name", "Nalloc", "Nfree", "MiB Min", "MiB Avg", "MiB Max"});
+        allstatsstr.push_back({"Name", "Nalloc", "Nfree", "Min Mem", "Avg Mem", "Max Mem"});
     }
+
+    auto mem_to_string = [] (Long nbytes) {
+        std::string unit = "   B";
+        if (nbytes >= 10*1024) {
+            nbytes /= 1024;
+            unit = " KiB";
+        }
+        if (nbytes >= 10*1024) {
+            nbytes /= 1024;
+            unit = " MiB";
+        }
+        if (nbytes >= 10*1024) {
+            nbytes /= 1024;
+            unit = " GiB";
+        }
+        if (nbytes >= 10*1024) {
+            nbytes /= 1024;
+            unit = " TiB";
+        }
+        return std::to_string(nbytes) + unit;
+    };
 
     for (auto& stat : allprocstats) {
         if (stat.nalloc != 0 || stat.nfree != 0 || stat.maxmem_max != 0) {
@@ -734,14 +755,14 @@ TinyProfiler::PrintMemStats(int mem_type)
                 allstatsstr.push_back({stat.fname,
                                     std::to_string(stat.nalloc),
                                     std::to_string(stat.nfree),
-                                    std::to_string(stat.maxmem_max/(1024*1024))});
+                                    mem_to_string(stat.maxmem_max)});
             } else {
                 allstatsstr.push_back({stat.fname,
                                     std::to_string(stat.nalloc),
                                     std::to_string(stat.nfree),
-                                    std::to_string(stat.maxmem_min/(1024*1024)),
-                                    std::to_string(stat.maxmem_avg/(1024*1024)),
-                                    std::to_string(stat.maxmem_max/(1024*1024))});
+                                    mem_to_string(stat.maxmem_min),
+                                    mem_to_string(stat.maxmem_avg),
+                                    mem_to_string(stat.maxmem_max)});
             }
         }
     }
