@@ -24,6 +24,26 @@
 
 namespace amrex {
 
+class CArena;
+
+struct MemStat
+{
+    enum memory_type {
+        device = 0,
+        managed = 1,
+        pinned = 2
+    };
+
+    static constexpr std::array<const char *, 3> memory_name = {
+        "Device", "Managed", "Pinned"
+    };
+
+    Long nalloc = 0;
+    Long nfree = 0;
+    Long currentmem = 0;
+    Long maxmem = 0;
+};
+
 //! A simple profiler that returns basic performance information (e.g. min, max, and average running time)
 class TinyProfiler
 {
@@ -39,6 +59,13 @@ public:
 #ifdef AMREX_USE_CUPTI
     void stop (unsigned boxUintID) noexcept;
 #endif // AMREX_USE_CUPTI
+
+
+    void memory_start () const noexcept;
+    void memory_stop () const noexcept;
+
+    static MemStat* memory_alloc (std::size_t nbytes, int memtype) noexcept;
+    static void memory_free (std::size_t nbytes, MemStat* stat) noexcept;
 
     static void Initialize () noexcept;
     static void Finalize (bool bFlushing = false) noexcept;
@@ -84,10 +111,32 @@ private:
         }
     };
 
+    struct MemProcStats
+    {
+        Long nalloc = 0;
+        Long nfree = 0;
+        Long maxmem_min = 0;
+        Long maxmem_avg = 0;
+        Long maxmem_max = 0;
+        std::string fname;
+        static bool compmem (const MemProcStats& lhs, const MemProcStats& rhs) {
+            return lhs.maxmem_max > rhs.maxmem_max;
+        }
+    };
+
     std::string fname;
     bool uCUPTI;
+    bool in_parallel_region;
     int global_depth;
     std::vector<Stats*> stats;
+
+
+    static std::deque<const TinyProfiler*> mem_stack;
+#ifdef AMREX_USE_OMP
+    static std::deque<const TinyProfiler*> mem_stack_thread_private;
+#pragma omp threadprivate(mem_stack_thread_private)
+#endif
+    static std::map<std::string, std::array<MemStat, 3>> mem_statsmap;
 
     static std::vector<std::string> regionstack;
     static std::deque<std::tuple<double,double,std::string*> > ttstack;
@@ -96,8 +145,8 @@ private:
     static int device_synchronize_around_region;
     static int n_print_tabs;
     static int verbose;
-
     static void PrintStats (std::map<std::string,Stats>& regstats, double dt_max);
+    static void PrintMemStats (int mem_type);
 };
 
 class TinyProfileRegion

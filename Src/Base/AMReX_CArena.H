@@ -14,6 +14,8 @@
 
 namespace amrex {
 
+struct MemStat;
+
 /**
 * \brief A Concrete Class for Dynamic Memory Management using first fit.
 * This is a coalescing memory manager.  It allocates (possibly) large
@@ -82,9 +84,9 @@ protected:
     class Node
     {
     public:
-        Node (void* a_block, void* a_owner, std::size_t a_size) noexcept
+        Node (void* a_block, void* a_owner, std::size_t a_size, MemStat* a_stat=nullptr) noexcept
             :
-            m_block(a_block), m_owner(a_owner), m_size(a_size) {}
+            m_block(a_block), m_owner(a_owner), m_size(a_size), m_stat(a_stat) {}
 
         //! The "less-than" operator.
         bool operator< (const Node& rhs) const noexcept
@@ -116,6 +118,8 @@ protected:
             return m_owner == rhs.m_owner;
         }
 
+        MemStat* mem_stat () const { return m_stat; }
+
         struct hash {
             std::size_t operator() (const Node& n) const noexcept {
                 return std::hash<void*>{}(n.m_block);
@@ -129,6 +133,8 @@ protected:
         void* m_owner;
         //! The size of the block we represent.
         std::size_t m_size;
+
+        MemStat* m_stat;
     };
 
     /**

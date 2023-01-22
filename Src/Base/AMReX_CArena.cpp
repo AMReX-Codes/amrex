@@ -4,6 +4,12 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_ParallelReduce.H>
 
+#ifdef AMREX_TINY_PROFILING
+#include <AMReX_TinyProfiler.H>
+#else
+struct MemStat {};
+#endif
+
 #include <utility>
 #include <cstring>
 
@@ -36,6 +42,18 @@ CArena::alloc (std::size_t nbytes)
     std::lock_guard<std::mutex> lock(carena_mutex);
 
     nbytes = Arena::align(nbytes == 0 ? 1 : nbytes);
+
+    MemStat* stat = nullptr;
+#ifdef AMREX_TINY_PROFILING
+    if (isDevice()) {
+        //std::cout << "alloc device " << nbytes << "\n";
+        stat = TinyProfiler::memory_alloc(nbytes, MemStat::device);
+    } else if (isManaged()) {
+        stat = TinyProfiler::memory_alloc(nbytes, MemStat::managed);
+    } else if (isPinned()) {
+        stat = TinyProfiler::memory_alloc(nbytes, MemStat::pinned);
+    }
+#endif
 
     if (static_cast<Long>(m_used+nbytes) >= arena_info.release_threshold) {
         freeUnused_protected();
@@ -76,7 +94,7 @@ CArena::alloc (std::size_t nbytes)
             m_freelist.insert(m_freelist.end(), Node(block, vp, m_hunk-nbytes));
         }
 
-        m_busylist.insert(Node(vp, vp, nbytes));
+        m_busylist.insert(Node(vp, vp, nbytes, stat));
     }
     else
     {
@@ -84,7 +102,7 @@ CArena::alloc (std::size_t nbytes)
         BL_ASSERT(m_busylist.find(*free_it) == m_busylist.end());
 
         vp = (*free_it).block();
-        m_busylist.insert(Node(vp, free_it->owner(), nbytes));
+        m_busylist.insert(Node(vp, free_it->owner(), nbytes, stat));
 
         if ((*free_it).size() > nbytes)
         {
@@ -135,6 +153,10 @@ CArena::free (void* vp)
     BL_ASSERT(m_freelist.find(*busy_it) == m_freelist.end());
 
     m_actually_used -= busy_it->size();
+
+#ifdef AMREX_TINY_PROFILING
+    TinyProfiler::memory_free(busy_it->size(), busy_it->mem_stat());
+#endif
 
     //
     // Put free'd block on free list and save iterator to insert()ed position.
