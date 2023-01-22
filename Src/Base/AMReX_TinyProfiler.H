@@ -31,11 +31,12 @@ struct MemStat
     enum memory_type {
         device = 0,
         managed = 1,
-        pinned = 2
+        pinned = 2,
+        cpu = 3,
     };
 
-    static constexpr std::array<const char *, 3> memory_name = {
-        "Device", "Managed", "Pinned"
+    static constexpr std::array<const char *, 4> memory_name = {
+        "Device", "Managed", "Pinned", "Cpu"
     };
 
     Long nalloc = 0;
@@ -115,7 +116,7 @@ private:
     {
         Long nalloc = 0;
         Long nfree = 0;
-        Long maxmem_min = 0;
+        Long maxmem_min = std::numeric_limits<Long>::max();
         Long maxmem_avg = 0;
         Long maxmem_max = 0;
         std::string fname;
@@ -136,7 +137,7 @@ private:
     static std::deque<const TinyProfiler*> mem_stack_thread_private;
 #pragma omp threadprivate(mem_stack_thread_private)
 #endif
-    static std::map<std::string, std::array<MemStat, 3>> mem_statsmap;
+    static std::map<std::string, std::array<MemStat, 4>> mem_statsmap;
 
     static std::vector<std::string> regionstack;
     static std::deque<std::tuple<double,double,std::string*> > ttstack;

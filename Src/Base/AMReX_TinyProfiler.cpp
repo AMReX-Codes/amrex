@@ -32,7 +32,7 @@ std::deque<const TinyProfiler*> TinyProfiler::mem_stack;
 #ifdef AMREX_USE_OMP
 std::deque<const TinyProfiler*> TinyProfiler::mem_stack_thread_private;
 #endif
-std::map<std::string, std::array<MemStat, 3>> TinyProfiler::mem_statsmap;
+std::map<std::string, std::array<MemStat, 4>> TinyProfiler::mem_statsmap;
 
 std::vector<std::string>          TinyProfiler::regionstack;
 std::deque<std::tuple<double,double,std::string*> > TinyProfiler::ttstack;

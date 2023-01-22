@@ -46,12 +46,13 @@ CArena::alloc (std::size_t nbytes)
     MemStat* stat = nullptr;
 #ifdef AMREX_TINY_PROFILING
     if (isDevice()) {
-        //std::cout << "alloc device " << nbytes << "\n";
         stat = TinyProfiler::memory_alloc(nbytes, MemStat::device);
     } else if (isManaged()) {
         stat = TinyProfiler::memory_alloc(nbytes, MemStat::managed);
     } else if (isPinned()) {
         stat = TinyProfiler::memory_alloc(nbytes, MemStat::pinned);
+    } else {
+        stat = TinyProfiler::memory_alloc(nbytes, MemStat::cpu);
     }
 #endif
 
