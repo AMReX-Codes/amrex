@@ -285,9 +285,13 @@ if (AMReX_HIP)
    # ROCm 5.5: hipcc now relies on clang to offload code objects from (.a) archive files,
    # so we need to tell the offload-linker to include all code objects in archives.
    include(CheckLinkerFlag)
-   check_linker_flag("-Xoffload-linker --whole-archive" LINKER_HAS_WHOLE_ARCHIVE_OFFLOAD)
+   check_linker_flag(
+       CXX
+       "SHELL:-Xoffload-linker --whole-archive"
+       LINKER_HAS_WHOLE_ARCHIVE_OFFLOAD)
    if(LINKER_HAS_WHOLE_ARCHIVE_OFFLOAD)
-       target_link_options(amrex PUBLIC "SHELL:-Xoffload-linker --whole-archive")
+       target_link_options(amrex PUBLIC
+           "$<$<LINK_LANGUAGE:CXX>:SHELL:-Xoffload-linker --whole-archive>")
    endif()
 
    target_compile_options(amrex PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-m64>)
