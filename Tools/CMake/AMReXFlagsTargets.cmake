@@ -21,7 +21,7 @@ include_guard(GLOBAL)
 # for every combination of
 #
 #     <lang> = cxx,fortran
-#     <id>   = gnu,intel,pgi,cray,clang,appleclang,msvc
+#     <id>   = gnu,intel,pgi,cray,clang,appleclang,intelllvm,msvc
 #
 if (CMAKE_VERSION VERSION_LESS 3.20)
    foreach (_language CXX Fortran )

@@ -3,6 +3,8 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_Particles.H>
 
+#include <cstdio>
+
 using namespace amrex;
 
 void set_grids_nested (Vector<Box>& domains,
@@ -86,7 +88,7 @@ void test ()
 
     char fname[512];
     for (int ts = 0; ts < nplotfile; ts++) {
-        sprintf(fname, "%splt%05d", directory.c_str(), ts);
+        std::snprintf(fname, sizeof fname, "%splt%05d", directory.c_str(), ts);
 
         amrex::Print() << "Writing plot file [" << fname << "] ..." << std::endl;
 
@@ -130,7 +132,7 @@ void test ()
             particle_intnames.push_back("particle_int_component_" + std::to_string(i));
 
         for (int ts = 0; ts < nparticlefile; ts++) {
-            sprintf(fname, "%splt%05d", directory.c_str(), ts);
+            std::snprintf(fname, sizeof fname, "%splt%05d", directory.c_str(), ts);
 
             amrex::Print() << "Writing particle file [" << fname << "] ..." << std::endl;
 
@@ -146,7 +148,7 @@ void test ()
     if (restart_check && nparticlefile > 0)
     {
         MyPC newPC(geom, dmap, ba, ref_ratio);
-        sprintf(directory_path, "%s%s", directory.c_str(), "plt00000");
+        std::snprintf(directory_path, sizeof directory_path, "%s%s", directory.c_str(), "plt00000");
         newPC.Restart(directory_path, "particle0");
 
         using PType = typename MyPC::SuperParticleType;

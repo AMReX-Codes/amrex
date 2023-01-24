@@ -7,8 +7,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  tests-dpcpp:
-    name: DPCPP GFortran@7.5 C++17 [tests]
+  tests-oneapi-sycl:
+    name: oneAPI SYCL [tests]
     runs-on: ubuntu-20.04
     # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
     env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare"}
@@ -28,9 +28,9 @@ jobs:
             -DAMReX_FORTRAN=ON                             \
             -DAMReX_PARTICLES=ON                           \
             -DAMReX_GPU_BACKEND=SYCL                       \
-            -DCMAKE_C_COMPILER=$(which clang)              \
+            -DCMAKE_C_COMPILER=$(which icx)                \
             -DCMAKE_CXX_COMPILER=$(which icpx)             \
-            -DCMAKE_Fortran_COMPILER=$(which gfortran)
+            -DCMAKE_Fortran_COMPILER=$(which ifx)
         cmake --build build --parallel 2
 
 # "Classic" EDG Intel Compiler
