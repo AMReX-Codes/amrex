@@ -349,6 +349,8 @@ Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
             m_mlmg_2->setHypreInterface(Hypre::Interface::structed);
         }
 #endif
+    } else {
+        m_poisson_2->setLevelBC(0, &sol_all[0]);
     }
 
     Real err = m_mlmg_2->solve(GetVecOfPtrs(sol_all), GetVecOfConstPtrs(rhs_all),
