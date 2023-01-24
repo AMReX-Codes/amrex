@@ -146,7 +146,7 @@ enum PType
 
 template <class T>
 bool
-is (const std::string& str, T& val)
+isT (const std::string& str, T& val)
 {
     std::istringstream s(str);
     s >> val;
@@ -155,6 +155,45 @@ is (const std::string& str, T& val)
     std::getline(s, left);
     if ( !left.empty() ) return false;
     return true;
+}
+
+template <typename T, std::enable_if_t<std::is_floating_point_v<T>,int> = 0>
+bool
+is_floating_point (const std::string& str, T& val)
+{
+    if (str == "nan") {
+        val = std::numeric_limits<T>::quiet_NaN();
+        return true;
+    } else if (str == "inf") {
+        val = std::numeric_limits<T>::infinity();
+        return true;
+    } else if (str == "-inf") {
+        val = -std::numeric_limits<T>::infinity();
+        return true;
+    } else {
+        return isT(str, val);
+    }
+}
+
+template <class T>
+bool
+is (const std::string& str, T& val)
+{
+    return isT(str, val);
+}
+
+template <>
+bool
+is (const std::string& str, float& val)
+{
+    return is_floating_point(str, val);
+}
+
+template <>
+bool
+is (const std::string& str, double& val)
+{
+    return is_floating_point(str, val);
 }
 
 template <>
@@ -180,13 +219,13 @@ is (const std::string& str, bool& val)
         return true;
     }
     int int_val;
-    if ( is(str, int_val) )
+    if ( isT(str, int_val) )
     {
         val = int_val != 0;
         return true;
     }
     double dbl_val;
-    if ( is(str, dbl_val) )
+    if ( isT(str, dbl_val) )
     {
         val = dbl_val != 0;
         return true;

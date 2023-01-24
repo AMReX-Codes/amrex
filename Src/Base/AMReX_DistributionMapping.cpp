@@ -1083,26 +1083,26 @@ namespace
         int m_box;
         Array<uint32_t,AMREX_SPACEDIM> m_morton;
     };
-}
 
-AMREX_FORCE_INLINE
-bool
-SFCToken::Compare::operator () (const SFCToken& lhs,
-                                const SFCToken& rhs) const
-{
-#if (AMREX_SPACEDIM == 1)
-        return lhs.m_morton[0] < rhs.m_morton[0];
-#elif (AMREX_SPACEDIM == 2)
-        return (lhs.m_morton[1] <  rhs.m_morton[1]) ||
-              ((lhs.m_morton[1] == rhs.m_morton[1]) &&
-               (lhs.m_morton[0] <  rhs.m_morton[0]));
-#else
-        return (lhs.m_morton[2] <  rhs.m_morton[2]) ||
-              ((lhs.m_morton[2] == rhs.m_morton[2]) &&
-              ((lhs.m_morton[1] <  rhs.m_morton[1]) ||
-              ((lhs.m_morton[1] == rhs.m_morton[1]) &&
-               (lhs.m_morton[0] <  rhs.m_morton[0]))));
-#endif
+    AMREX_FORCE_INLINE
+    bool
+    SFCToken::Compare::operator () (const SFCToken& lhs,
+                                    const SFCToken& rhs) const
+    {
+    #if (AMREX_SPACEDIM == 1)
+            return lhs.m_morton[0] < rhs.m_morton[0];
+    #elif (AMREX_SPACEDIM == 2)
+            return (lhs.m_morton[1] <  rhs.m_morton[1]) ||
+                  ((lhs.m_morton[1] == rhs.m_morton[1]) &&
+                   (lhs.m_morton[0] <  rhs.m_morton[0]));
+    #else
+            return (lhs.m_morton[2] <  rhs.m_morton[2]) ||
+                  ((lhs.m_morton[2] == rhs.m_morton[2]) &&
+                  ((lhs.m_morton[1] <  rhs.m_morton[1]) ||
+                  ((lhs.m_morton[1] == rhs.m_morton[1]) &&
+                   (lhs.m_morton[0] <  rhs.m_morton[0]))));
+    #endif
+    }
 }
 
 namespace {

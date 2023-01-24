@@ -1093,8 +1093,8 @@ struct ParmParse::PP_entry
               const std::list<std::string>& vals);
     PP_entry (const std::string& name,
               const std::string& vals);
-    PP_entry (const std::string& name,
-              const Table& table);
+    PP_entry (const std::string&            name,
+              const std::list<PP_entry>& table);
     PP_entry (const PP_entry& pe);
     PP_entry& operator= (const PP_entry& pe);
     ~PP_entry ();

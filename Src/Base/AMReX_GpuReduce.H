@@ -489,6 +489,8 @@ void deviceReduceMax_full (T * dest, T source) noexcept
     if (threadIdx.x == 0) { Gpu::Atomic::Max(dest, aggregate); }
 }
 
+// \cond CODEGEN
+
 // Compute the block-wide reduction for thread0
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 int blockReduceLogicalAnd (int source) noexcept
@@ -584,6 +586,8 @@ void deviceReduceLogicalOr_full (int * dest, int source) noexcept
     int aggregate = blockReduceLogicalOr<BLOCKDIMX>(source);
     if (threadIdx.x == 0) { Gpu::Atomic::LogicalOr(dest, aggregate); }
 }
+
+// \endcond
 
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
