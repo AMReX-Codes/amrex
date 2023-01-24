@@ -4,6 +4,7 @@
 #include <AMReX_Particles.H>
 
 #include <unistd.h>
+#include <cstdio>
 
 using namespace amrex;
 
@@ -108,7 +109,7 @@ void test ()
 
     char fname[512];
     for (int ts = 0; ts < nplotfile; ts++) {
-        sprintf(fname, "%splt%05d", directory.c_str(), ts);
+        std::snprintf(fname, sizeof fname, "%splt%05d", directory.c_str(), ts);
 
         // Fake computation
         if (ts > 0 && sleeptime > 0) {
@@ -180,7 +181,7 @@ void test ()
             particle_intnames.push_back("particle_int_component_" + std::to_string(i));
 
         for (int ts = 0; ts < nparticlefile; ts++) {
-            sprintf(fname, "%splt%05d", directory.c_str(), ts);
+            std::snprintf(fname, sizeof fname, "%splt%05d", directory.c_str(), ts);
 
             // Fake computation
             if (ts > 0 && sleeptime > 0) {
@@ -214,10 +215,10 @@ void test ()
     {
         MyPC newPC(geom, dmap, ba, ref_ratio);
 #ifdef AMREX_USE_HDF5
-        sprintf(directory_path, "%s%s", directory.c_str(), "plt00000/particle0");
+        std::snprintf(directory_path, sizeof directory_path, "%s%s", directory.c_str(), "plt00000/particle0");
         newPC.RestartHDF5(directory_path, "particle0");
 #else
-        sprintf(directory_path, "%s%s", directory.c_str(), "plt00000");
+        std::snprintf(directory_path, sizeof directory_path, "%s%s", directory.c_str(), "plt00000");
         newPC.Restart(directory_path, "particle0");
 #endif
 
