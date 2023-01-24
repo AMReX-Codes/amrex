@@ -133,9 +133,6 @@ add_amrex_define( AMREX_USE_CONDUIT NO_LEGACY IF AMReX_CONDUIT )
 # Ascent Support
 add_amrex_define( AMREX_USE_ASCENT NO_LEGACY IF AMReX_ASCENT )
 
-# EB
-add_amrex_define( AMREX_USE_EB NO_LEGACY IF AMReX_EB )
-
 #
 # CUDA
 #

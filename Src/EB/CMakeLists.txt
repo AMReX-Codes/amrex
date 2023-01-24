@@ -1,3 +1,5 @@
+add_amrex_define( AMREX_USE_EB NO_LEGACY IF AMReX_EB )
+
 target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
 
 target_sources(amrex

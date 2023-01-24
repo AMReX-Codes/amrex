@@ -120,7 +120,7 @@ endfunction ()
 
 #
 #
-# FUNCTION: set_default_config_flags
+# MACRO: set_default_config_flags
 #
 #
 # Set CMake_<LANG>_FLAGS_<CONFIG> to default values
