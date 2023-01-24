@@ -133,11 +133,16 @@ private:
 
 
     static std::deque<const TinyProfiler*> mem_stack;
+
 #ifdef AMREX_USE_OMP
-    static std::deque<const TinyProfiler*> mem_stack_thread_private;
-#pragma omp threadprivate(mem_stack_thread_private)
+    struct aligned_deque {
+        // align thread-private data to cache lines to prevent false sharing
+        alignas(64) std::deque<const TinyProfiler*> deque;
+    };
+
+    static std::vector<aligned_deque> mem_stack_thread_private;
 #endif
-    static std::map<std::string, std::array<MemStat, 4>> mem_statsmap;
+    static std::array<std::map<std::string, MemStat>, 4> mem_statsmap;
 
     static std::vector<std::string> regionstack;
     static std::deque<std::tuple<double,double,std::string*> > ttstack;

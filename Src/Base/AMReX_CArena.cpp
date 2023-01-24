@@ -7,7 +7,9 @@
 #ifdef AMREX_TINY_PROFILING
 #include <AMReX_TinyProfiler.H>
 #else
-struct MemStat {};
+namespace amrex {
+    struct MemStat {};
+}
 #endif
 
 #include <utility>

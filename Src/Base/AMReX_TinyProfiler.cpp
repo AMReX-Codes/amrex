@@ -30,9 +30,9 @@ namespace amrex {
 
 std::deque<const TinyProfiler*> TinyProfiler::mem_stack;
 #ifdef AMREX_USE_OMP
-std::deque<const TinyProfiler*> TinyProfiler::mem_stack_thread_private;
+std::vector<TinyProfiler::aligned_deque> TinyProfiler::mem_stack_thread_private;
 #endif
-std::map<std::string, std::array<MemStat, 4>> TinyProfiler::mem_statsmap;
+std::array<std::map<std::string, MemStat>, 4> TinyProfiler::mem_statsmap;
 
 std::vector<std::string>          TinyProfiler::regionstack;
 std::deque<std::tuple<double,double,std::string*> > TinyProfiler::ttstack;
@@ -313,7 +313,7 @@ void
 TinyProfiler::memory_start () const noexcept {
 #ifdef AMREX_USE_OMP
     if (omp_in_parallel()) {
-        mem_stack_thread_private.push_back(this);
+        mem_stack_thread_private[omp_get_thread_num()].deque.push_back(this);
     } else
 #endif
     {
@@ -325,8 +325,9 @@ void
 TinyProfiler::memory_stop () const noexcept {
 #ifdef AMREX_USE_OMP
     if (omp_in_parallel()) {
-        if (!mem_stack_thread_private.empty() && mem_stack_thread_private.back() == this) {
-            mem_stack_thread_private.pop_back();
+        if (!mem_stack_thread_private[omp_get_thread_num()].deque.empty() &&
+            mem_stack_thread_private[omp_get_thread_num()].deque.back() == this) {
+            mem_stack_thread_private[omp_get_thread_num()].deque.pop_back();
         }
     } else
 #endif
@@ -342,14 +343,16 @@ TinyProfiler::memory_alloc (std::size_t nbytes, int memtype) noexcept {
 
     MemStat* stat = nullptr;
 #ifdef AMREX_USE_OMP
-    if (omp_in_parallel() && !mem_stack_thread_private.empty()) {
-        stat = &mem_statsmap[mem_stack_thread_private.back()->fname][memtype];
+    if (omp_in_parallel() && !mem_stack_thread_private[omp_get_thread_num()].deque.empty()) {
+        stat = &mem_statsmap[memtype][
+            mem_stack_thread_private[omp_get_thread_num()].deque.back()->fname
+        ];
     } else
 #endif
     if (!mem_stack.empty()) {
-        stat = &mem_statsmap[mem_stack.back()->fname][memtype];
+        stat = &mem_statsmap[memtype][mem_stack.back()->fname];
     } else {
-        stat = &mem_statsmap["Unprofiled"][memtype];
+        stat = &mem_statsmap[memtype]["Unprofiled"];
     }
 
     ++stat->nalloc;
@@ -373,6 +376,9 @@ TinyProfiler::Initialize () noexcept
 {
     regionstack.push_back(mainregion);
     t_init = amrex::second();
+#ifdef AMREX_USE_OMP
+    mem_stack_thread_private.resize(omp_get_max_threads());
+#endif
 
     {
         amrex::ParmParse pp("tiny_profiler");
@@ -447,7 +453,7 @@ TinyProfiler::Finalize (bool bFlushing) noexcept
         }
     }
 
-    for (int i=0; i<MemStat::memory_name.size(); ++i) {
+    for (std::size_t i=0; i<MemStat::memory_name.size(); ++i) {
         PrintMemStats(i);
     }
 }
@@ -657,7 +663,7 @@ TinyProfiler::PrintMemStats(int mem_type)
         Vector<std::string> localStrings, syncedStrings;
         bool alreadySynced;
 
-        for(auto const& kv : mem_statsmap) {
+        for(auto const& kv : mem_statsmap[mem_type]) {
             localStrings.push_back(kv.first);
         }
 
@@ -665,14 +671,14 @@ TinyProfiler::PrintMemStats(int mem_type)
 
         if (! alreadySynced) {  // add the new name
             for (auto const& s : syncedStrings) {
-                if (mem_statsmap.find(s) == mem_statsmap.end()) {
-                    mem_statsmap[s]; // insert
+                if (mem_statsmap[mem_type].find(s) == mem_statsmap[mem_type].end()) {
+                    mem_statsmap[mem_type][s]; // insert
                 }
             }
         }
     }
 
-    if (mem_statsmap.empty()) return;
+    if (mem_statsmap[mem_type].empty()) return;
 
     const int nprocs = ParallelDescriptor::NProcs();
     const int ioproc = ParallelDescriptor::IOProcessorNumber();
@@ -680,11 +686,11 @@ TinyProfiler::PrintMemStats(int mem_type)
     std::vector<MemProcStats> allprocstats;
 
     // now collect global data onto the ioproc
-    for (auto it = mem_statsmap.cbegin(); it != mem_statsmap.cend(); ++it)
+    for (auto it = mem_statsmap[mem_type].cbegin(); it != mem_statsmap[mem_type].cend(); ++it)
     {
-        Long nalloc = it->second[mem_type].nalloc;
-        Long nfree = it->second[mem_type].nfree;
-        Long maxmem = it->second[mem_type].maxmem;
+        Long nalloc = it->second.nalloc;
+        Long nfree = it->second.nfree;
+        Long maxmem = it->second.maxmem;
 
         std::vector<Long> nalloc_vec(nprocs);
         std::vector<Long> nfree_vec(nprocs);
@@ -768,28 +774,28 @@ TinyProfiler::PrintMemStats(int mem_type)
     }
     std::vector<std::size_t> maxlen(allstatsstr[0].size(), 0);
     for (auto& strvec : allstatsstr) {
-        for (int i=0; i<maxlen.size(); ++i) {
+        for (std::size_t i=0; i<maxlen.size(); ++i) {
             maxlen[i] = std::max(maxlen[i], strvec[i].size());
         }
     }
 
-    for (int i=1; i<maxlen.size(); ++i) {
+    for (std::size_t i=1; i<maxlen.size(); ++i) {
         maxlen[i] += 2;
     }
 
     if (allstatsstr.size() == 1) return;
 
     std::size_t lenhline = 0;
-    for (int i=0; i<maxlen.size(); ++i) {
+    for (std::size_t i=0; i<maxlen.size(); ++i) {
         lenhline += maxlen[i];
     }
     const std::string hline(lenhline, '-');
 
     amrex::OutStream() << MemStat::memory_name[mem_type] << " Memory Usage:\n";
     amrex::OutStream() << hline << "\n";
-    for (int i=0; i<allstatsstr.size(); ++i) {
+    for (std::size_t i=0; i<allstatsstr.size(); ++i) {
         amrex::OutStream() << std::left << std::setw(maxlen[0]) << allstatsstr[i][0];
-        for (int j=1; j<maxlen.size(); ++j) {
+        for (std::size_t j=1; j<maxlen.size(); ++j) {
             amrex::OutStream() << std::right << std::setw(maxlen[j]) << allstatsstr[i][j];
         }
         amrex::OutStream() << '\n';
