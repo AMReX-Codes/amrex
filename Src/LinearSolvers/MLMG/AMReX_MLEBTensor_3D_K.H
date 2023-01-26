@@ -1129,6 +1129,1098 @@ void mlebtensor_flux_z (Box const& box, Array4<Real> const& Az,
     });
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebtensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
+                              Array4<Real const> const& vel, Array4<Real const> const& apx,
+                              Array4<EBCellFlag const> const& flag,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const Real dzi = dxinv[2];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+                if (apx(i,j,k) == 0.0)
+                {
+                    fx(i,j,k,0) = 0.0;
+                    fx(i,j,k,1) = 0.0;
+                    fx(i,j,k,2) = 0.0;
+                    fx(i,j,k,3) = 0.0;
+                    fx(i,j,k,4) = 0.0;
+                    fx(i,j,k,5) = 0.0;
+                    fx(i,j,k,6) = 0.0;
+                    fx(i,j,k,7) = 0.0;
+                    fx(i,j,k,8) = 0.0;
+                }
+                else
+                {
+                    Real dudx = (vel(i,j,k,0) - vel(i-1,j,k,0))*dxi;
+                    Real dvdx = (vel(i,j,k,1) - vel(i-1,j,k,1))*dxi;
+                    Real dwdx = (vel(i,j,k,2) - vel(i-1,j,k,2))*dxi;
+
+                    int jhip = j + flag(i  ,j,k).isConnected(0, 1,0);
+                    int jhim = j - flag(i  ,j,k).isConnected(0,-1,0);
+                    int jlop = j + flag(i-1,j,k).isConnected(0, 1,0);
+                    int jlom = j - flag(i-1,j,k).isConnected(0,-1,0);
+                    Real whi = mlebtensor_weight(jhip-jhim);
+                    Real wlo = mlebtensor_weight(jlop-jlom);
+                    Real dudy = mlebtensor_dy_on_xface(i,j,k,0,vel,dyi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+                    Real dvdy = mlebtensor_dy_on_xface(i,j,k,1,vel,dyi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+                    Real dwdy = mlebtensor_dy_on_xface(i,j,k,2,vel,dyi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+
+                    int khip = k + flag(i  ,j,k).isConnected(0,0, 1);
+                    int khim = k - flag(i  ,j,k).isConnected(0,0,-1);
+                    int klop = k + flag(i-1,j,k).isConnected(0,0, 1);
+                    int klom = k - flag(i-1,j,k).isConnected(0,0,-1);
+                    whi = mlebtensor_weight(khip-khim);
+                    wlo = mlebtensor_weight(klop-klom);
+                    Real dudz = mlebtensor_dz_on_xface(i,j,k,0,vel,dzi,
+                                                       whi,wlo,khip,khim,klop,klom);
+                    Real dvdz = mlebtensor_dz_on_xface(i,j,k,1,vel,dzi,
+                                                       whi,wlo,khip,khim,klop,klom);
+                    Real dwdz = mlebtensor_dz_on_xface(i,j,k,2,vel,dzi,
+                                                       whi,wlo,khip,khim,klop,klom);
+
+                    fx(i,j,k,0) = dudx;
+                    fx(i,j,k,1) = dvdx;
+                    fx(i,j,k,2) = dwdx;
+                    fx(i,j,k,3) = dudy;
+                    fx(i,j,k,4) = dvdy;
+                    fx(i,j,k,5) = dwdy;
+                    fx(i,j,k,6) = dudz;
+                    fx(i,j,k,7) = dvdz;
+                    fx(i,j,k,8) = dwdz;
+                }
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebtensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
+                              Array4<Real const> const& vel, Array4<Real const> const& apy,
+                              Array4<EBCellFlag const> const& flag,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const Real dzi = dxinv[2];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+                if (apy(i,j,k) == 0.0)
+                {
+                    fy(i,j,k,0) = 0.0;
+                    fy(i,j,k,1) = 0.0;
+                    fy(i,j,k,2) = 0.0;
+                    fy(i,j,k,3) = 0.0;
+                    fy(i,j,k,4) = 0.0;
+                    fy(i,j,k,5) = 0.0;
+                    fy(i,j,k,6) = 0.0;
+                    fy(i,j,k,7) = 0.0;
+                    fy(i,j,k,8) = 0.0;
+                }
+                else
+                {
+                    int ihip = i + flag(i,j  ,k).isConnected( 1,0,0);
+                    int ihim = i - flag(i,j  ,k).isConnected(-1,0,0);
+                    int ilop = i + flag(i,j-1,k).isConnected( 1,0,0);
+                    int ilom = i - flag(i,j-1,k).isConnected(-1,0,0);
+                    Real whi = mlebtensor_weight(ihip-ihim);
+                    Real wlo = mlebtensor_weight(ilop-ilom);
+                    Real dudx = mlebtensor_dx_on_yface(i,j,k,0,vel,dxi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+                    Real dvdx = mlebtensor_dx_on_yface(i,j,k,1,vel,dxi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+                    Real dwdx = mlebtensor_dx_on_yface(i,j,k,2,vel,dxi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+
+                    Real dudy = (vel(i,j,k,0) - vel(i,j-1,k,0))*dyi;
+                    Real dvdy = (vel(i,j,k,1) - vel(i,j-1,k,1))*dyi;
+                    Real dwdy = (vel(i,j,k,2) - vel(i,j-1,k,2))*dyi;
+
+                    int khip = k + flag(i,j  ,k).isConnected(0,0, 1);
+                    int khim = k - flag(i,j  ,k).isConnected(0,0,-1);
+                    int klop = k + flag(i,j-1,k).isConnected(0,0, 1);
+                    int klom = k - flag(i,j-1,k).isConnected(0,0,-1);
+                    whi = mlebtensor_weight(khip-khim);
+                    wlo = mlebtensor_weight(klop-klom);
+                    Real dudz = mlebtensor_dz_on_yface(i,j,k,0,vel,dzi,
+                                                       whi,wlo,khip,khim,klop,klom);
+                    Real dvdz = mlebtensor_dz_on_yface(i,j,k,1,vel,dzi,
+                                                       whi,wlo,khip,khim,klop,klom);
+                    Real dwdz = mlebtensor_dz_on_yface(i,j,k,2,vel,dzi,
+                                                       whi,wlo,khip,khim,klop,klom);
+
+                    fy(i,j,k,0) = dudx;
+                    fy(i,j,k,1) = dvdx;
+                    fy(i,j,k,2) = dwdx;
+                    fy(i,j,k,3) = dudy;
+                    fy(i,j,k,4) = dvdy;
+                    fy(i,j,k,5) = dwdy;
+                    fy(i,j,k,6) = dudz;
+                    fy(i,j,k,7) = dvdz;
+                    fy(i,j,k,8) = dwdz;
+                }
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebtensor_vel_grads_fz (Box const& box, Array4<Real> const& fz,
+                              Array4<Real const> const& vel, Array4<Real const> const& apz,
+                              Array4<EBCellFlag const> const& flag,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const Real dzi = dxinv[2];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+                if (apz(i,j,k) == 0.0)
+                {
+                    fz(i,j,k,0) = 0.0;
+                    fz(i,j,k,1) = 0.0;
+                    fz(i,j,k,2) = 0.0;
+                    fz(i,j,k,3) = 0.0;
+                    fz(i,j,k,4) = 0.0;
+                    fz(i,j,k,5) = 0.0;
+                    fz(i,j,k,6) = 0.0;
+                    fz(i,j,k,7) = 0.0;
+                    fz(i,j,k,8) = 0.0;
+                }
+                else
+                {
+                    int ihip = i + flag(i,j,k  ).isConnected( 1,0,0);
+                    int ihim = i - flag(i,j,k  ).isConnected(-1,0,0);
+                    int ilop = i + flag(i,j,k-1).isConnected( 1,0,0);
+                    int ilom = i - flag(i,j,k-1).isConnected(-1,0,0);
+                    Real whi = mlebtensor_weight(ihip-ihim);
+                    Real wlo = mlebtensor_weight(ilop-ilom);
+                    Real dudx = mlebtensor_dx_on_zface(i,j,k,0,vel,dxi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+                    Real dvdx = mlebtensor_dx_on_zface(i,j,k,1,vel,dxi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+                    Real dwdx = mlebtensor_dx_on_zface(i,j,k,2,vel,dxi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+
+                    int jhip = j + flag(i,j,k  ).isConnected(0, 1,0);
+                    int jhim = j - flag(i,j,k  ).isConnected(0,-1,0);
+                    int jlop = j + flag(i,j,k-1).isConnected(0, 1,0);
+                    int jlom = j - flag(i,j,k-1).isConnected(0,-1,0);
+                    whi = mlebtensor_weight(jhip-jhim);
+                    wlo = mlebtensor_weight(jlop-jlom);
+                    Real dudy = mlebtensor_dy_on_zface(i,j,k,0,vel,dyi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+                    Real dvdy = mlebtensor_dy_on_zface(i,j,k,1,vel,dyi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+                    Real dwdy = mlebtensor_dy_on_zface(i,j,k,2,vel,dyi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+
+                    Real dudz = (vel(i,j,k,0) - vel(i,j,k-1,0))*dzi;
+                    Real dvdz = (vel(i,j,k,1) - vel(i,j,k-1,1))*dzi;
+                    Real dwdz = (vel(i,j,k,2) - vel(i,j,k-1,2))*dzi;
+
+                    fz(i,j,k,0) = dudx;
+                    fz(i,j,k,1) = dvdx;
+                    fz(i,j,k,2) = dwdx;
+                    fz(i,j,k,3) = dudy;
+                    fz(i,j,k,4) = dvdy;
+                    fz(i,j,k,5) = dwdy;
+                    fz(i,j,k,6) = dudz;
+                    fz(i,j,k,7) = dvdz;
+                    fz(i,j,k,8) = dwdz;
+                }
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebtensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
+                              Array4<Real const> const& vel,
+                              Array4<Real const> const& apx,
+                              Array4<EBCellFlag const> const& flag,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                              Array4<Real const> const& bvxlo,
+                              Array4<Real const> const& bvxhi,
+                              Array2D<BoundCond,
+                                      0,2*AMREX_SPACEDIM,
+                                      0,AMREX_SPACEDIM> const& bct,
+                              Dim3 const& dlo, Dim3 const& dhi) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const Real dzi = dxinv[2];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                if (apx(i,j,k) == 0.0)
+                {
+                    fx(i,j,k,0) = 0.0;
+                    fx(i,j,k,1) = 0.0;
+                    fx(i,j,k,2) = 0.0;
+                    fx(i,j,k,3) = 0.0;
+                    fx(i,j,k,4) = 0.0;
+                    fx(i,j,k,5) = 0.0;
+                    fx(i,j,k,6) = 0.0;
+                    fx(i,j,k,7) = 0.0;
+                    fx(i,j,k,8) = 0.0;
+                }
+                else
+                {
+                    Real dudx = (vel(i,j,k,0) - vel(i-1,j,k,0))*dxi;
+                    Real dvdx = (vel(i,j,k,1) - vel(i-1,j,k,1))*dxi;
+                    Real dwdx = (vel(i,j,k,2) - vel(i-1,j,k,2))*dxi;
+
+                    int jhip = j + flag(i  ,j,k).isConnected(0, 1,0);
+                    int jhim = j - flag(i  ,j,k).isConnected(0,-1,0);
+                    int jlop = j + flag(i-1,j,k).isConnected(0, 1,0);
+                    int jlom = j - flag(i-1,j,k).isConnected(0,-1,0);
+                    Real whi = mlebtensor_weight(jhip-jhim);
+                    Real wlo = mlebtensor_weight(jlop-jlom);
+                    Real dudy = mlebtensor_dy_on_xface(i,j,k,0,vel,dyi,
+                                                       bvxlo,bvxhi,bct,dlo,dhi,  
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+                    Real dvdy = mlebtensor_dy_on_xface(i,j,k,1,vel,dyi,
+                                                       bvxlo,bvxhi,bct,dlo,dhi,  
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+                    Real dwdy = mlebtensor_dy_on_xface(i,j,k,2,vel,dyi,
+                                                       bvxlo,bvxhi,bct,dlo,dhi,  
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+
+                    int khip = k + flag(i  ,j,k).isConnected(0,0, 1);
+                    int khim = k - flag(i  ,j,k).isConnected(0,0,-1);
+                    int klop = k + flag(i-1,j,k).isConnected(0,0, 1);
+                    int klom = k - flag(i-1,j,k).isConnected(0,0,-1);
+                    whi = mlebtensor_weight(khip-khim);
+                    wlo = mlebtensor_weight(klop-klom);
+                    Real dudz = mlebtensor_dz_on_xface(i,j,k,0,vel,dzi,
+                                                       bvxlo,bvxhi,bct,dlo,dhi,  
+                                                       whi,wlo,khip,khim,klop,klom);
+                    Real dvdz = mlebtensor_dz_on_xface(i,j,k,1,vel,dzi,
+                                                       bvxlo,bvxhi,bct,dlo,dhi,  
+                                                       whi,wlo,khip,khim,klop,klom);
+                    Real dwdz = mlebtensor_dz_on_xface(i,j,k,2,vel,dzi,
+                                                       bvxlo,bvxhi,bct,dlo,dhi,  
+                                                       whi,wlo,khip,khim,klop,klom);
+
+                    fx(i,j,k,0) = dudx;
+                    fx(i,j,k,1) = dvdx;
+                    fx(i,j,k,2) = dwdx;
+                    fx(i,j,k,3) = dudy;
+                    fx(i,j,k,4) = dvdy;
+                    fx(i,j,k,5) = dwdy;
+                    fx(i,j,k,6) = dudz;
+                    fx(i,j,k,7) = dvdz;
+                    fx(i,j,k,8) = dwdz;
+                }
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebtensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
+                              Array4<Real const> const& vel,
+                              Array4<Real const> const& apy,
+                              Array4<EBCellFlag const> const& flag,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                              Array4<Real const> const& bvylo,
+                              Array4<Real const> const& bvyhi,
+                              Array2D<BoundCond,
+                                      0,2*AMREX_SPACEDIM,
+                                      0,AMREX_SPACEDIM> const& bct,
+                              Dim3 const& dlo, Dim3 const& dhi) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const Real dzi = dxinv[2];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                if (apy(i,j,k) == 0.0)
+                {
+                    fy(i,j,k,0) = 0.0;
+                    fy(i,j,k,1) = 0.0;
+                    fy(i,j,k,2) = 0.0;
+                    fy(i,j,k,3) = 0.0;
+                    fy(i,j,k,4) = 0.0;
+                    fy(i,j,k,5) = 0.0;
+                    fy(i,j,k,6) = 0.0;
+                    fy(i,j,k,7) = 0.0;
+                    fy(i,j,k,8) = 0.0;
+                }
+                else
+                {
+                    int ihip = i + flag(i,j  ,k).isConnected( 1,0,0);
+                    int ihim = i - flag(i,j  ,k).isConnected(-1,0,0);
+                    int ilop = i + flag(i,j-1,k).isConnected( 1,0,0);
+                    int ilom = i - flag(i,j-1,k).isConnected(-1,0,0);
+                    Real whi = mlebtensor_weight(ihip-ihim);
+                    Real wlo = mlebtensor_weight(ilop-ilom);
+                    Real dudx = mlebtensor_dx_on_yface(i,j,k,0,vel,dxi,
+                                                       bvylo,bvyhi,bct,dlo,dhi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+                    Real dvdx = mlebtensor_dx_on_yface(i,j,k,1,vel,dxi,
+                                                       bvylo,bvyhi,bct,dlo,dhi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+                    Real dwdx = mlebtensor_dx_on_yface(i,j,k,2,vel,dxi,
+                                                       bvylo,bvyhi,bct,dlo,dhi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+
+                    Real dudy = (vel(i,j,k,0) - vel(i,j-1,k,0))*dyi;
+                    Real dvdy = (vel(i,j,k,1) - vel(i,j-1,k,1))*dyi;
+                    Real dwdy = (vel(i,j,k,2) - vel(i,j-1,k,2))*dyi;
+
+                    int khip = k + flag(i,j  ,k).isConnected(0,0, 1);
+                    int khim = k - flag(i,j  ,k).isConnected(0,0,-1);
+                    int klop = k + flag(i,j-1,k).isConnected(0,0, 1);
+                    int klom = k - flag(i,j-1,k).isConnected(0,0,-1);
+                    whi = mlebtensor_weight(khip-khim);
+                    wlo = mlebtensor_weight(klop-klom);
+                    Real dudz = mlebtensor_dz_on_yface(i,j,k,0,vel,dzi,
+                                                       bvylo,bvyhi,bct,dlo,dhi,
+                                                       whi,wlo,khip,khim,klop,klom);
+                    Real dvdz = mlebtensor_dz_on_yface(i,j,k,1,vel,dzi,
+                                                       bvylo,bvyhi,bct,dlo,dhi,
+                                                       whi,wlo,khip,khim,klop,klom);
+                    Real dwdz = mlebtensor_dz_on_yface(i,j,k,2,vel,dzi,
+                                                       bvylo,bvyhi,bct,dlo,dhi,
+                                                       whi,wlo,khip,khim,klop,klom);
+
+                    fy(i,j,k,0) = dudx;
+                    fy(i,j,k,1) = dvdx;
+                    fy(i,j,k,2) = dwdx;
+                    fy(i,j,k,3) = dudy;
+                    fy(i,j,k,4) = dvdy;
+                    fy(i,j,k,5) = dwdy;
+                    fy(i,j,k,6) = dudz;
+                    fy(i,j,k,7) = dvdz;
+                    fy(i,j,k,8) = dwdz;
+                }
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebtensor_vel_grads_fz (Box const& box, Array4<Real> const& fz,
+                              Array4<Real const> const& vel,
+                              Array4<Real const> const& apz,
+                              Array4<EBCellFlag const> const& flag,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                              Array4<Real const> const& bvzlo,
+                              Array4<Real const> const& bvzhi,
+                              Array2D<BoundCond,
+                                      0,2*AMREX_SPACEDIM,
+                                      0,AMREX_SPACEDIM> const& bct,
+                              Dim3 const& dlo, Dim3 const& dhi) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const Real dzi = dxinv[2];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                if (apz(i,j,k) == 0.0)
+                {
+                    fz(i,j,k,0) = 0.0;
+                    fz(i,j,k,1) = 0.0;
+                    fz(i,j,k,2) = 0.0;
+                    fz(i,j,k,3) = 0.0;
+                    fz(i,j,k,4) = 0.0;
+                    fz(i,j,k,5) = 0.0;
+                    fz(i,j,k,6) = 0.0;
+                    fz(i,j,k,7) = 0.0;
+                    fz(i,j,k,8) = 0.0;
+                }
+                else
+                {
+                    int ihip = i + flag(i,j,k  ).isConnected( 1,0,0);
+                    int ihim = i - flag(i,j,k  ).isConnected(-1,0,0);
+                    int ilop = i + flag(i,j,k-1).isConnected( 1,0,0);
+                    int ilom = i - flag(i,j,k-1).isConnected(-1,0,0);
+                    Real whi = mlebtensor_weight(ihip-ihim);
+                    Real wlo = mlebtensor_weight(ilop-ilom);
+                    Real dudx = mlebtensor_dx_on_zface(i,j,k,0,vel,dxi,
+                                                       bvzlo,bvzhi,bct,dlo,dhi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+                    Real dvdx = mlebtensor_dx_on_zface(i,j,k,1,vel,dxi,
+                                                       bvzlo,bvzhi,bct,dlo,dhi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+                    Real dwdx = mlebtensor_dx_on_zface(i,j,k,2,vel,dxi,
+                                                       bvzlo,bvzhi,bct,dlo,dhi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+
+                    int jhip = j + flag(i,j,k  ).isConnected(0, 1,0);
+                    int jhim = j - flag(i,j,k  ).isConnected(0,-1,0);
+                    int jlop = j + flag(i,j,k-1).isConnected(0, 1,0);
+                    int jlom = j - flag(i,j,k-1).isConnected(0,-1,0);
+                    whi = mlebtensor_weight(jhip-jhim);
+                    wlo = mlebtensor_weight(jlop-jlom);
+                    Real dudy = mlebtensor_dy_on_zface(i,j,k,0,vel,dyi,
+                                                       bvzlo,bvzhi,bct,dlo,dhi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+                    Real dvdy = mlebtensor_dy_on_zface(i,j,k,1,vel,dyi,
+                                                       bvzlo,bvzhi,bct,dlo,dhi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+                    Real dwdy = mlebtensor_dy_on_zface(i,j,k,2,vel,dyi,
+                                                       bvzlo,bvzhi,bct,dlo,dhi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+
+                    Real dudz = (vel(i,j,k,0) - vel(i,j,k-1,0))*dzi;
+                    Real dvdz = (vel(i,j,k,1) - vel(i,j,k-1,1))*dzi;
+                    Real dwdz = (vel(i,j,k,2) - vel(i,j,k-1,2))*dzi;
+
+                    fz(i,j,k,0) = dudx;
+                    fz(i,j,k,1) = dvdx;
+                    fz(i,j,k,2) = dwdx;
+                    fz(i,j,k,3) = dudy;
+                    fz(i,j,k,4) = dvdy;
+                    fz(i,j,k,5) = dwdy;
+                    fz(i,j,k,6) = dudz;
+                    fz(i,j,k,7) = dvdz;
+                    fz(i,j,k,8) = dwdz;
+                }
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebtensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
+                              Array4<Real const> const& vel, Array4<Real const> const& apx,
+                              Array4<EBCellFlag const> const& flag,
+                              Array4<int const> const& ccm,
+                              Array4<Real const> const& fcx,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const Real dzi = dxinv[2];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+                if (apx(i,j,k) == 0.0)
+                {
+                    fx(i,j,k,0) = 0.0;
+                    fx(i,j,k,1) = 0.0;
+                    fx(i,j,k,2) = 0.0;
+                    fx(i,j,k,3) = 0.0;
+                    fx(i,j,k,4) = 0.0;
+                    fx(i,j,k,5) = 0.0;
+                    fx(i,j,k,6) = 0.0;
+                    fx(i,j,k,7) = 0.0;
+                    fx(i,j,k,8) = 0.0;
+                }
+                else
+                {
+                    Real dudx = (vel(i,j,k,0) - vel(i-1,j,k,0))*dxi;
+                    Real dvdx = (vel(i,j,k,1) - vel(i-1,j,k,1))*dxi;
+                    Real dwdx = (vel(i,j,k,2) - vel(i-1,j,k,2))*dxi;
+                    if (apx(i,j,k) < 1.0) {
+                        int jj = j + (fcx(i,j,k,0) >= 0.0 ? 1 : -1);
+                        int kk = k + (fcx(i,j,k,1) >= 0.0 ? 1 : -1);
+                        Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? amrex::Math::abs(fcx(i,j,k,0)) : 0.0;
+                        Real fracz = (ccm(i-1,j,kk) || ccm(i,j,kk)) ? amrex::Math::abs(fcx(i,j,k,1)) : 0.0;
+                        dudx = (1.0-fracy)*(1.0-fracz) * dudx
+                            + fracy*(1.0-fracz) * (vel(i,jj,k ,0) - vel(i-1,jj,k ,0))*dxi
+                            + fracz*(1.0-fracy) * (vel(i,j ,kk,0) - vel(i-1,j ,kk,0))*dxi
+                            + fracy*     fracz  * (vel(i,jj,kk,0) - vel(i-1,jj,kk,0))*dxi;
+                        dvdx = (1.0-fracy)*(1.0-fracz) * dvdx
+                            + fracy*(1.0-fracz) * (vel(i,jj,k ,1) - vel(i-1,jj,k ,1))*dxi
+                            + fracz*(1.0-fracy) * (vel(i,j ,kk,1) - vel(i-1,j ,kk,1))*dxi
+                            + fracy*     fracz  * (vel(i,jj,kk,1) - vel(i-1,jj,kk,1))*dxi;
+                        dwdx = (1.0-fracy)*(1.0-fracz) * dwdx
+                            + fracy*(1.0-fracz) * (vel(i,jj,k ,2) - vel(i-1,jj,k ,2))*dxi
+                            + fracz*(1.0-fracy) * (vel(i,j ,kk,2) - vel(i-1,j ,kk,2))*dxi
+                            + fracy*     fracz  * (vel(i,jj,kk,2) - vel(i-1,jj,kk,2))*dxi;
+                    }
+
+                    int jhip = j + flag(i  ,j,k).isConnected(0, 1,0);
+                    int jhim = j - flag(i  ,j,k).isConnected(0,-1,0);
+                    int jlop = j + flag(i-1,j,k).isConnected(0, 1,0);
+                    int jlom = j - flag(i-1,j,k).isConnected(0,-1,0);
+                    Real whi = mlebtensor_weight(jhip-jhim);
+                    Real wlo = mlebtensor_weight(jlop-jlom);
+                    Real dudy = mlebtensor_dy_on_xface(i,j,k,0,vel,dyi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+                    Real dvdy = mlebtensor_dy_on_xface(i,j,k,1,vel,dyi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+                    Real dwdy = mlebtensor_dy_on_xface(i,j,k,2,vel,dyi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+
+                    int khip = k + flag(i  ,j,k).isConnected(0,0, 1);
+                    int khim = k - flag(i  ,j,k).isConnected(0,0,-1);
+                    int klop = k + flag(i-1,j,k).isConnected(0,0, 1);
+                    int klom = k - flag(i-1,j,k).isConnected(0,0,-1);
+                    whi = mlebtensor_weight(khip-khim);
+                    wlo = mlebtensor_weight(klop-klom);
+                    Real dudz = mlebtensor_dz_on_xface(i,j,k,0,vel,dzi,
+                                                       whi,wlo,khip,khim,klop,klom);
+                    Real dvdz = mlebtensor_dz_on_xface(i,j,k,1,vel,dzi,
+                                                       whi,wlo,khip,khim,klop,klom);
+                    Real dwdz = mlebtensor_dz_on_xface(i,j,k,2,vel,dzi,
+                                                       whi,wlo,khip,khim,klop,klom);
+
+                    fx(i,j,k,0) = dudx;
+                    fx(i,j,k,1) = dvdx;
+                    fx(i,j,k,2) = dwdx;
+                    fx(i,j,k,3) = dudy;
+                    fx(i,j,k,4) = dvdy;
+                    fx(i,j,k,5) = dwdy;
+                    fx(i,j,k,6) = dudz;
+                    fx(i,j,k,7) = dvdz;
+                    fx(i,j,k,8) = dwdz;
+                }
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebtensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
+                              Array4<Real const> const& vel, Array4<Real const> const& apy,
+                              Array4<EBCellFlag const> const& flag,
+                              Array4<int const> const& ccm,
+                              Array4<Real const> const& fcy,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const Real dzi = dxinv[2];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+                if (apy(i,j,k) == 0.0)
+                {
+                    fy(i,j,k,0) = 0.0;
+                    fy(i,j,k,1) = 0.0;
+                    fy(i,j,k,2) = 0.0;
+                    fy(i,j,k,3) = 0.0;
+                    fy(i,j,k,4) = 0.0;
+                    fy(i,j,k,5) = 0.0;
+                    fy(i,j,k,6) = 0.0;
+                    fy(i,j,k,7) = 0.0;
+                    fy(i,j,k,8) = 0.0;
+                }
+                else
+                {
+                    int ihip = i + flag(i,j  ,k).isConnected( 1,0,0);
+                    int ihim = i - flag(i,j  ,k).isConnected(-1,0,0);
+                    int ilop = i + flag(i,j-1,k).isConnected( 1,0,0);
+                    int ilom = i - flag(i,j-1,k).isConnected(-1,0,0);
+                    Real whi = mlebtensor_weight(ihip-ihim);
+                    Real wlo = mlebtensor_weight(ilop-ilom);
+                    Real dudx = mlebtensor_dx_on_yface(i,j,k,0,vel,dxi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+                    Real dvdx = mlebtensor_dx_on_yface(i,j,k,1,vel,dxi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+                    Real dwdx = mlebtensor_dx_on_yface(i,j,k,2,vel,dxi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+
+                    Real dudy = (vel(i,j,k,0) - vel(i,j-1,k,0))*dyi;
+                    Real dvdy = (vel(i,j,k,1) - vel(i,j-1,k,1))*dyi;
+                    Real dwdy = (vel(i,j,k,2) - vel(i,j-1,k,2))*dyi;
+                    if (apy(i,j,k) < 1.0) {
+                        int ii = i + (fcy(i,j,k,0) >= 0.0 ? 1 : -1);
+                        int kk = k + (fcy(i,j,k,1) >= 0.0 ? 1 : -1);
+                        Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? amrex::Math::abs(fcy(i,j,k,0)) : 0.0;
+                        Real fracz = (ccm(i,j-1,kk) || ccm(i,j,kk)) ? amrex::Math::abs(fcy(i,j,k,1)) : 0.0;
+                        dudy = (1.0-fracx)*(1.0-fracz) * dudy
+                            + fracx*(1.0-fracz) * (vel(ii,j,k ,0) - vel(ii,j-1,k ,0))*dyi
+                            + fracz*(1.0-fracx) * (vel(i ,j,kk,0) - vel(i ,j-1,kk,0))*dyi
+                            + fracx*     fracz  * (vel(ii,j,kk,0) - vel(ii,j-1,kk,0))*dyi;
+                        dvdy = (1.0-fracx)*(1.0-fracz) * dvdy
+                            + fracx*(1.0-fracz) * (vel(ii,j,k ,1) - vel(ii,j-1,k ,1))*dyi
+                            + fracz*(1.0-fracx) * (vel(i ,j,kk,1) - vel(i ,j-1,kk,1))*dyi
+                            + fracx*     fracz  * (vel(ii,j,kk,1) - vel(ii,j-1,kk,1))*dyi;
+                        dwdy = (1.0-fracx)*(1.0-fracz) * dwdy
+                            + fracx*(1.0-fracz) * (vel(ii,j,k ,2) - vel(ii,j-1,k ,2))*dyi
+                            + fracz*(1.0-fracx) * (vel(i ,j,kk,2) - vel(i ,j-1,kk,2))*dyi
+                            + fracx*     fracz  * (vel(ii,j,kk,2) - vel(ii,j-1,kk,2))*dyi;
+                    }
+
+                    int khip = k + flag(i,j  ,k).isConnected(0,0, 1);
+                    int khim = k - flag(i,j  ,k).isConnected(0,0,-1);
+                    int klop = k + flag(i,j-1,k).isConnected(0,0, 1);
+                    int klom = k - flag(i,j-1,k).isConnected(0,0,-1);
+                    whi = mlebtensor_weight(khip-khim);
+                    wlo = mlebtensor_weight(klop-klom);
+                    Real dudz = mlebtensor_dz_on_yface(i,j,k,0,vel,dzi,
+                                                       whi,wlo,khip,khim,klop,klom);
+                    Real dvdz = mlebtensor_dz_on_yface(i,j,k,1,vel,dzi,
+                                                       whi,wlo,khip,khim,klop,klom);
+                    Real dwdz = mlebtensor_dz_on_yface(i,j,k,2,vel,dzi,
+                                                       whi,wlo,khip,khim,klop,klom);
+
+                    fy(i,j,k,0) = dudx;
+                    fy(i,j,k,1) = dvdx;
+                    fy(i,j,k,2) = dwdx;
+                    fy(i,j,k,3) = dudy;
+                    fy(i,j,k,4) = dvdy;
+                    fy(i,j,k,5) = dwdy;
+                    fy(i,j,k,6) = dudz;
+                    fy(i,j,k,7) = dvdz;
+                    fy(i,j,k,8) = dwdz;
+                }
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebtensor_vel_grads_fz (Box const& box, Array4<Real> const& fz,
+                              Array4<Real const> const& vel, Array4<Real const> const& apz,
+                              Array4<EBCellFlag const> const& flag,
+                              Array4<int const> const& ccm,
+                              Array4<Real const> const& fcz,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const Real dzi = dxinv[2];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+                if (apz(i,j,k) == 0.0)
+                {
+                    fz(i,j,k,0) = 0.0;
+                    fz(i,j,k,1) = 0.0;
+                    fz(i,j,k,2) = 0.0;
+                    fz(i,j,k,3) = 0.0;
+                    fz(i,j,k,4) = 0.0;
+                    fz(i,j,k,5) = 0.0;
+                    fz(i,j,k,6) = 0.0;
+                    fz(i,j,k,7) = 0.0;
+                    fz(i,j,k,8) = 0.0;
+                }
+                else
+                {
+                    int ihip = i + flag(i,j,k  ).isConnected( 1,0,0);
+                    int ihim = i - flag(i,j,k  ).isConnected(-1,0,0);
+                    int ilop = i + flag(i,j,k-1).isConnected( 1,0,0);
+                    int ilom = i - flag(i,j,k-1).isConnected(-1,0,0);
+                    Real whi = mlebtensor_weight(ihip-ihim);
+                    Real wlo = mlebtensor_weight(ilop-ilom);
+                    Real dudx = mlebtensor_dx_on_zface(i,j,k,0,vel,dxi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+                    Real dvdx = mlebtensor_dx_on_zface(i,j,k,1,vel,dxi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+                    Real dwdx = mlebtensor_dx_on_zface(i,j,k,2,vel,dxi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+
+                    int jhip = j + flag(i,j,k  ).isConnected(0, 1,0);
+                    int jhim = j - flag(i,j,k  ).isConnected(0,-1,0);
+                    int jlop = j + flag(i,j,k-1).isConnected(0, 1,0);
+                    int jlom = j - flag(i,j,k-1).isConnected(0,-1,0);
+                    whi = mlebtensor_weight(jhip-jhim);
+                    wlo = mlebtensor_weight(jlop-jlom);
+                    Real dudy = mlebtensor_dy_on_zface(i,j,k,0,vel,dyi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+                    Real dvdy = mlebtensor_dy_on_zface(i,j,k,1,vel,dyi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+                    Real dwdy = mlebtensor_dy_on_zface(i,j,k,2,vel,dyi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+
+                    Real dudz = (vel(i,j,k,0) - vel(i,j,k-1,0))*dzi;
+                    Real dvdz = (vel(i,j,k,1) - vel(i,j,k-1,1))*dzi;
+                    Real dwdz = (vel(i,j,k,2) - vel(i,j,k-1,2))*dzi;
+                    if (apz(i,j,k) < 1.0) {
+                        int ii = i + (fcz(i,j,k,0) >= 0.0 ? 1 : -1);
+                        int jj = j + (fcz(i,j,k,1) >= 0.0 ? 1 : -1);
+                        Real fracx = (ccm(ii,j,k-1) || ccm(ii,j,k)) ? amrex::Math::abs(fcz(i,j,k,0)) : 0.0;
+                        Real fracy = (ccm(i,jj,k-1) || ccm(i,jj,k)) ? amrex::Math::abs(fcz(i,j,k,1)) : 0.0;
+                        dudz = (1.0-fracx)*(1.0-fracy) * dudz
+                            + fracx*(1.0-fracy) * (vel(ii,j ,k,0) - vel(ii,j ,k-1,0))*dzi
+                            + fracy*(1.0-fracx) * (vel(i ,jj,k,0) - vel(i ,jj,k-1,0))*dzi
+                            + fracx*     fracy  * (vel(ii,jj,k,0) - vel(ii,jj,k-1,0))*dzi;
+                        dvdz = (1.0-fracx)*(1.0-fracy) * dvdz
+                            + fracx*(1.0-fracy) * (vel(ii,j ,k,1) - vel(ii,j ,k-1,1))*dzi
+                            + fracy*(1.0-fracx) * (vel(i ,jj,k,1) - vel(i ,jj,k-1,1))*dzi
+                            + fracx*     fracy  * (vel(ii,jj,k,1) - vel(ii,jj,k-1,1))*dzi;
+                        dwdz = (1.0-fracx)*(1.0-fracy) * dwdz
+                            + fracx*(1.0-fracy) * (vel(ii,j ,k,2) - vel(ii,j ,k-1,2))*dzi
+                            + fracy*(1.0-fracx) * (vel(i ,jj,k,2) - vel(i ,jj,k-1,2))*dzi
+                            + fracx*     fracy  * (vel(ii,jj,k,2) - vel(ii,jj,k-1,2))*dzi;
+                    }
+
+                    fz(i,j,k,0) = dudx;
+                    fz(i,j,k,1) = dvdx;
+                    fz(i,j,k,2) = dwdx;
+                    fz(i,j,k,3) = dudy;
+                    fz(i,j,k,4) = dvdy;
+                    fz(i,j,k,5) = dwdy;
+                    fz(i,j,k,6) = dudz;
+                    fz(i,j,k,7) = dvdz;
+                    fz(i,j,k,8) = dwdz;
+                }
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebtensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
+                              Array4<Real const> const& vel,
+                              Array4<Real const> const& apx,
+                              Array4<EBCellFlag const> const& flag,
+                              Array4<int const> const& ccm,
+                              Array4<Real const> const& fcx,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                              Array4<Real const> const& bvxlo,
+                              Array4<Real const> const& bvxhi,
+                              Array2D<BoundCond,
+                                      0,2*AMREX_SPACEDIM,
+                                      0,AMREX_SPACEDIM> const& bct,
+                              Dim3 const& dlo, Dim3 const& dhi) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const Real dzi = dxinv[2];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                if (apx(i,j,k) == 0.0)
+                {
+                    fx(i,j,k,0) = 0.0;
+                    fx(i,j,k,1) = 0.0;
+                    fx(i,j,k,2) = 0.0;
+                    fx(i,j,k,3) = 0.0;
+                    fx(i,j,k,4) = 0.0;
+                    fx(i,j,k,5) = 0.0;
+                    fx(i,j,k,6) = 0.0;
+                    fx(i,j,k,7) = 0.0;
+                    fx(i,j,k,8) = 0.0;
+                }
+                else
+                {
+                    Real dudx = (vel(i,j,k,0) - vel(i-1,j,k,0))*dxi;
+                    Real dvdx = (vel(i,j,k,1) - vel(i-1,j,k,1))*dxi;
+                    Real dwdx = (vel(i,j,k,2) - vel(i-1,j,k,2))*dxi;
+                    if (apx(i,j,k) < 1.0) {
+                        int jj = j + (fcx(i,j,k,0) >= 0.0 ? 1 : -1);
+                        int kk = k + (fcx(i,j,k,1) >= 0.0 ? 1 : -1);
+                        Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? amrex::Math::abs(fcx(i,j,k,0)) : 0.0;
+                        Real fracz = (ccm(i-1,j,kk) || ccm(i,j,kk)) ? amrex::Math::abs(fcx(i,j,k,1)) : 0.0;
+                        dudx = (1.0-fracy)*(1.0-fracz) * dudx
+                            + fracy*(1.0-fracz) * (vel(i,jj,k ,0) - vel(i-1,jj,k ,0))*dxi
+                            + fracz*(1.0-fracy) * (vel(i,j ,kk,0) - vel(i-1,j ,kk,0))*dxi
+                            + fracy*     fracz  * (vel(i,jj,kk,0) - vel(i-1,jj,kk,0))*dxi;
+                        dvdx = (1.0-fracy)*(1.0-fracz) * dvdx
+                            + fracy*(1.0-fracz) * (vel(i,jj,k ,1) - vel(i-1,jj,k ,1))*dxi
+                            + fracz*(1.0-fracy) * (vel(i,j ,kk,1) - vel(i-1,j ,kk,1))*dxi
+                            + fracy*     fracz  * (vel(i,jj,kk,1) - vel(i-1,jj,kk,1))*dxi;
+                        dwdx = (1.0-fracy)*(1.0-fracz) * dwdx
+                            + fracy*(1.0-fracz) * (vel(i,jj,k ,2) - vel(i-1,jj,k ,2))*dxi
+                            + fracz*(1.0-fracy) * (vel(i,j ,kk,2) - vel(i-1,j ,kk,2))*dxi
+                            + fracy*     fracz  * (vel(i,jj,kk,2) - vel(i-1,jj,kk,2))*dxi;
+                    }
+
+                    int jhip = j + flag(i  ,j,k).isConnected(0, 1,0);
+                    int jhim = j - flag(i  ,j,k).isConnected(0,-1,0);
+                    int jlop = j + flag(i-1,j,k).isConnected(0, 1,0);
+                    int jlom = j - flag(i-1,j,k).isConnected(0,-1,0);
+                    Real whi = mlebtensor_weight(jhip-jhim);
+                    Real wlo = mlebtensor_weight(jlop-jlom);
+                    Real dudy = mlebtensor_dy_on_xface(i,j,k,0,vel,dyi,
+                                                       bvxlo,bvxhi,bct,dlo,dhi,  
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+                    Real dvdy = mlebtensor_dy_on_xface(i,j,k,1,vel,dyi,
+                                                       bvxlo,bvxhi,bct,dlo,dhi,  
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+                    Real dwdy = mlebtensor_dy_on_xface(i,j,k,2,vel,dyi,
+                                                       bvxlo,bvxhi,bct,dlo,dhi,  
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+
+                    int khip = k + flag(i  ,j,k).isConnected(0,0, 1);
+                    int khim = k - flag(i  ,j,k).isConnected(0,0,-1);
+                    int klop = k + flag(i-1,j,k).isConnected(0,0, 1);
+                    int klom = k - flag(i-1,j,k).isConnected(0,0,-1);
+                    whi = mlebtensor_weight(khip-khim);
+                    wlo = mlebtensor_weight(klop-klom);
+                    Real dudz = mlebtensor_dz_on_xface(i,j,k,0,vel,dzi,
+                                                       bvxlo,bvxhi,bct,dlo,dhi,  
+                                                       whi,wlo,khip,khim,klop,klom);
+                    Real dvdz = mlebtensor_dz_on_xface(i,j,k,1,vel,dzi,
+                                                       bvxlo,bvxhi,bct,dlo,dhi,  
+                                                       whi,wlo,khip,khim,klop,klom);
+                    Real dwdz = mlebtensor_dz_on_xface(i,j,k,2,vel,dzi,
+                                                       bvxlo,bvxhi,bct,dlo,dhi,  
+                                                       whi,wlo,khip,khim,klop,klom);
+
+                    fx(i,j,k,0) = dudx;
+                    fx(i,j,k,1) = dvdx;
+                    fx(i,j,k,2) = dwdx;
+                    fx(i,j,k,3) = dudy;
+                    fx(i,j,k,4) = dvdy;
+                    fx(i,j,k,5) = dwdy;
+                    fx(i,j,k,6) = dudz;
+                    fx(i,j,k,7) = dvdz;
+                    fx(i,j,k,8) = dwdz;
+                }
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebtensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
+                              Array4<Real const> const& vel,
+                              Array4<Real const> const& apy,
+                              Array4<EBCellFlag const> const& flag,
+                              Array4<int const> const& ccm,
+                              Array4<Real const> const& fcy,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                              Array4<Real const> const& bvylo,
+                              Array4<Real const> const& bvyhi,
+                              Array2D<BoundCond,
+                                      0,2*AMREX_SPACEDIM,
+                                      0,AMREX_SPACEDIM> const& bct,
+                              Dim3 const& dlo, Dim3 const& dhi) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const Real dzi = dxinv[2];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                if (apy(i,j,k) == 0.0)
+                {
+                    fy(i,j,k,0) = 0.0;
+                    fy(i,j,k,1) = 0.0;
+                    fy(i,j,k,2) = 0.0;
+                    fy(i,j,k,3) = 0.0;
+                    fy(i,j,k,4) = 0.0;
+                    fy(i,j,k,5) = 0.0;
+                    fy(i,j,k,6) = 0.0;
+                    fy(i,j,k,7) = 0.0;
+                    fy(i,j,k,8) = 0.0;
+                }
+                else
+                {
+                    int ihip = i + flag(i,j  ,k).isConnected( 1,0,0);
+                    int ihim = i - flag(i,j  ,k).isConnected(-1,0,0);
+                    int ilop = i + flag(i,j-1,k).isConnected( 1,0,0);
+                    int ilom = i - flag(i,j-1,k).isConnected(-1,0,0);
+                    Real whi = mlebtensor_weight(ihip-ihim);
+                    Real wlo = mlebtensor_weight(ilop-ilom);
+                    Real dudx = mlebtensor_dx_on_yface(i,j,k,0,vel,dxi,
+                                                       bvylo,bvyhi,bct,dlo,dhi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+                    Real dvdx = mlebtensor_dx_on_yface(i,j,k,1,vel,dxi,
+                                                       bvylo,bvyhi,bct,dlo,dhi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+                    Real dwdx = mlebtensor_dx_on_yface(i,j,k,2,vel,dxi,
+                                                       bvylo,bvyhi,bct,dlo,dhi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+
+                    Real dudy = (vel(i,j,k,0) - vel(i,j-1,k,0))*dyi;
+                    Real dvdy = (vel(i,j,k,1) - vel(i,j-1,k,1))*dyi;
+                    Real dwdy = (vel(i,j,k,2) - vel(i,j-1,k,2))*dyi;
+                    if (apy(i,j,k) < 1.0) {
+                        int ii = i + (fcy(i,j,k,0) >= 0.0 ? 1 : -1);
+                        int kk = k + (fcy(i,j,k,1) >= 0.0 ? 1 : -1);
+                        Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? amrex::Math::abs(fcy(i,j,k,0)) : 0.0;
+                        Real fracz = (ccm(i,j-1,kk) || ccm(i,j,kk)) ? amrex::Math::abs(fcy(i,j,k,1)) : 0.0;
+                        dudy = (1.0-fracx)*(1.0-fracz) * dudy
+                            + fracx*(1.0-fracz) * (vel(ii,j,k ,0) - vel(ii,j-1,k ,0))*dyi
+                            + fracz*(1.0-fracx) * (vel(i ,j,kk,0) - vel(i ,j-1,kk,0))*dyi
+                            + fracx*     fracz  * (vel(ii,j,kk,0) - vel(ii,j-1,kk,0))*dyi;
+                        dvdy = (1.0-fracx)*(1.0-fracz) * dvdy
+                            + fracx*(1.0-fracz) * (vel(ii,j,k ,1) - vel(ii,j-1,k ,1))*dyi
+                            + fracz*(1.0-fracx) * (vel(i ,j,kk,1) - vel(i ,j-1,kk,1))*dyi
+                            + fracx*     fracz  * (vel(ii,j,kk,1) - vel(ii,j-1,kk,1))*dyi;
+                        dwdy = (1.0-fracx)*(1.0-fracz) * dwdy
+                            + fracx*(1.0-fracz) * (vel(ii,j,k ,2) - vel(ii,j-1,k ,2))*dyi
+                            + fracz*(1.0-fracx) * (vel(i ,j,kk,2) - vel(i ,j-1,kk,2))*dyi
+                            + fracx*     fracz  * (vel(ii,j,kk,2) - vel(ii,j-1,kk,2))*dyi;
+                    }
+
+                    int khip = k + flag(i,j  ,k).isConnected(0,0, 1);
+                    int khim = k - flag(i,j  ,k).isConnected(0,0,-1);
+                    int klop = k + flag(i,j-1,k).isConnected(0,0, 1);
+                    int klom = k - flag(i,j-1,k).isConnected(0,0,-1);
+                    whi = mlebtensor_weight(khip-khim);
+                    wlo = mlebtensor_weight(klop-klom);
+                    Real dudz = mlebtensor_dz_on_yface(i,j,k,0,vel,dzi,
+                                                       bvylo,bvyhi,bct,dlo,dhi,
+                                                       whi,wlo,khip,khim,klop,klom);
+                    Real dvdz = mlebtensor_dz_on_yface(i,j,k,1,vel,dzi,
+                                                       bvylo,bvyhi,bct,dlo,dhi,
+                                                       whi,wlo,khip,khim,klop,klom);
+                    Real dwdz = mlebtensor_dz_on_yface(i,j,k,2,vel,dzi,
+                                                       bvylo,bvyhi,bct,dlo,dhi,
+                                                       whi,wlo,khip,khim,klop,klom);
+
+                    fy(i,j,k,0) = dudx;
+                    fy(i,j,k,1) = dvdx;
+                    fy(i,j,k,2) = dwdx;
+                    fy(i,j,k,3) = dudy;
+                    fy(i,j,k,4) = dvdy;
+                    fy(i,j,k,5) = dwdy;
+                    fy(i,j,k,6) = dudz;
+                    fy(i,j,k,7) = dvdz;
+                    fy(i,j,k,8) = dwdz;
+                }
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebtensor_vel_grads_fz (Box const& box, Array4<Real> const& fz,
+                              Array4<Real const> const& vel,
+                              Array4<Real const> const& apz,
+                              Array4<EBCellFlag const> const& flag,
+                              Array4<int const> const& ccm,
+                              Array4<Real const> const& fcz,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                              Array4<Real const> const& bvzlo,
+                              Array4<Real const> const& bvzhi,
+                              Array2D<BoundCond,
+                                      0,2*AMREX_SPACEDIM,
+                                      0,AMREX_SPACEDIM> const& bct,
+                              Dim3 const& dlo, Dim3 const& dhi) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const Real dzi = dxinv[2];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                if (apz(i,j,k) == 0.0)
+                {
+                    fz(i,j,k,0) = 0.0;
+                    fz(i,j,k,1) = 0.0;
+                    fz(i,j,k,2) = 0.0;
+                    fz(i,j,k,3) = 0.0;
+                    fz(i,j,k,4) = 0.0;
+                    fz(i,j,k,5) = 0.0;
+                    fz(i,j,k,6) = 0.0;
+                    fz(i,j,k,7) = 0.0;
+                    fz(i,j,k,8) = 0.0;
+                }
+                else
+                {
+                    int ihip = i + flag(i,j,k  ).isConnected( 1,0,0);
+                    int ihim = i - flag(i,j,k  ).isConnected(-1,0,0);
+                    int ilop = i + flag(i,j,k-1).isConnected( 1,0,0);
+                    int ilom = i - flag(i,j,k-1).isConnected(-1,0,0);
+                    Real whi = mlebtensor_weight(ihip-ihim);
+                    Real wlo = mlebtensor_weight(ilop-ilom);
+                    Real dudx = mlebtensor_dx_on_zface(i,j,k,0,vel,dxi,
+                                                       bvzlo,bvzhi,bct,dlo,dhi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+                    Real dvdx = mlebtensor_dx_on_zface(i,j,k,1,vel,dxi,
+                                                       bvzlo,bvzhi,bct,dlo,dhi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+                    Real dwdx = mlebtensor_dx_on_zface(i,j,k,2,vel,dxi,
+                                                       bvzlo,bvzhi,bct,dlo,dhi,
+                                                       whi,wlo,ihip,ihim,ilop,ilom);
+
+                    int jhip = j + flag(i,j,k  ).isConnected(0, 1,0);
+                    int jhim = j - flag(i,j,k  ).isConnected(0,-1,0);
+                    int jlop = j + flag(i,j,k-1).isConnected(0, 1,0);
+                    int jlom = j - flag(i,j,k-1).isConnected(0,-1,0);
+                    whi = mlebtensor_weight(jhip-jhim);
+                    wlo = mlebtensor_weight(jlop-jlom);
+                    Real dudy = mlebtensor_dy_on_zface(i,j,k,0,vel,dyi,
+                                                       bvzlo,bvzhi,bct,dlo,dhi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+                    Real dvdy = mlebtensor_dy_on_zface(i,j,k,1,vel,dyi,
+                                                       bvzlo,bvzhi,bct,dlo,dhi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+                    Real dwdy = mlebtensor_dy_on_zface(i,j,k,2,vel,dyi,
+                                                       bvzlo,bvzhi,bct,dlo,dhi,
+                                                       whi,wlo,jhip,jhim,jlop,jlom);
+
+                    Real dudz = (vel(i,j,k,0) - vel(i,j,k-1,0))*dzi;
+                    Real dvdz = (vel(i,j,k,1) - vel(i,j,k-1,1))*dzi;
+                    Real dwdz = (vel(i,j,k,2) - vel(i,j,k-1,2))*dzi;
+                    if (apz(i,j,k) < 1.0) {
+                        int ii = i + (fcz(i,j,k,0) >= 0.0 ? 1 : -1);
+                        int jj = j + (fcz(i,j,k,1) >= 0.0 ? 1 : -1);
+                        Real fracx = (ccm(ii,j,k-1) || ccm(ii,j,k)) ? amrex::Math::abs(fcz(i,j,k,0)) : 0.0;
+                        Real fracy = (ccm(i,jj,k-1) || ccm(i,jj,k)) ? amrex::Math::abs(fcz(i,j,k,1)) : 0.0;
+                        dudz = (1.0-fracx)*(1.0-fracy) * dudz
+                            + fracx*(1.0-fracy) * (vel(ii,j ,k,0) - vel(ii,j ,k-1,0))*dzi
+                            + fracy*(1.0-fracx) * (vel(i ,jj,k,0) - vel(i ,jj,k-1,0))*dzi
+                            + fracx*     fracy  * (vel(ii,jj,k,0) - vel(ii,jj,k-1,0))*dzi;
+                        dvdz = (1.0-fracx)*(1.0-fracy) * dvdz
+                            + fracx*(1.0-fracy) * (vel(ii,j ,k,1) - vel(ii,j ,k-1,1))*dzi
+                            + fracy*(1.0-fracx) * (vel(i ,jj,k,1) - vel(i ,jj,k-1,1))*dzi
+                            + fracx*     fracy  * (vel(ii,jj,k,1) - vel(ii,jj,k-1,1))*dzi;
+                        dwdz = (1.0-fracx)*(1.0-fracy) * dwdz
+                            + fracx*(1.0-fracy) * (vel(ii,j ,k,2) - vel(ii,j ,k-1,2))*dzi
+                            + fracy*(1.0-fracx) * (vel(i ,jj,k,2) - vel(i ,jj,k-1,2))*dzi
+                            + fracx*     fracy  * (vel(ii,jj,k,2) - vel(ii,jj,k-1,2))*dzi;
+                    }
+
+                    fz(i,j,k,0) = dudx;
+                    fz(i,j,k,1) = dvdx;
+                    fz(i,j,k,2) = dwdx;
+                    fz(i,j,k,3) = dudy;
+                    fz(i,j,k,4) = dvdy;
+                    fz(i,j,k,5) = dwdy;
+                    fz(i,j,k,6) = dudz;
+                    fz(i,j,k,7) = dvdz;
+                    fz(i,j,k,8) = dwdz;
+                }
+            }
+        }
+    }
+}
+
 }
 
 #endif
