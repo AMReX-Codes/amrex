@@ -521,9 +521,9 @@ void mlebtensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
                 int ilom = i - flag(i,j-1,0).isConnected(-1,0,0);
                 Real whi = mlebtensor_weight(ihip-ihim);
                 Real wlo = mlebtensor_weight(ilop-ilom);
-                Real dudx = mlebtensor_dx_on_yface(i,j,k,0,vel,dxi
+                Real dudx = mlebtensor_dx_on_yface(i,j,k,0,vel,dxi,
                                                    whi,wlo,ihip,ihim,ilop,ilom);
-                Real dvdx = mlebtensor_dx_on_yface(i,j,k,1,vel,dxi
+                Real dvdx = mlebtensor_dx_on_yface(i,j,k,1,vel,dxi,
                                                    whi,wlo,ihip,ihim,ilop,ilom);
 
                 Real dudy = (vel(i,j,0,0) - vel(i,j-1,0,0))*dyi;
@@ -538,16 +538,16 @@ void mlebtensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
-                            Array4<Real const> const& vel, Array4<Real const> const& apx,
-                            Array4<EBCellFlag const> const& flag,
-                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                            Array4<Real const> const& bvxlo,
-                            Array4<Real const> const& bvxhi,
-                            Array2D<BoundCond,
-                                    0,2*AMREX_SPACEDIM,
-                                    0,AMREX_SPACEDIM> const& bct,
-                            Dim3 const& dlo, Dim3 const& dhi) noexcept
+void mlebtensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
+                              Array4<Real const> const& vel, Array4<Real const> const& apx,
+                              Array4<EBCellFlag const> const& flag,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                              Array4<Real const> const& bvxlo,
+                              Array4<Real const> const& bvxhi,
+                              Array2D<BoundCond,
+                                      0,2*AMREX_SPACEDIM,
+                                      0,AMREX_SPACEDIM> const& bct,
+                              Dim3 const& dlo, Dim3 const& dhi) noexcept
 {
     const Real dxi = dxinv[0];
     const Real dyi = dxinv[1];
@@ -591,16 +591,16 @@ void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
-                            Array4<Real const> const& vel, Array4<Real const> const& apy,
-                            Array4<EBCellFlag const> const& flag,
-                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                            Array4<Real const> const& bvylo,
-                            Array4<Real const> const& bvyhi,
-                            Array2D<BoundCond,
-                                    0,2*AMREX_SPACEDIM,
-                                    0,AMREX_SPACEDIM> const& bct,
-                            Dim3 const& dlo, Dim3 const& dhi) noexcept
+void mlebtensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
+                              Array4<Real const> const& vel, Array4<Real const> const& apy,
+                              Array4<EBCellFlag const> const& flag,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                              Array4<Real const> const& bvylo,
+                              Array4<Real const> const& bvyhi,
+                              Array2D<BoundCond,
+                                      0,2*AMREX_SPACEDIM,
+                                      0,AMREX_SPACEDIM> const& bct,
+                              Dim3 const& dlo, Dim3 const& dhi) noexcept
 {
     const Real dxi = dxinv[0];
     const Real dyi = dxinv[1];
@@ -729,9 +729,9 @@ void mlebtensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
                 int ilom = i - flag(i,j-1,0).isConnected(-1,0,0);
                 Real whi = mlebtensor_weight(ihip-ihim);
                 Real wlo = mlebtensor_weight(ilop-ilom);
-                Real dudx = mlebtensor_dx_on_yface(i,j,k,0,vel,dxi
+                Real dudx = mlebtensor_dx_on_yface(i,j,k,0,vel,dxi,
                                                    whi,wlo,ihip,ihim,ilop,ilom);
-                Real dvdx = mlebtensor_dx_on_yface(i,j,k,1,vel,dxi
+                Real dvdx = mlebtensor_dx_on_yface(i,j,k,1,vel,dxi,
                                                    whi,wlo,ihip,ihim,ilop,ilom);
 
                 Real dudy =  (vel(i,j,0,0) - vel(i,j-1,0,0))*dyi;
@@ -755,18 +755,18 @@ void mlebtensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
-                            Array4<Real const> const& vel, Array4<Real const> const& apx,
-                            Array4<EBCellFlag const> const& flag,
-                            Array4<int const> const& ccm,
-                            Array4<Real const> const& fcx,
-                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                            Array4<Real const> const& bvxlo,
-                            Array4<Real const> const& bvxhi,
-                            Array2D<BoundCond,
-                                    0,2*AMREX_SPACEDIM,
-                                    0,AMREX_SPACEDIM> const& bct,
-                            Dim3 const& dlo, Dim3 const& dhi) noexcept
+void mlebtensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
+                              Array4<Real const> const& vel, Array4<Real const> const& apx,
+                              Array4<EBCellFlag const> const& flag,
+                              Array4<int const> const& ccm,
+                              Array4<Real const> const& fcx,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                              Array4<Real const> const& bvxlo,
+                              Array4<Real const> const& bvxhi,
+                              Array2D<BoundCond,
+                                      0,2*AMREX_SPACEDIM,
+                                      0,AMREX_SPACEDIM> const& bct,
+                              Dim3 const& dlo, Dim3 const& dhi) noexcept
 {
     const Real dxi = dxinv[0];
     const Real dyi = dxinv[1];
@@ -818,18 +818,18 @@ void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mltensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
-                            Array4<Real const> const& vel, Array4<Real const> const& apy,
-                            Array4<EBCellFlag const> const& flag,
-                            Array4<int const> const& ccm,
-                            Array4<Real const> const& fcy,
-                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                            Array4<Real const> const& bvylo,
-                            Array4<Real const> const& bvyhi,
-                            Array2D<BoundCond,
-                                    0,2*AMREX_SPACEDIM,
-                                    0,AMREX_SPACEDIM> const& bct,
-                            Dim3 const& dlo, Dim3 const& dhi) noexcept
+void mlebtensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
+                              Array4<Real const> const& vel, Array4<Real const> const& apy,
+                              Array4<EBCellFlag const> const& flag,
+                              Array4<int const> const& ccm,
+                              Array4<Real const> const& fcy,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                              Array4<Real const> const& bvylo,
+                              Array4<Real const> const& bvyhi,
+                              Array2D<BoundCond,
+                                      0,2*AMREX_SPACEDIM,
+                                      0,AMREX_SPACEDIM> const& bct,
+                              Dim3 const& dlo, Dim3 const& dhi) noexcept
 {
     const Real dxi = dxinv[0];
     const Real dyi = dxinv[1];
