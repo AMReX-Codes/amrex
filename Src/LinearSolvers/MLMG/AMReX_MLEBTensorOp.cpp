@@ -825,13 +825,13 @@ MLEBTensorOp::compVelGrad (int amrlev,
                 ( xbx, txbx,
                   {
                       mlebtensor_vel_grads_fx(txbx,gxfab,vfab,apx,flag,msk,fcx,dxinv,bvxlo,bvxhi,bct,dlo,dhi);
-                  }                                                            
-                , ybx, tybx,                                                   
-                  {                                                            
+                  }
+                , ybx, tybx,
+                  {
                       mlebtensor_vel_grads_fy(tybx,gyfab,vfab,apy,flag,msk,fcy,dxinv,bvylo,bvyhi,bct,dlo,dhi);
-                  }                                                            
-                , zbx, tzbx,                                                   
-                  {                                                            
+                  }
+                , zbx, tzbx,
+                  {
                       mlebtensor_vel_grads_fz(tzbx,gzfab,vfab,apz,flag,msk,fcz,dxinv,bvzlo,bvzhi,bct,dlo,dhi);
                   }
                 );

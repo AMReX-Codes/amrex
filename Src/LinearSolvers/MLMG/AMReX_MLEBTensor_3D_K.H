@@ -1401,13 +1401,13 @@ void mlebtensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
                     Real whi = mlebtensor_weight(jhip-jhim);
                     Real wlo = mlebtensor_weight(jlop-jlom);
                     Real dudy = mlebtensor_dy_on_xface(i,j,k,0,vel,dyi,
-                                                       bvxlo,bvxhi,bct,dlo,dhi,  
+                                                       bvxlo,bvxhi,bct,dlo,dhi,
                                                        whi,wlo,jhip,jhim,jlop,jlom);
                     Real dvdy = mlebtensor_dy_on_xface(i,j,k,1,vel,dyi,
-                                                       bvxlo,bvxhi,bct,dlo,dhi,  
+                                                       bvxlo,bvxhi,bct,dlo,dhi,
                                                        whi,wlo,jhip,jhim,jlop,jlom);
                     Real dwdy = mlebtensor_dy_on_xface(i,j,k,2,vel,dyi,
-                                                       bvxlo,bvxhi,bct,dlo,dhi,  
+                                                       bvxlo,bvxhi,bct,dlo,dhi,
                                                        whi,wlo,jhip,jhim,jlop,jlom);
 
                     int khip = k + flag(i  ,j,k).isConnected(0,0, 1);
@@ -1417,13 +1417,13 @@ void mlebtensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
                     whi = mlebtensor_weight(khip-khim);
                     wlo = mlebtensor_weight(klop-klom);
                     Real dudz = mlebtensor_dz_on_xface(i,j,k,0,vel,dzi,
-                                                       bvxlo,bvxhi,bct,dlo,dhi,  
+                                                       bvxlo,bvxhi,bct,dlo,dhi,
                                                        whi,wlo,khip,khim,klop,klom);
                     Real dvdz = mlebtensor_dz_on_xface(i,j,k,1,vel,dzi,
-                                                       bvxlo,bvxhi,bct,dlo,dhi,  
+                                                       bvxlo,bvxhi,bct,dlo,dhi,
                                                        whi,wlo,khip,khim,klop,klom);
                     Real dwdz = mlebtensor_dz_on_xface(i,j,k,2,vel,dzi,
-                                                       bvxlo,bvxhi,bct,dlo,dhi,  
+                                                       bvxlo,bvxhi,bct,dlo,dhi,
                                                        whi,wlo,khip,khim,klop,klom);
 
                     fx(i,j,k,0) = dudx;
@@ -1967,13 +1967,13 @@ void mlebtensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
                     Real whi = mlebtensor_weight(jhip-jhim);
                     Real wlo = mlebtensor_weight(jlop-jlom);
                     Real dudy = mlebtensor_dy_on_xface(i,j,k,0,vel,dyi,
-                                                       bvxlo,bvxhi,bct,dlo,dhi,  
+                                                       bvxlo,bvxhi,bct,dlo,dhi,
                                                        whi,wlo,jhip,jhim,jlop,jlom);
                     Real dvdy = mlebtensor_dy_on_xface(i,j,k,1,vel,dyi,
-                                                       bvxlo,bvxhi,bct,dlo,dhi,  
+                                                       bvxlo,bvxhi,bct,dlo,dhi,
                                                        whi,wlo,jhip,jhim,jlop,jlom);
                     Real dwdy = mlebtensor_dy_on_xface(i,j,k,2,vel,dyi,
-                                                       bvxlo,bvxhi,bct,dlo,dhi,  
+                                                       bvxlo,bvxhi,bct,dlo,dhi,
                                                        whi,wlo,jhip,jhim,jlop,jlom);
 
                     int khip = k + flag(i  ,j,k).isConnected(0,0, 1);
@@ -1983,13 +1983,13 @@ void mlebtensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
                     whi = mlebtensor_weight(khip-khim);
                     wlo = mlebtensor_weight(klop-klom);
                     Real dudz = mlebtensor_dz_on_xface(i,j,k,0,vel,dzi,
-                                                       bvxlo,bvxhi,bct,dlo,dhi,  
+                                                       bvxlo,bvxhi,bct,dlo,dhi,
                                                        whi,wlo,khip,khim,klop,klom);
                     Real dvdz = mlebtensor_dz_on_xface(i,j,k,1,vel,dzi,
-                                                       bvxlo,bvxhi,bct,dlo,dhi,  
+                                                       bvxlo,bvxhi,bct,dlo,dhi,
                                                        whi,wlo,khip,khim,klop,klom);
                     Real dwdz = mlebtensor_dz_on_xface(i,j,k,2,vel,dzi,
-                                                       bvxlo,bvxhi,bct,dlo,dhi,  
+                                                       bvxlo,bvxhi,bct,dlo,dhi,
                                                        whi,wlo,khip,khim,klop,klom);
 
                     fx(i,j,k,0) = dudx;
