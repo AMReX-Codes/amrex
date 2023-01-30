@@ -16,10 +16,11 @@
 #ifndef AMREX_NVECTOR_MULTIFAB_H
 #define AMREX_NVECTOR_MULTIFAB_H
 
+#include <AMReX_Array.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
-#include <AMReX_Array.H>
+#include <AMReX_Sundials.H>
 
 #include <sundials/sundials_nvector.h>
 #include <cstdio>
@@ -46,14 +47,17 @@ typedef struct N_VectorContent_MultiFab_notptr *N_VectorContent_MultiFab;
  * Exported functions
  * -----------------------------------------------------------------*/
 
-N_Vector N_VNewEmpty_MultiFab(sunindextype vec_length);
+N_Vector N_VNewEmpty_MultiFab(sunindextype vec_length,
+                              int i = amrex::OpenMP::get_thread_num());
 N_Vector N_VNew_MultiFab(sunindextype vec_length,
                          const amrex::BoxArray &ba,
                          const amrex::DistributionMapping &dm,
                          sunindextype nComp,
-                         sunindextype nGhost);
+                         sunindextype nGhost,
+                         int i = amrex::OpenMP::get_thread_num());
 N_Vector N_VMake_MultiFab(sunindextype vec_length,
-                          amrex::MultiFab *mf);
+                          amrex::MultiFab *mf,
+                          int i = amrex::OpenMP::get_thread_num());
 sunindextype N_VGetLength_MultiFab(N_Vector v);
 int N_VGetOwnMF_MultiFab(N_Vector v);
 void N_VSetOwnMF_MultiFab(N_Vector v, int own_mf);
