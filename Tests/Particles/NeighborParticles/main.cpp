@@ -17,6 +17,8 @@ struct TestParams
     int max_grid_size;
     int num_ppc;
     int is_periodic;
+    int do_plotfile;
+    int check_answer;
 };
 
 void testNeighborParticles();
@@ -43,6 +45,12 @@ void get_test_params(TestParams& params, const std::string& prefix)
     pp.get("max_grid_size", params.max_grid_size);
     pp.get("num_ppc", params.num_ppc);
     pp.get("is_periodic", params.is_periodic);
+
+    params.do_plotfile = true;
+    pp.query("do_plotfile", params.do_plotfile);
+
+    params.check_answer = true;
+    pp.query("check_answer", params.check_answer);
 }
 
 void testNeighborParticles ()
@@ -183,7 +191,7 @@ void testNeighborList ()
 
     pc.buildNeighborList(CheckPair());
 
-    //    pc.checkNeighborList();
+    pc.checkNeighborList();
 
     pc.clearNeighbors();
     pc.fillNeighbors();
@@ -191,11 +199,11 @@ void testNeighborList ()
     pc.updateNeighbors();
     pc.buildNeighborList(CheckPair());
 
-    //    pc.checkNeighborList();
+    pc.checkNeighborList();
 
-    // MultiFab dummy_mf(ba, dm, 1, 0);
-    // dummy_mf.setVal(0.0);
-    // WriteSingleLevelPlotfile("NeighborParticles_plt00001", dummy_mf,
-    //                          {"dummy"}, geom, 0.0, 0);
-    // pc.WritePlotFile("NeighborParticles_plt00001", "neighbors");
+    MultiFab dummy_mf(ba, dm, 1, 0);
+    dummy_mf.setVal(0.0);
+    WriteSingleLevelPlotfile("NeighborParticles_plt00001", dummy_mf,
+                             {"dummy"}, geom, 0.0, 0);
+    pc.WritePlotFile("NeighborParticles_plt00001", "neighbors");
 }
