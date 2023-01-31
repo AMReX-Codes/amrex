@@ -191,7 +191,9 @@ void testNeighborList ()
 
     pc.buildNeighborList(CheckPair());
 
-    pc.checkNeighborList();
+    if (params.check_answer) {
+        pc.checkNeighborList();
+    }
 
 #ifdef AMREX_USE_GPU
     pc.clearNeighbors();
@@ -199,12 +201,16 @@ void testNeighborList ()
     pc.selectActualNeighbors(CheckPair());
     pc.updateNeighbors();
     pc.buildNeighborList(CheckPair());
-    pc.checkNeighborList();
+    if (params.check_answer) {
+        pc.checkNeighborList();
+    }
 #endif
 
-    MultiFab dummy_mf(ba, dm, 1, 0);
-    dummy_mf.setVal(0.0);
-    WriteSingleLevelPlotfile("NeighborParticles_plt00001", dummy_mf,
-                             {"dummy"}, geom, 0.0, 0);
-    pc.WritePlotFile("NeighborParticles_plt00001", "neighbors");
+    if (params.do_plotfile) {
+        MultiFab dummy_mf(ba, dm, 1, 0);
+        dummy_mf.setVal(0.0);
+        WriteSingleLevelPlotfile("NeighborParticles_plt00001", dummy_mf,
+                                 {"dummy"}, geom, 0.0, 0);
+        pc.WritePlotFile("NeighborParticles_plt00001", "neighbors");
+    }
 }
