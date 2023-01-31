@@ -185,6 +185,14 @@ void testNeighborList ()
 
     pc.checkNeighborList();
 
+    pc.clearNeighbors();
+    pc.fillNeighbors();
+    pc.selectActualNeighbors(CheckPair());
+    pc.updateNeighbors();
+    pc.buildNeighborList(CheckPair());
+
+    pc.checkNeighborList();
+
     MultiFab dummy_mf(ba, dm, 1, 0);
     dummy_mf.setVal(0.0);
     WriteSingleLevelPlotfile("NeighborParticles_plt00001", dummy_mf,
