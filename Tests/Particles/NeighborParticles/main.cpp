@@ -193,13 +193,14 @@ void testNeighborList ()
 
     pc.checkNeighborList();
 
+#ifdef AMREX_USE_GPU
     pc.clearNeighbors();
     pc.fillNeighbors();
     pc.selectActualNeighbors(CheckPair());
     pc.updateNeighbors();
     pc.buildNeighborList(CheckPair());
-
     pc.checkNeighborList();
+#endif
 
     MultiFab dummy_mf(ba, dm, 1, 0);
     dummy_mf.setVal(0.0);
