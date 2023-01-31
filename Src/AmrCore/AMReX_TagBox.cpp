@@ -542,8 +542,9 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
                 h.item->barrier(sycl::access::fence_space::local_space);
 
                 if (icell < ncells && tags[icell] != TagBox::CLEAR) {
-                    unsigned int itag = Gpu::Atomic::Inc<sycl::access::address_space::local_space>
-                        (shared_counter, 20480u);
+                    unsigned int itag = Gpu::Atomic::Add<unsigned int,
+                                                         sycl::access::address_space::local_space>
+                        (shared_counter, 1u);
                     IntVect* p = dp_tags + dp_tags_offset[iblock_begin+bid];
                     int k =  icell /   lenxy;
                     int j = (icell - k*lenxy) /   lenx;
@@ -570,7 +571,7 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
                 __syncthreads();
 
                 if (icell < ncells && tags[icell] != TagBox::CLEAR) {
-                    unsigned int itag = Gpu::Atomic::Inc(shared_counter, blockDim.x);
+                    unsigned int itag = Gpu::Atomic::Add(shared_counter, 1u);
                     IntVect* p = dp_tags + dp_tags_offset[iblock_begin+bid];
                     int k =  icell /   lenxy;
                     int j = (icell - k*lenxy) /   lenx;
