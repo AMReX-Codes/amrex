@@ -152,8 +152,6 @@ struct ParticleCopyPlan
         auto p_dst_box_counts = m_box_counts_d.dataPtr();
         auto getBucket = pc.BufferMap().getBucketFunctor();
 
-        constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
-
         m_dst_indices.resize(num_levels);
         for (int lev = 0; lev < num_levels; ++lev)
         {
@@ -174,8 +172,8 @@ struct ParticleCopyPlan
                     if (dst_box >= 0)
                     {
                         int dst_lev = p_levs[i];
-                        int index = Gpu::Atomic::Inc(
-                            &p_dst_box_counts[getBucket(dst_lev, dst_box)], max_unsigned_int);
+                        int index = static_cast<int>(Gpu::Atomic::Add(
+                            &p_dst_box_counts[getBucket(dst_lev, dst_box)], 1u));
                         p_dst_indices[i] = index;
                     }
                 });

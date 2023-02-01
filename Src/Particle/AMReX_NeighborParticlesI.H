@@ -1036,7 +1036,6 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
 
             Gpu::Buffer<unsigned int> np_boundary({0});
             unsigned int* p_np_boundary = np_boundary.data();
-            constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
 
             AMREX_FOR_1D ( np_real, i,
             {
@@ -1065,7 +1064,7 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
                                 if (call_check_pair(check_pair, ptile_data, ptile_data, i, pperm[p])) {
                                     IntVect cell_ijk = getParticleCell(pstruct[pperm[p]], plo, dxi, domain);
                                     if (!box.contains(cell_ijk)) {
-                                        int loc = Gpu::Atomic::Inc(p_np_boundary, max_unsigned_int);
+                                        unsigned int loc = Gpu::Atomic::Add(p_np_boundary, 1u);
                                         p_boundary_particle_ids[loc] = i;
                                         isActualNeighbor = true;
                                         break;
