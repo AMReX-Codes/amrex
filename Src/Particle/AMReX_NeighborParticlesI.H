@@ -1023,9 +1023,9 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
             bins.build(np_total, pstruct, grownBox,
                       [=] AMREX_GPU_DEVICE (const ParticleType& p) noexcept -> IntVect
                       {
-                          int i = static_cast<int>(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0]) - lo.x);
-                          int j = static_cast<int>(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1]) - lo.y);
-                          int k = static_cast<int>(amrex::Math::floor((p.pos(2)-plo[2])*dxi[2]) - lo.z);
+                          AMREX_D_TERM(int i = static_cast<int>(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0]) - lo.x);,
+                                       int j = static_cast<int>(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1]) - lo.y);,
+                                       int k = static_cast<int>(amrex::Math::floor((p.pos(2)-plo[2])*dxi[2]) - lo.z));
                           AMREX_D_TERM(AMREX_ASSERT(i >= 0);, AMREX_ASSERT(j >= 0);, AMREX_ASSERT(k >= 0));
 
                           return IntVect(AMREX_D_DECL(i, j, k));
