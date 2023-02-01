@@ -1,3 +1,53 @@
+# 23.02
+
+  -- update github actions to use ascent 0.9.0 release (#3114)
+
+  -- CMake 3.18+: Stay OLD CUDA_ARCHITECTURES Policy (#3112)
+
+  -- OpenBCSolver: Fix reuse (#3111)
+
+  -- CMake: Fix AMD Flags for ROCm 5.5 and Bump cmake minimum version to
+     3.18 (#3107)
+
+  -- Check component and derive names for `canDerive` and `get` (#3109)
+
+  -- CMake clean up (#3100)
+
+  -- Replace sprintf with snprintf to fix compiler warnings (#3108)
+
+  -- ParmParse: support nan and inf (#3101)
+
+  -- CMake: add offload linker option --whole-archive for ROCm hipcc (#3097)
+
+  -- SinCos: AppleClang Fix (#3094) (#3096)
+
+  -- CMake: Make hypre and PETSc available only if it's not 1D. (#3093)
+
+  -- introduce amrex code of conduct (#3092)
+
+  -- SYCL: Reinforce device compilation preprocessor conditionals (#3090)
+
+  -- New knapsack function to reduce the cost of data movement in load
+     balancing (#3079)
+
+  -- GPU single stream region and no sync region (#3073)
+
+  -- Check for small cell before checking for multi-cut (#3088)
+
+  -- Improve AmrMesh::ChopGrids (#3081)
+
+  -- Add extra check for multicut cell (#3087)
+
+  -- Polydisperse neighbor search algorithm (#3060)
+
+  -- GPU UUID and Arena initial size (#3085)
+
+  -- Use IsCallable to detect if F is callable (#3080)
+
+  -- GNU Make: No need to do GCC version check for make clean etc. (#3084)
+
+  -- Mlebabeclap aniso (#2640)
+
 # 23.01
 
   -- amrex::fillAsync (#3076)
