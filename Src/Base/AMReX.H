@@ -48,6 +48,12 @@ namespace amrex
         extern AMREX_EXPORT int verbose;
 
         extern AMREX_EXPORT int signal_handling;
+        extern AMREX_EXPORT int handle_sigsegv;
+        extern AMREX_EXPORT int handle_sigterm;
+        extern AMREX_EXPORT int handle_sigint;
+        extern AMREX_EXPORT int handle_sigabrt;
+        extern AMREX_EXPORT int handle_sigfpe;
+
         extern AMREX_EXPORT int call_addr2line;
         extern AMREX_EXPORT int throw_exception;
 
