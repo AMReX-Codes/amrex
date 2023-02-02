@@ -33,6 +33,31 @@ jobs:
             -DCMAKE_Fortran_COMPILER=$(which ifx)
         cmake --build build --parallel 2
 
+  tests-oneapi-sycl-eb:
+    name: oneAPI SYCL [tests w/ EB]
+    runs-on: ubuntu-20.04
+    # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare"}
+    steps:
+    - uses: actions/checkout@v3
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_dpcpp.sh
+    - name: Build & Install
+      run: |
+        set +e
+        source /opt/intel/oneapi/setvars.sh
+        set -e
+        cmake -S . -B build                                \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                    \
+            -DAMReX_EB=ON                                  \
+            -DAMReX_ENABLE_TESTS=ON                        \
+            -DAMReX_FORTRAN=OFF                            \
+            -DAMReX_PARTICLES=ON                           \
+            -DAMReX_GPU_BACKEND=SYCL                       \
+            -DCMAKE_C_COMPILER=$(which icx)                \
+            -DCMAKE_CXX_COMPILER=$(which icpx)
+        cmake --build build --parallel 2
+
 # "Classic" EDG Intel Compiler
 # Ref.: https://github.com/rscohn2/oneapi-ci
 # intel-basekit intel-hpckit are too large in size

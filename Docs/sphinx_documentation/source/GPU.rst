@@ -391,7 +391,7 @@ Below is an example configuration for SYCL:
    +==============================+=================================================+=============+=================+
    | AMReX_DPCPP_AOT              | Enable DPCPP ahead-of-time compilation          | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMREX_INTEL_ARCH             | Specify target if AOT is enabled                | None        | Gen9, etc.      |
+   | AMREX_INTEL_ARCH             | Specify target if AOT is enabled                | *           | Gen9, etc.      |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_DPCPP_SPLIT_KERNEL     | Enable DPCPP kernel splitting                   | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
