@@ -448,6 +448,7 @@ public:
             }// ii
           } // type
         });
+        Gpu::Device::streamSynchronize();
     }
 
     NeighborData<ParticleType> data ()
