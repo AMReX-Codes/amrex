@@ -43,7 +43,7 @@ jobs:
   tests-nvhpc23-1-nvcc:
     name: NVHPC@23.1 NVCC/NVC++ C++17 Release [tests]
     runs-on: ubuntu-20.04
-    env: {CXXFLAGS: "-Werror -Wall -Wextra -Wpedantic -Wshadow"}
+    env: {CXXFLAGS: "-Werror -Wall -Wextra -Wpedantic -Wshadow --diag_suppress=code_is_unreachable"}
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
