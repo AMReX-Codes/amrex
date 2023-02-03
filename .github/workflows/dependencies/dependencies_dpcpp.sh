@@ -21,5 +21,4 @@ sudo apt-get install -y --no-install-recommends \
     intel-oneapi-dpcpp-cpp-compiler \
     intel-oneapi-compiler-fortran \
     intel-oneapi-mkl-devel \
-    libopenmpi-dev  \
-    openmpi-bin
+    intel-oneapi-mpi-devel
