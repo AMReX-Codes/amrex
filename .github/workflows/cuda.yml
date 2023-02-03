@@ -67,12 +67,11 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON                  \
             -DAMReX_ENABLE_TESTS=ON                      \
             -DAMReX_PARTICLES=ON                         \
-            -DAMReX_FORTRAN=OFF                          \
+            -DAMReX_FORTRAN=ON                           \
             -DAMReX_GPU_BACKEND=CUDA                     \
             -DCMAKE_C_COMPILER=$(which nvc)              \
             -DCMAKE_CXX_COMPILER=$(which nvc++)          \
             -DCMAKE_CUDA_HOST_COMPILER=$(which nvc++)    \
-            -DCMAKE_Fortran_COMPILER=$(which nvfortran)  \
             -DCMAKE_Fortran_COMPILER=$(which nvfortran)  \
             -DAMReX_CUDA_ARCH=8.0                        \
             -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
