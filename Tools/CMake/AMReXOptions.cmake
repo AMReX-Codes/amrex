@@ -129,6 +129,12 @@ endif ()
 
 if (NOT AMReX_GPU_BACKEND STREQUAL NONE)
    message( STATUS "   AMReX_GPU_BACKEND = ${AMReX_GPU_BACKEND}")
+
+   # We might set different default for different GPUs in the future.
+   set(AMReX_GPU_MAX_THREADS_DEFAULT "256")
+   set(AMReX_GPU_MAX_THREADS ${AMReX_GPU_MAX_THREADS_DEFAULT} CACHE STRING
+       "Maximum number of GPU threads per block" )
+   message( STATUS "   AMReX_GPU_MAX_THREADS = ${AMReX_GPU_MAX_THREADS}")
 endif ()
 
 # Legacy variables for internal use only
