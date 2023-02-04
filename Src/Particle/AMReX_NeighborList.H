@@ -334,8 +334,8 @@ public:
         // First pass: count the number of neighbors for each particle
         //---------------------------------------------------------------------------------------------------------
         const size_t np_size  = (num_bin_types > 1) ? np_total : np_real;
-        m_nbor_counts.resize( np_size+1, 0);
-        m_nbor_offsets.resize(np_size+1);
+        m_nbor_counts.resize( np_size);
+        m_nbor_offsets.resize(np_size);
 
         auto pnbor_counts = m_nbor_counts.dataPtr();
         auto pnbor_offset = m_nbor_offsets.dataPtr();
@@ -393,16 +393,9 @@ public:
 
         // Second-pass: build the offsets (partial sums) and neighbor list
         //--------------------------------------------------------------------------------------------------------
-        Gpu::exclusive_scan(m_nbor_counts.begin(), m_nbor_counts.end(), m_nbor_offsets.begin());
+        auto total_nbors = Scan::ExclusiveSum(m_nbor_counts.size(), pnbor_counts, pnbor_offset);
 
         // Now we can allocate and build our neighbor list
-        unsigned int total_nbors;
-#ifdef AMREX_USE_GPU
-        Gpu::dtoh_memcpy(&total_nbors,m_nbor_offsets.dataPtr()+np_size,sizeof(unsigned int));
-#else
-        std::memcpy(&total_nbors,m_nbor_offsets.dataPtr()+np_size,sizeof(unsigned int));
-#endif
-
         m_nbor_list.resize(total_nbors);
         auto pm_nbor_list = m_nbor_list.dataPtr();
 
