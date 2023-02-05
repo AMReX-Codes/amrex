@@ -118,8 +118,8 @@ private:
         Long nalloc = 0;
         Long nfree = 0;
         Long avgmem_min = std::numeric_limits<Long>::max();
-        Long avgmem_avg = 0.;
-        Long avgmem_max = 0.;
+        Long avgmem_avg = 0;
+        Long avgmem_max = 0;
         Long maxmem_min = std::numeric_limits<Long>::max();
         Long maxmem_avg = 0;
         Long maxmem_max = 0;
@@ -155,6 +155,7 @@ private:
     static int device_synchronize_around_region;
     static int n_print_tabs;
     static int verbose;
+
     static void PrintStats (std::map<std::string,Stats>& regstats, double dt_max);
     static void PrintMemStats (int mem_type, double dt_max, double t_final);
 };

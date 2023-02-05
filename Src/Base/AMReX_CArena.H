@@ -118,6 +118,7 @@ protected:
             return m_owner == rhs.m_owner;
         }
 
+        //! Get the MemStat object of the function where this block was allocated.
         MemStat* mem_stat () const { return m_stat; }
 
         struct hash {
@@ -133,7 +134,7 @@ protected:
         void* m_owner;
         //! The size of the block we represent.
         std::size_t m_size;
-
+        //! Used for profiling if this Node represents a user allocated block of memory.
         MemStat* m_stat;
     };
 

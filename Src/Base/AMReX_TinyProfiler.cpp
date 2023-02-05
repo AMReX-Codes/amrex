@@ -801,6 +801,7 @@ TinyProfiler::PrintMemStats(int mem_type, double dt_max, double t_final)
             }
         }
     }
+
     std::vector<std::size_t> maxlen(allstatsstr[0].size(), 0);
     for (auto& strvec : allstatsstr) {
         for (std::size_t i=0; i<maxlen.size(); ++i) {
