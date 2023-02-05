@@ -1,3 +1,4 @@
+#include <AMReX_BLProfiler.H>
 #include <AMReX_CArena.H>
 #include <AMReX_MemPool.H>
 #include <AMReX_Vector.H>
@@ -36,6 +37,8 @@ void amrex_mempool_init ()
 {
     if (!initialized)
     {
+        BL_PROFILE("amrex_mempool_init()");
+
         initialized = true;
 
         ParmParse pp("fab");

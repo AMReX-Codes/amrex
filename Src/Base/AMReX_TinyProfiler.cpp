@@ -84,7 +84,7 @@ TinyProfiler::start () noexcept
 #pragma omp master
 #endif
     {
-        BL_ASSERT(stats.empty());
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(stats.empty(), "TinyProfiler cannot be started twice");
     }
 
 #ifdef AMREX_USE_OMP
@@ -166,9 +166,11 @@ TinyProfiler::stop () noexcept
             t = amrex::second();
         }
 
-        BL_ASSERT(static_cast<int>(ttstack.size()) == global_depth);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(static_cast<int>(ttstack.size()) == global_depth,
+            "TinyProfiler sections must be nested with respect to each other");
 #ifdef AMREX_USE_OMP
-        BL_ASSERT(in_parallel_region == omp_in_parallel());
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(in_parallel_region == omp_in_parallel(),
+            "TinyProfiler sections must be nested with respect to parallel regions");
 #endif
 
         {
@@ -254,9 +256,11 @@ TinyProfiler::stop (unsigned boxUintID) noexcept
             record->setUintID(boxUintID);
         }
 
-        BL_ASSERT(static_cast<int>(ttstack.size()) == global_depth);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(static_cast<int>(ttstack.size()) == global_depth,
+            "TinyProfiler sections must be nested with respect to each other");
 #ifdef AMREX_USE_OMP
-        BL_ASSERT(in_parallel_region == omp_in_parallel());
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(in_parallel_region == omp_in_parallel(),
+            "TinyProfiler sections must be nested with respect to parallel regions");
 #endif
 
         {
@@ -311,6 +315,8 @@ TinyProfiler::stop (unsigned boxUintID) noexcept
 
 void
 TinyProfiler::memory_start () const noexcept {
+    // multiple omp threads may share the same TinyProfiler object so this function must be const
+    // it is NOT allowed to double start a section
 #ifdef AMREX_USE_OMP
     if (omp_in_parallel()) {
         mem_stack_thread_private[omp_get_thread_num()].deque.push_back(this);
@@ -323,6 +329,8 @@ TinyProfiler::memory_start () const noexcept {
 
 void
 TinyProfiler::memory_stop () const noexcept {
+    // multiple omp threads may share the same TinyProfiler object so this function must be const
+    // it IS allowed to double stop a section
 #ifdef AMREX_USE_OMP
     if (omp_in_parallel()) {
         if (!mem_stack_thread_private[omp_get_thread_num()].deque.empty() &&
@@ -340,7 +348,8 @@ TinyProfiler::memory_stop () const noexcept {
 
 MemStat*
 TinyProfiler::memory_alloc (std::size_t nbytes, int memtype) noexcept {
-
+    // this function is not thread save for the same memtype
+    // the caller of this function (CArena::alloc) has a mutex
     MemStat* stat = nullptr;
 #ifdef AMREX_USE_OMP
     if (omp_in_parallel() && !mem_stack_thread_private[omp_get_thread_num()].deque.empty()) {
@@ -357,6 +366,7 @@ TinyProfiler::memory_alloc (std::size_t nbytes, int memtype) noexcept {
 
     ++stat->nalloc;
     stat->currentmem += nbytes;
+    stat->avgmem -= nbytes * amrex::second();
     stat->maxmem = std::max(stat->maxmem, stat->currentmem);
 
     return stat;
@@ -364,8 +374,11 @@ TinyProfiler::memory_alloc (std::size_t nbytes, int memtype) noexcept {
 
 void
 TinyProfiler::memory_free (std::size_t nbytes, MemStat* stat) noexcept {
+    // this function is not thread save for the same memtype
+    // the caller of this function (CArena::free) has a mutex
     if (stat) {
         ++stat->nfree;
+        stat->avgmem += nbytes * amrex::second();
         stat->currentmem -= nbytes;
     }
 }
@@ -454,7 +467,7 @@ TinyProfiler::Finalize (bool bFlushing) noexcept
     }
 
     for (std::size_t i=0; i<MemStat::memory_name.size(); ++i) {
-        PrintMemStats(i);
+        PrintMemStats(i, dt_max, t_final);
     }
 }
 
@@ -656,7 +669,7 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
 }
 
 void
-TinyProfiler::PrintMemStats(int mem_type)
+TinyProfiler::PrintMemStats(int mem_type, double dt_max, double t_final)
 {
     // make sure the set of profiled functions is the same on all processes
     {
@@ -690,22 +703,28 @@ TinyProfiler::PrintMemStats(int mem_type)
     {
         Long nalloc = it->second.nalloc;
         Long nfree = it->second.nfree;
+        // simulate the freeing of remaining memory currentmem for the avgmem metric
+        Long avgmem = static_cast<Long>(
+            (it->second.avgmem + it->second.currentmem * t_final) / dt_max);
         Long maxmem = it->second.maxmem;
 
         std::vector<Long> nalloc_vec(nprocs);
         std::vector<Long> nfree_vec(nprocs);
+        std::vector<Long> avgmem_vec(nprocs);
         std::vector<Long> maxmem_vec(nprocs);
 
         if (nprocs == 1)
         {
             nalloc_vec[0] = nalloc;
             nfree_vec[0] = nfree;
+            avgmem_vec[0] = avgmem;
             maxmem_vec[0] = maxmem;
         } else
         {
             ParallelDescriptor::Gather(&nalloc, 1, &nalloc_vec[0], 1, ioproc);
             ParallelDescriptor::Gather(&nfree, 1, &nfree_vec[0], 1, ioproc);
             ParallelDescriptor::Gather(&maxmem, 1, &maxmem_vec[0], 1, ioproc);
+            ParallelDescriptor::Gather(&avgmem, 1, &avgmem_vec[0], 1, ioproc);
         }
 
         if (ParallelDescriptor::IOProcessor()) {
@@ -714,10 +733,14 @@ TinyProfiler::PrintMemStats(int mem_type)
 
                 pst.nalloc += nalloc_vec[i];
                 pst.nfree += nfree_vec[i];
+                pst.avgmem_min = std::min(pst.avgmem_min, avgmem_vec[i]);
+                pst.avgmem_avg += avgmem_vec[i];
+                pst.avgmem_max = std::max(pst.avgmem_max, avgmem_vec[i]);
                 pst.maxmem_min = std::min(pst.maxmem_min, maxmem_vec[i]);
                 pst.maxmem_avg += maxmem_vec[i];
                 pst.maxmem_max = std::max(pst.maxmem_max, maxmem_vec[i]);
             }
+            pst.avgmem_avg /= nprocs;
             pst.maxmem_avg /= nprocs;
             pst.fname = it->first;
             allprocstats.push_back(pst);
@@ -729,26 +752,28 @@ TinyProfiler::PrintMemStats(int mem_type)
     std::vector<std::vector<std::string>> allstatsstr;
 
     if (nprocs == 1) {
-        allstatsstr.push_back({"Name", "Nalloc", "Nfree", "Max Memory"});
+        allstatsstr.push_back({"Name", "Nalloc", "Nfree", "AvgMem", "MaxMem"});
     } else {
-        allstatsstr.push_back({"Name", "Nalloc", "Nfree", "Min Mem", "Avg Mem", "Max Mem"});
+        allstatsstr.push_back({"Name", "Nalloc", "Nfree",
+                               "AvgMem min", "AvgMem avg", "AvgMem max",
+                               "MaxMem min", "MaxMem avg", "MaxMem max"});
     }
 
     auto mem_to_string = [] (Long nbytes) {
         std::string unit = "   B";
-        if (nbytes >= 10*1024) {
+        if (nbytes >= 10000) {
             nbytes /= 1024;
             unit = " KiB";
         }
-        if (nbytes >= 10*1024) {
+        if (nbytes >= 10000) {
             nbytes /= 1024;
             unit = " MiB";
         }
-        if (nbytes >= 10*1024) {
+        if (nbytes >= 10000) {
             nbytes /= 1024;
             unit = " GiB";
         }
-        if (nbytes >= 10*1024) {
+        if (nbytes >= 10000) {
             nbytes /= 1024;
             unit = " TiB";
         }
@@ -761,11 +786,15 @@ TinyProfiler::PrintMemStats(int mem_type)
                 allstatsstr.push_back({stat.fname,
                                     std::to_string(stat.nalloc),
                                     std::to_string(stat.nfree),
+                                    mem_to_string(stat.avgmem_max),
                                     mem_to_string(stat.maxmem_max)});
             } else {
                 allstatsstr.push_back({stat.fname,
                                     std::to_string(stat.nalloc),
                                     std::to_string(stat.nfree),
+                                    mem_to_string(stat.avgmem_min),
+                                    mem_to_string(stat.avgmem_avg),
+                                    mem_to_string(stat.avgmem_max),
                                     mem_to_string(stat.maxmem_min),
                                     mem_to_string(stat.maxmem_avg),
                                     mem_to_string(stat.maxmem_max)});

@@ -36,13 +36,14 @@ struct MemStat
     };
 
     static constexpr std::array<const char *, 4> memory_name = {
-        "Device", "Managed", "Pinned", "Cpu"
+        "Device", "Managed", "Pinned", "Cpu (amrex_mempool)"
     };
 
-    Long nalloc = 0;
-    Long nfree = 0;
-    Long currentmem = 0;
-    Long maxmem = 0;
+    Long nalloc = 0;        //!< number of allocations
+    Long nfree = 0;         //!< number of frees
+    Long currentmem = 0;    //!< amount of currently used memory in bytes
+    double avgmem = 0.;     //!< memory used (bytes) times time in use (seconds)
+    Long maxmem = 0;        //!< running maximum of currentmem
 };
 
 //! A simple profiler that returns basic performance information (e.g. min, max, and average running time)
@@ -116,6 +117,9 @@ private:
     {
         Long nalloc = 0;
         Long nfree = 0;
+        Long avgmem_min = std::numeric_limits<Long>::max();
+        Long avgmem_avg = 0.;
+        Long avgmem_max = 0.;
         Long maxmem_min = std::numeric_limits<Long>::max();
         Long maxmem_avg = 0;
         Long maxmem_max = 0;
@@ -152,7 +156,7 @@ private:
     static int n_print_tabs;
     static int verbose;
     static void PrintStats (std::map<std::string,Stats>& regstats, double dt_max);
-    static void PrintMemStats (int mem_type);
+    static void PrintMemStats (int mem_type, double dt_max, double t_final);
 };
 
 class TinyProfileRegion
