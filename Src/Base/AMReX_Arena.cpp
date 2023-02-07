@@ -5,6 +5,7 @@
 #include <AMReX_PArena.H>
 
 #include <AMReX.H>
+#include <AMReX_BLProfiler.H>
 #include <AMReX_Print.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParmParse.H>
@@ -305,6 +306,7 @@ Arena::Initialize ()
             the_arena = new CArena(0, ai.SetDeviceMemory());
         }
 #ifdef AMREX_USE_GPU
+        BL_PROFILE("The_Arena::Initialize()");
         void *p = the_arena->alloc(static_cast<std::size_t>(the_arena_init_size));
         the_arena->free(p);
 #endif
@@ -343,16 +345,19 @@ Arena::Initialize ()
                                   (the_pinned_arena_release_threshold));
 
     if (the_device_arena_init_size > 0 && the_device_arena != the_arena) {
+        BL_PROFILE("The_Device_Arena::Initialize()");
         void *p = the_device_arena->alloc(the_device_arena_init_size);
         the_device_arena->free(p);
     }
 
     if (the_managed_arena_init_size > 0 && the_managed_arena != the_arena) {
+        BL_PROFILE("The_Managed_Arena::Initialize()");
         void *p = the_managed_arena->alloc(the_managed_arena_init_size);
         the_managed_arena->free(p);
     }
 
     if (the_pinned_arena_init_size > 0) {
+        BL_PROFILE("The_Pinned_Arena::Initialize()");
         void *p = the_pinned_arena->alloc(the_pinned_arena_init_size);
         the_pinned_arena->free(p);
     }
