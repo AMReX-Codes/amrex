@@ -1,6 +1,8 @@
 #ifndef AMREX_SUNMEMORY_H_
 #define AMREX_SUNMEMORY_H_
 
+#include <AMReX_Arena.H>
+#include <AMReX_Sundials_Core.H>
 #include <sundials/sundials_context.h>
 #include <sundials/sundials_memory.h>
 

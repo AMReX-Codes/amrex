@@ -31,10 +31,10 @@ namespace sundials {
  * Function to create a new empty multifab vector
  */
 
-N_Vector N_VNewEmpty_MultiFab(sunindextype length, int i)
+N_Vector N_VNewEmpty_MultiFab(sunindextype length, ::sundials::Context* sunctx)
 {
     /* Create vector */
-    N_Vector v = N_VNewEmpty(*The_Sundials_Context(i));
+    N_Vector v = N_VNewEmpty(*sunctx);
     if (v == NULL) return(NULL);
 
     v->ops->nvclone      = N_VClone_MultiFab;
@@ -87,9 +87,9 @@ N_Vector N_VNew_MultiFab(sunindextype length,
                          const amrex::DistributionMapping &dm,
                          sunindextype nComp,
                          sunindextype nGhost,
-                         int i)
+                         ::sundials::Context* sunctx)
 {
-    N_Vector v = N_VNewEmpty_MultiFab(length, i);
+    N_Vector v = N_VNewEmpty_MultiFab(length, sunctx);
     if (v == NULL) return(NULL);
 
     // Create and attach new MultiFab
@@ -107,9 +107,10 @@ N_Vector N_VNew_MultiFab(sunindextype length,
  * Function to create a MultiFab N_Vector with user-specific MultiFab
  */
 
-N_Vector N_VMake_MultiFab(sunindextype length, amrex::MultiFab *v_mf, int i)
+N_Vector N_VMake_MultiFab(sunindextype length, amrex::MultiFab *v_mf,
+                          ::sundials::Context* sunctx)
 {
-    N_Vector v = N_VNewEmpty_MultiFab(length, i);
+    N_Vector v = N_VNewEmpty_MultiFab(length, sunctx);
     if (v == NULL) return(NULL);
 
     if (length > 0)
