@@ -29,10 +29,6 @@ set(AMReX_CUDA_ARCH ${AMReX_CUDA_ARCH_DEFAULT} CACHE STRING "CUDA architecture (
 option(AMReX_CUDA_FASTMATH "Enable CUDA fastmath" ON)
 cuda_print_option( AMReX_CUDA_FASTMATH )
 
-set(AMReX_CUDA_MAX_THREADS "256" CACHE STRING
-   "Maximum number of CUDA threads per block" )
-message( STATUS "   AMReX_CUDA_MAX_THREADS = ${AMReX_CUDA_MAX_THREADS}")
-
 set(AMReX_CUDA_MAXREGCOUNT "255" CACHE STRING
    "Limit the maximum number of registers available" )
 message( STATUS "   AMReX_CUDA_MAXREGCOUNT = ${AMReX_CUDA_MAXREGCOUNT}")

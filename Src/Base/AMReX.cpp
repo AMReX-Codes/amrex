@@ -629,12 +629,12 @@ amrex::Finalize (amrex::AMReX* pamrex)
     if (init_hypre) HYPRE_Finalize();
 #endif
 
-    BL_TINY_PROFILE_FINALIZE();
-    BL_PROFILE_FINALIZE();
-
 #ifdef AMREX_USE_CUDA
     amrex::DeallocateRandomSeedDevArray();
 #endif
+
+    BL_TINY_PROFILE_FINALIZE();
+    BL_PROFILE_FINALIZE();
 
 #ifdef BL_LAZY
     Lazy::Finalize();

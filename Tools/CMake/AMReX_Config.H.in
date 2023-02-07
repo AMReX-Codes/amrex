@@ -41,6 +41,9 @@
 #cmakedefine AMREX_USE_HIP
 #cmakedefine AMREX_USE_NVML
 #cmakedefine AMREX_GPU_MAX_THREADS @AMREX_GPU_MAX_THREADS@
+#ifndef AMREX_GPU_MAX_THREADS
+#define AMREX_GPU_MAX_THREADS 0
+#endif
 #cmakedefine AMREX_USE_ACC
 #cmakedefine AMREX_USE_GPU
 #cmakedefine BL_COALESCE_FABS

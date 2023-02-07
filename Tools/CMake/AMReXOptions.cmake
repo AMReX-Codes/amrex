@@ -129,6 +129,12 @@ endif ()
 
 if (NOT AMReX_GPU_BACKEND STREQUAL NONE)
    message( STATUS "   AMReX_GPU_BACKEND = ${AMReX_GPU_BACKEND}")
+
+   # We might set different default for different GPUs in the future.
+   set(AMReX_GPU_MAX_THREADS_DEFAULT "256")
+   set(AMReX_GPU_MAX_THREADS ${AMReX_GPU_MAX_THREADS_DEFAULT} CACHE STRING
+       "Maximum number of GPU threads per block" )
+   message( STATUS "   AMReX_GPU_MAX_THREADS = ${AMReX_GPU_MAX_THREADS}")
 endif ()
 
 # Legacy variables for internal use only
@@ -174,17 +180,13 @@ cmake_dependent_option( AMReX_DPCPP_ONEDPL "Enable DPCPP's oneDPL algorithms"  O
 print_option(  AMReX_DPCPP_ONEDPL )
 
 if (AMReX_DPCPP)
-   set(AMReX_INTEL_ARCH_DEFAULT "IGNORE")
+   set(AMReX_INTEL_ARCH_DEFAULT "*")
    if (DEFINED ENV{AMREX_INTEL_ARCH})
       set(AMReX_INTEL_ARCH_DEFAULT "$ENV{AMREX_INTEL_ARCH}")
    endif()
 
    set(AMReX_INTEL_ARCH ${AMReX_INTEL_ARCH_DEFAULT} CACHE STRING
-      "INTEL GPU architecture (Must be provided if AMReX_GPU_BACKEND=SYCL and AMReX_DPCPP_AOT=ON)")
-
-   if (AMReX_DPCPP_AOT AND NOT AMReX_INTEL_ARCH)
-      message(FATAL_ERROR "\nMust specify AMReX_INTEL_ARCH if AMReX_GPU_BACKEND=SYCL and AMReX_DPCPP_AOT=ON\n")
-   endif()
+      "INTEL GPU architecture")
 endif ()
 
 # --- HIP ----

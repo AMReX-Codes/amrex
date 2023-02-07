@@ -252,12 +252,13 @@ else
   USE_CUPTI := FALSE
 endif
 
+# Maximum number of GPU threads per block.
+CUDA_MAX_THREADS ?= 256
+GPU_MAX_THREADS ?= $(CUDA_MAX_THREADS)
+
 ifeq ($(USE_CUDA),TRUE)
   # Set the default CUDA architecture version.
   CUDA_ARCH ?= 70
-
-  # Maximum number of CUDA threads per block.
-  CUDA_MAX_THREADS ?= 256
 
   # Limit the maximum number of registers available.
   CUDA_MAXREGCOUNT ?= 255
@@ -790,13 +791,15 @@ else
 endif
 
 ifeq ($(USE_GPU),TRUE)
-    DEFINES += -DAMREX_USE_GPU -DBL_COALESCE_FABS
+    DEFINES += -DAMREX_USE_GPU -DBL_COALESCE_FABS -DAMREX_GPU_MAX_THREADS=$(GPU_MAX_THREADS)
     ifeq ($(GPU_ERROR_CHECK),FALSE)
         DEFINES += -DAMREX_GPU_NO_ERROR_CHECK
     endif
     ifeq ($(USE_GPU_RDC),TRUE)
         DEFINES += -DAMREX_USE_GPU_RDC
     endif
+else
+    DEFINES += -DAMREX_GPU_MAX_THREADS=0
 endif
 
 ifeq ($(USE_SINGLE_PRECISION_PARTICLES), TRUE)
@@ -1127,10 +1130,6 @@ else ifeq ($(USE_CUDA),TRUE)
     ifdef GPUS_PER_NODE
        DEFINES += -DAMREX_GPUS_PER_NODE=$(GPUS_PER_NODE)
     endif
-
-    # Set the CUDA threads define in case the user updated it.
-
-    DEFINES += -DAMREX_GPU_MAX_THREADS=$(CUDA_MAX_THREADS)
 
     ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
       LINKFLAGS = $(NVCC_FLAGS) $(CXXFLAGS_FROM_HOST)
