@@ -524,6 +524,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     ParallelDescriptor::Initialize();
 
+    BL_TINY_PROFILE_INITIALIZE();
     Arena::Initialize();
     amrex_mempool_init();
 
@@ -597,8 +598,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     if (system::verbose > 0) {
         amrex::Print() << "AMReX (" << amrex::Version() << ") initialized" << std::endl;
     }
-
-    BL_TINY_PROFILE_INITIALIZE();
 
     AMReX::push(new AMReX());
     return AMReX::top();
