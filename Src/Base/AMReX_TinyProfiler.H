@@ -13,6 +13,7 @@
 #include <roctracer/roctx.h>
 #endif
 
+#include <array>
 #include <deque>
 #include <iosfwd>
 #include <limits>
