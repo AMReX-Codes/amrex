@@ -524,6 +524,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     ParallelDescriptor::Initialize();
 
+    BL_TINY_PROFILE_MEMORYINITIALIZE();
     Arena::Initialize();
     amrex_mempool_init();
 
@@ -629,12 +630,14 @@ amrex::Finalize (amrex::AMReX* pamrex)
     if (init_hypre) HYPRE_Finalize();
 #endif
 
+    BL_TINY_PROFILE_FINALIZE();
+    BL_PROFILE_FINALIZE();
+
 #ifdef AMREX_USE_CUDA
     amrex::DeallocateRandomSeedDevArray();
 #endif
 
-    BL_TINY_PROFILE_FINALIZE();
-    BL_PROFILE_FINALIZE();
+    BL_TINY_PROFILE_MEMORYFINALIZE();
 
 #ifdef BL_LAZY
     Lazy::Finalize();

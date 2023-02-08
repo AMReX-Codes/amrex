@@ -73,6 +73,9 @@ public:
     static void Initialize () noexcept;
     static void Finalize (bool bFlushing = false) noexcept;
 
+    static void MemoryInitialize () noexcept;
+    static void MemoryFinalize (bool bFlushing = false) noexcept;
+
     static void StartRegion (std::string regname) noexcept;
     static void StopRegion (const std::string& regname) noexcept;
 
