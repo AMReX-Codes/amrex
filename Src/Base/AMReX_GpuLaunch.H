@@ -243,7 +243,7 @@ namespace Gpu {
 
 #ifdef AMREX_USE_GPU
 
-#ifndef AMREX_USE_DPCPP
+#ifndef AMREX_USE_SYCL
 
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG(where_to_run,n,i,block) \
     {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
@@ -369,7 +369,7 @@ namespace Gpu {
     }
 
 #else
-// xxxxx DPCPP todo: host disabled in host device
+// xxxxx SYCL todo: host disabled in host device
 
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG(where_to_run,n,i,block) \
     {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \

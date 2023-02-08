@@ -56,7 +56,7 @@ list of important variables.
    +-----------------+-------------------------------------+--------------------+
    | USE_HIP         | TRUE or FALSE                       | FALSE              |
    +-----------------+-------------------------------------+--------------------+
-   | USE_DPCPP       | TRUE or FALSE                       | FALSE              |
+   | USE_SYCL        | TRUE or FALSE                       | FALSE              |
    +-----------------+-------------------------------------+--------------------+
    | USE_RPATH       | TRUE or FALSE                       | FALSE              |
    +-----------------+-------------------------------------+--------------------+
@@ -119,10 +119,10 @@ default in CI and add slight debugging, e.g., initializing default values in FAB
 An advanced variable, ``MPI_THREAD_MULTIPLE``, can be set to TRUE to initialize
 MPI with support for concurrent MPI calls from multiple threads.
 
-Variables ``USE_CUDA``, ``USE_HIP`` and ``USE_DPCPP`` are used for
+Variables ``USE_CUDA``, ``USE_HIP`` and ``USE_SYCL`` are used for
 targeting Nvidia, AMD and Intel GPUs, respectively.  At most one of
 the three can be TRUE.
-For HIP and DPC++/SYCL builds, we do only test against C++17 builds at the moment.
+For HIP and SYCL builds, we do only test against C++17 builds at the moment.
 
 The variable ``USE_RPATH`` controls the link mechanism to dependent libraries.
 If enabled, the library path at link time will be saved as a

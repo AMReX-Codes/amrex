@@ -58,9 +58,9 @@ def doit(defines, undefines, comp, allow_diff_comp):
         elif comp == "hip":
             comp_macro = "__HIP__"
             comp_id    = "HIP"
-        elif comp == "dpcpp":
+        elif comp == "sycl":
             comp_macro = "__INTEL_CLANG_COMPILER"
-            comp_id    = "DPCPP"
+            comp_id    = "SYCL"
         else:
             sys.exit("ERROR: unknown compiler "+comp+" to mkconfig.py")
 
@@ -92,7 +92,7 @@ if __name__ == "__main__":
     parser.add_argument("--comp",
                         help="compiler",
                         choices=["gnu","intel","cray","pgi","nvhpc","llvm","nag","nec","ibm",
-                                 "armclang","hip","dpcpp"])
+                                 "armclang","hip","sycl"])
     parser.add_argument("--allow-different-compiler",
                         help="allow an application to use a different compiler than the one used to build libamrex",
                         choices=["TRUE","FALSE"])

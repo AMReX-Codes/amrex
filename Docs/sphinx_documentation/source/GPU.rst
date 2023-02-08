@@ -14,12 +14,12 @@ with minimal changes and maximum flexibility.  This allows
 application teams to get running on GPUs quickly while allowing
 long term performance tuning and programming model selection.  AMReX
 uses the native programming language for GPUs: CUDA for NVIDIA, HIP
-for AMD and DPC++ for Intel. This will be designated with ``CUDA/HIP/DPC++``
+for AMD and SYCL for Intel. This will be designated with ``CUDA/HIP/SYCL``
 throughout the documentation.  However, application teams can also use
 OpenACC or OpenMP in their individual codes.
 
 At this time, AMReX does not support cross-native language compilation
-(HIP for non-AMD systems and DPC++ for non Intel systems).  It may work with
+(HIP for non-AMD systems and SYCL for non Intel systems).  It may work with
 a given version, but AMReX does not track or guarantee such functionality.
 
 When running AMReX on a CPU system, the parallelization strategy is a
@@ -33,7 +33,7 @@ to solution.
 
 When running on CPUs, AMReX uses an ``MPI+X`` strategy where the ``X``
 threads are used to perform parallelization techniques, like tiling.
-The most common ``X`` is ``OpenMP``.  On GPUs, AMReX requires ``CUDA/HIP/DPC++``
+The most common ``X`` is ``OpenMP``.  On GPUs, AMReX requires ``CUDA/HIP/SYCL``
 and can be further combined with other parallel GPU languages, including
 ``OpenACC`` and ``OpenMP``, to control the offloading of subroutines
 to the GPU.  This ``MPI+CUDA+X`` GPU strategy has been developed
@@ -139,7 +139,7 @@ Building with GNU Make
 ----------------------
 
 To build AMReX with GPU support, add ``USE_CUDA=TRUE``, ``USE_HIP=TRUE`` or
-``USE_DPCPP=TRUE`` to the ``GNUmakefile`` or as a command line argument.
+``USE_SYCL=TRUE`` to the ``GNUmakefile`` or as a command line argument.
 
 AMReX does not require OpenACC, but application codes
 can use them if they are supported by the compiler.  For OpenACC support, add
@@ -366,7 +366,7 @@ check the :ref:`table <tab:cmakesyclvar>` below.
 
 In AMReX CMake, the SYCL compiler is treated as a special C++ compiler and therefore
 the standard CMake variables used to customize the compilation process for C++,
-for example ``CMAKE_CXX_FLAGS``, can be used for DPCPP as well.
+for example ``CMAKE_CXX_FLAGS``, can be used for SYCL as well.
 
 
 Since CMake does not support autodetection of SYCL compilers yet,
@@ -393,13 +393,13 @@ Below is an example configuration for SYCL:
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | Variable Name                | Description                                     | Default     | Possible values |
    +==============================+=================================================+=============+=================+
-   | AMReX_DPCPP_AOT              | Enable DPCPP ahead-of-time compilation          | NO          | YES, NO         |
+   | AMReX_SYCL_AOT               | Enable SYCL ahead-of-time compilation           | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMREX_INTEL_ARCH             | Specify target if AOT is enabled                | *           | Gen9, etc.      |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_DPCPP_SPLIT_KERNEL     | Enable DPCPP kernel splitting                   | YES         | YES, NO         |
+   | AMReX_SYCL_SPLIT_KERNEL      | Enable SYCL kernel splitting                    | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_DPCPP_ONEDPL           | Enable DPCPP's oneDPL algorithms                | NO          | YES, NO         |
+   | AMReX_SYCL_ONEDPL            | Enable SYCL's oneDPL algorithms                 | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
 .. raw:: latex
 
@@ -431,7 +431,7 @@ These include:
    #define AMREX_GPU_GLOBAL      __global__
    #define AMREX_GPU_HOST_DEVICE __host__ __device__
 
-Note that when AMReX is not built with ``CUDA/HIP/DPC++``,
+Note that when AMReX is not built with ``CUDA/HIP/SYCL``,
 these macros expand to empty space.
 
 When AMReX is compiled with ``USE_CUDA=TRUE``, the preprocessor
@@ -888,7 +888,7 @@ Instead of using :cpp:`Elixir`, we can write code like below,
 
 This is now the recommended way because it's usually more efficient than
 :cpp:`Elixir`.  Note that the code above works for CUDA older than 11.2, HIP
-and DPC++ as well, and it's equivalent to using :cpp:`Elixir` in these
+and SYCL as well, and it's equivalent to using :cpp:`Elixir` in these
 cases.  By default, the release threshold for the memory pool is unlimited.
 One can adjust it with :cpp:`ParmParse` parameter,
 ``amrex.the_async_arena_release_threshold``.

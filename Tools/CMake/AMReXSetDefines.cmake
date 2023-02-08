@@ -50,9 +50,10 @@ add_amrex_define( AMREX_MPI_THREAD_MULTIPLE NO_LEGACY IF AMReX_MPI_THREAD_MULTIP
 # OpenMP -- This one has legacy definition only in Base/AMReX_omp_mod.F90
 add_amrex_define( AMREX_USE_OMP IF AMReX_OMP )
 
-# DPCPP
-add_amrex_define( AMREX_USE_DPCPP NO_LEGACY IF AMReX_DPCPP )
-add_amrex_define( AMREX_USE_ONEDPL NO_LEGACY IF AMReX_DPCPP_ONEDPL )
+# SYCL
+add_amrex_define( AMREX_USE_SYCL NO_LEGACY IF AMReX_SYCL )
+add_amrex_define( AMREX_USE_DPCPP NO_LEGACY IF AMReX_SYCL )
+add_amrex_define( AMREX_USE_ONEDPL NO_LEGACY IF AMReX_SYCL_ONEDPL )
 
 # HIP
 add_amrex_define( AMREX_USE_HIP NO_LEGACY IF AMReX_HIP )

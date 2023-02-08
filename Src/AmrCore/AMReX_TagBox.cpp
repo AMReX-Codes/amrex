@@ -449,7 +449,7 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
         int* ntags = dv_ntags.data() + blockoffset[li];
         const int ncells = fai.fabbox().numPts();
         const char* tags = (*this)[fai].dataPtr();
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         amrex::launch(nblocks[li], block_size, sizeof(int)*Gpu::Device::warp_size,
                       Gpu::Device::gpuStream(),
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& h) noexcept
@@ -527,7 +527,7 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
             const auto lenx  = len.x;
             const int ncells = bx.numPts();
             const char* tags = (*this)[fai].dataPtr();
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
             amrex::launch(nblocks[li], block_size, sizeof(unsigned int), Gpu::Device::gpuStream(),
             [=] AMREX_GPU_DEVICE (Gpu::Handler const& h) noexcept
             {

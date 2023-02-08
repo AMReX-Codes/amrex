@@ -21,7 +21,7 @@ namespace Gpu { namespace Atomic {
 
 namespace detail {
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
 
     template <typename R, typename I, typename F>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -124,7 +124,7 @@ namespace detail {
 
 #ifdef AMREX_USE_GPU
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
     template<class T, sycl::access::address_space AS = sycl::access::address_space::global_space>
 #else
     template<class T>
@@ -187,7 +187,7 @@ namespace detail {
 
 #endif
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
     template<class T, sycl::access::address_space AS = sycl::access::address_space::global_space>
 #else
     template<class T>
@@ -196,7 +196,7 @@ namespace detail {
     T Add (T* const sum, T const value) noexcept
     {
 #if AMREX_DEVICE_COMPILE
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         return Add_device<T,AS>(sum, value);
 #else
         return Add_device(sum, value);
@@ -212,7 +212,7 @@ namespace detail {
 //  If
 ////////////////////////////////////////////////////////////////////////
 
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_SYCL)
     template <typename T, typename Op, typename Cond,
               std::enable_if_t<sizeof(T) == sizeof(unsigned int), int> foo = 0>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -270,7 +270,7 @@ namespace detail {
 //  AddNoRet
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
     template<class T, sycl::access::address_space AS = sycl::access::address_space::global_space>
 #else
     template<class T>
@@ -279,7 +279,7 @@ namespace detail {
     void AddNoRet (T* const sum, T const value) noexcept
     {
 #if AMREX_DEVICE_COMPILE
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         Add_device<T,AS>(sum, value);
 #else
         Add_device(sum, value);

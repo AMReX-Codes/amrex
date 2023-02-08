@@ -31,8 +31,8 @@ struct BlockMutex
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void lock (int i) noexcept {
-#ifdef AMREX_USE_DPCPP
-// xxxxx DPCPP todo
+#ifdef AMREX_USE_SYCL
+// xxxxx SYCL todo
         amrex::ignore_unused(i);
 #else
         int blockid = blockIdx.z*blockDim.x*blockDim.y + blockIdx.y*blockDim.x + blockIdx.x;
@@ -57,8 +57,8 @@ struct BlockMutex
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void unlock (int i) noexcept {
-#ifdef AMREX_USE_DPCPP
-// xxxxx DPCPP todo
+#ifdef AMREX_USE_SYCL
+// xxxxx SYCL todo
         amrex::ignore_unused(i);
 #else
         state_t old = m_state[i];

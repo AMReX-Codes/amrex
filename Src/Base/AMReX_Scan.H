@@ -10,7 +10,7 @@
 #  include <cub/cub.cuh>
 #elif defined(AMREX_USE_HIP)
 #  include <rocprim/rocprim.hpp>
-#elif defined(AMREX_USE_DPCPP) && defined(AMREX_USE_ONEDPL)
+#elif defined(AMREX_USE_SYCL) && defined(AMREX_USE_ONEDPL)
 #  include <oneapi/dpl/execution>
 #  include <oneapi/dpl/numeric>
 #endif
@@ -70,7 +70,7 @@ struct BlockStatus<T, true>
         Data<T> tmp;
         tmp.s = {a_status, a_value};
         static_assert(sizeof(unsigned long long) == sizeof(uint64_t),
-                      "HIP/DPCPP: unsigned long long must be 64 bits");
+                      "HIP/SYCL: unsigned long long must be 64 bits");
         Gpu::Atomic::Exch(reinterpret_cast<unsigned long long*>(&d),
                           reinterpret_cast<unsigned long long&>(tmp));
 #endif
@@ -87,7 +87,7 @@ struct BlockStatus<T, true>
                 reinterpret_cast<STVA<T> volatile&>(tmp).value };
 #else
         static_assert(sizeof(unsigned long long) == sizeof(uint64_t),
-                      "HIP/DPCPP: unsigned long long must be 64 bits");
+                      "HIP/SYCL: unsigned long long must be 64 bits");
         unsigned long long tmp = Gpu::Atomic::Add
             (reinterpret_cast<unsigned long long*>(const_cast<Data<T>*>(&d)), 0ull);
         return (*reinterpret_cast<Data<T>*>(&tmp)).s;
@@ -101,7 +101,7 @@ struct BlockStatus<T, true>
     STVA<T> wait () volatile {
         STVA<T> r;
         do {
-#if defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_SYCL)
             sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::work_group);
 #else
             __threadfence_block();
@@ -126,7 +126,7 @@ struct BlockStatus<T, false>
         } else {
             inclusive = a_value;
         }
-#if defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_SYCL)
         sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
 #else
         __threadfence();
@@ -156,7 +156,7 @@ struct BlockStatus<T, false>
         STVA<T> r;
         do {
             r = read();
-#if defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_SYCL)
             sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
 #else
             __threadfence();
@@ -168,9 +168,9 @@ struct BlockStatus<T, false>
 
 }
 
-#if defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_SYCL)
 
-#ifndef AMREX_DPCPP_NO_MULTIPASS_SCAN
+#ifndef AMREX_SYCL_NO_MULTIPASS_SCAN
 template <typename T, typename N, typename FIN, typename FOUT, typename TYPE>
 T PrefixSum_mp (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum)
 {
@@ -383,7 +383,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
     AMREX_ALWAYS_ASSERT(static_cast<Long>(n) < static_cast<Long>(std::numeric_limits<int>::max())*nelms_per_block);
     int nblocks = (static_cast<Long>(n) + nelms_per_block - 1) / nelms_per_block;
 
-#ifndef AMREX_DPCPP_NO_MULTIPASS_SCAN
+#ifndef AMREX_SYCL_NO_MULTIPASS_SCAN
     if (nblocks > 1) {
         return PrefixSum_mp<T>(n, std::forward<FIN>(fin), std::forward<FOUT>(fout), type, retSum);
     }
@@ -594,7 +594,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
 
     T totalsum = 0;
     if (a_ret_sum) {
-        // xxxxx DPCPP todo: Should test if using pinned memory and thus
+        // xxxxx SYCL todo: Should test if using pinned memory and thus
         // avoiding memcpy is faster.
         Gpu::dtoh_memcpy_async(&totalsum, totalsum_p, sizeof(T));
     }
@@ -1165,7 +1165,7 @@ T InclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
     The_Arena()->free(d_temp);
     AMREX_GPU_ERROR_CHECK();
     return totalsum;
-#elif defined(AMREX_USE_DPCPP) && defined(AMREX_USE_ONEDPL)
+#elif defined(AMREX_USE_SYCL) && defined(AMREX_USE_ONEDPL)
     auto policy = oneapi::dpl::execution::make_device_policy(Gpu::Device::streamQueue());
     std::inclusive_scan(policy, in, in+n, out, std::plus<T>(), T(0));
     T totalsum = 0;
@@ -1235,7 +1235,7 @@ T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
     The_Arena()->free(d_temp);
     AMREX_GPU_ERROR_CHECK();
     return in_last+out_last;
-#elif defined(AMREX_USE_DPCPP) && defined(AMREX_USE_ONEDPL)
+#elif defined(AMREX_USE_SYCL) && defined(AMREX_USE_ONEDPL)
     T in_last = 0;
     if (a_ret_sum) {
         Gpu::dtoh_memcpy_async(&in_last, in+(n-1), sizeof(T));

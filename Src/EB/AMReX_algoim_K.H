@@ -572,11 +572,11 @@ struct ImplicitIntegral
         ImplicitIntegral<M-1,N,Phi,ImplicitIntegral<M,N,Phi,F,S>,false>
             (phi, *this, new_free, newPsi, newPsiCount);
 
-#if defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_SYCL)
 #if AMREX_DEVICE_COMPILE
         if constexpr (std::is_same<F,QuadratureRule>()) {
             if (&f != &f_) {
-                // xxxxx DPCPP todo The only purpose of the following
+                // xxxxx SYCL todo The only purpose of the following
                 // statement is to work around a compiler bug.  Nothing will
                 // actually be printed because &f == &f_.
                 AMREX_DEVICE_PRINTF("Work around compiler bug. %p %p\n", &f, &f_);

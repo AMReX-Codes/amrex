@@ -170,10 +170,10 @@ endif ()
 
 #
 #
-#  SYCL/DPCPP
+#  SYCL
 #
 #
-if (AMReX_DPCPP)
+if (AMReX_SYCL)
    include(AMReXSYCL)
    target_link_libraries(amrex PUBLIC SYCL)
 endif ()

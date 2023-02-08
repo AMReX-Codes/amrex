@@ -473,7 +473,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         pp.queryAdd("call_addr2line", system::call_addr2line);
         pp.queryAdd("abort_on_unused_inputs", system::abort_on_unused_inputs);
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         // Disable SIGSEGV handling by default for certain Intel GPUs,
         // because it is currently used by their managed memory
         // implementation.
@@ -529,8 +529,8 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                 if (invalid)   curr_fpe_excepts |= FE_INVALID;
                 if (divbyzero) curr_fpe_excepts |= FE_DIVBYZERO;
                 if (overflow)  curr_fpe_excepts |= FE_OVERFLOW;
-#if !defined(AMREX_USE_DPCPP) && (!defined(__PGI) || (__PGIC__ >= 16))
-                // xxxxx DPCPP todo: fpe trap
+#if !defined(AMREX_USE_SYCL) && (!defined(__PGI) || (__PGIC__ >= 16))
+                // xxxxx SYCL todo: fpe trap
                 prev_fpe_excepts = fegetexcept();
                 if (curr_fpe_excepts != 0) {
                     feenableexcept(curr_fpe_excepts);  // trap floating point exceptions

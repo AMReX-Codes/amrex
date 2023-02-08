@@ -20,13 +20,13 @@
 #endif
 
 #if defined(AMREX_USE_HIP)
-#define AMREX_HIP_OR_CUDA_OR_DPCPP(a,b,c) a
+#define AMREX_HIP_OR_CUDA_OR_SYCL(a,b,c) a
 #elif defined(AMREX_USE_CUDA)
-#define AMREX_HIP_OR_CUDA_OR_DPCPP(a,b,c) b
-#elif defined(AMREX_USE_DPCPP)
-#define AMREX_HIP_OR_CUDA_OR_DPCPP(a,b,c) c
+#define AMREX_HIP_OR_CUDA_OR_SYCL(a,b,c) b
+#elif defined(AMREX_USE_SYCL)
+#define AMREX_HIP_OR_CUDA_OR_SYCL(a,b,c) c
 #else
-#define AMREX_HIP_OR_CUDA_OR_DPCPP(a,b,c) ((void)0);
+#define AMREX_HIP_OR_CUDA_OR_SYCL(a,b,c) ((void)0);
 #endif
 
 #ifdef AMREX_USE_GPU
@@ -35,30 +35,30 @@
 #define AMREX_GPU_OR_CPU(a,b) b
 #endif
 
-#ifdef AMREX_USE_DPCPP
-#define AMREX_DPCPP_ONLY(a) a
+#ifdef AMREX_USE_SYCL
+#define AMREX_SYCL_ONLY(a) a
 #else
-#define AMREX_DPCPP_ONLY(a) ((void)0)
+#define AMREX_SYCL_ONLY(a) ((void)0)
 #endif
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
 #if (AMREX_SPACEDIM == 1)
-#  define AMREX_DPCPP_1D_ONLY(a) a
-#  define AMREX_DPCPP_2D_ONLY(a) ((void)0)
-#  define AMREX_DPCPP_3D_ONLY(a) ((void)0)
+#  define AMREX_SYCL_1D_ONLY(a) a
+#  define AMREX_SYCL_2D_ONLY(a) ((void)0)
+#  define AMREX_SYCL_3D_ONLY(a) ((void)0)
 #elif (AMREX_SPACEDIM == 2)
-#  define AMREX_DPCPP_1D_ONLY(a) ((void)0)
-#  define AMREX_DPCPP_2D_ONLY(a) a
-#  define AMREX_DPCPP_3D_ONLY(a) ((void)0)
+#  define AMREX_SYCL_1D_ONLY(a) ((void)0)
+#  define AMREX_SYCL_2D_ONLY(a) a
+#  define AMREX_SYCL_3D_ONLY(a) ((void)0)
 #elif (AMREX_SPACEDIM == 3)
-#  define AMREX_DPCPP_1D_ONLY(a) ((void)0)
-#  define AMREX_DPCPP_2D_ONLY(a) ((void)0)
-#  define AMREX_DPCPP_3D_ONLY(a) a
+#  define AMREX_SYCL_1D_ONLY(a) ((void)0)
+#  define AMREX_SYCL_2D_ONLY(a) ((void)0)
+#  define AMREX_SYCL_3D_ONLY(a) a
 #endif
 #else
-#  define AMREX_DPCPP_1D_ONLY(a) ((void)0)
-#  define AMREX_DPCPP_2D_ONLY(a) ((void)0)
-#  define AMREX_DPCPP_3D_ONLY(a) ((void)0)
+#  define AMREX_SYCL_1D_ONLY(a) ((void)0)
+#  define AMREX_SYCL_2D_ONLY(a) ((void)0)
+#  define AMREX_SYCL_3D_ONLY(a) ((void)0)
 #endif
 
 namespace amrex {
