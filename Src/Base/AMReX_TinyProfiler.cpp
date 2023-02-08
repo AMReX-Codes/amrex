@@ -389,16 +389,20 @@ TinyProfiler::Initialize () noexcept
 {
     regionstack.push_back(mainregion);
     t_init = amrex::second();
-#ifdef AMREX_USE_OMP
-    mem_stack_thread_private.resize(omp_get_max_threads());
-#endif
-
     {
         amrex::ParmParse pp("tiny_profiler");
         pp.queryAdd("device_synchronize_around_region", device_synchronize_around_region);
         pp.queryAdd("verbose", verbose);
         pp.queryAdd("v", verbose);
     }
+}
+
+void
+TinyProfiler::MemoryInitialize () noexcept
+{
+#ifdef AMREX_USE_OMP
+    mem_stack_thread_private.resize(omp_get_max_threads());
+#endif
 }
 
 void
@@ -465,6 +469,24 @@ TinyProfiler::Finalize (bool bFlushing) noexcept
             amrex::Print() << "END REGION " << kv.first << "\n";
         }
     }
+}
+
+void
+TinyProfiler::MemoryFinalize (bool bFlushing) noexcept
+{
+    static bool finalized = false;
+    if (!bFlushing) {                // If flushing, don't make this the last time!
+        if (finalized) {
+            return;
+        } else {
+            finalized = true;
+        }
+    }
+
+    double t_final = amrex::second();
+    double dt_max = t_final - t_init;
+    int ioproc = ParallelDescriptor::IOProcessorNumber();
+    ParallelReduce::Max(dt_max, ioproc, ParallelDescriptor::Communicator());
 
     for (std::size_t i=0; i<MemStat::memory_name.size(); ++i) {
         PrintMemStats(i, dt_max, t_final);
