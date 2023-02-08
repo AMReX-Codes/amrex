@@ -153,7 +153,7 @@ public:
     // gfx10XX has 32 threads per wavefront else 64
     static AMREX_EXPORT constexpr int warp_size = __AMDGCN_WAVEFRONT_SIZE;
 #   else
-    static AMREX_EXPORT constexpr int warp_size = AMREX_HIP_OR_CUDA_OR_DPCPP(64,32,16);
+    static AMREX_EXPORT constexpr int warp_size = AMREX_HIP_OR_CUDA_OR_DPCPP(64,32,32);
 #   endif
 
     static unsigned int maxBlocksPerLaunch () noexcept { return max_blocks_per_launch; }
