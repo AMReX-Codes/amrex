@@ -332,13 +332,13 @@ namespace detail {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     float Min_device (float* const m, float const value) noexcept
     {
-        return detail::atomic_op<float,int>(m,value,amrex::Less<float>());
+        return detail::atomic_op<float,int>(m,value,amrex::Minimum<float>());
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     double Min_device (double* const m, double const value) noexcept
     {
-        return detail::atomic_op<double, unsigned long long int>(m,value,amrex::Less<double>());
+        return detail::atomic_op<double, unsigned long long int>(m,value,amrex::Minimum<double>());
     }
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
@@ -346,7 +346,7 @@ namespace detail {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     Long Min_device (Long* const m, Long const value) noexcept
     {
-        return detail::atomic_op<Long, unsigned long long int>(m,value,amrex::Less<Long>());
+        return detail::atomic_op<Long, unsigned long long int>(m,value,amrex::Minimum<Long>());
     }
 
 #endif
@@ -394,13 +394,13 @@ namespace detail {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     float Max_device (float* const m, float const value) noexcept
     {
-        return detail::atomic_op<float,int>(m,value,amrex::Greater<float>());
+        return detail::atomic_op<float,int>(m,value,amrex::Maximum<float>());
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     double Max_device (double* const m, double const value) noexcept
     {
-        return detail::atomic_op<double, unsigned long long int>(m,value,amrex::Greater<double>());
+        return detail::atomic_op<double, unsigned long long int>(m,value,amrex::Maximum<double>());
     }
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
@@ -408,7 +408,7 @@ namespace detail {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     Long Max_device (Long* const m, Long const value) noexcept
     {
-        return detail::atomic_op<Long, unsigned long long int>(m,value,amrex::Greater<Long>());
+        return detail::atomic_op<Long, unsigned long long int>(m,value,amrex::Maximum<Long>());
     }
 
 #endif
