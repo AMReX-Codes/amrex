@@ -385,12 +385,6 @@ Device::Finalize ()
 #ifdef AMREX_USE_GPU
     Device::profilerStop();
 
-    for (int i = 0; i < max_gpu_streams; ++i)
-    {
-        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL( hipStreamDestroy(gpu_stream_pool[i]));,
-                          AMREX_CUDA_SAFE_CALL(cudaStreamDestroy(gpu_stream_pool[i])); );
-    }
-
 #ifdef AMREX_USE_DPCPP
     sycl_context.reset();
     sycl_device.reset();
@@ -398,8 +392,15 @@ Device::Finalize ()
         delete s.queue;
         s.queue = nullptr;
     }
-    gpu_stream.clear();
+#else
+    for (int i = 0; i < max_gpu_streams; ++i)
+    {
+        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL( hipStreamDestroy(gpu_stream_pool[i]));,
+                          AMREX_CUDA_SAFE_CALL(cudaStreamDestroy(gpu_stream_pool[i])); );
+    }
 #endif
+
+    gpu_stream.clear();
 
 #ifdef AMREX_USE_ACC
     amrex_finalize_acc();
