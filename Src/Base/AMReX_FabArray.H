@@ -1311,6 +1311,8 @@ private:
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
     void build_arrays () const;
 
+    void clear_arrays ();
+
 public:
 
 #ifdef BL_USE_MPI
@@ -1665,6 +1667,22 @@ FabArray<FAB>::build_arrays () const
 }
 
 template <class FAB>
+void
+FabArray<FAB>::clear_arrays ()
+{
+#ifdef AMREX_USE_GPU
+    The_Pinned_Arena()->free(m_hp_arrays);
+    The_Arena()->free(m_dp_arrays);
+    m_dp_arrays = nullptr;
+#else
+    std::free(m_hp_arrays);
+#endif
+    m_hp_arrays = nullptr;
+    m_arrays.hp = nullptr;
+    m_const_arrays.hp = nullptr;
+}
+
+template <class FAB>
 AMREX_NODISCARD
 FAB*
 FabArray<FAB>::release (int K)
@@ -1720,14 +1738,7 @@ FabArray<FAB>::clear ()
         }
     }
     m_fabs_v.clear();
-#ifdef AMREX_USE_GPU
-    The_Pinned_Arena()->free(m_hp_arrays);
-    The_Arena()->free(m_dp_arrays);
-    m_dp_arrays = nullptr;
-#else
-    std::free(m_hp_arrays);
-#endif
-    m_hp_arrays = nullptr;
+    clear_arrays();
     m_factory.reset();
     m_dallocator.m_arena = nullptr;
     // no need to clear the non-blocking fillboundary stuff
@@ -2814,10 +2825,7 @@ void
 FabArray<FAB>::shift (const IntVect& v)
 {
     clearThisBD();  // The new boxarry will have a different ID.
-    for(int id(0); id < AMREX_SPACEDIM; ++id)
-    {
-      boxarray.shift(id, v[id]);
-    }
+    boxarray.shift(v);
     addThisBD();
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
@@ -2826,6 +2834,7 @@ FabArray<FAB>::shift (const IntVect& v)
     {
         get(fai).shift(v);
     }
+    clear_arrays();
 }
 
 template <class FAB>
