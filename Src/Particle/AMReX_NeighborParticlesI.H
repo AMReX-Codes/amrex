@@ -828,9 +828,9 @@ buildNeighborList (CheckPair&& check_pair, OtherPCType& other,
             dxi_v.push_back(geom.InvCellSizeArray());
             plo_v.push_back(geom.ProbLoArray());
 
-            m_neighbor_list[lev][index].build(ptile, other_ptile,
-                                              std::forward<CheckPair>(check_pair),
-                                              off_bins_v, dxi_v, plo_v, lo_v, hi_v, ng);
+            neighbor_lists[lev][index].build(ptile, other_ptile,
+                                             std::forward<CheckPair>(check_pair),
+                                             off_bins_v, dxi_v, plo_v, lo_v, hi_v, ng);
         }
     }
 }
