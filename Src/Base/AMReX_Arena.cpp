@@ -146,7 +146,7 @@ Arena::allocate_system (std::size_t nbytes)
     }
     else if (arena_info.device_use_hostalloc)
     {
-        AMREX_HIP_OR_CUDA_OR_DPCPP(
+        AMREX_HIP_OR_CUDA_OR_SYCL(
             AMREX_HIP_SAFE_CALL (hipHostMalloc(&p, nbytes, hipHostMallocMapped|hipHostMallocNonCoherent));,
             AMREX_CUDA_SAFE_CALL(cudaHostAlloc(&p, nbytes, cudaHostAllocMapped));,
             p = sycl::malloc_host(nbytes, Gpu::Device::syclContext()));
@@ -164,7 +164,7 @@ Arena::allocate_system (std::size_t nbytes)
 
         if (arena_info.device_use_managed_memory)
         {
-            AMREX_HIP_OR_CUDA_OR_DPCPP
+            AMREX_HIP_OR_CUDA_OR_SYCL
                 (AMREX_HIP_SAFE_CALL(hipMallocManaged(&p, nbytes));,
                  AMREX_CUDA_SAFE_CALL(cudaMallocManaged(&p, nbytes));,
                  p = sycl::malloc_shared(nbytes, Gpu::Device::syclDevice(), Gpu::Device::syclContext()));
@@ -185,7 +185,7 @@ Arena::allocate_system (std::size_t nbytes)
         }
         else
         {
-            AMREX_HIP_OR_CUDA_OR_DPCPP
+            AMREX_HIP_OR_CUDA_OR_SYCL
                 (AMREX_HIP_SAFE_CALL ( hipMalloc(&p, nbytes));,
                  AMREX_CUDA_SAFE_CALL(cudaMalloc(&p, nbytes));,
                  p = sycl::malloc_device(nbytes, Gpu::Device::syclDevice(), Gpu::Device::syclContext()));
@@ -219,14 +219,14 @@ Arena::deallocate_system (void* p, std::size_t nbytes)
     }
     else if (arena_info.device_use_hostalloc)
     {
-        AMREX_HIP_OR_CUDA_OR_DPCPP
+        AMREX_HIP_OR_CUDA_OR_SYCL
             (AMREX_HIP_SAFE_CALL ( hipHostFree(p));,
              AMREX_CUDA_SAFE_CALL(cudaFreeHost(p));,
              sycl::free(p,Gpu::Device::syclContext()));
     }
     else
     {
-        AMREX_HIP_OR_CUDA_OR_DPCPP
+        AMREX_HIP_OR_CUDA_OR_SYCL
             (AMREX_HIP_SAFE_CALL ( hipFree(p));,
              AMREX_CUDA_SAFE_CALL(cudaFree(p));,
              sycl::free(p,Gpu::Device::syclContext()));
@@ -274,8 +274,8 @@ Arena::Initialize ()
     BL_ASSERT(the_cpu_arena == nullptr || the_cpu_arena == The_BArena());
 
 #ifdef AMREX_USE_GPU
-#ifdef AMREX_USE_DPCPP
-    the_arena_init_size = 1024L*1024L*1024L; // xxxxx DPCPP: todo
+#ifdef AMREX_USE_SYCL
+    the_arena_init_size = 1024L*1024L*1024L; // xxxxx SYCL: todo
 #else
     the_arena_init_size = Gpu::Device::totalGlobalMem() / Gpu::Device::numDevicePartners() / 4L * 3L;
 #endif

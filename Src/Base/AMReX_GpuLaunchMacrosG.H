@@ -2,7 +2,7 @@
 #define AMREX_GPU_LAUNCH_MACROS_G_H_
 #include <AMReX_Config.H>
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE(TN,TI,block) \
     { auto const& amrex_i_tn = TN; \
     if (!amrex::isEmpty(amrex_i_tn)) { \
@@ -62,7 +62,7 @@
 #endif
 
 // two fused launches
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2(TN1,TI1,block1,TN2,TI2,block2) \
     { auto const& amrex_i_tn1 = TN1; auto const& amrex_i_tn2 = TN2; \
     if (!amrex::isEmpty(amrex_i_tn1) || !amrex::isEmpty(amrex_i_tn2)) { \
@@ -148,7 +148,7 @@
 #endif
 
 // three fused launches
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3(TN1,TI1,block1,TN2,TI2,block2,TN3,TI3,block3) \
     { auto const& amrex_i_tn1 = TN1; auto const& amrex_i_tn2 = TN2; auto const& amrex_i_tn3 = TN3; \
     if (!amrex::isEmpty(amrex_i_tn1) || !amrex::isEmpty(amrex_i_tn2) || !amrex::isEmpty(amrex_i_tn3)) { \
@@ -251,7 +251,7 @@
     }}}
 #endif
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
 #define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE(TN,TI,block) \
     { auto const& amrex_i_tn = TN; \
     if (!amrex::isEmpty(amrex_i_tn)) { \
@@ -301,7 +301,7 @@
 #endif
 
 // two fused launches
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
 #define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_2(TN1,TI1,block1,TN2,TI2,block2) \
     { auto const& amrex_i_tn1 = TN1; auto const& amrex_i_tn2 = TN2; \
     if (!amrex::isEmpty(amrex_i_tn1) || !amrex::isEmpty(amrex_i_tn2)) { \
@@ -371,7 +371,7 @@
 #endif
 
 // three fused launches
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
 #define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_3(TN1,TI1,block1,TN2,TI2,block2,TN3,TI3,block3) \
     { auto const& amrex_i_tn1 = TN1; auto const& amrex_i_tn2 = TN2; auto const& amrex_i_tn3 = TN3; \
     if (!amrex::isEmpty(amrex_i_tn1) || !amrex::isEmpty(amrex_i_tn2) || !amrex::isEmpty(amrex_i_tn3)) { \
@@ -452,7 +452,7 @@
 
 // FOR_1D
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
 #define AMREX_GPU_HOST_DEVICE_FOR_1D(n,i,block) \
 { \
     auto const& amrex_i_n = n; \
@@ -486,7 +486,7 @@
 
 // FOR_3D
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
 #define AMREX_GPU_HOST_DEVICE_FOR_3D(box,i,j,k,block) \
 { \
     auto const& amrex_i_box = box; \
@@ -515,7 +515,7 @@
 
 // FOR_4D
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
 #define AMREX_GPU_HOST_DEVICE_FOR_4D(box,ncomp,i,j,k,n,block) \
 { \
     auto const& amrex_i_box = box; \

@@ -1665,8 +1665,8 @@ BaseFab<T>::prefetchToHost () const noexcept
 {
 #ifdef AMREX_USE_GPU
     if (this->arena()->isManaged()) {
-#if defined(AMREX_USE_DPCPP)
-        // xxxxx DPCPP todo: prefetchToHost
+#if defined(AMREX_USE_SYCL)
+        // xxxxx SYCL todo: prefetchToHost
         // std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
         // auto& q = Gpu::Device::streamQueue();
         // q.submit([&] (sycl::handler& h) { h.prefetch(this->dptr, s); });
@@ -1690,7 +1690,7 @@ BaseFab<T>::prefetchToDevice () const noexcept
 {
 #ifdef AMREX_USE_GPU
     if (this->arena()->isManaged()) {
-#if defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_SYCL)
         std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
         auto& q = Gpu::Device::streamQueue();
         q.submit([&] (sycl::handler& h) { h.prefetch(this->dptr, s); });

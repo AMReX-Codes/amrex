@@ -112,7 +112,7 @@ ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, boo
                      icell = (blockIdx.x-ibox*block_0_size)*MT + threadIdx.x;
                  }
 
-#elif defined(AMREX_USE_DPCPP)
+#elif defined(AMREX_USE_SYCL)
 
         amrex::launch(nblocks, MT, Gpu::gpuStream(),
              [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept

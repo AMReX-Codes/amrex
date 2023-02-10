@@ -29,7 +29,7 @@ ifeq ($(DEBUG),TRUE)
 
 else
 
-  CXXFLAGS += -g1 -O3 # // xxxx DPCPP: todo -g in beta6 causes a lot of warning messages
+  CXXFLAGS += -g1 -O3 # // xxxx SYCL: todo -g in beta6 causes a lot of warning messages
   CFLAGS   += -g1 -O3 #                       and makes linking much slower
   FFLAGS   += -g -O3
   F90FLAGS += -g -O3
@@ -71,11 +71,11 @@ endif
 CXXFLAGS += -fsycl
 CFLAGS   += -std=c11
 
-ifneq ($(DPCPP_SPLIT_KERNEL),FALSE)
+ifneq ($(SYCL_SPLIT_KERNEL),FALSE)
   CXXFLAGS += -fsycl-device-code-split=per_kernel
 endif
 
-# temporary work-around for DPC++ beta08 bug
+# temporary work-around for oneAPI beta08 bug
 #   define "long double" as 64bit for C++ user-defined literals
 #   https://github.com/intel/llvm/issues/2187
 CXXFLAGS += -mlong-double-64 -Xclang -mlong-double-64
@@ -122,7 +122,7 @@ endif
 
 LDFLAGS += -fsycl-device-lib=libc,libm-fp32,libm-fp64
 
-ifeq ($(DPCPP_AOT),TRUE)
+ifeq ($(SYCL_AOT),TRUE)
   ifndef AMREX_INTEL_ARCH
     ifdef INTEL_ARCH
       AMREX_INTEL_ARCH = $(INTEL_ARCH)

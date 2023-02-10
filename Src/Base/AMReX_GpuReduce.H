@@ -49,7 +49,7 @@ namespace amrex { namespace Gpu {
 
 namespace amrex { namespace Gpu {
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
 
 template <int warpSize, typename T, typename F>
 struct warpReduce
