@@ -386,12 +386,12 @@ Device::Finalize ()
     Device::profilerStop();
 
 #ifdef AMREX_USE_DPCPP
-    sycl_context.reset();
-    sycl_device.reset();
     for (auto& s : gpu_stream_pool) {
         delete s.queue;
         s.queue = nullptr;
     }
+    sycl_context.reset();
+    sycl_device.reset();
 #else
     for (int i = 0; i < max_gpu_streams; ++i)
     {
