@@ -98,6 +98,25 @@ HypreIJIface::~HypreIJIface ()
     }
 }
 
+void HypreIJIface::run_hypre_setup ()
+{
+    if (m_need_setup || m_recompute_preconditioner) {
+        BL_PROFILE("HypreIJIface::run_hypre_setup()");
+        if (m_has_preconditioner)
+            m_solverPrecondPtr(
+                m_solver, m_precondSolvePtr, m_precondSetupPtr, m_precond);
+
+        m_solverSetupPtr(m_solver, m_parA, m_parRhs, m_parSln);
+        m_need_setup = false;
+    }
+}
+
+void HypreIJIface::run_hypre_solve ()
+{
+    BL_PROFILE("HypreIJIface::run_hypre_solve()");
+    m_solverSolvePtr(m_solver, m_parA, m_parRhs, m_parSln);
+}
+
 void HypreIJIface::solve (
     const HypreRealType rel_tol, const HypreRealType abs_tol, const HypreIntType max_iter)
 {
@@ -122,17 +141,10 @@ void HypreIJIface::solve (
         m_solverSetAbsTolPtr(m_solver, abs_tol);
 
     // setup
-    if (m_need_setup || m_recompute_preconditioner) {
-        if (m_has_preconditioner)
-            m_solverPrecondPtr(
-                m_solver, m_precondSolvePtr, m_precondSetupPtr, m_precond);
-
-        m_solverSetupPtr(m_solver, m_parA, m_parRhs, m_parSln);
-        m_need_setup = false;
-    }
+	 run_hypre_setup();
 
     // solve
-    m_solverSolvePtr(m_solver, m_parA, m_parRhs, m_parSln);
+	 run_hypre_solve();
 
     // diagnostics
     m_solverNumItersPtr(m_solver, &m_num_iterations);

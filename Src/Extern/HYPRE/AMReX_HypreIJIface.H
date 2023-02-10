@@ -48,6 +48,10 @@ private:
     void init_preconditioner(const std::string& prefix, const std::string& name);
     void init_solver(const std::string& prefix, const std::string& name);
 
+	 // run_setup
+ 	 void run_hypre_setup();
+ 	 void run_hypre_solve();
+
     // Preconditioners
     void boomeramg_precond_configure(const std::string& prefix);
     void euclid_precond_configure(const std::string& prefix);
