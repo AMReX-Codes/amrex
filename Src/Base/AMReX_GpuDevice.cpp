@@ -486,6 +486,7 @@ Device::initialize_gpu ()
         device_prop.managedMemory = d.has(sycl::aspect::usm_host_allocations);
         device_prop.concurrentManagedAccess = d.has(sycl::aspect::usm_shared_allocations);
         device_prop.maxParameterSize = d.get_info<sycl::info::device::max_parameter_size>();
+        if (verbose)
         {
             amrex::Print() << "Device Properties:\n"
                            << "  name: " << device_prop.name << "\n"
