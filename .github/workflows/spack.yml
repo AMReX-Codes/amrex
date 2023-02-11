@@ -1,0 +1,37 @@
+name: Spack
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-spack
+  cancel-in-progress: true
+
+jobs:
+  spack-smoke-cpu:
+    name: Spack Smoke Test on CPU
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v3
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/dependencies.sh
+        git clone --depth=1 -b v0.19.0 https://github.com/spack/spack.git
+    - name: Install & Test
+      run: |
+        . spack/share/spack/setup-env.sh
+        spack install --fail-fast amrex@develop
+        spack test run amrex@develop
+
+  spack-fortran-sundials:
+    name: Spack SUNDIALS on CPU
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v3
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/dependencies.sh
+        git clone --depth=1 -b releases/latest https://github.com/spack/spack.git
+    - name: Install
+      run: |
+        . spack/share/spack/setup-env.sh
+        spack install --fail-fast amrex@develop +fortran +sundials ^sundials@develop
