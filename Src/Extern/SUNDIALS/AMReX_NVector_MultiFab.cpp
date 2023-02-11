@@ -364,7 +364,6 @@ void N_VLinearSum_MultiFab(amrex::Real a, N_Vector x, amrex::Real b, N_Vector y,
 
 void N_VConst_MultiFab(amrex::Real c, N_Vector z)
 {
-    sunindextype i, N;
     amrex::MultiFab *mf_z = amrex::sundials::getMFptr(z);
     *mf_z = c;
 }
@@ -538,16 +537,16 @@ amrex::Real N_VMin_MultiFab(N_Vector x)
     return min;
 }
 
-amrex::Real NormHelper_NVector_MultiFab(N_Vector x, N_Vector w, N_Vector id, int use_id, bool rms)
+amrex::Real NormHelper_NVector_MultiFab(N_Vector a_x, N_Vector a_w, N_Vector id, int use_id, bool rms)
 {
     using namespace amrex;
 
-    MultiFab *mf_x = amrex::sundials::getMFptr(x);
+    MultiFab *mf_x = amrex::sundials::getMFptr(a_x);
     //Call mf_y=mf_w is the MultiFab* from the N_Vector w
-    MultiFab *mf_y = amrex::sundials::getMFptr(w);
+    MultiFab *mf_y = amrex::sundials::getMFptr(a_w);
     MultiFab *mf_id = use_id ? amrex::sundials::getMFptr(id) : NULL;
     sunindextype numcomp = mf_x->nComp();
-    sunindextype N = amrex::sundials::N_VGetLength_MultiFab(x);
+    sunindextype N = amrex::sundials::N_VGetLength_MultiFab(a_x);
     bool local = true;
     IntVect nghost = amrex::IntVect::TheZeroVector();
     Real sum = 0;
@@ -614,9 +613,6 @@ void N_VCompare_MultiFab(amrex::Real a, N_Vector x, N_Vector z)
          const amrex::Box& bx = mfi.validbox();
          Array4<Real> const& x_fab = mf_x->array(mfi);
          Array4<Real> const& z_fab = mf_z->array(mfi);
-         const auto lo = lbound(bx);
-         const auto hi = ubound(bx);
-
          amrex::ParallelFor(bx, ncomp,
          [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept
          {
@@ -633,8 +629,6 @@ int N_VInvTest_MultiFab(N_Vector x, N_Vector z)
 
     amrex::MultiFab *mf_x = amrex::sundials::getMFptr(x);
     amrex::MultiFab *mf_z = amrex::sundials::getMFptr(z);
-    sunindextype ncomp = mf_x->nComp();
-    int nghost = 0;
 
     auto const& ma1 = mf_x->const_arrays();
     auto const& ma2 = mf_z->arrays();
@@ -662,13 +656,13 @@ int N_VInvTest_MultiFab(N_Vector x, N_Vector z)
     }
 }
 
-int N_VConstrMask_MultiFab(N_Vector a, N_Vector x, N_Vector m)
+int N_VConstrMask_MultiFab(N_Vector a_a, N_Vector a_x, N_Vector a_m)
 {
     using namespace amrex;
 
-    amrex::MultiFab *mf_x = amrex::sundials::getMFptr(x);
-    amrex::MultiFab *mf_a = amrex::sundials::getMFptr(a);
-    amrex::MultiFab *mf_m = amrex::sundials::getMFptr(m);
+    amrex::MultiFab *mf_x = amrex::sundials::getMFptr(a_x);
+    amrex::MultiFab *mf_a = amrex::sundials::getMFptr(a_a);
+    amrex::MultiFab *mf_m = amrex::sundials::getMFptr(a_m);
     sunindextype ncomp = mf_x->nComp();
 
     // ghost cells not included
@@ -707,12 +701,12 @@ int N_VConstrMask_MultiFab(N_Vector a, N_Vector x, N_Vector m)
     return (temp == amrex::Real(1.0)) ? SUNFALSE : SUNTRUE;
 }
 
-amrex::Real N_VMinQuotient_MultiFab(N_Vector num, N_Vector denom)
+amrex::Real N_VMinQuotient_MultiFab(N_Vector a_num, N_Vector a_denom)
 {
     using namespace amrex;
 
-    amrex::MultiFab *mf_num = amrex::sundials::getMFptr(num);
-    amrex::MultiFab *mf_denom = amrex::sundials::getMFptr(denom);
+    amrex::MultiFab *mf_num = amrex::sundials::getMFptr(a_num);
+    amrex::MultiFab *mf_denom = amrex::sundials::getMFptr(a_denom);
     sunindextype ncomp = mf_num->nComp();
 
     // ghost cells not included
