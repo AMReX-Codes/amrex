@@ -428,7 +428,7 @@ void N_VAbs_MultiFab(N_Vector x, N_Vector z)
          amrex::ParallelFor(bx, ncomp,
          [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept
          {
-             z_fab(i,j,k,c) = SUNRabs(x_fab(i,j,k,c));
+             z_fab(i,j,k,c) = amrex::Math::abs(x_fab(i,j,k,c));
          });
     }
 }
@@ -569,7 +569,7 @@ amrex::Real NormHelper_NVector_MultiFab(N_Vector x, N_Vector w, N_Vector id, int
                                 numcomp, nghost, local);
     ParallelDescriptor::ReduceRealSum(sum);
 
-    return rms ? SUNRsqrt(sum/N) : SUNRsqrt(sum);
+    return rms ? std::sqrt(sum/N) : std::sqrt(sum);
 }
 
 amrex::Real N_VWL2Norm_MultiFab(N_Vector x, N_Vector w)
@@ -620,7 +620,7 @@ void N_VCompare_MultiFab(amrex::Real a, N_Vector x, N_Vector z)
          amrex::ParallelFor(bx, ncomp,
          [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept
          {
-           z_fab(i,j,k,c) = (SUNRabs(x_fab(i,j,k,c)) >= a) ? amrex::Real(1.0) : amrex::Real(0.0);
+           z_fab(i,j,k,c) = (amrex::Math::abs(x_fab(i,j,k,c)) >= a) ? amrex::Real(1.0) : amrex::Real(0.0);
          });
     }
 
@@ -691,8 +691,8 @@ int N_VConstrMask_MultiFab(N_Vector a, N_Vector x, N_Vector m)
                     amrex::Real a, x;
                     a = a_fab(i,j,k,c);
                     x = x_fab(i,j,k,c);
-                    int test = (SUNRabs(a) > amrex::Real(1.5) && x*a <= amrex::Real(0.0)) ||
-                        (SUNRabs(a) > amrex::Real(0.5)   && x*a <  amrex::Real(0.0));
+                    int test = (amrex::Math::abs(a) > amrex::Real(1.5) && x*a <= amrex::Real(0.0)) ||
+                        (amrex::Math::abs(a) > amrex::Real(0.5)   && x*a <  amrex::Real(0.0));
                     if (test) {
                         m_fab(i,j,k,c) = amrex::Real(1.0);
                     }
