@@ -2200,11 +2200,11 @@ void mlndlap_set_integral_eb (int i, int j, int, Array4<Real> const& intg,
         Real bcy = bcen(i,j,0,1);
 
         Real Sx, Sy, Sx2, Sy2, Sxy;
-        if (anrmx == Real(0.)) {
+        if (std::abs(anrmx) <= almostzero) {
             Sx = Real(0.);
             Sx2 = Real(1./24.)*(axm+axp);
             Sxy = Real(0.);
-        } else if (anrmy == Real(0.)) {
+        } else if (std::abs(anrmy) <= almostzero) {
             Sx  = Real(1./8.) *(axp-axm) + anrmx*Real(0.5)*(bcx*bcx);
             Sx2 = Real(1./24.)*(axp+axm) + anrmx*Real(1./3.)*(bcx*bcx*bcx);
             Sxy = Real(0.);
@@ -2231,10 +2231,10 @@ void mlndlap_set_integral_eb (int i, int j, int, Array4<Real> const& intg,
             Sxy = amrex::Math::copysign(Sxy, anrmy);
         }
 
-        if (anrmy == Real(0.)) {
+        if (std::abs(anrmy) <= almostzero) {
             Sy = Real(0.);
             Sy2 = Real(1./24.)*(aym+ayp);
-        } else if (anrmx == Real(0.)) {
+        } else if (std::abs(anrmx) <= almostzero) {
             Sy  = Real(1./8.) *(ayp-aym) + anrmy*Real(0.5)*(bcy*bcy);
             Sy2 = Real(1./24.)*(ayp+aym) + anrmy*Real(1./3.)*(bcy*bcy*bcy);
         } else {
@@ -2315,10 +2315,10 @@ void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& sin
 
             GpuArray<RealVect,4> pts; //intersection points
             int np = 0;
-            if (anrmx == Real(0.)) {
+            if (std::abs(anrmx) <= almostzero) {
                 pts[np++] = RealVect{Real(-0.5), Real(-c + Real(0.5)*anrmx)/anrmy};
                 pts[np++] = RealVect{Real( 0.5), Real(-c - Real(0.5)*anrmx)/anrmy};
-            } else if( anrmy == Real(0.)) {
+            } else if (std::abs(anrmy) <= almostzero) {
                 pts[np++] = RealVect{Real(-c + Real(0.5)*anrmy)/anrmx, Real(-0.5)};
                 pts[np++] = RealVect{Real(-c - Real(0.5)*anrmy)/anrmx, Real( 0.5)};
             } else {
