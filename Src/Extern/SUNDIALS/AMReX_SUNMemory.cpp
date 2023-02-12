@@ -129,9 +129,9 @@ namespace {
     Vector<MemoryHelper*> the_sunmemory_helper;
 } //namespace
 
-MemoryHelper::MemoryHelper(::sundials::Context* sunctx)
-    : helper(CreateMemoryHelper(sunctx)),
-        sunctx(sunctx)
+MemoryHelper::MemoryHelper(::sundials::Context* a_sunctx)
+    : helper(CreateMemoryHelper(a_sunctx)),
+        sunctx(a_sunctx)
 {
 }
 
