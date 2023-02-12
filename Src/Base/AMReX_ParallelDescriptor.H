@@ -666,25 +666,6 @@ namespace amrex {
 
 #ifdef BL_USE_MPI
 
-namespace ParallelDescriptor
-{
-    template <class T>
-    struct Mpi_typemap<GpuComplex<T>>
-    {
-        static MPI_Datatype type ()
-        {
-            if constexpr (std::is_same<T,double>()) {
-                return MPI_C_DOUBLE_COMPLEX;
-            } else if constexpr (std::is_same<T,float>()) {
-                return MPI_C_FLOAT_COMPLEX;
-            } else {
-                amrex::Abort("Unsupported type T for GpuComplex");
-                return MPI_DATATYPE_NULL;
-            }
-        }
-    };
-}
-
 template <class T>
 ParallelDescriptor::Message
 ParallelDescriptor::Asend (const T* buf, size_t n, int dst_pid, int tag)
@@ -1508,6 +1489,22 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
 
 #ifdef AMREX_USE_MPI
 namespace ParallelDescriptor {
+
+template <class T>
+struct Mpi_typemap<GpuComplex<T>>
+{
+    static MPI_Datatype type ()
+    {
+        static_assert(std::is_same<T,double>() ||
+                      std::is_same<T,float >(),
+                      "Unsupported type T for GpuComplex");
+        if constexpr (std::is_same<T,double>()) {
+            return MPI_C_DOUBLE_COMPLEX;
+        } else {
+            return MPI_C_FLOAT_COMPLEX;
+        }
+    }
+};
 
 template<typename TV, typename TI>
 struct Mpi_typemap<ValLocPair<TV,TI>>
