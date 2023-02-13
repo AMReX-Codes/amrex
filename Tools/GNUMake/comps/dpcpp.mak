@@ -134,7 +134,8 @@ ifeq ($(SYCL_AOT),TRUE)
     # amrex_intel_gpu_target = *
     $(error Either INTEL_ARCH or AMREX_INTEL_ARCH must be specified when SYCL_AOT is TRUE.)
   endif
-  CXXFLAGS += -fsycl-targets=spir64_gen -Xsycl-target-backend '-device $(amrex_intel_gpu_target)'
+  CXXFLAGS += -fsycl-targets=spir64_gen
+  LDFLAGS += -Xsycl-target-backend '-device $(amrex_intel_gpu_target)'
 endif
 
 ifeq ($(DEBUG),TRUE)

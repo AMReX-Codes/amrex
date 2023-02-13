@@ -65,8 +65,7 @@ target_link_options( SYCL
 if (AMReX_SYCL_AOT)
    target_compile_options( SYCL
       INTERFACE
-      "$<${_cxx_sycl}:-fsycl-targets=spir64_gen>"
-      "$<${_cxx_sycl}:SHELL:-Xsycl-target-backend \"-device ${AMReX_INTEL_ARCH}\">" )
+      "$<${_cxx_sycl}:-fsycl-targets=spir64_gen>" )
 
    target_link_options( SYCL
       INTERFACE
