@@ -395,7 +395,7 @@ Below is an example configuration for SYCL:
    +==============================+=================================================+=============+=================+
    | AMReX_SYCL_AOT               | Enable SYCL ahead-of-time compilation           | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMREX_INTEL_ARCH             | Specify target if AOT is enabled                | *           | Gen9, etc.      |
+   | AMREX_INTEL_ARCH             | Specify target if AOT is enabled                | None        | pvc, etc.       |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_SYCL_SPLIT_KERNEL      | Enable SYCL kernel splitting                    | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
