@@ -180,13 +180,17 @@ cmake_dependent_option( AMReX_SYCL_ONEDPL "Enable Intel's oneDPL algorithms"  OF
 print_option(  AMReX_SYCL_ONEDPL )
 
 if (AMReX_SYCL)
-   set(AMReX_INTEL_ARCH_DEFAULT "*")
+   set(AMReX_INTEL_ARCH_DEFAULT "IGNORE")
    if (DEFINED ENV{AMREX_INTEL_ARCH})
       set(AMReX_INTEL_ARCH_DEFAULT "$ENV{AMREX_INTEL_ARCH}")
    endif()
 
    set(AMReX_INTEL_ARCH ${AMReX_INTEL_ARCH_DEFAULT} CACHE STRING
-      "INTEL GPU architecture")
+      "INTEL GPU architecture (Must be provided if AMReX_GPU_BACKEND=SYCL and AMReX_SYCL_AOT=ON)")
+
+   if (AMReX_SYCL_AOT AND NOT AMReX_INTEL_ARCH)
+      message(FATAL_ERROR "\nMust specify AMReX_INTEL_ARCH if AMReX_GPU_BACKEND=SYCL and AMReX_SYCL_AOT=ON\n")
+   endif()
 endif ()
 
 # --- HIP ----

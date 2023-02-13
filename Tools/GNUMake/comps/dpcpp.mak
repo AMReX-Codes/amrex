@@ -134,7 +134,7 @@ ifeq ($(SYCL_AOT),TRUE)
     amrex_intel_gpu_target = *
     $(info Because neither INTEL_ARCH nor AMREX_INTEL_ARCH is specified, AOT will be performed for all devices.)
   endif
-  LDFLAGS += -fsycl-targets=spir64_gen -Xsycl-target-backend '-device $(amrex_intel_gpu_target)'
+  CXXFLAGS += -fsycl-targets=spir64_gen -Xsycl-target-backend '-device $(amrex_intel_gpu_target)'
 endif
 
 ifeq ($(DEBUG),TRUE)
