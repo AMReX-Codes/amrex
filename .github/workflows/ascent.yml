@@ -16,9 +16,9 @@ jobs:
       CC: gcc
       CMAKE_PREFIX_PATH: /ascent/install/lib/cmake/
     container:
-      image: alpinedav/ascent:0.8.0
+      image: alpinedav/ascent:0.9.0
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Configure
       run: |
         . /ascent_docker_setup_env.sh

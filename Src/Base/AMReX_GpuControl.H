@@ -5,9 +5,7 @@
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuTypes.H>
 
-#ifndef AMREX_GPU_MAX_THREADS
-#define AMREX_GPU_MAX_THREADS 256
-#endif
+#include <utility>
 
 #if defined(AMREX_USE_CUDA) && (__CUDACC_VER_MAJOR__ > 11 || ((__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 2)))
 #define AMREX_CUDA_GE_11_2 1
@@ -22,13 +20,13 @@
 #endif
 
 #if defined(AMREX_USE_HIP)
-#define AMREX_HIP_OR_CUDA_OR_DPCPP(a,b,c) a
+#define AMREX_HIP_OR_CUDA_OR_SYCL(a,b,c) a
 #elif defined(AMREX_USE_CUDA)
-#define AMREX_HIP_OR_CUDA_OR_DPCPP(a,b,c) b
-#elif defined(AMREX_USE_DPCPP)
-#define AMREX_HIP_OR_CUDA_OR_DPCPP(a,b,c) c
+#define AMREX_HIP_OR_CUDA_OR_SYCL(a,b,c) b
+#elif defined(AMREX_USE_SYCL)
+#define AMREX_HIP_OR_CUDA_OR_SYCL(a,b,c) c
 #else
-#define AMREX_HIP_OR_CUDA_OR_DPCPP(a,b,c) ((void)0);
+#define AMREX_HIP_OR_CUDA_OR_SYCL(a,b,c) ((void)0);
 #endif
 
 #ifdef AMREX_USE_GPU
@@ -37,30 +35,30 @@
 #define AMREX_GPU_OR_CPU(a,b) b
 #endif
 
-#ifdef AMREX_USE_DPCPP
-#define AMREX_DPCPP_ONLY(a) a
+#ifdef AMREX_USE_SYCL
+#define AMREX_SYCL_ONLY(a) a
 #else
-#define AMREX_DPCPP_ONLY(a) ((void)0)
+#define AMREX_SYCL_ONLY(a) ((void)0)
 #endif
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
 #if (AMREX_SPACEDIM == 1)
-#  define AMREX_DPCPP_1D_ONLY(a) a
-#  define AMREX_DPCPP_2D_ONLY(a) ((void)0)
-#  define AMREX_DPCPP_3D_ONLY(a) ((void)0)
+#  define AMREX_SYCL_1D_ONLY(a) a
+#  define AMREX_SYCL_2D_ONLY(a) ((void)0)
+#  define AMREX_SYCL_3D_ONLY(a) ((void)0)
 #elif (AMREX_SPACEDIM == 2)
-#  define AMREX_DPCPP_1D_ONLY(a) ((void)0)
-#  define AMREX_DPCPP_2D_ONLY(a) a
-#  define AMREX_DPCPP_3D_ONLY(a) ((void)0)
+#  define AMREX_SYCL_1D_ONLY(a) ((void)0)
+#  define AMREX_SYCL_2D_ONLY(a) a
+#  define AMREX_SYCL_3D_ONLY(a) ((void)0)
 #elif (AMREX_SPACEDIM == 3)
-#  define AMREX_DPCPP_1D_ONLY(a) ((void)0)
-#  define AMREX_DPCPP_2D_ONLY(a) ((void)0)
-#  define AMREX_DPCPP_3D_ONLY(a) a
+#  define AMREX_SYCL_1D_ONLY(a) ((void)0)
+#  define AMREX_SYCL_2D_ONLY(a) ((void)0)
+#  define AMREX_SYCL_3D_ONLY(a) a
 #endif
 #else
-#  define AMREX_DPCPP_1D_ONLY(a) ((void)0)
-#  define AMREX_DPCPP_2D_ONLY(a) ((void)0)
-#  define AMREX_DPCPP_3D_ONLY(a) ((void)0)
+#  define AMREX_SYCL_1D_ONLY(a) ((void)0)
+#  define AMREX_SYCL_2D_ONLY(a) ((void)0)
+#  define AMREX_SYCL_3D_ONLY(a) ((void)0)
 #endif
 
 namespace amrex {
@@ -81,8 +79,8 @@ namespace Gpu {
 
     extern bool in_launch_region;
 
-    inline bool inLaunchRegion() noexcept { return in_launch_region; }
-    inline bool notInLaunchRegion() noexcept { return !in_launch_region; }
+    inline bool inLaunchRegion () noexcept { return in_launch_region; }
+    inline bool notInLaunchRegion () noexcept { return !in_launch_region; }
 
     /**
      * Enable/disable GPU kernel launches.
@@ -137,13 +135,51 @@ namespace Gpu {
         bool m_old;
     };
 
-    struct ScopedDefaultStream
+    extern bool in_single_stream_region;
+    extern bool in_nosync_region;
+
+    inline bool inSingleStreamRegion () noexcept { return in_single_stream_region; }
+    inline bool inNoSyncRegion () noexcept { return in_nosync_region; }
+
+    inline bool setSingleStreamRegion (bool b) noexcept {
+        return std::exchange(in_single_stream_region, b);
+    }
+
+    inline bool setNoSyncRegion (bool b) noexcept {
+        return std::exchange(in_nosync_region, b);
+    }
+
+    /**
+     * This struct provides a RAII-style mechansim for changing the number
+     * of streams returned by Gpu::numStreams() to a single stream.
+     */
+    struct SingleStreamRegion
     {
-    public:
-        ScopedDefaultStream () noexcept;
-        ~ScopedDefaultStream ();
+        SingleStreamRegion () noexcept
+            : m_prev_flag(std::exchange(in_single_stream_region,true))
+        {}
+
+        ~SingleStreamRegion () { in_single_stream_region = m_prev_flag; }
+
     private:
-        gpuStream_t m_prev_stream;
+        bool m_prev_flag;
+    };
+
+    /**
+     * This struct provides a RAII-style mechansim for disabling GPU
+     * synchronization in MFITer by default.  Note that explicit calls to
+     * Gpu::steramSynchronize and Gpu::deviceSynchronize still work.
+     */
+    struct NoSyncRegion
+    {
+        NoSyncRegion () noexcept
+            : m_prev_flag(std::exchange(in_nosync_region,true))
+        {}
+
+        ~NoSyncRegion () { in_nosync_region = m_prev_flag; }
+
+    private:
+        bool m_prev_flag;
     };
 
 #else
@@ -166,7 +202,12 @@ namespace Gpu {
         explicit GraphSafeGuard (bool) {}
     };
 
-    struct ScopedDefaultStream {};
+    inline static constexpr bool inSingleStreamRegion () { return false; }
+    inline static constexpr bool inNoSyncRegion () { return true; }
+    inline static constexpr bool setSingleStreamRegion (bool) { return false; }
+    inline static constexpr bool setNoSyncRegion (bool) { return true; }
+    struct SingleStreamRegion {};
+    struct NoSyncRegion {};
 
 #endif
 

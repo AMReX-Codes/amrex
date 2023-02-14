@@ -164,14 +164,16 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
 
    target_compile_options( amrex PUBLIC $<${_genex}:${_cuda_flags}> )
 
+   unset(_genex)
+   # _cuda_flags will be used later in AMReX_Config.cmake
 endif ()
 
 #
 #
-#  SYCL/DPCPP
+#  SYCL
 #
 #
-if (AMReX_DPCPP)
+if (AMReX_SYCL)
    include(AMReXSYCL)
    target_link_libraries(amrex PUBLIC SYCL)
 endif ()
@@ -280,6 +282,18 @@ if (AMReX_HIP)
        # missing gpu devices)
        target_compile_options(amrex PUBLIC
           $<$<COMPILE_LANGUAGE:CXX>:--offload-arch=${AMReX_AMD_ARCH_HIPCC}>)
+   endif()
+
+   # ROCm 5.5: hipcc now relies on clang to offload code objects from (.a) archive files,
+   # so we need to tell the offload-linker to include all code objects in archives.
+   include(CheckLinkerFlag)
+   check_linker_flag(
+       CXX
+       "SHELL:-Xoffload-linker --whole-archive"
+       LINKER_HAS_WHOLE_ARCHIVE_OFFLOAD)
+   if(LINKER_HAS_WHOLE_ARCHIVE_OFFLOAD)
+       target_link_options(amrex PUBLIC
+           "$<$<LINK_LANGUAGE:CXX>:SHELL:-Xoffload-linker --whole-archive>")
    endif()
 
    target_compile_options(amrex PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-m64>)

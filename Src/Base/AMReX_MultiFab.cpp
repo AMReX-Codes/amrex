@@ -231,7 +231,9 @@ MultiFab::Swap (MultiFab& dst, MultiFab& src,
                 dstma[box_no](i,j,k,n+dstcomp) = srcma[box_no](i,j,k,n+srccomp);
                 srcma[box_no](i,j,k,n+srccomp) = tmp;
             });
-            Gpu::streamSynchronize();
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
         } else
 #endif
         {
@@ -374,7 +376,9 @@ MultiFab::AddProduct (MultiFab& dst,
             dstma[box_no](i,j,k,n+dstcomp) += src1ma[box_no](i,j,k,n+comp1)
                 *                             src2ma[box_no](i,j,k,n+comp2);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {

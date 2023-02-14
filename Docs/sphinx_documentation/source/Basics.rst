@@ -2614,6 +2614,102 @@ to fill the ghost cells on each grid.
         physbcf(mf, 0, mf.nComp(), mf.nGrowVector(), time, 0);
     }
 
+
+Masks
+=====
+
+Given an index :cpp:`(i,j,k)`, we often need to know its relationship with
+other points and levels (e.g., whether this point on a coarse level is
+covered by a fine level, whether this ghost point is outside coarse/fine
+boundary, etc.).  AMReX provides various functions for creating masks for
+this type of purposes.
+
+Owner Mask
+----------
+
+AMReX supports various index types such as face, edge and node, besides cell
+centered type.  For non-cell types, two boxes could overlap.  For example, a
+nodal index :cpp:`(i,j,k)` could exist in more than one :cpp:`FArrayBox` of
+a nodal :cpp:`MultiFab`.  AMReX provides a function to create an owner mask,
+where the owner is the grid with the lowest grid number containing the data.
+This has a number of use cases.  The nodal data for the same nodal point on
+different :cpp:`FArrayBox`\ es may be out of sync.  We can use
+:cpp:`MultiFab::OverrideSync` and an owner mask to sync up the data with
+owners overriding non-owners.
+
+.. highlight:: c++
+
+::
+
+    MultiFab mf(...); // non-cell-centered
+    auto mask = amrex::OwnerMask(mf, geom.periodicity());
+    mf.OverrideSync(*mask, geom.periodicity());
+
+To compute the dot product of two nodal :cpp:`MultiFab`\ s, we can use a
+mask to avoid double counting.
+
+.. highlight:: c++
+
+::
+
+    MultiFab mf1(...);
+    MultiFab mf2(...);
+    auto mask = amrex::OwnerMask(mf1, geom.periodicity());
+    Real result = MultiFab::Dot(*mask, mf1, 0, mf2, 0, 1, 0);
+
+Overlap Mask
+------------
+
+For the synchronization example mentioned previously, maybe instead of
+overriding, we want to do averaging.  This can be achieved with an overlap
+mask indicating how many duplicates are in each point.  The code below shows
+how the :cpp:`MultiFab::AverageSync` function is implemented in AMReX.
+
+.. highlight:: c++
+
+::
+
+    MultiFab mf(...); // non-cell-centered
+    auto mask = mf.OverlapMask(geom.periodicity());
+    mask->invert(1.0, 0, 1);
+    mf.WeightedSync(*mask, geom.periodicity());
+
+Point Mask
+----------
+
+The :cpp:`FabArray` class has a member function :cpp:`BuildMask` that can be
+used to set masks indicating the type of points (e.g., valid, outside the
+domain, etc.).  For example,
+
+.. highlight:: c++
+
+::
+
+    iMultiFab mask(ba, dm, 1, nghost);
+    int a = 10; // ghost points covered by valid points
+    int b = 11; // ghost points not covered by valid points
+    int c = 12; // outside physical domain
+    int d = 13; // interior points (i.e., valid points)
+    mask.BuildMask(geom.Domain(), geom.periodicity(), a, b, c, d);
+
+Fine Mask
+---------
+
+AMReX provides a number of :cpp:`makeFineMask` functions that can be useful
+for multi-level AMR calculations.  For example, we may want to compute the
+infinity norm on a coarse AMR level without including data from cells
+covered by fine level grids.
+
+.. highlight:: c++
+
+::
+
+    int coarse_value = 1;
+    int fine_value = 0;
+    iMultiFab mask = makeFineMask(coarse_mf, fine_boxarray, refine_ratio,
+                                  coarse_value, fine_value);
+    Real result = coarse_mf.norminf(mask);
+
 Memory Allocation
 =================
 

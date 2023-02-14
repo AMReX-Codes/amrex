@@ -86,6 +86,11 @@ namespace system
     std::string exename;
     int verbose = 1;
     int signal_handling;
+    int handle_sigsegv;
+    int handle_sigterm;
+    int handle_sigint;
+    int handle_sigabrt;
+    int handle_sigfpe;
     int call_addr2line;
     int throw_exception;
     int regtest_reduction;
@@ -106,17 +111,17 @@ namespace {
     std::streamsize  prev_err_precision;
     std::new_handler prev_new_handler;
     typedef void (*SignalHandler)(int);
-    SignalHandler prev_handler_sigsegv;
-    SignalHandler prev_handler_sigterm;
-    SignalHandler prev_handler_sigint;
-    SignalHandler prev_handler_sigabrt;
-    SignalHandler prev_handler_sigfpe;
+    SignalHandler prev_handler_sigsegv = SIG_ERR;
+    SignalHandler prev_handler_sigterm = SIG_ERR;
+    SignalHandler prev_handler_sigint  = SIG_ERR;
+    SignalHandler prev_handler_sigabrt = SIG_ERR;
+    SignalHandler prev_handler_sigfpe  = SIG_ERR;
 #if defined(__linux__)
-    int           prev_fpe_excepts;
-    int           curr_fpe_excepts;
+    int           prev_fpe_excepts = 0;
+    int           curr_fpe_excepts = 0;
 #elif defined(__APPLE__) && defined(__x86_64__)
-    unsigned int  prev_fpe_mask;
-    unsigned int  curr_fpe_excepts;
+    unsigned int  prev_fpe_mask = 0u;
+    unsigned int  curr_fpe_excepts = 0u;
 #endif
 }
 
@@ -316,6 +321,11 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 //    system::verbose = 0;
     system::regtest_reduction = 0;
     system::signal_handling = 1;
+    system::handle_sigsegv = 1;
+    system::handle_sigterm = 0;
+    system::handle_sigint  = 1;
+    system::handle_sigabrt = 1;
+    system::handle_sigfpe  = 1;
     system::call_addr2line = 1;
     system::throw_exception = 0;
     system::osout = &a_osout;
@@ -427,6 +437,26 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         pp.queryAdd("verbose", system::verbose);
     }
 
+#ifdef AMREX_USE_MPI
+    if (system::verbose > 0) {
+        amrex::Print() << "MPI initialized with "
+                       << ParallelDescriptor::NProcs()
+                       << " MPI processes\n";
+        int provided = -1;
+        MPI_Query_thread(&provided);
+        amrex::Print() << "MPI initialized with thread support level " << provided << std::endl;
+    }
+#endif
+
+#ifdef AMREX_USE_OMP
+    if (system::verbose > 0) {
+//    static_assert(_OPENMP >= 201107, "OpenMP >= 3.1 is required.");
+        amrex::Print() << "OMP initialized with "
+                       << omp_get_max_threads()
+                       << " OMP threads\n";
+    }
+#endif
+
 #ifdef AMREX_USE_GPU
     // Initialize after ParmParse so that we can read inputs.
     Gpu::Device::Initialize();
@@ -443,53 +473,83 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         pp.queryAdd("call_addr2line", system::call_addr2line);
         pp.queryAdd("abort_on_unused_inputs", system::abort_on_unused_inputs);
 
+#ifdef AMREX_USE_SYCL
+        // Disable SIGSEGV handling by default for certain Intel GPUs,
+        // because it is currently used by their managed memory
+        // implementation.
+        if (Gpu::Device::deviceName().find("[0x0bd6]") != std::string::npos || // PVC
+            Gpu::Device::deviceName().find("[0x020f]") != std::string::npos) { // ATS
+            system::handle_sigsegv = 0;
+        }
+#endif
+
         if (system::signal_handling)
         {
-            // We could save the singal handlers and restore them in Finalize.
-            prev_handler_sigsegv = signal(SIGSEGV, BLBackTrace::handler); // catch seg fault
-            prev_handler_sigint = signal(SIGINT,  BLBackTrace::handler);
-            prev_handler_sigabrt = signal(SIGABRT, BLBackTrace::handler);
+            pp.queryAdd("handle_sigsegv", system::handle_sigsegv);
+            pp.queryAdd("handle_sigterm", system::handle_sigterm);
+            pp.queryAdd("handle_sigint" , system::handle_sigint );
+            pp.queryAdd("handle_sigabrt", system::handle_sigabrt);
+            pp.queryAdd("handle_sigfpe" , system::handle_sigfpe );
 
-            int term = 0;
-            pp.queryAdd("handle_sigterm", term);
-            if (term) {
-                prev_handler_sigterm = signal(SIGTERM,  BLBackTrace::handler);
+            // We save the singal handlers and restore them in Finalize.
+            if (system::handle_sigsegv) {
+                prev_handler_sigsegv = std::signal(SIGSEGV, BLBackTrace::handler);
+            } else {
+                prev_handler_sigsegv = SIG_ERR;
+            }
+
+            if (system::handle_sigterm) {
+                prev_handler_sigterm = std::signal(SIGTERM,  BLBackTrace::handler);
             } else {
                 prev_handler_sigterm = SIG_ERR;
             }
 
-            prev_handler_sigfpe = SIG_ERR;
+            if (system::handle_sigint) {
+                prev_handler_sigint = std::signal(SIGINT,  BLBackTrace::handler);
+            } else {
+                prev_handler_sigint = SIG_ERR;
+            }
 
-            int invalid = 0, divbyzero=0, overflow=0;
-            pp.queryAdd("fpe_trap_invalid", invalid);
-            pp.queryAdd("fpe_trap_zero", divbyzero);
-            pp.queryAdd("fpe_trap_overflow", overflow);
+            if (system::handle_sigabrt) {
+                prev_handler_sigabrt = std::signal(SIGABRT, BLBackTrace::handler);
+            } else {
+                prev_handler_sigabrt = SIG_ERR;
+            }
+
+            prev_handler_sigfpe = SIG_ERR;
+            if (system::handle_sigfpe)
+            {
+                int invalid = 0, divbyzero=0, overflow=0;
+                pp.queryAdd("fpe_trap_invalid", invalid);
+                pp.queryAdd("fpe_trap_zero", divbyzero);
+                pp.queryAdd("fpe_trap_overflow", overflow);
 
 #if defined(__linux__)
-            curr_fpe_excepts = 0;
-            if (invalid)   curr_fpe_excepts |= FE_INVALID;
-            if (divbyzero) curr_fpe_excepts |= FE_DIVBYZERO;
-            if (overflow)  curr_fpe_excepts |= FE_OVERFLOW;
-#if !defined(AMREX_USE_DPCPP) && (!defined(__PGI) || (__PGIC__ >= 16))
-            // xxxxx DPCPP todo: fpe trap
-            prev_fpe_excepts = fegetexcept();
-            if (curr_fpe_excepts != 0) {
-                feenableexcept(curr_fpe_excepts);  // trap floating point exceptions
-                prev_handler_sigfpe = signal(SIGFPE,  BLBackTrace::handler);
-            }
+                curr_fpe_excepts = 0;
+                if (invalid)   curr_fpe_excepts |= FE_INVALID;
+                if (divbyzero) curr_fpe_excepts |= FE_DIVBYZERO;
+                if (overflow)  curr_fpe_excepts |= FE_OVERFLOW;
+#if !defined(AMREX_USE_SYCL) && (!defined(__PGI) || (__PGIC__ >= 16))
+                // xxxxx SYCL todo: fpe trap
+                prev_fpe_excepts = fegetexcept();
+                if (curr_fpe_excepts != 0) {
+                    feenableexcept(curr_fpe_excepts);  // trap floating point exceptions
+                    prev_handler_sigfpe = std::signal(SIGFPE,  BLBackTrace::handler);
+                }
 #endif
 
 #elif defined(__APPLE__) && defined(__x86_64__)
-            prev_fpe_mask = _MM_GET_EXCEPTION_MASK();
-            curr_fpe_excepts = 0u;
-            if (invalid)   curr_fpe_excepts |= _MM_MASK_INVALID;
-            if (divbyzero) curr_fpe_excepts |= _MM_MASK_DIV_ZERO;
-            if (overflow)  curr_fpe_excepts |= _MM_MASK_OVERFLOW;
-            if (curr_fpe_excepts != 0u) {
-                _MM_SET_EXCEPTION_MASK(prev_fpe_mask & ~curr_fpe_excepts);
-                prev_handler_sigfpe = signal(SIGFPE,  BLBackTrace::handler);
-            }
+                prev_fpe_mask = _MM_GET_EXCEPTION_MASK();
+                curr_fpe_excepts = 0u;
+                if (invalid)   curr_fpe_excepts |= _MM_MASK_INVALID;
+                if (divbyzero) curr_fpe_excepts |= _MM_MASK_DIV_ZERO;
+                if (overflow)  curr_fpe_excepts |= _MM_MASK_OVERFLOW;
+                if (curr_fpe_excepts != 0u) {
+                    _MM_SET_EXCEPTION_MASK(prev_fpe_mask & ~curr_fpe_excepts);
+                    prev_handler_sigfpe = std::signal(SIGFPE,  BLBackTrace::handler);
+                }
 #endif
+            }
         }
 
 #ifdef AMREX_USE_HYPRE
@@ -504,6 +564,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     ParallelDescriptor::Initialize();
 
+    BL_TINY_PROFILE_MEMORYINITIALIZE();
     Arena::Initialize();
     amrex_mempool_init();
 
@@ -574,26 +635,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     sundials::Initialize(amrex::OpenMP::get_max_threads());
 #endif
 
-    if (system::verbose > 0)
-    {
-#ifdef BL_USE_MPI
-
-        amrex::Print() << "MPI initialized with "
-                       << ParallelDescriptor::NProcs()
-                       << " MPI processes\n";
-
-        int provided = -1;
-        MPI_Query_thread(&provided);
-        amrex::Print() << "MPI initialized with thread support level " << provided << std::endl;
-#endif
-
-#ifdef AMREX_USE_OMP
-//    static_assert(_OPENMP >= 201107, "OpenMP >= 3.1 is required.");
-        amrex::Print() << "OMP initialized with "
-                       << omp_get_max_threads()
-                       << " OMP threads\n";
-#endif
-
+    if (system::verbose > 0) {
         amrex::Print() << "AMReX (" << amrex::Version() << ") initialized" << std::endl;
     }
 
@@ -634,6 +676,8 @@ amrex::Finalize (amrex::AMReX* pamrex)
 #ifdef AMREX_USE_CUDA
     amrex::DeallocateRandomSeedDevArray();
 #endif
+
+    BL_TINY_PROFILE_MEMORYFINALIZE();
 
 #ifdef BL_LAZY
     Lazy::Finalize();
@@ -696,11 +740,11 @@ amrex::Finalize (amrex::AMReX* pamrex)
 #ifndef BL_AMRPROF
     if (system::signal_handling)
     {
-        if (prev_handler_sigsegv != SIG_ERR) signal(SIGSEGV, prev_handler_sigsegv);
-        if (prev_handler_sigterm != SIG_ERR) signal(SIGTERM, prev_handler_sigterm);
-        if (prev_handler_sigint != SIG_ERR) signal(SIGINT, prev_handler_sigint);
-        if (prev_handler_sigabrt != SIG_ERR) signal(SIGABRT, prev_handler_sigabrt);
-        if (prev_handler_sigfpe != SIG_ERR) signal(SIGFPE, prev_handler_sigfpe);
+        if (prev_handler_sigsegv != SIG_ERR) std::signal(SIGSEGV, prev_handler_sigsegv);
+        if (prev_handler_sigterm != SIG_ERR) std::signal(SIGTERM, prev_handler_sigterm);
+        if (prev_handler_sigint  != SIG_ERR) std::signal(SIGINT , prev_handler_sigint);
+        if (prev_handler_sigabrt != SIG_ERR) std::signal(SIGABRT, prev_handler_sigabrt);
+        if (prev_handler_sigfpe  != SIG_ERR) std::signal(SIGFPE , prev_handler_sigfpe);
 #if defined(__linux__)
 #if !defined(__PGI) || (__PGIC__ >= 16)
         if (curr_fpe_excepts != 0) {

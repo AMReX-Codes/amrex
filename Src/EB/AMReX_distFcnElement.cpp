@@ -75,7 +75,7 @@ amrex::Real SplineDistFcnElement2d::dist(amrex::RealVect pt,
   delta = spt - pt;
 
   amrex::Real dist;
-  dist = sqrt(delta[0]*delta[0] + delta[1]*delta[1]);
+  dist = std::sqrt(delta[0]*delta[0] + delta[1]*delta[1]);
 
   return dist;
 }
@@ -431,7 +431,7 @@ void LineDistFcnElement2d::single_seg_cpdist(amrex::RealVect pt,
   }
 
   amrex::RealVect delta = pt - cp;
-  dist = sqrt(delta[0]*delta[0] + delta[1]*delta[1] );
+  dist = std::sqrt(delta[0]*delta[0] + delta[1]*delta[1] );
 
   return;
 }

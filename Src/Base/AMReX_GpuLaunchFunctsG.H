@@ -4,7 +4,7 @@
 
 namespace amrex {
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
 
 template <typename L>
 void single_task (gpuStream_t stream, L&& f) noexcept
@@ -1626,7 +1626,7 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
     if (Gpu::inLaunchRegion()) {
         ParallelFor<AMREX_GPU_MAX_THREADS>(info,n,std::forward<L>(f));
     } else {
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
 #else
         AMREX_PRAGMA_SIMD
@@ -1642,7 +1642,7 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
     if (Gpu::inLaunchRegion()) {
         ParallelFor<MT>(info,n,std::forward<L>(f));
     } else {
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
 #else
         AMREX_PRAGMA_SIMD
@@ -1672,7 +1672,7 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexc
     if (Gpu::inLaunchRegion()) {
         ParallelFor<AMREX_GPU_MAX_THREADS>(info, box,std::forward<L>(f));
     } else {
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
 #else
         LoopConcurrentOnCpu(box,std::forward<L>(f));
@@ -1687,7 +1687,7 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexc
     if (Gpu::inLaunchRegion()) {
         ParallelFor<MT>(info, box,std::forward<L>(f));
     } else {
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
 #else
         LoopConcurrentOnCpu(box,std::forward<L>(f));
@@ -1702,7 +1702,7 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&&
     if (Gpu::inLaunchRegion()) {
         ParallelFor<AMREX_GPU_MAX_THREADS>(info, box,ncomp,std::forward<L>(f));
     } else {
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
 #else
         LoopConcurrentOnCpu(box,ncomp,std::forward<L>(f));
@@ -1717,7 +1717,7 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&&
     if (Gpu::inLaunchRegion()) {
         ParallelFor<MT>(info, box,ncomp,std::forward<L>(f));
     } else {
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
 #else
         LoopConcurrentOnCpu(box,ncomp,std::forward<L>(f));
@@ -1733,7 +1733,7 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info,
     if (Gpu::inLaunchRegion()) {
         ParallelFor<AMREX_GPU_MAX_THREADS>(info,box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
     } else {
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
 #else
         LoopConcurrentOnCpu(box1,std::forward<L1>(f1));
@@ -1750,7 +1750,7 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info,
     if (Gpu::inLaunchRegion()) {
         ParallelFor<MT>(info,box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
     } else {
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
 #else
         LoopConcurrentOnCpu(box1,std::forward<L1>(f1));
@@ -1769,7 +1769,7 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info,
         ParallelFor<MT>(info,box1,box2,box3,
                     std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
     } else {
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
 #else
         LoopConcurrentOnCpu(box1,std::forward<L1>(f1));
@@ -1790,7 +1790,7 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info,
     if (Gpu::inLaunchRegion()) {
         ParallelFor<AMREX_GPU_MAX_THREADS>(info,box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
     } else {
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
 #else
         LoopConcurrentOnCpu(box1,ncomp1,std::forward<L1>(f1));
@@ -1810,7 +1810,7 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info,
     if (Gpu::inLaunchRegion()) {
         ParallelFor<MT>(info,box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
     } else {
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
 #else
         LoopConcurrentOnCpu(box1,ncomp1,std::forward<L1>(f1));
@@ -1835,7 +1835,7 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info,
                     box2,ncomp2,std::forward<L2>(f2),
                     box3,ncomp3,std::forward<L3>(f3));
     } else {
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
 #else
         LoopConcurrentOnCpu(box1,ncomp1,std::forward<L1>(f1));
@@ -1861,7 +1861,7 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info,
                     box2,ncomp2,std::forward<L2>(f2),
                     box3,ncomp3,std::forward<L3>(f3));
     } else {
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
 #else
         LoopConcurrentOnCpu(box1,ncomp1,std::forward<L1>(f1));

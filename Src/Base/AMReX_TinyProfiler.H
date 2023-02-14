@@ -13,6 +13,7 @@
 #include <roctracer/roctx.h>
 #endif
 
+#include <array>
 #include <deque>
 #include <iosfwd>
 #include <limits>
@@ -23,6 +24,28 @@
 #include <vector>
 
 namespace amrex {
+
+class CArena;
+
+struct MemStat
+{
+    enum memory_type {
+        device = 0,
+        managed = 1,
+        pinned = 2,
+        cpu = 3,
+    };
+
+    static constexpr std::array<const char *, 4> memory_name = {
+        "Device", "Managed", "Pinned", "Cpu (amrex_mempool)"
+    };
+
+    Long nalloc = 0;        //!< number of allocations
+    Long nfree = 0;         //!< number of frees
+    Long currentmem = 0;    //!< amount of currently used memory in bytes
+    double avgmem = 0.;     //!< memory used (bytes) times time in use (seconds)
+    Long maxmem = 0;        //!< running maximum of currentmem
+};
 
 //! A simple profiler that returns basic performance information (e.g. min, max, and average running time)
 class TinyProfiler
@@ -40,8 +63,18 @@ public:
     void stop (unsigned boxUintID) noexcept;
 #endif // AMREX_USE_CUPTI
 
+
+    void memory_start () const noexcept;
+    void memory_stop () const noexcept;
+
+    static MemStat* memory_alloc (std::size_t nbytes, int memtype) noexcept;
+    static void memory_free (std::size_t nbytes, MemStat* stat) noexcept;
+
     static void Initialize () noexcept;
     static void Finalize (bool bFlushing = false) noexcept;
+
+    static void MemoryInitialize () noexcept;
+    static void MemoryFinalize (bool bFlushing = false) noexcept;
 
     static void StartRegion (std::string regname) noexcept;
     static void StopRegion (const std::string& regname) noexcept;
@@ -84,10 +117,40 @@ private:
         }
     };
 
+    struct MemProcStats
+    {
+        Long nalloc = 0;
+        Long nfree = 0;
+        Long avgmem_min = std::numeric_limits<Long>::max();
+        Long avgmem_avg = 0;
+        Long avgmem_max = 0;
+        Long maxmem_min = std::numeric_limits<Long>::max();
+        Long maxmem_avg = 0;
+        Long maxmem_max = 0;
+        std::string fname;
+        static bool compmem (const MemProcStats& lhs, const MemProcStats& rhs) {
+            return lhs.maxmem_max > rhs.maxmem_max;
+        }
+    };
+
     std::string fname;
     bool uCUPTI;
+    bool in_parallel_region;
     int global_depth;
     std::vector<Stats*> stats;
+
+
+    static std::deque<const TinyProfiler*> mem_stack;
+
+#ifdef AMREX_USE_OMP
+    struct aligned_deque {
+        // align thread-private data to cache lines to prevent false sharing
+        alignas(64) std::deque<const TinyProfiler*> deque;
+    };
+
+    static std::vector<aligned_deque> mem_stack_thread_private;
+#endif
+    static std::array<std::map<std::string, MemStat>, 4> mem_statsmap;
 
     static std::vector<std::string> regionstack;
     static std::deque<std::tuple<double,double,std::string*> > ttstack;
@@ -98,6 +161,7 @@ private:
     static int verbose;
 
     static void PrintStats (std::map<std::string,Stats>& regstats, double dt_max);
+    static void PrintMemStats (int mem_type, double dt_max, double t_final);
 };
 
 class TinyProfileRegion

@@ -440,27 +440,34 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
     if (refine_grid_layout_dims == 0) { return; }
 
     IntVect chunk = max_grid_size[lev];
+    chunk.min(Geom(lev).Domain().length());
 
     while (ba.size() < target_size)
     {
         IntVect chunk_prev = chunk;
 
-        for (int idim = AMREX_SPACEDIM-1; idim >=0; idim--){
-            if (refine_grid_layout_dims[idim]){
+        std::array<std::pair<int,int>,AMREX_SPACEDIM>
+            chunk_dir{AMREX_D_DECL(std::make_pair(chunk[0],int(0)),
+                                   std::make_pair(chunk[1],int(1)),
+                                   std::make_pair(chunk[2],int(2)))};
+        std::sort(chunk_dir.begin(), chunk_dir.end());
+
+        for (int idx = AMREX_SPACEDIM-1; idx >= 0; idx--) {
+            int idim = chunk_dir[idx].second;
+            if (refine_grid_layout_dims[idim]) {
                 int new_chunk_size = chunk[idim] / 2;
-                if ( (ba.size() < target_size) && (new_chunk_size%blocking_factor[lev][idim] == 0))
-                {
+                if (new_chunk_size%blocking_factor[lev][idim] == 0) {
                     chunk[idim] = new_chunk_size;
                     ba.maxSize(chunk);
+                    break;
                 }
             }
         }
 
-        if (chunk == chunk_prev){
+        if (chunk == chunk_prev) {
             break;
         }
     }
-
 }
 
 BoxArray

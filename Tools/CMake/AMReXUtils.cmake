@@ -120,7 +120,7 @@ endfunction ()
 
 #
 #
-# FUNCTION: set_default_config_flags
+# MACRO: set_default_config_flags
 #
 #
 # Set CMake_<LANG>_FLAGS_<CONFIG> to default values
@@ -254,7 +254,7 @@ endfunction ()
 # Note: if no target arch is specified, it will try to determine
 # which GPU architecture is supported by the system. If more than one is found,
 # it will build for all of them.
-# If autodetection fails, a list of “common” architectures is assumed.
+# If autodetection fails, a list of "common" architectures is assumed.
 #
 function (set_cuda_architectures _cuda_archs)
 

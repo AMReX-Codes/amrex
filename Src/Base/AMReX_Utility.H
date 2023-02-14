@@ -349,6 +349,7 @@ template<class T> void amrex::BroadcastArray(Vector<T> &aT, int myLocalId, int r
 */
 #define BL_IGNORE_MAX 100000
 
+// \cond CODEGEN
 template <typename T>
 amrex::Long
 amrex::bytesOf (const std::vector<T>& v)
@@ -362,6 +363,7 @@ amrex::bytesOf (const std::map<Key,T,Compare>& m)
 {
     return sizeof(m) + m.size()*(sizeof(Key)+sizeof(T)+gcc_map_node_extra_bytes);
 }
+// \endcond
 
 extern "C" {
     void* amrex_malloc (std::size_t size);

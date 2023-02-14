@@ -67,7 +67,9 @@ namespace amrex
             {
                 amrex_avg_nd_to_cc(i, j, k, n, ccma[box_no], ndma[box_no], dcomp, scomp);
             });
-            Gpu::streamSynchronize();
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
         } else
 #endif
         {
@@ -107,7 +109,9 @@ namespace amrex
                                    AMREX_D_DECL(exma[box_no], eyma[box_no], ezma[box_no]),
                                    dcomp);
             });
-            Gpu::streamSynchronize();
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
         } else
 #endif
         {
@@ -175,7 +179,9 @@ namespace amrex
 #endif
                                    );
             });
-            Gpu::streamSynchronize();
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
         } else
 #endif
         {
@@ -261,7 +267,9 @@ namespace amrex
                                    ccma[box_no], use_harmonic_averaging);
 #endif
             });
-            Gpu::streamSynchronize();
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
         } else
 #endif
         {
@@ -353,7 +361,9 @@ namespace amrex
                 amrex_avgdown_with_vol(i,j,k,n,crsema[box_no],finema[box_no],finevolma[box_no],
                                        0,scomp,ratio);
             });
-            Gpu::streamSynchronize();
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
         } else
 #endif
         {
@@ -405,7 +415,9 @@ namespace amrex
             {
                 amrex_avgdown(i,j,k,n,crsema[box_no],finema[box_no],0,scomp,ratio);
             });
-            Gpu::streamSynchronize();
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
         } else
 #endif
         {
@@ -478,6 +490,9 @@ namespace amrex
                 {
                     amrex_avgdown_edges(i,j,k,n, crsema[box_no], finema[box_no], 0, 0, ratio, dir);
                 });
+                if (!Gpu::inNoSyncRegion()) {
+                    Gpu::streamSynchronize();
+                }
             } else
 #endif
             {
@@ -815,7 +830,7 @@ namespace amrex
                 }
                 int n2dblocks = (n2d+AMREX_GPU_MAX_THREADS-1)/AMREX_GPU_MAX_THREADS;
                 int nblocks = n2dblocks * b.length(direction);
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
                 std::size_t shared_mem_byte = sizeof(Real)*Gpu::Device::warp_size;
                 amrex::launch(nblocks, AMREX_GPU_MAX_THREADS, shared_mem_byte, Gpu::gpuStream(),
                               [=] AMREX_GPU_DEVICE (Gpu::Handler const& h) noexcept
@@ -824,7 +839,7 @@ namespace amrex
                               [=] AMREX_GPU_DEVICE () noexcept
 #endif
                 {
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
                     int i1d = h.blockIdx() / n2dblocks;
                     int i2d = h.threadIdx() + h.blockDim()*(h.blockIdx()-i1d*n2dblocks);
 #else
@@ -852,7 +867,7 @@ namespace amrex
                     }
                     for (int n = 0; n < ncomp; ++n) {
                         Real r = (i2d < n2d) ? fab(i,j,k,n+icomp) : Real(0.0);
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
                         Gpu::deviceReduceSum_full(p+n+ncomp*idir, r, h);
 #else
                         Gpu::deviceReduceSum_full(p+n+ncomp*idir, r);

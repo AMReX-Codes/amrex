@@ -9,7 +9,7 @@
 #include <hip/hip_runtime.h>
 #endif
 
-#if defined(AMREX_USE_GPU) && !defined(AMREX_GPU_NO_ERROR_CHECK) && !defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_GPU) && !defined(AMREX_GPU_NO_ERROR_CHECK) && !defined(AMREX_USE_SYCL)
 
 namespace amrex {
 

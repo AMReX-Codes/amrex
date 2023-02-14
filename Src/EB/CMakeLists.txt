@@ -1,3 +1,5 @@
+add_amrex_define( AMREX_USE_EB NO_LEGACY IF AMReX_EB )
+
 target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
 
 target_sources(amrex
@@ -54,6 +56,7 @@ target_sources(amrex
    AMReX_EB2_IF_Parser.H
    AMReX_EB2_IF.H
    AMReX_EB2_IF_Base.H
+   AMReX_EB2_IF_DevicePtr.H
    AMReX_distFcnElement.cpp
    AMReX_EB2_GeometryShop.H
    AMReX_EB2.H

@@ -9,7 +9,7 @@
 #include <type_traits>
 #include <utility>
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
 #  include <sycl/sycl.hpp>
 #endif
 
@@ -19,7 +19,7 @@ namespace amrex { inline namespace disabled {
     // call of overload abs(int&) is ambiguous, or a link time error such as, undefined reference to
     // `amrex::disabled::abs(double)'.  To fix it, one can use `std::abs` or `amrex::Math::abs`.
     // The latter works in both host and device functions, whereas `std::abs` does not currently
-    // work on device with HIP and DPC++.
+    // work on device with HIP and SYCL.
     AMREX_GPU_HOST_DEVICE double abs (double);
     AMREX_GPU_HOST_DEVICE float abs (float);
     AMREX_GPU_HOST_DEVICE long double abs (long double);
@@ -30,7 +30,7 @@ namespace amrex { inline namespace disabled {
 
 namespace amrex { namespace Math {
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
 
 //List of unsupported math function can be found at
 // https://github.com/intel/llvm/blob/sycl/sycl/doc/extensions/C-CXX-StandardLibrary/C-CXX-StandardLibrary.rst
@@ -69,9 +69,10 @@ constexpr std::enable_if_t<std::is_floating_point<T>::value,T> pi ()
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 double cospi (double x)
 {
-#if defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_SYCL)
     return sycl::cospi(x);
-#elif defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
+      defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
     return ::cospi(x);
 #else
     return std::cos(pi<double>()*x);
@@ -82,9 +83,10 @@ double cospi (double x)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 float cospi (float x)
 {
-#if defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_SYCL)
     return sycl::cospi(x);
-#elif defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
+      defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
     return ::cospif(x);
 #else
     return std::cos(pi<float>()*x);
@@ -95,9 +97,10 @@ float cospi (float x)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 double sinpi (double x)
 {
-#if defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_SYCL)
     return sycl::sinpi(x);
-#elif defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
+      defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
     return ::sinpi(x);
 #else
     return std::sin(pi<double>()*x);
@@ -108,9 +111,10 @@ double sinpi (double x)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 float sinpi (float x)
 {
-#if defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_SYCL)
     return sycl::sinpi(x);
-#elif defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
+      defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
     return ::sinpif(x);
 #else
     return std::sin(pi<float>()*x);
@@ -122,9 +126,11 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<double,double> sincos (double x)
 {
     std::pair<double,double> r;
-#if defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_SYCL)
     r.first = sycl::sincos(x, &r.second);
-#elif defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__) || defined(_GNU_SOURCE)
+#elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
+      defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP) || \
+      (defined(_GNU_SOURCE) && !defined(__APPLE__))
     ::sincos(x, &r.first, &r.second);
 #else
     r.first  = std::sin(x);
@@ -138,9 +144,11 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<float,float> sincos (float x)
 {
     std::pair<float,float> r;
-#if defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_SYCL)
     r.first = sycl::sincos(x, &r.second);
-#elif defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__) || defined(_GNU_SOURCE)
+#elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
+      defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP) || \
+      (defined(_GNU_SOURCE) && !defined(__APPLE__))
     ::sincosf(x, &r.first, &r.second);
 #else
     r.first  = std::sin(x);
@@ -154,9 +162,10 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<double,double> sincospi (double x)
 {
     std::pair<double,double> r;
-#if defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_SYCL)
     r.first = sycl::sincos(pi<double>()*x, &r.second);
-#elif defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
+      defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
     ::sincospi(x, &r.first, &r.second);
 #else
     r.first  = std::sin(pi<double>()*x);
@@ -170,9 +179,10 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<float,float> sincospi (float x)
 {
     std::pair<float,float> r;
-#if defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_SYCL)
     r.first = sycl::sincos(pi<float>()*x, &r.second);
-#elif defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
+      defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
     ::sincospif(x, &r.first, &r.second);
 #else
     r.first  = std::sin(pi<float>()*x);

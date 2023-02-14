@@ -109,7 +109,7 @@ void testDenseBins ()
     amrex::Vector<int> items(nitems);
     initData(nbins, items);
 
-#ifndef AMREX_USE_DPCPP
+#ifndef AMREX_USE_SYCL
     testSerial(nbins, items);
 #endif
 #ifdef AMREX_USE_OMP

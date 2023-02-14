@@ -55,7 +55,7 @@ fab_to_fab (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp, int dcom
 {
     detail::ParallelFor_doit(copy_tags,
         [=] AMREX_GPU_DEVICE (
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
             sycl::nd_item<1> const& /*item*/,
 #endif
             int icell, int ncells, int i, int j, int k, Array4CopyTag<T0, T1> const tag) noexcept
@@ -87,12 +87,12 @@ fab_to_fab (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp, int dcom
 
     detail::ParallelFor_doit(tags,
     [=] AMREX_GPU_DEVICE (
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         sycl::nd_item<1> const& item,
 #endif
         int icell, int ncells, int i, int j, int k, TagType const& tag) noexcept
     {
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         int g_tid = item.get_global_id(0);
         int g_wid = g_tid / Gpu::Device::warp_size;
 

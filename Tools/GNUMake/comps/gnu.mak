@@ -44,8 +44,10 @@ gcc_major_ge_10 = $(shell expr $(gcc_major_version) \>= 10)
 gcc_major_ge_11 = $(shell expr $(gcc_major_version) \>= 11)
 gcc_major_ge_12 = $(shell expr $(gcc_major_version) \>= 12)
 
+ifneq ($(NO_CONFIG_CHECKING),TRUE)
 ifneq ($(gcc_major_ge_8),1)
   $(error GCC < 8 not supported)
+endif
 endif
 
 ifeq ($(THREAD_SANITIZER),TRUE)

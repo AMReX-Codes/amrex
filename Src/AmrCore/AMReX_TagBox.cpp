@@ -449,7 +449,7 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
         int* ntags = dv_ntags.data() + blockoffset[li];
         const int ncells = fai.fabbox().numPts();
         const char* tags = (*this)[fai].dataPtr();
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         amrex::launch(nblocks[li], block_size, sizeof(int)*Gpu::Device::warp_size,
                       Gpu::Device::gpuStream(),
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& h) noexcept
@@ -527,7 +527,7 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
             const auto lenx  = len.x;
             const int ncells = bx.numPts();
             const char* tags = (*this)[fai].dataPtr();
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
             amrex::launch(nblocks[li], block_size, sizeof(unsigned int), Gpu::Device::gpuStream(),
             [=] AMREX_GPU_DEVICE (Gpu::Handler const& h) noexcept
             {
@@ -542,8 +542,9 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
                 h.item->barrier(sycl::access::fence_space::local_space);
 
                 if (icell < ncells && tags[icell] != TagBox::CLEAR) {
-                    unsigned int itag = Gpu::Atomic::Inc<sycl::access::address_space::local_space>
-                        (shared_counter, 20480u);
+                    unsigned int itag = Gpu::Atomic::Add<unsigned int,
+                                                         sycl::access::address_space::local_space>
+                        (shared_counter, 1u);
                     IntVect* p = dp_tags + dp_tags_offset[iblock_begin+bid];
                     int k =  icell /   lenxy;
                     int j = (icell - k*lenxy) /   lenx;
@@ -570,7 +571,7 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
                 __syncthreads();
 
                 if (icell < ncells && tags[icell] != TagBox::CLEAR) {
-                    unsigned int itag = Gpu::Atomic::Inc(shared_counter, blockDim.x);
+                    unsigned int itag = Gpu::Atomic::Add(shared_counter, 1u);
                     IntVect* p = dp_tags + dp_tags_offset[iblock_begin+bid];
                     int k =  icell /   lenxy;
                     int j = (icell - k*lenxy) /   lenx;

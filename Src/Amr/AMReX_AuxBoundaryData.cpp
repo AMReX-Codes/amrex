@@ -7,7 +7,7 @@
 #endif
 
 namespace amrex {
-
+// \cond CODEGEN
 AuxBoundaryData::AuxBoundaryData () noexcept
     :
     m_ngrow(0),
@@ -152,5 +152,5 @@ AuxBoundaryData::copyFrom (const MultiFab& mf,
         m_fabs.ParallelCopy(mf,src_comp,dst_comp,num_comp,src_ng,0);
     }
 }
-
+// \endcond
 }

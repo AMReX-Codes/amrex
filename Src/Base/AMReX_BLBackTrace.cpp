@@ -47,7 +47,7 @@ void
 BLBackTrace::handler(int s)
 {
 
-    signal(s, SIG_DFL);
+    std::signal(s, SIG_DFL);
 
     AsyncOut::Finalize();
 

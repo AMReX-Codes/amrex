@@ -13,7 +13,7 @@
 #elif defined(AMREX_USE_CUDA)
 #include <curand.h>
 #include <curand_kernel.h>
-#elif defined(AMREX_USE_DPCPP)
+#elif defined(AMREX_USE_SYCL)
 #include <sycl/sycl.hpp>
 #include <oneapi/mkl/rng/device.hpp>
 namespace mkl = oneapi::mkl;
@@ -23,19 +23,19 @@ namespace amrex
 {
 #ifdef AMREX_USE_GPU
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
 
-    using dpcpp_rng_engine = mkl::rng::device::philox4x32x10<>;
-    using dpcpp_rng_descr = mkl::rng::device::engine_descriptor<dpcpp_rng_engine>;
-    using dpcpp_rng_acc = mkl::rng::device::engine_accessor<dpcpp_rng_engine>;
+    using sycl_rng_engine = mkl::rng::device::philox4x32x10<>;
+    using sycl_rng_descr = mkl::rng::device::engine_descriptor<sycl_rng_engine>;
+    using sycl_rng_acc = mkl::rng::device::engine_accessor<sycl_rng_engine>;
 
-    extern dpcpp_rng_descr* rand_engine_descr;
+    extern sycl_rng_descr* rand_engine_descr;
 
     AMREX_FORCE_INLINE
-    dpcpp_rng_descr* getRandEngineDescriptor () { return rand_engine_descr; }
+    sycl_rng_descr* getRandEngineDescriptor () { return rand_engine_descr; }
 
     struct RandomEngine {
-        dpcpp_rng_engine* engine;
+        sycl_rng_engine* engine;
     };
 
 #else

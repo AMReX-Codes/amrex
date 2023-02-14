@@ -5,6 +5,7 @@
 #include <AMReX_PArena.H>
 
 #include <AMReX.H>
+#include <AMReX_BLProfiler.H>
 #include <AMReX_Print.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParmParse.H>
@@ -145,7 +146,7 @@ Arena::allocate_system (std::size_t nbytes)
     }
     else if (arena_info.device_use_hostalloc)
     {
-        AMREX_HIP_OR_CUDA_OR_DPCPP(
+        AMREX_HIP_OR_CUDA_OR_SYCL(
             AMREX_HIP_SAFE_CALL (hipHostMalloc(&p, nbytes, hipHostMallocMapped|hipHostMallocNonCoherent));,
             AMREX_CUDA_SAFE_CALL(cudaHostAlloc(&p, nbytes, cudaHostAllocMapped));,
             p = sycl::malloc_host(nbytes, Gpu::Device::syclContext()));
@@ -163,7 +164,7 @@ Arena::allocate_system (std::size_t nbytes)
 
         if (arena_info.device_use_managed_memory)
         {
-            AMREX_HIP_OR_CUDA_OR_DPCPP
+            AMREX_HIP_OR_CUDA_OR_SYCL
                 (AMREX_HIP_SAFE_CALL(hipMallocManaged(&p, nbytes));,
                  AMREX_CUDA_SAFE_CALL(cudaMallocManaged(&p, nbytes));,
                  p = sycl::malloc_shared(nbytes, Gpu::Device::syclDevice(), Gpu::Device::syclContext()));
@@ -184,7 +185,7 @@ Arena::allocate_system (std::size_t nbytes)
         }
         else
         {
-            AMREX_HIP_OR_CUDA_OR_DPCPP
+            AMREX_HIP_OR_CUDA_OR_SYCL
                 (AMREX_HIP_SAFE_CALL ( hipMalloc(&p, nbytes));,
                  AMREX_CUDA_SAFE_CALL(cudaMalloc(&p, nbytes));,
                  p = sycl::malloc_device(nbytes, Gpu::Device::syclDevice(), Gpu::Device::syclContext()));
@@ -218,14 +219,14 @@ Arena::deallocate_system (void* p, std::size_t nbytes)
     }
     else if (arena_info.device_use_hostalloc)
     {
-        AMREX_HIP_OR_CUDA_OR_DPCPP
+        AMREX_HIP_OR_CUDA_OR_SYCL
             (AMREX_HIP_SAFE_CALL ( hipHostFree(p));,
              AMREX_CUDA_SAFE_CALL(cudaFreeHost(p));,
              sycl::free(p,Gpu::Device::syclContext()));
     }
     else
     {
-        AMREX_HIP_OR_CUDA_OR_DPCPP
+        AMREX_HIP_OR_CUDA_OR_SYCL
             (AMREX_HIP_SAFE_CALL ( hipFree(p));,
              AMREX_CUDA_SAFE_CALL(cudaFree(p));,
              sycl::free(p,Gpu::Device::syclContext()));
@@ -273,10 +274,10 @@ Arena::Initialize ()
     BL_ASSERT(the_cpu_arena == nullptr || the_cpu_arena == The_BArena());
 
 #ifdef AMREX_USE_GPU
-#ifdef AMREX_USE_DPCPP
-    the_arena_init_size = 1024L*1024L*1024L; // xxxxx DPCPP: todo
+#ifdef AMREX_USE_SYCL
+    the_arena_init_size = 1024L*1024L*1024L; // xxxxx SYCL: todo
 #else
-    the_arena_init_size = Gpu::Device::totalGlobalMem() / 4L * 3L;
+    the_arena_init_size = Gpu::Device::totalGlobalMem() / Gpu::Device::numDevicePartners() / 4L * 3L;
 #endif
 
     the_pinned_arena_release_threshold = Gpu::Device::totalGlobalMem();
@@ -305,6 +306,7 @@ Arena::Initialize ()
             the_arena = new CArena(0, ai.SetDeviceMemory());
         }
 #ifdef AMREX_USE_GPU
+        BL_PROFILE("The_Arena::Initialize()");
         void *p = the_arena->alloc(static_cast<std::size_t>(the_arena_init_size));
         the_arena->free(p);
 #endif
@@ -343,16 +345,19 @@ Arena::Initialize ()
                                   (the_pinned_arena_release_threshold));
 
     if (the_device_arena_init_size > 0 && the_device_arena != the_arena) {
+        BL_PROFILE("The_Device_Arena::Initialize()");
         void *p = the_device_arena->alloc(the_device_arena_init_size);
         the_device_arena->free(p);
     }
 
     if (the_managed_arena_init_size > 0 && the_managed_arena != the_arena) {
+        BL_PROFILE("The_Managed_Arena::Initialize()");
         void *p = the_managed_arena->alloc(the_managed_arena_init_size);
         the_managed_arena->free(p);
     }
 
     if (the_pinned_arena_init_size > 0) {
+        BL_PROFILE("The_Pinned_Arena::Initialize()");
         void *p = the_pinned_arena->alloc(the_pinned_arena_init_size);
         the_pinned_arena->free(p);
     }

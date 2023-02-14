@@ -421,8 +421,7 @@ namespace Gpu {
               typename T = typename std::iterator_traits<IT>::value_type,
               std::enable_if_t<(sizeof(T) <= 36*8) &&  // so there is enough shared memory
                                std::is_trivially_copyable_v<T> &&
-                               // std::is_invocable_v<F, T&, Long>,       // HIP does not like this.
-                               !std::is_convertible_v<std::decay_t<F>,T>, // So we use this instead.
+                               amrex::IsCallable<F, T&, Long>::value,
                                int> FOO = 0>
     void fillAsync (IT first, IT last, F&& f) noexcept
     {
@@ -453,7 +452,7 @@ namespace Gpu {
             int nthreads_per_block = (sizeof(T) <= 64) ? 256 : 128;
             int nblocks = static_cast<int>((N+nthreads_per_block-1)/nthreads_per_block);
             std::size_t shared_mem_bytes = nthreads_per_block * sizeof(T);
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
             amrex::launch(nblocks, nthreads_per_block, shared_mem_bytes, Gpu::gpuStream(),
             [=] AMREX_GPU_DEVICE (Gpu::Handler const& handler) noexcept
             {

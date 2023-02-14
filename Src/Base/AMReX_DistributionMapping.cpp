@@ -527,7 +527,7 @@ class WeightedBox
     int  m_boxid;
     Long m_weight;
 public:
-    WeightedBox (int b, int w) : m_boxid(b), m_weight(w) {}
+    WeightedBox (int b, Long w) : m_boxid(b), m_weight(w) {}
     Long weight () const { return m_weight; }
     int  boxid ()  const { return m_boxid;  }
 
@@ -537,17 +537,16 @@ public:
     }
 };
 
-class WeightedBoxList
+struct WeightedBoxList
 {
-    Vector<WeightedBox>* m_lb;
-    Long                 m_weight;
-public:
-    WeightedBoxList (Long w) : m_lb(nullptr), m_weight(w) {}
-    WeightedBoxList (Vector<WeightedBox>* lb) : m_lb(lb), m_weight(0) {}
+    Vector<WeightedBox>* m_lb     = nullptr;
+    Long                 m_weight = 0L;
+    int                  m_rank   = -1;
     Long weight () const
     {
         return m_weight;
     }
+    int rank () const { return m_rank; }
     void addWeight (Long dw) { m_weight += dw; }
     void erase (Vector<WeightedBox>::iterator& it)
     {
@@ -589,9 +588,9 @@ knapsack (const std::vector<Long>&         wgts,
 
     Vector<WeightedBox> lb;
     lb.reserve(wgts.size());
-    for (unsigned int i = 0, N = wgts.size(); i < N; ++i)
+    for (int i = 0, N = static_cast<int>(wgts.size()); i < N; ++i)
     {
-        lb.push_back(WeightedBox(i, wgts[i]));
+        lb.emplace_back(i, wgts[i]);
     }
     std::sort(lb.begin(), lb.end());
     //
@@ -602,7 +601,7 @@ knapsack (const std::vector<Long>&         wgts,
     for (int i  = 0; i < nprocs; ++i)
     {
         raii_vwb[i] = std::make_unique<Vector<WeightedBox> >();
-        wblq.push(WeightedBoxList(raii_vwb[i].get()));
+        wblq.push(WeightedBoxList({raii_vwb[i].get(),Long(0),-1}));
     }
     Vector<WeightedBoxList> wblv;
     wblv.reserve(nprocs);
@@ -870,6 +869,182 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<Long>& wgts,
 }
 
 void
+DistributionMapping::KnapSackProcessorMap (const DistributionMapping& olddm,
+                                           const std::vector<Long>& wgts,
+                                           Real keep_ratio, Real& old_efficiency,
+                                           Real& new_efficiency, int nmax)
+{
+    BL_PROFILE("KnapSack(keep)");
+
+    const int nprocs = ParallelDescriptor::NProcs();
+    BL_ASSERT(wgts.size() > 0);
+
+    m_ref->clear();
+    m_ref->m_pmap.resize(wgts.size(), -1);
+
+    ComputeDistributionMappingEfficiency(olddm, wgts, &old_efficiency);
+
+    if (static_cast<int>(wgts.size()) <= nprocs || nprocs < 2)
+    {
+        RoundRobinProcessorMap(wgts.size(),nprocs, false);
+        new_efficiency = Real(1);
+        return;
+    }
+    else
+    {
+        Vector<Vector<WeightedBox>> keep_balls(nprocs);
+        Long sum_weight = 0;
+        for (int i = 0, N = static_cast<int>(wgts.size()); i < N; ++i) {
+            keep_balls[olddm[i]].emplace_back(i, wgts[i]);
+            sum_weight += wgts[i];
+        }
+
+        Real avg_weight = static_cast<Real>(sum_weight) / static_cast<Real>(nprocs);
+        Real keep_weight = avg_weight * static_cast<Real>(keep_ratio);
+
+        Vector<WeightedBox> lb;
+        Vector<Long> base_weight(nprocs);
+        for (int iproc = 0; iproc < nprocs; ++iproc) {
+            std::sort(keep_balls[iproc].begin(), keep_balls[iproc].end());
+            Long w = 0;
+            auto& kb = keep_balls[iproc];
+            int i = 0;
+            for (int N = static_cast<int>(kb.size()); i < N; ++i) {
+                auto wi = kb[i].weight();
+                if (static_cast<Real>(w+wi) > keep_weight) {
+                    break;
+                } else {
+                    w += wi;
+                }
+            }
+            if (i < static_cast<int>(kb.size())) {
+                lb.insert(lb.end(), kb.begin()+i, kb.end());
+                kb.erase (          kb.begin()+i, kb.end());
+            }
+            base_weight[iproc] = w;
+        }
+
+        if (lb.empty()) {
+            *this = olddm;
+            new_efficiency = old_efficiency;
+            return;
+        } else {
+            std::sort(lb.begin(), lb.end());
+
+            // Vector<Vector<WeightedBox>> keep_balls : we keep
+            // Vector<Long>                base_weight: weight of balls kept
+            // Vector<WeightedBox>         lb         : we still need to assign them
+
+            std::priority_queue<WeightedBoxList> wblq;
+            Vector<std::unique_ptr<Vector<WeightedBox>>> raii_vwb(nprocs);
+            for (int iproc = 0; iproc < nprocs; ++iproc) {
+                raii_vwb[iproc] = std::make_unique<Vector<WeightedBox>>();
+                wblq.push(WeightedBoxList({raii_vwb[iproc].get(), base_weight[iproc],
+                                           iproc}));
+            }
+            Vector<WeightedBoxList> wblv;
+            wblv.reserve(nprocs);
+            for (int i = 0, N = static_cast<int>(lb.size()); i < N; ++i) {
+                if (!wblq.empty()) {
+                    WeightedBoxList wbl = wblq.top();
+                    wblq.pop();
+                    wbl.push_back(lb[i]);
+                    if (wbl.size() + static_cast<int>(keep_balls[wbl.rank()].size())
+                        < nmax) {
+                        wblq.push(wbl);
+                    } else {
+                        wblv.push_back(wbl);
+                    }
+                } else {
+                    int ip = static_cast<int>(i) % nprocs;
+                    wblv[ip].push_back(lb[i]);
+                }
+            }
+
+            Real max_weight = Real(0);
+            for (auto const& wbl : wblv) {
+                Real wgt = wbl.weight();
+                max_weight = std::max(wgt, max_weight);
+            }
+
+            while (!wblq.empty()) {
+                WeightedBoxList wbl = wblq.top();
+                wblq.pop();
+                if (wbl.size() > 0) {
+                    Real wgt = wbl.weight();
+                    max_weight = std::max(wgt, max_weight);
+                    wblv.push_back(wbl);
+                }
+            }
+
+            new_efficiency = avg_weight / max_weight;
+
+            if (new_efficiency < max_efficiency && wblv.size() > 1) {
+                BL_PROFILE_VAR("knapsack()swap", swap);
+
+                std::sort(wblv.begin(), wblv.end());
+
+            top: ;
+                if (new_efficiency < max_efficiency && wblv.begin()->size() > 1) {
+                    auto bl_top = wblv.begin();
+                    auto bl_bottom = wblv.end()-1;
+                    Long w_top = bl_top->weight();
+                    Long w_bottom = bl_bottom->weight();
+                    for (auto& ball_1 : *bl_top) {
+                        for (auto& ball_2 : *bl_bottom) {
+                            // should we swap ball 1 and ball 2?
+                            Long dw = ball_1.weight() - ball_2.weight();
+                            Long w_top_new    = w_top    - dw;
+                            Long w_bottom_new = w_bottom + dw;
+                            if (w_top_new < w_top && w_bottom_new < w_top) {
+                                std::swap(ball_1, ball_2);
+                                bl_top->addWeight(-dw);
+                                bl_bottom->addWeight(dw);
+
+                                if (bl_top+1 == bl_bottom) {
+                                    // they are next to each other
+                                    if (*bl_bottom < *bl_top) {
+                                        std::swap(*bl_top, *bl_bottom);
+                                    }
+                                } else {
+                                    // bubble up
+                                    auto it = std::lower_bound(bl_top+1, bl_bottom,
+                                                               *bl_bottom);
+                                    std::rotate(it, bl_bottom, bl_bottom+1);
+                                    // sink down
+                                    it = std::lower_bound(bl_top+1, bl_bottom+1,
+                                                          *bl_top);
+                                    std::rotate(bl_top, bl_top+1, it);
+                                }
+
+                                max_weight = bl_top->weight();
+                                new_efficiency = avg_weight / max_weight;
+                                goto top;
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (auto const& wbl : wblv) {
+                for (auto const& wb : wbl) {
+                    m_ref->m_pmap[wb.boxid()] = wbl.rank();
+                }
+            }
+
+            for (int iproc = 0; iproc < nprocs; ++iproc) {
+                for (auto const& wb : keep_balls[iproc]) {
+                    m_ref->m_pmap[wb.boxid()] = iproc;
+                }
+            }
+
+            AMREX_ASSERT(std::none_of(m_ref->m_pmap.cbegin(), m_ref->m_pmap.cend(),
+                                      [] (int i) { return i < 0; }));
+        }
+    }
+}
+
+void
 DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
                                            int             nprocs)
 {
@@ -908,26 +1083,26 @@ namespace
         int m_box;
         Array<uint32_t,AMREX_SPACEDIM> m_morton;
     };
-}
 
-AMREX_FORCE_INLINE
-bool
-SFCToken::Compare::operator () (const SFCToken& lhs,
-                                const SFCToken& rhs) const
-{
-#if (AMREX_SPACEDIM == 1)
-        return lhs.m_morton[0] < rhs.m_morton[0];
-#elif (AMREX_SPACEDIM == 2)
-        return (lhs.m_morton[1] <  rhs.m_morton[1]) ||
-              ((lhs.m_morton[1] == rhs.m_morton[1]) &&
-               (lhs.m_morton[0] <  rhs.m_morton[0]));
-#else
-        return (lhs.m_morton[2] <  rhs.m_morton[2]) ||
-              ((lhs.m_morton[2] == rhs.m_morton[2]) &&
-              ((lhs.m_morton[1] <  rhs.m_morton[1]) ||
-              ((lhs.m_morton[1] == rhs.m_morton[1]) &&
-               (lhs.m_morton[0] <  rhs.m_morton[0]))));
-#endif
+    AMREX_FORCE_INLINE
+    bool
+    SFCToken::Compare::operator () (const SFCToken& lhs,
+                                    const SFCToken& rhs) const
+    {
+    #if (AMREX_SPACEDIM == 1)
+            return lhs.m_morton[0] < rhs.m_morton[0];
+    #elif (AMREX_SPACEDIM == 2)
+            return (lhs.m_morton[1] <  rhs.m_morton[1]) ||
+                  ((lhs.m_morton[1] == rhs.m_morton[1]) &&
+                   (lhs.m_morton[0] <  rhs.m_morton[0]));
+    #else
+            return (lhs.m_morton[2] <  rhs.m_morton[2]) ||
+                  ((lhs.m_morton[2] == rhs.m_morton[2]) &&
+                  ((lhs.m_morton[1] <  rhs.m_morton[1]) ||
+                  ((lhs.m_morton[1] == rhs.m_morton[1]) &&
+                   (lhs.m_morton[0] <  rhs.m_morton[0]))));
+    #endif
+    }
 }
 
 namespace {
@@ -1447,7 +1622,8 @@ DistributionMapping::makeKnapSack (const Vector<Real>& rcost, Real& eff, int nma
 DistributionMapping
 DistributionMapping::makeKnapSack (const LayoutData<Real>& rcost_local,
                                    Real& currentEfficiency, Real& proposedEfficiency,
-                                   int nmax, bool broadcastToAll, int root)
+                                   int nmax, bool broadcastToAll, int root,
+                                   Real keep_ratio)
 {
     BL_PROFILE("makeKnapSack");
 
@@ -1475,14 +1651,17 @@ DistributionMapping::makeKnapSack (const LayoutData<Real>& rcost_local,
             cost[i] = Long(rcost[i]*scale) + 1L;
         }
 
-        // `sort` needs to be false here since there's a parallel reduce function
-        // in the processor map function, but we are executing only on root
-        int nprocs = ParallelDescriptor::NProcs();
-        r.KnapSackProcessorMap(cost, nprocs, &proposedEfficiency, true, nmax, false);
-
-        ComputeDistributionMappingEfficiency(rcost_local.DistributionMap(),
-                                             rcost,
-                                             &currentEfficiency);
+        if (keep_ratio > Real(0.0)) {
+            r.KnapSackProcessorMap(rcost_local.DistributionMap(), cost, keep_ratio,
+                                   currentEfficiency, proposedEfficiency, nmax);
+        } else {
+            int nprocs = ParallelDescriptor::NProcs();
+            // `sort` needs to be false here since there's a parallel reduce function
+            // in the processor map function, but we are executing only on root
+            r.KnapSackProcessorMap(cost,nprocs,&proposedEfficiency,true,nmax,false);
+            ComputeDistributionMappingEfficiency(rcost_local.DistributionMap(),
+                                                 rcost, &currentEfficiency);
+        }
     }
 
 #ifdef BL_USE_MPI
@@ -1490,17 +1669,16 @@ DistributionMapping::makeKnapSack (const LayoutData<Real>& rcost_local,
     // to all proc (optional)
     if (broadcastToAll)
     {
-        Vector<int> pmap(rcost_local.DistributionMap().size());
         if (ParallelDescriptor::MyProc() == root)
         {
-            pmap = r.ProcessorMap();
+            auto const& pmap = r.ProcessorMap();
+            ParallelDescriptor::Bcast(const_cast<int*>(pmap.data()), pmap.size(), root);
         }
-
-        // Broadcast vector from which to construct new distribution mapping
-        ParallelDescriptor::Bcast(&pmap[0], pmap.size(), root);
-        if (ParallelDescriptor::MyProc() != root)
+        else
         {
-            r = DistributionMapping(pmap);
+            Vector<int> pmap(rcost_local.DistributionMap().size());
+            ParallelDescriptor::Bcast(pmap.data(), pmap.size(), root);
+            r = DistributionMapping(std::move(pmap));
         }
     }
 #else
@@ -1508,53 +1686,6 @@ DistributionMapping::makeKnapSack (const LayoutData<Real>& rcost_local,
 #endif
 
     return r;
-}
-
-void
-DistributionMapping::ComputeDistributionMappingEfficiency (const DistributionMapping& dm,
-                                                           const Vector<Real>& cost,
-                                                           Real* efficiency)
-{
-    const int nprocs = ParallelDescriptor::NProcs();
-
-    // This will store mapping from processor to the costs of FABs it controls,
-    // (proc) --> ([cost_FAB_1, cost_FAB_2, ... ]),
-    // for each proc
-    Vector<Vector<Real>> rankToCosts(nprocs);
-
-    // Count the number of costs belonging to each rank
-    Vector<int> cnt(nprocs);
-    for (int i=0; i<dm.size(); ++i)
-    {
-        ++cnt[dm[i]];
-    }
-
-    for (int i=0; i<rankToCosts.size(); ++i)
-    {
-        rankToCosts[i].reserve(cnt[i]);
-    }
-
-    for (int i=0; i<cost.size(); ++i)
-    {
-        rankToCosts[dm[i]].push_back(cost[i]);
-    }
-
-    Real maxCost = -1.0;
-
-    // This will store mapping from (proc) --> (sum of cost) for each proc
-    Vector<Real> rankToCost(nprocs);
-    for (int i=0; i<nprocs; ++i)
-    {
-        const Real rwSum = std::accumulate(rankToCosts[i].begin(),
-                                           rankToCosts[i].end(), 0.0_rt);
-        rankToCost[i] = rwSum;
-        maxCost = std::max(maxCost, rwSum);
-    }
-
-    // Write `efficiency` (number between 0 and 1), the mean cost per processor
-    // (normalized to the max cost)
-    *efficiency = (std::accumulate(rankToCost.begin(),
-                                   rankToCost.end(), 0.0_rt) / (nprocs*maxCost));
 }
 
 namespace {

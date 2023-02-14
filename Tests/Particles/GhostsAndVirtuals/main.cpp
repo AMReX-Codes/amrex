@@ -763,7 +763,7 @@ int main(int argc, char* argv[])
   amrex::Print()<<"Original test"<<std::endl;
   test_ghosts_and_virtuals(parms);
 
-#ifndef AMREX_USE_DPCPP
+#ifndef AMREX_USE_SYCL
   amrex::Print()<<"RandomPerBox test"<<std::endl;
   test_ghosts_and_virtuals_randomperbox(parms);
 #endif

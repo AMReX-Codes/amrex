@@ -290,7 +290,9 @@ Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int
         {
             dstfa[box_no](i,j,k,n+dstcomp) += srcfa[box_no](i,j,k,n+srccomp);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -1309,6 +1311,8 @@ private:
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
     void build_arrays () const;
 
+    void clear_arrays ();
+
 public:
 
 #ifdef BL_USE_MPI
@@ -1663,6 +1667,22 @@ FabArray<FAB>::build_arrays () const
 }
 
 template <class FAB>
+void
+FabArray<FAB>::clear_arrays ()
+{
+#ifdef AMREX_USE_GPU
+    The_Pinned_Arena()->free(m_hp_arrays);
+    The_Arena()->free(m_dp_arrays);
+    m_dp_arrays = nullptr;
+#else
+    std::free(m_hp_arrays);
+#endif
+    m_hp_arrays = nullptr;
+    m_arrays.hp = nullptr;
+    m_const_arrays.hp = nullptr;
+}
+
+template <class FAB>
 AMREX_NODISCARD
 FAB*
 FabArray<FAB>::release (int K)
@@ -1718,14 +1738,7 @@ FabArray<FAB>::clear ()
         }
     }
     m_fabs_v.clear();
-#ifdef AMREX_USE_GPU
-    The_Pinned_Arena()->free(m_hp_arrays);
-    The_Arena()->free(m_dp_arrays);
-    m_dp_arrays = nullptr;
-#else
-    std::free(m_hp_arrays);
-#endif
-    m_hp_arrays = nullptr;
+    clear_arrays();
     m_factory.reset();
     m_dallocator.m_arena = nullptr;
     // no need to clear the non-blocking fillboundary stuff
@@ -2451,7 +2464,9 @@ FabArray<FAB>::setVal (value_type val,
         {
             fa[box_no](i,j,k,n+comp) = val;
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -2506,7 +2521,9 @@ FabArray<FAB>::setVal (value_type val,
                 fa[box_no](i,j,k,n+comp) = val;
             }
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -2554,7 +2571,9 @@ FabArray<FAB>::abs (int comp, int ncomp, const IntVect& nghost)
         {
             fa[box_no](i,j,k,n+comp) = amrex::Math::abs(fa[box_no](i,j,k,n+comp));
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -2588,7 +2607,9 @@ FabArray<FAB>::plus (value_type val, int comp, int num_comp, int nghost)
         {
             fa[box_no](i,j,k,n+comp) += val;
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -2624,7 +2645,9 @@ FabArray<FAB>::plus (value_type val, const Box& region, int comp, int num_comp, 
                 fa[box_no](i,j,k,n+comp) += val;
             }
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -2660,7 +2683,9 @@ FabArray<FAB>::mult (value_type val, int comp, int num_comp, int nghost)
         {
             fa[box_no](i,j,k,n+comp) *= val;
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -2696,7 +2721,9 @@ FabArray<FAB>::mult (value_type val, const Box& region, int comp, int num_comp, 
                 fa[box_no](i,j,k,n+comp) *= val;
             }
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -2732,7 +2759,9 @@ FabArray<FAB>::invert (value_type numerator, int comp, int num_comp, int nghost)
         {
             fa[box_no](i,j,k,n+comp) = numerator / fa[box_no](i,j,k,n+comp);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -2768,7 +2797,9 @@ FabArray<FAB>::invert (value_type numerator, const Box& region, int comp, int nu
                 fa[box_no](i,j,k,n+comp) = numerator / fa[box_no](i,j,k,n+comp);
             }
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -2794,10 +2825,7 @@ void
 FabArray<FAB>::shift (const IntVect& v)
 {
     clearThisBD();  // The new boxarry will have a different ID.
-    for(int id(0); id < AMREX_SPACEDIM; ++id)
-    {
-      boxarray.shift(id, v[id]);
-    }
+    boxarray.shift(v);
     addThisBD();
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
@@ -2806,6 +2834,7 @@ FabArray<FAB>::shift (const IntVect& v)
     {
         get(fai).shift(v);
     }
+    clear_arrays();
 }
 
 template <class FAB>
@@ -2828,7 +2857,9 @@ void FabArray<FAB>::Saxpy (FabArray<FAB>& y, value_type a, FabArray<FAB> const& 
         {
             yma[box_no](i,j,k,ycomp+n) += a * xma[box_no](i,j,k,xcomp+n);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -2873,7 +2904,9 @@ FabArray<FAB>::Xpay (FabArray<FAB>& y, value_type a, FabArray<FAB> const& x,
             yfa[box_no](i,j,k,n+ycomp) = xfa[box_no](i,j,k,n+xcomp)
                 +                    a * yfa[box_no](i,j,k,n+ycomp);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -2921,7 +2954,9 @@ FabArray<FAB>::LinComb (FabArray<FAB>& dst,
             dstma[box_no](i,j,k,dstcomp+n) = a*xma[box_no](i,j,k,xcomp+n)
                 +                            b*yma[box_no](i,j,k,ycomp+n);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -3315,7 +3350,9 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
                 fab(i,j,k,n) = physbnd;
             }
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {

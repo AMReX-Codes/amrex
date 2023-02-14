@@ -39,7 +39,7 @@ extern "C" {
 }
 #endif
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
 namespace {
     auto amrex_sycl_error_handler = [] (sycl::exception_list exceptions) {
         for (std::exception_ptr const& e : exceptions) {
@@ -58,6 +58,7 @@ namespace Gpu {
 
 int Device::device_id = 0;
 int Device::num_devices_used = 0;
+int Device::num_device_partners = 1;
 int Device::verbose = 0;
 #ifdef AMREX_USE_GPU
 int Device::max_gpu_streams = 4;
@@ -78,7 +79,7 @@ int                 Device::memory_pools_supported = 0;
 
 constexpr int Device::warp_size;
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
 std::unique_ptr<sycl::context> Device::sycl_context;
 std::unique_ptr<sycl::device>  Device::sycl_device;
 #endif
@@ -120,6 +121,7 @@ namespace {
 void
 Device::Initialize ()
 {
+#ifdef AMREX_USE_GPU
 
 #if defined(AMREX_USE_CUDA) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
     // Wrap cuda init to identify it appropriately in nvvp.
@@ -141,15 +143,15 @@ Device::Initialize ()
     pp.queryAdd("verbose", verbose);
 
     if (amrex::Verbose()) {
-        AMREX_HIP_OR_CUDA_OR_DPCPP
+        AMREX_HIP_OR_CUDA_OR_SYCL
             ( amrex::Print() << "Initializing HIP...\n";,
               amrex::Print() << "Initializing CUDA...\n";,
-              amrex::Print() << "Initializing oneAPI...\n"; )
+              amrex::Print() << "Initializing SYCL...\n"; )
     }
 
     // Count the number of GPU devices.
     int gpu_device_count = 0;
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
     {
         sycl::platform platform(sycl::gpu_selector_v);
         auto const& gpu_devices = platform.get_devices();
@@ -213,8 +215,10 @@ Device::Initialize ()
 
 #if defined(AMREX_USE_CUDA)
 #if (!defined(AMREX_GPUS_PER_SOCKET) && !defined(AMREX_GPUS_PER_NODE))
-        amrex::Warning("Multiple GPUs are visible to each MPI rank, but the number of GPUs per socket or node has not been provided.\n"
-                       "This may lead to incorrect or suboptimal rank-to-GPU mapping.");
+        if (amrex::Verbose()) {
+            amrex::Warning("Multiple GPUs are visible to each MPI rank, but the number of GPUs per socket or node has not been provided.\n"
+                           "This may lead to incorrect or suboptimal rank-to-GPU mapping.");
+        }
 #endif
 #endif
 
@@ -256,7 +260,7 @@ Device::Initialize ()
         // that this will fail in the case where the devices are
         // set to exclusive process mode and MPS is not enabled.
 
-        if (n_local_procs > gpu_device_count) {
+        if (n_local_procs > gpu_device_count && amrex::Verbose()) {
             amrex::Print() << "Mapping more than one rank per GPU. This will fail if the GPUs are in exclusive process mode\n"
                            << "and MPS is not enabled. In that case you will see an error such as: 'all CUDA-capable devices are\n"
                            << "busy'. To resolve that issue, set the GPUs to the default compute mode, or enable MPS. If you are\n"
@@ -276,108 +280,132 @@ Device::Initialize ()
 
     initialize_gpu();
 
+    num_devices_used = ParallelDescriptor::NProcs();
+
+#ifdef AMREX_USE_MPI
+    if (ParallelDescriptor::NProcs() > 1) {
+
+#if defined(HIP_VERSION_MAJOR) && defined(HIP_VERSION_MINOR) && ((HIP_VERSION_MAJOR < 5) || ((HIP_VERSION_MAJOR == 5) && (HIP_VERSION_MINOR < 2)))
+
+        // hip < 5.2: uuid not supported
+        num_device_partners = 1;
+
+#elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+
+        constexpr int len = 16;
+        static_assert(std::is_same<decltype(AMREX_HIP_OR_CUDA(hipUUID,cudaUUID_t)::bytes),
+                                   char[len]>());
+        std::vector<char> buf(ParallelDescriptor::NProcs()*len);
+        char* pbuf = buf.data();
 #ifdef AMREX_USE_CUDA
-
-    // Count up the total number of devices used by
-    // all MPI ranks. Since we have to consider the
-    // case of multiple ranks per GPU, we cannot simply
-    // set it to the number of MPI ranks. A reliable way
-    // to do this instead is to collect the UUID of each
-    // GPU used by every rank, perform a gather, and then
-    // count the number of unique UUIDs in the result.
-
-    // Note: the field we need from the CUDA device properties
-    // is only available starting from CUDA 10.0, so we will
-    // leave num_devices_used as 0 for older CUDA toolkits.
-
-    size_t uuid_length = 16;
-    size_t recv_sz = uuid_length * ParallelDescriptor::NProcs();
-    const char* sendbuf = &device_prop.uuid.bytes[0];
-    char* recvbuf = new char[recv_sz];
-
-    ParallelDescriptor::Gather<char,char>(sendbuf, uuid_length,
-                                          recvbuf, uuid_length,
-                                          ParallelDescriptor::IOProcessorNumber());
-
-    if (ParallelDescriptor::IOProcessor()) {
-        std::unordered_set<std::string> uuids;
-        for (int i = 0; i < ParallelDescriptor::NProcs(); ++i) {
-            std::string uuid(&recvbuf[16 * i], 16);
-            if (uuids.find(uuid) == uuids.end()) {
-                uuids.insert(uuid);
-            }
-        }
-        num_devices_used = uuids.size();
-    }
-    ParallelDescriptor::Bcast<int>(&num_devices_used, 1);
-
-    delete[] recvbuf;
-
-#if (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
-    nvtxRangePop();
+        auto const& uuid = device_prop.uuid;
+#else
+        hipUUID uuid;
+        AMREX_HIP_SAFE_CALL(hipDeviceGetUuid(&uuid, device_id));
 #endif
-    if (amrex::Verbose()) {
-#if defined(AMREX_USE_MPI)
-        if (num_devices_used == ParallelDescriptor::NProcs())
-        {
-            amrex::Print() << "CUDA initialized with 1 GPU per MPI rank; "
-                           << num_devices_used << " GPU(s) used in total\n";
+        char const* sbuf = uuid.bytes;
+        MPI_Allgather(sbuf, len, MPI_CHAR, pbuf, len, MPI_CHAR,
+                      ParallelDescriptor::Communicator());
+        std::map<std::string,int> uuid_counts;
+        std::string my_uuid;
+        for (int i = 0; i < ParallelDescriptor::NProcs(); ++i) {
+            std::string iuuid(pbuf+i*len, len);
+            if (i == ParallelDescriptor::MyProc()) {
+                my_uuid = iuuid;
+            }
+            ++uuid_counts[iuuid];
         }
-        else
-        {
-            amrex::Print() << "CUDA initialized with " << num_devices_used << " GPU(s) and "
-                           << ParallelDescriptor::NProcs() << " ranks.\n";
+        num_devices_used = uuid_counts.size();
+        num_device_partners = uuid_counts[my_uuid];
+
+#elif defined(AMREX_USE_SYCL)
+
+#if 0
+        auto const& d = *sycl_device;
+        if (d.has(sycl::aspect::ext_intel_device_info_uuid)) {
+            auto uuid = d.get_info<sycl::ext::intel::info::device::uuid>();
+            using id_t = decltype(uuid); // std::array<unsigned char,16>
+            using char_t = id_t::value_type; // unsigned char
+            int len = std::tuple_size<id_t>::value;
+            std::vector<char_t> buf(ParallelDescriptor::NProcs()*len);
+            char_t* pbuf = buf.data();
+            MPI_Allgather(uuid.data(), len,
+                          ParallelDescriptor::Mpi_typemap<char_t>::type(),
+                          pbuf, len,
+                          ParallelDescriptor::Mpi_typemap<char_t>::type(),
+                          ParallelDescriptor::Communicator());
+            using str_t = std::basic_string<char_t>;
+            std::map<str_t,int> uuid_counts;
+            str_t my_uuid;
+            for (int i = 0; i < ParallelDescriptor::NProcs(); ++i) {
+                str_t iuuid(pbuf+i*len, len);
+                if (i == ParallelDescriptor::MyProc()) {
+                    my_uuid = iuuid;
+                }
+                ++uuid_counts[iuuid];
+            }
+            num_devices_used = uuid_counts.size();
+            num_device_partners = uuid_counts[my_uuid];
         }
 #else
-        amrex::Print() << "CUDA initialized with 1 GPU\n";
-#endif // AMREX_USE_MPI
+        num_device_partners = 1;  // xxxxx SYCL: todo, also check memory available when implicit scaling is off.
+#endif
+
+#endif
+
+        AMREX_ALWAYS_ASSERT(num_device_partners > 0);
+    }
+#endif /* AMREX_USE_MPI */
+
+    if (amrex::Verbose()) {
+#if defined(AMREX_USE_CUDA)
+        amrex::Print() << "CUDA"
+#elif defined(AMREX_USE_HIP)
+        amrex::Print() << "HIP"
+#elif defined(AMREX_USE_SYCL)
+        amrex::Print() << "SYCL"
+#endif
+                       << " initialized with " << num_devices_used
+                       << ((num_devices_used == 1) ? " device.\n"
+                                                   : " devices.\n");
     }
 
-#elif defined(AMREX_USE_HIP)
-    if (amrex::Verbose()) {
-        if (ParallelDescriptor::NProcs() > 1) {
-#ifdef BL_USE_MPI
-            amrex::Print() << "HIP initialized.  On the first node/socket, there are "
-                           << n_local_procs << " processes and " << gpu_device_count << " GPUs\n";
-#endif
-        } else {
-            amrex::Print() << "HIP initialized.\n";
-        }
-    }
-#elif defined(AMREX_USE_DPCPP)
-    if (amrex::Verbose()) {
-        amrex::Print() << "oneAPI initialized.\n";
-    }
+#if defined(AMREX_USE_CUDA) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
+    nvtxRangePop();
 #endif
 
     Device::profilerStart();
 
+#endif /* AMREX_USE_GPU */
 }
 
 void
 Device::Finalize ()
 {
-
+#ifdef AMREX_USE_GPU
     Device::profilerStop();
 
+#ifdef AMREX_USE_SYCL
+    for (auto& s : gpu_stream_pool) {
+        delete s.queue;
+        s.queue = nullptr;
+    }
+    sycl_context.reset();
+    sycl_device.reset();
+#else
     for (int i = 0; i < max_gpu_streams; ++i)
     {
         AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL( hipStreamDestroy(gpu_stream_pool[i]));,
                           AMREX_CUDA_SAFE_CALL(cudaStreamDestroy(gpu_stream_pool[i])); );
     }
-
-#ifdef AMREX_USE_DPCPP
-    sycl_context.reset();
-    sycl_device.reset();
-    for (auto& s : gpu_stream_pool) {
-        delete s.queue;
-        s.queue = nullptr;
-    }
-    gpu_stream.clear();
 #endif
+
+    gpu_stream.clear();
 
 #ifdef AMREX_USE_ACC
     amrex_finalize_acc();
+#endif
+
 #endif
 }
 
@@ -425,7 +453,7 @@ Device::initialize_gpu ()
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(warp_size == device_prop.warpSize, "Incorrect warp size");
 
-#elif defined(AMREX_USE_DPCPP)
+#elif defined(AMREX_USE_SYCL)
     { // create device, context and queues
         sycl::platform platform(sycl::gpu_selector_v);
         auto const& gpu_devices = platform.get_devices();
@@ -443,13 +471,13 @@ Device::initialize_gpu ()
         device_prop.totalGlobalMem = d.get_info<sycl::info::device::global_mem_size>();
         device_prop.sharedMemPerBlock = d.get_info<sycl::info::device::local_mem_size>();
         device_prop.multiProcessorCount = d.get_info<sycl::info::device::max_compute_units>();
-        device_prop.maxThreadsPerMultiProcessor = -1; // xxxxx DPCPP todo: d.get_info<sycl::info::device::max_work_items_per_compute_unit>(); // unknown
+        device_prop.maxThreadsPerMultiProcessor = -1; // xxxxx SYCL todo: d.get_info<sycl::info::device::max_work_items_per_compute_unit>(); // unknown
         device_prop.maxThreadsPerBlock = d.get_info<sycl::info::device::max_work_group_size>();
         auto mtd = d.get_info<sycl::info::device::max_work_item_sizes<3>>();
         device_prop.maxThreadsDim[0] = mtd[0];
         device_prop.maxThreadsDim[1] = mtd[1];
         device_prop.maxThreadsDim[2] = mtd[2];
-        device_prop.maxGridSize[0] = -1; // xxxxx DPCPP todo: unknown
+        device_prop.maxGridSize[0] = -1; // xxxxx SYCL todo: unknown
         device_prop.maxGridSize[0] = -1; // unknown
         device_prop.maxGridSize[0] = -1; // unknown
         device_prop.warpSize = warp_size;
@@ -458,6 +486,7 @@ Device::initialize_gpu ()
         device_prop.managedMemory = d.has(sycl::aspect::usm_host_allocations);
         device_prop.concurrentManagedAccess = d.has(sycl::aspect::usm_shared_allocations);
         device_prop.maxParameterSize = d.get_info<sycl::info::device::max_parameter_size>();
+        if (verbose)
         {
             amrex::Print() << "Device Properties:\n"
                            << "  name: " << device_prop.name << "\n"
@@ -522,8 +551,8 @@ Device::initialize_gpu ()
         InitializeGraph(graph_size);
     }
 
-#ifdef AMREX_USE_DPCPP
-    // max_blocks_per_launch = 100000; // xxxxx DPCPP todo
+#ifdef AMREX_USE_SYCL
+    // max_blocks_per_launch = 100000; // xxxxx SYCL todo
 #else
     max_blocks_per_launch = 4 * numMultiProcessors() * maxThreadsPerMultiProcessor() / AMREX_GPU_MAX_THREADS;
 #endif
@@ -541,6 +570,11 @@ int
 Device::numDevicesUsed () noexcept
 {
     return num_devices_used;
+}
+
+int Device::numDevicePartners () noexcept
+{
+    return num_device_partners;
 }
 
 #ifdef AMREX_USE_GPU
@@ -585,7 +619,7 @@ Device::setStream (gpuStream_t s) noexcept
 void
 Device::synchronize () noexcept
 {
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
     for (auto const& s : gpu_stream_pool) {
         try {
             s.queue->wait_and_throw();
@@ -602,7 +636,7 @@ Device::synchronize () noexcept
 void
 Device::streamSynchronize () noexcept
 {
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
     auto& q = streamQueue();
     try {
         q.wait_and_throw();
@@ -619,7 +653,7 @@ void
 Device::streamSynchronizeAll () noexcept
 {
 #ifdef AMREX_USE_GPU
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
     Device::synchronize();
 #else
     for (auto const& s : gpu_stream_pool) {
@@ -759,8 +793,8 @@ Device::mem_advise_set_preferred (void* p, const std::size_t sz, const int devic
              AMREX_CUDA_SAFE_CALL(
                  cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device)));
     }
-#elif defined(AMREX_USE_DPCPP)
-    // xxxxx DPCPP todo: mem_advise
+#elif defined(AMREX_USE_SYCL)
+    // xxxxx SYCL todo: mem_advise
     // if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
     // {
     //     auto& q = Gpu::Device::streamQueue();
@@ -782,8 +816,8 @@ Device::mem_advise_set_readonly (void* p, const std::size_t sz)
              AMREX_CUDA_SAFE_CALL(
                  cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId)));
     }
-#elif defined(AMREX_USE_DPCPP)
-    // xxxxx DPCPP todo: mem_advise
+#elif defined(AMREX_USE_SYCL)
+    // xxxxx SYCL todo: mem_advise
     // if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
     // {
     //     auto& q = Gpu::Device::streamQueue();
@@ -961,12 +995,12 @@ Device::freeMemAvailable ()
 {
 #ifdef AMREX_USE_GPU
     std::size_t f;
-#ifndef AMREX_USE_DPCPP
+#ifndef AMREX_USE_SYCL
     std::size_t t;
 #endif
-    AMREX_HIP_OR_CUDA_OR_DPCPP( AMREX_HIP_SAFE_CALL(hipMemGetInfo(&f,&t));,
+    AMREX_HIP_OR_CUDA_OR_SYCL( AMREX_HIP_SAFE_CALL(hipMemGetInfo(&f,&t));,
                                 AMREX_CUDA_SAFE_CALL(cudaMemGetInfo(&f,&t));,
-                                f = device_prop.totalGlobalMem; ); // xxxxx DPCPP todo
+                                f = device_prop.totalGlobalMem; ); // xxxxx SYCL todo
     return f;
 #else
     return 0;
