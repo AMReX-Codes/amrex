@@ -37,16 +37,16 @@ void addParticles ()
 
     T_PC pc(geom, dm, ba);
 
-    int const NReal = pc.NStructReal;
-    int const NInt = pc.NStructInt;
+    //int const NReal = pc.NStructReal;
+    //int const NInt = pc.NStructInt;
     int const NArrayReal = pc.NArrayReal;
     int const NArrayInt = pc.NArrayInt;
 
     using ParticleType = typename T_PC::ParticleType;
     using ParticleTileDataType = typename T_PC::ParticleTileType::ParticleTileDataType;
-    using RealVector = amrex::PODVector<ParticleReal, Allocator<ParticleReal> >;
-    using IntVector = amrex::PODVector<int, Allocator<int> >;
-    using SPType = typename T_PC::SuperParticleType;
+    //using RealVector = amrex::PODVector<ParticleReal, Allocator<ParticleReal> >;
+    //using IntVector = amrex::PODVector<int, Allocator<int> >;
+    //using SPType = typename T_PC::SuperParticleType;
 
     const int add_num_particles = 5;
 
@@ -63,7 +63,7 @@ void addParticles ()
         ptile1.id(i) = 1;
         ptile1.cpu(i) = 1;
     }
-    
+
     int lev=0;
     // int numparticles=0;
     using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
@@ -75,8 +75,8 @@ void addParticles ()
 
         // preparing access to particle data: AoS
         //using PType = ImpactXParticleContainer::ParticleType;
-        auto& aos = pti.GetArrayOfStructs();
-        ParticleType* AMREX_RESTRICT aos_ptr = aos().dataPtr();
+        //auto& aos = pti.GetArrayOfStructs();
+        //ParticleType* AMREX_RESTRICT aos_ptr = aos().dataPtr();
 
         // preparing access to particle data: SoA of Reals
         auto& soa = pti.GetStructOfArrays();
@@ -87,6 +87,7 @@ void addParticles ()
         amrex::ParticleReal* const AMREX_RESTRICT part_z = soa_real[2].dataPtr();
         amrex::ParticleReal* const AMREX_RESTRICT part_aaa = soa_real[3].dataPtr();
         auto& soa_int = pti.GetStructOfArrays().GetIntData();
+        amrex::ignore_unused(size, part_x, part_y, part_z, part_aaa, soa_int);
 
         // Iterating over old Particles
         // ParallelFor( np, [=] AMREX_GPU_DEVICE (long ip)
@@ -125,7 +126,7 @@ void addParticles ()
     //ParticleContainer<1,1> pc_og;
     auto tmp = pc.template make_alike<amrex::PinnedArenaAllocator>();
     tmp.copyParticles(pc, true);
-    
+
     using MyPinnedParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt, amrex::PinnedArenaAllocator>;
 
     for (MyPinnedParIter pti(tmp, lev); pti.isValid(); ++pti) {
@@ -162,8 +163,9 @@ void addParticles ()
         },
         reduce_ops
     );
+    amrex::ignore_unused(r);
 
-    // Reduce for SoA Particle Struct 
+    // Reduce for SoA Particle Struct
     /*
     using PTDType = typename T_PC::ParticleTileType::ConstParticleTileDataType;
     amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
@@ -177,10 +179,10 @@ void addParticles ()
                 const int c = ptd.idata(1)[i];
                 return {a, b, c};
              }, reduce_ops);
-  
-    AMREX_ALWAYS_ASSERT(amrex::get<0>(r) == amrex::Real(std::pow(256, AMREX_SPACEDIM))); 
-    AMREX_ALWAYS_ASSERT(amrex::get<1>(r) == 2.0); 
-    AMREX_ALWAYS_ASSERT(amrex::get<2>(r) == 1); 
+
+    AMREX_ALWAYS_ASSERT(amrex::get<0>(r) == amrex::Real(std::pow(256, AMREX_SPACEDIM)));
+    AMREX_ALWAYS_ASSERT(amrex::get<1>(r) == 2.0);
+    AMREX_ALWAYS_ASSERT(amrex::get<2>(r) == 1);
     */
 }
 
@@ -196,6 +198,6 @@ int main(int argc, char* argv[])
     amrex::Finalize();
  }
 
- 
+
 
 
