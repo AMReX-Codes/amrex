@@ -16,6 +16,8 @@ namespace amrex {
 
 // Forward Declaration
 template <int NArrayReal, int NArrayInt>
+struct ConstSoAParticle;
+template <int NArrayReal, int NArrayInt>
 struct SoAParticle;
 
 template <typename T_ParticleType, int NArrayReal, int NArrayInt>
