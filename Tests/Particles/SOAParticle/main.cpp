@@ -59,9 +59,8 @@ void addParticles ()
         ptile1.pos(i, 1) = 12.0;
         ptile1.pos(i, 2) = 12.0;
 
-        // TODO
-        ptile1.id(i) = 1;
-        ptile1.cpu(i) = 1;
+        ptile1.push_back_int(0, ParticleType::NextID());
+        ptile1.push_back_int(1, amrex::ParallelDescriptor::MyProc());
     }
 
     int lev=0;
