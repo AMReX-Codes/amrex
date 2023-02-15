@@ -215,13 +215,12 @@ struct ConstSoAParticle : SoAParticleBase
 
     using RealType = ParticleReal;
 
-    //static Long the_next_id;
-
-    ConstSoAParticle (ConstPTD ptd, int const index)
+    ConstSoAParticle(ConstPTD const ptd, long i) :
+        m_constparticle_tile_data(ptd), m_index(i)
     {
-        m_constparticle_tile_data=ptd;
-        m_index=index;
     }
+
+    //static Long the_next_id;
 
     //functions to get id and cpu in the SOA data
 
@@ -278,13 +277,12 @@ struct SoAParticle : SoAParticleBase
     using ConstType = ConstSoAParticle<T_NArrayReal, T_NArrayInt>;
     using RealType = ParticleReal;
 
-    static Long the_next_id;
-
-    SoAParticle (PTD ptd, int const index)
+    SoAParticle(PTD const ptd, long i) :
+        m_particle_tile_data(ptd), m_index(i)
     {
-        m_particle_tile_data=ptd;
-        m_index=index;
     }
+
+    static Long the_next_id;
 
     //functions to get id and cpu in the SOA data
 
