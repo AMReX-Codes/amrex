@@ -1663,7 +1663,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 
                   if (p.id() < 0){
 
-                      p = ParticleType(ptd,last);
+                      ParticleType p2(ptd,last); // here
+                      p = p2;
                       for (int comp = 0; comp < NumRealComps(); comp++)
                           soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                       for (int comp = 0; comp < NumIntComps(); comp++)
@@ -1678,7 +1679,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                   particlePostLocate(p, pld, lev);
 
                   if (p.id() < 0){
-                      p = ParticleType(ptd,last);
+                      ParticleType p2(ptd,last);
+                      p = p2;
                       for (int comp = 0; comp < NumRealComps(); comp++)
                           soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                       for (int comp = 0; comp < NumIntComps(); comp++)
@@ -1734,7 +1736,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                     }
 
                   if (p.id() < 0){
-                      p = ParticleType(ptd,last);
+                      ParticleType p2(ptd,last);
+                      p = p2;
                       for (int comp = 0; comp < NumRealComps(); comp++)
                           soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                       for (int comp = 0; comp < NumIntComps(); comp++)
