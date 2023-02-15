@@ -36,8 +36,6 @@ struct ParticleTileData
 
     using SuperParticleType = Particle<NStructReal+NAR, NStructInt+NAI>;
 
-    static_assert(!std::is_same<ParticleType, SoAParticle<3,4>>::value || NAR != 0, "ParticleTileData NAR==0");
-
     Long m_size;
 
     ParticleType* AMREX_RESTRICT m_aos;
