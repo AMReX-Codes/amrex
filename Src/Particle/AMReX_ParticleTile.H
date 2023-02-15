@@ -470,7 +470,7 @@ struct ConstParticleTileData
             sp.pos(i) = m_aos[index].pos(i);
         for (int i = 0; i < NStructReal; ++i)
             sp.rdata(i) = m_aos[index].rdata(i);
-        if constexpr(NArrayReal > 0)    
+        if constexpr(NArrayReal > 0)
             for (int i = 0; i < NArrayReal; ++i)
                 sp.rdata(NStructReal+i) = m_rdata[i][index];
         sp.id() = m_aos[index].id();
@@ -547,7 +547,7 @@ struct ParticleTile
         m_runtime_i_cptrs.resize(a_num_runtime_int);
     }
 
-    // Get cpu data 
+    // Get cpu data
 
     // AoS
     template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
@@ -570,7 +570,7 @@ struct ParticleTile
         return p.cpu();
     }
 
-    // const 
+    // const
 
     template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
     ConstParticleCPUWrapper cpu (int index) const & {
@@ -594,7 +594,7 @@ struct ParticleTile
         return p.id();
     }
 
-    // SoA 
+    // SoA
     template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
     ParticleIDWrapper id (int index) & {
         ParticleType& p = m_aos_tile().dataPtr()[index];
