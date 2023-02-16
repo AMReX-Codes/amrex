@@ -38,7 +38,7 @@ amrex_setvol (Box const& bx, Array4<Real> const& vol,
                 Real ri = offset[0] + dx[0]*(i);
                 Real ro = ri + dx[0];
                 Real v = pi*dx[1]*dx[0]*(ro + ri);
-                vol(i,j,0) = amrex::Math::abs(v);
+                vol(i,j,0) = std::abs(v);
             }
         }
     }
@@ -54,7 +54,7 @@ amrex_setvol (Box const& bx, Array4<Real> const& vol,
                 Real ri = offset[0] + dx[0]*(i);
                 Real ro = ri + dx[0];
                 Real v = tmp*(ro-ri)*(ro*ro+ro*ri+ri*ri);
-                vol(i,j,0) = amrex::Math::abs(v);
+                vol(i,j,0) = std::abs(v);
             }
         }
     }
@@ -89,7 +89,7 @@ amrex_setarea (Box const& bx, Array4<Real> const& area,
                 AMREX_PRAGMA_SIMD
                 for (int i = lo.x; i <= hi.x; ++i) {
                     Real ri = offset[0] + dx[0]*(i);
-                    Real a = amrex::Math::abs((Real(2.)*pi)*ri*dx[1]);
+                    Real a = std::abs((Real(2.)*pi)*ri*dx[1]);
                     area(i,j,0) = a;
                 }
             }
@@ -100,7 +100,7 @@ amrex_setarea (Box const& bx, Array4<Real> const& area,
                 AMREX_PRAGMA_SIMD
                 for (int i = lo.x; i <= hi.x; ++i) {
                     Real rc = offset[0] + dx[0]*(i+Real(0.5));
-                    Real a = amrex::Math::abs(dx[0]*(Real(2.)*pi)*rc);
+                    Real a = std::abs(dx[0]*(Real(2.)*pi)*rc);
                     area(i,j,0) = a;
                 }
             }

@@ -427,7 +427,7 @@ void N_VAbs_MultiFab(N_Vector x, N_Vector z)
          amrex::ParallelFor(bx, ncomp,
          [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept
          {
-             z_fab(i,j,k,c) = amrex::Math::abs(x_fab(i,j,k,c));
+             z_fab(i,j,k,c) = std::abs(x_fab(i,j,k,c));
          });
     }
 }
@@ -616,7 +616,7 @@ void N_VCompare_MultiFab(amrex::Real a, N_Vector x, N_Vector z)
          amrex::ParallelFor(bx, ncomp,
          [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept
          {
-           z_fab(i,j,k,c) = (amrex::Math::abs(x_fab(i,j,k,c)) >= a) ? amrex::Real(1.0) : amrex::Real(0.0);
+           z_fab(i,j,k,c) = (std::abs(x_fab(i,j,k,c)) >= a) ? amrex::Real(1.0) : amrex::Real(0.0);
          });
     }
 
@@ -685,8 +685,8 @@ int N_VConstrMask_MultiFab(N_Vector a_a, N_Vector a_x, N_Vector a_m)
                     amrex::Real a, x;
                     a = a_fab(i,j,k,c);
                     x = x_fab(i,j,k,c);
-                    int test = (amrex::Math::abs(a) > amrex::Real(1.5) && x*a <= amrex::Real(0.0)) ||
-                        (amrex::Math::abs(a) > amrex::Real(0.5)   && x*a <  amrex::Real(0.0));
+                    int test = (std::abs(a) > amrex::Real(1.5) && x*a <= amrex::Real(0.0)) ||
+                        (std::abs(a) > amrex::Real(0.5)   && x*a <  amrex::Real(0.0));
                     if (test) {
                         m_fab(i,j,k,c) = amrex::Real(1.0);
                     }

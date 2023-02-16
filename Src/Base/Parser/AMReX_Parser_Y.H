@@ -288,9 +288,9 @@ parser_call_f1 (enum parser_f1_t type, double a)
     case PARSER_SINH:        return parser_math_sinh<double>(a);
     case PARSER_COSH:        return parser_math_cosh<double>(a);
     case PARSER_TANH:        return parser_math_tanh<double>(a);
-    case PARSER_ABS:         return amrex::Math::abs(a);
-    case PARSER_FLOOR:       return amrex::Math::floor(a);
-    case PARSER_CEIL:        return amrex::Math::ceil(a);
+    case PARSER_ABS:         return std::abs(a);
+    case PARSER_FLOOR:       return std::floor(a);
+    case PARSER_CEIL:        return std::ceil(a);
     case PARSER_POW_M3:      return 1.0/(a*a*a);
     case PARSER_POW_M2:      return 1.0/(a*a);
     case PARSER_POW_M1:      return 1.0/a;

@@ -285,12 +285,12 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<Int> const& ncols,
             Real f = fac[0];
 
             if (area != Real(1.0)) {
-                joff = static_cast<int>(Math::copysign(Real(1.0), fcx(i,j,k)));
+                joff = static_cast<int>(std::copysign(Real(1.0), fcx(i,j,k)));
                 jj = j+joff;
                 if (cell_id(i-1,jj,k) < 0 && cell_id(i,jj,k) < 0) {
                     fracy = Real(0.0);
                 } else {
-                    fracy = Math::abs(fcx(i,j,k));
+                    fracy = std::abs(fcx(i,j,k));
                 }
             } else {
                 joff = 0;
@@ -334,12 +334,12 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<Int> const& ncols,
             Real f = fac[0];
 
             if (area != Real(1.0)) {
-                joff = static_cast<int>(Math::copysign(Real(1.0), fcx(i+1,j,k)));
+                joff = static_cast<int>(std::copysign(Real(1.0), fcx(i+1,j,k)));
                 jj = j+joff;
                 if (cell_id(i,jj,k) < 0 && cell_id(i+1,jj,k) < 0) {
                     fracy = Real(0.0);
                 } else {
-                    fracy = Math::abs(fcx(i+1,j,k));
+                    fracy = std::abs(fcx(i+1,j,k));
                 }
             } else {
                 joff = 0;
@@ -383,12 +383,12 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<Int> const& ncols,
             Real f = fac[1];
 
             if (area != Real(1.0)) {
-                ioff = static_cast<int>(Math::copysign(Real(1.0), fcy(i,j,k)));
+                ioff = static_cast<int>(std::copysign(Real(1.0), fcy(i,j,k)));
                 ii = i+ioff;
                 if (cell_id(ii,j-1,k) < 0 && cell_id(ii,j,k) < 0) {
                     fracx = Real(0.0);
                 } else {
-                    fracx = Math::abs(fcy(i,j,k));
+                    fracx = std::abs(fcy(i,j,k));
                 }
             } else {
                 ioff = 0;
@@ -432,12 +432,12 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<Int> const& ncols,
             Real f = fac[1];
 
             if (area != Real(1.0)) {
-                ioff = static_cast<int>(Math::copysign(Real(1.0), fcy(i,j+1,k)));
+                ioff = static_cast<int>(std::copysign(Real(1.0), fcy(i,j+1,k)));
                 ii = i+ioff;
                 if (cell_id(ii,j,k) < 0 && cell_id(ii,j+1,k) < 0) {
                     fracx = Real(0.0);
                 } else {
-                    fracx = Math::abs(fcy(i,j+1,k));
+                    fracx = std::abs(fcy(i,j+1,k));
                 }
             } else {
                 ioff = 0;
@@ -479,11 +479,11 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<Int> const& ncols,
             Real anorminv = Real(1.0)/anorm;
             Real anrmx = (apx(i,j,k) - apx(i+1,j,k))*anorminv;
             Real anrmy = (apy(i,j,k) - apy(i,j+1,k))*anorminv;
-            Real sx   = Math::copysign(Real(1.0),anrmx);
-            Real sy   = Math::copysign(Real(1.0),anrmy);
+            Real sx   = std::copysign(Real(1.0),anrmx);
+            Real sy   = std::copysign(Real(1.0),anrmy);
             Real bctx = bcen(i,j,k,0);
             Real bcty = bcen(i,j,k,1);
-            Real dg   = get_dx_eb(vfrc(i,j,k)) / amrex::max(Math::abs(anrmx), Math::abs(anrmy));
+            Real dg   = get_dx_eb(vfrc(i,j,k)) / amrex::max(std::abs(anrmx), std::abs(anrmy));
             Real gx   = bctx - dg*anrmx;
             Real gy   = bcty - dg*anrmy;
             int ioff = -static_cast<int>(sx);

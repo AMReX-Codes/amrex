@@ -30,25 +30,9 @@ namespace amrex { inline namespace disabled {
 
 namespace amrex { namespace Math {
 
-#ifdef AMREX_USE_SYCL
-
-//List of unsupported math function can be found at
-// https://github.com/intel/llvm/blob/sycl/sycl/doc/extensions/C-CXX-StandardLibrary/C-CXX-StandardLibrary.rst
-
-//using sycl::abs;
-// We have to do this because somehow sycl::abs(int) return unsigned int.
-//template <typename T> T abs (T a) { return sycl::abs(a); } // The compiler seems to have trouble with this on DG1.
-template <typename T> T abs (T a) { return (a >= T(0)) ? a : -a; }
-
-using sycl::ceil;
-using sycl::copysign;
-using sycl::floor;
-using sycl::round;
-using sycl::isfinite;
-using sycl::isinf;
-
-#else
-
+// Since Intel's SYCL compiler now supports the following std functions on device,
+// one no longer needs to use amrex::Math::abs, etc.  They are kept here for
+// backward compatability.
 using std::abs;
 using std::ceil;
 using std::copysign;
@@ -56,8 +40,6 @@ using std::floor;
 using std::round;
 using std::isfinite;
 using std::isinf;
-
-#endif
 
 template <typename T>
 constexpr std::enable_if_t<std::is_floating_point<T>::value,T> pi ()

@@ -756,7 +756,7 @@ As another example, the following function computes the max- and 1-norm of a
                    noexcept -> GpuTuple<Real,Real>
                {
                    if (mask_ma[box_no](i,j,k)) {
-                       Real a = amrex::Math::abs(data_ma[box_no](i,j,k));
+                       Real a = std::abs(data_ma[box_no](i,j,k));
                        return { a, a };
                    } else {
                        return { 0., 0. };

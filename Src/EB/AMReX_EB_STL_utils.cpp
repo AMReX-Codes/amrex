@@ -36,10 +36,10 @@ namespace {
     Real sign (Real x1, Real y1, Real x2, Real y2, Real x3, Real y3)
     {
         Real cp = (x2-x1)*(y3-y2) - (x3-x2)*(y2-y1);
-        if (amrex::Math::abs(cp) < std::numeric_limits<Real>::epsilon()) {
+        if (std::abs(cp) < std::numeric_limits<Real>::epsilon()) {
             return 0._rt;
         } else {
-            return amrex::Math::copysign(1.0_rt, cp);
+            return std::copysign(1.0_rt, cp);
         }
     }
 
@@ -78,9 +78,9 @@ namespace {
             Real s2 = sign(v2.y, v2.z, v3.y, v3.z, y, z);
             Real s3 = sign(v3.y, v3.z, v1.y, v1.z, y, z);
             if (s1 == 0._rt || s2 == 0._rt || s3 == 0._rt || (s1 == s2 && s2 == s3)) {
-                if (amrex::Math::abs(x1-x) < std::numeric_limits<Real>::epsilon()) {
+                if (std::abs(x1-x) < std::numeric_limits<Real>::epsilon()) {
                     return std::make_pair(true,x1);
-                } else if (amrex::Math::abs(x2-x) < std::numeric_limits<Real>::epsilon()) {
+                } else if (std::abs(x2-x) < std::numeric_limits<Real>::epsilon()) {
                     return std::make_pair(true,x2);
                 } else if (x>x1 && x<x2) {
                     return std::make_pair(true,x);

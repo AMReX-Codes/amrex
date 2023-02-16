@@ -281,7 +281,7 @@ struct ImplicitIntegral
             Real dphi_max = 0.0_rt;
             for (int dim = 0; dim < N; ++dim) {
                 if (free[dim]) {
-                    dphi_max += amrex::Math::abs(phi.grad(dim));
+                    dphi_max += std::abs(phi.grad(dim));
                 } else {
                     mid[dim] = xrange(psi[i].side(dim),dim);
                 }
@@ -401,7 +401,7 @@ struct ImplicitIntegral
                     mag += phi.grad(dim)*phi.grad(dim);
                 }
                 mag = std::sqrt(mag);
-                f.evalIntegrand(x, (mag/amrex::Math::abs(phi.grad(e0)))*w);
+                f.evalIntegrand(x, (mag/std::abs(phi.grad(e0)))*w);
             }
 
             return;
@@ -537,8 +537,8 @@ struct ImplicitIntegral
         {
             Real gmax = -1.;
             for (int dim = 0; dim < N; ++dim) {
-                if (free[dim] && amrex::Math::abs(phi.grad(dim)) > gmax) {
-                    gmax = amrex::Math::abs(phi.grad(dim));
+                if (free[dim] && std::abs(phi.grad(dim)) > gmax) {
+                    gmax = std::abs(phi.grad(dim));
                     e0 = dim;
                 }
             }

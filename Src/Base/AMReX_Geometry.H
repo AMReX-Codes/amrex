@@ -73,7 +73,7 @@ public:
             T lo = static_cast<T>(plo + tol);
             bool safe;
             {
-                int i = int(Math::floor((lo - plo)*dxinv)) + ilo;
+                int i = int(std::floor((lo - plo)*dxinv)) + ilo;
                 safe = i >= ilo && i <= ihi;
             }
             if (safe) {
@@ -84,7 +84,7 @@ public:
                 T mid = bisect(lo, hi,
                                [=] AMREX_GPU_HOST_DEVICE (T x) -> T
                                {
-                                   int i = int(Math::floor((x - plo)*dxinv)) + ilo;
+                                   int i = int(std::floor((x - plo)*dxinv)) + ilo;
                                    bool inside = i >= ilo && i <= ihi;
                                    return static_cast<T>(inside) - T(0.5);
                                }, static_cast<T>(tol));
@@ -97,7 +97,7 @@ public:
             T hi = static_cast<T>(phi - tol);
             bool safe;
             {
-                int i = int(Math::floor((hi - plo)*dxinv)) + ilo;
+                int i = int(std::floor((hi - plo)*dxinv)) + ilo;
                 safe = i >= ilo && i <= ihi;
             }
             if (safe) {
@@ -108,7 +108,7 @@ public:
                 T mid = bisect(lo, hi,
                                [=] AMREX_GPU_HOST_DEVICE (T x) -> T
                                    {
-                                       int i = int(Math::floor((x - plo)*dxinv)) + ilo;
+                                       int i = int(std::floor((x - plo)*dxinv)) + ilo;
                                        bool inside = i >= ilo && i <= ihi;
                                        return static_cast<T>(inside) - T(0.5);
                                    }, static_cast<T>(tol));

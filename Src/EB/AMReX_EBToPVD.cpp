@@ -245,12 +245,12 @@ void EBToPVD::reorder_polygon(const std::vector<std::array<Real,3>>& lpoints,
    center.fill(0.0);
 
    int longest = 2;
-   if(Math::abs(lnormal[0]) > Math::abs(lnormal[1])) {
-      if(Math::abs(lnormal[0]) > Math::abs(lnormal[2]))
+   if(std::abs(lnormal[0]) > std::abs(lnormal[1])) {
+      if(std::abs(lnormal[0]) > std::abs(lnormal[2]))
          longest = 0;
    }
    else {
-      if(Math::abs(lnormal[1]) > Math::abs(lnormal[2]))
+      if(std::abs(lnormal[1]) > std::abs(lnormal[2]))
          longest = 1;
    }
 
@@ -324,7 +324,7 @@ void EBToPVD::calc_hesse(Real& distance, std::array<Real,3>& n0, Real& p,
    distance = -dot_product(normal, centroid);
 
    // Get the sign of the distance
-   sign_of_dist = -distance / Math::abs(distance);
+   sign_of_dist = -distance / std::abs(distance);
 
    // Get the Hessian form
    Real fac = sign_of_dist/dot_product(normal, normal);
@@ -343,7 +343,7 @@ void EBToPVD::calc_alpha(std::array<Real,12>& alpha,
    std::fill(alpha.begin(), alpha.end(), 10.0);
 
    // Ray-xAxis intersection
-   if(Math::abs(n0[0]) > std::numeric_limits<Real>::epsilon()) {
+   if(std::abs(n0[0]) > std::numeric_limits<Real>::epsilon()) {
       alpha[0]  = (p - dot_product(n0,vertex[0]))/(n0[0]*dx[0]);
       alpha[2]  = (p - dot_product(n0,vertex[2]))/(n0[0]*dx[0]);
       alpha[8]  = (p - dot_product(n0,vertex[4]))/(n0[0]*dx[0]);
@@ -351,7 +351,7 @@ void EBToPVD::calc_alpha(std::array<Real,12>& alpha,
    }
 
    // Ray-yAxis intersection
-   if(Math::abs(n0[1]) > std::numeric_limits<Real>::epsilon()) {
+   if(std::abs(n0[1]) > std::numeric_limits<Real>::epsilon()) {
       alpha[1]  = (p - dot_product(n0,vertex[1]))/(n0[1]*dx[1]);
       alpha[3]  = (p - dot_product(n0,vertex[0]))/(n0[1]*dx[1]);
       alpha[9]  = (p - dot_product(n0,vertex[5]))/(n0[1]*dx[1]);
@@ -359,7 +359,7 @@ void EBToPVD::calc_alpha(std::array<Real,12>& alpha,
    }
 
    // Ray-zAxis intersection
-   if(Math::abs(n0[2]) > std::numeric_limits<Real>::epsilon()) {
+   if(std::abs(n0[2]) > std::numeric_limits<Real>::epsilon()) {
       alpha[4] = (p - dot_product(n0,vertex[0]))/(n0[2]*dx[2]);
       alpha[5] = (p - dot_product(n0,vertex[1]))/(n0[2]*dx[2]);
       alpha[6] = (p - dot_product(n0,vertex[3]))/(n0[2]*dx[2]);

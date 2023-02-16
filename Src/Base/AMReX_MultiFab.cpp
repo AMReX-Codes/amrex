@@ -1134,7 +1134,7 @@ MultiFab::norm1 (int comp, int ngrow, bool local) const
         nm1 = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, *this, IntVect(ngrow),
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
         {
-            return amrex::Math::abs(ma[box_no](i,j,k,comp));
+            return std::abs(ma[box_no](i,j,k,comp));
         });
     } else
 #endif
@@ -1147,7 +1147,7 @@ MultiFab::norm1 (int comp, int ngrow, bool local) const
             auto const& a = this->const_array(mfi);
             AMREX_LOOP_3D(bx, i, j, k,
             {
-                nm1 += amrex::Math::abs(a(i,j,k,comp));
+                nm1 += std::abs(a(i,j,k,comp));
             });
         }
     }
