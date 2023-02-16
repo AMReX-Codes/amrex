@@ -12,6 +12,7 @@ template <typename T_ParticleType, class Enable = void>
 struct make_particle
 {
     template <typename PTD>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     auto
     operator()(PTD ptd, int i)
     {
@@ -24,6 +25,7 @@ template <typename T_ParticleType>
 struct make_particle<T_ParticleType, typename std::enable_if<is_soa_particle<T_ParticleType>::value>::type>
 {
     template <typename PTD>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     auto
     operator()(PTD ptd, int index)
     {
