@@ -13,10 +13,10 @@ struct make_particle
 {
     template <typename PTD>
     auto
-    operator()(PTD, int)
+    operator()(PTD ptd, int i)
     {
         // legacy Particle (AoS)
-        return T_ParticleType();
+        return ptd.m_aos[i];
     }
 };
 
