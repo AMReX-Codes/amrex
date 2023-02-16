@@ -2010,16 +2010,8 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             {
                 char* pbuf = ((char*) &recvdata[offset]) + i*superparticle_size;
 
-                Particle<ParticleType::NReal, ParticleType::NInt> p;
-                if constexpr(!ParticleType::is_soa_particle)
-                {
-                    std::memcpy(&p, pbuf, sizeof(ParticleType));
-                } else
-                {
-                    std::memcpy(&p.pos(0), pbuf                         , sizeof(ParticleReal));
-                    std::memcpy(&p.pos(1), pbuf +   sizeof(ParticleReal), sizeof(ParticleReal));
-                    std::memcpy(&p.pos(2), pbuf + 2*sizeof(ParticleReal), sizeof(ParticleReal));
-                }
+                Particle<0, 0> p;
+                std::memcpy(&p, pbuf, AMREX_SPACEDIM*sizeof(ParticleReal));
 
                 bool success = Where(p, pld, lev_min, lev_max, 0);
                 if (!success)
@@ -2118,9 +2110,11 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 
                 char* pbuf = ((char*) &recvdata[offset]) + j*superparticle_size;
 
-                ParticleType p;
-                std::memcpy(&p, pbuf, sizeof(ParticleType));
-                pbuf += sizeof(ParticleType);
+                if constexpr(! ParticleType::is_soa_particle) {
+                        ParticleType p;
+                        std::memcpy(&p, pbuf, sizeof(ParticleType));
+                        pbuf += sizeof(ParticleType);
+                    }
 
                 host_real_attribs[lev][ind].resize(NumRealComps());
                 host_int_attribs[lev][ind].resize(NumIntComps());
