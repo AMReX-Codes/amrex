@@ -557,7 +557,8 @@ struct ParticleTile
     // const
     template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
     ConstParticleCPUWrapper cpu (int index) const & {
-        ParticleType p(this->getParticleTileData(), index);
+        using ConstParticleType = typename ParticleType::ConstType;
+        ConstParticleType p(this->getConstParticleTileData(), index);
         return p.cpu();
     }
 
@@ -588,7 +589,8 @@ struct ParticleTile
     // const
     template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
     ConstParticleIDWrapper id (int index) const & {
-        ParticleType p(this->getParticleTileData(), index);
+        using ConstParticleType = typename ParticleType::ConstType;
+        ConstParticleType p(this->getConstParticleTileData(), index);
         return p.id();
     }
 
@@ -622,7 +624,8 @@ struct ParticleTile
     template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
     RealType  pos (int index, int position_index) const &
     {
-        ParticleType p(this->getParticleTileData(), index);
+        using ConstParticleType = typename ParticleType::ConstType;
+        ConstParticleType p(this->getConstParticleTileData(), index);
         return p.pos(position_index);
     }
 
