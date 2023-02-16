@@ -2111,16 +2111,14 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 char* pbuf = ((char*) &recvdata[offset]) + j*superparticle_size;
 
                 if constexpr(! ParticleType::is_soa_particle) {
-                        ParticleType p;
-                        std::memcpy(&p, pbuf, sizeof(ParticleType));
-                        pbuf += sizeof(ParticleType);
-                    }
+                    ParticleType p;
+                    std::memcpy(&p, pbuf, sizeof(ParticleType));
+                    pbuf += sizeof(ParticleType);
+                    host_particles[lev][ind].push_back(p);
+                }
 
                 host_real_attribs[lev][ind].resize(NumRealComps());
                 host_int_attribs[lev][ind].resize(NumIntComps());
-
-                // add the struct
-                host_particles[lev][ind].push_back(p);
 
                 // add the real...
                 int array_comp_start = AMREX_SPACEDIM + NStructReal;
