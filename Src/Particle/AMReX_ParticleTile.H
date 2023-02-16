@@ -42,8 +42,8 @@ struct ParticleTileData
 
     ParticleType* AMREX_RESTRICT m_aos;
 
-    GpuArray<ParticleReal* AMREX_RESTRICT, NAR> m_rdata;
-    GpuArray<int* AMREX_RESTRICT, NAI> m_idata;
+    GpuArray<ParticleReal*, NAR> m_rdata;
+    GpuArray<int*, NAI> m_idata;
 
     int m_num_runtime_real;
     int m_num_runtime_int;
