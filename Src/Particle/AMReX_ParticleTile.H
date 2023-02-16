@@ -1061,7 +1061,6 @@ private:
     mutable amrex::PODVector<const int*, Allocator<const int*> >m_runtime_i_cptrs;
 };
 
-} // namespace amrex;
+} // namespace amrex
 
 #endif // AMREX_PARTICLETILE_H_
-
