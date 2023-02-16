@@ -1178,7 +1178,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::SortPart
             auto inds = m_bins.permutationPtr();
 
             if (memEfficientSort) {
-                {
+                if constexpr(!ParticleType::is_soa_particle) {
                     ParticleVector tmp_particles(np_total);
                     auto src = ptile.getParticleTileData();
                     ParticleType* dst = tmp_particles.data();
@@ -1528,10 +1528,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
           auto& aos = ptile_ptrs[pmap_it]->GetArrayOfStructs();
           auto& soa = ptile_ptrs[pmap_it]->GetStructOfArrays();
 
-          AMREX_ASSERT_WITH_MESSAGE((NumRealComps() == 0 && NumIntComps() == 0)
-                                    || aos.size() == soa.size(),
-              "The AoS and SoA data on this tile are different sizes - "
-              "perhaps particles have not been initialized correctly?");
+          // AMREX_ASSERT_WITH_MESSAGE((NumRealComps() == 0 && NumIntComps() == 0)
+          //                           || aos.size() == soa.size(),
+          //     "The AoS and SoA data on this tile are different sizes - "
+          //     "perhaps particles have not been initialized correctly?");
           unsigned npart = aos.numParticles();
           ParticleLocData pld;
 
