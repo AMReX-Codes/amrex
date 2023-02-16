@@ -294,8 +294,6 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 {
     BL_PROFILE("amrex::packBuffer");
 
-    using ParticleType = typename PC::ParticleType;
-
     Long psize = plan.superParticleSize();
 
     int num_levels = op.numLevels();
