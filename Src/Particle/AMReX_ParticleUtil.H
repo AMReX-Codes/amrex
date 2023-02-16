@@ -6,6 +6,7 @@
 #include <AMReX_Box.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_Print.H>
+#include <AMReX_MakeParticle.H>
 #include <AMReX_Math.H>
 #include <AMReX_MFIter.H>
 #include <AMReX_ParGDB.H>
@@ -263,8 +264,7 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
 
     const auto& tile = pti.GetParticleTile();
     const auto np = tile.numParticles();
-    const auto& aos = tile.GetArrayOfStructs();
-    const auto pstruct = aos().dataPtr();
+    const auto ptd = tile.getConstParticleTileData();
     const auto& geom = pti.Geom(pti.GetLevel());
 
     const auto domain = geom.Domain();
@@ -281,7 +281,7 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
     reduce_op.eval(np, reduce_data,
     [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
     {
-        const ParticleType& p = pstruct[i];
+        auto p = make_particle<ParticleType>{}(ptd,i);
         if ((p.id() < 0)) return false;
         IntVect iv = IntVect(
             AMREX_D_DECL(int(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0])),
