@@ -36,17 +36,11 @@ void addParticles ()
     DistributionMapping dm(ba);
 
     T_PC pc(geom, dm, ba);
-
-    //int const NReal = pc.NStructReal;
-    //int const NInt = pc.NStructInt;
     int const NArrayReal = pc.NArrayReal;
     int const NArrayInt = pc.NArrayInt;
 
     using ParticleType = typename T_PC::ParticleType;
     using ParticleTileDataType = typename T_PC::ParticleTileType::ParticleTileDataType;
-    //using RealVector = amrex::PODVector<ParticleReal, Allocator<ParticleReal> >;
-    //using IntVector = amrex::PODVector<int, Allocator<int> >;
-    //using SPType = typename T_PC::SuperParticleType;
 
     const int add_num_particles = 5;
 
@@ -57,6 +51,8 @@ void addParticles ()
     {
         for (int d = 0; d < AMREX_SPACEDIM; d++)
             ptile1.pos(i, d) = 12.0;
+        ptile1.getParticleTileData().rdata(AMREX_SPACEDIM)[i] = 1.2;  // w
+
         ptile1.push_back_int(0, ParticleType::NextID());
         ptile1.push_back_int(1, amrex::ParallelDescriptor::MyProc());
     }
@@ -66,25 +62,16 @@ void addParticles ()
     using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
     for (MyParIter pti(pc, lev); pti.isValid(); ++pti) {
         const int np = pti.numParticles();
-        //const auto t_lev = pti.GetLevel();
-        //const auto index = pti.GetPairIndex();
-        // ...
-
-        // preparing access to particle data: AoS
-        //using PType = ImpactXParticleContainer::ParticleType;
-        //auto& aos = pti.GetArrayOfStructs();
-        //ParticleType* AMREX_RESTRICT aos_ptr = aos().dataPtr();
-
         // preparing access to particle data: SoA of Reals
         auto& soa = pti.GetStructOfArrays();
         auto soa_real = soa.GetRealData();
         auto size = soa.size();
         amrex::ParticleReal* const AMREX_RESTRICT part_x = soa_real[0].dataPtr();
-        amrex::ParticleReal* const AMREX_RESTRICT part_y = soa_real[1].dataPtr();
-        amrex::ParticleReal* const AMREX_RESTRICT part_z = soa_real[2].dataPtr();
-        amrex::ParticleReal* const AMREX_RESTRICT part_aaa = soa_real[3].dataPtr();
+        amrex::ParticleReal* const AMREX_RESTRICT part_y = AMREX_SPACEDIM >= 2 ? soa_real[1].dataPtr() : nullptr;
+        amrex::ParticleReal* const AMREX_RESTRICT part_z = AMREX_SPACEDIM >= 3 ? soa_real[2].dataPtr() : nullptr;
+        amrex::ParticleReal* const AMREX_RESTRICT part_w = soa_real[AMREX_SPACEDIM].dataPtr();
         auto& soa_int = pti.GetStructOfArrays().GetIntData();
-        amrex::ignore_unused(size, part_x, part_y, part_z, part_aaa, soa_int);
+        amrex::ignore_unused(size, part_x, part_y, part_z, part_w, soa_int);
 
         // Iterating over old Particles
         // ParallelFor( np, [=] AMREX_GPU_DEVICE (long ip)
@@ -111,15 +98,20 @@ void addParticles ()
         ParallelFor( np, [=] AMREX_GPU_DEVICE (long ip)
         {
             ParticleType p(ptd, ip);
-            for (int d = 0; d < AMREX_SPACEDIM; d++)
-                p.pos(d) += 1;
+            for (int d = 0; d < AMREX_SPACEDIM; d++) {
+                p.pos(d) += 1_prt;
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ptd.rdata(d)[ip] == 13_prt,
+                                                 "pos attribute expected to be 13");
+            }
+
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ptd.rdata(AMREX_SPACEDIM)[ip] == 1.2_prt,
+                                             "w attribute expected to be 1.2");
         });
 
 
     }
 
     // create a host-side particle buffer
-    //ParticleContainer<1,1> pc_og;
     auto tmp = pc.template make_alike<amrex::PinnedArenaAllocator>();
     tmp.copyParticles(pc, true);
 
@@ -148,11 +140,11 @@ void addParticles ()
         pc,
         [=] AMREX_GPU_DEVICE(const ConstPTDType& ptd, const int i) noexcept
         {
-            const amrex::ParticleReal x = ptd.rdata(0)[i];
-            const amrex::ParticleReal y = AMREX_SPACEDIM >= 2 ? ptd.rdata(1)[i] : 0.0;
-            const amrex::ParticleReal z = AMREX_SPACEDIM >= 3 ? ptd.rdata(2)[i] : 0.0;
+            amrex::ParticleReal const x = ptd.rdata(0)[i];
+            amrex::ParticleReal const y = AMREX_SPACEDIM >= 2 ? ptd.rdata(1)[i] : 0.0;
+            amrex::ParticleReal const z = AMREX_SPACEDIM >= 3 ? ptd.rdata(2)[i] : 0.0;
 
-            amrex::ParticleReal const w = ptd.rdata(1)[i];
+            amrex::ParticleReal const w = ptd.rdata(AMREX_SPACEDIM)[i];
 
             return amrex::makeTuple(x, x*x, y, y*y, z, z*z, w);
         },
@@ -188,7 +180,7 @@ int main(int argc, char* argv[])
  {
     amrex::Initialize(argc,argv);
     {
-        addParticles< ParticleContainerPureSoA<3,4> > ();
+        addParticles< ParticleContainerPureSoA<3, 4> > ();
     }
     amrex::Finalize();
  }
