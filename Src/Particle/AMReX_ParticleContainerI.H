@@ -2010,8 +2010,15 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             {
                 char* pbuf = ((char*) &recvdata[offset]) + i*superparticle_size;
 
+                ParticleReal pos[AMREX_SPACEDIM];
+                std::memcpy(&pos[0], pbuf, AMREX_SPACEDIM*sizeof(ParticleReal));
+
                 Particle<0, 0> p;
-                std::memcpy(&p, pbuf, AMREX_SPACEDIM*sizeof(ParticleReal));
+                p.id() = 0;
+                p.cpu() = 0;
+                AMREX_D_TERM(p.pos(0) = pos[0];,
+                             p.pos(1) = pos[1];,
+                             p.pos(2) = pos[2]);
 
                 bool success = Where(p, pld, lev_min, lev_max, 0);
                 if (!success)
