@@ -366,18 +366,17 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 
                     if (do_periodic_shift)
                     {
-                        auto p = make_particle<ParticleType>{}(ptd,kv);
-                        //ParticleType p;
-                        amrex::Gpu::memcpy(&p, &p_snd_buffer[dst_offset], sizeof(ParticleType));
+                        ParticleReal pos[AMREX_SPACEDIM];
+                        amrex::Gpu::memcpy(&pos[0], &p_snd_buffer[dst_offset], 3*sizeof(ParticleReal));
                         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                         {
                             if (! is_per[idim]) continue;
                             if (pshift[idim] > 0)
-                                p.pos(idim) += phi[idim] - plo[idim];
+                                pos[idim] += phi[idim] - plo[idim];
                             else if (pshift[idim] < 0)
-                                p.pos(idim) -= phi[idim] - plo[idim];
+                                pos[idim] -= phi[idim] - plo[idim];
                         }
-                        amrex::Gpu::memcpy(&p_snd_buffer[dst_offset], &p, sizeof(ParticleType));
+                        amrex::Gpu::memcpy(&p_snd_buffer[dst_offset], &pos[0], 3*sizeof(ParticleReal));
                     }
                 }
             });
