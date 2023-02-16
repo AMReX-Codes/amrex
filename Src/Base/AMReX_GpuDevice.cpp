@@ -505,6 +505,36 @@ Device::initialize_gpu ()
                            << "  concurrentManagedAccess: " << (device_prop.concurrentManagedAccess ? "Yes" : "No") << "\n"
                            << "  maxParameterSize: " << device_prop.maxParameterSize << "\n"
                            << std::endl;
+#if defined(__INTEL_LLVM_COMPILER)
+            if (d.has(sycl::aspect::ext_intel_gpu_eu_simd_width)) {
+                auto r = d.get_info<sycl::ext::intel::info::device::gpu_eu_simd_width>();
+                amrex::Print() << "  Intel GPU Execution Unit SIMD Width: " << r << "\n";
+            }
+            if (d.has(sycl::aspect::ext_intel_gpu_eu_count)) {
+                auto r = d.get_info<sycl::ext::intel::info::device::gpu_eu_count>();
+                amrex::Print() << "  Intel GPU Execution Unit Count: " << r << "\n";
+            }
+            if (d.has(sycl::aspect::ext_intel_gpu_slices)) {
+                auto r = d.get_info<sycl::ext::intel::info::device::gpu_slices>();
+                amrex::Print() << "  Intel GPU Number of Slices: " << r << "\n";
+            }
+            if (d.has(sycl::aspect::ext_intel_gpu_subslices_per_slice)) {
+                auto r = d.get_info<sycl::ext::intel::info::device::gpu_subslices_per_slice>();
+                amrex::Print() << "  Intel GPU Number of Subslices per Slice: " << r << "\n";
+            }
+            if (d.has(sycl::aspect::ext_intel_gpu_eu_count_per_subslice)) {
+                auto r = d.get_info<sycl::ext::intel::info::device::gpu_eu_count_per_subslice>();
+                amrex::Print() << "  Intel GPU Number of EUs per Subslice: " << r << "\n";
+            }
+            if (d.has(sycl::aspect::ext_intel_gpu_hw_threads_per_eu)) {
+                auto r = d.get_info<sycl::ext::intel::info::device::gpu_hw_threads_per_eu>();
+                amrex::Print() << "  Intel GPU Number of hardware threads per EU: " << r << "\n";
+            }
+            if (d.has(sycl::aspect::ext_intel_max_mem_bandwidth)) {
+                auto r = d.get_info<sycl::ext::intel::info::device::max_mem_bandwidth>();
+                amrex::Print() << "  Intel GPU Maximum Memory Bandwidth (B/s): " << r << "\n";
+            }
+#endif
         }
         auto found = std::find(sgss.begin(), sgss.end(), static_cast<decltype(sgss)::value_type>(warp_size));
         if (found == sgss.end()) amrex::Abort("Incorrect subgroup size");
@@ -999,8 +1029,13 @@ Device::freeMemAvailable ()
     std::size_t t;
 #endif
     AMREX_HIP_OR_CUDA_OR_SYCL( AMREX_HIP_SAFE_CALL(hipMemGetInfo(&f,&t));,
-                                AMREX_CUDA_SAFE_CALL(cudaMemGetInfo(&f,&t));,
-                                f = device_prop.totalGlobalMem; ); // xxxxx SYCL todo
+                             AMREX_CUDA_SAFE_CALL(cudaMemGetInfo(&f,&t));,
+                               f = device_prop.totalGlobalMem; );
+#if defined (AMREX_USE_SYCL) && defined(__INTEL_LLVM_COMPILER)
+    if (sycl_device->has(sycl::aspect::ext_intel_free_memory)) {
+        f = sycl_device->get_info<sycl::ext::intel::info::device::free_memory>();
+    }
+#endif
     return f;
 #else
     return 0;
