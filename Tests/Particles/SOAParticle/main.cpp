@@ -14,9 +14,9 @@ using namespace amrex;
 template <typename T_PC,template<class> class Allocator=DefaultAllocator>
 void addParticles ()
 {
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        is_per[i] = 1;
+    int is_per[AMREX_SPACEDIM];
+    for (int d = 0; d < AMREX_SPACEDIM; d++)
+        is_per[d] = 1;
 
     RealBox real_box;
     for (int n = 0; n < AMREX_SPACEDIM; n++)
@@ -55,10 +55,8 @@ void addParticles ()
 
     for (int i = 0; i < add_num_particles; ++i)
     {
-        ptile1.pos(i, 0) = 12.0;
-        ptile1.pos(i, 1) = 12.0;
-        ptile1.pos(i, 2) = 12.0;
-
+        for (int d = 0; d < AMREX_SPACEDIM; d++)
+            ptile1.pos(i, d) = 12.0;
         ptile1.push_back_int(0, ParticleType::NextID());
         ptile1.push_back_int(1, amrex::ParallelDescriptor::MyProc());
     }
@@ -113,9 +111,8 @@ void addParticles ()
         ParallelFor( np, [=] AMREX_GPU_DEVICE (long ip)
         {
             ParticleType p(ptd, ip);
-            p.pos(0) += 1;
-            p.pos(1) += 1;
-            p.pos(2) += 1;
+            for (int d = 0; d < AMREX_SPACEDIM; d++)
+                p.pos(d) += 1;
         });
 
 
@@ -151,10 +148,9 @@ void addParticles ()
         pc,
         [=] AMREX_GPU_DEVICE(const ConstPTDType& ptd, const int i) noexcept
         {
-
             const amrex::ParticleReal x = ptd.rdata(0)[i];
-            const amrex::ParticleReal y = ptd.rdata(1)[i];
-            const amrex::ParticleReal z = ptd.rdata(2)[i];
+            const amrex::ParticleReal y = AMREX_SPACEDIM >= 2 ? ptd.rdata(1)[i] : 0.0;
+            const amrex::ParticleReal z = AMREX_SPACEDIM >= 3 ? ptd.rdata(2)[i] : 0.0;
 
             amrex::ParticleReal const w = ptd.rdata(1)[i];
 
