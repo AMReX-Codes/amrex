@@ -1,3 +1,6 @@
+#ifndef AMREX_MAKEPARTICLE_H_
+#define AMREX_MAKEPARTICLE_H_
+
 #include <type_traits>
 
 template< class T >
@@ -31,3 +34,5 @@ struct make_particle<T_ParticleType, typename std::enable_if<is_soa_particle<T_P
         return T_ParticleType(ptd, index);
     }
 };
+
+#endif
