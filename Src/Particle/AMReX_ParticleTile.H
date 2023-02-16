@@ -51,6 +51,18 @@ struct ParticleTileData
     int* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_idata;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    auto* rdata (const int attribute_index)
+    {
+        return this->m_rdata[attribute_index];
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    auto* idata (const int attribute_index)
+    {
+        return this->m_idata[attribute_index];
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void packParticleData (char* buffer, int src_index, std::size_t dst_offset,
                            const int* comm_real, const int * comm_int) const noexcept
     {
@@ -215,6 +227,7 @@ struct ConstSoAParticle : SoAParticleBase
 
     using RealType = ParticleReal;
 
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ConstSoAParticle(ConstPTD const ptd, long i) :
         m_constparticle_tile_data(ptd), m_index(i)
     {
@@ -277,6 +290,7 @@ struct SoAParticle : SoAParticleBase
     using ConstType = ConstSoAParticle<T_NArrayReal, T_NArrayInt>;
     using RealType = ParticleReal;
 
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     SoAParticle(PTD const ptd, long i) :
         m_particle_tile_data(ptd), m_index(i)
     {
@@ -397,12 +411,14 @@ struct ConstParticleTileData
     GpuArray<const ParticleReal* AMREX_RESTRICT, NArrayReal> m_rdata;
     GpuArray<const int* AMREX_RESTRICT, NArrayInt > m_idata;
 
-    auto const* rdata(const int attribute_index) const
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    auto const* rdata (const int attribute_index) const
     {
         return this->m_rdata[attribute_index];
     }
 
-    auto const* idata(const int attribute_index) const
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    auto const* idata (const int attribute_index) const
     {
         return this->m_idata[attribute_index];
     }
