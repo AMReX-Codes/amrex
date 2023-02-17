@@ -185,8 +185,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
     // Create a copy "dummy" particle to check for periodic outs.
     Particle<0, 0> p_prime;
     AMREX_D_TERM(p_prime.pos(0) = p.pos(0);,
-                 p_prime.pos(0) = p.pos(0);,
-                 p_prime.pos(0) = p.pos(0));
+                 p_prime.pos(1) = p.pos(1);,
+                 p_prime.pos(2) = p.pos(2));
     if (PeriodicShift(p_prime)) {
         std::vector< std::pair<int,Box> > isects;
         for (int lev = lev_max; lev >= lev_min; lev--) {
@@ -1683,7 +1683,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 
                   particlePostLocate(p, pld, lev);
 
-                  if (p.id() < 0){
+                  if (p.id() < 0) {
                       for (int comp = 0; comp < NumRealComps(); comp++)
                           soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                       for (int comp = 0; comp < NumIntComps(); comp++)
