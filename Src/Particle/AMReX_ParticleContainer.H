@@ -1192,7 +1192,8 @@ public:
     *
     * \param prt
     */
-    bool PeriodicShift (ParticleType& prt) const;
+    template <typename P>
+    bool PeriodicShift (P& p) const;
 
     void SetLevelDirectoriesCreated (bool tf) { levelDirectoriesCreated = tf; }
 

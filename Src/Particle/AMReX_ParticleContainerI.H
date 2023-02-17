@@ -18,7 +18,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::SetParti
         if (h_redistribute_int_comp[i]) {++num_int_comm_comps;}
     }
 
-    particle_size = sizeof(ParticleType);
+    if constexpr(!ParticleType::is_soa_particle) {
+        particle_size = sizeof(ParticleType);
+    } else {
+        particle_size = 0;
+    }
     superparticle_size = particle_size +
         num_real_comm_comps*sizeof(ParticleReal) + num_int_comm_comps*sizeof(int);
 }
@@ -179,7 +183,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
     AMREX_ASSERT(lev_max <= finestLevel());
 
     // Create a copy "dummy" particle to check for periodic outs.
-    ParticleType p_prime = p;
+    Particle<0, 0> p_prime;
+    AMREX_D_TERM(p_prime.pos(0) = p.pos(0);,
+                 p_prime.pos(0) = p.pos(0);,
+                 p_prime.pos(0) = p.pos(0));
     if (PeriodicShift(p_prime)) {
         std::vector< std::pair<int,Box> > isects;
         for (int lev = lev_max; lev >= lev_min; lev--) {
@@ -234,9 +241,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
+template <typename P>
 bool
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
-::PeriodicShift (ParticleType& p) const
+::PeriodicShift (P& p) const
 {
     const auto& geom = Geom(0);
     const auto plo = geom.ProbLoArray();
@@ -1525,14 +1533,14 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
           int thread_num = OpenMP::get_thread_num();
           int grid = grid_tile_ids[pmap_it].first;
           int tile = grid_tile_ids[pmap_it].second;
-          auto& aos = ptile_ptrs[pmap_it]->GetArrayOfStructs();
           auto& soa = ptile_ptrs[pmap_it]->GetStructOfArrays();
+          auto& aos = ptile_ptrs[pmap_it]->GetArrayOfStructs();
 
           // AMREX_ASSERT_WITH_MESSAGE((NumRealComps() == 0 && NumIntComps() == 0)
           //                           || aos.size() == soa.size(),
           //     "The AoS and SoA data on this tile are different sizes - "
           //     "perhaps particles have not been initialized correctly?");
-          unsigned npart = aos.numParticles();
+          unsigned npart = ptile_ptrs[pmap_it]->numParticles();
           ParticleLocData pld;
 
           if constexpr(!ParticleType::is_soa_particle){
@@ -1560,7 +1568,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                           continue;
                       }
 
-                    locateParticle(p, pld, lev_min, lev_max, nGrow, local ? grid : -1);
+                     locateParticle(p, pld, lev_min, lev_max, nGrow, local ? grid : -1);
 
                      particlePostLocate(p, pld, lev);
 
@@ -1593,9 +1601,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                                 }
 
                             p.id() = -p.id(); // Invalidate the particle
-                            }
+                         }
                       }
-                    else {
+                      else {
                        auto& particles_to_send = tmp_remote[who][thread_num];
                        auto old_size = particles_to_send.size();
                        auto new_size = old_size + superparticle_size;
@@ -1603,22 +1611,22 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                        std::memcpy(&particles_to_send[old_size], &p, particle_size);
                        char* dst = &particles_to_send[old_size] + particle_size;
                        int array_comp_start = AMREX_SPACEDIM + NStructReal;
-                          for (int comp = 0; comp < NumRealComps(); comp++) {
-                               if (h_redistribute_real_comp[array_comp_start + comp]) {
-                                 std::memcpy(dst, &soa.GetRealData(comp)[pindex], sizeof(ParticleReal));
-                                 dst += sizeof(ParticleReal);
-                                }
-                            }
-                        array_comp_start = 2 + NStructInt;
-                        for (int comp = 0; comp < NumIntComps(); comp++) {
-                              if (h_redistribute_int_comp[array_comp_start + comp]) {
-                                  std::memcpy(dst, &soa.GetIntData(comp)[pindex], sizeof(int));
-                                  dst += sizeof(int);
-                                }
-                            }
+                       for (int comp = 0; comp < NumRealComps(); comp++) {
+                           if (h_redistribute_real_comp[array_comp_start + comp]) {
+                               std::memcpy(dst, &soa.GetRealData(comp)[pindex], sizeof(ParticleReal));
+                               dst += sizeof(ParticleReal);
+                           }
+                       }
+                       array_comp_start = 2 + NStructInt;
+                       for (int comp = 0; comp < NumIntComps(); comp++) {
+                           if (h_redistribute_int_comp[array_comp_start + comp]) {
+                               std::memcpy(dst, &soa.GetIntData(comp)[pindex], sizeof(int));
+                               dst += sizeof(int);
+                           }
+                       }
 
-                        p.id() = -p.id(); // Invalidate the particle
-                  }
+                       p.id() = -p.id(); // Invalidate the particle
+                    }
 
                     if (p.id() < 0)
                     {
@@ -1662,9 +1670,6 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                     }
 
                   if (p.id() < 0){
-
-                      ParticleType p2(ptd,last); // here
-                      p = p2;
                       for (int comp = 0; comp < NumRealComps(); comp++)
                           soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                       for (int comp = 0; comp < NumIntComps(); comp++)
@@ -1673,14 +1678,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                       --last;
                       continue;
                     }
-                //ParticleType& p2(ptd,last)
+
                   locateParticle(p, pld, lev_min, lev_max, nGrow, local ? grid : -1);
 
                   particlePostLocate(p, pld, lev);
 
                   if (p.id() < 0){
-                      ParticleType p2(ptd,last);
-                      p = p2;
                       for (int comp = 0; comp < NumRealComps(); comp++)
                           soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                       for (int comp = 0; comp < NumIntComps(); comp++)
@@ -1714,30 +1717,26 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                       auto old_size = particles_to_send.size();
                       auto new_size = old_size + superparticle_size;
                       particles_to_send.resize(new_size);
-                      /*
-                      std::memcpy(&particles_to_send[old_size], &p, particle_size);
-                      */
+
                       char* dst = &particles_to_send[old_size];
                       int array_comp_start = AMREX_SPACEDIM + NStructReal;
                       for (int comp = 0; comp < NumRealComps(); comp++) {
                           if (h_redistribute_real_comp[array_comp_start + comp]) {
                               std::memcpy(dst, &soa.GetRealData(comp)[pindex], sizeof(ParticleReal));
                               dst += sizeof(ParticleReal);
-                            }
+                          }
                         }
                       array_comp_start = 2 + NStructInt;
                       for (int comp = 0; comp < NumIntComps(); comp++) {
                           if (h_redistribute_int_comp[array_comp_start + comp]) {
                               std::memcpy(dst, &soa.GetIntData(comp)[pindex], sizeof(int));
                               dst += sizeof(int);
-                            }
+                          }
                         }
                       p.id() = -p.id(); // Invalidate the particle
                     }
 
                   if (p.id() < 0){
-                      ParticleType p2(ptd,last);
-                      p = p2;
                       for (int comp = 0; comp < NumRealComps(); comp++)
                           soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                       for (int comp = 0; comp < NumIntComps(); comp++)
@@ -1750,7 +1749,6 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                   ++pindex;
                 }
 
-              aos().erase(aos().begin() + last + 1, aos().begin() + npart);
               for (int comp = 0; comp < NumRealComps(); comp++) {
                   RealVector& rdata = soa.GetRealData(comp);
                   rdata.erase(rdata.begin() + last + 1, rdata.begin() + npart);
@@ -2013,9 +2011,12 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 ParticleReal pos[AMREX_SPACEDIM];
                 std::memcpy(&pos[0], pbuf, AMREX_SPACEDIM*sizeof(ParticleReal));
 
+                int idcpu[2];
+                std::memcpy(&idcpu[0], pbuf + NumRealComps()*sizeof(ParticleReal), 2*sizeof(int));
+
                 Particle<0, 0> p;
-                p.id() = 0;
-                p.cpu() = 0;
+                p.id() = idcpu[0];
+                p.cpu() = idcpu[1];
                 AMREX_D_TERM(p.pos(0) = pos[0];,
                              p.pos(1) = pos[1];,
                              p.pos(2) = pos[2]);
@@ -2034,6 +2035,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 rcv_levs[ipart] = pld.m_lev;
                 rcv_grid[ipart] = pld.m_grid;
                 rcv_tile[ipart] = pld.m_tile;
+
                 ++ipart;
             }
         }
