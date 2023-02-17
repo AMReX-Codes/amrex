@@ -15,6 +15,13 @@ o/
 t/
 TAGS
 
+# editors and IDEs
+.idea/
+cmake-build-*/
+.kdev?/
+*.kdev?
+.vscode
+
 # latex
 *.aux
 *.log
