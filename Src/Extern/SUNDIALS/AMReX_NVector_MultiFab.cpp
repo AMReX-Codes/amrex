@@ -1,20 +1,14 @@
-/*--------------------------------------------------------------------
-  Time Integration and Nonlinear Solvers
-  Hands-on Lessons with SUNDIALS + AMReX
-  2019 Argonne Training Program in Extreme-Scale Computing
+/*------------------------------------------------------------------------------
+  Implementation file for N_Vector wrap of an AMReX 'MultiFab'. Based on example
+  codes for the 2019 Argonne Training Program in Extreme-Scale Computing with
+  SUNDIALS and AMReX.
 
   Authors (alphabetical):
-     David Gardner (gardner48@llnl.gov)
-     John Loffeld (loffeld1@llnl.gov)
-     Daniel Reynolds (reynolds@smu.edu)
-     Donald Willcox (dewillcox@lbl.gov)
-
-  --------------------------------------------------------------------
-  Implementation file for N_Vector wrap of AMReX 'MultiFab' structure.
-  --------------------------------------------------------------------*/
-
-#include <sundials/sundials_math.h>
-
+    David Gardner (gardner48@llnl.gov)
+    John Loffeld (loffeld1@llnl.gov)
+    Daniel Reynolds (reynolds@smu.edu)
+    Donald Willcox (dewillcox@lbl.gov)
+  ----------------------------------------------------------------------------*/
 #include "AMReX_NVector_MultiFab.H"
 
 namespace amrex {
@@ -594,7 +588,7 @@ int N_VConstrMask_MultiFab(N_Vector a_a, N_Vector a_x, N_Vector a_m)
                     int test = (amrex::Math::abs(a) > amrex::Real(1.5) && x*a <= amrex::Real(0.0)) ||
                         (amrex::Math::abs(a) > amrex::Real(0.5)   && x*a <  amrex::Real(0.0));
                     if (test) {
-                        m_fab(i,j,k,c) = amrex::Real(1.0);
+                      m_fab(i,j,k,c) = amrex::Real(1.0);
                     }
                 }
             });
@@ -632,7 +626,7 @@ amrex::Real N_VMinQuotient_MultiFab(N_Vector a_num, N_Vector a_denom)
                      {
                         amrex::Real num = num_fab(i,j,k,c);
                         amrex::Real denom = denom_fab(i,j,k,c);
-                        min_loc = SUNMIN(min_loc, num / denom);
+                        min_loc = std::min(min_loc, num / denom);
                      }
                   }
                }
