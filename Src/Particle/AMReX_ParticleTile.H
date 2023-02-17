@@ -57,7 +57,19 @@ struct ParticleTileData
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    auto const * rdata (const int attribute_index) const
+    {
+        return this->m_rdata[attribute_index];
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     auto* idata (const int attribute_index)
+    {
+        return this->m_idata[attribute_index];
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    auto const * idata (const int attribute_index) const
     {
         return this->m_idata[attribute_index];
     }
@@ -1061,7 +1073,6 @@ private:
     mutable amrex::PODVector<const int*, Allocator<const int*> >m_runtime_i_cptrs;
 };
 
-} // namespace amrex;
+} // namespace amrex
 
 #endif // AMREX_PARTICLETILE_H_
-
