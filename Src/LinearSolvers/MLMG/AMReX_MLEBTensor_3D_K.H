@@ -713,8 +713,8 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                     if (apx(i,j,k) > 0.0 && apx(i,j,k) < 1.0) {
                         int jj = j + (fcx(i,j,k,0) >= 0.0 ? 1 : -1);
                         int kk = k + (fcx(i,j,k,1) >= 0.0 ? 1 : -1);
-                        Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? amrex::Math::abs(fcx(i,j,k,0)) : 0.0;
-                        Real fracz = (ccm(i-1,j,kk) || ccm(i,j,kk)) ? amrex::Math::abs(fcx(i,j,k,1)) : 0.0;
+                        Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? std::abs(fcx(i,j,k,0)) : 0.0;
+                        Real fracz = (ccm(i-1,j,kk) || ccm(i,j,kk)) ? std::abs(fcx(i,j,k,1)) : 0.0;
                         fxm_0 = (1.0-fracy)*(1.0-fracz) *fxm_0
                             + fracy*(1.0-fracz) * fx(i,jj,k ,0)
                             + fracz*(1.0-fracy) * fx(i,j ,kk,0)
@@ -735,8 +735,8 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                     if (apx(i+1,j,k) > 0.0 && apx(i+1,j,k) < 1.0) {
                         int jj = j + (fcx(i+1,j,k,0) >= 0.0 ? 1 : -1);
                         int kk = k + (fcx(i+1,j,k,1) >= 0.0 ? 1 : -1);
-                        Real fracy = (ccm(i,jj,k) || ccm(i+1,jj,k)) ? amrex::Math::abs(fcx(i+1,j,k,0)) : 0.0;
-                        Real fracz = (ccm(i,j,kk) || ccm(i+1,j,kk)) ? amrex::Math::abs(fcx(i+1,j,k,1)) : 0.0;
+                        Real fracy = (ccm(i,jj,k) || ccm(i+1,jj,k)) ? std::abs(fcx(i+1,j,k,0)) : 0.0;
+                        Real fracz = (ccm(i,j,kk) || ccm(i+1,j,kk)) ? std::abs(fcx(i+1,j,k,1)) : 0.0;
                         fxp_0 = (1.0-fracy)*(1.0-fracz) *  fxp_0
                             + fracy*(1.0-fracz) * fx(i+1,jj,k ,0)
                             + fracz*(1.0-fracy) * fx(i+1,j ,kk,0)
@@ -757,8 +757,8 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                     if (apy(i,j,k) > 0.0 && apy(i,j,k) < 1.0) {
                         int ii = i + (fcy(i,j,k,0) >= 0.0 ? 1 : -1);
                         int kk = k + (fcy(i,j,k,1) >= 0.0 ? 1 : -1);
-                        Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? amrex::Math::abs(fcy(i,j,k,0)) : 0.0;
-                        Real fracz = (ccm(i,j-1,kk) || ccm(i,j,kk)) ? amrex::Math::abs(fcy(i,j,k,1)) : 0.0;
+                        Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? std::abs(fcy(i,j,k,0)) : 0.0;
+                        Real fracz = (ccm(i,j-1,kk) || ccm(i,j,kk)) ? std::abs(fcy(i,j,k,1)) : 0.0;
                         fym_0 = (1.0-fracx)*(1.0-fracz) *fym_0
                             + fracx*(1.0-fracz) * fy(ii,j,k ,0)
                             + fracz*(1.0-fracx) * fy(i ,j,kk,0)
@@ -779,8 +779,8 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                     if (apy(i,j+1,k) > 0.0 && apy(i,j+1,k) < 1.0) {
                         int ii = i + (fcy(i,j+1,k,0) >= 0.0 ? 1 : -1);
                         int kk = k + (fcy(i,j+1,k,1) >= 0.0 ? 1 : -1);
-                        Real fracx = (ccm(ii,j,k) || ccm(ii,j+1,k)) ? amrex::Math::abs(fcy(i,j+1,k,0)) : 0.0;
-                        Real fracz = (ccm(i,j,kk) || ccm(i,j+1,kk)) ? amrex::Math::abs(fcy(i,j+1,k,1)) : 0.0;
+                        Real fracx = (ccm(ii,j,k) || ccm(ii,j+1,k)) ? std::abs(fcy(i,j+1,k,0)) : 0.0;
+                        Real fracz = (ccm(i,j,kk) || ccm(i,j+1,kk)) ? std::abs(fcy(i,j+1,k,1)) : 0.0;
                         fyp_0 = (1.0-fracx)*(1.0-fracz) *  fyp_0
                             + fracx*(1.0-fracz) * fy(ii,j+1,k ,0)
                             + fracz*(1.0-fracx) * fy(i ,j+1,kk,0)
@@ -801,8 +801,8 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                     if (apz(i,j,k) > 0.0 && apz(i,j,k) < 1.0) {
                         int ii = i + (fcz(i,j,k,0) >= 0.0 ? 1 : -1);
                         int jj = j + (fcz(i,j,k,1) >= 0.0 ? 1 : -1);
-                        Real fracx = (ccm(ii,j,k-1) || ccm(ii,j,k)) ? amrex::Math::abs(fcz(i,j,k,0)) : 0.0;
-                        Real fracy = (ccm(i,jj,k-1) || ccm(i,jj,k)) ? amrex::Math::abs(fcz(i,j,k,1)) : 0.0;
+                        Real fracx = (ccm(ii,j,k-1) || ccm(ii,j,k)) ? std::abs(fcz(i,j,k,0)) : 0.0;
+                        Real fracy = (ccm(i,jj,k-1) || ccm(i,jj,k)) ? std::abs(fcz(i,j,k,1)) : 0.0;
                         fzm_0 = (1.0-fracx)*(1.0-fracy) *fzm_0
                             + fracx*(1.0-fracy) * fz(ii,j ,k,0)
                             + fracy*(1.0-fracx) * fz(i ,jj,k,0)
@@ -823,8 +823,8 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                     if (apz(i,j,k+1) > 0.0 && apz(i,j,k+1) < 1.0) {
                         int ii = i + (fcz(i,j,k+1,0) >= 0.0 ? 1 : -1);
                         int jj = j + (fcz(i,j,k+1,1) >= 0.0 ? 1 : -1);
-                        Real fracx = (ccm(ii,j,k) || ccm(ii,j,k)) ? amrex::Math::abs(fcz(i,j,k+1,0)) : 0.0;
-                        Real fracy = (ccm(i,jj,k) || ccm(i,jj,k)) ? amrex::Math::abs(fcz(i,j,k+1,1)) : 0.0;
+                        Real fracx = (ccm(ii,j,k) || ccm(ii,j,k)) ? std::abs(fcz(i,j,k+1,0)) : 0.0;
+                        Real fracy = (ccm(i,jj,k) || ccm(i,jj,k)) ? std::abs(fcz(i,j,k+1,1)) : 0.0;
                         fzp_0 = (1.0-fracx)*(1.0-fracy) *  fzp_0
                             + fracx*(1.0-fracy) * fz(ii,j ,k+1,0)
                             + fracy*(1.0-fracx) * fz(i ,jj,k+1,0)
@@ -863,9 +863,9 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                         }
 
                         Real dx_eb = amrex::max(0.3, (kappa*kappa-0.25)/(2.*kappa));
-                        Real dg = dx_eb / amrex::max(amrex::Math::abs(anrmx),
-                                                     amrex::Math::abs(anrmy),
-                                                     amrex::Math::abs(anrmz));
+                        Real dg = dx_eb / amrex::max(std::abs(anrmx),
+                                                     std::abs(anrmy),
+                                                     std::abs(anrmz));
                         Real dginv = 1.0/dg;
                         Real gx = bc(i,j,k,0) - dg*anrmx;
                         Real gy = bc(i,j,k,1) - dg*anrmy;
@@ -1013,8 +1013,8 @@ void mlebtensor_flux_x (Box const& box, Array4<Real> const& Ax,
 
                 int jj = j + (fcx(i,j,k,0) >= 0.0 ? 1 : -1);
                 int kk = k + (fcx(i,j,k,1) >= 0.0 ? 1 : -1);
-                Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? amrex::Math::abs(fcx(i,j,k,0)) : 0.0;
-                Real fracz = (ccm(i-1,j,kk) || ccm(i,j,kk)) ? amrex::Math::abs(fcx(i,j,k,1)) : 0.0;
+                Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? std::abs(fcx(i,j,k,0)) : 0.0;
+                Real fracz = (ccm(i-1,j,kk) || ccm(i,j,kk)) ? std::abs(fcx(i,j,k,1)) : 0.0;
                 fxm_0 = (1.0-fracy)*(1.0-fracz) *fxm_0
                         + fracy*(1.0-fracz) * fx(i,jj,k ,0)
                         + fracz*(1.0-fracy) * fx(i,j ,kk,0)
@@ -1058,8 +1058,8 @@ void mlebtensor_flux_y (Box const& box, Array4<Real> const& Ay,
 
                   int ii = i + (fcy(i,j,k,0) >= 0.0 ? 1 : -1);
                   int kk = k + (fcy(i,j,k,1) >= 0.0 ? 1 : -1);
-                  Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? amrex::Math::abs(fcy(i,j,k,0)) : 0.0;
-                  Real fracz = (ccm(i,j-1,kk) || ccm(i,j,kk)) ? amrex::Math::abs(fcy(i,j,k,1)) : 0.0;
+                  Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? std::abs(fcy(i,j,k,0)) : 0.0;
+                  Real fracz = (ccm(i,j-1,kk) || ccm(i,j,kk)) ? std::abs(fcy(i,j,k,1)) : 0.0;
                   fym_0 = (1.0-fracx)*(1.0-fracz) *fym_0
                           + fracx*(1.0-fracz) * fy(ii,j,k ,0)
                           + fracz*(1.0-fracx) * fy(i ,j,kk,0)
@@ -1105,8 +1105,8 @@ void mlebtensor_flux_z (Box const& box, Array4<Real> const& Az,
 
                   int ii = i + (fcz(i,j,k,0) >= 0.0 ? 1 : -1);
                   int jj = j + (fcz(i,j,k,1) >= 0.0 ? 1 : -1);
-                  Real fracx = (ccm(ii,j,k-1) || ccm(ii,j,k)) ? amrex::Math::abs(fcz(i,j,k,0)) : 0.0;
-                  Real fracy = (ccm(i,jj,k-1) || ccm(i,jj,k)) ? amrex::Math::abs(fcz(i,j,k,1)) : 0.0;
+                  Real fracx = (ccm(ii,j,k-1) || ccm(ii,j,k)) ? std::abs(fcz(i,j,k,0)) : 0.0;
+                  Real fracy = (ccm(i,jj,k-1) || ccm(i,jj,k)) ? std::abs(fcz(i,j,k,1)) : 0.0;
                   fzm_0 = (1.0-fracx)*(1.0-fracy) *fzm_0
                           + fracx*(1.0-fracy) * fz(ii,j ,k,0)
                           + fracy*(1.0-fracx) * fz(i ,jj,k,0)
@@ -1653,8 +1653,8 @@ void mlebtensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
                     if (apx(i,j,k) < 1.0) {
                         int jj = j + (fcx(i,j,k,0) >= 0.0 ? 1 : -1);
                         int kk = k + (fcx(i,j,k,1) >= 0.0 ? 1 : -1);
-                        Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? amrex::Math::abs(fcx(i,j,k,0)) : 0.0;
-                        Real fracz = (ccm(i-1,j,kk) || ccm(i,j,kk)) ? amrex::Math::abs(fcx(i,j,k,1)) : 0.0;
+                        Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? std::abs(fcx(i,j,k,0)) : 0.0;
+                        Real fracz = (ccm(i-1,j,kk) || ccm(i,j,kk)) ? std::abs(fcx(i,j,k,1)) : 0.0;
                         dudx = (1.0-fracy)*(1.0-fracz) * dudx
                             + fracy*(1.0-fracz) * (vel(i,jj,k ,0) - vel(i-1,jj,k ,0))*dxi
                             + fracz*(1.0-fracy) * (vel(i,j ,kk,0) - vel(i-1,j ,kk,0))*dxi
@@ -1761,8 +1761,8 @@ void mlebtensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
                     if (apy(i,j,k) < 1.0) {
                         int ii = i + (fcy(i,j,k,0) >= 0.0 ? 1 : -1);
                         int kk = k + (fcy(i,j,k,1) >= 0.0 ? 1 : -1);
-                        Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? amrex::Math::abs(fcy(i,j,k,0)) : 0.0;
-                        Real fracz = (ccm(i,j-1,kk) || ccm(i,j,kk)) ? amrex::Math::abs(fcy(i,j,k,1)) : 0.0;
+                        Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? std::abs(fcy(i,j,k,0)) : 0.0;
+                        Real fracz = (ccm(i,j-1,kk) || ccm(i,j,kk)) ? std::abs(fcy(i,j,k,1)) : 0.0;
                         dudy = (1.0-fracx)*(1.0-fracz) * dudy
                             + fracx*(1.0-fracz) * (vel(ii,j,k ,0) - vel(ii,j-1,k ,0))*dyi
                             + fracz*(1.0-fracx) * (vel(i ,j,kk,0) - vel(i ,j-1,kk,0))*dyi
@@ -1869,8 +1869,8 @@ void mlebtensor_vel_grads_fz (Box const& box, Array4<Real> const& fz,
                     if (apz(i,j,k) < 1.0) {
                         int ii = i + (fcz(i,j,k,0) >= 0.0 ? 1 : -1);
                         int jj = j + (fcz(i,j,k,1) >= 0.0 ? 1 : -1);
-                        Real fracx = (ccm(ii,j,k-1) || ccm(ii,j,k)) ? amrex::Math::abs(fcz(i,j,k,0)) : 0.0;
-                        Real fracy = (ccm(i,jj,k-1) || ccm(i,jj,k)) ? amrex::Math::abs(fcz(i,j,k,1)) : 0.0;
+                        Real fracx = (ccm(ii,j,k-1) || ccm(ii,j,k)) ? std::abs(fcz(i,j,k,0)) : 0.0;
+                        Real fracy = (ccm(i,jj,k-1) || ccm(i,jj,k)) ? std::abs(fcz(i,j,k,1)) : 0.0;
                         dudz = (1.0-fracx)*(1.0-fracy) * dudz
                             + fracx*(1.0-fracy) * (vel(ii,j ,k,0) - vel(ii,j ,k-1,0))*dzi
                             + fracy*(1.0-fracx) * (vel(i ,jj,k,0) - vel(i ,jj,k-1,0))*dzi
@@ -1944,8 +1944,8 @@ void mlebtensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
                     if (apx(i,j,k) < 1.0) {
                         int jj = j + (fcx(i,j,k,0) >= 0.0 ? 1 : -1);
                         int kk = k + (fcx(i,j,k,1) >= 0.0 ? 1 : -1);
-                        Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? amrex::Math::abs(fcx(i,j,k,0)) : 0.0;
-                        Real fracz = (ccm(i-1,j,kk) || ccm(i,j,kk)) ? amrex::Math::abs(fcx(i,j,k,1)) : 0.0;
+                        Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? std::abs(fcx(i,j,k,0)) : 0.0;
+                        Real fracz = (ccm(i-1,j,kk) || ccm(i,j,kk)) ? std::abs(fcx(i,j,k,1)) : 0.0;
                         dudx = (1.0-fracy)*(1.0-fracz) * dudx
                             + fracy*(1.0-fracz) * (vel(i,jj,k ,0) - vel(i-1,jj,k ,0))*dxi
                             + fracz*(1.0-fracy) * (vel(i,j ,kk,0) - vel(i-1,j ,kk,0))*dxi
@@ -2067,8 +2067,8 @@ void mlebtensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
                     if (apy(i,j,k) < 1.0) {
                         int ii = i + (fcy(i,j,k,0) >= 0.0 ? 1 : -1);
                         int kk = k + (fcy(i,j,k,1) >= 0.0 ? 1 : -1);
-                        Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? amrex::Math::abs(fcy(i,j,k,0)) : 0.0;
-                        Real fracz = (ccm(i,j-1,kk) || ccm(i,j,kk)) ? amrex::Math::abs(fcy(i,j,k,1)) : 0.0;
+                        Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? std::abs(fcy(i,j,k,0)) : 0.0;
+                        Real fracz = (ccm(i,j-1,kk) || ccm(i,j,kk)) ? std::abs(fcy(i,j,k,1)) : 0.0;
                         dudy = (1.0-fracx)*(1.0-fracz) * dudy
                             + fracx*(1.0-fracz) * (vel(ii,j,k ,0) - vel(ii,j-1,k ,0))*dyi
                             + fracz*(1.0-fracx) * (vel(i ,j,kk,0) - vel(i ,j-1,kk,0))*dyi
@@ -2190,8 +2190,8 @@ void mlebtensor_vel_grads_fz (Box const& box, Array4<Real> const& fz,
                     if (apz(i,j,k) < 1.0) {
                         int ii = i + (fcz(i,j,k,0) >= 0.0 ? 1 : -1);
                         int jj = j + (fcz(i,j,k,1) >= 0.0 ? 1 : -1);
-                        Real fracx = (ccm(ii,j,k-1) || ccm(ii,j,k)) ? amrex::Math::abs(fcz(i,j,k,0)) : 0.0;
-                        Real fracy = (ccm(i,jj,k-1) || ccm(i,jj,k)) ? amrex::Math::abs(fcz(i,j,k,1)) : 0.0;
+                        Real fracx = (ccm(ii,j,k-1) || ccm(ii,j,k)) ? std::abs(fcz(i,j,k,0)) : 0.0;
+                        Real fracy = (ccm(i,jj,k-1) || ccm(i,jj,k)) ? std::abs(fcz(i,j,k,1)) : 0.0;
                         dudz = (1.0-fracx)*(1.0-fracy) * dudz
                             + fracx*(1.0-fracy) * (vel(ii,j ,k,0) - vel(ii,j ,k-1,0))*dzi
                             + fracy*(1.0-fracx) * (vel(i ,jj,k,0) - vel(i ,jj,k-1,0))*dzi

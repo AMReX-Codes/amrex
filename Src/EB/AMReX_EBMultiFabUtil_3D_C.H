@@ -254,10 +254,10 @@ void eb_compute_divergence (int i, int j, int k, int n, Array4<Real> const& divu
     {
         Real fxm = u(i,j,k,n);
         if (apx(i,j,k) != 0.0 && apx(i,j,k) != 1.0) {
-            int jj = j + static_cast<int>(amrex::Math::copysign(1.0_rt, fcx(i,j,k,0)));
-            int kk = k + static_cast<int>(amrex::Math::copysign(1.0_rt, fcx(i,j,k,1)));
-            Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? amrex::Math::abs(fcx(i,j,k,0)) : 0.0_rt;
-            Real fracz = (ccm(i-1,j,kk) || ccm(i,j,kk)) ? amrex::Math::abs(fcx(i,j,k,1)) : 0.0_rt;
+            int jj = j + static_cast<int>(std::copysign(1.0_rt, fcx(i,j,k,0)));
+            int kk = k + static_cast<int>(std::copysign(1.0_rt, fcx(i,j,k,1)));
+            Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? std::abs(fcx(i,j,k,0)) : 0.0_rt;
+            Real fracz = (ccm(i-1,j,kk) || ccm(i,j,kk)) ? std::abs(fcx(i,j,k,1)) : 0.0_rt;
             fxm = (1.0-fracy)*(1.0-fracz)*fxm
                 +      fracy *(1.0-fracz)*u(i,jj,k ,n)
                 +      fracz *(1.0-fracy)*u(i,j ,kk,n)
@@ -266,10 +266,10 @@ void eb_compute_divergence (int i, int j, int k, int n, Array4<Real> const& divu
 
         Real fxp = u(i+1,j,k,n);
         if (apx(i+1,j,k) != 0.0 && apx(i+1,j,k) != 1.0) {
-            int jj = j + static_cast<int>(amrex::Math::copysign(1.0_rt,fcx(i+1,j,k,0)));
-            int kk = k + static_cast<int>(amrex::Math::copysign(1.0_rt,fcx(i+1,j,k,1)));
-            Real fracy = (ccm(i,jj,k) || ccm(i+1,jj,k)) ? amrex::Math::abs(fcx(i+1,j,k,0)) : 0.0_rt;
-            Real fracz = (ccm(i,j,kk) || ccm(i+1,j,kk)) ? amrex::Math::abs(fcx(i+1,j,k,1)) : 0.0_rt;
+            int jj = j + static_cast<int>(std::copysign(1.0_rt,fcx(i+1,j,k,0)));
+            int kk = k + static_cast<int>(std::copysign(1.0_rt,fcx(i+1,j,k,1)));
+            Real fracy = (ccm(i,jj,k) || ccm(i+1,jj,k)) ? std::abs(fcx(i+1,j,k,0)) : 0.0_rt;
+            Real fracz = (ccm(i,j,kk) || ccm(i+1,j,kk)) ? std::abs(fcx(i+1,j,k,1)) : 0.0_rt;
             fxp = (1.0-fracy)*(1.0-fracz)*fxp
                 +      fracy *(1.0-fracz)*u(i+1,jj,k ,n)
                 +      fracz *(1.0-fracy)*u(i+1,j ,kk,n)
@@ -278,10 +278,10 @@ void eb_compute_divergence (int i, int j, int k, int n, Array4<Real> const& divu
 
         Real fym = v(i,j,k,n);
         if (apy(i,j,k) != 0.0 && apy(i,j,k) != 1.0) {
-            int ii = i + static_cast<int>(amrex::Math::copysign(1.0_rt,fcy(i,j,k,0)));
-            int kk = k + static_cast<int>(amrex::Math::copysign(1.0_rt,fcy(i,j,k,1)));
-            Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? amrex::Math::abs(fcy(i,j,k,0)) : 0.0_rt;
-            Real fracz = (ccm(i,j-1,kk) || ccm(i,j,kk)) ? amrex::Math::abs(fcy(i,j,k,1)) : 0.0_rt;
+            int ii = i + static_cast<int>(std::copysign(1.0_rt,fcy(i,j,k,0)));
+            int kk = k + static_cast<int>(std::copysign(1.0_rt,fcy(i,j,k,1)));
+            Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? std::abs(fcy(i,j,k,0)) : 0.0_rt;
+            Real fracz = (ccm(i,j-1,kk) || ccm(i,j,kk)) ? std::abs(fcy(i,j,k,1)) : 0.0_rt;
             fym = (1.0-fracx)*(1.0-fracz)*fym
                 +      fracx *(1.0-fracz)*v(ii,j,k ,n)
                 +      fracz *(1.0-fracx)*v(i ,j,kk,n)
@@ -290,10 +290,10 @@ void eb_compute_divergence (int i, int j, int k, int n, Array4<Real> const& divu
 
         Real fyp = v(i,j+1,k,n);
         if (apy(i,j+1,k) != 0.0 && apy(i,j+1,k) != 1.0) {
-            int ii = i + static_cast<int>(amrex::Math::copysign(1.0_rt,fcy(i,j+1,k,0)));
-            int kk = k + static_cast<int>(amrex::Math::copysign(1.0_rt,fcy(i,j+1,k,1)));
-            Real fracx = (ccm(ii,j,k) || ccm(ii,j+1,k)) ? amrex::Math::abs(fcy(i,j+1,k,0)) : 0.0_rt;
-            Real fracz = (ccm(i,j,kk) || ccm(i,j+1,kk)) ? amrex::Math::abs(fcy(i,j+1,k,1)) : 0.0_rt;
+            int ii = i + static_cast<int>(std::copysign(1.0_rt,fcy(i,j+1,k,0)));
+            int kk = k + static_cast<int>(std::copysign(1.0_rt,fcy(i,j+1,k,1)));
+            Real fracx = (ccm(ii,j,k) || ccm(ii,j+1,k)) ? std::abs(fcy(i,j+1,k,0)) : 0.0_rt;
+            Real fracz = (ccm(i,j,kk) || ccm(i,j+1,kk)) ? std::abs(fcy(i,j+1,k,1)) : 0.0_rt;
             fyp = (1.0-fracx)*(1.0-fracz)*fyp
                 +      fracx *(1.0-fracz)*v(ii,j+1,k ,n)
                 +      fracz *(1.0-fracx)*v(i ,j+1,kk,n)
@@ -302,10 +302,10 @@ void eb_compute_divergence (int i, int j, int k, int n, Array4<Real> const& divu
 
         Real fzm = w(i,j,k,n);
         if (apz(i,j,k) != 0.0 && apz(i,j,k) != 1.0) {
-            int ii = i + static_cast<int>(amrex::Math::copysign(1.0_rt,fcz(i,j,k,0)));
-            int jj = j + static_cast<int>(amrex::Math::copysign(1.0_rt,fcz(i,j,k,1)));
-            Real fracx = (ccm(ii,j,k-1) || ccm(ii,j,k)) ? amrex::Math::abs(fcz(i,j,k,0)) : 0.0_rt;
-            Real fracy = (ccm(i,jj,k-1) || ccm(i,jj,k)) ? amrex::Math::abs(fcz(i,j,k,1)) : 0.0_rt;
+            int ii = i + static_cast<int>(std::copysign(1.0_rt,fcz(i,j,k,0)));
+            int jj = j + static_cast<int>(std::copysign(1.0_rt,fcz(i,j,k,1)));
+            Real fracx = (ccm(ii,j,k-1) || ccm(ii,j,k)) ? std::abs(fcz(i,j,k,0)) : 0.0_rt;
+            Real fracy = (ccm(i,jj,k-1) || ccm(i,jj,k)) ? std::abs(fcz(i,j,k,1)) : 0.0_rt;
             fzm = (1.0-fracx)*(1.0-fracy)*fzm
                 +      fracx *(1.0-fracy)*w(ii,j ,k,n)
                 +      fracy *(1.0-fracx)*w(i ,jj,k,n)
@@ -314,10 +314,10 @@ void eb_compute_divergence (int i, int j, int k, int n, Array4<Real> const& divu
 
         Real fzp = w(i,j,k+1,n);
         if (apz(i,j,k+1) != 0.0 && apz(i,j,k+1) != 1.0) {
-            int ii = i + static_cast<int>(amrex::Math::copysign(1.0_rt,fcz(i,j,k+1,0)));
-            int jj = j + static_cast<int>(amrex::Math::copysign(1.0_rt,fcz(i,j,k+1,1)));
-            Real fracx = (ccm(ii,j,k) || ccm(ii,j,k+1)) ? amrex::Math::abs(fcz(i,j,k+1,0)) : 0.0_rt;
-            Real fracy = (ccm(i,jj,k) || ccm(i,jj,k+1)) ? amrex::Math::abs(fcz(i,j,k+1,1)) : 0.0_rt;
+            int ii = i + static_cast<int>(std::copysign(1.0_rt,fcz(i,j,k+1,0)));
+            int jj = j + static_cast<int>(std::copysign(1.0_rt,fcz(i,j,k+1,1)));
+            Real fracx = (ccm(ii,j,k) || ccm(ii,j,k+1)) ? std::abs(fcz(i,j,k+1,0)) : 0.0_rt;
+            Real fracy = (ccm(i,jj,k) || ccm(i,jj,k+1)) ? std::abs(fcz(i,j,k+1,1)) : 0.0_rt;
             fzp = (1.0-fracx)*(1.0-fracy)*fzp
                 +      fracx *(1.0-fracy)*w(ii,j ,k+1,n)
                 +      fracy *(1.0-fracx)*w(i ,jj,k+1,n)
@@ -397,9 +397,9 @@ void eb_interp_cc2cent (Box const& box,
         int ii = (gx < 0.0) ? i - 1 : i + 1;
         int jj = (gy < 0.0) ? j - 1 : j + 1;
         int kk = (gz < 0.0) ? k - 1 : k + 1;
-        gx = amrex::Math::abs(gx);
-        gy = amrex::Math::abs(gy);
-        gz = amrex::Math::abs(gz);
+        gx = std::abs(gx);
+        gy = std::abs(gy);
+        gz = std::abs(gz);
         Real gxy = gx*gy;
         Real gxz = gx*gz;
         Real gyz = gy*gz;
@@ -461,8 +461,8 @@ void eb_interp_cc2facecent_x (Box const& ubx,
         int ii = i - 1;
         int jj = (gy < 0.0) ? j - 1 : j + 1;
         int kk = (gz < 0.0) ? k - 1 : k + 1;
-        gy = amrex::Math::abs(gy);
-        gz = amrex::Math::abs(gz);
+        gy = std::abs(gy);
+        gz = std::abs(gz);
         Real gxy = gx*gy;
         Real gxz = gx*gz;
         Real gyz = gy*gz;
@@ -524,8 +524,8 @@ void eb_interp_cc2facecent_y (Box const& vbx,
         int ii = (gx < 0.0) ? i - 1 : i + 1;
         int jj = j - 1;
         int kk = (gz < 0.0) ? k - 1 : k + 1;
-        gx = amrex::Math::abs(gx);
-        gz = amrex::Math::abs(gz);
+        gx = std::abs(gx);
+        gz = std::abs(gz);
         Real gxy = gx*gy;
         Real gxz = gx*gz;
         Real gyz = gy*gz;
@@ -587,8 +587,8 @@ void eb_interp_cc2facecent_z (Box const& wbx,
         int ii = (gx < 0.0) ? i - 1 : i + 1;
         int jj = (gy < 0.0) ? j - 1 : j + 1;
         int kk = k -1;
-        gx = amrex::Math::abs(gx);
-        gy = amrex::Math::abs(gy);
+        gx = std::abs(gx);
+        gy = std::abs(gy);
         Real gxy = gx*gy;
         Real gxz = gx*gz;
         Real gyz = gy*gz;
@@ -641,8 +641,8 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
       {
           phi_x(i,j,k,n) = 0.5 * ( phi(i,j,k,n) + phi(i-1,j,k,n) );
       }
-      else if ( apx(i,j,k) == 1 && (amrex::Math::abs(ccent(i,j,k,1)-ccent(i-1,j,k,1)) < 1.e-8) &&
-                                   (amrex::Math::abs(ccent(i,j,k,2)-ccent(i-1,j,k,2)) < 1.e-8) )
+      else if ( apx(i,j,k) == 1 && (std::abs(ccent(i,j,k,1)-ccent(i-1,j,k,1)) < 1.e-8) &&
+                                   (std::abs(ccent(i,j,k,2)-ccent(i-1,j,k,2)) < 1.e-8) )
       {
           Real d0 = 0.5 + ccent(i  ,j,k,0);                               // distance in x-dir from centroid(i  ,j) to face(i,j)
           Real d1 = 0.5 - ccent(i-1,j,k,0);                               // distance in x-dir from centroid(i-1,j) to face(i,j)
@@ -655,14 +655,14 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
           // We must add additional tests to avoid the case where fcx is very close to zero, but j-1/j+1 or k-1/k+1
           //    might be covered cells -- this can happen when the EB is exactly aligned with the horizontal grid planes
           int jj,kk;
-          if (amrex::Math::abs(fcx(i,j,k,0)) > 1.e-8)
+          if (std::abs(fcx(i,j,k,0)) > 1.e-8)
               jj = (fcx(i,j,k,0) < 0.0) ? j - 1 : j + 1;
           else if (apx(i,j-1,k) > 0.)
               jj = j-1;
           else
               jj = j+1;
 
-          if (amrex::Math::abs(fcx(i,j,k,1)) > 1.e-8)
+          if (std::abs(fcx(i,j,k,1)) > 1.e-8)
               kk = (fcx(i,j,k,1) < 0.0) ? k - 1 : k + 1;
           else if (apx(i,j,k-1) > 0.)
               kk = k-1;
@@ -854,8 +854,8 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
         {
             phi_y(i,j,k,n) = 0.5 * (phi(i,j  ,k,n) + phi(i,j-1,k,n));
         }
-        else if ( apy(i,j,k) == 1. && (amrex::Math::abs(ccent(i,j,k,0)-ccent(i,j-1,k,0)) < 1.e-8) &&
-                                      (amrex::Math::abs(ccent(i,j,k,2)-ccent(i,j-1,k,2)) < 1.e-8) )
+        else if ( apy(i,j,k) == 1. && (std::abs(ccent(i,j,k,0)-ccent(i,j-1,k,0)) < 1.e-8) &&
+                                      (std::abs(ccent(i,j,k,2)-ccent(i,j-1,k,2)) < 1.e-8) )
         {
             Real d0 = 0.5 + ccent(i,j  ,k,1);                                // distance in y-dir from centroid(i,j  ,k) to face(i,j,k)
             Real d1 = 0.5 - ccent(i,j-1,k,1);                                // distance in y-dir from centroid(i,j-1,k) to face(i,j,k)
@@ -869,14 +869,14 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
           // We must add additional tests to avoid the case where fcy is very close to zero, but i-1/i+1 or k-1/k+1
           //    might be covered cells -- this can happen when the EB is exactly aligned with the grid planes
           int ii,kk;
-          if (amrex::Math::abs(fcy(i,j,k,0)) > 1.e-8)
+          if (std::abs(fcy(i,j,k,0)) > 1.e-8)
               ii = (fcy(i,j,k,0) < 0.0) ? i - 1 : i + 1;
           else if (apy(i-1,j,k) > 0.)
               ii = i-1;
           else
               ii = i+1;
 
-          if (amrex::Math::abs(fcy(i,j,k,1)) > 1.e-8)
+          if (std::abs(fcy(i,j,k,1)) > 1.e-8)
               kk = (fcy(i,j,k,1) < 0.0) ? k - 1 : k + 1;
           else if (apy(i,j,k-1) > 0.)
               kk = k-1;
@@ -1065,8 +1065,8 @@ void eb_interp_centroid2facecent_z (Box const& wbx,
         {
             phi_z(i,j,k,n) = 0.5 * (phi(i,j,k,n) + phi(i,j,k-1,n));
         }
-        else if ( apz(i,j,k) == 1. && (amrex::Math::abs(ccent(i,j,k,0)-ccent(i,j,k-1,0)) < 1.e-8) &&
-                                      (amrex::Math::abs(ccent(i,j,k,1)-ccent(i,j,k-1,1)) < 1.e-8) )
+        else if ( apz(i,j,k) == 1. && (std::abs(ccent(i,j,k,0)-ccent(i,j,k-1,0)) < 1.e-8) &&
+                                      (std::abs(ccent(i,j,k,1)-ccent(i,j,k-1,1)) < 1.e-8) )
         {
             Real d0 = 0.5 + ccent(i,j,k  ,2);                                // distance in z-dir from centroid(i,j,k  ) to face(i,j,k)
             Real d1 = 0.5 - ccent(i,j,k-1,2);                                // distance in z-dir from centroid(i,j,k-1) to face(i,j,k)
@@ -1079,14 +1079,14 @@ void eb_interp_centroid2facecent_z (Box const& wbx,
           // We must add additional tests to avoid the case where fcz is very close to zero, but i-1/i+1 or j-1/j+1
           //    might be covered cells -- this can happen when the EB is exactly aligned with the grid planes
           int ii,jj;
-          if (amrex::Math::abs(fcz(i,j,k,0)) > 1.e-8)
+          if (std::abs(fcz(i,j,k,0)) > 1.e-8)
               ii = (fcz(i,j,k,0) < 0.0) ? i - 1 : i + 1;
           else if (apz(i-1,j,k) > 0.)
               ii = i-1;
           else
               ii = i+1;
 
-          if (amrex::Math::abs(fcz(i,j,k,1)) > 1.e-8)
+          if (std::abs(fcz(i,j,k,1)) > 1.e-8)
               jj = (fcz(i,j,k,1) < 0.0) ? j - 1 : j + 1;
           else if (apz(i,j-1,k) > 0.)
               jj = j-1;

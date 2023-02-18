@@ -263,7 +263,7 @@ void ccprotect_2d (int ic, int jc, int /*kc*/, int nvar,
                 }
             }
 
-            if ( (crseTot > 0) && (crseTot > Math::abs(SumN)) ) {
+            if ( (crseTot > 0) && (crseTot > std::abs(SumN)) ) {
 
                 /*
                  * Special case 1:
@@ -286,18 +286,18 @@ void ccprotect_2d (int ic, int jc, int /*kc*/, int nvar,
                         // Then, add the remaining positive proportionally.
                         if (SumP > 0.0) {
                             if (fine_state(i,j,0,n) > 0.0) {
-                                Real alpha = (crseTot - Math::abs(SumN)) / SumP;
+                                Real alpha = (crseTot - std::abs(SumN)) / SumP;
                                 fine(i,j,0,n) = alpha * fine_state(i,j,0,n);
                             }
                         } else { /* (SumP < 0) */
-                            Real posVal = (crseTot - Math::abs(SumN)) / cvol;
+                            Real posVal = (crseTot - std::abs(SumN)) / cvol;
                             fine(i,j,0,n) += posVal;
                         }
 
                     }
                 }
 
-            } else if ( (crseTot > 0) && (crseTot < Math::abs(SumN)) ) {
+            } else if ( (crseTot > 0) && (crseTot < std::abs(SumN)) ) {
 
                 /*
                  * Special case 2:
@@ -312,10 +312,10 @@ void ccprotect_2d (int ic, int jc, int /*kc*/, int nvar,
                 for     (int j = jlo; j <= jhi; ++j) {
                     for (int i = ilo; i <= ihi; ++i) {
 
-                        Real alpha = crseTot / Math::abs(SumN);
+                        Real alpha = crseTot / std::abs(SumN);
                         if (fine_state(i,j,0,n) < 0.0) {
                             // Add correction to negative cells proportionally.
-                            fine(i,j,0,n) = alpha * Math::abs(fine_state(i,j,0,n));
+                            fine(i,j,0,n) = alpha * std::abs(fine_state(i,j,0,n));
                         } else {
                             // Don't touch the positive states.
                             fine(i,j,0,n) = 0.0;
@@ -324,7 +324,7 @@ void ccprotect_2d (int ic, int jc, int /*kc*/, int nvar,
                     }
                 }
 
-            } else if ( (crseTot < 0) && (Math::abs(crseTot) > SumP) ) {
+            } else if ( (crseTot < 0) && (std::abs(crseTot) > SumP) ) {
 
                 /*
                  * Special case 3:
@@ -346,7 +346,7 @@ void ccprotect_2d (int ic, int jc, int /*kc*/, int nvar,
                     }
                 }
 
-            } else if ( (crseTot < 0) && (Math::abs(crseTot) < SumP) &&
+            } else if ( (crseTot < 0) && (std::abs(crseTot) < SumP) &&
                         ((SumP+SumN+crseTot) > 0.0) )  {
 
                 /*
@@ -372,7 +372,7 @@ void ccprotect_2d (int ic, int jc, int /*kc*/, int nvar,
                     }
                 }
 
-            } else if ( (crseTot < 0) && (Math::abs(crseTot) < SumP) &&
+            } else if ( (crseTot < 0) && (std::abs(crseTot) < SumP) &&
                         ((SumP+SumN+crseTot) < 0.0) )  {
                 /*
                  * Special case 5:

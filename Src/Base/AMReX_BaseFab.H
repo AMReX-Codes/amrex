@@ -2261,7 +2261,7 @@ BaseFab<T>::abs (const Box& subbox, int comp, int numcomp) noexcept
     Array4<T> const& a = this->array();
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG (run_on, subbox, numcomp, i, j, k, n,
     {
-        a(i,j,k,n+comp) = amrex::Math::abs(a(i,j,k,n+comp));
+        a(i,j,k,n+comp) = std::abs(a(i,j,k,n+comp));
     });
 }
 
@@ -2288,7 +2288,7 @@ BaseFab<T>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
             Real t = 0.0;
             if (m(i,j,k)) {
                 for (int n = 0; n < ncomp; ++n) {
-                    t = amrex::max(t,static_cast<Real>(amrex::Math::abs(a(i,j,k,n+scomp))));
+                    t = amrex::max(t,static_cast<Real>(std::abs(a(i,j,k,n+scomp))));
                 }
             }
             return {t};
@@ -2301,7 +2301,7 @@ BaseFab<T>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
         amrex::LoopOnCpu(subbox, ncomp, [=,&r] (int i, int j, int k, int n) noexcept
         {
             if (m(i,j,k)) {
-                Real t = static_cast<Real>(amrex::Math::abs(a(i,j,k,n+scomp)));
+                Real t = static_cast<Real>(std::abs(a(i,j,k,n+scomp)));
                 r = amrex::max(r,t);
             }
         });
@@ -2338,7 +2338,7 @@ BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const noexcep
             {
                 Real t = 0.0;
                 for (int n = 0; n < numcomp; ++n) {
-                    t = amrex::max(t, static_cast<Real>(amrex::Math::abs(a(i,j,k,n+comp))));
+                    t = amrex::max(t, static_cast<Real>(std::abs(a(i,j,k,n+comp))));
                 }
                 return {t};
             });
@@ -2353,7 +2353,7 @@ BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const noexcep
             {
                 Real t = 0.0;
                 for (int n = 0; n < numcomp; ++n) {
-                    t += static_cast<Real>(amrex::Math::abs(a(i,j,k,n+comp)));
+                    t += static_cast<Real>(std::abs(a(i,j,k,n+comp)));
                 }
                 return {t};
             });
@@ -2383,13 +2383,13 @@ BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const noexcep
         if (p == 0) {
             amrex::LoopOnCpu(subbox, numcomp, [=,&nrm] (int i, int j, int k, int n) noexcept
             {
-                Real t = static_cast<Real>(amrex::Math::abs(a(i,j,k,n+comp)));
+                Real t = static_cast<Real>(std::abs(a(i,j,k,n+comp)));
                 nrm = amrex::max(nrm,t);
             });
         } else if (p == 1) {
             amrex::LoopOnCpu(subbox, numcomp, [=,&nrm] (int i, int j, int k, int n) noexcept
             {
-                nrm += amrex::Math::abs(a(i,j,k,n+comp));
+                nrm += std::abs(a(i,j,k,n+comp));
             });
         } else if (p == 2) {
             amrex::LoopOnCpu(subbox, numcomp, [=,&nrm] (int i, int j, int k, int n) noexcept
@@ -2544,7 +2544,7 @@ BaseFab<T>::maxabs (const Box& subbox, int comp) const noexcept
         reduce_op.eval(subbox, reduce_data,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
         {
-            return { amrex::Math::abs(a(i,j,k)) };
+            return { std::abs(a(i,j,k)) };
         });
         ReduceTuple hv = reduce_data.value(reduce_op);
         return amrex::get<0>(hv);
@@ -2554,7 +2554,7 @@ BaseFab<T>::maxabs (const Box& subbox, int comp) const noexcept
         T r = 0;
         amrex::LoopOnCpu(subbox, [=,&r] (int i, int j, int k) noexcept
         {
-            r = amrex::max(r, amrex::Math::abs(a(i,j,k)));
+            r = amrex::max(r, std::abs(a(i,j,k)));
         });
         return r;
     }

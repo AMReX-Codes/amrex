@@ -201,8 +201,8 @@ void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
     Real nx = (axm-axp) * (1.0_rt/apnorm); // pointing to the wall
     Real ny = (aym-ayp) * (1.0_rt/apnorm);
 
-    Real nxabs = amrex::Math::abs(nx);
-    Real nyabs = amrex::Math::abs(ny);
+    Real nxabs = std::abs(nx);
+    Real nyabs = std::abs(ny);
 
     if (nxabs < tiny || nyabs > 1.0_rt-tiny) {
         areafrac = 0.5_rt*(axm+axp);

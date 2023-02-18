@@ -163,7 +163,7 @@ void mlndlap_normalize_sten (int i, int j, int k, Array4<Real> const& x,
                              Array4<Real const> const& sten,
                              Array4<int const> const& msk, Real s0_norm0) noexcept
 {
-    if (!msk(i,j,k) && amrex::Math::abs(sten(i,j,k,0)) > s0_norm0) {
+    if (!msk(i,j,k) && std::abs(sten(i,j,k,0)) > s0_norm0) {
         x(i,j,k) /= sten(i,j,k,0);
     }
 }

@@ -313,24 +313,24 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
 
                             Real ax = 0.; Real ay = 0.;
                             if (flag(i,j,k).isConnected(1,0,0)) {
-                                ax = amrex::max(ax,amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k)));
+                                ax = amrex::max(ax,std::abs(dat(i+1,j,k) - dat(i,j,k)));
                             }
                             if (flag(i,j,k).isConnected(-1,0,0)) {
-                                ax = amrex::max(ax,amrex::Math::abs(dat(i,j,k) - dat(i-1,j,k)));
+                                ax = amrex::max(ax,std::abs(dat(i,j,k) - dat(i-1,j,k)));
                             }
                             if (flag(i,j,k).isConnected(0,1,0)) {
-                                ay = amrex::max(ay,amrex::Math::abs(dat(i,j+1,k) - dat(i,j,k)));
+                                ay = amrex::max(ay,std::abs(dat(i,j+1,k) - dat(i,j,k)));
                             }
                             if (flag(i,j,k).isConnected(0,-1,0)) {
-                                ay = amrex::max(ay,amrex::Math::abs(dat(i,j,k) - dat(i,j-1,k)));
+                                ay = amrex::max(ay,std::abs(dat(i,j,k) - dat(i,j-1,k)));
                             }
 #if AMREX_SPACEDIM > 2
                             Real az = 0.;
                             if (flag(i,j,k).isConnected(0,0,1)) {
-                                az = amrex::max(az,amrex::Math::abs(dat(i,j,k+1) - dat(i,j,k)));
+                                az = amrex::max(az,std::abs(dat(i,j,k+1) - dat(i,j,k)));
                             }
                             if (flag(i,j,k).isConnected(0,0,-1)) {
-                                az = amrex::max(az,amrex::Math::abs(dat(i,j,k) - dat(i,j,k-1)));
+                                az = amrex::max(az,std::abs(dat(i,j,k) - dat(i,j,k-1)));
                             }
 #endif
                             if (amrex::max(AMREX_D_DECL(ax,ay,az)) >= threshold) {
@@ -345,18 +345,18 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                             auto const& dat = datma[bi];
 
                             Real ax = 0.;
-                            ax = amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k));
-                            ax = amrex::max(ax,amrex::Math::abs(dat(i,j,k) - dat(i-1,j,k)));
+                            ax = std::abs(dat(i+1,j,k) - dat(i,j,k));
+                            ax = amrex::max(ax,std::abs(dat(i,j,k) - dat(i-1,j,k)));
 #if AMREX_SPACEDIM == 1
                             if (ax >= threshold) { tagma[bi](i,j,k) = tag_update;}
 #else
                             Real ay = 0.;
-                            ay = amrex::Math::abs(dat(i,j+1,k) - dat(i,j,k));
-                            ay = amrex::max(ay,amrex::Math::abs(dat(i,j,k) - dat(i,j-1,k)));
+                            ay = std::abs(dat(i,j+1,k) - dat(i,j,k));
+                            ay = amrex::max(ay,std::abs(dat(i,j,k) - dat(i,j-1,k)));
 #if AMREX_SPACEDIM > 2
                             Real az = 0.;
-                            az = amrex::Math::abs(dat(i,j,k+1) - dat(i,j,k));
-                            az = amrex::max(az,amrex::Math::abs(dat(i,j,k) - dat(i,j,k-1)));
+                            az = std::abs(dat(i,j,k+1) - dat(i,j,k));
+                            az = amrex::max(az,std::abs(dat(i,j,k) - dat(i,j,k-1)));
 #endif // DIM > 2
                             if (amrex::max(AMREX_D_DECL(ax,ay,az)) >= threshold) {
                                 tagma[bi](i,j,k) = tag_update;
@@ -380,28 +380,28 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                             Real ax = 0.; Real ay = 0.;
 
                             if (flag(i,j,k).isConnected(1,0,0)) {
-                                ax = amrex::max(ax,amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k)));
+                                ax = amrex::max(ax,std::abs(dat(i+1,j,k) - dat(i,j,k)));
                             }
                             if (flag(i,j,k).isConnected(-1,0,0)) {
-                                ax = amrex::max(ax,amrex::Math::abs(dat(i,j,k) - dat(i-1,j,k)));
+                                ax = amrex::max(ax,std::abs(dat(i,j,k) - dat(i-1,j,k)));
                             }
                             if (flag(i,j,k).isConnected(0,1,0)) {
-                                ay = amrex::max(ay,amrex::Math::abs(dat(i,j+1,k) - dat(i,j,k)));
+                                ay = amrex::max(ay,std::abs(dat(i,j+1,k) - dat(i,j,k)));
                             }
                             if (flag(i,j,k).isConnected(0,-1,0)) {
-                                ay = amrex::max(ay,amrex::Math::abs(dat(i,j,k) - dat(i,j-1,k)));
+                                ay = amrex::max(ay,std::abs(dat(i,j,k) - dat(i,j-1,k)));
                             }
 #if AMREX_SPACEDIM > 2
                             Real az = 0.;
                             if (flag(i,j,k).isConnected(0,0,1)) {
-                                az = amrex::max(az,amrex::Math::abs(dat(i,j,k+1) - dat(i,j,k)));
+                                az = amrex::max(az,std::abs(dat(i,j,k+1) - dat(i,j,k)));
                             }
                             if (flag(i,j,k).isConnected(0,0,-1)) {
-                                az = amrex::max(az,amrex::Math::abs(dat(i,j,k) - dat(i,j,k-1)));
+                                az = amrex::max(az,std::abs(dat(i,j,k) - dat(i,j,k-1)));
                             }
 #endif // DIM > 2
                             if (amrex::max(AMREX_D_DECL(ax,ay,az))
-                                >= threshold * amrex::Math::abs(dat(i,j,k))) {
+                                >= threshold * std::abs(dat(i,j,k))) {
                                 tagma[bi](i,j,k) = tag_update;
                             }
                         });
@@ -412,19 +412,19 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                         {
                             auto const& dat = datma[bi];
 
-                            Real ax = amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k));
-                            ax = amrex::max(ax,amrex::Math::abs(dat(i,j,k) - dat(i-1,j,k)));
+                            Real ax = std::abs(dat(i+1,j,k) - dat(i,j,k));
+                            ax = amrex::max(ax,std::abs(dat(i,j,k) - dat(i-1,j,k)));
 #if AMREX_SPACEDIM == 1
-                            if (ax >= threshold * amrex::Math::abs(dat(i,j,k))) { tagma[bi](i,j,k) = tag_update;}
+                            if (ax >= threshold * std::abs(dat(i,j,k))) { tagma[bi](i,j,k) = tag_update;}
 #else
-                            Real ay = amrex::Math::abs(dat(i,j+1,k) - dat(i,j,k));
-                            ay = amrex::max(ay,amrex::Math::abs(dat(i,j,k) - dat(i,j-1,k)));
+                            Real ay = std::abs(dat(i,j+1,k) - dat(i,j,k));
+                            ay = amrex::max(ay,std::abs(dat(i,j,k) - dat(i,j-1,k)));
 #if AMREX_SPACEDIM > 2
-                            Real az = amrex::Math::abs(dat(i,j,k+1) - dat(i,j,k));
-                            az = amrex::max(az,amrex::Math::abs(dat(i,j,k) - dat(i,j,k-1)));
+                            Real az = std::abs(dat(i,j,k+1) - dat(i,j,k));
+                            az = amrex::max(az,std::abs(dat(i,j,k) - dat(i,j,k-1)));
 #endif // DIM > 2
                             if (amrex::max(AMREX_D_DECL(ax,ay,az))
-                                >= threshold * amrex::Math::abs(dat(i,j,k))) {
+                                >= threshold * std::abs(dat(i,j,k))) {
                                 tagma[bi](i,j,k) = tag_update;
                             }
 #endif // DIM > 1

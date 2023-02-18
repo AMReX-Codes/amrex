@@ -149,9 +149,9 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
     }
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(Math::abs(prob_lo[idim] - geom.ProbLo()[idim]) < std::numeric_limits<Real>::epsilon(),
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(prob_lo[idim] - geom.ProbLo()[idim]) < std::numeric_limits<Real>::epsilon(),
                                          "EB2::ChkptFile cannot read from a different problem domain");
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(Math::abs(prob_hi[idim] - geom.ProbHi()[idim]) < std::numeric_limits<Real>::epsilon(),
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(prob_hi[idim] - geom.ProbHi()[idim]) < std::numeric_limits<Real>::epsilon(),
                                          "EB2::ChkptFile cannot read from a different problem domain");
     }
 

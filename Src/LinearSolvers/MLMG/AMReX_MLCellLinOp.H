@@ -1985,7 +1985,7 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
                                      [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n)
                                          -> GpuTuple<Real>
                                      {
-                                         return amrex::Math::abs(ma[box_no](i,j,k,n)
+                                         return std::abs(ma[box_no](i,j,k,n)
                                                                  *vfrac_ma[box_no](i,j,k));
                                      });
                 } else
@@ -2000,7 +2000,7 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
                         auto const& v = vfrac.const_array(mfi);
                         AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
                         {
-                            norm = std::max(norm, amrex::Math::abs(fab(i,j,k,n)*v(i,j,k)));
+                            norm = std::max(norm, std::abs(fab(i,j,k,n)*v(i,j,k)));
                         });
                     }
                 }
@@ -2016,7 +2016,7 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
                                          -> GpuTuple<Real>
                                      {
                                          if (mask_ma[box_no](i,j,k)) {
-                                             return amrex::Math::abs(ma[box_no](i,j,k,n)
+                                             return std::abs(ma[box_no](i,j,k,n)
                                                                      *vfrac_ma[box_no](i,j,k));
                                          } else {
                                              return Real(0.0);
@@ -2036,7 +2036,7 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
                         AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
                         {
                             if (mask(i,j,k)) {
-                                norm = std::max(norm, amrex::Math::abs(fab(i,j,k,n)*v(i,j,k)));
+                                norm = std::max(norm, std::abs(fab(i,j,k,n)*v(i,j,k)));
                             }
                         });
                     }

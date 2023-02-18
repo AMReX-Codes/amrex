@@ -69,10 +69,10 @@ amrex::Real limiter (amrex::Real dlft, amrex::Real drgt, amrex::Real plm_theta) 
     using amrex::Real;
 
     Real dcen = Real(0.5)*(dlft+drgt);
-    Real dsgn = amrex::Math::copysign(Real(1.0), dcen);
-    Real slop = plm_theta * amrex::min(amrex::Math::abs(dlft),amrex::Math::abs(drgt));
+    Real dsgn = std::copysign(Real(1.0), dcen);
+    Real slop = plm_theta * amrex::min(std::abs(dlft),std::abs(drgt));
     Real dlim = (dlft*drgt >= Real(0.0)) ? slop : Real(0.0);
-    return dsgn * amrex::min(dlim,amrex::Math::abs(dcen));
+    return dsgn * amrex::min(dlim,std::abs(dcen));
 }
 
 }
@@ -286,12 +286,12 @@ riemann (const amrex::Real gamma, const amrex::Real smallp, const amrex::Real /*
         ustarm = ur - (pr - pstar)*wr;
         ustarp = ul + (pl - pstar)*wl;
 
-        Real dpditer = amrex::Math::abs(pstnm1-pstar);
-        Real zp = amrex::Math::abs(ustarp-ustnp1);
+        Real dpditer = std::abs(pstnm1-pstar);
+        Real zp = std::abs(ustarp-ustnp1);
         if (zp-weakwv*cleft < Real(0.0) ) {
             zp = dpditer*wl;
         }
-        Real zm = amrex::Math::abs(ustarm-ustnm1);
+        Real zm = std::abs(ustarm-ustnm1);
         if (zm-weakwv*cright < Real(0.0) ) {
             zm = dpditer*wr;
         }

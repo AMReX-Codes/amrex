@@ -16,10 +16,10 @@ amrex::Real limiter_eb (amrex::Real dlft, amrex::Real drgt, amrex::Real plm_thet
     using amrex::Real;
 
     Real dcen = Real(0.5)*(dlft+drgt);
-    Real dsgn = amrex::Math::copysign(Real(1.0), dcen);
-    Real slop = plm_theta * amrex::min(amrex::Math::abs(dlft),amrex::Math::abs(drgt));
+    Real dsgn = std::copysign(Real(1.0), dcen);
+    Real slop = plm_theta * amrex::min(std::abs(dlft),std::abs(drgt));
     Real dlim = (dlft*drgt >= Real(0.0)) ? slop : Real(0.0);
-    return dsgn * amrex::min(dlim,amrex::Math::abs(dcen));
+    return dsgn * amrex::min(dlim,std::abs(dcen));
 }
 
 }

@@ -85,7 +85,7 @@ BrentRootFinder (GpuArray<Real,AMREX_SPACEDIM> const& lo,
             e = d;
         }
 
-        if (amrex::Math::abs(fc) < amrex::Math::abs(fb))
+        if (std::abs(fc) < std::abs(fb))
         {
             aPt[rangedir] = bPt[rangedir];
             bPt[rangedir] = c;
@@ -96,15 +96,15 @@ BrentRootFinder (GpuArray<Real,AMREX_SPACEDIM> const& lo,
         }
 
         //  Convergence check
-        Real tol1  = 2.0_rt * EPS * amrex::Math::abs(bPt[rangedir]) + 0.5_rt * tol;
+        Real tol1  = 2.0_rt * EPS * std::abs(bPt[rangedir]) + 0.5_rt * tol;
         Real xm    = 0.5_rt * (c - bPt[rangedir]);
 
-        if (amrex::Math::abs(xm) <= tol1 || fb == 0.0_rt)
+        if (std::abs(xm) <= tol1 || fb == 0.0_rt)
         {
             break;
         }
 
-        if (amrex::Math::abs(e) >= tol1 && amrex::Math::abs(fa) > amrex::Math::abs(fb))
+        if (std::abs(e) >= tol1 && std::abs(fa) > std::abs(fb))
         {
             //  Attempt inverse quadratic interpolation
             s = fb / fa;
@@ -124,9 +124,9 @@ BrentRootFinder (GpuArray<Real,AMREX_SPACEDIM> const& lo,
             //  Check whether in bounds
             if (p > 0) q = -q;
 
-            p = amrex::Math::abs(p);
+            p = std::abs(p);
 
-            if (2.0_rt * p < amrex::min(3.0_rt*xm*q-amrex::Math::abs(tol1*q), 1.0_rt*amrex::Math::abs(e*q)))
+            if (2.0_rt * p < amrex::min(3.0_rt*xm*q-std::abs(tol1*q), 1.0_rt*std::abs(e*q)))
             {
                 //  Accept interpolation
                 e = d;
@@ -151,7 +151,7 @@ BrentRootFinder (GpuArray<Real,AMREX_SPACEDIM> const& lo,
         fa  = fb;
 
         //  Evaluate new trial root
-        if (amrex::Math::abs(d) > tol1)
+        if (std::abs(d) > tol1)
         {
             bPt[rangedir] = bPt[rangedir] + d;
         }

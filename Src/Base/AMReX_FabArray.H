@@ -2569,7 +2569,7 @@ FabArray<FAB>::abs (int comp, int ncomp, const IntVect& nghost)
         ParallelFor(*this, nghost, ncomp,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
         {
-            fa[box_no](i,j,k,n+comp) = amrex::Math::abs(fa[box_no](i,j,k,n+comp));
+            fa[box_no](i,j,k,n+comp) = std::abs(fa[box_no](i,j,k,n+comp));
         });
         if (!Gpu::inNoSyncRegion()) {
             Gpu::streamSynchronize();
@@ -2586,7 +2586,7 @@ FabArray<FAB>::abs (int comp, int ncomp, const IntVect& nghost)
             auto fab = this->array(mfi);
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
             {
-                fab(i,j,k,n+comp) = amrex::Math::abs(fab(i,j,k,n+comp));
+                fab(i,j,k,n+comp) = std::abs(fab(i,j,k,n+comp));
             });
         }
     }
@@ -3486,7 +3486,7 @@ FabArray<FAB>::norminf (int comp, int ncomp, IntVect const& nghost, bool local,
                     auto tmp = RT(0.0);
                     auto const& a = ma[box_no];
                     for (int n = 0; n < ncomp; ++n) {
-                        tmp = amrex::max(tmp, amrex::Math::abs(a(i,j,k,comp+n)));
+                        tmp = amrex::max(tmp, std::abs(a(i,j,k,comp+n)));
                     }
                     return tmp;
                 }
@@ -3505,7 +3505,7 @@ FabArray<FAB>::norminf (int comp, int ncomp, IntVect const& nghost, bool local,
                     AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
                     {
                         if (!flag(i,j,k).isCovered()) {
-                            nm0 = std::max(nm0, amrex::Math::abs(a(i,j,k,comp+n)));
+                            nm0 = std::max(nm0, std::abs(a(i,j,k,comp+n)));
                         }
                     });
                 }
@@ -3521,7 +3521,7 @@ FabArray<FAB>::norminf (int comp, int ncomp, IntVect const& nghost, bool local,
             nm0 = ParReduce(TypeList<ReduceOpMax>{}, TypeList<RT>{}, *this, nghost, ncomp,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<RT>
             {
-                return amrex::Math::abs(ma[box_no](i,j,k,comp+n));
+                return std::abs(ma[box_no](i,j,k,comp+n));
             });
         } else
 #endif
@@ -3534,7 +3534,7 @@ FabArray<FAB>::norminf (int comp, int ncomp, IntVect const& nghost, bool local,
                 auto const& a = this->const_array(mfi);
                 AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
                 {
-                    nm0 = std::max(nm0, amrex::Math::abs(a(i,j,k,comp+n)));
+                    nm0 = std::max(nm0, std::abs(a(i,j,k,comp+n)));
                 });
             }
         }
@@ -3570,7 +3570,7 @@ FabArray<FAB>::norminf (FabArray<IFAB> const& mask, int comp, int ncomp,
                 auto tmp = RT(0.0);
                 auto const& a = ma[box_no];
                 for (int n = 0; n < ncomp; ++n) {
-                    tmp = amrex::max(tmp, amrex::Math::abs(a(i,j,k,comp+n)));
+                    tmp = amrex::max(tmp, std::abs(a(i,j,k,comp+n)));
                 }
                 return tmp;
             } else {
@@ -3590,7 +3590,7 @@ FabArray<FAB>::norminf (FabArray<IFAB> const& mask, int comp, int ncomp,
             AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
             {
                 if (mskfab(i,j,k)) {
-                    nm0 = std::max(nm0, amrex::Math::abs(a(i,j,k,comp+n)));
+                    nm0 = std::max(nm0, std::abs(a(i,j,k,comp+n)));
                 }
             });
         }
