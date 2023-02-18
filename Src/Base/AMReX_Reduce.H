@@ -674,13 +674,18 @@ public:
 #if defined(AMREX_USE_SYCL)
         if (reduce_data.maxStreamIndex() == 0 && nblocks[0] <= 4096) {
             const int N = nblocks[0];
-            Gpu::PinnedVector<ReduceTuple> tmp(N);
-            Gpu::dtoh_memcpy_async(tmp.data(), dp, sizeof(ReduceTuple)*N);
-            Gpu::streamSynchronize();
-            for (int i = 1; i < N; ++i) {
-                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(tmp[0], tmp[i]);
+            if (N == 0) {
+                Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(*hp);
+                return *hp;
+            } else {
+                Gpu::PinnedVector<ReduceTuple> tmp(N);
+                Gpu::dtoh_memcpy_async(tmp.data(), dp, sizeof(ReduceTuple)*N);
+                Gpu::streamSynchronize();
+                for (int i = 1; i < N; ++i) {
+                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(tmp[0], tmp[i]);
+                }
+                return tmp[0];
             }
-            return tmp[0];
         } else
 #endif
         {
