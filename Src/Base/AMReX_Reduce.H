@@ -103,7 +103,7 @@ struct ReduceOpSum
 #endif
 
     template <typename T>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void local_update (T& d, T const& s) const noexcept { d += s; }
 
     template <typename T>
@@ -131,7 +131,7 @@ struct ReduceOpMin
 #endif
 
     template <typename T>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void local_update (T& d, T const& s) const noexcept { d = amrex::min(d,s); }
 
     template <typename T>
@@ -164,7 +164,7 @@ struct ReduceOpMax
 #endif
 
     template <typename T>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void local_update (T& d, T const& s) const noexcept { d = amrex::max(d,s); }
 
     template <typename T>
@@ -199,7 +199,7 @@ struct ReduceOpLogicalAnd
 #endif
 
     template <typename T>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     std::enable_if_t<std::is_integral<T>::value>
     local_update (T& d, T s) const noexcept { d = d && s; }
 
@@ -231,7 +231,7 @@ struct ReduceOpLogicalOr
 #endif
 
     template <typename T>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     std::enable_if_t<std::is_integral<T>::value>
     local_update (T& d, T s) const noexcept { d = d || s; }
 
