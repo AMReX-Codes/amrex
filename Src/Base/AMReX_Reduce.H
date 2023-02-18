@@ -671,6 +671,7 @@ public:
         auto hp = reduce_data.hostPtr();
         auto dp = reduce_data.devicePtr();
         auto const& nblocks = reduce_data.nBlocks();
+#if defined(AMREX_USE_SYCL)
         if (reduce_data.maxStreamIndex() == 0 && nblocks[0] <= 4096) {
             const int N = nblocks[0];
             Gpu::PinnedVector<ReduceTuple> tmp(N);
@@ -680,7 +681,9 @@ public:
                 Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(tmp[0], tmp[i]);
             }
             return tmp[0];
-        } else {
+        } else
+#endif
+        {
             int maxblocks = reduce_data.maxBlocks();
 #ifdef AMREX_USE_SYCL
             // device reduce needs local(i.e., shared) memory
