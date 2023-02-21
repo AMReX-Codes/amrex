@@ -2,7 +2,6 @@
 
 #include <cstddef> /* For NULL */
 #include <iostream> /* for std::cout/std::endl */
-#include <cmath> /* for pow */
 
 #include <AMReX_REAL.H>
 #include <AMReX_Gpu.H>
@@ -63,8 +62,8 @@ void InitializeMeshRefinement_DG
 {
     int k;
 
-    nFineV = (int)pow( 2, AMREX_SPACEDIM );
-    nFineF = (int)pow( 2, AMREX_SPACEDIM-1 );
+    nFineV = (int)std::pow( 2, AMREX_SPACEDIM );
+    nFineF = (int)std::pow( 2, AMREX_SPACEDIM-1 );
 
     VolumeRatio = One / (Real)nFineV;
     FaceRatio   = One / (Real)nFineF;
