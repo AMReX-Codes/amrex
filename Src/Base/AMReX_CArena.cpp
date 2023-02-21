@@ -289,7 +289,7 @@ CArena::hasFreeDeviceMemory (std::size_t sz)
 }
 
 void
-CArena::registerForProfiling (const std::string& memory_name)
+CArena::registerForProfiling ([[maybe_unused]] const std::string& memory_name)
 {
 #ifdef AMREX_TINY_PROFILING
     m_do_profiling = true;
