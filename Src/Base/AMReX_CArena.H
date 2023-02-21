@@ -60,6 +60,12 @@ public:
      */
     virtual bool hasFreeDeviceMemory (std::size_t sz) override;
 
+    /**
+     * \brief Add this Arena to the list of Arenas that are profiled by TinyProfiler.
+     * \param memory_name The name of this arena in the TinyProfiler output.
+     */
+    virtual void registerForProfiling (const std::string& memory_name) override;
+
     //! The current amount of heap space used by the CArena object.
     std::size_t heap_space_used () const noexcept;
 
@@ -165,6 +171,11 @@ protected:
     std::size_t m_used;
     //! The amount of memory given out via alloc().
     std::size_t m_actually_used;
+    //! If this arena is profiled by TinyProfiler
+    bool m_do_profiling;
+    //! Data structure used for profiling with TinyProfiler
+    std::map<std::string, MemStat> m_profiling_stats;
+
 
     std::mutex carena_mutex;
 };

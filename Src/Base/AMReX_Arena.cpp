@@ -119,6 +119,12 @@ Arena::hasFreeDeviceMemory (std::size_t)
     return true;
 }
 
+void
+Arena::registerForProfiling (const std::string&)
+{
+    amrex::Abort("Profiling is not implemented for this type of Arena");
+}
+
 std::size_t
 Arena::align (std::size_t s)
 {
@@ -302,8 +308,18 @@ Arena::Initialize ()
         ai.SetReleaseThreshold(the_arena_release_threshold);
         if (the_arena_is_managed) {
             the_arena = new CArena(0, ai.SetPreferred());
+#ifdef AMREX_USE_GPU
+            the_arena->registerForProfiling("Managed Memory");
+#else
+            the_arena->registerForProfiling("Cpu Memory");
+#endif
         } else {
             the_arena = new CArena(0, ai.SetDeviceMemory());
+#ifdef AMREX_USE_GPU
+            the_arena->registerForProfiling("Device Memory");
+#else
+            the_arena->registerForProfiling("Cpu Memory");
+#endif
         }
 #ifdef AMREX_USE_GPU
         BL_PROFILE("The_Arena::Initialize()");
@@ -323,6 +339,7 @@ Arena::Initialize ()
     } else {
         the_device_arena = new CArena(0, ArenaInfo{}.SetDeviceMemory().SetReleaseThreshold
                                       (the_device_arena_release_threshold));
+        the_device_arena->registerForProfiling("Device Memory");
     }
 #else
     the_device_arena = The_BArena();
@@ -334,6 +351,7 @@ Arena::Initialize ()
     } else {
         the_managed_arena = new CArena(0, ArenaInfo{}.SetReleaseThreshold
                                        (the_managed_arena_release_threshold));
+        the_managed_arena->registerForProfiling("Managed Memory");
     }
 #else
     the_managed_arena = The_BArena();
@@ -343,6 +361,7 @@ Arena::Initialize ()
     // When USE_CUDA=TRUE, we call cudaHostAlloc to pin the host memory.
     the_pinned_arena = new CArena(0, ArenaInfo{}.SetHostAlloc().SetReleaseThreshold
                                   (the_pinned_arena_release_threshold));
+    the_pinned_arena->registerForProfiling("Pinned Memory");
 
     if (the_device_arena_init_size > 0 && the_device_arena != the_arena) {
         BL_PROFILE("The_Device_Arena::Initialize()");

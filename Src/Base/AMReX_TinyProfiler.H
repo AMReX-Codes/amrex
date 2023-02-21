@@ -25,21 +25,8 @@
 
 namespace amrex {
 
-class CArena;
-
 struct MemStat
 {
-    enum memory_type {
-        device = 0,
-        managed = 1,
-        pinned = 2,
-        cpu = 3,
-    };
-
-    static constexpr std::array<const char *, 4> memory_name = {
-        "Device", "Managed", "Pinned", "Cpu (amrex_mempool)"
-    };
-
     Long nalloc = 0;        //!< number of allocations
     Long nfree = 0;         //!< number of frees
     Long currentmem = 0;    //!< amount of currently used memory in bytes
@@ -67,7 +54,8 @@ public:
     void memory_start () const noexcept;
     void memory_stop () const noexcept;
 
-    static MemStat* memory_alloc (std::size_t nbytes, int memtype) noexcept;
+    static MemStat* memory_alloc (std::size_t nbytes,
+                                  std::map<std::string, MemStat>& memstats) noexcept;
     static void memory_free (std::size_t nbytes, MemStat* stat) noexcept;
 
     static void Initialize () noexcept;
@@ -75,6 +63,9 @@ public:
 
     static void MemoryInitialize () noexcept;
     static void MemoryFinalize (bool bFlushing = false) noexcept;
+
+    static void RegisterArena (const std::string& memory_name,
+                               std::map<std::string, MemStat>& memstats) noexcept;
 
     static void StartRegion (std::string regname) noexcept;
     static void StopRegion (const std::string& regname) noexcept;
@@ -150,7 +141,8 @@ private:
 
     static std::vector<aligned_deque> mem_stack_thread_private;
 #endif
-    static std::array<std::map<std::string, MemStat>, 4> mem_statsmap;
+    static std::vector<std::map<std::string, MemStat>*> all_memstats;
+    static std::vector<std::string> all_memnames;
 
     static std::vector<std::string> regionstack;
     static std::deque<std::tuple<double,double,std::string*> > ttstack;

@@ -32,7 +32,8 @@ std::deque<const TinyProfiler*> TinyProfiler::mem_stack;
 #ifdef AMREX_USE_OMP
 std::vector<TinyProfiler::aligned_deque> TinyProfiler::mem_stack_thread_private;
 #endif
-std::array<std::map<std::string, MemStat>, 4> TinyProfiler::mem_statsmap;
+std::vector<std::map<std::string, MemStat>*> TinyProfiler::all_memstats;
+std::vector<std::string> TinyProfiler::all_memnames;
 
 std::vector<std::string>          TinyProfiler::regionstack;
 std::deque<std::tuple<double,double,std::string*> > TinyProfiler::ttstack;
@@ -347,21 +348,21 @@ TinyProfiler::memory_stop () const noexcept {
 }
 
 MemStat*
-TinyProfiler::memory_alloc (std::size_t nbytes, int memtype) noexcept {
-    // this function is not thread save for the same memtype
+TinyProfiler::memory_alloc (std::size_t nbytes, std::map<std::string, MemStat>& memstats) noexcept {
+    // this function is not thread save for the same memstats
     // the caller of this function (CArena::alloc) has a mutex
     MemStat* stat = nullptr;
 #ifdef AMREX_USE_OMP
     if (omp_in_parallel() && !mem_stack_thread_private[omp_get_thread_num()].deque.empty()) {
-        stat = &mem_statsmap[memtype][
+        stat = &memstats[
             mem_stack_thread_private[omp_get_thread_num()].deque.back()->fname
         ];
     } else
 #endif
     if (!mem_stack.empty()) {
-        stat = &mem_statsmap[memtype][mem_stack.back()->fname];
+        stat = &memstats[mem_stack.back()->fname];
     } else {
-        stat = &mem_statsmap[memtype]["Unprofiled"];
+        stat = &memstats["Unprofiled"];
     }
 
     ++stat->nalloc;
@@ -374,7 +375,7 @@ TinyProfiler::memory_alloc (std::size_t nbytes, int memtype) noexcept {
 
 void
 TinyProfiler::memory_free (std::size_t nbytes, MemStat* stat) noexcept {
-    // this function is not thread save for the same memtype
+    // this function is not thread save for the same stat
     // the caller of this function (CArena::free) has a mutex
     if (stat) {
         ++stat->nfree;
@@ -474,6 +475,8 @@ TinyProfiler::Finalize (bool bFlushing) noexcept
 void
 TinyProfiler::MemoryFinalize (bool bFlushing) noexcept
 {
+    // This function must be called BEFORE the profiled arenas are deleted
+
     static bool finalized = false;
     if (!bFlushing) {                // If flushing, don't make this the last time!
         if (finalized) {
@@ -488,9 +491,22 @@ TinyProfiler::MemoryFinalize (bool bFlushing) noexcept
     int ioproc = ParallelDescriptor::IOProcessorNumber();
     ParallelReduce::Max(dt_max, ioproc, ParallelDescriptor::Communicator());
 
-    for (std::size_t i=0; i<MemStat::memory_name.size(); ++i) {
+    for (std::size_t i=0; i<all_memstats.size(); ++i) {
         PrintMemStats(i, dt_max, t_final);
     }
+
+    if (!bFlushing) {
+        all_memstats.clear();
+        all_memnames.clear();
+    }
+}
+
+void
+TinyProfiler::RegisterArena (const std::string& memory_name,
+                             std::map<std::string, MemStat>& memstats) noexcept
+{
+    all_memstats.push_back(&memstats);
+    all_memnames.push_back(memory_name);
 }
 
 void
@@ -691,14 +707,14 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
 }
 
 void
-TinyProfiler::PrintMemStats(int mem_type, double dt_max, double t_final)
+TinyProfiler::PrintMemStats(int mem_idx, double dt_max, double t_final)
 {
     // make sure the set of profiled functions is the same on all processes
     {
         Vector<std::string> localStrings, syncedStrings;
         bool alreadySynced;
 
-        for(auto const& kv : mem_statsmap[mem_type]) {
+        for(auto const& kv : *all_memstats[mem_idx]) {
             localStrings.push_back(kv.first);
         }
 
@@ -706,14 +722,14 @@ TinyProfiler::PrintMemStats(int mem_type, double dt_max, double t_final)
 
         if (! alreadySynced) {  // add the new name
             for (auto const& s : syncedStrings) {
-                if (mem_statsmap[mem_type].find(s) == mem_statsmap[mem_type].end()) {
-                    mem_statsmap[mem_type][s]; // insert
+                if (all_memstats[mem_idx]->find(s) == all_memstats[mem_idx]->end()) {
+                    (*all_memstats[mem_idx])[s]; // insert
                 }
             }
         }
     }
 
-    if (mem_statsmap[mem_type].empty()) return;
+    if (all_memstats[mem_idx]->empty()) return;
 
     const int nprocs = ParallelDescriptor::NProcs();
     const int ioproc = ParallelDescriptor::IOProcessorNumber();
@@ -721,7 +737,7 @@ TinyProfiler::PrintMemStats(int mem_type, double dt_max, double t_final)
     std::vector<MemProcStats> allprocstats;
 
     // now collect global data onto the ioproc
-    for (auto it = mem_statsmap[mem_type].cbegin(); it != mem_statsmap[mem_type].cend(); ++it)
+    for (auto it = all_memstats[mem_idx]->cbegin(); it != all_memstats[mem_idx]->cend(); ++it)
     {
         Long nalloc = it->second.nalloc;
         Long nfree = it->second.nfree;
@@ -843,7 +859,7 @@ TinyProfiler::PrintMemStats(int mem_type, double dt_max, double t_final)
     }
     const std::string hline(lenhline, '-');
 
-    amrex::OutStream() << MemStat::memory_name[mem_type] << " Memory Usage:\n";
+    amrex::OutStream() << all_memnames[mem_idx] << " Usage:\n";
     amrex::OutStream() << hline << "\n";
     for (std::size_t i=0; i<allstatsstr.size(); ++i) {
         amrex::OutStream() << std::left << std::setw(maxlen[0]) << allstatsstr[i][0];
