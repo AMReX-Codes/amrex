@@ -141,10 +141,10 @@ void HypreIJIface::solve (
         m_solverSetAbsTolPtr(m_solver, abs_tol);
 
     // setup
-	 run_hypre_setup();
+    run_hypre_setup();
 
     // solve
-	 run_hypre_solve();
+    run_hypre_solve();
 
     // diagnostics
     m_solverNumItersPtr(m_solver, &m_num_iterations);
