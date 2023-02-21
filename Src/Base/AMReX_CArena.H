@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <set>
 #include <vector>
+#include <map>
 #include <mutex>
 #include <unordered_set>
 #include <functional>
