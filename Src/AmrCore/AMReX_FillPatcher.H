@@ -339,11 +339,26 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
         Box domain = m_cgeom.growPeriodicDomain(ng_space_interp);
         domain.convert(mf.ixType());
 
-        if (m_cf_crse_data.size() > 0 &&
-            amrex::almostEqual(time, m_cf_crse_data[0].first,5))
-        {
+        int idata = -1;
+        if (m_cf_crse_data.size() == 1) {
+            idata = 0;
+        } else if (m_cf_crse_data.size() == 2) {
+            Real const teps = std::abs(m_cf_crse_data[1].first -
+                                       m_cf_crse_data[0].first) * 1.e-3_rt;
+            if (time > m_cf_crse_data[0].first - teps &&
+                time < m_cf_crse_data[0].first + teps) {
+                idata = 0;
+            } else if (time > m_cf_crse_data[1].first - teps &&
+                       time < m_cf_crse_data[1].first + teps) {
+                idata = 1;
+            } else {
+                idata = 2;
+            }
+        }
+
+        if (idata == 0 || idata == 1) {
             auto const& dst = m_cf_crse_data_tmp->arrays();
-            auto const& src = m_cf_crse_data[0].second->const_arrays();
+            auto const& src = m_cf_crse_data[idata].second->const_arrays();
             amrex::ParallelFor(*m_cf_crse_data_tmp, IntVect(0), ncomp,
                                [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k, int n) noexcept
                                {
@@ -351,27 +366,11 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
                                        dst[bi](i,j,k,n) = src[bi](i,j,k,n+scomp);
                                    }
                                });
-        }
-        else if (m_cf_crse_data.size() > 1 &&
-                 amrex::almostEqual(time, m_cf_crse_data[1].first,5))
-        {
-            auto const& dst = m_cf_crse_data_tmp->arrays();
-            auto const& src = m_cf_crse_data[1].second->const_arrays();
-            amrex::ParallelFor(*m_cf_crse_data_tmp, IntVect(0), ncomp,
-                               [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k, int n) noexcept
-                               {
-                                   if (domain.contains(i,j,k)) {
-                                       dst[bi](i,j,k,n) = src[bi](i,j,k,n+scomp);
-                                   }
-                               });
-        }
-        else if (m_cf_crse_data.size() == 2)
-        {
+        } else if (idata == 2) {
             Real t0 = m_cf_crse_data[0].first;
             Real t1 = m_cf_crse_data[1].first;
             Real alpha = (t1-time)/(t1-t0);
             Real beta = (time-t0)/(t1-t0);
-            AMREX_ASSERT(alpha >= 0._rt && beta >= 0._rt);
             auto const& a = m_cf_crse_data_tmp->arrays();
             auto const& a0 = m_cf_crse_data[0].second->const_arrays();
             auto const& a1 = m_cf_crse_data[1].second->const_arrays();

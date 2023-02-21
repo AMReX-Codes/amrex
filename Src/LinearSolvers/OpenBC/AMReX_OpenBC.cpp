@@ -349,6 +349,8 @@ Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
             m_mlmg_2->setHypreInterface(Hypre::Interface::structed);
         }
 #endif
+    } else {
+        m_poisson_2->setLevelBC(0, &sol_all[0]);
     }
 
     Real err = m_mlmg_2->solve(GetVecOfPtrs(sol_all), GetVecOfConstPtrs(rhs_all),
@@ -400,10 +402,10 @@ void OpenBCSolver::compute_moments (Gpu::DeviceVector<openbc::Moments>& moments)
         int const* pnblks = m_ngpublocks_d.data();
         std::size_t shared_mem_bytes = m_nthreads_momtag * sizeof(openbc::Moments::array_type);
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         amrex::ignore_unused(problo,probhi,dx,crse_ratio,ntags,pm,ptag,pnblks,
                              shared_mem_bytes);
-        amrex::Abort("xxxx DPCPP todo: openbc compute_moments");
+        amrex::Abort("xxxx SYCL todo: openbc compute_moments");
 #else
         amrex::launch(m_ngpublocks_h.back(), m_nthreads_momtag, shared_mem_bytes, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept
@@ -743,10 +745,10 @@ void OpenBCSolver::compute_potential (Gpu::DeviceVector<openbc::Moments> const& 
         const auto len = amrex::length(b);
         const auto lenxy = len.x*len.y;
         const auto lenx = len.x;
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         amrex::ignore_unused(problo,dx,crse_ratio,nblocks,pmom,b,phi_arr,lo,
                              lenxy,lenx);
-        amrex::Abort("xxxxx DPCPP todo: openbc compute_potential");
+        amrex::Abort("xxxxx SYCL todo: openbc compute_potential");
 #else
         amrex::launch(b.numPts(), AMREX_GPU_MAX_THREADS, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept

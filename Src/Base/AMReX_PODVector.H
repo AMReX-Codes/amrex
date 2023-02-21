@@ -88,35 +88,40 @@ namespace amrex
         }
 
         template <typename T>
-        typename std::enable_if<RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
+        std::enable_if_t<RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value, bool>
         memCopyImpl (void* dst, const void* src, std::size_t count, T& /*allocator*/)
         {
 #ifdef AMREX_USE_GPU
             Gpu::dtod_memcpy_async(dst, src, count);
+            return true;
 #else
             std::memcpy(dst, src, count);
+            return false;
 #endif
         }
 
         template <typename T>
-        typename std::enable_if<!RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
+        std::enable_if_t<!RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value, bool>
         memCopyImpl (void* dst, const void* src, std::size_t count, T& /*allocator*/)
         {
             std::memcpy(dst, src, count);
+            return false;
         }
 
         template <typename T>
-        typename std::enable_if<IsPolymorphicArenaAllocator<T>::value>::type
+        std::enable_if_t<IsPolymorphicArenaAllocator<T>::value, bool>
         memCopyImpl (void* dst, const void* src, std::size_t count, T& allocator)
         {
 #ifdef AMREX_USE_GPU
             if (allocator.arena()->isManaged() || allocator.arena()->isDevice()) {
                 Gpu::dtod_memcpy_async(dst, src, count);
+                return true;
             } else
 #endif
             {
                 amrex::ignore_unused(allocator);
                 std::memcpy(dst, src, count);
+                return false;
             }
         }
 
@@ -183,6 +188,7 @@ namespace amrex
         {
 #ifdef AMREX_USE_GPU
             Gpu::htod_memcpy_async(data, &(*list.begin()), list.size() * sizeof(U));
+            Gpu::streamSynchronize();
 #else
             std::memcpy(data, &(*list.begin()), list.size() * sizeof(U));
 #endif
@@ -202,6 +208,7 @@ namespace amrex
 #ifdef AMREX_USE_GPU
             if (allocator.arena()->isManaged() || allocator.arena()->isDevice()) {
                 Gpu::htod_memcpy_async(data, &(*list.begin()), list.size() * sizeof(U));
+                Gpu::streamSynchronize();
             } else
 #endif
             {
@@ -284,7 +291,8 @@ namespace amrex
             using namespace detail;
             AllocateBuffer(a_vector.capacity());
             m_size = a_vector.size();
-            memCopyImpl<Allocator>(m_data, a_vector.m_data, a_vector.size() * sizeof(T), *this);
+            auto r = memCopyImpl<Allocator>(m_data, a_vector.m_data, a_vector.size() * sizeof(T), *this);
+            if (r) { Gpu::streamSynchronize(); }
         }
 
         PODVector (PODVector<T, Allocator>&& a_vector) noexcept
@@ -609,8 +617,8 @@ namespace amrex
         {
             pointer new_data = allocate(a_capacity);
             if (m_data) {
-                detail::memCopyImpl<Allocator>(new_data, m_data, size() * sizeof(T), *this);
-                amrex::Gpu::streamSynchronize();
+                auto r = detail::memCopyImpl<Allocator>(new_data, m_data, size() * sizeof(T), *this);
+                if (r) { amrex::Gpu::streamSynchronize(); }
             }
             deallocate(m_data, capacity());
             m_data = new_data;
@@ -625,9 +633,9 @@ namespace amrex
             if (m_data)
             {
                 memCopyImpl<Allocator>(new_data, m_data, a_index * sizeof(T), *this);
-                memCopyImpl<Allocator>(new_data + a_index + a_count, m_data + a_index,
+                auto r = memCopyImpl<Allocator>(new_data + a_index + a_count, m_data + a_index,
                                        (size() - a_index)*sizeof(T), *this);
-                amrex::Gpu::streamSynchronize();
+                if (r) { amrex::Gpu::streamSynchronize(); }
             }
             deallocate(m_data, capacity());
             m_data = new_data;
@@ -640,7 +648,8 @@ namespace amrex
             const size_t other_size = a_vector.size();
             if ( other_size > capacity() ) { AllocateBuffer(other_size); }
             m_size = other_size;
-            detail::memCopyImpl<Allocator>(m_data, a_vector.m_data, size() * sizeof(T), *this);
+            auto r = detail::memCopyImpl<Allocator>(m_data, a_vector.m_data, size() * sizeof(T), *this);
+            if (r) { Gpu::streamSynchronize(); }
             return *this;
         }
 
@@ -655,7 +664,8 @@ namespace amrex
                 const size_t other_size = a_vector.size();
                 if ( other_size > capacity() ) { AllocateBuffer(other_size); }
                 m_size = other_size;
-                detail::memCopyImpl<Allocator>(m_data, a_vector.m_data, size() * sizeof(T), *this);
+                auto r = detail::memCopyImpl<Allocator>(m_data, a_vector.m_data, size() * sizeof(T), *this);
+                if (r) { Gpu::streamSynchronize(); }
                 Allocator::operator=(static_cast<Allocator const&>(a_vector));
                 return *this;
             }

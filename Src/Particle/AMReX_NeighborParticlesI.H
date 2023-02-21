@@ -828,9 +828,9 @@ buildNeighborList (CheckPair&& check_pair, OtherPCType& other,
             dxi_v.push_back(geom.InvCellSizeArray());
             plo_v.push_back(geom.ProbLoArray());
 
-            m_neighbor_list[lev][index].build(ptile, other_ptile,
-                                              std::forward<CheckPair>(check_pair),
-                                              off_bins_v, dxi_v, plo_v, lo_v, hi_v, ng);
+            neighbor_lists[lev][index].build(ptile, other_ptile,
+                                             std::forward<CheckPair>(check_pair),
+                                             off_bins_v, dxi_v, plo_v, lo_v, hi_v, ng);
         }
     }
 }
@@ -929,11 +929,11 @@ buildNeighborList (CheckPair&& check_pair, int type_ind, int* ref_ratio,
                 auto ploa  = lgeom.ProbLoArray();
 
 #ifdef AMREX_USE_GPU
-                Gpu::htod_memcpy( dxi_v.data()   + type, dxInv.data(), sizeof(dxInv) );
-                Gpu::htod_memcpy( plo_v.data()   + type, ploa.data() , sizeof(ploa) );
-                Gpu::htod_memcpy( lo_v.data()    + type, &lo         , sizeof(lo)    );
-                Gpu::htod_memcpy( hi_v.data()    + type, &hi         , sizeof(hi)    );
-                Gpu::htod_memcpy( nbins_v.data() + type, &nbins      , sizeof(nbins) );
+                Gpu::htod_memcpy_async( dxi_v.data()   + type, dxInv.data(), sizeof(dxInv) );
+                Gpu::htod_memcpy_async( plo_v.data()   + type, ploa.data() , sizeof(ploa) );
+                Gpu::htod_memcpy_async( lo_v.data()    + type, &lo         , sizeof(lo)    );
+                Gpu::htod_memcpy_async( hi_v.data()    + type, &hi         , sizeof(hi)    );
+                Gpu::htod_memcpy_async( nbins_v.data() + type, &nbins      , sizeof(nbins) );
 #else
                 std::memcpy( dxi_v.data()   + type, dxInv.data(), sizeof(dxInv) );
                 std::memcpy( plo_v.data()   + type, ploa.data() , sizeof(ploa)  );
@@ -1023,9 +1023,9 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
             bins.build(np_total, pstruct, grownBox,
                       [=] AMREX_GPU_DEVICE (const ParticleType& p) noexcept -> IntVect
                       {
-                          int i = static_cast<int>(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0]) - lo.x);
-                          int j = static_cast<int>(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1]) - lo.y);
-                          int k = static_cast<int>(amrex::Math::floor((p.pos(2)-plo[2])*dxi[2]) - lo.z);
+                          AMREX_D_TERM(int i = static_cast<int>(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0]) - lo.x);,
+                                       int j = static_cast<int>(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1]) - lo.y);,
+                                       int k = static_cast<int>(amrex::Math::floor((p.pos(2)-plo[2])*dxi[2]) - lo.z));
                           AMREX_D_TERM(AMREX_ASSERT(i >= 0);, AMREX_ASSERT(j >= 0);, AMREX_ASSERT(k >= 0));
 
                           return IntVect(AMREX_D_DECL(i, j, k));
@@ -1036,7 +1036,6 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
 
             Gpu::Buffer<unsigned int> np_boundary({0});
             unsigned int* p_np_boundary = np_boundary.data();
-            constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
 
             AMREX_FOR_1D ( np_real, i,
             {
@@ -1065,7 +1064,7 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
                                 if (call_check_pair(check_pair, ptile_data, ptile_data, i, pperm[p])) {
                                     IntVect cell_ijk = getParticleCell(pstruct[pperm[p]], plo, dxi, domain);
                                     if (!box.contains(cell_ijk)) {
-                                        int loc = Gpu::Atomic::Inc(p_np_boundary, max_unsigned_int);
+                                        unsigned int loc = Gpu::Atomic::Add(p_np_boundary, 1u);
                                         p_boundary_particle_ids[loc] = i;
                                         isActualNeighbor = true;
                                         break;

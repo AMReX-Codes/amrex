@@ -1036,9 +1036,19 @@ FillPatchIterator::Initialize (int  boxGrow,
                 FillFromTwoLevels(time, idx, SComp, DComp, NComp);
             } else {
 
-#ifdef AMREX_USE_EB
-                if (EB2::TopIndexSpaceIfPresent()) {
-                    amrex::Abort("Grids must be properly nested for EB");
+#if defined(AMREX_USE_EB) || defined(AMREX_USE_GPU)
+#  if defined(AMREX_USE_EB) && !defined(AMREX_USE_GPU)
+                if (EB2::TopIndexSpaceIfPresent())
+#  endif
+                {
+                    IntVect new_blocking_factor = AmrLevel::ProperBlockingFactor
+                        (m_amrlevel, boxGrow, boxType, desc, SComp);
+                    amrex::Print() << "WARNING: Grids are not properly nested. Consider using amr.blocking_factor = "
+                                   << AMREX_D_TERM(new_blocking_factor[0],
+                                         << " " << new_blocking_factor[1],
+                                         << " " << new_blocking_factor[2])
+                                   << "\n";
+                    amrex::Abort("Grids must be properly nested for EB or GPU");
                 }
 #endif
 
@@ -1046,17 +1056,8 @@ FillPatchIterator::Initialize (int  boxGrow,
                 if (first) {
                     first = false;
                     if (ParallelDescriptor::IOProcessor() && amrex::Verbose()) {
-                        IntVect new_blocking_factor = m_amrlevel.parent->blockingFactor(m_amrlevel.level);
-                        new_blocking_factor *= 2;
-                        for (int j = 0; j < 10; ++j) {
-                            if (amrex::ProperlyNested(m_amrlevel.crse_ratio,
-                                                      new_blocking_factor,
-                                                      boxGrow, boxType, desc.interp(SComp))) {
-                                break;
-                            } else {
-                                new_blocking_factor *= 2;
-                            }
-                        }
+                        IntVect new_blocking_factor = AmrLevel::ProperBlockingFactor
+                            (m_amrlevel, boxGrow, boxType, desc, SComp);
                         amrex::Print() << "WARNING: Grids are not properly nested.  We might have to use\n"
                                        << "         two coarse levels to do fillpatch.  Consider using\n";
                         if (new_blocking_factor < IntVect{AMREX_D_DECL(128,128,128)}) {
@@ -2145,6 +2146,13 @@ AmrLevel::FillPatcherFill (MultiFab& mf, int dcomp, int ncomp, int nghost,
                                                parent->blockingFactor(fine_level.level),
                                                nghost, mf.ixType(),
                                                desc.interp(scomp))) {
+            IntVect new_blocking_factor = AmrLevel::ProperBlockingFactor
+                (fine_level, nghost, mf.ixType(), desc, scomp);
+            amrex::Print() << "WARNING: Grids are not properly nested. Consider using amr.blocking_factor = "
+                           << AMREX_D_TERM(new_blocking_factor[0],
+                                 << " " << new_blocking_factor[1],
+                                 << " " << new_blocking_factor[2])
+                           << "\n";
             amrex::Abort("FillPatcherFill: Grids are not properly nested.  Must increase blocking factor.");
         }
 
@@ -2248,6 +2256,25 @@ AmrLevel::FillRKPatch (int state_index, MultiFab& S, Real time,
         fillpatcher->fillRK(stage, iteration, ncycle, S, time, physbcf_crse,
                             physbcf, AmrLevel::desc_lst[state_index].getBCs());
     }
+}
+
+IntVect
+AmrLevel::ProperBlockingFactor (AmrLevel const& amr_level, int boxGrow,
+                                IndexType const& boxType,
+                                StateDescriptor const& desc, int SComp)
+{
+    IntVect new_blocking_factor = amr_level.parent->blockingFactor(amr_level.level);
+    new_blocking_factor *= 2;
+    for (int j = 0; j < 10; ++j) {
+        if (amrex::ProperlyNested(amr_level.crse_ratio,
+                                  new_blocking_factor,
+                                  boxGrow, boxType, desc.interp(SComp))) {
+            break;
+        } else {
+            new_blocking_factor *= 2;
+        }
+    }
+    return new_blocking_factor;
 }
 
 }

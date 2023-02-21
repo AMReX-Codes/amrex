@@ -438,6 +438,11 @@ public:
     static EBSupport      m_eb_support_level;
 #endif
 
+    //! Recommendation of a proper blocking factor
+    static IntVect ProperBlockingFactor (AmrLevel const& amr_level, int boxGrow,
+                                         IndexType const& boxType,
+                                         StateDescriptor const& desc, int SComp);
+
 protected:
     //! The constructors -- for derived classes.
     AmrLevel () noexcept;

@@ -171,6 +171,25 @@ namespace amrex
                                              const Geometry& geom, int fstart, int ncomp,
                                              bool interpolate=false);
 
+    /**
+     * \brief Get data in a cell of MultiFab/FabArray
+     *
+     * This returns a Vector containing the data in a given cell, if it's
+     * available on a process. The returned Vector is empty if a process
+     * does not have the given cell.
+     */
+    template <typename MF, std::enable_if_t<IsFabArray<MF>::value,int> FOO = 0>
+    Vector<typename MF::value_type> get_cell_data (MF const& mf, IntVect const& cell);
+
+    /**
+     * \brief Get data in a line of MultiFab/FabArray
+     *
+     * This returns a MultiFab/FabArray containing the data in a line
+     * specified by a direction and a cell.
+     */
+    template <typename MF, std::enable_if_t<IsFabArray<MF>::value,int> FOO = 0>
+    MF get_line_data (MF const& mf, int dir, IntVect const& cell);
+
     //! Return an iMultiFab that has the same BoxArray and DistributionMapping
     //! as the coarse MultiFab cmf. Cells covered by the coarsened fine grids
     //! are set to fine_value, whereas other cells are set to crse_value.
@@ -835,6 +854,85 @@ void average_down_faces (const FabArray<FAB>& fine, FabArray<FAB>& crse,
                   crse.nComp(), 0);
     average_down_faces(fine, ctmp, ratio, 0);
     crse.ParallelCopy(ctmp,0,0,crse.nComp(),0,0,crse_geom.periodicity());
+}
+
+template <typename MF, std::enable_if_t<IsFabArray<MF>::value,int> FOO>
+Vector<typename MF::value_type> get_cell_data (MF const& mf, IntVect const& cell)
+{
+    using T = typename MF::value_type;
+    const int ncomp = mf.nComp();
+    Gpu::DeviceVector<T> dv(ncomp);
+    auto dp = dv.data();
+    bool found = false;
+    auto loc = cell.dim3();
+    for (MFIter mfi(mf); mfi.isValid() && !found; ++mfi)
+    {
+        Box const& box = mfi.validbox();
+        if (box.contains(cell)) {
+            found = true;
+            auto const& fab = mf.const_array(mfi);
+            amrex::ParallelFor(1, [=] AMREX_GPU_DEVICE (int) noexcept
+            {
+                for (int n = 0; n < ncomp; ++n) {
+                    dp[n] = fab(loc.x,loc.y,loc.z,n);
+                }
+            });
+        }
+    }
+    Vector<T> hv;
+    if (found) {
+        hv.resize(ncomp);
+        Gpu::copy(Gpu::deviceToHost, dv.begin(), dv.end(), hv.begin());
+    }
+    return hv;
+}
+
+template <typename MF, std::enable_if_t<IsFabArray<MF>::value,int> FOO>
+MF get_line_data (MF const& mf, int dir, IntVect const& cell)
+{
+    BoxArray const& ba = mf.boxArray();
+    DistributionMapping const& dm = mf.DistributionMap();
+    const Long nboxes = ba.size();
+
+    BoxList bl(ba.ixType());
+    Vector<int> procmap;
+    Vector<int> index_map;
+    for (Long i = 0; i < nboxes; ++i) {
+        Box const& b = ba[i];
+        IntVect lo = cell;
+        lo[dir] = b.smallEnd(dir);
+        if (b.contains(lo)) {
+            IntVect hi = lo;
+            hi[dir] = b.bigEnd(dir);
+            Box b1d(lo,hi,b.ixType());
+            bl.push_back(b1d);
+            procmap.push_back(dm[i]);
+            index_map.push_back(i);
+        }
+    }
+
+    if (bl.isEmpty()) {
+        return MF();
+    } else {
+        BoxArray rba(std::move(bl));
+        DistributionMapping rdm(std::move(procmap));
+        MF rmf(rba, rdm, mf.nComp(), IntVect(0),
+               MFInfo().SetArena(mf.arena()));
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(rmf); mfi.isValid(); ++mfi) {
+            Box const& b = mfi.validbox();
+            auto const& dfab = rmf.array(mfi);
+            auto const& sfab = mf.const_array(index_map[mfi.index()]);
+            amrex::ParallelFor(b, mf.nComp(),
+            [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                dfab(i,j,k,n) = sfab(i,j,k,n);
+            });
+        }
+        return rmf;
+    }
 }
 
 }

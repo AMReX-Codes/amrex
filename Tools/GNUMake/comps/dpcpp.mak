@@ -29,7 +29,7 @@ ifeq ($(DEBUG),TRUE)
 
 else
 
-  CXXFLAGS += -g1 -O3 # // xxxx DPCPP: todo -g in beta6 causes a lot of warning messages
+  CXXFLAGS += -g1 -O3 # // xxxx SYCL: todo -g in beta6 causes a lot of warning messages
   CFLAGS   += -g1 -O3 #                       and makes linking much slower
   FFLAGS   += -g -O3
   F90FLAGS += -g -O3
@@ -71,39 +71,11 @@ endif
 CXXFLAGS += -fsycl
 CFLAGS   += -std=c11
 
-ifneq ($(DEBUG),TRUE)  # There is currently a bug that DEBUG build will crash.
-ifeq ($(DPCPP_AOT),TRUE)
-  ifdef AMREX_INTEL_ARCH
-    INTEL_CPU_SHORT_NAME = $(AMREX_INTEL_ARCH)
-  else
-  ifdef INTEL_ARCH
-    INTEL_CPU_SHORT_NAME = $(INTEL_ARCH)
-  else
-    INTEL_CPU_LONG_NAME = $(shell cat /sys/devices/cpu/caps/pmu_name)
-    ifneq ($(INTEL_CPU_LONG_NAME),)
-      ifeq ($(INTEL_CPU_LONG_NAME),skylake)
-        INTEL_CPU_SHORT_NAME = skl
-      else ifeq ($(INTEL_CPU_LONG_NAME),kabylake)
-        INTEL_CPU_SHORT_NAME = kbl
-      else ifeq ($(INTEL_CPU_LONG_NAME),cascadelake)
-        INTEL_CPU_SHORT_NAME = cfl
-      else
-        $(error AOT TODO: $(INTEL_CPU_LONG_NAME))
-      endif
-    endif
-  endif
-  endif
-  CXXFLAGS += -fsycl-targets=spir64_gen -Xsycl-target-backend '-device $(INTEL_CPU_SHORT_NAME)'
-endif
-endif
-
-ifneq ($(DPCPP_AOT),TRUE)
-ifneq ($(DPCPP_SPLIT_KERNEL),FALSE)
+ifneq ($(SYCL_SPLIT_KERNEL),FALSE)
   CXXFLAGS += -fsycl-device-code-split=per_kernel
 endif
-endif
 
-# temporary work-around for DPC++ beta08 bug
+# temporary work-around for oneAPI beta08 bug
 #   define "long double" as 64bit for C++ user-defined literals
 #   https://github.com/intel/llvm/issues/2187
 CXXFLAGS += -mlong-double-64 -Xclang -mlong-double-64
@@ -149,6 +121,27 @@ ifneq ($(BL_NO_FORT),TRUE)
 endif
 
 LDFLAGS += -fsycl-device-lib=libc,libm-fp32,libm-fp64
+
+ifeq ($(SYCL_AOT),TRUE)
+  ifndef AMREX_INTEL_ARCH
+    ifdef INTEL_ARCH
+      AMREX_INTEL_ARCH = $(INTEL_ARCH)
+    endif
+  endif
+  ifdef AMREX_INTEL_ARCH
+    amrex_intel_gpu_target = $(AMREX_INTEL_ARCH)
+  else
+    # amrex_intel_gpu_target = *
+    $(error Either INTEL_ARCH or AMREX_INTEL_ARCH must be specified when SYCL_AOT is TRUE.)
+  endif
+  CXXFLAGS += -fsycl-targets=spir64_gen
+  LDFLAGS += -Xsycl-target-backend '-device $(amrex_intel_gpu_target)'
+endif
+
+ifeq ($(DEBUG),TRUE)
+  # This might be needed for linking device code larger than 2GB.
+  LDFLAGS += -fsycl-link-huge-device-code
+endif
 
 ifeq ($(FSANITIZER),TRUE)
   override XTRALIBS += -lubsan

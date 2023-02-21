@@ -129,61 +129,67 @@ endif ()
 
 if (NOT AMReX_GPU_BACKEND STREQUAL NONE)
    message( STATUS "   AMReX_GPU_BACKEND = ${AMReX_GPU_BACKEND}")
+
+   # We might set different default for different GPUs in the future.
+   set(AMReX_GPU_MAX_THREADS_DEFAULT "256")
+   set(AMReX_GPU_MAX_THREADS ${AMReX_GPU_MAX_THREADS_DEFAULT} CACHE STRING
+       "Maximum number of GPU threads per block" )
+   message( STATUS "   AMReX_GPU_MAX_THREADS = ${AMReX_GPU_MAX_THREADS}")
 endif ()
 
 # Legacy variables for internal use only
 if (AMReX_GPU_BACKEND STREQUAL SYCL)
-   set(AMReX_DPCPP ON )
+   set(AMReX_SYCL  ON )
    set(AMReX_CUDA  OFF)
    set(AMReX_HIP   OFF)
 elseif (AMReX_GPU_BACKEND STREQUAL CUDA)
-   set(AMReX_DPCPP OFF)
+   set(AMReX_SYCL  OFF)
    set(AMReX_CUDA  ON )
    set(AMReX_HIP   OFF)
 elseif (AMReX_GPU_BACKEND STREQUAL HIP)
-   set(AMReX_DPCPP OFF)
+   set(AMReX_SYCL  OFF)
    set(AMReX_CUDA  OFF)
    set(AMReX_HIP   ON )
 else ()
-   set(AMReX_DPCPP OFF)
+   set(AMReX_SYCL  OFF)
    set(AMReX_CUDA  OFF)
    set(AMReX_HIP   OFF)
 endif ()
 
 # --- SYCL ---
-if (AMReX_DPCPP)
-   set(_valid_dpcpp_compiler_ids Clang IntelClang IntelDPCPP IntelLLVM)
-   if (NOT (CMAKE_CXX_COMPILER_ID IN_LIST _valid_dpcpp_compiler_ids) )
+if (AMReX_SYCL)
+   set(_valid_sycl_compiler_ids Clang IntelClang IntelDPCPP IntelLLVM)
+   if (NOT (CMAKE_CXX_COMPILER_ID IN_LIST _valid_sycl_compiler_ids) )
       message(WARNING "\nAMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} is tested with "
-         "DPCPP. Verify '${CMAKE_CXX_COMPILER_ID}' is correct and potentially "
+         "Intel oneAPI. Verify '${CMAKE_CXX_COMPILER_ID}' is correct and potentially "
          "set CMAKE_CXX_COMPILER=icpx.")
    endif ()
-   unset(_valid_dpcpp_compiler_ids)
+   unset(_valid_sycl_compiler_ids)
 endif ()
 
-cmake_dependent_option( AMReX_DPCPP_AOT  "Enable DPCPP ahead-of-time compilation (WIP)"  OFF
+cmake_dependent_option( AMReX_SYCL_AOT  "Enable SYCL ahead-of-time compilation (WIP)"  OFF
    "AMReX_GPU_BACKEND STREQUAL SYCL" OFF)
-print_option( AMReX_DPCPP_AOT )
+print_option( AMReX_SYCL_AOT )
 
-cmake_dependent_option( AMReX_DPCPP_SPLIT_KERNEL "Enable DPCPP kernel splitting"  ON
+cmake_dependent_option( AMReX_SYCL_SPLIT_KERNEL "Enable SYCL kernel splitting"  ON
    "AMReX_GPU_BACKEND STREQUAL SYCL" OFF)
-print_option(  AMReX_DPCPP_SPLIT_KERNEL )
+print_option(  AMReX_SYCL_SPLIT_KERNEL )
 
-cmake_dependent_option( AMReX_DPCPP_ONEDPL "Enable DPCPP's oneDPL algorithms"  OFF
+cmake_dependent_option( AMReX_SYCL_ONEDPL "Enable Intel's oneDPL algorithms"  OFF
    "AMReX_GPU_BACKEND STREQUAL SYCL" OFF)
-print_option(  AMReX_DPCPP_ONEDPL )
+print_option(  AMReX_SYCL_ONEDPL )
 
-if (AMReX_DPCPP)
+if (AMReX_SYCL)
    set(AMReX_INTEL_ARCH_DEFAULT "IGNORE")
    if (DEFINED ENV{AMREX_INTEL_ARCH})
       set(AMReX_INTEL_ARCH_DEFAULT "$ENV{AMREX_INTEL_ARCH}")
    endif()
 
    set(AMReX_INTEL_ARCH ${AMReX_INTEL_ARCH_DEFAULT} CACHE STRING
-      "INTEL GPU architecture (Must be provided if AMReX_GPU_BACKEND=SYCL and AMReX_DPCPP_AOT=ON)")
+      "INTEL GPU architecture (Must be provided if AMReX_GPU_BACKEND=SYCL and AMReX_SYCL_AOT=ON)")
 
-   if (AMReX_DPCPP_AOT AND NOT AMReX_INTEL_ARCH)
-      message(FATAL_ERROR "\nMust specify AMReX_INTEL_ARCH if AMReX_GPU_BACKEND=SYCL and AMReX_DPCPP_AOT=ON\n")
+   if (AMReX_SYCL_AOT AND NOT AMReX_INTEL_ARCH)
+      message(FATAL_ERROR "\nMust specify AMReX_INTEL_ARCH if AMReX_GPU_BACKEND=SYCL and AMReX_SYCL_AOT=ON\n")
    endif()
 endif ()
 

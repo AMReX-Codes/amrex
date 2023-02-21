@@ -26,8 +26,8 @@ public:
     static void Initialize(int nthreads);
     static void Finalize();
 private:
-    ::sundials::Context* sunctx;
     SUNMemoryHelper helper;
+    ::sundials::Context* sunctx;
 };
 
 

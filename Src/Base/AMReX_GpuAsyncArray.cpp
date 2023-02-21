@@ -2,7 +2,7 @@
 
 #ifdef AMREX_USE_GPU
 
-#if !defined(AMREX_USE_DPCPP)
+#if !defined(AMREX_USE_SYCL)
 extern "C" {
 #if defined(AMREX_USE_HIP)
     void amrex_asyncarray_delete ( hipStream_t /*stream*/,  hipError_t /*error*/, void* p)

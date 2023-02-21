@@ -260,11 +260,11 @@ template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
 T parser_math_jn (int a, T b)
 {
-#if defined AMREX_USE_DPCPP || defined __MINGW32__
+#if defined AMREX_USE_SYCL || defined __MINGW32__
     amrex::ignore_unused(a,b);
     // neither jn(f) nor std::cyl_bessel_j work yet
     // https://github.com/oneapi-src/oneAPI-spec/issues/308
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "parser: jn in SYCL/DPC++ not supported yet");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "parser: jn in SYCL not supported yet");
     return 0.0;
 #else
     return jn(a, b);
@@ -288,9 +288,9 @@ parser_call_f1 (enum parser_f1_t type, double a)
     case PARSER_SINH:        return parser_math_sinh<double>(a);
     case PARSER_COSH:        return parser_math_cosh<double>(a);
     case PARSER_TANH:        return parser_math_tanh<double>(a);
-    case PARSER_ABS:         return amrex::Math::abs(a);
-    case PARSER_FLOOR:       return amrex::Math::floor(a);
-    case PARSER_CEIL:        return amrex::Math::ceil(a);
+    case PARSER_ABS:         return std::abs(a);
+    case PARSER_FLOOR:       return std::floor(a);
+    case PARSER_CEIL:        return std::ceil(a);
     case PARSER_POW_M3:      return 1.0/(a*a*a);
     case PARSER_POW_M2:      return 1.0/(a*a);
     case PARSER_POW_M1:      return 1.0/a;

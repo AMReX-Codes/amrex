@@ -7,7 +7,7 @@
 #include <sunmemory/sunmemory_hip.h>
 #elif defined(AMREX_USE_CUDA)
 #include <sunmemory/sunmemory_cuda.h>
-#elif defined(AMREX_USE_DPCPP)
+#elif defined(AMREX_USE_SYCL)
 #include <sunmemory/sunmemory_sycl.h>
 #endif
 
@@ -117,7 +117,7 @@ namespace {
 #elif defined(AMREX_USE_CUDA)
         helper->ops->copy      = SUNMemoryHelper_Copy_Cuda;
         helper->ops->copyasync = SUNMemoryHelper_CopyAsync_Cuda;
-#elif defined(AMREX_USE_DPCPP)
+#elif defined(AMREX_USE_SYCL)
         helper->ops->copy      = SUNMemoryHelper_Copy_Sycl;
         helper->ops->copyasync = SUNMemoryHelper_CopyAsync_Sycl;
 #endif
@@ -129,9 +129,9 @@ namespace {
     Vector<MemoryHelper*> the_sunmemory_helper;
 } //namespace
 
-MemoryHelper::MemoryHelper(::sundials::Context* sunctx)
-    : helper(CreateMemoryHelper(sunctx)),
-        sunctx(sunctx)
+MemoryHelper::MemoryHelper(::sundials::Context* a_sunctx)
+    : helper(CreateMemoryHelper(a_sunctx)),
+        sunctx(a_sunctx)
 {
 }
 

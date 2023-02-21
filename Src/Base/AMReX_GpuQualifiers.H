@@ -2,7 +2,7 @@
 #define AMREX_GPU_QUALIFIERS_H_
 #include <AMReX_Config.H>
 
-#if defined(AMREX_USE_GPU) && !defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_GPU) && !defined(AMREX_USE_SYCL)
 
 #if defined(AMREX_USE_HIP)
 #include <hip/hip_runtime.h>
@@ -31,7 +31,7 @@
 
 #define AMREX_DEVICE_COMPILE (__CUDA_ARCH__ || __HIP_DEVICE_COMPILE__ || __SYCL_DEVICE_ONLY__)
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
 
 # include <sycl/sycl.hpp>
 
@@ -41,6 +41,6 @@
   [[intel::reqd_sub_group_size(x)]]                \
   _Pragma("clang diagnostic pop")
 
-#endif // AMREX_USE_DPCPP
+#endif // AMREX_USE_SYCL
 
 #endif

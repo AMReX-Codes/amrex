@@ -2,16 +2,9 @@
 #define AMREX_EXTENSION_H_
 #include <AMReX_Config.H>
 
-#if !defined(BL_LANG_FORT)
-
-// restrict
-
-#ifdef __cplusplus
-
-
-#if defined(__INTEL_COMPILER)
+#if defined(__INTEL_COMPILER) || (defined(__INTEL_LLVM_COMPILER) && !defined(SYCL_LANGUAGE_VERSION))
 #define AMREX_CXX_INTEL
-#elif defined(_CRAYC)
+#elif defined(_CRAYC) || defined(__cray__)
 #define AMREX_CXX_CRAY
 #elif defined(__PGI)
 #define AMREX_CXX_PGI
@@ -27,6 +20,11 @@
 #define AMREX_CXX_GCC
 #endif
 
+#if !defined(BL_LANG_FORT)
+
+// restrict
+
+#ifdef __cplusplus
 
 #ifdef _WIN32
 #define AMREX_RESTRICT __restrict
@@ -54,22 +52,22 @@
 //#elif defined(AMREX_USE_OMP) && defined(_OPENMP) && (_OPENMP >= 201307) && !defined(__PGI)
 //#define AMREX_PRAGMA_SIMD _Pragma("omp simd")
 
-#elif defined(__INTEL_COMPILER)
+#elif defined(AMREX_CXX_INTEL)
 #define AMREX_PRAGMA_SIMD _Pragma("ivdep")
 
-#elif defined(_CRAYC) || defined(__cray__)
+#elif defined(AMREX_CXX_CRAY)
 #define AMREX_PRAGMA_SIMD _Pragma("ivdep")
 
-#elif defined(__PGI)
+#elif defined(AMREX_CXX_PGI)
 #define AMREX_PRAGMA_SIMD _Pragma("loop ivdep")
 
-#elif defined(__NVCOMPILER)
+#elif defined(AMREX_CXX_NVHPC)
 #define AMREX_PRAGMA_SIMD _Pragma("loop ivdep")
 
-#elif defined(__NEC__)
+#elif defined(AMREX_CXX_NEC)
 #define AMREX_PRAGMA_SIMD
 
-#elif defined(__ibmxl__)
+#elif defined(AMREX_CXX_IBM)
 #define AMREX_PRAGMA_SIMD _Pragma("ibm independent_loop")
 
 #elif defined(__clang__)
@@ -90,22 +88,22 @@
 #elif defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
 #define AMREX_FORCE_INLINE __forceinline__
 
-#elif defined(__INTEL_COMPILER)
+#elif defined(AMREX_CXX_INTEL)
 #define AMREX_FORCE_INLINE inline __attribute__((always_inline))
 
-#elif defined(_CRAYC)
+#elif defined(AMREX_CXX_CRAY)
 #define AMREX_FORCE_INLINE inline
 
-#elif defined(__PGI)
+#elif defined(AMREX_CXX_PGI)
 #define AMREX_FORCE_INLINE inline
 
-#elif defined(__NVCOMPILER)
+#elif defined(AMREX_CXX_NVHPC)
 #define AMREX_FORCE_INLINE inline
 
-#elif defined(__NEC__)
+#elif defined(AMREX_CXX_NEC)
 #define AMREX_FORCE_INLINE inline
 
-#elif defined(__ibmxl__)
+#elif defined(AMREX_CXX_IBM)
 #define AMREX_FORCE_INLINE inline __attribute__((always_inline))
 
 #elif defined(__clang__)

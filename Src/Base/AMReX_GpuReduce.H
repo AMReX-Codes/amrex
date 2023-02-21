@@ -49,7 +49,7 @@ namespace amrex { namespace Gpu {
 
 namespace amrex { namespace Gpu {
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
 
 template <int warpSize, typename T, typename F>
 struct warpReduce
@@ -127,7 +127,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T blockReduceMin (T source, Gpu::Handler const& h) noexcept
 {
     return Gpu::blockReduce<Gpu::Device::warp_size>
-        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Less<T> >(), source, h);
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Minimum<T> >(), source, h);
 }
 
 template <typename T>
@@ -144,7 +144,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T blockReduceMax (T source, Gpu::Handler const& h) noexcept
 {
     return Gpu::blockReduce<Gpu::Device::warp_size>
-        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Greater<T> >(), source, h);
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Maximum<T> >(), source, h);
 }
 
 template <typename T>
@@ -206,7 +206,7 @@ void deviceReduceMin (T * dest, T source, Gpu::Handler const& h) noexcept
         deviceReduceMin_full(dest, source, h);
     } else {
         Gpu::blockReduce_partial<Gpu::Device::warp_size>
-            (dest, source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Less<T> >(),
+            (dest, source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Minimum<T> >(),
              Gpu::AtomicMin<T>(), h);
     }
 }
@@ -219,7 +219,7 @@ void deviceReduceMax (T * dest, T source, Gpu::Handler const& h) noexcept
         deviceReduceMax_full(dest, source, h);
     } else {
         Gpu::blockReduce_partial<Gpu::Device::warp_size>
-            (dest, source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Greater<T> >(),
+            (dest, source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Maximum<T> >(),
              Gpu::AtomicMax<T>(), h);
     }
 }
@@ -395,7 +395,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T blockReduceMin (T source) noexcept
 {
     return Gpu::blockReduce<Gpu::Device::warp_size>
-        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Less<T> >(), source);
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Minimum<T> >(), source);
 }
 
 template <typename T>
@@ -445,7 +445,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T blockReduceMax (T source) noexcept
 {
     return Gpu::blockReduce<Gpu::Device::warp_size>
-        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Greater<T> >(), source);
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Maximum<T> >(), source);
 }
 
 template <typename T>
@@ -622,7 +622,7 @@ void deviceReduceMin (T * dest, T source, Gpu::Handler const& handler) noexcept
         }
     } else {
         Gpu::blockReduce_partial<Gpu::Device::warp_size>
-            (dest, source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Less<T> >(),
+            (dest, source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Minimum<T> >(),
              Gpu::AtomicMin<T>(), handler);
     }
 }
@@ -641,7 +641,7 @@ void deviceReduceMax (T * dest, T source, Gpu::Handler const& handler) noexcept
         }
     } else {
         Gpu::blockReduce_partial<Gpu::Device::warp_size>
-            (dest, source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Greater<T> >(),
+            (dest, source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Maximum<T> >(),
              Gpu::AtomicMax<T>(), handler);
     }
 }

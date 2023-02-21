@@ -281,7 +281,7 @@ struct ImplicitIntegral
             Real dphi_max = 0.0_rt;
             for (int dim = 0; dim < N; ++dim) {
                 if (free[dim]) {
-                    dphi_max += amrex::Math::abs(phi.grad(dim));
+                    dphi_max += std::abs(phi.grad(dim));
                 } else {
                     mid[dim] = xrange(psi[i].side(dim),dim);
                 }
@@ -401,7 +401,7 @@ struct ImplicitIntegral
                     mag += phi.grad(dim)*phi.grad(dim);
                 }
                 mag = std::sqrt(mag);
-                f.evalIntegrand(x, (mag/amrex::Math::abs(phi.grad(e0)))*w);
+                f.evalIntegrand(x, (mag/std::abs(phi.grad(e0)))*w);
             }
 
             return;
@@ -537,8 +537,8 @@ struct ImplicitIntegral
         {
             Real gmax = -1.;
             for (int dim = 0; dim < N; ++dim) {
-                if (free[dim] && amrex::Math::abs(phi.grad(dim)) > gmax) {
-                    gmax = amrex::Math::abs(phi.grad(dim));
+                if (free[dim] && std::abs(phi.grad(dim)) > gmax) {
+                    gmax = std::abs(phi.grad(dim));
                     e0 = dim;
                 }
             }
@@ -571,6 +571,19 @@ struct ImplicitIntegral
         new_free[e0] = false;
         ImplicitIntegral<M-1,N,Phi,ImplicitIntegral<M,N,Phi,F,S>,false>
             (phi, *this, new_free, newPsi, newPsiCount);
+
+#if defined(AMREX_USE_SYCL)
+#if AMREX_DEVICE_COMPILE
+        if constexpr (std::is_same<F,QuadratureRule>()) {
+            if (&f != &f_) {
+                // xxxxx SYCL todo The only purpose of the following
+                // statement is to work around a compiler bug.  Nothing will
+                // actually be printed because &f == &f_.
+                AMREX_DEVICE_PRINTF("Work around compiler bug. %p %p\n", &f, &f_);
+            }
+        }
+#endif
+#endif
     }
 };
 

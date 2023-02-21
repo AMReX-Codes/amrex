@@ -332,7 +332,7 @@ endif
 $(depEXETempDir)/%.d: %.cpp $(srcTempDir)/AMReX_Config.H $(srcTempDir)/AMReX_Version.H $(AUTO_BUILD_SOURCES)
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
-ifeq ($(USE_DPCPP),TRUE)
+ifeq ($(USE_SYCL),TRUE)
         # Use > $@2 to filter out unnecessary messages
 	$(CXX) $(CXXDEPFLAGS) $< -o $@ > $@2
 else ifeq ($(USE_HIP),TRUE)
@@ -345,7 +345,7 @@ endif
 $(depEXETempDir)/%.d: %.c $(srcTempDir)/AMReX_Config.H $(srcTempDir)/AMReX_Version.H $(AUTO_BUILD_SOURCES)
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
-ifeq ($(USE_DPCPP),TRUE)
+ifeq ($(USE_SYCL),TRUE)
 	$(CC) $(CDEPFLAGS) $< -o $@
 else ifeq ($(USE_HIP),TRUE)
 	$(CC) $(CDEPFLAGS) $< -o $@

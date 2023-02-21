@@ -187,7 +187,7 @@ std::pair<Real, Real> MDParticleContainer::minAndMaxDistance()
             }
         });
 
-        //        Gpu::Device::streamSynchronize();
+        Gpu::Device::streamSynchronize();
 
         min_d = std::min(min_d, min_d_gpu.dataValue());
         max_d = std::max(max_d, max_d_gpu.dataValue());

@@ -322,9 +322,9 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
         facet_normal[tmp_facet] = 1.; // whether facing inwards or outwards is not important here
 
         // skip cases where cell faces coincide with the eb facets
-        if (AMREX_D_TERM(amrex::Math::abs(eb_normal[0]) == amrex::Math::abs(facet_normal[0]),
-                      && amrex::Math::abs(eb_normal[1]) == amrex::Math::abs(facet_normal[1]),
-                      && amrex::Math::abs(eb_normal[2]) == amrex::Math::abs(facet_normal[2])))
+        if (AMREX_D_TERM(std::abs(eb_normal[0]) == std::abs(facet_normal[0]),
+                      && std::abs(eb_normal[1]) == std::abs(facet_normal[1]),
+                      && std::abs(eb_normal[2]) == std::abs(facet_normal[2])))
         { continue; }
 
         int ind_cell = ind_loop[tmp_facet];
@@ -403,19 +403,19 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
         // if the line runs parallel to any of these dimensions (which is true for
         // EB edges), then skip -> the min/max functions at the end will skip them
         // due to the +/-huge(c...) defaults (above).
-        if ( amrex::Math::abs(edge_v[0]) > eps ) {
+        if ( std::abs(edge_v[0]) > eps ) {
             cx_lo = -( edge_p0[0] -   ind_loop[0]       * dx[0] ) / edge_v[0];
             cx_hi = -( edge_p0[0] - ( ind_loop[0] + 1 ) * dx[0] ) / edge_v[0];
             if ( edge_v[0] < 0._rt ) amrex::Swap(cx_lo, cx_hi);
         }
         //
-        if ( amrex::Math::abs(edge_v[1]) > eps ) {
+        if ( std::abs(edge_v[1]) > eps ) {
             cy_lo = -( edge_p0[1] -   ind_loop[1]       * dx[1] ) / edge_v[1];
             cy_hi = -( edge_p0[1] - ( ind_loop[1] + 1 ) * dx[1] ) / edge_v[1];
             if ( edge_v[1] < 0._rt ) amrex::Swap(cy_lo, cy_hi);
         }
         //
-        if ( amrex::Math::abs(edge_v[2]) > eps ) {
+        if ( std::abs(edge_v[2]) > eps ) {
             cz_lo = -( edge_p0[2] -   ind_loop[2]       * dx[2] ) / edge_v[2];
             cz_hi = -( edge_p0[2] - ( ind_loop[2] + 1 ) * dx[2] ) / edge_v[2];
             if ( edge_v[2] < 0._rt ) amrex::Swap(cz_lo, cz_hi);
@@ -595,16 +595,16 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
                     AMREX_D_TERM(Real eb_min_x = x + nx*dist_proj;,
                                  Real eb_min_y = y + ny*dist_proj;,
                                  Real eb_min_z = z + nz*dist_proj);
-                    AMREX_D_TERM(int vi_cx = static_cast<int>(amrex::Math::floor(cx * dxinv));,
-                                 int vi_cy = static_cast<int>(amrex::Math::floor(cy * dyinv));,
-                                 int vi_cz = static_cast<int>(amrex::Math::floor(cz * dzinv)));
-                    AMREX_D_TERM(int vi_x = static_cast<int>(amrex::Math::floor(eb_min_x * dxinv));,
-                                 int vi_y = static_cast<int>(amrex::Math::floor(eb_min_y * dyinv));,
-                                 int vi_z = static_cast<int>(amrex::Math::floor(eb_min_z * dzinv)));
+                    AMREX_D_TERM(int vi_cx = static_cast<int>(std::floor(cx * dxinv));,
+                                 int vi_cy = static_cast<int>(std::floor(cy * dyinv));,
+                                 int vi_cz = static_cast<int>(std::floor(cz * dzinv)));
+                    AMREX_D_TERM(int vi_x = static_cast<int>(std::floor(eb_min_x * dxinv));,
+                                 int vi_y = static_cast<int>(std::floor(eb_min_y * dyinv));,
+                                 int vi_z = static_cast<int>(std::floor(eb_min_z * dzinv)));
 
                     bool min_pt_valid = false;
                     if ((AMREX_D_TERM(vi_cx == vi_x, && vi_cy == vi_y, && vi_cz == vi_z))  ||
-                        amrex::Math::abs(dist_proj) > ls_roof + dx_eb_max)
+                        std::abs(dist_proj) > ls_roof + dx_eb_max)
                     {
                         // If the distance is very big, we can set it to true as well.
                         // Later the signed distance will be assigned the roof value.
@@ -615,9 +615,9 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
 #endif
                         for (int j_shift = -1; j_shift <= 1; ++j_shift) {
                         for (int i_shift = -1; i_shift <= 1; ++i_shift) {
-                            AMREX_D_TERM(vi_x = static_cast<int>(amrex::Math::floor((eb_min_x+i_shift*1.e-6_rt*dx_eb[0])*dxinv));,
-                                         vi_y = static_cast<int>(amrex::Math::floor((eb_min_y+j_shift*1.e-6_rt*dx_eb[1])*dyinv));,
-                                         vi_z = static_cast<int>(amrex::Math::floor((eb_min_z+k_shift*1.e-6_rt*dx_eb[2])*dzinv)));
+                            AMREX_D_TERM(vi_x = static_cast<int>(std::floor((eb_min_x+i_shift*1.e-6_rt*dx_eb[0])*dxinv));,
+                                         vi_y = static_cast<int>(std::floor((eb_min_y+j_shift*1.e-6_rt*dx_eb[1])*dyinv));,
+                                         vi_z = static_cast<int>(std::floor((eb_min_z+k_shift*1.e-6_rt*dx_eb[2])*dzinv)));
                             if (AMREX_D_TERM(vi_cx == vi_x, && vi_cy == vi_y, && vi_cz == vi_z)) {
                                 min_pt_valid = true;
                                 goto after_loops;
@@ -638,9 +638,9 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
                     } else {
                         // fallback: find the nearest point on the EB edge
                         // revert the value of vi_x, vi_y and vi_z
-                        AMREX_D_TERM(vi_x = static_cast<int>(amrex::Math::floor(eb_min_x * dxinv));,
-                                     vi_y = static_cast<int>(amrex::Math::floor(eb_min_y * dyinv));,
-                                     vi_z = static_cast<int>(amrex::Math::floor(eb_min_z * dzinv)));
+                        AMREX_D_TERM(vi_x = static_cast<int>(std::floor(eb_min_x * dxinv));,
+                                     vi_y = static_cast<int>(std::floor(eb_min_y * dyinv));,
+                                     vi_z = static_cast<int>(std::floor(eb_min_z * dzinv)));
                         auto c_vec = detail::facets_nearest_pt
                             ({AMREX_D_DECL(vi_x,vi_y,vi_z)}, {AMREX_D_DECL(vi_cx, vi_cy, vi_cz)},
                              {AMREX_D_DECL(x,y,z)}, {AMREX_D_DECL(nx,ny,nz)},
@@ -651,7 +651,7 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
                         min_dist = -std::sqrt(amrex::min(min_dist2, min_edge_dist2));
                     }
 
-                    Real usd = amrex::min(ls_roof,amrex::Math::abs(min_dist));
+                    Real usd = amrex::min(ls_roof,std::abs(min_dist));
                     if (fab(i,j,k) <= 0._rt) {
                         fab(i,j,k) = fluid_sign * usd;
                     } else {

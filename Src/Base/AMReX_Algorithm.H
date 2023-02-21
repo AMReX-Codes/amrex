@@ -94,9 +94,9 @@ namespace amrex
     {
         // the machine epsilon has to be scaled to the magnitude of the values used
         // and multiplied by the desired precision in ULPs (units in the last place)
-        return amrex::Math::abs(x-y) <= std::numeric_limits<T>::epsilon() * amrex::Math::abs(x+y) * ulp
+        return std::abs(x-y) <= std::numeric_limits<T>::epsilon() * std::abs(x+y) * ulp
         // unless the result is subnormal
-        || amrex::Math::abs(x-y) < std::numeric_limits<T>::min();
+        || std::abs(x-y) < std::numeric_limits<T>::min();
     }
 
     template <class T, class F,
