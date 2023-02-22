@@ -61,3 +61,4 @@ Tutorials/EB/Donut/Exec/ls_plt*
 
 # local config
 Tools/GNUMake/Make.local
+Tools/GNUMake/Make.local-pre
