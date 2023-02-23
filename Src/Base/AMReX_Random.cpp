@@ -137,8 +137,8 @@ RestoreRandomState (std::istream& is, int nthreads_old, int nstep_old)
         const int MyProc = ParallelDescriptor::MyProc();
         for (int i = nthreads_old; i < nthreads; i++) {
             ULong seed = MyProc+1 + i*NProcs;
-            if (std::numeric_limits<ULong>::max()/(ULong)(nstep_old+1)
-                > static_cast<ULong>(nthreads*NProcs)) // avoid overflow
+            if (std::numeric_limits<ULong>::max()/static_cast<ULong>(nstep_old+1)
+                > static_cast<ULong>(nthreads)*static_cast<ULong>(NProcs)) // avoid overflow
             {
                 seed += nstep_old*nthreads*NProcs;
             }
@@ -158,7 +158,7 @@ UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
   std::set<int> copySet;
   Vector<int> uSetTemp;
   while(static_cast<int>(copySet.size()) < setSize) {
-    int r(Random_int(poolSize));
+    int r = static_cast<int>(Random_int(poolSize));
     if(copySet.find(r) == copySet.end()) {
       copySet.insert(r);
       uSetTemp.push_back(r);
@@ -195,32 +195,6 @@ DeallocateRandomSeedDevArray ()
     }
 #endif
 #endif
-}
-
-void
-NItemsPerBin (int totalItems, Vector<int> &binCounts)
-{
-  if(binCounts.size() == 0) {
-    return;
-  }
-  bool verbose(false);
-  int countForAll(totalItems / binCounts.size());
-  int remainder(totalItems % binCounts.size());
-  if(verbose) {
-      Print() << "amrex::NItemsPerBin:  countForAll remainder = " << countForAll
-                     << "  " << remainder << std::endl;
-  }
-  for(int i(0); i < binCounts.size(); ++i) {
-    binCounts[i] = countForAll;
-  }
-  for(int i(0); i < remainder; ++i) {
-    ++binCounts[i];
-  }
-  for(int i(0); i < binCounts.size(); ++i) {
-    if(verbose) {
-        Print() << "amrex::NItemsPerBin::  binCounts[" << i << "] = " << binCounts[i] << std::endl;
-    }
-  }
 }
 
 } // namespace amrex

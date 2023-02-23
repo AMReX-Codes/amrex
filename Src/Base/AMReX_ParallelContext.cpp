@@ -4,8 +4,7 @@
 #include <sstream>
 #include <fstream>
 
-namespace amrex {
-namespace ParallelContext {
+namespace amrex::ParallelContext {
 
 Vector<Frame> frames; // stack of communicator frames
 
@@ -13,9 +12,7 @@ Frame::Frame (MPI_Comm c, int id, int io_rank)
     : comm(c),
       m_id(id),
       m_mpi_tag(ParallelDescriptor::MinTag()),
-      m_io_rank(io_rank),
-      m_out_filename(""),
-      m_out(nullptr)
+      m_io_rank(io_rank)
 {
 #ifdef BL_USE_MPI
     MPI_Comm_group(comm, &group);
@@ -44,7 +41,7 @@ Frame::Frame (Frame && rhs) noexcept
     rhs.group = MPI_GROUP_NULL;
 }
 
-Frame::~Frame ()
+Frame::~Frame () // NOLINT(modernize-use-equals-default)
 {
 #ifdef BL_USE_MPI
     if (group != MPI_GROUP_NULL) {
@@ -54,7 +51,7 @@ Frame::~Frame ()
 }
 
 int
-Frame::local_to_global_rank (int lrank) const
+Frame::local_to_global_rank (int lrank)
 {
     int r;
     local_to_global_rank(&r, &lrank, 1);
@@ -62,7 +59,7 @@ Frame::local_to_global_rank (int lrank) const
 }
 
 void
-Frame::local_to_global_rank (int* global, const int* local, std::size_t n) const
+Frame::local_to_global_rank (int* global, const int* local, std::size_t n)
 {
 #ifdef BL_USE_MPI
     if (frames.size() > 1)
@@ -80,7 +77,7 @@ Frame::local_to_global_rank (int* global, const int* local, std::size_t n) const
 }
 
 int
-Frame::global_to_local_rank (int grank) const
+Frame::global_to_local_rank (int grank)
 {
     int r;
     global_to_local_rank(&r, &grank, 1);
@@ -88,7 +85,7 @@ Frame::global_to_local_rank (int grank) const
 }
 
 void
-Frame::global_to_local_rank (int* local, const int* global, std::size_t n) const
+Frame::global_to_local_rank (int* local, const int* global, std::size_t n)
 {
 #ifdef BL_USE_MPI
     if (frames.size() > 1)
@@ -134,4 +131,4 @@ Frame::get_ofs_ptr ()
     }
 }
 
-}}
+}

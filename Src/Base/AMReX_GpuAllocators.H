@@ -158,7 +158,7 @@ namespace amrex {
             if (ptr != nullptr) { arena()->free(ptr); }
         }
 
-        Arena* arena () const noexcept {
+        [[nodiscard]] Arena* arena () const noexcept {
             return (m_arena) ? m_arena : The_Arena();
         }
 

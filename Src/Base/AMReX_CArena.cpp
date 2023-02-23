@@ -33,8 +33,8 @@ CArena::CArena (std::size_t hunk_size, ArenaInfo info)
 
 CArena::~CArena ()
 {
-    for (unsigned int i = 0, N = m_alloc.size(); i < N; i++) {
-        deallocate_system(m_alloc[i].first, m_alloc[i].second);
+    for (auto const& a : m_alloc) {
+        deallocate_system(a.first, a.second);
     }
 
 #ifdef AMREX_TINY_PROFILING
@@ -65,7 +65,7 @@ CArena::alloc (std::size_t nbytes)
     //
     // Find node in freelist at lowest memory address that'll satisfy request.
     //
-    NL::iterator free_it = m_freelist.begin();
+    auto free_it = m_freelist.begin();
 
     for ( ; free_it != m_freelist.end(); ++free_it) {
         if ((*free_it).size() >= nbytes) {
@@ -73,7 +73,7 @@ CArena::alloc (std::size_t nbytes)
         }
     }
 
-    void* vp = 0;
+    void* vp = nullptr;
 
     if (free_it == m_freelist.end())
     {
@@ -83,7 +83,7 @@ CArena::alloc (std::size_t nbytes)
 
         m_used += N;
 
-        m_alloc.push_back(std::make_pair(vp,N));
+        m_alloc.emplace_back(std::make_pair(vp,N));
 
         if (nbytes < m_hunk)
         {
@@ -128,7 +128,7 @@ CArena::alloc (std::size_t nbytes)
 
     m_actually_used += nbytes;
 
-    BL_ASSERT(!(vp == 0));
+    BL_ASSERT(vp != nullptr);
 
     return vp;
 }
@@ -136,7 +136,7 @@ CArena::alloc (std::size_t nbytes)
 void
 CArena::free (void* vp)
 {
-    if (vp == 0) {
+    if (vp == nullptr) {
         //
         // Allow calls with NULL as allowed by C++ delete.
         //
@@ -148,7 +148,7 @@ CArena::free (void* vp)
     //
     // `vp' had better be in the busy list.
     //
-    auto busy_it = m_busylist.find(Node(vp,0,0));
+    auto busy_it = m_busylist.find(Node(vp,nullptr,0));
     if (busy_it == m_busylist.end()) {
         amrex::Abort("CArena::free: unknown pointer");
         return;
@@ -168,7 +168,7 @@ CArena::free (void* vp)
 
     BL_ASSERT(pair_it.second == true);
 
-    NL::iterator free_it = pair_it.first;
+    auto free_it = pair_it.first;
 
     BL_ASSERT(free_it != m_freelist.end() && (*free_it).block() == (*busy_it).block());
     //
@@ -180,7 +180,7 @@ CArena::free (void* vp)
     //
     if (!(free_it == m_freelist.begin()))
     {
-        NL::iterator lo_it = free_it;
+        auto lo_it = free_it;
 
         --lo_it;
 
@@ -200,14 +200,14 @@ CArena::free (void* vp)
             // back into the same place in the set.
             //
             Node* node = const_cast<Node*>(&(*lo_it));
-            BL_ASSERT(!(node == 0));
+            BL_ASSERT(node != nullptr);
             node->size((*lo_it).size() + (*free_it).size());
             m_freelist.erase(free_it);
             free_it = lo_it;
         }
     }
 
-    NL::iterator hi_it = free_it;
+    auto hi_it = free_it;
 
     void* addr = static_cast<char*>((*free_it).block()) + (*free_it).size();
 
@@ -217,7 +217,7 @@ CArena::free (void* vp)
         // Ditto the above comment.
         //
         Node* node = const_cast<Node*>(&(*free_it));
-        BL_ASSERT(!(node == 0));
+        BL_ASSERT(node != nullptr);
         node->size((*free_it).size() + (*hi_it).size());
         m_freelist.erase(hi_it);
     }
@@ -321,7 +321,7 @@ CArena::sizeOf (void* p) const noexcept
     if (p == nullptr) {
         return 0;
     } else {
-        auto it = m_busylist.find(Node(p,0,0));
+        auto it = m_busylist.find(Node(p,nullptr,0));
         if (it == m_busylist.end()) {
             return 0;
         } else {
@@ -333,9 +333,9 @@ CArena::sizeOf (void* p) const noexcept
 void
 CArena::PrintUsage (std::string const& name) const
 {
-    Long min_megabytes = heap_space_used() / (1024*1024);
+    Long min_megabytes = static_cast<Long>(heap_space_used() / (1024*1024));
     Long max_megabytes = min_megabytes;
-    Long actual_min_megabytes = heap_space_actually_used() / (1024*1024);
+    Long actual_min_megabytes = static_cast<Long>(heap_space_actually_used() / (1024*1024));
     Long actual_max_megabytes = actual_min_megabytes;
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
     ParallelReduce::Min<Long>({min_megabytes, actual_min_megabytes},
@@ -356,8 +356,8 @@ CArena::PrintUsage (std::string const& name) const
 void
 CArena::PrintUsage (std::ostream& os, std::string const& name, std::string const& space) const
 {
-    Long megabytes = heap_space_used() / (1024*1024);
-    Long actual_megabytes = heap_space_actually_used() / (1024*1024);
+    auto megabytes = heap_space_used() / (1024*1024);
+    auto actual_megabytes = heap_space_actually_used() / (1024*1024);
     os << space << "[" << name << "] space allocated (MB): " << megabytes << "\n";
     os << space << "[" << name << "] space used      (MB): " << actual_megabytes << "\n";
     os << space << "[" << name << "]: " << m_alloc.size() << " allocs, "

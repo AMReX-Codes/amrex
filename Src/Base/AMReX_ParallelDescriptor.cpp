@@ -38,16 +38,16 @@
 #ifdef BL_USE_MPI
 namespace
 {
-    static int call_mpi_finalize = 0;
-    static int num_startparallel_called = 0;
-    static MPI_Datatype mpi_type_intvect   = MPI_DATATYPE_NULL;
-    static MPI_Datatype mpi_type_indextype = MPI_DATATYPE_NULL;
-    static MPI_Datatype mpi_type_box       = MPI_DATATYPE_NULL;
-    static MPI_Datatype mpi_type_lull_t    = MPI_DATATYPE_NULL;
+    int call_mpi_finalize = 0;
+    int num_startparallel_called = 0;
+    MPI_Datatype mpi_type_intvect   = MPI_DATATYPE_NULL;
+    MPI_Datatype mpi_type_indextype = MPI_DATATYPE_NULL;
+    MPI_Datatype mpi_type_box       = MPI_DATATYPE_NULL;
+    MPI_Datatype mpi_type_lull_t    = MPI_DATATYPE_NULL;
 }
 #endif
 
-namespace amrex { namespace ParallelDescriptor {
+namespace amrex::ParallelDescriptor {
 
 #ifdef AMREX_USE_MPI
     template <> MPI_Datatype Mpi_typemap<IntVect>::type();
@@ -324,10 +324,10 @@ StartParallel (int* argc, char*** argv, MPI_Comm a_mpi_comm)
     ParallelContext::push(m_comm);
 
     // Create these types outside OMP parallel region
-    auto t1 = Mpi_typemap<IntVect>::type();
-    auto t2 = Mpi_typemap<IndexType>::type();
-    auto t3 = Mpi_typemap<Box>::type();
-    auto t4 = Mpi_typemap<ParallelDescriptor::lull_t>::type();
+    auto t1 = Mpi_typemap<IntVect>::type(); // NOLINT
+    auto t2 = Mpi_typemap<IndexType>::type(); // NOLINT
+    auto t3 = Mpi_typemap<Box>::type(); // NOLINT
+    auto t4 = Mpi_typemap<ParallelDescriptor::lull_t>::type(); // NOLINT
     amrex::ignore_unused(t1,t2,t3,t4);
 
     // ---- find the maximum value for a tag
@@ -362,11 +362,11 @@ EndParallel ()
         BL_MPI_REQUIRE( MPI_Type_free(&mpi_type_indextype) );
         BL_MPI_REQUIRE( MPI_Type_free(&mpi_type_box) );
         BL_MPI_REQUIRE( MPI_Type_free(&mpi_type_lull_t) );
-        for (auto t : m_mpi_types) {
+        for (auto *t : m_mpi_types) {
             BL_MPI_REQUIRE( MPI_Type_free(t) );
             *t = MPI_DATATYPE_NULL;
         }
-        for (auto op : m_mpi_ops) {
+        for (auto *op : m_mpi_ops) {
             BL_MPI_REQUIRE( MPI_Op_free(op) );
             *op = MPI_OP_NULL;
         }
@@ -902,15 +902,15 @@ ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar,int cpu)
 }
 
 void
-Gather (Real* sendbuf, int nsend, Real* recvbuf, int root)
+Gather (Real const* sendbuf, int nsend, Real* recvbuf, int root)
 {
     BL_PROFILE_S("ParallelDescriptor::Gather()");
     BL_COMM_PROFILE(BLProfiler::GatherRiRi, BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
 
     BL_ASSERT(root >= 0);
     BL_ASSERT(nsend > 0);
-    BL_ASSERT(!(sendbuf == 0));
-    BL_ASSERT(!(recvbuf == 0));
+    BL_ASSERT(!(sendbuf == nullptr));
+    BL_ASSERT(!(recvbuf == nullptr));
 
     MPI_Datatype typ = Mpi_typemap<Real>::type();
 
@@ -1107,13 +1107,13 @@ StartParallel (int* /*argc*/, char*** /*argv*/, MPI_Comm)
 }
 
 void
-Gather (Real* sendbuf, int nsend, Real* recvbuf, int root)
+Gather (Real const* sendbuf, int nsend, Real* recvbuf, int root)
 {
     amrex::ignore_unused(root);
     BL_ASSERT(root == 0);
     BL_ASSERT(nsend > 0);
-    BL_ASSERT(!(sendbuf == 0));
-    BL_ASSERT(!(recvbuf == 0));
+    BL_ASSERT(!(sendbuf == nullptr));
+    BL_ASSERT(!(recvbuf == nullptr));
 
     for (int i = 0; i < nsend; ++i)
         recvbuf[i] = sendbuf[i];
@@ -1124,7 +1124,7 @@ Message::wait ()
 {}
 
 bool
-Message::test ()
+Message::test () // NOLINT(readability-make-member-function-const)
 {
     return m_finished;
 }
@@ -1770,7 +1770,7 @@ Recv<char> (char* buf, size_t n, int pid, int tag, MPI_Comm comm)
 
 #endif
 
-}}
+}
 
 
 using namespace amrex;

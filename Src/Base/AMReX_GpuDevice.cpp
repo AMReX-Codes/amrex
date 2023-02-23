@@ -53,8 +53,7 @@ namespace {
 }
 #endif
 
-namespace amrex {
-namespace Gpu {
+namespace amrex::Gpu {
 
 int Device::device_id = 0;
 int Device::num_devices_used = 0;
@@ -1063,4 +1062,4 @@ Device::profilerStop ()
 #endif
 }
 
-}}
+}

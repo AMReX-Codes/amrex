@@ -1,7 +1,7 @@
 #include "AMReX_NonLocalBC.H"
 
-namespace amrex {
-namespace NonLocalBC {
+namespace amrex::NonLocalBC {
+
 #ifdef AMREX_USE_MPI
 // Note, this is copied and modified from PrepareSendBuffers and PostRcvs
 void PrepareCommBuffers(CommData& comm,
@@ -106,5 +106,4 @@ template MultiBlockCommMetaData ParallelCopy(FabArray<FArrayBox>& dest, const Bo
                                              int srccomp, int numcomp, const IntVect& ngrow,
                                              MultiBlockIndexMapping, Identity);
 
-} // namespace NonLocalBC
-} // namespace amrex
+}

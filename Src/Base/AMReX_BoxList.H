@@ -64,8 +64,8 @@ public:
     //! Make a boxList consisting of a single Box
     explicit BoxList (const Box& bx);
 
-    //! Construct an empty BoxList with IndexType btyp
-    explicit BoxList (IndexType btyp);
+    //! Construct an empty BoxList with IndexType _btype
+    explicit BoxList (IndexType _btype);
 
     //!  Construct a BoxList from a BoxArray.
     explicit BoxList (const BoxArray& ba);
@@ -111,10 +111,12 @@ public:
     std::size_t capacity () const noexcept { return m_lbox.capacity(); }
 
     iterator begin () noexcept { return m_lbox.begin(); }
-    const_iterator begin () const noexcept { return m_lbox.begin(); }
+    const_iterator begin () const noexcept { return m_lbox.cbegin(); }
+    const_iterator cbegin () const noexcept { return m_lbox.cbegin(); }
 
     iterator end () noexcept { return m_lbox.end(); }
-    const_iterator end () const noexcept { return m_lbox.end(); }
+    const_iterator end () const noexcept { return m_lbox.cend(); }
+    const_iterator cend () const noexcept { return m_lbox.cend(); }
     /**
     * \brief True if this BoxList is valid; i.e. all the Boxes are
     * valid and they all have the same IndexType.  Also returns

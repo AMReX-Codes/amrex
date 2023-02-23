@@ -27,7 +27,7 @@ class MLEBNodeFDLaplacian
 {
 public:
 
-    MLEBNodeFDLaplacian () noexcept {}
+    MLEBNodeFDLaplacian () noexcept = default;
 
 #ifdef AMREX_USE_EB
     MLEBNodeFDLaplacian (const Vector<Geometry>& a_geom,
@@ -42,7 +42,7 @@ public:
                          const Vector<DistributionMapping>& a_dmap,
                          const LPInfo& a_info);
 
-    virtual ~MLEBNodeFDLaplacian ();
+    virtual ~MLEBNodeFDLaplacian () = default;
 
     MLEBNodeFDLaplacian (const MLEBNodeFDLaplacian&) = delete;
     MLEBNodeFDLaplacian (MLEBNodeFDLaplacian&&) = delete;

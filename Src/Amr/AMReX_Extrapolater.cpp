@@ -7,9 +7,7 @@
 #include <omp.h>
 #endif
 
-namespace amrex {
-
-namespace Extrapolater
+namespace amrex::Extrapolater
 {
     // Backward compatible version filling only 1 ghost cell
     void FirstOrderExtrap (MultiFab& mf, const Geometry& geom, int scomp, int ncomp)
@@ -60,6 +58,4 @@ namespace Extrapolater
             }
         }
     }
-}
-
 }

@@ -80,14 +80,14 @@ namespace ParallelDescriptor
 
     private:
 
-        bool               m_finished;
+        bool               m_finished; // NOLINT(modernize-use-default-member-init)
         MPI_Datatype       m_type;
         MPI_Request        m_req;
         mutable MPI_Status m_stat;
     };
 
 #ifdef BL_USE_MPI
-    void MPI_Error(const char* file, int line, const char* msg, int rc);
+    void MPI_Error(const char* file, int line, const char* str, int rc);
 
 #define BL_MPI_REQUIRE(x)                                                \
 do                                                                        \
@@ -104,8 +104,8 @@ while ( false )
     * \brief Perform any needed parallel initialization.  This MUST be the
     * first routine in this class called from within a program.
     */
-    void StartParallel (int*    argc = 0,
-                        char*** argv = 0,
+    void StartParallel (int*    argc = nullptr,
+                        char*** argv = nullptr,
                         MPI_Comm mpi_comm = MPI_COMM_WORLD);
 
     void Initialize ();
@@ -186,12 +186,12 @@ while ( false )
 #endif
         }
 
-        const team_t& get() const {
+        [[nodiscard]] const team_t& get() const {
             return m_team_comm;
         }
         //! return the communicator
-        const MPI_Comm& get_team_comm() const { return m_team_comm; }
-        const MPI_Comm& get_lead_comm() const { return m_lead_comm; }
+        [[nodiscard]] const MPI_Comm& get_team_comm() const { return m_team_comm; }
+        [[nodiscard]] const MPI_Comm& get_lead_comm() const { return m_lead_comm; }
 
         int    m_numTeams;
         int    m_size;
@@ -411,7 +411,7 @@ while ( false )
     //! Abort with specified error code.
     void Abort (int errorcode = SIGABRT, bool backtrace = true);
     //! ErrorString return string associated with error internal error condition
-    const char* ErrorString (int errcode);
+    const char* ErrorString (int errorcode);
     //! Returns wall-clock seconds since start of execution.
     double second () noexcept;
 
@@ -585,10 +585,7 @@ while ( false )
     void ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar, int cpu);
 
     //! Parallel gather.
-    void Gather (Real* sendbuf,
-                 int   sendcount,
-                 Real* recvbuf,
-                 int   root);
+    void Gather (Real const* sendbuf, int nsend, Real* recvbuf, int root);
     /**
     * \brief Returns sequential message sequence numbers, usually used as
     * tags for send/recv.
@@ -609,7 +606,7 @@ while ( false )
 
     template <class T> Message Recv(T*, size_t n, int pid, int tag);
     template <class T> Message Recv(T*, size_t n, int pid, int tag, MPI_Comm comm);
-    template <class T> Message Recv(std::vector<T>& t, int pid, int tag);
+    template <class T> Message Recv(std::vector<T>& buf, int pid, int tag);
 
     template <class T> void Bcast(T*, size_t n, int root = 0);
     template <class T> void Bcast(T*, size_t n, int root, const MPI_Comm &comm);
@@ -968,7 +965,6 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
     BL_PROFILE_T_S("ParallelDescriptor::GatherLayoutData(Ti)", T);
 
     // Gather prelims
-    Vector<int> index_to_send = sendbuf.IndexArray();
     Vector<T> T_to_send;
     T_to_send.reserve(sendbuf.local_size());
 
@@ -1002,7 +998,7 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
     new_index_to_old_index.reserve(old_pmap.size());
     for (const Vector<int>& v : new_ind_to_old_ind)
     {
-        if (v.size()>0)
+        if (!v.empty())
         {
             for (int el : v)
             {
@@ -1169,7 +1165,7 @@ Gather (const T* t, size_t n, T1* t1, size_t n1, int /*root*/)
     BL_ASSERT(n == n1);
     amrex::ignore_unused(n1);
 
-    int const sc = n;
+    int const sc = static_cast<int>(n);
     for (int j=0; j<sc; ++j) { t1[j] = t[j]; }
 }
 
@@ -1552,7 +1548,7 @@ MPI_Op Mpi_op ()
 {
     static MPI_Op mpi_op = MPI_OP_NULL;
     if (mpi_op == MPI_OP_NULL) {
-        static auto user_fn = [] (void *invec, void *inoutvec, int* len,
+        static auto user_fn = [] (void *invec, void *inoutvec, int* len, // NOLINT
                                   MPI_Datatype * /*datatype*/)
         {
             auto in = static_cast<T const*>(invec);

@@ -48,7 +48,7 @@ template <class FAB>
 class FabFactory
 {
 public:
-    virtual ~FabFactory () {}
+    virtual ~FabFactory () = default;
     AMREX_NODISCARD
     virtual FAB* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const = 0;
     AMREX_NODISCARD
@@ -64,24 +64,24 @@ class DefaultFabFactory
 {
 public:
     AMREX_NODISCARD
-    virtual FAB* create (const Box& box, int ncomps, const FabInfo& info, int /*box_index*/) const override
+    FAB* create (const Box& box, int ncomps, const FabInfo& info, int /*box_index*/) const override
     {
         return new FAB(box, ncomps, info.alloc, info.shared, info.arena);
     }
 
     AMREX_NODISCARD
-    virtual FAB* create_alias (FAB const& rhs, int scomp, int ncomp) const override
+    FAB* create_alias (FAB const& rhs, int scomp, int ncomp) const override
     {
         return new FAB(rhs, amrex::make_alias, scomp, ncomp);
     }
 
-    virtual void destroy (FAB* fab) const override
+    void destroy (FAB* fab) const override
     {
         delete fab;
     }
 
     AMREX_NODISCARD
-    virtual DefaultFabFactory<FAB>* clone () const override {
+    DefaultFabFactory<FAB>* clone () const override {
         return new DefaultFabFactory<FAB>();
     }
 };

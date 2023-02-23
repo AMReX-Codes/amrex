@@ -95,7 +95,7 @@ public:
     AMREX_GPU_HOST_DEVICE
     bool isHigh () const noexcept { return val >= AMREX_SPACEDIM; }
     //! Read from an istream.
-    friend std::istream& operator>> (std::istream& os, Orientation& o);
+    friend std::istream& operator>> (std::istream& is, Orientation& o);
 
     //! Int value of the x-lo-face
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

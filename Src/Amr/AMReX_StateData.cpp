@@ -64,6 +64,7 @@ StateData::StateData (StateData&& rhs) noexcept
 void
 StateData::operator= (StateData const& rhs)
 {
+    if (this == &rhs) return;
     m_factory.reset(rhs.m_factory->clone());
     desc = rhs.desc;
     arena = rhs.arena;
@@ -264,8 +265,8 @@ StateData::restartDoit (std::istream& is, const std::string& chkfile)
 
         // ---- check for preread header
         std::string FullHeaderPathName(FullPathName + "_H");
-        const char *faHeader = 0;
-        if(faHeaderMap != 0) {
+        const char *faHeader = nullptr;
+        if(faHeaderMap != nullptr) {
             std::map<std::string, Vector<char> >::iterator fahmIter;
             fahmIter = faHeaderMap->find(FullHeaderPathName);
             if(fahmIter != faHeaderMap->end()) {

@@ -69,7 +69,7 @@ public:
     T const* hostData () const noexcept { return h_data; }
     T* hostData () noexcept { return h_data; }
 
-    std::size_t size () const noexcept { return m_size; }
+    [[nodiscard]] std::size_t size () const noexcept { return m_size; }
 
     void clear ()
     {

@@ -15,9 +15,9 @@ class InterpolaterBoxCoarsener final
 {
 public:
     InterpolaterBoxCoarsener (InterpBase* mapper_, const IntVect& ratio_);
-    virtual ~InterpolaterBoxCoarsener ();
-    virtual Box doit (const Box& fine) const;
-    virtual BoxConverter* clone () const;
+    ~InterpolaterBoxCoarsener () override = default;
+    [[nodiscard]] Box doit (const Box& fine) const override;
+    [[nodiscard]] BoxConverter* clone () const override;
 private:
     InterpBase* mapper;
     IntVect ratio;

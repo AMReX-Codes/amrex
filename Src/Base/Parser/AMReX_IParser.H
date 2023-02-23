@@ -70,7 +70,6 @@ class IParser
 public:
     IParser (std::string const& func_body);
     IParser () = default;
-    ~IParser ();
     void define (std::string const& func_body);
 
     explicit operator bool () const;
@@ -81,12 +80,12 @@ public:
 
     void print () const;
 
-    int depth () const;
-    int maxStackSize () const;
+    [[nodiscard]] int depth () const;
+    [[nodiscard]] int maxStackSize () const;
 
-    std::string expr () const;
+    [[nodiscard]] std::string expr () const;
 
-    std::set<std::string> symbols () const;
+    [[nodiscard]] std::set<std::string> symbols () const;
 
     //! This compiles for both GPU and CPU
     template <int N> IParserExecutor<N> compile () const;
@@ -121,8 +120,9 @@ IParser::compileHost () const
 
         if (!(m_data->m_host_executor)) {
             int stack_size;
-            m_data->m_exe_size = iparser_exe_size(m_data->m_iparser, m_data->m_max_stack_size,
-                                                  stack_size);
+            m_data->m_exe_size = static_cast<int>
+                (iparser_exe_size(m_data->m_iparser, m_data->m_max_stack_size,
+                                  stack_size));
 
             if (m_data->m_max_stack_size > AMREX_IPARSER_STACK_SIZE) {
                 amrex::Abort("amrex::IParser: AMREX_IPARSER_STACK_SIZE, "

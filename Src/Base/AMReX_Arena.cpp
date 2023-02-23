@@ -54,8 +54,6 @@ namespace {
 
 const std::size_t Arena::align_size;
 
-Arena::~Arena () {}
-
 bool
 Arena::isDeviceAccessible () const
 {
@@ -132,7 +130,7 @@ Arena::align (std::size_t s)
 }
 
 void*
-Arena::allocate_system (std::size_t nbytes)
+Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-function-const)
 {
     void * p;
 #ifdef AMREX_USE_GPU
@@ -215,7 +213,7 @@ Arena::allocate_system (std::size_t nbytes)
 }
 
 void
-Arena::deallocate_system (void* p, std::size_t nbytes)
+Arena::deallocate_system (void* p, std::size_t nbytes) // NOLINT(readability-make-member-function-const)
 {
 #ifdef AMREX_USE_GPU
     if (arena_info.use_cpu_memory)
@@ -248,8 +246,8 @@ namespace {
     class NullArena final
         : public Arena
     {
-        virtual void* alloc (std::size_t) { return nullptr; }
-        virtual void free (void*) {}
+        void* alloc (std::size_t) override { return nullptr; }
+        void free (void*) override {}
     };
 
     Arena* The_Null_Arena ()
@@ -384,7 +382,7 @@ Arena::Initialize ()
     the_cpu_arena = The_BArena();
 
     // Initialize the null arena
-    auto null_arena = The_Null_Arena();
+    auto* null_arena = The_Null_Arena();
     amrex::ignore_unused(null_arena);
 }
 
@@ -419,25 +417,25 @@ Arena::PrintUsage ()
     }
 #endif
     if (The_Arena()) {
-        CArena* p = dynamic_cast<CArena*>(The_Arena());
+        auto* p = dynamic_cast<CArena*>(The_Arena());
         if (p) {
             p->PrintUsage("The         Arena");
         }
     }
     if (The_Device_Arena() && The_Device_Arena() != The_Arena()) {
-        CArena* p = dynamic_cast<CArena*>(The_Device_Arena());
+        auto* p = dynamic_cast<CArena*>(The_Device_Arena());
         if (p) {
             p->PrintUsage("The  Device Arena");
         }
     }
     if (The_Managed_Arena() && The_Managed_Arena() != The_Arena()) {
-        CArena* p = dynamic_cast<CArena*>(The_Managed_Arena());
+        auto* p = dynamic_cast<CArena*>(The_Managed_Arena());
         if (p) {
             p->PrintUsage("The Managed Arena");
         }
     }
     if (The_Pinned_Arena()) {
-        CArena* p = dynamic_cast<CArena*>(The_Pinned_Arena());
+        auto* p = dynamic_cast<CArena*>(The_Pinned_Arena());
         if (p) {
             p->PrintUsage("The  Pinned Arena");
         }
@@ -464,25 +462,25 @@ Arena::PrintUsageToFiles (const std::string& filename, const std::string& messag
 #endif
 
     if (The_Arena()) {
-        CArena* p = dynamic_cast<CArena*>(The_Arena());
+        auto* p = dynamic_cast<CArena*>(The_Arena());
         if (p) {
             p->PrintUsage(ofs, "The         Arena", "    ");
         }
     }
     if (The_Device_Arena() && The_Device_Arena() != The_Arena()) {
-        CArena* p = dynamic_cast<CArena*>(The_Device_Arena());
+        auto* p = dynamic_cast<CArena*>(The_Device_Arena());
         if (p) {
             p->PrintUsage(ofs, "The  Device Arena", "    ");
         }
     }
     if (The_Managed_Arena() && The_Managed_Arena() != The_Arena()) {
-        CArena* p = dynamic_cast<CArena*>(The_Managed_Arena());
+        auto* p = dynamic_cast<CArena*>(The_Managed_Arena());
         if (p) {
             p->PrintUsage(ofs, "The Managed Arena", "    ");
         }
     }
     if (The_Pinned_Arena()) {
-        CArena* p = dynamic_cast<CArena*>(The_Pinned_Arena());
+        auto* p = dynamic_cast<CArena*>(The_Pinned_Arena());
         if (p) {
             p->PrintUsage(ofs, "The  Pinned Arena", "    ");
         }

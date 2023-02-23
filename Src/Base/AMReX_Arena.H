@@ -85,7 +85,7 @@ class Arena
 {
 public:
 
-    virtual ~Arena ();
+    virtual ~Arena () = default;
     /**
     * Allocate a dynamic memory arena
     * \param sz size of the memory request
@@ -104,15 +104,15 @@ public:
     virtual std::size_t freeUnused () { return 0; }
 
     // isDeviceAccessible and isHostAccessible can both be true.
-    virtual bool isDeviceAccessible () const;
-    virtual bool isHostAccessible () const;
+    [[nodiscard]] virtual bool isDeviceAccessible () const;
+    [[nodiscard]] virtual bool isHostAccessible () const;
 
     // Note that isManaged, isDevice and isPinned are mutually exclusive.
     // For memory allocated by cudaMalloc* etc., one of them returns true.
     // Otherwise, neither is true.
-    virtual bool isManaged () const;
-    virtual bool isDevice () const;
-    virtual bool isPinned () const;
+    [[nodiscard]] virtual bool isManaged () const;
+    [[nodiscard]] virtual bool isDevice () const;
+    [[nodiscard]] virtual bool isPinned () const;
 
     /**
      * \brief Does the device have enough free memory for allocating this
@@ -155,7 +155,7 @@ public:
     /**
      *  \brief Return the ArenaInfo object for querying
      */
-    const ArenaInfo& arenaInfo () const { return arena_info; }
+    [[nodiscard]] const ArenaInfo& arenaInfo () const { return arena_info; }
 
 protected:
 

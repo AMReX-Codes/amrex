@@ -35,7 +35,7 @@ namespace detail {
     template<typename T>
     inline void Reduce (ReduceOp op, T* v, int cnt, int root, MPI_Comm comm)
     {
-        auto mpi_op = mpi_ops[static_cast<int>(op)];
+        auto mpi_op = mpi_ops[static_cast<int>(op)]; // NOLINT
         Vector<T> tmp(v, v+cnt);
         if (root == -1) {
             // TODO: add BL_COMM_PROFILE commands

@@ -191,7 +191,6 @@ public:
                    int& state_indx,
                    int& src_comp,
                    int& num_comp) const;
-protected:
 
     /**
     * \brief Constructor.
@@ -203,21 +202,21 @@ protected:
     * \param box_map
     * \param interp
     */
-    DeriveRec (const std::string& name,
+    DeriveRec (std::string    name,
                IndexType      result_type,
                int            nvar_derive,
                DeriveFunc     der_func,
                DeriveBoxMap   box_map,
                Interpolater*  interp = &pc_interp);
 
-    DeriveRec (const std::string& name,
+    DeriveRec (std::string    name,
                IndexType      result_type,
                int            nvar_derive,
                DeriveFunc3D   der_func_3d,
                DeriveBoxMap   box_map,
                Interpolater*  interp = &pc_interp);
 
-    DeriveRec (const std::string& name,
+    DeriveRec (std::string    name,
                IndexType      result_type,
                int            nvar_derive,
                DeriveFuncFab  der_func_fab,
@@ -233,7 +232,7 @@ protected:
     * \param nvar_derive
     * \param box_map
     */
-    DeriveRec (const std::string& name,
+    DeriveRec (std::string    name,
                IndexType      result_type,
                int            nvar_derive,
                DeriveRec::DeriveBoxMap box_map);
@@ -249,7 +248,7 @@ protected:
     * \param box_map
     * \param interp
     */
-    DeriveRec (const std::string&  name,
+    DeriveRec (std::string         name,
                IndexType           result_type,
                int                 nvar_derive,
                Vector<std::string> const& var_names,
@@ -257,7 +256,7 @@ protected:
                DeriveBoxMap        box_map,
                Interpolater*       interp = &pc_interp);
 
-    DeriveRec (const std::string&  name,
+    DeriveRec (std::string         name,
                IndexType           result_type,
                int                 nvar_derive,
                Vector<std::string> const& var_names,
@@ -265,7 +264,7 @@ protected:
                DeriveBoxMap        box_map,
                Interpolater*       interp = &pc_interp);
 
-    DeriveRec (const std::string&  name,
+    DeriveRec (std::string         name,
                IndexType           result_type,
                int                 nvar_derive,
                Vector<std::string> const& var_names,
@@ -343,7 +342,7 @@ public:
     /**
     * \brief The default constructor.
     */
-    DeriveList ();
+    DeriveList () = default;
 
     DeriveList (const DeriveList&) = delete;
     DeriveList& operator= (const DeriveList&) = delete;

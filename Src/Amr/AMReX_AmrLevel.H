@@ -529,7 +529,7 @@ class FillPatchIterator
                      int  scomp,
                      int  ncomp);
 
-    ~FillPatchIterator ();
+    ~FillPatchIterator () = default;
 
     FArrayBox& operator() () noexcept { return m_fabs[MFIter::index()]; }
 
@@ -583,7 +583,7 @@ public:
                      int           ncomp,
                      InterpBase*   mapper);
 
-    ~FillPatchIteratorHelper ();
+    ~FillPatchIteratorHelper () = default;
 
     void fill (FArrayBox& fab, int dcomp, int idx);
 

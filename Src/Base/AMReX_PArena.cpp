@@ -23,7 +23,7 @@ PArena::PArena (Long release_threshold)
     amrex::ignore_unused(release_threshold);
 }
 
-PArena::~PArena ()
+PArena::~PArena () // NOLINT(modernize-use-equals-default)
 {
 #ifdef AMREX_CUDA_GE_11_2
     if (Gpu::Device::memoryPoolsSupported()) {

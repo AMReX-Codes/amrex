@@ -50,12 +50,12 @@ typedef float amrex_real;
 // We need to define these to get around a CUDA 9.2 bug that breaks std::numeric_limits
 #define AMREX_REAL_MIN     FLT_MIN
 #define AMREX_REAL_MAX     FLT_MAX
-#define AMREX_REAL_LOWEST -FLT_MAX
+#define AMREX_REAL_LOWEST (-FLT_MAX)
 #else
 typedef double amrex_real;
 #define AMREX_REAL_MIN     DBL_MIN
 #define AMREX_REAL_MAX     DBL_MAX
-#define AMREX_REAL_LOWEST -DBL_MAX
+#define AMREX_REAL_LOWEST (-DBL_MAX)
 #endif
 
 #ifdef AMREX_SINGLE_PRECISION_PARTICLES

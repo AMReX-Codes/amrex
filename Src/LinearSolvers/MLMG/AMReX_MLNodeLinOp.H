@@ -19,7 +19,7 @@ public:
     enum struct CoarseningStrategy : int { Sigma, RAP };
 
     MLNodeLinOp ();
-    virtual ~MLNodeLinOp ();
+    virtual ~MLNodeLinOp () = default;
 
     MLNodeLinOp (const MLNodeLinOp&) = delete;
     MLNodeLinOp (MLNodeLinOp&&) = delete;

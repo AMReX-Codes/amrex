@@ -146,8 +146,8 @@ protected:
     Vector<MultiMask> masks;
     //! Domain used for mask definitions.
     Geometry geom;
-    int      m_ncomp;
-    bool     m_defined;
+    int      m_ncomp{-1};
+    bool     m_defined{false};
 
 private:
     // Mask info required for this many cells past grid edge (here,
@@ -158,8 +158,7 @@ private:
 
 template <typename MF>
 BndryDataT<MF>::BndryDataT () noexcept
-    :
-    m_ncomp(-1), m_defined(false) {}
+     {}
 
 template <typename MF>
 BndryDataT<MF>::BndryDataT (const BoxArray& _grids,

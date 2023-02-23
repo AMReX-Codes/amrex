@@ -51,48 +51,48 @@ namespace amrex {
         /**
          * Returns a \c const pointer to the underlying data of a GpuArray object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* data () const noexcept { return arr; }
 
         /**
          * Returns a pointer to the underlying data of a GpuArray object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* data () noexcept { return arr; }
 
         /**
          * Returns the number of elements in the GpuArray object as an
          * unsigned integer.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr unsigned int size () noexcept { return N; }
 
         /**
          * Returns a \c const pointer address to the first element of the
          * GpuArray object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* begin () const noexcept { return arr; }
 
         /**
          * Returns a const pointer address right after the last element of the
          * GpuArray object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* end () const noexcept { return arr + N; }
 
         /**
          * Returns a pointer address to the first element of the
          * GpuArray object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* begin () noexcept { return arr; }
 
         /**
          * Returns a pointer address right after the last element of the
          * GpuArray object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* end () noexcept { return arr + N; }
 
         /**
@@ -108,7 +108,7 @@ namespace amrex {
         /**
          * Returns the sum of all elements in the GpuArray object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T sum () const noexcept
         {
             T s = 0;
@@ -119,15 +119,15 @@ namespace amrex {
         /**
          * Returns the product of all elements in the GpuArray object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T product () const noexcept
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T product () const noexcept
         {
             T p = 1;
             for (unsigned int i = 0; i < N; ++i) { p *= arr[i]; }
             return p;
         }
 
-        T arr[amrex::max(N,1u)];
+        T arr[amrex::max(N,1U)];
     };
 }
 

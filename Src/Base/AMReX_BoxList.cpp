@@ -17,7 +17,7 @@ namespace amrex {
 
 namespace {
 
-static void chop_boxes (Box* bxv, const Box& bx, int nboxes)
+void chop_boxes (Box* bxv, const Box& bx, int nboxes)
 {
     if (nboxes == 1)
     {
@@ -39,7 +39,7 @@ static void chop_boxes (Box* bxv, const Box& bx, int nboxes)
     }
 }
 
-static void chop_boxes_dir (Box* bxv, const Box& bx, int nboxes, int idir)
+void chop_boxes_dir (Box* bxv, const Box& bx, int nboxes, int idir)
 {
     if (nboxes == 1)
     {
@@ -77,7 +77,7 @@ BoxList::join (const BoxList& blist)
 void
 BoxList::join (const Vector<Box>& barr)
 {
-    BL_ASSERT(barr.size() == 0 || ixType() == barr[0].ixType());
+    BL_ASSERT(barr.empty() || ixType() == barr[0].ixType());
     m_lbox.insert(std::end(m_lbox), std::begin(barr), std::end(barr));
 }
 
@@ -147,7 +147,6 @@ BoxList::operator!= (const BoxList& rhs) const
 
 BoxList::BoxList ()
     :
-    m_lbox(),
     btype(IndexType::TheCellType())
 {}
 
@@ -160,7 +159,6 @@ BoxList::BoxList (const Box& bx)
 
 BoxList::BoxList (IndexType _btype)
     :
-    m_lbox(),
     btype(_btype)
 {}
 
@@ -175,7 +173,7 @@ BoxList::BoxList (Vector<Box>&& bxs)
     : m_lbox(std::move(bxs)),
       btype(IndexType::TheCellType())
 {
-    if (m_lbox.size() > 0) {
+    if (!m_lbox.empty()) {
         btype = m_lbox[0].ixType();
     }
 }
@@ -331,7 +329,7 @@ BoxList::complementIn (const Box& b, const BoxArray& ba)
 {
     BL_PROFILE("BoxList::complementIn");
 
-    if (ba.size() == 0)
+    if (ba.empty())
     {
         clear();
         push_back(b);
@@ -359,7 +357,7 @@ BoxList::complementIn (const Box& b, const BoxArray& ba)
 
         const int block_size = 4 * std::max(1,static_cast<int>(std::ceil(s_avgbox/4.))*4);
         bl_mesh.maxSize(block_size);
-        const int N = bl_mesh.size();
+        const int N = static_cast<int>(bl_mesh.size());
 
 #ifdef AMREX_USE_OMP
         bool start_omp_parallel = !omp_in_parallel();
@@ -671,7 +669,7 @@ BoxList::simplify (bool best)
     // speeds up this routine for large numbers of boxes.  It does not
     // do quite as good a job though as full brute force.
     //
-    int depth = best ? size() : 100;
+    int depth = best ? static_cast<int>(size()) : 100;
     return simplify_doit(depth);
 }
 
@@ -693,12 +691,12 @@ BoxList::simplify_doit (int depth)
     //
     int count = 0, lo[AMREX_SPACEDIM], hi[AMREX_SPACEDIM];
 
-    for (iterator bla = begin(), End = end(); bla != End; ++bla)
+    for (auto bla = begin(), End = end(); bla != End; ++bla)
     {
         const int* alo   = bla->loVect();
         const int* ahi   = bla->hiVect();
 
-        iterator blb = bla + 1;
+        auto blb = bla + 1;
         for (int cnt = 0; blb != End && cnt < depth; ++cnt, ++blb)
         {
             const int* blo = blb->loVect();
@@ -760,7 +758,7 @@ BoxList::minimalBox () const
     Box minbox(IntVect::TheUnitVector(), IntVect::TheZeroVector(), ixType());
     if ( !isEmpty() )
     {
-        const_iterator bli = begin(), End = end();
+        auto bli = cbegin(), End = cend();
         minbox = *bli;
         while ( bli != End )
         {
@@ -886,7 +884,7 @@ BoxList::convert (IndexType typ) noexcept
 std::ostream&
 operator<< (std::ostream& os, const BoxList& blist)
 {
-    BoxList::const_iterator bli = blist.begin(), End = blist.end();
+    auto bli = blist.begin(), End = blist.end();
     os << "(BoxList " << blist.size() << ' ' << blist.ixType() << '\n';
     for (int count = 1; bli != End; ++bli, ++count)
     {
@@ -894,8 +892,9 @@ operator<< (std::ostream& os, const BoxList& blist)
     }
     os << ')' << '\n';
 
-    if (os.fail())
+    if (os.fail()) {
         amrex::Error("operator<<(ostream&,BoxList&) failed");
+    }
 
     return os;
 }
@@ -903,19 +902,21 @@ operator<< (std::ostream& os, const BoxList& blist)
 bool
 BoxList::operator== (const BoxList& rhs) const
 {
-    if ( !(size() == rhs.size()) ) return false;
+    if ( !(size() == rhs.size()) ) { return false; }
 
-    BoxList::const_iterator liter = begin(), riter = rhs.begin(), End = end();
-    for (; liter != End; ++liter, ++riter)
-        if ( !( *liter == *riter) )
+    auto liter = begin(), riter = rhs.begin(), End = end();
+    for (; liter != End; ++liter, ++riter) {
+        if ( !( *liter == *riter) ) {
             return false;
+        }
+    }
     return true;
 }
 
 void
 BoxList::Bcast ()
 {
-    int nboxes = this->size();
+    int nboxes = static_cast<int>(this->size());
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
     ParallelDescriptor::Bcast(&nboxes, 1, IOProcNumber);
     if (ParallelDescriptor::MyProc() != IOProcNumber) {

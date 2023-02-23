@@ -9,7 +9,7 @@ class KernelInfo
 {
 public:
     KernelInfo& setReduction (bool flag) { has_reduction = flag; return *this; }
-    bool hasReduction () const { return has_reduction; }
+    [[nodiscard]] bool hasReduction () const { return has_reduction; }
 private:
     bool has_reduction = false;
 };

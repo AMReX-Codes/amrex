@@ -6,8 +6,7 @@
 #include <cstdlib>
 #include <memory>
 
-namespace amrex {
-namespace Gpu {
+namespace amrex::Gpu {
 
 namespace {
 
@@ -83,5 +82,4 @@ Elixir::clear () noexcept
     m_pa.clear();
 }
 
-}
 }

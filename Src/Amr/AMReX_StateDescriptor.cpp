@@ -16,8 +16,6 @@ StateDescriptor::BndryFunc::clone () const
     return new BndryFunc(*this);
 }
 
-StateDescriptor::BndryFunc::~BndryFunc () {}
-
 bool
 StateDescriptor::bf_thread_safety (const int* /*lo*/,const int* /*hi*/,
                                    const int* /*dom_lo*/, const int* /*dom_hi*/,
@@ -47,7 +45,7 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
     if (thread_safe) {
 #endif
         {
-            if (m_func != 0) {
+            if (m_func != nullptr) {
                 m_func(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,a_bc);
             } else {
                 m_func3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
@@ -58,7 +56,7 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
     } else {
 #pragma omp critical (bndryfunc)
         {
-            if (m_func != 0) {
+            if (m_func != nullptr) {
                 m_func(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,a_bc);
             } else {
                 m_func3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
@@ -83,7 +81,7 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
     if (thread_safe) {
 #endif
         {
-            if (m_gfunc != 0) {
+            if (m_gfunc != nullptr) {
                 m_gfunc(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,a_bc);
             } else {
                 m_gfunc3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
@@ -116,9 +114,6 @@ StateDescriptor::BndryFunc::operator () (Box const& bx, FArrayBox& data,
     m_funcfab(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
 }
 
-DescriptorList::DescriptorList () noexcept
-{}
-
 void
 DescriptorList::clear ()
 {
@@ -128,7 +123,7 @@ DescriptorList::clear ()
 int
 DescriptorList::size () const noexcept
 {
-    return desc.size();
+    return static_cast<int>(desc.size());
 }
 
 void
@@ -165,7 +160,8 @@ DescriptorList::setComponent (int                               indx,
     {
         const bool is_primary = (i == 0) ? true : false;
 
-        desc[indx]->setComponent(comp+i,nm[i],bc[i],func,interp,is_primary,nm.size());
+        desc[indx]->setComponent(comp+i,nm[i],bc[i],func,interp,is_primary,
+                                 static_cast<int>(nm.size()));
     }
 }
 
@@ -199,7 +195,7 @@ StateDescriptor::StateDescriptor () noexcept
     id(-1),
     ncomp(0),
     ngrow(0),
-    mapper(0),
+    mapper(nullptr),
     m_extrap(false),
     m_store_in_checkpoint(true)
 {}
@@ -236,7 +232,7 @@ StateDescriptor::StateDescriptor (IndexType                   btyp,
 
 StateDescriptor::~StateDescriptor ()
 {
-    mapper = 0;
+    mapper = nullptr;
 }
 
 void
@@ -435,11 +431,11 @@ StateDescriptor::setUpMaps (int&                use_default_map,
 {
     BL_ASSERT(start_comp>=0 && start_comp+num_comp-1 < ncomp && num_comp>0);
 
-    maps           = 0;
-    map_start_comp = 0;
-    map_num_comp   = 0;
-    max_start_comp = 0;
-    min_end_comp   = 0;
+    maps           = nullptr;
+    map_start_comp = nullptr;
+    map_num_comp   = nullptr;
+    max_start_comp = nullptr;
+    min_end_comp   = nullptr;
     //
     // First, count number of interpolaters needed and allocate.
     //
@@ -576,7 +572,7 @@ StateDescriptor::sameInterps (int a_scomp,
         }
         else
         {
-            range.push_back(std::pair<int,int>(SComp,NComp));
+            range.emplace_back(SComp,NComp);
 
             map   = interp(i);
             SComp = i;
@@ -584,12 +580,13 @@ StateDescriptor::sameInterps (int a_scomp,
         }
     }
 
-    range.push_back(std::pair<int,int>(SComp,NComp));
+    range.emplace_back(SComp,NComp);
 
 #ifdef AMREX_DEBUG
     int sum = 0;
-    for (int i = 0; i < static_cast<int>(range.size()); i++)
-        sum += range[i].second;
+    for (auto const& r : range) {
+        sum += r.second;
+    }
     BL_ASSERT(sum == a_ncomp);
 #endif
 

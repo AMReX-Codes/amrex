@@ -15,8 +15,6 @@ MLNodeLinOp::MLNodeLinOp ()
     m_ixtype = IntVect::TheNodeVector();
 }
 
-MLNodeLinOp::~MLNodeLinOp () {}
-
 void
 MLNodeLinOp::define (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,

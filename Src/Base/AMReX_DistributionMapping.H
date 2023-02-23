@@ -315,12 +315,12 @@ private:
                               int                      nprocs);
 
     //! Least used ordering of CPUs (by # of bytes of FAB data).
-    void LeastUsedCPUs (int nprocs, Vector<int>& result);
+    static void LeastUsedCPUs (int nprocs, Vector<int>& result);
     /**
     * \brief rteam: Least used ordering of Teams
     * rworker[i]: Least used ordering of team workers for Team i
     */
-    void LeastUsedTeams (Vector<int>& rteam, Vector<Vector<int> >& rworker, int nteams, int nworkers);
+    static void LeastUsedTeams (Vector<int>& rteam, Vector<Vector<int> >& rworker, int nteams, int nworkers);
 
     //! A useful typedef.
     typedef void (DistributionMapping::*PVMF)(const BoxArray &, int);

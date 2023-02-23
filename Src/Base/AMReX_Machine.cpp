@@ -2,10 +2,9 @@
 
 #ifndef AMREX_USE_MPI
 
-namespace amrex {
-namespace machine {
+namespace amrex::machine {
     void Initialize () {}
-}}
+}
 
 #else
 
@@ -333,10 +332,10 @@ class Machine
         pp.queryAdd("very_verbose", flag_very_verbose);
     }
 
-    std::string get_env_str (std::string env_key)
+    std::string get_env_str (const std::string& env_key)
     {
         std::string result;
-        auto val_c_str = std::getenv(env_key.c_str());
+        auto *val_c_str = std::getenv(env_key.c_str());
         if (val_c_str) {
             result = std::string(val_c_str);
         }
@@ -433,9 +432,9 @@ class Machine
 
     // do a local search starting at current node
     std::pair<Vector<int>, double>
-    baseline_score(const Vector<int> & sg_node_ids, int nbh_rank_n)
+    baseline_score(const Vector<int> & sg_node_ids, int nbh_rank_n) const
     {
-        AMREX_ASSERT(sg_node_ids.size() > 0 && nbh_rank_n > 0 &&
+        AMREX_ASSERT(!sg_node_ids.empty() && nbh_rank_n > 0 &&
                      nbh_rank_n <= sg_node_ids.size());
 
         // construct map of node candidates to select
@@ -453,7 +452,7 @@ class Machine
         int idx = 0;
         for (auto & p : cand_map) {
             result[idx] = p.second.id;
-            candidates[idx++] = std::move(p.second);
+            candidates[idx++] = p.second;
         }
 
         int sum_dist = 0;
@@ -477,7 +476,7 @@ class Machine
 
     // do a local search starting at current node
     std::pair<Vector<int>, double>
-    search_local_nbh(int rank_me, const Vector<int> & sg_node_ids, int nbh_rank_n)
+    search_local_nbh(int rank_me, const Vector<int> & sg_node_ids, int nbh_rank_n) const
     {
         BL_PROFILE("Machine::search_local_nbh()");
 
@@ -506,7 +505,7 @@ class Machine
         }
 
         AMREX_ASSERT(rank_me >= 0 && rank_me < sg_node_ids.size());
-        Candidate cur_node = std::move(candidates.at(sg_node_ids[rank_me]));
+        Candidate cur_node = candidates.at(sg_node_ids[rank_me]);
         candidates.erase(cur_node.id);
 
         // add source_node
@@ -551,7 +550,7 @@ class Machine
             }
 
             if (next_node) {
-                cur_node = std::move(*next_node);
+                cur_node = *next_node;
                 next_node = nullptr;
                 candidates.erase(cur_node.id);
 
@@ -578,8 +577,7 @@ std::unique_ptr<Machine> the_machine;
 
 }
 
-namespace amrex {
-namespace machine {
+namespace amrex::machine {
 
 void Initialize () {
     the_machine = std::make_unique<Machine>();
@@ -595,6 +593,6 @@ Vector<int> find_best_nbh (int rank_n, bool flag_local_ranks) {
     return the_machine->find_best_nbh(rank_n, flag_local_ranks);
 }
 
-}}
+}
 
 #endif

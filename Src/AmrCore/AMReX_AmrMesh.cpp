@@ -192,7 +192,7 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
         }
         else if (got_int == 1)
         {
-            const int ncnt = ratios.size();
+            const int ncnt = static_cast<int>(ratios.size());
             for (int i = 0; i < ncnt && i < max_level; ++i)
             {
                 for (int n = 0; n < AMREX_SPACEDIM; n++) {
@@ -701,7 +701,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                     //
                     // Construct initial cluster.
                     //
-                    ClusterList clist(&tagvec[0], tagvec.size());
+                    ClusterList clist(&tagvec[0], static_cast<Long>(tagvec.size()));
                     if (use_new_chop) {
                         clist.new_chop(grid_eff);
                     } else {
@@ -865,12 +865,22 @@ AmrMesh::ProjPeriodic (BoxList& blout, const Box& domain,
 
     BoxList blorig(blout);
 
-    int nist,njst,nkst;
-    int niend,njend,nkend;
-    nist = njst = nkst = 0;
-    niend = njend = nkend = 0;
-    AMREX_D_TERM( nist , =njst , =nkst ) = -1;
-    AMREX_D_TERM( niend , =njend , =nkend ) = +1;
+    int nist = -1;
+    int niend = 1;
+#if (AMREX_SPACEDIM < 2)
+    int njst = 0;
+    int njend = 0;
+#else
+    int njst = -1;
+    int njend = 1;
+#endif
+#if (AMREX_SPACEDIM < 3)
+    int nkst = 0;
+    int nkend = 0;
+#else
+    int nkst = -1;
+    int nkend = 1;
+#endif
 
     int ri,rj,rk;
     for (ri = nist; ri <= niend; ri++)

@@ -127,8 +127,8 @@ struct MFInfo {
         return *this;
     }
 
-    MFInfo& SetTag (std::string t) noexcept {
-        tags.emplace_back(std::move(t));
+    MFInfo& SetTag (const std::string& t) noexcept {
+        tags.emplace_back(t);
         return *this;
     }
 
@@ -378,7 +378,7 @@ public:
     FabArray (const FabArray<FAB>& rhs, MakeType maketype, int scomp, int ncomp);
 
     //! The destructor -- deletes all FABs in the array.
-    virtual ~FabArray ();
+    ~FabArray ();
 
     FabArray (FabArray<FAB>&& rhs) noexcept;
     FabArray<FAB>& operator= (FabArray<FAB>&& rhs) noexcept;
@@ -392,28 +392,28 @@ public:
     * This is only valid if this FabArray was defined using
     * the default constructor.
     */
-    virtual void define (const BoxArray& bxs,
-                         const DistributionMapping& dm,
-                         int                        nvar,
-                         int                        ngrow,
+    void define (const BoxArray& bxs,
+                 const DistributionMapping& dm,
+                 int                        nvar,
+                 int                        ngrow,
 #ifdef AMREX_STRICT_MODE
-                         const MFInfo&              info,
-                         const FabFactory<FAB>&     factory);
+                 const MFInfo&              info,
+                 const FabFactory<FAB>&     factory);
 #else
-                         const MFInfo&              info = MFInfo(),
-                         const FabFactory<FAB>&     factory = DefaultFabFactory<FAB>());
+                 const MFInfo&              info = MFInfo(),
+                 const FabFactory<FAB>&     factory = DefaultFabFactory<FAB>());
 #endif
 
-    virtual void define (const BoxArray& bxs,
-                         const DistributionMapping& dm,
-                         int                        nvar,
-                         const IntVect&             ngrow,
+    void define (const BoxArray& bxs,
+                 const DistributionMapping& dm,
+                 int                        nvar,
+                 const IntVect&             ngrow,
 #ifdef AMREX_STRICT_MODE
-                         const MFInfo&              info,
-                         const FabFactory<FAB>&     factory);
+                 const MFInfo&              info,
+                 const FabFactory<FAB>&     factory);
 #else
-                         const MFInfo&              info = MFInfo(),
-                         const FabFactory<FAB>&     factory = DefaultFabFactory<FAB>());
+                 const MFInfo&              info = MFInfo(),
+                 const FabFactory<FAB>&     factory = DefaultFabFactory<FAB>());
 #endif
 
     const FabFactory<FAB>& Factory () const noexcept { return *m_factory; }
@@ -549,11 +549,11 @@ public:
     MultiArray4<typename FabArray<FAB>::value_type const> const_arrays () const noexcept;
 
     //! Explicitly set the Kth FAB in the FabArray to point to elem.
-    void setFab (int K, std::unique_ptr<FAB> elem);
+    void setFab (int boxno, std::unique_ptr<FAB> elem);
 
     //! Explicitly set the Kth FAB in the FabArray to point to elem.
     template <class F=FAB, std::enable_if_t<std::is_move_constructible<F>::value,int> = 0>
-    void setFab (int K, FAB&& elem);
+    void setFab (int boxno, FAB&& elem);
 
     //! Explicitly set the FAB associated with mfi in the FabArray to point to elem.
     void setFab (const MFIter&mfi, std::unique_ptr<FAB> elem);
@@ -617,7 +617,7 @@ public:
 
     //! Set all components in the entire region of each FAB to val.
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
-    void operator= (value_type val);
+    FabArray<FAB>& operator= (value_type val);
 
     /**
     * \brief Set the value of num_comp components in the valid region of
@@ -627,13 +627,13 @@ public:
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
     void setVal (value_type val,
                  int        comp,
-                 int        num_comp,
+                 int        ncomp,
                  int        nghost = 0);
 
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
     void setVal (value_type val,
                  int        comp,
-                 int        num_comp,
+                 int        ncomp,
                  const IntVect& nghost);
 
     /**
@@ -646,14 +646,14 @@ public:
     void setVal (value_type val,
                  const Box& region,
                  int        comp,
-                 int        num_comp,
+                 int        ncomp,
                  int        nghost = 0);
 
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
     void setVal (value_type val,
                  const Box& region,
                  int        comp,
-                 int        num_comp,
+                 int        ncomp,
                  const IntVect& nghost);
     /**
     * \brief Set all components in the valid region of each FAB in the
@@ -677,10 +677,10 @@ public:
     void setVal (value_type val, const Box& region, const IntVect& nghost);
 
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
-    void abs (int comp, int num_comp, int nghost = 0);
+    void abs (int comp, int ncomp, int nghost = 0);
 
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
-    void abs (int comp, int num_comp, const IntVect& nghost);
+    void abs (int comp, int ncomp, const IntVect& nghost);
 
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
     void plus (value_type val, int comp, int num_comp, int nghost = 0);
@@ -828,11 +828,11 @@ public:
                        CpOp                 op = FabArrayBase::COPY)
        { ParallelCopy(src,src_comp,dest_comp,num_comp,IntVect(src_nghost),IntVect(dst_nghost),period,op); }
     void ParallelCopy (const FabArray<FAB>& src,
-                       int                  src_comp,
-                       int                  dest_comp,
-                       int                  num_comp,
-                       const IntVect&       src_nghost,
-                       const IntVect&       dst_nghost,
+                       int                  scomp,
+                       int                  dcomp,
+                       int                  ncomp,
+                       const IntVect&       snghost,
+                       const IntVect&       dnghost,
                        const Periodicity&   period = Periodicity::NonPeriodic(),
                        CpOp                 op = FabArrayBase::COPY,
                        const FabArrayBase::CPC* a_cpc = nullptr);
@@ -869,11 +869,11 @@ public:
                              IntVect(dst_nghost),period,op); }
 
     void ParallelCopy_nowait (const FabArray<FAB>& src,
-                              int                  src_comp,
-                              int                  dest_comp,
-                              int                  num_comp,
-                              const IntVect&       src_nghost,
-                              const IntVect&       dst_nghost,
+                              int                  scomp,
+                              int                  dcomp,
+                              int                  ncomp,
+                              const IntVect&       snghost,
+                              const IntVect&       dnghost,
                               const Periodicity&   period = Periodicity::NonPeriodic(),
                               CpOp                 op = FabArrayBase::COPY,
                               const FabArrayBase::CPC* a_cpc = nullptr,
@@ -882,19 +882,19 @@ public:
     void ParallelCopy_finish ();
 
     void ParallelCopyToGhost (const FabArray<FAB>& src,
-                              int                  src_comp,
-                              int                  dest_comp,
-                              int                  num_comp,
-                              const IntVect&       src_nghost,
-                              const IntVect&       dst_nghost,
+                              int                  scomp,
+                              int                  dcomp,
+                              int                  ncomp,
+                              const IntVect&       snghost,
+                              const IntVect&       dnghost,
                               const Periodicity&   period = Periodicity::NonPeriodic());
 
     void ParallelCopyToGhost_nowait (const FabArray<FAB>& src,
-                                     int                  src_comp,
-                                     int                  dest_comp,
-                                     int                  num_comp,
-                                     const IntVect&       src_nghost,
-                                     const IntVect&       dst_nghost,
+                                     int                  scomp,
+                                     int                  dcomp,
+                                     int                  ncomp,
+                                     const IntVect&       snghost,
+                                     const IntVect&       dnghost,
                                      const Periodicity&   period = Periodicity::NonPeriodic());
 
     void ParallelCopyToGhost_finish();
@@ -923,9 +923,9 @@ public:
 
     //! Copy from src to this.  this and src have the same BoxArray, but different DistributionMapping
     void Redistribute (const FabArray<FAB>& src,
-                       int                  src_comp,
-                       int                  dest_comp,
-                       int                  num_comp,
+                       int                  scomp,
+                       int                  dcomp,
+                       int                  ncomp,
                        const IntVect&       nghost);
 
     /**
@@ -942,12 +942,12 @@ public:
     * component dest_comp in dest.
     * Note that FAB dest is assumed to be identical on each process.
     */
-    void copyTo (FAB& dest, int  src_comp, int  dest_comp, int  num_comp, int  nghost = 0) const;
+    void copyTo (FAB& dest, int  scomp, int  dcomp, int  ncomp, int  nghost = 0) const;
 
     //! Shift the boxarray by vector v
     void shift (const IntVect& v);
 
-    bool defined (int i) const noexcept;
+    bool defined (int K) const noexcept;
     bool defined (const MFIter& mfi) const noexcept;
 
     /**
@@ -1078,18 +1078,18 @@ public:
     /**
     * \brief Sum values in overlapped cells.  The destination is limited to valid + ngrow cells.
     */
-    void SumBoundary (int scomp, int ncomp, IntVect const& ngrow,
+    void SumBoundary (int scomp, int ncomp, IntVect const& nghost,
                       const Periodicity& period = Periodicity::NonPeriodic());
-    void SumBoundary_nowait (int scomp, int ncomp, IntVect const& ngrow,
+    void SumBoundary_nowait (int scomp, int ncomp, IntVect const& nghost,
                              const Periodicity& period = Periodicity::NonPeriodic());
 
     /**
     * \brief Sum values in overlapped cells.
     *        For computing the overlap, the dst is grown by dst_ngrow, while the src uses src_ngrow.
     */
-    void SumBoundary (int scomp, int ncomp, IntVect const& src_ngrow, IntVect const& dst_ngrow,
+    void SumBoundary (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost,
                       const Periodicity& period = Periodicity::NonPeriodic());
-    void SumBoundary_nowait (int scomp, int ncomp, IntVect const& src_ngrow, IntVect const& dst_ngrow,
+    void SumBoundary_nowait (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost,
                              const Periodicity& period = Periodicity::NonPeriodic());
     void SumBoundary_finish ();
 
@@ -1127,7 +1127,7 @@ public:
                        int scomp, int dcomp, int ncomp, CpOp op);
 
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
-    void setVal (value_type x, const CommMetaData& thecmd, int scomp, int ncomp);
+    void setVal (value_type val, const CommMetaData& thecmd, int scomp, int ncomp);
 
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
     LayoutData<int> RecvLayoutMask (const CommMetaData& thecmd);
@@ -1248,12 +1248,10 @@ protected:
 
     //! for shared memory
     struct ShMem {
-        ShMem () noexcept : alloc(false), n_values(0), n_points(0)
-#if defined(BL_USE_MPI3)
-                 , win(MPI_WIN_NULL)
-#endif
-            { }
-        ~ShMem () {
+
+        ShMem () noexcept = default;
+
+        ~ShMem () { // NOLINT
 #if defined(BL_USE_MPI3)
             if (win != MPI_WIN_NULL) MPI_Win_free(&win);
 #endif
@@ -1289,11 +1287,11 @@ protected:
         }
         ShMem (const ShMem&) = delete;
         ShMem& operator= (const ShMem&) = delete;
-        bool  alloc;
-        Long  n_values;
-        Long  n_points;
+        bool  alloc{false};
+        Long  n_values{0};
+        Long  n_points{0};
 #if defined(BL_USE_MPI3)
-        MPI_Win win;
+        MPI_Win win = MPI_WIN_NULL;
 #endif
     };
     ShMem shmem;
@@ -1369,7 +1367,7 @@ public:
     // Pointer to temporary fab used in non-blocking amrex::OverrideSync
     std::unique_ptr< FabArray<FAB> > os_temp;
 
-public:
+
 
     /**
      * \brief y += a*x
@@ -1443,7 +1441,7 @@ bool
 FabArray<FAB>::defined (const MFIter& mfi) const noexcept
 {
     int li = mfi.LocalIndex();
-    if (li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != 0) {
+    if (li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != nullptr) {
         return true;
     }
     else {
@@ -1731,7 +1729,7 @@ FabArray<FAB>::clear ()
     }
 
     Long nbytes = 0L;
-    for (auto x : m_fabs_v) {
+    for (auto *x : m_fabs_v) {
         if (x) {
             nbytes += amrex::nBytesOwned(*x);
             m_factory->destroy(x);
@@ -1986,7 +1984,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 {
     std::unique_ptr<FabFactory<FAB> > factory(a_factory.clone());
 
-    auto default_arena = m_dallocator.m_arena;
+    auto *default_arena = m_dallocator.m_arena;
     clear();
 
     m_factory = std::move(factory);
@@ -2141,7 +2139,7 @@ FabArray<FAB>::setFab (int boxno, std::unique_ptr<FAB> elem)
 
     setFab_assert(boxno, *elem);
 
-    if (m_fabs_v.size() == 0) {
+    if (m_fabs_v.empty()) {
         m_fabs_v.resize(indexArray.size(),nullptr);
     }
 
@@ -2163,7 +2161,7 @@ FabArray<FAB>::setFab (int boxno, FAB&& elem)
 
     setFab_assert(boxno, elem);
 
-    if (m_fabs_v.size() == 0) {
+    if (m_fabs_v.empty()) {
         m_fabs_v.resize(indexArray.size(),nullptr);
     }
 
@@ -2184,7 +2182,7 @@ FabArray<FAB>::setFab (const MFIter& mfi, std::unique_ptr<FAB> elem)
 
     setFab_assert(mfi.index(), *elem);
 
-    if (m_fabs_v.size() == 0) {
+    if (m_fabs_v.empty()) {
         m_fabs_v.resize(indexArray.size(),nullptr);
     }
 
@@ -2206,7 +2204,7 @@ FabArray<FAB>::setFab (const MFIter& mfi, FAB&& elem)
 
     setFab_assert(mfi.index(), elem);
 
-    if (m_fabs_v.size() == 0) {
+    if (m_fabs_v.empty()) {
         m_fabs_v.resize(indexArray.size(),nullptr);
     }
 
@@ -2426,10 +2424,11 @@ FabArray<FAB>::setVal (value_type val)
 
 template <class FAB>
 template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type>
-void
+FabArray<FAB>&
 FabArray<FAB>::operator= (value_type val)
 {
     setVal(val);
+    return *this;
 }
 
 template <class FAB>
@@ -3240,7 +3239,7 @@ FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& src_ngho
 
     AMREX_ASSERT(src_nghost <= n_grow);
 
-    FabArray<FAB>* tmp = new FabArray<FAB>( boxArray(), DistributionMap(), ncomp, src_nghost, MFInfo(), Factory() );
+    auto* tmp = new FabArray<FAB>( boxArray(), DistributionMap(), ncomp, src_nghost, MFInfo(), Factory() );
     amrex::Copy(*tmp, *this, scomp, 0, ncomp, src_nghost);
     this->setVal(typename FAB::value_type(0), scomp, ncomp, dst_nghost);
     this->ParallelCopy_nowait(*tmp,0,scomp,ncomp,src_nghost,dst_nghost,period,FabArrayBase::ADD);
@@ -3258,7 +3257,7 @@ FabArray<FAB>::SumBoundary_finish ()
     // If pcd doesn't exist, ParallelCopy was all local and operation was fully completed in "SumBoundary_nowait".
     if ( (n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) || !(this->pcd) ) return;
 
-    FabArray<FAB>* tmp = const_cast<FabArray<FAB>*> (this->pcd->src);
+    auto* tmp = const_cast<FabArray<FAB>*> (this->pcd->src);
     this->ParallelCopy_finish();
     delete tmp;
 }
@@ -3400,7 +3399,7 @@ FabArray<FAB>::setVal (value_type val, const CommMetaData& thecmd, int scomp, in
     {
         const CopyComTagsContainer&      LocTags = *(thecmd.m_LocTags);
         const MapOfCopyComTagContainers& RcvTags = *(thecmd.m_RcvTags);
-        int N_locs = LocTags.size();
+        auto N_locs = static_cast<int>(LocTags.size());
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for if (thecmd.m_threadsafe_loc)
 #endif
@@ -3409,13 +3408,13 @@ FabArray<FAB>::setVal (value_type val, const CommMetaData& thecmd, int scomp, in
             (*this)[tag.dstIndex].template setVal<RunOn::Host>(val, tag.dbox, scomp, ncomp);
         }
 
-        for (auto it = RcvTags.begin(); it != RcvTags.end(); ++it) {
-            int N = it->second.size();
+        for (const auto & RcvTag : RcvTags) {
+            auto N = static_cast<int>(RcvTag.second.size());
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for if (thecmd.m_threadsafe_rcv)
 #endif
             for (int i = 0; i < N; ++i) {
-                const CopyComTag& tag = it->second[i];
+                const CopyComTag& tag = RcvTag.second[i];
                 (*this)[tag.dstIndex].template setVal<RunOn::Host>(val, tag.dbox, scomp, ncomp);
             }
         }
@@ -3440,16 +3439,16 @@ FabArray<FAB>::RecvLayoutMask (const CommMetaData& thecmd)
     const CopyComTagsContainer&      LocTags = *(thecmd.m_LocTags);
     const MapOfCopyComTagContainers& RcvTags = *(thecmd.m_RcvTags);
 
-    int N_locs = LocTags.size();
+    auto N_locs = static_cast<int>(LocTags.size());
     for (int i = 0; i < N_locs; ++i) {
         const CopyComTag& tag = LocTags[i];
         r[tag.dstIndex] = 1;
     }
 
-    for (auto it = RcvTags.begin(); it != RcvTags.end(); ++it) {
-        int N = it->second.size();
+    for (const auto & RcvTag : RcvTags) {
+        auto N = static_cast<int>(RcvTag.second.size());
         for (int i = 0; i < N; ++i) {
-            const CopyComTag& tag = it->second[i];
+            const CopyComTag& tag = RcvTag.second[i];
             r[tag.dstIndex] = 1;
         }
     }

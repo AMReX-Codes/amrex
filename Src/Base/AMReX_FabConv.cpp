@@ -16,8 +16,6 @@ bool RealDescriptor::bAlwaysFixDenormals (false);
 int  RealDescriptor::writeBufferSize(262144);  // ---- these are number of reals,
 int  RealDescriptor::readBufferSize(262144);   // ---- not bytes
 
-IntDescriptor::IntDescriptor () {}
-
 IntDescriptor::IntDescriptor (Long     nb,
                               Ordering o)
     : numbytes(nb),
@@ -33,7 +31,7 @@ IntDescriptor::order () const
 int
 IntDescriptor::numBytes () const
 {
-    return numbytes;
+    return static_cast<int>(numbytes);
 }
 
 bool
@@ -87,12 +85,7 @@ operator>> (std::istream& is,
     return is;
 }
 
-RealDescriptor::RealDescriptor ()
-{}
-
-RealDescriptor::RealDescriptor (const Long* fr_,
-                                const int*  ord_,
-                                int         ordl_)
+RealDescriptor::RealDescriptor (const Long* fr_, const int* ord_, int ordl_)
     : fr(fr_, fr_+8),
       ord(ord_, ord_+ordl_)
 {}
@@ -100,36 +93,36 @@ RealDescriptor::RealDescriptor (const Long* fr_,
 const Long*
 RealDescriptor::format () const &
 {
-    BL_ASSERT(fr.size() != 0);
+    BL_ASSERT(!fr.empty());
     return fr.dataPtr();
 }
 
 const Vector<Long>&
 RealDescriptor::formatarray () const &
 {
-    BL_ASSERT(fr.size() != 0);
+    BL_ASSERT(!fr.empty());
     return fr;
 }
 
 const int*
 RealDescriptor::order () const &
 {
-    BL_ASSERT(ord.size() != 0);
+    BL_ASSERT(!ord.empty());
     return ord.dataPtr();
 }
 
 const Vector<int>&
 RealDescriptor::orderarray () const &
 {
-    BL_ASSERT(ord.size() != 0);
+    BL_ASSERT(!ord.empty());
     return ord;
 }
 
 int
 RealDescriptor::numBytes () const
 {
-    BL_ASSERT(fr.size() != 0);
-    return (fr[0] + 7 ) >> 3;
+    BL_ASSERT(!fr.empty());
+    return static_cast<int>((fr[0] + 7 ) >> 3);
 }
 
 bool
@@ -210,7 +203,7 @@ selectOrdering (int prec,
     default:
         amrex::Error("selectOrdering(): Crazy precision");
     }
-    return 0;
+    return nullptr;
 }
 
 //
@@ -218,14 +211,12 @@ selectOrdering (int prec,
 //
 
 RealDescriptor*
-RealDescriptor::newRealDescriptor (int         iot,
-                                   int         prec,
-                                   const char* /*sys*/,
-                                   int         ordering)
+RealDescriptor::newRealDescriptor (int fmt, int prec, const char* /*sys*/,
+                                   int ordering)
 {
-    RealDescriptor* rd = 0;
+    RealDescriptor* rd = nullptr;
 
-    switch (iot)
+    switch (fmt)
     {
     case FABio::FAB_IEEE:
     {
@@ -281,7 +272,7 @@ _pd_get_bit (char const* base,
     n     -= nbytes;
     offs   = offs % 8;
 
-    if (ord == NULL)
+    if (ord == nullptr)
         base += (n + nbytes);
     else
         base += (n + (ord[nbytes] - 1));
@@ -324,7 +315,7 @@ _pd_extract_field (char const* in,
     in += n;
     unsigned char bpb = 8 - offs;
 
-    if (ord == NULL)
+    if (ord == nullptr)
         ind = offy++;
     else
     {
@@ -336,7 +327,7 @@ _pd_extract_field (char const* in,
         ind = (ord[offy++] - 1);
     }
 
-    int tgt  = in[ind];
+    int tgt  = in[ind]; // NOLINT
     unsigned char mask = (1 << bpb) - 1;
     bit_field = ((bit_field << bpb) | (tgt & mask));
     nbi -= bpb;
@@ -347,9 +338,9 @@ _pd_extract_field (char const* in,
         for (; nbi > 0; nbi -= bpb)
         {
             //
-            // ind  = (ord == NULL) ? offy++ : (ord[offy++] - 1);
+            // ind  = (ord == nullptr) ? offy++ : (ord[offy++] - 1);
             //
-            if (ord == NULL)
+            if (ord == nullptr)
                 ind = offy++;
             else
             {
@@ -361,7 +352,7 @@ _pd_extract_field (char const* in,
                 ind = (ord[offy++] - 1);
             }
 
-            tgt  = in[ind];
+            tgt  = in[ind]; // NOLINT
             bpb  = nbi > 8 ? 8 : nbi;
             mask = (1 << bpb) - 1;
             bit_field = ((bit_field << bpb) | ((tgt >> (8 - bpb)) & mask));
@@ -442,7 +433,7 @@ _pd_insert_field (Long  in_long,
             longmask = ((1LL << nb) - 1LL) ^ ((1LL << dm) - 1LL);
 
         unsigned char fb = ((in_long&longmask)>>dm)&((1LL<<(nb-dm))-1LL);
-        *(out++) |= fb;
+        *(out++) |= fb; // NOLINT
 
         mi  += 8 - offs;
         offs = 0;
@@ -467,7 +458,7 @@ _pd_insert_field (Long  in_long,
     //
     // Copy the remaining aligned bytes over.
     //
-    for (int n = (offs+nb+7)/8; n > 0; n--, *(out++) |= *(in++))
+    for (int n = (offs+nb+7)/8; n > 0; n--, *(out++) |= *(in++)) // NOLINT
         ;
 }
 
@@ -486,7 +477,7 @@ _pd_set_bit (char* base, int offs)
 
     int mask = (1 << (7 - offs));
 
-    *base  |= mask;
+    *base  |= mask; // NOLINT
 }
 
 //
@@ -657,7 +648,7 @@ PD_fconvert (void*       out,
     hexpn     = 1LL << (outfor[1] - 1L);
     expn_max  = (1LL << outfor[1]) - 1LL;
 
-    size_t number = size_t(nitems);
+    auto number = size_t(nitems);
     BL_ASSERT(int(number) == nitems);
     memset(out, 0, number*outbytes);
 
@@ -908,7 +899,7 @@ operator>> (std::istream&   is,
     is >> c;
     if (c != ')')
         amrex::Error("operator>>(istream&,RealDescriptor&): expected a \')\'");
-    rd = RealDescriptor(fmt.dataPtr(),ord.dataPtr(),ord.size());
+    rd = RealDescriptor(fmt.dataPtr(),ord.dataPtr(),static_cast<int>(ord.size()));
     return is;
 }
 
@@ -926,7 +917,7 @@ PD_convert (void*                 out,
 //    BL_PROFILE("PD_convert");
     if (ord == ird && boffs == 0)
     {
-        size_t n = size_t(nitems);
+        auto n = size_t(nitems);
         BL_ASSERT(int(n) == nitems);
         memcpy(out, in, n*ord.numBytes());
     }
@@ -935,8 +926,8 @@ PD_convert (void*                 out,
                                 ord.order(), ird.order(), ord.numBytes());
     }
     else if (ird == FPC::NativeRealDescriptor() && ord == FPC::Native32RealDescriptor()) {
-      auto rIn = static_cast<const char*>(in);
-      auto rOut= static_cast<char*>(out);
+      const auto *rIn = static_cast<const char*>(in);
+      auto *rOut= static_cast<char*>(out);
       for(Long i(0); i < nitems; ++i) {
         Real x;
         float y;
