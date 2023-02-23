@@ -34,7 +34,7 @@ void launch (int nblocks, int nthreads_per_block, std::size_t shared_mem_bytes,
             h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                              sycl::range<1>(nthreads_per_block)),
             [=] (sycl::nd_item<1> item)
-            AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+            [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 f(Gpu::Handler{&item,shared_data.get_pointer()});
             });
@@ -54,7 +54,7 @@ void launch (int nblocks, int nthreads_per_block, gpuStream_t stream, L&& f) noe
             h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                              sycl::range<1>(nthreads_per_block)),
             [=] (sycl::nd_item<1> item)
-            AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+            [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 f(item);
             });
@@ -68,13 +68,47 @@ template <int MT, typename L>
 void launch (int nblocks, std::size_t shared_mem_bytes, gpuStream_t stream,
              L&& f) noexcept
 {
-    launch(nblocks, MT, shared_mem_bytes, stream, std::forward<L>(f));
+    int nthreads_total = MT * nblocks;
+    std::size_t shared_mem_numull = (shared_mem_bytes+sizeof(unsigned long long)-1)
+        / sizeof(unsigned long long);
+    auto& q = *(stream.queue);
+    try {
+        q.submit([&] (sycl::handler& h) {
+            sycl::local_accessor<unsigned long long>
+                shared_data(sycl::range<1>(shared_mem_numull), h);
+            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
+                                             sycl::range<1>(MT)),
+            [=] (sycl::nd_item<1> item)
+            [[sycl::reqd_work_group_size(1,1,MT)]]
+            [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
+            {
+                f(Gpu::Handler{&item,shared_data.get_pointer()});
+            });
+        });
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(std::string("launch: ")+ex.what()+"!!!!!");
+    }
 }
 
 template <int MT, typename L>
 void launch (int nblocks, gpuStream_t stream, L&& f) noexcept
 {
-    launch(nblocks, MT, stream, std::forward<L>(f));
+    int nthreads_total = MT * nblocks;
+    auto& q = *(stream.queue);
+    try {
+        q.submit([&] (sycl::handler& h) {
+            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
+                                             sycl::range<1>(MT)),
+            [=] (sycl::nd_item<1> item)
+            [[sycl::reqd_work_group_size(1,1,MT)]]
+            [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
+            {
+                f(item);
+            });
+        });
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(std::string("launch: ")+ex.what()+"!!!!!");
+    }
 }
 
 template<int MT, typename T, typename L>
@@ -90,7 +124,8 @@ void launch (T const& n, L&& f) noexcept
             h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                              sycl::range<1>(nthreads_per_block)),
             [=] (sycl::nd_item<1> item)
-            AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+            [[sycl::reqd_work_group_size(1,1,MT)]]
+            [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 for (auto const i : Gpu::Range(n,item.get_global_id(0),item.get_global_range(0))) {
                     f(i);
@@ -168,7 +203,8 @@ void ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
                 h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                                  sycl::range<1>(nthreads_per_block)),
                 [=] (sycl::nd_item<1> item)
-                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+                [[sycl::reqd_work_group_size(1,1,MT)]]
+                [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
                 {
                     for (T i = item.get_global_id(0), stride = item.get_global_range(0);
                          i < n; i += stride) {
@@ -184,7 +220,8 @@ void ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
                 h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                                  sycl::range<1>(nthreads_per_block)),
                 [=] (sycl::nd_item<1> item)
-                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+                [[sycl::reqd_work_group_size(1,1,MT)]]
+                [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
                 {
                     for (T i = item.get_global_id(0), stride = item.get_global_range(0);
                          i < n; i += stride) {
@@ -219,7 +256,8 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
                 h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                                  sycl::range<1>(nthreads_per_block)),
                 [=] (sycl::nd_item<1> item)
-                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+                [[sycl::reqd_work_group_size(1,1,MT)]]
+                [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
                 {
                     for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
                          icell < ncells; icell += stride) {
@@ -241,7 +279,8 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
                 h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                                  sycl::range<1>(nthreads_per_block)),
                 [=] (sycl::nd_item<1> item)
-                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+                [[sycl::reqd_work_group_size(1,1,MT)]]
+                [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
                 {
                     for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
                          icell < ncells; icell += stride) {
@@ -282,7 +321,8 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) n
                 h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                                  sycl::range<1>(nthreads_per_block)),
                 [=] (sycl::nd_item<1> item)
-                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+                [[sycl::reqd_work_group_size(1,1,MT)]]
+                [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
                 {
                     for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
                          icell < ncells; icell += stride) {
@@ -305,7 +345,8 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) n
                 h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                                  sycl::range<1>(nthreads_per_block)),
                 [=] (sycl::nd_item<1> item)
-                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+                [[sycl::reqd_work_group_size(1,1,MT)]]
+                [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
                 {
                     for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
                          icell < ncells; icell += stride) {
@@ -340,7 +381,8 @@ void ParallelForRNG (T n, L&& f) noexcept
             h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                              sycl::range<1>(nthreads_per_block)),
             [=] (sycl::nd_item<1> item)
-            AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+            [[sycl::reqd_work_group_size(1,1,AMREX_GPU_MAX_THREADS)]]
+            [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 int tid = item.get_global_id(0);
                 auto engine = engine_acc.load(tid);
@@ -377,7 +419,8 @@ void ParallelForRNG (Box const& box, L&& f) noexcept
             h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                              sycl::range<1>(nthreads_per_block)),
             [=] (sycl::nd_item<1> item)
-            AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+            [[sycl::reqd_work_group_size(1,1,AMREX_GPU_MAX_THREADS)]]
+            [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 int tid = item.get_global_id(0);
                 auto engine = engine_acc.load(tid);
@@ -421,7 +464,8 @@ void ParallelForRNG (Box const& box, T ncomp, L&& f) noexcept
             h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                              sycl::range<1>(nthreads_per_block)),
             [=] (sycl::nd_item<1> item)
-            AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+            [[sycl::reqd_work_group_size(1,1,AMREX_GPU_MAX_THREADS)]]
+            [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 int tid = item.get_global_id(0);
                 auto engine = engine_acc.load(tid);
@@ -471,7 +515,8 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/, Box const& box1, Box const& b
             h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                              sycl::range<1>(nthreads_per_block)),
             [=] (sycl::nd_item<1> item)
-            AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+            [[sycl::reqd_work_group_size(1,1,MT)]]
+            [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
                      icell < ncells; icell += stride) {
@@ -532,7 +577,8 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
             h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                              sycl::range<1>(nthreads_per_block)),
             [=] (sycl::nd_item<1> item)
-            AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+            [[sycl::reqd_work_group_size(1,1,MT)]]
+            [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
                      icell < ncells; icell += stride) {
@@ -599,7 +645,8 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
             h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                              sycl::range<1>(nthreads_per_block)),
             [=] (sycl::nd_item<1> item)
-            AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+            [[sycl::reqd_work_group_size(1,1,MT)]]
+            [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
                      icell < ncells; icell += stride) {
@@ -668,7 +715,8 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
             h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                              sycl::range<1>(nthreads_per_block)),
             [=] (sycl::nd_item<1> item)
-            AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+            [[sycl::reqd_work_group_size(1,1,MT)]]
+            [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
                      icell < ncells; icell += stride) {

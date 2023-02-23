@@ -17,7 +17,8 @@
                 amrex_i_h.parallel_for(sycl::nd_range<1>(sycl::range<1>(amrex_i_nthreads_total), \
                                                          sycl::range<1>(amrex_i_nthreads_per_block)), \
                 [=] (sycl::nd_item<1> amrex_i_item) \
-                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size) \
+                [[sycl::reqd_work_group_size(1,1,AMREX_GPU_MAX_THREADS)]] \
+                [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]] \
                 { \
                     for (auto const TI : amrex::Gpu::Range(amrex_i_tn,amrex_i_item.get_global_id(0),amrex_i_item.get_global_range(0))) { \
                         block \
@@ -81,7 +82,8 @@
                 amrex_i_h.parallel_for(sycl::nd_range<2>(sycl::range<2>(amrex_i_nthreads_total,2), \
                                                          sycl::range<2>(amrex_i_nthreads_per_block,1)), \
                 [=] (sycl::nd_item<2> amrex_i_item) \
-                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size) \
+                [[sycl::reqd_work_group_size(1,1,AMREX_GPU_MAX_THREADS)]] \
+                [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]] \
                 { \
                     switch (amrex_i_item.get_group(1)) { \
                     case 0: for (auto const TI1 : amrex::Gpu::Range(amrex_i_tn1,amrex_i_item.get_global_id(0),amrex_i_item.get_global_range(0))) { \
@@ -169,7 +171,8 @@
                 amrex_i_h.parallel_for(sycl::nd_range<2>(sycl::range<2>(amrex_i_nthreads_total,3), \
                                                          sycl::range<2>(amrex_i_nthreads_per_block,1)), \
                 [=] (sycl::nd_item<2> amrex_i_item) \
-                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size) \
+                [[sycl::reqd_work_group_size(1,1,AMREX_GPU_MAX_THREADS)]] \
+                [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]] \
                 { \
                     switch (amrex_i_item.get_group(1)) { \
                     case 0: for (auto const TI1 : amrex::Gpu::Range(amrex_i_tn1,amrex_i_item.get_global_id(0),amrex_i_item.get_global_range(0))) { \
@@ -266,7 +269,8 @@
                 amrex_i_h.parallel_for(sycl::nd_range<1>(sycl::range<1>(amrex_i_nthreads_total), \
                                                          sycl::range<1>(amrex_i_nthreads_per_block)), \
                 [=] (sycl::nd_item<1> amrex_i_item) \
-                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size) \
+                [[sycl::reqd_work_group_size(1,1,AMREX_GPU_MAX_THREADS)]] \
+                [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]] \
                 { \
                     for (auto const TI : amrex::Gpu::Range(amrex_i_tn,amrex_i_item.get_global_id(0),amrex_i_item.get_global_range(0))) { \
                         block \
@@ -320,7 +324,8 @@
                 amrex_i_h.parallel_for(sycl::nd_range<2>(sycl::range<2>(amrex_i_nthreads_total,2), \
                                                          sycl::range<2>(amrex_i_nthreads_per_block,1)), \
                 [=] (sycl::nd_item<2> amrex_i_item) \
-                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size) \
+                [[sycl::reqd_work_group_size(1,1,AMREX_GPU_MAX_THREADS)]] \
+                [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]] \
                 { \
                     switch (amrex_i_item.get_group(1)) { \
                     case 0: for (auto const TI1 : amrex::Gpu::Range(amrex_i_tn1,amrex_i_item.get_global_id(0),amrex_i_item.get_global_range(0))) { \
@@ -392,7 +397,8 @@
                 amrex_i_h.parallel_for(sycl::nd_range<2>(sycl::range<2>(amrex_i_nthreads_total,3), \
                                                          sycl::range<2>(amrex_i_nthreads_per_block,1)), \
                 [=] (sycl::nd_item<2> amrex_i_item) \
-                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size) \
+                [[sycl::reqd_work_group_size(1,1,AMREX_GPU_MAX_THREADS)]] \
+                [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]] \
                 { \
                     switch (amrex_i_item.get_group(1)) { \
                     case 0: for (auto const TI1 : amrex::Gpu::Range(amrex_i_tn1,amrex_i_item.get_global_id(0),amrex_i_item.get_global_range(0))) { \

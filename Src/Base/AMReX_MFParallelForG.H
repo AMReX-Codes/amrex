@@ -114,7 +114,7 @@ ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, boo
 
 #elif defined(AMREX_USE_SYCL)
 
-        amrex::launch(nblocks, MT, Gpu::gpuStream(),
+        amrex::launch<MT>(nblocks, Gpu::gpuStream(),
              [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
              {
                  int ibox, icell;
