@@ -135,7 +135,18 @@ ifeq ($(SYCL_AOT),TRUE)
     $(error Either INTEL_ARCH or AMREX_INTEL_ARCH must be specified when SYCL_AOT is TRUE.)
   endif
   CXXFLAGS += -fsycl-targets=spir64_gen
-  LDFLAGS += -Xsycl-target-backend '-device $(amrex_intel_gpu_target)'
+  amrex_sycl_backend_flags = -device $(amrex_intel_gpu_target)
+  SYCL_AOT_GRF_MODE ?= Default
+  ifneq ($(SYCL_AOT_GRF_MODE),Default)
+    ifeq ($(SYCL_AOT_GRF_MODE),Large)
+      amrex_sycl_backend_flags += -internal_options -ze-opt-large-register-file
+    else ifeq ($(SYCL_AOT_GRF_MODE),AutoLarge)
+      amrex_sycl_backend_flags += -options -ze-intel-enable-auto-large-GRF-mode
+    else
+      $(error SYCL_AOT_GRF_MODE ($(SYCL_AOT_GRF_MODE)) must be either Default, Large, or AutoLarge)
+    endif
+  endif
+  LDFLAGS += -Xsycl-target-backend '$(amrex_sycl_backend_flags)'
 endif
 
 ifeq ($(DEBUG),TRUE)

@@ -191,6 +191,16 @@ if (AMReX_SYCL)
    if (AMReX_SYCL_AOT AND NOT AMReX_INTEL_ARCH)
       message(FATAL_ERROR "\nMust specify AMReX_INTEL_ARCH if AMReX_GPU_BACKEND=SYCL and AMReX_SYCL_AOT=ON\n")
    endif()
+
+   if (AMReX_SYCL_AOT)
+      set(AMReX_SYCL_AOT_GRF_MODE_VALUES Default Large AutoLarge)
+      set(AMReX_SYCL_AOT_GRF_MODE Default CACHE STRING "SYCL AOT General Register File Mode")
+      set_property(CACHE AMReX_SYCL_AOT_GRF_MODE PROPERTY STRINGS ${AMReX_SYCL_AOT_GRF_MODE_VALUES})
+      if (NOT AMReX_SYCL_AOT_GRF_MODE IN_LIST AMReX_SYCL_AOT_GRF_MODE_VALUES)
+         message(FATAL_ERROR "AMReX_SYCL_AOT_GRF_MODE (${AMReX_SYCL_AOT_GRF_MODE}) must be one of ${AMReX_SYCL_AOT_GRF_MODE_VALUES}")
+      endif()
+   endif()
+
 endif ()
 
 # --- HIP ----
