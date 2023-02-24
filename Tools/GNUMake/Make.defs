@@ -920,12 +920,12 @@ optionsSuffix	= $(DIM)d.$(machineSuffix)
 
 executable	= $(addsuffix $(optionsSuffix).ex, $(EBASE))
 
-TmpBuildDir     = tmp_build_dir
-srcTempDir      = $(TmpBuildDir)/s/$(optionsSuffix).EXE
-depEXETempDir	= $(TmpBuildDir)/d/$(optionsSuffix).EXE
-objEXETempDir   = $(TmpBuildDir)/o/$(optionsSuffix).EXE
-f77EXETempDir	= $(TmpBuildDir)/f/$(optionsSuffix).EXE
-tmpEXETempDir	= $(TmpBuildDir)/t/$(optionsSuffix).EXE
+TMP_BUILD_DIR     ?= tmp_build_dir
+srcTempDir      = $(TMP_BUILD_DIR)/s/$(optionsSuffix).EXE
+depEXETempDir	= $(TMP_BUILD_DIR)/d/$(optionsSuffix).EXE
+objEXETempDir   = $(TMP_BUILD_DIR)/o/$(optionsSuffix).EXE
+f77EXETempDir	= $(TMP_BUILD_DIR)/f/$(optionsSuffix).EXE
+tmpEXETempDir	= $(TMP_BUILD_DIR)/t/$(optionsSuffix).EXE
 
 includes	= -I$(srcTempDir) -I. $(addprefix -I, $(INCLUDE_LOCATIONS)) $(addprefix -isystem , $(SYSTEM_INCLUDE_LOCATIONS))
 ifeq ($(lowercase_comp),pgi)
@@ -944,7 +944,7 @@ fmoddir         = $(objEXETempDir)
 
 amrexlib = $(objEXETempDir)/libamrex.a
 
-AMREX_INSTALL_DIR ?= tmp_build_dir
+AMREX_INSTALL_DIR ?= $(TMP_BUILD_DIR)
 amrexLibDir = $(AMREX_INSTALL_DIR)/lib
 amrexIncludeDir = $(AMREX_INSTALL_DIR)/include
 # Do different compilers have different name convention for mod files?

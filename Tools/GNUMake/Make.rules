@@ -215,7 +215,7 @@ cleanconfig::
 clean:: cleanconfig
 	@echo Cleaning ...
 	$(SILENT) $(RM) TAGS tags
-	$(SILENT) $(RM) -r $(TmpBuildDir) *~
+	$(SILENT) $(RM) -r $(TMP_BUILD_DIR) *~
 	$(SILENT) $(RM) *.ex *.o
 	$(SILENT) $(RM) *.mod
 	$(SILENT) $(RM) *.ptx
