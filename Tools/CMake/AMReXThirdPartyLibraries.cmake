@@ -9,8 +9,9 @@ if (AMReX_HDF5)
 
     if (AMReX_MPI AND (NOT HDF5_IS_PARALLEL))
        if (CMAKE_VERSION VERSION_LESS 3.27)
-	  # The detection in earlier versions of cmake may not be reliable.
-          # So we will try to do it ourselves.
+	      # The detection in earlier versions of cmake may not be reliable.
+          # So we will try to do it ourselves. Work-around for:
+          # https://gitlab.kitware.com/cmake/cmake/-/merge_requests/8234
           execute_process(
              COMMAND ${HDF5_C_COMPILER_EXECUTABLE} -showconfig
              OUTPUT_VARIABLE amrex_hdf5_config_output
