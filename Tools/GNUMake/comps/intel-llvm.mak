@@ -11,6 +11,10 @@ CFLAGS   =
 FFLAGS   =
 F90FLAGS =
 
+AMREX_CCOMP = intel-llvm
+AMREX_FCOMP = intel-llvm
+lowercase_comp = intel-llvm
+
 ########################################################################
 
 intel_version = $(shell $(CXX) -dumpversion)
