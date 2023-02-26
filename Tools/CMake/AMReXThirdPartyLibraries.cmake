@@ -6,9 +6,30 @@ if (AMReX_HDF5)
        set(HDF5_PREFER_PARALLEL TRUE)
     endif ()
     find_package(HDF5 1.10.4 REQUIRED)
+
     if (AMReX_MPI AND (NOT HDF5_IS_PARALLEL))
-       message(FATAL_ERROR "\nHDF5 library does not support parallel I/O")
+       if (CMAKE_VERSION VERSION_LESS 3.27)
+	      # The detection in earlier versions of cmake may not be reliable.
+          # So we will try to do it ourselves. Work-around for:
+          # https://gitlab.kitware.com/cmake/cmake/-/merge_requests/8234
+          execute_process(
+             COMMAND ${HDF5_C_COMPILER_EXECUTABLE} -showconfig
+             OUTPUT_VARIABLE amrex_hdf5_config_output
+             ERROR_VARIABLE amrex_hdf5_config_output
+             OUTPUT_STRIP_TRAILING_WHITESPACE
+             )
+          if (amrex_hdf5_config_output MATCHES "Parallel HDF5: ([A-Za-z0-9]+)")
+             if (${CMAKE_MATCH_1})
+                set(HDF5_IS_PARALLEL TRUE)
+             endif ()
+          endif()
+          unset(amrex_hdf5_config_output)
+       endif ()
+       if (NOT HDF5_IS_PARALLEL)
+          message(FATAL_ERROR "\nHDF5 library does not support parallel I/O")
+       endif ()
     endif ()
+
     if (HDF5_IS_PARALLEL AND (NOT AMReX_MPI))
        message(FATAL_ERROR "\nMPI enabled in HDF5 but not in AMReX, which will likely fail to build")
     endif ()
