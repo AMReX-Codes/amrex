@@ -51,9 +51,12 @@ add_amrex_define( AMREX_MPI_THREAD_MULTIPLE NO_LEGACY IF AMReX_MPI_THREAD_MULTIP
 add_amrex_define( AMREX_USE_OMP IF AMReX_OMP )
 
 # SYCL
-add_amrex_define( AMREX_USE_SYCL NO_LEGACY IF AMReX_SYCL )
-add_amrex_define( AMREX_USE_DPCPP NO_LEGACY IF AMReX_SYCL )
-add_amrex_define( AMREX_USE_ONEDPL NO_LEGACY IF AMReX_SYCL_ONEDPL )
+if (AMReX_SYCL)
+  add_amrex_define( AMREX_USE_SYCL NO_LEGACY )
+  add_amrex_define( AMREX_USE_DPCPP NO_LEGACY )
+  add_amrex_define( AMREX_SYCL_SUB_GROUP_SIZE=${AMReX_SYCL_SUB_GROUP_SIZE} NO_LEGACY )
+  add_amrex_define( AMREX_USE_ONEDPL NO_LEGACY IF AMReX_SYCL_ONEDPL )
+endif()
 
 # HIP
 add_amrex_define( AMREX_USE_HIP NO_LEGACY IF AMReX_HIP )
