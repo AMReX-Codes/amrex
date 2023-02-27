@@ -935,6 +935,8 @@ optionsSuffix	= $(DIM)d.$(machineSuffix)
 executable	= $(addsuffix $(optionsSuffix).ex, $(EBASE))
 
 TMP_BUILD_DIR     ?= tmp_build_dir
+# backwards compatibility: alias the old name so codes don't break
+TmpBuildDir := $(TMP_BUILD_DIR)
 srcTempDir      = $(TMP_BUILD_DIR)/s/$(optionsSuffix).EXE
 depEXETempDir	= $(TMP_BUILD_DIR)/d/$(optionsSuffix).EXE
 objEXETempDir   = $(TMP_BUILD_DIR)/o/$(optionsSuffix).EXE
