@@ -349,7 +349,7 @@ TinyProfiler::memory_stop () const noexcept {
 
 MemStat*
 TinyProfiler::memory_alloc (std::size_t nbytes, std::map<std::string, MemStat>& memstats) noexcept {
-    // this function is not thread save for the same memstats
+    // this function is not thread safe for the same memstats
     // the caller of this function (CArena::alloc) has a mutex
     MemStat* stat = nullptr;
 #ifdef AMREX_USE_OMP
@@ -375,7 +375,7 @@ TinyProfiler::memory_alloc (std::size_t nbytes, std::map<std::string, MemStat>& 
 
 void
 TinyProfiler::memory_free (std::size_t nbytes, MemStat* stat) noexcept {
-    // this function is not thread save for the same stat
+    // this function is not thread safe for the same stat
     // the caller of this function (CArena::free) has a mutex
     if (stat) {
         ++stat->nfree;
@@ -507,6 +507,17 @@ TinyProfiler::RegisterArena (const std::string& memory_name,
 {
     all_memstats.push_back(&memstats);
     all_memnames.push_back(memory_name);
+}
+
+void
+TinyProfiler::DeregisterArena (std::map<std::string, MemStat>& memstats) noexcept
+{
+    for (std::size_t i = 0; i < all_memstats.size(); ++i) {
+        if (all_memstats[i] == &memstats) {
+            all_memstats.erase(all_memstats.begin() + i);
+            all_memnames.erase(all_memnames.begin() + i);
+        }
+    }
 }
 
 void

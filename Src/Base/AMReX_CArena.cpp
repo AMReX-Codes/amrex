@@ -36,6 +36,12 @@ CArena::~CArena ()
     for (unsigned int i = 0, N = m_alloc.size(); i < N; i++) {
         deallocate_system(m_alloc[i].first, m_alloc[i].second);
     }
+
+#ifdef AMREX_TINY_PROFILING
+    if (m_do_profiling) {
+        TinyProfiler::DeregisterArena(m_profiling_stats);
+    }
+#endif
 }
 
 void*

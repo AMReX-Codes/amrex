@@ -67,6 +67,8 @@ public:
     static void RegisterArena (const std::string& memory_name,
                                std::map<std::string, MemStat>& memstats) noexcept;
 
+    static void DeregisterArena (std::map<std::string, MemStat>& memstats) noexcept;
+
     static void StartRegion (std::string regname) noexcept;
     static void StopRegion (const std::string& regname) noexcept;
 

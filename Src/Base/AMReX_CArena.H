@@ -173,7 +173,7 @@ protected:
     //! The amount of memory given out via alloc().
     std::size_t m_actually_used;
     //! If this arena is profiled by TinyProfiler
-    bool m_do_profiling;
+    bool m_do_profiling = false;
     //! Data structure used for profiling with TinyProfiler
     std::map<std::string, MemStat> m_profiling_stats;
 
