@@ -1,3 +1,98 @@
+# 23.03
+
+  -- GNU Make: Allow customizing tmp_build_dir (#3177)
+     fix recently introduced tmp_build_dir build bug (#3179)
+
+  -- GNU Make: Allow choice of Intel compiler variant (#3175)
+
+  -- CMake: Parallel HDF5 Detection (#3170)
+
+  -- TableData: Relax the static assertion (#3174)
+
+  -- SYCL: Group and subgroup size (#3172)
+
+  -- Add Make.local-pre to gitignore (#3171)
+
+  -- New functions for getting data in cell or line. (#3166)
+
+  -- SYCL: Optimization of small reduction (#3167)
+
+  -- amrex::Math: No longer need to use sycl math functions (#3164)
+
+  -- gitignore: Editors & IDEs (#3163)
+
+  -- SYCL Device Info (#3161)
+
+  -- SYCL AOT: Fix warning (#3159)
+
+  -- GNU Make: make it an error if intel gpu arch for aot is unknown (#3157)
+
+  -- Update Build Systems for oneAPI (#3123)
+     SYCL: Fix AOT (#3155)
+
+  -- CI: Add sundials (#3153)
+
+  -- Add static_assert to Mpi_typemap<GpuComplex> (#3154)
+
+  -- SUNDIALS: Replace SUNDIALS math macros with std math functions (#3151)
+
+  -- Fix case where a norm is 1e-15 but not technically zero (#3149)
+
+  -- Fix bug in async IO for particles (#3150)
+
+  -- DPCPP -> SYCL (#3140)
+
+  -- Add MPI support to GpuComplex (#3148)
+
+  -- GNU Make: Add support for Intel LLVM compiler in CPU builds (#3126)
+
+  -- SYCL: Fix the order of destruction (#3146)
+
+  -- Adjust subgroup size for Intel GPUs (#3139)
+
+  -- Runtime parameters for Signal handling controls (#3125)
+
+  -- FillPatcher: Update interpolation in time (#3106)
+
+  -- AmrLevel::FillPatch: Abort if grids are not properly nested for GPU or EB (#3098)
+
+  -- Fix FabArray::shift (#3147)
+
+  -- Fix nl test (#3142)
+
+  -- Fix bug in Device::Finalize: Forgot to clear streams (#3143)
+
+  -- Add a compute face-centered velocity gradient in MLEBTensor (#3133)
+
+  -- Test: Reinit AMReX (#3141)
+
+  -- Functional: Less -> Minimum, Greater -> Maximum (#3138)
+
+  -- Profile memory allocations of the CArena using TinyProfiler (#3105)
+     Fix #3105: missing include (#3134)
+     Initialize TinyProfiler earlier only for memory (#3137)
+
+  -- PODVector: Add some stream synchronization (#3130)
+
+  -- SENSIE CI: run on ubuntu-20.04. 18.04 is deprecated. (#3131)
+
+  -- NeighborParticles: memcpy -> memcpy_async (#3129)
+
+  -- Rename AMReX_CUDA_MAX_THREADS to AMReX_GPU_MAX_THREADS (#3115)
+
+  -- CI: NVHPC 23.1 (#3122)
+     NVHPC: CUDA (#3124)
+
+  -- NVHPC: OpenMP Atomic Capture Fixed (#2378)
+
+  -- oneAPI: Work around compiler bug (#3121)
+
+  -- Multi-grid NeighborList GPU Sync (#3120)
+
+  -- Modify the neighbor particles test to also test selectActualNeighbors. (#3118)
+
+  -- Remove Atomic::Inc and Dec (#3117)
+
 # 23.02
 
   -- update github actions to use ascent 0.9.0 release (#3114)
