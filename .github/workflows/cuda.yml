@@ -66,7 +66,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_nvcc12.sh
+      run: .github/workflows/dependencies/dependencies_nvcc11_ubuntu22.sh
     - name: Build & Install
       run: |
         export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
