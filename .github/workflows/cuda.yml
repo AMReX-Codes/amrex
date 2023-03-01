@@ -85,7 +85,8 @@ jobs:
             -DCMAKE_CUDA_COMPILER=$(which clang++)       \
             -DCMAKE_CUDA_HOST_COMPILER=$(which clang++)  \
             -DCMAKE_CUDA_ARCHITECTURES=70                \
-            -DAMReX_CUDA_ARCH=7.0
+            -DAMReX_CUDA_ARCH=7.0 \
+            -D_CMAKE_CUDA_WHOLE_FLAG="-c"
 
         cmake --build build -j 2
 
