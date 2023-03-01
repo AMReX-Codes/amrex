@@ -512,10 +512,12 @@ TinyProfiler::RegisterArena (const std::string& memory_name,
 void
 TinyProfiler::DeregisterArena (std::map<std::string, MemStat>& memstats) noexcept
 {
-    for (std::size_t i = 0; i < all_memstats.size(); ++i) {
+    for (std::size_t i = 0; i < all_memstats.size();) {
         if (all_memstats[i] == &memstats) {
             all_memstats.erase(all_memstats.begin() + i);
             all_memnames.erase(all_memnames.begin() + i);
+        } else {
+            ++i;
         }
     }
 }
