@@ -677,8 +677,6 @@ amrex::Finalize (amrex::AMReX* pamrex)
     amrex::DeallocateRandomSeedDevArray();
 #endif
 
-    BL_TINY_PROFILE_MEMORYFINALIZE();
-
 #ifdef BL_LAZY
     Lazy::Finalize();
 #endif
@@ -733,6 +731,8 @@ amrex::Finalize (amrex::AMReX* pamrex)
 #ifdef AMREX_USE_SUNDIALS
     sundials::Finalize();
 #endif
+
+    BL_TINY_PROFILE_MEMORYFINALIZE();
 
     amrex_mempool_finalize();
     Arena::Finalize();

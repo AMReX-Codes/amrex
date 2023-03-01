@@ -36,6 +36,12 @@ CArena::~CArena ()
     for (unsigned int i = 0, N = m_alloc.size(); i < N; i++) {
         deallocate_system(m_alloc[i].first, m_alloc[i].second);
     }
+
+#ifdef AMREX_TINY_PROFILING
+    if (m_do_profiling) {
+        TinyProfiler::DeregisterArena(m_profiling_stats);
+    }
+#endif
 }
 
 void*
@@ -47,14 +53,8 @@ CArena::alloc (std::size_t nbytes)
 
     MemStat* stat = nullptr;
 #ifdef AMREX_TINY_PROFILING
-    if (isDevice()) {
-        stat = TinyProfiler::memory_alloc(nbytes, MemStat::device);
-    } else if (isManaged()) {
-        stat = TinyProfiler::memory_alloc(nbytes, MemStat::managed);
-    } else if (isPinned()) {
-        stat = TinyProfiler::memory_alloc(nbytes, MemStat::pinned);
-    } else {
-        stat = TinyProfiler::memory_alloc(nbytes, MemStat::cpu);
+    if (m_do_profiling) {
+        stat = TinyProfiler::memory_alloc(nbytes, m_profiling_stats);
     }
 #endif
 
@@ -292,6 +292,15 @@ CArena::hasFreeDeviceMemory (std::size_t sz)
         amrex::ignore_unused(sz);
         return true;
     }
+}
+
+void
+CArena::registerForProfiling ([[maybe_unused]] const std::string& memory_name)
+{
+#ifdef AMREX_TINY_PROFILING
+    m_do_profiling = true;
+    TinyProfiler::RegisterArena(memory_name, m_profiling_stats);
+#endif
 }
 
 std::size_t
