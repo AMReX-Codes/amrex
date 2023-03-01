@@ -82,7 +82,6 @@
                 amrex_i_h.parallel_for(sycl::nd_range<2>(sycl::range<2>(amrex_i_nthreads_total,2), \
                                                          sycl::range<2>(amrex_i_nthreads_per_block,1)), \
                 [=] (sycl::nd_item<2> amrex_i_item) \
-                [[sycl::reqd_work_group_size(1,1,AMREX_GPU_MAX_THREADS)]] \
                 [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]] \
                 { \
                     switch (amrex_i_item.get_group(1)) { \
@@ -171,7 +170,6 @@
                 amrex_i_h.parallel_for(sycl::nd_range<2>(sycl::range<2>(amrex_i_nthreads_total,3), \
                                                          sycl::range<2>(amrex_i_nthreads_per_block,1)), \
                 [=] (sycl::nd_item<2> amrex_i_item) \
-                [[sycl::reqd_work_group_size(1,1,AMREX_GPU_MAX_THREADS)]] \
                 [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]] \
                 { \
                     switch (amrex_i_item.get_group(1)) { \
@@ -324,7 +322,6 @@
                 amrex_i_h.parallel_for(sycl::nd_range<2>(sycl::range<2>(amrex_i_nthreads_total,2), \
                                                          sycl::range<2>(amrex_i_nthreads_per_block,1)), \
                 [=] (sycl::nd_item<2> amrex_i_item) \
-                [[sycl::reqd_work_group_size(1,1,AMREX_GPU_MAX_THREADS)]] \
                 [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]] \
                 { \
                     switch (amrex_i_item.get_group(1)) { \
@@ -397,7 +394,6 @@
                 amrex_i_h.parallel_for(sycl::nd_range<2>(sycl::range<2>(amrex_i_nthreads_total,3), \
                                                          sycl::range<2>(amrex_i_nthreads_per_block,1)), \
                 [=] (sycl::nd_item<2> amrex_i_item) \
-                [[sycl::reqd_work_group_size(1,1,AMREX_GPU_MAX_THREADS)]] \
                 [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]] \
                 { \
                     switch (amrex_i_item.get_group(1)) { \
