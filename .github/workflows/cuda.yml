@@ -58,6 +58,37 @@ jobs:
         ccache -s
         du -hs ~/.cache/ccache
 
+  # Build libamrex and all tests with CUDA 11.0.2 (recent supported)
+  tests-cuda11-clang:
+    name: ClangCUDA@12 C++17 Release [tests]
+    runs-on: ubuntu-22.04
+    env: {CXXFLAGS: "--cuda-gpu-arch=sm_70 --no-cuda-version-check"}
+    steps:
+    - uses: actions/checkout@v3
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_nvcc12.sh
+    - name: Build & Install
+      run: |
+        export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
+        export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
+        which nvcc || echo "nvcc not in PATH!"
+
+        cmake -S . -B build                              \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                  \
+            -DAMReX_EB=ON                                \
+            -DAMReX_ENABLE_TESTS=ON                      \
+            -DAMReX_FORTRAN=OFF                          \
+            -DAMReX_PARTICLES=ON                         \
+            -DAMReX_GPU_BACKEND=CUDA                     \
+            -DCMAKE_C_COMPILER=$(which clang)            \
+            -DCMAKE_CXX_COMPILER=$(which clang++)        \
+            -DCMAKE_CUDA_COMPILER=$(which clang++)       \
+            -DCMAKE_CUDA_HOST_COMPILER=$(which clang++)  \
+            -DCMAKE_CUDA_ARCHITECTURES=70                \
+            -DAMReX_CUDA_ARCH=7.0
+
+        cmake --build build -j 2
+
   # Build libamrex and all tests with NVHPC (recent supported)
   tests-nvhpc-nvcc:
     name: NVHPC NVCC/NVC++ C++17 Release [tests]
