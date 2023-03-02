@@ -26,7 +26,7 @@ namespace
 #if defined(AMREX_TESTING) || defined(AMREX_DEBUG)
     int init_snan = 1;
 #else
-    static int init_snan = 0;
+    int init_snan = 0;
 #endif
     bool initialized = false;
 }

@@ -242,8 +242,8 @@ FillPatchInterp (MF& mf_fine_patch, int fcomp, MF const& mf_crse_patch, int ccom
 template <typename MF, typename iMF, typename Interp>
 std::enable_if_t<IsFabArray<MF>::value  && !std::is_same<Interp,MFInterpolater>::value>
 InterpFace (Interp *interp,
-            MF const& mf_crse_patch,    const int crse_comp,
-            MF&       mf_refined_patch, const int fine_comp,
+            MF const& mf_crse_patch,    int crse_comp,
+            MF&       mf_refined_patch, int fine_comp,
             int ncomp, const IntVect&   ratio,
             const iMF& solve_mask, const Geometry&  crse_geom, const Geometry&  fine_geom,
             int bcscomp, RunOn gpu_or_cpu,
@@ -490,7 +490,7 @@ namespace {
                     // which is done from this fine MF that's been partially filled
                     // (with only faces overlying coarse having valid data).
                     MF mf_refined_patch  = make_mf_refined_patch<MF>   (fpc, ncomp, mf.boxArray().ixType(), ratio);
-                    iMultiFab solve_mask = make_mf_crse_mask<iMultiFab>(fpc, ncomp, mf.boxArray().ixType(), ratio);
+                    auto solve_mask = make_mf_crse_mask<iMultiFab>(fpc, ncomp, mf.boxArray().ixType(), ratio);
 
                     mf_set_domain_bndry(mf_crse_patch, cgeom);
                     FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp,

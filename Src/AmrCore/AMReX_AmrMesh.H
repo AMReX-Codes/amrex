@@ -65,7 +65,7 @@ public:
 
     AmrMesh (const RealBox& rb, int max_level_in,
              const Vector<int>& n_cell_in, int coord,
-             Vector<IntVect> const& ref_ratios,
+             Vector<IntVect> const& a_refrat,
              Array<int,AMREX_SPACEDIM> const& is_per);
 
     AmrMesh (Geometry const& level_0_geom, AmrInfo const& amr_info);
@@ -274,7 +274,7 @@ private:
                       const RealBox* rb = nullptr, int coord = -1,
                       const int* is_per = nullptr);
 
-    static void ProjPeriodic (BoxList& bd, const Box& domain,
+    static void ProjPeriodic (BoxList& blout, const Box& domain,
                               Array<int,AMREX_SPACEDIM> const& is_per);
 };
 

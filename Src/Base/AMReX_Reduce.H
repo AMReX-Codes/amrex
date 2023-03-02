@@ -989,6 +989,7 @@ public:
         }
     }
 
+    ~ReduceData () = default;
     ReduceData (ReduceData<Ts...> const&) = delete;
     ReduceData (ReduceData<Ts...> &&) = delete;
     void operator= (ReduceData<Ts...> const&) = delete;

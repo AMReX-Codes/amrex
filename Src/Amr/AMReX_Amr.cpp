@@ -163,7 +163,7 @@ Amr::NumDataLogs () noexcept
 }
 
 bool
-Amr::RegridOnRestart () const noexcept
+Amr::RegridOnRestart () noexcept
 {
     return regrid_on_restart;
 }
@@ -204,7 +204,6 @@ Amr::derive (const std::string& name,
 
 Amr::Amr (LevelBld* a_levelbld)
     :
-    AmrCore(),
     levelbld(a_levelbld)
 {
     Initialize();
@@ -513,7 +512,7 @@ Amr::initInSitu()
 }
 
 int
-Amr::updateInSitu()
+Amr::updateInSitu() // NOLINT(readability-convert-member-functions-to-static)
 {
 #if defined(AMREX_USE_SENSEI_INSITU) && !defined(AMREX_NO_SENSEI_AMR_INST)
     if (insitu_bridge && insitu_bridge->update(this))
@@ -841,7 +840,7 @@ Amr::writePlotFile ()
 
     // Don't continue if we have no variables to plot.
 
-    if (statePlotVars().size() == 0) {
+    if (statePlotVars().empty()) {
         return;
     }
 
@@ -880,7 +879,7 @@ Amr::writeSmallPlotFile ()
 
     // Don't continue if we have no variables to plot.
 
-    if (stateSmallPlotVars().size() == 0 && deriveSmallPlotVars().size() == 0) {
+    if (stateSmallPlotVars().empty() && deriveSmallPlotVars().empty()) {
         return;
     }
 
@@ -1396,14 +1395,15 @@ Amr::restart (const std::string& filename)
       bool bExitOnError(false);  // ---- dont exit if this file does not exist
       ParallelDescriptor::ReadAndBcastFile(faHeaderFilesName, faHeaderFileChars,
                                            bExitOnError);
-      if(faHeaderFileChars.size() > 0) {  // ---- headers were read
+      if(!faHeaderFileChars.empty()) {  // ---- headers were read
         std::string faFileCharPtrString(faHeaderFileChars.dataPtr());
         std::istringstream fais(faFileCharPtrString, std::istringstream::in);
         while ( ! fais.eof()) {  // ---- read and broadcast each header
           std::string faHeaderName;
           fais >> faHeaderName;
           if( ! fais.eof()) {
-              std::string faHeaderFullName(filename + '/' + faHeaderName + "_H");
+              std::string faHeaderFullName(filename);
+              faHeaderFullName.append("/").append(faHeaderName).append("_H");
               Vector<char> &tempCharArray = faHeaderMap[faHeaderFullName];
               ParallelDescriptor::ReadAndBcastFile(faHeaderFullName, tempCharArray);
               if(verbose > 2) {
@@ -1796,7 +1796,7 @@ Amr::checkPoint ()
 
     if (ParallelDescriptor::IOProcessor()) {
         const Vector<std::string> &FAHeaderNames = StateData::FabArrayHeaderNames();
-        if(FAHeaderNames.size() > 0) {
+        if(!FAHeaderNames.empty()) {
             std::string FAHeaderFilesName = ckfileTemp + "/FabArrayHeaders.txt";
             std::ofstream FAHeaderFile(FAHeaderFilesName.c_str(),
                                        std::ios::out | std::ios::trunc |
@@ -2475,7 +2475,7 @@ Amr::defBaseLevel (Real              strt_time,
 
     BoxArray lev0;
 
-    if (lev0_grids != nullptr && lev0_grids->size() > 0)
+    if (lev0_grids != nullptr && !lev0_grids->empty())
     {
         BL_ASSERT(pmap != nullptr);
 
@@ -3245,7 +3245,7 @@ Amr::okToRegrid(int level) noexcept
 }
 
 Real
-Amr::computeOptimalSubcycling(int n, int* best, Real* dt_max, Real* est_work, int* cycle_max)
+Amr::computeOptimalSubcycling(int n, int* best, const Real* dt_max, const Real* est_work, const int* cycle_max)
 {
     BL_ASSERT(cycle_max[0] == 1);
     // internally these represent the total number of steps at a level,

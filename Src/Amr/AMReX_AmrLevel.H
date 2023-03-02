@@ -51,10 +51,16 @@ public:
                      AmrOtherTime };
     //! The destructor.
     virtual ~AmrLevel ();
+
+    AmrLevel (const AmrLevel&) = delete;
+    AmrLevel (AmrLevel&&) = delete;
+    AmrLevel& operator= (const AmrLevel&) = delete;
+    AmrLevel& operator= (AmrLevel&&) = delete;
+
     //! Get the level directory names
     void LevelDirectoryNames (const std::string &dir,
                               std::string &LevelDir,
-                              std::string &FullPath);
+                              std::string &FullPath) const;
     //! Create the Level_ directory for checkpoint and plot files
     virtual void CreateLevelDirectory (const std::string &dir);
     /**
@@ -229,9 +235,9 @@ public:
     //
     const FabFactory<FArrayBox>& Factory () const noexcept { return *m_factory; }
     //! Number of grids at this level.
-    int numGrids () const noexcept { return grids.size(); }
+    int numGrids () const noexcept { return static_cast<int>(grids.size()); }
     //! Number of states at this level.
-    int numStates () const noexcept { return state.size(); }
+    int numStates () const noexcept { return static_cast<int>(state.size()); }
     //! Returns the indices defining physical domain.
     const Box& Domain () const noexcept { return geom.Domain(); }
     //! Timestep n at this level.
@@ -263,8 +269,8 @@ public:
                            Real         time,
                            int          n_error_buf = 0,
                            int          ngrow = 0) = 0;
-    //! Interpolate from coarse level to the valid area in dest.
-    void FillCoarsePatch (MultiFab& dest,
+    //! Interpolate from coarse level to the valid area in mf.
+    void FillCoarsePatch (MultiFab& mf,
                           int       dcomp,
                           Real      time,
                           int       state_idx,
@@ -310,7 +316,7 @@ public:
     //! Returns list of derived variables.
     static DeriveList& get_derive_lst () noexcept;
     //! Returns whether or not we want a post-timestep regrid.
-    int postStepRegrid () noexcept { return post_step_regrid; }
+    int postStepRegrid () const noexcept { return post_step_regrid; }
     //! Sets a new value for the post-timestep regrid trigger.
     void setPostStepRegrid (int new_val) noexcept { post_step_regrid = new_val; }
 
@@ -320,7 +326,7 @@ public:
     //! Boundary condition access function.
     Vector<int> getBCArray (int State_Type,
                             int gridno,
-                            int scomp,
+                            int strt_comp,
                             int ncomp);
     //! Get state data at specified index and time.
     MultiFab& get_data (int  state_indx, Real time) noexcept;
@@ -445,17 +451,14 @@ public:
 
 protected:
     //! The constructors -- for derived classes.
-    AmrLevel () noexcept;
+    AmrLevel () noexcept {} // NOLINT
 
     AmrLevel (Amr&            papa,
               int             lev,
               const Geometry& level_geom,
-              const BoxArray& bl,
+              const BoxArray& ba,
               const DistributionMapping& dm,
               Real            time);
-
-    AmrLevel (const AmrLevel&) = delete;
-    AmrLevel& operator = (const AmrLevel&) = delete;
 
     //! Common code used by all constructors.
     void finishConstructor ();
@@ -463,23 +466,23 @@ protected:
     //
     // The Data.
     //
-    int                   level;        // AMR level (0 is coarsest).
+    int                   level{-1};    // AMR level (0 is coarsest).
     Geometry              geom;         // Geom at this level.
     BoxArray              grids;        // Cell-centered locations of grids.
     DistributionMapping   dmap;         // Distribution of grids among processes
-    Amr*                  parent;       // Pointer to parent AMR structure.
+    Amr*                  parent{nullptr};// Pointer to parent AMR structure.
     IntVect               crse_ratio;   // Refinement ratio to coarser level.
     IntVect               fine_ratio;   // Refinement ratio to finer level.
     static DeriveList     derive_lst;   // List of derived quantities.
     static DescriptorList desc_lst;     // List of state variables.
     Vector<StateData>     state;        // Array of state data.
 
-    BoxArray              m_AreaNotToTag; //Area which shouldn't be tagged on this level.
-    Box                   m_AreaToTag;    //Area which is allowed to be tagged on this level.
+    BoxArray m_AreaNotToTag; //Area which shouldn't be tagged on this level.
+    Box      m_AreaToTag;    //Area which is allowed to be tagged on this level.
 
-    int                   post_step_regrid; // Whether or not to do a regrid after the timestep.
+    int post_step_regrid{0}; // Whether or not to do a regrid after the timestep.
 
-    bool                  levelDirectoryCreated;    // for checkpoints and plotfiles
+    bool levelDirectoryCreated{false}; // for checkpoints and plotfiles
 
     std::unique_ptr<FabFactory<FArrayBox> > m_factory;
 
@@ -519,17 +522,15 @@ class FillPatchIterator
                        MultiFab& leveldata,
                        int       boxGrow,
                        Real      time,
-                       int       state_indx,
+                       int       idx,
                        int       scomp,
                        int       ncomp);
 
     void Initialize (int  boxGrow,
                      Real time,
-                     int  state_indx,
+                     int  idx,
                      int  scomp,
                      int  ncomp);
-
-    ~FillPatchIterator () = default;
 
     FArrayBox& operator() () noexcept { return m_fabs[MFIter::index()]; }
 
@@ -538,15 +539,9 @@ class FillPatchIterator
     MultiFab& get_mf() noexcept { return m_fabs; }
 
 private:
-    //
-    // Disallowed.
-    //
-    FillPatchIterator ();
-    FillPatchIterator (const FillPatchIterator& rhs);
-    FillPatchIterator& operator= (const FillPatchIterator& rhs);
 
-    void FillFromLevel0 (Real time, int index, int scomp, int dcomp, int ncomp);
-    void FillFromTwoLevels (Real time, int index, int scomp, int dcomp, int ncomp);
+    void FillFromLevel0 (Real time, int idx, int scomp, int dcomp, int ncomp);
+    void FillFromTwoLevels (Real time, int idx, int scomp, int dcomp, int ncomp);
 
     //
     // The data.
@@ -571,29 +566,21 @@ public:
                              MultiFab&     leveldata,
                              int           boxGrow,
                              Real          time,
-                             int           state_indx,
+                             int           index,
                              int           scomp,
                              int           ncomp,
                              InterpBase*   mapper);
 
     void Initialize (int           boxGrow,
                      Real          time,
-                     int           state_indx,
+                     int           idx,
                      int           scomp,
                      int           ncomp,
                      InterpBase*   mapper);
 
-    ~FillPatchIteratorHelper () = default;
-
     void fill (FArrayBox& fab, int dcomp, int idx);
 
 private:
-    //
-    // Disallowed.
-    //
-    FillPatchIteratorHelper ();
-    FillPatchIteratorHelper (const FillPatchIteratorHelper& rhs);
-    FillPatchIteratorHelper& operator= (const FillPatchIteratorHelper& rhs);
     //
     // The data.
     //

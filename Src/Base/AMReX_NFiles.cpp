@@ -437,7 +437,7 @@ NFilesIter &NFilesIter::operator++() {
             for(int nfn(0); nfn < procsToWrite.size(); ++nfn) {
               // ---- start with the current next file number
               // ---- get a proc from another file number if the queue is empty
-              int tempNFN((nextFileNumberToWrite + nfn) % procsToWrite.size());
+              auto tempNFN = static_cast<int>((nextFileNumberToWrite + nfn) % procsToWrite.size());
               if(!procsToWrite[tempNFN].empty()) {
                 nextProcToWrite = procsToWrite[tempNFN].front();
                 procsToWrite[tempNFN].pop_front();

@@ -22,9 +22,6 @@ class Interpolater
     : public InterpBase
 {
 public:
-
-    ~Interpolater () override = default;
-
     /**
     * \brief Coarse to fine interpolation in space.
     * This is a pure virtual function and hence MUST
@@ -55,7 +52,7 @@ public:
                          Vector<BCRec> const & bcr,
                          int              actual_comp,
                          int              actual_state,
-                         RunOn            gpu_or_cpu) = 0;
+                         RunOn            runon) = 0;
 
     /**
     * \brief Coarse to fine interpolation in space for face-based data.
@@ -87,7 +84,7 @@ public:
                               const Geometry&  /*fine_geom*/,
                               Vector<BCRec> const & /*bcr*/,
                               const int        /*bccomp*/,
-                              RunOn            /*gpu_or_cpu*/)
+                              RunOn            /*runon*/)
     { amrex::Abort("The version of this Interpolater for face-based data is not implemented or does not apply. Call 'interp' instead."); }
 
     /**
@@ -122,7 +119,7 @@ public:
                              Vector<Array<BCRec, AMREX_SPACEDIM> > const& /*bcr*/,
                              const int         /*actual_comp*/,
                              const int         /*actual_state*/,
-                             const RunOn       /*gpu_or_cpu*/)
+                             const RunOn       /*runon*/)
 
     { amrex::Abort("The Array<FArrayBox*, AMREX_SPACEDIM> version of this Interpolater is not implemented or does not apply. Call 'interp' instead."); }
 
@@ -154,7 +151,7 @@ public:
                           const Geometry&  /*crse_geom*/,
                           const Geometry&  /*fine_geom*/,
                           Vector<BCRec>&   /*bcr*/,
-                          RunOn            /*gpu_or_cpu*/) {}
+                          RunOn            /*runon*/) {}
 };
 
 
@@ -169,12 +166,6 @@ class NodeBilinear
     public Interpolater
 {
 public:
-
-    /**
-    * \brief The destructor.
-    */
-    ~NodeBilinear () override = default;
-
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
     *
@@ -219,7 +210,7 @@ public:
                          Vector<BCRec> const& bcr,
                          int              actual_comp,
                          int              actual_state,
-                         RunOn            gpu_or_cpu) override;
+                         RunOn            runon) override;
 };
 
 
@@ -234,12 +225,6 @@ class CellBilinear
     public Interpolater
 {
 public:
-
-    /**
-    * \brief The destructor.
-    */
-    ~CellBilinear () override = default;
-
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
     *
@@ -284,7 +269,7 @@ public:
                          Vector<BCRec> const& bcr,
                          int              actual_comp,
                          int              actual_state,
-                         RunOn            gpu_or_cpu) override;
+                         RunOn            runon) override;
 };
 
 
@@ -316,11 +301,6 @@ public:
     explicit CellConservativeLinear (bool do_linear_limiting_= true);
 
     /**
-    * \brief The destructor.
-    */
-    ~CellConservativeLinear () override = default;
-
-    /**
     * \brief Returns coarsened box given fine box and refinement ratio.
     *
     * \param fine
@@ -350,7 +330,7 @@ public:
                          Vector<BCRec> const& bcr,
                          int              /*actual_comp*/,
                          int              /*actual_state*/,
-                         RunOn            gpu_or_cpu) override;
+                         RunOn            runon) override;
 
 protected:
 
@@ -375,11 +355,6 @@ public:
     * \brief The constructor.
     */
     CellConservativeProtected ();
-
-    /**
-    * \brief The destructor.
-    */
-    ~CellConservativeProtected () override = default;
 
     /**
     * \brief Re-visit the interpolation to protect against under- or overshoots.
@@ -409,7 +384,7 @@ public:
                           const Geometry&  crse_geom,
                           const Geometry&  fine_geom,
                           Vector<BCRec>&   bcr,
-                          RunOn            gpu_or_cpu) override;
+                          RunOn            runon) override;
 };
 
 
@@ -431,11 +406,6 @@ public:
     * \param limit
     */
     explicit CellQuadratic (bool limit = true);
-
-    /**
-    * \brief The destructor.
-    */
-    ~CellQuadratic () override = default;
 
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
@@ -481,7 +451,7 @@ public:
                          Vector<BCRec> const& bcr,
                          int              actual_comp,
                          int              actual_state,
-                         RunOn            gpu_or_cpu) override;
+                         RunOn            runon) override;
 private:
 
     bool  do_limited_slope;
@@ -497,12 +467,6 @@ class PCInterp
     public Interpolater
 {
 public:
-
-    /**
-    * \brief The destructor.
-    */
-    ~PCInterp () override = default;
-
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
     *
@@ -547,7 +511,7 @@ public:
                          Vector<BCRec> const&  bcr,
                          int              actual_comp,
                          int              actual_state,
-                         RunOn            gpu_or_cpu) override;
+                         RunOn            runon) override;
 };
 
 
@@ -564,12 +528,6 @@ class CellConservativeQuartic
     public Interpolater
 {
 public:
-
-    /**
-    * \brief The destructor.
-    */
-    ~CellConservativeQuartic () override = default;
-
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
     *
@@ -614,7 +572,7 @@ public:
                          Vector<BCRec> const&  bcr,
                          int              actual_comp,
                          int              actual_state,
-                         RunOn            gpu_or_cpu) override;
+                         RunOn            runon) override;
 };
 
 /**
@@ -628,12 +586,6 @@ class FaceDivFree
     public Interpolater
 {
 public:
-
-    /**
-    * \brief The destructor.
-    */
-    ~FaceDivFree () override = default;
-
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
     *
@@ -679,7 +631,7 @@ public:
                          Vector<BCRec> const& bcr,
                          int              actual_comp,
                          int              actual_state,
-                         RunOn            gpu_or_cpu) override;
+                         RunOn            runon) override;
 
     /**
     * \brief Coarse to fine interpolation in space.
@@ -727,12 +679,6 @@ class FaceLinear
     public Interpolater
 {
 public:
-
-    /**
-    * \brief The destructor.
-    */
-    ~FaceLinear () override = default;
-
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
     *
@@ -777,7 +723,7 @@ public:
                          Vector<BCRec> const& bcr,
                          int              actual_comp,
                          int              actual_state,
-                         RunOn            gpu_or_cpu) override;
+                         RunOn            runon) override;
 
     /**
     * \brief Coarse to fine interpolation in space for face-based data.
@@ -808,7 +754,7 @@ public:
                               const Geometry&  fine_geom,
                               Vector<BCRec> const & bcr,
                               int        bccomp,
-                              RunOn            gpu_or_cpu) override;
+                              RunOn            runon) override;
 
     /**
     * \brief Coarse to fine interpolation in space.
@@ -855,17 +801,6 @@ class CellQuartic
     public Interpolater
 {
 public:
-
-    /**
-    * \brief The constructor.
-    */
-    explicit CellQuartic () = default;
-
-    /**
-    * \brief The destructor.
-    */
-    ~CellQuartic () override = default;
-
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
     *
@@ -910,7 +845,7 @@ public:
                          Vector<BCRec> const& bcr,
                          int              actual_comp,
                          int              actual_state,
-                         RunOn            gpu_or_cpu) override;
+                         RunOn            runon) override;
 };
 
 //! CONSTRUCT A GLOBAL OBJECT OF EACH VERSION.

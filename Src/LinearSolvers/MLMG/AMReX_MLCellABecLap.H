@@ -19,7 +19,7 @@ public:
     using Location  = typename MLLinOpT<MF>::Location;
 
     MLCellABecLapT ();
-    virtual ~MLCellABecLapT ();
+    ~MLCellABecLapT () override;
 
     MLCellABecLapT (const MLCellABecLapT<MF>&) = delete;
     MLCellABecLapT (MLCellABecLapT<MF>&&) = delete;
@@ -39,22 +39,22 @@ public:
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FAB> const*>& a_factory = {});
 
-    iMultiFab const* getOversetMask (int amrlev, int mglev) const {
+    [[nodiscard]] iMultiFab const* getOversetMask (int amrlev, int mglev) const {
         return m_overset_mask[amrlev][mglev].get();
     }
 
-    virtual bool needsUpdate () const override {
+    [[nodiscard]] bool needsUpdate () const override {
         return MLCellLinOpT<MF>::needsUpdate();
     }
-    virtual void update () override;
+    void update () override;
 
-    virtual void prepareForSolve () override;
+    void prepareForSolve () override;
 
-    virtual void getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& a_flux,
+    void getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& a_flux,
                             const Vector<MF*>& a_sol,
-                            Location a_loc) const final override;
-    virtual void getFluxes (const Vector<MF*>& /*a_flux*/,
-                            const Vector<MF*>& /*a_sol*/) const final override {
+                            Location a_loc) const final;
+    void getFluxes (const Vector<MF*>& /*a_flux*/,
+                            const Vector<MF*>& /*a_sol*/) const final {
         amrex::Abort("MLCellABecLap::getFluxes: How did we get here?");
     }
 
@@ -63,13 +63,13 @@ public:
     virtual MF const* getACoeffs (int amrlev, int mglev) const = 0;
     virtual Array<MF const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const = 0;
 
-    virtual void applyInhomogNeumannTerm (int amrlev, MF& rhs) const final override;
+    void applyInhomogNeumannTerm (int amrlev, MF& rhs) const final;
 
-    virtual void addInhomogNeumannFlux (
+    void addInhomogNeumannFlux (
         int amrlev, const Array<MF*,AMREX_SPACEDIM>& grad,
-        MF const& sol, bool mult_bcoef) const final override;
+        MF const& sol, bool mult_bcoef) const final;
 
-    virtual void applyOverset (int amlev, MF& rhs) const override;
+    void applyOverset (int amrlev, MF& rhs) const override;
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const override;
@@ -84,11 +84,11 @@ protected:
 
     LPInfo m_lpinfo_arg;
 
-    virtual bool supportInhomogNeumannBC () const noexcept override { return true; }
+    [[nodiscard]] bool supportInhomogNeumannBC () const noexcept override { return true; }
 };
 
-template <typename MF> MLCellABecLapT<MF>::MLCellABecLapT () {}
-template <typename MF> MLCellABecLapT<MF>::~MLCellABecLapT () {}
+template <typename MF> MLCellABecLapT<MF>::MLCellABecLapT () = default;
+template <typename MF> MLCellABecLapT<MF>::~MLCellABecLapT () = default;
 
 template <typename MF>
 void
@@ -121,7 +121,7 @@ MLCellABecLapT<MF>::define (const Vector<Geometry>& a_geom,
 
     this->m_lpinfo_arg = a_info;
 
-    int namrlevs = a_geom.size();
+    auto namrlevs = static_cast<int>(a_geom.size());
     this->m_overset_mask.resize(namrlevs);
     for (int amrlev = 0; amrlev < namrlevs; ++amrlev)
     {

@@ -49,7 +49,9 @@ public:
     explicit VisMF (std::string fafab_name);
     ~VisMF () = default;
     VisMF (const VisMF&) = delete;
+    VisMF (VisMF&&) = delete;
     VisMF& operator= (const VisMF&) = delete;
+    VisMF& operator= (VisMF&&) = delete;
     //! A structure containing info regarding an on-disk FAB.
     struct FabOnDisk
     {
@@ -82,7 +84,11 @@ public:
         Header (const FabArray<FArrayBox>& mf, VisMF::How how, Version version = Version_v1,
                 bool calcMinMax = true, MPI_Comm = ParallelDescriptor::Communicator());
 
+        ~Header () = default;
         Header (Header&& rhs) noexcept = default;
+        Header (Header const&) = delete;
+        Header& operator= (Header const&) = delete;
+        Header& operator= (Header &&) = delete;
 
         //! Calculate the min and max arrays
         void CalculateMinMax(const FabArray<FArrayBox>& mf,
@@ -115,7 +121,7 @@ public:
         Long fileOffset{-1};
         Box box;
 
-        FabReadLink();
+        FabReadLink() = default;
         FabReadLink(int ranktoread, int faindex, Long fileoffset, const Box &b);
     };
 
@@ -123,12 +129,16 @@ public:
     struct PersistentIFStream
     {
         std::ifstream   *pstr{nullptr};
-        std::streampos   currentPosition;
+        std::streampos   currentPosition{0};
         bool             isOpen{false};
         VisMF::IO_Buffer ioBuffer;
 
-        PersistentIFStream();
-        ~PersistentIFStream();
+        PersistentIFStream () = default;
+        ~PersistentIFStream ();
+        PersistentIFStream (PersistentIFStream const&) = delete;
+        PersistentIFStream (PersistentIFStream &&) = delete;
+        PersistentIFStream& operator= (PersistentIFStream const&) = delete;
+        PersistentIFStream& operator= (PersistentIFStream &&) = delete;
     };
 
     /**
@@ -611,7 +621,7 @@ Read (FabArray<FAB>& fa, const std::string& name)
         std::multiset<int> availablefiles;  // [whichFile]  supports multiple reads/file
         Vector<std::map<int,std::map<Long,int> > > allreads; // [file]<proc,<seek,index>>
 
-        const int nfiles = filenames.size();
+        const auto nfiles = static_cast<int>(filenames.size());
         for (int i = 0; i < nfiles; ++i) {
             for (int j = 0; j < nopensperfile; ++j) {
                 availablefiles.insert(i);
@@ -713,7 +723,7 @@ Read (FabArray<FAB>& fa, const std::string& name)
         while (nreqs > 0) {
             ParallelDescriptor::Message rmess = ParallelDescriptor::Recv(recreads, coordproc,
                                                                          readtag);
-            const int nrmess = rmess.count();
+            const auto nrmess = static_cast<int>(rmess.count());
             for (int ir = 0; ir < nrmess; ++ir) {
                 int i = recreads[ir];
                 detail::read_fab(fa[i], fod[i], name);

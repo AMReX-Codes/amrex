@@ -199,7 +199,7 @@ class NeighborhoodCache
 
     // result is dependent on both the current set of ranks
     // and the size of the neighborhood desired
-    uint64_t hash (const Vector<int> & cur_ranks, int nbh_rank_n) {
+    static uint64_t hash (const Vector<int> & cur_ranks, int nbh_rank_n) {
         auto result = hash_vector(cur_ranks);
         hash_combine(result, nbh_rank_n);
         return result;
@@ -231,7 +231,7 @@ class Machine
         }
 
         Vector<int> result;
-        auto key = nbh_cache.hash(sg_g_ranks, nbh_rank_n);
+        auto key = NeighborhoodCache::hash(sg_g_ranks, nbh_rank_n);
         if (nbh_cache.get(key, result)) {
             if (flag_verbose) {
                 Print() << "Machine::find_best_nbh(): found neighborhood in cache" << std::endl;
@@ -279,10 +279,10 @@ class Machine
             int    winner_rank  = min_score_with_id.i;
 
             // broadcast the best hood from winner rank to everyone
-            int local_nbh_size = local_nbh.size();
+            auto local_nbh_size = static_cast<int>(local_nbh.size());
             MPI_Bcast(&local_nbh_size, 1, MPI_INT, winner_rank, ParallelContext::CommunicatorSub());
             local_nbh.resize(local_nbh_size);
-            MPI_Bcast(local_nbh.data(), local_nbh.size(), MPI_INT, winner_rank, ParallelContext::CommunicatorSub());
+            MPI_Bcast(local_nbh.data(), local_nbh_size, MPI_INT, winner_rank, ParallelContext::CommunicatorSub());
 
             std::sort(local_nbh.begin(), local_nbh.end());
             if (flag_verbose) {
@@ -332,7 +332,7 @@ class Machine
         pp.queryAdd("very_verbose", flag_very_verbose);
     }
 
-    std::string get_env_str (const std::string& env_key)
+    static std::string get_env_str (const std::string& env_key)
     {
         std::string result;
         auto *val_c_str = std::getenv(env_key.c_str());

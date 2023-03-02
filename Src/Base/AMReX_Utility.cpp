@@ -715,13 +715,13 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
     for(int i(0); i < localStringsCopy.size(); ++i) {
       pfStrings << localStringsCopy[i] << '\n';
     }
-    pfStringsSize = pfStrings.str().size();
+    pfStringsSize = static_cast<int>(pfStrings.str().size());
   }
   ParallelDescriptor::Bcast(&pfStringsSize, 1);
 
   Vector<char> pfCharArray(pfStringsSize + 1);
   if(ParallelDescriptor::IOProcessor()) {
-    std::strcpy(pfCharArray.dataPtr(), pfStrings.str().c_str());  // null terminated
+    std::strncpy(pfCharArray.dataPtr(), pfStrings.str().c_str(), pfCharArray.size());  // null terminated
   }
   ParallelDescriptor::Bcast(pfCharArray.dataPtr(), pfCharArray.size());
 
@@ -779,9 +779,9 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
     for(int i(0); i < sendStrings.size(); ++i) {
       ossSendStrings << sendStrings[i] << '\n';
     }
-    sendStringsSize = ossSendStrings.str().size();
+    sendStringsSize = static_cast<int>(ossSendStrings.str().size());
     sendCharArray.resize(sendStringsSize + 1);
-    std::strcpy(sendCharArray.dataPtr(), ossSendStrings.str().c_str());  // null terminated
+    std::strncpy(sendCharArray.dataPtr(), ossSendStrings.str().c_str(), sendCharArray.size());  // null terminated
   }
 
   Vector<int> nChars(nProcs, 0);
@@ -832,13 +832,13 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
     for(int i(0); i < syncedStrings.size(); ++i) {
       syncedStrStr << syncedStrings[i] << '\n';
     }
-    syncedStringsSize = syncedStrStr.str().size();
+    syncedStringsSize = static_cast<int>(syncedStrStr.str().size());
   }
   ParallelDescriptor::Bcast(&syncedStringsSize, 1);
 
   Vector<char> syncedCharArray(syncedStringsSize + 1);
   if(ParallelDescriptor::IOProcessor()) {
-    std::strcpy(syncedCharArray.dataPtr(), syncedStrStr.str().c_str());  // null terminated
+    std::strncpy(syncedCharArray.dataPtr(), syncedStrStr.str().c_str(), syncedCharArray.size());  // null terminated
   }
   ParallelDescriptor::Bcast(syncedCharArray.dataPtr(), syncedCharArray.size());
 

@@ -6,7 +6,7 @@ void
 FabArray<FAB>::PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
                              int scomp, int dcomp, int ncomp, CpOp op)
 {
-    int N_locs = thecpc.m_LocTags->size();
+    auto const N_locs = static_cast<int>(thecpc.m_LocTags->size());
     if (N_locs == 0) return;
     bool is_thread_safe = thecpc.m_threadsafe_loc;
 

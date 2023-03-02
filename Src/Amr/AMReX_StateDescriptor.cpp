@@ -10,12 +10,6 @@ namespace amrex {
 
 int StateDescriptor::bf_ext_dir_threadsafe = 0;
 
-StateDescriptor::BndryFunc*
-StateDescriptor::BndryFunc::clone () const
-{
-    return new BndryFunc(*this);
-}
-
 bool
 StateDescriptor::bf_thread_safety (const int* /*lo*/,const int* /*hi*/,
                                    const int* /*dom_lo*/, const int* /*dom_hi*/,
@@ -38,7 +32,7 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
                                          const Real* dx, const Real* grd_lo,
                                          const Real* time, const int* a_bc) const
 {
-    BL_ASSERT(m_func != 0 || m_func3D != 0);
+    BL_ASSERT(m_func != nullptr || m_func3D != nullptr);
 
 #ifdef AMREX_USE_OMP
     bool thread_safe = bf_thread_safety(lo, hi, dom_lo, dom_hi, a_bc, 1);
@@ -73,7 +67,7 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
                                          const Real* dx, const Real* grd_lo,
                                          const Real* time, const int* a_bc, int ng) const
 {
-    BL_ASSERT(m_gfunc != 0 || m_gfunc3D != 0);
+    BL_ASSERT(m_gfunc != nullptr || m_gfunc3D != nullptr);
 
     amrex::ignore_unused(ng);
 #ifdef AMREX_USE_OMP
@@ -188,18 +182,6 @@ DescriptorList::addDescriptor (int                         indx,
                                                    a_store_in_checkpoint);
 }
 
-
-StateDescriptor::StateDescriptor () noexcept
-    :
-    t_type(Point),
-    id(-1),
-    ncomp(0),
-    ngrow(0),
-    mapper(nullptr),
-    m_extrap(false),
-    m_store_in_checkpoint(true)
-{}
-
 StateDescriptor::StateDescriptor (IndexType                   btyp,
                                   StateDescriptor::TimeCenter ttyp,
                                   int                         ident,
@@ -230,11 +212,6 @@ StateDescriptor::StateDescriptor (IndexType                   btyp,
     min_map_end_comp.resize(num_comp);
 }
 
-StateDescriptor::~StateDescriptor ()
-{
-    mapper = nullptr;
-}
-
 void
 StateDescriptor::resetComponentBCs (int              comp,
                                     const BCRec&     bcr,
@@ -242,7 +219,7 @@ StateDescriptor::resetComponentBCs (int              comp,
 {
     BL_ASSERT(comp >= 0 && comp < ncomp);
 
-    bc_func[comp].reset(func.clone());
+    bc_func[comp] = std::make_unique<BndryFunc>(func);
     bc[comp] = bcr;
 }
 
@@ -365,7 +342,7 @@ StateDescriptor::setComponent (int                               comp,
                                int                               max_map_start_comp_,
                                int                               min_map_end_comp_)
 {
-    bc_func[comp].reset(func.clone());
+    bc_func[comp] = std::make_unique<BndryFunc>(func);
 
     names[comp]       = nm;
     bc[comp]          = bcr;
@@ -526,7 +503,7 @@ StateDescriptor::cleanUpMaps (InterpBase**&   maps,
                               int*&           map_start_comp,
                               int*&           map_num_comp,
                               int*&           max_start_comp,
-                              int*&           min_end_comp) const
+                              int*&           min_end_comp)
 {
     delete [] maps;
     delete [] map_start_comp;

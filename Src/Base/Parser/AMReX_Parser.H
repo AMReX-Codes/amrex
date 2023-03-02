@@ -18,7 +18,7 @@ template <int N>
 struct ParserExecutor
 {
     template <int M=N, typename std::enable_if_t<M==0,int> = 0>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     double operator() () const noexcept
     {
 #if AMREX_DEVICE_COMPILE
@@ -29,7 +29,7 @@ struct ParserExecutor
     }
 
     template <typename... Ts>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     std::enable_if_t<sizeof...(Ts) == N && !amrex::Same<float,Ts...>::value, double>
     operator() (Ts... var) const noexcept
     {
@@ -42,7 +42,7 @@ struct ParserExecutor
     }
 
     template <typename... Ts>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     std::enable_if_t<sizeof...(Ts) == N &&  amrex::Same<float,Ts...>::value, float>
     operator() (Ts... var) const noexcept
     {
@@ -54,7 +54,7 @@ struct ParserExecutor
 #endif
     }
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     double operator() (GpuArray<double,N> const& var) const noexcept
     {
 #if AMREX_DEVICE_COMPILE
@@ -102,10 +102,10 @@ public:
     [[nodiscard]] std::set<std::string> symbols () const;
 
     //! This compiles for both GPU and CPU
-    template <int N> ParserExecutor<N> compile () const;
+    template <int N> [[nodiscard]] ParserExecutor<N> compile () const;
 
     //! This compiles for CPU only
-    template <int N> ParserExecutor<N> compileHost () const;
+    template <int N> [[nodiscard]] ParserExecutor<N> compileHost () const;
 
 private:
 
@@ -119,7 +119,12 @@ private:
 #endif
         mutable int m_max_stack_size = 0;
         mutable int m_exe_size = 0;
+        Data () = default;
         ~Data ();
+        Data (Data const&) = delete;
+        Data (Data &&) = delete;
+        Data& operator= (Data const&) = delete;
+        Data& operator= (Data &&) = delete;
     };
 
     std::shared_ptr<Data> m_data;

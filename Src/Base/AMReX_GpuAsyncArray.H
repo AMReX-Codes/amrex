@@ -67,7 +67,7 @@ public:
     void operator= (AsyncArray &&) = delete;
 
     [[nodiscard]] T const* data () const noexcept { return (d_data != nullptr) ? d_data : h_data; }
-    T* data () noexcept { return (d_data != nullptr) ? d_data : h_data; }
+    [[nodiscard]] T* data () noexcept { return (d_data != nullptr) ? d_data : h_data; }
     void clear ()
     {
 #ifdef AMREX_USE_GPU

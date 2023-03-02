@@ -214,7 +214,7 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
         }
     }
     //if sent in, this wins over everything.
-    if(a_refrat.size() > 0)
+    if(!a_refrat.empty())
     {
       for (int i = 0; i < max_level; i++)
       {
@@ -685,7 +685,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
         tags.collate(tagvec);
         tags.clear();
 
-        if (tagvec.size() > 0)
+        if (!tagvec.empty())
         {
             //
             // Created new level, now generate efficient grids.

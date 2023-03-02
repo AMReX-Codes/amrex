@@ -431,7 +431,7 @@ public:
     }
 
     //! Returns true if the data for the FAB has been allocated.
-    [[nodiscard]] bool isAllocated () const noexcept { return this->dptr != 0; }
+    [[nodiscard]] bool isAllocated () const noexcept { return this->dptr != nullptr; }
 
     /**
     * \brief Returns a reference to the Nth component value

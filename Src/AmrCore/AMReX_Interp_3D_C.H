@@ -32,13 +32,13 @@ pcinterp_interp (Box const& bx,
 }
 
 namespace {
-    static constexpr int ix   = 0;
-    static constexpr int iy   = 1;
-    static constexpr int iz   = 2;
-    static constexpr int ixy  = 3;
-    static constexpr int ixz  = 4;
-    static constexpr int iyz  = 5;
-    static constexpr int ixyz = 6;
+    constexpr int ix   = 0;
+    constexpr int iy   = 1;
+    constexpr int iz   = 2;
+    constexpr int ixy  = 3;
+    constexpr int ixz  = 4;
+    constexpr int iyz  = 5;
+    constexpr int ixyz = 6;
 }
 
 // Let's keep these nodal functions even though amrex is no longer using

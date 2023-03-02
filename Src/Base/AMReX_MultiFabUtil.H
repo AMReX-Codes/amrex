@@ -240,7 +240,7 @@ namespace amrex
             auto psrc = mf_in [mfi].dataPtr();
             AMREX_HOST_DEVICE_PARALLEL_FOR_1D ( n, i,
             {
-                pdst[i] = static_cast<typename U::value_type>(psrc[i]);
+                pdst[i] = static_cast<typename U::value_type>(psrc[i]); // NOLINT(bugprone-signed-char-misuse)
             });
         }
         return mf_out;
@@ -949,12 +949,12 @@ MF get_line_data (MF const& mf, int dir, IntVect const& cell)
 {
     BoxArray const& ba = mf.boxArray();
     DistributionMapping const& dm = mf.DistributionMap();
-    const Long nboxes = ba.size();
+    const auto nboxes = static_cast<int>(ba.size());
 
     BoxList bl(ba.ixType());
     Vector<int> procmap;
     Vector<int> index_map;
-    for (Long i = 0; i < nboxes; ++i) {
+    for (int i = 0; i < nboxes; ++i) {
         Box const& b = ba[i];
         IntVect lo = cell;
         lo[dir] = b.smallEnd(dir);

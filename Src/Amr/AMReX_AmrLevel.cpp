@@ -72,15 +72,6 @@ AmrLevel::manual_tags_placement (TagBoxArray& /*tags*/,
                                  const Vector<IntVect>& /*bf_lev*/)
 {}
 
-AmrLevel::AmrLevel () noexcept
-{
-
-   BL_PROFILE("AmrLevel::AmrLevel()");
-   parent = nullptr;
-   level = -1;
-   levelDirectoryCreated = false;
-}
-
 AmrLevel::AmrLevel (Amr&            papa,
                     int             lev,
                     const Geometry& level_geom,
@@ -164,7 +155,7 @@ AmrLevel::writePlotFile (const std::string& dir,
     {
         for (int comp = 0; comp < desc_lst[typ].nComp();comp++)
         {
-            if (parent->isStatePlotVar(desc_lst[typ].name(comp)) &&
+            if (amrex::Amr::isStatePlotVar(desc_lst[typ].name(comp)) &&
                 desc_lst[typ].getType() == IndexType::TheCellType())
             {
                 plot_var_map.emplace_back(typ,comp);
@@ -177,7 +168,7 @@ AmrLevel::writePlotFile (const std::string& dir,
     const std::list<DeriveRec>& dlist = derive_lst.dlist();
     for (auto const& d : dlist)
     {
-        if (parent->isDerivePlotVar(d.name()))
+        if (amrex::Amr::isDerivePlotVar(d.name()))
         {
             derive_names.push_back(d.name());
             num_derive += d.numDerive();
@@ -344,7 +335,7 @@ AmrLevel::writePlotFile (const std::string& dir,
     }
 
     // derived
-    if (derive_names.size() > 0)
+    if (!derive_names.empty())
     {
         for (auto const& dname : derive_names)
         {
@@ -490,11 +481,11 @@ AmrLevel::setTimeLevel (Real time,
 }
 
 bool
-AmrLevel::isStateVariable (const std::string& name, int& typ, int& n)
+AmrLevel::isStateVariable (const std::string& name, int& state_indx, int& n)
 {
-    for (typ = 0; typ < desc_lst.size(); typ++)
+    for (state_indx = 0; state_indx < desc_lst.size(); state_indx++)
     {
-        const StateDescriptor& desc = desc_lst[typ];
+        const StateDescriptor& desc = desc_lst[state_indx];
 
         for (n = 0; n < desc.nComp(); n++)
         {
@@ -1896,11 +1887,11 @@ AmrLevel::setPlotVariables ()
             pp.get("plot_vars", nm, i);
 
             if (nm == "ALL")
-                parent->fillStatePlotVarList();
+                amrex::Amr::fillStatePlotVarList();
             else if (nm == "NONE")
-                parent->clearStatePlotVarList();
+                amrex::Amr::clearStatePlotVarList();
             else
-                parent->addStatePlotVar(nm);
+                amrex::Amr::addStatePlotVar(nm);
         }
     }
     else
@@ -1908,7 +1899,7 @@ AmrLevel::setPlotVariables ()
         //
         // The default is to add them all.
         //
-        parent->fillStatePlotVarList();
+        amrex::Amr::fillStatePlotVarList();
     }
 
     if (pp.contains("derive_plot_vars"))
@@ -1922,11 +1913,11 @@ AmrLevel::setPlotVariables ()
             pp.get("derive_plot_vars", nm, i);
 
             if (nm == "ALL")
-                parent->fillDerivePlotVarList();
+                amrex::Amr::fillDerivePlotVarList();
             else if (nm == "NONE")
-                parent->clearDerivePlotVarList();
+                amrex::Amr::clearDerivePlotVarList();
             else
-                parent->addDerivePlotVar(nm);
+                amrex::Amr::addDerivePlotVar(nm);
         }
     }
     else
@@ -1934,7 +1925,7 @@ AmrLevel::setPlotVariables ()
         //
         // The default is to add none of them.
         //
-        parent->clearDerivePlotVarList();
+        amrex::Amr::clearDerivePlotVarList();
     }
 }
 
@@ -1954,11 +1945,11 @@ AmrLevel::setSmallPlotVariables ()
             pp.get("small_plot_vars", nm, i);
 
             if (nm == "ALL")
-                parent->fillStateSmallPlotVarList();
+                amrex::Amr::fillStateSmallPlotVarList();
             else if (nm == "NONE")
-                parent->clearStateSmallPlotVarList();
+                amrex::Amr::clearStateSmallPlotVarList();
             else
-                parent->addStateSmallPlotVar(nm);
+                amrex::Amr::addStateSmallPlotVar(nm);
         }
     }
     else
@@ -1966,7 +1957,7 @@ AmrLevel::setSmallPlotVariables ()
         //
         // The default is to use none.
         //
-        parent->clearStateSmallPlotVarList();
+        amrex::Amr::clearStateSmallPlotVarList();
     }
 
     if (pp.contains("derive_small_plot_vars"))
@@ -1980,11 +1971,11 @@ AmrLevel::setSmallPlotVariables ()
             pp.get("derive_small_plot_vars", nm, i);
 
             if (nm == "ALL")
-                parent->fillDeriveSmallPlotVarList();
+                amrex::Amr::fillDeriveSmallPlotVarList();
             else if (nm == "NONE")
-                parent->clearDeriveSmallPlotVarList();
+                amrex::Amr::clearDeriveSmallPlotVarList();
             else
-                parent->addDeriveSmallPlotVar(nm);
+                amrex::Amr::addDeriveSmallPlotVar(nm);
         }
     }
     else
@@ -1992,7 +1983,7 @@ AmrLevel::setSmallPlotVariables ()
         //
         // The default is to add none of them.
         //
-        parent->clearDeriveSmallPlotVarList();
+        amrex::Amr::clearDeriveSmallPlotVarList();
     }
 
 }
@@ -2077,7 +2068,7 @@ void AmrLevel::constructAreaNotToTag ()
         //    as the region in which we allow tagging.
         // Why level-1? Because we always use the full domain at level 0
         //    and therefore level 0 in initialba is level 1 in the AMR hierarchy, etc.
-        const Vector<BoxArray>& initialba = parent->getInitialBA();
+        const Vector<BoxArray>& initialba = amrex::Amr::getInitialBA();
         Box tagarea(initialba[level-1].minimalBox());
         tagarea.grow(-parent->blockingFactor(level));
         m_AreaToTag = tagarea;
@@ -2202,7 +2193,7 @@ AmrLevel::FillPatchAdd (AmrLevel& amrlevel,
 void
 AmrLevel::LevelDirectoryNames (const std::string &dir,
                                std::string &LevelDir,
-                               std::string &FullPath)
+                               std::string &FullPath) const
 {
     LevelDir = amrex::Concatenate("Level_", level, 1);
     //

@@ -29,10 +29,10 @@ std::map<std::string, Vector<char> > *StateData::faHeaderMap;
 
 
 StateData::StateData ()
-    : desc(nullptr),
+    :
       new_time{INVALID_TIME,INVALID_TIME},
-      old_time{INVALID_TIME,INVALID_TIME},
-      arena(nullptr)
+      old_time{INVALID_TIME,INVALID_TIME}
+
 {
 }
 
@@ -61,10 +61,10 @@ StateData::StateData (StateData&& rhs) noexcept
 {
 }
 
-void
+StateData&
 StateData::operator= (StateData const& rhs)
 {
-    if (this == &rhs) return;
+    if (this == &rhs) { return *this; };
     m_factory.reset(rhs.m_factory->clone());
     desc = rhs.desc;
     arena = rhs.arena;
@@ -85,6 +85,7 @@ StateData::operator= (StateData const& rhs)
     } else {
         old_data.reset();
     }
+    return *this;
 }
 
 void

@@ -3,6 +3,7 @@ Checks: >
      bugprone-*,
        -bugprone-exception-escape,
      clang-analyzer-*,
+       -clang-analyzer-optin.mpi.MPI-Checker,
      clang-diagnostic-*,
      cppcoreguidelines-*,
        -cppcoreguidelines-avoid-c-arrays,
@@ -31,11 +32,7 @@ Checks: >
        -readability-magic-numbers,
        -readability-named-parameter,
        -readability-simplify-boolean-expr,
-       -readability-convert-member-functions-to-static,
-     mpi-*,
-     openmp-*'
+     mpi-*
+    '
 
 HeaderFilterRegex: '[^n][^o][^l][^i][^n][^t]\.H$'
-
-# TODO
-# * readability-convert-member-functions-to-static

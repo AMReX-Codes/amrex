@@ -19,7 +19,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_gcc8.sh
+      run: |
+        .github/workflows/dependencies/dependencies_gcc8.sh
+        sudo apt-get install -y --no-install-recommends clang-tidy-12
     - name: Build & Install
       run: |
         mkdir build
@@ -31,7 +33,9 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex  \
             -DCMAKE_C_COMPILER=$(which gcc-8)     \
             -DCMAKE_CXX_COMPILER=$(which g++-8)   \
-            -DCMAKE_Fortran_COMPILER=$(which gfortran-8)
+            -DCMAKE_Fortran_COMPILER=$(which gfortran-8) \
+            -DAMReX_CLANG_TIDY=ON \
+            -DAMReX_CLANG_TIDY_WERROR=ON
         make -j 2
         make install
         make test_install

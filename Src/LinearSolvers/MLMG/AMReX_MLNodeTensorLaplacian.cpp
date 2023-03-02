@@ -269,7 +269,6 @@ void
 MLNodeTensorLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
 {
     amrex::ignore_unused(amrlev,mglev,mf);
-    return;
 }
 
 void
