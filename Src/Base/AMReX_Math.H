@@ -124,7 +124,7 @@ std::pair<double,double> sincos (double x)
 {
     std::pair<double,double> r;
 #if defined(AMREX_USE_SYCL)
-    r.first = sycl::sincos(x, &r.second);
+    r.first = sycl::sincos(x, sycl::private_ptr<double>(&r.second));
 #elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
       defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP) || \
       (defined(_GNU_SOURCE) && !defined(__APPLE__))
@@ -142,7 +142,7 @@ std::pair<float,float> sincos (float x)
 {
     std::pair<float,float> r;
 #if defined(AMREX_USE_SYCL)
-    r.first = sycl::sincos(x, &r.second);
+    r.first = sycl::sincos(x, sycl::private_ptr<float>(&r.second));
 #elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
       defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP) || \
       (defined(_GNU_SOURCE) && !defined(__APPLE__))
@@ -160,7 +160,7 @@ std::pair<double,double> sincospi (double x)
 {
     std::pair<double,double> r;
 #if defined(AMREX_USE_SYCL)
-    r.first = sycl::sincos(pi<double>()*x, &r.second);
+    r.first = sycl::sincos(pi<double>()*x, sycl::private_ptr<double>(&r.second));
 #elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
       defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
     ::sincospi(x, &r.first, &r.second);
@@ -177,7 +177,7 @@ std::pair<float,float> sincospi (float x)
 {
     std::pair<float,float> r;
 #if defined(AMREX_USE_SYCL)
-    r.first = sycl::sincos(pi<float>()*x, &r.second);
+    r.first = sycl::sincos(pi<float>()*x, sycl::private_ptr<float>(&r.second));
 #elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
       defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
     ::sincospif(x, &r.first, &r.second);
