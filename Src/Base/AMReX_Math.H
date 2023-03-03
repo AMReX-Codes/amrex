@@ -33,13 +33,28 @@ namespace amrex { namespace Math {
 // Since Intel's SYCL compiler now supports the following std functions on device,
 // one no longer needs to use amrex::Math::abs, etc.  They are kept here for
 // backward compatability.
+
 using std::abs;
 using std::ceil;
 using std::copysign;
 using std::floor;
 using std::round;
+
+// However, since Intel's SYCL compiler is very aggressive with fast floating
+// point optimisations, the following must be kept, as using the std functions
+// always evaluates to false (even at -O1).
+
+#ifdef AMREX_USE_SYCL
+
+using sycl::isfinite;
+using sycl::isinf;
+
+#else
+
 using std::isfinite;
 using std::isinf;
+
+#endif
 
 template <typename T>
 constexpr std::enable_if_t<std::is_floating_point<T>::value,T> pi ()
