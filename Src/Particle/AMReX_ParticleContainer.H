@@ -1241,6 +1241,9 @@ public:
     int NumRealComps () const { return NArrayReal + NumRuntimeRealComps(); }
     int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; }
 
+    void ResizeRuntimeRealComp (int new_size, bool communicate);
+    void ResizeRuntimeIntComp (int new_size, bool communicate);
+
     /** type trait to translate one particle container to another, with changed allocator */
     template <template<class> class NewAllocator=amrex::DefaultAllocator>
     using ContainerLike = amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, NewAllocator>;
