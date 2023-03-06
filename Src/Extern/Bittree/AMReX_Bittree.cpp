@@ -31,6 +31,9 @@ The functions here are called in the BT version of MakeNewGrids which has three 
   * from Flash-X that enforce Octree nesting.
   */
 int btUnit::btRefine( BittreeAmr* const mesh, std::vector<int>& btTags, MPI_Comm comm) {
+
+    BL_PROFILE("Bittree-btRefine");
+
     // Tree before refinement. With only one rank, lnblocks = nblocks.
     auto tree0 = mesh->getTree();
     unsigned id0 = tree0->level_id0(0);
@@ -72,6 +75,8 @@ void btUnit::btCalculateGrids(BittreeAmr* const mesh, int lbase,
                             int& new_finest,
                             Vector<BoxArray>& new_grids,
                             Vector<IntVect> const& max_grid_size) {
+    BL_PROFILE("Bittree-btCalculateGrids");
+
     auto tree1 = mesh->getTree(true);
     int nlevs = tree1->levels();
     new_finest = nlevs - 1;
@@ -140,6 +145,9 @@ int btUnit::getIndex(BittreeAmr* const mesh, bool updated,
   * between surrounding leaf blocks.
   */
 void btUnit::btCheckRefine(BittreeAmr* const mesh, std::vector<int>& btTags, MPI_Comm comm ) {
+
+    BL_PROFILE("Bittree-btCheckRefine");
+
     // Tree before refinement.
     auto tree0 = mesh->getTree();
 
@@ -212,6 +220,9 @@ void btUnit::btCheckRefine(BittreeAmr* const mesh, std::vector<int>& btTags, MPI
   * between surrounding leaf blocks.
   */
 void btUnit::btCheckDerefine(BittreeAmr* const mesh, std::vector<int>& btTags, MPI_Comm comm ) {
+
+    BL_PROFILE("Bittree-btCheckDerefine");
+
     // Tree before refinement. With only one rank, lnblocks = nblocks.
     auto tree0 = mesh->getTree();
 
@@ -267,6 +278,9 @@ void btUnit::btCheckDerefine(BittreeAmr* const mesh, std::vector<int>& btTags, M
 
 // Check all neighbors to see if their adjacent children are parents or marked for refinement.
 bool btUnit::checkNeighborsRefine(BittreeAmr* const mesh, MortonTree::Block b) {
+
+    BL_PROFILE("Bittree-checkNeighborsRefine");
+
     auto tree0 = mesh->getTree();
     auto tree1 = mesh->getTree(true);
     int nIdx[3], cIdx[3];
