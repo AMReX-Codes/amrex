@@ -166,7 +166,7 @@ void btUnit::btCheckRefine(BittreeAmr* const mesh, std::vector<int>& btTags, MPI
 //------Check neighbors - if any adjacent child of a neighbor is either a parent
 //------or marked for refinement, this block needs to be refined.
 // TODO: Loop over levels and use MFIter to get
-//       id using getBitId() and then do neighbor 
+//       id using getBitId() and then do neighbor
 //       refine
         for( unsigned id = id0; id < id1; ++id) {
             auto b = tree0->locate(id);
