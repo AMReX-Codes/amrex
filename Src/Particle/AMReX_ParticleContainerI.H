@@ -2261,3 +2261,55 @@ InterpolateSingleLevel (MultiFab& mesh_data, int lev)
         });
     }
 }
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+ResizeRuntimeRealComp (int new_size, bool communicate)
+{
+    int old_size = m_num_runtime_real;
+
+    m_runtime_comps_defined = (new_size > 0);
+    m_num_runtime_real = new_size;
+    int cur_size = h_redistribute_real_comp.size();
+    h_redistribute_real_comp.resize(cur_size-old_size+new_size, communicate);
+    SetParticleSize();
+
+    for (int lev = 0; lev < numLevels(); ++lev) {
+        for (ParIterType pti(*this,lev); pti.isValid(); ++pti) {
+            auto& tile = DefineAndReturnParticleTile(lev, pti);
+            auto np = tile.numParticles();
+            if (np > 0 && new_size > old_size) {
+                auto& soa = tile.GetStructOfArrays();
+                soa.resize(np);
+            }
+        }
+    }
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+ResizeRuntimeIntComp (int new_size, bool communicate)
+{
+    int old_size = m_num_runtime_int;
+
+    m_runtime_comps_defined = (new_size > 0);
+    m_num_runtime_int = new_size;
+    int cur_size = h_redistribute_int_comp.size();
+    h_redistribute_int_comp.resize(cur_size-old_size+new_size, communicate);
+    SetParticleSize();
+
+    for (int lev = 0; lev < numLevels(); ++lev) {
+        for (ParIterType pti(*this,lev); pti.isValid(); ++pti) {
+            auto& tile = DefineAndReturnParticleTile(lev, pti);
+            auto np = tile.numParticles();
+            if (np > 0 && new_size > old_size) {
+                auto& soa = tile.GetStructOfArrays();
+                soa.resize(np);
+            }
+        }
+    }
+}
