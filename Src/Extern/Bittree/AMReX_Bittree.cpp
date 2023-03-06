@@ -157,6 +157,9 @@ void btUnit::btCheckRefine(BittreeAmr* const mesh, std::vector<int>& btTags, MPI
 
 //------Check neighbors - if any adjacent child of a neighbor is either a parent
 //------or marked for refinement, this block needs to be refined.
+// TODO: Loop over levels and use MFIter to get
+//       id using getBitId() and then do neighbor 
+//       refine
         for( unsigned id = id0; id < id1; ++id) {
             auto b = tree0->locate(id);
             if( !b.is_parent && btTags[id]!=1 ) {
@@ -167,6 +170,19 @@ void btUnit::btCheckRefine(BittreeAmr* const mesh, std::vector<int>& btTags, MPI
                 }
             }
         }
+
+// BEGIN-DEVNOTE: Previous implementation that lead to high computational time
+        //for( unsigned id = id0; id < id1; ++id) {
+        //    auto b = tree0->locate(id);
+        //    if( !b.is_parent && btTags[id]!=1 ) {
+        //        bool needsTag = checkNeighborsRefine( mesh, b);
+        //        //amrex::Print() << "needsTag for " << id << " : " << needsTag <<std::endl;
+        //        if(needsTag) {
+        //            ref_test[id] = 1;
+        //        }
+        //    }
+        //}
+// END-DEVNOTE
 
 //------Mark blocks who need to be refined (as per above check).
         repeat = false;
