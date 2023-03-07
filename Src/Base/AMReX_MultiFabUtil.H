@@ -287,7 +287,7 @@ namespace amrex
              {
                  return {ma[box_no](i,j,k), i};
              });
-         ParallelReduce::Max(rr.dataPtr(), r.size(), root,
+         ParallelReduce::Max(rr.dataPtr(), rr.size(), root,
                              ParallelDescriptor::Communicator());
          // Process root now has the final results.
      \endverbatim
