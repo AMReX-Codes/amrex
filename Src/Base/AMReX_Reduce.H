@@ -93,10 +93,10 @@ struct ReduceOpSum
         if (h.threadIdx() == 0) { d += r; }
     }
 #else
-    template <typename T>
+    template <typename T, int MT=AMREX_GPU_MAX_THREADS>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void parallel_update (T& d, T const& s) const noexcept {
-        T r = Gpu::blockReduceSum<AMREX_GPU_MAX_THREADS>(s);
+        T r = Gpu::blockReduceSum<MT>(s);
         if (threadIdx.x == 0) { d += r; }
     }
 #endif
@@ -121,10 +121,10 @@ struct ReduceOpMin
         if (h.threadIdx() == 0) { d = amrex::min(d,r); }
     }
 #else
-    template <typename T>
+    template <typename T, int MT=AMREX_GPU_MAX_THREADS>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void parallel_update (T& d, T const& s) const noexcept {
-        T r = Gpu::blockReduceMin<AMREX_GPU_MAX_THREADS>(s);
+        T r = Gpu::blockReduceMin<MT>(s);
         if (threadIdx.x == 0) { d = amrex::min(d,r); }
     }
 #endif
@@ -154,10 +154,10 @@ struct ReduceOpMax
         if (h.threadIdx() == 0) { d = amrex::max(d,r); }
     }
 #else
-    template <typename T>
+    template <typename T, int MT=AMREX_GPU_MAX_THREADS>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void parallel_update (T& d, T const& s) const noexcept {
-        T r = Gpu::blockReduceMax<AMREX_GPU_MAX_THREADS>(s);
+        T r = Gpu::blockReduceMax<MT>(s);
         if (threadIdx.x == 0) { d = amrex::max(d,r); }
     }
 #endif
@@ -188,11 +188,11 @@ struct ReduceOpLogicalAnd
         if (h.threadIdx() == 0) { d = d && r; }
     }
 #else
-    template <typename T>
+    template <typename T, int MT=AMREX_GPU_MAX_THREADS>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     std::enable_if_t<std::is_integral<T>::value>
     parallel_update (T& d, T s) const noexcept {
-        T r = Gpu::blockReduceLogicalAnd<AMREX_GPU_MAX_THREADS>(s);
+        T r = Gpu::blockReduceLogicalAnd<MT>(s);
         if (threadIdx.x == 0) { d = d && r; }
     }
 #endif
@@ -220,11 +220,11 @@ struct ReduceOpLogicalOr
         if (h.threadIdx() == 0) { d = d || r; }
     }
 #else
-    template <typename T>
+    template <typename T, int MT=AMREX_GPU_MAX_THREADS>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     std::enable_if_t<std::is_integral<T>::value>
     parallel_update (T& d, T s) const noexcept {
-        T r = Gpu::blockReduceLogicalOr<AMREX_GPU_MAX_THREADS>(s);
+        T r = Gpu::blockReduceLogicalOr<MT>(s);
         if (threadIdx.x == 0) { d = d || r; }
     }
 #endif
