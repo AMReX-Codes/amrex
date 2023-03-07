@@ -256,7 +256,7 @@ namespace amrex
      * do not exist along a certain line, the value is set to the minimum,
      * maximum and zero, for reduce max, min and sum, respectively.  The
      * reduction is local and the user may need to do MPI communication
-     * afterwrads if needed.
+     * afterwards if needed.
      *
      * In the example code below, the sum along each line at (i,j) in the
      * z-direction is computed and stored at (i,j,0) of the returned
