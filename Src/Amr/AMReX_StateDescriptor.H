@@ -83,7 +83,7 @@ public:
         /**
         * \brief Destructor.
         */
-        virtual ~BndryFunc ();
+        virtual ~BndryFunc () = default;
 
         /**
         * Fill boundary cells using "regular" function.
@@ -458,7 +458,7 @@ public:
     /**
     * \brief The constructor.
     */
-    DescriptorList () noexcept;
+    DescriptorList () noexcept = default;
 
     DescriptorList (const DescriptorList&) = delete;
     DescriptorList& operator= (const DescriptorList&) = delete;

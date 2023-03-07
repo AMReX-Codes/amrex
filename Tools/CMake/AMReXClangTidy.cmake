@@ -1,0 +1,10 @@
+macro(setup_clang_tidy)
+   find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
+   if (CLANG_TIDY_EXE)
+      set(CLANG_TIDY_COMMAND "${CLANG_TIDY_EXE}"
+        "--config-file=${PROJECT_SOURCE_DIR}/.clang-tidy")
+      set_target_properties(amrex PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
+   else()
+      message(WARNING "AMReX_CLANG_TIDY was enabled, but clang-tidy was not found.")
+   endif()
+endmacro(setup_clang_tidy)

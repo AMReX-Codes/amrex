@@ -88,27 +88,27 @@ struct Rotate180Fn {
 struct PolarFn {
     int Lx, Ly;
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     int i_index (int i) const noexcept {
         return (i < Lx/2) ? -1-i : 2*Lx-1-i;
     }
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     int j_index (int j) const noexcept {
         return (j < Ly/2) ? j+Ly/2 : j-Ly/2;
     }
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     IntVect operator() (IntVect const& iv) const noexcept {
         return IntVect{AMREX_D_DECL(i_index(iv[0]), j_index(iv[1]), iv[2])};
     }
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     Dim3 operator() (Dim3 const& a) const noexcept {
         return Dim3{i_index(a.x), j_index(a.y), a.z};
     }
 
-    Box operator() (Box const& box) const noexcept {
+    [[nodiscard]] Box operator() (Box const& box) const noexcept {
         return Box(operator()(IntVect{AMREX_D_DECL(box.bigEnd  (0),
                                                    box.smallEnd(1),
                                                    box.smallEnd(2))}),
@@ -121,12 +121,12 @@ struct PolarFn {
 struct PolarFn2 { // for the x-y corners
     int Lx, Ly;
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     int i_index (int i) const noexcept {
         return (i < Lx/2) ? -1-i : 2*Lx-1-i;
     }
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     int j_index (int j) const noexcept {
         if (j < 0) {
             return j+Ly/2;
@@ -139,17 +139,17 @@ struct PolarFn2 { // for the x-y corners
         }
     }
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     IntVect operator() (IntVect const& iv) const noexcept {
         return IntVect{AMREX_D_DECL(i_index(iv[0]), j_index(iv[1]), iv[2])};
     }
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     Dim3 operator() (Dim3 const& a) const noexcept {
         return Dim3{i_index(a.x), j_index(a.y), a.z};
     }
 
-    Box operator() (Box const& box) const noexcept {
+    [[nodiscard]] Box operator() (Box const& box) const noexcept {
         return Box(operator()(IntVect{AMREX_D_DECL(box.bigEnd  (0),
                                                    box.smallEnd(1),
                                                    box.smallEnd(2))}),

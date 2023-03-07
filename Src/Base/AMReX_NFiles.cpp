@@ -78,7 +78,7 @@ void NFilesIter::SetDynamic(int deciderproc)
   if(currentDeciderIndex >= availableDeciders.size() || currentDeciderIndex < 0) {
     currentDeciderIndex = 0;
   }
-  if(availableDeciders.size() > 0) {
+  if( ! availableDeciders.empty()) {
     if(deciderProc < 0 || deciderProc >= nProcs) {
       deciderProc = availableDeciders[currentDeciderIndex];
     }
@@ -138,7 +138,7 @@ void NFilesIter::SetSparseFPP(const Vector<int> &ranksToWrite)
     }
   }
 
-  nOutFiles = ranksToWrite.size();
+  nOutFiles = static_cast<int>(ranksToWrite.size());
 
   if(myProc == coordinatorProc) {
     // ---- get the write order from ranksToWrite
@@ -430,7 +430,7 @@ NFilesIter &NFilesIter::operator++() {
           while(remainingWriters > 0) {
 
             int nextProcToWrite(-1), nextFileNumberToWrite, nextFileNumberAvailable;
-            std::set<int>::iterator ait = availableFileNumbers.begin();
+            auto ait = availableFileNumbers.begin();
             nextFileNumberToWrite = *ait;
             availableFileNumbers.erase(nextFileNumberToWrite);
 
@@ -438,7 +438,7 @@ NFilesIter &NFilesIter::operator++() {
               // ---- start with the current next file number
               // ---- get a proc from another file number if the queue is empty
               int tempNFN((nextFileNumberToWrite + nfn) % procsToWrite.size());
-              if(procsToWrite[tempNFN].size() > 0) {
+              if(!procsToWrite[tempNFN].empty()) {
                 nextProcToWrite = procsToWrite[tempNFN].front();
                 procsToWrite[tempNFN].pop_front();
                 break;  // ---- found one

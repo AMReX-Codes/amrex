@@ -121,11 +121,11 @@ namespace amrex
     //! volume-weighting. This routine DOES NOT assume that the crse BoxArray is
     //! a coarsened version of the fine BoxArray.
     void average_down (const MultiFab& S_fine, MultiFab& S_crse,
-                       const Geometry& fine_geom, const Geometry& crse_geom,
+                       const Geometry& fgeom, const Geometry& cgeom,
                        int scomp, int ncomp, const IntVect& ratio);
     void average_down (const MultiFab& S_fine, MultiFab& S_crse,
-                       const Geometry& fine_geom, const Geometry& crse_geom,
-                       int scomp, int ncomp, const int ratio);
+                       const Geometry& fgeom, const Geometry& cgeom,
+                       int scomp, int ncomp, int rr);
 
     //! Average MultiFab onto crse MultiFab without volume weighting. This
     //! routine DOES NOT assume that the crse BoxArray is a coarsened version of
@@ -135,7 +135,7 @@ namespace amrex
                        int scomp, int ncomp, const IntVect& ratio);
     template<typename FAB>
     void average_down (const FabArray<FAB>& S_fine, FabArray<FAB>& S_crse,
-                       int scomp, int ncomp, int ratio);
+                       int scomp, int ncomp, int rr);
 
     //! Add a coarsened version of the data contained in the S_fine MultiFab to
     //! S_crse, including ghost cells.
@@ -145,7 +145,7 @@ namespace amrex
                              const Geometry& cgeom, const Geometry& fgeom);
 
     //! Output state data for a single zone
-    void print_state (const MultiFab& mf, const IntVect& cell, const int n=-1,
+    void print_state (const MultiFab& mf, const IntVect& cell, int n=-1,
                       const IntVect& ng = IntVect::TheZeroVector());
 
     //! Write each fab individually
@@ -156,7 +156,7 @@ namespace amrex
     //! "coord" along direction "dir".
     std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord,
                                              const MultiFab& cc,
-                                             const Geometry& geom, int fstart, int ncomp,
+                                             const Geometry& geom, int start_comp, int ncomp,
                                              bool interpolate=false);
 
     /**

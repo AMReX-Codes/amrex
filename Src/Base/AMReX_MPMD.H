@@ -26,10 +26,10 @@ public:
     Copier (BoxArray const& ba, DistributionMapping const& dm);
 
     template <typename FAB>
-    void send (FabArray<FAB> const& fa, int icomp, int ncomp) const;
+    void send (FabArray<FAB> const& mf, int icomp, int ncomp) const;
 
     template <typename FAB>
-    void recv (FabArray<FAB>& fa, int icomp, int ncomp) const;
+    void recv (FabArray<FAB>& mf, int icomp, int ncomp) const;
 
 private:
     std::map<int,FabArrayBase::CopyComTagsContainer> m_SndTags;

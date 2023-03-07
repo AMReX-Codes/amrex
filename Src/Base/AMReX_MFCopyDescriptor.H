@@ -46,9 +46,9 @@ class MultiFabCopyDescriptor
 {
   public:
 
-    MultiFabCopyDescriptor ();
+    MultiFabCopyDescriptor () = default;
 
-    ~MultiFabCopyDescriptor ();
+    ~MultiFabCopyDescriptor () = default;
 
     MultiFabCopyDescriptor (const MultiFabCopyDescriptor&) = delete;
     MultiFabCopyDescriptor& operator= (const MultiFabCopyDescriptor&) = delete;

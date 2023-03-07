@@ -35,9 +35,6 @@ MLNodeLaplacian::MLNodeLaplacian (const Vector<Geometry>& a_geom,
 }
 #endif
 
-MLNodeLaplacian::~MLNodeLaplacian ()
-{}
-
 void
 MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
                          const Vector<BoxArray>& a_grids,

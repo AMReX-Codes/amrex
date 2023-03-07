@@ -58,14 +58,14 @@ struct Gpu::SharedMemory<openbc::Moments::array_type>
 class OpenBCSolver
 {
 public:
-    OpenBCSolver ();
+    OpenBCSolver () = default;
 
     OpenBCSolver (const Vector<Geometry>& a_geom,
                   const Vector<BoxArray>& a_grids,
                   const Vector<DistributionMapping>& a_dmap,
                   const LPInfo& a_info = LPInfo());
 
-    ~OpenBCSolver ();
+    ~OpenBCSolver () = default;
 
     OpenBCSolver (const OpenBCSolver&) = delete;
     OpenBCSolver (OpenBCSolver&&) = delete;

@@ -77,30 +77,26 @@ public:
 private:
     struct Stats
     {
-        Stats () noexcept : depth(0), n(0L), dtin(0.0), dtex(0.0),
-                            usesCUPTI(false), nk(0) { }
-        int  depth;     //!< recursive depth
-        Long n;         //!< number of calls
-        double dtin;    //!< inclusive dt
-        double dtex;    //!< exclusive dt
-        bool usesCUPTI; //!< uses CUPTI
-        Long nk;        //!< number of kernel calls
+        Stats () noexcept  = default;
+        int  depth{0};     //!< recursive depth
+        Long n{0L};         //!< number of calls
+        double dtin{0.0};    //!< inclusive dt
+        double dtex{0.0};    //!< exclusive dt
+        bool usesCUPTI{false}; //!< uses CUPTI
+        Long nk{0};        //!< number of kernel calls
     };
 
     //! stats across processes
     struct ProcStats
     {
-        ProcStats () : nmin(std::numeric_limits<Long>::max()),
-                       navg(0L), nmax(0L),
-                       dtinmin(std::numeric_limits<double>::max()),
-                       dtinavg(0.0), dtinmax(0.0),
-                       dtexmin(std::numeric_limits<double>::max()),
-                       dtexavg(0.0), dtexmax(0.0),
-                       usesCUPTI(false) {}
-        Long nmin, navg, nmax;
-        double dtinmin, dtinavg, dtinmax;
-        double dtexmin, dtexavg, dtexmax;
-        bool usesCUPTI;
+
+        Long nmin{std::numeric_limits<Long>::max()};
+        Long navg{0L}, nmax{0L};
+        double dtinmin{std::numeric_limits<double>::max()};
+        double dtinavg{0.0}, dtinmax{0.0};
+        double dtexmin{std::numeric_limits<double>::max()};
+        double dtexavg{0.0}, dtexmax{0.0};
+        bool usesCUPTI{false};
         std::string fname;
         static bool compex (const ProcStats& lhs, const ProcStats& rhs) {
             return lhs.dtexmax > rhs.dtexmax;

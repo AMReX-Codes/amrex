@@ -86,7 +86,7 @@ operator>> (std::istream& is,
 BoxCommHelper::BoxCommHelper (const Box& bx, int* p_)
     : p(p_)
 {
-    if (p == 0) {
+    if (p == nullptr) {
         v.resize(3*AMREX_SPACEDIM);
         p = &v[0];
     }

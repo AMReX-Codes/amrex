@@ -49,7 +49,7 @@ public:
     * \brief Free up allocated memory.  Merge neighboring free memory chunks
     * into largest possible chunk.
     */
-    virtual void free (void* ap) override final;
+    virtual void free (void* vp) override final;
 
     virtual std::size_t freeUnused () override final;
 

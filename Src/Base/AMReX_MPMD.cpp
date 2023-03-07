@@ -9,7 +9,7 @@
 
 #ifdef AMREX_USE_MPI
 
-namespace amrex { namespace MPMD {
+namespace amrex::MPMD {
 
 namespace {
     bool initialized = false;
@@ -220,6 +220,6 @@ Copier::Copier (BoxArray const& ba, DistributionMapping const& dm)
     }
 }
 
-}}
+}
 
 #endif

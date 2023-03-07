@@ -10,7 +10,7 @@
 #endif
 
 #define AMREX_PARSER_LOCAL_IDX0 1000
-#define AMREX_PARSER_GET_DATA(i) (i>=1000) ? pstack[i-1000] : x[i]
+#define AMREX_PARSER_GET_DATA(i) ((i)>=1000) ? pstack[(i)-1000] : x[i]
 
 namespace amrex {
 
@@ -218,13 +218,13 @@ struct ParserStack
     int m_size = 0;
     constexpr void push (double v) { m_data[m_size++] = v; }
     constexpr void pop () { --m_size; }
-    constexpr double const& top () const { return m_data[m_size-1]; }
-    constexpr double      & top ()       { return m_data[m_size-1]; }
-    constexpr double operator[] (int i) const { return m_data[i]; }
+    [[nodiscard]] constexpr double const& top () const { return m_data[m_size-1]; }
+    [[nodiscard]] constexpr double      & top ()       { return m_data[m_size-1]; }
+    [[nodiscard]] constexpr double operator[] (int i) const { return m_data[i]; }
 };
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-double parser_exe_eval (char* p, double const* x)
+double parser_exe_eval (const char* p, double const* x)
 {
     ParserStack<AMREX_PARSER_STACK_SIZE> pstack;
     while (*((parser_exe_t*)p) != PARSER_EXE_NULL) {

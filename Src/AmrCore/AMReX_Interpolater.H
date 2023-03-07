@@ -23,7 +23,7 @@ class Interpolater
 {
 public:
 
-    virtual ~Interpolater () = default;
+    ~Interpolater () override = default;
 
     /**
     * \brief Coarse to fine interpolation in space.
@@ -173,7 +173,7 @@ public:
     /**
     * \brief The destructor.
     */
-    virtual ~NodeBilinear () override;
+    ~NodeBilinear () override = default;
 
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
@@ -181,7 +181,7 @@ public:
     * \param fine
     * \param ratio
     */
-    virtual Box CoarseBox (const Box& fine, int ratio) override;
+    Box CoarseBox (const Box& fine, int ratio) override;
 
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
@@ -189,7 +189,7 @@ public:
     * \param fine
     * \param ratio
     */
-    virtual Box CoarseBox (const Box& fine, const IntVect& ratio) override;
+    Box CoarseBox (const Box& fine, const IntVect& ratio) override;
 
     /**
     * \brief Coarse to fine interpolation in space.
@@ -207,7 +207,7 @@ public:
     * \param actual_comp
     * \param actual_state
     */
-    virtual void interp (const FArrayBox& crse,
+    void interp (const FArrayBox& crse,
                          int              crse_comp,
                          FArrayBox&       fine,
                          int              fine_comp,
@@ -238,7 +238,7 @@ public:
     /**
     * \brief The destructor.
     */
-    virtual ~CellBilinear () override;
+    ~CellBilinear () override = default;
 
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
@@ -246,7 +246,7 @@ public:
     * \param fine
     * \param ratio
     */
-    virtual Box CoarseBox (const Box& fine, int ratio) override;
+    Box CoarseBox (const Box& fine, int ratio) override;
 
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
@@ -254,7 +254,7 @@ public:
     * \param fine
     * \param ratio
     */
-    virtual Box CoarseBox (const Box& fine, const IntVect& ratio) override;
+    Box CoarseBox (const Box& fine, const IntVect& ratio) override;
 
     /**
     * \brief Coarse to fine interpolation in space.
@@ -272,7 +272,7 @@ public:
     * \param actual_comp
     * \param actual_state
     */
-    virtual void interp (const FArrayBox& crse,
+    void interp (const FArrayBox& crse,
                          int              crse_comp,
                          FArrayBox&       fine,
                          int              fine_comp,
@@ -318,7 +318,7 @@ public:
     /**
     * \brief The destructor.
     */
-    virtual ~CellConservativeLinear () override;
+    ~CellConservativeLinear () override = default;
 
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
@@ -326,7 +326,7 @@ public:
     * \param fine
     * \param ratio
     */
-    virtual Box CoarseBox (const Box& fine, int ratio) override;
+    Box CoarseBox (const Box& fine, int ratio) override;
 
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
@@ -334,11 +334,11 @@ public:
     * \param fine
     * \param ratio
     */
-    virtual Box CoarseBox (const Box& fine, const IntVect& ratio) override;
+    Box CoarseBox (const Box& fine, const IntVect& ratio) override;
     /**
     * \brief Coarse to fine interpolation in space.
     */
-    virtual void interp (const FArrayBox& crse,
+    void interp (const FArrayBox& crse,
                          int              crse_comp,
                          FArrayBox&       fine,
                          int              fine_comp,
@@ -379,7 +379,7 @@ public:
     /**
     * \brief The destructor.
     */
-    virtual ~CellConservativeProtected () override;
+    ~CellConservativeProtected () override = default;
 
     /**
     * \brief Re-visit the interpolation to protect against under- or overshoots.
@@ -397,7 +397,7 @@ public:
     * \param fine_geom
     * \param bcr
     */
-    virtual void protect (const FArrayBox& crse,
+    void protect (const FArrayBox& crse,
                           int              crse_comp,
                           FArrayBox&       fine,
                           int              fine_comp,
@@ -435,7 +435,7 @@ public:
     /**
     * \brief The destructor.
     */
-    virtual ~CellQuadratic () override;
+    ~CellQuadratic () override = default;
 
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
@@ -443,7 +443,7 @@ public:
     * \param fine
     * \param ratio
     */
-    virtual Box CoarseBox (const Box& fine, int ratio) override;
+    Box CoarseBox (const Box& fine, int ratio) override;
 
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
@@ -451,7 +451,7 @@ public:
     * \param fine
     * \param ratio
     */
-    virtual Box CoarseBox (const Box& fine, const IntVect& ratio) override;
+    Box CoarseBox (const Box& fine, const IntVect& ratio) override;
 
     /**
     * \brief Coarse to fine interpolation in space.
@@ -469,7 +469,7 @@ public:
     * \param actual_comp
     * \param actual_state
     */
-    virtual void interp (const FArrayBox& crse,
+    void interp (const FArrayBox& crse,
                          int              crse_comp,
                          FArrayBox&       fine,
                          int              fine_comp,
@@ -501,7 +501,7 @@ public:
     /**
     * \brief The destructor.
     */
-    virtual ~PCInterp () override;
+    ~PCInterp () override = default;
 
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
@@ -509,7 +509,7 @@ public:
     * \param fine
     * \param ratio
     */
-    virtual Box CoarseBox (const Box& fine, int ratio) override;
+    Box CoarseBox (const Box& fine, int ratio) override;
 
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
@@ -517,7 +517,7 @@ public:
     * \param fine
     * \param ratio
     */
-    virtual Box CoarseBox (const Box& fine, const IntVect& ratio) override;
+    Box CoarseBox (const Box& fine, const IntVect& ratio) override;
 
     /**
     * \brief Coarse to fine interpolation in space.
@@ -535,7 +535,7 @@ public:
     * \param actual_comp
     * \param actual_state
     */
-    virtual void interp (const FArrayBox& crse,
+    void interp (const FArrayBox& crse,
                          int              crse_comp,
                          FArrayBox&       fine,
                          int              fine_comp,
@@ -568,7 +568,7 @@ public:
     /**
     * \brief The destructor.
     */
-    virtual ~CellConservativeQuartic () override;
+    ~CellConservativeQuartic () override = default;
 
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
@@ -576,7 +576,7 @@ public:
     * \param fine
     * \param ratio
     */
-    virtual Box CoarseBox (const Box& fine, int ratio) override;
+    Box CoarseBox (const Box& fine, int ratio) override;
 
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
@@ -584,7 +584,7 @@ public:
     * \param fine
     * \param ratio
     */
-    virtual Box CoarseBox (const Box& fine, const IntVect& ratio) override;
+    Box CoarseBox (const Box& fine, const IntVect& ratio) override;
 
     /**
     * \brief Coarse to fine interpolation in space.
@@ -602,7 +602,7 @@ public:
     * \param actual_comp
     * \param actual_state
     */
-    virtual void interp (const FArrayBox& crse,
+    void interp (const FArrayBox& crse,
                          int              crse_comp,
                          FArrayBox&       fine,
                          int              fine_comp,
@@ -632,7 +632,7 @@ public:
     /**
     * \brief The destructor.
     */
-    virtual ~FaceDivFree () override;
+    ~FaceDivFree () override = default;
 
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
@@ -640,7 +640,7 @@ public:
     * \param fine
     * \param ratio
     */
-    virtual Box CoarseBox (const Box& fine, int ratio) override;
+    Box CoarseBox (const Box& fine, int ratio) override;
 
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
@@ -648,7 +648,7 @@ public:
     * \param fine
     * \param ratio
     */
-    virtual Box CoarseBox (const Box& fine, const IntVect& ratio) override;
+    Box CoarseBox (const Box& fine, const IntVect& ratio) override;
 
     /**
     * \brief Coarse to fine interpolation in space.
@@ -667,7 +667,7 @@ public:
     * \param actual_state
     * \param runon
     */
-    virtual void interp (const FArrayBox& crse,
+    void interp (const FArrayBox& crse,
                          int              crse_comp,
                          FArrayBox&       fine,
                          int              fine_comp,
@@ -699,20 +699,20 @@ public:
     * \param actual_state
     * \param runon
     */
-    virtual void interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
-                             const int         crse_comp,
+    void interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
+                             int         crse_comp,
                              Array<FArrayBox*, AMREX_SPACEDIM> const& fine,
-                             const int         fine_comp,
-                             const int         ncomp,
+                             int         fine_comp,
+                             int         ncomp,
                              const Box&        fine_region,
                              const IntVect&    ratio,
                              Array<IArrayBox*, AMREX_SPACEDIM> const& solve_mask,
                              const Geometry&   crse_geom,
                              const Geometry&   fine_geom,
                              Vector<Array<BCRec, AMREX_SPACEDIM> > const& bcr,
-                             const int         actual_comp,
-                             const int         actual_state,
-                             const RunOn       runon) override;
+                             int         actual_comp,
+                             int         actual_state,
+                             RunOn       runon) override;
 };
 
 
@@ -731,7 +731,7 @@ public:
     /**
     * \brief The destructor.
     */
-    virtual ~FaceLinear () override;
+    ~FaceLinear () override = default;
 
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
@@ -739,7 +739,7 @@ public:
     * \param fine
     * \param ratio
     */
-    virtual Box CoarseBox (const Box& fine, int ratio) override;
+    Box CoarseBox (const Box& fine, int ratio) override;
 
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
@@ -747,7 +747,7 @@ public:
     * \param fine
     * \param ratio
     */
-    virtual Box CoarseBox (const Box& fine, const IntVect& ratio) override;
+    Box CoarseBox (const Box& fine, const IntVect& ratio) override;
 
     /**
     * \brief Coarse to fine interpolation in space.
@@ -765,7 +765,7 @@ public:
     * \param actual_comp
     * \param actual_state
     */
-    virtual void interp (const FArrayBox& crse,
+    void interp (const FArrayBox& crse,
                          int              crse_comp,
                          FArrayBox&       fine,
                          int              fine_comp,
@@ -796,18 +796,18 @@ public:
     * \param bccomp
     * \param runon
     */
-    virtual void interp_face (const FArrayBox& crse,
-                              const int        crse_comp,
+    void interp_face (const FArrayBox& crse,
+                              int        crse_comp,
                               FArrayBox&       fine,
-                              const int        fine_comp,
-                              const int        ncomp,
+                              int        fine_comp,
+                              int        ncomp,
                               const Box&       fine_region,
                               const IntVect&   ratio,
                               const IArrayBox& solve_mask,
                               const Geometry&  crse_geom,
                               const Geometry&  fine_geom,
                               Vector<BCRec> const & bcr,
-                              const int        bccomp,
+                              int        bccomp,
                               RunOn            gpu_or_cpu) override;
 
     /**
@@ -826,20 +826,20 @@ public:
     * \param actual_comp
     * \param actual_state
     */
-    virtual void interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
-                             const int         crse_comp,
+    void interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
+                             int         crse_comp,
                              Array<FArrayBox*, AMREX_SPACEDIM> const& fine,
-                             const int         fine_comp,
-                             const int         ncomp,
+                             int         fine_comp,
+                             int         ncomp,
                              const Box&        fine_region,
                              const IntVect&    ratio,
                              Array<IArrayBox*, AMREX_SPACEDIM> const& solve_mask,
                              const Geometry&   /*crse_geom*/,
                              const Geometry&   /*fine_geom*/,
                              Vector<Array<BCRec, AMREX_SPACEDIM> > const& /*bcr*/,
-                             const int         /*actual_comp*/,
-                             const int         /*actual_state*/,
-                             const RunOn       runon) override;
+                             int         /*actual_comp*/,
+                             int         /*actual_state*/,
+                             RunOn       runon) override;
 
 
 };
@@ -859,12 +859,12 @@ public:
     /**
     * \brief The constructor.
     */
-    explicit CellQuartic ();
+    explicit CellQuartic () = default;
 
     /**
     * \brief The destructor.
     */
-    virtual ~CellQuartic () override;
+    ~CellQuartic () override = default;
 
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
@@ -872,7 +872,7 @@ public:
     * \param fine
     * \param ratio
     */
-    virtual Box CoarseBox (const Box& fine, int ratio) override;
+    Box CoarseBox (const Box& fine, int ratio) override;
 
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
@@ -880,7 +880,7 @@ public:
     * \param fine
     * \param ratio
     */
-    virtual Box CoarseBox (const Box& fine, const IntVect& ratio) override;
+    Box CoarseBox (const Box& fine, const IntVect& ratio) override;
 
     /**
     * \brief Coarse to fine interpolation in space.
@@ -898,7 +898,7 @@ public:
     * \param actual_comp
     * \param actual_state
     */
-    virtual void interp (const FArrayBox& crse,
+    void interp (const FArrayBox& crse,
                          int              crse_comp,
                          FArrayBox&       fine,
                          int              fine_comp,

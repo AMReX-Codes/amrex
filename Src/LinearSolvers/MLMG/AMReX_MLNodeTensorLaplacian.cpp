@@ -13,9 +13,6 @@ MLNodeTensorLaplacian::MLNodeTensorLaplacian (const Vector<Geometry>& a_geom,
     define(a_geom, a_grids, a_dmap, a_info);
 }
 
-MLNodeTensorLaplacian::~MLNodeTensorLaplacian ()
-{}
-
 void
 MLNodeTensorLaplacian::setSigma (Array<Real,nelems> const& a_sigma) noexcept
 {

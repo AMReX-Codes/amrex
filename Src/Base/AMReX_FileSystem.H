@@ -14,7 +14,7 @@ namespace amrex {
 namespace FileSystem {
 
 bool
-CreateDirectories (std::string const& filename, mode_t mode, bool verbose = false);
+CreateDirectories (std::string const& path, mode_t mode, bool verbose = false);
 
 std::string
 CurrentPath ();

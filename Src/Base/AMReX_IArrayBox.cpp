@@ -47,8 +47,6 @@ IArrayBox::Finalize ()
     initialized = false;
 }
 
-IArrayBox::IArrayBox () noexcept {}
-
 IArrayBox::IArrayBox (Arena* ar) noexcept
     : BaseFab<int>(ar)
 {}
@@ -154,7 +152,7 @@ IArrayBox::readFrom (std::istream& is)
 }
 
 void
-IFABio::write_header (std::ostream& os, const IArrayBox& fab, int nvar) const
+IFABio::write_header (std::ostream& os, const IArrayBox& fab, int nvar)
 {
     AMREX_ASSERT(nvar <= fab.nComp());
     os <<"IFAB " << FPC::NativeIntDescriptor();
@@ -162,7 +160,7 @@ IFABio::write_header (std::ostream& os, const IArrayBox& fab, int nvar) const
 }
 
 void
-IFABio::read (std::istream& is, IArrayBox& fab, IntDescriptor const& data_descriptor) const
+IFABio::read (std::istream& is, IArrayBox& fab, IntDescriptor const& data_descriptor)
 {
     readIntData(fab.dataPtr(), fab.size(), is, data_descriptor);
 }

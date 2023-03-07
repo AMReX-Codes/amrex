@@ -192,7 +192,7 @@ namespace Gpu {
 #endif
 
     private:
-        void init() noexcept;
+        void init () noexcept; // NOLINT
 
         int m_n;
         int m_i;

@@ -81,7 +81,7 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
     AMREX_ASSERT(scomp+ncomp <= smf[0]->nComp());
     AMREX_ASSERT(dcomp+ncomp <= mf.nComp());
     AMREX_ASSERT(smf.size() == stime.size());
-    AMREX_ASSERT(smf.size() != 0);
+    AMREX_ASSERT(!smf.empty());
     AMREX_ASSERT(nghost.allLE(mf.nGrowVect()));
 
     if (smf.size() == 1)

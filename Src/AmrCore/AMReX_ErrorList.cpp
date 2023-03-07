@@ -9,19 +9,19 @@ namespace amrex {
 
 ErrorRec::ErrorFunc::ErrorFunc ()
     :
-    m_func(0),
-    m_func3D(0)
+    m_func(nullptr),
+    m_func3D(nullptr)
 {}
 
 ErrorRec::ErrorFunc::ErrorFunc (ErrorFuncDefault inFunc)
     :
     m_func(inFunc),
-    m_func3D(0)
+    m_func3D(nullptr)
 {}
 
 ErrorRec::ErrorFunc::ErrorFunc (ErrorFunc3DDefault inFunc)
     :
-    m_func(0),
+    m_func(nullptr),
     m_func3D(inFunc)
 {}
 
@@ -30,8 +30,6 @@ ErrorRec::ErrorFunc::clone () const
 {
     return new ErrorFunc(*this);
 }
-
-ErrorRec::ErrorFunc::~ErrorFunc () {}
 
 // \cond CODEGEN
 void
@@ -46,7 +44,7 @@ ErrorRec::ErrorFunc::operator () (int* tag, AMREX_D_DECL(const int&tlo0,const in
                                   const Real* prob_lo, const Real* time,
                                   const int* level) const
 {
-    BL_ASSERT(m_func != 0);
+    BL_ASSERT(m_func != nullptr);
 
     m_func(tag,AMREX_D_DECL(tlo0,tlo1,tlo2),AMREX_D_DECL(thi0,thi1,thi2),
            tagval,clearval,data,AMREX_D_DECL(dlo0,dlo1,dlo2),AMREX_D_DECL(dhi0,dhi1,dhi2),lo,hi,nvar,
@@ -63,7 +61,7 @@ ErrorRec::ErrorFunc::operator () (int* tag, const int* tlo, const int* thi,
                                   const Real* prob_lo, const Real* time,
                                   const int* level) const
 {
-    BL_ASSERT(m_func3D != 0);
+    BL_ASSERT(m_func3D != nullptr);
 
     m_func3D(tag,AMREX_ARLIM_3D(tlo),AMREX_ARLIM_3D(thi),
              tagval,clearval,data,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),
@@ -75,7 +73,7 @@ ErrorRec::ErrorFunc::operator () (int* tag, const int* tlo, const int* thi,
 
 ErrorRec::ErrorFunc2::ErrorFunc2 ()
     :
-    m_func(0)
+    m_func(nullptr)
 {}
 
 ErrorRec::ErrorFunc2::ErrorFunc2 (ErrorFunc2Default inFunc)
@@ -89,9 +87,6 @@ ErrorRec::ErrorFunc2::clone () const
     return new ErrorFunc2(*this);
 }
 
-ErrorRec::ErrorFunc2::~ErrorFunc2 () {}
-
-
 void
 ErrorRec::ErrorFunc2::operator () (int* tag, AMREX_D_DECL(const int&tlo0,const int&tlo1,const int&tlo2),
                                    AMREX_D_DECL(const int&thi0,const int&thi1,const int&thi2),
@@ -102,7 +97,7 @@ ErrorRec::ErrorFunc2::operator () (int* tag, AMREX_D_DECL(const int&tlo0,const i
                                    const int* domain_lo, const int* domain_hi,
                                    const Real* dx, const int* level, const Real* avg) const
 {
-    BL_ASSERT(m_func != 0);
+    BL_ASSERT(m_func != nullptr);
 
     m_func(tag,AMREX_D_DECL(tlo0,tlo1,tlo2),AMREX_D_DECL(thi0,thi1,thi2),
            tagval,clearval,data,AMREX_D_DECL(dlo0,dlo1,dlo2),AMREX_D_DECL(dhi0,dhi1,dhi2),lo,hi,nvar,
@@ -110,28 +105,24 @@ ErrorRec::ErrorFunc2::operator () (int* tag, AMREX_D_DECL(const int&tlo0,const i
 }
 
 
-ErrorRec::ErrorRec (const std::string&          nm,
-                    int                         ng,
-                    ErrorRec::ErrorType         etyp,
+ErrorRec::ErrorRec (std::string nm, int ng, ErrorRec::ErrorType etyp,
                     const ErrorRec::ErrorFunc2& f2)
     :
-    derive_name(nm),
+    derive_name(std::move(nm)),
     ngrow(ng),
     err_type(etyp),
-    err_func(0),
+    err_func(nullptr),
     err_func2(f2.clone())
 {}
 
-ErrorRec::ErrorRec (const std::string&         nm,
-                    int                        ng,
-                    ErrorRec::ErrorType        etyp,
+ErrorRec::ErrorRec (std::string nm, int ng, ErrorRec::ErrorType etyp,
                     const ErrorRec::ErrorFunc& f)
     :
-    derive_name(nm),
+    derive_name(std::move(nm)),
     ngrow(ng),
     err_type(etyp),
     err_func(f.clone()),
-    err_func2(0)
+    err_func2(nullptr)
 {}
 
 const std::string&
@@ -173,7 +164,7 @@ ErrorRec::~ErrorRec()
 int
 ErrorList::size () const noexcept
 {
-    return vec.size();
+    return static_cast<int>(vec.size());
 }
 
 void
@@ -185,7 +176,7 @@ ErrorList::add (const std::string&         name,
     //
     // Keep list in order of definition, append().
     //
-    int n = vec.size();
+    auto n = vec.size();
     vec.resize(n+1);
     vec[n] = std::make_unique<ErrorRec>(name, nextra, typ, func);
 }
@@ -199,7 +190,7 @@ ErrorList::add (const std::string&          name,
     //
     // Keep list in order of definition, append().
     //
-    int n = vec.size();
+    auto n = vec.size();
     vec.resize(n+1);
     vec[n] = std::make_unique<ErrorRec>(name, nextra, typ, func2);
 }

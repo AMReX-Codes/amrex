@@ -31,7 +31,7 @@ parser_defexpr (struct parser_node* body)
 struct parser_symbol*
 parser_makesymbol (char* name)
 {
-    auto symbol = (struct parser_symbol*) std::malloc(sizeof(struct parser_symbol));
+    auto *symbol = (struct parser_symbol*) std::malloc(sizeof(struct parser_symbol));
     symbol->type = PARSER_SYMBOL;
     symbol->name = strdup(name);
     symbol->ip = -1;
@@ -41,7 +41,7 @@ parser_makesymbol (char* name)
 struct parser_node*
 parser_newnode (enum parser_node_t type, struct parser_node* l, struct parser_node* r)
 {
-    auto tmp = (struct parser_node*) std::malloc(sizeof(struct parser_node));
+    auto *tmp = (struct parser_node*) std::malloc(sizeof(struct parser_node));
     tmp->type = type;
     tmp->l = l;
     tmp->r = r;
@@ -51,7 +51,7 @@ parser_newnode (enum parser_node_t type, struct parser_node* l, struct parser_no
 struct parser_node*
 parser_newnumber (double d)
 {
-    auto r = (struct parser_number*) std::malloc(sizeof(struct parser_number));
+    auto *r = (struct parser_number*) std::malloc(sizeof(struct parser_number));
     r->type = PARSER_NUMBER;
     r->value = d;
     return (struct parser_node*) r;
@@ -66,7 +66,7 @@ parser_newsymbol (struct parser_symbol* symbol)
 struct parser_node*
 parser_newf1 (enum parser_f1_t ftype, struct parser_node* l)
 {
-    auto tmp = (struct parser_f1*) std::malloc(sizeof(struct parser_f1));
+    auto *tmp = (struct parser_f1*) std::malloc(sizeof(struct parser_f1));
     tmp->type = PARSER_F1;
     tmp->l = l;
     tmp->ftype = ftype;
@@ -76,7 +76,7 @@ parser_newf1 (enum parser_f1_t ftype, struct parser_node* l)
 struct parser_node*
 parser_newf2 (enum parser_f2_t ftype, struct parser_node* l, struct parser_node* r)
 {
-    auto tmp = (struct parser_f2*) std::malloc(sizeof(struct parser_f2));
+    auto *tmp = (struct parser_f2*) std::malloc(sizeof(struct parser_f2));
     tmp->type = PARSER_F2;
     tmp->l = l;
     tmp->r = r;
@@ -88,7 +88,7 @@ struct parser_node*
 parser_newf3 (enum parser_f3_t ftype, struct parser_node* n1, struct parser_node* n2,
               struct parser_node* n3)
 {
-    auto tmp = (struct parser_f3*) std::malloc(sizeof(struct parser_f3));
+    auto *tmp = (struct parser_f3*) std::malloc(sizeof(struct parser_f3));
     tmp->type = PARSER_F3;
     tmp->n1 = n1;
     tmp->n2 = n2;
@@ -100,7 +100,7 @@ parser_newf3 (enum parser_f3_t ftype, struct parser_node* n1, struct parser_node
 struct parser_node*
 parser_newassign (struct parser_symbol* sym, struct parser_node* v)
 {
-    auto r = (struct parser_assign*) std::malloc(sizeof(struct parser_assign));
+    auto *r = (struct parser_assign*) std::malloc(sizeof(struct parser_assign));
     r->type = PARSER_ASSIGN;
     r->s = sym;
     r->v = v;
@@ -113,7 +113,7 @@ parser_newlist (struct parser_node* nl, struct parser_node* nr)
     if (nr == nullptr) {
         return nl;
     } else {
-        auto r = (struct parser_node*) std::malloc(sizeof(struct parser_node));
+        auto *r = (struct parser_node*) std::malloc(sizeof(struct parser_node));
         r->type = PARSER_LIST;
         r->l = nl;
         r->r = nr;
@@ -126,7 +126,7 @@ parser_newlist (struct parser_node* nl, struct parser_node* nr)
 struct amrex_parser*
 amrex_parser_new ()
 {
-    auto my_parser = (struct amrex_parser*) std::malloc(sizeof(struct amrex_parser));
+    auto *my_parser = (struct amrex_parser*) std::malloc(sizeof(struct amrex_parser));
 
     my_parser->sz_mempool = parser_ast_size(parser_root);
     my_parser->p_root = std::malloc(my_parser->sz_mempool);
@@ -172,7 +172,7 @@ parser_allocate (struct amrex_parser* my_parser, std::size_t N)
 struct amrex_parser*
 parser_dup (struct amrex_parser* source)
 {
-    struct amrex_parser* dest = (struct amrex_parser*) std::malloc(sizeof(struct amrex_parser));
+    auto *dest = (struct amrex_parser*) std::malloc(sizeof(struct amrex_parser));
     dest->sz_mempool = source->sz_mempool;
     dest->p_root = std::malloc(dest->sz_mempool);
     dest->p_free = dest->p_root;
@@ -262,13 +262,16 @@ parser_ast_dup (struct amrex_parser* my_parser, struct parser_node* node, int mo
         std::memcpy(result, node          , sizeof(struct parser_number));
         break;
     case PARSER_SYMBOL:
+    {
         result = parser_allocate(my_parser, sizeof(struct parser_symbol));
         std::memcpy(result, node          , sizeof(struct parser_symbol));
+        const auto len = std::strlen(((struct parser_symbol*)node)->name)+1;
         ((struct parser_symbol*)result)->name = (char*) parser_allocate
-            (my_parser, std::strlen(((struct parser_symbol*)node)->name)+1);
-        std::strcpy(((struct parser_symbol*)result)->name,
-                    ((struct parser_symbol*)node  )->name);
+            (my_parser, len);
+        std::strncpy(((struct parser_symbol*)result)->name,
+                     ((struct parser_symbol*)node  )->name, len);
         break;
+    }
     case PARSER_ADD:
     case PARSER_SUB:
     case PARSER_MUL:
@@ -352,24 +355,24 @@ parser_ast_dup (struct amrex_parser* my_parser, struct parser_node* node, int mo
 }
 
 #define PARSER_MOVEUP_R(node, v) \
-    struct parser_node* n = node->r->r; \
-    int ip = node->r->rip; \
-    node->r = n; \
-    node->lvp.v = v; \
-    node->rip   = ip;
+    struct parser_node* n = (node)->r->r; \
+    int ip = (node)->r->rip; \
+    (node)->r = n; \
+    (node)->lvp.v = v; \
+    (node)->rip   = ip;
 #define PARSER_MOVEUP_L(node, v) \
-    struct parser_node* n = node->l->r; \
-    int ip = node->l->rip; \
-    node->r = n; \
-    node->lvp.v = v; \
-    node->rip   = ip;
-#define PARSER_EVAL_R(node) node->r->lvp.v
-#define PARSER_EVAL_L(node) node->l->lvp.v
+    struct parser_node* n = (node)->l->r; \
+    int ip = (node)->l->rip; \
+    (node)->r = n; \
+    (node)->lvp.v = v; \
+    (node)->rip   = ip;
+#define PARSER_EVAL_R(node) (node)->r->lvp.v
+#define PARSER_EVAL_L(node) (node)->l->lvp.v
 
 #define PARSER_NEG_MOVEUP(node) \
-    node->r = node->l->r; \
-    node->lvp.v = -node->l->lvp.v; \
-    node->rip = node->l->rip;
+    (node)->r = (node)->l->r; \
+    (node)->lvp.v = -(node)->l->lvp.v; \
+    (node)->rip = (node)->l->rip;
 
 void
 parser_ast_optimize (struct parser_node* node)

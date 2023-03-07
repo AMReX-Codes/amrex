@@ -48,7 +48,7 @@ struct MultiBlockIndexMapping {
     //! \param[in] i  The index that lives in the destination space.
     //!
     //! \return Returns an index in the source space that is given by this affine transformation.
-    AMREX_GPU_HOST_DEVICE Dim3 operator()(Dim3 i) const noexcept {
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE Dim3 operator()(Dim3 i) const noexcept {
         int iv[3]{i.x, i.y, i.z};
         int iv_new[3]{};
         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
@@ -63,7 +63,7 @@ struct MultiBlockIndexMapping {
     //!
     //! \return Returns an index in the destination space that is given by this affine
     //! transformation.
-    AMREX_GPU_HOST_DEVICE Dim3 Inverse(Dim3 i) const noexcept {
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE Dim3 Inverse(Dim3 i) const noexcept {
         int iv_new[3]{i.x, i.y, i.z};
         int iv[3]{};
         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
@@ -73,11 +73,11 @@ struct MultiBlockIndexMapping {
         return {iv[0], iv[1], iv[2]};
     }
 
-    IndexType operator()(IndexType it) const noexcept {
+    [[nodiscard]] IndexType operator()(IndexType it) const noexcept {
         return IndexType{IntVect{AMREX_D_DECL(it[permutation[0]], it[permutation[1]], it[permutation[2]])}};
     }
 
-    IndexType Inverse(IndexType it) const noexcept {
+    [[nodiscard]] IndexType Inverse(IndexType it) const noexcept {
         IntVect inverse_permutation;
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             inverse_permutation[permutation[i]] = i;
@@ -281,7 +281,7 @@ struct Identity  {
     //! The identity function for Dim3
     constexpr Dim3 operator()(Dim3 i) const noexcept { return i; }
     //! The identity function for Dim3
-    constexpr Dim3 Inverse(Dim3 i) const noexcept { return i; }
+    [[nodiscard]] static constexpr Dim3 Inverse(Dim3 i) noexcept { return i; }
 
     //! \return Returns array(i.x,i.y,i.z,comp)
     template <typename T>
@@ -295,12 +295,12 @@ struct Identity  {
 };
 static constexpr Identity identity{};
 
-static_assert(sizeof(Identity) == 1, "");
-static_assert(std::is_trivially_default_constructible<Identity>::value, "");
-static_assert(std::is_trivially_copy_assignable<Identity>::value, "");
-static_assert(std::is_trivially_copy_constructible<Identity>::value, "");
-static_assert(IsIndexMapping<Identity>(), "");
-static_assert(IsFabProjection<Identity, FArrayBox>(), "");
+static_assert(sizeof(Identity) == 1 );
+static_assert(std::is_trivially_default_constructible<Identity>::value );
+static_assert(std::is_trivially_copy_assignable<Identity>::value );
+static_assert(std::is_trivially_copy_constructible<Identity>::value );
+static_assert(IsIndexMapping<Identity>() );
+static_assert(IsFabProjection<Identity, FArrayBox>() );
 
 ////////////////////////////////////////////////////////////////////////////////////
 //                                                     [FabProjection.MapComponents]
@@ -330,9 +330,9 @@ template <typename Base, typename Map = Identity> struct MapComponents {
     }
 };
 
-static_assert(std::is_trivially_copy_assignable<MapComponents<Identity>>(), "");
-static_assert(std::is_trivially_copy_constructible<MapComponents<Identity>>(), "");
-static_assert(IsFabProjection<MapComponents<Identity>, FArrayBox>(), "");
+static_assert(std::is_trivially_copy_assignable<MapComponents<Identity>>() );
+static_assert(std::is_trivially_copy_constructible<MapComponents<Identity>>() );
+static_assert(IsFabProjection<MapComponents<Identity>, FArrayBox>() );
 
 ////////////////////////////////////////////////////////////////////////////////////
 //                                      [FabProjection.MapComponents.SwapComponents]
@@ -387,21 +387,21 @@ using DynamicSwapComponents = SwapComponents<-1, -1>;
 
 template <int I, int J> static constexpr SwapComponents<I, J> swap_indices{};
 
-static_assert(sizeof(SwapComponents<0, 1>) == 1, "");
-static_assert(sizeof(DynamicSwapComponents) == 2 * sizeof(int), "");
-static_assert(sizeof(SwapComponents<0, -1>) == sizeof(int), "");
-static_assert(sizeof(SwapComponents<-1, 1>) == sizeof(int), "");
-static_assert(std::is_trivially_default_constructible<MapComponents<Identity, SwapComponents<0, 1>>>(), "");
-static_assert(std::is_trivially_copy_assignable<MapComponents<Identity, SwapComponents<0, 1>>>(), "");
-static_assert(std::is_trivially_copy_constructible<MapComponents<Identity, SwapComponents<0, 1>>>(), "");
-static_assert(IsFabProjection<MapComponents<Identity, SwapComponents<0, 1>>, FArrayBox>(), "");
+static_assert(sizeof(SwapComponents<0, 1>) == 1 );
+static_assert(sizeof(DynamicSwapComponents) == 2 * sizeof(int) );
+static_assert(sizeof(SwapComponents<0, -1>) == sizeof(int) );
+static_assert(sizeof(SwapComponents<-1, 1>) == sizeof(int) );
+static_assert(std::is_trivially_default_constructible<MapComponents<Identity, SwapComponents<0, 1>>>() );
+static_assert(std::is_trivially_copy_assignable<MapComponents<Identity, SwapComponents<0, 1>>>() );
+static_assert(std::is_trivially_copy_constructible<MapComponents<Identity, SwapComponents<0, 1>>>() );
+static_assert(IsFabProjection<MapComponents<Identity, SwapComponents<0, 1>>, FArrayBox>() );
 
-static_assert(swap_indices<0, 1>(0) == 1, "");
-static_assert(swap_indices<0, 1>(1) == 0, "");
-static_assert(swap_indices<0, 1>(2) == 2, "");
-static_assert(DynamicSwapComponents{0, 1}(0) == 1, "");
-static_assert(DynamicSwapComponents{0, 1}(1) == 0, "");
-static_assert(DynamicSwapComponents{0, 1}(2) == 2, "");
+static_assert(swap_indices<0, 1>(0) == 1 );
+static_assert(swap_indices<0, 1>(1) == 0 );
+static_assert(swap_indices<0, 1>(2) == 2 );
+static_assert(DynamicSwapComponents{0, 1}(0) == 1 );
+static_assert(DynamicSwapComponents{0, 1}(1) == 0 );
+static_assert(DynamicSwapComponents{0, 1}(2) == 2 );
 
 ////////////////////////////////////////////////////////////////////////////////////
 //                                                                  [class.CommData]
@@ -439,10 +439,10 @@ void PrepareCommBuffers(CommData& comm, const FabArrayBase::MapOfCopyComTagConta
                         int n_components, std::size_t object_size, std::size_t align);
 
 //! \brief Initiate all recvieves with MPI_Irecv calls associated with tag mpi_tag.
-void PostRecvs(CommData& comm, int mpi_tag);
+void PostRecvs(CommData& recv, int mpi_tag);
 
 //! \brief Initiate all sends with MPI_Isend calls associated with tag mpi_tag.
-void PostSends(CommData& comm, int mpi_tag);
+void PostSends(CommData& send, int mpi_tag);
 #endif
 
 
@@ -763,7 +763,7 @@ ParallelCopy_nowait (FabArray<FAB>& dest, const FabArray<FAB>& src,
                      const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing) {
     CommHandler comm = ParallelCopy_nowait(no_local_copy, dest, src, cmd, data_packing);
     // Eagerly do the local work and hope for some overlap with communication
-    if (cmd.m_LocTags && cmd.m_LocTags->size() > 0) {
+    if (cmd.m_LocTags && !cmd.m_LocTags->empty()) {
         LocalCopy(data_packing, dest, src, *cmd.m_LocTags);
     }
     return comm;
@@ -795,7 +795,7 @@ std::enable_if_t<IsBaseFab<FAB>() && IsDataPacking<DataPacking, FAB>()>
 ParallelCopy_finish (FabArray<FAB>& dest, CommHandler handler,
                      const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing) {
     // If any FabArray is empty we have nothing to do.
-    if (dest.size() == 0) {
+    if (dest.empty()) {
         return;
     }
     // Return if nothing do
@@ -848,10 +848,10 @@ std::enable_if_t<IsBaseFab<FAB>() && IsDataPacking<DataPacking, FAB>()>
 ParallelCopy_finish (DoLocalCopy, FabArray<FAB>& dest, const FabArray<FAB>& src, CommHandler handler,
                      const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing) {
     // Eagerly do the local work and hope for some overlap with communication
-    if (cmd.m_LocTags && cmd.m_LocTags->size() > 0) {
+    if (cmd.m_LocTags && !cmd.m_LocTags->empty()) {
         LocalCopy(data_packing, dest, src, *cmd.m_LocTags);
     }
-    ParallelCopy_finish(dest, std::move(handler), cmd, data_packing);
+    ParallelCopy_finish(dest, std::move(handler), cmd, data_packing); // NOLINT
 }
 
 //! \brief Call ParallelCopy_nowait followed by ParallelCopy_finish, strong typed version.
@@ -888,7 +888,7 @@ ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const FabArrayBase:
     components.n_components = numcomp.n;
     ApplyDtosAndProjectionOnReciever<DTOS, Proj> packing{components, std::move(dtos), std::move(proj)};
     CommHandler handler = ParallelCopy_nowait(dest, src, cmd, packing);
-    ParallelCopy_finish(dest, std::move(handler), cmd, packing);
+    ParallelCopy_finish(dest, std::move(handler), cmd, packing); // NOLINT
 }
 
 //! \brief Call ParallelCopy_nowait followed by ParallelCopy_finish.

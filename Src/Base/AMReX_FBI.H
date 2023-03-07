@@ -211,7 +211,7 @@ void
 FabArray<FAB>::FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp)
 {
     auto const& LocTags = *(TheFB.m_LocTags);
-    int N_locs = LocTags.size();
+    auto N_locs = static_cast<int>(LocTags.size());
     if (N_locs == 0) return;
     bool is_thread_safe = TheFB.m_threadsafe_loc;
     if (is_thread_safe)

@@ -27,9 +27,6 @@ MLEBNodeFDLaplacian::MLEBNodeFDLaplacian (
     define(a_geom, a_grids, a_dmap, a_info);
 }
 
-MLEBNodeFDLaplacian::~MLEBNodeFDLaplacian ()
-{}
-
 void
 MLEBNodeFDLaplacian::setSigma (Array<Real,AMREX_SPACEDIM> const& a_sigma) noexcept
 {

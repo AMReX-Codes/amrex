@@ -147,7 +147,7 @@ public:
         /**
         * \brief Destructor.
         */
-        virtual ~ErrorFunc ();
+        virtual ~ErrorFunc () = default;
 
         /**
         * \brief Tag cells using "regular" function.
@@ -204,7 +204,7 @@ public:
         */
         virtual void operator () (int* tag, const int* tlo, const int* thi,
                                   const int* tagval, const int* clearval,
-                                  Real* data, const int* data_lo, const int* data_hi,
+                                  Real* data, const int* dlo, const int* dhi,
                                   const int* lo, const int * hi, const int* nvar,
                                   const int* domain_lo, const int* domain_hi,
                                   const Real* dx, const Real* xlo,
@@ -241,7 +241,7 @@ public:
         /**
         * \brief Destructor.
         */
-        virtual ~ErrorFunc2 ();
+        virtual ~ErrorFunc2 () = default;
 
         /**
         * \brief Tag cells cells using "v2" interface
@@ -282,15 +282,12 @@ public:
     * \param etyp
     * \param f2
     */
-    ErrorRec (const std::string&          nm,
-              int                         ng,
-              ErrorType                   etyp,
+    ErrorRec (std::string nm, int ng, ErrorType etyp,
               const ErrorRec::ErrorFunc2& f2);
 
-    ErrorRec (const std::string&         nm,
-              int                        ng,
-              ErrorType                  etyp,
+    ErrorRec (std::string nm, int ng, ErrorType etyp,
               const ErrorRec::ErrorFunc& f);
+
     virtual ~ErrorRec();
 
     /**

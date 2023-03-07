@@ -45,24 +45,24 @@ class FABio_8bit
     public FABio
 {
 public:
-    virtual void read (std::istream& is,
-                       FArrayBox&    fb) const override;
+    void read (std::istream& is,
+               FArrayBox&    fb) const override;
 
-    virtual void write (std::ostream&    os,
-                        const FArrayBox& fb,
-                        int              comp,
-                        int              num_comp) const override;
+    void write (std::ostream&    os,
+                const FArrayBox& fb,
+                int              comp,
+                int              num_comp) const override;
 
-    virtual void skip (std::istream& is,
-                       FArrayBox&    f) const override;
+    void skip (std::istream& is,
+               FArrayBox&    f) const override;
 
-    virtual void skip (std::istream& is,
-                       FArrayBox&    f,
-                       int           nCompToSkip) const override;
+    void skip (std::istream& is,
+               FArrayBox&    f,
+               int           nCompToSkip) const override;
 private:
-    virtual void write_header (std::ostream&    os,
-                               const FArrayBox& f,
-                               int              nvar) const override;
+    void write_header (std::ostream&    os,
+                       const FArrayBox& f,
+                       int              nvar) const override;
 };
 
 //
@@ -73,31 +73,25 @@ class FABio_ascii
     public FABio
 {
 public:
-    virtual void read (std::istream&   is,
-                       FArrayBox&      fb) const override;
+    void read (std::istream&   is,
+               FArrayBox&      fb) const override;
 
-    virtual void write (std::ostream&    os,
-                        const FArrayBox& fb,
-                        int              comp,
-                        int              num_comp) const override;
+    void write (std::ostream&    os,
+                const FArrayBox& fb,
+                int              comp,
+                int              num_comp) const override;
 
-    virtual void skip (std::istream& is,
-                       FArrayBox&    f) const override;
+    void skip (std::istream& is,
+               FArrayBox&    f) const override;
 
-    virtual void skip (std::istream& is,
-                       FArrayBox&    f,
-                       int           nCompToSkip) const override;
+    void skip (std::istream& is,
+               FArrayBox&    f,
+               int           nCompToSkip) const override;
 private:
-    virtual void write_header (std::ostream&    os,
-                               const FArrayBox& f,
-                               int              nvar) const override;
+    void write_header (std::ostream&    os,
+                       const FArrayBox& f,
+                       int              nvar) const override;
 };
-
-//
-// This isn't inlined as it's virtual.
-//
-
-FABio::~FABio () {}
 
 void
 FABio::write_header (std::ostream&    os,
@@ -114,9 +108,7 @@ FABio::write_header (std::ostream&    os,
 
 FABio::Format FArrayBox::format;
 
-FABio* FArrayBox::fabio = 0;
-
-FArrayBox::FArrayBox () noexcept {}
+FABio* FArrayBox::fabio = nullptr;
 
 FArrayBox::FArrayBox (Arena* ar) noexcept
     : BaseFab<Real>(ar)
@@ -214,7 +206,7 @@ FArrayBox::getFABio ()
 void
 FArrayBox::setFABio (FABio* rd)
 {
-    BL_ASSERT(rd != 0);
+    BL_ASSERT(rd != nullptr);
     delete fabio;
     fabio = rd;
 }
@@ -258,7 +250,7 @@ FArrayBox::skipFAB (std::istream& is)
 void
 FArrayBox::setFormat (FABio::Format fmt)
 {
-    FABio* fio = 0;
+    FABio* fio = nullptr;
 
     switch (fmt)
     {
@@ -353,7 +345,7 @@ FArrayBox::Initialize ()
     if (initialized) return;
     initialized = true;
 
-    BL_ASSERT(fabio == 0);
+    BL_ASSERT(fabio == nullptr);
 
     ParmParse pp("fab");
 
@@ -363,7 +355,7 @@ FArrayBox::Initialize ()
     //
     if (pp.query("format", fmt))
     {
-        FABio* fio = 0;
+        FABio* fio = nullptr;
 
         if (fmt == "ASCII")
         {
@@ -451,7 +443,7 @@ void
 FArrayBox::Finalize ()
 {
     delete fabio;
-    fabio = 0;
+    fabio = nullptr;
     initialized = false;
 }
 
@@ -471,8 +463,8 @@ FABio::read_header (std::istream& is,
 //    BL_PROFILE("FArrayBox::read_header_is");
     int nvar;
     Box bx;
-    FABio* fio = 0;
-    RealDescriptor* rd = 0;
+    FABio* fio = nullptr;
+    RealDescriptor* rd = nullptr;
     char c;
 
     is >> c;
@@ -548,8 +540,8 @@ FABio::read_header (std::istream& is,
 //    BL_PROFILE("FArrayBox::read_header_is_i");
     int nvar;
     Box bx;
-    FABio *fio = 0;
-    RealDescriptor *rd = 0;
+    FABio *fio = nullptr;
+    RealDescriptor *rd = nullptr;
     char c;
 
     is >> c;
@@ -806,7 +798,7 @@ FABio_8bit::write (std::ostream&    os,
     const Real eps = 1.0e-8_rt; // FIXME - what's a better value?
     const Long siz = f.box().numPts();
 
-    unsigned char *c = new unsigned char[siz];
+    auto *c = new unsigned char[siz];
 
     for(int k(0); k < num_comp; ++k) {
         const Real mn   = f.min<RunOn::Host>(k+comp);
@@ -834,8 +826,8 @@ void
 FABio_8bit::read (std::istream& is,
                   FArrayBox&    f) const
 {
-    Long siz         = f.box().numPts();
-    unsigned char* c = new unsigned char[siz];
+    Long siz = f.box().numPts();
+    auto *c = new unsigned char[siz];
 
     Real mn, mx;
     for(int nbytes, k = 0; k < f.nComp(); ++k) {
