@@ -247,6 +247,75 @@ namespace amrex
     }
 
     /**
+     * \brief Reduce FabArray/MultiFab data to a plane.
+     *
+     * This function takes a FabArray/MultiFab and reduces its data to a
+     * plane.  The return data are stored in a BaseFab with only one cell in
+     * the normal direction of the plane.  The index range of the BaseFab in
+     * the other directions is the same as the provided domain Box.  If data
+     * do not exist along a certain line, the value is set to the minimum,
+     * maximum and zero, for reduce max, min and sum, respectively.  The
+     * reduction is local and the user may need to do MPI communication
+     * afterwrads if needed.
+     *
+     * In the example code below, the sum along each line at (i,j) in the
+     * z-direction is computed and stored at (i,j,0) of the returned
+     * BaseFab.
+     \verbatim
+         int dir = 2; // z-direction
+         auto const& domain_box = geom.Domain();
+         auto const& ma = mf.const_arrays();
+         auto rr = ReduceToPlane<ReduceOpSum,Real>(dir, domain_box, mf,
+             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) -> Real
+             {
+                 return ma[box_no](i,j,k); // data at (i,j,k) of Box box_no
+             });
+     \endverbatim
+     *
+     * Below is another example.  This finds the maximum value in the
+     * x-direction and stores the maximum value and the i-index.  An MPI
+     * reduce is then called to further reduce the data to the root process
+     * 0.
+     \verbatim
+         int dir = 0; // x-direction
+         auto const& domain_box = geom.Domain().surroundingNodes(); // nodal data
+         auto const& ma = mf.const_arrays();
+         auto rr = ReduceToPlane<ReduceOpMax,KeyValuePair<Real,int>>
+             (dir, domain_box, mf,
+              [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
+                  -> KeyValuePair<Real,int>
+             {
+                 return {ma[box_no](i,j,k), i};
+             });
+         ParallelReduce::Max(rr.dataPtr(), r.size(), root,
+                             ParallelDescriptor::Communicator());
+         // Process root now has the final results.
+     \endverbatim
+     *
+     * \tparam Op  reduce operator (e.g., ReduceOpSum, ReduceOpMin and ReduceOpMax)
+     * \tparam T   data type of reduction result
+     * \tparam FAB FabArray/MultiFab type
+     * \tparam F   callable type like a lambda function
+     *
+     * \param direction normal direction of the plane (e.g., 0, 1 and 2)
+     * \param domain    domain Box
+     * \param mf        a FabArray/MultiFab object specifying the iteration space
+     * \param f         a callable object returning T.  It takes four ints,
+     *                  where the first int is the local box index and the others
+     *                  are spatial indices for x, y, and z-directions.
+     *
+     * \return reduction result (BaseFab<T>)
+     */
+    template <typename Op, typename T, typename FAB, typename F,
+              std::enable_if_t<IsBaseFab<FAB>::value
+#ifndef AMREX_USE_CUDA
+                               && IsCallableR<T,F,int,int,int,int>::value
+#endif
+                               , int> FOO = 0>
+    BaseFab<T>
+    ReduceToPlane (int direction, Box const& domain, FabArray<FAB> const& mf, F&& f);
+
+    /**
      * \brief Sum MultiFab data to line
      *
      * Return a HostVector that contains the sum of the given MultiFab data in the plane
@@ -921,6 +990,115 @@ MF get_line_data (MF const& mf, int dir, IntVect const& cell)
         }
         return rmf;
     }
+}
+
+template <typename Op, typename T, typename FAB, typename F,
+          std::enable_if_t<IsBaseFab<FAB>::value
+#ifndef AMREX_USE_CUDA
+                           && IsCallableR<T,F,int,int,int,int>::value
+#endif
+                           , int> FOO>
+BaseFab<T>
+ReduceToPlane (int direction, Box const& domain, FabArray<FAB> const& mf, F&& f)
+{
+    Box domain2d = domain;
+    domain2d.setRange(direction, 0);
+
+    T initval;
+    Op().init(initval);
+
+    BaseFab<T> r(domain2d);
+    r.template setVal<RunOn::Device>(initval);
+    auto const& ar = r.array();
+
+    for (MFIter mfi(mf,MFItInfo().UseDefaultStream().DisableDeviceSync());
+         mfi.isValid(); ++mfi)
+    {
+        Box bx = mfi.validbox() & domain;
+        if (bx.ok()) {
+            int box_no = mfi.LocalIndex();
+#if defined(AMREX_USE_GPU)
+            Box b2d = bx;
+            b2d.setRange(direction,0);
+            const auto blo = amrex::lbound(bx);
+            const auto len = amrex::length(bx);
+            constexpr int nthreads = 128;
+            auto nblocks = static_cast<int>(b2d.numPts());
+#ifdef AMREX_USE_SYCL
+            constexpr std::size_t shared_mem_bytes = sizeof(T)*Gpu::Device::warp_size;
+            amrex::launch<nthreads>(nblocks, shared_mem_bytes, Gpu::gpuStream(),
+                                    [=] AMREX_GPU_DEVICE (Gpu::Handler const& h)
+            {
+                int bid = h.blockIdx();
+                int tid = h.threadIdx();
+#else
+            amrex::launch<nthreads>(nblocks, Gpu::gpuStream(),
+                                    [=] AMREX_GPU_DEVICE ()
+            {
+                int bid = blockIdx.x;
+                int tid = threadIdx.x;
+#endif
+                T tmp;
+                Op().init(tmp);
+                T* p;
+                if (direction == 0) {
+                    int k = bid /   len.y;
+                    int j = bid - k*len.y;
+                    k += blo.z;
+                    j += blo.y;
+                    for (int i = blo.x + tid; i < blo.x+len.x; i += nthreads) {
+                        Op().local_update(tmp, f(box_no,i,j,k));
+                    }
+                    p = ar.ptr(0,j,k);
+                } else if (direction == 1) {
+                    int k = bid /   len.x;
+                    int i = bid - k*len.x;
+                    k += blo.z;
+                    i += blo.x;
+                    for (int j = blo.y + tid; j < blo.y+len.y; j += nthreads) {
+                        Op().local_update(tmp, f(box_no,i,j,k));
+                    }
+                    p = ar.ptr(i,0,k);
+                } else {
+                    int j = bid /   len.x;
+                    int i = bid - j*len.x;
+                    j += blo.y;
+                    i += blo.x;
+                    for (int k = blo.z + tid; k < blo.z+len.z; k += nthreads) {
+                        Op().local_update(tmp, f(box_no,i,j,k));
+                    }
+                    p = ar.ptr(i,j,0);
+                }
+#ifdef AMREX_USE_SYCL
+                Op().template parallel_update<T>(*p, tmp, h);
+#else
+                Op().template parallel_update<T,nthreads>(*p, tmp);
+#endif
+            });
+#else
+            // CPU
+            if (direction == 0) {
+                AMREX_LOOP_3D(bx, i, j, k,
+                {
+                    Op().local_update(ar(0,j,k), f(box_no,i,j,k));
+                });
+            } else if (direction == 1) {
+                AMREX_LOOP_3D(bx, i, j, k,
+                {
+                    Op().local_update(ar(i,0,k), f(box_no,i,j,k));
+                });
+            } else {
+                AMREX_LOOP_3D(bx, i, j, k,
+                {
+                    Op().local_update(ar(i,j,0), f(box_no,i,j,k));
+                });
+            }
+#endif
+        }
+    }
+    Gpu::streamSynchronize();
+
+    return r;
 }
 
 }
