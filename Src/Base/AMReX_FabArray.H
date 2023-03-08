@@ -122,6 +122,8 @@ struct MFInfo {
 
     MFInfo& SetArena (Arena* ar) noexcept { arena = ar; return *this; }
 
+    MFInfo& SetTag () noexcept { return *this; }
+
     MFInfo& SetTag (const char* t) noexcept {
         tags.emplace_back(t);
         return *this;
