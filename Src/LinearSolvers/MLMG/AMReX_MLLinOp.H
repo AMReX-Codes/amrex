@@ -716,7 +716,7 @@ MLLinOpT<MF>::define (const Vector<Geometry>& a_geom,
 
 #ifdef AMREX_USE_EB
     if (!a_factory.empty() && eb_limit_coarsening) {
-        auto f = dynamic_cast<EBFArrayBoxFactory const*>(a_factory[0]);
+        const auto *f = dynamic_cast<EBFArrayBoxFactory const*>(a_factory[0]);
         if (f) {
             info.max_coarsening_level = std::min(info.max_coarsening_level,
                                                  f->maxCoarseningLevel());

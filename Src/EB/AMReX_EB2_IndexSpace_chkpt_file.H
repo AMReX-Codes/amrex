@@ -14,7 +14,7 @@ class IndexSpaceChkptFile
 {
 public:
 
-    IndexSpaceChkptFile (const ChkptFile& chkptfile,
+    IndexSpaceChkptFile (const ChkptFile& chkpt_file,
                          const Geometry& geom, int required_coarsening_level,
                          int max_coarsening_level, int ngrow,
                          bool build_coarse_level_by_coarsening,

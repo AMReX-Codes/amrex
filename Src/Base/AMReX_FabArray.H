@@ -427,7 +427,7 @@ public:
 
     bool hasEBFabFactory () const noexcept {
 #ifdef AMREX_USE_EB
-        const auto f = dynamic_cast<EBFArrayBoxFactory const*>(m_factory.get());
+        const auto *const f = dynamic_cast<EBFArrayBoxFactory const*>(m_factory.get());
         return (f != nullptr);
 #else
         return false;
@@ -436,7 +436,7 @@ public:
 
     bool isAllRegular () const noexcept {
 #ifdef AMREX_USE_EB
-        const auto f = dynamic_cast<EBFArrayBoxFactory const*>(m_factory.get());
+        const auto *const f = dynamic_cast<EBFArrayBoxFactory const*>(m_factory.get());
         if (f) {
             return f->isAllRegular();
         } else {

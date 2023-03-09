@@ -23,11 +23,6 @@ public:
           m_sign( a_inside ? 1.0 : -1.0 )
         {}
 
-    TorusIF (const TorusIF& rhs) noexcept = default;
-    TorusIF (TorusIF&& rhs) noexcept = default;
-    TorusIF& operator= (const TorusIF& rhs) = delete;
-    TorusIF& operator= (TorusIF&& rhs) = delete;
-
     AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept {
         Real d = std::hypot(x-m_center.x, y-m_center.y);
@@ -50,8 +45,6 @@ protected:
     Real      m_large_radius;
     Real      m_small_radius;
     XDim3     m_center;
-    //
-    Real      m_small_radius2;  // precomputed radius squared
     Real      m_sign;
 };
 

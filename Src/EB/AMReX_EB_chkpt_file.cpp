@@ -4,6 +4,7 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_VisMF.H>    // amrex::VisMF::Write(MultiFab)
 #include <AMReX_VectorIO.H> // amrex::[read,write]IntData(array_of_ints)
+#include <utility>
 
 namespace {
 
@@ -17,7 +18,7 @@ void gotoNextLine (std::istream& is)
 
 }
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 // Header information includes the cut and covered boxes (if any)
 // Checkpoint file contains data for cut boxes
@@ -91,8 +92,8 @@ ChkptFile::writeToFile (const MultiFab& mf, const std::string& mf_name) const
 }
 
 
-ChkptFile::ChkptFile (const std::string &fname)
-    : m_restart_file(fname)
+ChkptFile::ChkptFile (std::string fname)
+    : m_restart_file(std::move(fname))
 {}
 
 void
@@ -107,8 +108,12 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
                                  const IntVect& ngrow_finest, bool extend_domain_face,
                                  int max_grid_size) const
 {
-    Real prob_lo[AMREX_SPACEDIM];
-    Real prob_hi[AMREX_SPACEDIM];
+    Real prob_lo[] = {AMREX_D_DECL(std::numeric_limits<Real>::max(),
+                                   std::numeric_limits<Real>::max(),
+                                   std::numeric_limits<Real>::max())};
+    Real prob_hi[] = {AMREX_D_DECL(std::numeric_limits<Real>::lowest(),
+                                   std::numeric_limits<Real>::lowest(),
+                                   std::numeric_limits<Real>::lowest())};
 
     std::string File(m_restart_file + "/Header");
 
@@ -321,4 +326,4 @@ ChkptFile::write_to_chkpt_file (const BoxArray& cut_grids,
     }
 }
 
-}}
+}

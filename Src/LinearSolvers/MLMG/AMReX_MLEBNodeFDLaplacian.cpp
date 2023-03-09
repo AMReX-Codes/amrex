@@ -85,7 +85,7 @@ MLEBNodeFDLaplacian::define (const Vector<Geometry>& a_geom,
     }
 
     Vector<FabFactory<FArrayBox> const*> _factory;
-    for (auto x : a_factory) {
+    for (const auto *x : a_factory) {
         _factory.push_back(static_cast<FabFactory<FArrayBox> const*>(x));
     }
 
@@ -254,7 +254,7 @@ MLEBNodeFDLaplacian::prepareForSolve ()
     // compGrad relies on the negative value to detect EB.
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
-            auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+            const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
             auto const& levset_mf = factory->getLevelSet();
             auto const& levset_ar = levset_mf.const_arrays();
             auto& dmask_mf = *m_dirichlet_mask[amrlev][mglev];
@@ -319,7 +319,7 @@ void
 MLEBNodeFDLaplacian::scaleRHS (int amrlev, MultiFab& rhs) const
 {
     auto const& dmask = *m_dirichlet_mask[amrlev][0];
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
     auto const& edgecent = factory->getEdgeCent();
 
 #ifdef AMREX_USE_OMP
@@ -366,7 +366,7 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
 
 #ifdef AMREX_USE_EB
     const auto phieb = (m_in_solution_mode) ? m_s_phi_eb : Real(0.0);
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     auto const& edgecent = factory->getEdgeCent();
 #endif
 
@@ -468,7 +468,7 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
         }
 
 #ifdef AMREX_USE_EB
-        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+        const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
         auto const& edgecent = factory->getEdgeCent();
 #endif
 
@@ -558,7 +558,7 @@ MLEBNodeFDLaplacian::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>
 #ifdef AMREX_USE_EB
     auto const& dmask = *m_dirichlet_mask[amrlev][mglev];
     const auto phieb = m_s_phi_eb;
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     AMREX_ASSERT(factory);
     auto const& edgecent = factory->getEdgeCent();
 #endif
@@ -658,7 +658,7 @@ MLEBNodeFDLaplacian::postSolve (Vector<MultiFab>& sol) const
 #ifdef AMREX_USE_EB
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         const auto phieb = m_s_phi_eb;
-        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+        const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
         auto const& levset_mf = factory->getLevelSet();
         auto const& levset_ar = levset_mf.const_arrays();
         MultiFab& mf = sol[amrlev];

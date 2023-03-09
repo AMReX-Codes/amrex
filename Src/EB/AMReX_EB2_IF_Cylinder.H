@@ -37,11 +37,6 @@ public:
             AMREX_ASSERT(m_direction < AMREX_SPACEDIM);
         }
 
-    CylinderIF (const CylinderIF& rhs) noexcept = default;
-    CylinderIF (CylinderIF&& rhs) noexcept = default;
-    CylinderIF& operator= (const CylinderIF& rhs) = delete;
-    CylinderIF& operator= (CylinderIF&& rhs) = delete;
-
     AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {

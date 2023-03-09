@@ -88,15 +88,10 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
     m_eb_vel_dot_n.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
-#ifdef AMREX_USE_EB
         m_integral[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][0],
                                                         m_dmap[amrlev][0],
                                                         ncomp_i, 1, MFInfo(),
                                                         *m_factory[amrlev][0]);
-#else
-        m_integral[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][0],
-                                                        m_dmap[amrlev][0], ncomp_i, 1));
-#endif
     }
 #endif
 
@@ -115,7 +110,7 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
                          Real  a_const_sigma)
 {
     Vector<FabFactory<FArrayBox> const*> _factory;
-    for (auto x : a_factory) {
+    for (const auto *x : a_factory) {
         _factory.push_back(static_cast<FabFactory<FArrayBox> const*>(x));
     }
     define(a_geom, a_grids, a_dmap, a_info, _factory, a_const_sigma);
@@ -177,7 +172,7 @@ MLNodeLaplacian::getSolvabilityOffset (int amrlev, int mglev, MultiFab const& rh
 
     if (m_coarsening_strategy == CoarseningStrategy::RAP) {
 #ifdef AMREX_USE_EB
-        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+        const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
         if (mglev == 0 && factory && !factory->isAllRegular()) {
             const MultiFab& vfrac = factory->getVolFrac();
             const auto& vfrac_ma = vfrac.const_arrays();
@@ -291,7 +286,7 @@ MLNodeLaplacian::fixSolvabilityByOffset (int amrlev, int mglev, MultiFab& rhs,
 
     if (m_coarsening_strategy == CoarseningStrategy::RAP) {
 #ifdef AMREX_USE_EB
-        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+        const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
         if (mglev == 0 && factory && !factory->isAllRegular()) {
             const MultiFab& vfrac = factory->getVolFrac();
             const auto& vfrac_ma = vfrac.const_arrays();
@@ -1033,7 +1028,7 @@ MLNodeLaplacian::setEBInflowVelocity (int amrlev, const MultiFab& eb_vel)
 
     m_eb_vel_dot_n[amrlev]->setVal(0.0);
 
-    auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+    const auto *ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);

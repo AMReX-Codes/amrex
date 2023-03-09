@@ -1002,7 +1002,7 @@ MLCellLinOpT<MF>::interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) cons
     ignore_unused(isEB);
 
 #ifdef AMREX_USE_EB
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(&(fine.Factory()));
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(&(fine.Factory()));
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
 #endif
 
@@ -1072,7 +1072,7 @@ MLCellLinOpT<MF>::interpolationAmr (int famrlev, MF& fine, const MF& crse,
     const int refratio = this->AMRRefRatio(famrlev-1);
 
 #ifdef AMREX_USE_EB
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(famrlev));
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(famrlev));
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
 #endif
 
@@ -1529,7 +1529,7 @@ MLCellLinOpT<MF>::getSolvabilityOffset (int amrlev, int mglev, MF const& rhs) co
     Vector<RT> offset(ncomp);
 
 #ifdef AMREX_USE_EB
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(amrlev,mglev));
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(amrlev,mglev));
     if (factory && !factory->isAllRegular())
     {
         if constexpr (std::is_same<MF,MultiFab>()) {
@@ -1599,7 +1599,7 @@ MLCellLinOpT<MF>::prepareForSolve ()
             MF foo(this->m_grids[amrlev][mglev], this->m_dmap[amrlev][mglev], ncomp, 0, MFInfo().SetAlloc(false));
 
 #ifdef AMREX_USE_EB
-            auto factory = dynamic_cast<EBFArrayBoxFactory const*>(this->m_factory[amrlev][mglev].get());
+            const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(this->m_factory[amrlev][mglev].get());
             const FabArray<EBCellFlagFab>* flags =
                 (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
             auto area = (factory) ? factory->getAreaFrac()
@@ -1917,7 +1917,7 @@ MLCellLinOpT<MF>::computeVolInv () const
 
     auto f = [&] (int amrlev, int mglev) {
 #ifdef AMREX_USE_EB
-        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(amrlev,mglev));
+        const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(amrlev,mglev));
         if (factory && !factory->isAllRegular())
         {
             if constexpr (std::is_same<MF,MultiFab>()) {
@@ -1943,7 +1943,7 @@ MLCellLinOpT<MF>::computeVolInv () const
 
 #ifdef AMREX_USE_EB
     RT temp1, temp2;
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(0,0));
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(0,0));
     if (factory && !factory->isAllRegular())
     {
         ParallelAllReduce::Sum<RT>({m_volinv[0][0], m_volinv[0][mgbottom]},
@@ -1973,7 +1973,7 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
         if constexpr (!std::is_same<MF,MultiFab>()) {
             amrex::Abort("MLCellLinOpT with EB only works with MultiFab");
         } else {
-            auto factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(amrlev));
+            const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(amrlev));
             const MultiFab& vfrac = factory->getVolFrac();
             if (amrlev == finest_level) {
 #ifdef AMREX_USE_GPU

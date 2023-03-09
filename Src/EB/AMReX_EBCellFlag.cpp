@@ -176,11 +176,8 @@ EBCellFlagFab::getNumCutCells (const Box& bx_in) const noexcept
 
     const Box& bx = amrex::enclosedCells(bx_in);
 
-    if (thistype == FabType::regular)
-    {
-        return 0;
-    }
-    else if (thistype == FabType::covered)
+    if (thistype == FabType::regular ||
+        thistype == FabType::covered)
     {
         return 0;
     }

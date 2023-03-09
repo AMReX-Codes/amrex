@@ -24,11 +24,6 @@ public:
           m_sign( a_inside ? 1.0 : -1.0 )
         {}
 
-    BoxIF (const BoxIF& rhs) noexcept = default;
-    BoxIF (BoxIF&& rhs) noexcept = default;
-    BoxIF& operator= (const BoxIF& rhs) = delete;
-    BoxIF& operator= (BoxIF&& rhs) = delete;
-
     AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {

@@ -980,7 +980,7 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
         linop.scaleRHS(alev, rhs[alev]);
 
 #ifdef AMREX_USE_EB
-        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(alev));
+        const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(alev));
         if (factory && !factory->isAllRegular()) {
             if constexpr (std::is_same<MF,MultiFab>()) {
                 EB_set_covered(rhs[alev], 0, ncomp, 0, RT(0.0));

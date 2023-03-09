@@ -11,6 +11,7 @@
 #include <memory>
 #include <type_traits>
 #include <cmath>
+#include <utility>
 
 namespace amrex { namespace EB2 {
 
@@ -195,31 +196,18 @@ public:
         : m_f(std::move(f)), m_resource()
         {}
 
-    GeometryShop (F const& f, R const& r)
-        : m_f(f), m_resource(r)
+    GeometryShop (F const& f, R r)
+        : m_f(f), m_resource(std::move(r))
         {}
 
-    GeometryShop (F && f, R && r)
+    GeometryShop (F && f, R r)
         : m_f(std::move(f)), m_resource(std::move(r))
         {}
 
-    ~GeometryShop() {}
-
-    GeometryShop (GeometryShop<F> const& rhs)
-        : m_f(rhs.m_f), m_resource(rhs.m_resource)
-        {}
-
-    GeometryShop (GeometryShop<F> && rhs)
-        : m_f(std::move(rhs.m_f)), m_resource(std::move(rhs.m_resource))
-        {}
-
-    GeometryShop<F>& operator= (GeometryShop<F> const& rhs) = delete;
-    GeometryShop<F>& operator= (GeometryShop<F> && rhs) = delete;
-
-    F const& GetImpFunc () const& { return m_f; }
+    [[nodiscard]] F const& GetImpFunc () const& { return m_f; }
     F&& GetImpFunc () && { return std::move(m_f); }
 
-    int getBoxType_Cpu (const Box& bx, Geometry const& geom) const noexcept
+    [[nodiscard]] int getBoxType_Cpu (const Box& bx, Geometry const& geom) const noexcept
     {
         const Real* problo = geom.ProbLo();
         const Real* dx = geom.CellSize();
@@ -256,7 +244,7 @@ public:
     }
 
     template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* FOO = nullptr >
-    int getBoxType (const Box& bx, const Geometry& geom, RunOn run_on) const noexcept
+    [[nodiscard]] int getBoxType (const Box& bx, const Geometry& geom, RunOn run_on) const noexcept
     {
         if (run_on == RunOn::Gpu && Gpu::inLaunchRegion())
         {
@@ -303,7 +291,7 @@ public:
     }
 
     template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* BAR = nullptr >
-    int getBoxType (const Box& bx, const Geometry& geom, RunOn) const noexcept
+    [[nodiscard]] int getBoxType (const Box& bx, const Geometry& geom, RunOn) const noexcept
     {
         return getBoxType_Cpu(bx, geom);
     }
