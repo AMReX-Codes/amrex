@@ -246,7 +246,7 @@ namespace amrex {
             const Box& bx = mfi.tilebox ();
 
             // this is to check efficiently if this tile contains any eb stuff
-            const EBFArrayBox&  div_fab = static_cast<EBFArrayBox const&>(div_out[mfi]);
+            const auto&  div_fab = static_cast<EBFArrayBox const&>(div_out[mfi]);
             const EBCellFlagFab&  flags = div_fab.getEBCellFlagFab();
 
             if ( !(flags.getType(amrex::grow(bx,     0)) == FabType::covered) &&
@@ -277,7 +277,7 @@ namespace amrex {
 
 void FillSignedDistance (MultiFab& mf, bool fluid_has_positive_sign)
 {
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(&(mf.Factory()));
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(&(mf.Factory()));
     if (factory) {
         FillSignedDistance(mf, *(factory->getEBLevel()), *factory, 1, fluid_has_positive_sign);
     } else {
@@ -498,7 +498,7 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
             Box eb_search = mfi.validbox();
             eb_search.coarsen(refratio).enclosedCells().grow(eb_pad);
 
-            const int nallcells = eb_search.numPts();
+            const auto nallcells = static_cast<int>(eb_search.numPts());
 
             Gpu::DeviceVector<int> is_cut(nallcells);
             int* p_is_cut = is_cut.data();
@@ -523,14 +523,14 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
 
             if (ncutcells > 0) {
                 Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM*2> > facets(ncutcells);
-                auto p_facets = facets.data();
+                auto *p_facets = facets.data();
                 Array4<Real const> const& bcent = bndrycent.const_array(mfi);
                 AMREX_D_TERM(Array4<Real const> const& apx = areafrac[0]->const_array(mfi);,
                              Array4<Real const> const& apy = areafrac[1]->const_array(mfi);,
                              Array4<Real const> const& apz = areafrac[2]->const_array(mfi));
                 amrex::ParallelFor(eb_search, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    int icell = eb_search.index(IntVect(AMREX_D_DECL(i,j,k)));
+                    auto icell = eb_search.index(IntVect(AMREX_D_DECL(i,j,k)));
                     if (p_is_cut[icell]) {
                         GpuArray<Real,AMREX_SPACEDIM*2>& fac = p_facets[p_cutcell_offset[icell]];
                         AMREX_D_TERM(fac[0] = (bcent(i,j,k,0)+Real(i)+0.5_rt) * dx_eb[0];,

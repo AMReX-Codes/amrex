@@ -21,12 +21,6 @@ public:
           m_sign( a_inside ? 1.0_rt : -1.0_rt )
         {}
 
-    EllipsoidIF (const EllipsoidIF& rhs) noexcept = default;
-    EllipsoidIF (EllipsoidIF&& rhs) noexcept = default;
-    EllipsoidIF& operator= (const EllipsoidIF& rhs) = delete;
-    EllipsoidIF& operator= (EllipsoidIF&& rhs) = delete;
-
-
     AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept {
         Real d2 = AMREX_D_TERM(  (x-m_center.x)*(x-m_center.x) / (m_radii.x*m_radii.x),

@@ -1,6 +1,6 @@
 #include <AMReX_EB2_C.H>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 namespace {
 
@@ -728,44 +728,31 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
             AMREX_HOST_DEVICE_FOR_3D(nbxg1, i, j, k,
             {
                 if (levset(i,j,k) < Real(0.0)) {
-                    bool zero_levset = false;
-                    if        (xbx.contains(i  ,j-1,k-1)
-                             &&          fx(i  ,j-1,k-1) == Type::covered) {
-                        zero_levset = true;
-                    } else if (xbx.contains(i  ,j  ,k-1)
-                             &&          fx(i  ,j  ,k-1) == Type::covered) {
-                        zero_levset = true;
-                    } else if (xbx.contains(i  ,j-1,k  )
-                             &&          fx(i  ,j-1,k  ) == Type::covered) {
-                        zero_levset = true;
-                    } else if (xbx.contains(i  ,j  ,k  )
-                             &&          fx(i  ,j  ,k  ) == Type::covered) {
-                        zero_levset = true;
-                    } else if (ybx.contains(i-1,j  ,k-1)
-                             &&          fy(i-1,j  ,k-1) == Type::covered) {
-                        zero_levset = true;
-                    } else if (ybx.contains(i  ,j  ,k-1)
-                             &&          fy(i  ,j  ,k-1) == Type::covered) {
-                        zero_levset = true;
-                    } else if (ybx.contains(i-1,j  ,k  )
-                             &&          fy(i-1,j  ,k  ) == Type::covered) {
-                        zero_levset = true;
-                    } else if (ybx.contains(i  ,j  ,k  )
-                             &&          fy(i  ,j  ,k  ) == Type::covered) {
-                        zero_levset = true;
-                    } else if (zbx.contains(i-1,j-1,k  )
-                             &&          fz(i-1,j-1,k  ) == Type::covered) {
-                        zero_levset = true;
-                    } else if (zbx.contains(i  ,j-1,k  )
-                             &&          fz(i  ,j-1,k  ) == Type::covered) {
-                        zero_levset = true;
-                    } else if (zbx.contains(i-1,j  ,k  )
-                             &&          fz(i-1,j  ,k  ) == Type::covered) {
-                        zero_levset = true;
-                    } else if (zbx.contains(i  ,j  ,k  )
-                             &&          fz(i  ,j  ,k  ) == Type::covered) {
-                        zero_levset = true;
-                    }
+                    bool zero_levset =
+                        (xbx.contains(i  ,j-1,k-1)
+                         &&        fx(i  ,j-1,k-1) == Type::covered) ||
+                        (xbx.contains(i  ,j  ,k-1)
+                         &&        fx(i  ,j  ,k-1) == Type::covered) ||
+                        (xbx.contains(i  ,j-1,k  )
+                         &&        fx(i  ,j-1,k  ) == Type::covered) ||
+                        (xbx.contains(i  ,j  ,k  )
+                         &&        fx(i  ,j  ,k  ) == Type::covered) ||
+                        (ybx.contains(i-1,j  ,k-1)
+                         &&        fy(i-1,j  ,k-1) == Type::covered) ||
+                        (ybx.contains(i  ,j  ,k-1)
+                         &&        fy(i  ,j  ,k-1) == Type::covered) ||
+                        (ybx.contains(i-1,j  ,k  )
+                         &&        fy(i-1,j  ,k  ) == Type::covered) ||
+                        (ybx.contains(i  ,j  ,k  )
+                         &&        fy(i  ,j  ,k  ) == Type::covered) ||
+                        (zbx.contains(i-1,j-1,k  )
+                         &&        fz(i-1,j-1,k  ) == Type::covered) ||
+                        (zbx.contains(i  ,j-1,k  )
+                         &&        fz(i  ,j-1,k  ) == Type::covered) ||
+                        (zbx.contains(i-1,j  ,k  )
+                         &&        fz(i-1,j  ,k  ) == Type::covered) ||
+                        (zbx.contains(i  ,j  ,k  )
+                         &&        fz(i  ,j  ,k  ) == Type::covered);
                     if (zero_levset) {
                         levset(i,j,k) = Real(0.0);
                     }
@@ -886,68 +873,47 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
     AMREX_HOST_DEVICE_FOR_3D(nbxg1, i, j, k,
     {
         if (levset(i,j,k) < Real(0.0)) {
-            bool zero_levset = false;
-            if        (bxg1.contains(i-1,j-1,k-1)
-                       &&       cell(i-1,j-1,k-1).isCovered()) {
-                zero_levset = true;
-            } else if (bxg1.contains(i  ,j-1,k-1)
-                       &&       cell(i  ,j-1,k-1).isCovered()) {
-                zero_levset = true;
-            } else if (bxg1.contains(i-1,j  ,k-1)
-                       &&       cell(i-1,j  ,k-1).isCovered()) {
-                zero_levset = true;
-            } else if (bxg1.contains(i  ,j  ,k-1)
-                       &&       cell(i  ,j  ,k-1).isCovered()) {
-                zero_levset = true;
-            } else if (bxg1.contains(i-1,j-1,k  )
-                       &&       cell(i-1,j-1,k  ).isCovered()) {
-                zero_levset = true;
-            } else if (bxg1.contains(i  ,j-1,k  )
-                       &&       cell(i  ,j-1,k  ).isCovered()) {
-                zero_levset = true;
-            } else if (bxg1.contains(i-1,j  ,k  )
-                       &&       cell(i-1,j  ,k  ).isCovered()) {
-                zero_levset = true;
-            } else if (bxg1.contains(i  ,j  ,k  )
-                       &&       cell(i  ,j  ,k  ).isCovered()) {
-                zero_levset = true;
-            } else if (bxg1x.contains(i  ,j-1,k-1)
-                       &&          fx(i  ,j-1,k-1) == Type::covered) {
-                zero_levset = true;
-            } else if (bxg1x.contains(i  ,j  ,k-1)
-                       &&          fx(i  ,j  ,k-1) == Type::covered) {
-                zero_levset = true;
-            } else if (bxg1x.contains(i  ,j-1,k  )
-                       &&          fx(i  ,j-1,k  ) == Type::covered) {
-                zero_levset = true;
-            } else if (bxg1x.contains(i  ,j  ,k  )
-                       &&          fx(i  ,j  ,k  ) == Type::covered) {
-                zero_levset = true;
-            } else if (bxg1y.contains(i-1,j  ,k-1)
-                       &&          fy(i-1,j  ,k-1) == Type::covered) {
-                zero_levset = true;
-            } else if (bxg1y.contains(i  ,j  ,k-1)
-                       &&          fy(i  ,j  ,k-1) == Type::covered) {
-                zero_levset = true;
-            } else if (bxg1y.contains(i-1,j  ,k  )
-                       &&          fy(i-1,j  ,k  ) == Type::covered) {
-                zero_levset = true;
-            } else if (bxg1y.contains(i  ,j  ,k  )
-                       &&          fy(i  ,j  ,k  ) == Type::covered) {
-                zero_levset = true;
-            } else if (bxg1z.contains(i-1,j-1,k  )
-                       &&          fz(i-1,j-1,k  ) == Type::covered) {
-                zero_levset = true;
-            } else if (bxg1z.contains(i  ,j-1,k  )
-                       &&          fz(i  ,j-1,k  ) == Type::covered) {
-                zero_levset = true;
-            } else if (bxg1z.contains(i-1,j  ,k  )
-                       &&          fz(i-1,j  ,k  ) == Type::covered) {
-                zero_levset = true;
-            } else if (bxg1z.contains(i  ,j  ,k  )
-                       &&          fz(i  ,j  ,k  ) == Type::covered) {
-                zero_levset = true;
-            }
+            bool zero_levset =
+                (bxg1.contains(i-1,j-1,k-1)
+                 &&       cell(i-1,j-1,k-1).isCovered()) ||
+                (bxg1.contains(i  ,j-1,k-1)
+                 &&       cell(i  ,j-1,k-1).isCovered()) ||
+                (bxg1.contains(i-1,j  ,k-1)
+                 &&       cell(i-1,j  ,k-1).isCovered()) ||
+                (bxg1.contains(i  ,j  ,k-1)
+                 &&       cell(i  ,j  ,k-1).isCovered()) ||
+                (bxg1.contains(i-1,j-1,k  )
+                 &&       cell(i-1,j-1,k  ).isCovered()) ||
+                (bxg1.contains(i  ,j-1,k  )
+                 &&       cell(i  ,j-1,k  ).isCovered()) ||
+                (bxg1.contains(i-1,j  ,k  )
+                 &&       cell(i-1,j  ,k  ).isCovered()) ||
+                (bxg1.contains(i  ,j  ,k  )
+                 &&       cell(i  ,j  ,k  ).isCovered()) ||
+                (bxg1x.contains(i  ,j-1,k-1)
+                 &&          fx(i  ,j-1,k-1) == Type::covered) ||
+                (bxg1x.contains(i  ,j  ,k-1)
+                 &&          fx(i  ,j  ,k-1) == Type::covered) ||
+                (bxg1x.contains(i  ,j-1,k  )
+                 &&          fx(i  ,j-1,k  ) == Type::covered) ||
+                (bxg1x.contains(i  ,j  ,k  )
+                 &&          fx(i  ,j  ,k  ) == Type::covered) ||
+                (bxg1y.contains(i-1,j  ,k-1)
+                 &&          fy(i-1,j  ,k-1) == Type::covered) ||
+                (bxg1y.contains(i  ,j  ,k-1)
+                 &&          fy(i  ,j  ,k-1) == Type::covered) ||
+                (bxg1y.contains(i-1,j  ,k  )
+                 &&          fy(i-1,j  ,k  ) == Type::covered) ||
+                (bxg1y.contains(i  ,j  ,k  )
+                 &&          fy(i  ,j  ,k  ) == Type::covered) ||
+                (bxg1z.contains(i-1,j-1,k  )
+                 &&          fz(i-1,j-1,k  ) == Type::covered) ||
+                (bxg1z.contains(i  ,j-1,k  )
+                 &&          fz(i  ,j-1,k  ) == Type::covered) ||
+                (bxg1z.contains(i-1,j  ,k  )
+                 &&          fz(i-1,j  ,k  ) == Type::covered) ||
+                (bxg1z.contains(i  ,j  ,k  )
+                 &&          fz(i  ,j  ,k  ) == Type::covered);
             if (zero_levset) {
                 levset(i,j,k) = Real(0.0);
             }
@@ -1152,4 +1118,4 @@ void set_connection_flags (Box const& bx,
     });
 }
 
-}}
+}

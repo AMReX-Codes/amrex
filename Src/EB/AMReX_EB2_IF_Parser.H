@@ -17,11 +17,6 @@ public:
         : m_parser(a_parser)
         {}
 
-    ParserIF (const ParserIF& rhs) noexcept = default;
-    ParserIF (ParserIF&& rhs) noexcept = default;
-    ParserIF& operator= (const ParserIF& rhs) = delete;
-    ParserIF& operator= (ParserIF&& rhs) = delete;
-
     AMREX_GPU_HOST_DEVICE inline
     amrex::Real operator() (AMREX_D_DECL(amrex::Real x, amrex::Real y,
                                          amrex::Real z)) const noexcept {

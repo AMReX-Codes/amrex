@@ -21,11 +21,6 @@ public:
           m_sign( a_inside ? 1.0 : -1.0 )
         {}
 
-    SphereIF (const SphereIF& rhs) noexcept = default;
-    SphereIF (SphereIF&& rhs) noexcept = default;
-    SphereIF& operator= (const SphereIF& rhs) = delete;
-    SphereIF& operator= (SphereIF&& rhs) = delete;
-
     AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept {
         Real d2 = AMREX_D_TERM(  (x-m_center.x)*(x-m_center.x),

@@ -31,7 +31,7 @@ private:
 
 
 public:
-    ChkptFile (const std::string &fname);
+    ChkptFile (std::string fname);
 
     void read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
                                DistributionMapping& dmap,

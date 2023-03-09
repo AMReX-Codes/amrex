@@ -347,7 +347,7 @@ AmrLevel::writePlotFile (const std::string& dir,
 #ifdef AMREX_USE_EB
     if (EB2::TopIndexSpaceIfPresent()) {
         plotMF.setVal(0.0, cnt, 1, nGrow);
-        auto factory = static_cast<EBFArrayBoxFactory*>(m_factory.get());
+        auto *factory = static_cast<EBFArrayBoxFactory*>(m_factory.get());
         MultiFab::Copy(plotMF,factory->getVolFrac(),0,cnt,1,nGrow);
     }
 #endif

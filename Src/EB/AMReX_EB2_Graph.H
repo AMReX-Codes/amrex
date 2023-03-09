@@ -50,12 +50,12 @@ struct Neighbor
     void setZLo (Type_t t) { flag &= zero_zlo_mask; flag |= (t << 8); }
     void setZHi (Type_t t) { flag &= zero_zhi_mask; flag |= (t << 10); }
 
-    Type_t getXLo () const { return (flag & one_xlo_mask); }
-    Type_t getXHi () const { return (flag & one_xhi_mask) >> 2; }
-    Type_t getYLo () const { return (flag & one_ylo_mask) >> 4; }
-    Type_t getYHi () const { return (flag & one_yhi_mask) >> 6; }
-    Type_t getZLo () const { return (flag & one_zlo_mask) >> 8; }
-    Type_t getZHi () const { return (flag & one_zhi_mask) >> 10; }
+    [[nodiscard]] Type_t getXLo () const { return (flag & one_xlo_mask); }
+    [[nodiscard]] Type_t getXHi () const { return (flag & one_xhi_mask) >> 2; }
+    [[nodiscard]] Type_t getYLo () const { return (flag & one_ylo_mask) >> 4; }
+    [[nodiscard]] Type_t getYHi () const { return (flag & one_yhi_mask) >> 6; }
+    [[nodiscard]] Type_t getZLo () const { return (flag & one_zlo_mask) >> 8; }
+    [[nodiscard]] Type_t getZHi () const { return (flag & one_zhi_mask) >> 10; }
 
 private:
 

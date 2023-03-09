@@ -172,7 +172,7 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                         m_points.push_back(apoints[lc1]);
                         int lc2 = m_connectivity.back()[0]+1;
                         m_connectivity.back()[0] = lc2;
-                        m_connectivity.back()[lc2] = m_points.size()-1;
+                        m_connectivity.back()[lc2] = static_cast<int>(m_points.size()-1);
                      }
                   }
 
@@ -196,8 +196,8 @@ void EBToPVD::WriteEBVTP(const int myID) const
       myfile << "<?xml version=\"1.0\"?>\n";
       myfile << "<VTKFile type=\"PolyData\" version=\"0.1\" byte_order=\"LittleEndian\">\n";
       myfile << "<PolyData>\n";
-      myfile << "<Piece NumberOfPoints=\"" << m_points.size() << "\" NumberOfVerts=\"0\" "
-         << "NumberOfLines=\"0\" NumberOfString=\"0\" NumberOfPolys=\" "
+      myfile << "<Piece NumberOfPoints=\"" << m_points.size() << "\" NumberOfVerts=\"0\" " // NOLINT
+         << "NumberOfLines=\"0\" NumberOfString=\"0\" NumberOfPolys=\" " // NOLINT
          << m_connectivity.size() << "\">\n";
       print_points(myfile);
       print_connectivity(myfile);
@@ -211,7 +211,7 @@ void EBToPVD::WriteEBVTP(const int myID) const
    }
 }
 
-void EBToPVD::WritePVTP(const int nProcs) const
+void EBToPVD::WritePVTP(const int nProcs)
 {
    std::ofstream myfile("eb.pvtp");
 
@@ -315,7 +315,7 @@ void EBToPVD::reorder_polygon(const std::vector<std::array<Real,3>>& lpoints,
 }
 
 void EBToPVD::calc_hesse(Real& distance, std::array<Real,3>& n0, Real& p,
-      const std::array<Real,3>& normal, const std::array<Real,3>& centroid) const
+      const std::array<Real,3>& normal, const std::array<Real,3>& centroid)
 {
    Real sign_of_dist;
 
@@ -337,7 +337,7 @@ void EBToPVD::calc_hesse(Real& distance, std::array<Real,3>& n0, Real& p,
 void EBToPVD::calc_alpha(std::array<Real,12>& alpha,
       const std::array<Real,3>& n0, Real p,
       const std::array<std::array<Real,3>,8>& vertex,
-      const Real* dx) const
+      const Real* dx)
 {
    // default (large) value
    std::fill(alpha.begin(), alpha.end(), 10.0);
@@ -368,7 +368,7 @@ void EBToPVD::calc_alpha(std::array<Real,12>& alpha,
 }
 
 void EBToPVD::calc_intersects(int& int_count, std::array<bool,12>& intersects_flags,
-      const std::array<Real,12>& alpha) const
+      const std::array<Real,12>& alpha)
 {
    int_count = 0;
    std::fill(intersects_flags.begin(), intersects_flags.end(), false);
@@ -386,9 +386,9 @@ void EBToPVD::print_points(std::ofstream& myfile) const
    myfile << "<Points>\n";
    myfile << "<DataArray type=\"Float32\" NumberOfComponents=\"3\" format=\"ascii\">\n";
 
-   for(size_t lc1 = 0; lc1 < m_points.size(); ++lc1) {
+   for(const auto & m_point : m_points) {
       myfile << std::fixed << std::scientific
-         << m_points[lc1][0] << " " << m_points[lc1][1] << " " << m_points[lc1][2] << "\n";
+         << m_point[0] << " " << m_point[1] << " " << m_point[2] << "\n";
    }
 
    myfile << "</DataArray>\n";
@@ -399,9 +399,9 @@ void EBToPVD::print_connectivity(std::ofstream& myfile) const
 {
    myfile << "<Polys>\n";
    myfile << "<DataArray type=\"Int32\" Name=\"connectivity\" format=\"ascii\">\n";
-   for(size_t lc1 = 0; lc1 < m_connectivity.size(); ++lc1) {
-      for(int lc2 = 1; lc2 <= m_connectivity[lc1][0]; ++lc2) {
-         myfile << " " << m_connectivity[lc1][lc2];
+   for(const auto & lc1 : m_connectivity) {
+      for(int lc2 = 1; lc2 <= lc1[0]; ++lc2) {
+         myfile << " " << lc1[lc2];
       }
       myfile << "\n";
    }
@@ -409,8 +409,8 @@ void EBToPVD::print_connectivity(std::ofstream& myfile) const
 
    myfile << "<DataArray type=\"Int32\" Name=\"offsets\" format=\"ascii\">\n";
    int lc2 = 0;
-   for(size_t lc1 = 0; lc1 < m_connectivity.size(); ++lc1) {
-      lc2 = lc2 + m_connectivity[lc1][0];
+   for(const auto & lc1 : m_connectivity) {
+      lc2 = lc2 + lc1[0];
       myfile << " " << lc2;
    }
    myfile << "\n";
@@ -471,12 +471,12 @@ void EBToPVD::EBGridCoverage(const int myID, const Real* problo, const Real* dx,
             lines[llc] = grid_start + llc*dx[idim];
          }
 
-         myfile << "<DataArray type=\"Float32\" format=\"ascii\" RangeMin=\""
+         myfile << "<DataArray type=\"Float32\" format=\"ascii\" RangeMin=\"" // NOLINT
             << std::fixed
             << lines[0] << "\" RangeMax=\"" << lines[nodes[idim]] << "\">\n";
 
-         for(size_t llc = 0; llc < lines.size(); ++llc) {
-            myfile << " " << lines[llc];
+         for(auto line : lines) {
+            myfile << " " << line;
          }
          myfile << "\n";
 
