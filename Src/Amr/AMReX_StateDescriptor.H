@@ -60,7 +60,7 @@ public:
 
         BndryFunc (BndryFunc3DDefault inFunc) noexcept : m_func3D(inFunc) {}
 
-        BndryFunc (BndryFuncFabDefault inFunc) noexcept : m_funcfab(std::move(std::move(inFunc))) {}
+        BndryFunc (BndryFuncFabDefault inFunc) noexcept : m_funcfab(std::move(inFunc)) {}
 
         /**
         * \brief Another Constructor.
