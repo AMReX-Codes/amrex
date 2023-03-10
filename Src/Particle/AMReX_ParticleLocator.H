@@ -67,7 +67,7 @@ struct AssignGrid
         for (int ii = ix_lo; ii <= ix_hi; ++ii) {
             for (int jj = iy_lo; jj <= iy_hi; ++jj) {
                 for (int kk = iz_lo; kk <= iz_hi; ++kk) {
-                    int index = (ii * m_num_bins.y + jj) * m_num_bins.z + kk;
+                    int index = (kk * m_num_bins.y + jj) * m_num_bins.x + ii;
                     for (const auto& nbor : m_bif.getBinIterator(index)) {
                         Box bx = nbor.second;
                         if (bx.contains(iv)) {
