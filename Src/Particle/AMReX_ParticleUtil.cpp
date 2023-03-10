@@ -5,7 +5,7 @@ namespace amrex
 
 IntVect computeRefFac (const ParGDBBase* a_gdb, int src_lev, int lev)
 {
-    IntVect ref_fac = IntVect(AMREX_D_DECL(1,1,1));
+    IntVect ref_fac(AMREX_D_DECL(1,1,1));
     if (src_lev < lev) {
         for (int l = src_lev; l < lev; ++l) {
             ref_fac *= a_gdb->refRatio(l);

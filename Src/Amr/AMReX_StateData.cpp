@@ -457,7 +457,7 @@ StateData::FillBoundary (FArrayBox&     dest,
 
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
-        xlo[i] = problo[i] + dx[i]*(dlo[i]-plo[i]);
+        xlo[i] = problo[i] + dx[i]*static_cast<Real>(dlo[i]-plo[i]);
     }
     for (int i = 0; i < num_comp; )
     {

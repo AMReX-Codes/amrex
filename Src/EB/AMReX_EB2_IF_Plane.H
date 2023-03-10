@@ -5,7 +5,7 @@
 #include <AMReX_Array.H>
 #include <AMReX_EB2_IF_Base.H>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
@@ -47,6 +47,6 @@ protected:
 
 };
 
-}}
+}
 
 #endif

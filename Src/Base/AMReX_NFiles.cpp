@@ -9,32 +9,30 @@ int NFilesIter::currentDeciderIndex(-1);
 int NFilesIter::minDigits(5);
 
 
-NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
+NFilesIter::NFilesIter(int noutfiles, std::string fileprefix,
                        bool groupsets, bool setBuf)
+    : myProc          (ParallelDescriptor::MyProc()),
+      nProcs          (ParallelDescriptor::NProcs()),
+      nOutFiles       (ActualNFiles(noutfiles)),
+      nSets           (LengthOfSet(nProcs, nOutFiles)),
+      groupSets       (groupsets),
+      mySetPosition   (WhichSetPosition(myProc, nProcs, nOutFiles, groupSets)),
+      fileNumber      (FileNumber(nOutFiles, myProc, groupSets)),
+      filePrefix      (std::move(fileprefix)),
+      fullFileName    (FileName(fileNumber, filePrefix)),
+      finishedWriting (false),
+      isReading       (false),
+      useStaticSetSelection (true),
+      coordinatorProc (ParallelDescriptor::IOProcessorNumber()),
+      stWriteTag      (ParallelDescriptor::SeqNum()),
+      stReadTag       (ParallelDescriptor::SeqNum()),
+      useSparseFPP    (false)
 {
-  stWriteTag    = ParallelDescriptor::SeqNum();
-  stReadTag     = ParallelDescriptor::SeqNum();
-  isReading     = false;
-  nOutFiles     = ActualNFiles(noutfiles);
-  groupSets     = groupsets;
-  myProc        = ParallelDescriptor::MyProc();
-  nProcs        = ParallelDescriptor::NProcs();
-  nSets         = LengthOfSet(nProcs, nOutFiles);
-  mySetPosition = WhichSetPosition(myProc, nProcs, nOutFiles, groupSets);
-  fileNumber    = FileNumber(nOutFiles, myProc, groupSets);
-  filePrefix    = fileprefix;
-  fullFileName  = FileName(fileNumber, filePrefix);
-  useSparseFPP  = false;
-
-  finishedWriting = false;
-
   if(setBuf) {
     io_buffer.resize(VisMFBuffer::GetIOBufferSize());
     fileStream.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
   }
 
-  useStaticSetSelection = true;
-  coordinatorProc = ParallelDescriptor::IOProcessorNumber();
   if(myProc == coordinatorProc) {
     // ---- make a static order
     fileNumbersWriteOrder.resize(nOutFiles);
@@ -161,16 +159,17 @@ void NFilesIter::SetSparseFPP(const Vector<int> &ranksToWrite)
 }
 
 
-NFilesIter::NFilesIter(const std::string &filename,
+NFilesIter::NFilesIter(std::string filename,
                        const Vector<int> &readranks,
                        bool setBuf)
+    : myProc       (ParallelDescriptor::MyProc()),
+      nProcs       (ParallelDescriptor::NProcs()),
+      fullFileName (std::move(filename)),
+      isReading    (true),
+      readRanks    (readranks),
+      myReadIndex  (indexUndefined),
+      useStaticSetSelection (true)
 {
-  isReading = true;
-  myProc    = ParallelDescriptor::MyProc();
-  nProcs    = ParallelDescriptor::NProcs();
-  fullFileName = filename;
-  readRanks = readranks;
-  myReadIndex = indexUndefined;
   for(int i(0); i < readRanks.size(); ++i) {
     if(myProc == readRanks[i]) {
       if(myReadIndex != indexUndefined) {
@@ -191,8 +190,6 @@ NFilesIter::NFilesIter(const std::string &filename,
     io_buffer.resize(VisMFBuffer::GetIOBufferSize());
     fileStream.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
   }
-
-  useStaticSetSelection = true;
 }
 
 

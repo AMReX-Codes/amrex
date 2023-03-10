@@ -11,7 +11,7 @@
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 template <class F, class G>
 class DifferenceIF
@@ -71,6 +71,6 @@ makeDifference (F&& f, G&& g)
         (std::forward<F>(f), std::forward<G>(g));
 }
 
-}}
+}
 
 #endif

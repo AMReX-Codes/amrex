@@ -3,7 +3,7 @@
 
 #include <AMReX_MultiFab.H>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 class ChkptFile
 {
@@ -55,6 +55,6 @@ public:
                               const IntVect& ngrow, bool extend_domain_face, int max_grid_size) const;
 };
 
-}}
+}
 
 #endif

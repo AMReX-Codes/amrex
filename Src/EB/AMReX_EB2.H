@@ -13,7 +13,7 @@
 #include <type_traits>
 #include <string>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 extern AMREX_EXPORT int max_grid_size;
 
@@ -148,6 +148,6 @@ int maxCoarseningLevel (IndexSpace const* ebis, const Geometry& geom);
 
 void addFineLevels (int num_new_fine_levels);
 
-}}
+}
 
 #endif

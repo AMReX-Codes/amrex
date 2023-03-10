@@ -98,7 +98,7 @@ CoordSys::LoNode (const IntVect& point,
     AMREX_ASSERT(loc != nullptr);
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
-        loc[k] = offset[k] + dx[k]*point[k];
+        loc[k] = offset[k] + dx[k]*static_cast<Real>(point[k]);
     }
 }
 
@@ -118,7 +118,7 @@ CoordSys::HiNode (const IntVect& point,
     AMREX_ASSERT(loc != nullptr);
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
-        loc[k] = offset[k] + dx[k]*(point[k] + 1);
+        loc[k] = offset[k] + dx[k]*static_cast<Real>(point[k] + 1);
     }
 }
 
@@ -290,12 +290,12 @@ CoordSys::GetEdgeLoc (Vector<Real>& loc,
     const int* lo = region.loVect();
     const int* hi = region.hiVect();
     int len       = hi[dir] - lo[dir] + 2;
-    Real off      = offset[dir] + dx[dir]*lo[dir];
+    Real off      = offset[dir] + dx[dir]*static_cast<Real>(lo[dir]);
     loc.resize(len);
     AMREX_PRAGMA_SIMD
     for (int i = 0; i < len; i++)
     {
-        loc[i] = off + dx[dir]*i;
+        loc[i] = off + dx[dir]*static_cast<Real>(i);
     }
 }
 
@@ -314,7 +314,7 @@ CoordSys::GetCellLoc (Vector<Real>& loc,
     AMREX_PRAGMA_SIMD
     for (int i = 0; i < len; i++)
     {
-        loc[i] = off + dx[dir]*i;
+        loc[i] = off + dx[dir]*static_cast<Real>(i);
     }
 }
 
@@ -334,7 +334,7 @@ CoordSys::GetEdgeVolCoord (Vector<Real>& vc,
 #if (AMREX_SPACEDIM == 2)
     if (dir == 0 && c_sys == RZ)
     {
-        int len = vc.size();
+        int len = static_cast<int>(vc.size());
         AMREX_PRAGMA_SIMD
         for (int i = 0; i < len; i++)
         {
@@ -345,7 +345,7 @@ CoordSys::GetEdgeVolCoord (Vector<Real>& vc,
 #elif (AMREX_SPACEDIM == 1)
     if (c_sys == SPHERICAL)
     {
-        int len = vc.size();
+        int len = static_cast<int>(vc.size());
         AMREX_PRAGMA_SIMD
         for (int i = 0; i < len; i++) {
             Real r = vc[i];
@@ -371,7 +371,7 @@ CoordSys::GetCellVolCoord (Vector<Real>& vc,
 #if (AMREX_SPACEDIM == 2)
     if (dir == 0 && c_sys == RZ)
     {
-        int len = vc.size();
+        int len = static_cast<int>(vc.size());
         AMREX_PRAGMA_SIMD
         for (int i = 0; i < len; i++)
         {
@@ -381,7 +381,7 @@ CoordSys::GetCellVolCoord (Vector<Real>& vc,
     }
 #elif (AMREX_SPACEDIM == 1)
     if (c_sys == SPHERICAL) {
-        int len = vc.size();
+        int len = static_cast<int>(vc.size());
         AMREX_PRAGMA_SIMD
         for (int i = 0; i < len; i++) {
             Real r = vc[i];
@@ -470,7 +470,7 @@ CoordSys::Volume (const Real xlo[AMREX_SPACEDIM],
 }
 
 Real
-CoordSys::AreaLo (const IntVect& point, int dir) const noexcept
+CoordSys::AreaLo (const IntVect& point, int dir) const noexcept // NOLINT(readability-convert-member-functions-to-static)
 {
     amrex::ignore_unused(point,dir);
 #if (AMREX_SPACEDIM==2)
@@ -508,7 +508,7 @@ CoordSys::AreaLo (const IntVect& point, int dir) const noexcept
 }
 
 Real
-CoordSys::AreaHi (const IntVect& point, int dir) const noexcept
+CoordSys::AreaHi (const IntVect& point, int dir) const noexcept // NOLINT(readability-convert-member-functions-to-static)
 {
     amrex::ignore_unused(point,dir);
 #if (AMREX_SPACEDIM==2)

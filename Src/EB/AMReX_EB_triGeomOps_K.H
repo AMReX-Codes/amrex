@@ -4,10 +4,8 @@
 #include <AMReX_Math.H>
 #include <AMReX_REAL.H>
 
-namespace amrex
+namespace amrex::tri_geom_ops
 {
-    namespace tri_geom_ops
-    {
         //================================================================================
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Real Distance2(const Real P1[3],const Real P2[3])
         {
@@ -94,14 +92,14 @@ namespace amrex
             CrossProd(v1,v2,n);
 
 
-            centr[0]=0.333333*(P1[0]+P2[0]+P3[0]);
-            centr[1]=0.333333*(P1[1]+P2[1]+P3[1]);
-            centr[2]=0.333333*(P1[2]+P2[2]+P3[2]);
+            centr[0]=Real(0.333333)*(P1[0]+P2[0]+P3[0]);
+            centr[1]=Real(0.333333)*(P1[1]+P2[1]+P3[1]);
+            centr[2]=Real(0.333333)*(P1[2]+P2[2]+P3[2]);
 
             getvec(centr,testp,c_tp_vec);
             magn=std::sqrt(n[0]*n[0]+n[1]*n[1]+n[2]*n[2]);
 
-            if(DotProd(c_tp_vec,n) < 0.0)
+            if(DotProd(c_tp_vec,n) < Real(0.0))
             {
                 magn=-magn;
             }
@@ -118,7 +116,7 @@ namespace amrex
             getvec(P1,P2,v1);
             getvec(P1,P3,v2);
             CrossProd(v1,v2,area);
-            return(0.5 * std::sqrt(DotProd(area,area)) );
+            return(Real(0.5) * std::sqrt(DotProd(area,area)) );
         }
         //================================================================================
         //this is only useful when v1-v2 segment intersects the triangle
@@ -153,9 +151,9 @@ namespace amrex
 
             for(int i=0;i<bisect_iters;i++)
             {
-                midp[0]=0.5*(p1[0]+p2[0]);
-                midp[1]=0.5*(p1[1]+p2[1]);
-                midp[2]=0.5*(p1[2]+p2[2]);
+                midp[0]=Real(0.5)*(p1[0]+p2[0]);
+                midp[1]=Real(0.5)*(p1[1]+p2[1]);
+                midp[2]=Real(0.5)*(p1[2]+p2[2]);
 
                 plane_eq_mid= (midp[0]-t1[0])*n[0] + (midp[1]-t1[1])*n[1] + (midp[2]-t1[2])*n[2];
                 plane_eq1   = (p1[0]  -t1[0])*n[0] + (p1[1]  -t1[1])*n[1] + (p1[2]  -t1[2])*n[2];
@@ -301,6 +299,5 @@ namespace amrex
 
         }
         //================================================================================
-    }
 }
 #endif

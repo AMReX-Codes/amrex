@@ -49,7 +49,7 @@ class DistributionMapping
     enum Strategy { UNDEFINED = -1, ROUNDROBIN, KNAPSACK, SFC, RRSFC };
 
     //! The default constructor.
-    DistributionMapping ();
+    DistributionMapping () noexcept;
 
     //! The copy constructor.
     DistributionMapping (const DistributionMapping& rhs) = default;

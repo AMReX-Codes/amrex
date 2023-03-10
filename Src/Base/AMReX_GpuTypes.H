@@ -37,7 +37,7 @@ struct gpuStream_t {
 
 #endif
 
-namespace amrex { namespace Gpu {
+namespace amrex::Gpu {
 
 #if defined(AMREX_USE_SYCL)
 
@@ -101,6 +101,6 @@ struct Handler {};
 
 #endif
 
-}}
+}
 
 #endif

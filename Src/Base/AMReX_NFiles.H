@@ -41,7 +41,7 @@ class NFilesIter
     * \param groupsets
     * \param setBuf
     */
-    NFilesIter(int noutfiles, const std::string &fileprefix,
+    NFilesIter(int noutfiles, std::string fileprefix,
                bool groupsets, bool setBuf);
 
 
@@ -73,7 +73,7 @@ class NFilesIter
     * \param &readRanks
     * \param setBuf
     */
-    NFilesIter(const std::string &fileName,
+    NFilesIter(std::string fileName,
                const Vector<int> &readRanks,
                bool setBuf = false);
 
@@ -210,21 +210,24 @@ class NFilesIter
     int nProcs;
     int nOutFiles;
     int nSets;
+    bool groupSets;
     int mySetPosition;
-    std::string fullFileName;
+    int fileNumber;
     std::string filePrefix;
+    std::string fullFileName;
     VisMFBuffer::IO_Buffer io_buffer;
     std::fstream fileStream;
     bool finishedWriting;
-    bool groupSets;
     bool isReading;
     bool finishedReading;
     Vector<int> readRanks;
     Vector< Vector<int> > fileNumbersWriteOrder;        //!< [filenumber][ranks in order they wrote to filenumber]
     int myReadIndex;
     bool useStaticSetSelection;
-    int fileNumber, remainingWriters, deciderProc, coordinatorProc;
-    int deciderTag, coordinatorTag, doneTag, writeTag, stReadTag, stWriteTag;
+    int remainingWriters, deciderProc, coordinatorProc;
+    int deciderTag, coordinatorTag, doneTag, writeTag;
+    int stWriteTag;
+    int stReadTag;
     Vector<int> availableDeciders;
     Vector<int> setZeroProcs;
     bool useSparseFPP;

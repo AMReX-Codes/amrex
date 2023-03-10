@@ -333,7 +333,7 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 }
 
 void
-MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
+MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel, // NOLINT(readability-convert-member-functions-to-static)
                            BCMode bc_mode, StateMode, const MLMGBndry* bndry) const
 {
 #if (AMREX_SPACEDIM == 1)

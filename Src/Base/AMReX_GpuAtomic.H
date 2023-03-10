@@ -10,7 +10,7 @@
 
 namespace amrex {
 
-namespace Gpu { namespace Atomic {
+namespace Gpu::Atomic {
 
 // For Add, Min and Max, we support int, unsigned int, long, unsigned long long, float and double.
 // For LogicalOr and LogicalAnd, the data type is int.
@@ -522,9 +522,9 @@ namespace detail {
         return old;
 #endif
     }
-}}
+}
 
-namespace HostDevice { namespace Atomic {
+namespace HostDevice::Atomic {
 
     template <class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -540,7 +540,7 @@ namespace HostDevice { namespace Atomic {
 #endif
     }
 
-}}
+}
 
 #ifdef AMREX_USE_GPU
 // functors

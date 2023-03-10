@@ -5,7 +5,7 @@
 #include <AMReX_FabArray.H>
 #include <AMReX_FArrayBox.H>
 
-namespace amrex { namespace NonLocalBC {
+namespace amrex::NonLocalBC {
 
 ////////////////////////////////////////////////////////////////////////////////////
 //                                                            [concept.IndexMapping]
@@ -1030,7 +1030,7 @@ template <class FAB>
 std::enable_if_t<IsBaseFab<FAB>::value>
 FillPolar (FabArray<FAB>& mf, Box const& domain);
 
-}}
+}
 
 #include <AMReX_NonLocalBCImpl.H>
 

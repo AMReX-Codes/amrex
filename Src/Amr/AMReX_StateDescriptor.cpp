@@ -86,7 +86,7 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
     } else {
 #pragma omp critical (bndryfunc)
         {
-            if (m_gfunc != 0) {
+            if (m_gfunc != nullptr) {
                 m_gfunc(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,a_bc);
             } else {
                 m_gfunc3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),

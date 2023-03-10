@@ -79,14 +79,13 @@ AmrLevel::AmrLevel (Amr&            papa,
                     const DistributionMapping& dm,
                     Real            time)
     :
+    level(lev),
     geom(level_geom),
     grids(ba),
-    dmap(dm)
+    dmap(dm),
+    parent(&papa)
 {
     BL_PROFILE("AmrLevel::AmrLevel(dm)");
-    level  = lev;
-    parent = &papa;
-    levelDirectoryCreated = false;
 
     fine_ratio = IntVect::TheUnitVector(); fine_ratio.scale(-1);
     crse_ratio = IntVect::TheUnitVector(); crse_ratio.scale(-1);

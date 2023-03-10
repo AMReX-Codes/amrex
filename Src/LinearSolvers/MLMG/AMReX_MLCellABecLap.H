@@ -8,7 +8,7 @@
 namespace amrex {
 
 template <typename MF>
-class MLCellABecLapT
+class MLCellABecLapT  // NOLINT(cppcoreguidelines-virtual-class-destructor)
     : public MLCellLinOpT<MF>
 {
 public:
@@ -18,8 +18,8 @@ public:
 
     using Location  = typename MLLinOpT<MF>::Location;
 
-    MLCellABecLapT ();
-    ~MLCellABecLapT () override;
+    MLCellABecLapT () = default;
+    ~MLCellABecLapT () override = default;
 
     MLCellABecLapT (const MLCellABecLapT<MF>&) = delete;
     MLCellABecLapT (MLCellABecLapT<MF>&&) = delete;
@@ -86,9 +86,6 @@ protected:
 
     [[nodiscard]] bool supportInhomogNeumannBC () const noexcept override { return true; }
 };
-
-template <typename MF> MLCellABecLapT<MF>::MLCellABecLapT () = default;
-template <typename MF> MLCellABecLapT<MF>::~MLCellABecLapT () = default;
 
 template <typename MF>
 void

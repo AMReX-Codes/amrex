@@ -20,8 +20,8 @@ jobs:
     - uses: actions/checkout@v3
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_gcc8.sh
-        sudo apt-get install -y --no-install-recommends clang-tidy-12
+        .github/workflows/dependencies/dependencies_gcc.sh 8
+        .github/workflows/dependencies/dependencies_clang-tidy.sh 12
     - name: Build & Install
       run: |
         mkdir build
@@ -34,7 +34,7 @@ jobs:
             -DCMAKE_C_COMPILER=$(which gcc-8)     \
             -DCMAKE_CXX_COMPILER=$(which g++-8)   \
             -DCMAKE_Fortran_COMPILER=$(which gfortran-8) \
-            -DAMReX_CLANG_TIDY=ON \
+            -DAMReX_CLANG_TIDY=ON                 \
             -DAMReX_CLANG_TIDY_WERROR=ON
         make -j 2
         make install
@@ -54,7 +54,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies.sh
+      run: |
+        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_clang-tidy.sh 12
     - name: Build & Install
       run: |
         cmake -S . -B build             \
@@ -64,7 +66,9 @@ jobs:
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
             -DAMReX_PARTICLES=ON        \
-            -DAMReX_SPACEDIM=3
+            -DAMReX_SPACEDIM=3          \
+            -DAMReX_CLANG_TIDY=ON       \
+            -DAMReX_CLANG_TIDY_WERROR=ON
         cmake --build build -j 2
 
         ctest --test-dir build --output-on-failure
@@ -77,7 +81,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies.sh
+      run: |
+        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_clang-tidy.sh 12
     - name: Build & Install
       run: |
         cmake -S . -B build             \
@@ -87,7 +93,9 @@ jobs:
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
             -DAMReX_PARTICLES=ON        \
-            -DAMReX_SPACEDIM=2
+            -DAMReX_SPACEDIM=2          \
+            -DAMReX_CLANG_TIDY=ON       \
+            -DAMReX_CLANG_TIDY_WERROR=ON
         cmake --build build -j 2
 
         ctest --test-dir build --output-on-failure
@@ -101,7 +109,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies.sh
+      run: |
+        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_clang-tidy.sh 12
     - name: Build & Install
       run: |
         cmake -S . -B build             \
@@ -111,7 +121,9 @@ jobs:
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
             -DAMReX_PARTICLES=ON        \
-            -DAMReX_SPACEDIM=1
+            -DAMReX_SPACEDIM=1          \
+            -DAMReX_CLANG_TIDY=ON       \
+            -DAMReX_CLANG_TIDY_WERROR=ON
         cmake --build build -j 2
 
         ctest --test-dir build --output-on-failure
@@ -124,7 +136,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_gcc10.sh
+      run: |
+        .github/workflows/dependencies/dependencies_gcc.sh 10
+        .github/workflows/dependencies/dependencies_clang-tidy.sh 12
     - name: Build & Install
       run: |
         mkdir build
@@ -144,7 +158,9 @@ jobs:
             -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_C_COMPILER=$(which gcc-10)              \
             -DCMAKE_CXX_COMPILER=$(which g++-10)            \
-            -DCMAKE_Fortran_COMPILER=$(which gfortran-10)
+            -DCMAKE_Fortran_COMPILER=$(which gfortran-10)   \
+            -DAMReX_CLANG_TIDY=ON
+            # Cannot use C++20 yet -DAMReX_CLANG_TIDY_WERROR=ON
         make -j 2
 
         ctest --output-on-failure
@@ -157,7 +173,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_gcc8.sh
+      run: |
+        .github/workflows/dependencies/dependencies_gcc.sh 8
+        .github/workflows/dependencies/dependencies_clang-tidy.sh 12
     - name: Build & Install
       run: |
         mkdir build
@@ -176,20 +194,31 @@ jobs:
             -DAMReX_PARTICLES=ON        \
             -DCMAKE_C_COMPILER=$(which gcc-8)     \
             -DCMAKE_CXX_COMPILER=$(which g++-8)   \
-            -DCMAKE_Fortran_COMPILER=$(which gfortran-8)
+            -DCMAKE_Fortran_COMPILER=$(which gfortran-8) \
+            -DAMReX_CLANG_TIDY=ON       \
+            -DAMReX_CLANG_TIDY_WERROR=ON
         make -j 2
 
         ctest --output-on-failure
 
   # Build libamrex and all tests
   tests-nofortran:
-    name: GNU@9.3 C++17 w/o Fortran [tests]
-    runs-on: ubuntu-20.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"}
+    name: GNU@12 C++17 w/o Fortran [tests]
+    runs-on: ubuntu-22.04
+    #
+    # /home/runner/work/amrex/amrex/Src/Base/AMReX_IntVect.H:194:92: error: array subscript -1 is below array bounds of ‘int [3]’ [-Werror=array-bounds]
+    # int& operator[] (int i) noexcept { BL_ASSERT(i>=0 && i < AMREX_SPACEDIM); return vect[i]; }
+    #
+    # inlined from ‘const amrex::MultiFab& amrex::EBFArrayBoxFactory::getVolFrac() const’ at /home/runner/work/amrex/amrex/Src/EB/AMReX_EBFabFactory.H:53:91,
+    # /usr/include/c++/12/bits/shared_ptr_base.h:1666:16: error: potential null pointer dereference [-Werror=null-dereference]
+    #
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs -Wno-array-bounds -Wno-null-dereference"}
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_nofortran.sh
+      run: |
+        .github/workflows/dependencies/dependencies_gcc.sh 12
+        .github/workflows/dependencies/dependencies_clang-tidy.sh 14
     - name: Build & Install
       run: |
         mkdir build
@@ -205,7 +234,12 @@ jobs:
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=OFF         \
             -DAMReX_PARTICLES=ON        \
-            -DAMReX_FORTRAN=OFF
+            -DAMReX_FORTRAN=OFF         \
+            -DCMAKE_C_COMPILER=$(which gcc-12)     \
+            -DCMAKE_CXX_COMPILER=$(which g++-12)   \
+            -DCMAKE_CXX_STANDARD=17     \
+            -DAMReX_CLANG_TIDY=ON       \
+            -DAMReX_CLANG_TIDY_WERROR=ON
         make -j 2
 
         ctest --output-on-failure
@@ -287,16 +321,20 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies.sh
+      run: |
+        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_clang-tidy.sh 12
     - name: Build & Install
       run: |
         mkdir build
         cd build
         cmake ..                        \
-            -DAMReX_OMP=ON             \
+            -DAMReX_OMP=ON              \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_ENABLE_TESTS=ON     \
-            -DAMReX_PARTICLES=ON
+            -DAMReX_PARTICLES=ON        \
+            -DAMReX_CLANG_TIDY=ON       \
+            -DAMReX_CLANG_TIDY_WERROR=ON
         make -j 2
     - name: Run tests
       run: |

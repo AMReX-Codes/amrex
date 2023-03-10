@@ -401,13 +401,6 @@ class CellQuadratic
 public:
 
     /**
-    * \brief The constructor.
-    *
-    * \param limit
-    */
-    explicit CellQuadratic (bool limit = true);
-
-    /**
     * \brief Returns coarsened box given fine box and refinement ratio.
     *
     * \param fine
@@ -452,9 +445,6 @@ public:
                          int              actual_comp,
                          int              actual_state,
                          RunOn            runon) override;
-private:
-
-    bool  do_limited_slope;
 };
 
 

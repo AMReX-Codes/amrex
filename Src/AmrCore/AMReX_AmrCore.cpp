@@ -47,10 +47,10 @@ AmrCore::AmrCore (Geometry const& level_0_geom, AmrInfo const& amr_info)
 }
 
 AmrCore::AmrCore (AmrCore&& rhs) noexcept
-    : AmrMesh(std::move(rhs))
+    : AmrMesh(static_cast<AmrMesh&&>(rhs))
 {
 #ifdef AMREX_PARTICLES
-    m_gdb = std::move(rhs.m_gdb);
+    m_gdb = std::move(rhs.m_gdb); // NOLINT(cppcoreguidelines-prefer-member-initializer)
     m_gdb->m_amrcore = this;
 #endif
 }

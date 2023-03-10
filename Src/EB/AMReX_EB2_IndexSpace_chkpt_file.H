@@ -7,7 +7,7 @@
 
 #include <string>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 class IndexSpaceChkptFile
     : public IndexSpace
@@ -42,6 +42,6 @@ private:
     Vector<int> m_ngrow;
 };
 
-}}
+}
 
 #endif

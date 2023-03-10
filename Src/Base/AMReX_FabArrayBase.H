@@ -147,18 +147,17 @@ public:
     //
     struct CacheStats
     {
-        int         size;     //!< current size: nbuild - nerase
-        int         maxsize;  //!< highest water mark of size
-        Long        maxuse;   //!< max # of uses of a cached item
-        Long        nuse;     //!< # of uses of the whole cache
-        Long        nbuild;   //!< # of build operations
-        Long        nerase;   //!< # of erase operations
-        Long        bytes;
-        Long        bytes_hwm;
+        int         size{0};     //!< current size: nbuild - nerase
+        int         maxsize{0};  //!< highest water mark of size
+        Long        maxuse{0};   //!< max # of uses of a cached item
+        Long        nuse{0};     //!< # of uses of the whole cache
+        Long        nbuild{0};   //!< # of build operations
+        Long        nerase{0};   //!< # of erase operations
+        Long        bytes{0};
+        Long        bytes_hwm{0};
         std::string name;     //!< name of the cache
         explicit CacheStats (std::string  name_)
-            : size(0),maxsize(0),maxuse(0),nuse(0),nbuild(0),nerase(0),
-              bytes(0L),bytes_hwm(0L),name(std::move(name_)) {;}
+            : name(std::move(name_)) {;}
         void recordBuild () noexcept {
             ++size;
             ++nbuild;
@@ -317,7 +316,7 @@ public:
         IntVect             m_dstng;
         std::unique_ptr<BoxConverter> m_coarsener;
         //
-        Long                m_nuse;
+        Long                m_nuse{0};
     };
 
     typedef std::multimap<BDKey,FabArrayBase::FPinfo*> FPinfoCache;
@@ -362,7 +361,7 @@ public:
         bool                m_include_periodic;
         bool                m_include_physbndry;
         //
-        Long                m_nuse;
+        Long                m_nuse{0};
     };
 
     using CFinfoCache = std::multimap<BDKey,FabArrayBase::CFinfo*>;
@@ -487,7 +486,7 @@ public:
         bool         m_override_sync;
         Periodicity  m_period;
         //
-        Long         m_nuse;
+        Long         m_nuse{0};
         bool         m_multi_ghost = false;
         //
 #if defined(__CUDACC__)
@@ -545,7 +544,7 @@ public:
         BoxArray    m_srcba;
         BoxArray    m_dstba;
         //
-        Long        m_nuse;
+        Long        m_nuse{0};
 
     private:
         void define (const BoxArray& ba_dst, const DistributionMapping& dm_dst,

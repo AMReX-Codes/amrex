@@ -1102,7 +1102,7 @@ public:
     [[nodiscard]] std::string getPrefix() const;
 private:
     ParmParse& m_pp;
-    int        m_np;
+    int        m_np{0};
 };
 
 class ParmParse::Record

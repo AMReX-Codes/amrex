@@ -2,8 +2,7 @@
 #define AMREX_GPU_KERNEL_INFO_H_
 #include <AMReX_Config.H>
 
-namespace amrex {
-namespace Gpu {
+namespace amrex::Gpu {
 
 class KernelInfo
 {
@@ -14,6 +13,6 @@ private:
     bool has_reduction = false;
 };
 
-}}
+}
 
 #endif

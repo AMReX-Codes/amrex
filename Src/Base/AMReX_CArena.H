@@ -169,9 +169,9 @@ protected:
     //! The minimal size of hunks to request from system
     std::size_t m_hunk;
     //! The amount of heap space currently allocated.
-    std::size_t m_used;
+    std::size_t m_used{0};
     //! The amount of memory given out via alloc().
-    std::size_t m_actually_used;
+    std::size_t m_actually_used{0};
     //! If this arena is profiled by TinyProfiler
     bool m_do_profiling = false;
     //! Data structure used for profiling with TinyProfiler

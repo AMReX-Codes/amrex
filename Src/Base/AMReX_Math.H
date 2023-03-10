@@ -28,7 +28,7 @@ namespace amrex { inline namespace disabled {
     AMREX_GPU_HOST_DEVICE long long abs (long long);
 }}
 
-namespace amrex { namespace Math {
+namespace amrex::Math {
 
 // Since Intel's SYCL compiler now supports the following std functions on device,
 // one no longer needs to use amrex::Math::abs, etc.  They are kept here for
@@ -182,6 +182,6 @@ std::pair<float,float> sincospi (float x)
     return r;
 }
 
-}}
+}
 
 #endif

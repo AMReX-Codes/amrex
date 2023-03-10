@@ -12,6 +12,4 @@ sudo apt-get update
 sudo apt-get install -y --no-install-recommends \
     build-essential      \
     gfortran             \
-    clang-$1             \
-    clang-tidy-$1        \
-    libomp-$1-dev
+    clang-$1

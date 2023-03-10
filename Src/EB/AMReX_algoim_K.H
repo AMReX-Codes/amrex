@@ -18,7 +18,7 @@
 #include <limits>
 #include <cfloat>
 
-namespace amrex { namespace algoim {
+namespace amrex::algoim {
 
 struct EBPlane
 {
@@ -659,6 +659,6 @@ void set_regular_surface (int i, int j, int k, Array4<Real> const& sintg) noexce
     sintg(i,j,k,i_B_xyz  ) = 0.0_rt;
 }
 
-}}
+}
 
 #endif

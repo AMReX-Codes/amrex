@@ -16,7 +16,7 @@
 namespace amrex {
 
 template <typename MF>
-class MLCellLinOpT
+class MLCellLinOpT  // NOLINT(cppcoreguidelines-virtual-class-destructor)
     : public MLLinOpT<MF>
 {
 public:
@@ -30,7 +30,7 @@ public:
     using Location  = typename MLLinOpT<MF>::Location;
 
     MLCellLinOpT ();
-    ~MLCellLinOpT () override;
+    ~MLCellLinOpT () override = default;
 
     MLCellLinOpT (const MLCellLinOpT<MF>&) = delete;
     MLCellLinOpT (MLCellLinOpT<MF>&&) = delete;
@@ -334,8 +334,6 @@ MLCellLinOpT<MF>::MLCellLinOpT ()
 {
     this->m_ixtype = IntVect::TheCellVector();
 }
-
-template <typename MF> MLCellLinOpT<MF>::~MLCellLinOpT () = default;
 
 template <typename MF>
 void
