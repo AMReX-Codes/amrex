@@ -1058,7 +1058,7 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
                     for (int jj = amrex::max(iy-num_cells, 0); jj <= amrex::min(iy+num_cells, ny); ++jj) {
                         for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz); ++kk) {
                             if (isActualNeighbor) break;
-                            int nbr_cell_id = (ii * ny + jj) * nz + kk;
+                            int nbr_cell_id = (kk * ny + jj) * nx + ii;
                             for (auto p = poffset[nbr_cell_id]; p < poffset[nbr_cell_id+1]; ++p) {
                                 if (pperm[p] == i) continue;
                                 if (call_check_pair(check_pair, ptile_data, ptile_data, i, pperm[p])) {

@@ -371,7 +371,7 @@ public:
               for (int ii = amrex::max(ix-num_cells, 0); ii <= amrex::min(ix+num_cells, nx-1); ++ii) {
                 for (int jj = amrex::max(iy-num_cells, 0); jj <= amrex::min(iy+num_cells, ny-1); ++jj) {
                   for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
-                    int index = (ii * ny + jj) * nz + kk + off_bins;
+                    int index = (kk * ny + jj) * nx + ii + off_bins;
                     for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
                       const auto& pid = pperm[p];
                       bool  ghost_pid = (pid >= np_real);
@@ -431,7 +431,7 @@ public:
             for (int ii = amrex::max(ix-num_cells, 0); ii <= amrex::min(ix+num_cells, nx-1); ++ii) {
               for (int jj = amrex::max(iy-num_cells, 0); jj <= amrex::min(iy+num_cells, ny-1); ++jj) {
                 for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
-                  int index = (ii * ny + jj) * nz + kk + off_bins;
+                  int index = (kk * ny + jj) * nx + ii + off_bins;
                   for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
                     const auto& pid = pperm[p];
                     bool  ghost_pid = (pid >= np_real);
