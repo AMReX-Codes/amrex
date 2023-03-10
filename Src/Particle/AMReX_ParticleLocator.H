@@ -24,7 +24,7 @@ struct AssignGrid
     GpuArray<Real, AMREX_SPACEDIM> m_dxi;
 
     AMREX_GPU_HOST_DEVICE
-    AssignGrid () {}
+    AssignGrid () = default;
 
     AssignGrid (BinIteratorFactory a_bif,
                 const IntVect& a_bins_lo, const IntVect& a_bins_hi, const IntVect& a_bin_size,
@@ -103,14 +103,14 @@ public:
 
     using BinIteratorFactory = typename Bins::BinIteratorFactory;
 
-    ParticleLocator () : m_defined(false) {}
+    ParticleLocator ()  = default;
 
     void build (const BoxArray& ba, const Geometry& geom)
     {
         m_defined = true;
         m_ba = ba;
         m_geom = geom;
-        int num_boxes = ba.size();
+        int num_boxes = static_cast<int>(ba.size());
         m_host_boxes.resize(0);
         for (int i = 0; i < num_boxes; ++i) m_host_boxes.push_back(ba[i]);
 
@@ -126,7 +126,7 @@ public:
                    AMREX_D_DECL(int, int, int)> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
 
-        const auto boxes_ptr = m_device_boxes.dataPtr();
+        auto *const boxes_ptr = m_device_boxes.dataPtr();
         reduce_op.eval(num_boxes, reduce_data,
         [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
         {
@@ -184,7 +184,7 @@ public:
 
 protected:
 
-    bool m_defined;
+    bool m_defined{false};
 
     BoxArray m_ba;
     Geometry m_geom;
@@ -246,7 +246,7 @@ private:
 
 public:
 
-    AmrParticleLocator() {}
+    AmrParticleLocator() = default;
 
     AmrParticleLocator(const Vector<BoxArray>& a_ba,
                        const Vector<Geometry>& a_geom)
@@ -263,7 +263,7 @@ public:
                 const Vector<Geometry>& a_geom)
     {
         m_defined = true;
-        int num_levels = a_ba.size();
+        int num_levels = static_cast<int>(a_ba.size());
         m_locators.resize(num_levels);
         m_grid_assignors.resize(num_levels);
 #ifdef AMREX_USE_GPU
@@ -298,9 +298,9 @@ public:
         build(ba, geom);
     }
 
-    bool isValid (const Vector<BoxArray>& a_ba) const
+    [[nodiscard]] bool isValid (const Vector<BoxArray>& a_ba) const
     {
-        if ( !m_defined || (m_locators.size() == 0) ||
+        if ( !m_defined || (m_locators.empty()) ||
              (m_locators.size() != a_ba.size()) ) return false;
         bool all_valid = true;
         int num_levels = m_locators.size();
@@ -340,7 +340,7 @@ public:
 #endif
     }
 
-    AmrAssignGrid<BinIteratorFactory> getGridAssignor () const noexcept
+    [[nodiscard]] AmrAssignGrid<BinIteratorFactory> getGridAssignor () const noexcept
     {
         AMREX_ASSERT(m_defined);
         return AmrAssignGrid<BinIteratorFactory>(m_grid_assignors.dataPtr(), m_locators.size());

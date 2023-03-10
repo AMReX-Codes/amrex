@@ -23,15 +23,10 @@ class ParticleContainerBase
 {
 public:
 
-    ParticleContainerBase ()
-        :
-        m_verbose(0),
-        m_gdb(nullptr)
-    {}
+    ParticleContainerBase () = default;
 
     ParticleContainerBase (ParGDBBase* gdb)
         :
-        m_verbose(0),
         m_gdb(gdb)
     {}
 
@@ -39,7 +34,6 @@ public:
                            const DistributionMapping & dmap,
                            const BoxArray            & ba)
         :
-        m_verbose(0),
         m_gdb_object(geom,dmap,ba)
     {
         m_gdb = &m_gdb_object;
@@ -50,7 +44,6 @@ public:
                            const Vector<BoxArray>            & ba,
                            const Vector<int>                 & rr)
         :
-        m_verbose(0),
         m_gdb_object(geom,dmap,ba,rr)
     {
         m_gdb = &m_gdb_object;
@@ -61,7 +54,6 @@ public:
                            const Vector<BoxArray>            & ba,
                            const Vector<IntVect>             & rr)
         :
-        m_verbose(0),
         m_gdb_object(geom,dmap,ba, [&]() -> Vector<int> {
                 Vector<int> ref_ratio;
                 for (int i = 0; i < static_cast<int>(rr.size()); ++i)
@@ -234,7 +226,7 @@ public:
     //! \brief Get the ParGDB object used to define this container
     ParGDBBase* GetParGDB ()       { return m_gdb; }
 
-    int Verbose () { return m_verbose; }
+    int Verbose () const { return m_verbose; }
 
     void SetVerbose (int verbose) { m_verbose = verbose; }
 
@@ -266,8 +258,8 @@ protected:
     void BuildRedistributeMask (int lev, int nghost=1) const;
     void defineBufferMap () const;
 
-    int         m_verbose;
-    ParGDBBase* m_gdb;
+    int         m_verbose{0};
+    ParGDBBase* m_gdb{nullptr};
     ParGDB      m_gdb_object;
     Vector<std::unique_ptr<MultiFab> > m_dummy_mf;
 

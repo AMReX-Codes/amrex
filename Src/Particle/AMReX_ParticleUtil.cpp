@@ -44,9 +44,9 @@ Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow)
                 const std::vector<IntVect>& pshifts = periodicity.shiftIntVect();
                 const BoxArray& ba = a_gdb->ParticleBoxArray(lev);
 
-                for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
+                for (auto pshift : pshifts)
                 {
-                    const Box& pbox = box + (*pit);
+                    const Box& pbox = box + pshift;
                     bool first_only = false;
                     ba.intersections(pbox, isects, first_only, 0);
                     for (const auto& isec : isects)

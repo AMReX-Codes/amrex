@@ -59,7 +59,7 @@ AmrCore::~AmrCore () {} // NOLINT
 
 AmrCore& AmrCore::operator= (AmrCore&& rhs) noexcept
 {
-    AmrMesh::operator=(std::move(rhs));
+    AmrMesh::operator=(static_cast<AmrMesh&&>(rhs));
 #ifdef AMREX_PARTICLES
     m_gdb = std::move(rhs.m_gdb);
     m_gdb->m_amrcore = this;

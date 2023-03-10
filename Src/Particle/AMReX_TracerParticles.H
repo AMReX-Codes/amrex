@@ -21,7 +21,7 @@ public:
         : ParticleContainer<AMREX_SPACEDIM>(geom,dmap,ba)
         {}
 
-    ~TracerParticleContainer () {}
+    ~TracerParticleContainer () override = default;
 
     TracerParticleContainer ( const TracerParticleContainer &) = delete;
     TracerParticleContainer& operator= ( const TracerParticleContainer & ) = delete;
@@ -33,8 +33,8 @@ public:
 
     void AdvectWithUcc (const MultiFab& ucc, int level, Real dt);
 
-    void Timestamp (const std::string& file, const MultiFab& mf, int lev, Real time,
-                    const std::vector<int>& idx);
+    void Timestamp (const std::string& basename, const MultiFab& mf, int lev, Real time,
+                    const std::vector<int>& indices);
 };
 
 using TracerParIter = ParIter<AMREX_SPACEDIM>;

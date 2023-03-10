@@ -67,23 +67,23 @@ public:
     }
 #endif
 
-    ParticleTileRef GetParticleTile () const { return *m_particle_tiles[m_pariter_index]; }
+    [[nodiscard]] ParticleTileRef GetParticleTile () const { return *m_particle_tiles[m_pariter_index]; }
 
-    AoSRef GetArrayOfStructs () const { return GetParticleTile().GetArrayOfStructs(); }
+    [[nodiscard]] AoSRef GetArrayOfStructs () const { return GetParticleTile().GetArrayOfStructs(); }
 
-    SoARef GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
+    [[nodiscard]] SoARef GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
 
-    int numParticles () const { return GetArrayOfStructs().numParticles(); }
+    [[nodiscard]] int numParticles () const { return GetArrayOfStructs().numParticles(); }
 
-    int numRealParticles () const { return GetArrayOfStructs().numRealParticles(); }
+    [[nodiscard]] int numRealParticles () const { return GetArrayOfStructs().numRealParticles(); }
 
-    int numNeighborParticles () const { return GetArrayOfStructs().numNeighborParticles(); }
+    [[nodiscard]] int numNeighborParticles () const { return GetArrayOfStructs().numNeighborParticles(); }
 
-    int GetLevel () const { return m_level; }
+    [[nodiscard]] int GetLevel () const { return m_level; }
 
-    std::pair<int, int> GetPairIndex () const { return std::make_pair(this->index(), this->LocalTileIndex()); }
+    [[nodiscard]] std::pair<int, int> GetPairIndex () const { return std::make_pair(this->index(), this->LocalTileIndex()); }
 
-    const Geometry& Geom (int lev) const { return m_pc.Geom(lev); }
+    [[nodiscard]] const Geometry& Geom (int lev) const { return m_pc.Geom(lev); }
 
 protected:
 

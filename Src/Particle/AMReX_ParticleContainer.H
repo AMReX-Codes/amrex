@@ -191,10 +191,7 @@ public:
       :
       ParticleContainerBase(),
       h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-      h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
-      m_runtime_comps_defined(false),
-      m_num_runtime_real(0),
-      m_num_runtime_int(0)
+      h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
     {
         Initialize ();
     }
@@ -210,10 +207,7 @@ public:
         :
         ParticleContainerBase(gdb),
         h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
-        m_runtime_comps_defined(false),
-        m_num_runtime_real(0),
-        m_num_runtime_int(0)
+        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
     {
         Initialize ();
         reserveData();
@@ -233,10 +227,7 @@ public:
         :
         ParticleContainerBase(geom, dmap, ba),
         h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
-        m_runtime_comps_defined(false),
-        m_num_runtime_real(0),
-        m_num_runtime_int(0)
+        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
     {
         Initialize ();
         reserveData();
@@ -259,10 +250,7 @@ public:
         :
         ParticleContainerBase(geom, dmap, ba, rr),
         h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
-        m_runtime_comps_defined(false),
-        m_num_runtime_real(0),
-        m_num_runtime_int(0)
+        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
     {
         Initialize ();
         reserveData();
@@ -284,23 +272,20 @@ public:
         :
         ParticleContainerBase(geom, dmap, ba, rr),
         h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
-        m_runtime_comps_defined(false),
-        m_num_runtime_real(0),
-        m_num_runtime_int(0)
+        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
     {
         Initialize ();
         reserveData();
         resizeData();
     }
 
-    virtual ~ParticleContainer () = default;
+    ~ParticleContainer () override = default;
 
     ParticleContainer ( const ParticleContainer &) = delete;
     ParticleContainer& operator= ( const ParticleContainer & ) = delete;
 
-    ParticleContainer ( ParticleContainer && ) = default;
-    ParticleContainer& operator= ( ParticleContainer && ) = default;
+    ParticleContainer ( ParticleContainer && )  noexcept = default;
+    ParticleContainer& operator= ( ParticleContainer && )  noexcept = default;
 
 
     //! \brief Define a default-constructed ParticleContainer using a ParGDB object.
@@ -403,7 +388,7 @@ public:
     * \param bx
     */
     void InitRandom (Long icount, ULong iseed,
-                     const ParticleInitData& mass,
+                     const ParticleInitData& pdata,
                      bool serialize = false, RealBox bx = RealBox());
 
 
@@ -1388,9 +1373,9 @@ private:
 
     void Initialize ();
 
-    bool m_runtime_comps_defined;
-    int m_num_runtime_real;
-    int m_num_runtime_int;
+    bool m_runtime_comps_defined{false};
+    int m_num_runtime_real{0};
+    int m_num_runtime_int{0};
 
     size_t particle_size, superparticle_size;
     int num_real_comm_comps, num_int_comm_comps;

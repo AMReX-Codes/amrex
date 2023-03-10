@@ -124,15 +124,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
           ba.intersections(Box(iv, iv), isects, findfirst, nGrow);
           grid = isects.empty() ? -1 : isects[0].first;
           if (nGrow > 0 && isects.size() > 1) {
-             for (std::size_t n = 0; n < isects.size(); ++n) {
-                 Box bx = ba.getCellCenteredBox(isects[n].first);
+             for (auto & isect : isects) {
+                 Box bx = ba.getCellCenteredBox(isect.first);
                  for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
                      Box gbx = bx;
                      IntVect gr(IntVect::TheZeroVector());
                      gr[dir] = nGrow;
                      gbx.grow(gr);
                      if (gbx.contains(iv)) {
-                        grid = isects[n].first;
+                        grid = isect.first;
                      }
                  }
              }
@@ -836,7 +836,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         const auto imf_arr = imf.array(mfi);
 
         Gpu::DeviceVector<int> offsets(bx.numPts());
-        auto offsets_ptr = offsets.dataPtr();
+        auto *offsets_ptr = offsets.dataPtr();
         int next_offset = Scan::ExclusiveSum((int) bx.numPts(),(imf_arr.ptr(bx.smallEnd(),0)),(offsets.dataPtr()),Scan::retSum);
         auto dst = virts.getParticleTileData();
         ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
@@ -1782,7 +1782,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     std::map<int, Vector<buffer_type> > mpi_snd_data;
     for (const auto& kv : not_ours)
     {
-        int nbt = (kv.second.size() + sizeof(buffer_type)-1)/sizeof(buffer_type);
+        auto nbt = (kv.second.size() + sizeof(buffer_type)-1)/sizeof(buffer_type);
         mpi_snd_data[kv.first].resize(nbt);
         std::memcpy((char*) mpi_snd_data[kv.first].data(), kv.second.data(), kv.second.size());
     }
@@ -1834,12 +1834,12 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             RcvProc.push_back(i);
             rOffset.push_back(TotRcvInts);
             TotRcvBytes += Rcvs[i];
-            int nbt = (Rcvs[i] + sizeof(buffer_type)-1)/sizeof(buffer_type);
+            auto nbt = (Rcvs[i] + sizeof(buffer_type)-1)/sizeof(buffer_type);
             TotRcvInts += nbt;
         }
     }
 
-    const int nrcvs = RcvProc.size();
+    const auto nrcvs = static_cast<int>(RcvProc.size());
     Vector<MPI_Status>  stats(nrcvs);
     Vector<MPI_Request> rreqs(nrcvs);
 

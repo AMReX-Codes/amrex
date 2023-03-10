@@ -505,7 +505,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
         {
             if ( ! LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/') LevelDir += '/';
 
-            LevelDir = amrex::Concatenate(LevelDir + "Level_", lev, 1);
+            LevelDir = amrex::Concatenate(LevelDir.append("Level_"), lev, 1);
 
             if ( ! pc.GetLevelDirectoriesCreated())
             {
@@ -553,7 +553,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
         {
             for(NFilesIter nfi(nOutFiles, filePrefix, groupSets, setBuf); nfi.ReadyToWrite(); ++nfi)
             {
-                std::ofstream& myStream = (std::ofstream&) nfi.Stream();
+                auto& myStream = (std::ofstream&) nfi.Stream();
                 pc.WriteParticles(lev, myStream, nfi.FileNumber(), which, count, where,
                                   write_real_comp, write_int_comp, particle_io_flags, is_checkpoint);
             }
@@ -563,9 +563,9 @@ void WriteBinaryParticleDataSync (PC const& pc,
                 pc.countPrePost[lev] = count;
                 pc.wherePrePost[lev] = where;
             } else {
-                ParallelDescriptor::ReduceIntSum (which.dataPtr(), which.size(), IOProcNumber);
-                ParallelDescriptor::ReduceIntSum (count.dataPtr(), count.size(), IOProcNumber);
-                ParallelDescriptor::ReduceLongSum(where.dataPtr(), where.size(), IOProcNumber);
+                ParallelDescriptor::ReduceIntSum (which.dataPtr(), static_cast<int>(which.size()), IOProcNumber);
+                ParallelDescriptor::ReduceIntSum (count.dataPtr(), static_cast<int>(count.size()), IOProcNumber);
+                ParallelDescriptor::ReduceLongSum(where.dataPtr(), static_cast<int>(where.size()), IOProcNumber);
             }
         }
 
@@ -584,11 +584,11 @@ void WriteBinaryParticleDataSync (PC const& pc,
                     // Unlink any zero-length data files.
                     Vector<Long> cnt(nOutFiles,0);
 
-                    for (int i = 0, N=count.size(); i < N; i++) {
+                    for (int i = 0, N=static_cast<int>(count.size()); i < N; i++) {
                         cnt[which[i]] += count[i];
                     }
 
-                    for (int i = 0, N=cnt.size(); i < N; i++)
+                    for (int i = 0, N=static_cast<int>(cnt.size()); i < N; i++)
                     {
                         if (cnt[i] == 0)
                         {
@@ -703,7 +703,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
             {
                 if ( ! LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/') LevelDir += '/';
 
-                LevelDir = amrex::Concatenate(LevelDir + "Level_", lev, 1);
+                LevelDir = amrex::Concatenate(LevelDir.append("Level_"), lev, 1);
 
                 if ( ! pc.GetLevelDirectoriesCreated())
                 {
@@ -747,7 +747,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
         for (int ip = 0; ip < NProcs; ++ip)
         {
             auto info = AsyncOut::GetWriteInfo(ip);
-            rank_start_offset[ip] = (info.ispot == 0) ? 0 : rank_start_offset[ip-1] + np_on_rank[ip-1]*psize;
+            rank_start_offset[ip] = (info.ispot == 0) ? 0 : static_cast<int64_t>(rank_start_offset[ip-1] + np_on_rank[ip-1]*psize);
         }
     }
 
@@ -881,7 +881,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                     HdrFile << info.ifile << ' '
                             << np_per_grid_global[lev][k] << ' '
                             << grid_offset[rank] + rank_start_offset[rank] << '\n';
-                    grid_offset[rank] += np_per_grid_global[lev][k]*psize;
+                    grid_offset[rank] += static_cast<int64_t>(np_per_grid_global[lev][k]*psize);
                 }
             }
 
@@ -909,7 +909,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
 
             std::string LevelDir = pdir;
             if ( ! LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/') LevelDir += '/';
-            LevelDir = amrex::Concatenate(LevelDir + "Level_", lev, 1);
+            LevelDir = amrex::Concatenate(LevelDir.append("Level_"), lev, 1);
             std::string filePrefix(LevelDir);
             filePrefix += '/';
             filePrefix += PC::DataPrefix();
