@@ -1091,10 +1091,10 @@ selectActualNeighbors (CheckPair const& check_pair, int num_cells)
                 // it adds a call to check_pair. Thus the maximum number value of "loc" below is the
                 // number of neighbors minus 1, and the buffer pointed to by p_boundary_particle_ids
                 // will not be overwritten.
-                for (int ii = amrex::max(ix-num_cells, 0); ii <= amrex::min(ix+num_cells, nx-1); ++ii) {
+                for (int kk = amrex::max(ix-num_cells, 0); kk <= amrex::min(ix+num_cells, nx-1); ++kk) {
                     for (int jj = amrex::max(iy-num_cells, 0); jj <= amrex::min(iy+num_cells, ny-1); ++jj) {
-                        for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
-                            if (isActualNeighbor) { break; }
+                        for (int ii = amrex::max(iz-num_cells, 0); ii <= amrex::min(iz+num_cells, nz-1); ++ii) {
+                            if (isActualNeighbor) break;
                             int nbr_cell_id = (kk * ny + jj) * nx + ii;
                             for (auto p = poffset[nbr_cell_id]; p < poffset[nbr_cell_id+1]; ++p) {
                                 if (pperm[p] == int(i)) { continue; }
