@@ -594,7 +594,7 @@ ReduceIntSum (int* r, int cnt)
 void
 ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar)
 {
-    int cnt = rvar.size();
+    auto cnt = static_cast<int>(rvar.size());
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
     detail::DoAllReduce<int>(tmp.data(),MPI_SUM,cnt);
     for (int i = 0; i < cnt; ++i) {
@@ -617,7 +617,7 @@ ReduceIntSum (int* r, int cnt, int cpu)
 void
 ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar, int cpu)
 {
-    int cnt = rvar.size();
+    auto cnt = static_cast<int>(rvar.size());
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
     detail::DoReduce<int>(tmp.data(),MPI_SUM,cnt,cpu);
     for (int i = 0; i < cnt; ++i) {
@@ -640,7 +640,7 @@ ReduceIntMax (int* r, int cnt)
 void
 ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar)
 {
-    int cnt = rvar.size();
+    auto cnt = static_cast<int>(rvar.size());
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
     detail::DoAllReduce<int>(tmp.data(),MPI_MAX,cnt);
     for (int i = 0; i < cnt; ++i) {
@@ -663,7 +663,7 @@ ReduceIntMax (int* r, int cnt, int cpu)
 void
 ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar, int cpu)
 {
-    int cnt = rvar.size();
+    auto cnt = static_cast<int>(rvar.size());
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
     detail::DoReduce<int>(tmp.data(),MPI_MAX,cnt,cpu);
     for (int i = 0; i < cnt; ++i) {
@@ -686,7 +686,7 @@ ReduceIntMin (int* r, int cnt)
 void
 ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar)
 {
-    int cnt = rvar.size();
+    auto cnt = static_cast<int>(rvar.size());
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
     detail::DoAllReduce<int>(tmp.data(),MPI_MIN,cnt);
     for (int i = 0; i < cnt; ++i) {
@@ -709,7 +709,7 @@ ReduceIntMin (int* r, int cnt, int cpu)
 void
 ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar, int cpu)
 {
-    int cnt = rvar.size();
+    auto cnt = static_cast<int>(rvar.size());
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
     detail::DoReduce<int>(tmp.data(),MPI_MIN,cnt,cpu);
     for (int i = 0; i < cnt; ++i) {
@@ -732,7 +732,7 @@ ReduceLongSum (Long* r, int cnt)
 void
 ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar)
 {
-    int cnt = rvar.size();
+    auto cnt = static_cast<int>(rvar.size());
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
     detail::DoAllReduce<Long>(tmp.data(),MPI_SUM,cnt);
     for (int i = 0; i < cnt; ++i) {
@@ -755,7 +755,7 @@ ReduceLongSum (Long* r, int cnt, int cpu)
 void
 ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar, int cpu)
 {
-    int cnt = rvar.size();
+    auto cnt = static_cast<int>(rvar.size());
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
     detail::DoReduce<Long>(tmp.data(),MPI_SUM,cnt,cpu);
     for (int i = 0; i < cnt; ++i) {
@@ -778,7 +778,7 @@ ReduceLongMax (Long* r, int cnt)
 void
 ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar)
 {
-    int cnt = rvar.size();
+    auto cnt = static_cast<int>(rvar.size());
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
     detail::DoAllReduce<Long>(tmp.data(),MPI_MAX,cnt);
     for (int i = 0; i < cnt; ++i) {
@@ -801,7 +801,7 @@ ReduceLongMax (Long* r, int cnt, int cpu)
 void
 ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar, int cpu)
 {
-    int cnt = rvar.size();
+    auto cnt = static_cast<int>(rvar.size());
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
     detail::DoReduce<Long>(tmp.data(),MPI_MAX,cnt,cpu);
     for (int i = 0; i < cnt; ++i) {
@@ -824,7 +824,7 @@ ReduceLongMin (Long* r, int cnt)
 void
 ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar)
 {
-    int cnt = rvar.size();
+    auto cnt = static_cast<int>(rvar.size());
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
     detail::DoAllReduce<Long>(tmp.data(),MPI_MIN,cnt);
     for (int i = 0; i < cnt; ++i) {
@@ -847,7 +847,7 @@ ReduceLongMin (Long* r, int cnt, int cpu)
 void
 ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar, int cpu)
 {
-    int cnt = rvar.size();
+    auto cnt = static_cast<int>(rvar.size());
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
     detail::DoReduce<Long>(tmp.data(),MPI_MIN,cnt,cpu);
     for (int i = 0; i < cnt; ++i) {
@@ -870,7 +870,7 @@ ReduceLongAnd (Long* r, int cnt)
 void
 ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar)
 {
-    int cnt = rvar.size();
+    auto cnt = static_cast<int>(rvar.size());
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
     detail::DoAllReduce<Long>(tmp.data(),MPI_LAND,cnt);
     for (int i = 0; i < cnt; ++i) {
@@ -893,7 +893,7 @@ ReduceLongAnd (Long* r, int cnt, int cpu)
 void
 ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar,int cpu)
 {
-    int cnt = rvar.size();
+    auto cnt = static_cast<int>(rvar.size());
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
     detail::DoReduce<Long>(tmp.data(),MPI_LAND,cnt,cpu);
     for (int i = 0; i < cnt; ++i) {
@@ -1263,8 +1263,7 @@ BL_FORT_PROC_DECL(BL_PD_BARRIER,bl_pd_barrier)()
 
 BL_FORT_PROC_DECL(BL_PD_COMMUNICATOR,bl_pd_communicator)(void* vcomm)
 {
-    MPI_Comm* comm = reinterpret_cast<MPI_Comm*>(vcomm);
-
+    auto* comm = reinterpret_cast<MPI_Comm*>(vcomm);
     *comm = ParallelDescriptor::Communicator();
 }
 

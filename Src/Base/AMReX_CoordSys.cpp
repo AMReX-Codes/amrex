@@ -214,7 +214,7 @@ CoordSys::GetDLogA (FArrayBox& dloga,
 }
 
 void
-CoordSys::SetDLogA (FArrayBox& a_dlogafab,
+CoordSys::SetDLogA (FArrayBox& a_dlogafab, // NOLINT(readability-convert-member-functions-to-static)
                     const Box& region,
                     int        dir) const
 {

@@ -638,7 +638,7 @@ TagBoxArray::collate (Gpu::PinnedVector<IntVect>& TheGlobalCollateSpace) const
                                                                   IOProcNumber);
     std::vector<int> offset(countvec.size(),0);
     if (ParallelDescriptor::IOProcessor()) {
-        for (int i = 1, N = offset.size(); i < N; i++) {
+        for (std::size_t i = 1, N = offset.size(); i < N; i++) {
             offset[i] = offset[i-1] + countvec[i-1];
         }
     }
@@ -652,7 +652,7 @@ TagBoxArray::collate (Gpu::PinnedVector<IntVect>& TheGlobalCollateSpace) const
     // FujitsuMPI. The issue seems to be related to the use of MPI_Datatype. We can
     // bypasses the issue by exchanging simpler integer arrays.
 #if !(defined(__FUJITSU) || defined(__CLANG_FUJITSU))
-    ParallelDescriptor::Gatherv(psend, count, precv, countvec, offset, IOProcNumber);
+    ParallelDescriptor::Gatherv(psend, static_cast<int>(count), precv, countvec, offset, IOProcNumber);
 #else
     const int* psend_int = psend->begin();
     int* precv_int = precv->begin();

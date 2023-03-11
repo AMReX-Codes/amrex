@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_FillPatchUtil.H>
+#include <utility>
 
 namespace amrex {
 
@@ -89,7 +90,7 @@ public:
      */
     FillPatcher (BoxArray const& fba, DistributionMapping const& fdm,
                  Geometry const& fgeom,
-                 BoxArray const& cba, DistributionMapping const& cdm,
+                 BoxArray const& cba, DistributionMapping const& cdm, // NOLINT
                  Geometry const& cgeom,
                  IntVect const& nghost, int ncomp, InterpBase* interp,
 #ifdef AMREX_USE_EB
@@ -125,8 +126,8 @@ public:
               typename PreInterpHook=NullInterpHook<MF>,
               typename PostInterpHook=NullInterpHook<MF> >
     void fill (MF& mf, IntVect const& nghost, Real time,
-               Vector<MF*> const& crse_data, Vector<Real> const& crse_time,
-               Vector<MF*> const& fine_data, Vector<Real> const& fine_time,
+               Vector<MF*> const& cmf, Vector<Real> const& ct,
+               Vector<MF*> const& fmf, Vector<Real> const& ft,
                int scomp, int dcomp, int ncomp,
                BC& cbc, int cbccomp, BC& fbc, int fbccomp,
                Vector<BCRec> const& bcs, int bcscomp,
@@ -156,8 +157,8 @@ public:
               typename PreInterpHook=NullInterpHook<MF>,
               typename PostInterpHook=NullInterpHook<MF> >
     void fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real time,
-                                 Vector<MF*> const& crse_data,
-                                 Vector<Real> const& crse_time,
+                                 Vector<MF*> const& cmf,
+                                 Vector<Real> const& ct,
                                  int scomp, int dcomp, int ncomp,
                                  BC& cbc, int cbccomp,
                                  Vector<BCRec> const& bcs, int bcscomp,
@@ -220,7 +221,7 @@ private:
 template <class MF>
 FillPatcher<MF>::FillPatcher (BoxArray const& fba, DistributionMapping const& fdm,
                               Geometry const& fgeom,
-                              BoxArray const& cba, DistributionMapping const& cdm,
+                              BoxArray const& cba, DistributionMapping const& cdm, // NOLINT
                               Geometry const& cgeom,
                               IntVect const& nghost, int ncomp, InterpBase* interp,
                               EB2::IndexSpace const* eb_index_space)

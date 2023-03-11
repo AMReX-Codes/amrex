@@ -5,9 +5,6 @@
 
 namespace amrex {
 
-Mask::Mask () noexcept
-     {}
-
 Mask::Mask (Arena* ar) noexcept
     : BaseFab<int>(ar) {}
 

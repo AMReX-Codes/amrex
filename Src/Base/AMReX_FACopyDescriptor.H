@@ -67,7 +67,9 @@ struct FabCopyDescriptor
     ~FabCopyDescriptor ();
 
     FabCopyDescriptor (const FabCopyDescriptor&) = delete;
+    FabCopyDescriptor (FabCopyDescriptor&&) = delete;
     FabCopyDescriptor& operator= (const FabCopyDescriptor&) = delete;
+    FabCopyDescriptor& operator= (FabCopyDescriptor&&) = delete;
 
     FAB*     localFabSource;
     Box      subBox;
@@ -115,6 +117,11 @@ class FabArrayCopyDescriptor
     FabArrayCopyDescriptor () = default;
 
     ~FabArrayCopyDescriptor ();
+
+    FabArrayCopyDescriptor (const FabArrayCopyDescriptor<FAB>&) = delete;
+    FabArrayCopyDescriptor (FabArrayCopyDescriptor<FAB>&&) = delete;
+    FabArrayCopyDescriptor<FAB>& operator= (const FabArrayCopyDescriptor<FAB> &) = delete;
+    FabArrayCopyDescriptor<FAB>& operator= (FabArrayCopyDescriptor<FAB> &&) = delete;
 
     FabArrayId RegisterFabArray(FabArray<FAB> *fabarray);
 
@@ -164,12 +171,6 @@ class FabArrayCopyDescriptor
     [[nodiscard]] int nFabCopyDescs () const { return fabCopyDescList.size(); }
 
 private:
-    //!
-    //! These are disallowed.
-    //!
-    FabArrayCopyDescriptor (const FabArrayCopyDescriptor<FAB>&) = delete;
-
-    FabArrayCopyDescriptor<FAB>& operator= (const FabArrayCopyDescriptor<FAB> &) = delete;
     //!
     //! Helper function for AddBox() routines.
     //!
@@ -412,7 +413,7 @@ FabArrayCopyDescriptor<FAB>::clear ()
 {
     for (unsigned int i = 0, N = fabCopyDescList.size(); i < N; ++i)
     {
-        for (FCDMapIter fmi = fabCopyDescList[i].begin(), End = fabCopyDescList[i].end();
+        for (auto fmi = fabCopyDescList[i].begin(), End = fabCopyDescList[i].end();
              fmi != End;
              ++fmi)
         {
@@ -464,7 +465,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
         BL_ASSERT(it->procThatHasData   != MyProc);
 
         const int Who = it->procThatHasData;
-        const int Cnt = (it->box.numPts())*(it->nComp);
+        const auto Cnt = static_cast<int>((it->box.numPts())*(it->nComp));
 
         RcvTags[Who].push_back(it);
 
@@ -534,8 +535,8 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     const int SeqNum_md   = ParallelDescriptor::SeqNum();
     const int SeqNum_data = ParallelDescriptor::SeqNum();
 
-    const int N_snds = Snds.size();
-    const int N_rcvs = Rcvs.size();
+    const auto N_snds = static_cast<int>(Snds.size());
+    const auto N_rcvs = static_cast<int>(Rcvs.size());
 
     if ( N_snds == 0 && N_rcvs == 0 ) return;
 
@@ -672,7 +673,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
                 bxs.push_back(Box(IntVect(&md[4]),
                                   IntVect(&md[4+AMREX_SPACEDIM]),
                                   IntVect(&md[4+AMREX_SPACEDIM*2])));
-                npts[i] = bxs.back().numPts()*ncomp[i];
+                npts[i] = static_cast<int>(bxs.back().numPts()*ncomp[i]);
                 N += npts[i];
             }
 
@@ -714,7 +715,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
             const int         Who  = data_sender[k];
             const value_type* dptr = &recv_data[data_offset[k]];
 
-            BL_ASSERT(dptr != 0);
+            BL_ASSERT(dptr != nullptr);
 
             found = RcvTags.find(Who);
 
@@ -730,7 +731,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
                 match = fabCopyDescList[tag.fabArrayId].equal_range(tag.fillBoxId);
 
-                for (FCDMapIter fmi = match.first; fmi != match.second; ++fmi)
+                for (auto fmi = match.first; fmi != match.second; ++fmi)
                 {
                     FabCopyDescriptor<FAB>* fcdp = (*fmi).second;
 
@@ -738,9 +739,9 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
                     if (fcdp->subBox == tag.box)
                     {
-                        BL_ASSERT(fcdp->localFabSource->dataPtr() != 0);
+                        BL_ASSERT(fcdp->localFabSource->dataPtr() != nullptr);
                         BL_ASSERT(fcdp->localFabSource->box() == tag.box);
-                        const int Cnt = tag.box.numPts()*tag.nComp;
+                        auto Cnt = static_cast<int>(tag.box.numPts()*tag.nComp);
                         fcdp->localFabSource->template copyFromMem<RunOn::Host>(tag.box,0,tag.nComp,dptr);
                         dptr += Cnt;
                         break;

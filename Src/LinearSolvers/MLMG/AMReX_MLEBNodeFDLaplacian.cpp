@@ -36,7 +36,7 @@ MLEBNodeFDLaplacian::setSigma (Array<Real,AMREX_SPACEDIM> const& a_sigma) noexce
 }
 
 void
-MLEBNodeFDLaplacian::setRZ (bool flag)
+MLEBNodeFDLaplacian::setRZ (bool flag) // NOLINT
 {
 #if (AMREX_SPACEDIM == 2)
     m_rz = flag;
@@ -46,7 +46,7 @@ MLEBNodeFDLaplacian::setRZ (bool flag)
 }
 
 void
-MLEBNodeFDLaplacian::setAlpha (Real a_alpha)
+MLEBNodeFDLaplacian::setAlpha (Real a_alpha) // NOLINT
 {
 #if (AMREX_SPACEDIM == 2)
     m_rz_alpha = a_alpha;

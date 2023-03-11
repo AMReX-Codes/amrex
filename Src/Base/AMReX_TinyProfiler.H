@@ -44,6 +44,11 @@ public:
     TinyProfiler (const char* funcname, bool start_, bool useCUPTI=false) noexcept;
     ~TinyProfiler ();
 
+    TinyProfiler (TinyProfiler const&) = delete;
+    TinyProfiler (TinyProfiler &&) = delete;
+    TinyProfiler& operator= (TinyProfiler const&) = delete;
+    TinyProfiler& operator= (TinyProfiler &&) = delete;
+
     void start () noexcept;
     void stop () noexcept;
 #ifdef AMREX_USE_CUPTI
@@ -128,7 +133,6 @@ private:
     int global_depth;
     std::vector<Stats*> stats;
 
-
     static std::deque<const TinyProfiler*> mem_stack;
 
 #ifdef AMREX_USE_OMP
@@ -151,7 +155,9 @@ private:
     static int verbose;
 
     static void PrintStats (std::map<std::string,Stats>& regstats, double dt_max);
-    static void PrintMemStats (int mem_type, double dt_max, double t_final);
+    static void PrintMemStats (std::map<std::string, MemStat>& memstats,
+                               std::string const& memname, double dt_max,
+                               double t_final);
 };
 
 class TinyProfileRegion
@@ -159,6 +165,10 @@ class TinyProfileRegion
 public:
     explicit TinyProfileRegion (std::string a_regname) noexcept;
     explicit TinyProfileRegion (const char* a_regname) noexcept;
+    TinyProfileRegion (TinyProfileRegion const&) = delete;
+    TinyProfileRegion (TinyProfileRegion &&) = delete;
+    TinyProfileRegion& operator= (TinyProfileRegion const&) = delete;
+    TinyProfileRegion& operator= (TinyProfileRegion &&) = delete;
     ~TinyProfileRegion ();
 private:
     std::string regname;

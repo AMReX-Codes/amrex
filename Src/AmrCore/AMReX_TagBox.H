@@ -67,7 +67,7 @@ public:
     * \param nbuff
     * \param nwid
     */
-    void buffer (const IntVect& nbuf, const IntVect& nwid) noexcept;
+    void buffer (const IntVect& a_nbuff, const IntVect& nwid) noexcept;
 
     /**
     * \brief Returns Vector\<int\> of size domain.numPts() suitable for calling
@@ -162,8 +162,8 @@ public:
     * \param dm
     * \param _ngrow
     */
-    TagBoxArray (const BoxArray& bs, const DistributionMapping& dm, int _ngrow=0);
-    TagBoxArray (const BoxArray& bs, const DistributionMapping& dm, const IntVect& _ngrow);
+    TagBoxArray (const BoxArray& ba, const DistributionMapping& dm, int _ngrow=0);
+    TagBoxArray (const BoxArray& ba, const DistributionMapping& dm, const IntVect& _ngrow);
 
     ~TagBoxArray () = default;
 

@@ -245,7 +245,7 @@ namespace ParallelReduce {
     template<typename K, typename V>
     void Max (KeyValuePair<K,V>* vi, int cnt, int root, MPI_Comm comm) {
 #ifdef AMREX_USE_MPI
-        auto sendbuf = (ParallelDescriptor::MyProc(comm) == root) ?
+        const auto *sendbuf = (ParallelDescriptor::MyProc(comm) == root) ?
             (void const*)(MPI_IN_PLACE) : (void const*)vi;
         using T = KeyValuePair<K,V>;
         MPI_Reduce(sendbuf, vi, cnt,
@@ -276,7 +276,7 @@ namespace ParallelReduce {
     template<typename K, typename V>
     void Min (KeyValuePair<K,V>* vi, int cnt, int root, MPI_Comm comm) {
 #ifdef AMREX_USE_MPI
-        auto sendbuf = (ParallelDescriptor::MyProc(comm) == root) ?
+        const auto *sendbuf = (ParallelDescriptor::MyProc(comm) == root) ?
             (void const*)(MPI_IN_PLACE) : (void const*)vi;
         using T = KeyValuePair<K,V>;
         MPI_Reduce(sendbuf, vi, cnt,

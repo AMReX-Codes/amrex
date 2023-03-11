@@ -29,7 +29,7 @@ class Mask final
 {
 public:
 
-    Mask () noexcept;
+    Mask () noexcept = default;
 
     explicit Mask (Arena* ar) noexcept;
 

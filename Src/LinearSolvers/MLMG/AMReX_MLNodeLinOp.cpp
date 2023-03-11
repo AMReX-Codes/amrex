@@ -264,8 +264,8 @@ MLNodeLinOp::buildMasks ()
     m_masks_built = true;
 
     m_is_bottom_singular = false;
-    auto itlo = std::find(m_lobc[0].begin(), m_lobc[0].end(), BCType::Dirichlet);
-    auto ithi = std::find(m_hibc[0].begin(), m_hibc[0].end(), BCType::Dirichlet);
+    auto itlo = std::find(m_lobc[0].begin(), m_lobc[0].end(), BCType::Dirichlet); // NOLINT
+    auto ithi = std::find(m_hibc[0].begin(), m_hibc[0].end(), BCType::Dirichlet); // NOLINT
     if (itlo == m_lobc[0].end() && ithi == m_hibc[0].end())
     {  // No Dirichlet
         m_is_bottom_singular = (m_domain_covered[0] && !m_overset_dirichlet_mask);

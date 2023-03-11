@@ -1117,7 +1117,7 @@ static
 bool
 unused_table_entries_q (const ParmParse::Table& table, const std::string& prefix = std::string())
 {
-    for (auto const& li : table)
+    for (auto const& li : table) // NOLINT(readability-use-anyofallof)
     {
         if ( li.m_table )
         {

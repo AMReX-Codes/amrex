@@ -710,14 +710,12 @@ ParallelCopy_nowait (NoLocalCopy, FabArray<FAB>& dest, const FabArray<FAB>& src,
     //
     handler.mpi_tag = ParallelDescriptor::SeqNum();
 
-    const int N_rcvs = cmd.m_RcvTags ? cmd.m_RcvTags->size() : 0;
-    if (N_rcvs > 0) {
+    if (cmd.m_RcvTags && !(cmd.m_RcvTags->empty())) {
         PrepareRecvBuffers(data_packing, dest, src, handler.recv, *cmd.m_RcvTags);
         PostRecvs(handler.recv, handler.mpi_tag);
     }
 
-    const int N_snds = cmd.m_SndTags ? cmd.m_SndTags->size() : 0;
-    if (N_snds > 0) {
+    if (cmd.m_SndTags && !(cmd.m_SndTags->empty())) {
         PrepareSendBuffers(data_packing, dest, src, handler.send, *cmd.m_SndTags);
         PackSendBuffers(data_packing, src, handler.send);
         PostSends(handler.send, handler.mpi_tag);
@@ -803,8 +801,7 @@ ParallelCopy_finish (FabArray<FAB>& dest, CommHandler handler,
         return;
     }
     // Unpack receives
-    const int N_rcvs = cmd.m_RcvTags ? cmd.m_RcvTags->size() : 0;
-    if (N_rcvs > 0) {
+    if (cmd.m_RcvTags && !(cmd.m_RcvTags->empty())) {
         ParallelDescriptor::Waitall(handler.recv.request, handler.recv.stats);
 #ifdef AMREX_DEBUG
         if (!CheckRcvStats(handler.recv.stats, handler.recv.size, handler.mpi_tag)) {
@@ -815,8 +812,7 @@ ParallelCopy_finish (FabArray<FAB>& dest, CommHandler handler,
     }
 
     // Wait for all sends to be done
-    const int N_snds = cmd.m_SndTags ? cmd.m_SndTags->size() : 0;
-    if (N_snds > 0) {
+    if (cmd.m_SndTags && !(cmd.m_SndTags->empty())) {
         ParallelDescriptor::Waitall(handler.send.request, handler.send.stats);
     }
 }

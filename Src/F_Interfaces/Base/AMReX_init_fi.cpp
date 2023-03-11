@@ -24,7 +24,7 @@ extern "C"
         for (int i = 0; i < argc; ++i)
         {
             argv[i] = (char*)malloc(argv_string[i].size()+1);
-            strcpy(argv[i], argv_string[i].c_str());
+            std::strncpy(argv[i], argv_string[i].c_str(), argv_string[i].size()+1);
         }
 
 #ifdef BL_USE_MPI

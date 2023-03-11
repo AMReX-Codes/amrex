@@ -375,21 +375,21 @@ public:
               IndexType               result_type,
               int                     nvar_derive,
               DeriveFunc              der_func,
-              DeriveRec::DeriveBoxMap box_map,
+              const DeriveRec::DeriveBoxMap& bx_map,
               Interpolater*           interp = &pc_interp);
 
     void add (const std::string&      name,
               IndexType               result_type,
               int                     nvar_derive,
               DeriveFunc3D            der_func_3d,
-              DeriveRec::DeriveBoxMap box_map,
+              const DeriveRec::DeriveBoxMap& bx_map,
               Interpolater*           interp = &pc_interp);
 
     void add (const std::string&      name,
               IndexType               result_type,
               int                     nvar_derive,
-              DeriveFuncFab           der_func_fab,
-              DeriveRec::DeriveBoxMap box_map,
+              const DeriveFuncFab&           der_func_fab,
+              const DeriveRec::DeriveBoxMap& bx_map,
               Interpolater*           interp = &pc_interp);
 
 
@@ -404,7 +404,7 @@ public:
     void add (const std::string&      name,
               IndexType               result_type,
               int                     nvar_derive,
-              DeriveRec::DeriveBoxMap box_map = &DeriveRec::TheSameBox );
+              const DeriveRec::DeriveBoxMap& box_map = &DeriveRec::TheSameBox );
 
     /**
     * \brief Adds another entry to the registry.
@@ -418,27 +418,27 @@ public:
     * \param interp
     */
     void add (const std::string&      name,
-              IndexType               result_type,
+              IndexType               res_typ,
               int                     nvar_derive,
-              Vector<std::string> const&    var_names,
+              Vector<std::string> const&    vars,
               DeriveFunc              der_func,
-              DeriveRec::DeriveBoxMap box_map,
+              const DeriveRec::DeriveBoxMap& bx_map,
               Interpolater*           interp = &pc_interp);
 
     void add (const std::string&      name,
-              IndexType               result_type,
+              IndexType               res_typ,
               int                     nvar_derive,
-              Vector<std::string> const&    var_names,
+              Vector<std::string> const&    vars,
               DeriveFunc3D            der_func_3d,
-              DeriveRec::DeriveBoxMap box_map,
+              const DeriveRec::DeriveBoxMap& bx_map,
               Interpolater*           interp = &pc_interp);
 
     void add (const std::string&      name,
-              IndexType               result_type,
+              IndexType               res_typ,
               int                     nvar_derive,
-              Vector<std::string> const&    var_names,
-              DeriveFuncFab           der_func_fab,
-              DeriveRec::DeriveBoxMap box_map,
+              Vector<std::string> const&    vars,
+              const DeriveFuncFab&           der_func_fab,
+              const DeriveRec::DeriveBoxMap& bx_map,
               Interpolater*           interp = &pc_interp);
 
     /**
@@ -453,8 +453,8 @@ public:
     void addComponent (const std::string&    name,
                        const DescriptorList& d_list,
                        int                   state_indx,
-                       int                   start_comp,
-                       int                   ncomp);
+                       int                   s_comp,
+                       int                   n_comp);
 
     std::list<DeriveRec>& dlist ();
 

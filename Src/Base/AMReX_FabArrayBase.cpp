@@ -2466,7 +2466,7 @@ FabArrayBase::updateBDKey ()
 bool
 CheckRcvStats (Vector<MPI_Status>& recv_stats, const Vector<std::size_t>& recv_size, int tag)
 {
-    for (int i = 0, n = recv_size.size(); i < n; ++i) {
+    for (int i = 0, n = static_cast<int>(recv_size.size()); i < n; ++i) {
         if (recv_size[i] > 0) {
             std::size_t count = 0;
             int tmp_count = 0;
@@ -2596,7 +2596,7 @@ FabArrayBase::is_cell_centered () const noexcept
 }
 
 bool
-FabArrayBase::isFusingCandidate () const noexcept
+FabArrayBase::isFusingCandidate () const noexcept // NOLINT(readability-convert-member-functions-to-static)
 {
 #ifdef AMREX_USE_GPU
     // This is fine tuned on MI100.

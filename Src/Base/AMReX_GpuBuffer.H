@@ -63,11 +63,11 @@ public:
     void operator= (Buffer const&) = delete;
     void operator= (Buffer &&) = delete;
 
-    T const* data () const noexcept { return (d_data != nullptr) ? d_data : h_data; }
-    T* data () noexcept { return (d_data != nullptr) ? d_data : h_data; }
+    [[nodiscard]] T const* data () const noexcept { return (d_data != nullptr) ? d_data : h_data; }
+    [[nodiscard]] T* data () noexcept { return (d_data != nullptr) ? d_data : h_data; }
 
-    T const* hostData () const noexcept { return h_data; }
-    T* hostData () noexcept { return h_data; }
+    [[nodiscard]] T const* hostData () const noexcept { return h_data; }
+    [[nodiscard]] T* hostData () noexcept { return h_data; }
 
     [[nodiscard]] std::size_t size () const noexcept { return m_size; }
 

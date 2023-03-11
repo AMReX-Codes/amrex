@@ -49,8 +49,11 @@ public:
     */
     Cluster (Cluster& c, const Box& b);
 
+    ~Cluster () = default;
     Cluster (const Cluster&) = delete;
+    Cluster (Cluster&&) = delete;
     Cluster& operator= (const Cluster&) = delete;
+    Cluster& operator= (Cluster&&) = delete;
 
     /**
     * \brief Return minimal box containing all tagged points.
@@ -111,7 +114,10 @@ public:
     /**
     * \brief Compute ratio of tagged to total number of points in cluster.
     */
-    [[nodiscard]] Real eff () const noexcept { BL_ASSERT(ok()); return Real(numTag()/m_bx.d_numPts()); }
+    [[nodiscard]] Real eff () const noexcept {
+        BL_ASSERT(ok());
+        return static_cast<Real>(double(numTag()) / m_bx.d_numPts());
+    }
 
 private:
 
@@ -156,12 +162,14 @@ public:
     ~ClusterList ();
 
     ClusterList (const ClusterList&) = delete;
+    ClusterList (ClusterList&&) = delete;
     ClusterList& operator= (const ClusterList&) = delete;
+    ClusterList& operator= (ClusterList&&) = delete;
 
     /**
     * \brief Return number of clusters in list.
     */
-    [[nodiscard]] int length () const { return lst.size(); }
+    [[nodiscard]] int length () const { return static_cast<int>(lst.size()); }
 
     /**
     * \brief Add cluster to end of list.

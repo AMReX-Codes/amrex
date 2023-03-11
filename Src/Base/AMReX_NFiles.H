@@ -79,6 +79,10 @@ class NFilesIter
 
     ~NFilesIter();
 
+    NFilesIter (NFilesIter const&) = delete;
+    NFilesIter (NFilesIter &&) = delete;
+    NFilesIter& operator= (NFilesIter const&) = delete;
+    NFilesIter& operator= (NFilesIter &&) = delete;
 
     /**
     * \brief if appendFirst is true, the first set for this
@@ -235,8 +239,6 @@ class NFilesIter
     static const int indexUndefined = -1;
 
     static AMREX_EXPORT int minDigits;        //!< for Concatenate
-
-    NFilesIter() = delete;  //!< disallow
 };
 
 }

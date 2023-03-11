@@ -904,7 +904,7 @@ FabArray<FAB>::pack_send_buffer_cpu (FabArray<FAB> const& src, int scomp, int nc
 {
     amrex::ignore_unused(send_size);
 
-    const int N_snds = send_data.size();
+    auto const N_snds = static_cast<int>(send_data.size());
     if (N_snds == 0) return;
 
 #ifdef AMREX_USE_OMP
@@ -944,7 +944,7 @@ FabArray<FAB>::unpack_recv_buffer_cpu (FabArray<FAB>& dst, int dcomp, int ncomp,
 {
     amrex::ignore_unused(recv_size);
 
-    const int N_rcvs = recv_cctc.size();
+    auto const N_rcvs = static_cast<int>(recv_cctc.size());
     if (N_rcvs == 0) return;
 
     if (is_thread_safe)

@@ -17,7 +17,7 @@ template <int N>
 struct IParserExecutor
 {
     template <int M=N, typename std::enable_if_t<M==0,int> = 0>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int operator() () const noexcept
     {
 #if AMREX_DEVICE_COMPILE
@@ -28,7 +28,7 @@ struct IParserExecutor
     }
 
     template <typename... Ts>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     std::enable_if_t<sizeof...(Ts) == N, int>
     operator() (Ts... var) const noexcept
     {
@@ -40,7 +40,7 @@ struct IParserExecutor
 #endif
     }
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int operator() (GpuArray<int,N> const& var) const noexcept
     {
 #if AMREX_DEVICE_COMPILE
@@ -50,7 +50,7 @@ struct IParserExecutor
 #endif
     }
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     explicit operator bool () const {
 #if AMREX_DEVICE_COMPILE
         return m_device_executor != nullptr;
@@ -88,10 +88,10 @@ public:
     [[nodiscard]] std::set<std::string> symbols () const;
 
     //! This compiles for both GPU and CPU
-    template <int N> IParserExecutor<N> compile () const;
+    template <int N> [[nodiscard]] IParserExecutor<N> compile () const;
 
     //! This compiles for CPU only
-    template <int N> IParserExecutor<N> compileHost () const;
+    template <int N> [[nodiscard]] IParserExecutor<N> compileHost () const;
 
 private:
 
@@ -105,7 +105,12 @@ private:
 #endif
         mutable int m_max_stack_size = 0;
         mutable int m_exe_size = 0;
+        Data () = default;
         ~Data ();
+        Data (Data const&) = delete;
+        Data (Data &&) = delete;
+        Data& operator= (Data const&) = delete;
+        Data& operator= (Data &&) = delete;
     };
 
     std::shared_ptr<Data> m_data;

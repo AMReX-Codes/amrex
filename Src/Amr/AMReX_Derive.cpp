@@ -27,7 +27,6 @@ DeriveRec::DeriveRec (std::string    a_name,
                       Interpolater*  a_interp)
     :
     derive_name(std::move(a_name)),
-    variable_names(),
     der_type(result_type),
     n_derive(nvar_derive),
     func(der_func),
@@ -43,7 +42,6 @@ DeriveRec::DeriveRec (std::string    a_name,
                       Interpolater*  a_interp)
     :
     derive_name(std::move(a_name)),
-    variable_names(),
     der_type(result_type),
     n_derive(nvar_derive),
     func_3d(der_func_3d),
@@ -59,7 +57,6 @@ DeriveRec::DeriveRec (std::string    a_name,
                       Interpolater*  a_interp)
     :
     derive_name(std::move(a_name)),
-    variable_names(),
     der_type(result_type),
     n_derive(nvar_derive),
     func_fab(std::move(der_func_fab)),
@@ -74,7 +71,6 @@ DeriveRec::DeriveRec (std::string             a_name,
                       DeriveRec::DeriveBoxMap box_map)
     :
     derive_name(std::move(a_name)),
-    variable_names(),
     der_type(result_type),
     n_derive(nvar_derive),
     bx_map(std::move(box_map))
@@ -343,7 +339,7 @@ DeriveList::add (const std::string&      name,
                  IndexType               result_type,
                  int                     nvar_der,
                  DeriveFunc              der_func,
-                 DeriveRec::DeriveBoxMap bx_map,
+                 const DeriveRec::DeriveBoxMap& bx_map,
                  Interpolater*           interp)
 {
     lst.emplace_back(name,result_type,nvar_der,der_func,bx_map,interp);
@@ -354,7 +350,7 @@ DeriveList::add (const std::string&      name,
                  IndexType               result_type,
                  int                     nvar_der,
                  DeriveFunc3D            der_func_3d,
-                 DeriveRec::DeriveBoxMap bx_map,
+                 const DeriveRec::DeriveBoxMap& bx_map,
                  Interpolater*           interp)
 {
     lst.emplace_back(name,result_type,nvar_der,der_func_3d,bx_map,interp);
@@ -364,8 +360,8 @@ void
 DeriveList::add (const std::string&      name,
                  IndexType               result_type,
                  int                     nvar_der,
-                 DeriveFuncFab           der_func_fab,
-                 DeriveRec::DeriveBoxMap bx_map,
+                 const DeriveFuncFab&           der_func_fab,
+                 const DeriveRec::DeriveBoxMap& bx_map,
                  Interpolater*           interp)
 {
     lst.emplace_back(name,result_type,nvar_der,der_func_fab,bx_map,interp);
@@ -376,7 +372,7 @@ void
 DeriveList::add (const std::string&      name,
                  IndexType               result_type,
                  int                     nvar_der,
-                 DeriveRec::DeriveBoxMap box_map)
+                 const DeriveRec::DeriveBoxMap& box_map)
 {
     lst.emplace_back(name,result_type,nvar_der,box_map);
 }
@@ -387,7 +383,7 @@ DeriveList::add (const std::string&      name,
                  int                     nvar_der,
                  Vector<std::string> const&    vars,
                  DeriveFunc              der_func,
-                 DeriveRec::DeriveBoxMap bx_map,
+                 const DeriveRec::DeriveBoxMap& bx_map,
                  Interpolater*           interp)
 {
     lst.emplace_back(name,res_typ,nvar_der,vars,der_func,bx_map,interp);
@@ -399,7 +395,7 @@ DeriveList::add (const std::string&      name,
                  int                     nvar_der,
                  Vector<std::string> const&    vars,
                  DeriveFunc3D            der_func_3d,
-                 DeriveRec::DeriveBoxMap bx_map,
+                 const DeriveRec::DeriveBoxMap& bx_map,
                  Interpolater*           interp)
 {
     lst.emplace_back(name,res_typ,nvar_der,vars,der_func_3d,bx_map,interp);
@@ -410,8 +406,8 @@ DeriveList::add (const std::string&      name,
                  IndexType               res_typ,
                  int                     nvar_der,
                  Vector<std::string> const&    vars,
-                 DeriveFuncFab           der_func_fab,
-                 DeriveRec::DeriveBoxMap bx_map,
+                 const DeriveFuncFab&           der_func_fab,
+                 const DeriveRec::DeriveBoxMap& bx_map,
                  Interpolater*           interp)
 {
     lst.emplace_back(name,res_typ,nvar_der,vars,der_func_fab,bx_map,interp);

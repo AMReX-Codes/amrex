@@ -1899,7 +1899,7 @@ FabArray<FAB>::operator= (FabArray<FAB>&& rhs) noexcept
     {
         clear();
 
-        FabArrayBase::operator=(std::move(rhs));
+        FabArrayBase::operator=(static_cast<FabArrayBase&&>(rhs));
         m_factory = std::move(rhs.m_factory);
         m_dallocator = std::move(rhs.m_dallocator);
         define_function_called = rhs.define_function_called;

@@ -8,21 +8,13 @@
 
 namespace amrex {
 // \cond CODEGEN
-AuxBoundaryData::AuxBoundaryData () noexcept
-    :
-    m_ngrow(0),
-    m_empty(false),
-    m_initialized(false)
-{}
 
 AuxBoundaryData::AuxBoundaryData (const BoxArray& ba,
                                   int             n_grow,
                                   int             n_comp,
                                   const Geometry& geom)
     :
-    m_ngrow(n_grow),
-    m_empty(false),
-    m_initialized(false)
+    m_ngrow(n_grow)
 {
     initialize(ba,n_grow,n_comp,geom);
 }
@@ -96,7 +88,7 @@ AuxBoundaryData::initialize (const BoxArray& ba,
 
     gcells.clear();
 
-    if (nba.size() > 0)
+    if (!nba.empty())
     {
         m_fabs.define(nba, ndm, n_comp, 0, MFInfo(), FArrayBoxFactory());
     }
@@ -132,7 +124,7 @@ AuxBoundaryData::copyTo (MultiFab& mf,
 {
     BL_ASSERT(m_initialized);
 
-    if (!m_empty && mf.size() > 0)
+    if (!m_empty && !mf.empty())
     {
         mf.ParallelCopy(m_fabs,src_comp,dst_comp,num_comp,0,mf.nGrow());
     }
@@ -147,7 +139,7 @@ AuxBoundaryData::copyFrom (const MultiFab& mf,
 {
     BL_ASSERT(m_initialized);
 
-    if (!m_empty && mf.size() > 0)
+    if (!m_empty && !mf.empty())
     {
         m_fabs.ParallelCopy(mf,src_comp,dst_comp,num_comp,src_ng,0);
     }

@@ -421,9 +421,6 @@ VisMF::FabOnDisk::FabOnDisk (std::string name, Long offset)
     m_head(offset)
 {}
 
-
-VisMF::FabReadLink::FabReadLink() = default;
-
 VisMF::FabReadLink::FabReadLink(int ranktoread, int faindex, Long fileoffset,
                                 const Box &b)
     :
@@ -733,14 +730,12 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
         ++nmtags[pmap[i]];
     }
 
-    for(int i(0), N(nmtags.size()); i < N; ++i) {
-        //
+    for (auto& x : nmtags) {
         // Each Fab corresponds to 2*m_ncomp Reals.
-        //
-        nmtags[i] *= 2*m_ncomp;
+        x *= 2*m_ncomp;
     }
 
-    for(int i(1), N(offset.size()); i < N; ++i) {
+    for(int i = 1, N = static_cast<int>(offset.size()); i < N; ++i) {
         offset[i] = offset[i-1] + nmtags[i-1];
     }
 
@@ -1173,11 +1168,11 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 
     const Vector<int> &pmap = mf.DistributionMap().ProcessorMap();
 
-    for(int i(0), N(mf.size()); i < N; ++i) {
+    for(int i = 0, N = static_cast<int>(mf.size()); i < N; ++i) {
         ++nmtags[pmap[i]];
     }
 
-    for(int i(1), N(offset.size()); i < N; ++i) {
+    for(int i = 1, N = static_cast<int>(offset.size()); i < N; ++i) {
         offset[i] = offset[i-1] + nmtags[i-1];
     }
 
@@ -1553,7 +1548,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     std::map<std::string, Vector<FabReadLink> > FileReadChains;        // ---- [filename, chain]
     std::map<std::string, std::set<int> > readFileRanks;              // ---- [filename, ranks]
 
-    int nBoxes(hdr.m_ba.size());
+    auto nBoxes = static_cast<int>(hdr.m_ba.size());
     for(int i(0); i < nBoxes; ++i) {   // ---- create the map
       int undefined(-1);
       std::string fname(hdr.m_fod[i].m_name);
@@ -1581,7 +1576,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
                                               { return a.fileOffset < b.fileOffset; } );
 
       Vector<int> nBoxesPerRank(nRanksPerFile[currentFileIndex]);
-      NItemsPerBin(frc.size(), nBoxesPerRank);
+      NItemsPerBin(static_cast<int>(frc.size()), nBoxesPerRank);
       int frcIndex(0);
 
       for(int nbpr(0); nbpr < nBoxesPerRank.size(); ++nbpr) {
@@ -1629,7 +1624,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
         continue;
       }
       // ---- split the set into nstreams sets
-      int ssSize(rfrSplitSet.size());
+      int ssSize = static_cast<int>(rfrSplitSet.size());
       int nStreams(std::min(ssSize, nOpensPerFile));
       int ranksPerStream(ssSize / nStreams); // ---- plus some remainder...
       Vector<std::set<int> > streamSets(nStreams);
@@ -1639,7 +1634,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
         if(++sCount >= ranksPerStream) {
           sCount = 0;
           ++sIndex;
-          sIndex = std::min<int>(sIndex, streamSets.size() - 1);
+          sIndex = std::min(sIndex, static_cast<int>(streamSets.size() - 1));
         }
       }
 
@@ -1753,7 +1748,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
                       RealDescriptor::convertToNativeFormat(fabdata, readDataItems,
                                                             nfi.Stream(), hdr.m_writtenRD);
                     } else {
-                      nfi.Stream().read((char *) fabdata, fab.nBytes());
+                      nfi.Stream().read((char *) fabdata, static_cast<std::streamsize>(fab.nBytes()));
                     }
 #ifdef AMREX_USE_GPU
                     if (hostfab) {
@@ -1781,7 +1776,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
   } else {    // ---- (noFabHeader && useSynchronousReads) == false
 
     int nReqs(0), ioProcNum(coordinatorProc);
-    int nBoxes(hdr.m_ba.size());
+    int nBoxes = static_cast<int>(hdr.m_ba.size());
     int totalIOReqs(nBoxes), nFiles(-1);
     std::vector<int> iDone(2);
     const int iDoneIndex(0), iDoneCount(1);
@@ -1808,7 +1803,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     }
 
     if(myProc == coordinatorProc) {    // fill availableFiles
-      nFiles = fileNames.size();
+      nFiles = static_cast<int>(fileNames.size());
       for(int i(0); i < nFiles; ++i) {
         for(int nOpens(0); nOpens < nOpensPerFile; ++nOpens) {
           availableFiles.insert(i);
@@ -1859,7 +1854,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
             int tryProc(whichRead->first);
             if(busyProcs.find(tryProc) == busyProcs.end()) {  // tryProc not busy
               busyProcs.insert(tryProc);
-              int nReads(whichRead->second.size());
+              int nReads= static_cast<int>(whichRead->second.size());
               int ir(0);
               vReads.resize(nReads);
               std::map<Long,int>::iterator imiter;
@@ -1929,9 +1924,9 @@ VisMF::Read (FabArray<FArrayBox> &mf,
           int mfIndex(recReads[ir]);
           VisMF::readFAB(mf,mfIndex, mf_name, hdr);
         }
-        nReqs -= rmess.count();
+        nReqs -= static_cast<int>(rmess.count());
         iDone[iDoneIndex] = recReads[0];
-        iDone[iDoneCount] = rmess.count();
+        iDone[iDoneCount] = static_cast<int>(rmess.count());
         ParallelDescriptor::Send(iDone, ioProcNum, doneTag);
       }
     }
@@ -2127,12 +2122,6 @@ bool VisMF::NoFabHeader(const VisMF::Header &hdr) {
 }
 
 
-VisMF::PersistentIFStream::PersistentIFStream()
-    :
-    currentPosition(0)
-{ }
-
-
 VisMF::PersistentIFStream::~PersistentIFStream()
 {
   if(isOpen) {
@@ -2313,7 +2302,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
             rdsp.resize(nprocs,0);
             for (int k = 0; k < n_global_fabs; ++k) {
                 int rank = dm[k];
-                rcnt[rank] += n_fab_nums;
+                rcnt[rank] += static_cast<int>(n_fab_nums);
             }
             std::partial_sum(rcnt.begin(), rcnt.end()-1, rdsp.begin()+1);
         } else {

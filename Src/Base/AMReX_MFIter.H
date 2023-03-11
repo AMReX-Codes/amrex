@@ -99,6 +99,9 @@ public:
     MFIter (const BoxArray& ba, const DistributionMapping& dm, const MFItInfo& info);
 
     MFIter (MFIter&& rhs) = default;
+    MFIter (MFIter const&) = delete;
+    MFIter& operator= (MFIter const&) = delete;
+    MFIter& operator= (MFIter &&) = delete;
 
     // dtor
     ~MFIter ();
@@ -185,9 +188,12 @@ protected:
     bool          finalized = false;
 
     struct DeviceSync {
-        DeviceSync () = default;
         DeviceSync (bool f) : flag(f) {}
         DeviceSync (DeviceSync&& rhs)  noexcept : flag(std::exchange(rhs.flag,false)) {}
+        ~DeviceSync () = default;
+        DeviceSync (DeviceSync const&) = delete;
+        DeviceSync& operator= (DeviceSync const&) = delete;
+        DeviceSync& operator= (DeviceSync &&) = delete;
         explicit operator bool() const noexcept { return flag; }
         bool flag = true;
     };

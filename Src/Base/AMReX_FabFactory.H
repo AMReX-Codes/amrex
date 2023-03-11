@@ -48,7 +48,12 @@ template <class FAB>
 class FabFactory
 {
 public:
-    virtual ~FabFactory () = default;
+    FabFactory () noexcept = default;
+    FabFactory (FabFactory const&) noexcept = default;
+    FabFactory (FabFactory &&) noexcept = default;
+    FabFactory& operator= (FabFactory const&) noexcept = default;
+    FabFactory& operator= (FabFactory &&) noexcept = default;
+    virtual ~FabFactory () noexcept = default;
     AMREX_NODISCARD
     virtual FAB* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const = 0;
     AMREX_NODISCARD

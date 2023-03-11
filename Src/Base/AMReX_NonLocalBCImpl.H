@@ -128,9 +128,9 @@ struct PolarFn2 { // for the x-y corners
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     int j_index (int j) const noexcept {
-        if (j < 0) {
+        if (j < 0) { // NOLINT
             return j+Ly/2;
-        } else if (j >= Ly) {
+        } else if (j >= Ly) { // NOLINT
             return j-Ly/2;
         } else if (j < Ly/2) {
             return j-Ly/2;
@@ -187,7 +187,7 @@ template <class FAB, class DTOS, class Proj>
 std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
 local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
                 FabArrayBase::CopyComTagsContainer const& local_tags, DTOS dtos, Proj proj) noexcept {
-    const int N_locs = local_tags.size();
+    const auto N_locs = static_cast<int>(local_tags.size());
     if (N_locs == 0) return;
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
@@ -217,7 +217,7 @@ unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> c
                         DTOS dtos, Proj proj) noexcept {
     amrex::ignore_unused(recv_size);
 
-    const int N_rcvs = recv_cctc.size();
+    const auto N_rcvs = static_cast<int>(recv_cctc.size());
     if (N_rcvs == 0) return;
 
     using T = typename FAB::value_type;
@@ -357,7 +357,7 @@ MultiBlockCommMetaData::define (const BoxArray& dstba, const DistributionMapping
     m_SndTags = std::make_unique<FabArrayBase::MapOfCopyComTagContainers>();
     m_RcvTags = std::make_unique<FabArrayBase::MapOfCopyComTagContainers>();
     const int myproc = ParallelDescriptor::MyProc();
-    for (int i = 0, N = dstba.size(); i < N; ++i) {
+    for (int i = 0, N = static_cast<int>(dstba.size()); i < N; ++i) {
         const int dest_owner = dstdm[i];
         const Box partial_dstbox = grow(dstba[i], ngrow) & dstbox;
         if (partial_dstbox.isEmpty()) {
@@ -407,8 +407,7 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
     if (ParallelContext::NProcsSub() == 1)
 #endif
     {
-        int N_locs = (*cmd.m_LocTags).size();
-        if (N_locs == 0) return CommHandler{};
+        if (cmd.m_LocTags->empty()) { return CommHandler{}; }
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion()) {
             local_copy_gpu(mf, mf, scomp, scomp, ncomp, *cmd.m_LocTags, dtos);
@@ -427,9 +426,9 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
     //
     int SeqNum = ParallelDescriptor::SeqNum();
 
-    const int N_locs = cmd.m_LocTags->size();
-    const int N_rcvs = cmd.m_RcvTags->size();
-    const int N_snds = cmd.m_SndTags->size();
+    const auto N_locs = cmd.m_LocTags->size();
+    const auto N_rcvs = cmd.m_RcvTags->size();
+    const auto N_snds = cmd.m_SndTags->size();
 
     if (N_locs == 0 && N_rcvs == 0 && N_snds == 0) {
         // No work to do.
@@ -487,7 +486,7 @@ Comm_finish (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
 {
     if (ParallelContext::NProcsSub() == 1) return;
 
-    const int N_rcvs = cmd.m_RcvTags->size();
+    const auto N_rcvs = static_cast<int>(cmd.m_RcvTags->size());
     if (N_rcvs > 0)
     {
         handler.recv.cctc.resize(N_rcvs, nullptr);
@@ -516,8 +515,7 @@ Comm_finish (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
         }
     }
 
-    const int N_snds = cmd.m_SndTags->size();
-    if (N_snds > 0) {
+    if ( ! cmd.m_SndTags->empty() ) {
         handler.send.stats.resize(handler.send.request.size());
         ParallelDescriptor::Waitall(handler.send.request, handler.send.stats);
     }
