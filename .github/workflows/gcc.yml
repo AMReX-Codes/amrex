@@ -64,6 +64,7 @@ jobs:
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
             -DAMReX_PARTICLES=ON        \
+            -DAMReX_PARTICLES_PRECISION=SINGLE \
             -DAMReX_SPACEDIM=3
         cmake --build build -j 2
 
