@@ -1054,9 +1054,9 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
                 int nz = hi.z-lo.z+1;
 
                 bool isActualNeighbor = false;
-                for (int kk = amrex::max(ix-num_cells, 0); kk <= amrex::min(ix+num_cells, nx); ++kk) {
+                for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz); ++kk) {
                     for (int jj = amrex::max(iy-num_cells, 0); jj <= amrex::min(iy+num_cells, ny); ++jj) {
-                        for (int ii = amrex::max(iz-num_cells, 0); ii <= amrex::min(iz+num_cells, nz); ++ii) {
+                        for (int ii = amrex::max(ix-num_cells, 0); ii <= amrex::min(ix+num_cells, nx); ++ii) {
                             if (isActualNeighbor) break;
                             int nbr_cell_id = (kk * ny + jj) * nx + ii;
                             for (auto p = poffset[nbr_cell_id]; p < poffset[nbr_cell_id+1]; ++p) {
