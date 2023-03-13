@@ -75,6 +75,9 @@ else
 
 # multiple executables
 %.$(machineSuffix).ex:%.cpp $(objForExecs)
+ifeq ($(USE_CLANG_TIDY),TRUE)
+	$(SILENT) $(CLANG_TIDY) $(CLANG_TIDY_ARGS) $< -- $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs)
+endif
 	$(SILENT) $(CCACHE) $(CXX) $(DEPFLAGS) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< -o $(objEXETempDir)/$(subst /,_,$<).o
 	@echo "Linking $@ ..."
 	$(SILENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $(objEXETempDir)/$(subst /,_,$<).o $(objForExecs) $(FINAL_LIBS)
@@ -238,15 +241,9 @@ TAGS:	$(allSources)
 	@echo etags $< ...
 	$(SILENT) etags $(abspath $^)
 
-clang-analyze: $(CEXE_sources)
-	clang++ --analyze --analyzer-output html $(CXXFLAGS) $(CPPFLAGS) $(includes) $^
-
-clang-tidy: $(CEXE_sources)
-	clang-tidy $^ -checks=clang-diagnostic-*,performance-*,mpi-* -- $(CXXFLAGS) $(CPPFLAGS) $(includes)
-
 FORCE:
 
-.PHONY:	all cleanconfig clean realclean file_locations tags TAGS clang-analyze clang-tidy install_lib install_headers install_fortran_modules install_pkg_config
+.PHONY:	all cleanconfig clean realclean file_locations tags TAGS install_lib install_headers install_fortran_modules install_pkg_config
 
 #
 # Rules for objects.
@@ -257,6 +254,9 @@ $(objEXETempDir)/%.o: %.cpp $(srcTempDir)/AMReX_Config.H $(srcTempDir)/AMReX_Ver
 ifeq ($(LOG_BUILD_TIME),TRUE)
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
 	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
+endif
+ifeq ($(USE_CLANG_TIDY),TRUE)
+	$(SILENT) $(CLANG_TIDY) $(CLANG_TIDY_ARGS) $< -- $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs)
 endif
 	$(SILENT) $(CCACHE) $(CXX) $(DEPFLAGS) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
 ifeq ($(LOG_BUILD_TIME),TRUE)

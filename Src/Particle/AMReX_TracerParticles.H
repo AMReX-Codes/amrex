@@ -21,13 +21,14 @@ public:
         : ParticleContainer<AMREX_SPACEDIM>(geom,dmap,ba)
         {}
 
+    TracerParticleContainer () = default;
     ~TracerParticleContainer () override = default;
 
     TracerParticleContainer ( const TracerParticleContainer &) = delete;
     TracerParticleContainer& operator= ( const TracerParticleContainer & ) = delete;
 
-    TracerParticleContainer ( TracerParticleContainer && ) = default;
-    TracerParticleContainer& operator= ( TracerParticleContainer && ) = default;
+    TracerParticleContainer ( TracerParticleContainer && ) noexcept = default;
+    TracerParticleContainer& operator= ( TracerParticleContainer && ) noexcept = default;
 
     void AdvectWithUmac (MultiFab* umac, int level, Real dt);
 
@@ -42,4 +43,3 @@ using TracerParIter = ParIter<AMREX_SPACEDIM>;
 }
 
 #endif
-

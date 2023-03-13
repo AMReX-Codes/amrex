@@ -168,7 +168,7 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
         if (vol_weight) {
             const Real* dx = pc.Geom(0).CellSize();
             const Real vol = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);
-            mf[0]->mult(1.0/vol, 0, mf[0]->nComp(), mf[0]->nGrow());
+            mf[0]->mult(Real(1.0)/vol, 0, mf[0]->nComp(), mf[0]->nGrow());
         }
         return;
     }
@@ -181,7 +181,7 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
     {
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-            mf[lev]->setVal(0.0);
+            mf[lev]->setVal(Real(0.0));
         }
     }
 
@@ -211,7 +211,7 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
         if (vol_weight) {
             const Real* dx = pc.Geom(lev).CellSize();
             const Real vol = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);
-            mf_part[lev].mult(1.0/vol, 0, mf_part[lev].nComp(), mf_part[lev].nGrow());
+            mf_part[lev].mult(Real(1.0)/vol, 0, mf_part[lev].nComp(), mf_part[lev].nGrow());
         }
 
         if (lev < lev_max) {
@@ -259,10 +259,7 @@ public:
 
     typedef Particle<NStructReal, NStructInt> ParticleType;
 
-    AmrParticleContainer ()
-        : ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>()
-    {
-    }
+    AmrParticleContainer () = default;
 
     AmrParticleContainer (AmrCore* amr_core)
         : ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>(amr_core->GetParGDB())
@@ -277,13 +274,13 @@ public:
     {
     }
 
-    ~AmrParticleContainer () {}
+    ~AmrParticleContainer () override = default;
 
     AmrParticleContainer ( const AmrParticleContainer &) = delete;
     AmrParticleContainer& operator= ( const AmrParticleContainer & ) = delete;
 
-    AmrParticleContainer ( AmrParticleContainer && ) = default;
-    AmrParticleContainer& operator= ( AmrParticleContainer && ) = default;
+    AmrParticleContainer ( AmrParticleContainer && ) noexcept = default;
+    AmrParticleContainer& operator= ( AmrParticleContainer && ) noexcept = default;
 };
 
 class AmrTracerParticleContainer
@@ -296,13 +293,13 @@ public:
     {
     }
 
-    ~AmrTracerParticleContainer () {}
+    ~AmrTracerParticleContainer () override = default;
 
     AmrTracerParticleContainer ( const AmrTracerParticleContainer &) = delete;
     AmrTracerParticleContainer& operator= ( const AmrTracerParticleContainer & ) = delete;
 
-    AmrTracerParticleContainer ( AmrTracerParticleContainer && ) = default;
-    AmrTracerParticleContainer& operator= ( AmrTracerParticleContainer && ) = default;
+    AmrTracerParticleContainer ( AmrTracerParticleContainer && ) noexcept = default;
+    AmrTracerParticleContainer& operator= ( AmrTracerParticleContainer && ) noexcept = default;
 };
 
 }

@@ -24,7 +24,7 @@ extern "C" {
             d.push_back(*dm[i]);
         }
 
-        MLPoisson* poisson = new MLPoisson(g,b,d,info);
+        auto* poisson = new MLPoisson(g,b,d,info);
         linop = static_cast<MLLinOp*>(poisson);
     }
 

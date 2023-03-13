@@ -137,7 +137,7 @@ int main_main()
             amrex::Print() << " WARNING: variable " << names_a[n_a] << " not found in plotfile 2\n";
             all_variables_found = false;
         } else {
-            ivar_b[n_a] = std::distance(std::begin(names_b), r);
+            ivar_b[n_a] = static_cast<int>(std::distance(std::begin(names_b), r));
         }
 
         if (names_a[n_a] == diffvar) {
@@ -369,7 +369,7 @@ int main_main()
         if (abort_if_not_all_found) return EXIT_FAILURE;
     }
 
-    if (any_nans) {
+    if (any_nans) { // NOLINT(bugprone-branch-clone)
         return EXIT_FAILURE;
     } else if (global_error == 0.0) {
         amrex::Print() << " PLOTFILE AGREE" << std::endl;

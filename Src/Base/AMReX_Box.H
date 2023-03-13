@@ -987,7 +987,7 @@ Box::setRange (int dir,
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 void
-Box::next (IntVect& p) const noexcept
+Box::next (IntVect& p) const noexcept // NOLINT(readability-convert-member-functions-to-static)
 {
     BL_ASSERT(contains(p));
 

@@ -108,7 +108,7 @@ void ParticleContainerBase::SetParGDB (const Vector<Geometry>            & geom,
     resizeData();
 }
 
-void ParticleContainerBase::SetParticleBoxArray (int lev, BoxArray new_ba)
+void ParticleContainerBase::SetParticleBoxArray (int lev, BoxArray new_ba) // NOLINT(performance-unnecessary-value-param)
 {
     // Must take the new BoxArray by value to avoid aliasing with what's
     // inside m_gdb_object
@@ -121,7 +121,7 @@ void ParticleContainerBase::SetParticleBoxArray (int lev, BoxArray new_ba)
     RedefineDummyMF(lev);
 }
 
-void ParticleContainerBase::SetParticleDistributionMap (int lev, DistributionMapping new_dmap)
+void ParticleContainerBase::SetParticleDistributionMap (int lev, DistributionMapping new_dmap) // NOLINT(performance-unnecessary-value-param)
 {
     // Must take the new DistributionMapping by value to avoid aliasing with
     // what's inside m_gdb_object
@@ -134,7 +134,7 @@ void ParticleContainerBase::SetParticleDistributionMap (int lev, DistributionMap
     RedefineDummyMF(lev);
 }
 
-void ParticleContainerBase::SetParticleGeometry (int lev, Geometry new_geom)
+void ParticleContainerBase::SetParticleGeometry (int lev, Geometry new_geom) // NOLINT(performance-unnecessary-value-param)
 {
     // Must take the new Geometry by value to avoid aliasing with what's
     // inside m_gdb_object

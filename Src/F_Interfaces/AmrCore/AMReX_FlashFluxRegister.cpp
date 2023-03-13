@@ -42,7 +42,7 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
         std::vector<std::pair<int,Box> > isects;
         const std::vector<IntVect>& pshifts = m_fine_geom.periodicity().shiftIntVect();
         Vector<std::pair<Orientation,Box> > faces;
-        for (int i = 0, nfines = fba.size(); i < nfines; ++i)
+        for (int i = 0, nfines = static_cast<int>(fba.size()); i < nfines; ++i)
         {
             Box const& ccbx = fba[i];
             Box const& ndbx = amrex::surroundingNodes(ccbx);
@@ -105,7 +105,7 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
         const std::vector<IntVect>& pshifts = m_crse_geom.periodicity().shiftIntVect();
         Vector<std::pair<Orientation,Box> > cell_faces;
         Vector<Orientation> crsefine_faces;
-        for (int i = 0, ncrses = cba.size(); i < ncrses; ++i)
+        for (int i = 0, ncrses = static_cast<int>(cba.size()); i < ncrses; ++i)
         {
             Box const& ccbx = cba[i];
             Box const& ccbxg1 = amrex::grow(ccbx,1);
@@ -212,7 +212,9 @@ void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& 
                                      src(2*i,2*j+1,2*k+1,n)) * (Real(0.25)*sf);
                 });
 #endif
-            } else if (dir == 1) {
+            }
+#if (AMREX_SPACEDIM >= 2)
+            else if (dir == 1) {
 #if (AMREX_SPACEDIM == 2)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
@@ -230,8 +232,9 @@ void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& 
                                      src(2*i+1,2*j,2*k+1,n)) * (Real(0.25)*sf);
                 });
 #endif
-            } else {
+            }
 #if (AMREX_SPACEDIM == 3)
+            else {
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
                     dest(i,j,k,n) = (src(2*i  ,2*j  ,2*k,n) +
@@ -239,8 +242,9 @@ void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& 
                                      src(2*i  ,2*j+1,2*k,n) +
                                      src(2*i+1,2*j+1,2*k,n)) * (Real(0.25)*sf);
                 });
-#endif
             }
+#endif
+#endif
         }
     }
 }
@@ -283,7 +287,9 @@ void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& 
                                      src(2*i,2*j+1,2*k+1,n)*area(2*i,2*j+1,2*k+1)) * sf;
                 });
 #endif
-            } else if (dir == 1) {
+            }
+#if (AMREX_SPACEDIM >= 2)
+            else if (dir == 1) {
 #if (AMREX_SPACEDIM == 2)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
@@ -301,8 +307,9 @@ void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& 
                                      src(2*i+1,2*j,2*k+1,n)*area(2*i+1,2*j,2*k+1)) * sf;
                 });
 #endif
-            } else {
+            }
 #if (AMREX_SPACEDIM == 3)
+            else {
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
                     dest(i,j,k,n) = (src(2*i  ,2*j  ,2*k,n)*area(2*i  ,2*j  ,2*k) +
@@ -310,8 +317,9 @@ void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& 
                                      src(2*i  ,2*j+1,2*k,n)*area(2*i  ,2*j+1,2*k) +
                                      src(2*i+1,2*j+1,2*k,n)*area(2*i+1,2*j+1,2*k)) * sf;
                 });
-#endif
             }
+#endif
+#endif
         }
     }
 }
@@ -389,7 +397,9 @@ void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& 
                     }
                 });
 #endif
-            } else if (dir == 1) {
+            }
+#if (AMREX_SPACEDIM >= 2)
+            else if (dir == 1) {
 #if (AMREX_SPACEDIM == 2)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
@@ -419,8 +429,9 @@ void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& 
                     }
                 });
 #endif
-            } else {
+            }
 #if (AMREX_SPACEDIM == 3)
+            else {
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
                     if (ifd[n]) {
@@ -435,8 +446,9 @@ void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& 
                                          src(2*i+1,2*j+1,2*k,n)) * sf;
                     }
                 });
-#endif
             }
+#endif
+#endif
         }
     }
 }

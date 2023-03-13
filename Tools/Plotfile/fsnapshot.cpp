@@ -293,9 +293,9 @@ void main_main()
             Real rd = realarr(i,jj,kk);
             if (do_log) rd = std::log10(rd);
             int id = std::max(0,std::min(255,static_cast<int>((rd-gmn)*fac)));
-            unsigned char c = static_cast<unsigned char>(id);
-            constexpr unsigned char cmn = static_cast<unsigned char>(1);  // avoid zero
-            constexpr unsigned char cmx = static_cast<unsigned char>(255);
+            auto c = static_cast<unsigned char>(id);
+            constexpr auto cmn = static_cast<unsigned char>(1);  // avoid zero
+            constexpr auto cmx = static_cast<unsigned char>(255);
             intarr(i,j,k) = std::max(cmn,std::min(cmx,c));
         });
 
