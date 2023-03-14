@@ -1,8 +1,6 @@
 #include <AMReX.H>
 #include <AMReX_Gpu.H>
-#include <AMReX_Sundials.H>
 #include <AMReX_SUNMemory.H>
-#include <sundials/sundials_context.h>
 #if defined(AMREX_USE_HIP)
 #include <sunmemory/sunmemory_hip.h>
 #elif defined(AMREX_USE_CUDA)
