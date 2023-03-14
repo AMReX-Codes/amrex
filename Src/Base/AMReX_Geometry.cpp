@@ -103,7 +103,7 @@ Geometry::define (const Box& dom, const RealBox* rb, int coord,
     domain = dom;
     ok     = true;
 
-    computeRoundoffDomain();
+    computeParticleRealDomain();
 }
 
 void
@@ -509,7 +509,7 @@ Geometry::growPeriodicDomain (int ngrow) const noexcept
 }
 
 void
-Geometry::computeRoundoffDomain ()
+Geometry::computeParticleRealDomain ()
 {
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
@@ -520,48 +520,12 @@ Geometry::computeRoundoffDomain ()
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-        int ilo = Domain().smallEnd(idim);
-        int ihi = Domain().bigEnd(idim);
         Real plo = ProbLo(idim);
         Real phi = ProbHi(idim);
-        Real dxinv = InvCellSize(idim);
-        Real deltax = CellSize(idim);
 
-        Real ftol = std::max(1.e-4_rt*deltax, 2.e-7_rt*phi);
-        Real dtol = std::max(1.e-8_rt*deltax, 1.e-14_rt*phi);
-
-        roundoff_lo_f[idim] = detail::bisect_prob_lo<float> (plo, phi, dxinv, ilo, ihi, ftol);
-        roundoff_lo_d[idim] = detail::bisect_prob_lo<double>(plo, phi, dxinv, ilo, ihi, dtol);
-        roundoff_hi_f[idim] = detail::bisect_prob_hi<float> (plo, phi, dxinv, ilo, ihi, ftol);
-        roundoff_hi_d[idim] = detail::bisect_prob_hi<double>(plo, phi, dxinv, ilo, ihi, dtol);
+        particlereal_lo[idim] = static_cast<ParticleReal>(plo);
+        particlereal_hi[idim] = static_cast<ParticleReal>(phi);
     }
-}
-
-bool
-Geometry::outsideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const
-{
-#ifdef AMREX_SINGLE_PRECISION_PARTICLES
-    bool outside = AMREX_D_TERM(x <  roundoff_lo_f[0]
-                             || x >= roundoff_hi_f[0],
-                             || y <  roundoff_lo_f[1]
-                             || y >= roundoff_hi_f[1],
-                             || z <  roundoff_lo_f[2]
-                             || z >= roundoff_hi_f[2]);
-#else
-    bool outside = AMREX_D_TERM(x <  roundoff_lo_d[0]
-                             || x >= roundoff_hi_d[0],
-                             || y <  roundoff_lo_d[1]
-                             || y >= roundoff_hi_d[1],
-                             || z <  roundoff_lo_d[2]
-                             || z >= roundoff_hi_d[2]);
-#endif
-    return outside;
-}
-
-bool
-Geometry::insideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const
-{
-    return !outsideRoundoffDomain(AMREX_D_DECL(x, y, z));
 }
 
 }

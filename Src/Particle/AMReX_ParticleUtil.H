@@ -571,21 +571,29 @@ bool enforcePeriodic (P& p,
         if (! is_per[idim]) continue;
         if (p.pos(idim) >= phi[idim]) {
             while (p.pos(idim) >= phi[idim]) {
-                p.pos(idim) -= static_cast<ParticleReal>(phi[idim] - plo[idim]);
+                // To avoid round off errors, do the shift at the higher precision before casting
+                p.pos(idim) = static_cast<amrex::ParticleReal>(p.pos(idim) - (phi[idim] - plo[idim]));
             }
             // clamp to avoid precision issues;
-            if (p.pos(idim) < rlo[idim]) {
-                p.pos(idim) = rlo[idim];
+            if (p.pos(idim) < plo[idim]) {
+                // With the shift done at the higher precision, the nextafter will always be within the domain
+                // if the shifted value is not.
+                // Note, to get the correct nextafter, the rhi must be the same type as p.pos.
+                p.pos(idim) = std::nextafter(p.pos(idim), rhi[idim]);
             }
             shifted = true;
         }
         else if (p.pos(idim) < plo[idim]) {
             while (p.pos(idim) < plo[idim]) {
-                p.pos(idim) += static_cast<ParticleReal>(phi[idim] - plo[idim]);
+                // To avoid round off errors, do the shift at the higher precision before casting
+                p.pos(idim) = static_cast<amrex::ParticleReal>(p.pos(idim) + (phi[idim] - plo[idim]));
             }
             // clamp to avoid precision issues;
-            if (p.pos(idim) > rhi[idim]) {
-                p.pos(idim) = rhi[idim];
+            if (p.pos(idim) > phi[idim]) {
+                // With the shift done at the higher precision, the nextafter will always be within the domain
+                // if the shifted value is not.
+                // Note, to get the correct nextafter, the rlo must be the same type as p.pos.
+                p.pos(idim) = std::nextafter(p.pos(idim), rlo[idim]);
             }
             shifted = true;
         }

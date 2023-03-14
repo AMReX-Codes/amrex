@@ -222,7 +222,7 @@ public:
     void ProbDomain (const RealBox& rb) noexcept
     {
         prob_domain = rb;
-        computeRoundoffDomain();
+        computeParticleRealDomain();
     }
     //! Returns the lo end of the problem domain in each dimension.
     [[nodiscard]] const Real* ProbLo () const noexcept { return prob_domain.lo(); }
@@ -242,18 +242,10 @@ public:
     }
 
     [[nodiscard]] GpuArray<ParticleReal,AMREX_SPACEDIM> ProbLoArrayInParticleReal () const noexcept {
-#ifdef AMREX_SINGLE_PRECISION_PARTICLES
-        return roundoff_lo_f;
-#else
-        return roundoff_lo_d;
-#endif
+        return particlereal_lo;
     }
     [[nodiscard]] GpuArray<ParticleReal,AMREX_SPACEDIM> ProbHiArrayInParticleReal () const noexcept {
-#ifdef AMREX_SINGLE_PRECISION_PARTICLES
-        return roundoff_hi_f;
-#else
-        return roundoff_hi_d;
-#endif
+        return particlereal_hi;
     }
 
     //! Returns the overall size of the domain by multiplying the ProbLength's together
@@ -269,7 +261,7 @@ public:
     void Domain (const Box& bx) noexcept
     {
         domain = bx;
-        computeRoundoffDomain();
+        computeParticleRealDomain();
     }
     //! Define a multifab of areas and volumes with given grow factor.
     void GetVolume (MultiFab&       vol,
@@ -460,26 +452,10 @@ public:
     }
 
     /**
-    * \brief Returns true if a point is outside the roundoff domain.
-    *        All particles with positions inside the roundoff domain
-    *        are sure to be mapped to cells inside the Domain() box. Note that
-    *        the same need not be true for all points inside ProbDomain().
-    */
-    [[nodiscard]] bool outsideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const;
-
-    /**
-    * \brief Returns true if a point is inside the roundoff domain.
-    *        All particles with positions inside the roundoff domain
-    *        are sure to be mapped to cells inside the Domain() box. Note that
-    *        the same need not be true for all points inside ProbDomain().
-    */
-    [[nodiscard]] bool insideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const;
-
-    /**
-    * \brief Compute the roundoff domain. Public because it contains an
+    * \brief Compute the domain using ParticleReal type. Public because it contains an
     *        extended host / device lambda.
     */
-    void computeRoundoffDomain ();
+    void computeParticleRealDomain ();
 
 private:
     void read_params ();
@@ -488,12 +464,8 @@ private:
     bool    is_periodic[AMREX_SPACEDIM] = {AMREX_D_DECL(false,false,false)};
     RealBox prob_domain;
 
-    // Due to round-off errors, not all floating point numbers for which plo >= x < phi
-    // will map to a cell that is inside "domain". "roundoff_{lo,hi}_{f,d}" each store
-    // a position that is very close to that in prob_domain, and for which all doubles and floats less than
-    // it will map to a cell inside domain.
-    GpuArray<double, AMREX_SPACEDIM> roundoff_lo_d, roundoff_hi_d;
-    GpuArray<float , AMREX_SPACEDIM> roundoff_lo_f, roundoff_hi_f;
+    // To minimize the casting operations, save the domain bounds in the ParticleReal type
+    GpuArray<ParticleReal, AMREX_SPACEDIM> particlereal_lo, particlereal_hi;
 
     //
     Box     domain;

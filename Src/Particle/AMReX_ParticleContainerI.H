@@ -313,26 +313,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::lo
                              || p.pos(2) <  Geom(0).ProbLo(2)
                              || p.pos(2) >= Geom(0).ProbHi(2));
 
-    if (! outside)
-    {
-        if (Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))))
-        {
-            GpuArray<ParticleReal, AMREX_SPACEDIM> rhi = Geom(0).ProbHiArrayInParticleReal();
-            GpuArray<ParticleReal, AMREX_SPACEDIM> rlo = Geom(0).ProbLoArrayInParticleReal();
-            for (int idim=0; idim < AMREX_SPACEDIM; ++idim)
-            {
-                if (p.pos(idim) <= rlo[idim]) {
-                    p.pos(idim) = std::nextafter(rlo[idim], rhi[idim]);
-                }
-                if (p.pos(idim) >= rhi[idim]) {
-                    p.pos(idim) = std::nextafter(rhi[idim], rlo[idim]);
-                }
-            }
-
-            AMREX_ASSERT(! Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))));
-        }
-    }
-
     bool success;
     if (outside)
     {
