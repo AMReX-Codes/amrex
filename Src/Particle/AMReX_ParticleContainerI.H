@@ -1115,8 +1115,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::So
 {
     BL_PROFILE("ParticleContainer::SortParticlesByBin()");
 
-    if (bin_size == IntVect::TheZeroVector()) return;
-
     for (int lev = 0; lev < numLevels(); ++lev)
     {
         const Geometry& geom = Geom(lev);
@@ -1134,9 +1132,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::So
 
             const Box& box = mfi.validbox();
 
-            int ntiles = numTilesInBox(box, true, bin_size);
+            if (bin_size.allGE(IntVect(1))) {
+                int ntiles = numTilesInBox(box, true, bin_size);
+                m_bins.build(np, pstruct_ptr, ntiles, GetParticleBin{plo, dxi, domain, bin_size, box});
+            } else {
+                m_bins.build2(np, pstruct_ptr, box, geom, -bin_size);
+            }
 
-            m_bins.build(np, pstruct_ptr, ntiles, GetParticleBin{plo, dxi, domain, bin_size, box});
             auto inds = m_bins.permutationPtr();
 
             if (memEfficientSort) {
