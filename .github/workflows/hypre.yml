@@ -41,7 +41,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies.sh
+      run: |
+        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_clang-tidy.sh 14
     - name: Build Hypre
       run: |
         wget -q https://github.com/hypre-space/hypre/archive/refs/tags/v2.21.0.tar.gz
@@ -55,5 +57,6 @@ jobs:
       run: |
         export AMREX_HYPRE_HOME=${PWD}/hypre-2.21.0/src/hypre
         cd Tests/LinearSolvers/ABecLaplacian_C
-        make -j2 USE_MPI=TRUE USE_HYPRE=TRUE DIM=3
+        make -j2 USE_MPI=TRUE USE_HYPRE=TRUE DIM=3 \
+            USE_CLANG_TIDY=TRUE CLANG_TIDY=clang-tidy-14 CLANG_TIDY_WARN_ERROR=TRUE
         mpiexec -n 2 ./main3d.gnu.MPI.ex inputs.hypre

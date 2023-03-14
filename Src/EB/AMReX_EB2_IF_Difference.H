@@ -27,11 +27,6 @@ public:
           m_g(a_g)
     {}
 
-    DifferenceIF (const DifferenceIF& rhs) = default;
-    DifferenceIF (DifferenceIF&& rhs) = default;
-    DifferenceIF& operator= (const DifferenceIF& rhs) = delete;
-    DifferenceIF& operator= (DifferenceIF&& rhs) = delete;
-
     inline Real operator() (const RealArray& p) const noexcept
     {
         Real r1 = m_f(p);

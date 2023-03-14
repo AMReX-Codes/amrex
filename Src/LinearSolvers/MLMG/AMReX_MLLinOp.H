@@ -453,11 +453,11 @@ public:
 #endif
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-    virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface /*hypre_interface*/) const {
+    [[nodiscard]] virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface /*hypre_interface*/) const {
         amrex::Abort("MLLinOp::makeHypre: How did we get here?");
         return {nullptr};
     }
-    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap(
+    [[nodiscard]] virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap(
         int /*bottom_verbose*/,
         const std::string& /* options_namespace */) const
     {
@@ -467,7 +467,7 @@ public:
 #endif
 
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
-    virtual std::unique_ptr<PETScABecLap> makePETSc () const {
+    [[nodiscard]] virtual std::unique_ptr<PETScABecLap> makePETSc () const {
         amrex::Abort("MLLinOp::makePETSc: How did we get here?");
         return {nullptr};
     }
@@ -479,7 +479,7 @@ public:
 
     virtual void postSolve (Vector<MF>& /*sol*/) const {}
 
-    virtual RT normInf (int amrlev, MF const& mf, bool local) const = 0;
+    [[nodiscard]] virtual RT normInf (int amrlev, MF const& mf, bool local) const = 0;
 
     virtual void averageDownAndSync (Vector<MF>& sol) const = 0;
 

@@ -115,11 +115,11 @@ public:
                               const Vector<MultiFab*>& a_sol) const override;
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-    virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const override;
+    [[nodiscard]] std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const override;
 #endif
 
 #ifdef AMREX_USE_PETSC
-    virtual std::unique_ptr<PETScABecLap> makePETSc () const override;
+    [[nodiscard]] std::unique_ptr<PETScABecLap> makePETSc () const override;
 #endif
 
 protected:
