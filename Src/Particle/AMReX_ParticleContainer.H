@@ -499,6 +499,37 @@ public:
     void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
                        bool remove_negative=true);
 
+
+    /**
+     * \brief Reorder particles on the tile given by lev and mfi using a the permutations array.
+     *
+     * permutations is a pointer to an array on the GPU of size numParticles() with
+     * permutations[new index] = old index.
+     *
+     * \param lev
+     * \param mfi
+     * \param permutations
+     *
+     */
+    template <class index_type>
+    void ReorderParticles (int lev, const MFIter& mfi, const index_type* permutations);
+
+    /**
+     * \brief Sort particles on each tile such that particles adjacent in memory
+     * are likely to map to adjacent cells. This ordering can be beneficial for performance
+     * on GPU when deposition quantities onto a grid.
+     *
+     * idx_type = {0, 0, 0}: Sort particles to a cell centered grid
+     * idx_type = {1, 1, 1}: Sort particles to a node centered grid
+     * idx_type = {2, 2, 2}: Compromise between a cell and node centered grid.
+     * This last option uses more memory than the fist two.
+     * Mixed versions are also possible.
+     *
+     * \param idx_type
+     *
+     */
+    void SortParticlesForDeposition (IntVect idx_type);
+
     /**
      * \brief Sort the particles on each tile by cell, using Fortran ordering.
      */
