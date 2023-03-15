@@ -26,10 +26,10 @@ public:
     int MyProc () const noexcept { return m_rank_me; }
     int NProcs () const noexcept { return m_nranks; }
     int IOProc () const noexcept { return m_io_rank; }
-    int local_to_global_rank (int lrank) const;
-    void local_to_global_rank (int* global, const int* local, std::size_t n) const;
-    void global_to_local_rank (int* local, const int* global, std::size_t n) const;
-    int global_to_local_rank (int grank) const;
+    static int local_to_global_rank (int lrank);
+    static void local_to_global_rank (int* global, const int* local, int n);
+    static void global_to_local_rank (int* local, const int* global, int n);
+    static int global_to_local_rank (int grank);
     int get_inc_mpi_tag ();
     void set_ofs_name (std::string filename);
     std::ofstream * get_ofs_ptr ();

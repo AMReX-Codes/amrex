@@ -432,3 +432,13 @@ else ()
        "AMReX_AMRLEVEL" OFF)
 endif ()
 print_option(AMReX_PROBINIT)
+
+
+#
+# Static code analysis  ===============================================
+#
+option(AMReX_CLANG_TIDY "Enable clang-tidy analysis" OFF)
+print_option(AMReX_CLANG_TIDY)
+cmake_dependent_option(AMReX_CLANG_TIDY_WERROR "Treat clang-tidy warnings as errors" OFF
+   "AMReX_CLANG_TIDY" OFF)
+print_option(AMReX_CLANG_TIDY_WERROR)

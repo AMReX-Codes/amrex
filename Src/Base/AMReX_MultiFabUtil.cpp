@@ -7,7 +7,7 @@ namespace {
 
     using namespace amrex;
 
-    static Box
+    Box
     getIndexBox(const RealBox& real_box, const Geometry& geom) {
         IntVect slice_lo, slice_hi;
 
@@ -22,7 +22,7 @@ namespace {
         return Box(slice_lo, slice_hi) & geom.Domain();
     }
 
-    static
+
     std::unique_ptr<MultiFab> allocateSlice(int dir, const MultiFab& cell_centered_data,
                                             int ncomp, const Geometry& geom, Real dir_coord,
                                             Vector<int>& slice_to_full_ba_map) {
@@ -34,7 +34,7 @@ namespace {
         Box slice_box = getIndexBox(real_slice, geom);
 
         // define the multifab that stores slice
-        BoxArray ba = cell_centered_data.boxArray();
+        BoxArray const& ba = cell_centered_data.boxArray();
         const DistributionMapping& dm = cell_centered_data.DistributionMap();
         std::vector< std::pair<int, Box> > isects;
         ba.intersections(slice_box, isects, false, 0);
@@ -45,7 +45,7 @@ namespace {
             boxes.push_back(is.second);
             slice_to_full_ba_map.push_back(is.first);
         }
-        BoxArray slice_ba(&boxes[0], boxes.size());
+        BoxArray slice_ba(&boxes[0], static_cast<int>(boxes.size()));
         DistributionMapping slice_dmap(std::move(procs));
         std::unique_ptr<MultiFab> slice(new MultiFab(slice_ba, slice_dmap, ncomp, 0,
                                                      MFInfo(), cell_centered_data.Factory()));
@@ -332,7 +332,6 @@ namespace amrex
 
 #if (AMREX_SPACEDIM == 3)
         amrex::average_down(S_fine, S_crse, scomp, ncomp, ratio);
-        return;
 #else
 
         AMREX_ASSERT(S_crse.nComp() == S_fine.nComp());
@@ -1025,7 +1024,8 @@ namespace amrex
         }
 
         if (!local) {
-            ParallelAllReduce::Sum(hv.data(), hv.size(), ParallelContext::CommunicatorSub());
+            ParallelAllReduce::Sum(hv.data(), static_cast<int>(hv.size()),
+                                   ParallelContext::CommunicatorSub());
         }
         return hv;
     }
@@ -1042,7 +1042,7 @@ namespace amrex
         bool has_eb = !(mf[0]->isAllRegular());
 #endif
 
-        int nlevels = mf.size();
+        int nlevels = static_cast<int>(mf.size());
         for (int ilev = 0; ilev < nlevels-1; ++ilev) {
             iMultiFab mask = makeFineMask(*mf[ilev], *mf[ilev+1], IntVect(0),
                                           ratio[ilev],Periodicity::NonPeriodic(),

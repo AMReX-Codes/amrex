@@ -187,12 +187,6 @@ namespace amrex
     void UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
                              bool printSet = false);
 
-    /**
-    * \brief Fill binCounts with the number of items for each bin.
-    *   The remainder items are randomly assigned.
-    */
-    void NItemsPerBin (int totalItems, Vector<int> &binCounts);
-
     void DeallocateRandomSeedDevArray ();
 }
 

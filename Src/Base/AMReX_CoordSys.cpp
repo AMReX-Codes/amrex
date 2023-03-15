@@ -25,32 +25,11 @@ CoordSys::SetOffset (const Real* x_lo) noexcept
     }
 }
 
-CoordSys::CoordSys () noexcept
-{
-}
-
-// void
-// CoordSys::define (const Real* cell_dx)
-// {
-//     AMREX_ASSERT(c_sys != undef);
-//     ok = true;
-//     for (int k = 0; k < AMREX_SPACEDIM; k++)
-//     {
-//         dx[k] = cell_dx[k];
-//     inv_dx[k] = 1.0/dx[k];
-//     }
-// }
-//
-// CoordSys::CoordSys (const Real* cell_dx)
-// {
-//     define(cell_dx);
-// }
-
 void
 CoordSys::CellCenter (const IntVect& point, Real* loc) const noexcept
 {
     AMREX_ASSERT(ok);
-    AMREX_ASSERT(loc != 0);
+    AMREX_ASSERT(loc != nullptr);
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
         loc[k] = offset[k] + dx[k]*(0.5_rt+ (Real)point[k]);
@@ -71,7 +50,7 @@ CoordSys::LoFace (const IntVect& point,
                   Real*          loc) const noexcept
 {
     AMREX_ASSERT(ok);
-    AMREX_ASSERT(loc != 0);
+    AMREX_ASSERT(loc != nullptr);
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
         Real off = (k == dir) ? 0.0_rt : 0.5_rt;
@@ -94,7 +73,7 @@ CoordSys::HiFace (const IntVect& point,
                   Real*          loc) const noexcept
 {
     AMREX_ASSERT(ok);
-    AMREX_ASSERT(loc != 0);
+    AMREX_ASSERT(loc != nullptr);
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
         Real off = (k == dir) ? 1.0_rt : 0.5_rt;
@@ -116,7 +95,7 @@ CoordSys::LoNode (const IntVect& point,
                   Real*          loc) const noexcept
 {
     AMREX_ASSERT(ok);
-    AMREX_ASSERT(loc != 0);
+    AMREX_ASSERT(loc != nullptr);
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
         loc[k] = offset[k] + dx[k]*point[k];
@@ -136,7 +115,7 @@ CoordSys::HiNode (const IntVect& point,
                   Real*          loc) const noexcept
 {
     AMREX_ASSERT(ok);
-    AMREX_ASSERT(loc != 0);
+    AMREX_ASSERT(loc != nullptr);
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
         loc[k] = offset[k] + dx[k]*(point[k] + 1);
@@ -155,7 +134,7 @@ IntVect
 CoordSys::CellIndex (const Real* point) const noexcept
 {
     AMREX_ASSERT(ok);
-    AMREX_ASSERT(point != 0);
+    AMREX_ASSERT(point != nullptr);
     IntVect ix;
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
@@ -168,7 +147,7 @@ IntVect
 CoordSys::LowerIndex (const Real* point) const noexcept
 {
     AMREX_ASSERT(ok);
-    AMREX_ASSERT(point != 0);
+    AMREX_ASSERT(point != nullptr);
     IntVect ix;
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
@@ -181,7 +160,7 @@ IntVect
 CoordSys::UpperIndex(const Real* point) const noexcept
 {
     AMREX_ASSERT(ok);
-    AMREX_ASSERT(point != 0);
+    AMREX_ASSERT(point != nullptr);
     IntVect ix;
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
@@ -235,7 +214,7 @@ CoordSys::GetDLogA (FArrayBox& dloga,
 }
 
 void
-CoordSys::SetDLogA (FArrayBox& a_dlogafab,
+CoordSys::SetDLogA (FArrayBox& a_dlogafab, // NOLINT(readability-convert-member-functions-to-static)
                     const Box& region,
                     int        dir) const
 {

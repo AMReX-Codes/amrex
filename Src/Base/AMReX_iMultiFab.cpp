@@ -161,8 +161,6 @@ iMultiFab::Finalize ()
     initialized = false;
 }
 
-iMultiFab::iMultiFab () noexcept {}
-
 iMultiFab::iMultiFab (Arena* a) noexcept
     : FabArray<IArrayBox>(a)
 {}
@@ -194,14 +192,11 @@ iMultiFab::iMultiFab (const iMultiFab& rhs, MakeType maketype, int scomp, int nc
 {
 }
 
-iMultiFab::~iMultiFab()
-{
-}
-
-void
+iMultiFab&
 iMultiFab::operator= (int r)
 {
     setVal(r);
+    return *this;
 }
 
 void
@@ -439,7 +434,7 @@ iMultiFab::sum (int comp, int nghost, bool local) const
 
 namespace {
 
-static IntVect
+IntVect
 indexFromValue (iMultiFab const& mf, int comp, int nghost, int value, MPI_Op mmloc)
 {
     IntVect loc = indexFromValue(mf, comp, IntVect{nghost}, value);

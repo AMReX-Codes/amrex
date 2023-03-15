@@ -35,9 +35,6 @@ MLTensorOp::MLTensorOp (const Vector<Geometry>& a_geom,
     define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory);
 }
 
-MLTensorOp::~MLTensorOp ()
-{}
-
 void
 MLTensorOp::define (const Vector<Geometry>& a_geom,
                     const Vector<BoxArray>& a_grids,

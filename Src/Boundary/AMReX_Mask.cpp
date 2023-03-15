@@ -5,9 +5,6 @@
 
 namespace amrex {
 
-Mask::Mask () noexcept
-    : BaseFab<int>() {}
-
 Mask::Mask (Arena* ar) noexcept
     : BaseFab<int>(ar) {}
 
@@ -80,8 +77,8 @@ Mask::writeOn (std::ostream& os) const
 {
     os << "(Mask: " << domain << " " << nvar << "\n";
     const int* ptr = dataPtr();
-    int len = domain.numPts();
-    os.write( (char*) ptr, len*sizeof(int) );
+    auto len = domain.numPts();
+    os.write( (char*) ptr, static_cast<std::streamsize>(len*sizeof(int)) );
     os << ")\n";
 }
 
@@ -95,8 +92,8 @@ Mask::readFrom (std::istream& is)
     is.ignore(BL_IGNORE_MAX, '\n');
     resize(b,ncomp);
     int *ptr = dataPtr();
-    int len = domain.numPts();
-    is.read( (char*) ptr, len*sizeof(int) );
+    auto len = domain.numPts();
+    is.read( (char*) ptr, static_cast<std::streamsize>(len*sizeof(int)) );
     is.ignore(BL_IGNORE_MAX, '\n');
 }
 

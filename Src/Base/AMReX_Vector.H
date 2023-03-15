@@ -31,24 +31,24 @@ public:
     using std::vector<T, Allocator>::vector;
     using typename std::vector<T, Allocator>::size_type;
 
-    T& operator[] (size_type i) noexcept
+    [[nodiscard]] T& operator[] (size_type i) noexcept
     {
         BL_ASSERT( i < (this->std::vector<T, Allocator>::size()) );
         return this->std::vector<T, Allocator>::operator[](i);
     }
 
-    const T& operator[] (size_type i) const noexcept
+    [[nodiscard]] const T& operator[] (size_type i) const noexcept
     {
         BL_ASSERT( i < (this->std::vector<T, Allocator>::size()) );
         return this->std::vector<T, Allocator>::operator[](i);
     }
 
     //! get access to the underlying data pointer
-    T* dataPtr () noexcept { return this->data(); }
+    [[nodiscard]] T* dataPtr () noexcept { return this->data(); }
     //! get access to the underlying data pointer
-    const T* dataPtr () const noexcept { return this->data(); }
+    [[nodiscard]] const T* dataPtr () const noexcept { return this->data(); }
 
-    Long size () const noexcept {return static_cast<Long>(std::vector<T, Allocator>::size());}
+    [[nodiscard]] Long size () const noexcept {return static_cast<Long>(std::vector<T, Allocator>::size());}
 
 };
 
@@ -59,7 +59,7 @@ namespace amrex
     /////////////////////////////////////////////////////////////
 
     template <class T, typename = typename T::FABType>
-    Vector<T*> GetVecOfPtrs (Vector<T>& a)
+    [[nodiscard]] Vector<T*> GetVecOfPtrs (Vector<T>& a)
     {
         Vector<T*> r;
         r.reserve(a.size());
@@ -68,7 +68,7 @@ namespace amrex
     }
 
     template <class T>
-    Vector<T*> GetVecOfPtrs (const Vector<std::unique_ptr<T> >& a)
+    [[nodiscard]] Vector<T*> GetVecOfPtrs (const Vector<std::unique_ptr<T> >& a)
     {
         Vector<T*> r;
         r.reserve(a.size());
@@ -79,7 +79,7 @@ namespace amrex
     /////////////////////////////////////////////////////////////
 
     template <class T, typename = typename T::FABType>
-    Vector<const T*> GetVecOfConstPtrs (const Vector<T>& a)
+    [[nodiscard]] Vector<const T*> GetVecOfConstPtrs (const Vector<T>& a)
     {
         Vector<const T*> r;
         r.reserve(a.size());
@@ -88,7 +88,7 @@ namespace amrex
     }
 
     template <class T>
-    Vector<const T*> GetVecOfConstPtrs (const Vector<std::unique_ptr<T> >& a)
+    [[nodiscard]] Vector<const T*> GetVecOfConstPtrs (const Vector<std::unique_ptr<T> >& a)
     {
         Vector<const T*> r;
         r.reserve(a.size());
@@ -97,7 +97,7 @@ namespace amrex
     }
 
     template <class T, typename = typename T::FABType>
-    Vector<const T*> GetVecOfConstPtrs (const Vector<T*>& a)
+    [[nodiscard]] Vector<const T*> GetVecOfConstPtrs (const Vector<T*>& a)
     {
         return {a.begin(), a.end()};
     }
@@ -105,7 +105,7 @@ namespace amrex
     /////////////////////////////////////////////////////////////
 
     template <class T>
-    Vector<Vector<T*> > GetVecOfVecOfPtrs (const Vector<Vector<std::unique_ptr<T> > >& a)
+    [[nodiscard]] Vector<Vector<T*> > GetVecOfVecOfPtrs (const Vector<Vector<std::unique_ptr<T> > >& a)
     {
         Vector<Vector<T*> > r;
         r.reserve(a.size());
@@ -117,7 +117,7 @@ namespace amrex
 
 #ifdef AMREX_SPACEDIM
     template <class T>
-    Vector<std::array<T*,AMREX_SPACEDIM> >
+    [[nodiscard]] Vector<std::array<T*,AMREX_SPACEDIM> >
     GetVecOfArrOfPtrs (const Vector<std::array<std::unique_ptr<T>,AMREX_SPACEDIM> >& a)
     {
         Vector<std::array<T*, AMREX_SPACEDIM> > r;
@@ -127,7 +127,7 @@ namespace amrex
     }
 
     template <class T>
-    Vector<std::array<T const*,AMREX_SPACEDIM> >
+    [[nodiscard]] Vector<std::array<T const*,AMREX_SPACEDIM> >
     GetVecOfArrOfPtrsConst (const Vector<std::array<std::unique_ptr<T>,AMREX_SPACEDIM> >& a)
     {
         Vector<std::array<T const*, AMREX_SPACEDIM> > r;
@@ -137,7 +137,7 @@ namespace amrex
     }
 
     template <class T>
-    Vector<std::array<T const*,AMREX_SPACEDIM> >
+    [[nodiscard]] Vector<std::array<T const*,AMREX_SPACEDIM> >
     GetVecOfArrOfConstPtrs (const Vector<std::array<std::unique_ptr<T>,AMREX_SPACEDIM> >& a)
     {
         Vector<std::array<T const*, AMREX_SPACEDIM> > r;
@@ -149,7 +149,7 @@ namespace amrex
     template <class T, typename std::enable_if<IsFabArray<T>::value ||
                                                IsBaseFab<T>::value,
                                                int>::type = 0 >
-    Vector<std::array<T const*,AMREX_SPACEDIM> >
+    [[nodiscard]] Vector<std::array<T const*,AMREX_SPACEDIM> >
     GetVecOfArrOfConstPtrs (const Vector<std::array<T,AMREX_SPACEDIM> >& a)
     {
         Vector<std::array<T const*, AMREX_SPACEDIM> > r;
@@ -161,7 +161,7 @@ namespace amrex
     template <class T, typename std::enable_if<IsFabArray<T>::value ||
                                                IsBaseFab<T>::value,
                                                int>::type = 0 >
-    Vector<std::array<T*, AMREX_SPACEDIM> >
+    [[nodiscard]] Vector<std::array<T*, AMREX_SPACEDIM> >
     GetVecOfArrOfPtrs(Vector<std::array<T, AMREX_SPACEDIM> >& a)
     {
         Vector<std::array<T*, AMREX_SPACEDIM> > r;
@@ -286,4 +286,3 @@ namespace amrex
 }
 
 #endif
-

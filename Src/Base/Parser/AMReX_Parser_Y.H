@@ -165,7 +165,7 @@ struct parser_node* parser_newf2 (enum parser_f2_t ftype, struct parser_node* l,
 struct parser_node* parser_newf3 (enum parser_f3_t ftype, struct parser_node* n1,
                                   struct parser_node* n2, struct parser_node* n3);
 struct parser_node* parser_newassign (struct parser_symbol* s, struct parser_node* v);
-struct parser_node* parser_newlist (struct parser_node* n1, struct parser_node* n2);
+struct parser_node* parser_newlist (struct parser_node* nl, struct parser_node* nr);
 
 /*******************************************************************/
 
@@ -184,7 +184,7 @@ struct amrex_parser* amrex_parser_new ();
 void amrex_parser_delete (struct amrex_parser* parser);
 
 struct amrex_parser* parser_dup (struct amrex_parser* source);
-struct parser_node* parser_ast_dup (struct amrex_parser* parser, struct parser_node* src, int move);
+struct parser_node* parser_ast_dup (struct amrex_parser* parser, struct parser_node* node, int move);
 
 void parser_regvar (struct amrex_parser* parser, char const* name, int i);
 void parser_setconst (struct amrex_parser* parser, char const* name, double c);

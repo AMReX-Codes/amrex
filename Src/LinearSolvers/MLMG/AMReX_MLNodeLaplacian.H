@@ -14,7 +14,7 @@ class MLNodeLaplacian
 {
 public :
 
-    MLNodeLaplacian () noexcept {}
+    MLNodeLaplacian () noexcept = default;
     MLNodeLaplacian (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
@@ -29,7 +29,7 @@ public :
                      const Vector<EBFArrayBoxFactory const*>& a_factory,
                      Real a_const_sigma = Real(0.0));
 #endif
-    virtual ~MLNodeLaplacian ();
+    virtual ~MLNodeLaplacian () = default;
 
     MLNodeLaplacian (const MLNodeLaplacian&) = delete;
     MLNodeLaplacian (MLNodeLaplacian&&) = delete;

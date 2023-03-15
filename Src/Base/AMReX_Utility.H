@@ -85,7 +85,7 @@ namespace amrex
     //! Output a message and abort when couldn't create the directory.
     void CreateDirectoryFailed (const std::string& dir);
     //! Output a message and abort when couldn't open the file.
-    void FileOpenFailed (const std::string& dir);
+    void FileOpenFailed (const std::string& file);
     /**
     * \brief Check if a file already exists.
     *   Return true if the filename is an existing file, directory,
@@ -189,10 +189,10 @@ namespace amrex
     {
         friend std::istream& operator>>(std::istream&, const expect& exp);
     public:
-        explicit expect(const std::string& str_);
-        explicit expect(const char* istr_);
-        explicit expect(char c);
-        const std::string& the_string() const;
+        explicit expect (std::string str_);
+        explicit expect (const char* istr_);
+        explicit expect (char c);
+        const std::string& the_string( ) const;
     private:
         std::string istr;
     };
@@ -200,9 +200,9 @@ namespace amrex
     class StreamRetry
     {
       public:
-        StreamRetry(std::ostream &os, const std::string &suffix,
+        StreamRetry(std::ostream &os, std::string suffix,
                     const int maxtries);
-        StreamRetry(const std::string &filename,
+        StreamRetry(std::string filename,
                     const bool abortonretryfailure,
                     const int maxtries);
         bool TryOutput();

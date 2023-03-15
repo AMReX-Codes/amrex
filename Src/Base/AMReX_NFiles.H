@@ -52,7 +52,7 @@ class NFilesIter
     * \param deciderproc
     */
     void SetDynamic(int deciderproc = -1);
-    bool GetDynamic() { return ( ! useStaticSetSelection); }
+    [[nodiscard]] bool GetDynamic() const { return ( ! useStaticSetSelection); }
 
 
     /**
@@ -63,7 +63,7 @@ class NFilesIter
     * \param &ranksToWrite
     */
     void SetSparseFPP(const Vector<int> &ranksToWrite);
-    bool GetSparseFPP() const { return useSparseFPP; }
+    [[nodiscard]] bool GetSparseFPP() const { return useSparseFPP; }
 
 
     /**
@@ -79,6 +79,10 @@ class NFilesIter
 
     ~NFilesIter();
 
+    NFilesIter (NFilesIter const&) = delete;
+    NFilesIter (NFilesIter &&) = delete;
+    NFilesIter& operator= (NFilesIter const&) = delete;
+    NFilesIter& operator= (NFilesIter &&) = delete;
 
     /**
     * \brief if appendFirst is true, the first set for this
@@ -154,8 +158,8 @@ class NFilesIter
       }
     }
 
-    const std::string &FileName() const { return fullFileName; }
-    int FileNumber() const { return fileNumber; }
+    [[nodiscard]] const std::string &FileName() const { return fullFileName; }
+    [[nodiscard]] int FileNumber() const { return fileNumber; }
 
     static std::string FileName(int nOutFiles,
                                 const std::string &filePrefix,
@@ -178,7 +182,7 @@ class NFilesIter
     /**
     * \brief this is the processor coordinating dynamic set selection
     */
-    int CoordinatorProc() const { return coordinatorProc; }
+    [[nodiscard]] int CoordinatorProc() const { return coordinatorProc; }
 
 
     /**
@@ -192,7 +196,7 @@ class NFilesIter
     * \brief these are the order of ranks which wrote to each file
     * [filenumber][ranks in order they wrote to filenumber]
     */
-    const Vector< Vector<int> > &FileNumbersWriteOrder() const { return fileNumbersWriteOrder; }
+    [[nodiscard]] const Vector< Vector<int> > &FileNumbersWriteOrder() const { return fileNumbersWriteOrder; }
 
     void CleanUpMessages();
 
@@ -235,8 +239,6 @@ class NFilesIter
     static const int indexUndefined = -1;
 
     static AMREX_EXPORT int minDigits;        //!< for Concatenate
-
-    NFilesIter();  //!< disallow
 };
 
 }

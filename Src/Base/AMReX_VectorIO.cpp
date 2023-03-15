@@ -8,7 +8,7 @@ void amrex::writeIntData (const int* data, std::size_t size, std::ostream& os,
 {
     if (id == FPC::NativeIntDescriptor())
     {
-        os.write((char*) data, size*sizeof(int));
+        os.write((char*) data, static_cast<std::streamsize>(size*sizeof(int)));
     }
     else if (id.numBytes() == 2)
     {
@@ -32,7 +32,7 @@ void amrex::readIntData (int* data, std::size_t size, std::istream& is,
 {
     if (id == FPC::NativeIntDescriptor())
     {
-        is.read((char*) data, size * id.numBytes());
+        is.read((char*) data, static_cast<std::streamsize>(size * id.numBytes()));
     }
     else if (id.numBytes() == 2)
     {
@@ -56,7 +56,7 @@ void amrex::writeLongData (const Long* data, std::size_t size, std::ostream& os,
 {
     if (id == FPC::NativeLongDescriptor())
     {
-        os.write((char*) data, size*sizeof(Long));
+        os.write((char*) data, static_cast<std::streamsize>(size*sizeof(Long)));
     }
     else if (id.numBytes() == 2)
     {
@@ -80,7 +80,7 @@ void amrex::readLongData (Long* data, std::size_t size, std::istream& is,
 {
     if (id == FPC::NativeLongDescriptor())
     {
-        is.read((char*) data, size * id.numBytes());
+        is.read((char*) data, static_cast<std::streamsize>(size * id.numBytes()));
     }
     else if (id.numBytes() == 2)
     {

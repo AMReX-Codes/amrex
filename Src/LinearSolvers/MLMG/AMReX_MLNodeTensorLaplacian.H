@@ -27,7 +27,7 @@ public:
                            const Vector<BoxArray>& a_grids,
                            const Vector<DistributionMapping>& a_dmap,
                            const LPInfo& a_info = LPInfo());
-    virtual ~MLNodeTensorLaplacian ();
+    virtual ~MLNodeTensorLaplacian () = default;
 
     MLNodeTensorLaplacian (const MLNodeTensorLaplacian&) = delete;
     MLNodeTensorLaplacian (MLNodeTensorLaplacian&&) = delete;

@@ -456,6 +456,10 @@ ifdef AMREX_CCOMP
     AMREX_CCOMP = gnu
   else ifeq ($(lowercase_amrex_ccomp),intel)
     AMREX_CCOMP = intel
+  else ifeq ($(lowercase_amrex_ccomp),intel-llvm)
+    AMREX_CCOMP = intel-llvm
+  else ifeq ($(lowercase_amrex_ccomp),intel-classic)
+    AMREX_CCOMP = intel-classic
   else ifeq ($(lowercase_amrex_ccomp),sycl)
     AMREX_CCOMP = sycl
   else ifeq ($(lowercase_amrex_ccomp),cray)
@@ -477,7 +481,7 @@ ifdef AMREX_CCOMP
   else ifeq ($(lowercase_amrex_ccomp),armclang)
     AMREX_CCOMP = armclang
   else
-    $(error Unknown compiler $(AMREX_CCOMP). Supported compilers are gnu, intel, sycl, cray, pgi, nvhpc, ibm, llvm, nag, nec, and armclang)
+    $(error Unknown compiler $(AMREX_CCOMP). Supported compilers are gnu, intel, intel-llvm, intel-classic, sycl, cray, pgi, nvhpc, ibm, llvm, nag, nec, and armclang)
   endif
 endif
 
@@ -494,6 +498,16 @@ else ifeq ($(lowercase_comp),intel)
   AMREX_CCOMP ?= intel
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/intel.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/intel.mak
+else ifeq ($(lowercase_comp),intel-llvm)
+  AMREX_FCOMP ?= intel-llvm
+  AMREX_CCOMP ?= intel-llvm
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/intel-llvm.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/intel-llvm.mak
+else ifeq ($(lowercase_comp),intel-classic)
+  AMREX_FCOMP ?= intel-classic
+  AMREX_CCOMP ?= intel-classic
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/intel-classic.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/intel-classic.mak
 else ifeq ($(lowercase_comp),sycl)
   AMREX_FCOMP ?= none
   AMREX_CCOMP ?= sycl
@@ -552,7 +566,7 @@ else ifeq ($(lowercase_comp),hip)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak
 else
-  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, sycl, cray, pgi, nvhpc, ibm, llvm, nag, and nec)
+  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, intel-llvm, intel-classic, sycl, cray, pgi, nvhpc, ibm, llvm, nag, and nec)
 endif
 
 CXXFLAGS += $(XTRA_CXXFLAGS)
@@ -920,12 +934,14 @@ optionsSuffix	= $(DIM)d.$(machineSuffix)
 
 executable	= $(addsuffix $(optionsSuffix).ex, $(EBASE))
 
-TmpBuildDir     = tmp_build_dir
-srcTempDir      = $(TmpBuildDir)/s/$(optionsSuffix).EXE
-depEXETempDir	= $(TmpBuildDir)/d/$(optionsSuffix).EXE
-objEXETempDir   = $(TmpBuildDir)/o/$(optionsSuffix).EXE
-f77EXETempDir	= $(TmpBuildDir)/f/$(optionsSuffix).EXE
-tmpEXETempDir	= $(TmpBuildDir)/t/$(optionsSuffix).EXE
+TMP_BUILD_DIR     ?= tmp_build_dir
+# backwards compatibility: alias the old name so codes don't break
+TmpBuildDir := $(TMP_BUILD_DIR)
+srcTempDir      = $(TMP_BUILD_DIR)/s/$(optionsSuffix).EXE
+depEXETempDir	= $(TMP_BUILD_DIR)/d/$(optionsSuffix).EXE
+objEXETempDir   = $(TMP_BUILD_DIR)/o/$(optionsSuffix).EXE
+f77EXETempDir	= $(TMP_BUILD_DIR)/f/$(optionsSuffix).EXE
+tmpEXETempDir	= $(TMP_BUILD_DIR)/t/$(optionsSuffix).EXE
 
 includes	= -I$(srcTempDir) -I. $(addprefix -I, $(INCLUDE_LOCATIONS)) $(addprefix -isystem , $(SYSTEM_INCLUDE_LOCATIONS))
 ifeq ($(lowercase_comp),pgi)
@@ -944,7 +960,7 @@ fmoddir         = $(objEXETempDir)
 
 amrexlib = $(objEXETempDir)/libamrex.a
 
-AMREX_INSTALL_DIR ?= tmp_build_dir
+AMREX_INSTALL_DIR ?= $(TMP_BUILD_DIR)
 amrexLibDir = $(AMREX_INSTALL_DIR)/lib
 amrexIncludeDir = $(AMREX_INSTALL_DIR)/include
 # Do different compilers have different name convention for mod files?

@@ -1,11 +1,14 @@
-#include <AMReX_Sundials.H>
+#include <AMReX_Print.H>
+#include <AMReX_Sundials_Core.H>
+#include <AMReX_SUNMemory.H>
+#include <AMReX_Vector.H>
 
 namespace amrex {
 namespace sundials {
 
 namespace {
-    Vector<int> initialized;
-    Vector<::sundials::Context*> the_sundials_context;
+    amrex::Vector<int> initialized;
+    amrex::Vector<::sundials::Context*> the_sundials_context;
 }
 
 void Initialize(int nthreads)

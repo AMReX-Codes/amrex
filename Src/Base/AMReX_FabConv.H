@@ -44,7 +44,7 @@ public:
     * IntDescriptor in order to be able to read in a specific
     * one from an istream.
     */
-    IntDescriptor ();
+    IntDescriptor () = default;
     //! Construct a specific IntDescriptor.
     IntDescriptor (Long     nb,
                    Ordering ordering = NormalOrder);
@@ -114,18 +114,15 @@ public:
     * build a generic RealDescriptor in order to be able to read
     * in a specific one from an istream.
     */
-    RealDescriptor ();
+    RealDescriptor () = default;
     /**
     * \brief Construct a specific RealDescriptor, passing in the format
     * of the Real, the order of the Real, and the length of the
     * array detailing the ordering.
     */
-    RealDescriptor (const Long* format,
-                    const int*  order,
-                    int         order_length);
+    RealDescriptor (const Long* fr_, const int* ord_, int ordl_);
     //! Returns the format array as a const Long*
     const Long* format () const&;
-
     const Long* format () && = delete;
 
     //! Returns const Vector<Long> reference to the format array.
@@ -168,10 +165,8 @@ public:
     * correspond to the enumerations in FABio.  This is here to
     * support reading "old" FABs.  Do NOT use it in new code.
     */
-    static RealDescriptor* newRealDescriptor (int         format,
-                                              int         precision,
-                                              const char* systype,
-                                              int         ordering);
+    static RealDescriptor* newRealDescriptor (int fmt, int prec, const char* systype,
+                                              int ordering);
     /**
     * \brief Convert nitems in RealDescriptor format to native Real format.
     * The out array is assumed to be large enough to hold the
@@ -260,11 +255,11 @@ private:
 //!
 //! Write out an RealDescriptor to an ostream in ASCII.
 //!
-std::ostream& operator<< (std::ostream& os, const amrex::RealDescriptor& id);
+std::ostream& operator<< (std::ostream& os, const amrex::RealDescriptor& rd);
 //!
 //! Read in a RealDescriptor from an istream.
 //!
-std::istream& operator>> (std::istream& is, amrex::RealDescriptor& id);
+std::istream& operator>> (std::istream& is, amrex::RealDescriptor& rd);
 
 }
 

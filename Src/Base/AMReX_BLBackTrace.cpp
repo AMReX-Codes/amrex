@@ -195,12 +195,12 @@ BLBackTrace::print_backtrace_info (FILE* f)
         // So we insert one just in case.
         const int ret = gethostname(host_name, len-1);
         if (ret == 0) {
-            fprintf(f, "Host Name: %s\n", host_name);
+            std::fprintf(f, "Host Name: %s\n", host_name);
         }
     }
 
     char **strings = backtrace_symbols(bt_buffer, nentries);
-    if (strings != NULL) {
+    if (strings != nullptr) {
         int have_eu_addr2line = 0;
         int have_addr2line = 0;
         std::string eu_cmd;
@@ -221,19 +221,19 @@ BLBackTrace::print_backtrace_info (FILE* f)
             }
         }
 
-        fprintf(f, "=== If no file names and line numbers are shown below, one can run\n");
-        fprintf(f, "            addr2line -Cpfie my_exefile my_line_address\n");
-        fprintf(f, "    to convert `my_line_address` (e.g., 0x4a6b) into file name and line number.\n");
-        fprintf(f, "    Or one can use amrex/Tools/Backtrace/parse_bt.py.\n\n");
+        std::fprintf(f, "=== If no file names and line numbers are shown below, one can run\n");
+        std::fprintf(f, "            addr2line -Cpfie my_exefile my_line_address\n");
+        std::fprintf(f, "    to convert `my_line_address` (e.g., 0x4a6b) into file name and line number.\n");
+        std::fprintf(f, "    Or one can use amrex/Tools/Backtrace/parse_bt.py.\n\n");
 
-        fprintf(f, "=== Please note that the line number reported by addr2line may not be accurate.\n");
-        fprintf(f, "    One can use\n");
-        fprintf(f, "            readelf -wl my_exefile | grep my_line_address'\n");
-        fprintf(f, "    to find out the offset for that line.\n\n");
+        std::fprintf(f, "=== Please note that the line number reported by addr2line may not be accurate.\n");
+        std::fprintf(f, "    One can use\n");
+        std::fprintf(f, "            readelf -wl my_exefile | grep my_line_address'\n");
+        std::fprintf(f, "    to find out the offset for that line.\n\n");
 
         for (int i = 0; i < nentries; ++i)
         {
-            fprintf(f, "%2d: %s\n", i, strings[i]);
+            std::fprintf(f, "%2d: %s\n", i, strings[i]);
 
 #if !defined(AMREX_USE_OMP) || !defined(__INTEL_COMPILER)
             std::string addr2line_result;
@@ -270,7 +270,8 @@ BLBackTrace::print_backtrace_info (FILE* f)
                         }
                     }
                     if (!addr.empty()) {
-                        const std::string full_cmd = cmd + " " + addr;
+                        std::string full_cmd = cmd;
+                        full_cmd.append(" ").append(addr);
                         addr2line_result = run_command(full_cmd);
                         if (addr2line_result.find('?') != std::string::npos) {
                             addr2line_result.clear();
@@ -279,17 +280,18 @@ BLBackTrace::print_backtrace_info (FILE* f)
                     if (addr2line_result.empty()) {
                         char print_buff[32];
                         std::snprintf(print_buff,sizeof(print_buff),"%p",bt_buffer[i]);
-                        const std::string full_cmd = cmd + " " + print_buff;
+                        std::string full_cmd = cmd;
+                        full_cmd.append(" ").append(print_buff);
                         addr2line_result = run_command(full_cmd);
                     }
                 }
             }
 
             if (!addr2line_result.empty()) {
-                fprintf(f, "    %s", addr2line_result.c_str());
+                std::fprintf(f, "    %s", addr2line_result.c_str());
             }
 #endif
-            fprintf(f, "\n");
+            std::fprintf(f, "\n");
         }
         std::free(strings);
     }
@@ -322,7 +324,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
                 line += '\n';
                 std::free(demangled_name);
             }
-            fprintf(f, "%2d: %s\n", i, line.c_str());
+            std::fprintf(f, "%2d: %s\n", i, line.c_str());
         }
     }
 
@@ -386,7 +388,7 @@ void
 BLBTer::pop_bt_stack()
 {
     if (!BLBackTrace::bt_stack.empty()) {
-        if (BLBackTrace::bt_stack.top().second.compare(line_file) == 0) {
+        if (BLBackTrace::bt_stack.top().second == line_file) {
             BLBackTrace::bt_stack.pop();
         }
     }

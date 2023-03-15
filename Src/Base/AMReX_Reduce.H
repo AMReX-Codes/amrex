@@ -93,10 +93,10 @@ struct ReduceOpSum
         if (h.threadIdx() == 0) { d += r; }
     }
 #else
-    template <typename T>
+    template <typename T, int MT=AMREX_GPU_MAX_THREADS>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void parallel_update (T& d, T const& s) const noexcept {
-        T r = Gpu::blockReduceSum<AMREX_GPU_MAX_THREADS>(s);
+        T r = Gpu::blockReduceSum<MT>(s);
         if (threadIdx.x == 0) { d += r; }
     }
 #endif
@@ -121,10 +121,10 @@ struct ReduceOpMin
         if (h.threadIdx() == 0) { d = amrex::min(d,r); }
     }
 #else
-    template <typename T>
+    template <typename T, int MT=AMREX_GPU_MAX_THREADS>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void parallel_update (T& d, T const& s) const noexcept {
-        T r = Gpu::blockReduceMin<AMREX_GPU_MAX_THREADS>(s);
+        T r = Gpu::blockReduceMin<MT>(s);
         if (threadIdx.x == 0) { d = amrex::min(d,r); }
     }
 #endif
@@ -154,10 +154,10 @@ struct ReduceOpMax
         if (h.threadIdx() == 0) { d = amrex::max(d,r); }
     }
 #else
-    template <typename T>
+    template <typename T, int MT=AMREX_GPU_MAX_THREADS>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void parallel_update (T& d, T const& s) const noexcept {
-        T r = Gpu::blockReduceMax<AMREX_GPU_MAX_THREADS>(s);
+        T r = Gpu::blockReduceMax<MT>(s);
         if (threadIdx.x == 0) { d = amrex::max(d,r); }
     }
 #endif
@@ -188,11 +188,11 @@ struct ReduceOpLogicalAnd
         if (h.threadIdx() == 0) { d = d && r; }
     }
 #else
-    template <typename T>
+    template <typename T, int MT=AMREX_GPU_MAX_THREADS>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     std::enable_if_t<std::is_integral<T>::value>
     parallel_update (T& d, T s) const noexcept {
-        T r = Gpu::blockReduceLogicalAnd<AMREX_GPU_MAX_THREADS>(s);
+        T r = Gpu::blockReduceLogicalAnd<MT>(s);
         if (threadIdx.x == 0) { d = d && r; }
     }
 #endif
@@ -220,11 +220,11 @@ struct ReduceOpLogicalOr
         if (h.threadIdx() == 0) { d = d || r; }
     }
 #else
-    template <typename T>
+    template <typename T, int MT=AMREX_GPU_MAX_THREADS>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     std::enable_if_t<std::is_integral<T>::value>
     parallel_update (T& d, T s) const noexcept {
-        T r = Gpu::blockReduceLogicalOr<AMREX_GPU_MAX_THREADS>(s);
+        T r = Gpu::blockReduceLogicalOr<MT>(s);
         if (threadIdx.x == 0) { d = d || r; }
     }
 #endif
@@ -386,7 +386,7 @@ public:
 #ifdef AMREX_USE_SYCL
             // device reduce needs local(i.e., shared) memory
             constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
-            amrex::launch(nblocks_ec, AMREX_GPU_MAX_THREADS, shared_mem_bytes, stream,
+            amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, shared_mem_bytes, stream,
                           [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
             {
                 Dim1 blockIdx {gh.blockIdx()};
@@ -515,7 +515,7 @@ public:
 #ifdef AMREX_USE_SYCL
         // device reduce needs local(i.e., shared) memory
         constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
-        amrex::launch(nblocks_ec, AMREX_GPU_MAX_THREADS, shared_mem_bytes, stream,
+        amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, shared_mem_bytes, stream,
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
         {
             Dim1 blockIdx {gh.blockIdx()};
@@ -523,7 +523,7 @@ public:
             Dim1 blockDim {gh.blockDim()};
             Dim1 gridDim  {gh.gridDim()};
 #else
-        amrex::launch(nblocks_ec, AMREX_GPU_MAX_THREADS, 0, stream,
+        amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, 0, stream,
         [=] AMREX_GPU_DEVICE () noexcept
         {
 #endif
@@ -574,7 +574,7 @@ public:
 #ifdef AMREX_USE_SYCL
         // device reduce needs local(i.e., shared) memory
         constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
-        amrex::launch(nblocks_ec, AMREX_GPU_MAX_THREADS, shared_mem_bytes, stream,
+        amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, shared_mem_bytes, stream,
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
         {
             Dim1 blockIdx {gh.blockIdx()};
@@ -582,7 +582,7 @@ public:
             Dim1 blockDim {gh.blockDim()};
             Dim1 gridDim  {gh.gridDim()};
 #else
-        amrex::launch(nblocks_ec, AMREX_GPU_MAX_THREADS, 0, stream,
+        amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, 0, stream,
         [=] AMREX_GPU_DEVICE () noexcept
         {
 #endif
@@ -631,7 +631,7 @@ public:
 #ifdef AMREX_USE_SYCL
         // device reduce needs local(i.e., shared) memory
         constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
-        amrex::launch(nblocks_ec, AMREX_GPU_MAX_THREADS, shared_mem_bytes, stream,
+        amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, shared_mem_bytes, stream,
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
         {
             Dim1 blockIdx {gh.blockIdx()};
@@ -639,7 +639,7 @@ public:
             Dim1 blockDim {gh.blockDim()};
             Dim1 gridDim  {gh.gridDim()};
 #else
-        amrex::launch(nblocks_ec, AMREX_GPU_MAX_THREADS, 0, stream,
+        amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, 0, stream,
         [=] AMREX_GPU_DEVICE () noexcept
         {
 #endif
@@ -700,7 +700,7 @@ public:
 #else
             auto presult = hp;
 #endif
-            amrex::launch(1, AMREX_GPU_MAX_THREADS, shared_mem_bytes, stream,
+            amrex::launch<AMREX_GPU_MAX_THREADS>(1, shared_mem_bytes, stream,
             [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
             {
                 ReduceTuple r;
@@ -720,7 +720,7 @@ public:
             Gpu::dtoh_memcpy_async(hp, dtmp.data(), sizeof(ReduceTuple));
 #endif
 #else
-            amrex::launch(1, AMREX_GPU_MAX_THREADS, 0, stream,
+            amrex::launch<AMREX_GPU_MAX_THREADS>(1, 0, stream,
             [=] AMREX_GPU_DEVICE () noexcept
             {
                 ReduceTuple r;
@@ -854,7 +854,7 @@ bool AnyOf (N n, T const* v, P&& pred)
 #ifdef AMREX_USE_SYCL
     const int num_ints = std::max(Gpu::Device::warp_size, int(ec.numThreads.x)/Gpu::Device::warp_size) + 1;
     const std::size_t shared_mem_bytes = num_ints*sizeof(int);
-    amrex::launch(ec.numBlocks.x, ec.numThreads.x, shared_mem_bytes, Gpu::gpuStream(),
+    amrex::launch<AMREX_GPU_MAX_THREADS>(ec.numBlocks.x, shared_mem_bytes, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept {
         int* has_any = &(static_cast<int*>(gh.sharedMemory())[num_ints-1]);
         if (gh.threadIdx() == 0) { *has_any = *dp; }
@@ -875,7 +875,7 @@ bool AnyOf (N n, T const* v, P&& pred)
         }
     });
 #else
-    amrex::launch(ec.numBlocks.x, ec.numThreads.x, 0, Gpu::gpuStream(),
+    amrex::launch<AMREX_GPU_MAX_THREADS>(ec.numBlocks.x, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         __shared__ int has_any;
         if (threadIdx.x == 0) has_any = *dp;
@@ -915,7 +915,7 @@ bool AnyOf (Box const& box, P&& pred)
 #ifdef AMREX_USE_SYCL
     const int num_ints = std::max(Gpu::Device::warp_size, int(ec.numThreads.x)/Gpu::Device::warp_size) + 1;
     const std::size_t shared_mem_bytes = num_ints*sizeof(int);
-    amrex::launch(ec.numBlocks.x, ec.numThreads.x, shared_mem_bytes, Gpu::gpuStream(),
+    amrex::launch<AMREX_GPU_MAX_THREADS>(ec.numBlocks.x, shared_mem_bytes, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept {
         int* has_any = &(static_cast<int*>(gh.sharedMemory())[num_ints-1]);
         if (gh.threadIdx() == 0) { *has_any = *dp; }
@@ -989,6 +989,7 @@ public:
         }
     }
 
+    ~ReduceData () = default;
     ReduceData (ReduceData<Ts...> const&) = delete;
     ReduceData (ReduceData<Ts...> &&) = delete;
     void operator= (ReduceData<Ts...> const&) = delete;

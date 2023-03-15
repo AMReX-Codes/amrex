@@ -199,3 +199,11 @@ endif ()
 #
 include(AMReXGenerateConfigHeader)
 generate_config_header()
+
+#
+# Static Analysis
+#
+include(AMReXClangTidy)
+if (AMReX_CLANG_TIDY)
+   setup_clang_tidy()
+endif()

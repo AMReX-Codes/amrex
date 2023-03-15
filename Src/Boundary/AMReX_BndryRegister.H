@@ -8,6 +8,7 @@
 #include <AMReX_LO_BCTYPES.H>
 #include <AMReX_Orientation.H>
 #include <AMReX_Utility.H>
+#include <utility>
 
 namespace amrex {
 
@@ -44,14 +45,15 @@ public:
     using value_type = typename MF::value_type;
 
     //! The default constructor.
-    BndryRegisterT () noexcept {}
+    BndryRegisterT () = default;
 
     //! The constructor, given number of cells in/out, extent and number of components (assumes cell-centered boxes, and allocates cell-centered FABs)
-    BndryRegisterT (const BoxArray& grids_, const DistributionMapping& dmap,
+    BndryRegisterT (const BoxArray& grids_, // NOLINT(modernize-pass-by-value)
+                    const DistributionMapping& dmap,
                     int in_rad, int out_rad, int extent_rad, int ncomp);
 
     //! The destructor.
-    ~BndryRegisterT () {}
+    ~BndryRegisterT () = default;
 
     BndryRegisterT (BndryRegisterT<MF>&& rhs) noexcept = default;
 
@@ -126,7 +128,7 @@ protected:
 };
 
 template <typename MF>
-BndryRegisterT<MF>::BndryRegisterT (const BoxArray& grids_,
+BndryRegisterT<MF>::BndryRegisterT (const BoxArray& grids_, // NOLINT(modernize-pass-by-value)
                                     const DistributionMapping& dmap,
                                     int in_rad, int out_rad,
                                     int extent_rad, int ncomp)
@@ -159,8 +161,8 @@ template <typename MF>
 void
 BndryRegisterT<MF>::clear ()
 {
-    for (int i = 0; i < 2*AMREX_SPACEDIM; ++i) {
-        bndry[i].clear();
+    for (auto & i : bndry) {
+        i.clear();
     }
     grids.clear();
 }
@@ -191,16 +193,17 @@ template <typename MF>
 void
 BndryRegisterT<MF>::setBoxes (const BoxArray& _grids)
 {
-    BL_ASSERT(grids.size() == 0);
-    BL_ASSERT(_grids.size() > 0);
+    BL_ASSERT(grids.empty());
+    BL_ASSERT(!_grids.empty());
     BL_ASSERT(_grids[0].cellCentered());
 
     grids = _grids;
     //
     // Check that bndry regions are not allocated.
     //
-    for (int k = 0; k < 2*AMREX_SPACEDIM; k++) {
-        BL_ASSERT(bndry[k].size() == 0);
+    for (auto const& k : bndry) {
+        amrex::ignore_unused(k);
+        BL_ASSERT(k.size() == 0);
     }
 }
 

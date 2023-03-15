@@ -139,10 +139,7 @@ namespace Gpu {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isnan (T m) noexcept
     {
-#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
-    defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
-        return ::isnan(m);
-#elif defined(__SYCL_DEVICE_ONLY__)
+#if defined(AMREX_USE_SYCL)
         return sycl::isnan(m);
 #else
         return std::isnan(m);
@@ -153,10 +150,7 @@ namespace Gpu {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isinf (T m) noexcept
     {
-#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
-    defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
-        return ::isinf(m);
-#elif defined(__SYCL_DEVICE_ONLY__)
+#if defined(AMREX_USE_SYCL)
         return sycl::isinf(m);
 #else
         return std::isinf(m);
@@ -198,7 +192,7 @@ namespace Gpu {
 #endif
 
     private:
-        void init() noexcept;
+        void init () noexcept; // NOLINT
 
         int m_n;
         int m_i;

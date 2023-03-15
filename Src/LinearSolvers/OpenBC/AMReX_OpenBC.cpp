@@ -5,8 +5,6 @@
 namespace amrex
 {
 
-OpenBCSolver::OpenBCSolver () {}
-
 OpenBCSolver::OpenBCSolver (const Vector<Geometry>& a_geom,
                             const Vector<BoxArray>& a_grids,
                             const Vector<DistributionMapping>& a_dmap,
@@ -14,8 +12,6 @@ OpenBCSolver::OpenBCSolver (const Vector<Geometry>& a_geom,
 {
     define(a_geom, a_grids, a_dmap, a_info);
 }
-
-OpenBCSolver::~OpenBCSolver () {}
 
 void OpenBCSolver::define (const Vector<Geometry>& a_geom,
                            const Vector<BoxArray>& a_grids,
@@ -32,7 +28,7 @@ void OpenBCSolver::define (const Vector<Geometry>& a_geom,
         grids.enclosedCells();
     }
 
-    int nlevels = m_geom.size();
+    int nlevels = static_cast<int>(m_geom.size());
     m_ba_all.resize(nlevels);
     m_dm_all.resize(nlevels);
     m_geom_all.resize(nlevels);
@@ -113,7 +109,7 @@ void OpenBCSolver::define (const Vector<Geometry>& a_geom,
     }
 #endif
 
-    auto const dx = m_geom[0].CellSize();
+    const auto *const dx = m_geom[0].CellSize();
     Real dmax = amrex::max(std::sqrt(dx[0]*dx[0]+dx[1]*dx[1]),
                            std::sqrt(dx[0]*dx[0]+dx[2]*dx[2]),
                            std::sqrt(dx[1]*dx[1]+dx[2]*dx[2]));
@@ -162,8 +158,8 @@ void OpenBCSolver::define (const Vector<Geometry>& a_geom,
     m_dm_all[0] = DistributionMapping(std::move(p0));
     m_box_offset.push_back(offset);
 
-    auto const problo = m_geom[0].ProbLo();
-    auto const probhi = m_geom[0].ProbHi();
+    const auto *const problo = m_geom[0].ProbLo();
+    const auto *const probhi = m_geom[0].ProbHi();
     std::array<Real,AMREX_SPACEDIM> problo_all, probhi_all;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         problo_all[idim] = problo[idim] - m_ngrowdomain[idim]*dx[idim];
@@ -214,7 +210,7 @@ Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
 
     auto solve_start_time = amrex::second();
 
-    int nlevels = m_geom.size();
+    int nlevels = static_cast<int>(m_geom.size());
 
     BL_PROFILE_VAR("OpenBCSolver::MG1", blp_mg1);
 
@@ -271,7 +267,7 @@ Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
     solg.setVal(0._rt);
     interpolate_potential(solg);
 
-    const int nboxes0 = m_grids[0].size();
+    const int nboxes0 = static_cast<int>(m_grids[0].size());
     Vector<MultiFab> sol_all(nlevels);
     Vector<MultiFab> rhs_all(nlevels);
 
@@ -557,8 +553,8 @@ void OpenBCSolver::compute_moments (Gpu::DeviceVector<openbc::Moments>& moments)
                 for (int jj = 0; jj < m_coarsen_ratio; ++jj) {
                     Real charge = tag.gp(i, jlo+jb*m_coarsen_ratio+jj,
                                          klo+kb*m_coarsen_ratio+kk) * fac;
-                    Real yy = (jj-m_coarsen_ratio/2+0.5_rt)*dx[1];
-                    Real zz = (kk-m_coarsen_ratio/2+0.5_rt)*dx[2];
+                    Real yy = (jj-m_coarsen_ratio/2+0.5_rt)*dx[1]; // NOLINT
+                    Real zz = (kk-m_coarsen_ratio/2+0.5_rt)*dx[2]; // NOLINT
                     Real zpow = 1._rt;
                     int m = 0;
                     for (int q = 0; q <= openbc::M; ++q) {
@@ -575,10 +571,10 @@ void OpenBCSolver::compute_moments (Gpu::DeviceVector<openbc::Moments>& moments)
                 mom.x = xc;
                 mom.y = problo[1] + dx[1]*(tag.b2d.smallEnd(1)
                                            + jb*m_coarsen_ratio
-                                           + m_coarsen_ratio/2);
+                                           + m_coarsen_ratio/2); // NOLINT
                 mom.z = problo[2] + dx[2]*(tag.b2d.smallEnd(2)
                                            + kb*m_coarsen_ratio
-                                           + m_coarsen_ratio/2);
+                                           + m_coarsen_ratio/2); // NOLINT
                 mom.face = tag.face;
             }}
         } else if (tag.face.coordDir() == 1) {
@@ -599,8 +595,8 @@ void OpenBCSolver::compute_moments (Gpu::DeviceVector<openbc::Moments>& moments)
                 for (int ii = 0; ii < m_coarsen_ratio; ++ii) {
                     Real charge = tag.gp(ilo+ib*m_coarsen_ratio+ii, j,
                                          klo+kb*m_coarsen_ratio+kk) * fac;
-                    Real xx = (ii-m_coarsen_ratio/2+0.5_rt)*dx[0];
-                    Real zz = (kk-m_coarsen_ratio/2+0.5_rt)*dx[2];
+                    Real xx = (ii-m_coarsen_ratio/2+0.5_rt)*dx[0]; // NOLINT
+                    Real zz = (kk-m_coarsen_ratio/2+0.5_rt)*dx[2]; // NOLINT
                     Real zpow = 1._rt;
                     int m = 0;
                     for (int q = 0; q <= openbc::M; ++q) {
@@ -615,11 +611,11 @@ void OpenBCSolver::compute_moments (Gpu::DeviceVector<openbc::Moments>& moments)
                 openbc::scale_moments(mom.mom);
                 mom.x = problo[0] + dx[0]*(tag.b2d.smallEnd(0)
                                            + ib*m_coarsen_ratio
-                                           + m_coarsen_ratio/2);
+                                           + m_coarsen_ratio/2); // NOLINT
                 mom.y = yc;
                 mom.z = problo[2] + dx[2]*(tag.b2d.smallEnd(2)
                                            + kb*m_coarsen_ratio
-                                           + m_coarsen_ratio/2);
+                                           + m_coarsen_ratio/2); // NOLINT
                 mom.face = tag.face;
             }}
         } else {
@@ -640,8 +636,8 @@ void OpenBCSolver::compute_moments (Gpu::DeviceVector<openbc::Moments>& moments)
                 for (int ii = 0; ii < m_coarsen_ratio; ++ii) {
                     Real charge = tag.gp(ilo+ib*m_coarsen_ratio+ii,
                                          jlo+jb*m_coarsen_ratio+jj, k) * fac;
-                    Real xx = (ii-m_coarsen_ratio/2+0.5_rt)*dx[0];
-                    Real yy = (jj-m_coarsen_ratio/2+0.5_rt)*dx[1];
+                    Real xx = (ii-m_coarsen_ratio/2+0.5_rt)*dx[0]; // NOLINT
+                    Real yy = (jj-m_coarsen_ratio/2+0.5_rt)*dx[1]; // NOLINT
                     Real ypow = 1._rt;
                     int m = 0;
                     for (int q = 0; q <= openbc::M; ++q) {
@@ -656,10 +652,10 @@ void OpenBCSolver::compute_moments (Gpu::DeviceVector<openbc::Moments>& moments)
                 openbc::scale_moments(mom.mom);
                 mom.x = problo[0] + dx[0]*(tag.b2d.smallEnd(0)
                                            + ib*m_coarsen_ratio
-                                           + m_coarsen_ratio/2);
+                                           + m_coarsen_ratio/2); // NOLINT
                 mom.y = problo[1] + dx[1]*(tag.b2d.smallEnd(1)
                                            + jb*m_coarsen_ratio
-                                           + m_coarsen_ratio/2);
+                                           + m_coarsen_ratio/2); // NOLINT
                 mom.z = zc;
                 mom.face = tag.face;
             }}
@@ -670,7 +666,7 @@ void OpenBCSolver::compute_moments (Gpu::DeviceVector<openbc::Moments>& moments)
 #ifdef AMREX_USE_MPI
     bcast_moments(moments);
 #endif
-    m_nblocks = moments.size();
+    m_nblocks = static_cast<int>(moments.size());
 }
 
 #ifdef AMREX_USE_MPI
@@ -680,14 +676,13 @@ void OpenBCSolver::bcast_moments (Gpu::DeviceVector<openbc::Moments>& moments)
     {
         MPI_Comm comm = ParallelContext::CommunicatorSub();
         if (m_nblocks == 0) {
-            int count = moments.size();
-            count *= static_cast<int>(sizeof(openbc::Moments));
+            int count = static_cast<int>(moments.size() * sizeof(openbc::Moments));
             m_countvec.resize(ParallelContext::NProcsSub());
             MPI_Allgather(&count, 1, MPI_INT, m_countvec.data(), 1, MPI_INT, comm);
 
             m_offset.resize(m_countvec.size(), 0);
             Long count_tot = m_countvec[0];
-            for (int i = 1, N = m_offset.size(); i < N; ++i) {
+            for (int i = 1, N = static_cast<int>(m_offset.size()); i < N; ++i) {
                 m_offset[i] = m_offset[i-1] + m_countvec[i-1];
                 count_tot += m_countvec[i];
             }
@@ -696,7 +691,7 @@ void OpenBCSolver::bcast_moments (Gpu::DeviceVector<openbc::Moments>& moments)
                 amrex::Abort("OpenBC: integer overflow. Let us know and we will fix this.");
             }
 
-            m_nblocks = count_tot/sizeof(openbc::Moments);
+            m_nblocks = static_cast<int>(count_tot/sizeof(openbc::Moments));
         }
 
         Gpu::DeviceVector<openbc::Moments> moments_all(m_nblocks);

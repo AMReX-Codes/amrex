@@ -46,7 +46,7 @@ public:
     using value_type = typename MF::value_type;
 
     //! Default constructor
-    BndryDataT() noexcept;
+    BndryDataT() = default;
 
     /**
     * \brief constructor specifying number of components and box of physical
@@ -146,8 +146,8 @@ protected:
     Vector<MultiMask> masks;
     //! Domain used for mask definitions.
     Geometry geom;
-    int      m_ncomp;
-    bool     m_defined;
+    int      m_ncomp{-1};
+    bool     m_defined{false};
 
 private:
     // Mask info required for this many cells past grid edge (here,
@@ -157,19 +157,13 @@ private:
 };
 
 template <typename MF>
-BndryDataT<MF>::BndryDataT () noexcept
-    :
-    m_ncomp(-1), m_defined(false) {}
-
-template <typename MF>
 BndryDataT<MF>::BndryDataT (const BoxArray& _grids,
                             const DistributionMapping& _dmap,
                             int             _ncomp,
                             const Geometry& _geom)
     :
     geom(_geom),
-    m_ncomp(_ncomp),
-    m_defined(false)
+    m_ncomp(_ncomp)
 {
     define(_grids,_dmap,_ncomp,_geom);
 }

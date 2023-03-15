@@ -64,7 +64,7 @@ FluxRegister::define (const BoxArray&            fine_boxes,
                       int                        nvar)
 {
     BL_ASSERT(fine_boxes.isDisjoint());
-    BL_ASSERT(grids.size() == 0);
+    BL_ASSERT(grids.empty());
 
     ratio      = ref_ratio;
     fine_level = fine_lev;
@@ -92,8 +92,6 @@ FluxRegister::clear ()
 {
     BndryRegister::clear();
 }
-
-FluxRegister::~FluxRegister () {}
 
 Real
 FluxRegister::SumReg (int comp) const
@@ -943,19 +941,19 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
                 const Box& bx = fsi.validbox();
                 const std::vector< std::pair<int,Box> >& isects = bahi.intersections(bx);
                 auto const& frarr = frlo[fsi].array();
-                for (int ii = 0; ii < static_cast<int>(isects.size()); ++ii) {
+                for (auto const& is : isects) {
                     if (Gpu::inLaunchRegion()) {
-                        tags.emplace_back(Array4BoxTag<Real>{frarr, isects[ii].second});
+                        tags.emplace_back(Array4BoxTag<Real>{frarr, is.second});
                     } else {
-                        frlo[fsi].setVal<RunOn::Host>(0.0, isects[ii].second, 0, nc);
+                        frlo[fsi].setVal<RunOn::Host>(0.0, is.second, 0, nc);
                     }
                 }
                 if (geom.isPeriodic(dir)) {
                     if (bx.smallEnd(dir) == domain.smallEnd(dir)) {
                         const Box& sbx = amrex::shift(bx, dir, domain.length(dir));
                         const std::vector<std::pair<int,Box> >& isects2 = bahi.intersections(sbx);
-                        for (int ii = 0; ii < static_cast<int>(isects2.size()); ++ii) {
-                            const Box& bx2 = amrex::shift(isects2[ii].second, dir, -domain.length(dir));
+                        for (auto const& is : isects2) {
+                            const Box& bx2 = amrex::shift(is.second, dir, -domain.length(dir));
                             if (Gpu::inLaunchRegion()) {
                                 tags.emplace_back(Array4BoxTag<Real>{frarr, bx2});
                             } else {
@@ -970,19 +968,19 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
                 const Box& bx = fsi.validbox();
                 const std::vector< std::pair<int,Box> >& isects = balo.intersections(bx);
                 auto const& frarr = frhi[fsi].array();
-                for (int ii = 0; ii < static_cast<int>(isects.size()); ++ii) {
+                for (auto const& is : isects) {
                     if (Gpu::inLaunchRegion()) {
-                        tags.emplace_back(Array4BoxTag<Real>{frarr, isects[ii].second});
+                        tags.emplace_back(Array4BoxTag<Real>{frarr, is.second});
                     } else {
-                        frhi[fsi].setVal<RunOn::Host>(0.0, isects[ii].second, 0, nc);
+                        frhi[fsi].setVal<RunOn::Host>(0.0, is.second, 0, nc);
                     }
                 }
                 if (geom.isPeriodic(dir)) {
                     if (bx.bigEnd(dir) == domain.bigEnd(dir)) {
                         const Box& sbx = amrex::shift(bx, dir, -domain.length(dir));
                         const std::vector<std::pair<int,Box> >& isects2 = balo.intersections(sbx);
-                        for (int ii = 0; ii < static_cast<int>(isects2.size()); ++ii) {
-                            const Box& bx2 = amrex::shift(isects2[ii].second, dir, domain.length(dir));
+                        for (auto const& is : isects2) {
+                            const Box& bx2 = amrex::shift(is.second, dir, domain.length(dir));
                             if (Gpu::inLaunchRegion()) {
                                 tags.emplace_back(Array4BoxTag<Real>{frarr, bx2});
                             } else {

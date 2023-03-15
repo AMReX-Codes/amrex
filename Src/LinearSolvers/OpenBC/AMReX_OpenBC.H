@@ -58,14 +58,14 @@ struct Gpu::SharedMemory<openbc::Moments::array_type>
 class OpenBCSolver
 {
 public:
-    OpenBCSolver ();
+    OpenBCSolver () = default;
 
     OpenBCSolver (const Vector<Geometry>& a_geom,
                   const Vector<BoxArray>& a_grids,
                   const Vector<DistributionMapping>& a_dmap,
                   const LPInfo& a_info = LPInfo());
 
-    ~OpenBCSolver ();
+    ~OpenBCSolver () = default;
 
     OpenBCSolver (const OpenBCSolver&) = delete;
     OpenBCSolver (OpenBCSolver&&) = delete;
@@ -85,7 +85,7 @@ public:
     Real solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
                 Real a_tol_rel, Real a_tol_abs);
 
-public: // public for cuda
+// public for cuda
 
     void compute_moments (Gpu::DeviceVector<openbc::Moments>& moments);
     void compute_potential (Gpu::DeviceVector<openbc::Moments> const& moments);
