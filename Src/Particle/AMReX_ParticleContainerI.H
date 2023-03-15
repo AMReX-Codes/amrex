@@ -1109,7 +1109,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 {
     auto& ptile           = ParticlesAt(lev, mfi);
     auto& aos             = ptile.GetArrayOfStructs();
-    auto  pstruct_ptr     = aos().dataPtr();
     const size_t np       = aos.numParticles();
     const size_t np_total = np + aos.numNeighborParticles();
 
