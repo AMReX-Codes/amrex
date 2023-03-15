@@ -47,14 +47,14 @@ jobs:
         ctest --output-on-failure
 
   tests_clang:
-    name: Clang@7.0 C++17 SP Particles DP Mesh Debug [tests]
-    runs-on: ubuntu-20.04
+    name: Clang@14.0 C++17 SP Particles DP Mesh Debug [tests]
+    runs-on: ubuntu-22.04
     env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -O1 -Wnon-virtual-dtor"}
       # It's too slow with -O0
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_clang7.sh
+      run: .github/workflows/dependencies/dependencies_clang.sh 14
     - name: Build & Install
       run: |
         mkdir build
@@ -69,9 +69,10 @@ jobs:
             -DAMReX_PARTICLES=ON                      \
             -DAMReX_PRECISION=DOUBLE                  \
             -DAMReX_PARTICLES_PRECISION=SINGLE        \
-            -DCMAKE_C_COMPILER=$(which clang)         \
-            -DCMAKE_CXX_COMPILER=$(which clang++)     \
-            -DCMAKE_Fortran_COMPILER=$(which gfortran)
+            -DCMAKE_C_COMPILER=$(which clang-14)      \
+            -DCMAKE_CXX_COMPILER=$(which clang++-14)  \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran)  \
+            -DAMReX_CLANG_TIDY=ON
         make -j 2
 
         ctest --output-on-failure -E GhostsAndVirtuals

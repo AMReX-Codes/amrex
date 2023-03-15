@@ -13,7 +13,7 @@ class CutFab final
 {
 public:
 
-    CutFab () {}
+    CutFab () = default;
 
     explicit CutFab (Arena* ar) : FArrayBox(ar) {}
 
@@ -27,7 +27,7 @@ public:
     CutFab (CutFab const& rhs, MakeType make_type, int scomp, int ncomp)
         : FArrayBox(rhs, make_type, scomp, ncomp) {}
 
-    virtual ~CutFab () noexcept override = default;
+    ~CutFab () noexcept override = default;
 
     CutFab (CutFab&& rhs) noexcept = default;
 

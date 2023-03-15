@@ -44,7 +44,8 @@ MLTensorOp::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLTensorOp::define()");
 
-    MLABecLaplacian::define(a_geom, a_grids, a_dmap, a_info, a_factory);
+    MLABecLaplacian::define(a_geom, a_grids, a_dmap, a_info, a_factory,
+                            AMREX_SPACEDIM);
 
     m_kappa.clear();
     m_kappa.resize(NAMRLevels());
@@ -72,7 +73,8 @@ MLTensorOp::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLTensorOp::define(oveset)");
 
-    MLABecLaplacian::define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory);
+    MLABecLaplacian::define(a_geom, a_grids, a_dmap, a_overset_mask, a_info,
+                            a_factory, AMREX_SPACEDIM);
 
     m_kappa.clear();
     m_kappa.resize(NAMRLevels());

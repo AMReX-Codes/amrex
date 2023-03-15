@@ -405,7 +405,8 @@ EB_WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
     PreBuildDirectorHierarchy(plotfilename, levelPrefix, nlevels, callBarrier);
     if (!extra_dirs.empty()) {
         for (const auto& d : extra_dirs) {
-            const std::string ed = plotfilename+"/"+d;
+            std::string ed = plotfilename;
+            ed.append("/").append(d);
             amrex::PreBuildDirectorHierarchy(ed, levelPrefix, nlevels, callBarrier);
         }
     }

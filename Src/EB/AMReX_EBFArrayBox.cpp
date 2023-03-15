@@ -7,9 +7,7 @@
 
 namespace amrex {
 
-EBFArrayBox::EBFArrayBox ()
-{
-}
+EBFArrayBox::EBFArrayBox () = default;
 
 EBFArrayBox::EBFArrayBox (Arena* ar)
     : FArrayBox(ar)
@@ -37,10 +35,7 @@ EBFArrayBox::EBFArrayBox (EBFArrayBox const& rhs, MakeType make_type, int scomp,
     m_type = rhs.m_type;
 }
 
-EBFArrayBox::~EBFArrayBox ()
-{
-
-}
+EBFArrayBox::~EBFArrayBox () = default;
 
 const FArrayBox*
 EBFArrayBox::getLevelSetData () const
@@ -178,7 +173,7 @@ EBFArrayBox::getEdgeCentData () const
 const EBCellFlagFab&
 getEBCellFlagFab (const FArrayBox& fab)
 {
-    const EBFArrayBox* ebfab = static_cast<EBFArrayBox const*>(&fab);
+    const auto* ebfab = static_cast<EBFArrayBox const*>(&fab);
     BL_ASSERT(ebfab);
     return ebfab->getEBCellFlagFab();
 }

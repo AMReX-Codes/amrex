@@ -62,13 +62,11 @@ public:
 
     void write_to_chkpt_file (const std::string& fname, bool extend_domain_face, int max_grid_size) const;
 
+// public: // for cuda
+    int coarsenFromFine (Level& fineLevel, bool fill_boundary);
+    void buildCellFlag ();
+
 protected:
-
-    Level (Level && rhs) = default;
-
-    Level (Level const& rhs) = delete;
-    Level& operator=(Level const& rhs) = delete;
-    Level& operator=(Level && rhs) = delete;
 
     Geometry m_geom;
     IntVect  m_ngrow;
@@ -89,10 +87,6 @@ protected:
     bool m_allregular = false;
     bool m_ok = false;
     IndexSpace const* m_parent;
-
-public: // for cuda
-    int coarsenFromFine (Level& fineLevel, bool fill_boundary);
-    void buildCellFlag ();
 };
 
 template <typename G>

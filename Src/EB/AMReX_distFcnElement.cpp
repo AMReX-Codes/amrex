@@ -10,13 +10,13 @@ int distFcnElement2d::solve_thomas(const std::vector<amrex::Real> &a,
                                    std::vector<amrex::Real> b,
                                    const std::vector<amrex::Real> &c,
                                    std::vector<amrex::Real> d,
-                                   std::vector<amrex::Real> &x) {
-  unsigned n;
-  n = d.size();
+                                   std::vector<amrex::Real> &x)
+{
+  int n = static_cast<int>(d.size());
   x.resize(n);
 
   amrex::Real m;
-  for (unsigned i=1; i < n; ++i) {
+  for (int i=1; i < n; ++i) {
     m = a[i-1]/b[i-1];
     b[i] -= m*c[i-1];
     d[i] -= m*d[i-1];
@@ -41,7 +41,7 @@ int distFcnElement2d::solve_thomas(const std::vector<amrex::Real> &a,
 namespace amrex {
 
 distFcnElement2d* SplineDistFcnElement2d::newDistFcnElement2d() const {
-  SplineDistFcnElement2d* newSpline = new SplineDistFcnElement2d();
+  auto* newSpline = new SplineDistFcnElement2d();
   newSpline->control_points_x = control_points_x;
   newSpline->control_points_y = control_points_y;
   newSpline->bc_pt_start = bc_pt_start;
@@ -53,7 +53,7 @@ distFcnElement2d* SplineDistFcnElement2d::newDistFcnElement2d() const {
 
 amrex::Real SplineDistFcnElement2d::eval(amrex::Real t,
                                          amrex::Real y0, amrex::Real y1,
-                                         amrex::Real D0, amrex::Real D1) const {
+                                         amrex::Real D0, amrex::Real D1) {
   amrex::Real c, d;
 
   c = 3.0_rt*(y1 - y0) - 2.0_rt*D0 - D1;
@@ -67,7 +67,8 @@ amrex::Real SplineDistFcnElement2d::dist(amrex::RealVect pt,
                            amrex::Real y0, amrex::Real y1,
                            amrex::Real Dy0, amrex::Real Dy1,
                            amrex::Real& t,
-                           amrex::RealVect& spt) const {
+                           amrex::RealVect& spt)
+{
   amrex::RealVect delta;
   spt[0] = eval(t, x0, x1, Dx0, Dx1);
   spt[1] = eval(t, y0, y1, Dy0, Dy1);
@@ -87,7 +88,7 @@ amrex::Real SplineDistFcnElement2d::cpdist(amrex::RealVect pt,
   amrex::Real t;
   amrex::RealVect cp;
   amrex::Real dist;
-  int nsplines = Dx.size() - 1;
+  int nsplines = static_cast<int>(Dx.size() - 1);
   for (int i=0; i<nsplines; ++i) {
     single_spline_cpdist(pt, control_points_x[i], control_points_x[i+1],
                          Dx[i], Dx[i+1],
@@ -111,7 +112,7 @@ amrex::Real SplineDistFcnElement2d::cpside(amrex::RealVect pt,
   amrex::RealVect cp;
   amrex::Real dist;
   amrex::Real x0=0., x1=0., y0=0., y1=0., Dx0=0., Dx1=0., Dy0=0., Dy1=0., tmin=0.;
-  int nsplines = Dx.size() - 1;
+  int nsplines = static_cast<int>(Dx.size() - 1);
   for (int i=0; i<nsplines; ++i) {
     single_spline_cpdist(pt, control_points_x[i], control_points_x[i+1],
                          Dx[i], Dx[i+1],
@@ -173,7 +174,8 @@ void SplineDistFcnElement2d::single_spline_cpdist(amrex::RealVect pt,
                                     amrex::Real y0, amrex::Real y1,
                                     amrex::Real Dy0, amrex::Real Dy1,
                                     amrex::Real& t, amrex::RealVect& mincp,
-                                    amrex::Real& mindist) const {
+                                    amrex::Real& mindist)
+{
   t = 0.5;
 
   amrex::RealVect spt, deltapt;
@@ -204,7 +206,6 @@ void SplineDistFcnElement2d::single_spline_cpdist(amrex::RealVect pt,
     std::cout << "identified minimum distance of 0.0 at t = " << t
               << "; cp = " << mincp << " for p = " << pt << std::endl;
   }
-  return;
 }
 
 
@@ -212,19 +213,19 @@ void SplineDistFcnElement2d::dxbydt(amrex::Real t,
                                     amrex::Real y0, amrex::Real y1,
                                     amrex::Real D0, amrex::Real D1,
                                     amrex::Real& dyf, amrex::Real& d2yf)
-                                    const {
+{
   amrex::Real c, d;
   c = 3.0*(y1 - y0) - 2.0*D0 - D1;
   d = 2.0*(y0-y1) + D0 + D1;
 
   dyf = D0 + 2.0*c*t + 3.0*d*t*t;
   d2yf = 2.0*c + 6.0*d*t;
-  return;
 }
 
 
-void SplineDistFcnElement2d::calc_D(bool clamped_bc) {
-  int nsplines = control_points_x.size() - 1;
+void SplineDistFcnElement2d::calc_D(bool clamped_bc)
+{
+  int nsplines = static_cast<int>(control_points_x.size() - 1);
 
   std::vector<amrex::Real> rhsx, rhsy, diag, diagminus, diagplus;
   rhsx.resize(nsplines+1);
@@ -338,7 +339,7 @@ amrex::Real LineDistFcnElement2d::cpdist(amrex::RealVect pt,
   mindist = 1.0e29;
   amrex::RealVect cp;
 
-  for (int i=1, N=control_points_x.size(); i<N; ++i) {
+  for (int i=1, N=static_cast<int>(control_points_x.size()); i<N; ++i) {
     single_seg_cpdist(pt,
                       control_points_x[i-1], control_points_x[i],
                       control_points_y[i-1], control_points_y[i],
@@ -359,7 +360,7 @@ amrex::Real LineDistFcnElement2d::cpside(amrex::RealVect pt,
   amrex::RealVect cp;
   amrex::RealVect l0, l1;
 
-  for (int i=1, N=control_points_x.size(); i<N; ++i) {
+  for (int i=1, N=static_cast<int>(control_points_x.size()); i<N; ++i) {
     single_seg_cpdist(pt,
                       control_points_x[i-1], control_points_x[i],
                       control_points_y[i-1], control_points_y[i],
@@ -415,7 +416,7 @@ void LineDistFcnElement2d::single_seg_cpdist(amrex::RealVect pt,
                                              amrex::Real x0, amrex::Real x1,
                                              amrex::Real y0, amrex::Real y1,
                                              amrex::RealVect& cp,
-                                             amrex::Real& dist) const {
+                                             amrex::Real& dist) {
   amrex::RealVect A(AMREX_D_DECL(pt[0]-x0, pt[1]-y0,0.0));
   amrex::RealVect B(AMREX_D_DECL(x1-x0, y1-y0,0.0));
 
@@ -432,20 +433,18 @@ void LineDistFcnElement2d::single_seg_cpdist(amrex::RealVect pt,
 
   amrex::RealVect delta = pt - cp;
   dist = std::sqrt(delta[0]*delta[0] + delta[1]*delta[1] );
-
-  return;
 }
 
-  void LineDistFcnElement2d::print_control_points() {
-
-  for (int i=1, N=control_points_x.size(); i<N; ++i) {
-  std::cout << "(" << control_points_x[i-1] << ", "<< control_points_y[i-1] << ")" << "---"
-            << "(" << control_points_x[i] << ", " << control_points_y[i] << ")" << std::endl;
-}
+void LineDistFcnElement2d::print_control_points()
+{
+  for (int i=1, N=static_cast<int>(control_points_x.size()); i<N; ++i) {
+    std::cout << "(" << control_points_x[i-1] << ", "<< control_points_y[i-1] << ")" << "---"
+              << "(" << control_points_x[i] << ", " << control_points_y[i] << ")" << std::endl;
+  }
 }
 
 distFcnElement2d* LineDistFcnElement2d::newDistFcnElement2d() const {
-  LineDistFcnElement2d* newLine = new LineDistFcnElement2d();
+  auto* newLine = new LineDistFcnElement2d();
   newLine->control_points_x = control_points_x;
   newLine->control_points_y = control_points_y;
   return static_cast<distFcnElement2d*>(newLine);

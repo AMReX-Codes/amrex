@@ -25,7 +25,13 @@ void Finalize ();
 class IndexSpace
 {
 public:
-    virtual ~IndexSpace() {}
+    virtual ~IndexSpace() = default;
+
+    IndexSpace () noexcept = default;
+    IndexSpace (IndexSpace const&) = delete;
+    IndexSpace (IndexSpace &&) = delete;
+    IndexSpace& operator= (IndexSpace const&) = delete;
+    IndexSpace& operator= (IndexSpace &&) = delete;
 
     // This function will take the ownership of the IndexSpace
     // pointer, and put it on the top of the stack (i.e., back of the
@@ -44,11 +50,11 @@ public:
         return *(m_instance.back());
     }
     static bool empty () noexcept { return m_instance.empty(); }
-    static int size () noexcept { return m_instance.size(); }
+    static int size () noexcept { return static_cast<int>(m_instance.size()); }
 
-    virtual const Level& getLevel (const Geometry & geom) const = 0;
-    virtual const Geometry& getGeometry (const Box& domain) const = 0;
-    virtual const Box& coarsestDomain () const = 0;
+    [[nodiscard]] virtual const Level& getLevel (const Geometry & geom) const = 0;
+    [[nodiscard]] virtual const Geometry& getGeometry (const Box& domain) const = 0;
+    [[nodiscard]] virtual const Box& coarsestDomain () const = 0;
     virtual void addFineLevels (int num_new_fine_levels) = 0;
 
 protected:
@@ -74,14 +80,14 @@ public:
     void operator= (IndexSpaceImp<G> const&) = delete;
     void operator= (IndexSpaceImp<G> &&) = delete;
 
-    virtual ~IndexSpaceImp () {}
+    ~IndexSpaceImp () override = default;
 
-    virtual const Level& getLevel (const Geometry& geom) const final;
-    virtual const Geometry& getGeometry (const Box& dom) const final;
-    virtual const Box& coarsestDomain () const final {
+    [[nodiscard]] const Level& getLevel (const Geometry& geom) const final;
+    [[nodiscard]] const Geometry& getGeometry (const Box& dom) const final;
+    [[nodiscard]] const Box& coarsestDomain () const final {
         return m_geom.back().Domain();
     }
-    virtual void addFineLevels (int num_new_fine_levels) final;
+    void addFineLevels (int num_new_fine_levels) final;
 
     using F = typename G::FunctionType;
 

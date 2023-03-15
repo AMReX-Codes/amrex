@@ -16,15 +16,15 @@ class MLEBABecLap
 {
 public:
 
-    MLEBABecLap () {}
+    MLEBABecLap () = default;
     MLEBABecLap (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info,
                  const Vector<EBFArrayBoxFactory const*>& a_factory,
-                 const int a_ncomp = 1);
+                 int a_ncomp = 1);
 
-    virtual ~MLEBABecLap ();
+    ~MLEBABecLap () override;
 
     MLEBABecLap (const MLEBABecLap&) = delete;
     MLEBABecLap (MLEBABecLap&&) = delete;
@@ -35,7 +35,8 @@ public:
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info,
-                 const Vector<EBFArrayBoxFactory const*>& a_factory);
+                 const Vector<EBFArrayBoxFactory const*>& a_factory,
+                 int a_ncomp = 1);
 
     void setPhiOnCentroid ();
 
@@ -61,56 +62,56 @@ public:
     void setEBHomogDirichlet (int amrlev,                      Real beta);
     void setEBHomogDirichlet (int amrlev,                      Vector<Real> const& beta);
 
-    virtual int getNComp () const override { return m_ncomp; }
+    int getNComp () const override { return m_ncomp; }
 
-    virtual bool needsUpdate () const override {
+    bool needsUpdate () const override {
         return (m_needs_update || MLCellABecLap::needsUpdate());
     }
-    virtual void update () override;
+    void update () override;
 
-    virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int amrlev, int mglev) const final override;
+    std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int amrlev, int mglev) const final;
 
-    virtual bool isCrossStencil () const override { return false; }
+    bool isCrossStencil () const override { return false; }
 
-    virtual void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, StateMode s_mode,
-                          const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const final override;
-    virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
+    void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, StateMode s_mode,
+                          const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const final;
+    void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndry* bndry=nullptr) const override;
-    virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
-                           MultiFab& sol, Location loc) const final override;
+    void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
+                           MultiFab& sol, Location loc) const final;
 
-    virtual void prepareForSolve () override;
-    virtual bool isSingular (int amrlev) const override { return m_is_singular[amrlev]; }
-    virtual bool isBottomSingular () const override { return m_is_singular[0]; }
-    virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final override;
-    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, int redblack) const final override;
-    virtual void FFlux (int amrlev, const MFIter& mfi,
+    void prepareForSolve () override;
+    bool isSingular (int amrlev) const override { return m_is_singular[amrlev]; }
+    bool isBottomSingular () const override { return m_is_singular[0]; }
+    void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
+    void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, int redblack) const final;
+    void FFlux (int amrlev, const MFIter& mfi,
                         const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, Location loc,
-                        const int face_only=0) const final override;
+                        int face_only=0) const final;
 
-    virtual void normalize (int amrlev, int mglev, MultiFab& mf) const final override;
+    void normalize (int amrlev, int mglev, MultiFab& mf) const final;
 
-    virtual Real getAScalar () const final override { return m_a_scalar; }
-    virtual Real getBScalar () const final override { return m_b_scalar; }
-    virtual MultiFab const* getACoeffs (int amrlev, int mglev) const final override
+    Real getAScalar () const final { return m_a_scalar; }
+    Real getBScalar () const final { return m_b_scalar; }
+    MultiFab const* getACoeffs (int amrlev, int mglev) const final
         { return &(m_a_coeffs[amrlev][mglev]); }
-    virtual Array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const final override
+    Array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const final
         { return amrex::GetArrOfConstPtrs(m_b_coeffs[amrlev][mglev]); }
 
-    virtual std::unique_ptr<MLLinOp> makeNLinOp (int /*grid_size*/) const final override {
+    std::unique_ptr<MLLinOp> makeNLinOp (int /*grid_size*/) const final {
         amrex::Abort("MLABecLaplacian::makeNLinOp: Not implemented");
         return std::unique_ptr<MLLinOp>{};
     }
 
-    virtual void restriction (int, int, MultiFab& crse, MultiFab& fine) const final override;
+    void restriction (int, int, MultiFab& crse, MultiFab& fine) const final;
 
-    virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final override;
+    void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final;
 
-    virtual void averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
-                                         const MultiFab& fine_sol, const MultiFab& fine_rhs) final override;
+    void averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
+                                         const MultiFab& fine_sol, const MultiFab& fine_rhs) final;
 
-    virtual void getEBFluxes (const Vector<MultiFab*>& a_flux,
+    void getEBFluxes (const Vector<MultiFab*>& a_flux,
                               const Vector<MultiFab*>& a_sol) const override;
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)

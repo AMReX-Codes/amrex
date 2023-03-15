@@ -18,7 +18,7 @@ namespace {
             amrex::max(a[2],b[2]) < amrex::min(tri.v1.z,tri.v2.z,tri.v3.z) ||
             amrex::min(a[2],b[2]) > amrex::max(tri.v1.z,tri.v2.z,tri.v3.z))
         {
-            return 0;
+            return false;
         }
         else
         {
@@ -51,7 +51,7 @@ namespace {
                                               Real dlevset)
     {
         if ((dlevset > 0._rt && norm.x > 0._rt) || (dlevset < 0._rt && norm.x < 0._rt))
-        { // This triangle has the wrong direction
+        { // This triangle has the wrong direction // NOLINT(bugprone-branch-clone)
             return std::make_pair(false,0.0_rt);
         }
         else if (x1 > amrex::max(v1.x,v2.x,v3.x) ||
@@ -679,7 +679,7 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
 void
 STLtools::updateIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                            Array<Array4<EB2::Type_t const>,AMREX_SPACEDIM> const& type_arr,
-                           Array4<Real const> const& lst, Geometry const& geom) const
+                           Array4<Real const> const& lst, Geometry const& geom)
 {
     auto const& dx = geom.CellSizeArray();
     auto const& problo = geom.ProbLoArray();
