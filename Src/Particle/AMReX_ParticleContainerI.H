@@ -1183,6 +1183,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 {
     BL_PROFILE("ParticleContainer::SortParticlesByBin()");
 
+    if (bin_size == IntVect::TheZeroVector()) return;
+
     for (int lev = 0; lev < numLevels(); ++lev)
     {
         const Geometry& geom = Geom(lev);
@@ -1200,6 +1202,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             const Box& box = mfi.validbox();
 
             int ntiles = numTilesInBox(box, true, bin_size);
+
             m_bins.build(np, pstruct_ptr, ntiles, GetParticleBin{plo, dxi, domain, bin_size, box});
             ReorderParticles(lev, mfi, m_bins.permutationPtr());
         }
@@ -1217,9 +1220,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     for (int lev = 0; lev < numLevels(); ++lev)
     {
         const Geometry& geom = Geom(lev);
-        const auto dxi = geom.InvCellSizeArray();
-        const auto plo = geom.ProbLoArray();
-        const auto domain = geom.Domain();
 
         for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
         {

@@ -2,14 +2,10 @@
 #define AMREX_DENSEBINS_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Geometry.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_IntVect.H>
-#include <AMReX_RealVect.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BinIterator.H>
-
-#include <limits>
 
 namespace amrex
 {
