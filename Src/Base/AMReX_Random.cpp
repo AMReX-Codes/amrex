@@ -68,6 +68,12 @@ InitRandom (ULong cpu_seed, int nprocs, ULong gpu_seed)
     generators.resize(nthreads);
 
 #ifdef AMREX_USE_OMP
+    if (omp_in_parallel()) {
+        amrex::Abort("It is not safe to call amrex::InitRandom inside a threaded region.");
+    }
+#endif
+
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
     {
