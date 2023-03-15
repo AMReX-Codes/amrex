@@ -1102,6 +1102,73 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
+template <class index_type>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+::ReorderParticles (int lev, const MFIter& mfi, const index_type* permutations)
+{
+    auto& ptile           = ParticlesAt(lev, mfi);
+    auto& aos             = ptile.GetArrayOfStructs();
+    auto  pstruct_ptr     = aos().dataPtr();
+    const size_t np       = aos.numParticles();
+    const size_t np_total = np + aos.numNeighborParticles();
+
+    if (memEfficientSort) {
+        {
+            ParticleVector tmp_particles(np_total);
+            auto src = ptile.getParticleTileData();
+            ParticleType* dst = tmp_particles.data();
+
+            AMREX_HOST_DEVICE_FOR_1D( np_total, i,
+            {
+                dst[i] = i < np ? src.m_aos[permutations[i]] : src.m_aos[i];
+            });
+
+            Gpu::streamSynchronize();
+            ptile.GetArrayOfStructs()().swap(tmp_particles);
+        }
+
+        RealVector tmp_real(np_total);
+        for (int comp = 0; comp < NArrayReal + m_num_runtime_real; ++comp) {
+            auto src = ptile.GetStructOfArrays().GetRealData(comp).data();
+            ParticleReal* dst = tmp_real.data();
+            AMREX_HOST_DEVICE_FOR_1D( np_total, i,
+            {
+                dst[i] = i < np ? src[permutations[i]] : src[i];
+            });
+
+            Gpu::streamSynchronize();
+
+            ptile.GetStructOfArrays().GetRealData(comp).swap(tmp_real);
+        }
+
+        IntVector tmp_int(np_total);
+        for (int comp = 0; comp < NArrayInt + m_num_runtime_int; ++comp) {
+            auto src = ptile.GetStructOfArrays().GetIntData(comp).data();
+            int* dst = tmp_int.data();
+            AMREX_HOST_DEVICE_FOR_1D( np_total , i,
+            {
+                dst[i] = i < np ? src[permutations[i]] : src[i];
+            });
+
+            Gpu::streamSynchronize();
+
+            ptile.GetStructOfArrays().GetIntData(comp).swap(tmp_int);
+        }
+    } else {
+        ParticleTileType ptile_tmp;
+        ptile_tmp.define(m_num_runtime_real, m_num_runtime_int);
+        ptile_tmp.resize(np_total);
+        // copy re-ordered particles
+        gatherParticles(ptile_tmp, ptile, np, permutations);
+        // copy neighbor particles
+        amrex::copyParticles(ptile_tmp, ptile, np, np, np_total-np);
+        ptile.swap(ptile_tmp);
+    }
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::SortParticlesByCell ()
 {
@@ -1111,7 +1178,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::So
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::SortParticlesByBin (IntVect bin_size)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+::SortParticlesByBin (IntVect bin_size)
 {
     BL_PROFILE("ParticleContainer::SortParticlesByBin()");
 
@@ -1128,71 +1196,44 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::So
             auto& aos             = ptile.GetArrayOfStructs();
             auto  pstruct_ptr     = aos().dataPtr();
             const size_t np       = aos.numParticles();
-            const size_t np_total = np + aos.numNeighborParticles();
 
             const Box& box = mfi.validbox();
 
-            if (bin_size.allGE(IntVect(1))) {
-                int ntiles = numTilesInBox(box, true, bin_size);
-                m_bins.build(np, pstruct_ptr, ntiles, GetParticleBin{plo, dxi, domain, bin_size, box});
-            } else {
-                m_bins.build2(np, pstruct_ptr, box, geom, -bin_size);
-            }
+            int ntiles = numTilesInBox(box, true, bin_size);
+            m_bins.build(np, pstruct_ptr, ntiles, GetParticleBin{plo, dxi, domain, bin_size, box});
+            ReorderParticles(lev, mfi, m_bins.permutationPtr());
+        }
+    }
+}
 
-            auto inds = m_bins.permutationPtr();
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+::SortParticlesForDeposition (IntVect idx_type)
+{
+    BL_PROFILE("ParticleContainer::SortParticlesForDeposition()");
 
-            if (memEfficientSort) {
-                {
-                    ParticleVector tmp_particles(np_total);
-                    auto src = ptile.getParticleTileData();
-                    ParticleType* dst = tmp_particles.data();
+    for (int lev = 0; lev < numLevels(); ++lev)
+    {
+        const Geometry& geom = Geom(lev);
+        const auto dxi = geom.InvCellSizeArray();
+        const auto plo = geom.ProbLoArray();
+        const auto domain = geom.Domain();
 
-                    AMREX_HOST_DEVICE_FOR_1D( np_total, i,
-                    {
-                        dst[i] = i < np ? src.m_aos[inds[i]] : src.m_aos[i];
-                    });
+        for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+        {
+            auto& ptile           = ParticlesAt(lev, mfi);
+            auto& aos             = ptile.GetArrayOfStructs();
+            auto  pstruct_ptr     = aos().dataPtr();
+            const size_t np       = aos.numParticles();
 
-                    Gpu::streamSynchronize();
-                    ptile.GetArrayOfStructs()().swap(tmp_particles);
-                }
+            const Box& box = mfi.validbox();
 
-                RealVector tmp_real(np_total);
-                for (int comp = 0; comp < NArrayReal + m_num_runtime_real; ++comp) {
-                    auto src = ptile.GetStructOfArrays().GetRealData(comp).data();
-                    ParticleReal* dst = tmp_real.data();
-                    AMREX_HOST_DEVICE_FOR_1D( np_total, i,
-                    {
-                        dst[i] = i < np ? src[inds[i]] : src[i];
-                    });
-
-                    Gpu::streamSynchronize();
-
-                    ptile.GetStructOfArrays().GetRealData(comp).swap(tmp_real);
-                }
-
-                IntVector tmp_int(np_total);
-                for (int comp = 0; comp < NArrayInt + m_num_runtime_int; ++comp) {
-                    auto src = ptile.GetStructOfArrays().GetIntData(comp).data();
-                    int* dst = tmp_int.data();
-                    AMREX_HOST_DEVICE_FOR_1D( np_total , i,
-                    {
-                        dst[i] = i < np ? src[inds[i]] : src[i];
-                    });
-
-                    Gpu::streamSynchronize();
-
-                    ptile.GetStructOfArrays().GetIntData(comp).swap(tmp_int);
-                }
-            } else {
-                ParticleTileType ptile_tmp;
-                ptile_tmp.define(m_num_runtime_real, m_num_runtime_int);
-                ptile_tmp.resize(np_total);
-                // copy re-ordered particles
-                gatherParticles(ptile_tmp, ptile, np, m_bins.permutationPtr());
-                // copy neighbor particles
-                amrex::copyParticles(ptile_tmp, ptile, np, np, np_total-np);
-                ptile.swap(ptile_tmp);
-            }
+            using index_type = typename decltype(m_bins)::index_type;
+            Gpu::DeviceVector<index_type> perm;
+            PermutationForDeposition<index_type>(perm, np, pstruct_ptr, box, geom, idx_type);
+            ReorderParticles(lev, mfi, perm.dataPtr());
         }
     }
 }

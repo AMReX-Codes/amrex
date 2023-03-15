@@ -499,6 +499,12 @@ public:
     void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
                        bool remove_negative=true);
 
+
+    template <class index_type>
+    void ReorderParticles (int lev, const MFIter& mfi, const index_type* permutations);
+
+    void SortParticlesForDeposition (IntVect idx_type);
+
     /**
      * \brief Sort the particles on each tile by cell, using Fortran ordering.
      */
