@@ -280,7 +280,7 @@ void ParticleContainerBase::BuildRedistributeMask (int lev, int nghost) const
         redistribute_mask_ptr = std::make_unique<iMultiFab>(ba, dmap, 2, nghost);
         redistribute_mask_ptr->setVal(-1, nghost);
 
-        const auto tile_size_do = this->do_tiling ? this->tile_size : IntVect::TheZeroVector();
+        const auto tile_size_do = amrex::ParticleContainerBase::do_tiling ? amrex::ParticleContainerBase::tile_size : IntVect::TheZeroVector();
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel

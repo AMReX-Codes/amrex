@@ -755,7 +755,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     if (dual_grid) {
         for (int lev = 0; lev <= finestLevel(); lev++) {
             // this can happen if there are no particles at a given level in the checkpoint
-            if (particle_box_arrays[lev].size() == 0) {
+            if (particle_box_arrays[lev].empty()) {
                 particle_box_arrays[lev] = BoxArray(Geom(lev).Domain());
             }
             SetParticleBoxArray(lev, particle_box_arrays[lev]);
