@@ -569,29 +569,38 @@ bool enforcePeriodic (P& p,
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         if (! is_per[idim]) continue;
+#ifdef AMREX_SINGLE_PRECISION_PARTICLES
+#define HIGHER_PRECISION_TYPE Real
+#else
+#define HIGHER_PRECISION_TYPE ParticleReal
+#endif
         if (p.pos(idim) >= phi[idim]) {
+            HIGHER_PRECISION_TYPE pshifted = static_cast<HIGHER_PRECISION_TYPE>(p.pos(idim));
             while (p.pos(idim) >= phi[idim]) {
                 // To avoid round off errors, do the shift at the higher precision before casting
-                p.pos(idim) = static_cast<amrex::ParticleReal>(p.pos(idim) - (phi[idim] - plo[idim]));
+                pshifted = pshifted - (phi[idim] - plo[idim]);
             }
+            p.pos(idim) = static_cast<ParticleReal>(pshifted);
             // clamp to avoid precision issues;
             if (p.pos(idim) < plo[idim]) {
-                // With the shift done at the higher precision, the nextafter will always be within the domain
-                // if the shifted value is not.
+                // The casting of the shifted value rounded it down so that it falls below plo.
+                // The nextafter will always be within the domain since it is the rounded up value.
                 // Note, to get the correct nextafter, the rhi must be the same type as p.pos.
                 p.pos(idim) = std::nextafter(p.pos(idim), rhi[idim]);
             }
             shifted = true;
         }
         else if (p.pos(idim) < plo[idim]) {
+            HIGHER_PRECISION_TYPE pshifted = static_cast<HIGHER_PRECISION_TYPE>(p.pos(idim));
             while (p.pos(idim) < plo[idim]) {
                 // To avoid round off errors, do the shift at the higher precision before casting
-                p.pos(idim) = static_cast<amrex::ParticleReal>(p.pos(idim) + (phi[idim] - plo[idim]));
+                pshifted = pshifted + (phi[idim] - plo[idim]);
             }
+            p.pos(idim) = static_cast<ParticleReal>(pshifted);
             // clamp to avoid precision issues;
             if (p.pos(idim) > phi[idim]) {
-                // With the shift done at the higher precision, the nextafter will always be within the domain
-                // if the shifted value is not.
+                // The casting of the shifted value rounded it up so that it falls above phi.
+                // The nextafter will always be within the domain since it is the rounded down value.
                 // Note, to get the correct nextafter, the rlo must be the same type as p.pos.
                 p.pos(idim) = std::nextafter(p.pos(idim), rlo[idim]);
             }
