@@ -27,8 +27,6 @@ struct ParticleIDWrapper
     uint64_t& m_idata;
 
     ~ParticleIDWrapper () noexcept = default;
-    ParticleIDWrapper (ParticleIDWrapper&&) = delete;
-    ParticleIDWrapper& operator= (ParticleIDWrapper&&) = delete;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleIDWrapper (uint64_t& idata) noexcept
@@ -38,10 +36,18 @@ struct ParticleIDWrapper
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleIDWrapper (const ParticleIDWrapper& rhs) = default;
 
+    ParticleIDWrapper (ParticleIDWrapper&&) = delete;
+
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleIDWrapper& operator= (const ParticleIDWrapper& pidw) noexcept
     {
         return this->operator=(Long(pidw)); // NOLINT(cppcoreguidelines-c-copy-assignment-signature)
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    ParticleIDWrapper& operator= (ParticleIDWrapper&& pidw) noexcept
+    {
+        return this->operator=(Long(pidw)); // NOLINT
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -89,8 +95,6 @@ struct ParticleCPUWrapper
     uint64_t& m_idata;
 
     ~ParticleCPUWrapper () noexcept = default;
-    ParticleCPUWrapper (ParticleCPUWrapper&&) = delete;
-    ParticleCPUWrapper& operator= (ParticleCPUWrapper&&) = delete;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleCPUWrapper (uint64_t& idata) noexcept
@@ -100,10 +104,18 @@ struct ParticleCPUWrapper
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleCPUWrapper (const ParticleCPUWrapper& rhs) = default;
 
+    ParticleCPUWrapper (ParticleCPUWrapper&&) = delete;
+
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleCPUWrapper& operator= (const ParticleCPUWrapper& pcpuw) noexcept
     {
         return this->operator=(int(pcpuw));  // NOLINT(cppcoreguidelines-c-copy-assignment-signature)
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    ParticleCPUWrapper& operator= (ParticleCPUWrapper&& pcpuw) noexcept
+    {
+        return this->operator=(int(pcpuw)); // NOLINT
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
