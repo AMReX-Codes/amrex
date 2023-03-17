@@ -525,6 +525,10 @@ Geometry::computeRoundoffDomain ()
         Real plo = ProbLo(idim);
         Real phi = ProbHi(idim);
         Real dxinv = InvCellSize(idim);
+        Real deltax = CellSize(idim);
+
+        // Check that the grid is well formed and that deltax > roundoff
+        AMREX_ASSERT((plo + ihi*deltax) < (plo + (ihi + 1)*deltax));
 
         // roundoff_lo will be the lowest value that will be inside the domain
         // roundoff_hi will be the highest value that will be inside the domain
@@ -533,20 +537,30 @@ Geometry::computeRoundoffDomain ()
         roundoff_lo_d[idim] = static_cast<double>(plo);
         roundoff_hi_d[idim] = static_cast<double>(phi);
 
-        // Hopefully, the loops should never take more than 1 or 2 iterations
-        while (roundoff_lo_f[idim] < plo) {
+        // Hopefully, the loops should never take more than 1 or 2 iterations.
+        // In obscure cases, more may be needed, for example if (phi - plo) is near round off
+        // compared to (phi + plo).
+        int iters = 0;
+        while (roundoff_lo_f[idim] < plo && iters < 20) {
             roundoff_lo_f[idim] = std::nextafter(roundoff_lo_f[idim], roundoff_hi_f[idim]);
+            iters++;
         }
-        while (std::floor((roundoff_hi_f[idim] - plo)*dxinv) >= ihi + 1 - ilo) {
+        while (std::floor((roundoff_hi_f[idim] - plo)*dxinv) >= ihi + 1 - ilo && iters < 20) {
             roundoff_hi_f[idim] = std::nextafter(roundoff_hi_f[idim], roundoff_lo_f[idim]);
+            iters++;
         }
-        while (roundoff_lo_d[idim] < plo) {
+        while (roundoff_lo_d[idim] < plo && iters < 20) {
             roundoff_lo_d[idim] = std::nextafter(roundoff_lo_d[idim], roundoff_hi_d[idim]);
+            iters++;
         }
-        while (std::floor((roundoff_hi_d[idim] - plo)*dxinv) >= ihi + 1 - ilo) {
+        while (std::floor((roundoff_hi_d[idim] - plo)*dxinv) >= ihi + 1 - ilo && iters < 20) {
             roundoff_hi_d[idim] = std::nextafter(roundoff_hi_d[idim], roundoff_lo_d[idim]);
+            iters++;
         }
 
+        // If iters is at the limit, then the grid is ill formed and reasonable values could not
+        // be found for the round off domain extent
+        AMREX_ASSERT(iters < 20);
     }
 }
 
