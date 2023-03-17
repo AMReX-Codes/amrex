@@ -34,9 +34,9 @@ public:
                            const DistributionMapping & dmap,
                            const BoxArray            & ba)
         :
-        m_gdb_object(geom,dmap,ba)
+        m_gdb_object(std::make_unique<ParGDB>(geom,dmap,ba)),
+        m_gdb(static_cast<ParGDBBase*>(m_gdb_object.get()))
     {
-        m_gdb = &m_gdb_object;
     }
 
     ParticleContainerBase (const Vector<Geometry>            & geom,
@@ -44,9 +44,9 @@ public:
                            const Vector<BoxArray>            & ba,
                            const Vector<int>                 & rr)
         :
-        m_gdb_object(geom,dmap,ba,rr)
+        m_gdb_object(std::make_unique<ParGDB>(geom,dmap,ba,rr)),
+        m_gdb(static_cast<ParGDBBase*>(m_gdb_object.get()))
     {
-        m_gdb = &m_gdb_object;
     }
 
     ParticleContainerBase (const Vector<Geometry>            & geom,
@@ -54,7 +54,8 @@ public:
                            const Vector<BoxArray>            & ba,
                            const Vector<IntVect>             & rr)
         :
-        m_gdb_object(geom,dmap,ba, [&]() -> Vector<int> {
+        m_gdb_object
+        (std::make_unique<ParGDB>(geom,dmap,ba, [&]() -> Vector<int> {
                 Vector<int> ref_ratio;
                 for (int i = 0; i < static_cast<int>(rr.size()); ++i)
                 {
@@ -66,9 +67,9 @@ public:
 #endif
                     ref_ratio.push_back(rr[i][0]);
                 }
-                return ref_ratio;  }() )
+                return ref_ratio;  }() )),
+        m_gdb(static_cast<ParGDBBase*>(m_gdb_object.get()))
     {
-        m_gdb = &m_gdb_object;
     }
 
     virtual ~ParticleContainerBase () = default;
@@ -165,7 +166,7 @@ public:
     //! \param lev The level on which to set the BoxArray.
     //! \param new_ba The new BoxArray to use.
     //!
-    void SetParticleBoxArray (int lev, const BoxArray& new_ba);
+    void SetParticleBoxArray (int lev, BoxArray new_ba);
 
     //! \brief Set the particle DistributionMapping. If the container was previously set to
     //! to track the AMR hierarchy of an AmrCore or AmrLevel object, that correspondence
@@ -174,7 +175,7 @@ public:
     //! \param lev The level on which to set the dm.
     //! \param new_dmap The new DistributionMapping to use.
     //!
-    void SetParticleDistributionMap (int lev, const DistributionMapping& new_dmap);
+    void SetParticleDistributionMap (int lev, DistributionMapping new_dmap);
 
     //! \brief Set the particle Geometry. If the container was previously set to
     //! to track the AMR hierarchy of an AmrCore or AmrLevel object, that correspondence
@@ -183,7 +184,7 @@ public:
     //! \param lev The level on which to set the Geometry.
     //! \param new_geom The new Geometry to use.
     //!
-    void SetParticleGeometry (int lev, const Geometry& new_geom);
+    void SetParticleGeometry (int lev, Geometry new_geom);
 
     //! \brief Get the BoxArray for a given level
     //!
@@ -259,8 +260,8 @@ protected:
     void defineBufferMap () const;
 
     int         m_verbose{0};
+    std::unique_ptr<ParGDB> m_gdb_object = std::make_unique<ParGDB>();
     ParGDBBase* m_gdb{nullptr};
-    ParGDB      m_gdb_object;
     Vector<std::unique_ptr<MultiFab> > m_dummy_mf;
 
     mutable std::unique_ptr<iMultiFab> redistribute_mask_ptr;
