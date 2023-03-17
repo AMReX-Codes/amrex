@@ -582,11 +582,8 @@ bool enforcePeriodic (P& p,
             }
             p.pos(idim) = static_cast<ParticleReal>(pshifted);
             // clamp to avoid precision issues;
-            if (p.pos(idim) < plo[idim]) {
-                // The casting of the shifted value rounded it down so that it falls below plo.
-                // The nextafter will always be within the domain since it is the rounded up value.
-                // Note, to get the correct nextafter, the rhi must be the same type as p.pos.
-                p.pos(idim) = std::nextafter(p.pos(idim), rhi[idim]);
+            if (p.pos(idim) < rlo[idim]) {
+                p.pos(idim) = rlo[idim];
             }
             shifted = true;
         }
@@ -598,11 +595,8 @@ bool enforcePeriodic (P& p,
             }
             p.pos(idim) = static_cast<ParticleReal>(pshifted);
             // clamp to avoid precision issues;
-            if (p.pos(idim) > phi[idim]) {
-                // The casting of the shifted value rounded it up so that it falls above phi.
-                // The nextafter will always be within the domain since it is the rounded down value.
-                // Note, to get the correct nextafter, the rlo must be the same type as p.pos.
-                p.pos(idim) = std::nextafter(p.pos(idim), rlo[idim]);
+            if (p.pos(idim) > rhi[idim]) {
+                p.pos(idim) = rhi[idim];
             }
             shifted = true;
         }

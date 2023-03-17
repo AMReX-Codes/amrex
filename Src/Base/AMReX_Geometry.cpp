@@ -103,7 +103,7 @@ Geometry::define (const Box& dom, const RealBox* rb, int coord,
     domain = dom;
     ok     = true;
 
-    computeParticleRealDomain();
+    computeRoundoffDomain();
 }
 
 void
@@ -509,7 +509,7 @@ Geometry::growPeriodicDomain (int ngrow) const noexcept
 }
 
 void
-Geometry::computeParticleRealDomain ()
+Geometry::computeRoundoffDomain ()
 {
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
@@ -520,12 +520,43 @@ Geometry::computeParticleRealDomain ()
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
+        int ilo = Domain().smallEnd(idim);
+        int ihi = Domain().bigEnd(idim);
         Real plo = ProbLo(idim);
         Real phi = ProbHi(idim);
+        Real dxinv = InvCellSize(idim);
 
-        particlereal_lo[idim] = static_cast<ParticleReal>(plo);
-        particlereal_hi[idim] = static_cast<ParticleReal>(phi);
+        // roundoff_lo will be the lowest value that will be inside the domain
+        // roundoff_hi will be the highest value that will be inside the domain
+        roundoff_lo[idim] = static_cast<ParticleReal>(plo);
+        roundoff_hi[idim] = static_cast<ParticleReal>(phi);
+
+        // Hopefully, the loops should never take more than 1 or 2 iterations
+        while (roundoff_lo[idim] < plo) {
+            roundoff_lo[idim] = std::nextafter(roundoff_lo[idim], roundoff_hi[idim]);
+        }
+        while (std::floor((roundoff_hi[idim] - plo)*dxinv) >= ihi - ilo) {
+            roundoff_hi[idim] = std::nextafter(roundoff_hi[idim], roundoff_lo[idim]);
+        }
     }
+}
+
+bool
+Geometry::outsideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const
+{
+    bool outside = AMREX_D_TERM(x <  roundoff_lo[0]
+                             || x >= roundoff_hi[0],
+                             || y <  roundoff_lo[1]
+                             || y >= roundoff_hi[1],
+                             || z <  roundoff_lo[2]
+                             || z >= roundoff_hi[2]);
+    return outside;
+}
+
+bool
+Geometry::insideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const
+{
+    return !outsideRoundoffDomain(AMREX_D_DECL(x, y, z));
 }
 
 }
