@@ -321,11 +321,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::lo
             GpuArray<ParticleReal, AMREX_SPACEDIM> rlo = Geom(0).ProbLoArrayInParticleReal();
             for (int idim=0; idim < AMREX_SPACEDIM; ++idim)
             {
-                if (p.pos(idim) < rlo[idim]) {
-                    p.pos(idim) = rlo[idim];
+                if (p.pos(idim) <= rlo[idim]) {
+                    p.pos(idim) = std::nextafter(rlo[idim], rhi[idim]);
                 }
-                if (p.pos(idim) > rhi[idim]) {
-                    p.pos(idim) = rhi[idim];
+                if (p.pos(idim) >= rhi[idim]) {
+                    p.pos(idim) = std::nextafter(rhi[idim], rlo[idim]);
                 }
             }
 

@@ -242,10 +242,18 @@ public:
     }
 
     [[nodiscard]] GpuArray<ParticleReal,AMREX_SPACEDIM> ProbLoArrayInParticleReal () const noexcept {
-        return roundoff_lo;
+#ifdef AMREX_SINGLE_PRECISION_PARTICLES
+        return roundoff_lo_f;
+#else
+        return roundoff_lo_d;
+#endif
     }
     [[nodiscard]] GpuArray<ParticleReal,AMREX_SPACEDIM> ProbHiArrayInParticleReal () const noexcept {
-        return roundoff_hi;
+#ifdef AMREX_SINGLE_PRECISION_PARTICLES
+        return roundoff_hi_f;
+#else
+        return roundoff_hi_d;
+#endif
     }
 
     //! Returns the overall size of the domain by multiplying the ProbLength's together
@@ -484,7 +492,8 @@ private:
     // will map to a cell that is inside "domain". "roundoff_{lo,hi}_{f,d}" each store
     // a position that is very close to that in prob_domain, and for which all doubles and floats less than
     // it will map to a cell inside domain.
-    GpuArray<ParticleReal , AMREX_SPACEDIM> roundoff_lo, roundoff_hi;
+    GpuArray<double, AMREX_SPACEDIM> roundoff_lo_d, roundoff_hi_d;
+    GpuArray<float , AMREX_SPACEDIM> roundoff_lo_f, roundoff_hi_f;
 
     //
     Box     domain;

@@ -569,18 +569,10 @@ bool enforcePeriodic (P& p,
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         if (! is_per[idim]) continue;
-#ifdef AMREX_SINGLE_PRECISION_PARTICLES
-#define HIGHER_PRECISION_TYPE Real
-#else
-#define HIGHER_PRECISION_TYPE ParticleReal
-#endif
         if (p.pos(idim) >= phi[idim]) {
-            HIGHER_PRECISION_TYPE pshifted = static_cast<HIGHER_PRECISION_TYPE>(p.pos(idim));
             while (p.pos(idim) >= phi[idim]) {
-                // To avoid round off errors, do the shift at the higher precision before casting
-                pshifted = pshifted - (phi[idim] - plo[idim]);
+                p.pos(idim) -= static_cast<ParticleReal>(phi[idim] - plo[idim]);
             }
-            p.pos(idim) = static_cast<ParticleReal>(pshifted);
             // clamp to avoid precision issues;
             if (p.pos(idim) < rlo[idim]) {
                 p.pos(idim) = rlo[idim];
@@ -588,12 +580,9 @@ bool enforcePeriodic (P& p,
             shifted = true;
         }
         else if (p.pos(idim) < plo[idim]) {
-            HIGHER_PRECISION_TYPE pshifted = static_cast<HIGHER_PRECISION_TYPE>(p.pos(idim));
             while (p.pos(idim) < plo[idim]) {
-                // To avoid round off errors, do the shift at the higher precision before casting
-                pshifted = pshifted + (phi[idim] - plo[idim]);
+                p.pos(idim) += static_cast<ParticleReal>(phi[idim] - plo[idim]);
             }
-            p.pos(idim) = static_cast<ParticleReal>(pshifted);
             // clamp to avoid precision issues;
             if (p.pos(idim) > rhi[idim]) {
                 p.pos(idim) = rhi[idim];
