@@ -525,10 +525,9 @@ Geometry::computeRoundoffDomain ()
         Real plo = ProbLo(idim);
         Real phi = ProbHi(idim);
         Real dxinv = InvCellSize(idim);
-        Real deltax = CellSize(idim);
 
         // Check that the grid is well formed and that deltax > roundoff
-        AMREX_ASSERT((plo + ihi*deltax) < (plo + (ihi + 1)*deltax));
+        AMREX_ASSERT((plo + ihi*CellSize(idim)) < (plo + (ihi + 1)*CellSize(idim)));
 
         // roundoff_lo will be the lowest value that will be inside the domain
         // roundoff_hi will be the highest value that will be inside the domain
