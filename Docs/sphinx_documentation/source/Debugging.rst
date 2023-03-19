@@ -51,7 +51,7 @@ you could do is the following,
                        // there is an implicit POP when "PUSH" is
                        // out of scope.
 
-When it hits the segfault, you will only see the last pint out.
+When it hits the segfault, you will only see the last print out.
 
 Writing a ``MultiFab`` to disk with
 
