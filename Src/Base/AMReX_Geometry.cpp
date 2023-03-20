@@ -530,30 +530,26 @@ Geometry::computeRoundoffDomain ()
         AMREX_ASSERT((plo + ihi*CellSize(idim)) < (plo + (ihi + 1)*CellSize(idim)));
 
         // roundoff_lo will be the lowest value that will be inside the domain
-        // roundoff_hi will be the highest value that will be inside the domain
-        roundoff_lo_f[idim] = static_cast<float>(plo);
-        roundoff_hi_f[idim] = static_cast<float>(phi);
-        roundoff_lo_d[idim] = static_cast<double>(plo);
-        roundoff_hi_d[idim] = static_cast<double>(phi);
+        // roundoff_hi will be the lowest value that will be outside the domain
+        roundoff_lo[idim] = static_cast<ParticleReal>(plo);
+        roundoff_hi[idim] = static_cast<ParticleReal>(phi);
 
         // Hopefully, the loops should never take more than 1 or 2 iterations.
         // In obscure cases, more may be needed, for example if (phi - plo) is near round off
         // compared to (phi + plo).
         int iters = 0;
-        while (roundoff_lo_f[idim] < plo && iters < 20) {
-            roundoff_lo_f[idim] = std::nextafter(roundoff_lo_f[idim], roundoff_hi_f[idim]);
+        while (roundoff_lo[idim] < plo && iters < 20) {
+            roundoff_lo[idim] = std::nextafter(roundoff_lo[idim], roundoff_hi[idim]);
             iters++;
         }
-        while (std::floor((roundoff_hi_f[idim] - plo)*dxinv) >= ihi + 1 - ilo && iters < 20) {
-            roundoff_hi_f[idim] = std::nextafter(roundoff_hi_f[idim], roundoff_lo_f[idim]);
-            iters++;
-        }
-        while (roundoff_lo_d[idim] < plo && iters < 20) {
-            roundoff_lo_d[idim] = std::nextafter(roundoff_lo_d[idim], roundoff_hi_d[idim]);
-            iters++;
-        }
-        while (std::floor((roundoff_hi_d[idim] - plo)*dxinv) >= ihi + 1 - ilo && iters < 20) {
-            roundoff_hi_d[idim] = std::nextafter(roundoff_hi_d[idim], roundoff_lo_d[idim]);
+        ParticleReal rhi = roundoff_hi[idim];
+        while (iters < 20) {
+            rhi = std::nextafter(rhi, roundoff_lo[idim]);
+            if (std::floor((rhi - plo)*dxinv) >= ihi + 1 - ilo) {
+                roundoff_hi[idim] = rhi;
+            } else {
+                break;
+            }
             iters++;
         }
 
@@ -566,21 +562,12 @@ Geometry::computeRoundoffDomain ()
 bool
 Geometry::outsideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const
 {
-#ifdef AMREX_SINGLE_PRECISION_PARTICLES
-    bool outside = AMREX_D_TERM(x <  roundoff_lo_f[0]
-                             || x >= roundoff_hi_f[0],
-                             || y <  roundoff_lo_f[1]
-                             || y >= roundoff_hi_f[1],
-                             || z <  roundoff_lo_f[2]
-                             || z >= roundoff_hi_f[2]);
-#else
-    bool outside = AMREX_D_TERM(x <  roundoff_lo_d[0]
-                             || x >= roundoff_hi_d[0],
-                             || y <  roundoff_lo_d[1]
-                             || y >= roundoff_hi_d[1],
-                             || z <  roundoff_lo_d[2]
-                             || z >= roundoff_hi_d[2]);
-#endif
+    bool outside = AMREX_D_TERM(x <  roundoff_lo[0]
+                             || x >= roundoff_hi[0],
+                             || y <  roundoff_lo[1]
+                             || y >= roundoff_hi[1],
+                             || z <  roundoff_lo[2]
+                             || z >= roundoff_hi[2]);
     return outside;
 }
 
