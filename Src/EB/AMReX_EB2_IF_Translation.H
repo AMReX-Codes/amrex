@@ -9,7 +9,7 @@
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 template <class F>
 class TranslationIF
@@ -64,6 +64,6 @@ translate (F&&f, const RealArray& offset)
     return TranslationIF<typename std::decay<F>::type>(std::forward<F>(f),offset);
 }
 
-}}
+}
 
 #endif

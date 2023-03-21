@@ -9,8 +9,7 @@
 #include <AMReX_Arena.H>
 #include <cstdlib>
 
-namespace amrex {
-namespace Gpu {
+namespace amrex::Gpu {
 
 struct Managed {
 
@@ -267,7 +266,7 @@ struct SharedMemory<bool>
 
 #endif
 
-}}  //namespace
+}  //namespace
 
 
 #endif

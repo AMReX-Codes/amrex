@@ -23,7 +23,7 @@ BndryFuncArray::operator () (Box const& /*bx*/, FArrayBox& dest,
     const Real* problo = geom.ProbLo();
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
-        grd_lo[i] = problo[i] + dx[i]*(lo[i]-dom_lo[i]);
+        grd_lo[i] = problo[i] + dx[i]*static_cast<Real>(lo[i]-dom_lo[i]);
     }
 
     static_assert(sizeof(BCRec) == 2*AMREX_SPACEDIM*sizeof(int),
@@ -59,7 +59,7 @@ CpuBndryFuncFab::operator() (Box const& bx, FArrayBox& dest,
     Real xlo[AMREX_SPACEDIM];
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
-        xlo[i] = problo[i] + dx[i]*(lo[i]-dom_lo[i]);
+        xlo[i] = problo[i] + dx[i]*static_cast<Real>(lo[i]-dom_lo[i]);
     }
     if (bx.ixType().cellCentered()) {
         fab_filcc(bx, dest.array(dcomp), numcomp, domain, dx, xlo, &(bcr[bcomp]));

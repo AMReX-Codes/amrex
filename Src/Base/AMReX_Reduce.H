@@ -14,7 +14,7 @@
 
 namespace amrex {
 
-namespace Reduce { namespace detail {
+namespace Reduce::detail {
 
 #ifdef AMREX_USE_GPU
 #ifdef AMREX_USE_SYCL
@@ -79,7 +79,7 @@ namespace Reduce { namespace detail {
         P().init(amrex::get<I>(t));
         for_each_init<I+1,T,P1,Ps...>(t);
     }
-}}
+}
 
 struct ReduceOpSum
 {
@@ -314,7 +314,7 @@ private:
     std::function<Type()> m_fn_value;
 };
 
-namespace Reduce { namespace detail {
+namespace Reduce::detail {
     template <typename F>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     auto call_f (F const& f, int i, int j, int k, IndexType)
@@ -356,7 +356,7 @@ namespace Reduce { namespace detail {
             Reduce::detail::for_each_local<0, T, Ps...>(r, pr);
         }
     }
-}}
+}
 
 template <typename... Ps>
 class ReduceOps

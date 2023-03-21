@@ -10,15 +10,13 @@
 #include <AMReX_Array.H>
 #include <AMReX_distFcnElement.H>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 /*
  * Implicit function to specify a spline through a set of control points
  */
 class SplineIF {
  public:
-  //! Constructor
-  SplineIF() {}
 
   void addSplineElement(std::vector<amrex::RealVect> pts) {
     SplineDistFcnElement2d * theSpline = new SplineDistFcnElement2d();
@@ -55,5 +53,5 @@ class SplineIF {
   amrex::Vector<distFcnElement2d*> geomElements;
 };
 
-}}
+}
 #endif

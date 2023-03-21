@@ -39,13 +39,12 @@ class Orientation;
 template <typename MF>
 class BndryRegisterT
 {
-
 public:
 
     using value_type = typename MF::value_type;
 
     //! The default constructor.
-    BndryRegisterT () = default;
+    BndryRegisterT () noexcept = default;
 
     //! The constructor, given number of cells in/out, extent and number of components (assumes cell-centered boxes, and allocates cell-centered FABs)
     BndryRegisterT (const BoxArray& grids_, // NOLINT(modernize-pass-by-value)

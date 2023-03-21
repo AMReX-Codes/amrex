@@ -282,7 +282,7 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
     {
         const ParticleType& p = pstruct[i];
         if ((p.id() < 0)) return false;
-        IntVect iv = IntVect(
+        IntVect iv(
             AMREX_D_DECL(int(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0])),
                          int(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1])),
                          int(amrex::Math::floor((p.pos(2)-plo[2])*dxi[2]))));
@@ -536,7 +536,7 @@ IntVect getParticleCell (P const& p,
                          amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
                          const Box& domain) noexcept
 {
-    IntVect iv = IntVect(
+    IntVect iv(
         AMREX_D_DECL(int(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0])),
                      int(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1])),
                      int(amrex::Math::floor((p.pos(2)-plo[2])*dxi[2]))));

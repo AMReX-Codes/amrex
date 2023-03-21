@@ -7,7 +7,7 @@
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 class ParserIF
     : public amrex::GPUable
@@ -21,9 +21,9 @@ public:
     amrex::Real operator() (AMREX_D_DECL(amrex::Real x, amrex::Real y,
                                          amrex::Real z)) const noexcept {
 #if (AMREX_SPACEDIM == 2)
-        return m_parser({x,y,Real(0.0)});
+        return static_cast<Real>(m_parser({x,y,Real(0.0)}));
 #else
-        return m_parser({x,y,z});
+        return static_cast<Real>(m_parser({x,y,z}));
 #endif
     }
 
@@ -35,6 +35,6 @@ private:
     ParserExecutor<3> m_parser;
 };
 
-}}
+}
 
 #endif

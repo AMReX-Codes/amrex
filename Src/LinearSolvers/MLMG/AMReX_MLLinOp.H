@@ -536,7 +536,7 @@ protected:
         CommContainer (CommContainer&&) = delete;
         void operator= (const CommContainer&) = delete;
         void operator= (CommContainer&&) = delete;
-        ~CommContainer () {
+        ~CommContainer () { // NOLINT(modernize-use-equals-default)
 #ifdef BL_USE_MPI
             if (comm != MPI_COMM_NULL) MPI_Comm_free(&comm);
 #endif
@@ -1002,7 +1002,7 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
 
             if (info.do_consolidation)
             {
-                if (avg_npts/(AMREX_D_TERM(rr_vec[0], *rr_vec[1], *rr_vec[2]))
+                if (avg_npts/static_cast<Real>(AMREX_D_TERM(rr_vec[0], *rr_vec[1], *rr_vec[2]))
                     < Real(0.999)*static_cast<Real>(consolidation_threshold))
                 {
                     coned = true;

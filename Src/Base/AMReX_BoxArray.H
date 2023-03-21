@@ -529,7 +529,7 @@ class BoxArray
 {
 public:
 
-    BoxArray ();
+    BoxArray () noexcept;
     BoxArray (const BoxArray& rhs) = default;
     BoxArray (BoxArray&& rhs) noexcept = default;
     BoxArray& operator= (BoxArray const& rhs) = default;

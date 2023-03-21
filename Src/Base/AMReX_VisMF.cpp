@@ -513,7 +513,7 @@ VisMF::max (int nc) const
 const FArrayBox&
 VisMF::GetFab (int fabIndex, int compIndex) const
 {
-    if(m_pa[compIndex][fabIndex] == 0) {
+    if(m_pa[compIndex][fabIndex] == nullptr) {
         m_pa[compIndex][fabIndex] = VisMF::readFAB(fabIndex, m_fafabname, m_hdr, compIndex);
     }
     return *m_pa[compIndex][fabIndex];
@@ -523,7 +523,7 @@ void
 VisMF::clear (int fabIndex, int compIndex)
 {
     delete m_pa[compIndex][fabIndex];
-    m_pa[compIndex][fabIndex] = 0;
+    m_pa[compIndex][fabIndex] = nullptr;
 }
 
 Long
@@ -2096,7 +2096,7 @@ void
 VisMF::clear (int fabIndex)
 {
     for(int ncomp = 0, N = static_cast<int>(m_pa.size()); ncomp < N; ++ncomp) {
-        clear(ncomp, fabIndex);
+        clear(fabIndex, ncomp);
     }
 }
 
@@ -2105,7 +2105,7 @@ VisMF::clear ()
 {
     for(int ncomp = 0, N = static_cast<int>(m_pa.size()); ncomp < N; ++ncomp) {
         for(int fabIndex = 0, M = static_cast<int>(m_pa[ncomp].size()); fabIndex < M; ++fabIndex) {
-            clear(ncomp, fabIndex);
+            clear(fabIndex, ncomp);
         }
     }
 }

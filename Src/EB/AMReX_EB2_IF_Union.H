@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <utility>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
@@ -93,6 +93,6 @@ makeUnion (Fs&&... fs)
     return UnionIF<typename std::decay<Fs>::type ...>(std::forward<Fs>(fs)...);
 }
 
-}}
+}
 
 #endif

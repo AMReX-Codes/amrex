@@ -1,6 +1,6 @@
 #include <AMReX_EB2_C.H>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 namespace {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -384,17 +384,15 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         AMREX_HOST_DEVICE_FOR_3D(nbxg1, i, j, k,
         {
             if (levset(i,j,k) < Real(0.0)) {
-                if        (bxg1.contains(i-1,j-1,k)
-                           &&       cell(i-1,j-1,k).isCovered()) {
-                    levset(i,j,k) = Real(0.0);
-                } else if (bxg1.contains(i  ,j-1,k)
-                           &&       cell(i  ,j-1,k).isCovered()) {
-                    levset(i,j,k) = Real(0.0);
-                } else if (bxg1.contains(i-1,j  ,k)
-                           &&       cell(i-1,j  ,k).isCovered()) {
-                    levset(i,j,k) = Real(0.0);
-                } else if (bxg1.contains(i  ,j  ,k)
-                           &&       cell(i  ,j  ,k).isCovered()) {
+                if ((bxg1.contains(i-1,j-1,k)
+                     &&       cell(i-1,j-1,k).isCovered()) ||
+                    (bxg1.contains(i  ,j-1,k)
+                     &&       cell(i  ,j-1,k).isCovered()) ||
+                    (bxg1.contains(i-1,j  ,k)
+                     &&       cell(i-1,j  ,k).isCovered()) ||
+                    (bxg1.contains(i  ,j  ,k)
+                     &&       cell(i  ,j  ,k).isCovered()))
+                {
                     levset(i,j,k) = Real(0.0);
                 }
             }
@@ -448,4 +446,4 @@ void set_connection_flags (Box const& bxg1,
     });
 }
 
-}}
+}

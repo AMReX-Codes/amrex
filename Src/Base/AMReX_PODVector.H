@@ -260,43 +260,38 @@ namespace amrex
         {}
 
         explicit PODVector (size_type a_size) noexcept
-            : m_data(nullptr)
+            : m_data(nullptr), m_size(a_size)
         {
             AllocateBuffer(GetNewCapacity(a_size));
-            m_size = a_size;
         }
 
         PODVector (size_type a_size, const value_type& a_value,
                    const allocator_type& a_allocator = Allocator()) noexcept
-            : Allocator(a_allocator), m_data(nullptr)
+            : Allocator(a_allocator), m_data(nullptr), m_size(a_size)
         {
             AllocateBuffer(GetNewCapacity(a_size));
-            m_size = a_size;
             detail::uninitializedFillNImpl<Allocator>(m_data, a_size, a_value, *this);
         }
 
         PODVector (std::initializer_list<T> a_initializer_list,
                    const allocator_type& a_allocator = Allocator()) noexcept
-            : Allocator(a_allocator), m_data(nullptr)
+            : Allocator(a_allocator), m_data(nullptr), m_size(a_initializer_list.size())
         {
-            size_type size = a_initializer_list.size();
-            AllocateBuffer(GetNewCapacity(size));
-            m_size = size;
+            AllocateBuffer(GetNewCapacity(m_size));
             detail::initFromListImpl<Allocator>(m_data, a_initializer_list, *this);
         }
 
         PODVector (const PODVector<T, Allocator>& a_vector) noexcept
-            : Allocator(a_vector), m_data(nullptr)
+            : Allocator(a_vector), m_data(nullptr), m_size(a_vector.size())
         {
             using namespace detail;
             AllocateBuffer(a_vector.capacity());
-            m_size = a_vector.size();
             auto r = memCopyImpl<Allocator>(m_data, a_vector.m_data, a_vector.size() * sizeof(T), *this);
             if (r) { Gpu::streamSynchronize(); }
         }
 
         PODVector (PODVector<T, Allocator>&& a_vector) noexcept
-            : Allocator(std::move(a_vector)),
+            : Allocator(static_cast<Allocator&&>(a_vector)),
               m_data(a_vector.m_data),
               m_size(a_vector.m_size),
               m_capacity(a_vector.m_capacity)

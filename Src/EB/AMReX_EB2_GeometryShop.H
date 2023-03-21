@@ -13,7 +13,7 @@
 #include <cmath>
 #include <utility>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 template <class F, typename std::enable_if<IsGPUable<F>::value>::type* FOO = nullptr>
 AMREX_GPU_HOST_DEVICE
@@ -543,6 +543,6 @@ makeShop (F&& f, R&& r)
         (std::forward<F>(f), std::forward<R>(r));
 }
 
-}}
+}
 
 #endif

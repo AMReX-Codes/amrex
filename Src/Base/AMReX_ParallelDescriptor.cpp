@@ -1136,10 +1136,10 @@ EndParallel ()
 }
 
 void
-Abort (int s, bool backtrace)
+Abort (int errorcode, bool backtrace)
 {
     if (backtrace && amrex::system::signal_handling) {
-        BLBackTrace::handler(s);
+        BLBackTrace::handler(errorcode);
     } else {
         std::_Exit(EXIT_FAILURE);
     }

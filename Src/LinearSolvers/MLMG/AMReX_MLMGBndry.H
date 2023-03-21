@@ -119,7 +119,7 @@ MLMGBndryT<MF>::setBoxBC (RealTuple& bloc, BCTuple& bctag,
         {
             // Internal bndry.
             bctag[face] = AMREX_LO_DIRICHLET;
-            bloc[face]  = static_cast<T>(ratio > 0 ? Real(0.5)*ratio*dx[dir]
+            bloc[face]  = static_cast<T>(ratio > 0 ? Real(0.5)*static_cast<Real>(ratio)*dx[dir]
                                                    : interior_bloc[dir]);
             // If this is next to another same level box, bloc is
             // wrong.  But it doesn't matter, because we also have

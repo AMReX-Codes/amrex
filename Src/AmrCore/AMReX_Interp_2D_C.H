@@ -29,9 +29,9 @@ pcinterp_interp (Box const& bx,
 }
 
 namespace {
-    static constexpr int ix   = 0;
-    static constexpr int iy   = 1;
-    static constexpr int ixy  = 2;
+    constexpr int ix   = 0;
+    constexpr int iy   = 1;
+    constexpr int ixy  = 2;
 }
 
 template<typename T>
@@ -42,8 +42,8 @@ nodebilin_slopes (Box const& bx, Array4<T> const& slope, Array4<T const> const& 
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
-    const Real rx = Real(1.)/ratio[0];
-    const Real ry = Real(1.)/ratio[1];
+    const Real rx = Real(1.)/Real(ratio[0]);
+    const Real ry = Real(1.)/Real(ratio[1]);
 
     for (int n = 0; n < ncomp; ++n) {
         for     (int j = lo.y; j <= hi.y; ++j) {

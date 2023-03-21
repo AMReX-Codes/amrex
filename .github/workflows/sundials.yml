@@ -28,12 +28,15 @@ jobs:
         cd ../..
     - name: Compile Test
       run: |
+        .github/workflows/dependencies/dependencies_clang-tidy.sh 12
         export CXXFLAGS="-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"
         cmake -S . -B build             \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DUSE_XSDK_DEFAULTS=ON      \
             -DAMReX_SUNDIALS=ON         \
-            -DSUNDIALS_ROOT=${PWD}/sundials-6.5.0/instdir
+            -DSUNDIALS_ROOT=${PWD}/sundials-6.5.0/instdir \
+            -DCMAKE_CXX_STANDARD=17     \
+            -DAMReX_CLANG_TIDY=ON
         cmake --build build -j 2
 
   sundials-cuda:

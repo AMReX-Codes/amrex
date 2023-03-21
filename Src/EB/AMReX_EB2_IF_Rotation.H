@@ -9,7 +9,7 @@
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 template <class F>
 class RotationIF
@@ -123,7 +123,6 @@ rotate (F&&f, const Real angle, const int dir)
     return RotationIF<typename std::decay<F>::type>(std::forward<F>(f),angle, dir);
 }
 
-}}
+}
 
 #endif
-

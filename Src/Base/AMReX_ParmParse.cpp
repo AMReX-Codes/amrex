@@ -7,21 +7,20 @@
 #include <AMReX_Print.H>
 
 #include <algorithm>
-#include <iterator>
-#include <typeinfo>
-#include <cstdlib>
-#include <iostream>
-#include <sstream>
-#include <cstddef>
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
 #include <cctype>
-#include <vector>
+#include <cstddef>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include <iterator>
 #include <list>
 #include <regex>
 #include <set>
+#include <sstream>
 #include <string>
+#include <typeinfo>
+#include <vector>
 
 extern "C" void amrex_init_namelist (const char*);
 extern "C" void amrex_finalize_namelist ();
@@ -42,19 +41,19 @@ std::string const ParmParse::FileKeyword = "FILE";
 ParmParse::PP_entry::PP_entry (std::string name, const std::list<std::string>& vals)
     :
     m_name(std::move(name)),
+    m_vals(vals.begin(), vals.end()),
     m_table(nullptr),
     m_queried(false)
 {
-    m_vals.insert(m_vals.end(), vals.begin(), vals.end());
 }
 
 ParmParse::PP_entry::PP_entry (std::string name, const std::string& val)
     :
     m_name(std::move(name)),
+    m_vals({val}),
     m_table(nullptr),
     m_queried(false)
 {
-    m_vals.push_back(val);
 }
 
 ParmParse::PP_entry::PP_entry (std::string name, const std::list<PP_entry>& table)
@@ -1070,7 +1069,7 @@ ParmParse::ParmParse (Table& a_table)
 
 ParmParse::Frame::Frame (ParmParse& pp, const std::string& pfix)
     :
-    m_pp(pp), m_np(0)
+    m_pp(pp)
 {
     push(pfix);
     BL_ASSERT( m_np == 1 );

@@ -140,7 +140,11 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
         std::istringstream lis(line);
         int i = 0;
         while (lis >> word) {
+#ifdef AMREX_USE_FLOAT
+            prob_lo[i++] = std::stof(word);
+#else
             prob_lo[i++] = std::stod(word);
+#endif
         }
     }
 
@@ -149,7 +153,11 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
         std::istringstream lis(line);
         int i = 0;
         while (lis >> word) {
+#ifdef AMREX_USE_FLOAT
+            prob_hi[i++] = std::stof(word);
+#else
             prob_hi[i++] = std::stod(word);
+#endif
         }
     }
 

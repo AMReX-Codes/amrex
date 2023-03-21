@@ -55,7 +55,7 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                Real azp = apz(i  ,j  ,k+1);
 
                Real apnorm = std::sqrt((axm-axp)*(axm-axp) + (aym-ayp)*(aym-ayp) + (azm-azp)*(azm-azp));
-               Real apnorminv = 1.0/apnorm;
+               Real apnorminv = Real(1.0)/apnorm;
 
                std::array<Real,3> normal, centroid;
                std::array<std::array<Real,3>,8> vertex;
@@ -65,19 +65,19 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                normal[2] = (azp-azm) * apnorminv;
 
                // convert bcent to global coordinate system centered at plo
-               centroid[0] = problo[0] + bcent(i,j,k,0)*dx[0] + (i + 0.5)*dx[0];
-               centroid[1] = problo[1] + bcent(i,j,k,1)*dx[1] + (j + 0.5)*dx[1];
-               centroid[2] = problo[2] + bcent(i,j,k,2)*dx[2] + (k + 0.5)*dx[2];
+               centroid[0] = problo[0] + bcent(i,j,k,0)*dx[0] + (static_cast<Real>(i) + Real(0.5))*dx[0];
+               centroid[1] = problo[1] + bcent(i,j,k,1)*dx[1] + (static_cast<Real>(j) + Real(0.5))*dx[1];
+               centroid[2] = problo[2] + bcent(i,j,k,2)*dx[2] + (static_cast<Real>(k) + Real(0.5))*dx[2];
 
                // vertices of bounding cell (i,j,k)
-               vertex[0] = {problo[0] + (i  )*dx[0], problo[1] + (j  )*dx[1], problo[2] + (k  )*dx[2]};
-               vertex[1] = {problo[0] + (i+1)*dx[0], problo[1] + (j  )*dx[1], problo[2] + (k  )*dx[2]};
-               vertex[2] = {problo[0] + (i  )*dx[0], problo[1] + (j+1)*dx[1], problo[2] + (k  )*dx[2]};
-               vertex[3] = {problo[0] + (i+1)*dx[0], problo[1] + (j+1)*dx[1], problo[2] + (k  )*dx[2]};
-               vertex[4] = {problo[0] + (i  )*dx[0], problo[1] + (j  )*dx[1], problo[2] + (k+1)*dx[2]};
-               vertex[5] = {problo[0] + (i+1)*dx[0], problo[1] + (j  )*dx[1], problo[2] + (k+1)*dx[2]};
-               vertex[6] = {problo[0] + (i  )*dx[0], problo[1] + (j+1)*dx[1], problo[2] + (k+1)*dx[2]};
-               vertex[7] = {problo[0] + (i+1)*dx[0], problo[1] + (j+1)*dx[1], problo[2] + (k+1)*dx[2]};
+               vertex[0] = {problo[0] + static_cast<Real>(i  )*dx[0], problo[1] + static_cast<Real>(j  )*dx[1], problo[2] + static_cast<Real>(k  )*dx[2]};
+               vertex[1] = {problo[0] + static_cast<Real>(i+1)*dx[0], problo[1] + static_cast<Real>(j  )*dx[1], problo[2] + static_cast<Real>(k  )*dx[2]};
+               vertex[2] = {problo[0] + static_cast<Real>(i  )*dx[0], problo[1] + static_cast<Real>(j+1)*dx[1], problo[2] + static_cast<Real>(k  )*dx[2]};
+               vertex[3] = {problo[0] + static_cast<Real>(i+1)*dx[0], problo[1] + static_cast<Real>(j+1)*dx[1], problo[2] + static_cast<Real>(k  )*dx[2]};
+               vertex[4] = {problo[0] + static_cast<Real>(i  )*dx[0], problo[1] + static_cast<Real>(j  )*dx[1], problo[2] + static_cast<Real>(k+1)*dx[2]};
+               vertex[5] = {problo[0] + static_cast<Real>(i+1)*dx[0], problo[1] + static_cast<Real>(j  )*dx[1], problo[2] + static_cast<Real>(k+1)*dx[2]};
+               vertex[6] = {problo[0] + static_cast<Real>(i  )*dx[0], problo[1] + static_cast<Real>(j+1)*dx[1], problo[2] + static_cast<Real>(k+1)*dx[2]};
+               vertex[7] = {problo[0] + static_cast<Real>(i+1)*dx[0], problo[1] + static_cast<Real>(j+1)*dx[1], problo[2] + static_cast<Real>(k+1)*dx[2]};
 
                // NOTE: this seems to be unnecessary:
                // skip cells that have a tiny intersection and cells that have
@@ -111,7 +111,7 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                   std::array<Real,12> alpha_d;
                   std::array<bool,12> alpha_d_intersect;
 
-                  Real tol = std::min({dx[0], dx[1], dx[2]})/100; // bit of a fudge factor
+                  Real tol = std::min({dx[0], dx[1], dx[2]})/Real(100.); // bit of a fudge factor
 
                   std::array<Real,3> centroid_d;
                   for(int idim = 0; idim < 3; ++idim) {
@@ -259,7 +259,9 @@ void EBToPVD::reorder_polygon(const std::vector<std::array<Real,3>>& lpoints,
       center[1] += m_points[lconnect[i]][1];
       center[2] += m_points[lconnect[i]][2];
    }
-   center = {center[0]/lconnect[0], center[1]/lconnect[0], center[2]/lconnect[0]};
+   center = {center[0]/static_cast<Real>(lconnect[0]),
+             center[1]/static_cast<Real>(lconnect[0]),
+             center[2]/static_cast<Real>(lconnect[0])};
 
    int pi, pk;
    Real ref_angle, angle;
@@ -466,9 +468,9 @@ void EBToPVD::EBGridCoverage(const int myID, const Real* problo, const Real* dx,
 
       for(int idim = 0; idim < 3; ++idim) {
          std::vector<Real> lines(nodes[idim]+1);
-         Real grid_start = problo[idim] + low[idim]*dx[idim];
+         Real grid_start = problo[idim] + static_cast<Real>(low[idim])*dx[idim];
          for(int llc = 0; llc <= nodes[idim]; ++llc) {
-            lines[llc] = grid_start + llc*dx[idim];
+            lines[llc] = grid_start + static_cast<Real>(llc)*dx[idim];
          }
 
          myfile << "<DataArray type=\"Float32\" format=\"ascii\" RangeMin=\"" // NOLINT

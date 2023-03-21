@@ -27,7 +27,7 @@ class MLEBNodeFDLaplacian
 {
 public:
 
-    MLEBNodeFDLaplacian () noexcept = default;
+    MLEBNodeFDLaplacian () = default;
 
 #ifdef AMREX_USE_EB
     MLEBNodeFDLaplacian (const Vector<Geometry>& a_geom,

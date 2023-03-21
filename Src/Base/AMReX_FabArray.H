@@ -1870,7 +1870,7 @@ FabArray<FAB>::FabArray (const FabArray<FAB>& rhs, MakeType maketype, int scomp,
 
 template <class FAB>
 FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
-    : FabArrayBase (std::move(rhs))
+    : FabArrayBase (static_cast<FabArrayBase&&>(rhs))
     , m_factory    (std::move(rhs.m_factory))
     , m_dallocator (std::move(rhs.m_dallocator))
     , define_function_called(rhs.define_function_called)

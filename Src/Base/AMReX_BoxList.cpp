@@ -472,7 +472,7 @@ BoxList::parallelComplementIn (const Box& b, BoxArray const& ba)
                     ba.complementIn(bl_tmp, bl_mesh.m_lbox[i]);
                     vbox.insert(std::end(vbox), std::begin(bl_tmp), std::end(bl_tmp));
                 }
-                ntot += bl_tmp.size();
+                ntot += static_cast<int>(bl_tmp.size());
             }
             local_boxes.reserve(ntot);
             for (auto& bl : bl_priv) {

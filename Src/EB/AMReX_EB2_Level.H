@@ -23,7 +23,7 @@
 #include <cmath>
 #include <type_traits>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 class IndexSpace;
 
@@ -535,6 +535,6 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, int /*ilev*/, int max_grid_size
     }
 }
 
-}}
+}
 
 #endif

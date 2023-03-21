@@ -148,21 +148,23 @@ MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
                         {
                             mlndlap_avgdown_coeff_x(i,j,k,cfab,ffab);
                         });
-                    } else if (idim == 1) {
+                    }
 #if (AMREX_SPACEDIM >= 2)
+                    else if (idim == 1) {
                         AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
                         {
                             mlndlap_avgdown_coeff_y(i,j,k,cfab,ffab);
                         });
-#endif
-                    } else {
+                    }
 #if (AMREX_SPACEDIM == 3)
+                    else {
                         AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
                         {
                             mlndlap_avgdown_coeff_z(i,j,k,cfab,ffab);
                         });
-#endif
                     }
+#endif
+#endif
                 }
             } else {
 #ifdef AMREX_USE_OMP
@@ -582,7 +584,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                 }
             }
             else if ( (m_use_harmonic_average && mglev > 0) || m_use_mapped )
-            {
+            { // NOLINT(bugprone-branch-clone)
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
@@ -883,7 +885,7 @@ MLNodeLaplacian::compDivergence (const Vector<MultiFab*>& rhs, const Vector<Mult
 }
 
 void
-MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>& vel,
+MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>& vel,  // NOLINT(readability-convert-member-functions-to-static)
                           const Vector<const MultiFab*>& rhnd,
                           const Vector<MultiFab*>& a_rhcc)
 {

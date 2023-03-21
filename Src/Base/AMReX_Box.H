@@ -1012,7 +1012,7 @@ Box::next (IntVect& p) const noexcept
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 bool
-Box::isSquare () const noexcept
+Box::isSquare () const noexcept // NOLINT(readability-convert-member-functions-to-static)
 {
 #if AMREX_SPACEDIM==1
     return false; // can't build a square in 1-D

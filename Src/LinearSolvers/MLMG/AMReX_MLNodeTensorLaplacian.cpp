@@ -20,7 +20,7 @@ MLNodeTensorLaplacian::setSigma (Array<Real,nelems> const& a_sigma) noexcept
 }
 
 void
-MLNodeTensorLaplacian::setBeta (Array<Real,AMREX_SPACEDIM> const& a_beta) noexcept
+MLNodeTensorLaplacian::setBeta (Array<Real,AMREX_SPACEDIM> const& a_beta) noexcept // NOLINT(readability-convert-member-functions-to-static)
 {
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(a_beta);

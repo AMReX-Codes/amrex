@@ -9,7 +9,7 @@
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 template <class F>
 class ScaleIF
@@ -71,6 +71,6 @@ scale (F&&f, const RealArray& scalefactor)
     return ScaleIF<typename std::decay<F>::type>(std::forward<F>(f),scalefactor);
 }
 
-}}
+}
 
 #endif

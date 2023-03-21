@@ -10,8 +10,7 @@
 #include <initializer_list>
 #include <memory>
 
-namespace amrex {
-namespace Gpu {
+namespace amrex::Gpu {
 
 template <typename T, std::enable_if_t<std::is_trivially_copyable<T>::value,int> = 0>
 class Buffer
@@ -101,7 +100,6 @@ private:
     T* h_data = nullptr;
 };
 
-}
 }
 
 #endif

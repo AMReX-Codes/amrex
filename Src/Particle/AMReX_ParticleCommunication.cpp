@@ -45,14 +45,14 @@ void ParticleCopyPlan::clear ()
     m_rcv_box_levs.clear();
 }
 
-void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
+void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize) // NOLINT(readability-convert-member-functions-to-static)
 {
     BL_PROFILE("ParticleCopyPlan::buildMPIStart");
 
 #ifdef AMREX_USE_MPI
     const int NProcs = ParallelContext::NProcsSub();
     const int MyProc = ParallelContext::MyProcSub();
-    const int NNeighborProcs = static_cast<int>(m_neighbor_procs.size());
+    const auto NNeighborProcs = static_cast<int>(m_neighbor_procs.size());
 
     if (NProcs == 1) return;
 
@@ -203,7 +203,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
 #endif
 }
 
-void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
+void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map) // NOLINT(readability-convert-member-functions-to-static)
 {
     amrex::ignore_unused(map);
 
@@ -252,14 +252,14 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
 #endif // MPI
 }
 
-void ParticleCopyPlan::doHandShake (const Vector<Long>& Snds, Vector<Long>& Rcvs) const
+void ParticleCopyPlan::doHandShake (const Vector<Long>& Snds, Vector<Long>& Rcvs) const // NOLINT(readability-convert-member-functions-to-static)
 {
     BL_PROFILE("ParticleCopyPlan::doHandShake");
     if (m_local) doHandShakeLocal(Snds, Rcvs);
     else doHandShakeGlobal(Snds, Rcvs);
 }
 
-void ParticleCopyPlan::doHandShakeLocal (const Vector<Long>& Snds, Vector<Long>& Rcvs) const
+void ParticleCopyPlan::doHandShakeLocal (const Vector<Long>& Snds, Vector<Long>& Rcvs) const // NOLINT(readability-convert-member-functions-to-static)
 {
 #ifdef AMREX_USE_MPI
     const int SeqNum = ParallelDescriptor::SeqNum();
