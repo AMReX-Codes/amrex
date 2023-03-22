@@ -65,6 +65,8 @@ namespace amrex::ParallelDescriptor {
 
     MPI_Comm m_comm = MPI_COMM_NULL;    // communicator for all ranks, probably MPI_COMM_WORLD
 
+    int m_nprocs_per_node = 1;
+
 #ifdef AMREX_USE_MPI
     Vector<MPI_Datatype*> m_mpi_types;
     Vector<MPI_Op*> m_mpi_ops;
@@ -322,6 +324,16 @@ StartParallel (int* argc, char*** argv, MPI_Comm a_mpi_comm)
 #endif
 
     ParallelContext::push(m_comm);
+
+#if defined(OPEN_MPI)
+    int split_type = OMPI_COMM_TYPE_NODE;
+#else
+    int split_type = MPI_COMM_TYPE_SHARED;
+#endif
+    MPI_Comm node_comm;
+    MPI_Comm_split_type(m_comm, split_type, 0, MPI_INFO_NULL, &node_comm);
+    MPI_Comm_size(node_comm, &m_nprocs_per_node);
+    MPI_Comm_free(&node_comm);
 
     // Create these types outside OMP parallel region
     auto t1 = Mpi_typemap<IntVect>::type(); // NOLINT

@@ -73,6 +73,7 @@
 #include <iomanip>
 #include <new>
 #include <stack>
+#include <thread>
 #include <limits>
 #include <vector>
 #include <algorithm>
@@ -454,6 +455,23 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         amrex::Print() << "OMP initialized with "
                        << omp_get_max_threads()
                        << " OMP threads\n";
+    }
+#endif
+
+#if defined(AMREX_USE_MPI) && defined(AMREX_USE_OMP)
+    if (system::verbose > 0) {
+        auto ncores = int(std::thread::hardware_concurrency());
+        if (ncores != 0 && // It might be zero according to the C++ standard.
+            ncores < omp_get_max_threads() * ParallelDescriptor::NProcsPerNode())
+        {
+            amrex::Print(amrex::ErrorStream())
+                << "AMReX Warning: You might be oversubscribing CPU cores with OMP threads.\n"
+                << "               There are " << ncores << " cores per node.\n"
+                << "               There are " << ParallelDescriptor::NProcsPerNode() << " MPI ranks per node.\n"
+                << "               But OMP is initialized with " << omp_get_max_threads() << " threads per rank.\n"
+                << "               You should consider setting OMP_NUM_THREADS="
+                << ncores/ParallelDescriptor::NProcsPerNode() << " or less in the environment.\n";
+        }
     }
 #endif
 
