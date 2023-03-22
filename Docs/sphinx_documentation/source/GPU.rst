@@ -395,6 +395,9 @@ Below is an example configuration for SYCL:
    +==============================+=================================================+=============+=================+
    | AMReX_SYCL_AOT               | Enable SYCL ahead-of-time compilation           | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | AMReX_SYCL_AOT_GRF_MODE      | Specify AOT register file mode                  | Default     | Default, Large, |
+   |                              |                                                 |             | AutoLarge       |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMREX_INTEL_ARCH             | Specify target if AOT is enabled                | None        | pvc, etc.       |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_SYCL_SPLIT_KERNEL      | Enable SYCL kernel splitting                    | YES         | YES, NO         |
