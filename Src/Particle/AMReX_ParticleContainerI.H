@@ -89,7 +89,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
          int                 local_grid) const
 {
 
-  AMREX_ASSERT(m_gdb != 0);
+  AMREX_ASSERT(m_gdb != nullptr);
 
   if (lev_max == -1)
       lev_max = finestLevel();
@@ -167,7 +167,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                         int              local_grid) const
 {
 
-    AMREX_ASSERT(m_gdb != 0);
+    AMREX_ASSERT(m_gdb != nullptr);
 
     if (!Geom(0).isAnyPeriodic()) return false;
 
@@ -255,7 +255,7 @@ Reset (ParticleType& p,
        bool          verbose,
        ParticleLocData pld) const
 {
-    AMREX_ASSERT(m_gdb != 0);
+    AMREX_ASSERT(m_gdb != nullptr);
 
     bool ok = Where(p, pld);
 

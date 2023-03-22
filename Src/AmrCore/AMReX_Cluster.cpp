@@ -379,7 +379,7 @@ Cluster::new_chop ()
        int dir = -1;
        for (int n = 0, minlen = -1; n < AMREX_SPACEDIM; n++)
        {
-           if (status[n] == mincut)
+           if (status[n] == mincut) // NOLINT(clang-analyzer-core.UndefinedBinaryOperatorResult)
            {
                int mincutlen = std::min(cut[n]-lo[n],hi[n]-cut[n]);
                if (mincutlen >= minlen)

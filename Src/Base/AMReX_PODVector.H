@@ -440,7 +440,8 @@ namespace amrex
             {
                 detail::memMoveImpl<Allocator>(const_cast<iterator>(a_pos)+count, a_pos, (end() - a_pos) * sizeof(T), *this);
                 m_size += count;
-            }        auto dst = const_cast<iterator>(a_pos);
+            }
+            auto* dst = const_cast<iterator>(a_pos);
             detail::fillValuesImpl<Allocator>(dst, a_first, count, *this);
             return const_cast<iterator>(a_pos);
         }

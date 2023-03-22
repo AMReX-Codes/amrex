@@ -251,11 +251,14 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies.sh
+      run: |
+        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_clang-tidy.sh 12
     - name: Build & Install
       run: |
         ./configure --dim 1
-        make -j2 XTRA_CXXFLAGS=-fno-operator-names
+        make -j2 XTRA_CXXFLAGS=-fno-operator-names \
+            USE_CLANG_TIDY=TRUE CLANG_TIDY=clang-tidy-12 CLANG_TIDY_WARN_ERROR=TRUE
         make install
 
   # Build 3D libamrex with configure
@@ -265,11 +268,14 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies.sh
+      run: |
+        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_clang-tidy.sh 12
     - name: Build & Install
       run: |
         ./configure --dim 3 --enable-eb yes --enable-xsdk-defaults yes
-        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names \
+            USE_CLANG_TIDY=TRUE CLANG_TIDY=clang-tidy-12 CLANG_TIDY_WARN_ERROR=TRUE
         make install
 
   # Build 3D libamrex with single precision and tiny profiler
@@ -279,11 +285,14 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies.sh
+      run: |
+        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_clang-tidy.sh 12
     - name: Build & Install
       run: |
         ./configure --dim 3 --enable-eb no --enable-xsdk-defaults no --single-precision yes --single-precision-particles yes --enable-tiny-profile yes
-        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names \
+            USE_CLANG_TIDY=TRUE CLANG_TIDY=clang-tidy-12 CLANG_TIDY_WARN_ERROR=TRUE
         make install
 
   # Build 3D libamrex debug omp build with configure
@@ -293,11 +302,14 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies.sh
+      run: |
+        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_clang-tidy.sh 12
     - name: Build & Install
       run: |
         ./configure --dim 3 --enable-eb yes --enable-xsdk-defaults yes --with-omp yes --debug yes
-        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names \
+            USE_CLANG_TIDY=TRUE CLANG_TIDY=clang-tidy-12 CLANG_TIDY_WARN_ERROR=TRUE
         make install
 
   # Build Tools/Plotfile
@@ -307,11 +319,14 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies.sh
+      run: |
+        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_clang-tidy.sh 12
     - name: Build & Install
       run: |
         cd Tools/Plotfile
-        make -j2 USE_MPI=FALSE USE_OMP=FALSE WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
+        make -j2 USE_MPI=FALSE USE_OMP=FALSE WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names \
+            USE_CLANG_TIDY=TRUE CLANG_TIDY=clang-tidy-12 CLANG_TIDY_WARN_ERROR=TRUE
 
   # Build libamrex and run all tests
   tests_run:

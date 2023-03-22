@@ -64,7 +64,7 @@ void main_main()
     // make sure that variable name is valid
 
     bool found = false;
-    for (auto vpf : var_names_pf) {
+    for (auto const& vpf : var_names_pf) {
         if (var_name == vpf) {
             found = true;
             break;
