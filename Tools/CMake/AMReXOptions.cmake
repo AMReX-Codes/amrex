@@ -165,6 +165,16 @@ if (AMReX_SYCL)
          "set CMAKE_CXX_COMPILER=icpx.")
    endif ()
    unset(_valid_sycl_compiler_ids)
+
+   set(AMReX_SYCL_SUB_GROUP_SIZE_DEFAULT 32)
+   set(AMReX_SYCL_SUB_GROUP_SIZE_VALUES 16 32)
+   set(AMReX_SYCL_SUB_GROUP_SIZE ${AMReX_SYCL_SUB_GROUP_SIZE_DEFAULT} CACHE STRING
+       "SYCL sub-group size")
+   if (NOT AMReX_SYCL_SUB_GROUP_SIZE IN_LIST AMReX_SYCL_SUB_GROUP_SIZE_VALUES)
+      message(FATAL_ERROR "AMReX_SYCL_SUB_GROUP_SIZE=${AMReX_SYCL_SUB_GROUP_SIZE} not supported."
+              " Must be one of ${AMReX_SYCL_SUB_GROUP_SIZE_VALUES}")
+   endif()
+   mark_as_advanced(AMReX_SYCL_SUB_GROUP_SIZE)
 endif ()
 
 cmake_dependent_option( AMReX_SYCL_AOT  "Enable SYCL ahead-of-time compilation (WIP)"  OFF

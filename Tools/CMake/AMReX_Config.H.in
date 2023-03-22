@@ -20,6 +20,7 @@
 #cmakedefine BL_USE_OMP
 #cmakedefine AMREX_USE_SYCL
 #cmakedefine AMREX_USE_DPCPP
+#cmakedefine AMREX_SYCL_SUB_GROUP_SIZE @AMREX_SYCL_SUB_GROUP_SIZE@
 #cmakedefine AMREX_USE_ONEDPL
 #cmakedefine AMREX_USE_FLOAT
 #cmakedefine AMREX_SINGLE_PRECISION_PARTICLES
