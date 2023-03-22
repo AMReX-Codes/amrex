@@ -118,7 +118,7 @@ void HypreIJIface::run_hypre_solve ()
 }
 
 void HypreIJIface::solve (
-    const HypreRealType rel_tol, const HypreRealType abs_tol, const HypreIntType max_iter)
+    HypreRealType rel_tol, HypreRealType abs_tol, HypreIntType max_iter)
 {
     // Assuming that Matrix/rhs etc. has been assembled by calling code
 
@@ -128,9 +128,9 @@ void HypreIJIface::solve (
 
     if (m_write_files) {
         const std::string matfile = amrex::Concatenate(
-            m_file_prefix + "_A", m_write_counter) + ".out";
+            m_file_prefix + "_A", static_cast<int>(m_write_counter)) + ".out";
         const std::string rhsfile = amrex::Concatenate(
-            m_file_prefix + "_b", m_write_counter) + ".out";
+            m_file_prefix + "_b", static_cast<int>(m_write_counter)) + ".out";
         HYPRE_IJMatrixPrint(m_mat, matfile.c_str());
         HYPRE_IJVectorPrint(m_rhs, rhsfile.c_str());
     }
@@ -152,7 +152,7 @@ void HypreIJIface::solve (
 
     if (m_write_files) {
         const std::string slnfile = amrex::Concatenate(
-            m_file_prefix + "_x", m_write_counter) + ".out";
+            m_file_prefix + "_x", static_cast<int>(m_write_counter)) + ".out";
         HYPRE_IJVectorPrint(m_sln, slnfile.c_str());
 
         // Increment counter if the user has requested output of multiple solves

@@ -26,6 +26,11 @@ public:
            MPI_Comm comm_);
 
     virtual ~Hypre ();
+    Hypre (Hypre &&) noexcept = default;
+    Hypre& operator= (Hypre &&) noexcept = default;
+
+    Hypre (Hypre const&) = delete;
+    Hypre& operator= (Hypre const&) = delete;
 
     void setScalars (Real sa, Real sb);
     void setACoeffs (const MultiFab& alpha);
@@ -76,7 +81,7 @@ protected:
     int relax_type = 6;  // G-S/Jacobi hybrid relaxation
     int relax_order = 1; // uses C/F relaxation
     int num_sweeps = 2;  // Sweeeps on each level
-    Real strong_threshold = 0.25; // Hypre default is 0.25
+    Real strong_threshold = Real(0.25); // Hypre default is 0.25
 
     std::string options_namespace{"hypre"};
 
@@ -93,9 +98,10 @@ protected:
     bool is_matrix_singular { false };
 };
 
-std::unique_ptr<Hypre> makeHypre (const BoxArray& grids, const DistributionMapping& damp,
-                                  const Geometry& geom, MPI_Comm comm_, Hypre::Interface interface,
-                                  const iMultiFab* overset_mask = nullptr);
+[[nodiscard]] std::unique_ptr<Hypre>
+makeHypre (const BoxArray& grids, const DistributionMapping& dmap,
+           const Geometry& geom, MPI_Comm comm_, Hypre::Interface interface,
+           const iMultiFab* overset_mask = nullptr);
 
 }
 

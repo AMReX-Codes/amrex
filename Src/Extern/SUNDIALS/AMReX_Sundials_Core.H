@@ -5,8 +5,7 @@
 #include <AMReX_OpenMP.H>
 #include <sundials/sundials_context.h>
 
-namespace amrex {
-namespace sundials {
+namespace amrex::sundials {
 
 /**
  * \brief Initialize the AMReX-SUNDIALS interface.
@@ -37,7 +36,6 @@ void Finalize();
 
 ::sundials::Context* The_Sundials_Context(int i = amrex::OpenMP::get_thread_num());
 
-}//sundials
-}//amrex
+}
 
 #endif

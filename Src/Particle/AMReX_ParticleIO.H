@@ -46,7 +46,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     for (int i = 0; i < NStructReal + NumRealComps(); ++i )
     {
         write_real_comp.push_back(1);
-        if (real_comp_names.size() == 0)
+        if (real_comp_names.empty())
         {
             std::stringstream ss;
             ss << "real_comp" << i;
@@ -63,7 +63,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
         write_int_comp.push_back(1);
-        if (int_comp_names.size() == 0)
+        if (int_comp_names.empty())
         {
             std::stringstream ss;
             ss << "int_comp" << i;

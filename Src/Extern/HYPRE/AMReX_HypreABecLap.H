@@ -16,25 +16,30 @@
 
 namespace amrex {
 
-class HypreABecLap
+class HypreABecLap final
     : public Hypre
 {
 public:
 
     HypreABecLap (const BoxArray& grids, const DistributionMapping& dmap,
                   const Geometry& geom_, MPI_Comm comm_);
-    virtual ~HypreABecLap ();
+    ~HypreABecLap () override;
 
-    virtual void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol,
-                        int max_iter, const BndryData& bndry, int max_bndry_order) final;
+    HypreABecLap (HypreABecLap const&) = delete;
+    HypreABecLap (HypreABecLap &&) = delete;
+    HypreABecLap& operator= (HypreABecLap const&) = delete;
+    HypreABecLap& operator= (HypreABecLap &&) = delete;
+
+    void solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abstol,
+                int maxiter, const BndryData& bndry, int max_bndry_order) override;
 
 private:
 
-    HYPRE_StructGrid grid = NULL;
-    HYPRE_StructMatrix A = NULL;
-    HYPRE_StructVector b = NULL;
-    HYPRE_StructVector x = NULL;
-    HYPRE_StructSolver solver = NULL;
+    HYPRE_StructGrid grid = nullptr;
+    HYPRE_StructMatrix A = nullptr;
+    HYPRE_StructVector b = nullptr;
+    HYPRE_StructVector x = nullptr;
+    HYPRE_StructSolver solver = nullptr;
 
     void getSolution (MultiFab& soln);
 

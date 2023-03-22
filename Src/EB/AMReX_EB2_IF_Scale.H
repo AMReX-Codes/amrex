@@ -33,11 +33,6 @@ public:
 #endif
         {}
 
-    ScaleIF (const ScaleIF& rhs) = default;
-    ScaleIF (ScaleIF&& rhs) = default;
-    ScaleIF& operator= (const ScaleIF& rhs) = delete;
-    ScaleIF& operator= (ScaleIF&& rhs) = delete;
-
     template <class U=F, typename std::enable_if<IsGPUable<U>::value,int>::type = 0>
     AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
