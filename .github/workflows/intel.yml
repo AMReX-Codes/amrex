@@ -11,12 +11,12 @@ jobs:
     name: oneAPI SYCL [tests]
     runs-on: ubuntu-20.04
     # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare"}
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies_dpcpp.sh
     - name: Build & Install
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare"}
       run: |
         set +e
         source /opt/intel/oneapi/setvars.sh
@@ -36,13 +36,13 @@ jobs:
   tests-oneapi-sycl-eb:
     name: oneAPI SYCL [tests w/ EB]
     runs-on: ubuntu-20.04
-    # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare"}
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies_dpcpp.sh
     - name: Build & Install
+      # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare"}
       run: |
         set +e
         source /opt/intel/oneapi/setvars.sh
@@ -64,7 +64,6 @@ jobs:
   tests-icc:
     name: ICC [tests]
     runs-on: ubuntu-20.04
-    env: {CXXFLAGS: "-Werror"}
     steps:
     - uses: actions/checkout@v3
     - name: install dependencies
@@ -77,8 +76,24 @@ jobs:
         echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
         sudo apt-get update
         sudo apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic intel-oneapi-compiler-fortran intel-oneapi-mpi-devel
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v3
+      env:
+        cache-name: tests-icc
+      with:
+        path: ~/.cache
+        key: ccache-intel.yml-${{ env.cache-name }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-intel.yml-${{ env.cache-name }}-git-
     - name: build
+      env: {CXXFLAGS: "-Werror"}
       run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=125M
+        ccache -z
+
         set +e
         source /opt/intel/oneapi/setvars.sh
         set -e
@@ -91,10 +106,13 @@ jobs:
             -DAMReX_EB=ON                                  \
             -DAMReX_ENABLE_TESTS=ON                        \
             -DAMReX_FORTRAN=ON                             \
-            -DAMReX_PARTICLES=ON
+            -DAMReX_PARTICLES=ON                           \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build --parallel 2
         cmake --build build --target install
         cmake --build build --target test_install
+
+        ccache -s
 
     - name: Run tests
       run: |
