@@ -20,11 +20,6 @@ public:
           m_sign( a_inside ? 1.0 : -1.0 )
     {}
 
-    PlaneIF (const PlaneIF& rhs) noexcept = default;
-    PlaneIF (PlaneIF&& rhs) noexcept = default;
-    PlaneIF& operator= (const PlaneIF& rhs) = delete;
-    PlaneIF& operator= (PlaneIF&& rhs) = delete;
-
     AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {

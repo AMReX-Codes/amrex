@@ -371,7 +371,7 @@ public:
 
     [[nodiscard]] const T* dataPtr (const IntVect& p, int n = 0) const noexcept;
 
-    void setPtr (T* p, Long sz) noexcept { AMREX_ASSERT(this->dptr == 0 && this->truesize == 0); this->dptr = p; this->truesize = sz; }
+    void setPtr (T* p, Long sz) noexcept { AMREX_ASSERT(this->dptr == nullptr && this->truesize == 0); this->dptr = p; this->truesize = sz; }
 
     void prefetchToHost () const noexcept;
     void prefetchToDevice () const noexcept;
@@ -1640,7 +1640,7 @@ BaseFab<T>::dataPtr (const IntVect& p, int n) noexcept
 {
     AMREX_ASSERT(n >= 0);
     AMREX_ASSERT(n < this->nvar);
-    AMREX_ASSERT(!(this->dptr == 0));
+    AMREX_ASSERT(!(this->dptr == nullptr));
     AMREX_ASSERT(this->domain.contains(p));
 
     return this->dptr + (this->domain.index(p)+n*this->domain.numPts());
@@ -1653,7 +1653,7 @@ BaseFab<T>::dataPtr (const IntVect& p, int n) const noexcept
 {
     AMREX_ASSERT(n >= 0);
     AMREX_ASSERT(n < this->nvar);
-    AMREX_ASSERT(!(this->dptr == 0));
+    AMREX_ASSERT(!(this->dptr == nullptr));
     AMREX_ASSERT(this->domain.contains(p));
 
     return this->dptr + (this->domain.index(p)+n*this->domain.numPts());
@@ -1726,7 +1726,7 @@ AMREX_FORCE_INLINE
 T&
 BaseFab<T>::operator() (const IntVect& p) noexcept
 {
-    AMREX_ASSERT(!(this->dptr == 0));
+    AMREX_ASSERT(!(this->dptr == nullptr));
     AMREX_ASSERT(this->domain.contains(p));
 
     return this->dptr[this->domain.index(p)];
@@ -1750,7 +1750,7 @@ AMREX_FORCE_INLINE
 const T&
 BaseFab<T>::operator() (const IntVect& p) const noexcept
 {
-    AMREX_ASSERT(!(this->dptr == 0));
+    AMREX_ASSERT(!(this->dptr == nullptr));
     AMREX_ASSERT(this->domain.contains(p));
 
     return this->dptr[this->domain.index(p)];
@@ -1766,7 +1766,7 @@ BaseFab<T>::getVal  (T*             data,
     const int loc      = this->domain.index(pos);
     const Long sz    = this->domain.numPts();
 
-    AMREX_ASSERT(!(this->dptr == 0));
+    AMREX_ASSERT(!(this->dptr == nullptr));
     AMREX_ASSERT(n >= 0 && n + numcomp <= this->nvar);
 
     for (int k = 0; k < numcomp; k++)

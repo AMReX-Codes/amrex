@@ -16,23 +16,12 @@ class RotationIF
 {
 public:
 
-    RotationIF (F&& a_f, Real angle, int dir)
+    RotationIF (F a_f, Real angle, int dir)
         : m_f(std::move(a_f)),
           m_cos_angle(std::cos(angle)),
           m_sin_angle(std::sin(angle)),
           m_dir(dir)
         {}
-    RotationIF (F const& a_f, Real angle, int dir)
-        : m_f(a_f),
-          m_cos_angle(std::cos(angle)),
-          m_sin_angle(std::sin(angle)),
-          m_dir(dir)
-        {}
-
-    RotationIF (const RotationIF& rhs) = default;
-    RotationIF (RotationIF&& rhs) = default;
-    RotationIF& operator= (const RotationIF& rhs) = delete;
-    RotationIF& operator= (RotationIF&& rhs) = delete;
 
 // Note that angle is measured in radians
 #if (AMREX_SPACEDIM==2)

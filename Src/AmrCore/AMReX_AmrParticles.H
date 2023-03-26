@@ -251,7 +251,7 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
 
 template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0,
           template<class> class Allocator=DefaultAllocator>
-class AmrParticleContainer
+class AmrParticleContainer // NOLINT
     : public ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 {
 

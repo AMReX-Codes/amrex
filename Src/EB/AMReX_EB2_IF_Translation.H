@@ -16,20 +16,10 @@ class TranslationIF
 {
 public:
 
-    TranslationIF (F&& a_f, const RealArray& a_offset)
+    TranslationIF (F a_f, const RealArray& a_offset)
         : m_f(std::move(a_f)),
           m_offset(makeXDim3(a_offset))
         {}
-    TranslationIF (F const& a_f, const RealArray& a_offset)
-        : m_f(a_f),
-          m_offset(makeXDim3(a_offset))
-        {}
-
-    TranslationIF (const TranslationIF& rhs) = default;
-    TranslationIF (TranslationIF&& rhs) = default;
-
-    TranslationIF& operator= (const TranslationIF& rhs) = delete;
-    TranslationIF& operator= (TranslationIF&& rhs) = delete;
 
     inline Real operator() (const RealArray& p) const noexcept
     {

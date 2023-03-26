@@ -106,18 +106,18 @@ public:
                     p.pos(2) = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);
 #endif
 
-                    for (int i = 0; i < NSR; ++i) p.rdata(i) = p.id();
-                    for (int i = 0; i < NSI; ++i) p.idata(i) = p.id();
+                    for (int i = 0; i < NSR; ++i) p.rdata(i) = ParticleReal(p.id());
+                    for (int i = 0; i < NSI; ++i) p.idata(i) = int(p.id());
 
                     host_particles.push_back(p);
                     for (int i = 0; i < NAR; ++i)
-                        host_real[i].push_back(p.id());
+                        host_real[i].push_back(ParticleReal(p.id()));
                     for (int i = 0; i < NAI; ++i)
-                        host_int[i].push_back(p.id());
+                        host_int[i].push_back(int(p.id()));
                     for (int i = 0; i < NumRuntimeRealComps(); ++i)
-                        host_runtime_real[i].push_back(p.id());
+                        host_runtime_real[i].push_back(ParticleReal(p.id()));
                     for (int i = 0; i < NumRuntimeIntComps(); ++i)
-                        host_runtime_int[i].push_back(p.id());
+                        host_runtime_int[i].push_back(int(p.id()));
                 }
             }
 
@@ -233,13 +233,13 @@ public:
 
         for (int lev = 0; lev <= finestLevel(); ++lev)
         {
-            auto& plev  = GetParticles(lev);
+            const auto& plev  = GetParticles(lev);
 
             for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
             {
                 int gid = mfi.index();
                 int tid = mfi.LocalTileIndex();
-                auto& ptile = plev.at(std::make_pair(gid, tid));
+                const auto& ptile = plev.at(std::make_pair(gid, tid));
                 const auto ptd = ptile.getConstParticleTileData();
                 const size_t np = ptile.numParticles();
 
@@ -344,9 +344,9 @@ void testParallelContext ()
         TestParams params;
         get_test_params(params, "redistribute");
 
-        int is_per[BL_SPACEDIM];
-        for (int i = 0; i < BL_SPACEDIM; i++)
-            is_per[i] = params.is_periodic;
+        int is_per[] = {AMREX_D_DECL(params.is_periodic,
+                                     params.is_periodic,
+                                     params.is_periodic)};
 
         // Each comm gets a different domain
         IntVect hs = params.size / 2;
@@ -382,8 +382,7 @@ void testParallelContext ()
         {
             TestParticleContainer pc(geom, dm, ba);
 
-            int npc = params.num_ppc;
-            IntVect nppc = IntVect(AMREX_D_DECL(npc, npc, npc));
+            IntVect nppc(params.num_ppc);
 
             pc.InitParticles(nppc);
 
@@ -406,8 +405,7 @@ void testParallelContext ()
         {
             TestParticleContainer pc(geom, dm, ba);
 
-            int npc = params.num_ppc;
-            IntVect nppc = IntVect(AMREX_D_DECL(npc, npc, npc));
+            IntVect nppc(params.num_ppc);
 
             pc.InitParticles(nppc);
 

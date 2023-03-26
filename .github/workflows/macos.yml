@@ -66,7 +66,7 @@ jobs:
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
       env:
-        CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-c++17-extensions -Wno-range-loop-analysis"
+        CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-c++17-extensions -Wno-range-loop-analysis -O1"
         # -Wno-range-loop-analysis: Apple clang has a bug in range-loop-analysis
       run: |
         export CCACHE_COMPRESS=1

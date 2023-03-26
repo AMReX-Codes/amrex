@@ -45,10 +45,10 @@ void main_main()
         } else if (name == "-v" || name == "--variable") {
             compname = amrex::get_command_argument(++farg);
         } else if (name == "-M" || name == "--max") {
-            def_mx = std::stod(amrex::get_command_argument(++farg));
+            def_mx = Real(std::stod(amrex::get_command_argument(++farg)));
             ldef_mx = true;
         } else if (name == "-m" || name == "--min") {
-            def_mn = std::stod(amrex::get_command_argument(++farg));
+            def_mn = Real(std::stod(amrex::get_command_argument(++farg)));
             ldef_mn = true;
         } else if (name == "-L" || name == "--max_level") {
             max_level = std::stoi(amrex::get_command_argument(++farg));
@@ -57,9 +57,9 @@ void main_main()
         } else if (name == "-g" || name == "--origin") {
             origin = true;
         } else if (name == "-c" || name == "--coordinates") {
-            location[0] = std::stod(amrex::get_command_argument(++farg));
-            location[1] = std::stod(amrex::get_command_argument(++farg));
-            location[2] = std::stod(amrex::get_command_argument(++farg));
+            location[0] = Real(std::stod(amrex::get_command_argument(++farg)));
+            location[1] = Real(std::stod(amrex::get_command_argument(++farg)));
+            location[2] = Real(std::stod(amrex::get_command_argument(++farg)));
         } else {
             break;
         }
@@ -285,7 +285,7 @@ void main_main()
         const int height = (idir == 2) ? finebox[idir].length(1) : finebox[idir].length(2);
         const auto& intarr = intdat.array();
         const auto& realarr = datamf[idir].array(0);
-        Real fac = 253.999 / (gmx-gmn);
+        Real fac = Real(253.999) / (gmx-gmn);
         amrex::LoopOnCpu(finebox[idir], [=] (int i, int j, int k)
         {
             int jj = (idir == 2) ? height - 1 - j : j;  // flip the data in second image direction

@@ -18,14 +18,10 @@ class DifferenceIF
 {
 public:
 
-    DifferenceIF (F&& a_f, G&& a_g)
+    DifferenceIF (F a_f, G a_g)
         : m_f(std::move(a_f)),
           m_g(std::move(a_g))
         {}
-    DifferenceIF (F const& a_f, G const& a_g)
-        : m_f(a_f),
-          m_g(a_g)
-    {}
 
     inline Real operator() (const RealArray& p) const noexcept
     {
