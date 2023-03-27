@@ -358,7 +358,7 @@ void mlebabeclap_ebflux (int i, int j, int k, int n,
             +       (            - gy*sy - gx*gy*sx*sy) * x(i ,jj,k,n)
             +       (                    + gx*gy*sx*sy) * x(ii,jj,k,n) ;
 
-        Real dphidn = (phib-phig)/dg * bareascaling;
+        Real dphidn = (phib-phig)/(dg * bareascaling);
         feb(i,j,k,n) = -beb(i,j,k,n) * dphidn;
     }
 }
