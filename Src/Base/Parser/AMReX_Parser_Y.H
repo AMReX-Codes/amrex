@@ -42,7 +42,9 @@ enum parser_f1_t {  // Built-in functions with one argument
     PARSER_POW_M1,
     PARSER_POW_P1,
     PARSER_POW_P2,
-    PARSER_POW_P3
+    PARSER_POW_P3,
+    PARSER_COMP_ELLINT_1,
+    PARSER_COMP_ELLINT_2
 };
 
 enum parser_f2_t {  // Built-in functions with two arguments
@@ -297,6 +299,8 @@ parser_call_f1 (enum parser_f1_t type, double a)
     case PARSER_POW_P1:      return a;
     case PARSER_POW_P2:      return a*a;
     case PARSER_POW_P3:      return a*a*a;
+    case PARSER_COMP_ELLINT_1: return std::comp_ellint_1(a);
+    case PARSER_COMP_ELLINT_2: return std::comp_ellint_2(a);
     default:
         amrex::Abort("parser_call_f1: Unknown function ");
         return 0.0;
