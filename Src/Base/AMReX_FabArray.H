@@ -1995,7 +1995,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
     define_function_called = true;
 
     BL_ASSERT(ngrow.allGE(IntVect::TheZeroVector()));
-    BL_ASSERT(boxarray.size() == 0);
+    BL_ASSERT(boxarray.empty());
     FabArrayBase::define(bxs, dm, nvar, ngrow);
 
     addThisBD();
