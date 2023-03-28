@@ -867,7 +867,7 @@ squeryarr (const ParmParse::Table& table,
     if ( num_val == 0 ) return true;
 
     int stop_ix = start_ix + num_val - 1;
-    if ( static_cast<int>(ref.size()) <= stop_ix )
+    if ( static_cast<int>(ref.size()) != stop_ix + 1 )  // grow or shrink to fit
     {
         ref.resize(stop_ix + 1);
     }
