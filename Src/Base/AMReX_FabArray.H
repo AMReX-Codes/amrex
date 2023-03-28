@@ -2126,7 +2126,7 @@ FabArray<FAB>::setFab_assert (int K, FAB const& fab) const
 {
     amrex::ignore_unused(K,fab);
     AMREX_ASSERT(n_comp == fab.nComp());
-    AMREX_ASSERT(boxarray.size() > 0);
+    AMREX_ASSERT(!boxarray.empty());
     AMREX_ASSERT(fab.box() == fabbox(K));
     AMREX_ASSERT(distributionMap[K] == ParallelDescriptor::MyProc());
 }
