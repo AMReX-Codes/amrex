@@ -22,7 +22,7 @@ public:
     */
     AMREX_GPU_HOST_DEVICE
     BCRec () noexcept
-         
+
         = default;
     /**
     * \brief The constructor.
