@@ -242,6 +242,7 @@ STLtools::prepare ()
     if (!ParallelDescriptor::IOProcessor()) {
         m_tri_pts_h.resize(m_num_tri);
     }
+    ParallelDescriptor::Bcast((char*)(m_tri_pts_h.dataPtr()), m_num_tri*sizeof(Triangle));
 
     //device vectors
     m_tri_pts_d.resize(m_num_tri);
