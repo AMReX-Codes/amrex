@@ -22,9 +22,8 @@ public:
     */
     AMREX_GPU_HOST_DEVICE
     BCRec () noexcept
-        : bc {AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus),
-              AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus)}
-        { }
+         
+        = default;
     /**
     * \brief The constructor.
     */
@@ -143,7 +142,8 @@ private:
     /**
     * \brief Array of integer values describing boundary conditions.
     */
-    int bc[2*AMREX_SPACEDIM];
+    int bc[2*AMREX_SPACEDIM]{AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus),
+              AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus)};
 };
 
 /**

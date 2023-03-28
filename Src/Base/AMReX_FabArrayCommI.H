@@ -322,7 +322,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 
     AMREX_ASSERT_WITH_MESSAGE(!pcd, "ParallelCopy_nowait() called when comm operation already in progress.");
 
-    if (size() == 0 || src.size() == 0) {
+    if (empty() || src.empty()) {
         return;
     }
 
