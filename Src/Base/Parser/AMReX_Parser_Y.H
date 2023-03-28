@@ -256,6 +256,32 @@ T parser_math_tanh (T a) { return std::tanh(a); }
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+T parser_math_comp_ellint_1 (T a)
+{
+#if defined(__GNUC__) && !defined(__clang__)
+    return std::comp_ellint_1(a);
+#else
+    amrex::ignore_unused(a);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "parser: comp_ellint_1 only supported with gcc");
+    return 0.0;
+#endif
+}
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+T parser_math_comp_ellint_2 (T a)
+{
+#if defined(__GNUC__) && !defined(__clang__)
+    return std::comp_ellint_2(a);
+#else
+    amrex::ignore_unused(a);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "parser: comp_ellint_2 only supported with gcc");
+    return 0.0;
+#endif
+}
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
 T parser_math_pow (T a, T b) { return std::pow(a,b); }
 
 template <typename T>
@@ -299,8 +325,8 @@ parser_call_f1 (enum parser_f1_t type, double a)
     case PARSER_POW_P1:      return a;
     case PARSER_POW_P2:      return a*a;
     case PARSER_POW_P3:      return a*a*a;
-    case PARSER_COMP_ELLINT_1: return std::comp_ellint_1(a);
-    case PARSER_COMP_ELLINT_2: return std::comp_ellint_2(a);
+    case PARSER_COMP_ELLINT_1: return parser_math_comp_ellint_1<double>(a);
+    case PARSER_COMP_ELLINT_2: return parser_math_comp_ellint_2<double>(a);
     default:
         amrex::Abort("parser_call_f1: Unknown function ");
         return 0.0;
