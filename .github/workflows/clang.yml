@@ -8,9 +8,7 @@ concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-linux-clang
   cancel-in-progress: true
 
-permissions:
-  actions: write
-  contents: read
+permissions: write_all
 env:
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
