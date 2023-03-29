@@ -2,6 +2,7 @@
 #include <AMReX_NFiles.H>
 #include <deque>
 #include <set>
+#include <utility>
 
 namespace amrex {
 
@@ -160,13 +161,13 @@ void NFilesIter::SetSparseFPP(const Vector<int> &ranksToWrite)
 
 
 NFilesIter::NFilesIter(std::string filename,
-                       const Vector<int> &readranks,
+                       Vector<int> readranks,
                        bool setBuf)
     : myProc       (ParallelDescriptor::MyProc()),
       nProcs       (ParallelDescriptor::NProcs()),
       fullFileName (std::move(filename)),
       isReading    (true),
-      readRanks    (readranks),
+      readRanks    (std::move(readranks)),
       myReadIndex  (indexUndefined),
       useStaticSetSelection (true)
 {
