@@ -10,23 +10,37 @@ jobs:
   tests-hip:
     name: HIP ROCm Flang C++17 [tests]
     runs-on: ubuntu-20.04
-    # Have to have -Wno-deprecated-declarations due to deprecated atomicAddNoRet
-    # Have to have -Wno-gnu-zero-variadic-macro-arguments to avoid
-    #    amrex/Src/Base/AMReX_GpuLaunchGlobal.H:15:5: error: must specify at least one argument for '...' parameter of variadic macro [-Werror,-Wgnu-zero-variadic-macro-arguments]
-    #        __launch_bounds__(amrex_launch_bounds_max_threads)
-    #        ^
-    #    /opt/rocm-4.1.1/hip/include/hip/hcc_detail/hip_runtime.h:178:71: note: expanded from macro '__launch_bounds__'
-    #        select_impl_(__VA_ARGS__, launch_bounds_impl1, launch_bounds_impl0)(__VA_ARGS__)
-    #                                                                          ^
-    #    /opt/rocm-4.1.1/hip/include/hip/hcc_detail/hip_runtime.h:176:9: note: macro 'select_impl_' defined here
-    #    #define select_impl_(_1, _2, impl_, ...) impl_
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-deprecated-declarations -Wno-gnu-zero-variadic-macro-arguments"}
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_hip.sh
-    - name: Build & Install
       run: |
+        .github/workflows/dependencies/dependencies_hip.sh
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Install
+      # Have to have -Wno-deprecated-declarations due to deprecated atomicAddNoRet
+      # Have to have -Wno-gnu-zero-variadic-macro-arguments to avoid
+      #    amrex/Src/Base/AMReX_GpuLaunchGlobal.H:15:5: error: must specify at least one argument for '...' parameter of variadic macro [-Werror,-Wgnu-zero-variadic-macro-arguments]
+      #        __launch_bounds__(amrex_launch_bounds_max_threads)
+      #        ^
+      #    /opt/rocm-4.1.1/hip/include/hip/hcc_detail/hip_runtime.h:178:71: note: expanded from macro '__launch_bounds__'
+      #        select_impl_(__VA_ARGS__, launch_bounds_impl1, launch_bounds_impl0)(__VA_ARGS__)
+      #                                                                          ^
+      #    /opt/rocm-4.1.1/hip/include/hip/hcc_detail/hip_runtime.h:176:9: note: macro 'select_impl_' defined here
+      #    #define select_impl_(_1, _2, impl_, ...) impl_
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-deprecated-declarations -Wno-gnu-zero-variadic-macro-arguments"}
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=125M
+        ccache -z
+
         source /etc/profile.d/rocm.sh
         hipcc --version
         which clang
@@ -51,29 +65,46 @@ jobs:
             -DCMAKE_C_COMPILER=$(which clang)             \
             -DCMAKE_CXX_COMPILER=$(which clang++)         \
             -DCMAKE_Fortran_COMPILER=$(which flang)       \
-            -DCMAKE_CXX_STANDARD=17
+            -DCMAKE_CXX_STANDARD=17                       \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build -j 2
+
+        ccache -s
 
   tests-hip-wrapper:
     name: HIP ROCm GFortran@9.3 C++17 [tests-hipcc]
     runs-on: ubuntu-20.04
-    # Have to have -Wno-deprecated-declarations due to deprecated atomicAddNoRet
-    # Have to have -Wno-gnu-zero-variadic-macro-arguments to avoid
-    #    amrex/Src/Base/AMReX_GpuLaunchGlobal.H:15:5: error: must specify at least one argument for '...' parameter of variadic macro [-Werror,-Wgnu-zero-variadic-macro-arguments]
-    #        __launch_bounds__(amrex_launch_bounds_max_threads)
-    #        ^
-    #    /opt/rocm-4.1.1/hip/include/hip/hcc_detail/hip_runtime.h:178:71: note: expanded from macro '__launch_bounds__'
-    #        select_impl_(__VA_ARGS__, launch_bounds_impl1, launch_bounds_impl0)(__VA_ARGS__)
-    #                                                                          ^
-    #    /opt/rocm-4.1.1/hip/include/hip/hcc_detail/hip_runtime.h:176:9: note: macro 'select_impl_' defined here
-    #    #define select_impl_(_1, _2, impl_, ...) impl_
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-deprecated-declarations -Wno-gnu-zero-variadic-macro-arguments"}
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_hip.sh
-    - name: Build & Install
       run: |
+        .github/workflows/dependencies/dependencies_hip.sh
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Install
+      # Have to have -Wno-deprecated-declarations due to deprecated atomicAddNoRet
+      # Have to have -Wno-gnu-zero-variadic-macro-arguments to avoid
+      #    amrex/Src/Base/AMReX_GpuLaunchGlobal.H:15:5: error: must specify at least one argument for '...' parameter of variadic macro [-Werror,-Wgnu-zero-variadic-macro-arguments]
+      #        __launch_bounds__(amrex_launch_bounds_max_threads)
+      #        ^
+      #    /opt/rocm-4.1.1/hip/include/hip/hcc_detail/hip_runtime.h:178:71: note: expanded from macro '__launch_bounds__'
+      #        select_impl_(__VA_ARGS__, launch_bounds_impl1, launch_bounds_impl0)(__VA_ARGS__)
+      #                                                                          ^
+      #    /opt/rocm-4.1.1/hip/include/hip/hcc_detail/hip_runtime.h:176:9: note: macro 'select_impl_' defined here
+      #    #define select_impl_(_1, _2, impl_, ...) impl_
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-deprecated-declarations -Wno-gnu-zero-variadic-macro-arguments"}
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=125M
+        ccache -z
+
         source /etc/profile.d/rocm.sh
         hipcc --version
 
@@ -96,8 +127,11 @@ jobs:
             -DCMAKE_C_COMPILER=$(which clang)             \
             -DCMAKE_CXX_COMPILER=$(which hipcc)           \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)    \
-            -DCMAKE_CXX_STANDARD=17
+            -DCMAKE_CXX_STANDARD=17                       \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build_full_legacywrapper -j 2
+
+        ccache -s
 
   # Build 2D libamrex hip build with configure
   configure-2d-single-hip:
@@ -106,9 +140,25 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_hip.sh
+      run: |
+        .github/workflows/dependencies/dependencies_hip.sh
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
       run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=125M
+        ccache -z
+
         ./configure --dim 2 --with-hip yes --enable-eb yes --enable-xsdk-defaults yes --with-mpi no --with-omp no --single-precision yes --single-precision-particles yes
-        make -j2 WARN_ALL=TRUE XTRA_CXXFLAGS="-fno-operator-names"
+        make -j2 WARN_ALL=TRUE XTRA_CXXFLAGS="-fno-operator-names" CCACHE=ccache
         make install
+
+        ccache -s
