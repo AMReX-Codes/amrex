@@ -18,13 +18,11 @@ jobs:
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v3
-      env:
-        cache-name: tests-hip
       with:
         path: ~/.cache
-        key: ccache-hip.yml-${{ env.cache-name }}-git-${{ github.sha }}
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
-             ccache-hip.yml-${{ env.cache-name }}-git-
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
       # Have to have -Wno-deprecated-declarations due to deprecated atomicAddNoRet
       # Have to have -Wno-gnu-zero-variadic-macro-arguments to avoid
@@ -84,13 +82,11 @@ jobs:
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v3
-      env:
-        cache-name: tests-hip-wrapper
       with:
         path: ~/.cache
-        key: ccache-hip.yml-${{ env.cache-name }}-git-${{ github.sha }}
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
-             ccache-hip.yml-${{ env.cache-name }}-git-
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
       # Have to have -Wno-deprecated-declarations due to deprecated atomicAddNoRet
       # Have to have -Wno-gnu-zero-variadic-macro-arguments to avoid
@@ -149,13 +145,11 @@ jobs:
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v3
-      env:
-        cache-name: configure-2d-single-hip
       with:
         path: ~/.cache
-        key: ccache-hip.yml-${{ env.cache-name }}-git-${{ github.sha }}
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
-             ccache-hip.yml-${{ env.cache-name }}-git-
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
       run: |
         export CCACHE_COMPRESS=1

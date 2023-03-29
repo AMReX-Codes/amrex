@@ -19,13 +19,11 @@ jobs:
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v3
-      env:
-        cache-name: test-petsc-cpu-2d
       with:
         path: ~/.cache
-        key: ccache-petsc.yml-${{ env.cache-name }}-git-${{ github.sha }}
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
-             ccache-petsc.yml-${{ env.cache-name }}-git-
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build PETSc
       run: |
         wget -q https://github.com/petsc/petsc/archive/refs/tags/v3.18.1.tar.gz

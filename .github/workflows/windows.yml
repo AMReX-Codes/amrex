@@ -16,13 +16,11 @@ jobs:
     - uses: seanmiddleditch/gha-setup-ninja@master
     - name: Set Up Cache
       uses: actions/cache@v3
-      env:
-        cache-name: tests_msvc
       with:
         path: ~/.ccache
-        key: ccache-windows.yml-${{ env.cache-name }}-git-${{ github.sha }}
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
-             ccache-windows.yml-${{ env.cache-name }}-git-
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Install Ccache
       run: |
         Invoke-WebRequest https://github.com/ccache/ccache/releases/download/v4.8/ccache-4.8-windows-x86_64.zip -OutFile ccache-4.8-windows-x86_64.zip
@@ -63,13 +61,11 @@ jobs:
     - uses: seanmiddleditch/gha-setup-ninja@master
     - name: Set Up Cache
       uses: actions/cache@v3
-      env:
-        cache-name: tests_msvc_static
       with:
         path: ~/.ccache
-        key: ccache-windows.yml-${{ env.cache-name }}-git-${{ github.sha }}
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
-             ccache-windows.yml-${{ env.cache-name }}-git-
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Install Ccache
       run: |
         Invoke-WebRequest https://github.com/ccache/ccache/releases/download/v4.8/ccache-4.8-windows-x86_64.zip -OutFile ccache-4.8-windows-x86_64.zip

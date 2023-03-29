@@ -79,13 +79,11 @@ jobs:
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v3
-      env:
-        cache-name: tests-icc
       with:
         path: ~/.cache
-        key: ccache-intel.yml-${{ env.cache-name }}-git-${{ github.sha }}
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
-             ccache-intel.yml-${{ env.cache-name }}-git-
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: build
       env: {CXXFLAGS: "-Werror"}
       run: |

@@ -17,13 +17,11 @@ jobs:
       run: .github/workflows/dependencies/dependencies_mac.sh
     - name: Set Up Cache
       uses: actions/cache@v3
-      env:
-        cache-name: tests-macos-universal-nompi
       with:
         path: /Users/runner/Library/Caches/ccache
-        key: ccache-macos.yml-${{ env.cache-name }}-git-${{ github.sha }}
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
-             ccache-macos.yml-${{ env.cache-name }}-git-
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
       env:
         # build universal binaries for M1 "Apple Silicon" and Intel CPUs
@@ -61,13 +59,11 @@ jobs:
       run: .github/workflows/dependencies/dependencies_mac.sh
     - name: Set Up Cache
       uses: actions/cache@v3
-      env:
-        cache-name: tests-macos
       with:
         path: /Users/runner/Library/Caches/ccache
-        key: ccache-macos.yml-${{ env.cache-name }}-git-${{ github.sha }}
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
-             ccache-macos.yml-${{ env.cache-name }}-git-
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
       env:
         CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-c++17-extensions -Wno-range-loop-analysis"
