@@ -81,13 +81,19 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=125M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
         export AMREX_HYPRE_HOME=${PWD}/hypre-2.21.0/src/hypre
         cd Tests/LinearSolvers/ABecLaplacian_C
         make -j2 USE_MPI=TRUE USE_HYPRE=TRUE DIM=3 \
-            USE_CLANG_TIDY=TRUE CLANG_TIDY=clang-tidy-14 CLANG_TIDY_WARN_ERROR=TRUE \
             CCACHE=ccache
         mpiexec -n 2 ./main3d.gnu.MPI.ex inputs.hypre
+
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j2 -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-14 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s

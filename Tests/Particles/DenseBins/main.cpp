@@ -9,9 +9,9 @@ using namespace amrex;
 void checkAnswer (const amrex::DenseBins<int>& bins)
 {
     BL_PROFILE("checkAnswer");
-    const auto perm = bins.permutationPtr();
-    const auto bins_ptr = bins.binsPtr();
-    const auto offsets = bins.offsetsPtr();
+    const auto* const perm = bins.permutationPtr();
+    const auto* const bins_ptr = bins.binsPtr();
+    const auto* const offsets = bins.offsetsPtr();
 
 #ifdef AMREX_USE_GPU
     amrex::ParallelFor(bins.numItems(), [=] AMREX_GPU_DEVICE (int i) noexcept
@@ -89,12 +89,12 @@ void initData (int nbins, amrex::Vector<int>& items)
 {
     BL_PROFILE("init");
 
-    const int nitems = items.size();
+    const auto nitems = int(items.size());
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
-    for (int i = 0; i < nitems; ++i) { items[i] = amrex::Random_int(nbins); }
+    for (int i = 0; i < nitems; ++i) { items[i] = int(amrex::Random_int(nbins)); }
 }
 
 void testDenseBins ()

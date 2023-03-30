@@ -4,7 +4,7 @@
 
 namespace detail
 {
-    inline Vector<Box> getBoundaryBoxes(const Box& box, const int ncells)
+    inline Vector<Box> getBoundaryBoxes(const Box& box, int ncells)
     {
         AMREX_ASSERT_WITH_MESSAGE(box.size() > 2*IntVect(AMREX_D_DECL(ncells, ncells, ncells)),
                                   "Too many cells requested in getBoundaryBoxes");

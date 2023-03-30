@@ -34,6 +34,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=125M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
         mkdir build
@@ -52,12 +54,15 @@ jobs:
             -DCMAKE_C_COMPILER=$(which clang-7)         \
             -DCMAKE_CXX_COMPILER=$(which clang++-7)     \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)  \
-            -DAMReX_CLANG_TIDY=ON                     \
-            -DAMReX_CLANG_TIDY_WERROR=ON              \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 2
         make install
         make test_install
+
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j2 -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-12 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         export PATH=/tmp/my-amrex/bin:$PATH
         which fcompare
@@ -90,6 +95,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=125M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
         mkdir build
@@ -107,10 +114,13 @@ jobs:
             -DCMAKE_C_COMPILER=$(which clang-14)      \
             -DCMAKE_CXX_COMPILER=$(which clang++-14)  \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)  \
-            -DAMReX_CLANG_TIDY=ON                     \
-            -DAMReX_CLANG_TIDY_WERROR=ON              \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 2
+
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j2 -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-14 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ctest --output-on-failure -E GhostsAndVirtuals
 
@@ -139,12 +149,18 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=125M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
         ./configure --dim 2 --with-fortran no --comp llvm --with-mpi no
         make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names" \
-            USE_CLANG_TIDY=TRUE CLANG_TIDY=clang-tidy-14 CLANG_TIDY_WARN_ERROR=TRUE \
             CCACHE=ccache
         make install
+
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j2 -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-14 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s

@@ -35,6 +35,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=125M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
         mkdir build
@@ -47,12 +49,15 @@ jobs:
             -DCMAKE_C_COMPILER=$(which gcc-8)     \
             -DCMAKE_CXX_COMPILER=$(which g++-8)   \
             -DCMAKE_Fortran_COMPILER=$(which gfortran-8) \
-            -DAMReX_CLANG_TIDY=ON                 \
-            -DAMReX_CLANG_TIDY_WERROR=ON          \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 2
         make install
         make test_install
+
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j2 -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-12 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         export PATH=/tmp/my-amrex/bin:$PATH
         which fcompare
@@ -86,6 +91,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=500M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
         cmake -S . -B build             \
@@ -96,10 +103,13 @@ jobs:
             -DAMReX_FORTRAN=ON          \
             -DAMReX_PARTICLES=ON        \
             -DAMReX_SPACEDIM=3          \
-            -DAMReX_CLANG_TIDY=ON       \
-            -DAMReX_CLANG_TIDY_WERROR=ON \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build -j 2
+
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j2 -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-12 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ctest --test-dir build --output-on-failure
 
@@ -129,6 +139,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=500M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
         cmake -S . -B build             \
@@ -139,10 +151,13 @@ jobs:
             -DAMReX_FORTRAN=ON          \
             -DAMReX_PARTICLES=ON        \
             -DAMReX_SPACEDIM=2          \
-            -DAMReX_CLANG_TIDY=ON       \
-            -DAMReX_CLANG_TIDY_WERROR=ON \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build -j 2
+
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j2 -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-12 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ctest --test-dir build --output-on-failure
 
@@ -173,20 +188,25 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=250M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
         cmake -S . -B build             \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DAMReX_EB=ON               \
+            -DAMReX_EB=OFF              \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
             -DAMReX_PARTICLES=ON        \
             -DAMReX_SPACEDIM=1          \
-            -DAMReX_CLANG_TIDY=ON       \
-            -DAMReX_CLANG_TIDY_WERROR=ON \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build -j 2
+
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j2 -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-12 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ctest --test-dir build --output-on-failure
 
@@ -216,6 +236,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=500M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
         mkdir build
@@ -236,10 +258,13 @@ jobs:
             -DCMAKE_C_COMPILER=$(which gcc-10)              \
             -DCMAKE_CXX_COMPILER=$(which g++-10)            \
             -DCMAKE_Fortran_COMPILER=$(which gfortran-10)   \
-            -DAMReX_CLANG_TIDY=ON       \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
             # Cannot use C++20 yet -DAMReX_CLANG_TIDY_WERROR=ON
         make -j 2
+
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j2 -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-12 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ctest --output-on-failure
 
@@ -269,6 +294,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=125M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
         mkdir build
@@ -288,10 +315,13 @@ jobs:
             -DCMAKE_C_COMPILER=$(which gcc-8)     \
             -DCMAKE_CXX_COMPILER=$(which g++-8)   \
             -DCMAKE_Fortran_COMPILER=$(which gfortran-8) \
-            -DAMReX_CLANG_TIDY=ON       \
-            -DAMReX_CLANG_TIDY_WERROR=ON \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 2
+
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j2 -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-12 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ctest --output-on-failure
 
@@ -328,6 +358,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=500M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
         mkdir build
@@ -347,10 +379,13 @@ jobs:
             -DCMAKE_C_COMPILER=$(which gcc-12)     \
             -DCMAKE_CXX_COMPILER=$(which g++-12)   \
             -DCMAKE_CXX_STANDARD=17     \
-            -DAMReX_CLANG_TIDY=ON       \
-            -DAMReX_CLANG_TIDY_WERROR=ON \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 2
+
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j2 -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-14 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ctest --output-on-failure
 
@@ -379,13 +414,19 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=250M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
         ./configure --dim 1
         make -j2 XTRA_CXXFLAGS=-fno-operator-names \
-            USE_CLANG_TIDY=TRUE CLANG_TIDY=clang-tidy-12 CLANG_TIDY_WARN_ERROR=TRUE \
             CCACHE=ccache
         make install
+
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j2 -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-12 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
 
@@ -412,13 +453,19 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=250M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
         ./configure --dim 3 --enable-eb yes --enable-xsdk-defaults yes
         make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names \
-            USE_CLANG_TIDY=TRUE CLANG_TIDY=clang-tidy-12 CLANG_TIDY_WARN_ERROR=TRUE \
             CCACHE=ccache
         make install
+
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j2 -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-12 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
 
@@ -445,13 +492,19 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=250M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
         ./configure --dim 3 --enable-eb no --enable-xsdk-defaults no --single-precision yes --single-precision-particles yes --enable-tiny-profile yes
         make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names \
-            USE_CLANG_TIDY=TRUE CLANG_TIDY=clang-tidy-12 CLANG_TIDY_WARN_ERROR=TRUE \
             CCACHE=ccache
         make install
+
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j2 -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-12 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
 
@@ -478,13 +531,19 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=250M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
         ./configure --dim 3 --enable-eb yes --enable-xsdk-defaults yes --with-omp yes --debug yes
         make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names \
-            USE_CLANG_TIDY=TRUE CLANG_TIDY=clang-tidy-12 CLANG_TIDY_WARN_ERROR=TRUE \
             CCACHE=ccache
         make install
+
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j2 -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-12 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
 
@@ -511,12 +570,18 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=125M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
         cd Tools/Plotfile
         make -j2 USE_MPI=FALSE USE_OMP=FALSE WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names \
-            USE_CLANG_TIDY=TRUE CLANG_TIDY=clang-tidy-12 CLANG_TIDY_WARN_ERROR=TRUE \
             CCACHE=ccache
+
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j2 -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-12 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
 
@@ -544,6 +609,8 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=125M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
         mkdir build
@@ -553,10 +620,13 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_PARTICLES=ON        \
-            -DAMReX_CLANG_TIDY=ON       \
-            -DAMReX_CLANG_TIDY_WERROR=ON \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 2
+
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j2 -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-12 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
 

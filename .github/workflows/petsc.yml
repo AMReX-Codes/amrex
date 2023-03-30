@@ -39,13 +39,19 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=250M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
         export AMREX_PETSC_HOME=${PWD}/petsc-3.18.1/petsc
         cd Tests/LinearSolvers/CellEB
         make -j2 USE_MPI=TRUE USE_PETSC=TRUE DIM=2 TEST=TRUE \
-            USE_CLANG_TIDY=TRUE CLANG_TIDY=clang-tidy-14 CLANG_TIDY_WARN_ERROR=TRUE \
             CCACHE=ccache
         mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.rt.2d.petsc
+
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j2 -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-14 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s

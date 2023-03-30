@@ -196,7 +196,7 @@ InverseImage(DTOS dtos, const Box& box)
 }
 
 //! \brief This is the index mapping based on the DTOS MultiBlockDestToSrc.
-static_assert(IsIndexMapping<MultiBlockIndexMapping>(),
+static_assert(IsIndexMapping<MultiBlockIndexMapping>(), // NOLINT(bugprone-throw-keyword-missing)
               "MultiBlockIndexMapping is expected to satisfy IndexMapping");
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -299,8 +299,8 @@ static_assert(sizeof(Identity) == 1 );
 static_assert(std::is_trivially_default_constructible<Identity>::value );
 static_assert(std::is_trivially_copy_assignable<Identity>::value );
 static_assert(std::is_trivially_copy_constructible<Identity>::value );
-static_assert(IsIndexMapping<Identity>() );
-static_assert(IsFabProjection<Identity, FArrayBox>() );
+static_assert(IsIndexMapping<Identity>() ); // NOLINT(bugprone-throw-keyword-missing)
+static_assert(IsFabProjection<Identity, FArrayBox>() ); // NOLINT(bugprone-throw-keyword-missing)
 
 ////////////////////////////////////////////////////////////////////////////////////
 //                                                     [FabProjection.MapComponents]
@@ -330,9 +330,9 @@ template <typename Base, typename Map = Identity> struct MapComponents {
     }
 };
 
-static_assert(std::is_trivially_copy_assignable<MapComponents<Identity>>() );
-static_assert(std::is_trivially_copy_constructible<MapComponents<Identity>>() );
-static_assert(IsFabProjection<MapComponents<Identity>, FArrayBox>() );
+static_assert(std::is_trivially_copy_assignable<MapComponents<Identity>>() ); // NOLINT(bugprone-throw-keyword-missing)
+static_assert(std::is_trivially_copy_constructible<MapComponents<Identity>>() ); // NOLINT(bugprone-throw-keyword-missing)
+static_assert(IsFabProjection<MapComponents<Identity>, FArrayBox>() ); // NOLINT(bugprone-throw-keyword-missing)
 
 ////////////////////////////////////////////////////////////////////////////////////
 //                                      [FabProjection.MapComponents.SwapComponents]
@@ -391,10 +391,10 @@ static_assert(sizeof(SwapComponents<0, 1>) == 1 );
 static_assert(sizeof(DynamicSwapComponents) == 2 * sizeof(int) );
 static_assert(sizeof(SwapComponents<0, -1>) == sizeof(int) );
 static_assert(sizeof(SwapComponents<-1, 1>) == sizeof(int) );
-static_assert(std::is_trivially_default_constructible<MapComponents<Identity, SwapComponents<0, 1>>>() );
-static_assert(std::is_trivially_copy_assignable<MapComponents<Identity, SwapComponents<0, 1>>>() );
-static_assert(std::is_trivially_copy_constructible<MapComponents<Identity, SwapComponents<0, 1>>>() );
-static_assert(IsFabProjection<MapComponents<Identity, SwapComponents<0, 1>>, FArrayBox>() );
+static_assert(std::is_trivially_default_constructible<MapComponents<Identity, SwapComponents<0, 1>>>() ); // NOLINT(bugprone-throw-keyword-missing)
+static_assert(std::is_trivially_copy_assignable<MapComponents<Identity, SwapComponents<0, 1>>>() ); // NOLINT(bugprone-throw-keyword-missing)
+static_assert(std::is_trivially_copy_constructible<MapComponents<Identity, SwapComponents<0, 1>>>() ); // NOLINT(bugprone-throw-keyword-missing)
+static_assert(IsFabProjection<MapComponents<Identity, SwapComponents<0, 1>>, FArrayBox>() ); // NOLINT(bugprone-throw-keyword-missing)
 
 static_assert(swap_indices<0, 1>(0) == 1 );
 static_assert(swap_indices<0, 1>(1) == 0 );
@@ -602,7 +602,7 @@ UnpackRecvBuffers (const PackComponents& components, FabArray<FAB>& dest, const 
 }
 #endif // AMREX_USE_MPI
 
-static_assert(IsDataPacking<PackComponents, FArrayBox>(),
+static_assert(IsDataPacking<PackComponents, FArrayBox>(), // NOLINT(bugprone-throw-keyword-missing)
               "PackComponents is expected to satisfy the concept DataPacking.");
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -663,7 +663,7 @@ UnpackRecvBuffers (const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packin
 }
 #endif // AMREX_USE_MPI
 
-static_assert(IsDataPacking<ApplyDtosAndProjectionOnReciever<>, FArrayBox>(),
+static_assert(IsDataPacking<ApplyDtosAndProjectionOnReciever<>, FArrayBox>(), // NOLINT(bugprone-throw-keyword-missing)
               "ApplyDtosAndProjectionOnReciever<> is expected to satisfy the DataPacking concept.");
 
 ////////////////////////////////////////////////////////////////////////////////////

@@ -17,8 +17,7 @@ class LatheIF
 {
 public:
 
-    LatheIF (F&& a_f) : m_f(std::move(a_f)) {}
-    LatheIF (F const& a_f) : m_f(a_f) {}
+    LatheIF (F a_f) : m_f(std::move(a_f)) {}
 
     inline Real operator() (const RealArray& p) const noexcept
     {
