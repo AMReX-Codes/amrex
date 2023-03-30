@@ -965,10 +965,18 @@ public:
      * be stored in the `ref` argument.  If not, the value in `ref` will be
      * added to the ParmParse database.  The return value indicates if it
      * existed previously.
+     *
+     * If `name` is found, then the ref argument will be resized
+     * (shrunk or extended) according to the number of values in the inputs.
      */
     template <typename T>
     int queryAdd (const char* name, std::vector<T>& ref) {
-        int exist = this->queryarr(name, ref);
+        std::vector<T> empty;
+        int exist = this->queryarr(name, empty);
+        if (exist) {
+            ref.resize(empty.size());
+            this->queryarr(name, ref);
+        }
         if (!exist && !ref.empty()) {
             this->addarr(name, ref);
         }
