@@ -58,14 +58,14 @@ jobs:
         ccache -s
 
   # Build libamrex and all tests with NVHPC (recent supported)
-  tests-nvhpc23-1-nvcc:
-    name: NVHPC@23.1 NVCC/NVC++ C++17 Release [tests]
+  tests-nvhpc-nvcc:
+    name: NVHPC NVCC/NVC++ C++17 Release [tests]
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_nvhpc23-1.sh
+        .github/workflows/dependencies/dependencies_nvhpc.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v3
@@ -83,7 +83,8 @@ jobs:
         ccache -z
 
         source /etc/profile.d/modules.sh
-        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/23.1
+        nvhpc_version=`ls -v /opt/nvidia/hpc_sdk/modulefiles/nvhpc/ | tail -n 1`
+        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/${nvhpc_version}
 
         which nvcc || echo "nvcc not in PATH!"
         which nvc++ || echo "nvc++ not in PATH!"
