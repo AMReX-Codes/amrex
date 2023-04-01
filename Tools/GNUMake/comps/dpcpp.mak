@@ -157,3 +157,5 @@ endif
 ifeq ($(FSANITIZER),TRUE)
   override XTRALIBS += -lubsan
 endif
+
+AMREX_CCACHE_ENV = CCACHE_DEPEND=1
