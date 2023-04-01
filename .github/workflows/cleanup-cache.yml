@@ -6,10 +6,6 @@ on:
     types:
       - completed
 
-concurrency:
-  group: ${{ github.ref }}-${{ github.head_ref }}-${{ github.event.workflow_run.name }}
-  cancel-in-progress: true
-
 jobs:
   CleanUpCcacheCache:
     name: Clean Up Ccahe Cache for ${{ github.event.workflow_run.name }}
@@ -34,7 +30,7 @@ jobs:
           WORKFLOW_NAME=${{ github.event.workflow_run.name }}
 
           if [[ $EVENT == "push" ]]; then
-            BRANCH=${{ github.ref }}
+            BRANCH=refs/heads/${{ github.event.workflow_run.head_branch }}
           else
             gh run download ${{ github.event.workflow_run.id }} -n pr_number
             pr_number=`cat pr_number.txt`
