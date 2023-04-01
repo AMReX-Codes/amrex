@@ -966,8 +966,8 @@ public:
      * added to the ParmParse database.  The return value indicates if it
      * existed previously.
      *
-     * If `name` is found, then the ref argument will be resized
-     * (shrunk or extended) according to the number of values in the inputs.
+     * If `name` is found, then the ref argument will be reallocated
+     * (and resized) according to the number of values in the inputs.
      */
     template <typename T>
     int queryAdd (const char* name, std::vector<T>& ref) {
