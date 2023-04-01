@@ -45,7 +45,11 @@ CXXDEPFLAGS = $(LEGACY_DEPFLAGS) $(filter-out -dc,$(CXXFLAGS)) $(CPPFLAGS) $(inc
 CDEPFLAGS = $(LEGACY_DEPFLAGS) $(filter-out -dc,$(CFLAGS)) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes)
 
 ifneq ($(CCACHE),)
-  CCACHE_COMMAND = $(AMREX_CCACHE_ENV) $(CCACHE)
+  ifneq ($(AMREX_CCACHE_ENV),)
+    CCACHE_COMMAND = $(AMREX_CCACHE_ENV) $(CCACHE)
+  else
+    CCACHE_COMMAND = $(CCACHE)
+  endif
 endif
 
 #
