@@ -974,8 +974,7 @@ public:
         std::vector<T> empty;
         int exist = this->queryarr(name, empty);
         if (exist) {
-            ref.resize(empty.size());
-            this->queryarr(name, ref);
+            ref = std::move(empty);
         }
         if (!exist && !ref.empty()) {
             this->addarr(name, ref);
