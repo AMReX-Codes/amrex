@@ -27,7 +27,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=125M
+        export CCACHE_MAXSIZE=12M
         ccache -z
 
         wget -q https://github.com/LLNL/sundials/archive/refs/tags/v6.5.0.tar.gz
@@ -88,7 +88,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=250M
+        export CCACHE_MAXSIZE=72M
         ccache -z
 
         # sundials requirement

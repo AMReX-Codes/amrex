@@ -46,7 +46,7 @@ jobs:
 
           # In our cache keys, substring after `-git-` is git hash, substring
           # before that is a unique id for jobs (e.g., `ccache-LinuxClang-configure-2d`).
-          # Th goal is to keep the last used key of each job and delete all otheres.
+          # The goal is to keep the last used key of each job and delete all others.
 
           # something like ccache-LinuxClang-
           keyprefix=ccache-${WORKFLOW_NAME}-
