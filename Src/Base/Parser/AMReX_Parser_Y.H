@@ -258,11 +258,11 @@ template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
 T parser_math_comp_ellint_1 (T a)
 {
-#if defined(__GNUC__) && !defined(__clang__)
+#if defined(__GNUC__) && !defined(__clang__) && !defined(__CUDA_ARCH__)
     return std::comp_ellint_1(a);
 #else
     amrex::ignore_unused(a);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "parser: comp_ellint_1 only supported with gcc");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "parser: comp_ellint_1 only supported with gcc and cpu");
     return 0.0;
 #endif
 }
@@ -271,11 +271,11 @@ template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
 T parser_math_comp_ellint_2 (T a)
 {
-#if defined(__GNUC__) && !defined(__clang__)
+#if defined(__GNUC__) && !defined(__clang__) && !defined(__CUDA_ARCH__)
     return std::comp_ellint_2(a);
 #else
     amrex::ignore_unused(a);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "parser: comp_ellint_2 only supported with gcc");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "parser: comp_ellint_2 only supported with gcc and cpu");
     return 0.0;
 #endif
 }
