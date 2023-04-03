@@ -6,7 +6,7 @@ using namespace amrex;
 namespace
 {
     // THIS MUST BE CONSISTENT WITH amrex_interpolater_module in AMReX_interpolater_mod.F90!!!
-    static Vector<Interpolater*> interp = {
+    Vector<Interpolater*> interp = {
         &amrex::pc_interp,               // 0
         &amrex::node_bilinear_interp,    // 1
         &amrex::cell_bilinear_interp,    // 2

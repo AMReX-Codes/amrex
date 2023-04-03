@@ -148,21 +148,23 @@ MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
                         {
                             mlndlap_avgdown_coeff_x(i,j,k,cfab,ffab);
                         });
-                    } else if (idim == 1) {
+                    }
 #if (AMREX_SPACEDIM >= 2)
+                    else if (idim == 1) {
                         AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
                         {
                             mlndlap_avgdown_coeff_y(i,j,k,cfab,ffab);
                         });
-#endif
-                    } else {
+                    }
 #if (AMREX_SPACEDIM == 3)
+                    else {
                         AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
                         {
                             mlndlap_avgdown_coeff_z(i,j,k,cfab,ffab);
                         });
-#endif
                     }
+#endif
+#endif
                 }
             } else {
 #ifdef AMREX_USE_OMP
@@ -582,7 +584,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                 }
             }
             else if ( (m_use_harmonic_average && mglev > 0) || m_use_mapped )
-            {
+            { // NOLINT(bugprone-branch-clone)
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
@@ -638,7 +640,7 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
         const auto& sigma = m_sigma[amrlev][0][0];
         const auto dxinv = m_geom[amrlev][0].InvCellSizeArray();
 #ifdef AMREX_USE_EB
-        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+        const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
         const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
         const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
         const MultiFab* intg = m_integral[amrlev].get();
@@ -723,7 +725,7 @@ MLNodeLaplacian::compGrad (int amrlev, MultiFab& grad, MultiFab& sol) const
 
     const auto dxinv = m_geom[amrlev][0].InvCellSizeArray();
 #ifdef AMREX_USE_EB
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
     const MultiFab* intg = m_integral[amrlev].get();
@@ -800,7 +802,7 @@ MLNodeLaplacian::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<Multi
         const auto& sigma = m_sigma[amrlev][0][0];
         const auto dxinv = m_geom[amrlev][0].InvCellSizeArray();
 #ifdef AMREX_USE_EB
-        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+        const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
         const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
         const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
         const MultiFab* intg = m_integral[amrlev].get();
@@ -883,7 +885,7 @@ MLNodeLaplacian::compDivergence (const Vector<MultiFab*>& rhs, const Vector<Mult
 }
 
 void
-MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>& vel,
+MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>& vel,  // NOLINT(readability-convert-member-functions-to-static)
                           const Vector<const MultiFab*>& rhnd,
                           const Vector<MultiFab*>& a_rhcc)
 {
@@ -988,7 +990,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         const iMultiFab& dmsk = *m_dirichlet_mask[ilev][0];
 
 #ifdef AMREX_USE_EB
-        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[ilev][0].get());
+        const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[ilev][0].get());
         const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
         const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
         const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;

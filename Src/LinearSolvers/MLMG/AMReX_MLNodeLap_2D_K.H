@@ -2265,11 +2265,7 @@ void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& sin
                               Array4<Real const> const& bcen,
                               Array4<Real const> const& barea) noexcept
 {
-    if (flag(i,j,0).isCovered()) {
-        sintg(i,j,0,i_B_x ) = Real(0.);
-        sintg(i,j,0,i_B_y ) = Real(0.);
-        sintg(i,j,0,i_B_xy) = Real(0.);
-    } else if (flag(i,j,0).isRegular()) {
+    if (flag(i,j,0).isCovered() || flag(i,j,0).isRegular()) {
         sintg(i,j,0,i_B_x ) = Real(0.);
         sintg(i,j,0,i_B_y ) = Real(0.);
         sintg(i,j,0,i_B_xy) = Real(0.);

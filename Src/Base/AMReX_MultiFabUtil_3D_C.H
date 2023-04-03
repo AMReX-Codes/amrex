@@ -233,7 +233,7 @@ void amrex_avgdown_edges (Box const& bx, Array4<Real> const& crse,
     switch (idir) {
     case 0:
     {
-        Real facInv = Real(1.0) / facx;
+        Real facInv = Real(1.0) / static_cast<Real>(facx);
         for (int n = 0; n < ncomp; ++n) {
             for (int k = clo.z; k <= chi.z; ++k) {
             for (int j = clo.y; j <= chi.y; ++j) {
@@ -252,7 +252,7 @@ void amrex_avgdown_edges (Box const& bx, Array4<Real> const& crse,
     }
     case 1:
     {
-        Real facInv = Real(1.0) / facy;
+        Real facInv = Real(1.0) / static_cast<Real>(facy);
         for (int n = 0; n < ncomp; ++n) {
             for (int k = clo.z; k <= chi.z; ++k) {
             for (int j = clo.y; j <= chi.y; ++j) {
@@ -271,7 +271,7 @@ void amrex_avgdown_edges (Box const& bx, Array4<Real> const& crse,
     }
     case 2:
     {
-        Real facInv = Real(1.0) / facz;
+        Real facInv = Real(1.0) / static_cast<Real>(facz);
         for (int n = 0; n < ncomp; ++n) {
             for (int k = clo.z; k <= chi.z; ++k) {
             for (int j = clo.y; j <= chi.y; ++j) {
@@ -306,7 +306,7 @@ void amrex_avgdown_edges (int i, int j, int k, int n, Array4<Real> const& crse,
     switch (idir) {
     case 0:
     {
-        const Real facInv = Real(1.0) / facx;
+        const Real facInv = Real(1.0) / static_cast<Real>(facx);
         Real c = 0.;
         for (int iref = 0; iref < facx; ++iref) {
             c += fine(ii+iref,jj,kk,n+fcomp);
@@ -316,7 +316,7 @@ void amrex_avgdown_edges (int i, int j, int k, int n, Array4<Real> const& crse,
     }
     case 1:
     {
-        const Real facInv = Real(1.0) / facy;
+        const Real facInv = Real(1.0) / static_cast<Real>(facy);
         Real c = 0.;
         for (int jref = 0; jref < facy; ++jref) {
             c += fine(ii,jj+jref,kk,n+fcomp);
@@ -326,7 +326,7 @@ void amrex_avgdown_edges (int i, int j, int k, int n, Array4<Real> const& crse,
     }
     case 2:
     {
-        const Real facInv = Real(1.0) / facz;
+        const Real facInv = Real(1.0) / static_cast<Real>(facz);
         Real c = 0.;
         for (int kref = 0; kref < facz; ++kref) {
             c += fine(ii,jj,kk+kref,n+fcomp);

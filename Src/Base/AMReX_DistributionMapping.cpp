@@ -299,7 +299,7 @@ DistributionMapping::LeastUsedTeams (Vector<int>        & rteam,
 #endif
 }
 
-DistributionMapping::DistributionMapping ()
+DistributionMapping::DistributionMapping () noexcept
     :
     m_ref(std::make_shared<Ref>())
 {
@@ -643,7 +643,7 @@ knapsack (const std::vector<Long>&         wgts,
         }
     }
 
-    efficiency = sum_weight/(nprocs*max_weight);
+    efficiency = sum_weight/(static_cast<Real>(nprocs)*max_weight);
 
     std::sort(wblv.begin(), wblv.end());
 
@@ -691,7 +691,7 @@ top: ;
                         }
 
                         max_weight = static_cast<Real>(bl_top->weight());
-                        efficiency = sum_weight / (nprocs*max_weight);
+                        efficiency = sum_weight / (static_cast<Real>(nprocs)*max_weight);
                         goto top;
                     }
                 }
@@ -1141,7 +1141,7 @@ namespace {
 
 #elif (AMREX_SPACEDIM == 2)
 
-        constexpr uint32_t offset = 1u << 31;
+        constexpr uint32_t offset = 1U << 31;
         static_assert(static_cast<uint32_t>(std::numeric_limits<int>::max())+1 == offset,
                       "INT_MAX != (1<<31)-1");
         uint32_t x = (iv[0] >= 0) ? static_cast<uint32_t>(iv[0]) + offset
@@ -1157,7 +1157,7 @@ namespace {
 
 #elif (AMREX_SPACEDIM == 1)
 
-        constexpr uint32_t offset = 1u << 31;
+        constexpr uint32_t offset = 1U << 31;
         static_assert(static_cast<uint32_t>(std::numeric_limits<int>::max())+1 == offset,
                       "INT_MAX != (1<<31)-1");
         token.m_morton[0] = (iv[0] >= 0) ? static_cast<uint32_t>(iv[0]) + offset
@@ -1216,7 +1216,7 @@ Distribute (const std::vector<SFCToken>&     tokens,
 
         totalvol += vol;
 
-        if ((totalvol/(i+1)) > volpercpu &&  // Too much for this bin.
+        if ((totalvol/static_cast<Real>(i+1)) > volpercpu &&  // Too much for this bin.
             cnt > 1                      &&  // More than one box in this bin.
             i < nprocs-1)                    // Not the last bin, which has to take all.
         {
@@ -1310,7 +1310,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
     for (Long wt : wgts) {
         volperteam += static_cast<Real>(wt);
     }
-    volperteam /= nteams;
+    volperteam /= static_cast<Real>(nteams);
 
     std::vector< std::vector<int> > vec(nteams);
 

@@ -406,9 +406,8 @@ CellBilinear::interp (const FArrayBox&  crsefab,
 
 
 CellConservativeLinear::CellConservativeLinear (bool do_linear_limiting_)
-{
-    do_linear_limiting = do_linear_limiting_;
-}
+    : do_linear_limiting(do_linear_limiting_)
+{}
 
 Box
 CellConservativeLinear::CoarseBox (const Box&     fine,
@@ -542,11 +541,6 @@ CellConservativeLinear::interp (const FArrayBox& crse,
                                     crsearr, crse_comp, ncomp, ratio);
         });
     }
-}
-
-CellQuadratic::CellQuadratic (bool limit)
-{
-    do_limited_slope = limit;
 }
 
 Box

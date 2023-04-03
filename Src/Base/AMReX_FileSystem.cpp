@@ -180,8 +180,10 @@ CurrentPath ()
     char *rCheck = getcwd(temp, bufSize);
     if(rCheck == nullptr) {
         amrex::Abort("**** Error:  getcwd buffer too small.");
+        return std::string{};
+    } else {
+        return std::string(rCheck);
     }
-    return std::string(rCheck);
 }
 
 bool

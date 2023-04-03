@@ -208,7 +208,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
         }
     }
 
-    Real threshold = amrex_eb_get_reredistribution_threshold()*(AMREX_D_TERM(ratio.x,*ratio.y,*ratio.z));
+    Real threshold = amrex_eb_get_reredistribution_threshold()*static_cast<Real>(AMREX_D_TERM(ratio.x,*ratio.y,*ratio.z));
     const Box& tbxg1 = amrex::grow(tbx,1);
     const Box& cbxg1 = amrex::grow(cbx,1);
     Array4<Real const> const& dma = dm.const_array();

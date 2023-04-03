@@ -446,16 +446,16 @@ public:
     void coarsen (IntVect const& rr) {
         domain.coarsen(rr);
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-            dx[i] = (ProbHi(i) - ProbLo(i)) / domain.length(i);
-            inv_dx[i] = static_cast<Real>(1.)/dx[i];
+            dx[i] = (ProbHi(i) - ProbLo(i)) / static_cast<Real>(domain.length(i));
+            inv_dx[i] = Real(1.)/dx[i];
         }
     }
 
     void refine (IntVect const& rr) {
         domain.refine(rr);
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-            dx[i] = (ProbHi(i) - ProbLo(i)) / domain.length(i);
-            inv_dx[i] = static_cast<Real>(1.)/dx[i];
+            dx[i] = (ProbHi(i) - ProbLo(i)) / static_cast<Real>(domain.length(i));
+            inv_dx[i] = Real(1.)/dx[i];
         }
     }
 

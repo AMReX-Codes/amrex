@@ -23,7 +23,7 @@
 //
 // Public interface
 //
-namespace amrex { namespace Gpu {
+namespace amrex::Gpu {
     template <typename T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void deviceReduceSum (T * dest, T source, Gpu::Handler const& h) noexcept;
@@ -41,13 +41,13 @@ namespace amrex { namespace Gpu {
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void deviceReduceLogicalOr (int * dest, int source, Gpu::Handler const& h) noexcept;
-}}
+}
 
 //
 // Reduce functions based on _shfl_down_sync
 //
 
-namespace amrex { namespace Gpu {
+namespace amrex::Gpu {
 
 #ifdef AMREX_USE_SYCL
 
@@ -766,6 +766,6 @@ void deviceReduceLogicalOr (int * dest, int source, Gpu::Handler const&) noexcep
 }
 
 #endif
-}}
+}
 
 #endif

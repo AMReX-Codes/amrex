@@ -40,8 +40,8 @@ public:
 
 private:
     int m_id      = -1; //!< frame ID
-    int m_rank_me = -1; //!< local rank
-    int m_nranks  =  0; //!< local # of ranks
+    int m_rank_me =  0; //!< local rank
+    int m_nranks  =  1; //!< local # of ranks
     int m_mpi_tag = -1;
     int m_io_rank = -1;
     std::string m_out_filename;

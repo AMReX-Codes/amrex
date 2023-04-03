@@ -8,7 +8,7 @@
 
 #include <mpi.h>
 
-namespace amrex { namespace MPMD {
+namespace amrex::MPMD {
 
 MPI_Comm Initialize (int argc, char* argv[]);
 
@@ -172,7 +172,7 @@ void Copier::recv (FabArray<FAB>& mf, int icomp, int ncomp) const
     }
 }
 
-}}
+}
 
 #endif
 #endif

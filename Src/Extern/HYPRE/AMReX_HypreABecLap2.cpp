@@ -19,26 +19,26 @@ HypreABecLap2::HypreABecLap2 (const BoxArray& grids, const DistributionMapping& 
 HypreABecLap2::~HypreABecLap2 ()
 {
     HYPRE_BoomerAMGDestroy(solver);
-    solver = NULL;
+    solver = nullptr;
     HYPRE_SStructMatrixDestroy(A);
-    A = NULL;
+    A = nullptr;
 //    HYPRE_SStructVectorDestroy(b);  // done in solve()
-//    b = NULL;
+//    b = nullptr;
 //    HYPRE_SStructVectorDestroy(x);
-//    x = NULL;
+//    x = nullptr;
     HYPRE_SStructGraphDestroy(graph);
-    graph = NULL;
+    graph = nullptr;
     HYPRE_SStructStencilDestroy(stencil);
-    stencil = NULL;
+    stencil = nullptr;
     HYPRE_SStructGridDestroy(hgrid);
-    hgrid = NULL;
+    hgrid = nullptr;
 }
 
 void
 HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abstol,
                       int maxiter, const BndryData& bndry, int max_bndry_order)
 {
-    if (solver == NULL || m_bndry != &bndry || m_maxorder != max_bndry_order)
+    if (solver == nullptr || m_bndry != &bndry || m_maxorder != max_bndry_order)
     {
         m_bndry = &bndry;
         m_maxorder = max_bndry_order;
@@ -110,9 +110,9 @@ HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abs
 
     // We have to do this repeatedly to avoid memory leak due to Hypre bug
     HYPRE_SStructVectorDestroy(b);
-    b = NULL;
+    b = nullptr;
     HYPRE_SStructVectorDestroy(x);
-    x = NULL;
+    x = nullptr;
 }
 
 void
@@ -282,7 +282,7 @@ HypreABecLap2::prepareSolver ()
 
     HYPRE_ParCSRMatrix par_A;
     HYPRE_SStructMatrixGetObject(A, (void**) &par_A);
-    HYPRE_BoomerAMGSetup(solver, par_A, NULL, NULL);
+    HYPRE_BoomerAMGSetup(solver, par_A, nullptr, nullptr);
 }
 
 void

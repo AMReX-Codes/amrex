@@ -9,8 +9,7 @@
 #include <sunmemory/sunmemory_sycl.h>
 #endif
 
-namespace amrex {
-namespace sundials {
+namespace amrex::sundials {
 
 namespace {
     amrex::Arena* getArena (SUNMemoryType mem_type)
@@ -39,10 +38,10 @@ namespace {
         SUNMemory mem = SUNMemoryNewEmpty();
 
         if (mem == nullptr) return -1;
-        mem->ptr = NULL;
+        mem->ptr = nullptr;
         mem->own = SUNTRUE;
         mem->type = mem_type;
-        auto arena = getArena(mem->type);
+        auto* arena = getArena(mem->type);
         if (arena) {
             mem->ptr = arena->alloc(memsize);
             *memptr = mem;
@@ -61,7 +60,7 @@ namespace {
     {
 
         if (mem == nullptr) return 0;
-        auto arena = getArena(mem->type);
+        auto* arena = getArena(mem->type);
         if (arena) {
             if(mem->own)
             {
@@ -104,7 +103,7 @@ namespace {
 
         helper = SUNMemoryHelper_NewEmpty(*sunctx);
 
-        helper->content          = NULL;
+        helper->content          = nullptr;
         helper->ops->clone       = CloneMemoryHelper;
         helper->ops->alloc       = Alloc;
         helper->ops->dealloc     = Dealloc;
@@ -143,7 +142,7 @@ MemoryHelper::MemoryHelper(const MemoryHelper& rhs)
         sunctx(rhs.sunctx)
 {}
 
-MemoryHelper::MemoryHelper(MemoryHelper&& rhs)
+MemoryHelper::MemoryHelper(MemoryHelper&& rhs) noexcept
     : helper(rhs.helper),
         sunctx(rhs.sunctx)
 {
@@ -151,14 +150,7 @@ MemoryHelper::MemoryHelper(MemoryHelper&& rhs)
     rhs.sunctx = nullptr;
 }
 
-MemoryHelper& MemoryHelper::operator=(MemoryHelper rhs)
-{
-    std::swap(helper, rhs.helper);
-    std::swap(sunctx, rhs.sunctx);
-    return *this;
-}
-
-MemoryHelper& MemoryHelper::operator=(MemoryHelper&& rhs)
+MemoryHelper& MemoryHelper::operator=(MemoryHelper&& rhs) noexcept
 {
     if (this != &rhs)
     {
@@ -174,7 +166,7 @@ MemoryHelper& MemoryHelper::operator=(MemoryHelper&& rhs)
 
 void MemoryHelper::Initialize(int nthreads)
 {
-    if (initialized.size() == 0) {
+    if (initialized.empty()) {
         initialized.resize(nthreads);
         std::fill(initialized.begin(), initialized.end(), 0);
         the_sunmemory_helper.resize(nthreads);
@@ -203,5 +195,4 @@ MemoryHelper* The_SUNMemory_Helper(int i)
     return the_sunmemory_helper[i];
 }
 
-}
 }

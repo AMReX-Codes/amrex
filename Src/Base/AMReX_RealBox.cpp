@@ -15,9 +15,9 @@ RealBox::RealBox (const Box&  bx,
     const int* bhi = bx.hiVect();
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
-        xlo[i] = base[i] + dx[i]*blo[i];
+        xlo[i] = base[i] + dx[i]*static_cast<Real>(blo[i]);
         int shft = (bx.type(i) == IndexType::CELL ? 1 : 0);
-        xhi[i] = base[i] + dx[i]*(bhi[i]+ shft);
+        xhi[i] = base[i] + dx[i]*static_cast<Real>(bhi[i]+ shft);
     }
 }
 

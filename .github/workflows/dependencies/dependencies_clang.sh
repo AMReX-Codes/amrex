@@ -9,6 +9,7 @@ set -eu -o pipefail
 
 sudo apt-get update
 
-sudo apt-get install -y  \
+sudo apt-get install -y --no-install-recommends \
     build-essential      \
-    clang-7 gfortran
+    gfortran             \
+    clang-$1

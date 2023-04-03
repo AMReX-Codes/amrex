@@ -224,7 +224,11 @@ namespace amrex {
     {
         Box domain(geom.Domain());
 
+#ifdef AMREX_USE_FLOAT
+        Real covered_val = Real(1.e20);
+#else
         Real covered_val = 1.e40;
+#endif
 
         int nghost = 2;
         AMREX_ASSERT(div_tmp_in.nGrow() >= nghost);
@@ -246,7 +250,7 @@ namespace amrex {
             const Box& bx = mfi.tilebox ();
 
             // this is to check efficiently if this tile contains any eb stuff
-            const EBFArrayBox&  div_fab = static_cast<EBFArrayBox const&>(div_out[mfi]);
+            const auto&  div_fab = static_cast<EBFArrayBox const&>(div_out[mfi]);
             const EBCellFlagFab&  flags = div_fab.getEBCellFlagFab();
 
             if ( !(flags.getType(amrex::grow(bx,     0)) == FabType::covered) &&
@@ -277,7 +281,7 @@ namespace amrex {
 
 void FillSignedDistance (MultiFab& mf, bool fluid_has_positive_sign)
 {
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(&(mf.Factory()));
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(&(mf.Factory()));
     if (factory) {
         FillSignedDistance(mf, *(factory->getEBLevel()), *factory, 1, fluid_has_positive_sign);
     } else {
@@ -333,14 +337,14 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
         // determine position of the cell's facet
         Real f_c;
         if (ind_cell < ind_nb) {
-            f_c = ( ind_cell + 1 ) * dx[tmp_facet];
+            f_c = static_cast<Real>( ind_cell + 1 ) * dx[tmp_facet];
         } else {
-            f_c =   ind_cell       * dx[tmp_facet];
+            f_c = static_cast<Real>( ind_cell     ) * dx[tmp_facet];
         }
 
-        RealVect facet_p0{AMREX_D_DECL((ind_loop[0] + 0.5_rt) * dx[0],
-                                       (ind_loop[1] + 0.5_rt) * dx[1],
-                                       (ind_loop[2] + 0.5_rt) * dx[2])};
+        RealVect facet_p0{AMREX_D_DECL((static_cast<Real>(ind_loop[0]) + 0.5_rt) * dx[0],
+                                       (static_cast<Real>(ind_loop[1]) + 0.5_rt) * dx[1],
+                                       (static_cast<Real>(ind_loop[2]) + 0.5_rt) * dx[2])};
         facet_p0[tmp_facet] = f_c;
 
         // scalar characterizing cell facet position
@@ -404,20 +408,20 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
         // EB edges), then skip -> the min/max functions at the end will skip them
         // due to the +/-huge(c...) defaults (above).
         if ( std::abs(edge_v[0]) > eps ) {
-            cx_lo = -( edge_p0[0] -   ind_loop[0]       * dx[0] ) / edge_v[0];
-            cx_hi = -( edge_p0[0] - ( ind_loop[0] + 1 ) * dx[0] ) / edge_v[0];
+            cx_lo = -( edge_p0[0] - static_cast<Real>( ind_loop[0]     ) * dx[0] ) / edge_v[0];
+            cx_hi = -( edge_p0[0] - static_cast<Real>( ind_loop[0] + 1 ) * dx[0] ) / edge_v[0];
             if ( edge_v[0] < 0._rt ) amrex::Swap(cx_lo, cx_hi);
         }
         //
         if ( std::abs(edge_v[1]) > eps ) {
-            cy_lo = -( edge_p0[1] -   ind_loop[1]       * dx[1] ) / edge_v[1];
-            cy_hi = -( edge_p0[1] - ( ind_loop[1] + 1 ) * dx[1] ) / edge_v[1];
+            cy_lo = -( edge_p0[1] - static_cast<Real>( ind_loop[1]     ) * dx[1] ) / edge_v[1];
+            cy_hi = -( edge_p0[1] - static_cast<Real>( ind_loop[1] + 1 ) * dx[1] ) / edge_v[1];
             if ( edge_v[1] < 0._rt ) amrex::Swap(cy_lo, cy_hi);
         }
         //
         if ( std::abs(edge_v[2]) > eps ) {
-            cz_lo = -( edge_p0[2] -   ind_loop[2]       * dx[2] ) / edge_v[2];
-            cz_hi = -( edge_p0[2] - ( ind_loop[2] + 1 ) * dx[2] ) / edge_v[2];
+            cz_lo = -( edge_p0[2] - static_cast<Real>( ind_loop[2]     ) * dx[2] ) / edge_v[2];
+            cz_hi = -( edge_p0[2] - static_cast<Real>( ind_loop[2] + 1 ) * dx[2] ) / edge_v[2];
             if ( edge_v[2] < 0._rt ) amrex::Swap(cz_lo, cz_hi);
         }
         //
@@ -479,7 +483,7 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
     const auto dx_ls = ls_lev.Geom().CellSizeArray();
     const auto dx_eb = eb_factory.Geom().CellSizeArray();
     Real dx_eb_max = amrex::max(AMREX_D_DECL(dx_eb[0],dx_eb[1],dx_eb[2]));
-    Real ls_roof = amrex::min(AMREX_D_DECL(dx_eb[0],dx_eb[1],dx_eb[2])) * (flags.nGrow()+1);
+    Real ls_roof = amrex::min(AMREX_D_DECL(dx_eb[0],dx_eb[1],dx_eb[2])) * static_cast<Real>(flags.nGrow()+1);
 
     Real fluid_sign = fluid_has_positive_sign ? 1._rt : -1._rt;
 
@@ -498,7 +502,7 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
             Box eb_search = mfi.validbox();
             eb_search.coarsen(refratio).enclosedCells().grow(eb_pad);
 
-            const int nallcells = eb_search.numPts();
+            const auto nallcells = static_cast<int>(eb_search.numPts());
 
             Gpu::DeviceVector<int> is_cut(nallcells);
             int* p_is_cut = is_cut.data();
@@ -523,14 +527,14 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
 
             if (ncutcells > 0) {
                 Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM*2> > facets(ncutcells);
-                auto p_facets = facets.data();
+                auto *p_facets = facets.data();
                 Array4<Real const> const& bcent = bndrycent.const_array(mfi);
                 AMREX_D_TERM(Array4<Real const> const& apx = areafrac[0]->const_array(mfi);,
                              Array4<Real const> const& apy = areafrac[1]->const_array(mfi);,
                              Array4<Real const> const& apz = areafrac[2]->const_array(mfi));
                 amrex::ParallelFor(eb_search, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    int icell = eb_search.index(IntVect(AMREX_D_DECL(i,j,k)));
+                    auto icell = eb_search.index(IntVect(AMREX_D_DECL(i,j,k)));
                     if (p_is_cut[icell]) {
                         GpuArray<Real,AMREX_SPACEDIM*2>& fac = p_facets[p_cutcell_offset[icell]];
                         AMREX_D_TERM(fac[0] = (bcent(i,j,k,0)+Real(i)+0.5_rt) * dx_eb[0];,

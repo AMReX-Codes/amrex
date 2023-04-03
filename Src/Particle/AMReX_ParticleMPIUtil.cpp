@@ -60,7 +60,7 @@ namespace amrex {
 
         const int SeqNum = ParallelDescriptor::SeqNum();
 
-        const int num_rcvs = neighbor_procs.size();
+        const int num_rcvs = static_cast<int>(neighbor_procs.size());
         Vector<MPI_Status>  stats(num_rcvs);
         Vector<MPI_Request> rreqs(num_rcvs);
 

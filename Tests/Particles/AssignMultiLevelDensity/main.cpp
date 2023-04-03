@@ -46,9 +46,7 @@ void test_assign_density(TestParams& parms)
         rr[lev-1] = 2;
 
     // This sets the boundary conditions to be doubly or triply periodic
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        is_per[i] = 1;
+    int is_per[] = {AMREX_D_DECL(1,1,1)};
 
     // This defines a Geometry object which is useful for writing the plotfiles
     Vector<Geometry> geom(nlevs);

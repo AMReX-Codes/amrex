@@ -30,8 +30,7 @@ int       CNS::refine_max_dengrad_lev   = -1;
 Real      CNS::refine_dengrad           = 1.0e10;
 Vector<RealBox> CNS::refine_boxes;
 
-CNS::CNS ()
-{}
+CNS::CNS () = default;
 
 CNS::CNS (Amr&            papa,
           int             lev,
@@ -51,8 +50,7 @@ CNS::CNS (Amr&            papa,
     buildMetrics();
 }
 
-CNS::~CNS ()
-{}
+CNS::~CNS () = default;
 
 void
 CNS::init (AmrLevel& old)
@@ -530,4 +528,3 @@ CNS::computeTemp (MultiFab& State, int ng)
         }
     }
 }
-

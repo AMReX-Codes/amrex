@@ -79,14 +79,13 @@ AmrLevel::AmrLevel (Amr&            papa,
                     const DistributionMapping& dm,
                     Real            time)
     :
+    level(lev),
     geom(level_geom),
     grids(ba),
-    dmap(dm)
+    dmap(dm),
+    parent(&papa)
 {
     BL_PROFILE("AmrLevel::AmrLevel(dm)");
-    level  = lev;
-    parent = &papa;
-    levelDirectoryCreated = false;
 
     fine_ratio = IntVect::TheUnitVector(); fine_ratio.scale(-1);
     crse_ratio = IntVect::TheUnitVector(); crse_ratio.scale(-1);
@@ -347,7 +346,7 @@ AmrLevel::writePlotFile (const std::string& dir,
 #ifdef AMREX_USE_EB
     if (EB2::TopIndexSpaceIfPresent()) {
         plotMF.setVal(0.0, cnt, 1, nGrow);
-        auto factory = static_cast<EBFArrayBoxFactory*>(m_factory.get());
+        auto *factory = static_cast<EBFArrayBoxFactory*>(m_factory.get());
         MultiFab::Copy(plotMF,factory->getVolFrac(),0,cnt,1,nGrow);
     }
 #endif

@@ -13,10 +13,10 @@ void eb_flux_reg_crseadd_va(int i, int j, int k, Array4<Real> const& d,
                             Real dtdx, Real dtdy, Real dtdz)
 {
     if (flag(i,j,k) == amrex_yafluxreg_crse_fine_boundary_cell
-        && vfrac(i,j,k) > 1.e-14)
+        && vfrac(i,j,k) > Real(1.e-14))
     {
         int ncomp = d.nComp();
-        Real volinv = 1.0/vfrac(i,j,k);
+        Real volinv = Real(1.0)/vfrac(i,j,k);
 
         if (flag(i-1,j,k) == amrex_yafluxreg_fine_cell) {
             Real tmp = dtdx*ax(i,j,k)*volinv;
@@ -61,7 +61,7 @@ namespace {
     Real eb_flux_reg_cvol (int i, int j, int k, Array4<Real const> const& vfrac,
                            Dim3 const& ratio, Real small) noexcept
     {
-        Real cvol = 0.0;
+        Real cvol = Real(0.0);
         for         (int kk = k*ratio.z; kk < (k+1)*ratio.z; ++kk) {
             for     (int jj = j*ratio.y; jj < (j+1)*ratio.y; ++jj) {
                 for (int ii = i*ratio.x; ii < (i+1)*ratio.x; ++ii) {
@@ -69,7 +69,7 @@ namespace {
                 }
             }
         }
-        return (cvol > small) ? 1.0/cvol : 0.0;
+        return (cvol > small) ? Real(1.0)/cvol : Real(0.0);
     }
 }
 
@@ -79,7 +79,7 @@ void eb_flux_reg_fineadd_va_xlo (int i, int j, int k, int n, Array4<Real> const&
                                  Array4<Real const> const& a, Real fac, Dim3 const& ratio)
 {
     int ii = (i+1)*ratio.x;
-    Real fa = 0.0;
+    Real fa = Real(0.0);
     for     (int kk = k*ratio.z; kk < (k+1)*ratio.z; ++kk) {
         for (int jj = j*ratio.y; jj < (j+1)*ratio.y; ++jj) {
             if (f.contains(ii,jj,kk)) {
@@ -87,7 +87,7 @@ void eb_flux_reg_fineadd_va_xlo (int i, int j, int k, int n, Array4<Real> const&
             }
         }
     }
-    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,1.e-14);
+    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,Real(1.e-14));
     fa *= -fac*cvol;
     HostDevice::Atomic::Add(d.ptr(i,j,k,n), fa);
 }
@@ -98,7 +98,7 @@ void eb_flux_reg_fineadd_va_xhi (int i, int j, int k, int n, Array4<Real> const&
                                  Array4<Real const> const& a, Real fac, Dim3 const& ratio)
 {
     int ii = i*ratio.x;
-    Real fa = 0.0;
+    Real fa = Real(0.0);
     for     (int kk = k*ratio.z; kk < (k+1)*ratio.z; ++kk) {
         for (int jj = j*ratio.y; jj < (j+1)*ratio.y; ++jj) {
             if (f.contains(ii,jj,kk)) {
@@ -106,7 +106,7 @@ void eb_flux_reg_fineadd_va_xhi (int i, int j, int k, int n, Array4<Real> const&
             }
         }
     }
-    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,1.e-14);
+    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,Real(1.e-14));
     fa *= fac*cvol;
     HostDevice::Atomic::Add(d.ptr(i,j,k,n), fa);
 }
@@ -117,7 +117,7 @@ void eb_flux_reg_fineadd_va_ylo (int i, int j, int k, int n, Array4<Real> const&
                                  Array4<Real const> const& a, Real fac, Dim3 const& ratio)
 {
     int jj = (j+1)*ratio.y;
-    Real fa = 0.0;
+    Real fa = Real(0.0);
     for     (int kk = k*ratio.z; kk < (k+1)*ratio.z; ++kk) {
         for (int ii = i*ratio.x; ii < (i+1)*ratio.x; ++ii) {
             if (f.contains(ii,jj,kk)) {
@@ -125,7 +125,7 @@ void eb_flux_reg_fineadd_va_ylo (int i, int j, int k, int n, Array4<Real> const&
             }
         }
     }
-    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,1.e-14);
+    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,Real(1.e-14));
     fa *= -fac*cvol;
     HostDevice::Atomic::Add(d.ptr(i,j,k,n), fa);
 }
@@ -136,7 +136,7 @@ void eb_flux_reg_fineadd_va_yhi (int i, int j, int k, int n, Array4<Real> const&
                                  Array4<Real const> const& a, Real fac, Dim3 const& ratio)
 {
     int jj = j*ratio.y;
-    Real fa = 0.0;
+    Real fa = Real(0.0);
     for     (int kk = k*ratio.z; kk < (k+1)*ratio.z; ++kk) {
         for (int ii = i*ratio.x; ii < (i+1)*ratio.x; ++ii) {
             if (f.contains(ii,jj,kk)) {
@@ -144,7 +144,7 @@ void eb_flux_reg_fineadd_va_yhi (int i, int j, int k, int n, Array4<Real> const&
             }
         }
     }
-    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,1.e-14);
+    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,Real(1.e-14));
     fa *= fac*cvol;
     HostDevice::Atomic::Add(d.ptr(i,j,k,n), fa);
 }
@@ -155,7 +155,7 @@ void eb_flux_reg_fineadd_va_zlo (int i, int j, int k, int n, Array4<Real> const&
                                  Array4<Real const> const& a, Real fac, Dim3 const& ratio)
 {
     int kk = (k+1)*ratio.z;
-    Real fa = 0.0;
+    Real fa = Real(0.0);
     for     (int jj = j*ratio.y; jj < (j+1)*ratio.y; ++jj) {
         for (int ii = i*ratio.x; ii < (i+1)*ratio.x; ++ii) {
             if (f.contains(ii,jj,kk)) {
@@ -163,7 +163,7 @@ void eb_flux_reg_fineadd_va_zlo (int i, int j, int k, int n, Array4<Real> const&
             }
         }
     }
-    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,1.e-14);
+    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,Real(1.e-14));
     fa *= -fac*cvol;
     HostDevice::Atomic::Add(d.ptr(i,j,k,n), fa);
 }
@@ -174,7 +174,7 @@ void eb_flux_reg_fineadd_va_zhi (int i, int j, int k, int n, Array4<Real> const&
                                  Array4<Real const> const& a, Real fac, Dim3 const& ratio)
 {
     int kk = k*ratio.z;
-    Real fa = 0.0;
+    Real fa = Real(0.0);
     for     (int jj = j*ratio.y; jj < (j+1)*ratio.y; ++jj) {
         for (int ii = i*ratio.x; ii < (i+1)*ratio.x; ++ii) {
             if (f.contains(ii,jj,kk)) {
@@ -182,7 +182,7 @@ void eb_flux_reg_fineadd_va_zhi (int i, int j, int k, int n, Array4<Real> const&
             }
         }
     }
-    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,1.e-14);
+    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,Real(1.e-14));
     fa *= fac*cvol;
     HostDevice::Atomic::Add(d.ptr(i,j,k,n), fa);
 }
@@ -192,7 +192,7 @@ void eb_flux_reg_fineadd_dm (int i, int j, int k, int n, Box const& dmbx, Array4
                              Array4<Real const> const& dm, Array4<Real const> const& vfrac,
                              Dim3 const& ratio, Real threshold)
 {
-    Real dmtot = 0.0;
+    Real dmtot = Real(0.0);
     for         (int kk = k*ratio.z; kk < (k+1)*ratio.z; ++kk) {
         for     (int jj = j*ratio.y; jj < (j+1)*ratio.y; ++jj) {
             for (int ii = i*ratio.x; ii < (i+1)*ratio.x; ++ii) {
@@ -229,7 +229,7 @@ void eb_rereflux_from_crse (int i, int j, int k, int n, Box const& bx, Array4<Re
                 HostDevice::Atomic::Add(d.ptr(i,j,k,n), dm);
             }
 
-            Real wtot = 0.0;
+            Real wtot = Real(0.0);
             for (int kk = -1; kk <= 1; ++kk) {
             for (int jj = -1; jj <= 1; ++jj) {
             for (int ii = -1; ii <= 1; ++ii) {
@@ -238,7 +238,7 @@ void eb_rereflux_from_crse (int i, int j, int k, int n, Box const& bx, Array4<Re
                 }
             }}}
 
-            Real drho = dm * ((1.0-vfrac(i,j,k))/wtot);
+            Real drho = dm * ((Real(1.0)-vfrac(i,j,k))/wtot);
             for (int kk = -1; kk <= 1; ++kk) {
             for (int jj = -1; jj <= 1; ++jj) {
             for (int ii = -1; ii <= 1; ++ii) {

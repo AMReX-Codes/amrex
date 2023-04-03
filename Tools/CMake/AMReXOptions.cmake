@@ -165,6 +165,16 @@ if (AMReX_SYCL)
          "set CMAKE_CXX_COMPILER=icpx.")
    endif ()
    unset(_valid_sycl_compiler_ids)
+
+   set(AMReX_SYCL_SUB_GROUP_SIZE_DEFAULT 32)
+   set(AMReX_SYCL_SUB_GROUP_SIZE_VALUES 16 32)
+   set(AMReX_SYCL_SUB_GROUP_SIZE ${AMReX_SYCL_SUB_GROUP_SIZE_DEFAULT} CACHE STRING
+       "SYCL sub-group size")
+   if (NOT AMReX_SYCL_SUB_GROUP_SIZE IN_LIST AMReX_SYCL_SUB_GROUP_SIZE_VALUES)
+      message(FATAL_ERROR "AMReX_SYCL_SUB_GROUP_SIZE=${AMReX_SYCL_SUB_GROUP_SIZE} not supported."
+              " Must be one of ${AMReX_SYCL_SUB_GROUP_SIZE_VALUES}")
+   endif()
+   mark_as_advanced(AMReX_SYCL_SUB_GROUP_SIZE)
 endif ()
 
 cmake_dependent_option( AMReX_SYCL_AOT  "Enable SYCL ahead-of-time compilation (WIP)"  OFF
@@ -191,6 +201,16 @@ if (AMReX_SYCL)
    if (AMReX_SYCL_AOT AND NOT AMReX_INTEL_ARCH)
       message(FATAL_ERROR "\nMust specify AMReX_INTEL_ARCH if AMReX_GPU_BACKEND=SYCL and AMReX_SYCL_AOT=ON\n")
    endif()
+
+   if (AMReX_SYCL_AOT)
+      set(AMReX_SYCL_AOT_GRF_MODE_VALUES Default Large AutoLarge)
+      set(AMReX_SYCL_AOT_GRF_MODE Default CACHE STRING "SYCL AOT General Register File Mode")
+      set_property(CACHE AMReX_SYCL_AOT_GRF_MODE PROPERTY STRINGS ${AMReX_SYCL_AOT_GRF_MODE_VALUES})
+      if (NOT AMReX_SYCL_AOT_GRF_MODE IN_LIST AMReX_SYCL_AOT_GRF_MODE_VALUES)
+         message(FATAL_ERROR "AMReX_SYCL_AOT_GRF_MODE (${AMReX_SYCL_AOT_GRF_MODE}) must be one of ${AMReX_SYCL_AOT_GRF_MODE_VALUES}")
+      endif()
+   endif()
+
 endif ()
 
 # --- HIP ----

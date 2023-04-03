@@ -48,7 +48,7 @@ EBFArrayBoxFactory::create_alias (FArrayBox const& rhs, int scomp, int ncomp) co
     }
     else
     {
-        EBFArrayBox const& ebrhs = static_cast<EBFArrayBox const&>(rhs);
+        auto const& ebrhs = static_cast<EBFArrayBox const&>(rhs);
         return new EBFArrayBox(ebrhs, amrex::make_alias, scomp, ncomp);
     }
 }
@@ -62,7 +62,7 @@ EBFArrayBoxFactory::destroy (FArrayBox* fab) const
     }
     else
     {
-        EBFArrayBox* p = static_cast<EBFArrayBox*>(fab);
+        auto* p = static_cast<EBFArrayBox*>(fab);
         delete p;
     }
 }

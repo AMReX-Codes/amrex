@@ -60,7 +60,7 @@ public:
     void setEBShearViscosityWithInflow (int amrlev, MultiFab const& eta, MultiFab const& eb_vel);
 
     void setEBBulkViscosity (int amrlev, MultiFab const& kappa);
-    void setEBBulkViscosity (int amrlev, Real eta);
+    void setEBBulkViscosity (int amrlev, Real kappa);
 
     virtual int getNComp () const final override { return AMREX_SPACEDIM; }
 
@@ -83,7 +83,7 @@ public:
     virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
                            MultiFab& sol, Location loc) const override;
 
-    void compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
+    void compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grads,
                       MultiFab& sol, Location loc) const;
 
 protected:

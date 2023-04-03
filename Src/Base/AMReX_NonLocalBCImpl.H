@@ -7,7 +7,7 @@
 #include <AMReX_Config.H>
 #include <AMReX_TypeTraits.H>
 
-namespace amrex { namespace NonLocalBC {
+namespace amrex::NonLocalBC {
 struct Rotate90ClockWise {
     AMREX_GPU_HOST_DEVICE
     IntVect operator() (IntVect const& iv) const noexcept {
@@ -642,6 +642,6 @@ extern template MultiBlockCommMetaData ParallelCopy(FabArray<FArrayBox>& dest, c
                                                     const FabArray<FArrayBox>& src, int destcomp,
                                                     int srccomp, int numcomp, const IntVect& ngrow,
                                                     MultiBlockIndexMapping, Identity);
-}}
+}
 
 #endif

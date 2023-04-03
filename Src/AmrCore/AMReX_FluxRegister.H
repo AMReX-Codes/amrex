@@ -402,6 +402,16 @@ public:
                  int             nc,
                  const Geometry& crse_geom);
 
+    /**
+     * \brief Overwrite the coarse flux at the coarse/fine interface (and
+     * the interface only) with the fine flux stored in the FluxRegister.
+     *
+     * \param crse_fluxes MultiFab pointers to coarse fluxes.
+     * \param scale       scaling factor by which the fine flux is multiplied.
+     * \param destcomp    starting component in coarse flux MultiFab
+     * \param numcomp     number of components
+     * \param crse_geom   coarse Geometry
+     */
     void OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
                         Real scale, int srccomp, int destcomp, int numcomp,
                         const Geometry& crse_geom);

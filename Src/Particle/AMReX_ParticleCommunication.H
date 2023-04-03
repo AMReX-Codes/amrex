@@ -249,12 +249,12 @@ private:
     // In the global version, we don't know who we'll receive from, so we
     // need to do some collective communication first.
     //
-    void doHandShakeGlobal (const Vector<Long>& Snds, Vector<Long>& Rcvs) const;
+    static void doHandShakeGlobal (const Vector<Long>& Snds, Vector<Long>& Rcvs);
 
     //
     // Another version of the above that is implemented using MPI All-to-All
     //
-    void doHandShakeAllToAll (const Vector<Long>& Snds, Vector<Long>& Rcvs) const;
+    static void doHandShakeAllToAll (const Vector<Long>& Snds, Vector<Long>& Rcvs);
 
     bool m_local;
 };
@@ -301,7 +301,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
     int num_buckets = pc.BufferMap().numBuckets();
 
     std::size_t total_buffer_size = 0;
-    if (plan.m_snd_offsets.size() == 0)
+    if (plan.m_snd_offsets.empty())
     {
         unsigned int np = 0;
         Gpu::copy(Gpu::deviceToHost, plan.m_box_offsets.begin() + num_buckets,

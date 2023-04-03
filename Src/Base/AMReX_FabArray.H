@@ -427,7 +427,7 @@ public:
 
     bool hasEBFabFactory () const noexcept {
 #ifdef AMREX_USE_EB
-        const auto f = dynamic_cast<EBFArrayBoxFactory const*>(m_factory.get());
+        const auto *const f = dynamic_cast<EBFArrayBoxFactory const*>(m_factory.get());
         return (f != nullptr);
 #else
         return false;
@@ -436,7 +436,7 @@ public:
 
     bool isAllRegular () const noexcept {
 #ifdef AMREX_USE_EB
-        const auto f = dynamic_cast<EBFArrayBoxFactory const*>(m_factory.get());
+        const auto *const f = dynamic_cast<EBFArrayBoxFactory const*>(m_factory.get());
         if (f) {
             return f->isAllRegular();
         } else {
@@ -1870,7 +1870,7 @@ FabArray<FAB>::FabArray (const FabArray<FAB>& rhs, MakeType maketype, int scomp,
 
 template <class FAB>
 FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
-    : FabArrayBase (std::move(rhs))
+    : FabArrayBase (static_cast<FabArrayBase&&>(rhs))
     , m_factory    (std::move(rhs.m_factory))
     , m_dallocator (std::move(rhs.m_dallocator))
     , define_function_called(rhs.define_function_called)
@@ -1995,7 +1995,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
     define_function_called = true;
 
     BL_ASSERT(ngrow.allGE(IntVect::TheZeroVector()));
-    BL_ASSERT(boxarray.size() == 0);
+    BL_ASSERT(boxarray.empty());
     FabArrayBase::define(bxs, dm, nvar, ngrow);
 
     addThisBD();
@@ -2126,7 +2126,7 @@ FabArray<FAB>::setFab_assert (int K, FAB const& fab) const
 {
     amrex::ignore_unused(K,fab);
     AMREX_ASSERT(n_comp == fab.nComp());
-    AMREX_ASSERT(boxarray.size() > 0);
+    AMREX_ASSERT(!boxarray.empty());
     AMREX_ASSERT(fab.box() == fabbox(K));
     AMREX_ASSERT(distributionMap[K] == ParallelDescriptor::MyProc());
 }

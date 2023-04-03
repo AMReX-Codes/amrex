@@ -34,8 +34,7 @@ int main(int argc, char* argv[])
   for (int lev = 1; lev < nlevs; lev++)
     rr[lev-1] = 2;
 
-  int is_per[BL_SPACEDIM];
-  for (int i = 0; i < BL_SPACEDIM; i++) is_per[i] = 1;
+  int is_per[] = {AMREX_D_DECL(1,1,1)};
 
   Vector<Geometry> geom(nlevs);
   geom[0].define(domain, &real_box, coord, is_per);
@@ -55,7 +54,7 @@ int main(int argc, char* argv[])
 
   MyParticleContainer::ParticleInitData pdata = {{1.0},{},{},{}};
   MyPC.InitOnePerCell(0.5, 0.5, 0.5, pdata);
-  MyPC.do_tiling = true;
+  MyParticleContainer::do_tiling = true;
 
   amrex::AllPrintToFile("outside") << "outside parallel region. \n";
 

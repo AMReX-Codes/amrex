@@ -38,11 +38,10 @@ AuxBoundaryData::AuxBoundaryData (const AuxBoundaryData& rhs)
     :
     m_fabs(rhs.m_fabs.boxArray(),rhs.m_fabs.DistributionMap(),rhs.m_fabs.nComp(),0,
            MFInfo(), FArrayBoxFactory()),
-    m_ngrow(rhs.m_ngrow)
+    m_ngrow(rhs.m_ngrow),
+    m_initialized(true)
 {
     m_fabs.ParallelCopy(rhs.m_fabs,0,0,rhs.m_fabs.nComp());
-    m_empty = false;
-    m_initialized = true;
 }
 
 void

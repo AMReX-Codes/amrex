@@ -573,21 +573,21 @@ FluxRegister::FineAdd (const FArrayBox& flux,
         AMREX_LAUNCH_DEVICE_LAMBDA
         ( lobox, tlobx,
           {
-              fluxreg_fineadd(tlobx, loarr, destcomp, farr, srccomp,
+              fluxreg_fineadd(tlobx, loarr, destcomp, farr, srccomp, // NOLINT(readability-suspicious-call-argument)
                               numcomp, dir, local_ratio, mult);
           },
           hibox, thibx,
           {
-              fluxreg_fineadd(thibx, hiarr, destcomp, farr, srccomp,
+              fluxreg_fineadd(thibx, hiarr, destcomp, farr, srccomp, // NOLINT(readability-suspicious-call-argument)
                               numcomp, dir, local_ratio, mult);
           }
         );
     }
     else
     {
-        fluxreg_fineadd(lobox, loarr, destcomp, farr, srccomp,
+        fluxreg_fineadd(lobox, loarr, destcomp, farr, srccomp, // NOLINT(readability-suspicious-call-argument)
                         numcomp, dir, local_ratio, mult);
-        fluxreg_fineadd(hibox, hiarr, destcomp, farr, srccomp,
+        fluxreg_fineadd(hibox, hiarr, destcomp, farr, srccomp, // NOLINT(readability-suspicious-call-argument)
                         numcomp, dir, local_ratio, mult);
     }
 }
@@ -692,13 +692,13 @@ FluxRegister::FineAdd (const FArrayBox& flux,
         AMREX_LAUNCH_DEVICE_LAMBDA
         ( lobox, tlobx,
           {
-              fluxreg_fineareaadd(tlobx, loarr, destcomp,
+              fluxreg_fineareaadd(tlobx, loarr, destcomp, // NOLINT(readability-suspicious-call-argument)
                                   aarr, farr, srccomp,
                                   numcomp, dir, local_ratio, mult);
           },
           hibox, thibx,
           {
-              fluxreg_fineareaadd(thibx, hiarr, destcomp,
+              fluxreg_fineareaadd(thibx, hiarr, destcomp, // NOLINT(readability-suspicious-call-argument)
                                   aarr, farr, srccomp,
                                   numcomp, dir, local_ratio, mult);
           }
@@ -706,10 +706,10 @@ FluxRegister::FineAdd (const FArrayBox& flux,
     }
     else
     {
-        fluxreg_fineareaadd(lobox, loarr, destcomp,
+        fluxreg_fineareaadd(lobox, loarr, destcomp, // NOLINT(readability-suspicious-call-argument)
                             aarr, farr, srccomp,
                             numcomp, dir, local_ratio, mult);
-        fluxreg_fineareaadd(hibox, hiarr, destcomp,
+        fluxreg_fineareaadd(hibox, hiarr, destcomp, // NOLINT(readability-suspicious-call-argument)
                             aarr, farr, srccomp,
                             numcomp, dir, local_ratio, mult);
     }

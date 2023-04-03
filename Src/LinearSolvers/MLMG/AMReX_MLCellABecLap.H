@@ -8,7 +8,7 @@
 namespace amrex {
 
 template <typename MF>
-class MLCellABecLapT
+class MLCellABecLapT  // NOLINT(cppcoreguidelines-virtual-class-destructor)
     : public MLCellLinOpT<MF>
 {
 public:
@@ -18,8 +18,8 @@ public:
 
     using Location  = typename MLLinOpT<MF>::Location;
 
-    MLCellABecLapT ();
-    ~MLCellABecLapT () override;
+    MLCellABecLapT () = default;
+    ~MLCellABecLapT () override = default;
 
     MLCellABecLapT (const MLCellABecLapT<MF>&) = delete;
     MLCellABecLapT (MLCellABecLapT<MF>&&) = delete;
@@ -72,11 +72,11 @@ public:
     void applyOverset (int amrlev, MF& rhs) const override;
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-    virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const override;
+    [[nodiscard]] std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const override;
 #endif
 
 #ifdef AMREX_USE_PETSC
-    virtual std::unique_ptr<PETScABecLap> makePETSc () const override;
+    [[nodiscard]] std::unique_ptr<PETScABecLap> makePETSc () const override;
 #endif
 
 protected:
@@ -86,9 +86,6 @@ protected:
 
     [[nodiscard]] bool supportInhomogNeumannBC () const noexcept override { return true; }
 };
-
-template <typename MF> MLCellABecLapT<MF>::MLCellABecLapT () = default;
-template <typename MF> MLCellABecLapT<MF>::~MLCellABecLapT () = default;
 
 template <typename MF>
 void

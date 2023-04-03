@@ -80,7 +80,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
     const iMultiFab& dmsk = *m_dirichlet_mask[0][0];
 
 #ifdef AMREX_USE_EB
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[0][0].get());
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[0][0].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     const MultiFab* intg = m_integral[0].get();
     const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
@@ -344,7 +344,7 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
     const auto hibc = HiBC();
 
 #ifdef AMREX_USE_EB
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[0][0].get());
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[0][0].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     const MultiFab* intg = m_integral[0].get();
     const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;

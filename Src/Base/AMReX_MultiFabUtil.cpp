@@ -84,7 +84,7 @@ namespace amrex
 
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
                 {
-                    amrex_avg_nd_to_cc(i, j, k, n, ccarr, ndarr, dcomp, scomp);
+                    amrex_avg_nd_to_cc(i, j, k, n, ccarr, ndarr, dcomp, scomp); // NOLINT(readability-suspicious-call-argument)
                 });
             }
         }

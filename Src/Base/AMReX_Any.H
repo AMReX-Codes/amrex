@@ -33,8 +33,9 @@ public:
 
     //! Assigns by moving the given object.
     template <typename MF>
-    void operator= (MF && mf) {
+    Any& operator= (MF && mf) {
         m_ptr = std::make_unique<innards<MF> >(std::forward<MF>(mf));
+        return *this;
     }
 
     //! Returns the contained type.

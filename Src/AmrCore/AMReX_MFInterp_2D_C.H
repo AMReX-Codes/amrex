@@ -162,8 +162,8 @@ void mf_cell_cons_lin_interp (int i, int j, int /*k*/, int ns, Array4<Real> cons
 {
     const int ic = amrex::coarsen(i, ratio[0]);
     const int jc = amrex::coarsen(j, ratio[1]);
-    const Real xoff = (i - ic*ratio[0] + Real(0.5)) / Real(ratio[0]) - Real(0.5);
-    const Real yoff = (j - jc*ratio[1] + Real(0.5)) / Real(ratio[1]) - Real(0.5);
+    const Real xoff = (static_cast<Real>(i - ic*ratio[0]) + Real(0.5)) / Real(ratio[0]) - Real(0.5);
+    const Real yoff = (static_cast<Real>(j - jc*ratio[1]) + Real(0.5)) / Real(ratio[1]) - Real(0.5);
     fine(i,j,0,fcomp+ns) = crse(ic,jc,0,ccomp+ns)
         + xoff * slope(ic,jc,0,ns)
         + yoff * slope(ic,jc,0,ns+ncomp);
@@ -299,18 +299,18 @@ void mf_nodebilin_interp (int i, int j, int, int n, Array4<Real> const& fine, in
     if (ioff != 0 && joff != 0) {
         // Node on a X-Y face
         fine(i,j,0,n+fcomp) = rxinv * ryinv *
-            (crse(ic  ,jc  ,0,n+ccomp) * (ratio[0]-ioff) * (ratio[1]-joff) +
-             crse(ic+1,jc  ,0,n+ccomp) * (         ioff) * (ratio[1]-joff) +
-             crse(ic  ,jc+1,0,n+ccomp) * (ratio[0]-ioff) * (         joff) +
-             crse(ic+1,jc+1,0,n+ccomp) * (         ioff) * (         joff));
+            (crse(ic  ,jc  ,0,n+ccomp) * static_cast<Real>((ratio[0]-ioff) * (ratio[1]-joff)) +
+             crse(ic+1,jc  ,0,n+ccomp) * static_cast<Real>((         ioff) * (ratio[1]-joff)) +
+             crse(ic  ,jc+1,0,n+ccomp) * static_cast<Real>((ratio[0]-ioff) * (         joff)) +
+             crse(ic+1,jc+1,0,n+ccomp) * static_cast<Real>((         ioff) * (         joff)));
     } else if (ioff != 0) {
         // Node on X line
-        fine(i,j,0,n+fcomp) = rxinv*((ratio[0]-ioff)*crse(ic  ,jc,0,n+ccomp) +
-                                     (         ioff)*crse(ic+1,jc,0,n+ccomp));
+        fine(i,j,0,n+fcomp) = rxinv*(static_cast<Real>(ratio[0]-ioff)*crse(ic  ,jc,0,n+ccomp) +
+                                     static_cast<Real>(         ioff)*crse(ic+1,jc,0,n+ccomp));
     } else if (joff != 0) {
         // Node on Y line
-        fine(i,j,0,n+fcomp) = ryinv*((ratio[1]-joff)*crse(ic,jc  ,0,n+ccomp) +
-                                     (         joff)*crse(ic,jc+1,0,n+ccomp));
+        fine(i,j,0,n+fcomp) = ryinv*(static_cast<Real>(ratio[1]-joff)*crse(ic,jc  ,0,n+ccomp) +
+                                     static_cast<Real>(         joff)*crse(ic,jc+1,0,n+ccomp));
     } else {
         // Node coincident with coarse node
         fine(i,j,0,n+fcomp) = crse(ic,jc,0,n+ccomp);
