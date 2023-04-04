@@ -1,11 +1,6 @@
 #ifndef BL_DISTRIBUTIONMAPPING_H
 #define BL_DISTRIBUTIONMAPPING_H
-
-#include <map>
-#include <limits>
-#include <memory>
-#include <cstddef>
-#include <iostream>
+#include <AMReX_Config.H>
 
 #include <AMReX.H>
 #include <AMReX_Array.H>
@@ -13,6 +8,12 @@
 #include <AMReX_Box.H>
 #include <AMReX_REAL.H>
 #include <AMReX_ParallelDescriptor.H>
+
+#include <map>
+#include <limits>
+#include <memory>
+#include <cstddef>
+#include <iosfwd>
 
 namespace amrex {
 
@@ -48,7 +49,7 @@ class DistributionMapping
     enum Strategy { UNDEFINED = -1, ROUNDROBIN, KNAPSACK, SFC, RRSFC };
 
     //! The default constructor.
-    DistributionMapping ();
+    DistributionMapping () noexcept;
 
     //! The copy constructor.
     DistributionMapping (const DistributionMapping& rhs) = default;
@@ -72,7 +73,7 @@ class DistributionMapping
     explicit DistributionMapping (Vector<int>&& pmap) noexcept;
     //! Build mapping out of BoxArray over nprocs processors.
     explicit DistributionMapping (const BoxArray& boxes,
-				  int nprocs = ParallelDescriptor::NProcs());
+                                  int nprocs = ParallelDescriptor::NProcs());
     /**
     * \brief This is a very specialized distribution map.
     * Do NOT use it unless you really understand what it does.
@@ -131,17 +132,21 @@ class DistributionMapping
     //! Are the distributions different?
     bool operator!= (const DistributionMapping& rhs) const noexcept;
 
-    void SFCProcessorMap(const BoxArray& boxes, const std::vector<Long>& wgts, int nprocs,
-                         bool sort=true);
-    void SFCProcessorMap(const BoxArray& boxes, const std::vector<Long>& wgts, int nprocs,
-                         Real& efficiency, bool sort=true);
-    void KnapSackProcessorMap(const std::vector<Long>& wgts, int nprocs,
-                              Real* efficiency=0,
-                              bool do_full_knapsack=true,
-                              int nmax=std::numeric_limits<int>::max(),
-                              bool sort=true);
-    void RoundRobinProcessorMap(int nboxes, int nprocs);
-    void RoundRobinProcessorMap(const std::vector<Long>& wgts, int nprocs);
+    void SFCProcessorMap (const BoxArray& boxes, const std::vector<Long>& wgts, int nprocs,
+                          bool sort=true);
+    void SFCProcessorMap (const BoxArray& boxes, const std::vector<Long>& wgts, int nprocs,
+                          Real& efficiency, bool sort=true);
+    void KnapSackProcessorMap (const std::vector<Long>& wgts, int nprocs,
+                               Real* efficiency=0,
+                               bool do_full_knapsack=true,
+                               int nmax=std::numeric_limits<int>::max(),
+                               bool sort=true);
+    void KnapSackProcessorMap (const DistributionMapping& olddm,
+                               const std::vector<Long>& wgts, Real keep_ratio,
+                               Real& old_efficiency, Real& new_efficiency,
+                               int nmax=std::numeric_limits<int>::max());
+    void RoundRobinProcessorMap (int nboxes, int nprocs, bool sort=true);
+    void RoundRobinProcessorMap (const std::vector<Long>& wgts, int nprocs, bool sort=true);
 
     /**
     * \brief Initializes distribution strategy from ParmParse.
@@ -159,7 +164,7 @@ class DistributionMapping
 
     static bool SameRefs (const DistributionMapping& lhs,
                           const DistributionMapping& rhs)
-		  { return lhs.m_ref == rhs.m_ref; }
+          { return lhs.m_ref == rhs.m_ref; }
 
     static DistributionMapping makeKnapSack (const MultiFab& weight,
                                              int nmax=std::numeric_limits<int>::max());
@@ -173,17 +178,17 @@ class DistributionMapping
 
     /** \brief Computes a new distribution mapping by distributing input costs
      * according to the `knapsack` algorithm.
-     * @param[in] rcost_local LayoutData of costs; contains, e.g., costs for the 
+     * @param[in] rcost_local LayoutData of costs; contains, e.g., costs for the
      *            local boxes in the FAB array, corresponding indices in the global
      *            indices in the FAB array, and the distribution mapping
      * @param[in,out] currentEfficiency writes the efficiency (i.e., mean cost over
      *                all MPI ranks, normalized to the max cost) given the current
      *                distribution mapping
-     * @param[in,out] proposedEfficiency writes the efficiency for the proposed 
+     * @param[in,out] proposedEfficiency writes the efficiency for the proposed
      *                distribution mapping
-     * @param[in] nmax the maximum number of boxes that can be assigned to any 
+     * @param[in] nmax the maximum number of boxes that can be assigned to any
      *            MPI rank by the knapsack algorithm
-     * @param[in] broadcastToAll controls whether to transmit the proposed 
+     * @param[in] broadcastToAll controls whether to transmit the proposed
      *            distribution mapping to all other processes; setting this to
      *            false allows to, e.g., test whether the proposed distribution
      *            mapping is an improvement relative to the current distribution
@@ -191,13 +196,16 @@ class DistributionMapping
      *            mapping
      * @param[in] root which process to collect the local costs from others and
      *            compute the proposed distribution mapping
+     * @param[in] keep_ratio controls the fraction of load that should be kept on
+     *            the original process.
      * @return the proposed load-balanced distribution mapping
      */
     static DistributionMapping makeKnapSack (const LayoutData<Real>& rcost_local,
                                              Real& currentEfficiency, Real& proposedEfficiency,
                                              int nmax=std::numeric_limits<int>::max(),
                                              bool broadcastToAll=true,
-                                             int root=ParallelDescriptor::IOProcessorNumber());
+                                             int root=ParallelDescriptor::IOProcessorNumber(),
+                                             Real keep_ratio = Real(0.0));
 
     static DistributionMapping makeRoundRobin (const MultiFab& weight);
     static DistributionMapping makeSFC (const MultiFab& weight, bool sort=true);
@@ -209,15 +217,15 @@ class DistributionMapping
 
     /** \brief Computes a new distribution mapping by distributing input costs
      * according to a `space filling curve` (SFC) algorithm.
-     * @param[in] rcost_local LayoutData of costs; contains, e.g., costs for the 
+     * @param[in] rcost_local LayoutData of costs; contains, e.g., costs for the
      *            local boxes in the FAB array, corresponding indices in the global
      *            indices in the FAB array, and the distribution mapping
      * @param[in,out] currentEfficiency writes the efficiency (i.e., mean cost over
      *                all MPI ranks, normalized to the max cost) given the current
      *                distribution mapping
-     * @param[in,out] proposedEfficiency writes the efficiency for the proposed 
+     * @param[in,out] proposedEfficiency writes the efficiency for the proposed
      *                distribution mapping
-     * @param[in] broadcastToAll controls whether to transmit the proposed 
+     * @param[in] broadcastToAll controls whether to transmit the proposed
      *            distribution mapping to all other processes; setting this to
      *            false allows to, e.g., test whether the proposed distribution
      *            mapping is an improvement relative to the current distribution
@@ -236,7 +244,7 @@ class DistributionMapping
     * if use_box_vol is true, weight boxes by their volume in Distribute
     * otherwise, all boxes will be treated with equal weight
     */
-    static std::vector<std::vector<int> > makeSFC (const BoxArray& ba, 
+    static std::vector<std::vector<int> > makeSFC (const BoxArray& ba,
                                                    bool use_box_vol=true,
                                                    const int nprocs=ParallelContext::NProcsSub() );
 
@@ -247,10 +255,11 @@ class DistributionMapping
      * @param[in,out] efficiency average cost per MPI process, as computed from
      *                the given distribution mapping and cost
      */
+    template <typename T>
     static void ComputeDistributionMappingEfficiency (const DistributionMapping& dm,
-                                                      const Vector<Real>& cost,
+                                                      const std::vector<T>& cost,
                                                       Real* efficiency);
-    
+
 private:
 
     const Vector<int>& getIndexArray ();
@@ -286,7 +295,8 @@ private:
 
     void RoundRobinDoIt (int                  nboxes,
                          int                  nprocs,
-                         std::vector<LIpair>* LIpairV = 0);
+                         std::vector<LIpair>* LIpairV = 0,
+                         bool                 sort = true);
 
     void KnapSackDoIt (const std::vector<Long>& wgts,
                        int                      nprocs,
@@ -305,12 +315,12 @@ private:
                               int                      nprocs);
 
     //! Least used ordering of CPUs (by # of bytes of FAB data).
-    void LeastUsedCPUs (int nprocs, Vector<int>& result);
+    static void LeastUsedCPUs (int nprocs, Vector<int>& result);
     /**
     * \brief rteam: Least used ordering of Teams
     * rworker[i]: Least used ordering of team workers for Team i
     */
-    void LeastUsedTeams (Vector<int>& rteam, Vector<Vector<int> >& rworker, int nteams, int nworkers);
+    static void LeastUsedTeams (Vector<int>& rteam, Vector<Vector<int> >& rworker, int nteams, int nworkers);
 
     //! A useful typedef.
     typedef void (DistributionMapping::*PVMF)(const BoxArray &, int);
@@ -336,7 +346,7 @@ private:
 
         explicit Ref (Vector<int>&& pmap) noexcept : m_pmap(std::move(pmap)) {}
 
-	//! dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
+        //! dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 
         void clear () { m_pmap.clear();  m_index_array.clear();   m_ownership.clear(); }
 
@@ -355,8 +365,8 @@ public:
         bool operator<  (const RefID& rhs) const noexcept { return std::less<Ref*>()(data,rhs.data); }
         bool operator== (const RefID& rhs) const noexcept { return data == rhs.data; }
         bool operator!= (const RefID& rhs) const noexcept { return data != rhs.data; }
-	const Ref *dataPtr() const noexcept { return data; }
-	void PrintPtr(std::ostream &os) const { os << data << '\n'; }
+        const Ref *dataPtr() const noexcept { return data; }
+        void PrintPtr(std::ostream &os) const { os << data << '\n'; }
         friend std::ostream& operator<< (std::ostream& os, const RefID& id);
    private:
         Ref* data;
@@ -370,6 +380,61 @@ public:
 std::ostream& operator<< (std::ostream& os, const DistributionMapping& pmap);
 
 std::ostream& operator<< (std::ostream& os, const DistributionMapping::RefID& id);
+
+/**
+ *  \brief Function that creates a DistributionMapping "similar" to that of a MultiFab.
+ *
+ *  "Similar" means that, if a box in "ba" intersects with any of the
+ *  boxes in the BoxArray associated with "mf", taking "ngrow" ghost cells into account,
+ *  then that box will be assigned to the proc owning the one it has the maximum amount
+ *  of overlap with.
+ *
+ *  @param[in] ba The BoxArray we want to generate a DistributionMapping for.
+ *  @param[in] mf The MultiFab we want said DistributionMapping to be similar to.
+ *  @param[in] ng The number of grow cells to use when computing intersection / overlap
+ *  @return The computed DistributionMapping.
+ */
+DistributionMapping MakeSimilarDM (const BoxArray& ba, const MultiFab& mf, const IntVect& ng);
+
+/**
+ *  \brief Function that creates a DistributionMapping "similar" to that of a MultiFab.
+ *
+ *  "Similar" means that, if a box in "ba" intersects with any of the
+ *  boxes in the BoxArray associated with "mf", taking "ngrow" ghost cells into account,
+ *  then that box will be assigned to the proc owning the one it has the maximum amount
+ *  of overlap with.
+ *
+ *  @param[in] ba The BoxArray we want to generate a DistributionMapping for.
+ *  @param[in] src_ba The BoxArray associatied with the src DistributionMapping.
+ *  @param[in] src_dm The input DistributionMapping we want the output to be similar to.
+ *  @param[in] ng The number of grow cells to use when computing intersection / overlap
+ *  @return The computed DistributionMapping.
+ */
+DistributionMapping MakeSimilarDM (const BoxArray& ba, const BoxArray& src_ba,
+                                   const DistributionMapping& src_dm, const IntVect& ng);
+
+template <typename T>
+void DistributionMapping::ComputeDistributionMappingEfficiency (
+    const DistributionMapping& dm, const std::vector<T>& cost, Real* efficiency)
+{
+    const int nprocs = ParallelDescriptor::NProcs();
+    Vector<T> wgts(nprocs, T(0));
+
+    const Long nboxes = dm.size();
+    for (Long ibox = 0; ibox < nboxes; ++ibox) {
+        wgts[dm[ibox]] += cost[ibox];
+    }
+
+    T max_weight = 0;
+    T sum_weight = 0;
+    for (auto const& w : wgts) {
+        max_weight = std::max(w, max_weight);
+        sum_weight += w;
+    }
+
+    *efficiency = static_cast<Real>(sum_weight) /
+        (static_cast<Real>(nprocs) * static_cast<Real>(max_weight));
+}
 
 }
 

@@ -1,7 +1,0 @@
-max_level = 1
-n_cell = 64
-n_buffer = 2
-max_grid_size = 128
-max_step = 50000
-particle_output_int = 1000
-dt = 1.0e-10

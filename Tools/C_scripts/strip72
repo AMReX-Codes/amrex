@@ -5,7 +5,7 @@
 # It will:
 #     (1) expand tabs on non-comment lines
 #     (2) replace multiple blank lines with a single blank line
-#     (3) split lines at or before column 72 and preserve indention
+#     (3) split lines at or before column 72 and preserve indentation
 #     (4) translate CRAY conditional vector merge statements
 #         into equivalent if-then-else statements (if requested).
 #	  This will even work on nested conditions vector merge statements.
@@ -20,7 +20,7 @@
 #
 # Usage:   strip72 [-c] [-s SDIM] <file_list>
 #             -C  => convert cvmgt to MERGE
-#             -c  => convert cvmgX to if-then-else statments
+#             -c  => convert cvmgX to if-then-else statements
 #                    Without -c it will leave cvmgX in code
 #             -s  => use next argument as SPACEDIM, default = 2
 #             reads  from standard input of list of files,
@@ -108,7 +108,7 @@ while ($_) {
 
    # all continuation lines have been gathered in $line
 
-   # search for all occurances of DUMARR(a) and expand to
+   # search for all occurrences of DUMARR(a) and expand to
    # "a,a_lo,a_hi"
    if ($line =~ /^\s+.*DUMARR/) {
 #       while ($line =~ /.*DUMARR\s*\(\s*(\w+)\s*\)/) {
@@ -150,7 +150,7 @@ while ($_) {
    # check for conditional vector merge statement
    if ($do_cvmgX && $line =~ /.*=\s*cvmg[pPmMnNzZtT]\s*\(/o) {
        # @lines will contain the equivalent if-then-else statement
-       # with proper indention preserved.
+       # with proper indentation preserved.
        @lines = &expand_cvmgX($line);
    }
 
@@ -191,7 +191,7 @@ sub expand_cvmgX {
    # remove newline char
    chop($_line);
 
-   # get indention string and strip white_space
+   # get indentation string and strip white_space
    $_line =~ /^\s*/;
    $indent = $&;
    $_line =~ s/\s+//g;
@@ -216,7 +216,7 @@ sub expand_cvmgX {
       # examine ith character in string
       $ch = substr($rhs,$i,1);
       if (($ch eq ",") && ($paren == 0)) {
-         # found comma seperator, start gathering next arg
+         # found comma separator, start gathering next arg
          $chunk++;
 	 die "$0 : too many args to cvmg$type\n" if $chunk > 2;
       } else {
@@ -308,7 +308,7 @@ sub expand_cvmgX {
 #     input is a string containing a long line
 #     side effect is to chop the line into shorter continuation
 #     lines and write to standard output.
-# NOTE: preserves indention of input line
+# NOTE: preserves indentation of input line
 # -------------------------------------------------------------------
 sub chop_line {
    local($_line) = @_;

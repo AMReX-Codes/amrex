@@ -1,11 +1,6 @@
 #ifndef AMREX_GPUALLOCATORS_H_
 #define AMREX_GPUALLOCATORS_H_
-
-#include <map>
-#include <memory>
-#include <limits>
-#include <memory>
-#include <type_traits>
+#include <AMReX_Config.H>
 
 #include <AMReX_Print.H>
 #include <AMReX_Arena.H>
@@ -17,10 +12,18 @@
 #include <cuda_runtime.h>
 #endif // AMREX_USE_CUDA
 
+#include <limits>
+#include <map>
+#include <memory>
+#include <type_traits>
+
 namespace amrex {
 
     template <typename T>
     struct RunOnGpu : std::false_type {};
+
+    template <typename T>
+    struct IsPolymorphicArenaAllocator : std::false_type {};
 
     struct ArenaAllocatorTraits {
         typedef std::true_type propagate_on_container_copy_assignment;
@@ -39,14 +42,14 @@ namespace amrex {
 
         inline value_type* allocate(std::size_t n)
         {
-	    value_type* result = nullptr;
+            value_type* result = nullptr;
             result = (value_type*) The_Arena()->alloc(n * sizeof(T));
-	    return result;
+            return result;
         }
 
         inline void deallocate(value_type* ptr, std::size_t)
         {
-            The_Arena()->free(ptr);
+            if (ptr != nullptr) { The_Arena()->free(ptr); }
         }
     };
 
@@ -60,14 +63,14 @@ namespace amrex {
 
         inline value_type* allocate(std::size_t n)
         {
-	    value_type* result = nullptr;
+            value_type* result = nullptr;
             result = (value_type*) The_Device_Arena()->alloc(n * sizeof(T));
-	    return result;
+            return result;
         }
 
         inline void deallocate(value_type* ptr, std::size_t)
         {
-            The_Device_Arena()->free(ptr);
+            if (ptr != nullptr) { The_Device_Arena()->free(ptr); }
         }
     };
 
@@ -81,14 +84,14 @@ namespace amrex {
 
         inline value_type* allocate(std::size_t n)
         {
-	    value_type* result = nullptr;
+            value_type* result = nullptr;
             result = (value_type*) The_Pinned_Arena()->alloc(n * sizeof(T));
-	    return result;
+            return result;
         }
 
         inline void deallocate(value_type* ptr, std::size_t)
         {
-            The_Pinned_Arena()->free(ptr);
+            if (ptr != nullptr) { The_Pinned_Arena()->free(ptr); }
         }
     };
 
@@ -102,15 +105,63 @@ namespace amrex {
 
         inline value_type* allocate(std::size_t n)
         {
-	    value_type* result = nullptr;
+            value_type* result = nullptr;
             result = (value_type*) The_Managed_Arena()->alloc(n * sizeof(T));
-	    return result;
+            return result;
         }
 
         inline void deallocate(value_type* ptr, std::size_t)
         {
-            The_Managed_Arena()->free(ptr);
+            if (ptr != nullptr) { The_Managed_Arena()->free(ptr); }
         }
+    };
+
+    template<typename T>
+    class AsyncArenaAllocator
+        : public ArenaAllocatorTraits
+    {
+    public :
+
+        using value_type = T;
+
+        inline value_type* allocate(std::size_t n)
+        {
+            value_type* result = nullptr;
+            result = (value_type*) The_Async_Arena()->alloc(n * sizeof(T));
+            return result;
+        }
+
+        inline void deallocate(value_type* ptr, std::size_t)
+        {
+            if (ptr != nullptr) { The_Async_Arena()->free(ptr); }
+        }
+    };
+
+    template<typename T>
+    class PolymorphicArenaAllocator
+        : public ArenaAllocatorTraits
+    {
+    public :
+
+        using value_type = T;
+
+        inline value_type* allocate(std::size_t n)
+        {
+            value_type* result = nullptr;
+            result = (value_type*) arena()->alloc(n * sizeof(T));
+            return result;
+        }
+
+        inline void deallocate(value_type* ptr, std::size_t)
+        {
+            if (ptr != nullptr) { arena()->free(ptr); }
+        }
+
+        [[nodiscard]] Arena* arena () const noexcept {
+            return (m_arena) ? m_arena : The_Arena();
+        }
+
+        Arena* m_arena = nullptr;
     };
 
     template<typename T>
@@ -124,27 +175,30 @@ namespace amrex {
 
         inline value_type* allocate(std::size_t n)
         {
-	    value_type* result = nullptr;
+            value_type* result = nullptr;
             if (m_use_gpu_aware_mpi)
             {
-                result = (value_type*) The_Device_Arena()->alloc(n * sizeof(T));
+                result = (value_type*) The_Arena()->alloc(n * sizeof(T));
             }
             else
             {
                 result = (value_type*) The_Pinned_Arena()->alloc(n * sizeof(T));
             }
-	    return result;
+            return result;
         }
 
         inline void deallocate(value_type* ptr, std::size_t)
         {
-            if (m_use_gpu_aware_mpi)
+            if (ptr != nullptr)
             {
-                The_Device_Arena()->free(ptr);
-            }
-            else
-            {
-                The_Pinned_Arena()->free(ptr);
+                if (m_use_gpu_aware_mpi)
+                {
+                    The_Arena()->free(ptr);
+                }
+                else
+                {
+                    The_Pinned_Arena()->free(ptr);
+                }
             }
         }
 
@@ -167,9 +221,6 @@ namespace amrex {
     };
 
 #ifdef AMREX_USE_GPU
-    template <class T>
-    using DefaultAllocator = amrex::ArenaAllocator<T>;
-
     template <typename T>
     struct RunOnGpu<ArenaAllocator<T> > : std::true_type {};
 
@@ -178,6 +229,12 @@ namespace amrex {
 
     template <typename T>
     struct RunOnGpu<ManagedArenaAllocator<T> > : std::true_type {};
+
+    template <typename T>
+    struct RunOnGpu<AsyncArenaAllocator<T> > : std::true_type {};
+
+    template <typename T>
+    struct IsPolymorphicArenaAllocator<PolymorphicArenaAllocator<T> > : std::true_type {};
 
 #endif // AMREX_USE_GPU
 

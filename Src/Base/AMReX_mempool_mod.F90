@@ -68,13 +68,13 @@ module amrex_mempool_module
      module procedure bl_deallocate_i3
   end interface
 
-  interface 
+  interface
      function amrex_mempool_alloc (nbytes) result(p) bind(c)
        use, intrinsic :: iso_c_binding
        type(c_ptr) :: p
        integer(kind=c_size_t), intent(in), value :: nbytes
      end function amrex_mempool_alloc
-     
+
      subroutine amrex_mempool_free (p) bind(c)
        use, intrinsic :: iso_c_binding
        type(c_ptr), value :: p
@@ -124,7 +124,7 @@ contains
     real(c_real), pointer :: fp(:,:)
     n1 = max(hi1-lo1+1, 1)
     n2 = max(hi2-lo2+1, 1)
-    sz = int(n1,c_size_t) * int(n2,c_size_t) 
+    sz = int(n1,c_size_t) * int(n2,c_size_t)
     cp = amrex_mempool_alloc(szr*sz)
     call amrex_real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2/))

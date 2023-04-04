@@ -1,19 +1,10 @@
 #ifndef BL_MFITER_H_
 #define BL_MFITER_H_
+#include <AMReX_Config.H>
+
+#include <AMReX_FabArrayBase.H>
 
 #include <memory>
-
-#include <AMReX_Arena.H>
-#include <AMReX_FabArrayBase.H>
-#include <AMReX_IntVect.H>
-#include <AMReX_FArrayBox.H>
-#include <AMReX_RealBox.H>
-
-#include <AMReX_Gpu.H>
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 namespace amrex {
 
@@ -27,13 +18,13 @@ template<class T> class FabArray;
 
 struct MFItInfo
 {
-    bool do_tiling;
-    bool dynamic;
+    bool do_tiling{false};
+    bool dynamic{false};
     bool device_sync;
     int  num_streams;
     IntVect tilesize;
     MFItInfo () noexcept
-        : do_tiling(false), dynamic(false), device_sync(true), num_streams(Gpu::numGpuStreams()),
+        :  device_sync(!Gpu::inNoSyncRegion()), num_streams(Gpu::numGpuStreams()),
           tilesize(IntVect::TheZeroVector()) {}
     MFItInfo& EnableTiling (const IntVect& ts = FabArrayBase::mfiter_tile_size) noexcept {
         do_tiling = true;
@@ -57,7 +48,7 @@ struct MFItInfo
         return *this;
     }
     MFItInfo& UseDefaultStream () noexcept {
-        num_streams = -1;
+        num_streams = 1;
         return *this;
     }
 };
@@ -76,14 +67,8 @@ public:
         */
         AllBoxes      = 0x02,
         //! NoTeamBarrier: This option is for Team only. If on, there is no barrier in MFIter dtor.
-        NoTeamBarrier = 0x04,
-        //! SkipInit: Used by MFGhostIter
-	SkipInit      = 0x08
+        NoTeamBarrier = 0x04
     };
-
-#ifdef AMREX_USE_GPU_PRAGMA
-    enum MFReducer { SUM = 0, MAX, MIN };
-#endif
 
     /**
     * \brief The default constructor does not enable tiling (flags_ is set to 0 by default).
@@ -91,106 +76,102 @@ public:
     * The tile size in this case is defined by FabArrayBase::mfiter_tile_size
     */
     explicit MFIter (const FabArrayBase& fabarray,
-		     unsigned char       flags_=0);
+                     unsigned char       flags_=0);
 
     //! Enable tiling with the default tile size, which is defined by FabArrayBase::mfiter_tile_size
     MFIter (const FabArrayBase& fabarray,
-	    bool                do_tiling);
+            bool                do_tiling);
 
     //! Enable tiling with explicit tile size and flags (See type Flags for more information)
     MFIter (const FabArrayBase& fabarray,
-	    const IntVect&      tilesize,
-	    unsigned char       flags_=0);
+            const IntVect&      tilesize,
+            unsigned char       flags_=0);
 
     MFIter (const BoxArray& ba, const DistributionMapping& dm, unsigned char flags_=0);
 
     MFIter (const BoxArray& ba, const DistributionMapping& dm, bool do_tiling);
 
     MFIter (const BoxArray& ba, const DistributionMapping& dm,
-	    const IntVect& tilesize, unsigned char flags_=0);
+            const IntVect& tilesize, unsigned char flags_=0);
 
     MFIter (const FabArrayBase& fabarray, const MFItInfo& info);
 
     MFIter (const BoxArray& ba, const DistributionMapping& dm, const MFItInfo& info);
 
     MFIter (MFIter&& rhs) = default;
+    MFIter (MFIter const&) = delete;
+    MFIter& operator= (MFIter const&) = delete;
+    MFIter& operator= (MFIter &&) = delete;
 
     // dtor
     ~MFIter ();
 
     //! Return the tile Box at the current index.
-    Box tilebox () const noexcept;
+    [[nodiscard]] Box tilebox () const noexcept;
 
     //! Return the tilebox with provided nodal flag
-    Box tilebox (const IntVect& nodal) const noexcept;
+    [[nodiscard]] Box tilebox (const IntVect& nodal) const noexcept;
 
     //! Return the tilebox with provided nodal flag and grown cells
-    Box tilebox (const IntVect& nodal, const IntVect& ngrow) const noexcept;
+    [[nodiscard]] Box tilebox (const IntVect& nodal, const IntVect& ngrow) const noexcept;
 
     //! Return the dir-nodal (or all nodal if dir<0) Box at the current index.
-    Box nodaltilebox (int dir=-1) const noexcept;
+    [[nodiscard]] Box nodaltilebox (int dir=-1) const noexcept;
 
     //! Return the tile box at the current index grown to include ghost cells.
-    Box growntilebox (int ng=-1000000) const noexcept;
+    [[nodiscard]] Box growntilebox (int ng=-1000000) const noexcept;
 
-    Box growntilebox (const IntVect& ng) const noexcept;
+    [[nodiscard]] Box growntilebox (const IntVect& ng) const noexcept;
 
     //! Return the dir-nodal (or all nodal if dir<0) box grown to include ghost cells.
-    Box grownnodaltilebox (int dir=-1, int ng=-1000000) const noexcept;
+    [[nodiscard]] Box grownnodaltilebox (int dir=-1, int ng=-1000000) const noexcept;
 
-    Box grownnodaltilebox (int dir, const IntVect& ng) const noexcept;
+    [[nodiscard]] Box grownnodaltilebox (int dir, const IntVect& ng) const noexcept;
 
     //! Return the valid Box in which the current tile resides.
-    Box validbox () const noexcept { return fabArray.box((*index_map)[currentIndex]); }
+    [[nodiscard]] Box validbox () const noexcept { return fabArray.box((*index_map)[currentIndex]); }
 
     //! Return the Box of the FAB at which we currently point.
-    Box fabbox () const noexcept { return fabArray.fabbox((*index_map)[currentIndex]); }
+    [[nodiscard]] Box fabbox () const noexcept { return fabArray.fabbox((*index_map)[currentIndex]); }
 
     //! Increment iterator to the next tile we own.
     void operator++ () noexcept;
 
     //! Is the iterator valid i.e. is it associated with a FAB?
-    bool isValid () const noexcept { return currentIndex < endIndex; }
+    [[nodiscard]] bool isValid () const noexcept { return currentIndex < endIndex; }
 
     //! The index into the underlying BoxArray of the current FAB.
-    int index () const noexcept { return (*index_map)[currentIndex]; }
+    [[nodiscard]] int index () const noexcept { return (*index_map)[currentIndex]; }
 
     //! The number of indices.
-    int length () const noexcept { return (endIndex - beginIndex); }
+    [[nodiscard]] int length () const noexcept { return (endIndex - beginIndex); }
 
     //! The current local tile index in the current grid;
-    int LocalTileIndex () const noexcept {return local_tile_index_map ? (*local_tile_index_map)[currentIndex] : 0;}
+    [[nodiscard]] int LocalTileIndex () const noexcept {return local_tile_index_map ? (*local_tile_index_map)[currentIndex] : 0;}
 
     //! The the number of tiles in the current grid;
-    int numLocalTiles() const noexcept {return num_local_tiles ? (*num_local_tiles)[currentIndex] : 1;}
-
-#ifdef AMREX_USE_GPU_PRAGMA
-    //! Maintain a list of values to reduce.
-    template<typename T>
-    T* add_reduce_value(T* val, MFReducer r) { return val; }
-
-    Real* add_reduce_value(Real* val, MFReducer r);
-
-    //! Reduce over the values in the list.
-    void reduce();
-#endif
+    [[nodiscard]] int numLocalTiles() const noexcept {return num_local_tiles ? (*num_local_tiles)[currentIndex] : 1;}
 
     /**
     * \brief Return local index into the vector of fab pointers, m_fabs_v
     * When AllBoxes is on, local_index_map is a nullptr and local index is current index.
     */
-    int LocalIndex () const noexcept { return local_index_map ? (*local_index_map)[currentIndex] : currentIndex; }
+    [[nodiscard]] int LocalIndex () const noexcept { return local_index_map ? (*local_index_map)[currentIndex] : currentIndex; }
 
     //! Constant reference to FabArray over which we're iterating.
-    const FabArrayBase& theFabArrayBase () const noexcept { return fabArray; }
+    [[nodiscard]] const FabArrayBase& theFabArrayBase () const noexcept { return fabArray; }
 
-    int tileIndex () const noexcept {return currentIndex;}
+    [[nodiscard]] int tileIndex () const noexcept {return currentIndex;}
 
-    const DistributionMapping& DistributionMap () const noexcept { return fabArray.DistributionMap(); }
+    [[nodiscard]] const DistributionMapping& DistributionMap () const noexcept { return fabArray.DistributionMap(); }
+
+    static int allowMultipleMFIters (int allow);
+
+    void Finalize ();
 
 protected:
 
-    std::unique_ptr<FabArrayBase> m_fa;  //!< This must be the first memeber!
+    std::unique_ptr<FabArrayBase> m_fa;  //!< This must be the first member!
 
     const FabArrayBase& fabArray;
 
@@ -204,7 +185,19 @@ protected:
     IndexType     typ;
 
     bool          dynamic;
-    bool          device_sync = true;
+    bool          finalized = false;
+
+    struct DeviceSync {
+        DeviceSync (bool f) : flag(f) {}
+        DeviceSync (DeviceSync&& rhs)  noexcept : flag(std::exchange(rhs.flag,false)) {}
+        ~DeviceSync () = default;
+        DeviceSync (DeviceSync const&) = delete;
+        DeviceSync& operator= (DeviceSync const&) = delete;
+        DeviceSync& operator= (DeviceSync &&) = delete;
+        explicit operator bool() const noexcept { return flag; }
+        bool flag = true;
+    };
+    DeviceSync device_sync;
 
     const Vector<int>* index_map;
     const Vector<int>* local_index_map;
@@ -212,41 +205,19 @@ protected:
     const Vector<int>* local_tile_index_map;
     const Vector<int>* num_local_tiles;
 
-#ifdef AMREX_USE_GPU_PRAGMA
-    mutable Vector<Real*> real_reduce_val;
-
-    mutable MFReducer reducer;
-
-    mutable Vector<Vector<Real> > real_reduce_list;
-
-    mutable Vector<Vector<Real*> > real_device_reduce_list;
-#endif
-
-    static int nextDynamicIndex;
+    static AMREX_EXPORT int nextDynamicIndex;
+    static AMREX_EXPORT int depth;
+    static AMREX_EXPORT int allow_multiple_mfiters;
 
     void Initialize ();
-};
-
-//! Iterate over ghost cells.  Lots of MFIter functions do not work.
-class MFGhostIter
-    :
-    public MFIter
-{
-public:
-    explicit MFGhostIter (const FabArrayBase& fabarray);
-private:
-    void Initialize ();
-    FabArrayBase::TileArray lta;
 };
 
 //! Is it safe to have these two MultiFabs in the same MFiter?
-//! Ture means safe; false means maybe.
+//! True means safe; false means maybe.
 inline bool isMFIterSafe (const FabArrayBase& x, const FabArrayBase& y) {
     return x.DistributionMap() == y.DistributionMap()
         && BoxArray::SameRefs(x.boxArray(), y.boxArray());
 }
-
-inline Arena* The_MFIter_Arena () noexcept { return The_Device_Arena(); }
 
 }
 

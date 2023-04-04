@@ -42,8 +42,8 @@
  * *****************************************************************************
  *                                DISCLAIMER
  * THE SOFTWARE IS SUPPLIED "AS IS" WITHOUT WARRANTY OF ANY KIND. NEITHER THE
- * UNITED STATES GOVERNMENT, NOR THE UNITED STATES DEPARTMENT OF ENERGY, NOR 
- * UCHICAGO ARGONNE, LLC, NOR ANY OF THEIR EMPLOYEES, MAKES ANY WARRANTY, 
+ * UNITED STATES GOVERNMENT, NOR THE UNITED STATES DEPARTMENT OF ENERGY, NOR
+ * UCHICAGO ARGONNE, LLC, NOR ANY OF THEIR EMPLOYEES, MAKES ANY WARRANTY,
  * EXPRESS OR IMPLIED, OR ASSUMES ANY LEGAL LIABILITY OR RESPONSIBILITY FOR THE
  * ACCURARY, COMPLETENESS, OR USEFULNESS OF ANY INFORMATION, DATA, APPARATUS,
  * PRODUCT, OR PROCESS DISCLOSED, OR REPRESENTS THAT ITS USE WOULD NOT INFRINGE
@@ -53,7 +53,7 @@
  */
 
 ///
-// Give C linkage to C++ Dfft class so that Fortran can access its functions. 
+// Give C linkage to C++ Dfft class so that Fortran can access its functions.
 ///
 
 #include "complex-type.h"
@@ -66,7 +66,7 @@ extern "C" {
     return new hacc::Dfft(dist);
   }
 
-  void Dfft__makePlans(hacc::Dfft* This, complex_t *forward_output, complex_t *forward_scratch, 
+  void Dfft__makePlans(hacc::Dfft* This, complex_t *forward_output, complex_t *forward_scratch,
                       complex_t *backward_input, complex_t *backward_scratch, unsigned int flags) {
     This->makePlans(forward_output, forward_scratch, backward_input, backward_scratch, flags);
   }
@@ -93,7 +93,7 @@ extern "C" {
 
   void Dfft__self_rspace(hacc::Dfft* This, int n[3]) {
     for(size_t i = 0; i < 3; ++i) n[i] = This->self_rspace(i);
-  } 
+  }
 
   void Dfft__nproc_rspace(hacc::Dfft* This, int n[3]) {
     for(size_t i = 0; i < 3; ++i) n[i] = This->nproc_rspace(i);

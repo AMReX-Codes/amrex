@@ -1,5 +1,6 @@
 
 #include <AMReX_PPMUtil.H>
+#include <AMReX_INT.H>
 #include <cstdio>
 #include <cstdlib>
 
@@ -26,7 +27,7 @@ int loadPalette (const std::string& filename,
     std::fseek(fp, 0, SEEK_SET);
 
     /* check for RGB or RGBA palette */
-    int num_elements = length/(NCOLOR*sizeof(unsigned char));
+    int num_elements = static_cast<int>(length/(NCOLOR*sizeof(unsigned char)));
 
     if ( num_elements != 3 && num_elements != 4 )
     {
@@ -48,7 +49,7 @@ int loadPalette (const std::string& filename,
         amrex::Abort("loadPalette: fread() failed to read B");
     }
 
-    if ( num_elements == 4 ) 
+    if ( num_elements == 4 )
     {
         if (std::fread(a.data(), 1, NCOLOR, fp) != NCOLOR)
         {
@@ -70,11 +71,13 @@ void storePPM (const std::string& filename,
     FILE* fp = std::fopen(filename.c_str(), "w");
     if (!fp) {
         amrex::Abort("storePPM: cannot open output file "+filename);
+        return;
     }
 
-    unsigned char* image = (unsigned char*) std::malloc(3*width*height*sizeof(unsigned char));
+    auto* image = (unsigned char*) std::malloc(3*width*height*sizeof(unsigned char));
     if (image == nullptr) {
         amrex::Abort("storePPM: malloc failed");
+        return;
     }
 
     for (int i = 0; i < width*height; ++i) {

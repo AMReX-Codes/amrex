@@ -1,10 +1,11 @@
 #ifndef AMREX_EB2_IF_PLANE_H_
 #define AMREX_EB2_IF_PLANE_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Array.H>
 #include <AMReX_EB2_IF_Base.H>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
@@ -18,11 +19,6 @@ public:
           m_normal(makeXDim3(a_normal)),
           m_sign( a_inside ? 1.0 : -1.0 )
     {}
-
-    PlaneIF (const PlaneIF& rhs) noexcept = default;
-    PlaneIF (PlaneIF&& rhs) noexcept = default;
-    PlaneIF& operator= (const PlaneIF& rhs) = delete;
-    PlaneIF& operator= (PlaneIF&& rhs) = delete;
 
     AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
@@ -46,6 +42,6 @@ protected:
 
 };
 
-}}
+}
 
 #endif

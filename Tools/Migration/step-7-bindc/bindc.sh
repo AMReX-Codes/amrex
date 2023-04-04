@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# remove #inlcude<AMReX_PROB_AMR_F.H> from Fortran .F files
+# remove #include<AMReX_PROB_AMR_F.H> from Fortran .F files
 find . -type d \( -name .git -o -path ./Tools/Migration -o -path ./Docs/Migration \) -prune -o -type f -name "*.F" -exec grep -Iq . {} \; -exec sed -i '/#include\s*\(<\|\"\)\s*AMReX_PROB_AMR_F\.H/d' {} +
 
 

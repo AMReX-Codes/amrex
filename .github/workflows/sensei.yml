@@ -1,0 +1,39 @@
+# -Wno-c++17-extensions: Clang complains about nodiscard if the standard is not set to c++17.
+
+name: SENSEI
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-sensei
+  cancel-in-progress: true
+
+jobs:
+  test_sensei:
+    name: SENSEI Adaptor [test]
+    runs-on: ubuntu-20.04
+    env:
+      CXX: clang++
+      CC: clang
+      CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"
+      CMAKE_GENERATOR: Ninja
+      CMAKE_PREFIX_PATH: /root/install/sensei/v4.0.0/lib64/cmake
+    container:
+      image: senseiinsitu/ci:fedora35-amrex-20220613
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup
+      run: mkdir build
+    - name: Configure
+      run: |
+        cd build
+        cmake ..                     \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DAMReX_ENABLE_TESTS=ON  \
+            -DAMReX_FORTRAN=OFF      \
+            -DAMReX_PARTICLES=ON     \
+            -DAMReX_SENSEI=ON
+    - name: Build
+      run: |
+        cd build
+        cmake --build . -j 2

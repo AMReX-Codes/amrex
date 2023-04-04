@@ -1,5 +1,6 @@
 #ifndef AMREX_EB2_IF_TORUS_H_
 #define AMREX_EB2_IF_TORUS_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_EB2_IF_Base.H>
 #include <AMReX_Array.H>
@@ -7,7 +8,7 @@
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 class TorusIF
     : GPUable
@@ -21,11 +22,6 @@ public:
           m_center(makeXDim3(a_center)),
           m_sign( a_inside ? 1.0 : -1.0 )
         {}
-
-    TorusIF (const TorusIF& rhs) noexcept = default;
-    TorusIF (TorusIF&& rhs) noexcept = default;
-    TorusIF& operator= (const TorusIF& rhs) = delete;
-    TorusIF& operator= (TorusIF&& rhs) = delete;
 
     AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept {
@@ -49,11 +45,9 @@ protected:
     Real      m_large_radius;
     Real      m_small_radius;
     XDim3     m_center;
-    //
-    Real      m_small_radius2;  // precomputed radius squared
     Real      m_sign;
 };
 
-}}
+}
 
 #endif

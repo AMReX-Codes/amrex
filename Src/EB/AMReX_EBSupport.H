@@ -1,5 +1,6 @@
 #ifndef AMREX_EB_SUPPORT_H_
 #define AMREX_EB_SUPPORT_H_
+#include <AMReX_Config.H>
 
 namespace amrex {
 

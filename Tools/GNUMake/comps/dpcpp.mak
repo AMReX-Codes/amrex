@@ -1,86 +1,88 @@
 #
 # Generic setup for using gcc
 #
-CXX = dpcpp
-CC  = dpcpp
-FC  = gfortran
-F90 = gfortran
+CXX = icpx
+CC  = icx
+FC  = ifx
+F90 = ifx
 
 CXXFLAGS =
 CFLAGS   =
 FFLAGS   =
 F90FLAGS =
 
-########################################################################
-
-#clang_version       = $(shell $(CXX) --version | head -1 | sed -e 's/.*version.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/')
-#clang_major_version = $(shell $(CXX) --version | head -1 | sed -e 's/.*version.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/' | sed -e 's;\..*;;')
-#clang_minor_version = $(shell $(CXX) --version | head -1 | sed -e 's/.*version.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
-#
-#COMP_VERSION = $(clang_version)
-#
-#DEFINES += -DBL_CLANG_VERSION='$(clang_version)'
-#DEFINES += -DBL_CLANG_MAJOR_VERSION='$(clang_major_version)'
-#DEFINES += -DBL_CLANG_MINOR_VERSION='$(clang_minor_version)'
+ifeq ($(USE_ONEDPL),TRUE)
+# TBB and PSTL are broken in oneAPI 2021.3.0
+# https://software.intel.com/content/www/us/en/develop/articles/intel-oneapi-dpcpp-library-release-notes.html#inpage-nav-2-3
+  CPPFLAGS += -DAMREX_USE_ONEDPL -D_GLIBCXX_USE_TBB_PAR_BACKEND=0 -DPSTL_USE_PARALLEL_POLICIES=0
+endif
 
 ########################################################################
 
 ifeq ($(DEBUG),TRUE)
 
-  CXXFLAGS += -g -O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable #-ftrapv
-  CFLAGS   += -g -O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable #-ftrapv
+  CXXFLAGS += -g -O0 #-ftrapv
+  CFLAGS   += -g -O0 #-ftrapv
 
-  FFLAGS   += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 #-ftrapv
-  F90FLAGS += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 #-ftrapv
+  FFLAGS   += -g -O0 -traceback -check bounds,uninit,pointers
+  F90FLAGS += -g -O0 -traceback -check bounds,uninit,pointers
 
 else
 
-  CXXFLAGS += -O3 # // xxxx DPCPP: todo -g in beta6 causes a lot of warning messages
-  CFLAGS   += -O3
-#  CXXFLAGS += -g -O3
-#  CFLAGS   += -g -O3
+  CXXFLAGS += -g1 -O3 # // xxxx SYCL: todo -g in beta6 causes a lot of warning messages
+  CFLAGS   += -g1 -O3 #                       and makes linking much slower
   FFLAGS   += -g -O3
   F90FLAGS += -g -O3
 
+endif
+
+ifeq ($(WARN_ALL),TRUE)
+  warning_flags = -Wall -Wextra -Wno-sign-compare -Wunreachable-code -Wnull-dereference
+  warning_flags += -Wfloat-conversion -Wextra-semi
+
+  warning_flags += -Wpedantic
+
+  ifneq ($(WARN_SHADOW),FALSE)
+    warning_flags += -Wshadow
+  endif
+
+  CXXFLAGS += $(warning_flags) -Woverloaded-virtual
+  CFLAGS += $(warning_flags)
+endif
+
+# disable warning: comparison with infinity always evaluates to false in fast floating point modes [-Wtautological-constant-compare]
+#                  return std::isinf(m);
+# appeared since 2021.4.0
+CXXFLAGS += -Wno-tautological-constant-compare
+
+ifeq ($(WARN_ERROR),TRUE)
+  CXXFLAGS += -Werror
+  CFLAGS += -Werror
 endif
 
 ########################################################################
 
 ifdef CXXSTD
   CXXFLAGS += -std=$(strip $(CXXSTD))
+else
+  CXXFLAGS += -std=c++17
 endif
 
-CXXFLAGS += -Wno-error=sycl-strict -fsycl -fsycl-unnamed-lambda
-CFLAGS   += -std=c99
+CXXFLAGS += -fsycl
+CFLAGS   += -std=c11
 
-ifneq ($(DEBUG),TRUE)  # There is currently a bug that DEBUG build will crash.
-ifeq ($(DPCPP_AOT),TRUE)
-  INTEL_CPU_LONG_NAME = $(shell cat /sys/devices/cpu/caps/pmu_name)
-  ifneq ($(INTEL_CPU_LONG_NAME),)
-    ifeq ($(INTEL_CPU_LONG_NAME),skylake)
-      INTEL_CPU_SHORT_NAME = skl
-    else ifeq ($(INTEL_CPU_LONG_NAME),kabylake)
-      INTEL_CPU_SHORT_NAME = kbl
-    else ifeq ($(INTEL_CPU_LONG_NAME),cascadelake)
-      INTEL_CPU_SHORT_NAME = cfl
-    else
-      $(error AOT TODO: $(INTEL_CPU_LONG_NAME))
-    endif
-    CXXFLAGS += -fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xsycl-target-backend '-device $(INTEL_CPU_SHORT_NAME)'
-  endif
-endif
-endif
-
-ifneq ($(DPCPP_AOT),TRUE)
-ifneq ($(DPCPP_SPLIT_KERNEL),FALSE)
+ifneq ($(SYCL_SPLIT_KERNEL),FALSE)
   CXXFLAGS += -fsycl-device-code-split=per_kernel
 endif
-endif
 
-FFLAGS   += -ffixed-line-length-none -fno-range-check -fno-second-underscore
-F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -fimplicit-none
+# temporary work-around for oneAPI beta08 bug
+#   define "long double" as 64bit for C++ user-defined literals
+#   https://github.com/intel/llvm/issues/2187
+CXXFLAGS += -mlong-double-64 -Xclang -mlong-double-64
 
-FMODULES =  -J$(fmoddir) -I $(fmoddir)
+F90FLAGS += -implicitnone
+
+FMODULES = -module $(fmoddir) -I$(fmoddir)
 
 ########################################################################
 
@@ -99,38 +101,61 @@ ifeq ($(FSANITIZER),TRUE)
   GENERIC_COMP_FLAGS += -fsanitize=address -fsanitize=undefined
 endif
 
-ifeq ($(USE_OMP),TRUE)
-  GENERIC_COMP_FLAGS += -fopenmp
-endif
-
 CXXFLAGS += $(GENERIC_COMP_FLAGS) -pthread
 CFLAGS   += $(GENERIC_COMP_FLAGS)
-FFLAGS   += $(GENERIC_COMP_FLAGS)
-F90FLAGS += $(GENERIC_COMP_FLAGS)
+
+ifeq ($(USE_OMP),TRUE)
+  CXXFLAGS +=
+  CFLAGS   +=
+  FFLAGS   += -qopenmp
+  F90FLAGS += -qopenmp
+endif
 
 ########################################################################
 
 ifneq ($(BL_NO_FORT),TRUE)
-
-# ask gfortran the name of the library to link in.  First check for the
-# static version.  If it returns only the name w/o a path, then it
-# was not found.  In that case, ask for the shared-object version.
-gfortran_liba  = $(shell $(F90) -print-file-name=libgfortran.a)
-gfortran_libso = $(shell $(F90) -print-file-name=libgfortran.so)
-
-ifneq ($(gfortran_liba),libgfortran.a)  # if found the full path is printed, thus `neq`.
-  LIBRARY_LOCATIONS += $(dir $(gfortran_liba))
-else
-  LIBRARY_LOCATIONS += $(dir $(gfortran_libso))
+  override XTRALIBS += -lifcore
+  ifeq ($(USE_OMP),TRUE)
+    override XTRALIBS += -lifcoremt
+  endif
 endif
 
-override XTRALIBS += -lgfortran -lquadmath
+LDFLAGS += -fsycl-device-lib=libc,libm-fp32,libm-fp64
 
+ifeq ($(SYCL_AOT),TRUE)
+  ifndef AMREX_INTEL_ARCH
+    ifdef INTEL_ARCH
+      AMREX_INTEL_ARCH = $(INTEL_ARCH)
+    endif
+  endif
+  ifdef AMREX_INTEL_ARCH
+    amrex_intel_gpu_target = $(AMREX_INTEL_ARCH)
+  else
+    # amrex_intel_gpu_target = *
+    $(error Either INTEL_ARCH or AMREX_INTEL_ARCH must be specified when SYCL_AOT is TRUE.)
+  endif
+  CXXFLAGS += -fsycl-targets=spir64_gen
+  amrex_sycl_backend_flags = -device $(amrex_intel_gpu_target)
+  SYCL_AOT_GRF_MODE ?= Default
+  ifneq ($(SYCL_AOT_GRF_MODE),Default)
+    ifeq ($(SYCL_AOT_GRF_MODE),Large)
+      amrex_sycl_backend_flags += -internal_options -ze-opt-large-register-file
+    else ifeq ($(SYCL_AOT_GRF_MODE),AutoLarge)
+      amrex_sycl_backend_flags += -options -ze-intel-enable-auto-large-GRF-mode
+    else
+      $(error SYCL_AOT_GRF_MODE ($(SYCL_AOT_GRF_MODE)) must be either Default, Large, or AutoLarge)
+    endif
+  endif
+  LDFLAGS += -Xsycl-target-backend '$(amrex_sycl_backend_flags)'
 endif
 
-override XTRAOBJS += $(DPCPP_DIR)/lib/libsycl-glibc.o
-LDFLAGS += -device-math-lib=fp32,fp64
+ifeq ($(DEBUG),TRUE)
+  # This might be needed for linking device code larger than 2GB.
+  LDFLAGS += -fsycl-link-huge-device-code
+endif
 
 ifeq ($(FSANITIZER),TRUE)
   override XTRALIBS += -lubsan
 endif
+
+AMREX_CCACHE_ENV = CCACHE_DEPEND=1

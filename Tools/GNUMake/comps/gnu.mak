@@ -41,16 +41,22 @@ endif
 gcc_major_ge_8 = $(shell expr $(gcc_major_version) \>= 8)
 gcc_major_ge_9 = $(shell expr $(gcc_major_version) \>= 9)
 gcc_major_ge_10 = $(shell expr $(gcc_major_version) \>= 10)
+gcc_major_ge_11 = $(shell expr $(gcc_major_version) \>= 11)
+gcc_major_ge_12 = $(shell expr $(gcc_major_version) \>= 12)
+
+ifneq ($(NO_CONFIG_CHECKING),TRUE)
+ifneq ($(gcc_major_ge_8),1)
+  $(error GCC < 8 not supported)
+endif
+endif
 
 ifeq ($(THREAD_SANITIZER),TRUE)
   GENERIC_GNU_FLAGS += -fsanitize=thread
 endif
 ifeq ($(FSANITIZER),TRUE)
   GENERIC_GNU_FLAGS += -fsanitize=address -fsanitize=undefined
-  ifeq ($(gcc_major_ge_8),1)
-    GENERIC_GNU_FLAGS += -fsanitize=pointer-compare -fsanitize=pointer-subtract
-    GENERIC_GNU_FLAGS += -fsanitize=builtin -fsanitize=pointer-overflow
-  endif
+  GENERIC_GNU_FLAGS += -fsanitize=pointer-compare -fsanitize=pointer-subtract
+  GENERIC_GNU_FLAGS += -fsanitize=builtin -fsanitize=pointer-overflow
 endif
 
 ifeq ($(USE_OMP),TRUE)
@@ -75,32 +81,51 @@ CXXFLAGS += -Werror=return-type
 CFLAGS   += -Werror=return-type
 
 ifeq ($(DEBUG),TRUE)
+  ifeq ($(gcc_major_ge_11),1)
+    CXXFLAGS += -gdwarf-4 -O0 -ggdb -ftrapv
+    CFLAGS   += -gdwarf-4 -O0 -ggdb -ftrapv
+  else
+    CXXFLAGS += -g -O0 -ggdb -ftrapv
+    CFLAGS   += -g -O0 -ggdb -ftrapv
+  endif
+else
+  ifeq ($(gcc_major_ge_11),1)
+    CXXFLAGS += -gdwarf-4 -O3
+    CFLAGS   += -gdwarf-4 -O3
+  else
+    CXXFLAGS += -g -O3
+    CFLAGS   += -g -O3
+  endif
+endif
 
-  CXXFLAGS += -g -O0 -ggdb -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable
-  CFLAGS   += -g -O0 -ggdb -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable
+ifeq ($(WARN_ALL),TRUE)
+  warning_flags = -Wall -Wextra -Wlogical-op -Wfloat-conversion -Wnull-dereference -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs
 
-  ifneq ($(gcc_major_version),$(filter $(gcc_major_version),4 5))
-    CXXFLAGS += -Wnull-dereference
-    CFLAGS += -Wnull-dereference
+  ifeq ($(WARN_SIGN_COMPARE),FALSE)
+    warning_flags += -Wno-sign-compare
   endif
 
-  ifneq ($(gcc_major_version),$(filter $(gcc_major_version),4))
-    CXXFLAGS += -Wfloat-conversion
-    CFLAGS += -Wfloat-conversion
+  ifneq ($(USE_CUDA),TRUE)
+    # With -Wpedantic I got 650 MB of warnings
+    warning_flags += -Wpedantic
   endif
 
   ifneq ($(WARN_SHADOW),FALSE)
-    CXXFLAGS += -Wshadow
-    CFLAGS += -Wshadow
+    warning_flags += -Wshadow
   endif
 
-else
+  ifeq ($(gcc_major_ge10),1)
+    warning_flags += -Wextra-semi
+  endif
 
-  CXXFLAGS += -g -O3
-  CFLAGS   += -g -O3
-
+  CXXFLAGS += $(warning_flags) -Woverloaded-virtual -Wnon-virtual-dtor
+  CFLAGS += $(warning_flags)
 endif
 
+ifeq ($(WARN_ERROR),TRUE)
+  CXXFLAGS += -Werror
+  CFLAGS += -Werror
+endif
 
 ifeq ($(USE_GPROF),TRUE)
   CXXFLAGS += -pg
@@ -122,21 +147,12 @@ endif
 
 ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
-  ifeq ($(shell expr $(gcc_major_version) \< 5),1)
-    ifeq ($(CXXSTD),c++14)
-      $(error C++14 support requires GCC 5 or newer.)
-    endif
-  endif
   CXXFLAGS += -std=$(CXXSTD)
 else
-  ifeq ($(gcc_major_version),4)
-    CXXFLAGS += -std=c++11
-  else ifeq ($(gcc_major_version),5)
-    CXXFLAGS += -std=c++14
-  endif
+  CXXFLAGS += -std=c++17
 endif
 
-CFLAGS   += -std=gnu99
+CFLAGS   += -std=c11
 
 ########################################################################
 
@@ -208,7 +224,16 @@ else
   LIBRARY_LOCATIONS += $(dir $(gfortran_libso))
 endif
 
-override XTRALIBS += -lgfortran -lquadmath
+override XTRALIBS += -lgfortran
+
+quadmath_liba  = $(shell $(F90) -print-file-name=libquadmath.a)
+quadmath_libso = $(shell $(F90) -print-file-name=libquadmath.so)
+
+ifneq ($(quadmath_liba),libquadmath.a)
+  override XTRALIBS += -lquadmath
+else ifneq ($(quadmath_libso),libquadmath.so)
+  override XTRALIBS += -lquadmath
+endif
 
 FFLAGS   += $(GENERIC_GNU_FLAGS)
 F90FLAGS += $(GENERIC_GNU_FLAGS)

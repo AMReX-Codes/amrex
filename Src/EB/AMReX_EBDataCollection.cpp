@@ -4,6 +4,7 @@
 #include <AMReX_MultiCutFab.H>
 
 #include <AMReX_EB2_Level.H>
+#include <utility>
 
 namespace amrex {
 
@@ -11,8 +12,8 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
                                     const Geometry& a_geom,
                                     const BoxArray& a_ba_in,
                                     const DistributionMapping& a_dm,
-                                    const Vector<int>& a_ngrow, EBSupport a_support)
-    : m_ngrow(a_ngrow),
+                                    Vector<int>  a_ngrow, EBSupport a_support)
+    : m_ngrow(std::move(a_ngrow)),
       m_support(a_support),
       m_geom(a_geom)
 {
@@ -24,6 +25,9 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
         m_cellflags = new FabArray<EBCellFlagFab>(a_ba, a_dm, 1, m_ngrow[0], MFInfo(),
                                                   DefaultFabFactory<EBCellFlagFab>());
         a_level.fillEBCellFlag(*m_cellflags, m_geom);
+        m_levelset = new MultiFab(amrex::convert(a_ba,IntVect::TheUnitVector()), a_dm,
+                                  1, m_ngrow[0], MFInfo(), FArrayBoxFactory());
+        a_level.fillLevelSet(*m_levelset, m_geom);
     }
 
     if (m_support >= EBSupport::volume)
@@ -52,16 +56,21 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
             const BoxArray& faceba = amrex::convert(a_ba, IntVect::TheDimensionVector(idim));
             m_areafrac[idim] = new MultiCutFab(faceba, a_dm, 1, ng, *m_cellflags);
             m_facecent[idim] = new MultiCutFab(faceba, a_dm, AMREX_SPACEDIM-1, ng, *m_cellflags);
+            IntVect edge_type{1}; edge_type[idim] = 0;
+            m_edgecent[idim] = new MultiCutFab(amrex::convert(a_ba, edge_type), a_dm,
+                                               1, ng, *m_cellflags);
         }
 
         a_level.fillAreaFrac(m_areafrac, m_geom);
         a_level.fillFaceCent(m_facecent, m_geom);
+        a_level.fillEdgeCent(m_edgecent, m_geom);
     }
 }
 
 EBDataCollection::~EBDataCollection ()
 {
     delete m_cellflags;
+    delete m_levelset;
     delete m_volfrac;
     delete m_centroid;
     delete m_bndrycent;
@@ -70,6 +79,7 @@ EBDataCollection::~EBDataCollection ()
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         delete m_areafrac[idim];
         delete m_facecent[idim];
+        delete m_edgecent[idim];
     }
 }
 
@@ -78,6 +88,13 @@ EBDataCollection::getMultiEBCellFlagFab () const
 {
     AMREX_ASSERT(m_cellflags != nullptr);
     return *m_cellflags;
+}
+
+const MultiFab&
+EBDataCollection::getLevelSet () const
+{
+    AMREX_ASSERT(m_levelset != nullptr);
+    return *m_levelset;
 }
 
 const MultiFab&
@@ -120,6 +137,13 @@ EBDataCollection::getFaceCent () const
 {
     AMREX_ASSERT(m_facecent[0] != nullptr);
     return {AMREX_D_DECL(m_facecent[0], m_facecent[1], m_facecent[2])};
+}
+
+Array<const MultiCutFab*, AMREX_SPACEDIM>
+EBDataCollection::getEdgeCent () const
+{
+    AMREX_ASSERT(m_edgecent[0] != nullptr);
+    return {AMREX_D_DECL(m_edgecent[0], m_edgecent[1], m_edgecent[2])};
 }
 
 const MultiCutFab&

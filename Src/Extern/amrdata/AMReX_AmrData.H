@@ -3,6 +3,7 @@
 // ---------------------------------------------------------------
 #ifndef AMREX_AMRDATA_H_
 #define AMREX_AMRDATA_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_AmrvisConstants.H>
 #include <AMReX_Array.H>
@@ -10,28 +11,23 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_VisMF.H>
 
-#include <vector>
-#include <fstream>
-#include <list>
+#include <iosfwd>
 #include <string>
-using std::list;
-using std::string;
-using std::vector;
 
 namespace amrex {
 
 class Interpolater;
 
 class AmrData {
-  
- protected: 
+
+ protected:
   // List of grids at each level, level 0 being coarsest.
   Vector<Vector<MultiFab *> > dataGrids;    // [level][component]
-  vector<vector<vector<bool> > > dataGridsDefined;  // [level][component][index]
+  Vector<Vector<std::vector<bool> > > dataGridsDefined;  // [level][component][index]
   Vector<Vector<VisMF *> > visMF;    // [level][whichMultiFab]
   Vector<int> compIndexToVisMFMap;  // [nComp]
   Vector<int> compIndexToVisMFComponentMap;  // [nComp]
-  
+
   int finestLevel;   // most refined level available
   Vector<int> refRatio; // refinement ratio between level L and L+1
   Vector< Vector<Real> > dxLevel;  // [level][dim];   // grid spacing
@@ -40,7 +36,7 @@ class AmrData {
   Vector<Box>  maxDomain;        // max problem domain size
   Vector<Real> probSize, probLo, probHi;
   Real time;
-  Vector<string> plotVars;
+  Vector<std::string> plotVars;
   Vector<Real> vfEps, afEps;
   int nComp, nGrow;
   int nRegions;         // number of boundary regions
@@ -48,24 +44,24 @@ class AmrData {
   int coordSys;
   Vector< Vector< FArrayBox *> > regions; // [lev][nReg]  ptrs to bndry data
   BoxArray fabBoxArray;  // used only for fileType == Amrvis::FAB
-  string plotFileVersion;
-  
+  std::string plotFileVersion;
+
   Amrvis::FileType fileType;
   bool bCartGrid, bShowBody;
   int  vCartGrid;  // ---- the CartGrid version
   bool bTerrain;
   Vector<int> levelSteps;
-  
+
  public:
   AmrData();
   ~AmrData();
-  
-  bool ReadData(const string &filename, Amrvis::FileType filetype);
-  bool ReadNonPlotfileData(const string &filename, Amrvis::FileType filetype);
-  
-  const Vector<string> &PlotVarNames() const { return plotVars; }
-  
-  int FinestLevel() const		{ return finestLevel; }
+
+  bool ReadData(const std::string &filename, Amrvis::FileType filetype);
+  bool ReadNonPlotfileData(const std::string &filename, Amrvis::FileType filetype);
+
+  const Vector<std::string> &PlotVarNames() const { return plotVars; }
+
+  int FinestLevel() const                { return finestLevel; }
   const Vector<int> &RefRatio() const      { return refRatio; }
   const BoxArray &boxArray(int level) const {
     if(fileType == Amrvis::FAB || (fileType == Amrvis::MULTIFAB && level == 0)) {
@@ -76,12 +72,12 @@ class AmrData {
       return visMF[level][0]->boxArray();
     }
   }
-  
+
   const DistributionMapping& DistributionMap (int level) const {
       if(fileType == Amrvis::FAB || (fileType == Amrvis::MULTIFAB && level == 0)) {
-	  return dataGrids[0][0]->DistributionMap();
+          return dataGrids[0][0]->DistributionMap();
       } else {
-	  return dataGrids[level][0]->DistributionMap();      
+          return dataGrids[level][0]->DistributionMap();
       }
   }
 
@@ -91,7 +87,7 @@ class AmrData {
   const Vector<Real> &ProbSize() const    { return probSize; }
   const Vector<Real> &ProbLo()   const    { return probLo;   }
   const Vector<Real> &ProbHi()   const    { return probHi;   }
-  
+
   // return physical location of cell at index ix, level lev
   // cellLoc   = location of cell center
   // loNodeLoc = location of node (vertex) on lower left hand corner
@@ -107,32 +103,32 @@ class AmrData {
   // returns the intvect, the finest level it is contained on,
   // and the intvect at the given finest level
   void IntVectFromLocation(const int finestFillLevel, const Vector<Real> &location,
-                           IntVect &ivLoc, int &ivLevel, IntVect &ivFinestFillLev);
-  
+                           IntVect &ivLoc, int &ivLevel, IntVect &ivFinestFillLev) const;
+
   const Vector< Vector< Vector<Real> > > &GridLocLo() const { return gridLocLo; }
   const Vector< Vector< Vector<Real> > > &GridLocHi() const { return gridLocHi; }
   const Vector< Vector<Real> > &DxLevel() const { return dxLevel; }
   const Vector<int> &LevelSteps() const { return levelSteps; }
-  
-  int NComp() const		{ return nComp; }
-  int BoundaryWidth() const	{ return boundaryWidth; }
-  int NGrow() const	        { return nGrow; }
-  int CoordSys() const	        { return coordSys; }
-  Real Time() const	        { return time; }
-  const string &PlotFileVersion() const { return plotFileVersion; }
-  
+
+  int NComp() const                { return nComp; }
+  int BoundaryWidth() const        { return boundaryWidth; }
+  int NGrow() const                { return nGrow; }
+  int CoordSys() const                { return coordSys; }
+  Real Time() const                { return time; }
+  const std::string &PlotFileVersion() const { return plotFileVersion; }
+
   // fill a databox using conservative interpolation
   void FillVar(FArrayBox *destFab, const Box &destBox,
-               int finestFillLevel, const string &varName, int procWithFabs);
+               int finestFillLevel, const std::string &varName, int procWithFabs);
   void FillVar(Vector<FArrayBox *> &destFabs, const Vector<Box> &destBoxes,
-               int finestFillLevel, const string &varName, int procWithFabs);
+               int finestFillLevel, const std::string &varName, int procWithFabs);
   void FillVar(MultiFab &destMultiFab, int finestFillLevel,
-	       const Vector<string> &varNames, const Vector<int> &destFillComps);
+               const Vector<std::string> &varNames, const Vector<int> &destFillComps);
   void FillVar(MultiFab &destMultiFab, int finestFillLevel,
-	       const string &varname, int destcomp = 0);
-  
-  const string &GetFileName() const { return fileName; }
-  
+               const std::string &varname, int destcomp = 0);
+
+  const std::string &GetFileName() const { return fileName; }
+
   void SetFileType(Amrvis::FileType type);
   Amrvis::FileType GetFileType() const     { return fileType;  }
   bool CartGrid() const            { return bCartGrid; }
@@ -144,21 +140,21 @@ class AmrData {
   bool Terrain()  const            { return bTerrain; }
 
   void SetBoundaryWidth(int width) { boundaryWidth = width; }
-  
-  bool CanDerive(const string &name) const;
-  bool CanDerive(const Vector<string> &names) const;
+
+  bool CanDerive(const std::string &name) const;
+  bool CanDerive(const Vector<std::string> &names) const;
   int  NumDeriveFunc() const;
   void ListDeriveFunc(std::ostream &os) const;
-  int  StateNumber(const string &statename) const;
-  
+  int  StateNumber(const std::string &statename) const;
+
   // return the finest level <= startLevel that fully contains box b
   // b is defined on startLevel
   int FinestContainingLevel(const Box &b, int startLevel) const;
-  
+
   // return the finest level <= startLevel that intersects box b
   // b is defined on startLevel
   int FinestIntersectingLevel(const Box &b, int startLevel) const;
-  
+
   // number of grids at level which intersect b
   int NIntersectingGrids(int level, const Box &b) const;
   MultiFab &GetGrids(int level, int componentIndex);
@@ -166,24 +162,24 @@ class AmrData {
 
   void FlushGrids(); // Clear all internal field data
   void FlushGrids(int componentIndex); // Clear all internal field data associated with this component
-  
+
   // calculate the min and max values of derived on onBox at level
   // return false if onBox did not intersect any grids
-  bool MinMax(const Box &onBox, const string &derived, int level,
+  bool MinMax(const Box &onBox, const std::string &derived, int level,
               Real &dataMin, Real &dataMax);
-  
+
   static void SetVerbose(bool tf)       { verbose = tf; }
   static bool Verbose()                 { return verbose; }
   static void SetSkipPltLines(int spl)  { skipPltLines = spl; }
   static void SetStaticBoundaryWidth(int bw)  { sBoundaryWidth = bw; }
-  
+
  private:
-  string fileName;
+  std::string fileName;
   static Amrvis::FileType defaultFileType;
   static bool verbose;
   static int  skipPltLines;
   static int  sBoundaryWidth;
-  
+
   // fill on interior by piecewise constant interpolation
   void FillInterior(FArrayBox &dest, int level, const Box &subbox);
   void Interp(FArrayBox &fine, FArrayBox &crse,

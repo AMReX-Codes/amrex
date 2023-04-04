@@ -1,6 +1,7 @@
 
 #ifndef AMREX_AmrLevel_H_
 #define AMREX_AmrLevel_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_REAL.H>
 #include <AMReX_Geometry.H>
@@ -9,15 +10,15 @@
 #include <AMReX_LayoutData.H>
 #include <AMReX_Derive.H>
 #include <AMReX_BCRec.H>
-#include <AMReX_Interpolater.H>
 #include <AMReX_Amr.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_StateDescriptor.H>
 #include <AMReX_StateData.H>
 #include <AMReX_VisMF.H>
+#include <AMReX_RungeKutta.H>
+#include <AMReX_FillPatcher.H>
 #ifdef AMREX_USE_EB
 #include <AMReX_EBSupport.H>
-#include <AMReX_EBInterpolater.H>
 #endif
 
 #include <memory>
@@ -27,9 +28,6 @@ namespace amrex {
 
 class TagBox;
 class TagBoxArray;
-template <class T>
-class MFGraph;
-class RGIter;
 
 /**
 * \brief Virtual base class for managing individual levels.
@@ -42,9 +40,6 @@ class AmrLevel
     friend class Amr;
     friend class FillPatchIterator;
     friend class FillPatchIteratorHelper;
-    template <class T> friend class MFGraph;
-    friend class RGIter;
-    friend class AsyncFillPatchIterator;
 
 public:
     //! What time are we at?
@@ -56,10 +51,16 @@ public:
                      AmrOtherTime };
     //! The destructor.
     virtual ~AmrLevel ();
+
+    AmrLevel (const AmrLevel&) = delete;
+    AmrLevel (AmrLevel&&) = delete;
+    AmrLevel& operator= (const AmrLevel&) = delete;
+    AmrLevel& operator= (AmrLevel&&) = delete;
+
     //! Get the level directory names
     void LevelDirectoryNames (const std::string &dir,
                               std::string &LevelDir,
-                              std::string &FullPath);
+                              std::string &FullPath) const;
     //! Create the Level_ directory for checkpoint and plot files
     virtual void CreateLevelDirectory (const std::string &dir);
     /**
@@ -69,7 +70,7 @@ public:
     void SetLevelDirectoryCreated(bool ldc) noexcept { levelDirectoryCreated = ldc; }
     /**
     * \brief A string written as the first item in writePlotFile() at
-    * level zero. 
+    * level zero.
     * It is so we can distinguish between different types of
     * plot files.
     * This default "HyperCLaw-V1.1" is for VisIt software and some of our
@@ -81,9 +82,7 @@ public:
         return the_plot_file_type;
     }
     /**
-    * \brief Write plot file stuff to specified directory.  This is a
-    * pure virtual function and hence MUST be implemented by
-    * derived classes.
+    * \brief Write plot file stuff to specified directory.
     */
     virtual void writePlotFile (const std::string& dir,
                                 std::ostream&      os,
@@ -98,13 +97,11 @@ public:
                                     std::ostream&      os);
 
     /**
-    * \brief Write small plot file stuff to specified directory.  
-    * Unlike writePlotFile, this is NOT a pure virtual function 
-    * so implementation by derived classes is optional.
+    * \brief Write small plot file stuff to specified directory.
     */
-    virtual void writeSmallPlotFile (const std::string& dir,
-                                     std::ostream&      os,
-				     VisMF::How         how = VisMF::NFiles) {};
+    virtual void writeSmallPlotFile (const std::string& /*dir*/,
+                                     std::ostream&      /*os*/,
+                                     VisMF::How         /*how*/ = VisMF::NFiles) {}
     //! Write current state to checkpoint file.
     virtual void checkPoint (const std::string& dir,
                              std::ostream&      os,
@@ -119,7 +116,7 @@ public:
     //! Restart from a checkpoint file.
     virtual void restart (Amr&          papa,
                           std::istream& is,
-			  bool          bReadSpecial = false);
+                          bool          bReadSpecial = false);
 
     //! Old checkpoint may have different number of states than the new source code.
     virtual void set_state_in_checkpoint (Vector<int>& state_in_checkpoint);
@@ -162,19 +159,11 @@ public:
                           int  iteration,
                           int  ncycle) = 0;
 
-#ifdef USE_PERILLA
-    // For Perilla initialization
-    virtual void initPerilla (Real time)=0;
-    virtual void finalizePerilla (Real time)=0;
-#endif
-
-
     /**
-    * \brief Contains operations to be done after a timestep.  This is a
-    * pure virtual function and hence MUST be implemented by derived
-    * classes.
+    * \brief Contains operations to be done after a timestep.  If this
+    * function is overridden, don't forget to reset FillPatcher.
     */
-    virtual  void post_timestep (int iteration) = 0;
+    virtual void post_timestep (int iteration);
     /**
     * \brief Contains operations to be done only after a full coarse
     * timestep.  The default implementation does nothing.
@@ -183,7 +172,7 @@ public:
     /**
     * \brief Operations to be done after restart.
     */
-    virtual void post_restart () {};
+    virtual void post_restart () {}
     /**
     * \brief Operations to be done after regridding
     * This is a pure virtual function and hence MUST be
@@ -203,7 +192,7 @@ public:
     virtual  int okToContinue () { return 1; }
     /**
     * \brief Should I regrid with this level as base level?
-    * This test is only evaluated if regrid_int > 0 and 
+    * This test is only evaluated if regrid_int > 0 and
     * level_count >= regrid_int as well. Defaults to true.
     */
     virtual  int okToRegrid ();
@@ -246,9 +235,9 @@ public:
     //
     const FabFactory<FArrayBox>& Factory () const noexcept { return *m_factory; }
     //! Number of grids at this level.
-    int numGrids () const noexcept { return grids.size(); }
+    int numGrids () const noexcept { return static_cast<int>(grids.size()); }
     //! Number of states at this level.
-    int numStates () const noexcept { return state.size(); }
+    int numStates () const noexcept { return static_cast<int>(state.size()); }
     //! Returns the indices defining physical domain.
     const Box& Domain () const noexcept { return geom.Domain(); }
     //! Timestep n at this level.
@@ -261,12 +250,14 @@ public:
     Long countCells () const noexcept;
 
     //! Get the area not to tag.
-    const BoxArray& getAreaNotToTag() noexcept;
-    const Box& getAreaToTag() noexcept;
-    //! Constuct the area not to tag.
-    void constructAreaNotToTag();
+    const BoxArray& getAreaNotToTag () noexcept;
+    const Box& getAreaToTag () noexcept;
+    //! Construct the area not to tag.
+    void constructAreaNotToTag ();
     //! Set the area not to tag.
-    void setAreaNotToTag(BoxArray& ba) noexcept;
+    void setAreaNotToTag (BoxArray& ba) noexcept;
+
+    void resetFillPatcher ();
 
     /**
     * \brief Error estimation for regridding. This is a pure virtual
@@ -276,16 +267,16 @@ public:
                            int          clearval,
                            int          tagval,
                            Real         time,
-			   int          n_error_buf = 0,
+                           int          n_error_buf = 0,
                            int          ngrow = 0) = 0;
-    //! Interpolate from coarse level to the valid area in dest.
-    void FillCoarsePatch (MultiFab& dest,
+    //! Interpolate from coarse level to the valid area in mf.
+    void FillCoarsePatch (MultiFab& mf,
                           int       dcomp,
                           Real      time,
                           int       state_idx,
                           int       scomp,
                           int       ncomp,
-			  int       nghost = 0);
+                          int       nghost = 0);
     //! Function to set physical boundary conditions.
     virtual void setPhysBoundaryValues (FArrayBox& dest,
                                         int        state_indx,
@@ -300,8 +291,8 @@ public:
     * grown BoxArray.
     */
     virtual std::unique_ptr<MultiFab> derive (const std::string& name,
-					      Real               time,
-					      int                ngrow);
+                                              Real               time,
+                                              int                ngrow);
     /**
     * \brief This version of derive() fills the dcomp'th component of mf
     * with the derived quantity.
@@ -325,7 +316,7 @@ public:
     //! Returns list of derived variables.
     static DeriveList& get_derive_lst () noexcept;
     //! Returns whether or not we want a post-timestep regrid.
-    int postStepRegrid () noexcept { return post_step_regrid; }
+    int postStepRegrid () const noexcept { return post_step_regrid; }
     //! Sets a new value for the post-timestep regrid trigger.
     void setPostStepRegrid (int new_val) noexcept { post_step_regrid = new_val; }
 
@@ -334,9 +325,9 @@ public:
 
     //! Boundary condition access function.
     Vector<int> getBCArray (int State_Type,
-			   int gridno,
-			   int scomp,
-			   int ncomp);
+                            int gridno,
+                            int strt_comp,
+                            int ncomp);
     //! Get state data at specified index and time.
     MultiFab& get_data (int  state_indx, Real time) noexcept;
     //! Hack to allow override of (non-fine-fine) fillpatched boundary data
@@ -346,7 +337,7 @@ public:
                                                 int       dcomp,
                                                 int       ncomp,
                                                 Real      time) const;
-    /** 
+    /**
     * \brief Called in grid_places after other tagging routines to modify
     * the list of tagged points.  Default implementation does nothing.
     */
@@ -369,7 +360,7 @@ public:
     /**
     * \brief Returns one the TimeLevel enums.
     * Asserts that time is between AmrOldTime and AmrNewTime.
-    */ 
+    */
     TimeLevel which_time (int  state_indx, Real time) const noexcept;
 
     //! Does the AmrLevel want Amr to write a plotfile now?
@@ -379,9 +370,23 @@ public:
     virtual bool writeSmallPlotNow ();
 
 #ifdef AMREX_PARTICLES
-    //! This function can be called from the parent 
-    virtual void particle_redistribute (int lbase = 0, bool a_init = false) {;}
+    //! This function can be called from the parent
+    virtual void particle_redistribute (int /*lbase*/ = 0, bool /*a_init*/ = false) {;}
 #endif
+
+    /**
+     * \brief Fill with FillPatcher on level > 0 and AmrLevel::FillPatch on level 0.
+     *
+     * \param mf     destination MultiFab
+     * \param dcomp  starting component for the destination
+     * \param ncomp  number of component to fill
+     * \param nghost number of ghost cells to fill
+     * \param time   time
+     * \param state_index StateData index
+     * \param scomp  starting component in the StateData
+     */
+    void FillPatcherFill (amrex::MultiFab& mf, int dcomp, int ncomp, int nghost,
+                          amrex::Real time, int state_index, int scomp);
 
     static void FillPatch (AmrLevel& amrlevel,
                            MultiFab& leveldata,
@@ -398,9 +403,34 @@ public:
                               Real      time,
                               int       index,
                               int       scomp,
-                             int       ncomp,
-                             int       dcomp=0);
-    
+                              int       ncomp,
+                              int       dcomp=0);
+
+    /**
+     * \brief Evolve one step with Runge-Kutta (2, 3, or 4)
+     *
+     * To use RK, the StateData must have all the ghost cells needed.  See
+     * namespace RungeKutta for expected function signatures of the callable
+     * parameters.
+     *
+     * \param order      order of RK
+     * \param state_type index of StateData
+     * \param time       time at the beginning of the step.
+     * \param dt         time step
+     * \param iteration  iteration number on fine level during a coarse time
+     *                   step.  For an AMR simulation with subcycling and a
+     *                   refinement ratio of 2, the number is either 1 or 2,
+     *                   denoting the first and second substep, respectively.
+     * \param ncycle     number of subcyling steps.  It's usually 2 or 4.
+     *                   Without subcycling, this will be 1.
+     * \param f          computing right-hand side for evolving the StateData.
+     *                   One can also register data for flux registers in this.
+     * \param p          optionally post-processing RK stage results
+     */
+    template <typename F, typename P = RungeKutta::PostStageNoOp>
+    void RK (int order, int state_type, Real time, Real dt, int iteration,
+             int ncycle, F&& f, P&& p = RungeKutta::PostStageNoOp());
+
 #ifdef AMREX_USE_EB
     static void SetEBMaxGrowCells (int nbasic, int nvolume, int nfull) noexcept {
         m_eb_basic_grow_cells = nbasic;
@@ -414,47 +444,59 @@ public:
     static EBSupport      m_eb_support_level;
 #endif
 
+    //! Recommendation of a proper blocking factor
+    static IntVect ProperBlockingFactor (AmrLevel const& amr_level, int boxGrow,
+                                         IndexType const& boxType,
+                                         StateDescriptor const& desc, int SComp);
+
 protected:
     //! The constructors -- for derived classes.
-    AmrLevel () noexcept;
+    AmrLevel () noexcept {} // NOLINT
 
     AmrLevel (Amr&            papa,
               int             lev,
               const Geometry& level_geom,
-              const BoxArray& bl,
-	      const DistributionMapping& dm,
+              const BoxArray& ba,
+              const DistributionMapping& dm,
               Real            time);
 
-    AmrLevel (const AmrLevel&) = delete;
-    AmrLevel& operator = (const AmrLevel&) = delete;
-
     //! Common code used by all constructors.
-    void finishConstructor (); 
+    void finishConstructor ();
 
     //
     // The Data.
     //
-    int                   level;        // AMR level (0 is coarsest).
+    int                   level{-1};    // AMR level (0 is coarsest).
     Geometry              geom;         // Geom at this level.
     BoxArray              grids;        // Cell-centered locations of grids.
     DistributionMapping   dmap;         // Distribution of grids among processes
-    Amr*                  parent;       // Pointer to parent AMR structure.
+    Amr*                  parent{nullptr};// Pointer to parent AMR structure.
     IntVect               crse_ratio;   // Refinement ratio to coarser level.
     IntVect               fine_ratio;   // Refinement ratio to finer level.
     static DeriveList     derive_lst;   // List of derived quantities.
     static DescriptorList desc_lst;     // List of state variables.
-    Vector<StateData>      state;        // Array of state data.
+    Vector<StateData>     state;        // Array of state data.
 
-    BoxArray              m_AreaNotToTag; //Area which shouldn't be tagged on this level.
-    Box                   m_AreaToTag;    //Area which is allowed to be tagged on this level.
+    BoxArray m_AreaNotToTag; //Area which shouldn't be tagged on this level.
+    Box      m_AreaToTag;    //Area which is allowed to be tagged on this level.
 
-    int                   post_step_regrid; // Whether or not to do a regrid after the timestep.
+    int post_step_regrid{0}; // Whether or not to do a regrid after the timestep.
 
-    bool                  levelDirectoryCreated;    // for checkpoints and plotfiles
+    bool levelDirectoryCreated{false}; // for checkpoints and plotfiles
 
     std::unique_ptr<FabFactory<FArrayBox> > m_factory;
 
+    Vector<std::unique_ptr<FillPatcher<MultiFab>>> m_fillpatcher;
+
 private:
+
+    template <std::size_t order>
+    void storeRKCoarseData (int state_type, Real time, Real dt,
+                            MultiFab const& S_old,
+                            Array<MultiFab,order> const& rkk);
+
+    void FillRKPatch (int state_index, MultiFab& S, Real time,
+                      int stage, int iteration, int ncycle);
 
     mutable BoxArray      edge_grids[AMREX_SPACEDIM];  // face-centered grids
     mutable BoxArray      nodal_grids;              // all nodal grids
@@ -480,17 +522,15 @@ class FillPatchIterator
                        MultiFab& leveldata,
                        int       boxGrow,
                        Real      time,
-                       int       state_indx,
+                       int       idx,
                        int       scomp,
                        int       ncomp);
 
     void Initialize (int  boxGrow,
                      Real time,
-                     int  state_indx,
+                     int  idx,
                      int  scomp,
                      int  ncomp);
-
-    ~FillPatchIterator ();
 
     FArrayBox& operator() () noexcept { return m_fabs[MFIter::index()]; }
 
@@ -498,120 +538,10 @@ class FillPatchIterator
 
     MultiFab& get_mf() noexcept { return m_fabs; }
 
-#ifdef USE_PERILLA
-    FillPatchIterator (AmrLevel& amrlevel,
-                       MultiFab& leveldata,
-                       int       boxGrow,
-                       Real      time,
-                       int       state_indx,
-                       int       scomp,
-                       int       ncomp,
-                       int       f);
+private:
 
-    void initFillPatch(int boxGrow, int time, int index, int scomp, int ncomp, int iter);
-
-    void InitializePush (int  boxGrow,
-                         Real time,
-                         int  state_indx,
-                         int  scomp,
-                         int  ncomp,
-                         int f);
-
-    void InitializePull (int  boxGrow,
-                         Real time,
-                         int  state_indx,
-                         int  scomp,
-                         int  ncomp,
-                         int f);
-
-    void FillPatchPush (int  boxGrow,
-                         Real time,
-                         int  state_indx,
-                         int  scomp,
-                         int  ncomp,
-                         int f,
-                         unsigned char pushLevel,
-                         bool singleT=false);
-
-    void FillPatchPull (int  boxGrow,
-                         Real time,
-                         int  state_indx,
-                         int  scomp,
-                         int  ncomp,
-                         int f,
-                         bool singleT=false);
-
-    void finalizeGraphs()
-    {
-      //std::cout << "Completing RGs ";
-
-      if(destGraph != NULL)
-        {
-          //std::cout << destGraph->graphID << " ";
-           destGraph->finalizeGraph();
-        }
-      if(csrcGraph != NULL)
-        {
-          //std::cout << csrcGraph->graphID << " ";
-          csrcGraph->finalizeGraph();
-        }
-      if(fsrcGraph != NULL)
-        {
-          //std::cout << fsrcGraph->graphID << " ";
-          fsrcGraph->finalizeGraph();
-        }
-      if(m_rg_crse_patch != NULL)
-        {
-          //std::cout << m_rg_crse_patch->graphID << " ";
-          m_rg_crse_patch->finalizeGraph();
-        }
-
-      //std::cout <<" by tg " << tg << std::endl;
-    }
-
-    void Reset()
-    {
-      int tg= perilla::wid();
-      //std::cout << "Resetting RGs ";
-      if(destGraph != NULL)
-        {
-          //std::cout << destGraph->graphID << " ";
-           destGraph->Reset();
-        }
-      if(csrcGraph != NULL)
-        {
-          //std::cout << csrcGraph->graphID << " ";
-          csrcGraph->Reset();
-        }
-      if(fsrcGraph != NULL)
-        {
-          //std::cout << fsrcGraph->graphID << " ";
-          fsrcGraph->Reset();
-        }
-      if(m_rg_crse_patch != NULL)
-        {
-          //std::cout << m_rg_crse_patch->graphID << " ";
-          m_rg_crse_patch->Reset();
-        }
-      //std::cout <<" by tg " << tg << std::endl;
-    }
-
-    RegionGraph* get_destGraph(){return destGraph;}
-    RegionGraph* get_crscGraph(){return csrcGraph;}
-    RegionGraph* get_fsrcGraph(){return fsrcGraph;}
-#endif
-
-    
-  private:
-    //
-    // Disallowed.
-    //
-    FillPatchIterator ();
-    FillPatchIterator (const FillPatchIterator& rhs);
-    FillPatchIterator& operator= (const FillPatchIterator& rhs);
-
-    void FillFromLevel0 (Real time, int index, int scomp, int dcomp, int ncomp);
-    void FillFromTwoLevels (Real time, int index, int scomp, int dcomp, int ncomp);
+    void FillFromLevel0 (Real time, int idx, int scomp, int dcomp, int ncomp);
+    void FillFromTwoLevels (Real time, int idx, int scomp, int dcomp, int ncomp);
 
     //
     // The data.
@@ -621,80 +551,6 @@ class FillPatchIterator
     std::vector< std::pair<int,int> > m_range;
     MultiFab                          m_fabs;
     int                               m_ncomp;
-
-public:
-#ifdef USE_PERILLA
-    RegionGraph*                      destGraph;
-    RegionGraph*                      csrcGraph;
-    RegionGraph*                      fsrcGraph;
-    RegionGraph*                      m_rg_crse_patch;
-    std::list<RegionGraph*>	      regionList;
-    std::list<MultiFab*>	      mfList;
-    std::list<StateDataPhysBCFunct*>  stateDataList;
-
-
-
-    MultiFab*                         m_mf_crse_patch;
-    const FabArrayBase::FPinfo*       m_fpc;
-    MultiFab*                         dmf;
-    MultiFab*                         dmff;
-    Vector<MultiFab*>                 smf;
-    Geometry*                         geom;
-    StateDataPhysBCFunct*             physbcf;
-    bool                              isProperlyNested;
-    Vector<MultiFab*>                 smf_crse;
-    Vector<Real>                      stime_crse;
-    StateDataPhysBCFunct*             physbcf_crse;
-    Geometry*                         geom_crse;
-    Vector<MultiFab*>                 smf_fine;
-    Vector<Real>                      stime_fine;
-    StateDataPhysBCFunct*             physbcf_fine;
-    Geometry*                         geom_fine;
-
-    Vector<Real>                 stime;
-    void FillFromLevel0Push (Real time, int index, int scomp, int dcomp, int ncomp, int f);
-    void FillFromLevel0PushOnly (Real time, int index, int scomp, int dcomp, int ncomp, int f, bool singleT);
-    void FillFromLevel0Pull (Real time, int index, int scomp, int dcomp, int ncomp, int f, bool singleT);
-    void FillFromTwoLevelsPushOnly (Real time, int index, int scomp, int dcomp, int ncomp, int f, unsigned char pushLevel, bool singleT);
-    void FillFromTwoLevelsPush (Real time, int index, int scomp, int dcomp, int ncomp, int f, unsigned char pushLevel, bool singleT);
-    void FillFromTwoLevelsPull (Real time, int index, int scomp, int dcomp, int ncomp, int f, bool singleT);
-    void FillPatchTwoLevelsPush (Amr& amr, MultiFab& mf, Real time,
-                                 Vector<MultiFab*>& cmf, Vector<Real>& ct,
-                                 Vector<MultiFab*>& fmf, Vector<Real>& ft,
-                                 RegionGraph* destGraph, RegionGraph* csrcGraph, RegionGraph* fsrcGraph, int f,
-                                 FillPatchIterator* fpIter,
-                                 MultiFab *dmf,
-                                 MultiFab *dmff,
-                                 int scomp, int dcomp, int ncomp,
-                                 const Geometry& cgeom, const Geometry& fgeom,
-                                 StateDataPhysBCFunct& cbc, StateDataPhysBCFunct& fbc,
-                                 const IntVect& ratio,
-                                 Interpolater* mapper, const Vector<BCRec>& bcs, unsigned char pushLevel, bool singleT);
-
-    void FillPatchTwoLevelsPull (MultiFab& mf, Real time,
-                                 Vector<MultiFab*>& cmf, Vector<Real>& ct,
-                                 Vector<MultiFab*>& fmf, Vector<Real>& ft,
-                                 RegionGraph* destGraph, RegionGraph* csrcGraph, RegionGraph* fsrcGraph, int f,
-                                 FillPatchIterator* fpIter,
-                                 int scomp, int dcomp, int ncomp,
-                                 const Geometry& cgeom, const Geometry& fgeom,
-                                 StateDataPhysBCFunct& cbc, StateDataPhysBCFunct& fbc,
-                                 const IntVect& ratio,
-                                 Interpolater* mapper, const Vector<BCRec>& bcs, bool singleT);
-
-    void FillPatchSingleLevelPush (Amr& amr, MultiFab& mf, Real time,
-                                   Vector<MultiFab*>& smf, Vector<Real>& stime,
-                                   RegionGraph* destGraph, RegionGraph* srcGraph, int f,
-                                   MultiFab *dmf,
-                                   int scomp, int dcomp, int ncomp,
-                                   const Geometry& geom, StateDataPhysBCFunct& physbcf, bool singleT);
-    void FillPatchSingleLevelPull (MultiFab& mf, Real time,
-                                   Vector<MultiFab*>& smf, Vector<Real>& stime,
-                                   RegionGraph* destGraph, RegionGraph* srcGraph, int f,
-                                   int scomp, int dcomp, int ncomp,
-                                   const Geometry& geom, StateDataPhysBCFunct& physbcf, bool singleT);
-
-#endif
 };
 
 class FillPatchIteratorHelper
@@ -710,29 +566,21 @@ public:
                              MultiFab&     leveldata,
                              int           boxGrow,
                              Real          time,
-                             int           state_indx,
+                             int           index,
                              int           scomp,
                              int           ncomp,
-                             Interpolater* mapper);
+                             InterpBase*   mapper);
 
     void Initialize (int           boxGrow,
                      Real          time,
-                     int           state_indx,
+                     int           idx,
                      int           scomp,
                      int           ncomp,
-                     Interpolater* mapper);
-
-    ~FillPatchIteratorHelper ();
+                     InterpBase*   mapper);
 
     void fill (FArrayBox& fab, int dcomp, int idx);
 
 private:
-    //
-    // Disallowed.
-    //
-    FillPatchIteratorHelper ();
-    FillPatchIteratorHelper (const FillPatchIteratorHelper& rhs);
-    FillPatchIteratorHelper& operator= (const FillPatchIteratorHelper& rhs);
     //
     // The data.
     //
@@ -754,327 +602,72 @@ private:
     std::map< int,Vector< Vector< Vector<FillBoxId> > > > m_fbid; // [grid][level][fillablesubbox][oldnew]
 };
 
-
-  //////////////////////////////////////Perilla/////////////////////
-#ifdef USE_PERILLA
-class AsyncFillPatchIterator
-    :
-    public MFIter
+template <typename F, typename P>
+void AmrLevel::RK (int order, int state_type, Real time, Real dt, int iteration,
+                   int ncycle, F&& f, P&& p)
 {
-  public:
+    BL_PROFILE("AmrLevel::RK()");
 
-  friend class AmrLevel;
-  friend class RGIter;
+    AMREX_ASSERT(AmrLevel::desc_lst[state_type].nExtra() > 0); // Need ghost cells in StateData
 
-    AsyncFillPatchIterator (AmrLevel& amrlevel,
-                            MultiFab& leveldata,
-                            int       boxGrow,
-                            Real      time,
-                            int       state_indx,
-                            int       scomp,
-                            int       ncomp,
-                            int iter);
+    MultiFab& S_old = get_old_data(state_type);
+    MultiFab& S_new = get_new_data(state_type);
+    const Real t_old = state[state_type].prevTime();
+    const Real t_new = state[state_type].curTime();
+    AMREX_ALWAYS_ASSERT(amrex::almostEqual(time,t_old) && amrex::almostEqual(time+dt,t_new));
 
-    void initFillPatch(int boxGrow,
-                       Real time,
-                       int index,
-                       int scomp,
-                       int ncomp,
-                       int iter);
-
-    static void  initialSend(amrex::Vector<amrex::AsyncFillPatchIterator*> afpi,
-                             amrex::Vector<amrex::AsyncFillPatchIterator*> upper_afpi,
-                             int  boxGrow,
-                             Real time,
-                             int  state_indx,
-                             int  scomp,
-                             int  ncomp,
-                             int  iter);
-
-    void PushOnly (int  boxGrow,
-                   Real time,
-                   int  state_indx,
-                   int  scomp,
-                   int  ncomp,
-                   int f,
-                   unsigned char pushLevel,
-                   bool singleT=false);
-
-    void SendIntraLevel (RGIter& rgi,
-                         int  boxGrow,
-                         Real time,
-                         int  state_indx,
-                         int  scomp,
-                         int  ncomp,
-                         int  iter,
-                         int f,
-                         bool singleT=false);
-
-    void SendIntraLevel (RGIter* rgi,
-                         int  boxGrow,
-                         Real time,
-                         int  state_indx,
-                         int  scomp,
-                         int  ncomp,
-                         int  iter,
-                         int f,
-                         bool singleT=false);
-
-    void SendInterLevel (RGIter& rgi,
-                         int  boxGrow,
-                         Real time,
-                         int  state_indx,
-                         int  scomp,
-                         int  ncomp,
-                         int  iter,
-                         int f,
-                         bool singleT=false);
-
-    void SendInterLevel (RGIter* rgi,
-                         int  boxGrow,
-                         Real time,
-                         int  state_indx,
-                         int  scomp,
-                         int  ncomp,
-                         int  iter,
-                         int f,
-                         bool singleT=false);
-
-    void Receive (RGIter& rgi,
-                   int  boxGrow,
-                   Real time,
-                   int  state_indx,
-                   int  scomp,
-                   int  ncomp,
-                   int f,
-                   bool singleT=false);
-
-    void Receive (RGIter* rgi,
-                   int  boxGrow,
-                   Real time,
-                   int  state_indx,
-                   int  scomp,
-                   int  ncomp,
-                   int f,
-                   bool singleT=false);
-
-    void Receive (RGIter& rgi,
-                  MultiFab& dest,
-                  int  boxGrow,
-                  Real time,
-                  int  state_indx,
-                  int  scomp,
-                  int  ncomp,
-                  int f,
-                  bool singleT=false);
-
-    void Receive (RGIter* rgi,
-                  MultiFab& dest,
-                  int  boxGrow,
-                  const Real time,
-                  int  state_indx,
-                  int  scomp,
-                  int  ncomp,
-                  int f,
-                  bool singleT=false);
-
-    void PullOnly (int  boxGrow,
-                   Real time,
-                   int  state_indx,
-                   int  scomp,
-                   int  ncomp,
-                   int f,
-                   bool singleT=false);
-
-    void PullOnly (MultiFab& dest,
-                   int  boxGrow,
-                   Real time,
-                   int  state_indx,
-                   int  scomp,
-                   int  ncomp,
-                   int f,
-                   bool singleT=false);
-
-    void FillPatchTwoLevelsPush (Amr& amr, MultiFab& mf, Real time,
-                                 Vector<MultiFab*>& cmf, Vector<Real>& ct,
-                                 Vector<MultiFab*>& fmf, Vector<Real>& ft,
-                                 RegionGraph* destGraph, RegionGraph* csrcGraph, RegionGraph* fsrcGraph, int f,
-                                 AsyncFillPatchIterator* fpIter,
-                                 MultiFab *dmf,
-                                 MultiFab *dmff,
-                                 int scomp, int dcomp, int ncomp,
-                                 const Geometry& cgeom, const Geometry& fgeom,
-                                 StateDataPhysBCFunct& cbc, StateDataPhysBCFunct& fbc,
-                                 const IntVect& ratio,
-                                 Interpolater* mapper, const Vector<BCRec>& bcs, unsigned char pushLevel, bool singleT);
-
-    void FillPatchTwoLevelsPull (MultiFab& mf, Real time,
-                                 Vector<MultiFab*>& cmf, Vector<Real>& ct,
-                                 Vector<MultiFab*>& fmf, Vector<Real>& ft,
-                                 RegionGraph* destGraph, RegionGraph* csrcGraph, RegionGraph* fsrcGraph, int f,
-                                 AsyncFillPatchIterator* fpIter,
-                                 int scomp, int dcomp, int ncomp,
-                                 const Geometry& cgeom, const Geometry& fgeom,
-                                 StateDataPhysBCFunct& cbc, StateDataPhysBCFunct& fbc,
-                                 const IntVect& ratio,
-                                 Interpolater* mapper, const Vector<BCRec>& bcs, bool singleT);
-
-    void FillPatchSingleLevelPush (Amr& amr, MultiFab& mf, Real time,
-                                   Vector<MultiFab*>& smf, const Vector<Real>& stime,
-                                   RegionGraph* destGraph, RegionGraph* srcGraph, int f,
-                                   MultiFab *dmf,
-                                   int scomp, int dcomp, int ncomp,
-                                   const Geometry& geom, StateDataPhysBCFunct& physbcf, bool singleT);
-    void FillPatchSingleLevelPull (MultiFab& mf, Real time,
-                                   Vector<MultiFab*>& smf, const Vector<Real>& stime,
-                                   RegionGraph* destGraph, RegionGraph* srcGraph, int f,
-                                   int scomp, int dcomp, int ncomp,
-                                   const Geometry& geom, StateDataPhysBCFunct& physbcf, bool singleT);
-
-    void FillFromTwoLevelsPush (Real time,
-                                int index,
-                                int scomp,
-                                int dcomp,
-                                int ncomp,
-                                int f,
-                                unsigned char pushLevel,
-                                bool singleT);
-    void FillFromTwoLevelsPull (Real time,
-                                int index,
-                                int scomp,
-                                int dcomp,
-                                int ncomp,
-                                int f,
-                                bool singleT);
-
-    void FillFromTwoLevelsPull (MultiFab& dest,
-                                Real time,
-                                int index,
-                                int scomp,
-                                int dcomp,
-                                int ncomp,
-                                int f,
-                                bool singleT);
-
-    ~AsyncFillPatchIterator ();
-
-    FArrayBox& operator() () { return m_fabs[MFIter::index()]; }
-
-    Box UngrownBox () const { return MFIter::validbox(); }
-
-    MultiFab& get_mf() { return m_fabs; }
-
-  //  protected:
-    //
-    // Disallowed.
-    //
-    AsyncFillPatchIterator ();
-    AsyncFillPatchIterator (const AsyncFillPatchIterator& rhs);
-    AsyncFillPatchIterator& operator= (const AsyncFillPatchIterator& rhs);
-
-    //
-    // The data.
-    //
-    AmrLevel&                         m_amrlevel;
-    MultiFab&                         m_leveldata;
-    std::vector< std::pair<int,int> > m_range;
-    MultiFab                          m_fabs;
-    int                               m_ncomp;
-
-public:
-    bool                              isProperlyNested;
-
-    amrex::Vector<MultiFab*>                  smf;
-    amrex::Vector<Real>                       stime;
-    StateDataPhysBCFunct*             physbcf;
-    Geometry*                         geom;
-
-
-    amrex::Vector<MultiFab*>                  smf_crse;
-    amrex::Vector<Real>                       stime_crse;
-    StateDataPhysBCFunct*             physbcf_crse;
-    Geometry*                         geom_crse;
-
-    amrex::Vector<MultiFab*>                  smf_fine;
-    amrex::Vector<Real>                       stime_fine;
-    StateDataPhysBCFunct*             physbcf_fine;
-    Geometry*                         geom_fine;
-
-
-    RegionGraph*                      destGraph;
-    RegionGraph*                      csrcGraph;
-    RegionGraph*                      fsrcGraph;
-
-    MultiFab*                         m_mf_crse_patch;
-    RegionGraph*                      m_rg_crse_patch;
-    const FabArrayBase::FPinfo*       m_fpc;
-
-  //PArray<MultiFab>                  raii;
-    MultiFab*                         dmf;
-    MultiFab*                         dmff;
-    std::list<RegionGraph*>           regionList;
-    std::list<MultiFab*>              mfList;
-    std::list<StateDataPhysBCFunct*>  stateDataList;
-
-
-
-    void completeRegionGraphs()
-    { 
-      //std::cout << "Completing RGs ";
-      
-      if(destGraph != NULL)
-        { 
-          //std::cout << destGraph->graphID << " ";
-           destGraph->finalizeRegionGraph();
-        }
-      if(csrcGraph != NULL)
-        { 
-          //std::cout << csrcGraph->graphID << " ";
-          csrcGraph->finalizeRegionGraph();
-        }
-      if(fsrcGraph != NULL)
-        { 
-          //std::cout << fsrcGraph->graphID << " ";
-          fsrcGraph->finalizeRegionGraph();
-        }
-      if(m_rg_crse_patch != NULL)
-        { 
-          //std::cout << m_rg_crse_patch->graphID << " ";
-          m_rg_crse_patch->finalizeRegionGraph();
-        }
-      //std::cout <<" by tg " << tg << std::endl;
+    if (order == 2) {
+        RungeKutta::RK2(S_old, S_new, time, dt, std::forward<F>(f),
+                        [&] (int /*stage*/, MultiFab& mf, Real t) {
+                            FillPatcherFill(mf, 0, mf.nComp(), mf.nGrow(), t,
+                                            state_type, 0); },
+                        std::forward<P>(p));
+    } else if (order == 3) {
+        RungeKutta::RK3(S_old, S_new, time, dt, std::forward<F>(f),
+                        [&] (int stage, MultiFab& mf, Real t) {
+                            FillRKPatch(state_type, mf, t, stage, iteration, ncycle);
+                        },
+                        [&] (Array<MultiFab,3> const& rkk) {
+                            if (level < parent->finestLevel()) {
+                                storeRKCoarseData(state_type, time, dt, S_old, rkk);
+                            }
+                        },
+                        std::forward<P>(p));
+    } else if (order == 4) {
+        RungeKutta::RK4(S_old, S_new, time, dt, std::forward<F>(f),
+                        [&] (int stage, MultiFab& mf, Real t) {
+                            FillRKPatch(state_type, mf, t, stage, iteration, ncycle);
+                        },
+                        [&] (Array<MultiFab,4> const& rkk) {
+                            if (level < parent->finestLevel()) {
+                                storeRKCoarseData(state_type, time, dt, S_old, rkk);
+                            }
+                        },
+                        std::forward<P>(p));
+    } else {
+        amrex::Abort("AmrLevel::RK: order = "+std::to_string(order)+" is not supported");
     }
+}
 
-    void Reset()
-    {
-      //std::cout << "Resetting RGs ";
-      if(destGraph != NULL)
-        {
-          //std::cout << destGraph->graphID << " ";
-           destGraph->Reset();
-        }
-      if(csrcGraph != NULL)
-        {
-          //std::cout << csrcGraph->graphID << " ";
-          csrcGraph->Reset();
-        }
-      if(fsrcGraph != NULL)
-        {
-          //std::cout << fsrcGraph->graphID << " ";
-          fsrcGraph->Reset();
-        }
-      if(m_rg_crse_patch != NULL)
-        {
-          //std::cout << m_rg_crse_patch->graphID << " ";
-          m_rg_crse_patch->Reset();
-        }
-      //std::cout <<" by tg " << tg << std::endl;
-    }
+template <std::size_t order>
+void AmrLevel::storeRKCoarseData (int state_type, Real time, Real dt,
+                                  MultiFab const& S_old,
+                                  Array<MultiFab,order> const& rkk)
+{
+    if (level == parent->finestLevel()) { return; }
 
-  // Variables for optimization calls of two level push/pulll
+    const StateDescriptor& desc = AmrLevel::desc_lst[state_type];
 
-};
-#endif
+    auto& fillpatcher = parent->getLevel(level+1).m_fillpatcher[state_type];
+    fillpatcher = std::make_unique<FillPatcher<MultiFab>>
+        (parent->boxArray(level+1), parent->DistributionMap(level+1),
+         parent->Geom(level+1),
+         parent->boxArray(level), parent->DistributionMap(level),
+         parent->Geom(level),
+         IntVect(desc.nExtra()), desc.nComp(), desc.interp(0));
+
+    fillpatcher->storeRKCoarseData(time, dt, S_old, rkk);
+}
 
 
 }

@@ -10,7 +10,7 @@ contains
   integer, dimension(2), intent(in) :: lo, hi, phlo, phhi
   real(amrex_real), dimension(2), intent(in) :: dx, problo, probhi
   real(amrex_real), intent(inout) :: phi(phlo(1):phhi(1), phlo(2):phhi(2))
-  
+
   real(amrex_real) :: xl, xh, x, yl, yh, y, denom
   integer          :: i, j
 
@@ -25,7 +25,7 @@ contains
     denom = sqrt((xh-0.5d0)*(xh-0.5d0) + (y-0.5d0)*(y-0.5d0))
     phi(hi(1),j) = (xh-0.5d0)/denom
   end do
- 
+
   do i = lo(1)+1, hi(1)-1
     x = xl + (dble(i) + 0.5d0)*dx(1)
     denom = sqrt((x-0.5d0)*(x-0.5d0) + (yl-0.5d0)*(yl-0.5d0))

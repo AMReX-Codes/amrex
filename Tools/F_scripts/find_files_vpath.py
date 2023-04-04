@@ -1,11 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 Take a vpath and a list of files and find where in the first vpath the
 first occurrence of the file.
 """
-
-from __future__ import print_function
 
 import sys
 import os

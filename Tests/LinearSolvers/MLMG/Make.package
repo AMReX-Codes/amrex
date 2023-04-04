@@ -1,6 +1,0 @@
-
-CEXE_sources += main.cpp init_prob.cpp solve_with_mlmg.cpp write_plotfile.cpp
-
-CEXE_headers += fort.H prob_par.H
-
-F90EXE_sources += fort_$(DIM)d.F90

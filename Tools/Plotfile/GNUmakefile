@@ -8,6 +8,8 @@ USE_MPI = FALSE
 USE_OMP = FALSE
 USE_CUDA = FALSE
 
+BL_NO_FORT = TRUE
+
 programs ?=
 
 ifeq ($(strip $(programs)),)
@@ -19,6 +21,7 @@ ifeq ($(strip $(programs)),)
   programs += fsnapshot
   programs += ftime
   programs += fvarnames
+  programs += fvolumesum
 endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs

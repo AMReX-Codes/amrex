@@ -23,8 +23,8 @@ COMP_VERSION = $(clang_version)
 
 ifeq ($(DEBUG),TRUE)
 
-  CXXFLAGS += -g -O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-missing-braces -Wmissing-field-initializers -ftrapv
-  CFLAGS   += -g -O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-missing-braces -Wmissing-field-initializers -ftrapv
+  CXXFLAGS += -g -O0 -ftrapv
+  CFLAGS   += -g -O0 -ftrapv
 
   FFLAGS   += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
   F90FLAGS += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
@@ -38,16 +38,40 @@ else
 
 endif
 
+ifeq ($(WARN_ALL),TRUE)
+  warning_flags = -Wall -Wextra -Wno-sign-compare -Wunreachable-code -Wnull-dereference
+  warning_flags += -Wfloat-conversion -Wextra-semi
+
+  ifneq ($(USE_CUDA),TRUE)
+    warning_flags += -Wpedantic
+  endif
+
+  ifneq ($(WARN_SHADOW),FALSE)
+    warning_flags += -Wshadow
+  endif
+
+  CXXFLAGS += $(warning_flags) -Woverloaded-virtual -Wnon-virtual-dtor
+  CFLAGS += $(warning_flags)
+endif
+
+ifeq ($(WARN_ERROR),TRUE)
+  CXXFLAGS += -Werror
+  CFLAGS += -Werror
+endif
+
+# disable some warnings
+CXXFLAGS += -Wno-c++17-extensions
+
 ########################################################################
 
 ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
 else
-  CXXSTD := c++14
+  CXXSTD := c++17
 endif
 
 CXXFLAGS += -std=$(CXXSTD)
-CFLAGS   += -std=c99
+CFLAGS   += -std=c11
 
 FFLAGS   += -ffixed-line-length-none -fno-range-check -fno-second-underscore
 F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -fimplicit-none
@@ -96,7 +120,16 @@ else
   LIBRARY_LOCATIONS += $(dir $(gfortran_libso))
 endif
 
-override XTRALIBS += -lgfortran -lquadmath
+override XTRALIBS += -lgfortran
+
+quadmath_liba  = $(shell $(F90) -print-file-name=libquadmath.a)
+quadmath_libso = $(shell $(F90) -print-file-name=libquadmath.so)
+
+ifneq ($(quadmath_liba),libquadmath.a)
+  override XTRALIBS += -lquadmath
+else ifneq ($(quadmath_libso),libquadmath.so)
+  override XTRALIBS += -lquadmath
+endif
 
 endif
 

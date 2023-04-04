@@ -24,7 +24,7 @@ private:
     int ref_ratio = 2;
     int n_cell = 128;
     int max_grid_size = 64;
-    
+
     // For MLMG solver
     int verbose = 2;
     int bottom_verbose = 2;

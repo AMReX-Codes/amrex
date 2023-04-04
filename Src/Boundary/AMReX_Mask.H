@@ -1,6 +1,7 @@
 
 #ifndef AMREX_MASK_H_
 #define AMREX_MASK_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_BaseFab.H>
 #include <AMReX_FArrayBox.H>
@@ -22,22 +23,22 @@ namespace amrex {
         This class does NOT provide a copy constructor or assignment operator.
 */
 
-class Mask
+class Mask final
     :
     public BaseFab<int>
 {
 public:
 
-    Mask () noexcept;
+    Mask () noexcept = default;
 
     explicit Mask (Arena* ar) noexcept;
 
     Mask (const Box& bx, int nc, Arena* ar);
 
     explicit Mask (const Box& bx,
-		   int        nc = 1,
-		   bool       alloc=true,
-		   bool       shared=false,
+                   int        nc = 1,
+                   bool       alloc=true,
+                   bool       shared=false,
                    Arena*     ar = nullptr);
 
     /**
@@ -53,7 +54,7 @@ public:
 
     explicit Mask (Array4<int const> const& a, IndexType t) noexcept : BaseFab<int>(a,t) {}
 
-    ~Mask () noexcept {};
+    ~Mask () noexcept override = default;
 
     Mask (Mask&& rhs) noexcept = default;
 

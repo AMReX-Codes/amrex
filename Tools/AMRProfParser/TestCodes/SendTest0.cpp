@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
   int nprocs(ParallelDescriptor::NProcs());
   int maxgrid(64), ncomps(16), nboxes(nprocs), ntimes(6);
   bool raninit(false);
-  
+
   for(int itimes(0); itimes < ntimes; ++itimes) {
     double wallTimeStart(ParallelDescriptor::second());
     if(ParallelDescriptor::IOProcessor()) {
@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
       int wakeUpPID = nprocs / 2;
       int tag       = itimes;
       ParallelDescriptor::Send(iBuff.dataPtr(), bSize, wakeUpPID, tag);
-								      
+
     }
     if(myproc == (nprocs / 2)) {
       sleep(1);

@@ -20,7 +20,7 @@ void main_main()
     int farg = 1;
     while (farg <= narg) {
         const std::string& name = amrex::get_command_argument(farg);
-        if (name == "-v" or name == "--variable") {
+        if (name == "-v" || name == "--variable") {
             varnames_arg = amrex::get_command_argument(++farg);
         } else {
             break;
@@ -101,8 +101,8 @@ void main_main()
             }
         }
 
-        ParallelDescriptor::ReduceRealMin(vvmin.data(), vvmin.size());
-        ParallelDescriptor::ReduceRealMax(vvmax.data(), vvmax.size());
+        ParallelDescriptor::ReduceRealMin(vvmin.data(), static_cast<int>(vvmin.size()));
+        ParallelDescriptor::ReduceRealMax(vvmax.data(), static_cast<int>(vvmax.size()));
 
         if (ntime == 1) {
             amrex::Print() << " plotfile = " << filename << "\n"

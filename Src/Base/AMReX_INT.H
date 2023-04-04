@@ -1,14 +1,15 @@
 #ifndef AMREX_INT_H_
 #define AMREX_INT_H_
+#include <AMReX_Config.H>
 
 #ifdef __cplusplus
 #include <type_traits>
 #include <cinttypes>
 #else
 #ifdef AMREX_TYPECHECK
-#define __attribute__(x) 
-#define __extension__ 
-#define __restrict 
+#define __attribute__(x)
+#define __extension__
+#define __restrict
 #endif
 #include <inttypes.h>
 #endif

@@ -1,16 +1,58 @@
 
-DEFINES += -DAMREX_PARTICLES
+CEXE_headers += AMReX_Particle.H
+CEXE_headers += AMReX_Particles.H
+CEXE_headers += AMReX_ParticleContainer.H
+CEXE_headers += AMReX_ParGDB.H
+CEXE_headers += AMReX_ParticleContainerI.H
+CEXE_headers += AMReX_ParticleInit.H
 
-AMREX_PARTICLE=EXE
+CEXE_headers += AMReX_ParticleContainerBase.H
+CEXE_sources += AMReX_ParticleContainerBase.cpp
 
-C$(AMREX_PARTICLE)_sources += AMReX_TracerParticles.cpp AMReX_ParticleMPIUtil.cpp AMReX_ParticleUtil.cpp AMReX_ParticleBufferMap.cpp AMReX_ParticleCommunication.cpp
-C$(AMREX_PARTICLE)_headers += AMReX_Particles.H AMReX_ParGDB.H AMReX_TracerParticles.H AMReX_NeighborParticles.H AMReX_NeighborParticlesI.H
-C$(AMREX_PARTICLE)_headers += AMReX_Particle.H AMReX_ParticleInit.H AMReX_ParticleContainerI.H
-C$(AMREX_PARTICLE)_headers += AMReX_ParIter.H AMReX_ParticleMPIUtil.H AMReX_StructOfArrays.H AMReX_ArrayOfStructs.H AMReX_ParticleTile.H
-C$(AMREX_PARTICLE)_headers += AMReX_ParticleUtil.H AMReX_NeighborList.H AMReX_ParticleBufferMap.H AMReX_ParticleCommunication.H AMReX_ParticleReduce.H AMReX_ParticleLocator.H
-C$(AMREX_PARTICLE)_headers += AMReX_NeighborParticlesCPUImpl.H AMReX_NeighborParticlesGPUImpl.H
-C$(AMREX_PARTICLE)_headers += AMReX_Particle_mod_K.H AMReX_TracerParticle_mod_K.H AMReX_ParticleMesh.H AMReX_ParticleIO.H AMReX_ParticleHDF5.H AMReX_DenseBins.H AMReX_ParticleTransformation.H AMReX_SparseBins.H AMReX_BinIterator.H
-C$(AMREX_PARTICLE)_headers += AMReX_WriteBinaryParticleData.H
+CEXE_headers += AMReX_ParIter.H
+CEXE_headers += AMReX_StructOfArrays.H
+CEXE_headers += AMReX_ArrayOfStructs.H
+CEXE_headers += AMReX_ParticleTile.H
+
+CEXE_headers += AMReX_NeighborParticles.H
+CEXE_headers += AMReX_NeighborParticlesI.H
+CEXE_headers += AMReX_NeighborParticlesCPUImpl.H
+CEXE_headers += AMReX_NeighborParticlesGPUImpl.H
+CEXE_headers += AMReX_NeighborList.H
+
+CEXE_headers += AMReX_TracerParticles.H
+CEXE_sources += AMReX_TracerParticles.cpp
+CEXE_headers += AMReX_TracerParticle_mod_K.H
+
+CEXE_headers += AMReX_ParticleUtil.H
+CEXE_sources += AMReX_ParticleUtil.cpp
+
+CEXE_headers += AMReX_ParticleMPIUtil.H
+CEXE_sources += AMReX_ParticleMPIUtil.cpp
+
+CEXE_headers += AMReX_ParticleBufferMap.H
+CEXE_sources += AMReX_ParticleBufferMap.cpp
+
+CEXE_headers += AMReX_ParticleCommunication.H
+CEXE_sources += AMReX_ParticleCommunication.cpp
+
+CEXE_headers += AMReX_ParticleReduce.H
+
+CEXE_headers += AMReX_ParticleLocator.H
+CEXE_headers += AMReX_ParticleArray.H
+
+CEXE_headers += AMReX_Particle_mod_K.H
+CEXE_headers += AMReX_ParticleMesh.H
+CEXE_headers += AMReX_ParticleInterpolators.H
+
+CEXE_headers += AMReX_ParticleIO.H
+CEXE_headers += AMReX_WriteBinaryParticleData.H
+
+CEXE_headers += AMReX_ParticleTransformation.H
+
+CEXE_headers += AMReX_DenseBins.H
+CEXE_headers += AMReX_SparseBins.H
+CEXE_headers += AMReX_BinIterator.H
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Particle
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Particle

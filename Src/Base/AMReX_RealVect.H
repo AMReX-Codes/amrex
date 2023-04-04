@@ -1,19 +1,20 @@
 #ifndef AMREX_REALVECT_H_
 #define AMREX_REALVECT_H_
-
-#include <cstddef>
-#include <cstdlib>
-#include <cstring>
-#include <iostream>
-#include <cmath>
+#include <AMReX_Config.H>
 
 #include <AMReX_Box.H>
 #include <AMReX_REAL.H>
 #include <AMReX_SPACE.H>
-#include <vector>
 #include <AMReX_IntVect.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Math.H>
+
+#include <cmath>
+#include <cstddef>
+#include <cstdlib>
+#include <cstring>
+#include <iosfwd>
+#include <vector>
 
 namespace amrex
 {
@@ -118,7 +119,7 @@ public:
   AMREX_GPU_HOST_DEVICE
   inline
   Real* begin () noexcept { return vect; }
-  
+
   ///
   /**
      Return pointer to the first component.
@@ -126,7 +127,7 @@ public:
   AMREX_GPU_HOST_DEVICE
   inline
   const Real* begin () const noexcept { return vect; }
-  
+
   ///
   /**
      Return pointer to the one past last component
@@ -134,7 +135,7 @@ public:
   AMREX_GPU_HOST_DEVICE
   inline
   Real* end () noexcept { return vect + AMREX_SPACEDIM; }
-  
+
   ///
   /**
      Return pointer to the one past last component
@@ -142,7 +143,7 @@ public:
   AMREX_GPU_HOST_DEVICE
   inline
   const Real* end () const noexcept { return vect + AMREX_SPACEDIM; }
-  
+
   /*@}*/
 
   /**
@@ -348,7 +349,7 @@ public:
 
   ///
   /**
-     Returns an IntVect whose components are the std::floor of the RealVect 
+     Returns an IntVect whose components are the std::floor of the RealVect
      components.
   */
   AMREX_GPU_HOST_DEVICE inline
@@ -356,7 +357,7 @@ public:
 
   ///
   /**
-     Returns an IntVect whose components are the std::floor of the RealVect 
+     Returns an IntVect whose components are the std::floor of the RealVect
      components.
   */
   AMREX_GPU_HOST_DEVICE inline
@@ -364,7 +365,7 @@ public:
 
   ///
   /**
-     Returns an IntVect whose components are the std::floor of the RealVect 
+     Returns an IntVect whose components are the std::floor of the RealVect
      components.
   */
   AMREX_GPU_HOST_DEVICE inline
@@ -702,9 +703,9 @@ inline
 IntVect
 RealVect::floor () const noexcept
 {
-  return IntVect(AMREX_D_DECL(static_cast<int>(amrex::Math::floor(vect[0])),
-                              static_cast<int>(amrex::Math::floor(vect[1])),
-                              static_cast<int>(amrex::Math::floor(vect[2]))));
+  return IntVect(AMREX_D_DECL(static_cast<int>(std::floor(vect[0])),
+                              static_cast<int>(std::floor(vect[1])),
+                              static_cast<int>(std::floor(vect[2]))));
 }
 
 AMREX_GPU_HOST_DEVICE
@@ -712,9 +713,9 @@ inline
 IntVect
 RealVect::ceil () const noexcept
 {
-  return IntVect(AMREX_D_DECL(static_cast<int>(amrex::Math::ceil(vect[0])),
-                              static_cast<int>(amrex::Math::ceil(vect[1])),
-                              static_cast<int>(amrex::Math::ceil(vect[2]))));
+  return IntVect(AMREX_D_DECL(static_cast<int>(std::ceil(vect[0])),
+                              static_cast<int>(std::ceil(vect[1])),
+                              static_cast<int>(std::ceil(vect[2]))));
 }
 
 AMREX_GPU_HOST_DEVICE
@@ -722,9 +723,9 @@ inline
 IntVect
 RealVect::round () const noexcept
 {
-  return IntVect(AMREX_D_DECL(static_cast<int>(amrex::Math::round(vect[0])),
-                              static_cast<int>(amrex::Math::round(vect[1])),
-                              static_cast<int>(amrex::Math::round(vect[2]))));
+  return IntVect(AMREX_D_DECL(static_cast<int>(std::round(vect[0])),
+                              static_cast<int>(std::round(vect[1])),
+                              static_cast<int>(std::round(vect[2]))));
 }
 
 AMREX_GPU_HOST_DEVICE
@@ -741,7 +742,7 @@ Real
 RealVect::vectorLength () const noexcept
 {
   Real len = this->radSquared();
-  len = amrex::Math::sqrt(len);
+  len = std::sqrt(len);
   return len;
 }
 
@@ -950,7 +951,7 @@ RealVect::minDir(const bool& a_doAbs) const noexcept
     {
         if (a_doAbs)
         {
-            if (amrex::Math::abs(vect[idir]) < amrex::Math::abs(vect[mDir]))
+            if (std::abs(vect[idir]) < std::abs(vect[mDir]))
             {
                 mDir = idir;
             }
@@ -975,7 +976,7 @@ RealVect::maxDir(const bool& a_doAbs) const noexcept
     {
         if (a_doAbs)
         {
-            if (amrex::Math::abs(vect[idir]) > amrex::Math::abs(vect[mDir]))
+            if (std::abs(vect[idir]) > std::abs(vect[mDir]))
             {
                 mDir = idir;
             }

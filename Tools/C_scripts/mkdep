@@ -113,7 +113,7 @@ foreach $ifile (@ARGV) {
 			}
 		    } elsif ($fortran && /^[ \t]+include\s+'([^']+['])/i) {
 		        if ($usedfiles{ $1 }++ == 0) {
-			   print " ::: inluding ::$1::\n" if $debug;
+			   print " ::: including ::$1::\n" if $debug;
 			   push(@searchlist,($1));
 			}
 		    }
@@ -148,7 +148,7 @@ foreach $ifile (@ARGV) {
 			    }
 			    # mark as used file
 			    $usedfiles{ $inclCfile }++;
-			    # stop searching for tempate
+			    # stop searching for template
 			    last;
 			}
 		    }

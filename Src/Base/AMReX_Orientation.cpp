@@ -1,8 +1,8 @@
 
-#include <iostream>
-
 #include <AMReX.H>
 #include <AMReX_Orientation.H>
+
+#include <iostream>
 
 namespace amrex {
 

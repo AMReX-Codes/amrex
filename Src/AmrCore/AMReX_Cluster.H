@@ -1,18 +1,17 @@
 
 #ifndef AMREX_Cluster_H_
 #define AMREX_Cluster_H_
+#include <AMReX_Config.H>
+
+#include <AMReX_BoxList.H>
+#include <AMReX_REAL.H>
 
 #include <list>
-#include <AMReX_IntVect.H>
-#include <AMReX_Box.H>
-#include <AMReX_Array.H>
-#include <AMReX_Vector.H>
-#include <AMReX_BoxArray.H>
-#include <AMReX_REAL.H>
 
 namespace amrex {
 
 class BoxDomain;
+class BoxArray;
 class ClusterList;
 
 
@@ -29,7 +28,7 @@ public:
     /**
     * \brief The default constructor -- builds invalid Cluster.
     */
-    Cluster () noexcept;
+    Cluster () noexcept = default;
 
     /**
     * \brief Construct a cluster from an array of IntVects.
@@ -48,35 +47,35 @@ public:
     * \param c
     * \param b
     */
-    Cluster (Cluster&   c,
-             const Box& b);
+    Cluster (Cluster& c, const Box& b);
 
-    /**
-    * \brief The destructor.  Does NOT destroy the initial IntVect array.
-    */
-    ~Cluster ();
+    ~Cluster () = default;
+    Cluster (const Cluster&) = delete;
+    Cluster (Cluster&&) = delete;
+    Cluster& operator= (const Cluster&) = delete;
+    Cluster& operator= (Cluster&&) = delete;
 
     /**
     * \brief Return minimal box containing all tagged points.
     */
-    const Box& box () const noexcept { return m_bx; }
+    [[nodiscard]] const Box& box () const noexcept { return m_bx; }
 
     /**
     * \brief Does cluster contain any points?
     */
-    bool ok () const noexcept { return m_ar != 0 && m_len > 0; }
+    [[nodiscard]] bool ok () const noexcept { return m_ar != nullptr && m_len > 0; }
 
     /**
     * \brief Returns number of tagged points in cluster.
     */
-    Long numTag () const noexcept { return m_len; }
+    [[nodiscard]] Long numTag () const noexcept { return m_len; }
 
     /**
     * \brief Return number of tagged points in intersection of cluster and Box b.
     *
     * \param b
     */
-    Long numTag (const Box& b) const noexcept;
+    [[nodiscard]] Long numTag (const Box& b) const noexcept;
 
     /**
     * \brief This operation splits a cluster into two pieces by selecting
@@ -98,7 +97,7 @@ public:
 
     /**
     * \brief Constructs a list of cluster objects obtained by intersecting
-    * this cluster with each box in bl.  The list is retruned in the
+    * this cluster with each box in bl.  The list is returned in the
     * argument clst.  For each intersection that includes tagged
     * points, construct a new cluster by removing those points from
     * this object.  Empty intersections or those that contain no
@@ -115,16 +114,12 @@ public:
     /**
     * \brief Compute ratio of tagged to total number of points in cluster.
     */
-    Real eff () const noexcept { BL_ASSERT(ok()); return numTag()/m_bx.d_numPts(); }
+    [[nodiscard]] Real eff () const noexcept {
+        BL_ASSERT(ok());
+        return static_cast<Real>(double(numTag()) / m_bx.d_numPts());
+    }
 
 private:
-
-    /**
-    * \brief These are disallowed.
-    *
-    */
-    Cluster (const Cluster&);
-    Cluster& operator= (const Cluster&);
 
     /**
     * \brief Compute and store minimal box containing tagged points.
@@ -151,7 +146,7 @@ public:
     /**
     * \brief The default constructor.
     */
-    ClusterList ();
+    ClusterList () = default;
 
     /**
     * \brief Construct a list containing Cluster(pts,len).
@@ -166,10 +161,15 @@ public:
     */
     ~ClusterList ();
 
+    ClusterList (const ClusterList&) = delete;
+    ClusterList (ClusterList&&) = delete;
+    ClusterList& operator= (const ClusterList&) = delete;
+    ClusterList& operator= (ClusterList&&) = delete;
+
     /**
     * \brief Return number of clusters in list.
     */
-    int length () const { return lst.size(); }
+    [[nodiscard]] int length () const { return static_cast<int>(lst.size()); }
 
     /**
     * \brief Add cluster to end of list.
@@ -181,7 +181,7 @@ public:
     /**
     * \brief Return array of boxes corresponding to clusters.
     */
-    BoxArray boxArray () const;
+    [[nodiscard]] BoxArray boxArray () const;
 
     /**
     * \brief Return array of boxes corresponding to clusters in argument.
@@ -193,7 +193,7 @@ public:
     /**
     * \brief Return list of boxes corresponding to clusters.
     */
-    BoxList boxList() const;
+    [[nodiscard]] BoxList boxList() const;
 
     /**
     * \brief Return list of boxes corresponding to clusters in argument.
@@ -218,21 +218,15 @@ public:
     void new_chop (Real eff);
 
     /**
-    * \brief Intersect clusters with BoxDomain to insure cluster
-    * boxes are interior to domain.
+    * \brief Intersect clusters with BoxArray to insure cluster
+    * boxes are interior to the domain of BoxArray.  Note that
+    * ba is modified during the process.
     *
-    * \param dom
+    * \param ba
     */
-    void intersect (const BoxDomain& dom);
+    void intersect (BoxArray& ba);
 
 private:
-
-    /**
-    * \brief These are disallowed.
-    *
-    */
-    ClusterList (const ClusterList&);
-    ClusterList& operator= (const ClusterList&);
 
     //! The data.
     std::list<Cluster*> lst;

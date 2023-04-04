@@ -1,6 +1,7 @@
 
 #ifndef AMREX_LEVELBLD_H_
 #define AMREX_LEVELBLD_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>
@@ -72,7 +73,5 @@ public:
 };
 
 }
-
-extern AMREX_ATTRIBUTE_WEAK amrex::LevelBld* getLevelBld ();
 
 #endif /*_LEVELBLD_H_*/

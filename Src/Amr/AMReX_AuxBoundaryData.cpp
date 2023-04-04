@@ -7,22 +7,14 @@
 #endif
 
 namespace amrex {
-
-AuxBoundaryData::AuxBoundaryData () noexcept
-    :
-    m_ngrow(0),
-    m_empty(false),
-    m_initialized(false)
-{}
+// \cond CODEGEN
 
 AuxBoundaryData::AuxBoundaryData (const BoxArray& ba,
                                   int             n_grow,
                                   int             n_comp,
                                   const Geometry& geom)
     :
-    m_ngrow(n_grow),
-    m_empty(false),
-    m_initialized(false)
+    m_ngrow(n_grow)
 {
     initialize(ba,n_grow,n_comp,geom);
 }
@@ -39,31 +31,30 @@ AuxBoundaryData::copy (const AuxBoundaryData& src,
     BL_ASSERT(src_comp + num_comp <= src.m_fabs.nComp());
     BL_ASSERT(dst_comp + num_comp <= m_fabs.nComp());
 
-    m_fabs.copy(src.m_fabs,src_comp,dst_comp,num_comp);
+    m_fabs.ParallelCopy(src.m_fabs,src_comp,dst_comp,num_comp);
 }
 
 AuxBoundaryData::AuxBoundaryData (const AuxBoundaryData& rhs)
     :
     m_fabs(rhs.m_fabs.boxArray(),rhs.m_fabs.DistributionMap(),rhs.m_fabs.nComp(),0,
            MFInfo(), FArrayBoxFactory()),
-    m_ngrow(rhs.m_ngrow)
+    m_ngrow(rhs.m_ngrow),
+    m_initialized(true)
 {
-    m_fabs.copy(rhs.m_fabs,0,0,rhs.m_fabs.nComp());
-    m_empty = false;
-    m_initialized = true;
+    m_fabs.ParallelCopy(rhs.m_fabs,0,0,rhs.m_fabs.nComp());
 }
 
 void
 AuxBoundaryData::initialize (const BoxArray& ba,
-			     int             n_grow,
-			     int             n_comp,
+                             int             n_grow,
+                             int             n_comp,
                              const Geometry& geom)
 {
     BL_ASSERT(!m_initialized);
 
     const bool verbose   = false;
     const int  NProcs    = ParallelDescriptor::NProcs();
-    const Real strt_time = amrex::second();
+    const auto strt_time = amrex::second(); // NOLINT
 
     m_ngrow = n_grow;
 
@@ -96,7 +87,7 @@ AuxBoundaryData::initialize (const BoxArray& ba,
 
     gcells.clear();
 
-    if (nba.size() > 0)
+    if (!nba.empty())
     {
         m_fabs.define(nba, ndm, n_comp, 0, MFInfo(), FArrayBoxFactory());
     }
@@ -108,16 +99,16 @@ AuxBoundaryData::initialize (const BoxArray& ba,
     if (verbose)
     {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-        Real      run_time = amrex::second() - strt_time;
-	const int sz       = nba.size();
+        auto      run_time = amrex::second() - strt_time;
+        const int sz       = static_cast<int>(nba.size());
 
 #ifdef BL_LAZY
-	Lazy::QueueReduction( [=] () mutable {
+        Lazy::QueueReduction( [=] () mutable {
 #endif
-        ParallelDescriptor::ReduceRealMax(run_time,IOProc);
-	amrex::Print() << "AuxBoundaryData::initialize() size = " << sz << ", time = " << run_time << '\n';
+            ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+            amrex::Print() << "AuxBoundaryData::initialize() size = " << sz << ", time = " << run_time << '\n';
 #ifdef BL_LAZY
-	});
+        });
 #endif
     }
 
@@ -132,9 +123,9 @@ AuxBoundaryData::copyTo (MultiFab& mf,
 {
     BL_ASSERT(m_initialized);
 
-    if (!m_empty && mf.size() > 0)
+    if (!m_empty && !mf.empty())
     {
-        mf.copy(m_fabs,src_comp,dst_comp,num_comp,0,mf.nGrow());
+        mf.ParallelCopy(m_fabs,src_comp,dst_comp,num_comp,0,mf.nGrow());
     }
 }
 
@@ -143,14 +134,14 @@ AuxBoundaryData::copyFrom (const MultiFab& mf,
                            int       src_comp,
                            int       dst_comp,
                            int       num_comp,
-			   int       src_ng)
+                           int       src_ng)
 {
     BL_ASSERT(m_initialized);
 
-    if (!m_empty && mf.size() > 0)
+    if (!m_empty && !mf.empty())
     {
-	m_fabs.copy(mf,src_comp,dst_comp,num_comp,src_ng,0);
+        m_fabs.ParallelCopy(mf,src_comp,dst_comp,num_comp,src_ng,0);
     }
 }
-
+// \endcond
 }

@@ -40,7 +40,7 @@ flags. Our particle struct would be set up like:
 
       Particle<4, 2> p;
 
-and the order of the particle components in would be (assuming :cpp:`BL_SPACEDIM` is 3): 
+and the order of the particle components in would be (assuming :cpp:`BL_SPACEDIM` is 3):
 :cpp:`x y z m vx vy vz id cpu flag1 flag2`.  [3]_
 
 Setting Particle data
@@ -117,16 +117,16 @@ Struct-of-Arrays as particle *attributes*. See the figure
 .. figure:: ./Particle/particle_arrays.png
 
    An illustration of how the particle data for a single tile is arranged in
-   memory. This particle container has been defined with :cpp:`NStructReal =
-   1`, :cpp:`NStructInt = 2`, :cpp:`NArrayReal = 2`, and :cpp:`NArrayInt = 2`.
+   memory. This particle container has been defined with ``NStructReal =
+   1``, ``NStructInt = 2``, ``NArrayReal = 2``, and ``NArrayInt = 2``.
    In this case, each tile in the particle container has five arrays: one with
    the particle struct data, two additional real arrays, and two additional
    integer arrays.  In the tile shown, there are only 2 particles. We have
    labelled the extra real data member of the particle struct to be
-   :cpp:`mass`, while the extra integer members of the particle struct are
-   labeled :cpp:`p`, and :cpp:`s`, for "phase" and "state". The variables in
-   the real and integer arrays are labelled :cpp:`foo`, :cpp:`bar`, :cpp:`l`,
-   and :cpp:`n`, respectively. We have assumed that the particles are double
+   ``mass``, while the extra integer members of the particle struct are
+   labeled ``p``, and ``s``, for "phase" and "state". The variables in
+   the real and integer arrays are labelled ``foo``, ``bar``, ``l``,
+   and ``n``, respectively. We have assumed that the particles are double
    precision.
 
 .. raw:: latex
@@ -198,20 +198,43 @@ In this case, the :cpp:`Vector<BoxArray>` and :cpp:`Vector<DistributionMap>`
 used by your :cpp:`ParticleContainer` will be updated automatically to match
 those in your :cpp:`AmrCore`.
 
+The ParticleTile
+----------------
+
 The :cpp:`ParticleContainer` stores the particle data in a manner prescribed by
-the set of AMR grids used to define it. If tiling is turned off, then every
-grid has its own Array-of-Structs and Struct-of-Arrays. Which AMR grid a
-particle is assigned to is determined by examining its position and binning it,
-using the domain left edge as an offset.  By default, a particle is assigned to
+the set of AMR grids used to define it. Local particle data is always stored in
+a data structure called a :cpp:`ParticleTile`, which contains a mixture of AoS
+and SoA components as described above. The tiling behavior of :cpp:`ParticleTile`
+is determined by the parameter, ``particle.do_tiling``:
+
+-  If ``particles.do_tiling=0``, then there is always exactly one
+   :cpp:`ParticleTile` per grid. This is equivalent to setting a very large
+   ``particles.tile_size`` in each direction.
+
+-  If ``particles.do_tiling=1``, then each grid can have multiple
+   :cpp:`ParticleTile` objects associated with it based on the
+   ``particles.tile_size`` parameter.
+
+The AMR grid to which a particle is assigned, is determined by examining its
+position and binning it, using the domain left edge as an offset. By default,
+a particle is assigned to
 the finest level that contains its position, although this behavior can be
-tweaked if desired.  When tiling is enabled, then each *tile* gets its own
-Struct-of-Arrays and Array-of-Structs instead. Note that this is different than
-what happens with mesh data. With mesh data, the tiling is strictly logical;
-the data is laid out in memory the same whether tiling is turned on or off.
-With particle data, however, the particles are actually stored in different
-arrays when tiling is enabled. As with mesh data, the particle tile size can be
-tuned so that an entire tile's worth of particles will fit into a cache line at
-once.
+tweaked if desired.
+
+
+.. note::
+
+   :cpp:`ParticleTile` data tiling with :ref:`MFIter<sec:basics:mfiter>` behaves differently than mesh
+   data. With mesh data, the tiling is strictly logical --the data is laid out in
+   memory the same way whether tiling is turned on or off.
+   With particle data, however, the particles are actually stored in different
+   arrays when tiling is enabled. As with mesh data, the particle tile size can be
+   tuned so that an entire tile's worth of particles will fit into a cache line at
+   once.
+
+
+Redistribute
+------------
 
 Once the particles move, their data may no longer be in the right place in the
 container. They can be reassigned by calling the :cpp:`Redistribute()` method
@@ -223,8 +246,8 @@ needed to do this happens automatically.
 Application codes will likely want to create their own derived
 ParticleContainer class that specializes the template parameters and adds
 additional functionality, like setting the initial conditions, moving the
-particles, etc. See the ``amrex/Tutorials/Particles`` for examples of this.
-
+particles, etc. See the `particle tutorials`_ for examples of this.
+.. _`particle tutorials`: https://amrex-codes.github.io/amrex/tutorials_html/Particles_Tutorial.html
 
 .. _sec:Particles:Initializing:
 
@@ -291,7 +314,7 @@ Adding particle components at runtime
 
 In addition to the components specified as template parameters, you can also
 add additional :cpp:`Real` and :cpp:`int` components at runtime. These components
-will be stored in Struct-of-Array style. To add a runtime component, use the 
+will be stored in Struct-of-Array style. To add a runtime component, use the
 :cpp:`AddRealComp` and :cpp:`AddIntComp` methods of :cpp:`ParticleContainer`, like so:
 
 .. highlight:: c++
@@ -316,8 +339,8 @@ When you are using runtime components, it is crucial that when you are adding
 particles to the container, you call the :cpp:`DefineAndReturnParticleTile` method
 for each tile prior to adding any particles. This will make sure the space
 for the new components has been allocated. For example, in the above section
-on :ref:`initializing particle data <sec:Particles:Initializing>`, we accessed 
-the particle tile data using the :cpp:`GetParticles` method. If we runtime components 
+on :ref:`initializing particle data <sec:Particles:Initializing>`, we accessed
+the particle tile data using the :cpp:`GetParticles` method. If we runtime components
 are used, :cpp:`DefineAndReturnParticleTile` should be used instead:
 
 .. highlight:: c++
@@ -330,7 +353,7 @@ are used, :cpp:`DefineAndReturnParticleTile` should be used instead:
        // instead of this...
        // auto& particles = GetParticles(lev)[std::make_pair(mfi.index(),
        //                                     mfi.LocalTileIndex())];
-       
+
        // we do this...
        auto& particle_tile = DefineAndReturnParticleTile(lev, mfi);
 
@@ -496,8 +519,9 @@ associated with them. Note that we call :cpp:`SumBoundary` instead of
 the ghost cells surrounding each Fab into the corresponding valid cells.
 
 For a complete example of an electrostatic PIC calculation that includes static
-mesh refinement, please see ``amrex/Tutorials/Particles/ElectrostaticPIC``.
+mesh refinement, please see the `Electrostatic PIC tutorial`.
 
+.. _`Electrostatic PIC tutorial`: https://amrex-codes.github.io/amrex/tutorials_html/Particles_Tutorial.html#electrostaticpic
 
 .. _sec:Particles:ShortRange:
 
@@ -544,33 +568,77 @@ of each other using a variety of methods.
 
 For a :cpp:`ParticleContainer` that does this neighbor finding, please see
 :cpp:`NeighborParticleContainer` in
-``amrex/Src/Particles/AMReX_NeighborParticleContainer.H.`` This
-:cpp:`ParticleContainer` has additional methods called :cpp:`fillNeighbors()`
+``amrex/Src/Particles/AMReX_NeighborParticleContainer.H.`` The
+:cpp:`NeighborParticleContainer` has additional methods called :cpp:`fillNeighbors()`
 and :cpp:`clearNeighbors()` that fill the :cpp:`neighbors` data structure with
 copies of the proper particles. A tutorial that uses these features is
-available at ``amrex/Tutorials/Particles/ShortRangeParticles``. This tutorial
-computes the forces on a given tile via direct summation by passing the real
-and neighbor particles into a Fortran subroutine, as follows:
+available at `NeighborList`_. In this tutorial the function
+:cpp:`void MDParticleContainer:computeForces()`
+computes the forces on a given tile via direct summation over the real
+and neighbor particles, as follows:
+
+.. _`NeighborList`: https://amrex-codes.github.io/amrex/tutorials_html/Particles_Tutorial.html#neighborlist
 
 .. highlight:: c++
 
 ::
 
-    void ShortRangeParticleContainer::computeForces() {
-        for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
-            AoS& particles = pti.GetArrayOfStructs();
-            int Np = particles.size();
-            PairIndex index(pti.index(), pti.LocalTileIndex());
-            int Nn = neighbors[index].size();
-            amrex_compute_forces(particles.data(), &Np,
-                                 neighbors[index].dataPtr(), &Nn);
+
+    void MDParticleContainer::computeForces()
+    {
+        BL_PROFILE("MDParticleContainer::computeForces");
+
+        const int lev = 0;
+        const Geometry& geom = Geom(lev);
+        auto& plev  = GetParticles(lev);
+
+        for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+        {
+            int gid = mfi.index();
+            int tid = mfi.LocalTileIndex();
+            auto index = std::make_pair(gid, tid);
+
+            auto& ptile = plev[index];
+            auto& aos   = ptile.GetArrayOfStructs();
+            const size_t np = aos.numParticles();
+
+            auto nbor_data = m_neighbor_list[lev][index].data();
+            ParticleType* pstruct = aos().dataPtr();
+
+           // now we loop over the neighbor list and compute the forces
+            AMREX_FOR_1D ( np, i,
+            {
+                ParticleType& p1 = pstruct[i];
+                p1.rdata(PIdx::ax) = 0.0;
+                p1.rdata(PIdx::ay) = 0.0;
+                p1.rdata(PIdx::az) = 0.0;
+
+                for (const auto& p2 : nbor_data.getNeighbors(i))
+                {
+                    Real dx = p1.pos(0) - p2.pos(0);
+                    Real dy = p1.pos(1) - p2.pos(1);
+                    Real dz = p1.pos(2) - p2.pos(2);
+
+                    Real r2 = dx*dx + dy*dy + dz*dz;
+                    r2 = amrex::max(r2, Params::min_r*Params::min_r);
+
+                    if (r2 > Params::cutoff*Params::cutoff) return;
+
+                    Real r = sqrt(r2);
+
+                    Real coef = (1.0 - Params::cutoff / r) / r2;
+                    p1.rdata(PIdx::ax) += coef * dx;
+                    p1.rdata(PIdx::ay) += coef * dy;
+                    p1.rdata(PIdx::az) += coef * dz;
+                }
+            });
         }
     }
 
-Alternatively, one can avoid doing a direct :math:`N^2` summation over the
-particles on a tile by binning the particles by cell and building a neighbor
-list. A tutorial that demonstrates this process is available at
-``amrex/Tutorials/Particles/NeighborList``. The data structure used to represent
+
+Doing a direct :math:`N^2` summation over the
+particles on a tile is avoided by binning the particles by cell and building a neighbor
+list.  The data structure used to represent
 the neighbor lists is illustrated in :numref:`fig:particles:neighbor_list`.
 
 .. raw:: latex
@@ -597,9 +665,9 @@ the neighbor lists is illustrated in :numref:`fig:particles:neighbor_list`.
 This array can then be used to compute the forces on all the particles in one
 scan. Users can define their own :cpp:`NeighborParticleContainer` subclasses
 that have their own collision criteria by overloading the virtual
-:cpp:`check_pair` function. For an example of this in action, please see the
-:cpp:`NeighborList` Tutorial.
+:cpp:`check_pair` function.
 
+.. _`Neighbor List`: https://amrex-codes.github.io/amrex/tutorials_html/Particles_Tutorial.html#neighborlist
 
 .. _sec:Particles:IO:
 
@@ -625,8 +693,8 @@ mesh data IO. For example:
 
 will create a plot file called "plt00000" and write the mesh data in :cpp:`output` to it, and then write the particle data in a subdirectory called "particle0". There is also the :cpp:`WriteAsciiFile` method, which writes the particles in a human-readable text format. This is mainly useful for testing and debugging.
 
-The binary file format is currently readable by :cpp:`yt`. In additional, there is a Python conversion script in 
-``amrex/Tools/Py_util/amrex_particles_to_vtp`` that can convert both the ASCII and the binary particle files to a 
+The binary file format is currently readable by :cpp:`yt`. In additional, there is a Python conversion script in
+``amrex/Tools/Py_util/amrex_particles_to_vtp`` that can convert both the ASCII and the binary particle files to a
 format readable by Paraview. See the chapter on :ref:`Chap:Visualization` for more information on visualizing AMReX datasets, including those with particles.
 
 Inputs parameters
@@ -636,7 +704,7 @@ Inputs parameters
 
 There are several runtime parameters users can set in their :cpp:`inputs` files that control the
 behavior of the AMReX particle classes. These are summarized below. They should be preceded by
-"particles" in your inputs deck.  
+"particles" in your inputs deck.
 
 The first set of parameters concerns the tiling capability of the ParticleContainer. If you are seeing poor performance
 with OpenMP, the first thing to look at is whether there are enough tiles available for each thread to work on.
@@ -645,7 +713,7 @@ with OpenMP, the first thing to look at is whether there are enough tiles availa
 |                   | Description                                                           |   Type      | Default     |
 +===================+=======================================================================+=============+=============+
 | do_tiling         | Whether to use tiling for particles. Should be on when using OpenMP,  | Bool        | False       |
-|                   | and off when running on GPUs.                                         |             |             | 
+|                   | and off when running on GPUs.                                         |             |             |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
 | tile_size         | If tiling is on, the maximum tile_size to in each direction           | Ints        | 1024000,8,8 |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
@@ -654,7 +722,7 @@ The next set concerns runtime parameters that control the particle IO. Parallel 
 too many MPI tasks touch the disk at once. Additionally, performance can degrade if all MPI tasks try writing to the
 same file, or if too many small files are created. In general, the "correct" values of these parameters will depend on the
 size of your problem (i.e., number of boxes, number of MPI tasks), as well as the system you are using. If you are experiencing
-problems with particle IO, you could try varying some / all of these parameters. 
+problems with particle IO, you could try varying some / all of these parameters.
 
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
 |                   | Description                                                           |   Type      | Default     |
@@ -701,4 +769,6 @@ running on GPU platforms like Summit. We recommend leaving it off.
 
 .. [3]
    Note that for the extra particle components, which component refers to which
-   variable is an application-specific convention - the particles have 4 extra real comps, but which one is "mass" is up to the user. We suggest using an :cpp:`enum` to keep these indices straight; please see ``amrex/Tutorials/Particles/ElectrostaticPIC/ElectrosticParticleContainer.H`` for an example of this.
+   variable is an application-specific convention - the particles have 4 extra real comps, but which one is "mass" is up
+   to the user. We suggest using an :cpp:`enum` to keep these indices straight; please
+   see ``amrex-tutorials/ExampleCodes/Particles/ElectrostaticPIC/ElectrosticParticleContainer.H`` for an example of this.

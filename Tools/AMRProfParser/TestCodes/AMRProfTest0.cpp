@@ -42,7 +42,7 @@ void InitRegion() {
 
   amrex::Print(Print::AllProcs) << myProc << "::InitRegion = "
     << sleepTime << " s." << endl;
-  
+
   SleepProcTimes(sleepTime);
 
   BL_PROFILE_REGION_STOP("R::InitRegion");
@@ -62,7 +62,7 @@ void ComputeRegion() {
   amrex::Print() << "Compute Region." << std::endl;
 
   SleepProcTimes(sleeptime);
-  
+
   amrex::Print(Print::AllProcs) << myProc << "::ComputeRegion myProc = "
     <<  sleeptime << " s." << endl;
 
@@ -83,7 +83,7 @@ void ConcludeRegion() {
 
   amrex::Print(Print::AllProcs) << myProc << "::ConcludeRegion = "
     << sleepTime << " s." << endl;
-  
+
   BL_PROFILE_VAR_STOP(concluderegion);
   BL_PROFILE_REGION_STOP("R::ConcludeRegion");
 }

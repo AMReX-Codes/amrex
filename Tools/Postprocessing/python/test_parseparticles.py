@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # simple script showing how to make plots of particles using the parseparticles
 # module
@@ -14,7 +14,7 @@ def main(fileList):
     usage: ./test.py particleFile1 [particleFile2 particleFile3 ... ]
     """
 
-    # this returns a dict whose keys are a unique identifier (based on 
+    # this returns a dict whose keys are a unique identifier (based on
     # id and CPU) and values are the actual particle objects
     particlesDict = parseparticles.parseParticleFile(fileList)
 
@@ -23,7 +23,7 @@ def main(fileList):
 
     print "there are %d unique particles" % len(particles)
 
-    # plots - this is based on the plotting done in the original 
+    # plots - this is based on the plotting done in the original
     # parseparticles.py script, which has since become a module for importing
     pylab.clf()
 
@@ -64,7 +64,7 @@ def main(fileList):
     #     pylab.clf()
 
     #     for particle in particles:
-    #         pylab.scatter([particle.history[nstep].xyz[0]], 
+    #         pylab.scatter([particle.history[nstep].xyz[0]],
     #                       [particle.history[nstep].xyz[1]],
     #                       marker="o", s=1.0, edgecolor="None")
 
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     import sys
 #    import cProfile
 
-    if len(sys.argv) == 1: 
+    if len(sys.argv) == 1:
         print main.__doc__
         sys.exit()
 
@@ -92,4 +92,3 @@ if __name__ == "__main__":
 
 # this is for profiling
 #    cProfile.run("main(sys.argv[1:])","profile.tmp2")
-

@@ -15,8 +15,8 @@ namespace amrex
                                      int ref_ratio)
     {
         InterpCrseFineBndryEMfield(interp_type,
-                                   {AMREX_D_DECL(&crse[0],&crse[1],&crse[2])},
-                                   {AMREX_D_DECL(&fine[0],&fine[1],&fine[2])},
+                                   {{AMREX_D_DECL(&crse[0],&crse[1],&crse[2])}},
+                                   {{AMREX_D_DECL(&fine[0],&fine[1],&fine[2])}},
                                    cgeom, fgeom, ref_ratio);
     }
 
@@ -60,14 +60,14 @@ namespace amrex
 
                 cmf[idim].define(cba, dm, 1, 1, MFInfo(), crse[0]->Factory());
 
-                cmf[idim].copy(*crse[idim], 0, 0, 1, 0, 1, cgeom.periodicity());
+                cmf[idim].ParallelCopy(*crse[idim], 0, 0, 1, 0, 1, cgeom.periodicity());
             }
 
             const Real* dx = cgeom.CellSize();
 
             const int use_limiter = 0;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             {
@@ -136,4 +136,16 @@ namespace amrex
         }
     }
 #endif
+
+    void FillPatchInterp (MultiFab& mf_fine_patch, int fcomp,
+                          MultiFab const& mf_crse_patch, int ccomp,
+                          int ncomp, IntVect const& ng,
+                          const Geometry& cgeom, const Geometry& fgeom,
+                          Box const& dest_domain, const IntVect& ratio,
+                          MFInterpolater* mapper, const Vector<BCRec>& bcs, int bcscomp)
+    {
+        BL_PROFILE("FillPatchInterp(MF)");
+        mapper->interp(mf_crse_patch, ccomp, mf_fine_patch, fcomp, ncomp, ng, cgeom, fgeom,
+                       dest_domain, ratio, bcs, bcscomp);
+    }
 }

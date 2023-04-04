@@ -1,0 +1,35 @@
+name: 🐧 Ascent
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-insituvis
+  cancel-in-progress: true
+
+jobs:
+  ascent:
+    name: Ascent
+    runs-on: ubuntu-20.04
+    if: github.event.pull_request.draft == false
+    env:
+      CXX: g++
+      CC: gcc
+      CMAKE_PREFIX_PATH: /ascent/install/lib/cmake/
+    container:
+      image: alpinedav/ascent:0.9.0
+    steps:
+    - uses: actions/checkout@v3
+    - name: Configure
+      run: |
+        . /ascent_docker_setup_env.sh
+        cmake -S . -B build          \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DAMReX_ENABLE_TESTS=ON  \
+            -DAMReX_FORTRAN=OFF      \
+            -DAMReX_PARTICLES=ON     \
+            -DAMReX_ASCENT=ON
+    - name: Build
+      run: |
+        . /ascent_docker_setup_env.sh
+        cmake --build build -j 2
+

@@ -1,5 +1,6 @@
 #ifndef AMREX_EB2_MULTIGFAB_H_
 #define AMREX_EB2_MULTIGFAB_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_EB2_Graph.H>
 #include <AMReX_EBCellFlag.H>
@@ -7,7 +8,7 @@
 #include <AMReX_LayoutData.H>
 #include <AMReX_MultiFab.H>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 class GFab
 {
@@ -82,6 +83,6 @@ public:
     MultiFab getLevelSet ();
 };
 
-}}
+}
 
 #endif

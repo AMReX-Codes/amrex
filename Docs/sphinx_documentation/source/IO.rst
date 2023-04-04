@@ -10,7 +10,7 @@ Plotfile
 ========
 
 AMReX has its own native plotfile format. Many visualization tools are
-available for AMReX plotfiles (see the chapter on :ref:`Chap:Visualization`). 
+available for AMReX plotfiles (see the chapter on :ref:`Chap:Visualization`).
 AMReX provides the following two functions for writing a generic AMReX plotfile.
 Many AMReX application codes may have their own plotfile routines that store
 additional information such as compiler options, git hashes of the
@@ -52,10 +52,10 @@ making such strings.
       const std::string& pfname = amrex::Concatenate("plt",istep); // plt00258
 
       // By default there are 5 digits, but we can change it to say 4.
-      const std::string& pfname2 = amrex::Concatenate("plt",istep,4); // plt0258  
+      const std::string& pfname2 = amrex::Concatenate("plt",istep,4); // plt0258
 
       istep =1234567;  // Having more than 5 digits is OK.
-      const std::string& pfname3 = amrex::Concatenate("plt",istep); // plt12344567
+      const std::string& pfname3 = amrex::Concatenate("plt",istep); // plt1234567
 
 The argument :cpp:`mf` above (:cpp:`MultiFab` for single level and
 :cpp:`Vector<const MultiFab*>` for multi-level) is the data to be written
@@ -91,6 +91,171 @@ We note that AMReX does not overwrite old plotfiles if the new
 plotfile has the same name. The old plotfiles will be renamed to
 new directories named like plt00350.old.46576787980.
 
+Async Output
+============
+
+AMReX provides the ability to print MultiFabs, plotfiles and
+particle data asynchronously.  Asynchronous output works by creating
+a copy of the data at the time of the call, which is written to disk
+by a persistent thread created during AMReX's initialization.  This allows
+the calculation to continue immediately, which can drastically reduce
+walltime spent writing to disk.
+
+If the number of output files is less than the number of MPI ranks,
+AMReX's async output requires MPI to be initialized with THREAD_MULTIPLE
+support. THREAD_MULTIPLE support allows multiple unique threads to run unique
+MPI calls simultaneously.  This support is required to allow AMReX applications
+to perform MPI work while the Async Output concurrently pings ranks to signal
+that they can safely begin writing to their assigned files.  However,
+THREAD_MULTIPLE can introduce additional overhead as each threads' MPI operations
+must be scheduled safely around each other. Therefore, AMReX uses a lower level
+of support, SERIALIZED, by default and applications have to turn on THREAD_MULTIPLE
+support.
+
+To turn on Async Output, use the input flag ``amrex.async_out=1``.  The number
+of output files can also be set, using ``amrex.async_out_nfiles``.  The default
+number of files is ``64``. If the number of ranks is larger than the number of
+files, THREAD_MULTIPLE must be turned on by adding
+``MPI_THREAD_MULTIPLE=TRUE`` to the GNUMakefile. Otherwise, AMReX
+will throw an error.
+
+Async Output works for a wide range of AMReX calls, including:
+
+* ``amrex::WriteSingleLevelPlotfile()``
+* ``amrex::WriteMultiLevelPlotfile()``
+* ``amrex::WriteMLMF()``
+* ``VisMF::AsyncWrite()``
+* ``ParticleContainer::Checkpoint()``
+* ``ParticleContainer::WritePlotFile()``
+* ``Amr::writePlotFile()``
+* ``Amr::writeSmallPlotFile()``
+* ``Amr::checkpoint()``
+* ``AmrLevel::writePlotFile()``
+* ``StateData::checkPoint()``
+* ``FabSet::write()``
+
+Be aware: when using Async Output, a thread is spawned and exclusively used
+to perform output throughout the runtime.  As such, you may oversubscribe
+resources if you launch an AMReX application that assigns all available
+hardware threads in another way, such as OpenMP.  If you see any degradation
+when using Async Output and OpenMP, try using one less thread in
+``OMP_NUM_THREADS`` to prevent oversubscription and get more consistent
+results.
+
+HDF5 Plotfile
+=============
+Besides AMReX's native plotfile, applications can also write plotfile in
+the HDF5 format, which is a cross-platform, self-describing file format.
+The HDF5 plotfiles store the same information as the native format, and
+has the additional compression capability that can reduce the file size.
+Currently supported compression libraries include `SZ`_ and `ZFP`_.
+
+.. _`SZ`: https://szcompressor.org
+.. _`ZFP`: https://zfp.llnl.gov
+
+To enable HDF5 output, AMReX must be compiled and linked to an HDF5 library
+with parallel I/O support, by adding ``USE_HDF5=TRUE`` and
+``HDF5_HOME=/path/to/hdf5/install/dir`` to the GNUMakefile.
+many HPC systems have an HDF5 module available that can be loaded with
+``module load hdf5`` or ``module load cray-hdf5-parallel``. To download
+and compile HDF5 from source code, please go to `HDF5 Download`_ webpage
+and follow the instructions (latest version is recommended and remember
+to turn on parallel I/O).
+
+.. _`HDF5 Download`: https://portal.hdfgroup.org/display/support/Downloads
+
+Following are two functions for writing a generic AMReX plotfile in HDF5
+format, which are very similar to the AMReX native write functions.
+
+.. highlight:: c++
+
+::
+
+        void WriteSingleLevelPlotfileHDF5 (const std::string &plotfilename,
+                                           const MultiFab &mf,
+                                           const Vector<std::string> &varnames,
+                                           const Geometry &geom,
+                                           Real t,
+                                           int level_step,
+                                           const std::string &compression);
+
+        void WriteMultiLevelPlotfileHDF5 (const std::string &plotfilename,
+                                          int nlevels,
+                                          const Vector<const MultiFab*> &mf,
+                                          const Vector<std::string> &varnames,
+                                          const Vector<Geometry> &geom,
+                                          Real time,
+                                          const Vector<int> &level_steps,
+                                          const Vector<IntVect> &ref_ratio,
+                                          const std::string &compression);
+
+:cpp:`WriteSingleLevelPlotfileHDF5` is for single level runs and
+:cpp:`WriteMultiLevelPlotfileHDF5` is for multiple levels. Their arguments are
+the same as the native ones except the last one, which optional, and specifies
+the compression parameters. These two functions write plotfiles with a
+Chombo-compatible HDF5 file schema, which can be read by visualization tools
+such as VisIt and ParaView using their built-in Chombo reader plugin (see the
+chapter on :ref:`Chap:Visualization`)
+
+HDF5 Plotfile Compression
+-------------------------
+To enable data compression on the HDF5 datasets, the corresponding compression
+library and its HDF5 plugin must be available. To compile `SZ`_ or `ZFP`_ plugin,
+please refer to their documentation: `H5Z-SZ`_ and `H5Z-ZFP`_, and adding
+``USE_HDF5_SZ=TRUE``, ``SZ_HOME=``, or ``USE_HDF5_ZFP=TRUE``, ``ZFP_HOME=``,
+``H5Z_HOME=`` to the GNUMakefile.
+
+.. _`SZ`: https://szcompressor.org
+.. _`ZFP`: https://zfp.llnl.gov
+.. _`H5Z-SZ`: https://github.com/szcompressor/SZ/tree/master/hdf5-filter/H5Z-SZ
+.. _`H5Z-ZFP`: https://github.com/LLNL/H5Z-ZFP
+
+The string argument :cpp:`compression` in the above two functions controls
+whether to enable data compression and its parameters. Currently supported
+options include:
+
+* No compression
+    * ``None@0``
+* SZ compression
+    * ``SZ@/path/to/sz.config``
+* ZFP compression
+    * ``ZFP_RATE@rate``
+    * ``ZFP_PRECISION@precision``
+    * ``ZFP_ACCURACY@accuracy``
+    * ``ZFP_REVERSIBLE@reversible``
+
+
+HDF5 Asynchronous Output
+------------------------
+The HDF5 output also comes with its own asynchronous I/O support, which is different
+from the native async output mentioned in the previous section. To use the HDF5
+asynchronous I/O VOL connector, download and compile by following the instructions
+at `vol-async`_.
+
+.. _`vol-async`: https://github.com/hpc-io/vol-async
+
+Since the HDF5 asynchronous I/O in AMReX does not use double buffering, vol-async
+must be compiled with ``-DENABLE_WRITE_MEMCPY=1`` added to ``CFLAGS``.
+When compiling AMReX, add ``USE_HDF5_ASYNC = TRUE``, ``ABT_HOME=``, ``ASYNC_HOME=``,
+and ``MPI_THREAD_MULTIPLE=TRUE`` to the GNUMakefile. Refer to
+``amrex/Tests/HDF5Benchmark/GNUmakefile`` for the example usage.
+
+
+Alternative HDF5 Plotfile Schema
+--------------------------------
+:cpp:`WriteSingleLevelPlotfileHDF5` and :cpp:`WriteMultiLevelPlotfileHDF5`
+write HDF5 plotfiles that store all the data on an AMR level as one 1D HDF5 dataset.
+Each AMR box's data is linearized and the data of different variables are
+concatenated, resulting in an interleaved pattern for each variable. This could
+be undesirable when compression is used, as it may lead to applying the
+compression algorithm to multiple variables with different value ranges and
+chararistics, and reduce the compression ratio. To overcome this issue, two
+additional functions are provided to write each variable into individual HDF5
+datasets: :cpp:`WriteSingleLevelPlotfileHDF5MultiDset` and
+:cpp:`WriteMultiLevelPlotfileHDF5MultiDset`. They use the exact same arguments
+as :cpp:`WriteSingleLevelPlotfileHDF5` and :cpp:`WriteMultiLevelPlotfileHDF5`.
+However, this alternative schema is not yet supported by the visualization tools.
+
 Checkpoint File
 ===============
 
@@ -102,11 +267,13 @@ functions can be used to build codes for reading and writing
 checkpoint files. Since each application code has its own
 requirement, there is no standard AMReX checkpoint format.
 However we have provided an example restart capability in the tutorial
-``/amrex/Tutorials/Amr/Advection_AmrCore/Exec/SingleVortex``.
+`Advection AmrCore`_.
 Refer to the functions :cpp:`ReadCheckpointFile()` and
 :cpp:`WriteCheckpointFile()` in this tutorial.
 
-A checkpoint file is actually a directory with name, e.g., 
+.. _`Advection AmrCore`: https://amrex-codes.github.io/amrex/tutorials_html/AMR_Tutorial.html#advection-amrcore
+
+A checkpoint file is actually a directory with name, e.g.,
 ``chk00010`` containing a ``Header`` (text) file, along with
 subdirectories ``Level_0``, ``Level_1``, etc. containing the
 :cpp:`MultiFab` data at each level of refinement.
@@ -183,7 +350,7 @@ can also be used. For example,
        HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
        std::string HeaderFileName(checkpointname + "/Header");
        HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
-		                               std::ofstream::trunc |
+                                               std::ofstream::trunc |
                                                std::ofstream::binary);
 
        if( ! HeaderFile.good()) {
@@ -306,7 +473,7 @@ read the file from the disk and broadcast it to others as
         }
     }
 
-The following code how to read in a :cpp:`BoxArray`, create a 
+The following code how to read in a :cpp:`BoxArray`, create a
 :cpp:`DistributionMapping`, build :cpp:`MultiFab` and :cpp:`FluxRegister` data,
 and read in a :cpp:`MultiFab` from a checkpoint file, on a level-by-level basis:
 
@@ -334,7 +501,7 @@ and read in a :cpp:`MultiFab` from a checkpoint file, on a level-by-level basis:
         phi_old[lev].define(grids[lev], dmap[lev], ncomp, nghost);
         phi_new[lev].define(grids[lev], dmap[lev], ncomp, nghost);
         if (lev > 0 && do_reflux) {
-            flux_reg[lev].reset(new FluxRegister(grids[lev], dmap[lev], refRatio(lev-1), lev, ncomp));
+            flux_reg[lev] = std::make_unique<FluxRegister>(grids[lev], dmap[lev], refRatio(lev-1), lev, ncomp);
         }
     }
 

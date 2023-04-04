@@ -1,7 +1,6 @@
 
-#include <iostream>
-
 #include <AMReX_BCRec.H>
+#include <iostream>
 
 namespace amrex {
 
@@ -30,7 +29,7 @@ setBC (const Box&           bx,
                                  ? bc_dom[sc].hi(dir) : BCType::int_dir ));
         }
     }
-}           
+}
 
 std::ostream&
 operator<< (std::ostream& os,

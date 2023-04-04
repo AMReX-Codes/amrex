@@ -97,7 +97,7 @@ main (int   argc,
       std::ifstream ifsd(FullDataPath.c_str(), std::ios::binary);
       if( ! ifsd.good()) { amrex::FileOpenFailed(FullDataPath); }
 
-        
+
       Vector<int>  flattenedEdges(SizeOfEdgeData * nNodes[i]);
       Vector<Real> flattenedNodes(SizeOfNodeData * nNodes[i]);
       Vector<long> flattenedFrags(SizeOfFragData * nElts[i]);
@@ -162,7 +162,7 @@ main (int   argc,
     Print() << sortedNodes.size() << " unique nodes and " << surfaceFragmentsG.size() << " surfaceFragmentsG found";
     if (nNodesRedundant != sortedNodes.size())
     {
-      Print() << " (" << nNodesRedundant - sortedNodes.size() << " redundant nodes removed)"; 
+      Print() << " (" << nNodesRedundant - sortedNodes.size() << " redundant nodes removed)";
     }
     Print() << '\n';
 
@@ -270,7 +270,7 @@ list<list<Segment>> MakePolyLines(Vector<Segment>& segVec)
         contourLines.push_back(list<Segment>());
         contourLines.back().push_back(segments.front());
         segments.pop_front();
-        
+
         idx = contourLines.back().back()[1];
       }
     }

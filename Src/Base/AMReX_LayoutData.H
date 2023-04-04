@@ -1,5 +1,6 @@
 #ifndef AMREX_LayoutData_H_
 #define AMREX_LayoutData_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FabArrayBase.H>
 #include <AMReX_MFIter.H>
@@ -41,7 +42,7 @@ namespace amrex
     }
 
     LayoutData (LayoutData&& rhs) noexcept
-        : FabArrayBase(std::move(rhs)),
+        : FabArrayBase(static_cast<FabArrayBase&&>(rhs)),
           m_data(std::move(rhs.m_data)),
           m_need_to_clear_bd(rhs.m_need_to_clear_bd)
     {
@@ -71,7 +72,7 @@ namespace amrex
             m_data.clear();
             if (m_need_to_clear_bd) clearThisBD();
 
-            FabArrayBase::operator=(std::move(rhs));
+            FabArrayBase::operator=(static_cast<FabArrayBase&&>(rhs));
             m_data = std::move(rhs.m_data);
             m_need_to_clear_bd = rhs.m_need_to_clear_bd;
 
@@ -109,6 +110,9 @@ namespace amrex
         BL_ASSERT(local_index < m_data.size());
         return (m_data[local_index]);
       }
+
+    const T* data () const noexcept { return m_data.data(); }
+    T*       data ()       noexcept { return m_data.data(); }
 
   private:
       Vector<T> m_data;

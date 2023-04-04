@@ -1,17 +1,19 @@
 #ifndef AMREX_MULTICUTFAB_H_
 #define AMREX_MULTICUTFAB_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FabArray.H>
+#include <AMReX_FArrayBox.H>
 #include <AMReX_EBCellFlag.H>
 
 namespace amrex {
 
-class CutFab
+class CutFab final
     : public FArrayBox
 {
 public:
 
-    CutFab () {}
+    CutFab () = default;
 
     explicit CutFab (Arena* ar) : FArrayBox(ar) {}
 
@@ -25,7 +27,7 @@ public:
     CutFab (CutFab const& rhs, MakeType make_type, int scomp, int ncomp)
         : FArrayBox(rhs, make_type, scomp, ncomp) {}
 
-    ~CutFab () = default;
+    ~CutFab () noexcept override = default;
 
     CutFab (CutFab&& rhs) noexcept = default;
 
@@ -33,21 +35,21 @@ public:
     CutFab& operator= (const CutFab&) = delete;
     CutFab& operator= (CutFab&&) = delete;
 
-    template <RunOn run_on>
+    template <RunOn run_on, typename BUF = CutFab::value_type>
     std::size_t copyFromMem (const void* src) {
-        return copyFromMem<run_on>(box(), 0, nComp(), src);
+        return copyFromMem<run_on, BUF>(box(), 0, nComp(), src);
     }
 
-    template <RunOn run_on>
+    template <RunOn run_on, typename BUF = CutFab::value_type>
     std::size_t copyFromMem (const Box&  dstbox,
                              int         dstcomp,
                              int         numcomp,
                              const void* src)
     {
         if (dptr != nullptr) {
-            return FArrayBox::copyFromMem<run_on>(dstbox, dstcomp, numcomp, src);
+            return FArrayBox::copyFromMem<run_on, BUF>(dstbox, dstcomp, numcomp, src);
         } else {
-            return sizeof(CutFab::value_type)*static_cast<std::size_t>(dstbox.numPts()*numcomp);
+            return sizeof(BUF)*static_cast<std::size_t>(dstbox.numPts()*numcomp);
         }
     }
 
@@ -87,7 +89,7 @@ public:
     ~MultiCutFab ();
 
     MultiCutFab (MultiCutFab&& rhs) noexcept = default;
-    
+
     MultiCutFab (const MultiCutFab& rhs) = delete;
     MultiCutFab& operator= (const MultiCutFab& rhs) = delete;
     MultiCutFab& operator= (MultiCutFab&& rhs) = delete;
@@ -98,11 +100,18 @@ public:
     const CutFab& operator[] (const MFIter& mfi) const noexcept;
     CutFab& operator[] (const MFIter& mfi) noexcept;
 
+    const CutFab& operator[] (int global_box_index) const noexcept;
+    CutFab& operator[] (int global_box_index) noexcept;
+
     Array4<Real      > array (const MFIter& mfi) noexcept;
     Array4<Real const> array (const MFIter& mfi) const noexcept;
     Array4<Real const> const_array (const MFIter& mfi) const noexcept;
 
+    //! Is it OK to call operator[] with this MFIter?
     bool ok (const MFIter& mfi) const noexcept;
+
+    //! Is it OK to call operator[] with this global box index?
+    bool ok (int global_box_index) const noexcept;
 
     void setVal (Real val);
 

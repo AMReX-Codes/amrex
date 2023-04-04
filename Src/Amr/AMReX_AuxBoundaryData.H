@@ -1,6 +1,7 @@
 
 #ifndef AMREX_AuxBoundaryData_H_
 #define AMREX_AuxBoundaryData_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
@@ -11,15 +12,19 @@ class AuxBoundaryData
 {
 public:
 
-    AuxBoundaryData () noexcept;
+    AuxBoundaryData () noexcept = default;
 
-    AuxBoundaryData (const BoxArray& grids,
+    AuxBoundaryData (const BoxArray& ba,
                      int             n_grow,
                      int             n_comp,
                      const Geometry& geom);
 
-    AuxBoundaryData (const AuxBoundaryData& rhs);
+    ~AuxBoundaryData () = default;
 
+    AuxBoundaryData (AuxBoundaryData&& rhs) = default;
+    AuxBoundaryData& operator= (AuxBoundaryData&& rhs) = default;
+
+    AuxBoundaryData (const AuxBoundaryData& rhs);
     AuxBoundaryData& operator= (const AuxBoundaryData& rhs) = delete;
 
     void copyTo (MultiFab& destmf,
@@ -31,7 +36,7 @@ public:
                    int             src_comp,
                    int             dst_comp,
                    int             num_comp,
-		   int             src_ng = 0);
+                   int             src_ng = 0);
 
     size_t size () const noexcept
     {
@@ -43,8 +48,8 @@ public:
                int                    dst_comp,
                int                    num_comp);
 
-    void initialize (const BoxArray& grids,
-		     int             n_grow,
+    void initialize (const BoxArray& ba,
+                     int             n_grow,
                      int             n_comp,
                      const Geometry& geom);
 
@@ -81,9 +86,9 @@ public:
 private:
 
     MultiFab m_fabs;
-    int      m_ngrow;
-    bool     m_empty;
-    bool     m_initialized;
+    int      m_ngrow{0};
+    bool     m_empty{false};
+    bool     m_initialized{false};
 };
 // \endcond
 

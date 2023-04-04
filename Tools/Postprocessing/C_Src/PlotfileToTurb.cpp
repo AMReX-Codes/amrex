@@ -13,7 +13,6 @@
 #include "AMReX_ParmParse.H"
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_DataServices.H>
-#include <WritePlotFile.H>
 
 #include <AMReX_BLFort.H>
 
@@ -24,7 +23,7 @@ extern "C" {
 using namespace amrex;
 
 static
-void 
+void
 print_usage (int,
              char* argv[])
 {
@@ -69,7 +68,8 @@ main (int   argc,
 
     ParmParse pp;
 
-    if (pp.contains("help"))
+    const std::string farg = amrex::get_command_argument(1);
+    if (farg == "-h" || farg == "--help")
       print_usage(argc,argv);
 
     if (pp.contains("verbose"))

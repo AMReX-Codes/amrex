@@ -2,14 +2,13 @@
 #include <AMReX_MultiCutFab.H>
 #include <AMReX_MultiFab.H>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
 namespace amrex {
 
-MultiCutFab::MultiCutFab ()
-{}
+MultiCutFab::MultiCutFab () = default;
 
 MultiCutFab::MultiCutFab (const BoxArray& ba, const DistributionMapping& dm,
                           int ncomp, int ngrow, const FabArray<EBCellFlagFab>& cellflags)
@@ -20,7 +19,7 @@ MultiCutFab::MultiCutFab (const BoxArray& ba, const DistributionMapping& dm,
 }
 
 MultiCutFab::~MultiCutFab ()
-{}
+= default;
 
 void
 MultiCutFab::define (const BoxArray& ba, const DistributionMapping& dm,
@@ -38,9 +37,7 @@ MultiCutFab::remove ()
     {
         if (!ok(mfi))
         {
-            CutFab* p = &(m_data[mfi]);
-            delete p;
-            m_data.setFab(mfi, new CutFab(), false);
+            delete m_data.release(mfi);
         }
     }
 }
@@ -57,6 +54,20 @@ MultiCutFab::operator[] (const MFIter& mfi) noexcept
 {
     AMREX_ASSERT(ok(mfi));
     return m_data[mfi];
+}
+
+const CutFab&
+MultiCutFab::operator[] (int global_box_index) const noexcept
+{
+    AMREX_ASSERT(ok(global_box_index));
+    return m_data[global_box_index];
+}
+
+CutFab&
+MultiCutFab::operator[] (int global_box_index) noexcept
+{
+    AMREX_ASSERT(ok(global_box_index));
+    return m_data[global_box_index];
 }
 
 Array4<Real const>
@@ -86,10 +97,16 @@ MultiCutFab::ok (const MFIter& mfi) const noexcept
     return (*m_cellflags)[mfi].getType() == FabType::singlevalued;
 }
 
+bool
+MultiCutFab::ok (int global_box_index) const noexcept
+{
+    return (*m_cellflags)[global_box_index].getType() == FabType::singlevalued;
+}
+
 void
 MultiCutFab::setVal (Real val)
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(m_data); mfi.isValid(); ++mfi)
@@ -116,7 +133,7 @@ MultiCutFab::ToMultiFab (Real regular_value, Real covered_value) const
 {
     const int ncomp = nComp();
     MultiFab mf(boxArray(), DistributionMap(), ncomp, nGrow());
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)

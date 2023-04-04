@@ -78,10 +78,10 @@ public:
             const Box& tile_box  = mfi.tilebox();
 
             Gpu::HostVector<ParticleType> host_particles;
-            std::array<Gpu::HostVector<Real>, NAR> host_real;
+            std::array<Gpu::HostVector<ParticleReal>, NAR> host_real;
             std::array<Gpu::HostVector<int>, NAI> host_int;
 
-            std::vector<Gpu::HostVector<Real> > host_runtime_real(NumRuntimeRealComps());
+            std::vector<Gpu::HostVector<ParticleReal> > host_runtime_real(NumRuntimeRealComps());
             std::vector<Gpu::HostVector<int> > host_runtime_int(NumRuntimeIntComps());
 
             for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
@@ -93,26 +93,26 @@ public:
                     ParticleType p;
                     p.id()  = ParticleType::NextID();
                     p.cpu() = ParallelDescriptor::MyProc();
-                    p.pos(0) = plo[0] + (iv[0] + r[0])*dx[0];
+                    p.pos(0) = static_cast<ParticleReal> (plo[0] + (iv[0] + r[0])*dx[0]);
 #if AMREX_SPACEDIM > 1
-                    p.pos(1) = plo[1] + (iv[1] + r[1])*dx[1];
+                    p.pos(1) = static_cast<ParticleReal> (plo[1] + (iv[1] + r[1])*dx[1]);
 #endif
 #if AMREX_SPACEDIM > 2
-                    p.pos(2) = plo[2] + (iv[2] + r[2])*dx[2];
+                    p.pos(2) = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);
 #endif
 
-                    for (int i = 0; i < NSR; ++i) p.rdata(i) = p.id();
+                    for (int i = 0; i < NSR; ++i) p.rdata(i) = ParticleReal(p.id());
                     for (int i = 0; i < NSI; ++i) p.idata(i) = p.id();
 
                     host_particles.push_back(p);
                     for (int i = 0; i < NAR; ++i)
-                        host_real[i].push_back(p.id());
+                        host_real[i].push_back(ParticleReal(p.id()));
                     for (int i = 0; i < NAI; ++i)
-                        host_int[i].push_back(p.id());
+                        host_int[i].push_back(int(p.id()));
                     for (int i = 0; i < NumRuntimeRealComps(); ++i)
-                        host_runtime_real[i].push_back(p.id());
+                        host_runtime_real[i].push_back(ParticleReal(p.id()));
                     for (int i = 0; i < NumRuntimeIntComps(); ++i)
-                        host_runtime_int[i].push_back(p.id());
+                        host_runtime_int[i].push_back(int(p.id()));
                 }
             }
 
@@ -121,42 +121,44 @@ public:
             auto new_size = old_size + host_particles.size();
             particle_tile.resize(new_size);
 
-            Gpu::copy(Gpu::hostToDevice,
-                      host_particles.begin(),
-                      host_particles.end(),
-                      particle_tile.GetArrayOfStructs().begin() + old_size);
+            Gpu::copyAsync(Gpu::hostToDevice,
+                           host_particles.begin(),
+                           host_particles.end(),
+                           particle_tile.GetArrayOfStructs().begin() + old_size);
 
             auto& soa = particle_tile.GetStructOfArrays();
             for (int i = 0; i < NAR; ++i)
             {
-                Gpu::copy(Gpu::hostToDevice,
-                          host_real[i].begin(),
-                          host_real[i].end(),
-                          soa.GetRealData(i).begin() + old_size);
+                Gpu::copyAsync(Gpu::hostToDevice,
+                               host_real[i].begin(),
+                               host_real[i].end(),
+                               soa.GetRealData(i).begin() + old_size);
             }
 
             for (int i = 0; i < NAI; ++i)
             {
-                Gpu::copy(Gpu::hostToDevice,
-                          host_int[i].begin(),
-                          host_int[i].end(),
-                          soa.GetIntData(i).begin() + old_size);
+                Gpu::copyAsync(Gpu::hostToDevice,
+                               host_int[i].begin(),
+                               host_int[i].end(),
+                               soa.GetIntData(i).begin() + old_size);
             }
             for (int i = 0; i < NumRuntimeRealComps(); ++i)
             {
-                Gpu::copy(Gpu::hostToDevice,
-                          host_runtime_real[i].begin(),
-                          host_runtime_real[i].end(),
-                          soa.GetRealData(NAR+i).begin() + old_size);
+                Gpu::copyAsync(Gpu::hostToDevice,
+                               host_runtime_real[i].begin(),
+                               host_runtime_real[i].end(),
+                               soa.GetRealData(NAR+i).begin() + old_size);
             }
 
             for (int i = 0; i < NumRuntimeIntComps(); ++i)
             {
-                Gpu::copy(Gpu::hostToDevice,
-                          host_runtime_int[i].begin(),
-                          host_runtime_int[i].end(),
-                          soa.GetIntData(NAI+i).begin() + old_size);
+                Gpu::copyAsync(Gpu::hostToDevice,
+                               host_runtime_int[i].begin(),
+                               host_runtime_int[i].end(),
+                               soa.GetIntData(NAI+i).begin() + old_size);
             }
+
+            Gpu::streamSynchronize();
         }
 
         Redistribute();
@@ -180,8 +182,8 @@ void test_async_io(TestParams& parms)
        fine_box.setHi(n,0.75);
     }
 
-    IntVect domain_lo(D_DECL(0 , 0, 0));
-    IntVect domain_hi(D_DECL(parms.nx - 1, parms.ny - 1, parms.nz-1));
+    IntVect domain_lo(AMREX_D_DECL(0 , 0, 0));
+    IntVect domain_hi(AMREX_D_DECL(parms.nx - 1, parms.ny - 1, parms.nz-1));
     const Box domain(domain_lo, domain_hi);
 
     // Define the refinement ratio
@@ -190,16 +192,14 @@ void test_async_io(TestParams& parms)
         rr[lev-1] = IntVect(AMREX_D_DECL(2, 2, 2));
 
     // This sets the boundary conditions to be doubly or triply periodic
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        is_per[i] = 1;
+    int is_per[] = {AMREX_D_DECL(1,1,1)};
 
     // This defines a Geometry object which is useful for writing the plotfiles
     Vector<Geometry> geom(nlevs);
     geom[0].define(domain, &real_box, CoordSys::cartesian, is_per);
     for (int lev = 1; lev < nlevs; lev++) {
-	geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
-			 &real_box, CoordSys::cartesian, is_per);
+        geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
+                         &real_box, CoordSys::cartesian, is_per);
     }
 
     Vector<BoxArray> ba(nlevs);
@@ -207,8 +207,8 @@ void test_async_io(TestParams& parms)
 
     if (nlevs > 1) {
         int n_fine = parms.nx*rr[0][0];
-        IntVect refined_lo(D_DECL(n_fine/4,n_fine/4,n_fine/4));
-        IntVect refined_hi(D_DECL(3*n_fine/4-1,3*n_fine/4-1,3*n_fine/4-1));
+        IntVect refined_lo(AMREX_D_DECL(n_fine/4,n_fine/4,n_fine/4));
+        IntVect refined_hi(AMREX_D_DECL(3*n_fine/4-1,3*n_fine/4-1,3*n_fine/4-1));
 
         // Build a box for the level 1 domain
         Box refined_patch(refined_lo, refined_hi);
@@ -227,16 +227,16 @@ void test_async_io(TestParams& parms)
     Vector<std::unique_ptr<MultiFab> > acceleration(nlevs);
     for (int lev = 0; lev < nlevs; lev++) {
         dmap[lev] = DistributionMapping{ba[lev]};
-        density[lev].reset(new MultiFab(ba[lev], dmap[lev], 1, 0));
+        density[lev] = std::make_unique<MultiFab>(ba[lev], dmap[lev], 1, 0);
         density[lev]->setVal(0.0);
-        acceleration[lev].reset(new MultiFab(ba[lev], dmap[lev], 3, 1));
+        acceleration[lev] = std::make_unique<MultiFab>(ba[lev], dmap[lev], 3, 1);
         acceleration[lev]->setVal(5.0, 1);
     }
 
     MyParticleContainer myPC(geom, dmap, ba, rr);
     myPC.SetVerbose(false);
 
-    myPC.InitParticles(IntVect(2, 2, 2));
+    myPC.InitParticles(IntVect(AMREX_D_DECL(2, 2, 2)));
 
     for (int step = 0; step < 4000; ++step)
     {
@@ -263,7 +263,7 @@ void test_async_io(TestParams& parms)
             Vector<IntVect> outputRR(output_levs);
             for (int lev = 0; lev < output_levs; ++lev) {
                 outputMF[lev] = density[lev].get();
-                outputRR[lev] = IntVect(D_DECL(2, 2, 2));
+                outputRR[lev] = IntVect(AMREX_D_DECL(2, 2, 2));
             }
 
             std::string fn = amrex::Concatenate("plt", step, 5);

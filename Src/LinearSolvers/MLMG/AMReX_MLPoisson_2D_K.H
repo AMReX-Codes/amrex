@@ -1,32 +1,55 @@
 #ifndef AMREX_MLPOISSON_2D_K_H_
 #define AMREX_MLPOISSON_2D_K_H_
+#include <AMReX_Config.H>
 
 namespace amrex {
 
+#if (AMREX_SPACEDIM != 2)
+namespace TwoD {
+#endif
+
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlpoisson_adotx (int i, int j, Array4<Real> const& y,
-                      Array4<Real const> const& x,
-                      Real dhx, Real dhy) noexcept
+void mlpoisson_adotx (int i, int j, Array4<T> const& y,
+                      Array4<T const> const& x,
+                      T dhx, T dhy) noexcept
 {
-    y(i,j,0) = dhx * (x(i-1,j,0) - 2.*x(i,j,0) + x(i+1,j,0))
-        +      dhy * (x(i,j-1,0) - 2.*x(i,j,0) + x(i,j+1,0));
+    y(i,j,0) = dhx * (x(i-1,j,0) - T(2.)*x(i,j,0) + x(i+1,j,0))
+        +      dhy * (x(i,j-1,0) - T(2.)*x(i,j,0) + x(i,j+1,0));
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlpoisson_adotx_m (int i, int j, Array4<Real> const& y,
-                        Array4<Real const> const& x,
-                        Real dhx, Real dhy, Real dx, Real probxlo) noexcept
+void mlpoisson_adotx_os (int i, int j, Array4<T> const& y,
+                         Array4<T const> const& x,
+                         Array4<int const> const& osm,
+                         T dhx, T dhy) noexcept
 {
-    Real rel = probxlo + i*dx;
-    Real rer = probxlo +(i+1)*dx;
-    Real rc = probxlo + (i+0.5)*dx;
+    if (osm(i,j,0) == 0) {
+        y(i,j,0) = T(0.0);
+    } else {
+        y(i,j,0) = dhx * (x(i-1,j,0) - T(2.)*x(i,j,0) + x(i+1,j,0))
+            +      dhy * (x(i,j-1,0) - T(2.)*x(i,j,0) + x(i,j+1,0));
+    }
+}
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlpoisson_adotx_m (int i, int j, Array4<T> const& y,
+                        Array4<T const> const& x,
+                        T dhx, T dhy, T dx, T probxlo) noexcept
+{
+    T rel = probxlo + i*dx;
+    T rer = probxlo +(i+1)*dx;
+    T rc = probxlo + (i+T(0.5))*dx;
     y(i,j,0) = dhx * (rel*x(i-1,j,0) - (rel+rer)*x(i,j,0) + rer*x(i+1,j,0))
-        +      dhy * rc *(x(i,j-1,0) -        2.*x(i,j,0) +     x(i,j+1,0));
+        +      dhy * rc *(x(i,j-1,0) -  T(2.)*x(i,j,0) +     x(i,j+1,0));
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlpoisson_flux_x (Box const& box, Array4<Real> const& fx,
-                       Array4<Real const> const& sol, Real dxinv) noexcept
+void mlpoisson_flux_x (Box const& box, Array4<T> const& fx,
+                       Array4<T const> const& sol, T dxinv) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -39,10 +62,11 @@ void mlpoisson_flux_x (Box const& box, Array4<Real> const& fx,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlpoisson_flux_x_m (Box const& box, Array4<Real> const& fx,
-                         Array4<Real const> const& sol, Real dxinv,
-                         Real dx, Real probxlo) noexcept
+void mlpoisson_flux_x_m (Box const& box, Array4<T> const& fx,
+                         Array4<T const> const& sol, T dxinv,
+                         T dx, T probxlo) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -50,15 +74,16 @@ void mlpoisson_flux_x_m (Box const& box, Array4<Real> const& fx,
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real re = probxlo + i*dx;
+            T re = probxlo + i*dx;
             fx(i,j,0) = dxinv*re*(sol(i,j,0)-sol(i-1,j,0));
         }
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlpoisson_flux_xface (Box const& box, Array4<Real> const& fx,
-                           Array4<Real const> const& sol, Real dxinv, int xlen) noexcept
+void mlpoisson_flux_xface (Box const& box, Array4<T> const& fx,
+                           Array4<T const> const& sol, T dxinv, int xlen) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -71,17 +96,18 @@ void mlpoisson_flux_xface (Box const& box, Array4<Real> const& fx,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlpoisson_flux_xface_m (Box const& box, Array4<Real> const& fx,
-                             Array4<Real const> const& sol, Real dxinv, int xlen,
-                             Real dx, Real probxlo) noexcept
+void mlpoisson_flux_xface_m (Box const& box, Array4<T> const& fx,
+                             Array4<T const> const& sol, T dxinv, int xlen,
+                             T dx, T probxlo) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
     for     (int j = lo.y; j <= hi.y; ++j) {
         int i = lo.x;
-        Real re = probxlo + i*dx;
+        T re = probxlo + i*dx;
         fx(i,j,0) = dxinv*re*(sol(i,j,0)-sol(i-1,j,0));
         i += xlen;
         re = probxlo + i*dx;
@@ -89,9 +115,10 @@ void mlpoisson_flux_xface_m (Box const& box, Array4<Real> const& fx,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlpoisson_flux_y (Box const& box, Array4<Real> const& fy,
-                       Array4<Real const> const& sol, Real dyinv) noexcept
+void mlpoisson_flux_y (Box const& box, Array4<T> const& fy,
+                       Array4<T const> const& sol, T dyinv) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -104,10 +131,11 @@ void mlpoisson_flux_y (Box const& box, Array4<Real> const& fy,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlpoisson_flux_y_m (Box const& box, Array4<Real> const& fy,
-                         Array4<Real const> const& sol, Real dyinv,
-                         Real dx, Real probxlo) noexcept
+void mlpoisson_flux_y_m (Box const& box, Array4<T> const& fy,
+                         Array4<T const> const& sol, T dyinv,
+                         T dx, T probxlo) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -115,15 +143,16 @@ void mlpoisson_flux_y_m (Box const& box, Array4<Real> const& fy,
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real rc = probxlo + (i+0.5)*dx;
+            T rc = probxlo + (i+T(0.5))*dx;
             fy(i,j,0) = dyinv*rc*(sol(i,j,0)-sol(i,j-1,0));
         }
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlpoisson_flux_yface (Box const& box, Array4<Real> const& fy,
-                           Array4<Real const> const& sol, Real dyinv, int ylen) noexcept
+void mlpoisson_flux_yface (Box const& box, Array4<T> const& fy,
+                           Array4<T const> const& sol, T dyinv, int ylen) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -140,10 +169,11 @@ void mlpoisson_flux_yface (Box const& box, Array4<Real> const& fy,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlpoisson_flux_yface_m (Box const& box, Array4<Real> const& fy,
-                             Array4<Real const> const& sol, Real dyinv, int ylen,
-                             Real dx, Real probxlo) noexcept
+void mlpoisson_flux_yface_m (Box const& box, Array4<T> const& fy,
+                             Array4<T const> const& sol, T dyinv, int ylen,
+                             T dx, T probxlo) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -151,120 +181,144 @@ void mlpoisson_flux_yface_m (Box const& box, Array4<Real> const& fy,
     int j = lo.y;
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
-        Real rc = probxlo + (i+0.5)*dx;
+        T rc = probxlo + (i+T(0.5))*dx;
         fy(i,j,0) = dyinv*rc*(sol(i,j,0)-sol(i,j-1,0));
     }
     j += ylen;
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
-        Real rc = probxlo + (i+0.5)*dx;
+        T rc = probxlo + (i+T(0.5))*dx;
         fy(i,j,0) = dyinv*rc*(sol(i,j,0)-sol(i,j-1,0));
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlpoisson_gsrb (Box const& box, Array4<Real> const& phi, Array4<Real const> const& rhs,
-                     Real dhx, Real dhy,
-                     Array4<Real const> const& f0, Array4<int const> const& m0,
-                     Array4<Real const> const& f1, Array4<int const> const& m1,
-                     Array4<Real const> const& f2, Array4<int const> const& m2,
-                     Array4<Real const> const& f3, Array4<int const> const& m3,
+void mlpoisson_gsrb (int i, int j, int, Array4<T> const& phi, Array4<T const> const& rhs,
+                     T dhx, T dhy,
+                     Array4<T const> const& f0, Array4<int const> const& m0,
+                     Array4<T const> const& f1, Array4<int const> const& m1,
+                     Array4<T const> const& f2, Array4<int const> const& m2,
+                     Array4<T const> const& f3, Array4<int const> const& m3,
                      Box const& vbox, int redblack) noexcept
 {
-    const auto lo = amrex::lbound(box);
-    const auto hi = amrex::ubound(box);
     const auto vlo = amrex::lbound(vbox);
     const auto vhi = amrex::ubound(vbox);
 
-    Real gamma = -2.0*dhx - 2.0*dhy;
+    T gamma = T(-2.0)*(dhx+dhy);
 
-    for     (int j = lo.y; j <= hi.y; ++j) {
-        AMREX_PRAGMA_SIMD
-        for (int i = lo.x; i <= hi.x; ++i) {
-            if ((i+j+redblack)%2 == 0) {
-                Real cf0 = (i == vlo.x and m0(vlo.x-1,j,0) > 0)
-                    ? f0(vlo.x,j,0) : 0.0;
-                Real cf1 = (j == vlo.y and m1(i,vlo.y-1,0) > 0)
-                    ? f1(i,vlo.y,0) : 0.0;
-                Real cf2 = (i == vhi.x and m2(vhi.x+1,j,0) > 0)
-                    ? f2(vhi.x,j,0) : 0.0;
-                Real cf3 = (j == vhi.y and m3(i,vhi.y+1,0) > 0)
-                    ? f3(i,vhi.y,0) : 0.0;
+    if ((i+j+redblack)%2 == 0) {
+        T cf0 = (i == vlo.x && m0(vlo.x-1,j,0) > 0)
+            ? f0(vlo.x,j,0) : T(0.0);
+        T cf1 = (j == vlo.y && m1(i,vlo.y-1,0) > 0)
+            ? f1(i,vlo.y,0) : T(0.0);
+        T cf2 = (i == vhi.x && m2(vhi.x+1,j,0) > 0)
+            ? f2(vhi.x,j,0) : T(0.0);
+        T cf3 = (j == vhi.y && m3(i,vhi.y+1,0) > 0)
+            ? f3(i,vhi.y,0) : T(0.0);
 
-                Real g_m_d = gamma + dhx*(cf0+cf2) + dhy*(cf1+cf3);
+        T g_m_d = gamma + dhx*(cf0+cf2) + dhy*(cf1+cf3);
 
-                Real res = rhs(i,j,0) - gamma*phi(i,j,0)
-                    - dhx*(phi(i-1,j,0) + phi(i+1,j,0))
-                    - dhy*(phi(i,j-1,0) + phi(i,j+1,0));
+        T res = rhs(i,j,0) - gamma*phi(i,j,0)
+            - dhx*(phi(i-1,j,0) + phi(i+1,j,0))
+            - dhy*(phi(i,j-1,0) + phi(i,j+1,0));
 
-                phi(i,j,0) = phi(i,j,0) + res /g_m_d;
-            }
-        }
+        phi(i,j,0) = phi(i,j,0) + res /g_m_d;
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlpoisson_gsrb_m (Box const& box, Array4<Real> const& phi, Array4<Real const> const& rhs,
-                       Real dhx, Real dhy,
-                       Array4<Real const> const& f0, Array4<int const> const& m0,
-                       Array4<Real const> const& f1, Array4<int const> const& m1,
-                       Array4<Real const> const& f2, Array4<int const> const& m2,
-                       Array4<Real const> const& f3, Array4<int const> const& m3,
-                       Box const& vbox, int redblack, Real dx, Real probxlo) noexcept
+void mlpoisson_gsrb_os (int i, int j, int, Array4<T> const& phi, Array4<T const> const& rhs,
+                        Array4<int const> const& osm, T dhx, T dhy,
+                        Array4<T const> const& f0, Array4<int const> const& m0,
+                        Array4<T const> const& f1, Array4<int const> const& m1,
+                        Array4<T const> const& f2, Array4<int const> const& m2,
+                        Array4<T const> const& f3, Array4<int const> const& m3,
+                        Box const& vbox, int redblack) noexcept
 {
-    const auto lo = amrex::lbound(box);
-    const auto hi = amrex::ubound(box);
     const auto vlo = amrex::lbound(vbox);
     const auto vhi = amrex::ubound(vbox);
 
-    for     (int j = lo.y; j <= hi.y; ++j) {
-        AMREX_PRAGMA_SIMD
-        for (int i = lo.x; i <= hi.x; ++i) {
-            if ((i+j+redblack)%2 == 0) {
-                Real cf0 = (i == vlo.x and m0(vlo.x-1,j,0) > 0)
-                    ? f0(vlo.x,j,0) : 0.0;
-                Real cf1 = (j == vlo.y and m1(i,vlo.y-1,0) > 0)
-                    ? f1(i,vlo.y,0) : 0.0;
-                Real cf2 = (i == vhi.x and m2(vhi.x+1,j,0) > 0)
-                    ? f2(vhi.x,j,0) : 0.0;
-                Real cf3 = (j == vhi.y and m3(i,vhi.y+1,0) > 0)
-                    ? f3(i,vhi.y,0) : 0.0;
+    T gamma = T(-2.0)*(dhx+dhy);
 
-                Real rel = probxlo + i*dx;
-                Real rer = probxlo +(i+1)*dx;
-                Real rc = probxlo + (i+0.5)*dx;
+    if ((i+j+redblack)%2 == 0) {
+        if (osm(i,j,0) == 0) {
+            phi(i,j,0) = T(0.0);
+        } else {
+            T cf0 = (i == vlo.x && m0(vlo.x-1,j,0) > 0)
+                ? f0(vlo.x,j,0) : T(0.0);
+            T cf1 = (j == vlo.y && m1(i,vlo.y-1,0) > 0)
+                ? f1(i,vlo.y,0) : T(0.0);
+            T cf2 = (i == vhi.x && m2(vhi.x+1,j,0) > 0)
+                ? f2(vhi.x,j,0) : T(0.0);
+            T cf3 = (j == vhi.y && m3(i,vhi.y+1,0) > 0)
+                ? f3(i,vhi.y,0) : T(0.0);
 
-                Real gamma = -dhx*(rel+rer) - 2.0*dhy*rc;
+            T g_m_d = gamma + dhx*(cf0+cf2) + dhy*(cf1+cf3);
 
-                Real g_m_d = gamma + dhx*(rel*cf0+rer*cf2) + dhy*rc*(cf1+cf3);
+            T res = rhs(i,j,0) - gamma*phi(i,j,0)
+                - dhx*(phi(i-1,j,0) + phi(i+1,j,0))
+                - dhy*(phi(i,j-1,0) + phi(i,j+1,0));
 
-                Real res = rhs(i,j,0) - gamma*phi(i,j,0)
-                    - dhx*(rel*phi(i-1,j,0) + rer*phi(i+1,j,0))
-                    - dhy*rc *(phi(i,j-1,0) +     phi(i,j+1,0));
-
-                phi(i,j,0) = phi(i,j,0) + res /g_m_d;
-            }
+            phi(i,j,0) = phi(i,j,0) + res /g_m_d;
         }
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlpoisson_normalize (Box const& box, Array4<Real> const& x,
-                          Real dhx, Real dhy, Real dx, Real probxlo) noexcept
+void mlpoisson_gsrb_m (int i, int j, int, Array4<T> const& phi, Array4<T const> const& rhs,
+                       T dhx, T dhy,
+                       Array4<T const> const& f0, Array4<int const> const& m0,
+                       Array4<T const> const& f1, Array4<int const> const& m1,
+                       Array4<T const> const& f2, Array4<int const> const& m2,
+                       Array4<T const> const& f3, Array4<int const> const& m3,
+                       Box const& vbox, int redblack, T dx, T probxlo) noexcept
 {
-    const auto lo = amrex::lbound(box);
-    const auto hi = amrex::ubound(box);
+    const auto vlo = amrex::lbound(vbox);
+    const auto vhi = amrex::ubound(vbox);
 
-    for     (int j = lo.y; j <= hi.y; ++j) {
-        AMREX_PRAGMA_SIMD
-        for (int i = lo.x; i <= hi.x; ++i) {
-            Real rel = probxlo + i*dx;
-            Real rer = probxlo +(i+1)*dx;
-            Real rc = probxlo + (i+0.5)*dx;
-            x(i,j,0) /= (-dhx*(rel+rer) - dhy*rc*2.0);
-        }
+    if ((i+j+redblack)%2 == 0) {
+        T cf0 = (i == vlo.x && m0(vlo.x-1,j,0) > 0)
+            ? f0(vlo.x,j,0) : T(0.0);
+        T cf1 = (j == vlo.y && m1(i,vlo.y-1,0) > 0)
+            ? f1(i,vlo.y,0) : T(0.0);
+        T cf2 = (i == vhi.x && m2(vhi.x+1,j,0) > 0)
+            ? f2(vhi.x,j,0) : T(0.0);
+        T cf3 = (j == vhi.y && m3(i,vhi.y+1,0) > 0)
+            ? f3(i,vhi.y,0) : T(0.0);
+
+        T rel = probxlo + i*dx;
+        T rer = probxlo +(i+1)*dx;
+        T rc = probxlo + (i+T(0.5))*dx;
+
+        T gamma = -dhx*(rel+rer) - T(2.0)*dhy*rc;
+
+        T g_m_d = gamma + dhx*(rel*cf0+rer*cf2) + dhy*rc*(cf1+cf3);
+
+        T res = rhs(i,j,0) - gamma*phi(i,j,0)
+            - dhx*(rel*phi(i-1,j,0) + rer*phi(i+1,j,0))
+            - dhy*rc *(phi(i,j-1,0) +     phi(i,j+1,0));
+
+        phi(i,j,0) = phi(i,j,0) + res /g_m_d;
     }
 }
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlpoisson_normalize (int i, int j, int, Array4<T> const& x,
+                          T dhx, T dhy, T dx, T probxlo) noexcept
+{
+    T rel = probxlo + i*dx;
+    T rer = probxlo +(i+1)*dx;
+    T rc = probxlo + (i+T(0.5))*dx;
+    x(i,j,0) /= (-dhx*(rel+rer) - dhy*rc*T(2.0));
+}
+
+#if (AMREX_SPACEDIM != 2)
+}
+#endif
 
 }
 

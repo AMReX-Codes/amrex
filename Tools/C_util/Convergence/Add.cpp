@@ -16,10 +16,6 @@ using std::ios;
 #include <AMReX_Utility.H>
 #include <AMReX_VisMF.H>
 
-#ifdef AMREX_DEBUG
-#include <TV_TempWrite.H>
-#endif
-
 #include <AMReX_AVGDOWN_F.H>
 
 #define GARBAGE 666.e+40
@@ -28,6 +24,8 @@ static
 void
 PrintUsage (const char* progName)
 {
+    std::cout << '\n';
+    std::cout << "This program adds a constant factor to a FAB.\n";
     std::cout << '\n';
     std::cout << "Usage:" << '\n';
     std::cout << progName << '\n';
@@ -44,38 +42,46 @@ main (int   argc,
       char* argv[])
 {
     amrex::Initialize(argc,argv);
+    {
 
-    if (argc == 1)
-        PrintUsage(argv[0]);
+        if (argc == 1)
+            PrintUsage(argv[0]);
 
-    ParmParse pp;
+        const std::string farg = amrex::get_command_argument(1);
+        if (farg == "-h" || farg == "--help")
+        {
+            PrintUsage(argv[0]);
+        }
 
-    FArrayBox::setFormat(FABio::FAB_IEEE_32);
-    //
-    // Scan the arguments.
-    //
-    std::string iFileDir, iFile, eFile, oFile, oFileDir;
-    Real factor;
+        ParmParse pp;
 
-    pp.query("infile", iFile);
-    if (iFile.empty())
-        amrex::Abort("You must specify `infile'");
+        FArrayBox::setFormat(FABio::FAB_IEEE_32);
+        //
+        // Scan the arguments.
+        //
+        std::string iFileDir, iFile, eFile, oFile, oFileDir;
+        Real factor;
 
-    pp.query("factor", factor);
+        pp.query("infile", iFile);
+        if (iFile.empty())
+            amrex::Abort("You must specify `infile'");
 
-    pp.query("outfile", oFile);
-    if (oFile.empty())
-        amrex::Abort("You must specify `outfile'");
+        pp.query("factor", factor);
 
-    std::ifstream is(iFile.c_str(),ios::in);
-    std::ofstream os(oFile.c_str(),ios::out);
+        pp.query("outfile", oFile);
+        if (oFile.empty())
+            amrex::Abort("You must specify `outfile'");
 
-    FArrayBox dataI, dataE;
-    dataI.readFrom(is);
-  
-    dataI.plus(factor);   
+        std::ifstream is(iFile.c_str(),ios::in);
+        std::ofstream os(oFile.c_str(),ios::out);
 
-    dataI.writeOn(os);
+        FArrayBox dataI, dataE;
+        dataI.readFrom(is);
 
+        dataI.plus(factor);
+
+        dataI.writeOn(os);
+
+    }
     amrex::Finalize();
 }

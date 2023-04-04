@@ -1,23 +1,11 @@
 #
 # This module defines the INTERFACE target SYCL and its alias AMReX::SYCL.
 # These targets provides build/link requirements for the SYCL language.
-# For the time being, only dpc++  is supported
+# For the time being, only oneAPI is supported
 #
 
-# Provide a cache variable for the dpc++ root directory installation by probing
-# the compiler
-execute_process(COMMAND ${CMAKE_CXX_COMPILER} --version  OUTPUT_VARIABLE _tmp)
-string(REGEX MATCH "InstalledDir: (.*)" _tmp "${_tmp}")
-unset(_tmp)
-
-get_filename_component(DPCPP_ROOT ${CMAKE_MATCH_1} DIRECTORY CACHE)
-
-find_file(LIBSYCL_GLIBC_OBJ libsycl-glibc.o
-   PATHS ${DPCPP_ROOT} ENV LD_LIBRARY_PATH
-   PATH_SUFFIXES lib
-   DOC "Full path to libsycl-glibc.o")
-
-set(_cxx_clang "$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>>") # Only Clang for now
+set(_cxx_sycl "$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:IntelClang>,$<CXX_COMPILER_ID:IntelDPCPP>,$<CXX_COMPILER_ID:IntelLLVM>>")
+set(_cxx_sycl "$<AND:$<COMPILE_LANGUAGE:CXX>,${_cxx_sycl}>")
 
 #
 # SYCL and AMReX::SYCL targets
@@ -27,53 +15,77 @@ add_library(AMReX::SYCL ALIAS SYCL)
 
 target_compile_features(SYCL INTERFACE cxx_std_17)
 
-target_link_libraries(SYCL INTERFACE ${LIBSYCL_GLIBC_OBJ})
 
+#
+# Compiler options
+#
 target_compile_options( SYCL
    INTERFACE
-   $<${_cxx_clang}:-Wno-error=sycl-strict -fsycl -fsycl-unnamed-lambda>
-   $<${_cxx_clang}:$<$<BOOL:${ENABLE_DPCPP_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
+   $<${_cxx_sycl}:-fsycl>
+   $<${_cxx_sycl}:$<$<BOOL:${AMReX_SYCL_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
+
+# temporary work-around for oneAPI beta08 bug
+#   define "long double" as 64bit for C++ user-defined literals
+#   https://github.com/intel/llvm/issues/2187
+target_compile_options( SYCL
+   INTERFACE
+     "$<${_cxx_sycl}:-mlong-double-64>"
+     "$<${_cxx_sycl}:SHELL:-Xclang -mlong-double-64>")
+
+# disable warning: comparison with infinity always evaluates to false in fast floating point modes [-Wtautological-constant-compare]
+#                  return std::isinf(m);
+# appeared since 2021.4.0
+target_compile_options( SYCL
+   INTERFACE
+   $<${_cxx_sycl}:-Wno-tautological-constant-compare>)
+
+if(AMReX_SYCL_ONEDPL)
+    # TBB and PSTL are broken in oneAPI 2021.3.0
+    # https://software.intel.com/content/www/us/en/develop/articles/intel-oneapi-dpcpp-library-release-notes.html#inpage-nav-2-3
+    # at least since 2021.1.1 and probably won't be fixed until glibc version 10 is gone
+    target_compile_definitions( SYCL
+        INTERFACE
+        $<${_cxx_sycl}:_GLIBCXX_USE_TBB_PAR_BACKEND=0 PSTL_USE_PARALLEL_POLICIES=0>)
+endif()
+
+#
+# Link options
+#
+target_link_options( SYCL
+   INTERFACE
+   $<${_cxx_sycl}:-fsycl -fsycl-device-lib=libc,libm-fp32,libm-fp64> )
+
 
 # TODO: use $<LINK_LANG_AND_ID:> genex for CMake >=3.17
 target_link_options( SYCL
    INTERFACE
-   $<${_cxx_clang}:-fsycl -device-math-lib=fp32,fp64>
-   $<${_cxx_clang}:$<$<BOOL:${ENABLE_DPCPP_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
+   $<${_cxx_sycl}:$<$<BOOL:${AMReX_SYCL_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
 
-if (ENABLE_DPCPP_AOT)
-   message(FATAL_ERROR "\nAhead-of-time (AOT) compilation support not available yet.\nRe-configure with ENABLE_DPCPP_AOT=OFF.")
 
-   #
-   # TODO: remove comments to enable AOT support when the time comes
-   #       (main blocker: missing math library)
-   #
-   # if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-   #    ## TODO: use file(READ)
-   #    execute_process( COMMAND cat /sys/devices/cpu/caps/pmu_name OUTPUT_VARIABLE _cpu_long_name )
-   # else ()
-   #    message(FATAL_ERROR "\nENABLE_DPCPP_AOT is not supported on ${CMAKE_SYSTEM_NAME}\n")
-   # endif ()
+if (AMReX_SYCL_AOT)
+   target_compile_options( SYCL
+      INTERFACE
+      "$<${_cxx_sycl}:-fsycl-targets=spir64_gen>" )
 
-   # string(STRIP "${_cpu_long_name}" _cpu_long_name)
-   # if (_cpu_long_name STREQUAL "skylake")
-   #    set(_cpu_short_name "skl")
-   # elseif (_cpu_long_name STREQUAL "kabylake")
-   #    set(_cpu_short_name "kbl")
-   # elseif (_cpu_long_name STREQUAL "cascadelake")
-   #    set(_cpu_short_name "cfl")
-   # else ()
-   #    message(FATAL_ERROR "\n Ahead-of-time compilation for CPU ${_cpu_long_name} is not yet supported\n"
-   #       "Maybe set ENABLE_DPCPP_AOT to OFF?\n")
-   # endif ()
+   set(_sycl_backend_flags "-device ${AMReX_INTEL_ARCH}")
+   if (AMReX_SYCL_AOT_GRF_MODE STREQUAL "Large")
+      set(_sycl_backend_flags "${_sycl_backend_flags} -internal_options -ze-opt-large-register-file")
+   elseif (AMReX_SYCL_AOT_GRF_MODE STREQUAL "AutoLarge")
+      set(_sycl_backend_flags "${_sycl_backend_flags} -options -ze-intel-enable-auto-large-GRF-mode")
+   endif()
 
-   # target_compile_options( amrex
-   #    PUBLIC
-   #    $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>,$<NOT:$<CONFIG:Debug>>>:
-   #    -fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xsycl-target-backend "-device ${_cpu_short_name}" >)
-   # target_link_options(amrex PUBLIC -fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xsycl-target-backend "-device ${_cpu_short_name}" )
-   # unset(_cpu_long_name)
-   # unset(_cpu_short_name)
+   target_link_options( SYCL
+      INTERFACE
+      "$<${_cxx_sycl}:-fsycl-targets=spir64_gen>"
+      "$<${_cxx_sycl}:SHELL:-Xsycl-target-backend \"${_sycl_backend_flags}\">" )
+
+   unset(_sycl_backend_flags)
 endif ()
 
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND "${CMAKE_BUILD_TYPE}" MATCHES "Debug")
+   target_link_options( SYCL
+      INTERFACE
+      "$<${_cxx_sycl}:-fsycl-link-huge-device-code>" )
+endif ()
 
-unset(_cxx_clang)
+unset(_cxx_sycl)

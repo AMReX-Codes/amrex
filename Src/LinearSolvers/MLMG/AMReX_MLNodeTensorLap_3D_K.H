@@ -1,5 +1,6 @@
 #ifndef AMREX_MLNODETENSORLAP_3D_K_H_
 #define AMREX_MLNODETENSORLAP_3D_K_H_
+#include <AMReX_Config.H>
 
 namespace amrex {
 
@@ -7,53 +8,53 @@ namespace {
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real ts_interp_line_x (Array4<Real const> const& crse,
-                           int i, int j, int k, int ic, int jc, int kc) noexcept
+                           int ic, int jc, int kc) noexcept
     {
-        return (crse(ic,jc,kc)+crse(ic+1,jc,kc))*0.5_rt;
+        return (crse(ic,jc,kc)+crse(ic+1,jc,kc))*Real(0.5);
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real ts_interp_line_y (Array4<Real const> const& crse,
-                           int i, int j, int k, int ic, int jc, int kc) noexcept
+                           int ic, int jc, int kc) noexcept
     {
-        return (crse(ic,jc,kc)+crse(ic,jc+1,kc))*0.5_rt;
+        return (crse(ic,jc,kc)+crse(ic,jc+1,kc))*Real(0.5);
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real ts_interp_line_z (Array4<Real const> const& crse,
-                           int i, int j, int k, int ic, int jc, int kc) noexcept
+                           int ic, int jc, int kc) noexcept
     {
-        return (crse(ic,jc,kc)+crse(ic,jc,kc+1))*0.5_rt;
+        return (crse(ic,jc,kc)+crse(ic,jc,kc+1))*Real(0.5);
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real ts_interp_face_xy (Array4<Real const> const& crse,
-                            int i, int j, int k, int ic, int jc, int kc) noexcept
+                            int ic, int jc, int kc) noexcept
     {
-        return (ts_interp_line_y(crse,i-1,j  ,k,ic  ,jc  ,kc) +
-                ts_interp_line_y(crse,i+1,j  ,k,ic+1,jc  ,kc) +
-                ts_interp_line_x(crse,i  ,j-1,k,ic  ,jc  ,kc) +
-                ts_interp_line_x(crse,i  ,j+1,k,ic  ,jc+1,kc)) * 0.25_rt;
+        return (ts_interp_line_y(crse,ic  ,jc  ,kc) +
+                ts_interp_line_y(crse,ic+1,jc  ,kc) +
+                ts_interp_line_x(crse,ic  ,jc  ,kc) +
+                ts_interp_line_x(crse,ic  ,jc+1,kc)) * Real(0.25);
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real ts_interp_face_xz (Array4<Real const> const& crse,
-                            int i, int j, int k, int ic, int jc, int kc) noexcept
+                            int ic, int jc, int kc) noexcept
     {
-        return (ts_interp_line_z(crse,i-1,j,k  ,ic  ,jc,kc  ) +
-                ts_interp_line_z(crse,i+1,j,k  ,ic+1,jc,kc  ) +
-                ts_interp_line_x(crse,i  ,j,k-1,ic  ,jc,kc  ) +
-                ts_interp_line_x(crse,i  ,j,k+1,ic  ,jc,kc+1)) * 0.25_rt;
+        return (ts_interp_line_z(crse,ic  ,jc,kc  ) +
+                ts_interp_line_z(crse,ic+1,jc,kc  ) +
+                ts_interp_line_x(crse,ic  ,jc,kc  ) +
+                ts_interp_line_x(crse,ic  ,jc,kc+1)) * Real(0.25);
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real ts_interp_face_yz (Array4<Real const> const& crse,
-                            int i, int j, int k, int ic, int jc, int kc) noexcept
+                            int ic, int jc, int kc) noexcept
     {
-        return (ts_interp_line_z(crse,i,j-1,k  ,ic,jc  ,kc  ) +
-                ts_interp_line_z(crse,i,j+1,k  ,ic,jc+1,kc  ) +
-                ts_interp_line_y(crse,i,j  ,k-1,ic,jc  ,kc  ) +
-                ts_interp_line_y(crse,i,j  ,k+1,ic,jc  ,kc+1)) * 0.25_rt;
+        return (ts_interp_line_z(crse,ic,jc  ,kc  ) +
+                ts_interp_line_z(crse,ic,jc+1,kc  ) +
+                ts_interp_line_y(crse,ic,jc  ,kc  ) +
+                ts_interp_line_y(crse,ic,jc  ,kc+1)) * Real(0.25);
     }
 }
 
@@ -68,32 +69,32 @@ void mlndtslap_interpadd (int i, int j, int k, Array4<Real> const& fine,
         bool i_is_odd = (ic*2 != i);
         bool j_is_odd = (jc*2 != j);
         bool k_is_odd = (kc*2 != k);
-        if (i_is_odd and j_is_odd and k_is_odd) {
+        if (i_is_odd && j_is_odd && k_is_odd) {
             // Fine node at center of cell
-            fine(i,j,k) += (ts_interp_face_yz(crse,i-1,j  ,k  ,ic  ,jc  ,kc  ) +
-                            ts_interp_face_yz(crse,i+1,j  ,k  ,ic+1,jc  ,kc  ) +
-                            ts_interp_face_xz(crse,i  ,j-1,k  ,ic  ,jc  ,kc  ) +
-                            ts_interp_face_xz(crse,i  ,j+1,k  ,ic  ,jc+1,kc  ) +
-                            ts_interp_face_xy(crse,i  ,j  ,k-1,ic  ,jc  ,kc  ) +
-                            ts_interp_face_xy(crse,i  ,j  ,k+1,ic  ,jc  ,kc+1)) * (1._rt/6._rt);
-        } else if (j_is_odd and k_is_odd) {
+            fine(i,j,k) += (ts_interp_face_yz(crse,ic  ,jc  ,kc  ) +
+                            ts_interp_face_yz(crse,ic+1,jc  ,kc  ) +
+                            ts_interp_face_xz(crse,ic  ,jc  ,kc  ) +
+                            ts_interp_face_xz(crse,ic  ,jc+1,kc  ) +
+                            ts_interp_face_xy(crse,ic  ,jc  ,kc  ) +
+                            ts_interp_face_xy(crse,ic  ,jc  ,kc+1)) * Real(1./6.);
+        } else if (j_is_odd && k_is_odd) {
             // Node on a Y-Z face
-            fine(i,j,k) += ts_interp_face_yz(crse,i,j,k,ic,jc,kc);
-        } else if (i_is_odd and k_is_odd) {
+            fine(i,j,k) += ts_interp_face_yz(crse,ic,jc,kc);
+        } else if (i_is_odd && k_is_odd) {
             // Node on a Z-X face
-            fine(i,j,k) += ts_interp_face_xz(crse,i,j,k,ic,jc,kc);
-        } else if (i_is_odd and j_is_odd) {
+            fine(i,j,k) += ts_interp_face_xz(crse,ic,jc,kc);
+        } else if (i_is_odd && j_is_odd) {
             // Node on a X-Y face
-            fine(i,j,k) += ts_interp_face_xy(crse,i,j,k,ic,jc,kc);
+            fine(i,j,k) += ts_interp_face_xy(crse,ic,jc,kc);
         } else if (i_is_odd) {
             // Node on X line
-            fine(i,j,k) += ts_interp_line_x(crse,i,j,k,ic,jc,kc);
+            fine(i,j,k) += ts_interp_line_x(crse,ic,jc,kc);
         } else if (j_is_odd) {
             // Node on Y line
-            fine(i,j,k) += ts_interp_line_y(crse,i,j,k,ic,jc,kc);
+            fine(i,j,k) += ts_interp_line_y(crse,ic,jc,kc);
         } else if (k_is_odd) {
             // Node on Z line
-            fine(i,j,k) += ts_interp_line_z(crse,i,j,k,ic,jc,kc);
+            fine(i,j,k) += ts_interp_line_z(crse,ic,jc,kc);
         } else {
             // Node coincident with coarse node
             fine(i,j,k) += crse(ic,jc,kc);
@@ -102,332 +103,398 @@ void mlndtslap_interpadd (int i, int j, int k, Array4<Real> const& fine,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndtslap_adotx (Box const& b, Array4<Real> const& y, Array4<Real const> const& x,
-                      Array4<int const> const& msk, GpuArray<Real,6> const& s,
-                      GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+void mlndtslap_semi_interpadd (int i, int j, int k, Array4<Real> const& fine,
+                               Array4<Real const> const& crse, Array4<int const> const& msk,
+                               int semi_dir) noexcept
 {
-    const Real h00 = dxinv[0]*dxinv[0];
-    const Real h01 = dxinv[0]*dxinv[1];
-    const Real h02 = dxinv[0]*dxinv[2];
-    const Real h11 = dxinv[1]*dxinv[1];
-    const Real h12 = dxinv[1]*dxinv[2];
-    const Real h22 = dxinv[2]*dxinv[2];
-    amrex::LoopConcurrent(b, [=] (int i, int j, int k) noexcept
-    {
-        y(i,j,k) = (1./36.) *
-            ( x(i-1,j-1,k-1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*( h01*s[1]+h02*s[2]+h12*s[4]))
-            + x(i+1,j-1,k-1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*(-h01*s[1]-h02*s[2]+h12*s[4]))
-            + x(i-1,j+1,k-1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*(-h01*s[1]+h02*s[2]-h12*s[4]))
-            + x(i+1,j+1,k-1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*( h01*s[1]-h02*s[2]-h12*s[4]))
-            + x(i-1,j-1,k+1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*( h01*s[1]-h02*s[2]-h12*s[4]))
-            + x(i+1,j-1,k+1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*(-h01*s[1]+h02*s[2]-h12*s[4]))
-            + x(i-1,j+1,k+1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*(-h01*s[1]-h02*s[2]+h12*s[4]))
-            + x(i+1,j+1,k+1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*( h01*s[1]+h02*s[2]+h12*s[4]))
-            + x(i-1,j-1,k  ) * (4.*(h00*s[0]+h11*s[3]-0.5*h22*s[5])+12.*h01*s[1])
-            + x(i+1,j-1,k  ) * (4.*(h00*s[0]+h11*s[3]-0.5*h22*s[5])-12.*h01*s[1])
-            + x(i-1,j+1,k  ) * (4.*(h00*s[0]+h11*s[3]-0.5*h22*s[5])-12.*h01*s[1])
-            + x(i+1,j+1,k  ) * (4.*(h00*s[0]+h11*s[3]-0.5*h22*s[5])+12.*h01*s[1])
-            + x(i-1,j  ,k-1) * (4.*(h00*s[0]+h22*s[5]-0.5*h11*s[3])+12.*h02*s[2])
-            + x(i+1,j  ,k-1) * (4.*(h00*s[0]+h22*s[5]-0.5*h11*s[3])-12.*h02*s[2])
-            + x(i-1,j  ,k+1) * (4.*(h00*s[0]+h22*s[5]-0.5*h11*s[3])-12.*h02*s[2])
-            + x(i+1,j  ,k+1) * (4.*(h00*s[0]+h22*s[5]-0.5*h11*s[3])+12.*h02*s[2])
-            + x(i  ,j-1,k-1) * (4.*(h11*s[3]+h22*s[5]-0.5*h00*s[0])+12.*h12*s[4])
-            + x(i  ,j+1,k-1) * (4.*(h11*s[3]+h22*s[5]-0.5*h00*s[0])-12.*h12*s[4])
-            + x(i  ,j-1,k+1) * (4.*(h11*s[3]+h22*s[5]-0.5*h00*s[0])-12.*h12*s[4])
-            + x(i  ,j+1,k+1) * (4.*(h11*s[3]+h22*s[5]-0.5*h00*s[0])+12.*h12*s[4])
-            + x(i-1,j  ,k  ) * (8.*(2.*h00*s[0]-h11*s[3]-h22*s[5]))
-            + x(i+1,j  ,k  ) * (8.*(2.*h00*s[0]-h11*s[3]-h22*s[5]))
-            + x(i  ,j-1,k  ) * (8.*(2.*h11*s[3]-h00*s[0]-h22*s[5]))
-            + x(i  ,j+1,k  ) * (8.*(2.*h11*s[3]-h00*s[0]-h22*s[5]))
-            + x(i  ,j  ,k-1) * (8.*(2.*h22*s[5]-h00*s[0]-h11*s[3]))
-            + x(i  ,j  ,k+1) * (8.*(2.*h22*s[5]-h00*s[0]-h11*s[3]))
-            + x(i  ,j  ,k  ) * (-32.)*(h00*s[0]+h11*s[3]+h22*s[5]) );
-    });
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndtslap_gauss_seidel (Box const& b, Array4<Real> const& sol,
-                             Array4<Real const> const& rhs, Array4<int const> const& msk,
-                             GpuArray<Real,6> const& s,
-                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
-{
-    const Real h00 = dxinv[0]*dxinv[0];
-    const Real h01 = dxinv[0]*dxinv[1];
-    const Real h02 = dxinv[0]*dxinv[2];
-    const Real h11 = dxinv[1]*dxinv[1];
-    const Real h12 = dxinv[1]*dxinv[2];
-    const Real h22 = dxinv[2]*dxinv[2];
-    amrex::LoopConcurrent(b, [=] (int i, int j, int k) noexcept
-    {
-        if (msk(i,j,k)) {
-            sol(i,j,k) = 0.0;
+    if (!msk(i,j,k)) {
+        if (semi_dir == 0) {
+            int jc = amrex::coarsen(j,2);
+            int kc = amrex::coarsen(k,2);
+            bool j_is_odd = (jc*2 != j);
+            bool k_is_odd = (kc*2 != k);
+            if (j_is_odd && k_is_odd) {
+                // Node on a Y-Z face
+                fine(i,j,k) += ts_interp_face_yz(crse,i,jc,kc);
+            } else if (j_is_odd) {
+                // Node on Y line
+                fine(i,j,k) += ts_interp_line_y(crse,i,jc,kc);
+            } else if (k_is_odd) {
+                // Node on Z line
+                fine(i,j,k) += ts_interp_line_z(crse,i,jc,kc);
+            } else {
+                // Node coincident with coarse node
+                fine(i,j,k) += crse(i,jc,kc);
+            }
+        } else if (semi_dir == 1) {
+            int ic = amrex::coarsen(i,2);
+            int kc = amrex::coarsen(k,2);
+            bool i_is_odd = (ic*2 != i);
+            bool k_is_odd = (kc*2 != k);
+            if (i_is_odd && k_is_odd) {
+                // Node on a Z-X face
+                fine(i,j,k) += ts_interp_face_xz(crse,ic,j,kc);
+            } else if (i_is_odd) {
+                // Node on X line
+                fine(i,j,k) += ts_interp_line_x(crse,ic,j,kc);
+            } else if (k_is_odd) {
+                // Node on Z line
+                fine(i,j,k) += ts_interp_line_z(crse,ic,j,kc);
+            } else {
+                // Node coincident with coarse node
+                fine(i,j,k) += crse(ic,j,kc);
+            }
         } else {
-            Real s0 = (1./36.) * (-32.)*(h00*s[0]+h11*s[3]+h22*s[5]);
-            Real Ax = (1./36.) *
-                ( sol(i-1,j-1,k-1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*( h01*s[1]+h02*s[2]+h12*s[4]))
-                + sol(i+1,j-1,k-1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*(-h01*s[1]-h02*s[2]+h12*s[4]))
-                + sol(i-1,j+1,k-1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*(-h01*s[1]+h02*s[2]-h12*s[4]))
-                + sol(i+1,j+1,k-1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*( h01*s[1]-h02*s[2]-h12*s[4]))
-                + sol(i-1,j-1,k+1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*( h01*s[1]-h02*s[2]-h12*s[4]))
-                + sol(i+1,j-1,k+1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*(-h01*s[1]+h02*s[2]-h12*s[4]))
-                + sol(i-1,j+1,k+1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*(-h01*s[1]-h02*s[2]+h12*s[4]))
-                + sol(i+1,j+1,k+1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*( h01*s[1]+h02*s[2]+h12*s[4]))
-                + sol(i-1,j-1,k  ) * (4.*(h00*s[0]+h11*s[3]-0.5*h22*s[5])+12.*h01*s[1])
-                + sol(i+1,j-1,k  ) * (4.*(h00*s[0]+h11*s[3]-0.5*h22*s[5])-12.*h01*s[1])
-                + sol(i-1,j+1,k  ) * (4.*(h00*s[0]+h11*s[3]-0.5*h22*s[5])-12.*h01*s[1])
-                + sol(i+1,j+1,k  ) * (4.*(h00*s[0]+h11*s[3]-0.5*h22*s[5])+12.*h01*s[1])
-                + sol(i-1,j  ,k-1) * (4.*(h00*s[0]+h22*s[5]-0.5*h11*s[3])+12.*h02*s[2])
-                + sol(i+1,j  ,k-1) * (4.*(h00*s[0]+h22*s[5]-0.5*h11*s[3])-12.*h02*s[2])
-                + sol(i-1,j  ,k+1) * (4.*(h00*s[0]+h22*s[5]-0.5*h11*s[3])-12.*h02*s[2])
-                + sol(i+1,j  ,k+1) * (4.*(h00*s[0]+h22*s[5]-0.5*h11*s[3])+12.*h02*s[2])
-                + sol(i  ,j-1,k-1) * (4.*(h11*s[3]+h22*s[5]-0.5*h00*s[0])+12.*h12*s[4])
-                + sol(i  ,j+1,k-1) * (4.*(h11*s[3]+h22*s[5]-0.5*h00*s[0])-12.*h12*s[4])
-                + sol(i  ,j-1,k+1) * (4.*(h11*s[3]+h22*s[5]-0.5*h00*s[0])-12.*h12*s[4])
-                + sol(i  ,j+1,k+1) * (4.*(h11*s[3]+h22*s[5]-0.5*h00*s[0])+12.*h12*s[4])
-                + sol(i-1,j  ,k  ) * (8.*(2.*h00*s[0]-h11*s[3]-h22*s[5]))
-                + sol(i+1,j  ,k  ) * (8.*(2.*h00*s[0]-h11*s[3]-h22*s[5]))
-                + sol(i  ,j-1,k  ) * (8.*(2.*h11*s[3]-h00*s[0]-h22*s[5]))
-                + sol(i  ,j+1,k  ) * (8.*(2.*h11*s[3]-h00*s[0]-h22*s[5]))
-                + sol(i  ,j  ,k-1) * (8.*(2.*h22*s[5]-h00*s[0]-h11*s[3]))
-                + sol(i  ,j  ,k+1) * (8.*(2.*h22*s[5]-h00*s[0]-h11*s[3])) )
-                + sol(i  ,j  ,k  ) * s0;
-            sol(i,j,k) += (rhs(i,j,k) - Ax) / s0;
+            int ic = amrex::coarsen(i,2);
+            int jc = amrex::coarsen(j,2);
+            bool i_is_odd = (ic*2 != i);
+            bool j_is_odd = (jc*2 != j);
+            if (i_is_odd && j_is_odd) {
+                // Node on a X-Y face
+                fine(i,j,k) += ts_interp_face_xy(crse,ic,jc,k);
+            } else if (i_is_odd) {
+                // Node on X line
+                fine(i,j,k) += ts_interp_line_x(crse,ic,jc,k);
+            } else if (j_is_odd) {
+                // Node on Y line
+                fine(i,j,k) += ts_interp_line_y(crse,ic,jc,k);
+            } else {
+                // Node coincident with coarse node
+                fine(i,j,k) += crse(ic,jc,k);
+            }
         }
-    });
+    }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndtslap_normalize (Box const& b, Array4<Real> const& phi,
-                          Array4<int const> const& msk, GpuArray<Real,6> const& s,
-                          GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+void mlndtslap_adotx (int i, int j, int k, Array4<Real> const& y, Array4<Real const> const& x,
+                      Array4<int const> const& msk, GpuArray<Real,6> const& s) noexcept
 {
-    const Real h00 = dxinv[0]*dxinv[0];
-    const Real h11 = dxinv[1]*dxinv[1];
-    const Real h22 = dxinv[2]*dxinv[2];
-    amrex::LoopConcurrent(b, [=] (int i, int j, int k) noexcept
+    if (msk(i,j,k)) {
+        y(i,j,k) = Real(0.0);
+    } else {
+        y(i,j,k) = s[0] * (x(i-1,j  ,k  ) + x(i+1,j  ,k  ))
+            +      s[3] * (x(i  ,j-1,k  ) + x(i  ,j+1,k  ))
+            +      s[5] * (x(i  ,j  ,k-1) + x(i  ,j  ,k+1))
+            - Real(2.)*(s[0]+s[3]+s[5]) * x(i,j,k)
+            + Real(0.5)*s[1] * (x(i-1,j-1,k  ) + x(i+1,j+1,k  ) - x(i-1,j+1,k  ) - x(i+1,j-1,k  ))
+            + Real(0.5)*s[2] * (x(i-1,j  ,k-1) + x(i+1,j  ,k+1) - x(i-1,j  ,k+1) - x(i+1,j  ,k-1))
+            + Real(0.5)*s[4] * (x(i  ,j-1,k-1) + x(i  ,j+1,k+1) - x(i  ,j-1,k+1) - x(i  ,j+1,k-1));
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndtslap_gauss_seidel (int i, int j, int k, Array4<Real> const& sol,
+                             Array4<Real const> const& rhs, Array4<int const> const& msk,
+                             GpuArray<Real,6> const& s) noexcept
+{
+    if (msk(i,j,k)) {
+        sol(i,j,k) = 0.0;
+    } else {
+        constexpr Real omega = Real(1.25);
+        Real s0 = Real(-2.)*(s[0]+s[3]+s[5]);
+        Real Ax = s[0] * (sol(i-1,j  ,k  ) + sol(i+1,j  ,k  ))
+            +     s[3] * (sol(i  ,j-1,k  ) + sol(i  ,j+1,k  ))
+            +     s[5] * (sol(i  ,j  ,k-1) + sol(i  ,j  ,k+1))
+            + s0 * sol(i,j,k)
+            + Real(0.5)*s[1] * (sol(i-1,j-1,k  ) + sol(i+1,j+1,k  ) - sol(i-1,j+1,k  ) - sol(i+1,j-1,k  ))
+            + Real(0.5)*s[2] * (sol(i-1,j  ,k-1) + sol(i+1,j  ,k+1) - sol(i-1,j  ,k+1) - sol(i+1,j  ,k-1))
+            + Real(0.5)*s[4] * (sol(i  ,j-1,k-1) + sol(i  ,j+1,k+1) - sol(i  ,j-1,k+1) - sol(i  ,j+1,k-1));
+        sol(i,j,k) += (rhs(i,j,k) - Ax) * (omega/s0);
+    }
+}
+
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
+
+template <typename HypreInt, typename AtomicInt>
+void mlndtslap_fill_ijmatrix_cpu (Box const& ndbx,
+                                  Array4<AtomicInt const> const& gid,
+                                  Array4<int const> const& lid,
+                                  HypreInt* const ncols, HypreInt* const cols,
+                                  Real* const mat, // NOLINT(readability-non-const-parameter)
+                                  GpuArray<Real,6> const& s) noexcept
+{
+    constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
+    HypreInt nelems = 0;
+    amrex::LoopOnCpu(ndbx, [&] (int i, int j, int k) noexcept
     {
-        if (!msk(i,j,k)) {
-            Real s0 = (1./36.) * (-32.)*(h00*s[0]+h11*s[3]+h22*s[5]);
-            phi(i,j,k) /= s0;
+        if (lid(i,j,k) >= 0)
+        {
+            HypreInt nelems_old = nelems;
+
+            cols[nelems] = gid(i,j,k);
+            mat[nelems] = Real(-2.)*(s[0]+s[3]+s[5]);
+            ++nelems;
+
+            if (               gid(i  ,j-1,k-1) < gidmax) {
+                cols[nelems] = gid(i  ,j-1,k-1);
+                mat[nelems] = Real(0.5)*s[4];
+                ++nelems;
+            }
+
+            if (               gid(i-1,j  ,k-1) < gidmax) {
+                cols[nelems] = gid(i-1,j  ,k-1);
+                mat[nelems] = Real(0.5)*s[2];
+                ++nelems;
+            }
+
+            if (               gid(i  ,j  ,k-1) < gidmax) {
+                cols[nelems] = gid(i  ,j  ,k-1);
+                mat[nelems] = s[5];
+                ++nelems;
+            }
+
+            if (               gid(i+1,j  ,k-1) < gidmax) {
+                cols[nelems] = gid(i+1,j  ,k-1);
+                mat[nelems] = Real(-0.5)*s[2];
+                ++nelems;
+            }
+
+            if (               gid(i  ,j+1,k-1) < gidmax) {
+                cols[nelems] = gid(i  ,j+1,k-1);
+                mat[nelems] = Real(-0.5)*s[4];
+                ++nelems;
+            }
+
+            if (               gid(i-1,j-1,k  ) < gidmax) {
+                cols[nelems] = gid(i-1,j-1,k  );
+                mat[nelems] = Real(0.5)*s[1];
+                ++nelems;
+            }
+
+            if (               gid(i  ,j-1,k  ) < gidmax) {
+                cols[nelems] = gid(i  ,j-1,k  );
+                mat[nelems] = s[3];
+                ++nelems;
+            }
+
+            if (               gid(i+1,j-1,k  ) < gidmax) {
+                cols[nelems] = gid(i+1,j-1,k  );
+                mat[nelems] = Real(-0.5)*s[1];
+                ++nelems;
+            }
+
+            if (               gid(i-1,j  ,k  ) < gidmax) {
+                cols[nelems] = gid(i-1,j  ,k  );
+                mat[nelems] = s[0];
+                ++nelems;
+            }
+
+            if (               gid(i+1,j  ,k  ) < gidmax) {
+                cols[nelems] = gid(i+1,j  ,k  );
+                mat[nelems] = s[0];
+                ++nelems;
+            }
+
+            if (               gid(i-1,j+1,k  ) < gidmax) {
+                cols[nelems] = gid(i-1,j+1,k  );
+                mat[nelems] = Real(-0.5)*s[1];
+                ++nelems;
+            }
+
+            if (               gid(i  ,j+1,k  ) < gidmax) {
+                cols[nelems] = gid(i  ,j+1,k  );
+                mat[nelems] = s[3];
+                ++nelems;
+            }
+
+            if (               gid(i+1,j+1,k  ) < gidmax) {
+                cols[nelems] = gid(i+1,j+1,k  );
+                mat[nelems] = Real(0.5)*s[1];
+                ++nelems;
+            }
+
+            if (               gid(i  ,j-1,k+1) < gidmax) {
+                cols[nelems] = gid(i  ,j-1,k+1);
+                mat[nelems] = Real(-0.5)*s[4];
+                ++nelems;
+            }
+
+            if (               gid(i-1,j  ,k+1) < gidmax) {
+                cols[nelems] = gid(i-1,j  ,k+1);
+                mat[nelems] = Real(-0.5)*s[2];
+                ++nelems;
+            }
+
+            if (               gid(i  ,j  ,k+1) < gidmax) {
+                cols[nelems] = gid(i  ,j  ,k+1);
+                mat[nelems] = s[5];
+                ++nelems;
+            }
+
+            if (               gid(i+1,j  ,k+1) < gidmax) {
+                cols[nelems] = gid(i+1,j  ,k+1);
+                mat[nelems] = Real(0.5)*s[2];
+                ++nelems;
+            }
+
+            if (               gid(i  ,j+1,k+1) < gidmax) {
+                cols[nelems] = gid(i  ,j+1,k+1);
+                mat[nelems] = Real(0.5)*s[4];
+                ++nelems;
+            }
+
+            ncols[lid(i,j,k)] = nelems - nelems_old;
         }
     });
 }
 
-#ifdef AMREX_USE_HYPRE
+#ifdef AMREX_USE_GPU
 
-AMREX_FORCE_INLINE
-void mlndtslap_fill_ijmatrix (Box const& ndbx, Array4<HypreNodeLap::Int const> const& nid,
-                              Array4<int const> const& owner,
-                              Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
-                              Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat,
-                              Array4<int const> const& msk, GpuArray<Real,6> const& s,
-                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+template <typename HypreInt, typename AtomicInt>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void mlndtslap_fill_ijmatrix_gpu (const int ps, const int i, const int j, const int k,
+                                  const int offset, Box const& ndbx,
+                                  Array4<AtomicInt const> const& gid,
+                                  Array4<int const> const& lid,
+                                  HypreInt* const ncols, HypreInt* const cols,
+                                  Real* const mat, // NOLINT(readability-non-const-parameter)
+                                  GpuArray<Real,6> const& s) noexcept
 {
-    const Real h00 = dxinv[0]*dxinv[0];
-    const Real h01 = dxinv[0]*dxinv[1];
-    const Real h02 = dxinv[0]*dxinv[2];
-    const Real h11 = dxinv[1]*dxinv[1];
-    const Real h12 = dxinv[1]*dxinv[2];
-    const Real h22 = dxinv[2]*dxinv[2];
+    if (lid(i,j,k) >= 0)
+    {
+        constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
 
-    const auto lo = amrex::lbound(ndbx);
-    const auto hi = amrex::ubound(ndbx);
-    for (int k = lo.z; k <= hi.z; ++k) {
-    for (int j = lo.y; j <= hi.y; ++j) {
-    for (int i = lo.x; i <= hi.x; ++i) {
-        if (nid(i,j,k) >= 0 and owner(i,j,k))
-        {
-            rows.push_back(nid(i,j,k));
-            cols.push_back(nid(i,j,k));
-            mat.push_back((1./36.) * (-32.)*(h00*s[0]+h11*s[3]+h22*s[5]));
-            HypreNodeLap::Int nc = 1;
-
-            if (               nid(i-1,j-1,k-1) >= 0) {
-                cols.push_back(nid(i-1,j-1,k-1));
-                Real t = (1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+3.*( h01*s[1]+h02*s[2]+h12*s[4]));
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i+1,j-1,k-1) >= 0) {
-                cols.push_back(nid(i+1,j-1,k-1));
-                Real t = (1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+3.*(-h01*s[1]-h02*s[2]+h12*s[4]));
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i-1,j+1,k-1) >= 0) {
-                cols.push_back(nid(i-1,j+1,k-1));
-                Real t = (1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+3.*(-h01*s[1]+h02*s[2]-h12*s[4]));
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i+1,j+1,k-1) >= 0) {
-                cols.push_back(nid(i+1,j+1,k-1));
-                Real t = (1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+3.*( h01*s[1]-h02*s[2]-h12*s[4]));
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i-1,j-1,k+1) >= 0) {
-                cols.push_back(nid(i-1,j-1,k+1));
-                Real t = (1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+3.*( h01*s[1]-h02*s[2]-h12*s[4]));
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i+1,j-1,k+1) >= 0) {
-                cols.push_back(nid(i+1,j-1,k+1));
-                Real t = (1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+3.*(-h01*s[1]+h02*s[2]-h12*s[4]));
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i-1,j+1,k+1) >= 0) {
-                cols.push_back(nid(i-1,j+1,k+1));
-                Real t = (1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+3.*(-h01*s[1]-h02*s[2]+h12*s[4]));
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i+1,j+1,k+1) >= 0) {
-                cols.push_back(nid(i+1,j+1,k+1));
-                Real t = (1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+3.*( h01*s[1]+h02*s[2]+h12*s[4]));
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i-1,j-1,k  ) >= 0) {
-                cols.push_back(nid(i-1,j-1,k  ));
-                Real t = (1./36.)*(4.*(h00*s[0]+h11*s[3]-0.5*h22*s[5])+12.*h01*s[1]);
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i+1,j-1,k  ) >= 0) {
-                cols.push_back(nid(i+1,j-1,k  ));
-                Real t = (1./36.)*(4.*(h00*s[0]+h11*s[3]-0.5*h22*s[5])-12.*h01*s[1]);
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i-1,j+1,k  ) >= 0) {
-                cols.push_back(nid(i-1,j+1,k  ));
-                Real t = (1./36.)*(4.*(h00*s[0]+h11*s[3]-0.5*h22*s[5])-12.*h01*s[1]);
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i+1,j+1,k  ) >= 0) {
-                cols.push_back(nid(i+1,j+1,k  ));
-                Real t = (1./36.)*(4.*(h00*s[0]+h11*s[3]-0.5*h22*s[5])+12.*h01*s[1]);
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i-1,j  ,k-1) >= 0) {
-                cols.push_back(nid(i-1,j  ,k-1));
-                Real t = (1./36.)*(4.*(h00*s[0]+h22*s[5]-0.5*h11*s[3])+12.*h02*s[2]);
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i+1,j  ,k-1) >= 0) {
-                cols.push_back(nid(i+1,j  ,k-1));
-                Real t = (1./36.)*(4.*(h00*s[0]+h22*s[5]-0.5*h11*s[3])-12.*h02*s[2]);
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i-1,j  ,k+1) >= 0) {
-                cols.push_back(nid(i-1,j  ,k+1));
-                Real t = (1./36.)*(4.*(h00*s[0]+h22*s[5]-0.5*h11*s[3])-12.*h02*s[2]);
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i+1,j  ,k+1) >= 0) {
-                cols.push_back(nid(i+1,j  ,k+1));
-                Real t = (1./36.)*(4.*(h00*s[0]+h22*s[5]-0.5*h11*s[3])+12.*h02*s[2]);
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i  ,j-1,k-1) >= 0) {
-                cols.push_back(nid(i  ,j-1,k-1));
-                Real t = (1./36.)*(4.*(h11*s[3]+h22*s[5]-0.5*h00*s[0])+12.*h12*s[4]);
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i  ,j+1,k-1) >= 0) {
-                cols.push_back(nid(i  ,j+1,k-1));
-                Real t = (1./36.)*(4.*(h11*s[3]+h22*s[5]-0.5*h00*s[0])-12.*h12*s[4]);
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i  ,j-1,k+1) >= 0) {
-                cols.push_back(nid(i  ,j-1,k+1));
-                Real t = (1./36.)*(4.*(h11*s[3]+h22*s[5]-0.5*h00*s[0])-12.*h12*s[4]);
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i  ,j+1,k+1) >= 0) {
-                cols.push_back(nid(i  ,j+1,k+1));
-                Real t = (1./36.)*(4.*(h11*s[3]+h22*s[5]-0.5*h00*s[0])+12.*h12*s[4]);
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i-1,j  ,k  ) >= 0) {
-                cols.push_back(nid(i-1,j  ,k  ));
-                Real t = (1./36.)*(8.*(2.*h00*s[0]-h11*s[3]-h22*s[5]));
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i+1,j  ,k  ) >= 0) {
-                cols.push_back(nid(i+1,j  ,k  ));
-                Real t = (1./36.)*(8.*(2.*h00*s[0]-h11*s[3]-h22*s[5]));
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i  ,j-1,k  ) >= 0) {
-                cols.push_back(nid(i  ,j-1,k  ));
-                Real t = (1./36.)*(8.*(2.*h11*s[3]-h00*s[0]-h22*s[5]));
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i  ,j+1,k  ) >= 0) {
-                cols.push_back(nid(i  ,j+1,k  ));
-                Real t = (1./36.)*(8.*(2.*h11*s[3]-h00*s[0]-h22*s[5]));
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i  ,j  ,k-1) >= 0) {
-                cols.push_back(nid(i  ,j  ,k-1));
-                Real t = (1./36.)*(8.*(2.*h22*s[5]-h00*s[0]-h11*s[3]));
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i  ,j  ,k+1) >= 0) {
-                cols.push_back(nid(i  ,j  ,k+1));
-                Real t = (1./36.)*(8.*(2.*h22*s[5]-h00*s[0]-h11*s[3]));
-                mat.push_back(t);
-                ++nc;
-            }
-
-            ncols.push_back(nc);
+        if (offset == 0) {
+            cols[ps] = gid(i,j,k);
+            mat[ps] = Real(-2.)*(s[0]+s[3]+s[5]);
+            int nc = 1;
+            if (gid(i-1,j-1,k-1) < gidmax) { ++nc; }
+            if (gid(i  ,j-1,k-1) < gidmax) { ++nc; }
+            if (gid(i+1,j-1,k-1) < gidmax) { ++nc; }
+            if (gid(i-1,j  ,k-1) < gidmax) { ++nc; }
+            if (gid(i  ,j  ,k-1) < gidmax) { ++nc; }
+            if (gid(i+1,j  ,k-1) < gidmax) { ++nc; }
+            if (gid(i-1,j+1,k-1) < gidmax) { ++nc; }
+            if (gid(i  ,j+1,k-1) < gidmax) { ++nc; }
+            if (gid(i+1,j+1,k-1) < gidmax) { ++nc; }
+            if (gid(i-1,j-1,k  ) < gidmax) { ++nc; }
+            if (gid(i  ,j-1,k  ) < gidmax) { ++nc; }
+            if (gid(i+1,j-1,k  ) < gidmax) { ++nc; }
+            if (gid(i-1,j  ,k  ) < gidmax) { ++nc; }
+            if (gid(i+1,j  ,k  ) < gidmax) { ++nc; }
+            if (gid(i-1,j+1,k  ) < gidmax) { ++nc; }
+            if (gid(i  ,j+1,k  ) < gidmax) { ++nc; }
+            if (gid(i+1,j+1,k  ) < gidmax) { ++nc; }
+            if (gid(i-1,j-1,k+1) < gidmax) { ++nc; }
+            if (gid(i  ,j-1,k+1) < gidmax) { ++nc; }
+            if (gid(i+1,j-1,k+1) < gidmax) { ++nc; }
+            if (gid(i-1,j  ,k+1) < gidmax) { ++nc; }
+            if (gid(i  ,j  ,k+1) < gidmax) { ++nc; }
+            if (gid(i+1,j  ,k+1) < gidmax) { ++nc; }
+            if (gid(i-1,j+1,k+1) < gidmax) { ++nc; }
+            if (gid(i  ,j+1,k+1) < gidmax) { ++nc; }
+            if (gid(i+1,j+1,k+1) < gidmax) { ++nc; }
+            ncols[lid(i,j,k)] = nc;
         }
-    }}}
+        else if (offset == 1 && gid(i-1,j-1,k-1) < gidmax) {
+            cols[ps] =          gid(i-1,j-1,k-1);
+            mat[ps] = Real(0.0);
+        }
+        else if (offset == 2 && gid(i  ,j-1,k-1) < gidmax) {
+            cols[ps] =          gid(i  ,j-1,k-1);
+            mat[ps] = Real(0.5)*s[4];
+        }
+        else if (offset == 3 && gid(i+1,j-1,k-1) < gidmax) {
+            cols[ps] =          gid(i+1,j-1,k-1);
+            mat[ps] = Real(0.0);
+        }
+        else if (offset == 4 && gid(i-1,j  ,k-1) < gidmax) {
+            cols[ps] =          gid(i-1,j  ,k-1);
+            mat[ps] = Real(0.5)*s[2];
+        }
+        else if (offset == 5 && gid(i  ,j  ,k-1) < gidmax) {
+            cols[ps] =          gid(i  ,j  ,k-1);
+            mat[ps] = s[5];
+        }
+        else if (offset == 6 && gid(i+1,j  ,k-1) < gidmax) {
+            cols[ps] =          gid(i+1,j  ,k-1);
+            mat[ps] = Real(-0.5)*s[2];
+        }
+        else if (offset == 7 && gid(i-1,j+1,k-1) < gidmax) {
+            cols[ps] =          gid(i-1,j+1,k-1);
+            mat[ps] = Real(0.0);
+        }
+        else if (offset == 8 && gid(i  ,j+1,k-1) < gidmax) {
+            cols[ps] =          gid(i  ,j+1,k-1);
+            mat[ps] = Real(-0.5)*s[4];
+        }
+        else if (offset == 9 && gid(i+1,j+1,k-1) < gidmax) {
+            cols[ps] =          gid(i+1,j+1,k-1);
+            mat[ps] = Real(0.0);
+        }
+        else if (offset == 10 && gid(i-1,j-1,k  ) < gidmax) {
+            cols[ps] =           gid(i-1,j-1,k  );
+            mat[ps] = Real(0.5)*s[1];
+        }
+        else if (offset == 11 && gid(i  ,j-1,k  ) < gidmax) {
+            cols[ps] =           gid(i  ,j-1,k  );
+            mat[ps] = s[3];
+        }
+        else if (offset == 12 && gid(i+1,j-1,k  ) < gidmax) {
+            cols[ps] =           gid(i+1,j-1,k  );
+            mat[ps] = Real(-0.5)*s[1];
+        }
+        else if (offset == 13 && gid(i-1,j  ,k  ) < gidmax) {
+            cols[ps] =           gid(i-1,j  ,k  );
+            mat[ps] = s[0];
+        }
+        else if (offset == 14 && gid(i+1,j  ,k  ) < gidmax) {
+            cols[ps] =           gid(i+1,j  ,k  );
+            mat[ps] = s[0];
+        }
+        else if (offset == 15 && gid(i-1,j+1,k  ) < gidmax) {
+            cols[ps] =           gid(i-1,j+1,k  );
+            mat[ps] = Real(-0.5)*s[1];
+        }
+        else if (offset == 16 && gid(i  ,j+1,k  ) < gidmax) {
+            cols[ps] =           gid(i  ,j+1,k  );
+            mat[ps] = s[3];
+        }
+        else if (offset == 17 && gid(i+1,j+1,k  ) < gidmax) {
+            cols[ps] =           gid(i+1,j+1,k  );
+            mat[ps] = Real(0.5)*s[1];
+        }
+        else if (offset == 18 && gid(i-1,j-1,k+1) < gidmax) {
+            cols[ps] =           gid(i-1,j-1,k+1);
+            mat[ps] = Real(0.0);
+        }
+        else if (offset == 19 && gid(i  ,j-1,k+1) < gidmax) {
+            cols[ps] =           gid(i  ,j-1,k+1);
+            mat[ps] = Real(-0.5)*s[4];
+        }
+        else if (offset == 20 && gid(i+1,j-1,k+1) < gidmax) {
+            cols[ps] =           gid(i+1,j-1,k+1);
+            mat[ps] = Real(0.0);
+        }
+        else if (offset == 21 && gid(i-1,j  ,k+1) < gidmax) {
+            cols[ps] =           gid(i-1,j  ,k+1);
+            mat[ps] = Real(-0.5)*s[2];
+        }
+        else if (offset == 22 && gid(i  ,j  ,k+1) < gidmax) {
+            cols[ps] =           gid(i  ,j  ,k+1);
+            mat[ps] = s[5];
+        }
+        else if (offset == 23 && gid(i+1,j  ,k+1) < gidmax) {
+            cols[ps] =           gid(i+1,j  ,k+1);
+            mat[ps] = Real(0.5)*s[2];
+        }
+        else if (offset == 24 && gid(i-1,j+1,k+1) < gidmax) {
+            cols[ps] =           gid(i-1,j+1,k+1);
+            mat[ps] = Real(0.0);
+        }
+        else if (offset == 25 && gid(i  ,j+1,k+1) < gidmax) {
+            cols[ps] =           gid(i  ,j+1,k+1);
+            mat[ps] = Real(0.5)*s[4];
+        }
+        else if (offset == 26 && gid(i+1,j+1,k+1) < gidmax) {
+            cols[ps] =           gid(i+1,j+1,k+1);
+            mat[ps] = Real(0.0);
+        }
+    }
 }
+
+#endif
 
 #endif
 

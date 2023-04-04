@@ -1,3 +1,5 @@
+add_amrex_define( AMREX_USE_EB NO_LEGACY IF AMReX_EB )
+
 target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
 
 target_sources(amrex
@@ -8,7 +10,7 @@ target_sources(amrex
    AMReX_EBFabFactory.cpp
    AMReX_EBMultiFabUtil.H
    AMReX_EBMultiFabUtil_C.H
-   AMReX_EBMultiFabUtil_${DIM}D_C.H
+   AMReX_EBMultiFabUtil_${AMReX_SPACEDIM}D_C.H
    AMReX_EBMultiFabUtil.cpp
    AMReX_EBCellFlag.H
    AMReX_EBCellFlag.cpp
@@ -19,9 +21,11 @@ target_sources(amrex
    AMReX_EBSupport.H
    AMReX_EBInterpolater.H
    AMReX_EBInterpolater.cpp
+   AMReX_EBMFInterpolater.H
+   AMReX_EBMFInterpolater.cpp
    AMReX_EBFluxRegister.H
    AMReX_EBFluxRegister_C.H
-   AMReX_EBFluxRegister_${DIM}D_C.H
+   AMReX_EBFluxRegister_${AMReX_SPACEDIM}D_C.H
    AMReX_EBFluxRegister.cpp
    AMReX_EBAmrUtil.H
    AMReX_EBAmrUtil.cpp
@@ -49,8 +53,10 @@ target_sources(amrex
    AMReX_EB2_IF_Union.H
    AMReX_EB2_IF_Extrusion.H
    AMReX_EB2_IF_Difference.H
+   AMReX_EB2_IF_Parser.H
    AMReX_EB2_IF.H
    AMReX_EB2_IF_Base.H
+   AMReX_EB2_IF_DevicePtr.H
    AMReX_distFcnElement.cpp
    AMReX_EB2_GeometryShop.H
    AMReX_EB2.H
@@ -61,39 +67,39 @@ target_sources(amrex
    AMReX_EB2.cpp
    AMReX_EB2_Level.cpp
    AMReX_EB2_MultiGFab.cpp
-   AMReX_EB2_${DIM}D_C.cpp
-   AMReX_EB2_C.H AMReX_EB2_${DIM}D_C.H
+   AMReX_EB2_${AMReX_SPACEDIM}D_C.cpp
+   AMReX_EB2_ND_C.cpp
+   AMReX_EB2_C.H
+   AMReX_EB2_${AMReX_SPACEDIM}D_C.H
+   AMReX_EB_STL_utils.H
+   AMReX_EB_STL_utils.cpp
+   AMReX_EB_chkpt_file.H
+   AMReX_EB_chkpt_file.cpp
+   AMReX_EB_triGeomOps_K.H
+   AMReX_EB2_Level_STL.H
+   AMReX_EB2_Level_STL.cpp
+   AMReX_EB2_IndexSpace_STL.H
+   AMReX_EB2_IndexSpace_STL.cpp
+   AMReX_EB2_Level_chkpt_file.H
+   AMReX_EB2_Level_chkpt_file.cpp
+   AMReX_EB2_IndexSpace_chkpt_file.H
+   AMReX_EB2_IndexSpace_chkpt_file.cpp
    )
 
-if (ENABLE_FORTRAN)
+if (AMReX_SPACEDIM EQUAL 3)
+   target_sources(amrex
+   PRIVATE
+   AMReX_WriteEBSurface.cpp
+   AMReX_WriteEBSurface.H
+   AMReX_EBToPVD.H
+   AMReX_EBToPVD.cpp
+   )
+endif ()
+
+if (AMReX_FORTRAN)
    target_sources(amrex
       PRIVATE
       AMReX_ebcellflag_mod.F90
       AMReX_EBFluxRegister_nd.F90
-      AMReX_compute_normals.F90
-      AMReX_EB_F.H
-      AMReX_WriteEBSurface.cpp
-      AMReX_WriteEBSurface.H
-      AMReX_WriteEB_F.H
-      AMReX_eb_to_pvd.F90
-      # LS
-      AMReX_EB_geometry.F90
-      AMReX_EB_bc_fill_nd.F90
-      AMReX_EB_Tagging.F90
-      AMReX_EB_levelset_F.F90
-      AMReX_EB_levelset.H
-      AMReX_EB_levelset.cpp
       )
-
-   if (DIM EQUAL 3)
-      target_sources(amrex
-         PRIVATE
-         AMReX_EB_LSCoreBase.H
-         AMReX_EB_LSCoreBase.cpp
-         AMReX_EB_LSCore.H
-         AMReX_EB_LSCoreI.H
-         AMReX_EB_LSCore_F.H
-         )
-  endif ()
-
 endif ()

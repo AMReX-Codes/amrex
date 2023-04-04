@@ -125,7 +125,7 @@ def write_paraview_file_unst_trimesh(fname,pts,conn,ccdata,ncdata):
     outfile.close()
 
 def write_paraview_file_cartmesh(fname,dx,prob_lo,N,ncdata,ccdata):
-    
+
     zero=0
     one=1
     outfile=open(fname,'w')
@@ -166,11 +166,11 @@ def write_paraview_file_cartmesh(fname,dx,prob_lo,N,ncdata,ccdata):
     for i in range(N[1]):
         outfile.write("%e\t"%(prob_lo[1]+i*dx[1]))
     outfile.write("\n</DataArray>\n")
-    
+
     outfile.write("<DataArray type=\"Float32\" Name=\"Z\"  format=\"ascii\">\n")
     outfile.write("%e\t"%(0.0))
     outfile.write("\n</DataArray>\n")
-    
+
     outfile.write("</Coordinates>\n")
     outfile.write("</Piece>\n")
     outfile.write("</RectilinearGrid>\n")

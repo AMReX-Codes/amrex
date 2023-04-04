@@ -42,8 +42,8 @@
  * *****************************************************************************
  *                                DISCLAIMER
  * THE SOFTWARE IS SUPPLIED "AS IS" WITHOUT WARRANTY OF ANY KIND. NEITHER THE
- * UNITED STATES GOVERNMENT, NOR THE UNITED STATES DEPARTMENT OF ENERGY, NOR 
- * UCHICAGO ARGONNE, LLC, NOR ANY OF THEIR EMPLOYEES, MAKES ANY WARRANTY, 
+ * UNITED STATES GOVERNMENT, NOR THE UNITED STATES DEPARTMENT OF ENERGY, NOR
+ * UCHICAGO ARGONNE, LLC, NOR ANY OF THEIR EMPLOYEES, MAKES ANY WARRANTY,
  * EXPRESS OR IMPLIED, OR ASSUMES ANY LEGAL LIABILITY OR RESPONSIBILITY FOR THE
  * ACCURARY, COMPLETENESS, OR USEFULNESS OF ANY INFORMATION, DATA, APPARATUS,
  * PRODUCT, OR PROCESS DISCLOSED, OR REPRESENTS THAT ITS USE WOULD NOT INFRINGE
@@ -78,21 +78,21 @@ public:
   //
   // constructors
   //
-  
+
   // standard setup
 
-  Distribution(MPI_Comm comm, 
-	       int const n[], 
-	       bool debug = false)
+  Distribution(MPI_Comm comm,
+               int const n[],
+               bool debug = false)
     : m_comm(comm), m_rmap(NULL), m_debug(debug)
   {
     int Ndims[3] = { 0, 0, 0 };
     initialize(comm, n, Ndims);
   }
 
-  Distribution(MPI_Comm comm, 
-	       int ng, 
-	       bool debug = false)
+  Distribution(MPI_Comm comm,
+               int ng,
+               bool debug = false)
     : m_comm(comm), m_rmap(NULL), m_debug(debug)
   {
     int n[3] = { ng, ng, ng };
@@ -127,14 +127,14 @@ public:
   // destructor
   //
 
-  virtual ~Distribution() 
+  virtual ~Distribution()
   {
     distribution_fini(&m_d);
   }
 
 
   // initialization
-  
+
   void initialize(MPI_Comm comm, int const n[], int const Ndims[]) {
     int flag;
     MPI_Initialized(&flag);
@@ -243,7 +243,7 @@ public:
   MPI_Comm parent_comm() const { return m_comm;}
 
 
-  // 
+  //
 
   int rank_2d_x(int c[]) {
     int r;
@@ -264,7 +264,7 @@ public:
   }
 
 
-  // 
+  //
 
   void coords_2d_x(int r, int c[]) { Coord_x_pencils(r, c, &m_d);}
   void coords_2d_y(int r, int c[]) { Coord_y_pencils(r, c, &m_d);}

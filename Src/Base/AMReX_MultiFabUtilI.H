@@ -12,7 +12,7 @@ namespace amrex {
         template<typename T>
         struct SymmetricGhost {
             static void copy (T & target, const T & source, int nc, int ng) {
-                target.copy(source, 0, 0, nc, ng, ng);
+                target.ParallelCopy(source, 0, 0, nc, ng, ng);
             }
         };
 
@@ -23,7 +23,7 @@ namespace amrex {
         template<typename T> // T can be either MultiFab or iMultiFab
         struct AsymmetricGhost {
             static void copy (T & target, const T & source, int nc, int ng) {
-                target.copy(source, 0, 0, nc, 0, ng);
+                target.ParallelCopy(source, 0, 0, nc, 0, ng);
             }
         };
 
@@ -117,38 +117,6 @@ namespace amrex {
             else              AsymmetricGhost<T>::copy(mf_out, mf_in, nc, ng);
         }
 
-
-        //! Convert class T_src (which must either be of type MultiFab or
-        //! iMultiFab) to type T_dest (which must also be of type MultiFab or
-        //! iMultiFab). This function is useful for convering iMultiFab MultiFab
-        //! or vice-versa.
-        template<typename T_src, typename T_dest>
-            std::unique_ptr<T_dest> convert(const T_src & mf_in) {
-
-            const BoxArray & ba            = mf_in.boxArray();
-            const DistributionMapping & dm = mf_in.DistributionMap();
-            int ncomp                      = mf_in.nComp();
-            int ngrow                      = mf_in.nGrow();
-
-            std::unique_ptr<T_dest> mf_out(new T_dest(ba, dm, ncomp, ngrow));
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-            for(MFIter mfi(mf_in, true); mfi.isValid(); ++ mfi) {
-                const IArrayBox & in_tile  =      mf_in[mfi];
-                FArrayBox & out_tile = (* mf_out)[mfi];
-
-                for(BoxIterator bit(mfi.growntilebox()); bit.ok(); ++ bit) {
-
-                    for(int i = 0; i < ncomp; i ++)
-                        out_tile(bit(), i) = in_tile(bit(), i);
-
-                }
-            }
-
-            return mf_out;
-        }
     }
 
 }

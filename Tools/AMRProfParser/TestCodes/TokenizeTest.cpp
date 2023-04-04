@@ -46,16 +46,16 @@ int main(int argc, char *argv[]) {
       std::getline(ifs, fileLine);
       if( ! ifs.eof()) {
         cout << endl << "fileLine = " << fileLine << endl;
-	char delims[1];
-	//delims[0] = '\011';
-	delims[0] = ' ';
-	//std::string delimString(delims);
-	std::string delimString(" ");
-	const std::vector<std::string> &lineTokens = amrex::Tokenize(fileLine, delimString);
-	cout << "lineTokens.size() = " << lineTokens.size() << endl;
-	for(int i(0); i < lineTokens.size(); ++i) {
-	  cout << i << "::token = " << lineTokens[i] << endl;
-	}
+        char delims[1];
+        //delims[0] = '\011';
+        delims[0] = ' ';
+        //std::string delimString(delims);
+        std::string delimString(" ");
+        const std::vector<std::string> &lineTokens = amrex::Tokenize(fileLine, delimString);
+        cout << "lineTokens.size() = " << lineTokens.size() << endl;
+        for(int i(0); i < lineTokens.size(); ++i) {
+          cout << i << "::token = " << lineTokens[i] << endl;
+        }
       }
     }
   }

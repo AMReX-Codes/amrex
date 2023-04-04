@@ -1,7 +1,8 @@
 #ifndef AMREX_CUDA_GRAPH_H_
 #define AMREX_CUDA_GRAPH_H_
+#include <AMReX_Config.H>
 
-#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
+#if defined(__CUDACC__)
 
 #include <AMReX.H>
 #include <AMReX_Array.H>
@@ -64,16 +65,16 @@ struct CudaGraph
     CudaGraph()
         : m_parms(0)
     {
-        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(T), "CudaGraph's T must be trivially copyable");
+        static_assert(std::is_trivially_copyable<T>::value, "CudaGraph's T must be trivially copyable");
     }
     CudaGraph(int num)
         : m_parms(num)
     {
-        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(T), "CudaGraph's T must be trivially copyable");
-        m_parms_d = static_cast<T*>( The_Device_Arena()->alloc(sizeof(T)*m_parms.size()) );
+        static_assert(std::is_trivially_copyable<T>::value, "CudaGraph's T must be trivially copyable");
+        m_parms_d = static_cast<T*>( The_Arena()->alloc(sizeof(T)*m_parms.size()) );
     }
     ~CudaGraph() {
-        The_Device_Arena()->free(m_parms_d);
+        The_Arena()->free(m_parms_d);
 
         if (graph_is_ready)
         {
@@ -85,11 +86,11 @@ struct CudaGraph
         m_parms.resize(num);
         if (m_parms_d != nullptr)
         {
-            The_Device_Arena()->free(m_parms_d);
+            The_Arena()->free(m_parms_d);
         }
-        m_parms_d = static_cast<T*>( The_Device_Arena()->alloc(sizeof(T)*m_parms.size()) );
+        m_parms_d = static_cast<T*>( The_Arena()->alloc(sizeof(T)*m_parms.size()) );
     }
-    void setGraph(cudaGraphExec_t const& graph) { 
+    void setGraph(cudaGraphExec_t const& graph) {
         m_graph = graph;
         graph_is_ready = true;
     }

@@ -233,7 +233,7 @@ Write (AmrData&       amrData,
         MultiFab& mf = amrData.GetGrids(iLevel,icomp);
         const BoxArray& ba = mf.boxArray();
         int num_grids = ba.size();
-        for (int ig = 0; ig < num_grids; ++ig) 
+        for (int ig = 0; ig < num_grids; ++ig)
         {
           sprintf(buf,
                   "%s_%d_%d",
@@ -268,7 +268,8 @@ main (int   argc,
 
     ParmParse pp;
 
-    if (pp.contains("help"))
+    const std::string farg = amrex::get_command_argument(1);
+    if (farg == "-h" || farg == "--help")
       PrintUsage(argv[0]);
     //
     // MatLab expects native floating-point format.
@@ -285,7 +286,7 @@ main (int   argc,
 
     DataServices::SetBatchMode();
     Amrvis::FileType fileType(Amrvis::NEWPLT);
-    
+
     DataServices dataServices(iFile, fileType);
 
     if (!dataServices.AmrDataOk())

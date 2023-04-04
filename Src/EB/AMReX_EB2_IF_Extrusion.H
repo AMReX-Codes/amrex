@@ -1,5 +1,6 @@
 #ifndef AMREX_EB2_IF_EXTRUSION_H_
 #define AMREX_EB2_IF_EXTRUSION_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Array.H>
 #include <AMReX_EB2_IF_Base.H>
@@ -8,26 +9,17 @@
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 template <class F>
 class ExtrusionIF
 {
 public:
 
-    ExtrusionIF (F&& a_f, int direction)
+    ExtrusionIF (F a_f, int direction)
         : m_f(std::move(a_f)),
           m_direction(direction)
         {}
-    ExtrusionIF (F const& a_f, int direction)
-        : m_f(a_f),
-          m_direction(direction)
-    {}
-
-    ExtrusionIF (const ExtrusionIF& rhs) = default;
-    ExtrusionIF (ExtrusionIF&& rhs) = default;
-    ExtrusionIF& operator= (const ExtrusionIF& rhs) = delete;
-    ExtrusionIF& operator= (ExtrusionIF&& rhs) = delete;
 
     inline Real operator() (const RealArray& p) const
     {
@@ -68,6 +60,6 @@ extrude (F&&f, int direction)
     return ExtrusionIF<typename std::decay<F>::type>(std::forward<F>(f),direction);
 }
 
-}}
+}
 
 #endif

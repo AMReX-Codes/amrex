@@ -3,6 +3,7 @@
 // -------------------------------------------------------------------
 #ifndef XYPLOTDATALIST_H
 #define XYPLOTDATALIST_H
+#include <AMReX_Config.H>
 
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
@@ -12,10 +13,7 @@
 
 #include <list>
 #include <string>
-using std::string;
-using std::list;
 
-using namespace amrex;
 
 namespace amrex {
 
@@ -43,7 +41,7 @@ class XYPlotDataListLink {
   public:
     XYPlotDataListLink(const Real *d, int sX, int len)
       : xypdllLength(len), startXi(sX)
-    { 
+    {
       BL_ASSERT(len != 0);
       endXi = sX + len;
       xypdllData = new Real[len];
@@ -72,12 +70,12 @@ class XYPlotDataListLink {
 
 class XYPlotDataList {
   public:
-    XYPlotDataList(const string &derived, int minlevel, int maxlevel,
-		   int gridlinein,
-		   const amrex::Vector<int> &ratiolist,
-		   const amrex::Vector<Real> &dx,
-		   const amrex::Vector<char *> &intersectpoint,
-		   Real startx = 0.0);
+    XYPlotDataList(const std::string &derived, int minlevel, int maxlevel,
+                   int gridlinein,
+                   const amrex::Vector<int> &ratiolist,
+                   const amrex::Vector<Real> &dx,
+                   const amrex::Vector<char *> &intersectpoint,
+                   Real startx = 0.0);
     XYPlotDataList(XYPlotDataList *src);
     ~XYPlotDataList();
 
@@ -87,7 +85,7 @@ class XYPlotDataList {
     void SetLevel(int new_level) {
       curLevel = (new_level < maxLevel) ? new_level : maxLevel;
     }
-    const string &DerivedName() const { return xypdlDerived; }
+    const std::string &DerivedName() const { return xypdlDerived; }
     const XYPlotDataList *CopiedFrom() const { return copiedFrom; }
     void SetCopiedFrom(XYPlotDataList *xypdl) { copiedFrom = xypdl; }
     int MaxLevel()  const { return maxLevel; }
@@ -103,7 +101,7 @@ class XYPlotDataList {
     amrex::Vector<double> &YVal(int level) { return xypdlYVal[level]; }
 
   protected:
-    amrex::Vector<list<XYPlotDataListLink *> > dataSets; 
+    amrex::Vector<std::list<XYPlotDataListLink *> > dataSets;
     amrex::Vector<int> xypdlRatios;        // Used for insertion of data sets beginning
                                     // in the middle of a single cell [level]
     amrex::Vector<Real> dX;                // dX in the proper direction [level]
@@ -116,7 +114,7 @@ class XYPlotDataList {
     int  minLevel, maxLevel, curLevel, gridline, whichDir;
     bool updatedQ;
     double startX, endX, offsetX;
-    string xypdlDerived;
+    std::string xypdlDerived;
     XYPlotDataList *copiedFrom;
     amrex::Vector<amrex::BoxList> fabBoxLists, fillBoxLists;
 };

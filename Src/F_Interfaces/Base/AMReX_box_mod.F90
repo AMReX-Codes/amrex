@@ -180,7 +180,7 @@ contains
     phi = ubound(p)
     seclo = max(this%lo, plo(1:3))
     sechi = min(this%hi, phi(1:3))
-    r = all(seclo(1:ndims) .le. sechi(1:ndims))    
+    r = all(seclo(1:ndims) .le. sechi(1:ndims))
   end function amrex_box_intersects_fp
 
   function amrex_box_contains_box (this, bx) result(r)

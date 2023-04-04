@@ -55,5 +55,5 @@ contains
     call c_f_pointer(cp, fp, shape=n)
     dp(bx%lo(1):,bx%lo(2):,bx%lo(3):,1:) => fp
   end function amrex_tagboxarray_dataPtr
-  
+
 end module amrex_tagbox_module

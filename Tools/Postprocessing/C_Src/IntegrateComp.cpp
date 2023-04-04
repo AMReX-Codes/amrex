@@ -2,7 +2,7 @@
   A very simple example of reading a plotfile and doing a simple analysis.  Here, we want
   to do a volume integral of a component specified by name.
 
-  The twist here is to demonstrate what this might look like if the amr data were coming down a 
+  The twist here is to demonstrate what this might look like if the amr data were coming down a
   pipe (such as SENSEI, e.g.).  So, we read the plotfile as usual, but mine it for the required
   data, then put that data into a couple of structs that then are queried from that point forward.
 
@@ -17,12 +17,12 @@
 using namespace amrex;
 
 static
-void 
+void
 print_usage (int,
              char* argv[])
 {
   std::cerr << "usage:\n";
-  std::cerr << argv[0] << " infile=<plotfilename> varName=v1 v2 ... \n";
+  std::cerr << argv[0] << " infile=<plotfilename> varNames=v1 v2 ... \n";
   exit(1);
 }
 
@@ -61,7 +61,7 @@ protected:
 struct AMReXDataHierarchy
 {
 /*
-  Data on a AMReXMeshHierarchy, currently pointing to MultiFabs of 
+  Data on a AMReXMeshHierarchy, currently pointing to MultiFabs of
   named variables managed by an AmrData object.
 */
 public:
@@ -111,7 +111,8 @@ main (int   argc,
 
     ParmParse pp;
 
-    if (pp.contains("help"))
+    const std::string farg = amrex::get_command_argument(1);
+    if (farg == "-h" || farg == "--help")
       print_usage(argc,argv);
 
     // Create the AmrData object from a pltfile on disk
@@ -164,7 +165,7 @@ main (int   argc,
         MultiFab::Copy(mf,pfData,0,0,1,nGrow);
 
         Real sm = 0;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(+:sm)
 #endif
         for (MFIter mfi(mf,true); mfi.isValid(); ++mfi) {
@@ -173,7 +174,7 @@ main (int   argc,
 
           // Zero out covered cells
           if (lev < finestLevel) {
-            std::vector< std::pair<int,Box> > isects = baf.intersections(box);                
+            std::vector< std::pair<int,Box> > isects = baf.intersections(box);
             for (int ii = 0; ii < isects.size(); ii++) {
               myFab.setVal(0,isects[ii].second,0,1);
             }

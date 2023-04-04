@@ -113,11 +113,11 @@ bool Nestsets(const int level,
         {
             window["dims/k"] = overlap.size()[2];
         }
-        window["ratio/i"] = ref_ratio[level+1][0];
-        window["ratio/j"] = ref_ratio[level+1][1];
+        window["ratio/i"] = ref_ratio[level][0];
+        window["ratio/j"] = ref_ratio[level][1];
         if(dims == 3)
         {
-            window["ratio/k"] = ref_ratio[level+1][2];
+            window["ratio/k"] = ref_ratio[level][2];
         }
       }
     }
@@ -177,13 +177,13 @@ void FabToBlueprintTopology(const Geometry& geom,
     int nz = dims > 2 ? (k_max - k_min +1) : 1;
 
     float64 x_min = level_x_min + level_dx * i_min;
-    float64 x_max = level_x_min + level_dx * i_max;
+    //float64 x_max = level_x_min + level_dx * i_max;
 
     float64 y_min = level_y_min + level_dy * j_min;
-    float64 y_max = level_y_min + level_dy * j_max;
+    //float64 y_max = level_y_min + level_dy * j_max;
 
     float64 z_min = dims > 2 ? level_z_min + level_dz * k_min : 0.0;
-    float64 z_max = dims > 2 ? level_z_min + level_dz * k_max : 0.0;
+    //float64 z_max = dims > 2 ? level_z_min + level_dz * k_max : 0.0;
 
     // create uniform coordset
     // (which also holds all implicit details needed for the topology)
@@ -231,11 +231,11 @@ void AddFabGhostIndicatorField (const FArrayBox& fab,
                                 int ngrow,
                                 Node &res)
 {
-    Node &n_field = res["fields/ghost_indicator"];
+    Node &n_field = res["fields/ascent_ghosts"];
     n_field["association"] = "element";
     n_field["topology"] = "topo";
-    n_field["values"].set(DataType::float64(fab.box().numPts()));
-    float64_array vals_array = n_field["values"].value();
+    n_field["values"].set(DataType::int32(fab.box().numPts()));
+    int32_array vals_array = n_field["values"].value();
 
     int dims = BL_SPACEDIM;
 
@@ -287,7 +287,7 @@ void FabToBlueprintFields (const FArrayBox& fab,
                            Node &res)
 {
     // make sure we are not asking for more components than exist.
-    BL_ASSERT(varnames.size() <= fab->nComp());
+    BL_ASSERT(varnames.size() <= fab.nComp());
 
     Node &n_fields = res["fields"];
     for(int i=0; i < varnames.size(); i++)
@@ -355,23 +355,22 @@ MultiLevelToBlueprint (int n_levels,
     BL_ASSERT(n_levels <= level_steps.size());
     BL_ASSERT(mfs[0]->nComp() == varnames.size());
 
-    int finest_level = n_levels-1;
-
-    int num_levels = geoms.size();
-
     // get mpi rank and # of tasks
     int rank   = ParallelDescriptor::MyProc();
     int ntasks = ParallelDescriptor::NProcs();
 
     Vector<const BoxArray*> box_arrays;
     Vector<int> box_offsets;
-    for(int i = 0; i < num_levels; i++)
+
+    box_offsets.resize(n_levels);
+
+    for(int i = 0; i < n_levels; i++)
     {
       const BoxArray &boxs = mfs[i]->boxArray();
       box_arrays.push_back(&boxs);
       if(i == 0)
       {
-        box_offsets.push_back(0);
+        box_offsets[i] = 0;
       }
       else
       {
@@ -380,7 +379,7 @@ MultiLevelToBlueprint (int n_levels,
     }
 
     int num_domains = 0;
-    for(int i = 0; i < num_levels; i++)
+    for(int i = 0; i < n_levels; i++)
     {
         //
         // Geometry represents the physical and logical space of an entire level.
@@ -409,13 +408,14 @@ MultiLevelToBlueprint (int n_levels,
             patch["state/domain_id"] = domain_id;
             patch["state/cycle"] = level_steps[0];
             patch["state/time"] = time_value;
+            patch["state/level"] = i;
 
             const FArrayBox &fab = mf[mfi];
 
             // create coordset and topo
             FabToBlueprintTopology(geom,fab,patch);
             // add the nesting relationship
-            if(num_levels > 1)
+            if(n_levels > 1)
             {
                 conduit::Node nestset;
                 bool valid = Nestsets(i, n_levels, fab, box_arrays, ref_ratio, box_offsets, nestset);
@@ -438,7 +438,7 @@ MultiLevelToBlueprint (int n_levels,
 
     Node info;
     // if we have mesh data, use blueprint verify
-    // to make sure we conform to whats expected
+    // to make sure we conform to what's expected
     // for a multi-domain mesh
 
     if(!res.dtype().is_empty() &&
@@ -467,7 +467,7 @@ void WriteBlueprintFiles (const conduit::Node &bp_mesh,
     long num_domains = (long)bp_mesh.number_of_children();
     ParallelDescriptor::ReduceLongSum(num_domains);
 
-    // get numer of mpi tasks and this task's rank
+    // get number of mpi tasks and this task's rank
     int rank   = ParallelDescriptor::MyProc();
     int ntasks = ParallelDescriptor::NProcs();
 

@@ -1,14 +1,15 @@
 
 #ifndef BL_BOXLIST_H
 #define BL_BOXLIST_H
-
-#include <iosfwd>
+#include <AMReX_Config.H>
 
 #include <AMReX_IntVect.H>
 #include <AMReX_IndexType.H>
 #include <AMReX_Box.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
+
+#include <iosfwd>
 
 namespace amrex
 {
@@ -63,8 +64,8 @@ public:
     //! Make a boxList consisting of a single Box
     explicit BoxList (const Box& bx);
 
-    //! Construct an empty BoxList with IndexType btyp
-    explicit BoxList (IndexType btyp);
+    //! Construct an empty BoxList with IndexType _btype
+    explicit BoxList (IndexType _btype);
 
     //!  Construct a BoxList from a BoxArray.
     explicit BoxList (const BoxArray& ba);
@@ -110,10 +111,12 @@ public:
     std::size_t capacity () const noexcept { return m_lbox.capacity(); }
 
     iterator begin () noexcept { return m_lbox.begin(); }
-    const_iterator begin () const noexcept { return m_lbox.begin(); }
+    const_iterator begin () const noexcept { return m_lbox.cbegin(); }
+    const_iterator cbegin () const noexcept { return m_lbox.cbegin(); }
 
     iterator end () noexcept { return m_lbox.end(); }
-    const_iterator end () const noexcept { return m_lbox.end(); }
+    const_iterator end () const noexcept { return m_lbox.cend(); }
+    const_iterator cend () const noexcept { return m_lbox.cend(); }
     /**
     * \brief True if this BoxList is valid; i.e. all the Boxes are
     * valid and they all have the same IndexType.  Also returns
@@ -139,11 +142,13 @@ public:
     //! Remove empty Boxes from this BoxList.
     BoxList& removeEmpty();
 
-    BoxList& complementIn (const Box&     b,
-                           const BoxList& bl);
-    BoxList& complementIn (const Box&     b,
-                            BoxList&&     bl);
+    BoxList& complementIn (const Box& b, const BoxList& bl);
+    BoxList& complementIn (const Box& b, BoxList&& bl);
     BoxList& complementIn (const Box& b, const BoxArray& ba);
+    BoxList& parallelComplementIn (const Box& b, const BoxList& bl);
+    BoxList& parallelComplementIn (const Box& b, BoxList&& bl);
+    BoxList& parallelComplementIn (const Box& b, const BoxArray& ba);
+
     //! Refine each Box in the BoxList by the ratio.
     BoxList& refine (int ratio);
     //! Refine each Box in the BoxList by the ratio.
@@ -173,6 +178,8 @@ public:
     * is O(N-squared) while the other algorithm is O(N).
     */
     int simplify (bool best = false);
+    //! Assuming the boxes are nicely ordered
+    int ordered_simplify ();
     //! Forces each Box in the BoxList to have sides of length <= chunk.
     BoxList& maxSize (int chunk);
     //! Forces each Box in the BoxList to have dimth side of length <= chunk[dim].
@@ -201,18 +208,20 @@ public:
     BoxList& convert (IndexType typ) noexcept;
 
     //! Returns a reference to the Vector<Box>.
-    Vector<Box>& data() noexcept { return m_lbox; }
+    Vector<Box>& data () noexcept { return m_lbox; }
     //! Returns a constant reference to the Vector<Box>.
-    const Vector<Box>& data() const noexcept { return m_lbox; }
+    const Vector<Box>& data () const noexcept { return m_lbox; }
 
     void swap (BoxList& rhs) {
-	std::swap(m_lbox, rhs.m_lbox);
-	std::swap(btype, rhs.btype);
+        std::swap(m_lbox, rhs.m_lbox);
+        std::swap(btype, rhs.btype);
     }
+
+    void Bcast ();
 
 private:
     //! Core simplify routine.
-    int simplify_doit (bool best);
+    int simplify_doit (int depth);
 
     //! The list of Boxes.
     Vector<Box> m_lbox;

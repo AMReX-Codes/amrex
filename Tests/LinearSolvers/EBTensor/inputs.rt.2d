@@ -1,0 +1,7 @@
+n_cell = 64
+max_grid_size = 32
+
+eb2.geom_type = sphere
+eb2.sphere_center = 0.0 0.0
+eb2.sphere_radius = 0.9
+eb2.sphere_has_fluid_inside = 1

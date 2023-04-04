@@ -1,7 +1,7 @@
 #include "AMReX_InSituUtils.H"
 
 #include "Error.h"
-#include "VTKUtils.h"
+#include "SVTKUtils.h"
 
 namespace amrex {
 namespace InSituUtils {
@@ -14,7 +14,7 @@ int StateMap::GetIndex(const std::string &name, int centering,
 
     if (cit == this->Map.end())
     {
-        SENSEI_ERROR("No " << sensei::VTKUtils::GetAttributesName(centering)
+        SENSEI_ERROR("No " << sensei::SVTKUtils::GetAttributesName(centering)
           << " arrays")
         return -1;
     }
@@ -23,7 +23,7 @@ int StateMap::GetIndex(const std::string &name, int centering,
     if (nit == cit->second.end())
     {
         SENSEI_ERROR("No array named \"" << name  << "\" in "
-            << sensei::VTKUtils::GetAttributesName(centering)
+            << sensei::SVTKUtils::GetAttributesName(centering)
             << " centered data")
         return -1;
     }
@@ -41,12 +41,12 @@ int StateMap::GetName(int centering, int id, std::string &name)
 
     if (cit == this->Map.end())
     {
-        SENSEI_ERROR("No " << sensei::VTKUtils::GetAttributesName(centering)
+        SENSEI_ERROR("No " << sensei::SVTKUtils::GetAttributesName(centering)
           << " arrays")
         return -1;
     }
 
-    if (id >= cit->second.size())
+    if (size_t(id) >= cit->second.size())
     {
         SENSEI_ERROR("Array index " << id << " out of bounds " << cit->second.size())
         return -1;

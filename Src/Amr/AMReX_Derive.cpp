@@ -1,8 +1,8 @@
 
-#include <cstring>
-
 #include <AMReX_Derive.H>
 #include <AMReX_StateDescriptor.H>
+
+#include <cstring>
 
 namespace amrex {
 
@@ -19,128 +19,124 @@ DeriveRec::GrowBoxByOne (const Box& box) noexcept
 }
 
 
-DeriveRec::DeriveRec (const std::string& a_name,
+DeriveRec::DeriveRec (std::string    a_name,
                       IndexType      result_type,
                       int            nvar_derive,
                       DeriveFunc     der_func,
                       DeriveBoxMap   box_map,
                       Interpolater*  a_interp)
     :
-    derive_name(a_name),
-    variable_names(),
+    derive_name(std::move(a_name)),
     der_type(result_type),
     n_derive(nvar_derive),
     func(der_func),
     mapper(a_interp),
-    bx_map(box_map)
+    bx_map(std::move(box_map))
 {}
 
-DeriveRec::DeriveRec (const std::string& a_name,
+DeriveRec::DeriveRec (std::string    a_name,
                       IndexType      result_type,
                       int            nvar_derive,
                       DeriveFunc3D   der_func_3d,
                       DeriveBoxMap   box_map,
                       Interpolater*  a_interp)
     :
-    derive_name(a_name),
-    variable_names(),
+    derive_name(std::move(a_name)),
     der_type(result_type),
     n_derive(nvar_derive),
     func_3d(der_func_3d),
     mapper(a_interp),
-    bx_map(box_map)
+    bx_map(std::move(box_map))
 {}
 
-DeriveRec::DeriveRec (const std::string& a_name,
+DeriveRec::DeriveRec (std::string    a_name,
                       IndexType      result_type,
                       int            nvar_derive,
                       DeriveFuncFab  der_func_fab,
                       DeriveBoxMap   box_map,
                       Interpolater*  a_interp)
     :
-    derive_name(a_name),
-    variable_names(),
+    derive_name(std::move(a_name)),
     der_type(result_type),
     n_derive(nvar_derive),
-    func_fab(der_func_fab),
+    func_fab(std::move(der_func_fab)),
     mapper(a_interp),
-    bx_map(box_map)
+    bx_map(std::move(box_map))
 {}
 
 // This version doesn't take a Fortran function name, it is entirely defined by the C++
-DeriveRec::DeriveRec (const std::string&      a_name,
+DeriveRec::DeriveRec (std::string             a_name,
                       IndexType               result_type,
                       int                     nvar_derive,
                       DeriveRec::DeriveBoxMap box_map)
     :
-    derive_name(a_name),
-    variable_names(),
+    derive_name(std::move(a_name)),
     der_type(result_type),
     n_derive(nvar_derive),
-    bx_map(box_map)
+    bx_map(std::move(box_map))
 {}
 
-DeriveRec::DeriveRec (const std::string& a_name,
+DeriveRec::DeriveRec (std::string    a_name,
                       IndexType      result_type,
                       int            nvar_derive,
-		      Vector<std::string>& var_names,
+                      Vector<std::string> const& var_names,
                       DeriveFunc     der_func,
                       DeriveBoxMap   box_map,
                       Interpolater*  a_interp)
     :
-    derive_name(a_name),
+    derive_name(std::move(a_name)),
     variable_names(var_names),
     der_type(result_type),
     n_derive(nvar_derive),
     func(der_func),
     mapper(a_interp),
-    bx_map(box_map)
+    bx_map(std::move(box_map))
 {}
 
-DeriveRec::DeriveRec (const std::string& a_name,
+DeriveRec::DeriveRec (std::string    a_name,
                       IndexType      result_type,
                       int            nvar_derive,
-		      Vector<std::string>& var_names,
+                      Vector<std::string> const& var_names,
                       DeriveFunc3D   der_func_3d,
                       DeriveBoxMap   box_map,
                       Interpolater*  a_interp)
     :
-    derive_name(a_name),
+    derive_name(std::move(a_name)),
     variable_names(var_names),
     der_type(result_type),
     n_derive(nvar_derive),
     func_3d(der_func_3d),
     mapper(a_interp),
-    bx_map(box_map)
+    bx_map(std::move(box_map))
 {}
 
-DeriveRec::DeriveRec (const std::string& a_name,
+DeriveRec::DeriveRec (std::string    a_name,
                       IndexType      result_type,
                       int            nvar_derive,
-		      Vector<std::string>& var_names,
+                      Vector<std::string> const& var_names,
                       DeriveFuncFab  der_func_fab,
                       DeriveBoxMap   box_map,
                       Interpolater*  a_interp)
     :
-    derive_name(a_name),
+    derive_name(std::move(a_name)),
     variable_names(var_names),
     der_type(result_type),
     n_derive(nvar_derive),
-    func_fab(der_func_fab),
+    func_fab(std::move(der_func_fab)),
     mapper(a_interp),
-    bx_map(box_map)
+    bx_map(std::move(box_map))
 {}
 
-DeriveRec::~DeriveRec () 
+DeriveRec::~DeriveRec ()
 {
    delete [] bcr;
    delete [] bcr3D;
    func     = nullptr;
    func_3d  = nullptr;
    func_fab = nullptr;
-   mapper   = 0;
-   bx_map   = 0;
-   while (rng != 0)
+   mapper   = nullptr;
+   bx_map   = nullptr;
+   while (rng != nullptr)
    {
        StateRange* r = rng;
        rng = rng->next;
@@ -226,26 +222,27 @@ void
 DeriveRec::addRange (const DescriptorList& d_list,
                      int                   state_indx,
                      int                   src_comp,
-                     int                   num_comp) 
+                     int                   num_comp)
 {
-    StateRange* r = new StateRange;
+    auto* r = new StateRange;
 
     r->typ  = state_indx;
     r->sc   = src_comp;
     r->nc   = num_comp;
-    r->next = 0;
+    r->next = nullptr;
     //
     // Add to end of list.
     //
-    if (rng == 0)
+    if (rng == nullptr)
     {
         rng = r;
     }
     else
     {
         StateRange* prev = rng;
-        while (prev->next != 0)
+        while (prev->next != nullptr) {
             prev = prev->next;
+        }
         prev->next = r;
     }
     nsr++;
@@ -263,12 +260,15 @@ DeriveRec::getRange (int  k,
 {
     StateRange* r;
 
-    for (r = rng; r != 0 && k > 0; k--, r = r->next)
+    for (r = rng; r != nullptr && k > 0; k--, r = r->next) {
         ;
-    BL_ASSERT(r != 0);
-    state_indx = r->typ;
-    src_comp   = r->sc;
-    num_comp   = r->nc;
+    }
+    BL_ASSERT(r != nullptr);
+    if (r != nullptr) {
+        state_indx = r->typ;
+        src_comp   = r->sc;
+        num_comp   = r->nc;
+    }
 }
 
 void
@@ -278,7 +278,7 @@ DeriveRec::buildBC (const DescriptorList& d_list)
     delete [] bcr;
     bcr = new int[2*AMREX_SPACEDIM*n_state];
     int* bci = bcr;
-    for (DeriveRec::StateRange* r = rng; r != 0; r = r->next)
+    for (DeriveRec::StateRange* r = rng; r != nullptr; r = r->next)
     {
         const StateDescriptor& d = d_list[r->typ];
 
@@ -302,7 +302,7 @@ DeriveRec::buildBC3D (const DescriptorList& d_list)
     delete [] bcr3D;
     bcr3D = new int[2*3*n_state]();
     int* bci = bcr3D;
-    for (DeriveRec::StateRange* r = rng; r != 0; r = r->next)
+    for (DeriveRec::StateRange* r = rng; r != nullptr; r = r->next)
     {
         const StateDescriptor& d = d_list[r->typ];
 
@@ -328,23 +328,21 @@ const
 std::string&
 DeriveRec::variableName(int comp) const noexcept
 {
-  if (comp < variable_names.size()) 
+  if (comp < variable_names.size())
      return variable_names[comp];
 
   return derive_name;
 }
-
-DeriveList::DeriveList () {}
 
 void
 DeriveList::add (const std::string&      name,
                  IndexType               result_type,
                  int                     nvar_der,
                  DeriveFunc              der_func,
-                 DeriveRec::DeriveBoxMap bx_map,
+                 const DeriveRec::DeriveBoxMap& bx_map,
                  Interpolater*           interp)
 {
-    lst.push_back(DeriveRec(name,result_type,nvar_der,der_func,bx_map,interp));
+    lst.emplace_back(name,result_type,nvar_der,der_func,bx_map,interp);
 }
 
 void
@@ -352,21 +350,21 @@ DeriveList::add (const std::string&      name,
                  IndexType               result_type,
                  int                     nvar_der,
                  DeriveFunc3D            der_func_3d,
-                 DeriveRec::DeriveBoxMap bx_map,
+                 const DeriveRec::DeriveBoxMap& bx_map,
                  Interpolater*           interp)
 {
-    lst.push_back(DeriveRec(name,result_type,nvar_der,der_func_3d,bx_map,interp));
+    lst.emplace_back(name,result_type,nvar_der,der_func_3d,bx_map,interp);
 }
 
 void
 DeriveList::add (const std::string&      name,
                  IndexType               result_type,
                  int                     nvar_der,
-                 DeriveFuncFab           der_func_fab,
-                 DeriveRec::DeriveBoxMap bx_map,
+                 const DeriveFuncFab&           der_func_fab,
+                 const DeriveRec::DeriveBoxMap& bx_map,
                  Interpolater*           interp)
 {
-    lst.push_back(DeriveRec(name,result_type,nvar_der,der_func_fab,bx_map,interp));
+    lst.emplace_back(name,result_type,nvar_der,der_func_fab,bx_map,interp);
 }
 
 // This version doesn't take a Fortran function name, it is entirely defined by the C++
@@ -374,45 +372,45 @@ void
 DeriveList::add (const std::string&      name,
                  IndexType               result_type,
                  int                     nvar_der,
-                 DeriveRec::DeriveBoxMap box_map)
+                 const DeriveRec::DeriveBoxMap& box_map)
 {
-    lst.push_back(DeriveRec(name,result_type,nvar_der,box_map));
+    lst.emplace_back(name,result_type,nvar_der,box_map);
 }
 
 void
 DeriveList::add (const std::string&      name,
                  IndexType               res_typ,
                  int                     nvar_der,
-                 Vector<std::string>&    vars,
+                 Vector<std::string> const&    vars,
                  DeriveFunc              der_func,
-                 DeriveRec::DeriveBoxMap bx_map,
+                 const DeriveRec::DeriveBoxMap& bx_map,
                  Interpolater*           interp)
 {
-    lst.push_back(DeriveRec(name,res_typ,nvar_der,vars,der_func,bx_map,interp));
+    lst.emplace_back(name,res_typ,nvar_der,vars,der_func,bx_map,interp);
 }
 
 void
 DeriveList::add (const std::string&      name,
                  IndexType               res_typ,
                  int                     nvar_der,
-                 Vector<std::string>&    vars,
+                 Vector<std::string> const&    vars,
                  DeriveFunc3D            der_func_3d,
-                 DeriveRec::DeriveBoxMap bx_map,
+                 const DeriveRec::DeriveBoxMap& bx_map,
                  Interpolater*           interp)
 {
-    lst.push_back(DeriveRec(name,res_typ,nvar_der,vars,der_func_3d,bx_map,interp));
+    lst.emplace_back(name,res_typ,nvar_der,vars,der_func_3d,bx_map,interp);
 }
 
 void
 DeriveList::add (const std::string&      name,
                  IndexType               res_typ,
                  int                     nvar_der,
-                 Vector<std::string>&    vars,
-                 DeriveFuncFab           der_func_fab,
-                 DeriveRec::DeriveBoxMap bx_map,
+                 Vector<std::string> const&    vars,
+                 const DeriveFuncFab&           der_func_fab,
+                 const DeriveRec::DeriveBoxMap& bx_map,
                  Interpolater*           interp)
 {
-    lst.push_back(DeriveRec(name,res_typ,nvar_der,vars,der_func_fab,bx_map,interp));
+    lst.emplace_back(name,res_typ,nvar_der,vars,der_func_fab,bx_map,interp);
 }
 
 std::list<DeriveRec>&
@@ -422,13 +420,17 @@ DeriveList::dlist ()
 }
 
 bool
-DeriveList::canDerive (const std::string& name) const 
+DeriveList::canDerive (const std::string& name) const
 {
-    for (std::list<DeriveRec>::const_iterator li = lst.begin(), End = lst.end();
-         li != End;
-         ++li)
+    for (auto const& li : lst)
     {
-        if (li->derive_name == name)
+        // Can be either a component name ...
+        for (int i = 0; i < li.numDerive(); i++) {
+           if (li.variableName(i) == name)
+               return true;
+        }
+        // ... or a derive name
+        if (li.derive_name == name)
             return true;
     }
     return false;
@@ -437,29 +439,34 @@ DeriveList::canDerive (const std::string& name) const
 const DeriveRec*
 DeriveList::get (const std::string& name) const
 {
-    for (std::list<DeriveRec>::const_iterator li = lst.begin(), End = lst.end();
-         li != End;
-         ++li)
+    for (auto const& li : lst)
     {
-        if (li->derive_name == name)
-            return &(*li);
+        // Can be either a component name ...
+        for (int i = 0; i < li.numDerive(); i++) {
+           if (li.variableName(i) == name)
+               return &(li);
+        }
+        // ... or a derive name
+        if (li.derive_name == name)
+            return &(li);
     }
-    return 0;
+    return nullptr;
 }
 
 void
 DeriveList::addComponent (const std::string&    name,
-                          const DescriptorList& d_list, 
+                          const DescriptorList& d_list,
                           int                   state_indx,
                           int                   s_comp,
                           int                   n_comp)
 {
-    std::list<DeriveRec>::iterator li = lst.begin(), End = lst.end();
+    auto li = lst.begin(), End = lst.end();
 
     for ( ; li != End; ++li)
     {
-        if (li->derive_name == name)
+        if (li->derive_name == name) {
             break;
+        }
     }
 
     BL_ASSERT (li != End);

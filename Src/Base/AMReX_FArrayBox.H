@@ -1,9 +1,11 @@
 
 #ifndef BL_FARRAYBOX_H
 #define BL_FARRAYBOX_H
+#include <AMReX_Config.H>
 
 #include <AMReX_Box.H>
 #include <AMReX_BaseFab.H>
+#include <AMReX_FabConv.H>
 #include <AMReX_REAL.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_FabFactory.H>
@@ -12,7 +14,6 @@
 namespace amrex {
 
 class FArrayBox;
-class RealDescriptor;
 
 /**
 * \brief A Class Facilitating I/O for Fabs
@@ -30,7 +31,7 @@ class RealDescriptor;
 * call any of the member functions in this class directly.
 */
 
-class FABio
+class FABio // NOLINT(cppcoreguidelines-special-member-functions)
 {
 public:
     /**
@@ -96,11 +97,11 @@ public:
     };
 
     //! The virtual destructor.
-    virtual ~FABio ();
+    virtual ~FABio () = default;
     /**
     * \brief Pure virtual function.  Derived classes MUST override this
     * function to read an FArrayBox from the istream, under the
-    * assumption that the header has alread been read.
+    * assumption that the header has already been read.
     */
     virtual void read (std::istream& is,
                        FArrayBox&    fb) const = 0;
@@ -126,7 +127,7 @@ public:
 
     virtual void skip (std::istream& is,
                        FArrayBox&    f,
-		       int           nCompToSkip) const = 0;
+                       int           nCompToSkip) const = 0;
     /**
     * \brief Write out a header describing FArrayBox f that contains
     * nvar components.  It must be the case that nvar <= f.nComp().
@@ -155,8 +156,8 @@ public:
     */
     static FABio* read_header (std::istream& is,
                                FArrayBox&    f,
-			       int           compIndex,
-			       int&          nCompAvailable);
+                               int           compIndex,
+                               int&          nCompAvailable);
 };
 
 //
@@ -169,23 +170,23 @@ class FABio_binary
 public:
     FABio_binary (RealDescriptor* rd_);
 
-    virtual void read (std::istream& is,
+    void read (std::istream& is,
                        FArrayBox&    fb) const override;
 
-    virtual void write (std::ostream&    os,
+    void write (std::ostream&    os,
                         const FArrayBox& fb,
                         int              comp,
                         int              num_comp) const override;
 
-    virtual void skip (std::istream& is,
+    void skip (std::istream& is,
                        FArrayBox&    f) const override;
 
-    virtual void skip (std::istream& is,
+    void skip (std::istream& is,
                        FArrayBox&    f,
-		       int           nCompToSkip) const override;
+                       int           nCompToSkip) const override;
 
 private:
-    virtual void write_header (std::ostream&    os,
+    void write_header (std::ostream&    os,
                                const FArrayBox& f,
                                int              nvar) const override;
 
@@ -236,7 +237,7 @@ class FArrayBox
     friend class FABio;
 public:
     //! Construct an invalid FAB with no memory.
-    FArrayBox () noexcept;
+    FArrayBox () noexcept = default;
 
     explicit FArrayBox (Arena* ar) noexcept;
 
@@ -249,8 +250,8 @@ public:
     */
     explicit FArrayBox (const Box& b,
                         int        ncomp=1,
-			bool       alloc=true,
-			bool       shared=false,
+                        bool       alloc=true,
+                        bool       shared=false,
                         Arena*     ar = nullptr);
 
     FArrayBox (const FArrayBox& rhs, MakeType make_type, int scomp, int ncomp);
@@ -261,20 +262,20 @@ public:
 
     explicit FArrayBox (Array4<Real> const& a) noexcept : BaseFab<Real>(a) {}
 
-    explicit FArrayBox (Array4<Real> const& a, IndexType t) noexcept : BaseFab<Real>(a,t) {}
+    FArrayBox (Array4<Real> const& a, IndexType t) noexcept : BaseFab<Real>(a,t) {}
 
     explicit FArrayBox (Array4<Real const> const& a) noexcept : BaseFab<Real>(a) {}
 
     explicit FArrayBox (Array4<Real const> const& a, IndexType t) noexcept : BaseFab<Real>(a,t) {}
 
     //!  The destructor.
-    ~FArrayBox () noexcept {}
+    ~FArrayBox () noexcept override = default;
 
     FArrayBox (FArrayBox&& rhs) noexcept = default;
+    FArrayBox& operator= (FArrayBox&&) noexcept = default;
 
     FArrayBox (const FArrayBox&) = delete;
     FArrayBox& operator= (const FArrayBox&) = delete;
-    FArrayBox& operator= (FArrayBox&&) = delete;
 
     //! Set the fab to the value r.
 #if defined(AMREX_USE_GPU)
@@ -282,7 +283,7 @@ public:
 #else
     template <RunOn run_on=RunOn::Host>
 #endif
-    FArrayBox& operator= (Real r) noexcept;
+    FArrayBox& operator= (Real v) noexcept;
 
     /**
     * \brief Are there any NaNs in the FAB?
@@ -294,14 +295,14 @@ public:
 #else
     template <RunOn run_on=RunOn::Host>
 #endif
-    bool contains_nan () const noexcept;
+    [[nodiscard]] bool contains_nan () const noexcept;
 
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
     template <RunOn run_on=RunOn::Host>
 #endif
-    bool contains_nan (const Box& bx, int scomp, int ncomp) const noexcept;
+    [[nodiscard]] bool contains_nan (const Box& bx, int scomp, int ncomp) const noexcept;
     /**
     * \brief These versions return the cell index (though not the component) of
     * the first location of a NaN if there is one.
@@ -329,14 +330,14 @@ public:
 #else
     template <RunOn run_on=RunOn::Host>
 #endif
-    bool contains_inf () const noexcept;
+    [[nodiscard]] bool contains_inf () const noexcept;
 
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
     template <RunOn run_on=RunOn::Host>
 #endif
-    bool contains_inf (const Box& bx, int scomp, int ncomp) const noexcept;
+    [[nodiscard]] bool contains_inf (const Box& bx, int scomp, int ncomp) const noexcept;
     /**
     * \brief These versions return the cell index (though not the component) of
     * the first location of an Inf if there is one.
@@ -356,9 +357,9 @@ public:
     bool contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) const noexcept;
 
     //! For debugging purposes we hide BaseFab version and do some extra work.
-    void resize (const Box& b, int N = 1);
+    void resize (const Box& b, int N = 1, Arena* ar = nullptr);
 
-    FabType getType () const noexcept { return m_type; }
+    [[nodiscard]] FabType getType () const noexcept { return m_type; }
 
     void initVal () noexcept; // public for cuda
 
@@ -370,7 +371,7 @@ public:
     * \brief Writes out the FAB in whatever format you've set.
     * The default format is NATIVE.
     */
-    void writeOn (std::ostream& of) const;
+    void writeOn (std::ostream& os) const;
 
     /**
     * \brief Write only selected range of components.  comp specifies
@@ -383,7 +384,7 @@ public:
     * NATIVE.  The FAB that is written to disk will be an
     * num_comp component FAB.
     */
-    void writeOn (std::ostream& of,
+    void writeOn (std::ostream& os,
                   int           comp,
                   int           num_comp=1) const;
 
@@ -463,6 +464,10 @@ public:
     */
     static void setFABio (FABio* rd);
 
+    static std::unique_ptr<RealDescriptor> getDataDescriptor ();
+
+    static std::string getClassName ();
+
     static bool set_do_initval (bool tf);
     static bool get_do_initval ();
     static Real set_initval    (Real iv);
@@ -509,7 +514,7 @@ FArrayBox::contains_nan () const noexcept
     const Real* dp = dptr;
     const Long n = numPts()*nvar;
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpLogicalOr> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
         using ReduceTuple = ReduceData<int>::Type;
@@ -518,7 +523,7 @@ FArrayBox::contains_nan () const noexcept
         {
             return { static_cast<int>(amrex::isnan(dp[i])) };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         return amrex::get<0>(hv);
     } else
 #endif
@@ -545,7 +550,7 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const noexcept
     const auto& a = this->array();
 
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpLogicalOr> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
         using ReduceTuple = ReduceData<int>::Type;
@@ -554,11 +559,11 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const noexcept
         {
             bool t = false;
             for (int n = scomp; n < scomp+ncomp; ++n) {
-                t = t or amrex::isnan(a(i,j,k,n));
+                t = t || amrex::isnan(a(i,j,k,n));
             }
             return { static_cast<int>(t) };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         return amrex::get<0>(hv);
     } else
 #endif
@@ -599,7 +604,7 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) co
 
     const auto& a = this->array();
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         Array<int,1+AMREX_SPACEDIM> ha{0,AMREX_D_DECL(std::numeric_limits<int>::lowest(),
                                                       std::numeric_limits<int>::lowest(),
                                                       std::numeric_limits<int>::lowest())};
@@ -611,9 +616,9 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) co
             int* flag = p;
             bool t = false;
             for (int n = scomp; n < scomp+ncomp; ++n) {
-                t = t or amrex::isnan(a(i,j,k,n));
+                t = t || amrex::isnan(a(i,j,k,n));
             }
-            if (t and (*flag == 0)) {
+            if (t && (*flag == 0)) {
                 if (Gpu::Atomic::Exch(flag,1) == 0) {
                     AMREX_D_TERM(p[1] = i;,
                                  p[2] = j;,
@@ -653,7 +658,7 @@ FArrayBox::contains_inf () const noexcept
     const Real* dp = dptr;
     const Long n = numPts()*nvar;
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpLogicalOr> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
         using ReduceTuple = ReduceData<int>::Type;
@@ -662,7 +667,7 @@ FArrayBox::contains_inf () const noexcept
         {
             return { static_cast<int>(amrex::isinf(dp[i])) };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         return amrex::get<0>(hv);
     } else
 #endif
@@ -689,7 +694,7 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp) const noexcept
     const auto& a = this->array();
 
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpLogicalOr> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
         using ReduceTuple = ReduceData<int>::Type;
@@ -698,11 +703,11 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp) const noexcept
         {
             bool t = false;
             for (int n = scomp; n < scomp+ncomp; ++n) {
-                t = t or amrex::isinf(a(i,j,k,n));
+                t = t || amrex::isinf(a(i,j,k,n));
             }
             return { static_cast<int>(t) };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         return amrex::get<0>(hv);
     } else
 #endif
@@ -743,7 +748,7 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) co
 
     const auto& a = this->array();
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         Array<int,1+AMREX_SPACEDIM> ha{0,AMREX_D_DECL(std::numeric_limits<int>::lowest(),
                                                       std::numeric_limits<int>::lowest(),
                                                       std::numeric_limits<int>::lowest())};
@@ -755,9 +760,9 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) co
             int* flag = p;
             bool t = false;
             for (int n = scomp; n < scomp+ncomp; ++n) {
-                t = t or amrex::isinf(a(i,j,k,n));
+                t = t || amrex::isinf(a(i,j,k,n));
             }
-            if (t and (*flag == 0)) {
+            if (t && (*flag == 0)) {
                 if (Gpu::Atomic::Exch(flag,1) == 0) {
                     AMREX_D_TERM(p[1] = i;,
                                  p[2] = j;,
