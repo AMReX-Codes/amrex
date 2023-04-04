@@ -179,9 +179,6 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
     const Long rChunkSize = AMREX_SPACEDIM + num_output_real;
     rdata.resize(np*rChunkSize);
 
-    typename PC::IntVector  idata_d(idata.size());
-    typename PC::RealVector rdata_d(rdata.size());
-
     typename PC::IntVector write_int_comp_d(write_int_comp.size());
     typename PC::IntVector write_real_comp_d(write_real_comp.size());
     Gpu::copyAsync(Gpu::hostToDevice, write_int_comp.begin(), write_int_comp.end(),
@@ -201,6 +198,9 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
         typename PC::IntVector offsets(np_tile);
         int num_copies = Scan::ExclusiveSum(np_tile, pflags.begin(), offsets.begin(), Scan::retSum);
 
+        typename PC::IntVector  idata_d(num_copies*iChunkSize);
+        typename PC::RealVector rdata_d(num_copies*rChunkSize);
+
         const auto flag_ptr = pflags.data();
 
         auto idata_d_ptr = idata_d.data();
@@ -214,11 +214,11 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
             const auto p = ptd.getSuperParticle(pindex);
 
             if (flag_ptr[pindex]) {
-                std::size_t iout_index = (pindex+poffset)*iChunkSize;
+                std::size_t iout_index = pindex*iChunkSize;
                 packParticleIDs(&idata_d_ptr[iout_index], p, is_checkpoint);
                 iout_index += 2;
 
-                std::size_t rout_index = (pindex+poffset)*rChunkSize;
+                std::size_t rout_index = pindex*rChunkSize;
                 for (int j = 0; j < AMREX_SPACEDIM; j++) {
                   rdata_d_ptr[rout_index] = p.pos(j);
                   rout_index++;
@@ -254,12 +254,12 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
             }
         });
 
+        Gpu::copyAsync(Gpu::deviceToHost, idata_d.begin(), idata_d.end(), idata.begin()+poffset);
+        Gpu::copyAsync(Gpu::deviceToHost, rdata_d.begin(), rdata_d.end(), rdata.begin()+poffset);
+        Gpu::Device::streamSynchronize();
+
         poffset += num_copies;
     }
-
-    Gpu::copyAsync(Gpu::deviceToHost, idata_d.begin(), idata_d.end(), idata.begin());
-    Gpu::copyAsync(Gpu::deviceToHost, rdata_d.begin(), rdata_d.end(), rdata.begin());
-    Gpu::Device::streamSynchronize();
 }
 
 template <class PC>
