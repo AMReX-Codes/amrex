@@ -254,8 +254,10 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
             }
         });
 
-        Gpu::copyAsync(Gpu::deviceToHost, idata_d.begin(), idata_d.end(), idata.begin()+poffset);
-        Gpu::copyAsync(Gpu::deviceToHost, rdata_d.begin(), rdata_d.end(), rdata.begin()+poffset);
+        Gpu::copyAsync(Gpu::deviceToHost, idata_d.begin(), idata_d.end(),
+                       idata.begin() + typename PC::IntVector::difference_type(poffset));
+        Gpu::copyAsync(Gpu::deviceToHost, rdata_d.begin(), rdata_d.end(),
+                       rdata.begin() + typename PC::RealVector::difference_type(poffset));
         Gpu::Device::streamSynchronize();
 
         poffset += num_copies;
