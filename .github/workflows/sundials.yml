@@ -27,7 +27,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=125M
+        export CCACHE_MAXSIZE=12M
         ccache -z
 
         wget -q https://github.com/LLNL/sundials/archive/refs/tags/v6.5.0.tar.gz
@@ -88,7 +88,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=250M
+        export CCACHE_MAXSIZE=72M
         ccache -z
 
         # sundials requirement
@@ -136,3 +136,18 @@ jobs:
         cmake --build build -j 2
 
         ccache -s
+
+  save_pr_number:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save PR number
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          echo $PR_NUMBER > pr_number.txt
+      - uses: actions/upload-artifact@v3
+        with:
+          name: pr_number
+          path: pr_number.txt
+          retention-days: 1

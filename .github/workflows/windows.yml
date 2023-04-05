@@ -34,7 +34,7 @@ jobs:
         $Env:CCACHE_DIR
         $Env:CCACHE_COMPRESS='1'
         $Env:CCACHE_COMPRESSLEVEL='10'
-        $Env:CCACHE_MAXSIZE='200M'
+        $Env:CCACHE_MAXSIZE='87M'
         ccache -z
 
         cmake -S . -B build   `
@@ -78,7 +78,7 @@ jobs:
         $Env:CCACHE_DIR="$ccachecachedir"
         $Env:CCACHE_COMPRESS='1'
         $Env:CCACHE_COMPRESSLEVEL='10'
-        $Env:CCACHE_MAXSIZE='200M'
+        $Env:CCACHE_MAXSIZE='122M'
         ccache -z
 
         cmake -S . -B build   `
@@ -118,3 +118,18 @@ jobs:
               -DAMReX_OMP=ON                ^
               -DAMReX_PARTICLES=ON
         cmake --build build --config Release -j 2
+
+  save_pr_number:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save PR number
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          echo $PR_NUMBER > pr_number.txt
+      - uses: actions/upload-artifact@v3
+        with:
+          name: pr_number
+          path: pr_number.txt
+          retention-days: 1

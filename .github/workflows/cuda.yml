@@ -29,7 +29,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=500M
+        export CCACHE_MAXSIZE=170M
         ccache -z
 
         export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
@@ -58,14 +58,14 @@ jobs:
         ccache -s
 
   # Build libamrex and all tests with NVHPC (recent supported)
-  tests-nvhpc23-1-nvcc:
-    name: NVHPC@23.1 NVCC/NVC++ C++17 Release [tests]
+  tests-nvhpc-nvcc:
+    name: NVHPC NVCC/NVC++ C++17 Release [tests]
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_nvhpc23-1.sh
+        .github/workflows/dependencies/dependencies_nvhpc.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v3
@@ -79,11 +79,12 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=500M
+        export CCACHE_MAXSIZE=150M
         ccache -z
 
         source /etc/profile.d/modules.sh
-        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/23.1
+        nvhpc_version=`ls -v /opt/nvidia/hpc_sdk/modulefiles/nvhpc/ | tail -n 1`
+        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/${nvhpc_version}
 
         which nvcc || echo "nvcc not in PATH!"
         which nvc++ || echo "nvc++ not in PATH!"
@@ -136,7 +137,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=500M
+        export CCACHE_MAXSIZE=234M
         ccache -z
 
         export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
@@ -149,3 +150,18 @@ jobs:
         make install
 
         ccache -s
+
+  save_pr_number:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save PR number
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          echo $PR_NUMBER > pr_number.txt
+      - uses: actions/upload-artifact@v3
+        with:
+          name: pr_number
+          path: pr_number.txt
+          retention-days: 1
