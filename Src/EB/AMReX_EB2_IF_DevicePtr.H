@@ -1,7 +1,7 @@
 #ifndef AMREX_EB2_IF_DEVICEPTR_H_
 #define AMREX_EB2_IF_DEVICEPTR_H_
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 template <typename T>
 class DevicePtrIF
@@ -26,6 +26,6 @@ protected:
     T* p = nullptr;
 };
 
-}}
+}
 
 #endif

@@ -1,6 +1,6 @@
 #include <AMReX_EB2_Level_STL.H>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 STLLevel::STLLevel (IndexSpace const* is, STLtools const& stl_tools, const Geometry& geom,
                     int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt)
@@ -16,4 +16,4 @@ STLLevel::STLLevel (IndexSpace const* is, int ilev, int max_grid_size, int ngrow
     : GShopLevel<STLtools>(is, ilev, max_grid_size, ngrow, geom, fineLevel)
 {}
 
-}}
+}

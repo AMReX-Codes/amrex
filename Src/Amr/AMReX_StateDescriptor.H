@@ -136,7 +136,7 @@ public:
     /**
     * \brief The default constructor.
     */
-    StateDescriptor () noexcept = default;
+    StateDescriptor () noexcept {} // NOLINT /* = default does not work with old clang */
 
     /**
     * \brief Constructor that sets all data members.

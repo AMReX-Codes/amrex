@@ -980,7 +980,7 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
         linop.scaleRHS(alev, rhs[alev]);
 
 #ifdef AMREX_USE_EB
-        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(alev));
+        const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(alev));
         if (factory && !factory->isAllRegular()) {
             if constexpr (std::is_same<MF,MultiFab>()) {
                 EB_set_covered(rhs[alev], 0, ncomp, 0, RT(0.0));
@@ -1613,7 +1613,7 @@ MLMGT<MF>::interpCorrection (int alev)
     cfine.ParallelCopy(crse_cor, 0, 0, ncomp,  IntVect(ng_src), IntVect(ng_dst),
                        crse_geom.periodicity());
 
-    linop.interpolationAmr(alev, fine_cor, cfine, nghost);
+    linop.interpolationAmr(alev, fine_cor, cfine, nghost); // NOLINT(readability-suspicious-call-argument)
 }
 
 // Interpolate correction between MG levels

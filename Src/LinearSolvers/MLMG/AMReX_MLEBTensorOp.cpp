@@ -26,8 +26,7 @@ MLEBTensorOp::MLEBTensorOp (const Vector<Geometry>& a_geom,
     define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 
-MLEBTensorOp::~MLEBTensorOp ()
-{}
+MLEBTensorOp::~MLEBTensorOp () = default;
 
 void
 MLEBTensorOp::define (const Vector<Geometry>& a_geom,
@@ -38,7 +37,7 @@ MLEBTensorOp::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLEBTensorOp::define()");
 
-    MLEBABecLap::define(a_geom, a_grids, a_dmap, a_info, a_factory);
+    MLEBABecLap::define(a_geom, a_grids, a_dmap, a_info, a_factory, AMREX_SPACEDIM);
 
     m_kappa.clear();
     m_kappa.resize(NAMRLevels());
@@ -208,7 +207,7 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
 
     applyBCTensor(amrlev, mglev, in, bc_mode, s_mode, bndry);
 
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
     auto area = (factory) ? factory->getAreaFrac()
@@ -292,7 +291,7 @@ void
 MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf,
                              const MLMGBndry* bndry) const
 {
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     auto area = (factory) ? factory->getAreaFrac()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
@@ -516,7 +515,7 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
 
     applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution, m_bndry_sol[amrlev].get());
 
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     auto area = (factory) ? factory->getAreaFrac()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
@@ -636,7 +635,7 @@ MLEBTensorOp::compVelGrad (int amrlev,
     const auto dlo = amrex::lbound(domain);
     const auto dhi = amrex::ubound(domain);
 
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     auto area = (factory) ? factory->getAreaFrac()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};

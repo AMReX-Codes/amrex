@@ -34,9 +34,7 @@ int AmrLevelAdv::do_tracers                       =  0;
 /**
  * Default constructor.  Builds invalid object.
  */
-AmrLevelAdv::AmrLevelAdv ()
-{
-}
+AmrLevelAdv::AmrLevelAdv () = default;
 
 /**
  * The basic constructor.
@@ -58,9 +56,7 @@ AmrLevelAdv::AmrLevelAdv (Amr&            papa,
 /**
  * The destructor.
  */
-AmrLevelAdv::~AmrLevelAdv ()
-{
-}
+AmrLevelAdv::~AmrLevelAdv () = default;
 
 /**
  * Restart from a checkpoint file.
@@ -191,7 +187,7 @@ AmrLevelAdv::initData ()
 void
 AmrLevelAdv::init (AmrLevel &old)
 {
-    AmrLevelAdv* oldlev = (AmrLevelAdv*) &old;
+    auto* oldlev = (AmrLevelAdv*) &old;
 
     //
     // Create new grid data by fillpatching from old.
@@ -255,8 +251,8 @@ AmrLevelAdv::advance (Real time,
     //
     // Get pointers to Flux registers, or set pointer to zero if not there.
     //
-    FluxRegister *fine    = 0;
-    FluxRegister *current = 0;
+    FluxRegister *fine    = nullptr;
+    FluxRegister *current = nullptr;
 
     int finest_level = parent->finestLevel();
 
@@ -651,7 +647,7 @@ AmrLevelAdv::post_restart()
 {
 #ifdef AMREX_PARTICLES
     if (do_tracers && level == 0) {
-      BL_ASSERT(TracerPC == 0);
+      BL_ASSERT(TracerPC == nullptr);
       TracerPC = std::make_unique<AmrTracerParticleContainer>(parent);
       TracerPC->Restart(parent->theRestartFile(), "Tracer");
     }

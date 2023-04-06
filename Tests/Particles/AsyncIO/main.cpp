@@ -101,18 +101,18 @@ public:
                     p.pos(2) = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);
 #endif
 
-                    for (int i = 0; i < NSR; ++i) p.rdata(i) = p.id();
+                    for (int i = 0; i < NSR; ++i) p.rdata(i) = ParticleReal(p.id());
                     for (int i = 0; i < NSI; ++i) p.idata(i) = p.id();
 
                     host_particles.push_back(p);
                     for (int i = 0; i < NAR; ++i)
-                        host_real[i].push_back(p.id());
+                        host_real[i].push_back(ParticleReal(p.id()));
                     for (int i = 0; i < NAI; ++i)
-                        host_int[i].push_back(p.id());
+                        host_int[i].push_back(int(p.id()));
                     for (int i = 0; i < NumRuntimeRealComps(); ++i)
-                        host_runtime_real[i].push_back(p.id());
+                        host_runtime_real[i].push_back(ParticleReal(p.id()));
                     for (int i = 0; i < NumRuntimeIntComps(); ++i)
-                        host_runtime_int[i].push_back(p.id());
+                        host_runtime_int[i].push_back(int(p.id()));
                 }
             }
 
@@ -192,9 +192,7 @@ void test_async_io(TestParams& parms)
         rr[lev-1] = IntVect(AMREX_D_DECL(2, 2, 2));
 
     // This sets the boundary conditions to be doubly or triply periodic
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        is_per[i] = 1;
+    int is_per[] = {AMREX_D_DECL(1,1,1)};
 
     // This defines a Geometry object which is useful for writing the plotfiles
     Vector<Geometry> geom(nlevs);

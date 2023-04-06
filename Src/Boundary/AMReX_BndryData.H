@@ -46,7 +46,7 @@ public:
     using value_type = typename MF::value_type;
 
     //! Default constructor
-    BndryDataT() = default;
+    BndryDataT() noexcept = default;
 
     /**
     * \brief constructor specifying number of components and box of physical

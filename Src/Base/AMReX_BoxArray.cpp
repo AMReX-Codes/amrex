@@ -273,7 +273,7 @@ BoxArray::Finalize ()
     initialized = false;
 }
 
-BoxArray::BoxArray ()
+BoxArray::BoxArray () noexcept
     :
     m_ref(std::make_shared<BARef>())
 {}

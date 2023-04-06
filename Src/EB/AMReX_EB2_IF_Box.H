@@ -10,7 +10,7 @@
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 class BoxIF
     : GPUable
@@ -23,11 +23,6 @@ public:
           m_hi(makeXDim3(a_hi)),
           m_sign( a_inside ? 1.0 : -1.0 )
         {}
-
-    BoxIF (const BoxIF& rhs) noexcept = default;
-    BoxIF (BoxIF&& rhs) noexcept = default;
-    BoxIF& operator= (const BoxIF& rhs) = delete;
-    BoxIF& operator= (BoxIF&& rhs) = delete;
 
     AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
@@ -52,6 +47,6 @@ protected:
     Real      m_sign;
 };
 
-}}
+}
 
 #endif

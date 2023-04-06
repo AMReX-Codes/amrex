@@ -4,9 +4,9 @@
 
 #ifdef AMREX_USE_HIP
 #include <hip/hip_runtime.h>
-namespace amrex { namespace Hip {} }
+namespace amrex::Hip {}
 #elif defined(AMREX_USE_CUDA)
-namespace amrex { namespace Cuda {} }
+namespace amrex::Cuda {}
 #endif
 
 #include <AMReX_GpuQualifiers.H>
@@ -32,14 +32,12 @@ namespace amrex { namespace Cuda {} }
 #include <AMReX_GpuContainers.H>
 #include <AMReX_CudaGraph.H>
 
-namespace amrex {
-    namespace Gpu {
+namespace amrex::Gpu {
 #ifdef AMREX_USE_HIP
         using namespace Hip;
 #elif defined(AMREX_USE_CUDA)
         using namespace Cuda;
 #endif
-    }
 }
 
 #endif

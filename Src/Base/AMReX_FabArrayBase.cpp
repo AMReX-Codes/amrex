@@ -300,8 +300,7 @@ FabArrayBase::CPC::CPC (const FabArrayBase& dstfa, const IntVect& dstng,
       m_period(period),
       m_tgco(to_ghost_cells_only),
       m_srcba(srcfa.boxArray()),
-      m_dstba(dstfa.boxArray()),
-      m_nuse(0)
+      m_dstba(dstfa.boxArray())
 {
     this->define(m_dstba, dstfa.DistributionMap(), dstfa.IndexArray(),
                  m_srcba, srcfa.DistributionMap(), srcfa.IndexArray());
@@ -318,8 +317,7 @@ FabArrayBase::CPC::CPC (const BoxArray& dstba, const DistributionMapping& dstdm,
       m_period(period),
       m_tgco(false),
       m_srcba(srcba),
-      m_dstba(dstba),
-      m_nuse(0)
+      m_dstba(dstba)
 {
     this->define(dstba, dstdm, dstidx, srcba, srcdm, srcidx, myproc);
 }
@@ -475,11 +473,9 @@ FabArrayBase::CPC::CPC (const BoxArray& ba, const IntVect& ng,
     :
       m_srcng(ng),
       m_dstng(ng),
-
       m_tgco(false),
       m_srcba(ba),
-      m_dstba(ba),
-      m_nuse(0)
+      m_dstba(ba)
 {
     BL_ASSERT(!ba.empty());
 
@@ -638,7 +634,7 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, const IntVect& nghost,
     : m_typ(fa.boxArray().ixType()), m_crse_ratio(fa.boxArray().crseRatio()),
       m_ngrow(nghost), m_cross(cross), m_epo(enforce_periodicity_only),
       m_override_sync(override_sync),  m_period(period),
-      m_nuse(0), m_multi_ghost(multi_ghost)
+      m_multi_ghost(multi_ghost)
 {
     BL_PROFILE("FabArrayBase::FB::FB()");
 
@@ -1786,8 +1782,7 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
       m_dstbdk   (dstfa.getBDKey()),
       m_dstdomain(dstdomain),
       m_dstng    (dstng),
-      m_coarsener(coarsener.clone()),
-      m_nuse     (0)
+      m_coarsener(coarsener.clone())
 {
     amrex::ignore_unused(fdomain,cdomain,index_space);
     BL_PROFILE("FPinfo::FPinfo()");
@@ -2065,8 +2060,7 @@ FabArrayBase::CFinfo::CFinfo (const FabArrayBase& finefa,
     : m_fine_bdk (finefa.getBDKey()),
       m_ng       (ng),
       m_include_periodic(include_periodic),
-      m_include_physbndry(include_physbndry),
-      m_nuse     (0)
+      m_include_physbndry(include_physbndry)
 {
     BL_PROFILE("CFinfo::CFinfo()");
 

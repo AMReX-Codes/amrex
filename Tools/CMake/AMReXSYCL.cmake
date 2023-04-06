@@ -67,10 +67,19 @@ if (AMReX_SYCL_AOT)
       INTERFACE
       "$<${_cxx_sycl}:-fsycl-targets=spir64_gen>" )
 
+   set(_sycl_backend_flags "-device ${AMReX_INTEL_ARCH}")
+   if (AMReX_SYCL_AOT_GRF_MODE STREQUAL "Large")
+      set(_sycl_backend_flags "${_sycl_backend_flags} -internal_options -ze-opt-large-register-file")
+   elseif (AMReX_SYCL_AOT_GRF_MODE STREQUAL "AutoLarge")
+      set(_sycl_backend_flags "${_sycl_backend_flags} -options -ze-intel-enable-auto-large-GRF-mode")
+   endif()
+
    target_link_options( SYCL
       INTERFACE
       "$<${_cxx_sycl}:-fsycl-targets=spir64_gen>"
-      "$<${_cxx_sycl}:SHELL:-Xsycl-target-backend \"-device ${AMReX_INTEL_ARCH}\">" )
+      "$<${_cxx_sycl}:SHELL:-Xsycl-target-backend \"${_sycl_backend_flags}\">" )
+
+   unset(_sycl_backend_flags)
 endif ()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND "${CMAKE_BUILD_TYPE}" MATCHES "Debug")

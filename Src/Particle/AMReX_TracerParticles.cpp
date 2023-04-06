@@ -1,5 +1,3 @@
-#include <AMReX_TracerParticle_mod_K.H>
-#include <AMReX_TracerParticles.H>
 #include <AMReX_TracerParticles.H>
 #include <AMReX_TracerParticle_mod_K.H>
 #include <AMReX_Print.H>
@@ -60,7 +58,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
             auto& ptile = ParticlesAt(lev, pti);
             auto& aos  = ptile.GetArrayOfStructs();
             const int n = aos.numParticles();
-            auto p_pbox = aos().data();
+            auto *p_pbox = aos().data();
             const FArrayBox* fab[AMREX_SPACEDIM] = { AMREX_D_DECL(&((*umac_pointer[0])[grid]),
                                                                   &((*umac_pointer[1])[grid]),
                                                                   &((*umac_pointer[2])[grid])) };
@@ -147,7 +145,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
             const int n          = aos.numParticles();
             const FArrayBox& fab = Ucc[grid];
             const auto uccarr = fab.array();
-            auto  p_pbox = aos().data();
+            auto *  p_pbox = aos().data();
 
             amrex::ParallelFor(n,
                                [=] AMREX_GPU_DEVICE (int i)
@@ -243,7 +241,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
             bool gotwork = false;
 
             const auto& pmap = GetParticles(lev);
-            for (auto& kv : pmap) {
+            for (const auto& kv : pmap) {
               const auto& pbox = kv.second.GetArrayOfStructs();
               for (int k = 0; k < pbox.numParticles(); ++k)
               {
@@ -277,12 +275,12 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
                 if (!TimeStampFile.good())
                     amrex::FileOpenFailed(FileName);
 
-                const int       M  = indices.size();
+                const auto M  = static_cast<int>(indices.size());
                 const BoxArray& ba = mf.boxArray();
 
                 std::vector<ParticleReal> vals(M);
 
-                for (auto& kv : pmap) {
+                for (const auto& kv : pmap) {
                   int grid = kv.first.first;
                   const auto& pbox = kv.second.GetArrayOfStructs();
                   const Box&       bx   = ba[grid];

@@ -22,7 +22,7 @@ public:
     using BCType = LinOpBCType;
     using Location  = typename MLLinOpT<MF>::Location;
 
-    MLPoissonT () noexcept = default;
+    MLPoissonT () = default;
     MLPoissonT (const Vector<Geometry>& a_geom,
                 const Vector<BoxArray>& a_grids,
                 const Vector<DistributionMapping>& a_dmap,

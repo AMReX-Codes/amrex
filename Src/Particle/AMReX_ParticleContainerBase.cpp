@@ -15,8 +15,8 @@ void ParticleContainerBase::Define (const Geometry            & geom,
                                     const DistributionMapping & dmap,
                                     const BoxArray            & ba)
 {
-    m_gdb_object = ParGDB(geom, dmap, ba);
-    m_gdb = &m_gdb_object;
+    *m_gdb_object = ParGDB(geom, dmap, ba);
+    m_gdb = static_cast<ParGDBBase*>(m_gdb_object.get());
 }
 
 void ParticleContainerBase::Define (const Vector<Geometry>            & geom,
@@ -24,8 +24,8 @@ void ParticleContainerBase::Define (const Vector<Geometry>            & geom,
                                     const Vector<BoxArray>            & ba,
                                     const Vector<int>                 & rr)
 {
-    m_gdb_object = ParGDB(geom, dmap, ba, rr);
-    m_gdb = &m_gdb_object;
+    *m_gdb_object = ParGDB(geom, dmap, ba, rr);
+    m_gdb = static_cast<ParGDBBase*>(m_gdb_object.get());
 }
 
 void ParticleContainerBase::Define (const Vector<Geometry>            & geom,
@@ -33,8 +33,8 @@ void ParticleContainerBase::Define (const Vector<Geometry>            & geom,
                                     const Vector<BoxArray>            & ba,
                                     const Vector<IntVect>             & rr)
 {
-    m_gdb_object = ParGDB(geom, dmap, ba, rr);
-    m_gdb = &m_gdb_object;
+    *m_gdb_object = ParGDB(geom, dmap, ba, rr);
+    m_gdb = static_cast<ParGDBBase*>(m_gdb_object.get());
 }
 
 void ParticleContainerBase::reserveData ()
@@ -83,8 +83,8 @@ void ParticleContainerBase::SetParGDB (const Geometry            & geom,
                                        const DistributionMapping & dmap,
                                        const BoxArray            & ba)
 {
-    m_gdb_object = ParGDB(geom, dmap, ba);
-    m_gdb = &m_gdb_object;
+    *m_gdb_object = ParGDB(geom, dmap, ba);
+    m_gdb = static_cast<ParGDBBase*>(m_gdb_object.get());
     resizeData();
 }
 
@@ -93,8 +93,8 @@ void ParticleContainerBase::SetParGDB (const Vector<Geometry>            & geom,
                                        const Vector<BoxArray>            & ba,
                                        const Vector<int>                 & rr)
 {
-    m_gdb_object = ParGDB(geom, dmap, ba, rr);
-    m_gdb = &m_gdb_object;
+    *m_gdb_object = ParGDB(geom, dmap, ba, rr);
+    m_gdb = static_cast<ParGDBBase*>(m_gdb_object.get());
     resizeData();
 }
 
@@ -103,34 +103,46 @@ void ParticleContainerBase::SetParGDB (const Vector<Geometry>            & geom,
                                        const Vector<BoxArray>            & ba,
                                        const Vector<IntVect>             & rr)
 {
-    m_gdb_object = ParGDB(geom, dmap, ba, rr);
-    m_gdb = &m_gdb_object;
+    *m_gdb_object = ParGDB(geom, dmap, ba, rr);
+    m_gdb = static_cast<ParGDBBase*>(m_gdb_object.get());
     resizeData();
 }
 
-void ParticleContainerBase::SetParticleBoxArray (int lev, const BoxArray& new_ba)
+void ParticleContainerBase::SetParticleBoxArray (int lev, BoxArray new_ba) // NOLINT(performance-unnecessary-value-param)
 {
-    m_gdb_object = ParGDB(m_gdb->ParticleGeom(), m_gdb->ParticleDistributionMap(),
-                          m_gdb->ParticleBoxArray(), m_gdb->refRatio());
-    m_gdb = &m_gdb_object;
+    // Must take the new BoxArray by value to avoid aliasing with what's
+    // inside m_gdb_object
+    *m_gdb_object = ParGDB(m_gdb->ParticleGeom(),
+                           m_gdb->ParticleDistributionMap(),
+                           m_gdb->ParticleBoxArray(),
+                           m_gdb->refRatio());
+    m_gdb = static_cast<ParGDBBase*>(m_gdb_object.get());
     m_gdb->SetParticleBoxArray(lev, new_ba);
     RedefineDummyMF(lev);
 }
 
-void ParticleContainerBase::SetParticleDistributionMap (int lev, const DistributionMapping& new_dmap)
+void ParticleContainerBase::SetParticleDistributionMap (int lev, DistributionMapping new_dmap) // NOLINT(performance-unnecessary-value-param)
 {
-    m_gdb_object = ParGDB(m_gdb->ParticleGeom(), m_gdb->ParticleDistributionMap(),
-                          m_gdb->ParticleBoxArray(), m_gdb->refRatio());
-    m_gdb = &m_gdb_object;
+    // Must take the new DistributionMapping by value to avoid aliasing with
+    // what's inside m_gdb_object
+    *m_gdb_object = ParGDB(m_gdb->ParticleGeom(),
+                           m_gdb->ParticleDistributionMap(),
+                           m_gdb->ParticleBoxArray(),
+                           m_gdb->refRatio());
+    m_gdb = static_cast<ParGDBBase*>(m_gdb_object.get());
     m_gdb->SetParticleDistributionMap(lev, new_dmap);
     RedefineDummyMF(lev);
 }
 
-void ParticleContainerBase::SetParticleGeometry (int lev, const Geometry& new_geom)
+void ParticleContainerBase::SetParticleGeometry (int lev, Geometry new_geom) // NOLINT(performance-unnecessary-value-param)
 {
-    m_gdb_object = ParGDB(m_gdb->ParticleGeom(), m_gdb->ParticleDistributionMap(),
-                          m_gdb->ParticleBoxArray(), m_gdb->refRatio());
-    m_gdb = &m_gdb_object;
+    // Must take the new Geometry by value to avoid aliasing with what's
+    // inside m_gdb_object
+    *m_gdb_object = ParGDB(m_gdb->ParticleGeom(),
+                           m_gdb->ParticleDistributionMap(),
+                           m_gdb->ParticleBoxArray(),
+                           m_gdb->refRatio());
+    m_gdb = static_cast<ParGDBBase*>(m_gdb_object.get());
     m_gdb->SetParticleGeometry(lev, new_geom);
 }
 
@@ -280,7 +292,7 @@ void ParticleContainerBase::BuildRedistributeMask (int lev, int nghost) const
         redistribute_mask_ptr = std::make_unique<iMultiFab>(ba, dmap, 2, nghost);
         redistribute_mask_ptr->setVal(-1, nghost);
 
-        const auto tile_size_do = this->do_tiling ? this->tile_size : IntVect::TheZeroVector();
+        const auto tile_size_do = amrex::ParticleContainerBase::do_tiling ? amrex::ParticleContainerBase::tile_size : IntVect::TheZeroVector();
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel

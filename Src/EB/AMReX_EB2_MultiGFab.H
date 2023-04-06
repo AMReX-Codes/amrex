@@ -8,7 +8,7 @@
 #include <AMReX_LayoutData.H>
 #include <AMReX_MultiFab.H>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 class GFab
 {
@@ -83,6 +83,6 @@ public:
     MultiFab getLevelSet ();
 };
 
-}}
+}
 
 #endif

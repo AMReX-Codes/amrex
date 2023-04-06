@@ -282,7 +282,7 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
     {
         const ParticleType& p = pstruct[i];
         if ((p.id() < 0)) return false;
-        IntVect iv = IntVect(
+        IntVect iv(
             AMREX_D_DECL(int(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0])),
                          int(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1])),
                          int(amrex::Math::floor((p.pos(2)-plo[2])*dxi[2]))));
@@ -536,7 +536,7 @@ IntVect getParticleCell (P const& p,
                          amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
                          const Box& domain) noexcept
 {
-    IntVect iv = IntVect(
+    IntVect iv(
         AMREX_D_DECL(int(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0])),
                      int(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1])),
                      int(amrex::Math::floor((p.pos(2)-plo[2])*dxi[2]))));
@@ -757,6 +757,126 @@ void clearEmptyEntries (C& c)
     }
 }
 }
+
+template <class index_type, typename F>
+void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type nitems,
+                               index_type nbins, F&& f)
+{
+    BL_PROFILE("PermutationForDeposition()");
+
+    constexpr index_type gpu_block_size = 1024;
+    constexpr index_type gpu_block_size_m1 = gpu_block_size - 1;
+    constexpr index_type llist_guard = std::numeric_limits<index_type>::max();
+
+    // round up to gpu_block_size
+    nbins = (nbins + gpu_block_size_m1) / gpu_block_size * gpu_block_size;
+
+    Gpu::DeviceVector<index_type> llist_start(nbins, llist_guard);
+    Gpu::DeviceVector<index_type> llist_next(nitems);
+    perm.resize(nitems);
+    Gpu::DeviceScalar<index_type> global_idx(0);
+
+    index_type* pllist_start = llist_start.dataPtr();
+    index_type* pllist_next = llist_next.dataPtr();
+    index_type* pperm = perm.dataPtr();
+    index_type* pglobal_idx = global_idx.dataPtr();
+
+    amrex::ParallelFor(nitems, [=] AMREX_GPU_DEVICE (index_type i) noexcept
+    {
+        i = nitems - i - 1;
+        pllist_next[i] = Gpu::Atomic::Exch(pllist_start + f(i), i);
+    });
+
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    amrex::launch<gpu_block_size>(nbins / gpu_block_size, Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE () {
+            __shared__ index_type sdata[gpu_block_size];
+            index_type current_idx = pllist_start[threadIdx.x + gpu_block_size * blockIdx.x];
+
+            while (true) {
+                sdata[threadIdx.x] = index_type(current_idx != llist_guard);
+                index_type x = 0;
+
+                // simple block wide prefix sum
+                for (index_type i = 1; i<gpu_block_size; i*=2) {
+                    __syncthreads();
+                    if (threadIdx.x >= i) {
+                        x = sdata[threadIdx.x - i];
+                    }
+                    __syncthreads();
+                    if (threadIdx.x >= i) {
+                        sdata[threadIdx.x] += x;
+                    }
+                }
+                __syncthreads();
+                if (sdata[gpu_block_size_m1] == 0) {
+                    break;
+                }
+                __syncthreads();
+                if (threadIdx.x == gpu_block_size_m1) {
+                    x = sdata[gpu_block_size_m1];
+                    sdata[gpu_block_size_m1] = Gpu::Atomic::Add(pglobal_idx, x);
+                }
+                __syncthreads();
+                if (threadIdx.x < gpu_block_size_m1) {
+                    sdata[threadIdx.x] += sdata[gpu_block_size_m1];
+                }
+                __syncthreads();
+                if (threadIdx.x == gpu_block_size_m1) {
+                    sdata[gpu_block_size_m1] += x;
+                }
+                __syncthreads();
+
+                if (current_idx != llist_guard) {
+                    pperm[sdata[threadIdx.x] - 1] = current_idx;
+                    current_idx = pllist_next[current_idx];
+                }
+            }
+        });
+#else
+    Abort("Not implemented");
+#endif
+
+    Gpu::Device::streamSynchronize();
+}
+
+template <class index_type, class pos_struct>
+void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type nitems,
+                               pos_struct const* v, Box bx, Geometry geom, const IntVect idx_type)
+{
+    AMREX_ALWAYS_ASSERT(idx_type.allGE(IntVect(0)) && idx_type.allLE(IntVect(2)));
+
+    const IntVect refine_vect = max(idx_type, IntVect(1)).min(IntVect(2));
+    const IntVect type_vect = idx_type - idx_type / 2 * 2;
+
+    geom.refine(refine_vect);
+
+    Box domain = geom.Domain();
+
+    bx.convert(type_vect);
+    domain.convert(type_vect);
+
+    const RealVect dxi(geom.InvCellSize());
+    const RealVect pos_offset = Real(0.5) * (RealVect(geom.ProbLo()) + RealVect(geom.ProbHi())
+        - RealVect(geom.CellSize()) * RealVect(domain.smallEnd() + domain.bigEnd()));
+
+    const int ref_product = AMREX_D_TERM(refine_vect[0], * refine_vect[1], * refine_vect[2]);
+    const IntVect ref_offset(AMREX_D_DECL(1, refine_vect[0], refine_vect[0] * refine_vect[1]));
+
+    PermutationForDeposition<index_type>(perm, nitems, bx.numPts() * ref_product,
+        [=] AMREX_GPU_DEVICE (index_type idx) noexcept
+        {
+            IntVect iv = ((v[idx].pos() - pos_offset) * dxi).round();
+
+            IntVect iv_coarse = iv / refine_vect;
+            IntVect iv_remainder = iv - iv_coarse * refine_vect;
+
+            iv_coarse = iv_coarse.max(bx.smallEnd());
+            iv_coarse = iv_coarse.min(bx.bigEnd());
+            return bx.index(iv_coarse) + bx.numPts() * (iv_remainder * ref_offset).sum();
+        });
+}
+
 
 #ifdef AMREX_USE_HDF5_ASYNC
 void async_vol_es_wait_particle();

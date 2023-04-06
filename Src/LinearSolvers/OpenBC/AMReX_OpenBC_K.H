@@ -4,7 +4,7 @@
 #include <AMReX_OpenBC.H>
 #include <AMReX_LOUtil_K.H>
 
-namespace amrex { namespace openbc {
+namespace amrex::openbc {
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void scale_moments (openbc::Moments::array_type& mom)
@@ -114,7 +114,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void interp_coef (int i, int ii, Real* AMREX_RESTRICT c, int crse_ratio)
 {
     static_assert(openbc::P == 3, "openbc::P is assumed to be 3 here");
-    Real xint = (ii-i*crse_ratio + Real(0.5))/static_cast<Real>(crse_ratio);
+    Real xint = (static_cast<Real>(ii-i*crse_ratio) + Real(0.5))/static_cast<Real>(crse_ratio);
     constexpr Real x[] = {-3._rt, -2._rt, -1._rt, 0._rt, 1._rt, 2._rt, 3._rt, 4._rt};
     poly_interp_coeff<8>(xint, x, c);
 }
@@ -161,6 +161,6 @@ Real interpccz (int i, int j, int kk, Array4<Real const> const& phi, int crse_ra
     return p;
 }
 
-}}
+}
 
 #endif

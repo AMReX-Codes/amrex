@@ -1,3 +1,38 @@
+# 23.04
+
+  -- Speedup clang tidy (#3219)
+
+  -- Use ccache in Github Actions (#3218)
+
+  -- Clang-tidy fixes
+     #3227, #3224, #3222, #3206, #3203, #3202, #3201, #3200, #3197, #3190, #3188, #3176
+
+  -- bug fix in creating EB from STL files (#3223)
+
+  -- Fix bug in MLEBABecLap getEBFluxes(). (#3217)
+
+  -- Add build option for Intel SYCL AOT GRF mode (#3173)
+
+  -- SYCL sub-group size (#3180)
+
+  -- Warning about CPU core oversubscription (#3211)
+
+  -- Fix issues in ParticleContainerBase (#3208)
+
+  -- Add assert that we are not inside threaded region when InitRandom is called. (#3204)
+
+  -- Sorting for faster current deposition (#3198)
+
+  -- Update SUNDIALS NVector constructors (#3165)
+
+  -- ReduceToPlane (#3187)
+
+  -- ParticleContainer: Resize runtime components (#3186)
+
+  -- SYCL: Tweak #3164 and switch to multi_ptr for sincos (#3185)
+
+  -- Fix race condition with TinyProfiler for memory (#3169)
+
 # 23.03
 
   -- GNU Make: Allow customizing tmp_build_dir (#3177)

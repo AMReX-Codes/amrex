@@ -22,8 +22,7 @@
 #include <cstdio>
 
 #ifdef __cplusplus  /* wrapper to enable C++ usage */
-namespace amrex {
-namespace sundials {
+namespace amrex::sundials {
 extern "C" {
 #endif
 
@@ -83,9 +82,9 @@ amrex::Real N_VWrmsNormMask_MultiFab(N_Vector x, N_Vector w,
 amrex::Real N_VMin_MultiFab(N_Vector x);
 amrex::Real N_VWL2Norm_MultiFab(N_Vector x, N_Vector w);
 amrex::Real N_VL1Norm_MultiFab(N_Vector x);
-void N_VCompare_MultiFab(amrex::Real c, N_Vector x, N_Vector z);
+void N_VCompare_MultiFab(amrex::Real a, N_Vector x, N_Vector z);
 int N_VInvTest_MultiFab(N_Vector x, N_Vector z);
-int N_VConstrMask_MultiFab(N_Vector c, N_Vector x,
+int N_VConstrMask_MultiFab(N_Vector a_a, N_Vector x,
                            N_Vector m);
 amrex::Real N_VMinQuotient_MultiFab(N_Vector num, N_Vector denom);
 
@@ -95,8 +94,7 @@ amrex::Real N_VMinQuotient_MultiFab(N_Vector num, N_Vector denom);
 MultiFab*& getMFptr(N_Vector v);
 MultiFab N_VGetVectorAlias_MultiFab(N_Vector v);
 
-}//namespace sundials
-}//namespace amrex
+}//namespace amrex::sundials
 #endif
 
 #endif

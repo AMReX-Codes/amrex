@@ -11,7 +11,7 @@
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 /********************************************************************************
  *                                                                              *
@@ -40,11 +40,6 @@ public:
         : m_polynomial(a_polynomial),
           m_sign( a_inside ? 1.0_rt : -1.0_rt )
     {}
-
-    PolyIF (const PolyIF& rhs) = default;
-    PolyIF (PolyIF&& rhs) = default;
-    PolyIF& operator= (const PolyIF& rhs) = delete;
-    PolyIF& operator= (PolyIF&& rhs) = delete;
 
     AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
@@ -108,6 +103,6 @@ protected:
     int              m_size;
 };
 
-}}
+}
 
 #endif

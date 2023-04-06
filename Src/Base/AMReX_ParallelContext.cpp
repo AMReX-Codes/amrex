@@ -18,9 +18,6 @@ Frame::Frame (MPI_Comm c, int id, int io_rank)
     MPI_Comm_group(comm, &group);
     MPI_Comm_rank(comm, &m_rank_me);
     MPI_Comm_size(comm, &m_nranks);
-#else
-    m_rank_me = 0;
-    m_nranks = 1;
 #endif
 }
 

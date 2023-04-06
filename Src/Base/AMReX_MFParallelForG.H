@@ -53,8 +53,7 @@ void destroy_par_for_nblocks (char* hp, char* dp)
 }
 }
 
-namespace experimental {
-namespace detail {
+namespace experimental::detail {
 
 namespace parfor_mf_detail {
     template <typename F>
@@ -162,7 +161,7 @@ ParallelFor (MF const& mf, IntVect const& nghost, IntVect const& ts, bool dynami
 }
 
 }
-}
+
 }
 
 #endif

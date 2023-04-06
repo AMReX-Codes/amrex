@@ -16,7 +16,7 @@
 #include <AMReX.H>
 #include <algorithm>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 AMREX_EXPORT Vector<std::unique_ptr<IndexSpace> > IndexSpace::m_instance;
 
@@ -234,7 +234,7 @@ Build (const Geometry& geom, int required_coarsening_level,
 void addFineLevels (int num_new_fine_levels)
 {
     BL_PROFILE("EB2::addFineLevels()");
-    auto p = const_cast<IndexSpace*>(TopIndexSpace());
+    auto *p = const_cast<IndexSpace*>(TopIndexSpace());
     if (p) {
         p->addFineLevels(num_new_fine_levels);
     }
@@ -255,7 +255,7 @@ BuildFromChkptFile (std::string const& fname,
 }
 
 namespace {
-static int comp_max_crse_level (Box cdomain, const Box& domain)
+int comp_max_crse_level (Box cdomain, const Box& domain)
 {
     int ilev;
     for (ilev = 0; ilev < 30; ++ilev) {
@@ -283,4 +283,4 @@ maxCoarseningLevel (IndexSpace const* ebis, const Geometry& geom)
     return comp_max_crse_level(cdomain,domain);
 }
 
-}}
+}

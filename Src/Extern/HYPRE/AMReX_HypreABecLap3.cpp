@@ -24,8 +24,7 @@ HypreABecLap3::HypreABecLap3 (const BoxArray& grids, const DistributionMapping& 
       m_overset_mask(overset_mask)
 {}
 
-HypreABecLap3::~HypreABecLap3 ()
-{}
+HypreABecLap3::~HypreABecLap3 () = default;
 
 void
 HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol,

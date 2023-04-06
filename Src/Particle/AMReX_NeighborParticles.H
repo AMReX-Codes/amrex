@@ -30,7 +30,7 @@ namespace amrex {
 /// levels during a fine level time step.
 ///
 template <int NStructReal, int NStructInt, int NArrayReal=0, int NArrayInt=0>
-class NeighborParticleContainer
+class NeighborParticleContainer // NOLINT(cppcoreguidelines-virtual-class-destructor) // clang-tidy seems wrong.
     : public ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 {
 public:
@@ -79,18 +79,17 @@ private:
     };
 
     struct NeighborCopyTag {
-        int level;
-        int grid;
-        int tile;
-        int src_index;
-        int dst_index;
-        IntVect periodic_shift;
+        int level = -1;
+        int grid = -1;
+        int tile = -1;
+        int src_index = 0;
+        int dst_index = 0;
+        IntVect periodic_shift = IntVect(0);
 
-        NeighborCopyTag () {}
+        NeighborCopyTag () = default;
 
         NeighborCopyTag (int a_level, int a_grid, int a_tile) :
-            level(a_level), grid(a_grid), tile(a_tile), src_index(0), dst_index(0),
-            periodic_shift(IntVect(AMREX_D_DECL(0, 0, 0)))
+            level(a_level), grid(a_grid), tile(a_tile)
             {}
 
         bool operator< (const NeighborCopyTag& other) const {
@@ -211,17 +210,19 @@ public:
                                const Vector<int>                 & rr,
                                int                               nneighbor);
 
+    ~NeighborParticleContainer () override = default;
+
     NeighborParticleContainer ( const NeighborParticleContainer &) = delete;
     NeighborParticleContainer& operator= ( const NeighborParticleContainer & ) = delete;
 
-    NeighborParticleContainer ( NeighborParticleContainer && ) = default;
-    NeighborParticleContainer& operator= ( NeighborParticleContainer && ) = default;
+    NeighborParticleContainer ( NeighborParticleContainer && ) = default; // NOLINT(performance-noexcept-move-constructor)
+    NeighborParticleContainer& operator= ( NeighborParticleContainer && ) = default; // NOLINT(performance-noexcept-move-constructor)
 
     ///
     /// Regrid functions
     ///
     void Regrid (const DistributionMapping& dmap, const BoxArray& ba);
-    void Regrid (const DistributionMapping& dmap, const BoxArray& ba, const int lev);
+    void Regrid (const DistributionMapping& dmap, const BoxArray& ba, int lev);
     void Regrid (const Vector<DistributionMapping>& dmap, const Vector<BoxArray>& ba);
 
     ///
@@ -264,7 +265,7 @@ public:
     /// Build a Neighbor List for each tile
     ///
     template <class CheckPair>
-    void buildNeighborList (CheckPair&& check_pair, int typeInd, int* RefRatio,
+    void buildNeighborList (CheckPair&& check_pair, int type_ind, int* ref_ratio,
                             int num_bin_types=1, bool sort=false);
 
     template <class CheckPair>
@@ -362,9 +363,9 @@ protected:
 
     void GetNeighborCommTags ();
 
-    void GetCommTagsBox (Vector<NeighborCommTag>& tags, const int lev, const Box& in_box);
+    void GetCommTagsBox (Vector<NeighborCommTag>& tags, int lev, const Box& in_box);
 
-    void resizeContainers (const int lev);
+    void resizeContainers (int num_levels);
 
     void initializeCommComps ();
 
@@ -384,17 +385,15 @@ protected:
     ///
     void getRcvCountsMPI ();
 
-    void GetNeighborCommTags (Vector<NeighborCommTag>& tags, const int lev, Box box);
-
     void getNeighborTags (Vector<NeighborCopyTag>& tags,
                          const ParticleType& p,
-                         const int nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti);
+                          int nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti);
 
     void getNeighborTags (Vector<NeighborCopyTag>& tags,
                          const ParticleType& p,
                          const IntVect& nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti);
 
-    IntVect computeRefFac (const int src_lev, const int lev);
+    IntVect computeRefFac (int src_lev, int lev);
 
     Vector<std::map<PairIndex, Vector<InverseCopyTag> > > inverse_tags;
     Vector<std::map<PairIndex, ParticleTile> > neighbors;
@@ -475,7 +474,7 @@ protected:
 
     Vector<std::map<std::pair<int, int>, amrex::Gpu::DeviceVector<int> > > m_boundary_particle_ids;
 
-    bool hasNeighbors() const { return m_has_neighbors; }
+    [[nodiscard]] bool hasNeighbors() const { return m_has_neighbors; }
 
     bool m_has_neighbors = false;
 };

@@ -213,6 +213,11 @@ while ( false )
     extern AMREX_EXPORT MPI_Comm m_comm;
     inline MPI_Comm Communicator () noexcept { return m_comm; }
 
+    extern AMREX_EXPORT int m_nprocs_per_node;
+    //! Return the number of MPI ranks per node.  This may not be correct if
+    //! MPI_COMM_TYPE_SHARED groups processes across nodes.
+    inline int NProcsPerNode () noexcept { return m_nprocs_per_node; }
+
 #ifdef AMREX_USE_MPI
     extern Vector<MPI_Datatype*> m_mpi_types;
     extern Vector<MPI_Op*> m_mpi_ops;

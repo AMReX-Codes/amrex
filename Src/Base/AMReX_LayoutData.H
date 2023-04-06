@@ -42,7 +42,7 @@ namespace amrex
     }
 
     LayoutData (LayoutData&& rhs) noexcept
-        : FabArrayBase(std::move(rhs)),
+        : FabArrayBase(static_cast<FabArrayBase&&>(rhs)),
           m_data(std::move(rhs.m_data)),
           m_need_to_clear_bd(rhs.m_need_to_clear_bd)
     {
