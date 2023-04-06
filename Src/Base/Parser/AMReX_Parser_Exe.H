@@ -227,7 +227,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 double parser_exe_eval (const char* p, double const* x)
 {
     ParserStack<AMREX_PARSER_STACK_SIZE> pstack;
-    while (*((parser_exe_t*)p) != PARSER_EXE_NULL) {
+    while (*((parser_exe_t*)p) != PARSER_EXE_NULL) { // NOLINT
         switch (*((parser_exe_t*)p))
         {
         case PARSER_EXE_NUMBER:
@@ -246,69 +246,69 @@ double parser_exe_eval (const char* p, double const* x)
         }
         case PARSER_EXE_ADD:
         {
-            double b = pstack.top();
+            double b = pstack.top(); // NOLINT
             pstack.pop();
-            pstack.top() += b;
+            pstack.top() += b; // NOLINT
             p += sizeof(ParserExeADD);
             break;
         }
         case PARSER_EXE_SUB:
         {
-            double b = pstack.top();
+            double b = pstack.top(); // NOLINT
             pstack.pop();
-            pstack.top() = (pstack.top() - b) * (((ParserExeSUB*)p)->sign);
+            pstack.top() = (pstack.top() - b) * (((ParserExeSUB*)p)->sign); // NOLINT
             p += sizeof(ParserExeSUB);
             break;
         }
         case PARSER_EXE_MUL:
         {
-            double b = pstack.top();
+            double b = pstack.top(); // NOLINT
             pstack.pop();
-            pstack.top() *= b;
+            pstack.top() *= b; // NOLINT
             p += sizeof(ParserExeMUL);
             break;
         }
         case PARSER_EXE_DIV_F:
         {
-            double v = pstack.top();
+            double v = pstack.top(); // NOLINT
             pstack.pop();
-            pstack.top() /= v;
+            pstack.top() /= v; // NOLINT
             p += sizeof(ParserExeDIV_F);
             break;
         }
         case PARSER_EXE_DIV_B:
         {
-            double v = pstack.top();
+            double v = pstack.top(); // NOLINT
             pstack.pop();
-            pstack.top() = v / pstack.top();
+            pstack.top() = v / pstack.top(); // NOLINT
             p += sizeof(ParserExeDIV_B);
             break;
         }
         case PARSER_EXE_NEG:
         {
-            pstack.top() = -pstack.top();
+            pstack.top() = -pstack.top(); // NOLINT
             p += sizeof(ParserExeNEG);
             break;
         }
         case PARSER_EXE_F1:
         {
-            pstack.top() = parser_call_f1(((ParserExeF1*)p)->ftype, pstack.top());
+            pstack.top() = parser_call_f1(((ParserExeF1*)p)->ftype, pstack.top()); // NOLINT
             p += sizeof(ParserExeF1);
             break;
         }
         case PARSER_EXE_F2_F:
         {
-            double v = pstack.top();
+            double v = pstack.top(); // NOLINT
             pstack.pop();
-            pstack.top() = parser_call_f2(((ParserExeF2_F*)p)->ftype, pstack.top(), v);
+            pstack.top() = parser_call_f2(((ParserExeF2_F*)p)->ftype, pstack.top(), v); // NOLINT
             p += sizeof(ParserExeF2_F);
             break;
         }
         case PARSER_EXE_F2_B:
         {
-            double v = pstack.top();
+            double v = pstack.top(); // NOLINT
             pstack.pop();
-            pstack.top() = parser_call_f2(((ParserExeF2_B*)p)->ftype, v, pstack.top());
+            pstack.top() = parser_call_f2(((ParserExeF2_B*)p)->ftype, v, pstack.top()); // NOLINT
             p += sizeof(ParserExeF2_B);
             break;
         }
@@ -394,25 +394,25 @@ double parser_exe_eval (const char* p, double const* x)
         }
         case PARSER_EXE_ADD_VN:
         {
-            pstack.top() += ((ParserExeADD_VN*)p)->v;
+            pstack.top() += ((ParserExeADD_VN*)p)->v; // NOLINT
             p       += sizeof(ParserExeADD_VN);
             break;
         }
         case PARSER_EXE_SUB_VN:
         {
-            pstack.top() = ((ParserExeSUB_VN*)p)->v - pstack.top();
+            pstack.top() = ((ParserExeSUB_VN*)p)->v - pstack.top(); // NOLINT
             p      += sizeof(ParserExeSUB_VN);
             break;
         }
         case PARSER_EXE_MUL_VN:
         {
-            pstack.top() *= ((ParserExeMUL_VN*)p)->v;
+            pstack.top() *= ((ParserExeMUL_VN*)p)->v; // NOLINT
             p       += sizeof(ParserExeMUL_VN);
             break;
         }
         case PARSER_EXE_DIV_VN:
         {
-            pstack.top() = ((ParserExeDIV_VN*)p)->v / pstack.top();
+            pstack.top() = ((ParserExeDIV_VN*)p)->v / pstack.top(); // NOLINT
             p      += sizeof(ParserExeDIV_VN);
             break;
         }
@@ -420,7 +420,7 @@ double parser_exe_eval (const char* p, double const* x)
         {
             int i = ((ParserExeADD_PN*)p)->i;
             double d = AMREX_PARSER_GET_DATA(i);
-            pstack.top() += d;
+            pstack.top() += d; // NOLINT
             p         += sizeof(ParserExeADD_PN);
             break;
         }
@@ -428,7 +428,7 @@ double parser_exe_eval (const char* p, double const* x)
         {
             int i = ((ParserExeSUB_PN*)p)->i;
             double d = AMREX_PARSER_GET_DATA(i);
-            pstack.top() = (d - pstack.top()) * (((ParserExeSUB_PN*)p)->sign);
+            pstack.top() = (d - pstack.top()) * (((ParserExeSUB_PN*)p)->sign); // NOLINT
             p         += sizeof(ParserExeSUB_PN);
             break;
         }
@@ -436,7 +436,7 @@ double parser_exe_eval (const char* p, double const* x)
         {
             int i = ((ParserExeMUL_PN*)p)->i;
             double d = AMREX_PARSER_GET_DATA(i);
-            pstack.top() *= d;
+            pstack.top() *= d; // NOLINT
             p         += sizeof(ParserExeMUL_PN);
             break;
         }
@@ -445,16 +445,16 @@ double parser_exe_eval (const char* p, double const* x)
             int i = ((ParserExeDIV_PN*)p)->i;
             double d = AMREX_PARSER_GET_DATA(i);
             if (((ParserExeDIV_PN*)p)->reverse) {
-                pstack.top() /= d;
+                pstack.top() /= d; // NOLINT
             } else {
-                pstack.top() = d / pstack.top();
+                pstack.top() = d / pstack.top(); // NOLINT
             }
             p            += sizeof(ParserExeDIV_PN);
             break;
         }
         case PARSER_EXE_IF:
         {
-            double cond = pstack.top();
+            double cond = pstack.top(); // NOLINT
             pstack.pop();
             if (cond == 0.0) { // false branch
                 p += ((ParserExeIF*)p)->offset;
@@ -472,7 +472,7 @@ double parser_exe_eval (const char* p, double const* x)
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false,"parser_exe_eval: unknown node type");
         }
     }
-    return pstack.top();
+    return pstack.top(); // NOLINT
 }
 
 void parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_size,

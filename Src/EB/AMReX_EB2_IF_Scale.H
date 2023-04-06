@@ -16,16 +16,8 @@ class ScaleIF
 {
 public:
 
-    ScaleIF (F&& a_f, const RealArray& a_scalefactor)
+    ScaleIF (F a_f, const RealArray& a_scalefactor)
         : m_f(std::move(a_f)),
-#if (AMREX_SPACEDIM == 3)
-          m_sfinv{1.0_rt/a_scalefactor[0], 1.0_rt/a_scalefactor[1], 1.0_rt/a_scalefactor[2]}
-#else
-          m_sfinv{1.0_rt/a_scalefactor[0], 1.0_rt/a_scalefactor[1], 0.0_rt}
-#endif
-        {}
-    ScaleIF (F const& a_f, const RealArray& a_scalefactor)
-        : m_f(a_f),
 #if (AMREX_SPACEDIM == 3)
           m_sfinv{1.0_rt/a_scalefactor[0], 1.0_rt/a_scalefactor[1], 1.0_rt/a_scalefactor[2]}
 #else

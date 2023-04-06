@@ -104,12 +104,12 @@ void main_main()
                 const Long nboxes = plotfile.boxArray(ilev).size();
                 const Long ncells = plotfile.boxArray(ilev).numPts();
                 const Box prob_domain = plotfile.probDomain(ilev);
-                const Real ncells_domain = prob_domain.d_numPts();
+                const auto ncells_domain = prob_domain.d_numPts();
                 amrex::Print() << " level " << std::setw(3) << ilev
                                << ": number of boxes = " << std::setw(6) << nboxes
                                << ", volume = "
                                << std::fixed << std::setw(6) << std::setprecision(2)
-                               << Real(100.)*static_cast<Real>(ncells)/ncells_domain << "%\n";
+                               << 100.*static_cast<double>(ncells)/ncells_domain << "%\n";
                 if (dim == 1) {
                     amrex::Print() << "          maximum zones =   "
                                    << std::setw(7) << prob_domain.length(0) << "\n";

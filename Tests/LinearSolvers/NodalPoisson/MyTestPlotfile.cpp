@@ -14,7 +14,7 @@ MyTest::writePlotfile () const
     } else {
         varname = Vector<std::string>{"solution", "rhs", "exact_solution", "error"};
     }
-    int ncomp = varname.size();
+    auto ncomp = int(varname.size());
 
     const int nlevels = max_level+1;
 
@@ -38,4 +38,3 @@ MyTest::writePlotfile () const
                             varname, geom, 0.0, Vector<int>(nlevels, 0),
                             Vector<IntVect>(nlevels, IntVect{ref_ratio}));
 }
-

@@ -74,7 +74,7 @@ class NFilesIter
     * \param setBuf
     */
     NFilesIter(std::string fileName,
-               const Vector<int> &readRanks,
+               Vector<int> readRanks,
                bool setBuf = false);
 
     ~NFilesIter();

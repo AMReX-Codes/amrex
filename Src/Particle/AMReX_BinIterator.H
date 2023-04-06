@@ -24,10 +24,10 @@ struct BinIterator
         AMREX_GPU_HOST_DEVICE
         void operator++ () { ++m_index;; }
 
-        AMREX_GPU_HOST_DEVICE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE
         bool operator!= (iterator const& /*rhs*/) const { return m_index < m_stop; }
 
-        AMREX_GPU_HOST_DEVICE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE
         std::pair<index_type, T> operator* () const
         {
             return std::make_pair(m_perm[m_index], m_items[m_perm[m_index]]);
@@ -40,7 +40,7 @@ struct BinIterator
         index_type m_stop;
     };
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     iterator begin () const
     {
         if (m_i == m_not_found) {
@@ -49,7 +49,7 @@ struct BinIterator
         return iterator(m_offsets_ptr[m_i], m_offsets_ptr[m_i+1], m_permutation_ptr, m_items);
     }
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     iterator end () const {
         if (m_i == m_not_found) {
             return iterator(0, 0, m_permutation_ptr, m_items);

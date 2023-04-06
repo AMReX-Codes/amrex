@@ -82,7 +82,7 @@ void main_main ()
 
         amrex::Gpu::copyAsync(Gpu::hostToDevice, h_arrs.begin(), h_arrs.end(), d_arrs.begin());
 
-        auto arrs_ptr = d_arrs.dataPtr();
+        auto* arrs_ptr = d_arrs.dataPtr();
 
         amrex::ParallelForRNG(bx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
