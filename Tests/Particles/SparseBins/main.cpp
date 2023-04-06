@@ -27,9 +27,9 @@ void testIntersection()
     TestParams params;
     get_test_params(params, "intersect");
 
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        is_per[i] = params.is_periodic;
+    int is_per[] = {AMREX_D_DECL(params.is_periodic,
+                                 params.is_periodic,
+                                 params.is_periodic)};
 
     Vector<IntVect> rr(params.nlevs-1);
     for (int lev = 1; lev < params.nlevs; lev++)
@@ -54,7 +54,7 @@ void testIntersection()
     }
 
     Vector<BoxArray> ba(params.nlevs);
-    IntVect lo = IntVect(AMREX_D_DECL(0, 0, 0));
+    IntVect lo(0);
     IntVect size = params.size;
     for (int lev = 0; lev < params.nlevs; ++lev)
     {

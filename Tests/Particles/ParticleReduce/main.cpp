@@ -71,9 +71,9 @@ public:
                     Real r[AMREX_SPACEDIM];
                     get_position_unit_cell(r, a_num_particles_per_cell, i_part);
 
-                    AMREX_D_TERM(ParticleReal x = static_cast<ParticleReal> (plo[0] + (iv[0] + r[0])*dx[0]);,
-                                 ParticleReal y = static_cast<ParticleReal> (plo[1] + (iv[1] + r[1])*dx[1]);,
-                                 ParticleReal z = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);)
+                    AMREX_D_TERM(auto x = static_cast<ParticleReal> (plo[0] + (iv[0] + r[0])*dx[0]);,
+                                 auto y = static_cast<ParticleReal> (plo[1] + (iv[1] + r[1])*dx[1]);,
+                                 auto z = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);)
 
                     ParticleType p;
                     p.id()  = ParticleType::NextID();
@@ -82,12 +82,12 @@ public:
                                  p.pos(1) = y;,
                                  p.pos(2) = z;)
 
-                    for (int i = 0; i < NSR; ++i) p.rdata(i) = i;
+                    for (int i = 0; i < NSR; ++i) p.rdata(i) = ParticleReal(i);
                     for (int i = 0; i < NSI; ++i) p.idata(i) = i;
 
                     host_particles.push_back(p);
                     for (int i = 0; i < NAR; ++i)
-                        host_real[i].push_back(i);
+                        host_real[i].push_back(ParticleReal(i));
                     for (int i = 0; i < NAI; ++i)
                         host_int[i].push_back(i);
                 }
@@ -165,9 +165,7 @@ void testReduce ()
     const Box domain(domain_lo, domain_hi);
 
     int coord = 0;
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        is_per[i] = 1;
+    int is_per[] = {AMREX_D_DECL(1,1,1)};
     Geometry geom(domain, &real_box, coord, is_per);
 
     BoxArray ba(domain);
@@ -176,8 +174,7 @@ void testReduce ()
 
     TestParticleContainer pc(geom, dm, ba);
 
-    int npc = params.num_ppc;
-    IntVect nppc = IntVect(AMREX_D_DECL(npc, npc, npc));
+    IntVect nppc(params.num_ppc);
 
     if (ParallelDescriptor::MyProc() == dm[0])
         amrex::Print() << "About to initialize particles \n";

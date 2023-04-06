@@ -9,30 +9,19 @@
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 template <class F>
 class RotationIF
 {
 public:
 
-    RotationIF (F&& a_f, Real angle, int dir)
+    RotationIF (F a_f, Real angle, int dir)
         : m_f(std::move(a_f)),
           m_cos_angle(std::cos(angle)),
           m_sin_angle(std::sin(angle)),
           m_dir(dir)
         {}
-    RotationIF (F const& a_f, Real angle, int dir)
-        : m_f(a_f),
-          m_cos_angle(std::cos(angle)),
-          m_sin_angle(std::sin(angle)),
-          m_dir(dir)
-        {}
-
-    RotationIF (const RotationIF& rhs) = default;
-    RotationIF (RotationIF&& rhs) = default;
-    RotationIF& operator= (const RotationIF& rhs) = delete;
-    RotationIF& operator= (RotationIF&& rhs) = delete;
 
 // Note that angle is measured in radians
 #if (AMREX_SPACEDIM==2)
@@ -123,7 +112,6 @@ rotate (F&&f, const Real angle, const int dir)
     return RotationIF<typename std::decay<F>::type>(std::forward<F>(f),angle, dir);
 }
 
-}}
+}
 
 #endif
-

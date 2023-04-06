@@ -55,7 +55,7 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                Real azp = apz(i  ,j  ,k+1);
 
                Real apnorm = std::sqrt((axm-axp)*(axm-axp) + (aym-ayp)*(aym-ayp) + (azm-azp)*(azm-azp));
-               Real apnorminv = 1.0/apnorm;
+               Real apnorminv = Real(1.0)/apnorm;
 
                std::array<Real,3> normal, centroid;
                std::array<std::array<Real,3>,8> vertex;
@@ -65,19 +65,19 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                normal[2] = (azp-azm) * apnorminv;
 
                // convert bcent to global coordinate system centered at plo
-               centroid[0] = problo[0] + bcent(i,j,k,0)*dx[0] + (i + 0.5)*dx[0];
-               centroid[1] = problo[1] + bcent(i,j,k,1)*dx[1] + (j + 0.5)*dx[1];
-               centroid[2] = problo[2] + bcent(i,j,k,2)*dx[2] + (k + 0.5)*dx[2];
+               centroid[0] = problo[0] + bcent(i,j,k,0)*dx[0] + (static_cast<Real>(i) + Real(0.5))*dx[0];
+               centroid[1] = problo[1] + bcent(i,j,k,1)*dx[1] + (static_cast<Real>(j) + Real(0.5))*dx[1];
+               centroid[2] = problo[2] + bcent(i,j,k,2)*dx[2] + (static_cast<Real>(k) + Real(0.5))*dx[2];
 
                // vertices of bounding cell (i,j,k)
-               vertex[0] = {problo[0] + (i  )*dx[0], problo[1] + (j  )*dx[1], problo[2] + (k  )*dx[2]};
-               vertex[1] = {problo[0] + (i+1)*dx[0], problo[1] + (j  )*dx[1], problo[2] + (k  )*dx[2]};
-               vertex[2] = {problo[0] + (i  )*dx[0], problo[1] + (j+1)*dx[1], problo[2] + (k  )*dx[2]};
-               vertex[3] = {problo[0] + (i+1)*dx[0], problo[1] + (j+1)*dx[1], problo[2] + (k  )*dx[2]};
-               vertex[4] = {problo[0] + (i  )*dx[0], problo[1] + (j  )*dx[1], problo[2] + (k+1)*dx[2]};
-               vertex[5] = {problo[0] + (i+1)*dx[0], problo[1] + (j  )*dx[1], problo[2] + (k+1)*dx[2]};
-               vertex[6] = {problo[0] + (i  )*dx[0], problo[1] + (j+1)*dx[1], problo[2] + (k+1)*dx[2]};
-               vertex[7] = {problo[0] + (i+1)*dx[0], problo[1] + (j+1)*dx[1], problo[2] + (k+1)*dx[2]};
+               vertex[0] = {problo[0] + static_cast<Real>(i  )*dx[0], problo[1] + static_cast<Real>(j  )*dx[1], problo[2] + static_cast<Real>(k  )*dx[2]};
+               vertex[1] = {problo[0] + static_cast<Real>(i+1)*dx[0], problo[1] + static_cast<Real>(j  )*dx[1], problo[2] + static_cast<Real>(k  )*dx[2]};
+               vertex[2] = {problo[0] + static_cast<Real>(i  )*dx[0], problo[1] + static_cast<Real>(j+1)*dx[1], problo[2] + static_cast<Real>(k  )*dx[2]};
+               vertex[3] = {problo[0] + static_cast<Real>(i+1)*dx[0], problo[1] + static_cast<Real>(j+1)*dx[1], problo[2] + static_cast<Real>(k  )*dx[2]};
+               vertex[4] = {problo[0] + static_cast<Real>(i  )*dx[0], problo[1] + static_cast<Real>(j  )*dx[1], problo[2] + static_cast<Real>(k+1)*dx[2]};
+               vertex[5] = {problo[0] + static_cast<Real>(i+1)*dx[0], problo[1] + static_cast<Real>(j  )*dx[1], problo[2] + static_cast<Real>(k+1)*dx[2]};
+               vertex[6] = {problo[0] + static_cast<Real>(i  )*dx[0], problo[1] + static_cast<Real>(j+1)*dx[1], problo[2] + static_cast<Real>(k+1)*dx[2]};
+               vertex[7] = {problo[0] + static_cast<Real>(i+1)*dx[0], problo[1] + static_cast<Real>(j+1)*dx[1], problo[2] + static_cast<Real>(k+1)*dx[2]};
 
                // NOTE: this seems to be unnecessary:
                // skip cells that have a tiny intersection and cells that have
@@ -111,7 +111,7 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                   std::array<Real,12> alpha_d;
                   std::array<bool,12> alpha_d_intersect;
 
-                  Real tol = std::min({dx[0], dx[1], dx[2]})/100; // bit of a fudge factor
+                  Real tol = std::min({dx[0], dx[1], dx[2]})/Real(100.); // bit of a fudge factor
 
                   std::array<Real,3> centroid_d;
                   for(int idim = 0; idim < 3; ++idim) {
@@ -172,7 +172,7 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                         m_points.push_back(apoints[lc1]);
                         int lc2 = m_connectivity.back()[0]+1;
                         m_connectivity.back()[0] = lc2;
-                        m_connectivity.back()[lc2] = m_points.size()-1;
+                        m_connectivity.back()[lc2] = static_cast<int>(m_points.size()-1);
                      }
                   }
 
@@ -196,8 +196,8 @@ void EBToPVD::WriteEBVTP(const int myID) const
       myfile << "<?xml version=\"1.0\"?>\n";
       myfile << "<VTKFile type=\"PolyData\" version=\"0.1\" byte_order=\"LittleEndian\">\n";
       myfile << "<PolyData>\n";
-      myfile << "<Piece NumberOfPoints=\"" << m_points.size() << "\" NumberOfVerts=\"0\" "
-         << "NumberOfLines=\"0\" NumberOfString=\"0\" NumberOfPolys=\" "
+      myfile << "<Piece NumberOfPoints=\"" << m_points.size() << "\" NumberOfVerts=\"0\" " // NOLINT
+         << "NumberOfLines=\"0\" NumberOfString=\"0\" NumberOfPolys=\" " // NOLINT
          << m_connectivity.size() << "\">\n";
       print_points(myfile);
       print_connectivity(myfile);
@@ -211,7 +211,7 @@ void EBToPVD::WriteEBVTP(const int myID) const
    }
 }
 
-void EBToPVD::WritePVTP(const int nProcs) const
+void EBToPVD::WritePVTP(const int nProcs)
 {
    std::ofstream myfile("eb.pvtp");
 
@@ -245,12 +245,12 @@ void EBToPVD::reorder_polygon(const std::vector<std::array<Real,3>>& lpoints,
    center.fill(0.0);
 
    int longest = 2;
-   if(Math::abs(lnormal[0]) > Math::abs(lnormal[1])) {
-      if(Math::abs(lnormal[0]) > Math::abs(lnormal[2]))
+   if(std::abs(lnormal[0]) > std::abs(lnormal[1])) {
+      if(std::abs(lnormal[0]) > std::abs(lnormal[2]))
          longest = 0;
    }
    else {
-      if(Math::abs(lnormal[1]) > Math::abs(lnormal[2]))
+      if(std::abs(lnormal[1]) > std::abs(lnormal[2]))
          longest = 1;
    }
 
@@ -259,7 +259,9 @@ void EBToPVD::reorder_polygon(const std::vector<std::array<Real,3>>& lpoints,
       center[1] += m_points[lconnect[i]][1];
       center[2] += m_points[lconnect[i]][2];
    }
-   center = {center[0]/lconnect[0], center[1]/lconnect[0], center[2]/lconnect[0]};
+   center = {center[0]/static_cast<Real>(lconnect[0]),
+             center[1]/static_cast<Real>(lconnect[0]),
+             center[2]/static_cast<Real>(lconnect[0])};
 
    int pi, pk;
    Real ref_angle, angle;
@@ -315,7 +317,7 @@ void EBToPVD::reorder_polygon(const std::vector<std::array<Real,3>>& lpoints,
 }
 
 void EBToPVD::calc_hesse(Real& distance, std::array<Real,3>& n0, Real& p,
-      const std::array<Real,3>& normal, const std::array<Real,3>& centroid) const
+      const std::array<Real,3>& normal, const std::array<Real,3>& centroid)
 {
    Real sign_of_dist;
 
@@ -324,7 +326,7 @@ void EBToPVD::calc_hesse(Real& distance, std::array<Real,3>& n0, Real& p,
    distance = -dot_product(normal, centroid);
 
    // Get the sign of the distance
-   sign_of_dist = -distance / Math::abs(distance);
+   sign_of_dist = -distance / std::abs(distance);
 
    // Get the Hessian form
    Real fac = sign_of_dist/dot_product(normal, normal);
@@ -337,13 +339,13 @@ void EBToPVD::calc_hesse(Real& distance, std::array<Real,3>& n0, Real& p,
 void EBToPVD::calc_alpha(std::array<Real,12>& alpha,
       const std::array<Real,3>& n0, Real p,
       const std::array<std::array<Real,3>,8>& vertex,
-      const Real* dx) const
+      const Real* dx)
 {
    // default (large) value
    std::fill(alpha.begin(), alpha.end(), 10.0);
 
    // Ray-xAxis intersection
-   if(Math::abs(n0[0]) > std::numeric_limits<Real>::epsilon()) {
+   if(std::abs(n0[0]) > std::numeric_limits<Real>::epsilon()) {
       alpha[0]  = (p - dot_product(n0,vertex[0]))/(n0[0]*dx[0]);
       alpha[2]  = (p - dot_product(n0,vertex[2]))/(n0[0]*dx[0]);
       alpha[8]  = (p - dot_product(n0,vertex[4]))/(n0[0]*dx[0]);
@@ -351,7 +353,7 @@ void EBToPVD::calc_alpha(std::array<Real,12>& alpha,
    }
 
    // Ray-yAxis intersection
-   if(Math::abs(n0[1]) > std::numeric_limits<Real>::epsilon()) {
+   if(std::abs(n0[1]) > std::numeric_limits<Real>::epsilon()) {
       alpha[1]  = (p - dot_product(n0,vertex[1]))/(n0[1]*dx[1]);
       alpha[3]  = (p - dot_product(n0,vertex[0]))/(n0[1]*dx[1]);
       alpha[9]  = (p - dot_product(n0,vertex[5]))/(n0[1]*dx[1]);
@@ -359,7 +361,7 @@ void EBToPVD::calc_alpha(std::array<Real,12>& alpha,
    }
 
    // Ray-zAxis intersection
-   if(Math::abs(n0[2]) > std::numeric_limits<Real>::epsilon()) {
+   if(std::abs(n0[2]) > std::numeric_limits<Real>::epsilon()) {
       alpha[4] = (p - dot_product(n0,vertex[0]))/(n0[2]*dx[2]);
       alpha[5] = (p - dot_product(n0,vertex[1]))/(n0[2]*dx[2]);
       alpha[6] = (p - dot_product(n0,vertex[3]))/(n0[2]*dx[2]);
@@ -368,7 +370,7 @@ void EBToPVD::calc_alpha(std::array<Real,12>& alpha,
 }
 
 void EBToPVD::calc_intersects(int& int_count, std::array<bool,12>& intersects_flags,
-      const std::array<Real,12>& alpha) const
+      const std::array<Real,12>& alpha)
 {
    int_count = 0;
    std::fill(intersects_flags.begin(), intersects_flags.end(), false);
@@ -386,9 +388,9 @@ void EBToPVD::print_points(std::ofstream& myfile) const
    myfile << "<Points>\n";
    myfile << "<DataArray type=\"Float32\" NumberOfComponents=\"3\" format=\"ascii\">\n";
 
-   for(size_t lc1 = 0; lc1 < m_points.size(); ++lc1) {
+   for(const auto & m_point : m_points) {
       myfile << std::fixed << std::scientific
-         << m_points[lc1][0] << " " << m_points[lc1][1] << " " << m_points[lc1][2] << "\n";
+         << m_point[0] << " " << m_point[1] << " " << m_point[2] << "\n";
    }
 
    myfile << "</DataArray>\n";
@@ -399,9 +401,9 @@ void EBToPVD::print_connectivity(std::ofstream& myfile) const
 {
    myfile << "<Polys>\n";
    myfile << "<DataArray type=\"Int32\" Name=\"connectivity\" format=\"ascii\">\n";
-   for(size_t lc1 = 0; lc1 < m_connectivity.size(); ++lc1) {
-      for(int lc2 = 1; lc2 <= m_connectivity[lc1][0]; ++lc2) {
-         myfile << " " << m_connectivity[lc1][lc2];
+   for(const auto & lc1 : m_connectivity) {
+      for(int lc2 = 1; lc2 <= lc1[0]; ++lc2) {
+         myfile << " " << lc1[lc2];
       }
       myfile << "\n";
    }
@@ -409,8 +411,8 @@ void EBToPVD::print_connectivity(std::ofstream& myfile) const
 
    myfile << "<DataArray type=\"Int32\" Name=\"offsets\" format=\"ascii\">\n";
    int lc2 = 0;
-   for(size_t lc1 = 0; lc1 < m_connectivity.size(); ++lc1) {
-      lc2 = lc2 + m_connectivity[lc1][0];
+   for(const auto & lc1 : m_connectivity) {
+      lc2 = lc2 + lc1[0];
       myfile << " " << lc2;
    }
    myfile << "\n";
@@ -466,17 +468,17 @@ void EBToPVD::EBGridCoverage(const int myID, const Real* problo, const Real* dx,
 
       for(int idim = 0; idim < 3; ++idim) {
          std::vector<Real> lines(nodes[idim]+1);
-         Real grid_start = problo[idim] + low[idim]*dx[idim];
+         Real grid_start = problo[idim] + static_cast<Real>(low[idim])*dx[idim];
          for(int llc = 0; llc <= nodes[idim]; ++llc) {
-            lines[llc] = grid_start + llc*dx[idim];
+            lines[llc] = grid_start + static_cast<Real>(llc)*dx[idim];
          }
 
-         myfile << "<DataArray type=\"Float32\" format=\"ascii\" RangeMin=\""
+         myfile << "<DataArray type=\"Float32\" format=\"ascii\" RangeMin=\"" // NOLINT
             << std::fixed
             << lines[0] << "\" RangeMax=\"" << lines[nodes[idim]] << "\">\n";
 
-         for(size_t llc = 0; llc < lines.size(); ++llc) {
-            myfile << " " << lines[llc];
+         for(auto line : lines) {
+            myfile << " " << line;
          }
          myfile << "\n";
 

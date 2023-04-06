@@ -10,7 +10,7 @@
 #endif
 
 #define AMREX_IPARSER_LOCAL_IDX0 1000
-#define AMREX_IPARSER_GET_DATA(i) (i>=1000) ? pstack[i-1000] : x[i]
+#define AMREX_IPARSER_GET_DATA(i) ((i)>=1000) ? pstack[(i)-1000] : x[i]
 
 namespace amrex {
 
@@ -231,13 +231,13 @@ struct IParserStack
     int m_size = 0;
     constexpr void push (int v) { m_data[m_size++] = v; }
     constexpr void pop () { --m_size; }
-    constexpr int const& top () const { return m_data[m_size-1]; }
-    constexpr int      & top ()       { return m_data[m_size-1]; }
-    constexpr int operator[] (int i) const { return m_data[i]; }
+    [[nodiscard]] constexpr int const& top () const { return m_data[m_size-1]; }
+    [[nodiscard]] constexpr int      & top ()       { return m_data[m_size-1]; }
+    [[nodiscard]] constexpr int operator[] (int i) const { return m_data[i]; }
 };
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int iparser_exe_eval (char* p, int const* x)
+int iparser_exe_eval (const char* p, int const* x)
 {
     IParserStack<AMREX_IPARSER_STACK_SIZE> pstack;
     while (*((iparser_exe_t*)p) != IPARSER_EXE_NULL) {

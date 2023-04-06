@@ -35,9 +35,6 @@ MLTensorOp::MLTensorOp (const Vector<Geometry>& a_geom,
     define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory);
 }
 
-MLTensorOp::~MLTensorOp ()
-{}
-
 void
 MLTensorOp::define (const Vector<Geometry>& a_geom,
                     const Vector<BoxArray>& a_grids,
@@ -47,7 +44,8 @@ MLTensorOp::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLTensorOp::define()");
 
-    MLABecLaplacian::define(a_geom, a_grids, a_dmap, a_info, a_factory);
+    MLABecLaplacian::define(a_geom, a_grids, a_dmap, a_info, a_factory,
+                            AMREX_SPACEDIM);
 
     m_kappa.clear();
     m_kappa.resize(NAMRLevels());
@@ -75,7 +73,8 @@ MLTensorOp::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLTensorOp::define(oveset)");
 
-    MLABecLaplacian::define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory);
+    MLABecLaplacian::define(a_geom, a_grids, a_dmap, a_overset_mask, a_info,
+                            a_factory, AMREX_SPACEDIM);
 
     m_kappa.clear();
     m_kappa.resize(NAMRLevels());
@@ -334,7 +333,7 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 }
 
 void
-MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
+MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel, // NOLINT(readability-convert-member-functions-to-static)
                            BCMode bc_mode, StateMode, const MLMGBndry* bndry) const
 {
 #if (AMREX_SPACEDIM == 1)

@@ -85,9 +85,9 @@ enum mathematicalBndryTypes : int {
 
 #ifndef AMREX_XSDK
 
-#define BOGUS_BC -666
+#define BOGUS_BC (-666)
 
-#define REFLECT_ODD -1
+#define REFLECT_ODD (-1)
 #define INT_DIR 0
 #define REFLECT_EVEN 1
 #define FOEXTRAP  2

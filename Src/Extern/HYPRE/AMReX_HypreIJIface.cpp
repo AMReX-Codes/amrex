@@ -98,8 +98,27 @@ HypreIJIface::~HypreIJIface ()
     }
 }
 
+void HypreIJIface::run_hypre_setup ()
+{
+    if (m_need_setup || m_recompute_preconditioner) {
+        BL_PROFILE("HypreIJIface::run_hypre_setup()");
+        if (m_has_preconditioner)
+            m_solverPrecondPtr(
+                m_solver, m_precondSolvePtr, m_precondSetupPtr, m_precond);
+
+        m_solverSetupPtr(m_solver, m_parA, m_parRhs, m_parSln);
+        m_need_setup = false;
+    }
+}
+
+void HypreIJIface::run_hypre_solve ()
+{
+    BL_PROFILE("HypreIJIface::run_hypre_solve()");
+    m_solverSolvePtr(m_solver, m_parA, m_parRhs, m_parSln);
+}
+
 void HypreIJIface::solve (
-    const HypreRealType rel_tol, const HypreRealType abs_tol, const HypreIntType max_iter)
+    HypreRealType rel_tol, HypreRealType abs_tol, HypreIntType max_iter)
 {
     // Assuming that Matrix/rhs etc. has been assembled by calling code
 
@@ -109,9 +128,9 @@ void HypreIJIface::solve (
 
     if (m_write_files) {
         const std::string matfile = amrex::Concatenate(
-            m_file_prefix + "_A", m_write_counter) + ".out";
+            m_file_prefix + "_A", static_cast<int>(m_write_counter)) + ".out";
         const std::string rhsfile = amrex::Concatenate(
-            m_file_prefix + "_b", m_write_counter) + ".out";
+            m_file_prefix + "_b", static_cast<int>(m_write_counter)) + ".out";
         HYPRE_IJMatrixPrint(m_mat, matfile.c_str());
         HYPRE_IJVectorPrint(m_rhs, rhsfile.c_str());
     }
@@ -122,17 +141,10 @@ void HypreIJIface::solve (
         m_solverSetAbsTolPtr(m_solver, abs_tol);
 
     // setup
-    if (m_need_setup || m_recompute_preconditioner) {
-        if (m_has_preconditioner)
-            m_solverPrecondPtr(
-                m_solver, m_precondSolvePtr, m_precondSetupPtr, m_precond);
-
-        m_solverSetupPtr(m_solver, m_parA, m_parRhs, m_parSln);
-        m_need_setup = false;
-    }
+    run_hypre_setup();
 
     // solve
-    m_solverSolvePtr(m_solver, m_parA, m_parRhs, m_parSln);
+    run_hypre_solve();
 
     // diagnostics
     m_solverNumItersPtr(m_solver, &m_num_iterations);
@@ -140,7 +152,7 @@ void HypreIJIface::solve (
 
     if (m_write_files) {
         const std::string slnfile = amrex::Concatenate(
-            m_file_prefix + "_x", m_write_counter) + ".out";
+            m_file_prefix + "_x", static_cast<int>(m_write_counter)) + ".out";
         HYPRE_IJVectorPrint(m_sln, slnfile.c_str());
 
         // Increment counter if the user has requested output of multiple solves

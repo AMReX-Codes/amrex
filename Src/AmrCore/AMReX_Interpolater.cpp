@@ -34,14 +34,12 @@ NodeBilinear              node_bilinear_interp;
 FaceLinear                face_linear_interp;
 FaceDivFree               face_divfree_interp;
 CellConservativeLinear    lincc_interp;
-CellConservativeLinear    cell_cons_interp(0);
+CellConservativeLinear    cell_cons_interp(false);
 CellConservativeProtected protected_interp;
 CellConservativeQuartic   quartic_interp;
 CellBilinear              cell_bilinear_interp;
 CellQuadratic             quadratic_interp;
 CellQuartic               cell_quartic_interp;
-
-NodeBilinear::~NodeBilinear () {}
 
 Box
 NodeBilinear::CoarseBox (const Box& fine,
@@ -351,10 +349,6 @@ void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
               });
 }
 
-FaceLinear::~FaceLinear () {}
-
-CellBilinear::~CellBilinear () {}
-
 Box
 CellBilinear::CoarseBox (const Box& fine, int ratio)
 {
@@ -409,11 +403,7 @@ CellBilinear::interp (const FArrayBox&  crsefab,
 
 
 CellConservativeLinear::CellConservativeLinear (bool do_linear_limiting_)
-{
-    do_linear_limiting = do_linear_limiting_;
-}
-
-CellConservativeLinear::~CellConservativeLinear ()
+    : do_linear_limiting(do_linear_limiting_)
 {}
 
 Box
@@ -550,13 +540,6 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     }
 }
 
-CellQuadratic::CellQuadratic (bool limit)
-{
-    do_limited_slope = limit;
-}
-
-CellQuadratic::~CellQuadratic () {}
-
 Box
 CellQuadratic::CoarseBox (const Box&     fine,
                           const IntVect& ratio)
@@ -686,8 +669,6 @@ CellQuadratic::interp (const FArrayBox& crse,
 #endif /*(AMREX_SPACEDIM == 1)*/
 }
 
-PCInterp::~PCInterp () {}
-
 Box
 PCInterp::CoarseBox (const Box& fine,
                      int        ratio)
@@ -730,8 +711,6 @@ PCInterp::interp (const FArrayBox& crse,
 
 CellConservativeProtected::CellConservativeProtected ()
     : CellConservativeLinear(true) {}
-
-CellConservativeProtected::~CellConservativeProtected () {}
 
 void
 CellConservativeProtected::protect (const FArrayBox& /*crse*/,
@@ -813,8 +792,6 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
 
 }
 
-CellConservativeQuartic::~CellConservativeQuartic () {}
-
 Box
 CellConservativeQuartic::CoarseBox (const Box& fine,
                                     int        ratio)
@@ -873,8 +850,6 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
                          crsearr, finearr);
     });
 }
-
-FaceDivFree::~FaceDivFree () {}
 
 Box
 FaceDivFree::CoarseBox (const Box& fine,
@@ -990,10 +965,6 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
         amrex::facediv_int<Real>(i, j, k, fine_comp+n, finearr, ratio, cell_size);
     });
 }
-
-CellQuartic::CellQuartic () {}
-
-CellQuartic::~CellQuartic () {}
 
 Box
 CellQuartic::CoarseBox (const Box& fine, const IntVect& ratio)

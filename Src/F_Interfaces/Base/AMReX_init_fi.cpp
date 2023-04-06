@@ -11,7 +11,7 @@
 
 extern "C"
 {
-    typedef void (*amrex_void_cfun)(void);
+    typedef void (*amrex_void_cfun)();
 
     void amrex_fi_init (char* cmd, int fcomm, int arg_parmparse, amrex_void_cfun proc_parmparse)
     {
@@ -19,12 +19,12 @@ extern "C"
         amrex::Vector<std::string> argv_string(std::istream_iterator<std::string>{is},
                                               std::istream_iterator<std::string>{  });
 
-        int argc = argv_string.size();
-        char** argv = (char**)malloc(argc*sizeof(char*));
+        auto argc = static_cast<int>(argv_string.size());
+        auto** argv = (char**)malloc(argc*sizeof(char*));
         for (int i = 0; i < argc; ++i)
         {
             argv[i] = (char*)malloc(argv_string[i].size()+1);
-            strcpy(argv[i], argv_string[i].c_str());
+            std::strncpy(argv[i], argv_string[i].c_str(), argv_string[i].size()+1);
         }
 
 #ifdef BL_USE_MPI

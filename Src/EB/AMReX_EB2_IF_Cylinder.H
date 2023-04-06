@@ -9,7 +9,7 @@
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 class CylinderIF
     : GPUable
@@ -36,11 +36,6 @@ public:
         {
             AMREX_ASSERT(m_direction < AMREX_SPACEDIM);
         }
-
-    CylinderIF (const CylinderIF& rhs) noexcept = default;
-    CylinderIF (CylinderIF&& rhs) noexcept = default;
-    CylinderIF& operator= (const CylinderIF& rhs) = delete;
-    CylinderIF& operator= (CylinderIF&& rhs) = delete;
 
     AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
@@ -112,6 +107,6 @@ protected:
     Real      m_sign;
 };
 
-}}
+}
 
 #endif

@@ -10,8 +10,7 @@
 #include <initializer_list>
 #include <memory>
 
-namespace amrex {
-namespace Gpu {
+namespace amrex::Gpu {
 
 template <typename T, std::enable_if_t<std::is_trivially_copyable<T>::value,int> = 0>
 class Buffer
@@ -63,13 +62,13 @@ public:
     void operator= (Buffer const&) = delete;
     void operator= (Buffer &&) = delete;
 
-    T const* data () const noexcept { return (d_data != nullptr) ? d_data : h_data; }
-    T* data () noexcept { return (d_data != nullptr) ? d_data : h_data; }
+    [[nodiscard]] T const* data () const noexcept { return (d_data != nullptr) ? d_data : h_data; }
+    [[nodiscard]] T* data () noexcept { return (d_data != nullptr) ? d_data : h_data; }
 
-    T const* hostData () const noexcept { return h_data; }
-    T* hostData () noexcept { return h_data; }
+    [[nodiscard]] T const* hostData () const noexcept { return h_data; }
+    [[nodiscard]] T* hostData () noexcept { return h_data; }
 
-    std::size_t size () const noexcept { return m_size; }
+    [[nodiscard]] std::size_t size () const noexcept { return m_size; }
 
     void clear ()
     {
@@ -101,7 +100,6 @@ private:
     T* h_data = nullptr;
 };
 
-}
 }
 
 #endif

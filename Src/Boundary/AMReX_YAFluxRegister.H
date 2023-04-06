@@ -48,11 +48,11 @@ public:
 
     void CrseAdd (const MFIter& mfi,
                   const std::array<FAB const*, AMREX_SPACEDIM>& flux,
-                  const Real* dx, Real dt, RunOn gpu_or_cpu) noexcept;
+                  const Real* dx, Real dt, RunOn runon) noexcept;
 
     void FineAdd (const MFIter& mfi,
                   const std::array<FAB const*, AMREX_SPACEDIM>& flux,
-                  const Real* dx, Real dt, RunOn gpu_or_cpu) noexcept;
+                  const Real* dx, Real dt, RunOn runon) noexcept;
 
     void Reflux (MF& state, int dc = 0);
 
@@ -155,7 +155,7 @@ YAFluxRegisterT<MF>::define (const BoxArray& fba, const BoxArray& cba,
     Vector<int> cfp_procmap;
     int nlocal = 0;
     const int myproc = ParallelDescriptor::MyProc();
-    const int n_cfba = cfba.size();
+    const auto n_cfba = static_cast<int>(cfba.size());
     cfba.uniqify();
 
 #ifdef AMREX_USE_OMP
@@ -178,7 +178,7 @@ YAFluxRegisterT<MF>::define (const BoxArray& fba, const BoxArray& cba,
             bx &= cdomain;
 
             cfba.complementIn(bl_tmp, bx);
-            const int ntmp = bl_tmp.size();
+            const auto ntmp = static_cast<int>(bl_tmp.size());
             bl.join(bl_tmp);
 
             int proc = fdm[i];
@@ -218,7 +218,7 @@ YAFluxRegisterT<MF>::define (const BoxArray& fba, const BoxArray& cba,
         bx &= cdomain;
 
         cfba.complementIn(bl_tmp, bx);
-        const int ntmp = bl_tmp.size();
+        const auto ntmp = static_cast<int>(bl_tmp.size());
         cfp_bl.join(bl_tmp);
 
         int proc = fdm[i];

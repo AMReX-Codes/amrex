@@ -38,10 +38,10 @@ public:
     }
 
     void InitParticles (const amrex::IntVect& a_num_particles_per_cell,
-                        const amrex::Real     a_thermal_momentum_std,
-                        const amrex::Real     a_thermal_momentum_mean);
+                        amrex::Real           a_thermal_momentum_std,
+                        amrex::Real           a_thermal_momentum_mean);
 
-    void writeParticles (const int n);
+    void writeParticles (int n);
 
     void reset_test_id ();
 

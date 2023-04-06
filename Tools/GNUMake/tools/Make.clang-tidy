@@ -1,0 +1,17 @@
+
+CLANG_TIDY = clang-tidy
+CLANG_TIDY_ARGS = --extra-arg=-Wno-unknown-warning-option --extra-arg-before=--driver-mode=g++
+
+clang_tidy_version = $(shell $(CLANG_TIDY) --version | grep "LLVM version" | awk '{print $$3}' | awk 'BEGIN {FS = "."} {print $$1}')
+clang_tidy_ge_12 = $(shell expr $(clang_tidy_version) \>= 12)
+
+ifeq ($(clang_tidy_ge_12),1)
+  ifndef CLANG_TIDY_CONFIG_FILE
+    # If you do not specify a config file, we will use the one in amrex.
+    CLANG_TIDY_ARGS += --config-file=$(AMREX_HOME)/.clang-tidy
+  endif
+endif
+
+ifeq ($(CLANG_TIDY_WARN_ERROR),TRUE)
+  CLANG_TIDY_ARGS += --warnings-as-errors=*
+endif

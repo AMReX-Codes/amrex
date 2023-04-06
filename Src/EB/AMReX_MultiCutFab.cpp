@@ -8,8 +8,7 @@
 
 namespace amrex {
 
-MultiCutFab::MultiCutFab ()
-{}
+MultiCutFab::MultiCutFab () = default;
 
 MultiCutFab::MultiCutFab (const BoxArray& ba, const DistributionMapping& dm,
                           int ncomp, int ngrow, const FabArray<EBCellFlagFab>& cellflags)
@@ -20,7 +19,7 @@ MultiCutFab::MultiCutFab (const BoxArray& ba, const DistributionMapping& dm,
 }
 
 MultiCutFab::~MultiCutFab ()
-{}
+= default;
 
 void
 MultiCutFab::define (const BoxArray& ba, const DistributionMapping& dm,

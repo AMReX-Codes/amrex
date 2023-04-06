@@ -27,9 +27,9 @@ int coarsen (int i, int ratio) noexcept
 {
     switch (ratio) {
     case  1: return i;
-    case  2: return (i<0) ? -amrex::Math::abs(i+1)/2    -1 : i/2;
-    case  4: return (i<0) ? -amrex::Math::abs(i+1)/4    -1 : i/4;
-    default: return (i<0) ? -amrex::Math::abs(i+1)/ratio-1 : i/ratio;
+    case  2: return (i<0) ? -std::abs(i+1)/2    -1 : i/2;
+    case  4: return (i<0) ? -std::abs(i+1)/4    -1 : i/4;
+    default: return (i<0) ? -std::abs(i+1)/ratio-1 : i/ratio;
     }
 }
 
@@ -557,19 +557,19 @@ IntVect::coarsen (int s) noexcept
     case 1:
         break;
     case 2:
-        AMREX_D_TERM(vect[0] = (vect[0]<0) ? -amrex::Math::abs(vect[0]+1)/2-1 : vect[0]/2;,
-                     vect[1] = (vect[1]<0) ? -amrex::Math::abs(vect[1]+1)/2-1 : vect[1]/2;,
-                     vect[2] = (vect[2]<0) ? -amrex::Math::abs(vect[2]+1)/2-1 : vect[2]/2;);
+        AMREX_D_TERM(vect[0] = (vect[0]<0) ? -std::abs(vect[0]+1)/2-1 : vect[0]/2;,
+                     vect[1] = (vect[1]<0) ? -std::abs(vect[1]+1)/2-1 : vect[1]/2;,
+                     vect[2] = (vect[2]<0) ? -std::abs(vect[2]+1)/2-1 : vect[2]/2;);
         break;
     case 4:
-        AMREX_D_TERM(vect[0] = (vect[0]<0) ? -amrex::Math::abs(vect[0]+1)/4-1 : vect[0]/4;,
-                     vect[1] = (vect[1]<0) ? -amrex::Math::abs(vect[1]+1)/4-1 : vect[1]/4;,
-                     vect[2] = (vect[2]<0) ? -amrex::Math::abs(vect[2]+1)/4-1 : vect[2]/4;);
+        AMREX_D_TERM(vect[0] = (vect[0]<0) ? -std::abs(vect[0]+1)/4-1 : vect[0]/4;,
+                     vect[1] = (vect[1]<0) ? -std::abs(vect[1]+1)/4-1 : vect[1]/4;,
+                     vect[2] = (vect[2]<0) ? -std::abs(vect[2]+1)/4-1 : vect[2]/4;);
         break;
     default:
-        AMREX_D_TERM(vect[0] = (vect[0]<0) ? -amrex::Math::abs(vect[0]+1)/s-1 : vect[0]/s;,
-                     vect[1] = (vect[1]<0) ? -amrex::Math::abs(vect[1]+1)/s-1 : vect[1]/s;,
-                     vect[2] = (vect[2]<0) ? -amrex::Math::abs(vect[2]+1)/s-1 : vect[2]/s;);
+        AMREX_D_TERM(vect[0] = (vect[0]<0) ? -std::abs(vect[0]+1)/s-1 : vect[0]/s;,
+                     vect[1] = (vect[1]<0) ? -std::abs(vect[1]+1)/s-1 : vect[1]/s;,
+                     vect[2] = (vect[2]<0) ? -std::abs(vect[2]+1)/s-1 : vect[2]/s;);
     }
     return *this;
 }
@@ -594,10 +594,10 @@ IntVect::maxDir(bool a_doAbsValue) const noexcept
     int retval = 0;
     if(a_doAbsValue)
     {
-        int maxval = amrex::Math::abs((*this)[0]);
+        int maxval = std::abs((*this)[0]);
         for(int idir = 1; idir < SpaceDim; idir++)
         {
-            int curval = amrex::Math::abs((*this)[idir]);
+            int curval = std::abs((*this)[idir]);
             if(curval > maxval)
             {
                 maxval = curval;

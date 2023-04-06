@@ -1,11 +1,13 @@
-#include <AMReX_Sundials.H>
+#include <AMReX_Print.H>
+#include <AMReX_Sundials_Core.H>
+#include <AMReX_SUNMemory.H>
+#include <AMReX_Vector.H>
 
-namespace amrex {
-namespace sundials {
+namespace amrex::sundials {
 
 namespace {
-    Vector<int> initialized;
-    Vector<::sundials::Context*> the_sundials_context;
+    amrex::Vector<int> initialized;
+    amrex::Vector<::sundials::Context*> the_sundials_context;
 }
 
 void Initialize(int nthreads)
@@ -13,7 +15,7 @@ void Initialize(int nthreads)
     amrex::Print() << "Initializing SUNDIALS with " << nthreads << " threads...\n";
 
     // Initalize the sundials context
-    if (initialized.size() == 0) {
+    if (initialized.empty()) {
         initialized.resize(nthreads);
         std::fill(initialized.begin(), initialized.end(), 0);
         the_sundials_context.resize(nthreads);
@@ -51,5 +53,4 @@ void Finalize()
     return the_sundials_context[i];
 }
 
-}//sundials
-}//amrex
+}//amrex::sundials

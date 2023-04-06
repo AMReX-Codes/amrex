@@ -9,20 +9,14 @@
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 template <class F>
 class ComplementIF
 {
 public:
 
-    ComplementIF (F&& a_f) : m_f(std::move(a_f)) {}
-    ComplementIF (F const& a_f) : m_f(a_f) {}
-
-    ComplementIF (const ComplementIF& rhs) = default;
-    ComplementIF (ComplementIF&& rhs) = default;
-    ComplementIF& operator= (const ComplementIF& rhs) = delete;
-    ComplementIF& operator= (ComplementIF&& rhs) = delete;
+    ComplementIF (F a_f) : m_f(std::move(a_f)) {}
 
     inline Real operator() (const RealArray& p) const noexcept
     {
@@ -52,7 +46,6 @@ makeComplement (F&& f)
     return ComplementIF<typename std::decay<F>::type>(std::forward<F>(f));
 }
 
-}}
+}
 
 #endif
-

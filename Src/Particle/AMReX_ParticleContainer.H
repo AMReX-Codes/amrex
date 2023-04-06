@@ -199,10 +199,7 @@ public:
       :
       ParticleContainerBase(),
       h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-      h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
-      m_runtime_comps_defined(false),
-      m_num_runtime_real(0),
-      m_num_runtime_int(0)
+      h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
     {
         Initialize ();
     }
@@ -218,14 +215,11 @@ public:
         :
         ParticleContainerBase(gdb),
         h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
-        m_runtime_comps_defined(false),
-        m_num_runtime_real(0),
-        m_num_runtime_int(0)
+        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
     {
         Initialize ();
-        reserveData();
-        resizeData();
+        ParticleContainer_impl::reserveData();
+        ParticleContainer_impl::resizeData();
     }
 
     //! \brief Construct a particle container using a given Geometry, DistributionMapping,
@@ -241,14 +235,11 @@ public:
         :
         ParticleContainerBase(geom, dmap, ba),
         h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
-        m_runtime_comps_defined(false),
-        m_num_runtime_real(0),
-        m_num_runtime_int(0)
+        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
     {
         Initialize ();
-        reserveData();
-        resizeData();
+        ParticleContainer_impl::reserveData();
+        ParticleContainer_impl::resizeData();
     }
 
     //! \brief Construct a particle container using a given Geometry, DistributionMapping,
@@ -267,14 +258,11 @@ public:
         :
         ParticleContainerBase(geom, dmap, ba, rr),
         h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
-        m_runtime_comps_defined(false),
-        m_num_runtime_real(0),
-        m_num_runtime_int(0)
+        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
     {
         Initialize ();
-        reserveData();
-        resizeData();
+        ParticleContainer_impl::reserveData();
+        ParticleContainer_impl::resizeData();
     }
 
     //! \brief Same as the above, but accepts different refinement ratios in each direction.
@@ -292,23 +280,20 @@ public:
         :
         ParticleContainerBase(geom, dmap, ba, rr),
         h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
-        m_runtime_comps_defined(false),
-        m_num_runtime_real(0),
-        m_num_runtime_int(0)
+        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
     {
         Initialize ();
-        reserveData();
-        resizeData();
+        ParticleContainer_impl::reserveData();
+        ParticleContainer_impl::resizeData();
     }
 
-    virtual ~ParticleContainer_impl () = default;
+    ~ParticleContainer_impl () override = default;
 
     ParticleContainer_impl ( const ParticleContainer_impl &) = delete;
     ParticleContainer_impl& operator= ( const ParticleContainer_impl & ) = delete;
 
-    ParticleContainer_impl ( ParticleContainer_impl && ) = default;
-    ParticleContainer_impl& operator= ( ParticleContainer_impl && ) = default;
+    ParticleContainer_impl ( ParticleContainer_impl && ) noexcept = default;
+    ParticleContainer_impl& operator= ( ParticleContainer_impl && ) noexcept = default;
 
 
     //! \brief Define a default-constructed ParticleContainer using a ParGDB object.
@@ -411,7 +396,7 @@ public:
     * \param bx
     */
     void InitRandom (Long icount, ULong iseed,
-                     const ParticleInitData& mass,
+                     const ParticleInitData& pdata,
                      bool serialize = false, RealBox bx = RealBox());
 
 
@@ -506,6 +491,37 @@ public:
     */
     void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
                        bool remove_negative=true);
+
+
+    /**
+     * \brief Reorder particles on the tile given by lev and mfi using a the permutations array.
+     *
+     * permutations is a pointer to an array on the GPU of size numParticles() with
+     * permutations[new index] = old index.
+     *
+     * \param lev
+     * \param mfi
+     * \param permutations
+     *
+     */
+    template <class index_type>
+    void ReorderParticles (int lev, const MFIter& mfi, const index_type* permutations);
+
+    /**
+     * \brief Sort particles on each tile such that particles adjacent in memory
+     * are likely to map to adjacent cells. This ordering can be beneficial for performance
+     * on GPU when deposition quantities onto a grid.
+     *
+     * idx_type = {0, 0, 0}: Sort particles to a cell centered grid
+     * idx_type = {1, 1, 1}: Sort particles to a node centered grid
+     * idx_type = {2, 2, 2}: Compromise between a cell and node centered grid.
+     * This last option uses more memory than the fist two.
+     * Mixed versions are also possible.
+     *
+     * \param idx_type
+     *
+     */
+    void SortParticlesForDeposition (IntVect idx_type);
 
     /**
      * \brief Sort the particles on each tile by cell, using Fortran ordering.
@@ -1251,6 +1267,9 @@ public:
     int NumRealComps () const { return NArrayReal + NumRuntimeRealComps(); }
     int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; }
 
+    void ResizeRuntimeRealComp (int new_size, bool communicate);
+    void ResizeRuntimeIntComp (int new_size, bool communicate);
+
     /** type trait to translate one particle container to another, with changed allocator */
     template <template<class> class NewAllocator=amrex::DefaultAllocator>
     using ContainerLike = amrex::ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, NewAllocator>;
@@ -1364,9 +1383,9 @@ private:
 
     void Initialize ();
 
-    bool m_runtime_comps_defined;
-    int m_num_runtime_real;
-    int m_num_runtime_int;
+    bool m_runtime_comps_defined{false};
+    int m_num_runtime_real{0};
+    int m_num_runtime_int{0};
 
     size_t particle_size, superparticle_size;
     int num_real_comm_comps, num_int_comm_comps;

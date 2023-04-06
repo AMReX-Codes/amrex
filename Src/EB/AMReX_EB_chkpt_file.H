@@ -3,7 +3,7 @@
 
 #include <AMReX_MultiFab.H>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 class ChkptFile
 {
@@ -31,7 +31,7 @@ private:
 
 
 public:
-    ChkptFile (const std::string &fname);
+    ChkptFile (std::string fname);
 
     void read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
                                DistributionMapping& dmap,
@@ -55,6 +55,6 @@ public:
                               const IntVect& ngrow, bool extend_domain_face, int max_grid_size) const;
 };
 
-}}
+}
 
 #endif

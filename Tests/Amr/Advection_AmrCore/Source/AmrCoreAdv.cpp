@@ -100,9 +100,7 @@ AmrCoreAdv::AmrCoreAdv ()
     fillpatcher.resize(nlevs_max+1);
 }
 
-AmrCoreAdv::~AmrCoreAdv ()
-{
-}
+AmrCoreAdv::~AmrCoreAdv () = default;
 
 // advance solution to final time
 void
@@ -166,7 +164,7 @@ AmrCoreAdv::Evolve ()
 void
 AmrCoreAdv::InitData ()
 {
-    if (restart_chkfile == "") {
+    if (restart_chkfile.empty()) {
         // start simulation from the beginning
         const Real time = 0.0;
         InitFromScratch(time);
@@ -747,7 +745,7 @@ AmrCoreAdv::ComputeDt ()
     {
         dt_tmp[lev] = EstTimeStep(lev, t_new[lev]);
     }
-    ParallelDescriptor::ReduceRealMin(&dt_tmp[0], dt_tmp.size());
+    ParallelDescriptor::ReduceRealMin(&dt_tmp[0], int(dt_tmp.size()));
 
     constexpr Real change_max = 1.1;
     Real dt_0 = dt_tmp[0];
@@ -783,7 +781,7 @@ AmrCoreAdv::EstTimeStep (int lev, Real time)
 
     const Real* dx  =  geom[lev].CellSize();
 
-    if (time == 0.0) {
+    if (time == Real(0.0)) {
        DefineVelocityAtLevel(lev,time);
     } else {
        Real t_nph_predicted = time + 0.5 * dt[lev];
@@ -821,7 +819,7 @@ AmrCoreAdv::PlotFileMF () const
 
 // set plotfile variable names
 Vector<std::string>
-AmrCoreAdv::PlotFileVarNames () const
+AmrCoreAdv::PlotFileVarNames ()
 {
     return {"phi"};
 }
@@ -1056,7 +1054,7 @@ AmrCoreAdv::ReadCheckpointFile ()
 
 #ifdef AMREX_PARTICLES
     if (do_tracers) {
-        BL_ASSERT(TracerPC == 0);
+        BL_ASSERT(TracerPC == nullptr);
         TracerPC = std::make_unique<AmrTracerParticleContainer>(this);
         TracerPC->Restart(this->restart_chkfile, "particles");
     }

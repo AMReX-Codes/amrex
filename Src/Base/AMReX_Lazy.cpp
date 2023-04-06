@@ -1,12 +1,10 @@
 #include <AMReX_Lazy.H>
 
-namespace amrex {
-
-namespace Lazy
+namespace amrex::Lazy
 {
     FuncQue reduction_queue;
 
-    void QueueReduction (Func f)
+    void QueueReduction (Func f) // NOLINT
     {
 #ifdef BL_USE_MPI
         reduction_queue.push_back(f);
@@ -36,6 +34,4 @@ namespace Lazy
     {
         EvalReduction();
     }
-}
-
 }

@@ -11,26 +11,17 @@
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 template <class F, class G>
 class DifferenceIF
 {
 public:
 
-    DifferenceIF (F&& a_f, G&& a_g)
+    DifferenceIF (F a_f, G a_g)
         : m_f(std::move(a_f)),
           m_g(std::move(a_g))
         {}
-    DifferenceIF (F const& a_f, G const& a_g)
-        : m_f(a_f),
-          m_g(a_g)
-    {}
-
-    DifferenceIF (const DifferenceIF& rhs) = default;
-    DifferenceIF (DifferenceIF&& rhs) = default;
-    DifferenceIF& operator= (const DifferenceIF& rhs) = delete;
-    DifferenceIF& operator= (DifferenceIF&& rhs) = delete;
 
     inline Real operator() (const RealArray& p) const noexcept
     {
@@ -71,6 +62,6 @@ makeDifference (F&& f, G&& g)
         (std::forward<F>(f), std::forward<G>(g));
 }
 
-}}
+}
 
 #endif

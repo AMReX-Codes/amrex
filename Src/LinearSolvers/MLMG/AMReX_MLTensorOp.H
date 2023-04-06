@@ -39,7 +39,7 @@ public:
                 const Vector<iMultiFab const*>& a_overset_mask, // 1: unknown, 0: known
                 const LPInfo& a_info = LPInfo(),
                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
-    virtual ~MLTensorOp ();
+    virtual ~MLTensorOp () = default;
 
     MLTensorOp (const MLTensorOp&) = delete;
     MLTensorOp (MLTensorOp&&) = delete;

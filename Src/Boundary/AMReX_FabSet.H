@@ -52,7 +52,7 @@ public:
 
     //
     //! The default constructor -- you must later call define().
-    FabSetT () noexcept {}
+    FabSetT () noexcept = default;
     //
     //! Construct a FabSetT<MF> of specified number of components on the grids.
     FabSetT (const BoxArray& grids, const DistributionMapping& dmap, int ncomp);

@@ -99,8 +99,6 @@ PlotFileDataImpl::PlotFileDataImpl (std::string const& plotfile_name)
     }
 }
 
-PlotFileDataImpl::~PlotFileDataImpl () {}
-
 void
 PlotFileDataImpl::syncDistributionMap (PlotFileDataImpl const& src) noexcept
 {
@@ -134,7 +132,7 @@ PlotFileDataImpl::get (int level, std::string const& varname) noexcept
     if (r == std::end(m_var_names)) {
         amrex::Abort("PlotFileDataImpl::get: varname not found "+varname);
     } else {
-        int icomp = std::distance(std::begin(m_var_names), r);
+        int icomp = static_cast<int>(std::distance(std::begin(m_var_names), r));
         for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
             int gid = mfi.index();
             FArrayBox& dstfab = mf[mfi];

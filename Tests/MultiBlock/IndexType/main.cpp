@@ -72,7 +72,7 @@ int GetFaceDir(amrex::IndexType iv)
     static_assert(sizeof(amrex::IndexType) == sizeof(unsigned int), "IndexType is not punnable to unsigned int");
     unsigned int value{0};
     std::memcpy(&value, &iv, sizeof(unsigned int));
-    return ((value & 0b001) + (value & 0b010) + (value & 0b100)) >> 1;
+    return int(((value & 0b001) + (value & 0b010) + (value & 0b100)) >> 1);
 }
 
 amrex::Box GetFaceBoundary(const amrex::Box& domain, amrex::Orientation::Side side)

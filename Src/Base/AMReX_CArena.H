@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <set>
 #include <vector>
+#include <map>
 #include <mutex>
 #include <unordered_set>
 #include <functional>
@@ -48,7 +49,7 @@ public:
     * \brief Free up allocated memory.  Merge neighboring free memory chunks
     * into largest possible chunk.
     */
-    virtual void free (void* ap) override final;
+    virtual void free (void* vp) override final;
 
     virtual std::size_t freeUnused () override final;
 
@@ -59,6 +60,12 @@ public:
      * system.
      */
     virtual bool hasFreeDeviceMemory (std::size_t sz) override;
+
+    /**
+     * \brief Add this Arena to the list of Arenas that are profiled by TinyProfiler.
+     * \param memory_name The name of this arena in the TinyProfiler output.
+     */
+    virtual void registerForProfiling (const std::string& memory_name) override;
 
     //! The current amount of heap space used by the CArena object.
     std::size_t heap_space_used () const noexcept;
@@ -162,9 +169,14 @@ protected:
     //! The minimal size of hunks to request from system
     std::size_t m_hunk;
     //! The amount of heap space currently allocated.
-    std::size_t m_used;
+    std::size_t m_used{0};
     //! The amount of memory given out via alloc().
-    std::size_t m_actually_used;
+    std::size_t m_actually_used{0};
+    //! If this arena is profiled by TinyProfiler
+    bool m_do_profiling = false;
+    //! Data structure used for profiling with TinyProfiler
+    std::map<std::string, MemStat> m_profiling_stats;
+
 
     std::mutex carena_mutex;
 };

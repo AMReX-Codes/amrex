@@ -25,7 +25,7 @@ MLNodeLaplacian::buildIntegral ()
     {
         MultiFab* intg = m_integral[amrlev].get();
 
-        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+        const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
         if (factory)
         {
             const int ncomp = intg->nComp();
@@ -94,7 +94,7 @@ MLNodeLaplacian::buildSurfaceIntegral ()
     {
         MultiFab* sintg = m_surface_integral[amrlev].get();
 
-        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+        const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
         if (factory)
         {
             const int ncomp = sintg->nComp();

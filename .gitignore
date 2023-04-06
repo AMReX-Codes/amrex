@@ -15,6 +15,13 @@ o/
 t/
 TAGS
 
+# editors and IDEs
+.idea/
+cmake-build-*/
+.kdev?/
+*.kdev?
+.vscode
+
 # latex
 *.aux
 *.log
@@ -54,3 +61,4 @@ Tutorials/EB/Donut/Exec/ls_plt*
 
 # local config
 Tools/GNUMake/Make.local
+Tools/GNUMake/Make.local-pre

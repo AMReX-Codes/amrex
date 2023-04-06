@@ -31,9 +31,7 @@ void test_assign_density(TestParams& parms)
   const Box domain(domain_lo, domain_hi);
 
   // This sets the boundary conditions to be doubly or triply periodic
-  int is_per[BL_SPACEDIM];
-  for (int i = 0; i < BL_SPACEDIM; i++)
-    is_per[i] = 1;
+  int is_per[] = {AMREX_D_DECL(1,1,1)};
   Geometry geom(domain, &real_box, CoordSys::cartesian, is_per);
 
   BoxArray ba(domain);

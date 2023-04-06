@@ -16,7 +16,7 @@
 namespace amrex {
 
 template <typename MF>
-class MLCellLinOpT
+class MLCellLinOpT  // NOLINT(cppcoreguidelines-virtual-class-destructor)
     : public MLLinOpT<MF>
 {
 public:
@@ -30,7 +30,7 @@ public:
     using Location  = typename MLLinOpT<MF>::Location;
 
     MLCellLinOpT ();
-    virtual ~MLCellLinOpT ();
+    ~MLCellLinOpT () override = default;
 
     MLCellLinOpT (const MLCellLinOpT<MF>&) = delete;
     MLCellLinOpT (MLCellLinOpT<MF>&&) = delete;
@@ -43,17 +43,17 @@ public:
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FAB> const*>& a_factory = {});
 
-    virtual void setLevelBC (int amrlev, const MF* levelbcdata,
+    void setLevelBC (int amrlev, const MF* levelbcdata,
                              const MF* robinbc_a = nullptr,
                              const MF* robinbc_b = nullptr,
-                             const MF* robinbc_f = nullptr) final override;
+                             const MF* robinbc_f = nullptr) final;
 
     using MLLinOpT<MF>::setLevelBC;
 
-    virtual bool needsUpdate () const override {
+    bool needsUpdate () const override {
         return MLLinOpT<MF>::needsUpdate();
     }
-    virtual void update () override;
+    void update () override;
 
     virtual bool isCrossStencil () const { return true; }
     virtual bool isTensorOp () const { return false; }
@@ -66,65 +66,65 @@ public:
 
     BoxArray makeNGrids (int grid_size) const;
 
-    virtual void restriction (int, int, MF& crse, MF& fine) const override;
+    void restriction (int, int, MF& crse, MF& fine) const override;
 
-    virtual void interpolation (int amrlev, int fmglev, MF& fine, const MF& crse) const override;
+    void interpolation (int amrlev, int fmglev, MF& fine, const MF& crse) const override;
 
-    virtual void interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) const override;
+    void interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) const override;
 
-    virtual void interpolationAmr (int famrlev, MF& fine, const MF& crse,
+    void interpolationAmr (int famrlev, MF& fine, const MF& crse,
                                    IntVect const& nghost) const override;
 
-    virtual void averageDownSolutionRHS (int camrlev, MF& crse_sol, MF& crse_rhs,
+    void averageDownSolutionRHS (int camrlev, MF& crse_sol, MF& crse_rhs,
                                          const MF& fine_sol, const MF& fine_rhs) override;
 
-    virtual void apply (int amrlev, int mglev, MF& out, MF& in, BCMode bc_mode,
+    void apply (int amrlev, int mglev, MF& out, MF& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndryT<MF>* bndry=nullptr) const override;
-    virtual void smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
-                         bool skip_fillboundary=false) const final override;
+    void smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
+                         bool skip_fillboundary=false) const final;
 
-    virtual void solutionResidual (int amrlev, MF& resid, MF& x, const MF& b,
+    void solutionResidual (int amrlev, MF& resid, MF& x, const MF& b,
                                    const MF* crse_bcdata=nullptr) override;
 
-    virtual void correctionResidual (int amrlev, int mglev, MF& resid, MF& x, const MF& b,
-                                     BCMode bc_mode, const MF* crse_bcdata=nullptr) final override;
+    void correctionResidual (int amrlev, int mglev, MF& resid, MF& x, const MF& b,
+                                     BCMode bc_mode, const MF* crse_bcdata=nullptr) final;
 
     // The assumption is crse_sol's boundary has been filled, but not fine_sol.
-    virtual void reflux (int crse_amrlev,
+    void reflux (int crse_amrlev,
                          MF& res, const MF& crse_sol, const MF&,
-                         MF&, MF& fine_sol, const MF&) const final override;
-    virtual void compFlux (int amrlev, const Array<MF*,AMREX_SPACEDIM>& fluxes,
+                         MF&, MF& fine_sol, const MF&) const final;
+    void compFlux (int amrlev, const Array<MF*,AMREX_SPACEDIM>& fluxes,
                            MF& sol, Location loc) const override;
-    virtual void compGrad (int amrlev, const Array<MF*,AMREX_SPACEDIM>& grad,
+    void compGrad (int amrlev, const Array<MF*,AMREX_SPACEDIM>& grad,
                            MF& sol, Location loc) const override;
 
-    virtual void applyMetricTerm (int amrlev, int mglev, MF& rhs) const final override;
-    virtual void unapplyMetricTerm (int amrlev, int mglev, MF& rhs) const final override;
-    virtual Vector<RT> getSolvabilityOffset (int amrlev, int mglev,
+    void applyMetricTerm (int amrlev, int mglev, MF& rhs) const final;
+    void unapplyMetricTerm (int amrlev, int mglev, MF& rhs) const final;
+    Vector<RT> getSolvabilityOffset (int amrlev, int mglev,
                                              MF const& rhs) const override;
-    virtual void fixSolvabilityByOffset (int amrlev, int mglev, MF& rhs,
+    void fixSolvabilityByOffset (int amrlev, int mglev, MF& rhs,
                                          Vector<RT> const& offset) const override;
 
-    virtual void prepareForSolve () override;
+    void prepareForSolve () override;
 
-    virtual RT xdoty (int amrlev, int mglev, const MF& x, const MF& y, bool local) const final override;
+    RT xdoty (int amrlev, int mglev, const MF& x, const MF& y, bool local) const final;
 
     virtual void Fapply (int amrlev, int mglev, MF& out, const MF& in) const = 0;
     virtual void Fsmooth (int amrlev, int mglev, MF& sol, const MF& rsh, int redblack) const = 0;
     virtual void FFlux (int amrlev, const MFIter& mfi,
                         const Array<FAB*,AMREX_SPACEDIM>& flux,
-                        const FAB& sol, Location loc, const int face_only=0) const = 0;
+                        const FAB& sol, Location loc, int face_only=0) const = 0;
 
     virtual void addInhomogNeumannFlux (int /*amrlev*/,
                                         const Array<MF*,AMREX_SPACEDIM>& /*grad*/,
                                         MF const& /*sol*/,
                                         bool /*mult_bcoef*/) const {}
 
-    virtual RT normInf (int amrlev, MF const& mf, bool local) const override;
+    RT normInf (int amrlev, MF const& mf, bool local) const override;
 
-    virtual void averageDownAndSync (Vector<MF>& mf) const override;
+    void averageDownAndSync (Vector<MF>& sol) const override;
 
-    virtual void avgDownResAmr (int clev, MF& cres, MF const& fres) const override;
+    void avgDownResAmr (int clev, MF& cres, MF const& fres) const override;
 
     struct BCTL {
         BoundCond type;
@@ -219,7 +219,7 @@ struct MLMGABCTag {
     int comp;
     int dir;
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box() const noexcept { return bx; }
 };
 
@@ -238,7 +238,7 @@ struct MLMGPSTag {
     int comp;
     int dir;
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box() const noexcept { return bx; }
 };
 
@@ -259,7 +259,7 @@ struct MLMGPSEBTag {
     int comp;
     int dir;
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box() const noexcept { return bx; }
 };
 #endif
@@ -274,7 +274,7 @@ MLCellLinOpT<MF>::BndryCondLoc::BndryCondLoc (const BoxArray& ba,
       bctl_dv(bctl.local_size()*ncomp),
       m_ncomp(ncomp)
 {
-    auto dp = bctl_dv.data();
+    auto* dp = bctl_dv.data();
     for (MFIter mfi(bcloc); mfi.isValid(); ++mfi) {
         bcond[mfi].resize(ncomp);
         bcloc[mfi].resize(ncomp);
@@ -334,8 +334,6 @@ MLCellLinOpT<MF>::MLCellLinOpT ()
 {
     this->m_ixtype = IntVect::TheCellVector();
 }
-
-template <typename MF> MLCellLinOpT<MF>::~MLCellLinOpT () {}
 
 template <typename MF>
 void
@@ -1002,7 +1000,7 @@ MLCellLinOpT<MF>::interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) cons
     ignore_unused(isEB);
 
 #ifdef AMREX_USE_EB
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(&(fine.Factory()));
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(&(fine.Factory()));
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
 #endif
 
@@ -1072,7 +1070,7 @@ MLCellLinOpT<MF>::interpolationAmr (int famrlev, MF& fine, const MF& crse,
     const int refratio = this->AMRRefRatio(famrlev-1);
 
 #ifdef AMREX_USE_EB
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(famrlev));
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(famrlev));
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
 #endif
 
@@ -1529,7 +1527,7 @@ MLCellLinOpT<MF>::getSolvabilityOffset (int amrlev, int mglev, MF const& rhs) co
     Vector<RT> offset(ncomp);
 
 #ifdef AMREX_USE_EB
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(amrlev,mglev));
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(amrlev,mglev));
     if (factory && !factory->isAllRegular())
     {
         if constexpr (std::is_same<MF,MultiFab>()) {
@@ -1599,7 +1597,7 @@ MLCellLinOpT<MF>::prepareForSolve ()
             MF foo(this->m_grids[amrlev][mglev], this->m_dmap[amrlev][mglev], ncomp, 0, MFInfo().SetAlloc(false));
 
 #ifdef AMREX_USE_EB
-            auto factory = dynamic_cast<EBFArrayBoxFactory const*>(this->m_factory[amrlev][mglev].get());
+            const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(this->m_factory[amrlev][mglev].get());
             const FabArray<EBCellFlagFab>* flags =
                 (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
             auto area = (factory) ? factory->getAreaFrac()
@@ -1917,7 +1915,7 @@ MLCellLinOpT<MF>::computeVolInv () const
 
     auto f = [&] (int amrlev, int mglev) {
 #ifdef AMREX_USE_EB
-        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(amrlev,mglev));
+        const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(amrlev,mglev));
         if (factory && !factory->isAllRegular())
         {
             if constexpr (std::is_same<MF,MultiFab>()) {
@@ -1943,7 +1941,7 @@ MLCellLinOpT<MF>::computeVolInv () const
 
 #ifdef AMREX_USE_EB
     RT temp1, temp2;
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(0,0));
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(0,0));
     if (factory && !factory->isAllRegular())
     {
         ParallelAllReduce::Sum<RT>({m_volinv[0][0], m_volinv[0][mgbottom]},
@@ -1973,7 +1971,7 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
         if constexpr (!std::is_same<MF,MultiFab>()) {
             amrex::Abort("MLCellLinOpT with EB only works with MultiFab");
         } else {
-            auto factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(amrlev));
+            const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(amrlev));
             const MultiFab& vfrac = factory->getVolFrac();
             if (amrlev == finest_level) {
 #ifdef AMREX_USE_GPU
@@ -1985,7 +1983,7 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
                                      [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n)
                                          -> GpuTuple<Real>
                                      {
-                                         return amrex::Math::abs(ma[box_no](i,j,k,n)
+                                         return std::abs(ma[box_no](i,j,k,n)
                                                                  *vfrac_ma[box_no](i,j,k));
                                      });
                 } else
@@ -2000,7 +1998,7 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
                         auto const& v = vfrac.const_array(mfi);
                         AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
                         {
-                            norm = std::max(norm, amrex::Math::abs(fab(i,j,k,n)*v(i,j,k)));
+                            norm = std::max(norm, std::abs(fab(i,j,k,n)*v(i,j,k)));
                         });
                     }
                 }
@@ -2016,7 +2014,7 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
                                          -> GpuTuple<Real>
                                      {
                                          if (mask_ma[box_no](i,j,k)) {
-                                             return amrex::Math::abs(ma[box_no](i,j,k,n)
+                                             return std::abs(ma[box_no](i,j,k,n)
                                                                      *vfrac_ma[box_no](i,j,k));
                                          } else {
                                              return Real(0.0);
@@ -2036,7 +2034,7 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
                         AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
                         {
                             if (mask(i,j,k)) {
-                                norm = std::max(norm, amrex::Math::abs(fab(i,j,k,n)*v(i,j,k)));
+                                norm = std::max(norm, std::abs(fab(i,j,k,n)*v(i,j,k)));
                             }
                         });
                     }

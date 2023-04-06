@@ -3,7 +3,7 @@
 #include <AMReX_Print.H>
 #include <AMReX_algoim_K.H>
 
-namespace amrex { namespace algoim {
+namespace amrex::algoim {
 
 void
 compute_integrals (MultiFab& intg, int nghost)
@@ -383,4 +383,4 @@ compute_surface_integrals (MultiFab& sintgmf, IntVect nghost)
 #endif
 }
 
-}}
+}

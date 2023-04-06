@@ -80,7 +80,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
     const iMultiFab& dmsk = *m_dirichlet_mask[0][0];
 
 #ifdef AMREX_USE_EB
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[0][0].get());
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[0][0].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     const MultiFab* intg = m_integral[0].get();
     const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
@@ -344,7 +344,7 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
     const auto hibc = HiBC();
 
 #ifdef AMREX_USE_EB
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[0][0].get());
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[0][0].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     const MultiFab* intg = m_integral[0].get();
     const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
@@ -759,9 +759,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 #endif
         } else {
             Real const_sigma = m_const_sigma;
-#if (AMREX_SPACEDIM == 1)
-            amrex::ignore_unused(const_sigma);
-#elif (AMREX_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
             if (amrrr == 2) {
                 AMREX_HOST_DEVICE_FOR_3D(cbx, i, j, k,
                 {
@@ -842,9 +840,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 #endif
             } else {
                 Real const_sigma = m_const_sigma;
-#if (AMREX_SPACEDIM == 1)
-                amrex::ignore_unused(const_sigma);
-#elif (AMREX_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
                 AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                 {
                     mlndlap_res_cf_contrib_cs(i,j,k,resarr,csolarr,crhsarr,const_sigma,

@@ -152,8 +152,10 @@ public:
     // overview wavefront size: https://github.com/llvm/llvm-project/blob/efc063b621ea0c4d1e452bcade62f7fc7e1cc937/clang/test/Driver/amdgpu-macros.cl#L70-L115
     // gfx10XX has 32 threads per wavefront else 64
     static AMREX_EXPORT constexpr int warp_size = __AMDGCN_WAVEFRONT_SIZE;
+#elif defined(AMREX_USE_SYCL)
+    static AMREX_EXPORT constexpr int warp_size = AMREX_SYCL_SUB_GROUP_SIZE;
 #else
-    static AMREX_EXPORT constexpr int warp_size = AMREX_HIP_OR_CUDA_OR_SYCL(64,32,32);
+    static AMREX_EXPORT constexpr int warp_size = AMREX_HIP_OR_CUDA(64,32);
 #endif
 
     static unsigned int maxBlocksPerLaunch () noexcept { return max_blocks_per_launch; }

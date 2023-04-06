@@ -13,9 +13,6 @@ MLNodeTensorLaplacian::MLNodeTensorLaplacian (const Vector<Geometry>& a_geom,
     define(a_geom, a_grids, a_dmap, a_info);
 }
 
-MLNodeTensorLaplacian::~MLNodeTensorLaplacian ()
-{}
-
 void
 MLNodeTensorLaplacian::setSigma (Array<Real,nelems> const& a_sigma) noexcept
 {
@@ -23,7 +20,7 @@ MLNodeTensorLaplacian::setSigma (Array<Real,nelems> const& a_sigma) noexcept
 }
 
 void
-MLNodeTensorLaplacian::setBeta (Array<Real,AMREX_SPACEDIM> const& a_beta) noexcept
+MLNodeTensorLaplacian::setBeta (Array<Real,AMREX_SPACEDIM> const& a_beta) noexcept // NOLINT(readability-convert-member-functions-to-static)
 {
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(a_beta);
@@ -272,7 +269,6 @@ void
 MLNodeTensorLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
 {
     amrex::ignore_unused(amrlev,mglev,mf);
-    return;
 }
 
 void

@@ -33,7 +33,7 @@ public:
     //! Possible values for each cell.
     enum TagVal { CLEAR=0, BUF, SET };
 
-    TagBox () noexcept;
+    TagBox () noexcept = default;
 
     explicit TagBox (Arena* ar) noexcept;
 
@@ -44,7 +44,7 @@ public:
 
     TagBox (const TagBox& rhs, MakeType make_type, int scomp, int ncomp);
 
-    virtual ~TagBox () noexcept override = default;
+    ~TagBox () noexcept override = default;
 
     TagBox (TagBox&& rhs) noexcept = default;
 
@@ -67,7 +67,7 @@ public:
     * \param nbuff
     * \param nwid
     */
-    void buffer (const IntVect& nbuf, const IntVect& nwid) noexcept;
+    void buffer (const IntVect& a_nbuff, const IntVect& nwid) noexcept;
 
     /**
     * \brief Returns Vector\<int\> of size domain.numPts() suitable for calling
@@ -77,7 +77,7 @@ public:
 //#if (__cplusplus >= 201402L)
 //    [[deprecated("No need to use this unless calling Fortran < 2003")]]
 //#endif
-    Vector<int> tags () const noexcept;
+    [[nodiscard]] Vector<int> tags () const noexcept;
 
     /**
     * \brief Since a TagBox is a BaseFab\<char\>, we can use this utility
@@ -162,10 +162,10 @@ public:
     * \param dm
     * \param _ngrow
     */
-    TagBoxArray (const BoxArray& bs, const DistributionMapping& dm, int _ngrow=0);
-    TagBoxArray (const BoxArray& bs, const DistributionMapping& dm, const IntVect& _ngrow);
+    TagBoxArray (const BoxArray& ba, const DistributionMapping& dm, int _ngrow=0);
+    TagBoxArray (const BoxArray& ba, const DistributionMapping& dm, const IntVect& _ngrow);
 
-    ~TagBoxArray () override = default;
+    ~TagBoxArray () = default;
 
     TagBoxArray (TagBoxArray&& rhs) noexcept = default;
     TagBoxArray& operator= (TagBoxArray&& rhs) noexcept = default;

@@ -26,6 +26,11 @@ public:
     MLMGT (MLLinOpT<MF>& a_lp);
     ~MLMGT ();
 
+    MLMGT (MLMGT<MF> const&) = delete;
+    MLMGT (MLMGT<MF> &&) = delete;
+    MLMGT<MF>& operator= (MLMGT<MF> const&) = delete;
+    MLMGT<MF>& operator= (MLMGT<MF> &&) = delete;
+
     // Optional argument checkpoint_file is for debugging only.
     template <typename AMF>
     RT solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
@@ -121,7 +126,7 @@ public:
 
     void setFinalFillBC (int flag) noexcept { final_fill_bc = flag; }
 
-    int numAMRLevels () const noexcept { return namrlevs; }
+    [[nodiscard]] int numAMRLevels () const noexcept { return namrlevs; }
 
     void setNSolve (int flag) noexcept { do_nsolve = flag; }
     void setNSolveGridSize (int s) noexcept { nsolve_grid_size = s; }
@@ -139,7 +144,7 @@ public:
     //! Set the namespace in input file for parsing HYPRE specific options
     void setHypreOptionsNamespace(const std::string& prefix) noexcept
     {
-     hypre_options_namespace = prefix;
+        hypre_options_namespace = prefix;
     }
 
     void setHypreOldDefault (bool l) noexcept {hypre_old_default = l;}
@@ -156,7 +161,7 @@ public:
 
     void oneIter (int iter);
 
-    void miniCycle (int alev);
+    void miniCycle (int amrlev);
 
     void mgVcycle (int amrlev, int mglev);
     void mgFcycle ();
@@ -167,15 +172,15 @@ public:
 
     void computeMLResidual (int amrlevmax);
     void computeResidual (int alev);
-    void computeResWithCrseSolFineCor (int crse_amr_lev, int fine_amr_lev);
-    void computeResWithCrseCorFineCor (int fine_amr_lev);
+    void computeResWithCrseSolFineCor (int calev, int falev);
+    void computeResWithCrseCorFineCor (int falev);
     void interpCorrection (int alev);
     void interpCorrection (int alev, int mglev);
     void addInterpCorrection (int alev, int mglev);
 
     void computeResOfCorrection (int amrlev, int mglev);
 
-    RT ResNormInf (int amrlev, bool local = false);
+    RT ResNormInf (int alev, bool local = false);
     RT MLResNormInf (int alevmax, bool local = false);
     RT MLRhsNormInf (bool local = false);
 
@@ -192,15 +197,15 @@ public:
 
     int bottomSolveWithCG (MF& x, const MF& b, typename MLCGSolverT<MF>::Type type);
 
-    RT getInitRHS () const noexcept { return m_rhsnorm0; }
+    [[nodiscard]] RT getInitRHS () const noexcept { return m_rhsnorm0; }
     // Initial composite residual
-    RT getInitResidual () const noexcept { return m_init_resnorm0; }
+    [[nodiscard]] RT getInitResidual () const noexcept { return m_init_resnorm0; }
     // Final composite residual
-    RT getFinalResidual () const noexcept { return m_final_resnorm0; }
+    [[nodiscard]] RT getFinalResidual () const noexcept { return m_final_resnorm0; }
     // Residuals on the *finest* AMR level after each iteration
-    Vector<RT> const& getResidualHistory () const noexcept { return m_iter_fine_resnorm0; }
-    int getNumIters () const noexcept { return m_iter_fine_resnorm0.size(); }
-    Vector<int> const& getNumCGIters () const noexcept { return m_niters_cg; }
+    [[nodiscard]] Vector<RT> const& getResidualHistory () const noexcept { return m_iter_fine_resnorm0; }
+    [[nodiscard]] int getNumIters () const noexcept { return m_iter_fine_resnorm0.size(); }
+    [[nodiscard]] Vector<int> const& getNumCGIters () const noexcept { return m_niters_cg; }
 
 private:
 
@@ -307,7 +312,7 @@ MLMGT<MF>::MLMGT (MLLinOpT<MF>& a_lp)
       finest_amr_lev(a_lp.NAMRLevels()-1)
 {}
 
-template <typename MF> MLMGT<MF>::~MLMGT () {}
+template <typename MF> MLMGT<MF>::~MLMGT () = default;
 
 template <typename MF>
 template <typename AMF>
@@ -975,7 +980,7 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
         linop.scaleRHS(alev, rhs[alev]);
 
 #ifdef AMREX_USE_EB
-        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(alev));
+        const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(alev));
         if (factory && !factory->isAllRegular()) {
             if constexpr (std::is_same<MF,MultiFab>()) {
                 EB_set_covered(rhs[alev], 0, ncomp, 0, RT(0.0));
@@ -1057,9 +1062,9 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
         cor_hold[alev][0].setVal(RT(0.0));
     }
 
-    if (linop.m_parent) {
-        do_nsolve = false;  // no embedded N-Solve
-    } else if (!linop.supportNSolve()) {
+    if (linop.m_parent // no embedded N-Solve
+        || !linop.supportNSolve())
+    {
         do_nsolve = false;
     }
 
@@ -1426,7 +1431,7 @@ MLMGT<MF>::actualBottomSolve ()
         }
 
         if (bottom_solver == BottomSolver::hypre)
-        {
+        { // NOLINT(bugprone-branch-clone)
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
             bottomSolveWithHypre(x, *bottom_b);
 #endif
@@ -1608,7 +1613,7 @@ MLMGT<MF>::interpCorrection (int alev)
     cfine.ParallelCopy(crse_cor, 0, 0, ncomp,  IntVect(ng_src), IntVect(ng_dst),
                        crse_geom.periodicity());
 
-    linop.interpolationAmr(alev, fine_cor, cfine, nghost);
+    linop.interpolationAmr(alev, fine_cor, cfine, nghost); // NOLINT(readability-suspicious-call-argument)
 }
 
 // Interpolate correction between MG levels

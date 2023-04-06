@@ -272,8 +272,6 @@ template <typename MF>
 void
 MLABecLaplacianT<MF>::define_ab_coeffs ()
 {
-    const int ncomp = this->getNComp();
-
     m_a_coeffs.resize(this->m_num_amr_levels);
     m_b_coeffs.resize(this->m_num_amr_levels);
     for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev)
@@ -290,7 +288,7 @@ MLABecLaplacianT<MF>::define_ab_coeffs ()
                 const BoxArray& ba = amrex::convert(this->m_grids[amrlev][mglev],
                                                     IntVect::TheDimensionVector(idim));
                 m_b_coeffs[amrlev][mglev][idim].define
-                    (ba, this->m_dmap[amrlev][mglev], ncomp, 0, MFInfo(),
+                    (ba, this->m_dmap[amrlev][mglev], m_ncomp, 0, MFInfo(),
                      *(this->m_factory[amrlev][mglev]));
             }
         }

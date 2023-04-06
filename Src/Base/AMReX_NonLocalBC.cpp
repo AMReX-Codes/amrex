@@ -1,7 +1,7 @@
 #include "AMReX_NonLocalBC.H"
 
-namespace amrex {
-namespace NonLocalBC {
+namespace amrex::NonLocalBC {
+
 #ifdef AMREX_USE_MPI
 // Note, this is copied and modified from PrepareSendBuffers and PostRcvs
 void PrepareCommBuffers(CommData& comm,
@@ -16,7 +16,7 @@ void PrepareCommBuffers(CommData& comm,
     comm.cctc.clear();
     comm.stats.clear();
 
-    const int N_comms = cctc.size();
+    const auto N_comms = static_cast<int>(cctc.size());
     if (N_comms == 0) return;
     // reserve for upcominf push_backs
     comm.data.reserve(N_comms);
@@ -85,12 +85,12 @@ void PostRecvs(CommData& recv, int mpi_tag) {
 }
 
 void PostSends(CommData& send, int mpi_tag) {
-    const int n_sends = send.data.size();
+    const auto n_sends = send.data.size();
     AMREX_ASSERT(n_sends == send.size.size());
     AMREX_ASSERT(n_sends == send.rank.size());
     AMREX_ASSERT(n_sends == send.request.size());
     MPI_Comm comm = ParallelContext::CommunicatorSub();
-    for (int j = 0; j < n_sends; ++j) {
+    for (int j = 0; j < static_cast<int>(n_sends); ++j) {
         if (send.size[j] > 0) {
             const int rank = ParallelContext::global_to_local_rank(send.rank[j]);
             AMREX_ASSERT(send.data[j] != nullptr);
@@ -106,5 +106,4 @@ template MultiBlockCommMetaData ParallelCopy(FabArray<FArrayBox>& dest, const Bo
                                              int srccomp, int numcomp, const IntVect& ngrow,
                                              MultiBlockIndexMapping, Identity);
 
-} // namespace NonLocalBC
-} // namespace amrex
+}

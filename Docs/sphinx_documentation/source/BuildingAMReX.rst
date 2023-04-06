@@ -33,7 +33,8 @@ list of important variables.
    +=================+=====================================+====================+
    | AMREX_HOME      | Path to amrex                       | environment        |
    +-----------------+-------------------------------------+--------------------+
-   | COMP            | gnu, cray, ibm, intel, llvm, or pgi | none               |
+   | COMP            | gnu, cray, ibm, intel, intel-llvm,  |                    |
+   |                 | intel-classic, llvm, or pgi         | none               |
    +-----------------+-------------------------------------+--------------------+
    | CXXSTD          | C++ standard (``c++17``, ``c++20``) | compiler default,  |
    |                 |                                     | at least ``c++17`` |

@@ -73,6 +73,7 @@
 #include <iomanip>
 #include <new>
 #include <stack>
+#include <thread>
 #include <limits>
 #include <vector>
 #include <algorithm>
@@ -111,11 +112,11 @@ namespace {
     std::streamsize  prev_err_precision;
     std::new_handler prev_new_handler;
     typedef void (*SignalHandler)(int);
-    SignalHandler prev_handler_sigsegv = SIG_ERR;
-    SignalHandler prev_handler_sigterm = SIG_ERR;
-    SignalHandler prev_handler_sigint  = SIG_ERR;
-    SignalHandler prev_handler_sigabrt = SIG_ERR;
-    SignalHandler prev_handler_sigfpe  = SIG_ERR;
+    SignalHandler prev_handler_sigsegv = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
+    SignalHandler prev_handler_sigterm = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
+    SignalHandler prev_handler_sigint  = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
+    SignalHandler prev_handler_sigabrt = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
+    SignalHandler prev_handler_sigfpe  = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
 #if defined(__linux__)
     int           prev_fpe_excepts = 0;
     int           curr_fpe_excepts = 0;
@@ -156,7 +157,7 @@ amrex::write_to_stderr_without_buffering (const char* str)
     //
     // Flush all buffers.
     //
-    fflush(NULL);
+    std::fflush(nullptr);
 
     if (str)
     {
@@ -165,9 +166,9 @@ amrex::write_to_stderr_without_buffering (const char* str)
         auto tmp = procall.str();
         const char *cprocall = tmp.c_str();
         const char * const end = " !!!\n";
-        fwrite(cprocall, strlen(cprocall), 1, stderr);
-        fwrite(str, strlen(str), 1, stderr);
-        fwrite(end, strlen(end), 1, stderr);
+        std::fwrite(cprocall, strlen(cprocall), 1, stderr);
+        std::fwrite(str, strlen(str), 1, stderr);
+        std::fwrite(end, strlen(end), 1, stderr);
     }
 }
 
@@ -175,13 +176,13 @@ namespace {
 void
 write_lib_id(const char* msg)
 {
-    fflush(0);
+    std::fflush(nullptr);
     const char* const s = "amrex::";
-    fwrite(s, strlen(s), 1, stderr);
+    std::fwrite(s, strlen(s), 1, stderr);
     if ( msg )
     {
-        fwrite(msg, strlen(msg), 1, stderr);
-        fwrite("::", 2, 1, stderr);
+        std::fwrite(msg, strlen(msg), 1, stderr);
+        std::fwrite("::", 2, 1, stderr);
     }
 }
 }
@@ -307,7 +308,7 @@ amrex::Initialize (MPI_Comm mpi_comm,
                    ErrorHandler a_errhandler)
 {
     int argc = 0;
-    char** argv = 0;
+    char** argv = nullptr;
     return Initialize(argc, argv, false, mpi_comm, {}, a_osout, a_oserr, a_errhandler);
 }
 
@@ -360,7 +361,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         for (int i = 0; i < argc; ++i) {
             if (i != 0) command_line.append(" ");
             command_line.append(argv[i]);
-            command_arguments.push_back(std::string(argv[i]));
+            command_arguments.emplace_back(argv[i]);
         }
     }
 
@@ -387,7 +388,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     {
         if (argc == 1)
         {
-            ParmParse::Initialize(0,0,0);
+            ParmParse::Initialize(0,nullptr,nullptr);
         }
         else if (argc > 1)
         {
@@ -397,7 +398,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                 // Application code can then parse the command line. This will
                 // prevent "-h" or "--help" from creating errors in ParmParse,
                 // but only if it's the first argument after the executable.
-                ParmParse::Initialize(0,0,0);
+                ParmParse::Initialize(0,nullptr,nullptr);
             }
             else
             {
@@ -406,14 +407,14 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                 // the rest get ingored.
                 int ppargc = 1;
                 for (; ppargc < argc; ++ppargc) {
-                    if (strcmp(argv[ppargc], "--") == 0) break;
+                    if (std::strcmp(argv[ppargc], "--") == 0) break;
                 }
                 if (ppargc > 1)
                 {
-                    if (strchr(argv[1],'=') || (argc > 2 ? argv[2][0] == '=' : false) )
+                    if (std::strchr(argv[1],'=') || (argc > 2 ? argv[2][0] == '=' : false) )
                     {
                         // No inputs file to parse
-                        ParmParse::Initialize(ppargc-1,argv+1,0);
+                        ParmParse::Initialize(ppargc-1,argv+1,nullptr);
                     }
                     else
                     {
@@ -424,7 +425,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             }
         }
     } else {
-        ParmParse::Initialize(0,0,0);
+        ParmParse::Initialize(0,nullptr,nullptr);
     }
 
     if (func_parm_parse) {
@@ -454,6 +455,23 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         amrex::Print() << "OMP initialized with "
                        << omp_get_max_threads()
                        << " OMP threads\n";
+    }
+#endif
+
+#if defined(AMREX_USE_MPI) && defined(AMREX_USE_OMP)
+    if (system::verbose > 0) {
+        auto ncores = int(std::thread::hardware_concurrency());
+        if (ncores != 0 && // It might be zero according to the C++ standard.
+            ncores < omp_get_max_threads() * ParallelDescriptor::NProcsPerNode())
+        {
+            amrex::Print(amrex::ErrorStream())
+                << "AMReX Warning: You might be oversubscribing CPU cores with OMP threads.\n"
+                << "               There are " << ncores << " cores per node.\n"
+                << "               There are " << ParallelDescriptor::NProcsPerNode() << " MPI ranks per node.\n"
+                << "               But OMP is initialized with " << omp_get_max_threads() << " threads per rank.\n"
+                << "               You should consider setting OMP_NUM_THREADS="
+                << ncores/ParallelDescriptor::NProcsPerNode() << " or less in the environment.\n";
+        }
     }
 #endif
 
@@ -495,28 +513,28 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             if (system::handle_sigsegv) {
                 prev_handler_sigsegv = std::signal(SIGSEGV, BLBackTrace::handler);
             } else {
-                prev_handler_sigsegv = SIG_ERR;
+                prev_handler_sigsegv = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
             }
 
             if (system::handle_sigterm) {
                 prev_handler_sigterm = std::signal(SIGTERM,  BLBackTrace::handler);
             } else {
-                prev_handler_sigterm = SIG_ERR;
+                prev_handler_sigterm = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
             }
 
             if (system::handle_sigint) {
                 prev_handler_sigint = std::signal(SIGINT,  BLBackTrace::handler);
             } else {
-                prev_handler_sigint = SIG_ERR;
+                prev_handler_sigint = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
             }
 
             if (system::handle_sigabrt) {
                 prev_handler_sigabrt = std::signal(SIGABRT, BLBackTrace::handler);
             } else {
-                prev_handler_sigabrt = SIG_ERR;
+                prev_handler_sigabrt = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
             }
 
-            prev_handler_sigfpe = SIG_ERR;
+            prev_handler_sigfpe = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
             if (system::handle_sigfpe)
             {
                 int invalid = 0, divbyzero=0, overflow=0;
@@ -642,7 +660,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     BL_TINY_PROFILE_INITIALIZE();
 
     AMReX::push(new AMReX());
-    return AMReX::top();
+    return AMReX::top(); // NOLINT
 }
 
 bool
@@ -676,8 +694,6 @@ amrex::Finalize (amrex::AMReX* pamrex)
 #ifdef AMREX_USE_CUDA
     amrex::DeallocateRandomSeedDevArray();
 #endif
-
-    BL_TINY_PROFILE_MEMORYFINALIZE();
 
 #ifdef BL_LAZY
     Lazy::Finalize();
@@ -734,17 +750,19 @@ amrex::Finalize (amrex::AMReX* pamrex)
     sundials::Finalize();
 #endif
 
+    BL_TINY_PROFILE_MEMORYFINALIZE();
+
     amrex_mempool_finalize();
     Arena::Finalize();
 
 #ifndef BL_AMRPROF
     if (system::signal_handling)
     {
-        if (prev_handler_sigsegv != SIG_ERR) std::signal(SIGSEGV, prev_handler_sigsegv);
-        if (prev_handler_sigterm != SIG_ERR) std::signal(SIGTERM, prev_handler_sigterm);
-        if (prev_handler_sigint  != SIG_ERR) std::signal(SIGINT , prev_handler_sigint);
-        if (prev_handler_sigabrt != SIG_ERR) std::signal(SIGABRT, prev_handler_sigabrt);
-        if (prev_handler_sigfpe  != SIG_ERR) std::signal(SIGFPE , prev_handler_sigfpe);
+        if (prev_handler_sigsegv != SIG_ERR) std::signal(SIGSEGV, prev_handler_sigsegv); // NOLINT(performance-no-int-to-ptr)
+        if (prev_handler_sigterm != SIG_ERR) std::signal(SIGTERM, prev_handler_sigterm); // NOLINT(performance-no-int-to-ptr)
+        if (prev_handler_sigint  != SIG_ERR) std::signal(SIGINT , prev_handler_sigint);  // NOLINT(performance-no-int-to-ptr)
+        if (prev_handler_sigabrt != SIG_ERR) std::signal(SIGABRT, prev_handler_sigabrt); // NOLINT(performance-no-int-to-ptr)
+        if (prev_handler_sigfpe  != SIG_ERR) std::signal(SIGFPE , prev_handler_sigfpe);  // NOLINT(performance-no-int-to-ptr)
 #if defined(__linux__)
 #if !defined(__PGI) || (__PGIC__ >= 16)
         if (curr_fpe_excepts != 0) {
@@ -806,7 +824,7 @@ amrex::get_command ()
 int
 amrex::command_argument_count ()
 {
-    return command_arguments.size()-1;
+    return static_cast<int>(command_arguments.size())-1;
 }
 
 std::string

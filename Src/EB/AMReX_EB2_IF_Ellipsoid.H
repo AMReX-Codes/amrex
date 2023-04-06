@@ -7,7 +7,7 @@
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 class EllipsoidIF
     : public GPUable
@@ -20,12 +20,6 @@ public:
           m_center(makeXDim3(a_center)),
           m_sign( a_inside ? 1.0_rt : -1.0_rt )
         {}
-
-    EllipsoidIF (const EllipsoidIF& rhs) noexcept = default;
-    EllipsoidIF (EllipsoidIF&& rhs) noexcept = default;
-    EllipsoidIF& operator= (const EllipsoidIF& rhs) = delete;
-    EllipsoidIF& operator= (EllipsoidIF&& rhs) = delete;
-
 
     AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept {
@@ -47,6 +41,6 @@ protected:
     Real  m_sign;
 };
 
-}}
+}
 
 #endif

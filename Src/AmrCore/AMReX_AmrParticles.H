@@ -168,7 +168,7 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
         if (vol_weight) {
             const Real* dx = pc.Geom(0).CellSize();
             const Real vol = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);
-            mf[0]->mult(1.0/vol, 0, mf[0]->nComp(), mf[0]->nGrow());
+            mf[0]->mult(Real(1.0)/vol, 0, mf[0]->nComp(), mf[0]->nGrow());
         }
         return;
     }
@@ -181,7 +181,7 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
     {
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-            mf[lev]->setVal(0.0);
+            mf[lev]->setVal(Real(0.0));
         }
     }
 
@@ -211,7 +211,7 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
         if (vol_weight) {
             const Real* dx = pc.Geom(lev).CellSize();
             const Real vol = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);
-            mf_part[lev].mult(1.0/vol, 0, mf_part[lev].nComp(), mf_part[lev].nGrow());
+            mf_part[lev].mult(Real(1.0)/vol, 0, mf_part[lev].nComp(), mf_part[lev].nGrow());
         }
 
         if (lev < lev_max) {
@@ -277,13 +277,13 @@ public:
     {
     }
 
-    ~AmrParticleContainer_impl () {}
+    ~AmrParticleContainer_impl () override = default;
 
     AmrParticleContainer_impl ( const AmrParticleContainer_impl &) = delete;
     AmrParticleContainer_impl& operator= ( const AmrParticleContainer_impl & ) = delete;
 
-    AmrParticleContainer_impl ( AmrParticleContainer_impl && ) = default;
-    AmrParticleContainer_impl& operator= ( AmrParticleContainer_impl && ) = default;
+    AmrParticleContainer_impl ( AmrParticleContainer_impl && ) noexcept = default;
+    AmrParticleContainer_impl& operator= ( AmrParticleContainer_impl && ) noexcept = default;
 };
 
 template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArrayInt=0,
@@ -300,13 +300,13 @@ public:
     {
     }
 
-    ~AmrTracerParticleContainer () {}
+    ~AmrTracerParticleContainer () override = default;
 
     AmrTracerParticleContainer ( const AmrTracerParticleContainer &) = delete;
     AmrTracerParticleContainer& operator= ( const AmrTracerParticleContainer & ) = delete;
 
-    AmrTracerParticleContainer ( AmrTracerParticleContainer && ) = default;
-    AmrTracerParticleContainer& operator= ( AmrTracerParticleContainer && ) = default;
+    AmrTracerParticleContainer ( AmrTracerParticleContainer && ) noexcept = default;
+    AmrTracerParticleContainer& operator= ( AmrTracerParticleContainer && ) noexcept = default;
 };
 
 }
