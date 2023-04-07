@@ -545,9 +545,8 @@ Geometry::computeRoundoffDomain ()
         ParticleReal rhi = roundoff_hi[idim];
         while (iters < 20) {
             rhi = std::nextafter(rhi, roundoff_lo[idim]);
-            if (int(std::floor((rhi - plo)*dxinv)) >= ihi + 1 - ilo) {
-                roundoff_hi[idim] = rhi;
-            } else {
+            roundoff_hi[idim] = rhi;
+            if (int(std::floor((rhi - plo)*dxinv)) < ihi + 1 - ilo) {
                 break;
             }
             iters++;
