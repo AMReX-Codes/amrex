@@ -647,8 +647,6 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                           int lev, int gid, int /*tid*/,
                           int lev_min, int lev_max, int nGrow, bool remove_negative)
 {
-    using ParticleType = typename PTile::ParticleType;
-
     const int np = ptile.numParticles();
     if (np == 0) return 0;
 
@@ -677,7 +675,6 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
             {
                 int assigned_grid;
                 int assigned_lev;
-                //                auto& p = make_particle<ParticleType>{}(src_data,i+this_offset);
 
                 if (src_data.id(i+this_offset) < 0 )
                 {
