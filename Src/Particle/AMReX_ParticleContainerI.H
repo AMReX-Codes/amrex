@@ -1122,9 +1122,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 
     if (memEfficientSort) {
         if constexpr(!ParticleType::is_soa_particle) {
-                ParticleVector tmp_particles(np_total);
-                auto src = ptile.getParticleTileData();
-                ParticleType* dst = tmp_particles.data();
+            ParticleVector tmp_particles(np_total);
+            auto src = ptile.getParticleTileData();
+            ParticleType* dst = tmp_particles.data();
 
             AMREX_HOST_DEVICE_FOR_1D( np_total, i,
             {
@@ -1133,7 +1133,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 
             Gpu::streamSynchronize();
             ptile.GetArrayOfStructs()().swap(tmp_particles);
-        
+        }
 
         RealVector tmp_real(np_total);
         for (int comp = 0; comp < NArrayReal + m_num_runtime_real; ++comp) {
