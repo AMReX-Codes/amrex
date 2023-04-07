@@ -298,7 +298,7 @@ struct ConstSoAParticle : SoAParticleBase
     using RealType = ParticleReal;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    ConstSoAParticle(ConstPTD const ptd, long i) :
+    ConstSoAParticle(ConstPTD const& ptd, long i) :
         m_constparticle_tile_data(ptd), m_index(i)
     {
     }
@@ -361,7 +361,7 @@ struct SoAParticle : SoAParticleBase
     using RealType = ParticleReal;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    SoAParticle(PTD const ptd, long i) :
+    SoAParticle(PTD const& ptd, long i) :
         m_particle_tile_data(ptd), m_index(i)
     {
     }
