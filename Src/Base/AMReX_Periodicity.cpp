@@ -21,7 +21,7 @@ Periodicity::shiftIntVect () const
     for (int i = -per[0]; i <= per[0]; i += jmp[0]) {
     for (int j = -per[1]; j <= per[1]; j += jmp[1]) {
     for (int k = -per[2]; k <= per[2]; k += jmp[2]) {
-        r.push_back(IntVect(AMREX_D_DECL(i,j,k)));
+        r.emplace_back(AMREX_D_DECL(i,j,k));
     }
     }
     }

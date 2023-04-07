@@ -285,7 +285,7 @@ MFIter::Initialize ()
         index_map    = &(fabArray.IndexArray());
         currentIndex = 0;
         beginIndex   = 0;
-        endIndex     = index_map->size();
+        endIndex     = static_cast<int>(index_map->size());
     }
     else
     {
@@ -314,7 +314,7 @@ MFIter::Initialize ()
             }
 #endif
 
-            int ntot = index_map->size();
+            int ntot = static_cast<int>(index_map->size());
 
             if (nworkers == 1)
             {
@@ -373,7 +373,7 @@ MFIter::Initialize ()
 Box
 MFIter::tilebox () const noexcept
 {
-    BL_ASSERT(tile_array != 0);
+    BL_ASSERT(tile_array != nullptr);
     Box bx((*tile_array)[currentIndex]);
     if (! typ.cellCentered())
     {
@@ -394,7 +394,7 @@ MFIter::tilebox () const noexcept
 Box
 MFIter::tilebox (const IntVect& nodal) const noexcept
 {
-    BL_ASSERT(tile_array != 0);
+    BL_ASSERT(tile_array != nullptr);
     Box bx((*tile_array)[currentIndex]);
     const IndexType new_typ {nodal};
     if (! new_typ.cellCentered())
@@ -433,7 +433,7 @@ Box
 MFIter::nodaltilebox (int dir) const noexcept
 {
     BL_ASSERT(dir < AMREX_SPACEDIM);
-    BL_ASSERT(tile_array != 0);
+    BL_ASSERT(tile_array != nullptr);
     Box bx((*tile_array)[currentIndex]);
     bx.convert(typ);
     const Box& vbx = validbox();

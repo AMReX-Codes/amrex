@@ -3,12 +3,6 @@
 
 namespace amrex {
 
-MultiFabCopyDescriptor::MultiFabCopyDescriptor ()
-    :
-    FabArrayCopyDescriptor<FArrayBox>() {}
-
-MultiFabCopyDescriptor::~MultiFabCopyDescriptor () {}
-
 void
 InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
               BoxList*                returnUnfilledBoxes,

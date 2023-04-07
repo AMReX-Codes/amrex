@@ -11,9 +11,7 @@
 #include <numeric>
 #include <iterator>
 
-namespace amrex {
-
-namespace Gpu {
+namespace amrex::Gpu {
 
 #ifdef AMREX_USE_GPU
 
@@ -500,6 +498,6 @@ namespace Gpu {
 #endif
     }
 
-}}
+}
 
 #endif

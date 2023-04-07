@@ -2,11 +2,7 @@
 #define AMREX_MLMG_2D_K_H_
 #include <AMReX_Config.H>
 
-namespace amrex {
-
-#if (AMREX_SPACEDIM != 2)
-namespace TwoD {
-#endif
+namespace amrex::TwoD {
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -141,10 +137,12 @@ void mlmg_lin_nd_interp_r4 (int i, int j, int, int n, Array4<T> const& fine,
 #undef J_HI
 }
 
-#if (AMREX_SPACEDIM != 2)
+}
+
+#if (AMREX_SPACEDIM == 2)
+namespace amrex {
+    using namespace TwoD;
 }
 #endif
-
-}
 
 #endif

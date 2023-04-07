@@ -9,7 +9,7 @@
 
 #ifdef AMREX_USE_MPI
 
-namespace amrex { namespace MPMD {
+namespace amrex::MPMD {
 
 namespace {
     bool initialized = false;
@@ -128,7 +128,7 @@ Copier::Copier (BoxArray const& ba, DistributionMapping const& dm)
 
     Vector<Box> bv = ba.boxList().data();
 
-    int this_nboxes = ba.size();
+    int this_nboxes = static_cast<int>(ba.size());
     Vector<int> procs = dm.ProcessorMap();
     if (rank_offset != 0) {
         for (int i = 0; i < this_nboxes; ++i) {
@@ -220,6 +220,6 @@ Copier::Copier (BoxArray const& ba, DistributionMapping const& dm)
     }
 }
 
-}}
+}
 
 #endif

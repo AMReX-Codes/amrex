@@ -62,9 +62,9 @@ public:
                        Array4<Real const> const& lst, Geometry const& geom, RunOn,
                        Box const& bounding_box) const;
 
-    void updateIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
+    static void updateIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                           Array<Array4<EB2::Type_t const>,AMREX_SPACEDIM> const& type_arr,
-                          Array4<Real const> const& lst, Geometry const& geom) const;
+                          Array4<Real const> const& lst, Geometry const& geom) ;
 
 };
 

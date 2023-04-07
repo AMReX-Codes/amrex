@@ -41,7 +41,7 @@ namespace amrex {
 // We default to SFC.
 DistributionMapping::Strategy DistributionMapping::m_Strategy = DistributionMapping::SFC;
 
-DistributionMapping::PVMF DistributionMapping::m_BuildMap = 0;
+DistributionMapping::PVMF DistributionMapping::m_BuildMap = nullptr;
 
 const Vector<int>&
 DistributionMapping::ProcessorMap () const noexcept
@@ -169,7 +169,7 @@ DistributionMapping::Finalize ()
 
     m_Strategy = SFC;
 
-    DistributionMapping::m_BuildMap = 0;
+    DistributionMapping::m_BuildMap = nullptr;
 }
 
 void
@@ -208,7 +208,7 @@ DistributionMapping::LeastUsedCPUs (int         nprocs,
 
     for (int i(0); i < nprocs; ++i)
     {
-        LIpairV.push_back(LIpair(bytes[i],i));
+        LIpairV.emplace_back(bytes[i],i);
     }
 
     bytes.clear();
@@ -279,7 +279,7 @@ DistributionMapping::LeastUsedTeams (Vector<int>        & rteam,
             rworker[i][j] = LIworker[j].second;
         }
 
-        LIpairV.push_back(LIpair(teambytes,i));
+        LIpairV.emplace_back(teambytes,i);
     }
 
     bytes.clear();
@@ -299,7 +299,7 @@ DistributionMapping::LeastUsedTeams (Vector<int>        & rteam,
 #endif
 }
 
-DistributionMapping::DistributionMapping ()
+DistributionMapping::DistributionMapping () noexcept
     :
     m_ref(std::make_shared<Ref>())
 {
@@ -342,7 +342,7 @@ DistributionMapping::define (const BoxArray& boxes,
     m_ref->clear();
     m_ref->m_pmap.resize(boxes.size());
 
-    BL_ASSERT(m_BuildMap != 0);
+    BL_ASSERT(m_BuildMap != nullptr);
 
     (this->*m_BuildMap)(boxes,nprocs);
 }
@@ -458,7 +458,7 @@ DistributionMapping::RoundRobinProcessorMap (int nboxes, int nprocs, bool sort)
 void
 DistributionMapping::RoundRobinProcessorMap (const BoxArray& boxes, int nprocs)
 {
-    BL_ASSERT(boxes.size() > 0);
+    BL_ASSERT( ! boxes.empty());
     BL_ASSERT(m_ref->m_pmap.size() == boxes.size());
     //
     // Create ordering of boxes from largest to smallest.
@@ -472,18 +472,18 @@ DistributionMapping::RoundRobinProcessorMap (const BoxArray& boxes, int nprocs)
     //
     std::vector<LIpair> LIpairV;
 
-    const int N = boxes.size();
+    const int N = static_cast<int>(boxes.size());
 
     LIpairV.reserve(N);
 
     for (int i = 0; i < N; ++i)
     {
-        LIpairV.push_back(LIpair(boxes[i].numPts(),i));
+        LIpairV.emplace_back(boxes[i].numPts(),i);
     }
 
     Sort(LIpairV, true);
 
-    RoundRobinDoIt(boxes.size(), nprocs, &LIpairV);
+    RoundRobinDoIt(static_cast<int>(boxes.size()), nprocs, &LIpairV);
 }
 
 
@@ -491,7 +491,7 @@ void
 DistributionMapping::RoundRobinProcessorMap (const std::vector<Long>& wgts,
                                              int nprocs, bool sort)
 {
-    BL_ASSERT(wgts.size() > 0);
+    BL_ASSERT( ! wgts.empty());
 
     m_ref->clear();
     m_ref->m_pmap.resize(wgts.size());
@@ -508,18 +508,18 @@ DistributionMapping::RoundRobinProcessorMap (const std::vector<Long>& wgts,
     //
     std::vector<LIpair> LIpairV;
 
-    const int N = wgts.size();
+    const int N = static_cast<int>(wgts.size());
 
     LIpairV.reserve(N);
 
     for (int i = 0; i < N; ++i)
     {
-        LIpairV.push_back(LIpair(wgts[i],i));
+        LIpairV.emplace_back(wgts[i],i);
     }
 
     Sort(LIpairV, true);
 
-    RoundRobinDoIt(wgts.size(), nprocs, &LIpairV, sort);
+    RoundRobinDoIt(static_cast<int>(wgts.size()), nprocs, &LIpairV, sort);
 }
 
 class WeightedBox
@@ -528,8 +528,8 @@ class WeightedBox
     Long m_weight;
 public:
     WeightedBox (int b, Long w) : m_boxid(b), m_weight(w) {}
-    Long weight () const { return m_weight; }
-    int  boxid ()  const { return m_boxid;  }
+    [[nodiscard]] Long weight () const { return m_weight; }
+    [[nodiscard]] int boxid () const { return m_boxid;  }
 
     bool operator< (const WeightedBox& rhs) const
     {
@@ -542,11 +542,11 @@ struct WeightedBoxList
     Vector<WeightedBox>* m_lb     = nullptr;
     Long                 m_weight = 0L;
     int                  m_rank   = -1;
-    Long weight () const
+    [[nodiscard]] Long weight () const
     {
         return m_weight;
     }
-    int rank () const { return m_rank; }
+    [[nodiscard]] int rank () const { return m_rank; }
     void addWeight (Long dw) { m_weight += dw; }
     void erase (Vector<WeightedBox>::iterator& it)
     {
@@ -558,11 +558,11 @@ struct WeightedBoxList
         m_weight += bx.weight();
         m_lb->push_back(bx);
     }
-    int size () const { return m_lb->size(); }
-    Vector<WeightedBox>::const_iterator begin () const { return m_lb->begin(); }
-    Vector<WeightedBox>::iterator begin ()             { return m_lb->begin(); }
-    Vector<WeightedBox>::const_iterator end () const   { return m_lb->end();   }
-    Vector<WeightedBox>::iterator end ()               { return m_lb->end();   }
+    [[nodiscard]] int size () const { return static_cast<int>(m_lb->size()); }
+    [[nodiscard]] Vector<WeightedBox>::const_iterator begin () const { return m_lb->begin(); }
+    [[nodiscard]] Vector<WeightedBox>::iterator       begin ()       { return m_lb->begin(); } // NOLINT(readability-make-member-function-const)
+    [[nodiscard]] Vector<WeightedBox>::const_iterator end   () const { return m_lb->end();   }
+    [[nodiscard]] Vector<WeightedBox>::iterator       end   ()       { return m_lb->end();   } // NOLINT(readability-make-member-function-const)
 
     bool operator< (const WeightedBoxList& rhs) const
     {
@@ -626,7 +626,7 @@ knapsack (const std::vector<Long>&         wgts,
     Real sum_weight = 0;
     for (auto const& wbl : wblv)
     {
-        Real wgt = wbl.weight();
+        Real wgt = static_cast<Real>(wbl.weight());
         sum_weight += wgt;
         max_weight = std::max(wgt, max_weight);
     }
@@ -636,14 +636,14 @@ knapsack (const std::vector<Long>&         wgts,
         WeightedBoxList wbl = wblq.top();
         wblq.pop();
         if (wbl.size() > 0) {
-            Real wgt = wbl.weight();
+            Real wgt = static_cast<Real>(wbl.weight());
             sum_weight += wgt;
             max_weight = std::max(wgt, max_weight);
             wblv.push_back(wbl);
         }
     }
 
-    efficiency = sum_weight/(nprocs*max_weight);
+    efficiency = sum_weight/(static_cast<Real>(nprocs)*max_weight);
 
     std::sort(wblv.begin(), wblv.end());
 
@@ -690,8 +690,8 @@ top: ;
                             std::rotate(bl_top, bl_top+1, it);
                         }
 
-                        max_weight = bl_top->weight();
-                        efficiency = sum_weight / (nprocs*max_weight);
+                        max_weight = static_cast<Real>(bl_top->weight());
+                        efficiency = sum_weight / (static_cast<Real>(nprocs)*max_weight);
                         goto top;
                     }
                 }
@@ -701,7 +701,7 @@ top: ;
         BL_ASSERT(std::is_sorted(wblv.begin(), wblv.end()));
     }
 
-    for (int i = 0, N = wblv.size(); i < N; ++i)
+    for (int i = 0, N = static_cast<int>(wblv.size()); i < N; ++i)
     {
         const WeightedBoxList& wbl = wblv[i];
 
@@ -746,10 +746,10 @@ DistributionMapping::KnapSackDoIt (const std::vector<Long>& wgts,
     knapsack(wgts,nteams,vec,efficiency,do_full_knapsack,nmax);
 
     if (flag_verbose_mapper) {
-        for (int i = 0, ni = vec.size(); i < ni; ++i) {
+        for (int i = 0, ni = static_cast<int>(vec.size()); i < ni; ++i) {
             Print() << "  Bucket " << i << " contains boxes:" << std::endl;
-            for (int j = 0, nj = vec[i].size(); j < nj; ++j) {
-                Print() << "    " << vec[i][j] << std::endl;
+            for (int x : vec[i]) {
+                Print() << "    " << x << std::endl;
             }
         }
     }
@@ -763,13 +763,11 @@ DistributionMapping::KnapSackDoIt (const std::vector<Long>& wgts,
     for (int i = 0; i < nteams; ++i)
     {
         Long wgt = 0;
-        for (std::vector<int>::const_iterator lit = vec[i].begin(), End = vec[i].end();
-             lit != End; ++lit)
-        {
-            wgt += wgts[*lit];
+        for (int j : vec[i]) {
+            wgt += wgts[j];
         }
 
-        LIpairV.push_back(LIpair(wgt,i));
+        LIpairV.emplace_back(wgt,i);
     }
 
     if (sort) {Sort(LIpairV, true);}
@@ -810,7 +808,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<Long>& wgts,
         const int tid = ord[i];
 
         const std::vector<int>& vi = vec[idx];
-        const int N = vi.size();
+        const int N = static_cast<int>(vi.size());
 
         if (flag_verbose_mapper) {
             Print() << "  Mapping bucket " << idx << " to rank " << tid << std::endl;
@@ -849,14 +847,14 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<Long>& wgts,
                                            int                      nmax,
                                            bool                     sort)
 {
-    BL_ASSERT(wgts.size() > 0);
+    BL_ASSERT( ! wgts.empty());
 
     m_ref->clear();
     m_ref->m_pmap.resize(wgts.size());
 
     if (static_cast<int>(wgts.size()) <= nprocs || nprocs < 2)
     {
-        RoundRobinProcessorMap(wgts.size(),nprocs, sort);
+        RoundRobinProcessorMap(static_cast<int>(wgts.size()),nprocs, sort);
 
         if (efficiency) *efficiency = 1;
     }
@@ -877,7 +875,7 @@ DistributionMapping::KnapSackProcessorMap (const DistributionMapping& olddm,
     BL_PROFILE("KnapSack(keep)");
 
     const int nprocs = ParallelDescriptor::NProcs();
-    BL_ASSERT(wgts.size() > 0);
+    BL_ASSERT( ! wgts.empty());
 
     m_ref->clear();
     m_ref->m_pmap.resize(wgts.size(), -1);
@@ -886,7 +884,7 @@ DistributionMapping::KnapSackProcessorMap (const DistributionMapping& olddm,
 
     if (static_cast<int>(wgts.size()) <= nprocs || nprocs < 2)
     {
-        RoundRobinProcessorMap(wgts.size(),nprocs, false);
+        RoundRobinProcessorMap(static_cast<int>(wgts.size()),nprocs, false);
         new_efficiency = Real(1);
         return;
     }
@@ -963,7 +961,7 @@ DistributionMapping::KnapSackProcessorMap (const DistributionMapping& olddm,
 
             Real max_weight = Real(0);
             for (auto const& wbl : wblv) {
-                Real wgt = wbl.weight();
+                auto wgt = static_cast<Real>(wbl.weight());
                 max_weight = std::max(wgt, max_weight);
             }
 
@@ -971,7 +969,7 @@ DistributionMapping::KnapSackProcessorMap (const DistributionMapping& olddm,
                 WeightedBoxList wbl = wblq.top();
                 wblq.pop();
                 if (wbl.size() > 0) {
-                    Real wgt = wbl.weight();
+                    auto wgt = static_cast<Real>(wbl.weight());
                     max_weight = std::max(wgt, max_weight);
                     wblv.push_back(wbl);
                 }
@@ -1017,7 +1015,7 @@ DistributionMapping::KnapSackProcessorMap (const DistributionMapping& olddm,
                                     std::rotate(bl_top, bl_top+1, it);
                                 }
 
-                                max_weight = bl_top->weight();
+                                max_weight = static_cast<Real>(bl_top->weight());
                                 new_efficiency = avg_weight / max_weight;
                                 goto top;
                             }
@@ -1048,7 +1046,7 @@ void
 DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
                                            int             nprocs)
 {
-    BL_ASSERT(boxes.size() > 0);
+    BL_ASSERT( ! boxes.empty());
 
     m_ref->m_pmap.resize(boxes.size());
 
@@ -1060,8 +1058,9 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
     {
         std::vector<Long> wgts(boxes.size());
 
-        for (unsigned int i = 0, N = boxes.size(); i < N; ++i)
+        for (int i = 0, N = static_cast<int>(boxes.size()); i < N; ++i) {
             wgts[i] = boxes[i].numPts();
+        }
 
         Real effi = 0;
         bool do_full_knapsack = true;
@@ -1142,7 +1141,7 @@ namespace {
 
 #elif (AMREX_SPACEDIM == 2)
 
-        constexpr uint32_t offset = 1u << 31;
+        constexpr uint32_t offset = 1U << 31;
         static_assert(static_cast<uint32_t>(std::numeric_limits<int>::max())+1 == offset,
                       "INT_MAX != (1<<31)-1");
         uint32_t x = (iv[0] >= 0) ? static_cast<uint32_t>(iv[0]) + offset
@@ -1158,7 +1157,7 @@ namespace {
 
 #elif (AMREX_SPACEDIM == 1)
 
-        constexpr uint32_t offset = 1u << 31;
+        constexpr uint32_t offset = 1U << 31;
         static_assert(static_cast<uint32_t>(std::numeric_limits<int>::max())+1 == offset,
                       "INT_MAX != (1<<31)-1");
         token.m_morton[0] = (iv[0] >= 0) ? static_cast<uint32_t>(iv[0]) + offset
@@ -1209,7 +1208,7 @@ Distribute (const std::vector<SFCToken>&     tokens,
               K < TSZ && (i == (nprocs-1) || (vol < volpercpu));
               ++K)
         {
-            vol += wgts[tokens[K].m_box];
+            vol += static_cast<Real>(wgts[tokens[K].m_box]);
             ++cnt;
 
             v[i].push_back(tokens[K].m_box);
@@ -1217,13 +1216,13 @@ Distribute (const std::vector<SFCToken>&     tokens,
 
         totalvol += vol;
 
-        if ((totalvol/(i+1)) > volpercpu &&  // Too much for this bin.
+        if ((totalvol/static_cast<Real>(i+1)) > volpercpu &&  // Too much for this bin.
             cnt > 1                      &&  // More than one box in this bin.
             i < nprocs-1)                    // Not the last bin, which has to take all.
         {
             --K;
             v[i].pop_back();
-            totalvol -= wgts[tokens[K].m_box];
+            totalvol -= static_cast<Real>(wgts[tokens[K].m_box]);
         }
     }
 
@@ -1240,7 +1239,7 @@ Distribute (const std::vector<SFCToken>&     tokens,
                 Print() << "    " << idx << ": "
                         << t.m_box << ": "
                         << t.m_morton << std::endl;
-                rank_vol += wgts[t.m_box];
+                rank_vol += static_cast<Real>(wgts[t.m_box]);
                 idx++;
             }
             Print() << "    Total Rank Vol: " << rank_vol << std::endl;
@@ -1248,11 +1247,11 @@ Distribute (const std::vector<SFCToken>&     tokens,
     }
 
 #ifdef AMREX_DEBUG
-    int cnt = 0;
+    std::size_t cnt = 0;
     for (int i = 0; i < nprocs; ++i) {
         cnt += v[i].size();
     }
-    BL_ASSERT(cnt == static_cast<int>(tokens.size()));
+    BL_ASSERT(cnt == tokens.size());
 #endif
 }
 
@@ -1292,7 +1291,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
                 << nprocs << ", " << nteams << ", " << nworkers << ")\n";
     }
 
-    const int N = boxes.size();
+    const int N = static_cast<int>(boxes.size());
     std::vector<SFCToken> tokens;
     tokens.reserve(N);
     for (int i = 0; i < N; ++i)
@@ -1309,9 +1308,9 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
     //
     Real volperteam = 0;
     for (Long wt : wgts) {
-        volperteam += wt;
+        volperteam += static_cast<Real>(wt);
     }
-    volperteam /= nteams;
+    volperteam /= static_cast<Real>(nteams);
 
     std::vector< std::vector<int> > vec(nteams);
 
@@ -1329,10 +1328,11 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
     {
         Long wgt = 0;
         const std::vector<int>& vi = vec[i];
-        for (int j = 0, M = vi.size(); j < M; ++j)
-            wgt += wgts[vi[j]];
+        for (int j : vi) {
+            wgt += wgts[j];
+        }
 
-        LIpairV.push_back(LIpair(wgt,i));
+        LIpairV.emplace_back(wgt,i);
     }
 
     if (sort) Sort(LIpairV, true);
@@ -1379,7 +1379,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
         const int tid  = ord[i];                  // tid is team id
         const int ivec = LIpairV[i].second;       // index into vec
         const std::vector<int>& vi = vec[ivec];   // this vector contains boxes assigned to this team
-        const int Nbx = vi.size();                // # of boxes assigned to this team
+        const int Nbx = static_cast<int>(vi.size());// # of boxes assigned to this team
 
         if (flag_verbose_mapper) {
             Print() << "Mapping bucket " << LIpairV[i].second << " to rank " << ord[i] << std::endl;
@@ -1394,6 +1394,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
         else   // We would like to do knapsack within the team workers
         {
             std::vector<Long> local_wgts;
+            local_wgts.reserve(Nbx);
             for (int j = 0; j < Nbx; ++j) {
                 local_wgts.push_back(wgts[vi[j]]);
             }
@@ -1408,12 +1409,10 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
             std::vector<LIpair> ww;
             for (int w = 0; w < nworkers; ++w) {
                 Long wgt = 0;
-                for (std::vector<int>::const_iterator it = kpres[w].begin();
-                     it != kpres[w].end(); ++it)
-                {
-                    wgt += local_wgts[*it];
+                for (int it : kpres[w]) {
+                    wgt += local_wgts[it];
                 }
-                ww.push_back(LIpair(wgt,w));
+                ww.emplace_back(wgt,w);
             }
             Sort(ww,true);
 
@@ -1429,22 +1428,23 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
                 const int cpu = leadrank + sorted_workers[w];
                 int ikp = ww[w].second;
                 const std::vector<int>& js = kpres[ikp];
-                for (std::vector<int>::const_iterator it = js.begin(); it!=js.end(); ++it)
-                    m_ref->m_pmap[vi[*it]] = cpu;
+                for (int it : js) {
+                    m_ref->m_pmap[vi[it]] = cpu;
+                }
             }
         }
     }
 
     if (eff || verbose)
     {
-        Real sum_wgt = 0, max_wgt = 0;
+        Long sum_wgt = 0, max_wgt = 0;
         for (int i = 0; i < nteams; ++i)
         {
             const Long W = LIpairV[i].first;
             if (W > max_wgt) max_wgt = W;
             sum_wgt += W;
         }
-        Real efficiency = (sum_wgt/(nteams*max_wgt));
+        Real efficiency = static_cast<Real>(sum_wgt)/static_cast<Real>(nteams*max_wgt);
         if (eff) *eff = efficiency;
 
         if (verbose)
@@ -1455,10 +1455,9 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 }
 
 void
-DistributionMapping::SFCProcessorMap (const BoxArray& boxes,
-                                      int             nprocs)
+DistributionMapping::SFCProcessorMap (const BoxArray& boxes, int nprocs)
 {
-    BL_ASSERT(boxes.size() > 0);
+    BL_ASSERT( ! boxes.empty());
 
     m_ref->clear();
     m_ref->m_pmap.resize(boxes.size());
@@ -1473,7 +1472,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray& boxes,
 
         wgts.reserve(boxes.size());
 
-        for (int i = 0, N = boxes.size(); i < N; ++i)
+        for (int i = 0, N = static_cast<int>(boxes.size()); i < N; ++i)
         {
             wgts.push_back(boxes[i].numPts());
         }
@@ -1488,7 +1487,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
                                       int                      nprocs,
                                       bool                     sort)
 {
-    BL_ASSERT(boxes.size() > 0);
+    BL_ASSERT( ! boxes.empty());
     BL_ASSERT(boxes.size() == static_cast<int>(wgts.size()));
 
     m_ref->clear();
@@ -1511,7 +1510,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
                                       Real&                    eff,
                                       bool                     sort)
 {
-    BL_ASSERT(boxes.size() > 0);
+    BL_ASSERT( ! boxes.empty());
     BL_ASSERT(boxes.size() == static_cast<int>(wgts.size()));
 
     m_ref->clear();
@@ -1537,7 +1536,7 @@ DistributionMapping::RRSFCDoIt (const BoxArray&          boxes,
     amrex::Abort("Team support is not implemented yet in RRSFC");
 #endif
 
-    const int nboxes = boxes.size();
+    const int nboxes = static_cast<int>(boxes.size());
     std::vector<SFCToken> tokens;
     tokens.reserve(nboxes);
     for (int i = 0; i < nboxes; ++i)
@@ -1564,7 +1563,7 @@ void
 DistributionMapping::RRSFCProcessorMap (const BoxArray&          boxes,
                                         int                      nprocs)
 {
-    BL_ASSERT(boxes.size() > 0);
+    BL_ASSERT( ! boxes.empty());
 
     m_ref->clear();
     m_ref->m_pmap.resize(boxes.size());
@@ -1890,7 +1889,7 @@ DistributionMapping::makeSFC (const BoxArray& ba, bool use_box_vol, const int np
 {
     BL_PROFILE("makeSFC");
 
-    const int N = ba.size();
+    const int N = static_cast<int>(ba.size());
     std::vector<SFCToken> tokens;
     std::vector<Long> wgts;
     tokens.reserve(N);
@@ -1909,8 +1908,7 @@ DistributionMapping::makeSFC (const BoxArray& ba, bool use_box_vol, const int np
     //
     std::sort(tokens.begin(), tokens.end(), SFCToken::Compare());
 
-    Real volper;
-    volper = vol_sum / nprocs;
+    Real volper = static_cast<Real>(vol_sum) / static_cast<Real>(nprocs);
 
     std::vector< std::vector<int> > r(nprocs);
 
@@ -1926,7 +1924,7 @@ DistributionMapping::getIndexArray ()
     {
         int myProc = ParallelDescriptor::MyProc();
 
-        for(int i = 0, N = m_ref->m_pmap.size(); i < N; ++i) {
+        for(int i = 0, N = static_cast<int>(m_ref->m_pmap.size()); i < N; ++i) {
             int rank = m_ref->m_pmap[i];
             if (ParallelDescriptor::sameTeam(rank)) {
                 // If Team is not used (i.e., team size == 1), distributionMap[i] == myProc
@@ -1945,7 +1943,7 @@ DistributionMapping::getOwnerShip ()
     {
         int myProc = ParallelDescriptor::MyProc();
 
-        for(int i = 0, N = m_ref->m_pmap.size(); i < N; ++i) {
+        for(int i = 0, N = static_cast<int>(m_ref->m_pmap.size()); i < N; ++i) {
             int rank = m_ref->m_pmap[i];
             if (ParallelDescriptor::sameTeam(rank)) {
                 // If Team is not used (i.e., team size == 1), distributionMap[i] == myProc
@@ -2031,7 +2029,7 @@ DistributionMapping MakeSimilarDM (const BoxArray& ba, const BoxArray& src_ba,
                               "input BoxArrays must have the same centering.";);
 
     Vector<int> pmap(ba.size());
-    for (Long i = 0; i < ba.size(); ++i) {
+    for (int i = 0; i < static_cast<int>(ba.size()); ++i) {
         Box box = ba[i];
         box.grow(ng);
         bool first_only = false;

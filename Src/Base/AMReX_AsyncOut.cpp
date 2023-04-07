@@ -6,8 +6,7 @@
 #include <AMReX_Utility.H>
 #include <AMReX.H>
 
-namespace amrex {
-namespace AsyncOut {
+namespace amrex::AsyncOut {
 
 namespace {
 
@@ -140,4 +139,4 @@ void Notify ()
 #endif
 }
 
-}}
+}

@@ -50,8 +50,9 @@ void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, cons
 
     eb_to_pvd.WriteEBVTP(cpu);
 
-    if(ParallelDescriptor::IOProcessor())
-        eb_to_pvd.WritePVTP(nProcs);
+    if(ParallelDescriptor::IOProcessor()) {
+        EBToPVD::WritePVTP(nProcs);
+    }
 
     for (MFIter mfi(mf_ba); mfi.isValid(); ++mfi) {
 
@@ -68,4 +69,3 @@ void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, cons
 }
 
 }
-

@@ -10,7 +10,7 @@
 
 namespace amrex {
 
-namespace Gpu { namespace Atomic {
+namespace Gpu::Atomic {
 
 // For Add, Min and Max, we support int, unsigned int, long, unsigned long long, float and double.
 // For LogicalOr and LogicalAnd, the data type is int.
@@ -193,7 +193,7 @@ namespace detail {
     template<class T>
 #endif
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    T Add (T* const sum, T const value) noexcept
+    T Add (T* sum, T value) noexcept
     {
 #if AMREX_DEVICE_COMPILE
 #ifdef AMREX_USE_SYCL
@@ -276,7 +276,7 @@ namespace detail {
     template<class T>
 #endif
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void AddNoRet (T* const sum, T const value) noexcept
+    void AddNoRet (T* sum, T value) noexcept
     {
 #if AMREX_DEVICE_COMPILE
 #ifdef AMREX_USE_SYCL
@@ -480,7 +480,7 @@ namespace detail {
 
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    T Exch (T* const address, T const val) noexcept
+    T Exch (T* address, T val) noexcept
     {
 #if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
     defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
@@ -522,9 +522,9 @@ namespace detail {
         return old;
 #endif
     }
-}}
+}
 
-namespace HostDevice { namespace Atomic {
+namespace HostDevice::Atomic {
 
     template <class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -540,7 +540,7 @@ namespace HostDevice { namespace Atomic {
 #endif
     }
 
-}}
+}
 
 #ifdef AMREX_USE_GPU
 // functors

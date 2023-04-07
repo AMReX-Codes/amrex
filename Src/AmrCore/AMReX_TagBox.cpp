@@ -13,8 +13,6 @@
 
 namespace amrex {
 
-TagBox::TagBox () noexcept {}
-
 TagBox::TagBox (Arena* ar) noexcept
     : BaseFab<TagBox::TagType>(ar)
 {}
@@ -132,8 +130,9 @@ TagBox::tags () const noexcept
 
     for (int i = 0; i < ar.size(); i++, cptr++, iptr++)
     {
-        if (*cptr)
-            *iptr = *cptr;
+        if (*cptr) {
+            *iptr = *cptr; // NOLINT
+        }
     }
 
     return ar;
@@ -150,10 +149,8 @@ TagBox::tags (const Vector<int>& ar) noexcept
     TagType*   cptr = dataPtr();
     const int* iptr = ar.dataPtr();
 
-    for (int i = 0; i < ar.size(); i++, cptr++, iptr++)
-    {
-        if (*iptr)
-            *cptr = *iptr;
+    for (int i = 0; i < ar.size(); i++, cptr++, iptr++) {
+        if (*iptr) { *cptr = *iptr; } // NOLINT
     }
 }
 
@@ -171,7 +168,7 @@ TagBox::tags_and_untags (const Vector<int>& ar) noexcept
     // This clears as well as sets tags.
     for (int i = 0; i < ar.size(); i++, cptr++, iptr++)
     {
-        *cptr = *iptr;
+        *cptr = *iptr; // NOLINT
     }
 }
 
@@ -208,7 +205,7 @@ TagBox::get_itags(Vector<int>& ar, const Box& tilebx) const noexcept
             const TagType* cptr = p0 + j*stride[1] + k*stride[2];
             for (int i=0; i<Ltb[0]; i++, cptr++, iptr++) {
                 if (*cptr) {
-                    *iptr = *cptr;
+                    *iptr = *cptr; // NOLINT
                 }
                 else {
                     *iptr = TagBox::CLEAR;
@@ -246,7 +243,7 @@ TagBox::tags (const Vector<int>& ar, const Box& tilebx) noexcept
         for (int j=0; j<Ltb[1]; j++) {
             TagType* cptr = p0 + j*stride[1] + k*stride[2];
             for (int i=0; i<Ltb[0]; i++, cptr++, iptr++) {
-                if (*iptr) *cptr = *iptr;
+                if (*iptr) *cptr = *iptr; // NOLINT
             }
         }
     }
@@ -280,7 +277,7 @@ TagBox::tags_and_untags (const Vector<int>& ar, const Box& tilebx) noexcept
         for (int j=0; j<Ltb[1]; j++) {
             TagType* cptr = p0 + j*stride[1] + k*stride[2];
             for (int i=0; i<Ltb[0]; i++, cptr++, iptr++) {
-                *cptr = *iptr;
+                *cptr = *iptr; // NOLINT
             }
         }
     }
@@ -328,7 +325,7 @@ TagBoxArray::mapPeriodicRemoveDuplicates (const Geometry& geom)
     if (Gpu::inLaunchRegion())
     {
         // There is not atomicAdd for char.  So we have to use int.
-        iMultiFab itag = amrex::cast<iMultiFab>(*this);
+        auto itag = amrex::cast<iMultiFab>(*this);
         iMultiFab tmp(boxArray(),DistributionMap(),1,nGrowVect());
         tmp.setVal(0);
         tmp.ParallelAdd(itag, 0, 0, 1, nGrowVect(), nGrowVect(), geom.periodicity());
@@ -606,7 +603,7 @@ TagBoxArray::collate (Gpu::PinnedVector<IntVect>& TheGlobalCollateSpace) const
         local_collate_cpu(TheLocalCollateSpace);
     }
 
-    Long count = TheLocalCollateSpace.size();
+    Long count = static_cast<Long>(TheLocalCollateSpace.size());
 
     //
     // The total number of tags system wide that must be collated.
@@ -641,7 +638,7 @@ TagBoxArray::collate (Gpu::PinnedVector<IntVect>& TheGlobalCollateSpace) const
                                                                   IOProcNumber);
     std::vector<int> offset(countvec.size(),0);
     if (ParallelDescriptor::IOProcessor()) {
-        for (int i = 1, N = offset.size(); i < N; i++) {
+        for (std::size_t i = 1, N = offset.size(); i < N; i++) {
             offset[i] = offset[i-1] + countvec[i-1];
         }
     }
@@ -655,7 +652,7 @@ TagBoxArray::collate (Gpu::PinnedVector<IntVect>& TheGlobalCollateSpace) const
     // FujitsuMPI. The issue seems to be related to the use of MPI_Datatype. We can
     // bypasses the issue by exchanging simpler integer arrays.
 #if !(defined(__FUJITSU) || defined(__CLANG_FUJITSU))
-    ParallelDescriptor::Gatherv(psend, count, precv, countvec, offset, IOProcNumber);
+    ParallelDescriptor::Gatherv(psend, static_cast<int>(count), precv, countvec, offset, IOProcNumber);
 #else
     const int* psend_int = psend->begin();
     int* precv_int = precv->begin();

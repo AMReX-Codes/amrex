@@ -6,9 +6,7 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_Print.H>
 
-namespace amrex
-{
-namespace ParticleInterpolator
+namespace amrex::ParticleInterpolator
 {
 
 /** \brief A base class for doing general particle/mesh interpolation operations.
@@ -251,7 +249,6 @@ struct Linear : public Base<Linear, amrex::Real>
         }
     }
 };
-}
 }
 
 #endif // include guard

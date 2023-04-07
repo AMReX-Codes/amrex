@@ -90,7 +90,7 @@ struct range_impl
         Long mi_s;
     };
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     iterator begin () const noexcept {
 #if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
     defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
@@ -102,7 +102,7 @@ struct range_impl
 #endif
     }
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     iterator end () const noexcept { return iterator(m_b,m_n,0); }
 
 private:

@@ -35,8 +35,6 @@ void get_face_velocity_psi(amrex::Box const& bx,
                        * std::cos(PI*time/2.0) * 1.0/PI;
         }
     }
-
-    return;
 }
 
 AMREX_GPU_DEVICE
@@ -125,8 +123,6 @@ void get_face_velocity(const amrex::Real time,
          {
              get_face_velocity_z(i, j, k, vel[2]);
          });
-
-    return;
 }
 
 #endif

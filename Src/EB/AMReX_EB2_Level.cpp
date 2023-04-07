@@ -4,7 +4,7 @@
 #include <AMReX_EB_chkpt_file.H>
 #include <algorithm>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 void
 Level::prepareForCoarsening (const Level& rhs, int max_grid_size, IntVect ngrow)
@@ -927,4 +927,4 @@ Level::write_to_chkpt_file (const std::string& fname, bool extend_domain_face, i
                                   m_geom, m_ngrow, extend_domain_face, max_grid_size);
 }
 
-}}
+}

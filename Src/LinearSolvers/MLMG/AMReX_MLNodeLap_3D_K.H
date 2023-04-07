@@ -1632,11 +1632,11 @@ void mlndlap_restriction (int i, int j, int k, Array4<Real> const& crse,
         const auto ndhi = amrex::ubound(fdom);
         Real tmp = Real(0.0);
         for (int koff = -rr+1; koff <= rr-1; ++koff) {
-            Real wz = rr - amrex::Math::abs(koff);
+            Real wz = rr - std::abs(koff);
             for (int joff = -rr+1; joff <= rr-1; ++joff) {
-                Real wy = rr - amrex::Math::abs(joff);
+                Real wy = rr - std::abs(joff);
                 for (int ioff = -rr+1; ioff <= rr-1; ++ioff) {
-                    Real wx = rr - amrex::Math::abs(ioff);
+                    Real wx = rr - std::abs(ioff);
                     int itmp = ii + ioff;
                     int jtmp = jj + joff;
                     int ktmp = kk + koff;
@@ -2243,9 +2243,9 @@ void mlndlap_divu_fine_contrib (int i, int j, int k, Box const& fvbx, Box const&
         for (int koff = klo; koff <= khi; ++koff) {
         for (int joff = jlo; joff <= jhi; ++joff) {
         for (int ioff = ilo; ioff <= ihi; ++ioff) {
-            Real scale = static_cast<Real>((rr-amrex::Math::abs(ii-ioff)) *
-                                           (rr-amrex::Math::abs(jj-joff)) *
-                                           (rr-amrex::Math::abs(kk-koff)));
+            Real scale = static_cast<Real>((rr-std::abs(ii-ioff)) *
+                                           (rr-std::abs(jj-joff)) *
+                                           (rr-std::abs(kk-koff)));
             if (fvbx.strictly_contains(ioff,joff,koff)) {
                 Df += scale * frhs(ioff,joff,koff);
             } else {
@@ -2281,9 +2281,9 @@ void mlndlap_rhcc_fine_contrib (int i, int j, int k, Box const& ccbx,
         for (int koff = klo; koff <= khi; ++koff) {
         for (int joff = jlo; joff <= jhi; ++joff) {
         for (int ioff = ilo; ioff <= ihi; ++ioff) {
-            Real scale = (static_cast<Real>(rr)-amrex::Math::abs(static_cast<Real>(ioff-ii)+Real(0.5)))
-                *        (static_cast<Real>(rr)-amrex::Math::abs(static_cast<Real>(joff-jj)+Real(0.5)))
-                *        (static_cast<Real>(rr)-amrex::Math::abs(static_cast<Real>(koff-kk)+Real(0.5)));
+            Real scale = (static_cast<Real>(rr)-std::abs(static_cast<Real>(ioff-ii)+Real(0.5)))
+                *        (static_cast<Real>(rr)-std::abs(static_cast<Real>(joff-jj)+Real(0.5)))
+                *        (static_cast<Real>(rr)-std::abs(static_cast<Real>(koff-kk)+Real(0.5)));
             tmp += cc(ioff,joff,koff) * scale;
         }}}
 
@@ -2302,27 +2302,24 @@ namespace {
         const auto ndlo = amrex::lbound(nddom);
         const auto ndhi = amrex::ubound(nddom);
 
-        if (i == ndlo.x && ( bclo[0] == LinOpBCType::Neumann ||
-                             bclo[0] == LinOpBCType::inflow)) {
-            val *= Real(2.);
-        } else if (i== ndhi.x && ( bchi[0] == LinOpBCType::Neumann ||
-                                   bchi[0] == LinOpBCType::inflow)) {
-            val *= Real(2.);
-        }
-
-        if (j == ndlo.y && ( bclo[1] == LinOpBCType::Neumann ||
-                             bclo[1] == LinOpBCType::inflow)) {
-            val *= Real(2.);
-        } else if (j == ndhi.y && ( bchi[1] == LinOpBCType::Neumann ||
-                                    bchi[1] == LinOpBCType::inflow)) {
+        if ((i == ndlo.x && ( bclo[0] == LinOpBCType::Neumann ||
+                              bclo[0] == LinOpBCType::inflow)) ||
+            (i == ndhi.x && ( bchi[0] == LinOpBCType::Neumann ||
+                              bchi[0] == LinOpBCType::inflow))) {
             val *= Real(2.);
         }
 
-        if (k == ndlo.z && ( bclo[2] == LinOpBCType::Neumann ||
-                             bclo[2] == LinOpBCType::inflow)) {
+        if ((j == ndlo.y && ( bclo[1] == LinOpBCType::Neumann ||
+                              bclo[1] == LinOpBCType::inflow)) ||
+            (j == ndhi.y && ( bchi[1] == LinOpBCType::Neumann ||
+                              bchi[1] == LinOpBCType::inflow))) {
             val *= Real(2.);
-        } else if (k == ndhi.z && ( bchi[2] == LinOpBCType::Neumann ||
-                                    bchi[2] == LinOpBCType::inflow)) {
+        }
+
+        if ((k == ndlo.z && ( bclo[2] == LinOpBCType::Neumann ||
+                              bclo[2] == LinOpBCType::inflow)) ||
+            (k == ndhi.z && ( bchi[2] == LinOpBCType::Neumann ||
+                              bchi[2] == LinOpBCType::inflow))) {
             val *= Real(2.);
         }
 
@@ -2441,25 +2438,22 @@ void mlndlap_crse_resid (int i, int j, int k, Array4<Real> const& resid,
         if (neumann_doubling) {
             const auto ndlo = amrex::lbound(nddom);
             const auto ndhi = amrex::ubound(nddom);
-            if (i == ndlo.x && ( bclo[0] == LinOpBCType::Neumann ||
-                                  bclo[0] == LinOpBCType::inflow)) {
-                fac *= Real(2.);
-            } else if (i== ndhi.x && ( bchi[0] == LinOpBCType::Neumann ||
-                                        bchi[0] == LinOpBCType::inflow)) {
-                fac *= Real(2.);
-            }
-            if (j == ndlo.y && ( bclo[1] == LinOpBCType::Neumann ||
-                                  bclo[1] == LinOpBCType::inflow)) {
-                fac *= Real(2.);
-            } else if (j == ndhi.y && ( bchi[1] == LinOpBCType::Neumann ||
-                                         bchi[1] == LinOpBCType::inflow)) {
+            if ((i == ndlo.x && ( bclo[0] == LinOpBCType::Neumann ||
+                                  bclo[0] == LinOpBCType::inflow)) ||
+                (i == ndhi.x && ( bchi[0] == LinOpBCType::Neumann ||
+                                  bchi[0] == LinOpBCType::inflow))) {
                 fac *= Real(2.);
             }
-            if (k == ndlo.z && ( bclo[2] == LinOpBCType::Neumann ||
-                                  bclo[2] == LinOpBCType::inflow)) {
+            if ((j == ndlo.y && ( bclo[1] == LinOpBCType::Neumann ||
+                                  bclo[1] == LinOpBCType::inflow)) ||
+                (j == ndhi.y && ( bchi[1] == LinOpBCType::Neumann ||
+                                  bchi[1] == LinOpBCType::inflow))) {
                 fac *= Real(2.);
-            } else if (k == ndhi.z && ( bchi[2] == LinOpBCType::Neumann ||
-                                         bchi[2] == LinOpBCType::inflow)) {
+            }
+            if ((k == ndlo.z && ( bclo[2] == LinOpBCType::Neumann ||
+                                  bclo[2] == LinOpBCType::inflow)) ||
+                (k == ndhi.z && ( bchi[2] == LinOpBCType::Neumann ||
+                                  bchi[2] == LinOpBCType::inflow))) {
                 fac *= Real(2.);
             }
         }
@@ -2630,9 +2624,9 @@ namespace {
             for (int koff = klo; koff <= khi; ++koff) {
             for (int joff = jlo; joff <= jhi; ++joff) {
             for (int ioff = ilo; ioff <= ihi; ++ioff) {
-                Real scale = static_cast<Real>((rr-amrex::Math::abs(ii-ioff)) *
-                                               (rr-amrex::Math::abs(jj-joff)) *
-                                               (rr-amrex::Math::abs(kk-koff)));
+                Real scale = static_cast<Real>((rr-std::abs(ii-ioff)) *
+                                               (rr-std::abs(jj-joff)) *
+                                               (rr-std::abs(kk-koff)));
                 if (ndbx.strictly_contains(ioff,joff,koff)) {
                     Df += scale * (rhs(ioff,joff,koff)-res(ioff,joff,koff));
                 } else {
@@ -2835,19 +2829,19 @@ void mlndlap_set_stencil_s0 (int i, int j, int k, Array4<Real> const& sten) noex
                           + sten(i-1,j-1,k,ist_ppp) + sten(i,j-1,k,ist_ppp)
                           + sten(i-1,j,k,ist_ppp) + sten(i,j,k,ist_ppp));
     sten(i,j,k,ist_inv) = Real(1.0) /
-        (  amrex::Math::abs(sten(i-1,j,k,ist_p00)) + amrex::Math::abs(sten(i,j,k,ist_p00))
-         + amrex::Math::abs(sten(i,j-1,k,ist_0p0)) + amrex::Math::abs(sten(i,j,k,ist_0p0))
-         + amrex::Math::abs(sten(i,j,k-1,ist_00p)) + amrex::Math::abs(sten(i,j,k,ist_00p))
-         + amrex::Math::abs(sten(i-1,j-1,k,ist_pp0)) + amrex::Math::abs(sten(i,j-1,k,ist_pp0))
-         + amrex::Math::abs(sten(i-1,j,k,ist_pp0)) + amrex::Math::abs(sten(i,j,k,ist_pp0))
-         + amrex::Math::abs(sten(i-1,j,k-1,ist_p0p)) + amrex::Math::abs(sten(i,j,k-1,ist_p0p))
-         + amrex::Math::abs(sten(i-1,j,k,ist_p0p)) + amrex::Math::abs(sten(i,j,k,ist_p0p))
-         + amrex::Math::abs(sten(i,j-1,k-1,ist_0pp)) + amrex::Math::abs(sten(i,j,k-1,ist_0pp))
-         + amrex::Math::abs(sten(i,j-1,k,ist_0pp)) + amrex::Math::abs(sten(i,j,k,ist_0pp))
-         + amrex::Math::abs(sten(i-1,j-1,k-1,ist_ppp)) + amrex::Math::abs(sten(i,j-1,k-1,ist_ppp))
-         + amrex::Math::abs(sten(i-1,j,k-1,ist_ppp)) + amrex::Math::abs(sten(i,j,k-1,ist_ppp))
-         + amrex::Math::abs(sten(i-1,j-1,k,ist_ppp)) + amrex::Math::abs(sten(i,j-1,k,ist_ppp))
-         + amrex::Math::abs(sten(i-1,j,k,ist_ppp)) + amrex::Math::abs(sten(i,j,k,ist_ppp)) + eps);
+        (  std::abs(sten(i-1,j,k,ist_p00)) + std::abs(sten(i,j,k,ist_p00))
+         + std::abs(sten(i,j-1,k,ist_0p0)) + std::abs(sten(i,j,k,ist_0p0))
+         + std::abs(sten(i,j,k-1,ist_00p)) + std::abs(sten(i,j,k,ist_00p))
+         + std::abs(sten(i-1,j-1,k,ist_pp0)) + std::abs(sten(i,j-1,k,ist_pp0))
+         + std::abs(sten(i-1,j,k,ist_pp0)) + std::abs(sten(i,j,k,ist_pp0))
+         + std::abs(sten(i-1,j,k-1,ist_p0p)) + std::abs(sten(i,j,k-1,ist_p0p))
+         + std::abs(sten(i-1,j,k,ist_p0p)) + std::abs(sten(i,j,k,ist_p0p))
+         + std::abs(sten(i,j-1,k-1,ist_0pp)) + std::abs(sten(i,j,k-1,ist_0pp))
+         + std::abs(sten(i,j-1,k,ist_0pp)) + std::abs(sten(i,j,k,ist_0pp))
+         + std::abs(sten(i-1,j-1,k-1,ist_ppp)) + std::abs(sten(i,j-1,k-1,ist_ppp))
+         + std::abs(sten(i-1,j,k-1,ist_ppp)) + std::abs(sten(i,j,k-1,ist_ppp))
+         + std::abs(sten(i-1,j-1,k,ist_ppp)) + std::abs(sten(i,j-1,k,ist_ppp))
+         + std::abs(sten(i-1,j,k,ist_ppp)) + std::abs(sten(i,j,k,ist_ppp)) + eps);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -2856,440 +2850,440 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
 {
     auto interp_from_mmm_to = [&fsten] (int i_, int j_, int k_) -> Real {
         Real p = Real(1.);
-        p += amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_pp0)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_p0p)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_0pp)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_ppp)) + eps);
-        p *= amrex::Math::abs(fsten(i_-1,j_-1,k_-1,ist_ppp)) * fsten(i_,j_,k_,ist_inv);
+        p += std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) + eps);
+        p += std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp)) + eps);
+        p *= std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp)) * fsten(i_,j_,k_,ist_inv);
         return p;
     };
     amrex::ignore_unused(interp_from_mmm_to);
 
     auto interp_from_pmm_to = [&fsten] (int i_, int j_, int k_) -> Real {
         Real p = Real(1.);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) /
-           ( amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) /
-           ( amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) /
-           ( amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_0pp)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_ppp)) + eps);
-        p *= amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_ppp)) * fsten(i_,j_,k_,ist_inv);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) /
+           ( std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) /
+           ( std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) /
+           ( std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp)) + eps);
+        p *= std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp)) * fsten(i_,j_,k_,ist_inv);
         return p;
     };
 
     auto interp_from_mpm_to = [&fsten] (int i_, int j_, int k_) -> Real {
         Real p = Real(1.);
-        p += amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) /
-           ( amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) /
-           ( amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_p0p)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) /
-           ( amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) + eps);
-        p *= amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_ppp)) * fsten(i_,j_,k_,ist_inv);
+        p += std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) /
+           ( std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) + eps);
+        p += std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) /
+           ( std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) /
+           ( std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) + eps);
+        p *= std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp)) * fsten(i_,j_,k_,ist_inv);
         return p;
     };
 
     auto interp_from_ppm_to = [&fsten] (int i_, int j_, int k_) -> Real {
         Real p = Real(1.);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) /
-           ( amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) /
-           ( amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) /
-           ( amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) /
-           ( amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) /
-           ( amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) + eps);
-        p *= amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) * fsten(i_,j_,k_,ist_inv);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) /
+           ( std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) /
+           ( std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) /
+           ( std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) /
+           ( std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) /
+           ( std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) + eps);
+        p *= std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) * fsten(i_,j_,k_,ist_inv);
         return p;
     };
 
     auto interp_from_mmp_to = [&fsten] (int i_, int j_, int k_) -> Real {
         Real p = Real(1.);
-        p += amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_-1,j_-1,k_,ist_pp0)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_-1,j_  ,k_,ist_p0p)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_-1,k_,ist_0pp)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_,ist_ppp)) + eps);
-        p *= amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_ppp)) * fsten(i_,j_,k_,ist_inv);
+        p += std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) /
+           ( std::abs(fsten(i_-1,j_-1,k_,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_,ist_ppp)) + eps);
+        p += std::abs(fsten(i_-1,j_-1,k_,ist_pp0)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_-1,j_  ,k_,ist_p0p)) /
+           ( std::abs(fsten(i_-1,j_-1,k_,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_-1,k_,ist_0pp)) /
+           ( std::abs(fsten(i_-1,j_-1,k_,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_,ist_ppp)) + eps);
+        p *= std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp)) * fsten(i_,j_,k_,ist_inv);
         return p;
     };
 
     auto interp_from_pmp_to = [&fsten] (int i_, int j_, int k_) -> Real {
         Real p = Real(1.);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_,ist_p00)) /
-           ( amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_-1,k_,ist_0p0)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_,ist_00p)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_-1,k_,ist_pp0)) /
-           ( amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_,ist_p0p)) /
-           ( amrex::Math::abs(fsten(i_  ,j_-1,k_,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_-1,k_,ist_0pp)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_,ist_ppp)) + eps);
-        p *= amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_ppp)) * fsten(i_,j_  ,k_,ist_inv);
+        p += std::abs(fsten(i_  ,j_  ,k_,ist_p00)) /
+           ( std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_-1,k_,ist_0p0)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_,ist_00p)) /
+           ( std::abs(fsten(i_-1,j_-1,k_,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_-1,k_,ist_pp0)) /
+           ( std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_,ist_p0p)) /
+           ( std::abs(fsten(i_  ,j_-1,k_,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_-1,k_,ist_0pp)) /
+           ( std::abs(fsten(i_-1,j_-1,k_,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_,ist_ppp)) + eps);
+        p *= std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp)) * fsten(i_,j_  ,k_,ist_inv);
         return p;
     };
 
     auto interp_from_mpp_to = [&fsten] (int i_, int j_, int k_) -> Real {
         Real p = Real(1.);
-        p += amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) /
-           ( amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) /
-           ( amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) /
-           ( amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
-        p *= amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_ppp)) * fsten(i_,j_,k_,ist_inv);
+        p += std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) /
+           ( std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) /
+           ( std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) /
+           ( std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) /
+           ( std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) /
+           ( std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p *= std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp)) * fsten(i_,j_,k_,ist_inv);
         return p;
     };
 
     auto interp_from_ppp_to = [&fsten] (int i_, int j_, int k_) -> Real {
         Real p = Real(1.);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) /
-           ( amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) /
-           ( amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) /
-           ( amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) /
-           ( amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) /
-           ( amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
-        p += amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) /
-           ( amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_ppp))
-           + amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
-        p *= amrex::Math::abs(fsten(i_  ,j_  ,k_,ist_ppp)) * fsten(i_,j_,k_,ist_inv);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) /
+           ( std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) /
+           ( std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) /
+           ( std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) /
+           ( std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) /
+           ( std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) /
+           ( std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p *= std::abs(fsten(i_  ,j_  ,k_,ist_ppp)) * fsten(i_,j_,k_,ist_inv);
         return p;
     };
 
     auto interp_from_0mm_to = [&fsten] (int i_, int j_, int k_) -> Real {
-        Real w1m = amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) / (amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_0pp))
-                                                             +amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0pp)) + eps);
-        Real w1p = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) / (amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_0pp))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) + eps);
-        Real w2m = amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) / (amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_0pp))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) + eps);
-        Real w2p = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) / (amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0pp))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) + eps);
-        Real wmm = amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_0pp)) * (Real(1.) + w1m + w2m);
-        Real wpm = amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) * (Real(1.) + w1p + w2m);
-        Real wmp = amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0pp)) * (Real(1.) + w1m + w2p);
-        Real wpp = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) * (Real(1.) + w1p + w2p);
+        Real w1m = std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) / (std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_-1,k_  ,ist_0pp)) + eps);
+        Real w1p = std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) / (std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) + eps);
+        Real w2m = std::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) / (std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) + eps);
+        Real w2p = std::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) / (std::abs(fsten(i_  ,j_-1,k_  ,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) + eps);
+        Real wmm = std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp)) * (Real(1.) + w1m + w2m);
+        Real wpm = std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) * (Real(1.) + w1p + w2m);
+        Real wmp = std::abs(fsten(i_  ,j_-1,k_  ,ist_0pp)) * (Real(1.) + w1m + w2p);
+        Real wpp = std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) * (Real(1.) + w1p + w2p);
         return wmm / (wmm+wpm+wmp+wpp+eps);
     };
 
     auto interp_from_0mp_to = [&fsten] (int i_, int j_, int k_) -> Real {
-        Real w1m = amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) / (amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_0pp))
-                                                             +amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0pp)) + eps);
-        Real w1p = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) / (amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_0pp))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) + eps);
-        Real w2m = amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) / (amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_0pp))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) + eps);
-        Real w2p = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) / (amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0pp))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) + eps);
-        Real wmm = amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_0pp)) * (Real(1.) + w1m + w2m);
-        Real wpm = amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) * (Real(1.) + w1p + w2m);
-        Real wmp = amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0pp)) * (Real(1.) + w1m + w2p);
-        Real wpp = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) * (Real(1.) + w1p + w2p);
+        Real w1m = std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) / (std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_-1,k_  ,ist_0pp)) + eps);
+        Real w1p = std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) / (std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) + eps);
+        Real w2m = std::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) / (std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) + eps);
+        Real w2p = std::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) / (std::abs(fsten(i_  ,j_-1,k_  ,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) + eps);
+        Real wmm = std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp)) * (Real(1.) + w1m + w2m);
+        Real wpm = std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) * (Real(1.) + w1p + w2m);
+        Real wmp = std::abs(fsten(i_  ,j_-1,k_  ,ist_0pp)) * (Real(1.) + w1m + w2p);
+        Real wpp = std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) * (Real(1.) + w1p + w2p);
         return wmp / (wmm+wpm+wmp+wpp+eps);
     };
 
     auto interp_from_0pm_to = [&fsten] (int i_, int j_, int k_) -> Real {
-        Real w1m = amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) / (amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_0pp))
-                                                             +amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0pp)) + eps);
-        Real w1p = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) / (amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_0pp))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) + eps);
-        Real w2m = amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) / (amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_0pp))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) + eps);
-        Real w2p = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) / (amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0pp))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) + eps);
-        Real wmm = amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_0pp)) * (Real(1.) + w1m + w2m);
-        Real wpm = amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) * (Real(1.) + w1p + w2m);
-        Real wmp = amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0pp)) * (Real(1.) + w1m + w2p);
-        Real wpp = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) * (Real(1.) + w1p + w2p);
+        Real w1m = std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) / (std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_-1,k_  ,ist_0pp)) + eps);
+        Real w1p = std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) / (std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) + eps);
+        Real w2m = std::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) / (std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) + eps);
+        Real w2p = std::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) / (std::abs(fsten(i_  ,j_-1,k_  ,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) + eps);
+        Real wmm = std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp)) * (Real(1.) + w1m + w2m);
+        Real wpm = std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) * (Real(1.) + w1p + w2m);
+        Real wmp = std::abs(fsten(i_  ,j_-1,k_  ,ist_0pp)) * (Real(1.) + w1m + w2p);
+        Real wpp = std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) * (Real(1.) + w1p + w2p);
         return wpm / (wmm+wpm+wmp+wpp+eps);
     };
 
     auto interp_from_0pp_to = [&fsten] (int i_, int j_, int k_) -> Real {
-        Real w1m = amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) / (amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_0pp))
-                                                             +amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0pp)) + eps);
-        Real w1p = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) / (amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_0pp))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) + eps);
-        Real w2m = amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) / (amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_0pp))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) + eps);
-        Real w2p = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) / (amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0pp))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) + eps);
-        Real wmm = amrex::Math::abs(fsten(i_  ,j_-1,k_-1,ist_0pp)) * (Real(1.) + w1m + w2m);
-        Real wpm = amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) * (Real(1.) + w1p + w2m);
-        Real wmp = amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0pp)) * (Real(1.) + w1m + w2p);
-        Real wpp = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) * (Real(1.) + w1p + w2p);
+        Real w1m = std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) / (std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_-1,k_  ,ist_0pp)) + eps);
+        Real w1p = std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) / (std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) + eps);
+        Real w2m = std::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) / (std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) + eps);
+        Real w2p = std::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) / (std::abs(fsten(i_  ,j_-1,k_  ,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) + eps);
+        Real wmm = std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp)) * (Real(1.) + w1m + w2m);
+        Real wpm = std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) * (Real(1.) + w1p + w2m);
+        Real wmp = std::abs(fsten(i_  ,j_-1,k_  ,ist_0pp)) * (Real(1.) + w1m + w2p);
+        Real wpp = std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) * (Real(1.) + w1p + w2p);
         return wpp / (wmm+wpm+wmp+wpp+eps);
     };
 
     auto interp_from_m0m_to = [&fsten] (int i_, int j_, int k_) -> Real {
-        Real w1m = amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) / (amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_p0p))
-                                                             +amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) + eps);
-        Real w1p = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) / (amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_p0p))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) + eps);
-        Real w2m = amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) / (amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_p0p))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) + eps);
-        Real w2p = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) / (amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p0p))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) + eps);
-        Real wmm = amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_p0p)) * (Real(1.) + w1m + w2m);
-        Real wpm = amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) * (Real(1.) + w1p + w2m);
-        Real wmp = amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) * (Real(1.) + w1m + w2p);
-        Real wpp = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) * (Real(1.) + w1p + w2p);
+        Real w1m = std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p))
+                                                             +std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) + eps);
+        Real w1p = std::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) + eps);
+        Real w2m = std::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) / (std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p))
+                                                             +std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) + eps);
+        Real w2p = std::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) / (std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) + eps);
+        Real wmm = std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p)) * (Real(1.) + w1m + w2m);
+        Real wpm = std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) * (Real(1.) + w1p + w2m);
+        Real wmp = std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) * (Real(1.) + w1m + w2p);
+        Real wpp = std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) * (Real(1.) + w1p + w2p);
         return wmm / (wmm+wpm+wmp+wpp+eps);
     };
 
     auto interp_from_p0m_to = [&fsten] (int i_, int j_, int k_) -> Real {
-        Real w1m = amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) / (amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_p0p))
-                                                             +amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) + eps);
-        Real w1p = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) / (amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_p0p))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) + eps);
-        Real w2m = amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) / (amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_p0p))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) + eps);
-        Real w2p = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) / (amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p0p))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) + eps);
-        Real wmm = amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_p0p)) * (Real(1.) + w1m + w2m);
-        Real wpm = amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) * (Real(1.) + w1p + w2m);
-        Real wmp = amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) * (Real(1.) + w1m + w2p);
-        Real wpp = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) * (Real(1.) + w1p + w2p);
+        Real w1m = std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p))
+                                                             +std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) + eps);
+        Real w1p = std::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) + eps);
+        Real w2m = std::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) / (std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p))
+                                                             +std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) + eps);
+        Real w2p = std::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) / (std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) + eps);
+        Real wmm = std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p)) * (Real(1.) + w1m + w2m);
+        Real wpm = std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) * (Real(1.) + w1p + w2m);
+        Real wmp = std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) * (Real(1.) + w1m + w2p);
+        Real wpp = std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) * (Real(1.) + w1p + w2p);
         return wpm / (wmm+wpm+wmp+wpp+eps);
     };
 
     auto interp_from_m0p_to = [&fsten] (int i_, int j_, int k_) -> Real {
-        Real w1m = amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) / (amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_p0p))
-                                                             +amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) + eps);
-        Real w1p = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) / (amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_p0p))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) + eps);
-        Real w2m = amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) / (amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_p0p))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) + eps);
-        Real w2p = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) / (amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p0p))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) + eps);
-        Real wmm = amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_p0p)) * (Real(1.) + w1m + w2m);
-        Real wpm = amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) * (Real(1.) + w1p + w2m);
-        Real wmp = amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) * (Real(1.) + w1m + w2p);
-        Real wpp = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) * (Real(1.) + w1p + w2p);
+        Real w1m = std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p))
+                                                             +std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) + eps);
+        Real w1p = std::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) + eps);
+        Real w2m = std::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) / (std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p))
+                                                             +std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) + eps);
+        Real w2p = std::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) / (std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) + eps);
+        Real wmm = std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p)) * (Real(1.) + w1m + w2m);
+        Real wpm = std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) * (Real(1.) + w1p + w2m);
+        Real wmp = std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) * (Real(1.) + w1m + w2p);
+        Real wpp = std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) * (Real(1.) + w1p + w2p);
         return wmp / (wmm+wpm+wmp+wpp+eps);
     };
 
     auto interp_from_p0p_to = [&fsten] (int i_, int j_, int k_) -> Real {
-        Real w1m = amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) / (amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_p0p))
-                                                             +amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) + eps);
-        Real w1p = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) / (amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_p0p))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) + eps);
-        Real w2m = amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) / (amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_p0p))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) + eps);
-        Real w2p = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) / (amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p0p))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) + eps);
-        Real wmm = amrex::Math::abs(fsten(i_-1,j_  ,k_-1,ist_p0p)) * (Real(1.) + w1m + w2m);
-        Real wpm = amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) * (Real(1.) + w1p + w2m);
-        Real wmp = amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) * (Real(1.) + w1m + w2p);
-        Real wpp = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) * (Real(1.) + w1p + w2p);
+        Real w1m = std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p))
+                                                             +std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) + eps);
+        Real w1p = std::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) + eps);
+        Real w2m = std::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) / (std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p))
+                                                             +std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) + eps);
+        Real w2p = std::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) / (std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) + eps);
+        Real wmm = std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p)) * (Real(1.) + w1m + w2m);
+        Real wpm = std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) * (Real(1.) + w1p + w2m);
+        Real wmp = std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) * (Real(1.) + w1m + w2p);
+        Real wpp = std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) * (Real(1.) + w1p + w2p);
         return wpp / (wmm+wpm+wmp+wpp+eps);
     };
 
     auto interp_from_mm0_to = [&fsten] (int i_, int j_, int k_) -> Real {
-        Real w1m = amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) / (amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_pp0))
-                                                             +amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) + eps);
-        Real w1p = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) / (amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_pp0))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) + eps);
-        Real w2m = amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) / (amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_pp0))
-                                                             +amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) + eps);
-      Real w2p = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) / (amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_pp0))
-                                                            +amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) + eps);
-        Real wmm = amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_pp0)) * (Real(1.) + w1m + w2m);
-        Real wpm = amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) * (Real(1.) + w1p + w2m);
-        Real wmp = amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) * (Real(1.) + w1m + w2p);
-        Real wpp = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) * (Real(1.) + w1p + w2p);
+        Real w1m = std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) + eps);
+        Real w1p = std::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) + eps);
+        Real w2m = std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) / (std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) + eps);
+      Real w2p = std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) / (std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0))
+                                                            +std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) + eps);
+        Real wmm = std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0)) * (Real(1.) + w1m + w2m);
+        Real wpm = std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) * (Real(1.) + w1p + w2m);
+        Real wmp = std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) * (Real(1.) + w1m + w2p);
+        Real wpp = std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) * (Real(1.) + w1p + w2p);
         return wmm / (wmm+wpm+wmp+wpp+eps);
     };
 
     auto interp_from_mp0_to = [&fsten] (int i_, int j_, int k_) -> Real {
-        Real w1m = amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) / (amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_pp0))
-                                                             +amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) + eps);
-        Real w1p = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) / (amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_pp0))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) + eps);
-        Real w2m = amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) / (amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_pp0))
-                                                             +amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) + eps);
-        Real w2p = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) / (amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_pp0))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) + eps);
-        Real wmm = amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_pp0)) * (Real(1.) + w1m + w2m);
-        Real wpm = amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) * (Real(1.) + w1p + w2m);
-        Real wmp = amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) * (Real(1.) + w1m + w2p);
-        Real wpp = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) * (Real(1.) + w1p + w2p);
+        Real w1m = std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) + eps);
+        Real w1p = std::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) + eps);
+        Real w2m = std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) / (std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) + eps);
+        Real w2p = std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) / (std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) + eps);
+        Real wmm = std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0)) * (Real(1.) + w1m + w2m);
+        Real wpm = std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) * (Real(1.) + w1p + w2m);
+        Real wmp = std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) * (Real(1.) + w1m + w2p);
+        Real wpp = std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) * (Real(1.) + w1p + w2p);
         return wmp / (wmm+wpm+wmp+wpp+eps);
     };
 
     auto interp_from_pm0_to = [&fsten] (int i_, int j_, int k_) -> Real {
-        Real w1m = amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) / (amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_pp0))
-                                                             +amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) + eps);
-        Real w1p = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) / (amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_pp0))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) + eps);
-        Real w2m = amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) / (amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_pp0))
-                                                             +amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) + eps);
-        Real w2p = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) / (amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_pp0))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) + eps);
-        Real wmm = amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_pp0)) * (Real(1.) + w1m + w2m);
-        Real wpm = amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) * (Real(1.) + w1p + w2m);
-        Real wmp = amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) * (Real(1.) + w1m + w2p);
-        Real wpp = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) * (Real(1.) + w1p + w2p);
+        Real w1m = std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) + eps);
+        Real w1p = std::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) + eps);
+        Real w2m = std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) / (std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) + eps);
+        Real w2p = std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) / (std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) + eps);
+        Real wmm = std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0)) * (Real(1.) + w1m + w2m);
+        Real wpm = std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) * (Real(1.) + w1p + w2m);
+        Real wmp = std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) * (Real(1.) + w1m + w2p);
+        Real wpp = std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) * (Real(1.) + w1p + w2p);
         return wpm / (wmm+wpm+wmp+wpp+eps);
     };
 
     auto interp_from_pp0_to = [&fsten] (int i_, int j_, int k_) -> Real {
-        Real w1m = amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) / (amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_pp0))
-                                                             +amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) + eps);
-        Real w1p = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) / (amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_pp0))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) + eps);
-        Real w2m = amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) / (amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_pp0))
-                                                             +amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) + eps);
-        Real w2p = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) / (amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_pp0))
-                                                             +amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) + eps);
-        Real wmm = amrex::Math::abs(fsten(i_-1,j_-1,k_  ,ist_pp0)) * (Real(1.) + w1m + w2m);
-        Real wpm = amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) * (Real(1.) + w1p + w2m);
-        Real wmp = amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) * (Real(1.) + w1m + w2p);
-        Real wpp = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) * (Real(1.) + w1p + w2p);
+        Real w1m = std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) + eps);
+        Real w1p = std::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) + eps);
+        Real w2m = std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) / (std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) + eps);
+        Real w2p = std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) / (std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) + eps);
+        Real wmm = std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0)) * (Real(1.) + w1m + w2m);
+        Real wpm = std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) * (Real(1.) + w1p + w2m);
+        Real wmp = std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) * (Real(1.) + w1m + w2p);
+        Real wpp = std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) * (Real(1.) + w1p + w2p);
         return wpp / (wmm+wpm+wmp+wpp+eps);
     };
 
     auto interp_from_00m_to = [&fsten] (int i_, int j_, int k_) -> Real {
-        Real w1 = amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_00p));
-        Real w2 = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_00p));
+        Real w1 = std::abs(fsten(i_  ,j_  ,k_-1,ist_00p));
+        Real w2 = std::abs(fsten(i_  ,j_  ,k_  ,ist_00p));
         if (w1 == Real(0.) && w2 == Real(0.)) {
             return Real(0.5);
         } else {
@@ -3298,8 +3292,8 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     };
 
     auto interp_from_00p_to = [&fsten] (int i_, int j_, int k_) -> Real {
-        Real w1 = amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_00p));
-        Real w2 = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_00p));
+        Real w1 = std::abs(fsten(i_  ,j_  ,k_-1,ist_00p));
+        Real w2 = std::abs(fsten(i_  ,j_  ,k_  ,ist_00p));
         if (w1 == Real(0.) && w2 == Real(0.)) {
             return Real(0.5);
         } else {
@@ -3308,8 +3302,8 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     };
 
     auto interp_from_0m0_to = [&fsten] (int i_, int j_, int k_) -> Real {
-        Real w1 = amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0p0));
-        Real w2 = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0p0));
+        Real w1 = std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0));
+        Real w2 = std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0));
         if (w1 == Real(0.) && w2 == Real(0.)) {
             return Real(0.5);
         } else {
@@ -3318,8 +3312,8 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     };
 
     auto interp_from_0p0_to = [&fsten] (int i_, int j_, int k_) -> Real {
-        Real w1 = amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0p0));
-        Real w2 = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0p0));
+        Real w1 = std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0));
+        Real w2 = std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0));
         if (w1 == Real(0.) && w2 == Real(0.)) {
             return Real(0.5);
         } else {
@@ -3328,8 +3322,8 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     };
 
     auto interp_from_m00_to = [&fsten] (int i_, int j_, int k_) -> Real {
-        Real w1 = amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p00));
-        Real w2 = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p00));
+        Real w1 = std::abs(fsten(i_-1,j_  ,k_  ,ist_p00));
+        Real w2 = std::abs(fsten(i_  ,j_  ,k_  ,ist_p00));
         if (w1 == Real(0.) && w2 == Real(0.)) {
             return Real(0.5);
         } else {
@@ -3338,8 +3332,8 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     };
 
     auto interp_from_p00_to = [&fsten] (int i_, int j_, int k_) -> Real {
-        Real w1 = amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p00));
-        Real w2 = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p00));
+        Real w1 = std::abs(fsten(i_-1,j_  ,k_  ,ist_p00));
+        Real w2 = std::abs(fsten(i_  ,j_  ,k_  ,ist_p00));
         if (w1 == Real(0.) && w2 == Real(0.)) {
             return Real(0.5);
         } else {
@@ -3458,100 +3452,100 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
 
     auto restrict_from_mmm_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
         Real r = Real(1.);
-        r += amrex::Math::abs(fsten(ii_-1,jj_-1,kk_-1,ist_p00)) /
-           ( amrex::Math::abs(fsten(ii_-1,jj_-2,kk_-2,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_-1,kk_-2,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_-2,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_-1,kk_-1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_-1,jj_-1,kk_-1,ist_0p0)) /
-           ( amrex::Math::abs(fsten(ii_-2,jj_-1,kk_-2,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_-1,kk_-2,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-2,jj_-1,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_-1,kk_-1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_-1,jj_-1,kk_-1,ist_00p)) /
-           ( amrex::Math::abs(fsten(ii_-2,jj_-2,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_-2,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-2,jj_-1,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_-1,kk_-1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_-1,jj_-1,kk_-1,ist_pp0)) /
-           ( amrex::Math::abs(fsten(ii_-1,jj_-1,kk_-2,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_-1,kk_-1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_-1,jj_-1,kk_-1,ist_p0p)) /
-           ( amrex::Math::abs(fsten(ii_-1,jj_-2,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_-1,kk_-1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_-1,jj_-1,kk_-1,ist_0pp)) /
-           ( amrex::Math::abs(fsten(ii_-2,jj_-1,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_-1,kk_-1,ist_ppp)) + eps);
-        r *= amrex::Math::abs(fsten(ii_-1,jj_-1,kk_-1,ist_ppp)) * fsten(ii_-1,jj_-1,kk_-1,ist_inv);
+        r += std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_p00)) /
+           ( std::abs(fsten(ii_-1,jj_-2,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-2,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_0p0)) /
+           ( std::abs(fsten(ii_-2,jj_-1,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_-2,jj_-1,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_00p)) /
+           ( std::abs(fsten(ii_-2,jj_-2,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-2,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-2,jj_-1,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_pp0)) /
+           ( std::abs(fsten(ii_-1,jj_-1,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_p0p)) /
+           ( std::abs(fsten(ii_-1,jj_-2,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_0pp)) /
+           ( std::abs(fsten(ii_-2,jj_-1,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_ppp)) + eps);
+        r *= std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_ppp)) * fsten(ii_-1,jj_-1,kk_-1,ist_inv);
         return r;
     };
     amrex::ignore_unused(restrict_from_mmm_to);
 
     auto restrict_from_0mm_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
-        Real w1m = amrex::Math::abs(fsten(ii_,jj_-2,kk_-1,ist_0p0)) / (amrex::Math::abs(fsten(ii_,jj_-2,kk_-2,ist_0pp))
-                                                              +amrex::Math::abs(fsten(ii_,jj_-2,kk_-1,ist_0pp)) + eps);
-        Real w1p = amrex::Math::abs(fsten(ii_,jj_-1,kk_-1,ist_0p0)) / (amrex::Math::abs(fsten(ii_,jj_-1,kk_-2,ist_0pp))
-                                                              +amrex::Math::abs(fsten(ii_,jj_-1,kk_-1,ist_0pp)) + eps);
-        Real w2m = amrex::Math::abs(fsten(ii_,jj_-1,kk_-2,ist_00p)) / (amrex::Math::abs(fsten(ii_,jj_-2,kk_-2,ist_0pp))
-                                                              +amrex::Math::abs(fsten(ii_,jj_-1,kk_-2,ist_0pp)) + eps);
-        Real w2p = amrex::Math::abs(fsten(ii_,jj_-1,kk_-1,ist_00p)) / (amrex::Math::abs(fsten(ii_,jj_-2,kk_-1,ist_0pp))
-                                                              +amrex::Math::abs(fsten(ii_,jj_-1,kk_-1,ist_0pp)) + eps);
-        Real wmm = amrex::Math::abs(fsten(ii_,jj_-2,kk_-2,ist_0pp)) * (Real(1.) + w1m + w2m);
-        Real wpm = amrex::Math::abs(fsten(ii_,jj_-1,kk_-2,ist_0pp)) * (Real(1.) + w1p + w2m);
-        Real wmp = amrex::Math::abs(fsten(ii_,jj_-2,kk_-1,ist_0pp)) * (Real(1.) + w1m + w2p);
-        Real wpp = amrex::Math::abs(fsten(ii_,jj_-1,kk_-1,ist_0pp)) * (Real(1.) + w1p + w2p);
+        Real w1m = std::abs(fsten(ii_,jj_-2,kk_-1,ist_0p0)) / (std::abs(fsten(ii_,jj_-2,kk_-2,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_-2,kk_-1,ist_0pp)) + eps);
+        Real w1p = std::abs(fsten(ii_,jj_-1,kk_-1,ist_0p0)) / (std::abs(fsten(ii_,jj_-1,kk_-2,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_-1,kk_-1,ist_0pp)) + eps);
+        Real w2m = std::abs(fsten(ii_,jj_-1,kk_-2,ist_00p)) / (std::abs(fsten(ii_,jj_-2,kk_-2,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_-1,kk_-2,ist_0pp)) + eps);
+        Real w2p = std::abs(fsten(ii_,jj_-1,kk_-1,ist_00p)) / (std::abs(fsten(ii_,jj_-2,kk_-1,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_-1,kk_-1,ist_0pp)) + eps);
+        Real wmm = std::abs(fsten(ii_,jj_-2,kk_-2,ist_0pp)) * (Real(1.) + w1m + w2m);
+        Real wpm = std::abs(fsten(ii_,jj_-1,kk_-2,ist_0pp)) * (Real(1.) + w1p + w2m);
+        Real wmp = std::abs(fsten(ii_,jj_-2,kk_-1,ist_0pp)) * (Real(1.) + w1m + w2p);
+        Real wpp = std::abs(fsten(ii_,jj_-1,kk_-1,ist_0pp)) * (Real(1.) + w1p + w2p);
         return wpp / (wmm+wpm+wmp+wpp+eps);
     };
 
     auto restrict_from_pmm_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
         Real r = Real(1.);
-        r += amrex::Math::abs(fsten(ii_  ,jj_-1,kk_-1,ist_p00)) /
-           ( amrex::Math::abs(fsten(ii_  ,jj_-2,kk_-2,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_-1,kk_-2,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_-2,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_-1,kk_-1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_+1,jj_-1,kk_-1,ist_0p0)) /
-           ( amrex::Math::abs(fsten(ii_  ,jj_-1,kk_-2,ist_ppp))
-           + amrex::Math::abs(fsten(ii_+1,jj_-1,kk_-2,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_-1,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_+1,jj_-1,kk_-1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_+1,jj_-1,kk_-1,ist_00p)) /
-           ( amrex::Math::abs(fsten(ii_  ,jj_-2,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_+1,jj_-2,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_-1,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_+1,jj_-1,kk_-1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_  ,jj_-1,kk_-1,ist_pp0)) /
-           ( amrex::Math::abs(fsten(ii_  ,jj_-1,kk_-2,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_-1,kk_-1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_  ,jj_-1,kk_-1,ist_p0p)) /
-           ( amrex::Math::abs(fsten(ii_  ,jj_-2,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_-1,kk_-1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_+1,jj_-1,kk_-1,ist_0pp)) /
-           ( amrex::Math::abs(fsten(ii_  ,jj_-1,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_+1,jj_-1,kk_-1,ist_ppp)) + eps);
-        r *= amrex::Math::abs(fsten(ii_  ,jj_-1,kk_-1,ist_ppp)) * fsten(ii_+1,jj_-1,kk_-1,ist_inv);
+        r += std::abs(fsten(ii_  ,jj_-1,kk_-1,ist_p00)) /
+           ( std::abs(fsten(ii_  ,jj_-2,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-1,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-2,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_+1,jj_-1,kk_-1,ist_0p0)) /
+           ( std::abs(fsten(ii_  ,jj_-1,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_-1,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-1,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_-1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_+1,jj_-1,kk_-1,ist_00p)) /
+           ( std::abs(fsten(ii_  ,jj_-2,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_-2,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-1,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_-1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_  ,jj_-1,kk_-1,ist_pp0)) /
+           ( std::abs(fsten(ii_  ,jj_-1,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_  ,jj_-1,kk_-1,ist_p0p)) /
+           ( std::abs(fsten(ii_  ,jj_-2,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_+1,jj_-1,kk_-1,ist_0pp)) /
+           ( std::abs(fsten(ii_  ,jj_-1,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_-1,kk_-1,ist_ppp)) + eps);
+        r *= std::abs(fsten(ii_  ,jj_-1,kk_-1,ist_ppp)) * fsten(ii_+1,jj_-1,kk_-1,ist_inv);
         return r;
     };
 
     auto restrict_from_m0m_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
-        Real w1m = amrex::Math::abs(fsten(ii_-2,jj_,kk_-1,ist_p00)) / (amrex::Math::abs(fsten(ii_-2,jj_,kk_-2,ist_p0p))
-                                                              +amrex::Math::abs(fsten(ii_-2,jj_,kk_-1,ist_p0p)) + eps);
-        Real w1p = amrex::Math::abs(fsten(ii_-1,jj_,kk_-1,ist_p00)) / (amrex::Math::abs(fsten(ii_-1,jj_,kk_-2,ist_p0p))
-                                                              +amrex::Math::abs(fsten(ii_-1,jj_,kk_-1,ist_p0p)) + eps);
-        Real w2m = amrex::Math::abs(fsten(ii_-1,jj_,kk_-2,ist_00p)) / (amrex::Math::abs(fsten(ii_-2,jj_,kk_-2,ist_p0p))
-                                                              +amrex::Math::abs(fsten(ii_-1,jj_,kk_-2,ist_p0p)) + eps);
-        Real w2p = amrex::Math::abs(fsten(ii_-1,jj_,kk_-1,ist_00p)) / (amrex::Math::abs(fsten(ii_-2,jj_,kk_-1,ist_p0p))
-                                                              +amrex::Math::abs(fsten(ii_-1,jj_,kk_-1,ist_p0p)) + eps);
-        Real wmm = amrex::Math::abs(fsten(ii_-2,jj_,kk_-2,ist_p0p)) * (Real(1.) + w1m + w2m);
-        Real wpm = amrex::Math::abs(fsten(ii_-1,jj_,kk_-2,ist_p0p)) * (Real(1.) + w1p + w2m);
-        Real wmp = amrex::Math::abs(fsten(ii_-2,jj_,kk_-1,ist_p0p)) * (Real(1.) + w1m + w2p);
-        Real wpp = amrex::Math::abs(fsten(ii_-1,jj_,kk_-1,ist_p0p)) * (Real(1.) + w1p + w2p);
+        Real w1m = std::abs(fsten(ii_-2,jj_,kk_-1,ist_p00)) / (std::abs(fsten(ii_-2,jj_,kk_-2,ist_p0p))
+                                                              +std::abs(fsten(ii_-2,jj_,kk_-1,ist_p0p)) + eps);
+        Real w1p = std::abs(fsten(ii_-1,jj_,kk_-1,ist_p00)) / (std::abs(fsten(ii_-1,jj_,kk_-2,ist_p0p))
+                                                              +std::abs(fsten(ii_-1,jj_,kk_-1,ist_p0p)) + eps);
+        Real w2m = std::abs(fsten(ii_-1,jj_,kk_-2,ist_00p)) / (std::abs(fsten(ii_-2,jj_,kk_-2,ist_p0p))
+                                                              +std::abs(fsten(ii_-1,jj_,kk_-2,ist_p0p)) + eps);
+        Real w2p = std::abs(fsten(ii_-1,jj_,kk_-1,ist_00p)) / (std::abs(fsten(ii_-2,jj_,kk_-1,ist_p0p))
+                                                              +std::abs(fsten(ii_-1,jj_,kk_-1,ist_p0p)) + eps);
+        Real wmm = std::abs(fsten(ii_-2,jj_,kk_-2,ist_p0p)) * (Real(1.) + w1m + w2m);
+        Real wpm = std::abs(fsten(ii_-1,jj_,kk_-2,ist_p0p)) * (Real(1.) + w1p + w2m);
+        Real wmp = std::abs(fsten(ii_-2,jj_,kk_-1,ist_p0p)) * (Real(1.) + w1m + w2p);
+        Real wpp = std::abs(fsten(ii_-1,jj_,kk_-1,ist_p0p)) * (Real(1.) + w1p + w2p);
         return wpp / (wmm+wpm+wmp+wpp+eps);
     };
 
     auto restrict_from_00m_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
-        Real w1 = amrex::Math::abs(fsten(ii_,jj_,kk_-2,ist_00p));
-        Real w2 = amrex::Math::abs(fsten(ii_,jj_,kk_-1,ist_00p));
+        Real w1 = std::abs(fsten(ii_,jj_,kk_-2,ist_00p));
+        Real w2 = std::abs(fsten(ii_,jj_,kk_-1,ist_00p));
         if (w1 == Real(0.) && w2 == Real(0.)) {
             return Real(0.5);
         } else {
@@ -3560,116 +3554,116 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     };
 
     auto restrict_from_p0m_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
-        Real w1m = amrex::Math::abs(fsten(ii_  ,jj_,kk_-1,ist_p00)) / (amrex::Math::abs(fsten(ii_  ,jj_,kk_-2,ist_p0p))
-                                                              +amrex::Math::abs(fsten(ii_  ,jj_,kk_-1,ist_p0p)) + eps);
-        Real w1p = amrex::Math::abs(fsten(ii_+1,jj_,kk_-1,ist_p00)) / (amrex::Math::abs(fsten(ii_+1,jj_,kk_-2,ist_p0p))
-                                                              +amrex::Math::abs(fsten(ii_+1,jj_,kk_-1,ist_p0p)) + eps);
-        Real w2m = amrex::Math::abs(fsten(ii_+1,jj_,kk_-2,ist_00p)) / (amrex::Math::abs(fsten(ii_  ,jj_,kk_-2,ist_p0p))
-                                                              +amrex::Math::abs(fsten(ii_+1,jj_,kk_-2,ist_p0p)) + eps);
-        Real w2p = amrex::Math::abs(fsten(ii_+1,jj_,kk_-1,ist_00p)) / (amrex::Math::abs(fsten(ii_  ,jj_,kk_-1,ist_p0p))
-                                                              +amrex::Math::abs(fsten(ii_+1,jj_,kk_-1,ist_p0p)) + eps);
-        Real wmm = amrex::Math::abs(fsten(ii_  ,jj_,kk_-2,ist_p0p)) * (Real(1.) + w1m + w2m);
-        Real wpm = amrex::Math::abs(fsten(ii_+1,jj_,kk_-2,ist_p0p)) * (Real(1.) + w1p + w2m);
-        Real wmp = amrex::Math::abs(fsten(ii_  ,jj_,kk_-1,ist_p0p)) * (Real(1.) + w1m + w2p);
-        Real wpp = amrex::Math::abs(fsten(ii_+1,jj_,kk_-1,ist_p0p)) * (Real(1.) + w1p + w2p);
+        Real w1m = std::abs(fsten(ii_  ,jj_,kk_-1,ist_p00)) / (std::abs(fsten(ii_  ,jj_,kk_-2,ist_p0p))
+                                                              +std::abs(fsten(ii_  ,jj_,kk_-1,ist_p0p)) + eps);
+        Real w1p = std::abs(fsten(ii_+1,jj_,kk_-1,ist_p00)) / (std::abs(fsten(ii_+1,jj_,kk_-2,ist_p0p))
+                                                              +std::abs(fsten(ii_+1,jj_,kk_-1,ist_p0p)) + eps);
+        Real w2m = std::abs(fsten(ii_+1,jj_,kk_-2,ist_00p)) / (std::abs(fsten(ii_  ,jj_,kk_-2,ist_p0p))
+                                                              +std::abs(fsten(ii_+1,jj_,kk_-2,ist_p0p)) + eps);
+        Real w2p = std::abs(fsten(ii_+1,jj_,kk_-1,ist_00p)) / (std::abs(fsten(ii_  ,jj_,kk_-1,ist_p0p))
+                                                              +std::abs(fsten(ii_+1,jj_,kk_-1,ist_p0p)) + eps);
+        Real wmm = std::abs(fsten(ii_  ,jj_,kk_-2,ist_p0p)) * (Real(1.) + w1m + w2m);
+        Real wpm = std::abs(fsten(ii_+1,jj_,kk_-2,ist_p0p)) * (Real(1.) + w1p + w2m);
+        Real wmp = std::abs(fsten(ii_  ,jj_,kk_-1,ist_p0p)) * (Real(1.) + w1m + w2p);
+        Real wpp = std::abs(fsten(ii_+1,jj_,kk_-1,ist_p0p)) * (Real(1.) + w1p + w2p);
         return wmp / (wmm+wpm+wmp+wpp+eps);
     };
 
     auto restrict_from_mpm_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
         Real r = Real(1.);
-        r += amrex::Math::abs(fsten(ii_-1,jj_+1,kk_-1,ist_p00)) /
-           ( amrex::Math::abs(fsten(ii_-1,jj_  ,kk_-2,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_+1,kk_-2,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_  ,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_+1,kk_-1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_-1,jj_  ,kk_-1,ist_0p0)) /
-           ( amrex::Math::abs(fsten(ii_-2,jj_  ,kk_-2,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_  ,kk_-2,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-2,jj_  ,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_  ,kk_-1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_-1,jj_+1,kk_-1,ist_00p)) /
-           ( amrex::Math::abs(fsten(ii_-2,jj_  ,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_  ,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-2,jj_+1,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_+1,kk_-1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_-1,jj_  ,kk_-1,ist_pp0)) /
-           ( amrex::Math::abs(fsten(ii_-1,jj_  ,kk_-2,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_  ,kk_-1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_-1,jj_+1,kk_-1,ist_p0p)) /
-           ( amrex::Math::abs(fsten(ii_-1,jj_  ,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_+1,kk_-1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_-1,jj_  ,kk_-1,ist_0pp)) /
-           ( amrex::Math::abs(fsten(ii_-2,jj_  ,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_  ,kk_-1,ist_ppp)) + eps);
-        r *= amrex::Math::abs(fsten(ii_-1,jj_  ,kk_-1,ist_ppp)) * fsten(ii_-1,jj_+1,kk_-1,ist_inv);
+        r += std::abs(fsten(ii_-1,jj_+1,kk_-1,ist_p00)) /
+           ( std::abs(fsten(ii_-1,jj_  ,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_+1,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_  ,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_+1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_  ,kk_-1,ist_0p0)) /
+           ( std::abs(fsten(ii_-2,jj_  ,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_  ,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_-2,jj_  ,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_  ,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_+1,kk_-1,ist_00p)) /
+           ( std::abs(fsten(ii_-2,jj_  ,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_  ,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-2,jj_+1,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_+1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_  ,kk_-1,ist_pp0)) /
+           ( std::abs(fsten(ii_-1,jj_  ,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_  ,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_+1,kk_-1,ist_p0p)) /
+           ( std::abs(fsten(ii_-1,jj_  ,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_+1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_  ,kk_-1,ist_0pp)) /
+           ( std::abs(fsten(ii_-2,jj_  ,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_  ,kk_-1,ist_ppp)) + eps);
+        r *= std::abs(fsten(ii_-1,jj_  ,kk_-1,ist_ppp)) * fsten(ii_-1,jj_+1,kk_-1,ist_inv);
         return r;
     };
 
     auto restrict_from_0pm_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
-        Real w1m = amrex::Math::abs(fsten(ii_,jj_  ,kk_-1,ist_0p0)) / (amrex::Math::abs(fsten(ii_,jj_  ,kk_-2,ist_0pp))
-                                                              +amrex::Math::abs(fsten(ii_,jj_  ,kk_-1,ist_0pp)) + eps);
-        Real w1p = amrex::Math::abs(fsten(ii_,jj_+1,kk_-1,ist_0p0)) / (amrex::Math::abs(fsten(ii_,jj_+1,kk_-2,ist_0pp))
-                                                              +amrex::Math::abs(fsten(ii_,jj_+1,kk_-1,ist_0pp)) + eps);
-        Real w2m = amrex::Math::abs(fsten(ii_,jj_+1,kk_-2,ist_00p)) / (amrex::Math::abs(fsten(ii_,jj_  ,kk_-2,ist_0pp))
-                                                              +amrex::Math::abs(fsten(ii_,jj_+1,kk_-2,ist_0pp)) + eps);
-        Real w2p = amrex::Math::abs(fsten(ii_,jj_+1,kk_-1,ist_00p)) / (amrex::Math::abs(fsten(ii_,jj_  ,kk_-1,ist_0pp))
-                                                              +amrex::Math::abs(fsten(ii_,jj_+1,kk_-1,ist_0pp)) + eps);
-        Real wmm = amrex::Math::abs(fsten(ii_,jj_  ,kk_-2,ist_0pp)) * (Real(1.) + w1m + w2m);
-        Real wpm = amrex::Math::abs(fsten(ii_,jj_+1,kk_-2,ist_0pp)) * (Real(1.) + w1p + w2m);
-        Real wmp = amrex::Math::abs(fsten(ii_,jj_  ,kk_-1,ist_0pp)) * (Real(1.) + w1m + w2p);
-        Real wpp = amrex::Math::abs(fsten(ii_,jj_+1,kk_-1,ist_0pp)) * (Real(1.) + w1p + w2p);
+        Real w1m = std::abs(fsten(ii_,jj_  ,kk_-1,ist_0p0)) / (std::abs(fsten(ii_,jj_  ,kk_-2,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_  ,kk_-1,ist_0pp)) + eps);
+        Real w1p = std::abs(fsten(ii_,jj_+1,kk_-1,ist_0p0)) / (std::abs(fsten(ii_,jj_+1,kk_-2,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_+1,kk_-1,ist_0pp)) + eps);
+        Real w2m = std::abs(fsten(ii_,jj_+1,kk_-2,ist_00p)) / (std::abs(fsten(ii_,jj_  ,kk_-2,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_+1,kk_-2,ist_0pp)) + eps);
+        Real w2p = std::abs(fsten(ii_,jj_+1,kk_-1,ist_00p)) / (std::abs(fsten(ii_,jj_  ,kk_-1,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_+1,kk_-1,ist_0pp)) + eps);
+        Real wmm = std::abs(fsten(ii_,jj_  ,kk_-2,ist_0pp)) * (Real(1.) + w1m + w2m);
+        Real wpm = std::abs(fsten(ii_,jj_+1,kk_-2,ist_0pp)) * (Real(1.) + w1p + w2m);
+        Real wmp = std::abs(fsten(ii_,jj_  ,kk_-1,ist_0pp)) * (Real(1.) + w1m + w2p);
+        Real wpp = std::abs(fsten(ii_,jj_+1,kk_-1,ist_0pp)) * (Real(1.) + w1p + w2p);
         return wmp / (wmm+wpm+wmp+wpp+eps);
     };
 
     auto restrict_from_ppm_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
         Real r = Real(1.);
-        r += amrex::Math::abs(fsten(ii_  ,jj_+1,kk_-1,ist_p00)) /
-           ( amrex::Math::abs(fsten(ii_  ,jj_  ,kk_-2,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_+1,kk_-2,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_  ,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_+1,kk_-1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_+1,jj_  ,kk_-1,ist_0p0)) /
-           ( amrex::Math::abs(fsten(ii_  ,jj_  ,kk_-2,ist_ppp))
-           + amrex::Math::abs(fsten(ii_+1,jj_  ,kk_-2,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_  ,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_+1,jj_  ,kk_-1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_+1,jj_+1,kk_-1,ist_00p)) /
-           ( amrex::Math::abs(fsten(ii_  ,jj_  ,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_+1,jj_  ,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_+1,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_+1,jj_+1,kk_-1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_  ,jj_  ,kk_-1,ist_pp0)) /
-           ( amrex::Math::abs(fsten(ii_  ,jj_  ,kk_-2,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_  ,kk_-1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_  ,jj_+1,kk_-1,ist_p0p)) /
-           ( amrex::Math::abs(fsten(ii_  ,jj_  ,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_+1,kk_-1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_+1,jj_  ,kk_-1,ist_0pp)) /
-           ( amrex::Math::abs(fsten(ii_  ,jj_  ,kk_-1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_+1,jj_  ,kk_-1,ist_ppp)) + eps);
-        r *= amrex::Math::abs(fsten(ii_  ,jj_  ,kk_-1,ist_ppp)) * fsten(ii_+1,jj_+1,kk_-1,ist_inv);
+        r += std::abs(fsten(ii_  ,jj_+1,kk_-1,ist_p00)) /
+           ( std::abs(fsten(ii_  ,jj_  ,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_+1,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_  ,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_+1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_+1,jj_  ,kk_-1,ist_0p0)) /
+           ( std::abs(fsten(ii_  ,jj_  ,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_  ,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_  ,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_  ,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_+1,jj_+1,kk_-1,ist_00p)) /
+           ( std::abs(fsten(ii_  ,jj_  ,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_  ,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_+1,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_+1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_  ,jj_  ,kk_-1,ist_pp0)) /
+           ( std::abs(fsten(ii_  ,jj_  ,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_  ,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_  ,jj_+1,kk_-1,ist_p0p)) /
+           ( std::abs(fsten(ii_  ,jj_  ,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_+1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_+1,jj_  ,kk_-1,ist_0pp)) /
+           ( std::abs(fsten(ii_  ,jj_  ,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_  ,kk_-1,ist_ppp)) + eps);
+        r *= std::abs(fsten(ii_  ,jj_  ,kk_-1,ist_ppp)) * fsten(ii_+1,jj_+1,kk_-1,ist_inv);
         return r;
     };
 
     auto restrict_from_mm0_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
-        Real w1m = amrex::Math::abs(fsten(ii_-2,jj_-1,kk_,ist_p00)) / (amrex::Math::abs(fsten(ii_-2,jj_-2,kk_,ist_pp0))
-                                                              +amrex::Math::abs(fsten(ii_-2,jj_-1,kk_,ist_pp0)) + eps);
-        Real w1p = amrex::Math::abs(fsten(ii_-1,jj_-1,kk_,ist_p00)) / (amrex::Math::abs(fsten(ii_-1,jj_-2,kk_,ist_pp0))
-                                                              +amrex::Math::abs(fsten(ii_-1,jj_-1,kk_,ist_pp0)) + eps);
-        Real w2m = amrex::Math::abs(fsten(ii_-1,jj_-2,kk_,ist_0p0)) / (amrex::Math::abs(fsten(ii_-2,jj_-2,kk_,ist_pp0))
-                                                              +amrex::Math::abs(fsten(ii_-1,jj_-2,kk_,ist_pp0)) + eps);
-        Real w2p = amrex::Math::abs(fsten(ii_-1,jj_-1,kk_,ist_0p0)) / (amrex::Math::abs(fsten(ii_-2,jj_-1,kk_,ist_pp0))
-                                                              +amrex::Math::abs(fsten(ii_-1,jj_-1,kk_,ist_pp0)) + eps);
-        Real wmm = amrex::Math::abs(fsten(ii_-2,jj_-2,kk_,ist_pp0)) * (Real(1.) + w1m + w2m);
-        Real wpm = amrex::Math::abs(fsten(ii_-1,jj_-2,kk_,ist_pp0)) * (Real(1.) + w1p + w2m);
-        Real wmp = amrex::Math::abs(fsten(ii_-2,jj_-1,kk_,ist_pp0)) * (Real(1.) + w1m + w2p);
-        Real wpp = amrex::Math::abs(fsten(ii_-1,jj_-1,kk_,ist_pp0)) * (Real(1.) + w1p + w2p);
+        Real w1m = std::abs(fsten(ii_-2,jj_-1,kk_,ist_p00)) / (std::abs(fsten(ii_-2,jj_-2,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_-2,jj_-1,kk_,ist_pp0)) + eps);
+        Real w1p = std::abs(fsten(ii_-1,jj_-1,kk_,ist_p00)) / (std::abs(fsten(ii_-1,jj_-2,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_-1,jj_-1,kk_,ist_pp0)) + eps);
+        Real w2m = std::abs(fsten(ii_-1,jj_-2,kk_,ist_0p0)) / (std::abs(fsten(ii_-2,jj_-2,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_-1,jj_-2,kk_,ist_pp0)) + eps);
+        Real w2p = std::abs(fsten(ii_-1,jj_-1,kk_,ist_0p0)) / (std::abs(fsten(ii_-2,jj_-1,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_-1,jj_-1,kk_,ist_pp0)) + eps);
+        Real wmm = std::abs(fsten(ii_-2,jj_-2,kk_,ist_pp0)) * (Real(1.) + w1m + w2m);
+        Real wpm = std::abs(fsten(ii_-1,jj_-2,kk_,ist_pp0)) * (Real(1.) + w1p + w2m);
+        Real wmp = std::abs(fsten(ii_-2,jj_-1,kk_,ist_pp0)) * (Real(1.) + w1m + w2p);
+        Real wpp = std::abs(fsten(ii_-1,jj_-1,kk_,ist_pp0)) * (Real(1.) + w1p + w2p);
         return wpp / (wmm+wpm+wmp+wpp+eps);
     };
 
     auto restrict_from_0m0_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
-        Real w1 = amrex::Math::abs(fsten(ii_,jj_-2,kk_,ist_0p0));
-        Real w2 = amrex::Math::abs(fsten(ii_,jj_-1,kk_,ist_0p0));
+        Real w1 = std::abs(fsten(ii_,jj_-2,kk_,ist_0p0));
+        Real w2 = std::abs(fsten(ii_,jj_-1,kk_,ist_0p0));
         if (w1 == Real(0.) && w2 == Real(0.)) {
             return Real(0.5);
         } else {
@@ -3678,24 +3672,24 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     };
 
     auto restrict_from_pm0_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
-        Real w1m = amrex::Math::abs(fsten(ii_  ,jj_-1,kk_,ist_p00)) / (amrex::Math::abs(fsten(ii_  ,jj_-2,kk_,ist_pp0))
-                                                              +amrex::Math::abs(fsten(ii_  ,jj_-1,kk_,ist_pp0)) + eps);
-        Real w1p = amrex::Math::abs(fsten(ii_+1,jj_-1,kk_,ist_p00)) / (amrex::Math::abs(fsten(ii_+1,jj_-2,kk_,ist_pp0))
-                                                              +amrex::Math::abs(fsten(ii_+1,jj_-1,kk_,ist_pp0)) + eps);
-        Real w2m = amrex::Math::abs(fsten(ii_+1,jj_-2,kk_,ist_0p0)) / (amrex::Math::abs(fsten(ii_  ,jj_-2,kk_,ist_pp0))
-                                                              +amrex::Math::abs(fsten(ii_+1,jj_-2,kk_,ist_pp0)) + eps);
-        Real w2p = amrex::Math::abs(fsten(ii_+1,jj_-1,kk_,ist_0p0)) / (amrex::Math::abs(fsten(ii_  ,jj_-1,kk_,ist_pp0))
-                                                              +amrex::Math::abs(fsten(ii_+1,jj_-1,kk_,ist_pp0)) + eps);
-        Real wmm = amrex::Math::abs(fsten(ii_  ,jj_-2,kk_,ist_pp0)) * (Real(1.) + w1m + w2m);
-        Real wpm = amrex::Math::abs(fsten(ii_+1,jj_-2,kk_,ist_pp0)) * (Real(1.) + w1p + w2m);
-        Real wmp = amrex::Math::abs(fsten(ii_  ,jj_-1,kk_,ist_pp0)) * (Real(1.) + w1m + w2p);
-        Real wpp = amrex::Math::abs(fsten(ii_+1,jj_-1,kk_,ist_pp0)) * (Real(1.) + w1p + w2p);
+        Real w1m = std::abs(fsten(ii_  ,jj_-1,kk_,ist_p00)) / (std::abs(fsten(ii_  ,jj_-2,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_  ,jj_-1,kk_,ist_pp0)) + eps);
+        Real w1p = std::abs(fsten(ii_+1,jj_-1,kk_,ist_p00)) / (std::abs(fsten(ii_+1,jj_-2,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_+1,jj_-1,kk_,ist_pp0)) + eps);
+        Real w2m = std::abs(fsten(ii_+1,jj_-2,kk_,ist_0p0)) / (std::abs(fsten(ii_  ,jj_-2,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_+1,jj_-2,kk_,ist_pp0)) + eps);
+        Real w2p = std::abs(fsten(ii_+1,jj_-1,kk_,ist_0p0)) / (std::abs(fsten(ii_  ,jj_-1,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_+1,jj_-1,kk_,ist_pp0)) + eps);
+        Real wmm = std::abs(fsten(ii_  ,jj_-2,kk_,ist_pp0)) * (Real(1.) + w1m + w2m);
+        Real wpm = std::abs(fsten(ii_+1,jj_-2,kk_,ist_pp0)) * (Real(1.) + w1p + w2m);
+        Real wmp = std::abs(fsten(ii_  ,jj_-1,kk_,ist_pp0)) * (Real(1.) + w1m + w2p);
+        Real wpp = std::abs(fsten(ii_+1,jj_-1,kk_,ist_pp0)) * (Real(1.) + w1p + w2p);
         return wmp / (wmm+wpm+wmp+wpp+eps);
     };
 
     auto restrict_from_m00_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
-        Real w1 = amrex::Math::abs(fsten(ii_-2,jj_,kk_,ist_p00));
-        Real w2 = amrex::Math::abs(fsten(ii_-1,jj_,kk_,ist_p00));
+        Real w1 = std::abs(fsten(ii_-2,jj_,kk_,ist_p00));
+        Real w2 = std::abs(fsten(ii_-1,jj_,kk_,ist_p00));
         if (w1 == Real(0.) && w2 == Real(0.)) {
             return Real(0.5);
         } else {
@@ -3708,8 +3702,8 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     };
 
     auto restrict_from_p00_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
-        Real w1 = amrex::Math::abs(fsten(ii_  ,jj_,kk_,ist_p00));
-        Real w2 = amrex::Math::abs(fsten(ii_+1,jj_,kk_,ist_p00));
+        Real w1 = std::abs(fsten(ii_  ,jj_,kk_,ist_p00));
+        Real w2 = std::abs(fsten(ii_+1,jj_,kk_,ist_p00));
         if (w1 == Real(0.) && w2 == Real(0.)) {
             return Real(0.5);
         } else {
@@ -3718,24 +3712,24 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     };
 
     auto restrict_from_mp0_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
-        Real w1m = amrex::Math::abs(fsten(ii_-2,jj_+1,kk_,ist_p00)) / (amrex::Math::abs(fsten(ii_-2,jj_  ,kk_,ist_pp0))
-                                                              +amrex::Math::abs(fsten(ii_-2,jj_+1,kk_,ist_pp0)) + eps);
-        Real w1p = amrex::Math::abs(fsten(ii_-1,jj_+1,kk_,ist_p00)) / (amrex::Math::abs(fsten(ii_-1,jj_  ,kk_,ist_pp0))
-                                                              +amrex::Math::abs(fsten(ii_-1,jj_+1,kk_,ist_pp0)) + eps);
-        Real w2m = amrex::Math::abs(fsten(ii_-1,jj_  ,kk_,ist_0p0)) / (amrex::Math::abs(fsten(ii_-2,jj_  ,kk_,ist_pp0))
-                                                              +amrex::Math::abs(fsten(ii_-1,jj_  ,kk_,ist_pp0)) + eps);
-        Real w2p = amrex::Math::abs(fsten(ii_-1,jj_+1,kk_,ist_0p0)) / (amrex::Math::abs(fsten(ii_-2,jj_+1,kk_,ist_pp0))
-                                                              +amrex::Math::abs(fsten(ii_-1,jj_+1,kk_,ist_pp0)) + eps);
-        Real wmm = amrex::Math::abs(fsten(ii_-2,jj_  ,kk_,ist_pp0)) * (Real(1.) + w1m + w2m);
-        Real wpm = amrex::Math::abs(fsten(ii_-1,jj_  ,kk_,ist_pp0)) * (Real(1.) + w1p + w2m);
-        Real wmp = amrex::Math::abs(fsten(ii_-2,jj_+1,kk_,ist_pp0)) * (Real(1.) + w1m + w2p);
-        Real wpp = amrex::Math::abs(fsten(ii_-1,jj_+1,kk_,ist_pp0)) * (Real(1.) + w1p + w2p);
+        Real w1m = std::abs(fsten(ii_-2,jj_+1,kk_,ist_p00)) / (std::abs(fsten(ii_-2,jj_  ,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_-2,jj_+1,kk_,ist_pp0)) + eps);
+        Real w1p = std::abs(fsten(ii_-1,jj_+1,kk_,ist_p00)) / (std::abs(fsten(ii_-1,jj_  ,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_-1,jj_+1,kk_,ist_pp0)) + eps);
+        Real w2m = std::abs(fsten(ii_-1,jj_  ,kk_,ist_0p0)) / (std::abs(fsten(ii_-2,jj_  ,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_-1,jj_  ,kk_,ist_pp0)) + eps);
+        Real w2p = std::abs(fsten(ii_-1,jj_+1,kk_,ist_0p0)) / (std::abs(fsten(ii_-2,jj_+1,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_-1,jj_+1,kk_,ist_pp0)) + eps);
+        Real wmm = std::abs(fsten(ii_-2,jj_  ,kk_,ist_pp0)) * (Real(1.) + w1m + w2m);
+        Real wpm = std::abs(fsten(ii_-1,jj_  ,kk_,ist_pp0)) * (Real(1.) + w1p + w2m);
+        Real wmp = std::abs(fsten(ii_-2,jj_+1,kk_,ist_pp0)) * (Real(1.) + w1m + w2p);
+        Real wpp = std::abs(fsten(ii_-1,jj_+1,kk_,ist_pp0)) * (Real(1.) + w1p + w2p);
         return wpm / (wmm+wpm+wmp+wpp+eps);
     };
 
     auto restrict_from_0p0_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
-        Real w1 = amrex::Math::abs(fsten(ii_,jj_  ,kk_,ist_0p0));
-        Real w2 = amrex::Math::abs(fsten(ii_,jj_+1,kk_,ist_0p0));
+        Real w1 = std::abs(fsten(ii_,jj_  ,kk_,ist_0p0));
+        Real w2 = std::abs(fsten(ii_,jj_+1,kk_,ist_0p0));
         if (w1 == Real(0.) && w2 == Real(0.)) {
             return Real(0.5);
         } else {
@@ -3744,116 +3738,116 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     };
 
     auto restrict_from_pp0_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
-        Real w1m = amrex::Math::abs(fsten(ii_  ,jj_+1,kk_,ist_p00)) / (amrex::Math::abs(fsten(ii_  ,jj_  ,kk_,ist_pp0))
-                                                              +amrex::Math::abs(fsten(ii_  ,jj_+1,kk_,ist_pp0)) + eps);
-        Real w1p = amrex::Math::abs(fsten(ii_+1,jj_+1,kk_,ist_p00)) / (amrex::Math::abs(fsten(ii_+1,jj_  ,kk_,ist_pp0))
-                                                              +amrex::Math::abs(fsten(ii_+1,jj_+1,kk_,ist_pp0)) + eps);
-        Real w2m = amrex::Math::abs(fsten(ii_+1,jj_  ,kk_,ist_0p0)) / (amrex::Math::abs(fsten(ii_  ,jj_  ,kk_,ist_pp0))
-                                                              +amrex::Math::abs(fsten(ii_+1,jj_  ,kk_,ist_pp0)) + eps);
-        Real w2p = amrex::Math::abs(fsten(ii_+1,jj_+1,kk_,ist_0p0)) / (amrex::Math::abs(fsten(ii_  ,jj_+1,kk_,ist_pp0))
-                                                              +amrex::Math::abs(fsten(ii_+1,jj_+1,kk_,ist_pp0)) + eps);
-        Real wmm = amrex::Math::abs(fsten(ii_  ,jj_  ,kk_,ist_pp0)) * (Real(1.) + w1m + w2m);
-        Real wpm = amrex::Math::abs(fsten(ii_+1,jj_  ,kk_,ist_pp0)) * (Real(1.) + w1p + w2m);
-        Real wmp = amrex::Math::abs(fsten(ii_  ,jj_+1,kk_,ist_pp0)) * (Real(1.) + w1m + w2p);
-        Real wpp = amrex::Math::abs(fsten(ii_+1,jj_+1,kk_,ist_pp0)) * (Real(1.) + w1p + w2p);
+        Real w1m = std::abs(fsten(ii_  ,jj_+1,kk_,ist_p00)) / (std::abs(fsten(ii_  ,jj_  ,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_  ,jj_+1,kk_,ist_pp0)) + eps);
+        Real w1p = std::abs(fsten(ii_+1,jj_+1,kk_,ist_p00)) / (std::abs(fsten(ii_+1,jj_  ,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_+1,jj_+1,kk_,ist_pp0)) + eps);
+        Real w2m = std::abs(fsten(ii_+1,jj_  ,kk_,ist_0p0)) / (std::abs(fsten(ii_  ,jj_  ,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_+1,jj_  ,kk_,ist_pp0)) + eps);
+        Real w2p = std::abs(fsten(ii_+1,jj_+1,kk_,ist_0p0)) / (std::abs(fsten(ii_  ,jj_+1,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_+1,jj_+1,kk_,ist_pp0)) + eps);
+        Real wmm = std::abs(fsten(ii_  ,jj_  ,kk_,ist_pp0)) * (Real(1.) + w1m + w2m);
+        Real wpm = std::abs(fsten(ii_+1,jj_  ,kk_,ist_pp0)) * (Real(1.) + w1p + w2m);
+        Real wmp = std::abs(fsten(ii_  ,jj_+1,kk_,ist_pp0)) * (Real(1.) + w1m + w2p);
+        Real wpp = std::abs(fsten(ii_+1,jj_+1,kk_,ist_pp0)) * (Real(1.) + w1p + w2p);
         return wmm / (wmm+wpm+wmp+wpp+eps);
     };
 
     auto restrict_from_mmp_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
         Real r = Real(1.);
-        r += amrex::Math::abs(fsten(ii_-1,jj_-1,kk_+1,ist_p00)) /
-           ( amrex::Math::abs(fsten(ii_-1,jj_-2,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_-1,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_-2,kk_+1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_-1,kk_+1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_-1,jj_-1,kk_+1,ist_0p0)) /
-           ( amrex::Math::abs(fsten(ii_-2,jj_-1,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_-1,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-2,jj_-1,kk_+1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_-1,kk_+1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_-1,jj_-1,kk_  ,ist_00p)) /
-           ( amrex::Math::abs(fsten(ii_-2,jj_-2,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_-2,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-2,jj_-1,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_-1,kk_  ,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_-1,jj_-1,kk_+1,ist_pp0)) /
-           ( amrex::Math::abs(fsten(ii_-1,jj_-1,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_-1,kk_+1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_-1,jj_-1,kk_  ,ist_p0p)) /
-           ( amrex::Math::abs(fsten(ii_-1,jj_-2,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_-1,kk_  ,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_-1,jj_-1,kk_  ,ist_0pp)) /
-           ( amrex::Math::abs(fsten(ii_-2,jj_-1,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_-1,kk_  ,ist_ppp)) + eps);
-        r *= amrex::Math::abs(fsten(ii_-1,jj_-1,kk_  ,ist_ppp)) * fsten(ii_-1,jj_-1,kk_+1,ist_inv);
+        r += std::abs(fsten(ii_-1,jj_-1,kk_+1,ist_p00)) /
+           ( std::abs(fsten(ii_-1,jj_-2,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-2,kk_+1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_+1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_-1,kk_+1,ist_0p0)) /
+           ( std::abs(fsten(ii_-2,jj_-1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-2,jj_-1,kk_+1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_+1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_-1,kk_  ,ist_00p)) /
+           ( std::abs(fsten(ii_-2,jj_-2,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-2,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-2,jj_-1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_  ,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_-1,kk_+1,ist_pp0)) /
+           ( std::abs(fsten(ii_-1,jj_-1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_+1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_-1,kk_  ,ist_p0p)) /
+           ( std::abs(fsten(ii_-1,jj_-2,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_  ,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_-1,kk_  ,ist_0pp)) /
+           ( std::abs(fsten(ii_-2,jj_-1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_  ,ist_ppp)) + eps);
+        r *= std::abs(fsten(ii_-1,jj_-1,kk_  ,ist_ppp)) * fsten(ii_-1,jj_-1,kk_+1,ist_inv);
         return r;
     };
 
     auto restrict_from_0mp_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
-        Real w1m = amrex::Math::abs(fsten(ii_,jj_-2,kk_+1,ist_0p0)) / (amrex::Math::abs(fsten(ii_,jj_-2,kk_  ,ist_0pp))
-                                                              +amrex::Math::abs(fsten(ii_,jj_-2,kk_+1,ist_0pp)) + eps);
-        Real w1p = amrex::Math::abs(fsten(ii_,jj_-1,kk_+1,ist_0p0)) / (amrex::Math::abs(fsten(ii_,jj_-1,kk_  ,ist_0pp))
-                                                              +amrex::Math::abs(fsten(ii_,jj_-1,kk_+1,ist_0pp)) + eps);
-        Real w2m = amrex::Math::abs(fsten(ii_,jj_-1,kk_  ,ist_00p)) / (amrex::Math::abs(fsten(ii_,jj_-2,kk_  ,ist_0pp))
-                                                              +amrex::Math::abs(fsten(ii_,jj_-1,kk_  ,ist_0pp)) + eps);
-        Real w2p = amrex::Math::abs(fsten(ii_,jj_-1,kk_+1,ist_00p)) / (amrex::Math::abs(fsten(ii_,jj_-2,kk_+1,ist_0pp))
-                                                              +amrex::Math::abs(fsten(ii_,jj_-1,kk_+1,ist_0pp)) + eps);
-        Real wmm = amrex::Math::abs(fsten(ii_,jj_-2,kk_  ,ist_0pp)) * (Real(1.) + w1m + w2m);
-        Real wpm = amrex::Math::abs(fsten(ii_,jj_-1,kk_  ,ist_0pp)) * (Real(1.) + w1p + w2m);
-        Real wmp = amrex::Math::abs(fsten(ii_,jj_-2,kk_+1,ist_0pp)) * (Real(1.) + w1m + w2p);
-        Real wpp = amrex::Math::abs(fsten(ii_,jj_-1,kk_+1,ist_0pp)) * (Real(1.) + w1p + w2p);
+        Real w1m = std::abs(fsten(ii_,jj_-2,kk_+1,ist_0p0)) / (std::abs(fsten(ii_,jj_-2,kk_  ,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_-2,kk_+1,ist_0pp)) + eps);
+        Real w1p = std::abs(fsten(ii_,jj_-1,kk_+1,ist_0p0)) / (std::abs(fsten(ii_,jj_-1,kk_  ,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_-1,kk_+1,ist_0pp)) + eps);
+        Real w2m = std::abs(fsten(ii_,jj_-1,kk_  ,ist_00p)) / (std::abs(fsten(ii_,jj_-2,kk_  ,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_-1,kk_  ,ist_0pp)) + eps);
+        Real w2p = std::abs(fsten(ii_,jj_-1,kk_+1,ist_00p)) / (std::abs(fsten(ii_,jj_-2,kk_+1,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_-1,kk_+1,ist_0pp)) + eps);
+        Real wmm = std::abs(fsten(ii_,jj_-2,kk_  ,ist_0pp)) * (Real(1.) + w1m + w2m);
+        Real wpm = std::abs(fsten(ii_,jj_-1,kk_  ,ist_0pp)) * (Real(1.) + w1p + w2m);
+        Real wmp = std::abs(fsten(ii_,jj_-2,kk_+1,ist_0pp)) * (Real(1.) + w1m + w2p);
+        Real wpp = std::abs(fsten(ii_,jj_-1,kk_+1,ist_0pp)) * (Real(1.) + w1p + w2p);
         return wpm / (wmm+wpm+wmp+wpp+eps);
     };
 
     auto restrict_from_pmp_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
         Real r = Real(1.);
-        r += amrex::Math::abs(fsten(ii_  ,jj_-1,kk_+1,ist_p00)) /
-           ( amrex::Math::abs(fsten(ii_  ,jj_-2,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_-1,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_-2,kk_+1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_-1,kk_+1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_+1,jj_-1,kk_+1,ist_0p0)) /
-           ( amrex::Math::abs(fsten(ii_  ,jj_-1,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_+1,jj_-1,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_-1,kk_+1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_+1,jj_-1,kk_+1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_+1,jj_-1,kk_  ,ist_00p)) /
-           ( amrex::Math::abs(fsten(ii_  ,jj_-2,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_+1,jj_-2,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_-1,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_+1,jj_-1,kk_  ,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_  ,jj_-1,kk_+1,ist_pp0)) /
-           ( amrex::Math::abs(fsten(ii_  ,jj_-1,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_-1,kk_+1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_  ,jj_-1,kk_  ,ist_p0p)) /
-           ( amrex::Math::abs(fsten(ii_  ,jj_-2,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_-1,kk_  ,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_+1,jj_-1,kk_  ,ist_0pp)) /
-           ( amrex::Math::abs(fsten(ii_  ,jj_-1,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_+1,jj_-1,kk_  ,ist_ppp)) + eps);
-        r *= amrex::Math::abs(fsten(ii_  ,jj_-1,kk_  ,ist_ppp)) * fsten(ii_+1,jj_-1,kk_+1,ist_inv);
+        r += std::abs(fsten(ii_  ,jj_-1,kk_+1,ist_p00)) /
+           ( std::abs(fsten(ii_  ,jj_-2,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-2,kk_+1,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-1,kk_+1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_+1,jj_-1,kk_+1,ist_0p0)) /
+           ( std::abs(fsten(ii_  ,jj_-1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_-1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-1,kk_+1,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_-1,kk_+1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_+1,jj_-1,kk_  ,ist_00p)) /
+           ( std::abs(fsten(ii_  ,jj_-2,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_-2,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_-1,kk_  ,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_  ,jj_-1,kk_+1,ist_pp0)) /
+           ( std::abs(fsten(ii_  ,jj_-1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-1,kk_+1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_  ,jj_-1,kk_  ,ist_p0p)) /
+           ( std::abs(fsten(ii_  ,jj_-2,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-1,kk_  ,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_+1,jj_-1,kk_  ,ist_0pp)) /
+           ( std::abs(fsten(ii_  ,jj_-1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_-1,kk_  ,ist_ppp)) + eps);
+        r *= std::abs(fsten(ii_  ,jj_-1,kk_  ,ist_ppp)) * fsten(ii_+1,jj_-1,kk_+1,ist_inv);
         return r;
     };
 
     auto restrict_from_m0p_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
-        Real w1m = amrex::Math::abs(fsten(ii_-2,jj_,kk_+1,ist_p00)) / (amrex::Math::abs(fsten(ii_-2,jj_,kk_  ,ist_p0p))
-                                                              +amrex::Math::abs(fsten(ii_-2,jj_,kk_+1,ist_p0p)) + eps);
-        Real w1p = amrex::Math::abs(fsten(ii_-1,jj_,kk_+1,ist_p00)) / (amrex::Math::abs(fsten(ii_-1,jj_,kk_  ,ist_p0p))
-                                                              +amrex::Math::abs(fsten(ii_-1,jj_,kk_+1,ist_p0p)) + eps);
-        Real w2m = amrex::Math::abs(fsten(ii_-1,jj_,kk_  ,ist_00p)) / (amrex::Math::abs(fsten(ii_-2,jj_,kk_  ,ist_p0p))
-                                                              +amrex::Math::abs(fsten(ii_-1,jj_,kk_  ,ist_p0p)) + eps);
-        Real w2p = amrex::Math::abs(fsten(ii_-1,jj_,kk_+1,ist_00p)) / (amrex::Math::abs(fsten(ii_-2,jj_,kk_+1,ist_p0p))
-                                                              +amrex::Math::abs(fsten(ii_-1,jj_,kk_+1,ist_p0p)) + eps);
-        Real wmm = amrex::Math::abs(fsten(ii_-2,jj_,kk_  ,ist_p0p)) * (Real(1.) + w1m + w2m);
-        Real wpm = amrex::Math::abs(fsten(ii_-1,jj_,kk_  ,ist_p0p)) * (Real(1.) + w1p + w2m);
-        Real wmp = amrex::Math::abs(fsten(ii_-2,jj_,kk_+1,ist_p0p)) * (Real(1.) + w1m + w2p);
-        Real wpp = amrex::Math::abs(fsten(ii_-1,jj_,kk_+1,ist_p0p)) * (Real(1.) + w1p + w2p);
+        Real w1m = std::abs(fsten(ii_-2,jj_,kk_+1,ist_p00)) / (std::abs(fsten(ii_-2,jj_,kk_  ,ist_p0p))
+                                                              +std::abs(fsten(ii_-2,jj_,kk_+1,ist_p0p)) + eps);
+        Real w1p = std::abs(fsten(ii_-1,jj_,kk_+1,ist_p00)) / (std::abs(fsten(ii_-1,jj_,kk_  ,ist_p0p))
+                                                              +std::abs(fsten(ii_-1,jj_,kk_+1,ist_p0p)) + eps);
+        Real w2m = std::abs(fsten(ii_-1,jj_,kk_  ,ist_00p)) / (std::abs(fsten(ii_-2,jj_,kk_  ,ist_p0p))
+                                                              +std::abs(fsten(ii_-1,jj_,kk_  ,ist_p0p)) + eps);
+        Real w2p = std::abs(fsten(ii_-1,jj_,kk_+1,ist_00p)) / (std::abs(fsten(ii_-2,jj_,kk_+1,ist_p0p))
+                                                              +std::abs(fsten(ii_-1,jj_,kk_+1,ist_p0p)) + eps);
+        Real wmm = std::abs(fsten(ii_-2,jj_,kk_  ,ist_p0p)) * (Real(1.) + w1m + w2m);
+        Real wpm = std::abs(fsten(ii_-1,jj_,kk_  ,ist_p0p)) * (Real(1.) + w1p + w2m);
+        Real wmp = std::abs(fsten(ii_-2,jj_,kk_+1,ist_p0p)) * (Real(1.) + w1m + w2p);
+        Real wpp = std::abs(fsten(ii_-1,jj_,kk_+1,ist_p0p)) * (Real(1.) + w1p + w2p);
         return wpm / (wmm+wpm+wmp+wpp+eps);
     };
 
     auto restrict_from_00p_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
-        Real w1 = amrex::Math::abs(fsten(ii_,jj_,kk_  ,ist_00p));
-        Real w2 = amrex::Math::abs(fsten(ii_,jj_,kk_+1,ist_00p));
+        Real w1 = std::abs(fsten(ii_,jj_,kk_  ,ist_00p));
+        Real w2 = std::abs(fsten(ii_,jj_,kk_+1,ist_00p));
         if (w1 == Real(0.) && w2 == Real(0.)) {
             return Real(0.5);
         } else {
@@ -3862,94 +3856,94 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     };
 
     auto restrict_from_p0p_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
-        Real w1m = amrex::Math::abs(fsten(ii_  ,jj_,kk_+1,ist_p00)) / (amrex::Math::abs(fsten(ii_  ,jj_,kk_  ,ist_p0p))
-                                                              +amrex::Math::abs(fsten(ii_  ,jj_,kk_+1,ist_p0p)) + eps);
-        Real w1p = amrex::Math::abs(fsten(ii_+1,jj_,kk_+1,ist_p00)) / (amrex::Math::abs(fsten(ii_+1,jj_,kk_  ,ist_p0p))
-                                                              +amrex::Math::abs(fsten(ii_+1,jj_,kk_+1,ist_p0p)) + eps);
-        Real w2m = amrex::Math::abs(fsten(ii_+1,jj_,kk_  ,ist_00p)) / (amrex::Math::abs(fsten(ii_  ,jj_,kk_  ,ist_p0p))
-                                                              +amrex::Math::abs(fsten(ii_+1,jj_,kk_  ,ist_p0p)) + eps);
-        Real w2p = amrex::Math::abs(fsten(ii_+1,jj_,kk_+1,ist_00p)) / (amrex::Math::abs(fsten(ii_  ,jj_,kk_+1,ist_p0p))
-                                                              +amrex::Math::abs(fsten(ii_+1,jj_,kk_+1,ist_p0p)) + eps);
-        Real wmm = amrex::Math::abs(fsten(ii_  ,jj_,kk_  ,ist_p0p)) * (Real(1.) + w1m + w2m);
-        Real wpm = amrex::Math::abs(fsten(ii_+1,jj_,kk_  ,ist_p0p)) * (Real(1.) + w1p + w2m);
-        Real wmp = amrex::Math::abs(fsten(ii_  ,jj_,kk_+1,ist_p0p)) * (Real(1.) + w1m + w2p);
-        Real wpp = amrex::Math::abs(fsten(ii_+1,jj_,kk_+1,ist_p0p)) * (Real(1.) + w1p + w2p);
+        Real w1m = std::abs(fsten(ii_  ,jj_,kk_+1,ist_p00)) / (std::abs(fsten(ii_  ,jj_,kk_  ,ist_p0p))
+                                                              +std::abs(fsten(ii_  ,jj_,kk_+1,ist_p0p)) + eps);
+        Real w1p = std::abs(fsten(ii_+1,jj_,kk_+1,ist_p00)) / (std::abs(fsten(ii_+1,jj_,kk_  ,ist_p0p))
+                                                              +std::abs(fsten(ii_+1,jj_,kk_+1,ist_p0p)) + eps);
+        Real w2m = std::abs(fsten(ii_+1,jj_,kk_  ,ist_00p)) / (std::abs(fsten(ii_  ,jj_,kk_  ,ist_p0p))
+                                                              +std::abs(fsten(ii_+1,jj_,kk_  ,ist_p0p)) + eps);
+        Real w2p = std::abs(fsten(ii_+1,jj_,kk_+1,ist_00p)) / (std::abs(fsten(ii_  ,jj_,kk_+1,ist_p0p))
+                                                              +std::abs(fsten(ii_+1,jj_,kk_+1,ist_p0p)) + eps);
+        Real wmm = std::abs(fsten(ii_  ,jj_,kk_  ,ist_p0p)) * (Real(1.) + w1m + w2m);
+        Real wpm = std::abs(fsten(ii_+1,jj_,kk_  ,ist_p0p)) * (Real(1.) + w1p + w2m);
+        Real wmp = std::abs(fsten(ii_  ,jj_,kk_+1,ist_p0p)) * (Real(1.) + w1m + w2p);
+        Real wpp = std::abs(fsten(ii_+1,jj_,kk_+1,ist_p0p)) * (Real(1.) + w1p + w2p);
         return wmm / (wmm+wpm+wmp+wpp+eps);
     };
 
     auto restrict_from_mpp_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
         Real r = Real(1.);
-        r += amrex::Math::abs(fsten(ii_-1,jj_+1,kk_+1,ist_p00)) /
-           ( amrex::Math::abs(fsten(ii_-1,jj_  ,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_+1,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_  ,kk_+1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_+1,kk_+1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_-1,jj_  ,kk_+1,ist_0p0)) /
-           ( amrex::Math::abs(fsten(ii_-2,jj_  ,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_  ,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-2,jj_  ,kk_+1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_  ,kk_+1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_-1,jj_+1,kk_  ,ist_00p)) /
-           ( amrex::Math::abs(fsten(ii_-2,jj_  ,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_  ,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-2,jj_+1,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_+1,kk_  ,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_-1,jj_  ,kk_+1,ist_pp0)) /
-           ( amrex::Math::abs(fsten(ii_-1,jj_  ,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_  ,kk_+1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_-1,jj_+1,kk_  ,ist_p0p)) /
-           ( amrex::Math::abs(fsten(ii_-1,jj_  ,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_+1,kk_  ,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_-1,jj_  ,kk_  ,ist_0pp)) /
-           ( amrex::Math::abs(fsten(ii_-2,jj_  ,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_-1,jj_  ,kk_  ,ist_ppp)) + eps);
-        r *= amrex::Math::abs(fsten(ii_-1,jj_  ,kk_  ,ist_ppp)) * fsten(ii_-1,jj_+1,kk_+1,ist_inv);
+        r += std::abs(fsten(ii_-1,jj_+1,kk_+1,ist_p00)) /
+           ( std::abs(fsten(ii_-1,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_+1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_  ,kk_+1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_+1,kk_+1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_  ,kk_+1,ist_0p0)) /
+           ( std::abs(fsten(ii_-2,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-2,jj_  ,kk_+1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_  ,kk_+1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_+1,kk_  ,ist_00p)) /
+           ( std::abs(fsten(ii_-2,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-2,jj_+1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_+1,kk_  ,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_  ,kk_+1,ist_pp0)) /
+           ( std::abs(fsten(ii_-1,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_  ,kk_+1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_+1,kk_  ,ist_p0p)) /
+           ( std::abs(fsten(ii_-1,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_+1,kk_  ,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_  ,kk_  ,ist_0pp)) /
+           ( std::abs(fsten(ii_-2,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_  ,kk_  ,ist_ppp)) + eps);
+        r *= std::abs(fsten(ii_-1,jj_  ,kk_  ,ist_ppp)) * fsten(ii_-1,jj_+1,kk_+1,ist_inv);
         return r;
     };
 
     auto restrict_from_0pp_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
-        Real w1m = amrex::Math::abs(fsten(ii_,jj_  ,kk_+1,ist_0p0)) / (amrex::Math::abs(fsten(ii_,jj_  ,kk_  ,ist_0pp))
-                                                              +amrex::Math::abs(fsten(ii_,jj_  ,kk_+1,ist_0pp)) + eps);
-        Real w1p = amrex::Math::abs(fsten(ii_,jj_+1,kk_+1,ist_0p0)) / (amrex::Math::abs(fsten(ii_,jj_+1,kk_  ,ist_0pp))
-                                                              +amrex::Math::abs(fsten(ii_,jj_+1,kk_+1,ist_0pp)) + eps);
-        Real w2m = amrex::Math::abs(fsten(ii_,jj_+1,kk_  ,ist_00p)) / (amrex::Math::abs(fsten(ii_,jj_  ,kk_  ,ist_0pp))
-                                                              +amrex::Math::abs(fsten(ii_,jj_+1,kk_  ,ist_0pp)) + eps);
-        Real w2p = amrex::Math::abs(fsten(ii_,jj_+1,kk_+1,ist_00p)) / (amrex::Math::abs(fsten(ii_,jj_  ,kk_+1,ist_0pp))
-                                                              +amrex::Math::abs(fsten(ii_,jj_+1,kk_+1,ist_0pp)) + eps);
-        Real wmm = amrex::Math::abs(fsten(ii_,jj_  ,kk_  ,ist_0pp)) * (Real(1.) + w1m + w2m);
-        Real wpm = amrex::Math::abs(fsten(ii_,jj_+1,kk_  ,ist_0pp)) * (Real(1.) + w1p + w2m);
-        Real wmp = amrex::Math::abs(fsten(ii_,jj_  ,kk_+1,ist_0pp)) * (Real(1.) + w1m + w2p);
-        Real wpp = amrex::Math::abs(fsten(ii_,jj_+1,kk_+1,ist_0pp)) * (Real(1.) + w1p + w2p);
+        Real w1m = std::abs(fsten(ii_,jj_  ,kk_+1,ist_0p0)) / (std::abs(fsten(ii_,jj_  ,kk_  ,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_  ,kk_+1,ist_0pp)) + eps);
+        Real w1p = std::abs(fsten(ii_,jj_+1,kk_+1,ist_0p0)) / (std::abs(fsten(ii_,jj_+1,kk_  ,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_+1,kk_+1,ist_0pp)) + eps);
+        Real w2m = std::abs(fsten(ii_,jj_+1,kk_  ,ist_00p)) / (std::abs(fsten(ii_,jj_  ,kk_  ,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_+1,kk_  ,ist_0pp)) + eps);
+        Real w2p = std::abs(fsten(ii_,jj_+1,kk_+1,ist_00p)) / (std::abs(fsten(ii_,jj_  ,kk_+1,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_+1,kk_+1,ist_0pp)) + eps);
+        Real wmm = std::abs(fsten(ii_,jj_  ,kk_  ,ist_0pp)) * (Real(1.) + w1m + w2m);
+        Real wpm = std::abs(fsten(ii_,jj_+1,kk_  ,ist_0pp)) * (Real(1.) + w1p + w2m);
+        Real wmp = std::abs(fsten(ii_,jj_  ,kk_+1,ist_0pp)) * (Real(1.) + w1m + w2p);
+        Real wpp = std::abs(fsten(ii_,jj_+1,kk_+1,ist_0pp)) * (Real(1.) + w1p + w2p);
         return wmm / (wmm+wpm+wmp+wpp+eps);
     };
 
     auto restrict_from_ppp_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
         Real r = Real(1.);
-        r += amrex::Math::abs(fsten(ii_  ,jj_+1,kk_+1,ist_p00)) /
-           ( amrex::Math::abs(fsten(ii_  ,jj_  ,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_+1,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_  ,kk_+1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_+1,kk_+1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_+1,jj_  ,kk_+1,ist_0p0)) /
-           ( amrex::Math::abs(fsten(ii_  ,jj_  ,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_+1,jj_  ,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_  ,kk_+1,ist_ppp))
-           + amrex::Math::abs(fsten(ii_+1,jj_  ,kk_+1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_+1,jj_+1,kk_  ,ist_00p)) /
-           ( amrex::Math::abs(fsten(ii_  ,jj_  ,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_+1,jj_  ,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_+1,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_+1,jj_+1,kk_  ,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_  ,jj_  ,kk_+1,ist_pp0)) /
-           ( amrex::Math::abs(fsten(ii_  ,jj_  ,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_  ,kk_+1,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_  ,jj_+1,kk_  ,ist_p0p)) /
-           ( amrex::Math::abs(fsten(ii_  ,jj_  ,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_  ,jj_+1,kk_  ,ist_ppp)) + eps);
-        r += amrex::Math::abs(fsten(ii_+1,jj_  ,kk_  ,ist_0pp)) /
-           ( amrex::Math::abs(fsten(ii_  ,jj_  ,kk_  ,ist_ppp))
-           + amrex::Math::abs(fsten(ii_+1,jj_  ,kk_  ,ist_ppp)) + eps);
-        r *= amrex::Math::abs(fsten(ii_  ,jj_  ,kk_  ,ist_ppp)) * fsten(ii_+1,jj_+1,kk_+1,ist_inv);
+        r += std::abs(fsten(ii_  ,jj_+1,kk_+1,ist_p00)) /
+           ( std::abs(fsten(ii_  ,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_+1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_  ,kk_+1,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_+1,kk_+1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_+1,jj_  ,kk_+1,ist_0p0)) /
+           ( std::abs(fsten(ii_  ,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_  ,kk_+1,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_  ,kk_+1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_+1,jj_+1,kk_  ,ist_00p)) /
+           ( std::abs(fsten(ii_  ,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_+1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_+1,kk_  ,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_  ,jj_  ,kk_+1,ist_pp0)) /
+           ( std::abs(fsten(ii_  ,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_  ,kk_+1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_  ,jj_+1,kk_  ,ist_p0p)) /
+           ( std::abs(fsten(ii_  ,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_+1,kk_  ,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_+1,jj_  ,kk_  ,ist_0pp)) /
+           ( std::abs(fsten(ii_  ,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_  ,kk_  ,ist_ppp)) + eps);
+        r *= std::abs(fsten(ii_  ,jj_  ,kk_  ,ist_ppp)) * fsten(ii_+1,jj_+1,kk_+1,ist_inv);
         return r;
     };
 
@@ -5560,74 +5554,74 @@ void mlndlap_interpadd_rap (int i, int j, int k, Array4<Real> const& fine,
         if (ieven && jeven && keven) {
             fv = crse(ic,jc,kc);
         } else if (ieven && jeven) {
-            Real w1 = amrex::Math::abs(sten(i,j,k-1,ist_00p));
-            Real w2 = amrex::Math::abs(sten(i,j,k  ,ist_00p));
+            Real w1 = std::abs(sten(i,j,k-1,ist_00p));
+            Real w2 = std::abs(sten(i,j,k  ,ist_00p));
             if (w1 == Real(0.0) && w2 == Real(0.0)) {
                 fv = Real(0.5)*(crse(ic,jc,kc)+crse(ic,jc,kc+1));
             } else {
                 fv = (w1*crse(ic,jc,kc) + w2*crse(ic,jc,kc+1)) / (w1+w2);
             }
         } else if (ieven && keven) {
-            Real w1 = amrex::Math::abs(sten(i,j-1,k,ist_0p0));
-            Real w2 = amrex::Math::abs(sten(i,j  ,k,ist_0p0));
+            Real w1 = std::abs(sten(i,j-1,k,ist_0p0));
+            Real w2 = std::abs(sten(i,j  ,k,ist_0p0));
             if (w1 == Real(0.0) && w2 == Real(0.0)) {
                 fv = Real(0.5)*(crse(ic,jc,kc)+crse(ic,jc+1,kc));
             } else {
                 fv = (w1*crse(ic,jc,kc) + w2*crse(ic,jc+1,kc)) / (w1+w2);
             }
         } else if (jeven && keven) {
-            Real w1 = amrex::Math::abs(sten(i-1,j,k,ist_p00));
-            Real w2 = amrex::Math::abs(sten(i  ,j,k,ist_p00));
+            Real w1 = std::abs(sten(i-1,j,k,ist_p00));
+            Real w2 = std::abs(sten(i  ,j,k,ist_p00));
             if (w1 == Real(0.0) && w2 == Real(0.0)) {
                 fv = Real(0.5)*(crse(ic,jc,kc)+crse(ic+1,jc,kc));
             } else {
                 fv = (w1*crse(ic,jc,kc) + w2*crse(ic+1,jc,kc)) / (w1+w2);
             }
         } else if (ieven) {
-            Real w1m = amrex::Math::abs(sten(i,j-1,k,ist_0p0)) / (amrex::Math::abs(sten(i,j-1,k-1,ist_0pp))
-                                                         +amrex::Math::abs(sten(i,j-1,k  ,ist_0pp)) + eps);
-            Real w1p = amrex::Math::abs(sten(i,j  ,k,ist_0p0)) / (amrex::Math::abs(sten(i,j  ,k-1,ist_0pp))
-                                                         +amrex::Math::abs(sten(i,j  ,k  ,ist_0pp)) + eps);
-            Real w2m = amrex::Math::abs(sten(i,j,k-1,ist_00p)) / (amrex::Math::abs(sten(i,j-1,k-1,ist_0pp))
-                                                         +amrex::Math::abs(sten(i,j  ,k-1,ist_0pp)) + eps);
-            Real w2p = amrex::Math::abs(sten(i,j,k  ,ist_00p)) / (amrex::Math::abs(sten(i,j-1,k  ,ist_0pp))
-                                                         +amrex::Math::abs(sten(i,j  ,k  ,ist_0pp)) + eps);
-            Real wmm = amrex::Math::abs(sten(i,j-1,k-1,ist_0pp)) * (Real(1.0) + w1m + w2m);
-            Real wpm = amrex::Math::abs(sten(i,j  ,k-1,ist_0pp)) * (Real(1.0) + w1p + w2m);
-            Real wmp = amrex::Math::abs(sten(i,j-1,k  ,ist_0pp)) * (Real(1.0) + w1m + w2p);
-            Real wpp = amrex::Math::abs(sten(i,j  ,k  ,ist_0pp)) * (Real(1.0) + w1p + w2p);
+            Real w1m = std::abs(sten(i,j-1,k,ist_0p0)) / (std::abs(sten(i,j-1,k-1,ist_0pp))
+                                                         +std::abs(sten(i,j-1,k  ,ist_0pp)) + eps);
+            Real w1p = std::abs(sten(i,j  ,k,ist_0p0)) / (std::abs(sten(i,j  ,k-1,ist_0pp))
+                                                         +std::abs(sten(i,j  ,k  ,ist_0pp)) + eps);
+            Real w2m = std::abs(sten(i,j,k-1,ist_00p)) / (std::abs(sten(i,j-1,k-1,ist_0pp))
+                                                         +std::abs(sten(i,j  ,k-1,ist_0pp)) + eps);
+            Real w2p = std::abs(sten(i,j,k  ,ist_00p)) / (std::abs(sten(i,j-1,k  ,ist_0pp))
+                                                         +std::abs(sten(i,j  ,k  ,ist_0pp)) + eps);
+            Real wmm = std::abs(sten(i,j-1,k-1,ist_0pp)) * (Real(1.0) + w1m + w2m);
+            Real wpm = std::abs(sten(i,j  ,k-1,ist_0pp)) * (Real(1.0) + w1p + w2m);
+            Real wmp = std::abs(sten(i,j-1,k  ,ist_0pp)) * (Real(1.0) + w1m + w2p);
+            Real wpp = std::abs(sten(i,j  ,k  ,ist_0pp)) * (Real(1.0) + w1p + w2p);
             fv = (wmm*crse(ic,jc,kc) + wpm*crse(ic,jc+1,kc)
                   + wmp*crse(ic,jc,kc+1) + wpp*crse(ic,jc+1,kc+1))
                 / (wmm+wpm+wmp+wpp+eps);
         } else if (jeven) {
-            Real w1m = amrex::Math::abs(sten(i-1,j,k,ist_p00)) / (amrex::Math::abs(sten(i-1,j,k-1,ist_p0p))
-                                                         +amrex::Math::abs(sten(i-1,j,k  ,ist_p0p)) + eps);
-            Real w1p = amrex::Math::abs(sten(i  ,j,k,ist_p00)) / (amrex::Math::abs(sten(i  ,j,k-1,ist_p0p))
-                                                         +amrex::Math::abs(sten(i  ,j,k  ,ist_p0p)) + eps);
-            Real w2m = amrex::Math::abs(sten(i,j,k-1,ist_00p)) / (amrex::Math::abs(sten(i-1,j,k-1,ist_p0p))
-                                                         +amrex::Math::abs(sten(i  ,j,k-1,ist_p0p)) + eps);
-            Real w2p = amrex::Math::abs(sten(i,j,k  ,ist_00p)) / (amrex::Math::abs(sten(i-1,j,k  ,ist_p0p))
-                                                         +amrex::Math::abs(sten(i  ,j,k  ,ist_p0p)) + eps);
-            Real wmm = amrex::Math::abs(sten(i-1,j,k-1,ist_p0p)) * (Real(1.0) + w1m + w2m);
-            Real wpm = amrex::Math::abs(sten(i  ,j,k-1,ist_p0p)) * (Real(1.0) + w1p + w2m);
-            Real wmp = amrex::Math::abs(sten(i-1,j,k  ,ist_p0p)) * (Real(1.0) + w1m + w2p);
-            Real wpp = amrex::Math::abs(sten(i  ,j,k  ,ist_p0p)) * (Real(1.0) + w1p + w2p);
+            Real w1m = std::abs(sten(i-1,j,k,ist_p00)) / (std::abs(sten(i-1,j,k-1,ist_p0p))
+                                                         +std::abs(sten(i-1,j,k  ,ist_p0p)) + eps);
+            Real w1p = std::abs(sten(i  ,j,k,ist_p00)) / (std::abs(sten(i  ,j,k-1,ist_p0p))
+                                                         +std::abs(sten(i  ,j,k  ,ist_p0p)) + eps);
+            Real w2m = std::abs(sten(i,j,k-1,ist_00p)) / (std::abs(sten(i-1,j,k-1,ist_p0p))
+                                                         +std::abs(sten(i  ,j,k-1,ist_p0p)) + eps);
+            Real w2p = std::abs(sten(i,j,k  ,ist_00p)) / (std::abs(sten(i-1,j,k  ,ist_p0p))
+                                                         +std::abs(sten(i  ,j,k  ,ist_p0p)) + eps);
+            Real wmm = std::abs(sten(i-1,j,k-1,ist_p0p)) * (Real(1.0) + w1m + w2m);
+            Real wpm = std::abs(sten(i  ,j,k-1,ist_p0p)) * (Real(1.0) + w1p + w2m);
+            Real wmp = std::abs(sten(i-1,j,k  ,ist_p0p)) * (Real(1.0) + w1m + w2p);
+            Real wpp = std::abs(sten(i  ,j,k  ,ist_p0p)) * (Real(1.0) + w1p + w2p);
             fv = (wmm*crse(ic,jc,kc) + wpm*crse(ic+1,jc,kc)
                   + wmp*crse(ic,jc,kc+1) + wpp*crse(ic+1,jc,kc+1))
                 / (wmm+wpm+wmp+wpp+eps);
         } else if (keven) {
-            Real w1m = amrex::Math::abs(sten(i-1,j,k,ist_p00)) / (amrex::Math::abs(sten(i-1,j-1,k,ist_pp0))
-                                                         +amrex::Math::abs(sten(i-1,j  ,k,ist_pp0)) + eps);
-            Real w1p = amrex::Math::abs(sten(i  ,j,k,ist_p00)) / (amrex::Math::abs(sten(i  ,j-1,k,ist_pp0))
-                                                         +amrex::Math::abs(sten(i  ,j  ,k,ist_pp0)) + eps);
-            Real w2m = amrex::Math::abs(sten(i,j-1,k,ist_0p0)) / (amrex::Math::abs(sten(i-1,j-1,k,ist_pp0))
-                                                         +amrex::Math::abs(sten(i  ,j-1,k,ist_pp0)) + eps);
-            Real w2p = amrex::Math::abs(sten(i,j  ,k,ist_0p0)) / (amrex::Math::abs(sten(i-1,j  ,k,ist_pp0))
-                                                         +amrex::Math::abs(sten(i  ,j  ,k,ist_pp0)) + eps);
-            Real wmm = amrex::Math::abs(sten(i-1,j-1,k,ist_pp0)) * (Real(1.0) + w1m + w2m);
-            Real wpm = amrex::Math::abs(sten(i  ,j-1,k,ist_pp0)) * (Real(1.0) + w1p + w2m);
-            Real wmp = amrex::Math::abs(sten(i-1,j  ,k,ist_pp0)) * (Real(1.0) + w1m + w2p);
-            Real wpp = amrex::Math::abs(sten(i  ,j  ,k,ist_pp0)) * (Real(1.0) + w1p + w2p);
+            Real w1m = std::abs(sten(i-1,j,k,ist_p00)) / (std::abs(sten(i-1,j-1,k,ist_pp0))
+                                                         +std::abs(sten(i-1,j  ,k,ist_pp0)) + eps);
+            Real w1p = std::abs(sten(i  ,j,k,ist_p00)) / (std::abs(sten(i  ,j-1,k,ist_pp0))
+                                                         +std::abs(sten(i  ,j  ,k,ist_pp0)) + eps);
+            Real w2m = std::abs(sten(i,j-1,k,ist_0p0)) / (std::abs(sten(i-1,j-1,k,ist_pp0))
+                                                         +std::abs(sten(i  ,j-1,k,ist_pp0)) + eps);
+            Real w2p = std::abs(sten(i,j  ,k,ist_0p0)) / (std::abs(sten(i-1,j  ,k,ist_pp0))
+                                                         +std::abs(sten(i  ,j  ,k,ist_pp0)) + eps);
+            Real wmm = std::abs(sten(i-1,j-1,k,ist_pp0)) * (Real(1.0) + w1m + w2m);
+            Real wpm = std::abs(sten(i  ,j-1,k,ist_pp0)) * (Real(1.0) + w1p + w2m);
+            Real wmp = std::abs(sten(i-1,j  ,k,ist_pp0)) * (Real(1.0) + w1m + w2p);
+            Real wpp = std::abs(sten(i  ,j  ,k,ist_pp0)) * (Real(1.0) + w1p + w2p);
             fv = (wmm*crse(ic,jc,kc) + wpm*crse(ic+1,jc,kc)
                   + wmp*crse(ic,jc+1,kc) + wpp*crse(ic+1,jc+1,kc))
                 / (wmm+wpm+wmp+wpp+eps);
@@ -5641,146 +5635,146 @@ void mlndlap_interpadd_rap (int i, int j, int k, Array4<Real> const& fine,
             Real wmpp = Real(1.0);
             Real wppp = Real(1.0);
 
-            Real wtmp = amrex::Math::abs(sten(i-1,j,k,ist_p00)) /
-                ( amrex::Math::abs(sten(i-1,j-1,k-1,ist_ppp))
-                + amrex::Math::abs(sten(i-1,j  ,k-1,ist_ppp))
-                + amrex::Math::abs(sten(i-1,j-1,k  ,ist_ppp))
-                + amrex::Math::abs(sten(i-1,j  ,k  ,ist_ppp)) + eps);
+            Real wtmp = std::abs(sten(i-1,j,k,ist_p00)) /
+                ( std::abs(sten(i-1,j-1,k-1,ist_ppp))
+                + std::abs(sten(i-1,j  ,k-1,ist_ppp))
+                + std::abs(sten(i-1,j-1,k  ,ist_ppp))
+                + std::abs(sten(i-1,j  ,k  ,ist_ppp)) + eps);
             wmmm += wtmp;
             wmpm += wtmp;
             wmmp += wtmp;
             wmpp += wtmp;
 
-            wtmp = amrex::Math::abs(sten(i,j,k,ist_p00)) /
-                ( amrex::Math::abs(sten(i,j-1,k-1,ist_ppp))
-                + amrex::Math::abs(sten(i,j  ,k-1,ist_ppp))
-                + amrex::Math::abs(sten(i,j-1,k  ,ist_ppp))
-                + amrex::Math::abs(sten(i,j  ,k  ,ist_ppp)) + eps);
+            wtmp = std::abs(sten(i,j,k,ist_p00)) /
+                ( std::abs(sten(i,j-1,k-1,ist_ppp))
+                + std::abs(sten(i,j  ,k-1,ist_ppp))
+                + std::abs(sten(i,j-1,k  ,ist_ppp))
+                + std::abs(sten(i,j  ,k  ,ist_ppp)) + eps);
             wpmm += wtmp;
             wppm += wtmp;
             wpmp += wtmp;
             wppp += wtmp;
 
-            wtmp = amrex::Math::abs(sten(i,j-1,k,ist_0p0)) /
-                ( amrex::Math::abs(sten(i-1,j-1,k-1,ist_ppp))
-                + amrex::Math::abs(sten(i  ,j-1,k-1,ist_ppp))
-                + amrex::Math::abs(sten(i-1,j-1,k  ,ist_ppp))
-                + amrex::Math::abs(sten(i  ,j-1,k  ,ist_ppp)) + eps);
+            wtmp = std::abs(sten(i,j-1,k,ist_0p0)) /
+                ( std::abs(sten(i-1,j-1,k-1,ist_ppp))
+                + std::abs(sten(i  ,j-1,k-1,ist_ppp))
+                + std::abs(sten(i-1,j-1,k  ,ist_ppp))
+                + std::abs(sten(i  ,j-1,k  ,ist_ppp)) + eps);
             wmmm += wtmp;
             wpmm += wtmp;
             wmmp += wtmp;
             wpmp += wtmp;
 
-            wtmp = amrex::Math::abs(sten(i,j,k,ist_0p0)) /
-                ( amrex::Math::abs(sten(i-1,j,k-1,ist_ppp))
-                + amrex::Math::abs(sten(i  ,j,k-1,ist_ppp))
-                + amrex::Math::abs(sten(i-1,j,k  ,ist_ppp))
-                + amrex::Math::abs(sten(i  ,j,k  ,ist_ppp)) + eps);
+            wtmp = std::abs(sten(i,j,k,ist_0p0)) /
+                ( std::abs(sten(i-1,j,k-1,ist_ppp))
+                + std::abs(sten(i  ,j,k-1,ist_ppp))
+                + std::abs(sten(i-1,j,k  ,ist_ppp))
+                + std::abs(sten(i  ,j,k  ,ist_ppp)) + eps);
             wmpm += wtmp;
             wppm += wtmp;
             wmpp += wtmp;
             wppp += wtmp;
 
-            wtmp = amrex::Math::abs(sten(i,j,k-1,ist_00p)) /
-                ( amrex::Math::abs(sten(i-1,j-1,k-1,ist_ppp))
-                + amrex::Math::abs(sten(i  ,j-1,k-1,ist_ppp))
-                + amrex::Math::abs(sten(i-1,j  ,k-1,ist_ppp))
-                + amrex::Math::abs(sten(i  ,j  ,k-1,ist_ppp)) + eps);
+            wtmp = std::abs(sten(i,j,k-1,ist_00p)) /
+                ( std::abs(sten(i-1,j-1,k-1,ist_ppp))
+                + std::abs(sten(i  ,j-1,k-1,ist_ppp))
+                + std::abs(sten(i-1,j  ,k-1,ist_ppp))
+                + std::abs(sten(i  ,j  ,k-1,ist_ppp)) + eps);
             wmmm += wtmp;
             wpmm += wtmp;
             wmpm += wtmp;
             wppm += wtmp;
 
-            wtmp = amrex::Math::abs(sten(i,j,k,ist_00p)) /
-                ( amrex::Math::abs(sten(i-1,j-1,k,ist_ppp))
-                + amrex::Math::abs(sten(i  ,j-1,k,ist_ppp))
-                + amrex::Math::abs(sten(i-1,j  ,k,ist_ppp))
-                + amrex::Math::abs(sten(i  ,j  ,k,ist_ppp)) + eps);
+            wtmp = std::abs(sten(i,j,k,ist_00p)) /
+                ( std::abs(sten(i-1,j-1,k,ist_ppp))
+                + std::abs(sten(i  ,j-1,k,ist_ppp))
+                + std::abs(sten(i-1,j  ,k,ist_ppp))
+                + std::abs(sten(i  ,j  ,k,ist_ppp)) + eps);
             wmmp += wtmp;
             wpmp += wtmp;
             wmpp += wtmp;
             wppp += wtmp;
 
-            wtmp = amrex::Math::abs(sten(i-1,j-1,k,ist_pp0)) /
-                ( amrex::Math::abs(sten(i-1,j-1,k-1,ist_ppp))
-                + amrex::Math::abs(sten(i-1,j-1,k  ,ist_ppp)) + eps);
+            wtmp = std::abs(sten(i-1,j-1,k,ist_pp0)) /
+                ( std::abs(sten(i-1,j-1,k-1,ist_ppp))
+                + std::abs(sten(i-1,j-1,k  ,ist_ppp)) + eps);
             wmmm += wtmp;
             wmmp += wtmp;
 
-            wtmp = amrex::Math::abs(sten(i,j-1,k,ist_pp0)) /
-                ( amrex::Math::abs(sten(i,j-1,k-1,ist_ppp))
-                + amrex::Math::abs(sten(i,j-1,k  ,ist_ppp)) + eps);
+            wtmp = std::abs(sten(i,j-1,k,ist_pp0)) /
+                ( std::abs(sten(i,j-1,k-1,ist_ppp))
+                + std::abs(sten(i,j-1,k  ,ist_ppp)) + eps);
             wpmm += wtmp;
             wpmp += wtmp;
 
-            wtmp = amrex::Math::abs(sten(i-1,j,k,ist_pp0)) /
-                ( amrex::Math::abs(sten(i-1,j,k-1,ist_ppp))
-                + amrex::Math::abs(sten(i-1,j,k  ,ist_ppp)) + eps);
+            wtmp = std::abs(sten(i-1,j,k,ist_pp0)) /
+                ( std::abs(sten(i-1,j,k-1,ist_ppp))
+                + std::abs(sten(i-1,j,k  ,ist_ppp)) + eps);
             wmpm += wtmp;
             wmpp += wtmp;
 
-            wtmp = amrex::Math::abs(sten(i,j,k,ist_pp0)) /
-                ( amrex::Math::abs(sten(i,j,k-1,ist_ppp))
-                + amrex::Math::abs(sten(i,j,k  ,ist_ppp)) + eps);
+            wtmp = std::abs(sten(i,j,k,ist_pp0)) /
+                ( std::abs(sten(i,j,k-1,ist_ppp))
+                + std::abs(sten(i,j,k  ,ist_ppp)) + eps);
             wppm += wtmp;
             wppp += wtmp;
 
-            wtmp = amrex::Math::abs(sten(i-1,j,k-1,ist_p0p)) /
-                ( amrex::Math::abs(sten(i-1,j-1,k-1,ist_ppp))
-                + amrex::Math::abs(sten(i-1,j  ,k-1,ist_ppp)) + eps);
+            wtmp = std::abs(sten(i-1,j,k-1,ist_p0p)) /
+                ( std::abs(sten(i-1,j-1,k-1,ist_ppp))
+                + std::abs(sten(i-1,j  ,k-1,ist_ppp)) + eps);
             wmmm += wtmp;
             wmpm += wtmp;
 
-            wtmp = amrex::Math::abs(sten(i,j,k-1,ist_p0p)) /
-                ( amrex::Math::abs(sten(i,j-1,k-1,ist_ppp))
-                + amrex::Math::abs(sten(i,j  ,k-1,ist_ppp)) + eps);
+            wtmp = std::abs(sten(i,j,k-1,ist_p0p)) /
+                ( std::abs(sten(i,j-1,k-1,ist_ppp))
+                + std::abs(sten(i,j  ,k-1,ist_ppp)) + eps);
             wpmm += wtmp;
             wppm += wtmp;
 
-            wtmp = amrex::Math::abs(sten(i-1,j,k,ist_p0p)) /
-                ( amrex::Math::abs(sten(i-1,j-1,k,ist_ppp))
-                + amrex::Math::abs(sten(i-1,j  ,k,ist_ppp)) + eps);
+            wtmp = std::abs(sten(i-1,j,k,ist_p0p)) /
+                ( std::abs(sten(i-1,j-1,k,ist_ppp))
+                + std::abs(sten(i-1,j  ,k,ist_ppp)) + eps);
             wmmp += wtmp;
             wmpp += wtmp;
 
-            wtmp = amrex::Math::abs(sten(i,j,k,ist_p0p)) /
-                ( amrex::Math::abs(sten(i,j-1,k,ist_ppp))
-                + amrex::Math::abs(sten(i,j  ,k,ist_ppp)) + eps);
+            wtmp = std::abs(sten(i,j,k,ist_p0p)) /
+                ( std::abs(sten(i,j-1,k,ist_ppp))
+                + std::abs(sten(i,j  ,k,ist_ppp)) + eps);
             wpmp += wtmp;
             wppp += wtmp;
 
-            wtmp = amrex::Math::abs(sten(i,j-1,k-1,ist_0pp)) /
-                ( amrex::Math::abs(sten(i-1,j-1,k-1,ist_ppp))
-                + amrex::Math::abs(sten(i  ,j-1,k-1,ist_ppp)) + eps);
+            wtmp = std::abs(sten(i,j-1,k-1,ist_0pp)) /
+                ( std::abs(sten(i-1,j-1,k-1,ist_ppp))
+                + std::abs(sten(i  ,j-1,k-1,ist_ppp)) + eps);
             wmmm += wtmp;
             wpmm += wtmp;
 
-            wtmp = amrex::Math::abs(sten(i,j,k-1,ist_0pp)) /
-                ( amrex::Math::abs(sten(i-1,j,k-1,ist_ppp))
-                + amrex::Math::abs(sten(i  ,j,k-1,ist_ppp)) + eps);
+            wtmp = std::abs(sten(i,j,k-1,ist_0pp)) /
+                ( std::abs(sten(i-1,j,k-1,ist_ppp))
+                + std::abs(sten(i  ,j,k-1,ist_ppp)) + eps);
             wmpm += wtmp;
             wppm += wtmp;
 
-            wtmp = amrex::Math::abs(sten(i,j-1,k,ist_0pp)) /
-                ( amrex::Math::abs(sten(i-1,j-1,k,ist_ppp))
-                + amrex::Math::abs(sten(i  ,j-1,k,ist_ppp)) + eps);
+            wtmp = std::abs(sten(i,j-1,k,ist_0pp)) /
+                ( std::abs(sten(i-1,j-1,k,ist_ppp))
+                + std::abs(sten(i  ,j-1,k,ist_ppp)) + eps);
             wmmp += wtmp;
             wpmp += wtmp;
 
-            wtmp = amrex::Math::abs(sten(i,j,k,ist_0pp)) /
-                ( amrex::Math::abs(sten(i-1,j,k,ist_ppp))
-                + amrex::Math::abs(sten(i  ,j,k,ist_ppp)) + eps);
+            wtmp = std::abs(sten(i,j,k,ist_0pp)) /
+                ( std::abs(sten(i-1,j,k,ist_ppp))
+                + std::abs(sten(i  ,j,k,ist_ppp)) + eps);
             wmpp += wtmp;
             wppp += wtmp;
 
-            wmmm *= amrex::Math::abs(sten(i-1,j-1,k-1,ist_ppp));
-            wpmm *= amrex::Math::abs(sten(i  ,j-1,k-1,ist_ppp));
-            wmpm *= amrex::Math::abs(sten(i-1,j  ,k-1,ist_ppp));
-            wppm *= amrex::Math::abs(sten(i  ,j  ,k-1,ist_ppp));
-            wmmp *= amrex::Math::abs(sten(i-1,j-1,k  ,ist_ppp));
-            wpmp *= amrex::Math::abs(sten(i  ,j-1,k  ,ist_ppp));
-            wmpp *= amrex::Math::abs(sten(i-1,j  ,k  ,ist_ppp));
-            wppp *= amrex::Math::abs(sten(i  ,j  ,k  ,ist_ppp));
+            wmmm *= std::abs(sten(i-1,j-1,k-1,ist_ppp));
+            wpmm *= std::abs(sten(i  ,j-1,k-1,ist_ppp));
+            wmpm *= std::abs(sten(i-1,j  ,k-1,ist_ppp));
+            wppm *= std::abs(sten(i  ,j  ,k-1,ist_ppp));
+            wmmp *= std::abs(sten(i-1,j-1,k  ,ist_ppp));
+            wpmp *= std::abs(sten(i  ,j-1,k  ,ist_ppp));
+            wmpp *= std::abs(sten(i-1,j  ,k  ,ist_ppp));
+            wppp *= std::abs(sten(i  ,j  ,k  ,ist_ppp));
             fv = (wmmm*crse(ic,jc  ,kc  ) + wpmm*crse(ic+1,jc  ,kc  )
                   + wmpm*crse(ic,jc+1,kc  ) + wppm*crse(ic+1,jc+1,kc  )
                   + wmmp*crse(ic,jc  ,kc+1) + wpmp*crse(ic+1,jc  ,kc+1)
@@ -5810,8 +5804,8 @@ void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
         // Adding fine(ii-1,jj,kk)
         // ************************************
 
-        Real sten_lo = amrex::Math::abs(sten(ii-2,jj,kk,ist_p00));
-        Real sten_hi = amrex::Math::abs(sten(ii-1,jj,kk,ist_p00));
+        Real sten_lo = std::abs(sten(ii-2,jj,kk,ist_p00));
+        Real sten_hi = std::abs(sten(ii-1,jj,kk,ist_p00));
 
         if (sten_lo == Real(0.0) && sten_hi == Real(0.0)) {
             cv += Real(0.5)*fine(ii-1,jj,kk);
@@ -5823,8 +5817,8 @@ void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
         // Adding fine(ii+1,jj,kk)
         // ************************************
 
-        sten_lo = amrex::Math::abs(sten(ii  ,jj,kk,ist_p00));
-        sten_hi = amrex::Math::abs(sten(ii+1,jj,kk,ist_p00));
+        sten_lo = std::abs(sten(ii  ,jj,kk,ist_p00));
+        sten_hi = std::abs(sten(ii+1,jj,kk,ist_p00));
 
         if (sten_lo == Real(0.0) && sten_hi == Real(0.0)) {
             cv += Real(0.5)*fine(ii+1,jj,kk);
@@ -5836,8 +5830,8 @@ void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
         // Adding fine(ii,jj-1,kk)
         // ************************************
 
-        sten_lo = amrex::Math::abs(sten(ii,jj-2,kk,ist_0p0));
-        sten_hi = amrex::Math::abs(sten(ii,jj-1,kk,ist_0p0));
+        sten_lo = std::abs(sten(ii,jj-2,kk,ist_0p0));
+        sten_hi = std::abs(sten(ii,jj-1,kk,ist_0p0));
 
         if (sten_lo == Real(0.0) && sten_hi == Real(0.0)) {
             cv += Real(0.5)*fine(ii,jj-1,kk);
@@ -5849,8 +5843,8 @@ void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
         // Adding fine(ii,jj+1,kk)
         // ************************************
 
-        sten_lo = amrex::Math::abs(sten(ii,jj  ,kk,ist_0p0));
-        sten_hi = amrex::Math::abs(sten(ii,jj+1,kk,ist_0p0));
+        sten_lo = std::abs(sten(ii,jj  ,kk,ist_0p0));
+        sten_hi = std::abs(sten(ii,jj+1,kk,ist_0p0));
 
         if (sten_lo == Real(0.0) && sten_hi == Real(0.0)) {
             cv += Real(0.5)*fine(ii,jj+1,kk);
@@ -5862,8 +5856,8 @@ void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
         // Adding fine(ii,jj,kk-1)
         // ************************************
 
-        sten_lo = amrex::Math::abs(sten(ii,jj,kk-2,ist_00p));
-        sten_hi = amrex::Math::abs(sten(ii,jj,kk-1,ist_00p));
+        sten_lo = std::abs(sten(ii,jj,kk-2,ist_00p));
+        sten_hi = std::abs(sten(ii,jj,kk-1,ist_00p));
 
         if (sten_lo == Real(0.0) && sten_hi == Real(0.0)) {
             cv += Real(0.5)*fine(ii,jj,kk-1);
@@ -5875,8 +5869,8 @@ void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
         // Adding fine(ii,jj,kk+1)
         // ************************************
 
-        sten_lo = amrex::Math::abs(sten(ii,jj,kk  ,ist_00p));
-        sten_hi = amrex::Math::abs(sten(ii,jj,kk+1,ist_00p));
+        sten_lo = std::abs(sten(ii,jj,kk  ,ist_00p));
+        sten_hi = std::abs(sten(ii,jj,kk+1,ist_00p));
 
         if (sten_lo == Real(0.0) && sten_hi == Real(0.0)) {
             cv += Real(0.5)*fine(ii,jj,kk+1);
@@ -5889,88 +5883,88 @@ void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
         // ************************************
 
         // keven
-        Real w1m = amrex::Math::abs(sten(ii-2,jj-1,kk,ist_p00))
-            / (    amrex::Math::abs(sten(ii-2,jj-2,kk,ist_pp0))
-                  +amrex::Math::abs(sten(ii-2,jj-1,kk,ist_pp0)) + eps);
-        Real w1p = amrex::Math::abs(sten(ii-1,jj-1,kk,ist_p00))
-            / (    amrex::Math::abs(sten(ii-1,jj-2,kk,ist_pp0))
-                  +amrex::Math::abs(sten(ii-1,jj-1,kk,ist_pp0)) + eps);
-        Real w2m = amrex::Math::abs(sten(ii-1,jj-2,kk,ist_0p0))
-            / (    amrex::Math::abs(sten(ii-2,jj-2,kk,ist_pp0))
-                  +amrex::Math::abs(sten(ii-1,jj-2,kk,ist_pp0)) + eps);
-        Real w2p = amrex::Math::abs(sten(ii-1,jj-1,kk,ist_0p0))
-            / (    amrex::Math::abs(sten(ii-2,jj-1,kk,ist_pp0))
-                  +amrex::Math::abs(sten(ii-1,jj-1,kk,ist_pp0)) + eps);
-        Real wmm = amrex::Math::abs(sten(ii-2,jj-2,kk,ist_pp0)) * (Real(1.0) + w1m + w2m);
-        Real wpm = amrex::Math::abs(sten(ii-1,jj-2,kk,ist_pp0)) * (Real(1.0) + w1p + w2m);
-        Real wmp = amrex::Math::abs(sten(ii-2,jj-1,kk,ist_pp0)) * (Real(1.0) + w1m + w2p);
-        Real wpp = amrex::Math::abs(sten(ii-1,jj-1,kk,ist_pp0)) * (Real(1.0) + w1p + w2p);
+        Real w1m = std::abs(sten(ii-2,jj-1,kk,ist_p00))
+            / (    std::abs(sten(ii-2,jj-2,kk,ist_pp0))
+                  +std::abs(sten(ii-2,jj-1,kk,ist_pp0)) + eps);
+        Real w1p = std::abs(sten(ii-1,jj-1,kk,ist_p00))
+            / (    std::abs(sten(ii-1,jj-2,kk,ist_pp0))
+                  +std::abs(sten(ii-1,jj-1,kk,ist_pp0)) + eps);
+        Real w2m = std::abs(sten(ii-1,jj-2,kk,ist_0p0))
+            / (    std::abs(sten(ii-2,jj-2,kk,ist_pp0))
+                  +std::abs(sten(ii-1,jj-2,kk,ist_pp0)) + eps);
+        Real w2p = std::abs(sten(ii-1,jj-1,kk,ist_0p0))
+            / (    std::abs(sten(ii-2,jj-1,kk,ist_pp0))
+                  +std::abs(sten(ii-1,jj-1,kk,ist_pp0)) + eps);
+        Real wmm = std::abs(sten(ii-2,jj-2,kk,ist_pp0)) * (Real(1.0) + w1m + w2m);
+        Real wpm = std::abs(sten(ii-1,jj-2,kk,ist_pp0)) * (Real(1.0) + w1p + w2m);
+        Real wmp = std::abs(sten(ii-2,jj-1,kk,ist_pp0)) * (Real(1.0) + w1m + w2p);
+        Real wpp = std::abs(sten(ii-1,jj-1,kk,ist_pp0)) * (Real(1.0) + w1p + w2p);
         cv += fine(ii-1,jj-1,kk)*wpp/(wmm+wpm+wmp+wpp+eps);
 
         // ************************************
         // Adding fine(ii+1,jj-1,kk)
         // ************************************
 
-        w1m = amrex::Math::abs(sten(ii  ,jj-1,kk,ist_p00))
-           / (amrex::Math::abs(sten(ii  ,jj-2,kk,ist_pp0))
-             +amrex::Math::abs(sten(ii  ,jj-1,kk,ist_pp0)) + eps);
-        w1p = amrex::Math::abs(sten(ii+1,jj-1,kk,ist_p00))
-           / (amrex::Math::abs(sten(ii+1,jj-2,kk,ist_pp0))
-             +amrex::Math::abs(sten(ii+1,jj-1,kk,ist_pp0)) + eps);
-        w2m = amrex::Math::abs(sten(ii+1,jj-2,kk,ist_0p0))
-           / (amrex::Math::abs(sten(ii  ,jj-2,kk,ist_pp0))
-             +amrex::Math::abs(sten(ii+1,jj-2,kk,ist_pp0)) + eps);
-        w2p = amrex::Math::abs(sten(ii+1,jj-1,kk,ist_0p0))
-           / (amrex::Math::abs(sten(ii  ,jj-1,kk,ist_pp0))
-             +amrex::Math::abs(sten(ii+1,jj-1,kk,ist_pp0)) + eps);
-        wmm = amrex::Math::abs(sten(ii  ,jj-2,kk,ist_pp0)) * (Real(1.0) + w1m + w2m);
-        wpm = amrex::Math::abs(sten(ii+1,jj-2,kk,ist_pp0)) * (Real(1.0) + w1p + w2m);
-        wmp = amrex::Math::abs(sten(ii  ,jj-1,kk,ist_pp0)) * (Real(1.0) + w1m + w2p);
-        wpp = amrex::Math::abs(sten(ii+1,jj-1,kk,ist_pp0)) * (Real(1.0) + w1p + w2p);
+        w1m = std::abs(sten(ii  ,jj-1,kk,ist_p00))
+           / (std::abs(sten(ii  ,jj-2,kk,ist_pp0))
+             +std::abs(sten(ii  ,jj-1,kk,ist_pp0)) + eps);
+        w1p = std::abs(sten(ii+1,jj-1,kk,ist_p00))
+           / (std::abs(sten(ii+1,jj-2,kk,ist_pp0))
+             +std::abs(sten(ii+1,jj-1,kk,ist_pp0)) + eps);
+        w2m = std::abs(sten(ii+1,jj-2,kk,ist_0p0))
+           / (std::abs(sten(ii  ,jj-2,kk,ist_pp0))
+             +std::abs(sten(ii+1,jj-2,kk,ist_pp0)) + eps);
+        w2p = std::abs(sten(ii+1,jj-1,kk,ist_0p0))
+           / (std::abs(sten(ii  ,jj-1,kk,ist_pp0))
+             +std::abs(sten(ii+1,jj-1,kk,ist_pp0)) + eps);
+        wmm = std::abs(sten(ii  ,jj-2,kk,ist_pp0)) * (Real(1.0) + w1m + w2m);
+        wpm = std::abs(sten(ii+1,jj-2,kk,ist_pp0)) * (Real(1.0) + w1p + w2m);
+        wmp = std::abs(sten(ii  ,jj-1,kk,ist_pp0)) * (Real(1.0) + w1m + w2p);
+        wpp = std::abs(sten(ii+1,jj-1,kk,ist_pp0)) * (Real(1.0) + w1p + w2p);
         cv += fine(ii+1,jj-1,kk)*wmp/(wmm+wpm+wmp+wpp+eps);
 
         // ************************************
         // Adding fine(ii-1,jj+1,kk)
         // ************************************
 
-        w1m = amrex::Math::abs(sten(ii-2,jj+1,kk,ist_p00))
-           / (amrex::Math::abs(sten(ii-2,jj  ,kk,ist_pp0))
-             +amrex::Math::abs(sten(ii-2,jj+1,kk,ist_pp0)) + eps);
-        w1p = amrex::Math::abs(sten(ii-1,jj+1,kk,ist_p00))
-           / (amrex::Math::abs(sten(ii-1,jj  ,kk,ist_pp0))
-             +amrex::Math::abs(sten(ii-1,jj+1,kk,ist_pp0)) + eps);
-        w2m = amrex::Math::abs(sten(ii-1,jj  ,kk,ist_0p0))
-           / (amrex::Math::abs(sten(ii-2,jj  ,kk,ist_pp0))
-             +amrex::Math::abs(sten(ii-1,jj  ,kk,ist_pp0)) + eps);
-        w2p = amrex::Math::abs(sten(ii-1,jj+1,kk,ist_0p0))
-           / (amrex::Math::abs(sten(ii-2,jj+1,kk,ist_pp0))
-             +amrex::Math::abs(sten(ii-1,jj+1,kk,ist_pp0)) + eps);
-        wmm = amrex::Math::abs(sten(ii-2,jj  ,kk,ist_pp0)) * (Real(1.0) + w1m + w2m);
-        wpm = amrex::Math::abs(sten(ii-1,jj  ,kk,ist_pp0)) * (Real(1.0) + w1p + w2m);
-        wmp = amrex::Math::abs(sten(ii-2,jj+1,kk,ist_pp0)) * (Real(1.0) + w1m + w2p);
-        wpp = amrex::Math::abs(sten(ii-1,jj+1,kk,ist_pp0)) * (Real(1.0) + w1p + w2p);
+        w1m = std::abs(sten(ii-2,jj+1,kk,ist_p00))
+           / (std::abs(sten(ii-2,jj  ,kk,ist_pp0))
+             +std::abs(sten(ii-2,jj+1,kk,ist_pp0)) + eps);
+        w1p = std::abs(sten(ii-1,jj+1,kk,ist_p00))
+           / (std::abs(sten(ii-1,jj  ,kk,ist_pp0))
+             +std::abs(sten(ii-1,jj+1,kk,ist_pp0)) + eps);
+        w2m = std::abs(sten(ii-1,jj  ,kk,ist_0p0))
+           / (std::abs(sten(ii-2,jj  ,kk,ist_pp0))
+             +std::abs(sten(ii-1,jj  ,kk,ist_pp0)) + eps);
+        w2p = std::abs(sten(ii-1,jj+1,kk,ist_0p0))
+           / (std::abs(sten(ii-2,jj+1,kk,ist_pp0))
+             +std::abs(sten(ii-1,jj+1,kk,ist_pp0)) + eps);
+        wmm = std::abs(sten(ii-2,jj  ,kk,ist_pp0)) * (Real(1.0) + w1m + w2m);
+        wpm = std::abs(sten(ii-1,jj  ,kk,ist_pp0)) * (Real(1.0) + w1p + w2m);
+        wmp = std::abs(sten(ii-2,jj+1,kk,ist_pp0)) * (Real(1.0) + w1m + w2p);
+        wpp = std::abs(sten(ii-1,jj+1,kk,ist_pp0)) * (Real(1.0) + w1p + w2p);
         cv += fine(ii-1,jj+1,kk)*wpm/(wmm+wpm+wmp+wpp+eps);
 
         // ************************************
         // Adding fine(ii+1,jj+1,kk)
         // ************************************
 
-        w1m = amrex::Math::abs(sten(ii  ,jj+1,kk,ist_p00))
-           / (amrex::Math::abs(sten(ii  ,jj+1,kk,ist_pp0))
-             +amrex::Math::abs(sten(ii  ,jj  ,kk,ist_pp0)) + eps);
-        w1p = amrex::Math::abs(sten(ii+1,jj+1,kk,ist_p00))
-           / (amrex::Math::abs(sten(ii+1,jj+1,kk,ist_pp0))
-             +amrex::Math::abs(sten(ii+1,jj  ,kk,ist_pp0)) + eps);
-        w2m = amrex::Math::abs(sten(ii+1,jj  ,kk,ist_0p0))
-           / (amrex::Math::abs(sten(ii+1,jj  ,kk,ist_pp0))
-             +amrex::Math::abs(sten(ii  ,jj  ,kk,ist_pp0)) + eps);
-        w2p = amrex::Math::abs(sten(ii+1,jj+1,kk,ist_0p0))
-           / (amrex::Math::abs(sten(ii+1,jj+1,kk,ist_pp0))
-             +amrex::Math::abs(sten(ii  ,jj+1,kk,ist_pp0)) + eps);
-        wmm = amrex::Math::abs(sten(ii  ,jj  ,kk,ist_pp0)) * (Real(1.0) + w1m + w2m);
-        wpm = amrex::Math::abs(sten(ii+1,jj  ,kk,ist_pp0)) * (Real(1.0) + w1p + w2m);
-        wmp = amrex::Math::abs(sten(ii  ,jj+1,kk,ist_pp0)) * (Real(1.0) + w1m + w2p);
-        wpp = amrex::Math::abs(sten(ii+1,jj+1,kk,ist_pp0)) * (Real(1.0) + w1p + w2p);
+        w1m = std::abs(sten(ii  ,jj+1,kk,ist_p00))
+           / (std::abs(sten(ii  ,jj+1,kk,ist_pp0))
+             +std::abs(sten(ii  ,jj  ,kk,ist_pp0)) + eps);
+        w1p = std::abs(sten(ii+1,jj+1,kk,ist_p00))
+           / (std::abs(sten(ii+1,jj+1,kk,ist_pp0))
+             +std::abs(sten(ii+1,jj  ,kk,ist_pp0)) + eps);
+        w2m = std::abs(sten(ii+1,jj  ,kk,ist_0p0))
+           / (std::abs(sten(ii+1,jj  ,kk,ist_pp0))
+             +std::abs(sten(ii  ,jj  ,kk,ist_pp0)) + eps);
+        w2p = std::abs(sten(ii+1,jj+1,kk,ist_0p0))
+           / (std::abs(sten(ii+1,jj+1,kk,ist_pp0))
+             +std::abs(sten(ii  ,jj+1,kk,ist_pp0)) + eps);
+        wmm = std::abs(sten(ii  ,jj  ,kk,ist_pp0)) * (Real(1.0) + w1m + w2m);
+        wpm = std::abs(sten(ii+1,jj  ,kk,ist_pp0)) * (Real(1.0) + w1p + w2m);
+        wmp = std::abs(sten(ii  ,jj+1,kk,ist_pp0)) * (Real(1.0) + w1m + w2p);
+        wpp = std::abs(sten(ii+1,jj+1,kk,ist_pp0)) * (Real(1.0) + w1p + w2p);
         cv += fine(ii+1,jj+1,kk)*wmm/(wmm+wpm+wmp+wpp+eps);
 
         // ************************************
@@ -5978,88 +5972,88 @@ void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
         // ************************************
 
         // jeven
-        w1m = amrex::Math::abs(sten(ii-2,jj,kk-1,ist_p00))
-           / (amrex::Math::abs(sten(ii-2,jj,kk-2,ist_p0p))
-             +amrex::Math::abs(sten(ii-2,jj,kk-1,ist_p0p)) + eps);
-        w1p = amrex::Math::abs(sten(ii-1,jj,kk-1,ist_p00))
-           / (amrex::Math::abs(sten(ii-1,jj,kk-2,ist_p0p))
-             +amrex::Math::abs(sten(ii-1,jj,kk-1,ist_p0p)) + eps);
-        w2m = amrex::Math::abs(sten(ii-1,jj,kk-2,ist_00p))
-           / (amrex::Math::abs(sten(ii-2,jj,kk-2,ist_p0p))
-             +amrex::Math::abs(sten(ii-1,jj,kk-2,ist_p0p)) + eps);
-        w2p = amrex::Math::abs(sten(ii-1,jj,kk-1,ist_00p))
-           / (amrex::Math::abs(sten(ii-2,jj,kk-1,ist_p0p))
-             +amrex::Math::abs(sten(ii-1,jj,kk-1,ist_p0p)) + eps);
-        wmm = amrex::Math::abs(sten(ii-2,jj,kk-2,ist_p0p)) * (Real(1.0) + w1m + w2m);
-        wpm = amrex::Math::abs(sten(ii-1,jj,kk-2,ist_p0p)) * (Real(1.0) + w1p + w2m);
-        wmp = amrex::Math::abs(sten(ii-2,jj,kk-1,ist_p0p)) * (Real(1.0) + w1m + w2p);
-        wpp = amrex::Math::abs(sten(ii-1,jj,kk-1,ist_p0p)) * (Real(1.0) + w1p + w2p);
+        w1m = std::abs(sten(ii-2,jj,kk-1,ist_p00))
+           / (std::abs(sten(ii-2,jj,kk-2,ist_p0p))
+             +std::abs(sten(ii-2,jj,kk-1,ist_p0p)) + eps);
+        w1p = std::abs(sten(ii-1,jj,kk-1,ist_p00))
+           / (std::abs(sten(ii-1,jj,kk-2,ist_p0p))
+             +std::abs(sten(ii-1,jj,kk-1,ist_p0p)) + eps);
+        w2m = std::abs(sten(ii-1,jj,kk-2,ist_00p))
+           / (std::abs(sten(ii-2,jj,kk-2,ist_p0p))
+             +std::abs(sten(ii-1,jj,kk-2,ist_p0p)) + eps);
+        w2p = std::abs(sten(ii-1,jj,kk-1,ist_00p))
+           / (std::abs(sten(ii-2,jj,kk-1,ist_p0p))
+             +std::abs(sten(ii-1,jj,kk-1,ist_p0p)) + eps);
+        wmm = std::abs(sten(ii-2,jj,kk-2,ist_p0p)) * (Real(1.0) + w1m + w2m);
+        wpm = std::abs(sten(ii-1,jj,kk-2,ist_p0p)) * (Real(1.0) + w1p + w2m);
+        wmp = std::abs(sten(ii-2,jj,kk-1,ist_p0p)) * (Real(1.0) + w1m + w2p);
+        wpp = std::abs(sten(ii-1,jj,kk-1,ist_p0p)) * (Real(1.0) + w1p + w2p);
         cv += fine(ii-1,jj,kk-1)*wpp/(wmm+wpm+wmp+wpp+eps);
 
         // ************************************
         // Adding fine(ii+1,jj,kk-1)
         // ************************************
 
-        w1m = amrex::Math::abs(sten(ii  ,jj,kk-1,ist_p00))
-           / (amrex::Math::abs(sten(ii  ,jj,kk-2,ist_p0p))
-             +amrex::Math::abs(sten(ii  ,jj,kk-1,ist_p0p)) + eps);
-        w1p = amrex::Math::abs(sten(ii+1,jj,kk-1,ist_p00))
-           / (amrex::Math::abs(sten(ii+1,jj,kk-2,ist_p0p))
-             +amrex::Math::abs(sten(ii+1,jj,kk-1,ist_p0p)) + eps);
-        w2m = amrex::Math::abs(sten(ii+1,jj,kk-2,ist_00p))
-           / (amrex::Math::abs(sten(ii+1,jj,kk-2,ist_p0p))
-             +amrex::Math::abs(sten(ii  ,jj,kk-2,ist_p0p)) + eps);
-        w2p = amrex::Math::abs(sten(ii+1,jj,kk-1,ist_00p))
-           / (amrex::Math::abs(sten(ii+1,jj,kk-1,ist_p0p))
-             +amrex::Math::abs(sten(ii  ,jj,kk-1,ist_p0p)) + eps);
-        wmm = amrex::Math::abs(sten(ii  ,jj,kk-2,ist_p0p)) * (Real(1.0) + w1m + w2m);
-        wpm = amrex::Math::abs(sten(ii+1,jj,kk-2,ist_p0p)) * (Real(1.0) + w1p + w2m);
-        wmp = amrex::Math::abs(sten(ii  ,jj,kk-1,ist_p0p)) * (Real(1.0) + w1m + w2p);
-        wpp = amrex::Math::abs(sten(ii+1,jj,kk-1,ist_p0p)) * (Real(1.0) + w1p + w2p);
+        w1m = std::abs(sten(ii  ,jj,kk-1,ist_p00))
+           / (std::abs(sten(ii  ,jj,kk-2,ist_p0p))
+             +std::abs(sten(ii  ,jj,kk-1,ist_p0p)) + eps);
+        w1p = std::abs(sten(ii+1,jj,kk-1,ist_p00))
+           / (std::abs(sten(ii+1,jj,kk-2,ist_p0p))
+             +std::abs(sten(ii+1,jj,kk-1,ist_p0p)) + eps);
+        w2m = std::abs(sten(ii+1,jj,kk-2,ist_00p))
+           / (std::abs(sten(ii+1,jj,kk-2,ist_p0p))
+             +std::abs(sten(ii  ,jj,kk-2,ist_p0p)) + eps);
+        w2p = std::abs(sten(ii+1,jj,kk-1,ist_00p))
+           / (std::abs(sten(ii+1,jj,kk-1,ist_p0p))
+             +std::abs(sten(ii  ,jj,kk-1,ist_p0p)) + eps);
+        wmm = std::abs(sten(ii  ,jj,kk-2,ist_p0p)) * (Real(1.0) + w1m + w2m);
+        wpm = std::abs(sten(ii+1,jj,kk-2,ist_p0p)) * (Real(1.0) + w1p + w2m);
+        wmp = std::abs(sten(ii  ,jj,kk-1,ist_p0p)) * (Real(1.0) + w1m + w2p);
+        wpp = std::abs(sten(ii+1,jj,kk-1,ist_p0p)) * (Real(1.0) + w1p + w2p);
         cv += fine(ii+1,jj,kk-1)*wmp/(wmm+wpm+wmp+wpp+eps);
 
         // ************************************
         // Adding fine(ii-1,jj,kk+1)
         // ************************************
 
-        w1m = amrex::Math::abs(sten(ii-2,jj,kk+1,ist_p00))
-           / (amrex::Math::abs(sten(ii-2,jj,kk+1,ist_p0p))
-             +amrex::Math::abs(sten(ii-2,jj,kk  ,ist_p0p)) + eps);
-        w1p = amrex::Math::abs(sten(ii-1,jj,kk+1,ist_p00))
-           / (amrex::Math::abs(sten(ii-1,jj,kk+1,ist_p0p))
-             +amrex::Math::abs(sten(ii-1,jj,kk  ,ist_p0p)) + eps);
-        w2m = amrex::Math::abs(sten(ii-1,jj,kk  ,ist_00p))
-           / (amrex::Math::abs(sten(ii-2,jj,kk  ,ist_p0p))
-             +amrex::Math::abs(sten(ii-1,jj,kk  ,ist_p0p)) + eps);
-        w2p = amrex::Math::abs(sten(ii-1,jj,kk+1,ist_00p))
-           / (amrex::Math::abs(sten(ii-2,jj,kk+1,ist_p0p))
-             +amrex::Math::abs(sten(ii-1,jj,kk+1,ist_p0p)) + eps);
-        wmm = amrex::Math::abs(sten(ii-2,jj,kk  ,ist_p0p)) * (Real(1.0) + w1m + w2m);
-        wpm = amrex::Math::abs(sten(ii-1,jj,kk  ,ist_p0p)) * (Real(1.0) + w1p + w2m);
-        wmp = amrex::Math::abs(sten(ii-2,jj,kk+1,ist_p0p)) * (Real(1.0) + w1m + w2p);
-        wpp = amrex::Math::abs(sten(ii-1,jj,kk+1,ist_p0p)) * (Real(1.0) + w1p + w2p);
+        w1m = std::abs(sten(ii-2,jj,kk+1,ist_p00))
+           / (std::abs(sten(ii-2,jj,kk+1,ist_p0p))
+             +std::abs(sten(ii-2,jj,kk  ,ist_p0p)) + eps);
+        w1p = std::abs(sten(ii-1,jj,kk+1,ist_p00))
+           / (std::abs(sten(ii-1,jj,kk+1,ist_p0p))
+             +std::abs(sten(ii-1,jj,kk  ,ist_p0p)) + eps);
+        w2m = std::abs(sten(ii-1,jj,kk  ,ist_00p))
+           / (std::abs(sten(ii-2,jj,kk  ,ist_p0p))
+             +std::abs(sten(ii-1,jj,kk  ,ist_p0p)) + eps);
+        w2p = std::abs(sten(ii-1,jj,kk+1,ist_00p))
+           / (std::abs(sten(ii-2,jj,kk+1,ist_p0p))
+             +std::abs(sten(ii-1,jj,kk+1,ist_p0p)) + eps);
+        wmm = std::abs(sten(ii-2,jj,kk  ,ist_p0p)) * (Real(1.0) + w1m + w2m);
+        wpm = std::abs(sten(ii-1,jj,kk  ,ist_p0p)) * (Real(1.0) + w1p + w2m);
+        wmp = std::abs(sten(ii-2,jj,kk+1,ist_p0p)) * (Real(1.0) + w1m + w2p);
+        wpp = std::abs(sten(ii-1,jj,kk+1,ist_p0p)) * (Real(1.0) + w1p + w2p);
         cv += fine(ii-1,jj,kk+1)*wpm/(wmm+wpm+wmp+wpp+eps);
 
         // ************************************
         // Adding fine(ii+1,jj,kk+1)
         // ************************************
 
-        w1m = amrex::Math::abs(sten(ii  ,jj,kk+1,ist_p00))
-           / (amrex::Math::abs(sten(ii  ,jj,kk+1,ist_p0p))
-             +amrex::Math::abs(sten(ii  ,jj,kk  ,ist_p0p)) + eps);
-        w1p = amrex::Math::abs(sten(ii+1,jj,kk+1,ist_p00))
-           / (amrex::Math::abs(sten(ii+1,jj,kk+1,ist_p0p))
-              +amrex::Math::abs(sten(ii+1,jj,kk  ,ist_p0p)) + eps);
-        w2m = amrex::Math::abs(sten(ii+1,jj,kk  ,ist_00p))
-           / (amrex::Math::abs(sten(ii+1,jj,kk  ,ist_p0p))
-             +amrex::Math::abs(sten(ii  ,jj,kk  ,ist_p0p)) + eps);
-        w2p = amrex::Math::abs(sten(ii+1,jj,kk+1,ist_00p))
-           / (amrex::Math::abs(sten(ii+1,jj,kk+1,ist_p0p))
-             +amrex::Math::abs(sten(ii  ,jj,kk+1,ist_p0p)) + eps);
-        wmm = amrex::Math::abs(sten(ii  ,jj,kk  ,ist_p0p)) * (Real(1.0) + w1m + w2m);
-        wpm = amrex::Math::abs(sten(ii+1,jj,kk  ,ist_p0p)) * (Real(1.0) + w1p + w2m);
-        wmp = amrex::Math::abs(sten(ii  ,jj,kk+1,ist_p0p)) * (Real(1.0) + w1m + w2p);
-        wpp = amrex::Math::abs(sten(ii+1,jj,kk+1,ist_p0p)) * (Real(1.0) + w1p + w2p);
+        w1m = std::abs(sten(ii  ,jj,kk+1,ist_p00))
+           / (std::abs(sten(ii  ,jj,kk+1,ist_p0p))
+             +std::abs(sten(ii  ,jj,kk  ,ist_p0p)) + eps);
+        w1p = std::abs(sten(ii+1,jj,kk+1,ist_p00))
+           / (std::abs(sten(ii+1,jj,kk+1,ist_p0p))
+              +std::abs(sten(ii+1,jj,kk  ,ist_p0p)) + eps);
+        w2m = std::abs(sten(ii+1,jj,kk  ,ist_00p))
+           / (std::abs(sten(ii+1,jj,kk  ,ist_p0p))
+             +std::abs(sten(ii  ,jj,kk  ,ist_p0p)) + eps);
+        w2p = std::abs(sten(ii+1,jj,kk+1,ist_00p))
+           / (std::abs(sten(ii+1,jj,kk+1,ist_p0p))
+             +std::abs(sten(ii  ,jj,kk+1,ist_p0p)) + eps);
+        wmm = std::abs(sten(ii  ,jj,kk  ,ist_p0p)) * (Real(1.0) + w1m + w2m);
+        wpm = std::abs(sten(ii+1,jj,kk  ,ist_p0p)) * (Real(1.0) + w1p + w2m);
+        wmp = std::abs(sten(ii  ,jj,kk+1,ist_p0p)) * (Real(1.0) + w1m + w2p);
+        wpp = std::abs(sten(ii+1,jj,kk+1,ist_p0p)) * (Real(1.0) + w1p + w2p);
         cv += fine(ii+1,jj,kk+1)*wmm/(wmm+wpm+wmp+wpp+eps);
 
         // ************************************
@@ -6067,88 +6061,88 @@ void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
         // ************************************
 
         // ieven
-        w1m = amrex::Math::abs(sten(ii,jj-2,kk-1,ist_0p0))
-           / (amrex::Math::abs(sten(ii,jj-2,kk-2,ist_0pp))
-             +amrex::Math::abs(sten(ii,jj-2,kk-1,ist_0pp)) + eps);
-        w2m = amrex::Math::abs(sten(ii,jj-1,kk-2,ist_00p))
-           / (amrex::Math::abs(sten(ii,jj-2,kk-2,ist_0pp))
-             +amrex::Math::abs(sten(ii,jj-1,kk-2,ist_0pp)) + eps);
-        w1p = amrex::Math::abs(sten(ii,jj-1,kk-1,ist_0p0))
-           / (amrex::Math::abs(sten(ii,jj-1,kk-2,ist_0pp))
-             +amrex::Math::abs(sten(ii,jj-1,kk-1,ist_0pp)) + eps);
-        w2p = amrex::Math::abs(sten(ii,jj-1,kk-1,ist_00p))
-           / (amrex::Math::abs(sten(ii,jj-2,kk-1,ist_0pp))
-             +amrex::Math::abs(sten(ii,jj-1,kk-1,ist_0pp)) + eps);
-        wmm = amrex::Math::abs(sten(ii,jj-2,kk-2,ist_0pp)) * (Real(1.0) + w1m + w2m);
-        wpm = amrex::Math::abs(sten(ii,jj-1,kk-2,ist_0pp)) * (Real(1.0) + w1p + w2m);
-        wmp = amrex::Math::abs(sten(ii,jj-2,kk-1,ist_0pp)) * (Real(1.0) + w1m + w2p);
-        wpp = amrex::Math::abs(sten(ii,jj-1,kk-1,ist_0pp)) * (Real(1.0) + w1p + w2p);
+        w1m = std::abs(sten(ii,jj-2,kk-1,ist_0p0))
+           / (std::abs(sten(ii,jj-2,kk-2,ist_0pp))
+             +std::abs(sten(ii,jj-2,kk-1,ist_0pp)) + eps);
+        w2m = std::abs(sten(ii,jj-1,kk-2,ist_00p))
+           / (std::abs(sten(ii,jj-2,kk-2,ist_0pp))
+             +std::abs(sten(ii,jj-1,kk-2,ist_0pp)) + eps);
+        w1p = std::abs(sten(ii,jj-1,kk-1,ist_0p0))
+           / (std::abs(sten(ii,jj-1,kk-2,ist_0pp))
+             +std::abs(sten(ii,jj-1,kk-1,ist_0pp)) + eps);
+        w2p = std::abs(sten(ii,jj-1,kk-1,ist_00p))
+           / (std::abs(sten(ii,jj-2,kk-1,ist_0pp))
+             +std::abs(sten(ii,jj-1,kk-1,ist_0pp)) + eps);
+        wmm = std::abs(sten(ii,jj-2,kk-2,ist_0pp)) * (Real(1.0) + w1m + w2m);
+        wpm = std::abs(sten(ii,jj-1,kk-2,ist_0pp)) * (Real(1.0) + w1p + w2m);
+        wmp = std::abs(sten(ii,jj-2,kk-1,ist_0pp)) * (Real(1.0) + w1m + w2p);
+        wpp = std::abs(sten(ii,jj-1,kk-1,ist_0pp)) * (Real(1.0) + w1p + w2p);
         cv += fine(ii,jj-1,kk-1)*wpp/(wmm+wpm+wmp+wpp+eps);
 
         // ************************************
         // Adding fine(ii,jj+1,kk-1)
         // ************************************
 
-        w1m = amrex::Math::abs(sten(ii,jj  ,kk-1,ist_0p0))
-           / (amrex::Math::abs(sten(ii,jj  ,kk-2,ist_0pp))
-             +amrex::Math::abs(sten(ii,jj  ,kk-1,ist_0pp)) + eps);
-        w1p = amrex::Math::abs(sten(ii,jj+1,kk-1,ist_0p0))
-           / (amrex::Math::abs(sten(ii,jj+1,kk-2,ist_0pp))
-             +amrex::Math::abs(sten(ii,jj+1,kk-1,ist_0pp)) + eps);
-        w2m = amrex::Math::abs(sten(ii,jj+1,kk-2,ist_00p))
-           / (amrex::Math::abs(sten(ii,jj+1,kk-2,ist_0pp))
-             +amrex::Math::abs(sten(ii,jj  ,kk-2,ist_0pp)) + eps);
-        w2p = amrex::Math::abs(sten(ii,jj+1,kk-1,ist_00p))
-           / (amrex::Math::abs(sten(ii,jj+1,kk-1,ist_0pp))
-             +amrex::Math::abs(sten(ii,jj  ,kk-1,ist_0pp)) + eps);
-        wmm = amrex::Math::abs(sten(ii,jj  ,kk-2,ist_0pp)) * (Real(1.0) + w1m + w2m);
-        wpm = amrex::Math::abs(sten(ii,jj+1,kk-2,ist_0pp)) * (Real(1.0) + w1p + w2m);
-        wmp = amrex::Math::abs(sten(ii,jj  ,kk-1,ist_0pp)) * (Real(1.0) + w1m + w2p);
-        wpp = amrex::Math::abs(sten(ii,jj+1,kk-1,ist_0pp)) * (Real(1.0) + w1p + w2p);
+        w1m = std::abs(sten(ii,jj  ,kk-1,ist_0p0))
+           / (std::abs(sten(ii,jj  ,kk-2,ist_0pp))
+             +std::abs(sten(ii,jj  ,kk-1,ist_0pp)) + eps);
+        w1p = std::abs(sten(ii,jj+1,kk-1,ist_0p0))
+           / (std::abs(sten(ii,jj+1,kk-2,ist_0pp))
+             +std::abs(sten(ii,jj+1,kk-1,ist_0pp)) + eps);
+        w2m = std::abs(sten(ii,jj+1,kk-2,ist_00p))
+           / (std::abs(sten(ii,jj+1,kk-2,ist_0pp))
+             +std::abs(sten(ii,jj  ,kk-2,ist_0pp)) + eps);
+        w2p = std::abs(sten(ii,jj+1,kk-1,ist_00p))
+           / (std::abs(sten(ii,jj+1,kk-1,ist_0pp))
+             +std::abs(sten(ii,jj  ,kk-1,ist_0pp)) + eps);
+        wmm = std::abs(sten(ii,jj  ,kk-2,ist_0pp)) * (Real(1.0) + w1m + w2m);
+        wpm = std::abs(sten(ii,jj+1,kk-2,ist_0pp)) * (Real(1.0) + w1p + w2m);
+        wmp = std::abs(sten(ii,jj  ,kk-1,ist_0pp)) * (Real(1.0) + w1m + w2p);
+        wpp = std::abs(sten(ii,jj+1,kk-1,ist_0pp)) * (Real(1.0) + w1p + w2p);
         cv += fine(ii,jj+1,kk-1)*wmp/(wmm+wpm+wmp+wpp+eps);
 
         // ************************************
         // Adding fine(ii,jj-1,kk+1)
         // ************************************
 
-        w1m = amrex::Math::abs(sten(ii,jj-2,kk+1,ist_0p0))
-           / (amrex::Math::abs(sten(ii,jj-2,kk+1,ist_0pp))
-             +amrex::Math::abs(sten(ii,jj-2,kk  ,ist_0pp)) + eps);
-        w1p = amrex::Math::abs(sten(ii,jj-1,kk+1,ist_0p0))
-           / (amrex::Math::abs(sten(ii,jj-1,kk+1,ist_0pp))
-             +amrex::Math::abs(sten(ii,jj-1,kk  ,ist_0pp)) + eps);
-        w2m = amrex::Math::abs(sten(ii,jj-1,kk  ,ist_00p))
-           / (amrex::Math::abs(sten(ii,jj-2,kk  ,ist_0pp))
-             +amrex::Math::abs(sten(ii,jj-1,kk  ,ist_0pp)) + eps);
-        w2p = amrex::Math::abs(sten(ii,jj-1,kk+1,ist_00p))
-           / (amrex::Math::abs(sten(ii,jj-2,kk+1,ist_0pp))
-             +amrex::Math::abs(sten(ii,jj-1,kk+1,ist_0pp)) + eps);
-        wmm = amrex::Math::abs(sten(ii,jj-2,kk  ,ist_0pp)) * (Real(1.0) + w1m + w2m);
-        wpm = amrex::Math::abs(sten(ii,jj-1,kk  ,ist_0pp)) * (Real(1.0) + w1p + w2m);
-        wmp = amrex::Math::abs(sten(ii,jj-2,kk+1,ist_0pp)) * (Real(1.0) + w1m + w2p);
-        wpp = amrex::Math::abs(sten(ii,jj-1,kk+1,ist_0pp)) * (Real(1.0) + w1p + w2p);
+        w1m = std::abs(sten(ii,jj-2,kk+1,ist_0p0))
+           / (std::abs(sten(ii,jj-2,kk+1,ist_0pp))
+             +std::abs(sten(ii,jj-2,kk  ,ist_0pp)) + eps);
+        w1p = std::abs(sten(ii,jj-1,kk+1,ist_0p0))
+           / (std::abs(sten(ii,jj-1,kk+1,ist_0pp))
+             +std::abs(sten(ii,jj-1,kk  ,ist_0pp)) + eps);
+        w2m = std::abs(sten(ii,jj-1,kk  ,ist_00p))
+           / (std::abs(sten(ii,jj-2,kk  ,ist_0pp))
+             +std::abs(sten(ii,jj-1,kk  ,ist_0pp)) + eps);
+        w2p = std::abs(sten(ii,jj-1,kk+1,ist_00p))
+           / (std::abs(sten(ii,jj-2,kk+1,ist_0pp))
+             +std::abs(sten(ii,jj-1,kk+1,ist_0pp)) + eps);
+        wmm = std::abs(sten(ii,jj-2,kk  ,ist_0pp)) * (Real(1.0) + w1m + w2m);
+        wpm = std::abs(sten(ii,jj-1,kk  ,ist_0pp)) * (Real(1.0) + w1p + w2m);
+        wmp = std::abs(sten(ii,jj-2,kk+1,ist_0pp)) * (Real(1.0) + w1m + w2p);
+        wpp = std::abs(sten(ii,jj-1,kk+1,ist_0pp)) * (Real(1.0) + w1p + w2p);
         cv += fine(ii,jj-1,kk+1)*wpm/(wmm+wpm+wmp+wpp+eps);
 
         // ************************************
         // Adding fine(ii,jj+1,kk+1)
         // ************************************
 
-        w1m = amrex::Math::abs(sten(ii,jj  ,kk+1,ist_0p0))
-           / (amrex::Math::abs(sten(ii,jj  ,kk+1,ist_0pp))
-             +amrex::Math::abs(sten(ii,jj  ,kk  ,ist_0pp)) + eps);
-        w1p = amrex::Math::abs(sten(ii,jj+1,kk+1,ist_0p0))
-           / (amrex::Math::abs(sten(ii,jj+1,kk+1,ist_0pp))
-             +amrex::Math::abs(sten(ii,jj+1,kk  ,ist_0pp)) + eps);
-        w2m = amrex::Math::abs(sten(ii,jj+1,kk  ,ist_00p))
-           / (amrex::Math::abs(sten(ii,jj+1,kk  ,ist_0pp))
-             +amrex::Math::abs(sten(ii,jj  ,kk  ,ist_0pp)) + eps);
-        w2p = amrex::Math::abs(sten(ii,jj+1,kk+1,ist_00p))
-           / (amrex::Math::abs(sten(ii,jj+1,kk+1,ist_0pp))
-             +amrex::Math::abs(sten(ii,jj  ,kk+1,ist_0pp)) + eps);
-        wmm = amrex::Math::abs(sten(ii,jj  ,kk  ,ist_0pp)) * (Real(1.0) + w1m + w2m);
-        wpm = amrex::Math::abs(sten(ii,jj+1,kk  ,ist_0pp)) * (Real(1.0) + w1p + w2m);
-        wmp = amrex::Math::abs(sten(ii,jj  ,kk+1,ist_0pp)) * (Real(1.0) + w1m + w2p);
-        wpp = amrex::Math::abs(sten(ii,jj+1,kk+1,ist_0pp)) * (Real(1.0) + w1p + w2p);
+        w1m = std::abs(sten(ii,jj  ,kk+1,ist_0p0))
+           / (std::abs(sten(ii,jj  ,kk+1,ist_0pp))
+             +std::abs(sten(ii,jj  ,kk  ,ist_0pp)) + eps);
+        w1p = std::abs(sten(ii,jj+1,kk+1,ist_0p0))
+           / (std::abs(sten(ii,jj+1,kk+1,ist_0pp))
+             +std::abs(sten(ii,jj+1,kk  ,ist_0pp)) + eps);
+        w2m = std::abs(sten(ii,jj+1,kk  ,ist_00p))
+           / (std::abs(sten(ii,jj+1,kk  ,ist_0pp))
+             +std::abs(sten(ii,jj  ,kk  ,ist_0pp)) + eps);
+        w2p = std::abs(sten(ii,jj+1,kk+1,ist_00p))
+           / (std::abs(sten(ii,jj+1,kk+1,ist_0pp))
+             +std::abs(sten(ii,jj  ,kk+1,ist_0pp)) + eps);
+        wmm = std::abs(sten(ii,jj  ,kk  ,ist_0pp)) * (Real(1.0) + w1m + w2m);
+        wpm = std::abs(sten(ii,jj+1,kk  ,ist_0pp)) * (Real(1.0) + w1p + w2m);
+        wmp = std::abs(sten(ii,jj  ,kk+1,ist_0pp)) * (Real(1.0) + w1m + w2p);
+        wpp = std::abs(sten(ii,jj+1,kk+1,ist_0pp)) * (Real(1.0) + w1p + w2p);
         cv += fine(ii,jj+1,kk+1)*wmm/(wmm+wpm+wmp+wpp+eps);
 
         // ************************************
@@ -6156,227 +6150,227 @@ void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
         // ************************************
 
         Real wmmm = Real(1.0)
-            + amrex::Math::abs(sten(ii  ,jj+1,kk+1,ist_p00)) /
-            ( amrex::Math::abs(sten(ii  ,jj  ,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj+1,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj  ,kk+1,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj+1,kk+1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii+1,jj  ,kk+1,ist_0p0)) /
-            ( amrex::Math::abs(sten(ii  ,jj  ,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii+1,jj  ,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj  ,kk+1,ist_ppp))
-            + amrex::Math::abs(sten(ii+1,jj  ,kk+1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii+1,jj+1,kk  ,ist_00p)) /
-            ( amrex::Math::abs(sten(ii  ,jj  ,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii+1,jj  ,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj+1,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii+1,jj+1,kk  ,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii  ,jj  ,kk+1,ist_pp0)) /
-            ( amrex::Math::abs(sten(ii  ,jj  ,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj  ,kk+1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii  ,jj+1,kk  ,ist_p0p)) /
-            ( amrex::Math::abs(sten(ii  ,jj  ,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj+1,kk  ,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii+1,jj  ,kk  ,ist_0pp)) /
-            ( amrex::Math::abs(sten(ii  ,jj  ,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii+1,jj  ,kk  ,ist_ppp)) + eps);
-        wmmm *= amrex::Math::abs(sten(ii,jj,kk,ist_ppp));
+            + std::abs(sten(ii  ,jj+1,kk+1,ist_p00)) /
+            ( std::abs(sten(ii  ,jj  ,kk  ,ist_ppp))
+            + std::abs(sten(ii  ,jj+1,kk  ,ist_ppp))
+            + std::abs(sten(ii  ,jj  ,kk+1,ist_ppp))
+            + std::abs(sten(ii  ,jj+1,kk+1,ist_ppp)) + eps)
+            + std::abs(sten(ii+1,jj  ,kk+1,ist_0p0)) /
+            ( std::abs(sten(ii  ,jj  ,kk  ,ist_ppp))
+            + std::abs(sten(ii+1,jj  ,kk  ,ist_ppp))
+            + std::abs(sten(ii  ,jj  ,kk+1,ist_ppp))
+            + std::abs(sten(ii+1,jj  ,kk+1,ist_ppp)) + eps)
+            + std::abs(sten(ii+1,jj+1,kk  ,ist_00p)) /
+            ( std::abs(sten(ii  ,jj  ,kk  ,ist_ppp))
+            + std::abs(sten(ii+1,jj  ,kk  ,ist_ppp))
+            + std::abs(sten(ii  ,jj+1,kk  ,ist_ppp))
+            + std::abs(sten(ii+1,jj+1,kk  ,ist_ppp)) + eps)
+            + std::abs(sten(ii  ,jj  ,kk+1,ist_pp0)) /
+            ( std::abs(sten(ii  ,jj  ,kk  ,ist_ppp))
+            + std::abs(sten(ii  ,jj  ,kk+1,ist_ppp)) + eps)
+            + std::abs(sten(ii  ,jj+1,kk  ,ist_p0p)) /
+            ( std::abs(sten(ii  ,jj  ,kk  ,ist_ppp))
+            + std::abs(sten(ii  ,jj+1,kk  ,ist_ppp)) + eps)
+            + std::abs(sten(ii+1,jj  ,kk  ,ist_0pp)) /
+            ( std::abs(sten(ii  ,jj  ,kk  ,ist_ppp))
+            + std::abs(sten(ii+1,jj  ,kk  ,ist_ppp)) + eps);
+        wmmm *= std::abs(sten(ii,jj,kk,ist_ppp));
         cv += wmmm*fine(ii+1,jj+1,kk+1)*sten(ii+1,jj+1,kk+1,ist_inv);
 
         Real wpmm = Real(1.0)
-            + amrex::Math::abs(sten(ii-1,jj+1,kk+1,ist_p00)) /
-            ( amrex::Math::abs(sten(ii-1,jj  ,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj+1,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj  ,kk+1,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj+1,kk+1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii-1,jj  ,kk+1,ist_0p0)) /
-            ( amrex::Math::abs(sten(ii-2,jj  ,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj  ,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii-2,jj  ,kk+1,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj  ,kk+1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii-1,jj+1,kk  ,ist_00p)) /
-            ( amrex::Math::abs(sten(ii-2,jj  ,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj  ,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii-2,jj+1,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj+1,kk  ,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii-1,jj  ,kk+1,ist_pp0)) /
-            ( amrex::Math::abs(sten(ii-1,jj  ,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj  ,kk+1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii-1,jj+1,kk  ,ist_p0p)) /
-            ( amrex::Math::abs(sten(ii-1,jj  ,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj+1,kk  ,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii-1,jj  ,kk  ,ist_0pp)) /
-            ( amrex::Math::abs(sten(ii-2,jj  ,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj  ,kk  ,ist_ppp)) + eps);
-        wpmm *= amrex::Math::abs(sten(ii-1,jj,kk,ist_ppp));
+            + std::abs(sten(ii-1,jj+1,kk+1,ist_p00)) /
+            ( std::abs(sten(ii-1,jj  ,kk  ,ist_ppp))
+            + std::abs(sten(ii-1,jj+1,kk  ,ist_ppp))
+            + std::abs(sten(ii-1,jj  ,kk+1,ist_ppp))
+            + std::abs(sten(ii-1,jj+1,kk+1,ist_ppp)) + eps)
+            + std::abs(sten(ii-1,jj  ,kk+1,ist_0p0)) /
+            ( std::abs(sten(ii-2,jj  ,kk  ,ist_ppp))
+            + std::abs(sten(ii-1,jj  ,kk  ,ist_ppp))
+            + std::abs(sten(ii-2,jj  ,kk+1,ist_ppp))
+            + std::abs(sten(ii-1,jj  ,kk+1,ist_ppp)) + eps)
+            + std::abs(sten(ii-1,jj+1,kk  ,ist_00p)) /
+            ( std::abs(sten(ii-2,jj  ,kk  ,ist_ppp))
+            + std::abs(sten(ii-1,jj  ,kk  ,ist_ppp))
+            + std::abs(sten(ii-2,jj+1,kk  ,ist_ppp))
+            + std::abs(sten(ii-1,jj+1,kk  ,ist_ppp)) + eps)
+            + std::abs(sten(ii-1,jj  ,kk+1,ist_pp0)) /
+            ( std::abs(sten(ii-1,jj  ,kk  ,ist_ppp))
+            + std::abs(sten(ii-1,jj  ,kk+1,ist_ppp)) + eps)
+            + std::abs(sten(ii-1,jj+1,kk  ,ist_p0p)) /
+            ( std::abs(sten(ii-1,jj  ,kk  ,ist_ppp))
+            + std::abs(sten(ii-1,jj+1,kk  ,ist_ppp)) + eps)
+            + std::abs(sten(ii-1,jj  ,kk  ,ist_0pp)) /
+            ( std::abs(sten(ii-2,jj  ,kk  ,ist_ppp))
+            + std::abs(sten(ii-1,jj  ,kk  ,ist_ppp)) + eps);
+        wpmm *= std::abs(sten(ii-1,jj,kk,ist_ppp));
         cv += wpmm*fine(ii-1,jj+1,kk+1)*sten(ii-1,jj+1,kk+1,ist_inv);
 
         Real wmpm = Real(1.0)
-            + amrex::Math::abs(sten(ii  ,jj-1,kk+1,ist_p00)) /
-            ( amrex::Math::abs(sten(ii  ,jj-2,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj-1,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj-2,kk+1,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj-1,kk+1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii+1,jj-1,kk+1,ist_0p0)) /
-            ( amrex::Math::abs(sten(ii  ,jj-1,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii+1,jj-1,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj-1,kk+1,ist_ppp))
-            + amrex::Math::abs(sten(ii+1,jj-1,kk+1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii+1,jj-1,kk  ,ist_00p)) /
-            ( amrex::Math::abs(sten(ii  ,jj-2,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii+1,jj-2,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj-1,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii+1,jj-1,kk  ,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii  ,jj-1,kk+1,ist_pp0)) /
-            ( amrex::Math::abs(sten(ii  ,jj-1,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj-1,kk+1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii  ,jj-1,kk  ,ist_p0p)) /
-            ( amrex::Math::abs(sten(ii  ,jj-2,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj-1,kk  ,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii+1,jj-1,kk  ,ist_0pp)) /
-            ( amrex::Math::abs(sten(ii  ,jj-1,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii+1,jj-1,kk  ,ist_ppp)) + eps);
-        wmpm *= amrex::Math::abs(sten(ii  ,jj-1,kk  ,ist_ppp));
+            + std::abs(sten(ii  ,jj-1,kk+1,ist_p00)) /
+            ( std::abs(sten(ii  ,jj-2,kk  ,ist_ppp))
+            + std::abs(sten(ii  ,jj-1,kk  ,ist_ppp))
+            + std::abs(sten(ii  ,jj-2,kk+1,ist_ppp))
+            + std::abs(sten(ii  ,jj-1,kk+1,ist_ppp)) + eps)
+            + std::abs(sten(ii+1,jj-1,kk+1,ist_0p0)) /
+            ( std::abs(sten(ii  ,jj-1,kk  ,ist_ppp))
+            + std::abs(sten(ii+1,jj-1,kk  ,ist_ppp))
+            + std::abs(sten(ii  ,jj-1,kk+1,ist_ppp))
+            + std::abs(sten(ii+1,jj-1,kk+1,ist_ppp)) + eps)
+            + std::abs(sten(ii+1,jj-1,kk  ,ist_00p)) /
+            ( std::abs(sten(ii  ,jj-2,kk  ,ist_ppp))
+            + std::abs(sten(ii+1,jj-2,kk  ,ist_ppp))
+            + std::abs(sten(ii  ,jj-1,kk  ,ist_ppp))
+            + std::abs(sten(ii+1,jj-1,kk  ,ist_ppp)) + eps)
+            + std::abs(sten(ii  ,jj-1,kk+1,ist_pp0)) /
+            ( std::abs(sten(ii  ,jj-1,kk  ,ist_ppp))
+            + std::abs(sten(ii  ,jj-1,kk+1,ist_ppp)) + eps)
+            + std::abs(sten(ii  ,jj-1,kk  ,ist_p0p)) /
+            ( std::abs(sten(ii  ,jj-2,kk  ,ist_ppp))
+            + std::abs(sten(ii  ,jj-1,kk  ,ist_ppp)) + eps)
+            + std::abs(sten(ii+1,jj-1,kk  ,ist_0pp)) /
+            ( std::abs(sten(ii  ,jj-1,kk  ,ist_ppp))
+            + std::abs(sten(ii+1,jj-1,kk  ,ist_ppp)) + eps);
+        wmpm *= std::abs(sten(ii  ,jj-1,kk  ,ist_ppp));
         cv += wmpm*fine(ii+1,jj-1,kk+1)*sten(ii+1,jj-1,kk+1,ist_inv);
 
         Real wppm = Real(1.0)
-            + amrex::Math::abs(sten(ii-1,jj-1,kk+1,ist_p00)) /
-            ( amrex::Math::abs(sten(ii-1,jj-2,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj-1,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj-2,kk+1,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj-1,kk+1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii-1,jj-1,kk+1,ist_0p0)) /
-            ( amrex::Math::abs(sten(ii-2,jj-1,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj-1,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii-2,jj-1,kk+1,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj-1,kk+1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii-1,jj-1,kk  ,ist_00p)) /
-            ( amrex::Math::abs(sten(ii-2,jj-2,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj-2,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii-2,jj-1,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj-1,kk  ,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii-1,jj-1,kk+1,ist_pp0)) /
-            ( amrex::Math::abs(sten(ii-1,jj-1,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj-1,kk+1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii-1,jj-1,kk  ,ist_p0p)) /
-            ( amrex::Math::abs(sten(ii-1,jj-2,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj-1,kk  ,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii-1,jj-1,kk  ,ist_0pp)) /
-            ( amrex::Math::abs(sten(ii-2,jj-1,kk  ,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj-1,kk  ,ist_ppp)) + eps);
-        wppm *= amrex::Math::abs(sten(ii-1,jj-1,kk  ,ist_ppp));
+            + std::abs(sten(ii-1,jj-1,kk+1,ist_p00)) /
+            ( std::abs(sten(ii-1,jj-2,kk  ,ist_ppp))
+            + std::abs(sten(ii-1,jj-1,kk  ,ist_ppp))
+            + std::abs(sten(ii-1,jj-2,kk+1,ist_ppp))
+            + std::abs(sten(ii-1,jj-1,kk+1,ist_ppp)) + eps)
+            + std::abs(sten(ii-1,jj-1,kk+1,ist_0p0)) /
+            ( std::abs(sten(ii-2,jj-1,kk  ,ist_ppp))
+            + std::abs(sten(ii-1,jj-1,kk  ,ist_ppp))
+            + std::abs(sten(ii-2,jj-1,kk+1,ist_ppp))
+            + std::abs(sten(ii-1,jj-1,kk+1,ist_ppp)) + eps)
+            + std::abs(sten(ii-1,jj-1,kk  ,ist_00p)) /
+            ( std::abs(sten(ii-2,jj-2,kk  ,ist_ppp))
+            + std::abs(sten(ii-1,jj-2,kk  ,ist_ppp))
+            + std::abs(sten(ii-2,jj-1,kk  ,ist_ppp))
+            + std::abs(sten(ii-1,jj-1,kk  ,ist_ppp)) + eps)
+            + std::abs(sten(ii-1,jj-1,kk+1,ist_pp0)) /
+            ( std::abs(sten(ii-1,jj-1,kk  ,ist_ppp))
+            + std::abs(sten(ii-1,jj-1,kk+1,ist_ppp)) + eps)
+            + std::abs(sten(ii-1,jj-1,kk  ,ist_p0p)) /
+            ( std::abs(sten(ii-1,jj-2,kk  ,ist_ppp))
+            + std::abs(sten(ii-1,jj-1,kk  ,ist_ppp)) + eps)
+            + std::abs(sten(ii-1,jj-1,kk  ,ist_0pp)) /
+            ( std::abs(sten(ii-2,jj-1,kk  ,ist_ppp))
+            + std::abs(sten(ii-1,jj-1,kk  ,ist_ppp)) + eps);
+        wppm *= std::abs(sten(ii-1,jj-1,kk  ,ist_ppp));
         cv += wppm*fine(ii-1,jj-1,kk+1)*sten(ii-1,jj-1,kk+1,ist_inv);
 
         Real wmmp = Real(1.0)
-            + amrex::Math::abs(sten(ii  ,jj+1,kk-1,ist_p00)) /
-            ( amrex::Math::abs(sten(ii  ,jj  ,kk-2,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj+1,kk-2,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj  ,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj+1,kk-1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii+1,jj  ,kk-1,ist_0p0)) /
-            ( amrex::Math::abs(sten(ii  ,jj  ,kk-2,ist_ppp))
-            + amrex::Math::abs(sten(ii+1,jj  ,kk-2,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj  ,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii+1,jj  ,kk-1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii+1,jj+1,kk-1,ist_00p)) /
-            ( amrex::Math::abs(sten(ii  ,jj  ,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii+1,jj  ,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj+1,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii+1,jj+1,kk-1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii  ,jj  ,kk-1,ist_pp0)) /
-            ( amrex::Math::abs(sten(ii  ,jj  ,kk-2,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj  ,kk-1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii  ,jj+1,kk-1,ist_p0p)) /
-            ( amrex::Math::abs(sten(ii  ,jj  ,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj+1,kk-1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii+1,jj  ,kk-1,ist_0pp)) /
-            ( amrex::Math::abs(sten(ii  ,jj  ,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii+1,jj  ,kk-1,ist_ppp)) + eps);
-        wmmp *= amrex::Math::abs(sten(ii  ,jj  ,kk-1,ist_ppp));
+            + std::abs(sten(ii  ,jj+1,kk-1,ist_p00)) /
+            ( std::abs(sten(ii  ,jj  ,kk-2,ist_ppp))
+            + std::abs(sten(ii  ,jj+1,kk-2,ist_ppp))
+            + std::abs(sten(ii  ,jj  ,kk-1,ist_ppp))
+            + std::abs(sten(ii  ,jj+1,kk-1,ist_ppp)) + eps)
+            + std::abs(sten(ii+1,jj  ,kk-1,ist_0p0)) /
+            ( std::abs(sten(ii  ,jj  ,kk-2,ist_ppp))
+            + std::abs(sten(ii+1,jj  ,kk-2,ist_ppp))
+            + std::abs(sten(ii  ,jj  ,kk-1,ist_ppp))
+            + std::abs(sten(ii+1,jj  ,kk-1,ist_ppp)) + eps)
+            + std::abs(sten(ii+1,jj+1,kk-1,ist_00p)) /
+            ( std::abs(sten(ii  ,jj  ,kk-1,ist_ppp))
+            + std::abs(sten(ii+1,jj  ,kk-1,ist_ppp))
+            + std::abs(sten(ii  ,jj+1,kk-1,ist_ppp))
+            + std::abs(sten(ii+1,jj+1,kk-1,ist_ppp)) + eps)
+            + std::abs(sten(ii  ,jj  ,kk-1,ist_pp0)) /
+            ( std::abs(sten(ii  ,jj  ,kk-2,ist_ppp))
+            + std::abs(sten(ii  ,jj  ,kk-1,ist_ppp)) + eps)
+            + std::abs(sten(ii  ,jj+1,kk-1,ist_p0p)) /
+            ( std::abs(sten(ii  ,jj  ,kk-1,ist_ppp))
+            + std::abs(sten(ii  ,jj+1,kk-1,ist_ppp)) + eps)
+            + std::abs(sten(ii+1,jj  ,kk-1,ist_0pp)) /
+            ( std::abs(sten(ii  ,jj  ,kk-1,ist_ppp))
+            + std::abs(sten(ii+1,jj  ,kk-1,ist_ppp)) + eps);
+        wmmp *= std::abs(sten(ii  ,jj  ,kk-1,ist_ppp));
         cv += wmmp*fine(ii+1,jj+1,kk-1)*sten(ii+1,jj+1,kk-1,ist_inv);
 
         Real wpmp = Real(1.0)
-            + amrex::Math::abs(sten(ii-1,jj+1,kk-1,ist_p00)) /
-            ( amrex::Math::abs(sten(ii-1,jj  ,kk-2,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj+1,kk-2,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj  ,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj+1,kk-1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii-1,jj  ,kk-1,ist_0p0)) /
-            ( amrex::Math::abs(sten(ii-2,jj  ,kk-2,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj  ,kk-2,ist_ppp))
-            + amrex::Math::abs(sten(ii-2,jj  ,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj  ,kk-1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii-1,jj+1,kk-1,ist_00p)) /
-            ( amrex::Math::abs(sten(ii-2,jj  ,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj  ,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii-2,jj+1,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj+1,kk-1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii-1,jj  ,kk-1,ist_pp0)) /
-            ( amrex::Math::abs(sten(ii-1,jj  ,kk-2,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj  ,kk-1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii-1,jj+1,kk-1,ist_p0p)) /
-            ( amrex::Math::abs(sten(ii-1,jj  ,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj+1,kk-1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii-1,jj  ,kk-1,ist_0pp)) /
-            ( amrex::Math::abs(sten(ii-2,jj  ,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj  ,kk-1,ist_ppp)) + eps);
-        wpmp *= amrex::Math::abs(sten(ii-1,jj  ,kk-1,ist_ppp));
+            + std::abs(sten(ii-1,jj+1,kk-1,ist_p00)) /
+            ( std::abs(sten(ii-1,jj  ,kk-2,ist_ppp))
+            + std::abs(sten(ii-1,jj+1,kk-2,ist_ppp))
+            + std::abs(sten(ii-1,jj  ,kk-1,ist_ppp))
+            + std::abs(sten(ii-1,jj+1,kk-1,ist_ppp)) + eps)
+            + std::abs(sten(ii-1,jj  ,kk-1,ist_0p0)) /
+            ( std::abs(sten(ii-2,jj  ,kk-2,ist_ppp))
+            + std::abs(sten(ii-1,jj  ,kk-2,ist_ppp))
+            + std::abs(sten(ii-2,jj  ,kk-1,ist_ppp))
+            + std::abs(sten(ii-1,jj  ,kk-1,ist_ppp)) + eps)
+            + std::abs(sten(ii-1,jj+1,kk-1,ist_00p)) /
+            ( std::abs(sten(ii-2,jj  ,kk-1,ist_ppp))
+            + std::abs(sten(ii-1,jj  ,kk-1,ist_ppp))
+            + std::abs(sten(ii-2,jj+1,kk-1,ist_ppp))
+            + std::abs(sten(ii-1,jj+1,kk-1,ist_ppp)) + eps)
+            + std::abs(sten(ii-1,jj  ,kk-1,ist_pp0)) /
+            ( std::abs(sten(ii-1,jj  ,kk-2,ist_ppp))
+            + std::abs(sten(ii-1,jj  ,kk-1,ist_ppp)) + eps)
+            + std::abs(sten(ii-1,jj+1,kk-1,ist_p0p)) /
+            ( std::abs(sten(ii-1,jj  ,kk-1,ist_ppp))
+            + std::abs(sten(ii-1,jj+1,kk-1,ist_ppp)) + eps)
+            + std::abs(sten(ii-1,jj  ,kk-1,ist_0pp)) /
+            ( std::abs(sten(ii-2,jj  ,kk-1,ist_ppp))
+            + std::abs(sten(ii-1,jj  ,kk-1,ist_ppp)) + eps);
+        wpmp *= std::abs(sten(ii-1,jj  ,kk-1,ist_ppp));
         cv += wpmp*fine(ii-1,jj+1,kk-1)*sten(ii-1,jj+1,kk-1,ist_inv);
 
         Real wmpp = Real(1.0)
-            + amrex::Math::abs(sten(ii  ,jj-1,kk-1,ist_p00)) /
-            ( amrex::Math::abs(sten(ii  ,jj-2,kk-2,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj-1,kk-2,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj-2,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj-1,kk-1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii+1,jj-1,kk-1,ist_0p0)) /
-            ( amrex::Math::abs(sten(ii  ,jj-1,kk-2,ist_ppp))
-            + amrex::Math::abs(sten(ii+1,jj-1,kk-2,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj-1,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii+1,jj-1,kk-1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii+1,jj-1,kk-1,ist_00p)) /
-            ( amrex::Math::abs(sten(ii  ,jj-2,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii+1,jj-2,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj-1,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii+1,jj-1,kk-1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii  ,jj-1,kk-1,ist_pp0)) /
-            ( amrex::Math::abs(sten(ii  ,jj-1,kk-2,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj-1,kk-1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii  ,jj-1,kk-1,ist_p0p)) /
-            ( amrex::Math::abs(sten(ii  ,jj-2,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii  ,jj-1,kk-1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii+1,jj-1,kk-1,ist_0pp)) /
-            ( amrex::Math::abs(sten(ii  ,jj-1,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii+1,jj-1,kk-1,ist_ppp)) + eps);
-        wmpp *= amrex::Math::abs(sten(ii  ,jj-1,kk-1,ist_ppp));
+            + std::abs(sten(ii  ,jj-1,kk-1,ist_p00)) /
+            ( std::abs(sten(ii  ,jj-2,kk-2,ist_ppp))
+            + std::abs(sten(ii  ,jj-1,kk-2,ist_ppp))
+            + std::abs(sten(ii  ,jj-2,kk-1,ist_ppp))
+            + std::abs(sten(ii  ,jj-1,kk-1,ist_ppp)) + eps)
+            + std::abs(sten(ii+1,jj-1,kk-1,ist_0p0)) /
+            ( std::abs(sten(ii  ,jj-1,kk-2,ist_ppp))
+            + std::abs(sten(ii+1,jj-1,kk-2,ist_ppp))
+            + std::abs(sten(ii  ,jj-1,kk-1,ist_ppp))
+            + std::abs(sten(ii+1,jj-1,kk-1,ist_ppp)) + eps)
+            + std::abs(sten(ii+1,jj-1,kk-1,ist_00p)) /
+            ( std::abs(sten(ii  ,jj-2,kk-1,ist_ppp))
+            + std::abs(sten(ii+1,jj-2,kk-1,ist_ppp))
+            + std::abs(sten(ii  ,jj-1,kk-1,ist_ppp))
+            + std::abs(sten(ii+1,jj-1,kk-1,ist_ppp)) + eps)
+            + std::abs(sten(ii  ,jj-1,kk-1,ist_pp0)) /
+            ( std::abs(sten(ii  ,jj-1,kk-2,ist_ppp))
+            + std::abs(sten(ii  ,jj-1,kk-1,ist_ppp)) + eps)
+            + std::abs(sten(ii  ,jj-1,kk-1,ist_p0p)) /
+            ( std::abs(sten(ii  ,jj-2,kk-1,ist_ppp))
+            + std::abs(sten(ii  ,jj-1,kk-1,ist_ppp)) + eps)
+            + std::abs(sten(ii+1,jj-1,kk-1,ist_0pp)) /
+            ( std::abs(sten(ii  ,jj-1,kk-1,ist_ppp))
+            + std::abs(sten(ii+1,jj-1,kk-1,ist_ppp)) + eps);
+        wmpp *= std::abs(sten(ii  ,jj-1,kk-1,ist_ppp));
         cv += wmpp*fine(ii+1,jj-1,kk-1)*sten(ii+1,jj-1,kk-1,ist_inv);
 
         Real wppp = Real(1.0)
-            + amrex::Math::abs(sten(ii-1,jj-1,kk-1,ist_p00)) /
-            ( amrex::Math::abs(sten(ii-1,jj-2,kk-2,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj-1,kk-2,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj-2,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj-1,kk-1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii-1,jj-1,kk-1,ist_0p0)) /
-            ( amrex::Math::abs(sten(ii-2,jj-1,kk-2,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj-1,kk-2,ist_ppp))
-            + amrex::Math::abs(sten(ii-2,jj-1,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj-1,kk-1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii-1,jj-1,kk-1,ist_00p)) /
-            ( amrex::Math::abs(sten(ii-2,jj-2,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj-2,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii-2,jj-1,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj-1,kk-1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii-1,jj-1,kk-1,ist_pp0)) /
-            ( amrex::Math::abs(sten(ii-1,jj-1,kk-2,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj-1,kk-1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii-1,jj-1,kk-1,ist_p0p)) /
-            ( amrex::Math::abs(sten(ii-1,jj-2,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj-1,kk-1,ist_ppp)) + eps)
-            + amrex::Math::abs(sten(ii-1,jj-1,kk-1,ist_0pp)) /
-            ( amrex::Math::abs(sten(ii-2,jj-1,kk-1,ist_ppp))
-            + amrex::Math::abs(sten(ii-1,jj-1,kk-1,ist_ppp)) + eps);
-        wppp *= amrex::Math::abs(sten(ii-1,jj-1,kk-1,ist_ppp));
+            + std::abs(sten(ii-1,jj-1,kk-1,ist_p00)) /
+            ( std::abs(sten(ii-1,jj-2,kk-2,ist_ppp))
+            + std::abs(sten(ii-1,jj-1,kk-2,ist_ppp))
+            + std::abs(sten(ii-1,jj-2,kk-1,ist_ppp))
+            + std::abs(sten(ii-1,jj-1,kk-1,ist_ppp)) + eps)
+            + std::abs(sten(ii-1,jj-1,kk-1,ist_0p0)) /
+            ( std::abs(sten(ii-2,jj-1,kk-2,ist_ppp))
+            + std::abs(sten(ii-1,jj-1,kk-2,ist_ppp))
+            + std::abs(sten(ii-2,jj-1,kk-1,ist_ppp))
+            + std::abs(sten(ii-1,jj-1,kk-1,ist_ppp)) + eps)
+            + std::abs(sten(ii-1,jj-1,kk-1,ist_00p)) /
+            ( std::abs(sten(ii-2,jj-2,kk-1,ist_ppp))
+            + std::abs(sten(ii-1,jj-2,kk-1,ist_ppp))
+            + std::abs(sten(ii-2,jj-1,kk-1,ist_ppp))
+            + std::abs(sten(ii-1,jj-1,kk-1,ist_ppp)) + eps)
+            + std::abs(sten(ii-1,jj-1,kk-1,ist_pp0)) /
+            ( std::abs(sten(ii-1,jj-1,kk-2,ist_ppp))
+            + std::abs(sten(ii-1,jj-1,kk-1,ist_ppp)) + eps)
+            + std::abs(sten(ii-1,jj-1,kk-1,ist_p0p)) /
+            ( std::abs(sten(ii-1,jj-2,kk-1,ist_ppp))
+            + std::abs(sten(ii-1,jj-1,kk-1,ist_ppp)) + eps)
+            + std::abs(sten(ii-1,jj-1,kk-1,ist_0pp)) /
+            ( std::abs(sten(ii-2,jj-1,kk-1,ist_ppp))
+            + std::abs(sten(ii-1,jj-1,kk-1,ist_ppp)) + eps);
+        wppp *= std::abs(sten(ii-1,jj-1,kk-1,ist_ppp));
         cv += wppp*fine(ii-1,jj-1,kk-1)*sten(ii-1,jj-1,kk-1,ist_inv);
 
         crse(i,j,k) = cv * Real(0.125);
@@ -7066,7 +7060,8 @@ template <typename HypreInt, typename AtomicInt>
 void mlndlap_fillijmat_sten_cpu (Box const& ndbx,
                                  Array4<AtomicInt const> const& gid,
                                  Array4<int const> const& lid,
-                                 HypreInt* const ncols, HypreInt* const cols, Real* const mat,
+                                 HypreInt* const ncols, HypreInt* const cols,
+                                 Real* const mat, // NOLINT(readability-non-const-parameter)
                                  Array4<Real const> const& sten) noexcept
 {
     constexpr int ist_000 = 1-1;
@@ -7254,7 +7249,8 @@ template <typename HypreInt, typename AtomicInt>
 void mlndlap_fillijmat_aa_cpu (Box const& ndbx,
                                Array4<AtomicInt const> const& gid,
                                Array4<int const> const& lid,
-                               HypreInt* const ncols, HypreInt* const cols, Real* const mat,
+                               HypreInt* const ncols, HypreInt* const cols,
+                               Real* const mat, // NOLINT(readability-non-const-parameter)
                                Array4<Real const> const& sig,
                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                                Box const& ccdom) noexcept
@@ -7697,7 +7693,8 @@ template <typename HypreInt, typename AtomicInt>
 void mlndlap_fillijmat_ha_cpu (Box const& ndbx,
                                Array4<AtomicInt const> const& gid,
                                Array4<int const> const& lid,
-                               HypreInt* const ncols, HypreInt* const cols, Real* const mat,
+                               HypreInt* const ncols, HypreInt* const cols,
+                               Real* const mat, // NOLINT(readability-non-const-parameter)
                                Array4<Real const> const& sx,
                                Array4<Real const> const& sy,
                                Array4<Real const> const& sz,
@@ -8248,7 +8245,8 @@ template <typename HypreInt, typename AtomicInt>
 void mlndlap_fillijmat_cs_cpu (Box const& ndbx,
                                Array4<AtomicInt const> const& gid,
                                Array4<int const> const& lid,
-                               HypreInt* const ncols, HypreInt* const cols, Real* const mat,
+                               HypreInt* const ncols, HypreInt* const cols,
+                               Real* const mat, // NOLINT(readability-non-const-parameter)
                                Real const sigma,
                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                                Box const& ccdom) noexcept

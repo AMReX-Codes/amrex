@@ -107,9 +107,9 @@ void testNeighborList ()
     const Box domain(domain_lo, domain_hi);
 
     int coord = 0;
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        is_per[i] = params.is_periodic;
+    int is_per[] = {AMREX_D_DECL(params.is_periodic,
+                                 params.is_periodic,
+                                 params.is_periodic)};
     Geometry geom(domain, &real_box, coord, is_per);
 
     BoxArray ba(domain);

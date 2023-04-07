@@ -1236,7 +1236,7 @@ Abs (FabArray<FAB>& fa, int icomp, int numcomp, const IntVect& nghost)
         ParallelFor(fa, nghost, numcomp,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
         {
-            fabarr[box_no](i,j,k,n+icomp) = amrex::Math::abs(fabarr[box_no](i,j,k,n+icomp));
+            fabarr[box_no](i,j,k,n+icomp) = std::abs(fabarr[box_no](i,j,k,n+icomp));
         });
         if (!Gpu::inNoSyncRegion()) {
             Gpu::streamSynchronize();
@@ -1255,7 +1255,7 @@ Abs (FabArray<FAB>& fa, int icomp, int numcomp, const IntVect& nghost)
                 auto const& fab = fa.array(mfi);
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
                 {
-                    fab(i,j,k,n+icomp) = amrex::Math::abs(fab(i,j,k,n+icomp));
+                    fab(i,j,k,n+icomp) = std::abs(fab(i,j,k,n+icomp));
                 });
             }
         }

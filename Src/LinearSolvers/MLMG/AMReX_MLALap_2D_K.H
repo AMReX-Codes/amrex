@@ -2,11 +2,7 @@
 #define AMREX_MLALAP_2D_K_H_
 #include <AMReX_Config.H>
 
-namespace amrex {
-
-#if (AMREX_SPACEDIM != 2)
-namespace TwoD {
-#endif
+namespace amrex::TwoD {
 
 template <typename RT>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -372,9 +368,12 @@ void mlalap_gsrb_m (Box const& box, Array4<RT> const& phi,
     }
 }
 
-#if (AMREX_SPACEDIM != 2)
+}
+
+#if (AMREX_SPACEDIM == 2)
+namespace amrex {
+    using namespace TwoD;
 }
 #endif
 
-}
 #endif

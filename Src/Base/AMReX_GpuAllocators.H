@@ -12,9 +12,8 @@
 #include <cuda_runtime.h>
 #endif // AMREX_USE_CUDA
 
-#include <map>
-#include <memory>
 #include <limits>
+#include <map>
 #include <memory>
 #include <type_traits>
 
@@ -158,7 +157,7 @@ namespace amrex {
             if (ptr != nullptr) { arena()->free(ptr); }
         }
 
-        Arena* arena () const noexcept {
+        [[nodiscard]] Arena* arena () const noexcept {
             return (m_arena) ? m_arena : The_Arena();
         }
 

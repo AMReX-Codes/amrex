@@ -57,7 +57,7 @@ MLNodeLaplacian::buildStencil ()
             const auto dxinvarr = geom.InvCellSizeArray();
 
 #ifdef AMREX_USE_EB
-            auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+            const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
             const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
             const MultiFab* intg = m_integral[amrlev].get();
             const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;

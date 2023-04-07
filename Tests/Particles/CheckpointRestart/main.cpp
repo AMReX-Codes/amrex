@@ -24,7 +24,7 @@ void test ()
     const int nghost = 0;
     int ncells, max_grid_size, ncomp, nlevs, nppc;
     int restart_check = 0, nplotfile = 1, nparticlefile = 1;
-    std::string directory = "";
+    std::string directory;
 
     ParmParse pp;
     pp.get("ncells", ncells);
@@ -37,7 +37,7 @@ void test ()
     pp.query("restart_check", restart_check);
     pp.query("directory", directory);
 
-    if (directory != "" && directory.back() != '/') {
+    if (!directory.empty() && directory.back() != '/') {
         // Include separator if one was not provided
         directory += "/";
     }
@@ -55,9 +55,7 @@ void test ()
     }
 
     // This sets the boundary conditions to be doubly or triply periodic
-    int is_per[AMREX_SPACEDIM];
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
-        is_per[i] = 1;
+    int is_per[] = {AMREX_D_DECL(1,1,1)};
 
     // This defines a Geometry object for each level
     Vector<Geometry> geom(nlevs);

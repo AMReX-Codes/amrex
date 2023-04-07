@@ -57,7 +57,7 @@ struct LPInfo
     LPInfo& setSemicoarseningDirection (int n) noexcept { semicoarsening_direction = n; return *this; }
     LPInfo& setHiddenDirection (int n) noexcept { hidden_direction = n; return *this; }
 
-    bool hasHiddenDimension () const noexcept {
+    [[nodiscard]] bool hasHiddenDimension () const noexcept {
         return hidden_direction >=0 && hidden_direction < AMREX_SPACEDIM;
     }
 
@@ -108,8 +108,8 @@ public:
     using StateMode = LinOpEnumType::StateMode;
     using Location  = LinOpEnumType::Location;
 
-    MLLinOpT () {}
-    virtual ~MLLinOpT () {}
+    MLLinOpT () = default;
+    virtual ~MLLinOpT () = default;
 
     MLLinOpT (const MLLinOpT<MF>&) = delete;
     MLLinOpT (MLLinOpT<MF>&&) = delete;
@@ -123,7 +123,7 @@ public:
                  const Vector<FabFactory<FAB> const*>& a_factory,
                  bool eb_limit_coarsening = true);
 
-    virtual std::string name () const { return std::string("Unspecified"); }
+    [[nodiscard]] virtual std::string name () const { return std::string("Unspecified"); }
 
     /**
      * \brief Boundary of the whole domain.
@@ -169,7 +169,7 @@ public:
     * level data are needed for supplying Dirichlet bc at coarse/fine
     * boundary, even when the domain bc is not Dirichlet.
     */
-    bool needsCoarseDataForBC () const noexcept { return m_needs_coarse_data_for_bc; }
+    [[nodiscard]] bool needsCoarseDataForBC () const noexcept { return m_needs_coarse_data_for_bc; }
 
     /**
     * \brief Set coarse/fine boundary conditions. For cell-centered solves
@@ -229,24 +229,24 @@ public:
     //! Set order of interpolation at coarse/fine boundary
     void setMaxOrder (int o) noexcept { maxorder = o; }
     //! Get order of interpolation at coarse/fine boundary
-    int getMaxOrder () const noexcept { return maxorder; }
+    [[nodiscard]] int getMaxOrder () const noexcept { return maxorder; }
 
     //! Set the flag for whether the solver should try to make singular
     //! problem solvable, which is on by default.
     void setEnforceSingularSolvable (bool o) noexcept { enforceSingularSolvable = o; }
     //! Get the flag for whether the solver should try to make singular
     //! problem solvable.
-    bool getEnforceSingularSolvable () const noexcept { return enforceSingularSolvable; }
+    [[nodiscard]] bool getEnforceSingularSolvable () const noexcept { return enforceSingularSolvable; }
 
-    virtual BottomSolver getDefaultBottomSolver () const { return BottomSolver::bicgstab; }
+    [[nodiscard]] virtual BottomSolver getDefaultBottomSolver () const { return BottomSolver::bicgstab; }
 
     //! Return number of components
-    virtual int getNComp () const { return 1; }
+    [[nodiscard]] virtual int getNComp () const { return 1; }
 
-    virtual int getNGrow (int /*a_lev*/ = 0, int /*mg_lev*/ = 0) const { return 0; }
+    [[nodiscard]] virtual int getNGrow (int /*a_lev*/ = 0, int /*mg_lev*/ = 0) const { return 0; }
 
     //! Does it need update if it's reused?
-    virtual bool needsUpdate () const { return false; }
+    [[nodiscard]] virtual bool needsUpdate () const { return false; }
     //! Update for reuse.
     virtual void update () {}
 
@@ -426,9 +426,9 @@ public:
     virtual void prepareForSolve () = 0;
 
     //! Is it singular on given AMR level?
-    virtual bool isSingular (int amrlev) const = 0;
+    [[nodiscard]] virtual bool isSingular (int amrlev) const = 0;
     //! Is the bottom of MG singular?
-    virtual bool isBottomSingular () const = 0;
+    [[nodiscard]] virtual bool isBottomSingular () const = 0;
 
     //! x dot y, used by the bottom solver
     virtual RT xdoty (int amrlev, int mglev, const MF& x, const MF& y, bool local) const = 0;
@@ -453,11 +453,11 @@ public:
 #endif
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-    virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface /*hypre_interface*/) const {
+    [[nodiscard]] virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface /*hypre_interface*/) const {
         amrex::Abort("MLLinOp::makeHypre: How did we get here?");
         return {nullptr};
     }
-    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap(
+    [[nodiscard]] virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap(
         int /*bottom_verbose*/,
         const std::string& /* options_namespace */) const
     {
@@ -467,26 +467,26 @@ public:
 #endif
 
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
-    virtual std::unique_ptr<PETScABecLap> makePETSc () const {
+    [[nodiscard]] virtual std::unique_ptr<PETScABecLap> makePETSc () const {
         amrex::Abort("MLLinOp::makePETSc: How did we get here?");
         return {nullptr};
     }
 #endif
 
-    virtual bool supportNSolve () const { return false; }
+    [[nodiscard]] virtual bool supportNSolve () const { return false; }
 
     virtual void copyNSolveSolution (MF&, MF const&) const {}
 
     virtual void postSolve (Vector<MF>& /*sol*/) const {}
 
-    virtual RT normInf (int amrlev, MF const& mf, bool local) const = 0;
+    [[nodiscard]] virtual RT normInf (int amrlev, MF const& mf, bool local) const = 0;
 
     virtual void averageDownAndSync (Vector<MF>& sol) const = 0;
 
     virtual void avgDownResAmr (int clev, MF& cres, MF const& fres) const = 0;
     virtual void avgDownResMG (int clev, MF& cres, MF const& fres) const;
 
-    bool isMFIterSafe (int amrlev, int mglev1, int mglev2) const;
+    [[nodiscard]] bool isMFIterSafe (int amrlev, int mglev1, int mglev2) const;
 
 protected:
 
@@ -536,7 +536,7 @@ protected:
         CommContainer (CommContainer&&) = delete;
         void operator= (const CommContainer&) = delete;
         void operator= (CommContainer&&) = delete;
-        ~CommContainer () {
+        ~CommContainer () { // NOLINT(modernize-use-equals-default)
 #ifdef BL_USE_MPI
             if (comm != MPI_COMM_NULL) MPI_Comm_free(&comm);
 #endif
@@ -562,79 +562,79 @@ protected:
     MF m_coarse_data_for_bc_raii;
 
     //! Return the number of AMR levels
-    int NAMRLevels () const noexcept { return m_num_amr_levels; }
+    [[nodiscard]] int NAMRLevels () const noexcept { return m_num_amr_levels; }
 
     //! Return the number of MG levels at given AMR level
-    int NMGLevels (int amrlev) const noexcept { return m_num_mg_levels[amrlev]; }
+    [[nodiscard]] int NMGLevels (int amrlev) const noexcept { return m_num_mg_levels[amrlev]; }
 
     //! Return AMR refinement ratios
-    const Vector<int>& AMRRefRatio () const noexcept { return m_amr_ref_ratio; }
+    [[nodiscard]] const Vector<int>& AMRRefRatio () const noexcept { return m_amr_ref_ratio; }
 
     //! Return AMR refinement ratio at given AMR level
-    int AMRRefRatio (int amr_lev) const noexcept { return m_amr_ref_ratio[amr_lev]; }
+    [[nodiscard]] int AMRRefRatio (int amr_lev) const noexcept { return m_amr_ref_ratio[amr_lev]; }
 
-    const Geometry& Geom (int amr_lev, int mglev=0) const noexcept { return m_geom[amr_lev][mglev]; }
+    [[nodiscard]] const Geometry& Geom (int amr_lev, int mglev=0) const noexcept { return m_geom[amr_lev][mglev]; }
 
-    FabFactory<FAB> const* Factory (int amr_lev, int mglev=0) const noexcept {
+    [[nodiscard]] FabFactory<FAB> const* Factory (int amr_lev, int mglev=0) const noexcept {
         return m_factory[amr_lev][mglev].get();
     }
 
-    GpuArray<BCType,AMREX_SPACEDIM> LoBC (int icomp = 0) const noexcept {
+    [[nodiscard]] GpuArray<BCType,AMREX_SPACEDIM> LoBC (int icomp = 0) const noexcept {
         return GpuArray<BCType,AMREX_SPACEDIM>{{AMREX_D_DECL(m_lobc[icomp][0],
                                                              m_lobc[icomp][1],
                                                              m_lobc[icomp][2])}};
     }
-    GpuArray<BCType,AMREX_SPACEDIM> HiBC (int icomp = 0) const noexcept {
+    [[nodiscard]] GpuArray<BCType,AMREX_SPACEDIM> HiBC (int icomp = 0) const noexcept {
         return GpuArray<BCType,AMREX_SPACEDIM>{{AMREX_D_DECL(m_hibc[icomp][0],
                                                              m_hibc[icomp][1],
                                                              m_hibc[icomp][2])}};
     }
 
-    bool hasBC (BCType bct) const noexcept;
-    bool hasInhomogNeumannBC () const noexcept;
-    bool hasRobinBC () const noexcept;
+    [[nodiscard]] bool hasBC (BCType bct) const noexcept;
+    [[nodiscard]] bool hasInhomogNeumannBC () const noexcept;
+    [[nodiscard]] bool hasRobinBC () const noexcept;
 
-    virtual bool supportRobinBC () const noexcept { return false; }
-    virtual bool supportInhomogNeumannBC () const noexcept { return false; }
+    [[nodiscard]] virtual bool supportRobinBC () const noexcept { return false; }
+    [[nodiscard]] virtual bool supportInhomogNeumannBC () const noexcept { return false; }
 
 #ifdef BL_USE_MPI
-    bool isBottomActive () const noexcept { return m_bottom_comm != MPI_COMM_NULL; }
+    [[nodiscard]] bool isBottomActive () const noexcept { return m_bottom_comm != MPI_COMM_NULL; }
 #else
-    bool isBottomActive () const noexcept { return true; }
+    [[nodiscard]] bool isBottomActive () const noexcept { return true; }
 #endif
-    MPI_Comm BottomCommunicator () const noexcept { return m_bottom_comm; }
-    MPI_Comm Communicator () const noexcept { return m_default_comm; }
+    [[nodiscard]] MPI_Comm BottomCommunicator () const noexcept { return m_bottom_comm; }
+    [[nodiscard]] MPI_Comm Communicator () const noexcept { return m_default_comm; }
 
     void setCoarseFineBCLocation (const RealVect& cloc) noexcept { m_coarse_bc_loc = cloc; }
 
-    bool doAgglomeration () const noexcept { return m_do_agglomeration; }
-    bool doConsolidation () const noexcept { return m_do_consolidation; }
-    bool doSemicoarsening () const noexcept { return m_do_semicoarsening; }
+    [[nodiscard]] bool doAgglomeration () const noexcept { return m_do_agglomeration; }
+    [[nodiscard]] bool doConsolidation () const noexcept { return m_do_consolidation; }
+    [[nodiscard]] bool doSemicoarsening () const noexcept { return m_do_semicoarsening; }
 
-    bool isCellCentered () const noexcept { return m_ixtype == 0; }
+    [[nodiscard]] bool isCellCentered () const noexcept { return m_ixtype == 0; }
 
     virtual void make (Vector<Vector<MF> >& mf, IntVect const& ng) const;
 
-    virtual MF make (int amrlev, int mglev, IntVect const& ng) const;
+    [[nodiscard]] virtual MF make (int amrlev, int mglev, IntVect const& ng) const;
 
-    virtual MF makeAlias (MF const& mf) const;
+    [[nodiscard]] virtual MF makeAlias (MF const& mf) const;
 
-    virtual MF makeCoarseMG (int amrlev, int mglev, IntVect const& ng) const;
+    [[nodiscard]] virtual MF makeCoarseMG (int amrlev, int mglev, IntVect const& ng) const;
 
-    virtual MF makeCoarseAmr (int famrlev, IntVect const& ng) const;
+    [[nodiscard]] virtual MF makeCoarseAmr (int famrlev, IntVect const& ng) const;
 
-    virtual std::unique_ptr<FabFactory<FAB> > makeFactory (int /*amrlev*/, int /*mglev*/) const {
+    [[nodiscard]] virtual std::unique_ptr<FabFactory<FAB> > makeFactory (int /*amrlev*/, int /*mglev*/) const {
         return std::make_unique<DefaultFabFactory<FAB>>();
     }
 
     virtual void resizeMultiGrid (int new_size);
 
-    bool hasHiddenDimension () const noexcept { return info.hasHiddenDimension(); }
-    int hiddenDirection () const noexcept { return info.hidden_direction; }
-    Box compactify (Box const& b) const noexcept;
+    [[nodiscard]] bool hasHiddenDimension () const noexcept { return info.hasHiddenDimension(); }
+    [[nodiscard]] int hiddenDirection () const noexcept { return info.hidden_direction; }
+    [[nodiscard]] Box compactify (Box const& b) const noexcept;
 
     template <typename T>
-    Array4<T> compactify (Array4<T> const& a) const noexcept
+    [[nodiscard]] Array4<T> compactify (Array4<T> const& a) const noexcept
     {
         if (info.hidden_direction == 0) {
             return Array4<T>(a.dataPtr(), {a.begin.y,a.begin.z,0}, {a.end.y,a.end.z,1}, a.nComp());
@@ -648,7 +648,7 @@ protected:
     }
 
     template <typename T>
-    T get_d0 (T const& dx, T const& dy, T const&) const noexcept
+    [[nodiscard]] T get_d0 (T const& dx, T const& dy, T const&) const noexcept
     {
         if (info.hidden_direction == 0) {
             return dy;
@@ -658,7 +658,7 @@ protected:
     }
 
     template <typename T>
-    T get_d1 (T const&, T const& dy, T const& dz) const noexcept
+    [[nodiscard]] T get_d1 (T const&, T const& dy, T const& dz) const noexcept
     {
         if (info.hidden_direction == 0 || info.hidden_direction == 1) {
             return dz;
@@ -677,7 +677,7 @@ private:
     static void makeAgglomeratedDMap (const Vector<BoxArray>& ba, Vector<DistributionMapping>& dm);
     static void makeConsolidatedDMap (const Vector<BoxArray>& ba, Vector<DistributionMapping>& dm,
                                       int ratio, int strategy);
-    MPI_Comm makeSubCommunicator (const DistributionMapping& dm);
+    [[nodiscard]] MPI_Comm makeSubCommunicator (const DistributionMapping& dm);
 
     virtual void checkPoint (std::string const& /*file_name*/) const {
         amrex::Abort("MLLinOp:checkPoint: not implemented");
@@ -716,7 +716,7 @@ MLLinOpT<MF>::define (const Vector<Geometry>& a_geom,
 
 #ifdef AMREX_USE_EB
     if (!a_factory.empty() && eb_limit_coarsening) {
-        auto f = dynamic_cast<EBFArrayBoxFactory const*>(a_factory[0]);
+        const auto *f = dynamic_cast<EBFArrayBoxFactory const*>(a_factory[0]);
         if (f) {
             info.max_coarsening_level = std::min(info.max_coarsening_level,
                                                  f->maxCoarseningLevel());
@@ -736,7 +736,7 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLLinOp::defineGrids()");
 
-    m_num_amr_levels = a_geom.size();
+    m_num_amr_levels = static_cast<int>(a_geom.size());
 
     m_amr_ref_ratio.resize(m_num_amr_levels);
     m_num_mg_levels.resize(m_num_amr_levels);
@@ -810,7 +810,7 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
     m_geom[0].push_back(a_geom[0]);
     m_grids[0].push_back(a_grids[0]);
     m_dmap[0].push_back(a_dmap[0]);
-    if (a_factory.size() > 0) {
+    if (!a_factory.empty()) {
         m_factory[0].emplace_back(a_factory[0]->clone());
     } else {
         m_factory[0].push_back(std::make_unique<DefaultFabFactory<FAB>>());
@@ -912,7 +912,7 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
             agg_flag.push_back(to_agg);
         }
 
-        for (int lev = 1, nlevs = domainboxes.size(); lev < nlevs; ++lev) {
+        for (int lev = 1, nlevs = static_cast<int>(domainboxes.size()); lev < nlevs; ++lev) {
             if (!agged && !agg_flag[lev] &&
                 a_grids[0].coarsenable(accum_coarsen_ratio[lev], mg_box_min_width_v))
             {
@@ -1002,8 +1002,8 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
 
             if (info.do_consolidation)
             {
-                if (avg_npts/(AMREX_D_TERM(rr_vec[0], *rr_vec[1], *rr_vec[2]))
-                    < Real(0.999)*consolidation_threshold)
+                if (avg_npts/static_cast<Real>(AMREX_D_TERM(rr_vec[0], *rr_vec[1], *rr_vec[2]))
+                    < Real(0.999)*static_cast<Real>(consolidation_threshold))
                 {
                     coned = true;
                     con_lev = m_dmap[0].size();
@@ -1030,7 +1030,7 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
     }
 
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
-        if (AMRRefRatio(amrlev) == 4 && mg_coarsen_ratio_vec.size() == 0) {
+        if (AMRRefRatio(amrlev) == 4 && mg_coarsen_ratio_vec.empty()) {
             mg_coarsen_ratio_vec.push_back(IntVect(2));
         }
     }
@@ -1217,7 +1217,7 @@ MLLinOpT<MF>::makeAgglomeratedDMap (const Vector<BoxArray>& ba,
     BL_PROFILE("MLLinOp::makeAgglomeratedDMap");
 
     BL_ASSERT(!dm[0].empty());
-    for (int i = 1, N=ba.size(); i < N; ++i)
+    for (int i = 1, N=static_cast<int>(ba.size()); i < N; ++i)
     {
         if (dm[i].empty())
         {
@@ -1248,7 +1248,7 @@ MLLinOpT<MF>::makeConsolidatedDMap (const Vector<BoxArray>& ba,
 
     int factor = 1;
     BL_ASSERT(!dm[0].empty());
-    for (int i = 1, N=ba.size(); i < N; ++i)
+    for (int i = 1, N=static_cast<int>(ba.size()); i < N; ++i)
     {
         if (dm[i].empty())
         {
@@ -1257,7 +1257,7 @@ MLLinOpT<MF>::makeConsolidatedDMap (const Vector<BoxArray>& ba,
             const int nprocs = ParallelContext::NProcsSub();
             const auto& pmap_fine = dm[i-1].ProcessorMap();
             Vector<int> pmap(pmap_fine.size());
-            ParallelContext::global_to_local_rank(pmap.data(), pmap_fine.data(), pmap.size());
+            ParallelContext::global_to_local_rank(pmap.data(), pmap_fine.data(), static_cast<int>(pmap.size()));
             if (strategy == 1) {
                 for (auto& x: pmap) {
                     x /= ratio;
@@ -1287,7 +1287,7 @@ MLLinOpT<MF>::makeConsolidatedDMap (const Vector<BoxArray>& ba,
                 dm[i].define(std::move(pmap));
             } else {
                 Vector<int> pmap_g(pmap.size());
-                ParallelContext::local_to_global_rank(pmap_g.data(), pmap.data(), pmap.size());
+                ParallelContext::local_to_global_rank(pmap_g.data(), pmap.data(), static_cast<int>(pmap.size()));
                 dm[i].define(std::move(pmap_g));
             }
         }
@@ -1311,12 +1311,12 @@ MLLinOpT<MF>::makeSubCommunicator (const DistributionMapping& dm)
     MPI_Group defgrp, newgrp;
     MPI_Comm_group(m_default_comm, &defgrp);
     if (ParallelContext::CommunicatorSub() == ParallelDescriptor::Communicator()) {
-        MPI_Group_incl(defgrp, newgrp_ranks.size(), newgrp_ranks.data(), &newgrp);
+        MPI_Group_incl(defgrp, static_cast<int>(newgrp_ranks.size()), newgrp_ranks.data(), &newgrp);
     } else {
         Vector<int> local_newgrp_ranks(newgrp_ranks.size());
         ParallelContext::global_to_local_rank(local_newgrp_ranks.data(),
-                                              newgrp_ranks.data(), newgrp_ranks.size());
-        MPI_Group_incl(defgrp, local_newgrp_ranks.size(), local_newgrp_ranks.data(), &newgrp);
+                                              newgrp_ranks.data(), static_cast<int>(newgrp_ranks.size()));
+        MPI_Group_incl(defgrp, static_cast<int>(local_newgrp_ranks.size()), local_newgrp_ranks.data(), &newgrp);
     }
 
     MPI_Comm_create(m_default_comm, newgrp, &newcomm);

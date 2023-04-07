@@ -39,9 +39,7 @@ void testParticleMesh (TestParams& parms)
     const Box base_domain(domain_lo, domain_hi);
 
     // This sets the boundary conditions to be doubly or triply periodic
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        is_per[i] = 1;
+    int is_per[] = {AMREX_D_DECL(1,1,1)};
 
     Vector<Geometry> geom(parms.nlevs);
     geom[0].define(base_domain, &real_box, CoordSys::cartesian, is_per);
@@ -54,7 +52,7 @@ void testParticleMesh (TestParams& parms)
     Vector<DistributionMapping> dm(parms.nlevs);
 
     Box domain = base_domain;
-    IntVect size = IntVect(AMREX_D_DECL(parms.nx, parms.ny, parms.nz));
+    IntVect size(AMREX_D_DECL(parms.nx, parms.ny, parms.nz));
     for (int lev = 0; lev < parms.nlevs; ++lev)
     {
         ba[lev].define(domain);

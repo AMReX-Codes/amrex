@@ -2,7 +2,7 @@
 #define AMREX_EB2_3D_C_H_
 #include <AMReX_Config.H>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void
@@ -743,6 +743,6 @@ void build_cellflag_from_ap (int i, int j, int k, Array4<EBCellFlag> const& cfla
     cflag(i,j,k) = flg;
 }
 
-}}
+}
 
 #endif

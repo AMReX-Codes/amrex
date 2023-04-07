@@ -471,7 +471,7 @@ MultiFab::Finalize ()
     initialized = false;
 }
 
-MultiFab::MultiFab () noexcept
+MultiFab::MultiFab () noexcept // NOLINT(modernize-use-equals-default)
 {
 #ifdef AMREX_MEM_PROFILING
     ++num_multifabs;
@@ -532,17 +532,18 @@ MultiFab::MultiFab (MultiFab&& rhs) noexcept
 #endif
 }
 
-MultiFab::~MultiFab()
+MultiFab::~MultiFab() // NOLINT(modernize-use-equals-default)
 {
 #ifdef AMREX_MEM_PROFILING
     --num_multifabs;
 #endif
 }
 
-void
+MultiFab&
 MultiFab::operator= (Real r)
 {
     setVal(r);
+    return *this;
 }
 
 void
@@ -950,7 +951,7 @@ MultiFab::max (const Box& region, int comp, int nghost, bool local) const
 
 namespace {
 
-static IntVect
+IntVect
 indexFromValue (MultiFab const& mf, int comp, int nghost, Real value, MPI_Op mmloc)
 {
     IntVect loc = indexFromValue(mf, comp, IntVect{nghost}, value);
@@ -1017,7 +1018,7 @@ MultiFab::norm0 (int comp, int ncomp, IntVect const& nghost, bool local, bool ig
 Vector<Real>
 MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local, bool ignore_covered) const
 {
-    int n = comps.size();
+    int n = static_cast<int>(comps.size());
     Vector<Real> nm0;
     nm0.reserve(n);
 
@@ -1089,7 +1090,7 @@ MultiFab::norm2 (const Vector<int>& comps) const
 {
     BL_ASSERT(ixType().cellCentered());
 
-    int n = comps.size();
+    int n = static_cast<int>(comps.size());
     Vector<Real> nm2;
     nm2.reserve(n);
 
@@ -1134,7 +1135,7 @@ MultiFab::norm1 (int comp, int ngrow, bool local) const
         nm1 = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, *this, IntVect(ngrow),
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
         {
-            return amrex::Math::abs(ma[box_no](i,j,k,comp));
+            return std::abs(ma[box_no](i,j,k,comp));
         });
     } else
 #endif
@@ -1147,7 +1148,7 @@ MultiFab::norm1 (int comp, int ngrow, bool local) const
             auto const& a = this->const_array(mfi);
             AMREX_LOOP_3D(bx, i, j, k,
             {
-                nm1 += amrex::Math::abs(a(i,j,k,comp));
+                nm1 += std::abs(a(i,j,k,comp));
             });
         }
     }
@@ -1164,7 +1165,7 @@ MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
 {
     BL_ASSERT(ixType().cellCentered());
 
-    int n = comps.size();
+    int n = static_cast<int>(comps.size());
     Vector<Real> nm1;
     nm1.reserve(n);
 

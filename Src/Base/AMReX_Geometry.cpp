@@ -525,36 +525,49 @@ Geometry::computeRoundoffDomain ()
         Real plo = ProbLo(idim);
         Real phi = ProbHi(idim);
         Real dxinv = InvCellSize(idim);
-        Real deltax = CellSize(idim);
 
-        Real ftol = std::max(1.e-4_rt*deltax, 2.e-7_rt*phi);
-        Real dtol = std::max(1.e-8_rt*deltax, 1.e-14_rt*phi);
+        // Check that the grid is well formed and that deltax > roundoff
+        AMREX_ASSERT((plo + ihi*CellSize(idim)) < (plo + (ihi + 1)*CellSize(idim)));
 
-        roundoff_lo_f[idim] = detail::bisect_prob_lo<float> (plo, phi, dxinv, ilo, ihi, ftol);
-        roundoff_lo_d[idim] = detail::bisect_prob_lo<double>(plo, phi, dxinv, ilo, ihi, dtol);
-        roundoff_hi_f[idim] = detail::bisect_prob_hi<float> (plo, phi, dxinv, ilo, ihi, ftol);
-        roundoff_hi_d[idim] = detail::bisect_prob_hi<double>(plo, phi, dxinv, ilo, ihi, dtol);
+        // roundoff_lo will be the lowest value that will be inside the domain
+        // roundoff_hi will be the lowest value that will be outside the domain
+        roundoff_lo[idim] = static_cast<ParticleReal>(plo);
+        roundoff_hi[idim] = static_cast<ParticleReal>(phi);
+
+        // Hopefully, the loops should never take more than 1 or 2 iterations.
+        // In obscure cases, more may be needed, for example if (phi - plo) is near round off
+        // compared to (phi + plo).
+        int iters = 0;
+        while (roundoff_lo[idim] < plo && iters < 20) {
+            roundoff_lo[idim] = std::nextafter(roundoff_lo[idim], roundoff_hi[idim]);
+            iters++;
+        }
+        ParticleReal rhi = roundoff_hi[idim];
+        while (iters < 20) {
+            rhi = std::nextafter(rhi, roundoff_lo[idim]);
+            if (int(std::floor((rhi - plo)*dxinv)) >= ihi + 1 - ilo) {
+                roundoff_hi[idim] = rhi;
+            } else {
+                break;
+            }
+            iters++;
+        }
+
+        // If iters is at the limit, then the grid is ill formed and reasonable values could not
+        // be found for the round off domain extent
+        AMREX_ASSERT(iters < 20);
     }
 }
 
 bool
 Geometry::outsideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const
 {
-#ifdef AMREX_SINGLE_PRECISION_PARTICLES
-    bool outside = AMREX_D_TERM(x <  roundoff_lo_f[0]
-                             || x >= roundoff_hi_f[0],
-                             || y <  roundoff_lo_f[1]
-                             || y >= roundoff_hi_f[1],
-                             || z <  roundoff_lo_f[2]
-                             || z >= roundoff_hi_f[2]);
-#else
-    bool outside = AMREX_D_TERM(x <  roundoff_lo_d[0]
-                             || x >= roundoff_hi_d[0],
-                             || y <  roundoff_lo_d[1]
-                             || y >= roundoff_hi_d[1],
-                             || z <  roundoff_lo_d[2]
-                             || z >= roundoff_hi_d[2]);
-#endif
+    bool outside = AMREX_D_TERM(x <  roundoff_lo[0]
+                             || x >= roundoff_hi[0],
+                             || y <  roundoff_lo[1]
+                             || y >= roundoff_hi[1],
+                             || z <  roundoff_lo[2]
+                             || z >= roundoff_hi[2]);
     return outside;
 }
 

@@ -28,32 +28,29 @@ namespace amrex { inline namespace disabled {
     AMREX_GPU_HOST_DEVICE long long abs (long long);
 }}
 
-namespace amrex { namespace Math {
+namespace amrex::Math {
 
-#ifdef AMREX_USE_SYCL
-
-//List of unsupported math function can be found at
-// https://github.com/intel/llvm/blob/sycl/sycl/doc/extensions/C-CXX-StandardLibrary/C-CXX-StandardLibrary.rst
-
-//using sycl::abs;
-// We have to do this because somehow sycl::abs(int) return unsigned int.
-//template <typename T> T abs (T a) { return sycl::abs(a); } // The compiler seems to have trouble with this on DG1.
-template <typename T> T abs (T a) { return (a >= T(0)) ? a : -a; }
-
-using sycl::ceil;
-using sycl::copysign;
-using sycl::floor;
-using sycl::round;
-using sycl::isfinite;
-using sycl::isinf;
-
-#else
+// Since Intel's SYCL compiler now supports the following std functions on device,
+// one no longer needs to use amrex::Math::abs, etc.  They are kept here for
+// backward compatability.
 
 using std::abs;
 using std::ceil;
 using std::copysign;
 using std::floor;
 using std::round;
+
+// However, since Intel's SYCL compiler is very aggressive with fast floating
+// point optimisations, the following must be kept, as using the std functions
+// always evaluates to false (even at -O1).
+
+#ifdef AMREX_USE_SYCL
+
+using sycl::isfinite;
+using sycl::isinf;
+
+#else
+
 using std::isfinite;
 using std::isinf;
 
@@ -127,7 +124,7 @@ std::pair<double,double> sincos (double x)
 {
     std::pair<double,double> r;
 #if defined(AMREX_USE_SYCL)
-    r.first = sycl::sincos(x, &r.second);
+    r.first = sycl::sincos(x, sycl::private_ptr<double>(&r.second));
 #elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
       defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP) || \
       (defined(_GNU_SOURCE) && !defined(__APPLE__))
@@ -145,7 +142,7 @@ std::pair<float,float> sincos (float x)
 {
     std::pair<float,float> r;
 #if defined(AMREX_USE_SYCL)
-    r.first = sycl::sincos(x, &r.second);
+    r.first = sycl::sincos(x, sycl::private_ptr<float>(&r.second));
 #elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
       defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP) || \
       (defined(_GNU_SOURCE) && !defined(__APPLE__))
@@ -162,14 +159,11 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<double,double> sincospi (double x)
 {
     std::pair<double,double> r;
-#if defined(AMREX_USE_SYCL)
-    r.first = sycl::sincos(pi<double>()*x, &r.second);
-#elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
-      defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
+#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
+    defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
     ::sincospi(x, &r.first, &r.second);
 #else
-    r.first  = std::sin(pi<double>()*x);
-    r.second = std::cos(pi<double>()*x);
+    r = sincos(pi<double>()*x);
 #endif
     return r;
 }
@@ -179,18 +173,15 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<float,float> sincospi (float x)
 {
     std::pair<float,float> r;
-#if defined(AMREX_USE_SYCL)
-    r.first = sycl::sincos(pi<float>()*x, &r.second);
-#elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
-      defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
+#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
+    defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
     ::sincospif(x, &r.first, &r.second);
 #else
-    r.first  = std::sin(pi<float>()*x);
-    r.second = std::cos(pi<float>()*x);
+    r = sincos(pi<float>()*x);
 #endif
     return r;
 }
 
-}}
+}
 
 #endif

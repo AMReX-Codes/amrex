@@ -94,9 +94,9 @@ namespace amrex
     {
         // the machine epsilon has to be scaled to the magnitude of the values used
         // and multiplied by the desired precision in ULPs (units in the last place)
-        return amrex::Math::abs(x-y) <= std::numeric_limits<T>::epsilon() * amrex::Math::abs(x+y) * ulp
+        return std::abs(x-y) <= std::numeric_limits<T>::epsilon() * std::abs(x+y) * ulp
         // unless the result is subnormal
-        || amrex::Math::abs(x-y) < std::numeric_limits<T>::min();
+        || std::abs(x-y) < std::numeric_limits<T>::min();
     }
 
     template <class T, class F,
@@ -220,23 +220,23 @@ struct clz_tag : clzl_tag {};
 // these tags and overloads select the smallest version of __builtin_clz that will hold the input type
 template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(unsigned int)>::type>
 AMREX_FORCE_INLINE
-unsigned builtin_clz_wrapper (clz_tag, T x) noexcept
+int builtin_clz_wrapper (clz_tag, T x) noexcept
 {
-    return __builtin_clz(x) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+    return static_cast<int>(__builtin_clz(x) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT));
 }
 
 template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(unsigned long)>::type>
 AMREX_FORCE_INLINE
-unsigned builtin_clz_wrapper (clzl_tag, T x) noexcept
+int builtin_clz_wrapper (clzl_tag, T x) noexcept
 {
-    return __builtin_clzl(x) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+    return static_cast<int>(__builtin_clzl(x) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT));
 }
 
 template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(unsigned long long)>::type>
 AMREX_FORCE_INLINE
-unsigned builtin_clz_wrapper (clzll_tag, T x) noexcept
+int builtin_clz_wrapper (clzll_tag, T x) noexcept
 {
-    return __builtin_clzll(x) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+    return static_cast<int>(__builtin_clzll(x) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT));
 }
 
 #ifdef AMREX_USE_CUDA
@@ -267,7 +267,7 @@ int clz (std::uint8_t x) noexcept
 #elif (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
     return detail::builtin_clz_wrapper(detail::clz_tag{}, x);
 #else
-    static constexpr std::uint8_t clz_lookup[16] = { 4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
+    static constexpr int clz_lookup[16] = { 4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
     auto upper = x >> 4;
     auto lower = x & 0xF;
     return upper ? clz_lookup[upper] : 4 + clz_lookup[lower];

@@ -29,10 +29,10 @@ std::map<std::string, Vector<char> > *StateData::faHeaderMap;
 
 
 StateData::StateData ()
-    : desc(nullptr),
+    :
       new_time{INVALID_TIME,INVALID_TIME},
-      old_time{INVALID_TIME,INVALID_TIME},
-      arena(nullptr)
+      old_time{INVALID_TIME,INVALID_TIME}
+
 {
 }
 
@@ -61,9 +61,10 @@ StateData::StateData (StateData&& rhs) noexcept
 {
 }
 
-void
+StateData&
 StateData::operator= (StateData const& rhs)
 {
+    if (this == &rhs) { return *this; };
     m_factory.reset(rhs.m_factory->clone());
     desc = rhs.desc;
     arena = rhs.arena;
@@ -84,6 +85,7 @@ StateData::operator= (StateData const& rhs)
     } else {
         old_data.reset();
     }
+    return *this;
 }
 
 void
@@ -264,8 +266,8 @@ StateData::restartDoit (std::istream& is, const std::string& chkfile)
 
         // ---- check for preread header
         std::string FullHeaderPathName(FullPathName + "_H");
-        const char *faHeader = 0;
-        if(faHeaderMap != 0) {
+        const char *faHeader = nullptr;
+        if(faHeaderMap != nullptr) {
             std::map<std::string, Vector<char> >::iterator fahmIter;
             fahmIter = faHeaderMap->find(FullHeaderPathName);
             if(fahmIter != faHeaderMap->end()) {
@@ -455,7 +457,7 @@ StateData::FillBoundary (FArrayBox&     dest,
 
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
-        xlo[i] = problo[i] + dx[i]*(dlo[i]-plo[i]);
+        xlo[i] = problo[i] + dx[i]*static_cast<Real>(dlo[i]-plo[i]);
     }
     for (int i = 0; i < num_comp; )
     {
