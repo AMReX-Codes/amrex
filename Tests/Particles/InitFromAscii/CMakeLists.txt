@@ -1,4 +1,4 @@
-if ( NOT (AMReX_SPACEDIM EQUAL 3) )
+if ( NOT (AMReX_SPACEDIM EQUAL 3) OR AMReX_MPI )
    return ()
 endif ()
 
