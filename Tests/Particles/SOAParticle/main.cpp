@@ -180,7 +180,7 @@ int main(int argc, char* argv[])
  {
     amrex::Initialize(argc,argv);
     {
-        addParticles< ParticleContainerPureSoA<3, 4> > ();
+        addParticles< ParticleContainerPureSoA<4, 2> > ();
     }
     amrex::Finalize();
  }
