@@ -26,7 +26,6 @@ struct ConstParticleTileData;
 template <typename T_ParticleType, int NArrayReal, int NArrayInt>
 struct ParticleTileData
 {
-
     static constexpr int NAR = NArrayReal;
     static constexpr int NAI = NArrayInt;
 
@@ -49,6 +48,65 @@ struct ParticleTileData
     int m_num_runtime_int;
     ParticleReal* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_rdata;
     int* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_idata;
+
+    // AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    // ParticleReal pos (const int dir, const int index) const &
+    // {
+    //     if constexpr(!ParticleType::is_soa_particle) {
+    //         return this->m_aos[index].pos(dir);
+    //     } else {
+    //         return this->m_rdata[dir][index];
+    //     }
+    // }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    ParticleReal& pos (const int dir, const int index) const &
+    {
+        if constexpr(!ParticleType::is_soa_particle) {
+            return this->m_aos[index].pos(dir);
+        }
+        return this->m_rdata[dir][index];
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    auto id (const int index) const &
+    {
+        if constexpr(!ParticleType::is_soa_particle) {
+            return this->m_aos[index].id();
+        } else {
+            return this->m_idata[0][index];
+        }
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    auto& id (const int index) &
+    {
+        if constexpr(!ParticleType::is_soa_particle) {
+                return this->m_aos[index].id();
+        } else {
+            return this->m_idata[0][index];
+        }
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    auto cpu (const int index) const &
+    {
+        if constexpr(!ParticleType::is_soa_particle) {
+            return this->m_aos[index].cpu();
+        } else {
+            return this->m_idata[1][index];
+        }
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    auto& cpu (const int index) &
+    {
+        if constexpr(!ParticleType::is_soa_particle) {
+            return this->m_aos[index].cpu();
+        } else {
+            return this->m_idata[1][index];
+        }
+    }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     auto* rdata (const int attribute_index)
@@ -422,6 +480,16 @@ struct ConstParticleTileData
 
     GpuArray<const ParticleReal* AMREX_RESTRICT, NArrayReal> m_rdata;
     GpuArray<const int* AMREX_RESTRICT, NArrayInt > m_idata;
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    auto id (const int index) const &
+    {
+        if constexpr(!ParticleType::is_soa_particle) {
+            return this->m_aos[index].id();
+        } else {
+            return this->m_idata[0][index];
+        }
+    }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     auto const* rdata (const int attribute_index) const

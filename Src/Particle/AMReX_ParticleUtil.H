@@ -647,13 +647,12 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                           int lev, int gid, int /*tid*/,
                           int lev_min, int lev_max, int nGrow, bool remove_negative)
 {
-    auto& aos = ptile.GetArrayOfStructs();
-    const int np = aos.numParticles();
+    using ParticleType = typename PTile::ParticleType;
 
+    const int np = ptile.numParticles();
     if (np == 0) return 0;
 
     auto getPID = pmap.getPIDFunctor();
-    auto p_ptr = &(aos[0]);
 
     int pid = ParallelContext::MyProcSub();
     constexpr int chunk_size = 256*256*256;
@@ -678,36 +677,42 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
             {
                 int assigned_grid;
                 int assigned_lev;
+                //                auto& p = make_particle<ParticleType>{}(src_data,i+this_offset);
 
-                auto& p = p_ptr[i+this_offset];
-
-                if (p.id() < 0 )
+                if (src_data.id(i+this_offset) < 0 )
                 {
                     assigned_grid = -1;
                     assigned_lev  = -1;
                 }
                 else
                 {
-                    auto p_prime = p;
+                    amrex::Particle<0> p_prime;
+                    AMREX_D_TERM(p_prime.pos(0) = src_data.pos(0, i+this_offset);,
+                                 p_prime.pos(1) = src_data.pos(1, i+this_offset);,
+                                 p_prime.pos(2) = src_data.pos(2, i+this_offset););
+
                     enforcePeriodic(p_prime, plo, phi, rlo, rhi, is_per);
                     auto tup_prime = ploc(p_prime, lev_min, lev_max, nGrow);
                     assigned_grid = amrex::get<0>(tup_prime);
                     assigned_lev  = amrex::get<1>(tup_prime);
                     if (assigned_grid >= 0)
                     {
-                      AMREX_D_TERM(p.pos(0) = p_prime.pos(0);,
-                                   p.pos(1) = p_prime.pos(1);,
-                                   p.pos(2) = p_prime.pos(2););
+                      AMREX_D_TERM(src_data.pos(0, i+this_offset) = p_prime.pos(0);,
+                                   src_data.pos(1, i+this_offset) = p_prime.pos(1);,
+                                   src_data.pos(2, i+this_offset) = p_prime.pos(2););
                     }
                     else if (lev_min > 0)
                     {
-                      auto tup = ploc(p, lev_min, lev_max, nGrow);
+                      AMREX_D_TERM(p_prime.pos(0) = src_data.pos(0, i+this_offset);,
+                                   p_prime.pos(1) = src_data.pos(1, i+this_offset);,
+                                   p_prime.pos(2) = src_data.pos(2, i+this_offset););
+                      auto tup = ploc(p_prime, lev_min, lev_max, nGrow);
                       assigned_grid = amrex::get<0>(tup);
                       assigned_lev  = amrex::get<1>(tup);
                     }
                 }
 
-                if ((remove_negative == false) && (p.id() < 0)) {
+                if ((remove_negative == false) && (src_data.id(i+this_offset) < 0)) {
                     return true;
                 }
 

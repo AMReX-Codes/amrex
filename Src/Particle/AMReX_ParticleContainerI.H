@@ -402,43 +402,22 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::NumberOf
         int gid = pti.index();
         if (only_valid)
         {
-            if constexpr(!ParticleType::is_soa_particle){
-                const auto& ptile = ParticlesAt(lev, pti);
-                const auto& aos = ptile.GetArrayOfStructs();
-                const auto pstruct = aos().dataPtr();
-                const int np = ptile.numParticles();
+            const auto& ptile = ParticlesAt(lev, pti);
+            const int np = ptile.numParticles();
+            auto const ptd = ptile.getConstParticleTileData();
 
-                ReduceOps<ReduceOpSum> reduce_op;
-                ReduceData<int> reduce_data(reduce_op);
-                using ReduceTuple = typename decltype(reduce_data)::Type;
+            ReduceOps<ReduceOpSum> reduce_op;
+            ReduceData<int> reduce_data(reduce_op);
+            using ReduceTuple = typename decltype(reduce_data)::Type;
 
-                reduce_op.eval(np, reduce_data,
+            reduce_op.eval(np, reduce_data,
                            [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
-                            {
-                               return (pstruct[i].id() > 0) ? 1 : 0;
-                            });
+                           {
+                               return (ptd.id(i) > 0) ? 1 : 0;
+                           });
 
-                int np_valid = amrex::get<0>(reduce_data.value(reduce_op));
-                np_per_grid_local[gid] += np_valid;
-
-            } else{
-                const auto& ptile = ParticlesAt(lev, pti);
-                const int np = ptile.numParticles();
-                auto const tile_data = ptile.getParticleTileData();
-
-                ReduceOps<ReduceOpSum> reduce_op;
-                ReduceData<int> reduce_data(reduce_op);
-                using ReduceTuple = typename decltype(reduce_data)::Type;
-
-                reduce_op.eval(np, reduce_data,
-                            [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
-                            {
-                               return (tile_data.idata(0)[i] > 0) ? 1 : 0;
-                            });
-
-                int np_valid = amrex::get<0>(reduce_data.value(reduce_op));
-                np_per_grid_local[gid] += np_valid;
-            }
+            int np_valid = amrex::get<0>(reduce_data.value(reduce_op));
+            np_per_grid_local[gid] += np_valid;
         } else
         {
             np_per_grid_local[gid] += pti.numParticles();
@@ -477,32 +456,15 @@ Long ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::Num
         ReduceData<unsigned long long> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
 
-        if constexpr(!ParticleType::is_soa_particle){
-
-            for (const auto& kv : GetParticles(level)) {
-                const auto& ptile = kv.second;
-                auto const& ptaos = ptile.GetArrayOfStructs();
-                ParticleType const* pp = ptaos().data();
-
-                reduce_op.eval(ptaos.numParticles(), reduce_data,
-                            [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
-                            {
-                               return (pp[i].id() > 0) ? 1 : 0;
-                            });
-            }
-
-        } else{
-            for (const auto& kv : GetParticles(level)) {
+        for (const auto& kv : GetParticles(level)) {
             const auto& ptile = kv.second;
-            auto const tile_data = ptile.getConstParticleTileData();
-            auto const& ptaos = ptile.GetStructOfArrays();
+            auto const ptd = ptile.getConstParticleTileData();
 
-            reduce_op.eval(ptaos.numParticles(), reduce_data,
+            reduce_op.eval(ptile.numParticles(), reduce_data,
                            [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
                            {
-                               return (tile_data.idata(0)[i] > 0) ? 1 : 0; //get the id in SoA particle way
+                               return (ptd.id(i) > 0) ? 1 : 0;
                            });
-            }
         }
 
         nparticles = static_cast<Long>(amrex::get<0>(reduce_data.value(reduce_op)));
@@ -1175,8 +1137,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::SortPart
             auto& ptile           = ParticlesAt(lev, mfi);
             auto& aos             = ptile.GetArrayOfStructs();
             auto  pstruct_ptr     = aos().dataPtr();
-            const size_t np       = aos.numParticles();
-            const size_t np_total = np + aos.numNeighborParticles();
+            const size_t np       = ptile.numParticles();
+            const size_t np_total = np + ptile.numNeighborParticles();
 
             const Box& box = mfi.validbox();
 
@@ -1191,10 +1153,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::SortPart
                     auto src = ptile.getParticleTileData();
                     ParticleType* dst = tmp_particles.data();
 
-                    AMREX_HOST_DEVICE_FOR_1D( np_total, i,
-                    {
-                        dst[i] = i < np ? src.m_aos[inds[i]] : src.m_aos[i];
-                    });
+                    amrex::ParallelFor(np_total,
+                        [=] AMREX_GPU_DEVICE (int i) noexcept
+                        {
+                            dst[i] = i < np ? src.m_aos[inds[i]] : src.m_aos[i];
+                        });
 
                     Gpu::streamSynchronize();
                     ptile.GetArrayOfStructs()().swap(tmp_particles);
@@ -1330,11 +1293,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
             auto p_levs = op.m_levels[lev][gid].dataPtr();
             auto p_src_indices = op.m_src_indices[lev][gid].dataPtr();
             auto p_periodic_shift = op.m_periodic_shift[lev][gid].dataPtr();
-            auto p_ptr = &(aos[0]);
+            auto ptd = src_tile.getParticleTileData();
 
             AMREX_FOR_1D ( num_move, i,
             {
-                const auto& p = p_ptr[i + num_stay];
+                const auto p = make_particle<ParticleType>{}(ptd,i + num_stay);
+
                 if (p.id() < 0)
                 {
                     p_boxes[i] = -1;
