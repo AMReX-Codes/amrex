@@ -608,8 +608,8 @@ bool enforcePeriodic (P& p,
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         if (! is_per[idim]) continue;
-        if (p.pos(idim) >= phi[idim]) {
-            while (p.pos(idim) >= phi[idim]) {
+        if (p.pos(idim) >= rhi[idim]) {
+            while (p.pos(idim) >= rhi[idim]) {
                 p.pos(idim) -= static_cast<ParticleReal>(phi[idim] - plo[idim]);
             }
             // clamp to avoid precision issues;
@@ -618,13 +618,14 @@ bool enforcePeriodic (P& p,
             }
             shifted = true;
         }
-        else if (p.pos(idim) < plo[idim]) {
-            while (p.pos(idim) < plo[idim]) {
+        else if (p.pos(idim) < rlo[idim]) {
+            while (p.pos(idim) < rlo[idim]) {
                 p.pos(idim) += static_cast<ParticleReal>(phi[idim] - plo[idim]);
             }
             // clamp to avoid precision issues;
-            if (p.pos(idim) > rhi[idim]) {
-                p.pos(idim) = static_cast<ParticleReal>(rhi[idim]);
+            if (p.pos(idim) >= rhi[idim]) {
+                p.pos(idim) = std::nextafter(p.pos(idim), rlo[idim]);
+
             }
             shifted = true;
         }

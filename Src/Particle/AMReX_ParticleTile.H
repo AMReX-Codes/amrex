@@ -478,8 +478,8 @@ struct ConstParticleTileData
     Long m_size;
     const ParticleType* AMREX_RESTRICT m_aos;
 
-    GpuArray<const ParticleReal* AMREX_RESTRICT, NArrayReal> m_rdata;
-    GpuArray<const int* AMREX_RESTRICT, NArrayInt > m_idata;
+    GpuArray<const ParticleReal*, NArrayReal> m_rdata;
+    GpuArray<const int*, NArrayInt > m_idata;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     auto id (const int index) const &
