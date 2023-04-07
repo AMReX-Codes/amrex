@@ -1203,7 +1203,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
         {
             auto& ptile           = ParticlesAt(lev, mfi);
             auto& aos             = ptile.GetArrayOfStructs();
-            auto  pstruct_ptr     = aos().dataPtr();
+            auto *pstruct_ptr     = aos().dataPtr();
             const size_t np       = ptile.numParticles();
 
             const Box& box = mfi.validbox();
