@@ -1205,7 +1205,6 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
             auto& aos             = ptile.GetArrayOfStructs();
             auto  pstruct_ptr     = aos().dataPtr();
             const size_t np       = ptile.numParticles();
-            const size_t np_total = np + ptile.numNeighborParticles();
 
             const Box& box = mfi.validbox();
 
