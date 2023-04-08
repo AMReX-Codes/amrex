@@ -2013,18 +2013,22 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             {
                 char* pbuf = ((char*) &recvdata[offset]) + i*superparticle_size;
 
+                Particle<0, 0> p;
                 ParticleReal pos[AMREX_SPACEDIM];
                 std::memcpy(&pos[0], pbuf, AMREX_SPACEDIM*sizeof(ParticleReal));
-
-                int idcpu[2];
-                std::memcpy(&idcpu[0], pbuf + NumRealComps()*sizeof(ParticleReal), 2*sizeof(int));
-
-                Particle<0, 0> p;
-                p.id() = idcpu[0];
-                p.cpu() = idcpu[1];
                 AMREX_D_TERM(p.pos(0) = pos[0];,
                              p.pos(1) = pos[1];,
                              p.pos(2) = pos[2]);
+
+                if constexpr (!ParticleType::is_soa_particle) {
+                    std::memcpy(&(p.m_idcpu), pbuf + NumRealComps()*sizeof(ParticleReal), sizeof(uint64_t));
+                } else {
+                    int idcpu[2];
+                    std::memcpy(&idcpu[0], pbuf + NumRealComps()*sizeof(ParticleReal), 2*sizeof(int));
+
+                    p.id() = idcpu[0];
+                    p.cpu() = idcpu[1];
+                }
 
                 bool success = Where(p, pld, lev_min, lev_max, 0);
                 if (!success)
