@@ -34,7 +34,7 @@ jobs:
         $Env:CCACHE_DIR
         $Env:CCACHE_COMPRESS='1'
         $Env:CCACHE_COMPRESSLEVEL='10'
-        $Env:CCACHE_MAXSIZE='87M'
+        $Env:CCACHE_MAXSIZE='105M'
         ccache -z
 
         cmake -S . -B build   `
@@ -78,7 +78,7 @@ jobs:
         $Env:CCACHE_DIR="$ccachecachedir"
         $Env:CCACHE_COMPRESS='1'
         $Env:CCACHE_COMPRESSLEVEL='10'
-        $Env:CCACHE_MAXSIZE='122M'
+        $Env:CCACHE_MAXSIZE='135M'
         ccache -z
 
         cmake -S . -B build   `

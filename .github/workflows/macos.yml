@@ -31,7 +31,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=125M
+        export CCACHE_MAXSIZE=30M
         ccache -z
 
         cmake -S . -B build             \
@@ -71,7 +71,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=250M
+        export CCACHE_MAXSIZE=160M
         ccache -z
 
         cmake -S . -B build             \
