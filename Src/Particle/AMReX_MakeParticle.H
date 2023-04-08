@@ -16,7 +16,7 @@ struct make_particle
 {
     template <typename PTD>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    auto const
+    auto&
     operator() (PTD const& ptd, int i)
     {
         // legacy Particle (AoS)
@@ -29,7 +29,7 @@ struct make_particle<T_ParticleType, typename std::enable_if<is_soa_particle<T_P
 {
     template <typename PTD>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    auto const
+    auto
     operator() (PTD const& ptd, int index)
     {
         // SoAParticle
