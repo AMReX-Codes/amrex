@@ -277,7 +277,7 @@ public:
     {
     }
 
-    ~AmrParticleContainer_impl () override = default;
+    virtual ~AmrParticleContainer_impl () = default;
 
     AmrParticleContainer_impl ( const AmrParticleContainer_impl &) = delete;
     AmrParticleContainer_impl& operator= ( const AmrParticleContainer_impl & ) = delete;
