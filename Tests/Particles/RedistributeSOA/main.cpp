@@ -117,13 +117,13 @@ public:
 #endif
 
                     for (int i = AMREX_SPACEDIM; i < NR; ++i)
-                        host_real[i].push_back(id);
+                        host_real[i].push_back(static_cast<ParticleReal>(id));
                     for (int i = 2; i < NI; ++i)
-                        host_int[i].push_back(id);
+                        host_int[i].push_back(static_cast<int>(id));
                     for (int i = 0; i < NumRuntimeRealComps(); ++i)
-                        host_runtime_real[i].push_back(id);
+                        host_runtime_real[i].push_back(static_cast<ParticleReal>(id));
                     for (int i = 0; i < NumRuntimeIntComps(); ++i)
-                        host_runtime_int[i].push_back(id);
+                        host_runtime_int[i].push_back(static_cast<int>(id));
                 }
             }
 
