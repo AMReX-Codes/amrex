@@ -104,7 +104,7 @@ public:
                     Real r[3];
                     get_position_unit_cell(r, a_num_particles_per_cell, i_part);
 
-                    int id = ParticleType::NextID();
+                    amrex::Long id = ParticleType::NextID();
 
                     host_int[0].push_back(id);
                     host_int[1].push_back(ParallelDescriptor::MyProc());
@@ -256,12 +256,12 @@ public:
 
         for (int lev = 0; lev <= finestLevel(); ++lev)
         {
-            auto& plev  = GetParticles(lev);
+            const auto & plev  = GetParticles(lev);
             for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
             {
                 int gid = mfi.index();
                 int tid = mfi.LocalTileIndex();
-                auto& ptile = plev.at(std::make_pair(gid, tid));
+                const auto & ptile = plev.at(std::make_pair(gid, tid));
                 const auto ptd = ptile.getConstParticleTileData();
                 const size_t np = ptile.numParticles();
 
