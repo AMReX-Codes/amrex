@@ -15,8 +15,8 @@ template <typename T_PC,template<class> class Allocator=DefaultAllocator>
 void addParticles ()
 {
     int is_per[AMREX_SPACEDIM];
-    for (int d = 0; d < AMREX_SPACEDIM; d++)
-        is_per[d] = 1;
+    for (int & d : is_per)
+        d = 1;
 
     RealBox real_box;
     for (int n = 0; n < AMREX_SPACEDIM; n++)
