@@ -372,7 +372,7 @@ void testRedistribute ()
 
     Vector<BoxArray> ba(params.nlevs);
     Vector<DistributionMapping> dm(params.nlevs);
-    IntVect lo = IntVect(AMREX_D_DECL(0, 0, 0));
+    auto lo = IntVect(AMREX_D_DECL(0, 0, 0));
     IntVect size = params.size;
     for (int lev = 0; lev < params.nlevs; ++lev)
     {
@@ -386,7 +386,7 @@ void testRedistribute ()
     TestParticleContainer pc(geom, dm, ba, rr);
 
     int npc = params.num_ppc;
-    IntVect nppc = IntVect(AMREX_D_DECL(npc, npc, npc));
+    auto nppc = IntVect(AMREX_D_DECL(npc, npc, npc));
 
     amrex::Print() << "About to initialize particles \n";
 
