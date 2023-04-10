@@ -300,7 +300,7 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
 {
     using ParticleType = typename Iterator::ContainerType::ConstParticleType;
 
-    const auto tile = pti.GetParticleTile();
+    const auto& tile = pti.GetParticleTile();
     const auto tile_data = tile.getConstParticleTileData();
     const auto np = tile.numParticles();
     const auto& geom = pti.Geom(pti.GetLevel());
