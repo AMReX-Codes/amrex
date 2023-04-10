@@ -106,7 +106,7 @@ public:
 
                     amrex::Long id = ParticleType::NextID();
 
-                    host_int[0].push_back(id);
+                    host_int[0].push_back(static_cast<int>(id));
                     host_int[1].push_back(ParallelDescriptor::MyProc());
                     host_real[0].push_back(static_cast<ParticleReal> (plo[0] + (iv[0] + r[0])*dx[0]));
 #if AMREX_SPACEDIM > 1
@@ -345,8 +345,8 @@ void testRedistribute ()
     get_test_params(params, "redistribute");
 
     int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        is_per[i] = params.is_periodic;
+    for (int & d : is_per)
+        d = params.is_periodic;
 
     Vector<IntVect> rr(params.nlevs-1);
     for (int lev = 1; lev < params.nlevs; lev++)
