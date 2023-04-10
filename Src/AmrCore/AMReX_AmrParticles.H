@@ -251,7 +251,7 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
 
 template <typename T_ParticleType, int NArrayReal=0, int NArrayInt=0,
           template<class> class Allocator=DefaultAllocator>
-class AmrParticleContainer_impl
+class AmrParticleContainer_impl // NOLINT(cppcoreguidelines-virtual-class-destructor)
     : public ParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator>
 {
 
