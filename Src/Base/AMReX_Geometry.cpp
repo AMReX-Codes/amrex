@@ -556,23 +556,26 @@ Geometry::computeRoundoffDomain ()
         {
             auto eps = std::numeric_limits<ParticleReal>::epsilon() * (rhi-rlo);
             int iters = 0;
-            while (is_inside(rlo-eps) && iters < maxiters) {
+            rlo_out = rlo - eps;
+            while (is_inside(rlo_out) && iters < maxiters) {
                 eps *= ParticleReal(2.);
+                rlo_out = rlo - eps;
                 ++iters;
             }
-            rlo_out = rlo - eps;
             numiters = std::max(numiters,iters);
         }
         else
         {
             auto eps = std::numeric_limits<ParticleReal>::epsilon() * (rhi-rlo);
             int iters = 0;
-            while (is_outside(rlo+eps) && iters < maxiters) {
+            auto rtmp = rlo + eps;
+            while (is_outside(rtmp) && iters < maxiters) {
                 eps *= ParticleReal(2.);
+                rtmp = rlo + eps;
                 ++iters;
             }
             rlo_out = rlo;
-            rlo += eps;
+            rlo = rtmp;
             numiters = std::max(numiters,iters);
         }
 
@@ -606,23 +609,29 @@ Geometry::computeRoundoffDomain ()
         {
             auto eps = std::numeric_limits<ParticleReal>::epsilon() * (rhi-rlo);
             int iters = 0;
-            while (is_inside(rhi+eps) && iters < maxiters) {
+            rhi_out = rhi + eps;
+            while (is_inside(rhi_out) && iters < maxiters) {
                 eps *= ParticleReal(2.);
+                rhi_out = rhi + eps;
                 ++iters;
             }
-            rhi_out = rhi + eps;
             numiters = std::max(numiters,iters);
         }
         else
         {
             auto eps = std::numeric_limits<ParticleReal>::epsilon() * (rhi-rlo);
             int iters = 0;
-            while (is_outside(rhi-eps) && iters < maxiters) {
+            // Yes, we have to write it this way for Intel compiler.
+            // is_outside(rhi-eps) could be different from is_outside(rtmp),
+            // where rtmp = rhs-eps.
+            auto rtmp = rhi - eps;
+            while (is_outside(rtmp) && iters < maxiters) {
                 eps *= ParticleReal(2.);
+                rtmp = rhi - eps;
                 ++iters;
             }
             rhi_out = rhi;
-            rhi -= eps;
+            rhi = rtmp;
             numiters = std::max(numiters,iters);
         }
 

@@ -589,7 +589,7 @@ bool enforcePeriodic (P& p,
             }
             shifted = true;
         }
-        AMREX_ASSERT( (p.pos(idim) >= plo[idim] ) && ( p.pos(idim) <= phi[idim] ));
+        AMREX_ASSERT( (p.pos(idim) >= rlo[idim] ) && ( p.pos(idim) <= rhi[idim] ));
     }
 
     return shifted;
