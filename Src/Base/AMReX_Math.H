@@ -32,7 +32,7 @@ namespace amrex::Math {
 
 // Since Intel's SYCL compiler now supports the following std functions on device,
 // one no longer needs to use amrex::Math::abs, etc.  They are kept here for
-// backward compatability.
+// backward compatibility.
 
 using std::abs;
 using std::ceil;
