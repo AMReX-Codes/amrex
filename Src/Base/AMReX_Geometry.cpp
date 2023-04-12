@@ -519,7 +519,6 @@ Geometry::computeRoundoffDomain ()
     }
 
     constexpr int maxiters = 200;
-    int numiters = 0;
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
@@ -562,7 +561,9 @@ Geometry::computeRoundoffDomain ()
                 rlo_out = rlo - eps;
                 ++iters;
             }
-            numiters = std::max(numiters,iters);
+            // The assertion on rlo_out makes sure the compiler cannot optimize it away.
+            AMREX_ALWAYS_ASSERT(rlo_out > std::numeric_limits<ParticleReal>::lowest()
+                                && iters < maxiters);
         }
         else
         {
@@ -576,7 +577,9 @@ Geometry::computeRoundoffDomain ()
             }
             rlo_out = rlo;
             rlo = rtmp;
-            numiters = std::max(numiters,iters);
+            // The assertion on rtmp makes sure the compiler cannot optimize it away.
+            AMREX_ALWAYS_ASSERT(rtmp > std::numeric_limits<ParticleReal>::lowest()
+                                && iters < maxiters);
         }
 
         {
@@ -586,7 +589,9 @@ Geometry::computeRoundoffDomain ()
             auto epsilon = std::numeric_limits<ParticleReal>::epsilon()
                 * std::max(ParticleReal(CellSize(idim)),std::abs(rlo))
                 * ParticleReal(2.0);
-            while (is_inside(rlo-epsilon) && iters < maxiters) {
+            auto rlo_minus = rlo-epsilon;
+            bool rlo_minus_is_inside = is_inside(rlo_minus);
+            while (rlo_minus_is_inside && iters < maxiters) {
                 auto rmid = ParticleReal(0.5)*(rlo_out+rlo);
                 if (rmid == rlo_out || rmid == rlo) {
                     break;
@@ -596,12 +601,16 @@ Geometry::computeRoundoffDomain ()
                     epsilon = std::numeric_limits<ParticleReal>::epsilon()
                         * std::max(ParticleReal(CellSize(idim)),std::abs(rlo))
                         * ParticleReal(2.0);
+                    rlo_minus = rlo - epsilon;
+                    rlo_minus_is_inside = is_inside(rlo_minus);
                 } else {
                     rlo_out = rmid;
                 }
                 ++iters;
             }
-            numiters = std::max(numiters,iters);
+            // The assertion on rlo_minus makes sure the compiler cannot optimize it away.
+            AMREX_ALWAYS_ASSERT(rlo_minus > std::numeric_limits<ParticleReal>::lowest()
+                                && iters < maxiters);
         }
 
         ParticleReal rhi_out;
@@ -615,7 +624,9 @@ Geometry::computeRoundoffDomain ()
                 rhi_out = rhi + eps;
                 ++iters;
             }
-            numiters = std::max(numiters,iters);
+            // The assertion on rhi_out makes sure the compiler cannot optimize it away.
+            AMREX_ALWAYS_ASSERT(rhi_out > std::numeric_limits<ParticleReal>::lowest()
+                                && iters < maxiters);
         }
         else
         {
@@ -632,7 +643,9 @@ Geometry::computeRoundoffDomain ()
             }
             rhi_out = rhi;
             rhi = rtmp;
-            numiters = std::max(numiters,iters);
+            // The assertion on rtmp makes sure the compiler cannot optimize it away.
+            AMREX_ALWAYS_ASSERT(rtmp > std::numeric_limits<ParticleReal>::lowest()
+                                && iters < maxiters);
         }
 
         {
@@ -642,7 +655,9 @@ Geometry::computeRoundoffDomain ()
             auto epsilon = std::numeric_limits<ParticleReal>::epsilon()
                 * std::max(ParticleReal(CellSize(idim)),std::abs(rhi))
                 * ParticleReal(2.0);
-            while (is_inside(rhi+epsilon) && iters < maxiters) {
+            auto rhi_plus = rhi+epsilon;
+            bool rhi_plus_is_inside = is_inside(rhi_plus);
+            while (rhi_plus_is_inside && iters < maxiters) {
                 auto rmid = ParticleReal(0.5)*(rhi+rhi_out);
                 if (rmid == rhi || rmid == rhi_out) {
                     break;
@@ -652,16 +667,18 @@ Geometry::computeRoundoffDomain ()
                     epsilon = std::numeric_limits<ParticleReal>::epsilon()
                         * std::max(ParticleReal(CellSize(idim)),std::abs(rhi))
                         * ParticleReal(2.0);
+                    rhi_plus = rhi + epsilon;
+                    rhi_plus_is_inside = is_inside(rhi_plus);
                 } else {
                     rhi_out = rmid;
                 }
                 ++iters;
             }
-            numiters = std::max(numiters,iters);
+            // The assertion on rhi_plus makes sure the compiler cannot optimize it away.
+            AMREX_ALWAYS_ASSERT(rhi_plus > std::numeric_limits<ParticleReal>::lowest()
+                                && iters < maxiters);
         }
     }
-
-    AMREX_ALWAYS_ASSERT(numiters < maxiters);
 }
 
 bool
