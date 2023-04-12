@@ -1,7 +1,7 @@
 #
 # List of subdirectories to search for CMakeLists.
 #
-set( AMREX_TESTS_SUBDIRS AsyncOut MultiBlock Reinit Amr CLZ Parser CTOParFor)
+set( AMREX_TESTS_SUBDIRS AsyncOut MultiBlock Reinit Amr CLZ Parser CTOParFor RoundoffDomain)
 
 if (AMReX_PARTICLES)
    list(APPEND AMREX_TESTS_SUBDIRS Particles)
@@ -104,41 +104,25 @@ function (setup_test _srcs  _inputs)
    #
    # Add the test
    #
-   add_test(
-      NAME               ${_test_name}
-      COMMAND            ${_cmd}
-      WORKING_DIRECTORY  ${_exe_dir}
-      )
-
-   #
-   # Add MPI test
-   #
-   if (AMReX_MPI AND _NTASKS)
-      if (_NTASKS GREATER 2)
-         message(FATAL_ERROR "\nsetup_tests(): number of MPI tasks exceeds CI limit of 2")
-      endif ()
-
+   if (AMReX_OMP)
       add_test(
-         NAME               ${_test_name}_MPI
-         COMMAND            mpiexec -n ${_NTASKS} ${_cmd}
-         WORKING_DIRECTORY  ${_exe_dir}
-         )
-
-      set_tests_properties(${_test_name}_MPI PROPERTIES ENVIRONMENT OMP_NUM_THREADS=1 )
-   endif ()
-
-   if (AMReX_OMP AND _NTHREADS)
-      if (_NTHREADS GREATER 2)
-         message(FATAL_ERROR "\nsetup_tests(): number of OpenMP threads exceeds CI limit of 2")
-      endif ()
-
-      add_test(
-         NAME               ${_test_name}_OpenMP
+         NAME               ${_test_name}
          COMMAND            ${_cmd}
          WORKING_DIRECTORY  ${_exe_dir}
-         )
-
-      set_tests_properties(${_test_name}_OpenMP PROPERTIES ENVIRONMENT OMP_NUM_THREADS=${_NTHREADS} )
+      )
+      set_tests_properties(${_test_name} PROPERTIES ENVIRONMENT OMP_NUM_THREADS=2)
+   elseif (AMReX_MPI)
+      add_test(
+         NAME               ${_test_name}
+         COMMAND            mpiexec -n 2 ${_cmd}
+         WORKING_DIRECTORY  ${_exe_dir}
+      )
+   else ()
+      add_test(
+         NAME               ${_test_name}
+         COMMAND            ${_cmd}
+         WORKING_DIRECTORY  ${_exe_dir}
+      )
    endif ()
 
 endfunction ()

@@ -370,7 +370,7 @@ int main (int argc, char* argv[])
         int count = 0;
         int x = 11;
         {
-            auto f = [&] (std::string s) -> int
+            auto f = [&] (std::string const& s) -> int
             {
                 amrex::Print() << count++ << ". Testing \"" << s << "\"\n";
                 IParser iparser(s);
@@ -387,7 +387,7 @@ int main (int argc, char* argv[])
             AMREX_ALWAYS_ASSERT(f("x/13/5") == ((x/13)/5));
             AMREX_ALWAYS_ASSERT(f("13/x/5") == ((13/x)/5));
 
-            auto g = [&] (std::string s, std::string c, int cv) -> int
+            auto g = [&] (std::string const& s, std::string const& c, int cv) -> int
             {
                 amrex::Print() << count++ << ". Testing \"" << s << "\"\n";
                 IParser iparser(s);
@@ -405,7 +405,7 @@ int main (int argc, char* argv[])
             AMREX_ALWAYS_ASSERT(g("x/b/5", "b", 13) == ((x/13)/5));
             AMREX_ALWAYS_ASSERT(g("b/x/5", "b", 13) == ((13/x)/5));
 
-            auto h = [&] (std::string s) -> int
+            auto h = [&] (std::string const& s) -> int
             {
                 amrex::Print() << count++ << ". Testing \"" << s << "\"\n";
                 IParser iparser(s);

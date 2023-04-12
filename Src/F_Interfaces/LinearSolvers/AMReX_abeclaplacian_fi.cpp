@@ -24,25 +24,25 @@ extern "C" {
             d.push_back(*dm[i]);
         }
 
-        MLABecLaplacian* abeclap = new MLABecLaplacian(g,b,d,info);
+        auto* abeclap = new MLABecLaplacian(g,b,d,info);
         linop = static_cast<MLLinOp*>(abeclap);
     }
 
     void amrex_fi_abeclap_set_scalars (MLLinOp* linop, Real a, Real b)
     {
-        MLABecLaplacian& abeclap = dynamic_cast<MLABecLaplacian&>(*linop);
+        auto& abeclap = dynamic_cast<MLABecLaplacian&>(*linop);
         abeclap.setScalars(a,b);
     }
 
     void amrex_fi_abeclap_set_acoeffs (MLLinOp* linop, int amrlev, const MultiFab* alpha)
     {
-        MLABecLaplacian& abeclap = dynamic_cast<MLABecLaplacian&>(*linop);
+        auto& abeclap = dynamic_cast<MLABecLaplacian&>(*linop);
         abeclap.setACoeffs(amrlev, *alpha);
     }
 
     void amrex_fi_abeclap_set_bcoeffs (MLLinOp* linop, int amrlev, const MultiFab* beta[])
     {
-        MLABecLaplacian& abeclap = dynamic_cast<MLABecLaplacian&>(*linop);
+        auto& abeclap = dynamic_cast<MLABecLaplacian&>(*linop);
         std::array<MultiFab const*, AMREX_SPACEDIM> b{{AMREX_D_DECL(beta[0],beta[1],beta[2])}};
         abeclap.setBCoeffs(amrlev, b);
     }

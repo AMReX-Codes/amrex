@@ -453,11 +453,11 @@ public:
 #endif
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-    virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface /*hypre_interface*/) const {
+    [[nodiscard]] virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface /*hypre_interface*/) const {
         amrex::Abort("MLLinOp::makeHypre: How did we get here?");
         return {nullptr};
     }
-    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap(
+    [[nodiscard]] virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap(
         int /*bottom_verbose*/,
         const std::string& /* options_namespace */) const
     {
@@ -467,7 +467,7 @@ public:
 #endif
 
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
-    virtual std::unique_ptr<PETScABecLap> makePETSc () const {
+    [[nodiscard]] virtual std::unique_ptr<PETScABecLap> makePETSc () const {
         amrex::Abort("MLLinOp::makePETSc: How did we get here?");
         return {nullptr};
     }
@@ -479,7 +479,7 @@ public:
 
     virtual void postSolve (Vector<MF>& /*sol*/) const {}
 
-    virtual RT normInf (int amrlev, MF const& mf, bool local) const = 0;
+    [[nodiscard]] virtual RT normInf (int amrlev, MF const& mf, bool local) const = 0;
 
     virtual void averageDownAndSync (Vector<MF>& sol) const = 0;
 
@@ -536,7 +536,7 @@ protected:
         CommContainer (CommContainer&&) = delete;
         void operator= (const CommContainer&) = delete;
         void operator= (CommContainer&&) = delete;
-        ~CommContainer () {
+        ~CommContainer () { // NOLINT(modernize-use-equals-default)
 #ifdef BL_USE_MPI
             if (comm != MPI_COMM_NULL) MPI_Comm_free(&comm);
 #endif
@@ -1002,7 +1002,7 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
 
             if (info.do_consolidation)
             {
-                if (avg_npts/(AMREX_D_TERM(rr_vec[0], *rr_vec[1], *rr_vec[2]))
+                if (avg_npts/static_cast<Real>(AMREX_D_TERM(rr_vec[0], *rr_vec[1], *rr_vec[2]))
                     < Real(0.999)*static_cast<Real>(consolidation_threshold))
                 {
                     coned = true;

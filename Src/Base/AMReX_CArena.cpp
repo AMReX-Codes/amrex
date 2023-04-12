@@ -18,15 +18,9 @@ namespace amrex {
 namespace amrex {
 
 CArena::CArena (std::size_t hunk_size, ArenaInfo info)
+    : m_hunk(align(hunk_size == 0 ? DefaultHunkSize : hunk_size))
 {
     arena_info = info;
-    //
-    // Force alignment of hunksize.
-    //
-    m_hunk = Arena::align(hunk_size == 0 ? DefaultHunkSize : hunk_size);
-    m_used = 0;
-    m_actually_used = 0;
-
     BL_ASSERT(m_hunk >= hunk_size);
     BL_ASSERT(m_hunk%Arena::align_size == 0);
 }

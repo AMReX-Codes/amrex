@@ -14,7 +14,7 @@ class MLNodeLaplacian
 {
 public :
 
-    MLNodeLaplacian () noexcept = default;
+    MLNodeLaplacian () = default;
     MLNodeLaplacian (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,

@@ -464,9 +464,9 @@ public:
     void operator() (MultiFab& mf, int dest_comp, int num_comp, IntVect const& nghost,
                      Real time, int bccomp);
 
-    void FillBoundary (MultiFab& mf, int dcomp, int ncomp, IntVect const& nghost,
+    void FillBoundary (MultiFab& mf, int dest_comp, int num_comp, IntVect const& nghost,
                        Real time, int bccomp) {
-        this->operator()(mf,dcomp,ncomp,nghost,time,bccomp);
+        this->operator()(mf,dest_comp,num_comp,nghost,time,bccomp); // NOLINT(readability-suspicious-call-argument)
     }
 private:
     StateData* statedata;

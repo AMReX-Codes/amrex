@@ -65,7 +65,7 @@ namespace amrex {
     enum struct RunOn { Gpu, Cpu, Device=Gpu, Host=Cpu };
 }
 
-namespace amrex {
+namespace amrex { // NOLINT(modernize-concat-nested-namespaces)
 
 #ifdef AMREX_USE_HIP
 using gpuStream_t = hipStream_t;

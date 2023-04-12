@@ -12,9 +12,8 @@
 #include <cuda_runtime.h>
 #endif // AMREX_USE_CUDA
 
-#include <map>
-#include <memory>
 #include <limits>
+#include <map>
 #include <memory>
 #include <type_traits>
 

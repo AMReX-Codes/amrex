@@ -13,7 +13,7 @@
 #include <cmath>
 #include <utility>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 template <class F, typename std::enable_if<IsGPUable<F>::value>::type* FOO = nullptr>
 AMREX_GPU_HOST_DEVICE
@@ -188,19 +188,11 @@ public:
 
     using FunctionType = F;
 
-    explicit GeometryShop (F const& f)
-        : m_f(f), m_resource()
-        {}
-
-    explicit GeometryShop (F && f)
+    explicit GeometryShop (F f)
         : m_f(std::move(f)), m_resource()
         {}
 
-    GeometryShop (F const& f, R r)
-        : m_f(f), m_resource(std::move(r))
-        {}
-
-    GeometryShop (F && f, R r)
+    GeometryShop (F f, R r)
         : m_f(std::move(f)), m_resource(std::move(r))
         {}
 
@@ -543,6 +535,6 @@ makeShop (F&& f, R&& r)
         (std::forward<F>(f), std::forward<R>(r));
 }
 
-}}
+}
 
 #endif

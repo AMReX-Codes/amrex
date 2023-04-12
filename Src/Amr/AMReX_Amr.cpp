@@ -335,7 +335,7 @@ Amr::InitAmr ()
 
         // Something nonzero so old & new will differ
 #ifdef AMREX_USE_FLOAT
-        dt_level[i]    = 1.e30f;
+        dt_level[i]    = 1.e30F;
 #else
         dt_level[i]    = 1.e200;
 #endif
@@ -1302,7 +1302,7 @@ Amr::FinalizeInit (Real              strt_time,
 
     for (int lev = 1; lev <= finest_level; lev++)
     {
-        dt0           /= n_cycle[lev];
+        dt0           /= static_cast<Real>(n_cycle[lev]);
         dt_level[lev]  = dt0;
         dt_min[lev]    = dt_level[lev];
     }
@@ -1517,7 +1517,7 @@ Amr::restart (const std::string& filename)
        {
            for (int i(mx_lev + 1); i <= max_level; ++i)
            {
-               dt_level[i]    = dt_level[i-1]/n_cycle[i];
+               dt_level[i]    = dt_level[i-1]/static_cast<Real>(n_cycle[i]);
                level_steps[i] = n_cycle[i]*level_steps[i-1];
                level_count[i] = 0;
            }
@@ -1949,7 +1949,7 @@ Amr::timeStep (int  level,
                     //
                     for (int k(old_finest + 1); k <= finest_level; ++k)
                     {
-                        dt_level[k]    = dt_level[k-1]/n_cycle[k];
+                        dt_level[k] = dt_level[k-1]/static_cast<Real>(n_cycle[k]);
                     }
                 }
             }
@@ -2013,7 +2013,7 @@ Amr::timeStep (int  level,
             //
             for (int k = old_finest + 1; k <= finest_level; ++k)
             {
-                dt_level[k] = dt_level[k-1] / n_cycle[k];
+                dt_level[k] = dt_level[k-1] / static_cast<Real>(n_cycle[k]);
             }
         }
     }
@@ -2031,7 +2031,7 @@ Amr::timeStep (int  level,
 
             BL_COMM_PROFILE_NAMETAG("Amr::timeStep timeStep subcycle");
             for (int i = 1; i <= ncycle; i++)
-                timeStep(lev_fine,time+(i-1)*dt_level[lev_fine],i,ncycle,stop_time);
+                timeStep(lev_fine,time+static_cast<Real>(i-1)*dt_level[lev_fine],i,ncycle,stop_time);
         }
         else
         {
@@ -2182,7 +2182,7 @@ Amr::coarseTimeStep (Real stop_time)
         // at this point.
 
         const Real eps = std::numeric_limits<Real>::epsilon() * 10.0_rt * std::abs(cumtime);
-        const Real next_chk_time = (num_per_old + 1) * check_per;
+        const Real next_chk_time = static_cast<Real>(num_per_old + 1) * check_per;
 
         if ((num_per_new == num_per_old) && std::abs(cumtime - next_chk_time) <= eps)
         {
@@ -2326,7 +2326,7 @@ Amr::writePlotNow() noexcept
         // at this point.
 
         const Real eps = std::numeric_limits<Real>::epsilon() * 10.0_rt * std::abs(cumtime);
-        const Real next_plot_time = (num_per_old + 1) * plot_per;
+        const Real next_plot_time = static_cast<Real>(num_per_old + 1) * plot_per;
 
         if ((num_per_new == num_per_old) && std::abs(cumtime - next_plot_time) <= eps)
         {
@@ -2399,7 +2399,7 @@ Amr::writeSmallPlotNow() noexcept
         // at this point.
 
         const Real eps = std::numeric_limits<Real>::epsilon() * 10.0_rt * std::abs(cumtime);
-        const Real next_plot_time = (num_per_old + 1) * small_plot_per;
+        const Real next_plot_time = static_cast<Real>(num_per_old + 1) * small_plot_per;
 
         if ((num_per_new == num_per_old) && std::abs(cumtime - next_plot_time) <= eps)
         {
@@ -3252,7 +3252,7 @@ Amr::computeOptimalSubcycling(int n, int* best, const Real* dt_max, const Real* 
     // not the number of cycles
     std::vector<int> cycles(n);
 #ifdef AMREX_USE_FLOAT
-    Real best_ratio = 1e30f;
+    Real best_ratio = 1e30F;
 #else
     Real best_ratio = 1e200;
 #endif
@@ -3275,8 +3275,8 @@ Amr::computeOptimalSubcycling(int n, int* best, const Real* dt_max, const Real* 
             // grab the relevant "digit" and shift over.
             cycles[i] = (1 + temp_cand%cycle_max[i]) * cycles[i-1];
             temp_cand /= cycle_max[i];
-            dt = std::min(dt, cycles[i]*dt_max[i]);
-            work += cycles[i]*est_work[i];
+            dt = std::min(dt, static_cast<Real>(cycles[i])*dt_max[i]);
+            work += static_cast<Real>(cycles[i])*est_work[i];
         }
         ratio = work/dt;
         if (ratio < best_ratio)

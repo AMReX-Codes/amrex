@@ -18,31 +18,36 @@ public:
     using HypreIntType = HYPRE_Int;
     using HypreRealType = HYPRE_Real;
 
-    HypreIJIface(MPI_Comm comm, const HypreIntType ilower, const HypreIntType iupper,
+    HypreIJIface(MPI_Comm comm, HypreIntType ilower, HypreIntType iupper,
                  int verbose);
 
     ~HypreIJIface();
 
+    HypreIJIface (HypreIJIface const&) = delete;
+    HypreIJIface (HypreIJIface &&) = delete;
+    HypreIJIface& operator= (HypreIJIface const&) = delete;
+    HypreIJIface& operator= (HypreIJIface &&) = delete;
+
     void parse_inputs(const std::string& prefix = "hypre");
 
-    void solve(const HypreRealType rel_tol, const HypreRealType abs_tol, const HypreIntType max_iter);
+    void solve(HypreRealType rel_tol, HypreRealType abs_tol, HypreIntType max_iter);
 
     //! IJ matrix instance
-    HYPRE_IJMatrix A() { return m_mat; }
+    [[nodiscard]] HYPRE_IJMatrix A() { return m_mat; }
 
     //! Right hand side IJ vector instance
-    HYPRE_IJVector b() { return m_rhs; }
+    [[nodiscard]] HYPRE_IJVector b() { return m_rhs; }
 
     //! Solution IJ vector instance
-    HYPRE_IJVector x() { return m_sln; }
+    [[nodiscard]] HYPRE_IJVector x() { return m_sln; }
 
     //! Number of iterations taken by the solver to reach the desired tolerance
-    HypreIntType getNumIters() const { return m_num_iterations; }
+    [[nodiscard]] HypreIntType getNumIters() const { return m_num_iterations; }
 
     //! Final residual norm after a linear solve
-    HypreRealType getFinalResidualNorm() const { return m_final_res_norm; }
+    [[nodiscard]] HypreRealType getFinalResidualNorm() const { return m_final_res_norm; }
 
-    bool adjustSingularMatrix() const { return m_adjust_singular_matrix; }
+    [[nodiscard]] bool adjustSingularMatrix() const { return m_adjust_singular_matrix; }
 
 private:
     void init_preconditioner(const std::string& prefix, const std::string& name);

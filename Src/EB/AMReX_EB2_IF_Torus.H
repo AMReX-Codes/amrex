@@ -8,7 +8,7 @@
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 class TorusIF
     : GPUable
@@ -48,6 +48,6 @@ protected:
     Real      m_sign;
 };
 
-}}
+}
 
 #endif

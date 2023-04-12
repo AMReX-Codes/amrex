@@ -19,84 +19,86 @@ public:
          const amrex::BoxArray& bl,
          const amrex::DistributionMapping& dm,
          amrex::Real            time);
-    virtual ~CNS ();
+    ~CNS () override;
 
     CNS (const CNS& rhs) = delete;
+    CNS (CNS&& rhs) = delete;
     CNS& operator= (const CNS& rhs) = delete;
+    CNS& operator= (CNS&& rhs) = delete;
 
     // Restart from a checkpoint file.
-    virtual void restart (amrex::Amr&     papa,
-                          std::istream&   is,
-                          bool            bReadSpecial = false) override;
+    void restart (amrex::Amr&     papa,
+                  std::istream&   is,
+                  bool            bReadSpecial = false) override;
 
     // Write checkpoint
-    virtual void checkPoint(const std::string& dir,
-                            std::ostream&      os,
-                            amrex::VisMF::How  how = amrex::VisMF::NFiles,
-                            bool               dump_old = true) override;
+    void checkPoint(const std::string& dir,
+                    std::ostream&      os,
+                    amrex::VisMF::How  how = amrex::VisMF::NFiles,
+                    bool               dump_old = true) override;
 
-    virtual std::string thePlotFileType () const override {
+    std::string thePlotFileType () const override {
         return {"HyperCLaw-V1.1"};
     }
 
     // Write a plotfile to specified directory.
-    virtual void writePlotFile (const std::string& dir,
-                                std::ostream&      os,
-                                amrex::VisMF::How  how) override;
+    void writePlotFile (const std::string& dir,
+                        std::ostream&      os,
+                        amrex::VisMF::How  how) override;
 
     // Initialize data on this level from another CNS (during regrid).
-    virtual void init (amrex::AmrLevel& old) override;
+    void init (amrex::AmrLevel& old) override;
 
     // Initialize data on this level after regridding if old level did not previously exist
-    virtual void init () override;
+    void init () override;
 
     // Initialize grid data at problem start-up.
-    virtual void initData () override;
+    void initData () override;
 
     // Advance grids at this level in time.
-    virtual amrex::Real advance (amrex::Real time,
-                                 amrex::Real dt,
-                                 int  iteration,
-                                 int  ncycle) override;
+    amrex::Real advance (amrex::Real time,
+                         amrex::Real dt,
+                         int  iteration,
+                         int  ncycle) override;
 
-    virtual void computeInitialDt (int                                 finest_level,
-                                   int                                 sub_cycle,
-                                   amrex::Vector<int>&                  n_cycle,
-                                   const amrex::Vector<amrex::IntVect>& ref_ratio,
-                                   amrex::Vector<amrex::Real>&          dt_level,
-                                   amrex::Real                         stop_time) override;
+    void computeInitialDt (int                                 finest_level,
+                           int                                 sub_cycle,
+                           amrex::Vector<int>&                  n_cycle,
+                           const amrex::Vector<amrex::IntVect>& ref_ratio,
+                           amrex::Vector<amrex::Real>&          dt_level,
+                           amrex::Real                         stop_time) override;
 
-    virtual void computeNewDt (int                                 finest_level,
-                               int                                 sub_cycle,
-                               amrex::Vector<int>&                  n_cycle,
-                               const amrex::Vector<amrex::IntVect>& ref_ratio,
-                               amrex::Vector<amrex::Real>&          dt_min,
-                               amrex::Vector<amrex::Real>&          dt_level,
-                               amrex::Real                         stop_time,
-                               int                                 post_regrid_flag) override;
+    void computeNewDt (int                                 finest_level,
+                       int                                 sub_cycle,
+                       amrex::Vector<int>&                  n_cycle,
+                       const amrex::Vector<amrex::IntVect>& ref_ratio,
+                       amrex::Vector<amrex::Real>&          dt_min,
+                       amrex::Vector<amrex::Real>&          dt_level,
+                       amrex::Real                         stop_time,
+                       int                                 post_regrid_flag) override;
 
-    virtual void post_regrid (int lbase, int new_finest) override;
+    void post_regrid (int lbase, int new_finest) override;
 
     // Do work after timestep().
-    virtual void post_timestep (int iteration) override;
+    void post_timestep (int iteration) override;
 
     // After a full time step
-    virtual void postCoarseTimeStep (amrex::Real time) override;
+    void postCoarseTimeStep (amrex::Real time) override;
 
     // Do work after init().
-    virtual void post_init (amrex::Real stop_time) override;
+    void post_init (amrex::Real stop_time) override;
 
-    virtual void post_restart () override;
+    void post_restart () override;
 
     // Error estimation for regridding.
-    virtual void errorEst (amrex::TagBoxArray& tb,
-                           int                 clearval,
-                           int                 tagval,
-                           amrex::Real         time,
-                           int                 n_error_buf = 0,
-                           int                 ngrow = 0) override;
+    void errorEst (amrex::TagBoxArray& tags,
+                   int                 clearval,
+                   int                 tagval,
+                   amrex::Real         time,
+                   int                 n_error_buf = 0,
+                   int                 ngrow = 0) override;
 
-    virtual int WorkEstType () override { return Cost_Type; }
+    int WorkEstType () override { return Cost_Type; }
 
     // Define data descriptors.
     static void variableSetUp ();
@@ -123,7 +125,7 @@ protected:
     // Compute initial time step.
     amrex::Real initialTimeStep ();
 
-    void computeTemp (amrex::MultiFab& State, int ng);
+    static void computeTemp (amrex::MultiFab& State, int ng);
 
     void compute_dSdt (const amrex::MultiFab& S, amrex::MultiFab& dSdt, amrex::Real dt,
                        amrex::EBFluxRegister* fr_as_crse, amrex::EBFluxRegister* fr_as_fine);

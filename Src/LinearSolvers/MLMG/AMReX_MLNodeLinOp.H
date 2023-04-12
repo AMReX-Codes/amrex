@@ -108,7 +108,7 @@ public:
     void interpAssign (int amrlev, int fmglev, MultiFab& fine, MultiFab& crse) const override;
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap(
+    [[nodiscard]] std::unique_ptr<HypreNodeLap> makeHypreNodeLap(
         int bottom_verbose,
         const std::string& options_namespace) const override;
 

@@ -129,9 +129,9 @@ void set_eb_data (const int i, const int j, const int k,
     Real b1 = 0.5_rt*(axp-axm) + 0.5_rt*(ayp*fcy(i,j+1,k,0) + aym*fcy(i,j,k,0)) + 0.5_rt*(azp*fcz(i,j,k+1,0) + azm*fcz(i,j,k,0));
     Real b2 = 0.5_rt*(axp*fcx(i+1,j,k,0) + axm*fcx(i,j,k,0)) + 0.5_rt*(ayp-aym) + 0.5_rt*(azp*fcz(i,j,k+1,1) + azm*fcz(i,j,k,1));
     Real b3 = 0.5_rt*(axp*fcx(i+1,j,k,1) + axm*fcx(i,j,k,1)) + 0.5_rt*(ayp*fcy(i,j+1,k,1) + aym*fcy(i,j,k,1)) + 0.5_rt*(azp-azm);
-    Real b4 = -nx*0.25*(axp-axm) - ny*(m2y(i,j+1,k,0) - m2y(i,j,k,0)) - nz*(m2z(i,j,k+1,0) - m2z(i,j,k,0));
-    Real b5 = -nx*(m2x(i+1,j,k,0) - m2x(i,j,k,0)) - ny*0.25*(ayp-aym) - nz*(m2z(i,j,k+1,1) - m2z(i,j,k,1));
-    Real b6 = -nx*(m2x(i+1,j,k,1) - m2x(i,j,k,1)) - ny*(m2y(i,j+1,k,1) - m2y(i,j,k,1)) - nz*0.25*(azp-azm);
+    Real b4 = -nx*0.25_rt*(axp-axm) - ny*(m2y(i,j+1,k,0) - m2y(i,j,k,0)) - nz*(m2z(i,j,k+1,0) - m2z(i,j,k,0));
+    Real b5 = -nx*(m2x(i+1,j,k,0) - m2x(i,j,k,0)) - ny*0.25_rt*(ayp-aym) - nz*(m2z(i,j,k+1,1) - m2z(i,j,k,1));
+    Real b6 = -nx*(m2x(i+1,j,k,1) - m2x(i,j,k,1)) - ny*(m2y(i,j+1,k,1) - m2y(i,j,k,1)) - nz*0.25_rt*(azp-azm);
     Real b7 = -nx*0.5_rt*(axp*fcx(i+1,j,k,0) + axm*fcx(i,j,k,0)) - ny*0.5_rt*(ayp*fcy(i,j+1,k,0) + aym*fcy(i,j,k,0)) - nz*(m2z(i,j,k+1,2) - m2z(i,j,k,2));
     Real b8 = -nx*0.5_rt*(axp*fcx(i+1,j,k,1) + axm*fcx(i,j,k,1)) - ny*(m2y(i,j+1,k,2) - m2y(i,j,k,2)) - nz*0.5_rt*(azp*fcz(i,j,k+1,0) + azm*fcz(i,j,k,0));
     Real b9 = -nx*(m2x(i+1,j,k,2) - m2x(i,j,k,2)) - ny*0.5_rt*(ayp*fcy(i,j+1,k,1) + aym*fcy(i,j,k,1)) - nz*0.5_rt*(azp*fcz(i,j,k+1,1) + azm*fcz(i,j,k,1));
@@ -472,7 +472,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
             } else {
                 bcy = 0.5_rt*bcy - 0.5_rt;
                 bcz = 0.5_rt*bcz - 0.5_rt;
-                cut_face_2d(apx(i,j,k),fcx(i,j,k,0),fcx(i,j,k,1),
+                cut_face_2d(apx(i,j,k),fcx(i,j,k,0),fcx(i,j,k,1), // NOLINT(readability-suspicious-call-argument)
                             m2x(i,j,k,0),m2x(i,j,k,1),m2x(i,j,k,2),
                             lzm,lzp,lym,lyp,bcy,bcz);
             }
@@ -580,7 +580,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
             } else {
                 bcx = 0.5_rt*bcx - 0.5_rt;
                 bcz = 0.5_rt*bcz - 0.5_rt;
-                cut_face_2d(apy(i,j,k),fcy(i,j,k,0),fcy(i,j,k,1),
+                cut_face_2d(apy(i,j,k),fcy(i,j,k,0),fcy(i,j,k,1), // NOLINT(readability-suspicious-call-argument)
                             m2y(i,j,k,0),m2y(i,j,k,1),m2y(i,j,k,2),
                             lzm,lzp,lxm,lxp,bcx,bcz);
             }
@@ -688,7 +688,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
             } else {
                 bcx = 0.5_rt*bcx - 0.5_rt;
                 bcy = 0.5_rt*bcy - 0.5_rt;
-                cut_face_2d(apz(i,j,k),fcz(i,j,k,0),fcz(i,j,k,1),
+                cut_face_2d(apz(i,j,k),fcz(i,j,k,0),fcz(i,j,k,1), // NOLINT(readability-suspicious-call-argument)
                             m2z(i,j,k,0),m2z(i,j,k,1),m2z(i,j,k,2),
                             lym,lyp,lxm,lxp,bcx,bcy);
             }

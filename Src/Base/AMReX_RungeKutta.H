@@ -4,7 +4,7 @@
 
 #include <AMReX_FabArray.H>
 
-namespace amrex {
+namespace amrex::RungeKutta {
 
 /**
  * \brief Functions for Runge-Kutta methods
@@ -48,7 +48,6 @@ namespace amrex {
  * FillPatcher class can be useful for implementing such a callable.  See
  * AmrLevel::RK for an example.
  */
-namespace RungeKutta {
 
 struct PostStageNoOp {
     template <typename MF>
@@ -288,6 +287,6 @@ void RK4 (MF& Uold, MF& Unew, Real time, Real dt, F&& frhs, FB&& fillbndry,
     store_crse_data(rkk);
 }
 
-}}
+}
 
 #endif

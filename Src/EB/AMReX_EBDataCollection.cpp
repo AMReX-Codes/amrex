@@ -4,6 +4,7 @@
 #include <AMReX_MultiCutFab.H>
 
 #include <AMReX_EB2_Level.H>
+#include <utility>
 
 namespace amrex {
 
@@ -11,8 +12,8 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
                                     const Geometry& a_geom,
                                     const BoxArray& a_ba_in,
                                     const DistributionMapping& a_dm,
-                                    const Vector<int>& a_ngrow, EBSupport a_support)
-    : m_ngrow(a_ngrow),
+                                    Vector<int>  a_ngrow, EBSupport a_support)
+    : m_ngrow(std::move(a_ngrow)),
       m_support(a_support),
       m_geom(a_geom)
 {

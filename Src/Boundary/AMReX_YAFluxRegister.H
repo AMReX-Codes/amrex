@@ -178,7 +178,7 @@ YAFluxRegisterT<MF>::define (const BoxArray& fba, const BoxArray& cba,
             bx &= cdomain;
 
             cfba.complementIn(bl_tmp, bx);
-            const int ntmp = bl_tmp.size();
+            const auto ntmp = static_cast<int>(bl_tmp.size());
             bl.join(bl_tmp);
 
             int proc = fdm[i];

@@ -3,8 +3,7 @@
 #include <AMReX_SUNMemory.H>
 #include <AMReX_Vector.H>
 
-namespace amrex {
-namespace sundials {
+namespace amrex::sundials {
 
 namespace {
     amrex::Vector<int> initialized;
@@ -16,7 +15,7 @@ void Initialize(int nthreads)
     amrex::Print() << "Initializing SUNDIALS with " << nthreads << " threads...\n";
 
     // Initalize the sundials context
-    if (initialized.size() == 0) {
+    if (initialized.empty()) {
         initialized.resize(nthreads);
         std::fill(initialized.begin(), initialized.end(), 0);
         the_sundials_context.resize(nthreads);
@@ -54,5 +53,4 @@ void Finalize()
     return the_sundials_context[i];
 }
 
-}//sundials
-}//amrex
+}//amrex::sundials

@@ -1020,8 +1020,8 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(imaxorder <= 4, "MLEBABecLap::applyBC: maxorder too high");
 
     const Real dxi = m_geom[amrlev][mglev].InvCellSize(0);
-    const Real dyi = (AMREX_SPACEDIM >= 2) ? m_geom[amrlev][mglev].InvCellSize(1) : 1.0;
-    const Real dzi = (AMREX_SPACEDIM == 3) ? m_geom[amrlev][mglev].InvCellSize(2) : 1.0;
+    const Real dyi = (AMREX_SPACEDIM >= 2) ? m_geom[amrlev][mglev].InvCellSize(1) : Real(1.0);
+    const Real dzi = (AMREX_SPACEDIM == 3) ? m_geom[amrlev][mglev].InvCellSize(2) : Real(1.0);
 
     const auto& maskvals = m_maskvals[amrlev][mglev];
     const auto& bcondloc = *m_bcondloc[amrlev][mglev];

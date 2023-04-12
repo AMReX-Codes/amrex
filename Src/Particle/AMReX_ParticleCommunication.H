@@ -301,7 +301,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
     int num_buckets = pc.BufferMap().numBuckets();
 
     std::size_t total_buffer_size = 0;
-    if (plan.m_snd_offsets.size() == 0)
+    if (plan.m_snd_offsets.empty())
     {
         unsigned int np = 0;
         Gpu::copy(Gpu::deviceToHost, plan.m_box_offsets.begin() + num_buckets,

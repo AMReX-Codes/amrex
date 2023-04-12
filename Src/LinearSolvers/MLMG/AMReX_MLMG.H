@@ -1613,7 +1613,7 @@ MLMGT<MF>::interpCorrection (int alev)
     cfine.ParallelCopy(crse_cor, 0, 0, ncomp,  IntVect(ng_src), IntVect(ng_dst),
                        crse_geom.periodicity());
 
-    linop.interpolationAmr(alev, fine_cor, cfine, nghost);
+    linop.interpolationAmr(alev, fine_cor, cfine, nghost); // NOLINT(readability-suspicious-call-argument)
 }
 
 // Interpolate correction between MG levels

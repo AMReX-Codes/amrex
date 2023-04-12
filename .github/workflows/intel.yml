@@ -10,14 +10,30 @@ jobs:
   tests-oneapi-sycl:
     name: oneAPI SYCL [tests]
     runs-on: ubuntu-20.04
-    # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare"}
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_dpcpp.sh
-    - name: Build & Install
       run: |
+        .github/workflows/dependencies/dependencies_dpcpp.sh
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Install
+      # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
+      # mkl/rng/device/detail/mrg32k3a_impl.hpp has missing braces in array-array initalization
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare -Wno-missing-braces"}
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=45M
+        export CCACHE_DEPEND=1
+        ccache -z
+
         set +e
         source /opt/intel/oneapi/setvars.sh
         set -e
@@ -30,20 +46,39 @@ jobs:
             -DAMReX_GPU_BACKEND=SYCL                       \
             -DCMAKE_C_COMPILER=$(which icx)                \
             -DCMAKE_CXX_COMPILER=$(which icpx)             \
-            -DCMAKE_Fortran_COMPILER=$(which ifx)
+            -DCMAKE_Fortran_COMPILER=$(which ifx)          \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build --parallel 2
+
+        ccache -s
 
   tests-oneapi-sycl-eb:
     name: oneAPI SYCL [tests w/ EB]
     runs-on: ubuntu-20.04
-    # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare"}
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_dpcpp.sh
-    - name: Build & Install
       run: |
+        .github/workflows/dependencies/dependencies_dpcpp.sh
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Install
+      # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
+      # mkl/rng/device/detail/mrg32k3a_impl.hpp has missing braces in array-array initalization
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare -Wno-missing-braces"}
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=55M
+        export CCACHE_DEPEND=1
+        ccache -z
+
         set +e
         source /opt/intel/oneapi/setvars.sh
         set -e
@@ -55,8 +90,11 @@ jobs:
             -DAMReX_PARTICLES=ON                           \
             -DAMReX_GPU_BACKEND=SYCL                       \
             -DCMAKE_C_COMPILER=$(which icx)                \
-            -DCMAKE_CXX_COMPILER=$(which icpx)
+            -DCMAKE_CXX_COMPILER=$(which icpx)             \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build --parallel 2
+
+        ccache -s
 
 # "Classic" EDG Intel Compiler
 # Ref.: https://github.com/rscohn2/oneapi-ci
@@ -64,7 +102,6 @@ jobs:
   tests-icc:
     name: ICC [tests]
     runs-on: ubuntu-20.04
-    env: {CXXFLAGS: "-Werror"}
     steps:
     - uses: actions/checkout@v3
     - name: install dependencies
@@ -77,8 +114,22 @@ jobs:
         echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
         sudo apt-get update
         sudo apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic intel-oneapi-compiler-fortran intel-oneapi-mpi-devel
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: build
+      env: {CXXFLAGS: "-Werror"}
       run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=40M
+        ccache -z
+
         set +e
         source /opt/intel/oneapi/setvars.sh
         set -e
@@ -91,10 +142,13 @@ jobs:
             -DAMReX_EB=ON                                  \
             -DAMReX_ENABLE_TESTS=ON                        \
             -DAMReX_FORTRAN=ON                             \
-            -DAMReX_PARTICLES=ON
+            -DAMReX_PARTICLES=ON                           \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build --parallel 2
         cmake --build build --target install
         cmake --build build --target test_install
+
+        ccache -s
 
     - name: Run tests
       run: |
@@ -103,3 +157,18 @@ jobs:
         set -e
         cd build
         ctest --output-on-failure
+
+  save_pr_number:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save PR number
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          echo $PR_NUMBER > pr_number.txt
+      - uses: actions/upload-artifact@v3
+        with:
+          name: pr_number
+          path: pr_number.txt
+          retention-days: 1

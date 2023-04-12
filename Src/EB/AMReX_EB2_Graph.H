@@ -10,7 +10,7 @@
 #include <utility>
 #include <cstdint>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 struct Cell
 {
@@ -84,6 +84,6 @@ struct Vertex
 
 using Graph = std::unordered_map<IntVect, Vector<Vertex>, IntVect::hasher>;
 
-}}
+}
 
 #endif

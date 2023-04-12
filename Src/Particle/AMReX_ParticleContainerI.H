@@ -67,9 +67,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::In
     IntVect iv;
     const Geometry& geom = Geom(lev);
 
-    AMREX_D_TERM(iv[0]=static_cast<int>(floor((p.pos(0)-geom.ProbLo(0))*geom.InvCellSize(0)));,
-                 iv[1]=static_cast<int>(floor((p.pos(1)-geom.ProbLo(1))*geom.InvCellSize(1)));,
-                 iv[2]=static_cast<int>(floor((p.pos(2)-geom.ProbLo(2))*geom.InvCellSize(2))););
+    AMREX_D_TERM(iv[0]=static_cast<int>(std::floor((p.pos(0)-geom.ProbLo(0))*geom.InvCellSize(0)));,
+                 iv[1]=static_cast<int>(std::floor((p.pos(1)-geom.ProbLo(1))*geom.InvCellSize(1)));,
+                 iv[2]=static_cast<int>(std::floor((p.pos(2)-geom.ProbLo(2))*geom.InvCellSize(2))););
 
     iv += geom.Domain().smallEnd();
 
@@ -89,7 +89,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
          int                 local_grid) const
 {
 
-  AMREX_ASSERT(m_gdb != 0);
+  AMREX_ASSERT(m_gdb != nullptr);
 
   if (lev_max == -1)
       lev_max = finestLevel();
@@ -167,7 +167,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                         int              local_grid) const
 {
 
-    AMREX_ASSERT(m_gdb != 0);
+    AMREX_ASSERT(m_gdb != nullptr);
 
     if (!Geom(0).isAnyPeriodic()) return false;
 
@@ -255,7 +255,7 @@ Reset (ParticleType& p,
        bool          verbose,
        ParticleLocData pld) const
 {
-    AMREX_ASSERT(m_gdb != 0);
+    AMREX_ASSERT(m_gdb != nullptr);
 
     bool ok = Where(p, pld);
 
@@ -306,44 +306,17 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::locateParticle (ParticleType& p, ParticleLocData& pld,
                                                                                    int lev_min, int lev_max, int nGrow, int local_grid) const
 {
-    bool outside = AMREX_D_TERM(p.pos(0) <  Geom(0).ProbLo(0)
-                             || p.pos(0) >= Geom(0).ProbHi(0),
-                             || p.pos(1) <  Geom(0).ProbLo(1)
-                             || p.pos(1) >= Geom(0).ProbHi(1),
-                             || p.pos(2) <  Geom(0).ProbLo(2)
-                             || p.pos(2) >= Geom(0).ProbHi(2));
-
-    if (! outside)
-    {
-        if (Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))))
-        {
-            GpuArray<ParticleReal, AMREX_SPACEDIM> rhi = Geom(0).ProbHiArrayInParticleReal();
-            GpuArray<ParticleReal, AMREX_SPACEDIM> rlo = Geom(0).ProbLoArrayInParticleReal();
-            for (int idim=0; idim < AMREX_SPACEDIM; ++idim)
-            {
-                if (p.pos(idim) <= rlo[idim]) {
-                    p.pos(idim) = std::nextafter(rlo[idim], rhi[idim]);
-                }
-                if (p.pos(idim) >= rhi[idim]) {
-                    p.pos(idim) = std::nextafter(rhi[idim], rlo[idim]);
-                }
-            }
-
-            AMREX_ASSERT(! Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))));
-        }
-    }
-
     bool success;
-    if (outside)
+    if (Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))))
     {
-      // Note that EnforcePeriodicWhere may shift the particle if it is successful.
-      success = EnforcePeriodicWhere(p, pld, lev_min, lev_max, local_grid);
-      if (!success && lev_min == 0)
-      {
-          // The particle has left the domain; invalidate it.
-          p.id() = -p.id();
-          success = true;
-      }
+        // Note that EnforcePeriodicWhere may shift the particle if it is successful.
+        success = EnforcePeriodicWhere(p, pld, lev_min, lev_max, local_grid);
+        if (!success && lev_min == 0)
+        {
+            // The particle has left the domain; invalidate it.
+            p.id() = -p.id();
+            success = true;
+        }
     }
     else
     {
@@ -2234,7 +2207,7 @@ AssignCellDensitySingleLevel (int rho_index,
     const Real* dx = Geom(lev).CellSize();
     const Real vol = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);
 
-    mf_pointer->mult(1.0/vol, 0, 1, mf_pointer->nGrow());
+    mf_pointer->mult(Real(1.0)/vol, 0, 1, mf_pointer->nGrow());
 
     // If mf_to_be_filled is not defined on the particle_box_array, then we need
     // to copy here from mf_pointer into mf_to_be_filled.

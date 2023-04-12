@@ -518,43 +518,161 @@ Geometry::computeRoundoffDomain ()
         inv_dx[k] = 1.0_rt/dx[k];
     }
 
+    constexpr int maxiters = 200;
+    int numiters = 0;
+
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         int ilo = Domain().smallEnd(idim);
         int ihi = Domain().bigEnd(idim);
+        int ncells = ihi-ilo+1;
         Real plo = ProbLo(idim);
         Real phi = ProbHi(idim);
         Real dxinv = InvCellSize(idim);
-        Real deltax = CellSize(idim);
 
-        Real ftol = std::max(1.e-4_rt*deltax, 2.e-7_rt*phi);
-        Real dtol = std::max(1.e-8_rt*deltax, 1.e-14_rt*phi);
+        // Check that the grid is well formed and that deltax > roundoff
+        AMREX_ASSERT((plo + ihi*CellSize(idim)) < (plo + (ihi + 1)*CellSize(idim)));
 
-        roundoff_lo_f[idim] = detail::bisect_prob_lo<float> (plo, phi, dxinv, ilo, ihi, ftol);
-        roundoff_lo_d[idim] = detail::bisect_prob_lo<double>(plo, phi, dxinv, ilo, ihi, dtol);
-        roundoff_hi_f[idim] = detail::bisect_prob_hi<float> (plo, phi, dxinv, ilo, ihi, ftol);
-        roundoff_hi_d[idim] = detail::bisect_prob_hi<double>(plo, phi, dxinv, ilo, ihi, dtol);
+        // roundoff_lo will be the lowest value that will be inside the domain
+        // roundoff_hi will be the highest value that will be inside the domain
+        roundoff_lo[idim] = static_cast<ParticleReal>(plo);
+        roundoff_hi[idim] = static_cast<ParticleReal>(phi);
+        auto& rlo = roundoff_lo[idim];
+        auto& rhi = roundoff_hi[idim];
+
+        auto is_outside = [=] (auto x) -> bool
+        {
+            auto idx = int(std::floor((x - plo)*dxinv));
+            return (idx < 0) || (idx >= ncells);
+        };
+
+        auto is_inside = [=] (auto x) -> bool
+        {
+            return !is_outside(x);
+        };
+
+        ParticleReal rlo_out;
+        if (is_inside(rlo))
+        {
+            auto eps = std::numeric_limits<ParticleReal>::epsilon() * (rhi-rlo);
+            int iters = 0;
+            rlo_out = rlo - eps;
+            while (is_inside(rlo_out) && iters < maxiters) {
+                eps *= ParticleReal(2.);
+                rlo_out = rlo - eps;
+                ++iters;
+            }
+            numiters = std::max(numiters,iters);
+        }
+        else
+        {
+            auto eps = std::numeric_limits<ParticleReal>::epsilon() * (rhi-rlo);
+            int iters = 0;
+            auto rtmp = rlo + eps;
+            while (is_outside(rtmp) && iters < maxiters) {
+                eps *= ParticleReal(2.);
+                rtmp = rlo + eps;
+                ++iters;
+            }
+            rlo_out = rlo;
+            rlo = rtmp;
+            numiters = std::max(numiters,iters);
+        }
+
+        {
+            // rlo_out is outside
+            // rlo     is inside
+            int iters = 0;
+            auto epsilon = std::numeric_limits<ParticleReal>::epsilon()
+                * std::max(ParticleReal(CellSize(idim)),std::abs(rlo))
+                * ParticleReal(2.0);
+            while (is_inside(rlo-epsilon) && iters < maxiters) {
+                auto rmid = ParticleReal(0.5)*(rlo_out+rlo);
+                if (rmid == rlo_out || rmid == rlo) {
+                    break;
+                }
+                if (is_inside(rmid)) {
+                    rlo = rmid;
+                    epsilon = std::numeric_limits<ParticleReal>::epsilon()
+                        * std::max(ParticleReal(CellSize(idim)),std::abs(rlo))
+                        * ParticleReal(2.0);
+                } else {
+                    rlo_out = rmid;
+                }
+                ++iters;
+            }
+            numiters = std::max(numiters,iters);
+        }
+
+        ParticleReal rhi_out;
+        if (is_inside(rhi))
+        {
+            auto eps = std::numeric_limits<ParticleReal>::epsilon() * (rhi-rlo);
+            int iters = 0;
+            rhi_out = rhi + eps;
+            while (is_inside(rhi_out) && iters < maxiters) {
+                eps *= ParticleReal(2.);
+                rhi_out = rhi + eps;
+                ++iters;
+            }
+            numiters = std::max(numiters,iters);
+        }
+        else
+        {
+            auto eps = std::numeric_limits<ParticleReal>::epsilon() * (rhi-rlo);
+            int iters = 0;
+            // Yes, we have to write it this way for Intel compiler.
+            // is_outside(rhi-eps) could be different from is_outside(rtmp),
+            // where rtmp = rhs-eps.
+            auto rtmp = rhi - eps;
+            while (is_outside(rtmp) && iters < maxiters) {
+                eps *= ParticleReal(2.);
+                rtmp = rhi - eps;
+                ++iters;
+            }
+            rhi_out = rhi;
+            rhi = rtmp;
+            numiters = std::max(numiters,iters);
+        }
+
+        {
+            // rhi     is inside
+            // rhi_out is outside
+            int iters = 0;
+            auto epsilon = std::numeric_limits<ParticleReal>::epsilon()
+                * std::max(ParticleReal(CellSize(idim)),std::abs(rhi))
+                * ParticleReal(2.0);
+            while (is_inside(rhi+epsilon) && iters < maxiters) {
+                auto rmid = ParticleReal(0.5)*(rhi+rhi_out);
+                if (rmid == rhi || rmid == rhi_out) {
+                    break;
+                }
+                if (is_inside(rmid)) {
+                    rhi = rmid;
+                    epsilon = std::numeric_limits<ParticleReal>::epsilon()
+                        * std::max(ParticleReal(CellSize(idim)),std::abs(rhi))
+                        * ParticleReal(2.0);
+                } else {
+                    rhi_out = rmid;
+                }
+                ++iters;
+            }
+            numiters = std::max(numiters,iters);
+        }
     }
+
+    AMREX_ALWAYS_ASSERT(numiters < maxiters);
 }
 
 bool
 Geometry::outsideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const
 {
-#ifdef AMREX_SINGLE_PRECISION_PARTICLES
-    bool outside = AMREX_D_TERM(x <  roundoff_lo_f[0]
-                             || x >= roundoff_hi_f[0],
-                             || y <  roundoff_lo_f[1]
-                             || y >= roundoff_hi_f[1],
-                             || z <  roundoff_lo_f[2]
-                             || z >= roundoff_hi_f[2]);
-#else
-    bool outside = AMREX_D_TERM(x <  roundoff_lo_d[0]
-                             || x >= roundoff_hi_d[0],
-                             || y <  roundoff_lo_d[1]
-                             || y >= roundoff_hi_d[1],
-                             || z <  roundoff_lo_d[2]
-                             || z >= roundoff_hi_d[2]);
-#endif
+    bool outside = AMREX_D_TERM(x < roundoff_lo[0]
+                             || x > roundoff_hi[0],
+                             || y < roundoff_lo[1]
+                             || y > roundoff_hi[1],
+                             || z < roundoff_lo[2]
+                             || z > roundoff_hi[2]);
     return outside;
 }
 

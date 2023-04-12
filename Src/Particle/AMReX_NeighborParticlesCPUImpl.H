@@ -177,7 +177,7 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
         }
     }
 
-    const int nrcvs = RcvProc.size();
+    const auto nrcvs = int(RcvProc.size());
     Vector<MPI_Status>  stats(nrcvs);
     Vector<MPI_Request> rreqs(nrcvs);
 
@@ -229,7 +229,7 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
             amrex::Abort("NeighborParticles::sumNeighbors: How did this happen?");
         }
 
-        int npart = recvdata.size() / data_size;
+        auto npart = int(recvdata.size() / data_size);
 
         char* buffer = recvdata.data();
         for (int j = 0; j < npart; ++j)
@@ -522,7 +522,7 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
         }
     }
 
-    const int nrcvs = RcvProc.size();
+    const auto nrcvs = int(RcvProc.size());
     Vector<MPI_Status>  stats(nrcvs);
     Vector<MPI_Request> rreqs(nrcvs);
 
@@ -561,7 +561,7 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
     if (nrcvs > 0) {
         ParallelDescriptor::Waitall(rreqs, stats);
         for (int i = 0; i < nrcvs; ++i) {
-            const int offset = rOffset[i];
+            const auto offset = int(rOffset[i]);
             char* buffer = &recvdata[offset];
             int num_tiles, lev, gid, tid, size, np;
             std::memcpy(&num_tiles, buffer, sizeof(int)); buffer += sizeof(int);

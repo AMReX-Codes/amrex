@@ -210,8 +210,8 @@ public:
         h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
     {
         Initialize ();
-        reserveData();
-        resizeData();
+        ParticleContainer::reserveData();
+        ParticleContainer::resizeData();
     }
 
     //! \brief Construct a particle container using a given Geometry, DistributionMapping,
@@ -230,8 +230,8 @@ public:
         h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
     {
         Initialize ();
-        reserveData();
-        resizeData();
+        ParticleContainer::reserveData();
+        ParticleContainer::resizeData();
     }
 
     //! \brief Construct a particle container using a given Geometry, DistributionMapping,
@@ -253,8 +253,8 @@ public:
         h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
     {
         Initialize ();
-        reserveData();
-        resizeData();
+        ParticleContainer::reserveData();
+        ParticleContainer::resizeData();
     }
 
     //! \brief Same as the above, but accepts different refinement ratios in each direction.
@@ -275,8 +275,8 @@ public:
         h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
     {
         Initialize ();
-        reserveData();
-        resizeData();
+        ParticleContainer::reserveData();
+        ParticleContainer::resizeData();
     }
 
     ~ParticleContainer () override = default;

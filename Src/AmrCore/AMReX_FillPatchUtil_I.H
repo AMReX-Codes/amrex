@@ -268,8 +268,8 @@ InterpFace (Interp *interp,
 template <typename MF, typename iMF>
 std::enable_if_t<IsFabArray<MF>::value>
 InterpFace (InterpBase *interp,
-            MF const& mf_crse_patch,    const int crse_comp,
-            MF&       mf_refined_patch, const int fine_comp,
+            MF const& mf_crse_patch,    int crse_comp,
+            MF&       mf_refined_patch, int fine_comp,
             int ncomp, const IntVect&   ratio,
             const iMF& solve_mask, const Geometry&  crse_geom, const Geometry&  fine_geom,
             int bccomp, RunOn gpu_or_cpu,
