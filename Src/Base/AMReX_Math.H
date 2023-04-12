@@ -182,6 +182,46 @@ std::pair<float,float> sincospi (float x)
     return r;
 }
 
+//! Return pow(x, Power), where Power is an integer known at compile time
+template <int Power>
+AMREX_FORCE_INLINE
+constexpr double powi (double x) noexcept
+{
+    if constexpr (Power < 0)
+    	return 1.0/powi<-Power>(x);
+    else if constexpr (Power == 0)
+        //note: 0^0 is implementation-defined, but most compilers return 1
+    	return 1.0;
+    else if constexpr (Power == 1)
+        return x;
+    else if constexpr (Power == 2)
+        return x*x;
+    else if constexpr (Power%2 == 0)
+        return powi<2>(powi<Power/2>(x));
+    else
+        return x * powi<Power-1>(x);
+}
+
+//! Return pow(x, Power), where Power is an integer known at compile time
+template <int Power>
+AMREX_FORCE_INLINE
+constexpr float powi (float x) noexcept
+{
+    if constexpr (Power < 0)
+    	return 1.0f/powi<-Power>(x);
+    else if constexpr (Power == 0)
+        //note: 0^0 is implementation-defined, but most compilers return 1
+    	return 1.0f;
+    else if constexpr (Power == 1)
+        return x;
+    else if constexpr (Power == 2)
+        return x*x;
+    else if constexpr (Power%2 == 0)
+        return powi<2>(powi<Power/2>(x));
+    else
+        return x * powi<Power-1>(x);
+}
+
 }}
 
 #endif
