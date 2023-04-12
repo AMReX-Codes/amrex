@@ -1431,7 +1431,7 @@ MLMGT<MF>::actualBottomSolve ()
         }
 
         if (bottom_solver == BottomSolver::hypre)
-        { // NOLINT(bugprone-branch-clone)
+        {
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
             bottomSolveWithHypre(x, *bottom_b);
 #endif

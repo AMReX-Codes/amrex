@@ -122,6 +122,9 @@ public:
     explicit IntVect (const Array<int,AMREX_SPACEDIM>& a) noexcept
         : vect{AMREX_D_DECL(a[0],a[1],a[2])} {}
 
+    explicit constexpr IntVect (Dim3 const& a) noexcept
+        : vect{AMREX_D_DECL(a.x,a.y,a.z)} {}
+
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

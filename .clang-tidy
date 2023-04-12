@@ -1,6 +1,7 @@
 Checks: >
     '-*,
      bugprone-*,
+       -bugprone-branch-clone,
        -bugprone-easily-swappable-parameters,
        -bugprone-exception-escape,
        -bugprone-implicit-widening-of-multiplication-result,
