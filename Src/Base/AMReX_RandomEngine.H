@@ -8,7 +8,7 @@
 #if defined(AMREX_USE_HIP)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-W#warnings"
-#include <hiprand.hpp>
+#include <hiprand/hiprand.hpp>
 #pragma clang diagnostic pop
 #elif defined(AMREX_USE_CUDA)
 #include <curand.h>
