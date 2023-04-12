@@ -189,10 +189,10 @@ AMREX_FORCE_INLINE
 constexpr T powi (T x) noexcept
 {
     if constexpr (Power < 0)
-    	return T(1)/powi<-Power>(x);
+        return T(1)/powi<-Power>(x);
     else if constexpr (Power == 0)
         //note: 0^0 is implementation-defined, but most compilers return 1
-    	return T(1);
+        return T(1);
     else if constexpr (Power == 1)
         return x;
     else if constexpr (Power == 2)
