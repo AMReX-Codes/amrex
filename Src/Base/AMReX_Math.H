@@ -32,7 +32,7 @@ namespace amrex::Math {
 
 // Since Intel's SYCL compiler now supports the following std functions on device,
 // one no longer needs to use amrex::Math::abs, etc.  They are kept here for
-// backward compatability.
+// backward compatibility.
 
 using std::abs;
 using std::ceil;
@@ -180,6 +180,27 @@ std::pair<float,float> sincospi (float x)
     r = sincos(pi<float>()*x);
 #endif
     return r;
+}
+
+//! Return pow(x, Power), where Power is an integer known at compile time
+template <int Power, typename T,
+    typename = typename std::enable_if<!std::is_integral<T>() || Power>=0>::type>
+AMREX_FORCE_INLINE
+constexpr T powi (T x) noexcept
+{
+    if constexpr (Power < 0)
+        return T(1)/powi<-Power>(x);
+    else if constexpr (Power == 0)
+        //note: 0^0 is implementation-defined, but most compilers return 1
+        return T(1);
+    else if constexpr (Power == 1)
+        return x;
+    else if constexpr (Power == 2)
+        return x*x;
+    else if constexpr (Power%2 == 0)
+        return powi<2>(powi<Power/2>(x));
+    else
+        return x*powi<Power-1>(x);
 }
 
 }
