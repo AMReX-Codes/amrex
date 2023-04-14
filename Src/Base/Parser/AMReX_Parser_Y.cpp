@@ -1209,6 +1209,8 @@ parser_ast_print_f1 (struct parser_f1* f1, std::string const& space, AllPrint& p
     case PARSER_POW_P1:      printer << "POW(,1)\n";     break;
     case PARSER_POW_P2:      printer << "POW(,2)\n";     break;
     case PARSER_POW_P3:      printer << "POW(,3)\n";     break;
+    case PARSER_COMP_ELLINT_1: printer << "COMP_ELLINT_1\n"; break;
+    case PARSER_COMP_ELLINT_2: printer << "COMP_ELLINT_2\n"; break;
     default:
         amrex::AllPrint() << "parser_ast_print_f1: Unknown function " << f1->ftype << "\n";
     }

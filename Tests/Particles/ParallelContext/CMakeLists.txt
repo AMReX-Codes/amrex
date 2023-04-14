@@ -5,7 +5,7 @@ else ()
   set(_input_files inputs.rt  )
 endif ()
 
-setup_test(_sources _input_files NTASKS 2)
+setup_test(_sources _input_files)
 
 unset(_sources)
 unset(_input_files)

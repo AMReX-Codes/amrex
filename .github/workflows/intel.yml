@@ -10,7 +10,6 @@ jobs:
   tests-oneapi-sycl:
     name: oneAPI SYCL [tests]
     runs-on: ubuntu-20.04
-    # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
@@ -25,11 +24,13 @@ jobs:
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
-      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare"}
+      # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
+      # mkl/rng/device/detail/mrg32k3a_impl.hpp has missing braces in array-array initalization
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare -Wno-missing-braces"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=27M
+        export CCACHE_MAXSIZE=45M
         export CCACHE_DEPEND=1
         ccache -z
 
@@ -69,11 +70,12 @@ jobs:
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
       # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
-      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare"}
+      # mkl/rng/device/detail/mrg32k3a_impl.hpp has missing braces in array-array initalization
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare -Wno-missing-braces"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=33M
+        export CCACHE_MAXSIZE=55M
         export CCACHE_DEPEND=1
         ccache -z
 
@@ -125,7 +127,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=20M
+        export CCACHE_MAXSIZE=40M
         ccache -z
 
         set +e
