@@ -316,44 +316,17 @@ void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::locateParticle (ParticleType& p, ParticleLocData& pld,
                                                                                         int lev_min, int lev_max, int nGrow, int local_grid) const
 {
-    bool outside = AMREX_D_TERM(p.pos(0) <  Geom(0).ProbLo(0)
-                             || p.pos(0) >= Geom(0).ProbHi(0),
-                             || p.pos(1) <  Geom(0).ProbLo(1)
-                             || p.pos(1) >= Geom(0).ProbHi(1),
-                             || p.pos(2) <  Geom(0).ProbLo(2)
-                             || p.pos(2) >= Geom(0).ProbHi(2));
-
-    if (! outside)
-    {
-        if (Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))))
-        {
-            GpuArray<ParticleReal, AMREX_SPACEDIM> rhi = Geom(0).ProbHiArrayInParticleReal();
-            GpuArray<ParticleReal, AMREX_SPACEDIM> rlo = Geom(0).ProbLoArrayInParticleReal();
-            for (int idim=0; idim < AMREX_SPACEDIM; ++idim)
-            {
-                if (p.pos(idim) <= rlo[idim]) {
-                    p.pos(idim) = std::nextafter(rlo[idim], rhi[idim]);
-                }
-                if (p.pos(idim) >= rhi[idim]) {
-                    p.pos(idim) = std::nextafter(rhi[idim], rlo[idim]);
-                }
-            }
-
-            AMREX_ASSERT(! Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))));
-        }
-    }
-
     bool success;
-    if (outside)
+    if (Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))))
     {
-      // Note that EnforcePeriodicWhere may shift the particle if it is successful.
-      success = EnforcePeriodicWhere(p, pld, lev_min, lev_max, local_grid);
-      if (!success && lev_min == 0)
-      {
-          // The particle has left the domain; invalidate it.
-          p.id() = -p.id();
-          success = true;
-      }
+        // Note that EnforcePeriodicWhere may shift the particle if it is successful.
+        success = EnforcePeriodicWhere(p, pld, lev_min, lev_max, local_grid);
+        if (!success && lev_min == 0)
+        {
+            // The particle has left the domain; invalidate it.
+            p.id() = -p.id();
+            success = true;
+        }
     }
     else
     {
