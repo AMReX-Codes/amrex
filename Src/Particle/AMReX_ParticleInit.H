@@ -30,10 +30,10 @@
                 across the domain so that you only need to specify a sub-volume of
                 them. By default particles are not replicated.
  */
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep)
 {
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitFromAsciiFile()");
@@ -233,7 +233,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                                     if (m_verbose) {
                                         amrex::AllPrint() << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleType::NextID() << "\n";
                                     }
-                                    amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAsciiFile(): invalid replicated particle");
+                                    amrex::Abort("ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitFromAsciiFile(): invalid replicated particle");
                                 }
                             }
 
@@ -470,10 +470,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 // Note that there is nothing separating all these values.
 // They're packed into the binary file like sardines.
 //
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
 InitFromBinaryFile (const std::string& file,
                     int                extradata)
 {
@@ -614,22 +614,22 @@ InitFromBinaryFile (const std::string& file,
         // NP MUST be positive!
         //
         if (NP <= 0)
-            amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile(): NP <= 0");
+            amrex::Abort("ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitFromBinaryFile(): NP <= 0");
         //
         // DM must equal AMREX_SPACEDIM.
         //
         if (DM != AMREX_SPACEDIM)
-            amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile(): DM != AMREX_SPACEDIM");
+            amrex::Abort("ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitFromBinaryFile(): DM != AMREX_SPACEDIM");
         //
         // NX MUST be in [0,N].
         //
         if (NX < 0 || NX > NStructReal)
-            amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile(): NX < 0 || NX > N");
+            amrex::Abort("ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitFromBinaryFile(): NX < 0 || NX > N");
         //
         // Can't ask for more data than exists in the file!
         //
         if (extradata > NX)
-            amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile(): extradata > NX");
+            amrex::Abort("ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitFromBinaryFile(): extradata > NX");
         //
         // Figure out whether we're dealing with floats or doubles.
         //
@@ -813,7 +813,7 @@ InitFromBinaryFile (const std::string& file,
                                                               << p.pos(2))
                                               << "\n";
                         }
-                        amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile(): invalid particle");
+                        amrex::Abort("ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitFromBinaryFile(): invalid particle");
                     }
                 }
 
@@ -905,10 +905,10 @@ InitFromBinaryFile (const std::string& file,
 // one file name per line.
 //
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
 InitFromBinaryMetaFile (const std::string& metafile,
                         int                extradata)
 {
@@ -943,10 +943,10 @@ InitFromBinaryMetaFile (const std::string& metafile,
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
 InitRandom (Long                    icount,
             ULong                   iseed,
             const ParticleInitData& pdata,
@@ -1166,7 +1166,7 @@ InitRandom (Long                    icount,
             // locate the particle
             if (!Where(p, pld))
             {
-                amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandom(): invalid particle");
+                amrex::Abort("ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitRandom(): invalid particle");
             }
             AMREX_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
             std::pair<int, int> ind(pld.m_grid, pld.m_tile);
@@ -1227,16 +1227,16 @@ InitRandom (Long                    icount,
 
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
-        amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandom() time: " << stoptime << '\n';
+        amrex::Print() << "ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitRandom() time: " << stoptime << '\n';
     }
 
     Gpu::streamSynchronize();
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::InitRandomPerBox (Long                    icount_per_box,
                     ULong                   iseed,
                     const ParticleInitData& pdata)
@@ -1327,14 +1327,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
-        amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandomPerBox() time: " << stoptime << '\n';
+        amrex::Print() << "ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitRandomPerBox() time: " << stoptime << '\n';
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
 InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdata)
 {
     amrex::ignore_unused(y_off,z_off);
@@ -1361,7 +1361,7 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
         Box grid = ParticleBoxArray(0)[mfi.index()];
         auto ind = std::make_pair(mfi.index(), mfi.LocalTileIndex());
         RealBox grid_box (grid,dx,geom.ProbLo());
-        ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt, amrex::PinnedArenaAllocator> ptile_tmp;
+        ParticleTile<ParticleType, NArrayReal, NArrayInt, amrex::PinnedArenaAllocator> ptile_tmp;
         for (IntVect beg = grid.smallEnd(), end=grid.bigEnd(), cell = grid.smallEnd(); cell <= end; grid.next(cell))
         {
             // the real struct data
@@ -1411,14 +1411,14 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
 
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
-        amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitOnePerCell() time: " << stoptime << '\n';
+        amrex::Print() << "ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitOnePerCell() time: " << stoptime << '\n';
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
 InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
 {
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitNRandomPerCell()");
@@ -1491,7 +1491,7 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
 
                 // locate the particle
                 if (!Where(p, pld)) {
-                    amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitNRandomPerCell(): invalid particle");
+                    amrex::Abort("ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitNRandomPerCell(): invalid particle");
                 }
                 AMREX_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
                 std::pair<int, int> ind(pld.m_grid, pld.m_tile);
@@ -1552,7 +1552,7 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
 
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
-        amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitNRandomPerCell() time: " << stoptime << '\n';
+        amrex::Print() << "ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitNRandomPerCell() time: " << stoptime << '\n';
     }
 
     Gpu::streamSynchronize();
