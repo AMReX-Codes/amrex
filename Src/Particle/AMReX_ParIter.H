@@ -257,7 +257,7 @@ template <bool is_const, int T_NArrayReal=0, int T_NArrayInt=0,
           template<class> class Allocator=DefaultAllocator>
 using ParIterBaseSoA = ParIterBase_impl<is_const,SoAParticle<T_NArrayReal, T_NArrayInt>, T_NArrayReal, T_NArrayInt, Allocator>;
 
-template <int T_NStructReal, int T_NStructInt, int T_NArrayReal=0, int T_NArrayInt=0,
+template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArrayInt=0,
           template<class> class Allocator=DefaultAllocator>
 using ParConstIter = ParConstIter_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt, Allocator>;
 
