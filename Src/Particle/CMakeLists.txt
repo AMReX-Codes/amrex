@@ -29,6 +29,7 @@ target_sources( amrex
    AMReX_StructOfArrays.H
    AMReX_ArrayOfStructs.H
    AMReX_ParticleTile.H
+   AMReX_MakeParticle.H
    AMReX_NeighborParticlesCPUImpl.H
    AMReX_NeighborParticlesGPUImpl.H
    AMReX_ParticleBufferMap.H

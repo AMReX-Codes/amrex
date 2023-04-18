@@ -8,11 +8,11 @@
 
 namespace amrex {
 
-template <int NReal, int NInt,
+template <typename T_ParticleType,
           template<class> class Allocator=DefaultAllocator>
 class ArrayOfStructs {
 public:
-    using ParticleType  = Particle<NReal, NInt>;
+    using ParticleType  = T_ParticleType;
     using RealType      = typename ParticleType::RealType;
 
     using ParticleVector = amrex::PODVector<ParticleType, Allocator<ParticleType> >;
@@ -86,7 +86,7 @@ public:
     [[nodiscard]] const ParticleType& operator[] (int i) const { return m_data[i]; }
     [[nodiscard]]       ParticleType& operator[] (int i)       { return m_data[i]; }
 
-    void swap (ArrayOfStructs<NReal, NInt>& other)
+    void swap (ArrayOfStructs<ParticleType>& other)
     {
         m_data.swap(other.m_data);
     }
@@ -113,9 +113,9 @@ private:
 };
 
 #if __cplusplus < 201703L
-template <int NReal, int NInt,
+template <typename ParticleType,
           template<class> class Allocator>
-constexpr int ArrayOfStructs<NReal, NInt, Allocator>::SizeInReal;
+constexpr int ArrayOfStructs<ParticleType, Allocator>::SizeInReal;
 #endif
 
 } // namespace amrex

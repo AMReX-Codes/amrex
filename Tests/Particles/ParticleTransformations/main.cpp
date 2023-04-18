@@ -39,7 +39,7 @@ class TestParticleContainer
 
 public:
 
-    using ParticleTileType = ParticleTile<NSR, NSI, NAR, NAI>;
+    using ParticleTileType = ParticleTile<Particle<NSR, NSI>, NAR, NAI>;
 
 
     TestParticleContainer (const amrex::Geometry            & a_geom,

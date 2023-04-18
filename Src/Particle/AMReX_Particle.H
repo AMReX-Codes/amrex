@@ -208,6 +208,13 @@ struct ParticleBase<T,0,0>
 };
 
 
+struct SoAParticleBase
+{
+    static constexpr int NReal=0;
+    static constexpr int NInt=0;
+    static constexpr bool is_soa_particle = true;
+};
+
 /** \brief The struct used to store particles.
  *
  * \tparam T_NReal The number of extra Real components
@@ -217,6 +224,10 @@ template <int T_NReal, int T_NInt=0>
 struct Particle
     : ParticleBase<ParticleReal,T_NReal,T_NInt>
 {
+    static constexpr bool is_soa_particle = false;
+    using StorageParticleType = Particle;
+    using ConstType = Particle const;
+
     //! \brief number of extra Real components in the particle struct
     static constexpr int NReal = T_NReal;
 
