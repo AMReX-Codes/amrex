@@ -623,8 +623,8 @@ bool enforcePeriodic (P& p,
                 p.pos(idim) += static_cast<ParticleReal>(phi[idim] - plo[idim]);
             }
             // clamp to avoid precision issues;
-            if (p.pos(idim) >= rhi[idim]) {
-                p.pos(idim) = std::nextafter(rhi[idim], rlo[idim]);
+            if (p.pos(idim) > rhi[idim]) {
+                p.pos(idim) = rhi[idim];
             }
             shifted = true;
         }
