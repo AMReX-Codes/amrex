@@ -624,7 +624,7 @@ bool enforcePeriodic (P& p,
             }
             // clamp to avoid precision issues;
             if (p.pos(idim) >= rhi[idim]) {
-                p.pos(idim) = std::nextafter(p.pos(idim), rlo[idim]);
+                p.pos(idim) = std::nextafter(rhi[idim], rlo[idim]);
             }
             shifted = true;
         }
