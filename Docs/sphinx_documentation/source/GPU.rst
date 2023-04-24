@@ -918,7 +918,7 @@ C++ macros that launch a user-defined lambda function.  When compiled without CU
 the lambda function is ran on the CPU. When compiled with CUDA/HIP/SYCL, the launch function
 prepares and launches the lambda function on the GPU. The preparation includes
 calculating the appropriate number of blocks and threads, selecting the CUDA stream or HIP stream
-or SYCL queue, and defining the appropriate work chunk for each CUDA thread.
+or SYCL queue, and defining the appropriate work chunk for each GPU thread.
 
 When using OpenACC or OpenMP offloading pragmas, the users add the appropriate
 pragmas to their work loops and functions to offload to the GPU.  These work
@@ -1271,7 +1271,7 @@ occurs. This can be done by calling :cpp:`Gpu::streamSynchronize()`.
 CUDA and HIP supports multiple streams and kernels. Kernels launched in the
 same stream are executed sequentially, but different streams of kernel
 launches may be run in parallel.  For each iteration of :cpp:`MFIter`,
-AMReX uses a different CUDA stream (up to 16 streams in total).  This
+AMReX uses a different GPU stream (up to 4 streams in total).  This
 allows each iteration of an :cpp:`MFIter` loop to run independently,
 but in the expected sequence, and maximize the use of GPU parallelism.
 However, AMReX uses the default GPU stream outside of :cpp:`MFIter`
