@@ -28,7 +28,7 @@ import argparse
 import preprocess
 
 # modules to ignore in the dependencies
-IGNORES = ["iso_c_binding", "iso_fortran_env", "omp_lib", "mpi", "cudafor", "openacc"]
+IGNORES = ["iso_c_binding", "iso_fortran_env", "omp_lib", "mpi", "cudafor", "openacc", "hdf"]
 
 # regular expression for "{}module{}name", where {} can be any number
 # of spaces.  We use 4 groups here, denoted by (), so the name of the
