@@ -66,9 +66,28 @@ typedef double amrex_particle_real;
 
 #ifdef __cplusplus
 namespace amrex {
+    /** Floating Point Type for Fields
+     *
+     * This is a floating point type used by default for fields such as
+     * FabArray and MultiFab classes. This can be changed at compile time to
+     * run double, single or experimental floating point precisions for field
+     * computations and storage.
+     */
     using Real = amrex_real;
+
+    /** Floating Point Type for Particles
+     *
+     * This is a floating point type used by default for ParticleContainer and
+     * related particle classes. This can be changed at compile time to run
+     * double, single or experimental floating point precisions for particle
+     * computations and storage.
+     */
     using ParticleReal = amrex_particle_real;
 
+/** Floating point literals for AMReX precision.
+ *
+ * This namespace can be used to write typed numeric literals in expressions.
+ */
 inline namespace literals {
 
     /** @{
