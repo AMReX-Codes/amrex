@@ -69,7 +69,7 @@ namespace amrex {
     /** Floating Point Type for Fields
      *
      * This is a floating point type used by default for fields such as
-     * FabArray and MultiFab classes. This can be changed at compile time to
+     * FArrayBox and MultiFab classes. This can be changed at compile time to
      * run double, single or experimental floating point precisions for field
      * computations and storage.
      */
