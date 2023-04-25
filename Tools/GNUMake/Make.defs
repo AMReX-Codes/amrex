@@ -26,7 +26,7 @@ endif
 ifdef USE_SYCL
   USE_SYCL := $(strip $(USE_SYCL))
 else ifdef USE_DPCPP
-  $(warning *** USE_DPCPP has bee deprecated. Use USE_SYCL instead.)
+  $(warning *** USE_DPCPP has been deprecated. Use USE_SYCL instead.)
   USE_SYCL := $(strip $(USE_DPCPP))
 else
   USE_SYCL := FALSE
