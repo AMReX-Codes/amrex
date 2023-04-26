@@ -881,9 +881,9 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
     Gpu::Device::streamSynchronize();
 }
 
-template <class index_type, class pos_struct>
+template <class index_type, class PTile>
 void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type nitems,
-                               pos_struct const* v, Box bx, Geometry geom, const IntVect idx_type)
+                               const PTile& ptile, Box bx, Geometry geom, const IntVect idx_type)
 {
     AMREX_ALWAYS_ASSERT(idx_type.allGE(IntVect(0)) && idx_type.allLE(IntVect(2)));
 
@@ -904,17 +904,21 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
     const int ref_product = AMREX_D_TERM(refine_vect[0], * refine_vect[1], * refine_vect[2]);
     const IntVect ref_offset(AMREX_D_DECL(1, refine_vect[0], refine_vect[0] * refine_vect[1]));
 
+    auto ptd = ptile.getConstParticleTileData();
+    using ParticleType = typename PTile::ParticleType::ConstType;
     PermutationForDeposition<index_type>(perm, nitems, bx.numPts() * ref_product,
         [=] AMREX_GPU_DEVICE (index_type idx) noexcept
-        {
-            IntVect iv = ((v[idx].pos() - pos_offset) * dxi).round();
+            {
+                const auto& p = make_particle<ParticleType>{}(ptd,idx);
 
-            IntVect iv_coarse = iv / refine_vect;
-            IntVect iv_remainder = iv - iv_coarse * refine_vect;
+                IntVect iv = ((p.pos() - pos_offset) * dxi).round();
 
-            iv_coarse = iv_coarse.max(bx.smallEnd());
-            iv_coarse = iv_coarse.min(bx.bigEnd());
-            return bx.index(iv_coarse) + bx.numPts() * (iv_remainder * ref_offset).sum();
+                IntVect iv_coarse = iv / refine_vect;
+                IntVect iv_remainder = iv - iv_coarse * refine_vect;
+
+                iv_coarse = iv_coarse.max(bx.smallEnd());
+                iv_coarse = iv_coarse.min(bx.bigEnd());
+                return bx.index(iv_coarse) + bx.numPts() * (iv_remainder * ref_offset).sum();
         });
 }
 

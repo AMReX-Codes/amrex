@@ -1203,16 +1203,14 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 
         for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
-            auto& ptile           = ParticlesAt(lev, mfi);
-            auto& aos             = ptile.GetArrayOfStructs();
-            auto  pstruct_ptr     = aos().dataPtr();
-            const size_t np       = aos.numParticles();
+            const auto& ptile = ParticlesAt(lev, mfi);
+            const size_t np   = ptile.numParticles();
 
             const Box& box = mfi.validbox();
 
             using index_type = typename decltype(m_bins)::index_type;
             Gpu::DeviceVector<index_type> perm;
-            PermutationForDeposition<index_type>(perm, np, pstruct_ptr, box, geom, idx_type);
+            PermutationForDeposition<index_type>(perm, np, ptile, box, geom, idx_type);
             ReorderParticles(lev, mfi, perm.dataPtr());
         }
     }
