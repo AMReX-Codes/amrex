@@ -128,6 +128,7 @@ public:
         }
         else
 #endif
+        if (h_data)
         {
             std::memcpy(h_p, h_data, n*sizeof(T));
         }
