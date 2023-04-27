@@ -106,11 +106,23 @@ struct ParticleLocData
 * a given component, then the extra values will be set to zero. If more components
 * are specified, it is a compile-time error.
 *
+* Note that the position attributes, first AMREX_SPACEDIM in ParticleReal, and the IDs, first
+* two ints, are skipped here.
+* Note that the counts in the type of the SoAParticle definition are explicit about these default-required
+* attributes.
+*
 * Example usage:
 *
-*     ParticleInitType<0, 2, 4, 1> pdata = {{}, {7, 9}, {1.5, 2.5, 3.5, 4.5}, {11}};
+*     ParticleInitType<Particle<0, 2>, 4, 1> pdata = {{}, {7, 9}, {1.5, 2.5, 3.5, 4.5}, {11}};
+*     ParticleInitTypeSoA<4, 3> pdata = {{1.5, 2.5, 3.5, 4.5}, {7, 9, 11}};  // 3D: SoAParticle<7, 5>
 */
-template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NArrayReal, int NArrayInt>
+struct ParticleInitTypeSoA
+{
+    std::array<double, NArrayReal > real_array_data;
+    std::array<int,    NArrayInt  > int_array_data;
+};
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 struct ParticleInitType
 {
     std::array<double, NStructReal> real_struct_data;
@@ -177,7 +189,13 @@ public:
 
     using ParticleContainerType = ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
     using ParticleTileType = ParticleTile<ParticleType, NArrayReal, NArrayInt, Allocator>;
-    using ParticleInitData = ParticleInitType<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using ParticleInitData = typename std::conditional<
+        T_ParticleType::is_soa_particle,
+        // SoA Particle: init w/o positions and id/cpu, but explicitly listed in define
+        ParticleInitTypeSoA<NArrayReal - AMREX_SPACEDIM, NArrayInt - 2>,
+        // legacy particle: init w/o positions and id/cpu, only implicitly listed in define
+        ParticleInitType<T_ParticleType::NReal, T_ParticleType::NInt, NArrayReal, NArrayInt>
+    >::type;
 
     //! A single level worth of particles is indexed (grid id, tile id)
     //! for both SoA and AoS data.

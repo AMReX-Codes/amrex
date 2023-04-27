@@ -1063,8 +1063,27 @@ InitRandom (Long                    icount,
 
             if (who == MyProc) {
 
-                if constexpr(!ParticleType::is_soa_particle)
-                {
+                if constexpr(ParticleType::is_soa_particle) {
+                    for (int i = 0; i < AMREX_SPACEDIM; i++) {
+                        host_real_attribs[pld.m_lev][ind][i].push_back(pos[j*AMREX_SPACEDIM+i]);
+                    }
+
+                    host_int_attribs[pld.m_lev][ind][0].push_back(ParticleType::NextID());
+                    host_int_attribs[pld.m_lev][ind][1].push_back(MyProc);
+
+                    host_particles[pld.m_lev][ind];
+
+                    // add the real...
+                    for (int i = AMREX_SPACEDIM; i < NArrayReal; i++) {
+                        host_real_attribs[pld.m_lev][ind][i].push_back(static_cast<ParticleReal>(pdata.real_array_data[i]));
+                    }
+
+                    // ... and int array data
+                    for (int i = 2; i < NArrayInt; i++) {
+                        host_int_attribs[pld.m_lev][ind][i].push_back(pdata.int_array_data[i]);
+                    }
+                }
+                else {
                     ParticleType p;
                     for (int i = 0; i < AMREX_SPACEDIM; i++) {
                         p.pos(i) = pos[j*AMREX_SPACEDIM + i];
@@ -1094,25 +1113,6 @@ InitRandom (Long                    icount,
                     for (int i = 0; i < NArrayInt; i++) {
                         host_int_attribs[pld.m_lev][ind][i].push_back(pdata.int_array_data[i]);
                     }
-                } else {
-                    for (int i = 0; i < AMREX_SPACEDIM; i++) {
-                        host_real_attribs[pld.m_lev][ind][i].push_back(pos[j*AMREX_SPACEDIM+i]);
-                    }
-
-                    host_int_attribs[pld.m_lev][ind][0].push_back(ParticleType::NextID());
-                    host_int_attribs[pld.m_lev][ind][1].push_back(MyProc);
-
-                    host_particles[pld.m_lev][ind];
-
-                    // add the real...
-                    for (int i = AMREX_SPACEDIM; i < NArrayReal; i++) {
-                        host_real_attribs[pld.m_lev][ind][i].push_back(static_cast<ParticleReal>(pdata.real_array_data[i]));
-                    }
-
-                    // ... and int array data
-                    for (int i = 2; i < NArrayInt; i++) {
-                        host_int_attribs[pld.m_lev][ind][i].push_back(pdata.int_array_data[i]);
-                    }
                 }
             }
         }
@@ -1127,11 +1127,11 @@ InitRandom (Long                    icount,
                 auto& dst_tile = GetParticles(host_lev)[std::make_pair(grid,tile)];
                 auto old_size = dst_tile.GetArrayOfStructs().size();
                 auto new_size = old_size;
-                if constexpr(!ParticleType::is_soa_particle)
+                if constexpr(ParticleType::is_soa_particle)
                 {
-                    new_size += src_tile.size();
-                } else {
                     new_size += host_real_attribs[host_lev][std::make_pair(grid,tile)][0].size();
+                } else {
+                    new_size += src_tile.size();
                 }
                 dst_tile.resize(new_size);
 
@@ -1362,44 +1362,71 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
         for (Long jcnt = 0; jcnt < icount_per_box; jcnt++) {
         for (Long kcnt = 0; kcnt < icount_per_box; kcnt++)
         {
-            p.pos(0) = static_cast<ParticleReal>(grid_box.lo(0) + (dist(mt) + double(icnt)) / double(icount_per_box) * grid_box.length(0));
-            p.pos(1) = static_cast<ParticleReal>(grid_box.lo(1) + (dist(mt) + double(jcnt)) / double(icount_per_box) * grid_box.length(1));
-            p.pos(2) = static_cast<ParticleReal>(grid_box.lo(2) + (dist(mt) + double(kcnt)) / double(icount_per_box) * grid_box.length(2));
-
-            for (int i = 0; i < AMREX_SPACEDIM; i++)
-                AMREX_ASSERT(p.pos(i) < grid_box.hi(i));
-
-            // the real struct data
-            for (int i = 0; i < NStructReal; i++) {
-                p.rdata(i) = static_cast<ParticleReal>(pdata.real_struct_data[i]);
+            // the position data
+            for (int d = 0; d < AMREX_SPACEDIM; d++) {
+                p.pos(d) = static_cast<ParticleReal>(grid_box.lo(d) + (dist(mt) + icnt) / icount_per_box * grid_box.length(d));
             }
 
-            // the int struct data
-            p.id()  = ParticleType::NextID();
-            p.cpu() = ParallelDescriptor::MyProc();
+            for (int d = 0; d < AMREX_SPACEDIM; d++)
+                AMREX_ASSERT(p.pos(d) < grid_box.hi(d));
 
-            for (int i = 0; i < NStructInt; i++) {
-                p.idata(i) = pdata.int_struct_data[i];
+            if constexpr(ParticleType::is_soa_particle) {
+                if (!Where(p, pld)) {
+                    amrex::Abort("ParticleContainer::InitRandom(): invalid particle");
+                }
+                AMREX_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
+                std::pair<int, int> ind(pld.m_grid, pld.m_tile);
+
+                // IDs
+                p.id()  = ParticleType::NextID();
+                p.cpu() = ParallelDescriptor::MyProc();
+
+                // add the real (after position)
+                for (int i = AMREX_SPACEDIM; i < NArrayReal; i++) {
+                    m_particles[pld.m_lev][ind].push_back_real(i, static_cast<ParticleReal>(pdata.real_array_data[i]));
+                }
+
+                // add the int array data (after id, cpu)
+                for (int i = 2; i < NArrayInt; i++) {
+                    m_particles[pld.m_lev][ind].push_back_int(i, pdata.int_array_data[i]);
+                }
+
+                // add
+                m_particles[pld.m_lev][ind].push_back(p);
             }
+            else {
+                // the real struct data
+                for (int i = 0; i < NStructReal; i++) {
+                    p.rdata(i) = static_cast<ParticleReal>(pdata.real_struct_data[i]);
+                }
 
-            // locate the particle
-            if (!Where(p, pld)) {
-                amrex::Abort("ParticleContainer::InitRandomPerBox(): invalid particle");
-            }
-            AMREX_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
-            std::pair<int, int> ind(pld.m_grid, pld.m_tile);
+                // the int struct data
+                p.id()  = ParticleType::NextID();
+                p.cpu() = ParallelDescriptor::MyProc();
 
-            // add the struct
-            m_particles[pld.m_lev][ind].push_back(p);
+                for (int i = 0; i < NStructInt; i++) {
+                    p.idata(i) = pdata.int_struct_data[i];
+                }
 
-            // add the real...
-            for (int i = 0; i < NArrayReal; i++) {
-                m_particles[pld.m_lev][ind].push_back_real(i, static_cast<ParticleReal>(pdata.real_array_data[i]));
-            }
+                // locate the particle
+                if (!Where(p, pld)) {
+                    amrex::Abort("ParticleContainer::InitRandomPerBox(): invalid particle");
+                }
+                AMREX_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
+                std::pair<int, int> ind(pld.m_grid, pld.m_tile);
 
-            // ... and int array data
-            for (int i = 0; i < NArrayInt; i++) {
-                m_particles[pld.m_lev][ind].push_back_int(i, pdata.int_array_data[i]);
+                // add the struct
+                m_particles[pld.m_lev][ind].push_back(p);
+
+                // add the real...
+                for (int i = 0; i < NArrayReal; i++) {
+                    m_particles[pld.m_lev][ind].push_back_real(i, static_cast<ParticleReal>(pdata.real_array_data[i]));
+                }
+
+                // ... and int array data
+                for (int i = 0; i < NArrayInt; i++) {
+                    m_particles[pld.m_lev][ind].push_back_int(i, pdata.int_array_data[i]);
+                }
             }
 
         } } }
@@ -1438,48 +1465,64 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
 
     const Real* dx  = geom.CellSize();
 
-    ParticleType p;
-
     // We'll generate the particles in parallel -- but no tiling of the grid here.
     for (MFIter mfi(*m_dummy_mf[0], false); mfi.isValid(); ++mfi) {
         Box grid = ParticleBoxArray(0)[mfi.index()];
         auto ind = std::make_pair(mfi.index(), mfi.LocalTileIndex());
         RealBox grid_box (grid,dx,geom.ProbLo());
+
+        // tile for one particle
         ParticleTile<ParticleType, NArrayReal, NArrayInt, amrex::PinnedArenaAllocator> ptile_tmp;
+        ptile_tmp.resize(1);
+        auto ptd = ptile_tmp.getParticleTileData();
+
         for (IntVect beg = grid.smallEnd(), end=grid.bigEnd(), cell = grid.smallEnd(); cell <= end; grid.next(cell))
         {
-            // the real struct data
-            AMREX_D_TERM(p.pos(0) = static_cast<ParticleReal>(grid_box.lo(0) + (x_off + cell[0]-beg[0])*dx[0]);,
-                         p.pos(1) = static_cast<ParticleReal>(grid_box.lo(1) + (y_off + cell[1]-beg[1])*dx[1]);,
-                         p.pos(2) = static_cast<ParticleReal>(grid_box.lo(2) + (z_off + cell[2]-beg[2])*dx[2]););
+            // particle index
+            constexpr int i = 0;
 
-            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-                AMREX_ASSERT(p.pos(d) < grid_box.hi(d));
+            // the position data
+            for (int d = 0; d < AMREX_SPACEDIM; d++) {
+                ptile_tmp.pos(i, d) = static_cast<ParticleReal>(grid_box.lo(d) + (x_off + cell[d]-beg[d])*dx[d]);
             }
 
-            for (int i = 0; i < NStructReal; i++) {
-                p.rdata(i) = static_cast<ParticleReal>(pdata.real_struct_data[i]);
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                AMREX_ASSERT(ptile_tmp.pos(i, d) < grid_box.hi(d));
+            }
+
+            if constexpr(!ParticleType::is_soa_particle) {
+                for (int n = 0; n < NStructReal; n++) {
+                    ptd.rdata(n)[i] = static_cast<ParticleReal>(pdata.real_struct_data[n]);
+                }
             }
 
             // the int struct data
-            p.id()  = ParticleType::NextID();
-            p.cpu() = ParallelDescriptor::MyProc();
-
-            for (int i = 0; i < NStructInt; i++) {
-                p.idata(i) = pdata.int_struct_data[i];
+            if constexpr(ParticleType::is_soa_particle) {
+                ptd.idata(0)[i] = ParticleType::NextID();
+                ptd.idata(1)[i] = ParallelDescriptor::MyProc();
+            }
+            else {
+                auto& p = make_particle<ParticleType>{}(ptd, i);
+                p.id() = ParticleType::NextID();
+                p.cpu() = ParallelDescriptor::MyProc();
             }
 
-            // add the struct
-            ptile_tmp.push_back(p);
+            if constexpr(!ParticleType::is_soa_particle) {
+                for (int n = 0; n < NStructInt; n++) {
+                    ptd.idata(n)[i] = pdata.int_struct_data[n];
+                }
+            }
 
             // add the real...
-            for (int i = 0; i < NArrayReal; i++) {
-                ptile_tmp.push_back_real(i, static_cast<ParticleReal>(pdata.real_array_data[i]));
+            int n_min_real = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0; // jump over position
+            for (int n = n_min_real; n < NArrayReal; n++) {
+                ptile_tmp.push_back_real(n, static_cast<ParticleReal>(pdata.real_array_data[n]));
             }
 
             // ... and int array data
-            for (int i = 0; i < NArrayInt; i++) {
-                ptile_tmp.push_back_int(i, pdata.int_array_data[i]);
+            int n_min_int = ParticleType::is_soa_particle ? 2 : 0; // jump over cpuid
+            for (int n = n_min_int; n < NArrayInt; n++) {
+                ptile_tmp.push_back_int(n, pdata.int_array_data[n]);
             }
         }
 
