@@ -582,9 +582,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::Incremen
     const auto dxi = geom.InvCellSizeArray();
     const auto domain = geom.Domain();
     amrex::ParticleToMesh(*this, mf, lev,
-        [=] AMREX_GPU_DEVICE (const ParticleType& p,
+        [=] AMREX_GPU_DEVICE (const typename ParticleTileType::ConstParticleTileDataType& ptd, int ip,
                               amrex::Array4<amrex::Real> const& count)
         {
+            const auto& p = make_particle<ParticleType>{}(ptd, ip);
             auto iv = getParticleCell(p, plo, dxi, domain);
             amrex::Gpu::Atomic::AddNoRet(&count(iv), 1.0_rt);
         }, false);
