@@ -4,12 +4,11 @@
 #include <type_traits>
 
 template< class T >
-struct is_soa_particle
+struct is_const_soa_particle
      : std::integral_constant<
          bool,
-         T::is_soa_particle
+         T::is_soa_particle && T::is_constsoa_particle
      > {};
-
 
 template <typename T_ParticleType, class Enable = void>
 struct make_particle
@@ -25,14 +24,14 @@ struct make_particle
 };
 
 template <typename T_ParticleType>
-struct make_particle<T_ParticleType, typename std::enable_if<is_soa_particle<T_ParticleType>::value>::type>
+struct make_particle<T_ParticleType, typename std::enable_if<is_const_soa_particle<T_ParticleType>::value>::type>
 {
     template <typename PTD>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     auto
     operator() (PTD const& ptd, int index)
     {
-        // SoAParticle
+        // ConstSoAParticle
         return T_ParticleType(ptd, index);
     }
 };
