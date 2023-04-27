@@ -1,39 +1,43 @@
 #ifndef AMREX_MAKEPARTICLE_H_
 #define AMREX_MAKEPARTICLE_H_
 
+#include "AMReX_ParticleTile.H"
+
 #include <type_traits>
 
-template< class T >
-struct is_const_soa_particle
-     : std::integral_constant<
-         bool,
-         T::is_soa_particle && T::is_constsoa_particle
-     > {};
 
-template <typename T_ParticleType, class Enable = void>
-struct make_particle
-{
-    template <typename PTD>
+namespace amrex {
+
+template<class T>
+struct is_soa_particle
+        : std::integral_constant<
+                bool,
+                T::is_soa_particle
+        > {
+};
+
+template<typename T_ParticleType, class Enable = void>
+struct make_particle {
+    template<typename PTD>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    auto&
-    operator() (PTD const& ptd, int i)
-    {
+    auto &
+    operator()(PTD const &ptd, int i) {
         // legacy Particle (AoS)
         return ptd.m_aos[i];
     }
 };
 
-template <typename T_ParticleType>
-struct make_particle<T_ParticleType, typename std::enable_if<is_const_soa_particle<T_ParticleType>::value>::type>
-{
-    template <typename PTD>
+template<typename T_ParticleType>
+struct make_particle<T_ParticleType, typename std::enable_if<is_soa_particle<T_ParticleType>::value>::type> {
+    template<typename PTD>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     auto
-    operator() (PTD const& ptd, int index)
-    {
-        // ConstSoAParticle
-        return T_ParticleType(ptd, index);
+    operator()(PTD const &ptd, int index) {
+        // pure SoA particle (by value)
+        return ConstSoAParticle<T_ParticleType::NArrayReal, T_ParticleType::NArrayInt>(ptd, index);
     }
 };
+
+} // namespace amrex
 
 #endif
