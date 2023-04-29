@@ -435,7 +435,7 @@ Profiling Options
 
 AMReX's communication algorithms are often regions of code that increase in wall clock time
 when the application is load imbalanced, due to the MPI_Wait calls in these functions.
-To better understand if this is occuring and by how much, you can turn on an AMReX timed
+To better understand if this is occurring and by how much, you can turn on an AMReX timed
 synchronization with the runtime variable: ``amrex.use_profiler_syncs=1`` This adds named timers
 beginning with ``SyncBeforeComms`` immediately prior to the start of the FillBoundary,
 ParallelCopy and particle Redistribute functions, isolating any prior load imbalance to that timer

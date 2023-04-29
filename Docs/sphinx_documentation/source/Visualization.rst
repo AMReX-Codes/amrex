@@ -94,9 +94,9 @@ Amrvis. Additional information is contained in the document
    The settings for Amrvis are saved in the configuration file ``.amrvis.defaults`` in
    your home directory. A default version of this file is available in the parent directory of the
    Amrvis repo. Run the command ``cp Amrvis/amrvis.defaults ~/.amrvis.defaults`` to
-   copy it to your home directory. A color pallete is also available in the Amrvis directory as a file
+   copy it to your home directory. A color palette is also available in the Amrvis directory as a file
    named ``Palette``.
-   To configure Amrvis to use this pallete you can open the ``.amrvis.defaults`` file
+   To configure Amrvis to use this palette you can open the ``.amrvis.defaults`` file
    in your home directory and edit the line containing ``palette`` to point to the
    location of this file. For example,
 

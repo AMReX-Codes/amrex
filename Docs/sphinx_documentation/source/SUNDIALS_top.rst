@@ -4,7 +4,7 @@ SUNDIALS
 ========
 
 SUNDIALS stands for **SU**\ite of **N**\onlinear and **DI**\fferential/**AL**\gebraic
-equation **S**\olvers. It consistes of the following six solvers:
+equation **S**\olvers. It consists of the following six solvers:
 
 - CVODE, for initial value problems for ODE systems
 
