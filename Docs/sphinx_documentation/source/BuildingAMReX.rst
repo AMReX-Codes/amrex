@@ -502,7 +502,7 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_EXPORT_DYNAMIC         |  Enable backtrace on macOS                      | NO (unless Darwin)      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | AMReX_SENSEI                 |  Enable the SENSEI in situ infrastucture        | NO                      | YES, NO               |
+   | AMReX_SENSEI                 |  Enable the SENSEI in situ infrastructure       | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_NO_SENSEI_AMR_INST     |  Disables the instrumentation in amrex::Amr     | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
@@ -744,7 +744,7 @@ We do not officially support AMReX on Windows, and many of us do not have access
 machines.  However, we believe there are no fundamental issues for it to work on Windows.
 
 (1) AMReX mostly uses standard C++17.
-We run continous integration tests on Windows with MSVC and Clang compilers.
+We run continuous integration tests on Windows with MSVC and Clang compilers.
 
 (2) We use POSIX signal handling when floating point exceptions, segmentation faults, etc. happen.
 This capability is not supported on Windows.

@@ -400,7 +400,7 @@ Some of the linear solvers support curvilinear coordinates including 1D
 spherical and 2d cylindrical :math:`(r,z)`.  In those cases, the
 divergence operator has extra metric terms.  If one does not want the
 solver to include the metric terms because they have been handled in
-other ways, one can turn them off with a setter funtion. For
+other ways, one can turn them off with a setter function. For
 the cell-centered linear solvers `MLABecLaplacian` and `MLPoisson`, one
 can call :cpp:`setMetricTerm(bool)` with :cpp:`false`
 on the :cpp:`LPInfo` object passed to the constructor of linear

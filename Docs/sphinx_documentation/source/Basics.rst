@@ -380,7 +380,7 @@ They are briefly introduced in the table below.
    |                                           |        | after the executable.                     |
    +-------------------------------------------+--------+-------------------------------------------+
    | ``amrex:get_command_argument(int n)``     | String | Returns the n-th argument after           |
-   |                                           |        | the exectuable.                           |
+   |                                           |        | the executable.                           |
    +-------------------------------------------+--------+-------------------------------------------+
 
 

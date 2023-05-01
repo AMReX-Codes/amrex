@@ -325,11 +325,15 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
         RealVect facet_normal {AMREX_D_DECL(0._rt, 0._rt, 0._rt)};
         facet_normal[tmp_facet] = 1.; // whether facing inwards or outwards is not important here
 
+        Real c_dp = eb_normal.dotProduct(facet_normal);
+        Real c_norm = 1._rt - c_dp*c_dp;
+
+        Real eps = std::numeric_limits<Real>::epsilon();
+
         // skip cases where cell faces coincide with the eb facets
-        if (AMREX_D_TERM(std::abs(eb_normal[0]) == std::abs(facet_normal[0]),
-                      && std::abs(eb_normal[1]) == std::abs(facet_normal[1]),
-                      && std::abs(eb_normal[2]) == std::abs(facet_normal[2])))
-        { continue; }
+        if (std::abs(c_norm) <= eps) {
+            continue;
+        }
 
         int ind_cell = ind_loop[tmp_facet];
         int ind_nb   = ind_pt[tmp_facet];
@@ -359,9 +363,6 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
         //
         //  When one plane is the EB surface, and the other is a face of the
         //  cell. Then this line represents the edge of the EB facet.
-        //
-        Real c_dp = eb_normal.dotProduct(facet_normal);
-        Real c_norm = 1._rt - c_dp*c_dp;
         //
         Real c1 = ( eb_h - facet_h * c_dp ) / c_norm;
         Real c2 = ( facet_h - eb_h * c_dp ) / c_norm;
@@ -403,7 +404,6 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
         Real cx_hi = std::numeric_limits<Real>::max();
         Real cy_hi = std::numeric_limits<Real>::max();
         Real cz_hi = std::numeric_limits<Real>::max();
-        Real eps = std::numeric_limits<Real>::epsilon();
         // if the line runs parallel to any of these dimensions (which is true for
         // EB edges), then skip -> the min/max functions at the end will skip them
         // due to the +/-huge(c...) defaults (above).

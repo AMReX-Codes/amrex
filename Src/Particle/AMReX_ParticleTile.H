@@ -316,7 +316,7 @@ struct ConstSoAParticle : SoAParticleBase
     //functions to get positions of the particle in the SOA data
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    RealVect pos () const & {return RealVect(AMREX_D_DECL(this->m_constparticle_tile_data->m_rdata[0][m_index], this->m_constparticle_tile_data.m_rdata[1][m_index], this->m_constparticle_tile_data->m_rdata[2][m_index]));}
+    RealVect pos () const & {return RealVect(AMREX_D_DECL(this->m_constparticle_tile_data.m_rdata[0][m_index], this->m_constparticle_tile_data.m_rdata[1][m_index], this->m_constparticle_tile_data.m_rdata[2][m_index]));}
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const RealType&  pos (int position_index) const &
@@ -385,7 +385,7 @@ struct SoAParticle : SoAParticleBase
     //functions to get positions of the particle in the SOA data
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    RealVect pos () const & {return RealVect(AMREX_D_DECL(this->m_particle_tile_data->m_rdata[0][m_index], this->m_particle_tile_data.m_rdata[1][m_index], this->m_particle_tile_data->m_rdata[2][m_index]));}
+    RealVect pos () const & {return RealVect(AMREX_D_DECL(this->m_particle_tile_data.m_rdata[0][m_index], this->m_particle_tile_data.m_rdata[1][m_index], this->m_particle_tile_data.m_rdata[2][m_index]));}
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealType& pos (int position_index) &
