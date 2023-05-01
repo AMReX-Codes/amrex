@@ -19,7 +19,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -51,6 +51,7 @@ jobs:
         cmake --build build --parallel 2
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   tests-oneapi-sycl-eb:
     name: oneAPI SYCL [tests w/ EB]
@@ -64,7 +65,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -95,6 +96,7 @@ jobs:
         cmake --build build --parallel 2
 
         ccache -s
+        du -hs ~/.cache/ccache
 
 # "Classic" EDG Intel Compiler
 # Ref.: https://github.com/rscohn2/oneapi-ci
@@ -118,7 +120,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -149,6 +151,7 @@ jobs:
         cmake --build build --target test_install
 
         ccache -s
+        du -hs ~/.cache/ccache
 
     - name: Run tests
       run: |
