@@ -1,3 +1,45 @@
+# 23.05
+
+  -- Support SoA-Only Particles (#2878)
+     Conduit: Update ParticleTile API (#3260)
+     Fix default template parameter for ParConstIter (#3262)
+     Update SortParticlesForDeposition for pure SoA (#3277)
+     Implement increment for pure SoA (#3278)
+     Fix RealVect version of pos() for pure SoA (#3283)
+     Fix increment for pure SoA (follow on to #3278) (#3284)
+
+  -- handle divide by 0 in signed distance function (#3279)
+
+  -- Work-Around: CUDA 12.1 Non-Default Codelines (#3275)
+
+  -- CMake: Fix CUDA Options Order (#3274)
+
+  -- Fix bug in EBNodeFDLap (#3271)
+
+  -- update ci to use ascent 0.9.1 (#3266)
+
+  -- Add powi function in AMReX_Math.H (#3251)
+
+  -- update hiprand header path (#3252)
+
+  -- Installation using configure: Forgot to install Parser headers (#3249)
+
+  -- ParticleTileData: No Restrict in Storage (#3245)
+
+  -- CI: Retry Apt Repos (#3242)
+
+  -- Silence SWFFT (#3240)
+
+  -- Support complete elliptic integrals of 1st and 2nd type in Parser (#3225)
+
+  -- Rework handling of roundoff domain extent (#3199)
+     Fix periodic boundary bug in #3199 (#3243)
+     Fix Roundoff Domain (#3247)
+     Roundoff errors in computeRoundoffDomain (#3255)
+     Ensure that particles are always < rhi after applying periodic bcs. (#3263)
+
+  -- Fix: queryAdd for resizing vectors (#3220)
+
 # 23.04
 
   -- Speedup clang tidy (#3219)
