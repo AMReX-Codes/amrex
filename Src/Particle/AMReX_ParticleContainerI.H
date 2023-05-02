@@ -7,13 +7,13 @@ void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::SetParticleSize ()
 {
     num_real_comm_comps  = 0;
-    int comm_comps_start = AMREX_SPACEDIM + NStructReal;
+    int comm_comps_start = ParticleType::is_soa_particle ? 0 : AMREX_SPACEDIM + NStructReal;
     for (int i = comm_comps_start; i < comm_comps_start + NumRealComps(); ++i) {
         if (h_redistribute_real_comp[i]) {++num_real_comm_comps;}
     }
 
     num_int_comm_comps = 0;
-    comm_comps_start   = 2 + NStructInt;
+    comm_comps_start   = ParticleType::is_soa_particle ? 0 : 2 + NStructInt;
     for (int i = comm_comps_start; i < comm_comps_start + NumIntComps(); ++i) {
         if (h_redistribute_int_comp[i]) {++num_int_comm_comps;}
     }
@@ -1631,7 +1631,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                 }
             }
 
-              } else{ // soa particle
+          } else{ // pure soa particle
 
               auto particle_tile = ptile_ptrs[pmap_it];
               if (npart != 0) {
@@ -1639,7 +1639,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                 Long pindex = 0;
                 while (pindex <= last) {
                   auto ptd = particle_tile->getParticleTileData();
-                  ParticleType p(ptd,pindex);
+                  ParticleType p(ptd, pindex);
 
                   if ((remove_negative == false) && (p.id() < 0)) {
                       ++pindex;
@@ -1676,7 +1676,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                           // We own it but must shift it to another place.
                           auto index = std::make_pair(pld.m_grid, pld.m_tile);
                           AMREX_ASSERT(tmp_local[pld.m_lev][index].size() == num_threads);
-                          tmp_local[pld.m_lev][index][thread_num].push_back(p);
+                          //tmp_local[pld.m_lev][index][thread_num].push_back(p);
                           for (int comp = 0; comp < NumRealComps(); ++comp) {
                               RealVector& arr = soa_local[pld.m_lev][index][thread_num].GetRealData(comp);
                               arr.push_back(soa.GetRealData(comp)[pindex]);
@@ -1696,14 +1696,14 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                       particles_to_send.resize(new_size);
 
                       char* dst = &particles_to_send[old_size];
-                      int array_comp_start = AMREX_SPACEDIM + NStructReal;
+                      int array_comp_start = 0;
                       for (int comp = 0; comp < NumRealComps(); comp++) {
                           if (h_redistribute_real_comp[array_comp_start + comp]) {
                               std::memcpy(dst, &soa.GetRealData(comp)[pindex], sizeof(ParticleReal));
                               dst += sizeof(ParticleReal);
                           }
                         }
-                      array_comp_start = 2 + NStructInt;
+                      array_comp_start = 0;
                       for (int comp = 0; comp < NumIntComps(); comp++) {
                           if (h_redistribute_int_comp[array_comp_start + comp]) {
                               std::memcpy(dst, &soa.GetIntData(comp)[pindex], sizeof(int));
@@ -2479,3 +2479,4 @@ ResizeRuntimeIntComp (int new_size, bool communicate)
         }
     }
 }
+
