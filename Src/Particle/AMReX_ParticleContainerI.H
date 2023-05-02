@@ -1090,9 +1090,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::ReorderParticles (int lev, const MFIter& mfi, const index_type* permutations)
 {
     auto& ptile           = ParticlesAt(lev, mfi);
-    auto& aos             = ptile.GetArrayOfStructs();
-    const size_t np       = aos.numParticles();
-    const size_t np_total = np + aos.numNeighborParticles();
+    const size_t np       = ptile.numParticles();
+    const size_t np_total = np + ptile.numNeighborParticles();
 
     if (memEfficientSort) {
         if constexpr(!ParticleType::is_soa_particle) {
