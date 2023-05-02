@@ -20,7 +20,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -56,6 +56,7 @@ jobs:
         cmake --build build -j 2
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   # Build libamrex and all tests with NVHPC (recent supported)
   tests-nvhpc-nvcc:
@@ -70,7 +71,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -115,6 +116,7 @@ jobs:
         cmake --build build -j 2
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   # Build 3D libamrex cuda build with configure
   configure-3d-cuda:
@@ -129,7 +131,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -150,6 +152,7 @@ jobs:
         make install
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   save_pr_number:
     if: github.event_name == 'pull_request'
