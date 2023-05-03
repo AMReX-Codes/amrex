@@ -76,6 +76,7 @@ MyTest::solve ()
 
     Real mlmg_err = mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs),
                                1.e-11, 0.0);
+    amrex::ignore_unused(mlmg_err);
 
     mlndlap.updateVelocity(amrex::GetVecOfPtrs(vel), amrex::GetVecOfConstPtrs(phi));
 

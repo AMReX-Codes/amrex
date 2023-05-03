@@ -49,6 +49,7 @@ sudo apt-get install -y --no-install-recommends \
 #
 source /etc/profile.d/rocm.sh
 hipcc --version
+hipconfig --full
 which clang
 which clang++
 which flang
