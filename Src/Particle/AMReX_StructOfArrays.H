@@ -89,6 +89,12 @@ struct StructOfArrays {
     }
 
     /**
+    * \brief Returns whether the SoA is empty (i.e. has size() == 0)
+    *
+    */
+    [[nodiscard]] bool empty () const { return this->size() == 0; }
+
+    /**
     * \brief Returns the number of real particles (excluding neighbors)
     *
     */
