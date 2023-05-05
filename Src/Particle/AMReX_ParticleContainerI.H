@@ -1675,8 +1675,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                       if (pld.m_lev != lev || pld.m_grid != grid || pld.m_tile != tile) {
                           // We own it but must shift it to another place.
                           auto index = std::make_pair(pld.m_grid, pld.m_tile);
-                          AMREX_ASSERT(tmp_local[pld.m_lev][index].size() == num_threads);
-                          tmp_local[pld.m_lev][index][thread_num].push_back(p);
+                          AMREX_ASSERT(soa_local[pld.m_lev][index].size() == num_threads);
                           for (int comp = 0; comp < NumRealComps(); ++comp) {
                               RealVector& arr = soa_local[pld.m_lev][index][thread_num].GetRealData(comp);
                               arr.push_back(soa.GetRealData(comp)[pindex]);
@@ -1687,8 +1686,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                           }
 
                           p.id() = -p.id(); // Invalidate the particle
-                        }
-                    }
+                      }
+                  }
                   else {
                       auto& particles_to_send = tmp_remote[who][thread_num];
                       auto old_size = particles_to_send.size();
@@ -1711,7 +1710,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                           }
                         }
                       p.id() = -p.id(); // Invalidate the particle
-                    }
+                  }
 
                   if (p.id() < 0){
                       for (int comp = 0; comp < NumRealComps(); comp++)
@@ -1733,9 +1732,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
               for (int comp = 0; comp < NumIntComps(); comp++) {
                   IntVector& idata = soa.GetIntData(comp);
                   idata.erase(idata.begin() + last + 1, idata.begin() + npart);
-                }
-             }
-            }
+              }
+              }
+          }
       }
   }
 
@@ -1747,44 +1746,80 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
   for (int lev = lev_min; lev <= lev_max; lev++) {
       typename std::map<std::pair<int, int>, Vector<ParticleVector > >::iterator pmap_it;
 
-      Vector<std::pair<int, int> > grid_tile_ids;
-      Vector<Vector<ParticleVector>* > pvec_ptrs;
+      if constexpr(!ParticleType::is_soa_particle) {
+              Vector<std::pair<int, int> > grid_tile_ids;
+              Vector<Vector<ParticleVector>* > pvec_ptrs;
 
-      // we need to create any missing map entries in serial here
-      for (pmap_it=tmp_local[lev].begin(); pmap_it != tmp_local[lev].end(); pmap_it++)
-      {
-          m_particles[lev][pmap_it->first];
-          grid_tile_ids.push_back(pmap_it->first);
-          pvec_ptrs.push_back(&(pmap_it->second));
-      }
+              // we need to create any missing map entries in serial here
+              for (pmap_it=tmp_local[lev].begin(); pmap_it != tmp_local[lev].end(); pmap_it++)
+              {
+                  m_particles[lev][pmap_it->first];
+                  grid_tile_ids.push_back(pmap_it->first);
+                  pvec_ptrs.push_back(&(pmap_it->second));
+              }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
-      for (int pit = 0; pit < static_cast<int>(pvec_ptrs.size()); ++pit)
-      {
-          auto index = grid_tile_ids[pit];
-          auto& ptile = DefineAndReturnParticleTile(lev, index.first, index.second);
-          auto& aos = ptile.GetArrayOfStructs();
-          auto& soa = ptile.GetStructOfArrays();
-          auto& aos_tmp = *(pvec_ptrs[pit]);
-          auto& soa_tmp = soa_local[lev][index];
-          for (int i = 0; i < num_threads; ++i) {
-              aos.insert(aos.end(), aos_tmp[i].begin(), aos_tmp[i].end());
-              aos_tmp[i].erase(aos_tmp[i].begin(), aos_tmp[i].end());
-              for (int comp = 0; comp < NumRealComps(); ++comp) {
-                  RealVector& arr = soa.GetRealData(comp);
-                  RealVector& tmp = soa_tmp[i].GetRealData(comp);
-                  arr.insert(arr.end(), tmp.begin(), tmp.end());
-                  tmp.erase(tmp.begin(), tmp.end());
+              for (int pit = 0; pit < static_cast<int>(pvec_ptrs.size()); ++pit)
+              {
+                  auto index = grid_tile_ids[pit];
+                  auto& ptile = DefineAndReturnParticleTile(lev, index.first, index.second);
+                  auto& aos = ptile.GetArrayOfStructs();
+                  auto& soa = ptile.GetStructOfArrays();
+                  auto& aos_tmp = *(pvec_ptrs[pit]);
+                  auto& soa_tmp = soa_local[lev][index];
+                  for (int i = 0; i < num_threads; ++i) {
+                      aos.insert(aos.end(), aos_tmp[i].begin(), aos_tmp[i].end());
+                      aos_tmp[i].erase(aos_tmp[i].begin(), aos_tmp[i].end());
+                      for (int comp = 0; comp < NumRealComps(); ++comp) {
+                          RealVector& arr = soa.GetRealData(comp);
+                          RealVector& tmp = soa_tmp[i].GetRealData(comp);
+                          arr.insert(arr.end(), tmp.begin(), tmp.end());
+                          tmp.erase(tmp.begin(), tmp.end());
+                      }
+                      for (int comp = 0; comp < NumIntComps(); ++comp) {
+                          IntVector& arr = soa.GetIntData(comp);
+                          IntVector& tmp = soa_tmp[i].GetIntData(comp);
+                          arr.insert(arr.end(), tmp.begin(), tmp.end());
+                          tmp.erase(tmp.begin(), tmp.end());
+                      }
+                  }
               }
-              for (int comp = 0; comp < NumIntComps(); ++comp) {
-                  IntVector& arr = soa.GetIntData(comp);
-                  IntVector& tmp = soa_tmp[i].GetIntData(comp);
-                  arr.insert(arr.end(), tmp.begin(), tmp.end());
-                  tmp.erase(tmp.begin(), tmp.end());
+          } else { // soa particle
+              Vector<std::pair<int, int> > grid_tile_ids;
+
+              // we need to create any missing map entries in serial here
+              for (auto soa_map_it=soa_local[lev].begin(); soa_map_it != soa_local[lev].end(); soa_map_it++)
+              {
+                  m_particles[lev][soa_map_it->first];
+                  grid_tile_ids.push_back(soa_map_it->first);
               }
-          }
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for
+#endif
+              for (int pit = 0; pit < static_cast<int>(grid_tile_ids.size()); ++pit)
+              {
+                  auto index = grid_tile_ids[pit];
+                  auto& ptile = DefineAndReturnParticleTile(lev, index.first, index.second);
+                  auto& soa = ptile.GetStructOfArrays();
+                  auto& soa_tmp = soa_local[lev][index];
+                  for (int i = 0; i < num_threads; ++i) {
+                      for (int comp = 0; comp < NumRealComps(); ++comp) {
+                          RealVector& arr = soa.GetRealData(comp);
+                          RealVector& tmp = soa_tmp[i].GetRealData(comp);
+                          arr.insert(arr.end(), tmp.begin(), tmp.end());
+                          tmp.erase(tmp.begin(), tmp.end());
+                      }
+                      for (int comp = 0; comp < NumIntComps(); ++comp) {
+                          IntVector& arr = soa.GetIntData(comp);
+                          IntVector& tmp = soa_tmp[i].GetIntData(comp);
+                          arr.insert(arr.end(), tmp.begin(), tmp.end());
+                          tmp.erase(tmp.begin(), tmp.end());
+                      }
+                  }
+              }
       }
   }
 
