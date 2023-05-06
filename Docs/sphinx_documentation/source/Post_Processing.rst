@@ -295,4 +295,24 @@ Typing ``./fextrema.gnu.ex`` without inputs will bring up usage and options.
                        0.03                       1          2.349724636         8.277319027e-17          1.157052145         8.277319027e-17          1.156713078           0.03595941273                    1         8.277319027e-17         0.4924203149         8.277319027e-17         0.4922760141           0.01530367099                    1         -0.005172583789       0.005172583789         -0.005172583789       0.005172583789         -0.005287367803       0.005287367803         -0.005287367803       0.005287367803         -0.004924487345        0.05687549245
 
 
+faverage
+--------
 
+Compute the lateral average of a variable in a plotfile, with optional
+density weighting.  For 2-d, a profile :math:`f(y)` is returned where
+the average was done over :math:`x`.  For 3-d, a profile :math:`f(z)`
+is returned where the average was done over :math:`x` and :math:`y`.
+
+**How to build and run**
+
+In ``amrex/Tools/Plotfile``, type ``make programs=faverage`` and then ``./faverage.gnu.ex`` to run.
+Typing ``./faverage.gnu.ex`` without inputs will bring up usage and options.
+
+**Example**
+
+.. code-block:: console
+
+    user@:~/AMReX/amrex/Tools/Plotfile$ ./faverage.gnu.ex -v density plt0000000
+
+will compute the average density as a function of height, outputting a data file
+``plt0000000.slice``.
