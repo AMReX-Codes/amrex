@@ -19,8 +19,7 @@ namespace amrex {
 // with only diagonal components.  The EB is assumed to be Dirichlet.
 //
 // del dot (simga grad phi) - alpha/r^2 phi = rhs, for RZ where alpha is a
-// scalar constant that is zero by default.  For now the `alpha` term has
-// not been implemented yet
+// scalar constant that is zero by default.
 
 class MLEBNodeFDLaplacian
     : public MLNodeLinOp
