@@ -88,11 +88,11 @@ public:
 
     [[nodiscard]] SoARef GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
 
-    [[nodiscard]] int numParticles () const { return GetArrayOfStructs().numParticles(); }
+    [[nodiscard]] int numParticles () const { return GetParticleTile().numParticles(); }
 
-    [[nodiscard]] int numRealParticles () const { return GetArrayOfStructs().numRealParticles(); }
+    [[nodiscard]] int numRealParticles () const { return GetParticleTile().numRealParticles(); }
 
-    [[nodiscard]] int numNeighborParticles () const { return GetArrayOfStructs().numNeighborParticles(); }
+    [[nodiscard]] int numNeighborParticles () const { return GetParticleTile().numNeighborParticles(); }
 
     [[nodiscard]] int GetLevel () const { return m_level; }
 
