@@ -38,6 +38,9 @@ endif
 # amd gpu target
 HIPCC_FLAGS += --offload-arch=$(AMD_ARCH)
 
+# pthread
+HIPCC_FLAGS += -pthread
+
 CXXFLAGS += $(HIPCC_FLAGS)
 
 # add fopenmp targetting the gnu library

@@ -743,7 +743,11 @@ struct ParticleTile
     SoA&       GetStructOfArrays ()       { return m_soa_tile; }
     const SoA& GetStructOfArrays () const { return m_soa_tile; }
 
-    bool empty () const { return size() == 0; }
+    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
+    bool empty () const { return m_aos_tile.empty(); }
+
+    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
+    bool empty () const { return m_soa_tile.empty(); }
 
     /**
     * \brief Returns the total number of particles (real and neighbor)

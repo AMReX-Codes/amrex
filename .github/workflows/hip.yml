@@ -160,8 +160,38 @@ jobs:
         ccache -z
 
         ./configure --dim 2 --with-hip yes --enable-eb yes --enable-xsdk-defaults yes --with-mpi no --with-omp no --single-precision yes --single-precision-particles yes
-        make -j2 WARN_ALL=TRUE XTRA_CXXFLAGS="-fno-operator-names" CCACHE=ccache
+        make -j2 WARN_ALL=TRUE XTRA_CXXFLAGS="-fno-operator-names" AMD_ARCH=gfx90a CCACHE=ccache
         make install
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
+  # Build 3D EB hip with gnu make
+  hip-3d-eb-gmake:
+    name: HIP EB 3D GMake
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v3
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/dependencies_hip.sh
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Install
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=60M
+        ccache -z
+
+        cd Tests/LinearSolvers/NodeEB
+        make -j2 USE_HIP=TRUE USE_MPI=FALSE BL_NO_FORT=TRUE WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names AMD_ARCH=gfx90a CCACHE=ccache
 
         ccache -s
         du -hs ~/.cache/ccache
