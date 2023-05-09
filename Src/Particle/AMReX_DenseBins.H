@@ -31,6 +31,11 @@ struct DenseBinIteratorFactory
 {
     using index_type = unsigned int;
 
+    using const_pointer_type = typename std::conditional<IsParticleTileData<T>(),
+        T,
+        const T*
+    >::type;
+
     DenseBinIteratorFactory (const Gpu::DeviceVector<index_type>& offsets,
                              const Gpu::DeviceVector<index_type>& permutation,
                              const T* items)
@@ -47,27 +52,9 @@ struct DenseBinIteratorFactory
 
     const index_type* m_offsets_ptr;
     const index_type* m_permutation_ptr;
-    const T* m_items;
+    const_pointer_type m_items;
 };
 
-namespace
-{
-    template <typename F, typename T, typename I>
-    AMREX_GPU_HOST_DEVICE
-    auto call_f(F const& f, T* pstruct_ptr, I& index)
-        noexcept -> decltype(f(pstruct_ptr,index))
-    {
-        return f(pstruct_ptr[index],index);
-    }
-
-    template <typename F, typename T, typename I>
-    AMREX_GPU_HOST_DEVICE
-    auto call_f(F const& f, T* pstruct_ptr, I& index)
-        noexcept -> decltype(f(pstruct_ptr[index]))
-    {
-        return f(pstruct_ptr[index]);
-    }
-}
 
 /**
  * \brief A container for storing items in a set of bins.
@@ -92,6 +79,31 @@ public:
     using BinIteratorFactory = DenseBinIteratorFactory<T>;
     using index_type = unsigned int;
 
+    using const_pointer_type = typename std::conditional<IsParticleTileData<T>(),
+        T,
+        const T*
+    >::type;
+
+private:
+
+    template <typename F, typename I>
+    AMREX_GPU_HOST_DEVICE
+    auto call_f(F const& f, const_pointer_type v, I& index)
+        noexcept -> decltype(f(v,index))
+    {
+        return f(v,index);
+    }
+
+    template <typename F, typename I>
+    AMREX_GPU_HOST_DEVICE
+    auto call_f(F const& f, const_pointer_type v, I& index)
+        noexcept -> decltype(f(v[index]))
+    {
+        return f(v[index]);
+    }
+
+public:
+
     /**
      * \brief Populate the bins with a set of items.
      *
@@ -110,12 +122,12 @@ public:
      * \tparam F a function that maps items to IntVect bins
      *
      * \param nitems the number of items to put in the bins
-     * \param v pointer to the start of the items
+     * \param v ParticleTileData or pointer to the start of the items
      * \param bx the Box that defines the space over which the bins will be defined
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (N nitems, T const* v, const Box& bx, F&& f)
+    void build (N nitems, const_pointer_type v, const Box& bx, F&& f)
     {
         build(BinPolicy::Default, nitems, v, bx, std::forward<F>(f));
     }
@@ -137,12 +149,12 @@ public:
      * \tparam F a function that maps items to IntVect bins
      *
      * \param nitems the number of items to put in the bins
-     * \param v pointer to the start of the items
+     * \param v ParticleTileData or pointer to the start of the items
      * \param nbins the number of bins to use
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (N nitems, T const* v, int nbins, F&& f)
+    void build (N nitems, const_pointer_type v, int nbins, F&& f)
     {
         build(BinPolicy::Default, nitems, v, nbins, std::forward<F>(f));
     }
@@ -165,19 +177,19 @@ public:
      * \tparam F a function that maps items to IntVect bins
      *
      * \param nitems the number of items to put in the bins
-     * \param v pointer to the start of the items
+     * \param v ParticleTileData or pointer to the start of the items
      * \param bx the Box that defines the space over which the bins will be defined
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (BinPolicy::GPUBinPolicy, N nitems, T const* v, const Box& bx, F&& f)
+    void build (BinPolicy::GPUBinPolicy, N nitems, const_pointer_type v, const Box& bx, F&& f)
     {
         const auto lo = lbound(bx);
         const auto hi = ubound(bx);
         build(BinPolicy::GPU, nitems, v, bx.numPts(),
-              [=] AMREX_GPU_DEVICE (const T& t) noexcept
+              [=] AMREX_GPU_DEVICE (const_pointer_type t, index_type i) noexcept
               {
-                  auto iv = f(t);
+                  auto iv = call_f(f,t,i);
                   auto iv3 = iv.dim3();
                   int nx = hi.x-lo.x+1;
                   int ny = hi.y-lo.y+1;
@@ -206,12 +218,12 @@ public:
      * \tparam F a function that maps items to IntVect bins
      *
      * \param nitems the number of items to put in the bins
-     * \param v pointer to the start of the items
+     * \param v ParticleTileData or pointer to the start of the items
      * \param nbins the number of bins to use
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (BinPolicy::GPUBinPolicy, N nitems, T const* v, int nbins, F&& f)
+    void build (BinPolicy::GPUBinPolicy, N nitems, const_pointer_type v, int nbins, F&& f)
     {
         BL_PROFILE("DenseBins<T>::buildGPU");
 
@@ -269,19 +281,19 @@ public:
      * \tparam F a function that maps items to IntVect bins
      *
      * \param nitems the number of items to put in the bins
-     * \param v pointer to the start of the items
+     * \param v ParticleTileData or pointer to the start of the items
      * \param bx the Box that defines the space over which the bins will be defined
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (BinPolicy::OpenMPBinPolicy, N nitems, T const* v, const Box& bx, F&& f)
+    void build (BinPolicy::OpenMPBinPolicy, N nitems, const_pointer_type v, const Box& bx, F&& f)
     {
         const auto lo = lbound(bx);
         const auto hi = ubound(bx);
         build(BinPolicy::OpenMP, nitems, v, bx.numPts(),
-              [=] (const T& t) noexcept
+              [=] (const_pointer_type t, index_type i) noexcept
               {
-                  auto iv = f(t);
+                  auto iv = call_f(f,t,i);
                   auto iv3 = iv.dim3();
                   int nx = hi.x-lo.x+1;
                   int ny = hi.y-lo.y+1;
@@ -311,12 +323,12 @@ public:
      * \tparam F a function that maps items to IntVect bins
      *
      * \param nitems the number of items to put in the bins
-     * \param v pointer to the start of the items
+     * \param v ParticleTileData or pointer to the start of the items
      * \param nbins the number of bins to use
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (BinPolicy::OpenMPBinPolicy, N nitems, T const* v, int nbins, F&& f)
+    void build (BinPolicy::OpenMPBinPolicy, N nitems, const_pointer_type v, int nbins, F&& f)
     {
         BL_PROFILE("DenseBins<T>::buildOpenMP");
 
@@ -408,19 +420,19 @@ public:
      * \tparam F a function that maps items to IntVect bins
      *
      * \param nitems the number of items to put in the bins
-     * \param v pointer to the start of the items
+     * \param v ParticleTileData or pointer to the start of the items
      * \param bx the Box that defines the space over which the bins will be defined
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (BinPolicy::SerialBinPolicy, N nitems, T const* v, const Box& bx, F&& f)
+    void build (BinPolicy::SerialBinPolicy, N nitems, const_pointer_type v, const Box& bx, F&& f)
     {
         const auto lo = lbound(bx);
         const auto hi = ubound(bx);
         build(BinPolicy::Serial, nitems, v, bx.numPts(),
-              [=] (const T& t) noexcept
+              [=] (const_pointer_type t, index_type i) noexcept
               {
-                  auto iv = f(t);
+                  auto iv = call_f(f,t,i);
                   auto iv3 = iv.dim3();
                   int nx = hi.x-lo.x+1;
                   int ny = hi.y-lo.y+1;
@@ -450,12 +462,12 @@ public:
      * \tparam F a function that maps items to IntVect bins
      *
      * \param nitems the number of items to put in the bins
-     * \param v pointer to the start of the items
+     * \param v ParticleTileData or pointer to the start of the items
      * \param nbins the number of bins to use
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (BinPolicy::SerialBinPolicy, N nitems, T const* v, int nbins, F&& f)
+    void build (BinPolicy::SerialBinPolicy, N nitems, const_pointer_type v, int nbins, F&& f)
     {
         BL_PROFILE("DenseBins<T>::buildSerial");
 
@@ -519,7 +531,7 @@ public:
 
 private:
 
-    const T* m_items;
+    const_pointer_type m_items;
 
     Gpu::DeviceVector<index_type> m_bins;
     Gpu::DeviceVector<index_type> m_counts;
