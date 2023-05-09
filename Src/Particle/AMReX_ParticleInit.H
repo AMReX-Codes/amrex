@@ -998,7 +998,7 @@ InitRandom (Long                    icount,
                         amrex::Real(std::numeric_limits<int>::max()) /
                         amrex::Real(AMREX_SPACEDIM)
                     )
-                ) + "particles"
+                ) + " particles."
             );
         }
         //
