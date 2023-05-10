@@ -84,11 +84,16 @@ public:
         const T*
     >::type;
 
+    using const_pointer_input_type = typename std::conditional<IsParticleTileData<T>(),
+        const T&,
+        const T*
+    >::type;
+
 private:
 
     template <typename F, typename I>
     AMREX_GPU_HOST_DEVICE
-    static auto call_f(F const& f, const_pointer_type v, I& index)
+    static auto call_f(F const& f, const_pointer_input_type v, I& index)
         noexcept -> decltype(f(v,index))
     {
         return f(v,index);
@@ -96,7 +101,7 @@ private:
 
     template <typename F, typename I>
     AMREX_GPU_HOST_DEVICE
-    static auto call_f(F const& f, const_pointer_type v, I& index)
+    static auto call_f(F const& f, const_pointer_input_type v, I& index)
         noexcept -> decltype(f(v[index]))
     {
         return f(v[index]);
@@ -127,7 +132,7 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (N nitems, const_pointer_type v, const Box& bx, F&& f)
+    void build (N nitems, const_pointer_input_type v, const Box& bx, F&& f)
     {
         build(BinPolicy::Default, nitems, v, bx, std::forward<F>(f));
     }
@@ -154,7 +159,7 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (N nitems, const_pointer_type v, int nbins, F&& f)
+    void build (N nitems, const_pointer_input_type v, int nbins, F&& f)
     {
         build(BinPolicy::Default, nitems, v, nbins, std::forward<F>(f));
     }
@@ -182,7 +187,7 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (BinPolicy::GPUBinPolicy, N nitems, const_pointer_type v, const Box& bx, F&& f)
+    void build (BinPolicy::GPUBinPolicy, N nitems, const_pointer_input_type v, const Box& bx, F&& f)
     {
         const auto lo = lbound(bx);
         const auto hi = ubound(bx);
@@ -223,7 +228,7 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (BinPolicy::GPUBinPolicy, N nitems, const_pointer_type v, int nbins, F&& f)
+    void build (BinPolicy::GPUBinPolicy, N nitems, const_pointer_input_type v, int nbins, F&& f)
     {
         BL_PROFILE("DenseBins<T>::buildGPU");
 
@@ -286,7 +291,7 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (BinPolicy::OpenMPBinPolicy, N nitems, const_pointer_type v, const Box& bx, F&& f)
+    void build (BinPolicy::OpenMPBinPolicy, N nitems, const_pointer_input_type v, const Box& bx, F&& f)
     {
         const auto lo = lbound(bx);
         const auto hi = ubound(bx);
@@ -328,7 +333,7 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (BinPolicy::OpenMPBinPolicy, N nitems, const_pointer_type v, int nbins, F&& f)
+    void build (BinPolicy::OpenMPBinPolicy, N nitems, const_pointer_input_type v, int nbins, F&& f)
     {
         BL_PROFILE("DenseBins<T>::buildOpenMP");
 
@@ -425,7 +430,7 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (BinPolicy::SerialBinPolicy, N nitems, const_pointer_type v, const Box& bx, F&& f)
+    void build (BinPolicy::SerialBinPolicy, N nitems, const_pointer_input_type v, const Box& bx, F&& f)
     {
         const auto lo = lbound(bx);
         const auto hi = ubound(bx);
@@ -467,7 +472,7 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (BinPolicy::SerialBinPolicy, N nitems, const_pointer_type v, int nbins, F&& f)
+    void build (BinPolicy::SerialBinPolicy, N nitems, const_pointer_input_type v, int nbins, F&& f)
     {
         BL_PROFILE("DenseBins<T>::buildSerial");
 

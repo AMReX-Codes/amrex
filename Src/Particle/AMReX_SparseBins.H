@@ -21,10 +21,15 @@ struct SparseBinIteratorFactory
         const T*
     >::type;
 
+    using const_pointer_input_type = typename std::conditional<IsParticleTileData<T>(),
+        const T&,
+        const T*
+    >::type;
+
     SparseBinIteratorFactory (const Gpu::DeviceVector<index_type>& bins,
                               const Gpu::DeviceVector<index_type>& offsets,
                               const Gpu::DeviceVector<index_type>& permutation,
-                              const_pointer_type items)
+                              const_pointer_input_type items)
         : m_bins_ptr(bins.dataPtr()),
           m_offsets_ptr(offsets.dataPtr()),
           m_permutation_ptr(permutation.dataPtr()),
@@ -99,6 +104,11 @@ public:
         const T*
     >::type;
 
+    using const_pointer_input_type = typename std::conditional<IsParticleTileData<T>(),
+        const T&,
+        const T*
+    >::type;
+
     /**
      * \brief Populate the bins with a set of items.
      *
@@ -111,7 +121,7 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (N nitems, const_pointer_type v, const Box& bx, F&& f)
+    void build (N nitems, const_pointer_input_type v, const Box& bx, F&& f)
     {
         BL_PROFILE("SparseBins<T>::build");
 
