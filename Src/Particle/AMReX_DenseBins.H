@@ -88,7 +88,7 @@ private:
 
     template <typename F, typename I>
     AMREX_GPU_HOST_DEVICE
-    auto call_f(F const& f, const_pointer_type v, I& index)
+    static auto call_f(F const& f, const_pointer_type v, I& index)
         noexcept -> decltype(f(v,index))
     {
         return f(v,index);
@@ -96,7 +96,7 @@ private:
 
     template <typename F, typename I>
     AMREX_GPU_HOST_DEVICE
-    auto call_f(F const& f, const_pointer_type v, I& index)
+    static auto call_f(F const& f, const_pointer_type v, I& index)
         noexcept -> decltype(f(v[index]))
     {
         return f(v[index]);
