@@ -10,12 +10,12 @@ namespace amrex
 {
 
 template< class T >
-constexpr auto IsParticleTileData () -> decltype(T::is_particle_tile_data) {
+constexpr decltype(T::is_particle_tile_data) IsParticleTileData () {
     return T::is_particle_tile_data;
 }
 
 template< class T, class...Args >
-constexpr auto IsParticleTileData (Args...) -> bool {
+constexpr bool IsParticleTileData (Args...) {
     return false;
 }
 
