@@ -10,7 +10,7 @@ namespace amrex
 {
 
 template< class T >
-constexpr decltype(T::is_particle_tile_data) IsParticleTileData () {
+constexpr decltype(T::is_particle_tile_data) IsParticleTileData () { // NOLINT(readability-const-return-type)
     return T::is_particle_tile_data;
 }
 
