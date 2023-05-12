@@ -82,6 +82,12 @@ jobs:
           ccache -s
           du -hs ~/.cache/ccache
 
+          # Make sure CodeQL has something to do
+          touch Src/Base/AMReX.cpp
+          export CCACHE_DISABLE=1
+          cd build
+          make -j 2
+
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
         with:
