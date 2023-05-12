@@ -1090,8 +1090,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::ReorderParticles (int lev, const MFIter& mfi, const index_type* permutations)
 {
     auto& ptile           = ParticlesAt(lev, mfi);
-    const size_t np       = ptile.numParticles();
-    const size_t np_total = np + ptile.numNeighborParticles();
+    auto& aos             = ptile.GetArrayOfStructs();
+    const size_t np       = aos.numParticles();
+    const size_t np_total = np + aos.numNeighborParticles();
 
     if (memEfficientSort) {
         if constexpr(!ParticleType::is_soa_particle) {
@@ -1284,15 +1285,13 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
             auto index = std::make_pair(gid, tid);
 
             auto& src_tile = plev[index];
-            const size_t np = src_tile.numParticles();
+            auto& aos = src_tile.GetArrayOfStructs();
+            const size_t np = aos.numParticles();
 
-            if constexpr (!ParticleType::is_soa_particle) {
-                auto& aos = src_tile.GetArrayOfStructs();
-                AMREX_ASSERT_WITH_MESSAGE((NumRealComps() == 0 && NumIntComps() == 0) ||
-                                        aos.size() == src_tile.GetStructOfArrays().size(),
-                    "The AoS and SoA data on this tile are different sizes - "
-                    "perhaps particles have not been initialized correctly?");
-            }
+            AMREX_ASSERT_WITH_MESSAGE((NumRealComps() == 0 && NumIntComps() == 0) ||
+                                      aos.size() == src_tile.GetStructOfArrays().size(),
+                "The AoS and SoA data on this tile are different sizes - "
+                "perhaps particles have not been initialized correctly?");
 
             int num_stay = partitionParticlesByDest(src_tile, assign_grid, BufferMap(),
                                                     plo, phi, rlo, rhi, is_per, lev, gid, tid,
@@ -1651,7 +1650,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                           soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                       for (int comp = 0; comp < NumIntComps(); comp++)
                           soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
-                      //correctCellVectors(last, pindex, grid, aos[pindex]);  // FIXME: TODO
+                      correctCellVectors(last, pindex, grid, aos[pindex]);  // FIXME: TODO
                       --last;
                       continue;
                     }
@@ -1665,7 +1664,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                           soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                       for (int comp = 0; comp < NumIntComps(); comp++)
                           soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
-                      //correctCellVectors(last, pindex, grid, aos[pindex]);  // FIXME: TODO
+                      correctCellVectors(last, pindex, grid, aos[pindex]);  // FIXME: TODO
                       --last;
                       continue;
                     }
@@ -1717,7 +1716,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                           soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                       for (int comp = 0; comp < NumIntComps(); comp++)
                           soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
-                      //correctCellVectors(last, pindex, grid, aos[pindex]);  // FIXME: TODO
+                      correctCellVectors(last, pindex, grid, aos[pindex]);  // FIXME: TODO
                       --last;
                       continue;
                     }
