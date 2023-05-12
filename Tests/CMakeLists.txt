@@ -72,11 +72,11 @@ function (setup_test _srcs  _inputs)
    if (_HAS_FORTRAN_MODULES)
       target_include_directories(${_exe_name}
          PRIVATE
-         ${CMAKE_CURRENT_BINARY_DIR}/${_exe_name}_mod_files)
+         ${CMAKE_CURRENT_BINARY_DIR}/${_exe_name}_mod_files_${AMReX_SPACEDIM}D)
       set_target_properties( ${_exe_name}
          PROPERTIES
          Fortran_MODULE_DIRECTORY
-         ${CMAKE_CURRENT_BINARY_DIR}/${_exe_name}_mod_files )
+         ${CMAKE_CURRENT_BINARY_DIR}/${_exe_name}_mod_files_${AMReX_SPACEDIM}D)
    endif ()
 
    target_link_libraries( ${_exe_name} AMReX::amrex )
