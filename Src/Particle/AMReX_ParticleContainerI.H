@@ -1650,7 +1650,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                           soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                       for (int comp = 0; comp < NumIntComps(); comp++)
                           soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
-                      correctCellVectors(last, pindex, grid, aos[pindex]);  // FIXME: TODO
+                      correctCellVectors(last, pindex, grid, aos[pindex]);
                       --last;
                       continue;
                     }
@@ -1664,7 +1664,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                           soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                       for (int comp = 0; comp < NumIntComps(); comp++)
                           soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
-                      correctCellVectors(last, pindex, grid, aos[pindex]);  // FIXME: TODO
+                      correctCellVectors(last, pindex, grid, aos[pindex]);
                       --last;
                       continue;
                     }
@@ -1716,7 +1716,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                           soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                       for (int comp = 0; comp < NumIntComps(); comp++)
                           soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
-                      correctCellVectors(last, pindex, grid, aos[pindex]);  // FIXME: TODO
+                      correctCellVectors(last, pindex, grid, aos[pindex]);
                       --last;
                       continue;
                     }
