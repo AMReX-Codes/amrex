@@ -518,9 +518,9 @@ struct BinMapper
 
     template <typename T>
     AMREX_GPU_HOST_DEVICE
-    unsigned int operator() (const T& pdt, int i) const
+    unsigned int operator() (const T& ptd, int i) const
     {
-        auto p = pdt[i];
+        auto p = ptd[i];
         int type   = (m_bin_type_array) ? m_bin_type_array[i] : 0;
         int offset = m_off_bins_p[type];
 
