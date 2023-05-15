@@ -1366,7 +1366,7 @@ protected:
 
     void SetParticleSize ();
 
-    DenseBins<ParticleType> m_bins;
+    DenseBins<typename ParticleTileType::ParticleTileDataType> m_bins;
 
 private:
     virtual void particlePostLocate (ParticleType& /*p*/, const ParticleLocData& /*pld*/,

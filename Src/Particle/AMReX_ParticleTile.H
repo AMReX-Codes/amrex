@@ -37,6 +37,8 @@ struct ParticleTileData
 
     using SuperParticleType = Particle<NStructReal+NAR, NStructInt+NAI>;
 
+    static constexpr bool is_particle_tile_data = true;
+
     Long m_size;
 
     ParticleType* AMREX_RESTRICT m_aos;
@@ -118,6 +120,16 @@ struct ParticleTileData
     auto * idata (const int attribute_index) const
     {
         return this->m_idata[attribute_index];
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    decltype(auto) operator[] (const int index) const
+    {
+        if constexpr (!ParticleType::is_soa_particle) {
+            return m_aos[index];
+        } else {
+            return SoAParticle<NAR, NAI>(*this, index);
+        }
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -463,6 +475,8 @@ struct ConstParticleTileData
 
     using SuperParticleType = Particle<NStructReal+NArrayReal, NStructInt+NArrayInt>;
 
+    static constexpr bool is_particle_tile_data = true;
+
     Long m_size;
     const ParticleType* AMREX_RESTRICT m_aos;
 
@@ -489,6 +503,16 @@ struct ConstParticleTileData
     auto const* idata (const int attribute_index) const
     {
         return this->m_idata[attribute_index];
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    decltype(auto) operator[] (const int index) const
+    {
+        if constexpr (!ParticleType::is_soa_particle) {
+            return m_aos[index];
+        } else {
+            return ConstSoAParticle<NAR, NAI>(*this, index);
+        }
     }
 
     int m_num_runtime_real;
@@ -743,11 +767,7 @@ struct ParticleTile
     SoA&       GetStructOfArrays ()       { return m_soa_tile; }
     const SoA& GetStructOfArrays () const { return m_soa_tile; }
 
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
-    bool empty () const { return m_aos_tile.empty(); }
-
-    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
-    bool empty () const { return m_soa_tile.empty(); }
+    bool empty () const { return size() == 0; }
 
     /**
     * \brief Returns the total number of particles (real and neighbor)
