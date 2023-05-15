@@ -1176,15 +1176,14 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
         for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
             auto& ptile           = ParticlesAt(lev, mfi);
-            auto& aos             = ptile.GetArrayOfStructs();
-            auto *pstruct_ptr     = aos().dataPtr();
             const size_t np       = ptile.numParticles();
 
             const Box& box = mfi.validbox();
 
             int ntiles = numTilesInBox(box, true, bin_size);
 
-            m_bins.build(np, pstruct_ptr, ntiles, GetParticleBin{plo, dxi, domain, bin_size, box});
+            m_bins.build(np, ptile.getParticleTileData(), ntiles,
+                         GetParticleBin{plo, dxi, domain, bin_size, box});
             ReorderParticles(lev, mfi, m_bins.permutationPtr());
         }
     }

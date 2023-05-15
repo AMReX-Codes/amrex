@@ -16,10 +16,20 @@ struct SparseBinIteratorFactory
 
     using index_type = unsigned int;
 
+    using const_pointer_type = typename std::conditional<IsParticleTileData<T>(),
+        T,
+        const T*
+    >::type;
+
+    using const_pointer_input_type = typename std::conditional<IsParticleTileData<T>(),
+        const T&,
+        const T*
+    >::type;
+
     SparseBinIteratorFactory (const Gpu::DeviceVector<index_type>& bins,
                               const Gpu::DeviceVector<index_type>& offsets,
                               const Gpu::DeviceVector<index_type>& permutation,
-                              const T* items)
+                              const_pointer_input_type items)
         : m_bins_ptr(bins.dataPtr()),
           m_offsets_ptr(offsets.dataPtr()),
           m_permutation_ptr(permutation.dataPtr()),
@@ -58,7 +68,7 @@ struct SparseBinIteratorFactory
     const index_type* m_bins_ptr;
     const index_type* m_offsets_ptr;
     const index_type* m_permutation_ptr;
-    const T* m_items;
+    const_pointer_type m_items;
     index_type m_num_bins;
 
     static constexpr index_type m_not_found = std::numeric_limits<index_type>::max();
@@ -89,6 +99,16 @@ public:
     using bin_type = IntVect;
     using index_type = unsigned int;
 
+    using const_pointer_type = typename std::conditional<IsParticleTileData<T>(),
+        T,
+        const T*
+    >::type;
+
+    using const_pointer_input_type = typename std::conditional<IsParticleTileData<T>(),
+        const T&,
+        const T*
+    >::type;
+
     /**
      * \brief Populate the bins with a set of items.
      *
@@ -101,7 +121,7 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (N nitems, T const* v, const Box& bx, F&& f)
+    void build (N nitems, const_pointer_input_type v, const Box& bx, F&& f)
     {
         BL_PROFILE("SparseBins<T>::build");
 
@@ -182,7 +202,7 @@ public:
 
 private:
 
-    const T* m_items;
+    const_pointer_type m_items;
 
     Gpu::DeviceVector<index_type> m_bins;
     Gpu::DeviceVector<index_type> m_offsets;
