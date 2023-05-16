@@ -87,7 +87,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_EB2_IndexSpace_chkpt_file.cpp
        )
 
-    if (AMReX_SPACEDIM EQUAL 3)
+    if (D EQUAL 3)
        target_sources(amrex_${D}D
        PRIVATE
        AMReX_WriteEBSurface.cpp
