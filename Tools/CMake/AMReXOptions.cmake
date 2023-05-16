@@ -23,6 +23,7 @@ endmacro ()
 #
 set(AMReX_SPACEDIM_VALUES 1 2 3)
 set(AMReX_SPACEDIM 3 CACHE STRING "Dimension of AMReX build: <1,2,3>")
+list(REMOVE_DUPLICATES AMReX_SPACEDIM)
 foreach(D IN LISTS AMReX_SPACEDIM)
     if(NOT D IN_LIST AMReX_SPACEDIM_VALUES)
        message(FATAL_ERROR "AMReX_SPACEDIM=${D} is not allowed."
