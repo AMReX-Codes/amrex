@@ -2,9 +2,9 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     #
     # Sources in subdirectory MLMG
     #
-    target_include_directories(amrex_${D}D PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/MLMG>)
+    target_include_directories(amrex_${D}d PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/MLMG>)
 
-    target_sources(amrex_${D}D
+    target_sources(amrex_${D}d
        PRIVATE
        MLMG/AMReX_MLMG.H
        MLMG/AMReX_MLMG.cpp
@@ -52,7 +52,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        )
 
     if (AMReX_SPACEDIM EQUAL 3)
-       target_sources(amrex_${D}D
+       target_sources(amrex_${D}d
           PRIVATE
           MLMG/AMReX_MLMG_2D_K.H
           MLMG/AMReX_MLPoisson_2D_K.H
@@ -61,7 +61,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     endif ()
 
     if (AMReX_EB)
-       target_sources(amrex_${D}D
+       target_sources(amrex_${D}d
           PRIVATE
           MLMG/AMReX_MLNodeLaplacian_eb.cpp
           MLMG/AMReX_MLEBABecLap.H
@@ -78,7 +78,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     endif ()
 
     if (AMReX_FORTRAN)
-       target_sources(amrex_${D}D
+       target_sources(amrex_${D}d
           PRIVATE
           MLMG/AMReX_MLLinOp_F.H
           MLMG/AMReX_MLLinOp_nd.F90
@@ -86,7 +86,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     endif ()
 
     if (AMReX_HYPRE)
-       target_sources(amrex_${D}D
+       target_sources(amrex_${D}d
           PRIVATE
           MLMG/AMReX_MLNodeLaplacian_hypre.cpp
           )
@@ -94,9 +94,9 @@ foreach(D IN LISTS AMReX_SPACEDIM)
 
     if (AMReX_SPACEDIM EQUAL 3)
 
-       target_include_directories(amrex_${D}D PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/OpenBC>)
+       target_include_directories(amrex_${D}d PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/OpenBC>)
 
-       target_sources(amrex_${D}D
+       target_sources(amrex_${D}d
           PRIVATE
           OpenBC/AMReX_OpenBC.H
           OpenBC/AMReX_OpenBC_K.H

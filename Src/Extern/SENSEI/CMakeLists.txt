@@ -52,6 +52,6 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        endif()
     endif ()
 
-    target_include_directories(amrex_${D}D PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}> )
-    target_sources(amrex_${D}D PRIVATE ${amrex_sensei_sources} )
+    target_include_directories(amrex_${D}d PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}> )
+    target_sources(amrex_${D}d PRIVATE ${amrex_sensei_sources} )
 endforeach()

@@ -5,9 +5,9 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        add_amrex_define(AMREX_SINGLE_PRECISION_PARTICLES NO_LEGACY)
     endif ()
 
-    target_include_directories(amrex_${D}D PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
+    target_include_directories(amrex_${D}d PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
 
-    target_sources(amrex_${D}D
+    target_sources(amrex_${D}d
        PRIVATE
        AMReX_TracerParticles.cpp
        AMReX_ParticleMPIUtil.cpp

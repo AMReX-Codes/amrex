@@ -7,11 +7,11 @@
 #
 foreach(D IN LISTS AMReX_SPACEDIM)
     if (AMReX_BUILD_SHARED_LIBS)
-        add_library(amrex_${D}D SHARED)
+        add_library(amrex_${D}d SHARED)
     else ()
-        add_library(amrex_${D}D STATIC)
+        add_library(amrex_${D}d STATIC)
     endif ()
-    add_library(AMReX::amrex_${D}D ALIAS amrex_${D}D)
+    add_library(AMReX::amrex_${D}d ALIAS amrex_${D}d)
 endforeach()
 
 #
@@ -23,14 +23,14 @@ if(list_len EQUAL 0)
 endif()
 math(EXPR list_last "${list_len} - 1")
 list(GET AMReX_SPACEDIM ${list_last} AMReX_SPACEDIM_LAST)
-add_library(amrex ALIAS amrex_${AMReX_SPACEDIM_LAST}D)
-add_library(AMReX::amrex ALIAS amrex_${AMReX_SPACEDIM_LAST}D)
+add_library(amrex ALIAS amrex_${AMReX_SPACEDIM_LAST}d)
+add_library(AMReX::amrex ALIAS amrex_${AMReX_SPACEDIM_LAST}d)
 
 # legacy symlink for build directory: libamrex.[so|a] / amrex.[dll.lib]
-add_custom_command(TARGET amrex_${AMReX_SPACEDIM_LAST}D POST_BUILD
+add_custom_command(TARGET amrex_${AMReX_SPACEDIM_LAST}d POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E create_symlink
-        $<TARGET_FILE_NAME:amrex_${AMReX_SPACEDIM_LAST}D>
-        $<TARGET_FILE_DIR:amrex_${AMReX_SPACEDIM_LAST}D>/$<TARGET_FILE_PREFIX:amrex_${AMReX_SPACEDIM_LAST}D>amrex$<TARGET_FILE_SUFFIX:amrex_${AMReX_SPACEDIM_LAST}D>
+        $<TARGET_FILE_NAME:amrex_${AMReX_SPACEDIM_LAST}d>
+        $<TARGET_FILE_DIR:amrex_${AMReX_SPACEDIM_LAST}d>/$<TARGET_FILE_PREFIX:amrex_${AMReX_SPACEDIM_LAST}d>amrex$<TARGET_FILE_SUFFIX:amrex_${AMReX_SPACEDIM_LAST}d>
 )
 
 
@@ -52,12 +52,12 @@ include(AMReXThirdPartyLibraries)
 # Where to store Fortran modules
 if (CMAKE_Fortran_COMPILER_LOADED)
     foreach(D IN LISTS AMReX_SPACEDIM)
-        set_target_properties(amrex_${D}D
+        set_target_properties(amrex_${D}d
           PROPERTIES
           Fortran_MODULE_DIRECTORY
-          ${PROJECT_BINARY_DIR}/mod_files_${D}D
+          ${PROJECT_BINARY_DIR}/mod_files_${D}d
           INTERFACE_INCLUDE_DIRECTORIES
-          $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/mod_files_${D}D>
+          $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/mod_files_${D}d>
           )
     endforeach()
 endif ()
@@ -67,21 +67,21 @@ include(AMReXFlagsTargets)
 
 foreach(D IN LISTS AMReX_SPACEDIM)
     if (CMAKE_Fortran_COMPILER_LOADED AND (NOT CMAKE_Fortran_FLAGS) )
-       target_link_libraries(amrex_${D}D
+       target_link_libraries(amrex_${D}d
           PUBLIC
           $<BUILD_INTERFACE:Flags_Fortran>
           )
     endif ()
 
     if (NOT CMAKE_CXX_FLAGS)
-       target_link_libraries(amrex_${D}D
+       target_link_libraries(amrex_${D}d
           PUBLIC
           $<BUILD_INTERFACE:Flags_CXX>
           )
     endif ()
 
     if (AMReX_FPE)
-       target_link_libraries(amrex_${D}D
+       target_link_libraries(amrex_${D}d
           PUBLIC
           $<BUILD_INTERFACE:Flags_FPE>
           )
@@ -91,7 +91,7 @@ endforeach()
 # General configuration
 include( AMReX_Config )
 foreach(D IN LISTS AMReX_SPACEDIM)
-    configure_amrex(amrex_${D}D)
+    configure_amrex(amrex_${D}d)
 endforeach()
 
 #
@@ -140,7 +140,7 @@ if (AMReX_PROFPARSER)
     #
     # Generate BLProfParser.tab.H, BLProfParser.tab.cpp and
     # BLProfParser.lex.yy.cpp
-    # Must be done here where targets "amrex_${D}D" are defined because
+    # Must be done here where targets "amrex_${D}d" are defined because
     # add_custom_command create rules which are seen only within the scope
     # from which add_custom_command is called
     #
@@ -164,7 +164,7 @@ if (AMReX_PROFPARSER)
         COMMENT "Generating BLProfParser.lex.yy.cpp" )
 
     foreach(D IN LISTS AMReX_SPACEDIM)
-        target_sources(amrex_${D}D
+        target_sources(amrex_${D}d
             PRIVATE
             ${_dir}/BLProfParser.tab.cpp
             ${_dir}/BLProfParser.lex.yy.cpp
@@ -210,11 +210,11 @@ print_amrex_configuration_summary ()
 # Make all headers as PUBLIC HEADERS so that they get installed
 #
 foreach(D IN LISTS AMReX_SPACEDIM)
-    get_target_property(AMREX_SOURCES amrex_${D}D SOURCES)
+    get_target_property(AMREX_SOURCES amrex_${D}d SOURCES)
 
     set(AMREX_PUBLIC_HEADERS ${AMREX_SOURCES})
     list(FILTER AMREX_PUBLIC_HEADERS INCLUDE REGEX "\\.H")
-    set_target_properties(amrex_${D}D PROPERTIES PUBLIC_HEADER "${AMREX_PUBLIC_HEADERS}")
+    set_target_properties(amrex_${D}d PROPERTIES PUBLIC_HEADER "${AMREX_PUBLIC_HEADERS}")
 endforeach()
 
 #
@@ -222,7 +222,7 @@ endforeach()
 #
 if (AMReX_CUDA)
     foreach(D IN LISTS AMReX_SPACEDIM)
-        setup_target_for_cuda_compilation(amrex_${D}D)
+        setup_target_for_cuda_compilation(amrex_${D}d)
     endforeach()
 endif ()
 

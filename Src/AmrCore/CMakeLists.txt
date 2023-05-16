@@ -1,7 +1,7 @@
 foreach(D IN LISTS AMReX_SPACEDIM)
-    target_include_directories(amrex_${D}D PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
+    target_include_directories(amrex_${D}d PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
 
-    target_sources(amrex_${D}D
+    target_sources(amrex_${D}d
        PRIVATE
        AMReX_AmrCore.cpp
        AMReX_Cluster.cpp
@@ -39,7 +39,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        )
 
     if (AMReX_FORTRAN)
-       target_sources(amrex_${D}D
+       target_sources(amrex_${D}d
           PRIVATE
           AMReX_FillPatchUtil_F.H
           AMReX_FillPatchUtil_${D}d.F90
@@ -48,6 +48,6 @@ foreach(D IN LISTS AMReX_SPACEDIM)
 
     # These files are needed only if Particles are enabled
     if ( AMReX_PARTICLES )
-      target_sources( amrex_${D}D PRIVATE AMReX_AmrParGDB.H AMReX_AmrParticles.H )
+      target_sources( amrex_${D}d PRIVATE AMReX_AmrParGDB.H AMReX_AmrParticles.H )
     endif ()
 endforeach()

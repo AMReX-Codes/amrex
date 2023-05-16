@@ -1,9 +1,9 @@
 foreach(D IN LISTS AMReX_SPACEDIM)
     add_amrex_define( AMREX_USE_EB NO_LEGACY IF AMReX_EB )
 
-    target_include_directories(amrex_${D}D PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
+    target_include_directories(amrex_${D}d PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
 
-    target_sources(amrex_${D}D
+    target_sources(amrex_${D}d
        PRIVATE
        AMReX_EBFArrayBox.H
        AMReX_EBFArrayBox.cpp
@@ -88,7 +88,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        )
 
     if (D EQUAL 3)
-       target_sources(amrex_${D}D
+       target_sources(amrex_${D}d
        PRIVATE
        AMReX_WriteEBSurface.cpp
        AMReX_WriteEBSurface.H
@@ -98,7 +98,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     endif ()
 
     if (AMReX_FORTRAN)
-       target_sources(amrex_${D}D
+       target_sources(amrex_${D}d
           PRIVATE
           AMReX_ebcellflag_mod.F90
           AMReX_EBFluxRegister_nd.F90

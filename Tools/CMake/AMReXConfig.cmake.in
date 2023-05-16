@@ -240,7 +240,7 @@ include( "${CMAKE_CURRENT_LIST_DIR}/AMReXTargets.cmake" )
 list(LENGTH AMReX_SPACEDIM list_len)
 math(EXPR list_last "${list_len} - 1")
 list(GET AMReX_SPACEDIM ${list_last} AMReX_SPACEDIM_LAST)
-add_library(AMReX::amrex ALIAS AMReX::amrex_${AMReX_SPACEDIM_LAST}D)
+add_library(AMReX::amrex ALIAS AMReX::amrex_${AMReX_SPACEDIM_LAST}d)
 
 # More Modern CUDA CMake
 if (@CMAKE_VERSION@ VERSION_GREATER_EQUAL 3.20 AND @AMReX_CUDA@)

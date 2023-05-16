@@ -10,10 +10,10 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     #
     # BASE subdir
     #
-    target_include_directories(amrex_${D}D PUBLIC
+    target_include_directories(amrex_${D}d PUBLIC
        $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/Base>)
 
-    target_sources(amrex_${D}D PRIVATE
+    target_sources(amrex_${D}d PRIVATE
        Base/AMReX_init_mod.F90
        Base/AMReX_parallel_mod.F90
        Base/AMReX_base_mod.F90
@@ -41,7 +41,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     )
 
     if (AMReX_MPI)
-      target_sources(amrex_${D}D PRIVATE
+      target_sources(amrex_${D}d PRIVATE
         Base/AMReX_fi_mpi_mod.F90
         Base/AMReX_mpi_reduce_int.F90
         Base/AMReX_mpi_reduce_real.F90
@@ -51,10 +51,10 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     #
     # AMRCORE subdir
     #
-    target_include_directories(amrex_${D}D PUBLIC
+    target_include_directories(amrex_${D}d PUBLIC
        $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/AmrCore>)
 
-    target_sources(amrex_${D}D PRIVATE
+    target_sources(amrex_${D}d PRIVATE
        AmrCore/AMReX_amrcore_fi.cpp
        AmrCore/AMReX_amrcore_mod.F90
        AmrCore/AMReX_amr_mod.F90
@@ -77,10 +77,10 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     #
     # OCTREE subdir
     #
-    target_include_directories(amrex_${D}D PUBLIC
+    target_include_directories(amrex_${D}d PUBLIC
        $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/Octree>)
 
-    target_sources(amrex_${D}D PRIVATE
+    target_sources(amrex_${D}d PRIVATE
        Octree/AMReX_octree_mod.F90
        Octree/AMReX_octree_fi.cpp
     )
@@ -90,10 +90,10 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     # LINEARSOLVERS subdir
     #
     if (AMReX_LINEAR_SOLVERS)
-       target_include_directories(amrex_${D}D PUBLIC
+       target_include_directories(amrex_${D}d PUBLIC
           $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/LinearSolvers>)
 
-       target_sources(amrex_${D}D PRIVATE
+       target_sources(amrex_${D}d PRIVATE
           LinearSolvers/AMReX_abeclaplacian_fi.cpp
           LinearSolvers/AMReX_abeclaplacian_mod.F90
           LinearSolvers/AMReX_linear_solver_mod.F90
@@ -110,9 +110,9 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     # PARTICLE subdir
     #
     if ( AMReX_PARTICLES )
-       target_include_directories(amrex_${D}D PUBLIC
+       target_include_directories(amrex_${D}d PUBLIC
           $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/Particle>)
-       target_sources(amrex_${D}D PRIVATE
+       target_sources(amrex_${D}d PRIVATE
           Particle/AMReX_particlecontainer_fi.cpp
           Particle/AMReX_particlecontainer_mod.F90
        )

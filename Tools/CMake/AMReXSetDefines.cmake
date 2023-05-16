@@ -70,7 +70,7 @@ endif ()
 # Dimensionality
 add_amrex_define( AMREX_SPACEDIM=${AMReX_SPACEDIM} )
 foreach(D IN LISTS AMReX_SPACEDIM)
-    target_compile_definitions(amrex_${D}D PUBLIC AMREX_SPACEDIM=${D})
+    target_compile_definitions(amrex_${D}d PUBLIC AMREX_SPACEDIM=${D})
 endforeach()
 
 # System -- not used anywhere in the source code
@@ -90,7 +90,7 @@ if (AMReX_FORTRAN)
    # Fortran-specific defines, BL_LANG_FORT and AMREX_LANG_FORT do not get
    # stored in AMReX_Config.H
    foreach(D IN LISTS AMReX_SPACEDIM)
-       target_compile_definitions(amrex_${D}D PRIVATE
+       target_compile_definitions(amrex_${D}d PRIVATE
           $<$<COMPILE_LANGUAGE:Fortran>:BL_LANG_FORT AMREX_LANG_FORT>
           )
    endforeach()
@@ -191,6 +191,6 @@ add_amrex_define( AMREX_NO_PROBINIT NO_LEGACY IF_NOT AMReX_PROBINIT)
 if(WIN32 AND AMReX_BUILD_SHARED_LIBS)
     add_amrex_define(AMREX_IS_DLL NO_LEGACY)
     foreach(D IN LISTS AMReX_SPACEDIM)
-        target_compile_definitions(amrex_${D}D PRIVATE AMREX_IS_DLL_BUILDING)
+        target_compile_definitions(amrex_${D}d PRIVATE AMREX_IS_DLL_BUILDING)
     endforeach()
 endif()

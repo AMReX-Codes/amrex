@@ -27,7 +27,7 @@ macro(setup_clang_tidy)
       endif()
 
       foreach(D IN LISTS AMReX_SPACEDIM)
-         set_target_properties(amrex_${D}D PROPERTIES CXX_CLANG_TIDY "${AMReX_CLANG_TIDY_COMMAND}")
+         set_target_properties(amrex_${D}d PROPERTIES CXX_CLANG_TIDY "${AMReX_CLANG_TIDY_COMMAND}")
       endforeach()
 
       unset(_tmp)

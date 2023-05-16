@@ -1,8 +1,8 @@
 foreach(D IN LISTS AMReX_SPACEDIM)
-    target_include_directories(amrex_${D}D PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
-    target_include_directories(amrex_${D}D PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/Parser>)
+    target_include_directories(amrex_${D}d PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
+    target_include_directories(amrex_${D}d PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/Parser>)
 
-    target_sources(amrex_${D}D
+    target_sources(amrex_${D}d
        PRIVATE
        # Utility classes ---------------------------------------------------------
        AMReX_ccse-mpi.H
@@ -275,7 +275,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     #   this source file has zero symbols in default conditions, which creates
     #   ranlib warnings, e.g., on macOS
     if(AMReX_BASE_PROFILE OR AMReX_TINY_PROFILE OR AMReX_FORTRAN)
-       target_sources(amrex_${D}D
+       target_sources(amrex_${D}d
          PRIVATE
            AMReX_BLProfiler.cpp
        )
@@ -283,7 +283,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
 
     # Fortran stuff
     if (AMReX_FORTRAN)
-       target_sources(amrex_${D}D
+       target_sources(amrex_${D}d
           PRIVATE
           AMReX_filcc_f.H
           AMReX_BLutil_F.F90
@@ -311,16 +311,16 @@ foreach(D IN LISTS AMReX_SPACEDIM)
 
     # Memory Profiler
     if (AMReX_MEM_PROFILE)
-       target_sources(amrex_${D}D PRIVATE AMReX_MemProfiler.cpp AMReX_MemProfiler.H )
+       target_sources(amrex_${D}d PRIVATE AMReX_MemProfiler.cpp AMReX_MemProfiler.H )
     endif ()
 
     # Tiny Profiler
     if (AMReX_TINY_PROFILE)
-       target_sources(amrex_${D}D PRIVATE AMReX_TinyProfiler.cpp AMReX_TinyProfiler.H )
+       target_sources(amrex_${D}d PRIVATE AMReX_TinyProfiler.cpp AMReX_TinyProfiler.H )
     endif ()
 
     # MPMD
     if (AMReX_MPI)
-       target_sources(amrex_${D}D PRIVATE AMReX_MPMD.cpp AMReX_MPMD.H )
+       target_sources(amrex_${D}d PRIVATE AMReX_MPMD.cpp AMReX_MPMD.H )
     endif ()
 endforeach()

@@ -4,13 +4,13 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     # If only AMReX_PETSC is ON, we just need to include this directory
     # and a couple of files to the build.
     #
-    target_include_directories(amrex_${D}D
+    target_include_directories(amrex_${D}d
        PUBLIC
        $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
 
     if (NOT AMReX_HYPRE) # only AMReX_PETSC is active
 
-       target_sources(amrex_${D}D
+       target_sources(amrex_${D}d
           PRIVATE
           AMReX_Habec_${D}D_K.H
           AMReX_Habec_K.H
@@ -24,7 +24,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
 
        add_amrex_define(AMREX_USE_HYPRE NO_LEGACY)
 
-       target_sources(amrex_${D}D
+       target_sources(amrex_${D}d
           PRIVATE
           AMReX_HypreABecLap.cpp
           AMReX_HypreABecLap.H

@@ -64,7 +64,7 @@ function ( generate_config_header )
 
        target_sources(amrex_${D}D PRIVATE ${AMReX_BINARY_DIR}/AMReX_Config_${D}D.H)
        target_sources(amrex_${D}D PRIVATE ${AMReX_BINARY_DIR}/AMReX_Version.H)
-       target_include_directories(amrex_${D}D
+       target_include_directories(amrex_${D}d
           PUBLIC
           $<BUILD_INTERFACE:${AMReX_BINARY_DIR}>)
 
@@ -133,11 +133,11 @@ function ( add_amrex_define _new_define )
 
    # Populate AMREX_DEFINES (custom) property for amrex targets
    foreach(D IN LISTS AMReX_SPACEDIM)
-       get_target_property(_current_defines amrex_${D}D AMREX_DEFINES)
+       get_target_property(_current_defines amrex_${D}d AMREX_DEFINES)
        if (_current_defines)
-          set_target_properties(amrex_${D}D PROPERTIES AMREX_DEFINES "${_current_defines};${_new_defines}")
+          set_target_properties(amrex_${D}d PROPERTIES AMREX_DEFINES "${_current_defines};${_new_defines}")
        else ()
-          set_target_properties(amrex_${D}D PROPERTIES AMREX_DEFINES "${_new_defines}")
+          set_target_properties(amrex_${D}d PROPERTIES AMREX_DEFINES "${_new_defines}")
        endif ()
    endforeach()
 endfunction ()
