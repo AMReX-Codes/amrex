@@ -1,5 +1,5 @@
-#ifndef AMREX_CONFIG_@AMREX_SPACEDIM@D_H_
-#define AMREX_CONFIG_@AMREX_SPACEDIM@D_H_
+#ifndef AMREX_CONFIG_@D@D_H_
+#define AMREX_CONFIG_@D@D_H_
 
 #cmakedefine AMREX_XSDK
 #cmakedefine AMREX_DEBUG
@@ -76,4 +76,4 @@
 #error "libamrex was built with OpenMP, so the downstream project must activate it, too"
 #endif
 
-#endif /* AMREX_CONFIG_@AMREX_SPACEDIM@D_H_ */
+#endif /* AMREX_CONFIG_@D@D_H_ */
