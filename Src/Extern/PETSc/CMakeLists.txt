@@ -1,10 +1,11 @@
-if (AMReX_SPACEDIM EQUAL 1)
-   message(FATAL_ERROR "PETSc interfaces are not supported for 1D builds")
-endif ()
-
-add_amrex_define(AMREX_USE_PETSC NO_LEGACY)
+add_amrex_define(AMREX_USE_PETSC NO_LEGACY NO_1D IF AMReX_PETSC)
 
 foreach(D IN LISTS AMReX_SPACEDIM)
+    if (D EQUAL 1)
+       message(STATUS "PETSc interfaces are not supported for 1D builds (skipping)")
+       continue()
+    endif ()
+
     target_include_directories(amrex_${D}d
        PUBLIC
        $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
