@@ -602,11 +602,11 @@ In the above snippet, ``<amrex-target-name>`` is any of the targets listed in th
    +-----------------------+-------------------------------------------------+
    | Target name           | Description                                     |
    +=======================+=================================================+
-   | amrex_1D              |  AMReX library in 1D                            |
+   | amrex_1d              |  AMReX library in 1D                            |
    +-----------------------+-------------------------------------------------+
-   | amrex_2D              |  AMReX library in 2D                            |
+   | amrex_2d              |  AMReX library in 2D                            |
    +-----------------------+-------------------------------------------------+
-   | amrex_3D              |  AMReX library in 3D                            |
+   | amrex_3d              |  AMReX library in 3D                            |
    +-----------------------+-------------------------------------------------+
    | amrex                 |  AMReX library (alias, points to last dim)      |
    +-----------------------+-------------------------------------------------+
@@ -717,7 +717,7 @@ As an example, consider the following CMake code:
 ::
 
     find_package(AMReX REQUIRED 3D EB)
-    target_link_libraries(Foo PUBLIC AMReX::amrex_3D)
+    target_link_libraries(Foo PUBLIC AMReX::amrex_3d)
 
 The code in the snippet above checks whether an AMReX installation with 3D and Embedded Boundary support
 is available on the system. If so, AMReX is linked to target ``Foo`` and AMReX flags preset is used
