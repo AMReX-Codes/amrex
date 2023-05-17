@@ -12,7 +12,7 @@ function ( generate_config_header )
        # Extract from amrex targets the content of AMREX_DEFINES property
        # This property accumulates the macros that must be defined
        # in the config file
-       get_target_property(_defines_list amrex AMREX_DEFINES)
+       get_target_property(_defines_list amrex_${D}d AMREX_DEFINES)
        eval_genex(_defines_list NONE NONE INTERFACE BUILD)
 
        # set variables from list of defines
@@ -29,7 +29,6 @@ function ( generate_config_header )
              string(STRIP "${_val}" _val)
              set(${_def} ${_val})
           endif ()
-
        endforeach ()
 
        set(COMP_DECLS)
@@ -59,18 +58,22 @@ function ( generate_config_header )
            set(COMP_DECLS "\n#ifndef ${COMPILER_ID_MACRO}\nstatic_assert(false,\"${msg}\");\n#endif")
        endif()
 
+       # store define variables in respective ND config header
        configure_file(${AMREX_CMAKE_MODULES_PATH}/AMReX_Config_ND.H.in
           "${AMReX_BINARY_DIR}/AMReX_Config_${D}D.H")
 
-       target_sources(amrex_${D}D PRIVATE ${AMReX_BINARY_DIR}/AMReX_Config_${D}D.H)
-       target_sources(amrex_${D}D PRIVATE ${AMReX_BINARY_DIR}/AMReX_Version.H)
-       target_include_directories(amrex_${D}d
-          PUBLIC
-          $<BUILD_INTERFACE:${AMReX_BINARY_DIR}>)
+       target_sources(amrex_${D}d PRIVATE ${AMReX_BINARY_DIR}/AMReX_Config_${D}D.H)
+       target_sources(amrex_${D}d PRIVATE ${AMReX_BINARY_DIR}/AMReX_Version.H)
+       target_include_directories(amrex_${D}d PUBLIC $<BUILD_INTERFACE:${AMReX_BINARY_DIR}>)
 
        if(AMReX_INSTALL)
-          install(FILES "${AMReX_BINARY_DIR}/AMReX_Config_${D}D.H" DESTINATION include)
+           install(FILES "${AMReX_BINARY_DIR}/AMReX_Config_${D}D.H" DESTINATION include)
        endif()
+
+       # unset defines variables
+       foreach(_define IN LISTS _defines_list)
+           unset(${_define})
+       endforeach()
    endforeach()
 
    configure_file(${AMREX_CMAKE_MODULES_PATH}/AMReX_Version.H.in
@@ -104,13 +107,15 @@ endfunction ()
 #    NO_LEGACY         = if specified, the legacy version of a new_define given in the
 #                        form AMREX_SOMENAME will not be added.
 #
+#    NO_1D             = if specified, skip for 1D library builds
+#
 #    IF <cond-var>     = new_define is added only if <cond-var> is true
 #
 #    IF_NOT <cond-var> = new_define is added only if <cond-var> is false
 #
 function ( add_amrex_define _new_define )
 
-   cmake_parse_arguments( "" "NO_LEGACY" "IF;IF_NOT" ""  ${ARGN} )
+   cmake_parse_arguments( "" "NO_LEGACY;NO_1D" "IF;IF_NOT" ""  ${ARGN} )
 
    if (NOT ${_IF})
       return()
@@ -126,13 +131,17 @@ function ( add_amrex_define _new_define )
    if ( NOT _NO_LEGACY )
       string( FIND ${_new_define} "AMREX_" _out )
       if (${_out} GREATER -1 )
-	 string(REPLACE "AMREX_" "BL_" _legacy_define ${_new_define})
+	     string(REPLACE "AMREX_" "BL_" _legacy_define ${_new_define})
          list(APPEND _new_defines ${_legacy_define})
       endif ()
    endif ()
 
    # Populate AMREX_DEFINES (custom) property for amrex targets
    foreach(D IN LISTS AMReX_SPACEDIM)
+       if(D EQUAL 1 AND _NO_1D)
+           continue()
+       endif()
+
        get_target_property(_current_defines amrex_${D}d AMREX_DEFINES)
        if (_current_defines)
           set_target_properties(amrex_${D}d PROPERTIES AMREX_DEFINES "${_current_defines};${_new_defines}")

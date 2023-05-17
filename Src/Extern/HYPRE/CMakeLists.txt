@@ -1,3 +1,5 @@
+add_amrex_define(AMREX_USE_HYPRE NO_LEGACY)
+
 foreach(D IN LISTS AMReX_SPACEDIM)
     #
     # This file gets processed if either AMReX_PETSC or AMReX_HYPRE are ON
@@ -21,8 +23,6 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        if (AMReX_SPACEDIM EQUAL 1)
           message(FATAL_ERROR "HYPRE interfaces are not supported for 1D builds")
        endif ()
-
-       add_amrex_define(AMREX_USE_HYPRE NO_LEGACY)
 
        target_sources(amrex_${D}d
           PRIVATE

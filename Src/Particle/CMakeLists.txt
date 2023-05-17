@@ -1,10 +1,10 @@
+add_amrex_define(AMREX_PARTICLES NO_LEGACY)
+
+if (AMReX_PARTICLES_PRECISION STREQUAL "SINGLE")
+   add_amrex_define(AMREX_SINGLE_PRECISION_PARTICLES NO_LEGACY)
+endif ()
+
 foreach(D IN LISTS AMReX_SPACEDIM)
-    add_amrex_define(AMREX_PARTICLES NO_LEGACY)
-
-    if (AMReX_PARTICLES_PRECISION STREQUAL "SINGLE")
-       add_amrex_define(AMREX_SINGLE_PRECISION_PARTICLES NO_LEGACY)
-    endif ()
-
     target_include_directories(amrex_${D}d PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
 
     target_sources(amrex_${D}d

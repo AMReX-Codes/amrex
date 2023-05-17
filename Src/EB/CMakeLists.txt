@@ -1,5 +1,9 @@
+add_amrex_define(AMREX_USE_EB NO_LEGACY NO_1D)
+
 foreach(D IN LISTS AMReX_SPACEDIM)
-    add_amrex_define( AMREX_USE_EB NO_LEGACY IF AMReX_EB )
+    if(D EQUAL 1)
+        continue()
+    endif()
 
     target_include_directories(amrex_${D}d PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
 

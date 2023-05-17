@@ -51,7 +51,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        MLMG/AMReX_MLEBNodeFDLap_${D}D_K.H
        )
 
-    if (AMReX_SPACEDIM EQUAL 3)
+    if (D EQUAL 3)
        target_sources(amrex_${D}d
           PRIVATE
           MLMG/AMReX_MLMG_2D_K.H
@@ -60,7 +60,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           )
     endif ()
 
-    if (AMReX_EB)
+    if (AMReX_EB AND NOT D EQUAL 1)
        target_sources(amrex_${D}d
           PRIVATE
           MLMG/AMReX_MLNodeLaplacian_eb.cpp
@@ -92,7 +92,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           )
     endif ()
 
-    if (AMReX_SPACEDIM EQUAL 3)
+    if (D EQUAL 3)
 
        target_include_directories(amrex_${D}d PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/OpenBC>)
 
