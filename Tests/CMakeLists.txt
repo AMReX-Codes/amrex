@@ -48,7 +48,7 @@ function (setup_test _dim _srcs  _inputs)
    if (_RUNTIME_SUBDIR)
       set(_exe_dir ${CMAKE_CURRENT_BINARY_DIR}/${_RUNTIME_SUBDIR}_${_dim}d)
    else ()
-      set(_exe_dir ${CMAKE_CURRENT_BINARY_DIR}_${_dim}d)
+      set(_exe_dir ${CMAKE_CURRENT_BINARY_DIR}/${_dim}d)
    endif ()
 
    set( _exe_name  Test_${_base_name} )
