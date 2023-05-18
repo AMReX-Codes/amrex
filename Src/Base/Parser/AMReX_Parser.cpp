@@ -64,6 +64,7 @@ Parser::setConstant (std::string const& name, double c)
 void
 Parser::registerVariables (Vector<std::string> const& vars)
 {
+    m_vars = vars;
     if (m_data && m_data->m_parser) {
         m_data->m_nvars = static_cast<int>(vars.size());
         for (int i = 0; i < m_data->m_nvars; ++i) {
@@ -117,6 +118,14 @@ Parser::symbols () const
         return parser_get_symbols(m_data->m_parser);
     } else {
         return std::set<std::string>{};
+    }
+}
+
+void
+Parser::printExe () const
+{
+    if (m_data->m_host_executor) {
+        parser_exe_print(m_data->m_host_executor, m_vars, m_data->m_locals);
     }
 }
 
