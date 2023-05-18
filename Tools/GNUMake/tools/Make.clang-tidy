@@ -1,6 +1,8 @@
 
 CLANG_TIDY = clang-tidy
 CLANG_TIDY_ARGS = --extra-arg=-Wno-unknown-warning-option --extra-arg-before=--driver-mode=g++
+# space-separated list of paths to skip, matched against the absolute path of each source file
+CLANG_TIDY_IGNORE_SOURCES ?=
 
 clang_tidy_version = $(shell $(CLANG_TIDY) --version | grep "LLVM version" | awk '{print $$3}' | awk 'BEGIN {FS = "."} {print $$1}')
 clang_tidy_ge_12 = $(shell expr $(clang_tidy_version) \>= 12)
