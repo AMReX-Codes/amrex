@@ -1840,7 +1840,7 @@ MLMGT<MF>::bottomSolveWithPETSc (MF& x, const MF& b)
         const DistributionMapping& dm = linop.m_dmap[0].back();
         const Geometry& geom = linop.m_geom[0].back();
 
-        petsc_bndry = std::make_unique<MLMGBndry<MF>>(ba, dm, ncomp, geom);
+        petsc_bndry = std::make_unique<MLMGBndryT<MF>>(ba, dm, ncomp, geom);
         petsc_bndry->setHomogValues();
         const Real* dx = linop.m_geom[0][0].CellSize();
         int crse_ratio = linop.m_coarse_data_crse_ratio > 0 ? linop.m_coarse_data_crse_ratio : 1;
