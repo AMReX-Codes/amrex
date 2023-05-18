@@ -1773,7 +1773,7 @@ MLMGT<MF>::bottomSolveWithHypre (MF& x, const MF& b)
             const DistributionMapping& dm = linop.m_dmap[amrlev].back();
             const Geometry& geom = linop.m_geom[amrlev].back();
 
-            hypre_bndry = std::make_unique<MLMGBndry>(ba, dm, ncomp, geom);
+            hypre_bndry = std::make_unique<MLMGBndryT<MF>>(ba, dm, ncomp, geom);
             hypre_bndry->setHomogValues();
             const Real* dx = linop.m_geom[0][0].CellSize();
             int crse_ratio = linop.m_coarse_data_crse_ratio > 0 ? linop.m_coarse_data_crse_ratio : 1;
