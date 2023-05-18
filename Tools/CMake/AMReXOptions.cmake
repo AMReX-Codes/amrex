@@ -272,8 +272,7 @@ print_option( AMReX_OMP )
 option( AMReX_AMRLEVEL  "Build AmrLevel class" ON )
 print_option( AMReX_AMRLEVEL )
 
-cmake_dependent_option( AMReX_EB "Build with Embedded Boundary support" OFF
-   "NOT AMReX_SPACEDIM EQUAL 1" OFF )
+option( AMReX_EB "Build with Embedded Boundary support" OFF)
 print_option(AMReX_EB)
 
 cmake_dependent_option( AMReX_FORTRAN_INTERFACES "Build Fortran API" OFF
