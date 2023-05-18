@@ -54,7 +54,7 @@ private:
     bool use_petsc = false;
 
 #ifdef AMREX_USE_HYPRE
-    //int hypre_interface_i = 1;  // 1. structed, 2. semi-structed, 3. ij
+    int hypre_interface_i = 1;  // 1. structed, 2. semi-structed, 3. ij
     amrex::Hypre::Interface hypre_interface = amrex::Hypre::Interface::structed;
 #endif
 
@@ -116,14 +116,18 @@ MyTest::solvePoisson ()
         mlmg.setVerbose(verbose);
         mlmg.setBottomVerbose(bottom_verbose);
 #ifdef AMREX_USE_HYPRE
-        if (use_hypre) {
-            mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
-            mlmg.setHypreInterface(hypre_interface);
+        if constexpr (std::is_same<MF,MultiFab>()) {
+            if (use_hypre) {
+                mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+                mlmg.setHypreInterface(hypre_interface);
+            }
         }
 #endif
 #ifdef AMREX_USE_PETSC
-        if (use_petsc) {
-            mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
+        if constexpr (std::is_same<MF,MultiFab>()) {
+            if (use_petsc) {
+                mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
+            }
         }
 #endif
 
@@ -157,14 +161,18 @@ MyTest::solvePoisson ()
             mlmg.setVerbose(verbose);
             mlmg.setBottomVerbose(bottom_verbose);
 #ifdef AMREX_USE_HYPRE
-            if (use_hypre) {
-                mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
-                mlmg.setHypreInterface(hypre_interface);
+            if constexpr (std::is_same<MF,MultiFab>()) {
+                if (use_hypre) {
+                    mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+                    mlmg.setHypreInterface(hypre_interface);
+                }
             }
 #endif
 #ifdef AMREX_USE_PETSC
-            if (use_petsc) {
-                mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
+            if constexpr (std::is_same<MF,MultiFab>()) {
+                if (use_petsc) {
+                    mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
+                }
             }
 #endif
 
