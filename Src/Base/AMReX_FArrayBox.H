@@ -70,7 +70,7 @@ public:
     */
     enum Format
     {
-        FAB_ASCII = 0,
+        FAB_ASCII,
         FAB_IEEE,
         FAB_NATIVE,
         //
