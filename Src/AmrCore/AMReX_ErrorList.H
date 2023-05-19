@@ -483,7 +483,7 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
     const std::string& Field () const noexcept {return m_field;}
 
     AMRErrorTagInfo& GetInfo () noexcept {return m_info;}
-    AMRErrorTagInfo const& GetInfo () noexcept {return m_info;}
+    AMRErrorTagInfo const& GetInfo () const noexcept {return m_info;}
     void SetInfo (AMRErrorTagInfo info) noexcept {m_info = info;}
 
   protected:
