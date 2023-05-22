@@ -41,6 +41,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           AMReX_HypreNodeLap.H
           AMReX_HypreIJIface.cpp
           AMReX_HypreIJIface.H
+          AMReX_HypreSolver.H
           )
 
     endif ()

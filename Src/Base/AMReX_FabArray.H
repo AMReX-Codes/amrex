@@ -1653,8 +1653,13 @@ FabArray<FAB>::build_arrays () const
         m_hp_arrays = (void*)std::malloc(n*2*sizeof(A));
 #endif
         for (int li = 0; li < n; ++li) {
-            new ((A*)m_hp_arrays+li) A(m_fabs_v[li]->array());
-            new ((AC*)m_hp_arrays+li+n) AC(m_fabs_v[li]->const_array());
+            if (m_fabs_v[li]) {
+                new ((A*)m_hp_arrays+li) A(m_fabs_v[li]->array());
+                new ((AC*)m_hp_arrays+li+n) AC(m_fabs_v[li]->const_array());
+            } else {
+                new ((A*)m_hp_arrays+li) A{};
+                new ((AC*)m_hp_arrays+li+n) AC{};
+            }
         }
         m_arrays.hp = (A*)m_hp_arrays;
         m_const_arrays.hp = (AC*)m_hp_arrays + n;
