@@ -236,11 +236,13 @@ endif ()
 # CMake targets
 include( "${CMAKE_CURRENT_LIST_DIR}/AMReXTargets.cmake" )
 
-# CMake targets aliases: last dimension built will be our legacy target
-list(LENGTH AMReX_SPACEDIM list_len)
-math(EXPR list_last "${list_len} - 1")
-list(GET AMReX_SPACEDIM ${list_last} AMReX_SPACEDIM_LAST)
-add_library(AMReX::amrex ALIAS AMReX::amrex_${AMReX_SPACEDIM_LAST}d)
+# CMake targets aliase: last dimension built will be our legacy target
+if (NOT TARGET AMReX::amrex)  # protection in case of multiple inclusions
+    list(LENGTH AMReX_SPACEDIM list_len)
+    math(EXPR list_last "${list_len} - 1")
+    list(GET AMReX_SPACEDIM ${list_last} AMReX_SPACEDIM_LAST)
+    add_library(AMReX::amrex ALIAS AMReX::amrex_${AMReX_SPACEDIM_LAST}d)
+endif()
 
 # More Modern CUDA CMake
 if (@CMAKE_VERSION@ VERSION_GREATER_EQUAL 3.20 AND @AMReX_CUDA@)
