@@ -244,11 +244,13 @@ add_library(AMReX::amrex ALIAS AMReX::amrex_${AMReX_SPACEDIM_LAST}d)
 
 # More Modern CUDA CMake
 if (@CMAKE_VERSION@ VERSION_GREATER_EQUAL 3.20 AND @AMReX_CUDA@)
-   # CUDA architectures amrex was built for -- should we make
-   set(AMREX_CUDA_ARCHS @AMREX_CUDA_ARCHS@ CACHE INTERNAL "CUDA archs AMReX is built for")
-   set_target_properties(AMReX::amrex
-      PROPERTIES
-      CUDA_ARCHITECTURES ${AMREX_CUDA_ARCHS})
+    foreach(D IN LISTS AMReX_SPACEDIM)
+        # CUDA architectures amrex was built for -- should we make
+        set(AMREX_CUDA_ARCHS @AMREX_CUDA_ARCHS@ CACHE INTERNAL "CUDA archs AMReX is built for")
+        set_target_properties(AMReX::amrex_${D}d
+          PROPERTIES
+            CUDA_ARCHITECTURES ${AMREX_CUDA_ARCHS})
+    endforeach()
 endif ()
 
 #
