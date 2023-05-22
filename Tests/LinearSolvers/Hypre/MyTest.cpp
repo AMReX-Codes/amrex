@@ -216,7 +216,7 @@ MyTest::solve ()
                 srhs -= s/hm * peb;
             }
 
-#if (AMREX_SPACEDIM == 3)
+#if (AMREX_SPACEDIM > 2)
             hp = (!ecz || ecz(i,j,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)+Real(2.)*ecz(i,j,k));
             hm = (!ecz || ecz(i,j,k-1) == Real(1.0)) ? Real(1.0) : (Real(1.0)-Real(2.)*ecz(i,j,k-1));
             scale = std::min({scale, hp, hm});
