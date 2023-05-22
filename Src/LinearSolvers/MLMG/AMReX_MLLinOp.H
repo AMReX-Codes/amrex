@@ -798,9 +798,12 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
             rr *= mg_coarsen_ratio_v;
         }
 
+#if (AMREX_SPACEDIM > 1)
         if (hasHiddenDimension()) {
             m_amr_ref_ratio[amrlev-1] = rr[AMREX_SPACEDIM-info.hidden_direction];
-        } else {
+        } else
+#endif
+        {
             m_amr_ref_ratio[amrlev-1] = rr[0];
         }
     }

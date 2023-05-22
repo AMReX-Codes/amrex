@@ -2213,19 +2213,19 @@ Amr::coarseTimeStep (Real stop_time)
         if (ParallelDescriptor::IOProcessor())
         {
             FILE *fp;
-            if ((fp=fopen("dump_and_continue","r")) != nullptr)
+            if ((fp=fopen("dump_and_continue","r")) != nullptr) // NOLINT(bugprone-assignment-in-if-condition)
             {
                 remove("dump_and_continue");
                 to_checkpoint = 1;
                 fclose(fp);
             }
-            else if ((fp=fopen("stop_run","r")) != nullptr)
+            else if ((fp=fopen("stop_run","r")) != nullptr) // NOLINT(bugprone-assignment-in-if-condition)
             {
                 remove("stop_run");
                 to_stop = 1;
                 fclose(fp);
             }
-            else if ((fp=fopen("dump_and_stop","r")) != nullptr)
+            else if ((fp=fopen("dump_and_stop","r")) != nullptr) // NOLINT(bugprone-assignment-in-if-condition)
             {
                 remove("dump_and_stop");
                 to_checkpoint = 1;
@@ -2233,14 +2233,14 @@ Amr::coarseTimeStep (Real stop_time)
                 fclose(fp);
             }
 
-            if ((fp=fopen("plot_and_continue","r")) != nullptr)
+            if ((fp=fopen("plot_and_continue","r")) != nullptr) // NOLINT(bugprone-assignment-in-if-condition)
             {
                 remove("plot_and_continue");
                 to_plot = 1;
                 fclose(fp);
             }
 
-            if ((fp=fopen("small_plot_and_continue","r")) != nullptr)
+            if ((fp=fopen("small_plot_and_continue","r")) != nullptr) // NOLINT(bugprone-assignment-in-if-condition)
             {
                 remove("small_plot_and_continue");
                 to_small_plot = 1;

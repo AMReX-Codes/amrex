@@ -1263,6 +1263,10 @@ FabArrayBase::RB90::RB90 (const FabArrayBase& fa, const IntVect& nghost, Box con
 void
 FabArrayBase::RB90::define (const FabArrayBase& fa)
 {
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(fa, this);
+    amrex::Abort("RB90 does not work in 1D");
+#else
     const int myproc = ParallelDescriptor::MyProc();
     const BoxArray& ba = fa.boxArray();
     const DistributionMapping& dm = fa.DistributionMap();
@@ -1384,6 +1388,7 @@ FabArrayBase::RB90::define (const FabArrayBase& fa)
             std::sort(cctv.begin(), cctv.end());
         }
     }
+#endif
 }
 
 void
@@ -1446,6 +1451,10 @@ FabArrayBase::RB180::RB180 (const FabArrayBase& fa, const IntVect& nghost, Box c
 void
 FabArrayBase::RB180::define (const FabArrayBase& fa)
 {
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(fa, this);
+    amrex::Abort("RB180 does not work in 1D");
+#else
     const int myproc = ParallelDescriptor::MyProc();
     const BoxArray& ba = fa.boxArray();
     const DistributionMapping& dm = fa.DistributionMap();
@@ -1544,6 +1553,7 @@ FabArrayBase::RB180::define (const FabArrayBase& fa)
             std::sort(cctv.begin(), cctv.end());
         }
     }
+#endif
 }
 
 void
@@ -1606,6 +1616,10 @@ FabArrayBase::PolarB::PolarB (const FabArrayBase& fa, const IntVect& nghost, Box
 void
 FabArrayBase::PolarB::define (const FabArrayBase& fa)
 {
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(fa, this);
+    amrex::Abort("PolarB does not work in 1D");
+#else
     const int myproc = ParallelDescriptor::MyProc();
     const BoxArray& ba = fa.boxArray();
     const DistributionMapping& dm = fa.DistributionMap();
@@ -1725,6 +1739,7 @@ FabArrayBase::PolarB::define (const FabArrayBase& fa)
             std::sort(cctv.begin(), cctv.end());
         }
     }
+#endif
 }
 
 void
