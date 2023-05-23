@@ -10,7 +10,7 @@
 #endif
 
 #define AMREX_PARSER_LOCAL_IDX0 1000
-#define AMREX_PARSER_GET_DATA(i) ((i)>=1000) ? pstack[(i)-1000] : x[i]
+#define AMREX_PARSER_GET_DATA(i) ((i)<1000) ? x[i] : pstack[(i)-1000]
 
 namespace amrex {
 
@@ -20,36 +20,37 @@ namespace amrex {
 
 enum parser_exe_t {
     PARSER_EXE_NULL = 0,
-    PARSER_EXE_NUMBER, // 1
-    PARSER_EXE_SYMBOL, // 2
-    PARSER_EXE_ADD,    // 3
-    PARSER_EXE_SUB,    // 4
-    PARSER_EXE_MUL,    // 5
-    PARSER_EXE_DIV_F,  // 6
-    PARSER_EXE_DIV_B,  // 7
-    PARSER_EXE_NEG,    // 8
-    PARSER_EXE_F1,     // 9
-    PARSER_EXE_F2_F,   // 10
-    PARSER_EXE_F2_B,   // 11
-    PARSER_EXE_ADD_VP, // 12
-    PARSER_EXE_SUB_VP, // 13
-    PARSER_EXE_MUL_VP, // 14
-    PARSER_EXE_DIV_VP, // 15
-    PARSER_EXE_ADD_PP, // 16
-    PARSER_EXE_SUB_PP, // 17
-    PARSER_EXE_MUL_PP, // 18
-    PARSER_EXE_DIV_PP, // 19
-    PARSER_EXE_NEG_P,  // 20
-    PARSER_EXE_ADD_VN, // 21
-    PARSER_EXE_SUB_VN, // 22
-    PARSER_EXE_MUL_VN, // 23
-    PARSER_EXE_DIV_VN, // 24
-    PARSER_EXE_ADD_PN, // 25
-    PARSER_EXE_SUB_PN, // 26
-    PARSER_EXE_MUL_PN, // 27
-    PARSER_EXE_DIV_PN, // 28
-    PARSER_EXE_IF,     // 29
-    PARSER_EXE_JUMP    // 30
+    PARSER_EXE_NUMBER,
+    PARSER_EXE_SYMBOL,
+    PARSER_EXE_ADD,
+    PARSER_EXE_SUB_F,
+    PARSER_EXE_SUB_B,
+    PARSER_EXE_MUL,
+    PARSER_EXE_DIV_F,
+    PARSER_EXE_DIV_B,
+    PARSER_EXE_F1,
+    PARSER_EXE_F2_F,
+    PARSER_EXE_F2_B,
+    PARSER_EXE_ADD_VP,
+    PARSER_EXE_SUB_VP,
+    PARSER_EXE_MUL_VP,
+    PARSER_EXE_DIV_VP,
+    PARSER_EXE_ADD_PP,
+    PARSER_EXE_SUB_PP,
+    PARSER_EXE_MUL_PP,
+    PARSER_EXE_DIV_PP,
+    PARSER_EXE_ADD_VN,
+    PARSER_EXE_SUB_VN,
+    PARSER_EXE_MUL_VN,
+    PARSER_EXE_DIV_VN,
+    PARSER_EXE_ADD_PN,
+    PARSER_EXE_SUB_PN,
+    PARSER_EXE_MUL_PN,
+    PARSER_EXE_DIV_PN,
+    PARSER_EXE_SQUARE,
+    PARSER_EXE_POWI,
+    PARSER_EXE_IF,
+    PARSER_EXE_JUMP
 };
 
 struct alignas(8) ParserExeNull {
@@ -70,9 +71,12 @@ struct alignas(8) ParserExeADD {
     enum parser_exe_t type = PARSER_EXE_ADD;
 };
 
-struct alignas(8) ParserExeSUB {
-    enum parser_exe_t type = PARSER_EXE_SUB;
-    double sign;
+struct alignas(8) ParserExeSUB_F {
+    enum parser_exe_t type = PARSER_EXE_SUB_F;
+};
+
+struct alignas(8) ParserExeSUB_B {
+    enum parser_exe_t type = PARSER_EXE_SUB_B;
 };
 
 struct alignas(8) ParserExeMUL {
@@ -85,10 +89,6 @@ struct alignas(8) ParserExeDIV_F {
 
 struct alignas(8) ParserExeDIV_B {
     enum parser_exe_t type = PARSER_EXE_DIV_B;
-};
-
-struct alignas(8) ParserExeNEG {
-    enum parser_exe_t type = PARSER_EXE_NEG;
 };
 
 struct alignas(8) ParserExeF1 {
@@ -154,11 +154,6 @@ struct alignas(8) ParserExeDIV_PP {
     int i2;
 };
 
-struct alignas(8) ParserExeNEG_P {
-    enum parser_exe_t type = PARSER_EXE_NEG_P;
-    int i;
-};
-
 struct alignas(8) ParserExeADD_VN {
     enum parser_exe_t type = PARSER_EXE_ADD_VN;
     double v;
@@ -199,6 +194,15 @@ struct alignas(8) ParserExeDIV_PN {
     enum parser_exe_t type = PARSER_EXE_DIV_PN;
     int i;
     bool reverse;
+};
+
+struct alignas(8) ParserExeSquare {
+    enum parser_exe_t type = PARSER_EXE_SQUARE;
+};
+
+struct alignas(8) ParserExePOWI {
+    enum parser_exe_t type = PARSER_EXE_POWI;
+    int i;
 };
 
 struct alignas(8) ParserExeIF {
@@ -252,12 +256,20 @@ double parser_exe_eval (const char* p, double const* x)
             p += sizeof(ParserExeADD);
             break;
         }
-        case PARSER_EXE_SUB:
+        case PARSER_EXE_SUB_F:
         {
             double b = pstack.top(); // NOLINT
             pstack.pop();
-            pstack.top() = (pstack.top() - b) * (((ParserExeSUB*)p)->sign); // NOLINT
-            p += sizeof(ParserExeSUB);
+            pstack.top() -= b; // NOLINT
+            p += sizeof(ParserExeSUB_F);
+            break;
+        }
+        case PARSER_EXE_SUB_B:
+        {
+            double b = pstack.top(); // NOLINT
+            pstack.pop();
+            pstack.top() = b - pstack.top(); // NOLINT
+            p += sizeof(ParserExeSUB_B);
             break;
         }
         case PARSER_EXE_MUL:
@@ -282,12 +294,6 @@ double parser_exe_eval (const char* p, double const* x)
             pstack.pop();
             pstack.top() = v / pstack.top(); // NOLINT
             p += sizeof(ParserExeDIV_B);
-            break;
-        }
-        case PARSER_EXE_NEG:
-        {
-            pstack.top() = -pstack.top(); // NOLINT
-            p += sizeof(ParserExeNEG);
             break;
         }
         case PARSER_EXE_F1:
@@ -384,14 +390,6 @@ double parser_exe_eval (const char* p, double const* x)
             p      += sizeof(ParserExeDIV_PP);
             break;
         }
-        case PARSER_EXE_NEG_P:
-        {
-            int i = ((ParserExeNEG_P*)p)->i;
-            double d = AMREX_PARSER_GET_DATA(i);
-            pstack.push(-d);
-            p     += sizeof(ParserExeNEG_P);
-            break;
-        }
         case PARSER_EXE_ADD_VN:
         {
             pstack.top() += ((ParserExeADD_VN*)p)->v; // NOLINT
@@ -452,6 +450,40 @@ double parser_exe_eval (const char* p, double const* x)
             p            += sizeof(ParserExeDIV_PN);
             break;
         }
+        case PARSER_EXE_SQUARE:
+        {
+            double& d = pstack.top();
+            d *= d;
+            p += sizeof(ParserExeSquare);
+            break;
+        }
+        case PARSER_EXE_POWI:
+        {
+            double& d = pstack.top();
+            int n = ((ParserExePOWI*)p)->i;
+            if (n != 0) {
+                if (n < 0) {
+                    d = 1.0/d;
+                    n = -n;
+                }
+                double y = 1.0;
+                while (n > 1) {
+                    if (n % 2 == 0) {
+                        d *= d;
+                        n = n/2;
+                    } else {
+                        y *= d;
+                        d *= d;
+                        n = (n-1)/2;
+                    }
+                }
+                d *= y;
+            } else {
+                d = 1.0;
+            }
+            p += sizeof(ParserExePOWI);
+            break;
+        }
         case PARSER_EXE_IF:
         {
             double cond = pstack.top(); // NOLINT
@@ -476,31 +508,36 @@ double parser_exe_eval (const char* p, double const* x)
 }
 
 void parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_size,
-                              int& max_stack_size, int& stack_size, Vector<char*>& local_variables);
+                              int& max_stack_size, int& stack_size, Vector<char const*>& local_variables);
 
 inline std::size_t
 parser_exe_size (struct amrex_parser* parser, int& max_stack_size, int& stack_size)
 {
+    parser_ast_sort(parser->ast);
     char* p = nullptr;
     std::size_t exe_size = 0;
     max_stack_size = 0;
     stack_size = 0;
-    Vector<char*> local_variables;
+    Vector<char const*> local_variables;
     parser_compile_exe_size(parser->ast, p, exe_size, max_stack_size, stack_size, local_variables);
     stack_size -= static_cast<int>(local_variables.size())+1;
     return exe_size+sizeof(ParserExeNull);
 }
 
-inline void
+inline Vector<char const*>
 parser_compile (struct amrex_parser* parser, char* p)
 {
     std::size_t exe_size = 0;
     int max_stack_size = 0;
     int stack_size = 0;
-    Vector<char*> local_variables;
+    Vector<char const*> local_variables;
     parser_compile_exe_size(parser->ast, p, exe_size, max_stack_size, stack_size, local_variables);
     new(p) ParserExeNull;
+    return local_variables;
 }
+
+void parser_exe_print(char const* parser, Vector<std::string> const& vars,
+                      Vector<char const*> const& locals);
 
 }
 

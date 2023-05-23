@@ -105,7 +105,7 @@ TinyProfiler::start () noexcept
 #endif
         }
 
-        ttstack.emplace_back(std::make_tuple(t, 0.0, &fname));
+        ttstack.emplace_back(t, 0.0, &fname);
         global_depth = static_cast<int>(ttstack.size());
 #ifdef AMREX_USE_OMP
         in_parallel_region = omp_in_parallel();

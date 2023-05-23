@@ -86,10 +86,10 @@ amrex::Tokenize (const std::string& instr,
 
     char* token = nullptr;
 
-    if (!((token = std::strtok(line, separators.c_str())) == nullptr))
+    if (!((token = std::strtok(line, separators.c_str())) == nullptr)) // NOLINT(bugprone-assignment-in-if-condition)
     {
         ptr.push_back(token);
-        while (!((token = std::strtok(nullptr, separators.c_str())) == nullptr))
+        while (!((token = std::strtok(nullptr, separators.c_str())) == nullptr)) // NOLINT(bugprone-assignment-in-if-condition)
             ptr.push_back(token);
     }
 

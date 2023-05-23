@@ -1,7 +1,7 @@
 #
 # List of subdirectories to search for CMakeLists.
 #
-set( AMREX_TESTS_SUBDIRS AsyncOut MultiBlock Reinit Amr CLZ Parser CTOParFor RoundoffDomain)
+set( AMREX_TESTS_SUBDIRS AsyncOut MultiBlock Reinit Amr CLZ Parser Parser2 CTOParFor RoundoffDomain)
 
 if (AMReX_PARTICLES)
    list(APPEND AMREX_TESTS_SUBDIRS Particles)
@@ -32,22 +32,23 @@ list(TRANSFORM AMREX_TESTS_SUBDIRS PREPEND "${CMAKE_CURRENT_LIST_DIR}/")
 #
 # Function to setup the tutorials
 #
-function (setup_test _srcs  _inputs)
+function (setup_test _dim _srcs  _inputs)
 
    cmake_parse_arguments( "" "HAS_FORTRAN_MODULES"
       "BASE_NAME;RUNTIME_SUBDIR;EXTRA_DEFINITIONS;CMDLINE_PARAMS;NTASKS;NTHREADS" "" ${ARGN} )
 
    if (_BASE_NAME)
-      set(_base_name ${_BASE_NAME})
+      set(_base_name ${_BASE_NAME}_${_dim}d)
    else ()
       string(REGEX REPLACE ".*Tests/" "" _base_name ${CMAKE_CURRENT_LIST_DIR})
       string(REPLACE "/" "_" _base_name ${_base_name})
+      set(_base_name ${_base_name}_${_dim}d)
    endif()
 
    if (_RUNTIME_SUBDIR)
-      set(_exe_dir ${CMAKE_CURRENT_BINARY_DIR}/${_RUNTIME_SUBDIR})
+      set(_exe_dir ${CMAKE_CURRENT_BINARY_DIR}/${_RUNTIME_SUBDIR}_${_dim}d)
    else ()
-      set(_exe_dir ${CMAKE_CURRENT_BINARY_DIR})
+      set(_exe_dir ${CMAKE_CURRENT_BINARY_DIR}/${_dim}d)
    endif ()
 
    set( _exe_name  Test_${_base_name} )
@@ -72,14 +73,14 @@ function (setup_test _srcs  _inputs)
    if (_HAS_FORTRAN_MODULES)
       target_include_directories(${_exe_name}
          PRIVATE
-         ${CMAKE_CURRENT_BINARY_DIR}/${_exe_name}_mod_files)
+         ${CMAKE_CURRENT_BINARY_DIR}/${_exe_name}_mod_files_${_dim}d)
       set_target_properties( ${_exe_name}
          PROPERTIES
          Fortran_MODULE_DIRECTORY
-         ${CMAKE_CURRENT_BINARY_DIR}/${_exe_name}_mod_files )
+         ${CMAKE_CURRENT_BINARY_DIR}/${_exe_name}_mod_files_${_dim}d)
    endif ()
 
-   target_link_libraries( ${_exe_name} AMReX::amrex )
+   target_link_libraries( ${_exe_name} AMReX::amrex_${_dim}d )
 
    if (AMReX_CUDA)
       setup_target_for_cuda_compilation( ${_exe_name} )

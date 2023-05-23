@@ -188,10 +188,12 @@ public:
     void makeSolvable (int amrlev, int mglev, MF& mf);
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
+    template <class TMF=MF,std::enable_if_t<std::is_same_v<TMF,MultiFab>,int> = 0>
     void bottomSolveWithHypre (MF& x, const MF& b);
 #endif
 
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
+    template <class TMF=MF,std::enable_if_t<std::is_same_v<TMF,MultiFab>,int> = 0>
     void bottomSolveWithPETSc (MF& x, const MF& b);
 #endif
 
@@ -1431,16 +1433,26 @@ MLMGT<MF>::actualBottomSolve ()
         }
 
         if (bottom_solver == BottomSolver::hypre)
-        { // NOLINT(bugprone-branch-clone)
+        {
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-            bottomSolveWithHypre(x, *bottom_b);
+            if constexpr (std::is_same<MF,MultiFab>()) {
+                bottomSolveWithHypre(x, *bottom_b);
+            } else
 #endif
+            {
+                amrex::Abort("Using Hypre as bottom solver not supported in this case");
+            }
         }
         else if (bottom_solver == BottomSolver::petsc)
         {
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
-            bottomSolveWithPETSc(x, *bottom_b);
+            if constexpr (std::is_same<MF,MultiFab>()) {
+                bottomSolveWithPETSc(x, *bottom_b);
+            } else
 #endif
+            {
+                amrex::Abort("Using PETSc as bottom solver not supported in this case");
+            }
         }
         else
         {
@@ -1744,6 +1756,7 @@ MLMGT<MF>::makeSolvable (int amrlev, int mglev, MF& mf)
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 template <typename MF>
+template <class TMF,std::enable_if_t<std::is_same_v<TMF,MultiFab>,int>>
 void
 MLMGT<MF>::bottomSolveWithHypre (MF& x, const MF& b)
 {
@@ -1773,7 +1786,7 @@ MLMGT<MF>::bottomSolveWithHypre (MF& x, const MF& b)
             const DistributionMapping& dm = linop.m_dmap[amrlev].back();
             const Geometry& geom = linop.m_geom[amrlev].back();
 
-            hypre_bndry = std::make_unique<MLMGBndry>(ba, dm, ncomp, geom);
+            hypre_bndry = std::make_unique<MLMGBndryT<MF>>(ba, dm, ncomp, geom);
             hypre_bndry->setHomogValues();
             const Real* dx = linop.m_geom[0][0].CellSize();
             int crse_ratio = linop.m_coarse_data_crse_ratio > 0 ? linop.m_coarse_data_crse_ratio : 1;
@@ -1812,6 +1825,7 @@ MLMGT<MF>::bottomSolveWithHypre (MF& x, const MF& b)
 
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
 template <typename MF>
+template <class TMF,std::enable_if_t<std::is_same_v<TMF,MultiFab>,int>>
 void
 MLMGT<MF>::bottomSolveWithPETSc (MF& x, const MF& b)
 {
@@ -1826,7 +1840,7 @@ MLMGT<MF>::bottomSolveWithPETSc (MF& x, const MF& b)
         const DistributionMapping& dm = linop.m_dmap[0].back();
         const Geometry& geom = linop.m_geom[0].back();
 
-        petsc_bndry = std::make_unique<MLMGBndry>(ba, dm, ncomp, geom);
+        petsc_bndry = std::make_unique<MLMGBndryT<MF>>(ba, dm, ncomp, geom);
         petsc_bndry->setHomogValues();
         const Real* dx = linop.m_geom[0][0].CellSize();
         int crse_ratio = linop.m_coarse_data_crse_ratio > 0 ? linop.m_coarse_data_crse_ratio : 1;

@@ -51,7 +51,7 @@ namespace {
                                               Real dlevset)
     {
         if ((dlevset > 0._rt && norm.x > 0._rt) || (dlevset < 0._rt && norm.x < 0._rt))
-        { // This triangle has the wrong direction // NOLINT(bugprone-branch-clone)
+        { // This triangle has the wrong direction
             return std::make_pair(false,0.0_rt);
         }
         else if (x1 > amrex::max(v1.x,v2.x,v3.x) ||

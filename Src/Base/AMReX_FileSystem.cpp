@@ -114,7 +114,7 @@ CreateDirectories (std::string const& path, mode_t mode, bool verbose)
                 if(*(slash+1) == 0) {
                     break;
                 }
-                if((slash = std::strchr(slash+1, *path_sep_str)) != nullptr) {
+                if((slash = std::strchr(slash+1, *path_sep_str)) != nullptr) { // NOLINT(bugprone-assignment-in-if-condition)
                     *slash = 0;
                 }
                 errno = 0;
@@ -141,7 +141,7 @@ CreateDirectories (std::string const& path, mode_t mode, bool verbose)
                 }
                 pathError.push_back(std::make_pair(dir, errno));
                 *slash = *path_sep_str;
-            } while((slash = std::strchr(slash+1, *path_sep_str)) != nullptr);
+            } while((slash = std::strchr(slash+1, *path_sep_str)) != nullptr); // NOLINT(bugprone-assignment-in-if-condition)
 
             errno = 0;
             if(mkdir(dir, mode) < 0 && errno != EEXIST) {

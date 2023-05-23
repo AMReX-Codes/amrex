@@ -23,11 +23,13 @@ endmacro ()
 #
 set(AMReX_SPACEDIM_VALUES 1 2 3)
 set(AMReX_SPACEDIM 3 CACHE STRING "Dimension of AMReX build: <1,2,3>")
-set_property(CACHE AMReX_SPACEDIM PROPERTY STRINGS ${AMReX_SPACEDIM_VALUES})
-if(NOT AMReX_SPACEDIM IN_LIST AMReX_SPACEDIM_VALUES)
-   message(FATAL_ERROR "AMReX_SPACEDIM=${AMReX_SPACEDIM} is not allowed."
-      " Must be one of ${AMReX_SPACEDIM_VALUES}")
-endif()
+list(REMOVE_DUPLICATES AMReX_SPACEDIM)
+foreach(D IN LISTS AMReX_SPACEDIM)
+    if(NOT D IN_LIST AMReX_SPACEDIM_VALUES)
+       message(FATAL_ERROR "AMReX_SPACEDIM=${D} is not allowed."
+          " Must be one of ${AMReX_SPACEDIM_VALUES}")
+    endif()
+endforeach()
 message( STATUS "Building AMReX with AMReX_SPACEDIM = ${AMReX_SPACEDIM}")
 
 #
@@ -270,8 +272,7 @@ print_option( AMReX_OMP )
 option( AMReX_AMRLEVEL  "Build AmrLevel class" ON )
 print_option( AMReX_AMRLEVEL )
 
-cmake_dependent_option( AMReX_EB "Build with Embedded Boundary support" OFF
-   "NOT AMReX_SPACEDIM EQUAL 1" OFF )
+option( AMReX_EB "Build with Embedded Boundary support" OFF)
 print_option(AMReX_EB)
 
 cmake_dependent_option( AMReX_FORTRAN_INTERFACES "Build Fortran API" OFF
@@ -325,12 +326,12 @@ print_option( AMReX_ASCENT )
 
 # Hypre
 cmake_dependent_option(AMReX_HYPRE "Enable Hypre interfaces" OFF
-   "AMReX_LINEAR_SOLVERS;NOT AMReX_SPACEDIM EQUAL 1" OFF)
+   "AMReX_LINEAR_SOLVERS" OFF)
 print_option(AMReX_HYPRE)
 
 # PETSc
 cmake_dependent_option(AMReX_PETSC "Enable PETSc interfaces" OFF
-   "AMReX_LINEAR_SOLVERS;NOT AMReX_SPACEDIM EQUAL 1" OFF )
+   "AMReX_LINEAR_SOLVERS" OFF )
 print_option(AMReX_PETSC)
 
 # HDF5
