@@ -62,15 +62,9 @@ public:
         resize(nrp + num_neighbors);
     }
 
-    [[nodiscard]] int getNumNeighbors () { return m_num_neighbor_particles; }
+    [[nodiscard]] int getNumNeighbors () const { return m_num_neighbor_particles; }
 
     [[nodiscard]] bool empty () const { return m_data.empty(); }
-
-    [[nodiscard]] const RealType* data () const { return &(m_data[0].m_pos[0]); }
-    [[nodiscard]]       RealType* data ()       { return &(m_data[0].m_pos[0]); }
-
-    [[nodiscard]] const RealType* dataPtr () const { return data(); }
-    [[nodiscard]]       RealType* dataPtr ()       { return data(); }
 
     [[nodiscard]] std::pair<int,int> dataShape () const {
         return std::make_pair(SizeInReal, static_cast<int>(m_data.size()));

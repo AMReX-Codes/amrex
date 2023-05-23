@@ -125,7 +125,7 @@ struct StructOfArrays {
         resize(nrp + num_neighbors);
     }
 
-    [[nodiscard]] int getNumNeighbors () { return m_num_neighbor_particles; }
+    [[nodiscard]] int getNumNeighbors () const { return m_num_neighbor_particles; }
 
     void resize (size_t count)
     {
