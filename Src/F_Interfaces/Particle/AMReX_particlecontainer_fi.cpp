@@ -80,7 +80,7 @@ extern "C" {
             np = particle_tile.numParticles();
             if (np > 0) {
                 auto& aos = particle_tile.GetArrayOfStructs();
-                dp = aos.data();
+                dp = &(aos()[0].pos(0));
             } else {
                 dp = nullptr;
             }
@@ -125,7 +125,7 @@ extern "C" {
             np = particle_tile.numParticles();
             if (np > 0) {
                 auto& aos = particle_tile.GetArrayOfStructs();
-                dp = aos.data();
+                dp = &(aos()[0].pos(0));
             } else {
                 dp = nullptr;
             }
