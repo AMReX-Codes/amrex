@@ -66,6 +66,12 @@ public:
 
     [[nodiscard]] bool empty () const { return m_data.empty(); }
 
+    [[nodiscard]] const ParticleType* data () const { return m_data.data(); }
+    [[nodiscard]]       ParticleType* data ()       { return m_data.data(); }
+
+    [[nodiscard]] const ParticleType* dataPtr () const { return data(); }
+    [[nodiscard]]       ParticleType* dataPtr ()       { return data(); }
+
     [[nodiscard]] std::pair<int,int> dataShape () const {
         return std::make_pair(SizeInReal, static_cast<int>(m_data.size()));
     }

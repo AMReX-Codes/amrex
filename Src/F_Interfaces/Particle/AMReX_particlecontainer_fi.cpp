@@ -69,7 +69,8 @@ extern "C" {
     }
 
     void amrex_fi_get_particles_mfi(FParticleContainer* particlecontainer,
-                                    int lev, MFIter* mfi, ParticleReal*& dp, Long& np)
+                                    int lev, MFIter* mfi,
+                                    FParticleContainer::ParticleType*& dp, Long& np)
     {
         const int grid = mfi->index();
         const int tile = mfi->LocalTileIndex();
@@ -80,7 +81,7 @@ extern "C" {
             np = particle_tile.numParticles();
             if (np > 0) {
                 auto& aos = particle_tile.GetArrayOfStructs();
-                dp = &(aos()[0].pos(0));
+                dp = aos.data();
             } else {
                 dp = nullptr;
             }
@@ -116,7 +117,8 @@ extern "C" {
     }
 
     void amrex_fi_get_particles_i(FParticleContainer* particlecontainer,
-                                  int lev, int grid, int tile, ParticleReal*& dp, Long& np)
+                                  int lev, int grid, int tile,
+                                  FParticleContainer::ParticleType*& dp, Long& np)
     {
         auto& particle_level = particlecontainer->GetParticles(lev);
         auto search = particle_level.find(std::make_pair(grid, tile));
@@ -125,7 +127,7 @@ extern "C" {
             np = particle_tile.numParticles();
             if (np > 0) {
                 auto& aos = particle_tile.GetArrayOfStructs();
-                dp = &(aos()[0].pos(0));
+                dp = aos.data();
             } else {
                 dp = nullptr;
             }
