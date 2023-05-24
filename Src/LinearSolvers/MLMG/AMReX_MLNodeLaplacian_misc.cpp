@@ -584,7 +584,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                 }
             }
             else if ( (m_use_harmonic_average && mglev > 0) || m_use_mapped )
-            { // NOLINT(bugprone-branch-clone)
+            {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif

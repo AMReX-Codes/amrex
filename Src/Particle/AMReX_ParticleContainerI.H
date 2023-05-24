@@ -652,7 +652,7 @@ struct FilterVirt
     GpuArray<Real, AMREX_SPACEDIM> m_plo, m_dxi;
     Box m_domain;
 
-    FilterVirt (const amrex::AssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> assign_buffer_grid, const GpuArray<Real, AMREX_SPACEDIM>& plo,
+    FilterVirt (const amrex::AssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>>& assign_buffer_grid, const GpuArray<Real, AMREX_SPACEDIM>& plo,
                 const GpuArray<Real, AMREX_SPACEDIM> & dxi, const Box& domain)
       : m_assign_buffer_grid(assign_buffer_grid), m_plo(plo), m_dxi(dxi), m_domain(domain)
     {}

@@ -281,7 +281,6 @@ if __name__ == "__main__":
     else:
         GIT = args.GIT.split()
 
-    ngit = len(GIT)
     git_hashes = []
     for d in GIT:
         if d and os.path.isdir(d):

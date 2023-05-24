@@ -77,7 +77,7 @@ CArena::alloc (std::size_t nbytes)
 
         m_used += N;
 
-        m_alloc.emplace_back(std::make_pair(vp,N));
+        m_alloc.emplace_back(vp,N);
 
         if (nbytes < m_hunk)
         {

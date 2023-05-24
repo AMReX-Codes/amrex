@@ -33,7 +33,7 @@ class SplineIF {
 
   amrex::Real operator() (const amrex::RealArray& p) const {
     amrex::RealVect cp;
-    distFcnElement2d * closesetGeomElement;
+    distFcnElement2d * closesetGeomElement = nullptr;
     amrex::Real dist;
     dist = 1.0e29_rt;
     amrex::RealVect x(AMREX_D_DECL(p[0], p[1], p[2]));
@@ -44,7 +44,7 @@ class SplineIF {
         closesetGeomElement = geom;
       }
     }
-    amrex::Real side = closesetGeomElement->cpside(x,cp);
+    amrex::Real side = closesetGeomElement ? closesetGeomElement->cpside(x,cp) : Real(0.0);
     return dist*side;
   }
 

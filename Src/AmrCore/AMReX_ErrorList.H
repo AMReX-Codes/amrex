@@ -482,6 +482,10 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
     int NGrow() const noexcept {return m_ngrow;}
     const std::string& Field () const noexcept {return m_field;}
 
+    AMRErrorTagInfo& GetInfo () noexcept {return m_info;}
+    AMRErrorTagInfo const& GetInfo () const noexcept {return m_info;}
+    void SetInfo (AMRErrorTagInfo const& info) noexcept {m_info = info;}
+
   protected:
     int SetNGrow () const noexcept;
 
