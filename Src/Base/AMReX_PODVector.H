@@ -476,7 +476,7 @@ namespace amrex
         void push_back (const T& a_value) noexcept
         {
             if (m_size == m_capacity) AllocateBuffer(GetNewCapacity(1));
-            m_data[m_size] = a_value;
+            detail::uninitializedFillNImpl<Allocator>(m_data+m_size, 1, a_value, *this);
             ++m_size;
         }
 

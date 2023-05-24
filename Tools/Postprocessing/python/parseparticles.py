@@ -283,7 +283,7 @@ def ensure_list(obj):
 
     import types
 
-    if obj == None:
+    if obj is None:
         return [obj]
     if not isinstance(obj, types.ListType):
         return [obj]
@@ -338,11 +338,11 @@ def parseParticleFile(maestroParticleFiles):
                 if (fields[2] == "x" and fields[3] == "y" and
                     fields[4] == "z"):
                     dim = 3
-                    ix = 2; iy = 3; iz = 4
+                    ix = 2
 
                 elif (fields[2] == "x" and fields[3] == "y"):
                     dim = 2
-                    ix = 2; iy = 3
+                    ix = 2
 
                 elif (fields[2] == "x"):
                     dim = 1
@@ -365,10 +365,7 @@ def parseParticleFile(maestroParticleFiles):
                 # everything else is associated data
                 if (len(fields) > 3 + dim):
                     idata = 3 + dim
-                    ndata = len(fields) - idata
                     dataNames = fields[idata:]
-                else:
-                    ndata = 0
 
 
                 # did the header change?

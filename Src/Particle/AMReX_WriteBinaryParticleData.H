@@ -752,7 +752,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
     }
 
     // make tmp particle tiles in pinned memory to write
-    using PinnedPTile = ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt,
+    using PinnedPTile = ParticleTile<typename PC::ParticleType, NArrayReal, NArrayInt,
                                      PinnedArenaAllocator>;
     auto myptiles = std::make_shared<Vector<std::map<std::pair<int, int>,PinnedPTile> > >();
     myptiles->resize(pc.finestLevel()+1);

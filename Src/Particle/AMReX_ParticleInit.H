@@ -30,10 +30,10 @@
                 across the domain so that you only need to specify a sub-volume of
                 them. By default particles are not replicated.
  */
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep)
 {
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitFromAsciiFile()");
@@ -233,7 +233,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                                     if (m_verbose) {
                                         amrex::AllPrint() << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleType::NextID() << "\n";
                                     }
-                                    amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAsciiFile(): invalid replicated particle");
+                                    amrex::Abort("ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitFromAsciiFile(): invalid replicated particle");
                                 }
                             }
 
@@ -470,10 +470,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 // Note that there is nothing separating all these values.
 // They're packed into the binary file like sardines.
 //
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
 InitFromBinaryFile (const std::string& file,
                     int                extradata)
 {
@@ -614,22 +614,22 @@ InitFromBinaryFile (const std::string& file,
         // NP MUST be positive!
         //
         if (NP <= 0)
-            amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile(): NP <= 0");
+            amrex::Abort("ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitFromBinaryFile(): NP <= 0");
         //
         // DM must equal AMREX_SPACEDIM.
         //
         if (DM != AMREX_SPACEDIM)
-            amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile(): DM != AMREX_SPACEDIM");
+            amrex::Abort("ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitFromBinaryFile(): DM != AMREX_SPACEDIM");
         //
         // NX MUST be in [0,N].
         //
         if (NX < 0 || NX > NStructReal)
-            amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile(): NX < 0 || NX > N");
+            amrex::Abort("ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitFromBinaryFile(): NX < 0 || NX > N");
         //
         // Can't ask for more data than exists in the file!
         //
         if (extradata > NX)
-            amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile(): extradata > NX");
+            amrex::Abort("ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitFromBinaryFile(): extradata > NX");
         //
         // Figure out whether we're dealing with floats or doubles.
         //
@@ -813,7 +813,7 @@ InitFromBinaryFile (const std::string& file,
                                                               << p.pos(2))
                                               << "\n";
                         }
-                        amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile(): invalid particle");
+                        amrex::Abort("ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitFromBinaryFile(): invalid particle");
                     }
                 }
 
@@ -905,10 +905,10 @@ InitFromBinaryFile (const std::string& file,
 // one file name per line.
 //
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
 InitFromBinaryMetaFile (const std::string& metafile,
                         int                extradata)
 {
@@ -943,10 +943,10 @@ InitFromBinaryMetaFile (const std::string& metafile,
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
 InitRandom (Long                    icount,
             ULong                   iseed,
             const ParticleInitData& pdata,
@@ -989,7 +989,17 @@ InitRandom (Long                    icount,
     {
         if(icount*AMREX_SPACEDIM >= std::numeric_limits<int>::max())
         {
-            amrex::Abort("InitRandom has serialize=true, but this would cause too much particle data to be sent from IOProc. Set serialize=false, or use fewer than "+std::to_string(amrex::Math::ceil(std::numeric_limits<int>::max()/amrex::Real(AMREX_SPACEDIM)))+ "particles");
+            amrex::Abort(
+                "InitRandom has serialize=true, but this would cause too much "
+                "particle data to be sent from IOProc. Set serialize=false, "
+                "or use fewer than " +
+                std::to_string(
+                    amrex::Math::ceil(
+                        amrex::Real(std::numeric_limits<int>::max()) /
+                        amrex::Real(AMREX_SPACEDIM)
+                    )
+                ) + " particles."
+            );
         }
         //
         // We'll let IOProc generate the particles so we get the same
@@ -1036,17 +1046,13 @@ InitRandom (Long                    icount,
 
         for (Long j = 0; j < icount; j++)
         {
-            ParticleType p;
+            Particle<0, 0> ptest;
 
             for (int i = 0; i < AMREX_SPACEDIM; i++) {
-                p.pos(i) = pos[j*AMREX_SPACEDIM + i];
+                ptest.pos(i) = pos[j*AMREX_SPACEDIM + i];
             }
 
-            for (int i = 0; i < NStructReal; i++) {
-                p.rdata(i) = static_cast<ParticleReal>(pdata.real_struct_data[i]);
-            }
-
-            if (!Where(p, pld)) {
+            if (!Where(ptest, pld)) {
                 amrex::Abort("ParticleContainer::InitRandom(): invalid particle");
             }
 
@@ -1057,27 +1063,58 @@ InitRandom (Long                    icount,
 
             if (who == MyProc) {
 
-                // We own it. Add it at the appropriate level.
-                p.id()  = ParticleType::NextID();
-                p.cpu() = MyProc;
+                if constexpr(!ParticleType::is_soa_particle)
+                {
+                    ParticleType p;
+                    for (int i = 0; i < AMREX_SPACEDIM; i++) {
+                        p.pos(i) = pos[j*AMREX_SPACEDIM + i];
+                    }
 
-                for (int i = 0; i < NStructInt; i++) {
-                    p.idata(i) = pdata.int_struct_data[i];
+                    // We own it. Add it at the appropriate level.
+                    p.id()  = ParticleType::NextID();
+                    p.cpu() = MyProc;
+
+                    for (int i = 0; i < NStructInt; i++) {
+                        p.idata(i) = pdata.int_struct_data[i];
+                    }
+
+                    for (int i = 0; i < NStructReal; i++) {
+                        p.rdata(i) = static_cast<ParticleReal>(pdata.real_struct_data[i]);
+                    }
+
+                    // add the struct
+                    host_particles[pld.m_lev][ind].push_back(p);
+
+                    // add the real...
+                    for (int i = 0; i < NArrayReal; i++) {
+                        host_real_attribs[pld.m_lev][ind][i].push_back(static_cast<ParticleReal>(pdata.real_array_data[i]));
+                    }
+
+                    // ... and int array data
+                    for (int i = 0; i < NArrayInt; i++) {
+                        host_int_attribs[pld.m_lev][ind][i].push_back(pdata.int_array_data[i]);
+                    }
+                } else {
+                    for (int i = 0; i < AMREX_SPACEDIM; i++) {
+                        host_real_attribs[pld.m_lev][ind][i].push_back(pos[j*AMREX_SPACEDIM+i]);
+                    }
+
+                    host_int_attribs[pld.m_lev][ind][0].push_back(ParticleType::NextID());
+                    host_int_attribs[pld.m_lev][ind][1].push_back(MyProc);
+
+                    host_particles[pld.m_lev][ind];
+
+                    // add the real...
+                    for (int i = AMREX_SPACEDIM; i < NArrayReal; i++) {
+                        host_real_attribs[pld.m_lev][ind][i].push_back(static_cast<ParticleReal>(pdata.real_array_data[i]));
+                    }
+
+                    // ... and int array data
+                    for (int i = 2; i < NArrayInt; i++) {
+                        host_int_attribs[pld.m_lev][ind][i].push_back(pdata.int_array_data[i]);
+                    }
                 }
-
-                // add the struct
-                host_particles[pld.m_lev][ind].push_back(p);
-
-                // add the real...
-                for (int i = 0; i < NArrayReal; i++) {
-                    host_real_attribs[pld.m_lev][ind][i].push_back(static_cast<ParticleReal>(pdata.real_array_data[i]));
-                }
-
-                // ... and int array data
-                for (int i = 0; i < NArrayInt; i++) {
-                    host_int_attribs[pld.m_lev][ind][i].push_back(pdata.int_array_data[i]);
-                }
-              }
+            }
         }
 
         for (int host_lev = 0; host_lev < static_cast<int>(host_particles.size()); ++host_lev)
@@ -1089,11 +1126,20 @@ InitRandom (Long                    icount,
 
                 auto& dst_tile = GetParticles(host_lev)[std::make_pair(grid,tile)];
                 auto old_size = dst_tile.GetArrayOfStructs().size();
-                auto new_size = old_size + src_tile.size();
+                auto new_size = old_size;
+                if constexpr(!ParticleType::is_soa_particle)
+                {
+                    new_size += src_tile.size();
+                } else {
+                    new_size += host_real_attribs[host_lev][std::make_pair(grid,tile)][0].size();
+                }
                 dst_tile.resize(new_size);
 
-                Gpu::copyAsync(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
-                               dst_tile.GetArrayOfStructs().begin() + old_size);
+                if constexpr(!ParticleType::is_soa_particle)
+                {
+                    Gpu::copyAsync(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
+                                   dst_tile.GetArrayOfStructs().begin() + old_size);
+                }
 
                 for (int i = 0; i < NArrayReal; ++i) {
                     Gpu::copyAsync(Gpu::hostToDevice,
@@ -1138,7 +1184,7 @@ InitRandom (Long                    icount,
         host_int_attribs.resize(finestLevel()+1);
 
         for (Long icnt = 0; icnt < M; icnt++) {
-            ParticleType p;
+            Particle<0, 0> ptest;
             for (int i = 0; i < AMREX_SPACEDIM; i++) {
                 do {
                     r = amrex::Random();
@@ -1146,42 +1192,71 @@ InitRandom (Long                    icount,
                 }
                 while (static_cast<ParticleReal>(x) < static_cast<ParticleReal>(xlo[i]) || static_cast<ParticleReal>(x) >= static_cast<ParticleReal>(xhi[i]));
 
-                p.pos(i) = static_cast<ParticleReal>(x);
+                ptest.pos(i) = static_cast<ParticleReal>(x);
 
-                AMREX_ASSERT(p.pos(i) < geom.ProbHi(i));
+                AMREX_ASSERT(ptest.pos(i) < geom.ProbHi(i));
             }
 
-            for (int i = 0; i < NStructReal; i++) {
-                p.rdata(i) = static_cast<ParticleReal>(pdata.real_struct_data[i]);
-            }
-
-            // the int struct data
-            p.id()  = ParticleType::NextID();
-            p.cpu() = ParallelDescriptor::MyProc();
-
-            for (int i = 0; i < NStructInt; i++) {
-                p.idata(i) = pdata.int_struct_data[i];
-            }
+            ptest.id()  = ParticleType::NextID();
+            ptest.cpu() = ParallelDescriptor::MyProc();
 
             // locate the particle
-            if (!Where(p, pld))
+            if (!Where(ptest, pld))
             {
-                amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandom(): invalid particle");
+                amrex::Abort("ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitRandom(): invalid particle");
             }
             AMREX_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
             std::pair<int, int> ind(pld.m_grid, pld.m_tile);
 
-            // add the struct
-            host_particles[pld.m_lev][ind].push_back(p);
+            if constexpr(!ParticleType::is_soa_particle)
+            {
+                ParticleType p;
+                for (int i = 0; i < AMREX_SPACEDIM; i++) {
+                    p.pos(i) = ptest.pos(i);;
+                }
 
-            // add the real...
-            for (int i = 0; i < NArrayReal; i++) {
-                host_real_attribs[pld.m_lev][ind][i].push_back(static_cast<ParticleReal>(pdata.real_array_data[i]));
-            }
+                p.id()  = ptest.id();
+                p.cpu() = ptest.cpu();
 
-            // ... and int array data
-            for (int i = 0; i < NArrayInt; i++) {
-                host_int_attribs[pld.m_lev][ind][i].push_back(pdata.int_array_data[i]);
+                for (int i = 0; i < NStructReal; i++) {
+                    p.rdata(i) = static_cast<ParticleReal>(pdata.real_struct_data[i]);
+                }
+
+                for (int i = 0; i < NStructInt; i++) {
+                    p.idata(i) = pdata.int_struct_data[i];
+                }
+
+                // add the struct
+                host_particles[pld.m_lev][ind].push_back(p);
+
+                // add the real...
+                for (int i = 0; i < NArrayReal; i++) {
+                    host_real_attribs[pld.m_lev][ind][i].push_back(static_cast<ParticleReal>(pdata.real_array_data[i]));
+                }
+
+                // ... and int array data
+                for (int i = 0; i < NArrayInt; i++) {
+                    host_int_attribs[pld.m_lev][ind][i].push_back(pdata.int_array_data[i]);
+                }
+            } else {
+                for (int i = 0; i < AMREX_SPACEDIM; i++) {
+                    host_real_attribs[pld.m_lev][ind][i].push_back(ptest.pos(i));
+                }
+
+                host_int_attribs[pld.m_lev][ind][0].push_back(ptest.id());
+                host_int_attribs[pld.m_lev][ind][1].push_back(ptest.cpu());
+
+                host_particles[pld.m_lev][ind];
+
+                // add the real...
+                for (int i = AMREX_SPACEDIM; i < NArrayReal; i++) {
+                    host_real_attribs[pld.m_lev][ind][i].push_back(static_cast<ParticleReal>(pdata.real_array_data[i]));
+                }
+
+                // ... and int array data
+                for (int i = 2; i < NArrayInt; i++) {
+                    host_int_attribs[pld.m_lev][ind][i].push_back(pdata.int_array_data[i]);
+                }
             }
         }
 
@@ -1194,11 +1269,20 @@ InitRandom (Long                    icount,
 
                 auto& dst_tile = GetParticles(host_lev)[std::make_pair(grid,tile)];
                 auto old_size = dst_tile.GetArrayOfStructs().size();
-                auto new_size = old_size + src_tile.size();
+                auto new_size = old_size;
+                if constexpr(!ParticleType::is_soa_particle)
+                {
+                    new_size += src_tile.size();
+                } else {
+                    new_size += host_real_attribs[host_lev][std::make_pair(grid,tile)][0].size();
+                }
                 dst_tile.resize(new_size);
 
-                Gpu::copyAsync(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
-                               dst_tile.GetArrayOfStructs().begin() + old_size);
+                if constexpr(!ParticleType::is_soa_particle)
+                {
+                    Gpu::copyAsync(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
+                                   dst_tile.GetArrayOfStructs().begin() + old_size);
+                }
 
                 for (int i = 0; i < NArrayReal; ++i) {
                     Gpu::copyAsync(Gpu::hostToDevice,
@@ -1227,16 +1311,16 @@ InitRandom (Long                    icount,
 
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
-        amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandom() time: " << stoptime << '\n';
+        amrex::Print() << "ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitRandom() time: " << stoptime << '\n';
     }
 
     Gpu::streamSynchronize();
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::InitRandomPerBox (Long                    icount_per_box,
                     ULong                   iseed,
                     const ParticleInitData& pdata)
@@ -1327,14 +1411,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
-        amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandomPerBox() time: " << stoptime << '\n';
+        amrex::Print() << "ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitRandomPerBox() time: " << stoptime << '\n';
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
 InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdata)
 {
     amrex::ignore_unused(y_off,z_off);
@@ -1361,7 +1445,7 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
         Box grid = ParticleBoxArray(0)[mfi.index()];
         auto ind = std::make_pair(mfi.index(), mfi.LocalTileIndex());
         RealBox grid_box (grid,dx,geom.ProbLo());
-        ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt, amrex::PinnedArenaAllocator> ptile_tmp;
+        ParticleTile<ParticleType, NArrayReal, NArrayInt, amrex::PinnedArenaAllocator> ptile_tmp;
         for (IntVect beg = grid.smallEnd(), end=grid.bigEnd(), cell = grid.smallEnd(); cell <= end; grid.next(cell))
         {
             // the real struct data
@@ -1411,14 +1495,14 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
 
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
-        amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitOnePerCell() time: " << stoptime << '\n';
+        amrex::Print() << "ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitOnePerCell() time: " << stoptime << '\n';
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
 InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
 {
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitNRandomPerCell()");
@@ -1491,7 +1575,7 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
 
                 // locate the particle
                 if (!Where(p, pld)) {
-                    amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitNRandomPerCell(): invalid particle");
+                    amrex::Abort("ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitNRandomPerCell(): invalid particle");
                 }
                 AMREX_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
                 std::pair<int, int> ind(pld.m_grid, pld.m_tile);
@@ -1552,7 +1636,7 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
 
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
-        amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitNRandomPerCell() time: " << stoptime << '\n';
+        amrex::Print() << "ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitNRandomPerCell() time: " << stoptime << '\n';
     }
 
     Gpu::streamSynchronize();

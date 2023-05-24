@@ -8,6 +8,7 @@
 #include <AMReX_ParticleBufferMap.H>
 #include <AMReX_MFIter.H>
 #include <AMReX_TypeTraits.H>
+#include <AMReX_MakeParticle.H>
 
 #include <map>
 
@@ -293,8 +294,6 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 {
     BL_PROFILE("amrex::packBuffer");
 
-    using ParticleType = typename PC::ParticleType;
-
     Long psize = plan.superParticleSize();
 
     int num_levels = op.numLevels();
@@ -365,17 +364,19 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 
                     if (do_periodic_shift)
                     {
-                        ParticleType p;
-                        amrex::Gpu::memcpy(&p, &p_snd_buffer[dst_offset], sizeof(ParticleType));
+                        ParticleReal pos[AMREX_SPACEDIM];
+                        amrex::Gpu::memcpy(&pos[0], &p_snd_buffer[dst_offset],
+                                           AMREX_SPACEDIM*sizeof(ParticleReal));
                         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                         {
                             if (! is_per[idim]) continue;
                             if (pshift[idim] > 0)
-                                p.pos(idim) += phi[idim] - plo[idim];
+                                pos[idim] += phi[idim] - plo[idim];
                             else if (pshift[idim] < 0)
-                                p.pos(idim) -= phi[idim] - plo[idim];
+                                pos[idim] -= phi[idim] - plo[idim];
                         }
-                        amrex::Gpu::memcpy(&p_snd_buffer[dst_offset], &p, sizeof(ParticleType));
+                        amrex::Gpu::memcpy(&p_snd_buffer[dst_offset], &pos[0],
+                                           AMREX_SPACEDIM*sizeof(ParticleReal));
                     }
                 }
             });

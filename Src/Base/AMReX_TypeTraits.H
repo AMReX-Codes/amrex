@@ -54,17 +54,17 @@ namespace amrex
     struct IsMultiFabIterator : public std::is_base_of<MFIter, T>::type {};
 
 #ifdef AMREX_PARTICLES
-    template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-              template<class> class Allocator>
-    class ParIterBase;
+    // template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+    //           template<class> class Allocator>
+    // class ParIterBase;
 
-    template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-              template<class> class Allocator>
-    class ParIter;
+    // template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+    //           template<class> class Allocator>
+    // class ParIter;
 
-    template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-              template<class> class Allocator>
-    class ParConstIter;
+    // template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+    //           template<class> class Allocator>
+    // class ParConstIter;
 
     class ParticleContainerBase;
 

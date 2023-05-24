@@ -369,7 +369,7 @@ int main_main()
         if (abort_if_not_all_found) return EXIT_FAILURE;
     }
 
-    if (any_nans) { // NOLINT(bugprone-branch-clone)
+    if (any_nans) {
         return EXIT_FAILURE;
     } else if (global_error == 0.0) {
         amrex::Print() << " PLOTFILE AGREE" << std::endl;

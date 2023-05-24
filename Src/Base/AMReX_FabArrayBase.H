@@ -468,6 +468,9 @@ public:
         std::unique_ptr<MapOfCopyComTagContainers> m_RcvTags;
     };
 
+    void define_fb_metadata (CommMetaData& cmd, const IntVect& nghost, bool cross,
+                             const Periodicity& period, bool multi_ghost) const;
+
     //
     //! FillBoundary
     struct FB

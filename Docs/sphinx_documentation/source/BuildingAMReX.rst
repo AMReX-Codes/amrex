@@ -437,7 +437,7 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | CMAKE_CXX_STANDARD           |  C++ standard                                   | compiler/17             | 17, 20                |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | AMReX_SPACEDIM               |  Dimension of AMReX build                       | 3                       | 1, 2, 3               |
+   | AMReX_SPACEDIM               |  Dimension of AMReX build                       | 3 ``;``-separated list  | "1;2;3"               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | USE_XSDK_DEFAULTS            |  Use xSDK defaults settings                     | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
@@ -502,7 +502,7 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_EXPORT_DYNAMIC         |  Enable backtrace on macOS                      | NO (unless Darwin)      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | AMReX_SENSEI                 |  Enable the SENSEI in situ infrastucture        | NO                      | YES, NO               |
+   | AMReX_SENSEI                 |  Enable the SENSEI in situ infrastructure       | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_NO_SENSEI_AMR_INST     |  Disables the instrumentation in amrex::Amr     | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
@@ -589,7 +589,6 @@ the following line in the appropriate CMakeLists.txt file:
 
     target_link_libraries( <your-target-name> PUBLIC AMReX::<amrex-target-name> )
 
-
 In the above snippet, ``<amrex-target-name>`` is any of the targets listed in the table below.
 
 .. raw:: latex
@@ -603,7 +602,13 @@ In the above snippet, ``<amrex-target-name>`` is any of the targets listed in th
    +-----------------------+-------------------------------------------------+
    | Target name           | Description                                     |
    +=======================+=================================================+
-   | amrex                 |  AMReX library                                  |
+   | amrex_1d              |  AMReX library in 1D                            |
+   +-----------------------+-------------------------------------------------+
+   | amrex_2d              |  AMReX library in 2D                            |
+   +-----------------------+-------------------------------------------------+
+   | amrex_3d              |  AMReX library in 3D                            |
+   +-----------------------+-------------------------------------------------+
+   | amrex                 |  AMReX library (alias, points to last dim)      |
    +-----------------------+-------------------------------------------------+
    | Flags_CXX             |  C++ flags preset (interface)                   |
    +-----------------------+-------------------------------------------------+
@@ -712,7 +717,7 @@ As an example, consider the following CMake code:
 ::
 
     find_package(AMReX REQUIRED 3D EB)
-    target_link_libraries( Foo PUBLIC AMReX::amrex )
+    target_link_libraries(Foo PUBLIC AMReX::amrex_3d)
 
 The code in the snippet above checks whether an AMReX installation with 3D and Embedded Boundary support
 is available on the system. If so, AMReX is linked to target ``Foo`` and AMReX flags preset is used
@@ -744,7 +749,7 @@ We do not officially support AMReX on Windows, and many of us do not have access
 machines.  However, we believe there are no fundamental issues for it to work on Windows.
 
 (1) AMReX mostly uses standard C++17.
-We run continous integration tests on Windows with MSVC and Clang compilers.
+We run continuous integration tests on Windows with MSVC and Clang compilers.
 
 (2) We use POSIX signal handling when floating point exceptions, segmentation faults, etc. happen.
 This capability is not supported on Windows.

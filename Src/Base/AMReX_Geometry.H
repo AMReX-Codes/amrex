@@ -194,6 +194,7 @@ public:
     [[nodiscard]] GpuArray<ParticleReal,AMREX_SPACEDIM> ProbLoArrayInParticleReal () const noexcept {
         return roundoff_lo;
     }
+
     [[nodiscard]] GpuArray<ParticleReal,AMREX_SPACEDIM> ProbHiArrayInParticleReal () const noexcept {
         return roundoff_hi;
     }

@@ -92,8 +92,15 @@ endif()
 # Include options, utilities and other stuff we need
 #
 include( AMReXOptions )
-if (AMReX_GPU_BACKEND STREQUAL "CUDA")
-   include(AMReXCUDAOptions)
+
+#
+# Enable CUDA if requested
+#
+if (AMReX_CUDA)
+    enable_language(CUDA)
+    if(CMAKE_VERSION VERSION_LESS 3.20)
+        include(AMReX_SetupCUDA)
+    endif()
 endif ()
 
 #
@@ -104,13 +111,10 @@ if(AMReX_FORTRAN)
 endif ()
 
 #
-# Enable CUDA if requested
+# Include options specifically for CUDA
 #
-if (AMReX_CUDA)
-    enable_language(CUDA)
-    if(CMAKE_VERSION VERSION_LESS 3.20)
-        include(AMReX_SetupCUDA)
-    endif()
+if (AMReX_GPU_BACKEND STREQUAL "CUDA")
+   include(AMReXCUDAOptions)
 endif ()
 
 #

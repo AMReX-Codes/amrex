@@ -10,10 +10,10 @@
 
 namespace amrex {
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::AssignDensity (int rho_index,
                  Vector<std::unique_ptr<MultiFab> >& mf_to_be_filled,
                  int lev_min, int ncomp, int finest_level, int ngrow) const
@@ -249,39 +249,46 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
     }
 }
 
-template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0,
+template <typename T_ParticleType, int NArrayReal=0, int NArrayInt=0,
           template<class> class Allocator=DefaultAllocator>
-class AmrParticleContainer // NOLINT
-    : public ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+class AmrParticleContainer_impl // NOLINT(cppcoreguidelines-virtual-class-destructor)
+    : public ParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator>
 {
 
 public:
 
-    typedef Particle<NStructReal, NStructInt> ParticleType;
+    using ParticleType = T_ParticleType;
 
-    AmrParticleContainer () = default;
-
-    AmrParticleContainer (AmrCore* amr_core)
-        : ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>(amr_core->GetParGDB())
+    AmrParticleContainer_impl ()
+        : ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>()
     {
     }
 
-    AmrParticleContainer (const Vector<Geometry>            & geom,
-                          const Vector<DistributionMapping> & dmap,
-                          const Vector<BoxArray>            & ba,
-                          const Vector<int>                 & rr)
-        : ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>(geom, dmap, ba, rr)
+    AmrParticleContainer_impl (AmrCore* amr_core)
+        : ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>(amr_core->GetParGDB())
     {
     }
 
-    ~AmrParticleContainer () override = default;
+    AmrParticleContainer_impl (const Vector<Geometry>            & geom,
+                               const Vector<DistributionMapping> & dmap,
+                               const Vector<BoxArray>            & ba,
+                               const Vector<int>                 & rr)
+        : ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>(geom, dmap, ba, rr)
+    {
+    }
 
-    AmrParticleContainer ( const AmrParticleContainer &) = delete;
-    AmrParticleContainer& operator= ( const AmrParticleContainer & ) = delete;
+    ~AmrParticleContainer_impl () override = default;
 
-    AmrParticleContainer ( AmrParticleContainer && ) noexcept = default;
-    AmrParticleContainer& operator= ( AmrParticleContainer && ) noexcept = default;
+    AmrParticleContainer_impl ( const AmrParticleContainer_impl &) = delete;
+    AmrParticleContainer_impl& operator= ( const AmrParticleContainer_impl & ) = delete;
+
+    AmrParticleContainer_impl ( AmrParticleContainer_impl && ) noexcept = default;
+    AmrParticleContainer_impl& operator= ( AmrParticleContainer_impl && ) noexcept = default;
 };
+
+template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArrayInt=0,
+          template<class> class Allocator=DefaultAllocator>
+using AmrParticleContainer = AmrParticleContainer_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt, Allocator>;
 
 class AmrTracerParticleContainer
     : public TracerParticleContainer
