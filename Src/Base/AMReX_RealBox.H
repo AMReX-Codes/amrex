@@ -30,7 +30,7 @@ public:
 
     //! Construct region given diagonal points.
     AMREX_GPU_HOST_DEVICE
-    RealBox (const Vector<Real>& a_lo, const Vector<Real>& a_hi) noexcept
+    RealBox (const RealVect& a_lo, const RealVect& a_hi) noexcept
         : xlo{AMREX_D_DECL(a_lo[0],a_lo[1],a_lo[2])}, xhi{AMREX_D_DECL(a_hi[0],a_hi[1],a_hi[2])} {}
 
     RealBox (const std::array<Real,AMREX_SPACEDIM>& a_lo,
