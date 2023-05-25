@@ -1284,13 +1284,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
             auto index = std::make_pair(gid, tid);
 
             auto& src_tile = plev[index];
-            auto& aos = src_tile.GetArrayOfStructs();
-            const size_t np = aos.numParticles();
-
-            AMREX_ASSERT_WITH_MESSAGE((NumRealComps() == 0 && NumIntComps() == 0) ||
-                                      aos.size() == src_tile.GetStructOfArrays().size(),
-                "The AoS and SoA data on this tile are different sizes - "
-                "perhaps particles have not been initialized correctly?");
+            const size_t np = src_tile.numParticles();
 
             int num_stay = partitionParticlesByDest(src_tile, assign_grid, BufferMap(),
                                                     plo, phi, rlo, rhi, is_per, lev, gid, tid,
