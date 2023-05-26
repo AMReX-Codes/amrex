@@ -226,6 +226,9 @@ struct ParticleTileData
     {
         AMREX_ASSERT(index < m_size);
         SuperParticleType sp;
+        for (int i = 0; i < AMREX_SPACEDIM; ++i) {sp.pos(i) = m_rdata[i][index];}
+        sp.id()  = m_idata[0][index];
+        sp.cpu() = m_idata[1][index];
         for (int i = 0; i < NAR; ++i)
             sp.rdata(i) = m_rdata[i][index];
         for (int i = 0; i < NAI; ++i)
@@ -595,6 +598,9 @@ struct ConstParticleTileData
     {
         AMREX_ASSERT(index < m_size);
         SuperParticleType sp;
+        for (int i = 0; i < AMREX_SPACEDIM; ++i) {sp.pos(i) = m_rdata[i][index];}
+        sp.id()  = m_idata[0][index];
+        sp.cpu() = m_idata[1][index];
         for (int i = 0; i < NAR; ++i)
             sp.rdata(i) = m_rdata[i][index];
         for (int i = 0; i < NAI; ++i)
