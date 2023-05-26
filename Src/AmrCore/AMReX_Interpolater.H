@@ -849,9 +849,13 @@ class DGInterp
 public:
 
     /**
-    * \brief The destructor.
+    * \brief Returns coarsened box given fine box and refinement ratio.
+    *
+    * \param fine
+    * \param ratio
     */
-    virtual ~DGInterp () override;
+    Box CoarseBox (const Box& fine,
+                   int        ratio) override;
 
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
@@ -859,17 +863,8 @@ public:
     * \param fine
     * \param ratio
     */
-    virtual Box CoarseBox (const Box& fine,
-                           int        ratio) override;
-
-    /**
-    * \brief Returns coarsened box given fine box and refinement ratio.
-    *
-    * \param fine
-    * \param ratio
-    */
-    virtual Box CoarseBox (const Box&     fine,
-                           const IntVect& ratio) override;
+    Box CoarseBox (const Box&     fine,
+                   const IntVect& ratio) override;
 
     /**
     * \brief Coarse to fine interpolation in space (Order 2).
@@ -887,19 +882,19 @@ public:
     * \param actual_comp
     * \param actual_state
     */
-    virtual void interp (const FArrayBox& crse,
-                         int              crse_comp,
-                         FArrayBox&       fine,
-                         int              fine_comp,
-                         int              ncomp,
-                         const Box&       fine_region,
-                         const IntVect&   ratio,
-                         const Geometry&  crse_geom,
-                         const Geometry&  fine_geom,
-                         Vector<BCRec> const&  bcr,
-                         int              actual_comp,
-                         int              actual_state,
-                         RunOn            gpu_or_cpu) override;
+    void interp (const FArrayBox& crse,
+                 int              crse_comp,
+                 FArrayBox&       fine,
+                 int              fine_comp,
+                 int              ncomp,
+                 const Box&       fine_region,
+                 const IntVect&   ratio,
+                 const Geometry&  crse_geom,
+                 const Geometry&  fine_geom,
+                 Vector<BCRec> const&  bcr,
+                 int              actual_comp,
+                 int              actual_state,
+                 RunOn            runon) override;
 };
 
 //! CONSTRUCT A GLOBAL OBJECT OF EACH VERSION.

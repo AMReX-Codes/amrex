@@ -286,7 +286,7 @@ public:
                      int              iDimX,
                      int              nFields,
                      int              BoxNumber,
-                     RunOn            gpu_or_cpu) noexcept;
+                     RunOn            runon) noexcept;
 
     /**
     * \brief Increment flux correction with fine data.

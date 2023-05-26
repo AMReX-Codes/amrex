@@ -5,7 +5,6 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_iMultiFab.H>
-#include <cstddef> /* For NULL */
 #include <AMReX_DG.H>
 
 namespace amrex {
@@ -289,7 +288,7 @@ FluxRegister::CrseInit_DG ( const MultiFab& SurfaceFlux,
                             FrOp            op)
 {
 
-    Real * WeightsX_X = NULL;
+    Real * WeightsX_X = nullptr;
     int nDOFX_X       = -1;
 
     if( iDimX == 0 )
@@ -600,8 +599,8 @@ FluxRegister::FineAdd_DG (const FArrayBox& SurfaceFluxes,
                           RunOn            runon) noexcept
 {
 
-    Real * WeightsX_X = NULL;
-    Real *** LX_X     = NULL;
+    Real * WeightsX_X = nullptr;
+    Real *** LX_X     = nullptr;
     int nDOFX_X       = -1;
 
     if( iDimX == 0 )

@@ -124,7 +124,7 @@ fluxreg_fineadd_dg( Box const&                CrseBox,
                     const int                 iDimX,
                     const int                 nFields,
                     int                       nDOFX_X,
-                    Real *                    WeightsX_X,
+                    const Real *              WeightsX_X,
                     Real ***                  LX_X,
                     Dim3 const&               ratio ) noexcept
 {
@@ -423,9 +423,9 @@ fluxreg_reflux_dg
     Array4<Real> const& dU,
     Array4<Real const> const& dF,
     int nFields,
-    Real dX1[],
-    Real dX2[],
-    Real dX3[],
+    const Real dX1[],
+    const Real dX2[],
+    const Real dX3[],
     const Orientation face ) noexcept
 {
     const auto CrseLo  = amrex::lbound(CrseBox);
