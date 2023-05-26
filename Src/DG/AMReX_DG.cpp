@@ -21,30 +21,30 @@ int nDOFX_X1;
 int nDOFX_X2;
 int nDOFX_X3;
 
-Real * WeightsX_X1 = NULL;
-Real * WeightsX_X2 = NULL;
-Real * WeightsX_X3 = NULL;
-Real * WeightsX_q  = NULL;
+Real * WeightsX_X1 = nullptr;
+Real * WeightsX_X2 = nullptr;
+Real * WeightsX_X3 = nullptr;
+Real * WeightsX_q  = nullptr;
 
-Real *** ProjectionMatrix   = NULL;
-Real *** ProjectionMatrix_T = NULL;
+Real *** ProjectionMatrix   = nullptr;
+Real *** ProjectionMatrix_T = nullptr;
 
-Real *** LX_X1 = NULL;
-Real *** LX_X2 = NULL;
-Real *** LX_X3 = NULL;
+Real *** LX_X1 = nullptr;
+Real *** LX_X2 = nullptr;
+Real *** LX_X3 = nullptr;
 
-Real * LX_X1_Up = NULL;
-Real * LX_X1_Dn = NULL;
-Real * LX_X2_Up = NULL;
-Real * LX_X2_Dn = NULL;
-Real * LX_X3_Up = NULL;
-Real * LX_X3_Dn = NULL;
+Real * LX_X1_Up = nullptr;
+Real * LX_X1_Dn = nullptr;
+Real * LX_X2_Up = nullptr;
+Real * LX_X2_Dn = nullptr;
+Real * LX_X3_Up = nullptr;
+Real * LX_X3_Dn = nullptr;
 
-int **  NodeNumberTableX    = NULL;
-int *** NodeNumberTableX3D  = NULL;
-int *   NodeNumberTableX_X1 = NULL;
-int *   NodeNumberTableX_X2 = NULL;
-int *   NodeNumberTableX_X3 = NULL;
+int **  NodeNumberTableX    = nullptr;
+int *** NodeNumberTableX3D  = nullptr;
+int *   NodeNumberTableX_X1 = nullptr;
+int *   NodeNumberTableX_X2 = nullptr;
+int *   NodeNumberTableX_X3 = nullptr;
 
 int iGF_SqrtGm;
 
@@ -345,7 +345,7 @@ void DeallocateArray( Real * &A )
 #ifdef AMREX_USE_GPU
     The_Device_Arena() -> free( A );
 #endif
-    delete [] A; A = NULL;
+    delete [] A; A = nullptr;
 }
 void AllocateArray( int n0, int * &A )
 {
@@ -359,7 +359,7 @@ void DeallocateArray( int * &A )
 #ifdef AMREX_USE_GPU
     The_Device_Arena() -> free( A );
 #endif
-    delete [] A; A = NULL;
+    delete [] A; A = nullptr;
 }
 
 void AllocateArray( int n0, int n1, Real ** &A )
@@ -384,9 +384,9 @@ void DeallocateArray( int n0, Real ** &A )
     The_Device_Arena() -> free( A );
 #endif
     for( int i0 = 0; i0 < n0; i0++ ) {
-        delete [] A[i0]; A[i0] = NULL;
+        delete [] A[i0]; A[i0] = nullptr;
     }
-    delete [] A; A = NULL;
+    delete [] A; A = nullptr;
 }
 void AllocateArray( int n0, int n1, int ** &A )
 {
@@ -410,9 +410,9 @@ void DeallocateArray( int n0, int ** &A )
     The_Device_Arena() -> free( A );
 #endif
     for( int i0 = 0; i0 < n0; i0++ ) {
-        delete [] A[i0]; A[i0] = NULL;
+        delete [] A[i0]; A[i0] = nullptr;
     }
-    delete [] A; A = NULL;
+    delete [] A; A = nullptr;
 }
 
 void AllocateArray( int n0, int n1, int n2, Real *** &A )
@@ -449,11 +449,11 @@ void DeallocateArray( int n0, int n1, Real *** &A )
 #endif
     for( int i0 = 0; i0 < n0; i0++ ) {
         for( int i1 = 0; i1 < n1; i1++ ) {
-            delete [] A[i0][i1]; A[i0][i1] = NULL;
+            delete [] A[i0][i1]; A[i0][i1] = nullptr;
         }
-        delete [] A[i0]; A[i0] = NULL;
+        delete [] A[i0]; A[i0] = nullptr;
     }
-    delete [] A; A = NULL;
+    delete [] A; A = nullptr;
 }
 void AllocateArray( int n0, int n1, int n2, int *** &A )
 {
@@ -489,11 +489,11 @@ void DeallocateArray( int n0, int n1, int *** &A )
 #endif
     for( int i0 = 0; i0 < n0; i0++ ) {
         for( int i1 = 0; i1 < n1; i1++ ) {
-            delete [] A[i0][i1]; A[i0][i1] = NULL;
+            delete [] A[i0][i1]; A[i0][i1] = nullptr;
         }
-        delete [] A[i0]; A[i0] = NULL;
+        delete [] A[i0]; A[i0] = nullptr;
     }
-    delete [] A; A = NULL;
+    delete [] A; A = nullptr;
 }
 
 } /* END namespace amrex::DG */
