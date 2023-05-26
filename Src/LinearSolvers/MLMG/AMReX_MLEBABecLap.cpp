@@ -1282,7 +1282,7 @@ std::unique_ptr<Hypre>
 MLEBABecLap::makeHypre (Hypre::Interface hypre_interface) const
 {
     auto hypre_solver = MLCellABecLap::makeHypre(hypre_interface);
-    auto ijmatrix_solver = dynamic_cast<HypreABecLap3*>(hypre_solver.get());
+    auto* ijmatrix_solver = dynamic_cast<HypreABecLap3*>(hypre_solver.get());
     ijmatrix_solver->setEBDirichlet(m_eb_b_coeffs[0].back().get());
     return hypre_solver;
 }

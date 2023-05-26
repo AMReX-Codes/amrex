@@ -56,7 +56,6 @@ else
 endif
 
 ifeq ($(USE_HIP),TRUE)
-  DEBUG := FALSE  # Currently there is a compiler bug for DEBUG=TRUE.
   USE_CUDA := FALSE
   override COMP = hip
   ifneq ($(NO_CONFIG_CHECKING),TRUE)

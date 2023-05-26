@@ -652,7 +652,7 @@ struct FilterVirt
     GpuArray<Real, AMREX_SPACEDIM> m_plo, m_dxi;
     Box m_domain;
 
-    FilterVirt (const amrex::AssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> assign_buffer_grid, const GpuArray<Real, AMREX_SPACEDIM>& plo,
+    FilterVirt (const amrex::AssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>>& assign_buffer_grid, const GpuArray<Real, AMREX_SPACEDIM>& plo,
                 const GpuArray<Real, AMREX_SPACEDIM> & dxi, const Box& domain)
       : m_assign_buffer_grid(assign_buffer_grid), m_plo(plo), m_dxi(dxi), m_domain(domain)
     {}
@@ -1090,9 +1090,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::ReorderParticles (int lev, const MFIter& mfi, const index_type* permutations)
 {
     auto& ptile           = ParticlesAt(lev, mfi);
-    auto& aos             = ptile.GetArrayOfStructs();
-    const size_t np       = aos.numParticles();
-    const size_t np_total = np + aos.numNeighborParticles();
+    const size_t np       = ptile.numParticles();
+    const size_t np_total = np + ptile.numNeighborParticles();
 
     if (memEfficientSort) {
         if constexpr(!ParticleType::is_soa_particle) {
@@ -1176,15 +1175,14 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
         for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
             auto& ptile           = ParticlesAt(lev, mfi);
-            auto& aos             = ptile.GetArrayOfStructs();
-            auto *pstruct_ptr     = aos().dataPtr();
             const size_t np       = ptile.numParticles();
 
             const Box& box = mfi.validbox();
 
             int ntiles = numTilesInBox(box, true, bin_size);
 
-            m_bins.build(np, pstruct_ptr, ntiles, GetParticleBin{plo, dxi, domain, bin_size, box});
+            m_bins.build(np, ptile.getParticleTileData(), ntiles,
+                         GetParticleBin{plo, dxi, domain, bin_size, box});
             ReorderParticles(lev, mfi, m_bins.permutationPtr());
         }
     }
@@ -1286,13 +1284,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
             auto index = std::make_pair(gid, tid);
 
             auto& src_tile = plev[index];
-            auto& aos = src_tile.GetArrayOfStructs();
-            const size_t np = aos.numParticles();
-
-            AMREX_ASSERT_WITH_MESSAGE((NumRealComps() == 0 && NumIntComps() == 0) ||
-                                      aos.size() == src_tile.GetStructOfArrays().size(),
-                "The AoS and SoA data on this tile are different sizes - "
-                "perhaps particles have not been initialized correctly?");
+            const size_t np = src_tile.numParticles();
 
             int num_stay = partitionParticlesByDest(src_tile, assign_grid, BufferMap(),
                                                     plo, phi, rlo, rhi, is_per, lev, gid, tid,

@@ -37,6 +37,8 @@ struct ParticleTileData
 
     using SuperParticleType = Particle<NStructReal+NAR, NStructInt+NAI>;
 
+    static constexpr bool is_particle_tile_data = true;
+
     Long m_size;
 
     ParticleType* AMREX_RESTRICT m_aos;
@@ -49,27 +51,18 @@ struct ParticleTileData
     ParticleReal* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_rdata;
     int* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_idata;
 
-    // AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    // ParticleReal pos (const int dir, const int index) const &
-    // {
-    //     if constexpr(!ParticleType::is_soa_particle) {
-    //         return this->m_aos[index].pos(dir);
-    //     } else {
-    //         return this->m_rdata[dir][index];
-    //     }
-    // }
-
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleReal& pos (const int dir, const int index) const &
     {
         if constexpr(!ParticleType::is_soa_particle) {
             return this->m_aos[index].pos(dir);
+        } else {
+            return this->m_rdata[dir][index];
         }
-        return this->m_rdata[dir][index];
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    auto id (const int index) const &
+    decltype(auto) id (const int index) const &
     {
         if constexpr(!ParticleType::is_soa_particle) {
             return this->m_aos[index].id();
@@ -79,17 +72,7 @@ struct ParticleTileData
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    auto& id (const int index) &
-    {
-        if constexpr(!ParticleType::is_soa_particle) {
-                return this->m_aos[index].id();
-        } else {
-            return this->m_idata[0][index];
-        }
-    }
-
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    auto cpu (const int index) const &
+    decltype(auto) cpu (const int index) const &
     {
         if constexpr(!ParticleType::is_soa_particle) {
             return this->m_aos[index].cpu();
@@ -99,37 +82,25 @@ struct ParticleTileData
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    auto& cpu (const int index) &
+    ParticleReal * rdata (const int attribute_index) const
     {
-        if constexpr(!ParticleType::is_soa_particle) {
-            return this->m_aos[index].cpu();
+        return this->m_rdata[attribute_index];
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    int * idata (const int attribute_index) const
+    {
+        return this->m_idata[attribute_index];
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    decltype(auto) operator[] (const int index) const
+    {
+        if constexpr (!ParticleType::is_soa_particle) {
+            return m_aos[index];
         } else {
-            return this->m_idata[1][index];
+            return SoAParticle<NAR, NAI>(*this, index);
         }
-    }
-
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    auto* rdata (const int attribute_index)
-    {
-        return this->m_rdata[attribute_index];
-    }
-
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    auto const * rdata (const int attribute_index) const
-    {
-        return this->m_rdata[attribute_index];
-    }
-
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    auto* idata (const int attribute_index)
-    {
-        return this->m_idata[attribute_index];
-    }
-
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    auto const * idata (const int attribute_index) const
-    {
-        return this->m_idata[attribute_index];
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -138,8 +109,10 @@ struct ParticleTileData
     {
         AMREX_ASSERT(src_index < m_size);
         auto dst = buffer + dst_offset;
-        memcpy(dst, m_aos + src_index, sizeof(ParticleType));
-        dst += sizeof(ParticleType);
+        if constexpr (!ParticleType::is_soa_particle) {
+            memcpy(dst, m_aos + src_index, sizeof(ParticleType));
+            dst += sizeof(ParticleType);
+        }
         int array_start_index  = AMREX_SPACEDIM + NStructReal;
         for (int i = 0; i < NAR; ++i)
         {
@@ -184,8 +157,10 @@ struct ParticleTileData
     {
         AMREX_ASSERT(dst_index < m_size);
         auto src = buffer + src_offset;
-        memcpy(m_aos + dst_index, src, sizeof(ParticleType));
-        src += sizeof(ParticleType);
+        if constexpr (!ParticleType::is_soa_particle) {
+            memcpy(m_aos + dst_index, src, sizeof(ParticleType));
+            src += sizeof(ParticleType);
+        }
         int array_start_index  = AMREX_SPACEDIM + NStructReal;
         for (int i = 0; i < NAR; ++i)
         {
@@ -251,21 +226,14 @@ struct ParticleTileData
     {
         AMREX_ASSERT(index < m_size);
         SuperParticleType sp;
-        for (int i = 0; i < AMREX_SPACEDIM; ++i)
-            sp.pos(i) = m_rdata[i][index];
-        for (int i = 0; i < NStructReal; ++i)
-            sp.rdata(i) = m_rdata[i][index];
         for (int i = 0; i < NAR; ++i)
-            sp.rdata(NStructReal+i) = m_rdata[i][index];
-        sp.id() = m_idata[0][index];
-        sp.cpu() = m_idata[1][index];
-        for (int i = 0; i < NStructInt; ++i)
-            sp.idata(i) = m_idata[i][index];
+            sp.rdata(i) = m_rdata[i][index];
         for (int i = 0; i < NAI; ++i)
-            sp.idata(NStructInt+i) = m_idata[i][index];
+            sp.idata(i) = m_idata[i][index];
         return sp;
     }
 
+    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setSuperParticle (const SuperParticleType& sp, int index) const noexcept
     {
@@ -281,6 +249,16 @@ struct ParticleTileData
             m_aos[index].idata(i) = sp.idata(i);
         for (int i = 0; i < NAI; ++i)
             m_idata[i][index] = sp.idata(NStructInt+i);
+    }
+
+    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void setSuperParticle (const SuperParticleType& sp, int index) const noexcept
+    {
+        for (int i = 0; i < NAR; ++i)
+            m_rdata[i][index] = sp.rdata(i);
+        for (int i = 0; i < NAI; ++i)
+            m_idata[i][index] = sp.idata(i);
     }
 };
 
@@ -475,6 +453,8 @@ struct ConstParticleTileData
 
     using SuperParticleType = Particle<NStructReal+NArrayReal, NStructInt+NArrayInt>;
 
+    static constexpr bool is_particle_tile_data = true;
+
     Long m_size;
     const ParticleType* AMREX_RESTRICT m_aos;
 
@@ -482,7 +462,17 @@ struct ConstParticleTileData
     GpuArray<const int*, NArrayInt > m_idata;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    auto id (const int index) const &
+    const ParticleReal& pos (const int dir, const int index) const &
+    {
+        if constexpr(!ParticleType::is_soa_particle) {
+            return this->m_aos[index].pos(dir);
+        } else {
+            return this->m_rdata[dir][index];
+        }
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    decltype(auto) id (const int index) const &
     {
         if constexpr(!ParticleType::is_soa_particle) {
             return this->m_aos[index].id();
@@ -492,15 +482,35 @@ struct ConstParticleTileData
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    auto const* rdata (const int attribute_index) const
+    decltype(auto) cpu (const int index) const &
+    {
+        if constexpr(!ParticleType::is_soa_particle) {
+            return this->m_aos[index].cpu();
+        } else {
+            return this->m_idata[1][index];
+        }
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    const ParticleReal * rdata (const int attribute_index) const
     {
         return this->m_rdata[attribute_index];
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    auto const* idata (const int attribute_index) const
+    const int * idata (const int attribute_index) const
     {
         return this->m_idata[attribute_index];
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    decltype(auto) operator[] (const int index) const
+    {
+        if constexpr (!ParticleType::is_soa_particle) {
+            return m_aos[index];
+        } else {
+            return ConstSoAParticle<NAR, NAI>(*this, index);
+        }
     }
 
     int m_num_runtime_real;
@@ -514,8 +524,10 @@ struct ConstParticleTileData
     {
         AMREX_ASSERT(src_index < m_size);
         auto dst = buffer + dst_offset;
-        memcpy(dst, m_aos + src_index, sizeof(ParticleType));
-        dst += sizeof(ParticleType);
+        if constexpr (!ParticleType::is_soa_particle) {
+            memcpy(dst, m_aos + src_index, sizeof(ParticleType));
+            dst += sizeof(ParticleType);
+        }
         int array_start_index  = AMREX_SPACEDIM + NStructReal;
         for (int i = 0; i < NArrayReal; ++i)
         {
@@ -583,18 +595,10 @@ struct ConstParticleTileData
     {
         AMREX_ASSERT(index < m_size);
         SuperParticleType sp;
-        for (int i = 0; i < AMREX_SPACEDIM; ++i)
-            sp.pos(i) = m_rdata[i][index];
-        for (int i = 0; i < NStructReal; ++i)
-            sp.rdata(i) = m_rdata[i][index];
         for (int i = 0; i < NAR; ++i)
-            sp.rdata(NStructReal+i) = m_rdata[i][index];
-        sp.id() = m_idata[0][index];
-        sp.cpu() = m_idata[1][index];
-        for (int i = 0; i < NStructInt; ++i)
-            sp.idata(i) = m_idata[i][index];
+            sp.rdata(i) = m_rdata[i][index];
         for (int i = 0; i < NAI; ++i)
-            sp.idata(NStructInt+i) = m_idata[i][index];
+            sp.idata(i) = m_idata[i][index];
         return sp;
     }
 };
@@ -641,104 +645,65 @@ struct ParticleTile
         m_runtime_i_cptrs.resize(a_num_runtime_int);
     }
 
-    // Get cpu data
-
-    // AoS
-    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
-    ParticleCPUWrapper cpu (int index) & {
-        ParticleType p(this->getParticleTileData(), index);
-        return p.cpu();
-    }
-
-    // const
-    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
-    ConstParticleCPUWrapper cpu (int index) const & {
-        using ConstParticleType = typename ParticleType::ConstType;
-        ConstParticleType p(this->getConstParticleTileData(), index);
-        return p.cpu();
-    }
-
-    // SoA
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
-    ParticleCPUWrapper cpu (int index) & {
-        ParticleType& p = m_aos_tile().dataPtr()[index];
-        return p.cpu();
-    }
-
-    // const
-
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
-    ConstParticleCPUWrapper cpu (int index) const & {
-        ParticleType& p = m_aos_tile().dataPtr()[index];
-        return p.cpu();
-    }
-
     // Get id data
-
-    // AoS
-    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
-    ParticleIDWrapper id (int index) & {
-        ParticleType p(this->getParticleTileData(), index);
-        return p.id();
+    decltype(auto) id (int index) & {
+        if constexpr (!ParticleType::is_soa_particle) {
+            return m_aos_tile[index].id();
+        } else {
+            return m_soa_tile.GetIntData(0)[index];
+        }
     }
 
     // const
-    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
-    ConstParticleIDWrapper id (int index) const & {
-        using ConstParticleType = typename ParticleType::ConstType;
-        ConstParticleType p(this->getConstParticleTileData(), index);
-        return p.id();
+    decltype(auto) id (int index) const & {
+        if constexpr (!ParticleType::is_soa_particle) {
+            return m_aos_tile[index].id();
+        } else {
+            return m_soa_tile.GetIntData(0)[index];
+        }
     }
 
-    // SoA
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
-    ParticleIDWrapper id (int index) & {
-        ParticleType& p = m_aos_tile().dataPtr()[index];
-        return p.id();
+    // Get cpu data
+    decltype(auto) cpu (int index) & {
+        if constexpr (!ParticleType::is_soa_particle) {
+            return m_aos_tile[index].cpu();
+        } else {
+            return m_soa_tile.GetIntData(1)[index];
+        }
     }
 
     // const
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
-    ConstParticleIDWrapper id (int index) const & {
-        ParticleType& p = m_aos_tile().dataPtr()[index];
-        return p.id();
+    decltype(auto) cpu (int index) const & {
+        if constexpr (!ParticleType::is_soa_particle) {
+            return m_aos_tile[index].cpu();
+        } else {
+            return m_soa_tile.GetIntData(1)[index];
+        }
     }
 
     // Get positions data
-
-    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
     RealType& pos (int index, int position_index) & {
-        static_assert(NArrayReal == T::PTD::NAR, "ParticleTile mismatch in R");
-        static_assert(NArrayInt == T::PTD::NAI, "ParticleTile mismatch in I");
-        static_assert(0 == T::StorageParticleType::NReal, "ParticleTile 2 mismatch in R");
-        static_assert(0 == T::StorageParticleType::NInt, "ParticleTile 2 mismatch in I");
-        ParticleTileDataType x=this->getParticleTileData();
-        ParticleType p(x, index);
-        return p.pos(position_index);
+        if constexpr (!ParticleType::is_soa_particle) {
+            return m_aos_tile[index].pos(position_index);
+        } else {
+            static_assert(NArrayReal == ParticleType::PTD::NAR, "ParticleTile mismatch in R");
+            static_assert(NArrayInt == ParticleType::PTD::NAI, "ParticleTile mismatch in I");
+            static_assert(0 == ParticleType::StorageParticleType::NReal, "ParticleTile 2 mismatch in R");
+            static_assert(0 == ParticleType::StorageParticleType::NInt, "ParticleTile 2 mismatch in I");
+
+            return m_soa_tile.GetRealData(position_index)[index];
+        }
     }
 
-    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
+    // const
     RealType  pos (int index, int position_index) const &
     {
-        using ConstParticleType = typename ParticleType::ConstType;
-        ConstParticleType p(this->getConstParticleTileData(), index);
-        return p.pos(position_index);
+        if constexpr (!ParticleType::is_soa_particle) {
+            return m_aos_tile[index].pos(position_index);
+        } else {
+            return m_soa_tile.GetRealData(position_index)[index];
+        }
     }
-
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
-    RealType& pos (int index, int position_index) & {
-        ParticleType& p = m_aos_tile().dataPtr()[index];
-        return p.pos(position_index);
-    }
-
-
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
-    RealType  pos (int index, int position_index) const &
-    {
-        ParticleType& p = m_aos_tile().dataPtr()[index];
-        return p.pos(position_index);
-    }
-
 
     AoS&       GetArrayOfStructs ()       { return m_aos_tile; }
     const AoS& GetArrayOfStructs () const { return m_aos_tile; }
@@ -746,84 +711,103 @@ struct ParticleTile
     SoA&       GetStructOfArrays ()       { return m_soa_tile; }
     const SoA& GetStructOfArrays () const { return m_soa_tile; }
 
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
-    bool empty () const { return m_aos_tile.empty(); }
-
-    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
-    bool empty () const { return m_soa_tile.empty(); }
+    bool empty () const { return size() == 0; }
 
     /**
     * \brief Returns the total number of particles (real and neighbor)
     *
     */
-
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
-    std::size_t size () const { return m_aos_tile.size(); }
-
-    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
-    std::size_t size () const { return m_soa_tile.size(); }
-
-    /**
-    * \brief Returns the number of real particles (excluding neighbors)
-    *
-    */
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
-    int numParticles () const { return m_aos_tile.numParticles(); }
-
-    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
-    int numParticles () const { return m_soa_tile.numParticles(); }
+    std::size_t size () const
+    {
+        if constexpr (!ParticleType::is_soa_particle) {
+            return m_aos_tile.size();
+        } else {
+            return m_soa_tile.size();
+        }
+    }
 
     /**
     * \brief Returns the number of real particles (excluding neighbors)
     *
     */
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
-    int numRealParticles () const { return m_aos_tile.numRealParticles(); }
+    int numParticles () const
+    {
+        if constexpr (!ParticleType::is_soa_particle) {
+            return m_aos_tile.numParticles();
+        } else {
+            return m_soa_tile.numParticles();
+        }
+    }
 
-    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
-    int numRealParticles () const { return m_soa_tile.numRealParticles(); }
+    /**
+    * \brief Returns the number of real particles (excluding neighbors)
+    *
+    */
+    int numRealParticles () const
+    {
+        if constexpr (!ParticleType::is_soa_particle) {
+            return m_aos_tile.numRealParticles();
+        } else {
+            return m_soa_tile.numRealParticles();
+        }
+    }
 
     /**
     * \brief Returns the number of neighbor particles (excluding reals)
     *
     */
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
-    int numNeighborParticles () const { return m_aos_tile.numNeighborParticles(); }
-
-    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
-    int numNeighborParticles () const { return m_soa_tile.numNeighborParticles(); }
+    int numNeighborParticles () const
+    {
+        if constexpr (!ParticleType::is_soa_particle) {
+            return m_aos_tile.numNeighborParticles();
+        } else {
+            return m_soa_tile.numNeighborParticles();
+        }
+    }
 
     /**
     * \brief Returns the total number of particles, real and neighbor
     *
     */
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
-    int numTotalParticles () const { return m_aos_tile.numTotalParticles() ; }
-
-    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
-    int numTotalParticles () const { return m_soa_tile.numTotalParticles() ; }
+    int numTotalParticles () const
+    {
+        if constexpr (!ParticleType::is_soa_particle) {
+            return m_aos_tile.numTotalParticles();
+        } else {
+            return m_soa_tile.numTotalParticles();
+        }
+    }
 
     void setNumNeighbors (int num_neighbors)
     {
+        if constexpr(!ParticleType::is_soa_particle) {
+            m_aos_tile.setNumNeighbors(num_neighbors);
+        }
         m_soa_tile.setNumNeighbors(num_neighbors);
-        m_aos_tile.setNumNeighbors(num_neighbors);
     }
 
-    int getNumNeighbors ()
+    int getNumNeighbors () const
     {
-        AMREX_ASSERT( m_soa_tile.getNumNeighbors() == m_aos_tile.getNumNeighbors() );
-        return m_aos_tile.getNumNeighbors();
+        if constexpr (!ParticleType::is_soa_particle) {
+            AMREX_ASSERT( m_soa_tile.getNumNeighbors() == m_aos_tile.getNumNeighbors() );
+            return m_aos_tile.getNumNeighbors();
+        } else {
+            return m_soa_tile.getNumNeighbors();
+        }
     }
 
     void resize (std::size_t count)
     {
-        m_aos_tile.resize(count);
+        if constexpr (!ParticleType::is_soa_particle) {
+            m_aos_tile.resize(count);
+        }
         m_soa_tile.resize(count);
     }
 
     ///
     /// Add one particle to this tile.
     ///
+    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
     void push_back (const ParticleType& p) { m_aos_tile().push_back(p); }
 
     ///
@@ -835,22 +819,24 @@ struct ParticleTile
     {
         auto np = numParticles();
 
-        m_aos_tile.resize(np+1);
+        if constexpr (!ParticleType::is_soa_particle) {
+            m_aos_tile.resize(np+1);
+            for (int i = 0; i < AMREX_SPACEDIM; ++i)
+                m_aos_tile[np].pos(i) = sp.pos(i);
+            for (int i = 0; i < NStructReal; ++i)
+                m_aos_tile[np].rdata(i) = sp.rdata(i);
+            m_aos_tile[np].id() = sp.id();
+            m_aos_tile[np].cpu() = sp.cpu();
+            for (int i = 0; i < NStructInt; ++i)
+                m_aos_tile[np].idata(i) = sp.idata(i);
+        }
+
         m_soa_tile.resize(np+1);
 
         auto& arr_rdata = m_soa_tile.GetRealData();
         auto& arr_idata = m_soa_tile.GetIntData();
-
-        for (int i = 0; i < AMREX_SPACEDIM; ++i)
-            m_aos_tile[np].pos(i) = sp.pos(i);
-        for (int i = 0; i < NStructReal; ++i)
-            m_aos_tile[np].rdata(i) = sp.rdata(i);
         for (int i = 0; i < NArrayReal; ++i)
             arr_rdata[i][np] = sp.rdata(NStructReal+i);
-        m_aos_tile[np].id() = sp.id();
-        m_aos_tile[np].cpu() = sp.cpu();
-        for (int i = 0; i < NStructInt; ++i)
-            m_aos_tile[np].idata(i) = sp.idata(i);
         for (int i = 0; i < NArrayInt; ++i)
             arr_idata[i][np] = sp.idata(NStructInt+i);
     }
@@ -969,7 +955,9 @@ struct ParticleTile
 
     void shrink_to_fit ()
     {
-        m_aos_tile().shrink_to_fit();
+        if constexpr (!ParticleType::is_soa_particle) {
+            m_aos_tile().shrink_to_fit();
+        }
         for (int j = 0; j < NumRealComps(); ++j)
         {
             auto& rdata = GetStructOfArrays().GetRealData(j);
@@ -986,7 +974,9 @@ struct ParticleTile
     Long capacity () const
     {
         Long nbytes = 0;
-        nbytes += m_aos_tile().capacity() * sizeof(ParticleType);
+        if constexpr (!ParticleType::is_soa_particle) {
+            nbytes += m_aos_tile().capacity() * sizeof(ParticleType);
+        }
         for (int j = 0; j < NumRealComps(); ++j)
         {
             auto& rdata = GetStructOfArrays().GetRealData(j);
@@ -1003,7 +993,9 @@ struct ParticleTile
 
     void swap (ParticleTile<ParticleType, NArrayReal, NArrayInt, Allocator>& other)
     {
-        m_aos_tile().swap(other.GetArrayOfStructs()());
+        if constexpr (!ParticleType::is_soa_particle) {
+            m_aos_tile().swap(other.GetArrayOfStructs()());
+        }
         for (int j = 0; j < NumRealComps(); ++j)
         {
             auto& rdata = GetStructOfArrays().GetRealData(j);
@@ -1052,7 +1044,11 @@ struct ParticleTile
 #endif
 
         ParticleTileDataType ptd;
-        ptd.m_aos = m_aos_tile().dataPtr();
+        if constexpr (!ParticleType::is_soa_particle) {
+            ptd.m_aos = m_aos_tile().dataPtr();
+        } else {
+            ptd.m_aos = nullptr;
+        }
         if constexpr(NArrayReal > 0)
             for (int i = 0; i < NArrayReal; ++i)
                 ptd.m_rdata[i] = m_soa_tile.GetRealData(i).dataPtr();
@@ -1109,7 +1105,11 @@ struct ParticleTile
 #endif
 
         ConstParticleTileDataType ptd;
-        ptd.m_aos = m_aos_tile().dataPtr();
+        if constexpr (!ParticleType::is_soa_particle) {
+            ptd.m_aos = m_aos_tile().dataPtr();
+        } else {
+            ptd.m_aos = nullptr;
+        }
         if constexpr(NArrayReal > 0)
             for (int i = 0; i < NArrayReal; ++i)
                 ptd.m_rdata[i] = m_soa_tile.GetRealData(i).dataPtr();

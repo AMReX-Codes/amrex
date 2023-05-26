@@ -359,7 +359,7 @@ Cluster::new_chop ()
        // Find cutpoint and cutstatus in each index direction.
        //
        CutStatus mincut = InvalidCut;
-       CutStatus status[AMREX_SPACEDIM];
+       CutStatus status[AMREX_SPACEDIM] = {AMREX_D_DECL(InvalidCut,InvalidCut,InvalidCut)};
        IntVect cut;
        for (int n = 0; n < AMREX_SPACEDIM; n++)
        {
@@ -379,7 +379,7 @@ Cluster::new_chop ()
        int dir = -1;
        for (int n = 0, minlen = -1; n < AMREX_SPACEDIM; n++)
        {
-           if (status[n] == mincut) // NOLINT(clang-analyzer-core.UndefinedBinaryOperatorResult)
+           if (status[n] == mincut)
            {
                int mincutlen = std::min(cut[n]-lo[n],hi[n]-cut[n]);
                if (mincutlen >= minlen)

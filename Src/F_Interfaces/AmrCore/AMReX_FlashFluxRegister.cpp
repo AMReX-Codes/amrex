@@ -49,7 +49,7 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
             faces.clear();
             for (OrientationIter orit; orit.isValid(); ++orit) {
                 const Orientation ori = orit();
-                faces.emplace_back(std::make_pair(ori,amrex::bdryNode(ndbx,ori)));
+                faces.emplace_back(ori,amrex::bdryNode(ndbx,ori));
             }
             for (auto const& shift : pshifts) {
                 if (!faces.empty()) {
@@ -113,7 +113,7 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
             crsefine_faces.clear();
             for (OrientationIter orit; orit.isValid(); ++orit) {
                 const Orientation ori = orit();
-                cell_faces.emplace_back(std::make_pair(ori,amrex::adjCell(ccbx,ori)));
+                cell_faces.emplace_back(ori,amrex::adjCell(ccbx,ori));
             }
             for (auto const& shift : pshifts) {
                 if (!cell_faces.empty()) {

@@ -1,5 +1,39 @@
 #include "AMReX_NonLocalBC.H"
 
+namespace amrex::NonLocalBC::detail {
+void split_boxes (BoxList& bl, Box const& domain)
+{
+    BoxList bltmp(bl.ixType());
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        for (auto& b : bl) {
+            if (b.smallEnd(idim) < domain.smallEnd(idim) &&
+                b.bigEnd(idim) >= domain.smallEnd(idim))
+            {
+                auto btmp = b;
+                b.setBig(idim,domain.smallEnd(idim)-1);
+                btmp.setSmall(idim,domain.smallEnd(idim));
+                bltmp.push_back(btmp);
+            }
+        }
+        bl.join(bltmp);
+        bltmp.clear();
+
+        for (auto& b : bl) {
+            if (b.smallEnd(idim) <= domain.bigEnd(idim) &&
+                b.bigEnd(idim) > domain.bigEnd(idim))
+            {
+                auto btmp = b;
+                b.setBig(idim,domain.bigEnd(idim));
+                btmp.setSmall(idim,domain.bigEnd(idim)+1);
+                bltmp.push_back(btmp);
+            }
+        }
+        bl.join(bltmp);
+        bltmp.clear();
+    }
+}
+}
+
 namespace amrex::NonLocalBC {
 
 #ifdef AMREX_USE_MPI
@@ -104,6 +138,6 @@ void PostSends(CommData& send, int mpi_tag) {
 template MultiBlockCommMetaData ParallelCopy(FabArray<FArrayBox>& dest, const Box& destbox,
                                              const FabArray<FArrayBox>& src, int destcomp,
                                              int srccomp, int numcomp, const IntVect& ngrow,
-                                             MultiBlockIndexMapping, Identity);
+                                             MultiBlockIndexMapping const&, Identity const&);
 
 }

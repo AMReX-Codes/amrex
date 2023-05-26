@@ -57,7 +57,7 @@ def main(fileList):
 
 
     # grab the total number of timesteps from the first particle's history
-    totalSteps = len(particles[0].history)
+    # totalSteps = len(particles[0].history)
 
     # nstep = 0
     # while (nstep < totalSteps):

@@ -1,6 +1,7 @@
 Checks: >
     '-*,
      bugprone-*,
+       -bugprone-branch-clone,
        -bugprone-easily-swappable-parameters,
        -bugprone-exception-escape,
        -bugprone-implicit-widening-of-multiplication-result,
@@ -21,6 +22,7 @@ Checks: >
        -cppcoreguidelines-pro-*,
      modernize-*,
        -modernize-avoid-c-arrays,
+       -modernize-macro-to-enum,
        -modernize-return-braced-init-list,
        -modernize-use-trailing-return-type,
        -modernize-use-using,

@@ -2362,7 +2362,7 @@ template <typename HypreInt, typename AtomicInt>
 void mlndlap_fillijmat_sten_cpu (Box const& ndbx,
                                  Array4<AtomicInt const> const& gid,
                                  Array4<int const> const& lid,
-                                 HypreInt* const ncols, HypreInt* const cols, Real* const mat,
+                                 HypreInt* const ncols, HypreInt* const cols, Real* const mat, // NOLINT(readability-non-const-parameter)
                                  Array4<Real const> const& sten) noexcept
 {
     constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
@@ -2433,7 +2433,7 @@ template <typename HypreInt, typename AtomicInt>
 void mlndlap_fillijmat_aa_cpu (Box const& ndbx,
                                Array4<AtomicInt const> const& gid,
                                Array4<int const> const& lid,
-                               HypreInt* const ncols, HypreInt* const cols, Real* const mat,
+                               HypreInt* const ncols, HypreInt* const cols, Real* const mat, // NOLINT(readability-non-const-parameter)
                                Array4<Real const> const& sig,
                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                                Box const& ccdom, bool is_rz) noexcept
@@ -2580,7 +2580,7 @@ template <typename HypreInt, typename AtomicInt>
 void mlndlap_fillijmat_ha_cpu (Box const& ndbx,
                                Array4<AtomicInt const> const& gid,
                                Array4<int const> const& lid,
-                               HypreInt* const ncols, HypreInt* const cols, Real* const mat,
+                               HypreInt* const ncols, HypreInt* const cols, Real* const mat, // NOLINT(readability-non-const-parameter)
                                Array4<Real const> const& sx,
                                Array4<Real const> const& sy,
                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
@@ -2733,7 +2733,7 @@ template <typename HypreInt, typename AtomicInt>
 void mlndlap_fillijmat_cs_cpu (Box const& ndbx,
                                Array4<AtomicInt const> const& gid,
                                Array4<int const> const& lid,
-                               HypreInt* const ncols, HypreInt* const cols, Real* const mat,
+                               HypreInt* const ncols, HypreInt* const cols, Real* const mat, // NOLINT(readability-non-const-parameter)
                                Real const sig,
                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                                Box const& ccdom, bool is_rz) noexcept
