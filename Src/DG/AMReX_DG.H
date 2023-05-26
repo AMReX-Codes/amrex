@@ -63,7 +63,7 @@ void InitializeMeshRefinement_DG
          const Real LX_X2_Dn_1D[],
          const Real LX_X3_Up_1D[],
          const Real LX_X3_Dn_1D[],
-         const int iGF_SqtGm );
+         int iGF_SqtGm );
 
 void FinalizeMeshRefinement_DG();
 
