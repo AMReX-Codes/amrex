@@ -132,11 +132,11 @@ namespace amrex
     //! a coarsened version of the fine BoxArray.
     void average_down_dg
            (const MultiFab& S_fine, MultiFab& S_crse,
-           const Geometry& fine_geom, const Geometry& crse_geom,
+           const Geometry& fgeom, const Geometry& cgeom,
            int scomp, int ncomp, const IntVect& ratio);
     void average_down_dg
            (const MultiFab& S_fine, MultiFab& S_crse,
-            const Geometry& fine_geom, const Geometry& crse_geom,
+            const Geometry& fgeom, const Geometry& cgeom,
             int scomp, int ncomp, int ratio);
 
     //! Average MultiFab onto crse MultiFab without volume weighting. This
