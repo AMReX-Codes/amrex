@@ -712,8 +712,6 @@ PCInterp::interp (const FArrayBox& crse,
     });
 }
 
-DGInterp::~DGInterp () {}
-
 Box
 DGInterp::CoarseBox (const Box& fine,
                            int        ratio)

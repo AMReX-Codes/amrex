@@ -848,8 +848,6 @@ class DGInterp
 {
 public:
 
-    ~DGInterp() override;
-
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
     *
