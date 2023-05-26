@@ -49,14 +49,20 @@ int *   NodeNumberTableX_X3 = nullptr;
 int iGF_SqrtGm;
 
 void InitializeMeshRefinement_DG
-       ( int N[], Real ProjMatrix[],
-         Real WeightsX1[], Real WeightsX2[], Real WeightsX3[],
-         Real LX_X1_Refined_Packed[],
-         Real LX_X2_Refined_Packed[],
-         Real LX_X3_Refined_Packed[],
-         Real LX_X1_Up_1D[], Real LX_X1_Dn_1D[],
-         Real LX_X2_Up_1D[], Real LX_X2_Dn_1D[],
-         Real LX_X3_Up_1D[], Real LX_X3_Dn_1D[], int iGF_SqtGm )
+       ( const int N[], const Real ProjMatrix[],
+         const Real WeightsX1[],
+         const Real WeightsX2[],
+         const Real WeightsX3[],
+         const Real LX_X1_Refined_Packed[],
+         const Real LX_X2_Refined_Packed[],
+         const Real LX_X3_Refined_Packed[],
+         const Real LX_X1_Up_1D[],
+         const Real LX_X1_Dn_1D[],
+         const Real LX_X2_Up_1D[],
+         const Real LX_X2_Dn_1D[],
+         const Real LX_X3_Up_1D[],
+         const Real LX_X3_Dn_1D[],
+         const int iGF_SqtGm )
 {
     int k;
 
