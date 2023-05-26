@@ -3,9 +3,7 @@
 
 #include <AMReX_REAL.H>
 
-namespace amrex
-{
-namespace DG
+namespace amrex::DG
 {
 
 const Real Zero = 0.0;
@@ -77,7 +75,6 @@ void DeallocateArray( int n0, int n1,         Real *** &A );
 void AllocateArray  ( int n0, int n1, int n2, int *** &A );
 void DeallocateArray( int n0, int n1,         int *** &A );
 
-} /* END namespace DG */
-} /* END namespace amrex */
+} /* END namespace amrex::DG */
 
 #endif // AMREX_DG_H_

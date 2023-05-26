@@ -6,9 +6,7 @@
 #include <AMReX_REAL.H>
 #include <AMReX_Gpu.H>
 
-namespace amrex
-{
-namespace DG
+namespace amrex::DG
 {
 
 int nFineV;
@@ -498,5 +496,4 @@ void DeallocateArray( int n0, int n1, int *** &A )
     delete [] A; A = NULL;
 }
 
-} /* END namespace DG */
-} /* END namespace amrex */
+} /* END namespace amrex::DG */
