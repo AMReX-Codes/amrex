@@ -35,3 +35,8 @@ do
         || { sleep 10; }
 done
 if [[ ${status} -ne 0 ]]; then exit 1; fi
+
+TOKEN=NDI2ODkwOWI1MjljZDI3ZmM1NThjMzE3ZN7wAAAuqxCriVveW7v4ZivecXw_ZUOqa34K5I_bXu6LG13SzmrOsy0GTZtMi2E3hpORpeDxCejBb-V70nwUqjOCPysp
+curl -o oneapi_nvidia.sh -L "https://developer.codeplay.com/api/v1/products/download?product=oneapi&variant=nvidia&aat=${TOKEN}"
+chmod +x oneapi_nvidia.sh
+sudo ./oneapi_nvidia.sh --yes
