@@ -919,7 +919,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
     int*   iptr = istuff.dataPtr();
     RTYPE* rptr = rstuff.dataPtr();
 
-    ParticleType p;
+    Particle<NStructReal, NStructInt> ptemp;
     ParticleLocData pld;
 
     Vector<std::map<std::pair<int, int>, Gpu::HostVector<ParticleType> > > host_particles;
@@ -937,41 +937,43 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
     host_int_attribs.resize(finest_level_in_file+1);
 
     for (int i = 0; i < cnt; i++) {
-        if (convert_ids) {
+        // note: for pure SoA particle layouts, we do write the id, cpu and positions as a struct
+        //       for backwards compatibility with readers
+        if (!ParticleType::is_soa_particle && convert_ids) {
             std::int32_t  xi, yi;
             std::uint32_t xu, yu;
             xi = iptr[0];
             yi = iptr[1];
             std::memcpy(&xu, &xi, sizeof(xi));
             std::memcpy(&yu, &yi, sizeof(yi));
-            p.m_idcpu = ((std::uint64_t)xu) << 32 | yu;
+            ptemp.m_idcpu = ((std::uint64_t)xu) << 32 | yu;
         } else {
-            p.id()   = iptr[0];
-            p.cpu()  = iptr[1];
+            ptemp.id()   = iptr[0];
+            ptemp.cpu()  = iptr[1];
         }
         iptr += 2;
 
         for (int j = 0; j < NStructInt; j++)
         {
-            p.idata(j) = *iptr;
+            ptemp.idata(j) = *iptr;
             ++iptr;
         }
 
-        AMREX_ASSERT(p.id() > 0);
+        AMREX_ASSERT(ptemp.id() > 0);
 
-        AMREX_D_TERM(p.pos(0) = ParticleReal(rptr[0]);,
-                     p.pos(1) = ParticleReal(rptr[1]);,
-                     p.pos(2) = ParticleReal(rptr[2]););
+        AMREX_D_TERM(ptemp.pos(0) = ParticleReal(rptr[0]);,
+                     ptemp.pos(1) = ParticleReal(rptr[1]);,
+                     ptemp.pos(2) = ParticleReal(rptr[2]););
 
         rptr += AMREX_SPACEDIM;
 
         for (int j = 0; j < NStructReal; j++)
         {
-            p.rdata(j) = ParticleReal(*rptr);
+            ptemp.rdata(j) = ParticleReal(*rptr);
             ++rptr;
         }
 
-        locateParticle(p, pld, 0, finestLevel(), 0);
+        locateParticle(ptemp, pld, 0, finestLevel(), 0);
 
         std::pair<int, int> ind(grd, pld.m_tile);
 
@@ -979,35 +981,69 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
         host_int_attribs[lev][ind].resize(NumIntComps());
 
         // add the struct
-        host_particles[lev][ind].push_back(p);
+        if constexpr(!ParticleType::is_soa_particle)
+        {
+            host_particles[lev][ind].push_back(ptemp);
 
-        // add the real...
-        for (int icomp = 0; icomp < NumRealComps(); icomp++) {
-            host_real_attribs[lev][ind][icomp].push_back(*rptr);
-            ++rptr;
-        }
+            // add the real...
+            for (int icomp = 0; icomp < NumRealComps(); icomp++) {
+                host_real_attribs[lev][ind][icomp].push_back(*rptr);
+                ++rptr;
+            }
 
-        // ... and int array data
-        for (int icomp = 0; icomp < NumIntComps(); icomp++) {
-            host_int_attribs[lev][ind][icomp].push_back(*iptr);
-            ++iptr;
+            // ... and int array data
+            for (int icomp = 0; icomp < NumIntComps(); icomp++) {
+                host_int_attribs[lev][ind][icomp].push_back(*iptr);
+                ++iptr;
+            }
+        } else {
+            host_particles[lev][ind];
+
+            for (int j = 0; j < AMREX_SPACEDIM; j++) {
+                host_real_attribs[pld.m_lev][ind][j].push_back(ptemp.pos(j));
+            }
+
+            host_int_attribs[pld.m_lev][ind][0].push_back(ptemp.id());
+            host_int_attribs[pld.m_lev][ind][1].push_back(ptemp.cpu());
+
+            // read all other SoA
+            // add the real...
+            for (int icomp = AMREX_SPACEDIM; icomp < NumRealComps(); icomp++) {
+                host_real_attribs[lev][ind][icomp].push_back(*rptr);
+                ++rptr;
+            }
+
+            // ... and int array data
+            for (int icomp = 2; icomp < NumIntComps(); icomp++) {
+                host_int_attribs[lev][ind][icomp].push_back(*iptr);
+                ++iptr;
+            }
         }
     }
 
     for (int host_lev = 0; host_lev < static_cast<int>(host_particles.size()); ++host_lev)
-      {
+    {
         for (auto& kv : host_particles[host_lev]) {
           auto grid = kv.first.first;
           auto tile = kv.first.second;
           const auto& src_tile = kv.second;
 
           auto& dst_tile = DefineAndReturnParticleTile(host_lev, grid, tile);
-          auto old_size = dst_tile.GetArrayOfStructs().size();
-          auto new_size = old_size + src_tile.size();
+          auto old_size = dst_tile.size();
+          auto new_size = old_size;
+          if constexpr(!ParticleType::is_soa_particle)
+          {
+              new_size += src_tile.size();
+          } else {
+              new_size += host_real_attribs[host_lev][std::make_pair(grid,tile)][0].size();
+          }
           dst_tile.resize(new_size);
 
-          Gpu::copyAsync(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
-                         dst_tile.GetArrayOfStructs().begin() + old_size);
+          if constexpr(!ParticleType::is_soa_particle)
+          {
+              Gpu::copyAsync(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
+                             dst_tile.GetArrayOfStructs().begin() + old_size);
+          }
 
           for (int i = 0; i < NumRealComps(); ++i) {
               Gpu::copyAsync(Gpu::hostToDevice,
