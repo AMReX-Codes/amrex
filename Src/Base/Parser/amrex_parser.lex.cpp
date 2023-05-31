@@ -4,6 +4,7 @@
 #pragma GCC diagnostic ignored "-Wfloat-conversion"
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #elif defined(__clang__)
+#pragma clang diagnostic ignored "-Wnull-conversion"
 #pragma clang diagnostic ignored "-Wnull-dereference"
 #pragma clang diagnostic ignored "-Wunreachable-code"
 #pragma clang diagnostic ignored "-Wfloat-conversion"
