@@ -283,54 +283,75 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
     const Long rChunkSize = AMREX_SPACEDIM + num_output_real;
     rdata.resize(np*rChunkSize);
 
-    int* iptr = idata.dataPtr();
+        int* iptr = idata.dataPtr();
     ParticleReal* rptr = rdata.dataPtr();
     for (unsigned i = 0; i < tiles.size(); i++) {
         const auto& ptile = pc.ParticlesAt(lev, grid, tiles[i]);
         const auto& pflags = particle_io_flags[lev].at(std::make_pair(grid, tiles[i]));
         for (int pindex = 0; pindex < ptile.numParticles(); ++pindex) {
             if (pflags[pindex]) {
+                const auto& soa  = ptile.GetStructOfArrays();
+
+                // note: for pure SoA particle layouts, we do write the id, cpu and positions as a struct
+                //       for backwards compatibility with readers
                 if constexpr(!PC::ParticleType::is_soa_particle)
                 {
                     const auto& aos = ptile.GetArrayOfStructs();
                     const auto& p = aos[pindex];
 
+                    // Int: id, cpu
                     packParticleIDs(iptr, p, is_checkpoint);
                     iptr += 2;
 
+                    // Real: positions
                     for (int j = 0; j < AMREX_SPACEDIM; j++) rptr[j] = p.pos(j);
                     rptr += AMREX_SPACEDIM;
 
+                    // extra AoS Int components
                     for (int j = 0; j < PC::NStructInt; j++) {
                         if (write_int_comp[j]) {
                             *iptr = p.idata(j);
                             ++iptr;
                         }
                     }
+                    // extra AoS Real components
+                    if constexpr(!PC::ParticleType::is_soa_particle)
+                    {
+                        const auto& aos = ptile.GetArrayOfStructs();
+                        const auto& p = aos[pindex];
+
+                        for (int j = 0; j < PC::NStructReal; j++) {
+                            if (write_real_comp[j]) {
+                                *rptr = p.rdata(j);
+                                ++rptr;
+                            }
+                        }
+                    }
+                }
+                else {
+                    // Int: id, cpu
+                    *iptr = soa.GetIntData(0)[pindex];
+                    iptr += 1;
+                    *iptr = soa.GetIntData(1)[pindex];
+                    iptr += 1;
+
+                    // Real: position
+                    for (int j = 0; j < AMREX_SPACEDIM; j++) rptr[j] = soa.GetRealData(j)[pindex];
+                    rptr += AMREX_SPACEDIM;
                 }
 
-                const auto& soa  = ptile.GetStructOfArrays();
-                for (int j = 0; j < pc.NumIntComps(); j++) {
+                // extra SoA int data
+                const int int_start_offset = PC::ParticleType::is_soa_particle ? 2 : 0; // pure SoA: skip id, cpu
+                for (int j = int_start_offset; j < pc.NumIntComps(); j++) {
                     if (write_int_comp[PC::NStructInt+j]) {
                         *iptr = soa.GetIntData(j)[pindex];
                         ++iptr;
                     }
                 }
 
-                if constexpr(!PC::ParticleType::is_soa_particle)
-                {
-                    const auto& aos = ptile.GetArrayOfStructs();
-                    const auto& p = aos[pindex];
-
-                    for (int j = 0; j < PC::NStructReal; j++) {
-                        if (write_real_comp[j]) {
-                            *rptr = p.rdata(j);
-                            ++rptr;
-                        }
-                    }
-                }
-
-                for (int j = 0; j < pc.NumRealComps(); j++) {
+                // extra SoA Real components
+                const int real_start_offset = PC::ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0; // pure SoA: skip positions
+                for (int j = real_start_offset; j < pc.NumRealComps(); j++) {
                     if (write_real_comp[PC::NStructReal+j]) {
                         *rptr = (ParticleReal) soa.GetRealData(j)[pindex];
                         ++rptr;
@@ -950,16 +971,20 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                     const auto ptd = pbox.getConstParticleTileData();
                     for (int pindex = 0; pindex < pbox.numParticles(); ++pindex)
                     {
+                        const auto& soa  = pbox.GetStructOfArrays();
+
                         const auto& p = make_particle<typename PC::ConstParticleType>{}(ptd, pindex);
                         if (p.id() <= 0) continue;
 
+                        // note: for pure SoA particle layouts, we do write the id, cpu and positions as a struct
+                        //       for backwards compatibility with readers
                         if constexpr(!PC::ParticleType::is_soa_particle)
                         {
-                            // always write these
+                            // Ints: id, cpu
                             particle_detail::packParticleIDs(iptr, p, is_checkpoint);
                             iptr += 2;
 
-                            // optionally write these
+                            // extra AoS Int components
                             for (int j = 0; j < NStructInt; j++)
                             {
                                 if (write_int_comp[j])
@@ -969,9 +994,17 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                                 }
                             }
                         }
+                        else {
+                            // Ints: id, cpu
+                            *iptr = soa.GetIntData(0)[pindex];
+                            iptr += 1;
+                            *iptr = soa.GetIntData(1)[pindex];
+                            iptr += 1;
+                        }
 
-                        const auto& soa  = pbox.GetStructOfArrays();
-                        for (int j = 0; j < nic; j++)
+                        // extra SoA Ints
+                        const int int_start_offset = PC::ParticleType::is_soa_particle ? 2 : 0; // pure SoA: skip id, cpu
+                        for (int j = int_start_offset; j < nic; j++)
                         {
                             if (write_int_comp[NStructInt+j])
                             {
@@ -1001,18 +1034,18 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                     for (int pindex = 0;
                          pindex < pbox.numParticles(); ++pindex)
                     {
+                        const auto& soa  = pbox.GetStructOfArrays();
                         const auto& p = make_particle<typename PC::ConstParticleType>{}(ptd, pindex);
 
                         if (p.id() <= 0) continue;
 
                         if constexpr(!PC::ParticleType::is_soa_particle)
                         {
-                            // always write these
+                            // Real: position
                             for (int j = 0; j < AMREX_SPACEDIM; j++) rptr[j] = p.pos(j);
                             rptr += AMREX_SPACEDIM;
 
-
-                            // optionally write these
+                            // extra AoS real
                             for (int j = 0; j < NStructReal; j++)
                             {
                                 if (write_real_comp[j])
@@ -1022,9 +1055,15 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                                 }
                             }
                         }
+                        else {
+                            // Real: position
+                            for (int j = 0; j < AMREX_SPACEDIM; j++) rptr[j] = soa.GetRealData(j)[pindex];
+                            rptr += AMREX_SPACEDIM;
+                        }
 
-                        const auto& soa  = pbox.GetStructOfArrays();
-                        for (int j = 0; j < nrc; j++)
+                        // extra SoA real
+                        const int real_start_offset = PC::ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0; // pure SoA: positions
+                        for (int j = real_start_offset; j < nrc; j++)
                         {
                             if (write_real_comp[NStructReal+j])
                             {
