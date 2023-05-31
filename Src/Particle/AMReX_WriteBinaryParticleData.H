@@ -323,7 +323,7 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
                     }
                 }
                 else {
-                    amrex::ignored_unused(is_checkpoint);
+                    amrex::ignore_unused(is_checkpoint);
                     // Int: id, cpu
                     *iptr = soa.GetIntData(0)[pindex];
                     iptr += 1;
