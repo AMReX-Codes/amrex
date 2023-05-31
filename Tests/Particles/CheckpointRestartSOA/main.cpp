@@ -149,19 +149,41 @@ void test ()
 
         using PType = typename MyPC::SuperParticleType;
 
-        for (int icomp=0; icomp<NReal+NInt; ++icomp)
+        for (int icomp=0; icomp<NReal; ++icomp)
         {
             amrex::Print() << "working on comp " << icomp << "\n";
             auto sm_new = amrex::ReduceSum(newPC,
                 [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
                 {
-                    return p.rdata(1);
+                    return p.rdata(icomp);
                 });
 
             auto sm_old = amrex::ReduceSum(myPC,
                 [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
                 {
-                    return p.rdata(1);
+                    return p.rdata(icomp);
+                });
+
+            ParallelDescriptor::ReduceRealSum(sm_new);
+            ParallelDescriptor::ReduceRealSum(sm_old);
+
+            amrex::Print() << sm_old << " " << sm_new << "\n";
+            AMREX_ALWAYS_ASSERT(sm_old == sm_new);
+        }
+
+        for (int icomp=0; icomp<NInt; ++icomp)
+        {
+            amrex::Print() << "working on comp " << icomp << "\n";
+            auto sm_new = amrex::ReduceSum(newPC,
+                [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+                {
+                    return p.idata(icomp);
+                });
+
+            auto sm_old = amrex::ReduceSum(myPC,
+                [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+                {
+                    return p.idata(icomp);
                 });
 
             ParallelDescriptor::ReduceRealSum(sm_new);
