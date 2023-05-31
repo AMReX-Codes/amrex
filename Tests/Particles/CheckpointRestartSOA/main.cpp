@@ -66,6 +66,7 @@ void test ()
 
     Vector<DistributionMapping> dmap(nlevs);
 
+    // write some mesh data too, because tools like yt expect them to be there
     Vector<std::unique_ptr<MultiFab> > mf(nlevs);
     for (int lev = 0; lev < nlevs; lev++) {
         dmap[lev] = DistributionMapping{ba[lev]};
