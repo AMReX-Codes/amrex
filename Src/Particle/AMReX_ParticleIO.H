@@ -1011,7 +1011,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
             }
 
             // ... and int array data
-            for (int icomp = AMREX_SPACEDIM; icomp < NumIntComps(); icomp++) {
+            for (int icomp = 2; icomp < NumIntComps(); icomp++) {
                 host_int_attribs[lev][ind][icomp].push_back(*iptr);
                 ++iptr;
             }
