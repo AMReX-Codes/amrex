@@ -4,7 +4,7 @@ if (NOT AMReX_PARTICLES)
 endif ()
 
 set(_sources     main.cpp)
-set(_input_files inputs  )
+set(_input_files inputs  inputs_async)
 
 setup_test(_sources _input_files)
 

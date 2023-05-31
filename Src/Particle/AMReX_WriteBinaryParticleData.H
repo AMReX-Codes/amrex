@@ -657,8 +657,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
         {
             int gid = pti.index();
             const auto& ptile = pc.ParticlesAt(lev, pti);
-            const auto& aos = ptile.GetArrayOfStructs();
-            const auto pstruct = aos().dataPtr();
+            const auto& ptd = ptile.getConstParticleTileData();
             const int np = ptile.numParticles();
 
             ReduceOps<ReduceOpSum> reduce_op;
@@ -668,7 +667,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
             reduce_op.eval(np, reduce_data,
             [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
             {
-                return (pstruct[i].id() > 0) ? 1 : 0;
+                return (ptd.id(i) > 0) ? 1 : 0;
             });
 
             int np_valid = amrex::get<0>(reduce_data.value(reduce_op));

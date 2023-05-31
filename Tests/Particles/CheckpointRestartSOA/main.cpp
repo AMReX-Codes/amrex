@@ -137,6 +137,7 @@ void test ()
         }
     }
 
+    AsyncOut::Finish();
     ParallelDescriptor::Barrier();
 
     char directory_path[512];
