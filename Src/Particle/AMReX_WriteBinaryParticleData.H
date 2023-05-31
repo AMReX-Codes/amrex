@@ -315,16 +315,10 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
                         }
                     }
                     // extra AoS Real components
-                    if constexpr(!PC::ParticleType::is_soa_particle)
-                    {
-                        const auto& aos = ptile.GetArrayOfStructs();
-                        const auto& p = aos[pindex];
-
-                        for (int j = 0; j < PC::NStructReal; j++) {
-                            if (write_real_comp[j]) {
-                                *rptr = p.rdata(j);
-                                ++rptr;
-                            }
+                    for (int j = 0; j < PC::NStructReal; j++) {
+                        if (write_real_comp[j]) {
+                            *rptr = p.rdata(j);
+                            ++rptr;
                         }
                     }
                 }
