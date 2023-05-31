@@ -937,6 +937,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
     host_int_attribs.resize(finest_level_in_file+1);
 
     for (int i = 0; i < cnt; i++) {
+        // note: for pure SoA particle layouts, we do write the id, cpu and positions as a struct
+        //       for backwards compatibility with readers
         if (!ParticleType::is_soa_particle && convert_ids) {
             std::int32_t  xi, yi;
             std::uint32_t xu, yu;
@@ -1004,6 +1006,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
             host_int_attribs[pld.m_lev][ind][0].push_back(ptemp.id());
             host_int_attribs[pld.m_lev][ind][1].push_back(ptemp.cpu());
 
+            // read all other SoA
             // add the real...
             for (int icomp = AMREX_SPACEDIM; icomp < NumRealComps(); icomp++) {
                 host_real_attribs[lev][ind][icomp].push_back(*rptr);
