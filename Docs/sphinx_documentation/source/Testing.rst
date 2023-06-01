@@ -25,7 +25,7 @@ Running the test suite locally
 
 The test suite is mostly used internally by AMReX developers. However,
 if you are making a pull request to AMReX, it can be useful to run the test suite
-on your local machine to reduce the liklihood that your changes break some existing functionality.
+on your local machine to reduce the likelihood that your changes break some existing functionality.
 To run the test suite locally, you must first obtain a copy of the test runner source, available
 on Github here: https://github.com/AMReX-Codes/regression_testing. The test runner requires Python
 version 2.7 or greater. Additional information on the test suite software can be found at,
