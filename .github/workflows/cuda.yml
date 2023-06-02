@@ -62,7 +62,9 @@ jobs:
   tests-cuda11-clang:
     name: ClangCUDA@12 C++17 Release [tests]
     runs-on: ubuntu-22.04
-    env: {CXXFLAGS: "--cuda-gpu-arch=sm_70 --no-cuda-version-check"}
+    env:
+      CXXFLAGS: "--cuda-gpu-arch=sm_70 --no-cuda-version-check"
+      CUDAFLAGS: "-stdlib=libc++"
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
@@ -80,13 +82,12 @@ jobs:
             -DAMReX_FORTRAN=OFF                          \
             -DAMReX_PARTICLES=ON                         \
             -DAMReX_GPU_BACKEND=CUDA                     \
-            -DCMAKE_C_COMPILER=$(which clang)            \
-            -DCMAKE_CXX_COMPILER=$(which clang++)        \
-            -DCMAKE_CUDA_COMPILER=$(which clang++)       \
-            -DCMAKE_CUDA_HOST_COMPILER=$(which clang++)  \
+            -DCMAKE_C_COMPILER=$(which clang-15)            \
+            -DCMAKE_CXX_COMPILER=$(which clang++-15)        \
+            -DCMAKE_CUDA_COMPILER=$(which clang++-15)       \
+            -DCMAKE_CUDA_HOST_COMPILER=$(which clang++-15)  \
             -DCMAKE_CUDA_ARCHITECTURES=70                \
-            -DAMReX_CUDA_ARCH=7.0 \
-            -D_CMAKE_CUDA_WHOLE_FLAG="-c"
+            -DAMReX_CUDA_ARCH=7.0
 
         cmake --build build -j 2
 
