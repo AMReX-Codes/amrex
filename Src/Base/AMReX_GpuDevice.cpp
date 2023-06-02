@@ -93,7 +93,7 @@ namespace {
     {
         amrex::ignore_unused(graph_size);
 
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) && defined(AMREX_USE_CUDA)
 
         BL_PROFILE("InitGraph");
 
@@ -693,7 +693,7 @@ Device::streamSynchronizeAll () noexcept
 #endif
 }
 
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) && defined(AMREX_USE_CUDA)
 
 void
 Device::startGraphRecording(bool first_iter, void* h_ptr, void* d_ptr, size_t sz)
