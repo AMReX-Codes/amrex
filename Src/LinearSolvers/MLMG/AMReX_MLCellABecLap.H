@@ -647,7 +647,6 @@ MLCellABecLapT<MF>::makeHypre (Hypre::Interface hypre_interface) const
 {
     if constexpr (!std::is_same<MF,MultiFab>()) {
         amrex::Abort("MLCellABecLap Hypre interface only supports MultiFab");
-        return nullptr;
     } else {
         const BoxArray& ba = this->m_grids[0].back();
         const DistributionMapping& dm = this->m_dmap[0].back();
@@ -695,6 +694,7 @@ MLCellABecLapT<MF>::makeHypre (Hypre::Interface hypre_interface) const
 
         return hypre_solver;
     }
+    return nullptr;
 }
 #endif
 
@@ -705,7 +705,6 @@ MLCellABecLapT<MF>::makePETSc () const
 {
     if constexpr (!std::is_same<MF,MultiFab>()) {
         amrex::Abort("MLCellABecLap PETSc interface only supports MultiFab");
-        return nullptr;
     } else {
         const BoxArray& ba = this->m_grids[0].back();
         const DistributionMapping& dm = this->m_dmap[0].back();
@@ -748,6 +747,7 @@ MLCellABecLapT<MF>::makePETSc () const
         }
         return petsc_solver;
     }
+    return nullptr;
 }
 #endif
 

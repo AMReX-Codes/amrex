@@ -71,9 +71,9 @@ buildNeighborMask ()
             int grid = mfi.index();
 
             std::set<NeighborTask> neighbor_grids;
-            for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
+            for (auto pshift : pshifts)
             {
-                const Box box = ba[mfi] + *pit;
+                const Box box = ba[mfi] + pshift;
 
                 const bool first_only = false;
                 auto isecs = ba.intersections(box, first_only, m_num_neighbor_cells);
@@ -81,9 +81,9 @@ buildNeighborMask ()
                 for (auto& isec : isecs)
                 {
                     int nbor_grid = isec.first;
-                    const Box isec_box = isec.second - *pit;
-                    if ( (grid == nbor_grid) && (*pit == IntVect(AMREX_D_DECL(0, 0, 0)))) continue;
-                    neighbor_grids.insert(NeighborTask(nbor_grid, isec_box, *pit));
+                    const Box isec_box = isec.second - pshift;
+                    if ( (grid == nbor_grid) && (pshift == 0)) continue;
+                    neighbor_grids.insert(NeighborTask(nbor_grid, isec_box, pshift));
                     const int global_rank = dmap[nbor_grid];
                     neighbor_procs.push_back(ParallelContext::global_to_local_rank(global_rank));
                 }

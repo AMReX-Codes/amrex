@@ -236,8 +236,8 @@ namespace amrex
         for (MFIter mfi(mf_in); mfi.isValid(); ++mfi)
         {
             const Long n = mfi.fabbox().numPts() * mf_in.nComp();
-            auto pdst = mf_out[mfi].dataPtr();
-            auto psrc = mf_in [mfi].dataPtr();
+            auto      * pdst = mf_out[mfi].dataPtr();
+            auto const* psrc = mf_in [mfi].dataPtr();
             AMREX_HOST_DEVICE_PARALLEL_FOR_1D ( n, i,
             {
                 pdst[i] = static_cast<typename U::value_type>(psrc[i]); // NOLINT(bugprone-signed-char-misuse)
@@ -919,7 +919,7 @@ Vector<typename MF::value_type> get_cell_data (MF const& mf, IntVect const& cell
     using T = typename MF::value_type;
     const int ncomp = mf.nComp();
     Gpu::DeviceVector<T> dv(ncomp);
-    auto dp = dv.data();
+    auto* dp = dv.data();
     bool found = false;
     auto loc = cell.dim3();
     for (MFIter mfi(mf); mfi.isValid() && !found; ++mfi)

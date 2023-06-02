@@ -616,7 +616,7 @@ Device::streamIndex (gpuStream_t s) noexcept
 #endif
 
 void
-Device::setStreamIndex (const int idx) noexcept
+Device::setStreamIndex (int idx) noexcept
 {
     amrex::ignore_unused(idx);
 #ifdef AMREX_USE_GPU
@@ -810,7 +810,7 @@ Device::executeGraph(const cudaGraphExec_t &graphExec, bool synch)
 #endif
 
 void
-Device::mem_advise_set_preferred (void* p, const std::size_t sz, const int device)
+Device::mem_advise_set_preferred (void* p, std::size_t sz, int device)
 {
     amrex::ignore_unused(p,sz,device);
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
@@ -833,7 +833,7 @@ Device::mem_advise_set_preferred (void* p, const std::size_t sz, const int devic
 }
 
 void
-Device::mem_advise_set_readonly (void* p, const std::size_t sz)
+Device::mem_advise_set_readonly (void* p, std::size_t sz)
 {
     amrex::ignore_unused(p,sz);
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)

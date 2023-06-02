@@ -11,7 +11,7 @@ void ParticleCopyOp::clear ()
     m_periodic_shift.resize(0);
 }
 
-void ParticleCopyOp::setNumLevels (const int num_levels)
+void ParticleCopyOp::setNumLevels (int num_levels)
 {
     m_boxes.resize(num_levels);
     m_levels.resize(num_levels);
@@ -19,7 +19,7 @@ void ParticleCopyOp::setNumLevels (const int num_levels)
     m_periodic_shift.resize(num_levels);
 }
 
-void ParticleCopyOp::resize (const int gid, const int lev, const int size)
+void ParticleCopyOp::resize (int gid, int lev, int size)
 {
     if (lev >= m_boxes.size())
     {

@@ -26,7 +26,7 @@ public:
         {}
 
     template <class U=F, typename std::enable_if<IsGPUable<U>::value,int>::type = 0>
-    AMREX_GPU_HOST_DEVICE inline
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
         return m_f(AMREX_D_DECL(x*m_sfinv.x,
@@ -34,7 +34,7 @@ public:
                                 z*m_sfinv.z));
     }
 
-    inline Real operator() (const RealArray& p) const noexcept
+    [[nodiscard]] inline Real operator() (const RealArray& p) const noexcept
     {
         return m_f({AMREX_D_DECL(p[0]*m_sfinv.x,
                                  p[1]*m_sfinv.y,

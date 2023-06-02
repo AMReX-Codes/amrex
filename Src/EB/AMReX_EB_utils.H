@@ -21,8 +21,8 @@ namespace amrex {
                                      Array4<Real      > const& div,
                                      Array4<Real const> const& divc,
                                      Array4<Real const> const& wt,
-                                     const int icomp,
-                                     const int ncomp,
+                                     int icomp,
+                                     int ncomp,
                                      Array4<EBCellFlag const> const& flags,
                                      Array4<Real const>    const& vfrac,
                                      const Geometry & geom);

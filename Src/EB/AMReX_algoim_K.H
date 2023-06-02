@@ -39,20 +39,20 @@ struct EBPlane
         : cent{cx,cy,cz}, norm{nx,ny,nz}
         {}
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (Real x, Real y, Real z) const noexcept
     {
         return (x-cent[0])*norm[0] + (y-cent[1])*norm[1] + (z-cent[2])*norm[2];
     }
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (GpuArray<Real,3> const& p) const noexcept
     {
         return (p[0]-cent[0])*norm[0] + (p[1]-cent[1])*norm[1]
             +  (p[2]-cent[2])*norm[2];
     }
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real grad (int d) const noexcept
     {
         return norm[d];
@@ -69,7 +69,7 @@ struct QuadratureRule
     GpuArray<Node,256> nodes;
 
     template<typename F>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real
     operator() (const F& f) const noexcept
     {
@@ -81,7 +81,7 @@ struct QuadratureRule
     }
 
     template<typename F>
-    AMREX_GPU_HOST AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST AMREX_FORCE_INLINE
     Real
     eval (const F& f) const noexcept
     {
@@ -171,7 +171,7 @@ struct PsiCode
     unsigned char bits = 0;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
-    PsiCode () noexcept {}
+    PsiCode () noexcept = default;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     PsiCode (const GpuArray<int,N>& sides, int sign) noexcept
@@ -210,13 +210,13 @@ struct PsiCode
         }
     }
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int side (int dim) const noexcept
     {
         return bits & (1 << dim);
     }
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int sign () const noexcept
     {
         return (bits & (1 << N)) ? 0 : ((bits & (1 << (N+1))) ? 1 : -1);

@@ -639,16 +639,16 @@ void
 MLEBNodeFDLaplacian::fillIJMatrix (MFIter const& /*mfi*/,
                                    Array4<HypreNodeLap::AtomicInt const> const& /*gid*/,
                                    Array4<int const> const& /*lid*/,
-                                   HypreNodeLap::Int* const /*ncols*/,
-                                   HypreNodeLap::Int* const /*cols*/,
-                                   Real* const /*mat*/) const
+                                   HypreNodeLap::Int* /*ncols*/,
+                                   HypreNodeLap::Int* /*cols*/,
+                                   Real* /*mat*/) const
 {
     amrex::Abort("MLEBNodeFDLaplacian::fillIJMatrix: todo");
 }
 
 void
 MLEBNodeFDLaplacian::fillRHS (MFIter const& /*mfi*/, Array4<int const> const& /*lid*/,
-                              Real* const /*rhs*/, Array4<Real const> const& /*bfab*/) const
+                              Real* /*rhs*/, Array4<Real const> const& /*bfab*/) const
 {
     amrex::Abort("MLEBNodeFDLaplacian::fillRHS: todo");
 }

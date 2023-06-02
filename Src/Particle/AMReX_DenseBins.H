@@ -44,7 +44,7 @@ struct DenseBinIteratorFactory
           m_items(items)
     {}
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     BinIterator<T> getBinIterator(const int bin_number) const noexcept
     {
         return BinIterator<T>(bin_number, m_offsets_ptr, m_permutation_ptr, m_items);
@@ -344,7 +344,7 @@ public:
 
         int nchunks = OpenMP::get_max_threads();
         int chunksize = nitems / nchunks;
-        auto counts = (index_type*)(The_Arena()->alloc(nchunks*nbins*sizeof(index_type)));
+        auto* counts = (index_type*)(The_Arena()->alloc(nchunks*nbins*sizeof(index_type)));
         for (int i = 0; i < nbins*nchunks; ++i) { counts[i] = 0;}
 
         m_counts.resize(0);
@@ -502,34 +502,32 @@ public:
         }
     }
 
-public:
-
     //! \brief the number of items in the container
-    Long numItems () const noexcept { return m_perm.size(); }
+    [[nodiscard]] Long numItems () const noexcept { return m_perm.size(); }
 
     //! \brief the number of bins in the container
-    Long numBins () const noexcept { return m_offsets.size()-1; }
+    [[nodiscard]] Long numBins () const noexcept { return m_offsets.size()-1; }
 
     //! \brief returns the pointer to the permutation array
-    index_type* permutationPtr () noexcept { return m_perm.dataPtr(); }
+    [[nodiscard]] index_type* permutationPtr () noexcept { return m_perm.dataPtr(); }
 
     //! \brief returns the pointer to the offsets array
-    index_type* offsetsPtr () noexcept { return m_offsets.dataPtr(); }
+    [[nodiscard]] index_type* offsetsPtr () noexcept { return m_offsets.dataPtr(); }
 
     //! \brief returns the pointer to the bins array
-    index_type* binsPtr () noexcept { return m_bins.dataPtr(); }
+    [[nodiscard]] index_type* binsPtr () noexcept { return m_bins.dataPtr(); }
 
     //! \brief returns const pointer to the permutation array
-    const index_type* permutationPtr () const noexcept { return m_perm.dataPtr(); }
+    [[nodiscard]] const index_type* permutationPtr () const noexcept { return m_perm.dataPtr(); }
 
     //! \brief returns const pointer to the offsets array
-    const index_type* offsetsPtr () const noexcept { return m_offsets.dataPtr(); }
+    [[nodiscard]] const index_type* offsetsPtr () const noexcept { return m_offsets.dataPtr(); }
 
     //! \brief returns the const pointer to the bins array
-    const index_type* binsPtr () const noexcept { return m_bins.dataPtr(); }
+    [[nodiscard]] const index_type* binsPtr () const noexcept { return m_bins.dataPtr(); }
 
     //! \brief returns a GPU-capable object that can create iterators over the items in a bin.
-    DenseBinIteratorFactory<T> getBinIteratorFactory() const noexcept
+    [[nodiscard]] DenseBinIteratorFactory<T> getBinIteratorFactory() const noexcept
     {
         return DenseBinIteratorFactory<T>(m_offsets, m_perm, m_items);
     }
