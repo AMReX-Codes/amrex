@@ -10,10 +10,12 @@ sudo apt-get -qqq update
 sudo apt-get install -y \
     build-essential     \
     ca-certificates     \
-    clang-15 libc++-15-dev libc++abi-15-dev libc++1-15 libc++abi1-15 \
+    clang-15            \
+    libc++-15-dev       \
+    libc++abi-15-dev    \
+    libc++1-15          \
+    libc++abi1-15       \
     cmake               \
-    g++                 \
-    gfortran            \
     gnupg               \
     libopenmpi-dev      \
     openmpi-bin         \
@@ -32,4 +34,3 @@ sudo apt-get install -y \
     cuda-nvtx-11-2               \
     libcurand-dev-11-2
 sudo ln -s cuda-11.2 /usr/local/cuda
-
