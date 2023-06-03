@@ -164,9 +164,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
+template <typename P>
 bool
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
-::EnforcePeriodicWhere (ParticleType&    p,
+::EnforcePeriodicWhere (P&               p,
                         ParticleLocData& pld,
                         int              lev_min,
                         int              lev_max,
@@ -312,8 +313,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::resizeDa
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
+template <typename P>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::locateParticle (ParticleType& p, ParticleLocData& pld,
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::locateParticle (P& p, ParticleLocData& pld,
                                                                                         int lev_min, int lev_max, int nGrow, int local_grid) const
 {
     bool success;

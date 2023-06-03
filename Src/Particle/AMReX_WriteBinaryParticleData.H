@@ -13,7 +13,7 @@ struct KeepValidFilter
     AMREX_GPU_HOST_DEVICE
     int operator() (const SrcData& src, int i) const noexcept
     {
-        return (src.m_aos[i].id() > 0);
+        return (src.id(i) > 0);
     }
 };
 
@@ -197,7 +197,7 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
     for (int i = 0; i < tiles.size(); i++) {
         const auto& ptile = pc.ParticlesAt(lev, grid, tiles[i]);
         const auto& pflags = particle_io_flags[lev].at(std::make_pair(grid, tiles[i]));
-        int np_tile = ptile.GetArrayOfStructs().numParticles();
+        int np_tile = ptile.numParticles();
         typename PC::IntVector offsets(np_tile);
         int num_copies = Scan::ExclusiveSum(np_tile, pflags.begin(), offsets.begin(), Scan::retSum);
 
@@ -283,44 +283,70 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
     const Long rChunkSize = AMREX_SPACEDIM + num_output_real;
     rdata.resize(np*rChunkSize);
 
-    int* iptr = idata.dataPtr();
+        int* iptr = idata.dataPtr();
     ParticleReal* rptr = rdata.dataPtr();
     for (unsigned i = 0; i < tiles.size(); i++) {
         const auto& ptile = pc.ParticlesAt(lev, grid, tiles[i]);
         const auto& pflags = particle_io_flags[lev].at(std::make_pair(grid, tiles[i]));
-        for (int pindex = 0; pindex < ptile.GetArrayOfStructs().numParticles(); ++pindex) {
-            const auto& aos = ptile.GetArrayOfStructs();
-            const auto& p = aos[pindex];
+        for (int pindex = 0; pindex < ptile.numParticles(); ++pindex) {
             if (pflags[pindex]) {
-                packParticleIDs(iptr, p, is_checkpoint);
-                iptr += 2;
+                const auto& soa  = ptile.GetStructOfArrays();
 
-                for (int j = 0; j < AMREX_SPACEDIM; j++) rptr[j] = p.pos(j);
-                rptr += AMREX_SPACEDIM;
+                // note: for pure SoA particle layouts, we do write the id, cpu and positions as a struct
+                //       for backwards compatibility with readers
+                if constexpr(!PC::ParticleType::is_soa_particle)
+                {
+                    const auto& aos = ptile.GetArrayOfStructs();
+                    const auto& p = aos[pindex];
 
-                for (int j = 0; j < PC::NStructInt; j++) {
-                    if (write_int_comp[j]) {
-                        *iptr = p.idata(j);
-                        ++iptr;
+                    // Int: id, cpu
+                    packParticleIDs(iptr, p, is_checkpoint);
+                    iptr += 2;
+
+                    // Real: positions
+                    for (int j = 0; j < AMREX_SPACEDIM; j++) rptr[j] = p.pos(j);
+                    rptr += AMREX_SPACEDIM;
+
+                    // extra AoS Int components
+                    for (int j = 0; j < PC::NStructInt; j++) {
+                        if (write_int_comp[j]) {
+                            *iptr = p.idata(j);
+                            ++iptr;
+                        }
+                    }
+                    // extra AoS Real components
+                    for (int j = 0; j < PC::NStructReal; j++) {
+                        if (write_real_comp[j]) {
+                            *rptr = p.rdata(j);
+                            ++rptr;
+                        }
                     }
                 }
+                else {
+                    amrex::ignore_unused(is_checkpoint);
+                    // Int: id, cpu
+                    *iptr = soa.GetIntData(0)[pindex];
+                    iptr += 1;
+                    *iptr = soa.GetIntData(1)[pindex];
+                    iptr += 1;
 
-                const auto& soa  = ptile.GetStructOfArrays();
-                for (int j = 0; j < pc.NumIntComps(); j++) {
+                    // Real: position
+                    for (int j = 0; j < AMREX_SPACEDIM; j++) rptr[j] = soa.GetRealData(j)[pindex];
+                    rptr += AMREX_SPACEDIM;
+                }
+
+                // extra SoA int data
+                const int int_start_offset = PC::ParticleType::is_soa_particle ? 2 : 0; // pure SoA: skip id, cpu
+                for (int j = int_start_offset; j < pc.NumIntComps(); j++) {
                     if (write_int_comp[PC::NStructInt+j]) {
                         *iptr = soa.GetIntData(j)[pindex];
                         ++iptr;
                     }
                 }
 
-                for (int j = 0; j < PC::NStructReal; j++) {
-                    if (write_real_comp[j]) {
-                        *rptr = p.rdata(j);
-                        ++rptr;
-                    }
-                }
-
-                for (int j = 0; j < pc.NumRealComps(); j++) {
+                // extra SoA Real components
+                const int real_start_offset = PC::ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0; // pure SoA: skip positions
+                for (int j = real_start_offset; j < pc.NumRealComps(); j++) {
                     if (write_real_comp[PC::NStructReal+j]) {
                         *rptr = (ParticleReal) soa.GetRealData(j)[pindex];
                         ++rptr;
@@ -647,8 +673,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
         {
             int gid = pti.index();
             const auto& ptile = pc.ParticlesAt(lev, pti);
-            const auto& aos = ptile.GetArrayOfStructs();
-            const auto pstruct = aos().dataPtr();
+            const auto& ptd = ptile.getConstParticleTileData();
             const int np = ptile.numParticles();
 
             ReduceOps<ReduceOpSum> reduce_op;
@@ -658,7 +683,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
             reduce_op.eval(np, reduce_data,
             [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
             {
-                return (pstruct[i].id() > 0) ? 1 : 0;
+                return (ptd.id(i) > 0) ? 1 : 0;
             });
 
             int np_valid = amrex::get<0>(reduce_data.value(reduce_op));
@@ -938,30 +963,43 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                 for (unsigned i = 0; i < tile_map[grid].size(); i++) {
                     auto ptile_index = std::make_pair(grid, tile_map[grid][i]);
                     const auto& pbox = (*myptiles)[lev][ptile_index];
-                    for (int pindex = 0;
-                         pindex < pbox.GetArrayOfStructs().numParticles(); ++pindex)
+                    const auto ptd = pbox.getConstParticleTileData();
+                    for (int pindex = 0; pindex < pbox.numParticles(); ++pindex)
                     {
-                        const auto& aos = pbox.GetArrayOfStructs();
-                        const auto& p = aos[pindex];
+                        const auto& soa  = pbox.GetStructOfArrays();
 
+                        const auto& p = make_particle<typename PC::ConstParticleType>{}(ptd, pindex);
                         if (p.id() <= 0) continue;
 
-                        // always write these
-                        particle_detail::packParticleIDs(iptr, p, is_checkpoint);
-                        iptr += 2;
-
-                        // optionally write these
-                        for (int j = 0; j < NStructInt; j++)
+                        // note: for pure SoA particle layouts, we do write the id, cpu and positions as a struct
+                        //       for backwards compatibility with readers
+                        if constexpr(!PC::ParticleType::is_soa_particle)
                         {
-                            if (write_int_comp[j])
+                            // Ints: id, cpu
+                            particle_detail::packParticleIDs(iptr, p, is_checkpoint);
+                            iptr += 2;
+
+                            // extra AoS Int components
+                            for (int j = 0; j < NStructInt; j++)
                             {
-                                *iptr = p.idata(j);
-                                ++iptr;
+                                if (write_int_comp[j])
+                                {
+                                    *iptr = p.idata(j);
+                                    ++iptr;
+                                }
                             }
                         }
+                        else {
+                            // Ints: id, cpu
+                            *iptr = soa.GetIntData(0)[pindex];
+                            iptr += 1;
+                            *iptr = soa.GetIntData(1)[pindex];
+                            iptr += 1;
+                        }
 
-                        const auto& soa  = pbox.GetStructOfArrays();
-                        for (int j = 0; j < nic; j++)
+                        // extra SoA Ints
+                        const int int_start_offset = PC::ParticleType::is_soa_particle ? 2 : 0; // pure SoA: skip id, cpu
+                        for (int j = int_start_offset; j < nic; j++)
                         {
                             if (write_int_comp[NStructInt+j])
                             {
@@ -987,30 +1025,40 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                 for (unsigned i = 0; i < tile_map[grid].size(); i++) {
                     auto ptile_index = std::make_pair(grid, tile_map[grid][i]);
                     const auto& pbox = (*myptiles)[lev][ptile_index];
+                    const auto ptd = pbox.getConstParticleTileData();
                     for (int pindex = 0;
-                         pindex < pbox.GetArrayOfStructs().numParticles(); ++pindex)
+                         pindex < pbox.numParticles(); ++pindex)
                     {
-                        const auto& aos = pbox.GetArrayOfStructs();
-                        const auto& p = aos[pindex];
+                        const auto& soa  = pbox.GetStructOfArrays();
+                        const auto& p = make_particle<typename PC::ConstParticleType>{}(ptd, pindex);
 
                         if (p.id() <= 0) continue;
 
-                        // always write these
-                        for (int j = 0; j < AMREX_SPACEDIM; j++) rptr[j] = p.pos(j);
-                        rptr += AMREX_SPACEDIM;
-
-                        // optionally write these
-                        for (int j = 0; j < NStructReal; j++)
+                        if constexpr(!PC::ParticleType::is_soa_particle)
                         {
-                            if (write_real_comp[j])
+                            // Real: position
+                            for (int j = 0; j < AMREX_SPACEDIM; j++) rptr[j] = p.pos(j);
+                            rptr += AMREX_SPACEDIM;
+
+                            // extra AoS real
+                            for (int j = 0; j < NStructReal; j++)
                             {
-                                *rptr = p.rdata(j);
-                                ++rptr;
+                                if (write_real_comp[j])
+                                {
+                                    *rptr = p.rdata(j);
+                                    ++rptr;
+                                }
                             }
                         }
+                        else {
+                            // Real: position
+                            for (int j = 0; j < AMREX_SPACEDIM; j++) rptr[j] = soa.GetRealData(j)[pindex];
+                            rptr += AMREX_SPACEDIM;
+                        }
 
-                        const auto& soa  = pbox.GetStructOfArrays();
-                        for (int j = 0; j < nrc; j++)
+                        // extra SoA real
+                        const int real_start_offset = PC::ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0; // pure SoA: positions
+                        for (int j = real_start_offset; j < nrc; j++)
                         {
                             if (write_real_comp[NStructReal+j])
                             {
