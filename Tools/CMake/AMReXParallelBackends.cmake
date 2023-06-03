@@ -320,6 +320,7 @@ if (AMReX_HIP)
    if(LINKER_HAS_WHOLE_ARCHIVE_OFFLOAD)
        foreach(D IN LISTS AMReX_SPACEDIM)
            target_link_options(amrex_${D}d PUBLIC
+               "$<$<LINK_LANGUAGE:HIP>:SHELL:-Xoffload-linker --whole-archive>"
                "$<$<LINK_LANGUAGE:CXX>:SHELL:-Xoffload-linker --whole-archive>")
        endforeach()
    endif()
@@ -345,6 +346,7 @@ if (AMReX_HIP)
                   -fgpu-rdc)
            else()
                target_link_options(amrex_${D}d PUBLIC
+                  "$<$<LINK_LANGUAGE:HIP>:-fgpu-rdc>"
                   "$<$<LINK_LANGUAGE:CXX>:-fgpu-rdc>")
            endif()
        endforeach()
