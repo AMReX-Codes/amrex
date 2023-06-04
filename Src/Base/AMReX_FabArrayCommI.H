@@ -38,7 +38,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) && defined(AMREX_USE_CUDA)
             if (Gpu::inGraphRegion())
             {
                 FB_local_copy_cuda_graph_1(TheFB, scomp, ncomp);
@@ -110,7 +110,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) && defined(AMREX_USE_CUDA)
             if (Gpu::inGraphRegion()) {
                 FB_pack_send_buffer_cuda_graph(TheFB, scomp, ncomp, send_data, send_size, send_cctc);
             }
@@ -140,7 +140,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) && defined(AMREX_USE_CUDA)
             if (Gpu::inGraphRegion()) {
                 FB_local_copy_cuda_graph_n(TheFB, scomp, ncomp);
             }
@@ -205,7 +205,7 @@ FabArray<FAB>::FillBoundary_finish ()
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) && defined(AMREX_USE_CUDA)
             if (Gpu::inGraphRegion())
             {
                 FB_unpack_recv_buffer_cuda_graph(*TheFB, fbd->scomp, fbd->ncomp,
