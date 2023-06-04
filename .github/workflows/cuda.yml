@@ -68,6 +68,7 @@ jobs:
       CUDACXX: clang++-15
       CUDAHOSTCXX: clang++-15
       CUDAFLAGS: "-stdlib=libc++"
+      LDFLAGS: "-stdlib=libc++"
       CUDAARCHS: 70
       AMReX_CUDA_ARCH: 7.0
     steps:
