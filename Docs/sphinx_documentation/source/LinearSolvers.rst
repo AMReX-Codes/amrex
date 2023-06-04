@@ -92,7 +92,7 @@ there is the option to use
       void setBCoeffs (int amrlev, Real beta);
       void setBCoeffs (int amrlev, Vector<Real> const& beta);
 
-Note, however, that the solver behaviour is the same regardless of which functions you
+Note, however, that the solver behavior is the same regardless of which functions you
 use to set the coefficients. These functions solely copy the constant value(s) to a MultiFab
 internal to ``MLMG`` and so no appreciable efficiency gains can be expected.
 
@@ -245,9 +245,9 @@ The :cpp:`MLLinOp` member function for this step is
 Here :cpp:`const MultiFab* crse` contains the Dirichlet boundary
 values at the coarse resolution, and :cpp:`int crse_ratio` (e.g., 2)
 is the refinement ratio between the coarsest solver level and the AMR
-level below it.  The MultiFab crse does not need to have ghost cells itself.
-If the coarse grid bc's for the solve are identically zero, :cpp:`nullptr`
-can be passed instead of :cpp:`crse`.
+level below it.  The MultiFab :cpp:`crse` does not need to have ghost cells
+itself. If the coarse grid bc's for the solve are identically zero,
+:cpp:`nullptr` can be passed instead of :cpp:`crse`.
 
 3) Cell-centered solvers only:
 before the solve one must always call the :cpp:`MLLinOp` member function
@@ -367,7 +367,7 @@ Available choices are
 
 - :cpp:`LPInfo::setConsolidation(bool)` (by default true) can be used
   continue to transfer a multigrid problem to fewer MPI ranks.
-  There are more setting sucsh as :cpp:`LPInfo::setConsolidationGridSize(int)`,
+  There are more setting such as :cpp:`LPInfo::setConsolidationGridSize(int)`,
   :cpp:`LPInfo::setConsolidationRatio(int)`, and
   :cpp:`LPInfo::setConsolidationStrategy(int)`, to give control over how this
   process works.

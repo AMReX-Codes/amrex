@@ -249,7 +249,7 @@ Each AMR box's data is linearized and the data of different variables are
 concatenated, resulting in an interleaved pattern for each variable. This could
 be undesirable when compression is used, as it may lead to applying the
 compression algorithm to multiple variables with different value ranges and
-chararistics, and reduce the compression ratio. To overcome this issue, two
+characteristics, and reduce the compression ratio. To overcome this issue, two
 additional functions are provided to write each variable into individual HDF5
 datasets: :cpp:`WriteSingleLevelPlotfileHDF5MultiDset` and
 :cpp:`WriteMultiLevelPlotfileHDF5MultiDset`. They use the exact same arguments
