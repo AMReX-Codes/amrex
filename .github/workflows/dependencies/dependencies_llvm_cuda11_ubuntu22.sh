@@ -26,11 +26,11 @@ curl -O https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_
 sudo dpkg -i cuda-keyring_1.0-1_all.deb
 sudo apt-get update
 sudo apt-get install -y \
-    cuda-command-line-tools-11-2 \
-    cuda-compiler-11-2           \
-    cuda-cupti-dev-11-2          \
-    cuda-minimal-build-11-2      \
-    cuda-nvml-dev-11-2           \
-    cuda-nvtx-11-2               \
-    libcurand-dev-11-2
-sudo ln -s cuda-11.2 /usr/local/cuda
+    cuda-command-line-tools-11-7 \
+    cuda-compiler-11-7           \
+    cuda-cupti-dev-11-7          \
+    cuda-minimal-build-11-7      \
+    cuda-nvml-dev-11-7           \
+    cuda-nvtx-11-7               \
+    libcurand-dev-11-7
+sudo ln -s cuda-11.7 /usr/local/cuda
