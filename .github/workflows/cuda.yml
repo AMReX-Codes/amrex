@@ -58,7 +58,7 @@ jobs:
         ccache -s
         du -hs ~/.cache/ccache
 
-  # Build libamrex and all tests for CUDA with LLVM Clang + libc++ + CTK 11.2
+  # Build libamrex and all tests for CUDA with LLVM Clang + libc++ + CTK 11.7
   tests-cuda11-clang:
     name: ClangCUDA@12 C++17 Release [tests]
     runs-on: ubuntu-22.04
