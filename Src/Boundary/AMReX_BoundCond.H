@@ -22,7 +22,7 @@ class BoundCond
 public:
     //
     //! Initializes boundary condition type to default.
-    BoundCond () noexcept : bctype(-1) {}
+    BoundCond () noexcept = default;
     //
     //! Initializes boundary condition type to specified value.
     // Many codes rely on implicit conversion.  So no explicit here.
@@ -45,7 +45,7 @@ public:
 private:
     //
     //! Index of boundary condition type.
-    int bctype;
+    int bctype = -1;
 };
 
 }

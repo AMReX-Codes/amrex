@@ -110,7 +110,7 @@ public:
     RT xdoty (int amrlev, int mglev, const MF& x, const MF& y, bool local) const final;
 
     virtual void Fapply (int amrlev, int mglev, MF& out, const MF& in) const = 0;
-    virtual void Fsmooth (int amrlev, int mglev, MF& sol, const MF& rsh, int redblack) const = 0;
+    virtual void Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redblack) const = 0;
     virtual void FFlux (int amrlev, const MFIter& mfi,
                         const Array<FAB*,AMREX_SPACEDIM>& flux,
                         const FAB& sol, Location loc, int face_only=0) const = 0;

@@ -18,8 +18,8 @@
 
 #define AMREX_GPU_MAX_STREAMS 8
 
+#ifdef AMREX_USE_GPU
 namespace amrex {
-
 #ifdef AMREX_USE_HIP
 using gpuDeviceProp_t = hipDeviceProp_t;
 #elif defined(AMREX_USE_CUDA)
@@ -41,8 +41,10 @@ using gpuDeviceProp_t = cudaDeviceProp;
         int maxParameterSize;
     };
 #endif
+}
+#endif
 
-namespace Gpu {
+namespace amrex::Gpu {
 
 class Device
 {
@@ -68,7 +70,7 @@ public:
         return inSingleStreamRegion() ? 1 : max_gpu_streams;
     }
 
-    static void setStreamIndex (const int idx) noexcept;
+    static void setStreamIndex (int idx) noexcept;
     static void resetStreamIndex () noexcept { setStreamIndex(0); }
 
 #ifdef AMREX_USE_GPU
@@ -113,8 +115,8 @@ public:
 
 #endif
 
-    static void mem_advise_set_preferred (void* p, const std::size_t sz, const int device);
-    static void mem_advise_set_readonly (void* p, const std::size_t sz);
+    static void mem_advise_set_preferred (void* p, std::size_t sz, int device);
+    static void mem_advise_set_readonly (void* p, std::size_t sz);
 
 #ifdef AMREX_USE_GPU
     static void setNumThreadsMin (int nx, int ny, int nz) noexcept;
@@ -300,6 +302,6 @@ dtod_memcpy (void* p_d_dst, const void* p_d_src, const std::size_t sz) noexcept
 
 #endif
 
-}}
+}
 
 #endif

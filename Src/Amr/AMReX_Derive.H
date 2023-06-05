@@ -122,60 +122,65 @@ public:
     */
     ~DeriveRec ();
 
+    DeriveRec (DeriveRec const&) = delete;
+    DeriveRec (DeriveRec &&) = delete;
+    DeriveRec& operator= (DeriveRec const&) = delete;
+    DeriveRec& operator= (DeriveRec &&) = delete;
+
     /**
     * \brief The name of the derived type.
     */
-    const std::string& name () const noexcept;
+    [[nodiscard]] const std::string& name () const noexcept;
 
     /**
     * \brief The names of components
     *
     * \param comp
     */
-    const std::string& variableName (int comp) const noexcept;
+    [[nodiscard]] const std::string& variableName (int comp) const noexcept;
 
     /**
     * \brief The IndexType of the derived type.
     */
-    IndexType deriveType () const noexcept;
+    [[nodiscard]] IndexType deriveType () const noexcept;
 
     /**
     * \brief The DeriveFunc used to calculate the derived type.
     */
-    DeriveFunc    derFunc    () const noexcept;
-    DeriveFunc3D  derFunc3D  () const noexcept;
-    DeriveFuncFab derFuncFab () const noexcept;
+    [[nodiscard]] DeriveFunc    derFunc    () const noexcept;
+    [[nodiscard]] DeriveFunc3D  derFunc3D  () const noexcept;
+    [[nodiscard]] DeriveFuncFab derFuncFab () const noexcept;
 
     /**
     * \brief Maps state data box to derived data box.
     */
-    DeriveBoxMap boxMap () const noexcept;
+    [[nodiscard]] DeriveBoxMap boxMap () const noexcept;
 
     /**
     * \brief Type of interpolater to use in computing derived type.
     */
-    Interpolater* interp () const noexcept;
+    [[nodiscard]] Interpolater* interp () const noexcept;
 
     /**
     * \brief Number of components in the derived type.
     */
-    int numDerive () const noexcept;
+    [[nodiscard]] int numDerive () const noexcept;
 
     /**
     * \brief Number of different chunks of state data needed for derived type.
     */
-    int numRange () const noexcept;
+    [[nodiscard]] int numRange () const noexcept;
 
     /**
     * \brief Total number of state variables needed for derived type.
     */
-    int numState () const noexcept;
+    [[nodiscard]] int numState () const noexcept;
 
     /**
     * \brief The boundary conditions.
     */
-    const int* getBC () const noexcept;
-    const int* getBC3D () const noexcept;
+    [[nodiscard]] const int* getBC () const noexcept;
+    [[nodiscard]] const int* getBC3D () const noexcept;
 
     /**
     * \brief Sets state_indx, src_comp and num_comp for the kth
@@ -344,22 +349,25 @@ public:
     */
     DeriveList () = default;
 
+    ~DeriveList () = default;
     DeriveList (const DeriveList&) = delete;
+    DeriveList (DeriveList &&) = delete;
     DeriveList& operator= (const DeriveList&) = delete;
+    DeriveList& operator= (DeriveList &&) = delete;
 
     /**
     * \brief Determines whether quantity identified by \<name\> is in the registry.
     *
     * \param name
     */
-    bool canDerive (const std::string& name) const;
+    [[nodiscard]] bool canDerive (const std::string& name) const;
 
     /**
     * \brief Access the particular record in registry.
     *
     * \param name
     */
-    const DeriveRec* get (const std::string& name) const;
+    [[nodiscard]] const DeriveRec* get (const std::string& name) const;
 
     /**
     * \brief Adds another entry to the registry.
@@ -456,7 +464,7 @@ public:
                        int                   s_comp,
                        int                   n_comp);
 
-    std::list<DeriveRec>& dlist ();
+    [[nodiscard]] std::list<DeriveRec>& dlist ();
 
     void clear () { lst.clear(); }
 

@@ -5,10 +5,10 @@ namespace amrex {
 
 void
 BndryFuncArray::operator () (Box const& /*bx*/, FArrayBox& dest,
-                             const int dcomp, const int numcomp,
-                             Geometry const& geom, const Real time,
-                             const Vector<BCRec>& bcr, const int bcomp, // BCRec for this box
-                             const int /*orig_comp*/)
+                             int dcomp, int numcomp,
+                             Geometry const& geom, Real time,
+                             const Vector<BCRec>& bcr, int bcomp, // BCRec for this box
+                             int /*orig_comp*/)
 {
     BL_ASSERT(m_func != nullptr || m_func3D != nullptr);
 
@@ -46,10 +46,10 @@ BndryFuncArray::operator () (Box const& /*bx*/, FArrayBox& dest,
 
 void
 CpuBndryFuncFab::operator() (Box const& bx, FArrayBox& dest,
-                             const int dcomp, const int numcomp,
-                             Geometry const& geom, const Real time,
-                             const Vector<BCRec>& bcr, const int bcomp,
-                             const int orig_comp)
+                             int dcomp, int numcomp,
+                             Geometry const& geom, Real time,
+                             const Vector<BCRec>& bcr, int bcomp,
+                             int orig_comp)
 {
     const int* lo = dest.loVect();
     const Box& domain = amrex::convert(geom.Domain(),bx.ixType());

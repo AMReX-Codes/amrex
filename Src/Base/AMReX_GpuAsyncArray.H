@@ -87,8 +87,8 @@ public:
 #endif
 #elif defined(AMREX_USE_SYCL)
 #ifdef AMREX_USE_CODEPLAY_HOST_TASK
-                auto pd = d_data;
-                auto ph = h_data;
+                auto* pd = d_data;
+                auto* ph = h_data;
                 auto& q = *(Gpu::gpuStream().queue);
                 try {
                     q.submit([&] (sycl::handler& h) {

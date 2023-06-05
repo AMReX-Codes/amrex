@@ -330,7 +330,7 @@ Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask,
     Gpu::copyAsync(Gpu::deviceToHost, mask+n-1, mask + n, &last_mask);
     Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+n-1, offsets.data()+n, &last_offset);
 
-    auto p_offsets = offsets.dataPtr();
+    auto* p_offsets = offsets.dataPtr();
 
     const auto src_data = src.getConstParticleTileData();
           auto dst_data = dst.getParticleTileData();
@@ -386,7 +386,7 @@ auto filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
 {
     Gpu::DeviceVector<Index> mask(n);
 
-    auto p_mask = mask.dataPtr();
+    auto* p_mask = mask.dataPtr();
     const auto src_data = src.getConstParticleTileData();
 
     amrex::ParallelForRNG(n,
@@ -425,7 +425,7 @@ Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask
     Gpu::copyAsync(Gpu::deviceToHost, mask+np-1, mask + np, &last_mask);
     Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);
 
-    auto p_offsets = offsets.dataPtr();
+    auto const* p_offsets = offsets.dataPtr();
 
     const auto src_data = src.getConstParticleTileData();
           auto dst_data = dst.getParticleTileData();
@@ -513,7 +513,7 @@ Index filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2,
     Gpu::copyAsync(Gpu::deviceToHost, mask+np-1, mask + np, &last_mask);
     Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);
 
-    auto p_offsets = offsets.dataPtr();
+    auto* p_offsets = offsets.dataPtr();
 
     const auto src_data  = src.getConstParticleTileData();
           auto dst_data1 = dst1.getParticleTileData();
@@ -552,7 +552,7 @@ int filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& 
     auto np = src.numParticles();
     Gpu::DeviceVector<int> mask(np);
 
-    auto p_mask = mask.dataPtr();
+    auto* p_mask = mask.dataPtr();
     const auto src_data = src.getConstParticleTileData();
 
     amrex::ParallelForRNG(np,
@@ -590,7 +590,7 @@ auto filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&
     auto np = src.numParticles();
     Gpu::DeviceVector<Index> mask(np);
 
-    auto p_mask = mask.dataPtr();
+    auto* p_mask = mask.dataPtr();
     const auto src_data = src.getConstParticleTileData();
 
     amrex::ParallelForRNG(np,

@@ -1105,7 +1105,7 @@ BoxArray::minimalBox (Long& npts_avg_box) const
     }
     auto cr = crseRatio();
     minbox.coarsen(cr).convert(ixType());
-    npts_tot /= AMREX_D_TERM(cr[0],*cr[1],*cr[2]);
+    npts_tot /= AMREX_D_TERM(Long(cr[0]),*cr[1],*cr[2]);
     npts_avg_box = npts_tot / N;
     return minbox;
 }
