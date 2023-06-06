@@ -97,23 +97,15 @@ jobs:
         du -hs ~/.cache/ccache
 
 # "Classic" EDG Intel Compiler
-# Ref.: https://github.com/rscohn2/oneapi-ci
-# intel-basekit intel-hpckit are too large in size
   tests-icc:
     name: ICC [tests]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - name: install dependencies
+    - name: Dependencies
       run: |
-        export DEBIAN_FRONTEND=noninteractive
-        sudo apt-get -qqq update
-        sudo apt-get install -y wget build-essential pkg-config cmake ca-certificates gnupg
-        sudo wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
-        sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
-        echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
-        sudo apt-get update
-        sudo apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic intel-oneapi-compiler-fortran intel-oneapi-mpi-devel
+        .github/workflows/dependencies/dependencies_dpcpp.sh
+        sudo apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v3
@@ -122,7 +114,7 @@ jobs:
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
-    - name: build
+    - name: Build & Install
       env: {CXXFLAGS: "-Werror"}
       run: |
         export CCACHE_COMPRESS=1
@@ -133,15 +125,14 @@ jobs:
         set +e
         source /opt/intel/oneapi/setvars.sh
         set -e
-        export CXX=$(which icpc)
-        export CC=$(which icc)
-        export FC=$(which ifort)
-
         cmake -S . -B build                                \
             -DCMAKE_VERBOSE_MAKEFILE=ON                    \
             -DAMReX_EB=ON                                  \
             -DAMReX_ENABLE_TESTS=ON                        \
             -DAMReX_FORTRAN=ON                             \
+            -DCMAKE_C_COMPILER=$(which icc)                \
+            -DCMAKE_CXX_COMPILER=$(which icpc)             \
+            -DCMAKE_Fortran_COMPILER=$(which ifort)        \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build --parallel 2
         cmake --build build --target install
