@@ -9,7 +9,7 @@ concurrency:
 jobs:
   tests-oneapi-sycl:
     name: oneAPI SYCL [tests]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
@@ -54,7 +54,7 @@ jobs:
 
   tests-oneapi-sycl-eb:
     name: oneAPI SYCL [tests w/ EB]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
@@ -101,7 +101,7 @@ jobs:
 # intel-basekit intel-hpckit are too large in size
   tests-icc:
     name: ICC [tests]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - name: install dependencies
