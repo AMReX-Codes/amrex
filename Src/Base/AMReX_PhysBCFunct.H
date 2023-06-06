@@ -35,6 +35,7 @@ typedef void (*UserFillBox) (Box const& bx, Array4<Real> const& dest,
 class BndryFuncArray
 {
 public:
+    BndryFuncArray () noexcept = default;
     BndryFuncArray (BndryFuncDefault inFunc) noexcept : m_func(inFunc) {}
     BndryFuncArray (BndryFunc3DDefault inFunc) noexcept : m_func3D(inFunc) {}
 

@@ -435,9 +435,9 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
       virtual ~UserFunc () = default;
 
       UserFunc (UserFunc const&) = default;
-      UserFunc (UserFunc &&) = delete;
+      UserFunc (UserFunc &&) = default;
       UserFunc& operator= (UserFunc const&) = default;
-      UserFunc& operator= (UserFunc &&) = delete;
+      UserFunc& operator= (UserFunc &&) = default;
 
       virtual void operator() (const amrex::Box&                       bx,
                                amrex::Array4<const amrex::Real> const& dat,
@@ -489,20 +489,13 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
                  const AMRErrorTagInfo& info = AMRErrorTagInfo()) noexcept
       : m_userfunc(userfunc), m_field(std::move(field)), m_info(info), m_ngrow(ngrow) {}
 
-    virtual ~AMRErrorTag () = default;
-
-    AMRErrorTag (AMRErrorTag const&) = default;
-    AMRErrorTag (AMRErrorTag &&) = delete;
-    AMRErrorTag& operator= (AMRErrorTag const&) = default;
-    AMRErrorTag& operator= (AMRErrorTag &&) = delete;
-
-    virtual void operator() (amrex::TagBoxArray&    tb,
-                             const amrex::MultiFab* mf,
-                             char                   clearval,
-                             char                   tagval,
-                             amrex::Real            time,
-                             int                    level,
-                             const amrex::Geometry& geom) const noexcept;
+    void operator() (amrex::TagBoxArray&    tb,
+                     const amrex::MultiFab* mf,
+                     char                   clearval,
+                     char                   tagval,
+                     amrex::Real            time,
+                     int                    level,
+                     const amrex::Geometry& geom) const noexcept;
 
     [[nodiscard]] int NGrow() const noexcept {return m_ngrow;}
     [[nodiscard]] const std::string& Field () const noexcept {return m_field;}
