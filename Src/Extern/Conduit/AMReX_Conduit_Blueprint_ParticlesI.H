@@ -20,10 +20,9 @@ namespace amrex
 // Note:
 // This is a helper function, it's not part of the AMReX Blueprint Interface.
 //---------------------------------------------------------------------------//
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <typename ParticleType, int NArrayReal, int NArrayInt>
 void
-ParticleTileToBlueprint(const ParticleTile<amrex::Particle<NStructReal,
-                                                           NStructInt>,
+ParticleTileToBlueprint(const ParticleTile<ParticleType,
                                            NArrayReal,
                                            NArrayInt> &ptile,
                         const Vector<std::string> &real_comp_names,
@@ -32,7 +31,7 @@ ParticleTileToBlueprint(const ParticleTile<amrex::Particle<NStructReal,
                         const std::string &topology_name)
 {
     int num_particles = ptile.GetArrayOfStructs().size();
-    int struct_size   = sizeof(Particle<NStructReal, NStructInt>);
+    int struct_size   = ParticleType::is_soa_particle ? 0 : sizeof(ParticleType);
 
     // knowing the above, we can zero copy the x,y,z positions + id, cpu
     // and any user fields in the AOS
@@ -193,10 +192,9 @@ ParticleTileToBlueprint(const ParticleTile<amrex::Particle<NStructReal,
 //---------------------------------------------------------------------------//
 // Converts a AMReX Particle Container into a Conduit Mesh Blueprint Hierarchy.
 //---------------------------------------------------------------------------//
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <typename ParticleType, int NArrayReal, int NArrayInt>
 void
-ParticleContainerToBlueprint(const ParticleContainer<NStructReal,
-                                                     NStructInt,
+ParticleContainerToBlueprint(const ParticleContainer<ParticleType,
                                                      NArrayReal,
                                                      NArrayInt> &pc,
                              const Vector<std::string> &real_comp_names,
@@ -224,7 +222,7 @@ ParticleContainerToBlueprint(const ParticleContainer<NStructReal,
     int rank   = ParallelDescriptor::MyProc();
     int nprocs = ParallelDescriptor::NProcs();
 
-    using MyParConstIter = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using MyParConstIter = ParConstIter<ParticleType, NArrayReal, NArrayInt>;
 
     //
     // blueprint expects unique ids for each domain published
