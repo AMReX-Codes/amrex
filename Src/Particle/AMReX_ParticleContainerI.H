@@ -677,7 +677,7 @@ struct TransformerVirt
     {
         copyParticle(dst, src, src_i, dst_i);
 
-        (dst.m_aos[dst_i]).id() = VirtualParticleID;
+        (dst.m_aos[dst_i]).id() = LongParticleIds::VirtualParticleID;
         (dst.m_aos[dst_i]).cpu() = 0;
     }
 };
@@ -829,7 +829,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
              {
                  SuperParticleType p;
                  p.cpu() = 0;
-                 p.id() = VirtualParticleID;
+                 p.id() = LongParticleIds::VirtualParticleID;
 
                  //Set rdata(0) first so we can normalize the weighted fields
                  p.rdata(0) = static_cast<ParticleReal>(partData(i,j,k,AMREX_SPACEDIM));
@@ -920,7 +920,7 @@ struct TransformerGhost
     {
         copyParticle(dst, src, src_i, dst_i);
 
-        (dst.m_aos[dst_i]).id() = GhostParticleID;
+        (dst.m_aos[dst_i]).id() = LongParticleIds::GhostParticleID;
         (dst.m_aos[dst_i]).cpu() = 0;
     }
 };

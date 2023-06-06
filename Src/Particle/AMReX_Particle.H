@@ -15,11 +15,25 @@ namespace amrex {
 
 namespace
 {
-    constexpr Long GhostParticleID    = 549755813887L; // 2**39-1
-    constexpr Long VirtualParticleID  = GhostParticleID-1;
-    constexpr Long LastParticleID     = GhostParticleID-2;
-    constexpr Long DoSplitParticleID  = GhostParticleID-3;
-    constexpr Long NoSplitParticleID  = GhostParticleID-4;
+    /** Used for 64bit Long particle Ids as in AoS layout */
+    namespace LongParticleIds {
+        constexpr Long GhostParticleID = 549755813887L; // 2**39-1
+        constexpr Long VirtualParticleID = GhostParticleID - 1;
+        constexpr Long LastParticleID = GhostParticleID - 2;
+        constexpr Long DoSplitParticleID = GhostParticleID - 3;
+        constexpr Long NoSplitParticleID = GhostParticleID - 4;
+    }
+
+    /** Used for 32bit int particle Ids, as in pure SoA layout */
+    namespace IntParticleIds {
+        constexpr int GhostParticleID = 2147483647; // 2**31-1
+        constexpr int VirtualParticleID = GhostParticleID - 1;
+        constexpr int LastParticleID = GhostParticleID - 2;
+        constexpr int DoSplitParticleID = GhostParticleID - 3;
+        constexpr int NoSplitParticleID = GhostParticleID - 4;
+    }
+
+    using namespace LongParticleIds;
 }
 
 struct ParticleIDWrapper
@@ -427,7 +441,7 @@ Particle<NReal, NInt>::NextID ()
 #endif
     next = the_next_id++;
 
-    if (next > LastParticleID)
+    if (next > LongParticleIds::LastParticleID)
         amrex::Abort("Particle<NReal, NInt>::NextID() -- too many particles");
 
     return next;
@@ -438,7 +452,7 @@ Long
 Particle<NReal, NInt>::UnprotectedNextID ()
 {
     Long next = the_next_id++;
-    if (next > LastParticleID)
+    if (next > LongParticleIds::LastParticleID)
         amrex::Abort("Particle<NReal, NInt>::NextID() -- too many particles");
     return next;
 }

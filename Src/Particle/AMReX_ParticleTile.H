@@ -347,7 +347,7 @@ struct SoAParticle : SoAParticleBase
     {
     }
 
-    static Long the_next_id;
+    static int the_next_id;
 
     //functions to get id and cpu in the SOA data
 
@@ -382,19 +382,19 @@ struct SoAParticle : SoAParticleBase
         return this->m_particle_tile_data.m_rdata[position_index][m_index];
     }
 
-    static Long NextID ();
+    static int NextID ();
 
     /**
     * \brief This version can only be used inside omp critical.
     */
-    static Long UnprotectedNextID ();
+    static int UnprotectedNextID ();
 
     /**
     * \brief Reset on restart.
     *
     * \param nextid
     */
-    static void NextID (Long nextid);
+    static void NextID (int nextid);
 
 private :
 
@@ -405,10 +405,10 @@ private :
 };
 
 //template <int NArrayReal, int NArrayInt> Long ConstSoAParticle<NArrayReal, NArrayInt>::the_next_id = 1;
-template <int NArrayReal, int NArrayInt> Long SoAParticle<NArrayReal, NArrayInt>::the_next_id = 1;
+template <int NArrayReal, int NArrayInt> int SoAParticle<NArrayReal, NArrayInt>::the_next_id = 1;
 
 template <int NArrayReal, int NArrayInt>
-Long
+int
 SoAParticle<NArrayReal, NArrayInt>::NextID ()
 {
     Long next;
@@ -421,25 +421,25 @@ SoAParticle<NArrayReal, NArrayInt>::NextID ()
 #endif
     next = the_next_id++;
 
-    if (next > LastParticleID)
+    if (next > IntParticleIds::LastParticleID)
         amrex::Abort("SoAParticle<NArrayReal, NArrayInt>::NextID() -- too many particles");
 
     return next;
 }
 
 template <int NArrayReal, int NArrayInt>
-Long
+int
 SoAParticle<NArrayReal, NArrayInt>::UnprotectedNextID ()
 {
-    Long next = the_next_id++;
-    if (next > LastParticleID)
+    int next = the_next_id++;
+    if (next > IntParticleIds::LastParticleID)
         amrex::Abort("SoAParticle<NArrayReal, NArrayInt>::NextID() -- too many particles");
     return next;
 }
 
 template <int NArrayReal, int NArrayInt>
 void
-SoAParticle<NArrayReal, NArrayInt>::NextID (Long nextid)
+SoAParticle<NArrayReal, NArrayInt>::NextID (int nextid)
 {
     the_next_id = nextid;
 }
