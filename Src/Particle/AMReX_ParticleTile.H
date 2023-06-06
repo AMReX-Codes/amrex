@@ -424,7 +424,7 @@ SoAParticle<NArrayReal, NArrayInt>::NextID ()
     if (next > IntParticleIds::LastParticleID)
         amrex::Abort("SoAParticle<NArrayReal, NArrayInt>::NextID() -- too many particles");
 
-    return next;
+    return int(next);
 }
 
 template <int NArrayReal, int NArrayInt>
