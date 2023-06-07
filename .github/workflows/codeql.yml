@@ -54,7 +54,6 @@ jobs:
               -DAMReX_EB=ON                              \
               -DAMReX_ENABLE_TESTS=ON                    \
               -DAMReX_FORTRAN=OFF                        \
-              -DAMReX_PARTICLES=ON                       \
               -DCMAKE_VERBOSE_MAKEFILE=ON                \
               -DCMAKE_CXX_COMPILER="/usr/local/bin/g++"
 

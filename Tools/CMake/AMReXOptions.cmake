@@ -286,7 +286,7 @@ cmake_dependent_option( AMReX_AMRDATA "Build data services" OFF
    "AMReX_FORTRAN" OFF )
 print_option( AMReX_AMRDATA )
 
-option( AMReX_PARTICLES "Build particle classes" OFF)
+option( AMReX_PARTICLES "Build particle classes" ON)
 print_option( AMReX_PARTICLES )
 
 if (AMReX_PARTICLES)
