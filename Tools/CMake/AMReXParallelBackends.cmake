@@ -331,6 +331,11 @@ if (AMReX_HIP)
        # ROCm 4.5: use unsafe floating point atomics, otherwise atomicAdd is much slower
        # 
        target_compile_options(amrex_${D}d PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-munsafe-fp-atomics>)
+
+       # ROCm 5.5: forgets to enforce C++17 (default seems lower)
+       # https://github.com/AMReX-Codes/amrex/issues/3337
+       #
+       target_compile_features(amrex_${D}d PUBLIC cxx_std_17)
    endforeach()
 
    # Equivalently, relocatable-device-code (RDC) flags are needed for `extern`
