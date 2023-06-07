@@ -583,9 +583,10 @@ problems. To build PETSc, follow the next steps:
 
     1.- git clone https://github.com/petsc/petsc.git
     2.- cd petsc
-    3.- ./configure --download-hypre=yes --prefix=build_dir
-    4.- Follow the steps given by petsc
-    5.- Create an environment variable with the PETSC directory --
+    3.- ./configure --prefix=build_dir
+    4.- Invoke the ``make all'' command given at the end of the previous command output
+    5.- Invoke the ``make install'' command given at the end of the previous command output
+    6.- Create an environment variable with the PETSC directory --
         PETSC_DIR=/petsc_path/petsc/build_dir
 
 To use PETSc, one must include ``amrex/Src/Extern/PETSc``
