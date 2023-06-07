@@ -56,7 +56,6 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON                   \
             -DAMReX_EB=ON                                 \
             -DAMReX_ENABLE_TESTS=ON                       \
-            -DAMReX_PARTICLES=ON                          \
             -DAMReX_FORTRAN=ON                            \
             -DAMReX_LINEAR_SOLVERS=ON                     \
             -DAMReX_GPU_BACKEND=HIP                       \
@@ -118,7 +117,6 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON                   \
             -DAMReX_EB=OFF                                \
             -DAMReX_ENABLE_TESTS=ON                       \
-            -DAMReX_PARTICLES=ON                          \
             -DAMReX_FORTRAN=ON                            \
             -DAMReX_GPU_RDC=OFF                           \
             -DAMReX_LINEAR_SOLVERS=ON                     \

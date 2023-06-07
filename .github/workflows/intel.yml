@@ -42,7 +42,6 @@ jobs:
             -DAMReX_EB=OFF                                 \
             -DAMReX_ENABLE_TESTS=ON                        \
             -DAMReX_FORTRAN=ON                             \
-            -DAMReX_PARTICLES=ON                           \
             -DAMReX_GPU_BACKEND=SYCL                       \
             -DCMAKE_C_COMPILER=$(which icx)                \
             -DCMAKE_CXX_COMPILER=$(which icpx)             \
@@ -88,7 +87,6 @@ jobs:
             -DAMReX_EB=ON                                  \
             -DAMReX_ENABLE_TESTS=ON                        \
             -DAMReX_FORTRAN=OFF                            \
-            -DAMReX_PARTICLES=ON                           \
             -DAMReX_GPU_BACKEND=SYCL                       \
             -DCMAKE_C_COMPILER=$(which icx)                \
             -DCMAKE_CXX_COMPILER=$(which icpx)             \
@@ -144,7 +142,6 @@ jobs:
             -DAMReX_EB=ON                                  \
             -DAMReX_ENABLE_TESTS=ON                        \
             -DAMReX_FORTRAN=ON                             \
-            -DAMReX_PARTICLES=ON                           \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build --parallel 2
         cmake --build build --target install

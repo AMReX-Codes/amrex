@@ -41,7 +41,6 @@ jobs:
             -DAMReX_EB=ON                                \
             -DAMReX_ENABLE_TESTS=ON                      \
             -DAMReX_FORTRAN=OFF                          \
-            -DAMReX_PARTICLES=ON                         \
             -DAMReX_GPU_BACKEND=CUDA                     \
             -DCMAKE_C_COMPILER=$(which gcc)              \
             -DCMAKE_CXX_COMPILER=$(which g++)            \
@@ -100,7 +99,6 @@ jobs:
             -DAMReX_EB=ON                                \
             -DAMReX_ENABLE_TESTS=ON                      \
             -DAMReX_FORTRAN=OFF                          \
-            -DAMReX_PARTICLES=ON                         \
             -DAMReX_GPU_BACKEND=CUDA                     \
             -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache        \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
@@ -153,7 +151,6 @@ jobs:
         cmake -S . -B build                              \
             -DCMAKE_VERBOSE_MAKEFILE=ON                  \
             -DAMReX_ENABLE_TESTS=OFF                     \
-            -DAMReX_PARTICLES=ON                         \
             -DAMReX_FORTRAN=OFF                          \
             -DAMReX_GPU_BACKEND=CUDA                     \
             -DCMAKE_C_COMPILER=$(which nvc)              \
