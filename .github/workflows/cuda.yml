@@ -149,12 +149,12 @@ jobs:
         nvfortran --version
         cmake --version
 
-        # Disable Fortran and Tests due to space limit
         cmake -S . -B build                              \
             -DCMAKE_VERBOSE_MAKEFILE=ON                  \
-            -DAMReX_ENABLE_TESTS=OFF                     \
+            -DAMReX_ENABLE_TESTS=ON                      \
+            -DAMReX_TEST_TYPE=Small                      \
             -DAMReX_PARTICLES=ON                         \
-            -DAMReX_FORTRAN=OFF                          \
+            -DAMReX_FORTRAN=ON                           \
             -DAMReX_GPU_BACKEND=CUDA                     \
             -DCMAKE_C_COMPILER=$(which nvc)              \
             -DCMAKE_CXX_COMPILER=$(which nvc++)          \
