@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v3
+    - uses: rui314/setup-mold@v1
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_nvcc11.sh
@@ -73,6 +74,7 @@ jobs:
       AMReX_CUDA_ARCH: 7.0
     steps:
     - uses: actions/checkout@v3
+    - uses: rui314/setup-mold@v1
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_llvm_cuda11_ubuntu22.sh
@@ -116,6 +118,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v3
+    - uses: rui314/setup-mold@v1
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_nvhpc.sh
@@ -177,6 +180,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v3
+    - uses: rui314/setup-mold@v1
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_nvcc11.sh

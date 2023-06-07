@@ -14,6 +14,7 @@ jobs:
       AMREX_HYPRE_HOME: ${HOME}/.cache/hypre-2.26.0-cuda
     steps:
     - uses: actions/checkout@v3
+    - uses: rui314/setup-mold@v1
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_nvcc11.sh
@@ -63,6 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - uses: rui314/setup-mold@v1
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
@@ -112,6 +114,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - uses: rui314/setup-mold@v1
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh

@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v3
+    - uses: rui314/setup-mold@v1
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_dpcpp.sh
@@ -58,6 +59,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v3
+    - uses: rui314/setup-mold@v1
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_dpcpp.sh
@@ -106,6 +108,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v3
+    - uses: rui314/setup-mold@v1
     - name: install dependencies
       run: |
         export DEBIAN_FRONTEND=noninteractive
