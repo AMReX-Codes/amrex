@@ -416,6 +416,7 @@ Amr::InitAmr ()
         int in_finest,ngrid;
 
         is >> in_finest;
+        AMREX_ASSERT(in_finest >= 0 && in_finest < std::numeric_limits<int>::max());
         STRIP;
         initial_ba.resize(in_finest);
 
@@ -428,6 +429,7 @@ Amr::InitAmr ()
             BoxList bl;
             is >> ngrid;
             STRIP;
+            AMREX_ASSERT(ngrid >= 0 && ngrid < std::numeric_limits<int>::max());
             for (int i = 0; i < ngrid; i++)
             {
                 Box bx;
@@ -458,11 +460,13 @@ Amr::InitAmr ()
 
         is >> in_finest;
         STRIP;
+        AMREX_ASSERT(in_finest >= 0  && in_finest < std::numeric_limits<int>::max());
         regrid_ba.resize(in_finest);
         for (int lev = 1; lev <= in_finest; lev++)
         {
             BoxList bl;
             is >> ngrid;
+            AMREX_ASSERT(ngrid >= 0 && ngrid < std::numeric_limits<int>::max());
             STRIP;
             for (int i = 0; i < ngrid; i++)
             {
@@ -1007,7 +1011,9 @@ Amr::writePlotFileDoit (std::string const& pltfile, bool regular)
             ParallelDescriptor::Barrier("Amr::writePlotFile::end");
             if(ParallelDescriptor::IOProcessor()) {
                 HeaderFile.close();
-                std::rename(pltfileTemp.c_str(), pltfile.c_str());
+                if (std::rename(pltfileTemp.c_str(), pltfile.c_str())) {
+                    amrex::Abort("Amr::writePlotFileDoit: std::rename failed");
+                }
             }
             ParallelDescriptor::Barrier("Renaming temporary plotfile.");
             //
@@ -1460,6 +1466,9 @@ Amr::restart (const std::string& filename)
     is >> mx_lev;
     is >> finest_level;
 
+    AMREX_ASSERT(mx_lev >= 0 && mx_lev < 1000 &&
+                 finest_level >= 0 && finest_level < 1000);
+
     Vector<Box> inputs_domain(max_level+1);
     for (int lev = 0; lev <= max_level; ++lev)
     {
@@ -1837,7 +1846,9 @@ Amr::checkPoint ()
         ParallelDescriptor::Barrier("Amr::checkPoint::end");
         if(ParallelDescriptor::IOProcessor()) {
             HeaderFile.close();
-            std::rename(ckfileTemp.c_str(), ckfile.c_str());
+            if (std::rename(ckfileTemp.c_str(), ckfile.c_str())) {
+                amrex::Abort("Amr::checkPoint: std::rename failed");
+            }
         }
         ParallelDescriptor::Barrier("Renaming temporary checkPoint file.");
     }
@@ -2215,19 +2226,22 @@ Amr::coarseTimeStep (Real stop_time)
             FILE *fp;
             if ((fp=fopen("dump_and_continue","r")) != nullptr) // NOLINT(bugprone-assignment-in-if-condition)
             {
-                remove("dump_and_continue");
+                auto status = remove("dump_and_continue");
+                amrex::ignore_unused(status);
                 to_checkpoint = 1;
                 fclose(fp);
             }
             else if ((fp=fopen("stop_run","r")) != nullptr) // NOLINT(bugprone-assignment-in-if-condition)
             {
-                remove("stop_run");
+                auto status = remove("stop_run");
+                amrex::ignore_unused(status);
                 to_stop = 1;
                 fclose(fp);
             }
             else if ((fp=fopen("dump_and_stop","r")) != nullptr) // NOLINT(bugprone-assignment-in-if-condition)
             {
-                remove("dump_and_stop");
+                auto status = remove("dump_and_stop");
+                amrex::ignore_unused(status);
                 to_checkpoint = 1;
                 to_stop = 1;
                 fclose(fp);
@@ -2235,14 +2249,16 @@ Amr::coarseTimeStep (Real stop_time)
 
             if ((fp=fopen("plot_and_continue","r")) != nullptr) // NOLINT(bugprone-assignment-in-if-condition)
             {
-                remove("plot_and_continue");
+                auto status = remove("plot_and_continue");
+                amrex::ignore_unused(status);
                 to_plot = 1;
                 fclose(fp);
             }
 
             if ((fp=fopen("small_plot_and_continue","r")) != nullptr) // NOLINT(bugprone-assignment-in-if-condition)
             {
-                remove("small_plot_and_continue");
+                auto status = remove("small_plot_and_continue");
+                amrex::ignore_unused(status);
                 to_small_plot = 1;
                 fclose(fp);
             }

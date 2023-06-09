@@ -499,7 +499,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     {
         Vector<int> SndsArray(NProcs,0), RcvsArray(NProcs,0);
 
-        for (auto Rcv : Rcvs)
+        for (auto const& Rcv : Rcvs)
         {
             RcvsArray[Rcv.first] = Rcv.second;
         }
@@ -559,7 +559,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
         // Recv meta-data
 
         int N = 0;
-        for (auto Snd : Snds)
+        for (auto const& Snd : Snds)
         {
             md_sender.push_back(Snd.first);
             md_bcnts.push_back(Snd.second);
@@ -582,7 +582,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     if (N_rcvs > 0)
     {
         // Send meta-data
-        for (auto Rcv : Rcvs)
+        for (auto const& Rcv : Rcvs)
         {
             int rank = Rcv.first;
             int Nmds = Rcv.second;
@@ -723,7 +723,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
             const FabComTagIterContainer& tags = found->second;
 
-            for (auto it : tags)
+            for (auto const& it : tags)
             {
                 const FabArrayBase::FabComTag& tag = *it;
 

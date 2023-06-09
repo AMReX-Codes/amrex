@@ -394,6 +394,8 @@ AmrLevel::restart (Amr&          papa,
     fine_ratio = IntVect::TheUnitVector(); fine_ratio.scale(-1);
     crse_ratio = IntVect::TheUnitVector(); crse_ratio.scale(-1);
 
+    AMREX_ASSERT(level >= 0 && level <= parent->maxLevel());
+
     if (level > 0)
     {
         crse_ratio = parent->refRatio(level-1);
@@ -2074,10 +2076,9 @@ void AmrLevel::constructAreaNotToTag ()
 
         // We disallow tagging in the remaining part of the domain.
         BoxArray tagba = amrex::boxComplement(parent->Geom(level).Domain(),m_AreaToTag);
-        m_AreaNotToTag = tagba;
+        m_AreaNotToTag = std::move(tagba);
 
-        BoxArray bxa(parent->Geom(level).Domain());
-        BL_ASSERT(bxa.contains(m_AreaNotToTag));
+        BL_ASSERT(parent->Geom(level).Domain().contains(m_AreaNotToTag.minimalBox()));
     }
 
     if (parent->useFixedUpToLevel()<level)
@@ -2087,7 +2088,7 @@ void AmrLevel::constructAreaNotToTag ()
         tagarea.grow(-parent->blockingFactor(level));
         m_AreaToTag = tagarea;
         BoxArray tagba = amrex::boxComplement(parent->Geom(level).Domain(),m_AreaToTag);
-        m_AreaNotToTag = tagba;
+        m_AreaNotToTag = std::move(tagba);
     }
 }
 
