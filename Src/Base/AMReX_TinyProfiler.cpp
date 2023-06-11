@@ -93,17 +93,15 @@ TinyProfiler::start () noexcept
 #endif
     if (!regionstack.empty()) {
 
-        double t;
-        if (!uCUPTI) {
-            t = amrex::second();
-        } else {
 #ifdef AMREX_USE_CUPTI
+        if (uCUPTI) {
             cudaDeviceSynchronize();
             cuptiActivityFlushAll(0);
             activityRecordUserdata.clear();
-            t = amrex::second();
-#endif
         }
+#endif
+
+        double t = amrex::second();
 
         ttstack.emplace_back(t, 0.0, &fname);
         global_depth = static_cast<int>(ttstack.size());
