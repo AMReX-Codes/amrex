@@ -401,7 +401,8 @@ Amr::InitAmr ()
            //
            // Otherwise we expect a vector of max_level values
            //
-           pp.queryarr("regrid_int",regrid_int,0,max_level);
+           auto status = pp.queryarr("regrid_int",regrid_int,0,max_level);
+           amrex::ignore_unused(status);
        }
     }
 

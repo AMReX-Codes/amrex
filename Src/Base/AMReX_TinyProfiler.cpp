@@ -48,7 +48,7 @@ namespace {
 }
 
 TinyProfiler::TinyProfiler (std::string funcname) noexcept
-    : fname(std::move(funcname)), uCUPTI(false)
+    : fname(std::move(funcname))
 {
     start();
 }
@@ -60,7 +60,7 @@ TinyProfiler::TinyProfiler (std::string funcname, bool start_, bool useCUPTI) no
 }
 
 TinyProfiler::TinyProfiler (const char* funcname) noexcept
-    : fname(funcname), uCUPTI(false)
+    : fname(funcname)
 {
     start();
 }

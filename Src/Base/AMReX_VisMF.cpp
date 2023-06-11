@@ -1774,8 +1774,9 @@ VisMF::Read (FabArray<FArrayBox> &mf,
                       RealDescriptor::convertToNativeFormat(fabdata, readDataItems,
                                                             nfi.Stream(), hdr.m_writtenRD);
                     } else {
-                      AMREX_ASSERT(fab.nBytes() < std::size_t(std::numeric_limits<Long>::max()));
-                      nfi.Stream().read((char *) fabdata, static_cast<std::streamsize>(fab.nBytes()));
+                      auto nbytes = static_cast<std::streamsize>(fab.nBytes());
+                      AMREX_ASSERT(nbytes >= 0 && nbytes < std::numeric_limits<std::streamsize>::max());
+                      nfi.Stream().read((char *) fabdata, nbytes);
                     }
 #ifdef AMREX_USE_GPU
                     if (hostfab) {
