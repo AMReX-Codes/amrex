@@ -19,19 +19,19 @@ class SplineIF {
  public:
 
   void addSplineElement(std::vector<amrex::RealVect> pts) {
-    SplineDistFcnElement2d * theSpline = new SplineDistFcnElement2d();
-    theSpline->set_control_points(pts);
+    auto* theSpline = new SplineDistFcnElement2d();
+    theSpline->set_control_points(std::move(pts));
     theSpline->calc_D();
     geomElements.push_back(theSpline);
   }
 
   void addLineElement(std::vector<amrex::RealVect> pts) {
-    LineDistFcnElement2d * theLine = new LineDistFcnElement2d();
-    theLine->set_control_points(pts);
+    auto* theLine = new LineDistFcnElement2d();
+    theLine->set_control_points(std::move(pts));
     geomElements.push_back(theLine);
   }
 
-  amrex::Real operator() (const amrex::RealArray& p) const {
+  [[nodiscard]] amrex::Real operator() (const amrex::RealArray& p) const {
     amrex::RealVect cp;
     distFcnElement2d * closesetGeomElement = nullptr;
     amrex::Real dist;

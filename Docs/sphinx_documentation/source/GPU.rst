@@ -539,7 +539,7 @@ a separate arena, the behavior of :cpp:`The_Device_Area()` or
 :cpp:`The_Managed_Arena()` can be changed with
 ``amrex.the_device_arena_release_threshold`` or
 ``amrex.the_managed_arena_release_threshold``.  Note that the units for all
-the parameter discussed above are bytes.  All these areans also have a
+the parameter discussed above are bytes.  All these arenas also have a
 member function :cpp:`freeUnused()` that can be used to manually release
 unused memory back to the system.
 
@@ -1125,7 +1125,7 @@ GPU block size
 
 By default, :cpp:`ParallelFor` launches ``AMREX_GPU_MAX_THREADS`` threads
 per GPU block, where ``AMREX_GPU_MAX_THREADS`` is a compile-time constant
-with a default value of 256.  The users can also explcitly specify the
+with a default value of 256.  The users can also explicitly specify the
 number of threads per block by :cpp:`ParallelFor<MY_BLOCK_SIZE>(...)`, where
 ``MY_BLOCK_SIZE`` is a multiple of the warp size (e.g., 128).  This allows
 the users to do performance tuning for individual kernels.

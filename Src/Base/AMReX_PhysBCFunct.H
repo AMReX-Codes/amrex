@@ -26,26 +26,26 @@ extern "C"
 }
 
 typedef void (*UserFillBox) (Box const& bx, Array4<Real> const& dest,
-                             const int dcomp, const int numcomp,
-                             GeometryData const& geom, const Real time,
-                             const BCRec* bcr, const int bcomp,
-                             const int orig_comp);
+                             int dcomp, int numcomp,
+                             GeometryData const& geom, Real time,
+                             const BCRec* bcr, int bcomp,
+                             int orig_comp);
 
 //! This version calls function working on array
 class BndryFuncArray
 {
 public:
-    BndryFuncArray () noexcept {}
+    BndryFuncArray () noexcept = default;
     BndryFuncArray (BndryFuncDefault inFunc) noexcept : m_func(inFunc) {}
     BndryFuncArray (BndryFunc3DDefault inFunc) noexcept : m_func3D(inFunc) {}
 
     void operator() (Box const& bx, FArrayBox& dest,
-                     const int dcomp, const int numcomp,
-                     Geometry const& geom, const Real time,
-                     const Vector<BCRec>& bcr, const int bcomp,
-                     const int orig_comp);
+                     int dcomp, int numcomp,
+                     Geometry const& geom, Real time,
+                     const Vector<BCRec>& bcr, int bcomp,
+                     int orig_comp);
 
-    bool RunOnGPU () const noexcept { return m_run_on_gpu; }
+    [[nodiscard]] bool RunOnGPU () const noexcept { return m_run_on_gpu; }
 //    void setRunOnGPU (bool b) noexcept { m_run_on_gpu = b; }
 
 protected:
@@ -68,23 +68,23 @@ public:
     GpuBndryFuncFab (F&& a_f) : m_user_f(std::move(a_f)) {}
 
     void operator() (Box const& bx, FArrayBox& dest,
-                     const int dcomp, const int numcomp,
-                     Geometry const& geom, const Real time,
-                     const Vector<BCRec>& bcr, const int bcomp,
-                     const int orig_comp);
+                     int dcomp, int numcomp,
+                     Geometry const& geom, Real time,
+                     const Vector<BCRec>& bcr, int bcomp,
+                     int orig_comp);
 
     template <class FF>
     void ccfcdoit (Box const& bx, FArrayBox& dest,
-                   const int dcomp, const int numcomp,
-                   Geometry const& geom, const Real time,
-                   const Vector<BCRec>& bcr, const int bcomp,
-                   const int orig_comp, FF&& ff);
+                   int dcomp, int numcomp,
+                   Geometry const& geom, Real time,
+                   const Vector<BCRec>& bcr, int bcomp,
+                   int orig_comp, FF&& fillfunc);
 
     void nddoit (Box const& bx, FArrayBox& dest,
-                 const int dcomp, const int numcomp,
-                 Geometry const& geom, const Real time,
-                 const Vector<BCRec>& bcr, const int bcomp,
-                 const int orig_comp);
+                 int dcomp, int numcomp,
+                 Geometry const& geom, Real time,
+                 const Vector<BCRec>& bcr, int bcomp,
+                 int orig_comp);
 
 protected:
     F m_user_f;
@@ -98,10 +98,10 @@ public:
     CpuBndryFuncFab (UserFillBox a_f) : f_user(a_f) {}
 
     void operator() (Box const& bx, FArrayBox& dest,
-                     const int dcomp, const int numcomp,
-                     Geometry const& geom, const Real time,
-                     const Vector<BCRec>& bcr, const int bcomp,
-                     const int orig_comp);
+                     int dcomp, int numcomp,
+                     Geometry const& geom, Real time,
+                     const Vector<BCRec>& bcr, int bcomp,
+                     int orig_comp);
 
 protected:
     UserFillBox f_user = nullptr;
@@ -119,7 +119,7 @@ template <class F>
 class PhysBCFunct
 {
 public:
-    PhysBCFunct () {}
+    PhysBCFunct () = default;
 
     PhysBCFunct (const Geometry& geom, const Vector<BCRec>& bcr, F const& f)
         : m_geom(geom), m_bcr(bcr), m_f(f)
@@ -128,8 +128,6 @@ public:
     PhysBCFunct (const Geometry& geom, const Vector<BCRec>& bcr, F&& f)
         : m_geom(geom), m_bcr(bcr), m_f(std::move(f))
         {}
-
-    ~PhysBCFunct () {}
 
     void define (const Geometry& geom, const Vector<BCRec>& bcr, F const& f) {
         m_geom = geom; m_bcr = bcr; m_f = f;
@@ -195,10 +193,10 @@ private:
 template <class F>
 void
 GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
-                                const int dcomp, const int numcomp,
-                                Geometry const& geom, const Real time,
-                                const Vector<BCRec>& bcr, const int bcomp,
-                                const int orig_comp)
+                                int dcomp, int numcomp,
+                                Geometry const& geom, Real time,
+                                const Vector<BCRec>& bcr, int bcomp,
+                                int orig_comp)
 {
 #if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ == 6)
     // The compiler is allowed to always reject static_assert(false,..) even
@@ -220,10 +218,10 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
 template <class F>
 void
 GpuBndryFuncFab<F>::nddoit (Box const& bx, FArrayBox& dest,
-                            const int dcomp, const int numcomp,
-                            Geometry const& geom, const Real time,
-                            const Vector<BCRec>& bcr, const int bcomp,
-                            const int orig_comp)
+                            int dcomp, int numcomp,
+                            Geometry const& geom, Real time,
+                            const Vector<BCRec>& bcr, int bcomp,
+                            int orig_comp)
 {
     const IntVect& len = bx.length();
 
@@ -344,10 +342,10 @@ template <class F>
 template <class FF>
 void
 GpuBndryFuncFab<F>::ccfcdoit (Box const& bx, FArrayBox& dest,
-                              const int dcomp, const int numcomp,
-                              Geometry const& geom, const Real time,
-                              const Vector<BCRec>& bcr, const int bcomp,
-                              const int orig_comp, FF&& fillfunc)
+                              int dcomp, int numcomp,
+                              Geometry const& geom, Real time,
+                              const Vector<BCRec>& bcr, int bcomp,
+                              int orig_comp, FF&& fillfunc)
 {
     const IntVect& len = bx.length();
 

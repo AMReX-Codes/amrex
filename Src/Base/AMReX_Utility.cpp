@@ -588,14 +588,13 @@ amrex::expect::the_string () const
 int amrex::StreamRetry::nStreamErrors = 0;
 
 amrex::StreamRetry::StreamRetry(std::ostream &a_os, std::string a_suffix,
-                                 const int a_maxtries)
+                                int a_maxtries)
     : tries(0), maxTries(a_maxtries), sros(a_os), spos(a_os.tellp()), suffix(std::move(a_suffix))
 {
 }
 
-amrex::StreamRetry::StreamRetry (std::string filename,
-                                 const bool abortonretryfailure,
-                                 const int maxtries)
+amrex::StreamRetry::StreamRetry (std::string filename, bool abortonretryfailure,
+                                 int maxtries)
     : tries(0), maxTries(maxtries),
       abortOnRetryFailure(abortonretryfailure),
       fileName(std::move(filename)),

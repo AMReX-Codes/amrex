@@ -76,7 +76,7 @@ public:
                           bool skip_fillboundary=false) const;
 
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
-    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh) const = 0;
+    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const = 0;
 
     void nodalSync (int amrlev, int mglev, MultiFab& mf) const;
 
@@ -115,16 +115,16 @@ public:
     virtual void fillIJMatrix (MFIter const& /*mfi*/,
                                Array4<HypreNodeLap::AtomicInt const> const& /*gid*/,
                                Array4<int const> const& /*lid*/,
-                               HypreNodeLap::Int* const /*ncols*/,
-                               HypreNodeLap::Int* const /*cols*/,
-                               Real* const /*mat*/) const
+                               HypreNodeLap::Int* /*ncols*/,
+                               HypreNodeLap::Int* /*cols*/,
+                               Real* /*mat*/) const
     {
         amrex::Abort("MLNodeLinOp::fillIJMatrix: how did we get here?");
     }
 
     virtual void fillRHS (MFIter const& /*mfi*/,
                           Array4<int const> const& /*lid*/,
-                          Real* const /*rhs*/,
+                          Real* /*rhs*/,
                           Array4<Real const> const& /*bfab*/) const
     {
         amrex::Abort("MLNodeLinOp:fillRHS: how did we get here?");

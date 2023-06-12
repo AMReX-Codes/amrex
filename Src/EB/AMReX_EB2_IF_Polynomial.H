@@ -72,15 +72,16 @@ public:
         : m_polynomial(a_polynomial),
           m_inside(a_inside),
           m_sign( a_inside ? 1.0_rt : -1.0_rt ),
-          m_size(m_polynomial.size())
+          m_size(int(m_polynomial.size()))
     {}
 
+    ~PolynomialIF () = default;
     PolynomialIF (const PolynomialIF& rhs) = default;
     PolynomialIF (PolynomialIF&& rhs) = default;
     PolynomialIF& operator= (const PolynomialIF& rhs) = delete;
     PolynomialIF& operator= (PolynomialIF&& rhs) = delete;
 
-    inline
+    [[nodiscard]] inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
         Real retval = 0.0_rt;
@@ -92,7 +93,7 @@ public:
         return m_sign*retval;
     }
 
-    inline Real operator() (const RealArray& p) const noexcept {
+    [[nodiscard]] inline Real operator() (const RealArray& p) const noexcept {
         return this->operator()(AMREX_D_DECL(p[0],p[1],p[2]));
     }
 

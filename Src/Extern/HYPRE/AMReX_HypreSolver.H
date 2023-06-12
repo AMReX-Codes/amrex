@@ -24,11 +24,11 @@ public:
                  IntVect             const& a_nghost,
                  Geometry            const& a_geom,
                  BoxArray            const& a_grids,
-                 DistributionMapping const& a_dmap,
+                 DistributionMapping const& a_dmap, // NOLINT(modernize-pass-by-value)
                  Marker                  && a_marker,
                  Filler                  && a_filler,
                  int                        a_verbose = 0,
-                 std::string         const& a_options_namespace = "hypre");
+                 std::string                a_options_namespace = "hypre");
 
     template <class MF, std::enable_if_t<IsFabArray<MF>::value &&
                                          std::is_same_v<typename MF::value_type,
@@ -47,7 +47,7 @@ public:
     HYPRE_IJVector getb () const { return m_hypre_ij->b(); }
     HYPRE_IJVector getx () const { return m_hypre_ij->x(); }
 
-public: // for cuda
+// public: // for cuda
 
     template <class Marker>
 #ifdef AMREX_USE_CUDA
@@ -119,23 +119,23 @@ HypreSolver<MSS>::HypreSolver (Vector<IndexType>   const& a_index_type,
                                IntVect             const& a_nghost,
                                Geometry            const& a_geom,
                                BoxArray            const& a_grids,
-                               DistributionMapping const& a_dmap,
+                               DistributionMapping const& a_dmap, // NOLINT(modernize-pass-by-value)
                                Marker                  && a_marker,
                                Filler                  && a_filler,
                                int                        a_verbose,
-                               std::string         const& a_options_namespace)
-    : m_nvars            (a_index_type.size()),
+                               std::string                a_options_namespace)
+    : m_nvars            (int(a_index_type.size())),
       m_index_type       (a_index_type),
       m_nghost           (a_nghost),
       m_geom             (a_geom),
       m_dmap             (a_dmap),
       m_verbose          (a_verbose),
-      m_options_namespace(a_options_namespace)
+      m_options_namespace(std::move(a_options_namespace))
 {
     BL_PROFILE("HypreSolver()");
 
 #ifdef AMREX_USE_MPI
-    m_comm = ParallelContext::CommunicatorSub();
+    m_comm = ParallelContext::CommunicatorSub(); // NOLINT(cppcoreguidelines-prefer-member-initializer)
 #endif
 
     m_grids.resize(m_nvars);
@@ -494,7 +494,7 @@ HypreSolver<MSS>::fill_matrix (Filler const& filler)
                 detail::pack_matrix_gpu<int>(cols_tmp, mat_tmp, cols_vec, mat_vec);
             }
 #else
-            auto pgid = gid_v.data();
+            auto* pgid = gid_v.data();
             for (int ivar = 0; ivar < m_nvars; ++ivar) {
                 if (m_nrows_grid[ivar][mfi] > 0) {
                     auto const& lid = m_local_id[ivar].const_array(mfi);
@@ -574,8 +574,8 @@ HypreSolver<MSS>::load_vectors (Vector<MF      *> const& a_soln,
             xvec.resize(nrows);
             bvec.clear();
             bvec.resize(nrows);
-            auto xp = xvec.data();
-            auto bp = bvec.data();
+            auto* xp = xvec.data();
+            auto* bp = bvec.data();
 
             HYPRE_Int const* rows = m_global_id_vec[mfi].data();
 
@@ -627,7 +627,7 @@ HypreSolver<MSS>::get_solution (Vector<MF*> const& a_soln)
         {
             xvec.clear();
             xvec.resize(nrows);
-            auto xp = xvec.data();
+            auto* xp = xvec.data();
 
             HYPRE_Int const* rows = m_global_id_vec[mfi].data();
 

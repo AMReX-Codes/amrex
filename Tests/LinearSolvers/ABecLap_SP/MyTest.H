@@ -15,7 +15,7 @@ public:
     void solve ();
     void writePlotfile () const;
 
-public: // make these public for cuda
+// public: for cuda
     void initProbPoisson ();
     void initProbABecLaplacian ();
 
@@ -88,7 +88,7 @@ MyTest::solvePoisson ()
         T(1.e-10) : T(1.e-4);
     const Real tol_abs = 0.0;
 
-    const int nlevels = geom.size();
+    const auto nlevels = int(geom.size());
 
     if (composite_solve)
     {
@@ -197,7 +197,7 @@ MyTest::solveABecLaplacian ()
         T(1.e-10) : T(1.e-4);
     const T tol_abs = T(0.0);
 
-    const int nlevels = geom.size();
+    const auto nlevels = int(geom.size());
 
     if (composite_solve)
     {

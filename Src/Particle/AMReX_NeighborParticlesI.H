@@ -241,7 +241,7 @@ IntVect
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::computeRefFac (int src_lev, int lev)
 {
-    IntVect ref_fac = IntVect(AMREX_D_DECL(1,1,1));
+    IntVect ref_fac(1);
     if (src_lev < lev) {
         for (int l = src_lev; l < lev; ++l) {
             ref_fac *= this->GetParGDB()->refRatio(l);
@@ -279,9 +279,9 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         const std::vector<IntVect>& pshifts = periodicity.shiftIntVect();
         const BoxArray& ba = this->ParticleBoxArray(lev);
 
-        for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
+        for (auto const& pshift : pshifts)
         {
-            const Box& pbox = box + (*pit);
+            const Box& pbox = box + pshift;
             bool first_only = false;
             ba.intersections(pbox, isects, first_only, 0);
             for (const auto& isec : isects) {
@@ -601,9 +601,9 @@ getNeighborTags (Vector<NeighborCopyTag>& tags, const ParticleType& p,
             const std::vector<IntVect>& pshifts = periodicity.shiftIntVect();
             const BoxArray& ba = this->ParticleBoxArray(lev);
             const IntVect& iv = this->Index(p, lev);
-            for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
+            for (auto const& pshift : pshifts)
             {
-                Box pbox = amrex::grow(Box(iv, iv), ref_fac*nGrow) + (*pit);
+                Box pbox = amrex::grow(Box(iv, iv), ref_fac*nGrow) + pshift;
                 bool first_only = false;
                 ba.intersections(pbox, isects, first_only, 0);
                 for (const auto& isec : isects)
@@ -614,7 +614,7 @@ getNeighborTags (Vector<NeighborCopyTag>& tags, const ParticleType& p,
                         int tile = getTileIndex(cell, grid_box,
                                                 this->do_tiling, this->tile_size, tbx);
                         auto nbor = NeighborCopyTag(lev, isec.first, tile);
-                        nbor.periodic_shift = -1*(*pit);
+                        nbor.periodic_shift = -pshift;
                         if (src_tag != nbor) tags.push_back(nbor);
                     }
                 }
@@ -737,7 +737,7 @@ buildNeighborList (CheckPair&& check_pair, bool /*sort*/)
             Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> plo_v;
 
             off_bins_v.push_back(0);
-            off_bins_v.push_back(bx.numPts());
+            off_bins_v.push_back(int(bx.numPts()));
             lo_v.push_back(lbound(bx));
             hi_v.push_back(ubound(bx));
             dxi_v.push_back(geom.InvCellSizeArray());
@@ -822,7 +822,7 @@ buildNeighborList (CheckPair&& check_pair, OtherPCType& other,
             Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> plo_v;
 
             off_bins_v.push_back(0);
-            off_bins_v.push_back(bx.numPts());
+            off_bins_v.push_back(int(bx.numPts()));
             lo_v.push_back(lbound(bx));
             hi_v.push_back(ubound(bx));
             dxi_v.push_back(geom.InvCellSizeArray());
@@ -921,7 +921,7 @@ buildNeighborList (CheckPair&& check_pair, int type_ind, int* ref_ratio,
                 lbx.grow(NGhost);
 
                 // Store for memcpy
-                int nbins = lbx.numPts();
+                auto nbins = int(lbx.numPts());
                 Dim3 lo = lbound( lbx );
                 Dim3 hi = ubound( lbx );
 
@@ -1064,7 +1064,7 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
                                 if (call_check_pair(check_pair, ptile_data, ptile_data, i, pperm[p])) {
                                     IntVect cell_ijk = getParticleCell(pstruct[pperm[p]], plo, dxi, domain);
                                     if (!box.contains(cell_ijk)) {
-                                        unsigned int loc = Gpu::Atomic::Add(p_np_boundary, 1u);
+                                        unsigned int loc = Gpu::Atomic::Add(p_np_boundary, 1U);
                                         p_boundary_particle_ids[loc] = i;
                                         isActualNeighbor = true;
                                         break;

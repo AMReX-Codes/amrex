@@ -7,21 +7,15 @@
 
 namespace amrex {
 
-ErrorRec::ErrorFunc::ErrorFunc ()
-    :
-    m_func(nullptr),
-    m_func3D(nullptr)
-{}
+ErrorRec::ErrorFunc::ErrorFunc () = default;
 
 ErrorRec::ErrorFunc::ErrorFunc (ErrorFuncDefault inFunc)
     :
-    m_func(inFunc),
-    m_func3D(nullptr)
+    m_func(inFunc)
 {}
 
 ErrorRec::ErrorFunc::ErrorFunc (ErrorFunc3DDefault inFunc)
     :
-    m_func(nullptr),
     m_func3D(inFunc)
 {}
 
@@ -71,10 +65,7 @@ ErrorRec::ErrorFunc::operator () (int* tag, const int* tlo, const int* thi,
 }
 // \endcond
 
-ErrorRec::ErrorFunc2::ErrorFunc2 ()
-    :
-    m_func(nullptr)
-{}
+ErrorRec::ErrorFunc2::ErrorFunc2 () = default;
 
 ErrorRec::ErrorFunc2::ErrorFunc2 (ErrorFunc2Default inFunc)
     :
