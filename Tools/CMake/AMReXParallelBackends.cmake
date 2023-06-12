@@ -335,7 +335,7 @@ if (AMReX_HIP)
        # ROCm 5.5: forgets to enforce C++17 (default seems lower)
        # https://github.com/AMReX-Codes/amrex/issues/3337
        #
-       target_compile_features(amrex_${D}d PUBLIC cxx_std_17)
+       target_compile_options(amrex_${D}d PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>)
    endforeach()
 
    # Equivalently, relocatable-device-code (RDC) flags are needed for `extern`
