@@ -506,7 +506,7 @@ protected:
 
     bool enforceSingularSolvable = true;
 
-    int m_num_amr_levels;
+    int m_num_amr_levels = 0;
     Vector<int> m_amr_ref_ratio;
 
     Vector<int> m_num_mg_levels;
@@ -555,7 +555,7 @@ protected:
     Array<Real, AMREX_SPACEDIM> m_domain_bloc_lo {{AMREX_D_DECL(0._rt,0._rt,0._rt)}};
     Array<Real, AMREX_SPACEDIM> m_domain_bloc_hi {{AMREX_D_DECL(0._rt,0._rt,0._rt)}};
 
-    bool m_needs_coarse_data_for_bc;
+    bool m_needs_coarse_data_for_bc = false;
     int m_coarse_data_crse_ratio = -1;
     RealVect m_coarse_bc_loc;
     const MF* m_coarse_data_for_bc = nullptr;

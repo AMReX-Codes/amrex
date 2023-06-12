@@ -198,7 +198,9 @@ amrex::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
           amrex::Print() << "amrex::UtilCreateCleanDirectory():  " << path
                          << " exists.  Renaming to:  " << newoldname << std::endl;
       }
-      std::rename(path.c_str(), newoldname.c_str());
+      if (std::rename(path.c_str(), newoldname.c_str())) {
+          amrex::Abort("UtilCreateCleanDirectory:: std::rename failed");
+      }
     }
     if( ! amrex::UtilCreateDirectory(path, 0755)) {
       amrex::CreateDirectoryFailed(path);
@@ -246,7 +248,9 @@ amrex::UtilRenameDirectoryToOld (const std::string &path, bool callbarrier)
           amrex::Print() << "amrex::UtilRenameDirectoryToOld():  " << path
                          << " exists.  Renaming to:  " << newoldname << std::endl;
       }
-      std::rename(path.c_str(), newoldname.c_str());
+      if (std::rename(path.c_str(), newoldname.c_str())) {
+          amrex::Abort("UtilRenameDirectoryToOld: std::rename failed");
+      }
     }
   }
   if(callbarrier) {
@@ -675,7 +679,9 @@ bool amrex::StreamRetry::TryFileOutput()
               amrex::Print() << nWriteErrors << " STREAMERRORS : Renaming file from "
                              << fileName << "  to  " << badFileName << std::endl;
           }
-          std::rename(fileName.c_str(), badFileName.c_str());
+          if (std::rename(fileName.c_str(), badFileName.c_str())) {
+              amrex::Abort("StreamRetry::TryFileOutput: std::rename failed");
+          }
         }
         ParallelDescriptor::Barrier("StreamRetry::TryFileOutput");  // wait for file rename
 

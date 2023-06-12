@@ -78,6 +78,16 @@
 #include <vector>
 #include <algorithm>
 
+#ifdef AMREX_USE_COVERITY
+namespace {
+    // coverity[+kill]
+    void amrex_coverity_abort()
+    {
+        std::exit(EXIT_FAILURE);
+    }
+}
+#endif
+
 namespace amrex {
 
 std::vector<std::unique_ptr<AMReX> > AMReX::m_instance;
@@ -206,20 +216,25 @@ amrex::Warning (const std::string& msg)
 }
 
 void
-amrex::Error_host (const char * msg)
+amrex::Error_host (const char* type, const char * msg)
 {
+    amrex::ignore_unused(type);
+#ifdef AMREX_USE_COVERITY
+    amrex_coverity_abort();
+#else
     if (system::error_handler) {
         system::error_handler(msg);
     } else if (system::throw_exception) {
         throw RuntimeError(msg);
     } else {
-        write_lib_id("Error");
+        write_lib_id(type);
         write_to_stderr_without_buffering(msg);
 #ifdef AMREX_USE_OMP
 #pragma omp critical (amrex_abort_omp_critical)
 #endif
         ParallelDescriptor::Abort();
     }
+#endif
 }
 
 void
@@ -231,25 +246,11 @@ amrex::Warning_host (const char * msg)
 }
 
 void
-amrex::Abort_host (const char * msg)
-{
-    if (system::error_handler) {
-        system::error_handler(msg);
-    } else if (system::throw_exception) {
-        throw RuntimeError(msg);
-    } else {
-       write_lib_id("Abort");
-       write_to_stderr_without_buffering(msg);
-#ifdef AMREX_USE_OMP
-#pragma omp critical (amrex_abort_omp_critical)
-#endif
-       ParallelDescriptor::Abort();
-   }
-}
-
-void
 amrex::Assert_host (const char* EX, const char* file, int line, const char* msg)
 {
+#ifdef AMREX_USE_COVERITY
+    amrex_coverity_abort();
+#else
     const int N = 512;
 
     char buf[N];
@@ -282,6 +283,7 @@ amrex::Assert_host (const char* EX, const char* file, int line, const char* msg)
 #endif
        ParallelDescriptor::Abort();
    }
+#endif
 }
 
 namespace

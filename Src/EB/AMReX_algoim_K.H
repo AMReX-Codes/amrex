@@ -245,7 +245,7 @@ struct BoundingBox
 
 struct Interval
 {
-    Real alpha;
+    Real alpha = std::numeric_limits<Real>::lowest();
 };
 
 // M-dimensional integral of an N-dimensional function restricted to
@@ -259,7 +259,7 @@ struct ImplicitIntegral
     GpuArray<PsiCode<N>,1 << (N - 1)> psi;
     int psiCount;
     const BoundingBox<N> xrange;
-    int e0;
+    int e0 = -1;
     GpuArray<Interval,N> xint;
     static constexpr int p = 4;
 

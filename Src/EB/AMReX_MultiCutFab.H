@@ -143,7 +143,7 @@ public:
 private:
 
     FabArray<CutFab> m_data;
-    const FabArray<EBCellFlagFab>* m_cellflags;
+    const FabArray<EBCellFlagFab>* m_cellflags = nullptr;
 
     void remove ();
 };

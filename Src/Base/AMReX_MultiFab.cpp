@@ -1349,6 +1349,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
     Vector<Array4BoxTag<Real> > tags;
 
     bool run_on_gpu = Gpu::inLaunchRegion();
+    amrex::ignore_unused(run_on_gpu, tags);
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (!run_on_gpu)
 #endif
@@ -1371,9 +1372,12 @@ MultiFab::OverlapMask (const Periodicity& period) const
                 for (const auto& is : isects)
                 {
                     Box const& b = is.second-iv;
+#ifdef AMREX_USE_GPU
                     if (run_on_gpu) {
                         tags.push_back({arr,b});
-                    } else {
+                    } else
+#endif
+                    {
                         amrex::LoopConcurrentOnCpu(b, [=] (int i, int j, int k) noexcept
                         {
                             arr(i,j,k) += Real(1.0);
