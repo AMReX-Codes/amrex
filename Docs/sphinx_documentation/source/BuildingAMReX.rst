@@ -524,6 +524,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_ENABLE_TESTS           |  Enable CTest suite                             | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_TEST_TYPE              |  Test type -- affects the number of tests       | All                     | All, Small            |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_DIFFERENT_COMPILER     |  Allow an app to use a different compiler       | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_INSTALL                |  Generate Install Targets                       | YES                     | YES, NO               |
