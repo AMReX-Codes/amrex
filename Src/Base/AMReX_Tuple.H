@@ -37,7 +37,7 @@ struct gpu_tuple_element
         : m_value(std::forward<U>(a_value))
         {}
 
-    T m_value;
+    T m_value{};
 };
 
 template <std::size_t I, typename... Ts> struct gpu_tuple_impl;

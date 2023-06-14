@@ -83,32 +83,34 @@ namespace amrex
 
     T& operator[](const MFIter& a_mfi) noexcept
       {
-        BL_ASSERT(a_mfi.LocalIndex() < m_data.size());
-        BL_ASSERT(DistributionMap() == a_mfi.DistributionMap());
-        return (m_data[a_mfi.LocalIndex()]);
+        int local_index = a_mfi.LocalIndex();
+        BL_ASSERT(local_index >= 0 && local_index < m_data.size() &&
+                  DistributionMap() == a_mfi.DistributionMap());
+        return m_data[local_index];
       }
 
 
     const T& operator[](const MFIter& a_mfi) const noexcept
       {
-        BL_ASSERT(a_mfi.LocalIndex() < m_data.size());
-        BL_ASSERT(DistributionMap() == a_mfi.DistributionMap());
-        return (m_data[a_mfi.LocalIndex()]);
+        int local_index = a_mfi.LocalIndex();
+        BL_ASSERT(local_index >= 0 && local_index < m_data.size() &&
+                  DistributionMap() == a_mfi.DistributionMap());
+        return m_data[local_index];
       }
 
     T& operator[](int a_box_index) noexcept
       {
         int local_index = this->localindex(a_box_index);
-        BL_ASSERT(local_index < m_data.size());
-        return (m_data[local_index]);
+        BL_ASSERT(local_index >= 0 && local_index < m_data.size());
+        return m_data[local_index];
       }
 
 
     const T& operator[](int a_box_index) const noexcept
       {
         int local_index = this->localindex(a_box_index);
-        BL_ASSERT(local_index < m_data.size());
-        return (m_data[local_index]);
+        BL_ASSERT(local_index >= 0 && local_index < m_data.size());
+        return m_data[local_index];
       }
 
     const T* data () const noexcept { return m_data.data(); }

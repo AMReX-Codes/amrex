@@ -704,8 +704,6 @@ namespace amrex
         {
             deallocate(m_data, capacity());
 
-            Allocator::operator=(std::move(static_cast<Allocator const&>(a_vector)));
-
             m_data = a_vector.m_data;
             m_size = a_vector.m_size;
             m_capacity = a_vector.m_capacity;
@@ -713,6 +711,8 @@ namespace amrex
             a_vector.m_data = nullptr;
             a_vector.m_size = 0;
             a_vector.m_capacity = 0;
+
+            Allocator::operator=(std::move(static_cast<Allocator const&>(a_vector)));
 
             return *this;
         }

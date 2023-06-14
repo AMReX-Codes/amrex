@@ -78,6 +78,7 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
     } else {
        max_level = max_level_in;
     }
+    AMREX_ASSERT(max_level >= 0 && max_level < 1000);
 
     int nlev = max_level + 1;
 

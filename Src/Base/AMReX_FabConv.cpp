@@ -829,6 +829,7 @@ getarray (std::istream&  is,                                       \
     is >> c;                                                       \
     if (c != '(')                                                  \
         amrex::Error("getarray(istream&): expected a \'(\'");     \
+    AMREX_ASSERT(size >= 0 && size < std::numeric_limits<int>::max()); \
     ar.resize(size);                                               \
     for(int i = 0; i < size; ++i)                                  \
         is >> ar[i];                                               \

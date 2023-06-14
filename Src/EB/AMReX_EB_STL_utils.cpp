@@ -140,6 +140,7 @@ STLtools::read_binary_stl_file (std::string const& fname, Real scale,
 
         uint32_t numtris; // uint32 - Number of triangles - 4 bytes
         amrex::readIntData<uint32_t,uint32_t>(&numtris, 1, is, uint32_descr);
+        AMREX_ASSERT(numtris < uint32_t(std::numeric_limits<int>::max()));
         m_num_tri = static_cast<int>(numtris);
         m_tri_pts_h.resize(m_num_tri);
 

@@ -994,7 +994,7 @@ ppinit (int argc, char** argv, const char* parfile, ParmParse::Table& table)
         //
         // Append arg_table to end of existing table.
         //
-        g_table.splice(table.end(), arg_table);
+        table.splice(table.end(), arg_table);
     }
     initialized = true;
 }

@@ -1,35 +1,4 @@
 #
-# List of subdirectories to search for CMakeLists.
-#
-set( AMREX_TESTS_SUBDIRS AsyncOut MultiBlock Reinit Amr CLZ Parser Parser2 CTOParFor RoundoffDomain)
-
-if (AMReX_PARTICLES)
-   list(APPEND AMREX_TESTS_SUBDIRS Particles)
-endif ()
-
-if (AMReX_EB)
-   list(APPEND AMREX_TESTS_SUBDIRS EB)
-endif ()
-
-if (AMReX_LINEAR_SOLVERS)
-   list(APPEND AMREX_TESTS_SUBDIRS LinearSolvers)
-endif ()
-
-if (AMReX_HDF5)
-   list(APPEND AMREX_TESTS_SUBDIRS HDF5Benchmark)
-endif ()
-
-if (AMReX_FORTRAN_INTERFACES)
-   list(APPEND AMREX_TESTS_SUBDIRS FortranInterface)
-endif ()
-
-if (AMReX_CUDA)
-   list(APPEND AMREX_TESTS_SUBDIRS GPU)
-endif ()
-
-list(TRANSFORM AMREX_TESTS_SUBDIRS PREPEND "${CMAKE_CURRENT_LIST_DIR}/")
-
-#
 # Function to setup the tutorials
 #
 function (setup_test _dim _srcs  _inputs)
@@ -128,17 +97,65 @@ function (setup_test _dim _srcs  _inputs)
 
 endfunction ()
 
+if (AMReX_TEST_TYPE STREQUAL "Small")
 
-#
-# Loop over subdirs and add to the build those containing CMakeLists.txt
-#
-foreach (_subdir IN LISTS AMREX_TESTS_SUBDIRS)
+   add_subdirectory("Amr/Advection_AmrCore")
 
-   file( GLOB_RECURSE _tests "${_subdir}/*CMakeLists.txt" )
+   if (AMReX_PARTICLES)
+      add_subdirectory("Particles/Redistribute")
+   endif ()
 
-   foreach ( _item  IN LISTS _tests)
-      get_filename_component(_dir ${_item} DIRECTORY )
-      add_subdirectory(${_dir})
+   if (AMReX_EB)
+      add_subdirectory("EB/CNS")
+   endif()
+
+   if (AMReX_LINEAR_SOLVERS)
+      add_subdirectory("LinearSolvers/ABecLaplacian_C")
+   endif()
+
+else()
+   #
+   # List of subdirectories to search for CMakeLists.
+   #
+   set( AMREX_TESTS_SUBDIRS AsyncOut MultiBlock Reinit Amr CLZ Parser Parser2 CTOParFor RoundoffDomain)
+
+   if (AMReX_PARTICLES)
+      list(APPEND AMREX_TESTS_SUBDIRS Particles)
+   endif ()
+
+   if (AMReX_EB)
+      list(APPEND AMREX_TESTS_SUBDIRS EB)
+   endif ()
+
+   if (AMReX_LINEAR_SOLVERS)
+      list(APPEND AMREX_TESTS_SUBDIRS LinearSolvers)
+   endif ()
+
+   if (AMReX_HDF5)
+      list(APPEND AMREX_TESTS_SUBDIRS HDF5Benchmark)
+   endif ()
+
+   if (AMReX_FORTRAN_INTERFACES)
+      list(APPEND AMREX_TESTS_SUBDIRS FortranInterface)
+   endif ()
+
+   if (AMReX_CUDA)
+      list(APPEND AMREX_TESTS_SUBDIRS GPU)
+   endif ()
+
+   list(TRANSFORM AMREX_TESTS_SUBDIRS PREPEND "${CMAKE_CURRENT_LIST_DIR}/")
+
+   #
+   # Loop over subdirs and add to the build those containing CMakeLists.txt
+   #
+   foreach (_subdir IN LISTS AMREX_TESTS_SUBDIRS)
+
+      file( GLOB_RECURSE _tests "${_subdir}/*CMakeLists.txt" )
+
+      foreach ( _item  IN LISTS _tests)
+         get_filename_component(_dir ${_item} DIRECTORY )
+         add_subdirectory(${_dir})
+      endforeach ()
+
    endforeach ()
-
-endforeach ()
+endif()
