@@ -438,8 +438,8 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
                                           clst, geom);
                 }
 
-                nmc = build_faces(vbx, cfg, ftx, fty, clst, xip, yip, apx, apy, fcx, fcy,
-                                  dx, problo, cover_multiple_cuts);
+                nmc = build_faces(vbx, cfg, ftx, fty, lst, xip, yip, apx, apy, fcx, fcy,
+                                  dx, problo, cover_multiple_cuts, nsm);
 
                 build_cells(vbx, cfg, ftx, fty, apx, apy, dx, vfr, ctr,
                             bar, bct, bnm, lst, small_volfrac, geom, extend_domain_face,
