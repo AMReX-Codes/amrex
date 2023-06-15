@@ -12,6 +12,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - name: Get Latest Release Tag
+      run: |
+        CASTRO_TAG=$(wget https://github.com/AMReX-Astro/Castro/releases/latest 2>&1 | grep Location: | awk '{print $2}' | awk -F/ '{print $NF}')
+        echo "CASTRO_TAG=$CASTRO_TAG" >> $GITHUB_ENV
+        MICROPHYSICS_TAG=$(wget https://github.com/AMReX-Astro/Microphysics/releases/latest 2>&1 | grep Location: | awk '{print $2}' | awk -F/ '{print $NF}')
+        echo "MICROPHYSICS_TAG=$MICROPHYSICS_TAG" >> $GITHUB_ENV
+    - name: Download Castro
+      uses: actions/checkout@v3
+      with:
+        repository: 'AMReX-Astro/Castro'
+        ref: ${{env.CASTRO_TAG}}
+        path: 'Castro'
+    - name: Download Microphysics
+      uses: actions/checkout@v3
+      with:
+        repository: 'AMReX-Astro/Microphysics'
+        ref: ${{env.MICROPHYSICS_TAG}}
+        path: 'Microphysics'
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
@@ -23,18 +41,6 @@ jobs:
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
-    - name: Download App
-      run: |
-        tag=$(wget https://github.com/AMReX-Astro/Castro/releases/latest 2>&1 | grep Location: | awk '{print $2}' | awk -F/ '{print $NF}')
-        wget -q https://github.com/AMReX-Astro/Castro/archive/refs/tags/${tag}.tar.gz
-        tar xvfz ${tag}.tar.gz
-        rm ${tag}.tar.gz
-        ln -s Castro-${tag} Castro
-        tag=$(wget https://github.com/AMReX-Astro/Microphysics/releases/latest 2>&1 | grep Location: | awk '{print $2}' | awk -F/ '{print $NF}')
-        wget -q https://github.com/AMReX-Astro/Microphysics/archive/refs/tags/${tag}.tar.gz
-        tar xvfz ${tag}.tar.gz
-        rm ${tag}.tar.gz
-        ln -s Microphysics-${tag} Microphysics
     - name: Build
       run: |
         export CCACHE_COMPRESS=1
@@ -56,6 +62,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - name: Get Latest Release Tag
+      run: |
+        WARPX_TAG=$(wget https://github.com/ECP-WarpX/WarpX/releases/latest 2>&1 | grep Location: | awk '{print $2}' | awk -F/ '{print $NF}')
+        echo "WARPX_TAG=$WARPX_TAG" >> $GITHUB_ENV
+    - name: Download WarpX
+      uses: actions/checkout@v3
+      with:
+        repository: 'ECP-WarpX/WarpX'
+        ref: ${{env.WARPX_TAG}}
+        path: 'WarpX'
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
@@ -67,13 +83,6 @@ jobs:
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
-    - name: Download App
-      run: |
-        tag=$(wget https://github.com/ECP-WarpX/WarpX/releases/latest 2>&1 | grep Location: | awk '{print $2}' | awk -F/ '{print $NF}')
-        wget -q https://github.com/ECP-WarpX/WarpX/archive/refs/tags/${tag}.tar.gz
-        tar xvfz ${tag}.tar.gz
-        rm ${tag}.tar.gz
-        ln -s WarpX-${tag} WarpX
     - name: Build
       run: |
         export CCACHE_COMPRESS=1
@@ -82,15 +91,13 @@ jobs:
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
-        mkdir WarpX/build
-        cd WarpX/build
-        cmake ..                                  \
-            -DWarpX_amrex_src=../..               \
+        cmake -S WarpX -B WarpX/build             \
+            -DWarpX_amrex_src=${PWD}              \
             -DWarpX_QED=OFF                       \
             -DWarpX_OPENPMD=OFF                   \
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        make -j 2
+        cmake --build WarpX/build -j 2
 
         ccache -s
         du -hs ~/.cache/ccache
