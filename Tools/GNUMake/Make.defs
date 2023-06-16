@@ -991,6 +991,10 @@ ifeq ($(USE_CLANG_TIDY),TRUE)
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.clang-tidy
 endif
 
+ifeq ($(USE_COVERITY),TRUE)
+  DEFINES += -DAMREX_USE_COVERITY
+endif
+
 # place holder
 F90CACHE =
 

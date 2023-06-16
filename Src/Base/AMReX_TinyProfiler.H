@@ -128,9 +128,9 @@ private:
     };
 
     std::string fname;
-    bool uCUPTI;
-    bool in_parallel_region;
-    int global_depth;
+    bool uCUPTI = false;
+    bool in_parallel_region = false;
+    int global_depth = -1;
     std::vector<Stats*> stats;
 
     static std::deque<const TinyProfiler*> mem_stack;

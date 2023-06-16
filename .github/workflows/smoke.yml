@@ -39,7 +39,6 @@ jobs:
         cmake ..                                  \
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
             -DAMReX_SPACEDIM="1;2;3"              \
-            -DAMReX_PARTICLES=ON                  \
             -DAMReX_EB=ON                         \
             -DCMAKE_CXX_STANDARD=17               \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache

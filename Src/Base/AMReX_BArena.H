@@ -21,18 +21,18 @@ public:
     * \brief Allocates a dynamic memory arena of size sz.
     * Returns a pointer to this memory.
     */
-    virtual void* alloc (std::size_t sz) override final;
+    [[nodiscard]] void* alloc (std::size_t sz) final;
     /**
     * \brief Deletes the arena pointed to by pt.
     */
-    virtual void free (void* pt) override final;
+    void free (void* pt) final;
 
-    virtual bool isDeviceAccessible () const override final;
-    virtual bool isHostAccessible () const override final;
+    [[nodiscard]] bool isDeviceAccessible () const final;
+    [[nodiscard]] bool isHostAccessible () const final;
 
-    virtual bool isManaged () const override final;
-    virtual bool isDevice () const override final;
-    virtual bool isPinned () const override final;
+    [[nodiscard]] bool isManaged () const final;
+    [[nodiscard]] bool isDevice () const final;
+    [[nodiscard]] bool isPinned () const final;
 };
 
 }

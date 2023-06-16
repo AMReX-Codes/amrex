@@ -676,6 +676,7 @@ TagBoxArray::setVal (const BoxArray& ba, TagBox::TagVal val)
 {
     Vector<Array4BoxTag<char> > tags;
     bool run_on_gpu = Gpu::inLaunchRegion();
+    amrex::ignore_unused(run_on_gpu,tags);
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (!run_on_gpu)
 #endif
@@ -684,13 +685,18 @@ TagBoxArray::setVal (const BoxArray& ba, TagBox::TagVal val)
         for (MFIter mfi(*this); mfi.isValid(); ++mfi)
         {
             TagBox& fab = (*this)[mfi];
+#ifdef AMREX_USE_GPU
             Array4<char> const& arr = this->array(mfi);
+#endif
             ba.intersections(mfi.fabbox(), isects);
             for (const auto& is : isects) {
                 Box const& b = is.second;
+#ifdef AMREX_USE_GPU
                 if (run_on_gpu) {
                     tags.push_back({arr,b});
-                } else {
+                } else
+#endif
+                {
                    fab.setVal<RunOn::Host>(val,b);
                 }
             }

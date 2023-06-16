@@ -286,7 +286,7 @@ cmake_dependent_option( AMReX_AMRDATA "Build data services" OFF
    "AMReX_FORTRAN" OFF )
 print_option( AMReX_AMRDATA )
 
-option( AMReX_PARTICLES "Build particle classes" OFF)
+option( AMReX_PARTICLES "Build particle classes" ON)
 print_option( AMReX_PARTICLES )
 
 if (AMReX_PARTICLES)
@@ -463,3 +463,20 @@ print_option(AMReX_CLANG_TIDY)
 cmake_dependent_option(AMReX_CLANG_TIDY_WERROR "Treat clang-tidy warnings as errors" OFF
    "AMReX_CLANG_TIDY" OFF)
 print_option(AMReX_CLANG_TIDY_WERROR)
+
+#
+# Tests  =============================================================
+#
+option(AMReX_ENABLE_TESTS "Enable CTest suite for AMReX" NO)
+print_option(AMReX_ENABLE_TESTS)
+set(AMReX_TEST_TYPE_VALUES "All;Small")
+set(AMReX_TEST_TYPE All CACHE STRING "Type of AMReX Tests: <All,Small>")
+set_property(CACHE AMReX_TEST_TYPE PROPERTY STRINGS ${AMReX_TEST_TYPE_VALUES})
+if (NOT AMReX_TEST_TYPE IN_LIST AMReX_TEST_TYPE_VALUES)
+   message(FATAL_ERROR "AMReX_TEST_TYPE=${AMReX_TEST_TYPE} is not allowed."
+                       " Must be one of ${AMReX_TEST_TYPE_VALUES}.")
+endif()
+if (AMReX_ENABLE_TESTS)
+   message(STATUS "   AMReX_TEST_TYPE = ${AMReX_TEST_TYPE}")
+endif()
+

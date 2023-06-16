@@ -3404,6 +3404,7 @@ FabArray<FAB>::setVal (value_type val, const CommMetaData& thecmd, int scomp, in
     else
 #endif
     {
+        AMREX_ASSERT(thecmd.m_LocTags && thecmd.m_RcvTags);
         const CopyComTagsContainer&      LocTags = *(thecmd.m_LocTags);
         const MapOfCopyComTagContainers& RcvTags = *(thecmd.m_RcvTags);
         auto N_locs = static_cast<int>(LocTags.size());

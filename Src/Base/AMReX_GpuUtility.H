@@ -171,8 +171,8 @@ namespace Gpu {
     class StreamIter
     {
     public:
-        StreamIter (const int n, bool is_thread_safe=true) noexcept;
-        StreamIter (const int n, const StreamItInfo& info, bool is_thread_safe=true) noexcept;
+        StreamIter (int n, bool is_thread_safe=true) noexcept;
+        StreamIter (int n, const StreamItInfo& info, bool is_thread_safe=true) noexcept;
 
         ~StreamIter ();
 
@@ -183,7 +183,7 @@ namespace Gpu {
 
         int operator() () const noexcept { return m_i; }
 
-        bool isValid () const noexcept { return m_i < m_n; }
+        [[nodiscard]] bool isValid () const noexcept { return m_i < m_n; }
 
 #if !defined(AMREX_USE_GPU)
         void operator++ () noexcept { ++m_i; }

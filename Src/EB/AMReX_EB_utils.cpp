@@ -17,8 +17,8 @@ namespace amrex {
                                    MultiFab& divc_mf,
                                    const MultiFab& weights,
                                    MFIter* mfi,
-                                   const int icomp,
-                                   const int ncomp,
+                                   int icomp,
+                                   int ncomp,
                                    const EBCellFlagFab& flags_fab,
                                    const MultiFab* volfrac,
                                    Box& /*domain*/,
@@ -34,7 +34,6 @@ namespace amrex {
             amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
 #elif (AMREX_SPACEDIM == 3)
         if( ! amrex::almostEqual(dx[0],dx[1]) ||
-            ! amrex::almostEqual(dx[0],dx[2]) ||
             ! amrex::almostEqual(dx[1],dx[2]) )
             amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
 #endif
@@ -58,8 +57,8 @@ namespace amrex {
                                      Array4<Real      > const& div,
                                      Array4<Real const> const& divc,
                                      Array4<Real const> const& wt,
-                                     const int icomp,
-                                     const int ncomp,
+                                     int icomp,
+                                     int ncomp,
                                      Array4<EBCellFlag const> const& flags,
                                      Array4<Real const>    const& vfrac,
                                      const Geometry & geom)
@@ -70,13 +69,14 @@ namespace amrex {
         const Real* dx = geom.CellSize();
 
 #if (AMREX_SPACEDIM == 2)
-        if (! amrex::almostEqual(dx[0], dx[1]))
+        if (! amrex::almostEqual(dx[0], dx[1])) {
             amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
+        }
 #elif (AMREX_SPACEDIM == 3)
         if( ! amrex::almostEqual(dx[0],dx[1]) ||
-            ! amrex::almostEqual(dx[0],dx[2]) ||
-            ! amrex::almostEqual(dx[1],dx[2]) )
+            ! amrex::almostEqual(dx[1],dx[2]) ) {
             amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
+        }
 #endif
 
         const Box dbox = geom.growPeriodicDomain(2);

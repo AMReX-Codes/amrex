@@ -169,7 +169,6 @@ endif()
 #
 # Enable CTests
 #
-option(AMReX_ENABLE_TESTS "Enable CTest suite for AMReX"  NO)
 if (AMReX_ENABLE_TESTS)
    enable_testing()
    add_subdirectory(Tests)

@@ -37,21 +37,23 @@ public:
     CArena (std::size_t hunk_size = 0, ArenaInfo info = ArenaInfo());
 
     CArena (const CArena& rhs) = delete;
+    CArena (CArena&& rhs) = delete;
     CArena& operator= (const CArena& rhs) = delete;
+    CArena& operator= (CArena&& rhs) = delete;
 
     //! The destructor.
-    virtual ~CArena () override;
+    ~CArena () override;
 
     //! Allocate some memory.
-    virtual void* alloc (std::size_t nbytes) override final;
+    [[nodiscard]] void* alloc (std::size_t nbytes) final;
 
     /**
     * \brief Free up allocated memory.  Merge neighboring free memory chunks
     * into largest possible chunk.
     */
-    virtual void free (void* vp) override final;
+    void free (void* vp) final;
 
-    virtual std::size_t freeUnused () override final;
+    std::size_t freeUnused () final;
 
     /**
      * \brief Does the device have enough free memory for allocating this
@@ -59,13 +61,13 @@ public:
      * const funciton because it may attempt to release memory back to the
      * system.
      */
-    virtual bool hasFreeDeviceMemory (std::size_t sz) override;
+    [[nodiscard]] bool hasFreeDeviceMemory (std::size_t sz) final;
 
     /**
      * \brief Add this Arena to the list of Arenas that are profiled by TinyProfiler.
      * \param memory_name The name of this arena in the TinyProfiler output.
      */
-    virtual void registerForProfiling (const std::string& memory_name) override;
+    void registerForProfiling (const std::string& memory_name) final;
 
     //! The current amount of heap space used by the CArena object.
     std::size_t heap_space_used () const noexcept;
@@ -85,7 +87,7 @@ public:
 
 protected:
 
-    virtual std::size_t freeUnused_protected () override final;
+    std::size_t freeUnused_protected () final;
 
     //! The nodes in our free list and block list.
     class Node
@@ -98,7 +100,7 @@ protected:
         //! The "less-than" operator.
         bool operator< (const Node& rhs) const noexcept
         {
-            return std::less<void*>()(m_block, rhs.m_block);
+            return std::less<>{}(m_block, rhs.m_block);
         }
 
         //! The equality operator.
@@ -108,25 +110,25 @@ protected:
         }
 
         //! The block address.
-        void* block () const noexcept { return m_block; }
+        [[nodiscard]] void* block () const noexcept { return m_block; }
 
         //! Set block address.
         void block (void* blk) noexcept { m_block = blk; }
 
         //! The size of the memory block.
-        std::size_t size () const noexcept { return m_size; }
+        [[nodiscard]] std::size_t size () const noexcept { return m_size; }
 
         //! Set size.
         void size (std::size_t sz) noexcept { m_size = sz; }
 
-        void* owner () const noexcept { return m_owner; }
+        [[nodiscard]] void* owner () const noexcept { return m_owner; }
 
-        bool coalescable (const Node& rhs) const noexcept {
+        [[nodiscard]] bool coalescable (const Node& rhs) const noexcept {
             return m_owner == rhs.m_owner;
         }
 
         //! Get the MemStat object of the function where this block was allocated.
-        MemStat* mem_stat () const { return m_stat; }
+        [[nodiscard]] MemStat* mem_stat () const { return m_stat; }
 
         struct hash {
             std::size_t operator() (const Node& n) const noexcept {

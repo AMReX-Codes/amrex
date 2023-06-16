@@ -146,6 +146,7 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
         pp.queryAdd("cover_multiple_cuts", cover_multiple_cuts);
         pp.queryAdd("maxiter", maxiter);
     }
+    maxiter = std::min(100000, maxiter);
 
     // make sure ngrow is multiple of 16
     m_ngrow = IntVect{static_cast<int>(std::ceil(ngrow/16.)) * 16};
@@ -283,6 +284,7 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
         ? RunOn::Gpu : RunOn::Cpu;
 
     bool hybrid = Gpu::inLaunchRegion() && (gshop_run_on == RunOn::Cpu);
+    amrex::ignore_unused(hybrid);
 
     int iter = 0;
     for (; iter < maxiter; ++iter)
@@ -305,9 +307,11 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
                 auto& levelset = gfab.getLevelSet();
                 if (iter == 0) {
                     gshop.fillFab(levelset, geom, gshop_run_on, bounding_box);
+#ifdef AMREX_USE_GPU
                     if (hybrid) {
                         levelset.prefetchToDevice();
                     }
+#endif
                 }
 
                 auto& cellflag = m_cellflag[mfi];
@@ -348,6 +352,7 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
                 Array4<Real> const& zip = m_edgecent[2].array(mfi);
 
                 if (iter == 0) {
+#ifdef AMREX_USE_GPU
                     if (hybrid) {
                         Gpu::streamSynchronize();
                         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -355,16 +360,19 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
                             m_edgecent[idim][mfi].prefetchToHost();
                         }
                     }
+#endif
 
                     gshop.getIntercept({xip,yip,zip}, {xdg,ydg,zdg}, clst,
                                        geom, gshop_run_on, bounding_box);
 
+#ifdef AMREX_USE_GPU
                     if (hybrid) {
                         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                             edgetype[idim].prefetchToDevice();
                             m_edgecent[idim][mfi].prefetchToDevice();
                         }
                     }
+#endif
                 } else {
                     gshop.updateIntercept({xip,yip,zip}, {xdg,ydg,zdg}, clst, geom);
                 }
@@ -401,6 +409,7 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
                 Array4<Real> const& yip = m_edgecent[1].array(mfi);
 
                 if (iter == 0) {
+#ifdef AMREX_USE_GPU
                     if (hybrid) {
                         Gpu::streamSynchronize();
                         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -408,26 +417,29 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
                             m_edgecent[idim][mfi].prefetchToHost();
                         }
                     }
+#endif
 
                     //                         yes, factype[1] and then [0]
                     gshop.getIntercept({xip,yip},
                                        {facetype[1].const_array(), facetype[0].const_array()},
                                        clst, geom, gshop_run_on, bounding_box);
 
+#ifdef AMREX_USE_GPU
                     if (hybrid) {
                         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                             facetype[idim].prefetchToDevice();
                             m_edgecent[idim][mfi].prefetchToDevice();
                         }
                     }
+#endif
                 } else {
                     gshop.updateIntercept({xip,yip},
                                           {facetype[1].const_array(), facetype[0].const_array()},
                                           clst, geom);
                 }
 
-                nmc = build_faces(vbx, cfg, ftx, fty, clst, xip, yip, apx, apy, fcx, fcy,
-                                  dx, problo, cover_multiple_cuts);
+                nmc = build_faces(vbx, cfg, ftx, fty, lst, xip, yip, apx, apy, fcx, fcy,
+                                  dx, problo, cover_multiple_cuts, nsm);
 
                 build_cells(vbx, cfg, ftx, fty, apx, apy, dx, vfr, ctr,
                             bar, bct, bnm, lst, small_volfrac, geom, extend_domain_face,

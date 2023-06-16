@@ -137,7 +137,9 @@ namespace amrex
             Nonesuch() = delete;
             ~Nonesuch() = delete;
             Nonesuch(Nonesuch const&) = delete;
+            Nonesuch(Nonesuch &&) = delete;
             void operator=(Nonesuch const&) = delete;
+            void operator=(Nonesuch &&) = delete;
         };
 
         template <class Default, class AlwaysVoid, template <class...> class Op,

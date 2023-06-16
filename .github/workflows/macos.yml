@@ -41,7 +41,6 @@ jobs:
             -DAMReX_EB=ON               \
             -DAMReX_MPI=OFF             \
             -DAMReX_ENABLE_TESTS=ON     \
-            -DAMReX_PARTICLES=ON        \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build --parallel 3
 
@@ -79,7 +78,6 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
-            -DAMReX_PARTICLES=ON        \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build --parallel 3
         cmake --build build --target install

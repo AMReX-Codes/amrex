@@ -21,13 +21,9 @@ NFilesIter::NFilesIter(int noutfiles, std::string fileprefix,
       fileNumber      (FileNumber(nOutFiles, myProc, groupSets)),
       filePrefix      (std::move(fileprefix)),
       fullFileName    (FileName(fileNumber, filePrefix)),
-      finishedWriting (false),
-      isReading       (false),
-      useStaticSetSelection (true),
       coordinatorProc (ParallelDescriptor::IOProcessorNumber()),
       stWriteTag      (ParallelDescriptor::SeqNum()),
-      stReadTag       (ParallelDescriptor::SeqNum()),
-      useSparseFPP    (false)
+      stReadTag       (ParallelDescriptor::SeqNum())
 {
   if(setBuf) {
     io_buffer.resize(VisMFBuffer::GetIOBufferSize());
@@ -61,11 +57,12 @@ NFilesIter::NFilesIter(int noutfiles, std::string fileprefix,
     }
   }
 
+#if 0
   bool checkNFiles(false);
   if(checkNFiles) {
     CheckNFiles(nProcs, nOutFiles, groupSets);
   }
-
+#endif
 }
 
 
@@ -168,8 +165,7 @@ NFilesIter::NFilesIter(std::string filename,
       fullFileName (std::move(filename)),
       isReading    (true),
       readRanks    (std::move(readranks)),
-      myReadIndex  (indexUndefined),
-      useStaticSetSelection (true)
+      myReadIndex  (indexUndefined)
 {
   for(int i(0); i < readRanks.size(); ++i) {
     if(myProc == readRanks[i]) {

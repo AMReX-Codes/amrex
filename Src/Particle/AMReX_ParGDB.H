@@ -351,11 +351,7 @@ inline
 Vector<IntVect>
 ParGDB::refRatio () const
 {
-    Vector<IntVect> rr_vect;
-    for (auto rr : m_rr) {
-        rr_vect.push_back(rr*IntVect::TheUnitVector());
-    }
-    return rr_vect;
+    return m_rr;
 }
 
 }

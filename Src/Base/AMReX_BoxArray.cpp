@@ -100,6 +100,7 @@ BARef::define (std::istream& is, int& ndims)
     int   maxbox;
     ULong tmphash;
     is.ignore(bl_ignore_max, '(') >> maxbox >> tmphash;
+    AMREX_ASSERT(maxbox >= 0 && maxbox < std::numeric_limits<int>::max());
     resize(maxbox);
     auto pos = is.tellg();
     {
@@ -1105,7 +1106,7 @@ BoxArray::minimalBox (Long& npts_avg_box) const
     }
     auto cr = crseRatio();
     minbox.coarsen(cr).convert(ixType());
-    npts_tot /= AMREX_D_TERM(cr[0],*cr[1],*cr[2]);
+    npts_tot /= AMREX_D_TERM(Long(cr[0]),*cr[1],*cr[2]);
     npts_avg_box = npts_tot / N;
     return minbox;
 }
@@ -1440,9 +1441,7 @@ BoxArray::removeOverlap (bool simplify)
         bl.simplify();
     }
 
-    BoxArray nba(std::move(bl));
-
-    *this = nba;
+    *this = BoxArray(std::move(bl));
 
 #ifdef AMREX_MEM_PROFILING
     m_ref->total_hash_bytes = total_hash_bytes_save;
@@ -1813,6 +1812,7 @@ readBoxArray (BoxArray&     ba,
         int maxbox;
         ULong in_hash; // will be ignored
         is.ignore(bl_ignore_max, '(') >> maxbox >> in_hash;
+        AMREX_ASSERT(maxbox >= 0 && maxbox < std::numeric_limits<int>::max());
         ba.resize(maxbox);
         for (int i = 0; i < maxbox; i++)
         {

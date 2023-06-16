@@ -588,14 +588,14 @@ private:
     MultiFab&                  m_leveldata;
     MultiFabCopyDescriptor     m_mfcd;
     Vector< Vector<MultiFabId> > m_mfid;     // [level][oldnew]
-    Interpolater*              m_map;
+    Interpolater*              m_map = nullptr;
     std::map<int,Box>          m_ba;
-    Real                       m_time;
-    int                        m_growsize;
-    int                        m_index;
-    int                        m_scomp;
-    int                        m_ncomp;
-    bool                       m_FixUpCorners;
+    Real                       m_time = std::numeric_limits<Real>::lowest();
+    int                        m_growsize = std::numeric_limits<int>::lowest();
+    int                        m_index = -1;
+    int                        m_scomp = -1;
+    int                        m_ncomp = -1;
+    bool                       m_FixUpCorners = false;
 
     std::map< int,Vector< Vector<Box> > >                m_fbox; // [grid][level][validregion]
     std::map< int,Vector< Vector<Box> > >                m_cbox; // [grid][level][fillablesubbox]

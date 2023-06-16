@@ -259,6 +259,7 @@ YAFluxRegisterT<MF>::define (const BoxArray& fba, const BoxArray& cba,
         Vector<Array4BoxTag<T> > tags;
 
         bool run_on_gpu = Gpu::inLaunchRegion();
+        amrex::ignore_unused(run_on_gpu, tags);
 
         const Box& domainbox = m_crse_geom.Domain();
 
@@ -274,7 +275,9 @@ YAFluxRegisterT<MF>::define (const BoxArray& fba, const BoxArray& cba,
                 if (!domainbox.contains(bx))  // part of the box is outside periodic boundary
                 {
                     FAB& fab = m_cfp_mask[mfi];
+#ifdef AMREX_USE_GPU
                     auto const& arr = m_cfp_mask.array(mfi);
+#endif
                     for (const auto& iv : pshifts)
                     {
                         if (iv != IntVect::TheZeroVector())
@@ -283,9 +286,12 @@ YAFluxRegisterT<MF>::define (const BoxArray& fba, const BoxArray& cba,
                             for (const auto& is : isects)
                             {
                                 const Box& ibx = is.second - iv;
+#ifdef AMREX_USE_GPU
                                 if (run_on_gpu) {
                                     tags.push_back({arr,ibx});
-                                } else {
+                                } else
+#endif
+                                {
                                     fab.template setVal<RunOn::Host>(T(0.0), ibx);
                                 }
                             }

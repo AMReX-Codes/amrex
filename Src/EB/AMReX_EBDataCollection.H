@@ -29,16 +29,16 @@ public:
     EBDataCollection& operator= (const EBDataCollection&) = delete;
     EBDataCollection& operator= (EBDataCollection&&) = delete;
 
-    const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const;
-    const MultiFab& getLevelSet () const;
-    const MultiFab& getVolFrac () const;
-    const MultiCutFab& getCentroid () const;
-    const MultiCutFab& getBndryCent () const;
-    const MultiCutFab& getBndryArea () const;
-    const MultiCutFab& getBndryNormal () const;
-    Array<const MultiCutFab*, AMREX_SPACEDIM> getAreaFrac () const;
-    Array<const MultiCutFab*, AMREX_SPACEDIM> getFaceCent () const;
-    Array<const MultiCutFab*, AMREX_SPACEDIM> getEdgeCent () const;
+    [[nodiscard]] const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const;
+    [[nodiscard]] const MultiFab& getLevelSet () const;
+    [[nodiscard]] const MultiFab& getVolFrac () const;
+    [[nodiscard]] const MultiCutFab& getCentroid () const;
+    [[nodiscard]] const MultiCutFab& getBndryCent () const;
+    [[nodiscard]] const MultiCutFab& getBndryArea () const;
+    [[nodiscard]] const MultiCutFab& getBndryNormal () const;
+    [[nodiscard]] Array<const MultiCutFab*, AMREX_SPACEDIM> getAreaFrac () const;
+    [[nodiscard]] Array<const MultiCutFab*, AMREX_SPACEDIM> getFaceCent () const;
+    [[nodiscard]] Array<const MultiCutFab*, AMREX_SPACEDIM> getEdgeCent () const;
 
 private:
 

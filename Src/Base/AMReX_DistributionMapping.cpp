@@ -1462,7 +1462,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray& boxes, int nprocs)
     m_ref->clear();
     m_ref->m_pmap.resize(boxes.size());
 
-    if (boxes.size() < sfc_threshold*nprocs)
+    if (boxes.size() < Long(sfc_threshold)*nprocs)
     {
         KnapSackProcessorMap(boxes,nprocs);
     }
@@ -1493,7 +1493,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
     m_ref->clear();
     m_ref->m_pmap.resize(wgts.size());
 
-    if (boxes.size() < sfc_threshold*nprocs)
+    if (boxes.size() < Long(sfc_threshold)*nprocs)
     {
         KnapSackProcessorMap(wgts,nprocs);
     }
@@ -1516,7 +1516,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
     m_ref->clear();
     m_ref->m_pmap.resize(wgts.size());
 
-    if (boxes.size() < sfc_threshold*nprocs)
+    if (boxes.size() < Long(sfc_threshold)*nprocs)
     {
         KnapSackProcessorMap(wgts,nprocs,&eff);
     }
@@ -1885,7 +1885,7 @@ DistributionMapping::makeSFC (const LayoutData<Real>& rcost_local,
 }
 
 std::vector<std::vector<int> >
-DistributionMapping::makeSFC (const BoxArray& ba, bool use_box_vol, const int nprocs)
+DistributionMapping::makeSFC (const BoxArray& ba, bool use_box_vol, int nprocs)
 {
     BL_PROFILE("makeSFC");
 
@@ -1990,6 +1990,7 @@ DistributionMapping::readFrom (std::istream& is)
 
     int n;
     is.ignore(100000, '(') >> n;
+    AMREX_ASSERT(n >= 0 && n < std::numeric_limits<int>::max());
     pmap.resize(n);
     for (auto& x : pmap) {
         is >> x;
@@ -2049,7 +2050,7 @@ DistributionMapping MakeSimilarDM (const BoxArray& ba, const BoxArray& src_ba,
                     max_overlap_index = gid;
                 }
             }
-            AMREX_ASSERT(max_overlap > 0);
+            AMREX_ASSERT(max_overlap > 0 && max_overlap_index >= 0);
             pmap[i] = src_dm[max_overlap_index];
         }
     }

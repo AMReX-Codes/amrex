@@ -612,6 +612,7 @@ namespace amrex
         Vector<Array4BoxTag<value_type> > tags;
 
         bool run_on_gpu = Gpu::inLaunchRegion();
+        amrex::ignore_unused(run_on_gpu, tags);
 
         const BoxArray& cfba = amrex::coarsen(fba,ratio);
         const std::vector<IntVect>& pshifts = period.shiftIntVect();
@@ -635,9 +636,12 @@ namespace amrex
                     cfba.intersections(bx+iv, isects);
                     for (const auto& is : isects) {
                         Box const& b = is.second-iv;
+#ifdef AMREX_USE_GPU
                         if (run_on_gpu) {
                             tags.push_back({arr,b});
-                        } else {
+                        } else
+#endif
+                        {
                             fab.template setVal<RunOn::Host>(fine_value, b);
                         }
                     }

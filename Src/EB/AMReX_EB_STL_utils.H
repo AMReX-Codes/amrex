@@ -39,10 +39,9 @@ private:
     void read_binary_stl_file (std::string const& fname, Real scale,
                                Array<Real,3> const& center, int reverse_normal);
 
-public: // for cuda
-    void prepare ();
-
 public:
+
+    void prepare ();  // public for cuda
 
     void read_stl_file (std::string const& fname, Real scale, Array<Real,3> const& center,
                         int reverse_normal);
@@ -50,9 +49,9 @@ public:
     void fill (MultiFab& mf, IntVect const& nghost, Geometry const& geom,
                Real outside_value = -1._rt, Real inside_value = 1._rt) const;
 
-    int getBoxType (Box const& box, Geometry const& geom, RunOn) const;
+    [[nodiscard]] int getBoxType (Box const& box, Geometry const& geom, RunOn) const;
 
-    bool isGPUable () const noexcept { return true; }
+    static constexpr bool isGPUable () noexcept { return true; }
 
     void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn,
                   Box const& bounding_box) const;
