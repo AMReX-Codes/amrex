@@ -34,7 +34,7 @@ void ApplyRedistribution ( Box const& bx, int ncomp,
     // redistribution_type = "FluxRedist"      // flux_redistribute
     // redistribution_type = "StateRedist";    // (weighted) state redistribute
 
-    amrex::Print() <<" Redistribution::Apply " << redistribution_type << std::endl;
+    // amrex::Print() <<" Redistribution::Apply " << redistribution_type << std::endl;
 
     amrex::ParallelFor(bx,ncomp,
     [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -105,8 +105,6 @@ void ApplyRedistribution ( Box const& bx, int ncomp,
                         dUdt_in(i,j,k,n) = 0.;
                 });
 
-        amrex::Print() << "BOX UIN  " << Box(U_in) << std::endl;
-        amrex::Print() << "BOX DUDT " << Box(dUdt_in) << std::endl;
         amrex::ParallelFor(Box(scratch), ncomp,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
@@ -199,7 +197,7 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
     // redistribution_type = "FluxRedist"      // flux_redistribute
     // redistribution_type = "StateRedist";    // (weighted) state redistribute
 
-    amrex::Print() <<" Redistribution::ApplyML " << redistribution_type << std::endl;
+    // amrex::Print() <<" Redistribution::ApplyML " << redistribution_type << std::endl;
 
     amrex::ParallelFor(bx,ncomp,
     [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -264,7 +262,7 @@ ApplyInitialRedistribution ( Box const& bx, int ncomp,
         amrex::Error(msg);
     }
 
-    amrex::Print() <<" Redistribution::ApplyInitial " << redistribution_type << std::endl;
+    // amrex::Print() <<" Redistribution::ApplyInitial " << redistribution_type << std::endl;
 
     Box const& bxg2 = grow(bx,2);
     Box const& bxg3 = grow(bx,3);

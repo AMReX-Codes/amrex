@@ -27,15 +27,15 @@ amrex_flux_redistribute (
     int level_mask_not_covered,
     int icomp, int ncomp, Real dt)
 {
-    if (as_crse == 0 && as_fine == 0) {
-        amrex::Print() << "In amrex_flux_redistribution on neither side" << std::endl;
-    } else if (as_crse == 0 && as_fine == 1) {
-        amrex::Print() << "In amrex_flux_redistribution on  fine   side" << std::endl;
-    } else if (as_crse == 1 && as_fine == 0) {
-        amrex::Print() << "In amrex_flux_redistribution on  coarse side" << std::endl;
-    } else if (as_crse == 1 && as_fine == 1) {
-        amrex::Print() << "In amrex_flux_redistribution on  both   sides" << std::endl;
-    }
+    // if (as_crse == 0 && as_fine == 0) {
+    //     amrex::Print() << "In amrex_flux_redistribution on neither side" << std::endl;
+    // } else if (as_crse == 0 && as_fine == 1) {
+    //     amrex::Print() << "In amrex_flux_redistribution on  fine   side" << std::endl;
+    // } else if (as_crse == 1 && as_fine == 0) {
+    //     amrex::Print() << "In amrex_flux_redistribution on  coarse side" << std::endl;
+    // } else if (as_crse == 1 && as_fine == 1) {
+    //     amrex::Print() << "In amrex_flux_redistribution on  both   sides" << std::endl;
+    // }
     //
     // Check that grid is uniform
     //

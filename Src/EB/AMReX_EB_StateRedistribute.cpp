@@ -211,7 +211,6 @@ StateRedistribute ( Box const& bx, int ncomp,
                     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes_eb;
                     if (nx*ny*nz == 1) {
                         // Compute slope using 3x3x3 stencil
-            if (i == 2 and j == 8 and k == 14) amrex::Print() << "REG CALC " << std::endl;
                         slopes_eb = amrex_calc_slopes_extdir_eb(
                                                     i,j,k,n,soln_hat,cent_hat,vfrac,
                                                     AMREX_D_DECL(fcx,fcy,fcz),flag,
@@ -223,7 +222,6 @@ StateRedistribute ( Box const& bx, int ncomp,
 
                     } else {
                         // Compute slope using grown stencil (no larger than 5x5x5)
-            if (i == 2 and j == 8 and k == 14) amrex::Print() << "GROWN CALC " << std::endl;
                         slopes_eb = amrex_calc_slopes_extdir_eb_grown(
                                                     i,j,k,n,AMREX_D_DECL(nx,ny,nz),
                                                     soln_hat,cent_hat,vfrac,
@@ -269,8 +267,6 @@ StateRedistribute ( Box const& bx, int ncomp,
                                          update += lim_slope[1] * (ccent(r,s,t,1)-cent_hat(i,j,k,1) + static_cast<Real>(s-j));,
                                          update += lim_slope[2] * (ccent(r,s,t,2)-cent_hat(i,j,k,2) + static_cast<Real>(t-k)););
                             amrex::Gpu::Atomic::Add(&U_out(r,s,t,n),alpha(i,j,k,1)*update);
-            if (r == 2 and s == 8 and t == 14) amrex::Print() << "ADDING OTHER  " << alpha(i,j,k,1) << " " <<
-                 " " << update << " " << U_out(r,s,t,n) << std::endl;
                         } // if bx contains
                     } // i_nbor
                 } // n
@@ -286,8 +282,6 @@ StateRedistribute ( Box const& bx, int ncomp,
             // This seems to help with a compiler issue ...
             Real denom = 1. / (nrs(i,j,k) + 1.e-40);
             U_out(i,j,k,n) *= denom;
-            if (i == 2 and j == 8 and k == 14) amrex::Print() << "UIN UOUT " << U_in(i,j,k,n) << " " << U_out(i,j,k,n)
-                 << std::endl;
         }
         else
         {
