@@ -80,10 +80,6 @@ StateRedistribute ( Box const& bx, int ncomp,
                  const auto& is_periodic_y = lev_geom.isPeriodic(1);,
                  const auto& is_periodic_z = lev_geom.isPeriodic(2););
 
-    // amrex::Print() << " IN STATE_REDISTRIBUTE DOING BOX " << bx << " with ncomp " << ncomp << std::endl;
-    // amrex::Print() << " Box(U_in) " << Box(U_in) << std::endl;
-    // amrex::Print() << " Box(U_out) " << Box(U_out) << std::endl;
-
     Box const& bxg1 = amrex::grow(bx,1);
     Box const& bxg2 = amrex::grow(bx,2);
     Box const& bxg3 = amrex::grow(bx,3);

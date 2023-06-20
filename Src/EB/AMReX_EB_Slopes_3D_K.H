@@ -384,7 +384,6 @@ amrex_calc_slopes_eb_grown (int i, int j, int k, int n, int nx, int ny, int nz,
               A[lc][0] = ii + ccent(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0);
               A[lc][1] = jj + ccent(i+ii,j+jj,k+kk,1) - ccent(i,j,k,1);
               A[lc][2] = kk + ccent(i+ii,j+jj,k+kk,2) - ccent(i,j,k,2);
-    if (i == 2 and j == 8 and k == 14) amrex::Print() << "A IS " << lc << " " << A[lc][0] << " " << A[lc][1] << std::endl;
             }
             lc++;
           } // ii
@@ -395,8 +394,6 @@ amrex_calc_slopes_eb_grown (int i, int j, int k, int n, int nx, int ny, int nz,
     amrex::Real xslope = slopes[0];
     amrex::Real yslope = slopes[1];
     amrex::Real zslope = slopes[2];
-
-    if (i == 2 and j == 8 and k == 14) amrex::Print() << "MAKING SLOPE WITHOUT BDR " << slopes[0] << std::endl;
 
     // This will over-write the values of xslope, yslope and/or zslope if appropriate
     amrex_overwrite_with_regular_slopes(i,j,k,n,xslope,yslope,zslope,state,vfrac,max_order);
@@ -699,8 +696,6 @@ amrex_calc_slopes_extdir_eb_grown (int i, int j, int k, int n,
         //      are regular.  If not, it uses the EB-aware least squares approach to fit a linear profile
         //      using the neighboring un-covered cells.
         const auto& slopes = amrex_calc_slopes_eb_grown (i,j,k,n,nx,ny,nz,state,ccent,vfrac,flag,max_order);
-
-    if (i == 2 and j == 8 and k == 14) amrex::Print() << "MAKING SLOPE WITHOUT BDR " << slopes[0] << std::endl;
         return slopes;
 
     } else {
@@ -803,8 +798,6 @@ amrex_calc_slopes_extdir_eb_grown (int i, int j, int k, int n,
     xslope = slopes[0];
     yslope = slopes[1];
     zslope = slopes[2];
-
-    if (i == 2 and j == 8 and k == 14) amrex::Print() << "MAKING SLOPE WITH    BDR " << slopes[0] << std::endl;
 
     // This will over-write the values of xslope and yslope if appropriate
     amrex_overwrite_with_regular_slopes_extdir(i,j,k,n,xslope,yslope,zslope,state,vfrac,
