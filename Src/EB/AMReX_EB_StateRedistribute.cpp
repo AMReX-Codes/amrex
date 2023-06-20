@@ -273,7 +273,7 @@ StateRedistribute ( Box const& bx, int ncomp,
         if (!flag(i,j,k).isCovered())
         {
             // This seems to help with a compiler issue ...
-            auto denom = Real(1.) / (nrs(i,j,k) + 1.e-30);
+            auto denom = Real(1.) / (nrs(i,j,k) + Real(1.e-30));
             U_out(i,j,k,n) *= denom;
         }
         else
