@@ -251,12 +251,12 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
 
 void
 EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
-                        MultiFab& fine_state, const amrex::MultiFab& /*fine_vfrac*/)
+                        MultiFab& fine_state, const amrex::MultiFab& fine_vfrac)
 {
     int  src_comp = 0;
     int dest_comp = 0;
     int  num_comp = m_ncomp;
-    Reflux(crse_state, crse_vfrac, src_comp, dest_comp, num_comp);
+    Reflux(crse_state, crse_vfrac, fine_state, fine_vfrac, src_comp, dest_comp, num_comp);
 }
 
 void
