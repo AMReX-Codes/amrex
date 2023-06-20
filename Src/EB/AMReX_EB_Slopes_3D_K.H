@@ -148,7 +148,7 @@ amrex_calc_slopes_eb_given_A_grown (int i, int j, int k, int n, int nx, int ny, 
           AtA[1][2] += A[lc][1]* A[lc][2];
           AtA[2][2] += A[lc][2]* A[lc][2];
 
-          amrex::Real du = amrex::Real(0.0);
+          auto du = amrex::Real(0.0);
           if (!flag(i+ii,j+jj,k+kk).isCovered() && !(ii==0 && jj==0 && kk==0) &&
               ii >= -nx && ii <= nx && jj >= -ny && jj <= ny &&
               kk >= -nz && kk <= nz) {
