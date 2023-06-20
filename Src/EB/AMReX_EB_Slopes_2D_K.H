@@ -49,8 +49,8 @@ amrex_calc_slopes_eb_given_A (int i, int j, int /*k*/, int n,
 
     for(int jj(0); jj<AMREX_SPACEDIM; ++jj)
     {
-      for(int ii(0); ii<AMREX_SPACEDIM; ++ii){
-        AtA[ii][jj] = 0.0;
+      for(int ii(0); ii<AMREX_SPACEDIM; ++ii){ // NOLINT(modernize-loop-convert)
+        AtA[jj][ii] = 0.0;
       }
       Atb[jj] = 0.0;
     }
@@ -114,8 +114,8 @@ amrex_calc_slopes_eb_given_A_grown (int i, int j, int /*k*/, int n, int nx, int 
 
     for(int jj(0); jj<AMREX_SPACEDIM; ++jj)
     {
-        for(int ii(0); ii<AMREX_SPACEDIM; ++ii){
-          AtA[ii][jj] = 0.0;
+        for(int ii(0); ii<AMREX_SPACEDIM; ++ii){ // NOLINT(modernize-loop-convert)
+          AtA[jj][ii] = 0.0;
         }
         Atb[jj] = 0.0;
     }

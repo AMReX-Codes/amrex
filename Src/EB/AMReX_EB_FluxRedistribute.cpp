@@ -177,7 +177,7 @@ amrex_flux_redistribute (
         bool valid_dst_cell;
         if (flag(i,j,k).isSingleValued())
         {
-            Real wtot = 0.;
+            Real wtot = Real(0.);
 #if (AMREX_SPACEDIM == 2)
             int kk(0);
 #else
@@ -189,7 +189,11 @@ amrex_flux_redistribute (
                   {
                       wtot += vfrac(i+ii,j+jj,k+kk)*wt(i+ii,j+jj,k+kk)* mask(i+ii,j+jj,k+kk);
                   }
-            wtot = 1.0/(wtot + 1.e-80);
+#ifdef AMREX_USE_FLOAT
+            wtot = Real(1.0)/(wtot + Real(1.e-30));
+#else
+            wtot = Real(1.0)/(wtot + Real(1.e-80));
+#endif
 
             bool as_crse_crse_cell    = false;
             bool as_crse_covered_cell = false;
