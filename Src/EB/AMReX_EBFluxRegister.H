@@ -83,7 +83,7 @@ public:
 
     // If we are not doing re-redistribution we don't need dm
     void FineAdd (const MFIter& mfi,
-                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
+                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& a_flux,
                   const Real* dx, Real dt,
                   const FArrayBox& volfrac,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
@@ -91,9 +91,9 @@ public:
 
     // If we are doing re-redistribution we add dm to the solution
     void FineAdd (const MFIter& mfi,
-                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
+                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& a_flux,
                   const Real* dx, Real dt,
-                  const FArrayBox& volfrac,
+                  const FArrayBox& vfrac,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
                   const FArrayBox& dm,
                   RunOn runon);

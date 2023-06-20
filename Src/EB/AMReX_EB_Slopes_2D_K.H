@@ -1,5 +1,5 @@
-#ifndef HYDRO_EB_SLOPES_K_H_
-#define HYDRO_EB_SLOPES_K_H_
+#ifndef AMREX_HYDRO_EB_SLOPES_2D_K_H_
+#define AMREX_HYDRO_EB_SLOPES_2D_K_H_
 
 #include <AMReX_Config.H>
 #include <AMReX_Slopes_K.H>
@@ -11,13 +11,7 @@
 #include <AMReX_FArrayBox.H>
 #endif
 
-
-using namespace amrex::literals;
-
 namespace {
-
-#if (AMREX_SPACEDIM == 2)
-#ifdef AMREX_USE_EB
 
 // amrex_calc_slopes_eb calculates the slope in each coordinate direction using a
 // least squares linear fit to the 8 nearest neighbors, with the function
@@ -679,8 +673,10 @@ amrex::Real
 amrex_calc_alpha_stencil(amrex::Real q_hat, amrex::Real q_max,
                          amrex::Real q_min, amrex::Real state, amrex::Real alpha) noexcept
 {
-    amrex::Real alpha_temp = 0.0;
-    amrex::Real small  = 1.0e-13;
+    using namespace amrex::literals;
+
+    auto alpha_temp = 0.0_rt;
+    auto small  = 1.0e-13_rt;
 
     if ((q_hat-state) > small) {
         alpha_temp = amrex::min(1.0_rt,(q_max-state)/(q_hat-state));
@@ -889,9 +885,6 @@ amrex_lim_slopes_extdir_eb (int i, int j, int k, int n,
 
     return {alpha_lim[0]*slopes[0],alpha_lim[1]*slopes[1]};
 }
-
-#endif
-#endif
 
 }
 #endif

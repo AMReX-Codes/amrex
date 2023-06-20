@@ -43,6 +43,9 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_EB_StateRedistItracker.cpp
        AMReX_EB_StateRedistUtils.cpp
        AMReX_EB_StateRedistribute.cpp
+       AMReX_EB_Redistribution.H
+       AMReX_EB_StateRedistSlopeLimiter_K.H
+       AMReX_EB_Slopes_${D}D_K.H
        AMReX_algoim.H
        AMReX_algoim_K.H
        AMReX_algoim.cpp

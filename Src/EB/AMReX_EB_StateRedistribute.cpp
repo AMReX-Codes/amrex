@@ -1,7 +1,5 @@
 /**
  * \file AMReX_StateRedistribute.cpp
- * @{
- *
  */
 
 #include <AMReX_EB_Redistribution.H>
@@ -12,8 +10,7 @@
 #include <AMReX_EB_Slopes_3D_K.H>
 #endif
 
-using namespace amrex;
-
+namespace amrex {
 
 void
 StateRedistribute ( Box const& bx, int ncomp,
@@ -32,7 +29,7 @@ StateRedistribute ( Box const& bx, int ncomp,
                     Array4<Real const> const& nbhd_vol,
                     Array4<Real const> const& cent_hat,
                     Geometry const& lev_geom,
-                    const int max_order)
+                    int max_order)
 {
     // Note that itracker has {4 in 2D, 8 in 3D} components and all are initialized to zero
     // We will add to the first component every time this cell is included in a merged neighborhood,
@@ -315,4 +312,5 @@ StateRedistribute ( Box const& bx, int ncomp,
     }
 #endif
 }
-/** @} */
+
+}

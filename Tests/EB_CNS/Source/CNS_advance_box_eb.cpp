@@ -260,7 +260,7 @@ CNS::compute_dSdt_box_eb (const Box& bx,
     // Now do redistribution
     int icomp = 0;
     int ncomp = NEQNS;
-    int level_mask_not_covered = lparm->level_mask_notcovered;
+    int level_mask_not_covered = Parm::level_mask_notcovered;
     bool use_wts_in_divnc = false;
     amrex_flux_redistribute(bx, dsdt_arr, divc_arr, redistwgt_arr, vfrac, flag,
                             as_crse, drho_as_crse, rrflag_as_crse,

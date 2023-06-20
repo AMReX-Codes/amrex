@@ -1,12 +1,10 @@
 /**
  * \file AMReX_StateRedistUtils.cpp
- * @{
- *
  */
 
 #include <AMReX_EB_Redistribution.H>
 
-using namespace amrex;
+namespace amrex {
 
 void
 MakeStateRedistUtils ( Box const& bx,
@@ -204,4 +202,5 @@ MakeStateRedistUtils ( Box const& bx,
         }
     });
 }
-/** @} */
+
+}

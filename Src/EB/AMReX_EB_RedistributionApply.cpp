@@ -7,7 +7,7 @@
 #include <AMReX_EB_Redistribution.H>
 #include <AMReX_EB_utils.H>
 
-using namespace amrex;
+namespace amrex {
 
 void ApplyRedistribution ( Box const& bx, int ncomp,
                            Array4<Real      > const& dUdt_out,
@@ -25,8 +25,8 @@ void ApplyRedistribution ( Box const& bx, int ncomp,
                            Array4<Real const> const& ccc,
                            amrex::BCRec  const* d_bcrec_ptr,
                            Geometry const& lev_geom, Real dt,
-                           std::string redistribution_type,
-                           const int srd_max_order,
+                           std::string const& redistribution_type,
+                           int srd_max_order,
                            amrex::Real target_volfrac,
                            Array4<Real const> const& srd_update_scale)
 {
@@ -179,7 +179,7 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
                         Array4<Real const> const& ccc,
                         amrex::BCRec  const* d_bcrec_ptr,
                         Geometry const& lev_geom, Real dt,
-                        std::string redistribution_type,
+                        std::string const& redistribution_type,
                         int as_crse,
                         Array4<Real            > const& rr_drho_crse,
                         Array4<int        const> const& rr_flag_crse,
@@ -189,7 +189,7 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
                         int level_mask_not_covered,
                         bool use_wts_in_divnc,
                         int icomp,
-                        const int srd_max_order,
+                        int srd_max_order,
                         amrex::Real target_volfrac,
                         Array4<Real const> const& srd_update_scale)
 {
@@ -253,8 +253,8 @@ ApplyInitialRedistribution ( Box const& bx, int ncomp,
                                           amrex::Array4<amrex::Real const> const& fcz),
                              amrex::Array4<amrex::Real const> const& ccc,
                              amrex::BCRec  const* d_bcrec_ptr,
-                             Geometry& lev_geom, std::string redistribution_type,
-                             const int srd_max_order,
+                             Geometry const& lev_geom, std::string const& redistribution_type,
+                             int srd_max_order,
                              amrex::Real target_volfrac)
 {
     if (redistribution_type != "StateRedist") {
@@ -317,4 +317,5 @@ ApplyInitialRedistribution ( Box const& bx, int ncomp,
                       itr_const, nrs_const, alpha_const, nbhd_vol_const,
                       cent_hat_const, lev_geom, srd_max_order);
 }
-/** @} */
+
+}

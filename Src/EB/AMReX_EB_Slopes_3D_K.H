@@ -1,5 +1,5 @@
-#ifndef HYDRO_EB_SLOPES_K_H_
-#define HYDRO_EB_SLOPES_K_H_
+#ifndef AMREX_HYDRO_EB_SLOPES_3D_K_H_
+#define AMREX_HYDRO_EB_SLOPES_3D_K_H_
 
 #include <AMReX_Config.H>
 #include <AMReX_Slopes_K.H>
@@ -11,12 +11,7 @@
 #include <AMReX_FArrayBox.H>
 #endif
 
-using namespace amrex::literals;
-
 namespace {
-
-#if (AMREX_SPACEDIM == 3)
-#ifdef AMREX_USE_EB
 
 // amrex_calc_slopes_eb calculates the slope in each coordinate direction using a
 // least squares linear fit to the 26 nearest neighbors, with the function
@@ -56,8 +51,8 @@ amrex_calc_slopes_eb_given_A (int i, int j, int k, int n,
     amrex::Real Atb[AMREX_SPACEDIM];
 
     for(int jj(0); jj<AMREX_SPACEDIM; ++jj){
-      for(int ii(0); ii<AMREX_SPACEDIM; ++ii){
-        AtA[ii][jj] = 0.0;
+      for(int ii(0); ii<AMREX_SPACEDIM; ++ii){ // NOLINT(modernize-loop-convert)
+        AtA[jj][ii] = 0.0;
       }
       Atb[jj] = 0.0;
     }
@@ -135,8 +130,8 @@ amrex_calc_slopes_eb_given_A_grown (int i, int j, int k, int n, int nx, int ny, 
     amrex::Real Atb[AMREX_SPACEDIM];
 
     for(int jj(0); jj<AMREX_SPACEDIM; ++jj){
-      for(int ii(0); ii<AMREX_SPACEDIM; ++ii){
-        AtA[ii][jj] = 0.0;
+      for(int ii(0); ii<AMREX_SPACEDIM; ++ii){ // NOLINT(modernize-loop-convert)
+        AtA[jj][ii] = 0.0;
       }
       Atb[jj] = 0.0;
     }
@@ -824,8 +819,10 @@ amrex::Real
 amrex_calc_alpha_stencil(amrex::Real q_hat, amrex::Real q_max,
                          amrex::Real q_min, amrex::Real state, amrex::Real alpha) noexcept
 {
-    amrex::Real alpha_temp = amrex::Real(0.0);
-    amrex::Real small  = amrex::Real(1.0e-13);
+    using namespace amrex::literals;
+
+    auto alpha_temp = amrex::Real(0.0);
+    auto small  = amrex::Real(1.0e-13);
 
     if ((q_hat-state) > small) {
         alpha_temp = amrex::min(1.0_rt,(q_max-state)/(q_hat-state));
@@ -848,7 +845,7 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
                          amrex::Array4<amrex::Real const> const& fcz,
                          amrex::Array4<amrex::Real const> const& ccent) noexcept
 {
-    amrex::Real alpha = amrex::Real(2.0);
+    auto alpha = amrex::Real(2.0);
 
     int cuts_x = 0; int cuts_y = 0; int cuts_z = 0;
 
@@ -1127,9 +1124,6 @@ amrex_lim_slopes_extdir_eb (int i, int j, int k, int n,
 
     return {alpha_lim[0]*slopes[0],alpha_lim[1]*slopes[1],alpha_lim[2]*slopes[2]};
 }
-
-#endif
-#endif
 
 }
 #endif

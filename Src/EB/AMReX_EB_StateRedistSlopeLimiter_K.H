@@ -1,23 +1,18 @@
-/**
- * \file AMReX_EB_StateRedistSlopeLimiter_K.H
- * @{
- *
- */
+#ifndef AMREX_EB_STATE_REDIST_SLOPE_LIMITER_K_H_
+#define AMREX_EB_STATE_REDIST_SLOPE_LIMITER_K_H_
 
-using namespace amrex;
-
-namespace {
-#ifdef AMREX_USE_FLOAT
-  constexpr Real epsilon = amrex::Real(1.e-6);
-#else
-  constexpr Real epsilon = 1.e-12;
-#endif
-}
+namespace amrex {
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 amrex::Real
 amrex_calc_alpha_stencil(Real q_hat, Real q_max, Real q_min, Real state) noexcept
 {
+#ifdef AMREX_USE_FLOAT
+    constexpr Real epsilon = amrex::Real(1.e-6);
+#else
+    constexpr Real epsilon = 1.e-12;
+#endif
+
     const Real small = epsilon*amrex::max(amrex::Math::abs(q_max),amrex::Math::abs(q_min));
     Real alpha;
 
@@ -39,6 +34,12 @@ amrex_calc_centroid_limiter(int i, int j, int k, int n,
                             const amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>& slopes,
                             amrex::Array4<amrex::Real const> const& ccent) noexcept
 {
+#ifdef AMREX_USE_FLOAT
+    constexpr Real epsilon = amrex::Real(1.e-6);
+#else
+    constexpr Real epsilon = 1.e-12;
+#endif
+
     AMREX_D_TERM(amrex::Real xalpha = 1.0;,
                  amrex::Real yalpha = 1.0;,
                  amrex::Real zalpha = 1.0;);
@@ -86,4 +87,7 @@ amrex_calc_centroid_limiter(int i, int j, int k, int n,
 
     return {AMREX_D_DECL(xalpha,yalpha,zalpha)};
 }
-/** @} */
+
+}
+
+#endif

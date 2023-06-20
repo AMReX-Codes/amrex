@@ -6,7 +6,7 @@
 
 #include <AMReX_EB_Redistribution.H>
 
-using namespace amrex;
+namespace amrex {
 
 #if (AMREX_SPACEDIM == 2)
 
@@ -216,6 +216,7 @@ MakeITracker ( Box const& bx,
        }
     });
 }
+
 #elif (AMREX_SPACEDIM == 3)
 
 void
@@ -704,5 +705,7 @@ MakeITracker ( Box const& bx,
        }
     });
 }
+
 #endif
-/** @} */
+
+}
