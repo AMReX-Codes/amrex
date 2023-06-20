@@ -103,11 +103,11 @@ function (generate_buildinfo _target _git_dir)
       foreach( _p IN LISTS _prop )
 
          # _${_l}${_p} is a variable named as _lang_property,
-         evaluate_genex(${_p} _${_l}${_p}
-            LANG ${_l}
-            COMP ${CMAKE_${_l}_COMPILER_ID}
-            CONFIG ${CMAKE_BUILD_TYPE}
-            INTERFACE BUILD)
+         set(_${_l}${_p} "${${_p}}")
+         eval_genex( _${_l}${_p} ${_l} ${CMAKE_${_l}_COMPILER_ID}
+           COMP_VERSION ${CMAKE_${_l}_COMPILER_VERSION}
+           CONFIG       ${CMAKE_BUILD_TYPE}
+           INTERFACE    BUILD)
 
          if (_${_l}${_p})
             list(REMOVE_DUPLICATES _${_l}${_p})
@@ -187,28 +187,55 @@ function (generate_buildinfo _target _git_dir)
 
    # Generate AMReX_buildInfo.cpp
    configure_file( ${AMREX_BUILDINFO_IFILE}
-      ${CMAKE_CURRENT_BINARY_DIR}/AMReX_buildInfo.cpp @ONLY)
+      ${PROJECT_BINARY_DIR}/${_target}/AMReX_buildInfo.cpp @ONLY)
 
-   target_sources( ${_target}
+   # add a re-usable target
+   add_library(buildInfo${_target} STATIC)
+   add_library(buildInfo::${_target} ALIAS buildInfo${_target})
+
+   target_sources(buildInfo${_target}
       PRIVATE
-      ${CMAKE_CURRENT_BINARY_DIR}/AMReX_buildInfo.cpp
-      )
+      ${PROJECT_BINARY_DIR}/${_target}/AMReX_buildInfo.cpp
+   )
 
-   target_sources( ${_target}
+   target_sources(buildInfo${_target}
       PRIVATE
       ${AMREX_C_SCRIPTS_DIR}/AMReX_buildInfo.H
-      )
+   )
 
-   target_include_directories( ${_target}
+   target_include_directories(buildInfo${_target}
       PUBLIC
       $<BUILD_INTERFACE:${AMREX_C_SCRIPTS_DIR}>
-      )
+   )
 
    # Make AMReX_buildInfo.cpp always out of date before building
-   add_custom_command( TARGET ${_target}
+   add_custom_command(TARGET buildInfo${_target}
       PRE_BUILD
       COMMAND ${CMAKE_COMMAND} -E touch_nocreate AMReX_buildInfo.cpp
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      )
+      WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/${_target}/
+   )
+
+   target_link_libraries(${_target}
+      PUBLIC
+      $<BUILD_INTERFACE:buildInfo${_target}> )
+
+   # Set PIC property to be consistent with AMReX'
+   get_target_property(_pic AMReX::amrex POSITION_INDEPENDENT_CODE)
+   get_target_property(_sym AMReX::amrex WINDOWS_EXPORT_ALL_SYMBOLS)
+   set_target_properties(buildInfo${_target} PROPERTIES
+      POSITION_INDEPENDENT_CODE ${_pic}
+      WINDOWS_EXPORT_ALL_SYMBOLS ${_sym} )
+
+   # IPO/LTO
+   if (AMReX_IPO)
+      include(CheckIPOSupported)
+      check_ipo_supported(RESULT is_IPO_available)
+      if(is_IPO_available)
+          set_target_properties(buildInfo${_target} PROPERTIES
+              INTERPROCEDURAL_OPTIMIZATION TRUE)
+      else()
+          message(FATAL_ERROR "Interprocedural optimization is not available, set AMReX_IPO=OFF")
+      endif()
+   endif()
 
 endfunction ()

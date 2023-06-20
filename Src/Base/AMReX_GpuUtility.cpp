@@ -1,11 +1,11 @@
 
 #include <AMReX_GpuUtility.H>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
-namespace amrex {
+namespace amrex { // NOLINT(modernize-concat-nested-namespaces)
 
 #ifdef AMREX_USE_GPU
 
@@ -20,26 +20,32 @@ operator<< (std::ostream& os, const dim3& d)
 
 namespace Gpu {
 
-StreamIter::StreamIter (const int n, bool is_thread_safe) noexcept
+StreamIter::StreamIter (int n, bool is_thread_safe) noexcept
     : m_n(n), m_i(0), m_threadsafe(is_thread_safe), m_sync(true)
 {
     init();
 }
 
-StreamIter::StreamIter (const int n, const StreamItInfo& info, bool is_thread_safe) noexcept
+StreamIter::StreamIter (int n, const StreamItInfo& info, bool is_thread_safe) noexcept
     : m_n(n), m_i(0), m_threadsafe(is_thread_safe), m_sync(info.device_sync)
 {
     init();
 }
 
 void
-StreamIter::init() noexcept
+StreamIter::init () noexcept // NOLINT
 {
     amrex::ignore_unused(m_threadsafe);
     amrex::ignore_unused(m_sync);
 #if defined(AMREX_USE_GPU)
+    if (m_sync) {
+#ifdef AMREX_USE_OMP
+#pragma omp single
+#endif
+        Gpu::streamSynchronize();
+    }
     Gpu::Device::setStreamIndex(m_i);
-#elif defined(_OPENMP)
+#elif defined(AMREX_USE_OMP)
     int nthreads = omp_get_num_threads();
     if (nthreads > 1) {
         int tid = omp_get_thread_num();
@@ -56,10 +62,14 @@ StreamIter::init() noexcept
 #endif
 }
 
-StreamIter::~StreamIter () {
+StreamIter::~StreamIter () { // NOLINT(modernize-use-equals-default)
 #ifdef AMREX_USE_GPU
     if (m_sync) {
-        Gpu::synchronize();
+        const int nstreams = std::min(m_n, Gpu::numGpuStreams());
+        for (int i = 0; i < nstreams; ++i) {
+            Gpu::Device::setStreamIndex(i);
+            Gpu::streamSynchronize();
+        }
     }
     AMREX_GPU_ERROR_CHECK();
     Gpu::Device::resetStreamIndex();
@@ -79,4 +89,3 @@ StreamIter::operator++ () noexcept
 #endif
 
 }}
-

@@ -50,11 +50,11 @@ void main_main()
     int farg = 1;
     while (farg <= narg) {
         const auto fname = get_command_argument(farg);
-        if (fname == "-f" or fname == "--full") {
+        if (fname == "-f" || fname == "--full") {
             b_full = true;
-        } else if (fname == "-g" or fname == "--gridfile") {
+        } else if (fname == "-g" || fname == "--gridfile") {
             b_gridfile = true;
-        } else if (fname == "-l" or fname == "--levels") {
+        } else if (fname == "-l" || fname == "--levels") {
             b_levels = true;
         } else {
             break;
@@ -62,7 +62,7 @@ void main_main()
         ++farg;
     }
 
-    if (b_gridfile and b_full) {
+    if (b_gridfile && b_full) {
         amrex::Abort("ERROR: cannot specify both full and gridfile modes");
     }
 
@@ -86,7 +86,7 @@ void main_main()
         const auto& fname = amrex::get_command_argument(f);
         PlotFileData plotfile(fname);
 
-        if (!b_gridfile and !b_levels) {
+        if (!b_gridfile && !b_levels) {
             amrex::Print() << " plotfile: " << fname << "\n";
         }
 
@@ -104,12 +104,12 @@ void main_main()
                 const Long nboxes = plotfile.boxArray(ilev).size();
                 const Long ncells = plotfile.boxArray(ilev).numPts();
                 const Box prob_domain = plotfile.probDomain(ilev);
-                const Real ncells_domain = prob_domain.d_numPts();
+                const auto ncells_domain = prob_domain.d_numPts();
                 amrex::Print() << " level " << std::setw(3) << ilev
                                << ": number of boxes = " << std::setw(6) << nboxes
                                << ", volume = "
                                << std::fixed << std::setw(6) << std::setprecision(2)
-                               << 100.*(ncells/ncells_domain) << "%\n";
+                               << 100.*static_cast<double>(ncells)/ncells_domain << "%\n";
                 if (dim == 1) {
                     amrex::Print() << "          maximum zones =   "
                                    << std::setw(7) << prob_domain.length(0) << "\n";
@@ -134,8 +134,8 @@ void main_main()
             for (int ilev = 0; ilev < nlevels; ++ilev) {
                 amrex::Print() << "\n  level " << ilev << "\n";
                 const BoxArray& ba = plotfile.boxArray(ilev);
-                const Long nboxes = ba.size();
-                for (Long ibox = 0; ibox < nboxes; ++ibox) {
+                const auto nboxes = static_cast<int>(ba.size());
+                for (int ibox = 0; ibox < nboxes; ++ibox) {
                     const Box& b = ba[ibox];
                     if (dim == 1) {
                         amrex::Print() << "   box " << std::setw(5) << ibox

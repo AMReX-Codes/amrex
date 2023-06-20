@@ -1,6 +1,7 @@
 
 #ifndef BL_MFCOPYDESCRIPTOR_H_
 #define BL_MFCOPYDESCRIPTOR_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FACopyDescriptor.H>
 #include <AMReX_MultiFab.H>
@@ -45,12 +46,13 @@ class MultiFabCopyDescriptor
 {
   public:
 
-    MultiFabCopyDescriptor ();
-
-    ~MultiFabCopyDescriptor ();
+    MultiFabCopyDescriptor () = default;
+    ~MultiFabCopyDescriptor () = default;
 
     MultiFabCopyDescriptor (const MultiFabCopyDescriptor&) = delete;
+    MultiFabCopyDescriptor (MultiFabCopyDescriptor&&) = delete;
     MultiFabCopyDescriptor& operator= (const MultiFabCopyDescriptor&) = delete;
+    MultiFabCopyDescriptor& operator= (MultiFabCopyDescriptor&&) = delete;
 
     MultiFabId RegisterMultiFab (MultiFab* mf) { return RegisterFabArray(mf); }
 };

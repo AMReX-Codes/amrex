@@ -1,7 +1,0 @@
-
-CEXE_sources += main.cpp SWFFT_Test.cpp
-CEXE_sources += swfft_compute.cpp
-CEXE_headers += SWFFT_Test.H SWFFT_TestF.H
-
-F90EXE_sources += SWFFT_Test_F.F90
-

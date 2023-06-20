@@ -1,12 +1,13 @@
 #ifndef AMREX_FILLPATCH_UTIL_F_H_
 #define AMREX_FILLPATCH_UTIL_F_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_BLFort.H>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-    
+
     void amrex_interp_div_free_bfield (const int* lo, const int* hi
                                        , amrex_real* bx, const int* bxlo, const int* bxhi
 #if (AMREX_SPACEDIM > 1)

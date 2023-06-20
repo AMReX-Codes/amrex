@@ -16,11 +16,15 @@ sub-directories. The "Base" directory includes sources for the basic
 functionality, the "AmrCore" directory wraps around the :cpp:`AmrCore` class
 (see the chapter on :ref:`Chap:AmrCore`), and the "Octree" directory adds
 support for octree type of AMR grids. Each directory has a "Make.package" file
-that can be included in make files (see ``amrex/Tutorials/Basic/HelloWorld_F`` and
-``amrex/Tutorials/Amr/Advection_F`` for examples). The libamrex approach includes the
-Fortran interface by default. 
+that can be included in make files (see `HelloWorld_F`_ and
+`Advection_F`_ in the tutorials for examples). The libamrex approach includes the
+Fortran interface by default.
 
-A simple example can be found at ``amrex/Tutorials/Basic/HelloWorld_F/``. The source code
+.. _`HelloWorld_F`: https://amrex-codes.github.io/amrex/tutorials_html/Basic_Tutorial.html#helloworld
+
+.. _`Advection_F`: https://amrex-codes.github.io/amrex/tutorials_html/AMR_Tutorial.html#advection-f
+
+A simple example can be found at ``amrex-tutorials/Basic/HelloWorld_F/``. The source code
 is shown below in its entirety.
 
 .. highlight:: fortran
@@ -38,10 +42,10 @@ is shown below in its entirety.
     end program main
 
 To access the AMReX Fortran interfaces, we can use these three
-modules, amrex_base_module for the basics functionalities
-(Section `2 <#sec:fi:basics>`__), amrex_amrcore_module for AMR
-support (Section `3 <#sec:fi:amrcore>`__) and amrex_octree_module
-for octree style AMR (Section `4 <#sec:fi:octree>`__).
+modules, ``amrex_base_module`` for the basics functionalities
+(Section 2 `The Basics`_), ``amrex_amrcore_module`` for AMR
+support (Section 3 `Amr Core Infrastructure`_) and ``amrex_octree_module``
+for octree style AMR (Section 4 `Octree`_).
 
 .. _sec:fi:basics:
 
@@ -176,7 +180,7 @@ There are many type-bound procedures for :fortran:`amrex_multifab`. For example
 
       ncomp   ! Return the number of components
       nghost  ! Return the number of ghost cells
-      setval  ! Set the data to the given value 
+      setval  ! Set the data to the given value
       copy    ! Copy data from given amrex_multifab to this amrex_multifab
 
 Note that the copy function here only works on copying data from another
@@ -275,8 +279,8 @@ example,
                   ! Then mf2 becomes a shallow copy of mf1.
                   ! mf1 is still the owner of the data.
       call amrex_multifab_destroy(mf1)
-      ! mf2 no longer contains a valid pointer because mf1 has been destroyed. 
-      call amrex_multifab_destroyed(mf2)  ! But we still need to destroy it.
+      ! mf2 no longer contains a valid pointer because mf1 has been destroyed.
+      call amrex_multifab_destroy(mf2)  ! But we still need to destroy it.
 
 If we need to transfer the ownership, :fortran:`amrex_multifab`,
 :fortran:`amrex_boxarray` and :fortran:`amrex_distromap` provide type-bound
@@ -290,7 +294,7 @@ If we need to transfer the ownership, :fortran:`amrex_multifab`,
       call amrex_multifab_build(mf1, ...)
       call mf2%move(mf1)   ! mf2 is now the data owner and mf1 is not.
       call amrex_multifab_destroy(mf1)
-      call amrex_multifab_destroyed(mf2)
+      call amrex_multifab_destroy(mf2)
 
 :fortran:`amrex_multifab` also has a type-bound :fortran:`swap` procedure for
 exchanging the data.
@@ -313,7 +317,7 @@ infrastructure. With AMR, the main program might look like below,
 
       program main
         use amrex_amr_module
-        implicit none  
+        implicit none
         call amrex_init()
         call amrex_amrcore_init()
         call my_amr_init()       ! user's own code, not part of AMReX
@@ -364,13 +368,13 @@ interfaces:
         real(amrex_real), intent(in), value :: time
         type(c_ptr), intent(in), value :: ba, dm
       end subroutine amrex_make_level_proc
-      
+
       subroutine amrex_clear_level_proc (lev) bind(c)
         import
         implicit none
         integer, intent(in) , value :: lev
       end subroutine amrex_clear_level_proc
-      
+
       subroutine amrex_error_est_proc (lev, tags, time, tagval, clearval) bind(c)
         import
         implicit none
@@ -380,7 +384,7 @@ interfaces:
         character(c_char), intent(in), value :: tagval, clearval
       end subroutine amrex_error_est_proc
 
-Tutorials/Amr/Advection_F/Source/my_amr_mod.F90 shows an
+``amrex-tutorials/ExampleCodes/FortranInterface/Advection_F/Source/my_amr_mod.F90`` shows an
 example of the setup process. The user provided
 :fortran:`procedure(amrex_error_est_proc)` has a tags argument that
 is of type :fortran:`c_ptr` and its value is a pointer to a
@@ -396,11 +400,11 @@ The module :fortran:`amrex_fillpatch_module` provides interface to
 C++ functions :cpp:`FillPatchSinglelevel` and :cpp:`FillPatchTwoLevels`. To use
 it, the application code needs to provide procedures for interpolation and
 filling physical boundaries.  See
-Tutorials/Amr/Advection_F/Source/fillpatch_mod.F90 for an example.
+``amrex-tutorials/ExampleCodes/FortranInterface/Advection_F/Source/fillpatch_mod.F90`` for an example.
 
 Module :fortran:`amrex_fluxregister_module` provides interface to
 :cpp:`FluxRegister` (see the section on :ref:`sec:amrcore:fluxreg`). Its usage
-is demonstrated in the tutorial at Tutorials/Amr/Advection_F/.
+is demonstrated in the tutorial at `Advection_F`_.
 
 
 .. _sec:fi:octree:
@@ -414,7 +418,7 @@ between levels. Therefore, grids in AMReX in general cannot be represented by
 trees. Nevertheless, octree type grids are supported via Fortran interface,
 because grids are more general than octree grids. A tutorial example using
 amrex_octree_module ( ``amrex/Src/F_Interfaces/Octree/AMReX_octree_mod.f90``) is
-available at ``amrex/Tutorials/Amr/Advection_octree_F/``. Procedures
+available at ``amrex-tutorials/ExampleCodes/FortranInterface/Advection_F/Advection_octree_F/``. Procedures
 :fortran:`amrex_octree_init` and :fortran:`amrex_octree_finalize` must be
 called as follows,
 

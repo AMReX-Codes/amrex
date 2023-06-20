@@ -1,5 +1,6 @@
 #ifndef AMREX_INTVECT_H_
 #define AMREX_INTVECT_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_INT.H>
 #include <AMReX_ccse-mpi.H>
@@ -26,9 +27,9 @@ int coarsen (int i, int ratio) noexcept
 {
     switch (ratio) {
     case  1: return i;
-    case  2: return (i<0) ? -amrex::Math::abs(i+1)/2    -1 : i/2;
-    case  4: return (i<0) ? -amrex::Math::abs(i+1)/4    -1 : i/4;
-    default: return (i<0) ? -amrex::Math::abs(i+1)/ratio-1 : i/ratio;
+    case  2: return (i<0) ? -std::abs(i+1)/2    -1 : i/2;
+    case  4: return (i<0) ? -std::abs(i+1)/4    -1 : i/4;
+    default: return (i<0) ? -std::abs(i+1)/ratio-1 : i/ratio;
     }
 }
 
@@ -49,20 +50,20 @@ public:
 
     class shift_hasher {
     private:
-	static constexpr unsigned shift1 = sizeof(size_t)>=8 ? 20 : 10;
-	static constexpr unsigned shift2 = sizeof(size_t)>=8 ? 40 : 20;
+        static constexpr unsigned shift1 = sizeof(size_t)>=8 ? 20 : 10;
+        static constexpr unsigned shift2 = sizeof(size_t)>=8 ? 40 : 20;
     public:
-	std::size_t operator()(const IntVect& vec) const noexcept
+        std::size_t operator()(const IntVect& vec) const noexcept
         {
-	    AMREX_D_DECL(std::size_t ret0 = vec[0], ret1 = vec[1], ret2 = vec[2]);
+            AMREX_D_DECL(std::size_t ret0 = vec[0], ret1 = vec[1], ret2 = vec[2]);
 #if AMREX_SPACEDIM == 1
-	    return ret0;
+            return ret0;
 #elif AMREX_SPACEDIM == 2
-	    return ret0 ^ (ret1 << shift1);
+            return ret0 ^ (ret1 << shift1);
 #else
-	    return ret0 ^ (ret1 << shift1) ^ (ret2 << shift2);
+            return ret0 ^ (ret1 << shift1) ^ (ret2 << shift2);
 #endif
-	}
+        }
     };
 
     using hasher = shift_hasher;
@@ -83,8 +84,7 @@ public:
     /**
     * \brief Construct an IntVect whose components are all zero.
     */
-    AMREX_GPU_HOST_DEVICE
-    constexpr IntVect () noexcept : vect{AMREX_D_DECL(0,0,0)} {}
+    constexpr IntVect () noexcept {} // cannot use = default due to Clang bug // NOLINT
 
     /**
     * \brief Construct an IntVect given the specific values for its
@@ -121,9 +121,12 @@ public:
     explicit IntVect (const Array<int,AMREX_SPACEDIM>& a) noexcept
         : vect{AMREX_D_DECL(a[0],a[1],a[2])} {}
 
+    explicit constexpr IntVect (Dim3 const& a) noexcept
+        : vect{AMREX_D_DECL(a.x,a.y,a.z)} {}
+
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Dim3 dim3 () const noexcept {
 #if (AMREX_SPACEDIM == 1)
         return Dim3{vect[0],0,0};
@@ -134,11 +137,22 @@ public:
 #endif
     }
 
+#if __cplusplus >= 201402L
+    template< typename T = int >
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Array<T, AMREX_SPACEDIM>
+    toArray () const noexcept {
+        return Array<T, AMREX_SPACEDIM>{
+            AMREX_D_DECL(T(vect[0]), T(vect[1]), T(vect[2]))
+        };
+    }
+#endif
+
   ///
   /**
      Sum of all components of this IntVect.
   */
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int sum () const noexcept
     {
         int retval = AMREX_D_TERM((*this)[0], + (*this)[1], +(*this)[2]);
@@ -146,7 +160,7 @@ public:
     }
 
     //! maximum (no absolute values) value
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int max () const noexcept
     {
 #if (AMREX_SPACEDIM == 1)
@@ -160,7 +174,7 @@ public:
     }
 
     //! minimum (no absolute values) value
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int min () const noexcept
     {
 #if (AMREX_SPACEDIM == 1)
@@ -174,31 +188,31 @@ public:
     }
 
     //return coordinate with largest value
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int maxDir(bool a_doAbsValue) const noexcept;
 
     //! Returns a reference to the i'th coordinate of the IntVect.
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int& operator[] (int i) noexcept { BL_ASSERT(i>=0 && i < AMREX_SPACEDIM); return vect[i]; }
 
     //! Returns the i'th coordinate of the IntVect.
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const int& operator[] (int i) const noexcept { BL_ASSERT(i>=0 && i < AMREX_SPACEDIM); return vect[i]; }
 
     //! Returns a pointer to the first element of the IntVect.
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int* begin () noexcept { return &vect[0]; }
 
     //! Returns a pointer to the first element of the IntVect.
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const int* begin () const noexcept { return &vect[0]; }
 
     //! Returns a pointer to the (last+1) element of the IntVect.
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int* end () noexcept { return &vect[AMREX_SPACEDIM]; }
 
     //! Returns a pointer to the (last+1) element of the IntVect.
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const int* end () const noexcept { return &vect[AMREX_SPACEDIM]; }
 
     //! Set i'th coordinate of IntVect to val.
@@ -212,9 +226,9 @@ public:
     * \brief Returns a const pointer to an array of coordinates of the
     * IntVect.  Useful for arguments to FORTRAN calls.
     */
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const int* getVect () const& noexcept { return vect; }
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int*       getVect () &      noexcept { return vect; }
     AMREX_GPU_HOST_DEVICE
     int*       getVect () && = delete;
@@ -245,7 +259,7 @@ public:
     {
         return AMREX_D_TERM(vect[0] != rhs[0], || vect[1] != rhs[1], || vect[2] != rhs[2]);
     }
-    //! Return ture if this is lexicographically less than rhs.
+    //! Return true if this is lexicographically less than rhs.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator< (const IntVect& rhs) const noexcept
     {
@@ -262,25 +276,25 @@ public:
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator<= (const IntVect& rhs) const noexcept
     {
-	return !(rhs < *this);
+        return !(rhs < *this);
     }
-    //! Retrun true if this is lexicographically greater than rhs.
+    //! Return true if this is lexicographically greater than rhs.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator> (const IntVect& rhs) const noexcept
     {
-	return rhs < *this;
+        return rhs < *this;
     }
-    //! Retrun true if this is lexicographically greater than or equal to rhs.
+    //! Return true if this is lexicographically greater than or equal to rhs.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator>= (const IntVect& rhs) const noexcept
     {
-	return !(*this < rhs);
+        return !(*this < rhs);
     }
     /**
     * \brief Returns true if this is less than argument for all components.
     * NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
     */
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool allLT (const IntVect& rhs) const noexcept
     {
         return AMREX_D_TERM(vect[0] < rhs[0], && vect[1] < rhs[1], && vect[2] < rhs[2]);
@@ -289,7 +303,7 @@ public:
     * \brief Returns true if this is less than or equal to argument for all components.
     * NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
     */
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool allLE (const IntVect& rhs) const noexcept
     {
         return AMREX_D_TERM(vect[0] <= rhs[0], && vect[1] <= rhs[1], && vect[2] <= rhs[2]);
@@ -298,7 +312,7 @@ public:
     * \brief Returns true if this is greater than argument for all components.
     * NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
     */
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool allGT (const IntVect& rhs) const noexcept
     {
         return AMREX_D_TERM(vect[0] > rhs[0], && vect[1] > rhs[1], && vect[2] > rhs[2]);
@@ -307,14 +321,14 @@ public:
     * \brief Returns true if this is greater than or equal to argument for all components.
     * NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
     */
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool allGE (const IntVect& rhs) const noexcept
     {
         return AMREX_D_TERM(vect[0] >= rhs[0], && vect[1] >= rhs[1], && vect[2] >= rhs[2]);
     }
     //! Unary plus -- for completeness.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    const IntVect operator+ () const noexcept { return *this; }
+    IntVect operator+ () const noexcept { return *this; }
     //! Unary Minus -- negates all components.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     IntVect operator- () const noexcept { return IntVect(AMREX_D_DECL(-vect[0], -vect[1], -vect[2] )); }
@@ -468,18 +482,6 @@ public:
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     IntVect& coarsen (int p) noexcept;
 
-    //! for serialization
-    static size_t AMREX_FORCE_INLINE
-    linearSize () noexcept
-    {
-        size_t retval = AMREX_SPACEDIM*sizeof(int);
-        return retval;
-    }
-
-    //! for serialization
-    void linearOut (void* a_buffer ) const noexcept;
-    void linearIn (void* a_buffer ) noexcept;
-
     /**
     * \brief This static member function returns a reference to a constant IntVect
     * object, all of whose AMREX_SPACEDIM arguments are set to zero (0).
@@ -532,19 +534,11 @@ public:
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static constexpr IntVect TheMaxVector () noexcept {
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         return IntVect(std::numeric_limits<int>::max());
-#else
-        return IntVect(INT_MAX);
-#endif
     }
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static constexpr IntVect TheMinVector () noexcept {
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         return IntVect(std::numeric_limits<int>::lowest());
-#else
-        return IntVect(INT_MIN);
-#endif
     }
 
 private:
@@ -552,7 +546,7 @@ private:
     friend std::ostream& operator<< (std::ostream& os, const IntVect& iv);
     friend std::istream& operator>> (std::istream& is, IntVect& iv);
 
-    int vect[AMREX_SPACEDIM];
+    int vect[AMREX_SPACEDIM] = {AMREX_D_DECL(0,0,0)};
 };
 
 AMREX_GPU_HOST_DEVICE
@@ -565,19 +559,19 @@ IntVect::coarsen (int s) noexcept
     case 1:
         break;
     case 2:
-        AMREX_D_TERM(vect[0] = (vect[0]<0) ? -amrex::Math::abs(vect[0]+1)/2-1 : vect[0]/2;,
-                     vect[1] = (vect[1]<0) ? -amrex::Math::abs(vect[1]+1)/2-1 : vect[1]/2;,
-                     vect[2] = (vect[2]<0) ? -amrex::Math::abs(vect[2]+1)/2-1 : vect[2]/2;);
+        AMREX_D_TERM(vect[0] = (vect[0]<0) ? -std::abs(vect[0]+1)/2-1 : vect[0]/2;,
+                     vect[1] = (vect[1]<0) ? -std::abs(vect[1]+1)/2-1 : vect[1]/2;,
+                     vect[2] = (vect[2]<0) ? -std::abs(vect[2]+1)/2-1 : vect[2]/2;);
         break;
     case 4:
-        AMREX_D_TERM(vect[0] = (vect[0]<0) ? -amrex::Math::abs(vect[0]+1)/4-1 : vect[0]/4;,
-                     vect[1] = (vect[1]<0) ? -amrex::Math::abs(vect[1]+1)/4-1 : vect[1]/4;,
-                     vect[2] = (vect[2]<0) ? -amrex::Math::abs(vect[2]+1)/4-1 : vect[2]/4;);
+        AMREX_D_TERM(vect[0] = (vect[0]<0) ? -std::abs(vect[0]+1)/4-1 : vect[0]/4;,
+                     vect[1] = (vect[1]<0) ? -std::abs(vect[1]+1)/4-1 : vect[1]/4;,
+                     vect[2] = (vect[2]<0) ? -std::abs(vect[2]+1)/4-1 : vect[2]/4;);
         break;
     default:
-        AMREX_D_TERM(vect[0] = (vect[0]<0) ? -amrex::Math::abs(vect[0]+1)/s-1 : vect[0]/s;,
-                     vect[1] = (vect[1]<0) ? -amrex::Math::abs(vect[1]+1)/s-1 : vect[1]/s;,
-                     vect[2] = (vect[2]<0) ? -amrex::Math::abs(vect[2]+1)/s-1 : vect[2]/s;);
+        AMREX_D_TERM(vect[0] = (vect[0]<0) ? -std::abs(vect[0]+1)/s-1 : vect[0]/s;,
+                     vect[1] = (vect[1]<0) ? -std::abs(vect[1]+1)/s-1 : vect[1]/s;,
+                     vect[2] = (vect[2]<0) ? -std::abs(vect[2]+1)/s-1 : vect[2]/s;);
     }
     return *this;
 }
@@ -602,10 +596,10 @@ IntVect::maxDir(bool a_doAbsValue) const noexcept
     int retval = 0;
     if(a_doAbsValue)
     {
-        int maxval = abs((*this)[0]);
+        int maxval = std::abs((*this)[0]);
         for(int idir = 1; idir < SpaceDim; idir++)
         {
-            int curval = amrex::Math::abs((*this)[idir]);
+            int curval = std::abs((*this)[idir]);
             if(curval > maxval)
             {
                 maxval = curval;
@@ -627,32 +621,6 @@ IntVect::maxDir(bool a_doAbsValue) const noexcept
         }
     }
     return retval;
-}
-
-AMREX_FORCE_INLINE
-void
-IntVect::linearOut(void* a_buffer ) const noexcept
-{
-    int* intbuf = (int *) a_buffer;
-    const IntVect& iv = *this;
-    for(int idir = 0; idir < SpaceDim; idir++)
-    {
-        *intbuf = iv[idir];
-        intbuf++;
-    }
-}
-
-AMREX_FORCE_INLINE
-void
-IntVect::linearIn(void* a_buffer ) noexcept
-{
-    int* intbuf = (int *) a_buffer;
-    IntVect& iv = *this;
-    for(int idir = 0; idir < SpaceDim; idir++)
-    {
-        iv[idir] = *intbuf;
-        intbuf++;
-    }
 }
 
 //! Returns p + s.

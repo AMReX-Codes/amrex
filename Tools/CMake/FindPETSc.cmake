@@ -36,9 +36,6 @@ message(STATUS "arch ${PETSC_INCLUDE_DIRS_ARCH}")
 set(PETSC_INCLUDE_DIRS ${PETSC_INCLUDE_DIRS_BASE} ${PETSC_INCLUDE_DIRS_ARCH})
 message(STATUS "joe ${PETSC_INCLUDE_DIRS}")
 
-#Set Fortran include directories TODO: currently overwrites any given values
-set(CMAKE_Fortran_FLAGS ${PETSC_INCLUDE_DIRS})
-
 # Find libraries
 find_library(PETSC_LIBRARIES PATHS ${PETSC_DIR}/${PETSC_ARCH}/lib NAMES petsc)
 

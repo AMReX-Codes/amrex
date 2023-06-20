@@ -3,27 +3,23 @@
 // ---------------------------------------------------------------
 #ifndef AMREX_DATASERVICES_H_
 #define AMREX_DATASERVICES_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_AmrData.H>
 
-#include <cstdarg>
-#include <string>
-
 #ifdef BL_USE_PROFPARSER
-#include <map>
 #include <AMReX_BLProfUtilities.H>
-#include <AMReX_Array.H>
-#include <AMReX_Vector.H>
 #include <AMReX_BLProfStats.H>
-#include <BLProfParser.tab.H>
+//#include <BLProfParser.tab.H>
 #include <AMReX_CommProfStats.H>
 #include <AMReX_RegionsProfStats.H>
+#include <map>
 #endif
 
-
-using std::string;
+#include <cstdarg>
+#include <string>
 
 namespace amrex {
 
@@ -62,11 +58,11 @@ class DataServices {
 #endif
     };
 
-    DataServices(const string &filename, const Amrvis::FileType &filetype);
+    DataServices(const std::string &filename, const Amrvis::FileType &filetype);
     DataServices();
     ~DataServices();
 
-    void Init(const string &filename, const Amrvis::FileType &filetype);
+    void Init(const std::string &filename, const Amrvis::FileType &filetype);
     void InitRegionTimeRanges();
 
     static void SetBatchMode();
@@ -80,64 +76,64 @@ class DataServices {
 
       //! FillVarOneFab
       bool FillVar(FArrayBox *destFab, const Box &destBox,
-                   int finestFillLevel, const string &varname,
+                   int finestFillLevel, const std::string &varname,
                    int procWithFab);
 
       // FillVarArrayOfFabs
       //bool FillVar(Vector<FArrayBox *> &destFabs, const Vector<Box> &destBoxes,
-                   //int finestFillLevel, const string &varname,
+                   //int finestFillLevel, const std::string &varname,
                    //int procWithFab);
 
       //! FillVarMultiFab
       bool FillVar(MultiFab &destMultiFab, int finestFillLevel,
-                   const string &varname);
+                   const std::string &varname);
 
       //! WriteFabOneVar:  write a single variable to one fab
-      bool WriteFab(const string &fabfilename, const Box &region, int lev,
-                    const string &varname);
+      bool WriteFab(const std::string &fabfilename, const Box &region, int lev,
+                    const std::string &varname);
 
       //! WriteFabAllVars:  write all vars in one fab
-      bool WriteFab(const string &fabfilename, const Box &region, int lev);
+      bool WriteFab(const std::string &fabfilename, const Box &region, int lev);
 
       //! DumpSlicePlaneOneVar
-      bool DumpSlice(int slicedir, int slicenum, const string &varname);
+      bool DumpSlice(int slicedir, int slicenum, const std::string &varname);
 
       //! DumpSlicePlaneAllVars
       bool DumpSlice(int slicedir, int slicenum);
 
       //! DumpSliceBoxOneVar
-      bool DumpSlice(const Box &slicebox, const string &varname);
+      bool DumpSlice(const Box &slicebox, const std::string &varname);
 
       //! DumpSliceBoxAllVars
       bool DumpSlice(const Box &slicebox);
 
       //! MinMaxRequest
-      bool MinMax(const Box &onBox, const string &derived, int level,
+      bool MinMax(const Box &onBox, const std::string &derived, int level,
                   Real &dataMin, Real &dataMax, bool &minMaxValid);
 
       //! PointValueRequest
       void PointValue(int pointBoxArraySize, Box *pointBoxArray,
-		      const string &currentDerived,
-		      int coarsestLevelToSearch, int finestLevelToSearch,
-		      int &intersectedLevel, Box &intersectedGrid,
-		      Real &dataPointValue, bool &bPointIsValid);
+                      const std::string &currentDerived,
+                      int coarsestLevelToSearch, int finestLevelToSearch,
+                      int &intersectedLevel, Box &intersectedGrid,
+                      Real &dataPointValue, bool &bPointIsValid);
 
       //! LineValuesRequest
       void LineValues(int lineBoxArraySize, Box *lineBoxArray, int whichDir,
-                      const string &currentDerived,
+                      const std::string &currentDerived,
                       int coarsestLevelToSearch, int finestLevelToSearch,
                       XYPlotDataList *dataList, bool &lineIsValid);
 
   public:
 
     // information functions
-    const string &GetFileName() const { return fileName; }
+    const std::string &GetFileName() const { return fileName; }
     Amrvis::FileType GetFileType()      const { return fileType; }
-    bool CanDerive(const string &name) const;
-    bool CanDerive(const Vector<string> &names) const;
+    bool CanDerive(const std::string &name) const;
+    bool CanDerive(const Vector<std::string> &names) const;
     int  NumDeriveFunc() const;
     void ListDeriveFunc(std::ostream &os) const;
-    const Vector<string> &PlotVarNames() const { return amrData.PlotVarNames(); }
+    const Vector<std::string> &PlotVarNames() const { return amrData.PlotVarNames(); }
     AmrData &AmrDataRef() { return amrData; }
     bool AmrDataOk() { return bAmrDataOk; }
     void SetWriteToLevel(const int iwtlev)  { iWriteToLevel = iwtlev; }
@@ -161,7 +157,7 @@ class DataServices {
 
     void CheckProfData();
 
-    void RunStats(std::map<int, string> &mpiFuncNames,
+    void RunStats(std::map<int, std::string> &mpiFuncNames,
                   bool &statsCollected);
 
     void RunSendsPF(std::string &plotfileName,
@@ -169,7 +165,7 @@ class DataServices {
                     bool proxMap,
                     int refRatioAll);
 
-    void RunTimelinePF(std::map<int, string> &mpiFuncNames,
+    void RunTimelinePF(std::map<int, std::string> &mpiFuncNames,
                        std::string &plotfileName,
                        BLProfStats::TimeRange& subTimeRange,
                        int maxSmallImageLength,
@@ -180,7 +176,7 @@ class DataServices {
     void RunACTPF(std::string &plotfileName,
                   int maxSmallImageLength,
                   int refRatioAll,
-                  const amrex::Vector<string> &actFNames);
+                  const amrex::Vector<std::string> &actFNames);
 
     void RunSyncPointData();
     void RunSendRecvList();
@@ -205,7 +201,7 @@ class DataServices {
 #endif
 
   private:
-    string fileName;
+    std::string fileName;
     Amrvis::FileType fileType;
     AmrData amrData;
     bool bAmrDataOk;

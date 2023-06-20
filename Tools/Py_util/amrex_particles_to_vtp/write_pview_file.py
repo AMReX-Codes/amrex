@@ -57,7 +57,6 @@ def write_paraview_file_unst_trimesh(fname,pts,conn,ccdata,ncdata):
     Npts=pts.shape[0]
     Ntri=conn.shape[0]
     zero=0
-    one=1
 
     outfile.write("<?xml version=\"1.0\"?>\n")
     outfile.write("<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">\n")
@@ -125,8 +124,7 @@ def write_paraview_file_unst_trimesh(fname,pts,conn,ccdata,ncdata):
     outfile.close()
 
 def write_paraview_file_cartmesh(fname,dx,prob_lo,N,ncdata,ccdata):
-    
-    zero=0
+
     one=1
     outfile=open(fname,'w')
     outfile.write("<?xml version=\"1.0\"?>\n")
@@ -166,11 +164,11 @@ def write_paraview_file_cartmesh(fname,dx,prob_lo,N,ncdata,ccdata):
     for i in range(N[1]):
         outfile.write("%e\t"%(prob_lo[1]+i*dx[1]))
     outfile.write("\n</DataArray>\n")
-    
+
     outfile.write("<DataArray type=\"Float32\" Name=\"Z\"  format=\"ascii\">\n")
     outfile.write("%e\t"%(0.0))
     outfile.write("\n</DataArray>\n")
-    
+
     outfile.write("</Coordinates>\n")
     outfile.write("</Piece>\n")
     outfile.write("</RectilinearGrid>\n")
@@ -184,8 +182,6 @@ def write_paraview_file_particles(fname,pts,ncdata):
     outfile=open(fname,'w')
 
     Npts=pts.shape[0]
-    zero=0
-    one=1
 
     outfile.write("<?xml version=\"1.0\"?>\n")
     outfile.write("<VTKFile type=\"PolyData\" version=\"0.1\" byte_order=\"LittleEndian\">\n")

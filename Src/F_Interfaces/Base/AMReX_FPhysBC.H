@@ -1,5 +1,6 @@
 #ifndef AMREX_FPHYSBC_H_
 #define AMREX_FPHYSBC_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_PhysBCFunct.H>
 
@@ -13,7 +14,6 @@ public:
 
     FPhysBC (fill_physbc_funptr_t fill, const Geometry* geom_) : fill_physbc(fill), geom(geom_) {}
 
-    ~FPhysBC () {}
     void operator() (MultiFab& mf, int scomp, int ncomp, IntVect const& nghost,
                      Real time, int bccomp);
 

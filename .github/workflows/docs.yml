@@ -1,0 +1,38 @@
+name: Build and Deploy
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-docs
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+
+      - name: Dependencies
+        run: |
+          .github/workflows/dependencies/documentation.sh
+          python3 -m pip install --upgrade pip
+          python3 -m pip install sphinx==5.0.0 sphinx_rtd_theme
+
+      - name: Install and Build
+        run: |
+          ./build_docs.sh
+
+      - name: Deploy
+        if: github.event_name == 'push' && github.repository == 'AMReX-Codes/amrex' && github.ref == 'refs/heads/development'
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACCESS_TOKEN: ${{ secrets.DEPLOY_DOCS }}
+          REPOSITORY_NAME: AMReX-Codes/AMReX-Codes.github.io
+          BRANCH: main # The branch the action should deploy to.
+          FOLDER: build # The folder the action should deploy.
+          TARGET_FOLDER: amrex # The folder the action should deploy to.
+          CLEAN: false # Do not remove existing files from the deploy target.

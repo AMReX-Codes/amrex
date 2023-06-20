@@ -1,6 +1,7 @@
 
 #ifndef AMREX_LEVELBLD_H_
 #define AMREX_LEVELBLD_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>
@@ -22,7 +23,12 @@ class LevelBld
 {
 public:
 
-    virtual ~LevelBld () {}
+    virtual ~LevelBld () = default;
+    LevelBld () noexcept = default;
+    LevelBld (LevelBld const&) = default;
+    LevelBld (LevelBld &&) noexcept = default;
+    LevelBld& operator= (LevelBld const&) = default;
+    LevelBld& operator= (LevelBld &&) noexcept = default;
 
     /**
     * \brief Perform any problem-dependent setup such as physical
@@ -72,7 +78,5 @@ public:
 };
 
 }
-
-extern AMREX_ATTRIBUTE_WEAK amrex::LevelBld* getLevelBld ();
 
 #endif /*_LEVELBLD_H_*/

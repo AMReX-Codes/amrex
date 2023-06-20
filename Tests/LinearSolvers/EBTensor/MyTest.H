@@ -18,11 +18,11 @@ public:
 
 public: // make these public for cuda
     void initProb ();
+    void initData ();
 
 private:
 
     void readParameters ();
-    void initData ();
 
     int n_cell = 128;
     int max_grid_size = 64;

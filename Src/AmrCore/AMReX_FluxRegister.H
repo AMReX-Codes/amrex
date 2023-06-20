@@ -1,5 +1,6 @@
 #ifndef AMREX_FLUXREGISTER_H_
 #define AMREX_FLUXREGISTER_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_BndryRegister.H>
 #include <AMReX_Geometry.H>
@@ -43,7 +44,7 @@ public:
     /**
     * \brief The destructor.
     */
-    virtual ~FluxRegister ();
+    ~FluxRegister () = default;
 
     FluxRegister (FluxRegister&& rhs) noexcept = default;
 
@@ -246,7 +247,7 @@ public:
                   int              destcomp,
                   int              numcomp,
                   Real             mult,
-                  RunOn            gpu_or_cpu) noexcept;
+                  RunOn            runon) noexcept;
 
     /**
     * \brief Increment flux correction with fine data.
@@ -268,7 +269,7 @@ public:
                   int              destcomp,
                   int              numcomp,
                   Real             mult,
-                  RunOn            gpu_or_cpu) noexcept;
+                  RunOn            runon) noexcept;
 
     /**
     * \brief Set flux correction data for a fine box (given by boxno) to a given value.
@@ -285,7 +286,7 @@ public:
                      int              destcomp,
                      int              numcomp,
                      Real             val,
-                     RunOn            gpu_or_cpu) noexcept;
+                     RunOn            runon) noexcept;
 
     /**
     * \brief Apply flux correction.  Note that this takes the coarse Geometry.
@@ -301,18 +302,18 @@ public:
     void Reflux (MultiFab&       mf,
                  const MultiFab& volume,
                  Real            scale,
-                 int             srccomp,
-                 int             destcomp,
-                 int             numcomp,
+                 int             scomp,
+                 int             dcomp,
+                 int             nc,
                  const Geometry& crse_geom);
 
     void Reflux (MultiFab&       mf,
                  const MultiFab& volume,
                  int             dir,
                  Real            scale,
-                 int             srccomp,
-                 int             destcomp,
-                 int             numcomp,
+                 int             scomp,
+                 int             dcomp,
+                 int             nc,
                  const Geometry& crse_geom);
 
     /**
@@ -327,24 +328,32 @@ public:
     */
     void Reflux (MultiFab&       mf,
                  Real            scale,
-                 int             srccomp,
-                 int             destcomp,
-                 int             numcomp,
+                 int             scomp,
+                 int             dcomp,
+                 int             nc,
                  const Geometry& crse_geom);
 
     void Reflux (MultiFab&       mf,
                  int             dir,
                  Real            scale,
-                 int             srccomp,
-                 int             destcomp,
-                 int             numcomp,
+                 int             scomp,
+                 int             dcomp,
+                 int             nc,
                  const Geometry& crse_geom);
 
-#ifndef BL_NO_FORT
+    /**
+     * \brief Overwrite the coarse flux at the coarse/fine interface (and
+     * the interface only) with the fine flux stored in the FluxRegister.
+     *
+     * \param crse_fluxes MultiFab pointers to coarse fluxes.
+     * \param scale       scaling factor by which the fine flux is multiplied.
+     * \param destcomp    starting component in coarse flux MultiFab
+     * \param numcomp     number of components
+     * \param crse_geom   coarse Geometry
+     */
     void OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
                         Real scale, int srccomp, int destcomp, int numcomp,
                         const Geometry& crse_geom);
-#endif
 
 
     /**
@@ -371,7 +380,7 @@ public:
     void read (const std::string& name, std::istream& is);
 
 // public for cuda
-public:
+
     void Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
                  Real scale, int scomp, int dcomp, int nc, const Geometry& geom);
 

@@ -1,12 +1,14 @@
 
 #ifndef BL_NFILES_H
 #define BL_NFILES_H
-
-#include <string>
-#include <fstream>
+#include <AMReX_Config.H>
 
 #include <AMReX_ParallelDescriptor.H>
-#include <AMReX_VisMF.H>
+#include <AMReX_Utility.H>
+#include <AMReX_VisMFBuffer.H>
+
+#include <fstream>
+#include <string>
 
 namespace amrex {
 
@@ -39,7 +41,7 @@ class NFilesIter
     * \param groupsets
     * \param setBuf
     */
-    NFilesIter(int noutfiles, const std::string &fileprefix,
+    NFilesIter(int noutfiles, std::string fileprefix,
                bool groupsets, bool setBuf);
 
 
@@ -50,7 +52,7 @@ class NFilesIter
     * \param deciderproc
     */
     void SetDynamic(int deciderproc = -1);
-    bool GetDynamic() { return ( ! useStaticSetSelection); }
+    [[nodiscard]] bool GetDynamic() const { return ( ! useStaticSetSelection); }
 
 
     /**
@@ -61,7 +63,7 @@ class NFilesIter
     * \param &ranksToWrite
     */
     void SetSparseFPP(const Vector<int> &ranksToWrite);
-    bool GetSparseFPP() const { return useSparseFPP; }
+    [[nodiscard]] bool GetSparseFPP() const { return useSparseFPP; }
 
 
     /**
@@ -71,12 +73,16 @@ class NFilesIter
     * \param &readRanks
     * \param setBuf
     */
-    NFilesIter(const std::string &fileName,
-               const Vector<int> &readRanks,
+    NFilesIter(std::string fileName,
+               Vector<int> readRanks,
                bool setBuf = false);
 
     ~NFilesIter();
 
+    NFilesIter (NFilesIter const&) = delete;
+    NFilesIter (NFilesIter &&) = delete;
+    NFilesIter& operator= (NFilesIter const&) = delete;
+    NFilesIter& operator= (NFilesIter &&) = delete;
 
     /**
     * \brief if appendFirst is true, the first set for this
@@ -147,23 +153,23 @@ class NFilesIter
         return(whichProc % anf);
       } else {
 
-	    int nProcs(ParallelDescriptor::NProcs());
+        int nProcs(ParallelDescriptor::NProcs());
         return(whichProc / LengthOfSet(nProcs, anf));
       }
     }
 
-    const std::string &FileName() const { return fullFileName; }
-    int FileNumber() const { return fileNumber; }
+    [[nodiscard]] const std::string &FileName() const { return fullFileName; }
+    [[nodiscard]] int FileNumber() const { return fileNumber; }
 
     static std::string FileName(int nOutFiles,
                                 const std::string &filePrefix,
-				int whichProc, bool groupSets)
+                                int whichProc, bool groupSets)
     {
       BL_ASSERT(whichProc >= 0 && whichProc < ParallelDescriptor::NProcs());
 
       return ( amrex::Concatenate(filePrefix,
                                    FileNumber(ActualNFiles(nOutFiles),
-				              whichProc, groupSets), minDigits ) );
+                                              whichProc, groupSets), minDigits ) );
     }
 
     static std::string FileName(int fileNumber,
@@ -176,7 +182,7 @@ class NFilesIter
     /**
     * \brief this is the processor coordinating dynamic set selection
     */
-    int CoordinatorProc() const { return coordinatorProc; }
+    [[nodiscard]] int CoordinatorProc() const { return coordinatorProc; }
 
 
     /**
@@ -190,7 +196,7 @@ class NFilesIter
     * \brief these are the order of ranks which wrote to each file
     * [filenumber][ranks in order they wrote to filenumber]
     */
-    const Vector< Vector<int> > &FileNumbersWriteOrder() const { return fileNumbersWriteOrder; }
+    [[nodiscard]] const Vector< Vector<int> > &FileNumbersWriteOrder() const { return fileNumbersWriteOrder; }
 
     void CleanUpMessages();
 
@@ -200,30 +206,33 @@ class NFilesIter
 
   private:
 
-    int myProc;
-    int nProcs;
-    int nOutFiles;
-    int nSets;
-    int mySetPosition;
-    std::string fullFileName;
+    int myProc = -1;
+    int nProcs = -1;
+    int nOutFiles = -1;
+    int nSets = -1;
+    bool groupSets = false;
+    int mySetPosition = -1;
+    int fileNumber = -1;
     std::string filePrefix;
-    VisMF::IO_Buffer io_buffer;
+    std::string fullFileName;
+    VisMFBuffer::IO_Buffer io_buffer;
     std::fstream fileStream;
-    bool finishedWriting;
-    bool groupSets;
-    bool isReading;
-    bool finishedReading;
+    bool finishedWriting = false;
+    bool isReading = false;
+    bool finishedReading = false;
     Vector<int> readRanks;
     Vector< Vector<int> > fileNumbersWriteOrder;        //!< [filenumber][ranks in order they wrote to filenumber]
-    int myReadIndex;
-    bool useStaticSetSelection;
-    int fileNumber, remainingWriters, deciderProc, coordinatorProc;
-    int deciderTag, coordinatorTag, doneTag, writeTag, stReadTag, stWriteTag;
+    int myReadIndex = -1;
+    bool useStaticSetSelection = true;
+    int remainingWriters = -1, deciderProc=-1, coordinatorProc = -1;
+    int deciderTag = -1, coordinatorTag = -1, doneTag = -1, writeTag=-1;
+    int stWriteTag = -1;
+    int stReadTag = -1;
     Vector<int> availableDeciders;
     Vector<int> setZeroProcs;
-    bool useSparseFPP;
+    bool useSparseFPP = false;
     Vector<int> sparseWritingRanks;
-    int mySparseFileNumber;
+    int mySparseFileNumber = -1;
 
     static int currentDeciderIndex;
 
@@ -232,9 +241,7 @@ class NFilesIter
 
     static const int indexUndefined = -1;
 
-    static int minDigits;        //!< for Concatenate
-
-    NFilesIter();  //!< disallow
+    static AMREX_EXPORT int minDigits;        //!< for Concatenate
 };
 
 }

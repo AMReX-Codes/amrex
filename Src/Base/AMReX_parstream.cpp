@@ -1,8 +1,9 @@
-#include <cstdio>
-#include <fstream>
 #include <AMReX_parstream.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParallelDescriptor.H>
+
+#include <cstdio>
+#include <fstream>
 
 namespace amrex
 {
@@ -57,7 +58,7 @@ namespace amrex
   {
     int outInterv = 1;
     ParmParse pp("amrex");
-    pp.query("pout_int", outInterv);
+    pp.queryAdd("pout_int", outInterv);
     if (outInterv == 0) outInterv=ParallelDescriptor::NProcs();
 
     int thisProc = ParallelDescriptor::MyProc();
@@ -97,6 +98,7 @@ namespace amrex
 // in serial, this does absolutely nothing
   static void openFile()
   {
+    amrex::ignore_unused(s_pout);
   }
 #endif
 
@@ -124,7 +126,7 @@ namespace amrex
         s_pout_basename = "amrex_pout" ;
         s_pout_init = true ;
       }
-      // if MPI not initialized, we cant open the file so return cout
+      // if MPI not initialized, we can't open the file so return cout
       if ( ! flag_i || flag_f)
       {
         return std::cout; // MPI hasn't been started yet, or has ended....
@@ -213,4 +215,3 @@ namespace amrex
     return s_pout_filename ;
   }
 }
-

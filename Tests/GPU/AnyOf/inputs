@@ -1,0 +1,10 @@
+ncell = 128 
+ncomp = 1
+nitem = 100000
+max_grid_size = 64 
+nghost = 0 
+
+fabarray.maxcomp = 25
+
+amrex.v = 1
+amrex.async_out = 0

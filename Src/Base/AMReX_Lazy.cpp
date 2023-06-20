@@ -1,32 +1,30 @@
 #include <AMReX_Lazy.H>
 
-namespace amrex {
-
-namespace Lazy
+namespace amrex::Lazy
 {
     FuncQue reduction_queue;
 
-    void QueueReduction (Func f)
+    void QueueReduction (Func f) // NOLINT
     {
 #ifdef BL_USE_MPI
-	reduction_queue.push_back(f);
-	const int max_queue_size = 64;
-	if (reduction_queue.size() >= max_queue_size)
-	    EvalReduction();
+        reduction_queue.push_back(f);
+        const int max_queue_size = 64;
+        if (reduction_queue.size() >= max_queue_size)
+            EvalReduction();
 #else
-	f();
+        f();
 #endif
     }
 
     void EvalReduction ()
     {
 #ifdef BL_USE_MPI
-	static int count = 0;
-	++count;
-	if (count == 1) {
-	    for (auto&& f : reduction_queue)
-		f();
-	    reduction_queue.clear();
+        static int count = 0;
+        ++count;
+        if (count == 1) {
+            for (auto&& f : reduction_queue)
+                f();
+            reduction_queue.clear();
             count = 0;
         }
 #endif
@@ -34,8 +32,6 @@ namespace Lazy
 
     void Finalize ()
     {
-	EvalReduction();
+        EvalReduction();
     }
-}
-
 }

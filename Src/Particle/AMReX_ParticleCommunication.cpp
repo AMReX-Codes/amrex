@@ -11,7 +11,7 @@ void ParticleCopyOp::clear ()
     m_periodic_shift.resize(0);
 }
 
-void ParticleCopyOp::setNumLevels (const int num_levels)
+void ParticleCopyOp::setNumLevels (int num_levels)
 {
     m_boxes.resize(num_levels);
     m_levels.resize(num_levels);
@@ -19,7 +19,7 @@ void ParticleCopyOp::setNumLevels (const int num_levels)
     m_periodic_shift.resize(num_levels);
 }
 
-void ParticleCopyOp::resize (const int gid, const int lev, const int size)
+void ParticleCopyOp::resize (int gid, int lev, int size)
 {
     if (lev >= m_boxes.size())
     {
@@ -34,22 +34,25 @@ void ParticleCopyOp::resize (const int gid, const int lev, const int size)
 void ParticleCopyPlan::clear ()
 {
     m_dst_indices.clear();
-    m_box_counts.clear();
+    m_box_counts_d.clear();
+    m_box_counts_h.clear();
     m_box_offsets.clear();
 
     m_rcv_box_counts.clear();
     m_rcv_box_offsets.clear();
     m_rcv_box_ids.clear();
+    m_rcv_box_pids.clear();
+    m_rcv_box_levs.clear();
 }
 
-void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
+void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize) // NOLINT(readability-convert-member-functions-to-static)
 {
     BL_PROFILE("ParticleCopyPlan::buildMPIStart");
 
 #ifdef AMREX_USE_MPI
     const int NProcs = ParallelContext::NProcsSub();
     const int MyProc = ParallelContext::MyProcSub();
-    const int NNeighborProcs = m_neighbor_procs.size();
+    const auto NNeighborProcs = static_cast<int>(m_neighbor_procs.size());
 
     if (NProcs == 1) return;
 
@@ -65,8 +68,6 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
     m_rcv_num_particles.resize(0);
     m_rcv_num_particles.resize(NProcs, 0);
 
-    Gpu::HostVector<int> box_counts(m_box_counts.size());
-    Gpu::copy(Gpu::deviceToHost, m_box_counts.begin(), m_box_counts.end(), box_counts.begin());
     std::map<int, Vector<int> > snd_data;
 
     m_NumSnds = 0;
@@ -75,10 +76,11 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
         auto box_buffer_indices = map.allBucketsOnProc(i);
         Long nbytes = 0;
         for (auto bucket : box_buffer_indices)
-	{
+        {
             int dst = map.bucketToGrid(bucket);
             int lev = map.bucketToLevel(bucket);
-            int npart = box_counts[bucket];
+            AMREX_ASSERT(m_box_counts_h[bucket] <= static_cast<unsigned int>(std::numeric_limits<int>::max()));
+            int npart = static_cast<int>(m_box_counts_h[bucket]);
             if (npart == 0) continue;
             m_snd_num_particles[i] += npart;
             if (i == MyProc) continue;
@@ -87,9 +89,9 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
             snd_data[i].push_back(lev);
             snd_data[i].push_back(MyProc);
             nbytes += 4*sizeof(int);
-	}
-	m_Snds[i] = nbytes;
-	m_NumSnds += nbytes;
+        }
+        m_Snds[i] = nbytes;
+        m_NumSnds += nbytes;
     }
 
     doHandShake(m_Snds, m_Rcvs);
@@ -113,7 +115,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
         }
     }
 
-    if ( (tot_snds_this_proc == 0) and (tot_rcvs_this_proc == 0) )
+    if ( (tot_snds_this_proc == 0) && (tot_rcvs_this_proc == 0) )
     {
         m_nrcvs = 0;
         m_NumSnds = 0;
@@ -121,7 +123,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
     }
 
     m_RcvProc.resize(0);
-    m_rOffset.resize(0);    
+    m_rOffset.resize(0);
     std::size_t TotRcvBytes = 0;
     for (auto i : m_neighbor_procs)
     {
@@ -132,8 +134,8 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
             TotRcvBytes += m_Rcvs[i];
         }
     }
-    
-    m_nrcvs = m_RcvProc.size();
+
+    m_nrcvs = static_cast<int>(m_RcvProc.size());
 
     m_build_stats.resize(0);
     m_build_stats.resize(m_nrcvs);
@@ -142,20 +144,20 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
     m_build_rreqs.resize(m_nrcvs);
 
     m_rcv_data.resize(TotRcvBytes/sizeof(int));
- 
+
     for (int i = 0; i < m_nrcvs; ++i)
     {
         const auto Who    = m_RcvProc[i];
         const auto offset = m_rOffset[i];
         const auto Cnt    = m_Rcvs[Who];
-        
+
         AMREX_ASSERT(Cnt > 0);
         AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
-        
+
         m_build_rreqs[i] = ParallelDescriptor::Arecv((char*) (m_rcv_data.dataPtr() + offset), Cnt, Who, SeqNum, ParallelContext::CommunicatorSub()).req();
     }
-    
+
     for (auto i : m_neighbor_procs)
     {
         if (i == MyProc) continue;
@@ -174,14 +176,14 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
     m_snd_counts.resize(0);
     m_snd_offsets.resize(0);
     m_snd_pad_correction_h.resize(0);
-    
+
     m_snd_offsets.push_back(0);
     m_snd_pad_correction_h.push_back(0);
     for (int i = 0; i < NProcs; ++i)
     {
         Long nbytes = m_snd_num_particles[i]*psize;
         std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
-        Long Cnt = amrex::aligned_size(acd, nbytes);
+        auto Cnt = static_cast<Long>(amrex::aligned_size(acd, nbytes));
         Long bytes_to_send = (i == MyProc) ? 0 : Cnt;
         m_snd_counts.push_back(bytes_to_send);
         m_snd_offsets.push_back(amrex::aligned_size(acd, m_snd_offsets.back()) + Cnt);
@@ -192,16 +194,19 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
     {
         m_snd_pad_correction_h[i] = m_snd_offsets[i] - m_snd_pad_correction_h[i];
     }
-    
+
     m_snd_pad_correction_d.resize(m_snd_pad_correction_h.size());
     Gpu::copy(Gpu::hostToDevice, m_snd_pad_correction_h.begin(), m_snd_pad_correction_h.end(),
               m_snd_pad_correction_d.begin());
-
+#else
+    amrex::ignore_unused(map,psize);
 #endif
 }
 
-void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
+void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map) // NOLINT(readability-convert-member-functions-to-static)
 {
+    amrex::ignore_unused(map);
+
     BL_PROFILE("ParticleCopyPlan::buildMPIFinish");
 
 #ifdef AMREX_USE_MPI
@@ -213,37 +218,22 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
     {
         ParallelDescriptor::Waitall(m_build_rreqs, m_build_stats);
 
-        Gpu::HostVector<int> rcv_box_offsets;
-        Gpu::HostVector<int> rcv_box_counts;
-        Gpu::HostVector<int> rcv_box_ids;
-        Gpu::HostVector<int> rcv_box_levs;
-        Gpu::HostVector<int> rcv_box_pids;
+        m_rcv_box_offsets.resize(0);
+        m_rcv_box_counts.resize(0);
+        m_rcv_box_ids.resize(0);
+        m_rcv_box_levs.resize(0);
+        m_rcv_box_pids.resize(0);
 
-        rcv_box_offsets.push_back(0);
-        for (int i = 0; i < m_rcv_data.size(); i+=4)
+        m_rcv_box_offsets.push_back(0);
+        for (int i = 0, N = static_cast<int>(m_rcv_data.size()); i < N; i+=4)
         {
-            rcv_box_counts.push_back(m_rcv_data[i]);
+            m_rcv_box_counts.push_back(m_rcv_data[i]);
             AMREX_ASSERT(ParallelContext::MyProcSub() == map.procID(m_rcv_data[i+1], m_rcv_data[i+2]));
-            rcv_box_ids.push_back(m_rcv_data[i+1]);
-            rcv_box_levs.push_back(m_rcv_data[i+2]);
-            rcv_box_pids.push_back(m_rcv_data[i+3]);
-            rcv_box_offsets.push_back(rcv_box_offsets.back() + rcv_box_counts.back());
+            m_rcv_box_ids.push_back(m_rcv_data[i+1]);
+            m_rcv_box_levs.push_back(m_rcv_data[i+2]);
+            m_rcv_box_pids.push_back(m_rcv_data[i+3]);
+            m_rcv_box_offsets.push_back(m_rcv_box_offsets.back() + m_rcv_box_counts.back());
         }
-
-        m_rcv_box_counts.resize(rcv_box_counts.size());
-        Gpu::copy(Gpu::hostToDevice, rcv_box_counts.begin(), rcv_box_counts.end(), m_rcv_box_counts.begin());
-
-        m_rcv_box_offsets.resize(rcv_box_offsets.size());
-        Gpu::copy(Gpu::hostToDevice, rcv_box_offsets.begin(), rcv_box_offsets.end(), m_rcv_box_offsets.begin());
-
-        m_rcv_box_ids.resize(rcv_box_ids.size());
-        Gpu::copy(Gpu::hostToDevice, rcv_box_ids.begin(), rcv_box_ids.end(), m_rcv_box_ids.begin());
-
-        m_rcv_box_levs.resize(rcv_box_levs.size());
-        Gpu::copy(Gpu::hostToDevice, rcv_box_levs.begin(), rcv_box_levs.end(), m_rcv_box_levs.begin());
-
-        m_rcv_box_pids.resize(rcv_box_pids.size());
-        Gpu::copy(Gpu::hostToDevice, rcv_box_pids.begin(), rcv_box_pids.end(), m_rcv_box_pids.begin());
     }
 
     for (int j = 0; j < m_nrcvs; ++j)
@@ -253,28 +243,27 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
         const auto Cnt    = m_Rcvs[Who]/sizeof(int);
 
         Long nparticles = 0;
-        for (int i = offset; i < offset + Cnt; i +=4)
+        for (auto i = offset; i < offset + Cnt; i +=4)
         {
             nparticles += m_rcv_data[i];
         }
         m_rcv_num_particles[Who] = nparticles;
     }
-
 #endif // MPI
 }
 
-void ParticleCopyPlan::doHandShake (const Vector<Long>& Snds, Vector<Long>& Rcvs) const
+void ParticleCopyPlan::doHandShake (const Vector<Long>& Snds, Vector<Long>& Rcvs) const // NOLINT(readability-convert-member-functions-to-static)
 {
     BL_PROFILE("ParticleCopyPlan::doHandShake");
     if (m_local) doHandShakeLocal(Snds, Rcvs);
     else doHandShakeGlobal(Snds, Rcvs);
 }
 
-void ParticleCopyPlan::doHandShakeLocal (const Vector<Long>& Snds, Vector<Long>& Rcvs) const
+void ParticleCopyPlan::doHandShakeLocal (const Vector<Long>& Snds, Vector<Long>& Rcvs) const // NOLINT(readability-convert-member-functions-to-static)
 {
 #ifdef AMREX_USE_MPI
     const int SeqNum = ParallelDescriptor::SeqNum();
-    const int num_rcvs = m_neighbor_procs.size();
+    const auto num_rcvs = static_cast<int>(m_neighbor_procs.size());
     Vector<MPI_Status>  stats(num_rcvs);
     Vector<MPI_Request> rreqs(num_rcvs);
 
@@ -306,10 +295,12 @@ void ParticleCopyPlan::doHandShakeLocal (const Vector<Long>& Snds, Vector<Long>&
     {
         ParallelDescriptor::Waitall(rreqs, stats);
     }
+#else
+    amrex::ignore_unused(Snds,Rcvs);
 #endif
 }
 
-void ParticleCopyPlan::doHandShakeAllToAll (const Vector<Long>& Snds, Vector<Long>& Rcvs) const
+void ParticleCopyPlan::doHandShakeAllToAll (const Vector<Long>& Snds, Vector<Long>& Rcvs)
 {
 #ifdef AMREX_USE_MPI
     BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(Long),
@@ -327,10 +318,12 @@ void ParticleCopyPlan::doHandShakeAllToAll (const Vector<Long>& Snds, Vector<Lon
 
     BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(Long),
                     ParallelContext::MyProcSub(), BLProfiler::AfterCall());
+#else
+    amrex::ignore_unused(Snds,Rcvs);
 #endif
 }
 
-void ParticleCopyPlan::doHandShakeGlobal (const Vector<Long>& Snds, Vector<Long>& Rcvs) const
+void ParticleCopyPlan::doHandShakeGlobal (const Vector<Long>& Snds, Vector<Long>& Rcvs)
 {
 #ifdef AMREX_USE_MPI
     const int SeqNum = ParallelDescriptor::SeqNum();
@@ -349,10 +342,10 @@ void ParticleCopyPlan::doHandShakeGlobal (const Vector<Long>& Snds, Vector<Long>
     Vector<MPI_Request> rreqs(num_rcvs);
 
     Vector<Long> num_bytes_rcv(num_rcvs);
-    for (int i = 0; i < num_rcvs; ++i)
+    for (int i = 0; i < static_cast<int>(num_rcvs); ++i)
     {
-        MPI_Irecv( &num_bytes_rcv[i], 1, ParallelDescriptor::Mpi_typemap<Long>::type(),
-                   MPI_ANY_SOURCE, SeqNum, ParallelContext::CommunicatorSub(), &rreqs[i] );
+        BL_MPI_REQUIRE(MPI_Irecv( &num_bytes_rcv[i], 1, ParallelDescriptor::Mpi_typemap<Long>::type(),
+                                  MPI_ANY_SOURCE, SeqNum, ParallelContext::CommunicatorSub(), &rreqs[i] ));
     }
     for (int i = 0; i < NProcs; ++i)
     {
@@ -362,13 +355,15 @@ void ParticleCopyPlan::doHandShakeGlobal (const Vector<Long>& Snds, Vector<Long>
                   ParallelContext::CommunicatorSub());
     }
 
-    MPI_Waitall(num_rcvs, rreqs.data(), stats.data());
+    MPI_Waitall(static_cast<int>(num_rcvs), rreqs.data(), stats.data());
 
     for (int i = 0; i < num_rcvs; ++i)
     {
         const auto Who = stats[i].MPI_SOURCE;
         Rcvs[Who] = num_bytes_rcv[i];
     }
+#else
+    amrex::ignore_unused(Snds,Rcvs);
 #endif
 }
 
@@ -380,5 +375,7 @@ void amrex::communicateParticlesFinish (const ParticleCopyPlan& plan)
     {
         ParallelDescriptor::Waitall(plan.m_particle_rreqs, plan.m_particle_stats);
     }
+#else
+    amrex::ignore_unused(plan);
 #endif
 }

@@ -17,5 +17,9 @@ CEXE_sources += AMReX_multifabutil_fi.cpp AMReX_physbc_fi.cpp
 CEXE_headers += AMReX_FPhysBC.H
 CEXE_sources += AMReX_FPhysBC.cpp
 
+ifeq ($(USE_MPI),TRUE)
+  F90EXE_sources += AMReX_fi_mpi_mod.F90 AMReX_mpi_reduce_int.F90 AMReX_mpi_reduce_real.F90
+endif
+
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/F_Interfaces/Base
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_Interfaces/Base

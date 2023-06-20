@@ -8,7 +8,7 @@ extern "C"
 {
     void amrex_fi_print_box (const int* lo, const int* hi, const int* nodal)
     {
-	Box box {IntVect(lo), IntVect(hi), IntVect(nodal)};
-	AllPrint() << box << "\n";
+        Box box {IntVect(lo), IntVect(hi), IntVect(nodal)};
+        AllPrint() << box << "\n";
     }
 }

@@ -1,6 +1,7 @@
 
 #ifndef BL_CCSE_MPI_H_
 #define BL_CCSE_MPI_H_
+#include <AMReX_Config.H>
 
 //
 // This header encapsulates the MPI header.
@@ -12,8 +13,7 @@
 
 #include <mpi.h>
 
-namespace amrex {
-namespace ParallelDescriptor
+namespace amrex::ParallelDescriptor
 {
     using lull_t = unsigned long long[8];
 
@@ -40,7 +40,6 @@ namespace ParallelDescriptor
     template <> MPI_Datatype Mpi_typemap<double>::type();
     template <> MPI_Datatype Mpi_typemap<lull_t>::type();
 }
-}
 
 #else
 
@@ -50,27 +49,25 @@ typedef int MPI_Group;
 typedef int MPI_Datatype;
 struct MPI_Status {};
 typedef int MPI_Request;
-const int MPI_DATATYPE_NULL = 0;
-const int MPI_REQUEST_NULL  = 0;
-const int MPI_COMM_WORLD    = 0;
-const int MPI_COMM_NULL     = 0;
-const int MPI_GROUP_NULL    = 0;
-const int MPI_PROC_NULL     = 0;
-const int MPI_MAX_PROCESSOR_NAME = 64;
+static constexpr int MPI_DATATYPE_NULL = 0;
+static constexpr int MPI_REQUEST_NULL  = 0;
+static constexpr int MPI_COMM_WORLD    = 0;
+static constexpr int MPI_COMM_NULL     = 0;
+static constexpr int MPI_GROUP_NULL    = 0;
+static constexpr int MPI_PROC_NULL     = 0;
+static constexpr int MPI_MAX_PROCESSOR_NAME = 64;
 
-const int MPI_MINLOC = 0;
-const int MPI_MAXLOC = 0;
+static constexpr int MPI_MINLOC = 0;
+static constexpr int MPI_MAXLOC = 0;
 
-namespace amrex {
-namespace ParallelDescriptor
+namespace amrex::ParallelDescriptor
 {
     template <class T>
     //! Communication datatype (note: this structure also works without MPI)
     struct Mpi_typemap
     {
-	static MPI_Datatype type();
+        static MPI_Datatype type();
     };
-}
 }
 
 #endif /*BL_USE_MPI*/

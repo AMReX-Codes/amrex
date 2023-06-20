@@ -1,65 +1,98 @@
 #
-# Fist, define the library we want to add
+# First, define the library we want to add
 # Think of this as a constructor for object "amrex"
 # In the following, we will use setters to change
 # the properties of this object, like setting the sources,
 # setting the compile definitions and so on
 #
-add_library( amrex )
-add_library( AMReX::amrex ALIAS amrex )
+foreach(D IN LISTS AMReX_SPACEDIM)
+    if (AMReX_BUILD_SHARED_LIBS)
+        add_library(amrex_${D}d SHARED)
+    else ()
+        add_library(amrex_${D}d STATIC)
+    endif ()
+    add_library(AMReX::amrex_${D}d ALIAS amrex_${D}d)
+endforeach()
 
-if (ENABLE_DPCPP)
-   include(AMReXSYCL)
-   target_link_libraries(amrex PUBLIC SYCL)
-endif ()
+#
+# alias: last element will be legacy target
+#
+list(LENGTH AMReX_SPACEDIM list_len)
+if(list_len EQUAL 0)
+    message(FATAL_ERROR "AMReX_SPACEDIM cannot be empty! Provide a ;-separated LIST or single value!")
+endif()
+math(EXPR list_last "${list_len} - 1")
+list(GET AMReX_SPACEDIM ${list_last} AMReX_SPACEDIM_LAST)
+add_library(amrex ALIAS amrex_${AMReX_SPACEDIM_LAST}d)
+add_library(AMReX::amrex ALIAS amrex_${AMReX_SPACEDIM_LAST}d)
+
+# legacy symlink for build directory: libamrex.[so|a] / amrex.[dll.lib]
+add_custom_command(TARGET amrex_${AMReX_SPACEDIM_LAST}d POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        $<TARGET_FILE_NAME:amrex_${AMReX_SPACEDIM_LAST}d>
+        $<TARGET_FILE_DIR:amrex_${AMReX_SPACEDIM_LAST}d>/$<TARGET_FILE_PREFIX:amrex_${AMReX_SPACEDIM_LAST}d>amrex$<TARGET_FILE_SUFFIX:amrex_${AMReX_SPACEDIM_LAST}d>
+)
+
+
+#
+# Setup parallel backends (any type: inter/intra-node)
+#
+include(AMReXParallelBackends)
+
+#
+# Add definitions
+#
+include(AMReXSetDefines)
+
+#
+# Find and link third party libraries if needed
+#
+include(AMReXThirdPartyLibraries)
 
 # Where to store Fortran modules
 if (CMAKE_Fortran_COMPILER_LOADED)
-   set_target_properties( amrex
-      PROPERTIES
-      Fortran_MODULE_DIRECTORY
-      ${PROJECT_BINARY_DIR}/mod_files
-      INTERFACE_INCLUDE_DIRECTORIES
-      $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/mod_files>
-      )
-   # adding those is a work-around that avoids that downstream C++ projects have
-   # to `enable_language(Fortran)`
-   target_link_libraries(amrex PUBLIC ${CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES})
+    foreach(D IN LISTS AMReX_SPACEDIM)
+        set_target_properties(amrex_${D}d
+          PROPERTIES
+          Fortran_MODULE_DIRECTORY
+          ${PROJECT_BINARY_DIR}/mod_files_${D}d
+          INTERFACE_INCLUDE_DIRECTORIES
+          $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/mod_files_${D}d>
+          )
+    endforeach()
 endif ()
 
 # Load Flags targets and use them if no user-defined flags is given
 include(AMReXFlagsTargets)
 
-if (CMAKE_Fortran_COMPILER_LOADED AND (NOT CMAKE_Fortran_FLAGS) )
-   target_link_libraries(amrex
-      PUBLIC
-      $<BUILD_INTERFACE:Flags_Fortran>
-      )
-endif ()
+foreach(D IN LISTS AMReX_SPACEDIM)
+    if (CMAKE_Fortran_COMPILER_LOADED AND (NOT CMAKE_Fortran_FLAGS) )
+       target_link_libraries(amrex_${D}d
+          PUBLIC
+          $<BUILD_INTERFACE:Flags_Fortran>
+          )
+    endif ()
 
+    if (NOT CMAKE_CXX_FLAGS)
+       target_link_libraries(amrex_${D}d
+          PUBLIC
+          $<BUILD_INTERFACE:Flags_CXX>
+          )
+    endif ()
 
-target_link_libraries(amrex
-   PUBLIC
-   $<BUILD_INTERFACE:Flags_CXX_REQUIRED>
-   )
-
-if (NOT CMAKE_CXX_FLAGS)
-   target_link_libraries(amrex
-      PUBLIC
-      $<BUILD_INTERFACE:Flags_CXX>
-      )
-endif ()
-
-if (ENABLE_FPE)
-   target_link_libraries(amrex
-      PUBLIC
-      $<BUILD_INTERFACE:Flags_FPE>
-      )
-endif ()
+    if (AMReX_FPE)
+       target_link_libraries(amrex_${D}d
+          PUBLIC
+          $<BUILD_INTERFACE:Flags_FPE>
+          )
+    endif ()
+endforeach()
 
 # General configuration
-include ( AMReX_Config )
-configure_amrex ()
+include( AMReX_Config )
+foreach(D IN LISTS AMReX_SPACEDIM)
+    configure_amrex(amrex_${D}d)
+endforeach()
 
 #
 # Core components
@@ -67,50 +100,47 @@ configure_amrex ()
 add_subdirectory(Base)
 add_subdirectory(Boundary)
 add_subdirectory(AmrCore)
-add_subdirectory(Amr)
 
 #
 # Optional components
 #
-if (ENABLE_EB)
-   if (ENABLE_CUDA AND ( "${NVCC_VERSION_MAJOR}.${NVCC_VERSION_MINOR}" VERSION_EQUAL "9.2") )
+if (AMReX_AMRLEVEL)
+   add_subdirectory(Amr)
+endif ()
+
+if (AMReX_EB)
+   if (  AMReX_CUDA AND
+         ( CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 9.2) AND
+         ( CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 9.3)  )
       message(FATAL_ERROR "EB component of AMReX is not compatible with CUDA 9.2")
    endif ()
    add_subdirectory(EB)
 endif ()
 
-if (ENABLE_LINEAR_SOLVERS)
+if (AMReX_LINEAR_SOLVERS)
    add_subdirectory(LinearSolvers)
-   target_link_libraries(amrex
-      PUBLIC
-      $<BUILD_INTERFACE:Flags_Fortran_REQUIRED>
-      )
 endif ()
 
-if (ENABLE_FORTRAN_INTERFACES)
+if (AMReX_FORTRAN_INTERFACES)
    add_subdirectory(F_Interfaces)
 endif ()
 
-if (ENABLE_PARTICLES)
+if (AMReX_PARTICLES)
    add_subdirectory(Particle)
 endif ()
 
 #
 # Optional external components
 #
-if (ENABLE_AMRDATA)
+if (AMReX_AMRDATA)
    add_subdirectory(Extern/amrdata)
-   target_link_libraries(amrex
-      PUBLIC
-      $<BUILD_INTERFACE:Flags_Fortran_REQUIRED>
-      )
 endif()
 
-if (ENABLE_PROFPARSER)
+if (AMReX_PROFPARSER)
     #
     # Generate BLProfParser.tab.H, BLProfParser.tab.cpp and
     # BLProfParser.lex.yy.cpp
-    # Must be done here where target "amrex" is defined because
+    # Must be done here where targets "amrex_${D}d" are defined because
     # add_custom_command create rules which are seen only within the scope
     # from which add_custom_command is called
     #
@@ -133,35 +163,41 @@ if (ENABLE_PROFPARSER)
         WORKING_DIRECTORY ${_dir}
         COMMENT "Generating BLProfParser.lex.yy.cpp" )
 
-    target_sources( amrex
-        PRIVATE
-        ${_dir}/BLProfParser.tab.cpp
-        ${_dir}/BLProfParser.lex.yy.cpp
-        ${_dir}/BLProfParser.tab.H
-        )
-    unset(_dir)
+    foreach(D IN LISTS AMReX_SPACEDIM)
+        target_sources(amrex_${D}d
+            PRIVATE
+            ${_dir}/BLProfParser.tab.cpp
+            ${_dir}/BLProfParser.lex.yy.cpp
+            ${_dir}/BLProfParser.tab.H
+            )
+        unset(_dir)
+    endforeach()
 
     add_subdirectory(Extern/ProfParser)
 endif ()
 
-if (ENABLE_SENSEI_INSITU)
+if (AMReX_SENSEI)
    add_subdirectory(Extern/SENSEI)
 endif ()
 
-if (ENABLE_SUNDIALS)
-   add_subdirectory(Extern/SUNDIALS4)
-endif ()
-
-if (ENABLE_CONDUIT OR ENABLE_ASCENT)
+if (AMReX_CONDUIT OR AMReX_ASCENT)
    add_subdirectory(Extern/Conduit)
 endif ()
 
-if (ENABLE_HYPRE OR ENABLE_PETSC)
+if (AMReX_HYPRE OR AMReX_PETSC)
    add_subdirectory(Extern/HYPRE)
 endif ()
 
-if (ENABLE_PETSC)
+if (AMReX_PETSC)
    add_subdirectory(Extern/PETSc)
+endif ()
+
+if (AMReX_SUNDIALS)
+   add_subdirectory(Extern/SUNDIALS)
+endif ()
+
+if (AMReX_HDF5)
+   add_subdirectory(Extern/HDF5)
 endif ()
 
 #
@@ -173,26 +209,33 @@ print_amrex_configuration_summary ()
 #
 # Make all headers as PUBLIC HEADERS so that they get installed
 #
-get_target_property(AMREX_SOURCES amrex SOURCES)
+foreach(D IN LISTS AMReX_SPACEDIM)
+    get_target_property(AMREX_SOURCES amrex_${D}d SOURCES)
 
-set(AMREX_PUBLIC_HEADERS ${AMREX_SOURCES})
-list(FILTER AMREX_PUBLIC_HEADERS INCLUDE REGEX "\\.H")
-set_target_properties( amrex PROPERTIES PUBLIC_HEADER "${AMREX_PUBLIC_HEADERS}")
+    set(AMREX_PUBLIC_HEADERS ${AMREX_SOURCES})
+    list(FILTER AMREX_PUBLIC_HEADERS INCLUDE REGEX "\\.H")
+    set_target_properties(amrex_${D}d PROPERTIES PUBLIC_HEADER "${AMREX_PUBLIC_HEADERS}")
+endforeach()
 
 #
-# If ENABLE_CUDA, C++ files will be compiled as CUDA sources
+# If AMReX_CUDA, C++ files will be compiled as CUDA sources
 #
-if (ENABLE_CUDA)
-   setup_target_for_cuda_compilation( amrex )
+if (AMReX_CUDA)
+    foreach(D IN LISTS AMReX_SPACEDIM)
+        setup_target_for_cuda_compilation(amrex_${D}d)
+    endforeach()
 endif ()
 
+#
+# Generate config header
+#
+include(AMReXGenerateConfigHeader)
+generate_config_header()
 
 #
-# Install amrex  -- Export
+# Static Analysis
 #
-include(AMReXInstallHelpers)
-set(_amrex_targets Flags_CXX Flags_Fortran Flags_FPE )
-if (ENABLE_DPCPP)
-   list(APPEND _amrex_targets SYCL)
+include(AMReXClangTidy)
+if (AMReX_CLANG_TIDY)
+   setup_clang_tidy()
 endif()
-install_amrex(${_amrex_targets})

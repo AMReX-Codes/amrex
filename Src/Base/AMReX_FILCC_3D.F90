@@ -1,10 +1,11 @@
+#include <AMReX_Config.H>
 
 #ifndef AMREX_XSDK
 
 ! -----------------------------------------------------------
 !> This routine is intended to be a generic fill function
 !! for cell centered data.  It knows how to exrapolate,
-!! and reflect data and can be used to suppliment problem
+!! and reflect data and can be used to supplement problem
 !! specific fill functions (ie. EXT_DIR).
 !!
 !! \param q        <=  array to fill
@@ -12,8 +13,8 @@
 !! \param domlo,hi  => index extent of problem domain
 !! \param dx        => cell spacing
 !! \param xlo       => physical location of lower left hand
-!!	           corner of q array
-!! \param bc	=> array of boundary flags bc(SPACEDIM,lo:hi)
+!!                     corner of q array
+!! \param bc        => array of boundary flags bc(SPACEDIM,lo:hi)
 !!
 !! NOTE: corner data not used in computing soln but must have
 !!       reasonable values for arithmetic to live

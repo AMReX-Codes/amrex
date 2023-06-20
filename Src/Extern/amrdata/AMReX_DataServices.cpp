@@ -55,7 +55,7 @@ extern void SimpleRemoveOverlap(BoxArray &ba);
 extern void avgDown(MultiFab &S_crse, MultiFab &S_fine, int scomp, int dcomp,
              int ncomp, Vector<int> &ratio);
 extern std::string SanitizeName(const std::string &s);
-extern void WriteFab(const string &filenameprefix, const int xdim, const int ydim,
+extern void WriteFab(const std::string &filenameprefix, const int xdim, const int ydim,
                      const double *data);
 
 #define SHOWVAL(val) { cout << #val << " = " << val << endl; }
@@ -71,7 +71,7 @@ namespace ParallelDescriptor {
 
     int cnt(0);
 
-    for(int j(0); j < n; ++j) {
+    for(size_t j(0); j < n; ++j) {
       for(int i(0); i < BL_SPACEDIM; ++i) {
         tmp[cnt++] = b[j].smallEnd(i);
       }
@@ -93,7 +93,7 @@ namespace ParallelDescriptor {
 
     cnt = 0;
 
-    for(int j(0); j < n; ++j) {
+    for(size_t j(0); j < n; ++j) {
       IntVect sm(&tmp[cnt]);
       cnt += BL_SPACEDIM;
       IntVect bg(&tmp[cnt]);
@@ -108,7 +108,7 @@ namespace ParallelDescriptor {
 
 
 // ---------------------------------------------------------------
-DataServices::DataServices(const string &filename, const Amrvis::FileType &filetype)
+DataServices::DataServices(const std::string &filename, const Amrvis::FileType &filetype)
              : fileName(filename), fileType(filetype), bAmrDataOk(false),
                iWriteToLevel(-1)
 {
@@ -145,7 +145,7 @@ DataServices::DataServices() {
 
 
 // ---------------------------------------------------------------
-void DataServices::Init(const string &filename, const Amrvis::FileType &filetype) {
+void DataServices::Init(const std::string &filename, const Amrvis::FileType &filetype) {
 
   BL_PROFILE("DataServices::Init");
 
@@ -169,8 +169,8 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
 
     // -------- parse the main blprof header file.  everyone does this for now
     if(bIOP) { cout << "Parsing main blprof header file." << endl; }
-    string blpFileName_H("bl_prof_H");
-    string blpFullFileName_H(fileName + '/' + blpFileName_H);
+    std::string blpFileName_H("bl_prof_H");
+    std::string blpFullFileName_H(fileName + '/' + blpFileName_H);
     if( ! (yyin = fopen(blpFullFileName_H.c_str(), "r"))) {
       if(bIOP) {
         cerr << "DataServices::Init:  0:  Cannot open file:  " << blpFullFileName_H << endl;
@@ -184,7 +184,7 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
 
     // -------- parse the main call stats header file.  everyone does this for now
     if(bIOP) { cout << "Parsing main call stats header file." << endl; }
-    string regPrefix_H("bl_call_stats_H");
+    std::string regPrefix_H("bl_call_stats_H");
     std::string regFileName_H(fileName + '/' + regPrefix_H);
     if( ! (yyin = fopen(regFileName_H.c_str(), "r"))) {
       if(bIOP) {
@@ -236,7 +236,7 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
     if(bTraceDataAvailable) {
       // -------- parse the data headers.  everyone does this for now
       if(bIOP) { cout << "Parsing data headers." << endl; }
-      const Vector<string> &regHeaderFileNames = regOutputStats_H.GetHeaderFileNames();
+      const Vector<std::string> &regHeaderFileNames = regOutputStats_H.GetHeaderFileNames();
       for(int i(0); i < regHeaderFileNames.size(); ++i) {
         std::string regFileName_H_nnnn(fileName + '/' + regHeaderFileNames[i]);
         if( ! (yyin = fopen(regFileName_H_nnnn.c_str(), "r"))) {
@@ -255,8 +255,8 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
 
       if(regOutputStats_H.TraceDataValid()) {
 //        if(bIOP) {
-//	  cout << "Calling InitRegionTimeRanges." << endl;
-//	}
+//          cout << "Calling InitRegionTimeRanges." << endl;
+//        }
         RegionsProfStats::OpenAllStreams(fileName);
         Box myBox(procBoxArray[myProc]);
 //        bRegionDataAvailable = regOutputStats_H.InitRegionTimeRanges(myBox);
@@ -264,8 +264,8 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
         RegionsProfStats::CloseAllStreams();
         regOutputStats_H.SetFNames(blProfStats_H.BLPFNames());
 //        if(bIOP) {
-//	  cout << "Finished InitRegionTimeRanges." << endl;
-//	}
+//          cout << "Finished InitRegionTimeRanges." << endl;
+//        }
       } else {
         bTraceDataAvailable = false;
       }
@@ -276,7 +276,7 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
     if(bParseFilterFile) {
       if(bIOP) cout << "Parsing filter file." << endl;
       ParseFilterFile();
-    } 
+    }
 
     if( ! regOutputStats_H.TimeRangeInitialized()) {
       regOutputStats_H.InitFilterTimeRanges();
@@ -334,15 +334,15 @@ void DataServices::InitRegionTimeRanges() {
     if(bTraceDataAvailable) {
       if(regOutputStats_H.TraceDataValid()) {
         if(bIOP) {
-	  cout << "Calling InitRegionTimeRanges." << endl;
-	}
+          cout << "Calling InitRegionTimeRanges." << endl;
+        }
         RegionsProfStats::OpenAllStreams(fileName);
         Box myBox(procBoxArray[myProc]);
         bRegionDataAvailable = regOutputStats_H.InitRegionTimeRanges(myBox);
         RegionsProfStats::CloseAllStreams();
         if(bIOP) {
-	  cout << "Finished InitRegionTimeRanges." << endl;
-	}
+          cout << "Finished InitRegionTimeRanges." << endl;
+        }
       } else {
         bTraceDataAvailable = false;
       }
@@ -392,12 +392,12 @@ void DataServices::SetBatchMode() {
 // ---------------------------------------------------------------
 void DataServices::SetFabOutSize(int iSize) {
   if (profiler) // Unused with profiling data
-  { 
+  {
     if(iSize == 1 || iSize == 8 || iSize == 32) {
       dsFabOutSize = iSize;
     } else {
       cerr << "Warning:  DataServices::SetFabOutSize:  size must be 1, 8 or 32 only."
-  	   << "  Defaulting to native." << endl;
+             << "  Defaulting to native." << endl;
       dsFabOutSize = 0;
     }
   }
@@ -408,7 +408,7 @@ void DataServices::SetFabOutSize(int iSize) {
 void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
   bool bContinueLooping(true);
   va_list ap;
-  int whichDSIndex;
+  int whichDSIndex=0;
   int ioProcNumber(ParallelDescriptor::IOProcessorNumber());
 
  while(bContinueLooping) {
@@ -455,12 +455,12 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
     fileNameLengthPadded += fileNameLengthPadded % 8;  // for alignment on the t3e
     fileNameCharPtr = new char[fileNameLengthPadded];
     if(ParallelDescriptor::IOProcessor()) {
-      strcpy(fileNameCharPtr, ds->fileName.c_str());
+      std::strncpy(fileNameCharPtr, ds->fileName.c_str(), fileNameLengthPadded);
     }
 
     ParallelDescriptor::Bcast(fileNameCharPtr, fileNameLengthPadded,0);
 
-    string newFileName(fileNameCharPtr);
+    std::string newFileName(fileNameCharPtr);
     delete [] fileNameCharPtr;
 
     // make a new DataServices for nonioprocessors
@@ -525,7 +525,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
         bool bDeleteDS(false);
         BL_ASSERT(DataServices::dsArray[whichDSIndex]->numberOfUsers >= 0);
         if(ParallelDescriptor::IOProcessor()) {
-	  bDeleteDS = (DataServices::dsArray[whichDSIndex]->numberOfUsers == 0);
+          bDeleteDS = (DataServices::dsArray[whichDSIndex]->numberOfUsers == 0);
         }
 
         {
@@ -544,19 +544,19 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
     {
       FArrayBox *destFab = NULL;
       Box destBox;
-      int fineFillLevel;
-      string derivedTemp;
+      int fineFillLevel=0;
+      std::string derivedTemp;
       char *derivedCharPtr;
-      int derivedLength, derivedLengthPadded;
+      int derivedLength=0, derivedLengthPadded;
 
       if(ParallelDescriptor::IOProcessor()) {
-	destFab = (FArrayBox *) va_arg(ap, void *);
+        destFab = (FArrayBox *) va_arg(ap, void *);
         const Box *boxRef = (const Box *) va_arg(ap, void *);
-	destBox = *boxRef;
+        destBox = *boxRef;
         fineFillLevel = va_arg(ap, int);
-        const string *derivedRef = (const string *) va_arg(ap, void *);
+        const std::string *derivedRef = (const std::string *) va_arg(ap, void *);
         derivedTemp = *derivedRef;
-	derivedLength = derivedTemp.length();
+        derivedLength = derivedTemp.length();
       }
 
       ParallelDescriptor::Bcast(&destBox, 1, 0);
@@ -567,12 +567,12 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       derivedLengthPadded += derivedLengthPadded % 8;
       derivedCharPtr = new char[derivedLengthPadded];
       if(ParallelDescriptor::IOProcessor()) {
-        strcpy(derivedCharPtr, derivedTemp.c_str());
+        std::strncpy(derivedCharPtr, derivedTemp.c_str(), derivedLengthPadded);
       }
 
       ParallelDescriptor::Bcast(derivedCharPtr, derivedLengthPadded, 0);
 
-      string derived(derivedCharPtr);
+      std::string derived(derivedCharPtr);
       delete [] derivedCharPtr;
 
       ds->FillVar(destFab, destBox, fineFillLevel, derived, ioProcNumber);
@@ -596,21 +596,21 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
     {
       // interface: (requestType, dsPtr, fabFileName, box, maxLevel, derivedName)
       Box destBox;
-      int fineFillLevel;
-      string fabFileName;
-      string derivedTemp;
+      int fineFillLevel=0;
+      std::string fabFileName;
+      std::string derivedTemp;
       char *derivedCharPtr;
-      int derivedLength, derivedLengthPadded;
+      int derivedLength=0, derivedLengthPadded;
 
       if(ParallelDescriptor::IOProcessor()) {
-        const string *fabFileNameRef = (const string *) va_arg(ap, void *);
-	fabFileName = *fabFileNameRef;
+        const std::string *fabFileNameRef = (const std::string *) va_arg(ap, void *);
+        fabFileName = *fabFileNameRef;
         const Box *boxRef = (const Box *) va_arg(ap, void *);
-	destBox = *boxRef;
+        destBox = *boxRef;
         fineFillLevel = va_arg(ap, int);
-        const string *derivedRef = (const string *) va_arg(ap, void *);
+        const std::string *derivedRef = (const std::string *) va_arg(ap, void *);
         derivedTemp = *derivedRef;
-	derivedLength = derivedTemp.length();
+        derivedLength = derivedTemp.length();
       }
 
       ParallelDescriptor::Bcast(&destBox, 1, 0);
@@ -621,12 +621,12 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       derivedLengthPadded += derivedLengthPadded % 8;
       derivedCharPtr = new char[derivedLengthPadded];
       if(ParallelDescriptor::IOProcessor()) {
-        strcpy(derivedCharPtr, derivedTemp.c_str());
+        std::strncpy(derivedCharPtr, derivedTemp.c_str(), derivedLengthPadded);
       }
 
       ParallelDescriptor::Bcast(derivedCharPtr, derivedLengthPadded, 0);
 
-      string derived(derivedCharPtr);
+      std::string derived(derivedCharPtr);
       delete [] derivedCharPtr;
 
       ds->WriteFab(fabFileName, destBox, fineFillLevel, derived);
@@ -638,14 +638,14 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
     {
       // interface: (requestType, dsPtr, fabFileName, box, maxLevel)
       Box destBox;
-      int fineFillLevel;
-      string fabFileName;
+      int fineFillLevel=0;
+      std::string fabFileName;
 
       if(ParallelDescriptor::IOProcessor()) {
-        const string *fabFileNameRef = (const string *) va_arg(ap, void *);
-	fabFileName = *fabFileNameRef;
+        const std::string *fabFileNameRef = (const std::string *) va_arg(ap, void *);
+        fabFileName = *fabFileNameRef;
         const Box *boxRef = (const Box *) va_arg(ap, void *);
-	destBox = *boxRef;
+        destBox = *boxRef;
         fineFillLevel = va_arg(ap, int);
       }
 
@@ -658,17 +658,17 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
 
     case DumpSlicePlaneOneVar:
     {
-      int slicedir;
-      int slicenum;
-      string derivedTemp;
+      int slicedir=0;
+      int slicenum=0;
+      std::string derivedTemp;
       char *derivedCharPtr;
-      int derivedLength, derivedLengthPadded;
+      int derivedLength=0, derivedLengthPadded;
       if(ParallelDescriptor::IOProcessor()) {
         slicedir = va_arg(ap, int);
         slicenum = va_arg(ap, int);
-        const string *derivedRef = (const string *) va_arg(ap, void *);
+        const std::string *derivedRef = (const std::string *) va_arg(ap, void *);
         derivedTemp = *derivedRef;
-	derivedLength = derivedTemp.length();
+        derivedLength = derivedTemp.length();
       }
 
       ParallelDescriptor::Bcast(&slicedir, 1, 0);
@@ -679,11 +679,11 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       derivedLengthPadded += derivedLengthPadded % 8;
       derivedCharPtr = new char[derivedLengthPadded];
       if(ParallelDescriptor::IOProcessor()) {
-        strcpy(derivedCharPtr, derivedTemp.c_str());
+        std::strncpy(derivedCharPtr, derivedTemp.c_str(), derivedLengthPadded);
       }
       ParallelDescriptor::Bcast(derivedCharPtr, derivedLengthPadded, 0);
 
-      string derived(derivedCharPtr);
+      std::string derived(derivedCharPtr);
       delete [] derivedCharPtr;
 
       ds->DumpSlice(slicedir, slicenum, derived);
@@ -693,8 +693,8 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
 
     case DumpSlicePlaneAllVars:
     {
-      int slicedir;
-      int slicenum;
+      int slicedir=0;
+      int slicenum=0;
       if(ParallelDescriptor::IOProcessor()) {
         slicedir = va_arg(ap, int);
         slicenum = va_arg(ap, int);
@@ -710,15 +710,15 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
     case DumpSliceBoxOneVar:
     {
       Box box;
-      string derivedTemp;
+      std::string derivedTemp;
       char *derivedCharPtr;
-      int derivedLength, derivedLengthPadded;
+      int derivedLength=0, derivedLengthPadded;
       if(ParallelDescriptor::IOProcessor()) {
         const Box *boxRef = (const Box *) va_arg(ap, void *);
-	box = *boxRef;
-        const string *derivedRef = (const string *) va_arg(ap, void *);
-	derivedTemp = *derivedRef;
-	derivedLength = derivedTemp.length();
+        box = *boxRef;
+        const std::string *derivedRef = (const std::string *) va_arg(ap, void *);
+        derivedTemp = *derivedRef;
+        derivedLength = derivedTemp.length();
       }
 
       ParallelDescriptor::Bcast(&box, 1, 0);
@@ -728,11 +728,11 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       derivedLengthPadded += derivedLengthPadded % 8;
       derivedCharPtr = new char[derivedLengthPadded];
       if(ParallelDescriptor::IOProcessor()) {
-        strcpy(derivedCharPtr, derivedTemp.c_str());
+        std::strncpy(derivedCharPtr, derivedTemp.c_str(), derivedLengthPadded);
       }
       ParallelDescriptor::Bcast(derivedCharPtr, derivedLengthPadded, 0);
 
-      string derived(derivedCharPtr);
+      std::string derived(derivedCharPtr);
       delete [] derivedCharPtr;
 
       ds->DumpSlice(box, derived);
@@ -744,7 +744,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       Box box;
       if(ParallelDescriptor::IOProcessor()) {
         const Box *boxRef = (const Box *) va_arg(ap, void *);
-	box = *boxRef;
+        box = *boxRef;
       }
 
       ParallelDescriptor::Bcast(&box, 1, 0);
@@ -757,19 +757,19 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
     case MinMaxRequest:
     {
       Box box;
-      string derivedTemp;
+      std::string derivedTemp;
       char *derivedCharPtr;
-      int level;
-      int derivedLength, derivedLengthPadded;
+      int level=0;
+      int derivedLength=0, derivedLengthPadded;
       Real dataMin, dataMax;
       bool minMaxValid;
       if(ParallelDescriptor::IOProcessor()) {
         const Box *boxRef = (const Box *) va_arg(ap, void *);
-        const string *derivedRef = (const string *) va_arg(ap, void *);
+        const std::string *derivedRef = (const std::string *) va_arg(ap, void *);
         level = va_arg(ap, int);
-	box = *boxRef;
-	derivedTemp = *derivedRef;
-	derivedLength = derivedTemp.length();
+        box = *boxRef;
+        derivedTemp = *derivedRef;
+        derivedLength = derivedTemp.length();
       }
 
       ParallelDescriptor::Bcast(&box, 1, 0);
@@ -780,11 +780,11 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       derivedLengthPadded += derivedLengthPadded % 8;
       derivedCharPtr = new char[derivedLengthPadded];
       if(ParallelDescriptor::IOProcessor()) {
-        strcpy(derivedCharPtr, derivedTemp.c_str());
+        std::strncpy(derivedCharPtr, derivedTemp.c_str(), derivedLengthPadded);
       }
       ParallelDescriptor::Bcast(derivedCharPtr, derivedLengthPadded, 0);
 
-      string derived(derivedCharPtr);
+      std::string derived(derivedCharPtr);
       delete [] derivedCharPtr;
 
       ds->MinMax(box, derived, level, dataMin, dataMax, minMaxValid);
@@ -794,9 +794,9 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
         Real *dataMinRef = va_arg(ap, Real *);
         Real *dataMaxRef = va_arg(ap, Real *);
         bool *minMaxValidRef = va_arg(ap, bool *);
-	*dataMinRef = dataMin;
-	*dataMaxRef = dataMax;
-	*minMaxValidRef = minMaxValid;
+        *dataMinRef = dataMin;
+        *dataMaxRef = dataMax;
+        *minMaxValidRef = minMaxValid;
       }
     }
     break;
@@ -815,20 +815,20 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       // need to broadcast pointBoxArraySize, pointBoxArray, derivedName,
       // coarsestLevelToSearch, and finestLevelToSearch
 
-      int pointBoxArraySize;
+      int pointBoxArraySize=0;
       Box *pointBoxArrayPtr(NULL), *pointBoxArrayTempPtr(NULL);
-      int coarsestLevelToSearch, finestLevelToSearch;
+      int coarsestLevelToSearch=0, finestLevelToSearch=0;
 
-      string derivedTemp;
+      std::string derivedTemp;
       char *derivedCharPtr(NULL);
-      int derivedLength, derivedLengthPadded;
+      int derivedLength=0, derivedLengthPadded;
 
       if(ParallelDescriptor::IOProcessor()) {
         pointBoxArraySize = va_arg(ap, int);
         pointBoxArrayTempPtr = (Box *) va_arg(ap, void *);
-        const string *derivedRef = (const string *) va_arg(ap, void *);
+        const std::string *derivedRef = (const std::string *) va_arg(ap, void *);
         derivedTemp = *derivedRef;
-	derivedLength = derivedTemp.length();
+        derivedLength = derivedTemp.length();
         coarsestLevelToSearch = va_arg(ap, int);
         finestLevelToSearch   = va_arg(ap, int);
       }
@@ -844,15 +844,15 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       derivedLengthPadded += derivedLengthPadded % 8;
       derivedCharPtr = new char[derivedLengthPadded];
       if(ParallelDescriptor::IOProcessor()) {
-        strcpy(derivedCharPtr, derivedTemp.c_str());
-	for(int iBox = 0; iBox < pointBoxArraySize; ++iBox) {
-	  pointBoxArrayPtr[iBox] = pointBoxArrayTempPtr[iBox];
-	}
+        std::strncpy(derivedCharPtr, derivedTemp.c_str(), derivedLengthPadded);
+        for(int iBox = 0; iBox < pointBoxArraySize; ++iBox) {
+          pointBoxArrayPtr[iBox] = pointBoxArrayTempPtr[iBox];
+        }
       }
       ParallelDescriptor::Bcast(derivedCharPtr, derivedLengthPadded, 0);
       ParallelDescriptor::Bcast(pointBoxArrayPtr, pointBoxArraySize, 0);
 
-      string derived(derivedCharPtr);
+      std::string derived(derivedCharPtr);
       delete [] derivedCharPtr;
 
       // return values
@@ -862,13 +862,13 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       bool bPointIsValid;
 
       ds->PointValue(pointBoxArraySize, pointBoxArrayPtr,
-		     derived,
-		     coarsestLevelToSearch,
-		     finestLevelToSearch,
-		     intersectedLevel,
-		     intersectedBox,
-		     dataPointValue,
-		     bPointIsValid);
+                     derived,
+                     coarsestLevelToSearch,
+                     finestLevelToSearch,
+                     intersectedLevel,
+                     intersectedBox,
+                     dataPointValue,
+                     bPointIsValid);
 
       // set the return values
       if(ParallelDescriptor::IOProcessor()) {
@@ -876,10 +876,10 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
         Box *intersectedBoxRef   = (Box *) va_arg(ap, void *);
         Real *dataPointValueRef  = va_arg(ap, Real *);
         bool *bPointIsValidRef   = va_arg(ap, bool *);
-	*intersectedLevelRef     = intersectedLevel;
-	*intersectedBoxRef       = intersectedBox;
-	*dataPointValueRef       = dataPointValue;
-	*bPointIsValidRef        = bPointIsValid;
+        *intersectedLevelRef     = intersectedLevel;
+        *intersectedBoxRef       = intersectedBox;
+        *dataPointValueRef       = dataPointValue;
+        *bPointIsValidRef        = bPointIsValid;
       }
 
       // dont need to broadcast the return values--only the IOProcessor uses them
@@ -900,20 +900,20 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       // need to broadcast lineBoxArraySize, lineBoxArray, derivedName,
       // coarsestLevelToSearch, and finestLevelToSearch
 
-      int lineBoxArraySize;
+      int lineBoxArraySize=0;
       Box *lineBoxArrayPtr(NULL), *lineBoxArrayTempPtr(NULL);
       int coarsestLevelToSearch(-1), finestLevelToSearch(-1), whichDir(-1);
       XYPlotDataList *dataList(NULL);
 
-      string derivedTemp;
+      std::string derivedTemp;
       char *derivedCharPtr;
-      int derivedLength, derivedLengthPadded;
+      int derivedLength=0, derivedLengthPadded;
 
       if(ParallelDescriptor::IOProcessor()) {
         lineBoxArraySize = va_arg(ap, int);
         lineBoxArrayTempPtr = (Box *) va_arg(ap, void *);
         whichDir = va_arg(ap, int);
-        const string *derivedRef = (const string *) va_arg(ap, void *);
+        const std::string *derivedRef = (const std::string *) va_arg(ap, void *);
         derivedTemp = *derivedRef;
         derivedLength = derivedTemp.length();
         coarsestLevelToSearch = va_arg(ap, int);
@@ -932,7 +932,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       derivedLengthPadded += derivedLengthPadded % 8;
       derivedCharPtr = new char[derivedLengthPadded];
       if(ParallelDescriptor::IOProcessor()) {
-        strcpy(derivedCharPtr, derivedTemp.c_str());
+        std::strncpy(derivedCharPtr, derivedTemp.c_str(), derivedLengthPadded);
         for(int iBox(0); iBox < lineBoxArraySize; ++iBox) {
           lineBoxArrayPtr[iBox] = lineBoxArrayTempPtr[iBox];
         }
@@ -940,7 +940,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       ParallelDescriptor::Bcast(derivedCharPtr, derivedLengthPadded, 0);
       ParallelDescriptor::Bcast(lineBoxArrayPtr, lineBoxArraySize, 0);
 
-      string derived(derivedCharPtr);
+      std::string derived(derivedCharPtr);
       delete [] derivedCharPtr;
 
       // return values
@@ -962,7 +962,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
 
       delete [] lineBoxArrayPtr;
 
-    } 
+    }
     break;
 
     case InvalidRequestType:
@@ -1043,7 +1043,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       int maxSmallImageLength, refRatioAll;
       bool *proxMapPtr;
 
-      if (ParallelDescriptor::IOProcessor()) 
+      if (ParallelDescriptor::IOProcessor())
       {
         plotfileNamePtr =  (std::string *) va_arg(ap, void *);
         maxSmallImageLength = va_arg(ap, int);
@@ -1055,11 +1055,11 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       amrex::BroadcastBool(*proxMapPtr, ParallelDescriptor::MyProc(), ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator());
 
       // --- Broadcast Ints
-      ParallelDescriptor::Bcast(&maxSmallImageLength, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
-      ParallelDescriptor::Bcast(&refRatioAll, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
-      
-      // --- Broadcast String
-      amrex::BroadcastString(*plotfileNamePtr, ParallelDescriptor::MyProc(), ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
+      ParallelDescriptor::Bcast(&maxSmallImageLength, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator());
+      ParallelDescriptor::Bcast(&refRatioAll, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator());
+
+      // --- Broadcast std::string
+      amrex::BroadcastString(*plotfileNamePtr, ParallelDescriptor::MyProc(), ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator());
 
       ds->RunSendsPF(*plotfileNamePtr, maxSmallImageLength, *proxMapPtr, refRatioAll);
     }
@@ -1086,7 +1086,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
         // Get passed data
         mpiFuncNames = *((std::map<int, std::string> *) va_arg(ap, void *));
         plotfileName = *((std::string *) va_arg(ap, void *));
-        subTimeRange = *((BLProfStats::TimeRange *) va_arg(ap, void *)); 
+        subTimeRange = *((BLProfStats::TimeRange *) va_arg(ap, void *));
         maxSmallImageLength = va_arg(ap, int);
         refRatioAll = va_arg(ap, int);
         nTimeSlots = va_arg(ap, int);
@@ -1110,13 +1110,13 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       amrex::BroadcastBool(statsCollected, ParallelDescriptor::MyProc(), ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator());
 
       // --- Broadcast Ints
-      ParallelDescriptor::Bcast(&maxSmallImageLength, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
-      ParallelDescriptor::Bcast(&refRatioAll, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
-      ParallelDescriptor::Bcast(&nTimeSlots, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
+      ParallelDescriptor::Bcast(&maxSmallImageLength, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator());
+      ParallelDescriptor::Bcast(&refRatioAll, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator());
+      ParallelDescriptor::Bcast(&nTimeSlots, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator());
 
       // --- Broadcast Reals
-      ParallelDescriptor::Bcast(&start, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
-      ParallelDescriptor::Bcast(&stop, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
+      ParallelDescriptor::Bcast(&start, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator());
+      ParallelDescriptor::Bcast(&stop, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator());
 
       // --- Broadcast Map as 2 Arrays
       amrex::BroadcastArray(mapFirst, ParallelDescriptor::MyProc(), ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator());
@@ -1130,9 +1130,9 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
         plotfileName = fileNameAndmapSecond.front();
         for(int i(0); i<mapFirst.size(); ++i)
         {
-          mpiFuncNames.insert(std::pair<int, std::string>(mapFirst[i+1], fileNameAndmapSecond[i])); 
+          mpiFuncNames.insert(std::pair<int, std::string>(mapFirst[i+1], fileNameAndmapSecond[i]));
         }
-      }        
+      }
 
       ds->RunTimelinePF(mpiFuncNames, plotfileName, subTimeRange, maxSmallImageLength,
                          refRatioAll, nTimeSlots, statsCollected);
@@ -1158,7 +1158,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
     }
     break;
 
-// May be unnessecary or unwanted, but profiling data has a default.
+// May be unnecessary or unwanted, but profiling data has a default.
 // Placed here for consistency.
 
     default:
@@ -1179,7 +1179,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
 
 // ---------------------------------------------------------------
 bool DataServices::DumpSlice(int slicedir, int slicenum,
-                             const string &varname)
+                             const std::string &varname)
 {
   if( ! bAmrDataOk) {
     return false;
@@ -1192,7 +1192,7 @@ bool DataServices::DumpSlice(int slicedir, int slicenum,
     iWTL = iWriteToLevel;
   }
 
-  string sliceFile = fileName;
+  std::string sliceFile = fileName;
   sliceFile += ".";
   sliceFile += varname;
   sliceFile += ".";
@@ -1229,9 +1229,9 @@ bool DataServices::DumpSlice(int slicedir, int slicenum,
   cout << endl;
   if( ! amrData.ProbDomain()[iWTL].contains(sliceBox)) {
     cerr << "Error:  sliceBox = " << sliceBox << "  slicedir " << slicenum
-	 << " on Level " << iWTL
-	 << " not in probDomain: " << amrData.ProbDomain()[iWTL]
-	 << endl;
+         << " on Level " << iWTL
+         << " not in probDomain: " << amrData.ProbDomain()[iWTL]
+         << endl;
     return false;
   }
   bool bWF = WriteFab(sliceFile, sliceBox, iWTL, varname);
@@ -1252,7 +1252,7 @@ bool DataServices::DumpSlice(int slicedir, int slicenum) {  // dump all vars
     iWTL = iWriteToLevel;
   }
 
-  string sliceFile = fileName;
+  std::string sliceFile = fileName;
   sliceFile += ".";
   if(slicedir == Amrvis::XDIR) {
     sliceFile += "xslice";
@@ -1287,9 +1287,9 @@ bool DataServices::DumpSlice(int slicedir, int slicenum) {  // dump all vars
   cout << endl;
   if( ! amrData.ProbDomain()[iWTL].contains(sliceBox)) {
     cerr << "Error:  sliceBox = " << sliceBox << "  slicedir " << slicenum
-	 << " on Level " << iWTL
-	 << " not in probDomain: " << amrData.ProbDomain()[iWTL]
-	 << endl;
+         << " on Level " << iWTL
+         << " not in probDomain: " << amrData.ProbDomain()[iWTL]
+         << endl;
     return false;
   }
   bool bWF = WriteFab(sliceFile, sliceBox, iWTL);
@@ -1298,7 +1298,7 @@ bool DataServices::DumpSlice(int slicedir, int slicenum) {  // dump all vars
 
 
 // ---------------------------------------------------------------
-bool DataServices::DumpSlice(const Box &b, const string &varname) {
+bool DataServices::DumpSlice(const Box &b, const std::string &varname) {
   if( ! bAmrDataOk) {
     return false;
   }
@@ -1310,7 +1310,7 @@ bool DataServices::DumpSlice(const Box &b, const string &varname) {
     iWTL = iWriteToLevel;
   }
 
-  string sliceFile = fileName;
+  std::string sliceFile = fileName;
   sliceFile += ".";
   sliceFile += varname;
   sliceFile += ".";
@@ -1330,7 +1330,7 @@ bool DataServices::DumpSlice(const Box &b, const string &varname) {
                        b.bigEnd(Amrvis::XDIR),   b.bigEnd(Amrvis::YDIR),   b.bigEnd(Amrvis::ZDIR), iWTL);
 #endif
   if (count >= N) {
-    amrex::Abort("DataServices::DumpSlice(3): slicechar buffer too small");      
+    amrex::Abort("DataServices::DumpSlice(3): slicechar buffer too small");
   }
   sliceFile += slicechar;
   sliceFile += ".fab";
@@ -1340,9 +1340,9 @@ bool DataServices::DumpSlice(const Box &b, const string &varname) {
 
   if( ! amrData.ProbDomain()[iWTL].contains(b)) {
     cerr << "Slice box not in probDomain: "
-	 << amrData.ProbDomain()[iWTL]
-	 << " on Level " << iWTL
-	 << endl;
+         << amrData.ProbDomain()[iWTL]
+         << " on Level " << iWTL
+         << endl;
     return false;
   }
   bool bWF = WriteFab(sliceFile, b, iWTL, varname);
@@ -1363,7 +1363,7 @@ bool DataServices::DumpSlice(const Box &b) {  // dump all vars
     iWTL = iWriteToLevel;
   }
 
-  string sliceFile = fileName;
+  std::string sliceFile = fileName;
   sliceFile += ".";
   const int N = 256;
   char slicechar[N];
@@ -1381,7 +1381,7 @@ bool DataServices::DumpSlice(const Box &b) {  // dump all vars
                        b.bigEnd(Amrvis::XDIR),   b.bigEnd(Amrvis::YDIR),   b.bigEnd(Amrvis::ZDIR), iWTL);
 #endif
   if (count >= N)
-    amrex::Abort("DataServices::DumpSlice(4): slicechar buffer too small");      
+    amrex::Abort("DataServices::DumpSlice(4): slicechar buffer too small");
   sliceFile += slicechar;
   sliceFile += ".fab";
   cout << "sliceFile = " << sliceFile << endl;
@@ -1390,9 +1390,9 @@ bool DataServices::DumpSlice(const Box &b) {  // dump all vars
 
   if( ! amrData.ProbDomain()[iWTL].contains(b)) {
     cerr << "Slice box not in probDomain: "
-	 << amrData.ProbDomain()[iWTL]
-	 << " on Level " << iWTL
-	 << endl;
+         << amrData.ProbDomain()[iWTL]
+         << " on Level " << iWTL
+         << endl;
     return false;
   }
   bool bWF = WriteFab(sliceFile, b, iWTL);
@@ -1403,8 +1403,8 @@ bool DataServices::DumpSlice(const Box &b) {  // dump all vars
 
 // ---------------------------------------------------------------
 bool DataServices::FillVar(FArrayBox *destFab, const Box &destBox,
-			   int finestFillLevel, const string &varname,
-			   int procWithFab)
+                           int finestFillLevel, const std::string &varname,
+                           int procWithFab)
 {
   if( ! bAmrDataOk) {
     return false;
@@ -1417,7 +1417,7 @@ bool DataServices::FillVar(FArrayBox *destFab, const Box &destBox,
 
 // ---------------------------------------------------------------
 bool DataServices::FillVar(MultiFab &destMultiFab, int finestFillLevel,
-			   const string &varname)
+                           const std::string &varname)
 {
   if( ! bAmrDataOk) {
     return false;
@@ -1436,8 +1436,8 @@ bool DataServices::FillVar(MultiFab &destMultiFab, int finestFillLevel,
 // to create the FillVared fabs on separate processors
 //
 //
-bool DataServices::WriteFab(const string &fname, const Box &region, int lev,
-		            const string &varname)
+bool DataServices::WriteFab(const std::string &fname, const Box &region, int lev,
+                            const std::string &varname)
 {
   if( ! bAmrDataOk) {
     return false;
@@ -1452,7 +1452,7 @@ bool DataServices::WriteFab(const string &fname, const Box &region, int lev,
   destFabs[0]  = &data;
   destBoxes[0] = region;
   amrData.FillVar(destFabs, destBoxes, lev, varname,
-		  ParallelDescriptor::IOProcessorNumber());
+                  ParallelDescriptor::IOProcessorNumber());
 
   bool bWF(true);
   if(ParallelDescriptor::IOProcessor()) {
@@ -1492,7 +1492,7 @@ bool DataServices::WriteFab(const string &fname, const Box &region, int lev,
 // to create the FillVared fabs on separate processors
 //
 //
-bool DataServices::WriteFab(const string &fname, const Box &region, int lev) {
+bool DataServices::WriteFab(const std::string &fname, const Box &region, int lev) {
   if( ! bAmrDataOk) {
     return false;
   }
@@ -1511,7 +1511,7 @@ bool DataServices::WriteFab(const string &fname, const Box &region, int lev) {
     destFabs[0]  = &tempdata;
     destBoxes[0] = region;
     amrData.FillVar(destFabs, destBoxes, lev, amrData.PlotVarNames()[ivar],
-		    ParallelDescriptor::IOProcessorNumber());
+                    ParallelDescriptor::IOProcessorNumber());
     int srccomp(0);
     int destcomp(ivar);
     int ncomp(1);
@@ -1552,7 +1552,7 @@ bool DataServices::WriteFab(const string &fname, const Box &region, int lev) {
 
 
 // ---------------------------------------------------------------
-bool DataServices::CanDerive(const string &name) const {
+bool DataServices::CanDerive(const std::string &name) const {
   if( ! bAmrDataOk) {
     return false;
   }
@@ -1561,7 +1561,7 @@ bool DataServices::CanDerive(const string &name) const {
 
 
 // ---------------------------------------------------------------
-bool DataServices::CanDerive(const Vector<string> &names) const {
+bool DataServices::CanDerive(const Vector<std::string> &names) const {
   if( ! bAmrDataOk) {
     return false;
   }
@@ -1586,14 +1586,14 @@ int DataServices::NumDeriveFunc() const {
 
 
 // ---------------------------------------------------------------
-void DataServices::PointValue(int pointBoxArraySize, Box *pointBoxArray,
-		              const string &currentDerived,
-		              int coarsestLevelToSearch,
-			      int finestLevelToSearch,
-		              int &intersectedLevel,
-		              Box &intersectedGrid,
-			      Real &dataPointValue,
-		              bool &bPointIsValid)
+void DataServices::PointValue(int /*pointBoxArraySize*/, Box *pointBoxArray,
+                              const std::string &currentDerived,
+                              int coarsestLevelToSearch,
+                              int finestLevelToSearch,
+                              int &intersectedLevel,
+                              Box &intersectedGrid,
+                              Real &dataPointValue,
+                              bool &bPointIsValid)
 {
   bPointIsValid = false;
   if( ! bAmrDataOk) {
@@ -1601,8 +1601,8 @@ void DataServices::PointValue(int pointBoxArraySize, Box *pointBoxArray,
   }
 
   intersectedLevel =
-	  amrData.FinestContainingLevel(pointBoxArray[finestLevelToSearch],
-					finestLevelToSearch);
+          amrData.FinestContainingLevel(pointBoxArray[finestLevelToSearch],
+                                        finestLevelToSearch);
 
   if(intersectedLevel < coarsestLevelToSearch) {
     return;
@@ -1627,7 +1627,7 @@ void DataServices::PointValue(int pointBoxArraySize, Box *pointBoxArray,
     destFab = new FArrayBox(destBox, 1);
   }
   amrData.FillVar(destFab, destBox, intersectedLevel, currentDerived,
-		  ParallelDescriptor::IOProcessorNumber());
+                  ParallelDescriptor::IOProcessorNumber());
 
   if(ParallelDescriptor::IOProcessor()) {
     dataPointValue = (destFab->dataPtr())[0];
@@ -1639,8 +1639,8 @@ void DataServices::PointValue(int pointBoxArraySize, Box *pointBoxArray,
 
 
 // ---------------------------------------------------------------
-void DataServices::LineValues(int lineBoxArraySize, Box *lineBoxArray, int whichDir,
-                              const string &currentDerived,
+void DataServices::LineValues(int /*lineBoxArraySize*/, Box *lineBoxArray, int whichDir,
+                              const std::string &currentDerived,
                               int coarsestLevelToSearch, int finestLevelToSearch,
                               XYPlotDataList *dataList, bool &bLineIsValid) {
   bLineIsValid = false;
@@ -1673,8 +1673,8 @@ void DataServices::LineValues(int lineBoxArraySize, Box *lineBoxArray, int which
 
 
 // ---------------------------------------------------------------
-bool DataServices::MinMax(const Box &onBox, const string &derived, int level,
-		          Real &dataMin, Real &dataMax, bool &minMaxValid)
+bool DataServices::MinMax(const Box &onBox, const std::string &derived, int level,
+                          Real &dataMin, Real &dataMax, bool &minMaxValid)
 {
   minMaxValid =  amrData.MinMax(onBox, derived, level, dataMin, dataMax);
   return minMaxValid;
@@ -1709,7 +1709,7 @@ void DataServices::ParseFilterFile()
 // ----------------------------------------------------------------------
 void DataServices::WriteSummary(std::ostream &os, bool bWriteAverage,
                                 int whichProc, bool bUseTrace,
-				bool graphTopPct)
+                                bool graphTopPct)
 {
   bool bIOP(ParallelDescriptor::IOProcessor());
   if(bUseTrace) {
@@ -1745,7 +1745,7 @@ void DataServices::CheckProfData()
     if(bCommDataAvailable) {
       if(bIOP) { cout << "Checking CommProfStats." << endl; }
       Vector<Long> nBMin, nBMax, nRMin, nRMax;
-      const Vector<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
+      const Vector<std::string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
 
       if(myProc < commHeaderFileNames.size()) {
         for(int hfnI(0); hfnI < commHeaderFileNames.size(); ++hfnI) {
@@ -1770,16 +1770,16 @@ void DataServices::CheckProfData()
     if(bRegionDataAvailable) {
       if(bIOP) { cout << endl << "---------------- checking regions data." << endl; }
 
-      const Vector<string> &regionsHeaderFileNames = RegionsProfStats::GetHeaderFileNames();
+      const Vector<std::string> &regionsHeaderFileNames = RegionsProfStats::GetHeaderFileNames();
       cout << "# of RegionFiles: " << regionsHeaderFileNames.size() << endl;
       RegionsProfStats regionsOutputStats;
 
-      string regPrefix_H("bl_call_stats_H");
+      std::string regPrefix_H("bl_call_stats_H");
       std::string regFileName_H(fileName + '/' + regPrefix_H);
       if((yyin = fopen(regFileName_H.c_str(), "r"))) {
         yyparse(&regionsOutputStats);
         fclose(yyin);
-      } 
+      }
       else {
         cerr << "DataServices::CheckProfData: Cannot open file  " << regPrefix_H << endl;
       }
@@ -1803,7 +1803,7 @@ void DataServices::CheckProfData()
       cout << "Number of regions = " << regionsOutputStats.RegionNumbers().size() << endl;
       regionsOutputStats.CheckRegionsData();
     }
-                   
+
     ParallelDescriptor::Barrier();
     if(bIOP) { cout << "---------------- finished checking profiling data." << endl << endl; }
     if(bIOP) { cout << "Check Time = " << ParallelDescriptor::second() - dstart << " s." << endl; }
@@ -1877,7 +1877,7 @@ void DataServices::PrintCommStats(std::ostream &os,
     }
   }
   if(printHeaderNames) {
-    const Vector<string> &headerFileNames = commOutputStats_H.GetHeaderFileNames();
+    const Vector<std::string> &headerFileNames = commOutputStats_H.GetHeaderFileNames();
     if(headerFileNames.size() > 0) {
       os << "headerFileNames:" << '\n';
       for(int i(0); i < headerFileNames.size(); ++i) {
@@ -1890,7 +1890,7 @@ void DataServices::PrintCommStats(std::ostream &os,
 
 
 // ----------------------------------------------------------------------
-void DataServices::RunStats(std::map<int, string> &mpiFuncNames,
+void DataServices::RunStats(std::map<int, std::string> &mpiFuncNames,
                                 bool &statsCollected)
 {
     bool bIOP(ParallelDescriptor::IOProcessor());
@@ -1913,7 +1913,7 @@ void DataServices::RunStats(std::map<int, string> &mpiFuncNames,
     Long totalNCommStats(0), totalSentData(0);
     int dataNProcs(BLProfStats::GetNProcs());
     Vector<int> rankNodeNumbers(dataNProcs, 0);
-    const Vector<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
+    const Vector<std::string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
 
     CommProfStats::SetInitDataBlocks(true);
     CommProfStats::InitDataFileNames(commHeaderFileNames);
@@ -1989,7 +1989,7 @@ void DataServices::RunStats(std::map<int, string> &mpiFuncNames,
       for(int i(0); i < totalFunctionCalls.size(); ++i) {
         if(totalFunctionCalls[i] > 0) {
           const BLProfiler::CommFuncType cft = static_cast<BLProfiler::CommFuncType> (i);
-          string fName(BLProfiler::CommStats::CFTToString(cft));
+          std::string fName(BLProfiler::CommStats::CFTToString(cft));
           cout << "  " << fName << "  " << totalFunctionCalls[i] << endl;
           mpiFuncNames.insert(std::make_pair(i, fName));
         }
@@ -2093,7 +2093,7 @@ void DataServices::RunSendsPF(std::string &plotfileName,
     BL_PROFILE_VAR_STOP(runsendspftop)
 
     BL_PROFILE_VAR("runSendsPF_PP", runsendspfpp)
-    const Vector<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
+    const Vector<std::string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
     CommProfStats::SetInitDataBlocks(true);
     CommProfStats::InitDataFileNames(commHeaderFileNames);
     CommProfStats::OpenAllStreams(fileName);
@@ -2196,7 +2196,7 @@ void DataServices::RunSendsPF(std::string &plotfileName,
       b.setBig(XDIR, iX);
       BoxArray bA(b);
       MultiFab mfLine(bA, dmapOneProc, 1, 0);
-      mfLine.copy(sendMF);
+      mfLine.ParallelCopy(sendMF);
       Real value(0.0);
       if(bIOP) {
         for(int iLine(0); iLine < b.length(YDIR); ++iLine) {
@@ -2258,7 +2258,7 @@ void DataServices::RunSendsPF(std::string &plotfileName,
       const DistributionMapping sqDM(sqBA);
       sqState[i].define(sqBA, sqDM, numState, nGrow);
       sqState[i].setVal(0.0);
-      sqState[i].copy(state[i]);
+      sqState[i].ParallelCopy(state[i]);
     }
 
 
@@ -2334,8 +2334,8 @@ BLProfStats::TimeRange DataServices::FindCalcTimeRange()
     bool bIOP(ParallelDescriptor::IOProcessor());
     int  myProc(ParallelDescriptor::MyProc());
     int  nProcs(ParallelDescriptor::NProcs());
- 
-    const Vector<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
+
+    const Vector<std::string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
     BLProfStats::TimeRange calcTimeRange(std::numeric_limits<Real>::max(), -std::numeric_limits<Real>::max());
 
     // find the calc's min and max times.  the user could set these, too.
@@ -2368,12 +2368,12 @@ BLProfStats::TimeRange DataServices::FindCalcTimeRange()
 }
 
 // ----------------------------------------------------------------------
-void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
+void DataServices::RunTimelinePF(std::map<int, std::string> &mpiFuncNames,
                                      std::string &plotfileName,
                                      BLProfStats::TimeRange &subTimeRange,
                                      int maxSmallImageLength,
                                      int refRatioAll, int nTimeSlots,
-	                             bool &statsCollected)
+                                     bool &statsCollected)
 {
     BL_PROFILE("DataServices::RunTimelinePF()");
 
@@ -2398,7 +2398,7 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
 
     if(bIOP) { cout << endl << "---------------- Timeline." << endl; }
 
-    const Vector<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
+    const Vector<std::string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
     if( ! statsCollected) {
       RunStats(mpiFuncNames, statsCollected);
     }
@@ -2432,7 +2432,7 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
 
     Vector<MultiFab> state(nLevels);
     IntVect cRR(1, 1);
-    Vector<string> nameTagNames, barrierNames;
+    Vector<std::string> nameTagNames, barrierNames;
     Real ntnMultiplier(0.0), bnMultiplier(0.0);
     Vector<Real> ntnNumbers, bnNumbers;
 
@@ -2481,7 +2481,7 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
 
         yyparse(&commOutputStats);
         fclose(yyin);
- 
+
         if(hfnI_I == 0) {  // this assumes all headers have the same nametag and barrier names
           // ---- this part encodes the name tag name into the NameTag cfType value
           nameTagNames = commOutputStats.NameTagNames();
@@ -2533,7 +2533,7 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
       const DistributionMapping sqDM(sqBA);
       sqState[i].define(sqBA, sqDM, numState, nGrow);
       sqState[i].setVal(0.0);
-      sqState[i].copy(state[i]);
+      sqState[i].ParallelCopy(state[i]);
     }
 
 
@@ -2571,7 +2571,7 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
     FArrayBox::setFormat(oldFabFormat);
 
     if(bIOP) {
-      string fnoutFileName(plotfileName + "/MPIFuncNames.txt");
+      std::string fnoutFileName(plotfileName + "/MPIFuncNames.txt");
       std::ofstream fnout(fnoutFileName.c_str());
       for(std::map<int, std::string>::const_iterator it = mpiFuncNames.begin();
           it != mpiFuncNames.end(); ++it)
@@ -2581,7 +2581,7 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
       fnout.close();
     }
     if(bIOP) {
-      string fnoutFileName(plotfileName + "/NameTagNames.txt");
+      std::string fnoutFileName(plotfileName + "/NameTagNames.txt");
       std::ofstream fnout(fnoutFileName.c_str());
       int ntnSize(nameTagNames.size());
       fnout << ntnSize << ' ' << ntnMultiplier << '\n';
@@ -2592,7 +2592,7 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
       fnout.close();
     }
     if(bIOP) {
-      string fnoutFileName(plotfileName + "/BarrierNames.txt");
+      std::string fnoutFileName(plotfileName + "/BarrierNames.txt");
       std::ofstream fnout(fnoutFileName.c_str());
       int bnSize(barrierNames.size());
       fnout << bnSize << ' ' << bnMultiplier << '\n';
@@ -2603,11 +2603,11 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
       fnout.close();
     }
     if(bIOP) {
-      string fnoutFileName(plotfileName + "/CallTrace.txt");
+      std::string fnoutFileName(plotfileName + "/CallTrace.txt");
       WriteTextTrace(fnoutFileName);
     }
     if(bIOP) {
-      string fnoutFileName(plotfileName + "/TimeRange.txt");
+      std::string fnoutFileName(plotfileName + "/TimeRange.txt");
       std::ofstream fnout(fnoutFileName.c_str());
       fnout << std::setprecision(16)
             << subTimeRange.startTime << ' ' << subTimeRange.stopTime << '\n';
@@ -2722,7 +2722,7 @@ void DataServices::MakeRegionPlt(std::string &plotfileName)
 // ----------------------------------------------------------------------
 void DataServices::RunACTPF(std::string &plotfileName,
                                 int maxSmallImageLength, int refRatioAll,
-	                        const Vector<string> &actFNames)
+                                const Vector<std::string> &actFNames)
 {
 #if (BL_SPACEDIM != 2)
   cout << "**** Error:  DataServices::RunACTPF is only supported for 2D" << endl;
@@ -2735,7 +2735,7 @@ void DataServices::RunACTPF(std::string &plotfileName,
     if(BL_SPACEDIM != 2) {
       if(bIOP) {
         cout << "DataServices::RunACTPF:  bRunACTPF only supported for 2D."
-	     << endl; 
+             << endl;
       }
       return;
     }
@@ -2824,7 +2824,7 @@ void DataServices::RunACTPF(std::string &plotfileName,
     if( ! bSameNCalls || ncMin != ncMax) {
       if(bIOP) {
         cout << "**** bSameNCalls == false for:  " << whichFuncName
-	     << " ::: unsupported." << endl;
+             << " ::: unsupported." << endl;
         SHOWVAL(ncMin);
         SHOWVAL(ncMax);
         SHOWVAL(whichFuncNCalls);
@@ -2894,7 +2894,7 @@ void DataServices::RunACTPF(std::string &plotfileName,
     state[finestLevel].define(dnpBoxArray, dnpDM, numState, nGrow);
     MultiFab &fLMF = state[finestLevel];
     fLMF.setVal(0.0);
-    fLMF.copy(mfWFN);
+    fLMF.ParallelCopy(mfWFN);
 
     // ---- make an xgraph of coefficient of variation for each call
     Vector<Real> coeffVar(whichFuncNCalls, 0.0);
@@ -2976,7 +2976,7 @@ void DataServices::RunACTPF(std::string &plotfileName,
       sqBA.maxSize(sqMG);
       sqState[i].define(sqBA, sqDM, numState, nGrow);
       sqState[i].setVal(0.0);
-      sqState[i].copy(state[i]);
+      sqState[i].ParallelCopy(state[i]);
     }
 
 
@@ -3048,7 +3048,7 @@ void DataServices::RunSyncPointData()
     Vector<Vector<Real> > reductionWaitTimes(dataNProcs);
     Long nBMax(0), nRMax(0);
 
-    const Vector<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
+    const Vector<std::string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
     CommProfStats::SetInitDataBlocks(true);
     CommProfStats::InitDataFileNames(commHeaderFileNames);
     CommProfStats::OpenAllStreams(fileName);
@@ -3218,7 +3218,7 @@ void DataServices::RunSendRecvList()
 //    int  nProcs(ParallelDescriptor::NProcs());
 
     if(ParallelDescriptor::IOProcessor()) {
-    const Vector<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
+    const Vector<std::string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
     std::multimap<Real, CommProfStats::SendRecvPairUnpaired> srMMap;  // [call time, sr]
 //    if(myProc < commHeaderFileNames.size()) {
       for(int hfnI(0); hfnI < commHeaderFileNames.size(); ++hfnI) {

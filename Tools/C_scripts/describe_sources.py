@@ -1,9 +1,4 @@
-#!/usr/bin/env python
-
-import sys
-
-if sys.version_info < (2, 7):
-    sys.exit("ERROR: need python 2.7 or later for dep.py")
+#!/usr/bin/env python3
 
 import argparse
 import os

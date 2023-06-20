@@ -1,3 +1,0 @@
-
-CEXE_sources += main.cpp MCNodalLinOp.cpp
-

@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_RANGE_H_
 #define AMREX_GPU_RANGE_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
@@ -25,7 +26,7 @@ Long size (T const& b) noexcept { return static_cast<Long>(b); }
 
 template <typename T, typename std::enable_if<std::is_integral<T>::value,int>::type = 0>
 AMREX_GPU_HOST_DEVICE
-Long at (T const& b, Long offset) noexcept { return offset; }
+Long at (T const& /*b*/, Long offset) noexcept { return offset; }
 
 //! Box version
 AMREX_GPU_HOST_DEVICE
@@ -64,7 +65,7 @@ struct range_impl
     AMREX_GPU_HOST_DEVICE
     explicit range_impl (T const& b) noexcept : m_b(b), m_n(range_detail::size(b)) {}
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
     range_impl (T const& b, Long gid, Long grange) noexcept
         : m_b(b), m_n(range_detail::size(b)), m_gid(gid), m_grange(grange) {}
 #endif
@@ -89,9 +90,10 @@ struct range_impl
         Long mi_s;
     };
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     iterator begin () const noexcept {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
+    defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
         return iterator(m_b, blockDim.x*blockIdx.x+threadIdx.x, blockDim.x*gridDim.x);
 #elif defined (__SYCL_DEVICE_ONLY__)
         return iterator(m_b, m_gid, m_grange);
@@ -100,20 +102,20 @@ struct range_impl
 #endif
     }
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     iterator end () const noexcept { return iterator(m_b,m_n,0); }
 
 private:
     T m_b;
     Long m_n;
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
     Long m_gid;
     Long m_grange;
 #endif
 };
 }
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
 template <typename T>
 range_detail::range_impl<T> Range (T const& b, Long gid, Long grange) noexcept {
     return range_detail::range_impl<T>(b,gid,grange);

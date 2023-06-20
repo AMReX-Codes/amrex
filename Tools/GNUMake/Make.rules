@@ -11,6 +11,9 @@ vpath %.h    $(FINAL_VPATH_LOCATIONS)
 vpath %.H    $(FINAL_VPATH_LOCATIONS)
 vpath %.hpp  $(FINAL_VPATH_LOCATIONS)
 
+vpath AMReX_Config.H $(srcTempDir)
+vpath AMReX_Version.H $(srcTempDir)
+
 FCPPFLAGS := $(addprefix $(CPP_PREFIX), $(CPPFLAGS))
 
 # Suppress display of executed commands.  Default verbose
@@ -25,6 +28,7 @@ ifndef LINKFLAGS
 ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
   LINKFLAGS = $(F90FLAGS) $(FMODULES)
 else
+  # $(EXTRACXXFLAGS) does not go into LINKFLAGS
   LINKFLAGS = $(CXXFLAGS)
 endif
 endif
@@ -37,8 +41,16 @@ else
 endif
 endif
 
-CXXDEPFLAGS = $(DEPFLAGS) $(filter-out -dc,$(CXXFLAGS)) $(CPPFLAGS) $(includes)
-CDEPFLAGS = $(DEPFLAGS) $(filter-out -dc,$(CFLAGS)) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes)
+CXXDEPFLAGS = $(LEGACY_DEPFLAGS) $(filter-out -dc,$(CXXFLAGS)) $(CPPFLAGS) $(includes)
+CDEPFLAGS = $(LEGACY_DEPFLAGS) $(filter-out -dc,$(CFLAGS)) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes)
+
+ifneq ($(CCACHE),)
+  ifneq ($(AMREX_CCACHE_ENV),)
+    CCACHE_COMMAND = $(AMREX_CCACHE_ENV) $(CCACHE)
+  else
+    CCACHE_COMMAND = $(CCACHE)
+  endif
+endif
 
 #
 # Rules for building executable.
@@ -49,33 +61,55 @@ ifeq ($(multiple_executables),)
 $(executable): $(objForExecs)
 ifneq ($(SKIP_LINKING),TRUE)
 	@echo Linking $@ ...
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@date +"%s" > $(tmpEXETempDir)/link.log
+endif
 ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
-	$(SILENT) $(AMREX_LINKER) $(LINKFLAGS) $(FCPPFLAGS) $(fincludes) $(LDFLAGS) -o $@ $^ $(libraries)
+	$(SILENT) $(AMREX_LINKER) $(LINKFLAGS) $(FCPPFLAGS) $(fincludes) $(LDFLAGS) -o $@ $^ $(FINAL_LIBS)
 else
-	$(SILENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries)
+	$(SILENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(FINAL_LIBS)
+endif
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@date +"%s" >> $(tmpEXETempDir)/link.log
+	@$(SHELL) -ec '$(GATHERBUILDTIME) $(tmpEXETempDir)/build_time.txt $(build_time_begin) $$(date +"%s")'
 endif
 #	@echo SUCCESS
-endif
 ifdef CRAY_CPU_TARGET
 	@echo "Built for target ===> $(CRAY_CPU_TARGET) <==="
+endif
 endif
 
 else
 
 # multiple executables
 %.$(machineSuffix).ex:%.cpp $(objForExecs)
-	$(SLIENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< -o $(objEXETempDir)/$<.o
+ifeq ($(USE_CLANG_TIDY),TRUE)
+	$(SILENT) $(CLANG_TIDY) $(CLANG_TIDY_ARGS) $< -- $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs)
+endif
+	$(SILENT) $(CCACHE_COMMAND) $(CCACHEFLAGS) $(CXX) $(DEPFLAGS) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs) -c $< -o $(objEXETempDir)/$(subst /,_,$<).o
 	@echo "Linking $@ ..."
-	$(SLIENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $(objEXETempDir)/$<.o $(objForExecs) $(libraries)
+	$(SILENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $(objEXETempDir)/$(subst /,_,$<).o $(objForExecs) $(FINAL_LIBS)
 
 endif
+
+$(srcTempDir)/AMReX_Config.H:
+	@echo Generating AMReX_Config.H ...
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
+	@ $(MKCONFIG) --defines="$(CPPFLAGS)" --undefines="" \
+	              --comp="$(lowercase_comp)" \
+	              --allow-different-compiler="$(ALLOW_DIFFERENT_COMP)" \
+	              > $@
+
+$(srcTempDir)/AMReX_Version.H:
+	@echo Generating AMReX_Version.H ...
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
+	@ $(MKVERSIONHEADER) --defines="$(VERSION_DEFINES)" > $@
 
 ifeq ($(USE_PROFPARSER),TRUE)
 BLProfParser.tab.H BLProfParser.tab.cpp: $(AMREX_HOME)/Src/Extern/ProfParser/BLProfParser.y
 	cat $(AMREX_HOME)/Src/Extern/ProfParser/BLProfParser.y $(SED0) $(SED1) > BLProfParserNC.y
 	bison --defines=BLProfParser.tab.H --output=BLProfParser.tab.cpp \
 		BLProfParserNC.y
-	rm BLProfParserNC.y
 
 BLProfParser.lex.yy.cpp: BLProfParser.tab.H $(AMREX_HOME)/Src/Extern/ProfParser/BLProfParser.l
 	flex --outfile=BLProfParser.lex.yy.cpp $(AMREX_HOME)/Src/Extern/ProfParser/BLProfParser.l
@@ -95,18 +129,48 @@ install_lib:
 	  echo "$(amrexlib) does not exist!"; \
 	fi
 
-install_headers: $(amrexIncludeDir)/AMReX_Config.H
+uninstall_lib:
+	@echo Uninstalling libamrex.a and objects from $(amrexLibDir) and $(objEXETempDir) ...
+	@if test -f $(amrexlib); then \
+	  $(SILENT) $(RM) $(amrexlib); \
+	  $(SILENT) $(RM) $(objForExecs); \
+	  $(SILENT) $(RM) $(amrexLibDir)/libamrex.a; \
+	else \
+	  echo "$(amrexlib) does not exist!"; \
+	fi
+	@if [ -d $(amrexLibDir) ]; then \
+	    $(SILENT) rmdir -p --ignore-fail-on-non-empty $(amrexLibDir); \
+	fi
+
+install_headers:
 	@echo Installing headers at $(amrexIncludeDir) ...
+	@if [ ! -d $(amrexIncludeDir) ]; then mkdir -p $(amrexIncludeDir); fi
 	@for d in $(Pdirs); do \
 	  for h in $(CEXE_headers) $(cEXE_headers); do \
 	    f=Src/$$d/$$h; \
 	    if test -f "$$f"; then \
 	      install -c -m 644 "$$f" $(amrexIncludeDir); \
-	      newf=$(amrexIncludeDir)/$$h; \
-              perl -pi -e 'BEGIN{undef $$/;}  s/(^#ifndef.*?\n^#define.*?$$)/$$1\n#include <AMReX_Config.H>/m' $$newf; \
 	    fi; \
 	  done; \
-	done 
+	done
+	@install -c -m 644 $(srcTempDir)/AMReX_Config.H $(amrexIncludeDir)
+	@install -c -m 644 $(srcTempDir)/AMReX_Version.H $(amrexIncludeDir)
+
+uninstall_headers:
+	@echo Uninstall headers at $(amrexIncludeDir) ...
+	@for d in $(Pdirs); do \
+	  for h in $(CEXE_headers) $(cEXE_headers); do \
+	    f=Src/$$d/$$h; \
+	    if test -f "$$f"; then \
+	       $(SILENT) $(RM) $(amrexIncludeDir)/$$h; \
+	    fi; \
+	  done; \
+	done
+	@$(SILENT) $(RM) $(amrexIncludeDir)/AMReX_Config.H;
+	@$(SILENT) $(RM) $(amrexIncludeDir)/AMReX_Version.H;
+	@if [ -d $(amrexIncludeDir) ]; then \
+	    $(SILENT) rmdir -p --ignore-fail-on-non-empty $(amrexIncludeDir); \
+	fi;
 
 install_fortran_modules:
 	@echo Install Fortran modules at $(amrexIncludeDir) ...
@@ -115,12 +179,21 @@ install_fortran_modules:
 	    install -c -m 644 "$$m" $(amrexIncludeDir); \
 	done
 
+uninstall_fortran_modules:
+	@echo Uninstall Fortran modules at $(amrexIncludeDir) ...
+	@for m in $(amrexFortModuleFiles); do \
+	    $(SILENT) $(RM) $(amrexIncludeDir)/$$m; \
+	done
+	@if [ -d $(amrexIncludeDir) ]; then \
+	    $(SILENT) rmdir -p --ignore-fail-on-non-empty $(amrexIncludeDir); \
+	fi;
+
 $(objEXETempDir)/amrex.pc: FORCE
 	@echo Generating amrex.pc ...
 	@ $(MKPKGCONFIG) --prefix="$(abspath $(AMREX_INSTALL_DIR))" \
 	                 --version="$(AMREX_GIT_VERSION)" \
 	                 --cflags="$(CXXFLAGS) $(EXTRACXXFLAGS)" \
-	                 --libs="$(filter-out -L.,$(LDFLAGS)) $(libraries)" \
+	                 --libs="$(filter-out -L.,$(LDFLAGS)) $(FINAL_LIBS)" \
 	                 --libpriv="" \
 	                 --fflags="$(F90FLAGS)" \
                          > $@
@@ -130,33 +203,39 @@ install_pkg_config: $(objEXETempDir)/amrex.pc
 	@if [ ! -d $(amrexPkgconfigDir) ]; then mkdir -p $(amrexPkgconfigDir); fi
 	$(SILENT) install -c -m 644 $< $(amrexPkgconfigDir)
 
-$(amrexIncludeDir)/AMReX_Config.H: FORCE
-	@echo Generating AMReX_config.H ...
-	@if [ ! -d $(amrexIncludeDir) ]; then mkdir -p $(amrexIncludeDir); fi
-	@ $(MKCONFIG) --defines="$(CPPFLAGS)" --undefine="BL_LANG_FORT" \
-	              --comp="$(lowercase_comp)" \
-	              --allow-different-compiler="$(ALLOW_DIFFERENT_COMP)" \
-	              --use-omp="$(USE_OMP)" \
-	              > $@
+uninstall_pkg_config:
+	@echo Uninstalling amrex.pc ...
+	@$(SILENT) $(RM) $(objEXETempDir)/amrex.pc
+	@$(SILENT) $(RM) $(amrexPkgconfigDir)/amrex.pc
+	@if [ -d $(amrexPkgconfigDir) ]; then \
+	    $(SILENT) rmdir -p --ignore-fail-on-non-empty $(amrexPkgconfigDir); \
+	fi;
+	@if [ -d $(amrexLibDir) ]; then \
+	    $(SILENT) rmdir -p --ignore-fail-on-non-empty $(amrexLibDir); \
+	fi;
 
-clean::
+cleanconfig::
 	@echo Cleaning...
-	$(SILENT) $(RM) $(f77EXETempDir)/*.f $(f77EXETempDir)/*.f90 $(f77EXETempDir)/*.F90
+	$(SILENT) $(RM) $(f77EXETempDir)/*.f $(f77EXETempDir)/*.f90 $(f77EXETempDir)/*.F90 $(objEXETempDir)/*.d $(depEXETempDir)/f90.depends
 	$(SILENT) $(RM) $(srcTempDir)/* $(objEXETempDir)/*.o $(objEXETempDir)/*.mod
 	$(SILENT) $(RM) $(tmpEXETempDir)/*
 	$(SILENT) $(RM) *.optrpt $(objEXETempDir)/*.optrpt
 	$(SILENT) $(RM) $(executable)
 	$(SILENT) $(RM) -r $(executable).dSYM
 
-realclean:: clean
+clean:: cleanconfig
 	@echo Cleaning ...
 	$(SILENT) $(RM) TAGS tags
-	$(SILENT) $(RM) -r $(TmpBuildDir) *~
+	$(SILENT) $(RM) -r $(TMP_BUILD_DIR) *~
 	$(SILENT) $(RM) *.ex *.o
 	$(SILENT) $(RM) *.mod
+	$(SILENT) $(RM) *.ptx
 	$(SILENT) $(RM) BLProfParser.lex.yy.cpp
 	$(SILENT) $(RM) BLProfParser.tab.cpp
 	$(SILENT) $(RM) BLProfParser.tab.H
+	$(SILENT) $(RM) BLProfParserNC.y
+
+realclean:: clean
 
 file_locations:
 	$(AMREX_HOME)/Tools/F_scripts/find_files_vpath.py --vpath "$(FINAL_VPATH_LOCATIONS)" --files "$(CEXE_sources) $(FEXE_sources) $(cEXE_sources) $(fEXE_sources) $(f90EXE_sources) $(F90EXE_sources) $(CEXE_headers) $(cEXE_headers) $(fEXE_headers) $(FEXE_headers)"
@@ -170,146 +249,115 @@ TAGS:	$(allSources)
 	@echo etags $< ...
 	$(SILENT) etags $(abspath $^)
 
-clang-analyze: $(CEXE_sources)
-	clang++ --analyze --analyzer-output html $(CXXFLAGS) $(CPPFLAGS) $(includes) $^
-
-clang-tidy: $(CEXE_sources)
-	clang-tidy $^ -checks=clang-diagnostic-*,performance-*,mpi-* -- $(CXXFLAGS) $(CPPFLAGS) $(includes)
-
 FORCE:
 
-.PHONY:	all clean realclean file_locations tags TAGS clang-analyze clang-tidy install_lib install_headers install_fortran_modules install_pkg_config
+.PHONY:	all cleanconfig clean realclean file_locations tags TAGS install_lib install_headers install_fortran_modules install_pkg_config
 
 #
 # Rules for objects.
 #
-$(objEXETempDir)/%.o: %.cpp
+$(objEXETempDir)/%.o: %.cpp $(srcTempDir)/AMReX_Config.H $(srcTempDir)/AMReX_Version.H $(AUTO_BUILD_SOURCES)
 	@echo Compiling $*.cpp ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-ifeq ($(USE_GPU_PRAGMA),TRUE)
-	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $(srcTempDir)/$(<F) $(EXE_OUTPUT_OPTION)
-else
-	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
+endif
+ifeq ($(USE_CLANG_TIDY),TRUE)
+# for each word in CLANG_TIDY_IGNORE_SOURCES, check if that word is in the absolute path of the source file
+# if any word matches, the result will be non-empty after stripping whitespace, so clang-tidy won't be run
+	$(if $(strip $(foreach pat,$(CLANG_TIDY_IGNORE_SOURCES),$(findstring $(pat),$(abspath $<)))),,$(SILENT) $(CLANG_TIDY) $(CLANG_TIDY_ARGS) $< -- $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs))
+endif
+	$(SILENT) $(CCACHE_COMMAND) $(CCACHEFLAGS) $(CXX) $(DEPFLAGS) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs) -c $< $(EXE_OUTPUT_OPTION)
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
 endif
 
-$(objEXETempDir)/%.o: %.c
+$(objEXETempDir)/%.o: %.c $(srcTempDir)/AMReX_Config.H $(srcTempDir)/AMReX_Version.H $(AUTO_BUILD_SOURCES)
 	@echo Compiling $*.c ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-ifeq ($(USE_GPU_PRAGMA),TRUE)
-	$(SILENT) $(CCACHE) $(CC) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes) -c $(srcTempDir)/$(<F) $(EXE_OUTPUT_OPTION)
-else
-	$(SILENT) $(CCACHE) $(CC) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
+endif
+	$(SILENT) $(CCACHE_COMMAND) $(CCACHEFLAGS) $(CC) $(DEPFLAGS) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
 endif
 
 $(objEXETempDir)/%.o: %.f
 	@echo Compiling $*.f ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-ifeq ($(USE_GPU_PRAGMA),TRUE)
-	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
-	@$(SHELL) -ec 'cp $< $(srcTempDir)'
-	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)" --device_suffix "$(GPU_PRAGMA_DEVICE_SUFFIX)" $(GPU_PRAGMA_NO_HOST_VERSION_ARG)
-	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(FMODULES) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION)
-else
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
+endif
 	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(FMODULES) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
 endif
 
-$(objEXETempDir)/%.o: %.F
+$(objEXETempDir)/%.o: %.F $(srcTempDir)/AMReX_Config.H $(srcTempDir)/AMReX_Version.H $(AUTO_BUILD_SOURCES)
 	@echo Compiling $*.F ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(f77EXETempDir) ]; then mkdir -p $(f77EXETempDir); fi
-ifeq ($(USE_GPU_PRAGMA),TRUE)
-	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
-	@$(SHELL) -ec 'cp $< $(srcTempDir)'
-	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)" --device_suffix "$(GPU_PRAGMA_DEVICE_SUFFIX)" $(GPU_PRAGMA_NO_HOST_VERSION_ARG)
-	$(SILENT) $(FORT_CPP) -DBL_LANG_FORT -DAMREX_LANG_FORT $(CPPFLAGS) $(fincludes) $(srcTempdir)/$(<F) | $(FORTPREP) > $(srcTempDir)/$*.f
-	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(FMODULES) $(fincludes) -c $(srcTempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
-else
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
+endif
 	$(SILENT) $(FORT_CPP) -DBL_LANG_FORT -DAMREX_LANG_FORT $(CPPFLAGS) $(fincludes) $< | $(FORTPREP) > $(f77EXETempDir)/$*.f
 	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(FMODULES) $(fincludes) -c $(f77EXETempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
 endif
 
 $(objEXETempDir)/%.o: %.f90
 	@echo Compiling $*.f90 ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-ifeq ($(USE_GPU_PRAGMA),TRUE)
-	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
-	@$(SHELL) -ec 'cp $< $(srcTempDir)'
-	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)" --device_suffix "$(GPU_PRAGMA_DEVICE_SUFFIX)" $(GPU_PRAGMA_NO_HOST_VERSION_ARG)
-	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(FMODULES) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION)
-else
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
+endif
 	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(FMODULES) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
 endif
 
-$(objEXETempDir)/%.o: %.F90
+$(objEXETempDir)/%.o: %.F90 $(srcTempDir)/AMReX_Config.H $(srcTempDir)/AMReX_Version.H $(AUTO_BUILD_SOURCES)
 	@echo Compiling $*.F90 ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-ifeq ($(USE_GPU_PRAGMA),TRUE)
-	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
-	@$(SHELL) -ec 'cp $< $(srcTempDir)'
-	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)" --device_suffix "$(GPU_PRAGMA_DEVICE_SUFFIX)" $(GPU_PRAGMA_NO_HOST_VERSION_ARG)
-	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(FMODULES) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION)
-else
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
+endif
 	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(FMODULES) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
-endif
-
-# Handle the special case of amrex_filccn for CUDA -- we need to reduce the register count.
-
-ifeq ($(USE_CUDA),TRUE)
-ifeq ($(USE_GPU_PRAGMA),TRUE)
-
-ifneq ($(BL_NO_FORT),TRUE)
-
-cap_registers := $(shell expr $(CUDA_MAXREGCOUNT) \> 128)
-
-ifeq ($(lowercase_comp),pgi)
-  cap_register_flag := -Mcuda=maxregcount:
-else ifeq ($(lowercase_comp),ibm)
-  cap_register_flag := -Xptxas -maxrregcount=
-else
-  $(error Unknown CUDA Fortran compiler)
-endif
-
-$(objEXETempDir)/AMReX_filcc_mod.o: AMReX_filcc_mod.F90
-	@echo Compiling $(<F) ...
-	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
-	@$(SHELL) -ec 'cp $< $(srcTempDir)'
-	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)" --device_suffix "$(GPU_PRAGMA_DEVICE_SUFFIX)" $(GPU_PRAGMA_NO_HOST_VERSION_ARG)
-ifeq ($(cap_registers),1)
-	$(SILENT) $(F90CACHE) $(F90) $(patsubst $(cap_register_flag)$(CUDA_MAXREGCOUNT), $(cap_register_flag)128, $(F90FLAGS) $(FMODULES)) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) -o $(objEXETempDir)/AMReX_filcc_mod.o
-else
-	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(FMODULES) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) -o $(objEXETempDir)/AMReX_filcc_mod.o
-endif
-
-endif
-
-endif
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
 endif
 
 #
 # Rules for dependencies in bare object files.
 #
 
-$(depEXETempDir)/%.d: %.cpp
+$(depEXETempDir)/%.d: %.cpp $(srcTempDir)/AMReX_Config.H $(srcTempDir)/AMReX_Version.H $(AUTO_BUILD_SOURCES)
 	@echo Depending $< ...
-ifeq ($(USE_GPU_PRAGMA),TRUE)
-	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
-endif
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
-ifeq ($(USE_DPCPP),TRUE)
+ifeq ($(USE_SYCL),TRUE)
+        # Use > $@2 to filter out unnecessary messages
+	$(CXX) $(CXXDEPFLAGS) $< -o $@ > $@2
+else ifeq ($(USE_HIP),TRUE)
 	$(CXX) $(CXXDEPFLAGS) $< -o $@
 else
 	$(CXX) $(CXXDEPFLAGS) $< > $@
 endif
 	@$(SHELL) -ec 'sed -i -e '\''s,$*\.o,$(objEXETempDir)/& $@,g'\'' $@'
 
-$(depEXETempDir)/%.d: %.c
+$(depEXETempDir)/%.d: %.c $(srcTempDir)/AMReX_Config.H $(srcTempDir)/AMReX_Version.H $(AUTO_BUILD_SOURCES)
 	@echo Depending $< ...
-ifeq ($(USE_GPU_PRAGMA),TRUE)
-	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
-endif
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
-ifeq ($(USE_DPCPP),TRUE)
+ifeq ($(USE_SYCL),TRUE)
+	$(CC) $(CDEPFLAGS) $< -o $@
+else ifeq ($(USE_HIP),TRUE)
 	$(CC) $(CDEPFLAGS) $< -o $@
 else
 	$(CC) $(CDEPFLAGS) $< > $@
@@ -348,14 +396,14 @@ endif
 # The final result is `$(objEXETempDir)/x.o $(depEXETempDir)/x.d: /path/to/y.cpp`.
 #
 
-$(depEXETempDir)/%.d: %.F
+$(depEXETempDir)/%.d: %.F $(srcTempDir)/AMReX_Config.H $(srcTempDir)/AMReX_Version.H $(AUTO_BUILD_SOURCES)
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
 		sed -e '\''s,$*\.o,$(objEXETempDir)/& $@,'\'' > $@'
 
-$(depEXETempDir)/%.d: %.f
+$(depEXETempDir)/%.d: %.f $(srcTempDir)/AMReX_Config.H $(srcTempDir)/AMReX_Version.H $(AUTO_BUILD_SOURCES)
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
@@ -364,7 +412,7 @@ $(depEXETempDir)/%.d: %.f
 
 DEP_CHECK_OPTS :=
 
-$(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources) 
+$(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources) $(srcTempDir)/AMReX_Config.H $(srcTempDir)/AMReX_Version.H $(AUTO_BUILD_SOURCES)
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@if [ ! -d $(f77EXETempDir) ]; then mkdir -p $(f77EXETempDir); fi
@@ -374,24 +422,6 @@ $(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources)
             --cpp "$(FORT_CPP)" \
             --defines "-DBL_LANG_FORT -DAMREX_LANG_FORT $(CPPFLAGS) $(fincludes)" \
             --f90_preprocess "$(F90PREP)" $^ > $(depEXETempDir)/f90.depends
-
-# $(CEXE_sources)
-ifeq ($(USE_GPU_PRAGMA),TRUE)
-$(TmpBuildDir)/$(optionsSuffix)_cuda_done: $(CEXE_sources) $(cEXE_sources)
-	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
-	@$(SHELL) -ec 'touch $(TmpBuildDir)/$(optionsSuffix)_cuda_done' # So that the rule always gets updated
-	$(AMREX_HOME)/Tools/F_scripts/write_cuda_headers.py \
-             --output_dir "$(srcTempDir)" \
-             --vpath "$(VPATH_LOCATIONS)" \
-             --headers "$(FEXE_headers) $(F90EXE_headers)" \
-             --cxx "$(CEXE_sources) $(cEXE_sources)" \
-             --cpp "gcc -E -P -std=c99" \
-             --defines "$(CPPFLAGS) $(includes)" \
-             --exclude_defines "-DAMREX_USE_MPI -DBL_USE_MPI" \
-	     --num_workers "16" \
-             --device_suffix "$(GPU_PRAGMA_DEVICE_SUFFIX)" \
-             $(GPU_PRAGMA_NO_HOST_VERSION_ARG)
-endif
 
 #
 # <typecheck>
@@ -421,7 +451,7 @@ $(tmpEXETempDir)/%.F.orig: %.F
 # & --> *
 $(tmpEXETempDir)/%-cppd.h: %.H
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
-	$(SILENT) $(CC) $(CPPFLAGS) -DAMREX_TYPECHECK $(includes) -E -P -x c -std=c99 $< -o $@
+	$(SILENT) $(CC) $(CPPFLAGS) -DAMREX_TYPECHECK $(includes) -E -P -x c -std=c11 $< -o $@
 	@$(SHELL) -ec 'sed -i -e '\''s/amrex::Real/$(amrex_real)/g'\'' $@ ; \
 	               sed -i -e '\''s/amrex_real/$(amrex_real)/g'\''  $@ ; \
 	               sed -i -e '\''s/amrex_particle_real/$(amrex_particle_real)/g'\''  $@ ; \
@@ -443,23 +473,24 @@ typecheck: $(fortran_ir_sources) $(fortran_fdecl_headers_cppd)
 # Now load/build the dependency files.
 # Also handle any necessary preprocessing.
 #
-ifneq ($(MAKECMDGOALS),realclean)
-ifneq ($(MAKECMDGOALS),clean)
-ifneq ($(MAKECMDGOALS),uninstall)
-ifneq ($(MAKECMDGOALS),distclean)
+ifneq ($(NO_CONFIG_CHECKING),TRUE)
 ifneq ($(findstring print-,$(MAKECMDGOALS)),print-)
 ifneq ($(MAKECMDGOALS),help)
 
-ifeq ($(USE_GPU_PRAGMA),TRUE)
-include $(TmpBuildDir)/$(optionsSuffix)_cuda_done
-endif
-
 ifdef CEXE_sources
--include $(CEXE_sources:%.cpp=$(depEXETempDir)/%.d)
+ifeq ($(USE_LEGACY_DEPFLAGS),TRUE)
+  -include $(CEXE_sources:%.cpp=$(depEXETempDir)/%.d)
+else
+  -include $(CEXE_sources:%.cpp=$(objEXETempDir)/%.d)
+endif
 endif
 
 ifdef cEXE_sources
--include $(cEXE_sources:%.c=$(depEXETempDir)/%.d)
+ifeq ($(USE_LEGACY_DEPFLAGS),TRUE)
+  -include $(cEXE_sources:%.c=$(depEXETempDir)/%.d)
+else
+  -include $(cEXE_sources:%.c=$(objEXETempDir)/%.d)
+endif
 endif
 
 ifdef fEXE_sources
@@ -477,14 +508,13 @@ endif
 endif
 endif
 endif
-endif
-endif
-endif
 
-ifneq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),clean realclean file_locations tags TAGS uninstall distclean))
+ifneq ($(NO_CONFIG_CHECKING),TRUE)
+ifneq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),file_locations tags TAGS))
   ifdef has_compiler_mismatch
     $(error $(has_compiler_mismatch))
   endif
+endif
 endif
 
 #-----------------------------------------------------------------------------
@@ -492,9 +522,14 @@ endif
 # e.g. libraries, simply do "make print-libraries".  This will
 # print out the value.
 print-%:
-	@echo $* is '$($*)'
+	@echo $* is "$($*)"
 	@echo '    origin = $(origin $*)'
-	@echo '     value = $(value  $*)'
+	@echo '     value = $(subst ','"'"',$(value  $*))'
+# We need to use subst on the result of $(value) because it contains single
+# quotes.  Shell command echo does not like things like 'x'$(filiter-out)'y',
+# because what it sees is 'x', $(filter-out), and 'y'.  With the substition, it
+# will see 'x', "'", '$(filter-out)', "'", and 'y', with $(filter-out) inside a
+# pair of single quotes.
 
 .PHONY: help
 help:
@@ -506,9 +541,9 @@ help:
 	@echo "The rule for compiling foo.[fF] is: \$$(FC) \$$(FFLAGS) \$$(FMODULES) \$$(fincludes) -c foo.o foo.f"
 	@echo "    Note that .F files are preprocessed with cpp into .f files before being compiled."
 ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
-	@echo "The rule for linking            is: \$$(F90) \$$(LINKFLAGS) \$$(FCPPFLAGS) \$$(fincludes) \$$(LDFLAGS) -o \$$(executable) *.o \$$(libraries)"
+	@echo "The rule for linking            is: \$$(F90) \$$(LINKFLAGS) \$$(FCPPFLAGS) \$$(fincludes) \$$(LDFLAGS) -o \$$(executable) *.o \$$(FINAL_LIBS)"
 else
-	@echo "The rule for linking            is: \$$(CXX) \$$(LINKFLAGS) \$$(CPPFLAGS) \$$(includes) \$$(LDFLAGS) -o \$$(executable) *.o \$$(libraries)"
+	@echo "The rule for linking            is: \$$(CXX) \$$(LINKFLAGS) \$$(CPPFLAGS) \$$(includes) \$$(LDFLAGS) -o \$$(executable) *.o \$$(FINAL_LIBS)"
 endif
 	@echo ""
 	@echo "Here the variables are set to:"
@@ -519,7 +554,7 @@ endif
 	@echo "    CPPFLAGS      = $(CPPFLAGS)"
 	@echo "    FCPPFLAGS     = $(FCPPFLAGS)"
 	@echo "    CXXFLAGS      = $(CXXFLAGS)"
-	@echo "    EXTRACXXFLAGS = $(CXXFLAGS)"
+	@echo "    EXTRACXXFLAGS = $(EXTRACXXFLAGS)"
 	@echo "    CFLAGS        = $(CFLAGS)"
 	@echo "    LINKFLAGS     = $(LINKFLAGS)"
 	@echo "    includes      = $(includes)"
@@ -528,7 +563,7 @@ endif
 	@echo "    FMODULES      = $(FMODULES)"
 	@echo "    fincludes     = $(fincludes)"
 	@echo "    LDFLAGS       = $(LDFLAGS)"
-	@echo "    libraries     = $(libraries)"
+	@echo "    FINAL_LIBS    = $(FINAL_LIBS)"
 	@echo "    executable    = $(executable)"
 	@echo ""
 	@echo "Read Tools/GNUMake/README.md for details on tweaking the make system."

@@ -1,17 +1,19 @@
 
 #ifndef BL_BOXDOMAIN_H
 #define BL_BOXDOMAIN_H
-
-#include <iosfwd>
+#include <AMReX_Config.H>
 
 #include <AMReX_IndexType.H>
 #include <AMReX_Box.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_BoxList.H>
 
+#include <iosfwd>
+
 namespace amrex
 {
     class BoxDomain;
+    class BoxArray;
 
     //! Returns the complement of BoxDomain bl in Box b.
     BoxDomain complementIn (const Box& b, const BoxDomain& bl);
@@ -66,6 +68,7 @@ class BoxDomain
     protected BoxList
 {
 public:
+    friend class ClusterList;
 
     typedef BoxList::const_iterator const_iterator;
     //! Construct an empty BoxDomain of IndexType::TheCellType().
@@ -76,11 +79,6 @@ public:
 
     //! Construct an empty BoxDomain of IndexType itype.
     explicit BoxDomain (IndexType itype);
-
-    BoxDomain (const BoxDomain& rhs) = default;
-    BoxDomain (BoxDomain&& rhs) = default;
-    BoxDomain& operator= (const BoxDomain& rhs) = default;
-    BoxDomain& operator= (BoxDomain&& rhs) = default;
 
     //! Add a Box to the domain.
     void add (const Box& b);
@@ -95,7 +93,7 @@ public:
     * Returns True if this BoxDomain is valid.  Checks for
     * disjointness. Returns true if the BoxDomain is empty.
     */
-    bool ok () const;
+    [[nodiscard]] bool ok () const;
 
     //! Promoted from BoxList.
     using BoxList::clear;
@@ -134,7 +132,7 @@ public:
     using BoxList::shiftHalf;
 
     //! Return a const reference to the underlying BoxList of this BoxDomain.
-    const BoxList& boxList () const;
+    [[nodiscard]] const BoxList& boxList () const;
 
     //! Are the BoxDomains equal?
     bool operator== (const BoxDomain& rhs) const;
@@ -157,6 +155,10 @@ public:
     //! Creates the complement of BoxDomain bl in Box b.
     BoxDomain& complementIn (const Box&       b,
                              const BoxDomain& bl);
+
+private:
+    //! Construct from a BoxList that has no overlap
+    explicit BoxDomain (BoxList&& bl);
 };
 
 }

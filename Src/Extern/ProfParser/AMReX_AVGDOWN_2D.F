@@ -19,9 +19,9 @@
 c     ----------------------------------------------------------
 c     Average the fine grid data onto the coarse
 c     grid.  Overlap is given in coarse grid coordinates.
-c     
+c
 c     crse      = coarse grid data
-c     nvar	= number of components in arrays
+c     nvar        = number of components in arrays
 c     fine      = fine grid data
 c     lo,hi     = index limits of overlap (crse grid)
 c     ratios    = IntVect refinement ratio
@@ -66,7 +66,7 @@ c
          end do
 
       end do
-         
+
       end
 
 
@@ -77,9 +77,9 @@ c
 c     ----------------------------------------------------------
 c     Average the fine grid data onto the coarse
 c     grid.  Overlap is given in coarse grid coordinates.
-c     
+c
 c     crse      = coarse grid data
-c     nvar	= number of components in arrays
+c     nvar        = number of components in arrays
 c     fine      = fine grid data
 c     lo,hi     = index limits of overlap (crse grid)
 c     ratios    = IntVect refinement ratio
@@ -130,9 +130,9 @@ c
                crse(ic,jc,n) = crse(ic,jc,n) * vol_inv
             end do
          end do
-         
+
       end do
-         
+
       end
 
 
@@ -145,9 +145,9 @@ c
 c     ----------------------------------------------------------
 c     Average the fine grid data onto the coarse
 c     grid.  Overlap is given in coarse grid coordinates.
-c     
+c
 c     crse      = coarse grid data
-c     nvar	= number of components in arrays
+c     nvar        = number of components in arrays
 c     fine      = fine grid data
 c     lo,hi     = index limits of overlap (crse grid)
 c     ratios    = IntVect refinement ratio
@@ -196,7 +196,8 @@ c
             do j=lo(2),hi(2)
                do i=lo(1),hi(1)
                   do joff=0,lrat-1
-                     crse(i,j,n) = crse(i,j,n) + vol_inv*fine(lrat*i,lrat*j+joff,n)
+                     crse(i,j,n) = crse(i,j,n) +
+     $                    vol_inv*fine(lrat*i,lrat*j+joff,n)
                   end do
                end do
             end do
@@ -206,15 +207,16 @@ c
             do j=lo(2),hi(2)
                do i=lo(1),hi(1)
                   do ioff=0,lrat-1
-                     crse(i,j,n) = crse(i,j,n) + vol_inv*fine(lrat*i+ioff,lrat*j,n)
+                     crse(i,j,n) = crse(i,j,n) +
+     $                    vol_inv*fine(lrat*i+ioff,lrat*j,n)
                   end do
                end do
             end do
 
          end if
-         
+
       end do
-         
+
       end
 
       subroutine FORT_AVGDOWN (
@@ -226,9 +228,9 @@ c
 c     ----------------------------------------------------------
 c     Volume-weight average the fine grid data onto the coarse
 c     grid.  Overlap is given in coarse grid coordinates.
-c     
+c
 c     crse      =  coarse grid data
-c     nvar	= number of components in arrays
+c     nvar        = number of components in arrays
 c     fine      = fine grid data
 c     cv        = coarse grid volume array
 c     fv        = fine grid volume array

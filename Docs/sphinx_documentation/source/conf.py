@@ -20,8 +20,6 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
-import sphinx_rtd_theme
-import breathe
 from datetime import datetime
 
 def get_amrex_version():
@@ -40,13 +38,11 @@ def get_amrex_version():
 extensions = ['sphinx.ext.mathjax',
               'sphinx.ext.githubpages',
               'sphinx.ext.viewcode',
-              'sphinx.ext.intersphinx',
-              'breathe']
+              'sphinx.ext.intersphinx']
 
 intersphinx_mapping = {
-    'amrex_tutorials': ('https://amrex-codes.github.io/amrex/tutorials_html/', None)
-    # 'amrex_tutorials': ('../../../sphinx_tutorials/build/html/',
-    #                    '../../sphinx_tutorials/build/html/objects.inv')
+    'amrex_tutorials': ('https://amrex-codes.github.io/amrex/tutorials_html/', None),
+    'amrex_hydro':('https://amrex-codes.github.io/amrex/hydro_html/', None)
 }
 
 # Add any paths that contain templates here, relative to this directory.
@@ -80,7 +76,7 @@ release = get_amrex_version()
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -94,22 +90,6 @@ pygments_style = 'sphinx'
 todo_include_todos = False
 
 numfig = True
-
-# -- breathe options ------------------------------------------------------
-
-breathe_projects = {
-    "amrex": "../../../out/docs_xml/doxygen/",
-    }
-
-breathe_default_project = "amrex"
-
-breathe_default_members = ('members', 'undoc-members', 'protected-members',
-                           'private-members', 'content-only')
-
-breathe_doxygen_config_options = {'EXTRACT_ALL': 'YES',
-                                  'SHOW_USED_FILES': 'YES',
-                                  'RECURSIVE': 'YES'}
-
 
 # -- Options for HTML output ----------------------------------------------
 
@@ -129,11 +109,9 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-html_context = {
-    'css_files': [
-        '_static/theme_overrides.css',  # overrides for wide tables in RTD theme
-        ],
-    }
+html_css_files = [
+    'theme_overrides.css',  # overrides for wide tables in RTD theme
+]
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.

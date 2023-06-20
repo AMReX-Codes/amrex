@@ -1,9 +1,4 @@
-#!/usr/bin/env python
-
-import sys
-
-if sys.version_info < (2, 7):
-    sys.exit("ERROR: need python 2.7 or later for dep.py")
+#!/usr/bin/env python3
 
 import argparse
 
@@ -175,6 +170,14 @@ const char* buildInfoGetBuildGitName() {
   return NAME;
 }
 
+#ifdef AMREX_USE_CUDA
+const char* buildInfoGetCUDAVersion() {
+
+  static const char CUDA_VERSION[] = "@@CUDA_VERSION@@";
+  return CUDA_VERSION;
+}
+#endif
+
 }
 """
 
@@ -183,13 +186,15 @@ def runcommand(command):
     out = p.stdout.read()
     return out.strip().decode("ascii")
 
-def get_git_hash(d):
+def get_git_hash(d, git_style):
     cwd = os.getcwd()
     os.chdir(d)
-    try: hash = runcommand("git describe --always --tags --dirty")
-    except: hash = ""
+    try:
+        ghash = runcommand("git describe " + git_style)
+    except:
+        ghash = ""
     os.chdir(cwd)
-    return hash
+    return ghash
 
 
 if __name__ == "__main__":
@@ -226,12 +231,15 @@ if __name__ == "__main__":
     parser.add_argument("--F_flags", help="Fortran compiler flags",
                         type=str, default="")
 
+    parser.add_argument("--CUDA_VERSION", help="CUDA version",
+                        type=str, default="")
+
     parser.add_argument("--link_flags", help="linker flags", type=str, default="")
 
     parser.add_argument("--libraries", help="libraries linked", type=str, default="")
 
     parser.add_argument("--AUX",
-                        help="auxillary information (EOS, network path) (deprecated)",
+                        help="auxiliary information (EOS, network path) (deprecated)",
                         type=str, default="")
 
     parser.add_argument("--MODULES",
@@ -251,6 +259,10 @@ if __name__ == "__main__":
                         help="the full path to the build directory that corresponds to build_git_name",
                         type=str, default="")
 
+    parser.add_argument("--GIT_STYLE",
+                        help="style options for the 'git describe' command used to construct hash strings",
+                        type=str, default="--always --tags --dirty")
+
 
     # parse and convert to a dictionary
     args = parser.parse_args()
@@ -269,20 +281,20 @@ if __name__ == "__main__":
     else:
         GIT = args.GIT.split()
 
-    ngit = len(GIT)
     git_hashes = []
     for d in GIT:
         if d and os.path.isdir(d):
-            git_hashes.append(get_git_hash(d))
+            git_hashes.append(get_git_hash(d, args.GIT_STYLE))
         else:
             git_hashes.append("")
 
     if args.build_git_dir != "":
-        try: os.chdir(args.build_git_dir)
+        try:
+            os.chdir(args.build_git_dir)
         except:
             build_git_hash = "directory not valid"
         else:
-            build_git_hash = get_git_hash(args.build_git_dir)
+            build_git_hash = get_git_hash(args.build_git_dir, args.GIT_STYLE)
             os.chdir(running_dir)
     else:
         build_git_hash = ""
@@ -301,7 +313,7 @@ if __name__ == "__main__":
             mod_dict[k] = v
 
 
-    # auxillary info
+    # auxiliary info
     if args.AUX == "":
         AUX = []
     else:
@@ -422,14 +434,14 @@ if __name__ == "__main__":
                 fout.write(git_str)
 
             elif keyword == "BUILDGIT_NAME":
-                index = index
+                indent = index
                 git_str = '{}static const char NAME[] = "{}";\n'.format(
                     indent*" ", args.build_git_name)
                 fout.write(git_str)
 
             elif keyword in dargs:
                 # simple replacement using the commandline arguments
-                newline = line.replace("@@{}@@".format(keyword),
+                newline = line.replace(f"@@{keyword}@@",
                                        dargs[keyword].replace('"', r'\"'))
                 fout.write(newline)
 

@@ -24,7 +24,7 @@ private:
     int ref_ratio = 2;
     int n_cell = 128;
     int max_grid_size = 64;
-    
+
     // For MLMG solver
     int verbose = 2;
     int bottom_verbose = 2;
@@ -43,8 +43,8 @@ private:
     amrex::Vector<std::unique_ptr<amrex::EBFArrayBoxFactory> > factory;
 
     amrex::Vector<amrex::MultiFab> phi;
-    amrex::Vector<amrex::Array<amrex::MultiFab, AMREX_SPACEDIM>> flux; 
-    amrex::Vector<amrex::Array<amrex::MultiFab, AMREX_SPACEDIM>> grad; 
+    amrex::Vector<amrex::Array<amrex::MultiFab, AMREX_SPACEDIM>> flux;
+    amrex::Vector<amrex::Array<amrex::MultiFab, AMREX_SPACEDIM>> grad;
     amrex::Vector<amrex::MultiFab> rhs;
     amrex::Vector<amrex::MultiFab> acoef;
     amrex::Vector<amrex::Array<amrex::MultiFab,AMREX_SPACEDIM> > bcoef;

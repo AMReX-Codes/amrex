@@ -9,7 +9,7 @@
 #include <AMReX_BoxArray.H>
 #include <AMReX_Print.H>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -35,21 +35,23 @@
 bool
 amrex::is_integer (const char* str)
 {
-    int len = 0;
+    if (str == nullptr) { return false; }
 
-    if (str == 0 || (len = strlen(str)) == 0)
-        return false;
+    int len = static_cast<int>(std::strlen(str));
+    if (len == 0) { return false; }
 
-    for (int i = 0; i < len; i++)
-        if (!isdigit(str[i]))
+    for (int i = 0; i < len; i++) {
+        if (!std::isdigit(str[i])) {
             return false;
+        }
+    }
 
     return true;
 }
 
 namespace {
     bool tokenize_initialized = false;
-    char* line = 0;
+    char* line = nullptr;
     void CleanupTokenizeStatics ()
     {
         delete [] line;
@@ -71,7 +73,7 @@ amrex::Tokenize (const std::string& instr,
     //
     // Make copy of line that we can modify.
     //
-    const int len = instr.size() + 1;
+    const int len = static_cast<int>(instr.size()) + 1;
 
     if (len > linelen)
     {
@@ -80,29 +82,31 @@ amrex::Tokenize (const std::string& instr,
         linelen = len;
     }
 
-    (void) std::strcpy(line, instr.c_str());
+    (void) std::strncpy(line, instr.c_str(), len);
 
-    char* token = 0;
+    char* token = nullptr;
 
-    if (!((token = std::strtok(line, separators.c_str())) == 0))
+    if (!((token = std::strtok(line, separators.c_str())) == nullptr)) // NOLINT(bugprone-assignment-in-if-condition)
     {
         ptr.push_back(token);
-        while (!((token = std::strtok(0, separators.c_str())) == 0))
+        while (!((token = std::strtok(nullptr, separators.c_str())) == nullptr)) // NOLINT(bugprone-assignment-in-if-condition)
             ptr.push_back(token);
     }
 
     tokens.resize(ptr.size());
 
-    for (int i = 1, N = ptr.size(); i < N; i++)
+    for (int i = 1, N = static_cast<int>(ptr.size()); i < N; i++)
     {
         char* p = ptr[i];
 
-        while (std::strchr(separators.c_str(), *(p-1)) != 0)
+        while (std::strchr(separators.c_str(), *(p-1)) != nullptr) {
             *--p = 0;
+        }
     }
 
-    for (int i = 0, N = ptr.size(); i < N; i++)
+    for (int i = 0, N = static_cast<int>(ptr.size()); i < N; i++) {
         tokens[i] = ptr[i];
+    }
 
     ptr.clear();
     return tokens;
@@ -148,7 +152,7 @@ amrex::Concatenate (const std::string& root,
 
 bool
 amrex::UtilCreateDirectory (const std::string& path,
-			    mode_t mode, bool verbose)
+                            mode_t mode, bool verbose)
 {
     return FileSystem::CreateDirectories(path, mode, verbose);
 }
@@ -180,7 +184,7 @@ amrex::UniqueString()
 {
   std::stringstream tempstring;
   tempstring << std::setprecision(11) << std::fixed << ParallelDescriptor::second();
-  int tsl(tempstring.str().length());
+  auto const tsl = tempstring.str().length();
   return(tempstring.str().substr(tsl/2, tsl));
 }
 
@@ -194,7 +198,9 @@ amrex::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
           amrex::Print() << "amrex::UtilCreateCleanDirectory():  " << path
                          << " exists.  Renaming to:  " << newoldname << std::endl;
       }
-      std::rename(path.c_str(), newoldname.c_str());
+      if (std::rename(path.c_str(), newoldname.c_str())) {
+          amrex::Abort("UtilCreateCleanDirectory:: std::rename failed");
+      }
     }
     if( ! amrex::UtilCreateDirectory(path, 0755)) {
       amrex::CreateDirectoryFailed(path);
@@ -210,9 +216,9 @@ amrex::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
 void
 amrex::UtilCreateDirectoryDestructive(const std::string &path, bool callbarrier)
 {
-  if(ParallelContext::IOProcessorSub()) 
+  if(ParallelContext::IOProcessorSub())
   {
-    if(amrex::FileExists(path)) 
+    if(amrex::FileExists(path))
     {
       if (amrex::Verbose() > 1) {
           amrex::Print() << "amrex::UtilCreateCleanDirectoryDestructive():  " << path
@@ -220,12 +226,12 @@ amrex::UtilCreateDirectoryDestructive(const std::string &path, bool callbarrier)
       }
       FileSystem::RemoveAll(path);
     }
-    if( ! amrex::UtilCreateDirectory(path, 0755)) 
+    if( ! amrex::UtilCreateDirectory(path, 0755))
     {
       amrex::CreateDirectoryFailed(path);
     }
   }
-  if(callbarrier) 
+  if(callbarrier)
   {
     // Force other processors to wait until directory is built.
     ParallelDescriptor::Barrier("amrex::UtilCreateCleanDirectoryDestructive");
@@ -242,7 +248,9 @@ amrex::UtilRenameDirectoryToOld (const std::string &path, bool callbarrier)
           amrex::Print() << "amrex::UtilRenameDirectoryToOld():  " << path
                          << " exists.  Renaming to:  " << newoldname << std::endl;
       }
-      std::rename(path.c_str(), newoldname.c_str());
+      if (std::rename(path.c_str(), newoldname.c_str())) {
+          amrex::Abort("UtilRenameDirectoryToOld: std::rename failed");
+      }
     }
   }
   if(callbarrier) {
@@ -403,8 +411,8 @@ amrex::InvNormDist (double p)
 //
 //  Parameters:
 //
-//    Input, double P, the value of the cumulative probability 
-//    densitity function.  0 < P < 1.  Fails if P is outside this range.
+//    Input, double P, the value of the cumulative probability
+//    density function.  0 < P < 1.  Fails if P is outside this range.
 //
 //    Output, the normal deviate value with the property that the
 //    probability of a standard normal deviate being less than or equal
@@ -416,7 +424,7 @@ amrex::InvNormDistBest (double p)
 
 {
   static const double a[8] =
-  { 
+  {
       3.3871328727963666080,     1.3314166789178437745e+2,
       1.9715909503065514427e+3,  1.3731693765509461125e+4,
       4.5921953931549871457e+4,  6.7265770927008700853e+4,
@@ -533,45 +541,45 @@ amrex::InvNormDistBest (double p)
 std::istream&
 amrex::operator>>(std::istream& is, const expect& exp)
 {
-    int len = exp.istr.size();
+    int len = static_cast<int>(exp.istr.size());
     int n = 0;
     while ( n < len )
     {
-	char c;
-	is >> c;
-	if ( !is ) break;
-	if ( c != exp.istr[n++] )
-	{
-	    is.putback(c);
-	    break;
-	}
+        char c;
+        is >> c;
+        if ( !is ) break;
+        if ( c != exp.istr[n++] )
+        {
+            is.putback(c);
+            break;
+        }
     }
     if ( n != len )
     {
-	is.clear(std::ios::badbit|is.rdstate());
-	std::string msg = "expect fails to find \"" + exp.the_string() + "\"";
-	amrex::Error(msg.c_str());
+        is.clear(std::ios::badbit|is.rdstate());
+        std::string msg = "expect fails to find \"" + exp.the_string() + "\"";
+        amrex::Error(msg.c_str());
     }
     return is;
 }
 
-amrex::expect::expect(const char* istr_)
+amrex::expect::expect (const char* istr_)
     : istr(istr_)
 {
 }
 
-amrex::expect::expect(const std::string& str_)
-    : istr(str_)
+amrex::expect::expect (std::string str_)
+    : istr(std::move(str_))
 {
 }
 
-amrex::expect::expect(char c)
+amrex::expect::expect (char c)
 {
     istr += c;
 }
 
 const std::string&
-amrex::expect::the_string() const
+amrex::expect::the_string () const
 {
     return istr;
 }
@@ -583,18 +591,17 @@ amrex::expect::the_string() const
 
 int amrex::StreamRetry::nStreamErrors = 0;
 
-amrex::StreamRetry::StreamRetry(std::ostream &a_os, const std::string &a_suffix,
-                                 const int a_maxtries)
-    : tries(0), maxTries(a_maxtries), sros(a_os), spos(a_os.tellp()), suffix(a_suffix)
+amrex::StreamRetry::StreamRetry(std::ostream &a_os, std::string a_suffix,
+                                int a_maxtries)
+    : tries(0), maxTries(a_maxtries), sros(a_os), spos(a_os.tellp()), suffix(std::move(a_suffix))
 {
 }
 
-amrex::StreamRetry::StreamRetry(const std::string &filename,
-				 const bool abortonretryfailure,
-                                 const int maxtries)
+amrex::StreamRetry::StreamRetry (std::string filename, bool abortonretryfailure,
+                                 int maxtries)
     : tries(0), maxTries(maxtries),
       abortOnRetryFailure(abortonretryfailure),
-      fileName(filename),
+      fileName(std::move(filename)),
       sros(amrex::ErrorStream())    // unused here, just to make the compiler happy
 {
   nStreamErrors = 0;
@@ -672,7 +679,9 @@ bool amrex::StreamRetry::TryFileOutput()
               amrex::Print() << nWriteErrors << " STREAMERRORS : Renaming file from "
                              << fileName << "  to  " << badFileName << std::endl;
           }
-          std::rename(fileName.c_str(), badFileName.c_str());
+          if (std::rename(fileName.c_str(), badFileName.c_str())) {
+              amrex::Abort("StreamRetry::TryFileOutput: std::rename failed");
+          }
         }
         ParallelDescriptor::Barrier("StreamRetry::TryFileOutput");  // wait for file rename
 
@@ -711,13 +720,13 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
     for(int i(0); i < localStringsCopy.size(); ++i) {
       pfStrings << localStringsCopy[i] << '\n';
     }
-    pfStringsSize = pfStrings.str().size();
+    pfStringsSize = static_cast<int>(pfStrings.str().size());
   }
   ParallelDescriptor::Bcast(&pfStringsSize, 1);
 
   Vector<char> pfCharArray(pfStringsSize + 1);
   if(ParallelDescriptor::IOProcessor()) {
-    std::strcpy(pfCharArray.dataPtr(), pfStrings.str().c_str());  // null terminated
+    std::strncpy(pfCharArray.dataPtr(), pfStrings.str().c_str(), pfCharArray.size());  // null terminated
   }
   ParallelDescriptor::Bcast(pfCharArray.dataPtr(), pfCharArray.size());
 
@@ -729,7 +738,7 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
     while( ! pfIn.eof()) {
       std::getline(pfIn, pfName, '\n');
       if( ! pfIn.eof()) {
-	ioprocStrings.push_back(pfName);
+        ioprocStrings.push_back(pfName);
       }
     }
     // ---- now check if they match on non ioprocs
@@ -749,7 +758,7 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
       bool matched(false);
       for(int i(0); i < ioprocStrings.size(); ++i) {
         if(localStringsCopy[n] == ioprocStrings[i]) {
-	  matched = true;
+          matched = true;
         }
       }
       if( ! matched) {
@@ -775,9 +784,9 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
     for(int i(0); i < sendStrings.size(); ++i) {
       ossSendStrings << sendStrings[i] << '\n';
     }
-    sendStringsSize = ossSendStrings.str().size();
+    sendStringsSize = static_cast<int>(ossSendStrings.str().size());
     sendCharArray.resize(sendStringsSize + 1);
-    std::strcpy(sendCharArray.dataPtr(), ossSendStrings.str().c_str());  // null terminated
+    std::strncpy(sendCharArray.dataPtr(), ossSendStrings.str().c_str(), sendCharArray.size());  // null terminated
   }
 
   Vector<int> nChars(nProcs, 0);
@@ -800,7 +809,7 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
   }
 
   BL_MPI_REQUIRE( MPI_Gatherv(sendCharArray.dataPtr(),
-                              sendStringsSize, 
+                              sendStringsSize,
                               ParallelDescriptor::Mpi_typemap<char>::type(),
                               recvStrings.dataPtr(),
                               nChars.dataPtr(),
@@ -816,7 +825,7 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
     while( ! pfIn.eof()) {
       std::getline(pfIn, pfName, '\n');
       if( ! pfIn.eof()) {
-	syncedStrings.push_back(pfName);  // ---- add the gathered strings
+        syncedStrings.push_back(pfName);  // ---- add the gathered strings
       }
     }
   }
@@ -828,13 +837,13 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
     for(int i(0); i < syncedStrings.size(); ++i) {
       syncedStrStr << syncedStrings[i] << '\n';
     }
-    syncedStringsSize = syncedStrStr.str().size();
+    syncedStringsSize = static_cast<int>(syncedStrStr.str().size());
   }
   ParallelDescriptor::Bcast(&syncedStringsSize, 1);
 
   Vector<char> syncedCharArray(syncedStringsSize + 1);
   if(ParallelDescriptor::IOProcessor()) {
-    std::strcpy(syncedCharArray.dataPtr(), syncedStrStr.str().c_str());  // null terminated
+    std::strncpy(syncedCharArray.dataPtr(), syncedStrStr.str().c_str(), syncedCharArray.size());  // null terminated
   }
   ParallelDescriptor::Bcast(syncedCharArray.dataPtr(), syncedCharArray.size());
 
@@ -844,7 +853,7 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
     while( ! syncedIn.eof()) {
       std::getline(syncedIn, syncedName, '\n');
       if( ! syncedIn.eof()) {
-	syncedStrings.push_back(syncedName);
+        syncedStrings.push_back(syncedName);
       }
     }
   }
@@ -864,7 +873,8 @@ amrex::Vector<char> amrex::SerializeStringArray(const Vector<std::string> &strin
   }
 
   Vector<char> charArray(stringStream.str().size() + 1);
-  std::strcpy(charArray.dataPtr(), stringStream.str().c_str());  // null terminated
+  std::strncpy(charArray.dataPtr(), stringStream.str().c_str(),
+               charArray.size());  // null terminated
 
   return charArray;
 }
@@ -935,7 +945,7 @@ void amrex::Sleep(double sleepsec) {
 
 
 namespace {
-    static auto clock_time_begin = amrex::MaxResSteadyClock::now();
+    auto clock_time_begin = amrex::MaxResSteadyClock::now();
 }
 
 double amrex::second () noexcept

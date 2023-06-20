@@ -1,6 +1,6 @@
 
 #ifndef _AUGPLT_F_H_
-#define _AUGPLT_F_H_ 
+#define _AUGPLT_F_H_
 
 //#ifdef BL_LANG_FORT
 //#    define FORT_VORT_3D    vort_3d
@@ -48,7 +48,7 @@ extern "C" {
             const int* vel, const int* divu,
             amrex_real* delta
             );
-            
+
     void FORT_COPY_3D(
             const int* srclo , const int* srchi,
             const amrex_real* srcd, const int* srcNComps,

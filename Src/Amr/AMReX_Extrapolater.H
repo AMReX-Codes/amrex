@@ -1,12 +1,11 @@
 #ifndef AMREX_EXTRAPOLATER_H_
 #define AMREX_EXTRAPOLATER_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
 
-namespace amrex {
-
-namespace Extrapolater
+namespace amrex::Extrapolater
 {
     // finebnd: boundary cells covered by fine cells (including periodically shifted fine cells)
     // crsebnd: boundary cells not covered by fine cells
@@ -19,7 +18,9 @@ namespace Extrapolater
 
     //! It is expected that FillBoundary (w/ periodicity) has been called on mf.
     void FirstOrderExtrap (MultiFab& mf, const Geometry& geom, int scomp, int ncomp);
-}
+
+    //! It is expected that FillBoundary (w/ periodicity) has been called on mf.
+    void FirstOrderExtrap (MultiFab& mf, const Geometry& geom, int scomp, int ncomp, int nGrow);
 
 }
 

@@ -1,5 +1,6 @@
 #ifndef BL_LAZY_H
 #define BL_LAZY_H
+#include <AMReX_Config.H>
 
 #include <vector>
 #include <functional>
@@ -15,7 +16,7 @@ namespace Lazy
 
     void QueueReduction (Func);
     void EvalReduction ();
-    
+
     void Finalize ();
 }
 }

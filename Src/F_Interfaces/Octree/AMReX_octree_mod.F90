@@ -11,6 +11,8 @@ module amrex_octree_module
   public :: amrex_octree_init, amrex_octree_finalize, amrex_octree_iter_build, &
        amrex_octree_iter_destroy, amrex_octree_average_down_leaves
 
+  public :: amrex_octree_post_regrid
+
   type, public :: amrex_octree_iter
      integer, private :: begin_index    = 0
      integer, private :: end_index      = 0 ! exclusive

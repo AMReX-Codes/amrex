@@ -1,5 +1,6 @@
 #ifndef AMREX_EB_DATA_COLLECTION_H_
 #define AMREX_EB_DATA_COLLECTION_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Geometry.H>
 #include <AMReX_EBCellFlag.H>
@@ -19,7 +20,7 @@ public:
 
     EBDataCollection (const EB2::Level& a_level, const Geometry& a_geom,
                       const BoxArray& a_ba, const DistributionMapping& a_dm,
-                      const Vector<int>& a_ngrow, EBSupport a_support);
+                      Vector<int>  a_ngrow, EBSupport a_support);
 
     ~EBDataCollection ();
 
@@ -28,14 +29,16 @@ public:
     EBDataCollection& operator= (const EBDataCollection&) = delete;
     EBDataCollection& operator= (EBDataCollection&&) = delete;
 
-    const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const;
-    const MultiFab& getVolFrac () const;
-    const MultiCutFab& getCentroid () const;
-    const MultiCutFab& getBndryCent () const;
-    const MultiCutFab& getBndryArea () const;
-    const MultiCutFab& getBndryNormal () const;
-    Array<const MultiCutFab*, AMREX_SPACEDIM> getAreaFrac () const;
-    Array<const MultiCutFab*, AMREX_SPACEDIM> getFaceCent () const;
+    [[nodiscard]] const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const;
+    [[nodiscard]] const MultiFab& getLevelSet () const;
+    [[nodiscard]] const MultiFab& getVolFrac () const;
+    [[nodiscard]] const MultiCutFab& getCentroid () const;
+    [[nodiscard]] const MultiCutFab& getBndryCent () const;
+    [[nodiscard]] const MultiCutFab& getBndryArea () const;
+    [[nodiscard]] const MultiCutFab& getBndryNormal () const;
+    [[nodiscard]] Array<const MultiCutFab*, AMREX_SPACEDIM> getAreaFrac () const;
+    [[nodiscard]] Array<const MultiCutFab*, AMREX_SPACEDIM> getFaceCent () const;
+    [[nodiscard]] Array<const MultiCutFab*, AMREX_SPACEDIM> getEdgeCent () const;
 
 private:
 
@@ -47,6 +50,7 @@ private:
 
     // EBSupport::basic
     FabArray<EBCellFlagFab>* m_cellflags = nullptr;
+    MultiFab* m_levelset = nullptr;
 
     // EBSupport::volume
     MultiFab* m_volfrac = nullptr;
@@ -58,6 +62,7 @@ private:
     MultiCutFab* m_bndrynorm = nullptr;
     Array<MultiCutFab*,AMREX_SPACEDIM> m_areafrac {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
     Array<MultiCutFab*,AMREX_SPACEDIM> m_facecent {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
+    Array<MultiCutFab*,AMREX_SPACEDIM> m_edgecent {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
 };
 
 }

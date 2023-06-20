@@ -42,8 +42,8 @@
  * *****************************************************************************
  *                                DISCLAIMER
  * THE SOFTWARE IS SUPPLIED "AS IS" WITHOUT WARRANTY OF ANY KIND. NEITHER THE
- * UNITED STATES GOVERNMENT, NOR THE UNITED STATES DEPARTMENT OF ENERGY, NOR 
- * UCHICAGO ARGONNE, LLC, NOR ANY OF THEIR EMPLOYEES, MAKES ANY WARRANTY, 
+ * UNITED STATES GOVERNMENT, NOR THE UNITED STATES DEPARTMENT OF ENERGY, NOR
+ * UCHICAGO ARGONNE, LLC, NOR ANY OF THEIR EMPLOYEES, MAKES ANY WARRANTY,
  * EXPRESS OR IMPLIED, OR ASSUMES ANY LEGAL LIABILITY OR RESPONSIBILITY FOR THE
  * ACCURARY, COMPLETENESS, OR USEFULNESS OF ANY INFORMATION, DATA, APPARATUS,
  * PRODUCT, OR PROCESS DISCLOSED, OR REPRESENTS THAT ITS USE WOULD NOT INFRINGE
@@ -59,6 +59,8 @@
 
 #include <mpi.h>
 
+#include "verbosity.h"
+
 // lightweight timing statistics from MPI_Wtime() calls
 // C header only, no static variables
 // prints maximum, average/mean, minimum, and stddev
@@ -69,8 +71,8 @@ extern "C" {
 
 inline
 void printTimingStats(MPI_Comm comm,        // comm for MPI_Allreduce()
-		      const char *preamble, // text at beginning of line
-		      double dt)            // delta t in seconds
+                      const char *preamble, // text at beginning of line
+                      double dt)            // delta t in seconds
 {
   int myrank, nranks;
   double max, min, sum, avg, var, stdev;
@@ -89,9 +91,9 @@ void printTimingStats(MPI_Comm comm,        // comm for MPI_Allreduce()
   var *= 1.0/nranks;
   stdev = sqrt(var);
 
-  if(myrank==0) {
+  if(myrank==0 && verbosity() > 0) {
     printf("%s  max %.3es  avg %.3es  min %.3es  dev %.3es\n",
-	   preamble, max, avg, min, stdev);
+           preamble, max, avg, min, stdev);
   }
 
   MPI_Barrier(comm);

@@ -1,9 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-from __future__ import print_function
 import sys
 import os
-import shlex
 import subprocess
 import calendar
 import time
@@ -55,8 +53,6 @@ def compiletesting(arg_string):
                      'Tests/Particles/ParticleMesh',
                      'Tests/LinearSolvers/CellEB',
                      'Tests/LinearSolvers/CellEB2',
-                     'Tests/LinearSolvers/C_CellMG',
-                     'Tests/LinearSolvers/C_TensorMG',
                      'Tests/MKDir']
 
     else:
@@ -80,16 +76,16 @@ def compiletesting(arg_string):
     for test in test_list:
         print("Compile", test)
         os.chdir(os.path.join(TOP,test))
-        
+
         command = "make realclean"
         outfile = "makerealclean.ou"
         run(command, outfile)
-        
+
         command = "make -j4 " + args.make_flags
         if args.typecheck:
             command += " typecheck"
         outfile = "make.ou"
-        run(command, outfile)        
+        run(command, outfile)
 
         test_success = False
         if args.typecheck:
@@ -150,4 +146,3 @@ def run(command, outfile=None):
 
 if __name__ == "__main__":
     compiletesting(sys.argv[1:])
-

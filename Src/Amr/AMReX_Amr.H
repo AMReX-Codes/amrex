@@ -1,10 +1,7 @@
 
 #ifndef AMREX_Amr_H_
 #define AMREX_Amr_H_
-
-#include <fstream>
-#include <memory>
-#include <list>
+#include <AMReX_Config.H>
 
 #include <AMReX_Box.H>
 #include <AMReX_Geometry.H>
@@ -12,23 +9,17 @@
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_BCRec.H>
-
 #include <AMReX_AmrCore.H>
 
-#ifdef USE_PERILLA
-#include <RegionGraph.H>
-#include <Perilla.H>
-#endif
+#include <iosfwd>
+#include <list>
+#include <memory>
 
 namespace amrex {
 
 class AmrLevel;
 class LevelBld;
-class BoxDomain;
-template <class T>
-class MFGraph;
-class AmrTask;
-#if defined(BL_USE_SENSEI_INSITU)
+#if defined(AMREX_USE_SENSEI_INSITU) && !defined(AMREX_NO_SENSEI_AMR_INST)
 class AmrInSituBridge;
 #endif
 
@@ -43,31 +34,31 @@ class AmrInSituBridge;
 class Amr
     : public AmrCore
 {
-  template <class T>
-  friend class MFGraph;
-  friend class AmrTask;
   typedef std::multimap< std::pair<int, int>, double >  BoundaryPointList;
 
 public:
     //! The constructor.
-    Amr ();
+    Amr (LevelBld* a_levelbld /* One must pass LevelBld* as an argument now*/);
 
-    Amr (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord);
+    Amr (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord,
+        LevelBld* a_levelbld /* One must pass LevelBld* as an argument now*/);
 
     Amr (const Amr& rhs) = delete;
+    Amr (Amr&& rhs) = delete;
     Amr& operator= (const Amr& rhs) = delete;
+    Amr& operator= (Amr&& rhs) = delete;
 
     void InitAmr ();
 
     //! The destructor.
-    virtual ~Amr ();
+    ~Amr () override;
 
     //! Init data after construction. Must be called before timestepping.
     virtual void init (Real strt_time, Real stop_time);
 
     //! First part of initialInit
     void InitializeInit (Real strt_time, Real stop_time,
-                         const BoxArray* lev0_grids = 0, const Vector<int>* pmap = 0);
+                         const BoxArray* lev0_grids = nullptr, const Vector<int>* pmap = nullptr);
 
     //! Second part of initialInit
     void FinalizeInit (Real strt_time, Real stop_time);
@@ -79,10 +70,10 @@ public:
     void setDtLevel (Real dt, int lev) noexcept;
 
     //! Set the dtmin on each level.
-    void setDtMin (const Vector<Real>& dt_lev) noexcept;
+    void setDtMin (const Vector<Real>& dt_min_in) noexcept;
 
     //! Set the cycle count on each level.
-    void setNCycle (const Vector<int>& mss) noexcept;
+    void setNCycle (const Vector<int>& ns) noexcept;
 
     //! Subcycle in time?
     int subCycle () const noexcept { return sub_cycle; }
@@ -118,7 +109,7 @@ public:
     //! Which step are we at for the specified level?
     void setLevelCount (int lev, int n) noexcept { level_count[lev] = n; }
     //! Whether to regrid right after restart
-    bool RegridOnRestart () const noexcept;
+    static bool RegridOnRestart () noexcept;
     //! Interval between regridding.
     int regridInt (int lev) const noexcept { return regrid_int[lev]; }
     //! Number of time steps between checkpoint files.
@@ -189,6 +180,8 @@ public:
     static void fillDerivePlotVarList ();
     static void fillDeriveSmallPlotVarList ();
 
+    static void setComputeNewDtOnRegrid (int flag) { compute_new_dt_on_regrid = flag; }
+
     static void Initialize ();
     static void Finalize ();
     //! AmrLevel lev.
@@ -205,6 +198,10 @@ public:
     int numGrids (int lev) noexcept;
     //! More work to be done?
     int okToContinue () noexcept;
+    //! Rebuild grid hierarchy finer than lbase.
+    void regrid (int  lbase,
+                         Real time,
+                         bool initial = false) override;
     //! Regrid only!
     void RegridOnly (Real time, bool do_io = true);
     //! Should we regrid this level?
@@ -213,7 +210,7 @@ public:
     static const BoxArray& initialBa (int level) noexcept
         { BL_ASSERT(level-1 < initial_ba.size()); return initial_ba[level-1]; }
     //! Number of levels at which the grids are initially specified
-    static int initialBaLevels () noexcept { return initial_ba.size(); }
+    static int initialBaLevels () noexcept { return static_cast<int>(initial_ba.size()); }
     //! Do a complete integration cycle.
     virtual void coarseTimeStep (Real stop_time);
 
@@ -221,9 +218,9 @@ public:
     Real coarseTimeStepDt (Real stop_time);
     //! Retrieve derived data. User is responsible for deleting pointer.
     std::unique_ptr<MultiFab> derive (const std::string& name,
-				      Real           time,
-				      int            lev,
-				      int            ngrow);
+                                      Real           time,
+                                      int            lev,
+                                      int            ngrow);
     //! Name of the restart chkpoint file.
     const std::string& theRestartFile () const noexcept { return restart_chkfile; }
     //! Name of the restart plotfile.
@@ -231,7 +228,7 @@ public:
     //! The ith datalog file.  Do with it what you want.
     std::ostream& DataLog (int i);
     //! The filename of the ith datalog file.
-    const std::string DataLogName (int i) const noexcept { return datalogname[i]; }
+    std::string DataLogName (int i) const noexcept { return datalogname[i]; }
     //! How many datalogs have been opened
     int NumDataLogs () noexcept;
     /**
@@ -243,9 +240,9 @@ public:
     */
     static Real computeOptimalSubcycling (int   n,
                                           int*  best,
-                                          Real* dt_max,
-                                          Real* est_work,
-                                          int*  cycle_max);
+                                          const Real* dt_max,
+                                          const Real* est_work,
+                                          const int*  cycle_max);
 
     //! Write the plot file to be used for visualization.
     virtual void writePlotFile ();
@@ -257,7 +254,7 @@ public:
     virtual void checkPoint ();
     int stepOfLastCheckPoint () const noexcept {return last_checkpoint;}
 
-    const Vector<BoxArray>& getInitialBA() noexcept;
+    static const Vector<BoxArray>& getInitialBA() noexcept;
 
     /**
     * \brief Specialized version:
@@ -274,7 +271,7 @@ public:
         intersect_hix = IntersectHiX;
         intersect_loy = IntersectLoY;
         intersect_hiy = IntersectHiY;
-    };
+    }
 
     /**
     * \brief More general version:
@@ -296,32 +293,32 @@ public:
         intersect_hiy = IntersectHiY;
         intersect_loz = IntersectLoZ;
         intersect_hiz = IntersectHiZ;
-    };
+    }
 
     BoundaryPointList& getIntersectLoX() noexcept
     {
         return intersect_lox;
-    };
+    }
     BoundaryPointList& getIntersectHiX() noexcept
     {
         return intersect_hix;
-    };
+    }
     BoundaryPointList& getIntersectLoY() noexcept
     {
         return intersect_loy;
-    };
+    }
     BoundaryPointList& getIntersectHiY() noexcept
     {
         return intersect_hiy;
-    };
+    }
     BoundaryPointList& getIntersectLoZ() noexcept
     {
         return intersect_loz;
-    };
+    }
     BoundaryPointList& getIntersectHiZ() noexcept
     {
         return intersect_hiz;
-    };
+    }
 
 #ifdef AMREX_PARTICLES
     //! Redistribute particles
@@ -330,27 +327,25 @@ public:
 
     void InstallNewDistributionMap (int lev, const DistributionMapping& newdm);
 
-    bool UsingPrecreateDirectories () noexcept;
+    static bool UsingPrecreateDirectories () noexcept;
 
 protected:
 
     //! Initialize grid hierarchy -- called by Amr::init.
     void initialInit (Real strt_time, Real stop_time,
-                      const BoxArray* lev0_grids = 0, const Vector<int>* pmap = 0);
+                      const BoxArray* lev0_grids = nullptr, const Vector<int>* pmap = nullptr);
+#ifndef AMREX_NO_PROBINIT
     //! Read the probin file.
     void readProbinFile (int& init);
+#endif
     //! Check for valid input.
     void checkInput ();
     //! Restart from a checkpoint file.
     void restart (const std::string& filename);
     //! Define and initialize coarsest level.
-    void defBaseLevel (Real start_time, const BoxArray* lev0_grids = 0, const Vector<int>* pmap = 0);
+    void defBaseLevel (Real strt_time, const BoxArray* lev0_grids = nullptr, const Vector<int>* pmap = nullptr);
     //! Define and initialize refined levels.
-    void bldFineLevels (Real start_time);
-    //! Rebuild grid hierarchy finer than lbase.
-    virtual void regrid (int  lbase,
-                         Real time,
-                         bool initial = false) override;
+    void bldFineLevels (Real strt_time);
     //! Regrid level 0 on restart.
     virtual void regrid_level_0_on_restart ();
     //! Define new grid locations (called from regrid) and put into new_grids.
@@ -362,9 +357,9 @@ protected:
     DistributionMapping makeLoadBalanceDistributionMap (int lev, Real time, const BoxArray& ba) const;
     void LoadBalanceLevel0 (Real time);
 
-    virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) override;
-    virtual BoxArray GetAreaNotToTag (int lev) override;
-    virtual void ManualTagsPlacement (int lev, TagBoxArray& tags, const Vector<IntVect>& bf_lev) override;
+    void ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) override;
+    BoxArray GetAreaNotToTag (int lev) override;
+    void ManualTagsPlacement (int lev, TagBoxArray& tags, const Vector<IntVect>& bf_lev) override;
 
     //! Do a single timestep on level L.
     virtual void timeStep (int  level,
@@ -373,15 +368,15 @@ protected:
                            int  niter,
                            Real stop_time);
 
-    // pure virtural function in AmrCore
-    virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) override
-	{ amrex::Abort("How did we get her!"); }
-    virtual void MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) override
-	{ amrex::Abort("How did we get her!"); }
-    virtual void RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) override
-	{ amrex::Abort("How did we get her!"); }
-    virtual void ClearLevel (int lev) override
-	{ amrex::Abort("How did we get her!"); }
+    // pure virtual function in AmrCore
+    void MakeNewLevelFromScratch (int /*lev*/, Real /*time*/, const BoxArray& /*ba*/, const DistributionMapping& /*dm*/) override
+        { amrex::Abort("How did we get here!"); }
+    void MakeNewLevelFromCoarse (int /*lev*/, Real /*time*/, const BoxArray& /*ba*/, const DistributionMapping& /*dm*/) override
+        { amrex::Abort("How did we get here!"); }
+    void RemakeLevel (int /*lev*/, Real /*time*/, const BoxArray& /*ba*/, const DistributionMapping& /*dm*/) override
+        { amrex::Abort("How did we get here!"); }
+    void ClearLevel (int /*lev*/) override
+        { amrex::Abort("How did we get here!"); }
 
     //! Whether to write a plotfile now
     bool writePlotNow () noexcept;
@@ -402,7 +397,7 @@ protected:
     void initSubcycle();
     void initPltAndChk();
 
-    int initInSitu();
+    static int initInSitu();
     int updateInSitu();
     static int finalizeInSitu();
 
@@ -412,15 +407,14 @@ protected:
     std::string      regrid_grids_file;   //!< Grids file that will bypass regridding.
     std::string      initial_grids_file;  //!< Grids file that will bypass regridding only at initialization.
     Vector<std::unique_ptr<AmrLevel> > amr_level;    //!< Vector of levels
-    Real             cumtime;      //!< Physical time variable.
-    Real             start_time;   //!< Physical time this simulation started.
+    Real             cumtime = std::numeric_limits<Real>::lowest();      //!< Physical time variable.
+    Real             start_time = std::numeric_limits<Real>::lowest();   //!< Physical time this simulation started.
     Vector<Real>      dt_level;     //!< Timestep at this level.
     Vector<int>       level_steps;  //!< Number of time steps at this level.
     Vector<int>       level_count;
     Vector<int>       n_cycle;
     std::string      subcycling_mode; //!<Type of subcycling to use.
     Vector<Real>      dt_min;
-    bool             isPeriodic[AMREX_SPACEDIM];  //!< Domain periodic?
     Vector<int>       regrid_int;      //!< Interval between regridding.
     int              last_checkpoint; //!< Step number of previous checkpoint.
     int              check_int;       //!< How often checkpoint (# time steps).
@@ -440,7 +434,7 @@ protected:
     std::string      plot_file_root;  //!< Root name of plotfile.
     std::string      small_plot_file_root;  //!< Root name of small plotfile.
 
-    int              which_level_being_advanced; //!< Only >=0 if we are in Amr::timeStep(level,...)
+    int              which_level_being_advanced = -1; //!< Only >=0 if we are in Amr::timeStep(level,...)
 
     int              record_grid_info;
     int              record_run_info;
@@ -453,7 +447,9 @@ protected:
     int              sub_cycle;
     std::string      restart_chkfile;
     std::string      restart_pltfile;
+#ifndef AMREX_NO_PROBINIT
     std::string      probin_file;
+#endif
     LevelBld*        levelbld;
     bool             abort_on_stream_retry_failure;
     int              stream_max_tries;
@@ -475,18 +471,13 @@ protected:
     static Vector<BoxArray> initial_ba;
     //! Array of BoxArrays read in to externally define grid hierarchy at each regrid
     static Vector<BoxArray> regrid_ba;
+    static int compute_new_dt_on_regrid;
 
-#if defined(BL_USE_SENSEI_INSITU)
+#if defined(AMREX_USE_SENSEI_INSITU) && !defined(AMREX_NO_SENSEI_AMR_INST)
     static AmrInSituBridge *insitu_bridge;
 #endif
 
 public:
-#ifdef USE_PERILLA
-    std::vector<std::vector<RegionGraph*> > graphArray;
-    std::vector<RegionGraph*> amrGraphArray;
-    std::vector<RegionGraph*> &get_graphArray(int level){return graphArray[level];}
-#endif
-
     BoundaryPointList intersect_lox;
     BoundaryPointList intersect_loy;
     BoundaryPointList intersect_loz;

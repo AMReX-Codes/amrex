@@ -1,4 +1,4 @@
-AMREX_HOME ?= ../../../
+AMREX_HOME = ../../../
 
 DEBUG	= TRUE
 DEBUG	= FALSE
@@ -8,6 +8,7 @@ DIM	= 3
 COMP    = gcc
 
 TINY_PROFILE = FALSE
+USE_PARTICLES = TRUE
 
 PRECISION = DOUBLE
 

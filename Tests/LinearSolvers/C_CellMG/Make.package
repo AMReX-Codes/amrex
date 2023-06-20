@@ -1,5 +1,0 @@
-
-CEXE_sources += MacOperator.cpp
-CEXE_headers += MacOperator.H
-FEXE_headers += COEF_F.H
-FEXE_sources += MACPROJ_$(DIM)D.F MACOPERATOR_$(DIM)D.F COEF_$(DIM)D.F 

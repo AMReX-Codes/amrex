@@ -1,0 +1,11 @@
+CEXE_sources += AMReX_NVector_MultiFab.cpp
+CEXE_headers += AMReX_NVector_MultiFab.H
+CEXE_sources += AMReX_Sundials_Core.cpp
+CEXE_headers += AMReX_Sundials_Core.H
+CEXE_headers += AMReX_Sundials.H
+CEXE_headers += AMReX_SundialsIntegrator.H
+CEXE_sources += AMReX_SUNMemory.cpp
+CEXE_headers += AMReX_SUNMemory.H
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/SUNDIALS
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SUNDIALS

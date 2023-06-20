@@ -1,11 +1,4 @@
-#include <iostream>
-#include <limits>
-#include <algorithm>
-#include <new>
-#include <memory>
-#include <cstring>
-#include <cstdint>
-
+#include <AMReX_BLProfiler.H>
 #include <AMReX_CArena.H>
 #include <AMReX_MemPool.H>
 #include <AMReX_Vector.H>
@@ -17,21 +10,25 @@
 
 #include <AMReX_ParmParse.H>
 
-#ifdef USE_PERILLA_PTHREADS
-#include <WorkerThread.H>
-#endif
+#include <iostream>
+#include <limits>
+#include <algorithm>
+#include <new>
+#include <memory>
+#include <cstring>
+#include <cstdint>
 
 using namespace amrex;
 
 namespace
 {
-    static Vector<std::unique_ptr<CArena> > the_memory_pool;
+    Vector<std::unique_ptr<CArena> > the_memory_pool;
 #if defined(AMREX_TESTING) || defined(AMREX_DEBUG)
-    static int init_snan = 1;
+    int init_snan = 1;
 #else
-    static int init_snan = 0;
+    int init_snan = 0;
 #endif
-    static bool initialized = false;
+    bool initialized = false;
 }
 
 extern "C" {
@@ -40,52 +37,38 @@ void amrex_mempool_init ()
 {
     if (!initialized)
     {
-	initialized = true;
+        BL_PROFILE("amrex_mempool_init()");
+
+        initialized = true;
 
         ParmParse pp("fab");
-	pp.query("init_snan", init_snan);
+        pp.queryAdd("init_snan", init_snan);
 
-	int nthreads = OpenMP::get_max_threads();
+        int nthreads = OpenMP::get_max_threads();
 
-#ifdef USE_PERILLA_PTHREADS
-#ifdef _OPENMP
-	//Just in case Perilla thread spawns multiple OMP threads
-        nthreads *= perilla::nThreads();
-#else
-	nthreads = perilla::nThreads();
-#endif
-#endif
+        the_memory_pool.resize(nthreads);
+        for (int i=0; i<nthreads; ++i) {
+            the_memory_pool[i] = std::make_unique<CArena>(0, ArenaInfo().SetCpuMemory());
+        }
 
-	the_memory_pool.resize(nthreads);
-	for (int i=0; i<nthreads; ++i) {
-// HIP FIX THIS - Default Arena w/o managed?
-// Default arena is currently Device on HIP where there is no managed option.
-// Need to adjust to CPU specifically in that case.
-#ifdef AMREX_USE_HIP
-            the_memory_pool[i].reset(new CArena(0, ArenaInfo().SetCpuMemory()));
-#else
-            the_memory_pool[i].reset(new CArena);
-#endif
-	}
-
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel num_threads(nthreads)
 #endif
-	{
-	    size_t N = 1024*1024*sizeof(double);
-	    void *p = amrex_mempool_alloc(N);
-	    memset(p, 0, N);
-	    amrex_mempool_free(p);
-	}
+        {
+            size_t N = 1024*1024*sizeof(double);
+            void *p = amrex_mempool_alloc(N);
+            memset(p, 0, N);
+            amrex_mempool_free(p);
+        }
 
 #ifdef AMREX_MEM_PROFILING
-	MemProfiler::add("MemPool", std::function<MemProfiler::MemInfo()>
-			 ([] () -> MemProfiler::MemInfo {
-			     int MB_min, MB_max, MB_tot;
-			     amrex_mempool_get_stats(MB_min, MB_max, MB_tot);
-			     Long b = MB_tot * (1024L*1024L);
-			     return {b, b};
-			 }));
+        MemProfiler::add("MemPool", std::function<MemProfiler::MemInfo()>
+                         ([] () -> MemProfiler::MemInfo {
+                             int MB_min, MB_max, MB_tot;
+                             amrex_mempool_get_stats(MB_min, MB_max, MB_tot);
+                             Long b = MB_tot * (1024L*1024L);
+                             return {b, b};
+                         }));
 #endif
     }
 }
@@ -99,29 +82,12 @@ void amrex_mempool_finalize ()
 void* amrex_mempool_alloc (size_t nbytes)
 {
   int tid = OpenMP::get_thread_num();
-
-#ifdef USE_PERILLA_PTHREADS
-#ifdef _OPENMP
-  tid = perilla::tid()*omp_get_max_threads()+tid;
-#else
-  tid = perilla::tid();
-#endif
-#endif
   return the_memory_pool[tid]->alloc(nbytes);
 }
 
-void amrex_mempool_free (void* p) 
+void amrex_mempool_free (void* p)
 {
   int tid = OpenMP::get_thread_num();
-
-#ifdef USE_PERILLA_PTHREADS
-#ifdef _OPENMP
-  tid = perilla::tid()*omp_get_max_threads()+tid;
-#else
-  tid = perilla::tid();
-#endif
-#endif
-
   the_memory_pool[tid]->free(p);
 }
 
@@ -136,9 +102,9 @@ void amrex_mempool_get_stats (int& mp_min, int& mp_max, int& mp_tot) // min, max
     hsu_max = std::max(hsu, hsu_max);
     hsu_tot += hsu;
   }
-  mp_min = hsu_min/(1024*1024);
-  mp_max = hsu_max/(1024*1024);
-  mp_tot = hsu_tot/(1024*1024);
+  mp_min = static_cast<int>(hsu_min/(1024*1024));
+  mp_max = static_cast<int>(hsu_max/(1024*1024));
+  mp_tot = static_cast<int>(hsu_tot/(1024*1024));
 }
 
 void amrex_real_array_init (Real* p, size_t nelems)

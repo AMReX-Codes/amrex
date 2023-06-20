@@ -4,7 +4,7 @@ module SDCquadrature_mod
   use iso_c_binding
   implicit none
 
-  integer,  parameter :: qp = c_long_double   
+  integer,  parameter :: qp = c_long_double
   integer,  parameter :: dp = c_double
   real(qp), parameter :: eps = 1.0e-23_qp
 
@@ -144,7 +144,7 @@ contains
        end do
     end do
 
-    
+
   end subroutine SDC_quadrature
 
 
@@ -273,7 +273,7 @@ contains
 
   end subroutine sdc_qnodes
 
-  !>  Subroutine to compute the quadrature matrices 
+  !>  Subroutine to compute the quadrature matrices
   subroutine sdc_qmats(qmat, smat, dst, src, flags, ndst, nsrc) bind(c)
     integer(c_int),      intent(in), value  :: ndst   !<  Number of destination points
     integer(c_int),      intent(in), value  :: nsrc   !<  Number of source points
@@ -281,7 +281,7 @@ contains
     real(c_long_double), intent(in)  :: src(nsrc)     !<  Source points
     real(amrex_real),      intent(out) :: qmat(ndst-1, nsrc)  !<  O to dst quadrature weights
     real(amrex_real),      intent(out) :: smat(ndst-1, nsrc)  !< dst(m) to dst(m+1) quadrature weights
-    integer(c_int),      intent(in)  :: flags(nsrc)     
+    integer(c_int),      intent(in)  :: flags(nsrc)
 
     integer  :: i, j, m
     real(qp) :: q, s, den, p(0:nsrc)
@@ -329,7 +329,7 @@ contains
   !!
   !!   p = [ a_0, a_1, ..., a_n ].
   !!
-  
+
   !> Function to evaluate real polynomial
   real(qp) function poly_eval(p, n, x) result(v) bind(c)
     integer, intent(in), value :: n

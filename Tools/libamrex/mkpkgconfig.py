@@ -1,11 +1,4 @@
-#!/usr/bin/env python
-
-from __future__ import print_function
-
-import sys
-
-if sys.version_info < (2, 7):
-    sys.exit("ERROR: need python 2.7 or later for mkpkgconfig.py")
+#!/usr/bin/env python3
 
 import argparse
 
@@ -20,7 +13,7 @@ def doit(prefix, version, cflags, libs, libpriv, fflags):
     print("fflags="+fflags);
     print("")
     print("Name: amrex")
-    print("Description: Software Framework for Block Structed AMR")
+    print("Description: Software Framework for Block Structured AMR")
     print("Version:")
     print("URL: https://github.com/AMReX-Codes/amrex")
     print("Requires:")

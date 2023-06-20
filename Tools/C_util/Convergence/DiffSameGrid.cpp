@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <string>
 
-#include <WritePlotFile.H>
+#include <AMReX_WritePlotFile.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>
 #include <AMReX_FArrayBox.H>
@@ -14,10 +14,6 @@
 #include <AMReX_Utility.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_AmrData.H>
-
-#ifdef AMREX_DEBUG
-#include <TV_TempWrite.H>
-#endif
 
 #define GARBAGE 666.e+40
 using namespace amrex;
@@ -45,16 +41,16 @@ PrintUsage (const char* progName)
 static
 bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
-			const AmrData& amrd2)
+                        const AmrData& amrd2)
 {
     const Vector<std::string>& derives1 = amrd1.PlotVarNames();
     const Vector<std::string>& derives2 = amrd2.PlotVarNames();
     int length = derives1.size();
     if (length != derives2.size())
-	return false;
+        return false;
     for (int i=0; i<length; ++i)
-	if (derives1[i] != derives2[i])
-	    return false;
+        if (derives1[i] != derives2[i])
+            return false;
     return true;
 }
 
@@ -63,191 +59,201 @@ main (int   argc,
       char* argv[])
 {
     amrex::Initialize(argc,argv);
-
-    if (argc == 1)
-        PrintUsage(argv[0]);
-
-    ParmParse pp;
-
-    if (pp.contains("help"))
-        PrintUsage(argv[0]);
-
-    std::string iFile1, iFile2, difFile;
-
-    bool verbose = false;
-    if (pp.contains("verbose"))
     {
-        verbose = true;
-        AmrData::SetVerbose(true);
-    }
 
-    pp.query("infile1", iFile1);
-    if (iFile1.empty())
-        amrex::Abort("You must specify `infile1'");
+        if (argc == 1)
+            PrintUsage(argv[0]);
 
-    pp.query("infile2", iFile2);
-    if (iFile2.empty())
-        amrex::Abort("You must specify `infile2'");
+        ParmParse pp;
 
-    pp.query("diffile", difFile);
+        const std::string farg = amrex::get_command_argument(1);
+        if (farg == "-h" || farg == "--help")
+            PrintUsage(argv[0]);
 
-    int norm = 2;
-    pp.query("norm", norm);
+        std::string iFile1, iFile2, difFile;
 
-    DataServices::SetBatchMode();
-    Amrvis::FileType fileType(Amrvis::NEWPLT);
-    
-    DataServices dataServicesC(iFile1, fileType);
-    DataServices dataServicesF(iFile2, fileType);
-
-    if (!dataServicesC.AmrDataOk() || !dataServicesF.AmrDataOk())
-        amrex::Abort("ERROR: Dataservices not OK");
-    //
-    // Generate AmrData Objects 
-    //
-    AmrData& amrDataI = dataServicesC.AmrDataRef();
-    AmrData& amrDataE = dataServicesF.AmrDataRef();
-    //
-    // Initial Tests 
-    //
-    if (!amrDatasHaveSameDerives(amrDataI,amrDataE))
-        amrex::Abort("ERROR: Plotfiles do not have the same state variables");
-
-    if (amrDataI.FinestLevel() != amrDataE.FinestLevel())
-        amrex::Abort("ERROR: Finest level is not the same in the two plotfiles");
-
-    int nComp       = amrDataI.NComp();
-    int finestLevel = amrDataI.FinestLevel();
-    const Vector<std::string>& derives = amrDataI.PlotVarNames();
-    Vector<int> destComps(nComp);
-    for (int i = 0; i < nComp; i++) 
-        destComps[i] = i;
-    //
-    // Compute the error
-    //
-    Vector<MultiFab*> error(finestLevel+1);
-    
-    if (ParallelDescriptor::IOProcessor())
-        std::cout << "L"<< norm << " norm of Error in Each Component" << std::endl
-             << "-----------------------------------------" << std::endl;
-
-    for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
-    {
-        const BoxArray& baI = amrDataI.boxArray(iLevel);
-        const BoxArray& baE = amrDataE.boxArray(iLevel);
-
-        if (baI != baE)
+        bool verbose = false;
+        if (pp.contains("verbose"))
         {
-            std::cout << "ERROR: BoxArrays are not the same at level " << iLevel << std::endl;
-            ParallelDescriptor::Abort();
+            verbose = true;
+            AmrData::SetVerbose(true);
         }
 
-        DistributionMapping dmI(baI);
-	error[iLevel] = new MultiFab(baI, dmI, nComp, 0);
-	error[iLevel]->setVal(GARBAGE);
+        pp.query("infile1", iFile1);
+        if (iFile1.empty())
+            amrex::Abort("You must specify `infile1'");
 
-        DistributionMapping dmE(baE);
-        MultiFab dataI(baI, dmI, nComp, 0);
-        MultiFab dataE(baE, dmE, nComp, 0);
+        pp.query("infile2", iFile2);
+        if (iFile2.empty())
+            amrex::Abort("You must specify `infile2'");
 
-        amrDataI.FillVar(dataI, iLevel, derives, destComps);
-        amrDataE.FillVar(dataE, iLevel, derives, destComps);
+        pp.query("diffile", difFile);
 
-        for (int i = 0; i < destComps.size(); i++)
-        {
-            amrDataI.FlushGrids(destComps[i]);
-            amrDataE.FlushGrids(destComps[i]);
-        }
+        int norm = 2;
+        pp.query("norm", norm);
 
-        (*error[iLevel]).copy(dataI);
-        (*error[iLevel]).minus(dataE, 0, nComp, 0);
+        DataServices::SetBatchMode();
+        Amrvis::FileType fileType(Amrvis::NEWPLT);
+
+        DataServices dataServicesC(iFile1, fileType);
+        DataServices dataServicesF(iFile2, fileType);
+
+        if (!dataServicesC.AmrDataOk() || !dataServicesF.AmrDataOk())
+            amrex::Abort("ERROR: Dataservices not OK");
         //
-        // Output Statistics
+        // Generate AmrData Objects
         //
+        AmrData& amrDataI = dataServicesC.AmrDataRef();
+        AmrData& amrDataE = dataServicesF.AmrDataRef();
+        //
+        // Initial Tests
+        //
+        if (!amrDatasHaveSameDerives(amrDataI,amrDataE))
+            amrex::Abort("ERROR: Plotfiles do not have the same state variables");
+
+        if (amrDataI.FinestLevel() != amrDataE.FinestLevel())
+            amrex::Abort("ERROR: Finest level is not the same in the two plotfiles");
+
+        int nComp       = amrDataI.NComp();
+        int finestLevel = amrDataI.FinestLevel();
+        const Vector<std::string>& derives = amrDataI.PlotVarNames();
+        Vector<int> destComps(nComp);
+        for (int i = 0; i < nComp; i++)
+            destComps[i] = i;
+        //
+        // Compute the error
+        //
+        Vector<MultiFab*> error(finestLevel+1);
+
         if (ParallelDescriptor::IOProcessor())
-	  std::cout << "Level:  " << iLevel << std::endl;
+            std::cout << "L"<< norm << " norm of Error in Each Component" << std::endl
+                      << "-----------------------------------------" << std::endl;
 
-        Vector<Real> norms(nComp,0);
-
-        for (MFIter mfi(*error[iLevel]); mfi.isValid(); ++mfi)
+        for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
         {
-            for (int iComp = 0; iComp < nComp; iComp++)
-            {
-                const Real grdL2 = (*error[iLevel])[mfi].norm(norm, iComp, 1);
+            const BoxArray& baI = amrDataI.boxArray(iLevel);
+            const BoxArray& baE = amrDataE.boxArray(iLevel);
 
-                if (norm != 0)
-                    norms[iComp] = norms[iComp] + pow(grdL2, norm);
-                else
-                    norms[iComp] = std::max(norms[iComp], grdL2);
+            if (baI != baE)
+            {
+                std::cout << "ERROR: BoxArrays are not the same at level " << iLevel << std::endl;
+                ParallelDescriptor::Abort();
             }
-        }
+
+            DistributionMapping dmI(baI);
+            error[iLevel] = new MultiFab(baI, dmI, nComp, 0);
+            error[iLevel]->setVal(GARBAGE);
+
+            DistributionMapping dmE(baE);
+            MultiFab dataI(baI, dmI, nComp, 0);
+            MultiFab dataE(baE, dmE, nComp, 0);
+
+            amrDataI.FillVar(dataI, iLevel, derives, destComps);
+            amrDataE.FillVar(dataE, iLevel, derives, destComps);
+
+            if (dataI.contains_nan()) {
+                Abort("First plotfile contains NaN(s)");
+            }
+            if (dataE.contains_nan()) {
+                Abort("Second plotfile contains NaN(s)");
+            }
+
+            for (int i = 0; i < destComps.size(); i++)
+            {
+                amrDataI.FlushGrids(destComps[i]);
+                amrDataE.FlushGrids(destComps[i]);
+            }
+
+            (*error[iLevel]).copy(dataI);
+            (*error[iLevel]).minus(dataE, 0, nComp, 0);
+            //
+            // Output Statistics
+            //
+            if (ParallelDescriptor::IOProcessor())
+                std::cout << "Level:  " << iLevel << std::endl;
+
+            Vector<Real> norms(nComp,0);
+
+            for (MFIter mfi(*error[iLevel]); mfi.isValid(); ++mfi)
+            {
+                for (int iComp = 0; iComp < nComp; iComp++)
+                {
+                    const Real grdL2 = (*error[iLevel])[mfi].norm(norm, iComp, 1);
+
+                    if (norm != 0)
+                        norms[iComp] = norms[iComp] + pow(grdL2, norm);
+                    else
+                        norms[iComp] = std::max(norms[iComp], grdL2);
+                }
+            }
 
 #ifdef BL_USE_MPI
-        MPI_Datatype datatype = ParallelDescriptor::Mpi_typemap<Real>::type();
+            MPI_Datatype datatype = ParallelDescriptor::Mpi_typemap<Real>::type();
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            Vector<Real> tmp(nComp);
-            for (int proc = 0; proc < ParallelDescriptor::NProcs(); proc++)
+            if (ParallelDescriptor::IOProcessor())
             {
-                if (proc != ParallelDescriptor::IOProcessorNumber())
+                Vector<Real> tmp(nComp);
+                for (int proc = 0; proc < ParallelDescriptor::NProcs(); proc++)
                 {
-                    MPI_Status stat;
-                    int rc = MPI_Recv(tmp.dataPtr(), nComp, datatype, 
-                                      MPI_ANY_SOURCE, proc, ParallelDescriptor::Communicator(), 
-                                      &stat);
-
-                    if (rc != MPI_SUCCESS)
-                        ParallelDescriptor::Abort(rc);
-
-                    for (int iComp = 0; iComp < nComp; iComp++)
+                    if (proc != ParallelDescriptor::IOProcessorNumber())
                     {
-                        if (norm != 0)
-                            norms[iComp] = norms[iComp] + tmp[iComp];
-                        else
-                            norms[iComp] = std::max(norms[iComp], tmp[iComp]);
+                        MPI_Status stat;
+                        int rc = MPI_Recv(tmp.dataPtr(), nComp, datatype,
+                                          MPI_ANY_SOURCE, proc, ParallelDescriptor::Communicator(),
+                                          &stat);
+
+                        if (rc != MPI_SUCCESS)
+                            ParallelDescriptor::Abort(rc);
+
+                        for (int iComp = 0; iComp < nComp; iComp++)
+                        {
+                            if (norm != 0)
+                                norms[iComp] = norms[iComp] + tmp[iComp];
+                            else
+                                norms[iComp] = std::max(norms[iComp], tmp[iComp]);
+                        }
                     }
                 }
             }
-        }
-        else
-        {
-            int rc = MPI_Send(norms.dataPtr(), nComp, datatype, 
-                              ParallelDescriptor::IOProcessorNumber(),
-                              ParallelDescriptor::MyProc(),
-                              ParallelDescriptor::Communicator());
+            else
+            {
+                int rc = MPI_Send(norms.dataPtr(), nComp, datatype,
+                                  ParallelDescriptor::IOProcessorNumber(),
+                                  ParallelDescriptor::MyProc(),
+                                  ParallelDescriptor::Communicator());
 
-            if (rc != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
-        }
+                if (rc != MPI_SUCCESS)
+                    ParallelDescriptor::Abort(rc);
+            }
 #endif
 
-        Real vol = 1.0;
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
-            vol *= amrDataI.DxLevel()[iLevel][dir];
+            Real vol = 1.0;
+            for (int dir = 0; dir < BL_SPACEDIM; dir++)
+                vol *= amrDataI.DxLevel()[iLevel][dir];
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            for (int iComp = 0; iComp < nComp; iComp++)
+            if (ParallelDescriptor::IOProcessor())
             {
-                if (norm != 0)
+                for (int iComp = 0; iComp < nComp; iComp++)
                 {
-                    norms[iComp] = norms[iComp] * vol;
-                    norms[iComp] = pow(norms[iComp], (1.0/norm));
+                    if (norm != 0)
+                    {
+                        norms[iComp] = norms[iComp] * vol;
+                        norms[iComp] = pow(norms[iComp], (1.0/norm));
+                    }
+
+                    std::cout << "  " << derives[iComp] << ": " << norms[iComp] << std::endl;
                 }
-
-                std::cout << "  " << derives[iComp] << ": " << norms[iComp] << std::endl;
+                std::cout << std::endl;
             }
-            std::cout << std::endl;
         }
+
+        if (!difFile.empty())
+            WritePlotFile(error, amrDataI, difFile, verbose);
+
+        for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
+            delete error[iLevel];
+
     }
-
-    if (!difFile.empty())
-        WritePlotFile(error, amrDataI, difFile, verbose);
-    
-    for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
-	delete error[iLevel];
-
     amrex::Finalize();
 
     return 0;

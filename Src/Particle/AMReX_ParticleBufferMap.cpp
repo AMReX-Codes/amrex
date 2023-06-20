@@ -26,8 +26,9 @@ void ParticleBufferMap::define (const ParGDBBase* a_gdb)
 
     m_lev_offsets.resize(0);
     m_lev_offsets.push_back(0);
-    for (int lev = 0; lev < num_levels; ++lev)
-        m_lev_offsets.push_back(m_lev_offsets.back() + m_ba[lev].size());
+    for (int lev = 0; lev < num_levels; ++lev) {
+        m_lev_offsets.push_back(m_lev_offsets.back() +static_cast<int>( m_ba[lev].size()));
+    }
 
     int num_buckets = m_lev_offsets.back();
 
@@ -47,7 +48,7 @@ void ParticleBufferMap::define (const ParGDBBase* a_gdb)
     for (int lev = 0; lev < num_levels; ++lev) {
         for (int i = 0; i < m_ba[lev].size(); ++i) {
             int rank = ParallelContext::global_to_local_rank(m_dm[lev][i]);
-            box_lev_proc_ids.push_back(std::make_tuple(i, lev, rank));
+            box_lev_proc_ids.emplace_back(i, lev, rank);
         }
     }
 
@@ -104,9 +105,10 @@ void ParticleBufferMap::define (const ParGDBBase* a_gdb)
     d_lev_offsets.resize(0);
     d_lev_offsets.resize(m_lev_offsets.size());
 
-    Gpu::copy(Gpu::hostToDevice, m_lev_gid_to_bucket.begin(),m_lev_gid_to_bucket.end(),d_lev_gid_to_bucket.begin());
-    Gpu::copy(Gpu::hostToDevice, m_lev_offsets.begin(),m_lev_offsets.end(),d_lev_offsets.begin());
-    Gpu::copy(Gpu::hostToDevice, m_bucket_to_pid.begin(),m_bucket_to_pid.end(),d_bucket_to_pid.begin());
+    Gpu::copyAsync(Gpu::hostToDevice, m_lev_gid_to_bucket.begin(),m_lev_gid_to_bucket.end(),d_lev_gid_to_bucket.begin());
+    Gpu::copyAsync(Gpu::hostToDevice, m_lev_offsets.begin(),m_lev_offsets.end(),d_lev_offsets.begin());
+    Gpu::copyAsync(Gpu::hostToDevice, m_bucket_to_pid.begin(),m_bucket_to_pid.end(),d_bucket_to_pid.begin());
+    Gpu::streamSynchronize();
 }
 
 bool ParticleBufferMap::isValid (const ParGDBBase* a_gdb) const

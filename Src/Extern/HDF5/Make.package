@@ -1,0 +1,10 @@
+#
+# HDF5 Blueprint Support
+#
+
+CEXE_sources += AMReX_PlotFileUtilHDF5.cpp
+
+CEXE_headers += AMReX_PlotFileUtilHDF5.H AMReX_ParticleHDF5.H AMReX_WriteBinaryParticleDataHDF5.H AMReX_ParticlesHDF5.H
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/HDF5
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/HDF5

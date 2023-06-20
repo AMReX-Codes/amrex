@@ -1,9 +1,3 @@
-
-#include <iostream>
-#include <cstdlib>
-#include <limits>
-#include <cstring>
-
 #include <AMReX.H>
 #include <AMReX_FabConv.H>
 #include <AMReX_FArrayBox.H>
@@ -11,13 +5,16 @@
 #include <AMReX_REAL.H>
 #include <AMReX_Utility.H>
 
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include <limits>
+
 namespace amrex {
 
 bool RealDescriptor::bAlwaysFixDenormals (false);
 int  RealDescriptor::writeBufferSize(262144);  // ---- these are number of reals,
 int  RealDescriptor::readBufferSize(262144);   // ---- not bytes
-
-IntDescriptor::IntDescriptor () {}
 
 IntDescriptor::IntDescriptor (Long     nb,
                               Ordering o)
@@ -34,7 +31,7 @@ IntDescriptor::order () const
 int
 IntDescriptor::numBytes () const
 {
-    return numbytes;
+    return static_cast<int>(numbytes);
 }
 
 bool
@@ -88,12 +85,7 @@ operator>> (std::istream& is,
     return is;
 }
 
-RealDescriptor::RealDescriptor ()
-{}
-
-RealDescriptor::RealDescriptor (const Long* fr_,
-                                const int*  ord_,
-                                int         ordl_)
+RealDescriptor::RealDescriptor (const Long* fr_, const int* ord_, int ordl_)
     : fr(fr_, fr_+8),
       ord(ord_, ord_+ordl_)
 {}
@@ -101,36 +93,36 @@ RealDescriptor::RealDescriptor (const Long* fr_,
 const Long*
 RealDescriptor::format () const &
 {
-    BL_ASSERT(fr.size() != 0);
+    BL_ASSERT(!fr.empty());
     return fr.dataPtr();
 }
 
 const Vector<Long>&
 RealDescriptor::formatarray () const &
 {
-    BL_ASSERT(fr.size() != 0);
+    BL_ASSERT(!fr.empty());
     return fr;
 }
 
 const int*
 RealDescriptor::order () const &
 {
-    BL_ASSERT(ord.size() != 0);
+    BL_ASSERT(!ord.empty());
     return ord.dataPtr();
 }
 
 const Vector<int>&
 RealDescriptor::orderarray () const &
 {
-    BL_ASSERT(ord.size() != 0);
+    BL_ASSERT(!ord.empty());
     return ord;
 }
 
 int
 RealDescriptor::numBytes () const
 {
-    BL_ASSERT(fr.size() != 0);
-    return (fr[0] + 7 ) >> 3;
+    BL_ASSERT(!fr.empty());
+    return static_cast<int>((fr[0] + 7 ) >> 3);
 }
 
 bool
@@ -211,7 +203,7 @@ selectOrdering (int prec,
     default:
         amrex::Error("selectOrdering(): Crazy precision");
     }
-    return 0;
+    return nullptr;
 }
 
 //
@@ -219,14 +211,12 @@ selectOrdering (int prec,
 //
 
 RealDescriptor*
-RealDescriptor::newRealDescriptor (int         iot,
-                                   int         prec,
-                                   const char* sys,
-                                   int         ordering)
+RealDescriptor::newRealDescriptor (int fmt, int prec, const char* /*sys*/,
+                                   int ordering)
 {
-    RealDescriptor* rd = 0;
+    RealDescriptor* rd = nullptr;
 
-    switch (iot)
+    switch (fmt)
     {
     case FABio::FAB_IEEE:
     {
@@ -238,6 +228,8 @@ RealDescriptor::newRealDescriptor (int         iot,
             return rd;
         case FABio::FAB_DOUBLE:
             rd = new RealDescriptor(FPC::ieee_double, ord, 8);
+            return rd;
+        default:
             return rd;
         }
     }
@@ -280,7 +272,7 @@ _pd_get_bit (char const* base,
     n     -= nbytes;
     offs   = offs % 8;
 
-    if (ord == NULL)
+    if (ord == nullptr)
         base += (n + nbytes);
     else
         base += (n + (ord[nbytes] - 1));
@@ -309,7 +301,7 @@ _pd_extract_field (char const* in,
     int ind;
     Long bit_field = 0L;
     //
-    // Move past the apropriate number of bytes so that the start bit is
+    // Move past the appropriate number of bytes so that the start bit is
     // in the first byte.  OFFY is the offset of the byte containing the
     // bit OFFS
     //
@@ -323,7 +315,7 @@ _pd_extract_field (char const* in,
     in += n;
     unsigned char bpb = 8 - offs;
 
-    if (ord == NULL)
+    if (ord == nullptr)
         ind = offy++;
     else
     {
@@ -335,7 +327,7 @@ _pd_extract_field (char const* in,
         ind = (ord[offy++] - 1);
     }
 
-    int tgt  = in[ind];
+    int tgt  = in[ind]; // NOLINT
     unsigned char mask = (1 << bpb) - 1;
     bit_field = ((bit_field << bpb) | (tgt & mask));
     nbi -= bpb;
@@ -346,9 +338,9 @@ _pd_extract_field (char const* in,
         for (; nbi > 0; nbi -= bpb)
         {
             //
-            // ind  = (ord == NULL) ? offy++ : (ord[offy++] - 1);
+            // ind  = (ord == nullptr) ? offy++ : (ord[offy++] - 1);
             //
-            if (ord == NULL)
+            if (ord == nullptr)
                 ind = offy++;
             else
             {
@@ -360,7 +352,7 @@ _pd_extract_field (char const* in,
                 ind = (ord[offy++] - 1);
             }
 
-            tgt  = in[ind];
+            tgt  = in[ind]; // NOLINT
             bpb  = nbi > 8 ? 8 : nbi;
             mask = (1 << bpb) - 1;
             bit_field = ((bit_field << bpb) | ((tgt >> (8 - bpb)) & mask));
@@ -374,15 +366,14 @@ _pd_extract_field (char const* in,
 // Byte reverse nitems words.  Each word is nb bytes Long where nb is even.
 //
 
+template <int NB>
 static
 void
-_pd_btrvout (char* out,
-             Long  nb,
-             Long  nitems)
+_pd_btrvout (char* out, Long  nitems)
 {
-    for (Long jl = 0, nbo2 = nb >> 1; jl < nbo2; jl++)
+    for (int jl = 0, nbo2 = NB >> 1; jl < nbo2; jl++)
     {
-        Long jh  = nb - jl - 1;
+        int jh  = NB - jl - 1;
         char* p1 = out + jh;
         char* p2 = out + jl;
         for (Long i = 0L; i < nitems; i++)
@@ -390,8 +381,8 @@ _pd_btrvout (char* out,
             char tmp = *p1;
             *p1 = *p2;
             *p2 = tmp;
-            p1 += nb;
-            p2 += nb;
+            p1 += NB;
+            p2 += NB;
         }
     }
 }
@@ -421,7 +412,7 @@ _pd_insert_field (Long  in_long,
     char* in = (char *) &in_long;
     //
     // If the output start bit is not in the first byte move past the
-    // apropriate number of bytes so that the start bit is in the first byte.
+    // appropriate number of bytes so that the start bit is in the first byte.
     //
     if (offs > 7)
     {
@@ -442,7 +433,7 @@ _pd_insert_field (Long  in_long,
             longmask = ((1LL << nb) - 1LL) ^ ((1LL << dm) - 1LL);
 
         unsigned char fb = ((in_long&longmask)>>dm)&((1LL<<(nb-dm))-1LL);
-        *(out++) |= fb;
+        *(out++) |= fb; // NOLINT
 
         mi  += 8 - offs;
         offs = 0;
@@ -455,14 +446,19 @@ _pd_insert_field (Long  in_long,
     longmask = ~((1LL << dm) - 1LL);
     in_long  = (in_long << dm) & longmask;
     //
-    // Reorder the bytes apropriately.
+    // Reorder the bytes appropriately.
     //
-    if (l_order == REVERSE_ORDER)
-        _pd_btrvout(in, l_bytes, 1L);
+    if (l_order == REVERSE_ORDER) {
+        if (l_bytes == 4) {
+            _pd_btrvout<4>(in, 1L);
+        } else { // It's either 4 or 8.  There is an assertion in PD_fconvert.
+            _pd_btrvout<8>(in, 1L);
+        }
+    }
     //
     // Copy the remaining aligned bytes over.
     //
-    for (int n = (offs+nb+7)/8; n > 0; n--, *(out++) |= *(in++))
+    for (int n = (offs+nb+7)/8; n > 0; n--, *(out++) |= *(in++)) // NOLINT
         ;
 }
 
@@ -481,7 +477,7 @@ _pd_set_bit (char* base, int offs)
 
     int mask = (1 << (7 - offs));
 
-    *base  |= mask;
+    *base  |= mask; // NOLINT
 }
 
 //
@@ -498,7 +494,7 @@ _pd_reorder (char*      arr,
              const int* ord)
 {
     const int MAXLINE = 16;
-    char local[MAXLINE];
+    char local[MAXLINE] = {0};
 
     for (int j; nitems > 0; nitems--)
     {
@@ -521,11 +517,11 @@ permute_real_word_order (void*       out,
                          const void* in,
                          Long        nitems,
                          const int*  outord,
-                         const int*  inord, 
+                         const int*  inord,
                          int         REALSIZE)
 {
 //    BL_PROFILE("permute_real_word_order");
-    
+
     char* pin  = (char*) in;
     char* pout = (char*) out;
 
@@ -570,7 +566,7 @@ permute_real_word_order (void*       out,
 // to relax, but there is no evidence that it should be.
 //
 // An issue which is not a problem in the current implementation is that
-// old machines with byte sizes other than 8 bits can be accomodated
+// old machines with byte sizes other than 8 bits can be accommodated
 // because the conversions treat the input and output as bitstreams
 // instead of bytestreams.
 //
@@ -621,6 +617,9 @@ PD_fconvert (void*       out,
              int         onescmp)
 {
 //    BL_PROFILE("PD_fconvert");
+
+    AMREX_ASSERT(l_bytes == 4 || l_bytes == 8); // Otherwise, we need to update _pd_btrvout
+
     Long i, expn, expn_max, hexpn, mant, DeltaBias, hmbo, hmbi;
     int nbits, inbytes, outbytes, sign;
     int indxin, indxout, inrem, outrem, dindx;
@@ -649,7 +648,7 @@ PD_fconvert (void*       out,
     hexpn     = 1LL << (outfor[1] - 1L);
     expn_max  = (1LL << outfor[1]) - 1LL;
 
-    size_t number = size_t(nitems);
+    auto number = size_t(nitems);
     BL_ASSERT(int(number) == nitems);
     memset(out, 0, number*outbytes);
 
@@ -830,6 +829,7 @@ getarray (std::istream&  is,                                       \
     is >> c;                                                       \
     if (c != '(')                                                  \
         amrex::Error("getarray(istream&): expected a \'(\'");     \
+    AMREX_ASSERT(size >= 0 && size < std::numeric_limits<int>::max()); \
     ar.resize(size);                                               \
     for(int i = 0; i < size; ++i)                                  \
         is >> ar[i];                                               \
@@ -900,7 +900,7 @@ operator>> (std::istream&   is,
     is >> c;
     if (c != ')')
         amrex::Error("operator>>(istream&,RealDescriptor&): expected a \')\'");
-    rd = RealDescriptor(fmt.dataPtr(),ord.dataPtr(),ord.size());
+    rd = RealDescriptor(fmt.dataPtr(),ord.dataPtr(),static_cast<int>(ord.size()));
     return is;
 }
 
@@ -918,7 +918,7 @@ PD_convert (void*                 out,
 //    BL_PROFILE("PD_convert");
     if (ord == ird && boffs == 0)
     {
-        size_t n = size_t(nitems);
+        auto n = size_t(nitems);
         BL_ASSERT(int(n) == nitems);
         memcpy(out, in, n*ord.numBytes());
     }
@@ -927,8 +927,8 @@ PD_convert (void*                 out,
                                 ord.order(), ird.order(), ord.numBytes());
     }
     else if (ird == FPC::NativeRealDescriptor() && ord == FPC::Native32RealDescriptor()) {
-      auto rIn = static_cast<const char*>(in);
-      auto rOut= static_cast<char*>(out);
+      const auto *rIn = static_cast<const char*>(in);
+      auto *rOut= static_cast<char*>(out);
       for(Long i(0); i < nitems; ++i) {
         Real x;
         float y;
@@ -970,7 +970,7 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
 
     if(bAlwaysFixDenormals) {
       PD_fixdenormals(out, nitems, FPC::NativeRealDescriptor().format(),
-		      FPC::NativeRealDescriptor().order());
+                      FPC::NativeRealDescriptor().order());
     }
 }
 
@@ -991,7 +991,7 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
 
     while (nitems > 0)
     {
-        int get = int(nitems) > readBufferSize ? readBufferSize : int(nitems);
+        Long get = std::min(static_cast<Long>(readBufferSize), nitems);
         is.read(bufr, id.numBytes()*get);
         PD_convert(out,
                    bufr,
@@ -1003,7 +1003,7 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
 
         if(bAlwaysFixDenormals) {
           PD_fixdenormals(out, get, FPC::NativeRealDescriptor().format(),
-			  FPC::NativeRealDescriptor().order());
+                          FPC::NativeRealDescriptor().order());
         }
         nitems -= get;
         out    += get;
@@ -1061,7 +1061,7 @@ RealDescriptor::convertFromNativeFormat (std::ostream&         os,
 
     while (nitems > 0)
     {
-        int put = int(nitems) > writeBufferSize ? writeBufferSize : int(nitems);
+        Long put = std::min(static_cast<Long>(writeBufferSize), nitems);
         PD_convert(bufr,
                    in,
                    put,
@@ -1103,7 +1103,7 @@ RealDescriptor::convertFromNativeFloatFormat (std::ostream&         os,
 
     while (nitems > 0)
     {
-        int put = int(nitems) > writeBufferSize ? writeBufferSize : int(nitems);
+        Long put = std::min(static_cast<Long>(writeBufferSize), nitems);
         PD_convert(bufr,
                    in,
                    put,
@@ -1145,7 +1145,7 @@ RealDescriptor::convertFromNativeDoubleFormat (std::ostream&         os,
 
     while (nitems > 0)
     {
-        int put = int(nitems) > writeBufferSize ? writeBufferSize : int(nitems);
+        Long put = std::min(static_cast<Long>(writeBufferSize), nitems);
         PD_convert(bufr,
                    in,
                    put,
@@ -1179,7 +1179,7 @@ RealDescriptor::convertToNativeFloatFormat (float*                out,
 
     while (nitems > 0)
     {
-        int get = int(nitems) > readBufferSize ? readBufferSize : int(nitems);
+        Long get = std::min(static_cast<Long>(readBufferSize), nitems);
         is.read(bufr, id.numBytes()*get);
         PD_convert(out,
                    bufr,
@@ -1191,7 +1191,7 @@ RealDescriptor::convertToNativeFloatFormat (float*                out,
 
         if(bAlwaysFixDenormals) {
           PD_fixdenormals(out, get, FPC::Native32RealDescriptor().format(),
-			  FPC::Native32RealDescriptor().order());
+                          FPC::Native32RealDescriptor().order());
         }
         nitems -= get;
         out    += get;
@@ -1221,7 +1221,7 @@ RealDescriptor::convertToNativeDoubleFormat (double*               out,
 
     while (nitems > 0)
     {
-        int get = int(nitems) > readBufferSize ? readBufferSize : int(nitems);
+        Long get = std::min(static_cast<Long>(readBufferSize), nitems);
         is.read(bufr, id.numBytes()*get);
         PD_convert(out,
                    bufr,
@@ -1233,7 +1233,7 @@ RealDescriptor::convertToNativeDoubleFormat (double*               out,
 
         if(bAlwaysFixDenormals) {
           PD_fixdenormals(out, get, FPC::Native64RealDescriptor().format(),
-			  FPC::Native64RealDescriptor().order());
+                          FPC::Native64RealDescriptor().order());
         }
         nitems -= get;
         out    += get;
