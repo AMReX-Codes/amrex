@@ -40,7 +40,7 @@ amrex_calc_slopes_eb_given_A (int i, int j, int k, int n,
             {
               du[ll] = state(i+ii,j+jj,k+kk,n) - state(i,j,k,n);
             } else {
-              du[ll] = Real(0.0);
+              du[ll] = amrex::Real(0.0);
             }
             ll++;
           }
@@ -52,9 +52,9 @@ amrex_calc_slopes_eb_given_A (int i, int j, int k, int n,
 
     for(int jj(0); jj<AMREX_SPACEDIM; ++jj){
       for(int ii(0); ii<AMREX_SPACEDIM; ++ii){ // NOLINT(modernize-loop-convert)
-        AtA[jj][ii] = Real(0.0);
+        AtA[jj][ii] = amrex::Real(0.0);
       }
-      Atb[jj] = Real(0.0);
+      Atb[jj] = amrex::Real(0.0);
     }
 
     for(int lc(0); lc < 27; ++lc)
@@ -131,9 +131,9 @@ amrex_calc_slopes_eb_given_A_grown (int i, int j, int k, int n, int nx, int ny, 
 
     for(int jj(0); jj<AMREX_SPACEDIM; ++jj){
       for(int ii(0); ii<AMREX_SPACEDIM; ++ii){ // NOLINT(modernize-loop-convert)
-        AtA[jj][ii] = Real(0.0);
+        AtA[jj][ii] = amrex::Real(0.0);
       }
-      Atb[jj] = Real(0.0);
+      Atb[jj] = amrex::Real(0.0);
     }
 
     // for(int lc(0); lc < dim_a; ++lc)
@@ -148,7 +148,7 @@ amrex_calc_slopes_eb_given_A_grown (int i, int j, int k, int n, int nx, int ny, 
           AtA[1][2] += A[lc][1]* A[lc][2];
           AtA[2][2] += A[lc][2]* A[lc][2];
 
-          amrex::Real du = Real(0.0);
+          amrex::Real du = amrex::Real(0.0);
           if (!flag(i+ii,j+jj,k+kk).isCovered() && !(ii==0 && jj==0 && kk==0) &&
               ii >= -nx && ii <= nx && jj >= -ny && jj <= ny &&
               kk >= -nz && kk <= nz) {
@@ -307,13 +307,13 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
 
             if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0))
             {
-              A[lc][0] = Real(ii) + ccent(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0);
-              A[lc][1] = Real(jj) + ccent(i+ii,j+jj,k+kk,1) - ccent(i,j,k,1);
-              A[lc][2] = Real(kk) + ccent(i+ii,j+jj,k+kk,2) - ccent(i,j,k,2);
+              A[lc][0] = amrex::Real(ii) + ccent(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0);
+              A[lc][1] = amrex::Real(jj) + ccent(i+ii,j+jj,k+kk,1) - ccent(i,j,k,1);
+              A[lc][2] = amrex::Real(kk) + ccent(i+ii,j+jj,k+kk,2) - ccent(i,j,k,2);
             } else {
-              A[lc][0] = Real(0.0);
-              A[lc][1] = Real(0.0);
-              A[lc][2] = Real(0.0);
+              A[lc][0] = amrex::Real(0.0);
+              A[lc][1] = amrex::Real(0.0);
+              A[lc][2] = amrex::Real(0.0);
             }
             lc++;
           } // ii
@@ -363,9 +363,9 @@ amrex_calc_slopes_eb_grown (int i, int j, int k, int n, int nx, int ny, int nz,
      for(int jj(-2); jj<=2; jj++)
       for(int ii(-2); ii<=2; ii++)
       {
-          A[lc][0] = Real(0.0);
-          A[lc][1] = Real(0.0);
-          A[lc][2] = Real(0.0);
+          A[lc][0] = amrex::Real(0.0);
+          A[lc][1] = amrex::Real(0.0);
+          A[lc][2] = amrex::Real(0.0);
           lc++;
       }
 
@@ -376,9 +376,9 @@ amrex_calc_slopes_eb_grown (int i, int j, int k, int n, int nx, int ny, int nz,
           {
             if (!flag(i+ii,j+jj,k+kk).isCovered() && !(ii==0 && jj==0 && kk==0))
             {
-              A[lc][0] = Real(ii) + ccent(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0);
-              A[lc][1] = Real(jj) + ccent(i+ii,j+jj,k+kk,1) - ccent(i,j,k,1);
-              A[lc][2] = Real(kk) + ccent(i+ii,j+jj,k+kk,2) - ccent(i,j,k,2);
+              A[lc][0] = amrex::Real(ii) + ccent(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0);
+              A[lc][1] = amrex::Real(jj) + ccent(i+ii,j+jj,k+kk,1) - ccent(i,j,k,1);
+              A[lc][2] = amrex::Real(kk) + ccent(i+ii,j+jj,k+kk,2) - ccent(i,j,k,2);
             }
             lc++;
           } // ii
@@ -504,9 +504,9 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
 {
     constexpr int dim_a = 27;
 
-    auto xslope = Real(0.0);
-    auto yslope = Real(0.0);
-    auto zslope = Real(0.0);
+    auto xslope = amrex::Real(0.0);
+    auto yslope = amrex::Real(0.0);
+    auto zslope = amrex::Real(0.0);
 
     // First get EB-aware slope that doesn't know about extdir
     bool needs_bdry_stencil = (edlo_x && i <= domlo_x) || (edhi_x && i >= domhi_x) ||
@@ -546,24 +546,24 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
                     bool khi_test = ( edhi_z && (k == domhi_z) && kk ==  1);
 
                     // These are the default values if no physical boundary
-                    A[lc][0] = Real(ii) + ccent(i+ii,j+jj,k+kk,0);
-                    A[lc][1] = Real(jj) + ccent(i+ii,j+jj,k+kk,1);
-                    A[lc][2] = Real(kk) + ccent(i+ii,j+jj,k+kk,2);
+                    A[lc][0] = amrex::Real(ii) + ccent(i+ii,j+jj,k+kk,0);
+                    A[lc][1] = amrex::Real(jj) + ccent(i+ii,j+jj,k+kk,1);
+                    A[lc][2] = amrex::Real(kk) + ccent(i+ii,j+jj,k+kk,2);
                    // Do corrections for entire x-face
                    if (ilo_test)
                    {
                         if (!jlo_test && !jhi_test && !klo_test && !khi_test)
                         {
-                            A[lc][1] = Real(jj) + fcx(i   ,j+jj,k+kk,0);
-                            A[lc][2] = Real(kk) + fcx(i   ,j+jj,k+kk,1);
+                            A[lc][1] = amrex::Real(jj) + fcx(i   ,j+jj,k+kk,0);
+                            A[lc][2] = amrex::Real(kk) + fcx(i   ,j+jj,k+kk,1);
                         }
                         A[lc][0] = -amrex::Real(0.5);
                     } else if (ihi_test) {
 
                         if (!jlo_test && !jhi_test && !klo_test && !khi_test)
                         {
-                            A[lc][1] = Real(jj) + fcx(i+ii,j+jj,k+kk,0);
-                            A[lc][2] = Real(kk) + fcx(i+ii,j+jj,k+kk,1);
+                            A[lc][1] = amrex::Real(jj) + fcx(i+ii,j+jj,k+kk,0);
+                            A[lc][2] = amrex::Real(kk) + fcx(i+ii,j+jj,k+kk,1);
                         }
                         A[lc][0] = amrex::Real(0.5);
                    }
@@ -573,8 +573,8 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
                    {
                         if (!ilo_test && !ihi_test && !klo_test && !khi_test)
                         {
-                            A[lc][0] = Real(ii) + fcy(i+ii,j   ,k+kk,0);
-                            A[lc][2] = Real(kk) + fcy(i+ii,j   ,k+kk,1);
+                            A[lc][0] = amrex::Real(ii) + fcy(i+ii,j   ,k+kk,0);
+                            A[lc][2] = amrex::Real(kk) + fcy(i+ii,j   ,k+kk,1);
                         }
                         A[lc][1] = -amrex::Real(0.5);
 
@@ -582,8 +582,8 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
 
                         if (!ilo_test && !ihi_test && !klo_test && !khi_test)
                         {
-                            A[lc][0] = Real(ii) + fcy(i+ii,j+jj,k+kk,0);
-                            A[lc][2] = Real(kk) + fcy(i+ii,j+jj,k+kk,1);
+                            A[lc][0] = amrex::Real(ii) + fcy(i+ii,j+jj,k+kk,0);
+                            A[lc][2] = amrex::Real(kk) + fcy(i+ii,j+jj,k+kk,1);
                         }
                         A[lc][1] = amrex::Real(0.5);
                     }
@@ -593,16 +593,16 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
                    {
                         if (!ilo_test && !ihi_test && !jlo_test && !jhi_test)
                         {
-                            A[lc][0] = Real(ii) + fcz(i+ii,j+jj,k   ,0);
-                            A[lc][1] = Real(jj) + fcz(i+ii,j+jj,k   ,1);
+                            A[lc][0] = amrex::Real(ii) + fcz(i+ii,j+jj,k   ,0);
+                            A[lc][1] = amrex::Real(jj) + fcz(i+ii,j+jj,k   ,1);
                         }
                         A[lc][2] = -amrex::Real(0.5);
 
                    } else if (khi_test) {
                         if (!ilo_test && !ihi_test && !jlo_test && !jhi_test)
                         {
-                            A[lc][0] = Real(ii) + fcz(i+ii,j+jj,k+kk,0);
-                            A[lc][1] = Real(jj) + fcz(i+ii,j+jj,k+kk,1);
+                            A[lc][0] = amrex::Real(ii) + fcz(i+ii,j+jj,k+kk,0);
+                            A[lc][1] = amrex::Real(jj) + fcz(i+ii,j+jj,k+kk,1);
                         }
                         A[lc][2] = amrex::Real(0.5);
                    }
@@ -613,9 +613,9 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
 
               } else {
 
-                    A[lc][0] = Real(0.0);
-                    A[lc][1] = Real(0.0);
-                    A[lc][2] = Real(0.0);
+                    A[lc][0] = amrex::Real(0.0);
+                    A[lc][1] = amrex::Real(0.0);
+                    A[lc][2] = amrex::Real(0.0);
               }
               lc++;
             } // i,j
@@ -673,9 +673,9 @@ amrex_calc_slopes_extdir_eb_grown (int i, int j, int k, int n,
 {
     constexpr int dim_a = 125;
 
-    auto xslope = Real(0.0);
-    auto yslope = Real(0.0);
-    auto zslope = Real(0.0);
+    auto xslope = amrex::Real(0.0);
+    auto yslope = amrex::Real(0.0);
+    auto zslope = amrex::Real(0.0);
 
     // First get EB-aware slope that doesn't know about extdir
     bool needs_bdry_stencil = (edlo_x && i <= domlo_x) || (edhi_x && i >= domhi_x) ||
@@ -715,24 +715,24 @@ amrex_calc_slopes_extdir_eb_grown (int i, int j, int k, int n,
                     bool khi_test = ( edhi_z && (k == domhi_z) && kk ==  1);
 
                     // These are the default values if no physical boundary
-                    A[lc][0] = Real(ii) + ccent(i+ii,j+jj,k+kk,0);
-                    A[lc][1] = Real(jj) + ccent(i+ii,j+jj,k+kk,1);
-                    A[lc][2] = Real(kk) + ccent(i+ii,j+jj,k+kk,2);
+                    A[lc][0] = amrex::Real(ii) + ccent(i+ii,j+jj,k+kk,0);
+                    A[lc][1] = amrex::Real(jj) + ccent(i+ii,j+jj,k+kk,1);
+                    A[lc][2] = amrex::Real(kk) + ccent(i+ii,j+jj,k+kk,2);
                    // Do corrections for entire x-face
                    if (ilo_test)
                    {
                         if (!jlo_test && !jhi_test && !klo_test && !khi_test)
                         {
-                            A[lc][1] = Real(jj) + fcx(i   ,j+jj,k+kk,0);
-                            A[lc][2] = Real(kk) + fcx(i   ,j+jj,k+kk,1);
+                            A[lc][1] = amrex::Real(jj) + fcx(i   ,j+jj,k+kk,0);
+                            A[lc][2] = amrex::Real(kk) + fcx(i   ,j+jj,k+kk,1);
                         }
                         A[lc][0] = -amrex::Real(0.5);
                     } else if (ihi_test) {
 
                         if (!jlo_test && !jhi_test && !klo_test && !khi_test)
                         {
-                            A[lc][1] = Real(jj) + fcx(i+ii,j+jj,k+kk,0);
-                            A[lc][2] = Real(kk) + fcx(i+ii,j+jj,k+kk,1);
+                            A[lc][1] = amrex::Real(jj) + fcx(i+ii,j+jj,k+kk,0);
+                            A[lc][2] = amrex::Real(kk) + fcx(i+ii,j+jj,k+kk,1);
                         }
                         A[lc][0] = amrex::Real(0.5);
                    }
@@ -742,8 +742,8 @@ amrex_calc_slopes_extdir_eb_grown (int i, int j, int k, int n,
                    {
                         if (!ilo_test && !ihi_test && !klo_test && !khi_test)
                         {
-                            A[lc][0] = Real(ii) + fcy(i+ii,j   ,k+kk,0);
-                            A[lc][2] = Real(kk) + fcy(i+ii,j   ,k+kk,1);
+                            A[lc][0] = amrex::Real(ii) + fcy(i+ii,j   ,k+kk,0);
+                            A[lc][2] = amrex::Real(kk) + fcy(i+ii,j   ,k+kk,1);
                         }
                         A[lc][1] = -amrex::Real(0.5);
 
@@ -751,8 +751,8 @@ amrex_calc_slopes_extdir_eb_grown (int i, int j, int k, int n,
 
                         if (!ilo_test && !ihi_test && !klo_test && !khi_test)
                         {
-                            A[lc][0] = Real(ii) + fcy(i+ii,j+jj,k+kk,0);
-                            A[lc][2] = Real(kk) + fcy(i+ii,j+jj,k+kk,1);
+                            A[lc][0] = amrex::Real(ii) + fcy(i+ii,j+jj,k+kk,0);
+                            A[lc][2] = amrex::Real(kk) + fcy(i+ii,j+jj,k+kk,1);
                         }
                         A[lc][1] = amrex::Real(0.5);
                     }
@@ -762,16 +762,16 @@ amrex_calc_slopes_extdir_eb_grown (int i, int j, int k, int n,
                    {
                         if (!ilo_test && !ihi_test && !jlo_test && !jhi_test)
                         {
-                            A[lc][0] = Real(ii) + fcz(i+ii,j+jj,k   ,0);
-                            A[lc][1] = Real(jj) + fcz(i+ii,j+jj,k   ,1);
+                            A[lc][0] = amrex::Real(ii) + fcz(i+ii,j+jj,k   ,0);
+                            A[lc][1] = amrex::Real(jj) + fcz(i+ii,j+jj,k   ,1);
                         }
                         A[lc][2] = -amrex::Real(0.5);
 
                    } else if (khi_test) {
                         if (!ilo_test && !ihi_test && !jlo_test && !jhi_test)
                         {
-                            A[lc][0] = Real(ii) + fcz(i+ii,j+jj,k+kk,0);
-                            A[lc][1] = Real(jj) + fcz(i+ii,j+jj,k+kk,1);
+                            A[lc][0] = amrex::Real(ii) + fcz(i+ii,j+jj,k+kk,0);
+                            A[lc][1] = amrex::Real(jj) + fcz(i+ii,j+jj,k+kk,1);
                         }
                         A[lc][2] = amrex::Real(0.5);
                    }
@@ -781,9 +781,9 @@ amrex_calc_slopes_extdir_eb_grown (int i, int j, int k, int n,
                    A[lc][2] -= ccent(i,j,k,2);
 
               } else {
-                  A[lc][0] = Real(0.0);
-                  A[lc][1] = Real(0.0);
-                  A[lc][2] = Real(0.0);
+                  A[lc][0] = amrex::Real(0.0);
+                  A[lc][1] = amrex::Real(0.0);
+                  A[lc][2] = amrex::Real(0.0);
               }
               lc++;
           } // i,j
