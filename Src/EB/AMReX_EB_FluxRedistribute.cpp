@@ -300,7 +300,8 @@ apply_flux_redistribution ( const Box& bx,
                             int icomp, int ncomp,
                             Array4<EBCellFlag const> const& flag_arr,
                             Array4<Real       const> const& vfrac,
-                            const Geometry & geom)
+                            const Geometry & geom,
+                            bool use_wts_in_divnc)
 {
     int as_crse = 0;
     int as_fine = 0;
@@ -310,7 +311,6 @@ apply_flux_redistribution ( const Box& bx,
     Array4<int > dummy_levmsk     = Array4<int>();
     Array4<int > dummy_flag_crse  = Array4<int>();
     int dummy_not_covered = 0;
-    bool use_wts_in_divnc = false;
     amrex_flux_redistribute (bx, div, divc, wt, vfrac, flag_arr,
                              as_crse, dummy_drho_crse , dummy_flag_crse,
                              as_fine, dummy_dm_as_fine, dummy_levmsk,

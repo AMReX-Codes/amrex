@@ -26,6 +26,7 @@ void ApplyRedistribution ( Box const& bx, int ncomp,
                            amrex::BCRec  const* d_bcrec_ptr,
                            Geometry const& lev_geom, Real dt,
                            std::string const& redistribution_type,
+                           bool use_wts_in_divnc,
                            int srd_max_order,
                            amrex::Real target_volfrac,
                            Array4<Real const> const& srd_update_scale)
@@ -45,7 +46,8 @@ void ApplyRedistribution ( Box const& bx, int ncomp,
     if (redistribution_type == "FluxRedist")
     {
         int icomp = 0;
-        apply_flux_redistribution (bx, dUdt_out, dUdt_in, scratch, icomp, ncomp, flag, vfrac, lev_geom);
+        apply_flux_redistribution (bx, dUdt_out, dUdt_in, scratch, icomp, ncomp, flag, vfrac, lev_geom,
+                                   use_wts_in_divnc);
 
     } else if (redistribution_type == "StateRedist") {
 
@@ -222,6 +224,7 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
                              AMREX_D_DECL(fcx, fcy, fcz), ccc,
                              d_bcrec_ptr, lev_geom, dt,
                              redistribution_type,
+                             use_wts_in_divnc,
                              srd_max_order,
                              target_volfrac,
                              srd_update_scale);
@@ -253,7 +256,8 @@ ApplyInitialRedistribution ( Box const& bx, int ncomp,
                                           amrex::Array4<amrex::Real const> const& fcz),
                              amrex::Array4<amrex::Real const> const& ccc,
                              amrex::BCRec  const* d_bcrec_ptr,
-                             Geometry const& lev_geom, std::string const& redistribution_type,
+                             Geometry const& lev_geom,
+                             std::string const& redistribution_type,
                              int srd_max_order,
                              amrex::Real target_volfrac)
 {

@@ -21,7 +21,8 @@ namespace amrex {
 
     void single_level_weighted_redistribute (amrex::MultiFab& div_tmp_in, amrex::MultiFab& div_out,
                                              const amrex::MultiFab& weights,
-                                             int div_comp, int ncomp, const amrex::Geometry& geom);
+                                             int div_comp, int ncomp, const amrex::Geometry& geom,
+                                             bool use_wts_in_divnc);
 
     // Flux redistribution scheme for case where C/F interface does *not* cross EB
     void apply_flux_redistribution ( const amrex::Box& bx,
@@ -31,7 +32,8 @@ namespace amrex {
                                      int icomp, int ncomp,
                                      amrex::Array4<amrex::EBCellFlag const> const& flag_arr,
                                      amrex::Array4<amrex::Real       const> const& vfrac,
-                                     const amrex::Geometry & geom);
+                                     const amrex::Geometry & geom,
+                                     bool use_wts_in_divnc);
 
     // Flux redistribution scheme for case where C/F interface crosses EB
     void amrex_flux_redistribute (const amrex::Box& bx,
@@ -69,6 +71,7 @@ namespace amrex {
                  amrex::BCRec  const* d_bcrec_ptr,
                  amrex::Geometry const& lev_geom,
                  amrex::Real dt, std::string const& redistribution_type,
+                 bool use_wts_in_divnc = false,
                  int srd_max_order = 2,
                  amrex::Real target_volfrac = 0.5,
                  amrex::Array4<amrex::Real const> const& update_scale={});
