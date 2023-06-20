@@ -22,7 +22,8 @@ namespace amrex {
                                    const EBCellFlagFab& flags_fab,
                                    const MultiFab* volfrac,
                                    Box& /*domain*/,
-                                   const Geometry & geom)
+                                   const Geometry & geom,
+                                   bool use_wts_in_divnc)
     {
         //
         // Check that grid is uniform
@@ -47,14 +48,14 @@ namespace amrex {
         auto const&        flags = flags_fab.array();
         auto const&        vfrac = volfrac->array(*mfi);
 
-        apply_flux_redistribution ( bx, div, divc, wt, icomp, ncomp, flags, vfrac, geom);
+        apply_flux_redistribution ( bx, div, divc, wt, icomp, ncomp, flags, vfrac, geom, use_wts_in_divnc);
     }
 
     //
     // Do small cell redistribution on a MultiFab -- with a weighting function
     //
     void single_level_weighted_redistribute (MultiFab& div_tmp_in, MultiFab& div_out, const MultiFab& weights,
-                                             int div_comp, int ncomp, const Geometry& geom)
+                                             int div_comp, int ncomp, const Geometry& geom, bool use_wts_in_divnc)
     {
         Box domain(geom.Domain());
 
@@ -86,7 +87,7 @@ namespace amrex {
             {
                 // Compute div(tau) with EB algorithm
                 apply_eb_redistribution(bx, div_out, div_tmp_in, weights, &mfi,
-                                        div_comp, ncomp, flags, volfrac, domain, geom);
+                                        div_comp, ncomp, flags, volfrac, domain, geom, use_wts_in_divnc);
 
             }
         }
@@ -102,7 +103,8 @@ namespace amrex {
         MultiFab weights(div_out.boxArray(), div_out.DistributionMap(), 1, div_tmp_in.nGrow());
         weights.setVal(1.0);
 
-        single_level_weighted_redistribute (div_tmp_in, div_out, weights, div_comp, ncomp, geom);
+        bool use_wts_in_divnc = false;
+        single_level_weighted_redistribute (div_tmp_in, div_out, weights, div_comp, ncomp, geom, use_wts_in_divnc);
     }
 #endif
 
