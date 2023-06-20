@@ -37,6 +37,12 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_EBAmrUtil.cpp
        AMReX_EB_utils.H
        AMReX_EB_utils.cpp
+       AMReX_EB_FluxRedistribute.cpp
+       AMReX_EB_Redistribution.cpp
+       AMReX_EB_RedistributionApply.cpp
+       AMReX_EB_StateRedistItracker.cpp
+       AMReX_EB_StateRedistUtils.cpp
+       AMReX_EB_StateRedistribute.cpp
        AMReX_algoim.H
        AMReX_algoim_K.H
        AMReX_algoim.cpp

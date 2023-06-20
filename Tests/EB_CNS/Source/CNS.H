@@ -210,22 +210,6 @@ public:
                               amrex::Array4<int               const> const& lev_mask,
                               amrex::Real dt);
 
-    void cns_flux_redistribute (const amrex::Box& bx,
-                                amrex::Array4<amrex::Real            > const& dqdt,
-                                amrex::Array4<amrex::Real            > const& divc,
-                                amrex::Array4<amrex::Real            > const& optmp,
-                                amrex::Array4<amrex::Real            > const& del_m,
-                                amrex::Array4<amrex::Real       const> const& redistwgt,
-                                amrex::Array4<amrex::Real       const> const& vfrac,
-                                amrex::Array4<amrex::EBCellFlag const> const& flag,
-                                int as_crse,
-                                amrex::Array4<amrex::Real            > const& drho_as_crse,
-                                amrex::Array4<int               const> const& rrflag_as_crse,
-                                int as_fine,
-                                amrex::Array4<amrex::Real            > const& dm_as_fine,
-                                amrex::Array4<int               const> const& lev_mask,
-                                amrex::Real dt);
-
     static Parm* h_parm;
     static Parm* d_parm;
     static ProbParm* h_prob_parm;

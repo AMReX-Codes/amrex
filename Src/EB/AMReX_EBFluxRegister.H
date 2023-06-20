@@ -80,6 +80,16 @@ public:
                   RunOn runon);
 
     using YAFluxRegister::FineAdd;
+
+    // If we are not doing re-redistribution we don't need dm
+    void FineAdd (const MFIter& mfi,
+                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
+                  const Real* dx, Real dt,
+                  const FArrayBox& volfrac,
+                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
+                  RunOn runon);
+
+    // If we are doing re-redistribution we add dm to the solution
     void FineAdd (const MFIter& mfi,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt,
@@ -88,8 +98,18 @@ public:
                   const FArrayBox& dm,
                   RunOn runon);
 
+    // If we are not doing re-redistribution we don't touch the fine state
+    void Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac);
+    void Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
+                 int src_comp, int dest_comp, int num_comp);
+
+    // If we are doing re-redistribution we update the fine state as well as crse
     void Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
                  MultiFab& fine_state, const amrex::MultiFab& fine_vfrac);
+    void Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
+                 MultiFab& fine_state, const amrex::MultiFab& fine_vfrac,
+                 int src_comp, int dest_comp, int num_comp);
+
 
     FArrayBox* getCrseData (const MFIter& mfi) {
         return &(m_crse_data[mfi]);

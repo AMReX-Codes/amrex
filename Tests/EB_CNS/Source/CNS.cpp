@@ -280,7 +280,7 @@ CNS::printTotal () const
     Lazy::QueueReduction( [=] () mutable {
 #endif
             ParallelDescriptor::ReduceRealSum(tot.data(), 5, ParallelDescriptor::IOProcessorNumber());
-            amrex::Print().SetPrecision(17) << "\n[CNS] Total mass       is " << tot[0] << "\n"
+            amrex::Print().SetPrecision(15) << "\n[CNS] Total mass       is " << tot[0] << "\n"
                                             <<   "      Total x-momentum is " << tot[1] << "\n"
                                             <<   "      Total y-momentum is " << tot[2] << "\n"
 #if (AMREX_SPACEDIM == 3)
