@@ -40,11 +40,12 @@ namespace {
     Long the_device_arena_init_size = 1024*1024*8;
     Long the_managed_arena_init_size = 1024*1024*8;
     Long the_pinned_arena_init_size = 1024*1024*8;
+    Long the_comms_arena_init_size = 1024*1024*8;
     Long the_arena_release_threshold = std::numeric_limits<Long>::max();
     Long the_device_arena_release_threshold = std::numeric_limits<Long>::max();
     Long the_managed_arena_release_threshold = std::numeric_limits<Long>::max();
-    Long the_comms_arena_release_threshold = std::numeric_limits<Long>::max();
     Long the_pinned_arena_release_threshold = std::numeric_limits<Long>::max();
+    Long the_comms_arena_release_threshold = std::numeric_limits<Long>::max();
     Long the_async_arena_release_threshold = std::numeric_limits<Long>::max();
 #ifdef AMREX_USE_HIP
     bool the_arena_is_managed = false; // xxxxx HIP FIX HERE
@@ -294,11 +295,12 @@ Arena::Initialize ()
     pp.queryAdd( "the_device_arena_init_size",  the_device_arena_init_size);
     pp.queryAdd("the_managed_arena_init_size", the_managed_arena_init_size);
     pp.queryAdd( "the_pinned_arena_init_size",  the_pinned_arena_init_size);
+    pp.queryAdd( "the_comms_arena_init_size",  the_comms_arena_init_size);
     pp.queryAdd(       "the_arena_release_threshold" ,         the_arena_release_threshold);
     pp.queryAdd( "the_device_arena_release_threshold",  the_device_arena_release_threshold);
     pp.queryAdd("the_managed_arena_release_threshold", the_managed_arena_release_threshold);
-    pp.queryAdd("the_comms_arena_release_threshold", the_comms_arena_release_threshold);
     pp.queryAdd( "the_pinned_arena_release_threshold",  the_pinned_arena_release_threshold);
+    pp.queryAdd("the_comms_arena_release_threshold", the_comms_arena_release_threshold);
     pp.queryAdd(  "the_async_arena_release_threshold",   the_async_arena_release_threshold);
     pp.queryAdd("the_arena_is_managed", the_arena_is_managed);
     pp.queryAdd("abort_on_out_of_gpu_memory", abort_on_out_of_gpu_memory);
@@ -358,23 +360,36 @@ Arena::Initialize ()
     the_managed_arena = The_BArena();
 #endif
 
-#ifdef AMREX_USE_GPU
-    if (!(the_arena->isDevice())) {
-        the_comms_arena = the_device_arena;
-    } else {
-        the_comms_arena = new CArena(0, ArenaInfo{}.SetDeviceMemory().SetReleaseThreshold
-                                      (the_comms_arena_release_threshold));
-        the_comms_arena->registerForProfiling("Communication Memory");
-    }
-#else
-    the_comms_arena = The_BArena();
-#endif
-
     // When USE_CUDA=FALSE, we call mlock to pin the cpu memory.
     // When USE_CUDA=TRUE, we call cudaHostAlloc to pin the host memory.
     the_pinned_arena = new CArena(0, ArenaInfo{}.SetHostAlloc().SetReleaseThreshold
                                   (the_pinned_arena_release_threshold));
     the_pinned_arena->registerForProfiling("Pinned Memory");
+
+    /*
+    if (!(the_arena->isDevice())) {
+        the_comms_arena = the_device_arena;
+    } else {
+        the_comms_arena = new CArena(0, ArenaInfo{}.SetDeviceMemory().SetReleaseThreshold
+                                      (the_comms_arena_release_threshold));
+        the_comms_arena->registerForProfiling("Comms Memory");
+    } */
+
+#ifdef AMREX_USE_GPU
+    if (ParallelDescriptor::UseGpuAwareMpi()) {
+        if (!(the_arena->isDevice())) {
+            the_comms_arena = the_device_arena;
+        } else {
+            the_comms_arena = new CArena(0, ArenaInfo{}.SetDeviceMemory().SetReleaseThreshold
+                                        (the_comms_arena_release_threshold));
+            the_comms_arena->registerForProfiling("Comms Memory");
+        }
+    } else {
+        the_comms_arena = the_pinned_arena;
+    }
+#else
+    the_comms_arena = The_BArena();
+#endif
 
     if (the_device_arena_init_size > 0 && the_device_arena != the_arena) {
         BL_PROFILE("The_Device_Arena::Initialize()");
@@ -392,6 +407,13 @@ Arena::Initialize ()
         BL_PROFILE("The_Pinned_Arena::Initialize()");
         void *p = the_pinned_arena->alloc(the_pinned_arena_init_size);
         the_pinned_arena->free(p);
+    }
+
+    if (the_comms_arena_init_size > 0 && the_comms_arena != the_arena
+        && the_comms_arena != the_device_arena && the_comms_arena != the_pinned_arena) {
+        BL_PROFILE("The_Comms_Arena::Initialize()");
+        void *p = the_comms_arena->alloc(the_comms_arena_init_size);
+        the_comms_arena->free(p);
     }
 
     the_cpu_arena = The_BArena();
@@ -449,6 +471,13 @@ Arena::PrintUsage ()
             p->PrintUsage("The Managed Arena");
         }
     }
+    if (The_Comms_Arena() && The_Comms_Arena() != The_Device_Arena()
+         && The_Comms_Arena() != The_Pinned_Arena()) {
+        auto* p = dynamic_cast<CArena*>(The_Comms_Arena());
+        if (p) {
+            p->PrintUsage("The Comms Arena");
+        }
+    }
     if (The_Pinned_Arena()) {
         auto* p = dynamic_cast<CArena*>(The_Pinned_Arena());
         if (p) {
@@ -494,6 +523,13 @@ Arena::PrintUsageToFiles (const std::string& filename, const std::string& messag
             p->PrintUsage(ofs, "The Managed Arena", "    ");
         }
     }
+    if (The_Comms_Arena() && The_Comms_Arena() != The_Device_Arena()
+        && The_Comms_Arena() != The_Pinned_Arena()) {
+        auto* p = dynamic_cast<CArena*>(The_Comms_Arena());
+        if (p) {
+            p->PrintUsage(ofs, "The Comms Arena", "    ");
+        }
+    }
     if (The_Pinned_Arena()) {
         auto* p = dynamic_cast<CArena*>(The_Pinned_Arena());
         if (p) {
@@ -525,7 +561,7 @@ Arena::Finalize ()
     //   amrex::Finalize();
     // mf cannot be used now, but it can at least be freed without a segfault
     if (!dynamic_cast<BArena*>(the_comms_arena)) {
-        if (the_comms_arena != the_device_arena && the_comms_arena != the_arena) {
+        if (the_comms_arena != the_device_arena && the_comms_arena != the_pinned_arena) {
             delete the_comms_arena;
         }
         the_comms_arena = nullptr;

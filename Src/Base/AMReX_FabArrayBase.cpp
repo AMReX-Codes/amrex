@@ -88,7 +88,7 @@ std::vector<std::string>                    FabArrayBase::m_region_tag;
 
 namespace
 {
-    Arena* the_fa_arena = nullptr;
+    //Arena* the_fa_arena = nullptr;
     bool initialized = false;
 }
 
@@ -123,15 +123,18 @@ FabArrayBase::Initialize ()
         MaxComp = 1;
     }
 
+/*
 #ifdef AMREX_USE_GPU
     if (ParallelDescriptor::UseGpuAwareMpi()) {
-        the_fa_arena = The_Device_Arena();
+        // the_fa_arena = The_Device_Arena();
+        the_fa_arena = The_Comms_Arena();
     } else {
         the_fa_arena = The_Pinned_Arena();
     }
 #else
     the_fa_arena = The_Cpu_Arena();
 #endif
+*/
 
     amrex::ExecOnFinalize(FabArrayBase::Finalize);
 
@@ -159,11 +162,13 @@ FabArrayBase::Initialize ()
 #endif
 }
 
+/*
 Arena*
 The_FA_Arena ()
 {
     return the_fa_arena;
 }
+*/
 
 FabArrayBase::FabArrayBase (const BoxArray&            bxs,
                             const DistributionMapping& dm,
@@ -2245,7 +2250,7 @@ FabArrayBase::Finalize ()
 
     m_FA_stats = FabArrayStats();
 
-    the_fa_arena = nullptr;
+    //the_fa_arena = nullptr;
 
     initialized = false;
 }

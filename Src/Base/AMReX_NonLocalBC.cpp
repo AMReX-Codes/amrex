@@ -95,7 +95,7 @@ void PrepareCommBuffers(CommData& comm,
     }
     else
     {
-        comm.the_data.reset(static_cast<char*>(amrex::The_FA_Arena()->alloc(total_volume)));
+        comm.the_data.reset(static_cast<char*>(amrex::The_Comms_Arena()->alloc(total_volume)));
         for (int i = 0; i < N_comms; ++i) {
             comm.data[i] = comm.the_data.get() + comm.offset[i];
         }
