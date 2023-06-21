@@ -34,7 +34,7 @@ namespace {
     Arena* the_managed_arena = nullptr;
     Arena* the_pinned_arena = nullptr;
     Arena* the_cpu_arena = nullptr;
-    Arena* the_comm_arena = nullptr;
+    Arena* the_comms_arena = nullptr;
 
     Long the_arena_init_size = 0L;
     Long the_device_arena_init_size = 1024*1024*8;
