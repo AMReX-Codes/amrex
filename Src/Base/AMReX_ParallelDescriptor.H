@@ -210,9 +210,28 @@ while ( false )
     inline MPI_Comm Communicator () noexcept { return m_comm; }
 
     extern AMREX_EXPORT int m_nprocs_per_node;
-    //! Return the number of MPI ranks per node.  This may not be correct if
-    //! MPI_COMM_TYPE_SHARED groups processes across nodes.
+    //! Return the number of MPI ranks per node as defined by
+    //! MPI_COMM_TYPE_SHARED. This might be the same or different from
+    //! NProcsPerProcessor based on MPI_Get_processor_name.
     inline int NProcsPerNode () noexcept { return m_nprocs_per_node; }
+
+    extern AMREX_EXPORT int m_rank_in_node;
+    //! Return the rank in a node defined by MPI_COMM_TYPE_SHARED. This
+    //! might be the same or different from MyRankInProcessor based on
+    //! MPI_Get_processor_name.
+    inline int MyRankInNode () noexcept { return m_rank_in_node; }
+
+    extern AMREX_EXPORT int m_nprocs_per_processor;
+    //! Return the number of MPI ranks per node as defined by
+    //! MPI_Get_processor_name. This might be the same or different from
+    //! NProcsPerNode based on MPI_COMM_TYPE_SHARED.
+    inline int NProcsPerProcessor () noexcept { return m_nprocs_per_processor; }
+
+    extern AMREX_EXPORT int m_rank_in_processor;
+    //! Return the rank in a node defined by MPI_Get_processor_name. This
+    //! might be the same or different from MyRankInNode based on
+    //! MPI_COMM_TYPE_SHARED.
+    inline int MyRankInProcessor () noexcept { return m_rank_in_processor; }
 
 #ifdef AMREX_USE_MPI
     extern Vector<MPI_Datatype*> m_mpi_types;

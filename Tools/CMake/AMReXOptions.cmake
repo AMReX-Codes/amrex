@@ -230,14 +230,6 @@ if (AMReX_HIP)
    endif ()
 endif ()
 
-if (AMReX_CUDA OR AMReX_HIP)
-   set(GPUS_PER_SOCKET "IGNORE" CACHE STRING "Number of GPUs per socket" )
-   print_option(GPUS_PER_SOCKET)
-
-   set(GPUS_PER_NODE "IGNORE" CACHE STRING "Number of GPUs per node" )
-   print_option(GPUS_PER_NODE)
-endif ()
-
 #
 # GPU RDC support
 #

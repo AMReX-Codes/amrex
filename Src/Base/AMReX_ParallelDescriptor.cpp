@@ -28,6 +28,7 @@
 #include <cstdio>
 #include <cstddef>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -66,6 +67,10 @@ namespace amrex::ParallelDescriptor {
     MPI_Comm m_comm = MPI_COMM_NULL;    // communicator for all ranks, probably MPI_COMM_WORLD
 
     int m_nprocs_per_node = 1;
+    int m_rank_in_node = 0;
+
+    int m_nprocs_per_processor = 1;
+    int m_rank_in_processor = 0;
 
 #ifdef AMREX_USE_MPI
     Vector<MPI_Datatype*> m_mpi_types;
@@ -326,15 +331,47 @@ StartParallel (int* argc, char*** argv, MPI_Comm a_mpi_comm)
 
     ParallelContext::push(m_comm);
 
+    if (ParallelDescriptor::NProcs() > 1)
+    {
 #if defined(OPEN_MPI)
-    int split_type = OMPI_COMM_TYPE_NODE;
+        int split_type = OMPI_COMM_TYPE_NODE;
 #else
-    int split_type = MPI_COMM_TYPE_SHARED;
+        int split_type = MPI_COMM_TYPE_SHARED;
 #endif
-    MPI_Comm node_comm;
-    MPI_Comm_split_type(m_comm, split_type, 0, MPI_INFO_NULL, &node_comm);
-    MPI_Comm_size(node_comm, &m_nprocs_per_node);
-    MPI_Comm_free(&node_comm);
+        MPI_Comm node_comm;
+        MPI_Comm_split_type(m_comm, split_type, 0, MPI_INFO_NULL, &node_comm);
+        MPI_Comm_size(node_comm, &m_nprocs_per_node);
+        MPI_Comm_rank(node_comm, &m_rank_in_node);
+        MPI_Comm_free(&node_comm);
+
+        char procname[MPI_MAX_PROCESSOR_NAME];
+        int lenname;
+        BL_MPI_REQUIRE(MPI_Get_processor_name(procname, &lenname));
+        procname[lenname++] = '\0';
+        const int nranks = ParallelDescriptor::NProcs();
+        Vector<int> lenvec(nranks);
+        MPI_Allgather(&lenname, 1, MPI_INT, lenvec.data(), 1, MPI_INT, m_comm);
+        Vector<int> offset(nranks,0);
+        Long len_tot = lenvec[0];
+        for (int i = 1; i < nranks; ++i) {
+            offset[i] = offset[i-1] + lenvec[i-1];
+            len_tot += lenvec[i];
+        }
+        AMREX_ALWAYS_ASSERT(len_tot <= static_cast<Long>(std::numeric_limits<int>::max()));
+        Vector<char> recv_buffer(len_tot);
+        MPI_Allgatherv(procname, lenname, MPI_CHAR,
+                       recv_buffer.data(), lenvec.data(), offset.data(), MPI_CHAR, m_comm);
+        m_nprocs_per_processor = 0;
+        for (int i = 0; i < nranks; ++i) {
+            if (lenname == lenvec[i] && std::strcmp(procname, recv_buffer.data()+offset[i]) == 0) {
+                if (i == ParallelDescriptor::MyProc()) {
+                    m_rank_in_processor = m_nprocs_per_processor;
+                }
+                ++m_nprocs_per_processor;
+            }
+        }
+        AMREX_ASSERT(m_nprocs_per_processor > 0);
+    }
 
     // Create these types outside OMP parallel region
     auto t1 = Mpi_typemap<IntVect>::type(); // NOLINT
