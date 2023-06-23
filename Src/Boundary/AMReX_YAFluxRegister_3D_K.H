@@ -12,7 +12,8 @@ void yafluxreg_crseadd (Box const& bx, Array4<T> const& d, Array4<int const> con
                         Array4<T const> const& fx,
                         Array4<T const> const& fy,
                         Array4<T const> const& fz,
-                        T dtdx, T dtdy, T dtdz, int nc) noexcept
+                        T dtdx, T dtdy, T dtdz,
+                        int fcomp, int dcomp, int nc) noexcept
 {
     auto const lo = amrex::lbound(bx);
     auto const hi = amrex::ubound(bx);
@@ -24,34 +25,34 @@ void yafluxreg_crseadd (Box const& bx, Array4<T> const& d, Array4<int const> con
         {
             if (flag(i-1,j,k) == amrex_yafluxreg_fine_cell) {
                 for (int n = 0; n < nc; ++n) {
-                    d(i,j,k,n) -= dtdx*fx(i,j,k,n);
+                    d(i,j,k,dcomp+n) -= dtdx*fx(i,j,k,fcomp+n);
                 }
             }
             if (flag(i+1,j,k) == amrex_yafluxreg_fine_cell) {
                 for (int n = 0; n < nc; ++n) {
-                    d(i,j,k,n) += dtdx*fx(i+1,j,k,n);
+                    d(i,j,k,dcomp+n) += dtdx*fx(i+1,j,k,fcomp+n);
                 }
             }
 
             if (flag(i,j-1,k) == amrex_yafluxreg_fine_cell) {
                 for (int n = 0; n < nc; ++n) {
-                    d(i,j,k,n) -= dtdy*fy(i,j,k,n);
+                    d(i,j,k,dcomp+n) -= dtdy*fy(i,j,k,fcomp+n);
                 }
             }
             if (flag(i,j+1,k) == amrex_yafluxreg_fine_cell) {
                 for (int n = 0; n < nc; ++n) {
-                    d(i,j,k,n) += dtdy*fy(i,j+1,k,n);
+                    d(i,j,k,dcomp+n) += dtdy*fy(i,j+1,k,fcomp+n);
                 }
             }
 
             if (flag(i,j,k-1) == amrex_yafluxreg_fine_cell) {
                 for (int n = 0; n < nc; ++n) {
-                    d(i,j,k,n) -= dtdz*fz(i,j,k,n);
+                    d(i,j,k,dcomp+n) -= dtdz*fz(i,j,k,fcomp+n);
                 }
             }
             if (flag(i,j,k+1) == amrex_yafluxreg_fine_cell) {
                 for (int n = 0; n < nc; ++n) {
-                    d(i,j,k,n) += dtdz*fz(i,j,k+1,n);
+                    d(i,j,k,dcomp+n) += dtdz*fz(i,j,k+1,fcomp+n);
                 }
             }
         }
@@ -61,7 +62,7 @@ void yafluxreg_crseadd (Box const& bx, Array4<T> const& d, Array4<int const> con
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void yafluxreg_fineadd (Box const& bx, Array4<T> const& d, Array4<T const> const& f,
-                        T dtdx, int nc, int dirside, Dim3 const& rr) noexcept
+                        T dtdx, int fcomp, int dcomp, int nc, int dirside, Dim3 const& rr) noexcept
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -74,12 +75,12 @@ void yafluxreg_fineadd (Box const& bx, Array4<T> const& d, Array4<T const> const
                 for (int j = lo.y; j <= hi.y; ++j) {
                     const int i = lo.x;
                     const int ii = (i+1)*rr.x;
-                    T* AMREX_RESTRICT dp = &(d(i,j,k,n));
+                    T* AMREX_RESTRICT dp = &(d(i,j,k,dcomp+n));
                     for (    int koff = 0; koff < rr.z; ++koff) {
                         const     int kk =      k*rr.z  + koff;
                         for (int joff = 0; joff < rr.y; ++joff) {
                             const int jj =      j*rr.y  + joff;
-                            T tmp = -dtdx*f(ii,jj,kk,n);
+                            T tmp = -dtdx*f(ii,jj,kk,fcomp+n);
                             HostDevice::Atomic::Add(dp, tmp);
                         }
                     }
@@ -95,12 +96,12 @@ void yafluxreg_fineadd (Box const& bx, Array4<T> const& d, Array4<T const> const
                 for (int j = lo.y; j <= hi.y; ++j) {
                     const int i = lo.x;
                     const int ii = i*rr.x;
-                    T* AMREX_RESTRICT dp = &(d(i,j,k,n));
+                    T* AMREX_RESTRICT dp = &(d(i,j,k,dcomp+n));
                     for (int     koff = 0; koff < rr.z; ++koff) {
                         const     int kk =      k*rr.z  + koff;
                         for (int joff = 0; joff < rr.y; ++joff) {
                             const int jj =      j*rr.y  + joff;
-                            T tmp = dtdx*f(ii,jj,kk,n);
+                            T tmp = dtdx*f(ii,jj,kk,fcomp+n);
                             HostDevice::Atomic::Add(dp, tmp);
                         }
                     }
@@ -116,12 +117,12 @@ void yafluxreg_fineadd (Box const& bx, Array4<T> const& d, Array4<T const> const
                 for (int i = lo.x; i <= hi.x; ++i) {
                     const int j = lo.y;
                     const int jj = (j+1)*rr.y;
-                    T* AMREX_RESTRICT dp = &(d(i,j,k,n));
+                    T* AMREX_RESTRICT dp = &(d(i,j,k,dcomp+n));
                     for (    int koff = 0; koff < rr.z; ++koff) {
                         const     int kk =      k*rr.z  + koff;
                         for (int ioff = 0; ioff < rr.x; ++ioff) {
                             const int ii =      i*rr.x  + ioff;
-                            T tmp = -dtdx*f(ii,jj,kk,n);
+                            T tmp = -dtdx*f(ii,jj,kk,fcomp+n);
                             HostDevice::Atomic::Add(dp, tmp);
                         }
                     }
@@ -137,12 +138,12 @@ void yafluxreg_fineadd (Box const& bx, Array4<T> const& d, Array4<T const> const
                 for (int i = lo.x; i <= hi.x; ++i) {
                     const int j = lo.y;
                     const int jj = j*rr.y;
-                    T* AMREX_RESTRICT dp = &(d(i,j,k,n));
+                    T* AMREX_RESTRICT dp = &(d(i,j,k,dcomp+n));
                     for (    int koff = 0; koff < rr.z; ++koff) {
                         const     int kk =      k*rr.z  + koff;
                         for (int ioff = 0; ioff < rr.x; ++ioff) {
                             const int ii =      i*rr.x  + ioff;
-                            T tmp = dtdx*f(ii,jj,kk,n);
+                            T tmp = dtdx*f(ii,jj,kk,fcomp+n);
                             HostDevice::Atomic::Add(dp, tmp);
                         }
                     }
@@ -158,12 +159,12 @@ void yafluxreg_fineadd (Box const& bx, Array4<T> const& d, Array4<T const> const
                 for (int i = lo.x; i <= hi.x; ++i) {
                     const int k = lo.z;
                     const int kk = (k+1)*rr.z;
-                    T* AMREX_RESTRICT dp = &(d(i,j,k,n));
+                    T* AMREX_RESTRICT dp = &(d(i,j,k,dcomp+n));
                     for (    int joff = 0; joff < rr.y; ++joff) {
                         const     int jj =      j*rr.y  + joff;
                         for (int ioff = 0; ioff < rr.x; ++ioff) {
                             const int ii =      i*rr.x  + ioff;
-                            T tmp = -dtdx*f(ii,jj,kk,n);
+                            T tmp = -dtdx*f(ii,jj,kk,fcomp+n);
                             HostDevice::Atomic::Add(dp, tmp);
                         }
                     }
@@ -179,12 +180,12 @@ void yafluxreg_fineadd (Box const& bx, Array4<T> const& d, Array4<T const> const
                 for (int i = lo.x; i <= hi.x; ++i) {
                     const int k = lo.z;
                     const int kk = k*rr.z;
-                    T* AMREX_RESTRICT dp = &(d(i,j,k,n));
+                    T* AMREX_RESTRICT dp = &(d(i,j,k,dcomp+n));
                     for (    int joff = 0; joff < rr.y; ++joff) {
                         const     int jj =      j*rr.y  + joff;
                         for (int ioff = 0; ioff < rr.x; ++ioff) {
                             const int ii =      i*rr.x  + ioff;
-                            T tmp = dtdx*f(ii,jj,kk,n);
+                            T tmp = dtdx*f(ii,jj,kk,fcomp+n);
                             HostDevice::Atomic::Add(dp, tmp);
                         }
                     }

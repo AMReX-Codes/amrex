@@ -9,7 +9,7 @@ namespace amrex {
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void yafluxreg_crseadd (Box const& bx, Array4<T> const& d, Array4<int const> const& flag,
-                        Array4<T const> const& fx, T dtdx, int nc) noexcept
+                        Array4<T const> const& fx, T dtdx, int fcomp, int dcomp, int nc) noexcept
 {
     auto const lo = amrex::lbound(bx);
     auto const hi = amrex::ubound(bx);
@@ -19,12 +19,12 @@ void yafluxreg_crseadd (Box const& bx, Array4<T> const& d, Array4<int const> con
         {
             if (flag(i-1,0,0) == amrex_yafluxreg_fine_cell) {
                 for (int n = 0; n < nc; ++n) {
-                    d(i,0,0,n) -= dtdx*fx(i,0,0,n);
+                    d(i,0,0,dcomp+n) -= dtdx*fx(i,0,0,fcomp+n);
                 }
             }
             if (flag(i+1,0,0) == amrex_yafluxreg_fine_cell) {
                 for (int n = 0; n < nc; ++n) {
-                    d(i,0,0,n) += dtdx*fx(i+1,0,0,n);
+                    d(i,0,0,dcomp+n) += dtdx*fx(i+1,0,0,fcomp+n);
                 }
             }
         }
@@ -34,7 +34,7 @@ void yafluxreg_crseadd (Box const& bx, Array4<T> const& d, Array4<int const> con
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void yafluxreg_fineadd (Box const& bx, Array4<T> const& d, Array4<T const> const& f,
-                        T dtdx, int nc, int dirside, Dim3 const& rr) noexcept
+                        T dtdx, int fcomp, int dcomp, int nc, int dirside, Dim3 const& rr) no except
 {
     const auto lo = amrex::lbound(bx);
 
@@ -44,8 +44,8 @@ void yafluxreg_fineadd (Box const& bx, Array4<T> const& d, Array4<T const> const
         for (int n = 0; n < nc; ++n) {
             const int i = lo.x;
             const int ii = (i+1)*rr.x;
-            T* AMREX_RESTRICT dp = &(d(i,0,0,n));
-            T tmp = -dtdx*f(ii,0,0,n);
+            T* AMREX_RESTRICT dp = &(d(i,0,0,dcomp+n));
+            T tmp = -dtdx*f(ii,0,0,fcomp+n);
             HostDevice::Atomic::Add(dp, tmp);
         }
         break;
@@ -55,8 +55,8 @@ void yafluxreg_fineadd (Box const& bx, Array4<T> const& d, Array4<T const> const
         for (int n = 0; n < nc; ++n) {
             const int i = lo.x;
             const int ii = i*rr.x;
-            T* AMREX_RESTRICT dp = &(d(i,0,0,n));
-            T tmp = dtdx*f(ii,0,0,n);
+            T* AMREX_RESTRICT dp = &(d(i,0,0,dcomp+n));
+            T tmp = dtdx*f(ii,0,0,fcomp+n);
             HostDevice::Atomic::Add(dp, tmp);
         }
     }

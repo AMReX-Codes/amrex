@@ -50,9 +50,19 @@ public:
                   const std::array<FAB const*, AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt, RunOn runon) noexcept;
 
+    void CrseAdd (const MFIter& mfi,
+                  const std::array<FAB const*, AMREX_SPACEDIM>& flux,
+                  const Real* dx, Real dt,
+                  int srccomp, int destcomp, int numcomp, RunOn runon) noexcept;
+
     void FineAdd (const MFIter& mfi,
                   const std::array<FAB const*, AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt, RunOn runon) noexcept;
+
+    void FineAdd (const MFIter& mfi,
+                  const std::array<FAB const*, AMREX_SPACEDIM>& flux,
+                  const Real* dx, Real dt,
+                  int srccomp, int destcomp, int numcomp, RunOn runon) noexcept;
 
     void Reflux (MF& state, int dc = 0);
 
@@ -326,13 +336,26 @@ YAFluxRegisterT<MF>::CrseAdd (const MFIter& mfi,
                               const Real* dx, Real dt, RunOn runon) noexcept
 {
     BL_ASSERT(m_crse_data.nComp() == flux[0]->nComp());
+    int  srccomp = 0;
+    int destcomp = 0;
+    int  numcomp = m_crse_data.nComp();
+    CrseAdd(mfi, flux, dx, dt, srccomp, destcomp, numcomp, runon);
+}
+
+template <typename MF>
+void
+YAFluxRegisterT<MF>::CrseAdd (const MFIter& mfi,
+                              const std::array<FAB const*, AMREX_SPACEDIM>& flux,
+                              const Real* dx, Real dt,
+                              int srccomp, int destcomp, int numcomp, RunOn runon) noexcept
+{
+    BL_ASSERT(m_crse_data.nComp() >= flux[0]->nComp());
 
     if (m_crse_fab_flag[mfi.LocalIndex()] == crse_cell) {
         return;  // this coarse fab is not close to fine fabs.
     }
 
     const Box& bx = mfi.tilebox();
-    const int nc = m_crse_data.nComp();
     AMREX_D_TERM(const T dtdx = static_cast<T>(dt/dx[0]);,
                  const T dtdy = static_cast<T>(dt/dx[1]);,
                  const T dtdz = static_cast<T>(dt/dx[2]););
@@ -350,17 +373,31 @@ YAFluxRegisterT<MF>::CrseAdd (const MFIter& mfi,
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG ( runon, bx, tbx,
     {
         yafluxreg_crseadd(tbx, fab, flag, AMREX_D_DECL(fxarr,fyarr,fzarr),
-                          AMREX_D_DECL(dtdx,dtdy,dtdz),nc);
+                          AMREX_D_DECL(dtdx,dtdy,dtdz),srccomp,destcomp,numcomp);
     });
 }
 
 template <typename MF>
 void
 YAFluxRegisterT<MF>::FineAdd (const MFIter& mfi,
-                              const std::array<FAB const*, AMREX_SPACEDIM>& a_flux,
+                              const std::array<FAB const*, AMREX_SPACEDIM>& flux,
                               const Real* dx, Real dt, RunOn runon) noexcept
 {
-    BL_ASSERT(m_cfpatch.nComp() == a_flux[0]->nComp());
+    BL_ASSERT(m_crse_data.nComp() == flux[0]->nComp());
+    int  srccomp = 0;
+    int destcomp = 0;
+    int  numcomp = m_crse_data.nComp();
+    FineAdd(mfi, flux, dx, dt, srccomp, destcomp, numcomp, runon);
+}
+
+template <typename MF>
+void
+YAFluxRegisterT<MF>::FineAdd (const MFIter& mfi,
+                              const std::array<FAB const*, AMREX_SPACEDIM>& a_flux,
+                              const Real* dx, Real dt,
+                              int srccomp, int destcomp, int numcomp, RunOn runon) noexcept
+{
+    BL_ASSERT(m_cfpatch.nComp() >= a_flux[0]->nComp());
 
     const int li = mfi.LocalIndex();
     Vector<FAB*>& cfp_fabs = m_cfp_fab[li];
@@ -369,7 +406,6 @@ YAFluxRegisterT<MF>::FineAdd (const MFIter& mfi,
     const Box& tbx = mfi.tilebox();
     const Box& bx = amrex::coarsen(tbx, m_ratio);
     const Box& fbx = amrex::refine(bx, m_ratio);
-    const int nc = m_cfpatch.nComp();
 
     const T ratio = static_cast<T>(AMREX_D_TERM(m_ratio[0],*m_ratio[1],*m_ratio[2]));
     std::array<T,AMREX_SPACEDIM> dtdx{{AMREX_D_DECL(static_cast<T>(dt/(dx[0]*ratio)),
@@ -385,9 +421,9 @@ YAFluxRegisterT<MF>::FineAdd (const MFIter& mfi,
         AMREX_ASSERT(!use_gpu);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             const Box& b = amrex::surroundingNodes(fbx,idim);
-            ftmp[idim].resize(b,nc);
+            ftmp[idim].resize(b,numcomp);
             ftmp[idim].template setVal<RunOn::Host>(T(0.0));
-            ftmp[idim].template copy<RunOn::Host>(*a_flux[idim]);
+            ftmp[idim].template copy<RunOn::Host>(*a_flux[idim], srccomp, srccomp, numcomp);
             flux[idim] = &ftmp[idim];
         }
     }
@@ -412,7 +448,7 @@ YAFluxRegisterT<MF>::FineAdd (const MFIter& mfi,
                     Array4<T const> farr = f->const_array();
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(runon, lobx_is, tmpbox,
                     {
-                        yafluxreg_fineadd(tmpbox, d, farr, dtdxs, nc, dirside, rr);
+                        yafluxreg_fineadd(tmpbox, d, farr, dtdxs, srccomp, destcomp, numcomp, dirside, rr);
                     });
                 }
             }
@@ -427,7 +463,7 @@ YAFluxRegisterT<MF>::FineAdd (const MFIter& mfi,
                     Array4<T const> farr = f->const_array();
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(runon, hibx_is, tmpbox,
                     {
-                        yafluxreg_fineadd(tmpbox, d, farr, dtdxs, nc, dirside, rr);
+                        yafluxreg_fineadd(tmpbox, d, farr, dtdxs, srccomp, destcomp, numcomp, dirside, rr);
                     });
                 }
             }
