@@ -104,7 +104,6 @@ EBFluxRegister::CrseAdd (const MFIter& mfi,
     }
 
     Array4<Real> const& dest_arr = m_crse_data.array(mfi,destcomp);
-    Array4<Real> const& dest_arr0= m_crse_data.array(mfi);
     const Box& bx = mfi.tilebox();
 
     Array4<int const> const& amrflag = m_crse_flag.array(mfi);
@@ -430,13 +429,13 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
                         Array4<Real const> const& cvol = crse_vfrac.const_array(mfi);
                         AMREX_HOST_DEVICE_FOR_4D(bxg1, m_ncomp, i, j, k, n,
                         {
-                            // eb_rereflux_from_crse(i,j,k,n,bx,dfab,sfab,amrflag,ebflagarr,cvol);
+                             eb_rereflux_from_crse(i,j,k,n,bx,dfab,sfab,amrflag,ebflagarr,cvol);
                         });
                     }
                 }
             }
         }
     }
-    MultiFab::Add(crse_state, m_crse_data, srccomp, 0, numcomp, 0);
+    MultiFab::Add(crse_state, m_crse_data, srccomp, destcomp, numcomp, 0);
 }
 }
