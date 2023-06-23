@@ -4,7 +4,6 @@
 .. role:: fortran(code)
    :language: fortran
 
-
 .. _sec:EB:ebinit:
 
 Initializing the Geometric Database
@@ -386,6 +385,174 @@ testing cell types and getting neighbor information. For example
             end do
         end do
     end do
+
+Small Cell Problem and Redistribution
+=====================================
+
+First, we review finite volume discretizations with embedded boundaries as used by
+AMReX-based applications. Then we illustrate the small cell problem.
+
+Finite Volume Discretizations
+-----------------------------
+
+Consider a system of PDEs to advance a conserved quantity :math:`U` with fluxes
+:math:`F`:
+
+.. math:: \frac{\partial U}{\partial t} + \nabla \cdot F = 0.
+  :label: eqn::hypsys
+
+A conservative, finite volume discretization starts with the divergence theorm
+
+.. math:: \int_V \nabla \cdot F dV = \int_{\partial V} F \cdot n dA.
+
+In an embedded boundary cell, the "conservative divergence" is discretized (as
+:math:`D^c(F)`) as follows
+
+.. math::
+  :label: eqn::ebdiv
+
+   D^c(F) = \frac{1}{\kappa h} \left( \sum^D_{d = 1}
+     (F_{d, \mathrm{hi}} \, \alpha_{d, \mathrm{hi}} - F_{d, \mathrm{lo}}\, \alpha_{d, \mathrm{lo}})
+     + F^{EB} \alpha^{EB} \right).
+
+Geometry is discretely represented by volumes (:math:`V = \kappa h^d`) and
+apertures (:math:`A= \alpha h^{d-1}`), where :math:`h` is the (uniform) mesh
+spacing at that AMR level, :math:`\kappa` is the volume fraction and
+:math:`\alpha` are the area fractions. Without multivalued cells the volume
+fractions, area fractions and cell and face centroids (see
+:numref:`fig::volume`) are the only geometric information needed to compute
+second-order fluxes centered at the face centroids, and to infer the
+connectivity of the cells. Cells are connected if adjacent on the Cartesian
+mesh, and only via coordinate-aligned faces on the mesh. If an aperture,
+:math:`\alpha = 0`, between two cells, they are not directly connected to each
+other.
+
+.. raw:: latex
+
+   \begin{center}
+
+.. |a| image:: ./EB/areas_and_volumes.png
+       :width: 100%
+
+.. |b| image:: ./EB/eb_fluxes.png
+       :width: 100%
+
+.. _fig::volume:
+
+.. table:: Illustration of embedded boundary cutting a two-dimensional cell.
+   :align: center
+
+   +-----------------------------------------------------+------------------------------------------------------+
+   |                        |a|                          |                        |b|                           |
+   +-----------------------------------------------------+------------------------------------------------------+
+   | | A typical two-dimensional uniform cell that is    | | Fluxes in a cut cell.                              |
+   | | cut by the embedded boundary. The grey area       | |                                                    |
+   | | represents the region excluded from the           | |                                                    |
+   | | calculation. The portion of the cell faces        | |                                                    |
+   | | faces (labelled with A) through which fluxes      | |                                                    |
+   | | flow are the "uncovered" regions of the full      | |                                                    |
+   | | cell faces. The volume (labelled V) is the        | |                                                    |
+   | | uncovered region of the interior.                 | |                                                    |
+   +-----------------------------------------------------+------------------------------------------------------+
+
+.. raw:: latex
+
+   \end{center}
+
+
+Small Cells And Stability
+-------------------------
+
+In the context of time-explicit advance methods for, say hyperbolic
+conservation laws, a naive discretization in time of :eq:`eqn::hypsys` using
+:eq:`eqn::ebdiv`,
+
+.. math:: U^{n+1} = U^{n} - \delta t D^c(F)
+
+would have a time step constraint :math:`\delta t \sim h \kappa^{1/D}/V_m`,
+which goes to zero as the size of the smallest volume fraction :math:`\kappa` in
+the calculation. Since EB volume fractions can be arbitrarily small, this presents an
+unacceptable constraint. This is the so-called "small cell problem," and AMReX-based
+applications address it with redistribution methods.
+
+Flux Redistribution
+-----------------------------
+
+Consider a conservative update in the form:
+
+.. math:: (\rho \phi)_t + \nabla \cdot ( \rho \phi u) = RHS
+
+For each valid cell in the domain, compute the conservative divergence, :math:`(\nabla \cdot F)^c` ,
+of the convective fluxes, :math:`F`
+
+.. math:: (\nabla \cdot {F})^c_i = \dfrac{1}{\mathcal{V}_i} \sum_{f=1}^{N_f} ({F}_f\cdot{n}_f) A_f
+
+Here :math:`N_f` is the number of faces of cell :math:`i`, :math:`\vec{n}_f` and :math:`A_f`
+are the unit normal and area of the :math:`f` -th face respectively,
+and :math:`\mathcal{V}_i` is the volume of cell :math:`i` given by
+
+.. math:: \mathcal{V}_i = (\Delta x \Delta y \Delta z)\cdot \mathcal{K}_i
+
+where :math:`\mathcal{K}_i` is the volume fraction of cell :math:`i` .
+
+Now, a conservative update can be written as
+
+.. math:: \frac{ \rho^{n+1} \phi^{n+1} - \rho^{n} \phi^{n} }{\Delta t} = - \nabla \cdot{F}^c
+
+For each cell cut by the EB geometry, compute the non-conservative update, :math:`\nabla \cdot {F}^{nc}` ,
+
+.. math:: \nabla\cdot{F}^{nc}_i = \dfrac{\sum\limits_{j\in N(i) } \mathcal{K}_j\nabla \cdot {F}^c_j} {\sum\limits_{j\in N(i) } {\mathcal{K}}_j}
+
+where :math:`N(i)` is the index set of cell :math:`i` and its neighbors.
+
+For each cell cut by the EB geometry, compute the convective update :math:`\nabla \cdot{F}^{EB}` follows:
+
+.. math:: \nabla \cdot{F}^{EB}_i = \mathcal{K}_i\nabla \cdot{F}^{c}_i +(1-\mathcal{K}_i) \nabla \cdot \mathcal{F}^{nc}_i
+
+For each cell cut by the EB geometry, redistribute its mass loss, :math:`\delta M_i` , to its neighbors:
+
+.. math::  \nabla \cdot {F}^{EB}_j :=   \nabla \cdot {F}^{EB}_j + w_{ij}\delta M_i\, \qquad \forall j\in N(i)\setminus i
+
+where the mass loss in cell :math:`i` , :math:`\delta M_i` , is given by
+
+.. math:: \delta M_i =  \mathcal{K}_i(1- \mathcal{K}_i)[ \nabla \cdot {F}^c_i-  \nabla \cdot {F}^{nc}_i]
+
+and the weights, :math:`w_{ij}` , are
+
+.. math:: w_{ij} = \dfrac{1}{\sum\limits_{j\in N(i)\setminus i}  \mathcal{K}_j}
+
+Note that :math:`\nabla \cdot{F}_i^{EB}` gives an update for :math:`\rho \phi` ; i.e.,
+
+.. math:: \frac{(\rho \phi_i)^{n+1} - (\rho \phi_i)^{n} }{\Delta t} = - \nabla \cdot{F}^{EB}_i
+
+Typically, the redistribution neighborhood for each cell is one that can be
+reached via a monotonic path in each coordinate direction of unit length (see,
+e.g., :numref:`fig::redistribution`)
+
+.. raw:: latex
+
+   \begin{center}
+
+.. _fig::redistribution:
+
+.. figure:: ./EB/redist.png
+   :width: 50.0%
+
+   : Redistribution illustration. Excess update distributed to neighbor cells.
+
+.. raw:: latex
+
+   \end{center}
+
+
+State Redistribution
+-----------------------------
+
+For state redistribution we implement the weighted state
+redistribution algorithm as described in Guiliani et al (2021),
+which is available on `arxiv  <https://arxiv.org/abs/2112.12360>`_ .
+This is an extension of the original state redistribution algorithm
+of Berger and Guiliani (2020).
 
 
 Linear Solvers
