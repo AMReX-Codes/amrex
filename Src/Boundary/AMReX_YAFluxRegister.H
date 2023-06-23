@@ -65,7 +65,7 @@ public:
                   int srccomp, int destcomp, int numcomp, RunOn runon) noexcept;
 
     void Reflux (MF& state, int dc = 0);
-    void Reflux (MF& state, int srccomp, int destcomp, int numcomp):
+    void Reflux (MF& state, int srccomp, int destcomp, int numcomp);
 
     bool CrseHasWork (const MFIter& mfi) const noexcept {
         return m_crse_fab_flag[mfi.LocalIndex()] != crse_cell;
