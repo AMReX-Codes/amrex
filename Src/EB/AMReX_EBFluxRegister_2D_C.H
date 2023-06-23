@@ -9,11 +9,8 @@ void eb_flux_reg_crseadd_va(int i, int j, int k, Array4<Real> const& d,
                             Array4<int const> const& flag, Array4<Real const> const& fx,
                             Array4<Real const> const& fy, Array4<Real const> const& vfrac,
                             Array4<Real const> const& ax, Array4<Real const> const& ay,
-                            Real dtdx, Real dtdy, int fcomp, int dcomp, int numcomp)
+                            Real dtdx, Real dtdy, int ncomp)
 {
-    // amrex::Print() << " CHECKING " << IntVect(i,j) << " " <<
-    //    (flag(i,j,k) == amrex_yafluxreg_crse_fine_boundary_cell) << std::endl;
-
     if (flag(i,j,k) == amrex_yafluxreg_crse_fine_boundary_cell
         && vfrac(i,j,k) > Real(1.e-14))
     {
@@ -21,31 +18,25 @@ void eb_flux_reg_crseadd_va(int i, int j, int k, Array4<Real> const& d,
 
         if (flag(i-1,j,k) == amrex_yafluxreg_fine_cell) {
             Real tmp = dtdx*ax(i,j,k)*volinv;
-            for (int n = 0; n < numcomp; ++n) {
-                d(i,j,k,dcomp+n) -= tmp*fx(i,j,k,fcomp+n);
-                if (i == 28 and j == 0)
-                amrex::Print() << "LO: ADDING TO " << IntVect(i,j) << n << " "
-                      << tmp*fx(i,j,k,fcomp+n) << " with flux "
-                      << " " << fx(i,j,k,fcomp+n) << " and area " << ax(i,j,k) << " and vol "
-                      << vfrac(i,j,k) << " and dtdx " << dtdx << " and dcomp/fcomp " <<
-                       dcomp << " " << fcomp << std::endl;
+            for (int n = 0; n < ncomp; ++n) {
+                d(i,j,k,n) -= tmp*fx(i,j,k,n);
             }
         } else if (flag(i+1,j,k) == amrex_yafluxreg_fine_cell) {
             Real tmp = dtdx*ax(i+1,j,k)*volinv;
-            for (int n = 0; n < numcomp; ++n) {
-                d(i,j,k,dcomp+n) += tmp*fx(i+1,j,k,fcomp+n);
+            for (int n = 0; n < ncomp; ++n) {
+                d(i,j,k,n) += tmp*fx(i+1,j,k,n);
             }
         }
 
         if (flag(i,j-1,k) == amrex_yafluxreg_fine_cell) {
             Real tmp = dtdy*ay(i,j,k)*volinv;
-            for (int n = 0; n < numcomp; ++n) {
-                d(i,j,k,dcomp+n) -= tmp*fy(i,j,k,fcomp+n);
+            for (int n = 0; n < ncomp; ++n) {
+                d(i,j,k,n) -= tmp*fy(i,j,k,n);
             }
         } else if (flag(i,j+1,k) == amrex_yafluxreg_fine_cell) {
             Real tmp = dtdy*ay(i,j+1,k)*volinv;
-            for (int n = 0; n < numcomp; ++n) {
-                d(i,j,k,dcomp+n) += tmp*fy(i,j+1,k,fcomp+n);
+            for (int n = 0; n < ncomp; ++n) {
+                d(i,j,k,n) += tmp*fy(i,j+1,k,n);
             }
         }
     }
@@ -70,96 +61,92 @@ namespace {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void eb_flux_reg_fineadd_va_xlo (int i, int j, int k, int n, Array4<Real> const& d,
                                  Array4<Real const> const& f, Array4<Real const> const& vfrac,
-                                 Array4<Real const> const& a, Real fac, Dim3 const& ratio,
-                                 int fcomp, int dcomp)
+                                 Array4<Real const> const& a, Real fac, Dim3 const& ratio)
 {
     constexpr int kk = 0;
     int ii = (i+1)*ratio.x;
     Real fa = Real(0.0);
     for (int jj = j*ratio.y; jj < (j+1)*ratio.y; ++jj) {
         if (f.contains(ii,jj,kk)) {
-            fa += f(ii,jj,kk,fcomp+n) * a(ii,jj,kk);
+            fa += f(ii,jj,kk,n) * a(ii,jj,kk);
         }
     }
     Real cvol = eb_flux_reg_cvol(i,j,vfrac,ratio,Real(1.e-14));
     fa *= -fac*cvol;
-    HostDevice::Atomic::Add(d.ptr(i,j,k,dcomp+n), fa);
+    HostDevice::Atomic::Add(d.ptr(i,j,k,n), fa);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void eb_flux_reg_fineadd_va_xhi (int i, int j, int k, int n, Array4<Real> const& d,
                                  Array4<Real const> const& f, Array4<Real const> const& vfrac,
-                                 Array4<Real const> const& a, Real fac, Dim3 const& ratio,
-                                 int fcomp, int dcomp)
+                                 Array4<Real const> const& a, Real fac, Dim3 const& ratio)
 {
     constexpr int kk = 0;
     int ii = i*ratio.x;
     Real fa = Real(0.0);
     for (int jj = j*ratio.y; jj < (j+1)*ratio.y; ++jj) {
         if (f.contains(ii,jj,kk)) {
-            fa += f(ii,jj,kk,fcomp+n) * a(ii,jj,kk);
+            fa += f(ii,jj,kk,n) * a(ii,jj,kk);
         }
     }
     Real cvol = eb_flux_reg_cvol(i,j,vfrac,ratio,Real(1.e-14));
     fa *= fac*cvol;
-    HostDevice::Atomic::Add(d.ptr(i,j,k,dcomp+n), fa);
+    HostDevice::Atomic::Add(d.ptr(i,j,k,n), fa);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void eb_flux_reg_fineadd_va_ylo (int i, int j, int k, int n, Array4<Real> const& d,
                                  Array4<Real const> const& f, Array4<Real const> const& vfrac,
-                                 Array4<Real const> const& a, Real fac, Dim3 const& ratio,
-                                 int fcomp, int dcomp)
+                                 Array4<Real const> const& a, Real fac, Dim3 const& ratio)
 {
     constexpr int kk = 0;
     int jj = (j+1)*ratio.y;
     Real fa = Real(0.0);
     for (int ii = i*ratio.x; ii < (i+1)*ratio.x; ++ii) {
         if (f.contains(ii,jj,kk)) {
-            fa += f(ii,jj,kk,fcomp+n) * a(ii,jj,kk);
+            fa += f(ii,jj,kk,n) * a(ii,jj,kk);
         }
     }
     Real cvol = eb_flux_reg_cvol(i,j,vfrac,ratio,Real(1.e-14));
     fa *= -fac*cvol;
-    HostDevice::Atomic::Add(d.ptr(i,j,k,dcomp+n), fa);
+    HostDevice::Atomic::Add(d.ptr(i,j,k,n), fa);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void eb_flux_reg_fineadd_va_yhi (int i, int j, int k, int n, Array4<Real> const& d,
                                  Array4<Real const> const& f, Array4<Real const> const& vfrac,
-                                 Array4<Real const> const& a, Real fac, Dim3 const& ratio,
-                                 int fcomp, int dcomp)
+                                 Array4<Real const> const& a, Real fac, Dim3 const& ratio)
 {
     constexpr int kk = 0;
     int jj = j*ratio.y;
     Real fa = Real(0.0);
     for (int ii = i*ratio.x; ii < (i+1)*ratio.x; ++ii) {
         if (f.contains(ii,jj,kk)) {
-            fa += f(ii,jj,kk,fcomp+n) * a(ii,jj,kk);
+            fa += f(ii,jj,kk,n) * a(ii,jj,kk);
         }
     }
     Real cvol = eb_flux_reg_cvol(i,j,vfrac,ratio,Real(1.e-14));
     fa *= fac*cvol;
-    HostDevice::Atomic::Add(d.ptr(i,j,k,dcomp+n), fa);
+    HostDevice::Atomic::Add(d.ptr(i,j,k,n), fa);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void eb_flux_reg_fineadd_dm (int i, int j, int k, int n, Box const& dmbx, Array4<Real> const& d,
                              Array4<Real const> const& dm, Array4<Real const> const& vfrac,
-                             Dim3 const& ratio, Real threshold, int scomp, int dcomp)
+                             Dim3 const& ratio, Real threshold)
 {
     Real dmtot = Real(0.0);
     constexpr int kk = 0;
     for     (int jj = j*ratio.y; jj < (j+1)*ratio.y; ++jj) {
         for (int ii = i*ratio.x; ii < (i+1)*ratio.x; ++ii) {
             if (dmbx.contains(IntVect(ii,jj))) {
-                dmtot += dm(ii,jj,kk,scomp+n);
+                dmtot += dm(ii,jj,kk,n);
             }
         }
     }
     Real cvol = eb_flux_reg_cvol(i,j,vfrac,ratio,threshold);
     dmtot *= cvol;
-    HostDevice::Atomic::Add(d.ptr(i,j,k,dcomp+n), dmtot);
+    HostDevice::Atomic::Add(d.ptr(i,j,k,n), dmtot);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -206,13 +193,13 @@ void eb_rereflux_from_crse (int i, int j, int k, int n, Box const& bx, Array4<Re
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void eb_rereflux_to_fine (int i, int j, int /*k*/, int nd, int ns, Array4<Real> const& d,
+void eb_rereflux_to_fine (int i, int j, int /*k*/, int n, Array4<Real> const& d,
                           Array4<Real const> const& s, Array4<int const> const& msk, Dim3 ratio)
 {
     int ic = amrex::coarsen(i,ratio.x);
     int jc = amrex::coarsen(j,ratio.y);
     if (msk(ic,jc,0) == 1) {
-        d(i,j,0,nd) += s(ic,jc,0,ns);
+        d(i,j,0,n) += s(ic,jc,0,n);
     }
 }
 
