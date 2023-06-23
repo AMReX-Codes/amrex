@@ -330,8 +330,7 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(cf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
+    for (MFIter mfi(cf,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         const Box& cbx = mfi.tilebox();
         const Box& fbx = amrex::refine(cbx, m_ratio);
 
