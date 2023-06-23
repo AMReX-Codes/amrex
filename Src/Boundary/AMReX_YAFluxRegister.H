@@ -65,6 +65,7 @@ public:
                   int srccomp, int destcomp, int numcomp, RunOn runon) noexcept;
 
     void Reflux (MF& state, int dc = 0);
+    void Reflux (MF& state, int srccomp, int destcomp, int numcomp):
 
     bool CrseHasWork (const MFIter& mfi) const noexcept {
         return m_crse_fab_flag[mfi.LocalIndex()] != crse_cell;
@@ -363,17 +364,17 @@ YAFluxRegisterT<MF>::CrseAdd (const MFIter& mfi,
                  FAB const* fy = flux[1];,
                  FAB const* fz = flux[2];);
 
-    auto fab = m_crse_data.array(mfi);
+    auto dest_arr   = m_crse_data.array(mfi,destcomp);
     auto const flag = m_crse_flag.const_array(mfi);
 
-    AMREX_D_TERM(Array4<T const> fxarr = fx->const_array();,
-                 Array4<T const> fyarr = fy->const_array();,
-                 Array4<T const> fzarr = fz->const_array(););
+    AMREX_D_TERM(Array4<T const> fxarr = fx->const_array(srccomp);,
+                 Array4<T const> fyarr = fy->const_array(srccomp);,
+                 Array4<T const> fzarr = fz->const_array(srccomp););
 
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG ( runon, bx, tbx,
     {
-        yafluxreg_crseadd(tbx, fab, flag, AMREX_D_DECL(fxarr,fyarr,fzarr),
-                          AMREX_D_DECL(dtdx,dtdy,dtdz),srccomp,destcomp,numcomp);
+        yafluxreg_crseadd(tbx, dest_arr, flag, AMREX_D_DECL(fxarr,fyarr,fzarr),
+                          AMREX_D_DECL(dtdx,dtdy,dtdz),numcomp);
     });
 }
 
@@ -442,13 +443,13 @@ YAFluxRegisterT<MF>::FineAdd (const MFIter& mfi,
                 const int side = 0;
                 if (lobx_is.ok())
                 {
-                    auto d = cfp->array();
+                    auto d = cfp->array(destcomp);
                     auto dtdxs = dtdx[idim];
                     int dirside = idim*2+side;
-                    Array4<T const> farr = f->const_array();
+                    Array4<T const> farr = f->const_array(srccomp);
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(runon, lobx_is, tmpbox,
                     {
-                        yafluxreg_fineadd(tmpbox, d, farr, dtdxs, srccomp, destcomp, numcomp, dirside, rr);
+                        yafluxreg_fineadd(tmpbox, d, farr, dtdxs, numcomp, dirside, rr);
                     });
                 }
             }
@@ -457,13 +458,13 @@ YAFluxRegisterT<MF>::FineAdd (const MFIter& mfi,
                 const int side = 1;
                 if (hibx_is.ok())
                 {
-                    auto d = cfp->array();
+                    auto d = cfp->array(destcomp);
                     auto dtdxs = dtdx[idim];
                     int dirside = idim*2+side;
-                    Array4<T const> farr = f->const_array();
+                    Array4<T const> farr = f->const_array(srccomp);
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(runon, hibx_is, tmpbox,
                     {
-                        yafluxreg_fineadd(tmpbox, d, farr, dtdxs, srccomp, destcomp, numcomp, dirside, rr);
+                        yafluxreg_fineadd(tmpbox, d, farr, dtdxs, numcomp, dirside, rr);
                     });
                 }
             }
@@ -475,9 +476,18 @@ template <typename MF>
 void
 YAFluxRegisterT<MF>::Reflux (MF& state, int dc)
 {
+    int srccomp  = 0;
+    int destcomp = dc;
+    int numcomp  = m_ncomp;
+    Reflux(state, srccomp, destcomp, numcomp);
+}
+
+template <typename MF>
+void
+YAFluxRegisterT<MF>::Reflux (MF& state, int srccomp, int destcomp, int numcomp)
+{
     if (!m_cfp_mask.empty())
     {
-        const int ncomp = m_ncomp;
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -485,18 +495,18 @@ YAFluxRegisterT<MF>::Reflux (MF& state, int dc)
         {
             const Box& bx = m_cfpatch[mfi].box();
             auto const maskfab = m_cfp_mask.array(mfi);
-            auto       cfptfab = m_cfpatch.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+            auto       cfptfab = m_cfpatch.array(mfi,srccomp);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
             {
                 cfptfab(i,j,k,n) *= maskfab(i,j,k);
             });
         }
     }
 
-    m_crse_data.ParallelCopy(m_cfpatch, m_crse_geom.periodicity(), FabArrayBase::ADD);
+    m_crse_data.ParallelCopy(m_cfpatch, srccomp, srccomp, numcomp, m_crse_geom.periodicity(), FabArrayBase::ADD);
 
-    BL_ASSERT(state.nComp() >= dc + m_ncomp);
-    amrex::Add(state, m_crse_data, 0, dc, m_ncomp, 0);
+    BL_ASSERT(state.nComp() >= destcomp + numcomp);
+    amrex::Add(state, m_crse_data, srccomp, destcomp, numcomp, 0);
 }
 
 template <typename MF>
