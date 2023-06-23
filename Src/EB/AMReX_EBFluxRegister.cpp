@@ -426,7 +426,7 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
                         Array4<int const> const& amrflag = m_crse_flag.const_array(mfi);
                         Array4<EBCellFlag const> const& ebflagarr = ebflag.const_array();
                         Array4<Real const> const& cvol = crse_vfrac.const_array(mfi);
-                        AMREX_HOST_DEVICE_FOR_4D(bxg1, m_ncomp, i, j, k, n,
+                        AMREX_HOST_DEVICE_FOR_4D(bxg1, numcomp, i, j, k, n,
                         {
                              eb_rereflux_from_crse(i,j,k,n,bx,dfab,sfab,amrflag,ebflagarr,cvol);
                         });
