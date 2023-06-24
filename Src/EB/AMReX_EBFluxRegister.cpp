@@ -81,10 +81,9 @@ EBFluxRegister::CrseAdd (const MFIter& mfi,
                          RunOn runon)
 {
     BL_ASSERT(m_crse_data.nComp() == flux[0]->nComp());
-    int  srccomp = 0;
     int destcomp = 0;
     int  numcomp = m_crse_data.nComp();
-    CrseAdd(mfi, flux, dx, dt, volfrac, areafrac, srccomp, destcomp, numcomp, runon);
+    CrseAdd(mfi, flux, dx, dt, volfrac, areafrac, destcomp, numcomp, runon);
 }
 
 void
@@ -93,10 +92,14 @@ EBFluxRegister::CrseAdd (const MFIter& mfi,
                          const Real* dx, Real dt,
                          const FArrayBox& volfrac,
                          const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
-                         int srccomp, int destcomp, int numcomp, RunOn runon)
+                         int destcomp, int numcomp, RunOn runon)
 {
-    BL_ASSERT(m_crse_data.nComp() >= srccomp+numcomp);
-    BL_ASSERT(flux[0]->nComp()    >= srccomp+numcomp);
+    //
+    // We assume that the fluxes have been passed in starting at component 0
+    // "destcomp" refers to the indexing in the arrays internal to the EBFluxRegister
+    //
+
+    BL_ASSERT(flux[0]->nComp()    >= +numcomp);
     BL_ASSERT(m_crse_data.nComp() >= flux[0]->nComp());
 
     if (m_crse_fab_flag[mfi.LocalIndex()] == crse_cell) {
@@ -111,9 +114,9 @@ EBFluxRegister::CrseAdd (const MFIter& mfi,
     AMREX_D_TERM(Real dtdx = dt/dx[0];,
                  Real dtdy = dt/dx[1];,
                  Real dtdz = dt/dx[2];);
-    AMREX_D_TERM(Array4<Real const> const& fx = flux[0]->const_array(srccomp);,
-                 Array4<Real const> const& fy = flux[1]->const_array(srccomp);,
-                 Array4<Real const> const& fz = flux[2]->const_array(srccomp););
+    AMREX_D_TERM(Array4<Real const> const& fx = flux[0]->const_array();,
+                 Array4<Real const> const& fy = flux[1]->const_array();,
+                 Array4<Real const> const& fz = flux[2]->const_array(););
     AMREX_D_TERM(Array4<Real const> const& apx = areafrac[0]->const_array();,
                  Array4<Real const> const& apy = areafrac[1]->const_array();,
                  Array4<Real const> const& apz = areafrac[2]->const_array(););
@@ -137,10 +140,9 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
                          RunOn runon)
 {
     BL_ASSERT(m_cfpatch.nComp() == a_flux[0]->nComp());
-    int  srccomp = 0;
     int destcomp = 0;
     int  numcomp = m_crse_data.nComp();
-    FineAdd(mfi, a_flux, dx, dt, volfrac, areafrac, srccomp, destcomp, numcomp, runon);
+    FineAdd(mfi, a_flux, dx, dt, volfrac, areafrac, destcomp, numcomp, runon);
 }
 
 void
@@ -149,11 +151,15 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
                          const Real* dx, Real dt,
                          const FArrayBox& volfrac,
                          const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
-                         int srccomp, int destcomp, int numcomp, RunOn runon)
+                         int destcomp, int numcomp, RunOn runon)
 {
+    //
+    // We assume that the fluxes have been passed in starting at component 0
+    // "destcomp" refers to the indexing in the arrays internal to the EBFluxRegister
+    //
+
     BL_ASSERT(m_cfpatch.nComp()   >= a_flux[0]->nComp());
-    BL_ASSERT(a_flux[0]->nComp()  >= srccomp+numcomp);
-    BL_ASSERT(m_crse_data.nComp() >= srccomp+numcomp);
+    BL_ASSERT(a_flux[0]->nComp()  >= numcomp);
 
     const int li = mfi.LocalIndex();
     Vector<FArrayBox*>& cfp_fabs = m_cfp_fab[li];
@@ -164,9 +170,9 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
     BL_ASSERT(tbx.cellCentered());
     const Box& cbx = amrex::coarsen(tbx, m_ratio);
 
-    AMREX_D_TERM(Array4<Real const> const& fx = a_flux[0]->const_array(srccomp);,
-                 Array4<Real const> const& fy = a_flux[1]->const_array(srccomp);,
-                 Array4<Real const> const& fz = a_flux[2]->const_array(srccomp););
+    AMREX_D_TERM(Array4<Real const> const& fx = a_flux[0]->const_array();,
+                 Array4<Real const> const& fy = a_flux[1]->const_array();,
+                 Array4<Real const> const& fz = a_flux[2]->const_array(););
 
     Array4<Real const> const& vfrac = volfrac.const_array();
     AMREX_D_TERM(Array4<Real const> const& apx = areafrac[0]->const_array();,
@@ -253,10 +259,9 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
                          RunOn runon)
 {
     BL_ASSERT(m_cfpatch.nComp() == a_flux[0]->nComp());
-    int  srccomp = 0;
     int destcomp = 0;
     int  numcomp = m_crse_data.nComp();
-    FineAdd(mfi, a_flux, dx, dt, vfrac, areafrac, dm, srccomp, destcomp, numcomp, runon);
+    FineAdd(mfi, a_flux, dx, dt, vfrac, areafrac, dm, destcomp, numcomp, runon);
 }
 
 void
@@ -266,9 +271,14 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
                          const FArrayBox& vfrac,
                          const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
                          const FArrayBox& dm,
-                         int srccomp, int destcomp, int numcomp, RunOn runon)
+                         int destcomp, int numcomp, RunOn runon)
 {
-    FineAdd(mfi, a_flux, dx, dt, vfrac, areafrac, srccomp, destcomp, numcomp, runon);
+    //
+    // We assume that the fluxes and dm have been passed in starting at component 0
+    // "destcomp" refers to the indexing in the arrays internal to the EBFluxRegister
+    //
+
+    FineAdd(mfi, a_flux, dx, dt, vfrac, areafrac, destcomp, numcomp, runon);
 
     const Box& tbx = mfi.tilebox();
 
@@ -282,7 +292,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
     Real threshold = amrex_eb_get_reredistribution_threshold()*static_cast<Real>(AMREX_D_TERM(ratio.x,*ratio.y,*ratio.z));
     const Box& tbxg1 = amrex::grow(tbx,1);
     const Box& cbxg1 = amrex::grow(cbx,1);
-    Array4<Real const> const& dma = dm.const_array(srccomp);
+    Array4<Real const> const& dma = dm.const_array();
     Array4<Real const> const& vfrac_arr = vfrac.const_array();
     for (FArrayBox* cfp : cfp_fabs)
     {
@@ -314,6 +324,10 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
                         MultiFab& fine_state, const amrex::MultiFab& /*fine_vfrac*/,
                         int srccomp, int destcomp, int numcomp)
 {
+    //
+    // Here "srccomp" refers to the indexing in the arrays internal to the EBFluxRegister
+    //     "destcomp" refers to the indexing in the external arrays being filled by refluxing
+    //
     Reflux(crse_state, crse_vfrac, srccomp, destcomp, numcomp);
 
     // The fine-covered cells of m_crse_data contain the data that should go to the fine level
@@ -362,6 +376,10 @@ void
 EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
                         int srccomp, int destcomp, int numcomp)
 {
+    //
+    // Here "srccomp" refers to the indexing in the arrays internal to the EBFluxRegister
+    //     "destcomp" refers to the indexing in the external arrays being filled by refluxing
+    //
     AMREX_ASSERT( srccomp+numcomp <= m_ncomp);
     AMREX_ASSERT(destcomp+numcomp <= m_ncomp);
 
@@ -435,6 +453,7 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
             }
         }
     }
+
     MultiFab::Add(crse_state, m_crse_data, srccomp, destcomp, numcomp, 0);
 }
 }
