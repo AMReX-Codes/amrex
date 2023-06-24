@@ -120,14 +120,14 @@ public:
     // If we are not doing re-redistribution we don't touch the fine state
     void Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac);
     void Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
-                 int src_comp, int dest_comp, int num_comp);
+                 int srccomp, int destcomp, int numcomp);
 
     // If we are doing re-redistribution we update the fine state as well as crse
     void Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
                  MultiFab& fine_state, const amrex::MultiFab& fine_vfrac);
     void Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
                  MultiFab& fine_state, const amrex::MultiFab& fine_vfrac,
-                 int src_comp, int dest_comp, int num_comp);
+                 int srccomp, int destcomp, int numcomp);
 
 
     FArrayBox* getCrseData (const MFIter& mfi) {
