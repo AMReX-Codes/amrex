@@ -21,7 +21,7 @@ EBFArrayBox::EBFArrayBox (const EBCellFlagFab& ebflag, const Box& bx, int ncomps
       m_factory(factory),
       m_box_index(box_index)
 {
-    BL_ASSERT(ebflag.box().contains(amrex::enclosedCells(bx)));
+    AMREX_ASSERT(ebflag.box().contains(amrex::enclosedCells(bx)));
     const Box& ccbx = amrex::enclosedCells(bx);
     m_type = ebflag.getType(ccbx);
 }
@@ -174,7 +174,7 @@ const EBCellFlagFab&
 getEBCellFlagFab (const FArrayBox& fab)
 {
     const auto* ebfab = static_cast<EBFArrayBox const*>(&fab);
-    BL_ASSERT(ebfab);
+    AMREX_ASSERT(ebfab);
     return ebfab->getEBCellFlagFab();
 }
 

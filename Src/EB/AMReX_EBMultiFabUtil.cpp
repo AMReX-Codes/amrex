@@ -410,8 +410,8 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
         const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(S_fine.Factory());
         const auto& vfrac_fine = factory.getVolFrac();
 
-        BL_ASSERT(S_crse.nComp() == S_fine.nComp());
-        BL_ASSERT(S_crse.is_cell_centered() && S_fine.is_cell_centered());
+        AMREX_ASSERT(S_crse.nComp() == S_fine.nComp());
+        AMREX_ASSERT(S_crse.is_cell_centered() && S_fine.is_cell_centered());
 
         BoxArray crse_S_fine_BA = S_fine.boxArray(); crse_S_fine_BA.coarsen(ratio);
 

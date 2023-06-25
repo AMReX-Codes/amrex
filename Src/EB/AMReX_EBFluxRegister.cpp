@@ -80,7 +80,7 @@ EBFluxRegister::CrseAdd (const MFIter& mfi,
                          const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
                          RunOn runon)
 {
-    BL_ASSERT(m_crse_data.nComp() == flux[0]->nComp());
+    AMREX_ASSERT(m_crse_data.nComp() == flux[0]->nComp());
     int destcomp = 0;
     int  numcomp = m_crse_data.nComp();
     CrseAdd(mfi, flux, dx, dt, volfrac, areafrac, destcomp, numcomp, runon);
@@ -99,8 +99,8 @@ EBFluxRegister::CrseAdd (const MFIter& mfi,
     // "destcomp" refers to the indexing in the arrays internal to the EBFluxRegister
     //
 
-    BL_ASSERT(flux[0]->nComp()    >= +numcomp);
-    BL_ASSERT(m_crse_data.nComp() >= flux[0]->nComp());
+    AMREX_ASSERT(flux[0]->nComp()    >= +numcomp);
+    AMREX_ASSERT(m_crse_data.nComp() >= flux[0]->nComp());
 
     if (m_crse_fab_flag[mfi.LocalIndex()] == crse_cell) {
         return;  // this coarse fab is not close to fine fabs.
@@ -139,7 +139,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
                          const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
                          RunOn runon)
 {
-    BL_ASSERT(m_cfpatch.nComp() == a_flux[0]->nComp());
+    AMREX_ASSERT(m_cfpatch.nComp() == a_flux[0]->nComp());
     int destcomp = 0;
     int  numcomp = m_crse_data.nComp();
     FineAdd(mfi, a_flux, dx, dt, volfrac, areafrac, destcomp, numcomp, runon);
@@ -158,8 +158,8 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
     // "destcomp" refers to the indexing in the arrays internal to the EBFluxRegister
     //
 
-    BL_ASSERT(m_cfpatch.nComp()   >= a_flux[0]->nComp());
-    BL_ASSERT(a_flux[0]->nComp()  >= numcomp);
+    AMREX_ASSERT(m_cfpatch.nComp()   >= a_flux[0]->nComp());
+    AMREX_ASSERT(a_flux[0]->nComp()  >= numcomp);
 
     const int li = mfi.LocalIndex();
     Vector<FArrayBox*>& cfp_fabs = m_cfp_fab[li];
@@ -167,7 +167,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
 
     const int nc = numcomp;
     const Box& tbx = mfi.tilebox();
-    BL_ASSERT(tbx.cellCentered());
+    AMREX_ASSERT(tbx.cellCentered());
     const Box& cbx = amrex::coarsen(tbx, m_ratio);
 
     AMREX_D_TERM(Array4<Real const> const& fx = a_flux[0]->const_array();,
@@ -258,7 +258,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
                          const FArrayBox& dm,
                          RunOn runon)
 {
-    BL_ASSERT(m_cfpatch.nComp() == a_flux[0]->nComp());
+    AMREX_ASSERT(m_cfpatch.nComp() == a_flux[0]->nComp());
     int destcomp = 0;
     int  numcomp = m_crse_data.nComp();
     FineAdd(mfi, a_flux, dx, dt, vfrac, areafrac, dm, destcomp, numcomp, runon);
@@ -433,8 +433,7 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
                     if (ebflag.getType(bxg1) == FabType::regular)
                     {
                         // no re-reflux or re-re-redistribution
-                        // AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, numcomp, i, j, k, n,
-                        AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, 2, i, j, k, n,
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, numcomp, i, j, k, n,
                         {
                             dfab(i,j,k,n) += sfab(i,j,k,n);
                         });
