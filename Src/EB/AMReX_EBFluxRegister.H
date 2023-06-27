@@ -83,7 +83,7 @@ public:
                   const Real* dx, Real dt,
                   const FArrayBox& volfrac,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
-                  int destcomp, int numcomp, RunOn runon);
+                  int srccomp, int destcomp, int numcomp, RunOn runon);
 
     using YAFluxRegister::FineAdd;
 
@@ -99,7 +99,7 @@ public:
                   const Real* dx, Real dt,
                   const FArrayBox& volfrac,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
-                  int destcomp, int numcomp, RunOn runon);
+                  int srccomp, int destcomp, int numcomp, RunOn runon);
 
     // If we are doing re-redistribution we add dm to the solution
     void FineAdd (const MFIter& mfi,
@@ -115,7 +115,7 @@ public:
                   const FArrayBox& vfrac,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
                   const FArrayBox& dm,
-                  int destcomp, int numcomp, RunOn runon);
+                  int srccomp, int destcomp, int numcomp, RunOn runon);
 
     // If we are not doing re-redistribution we don't touch the fine state
     void Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac);

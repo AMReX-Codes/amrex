@@ -4,12 +4,8 @@
 #include <AMReX_Config.H>
 #include <AMReX_Slopes_K.H>
 
-#ifdef AMREX_USE_EB
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBCellFlag.H>
-#else
-#include <AMReX_FArrayBox.H>
-#endif
 
 namespace {
 

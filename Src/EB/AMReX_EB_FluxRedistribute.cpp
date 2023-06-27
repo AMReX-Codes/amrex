@@ -287,6 +287,9 @@ amrex_flux_redistribute (
         if (!flag(i,j,k).isCovered())
             dqdt(i,j,k,icomp+n) = divc(i,j,k,n) + optmp(i,j,k,n);
     });
+
+
+    Gpu::streamSynchronize(); // because of FArrayBoxes defined in this function
 } // end amrex_flux_redistribute
 
 //

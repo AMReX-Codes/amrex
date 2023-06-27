@@ -5,8 +5,6 @@
 #include <CNS_divop_K.H>
 #include <CNS_diffusion_eb_K.H>
 
-#include <CNS_diffusion_eb_K.H>
-
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EB_Redistribution.H>
 #include <AMReX_MultiCutFab.H>

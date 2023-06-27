@@ -2,13 +2,7 @@
 #define AMREX_SLOPES_K_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Array4.H>
-#include <AMReX_Extension.H>
-#include <AMReX_FArrayBox.H>
-#include <AMReX_Gpu.H>
-#include <AMReX_Math.H>
-#include <AMReX_REAL.H>
-
+#include <AMReX_BaseFab.H>
 
 namespace amrex {
 
@@ -21,7 +15,7 @@ Real amrex_calc_xslope (int i, int j, int k, int n, int order,
         Real dl = 2.0_rt*(q(i  ,j,k,n) - q(i-1,j,k,n));
         Real dr = 2.0_rt*(q(i+1,j,k,n) - q(i  ,j,k,n));
         Real dc = 0.5_rt*(q(i+1,j,k,n) - q(i-1,j,k,n));
-        Real slope = amrex::min(Math::abs(dl),Math::abs(dc),Math::abs(dr));
+        Real slope = amrex::min(std::abs(dl),std::abs(dc),std::abs(dr));
         slope = (dr*dl > 0.0_rt) ? slope : 0.0_rt;
         return (dc > 0.0_rt) ? slope : -slope;
 
@@ -36,29 +30,29 @@ Real amrex_calc_xslope (int i, int j, int k, int n, int order,
         dlft = qm - q(i-2,j,k,n);
         drgt = qi - qm;
         dcen = 0.5_rt*(dlft+drgt);
-        dsgn = Math::copysign(1.e0_rt, dcen);
-        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
-        dfm = dsgn*amrex::min(dlim, Math::abs(dcen));
+        dsgn = std::copysign(1.e0_rt, dcen);
+        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
+        dfm = dsgn*amrex::min(dlim, std::abs(dcen));
 
         dlft = qp - qi;
         drgt = q(i+2,j,k,n) - qp;
         dcen = 0.5_rt*(dlft+drgt);
-        dsgn = Math::copysign(1.e0_rt, dcen);
-        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
-        dfp = dsgn*amrex::min(dlim, Math::abs(dcen));
+        dsgn = std::copysign(1.e0_rt, dcen);
+        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
+        dfp = dsgn*amrex::min(dlim, std::abs(dcen));
 
         dlft = qi - qm;
         drgt = qp - qi;
         dcen = 0.5_rt*(dlft+drgt);
-        dsgn = Math::copysign(1.e0_rt, dcen);
-        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
+        dsgn = std::copysign(1.e0_rt, dcen);
+        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
 
         dtemp  = 4.0_rt/3.0_rt*dcen - 1.0_rt/6.0_rt*(dfp + dfm);
 
-        return dsgn*amrex::min(dlim, Math::abs(dtemp));
+        return dsgn*amrex::min(dlim, std::abs(dtemp));
 
     } else {
-        return 0.;
+        return 0._rt;
     }
 }
 
@@ -79,7 +73,7 @@ Real amrex_calc_xslope_extdir (int i, int j, int k, int n, int order,
             dc = (4.0_rt*q(i+1,j,k,n)-3.0_rt*q(i,j,k,n)-q(i-1,j,k,n))/3.0_rt;
         }
 
-        Real slope = amrex::min(Math::abs(dl),Math::abs(dc),Math::abs(dr));
+        Real slope = amrex::min(std::abs(dl),std::abs(dc),std::abs(dr));
         slope = (dr*dl > 0.0_rt) ? slope : 0.0_rt;
         return (dc > 0.0_rt) ? slope : -slope;
 
@@ -94,22 +88,22 @@ Real amrex_calc_xslope_extdir (int i, int j, int k, int n, int order,
         dlft = qm - q(i-2,j,k,n);
         drgt = qi - qm;
         dcen = 0.5_rt*(dlft+drgt);
-        dsgn = Math::copysign(1.e0_rt, dcen);
-        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
-        dfm = dsgn*amrex::min(dlim, Math::abs(dcen));
+        dsgn = std::copysign(1.e0_rt, dcen);
+        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
+        dfm = dsgn*amrex::min(dlim, std::abs(dcen));
 
         dlft = qp - qi;
         drgt = q(i+2,j,k,n) - qp;
         dcen = 0.5_rt*(dlft+drgt);
-        dsgn = Math::copysign(1.e0_rt, dcen);
-        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
-        dfp = dsgn*amrex::min(dlim, Math::abs(dcen));
+        dsgn = std::copysign(1.e0_rt, dcen);
+        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
+        dfp = dsgn*amrex::min(dlim, std::abs(dcen));
 
         dlft = qi - qm;
         drgt = qp - qi;
         dcen = 0.5_rt*(dlft+drgt);
-        dsgn = Math::copysign(1.e0_rt, dcen);
-        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
+        dsgn = std::copysign(1.e0_rt, dcen);
+        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
 
         dtemp  = 4.0_rt/3.0_rt*dcen - 1.0_rt/6.0_rt*(dfp + dfm);
 
@@ -117,15 +111,15 @@ Real amrex_calc_xslope_extdir (int i, int j, int k, int n, int order,
            dtemp  = -16._rt/15._rt*q(i-1,j,k,n) + .5_rt*q(i,j,k,n) + 2._rt/3._rt*q(i+1,j,k,n) -  0.1_rt*q(i+2,j,k,n);
            dlft = 2._rt*(q(i  ,j,k,n)-q(i-1,j,k,n));
            drgt = 2._rt*(q(i+1,j,k,n)-q(i  ,j,k,n));
-           dlim = (dlft*drgt >= 0.0_rt) ? amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
-           dsgn = Math::copysign(1.e0_rt, dtemp);
+           dlim = (dlft*drgt >= 0.0_rt) ? amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
+           dsgn = std::copysign(1.e0_rt, dtemp);
         } else if (edlo && i == domlo+1) {
            dfm  = -16._rt/15._rt*q(domlo-1,j,k,n) + .5_rt*q(domlo,j,k,n) + 2._rt/3._rt*q(domlo+1,j,k,n) -  0.1_rt*q(domlo+2,j,k,n);
            dlft = 2._rt*(q(domlo  ,j,k,n)-q(domlo-1,j,k,n));
            drgt = 2._rt*(q(domlo+1,j,k,n)-q(domlo  ,j,k,n));
-           dlimsh = (dlft*drgt >= 0.0_rt) ? amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
-           dsgnsh = Math::copysign(1.e0_rt, dfm);
-           dfm = dsgnsh*amrex::min(dlimsh, Math::abs(dfm));
+           dlimsh = (dlft*drgt >= 0.0_rt) ? amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
+           dsgnsh = std::copysign(1.e0_rt, dfm);
+           dfm = dsgnsh*amrex::min(dlimsh, std::abs(dfm));
            dtemp  = 4.0_rt/3.0_rt*dcen - 1.0_rt/6.0_rt*(dfp + dfm);
         }
 
@@ -133,22 +127,22 @@ Real amrex_calc_xslope_extdir (int i, int j, int k, int n, int order,
            dtemp  = 16._rt/15._rt*q(i+1,j,k,n) - .5_rt*q(i,j,k,n) - 2._rt/3._rt*q(i-1,j,k,n) +  0.1_rt*q(i-2,j,k,n);
            dlft = 2._rt*(q(i  ,j,k,n)-q(i-1,j,k,n));
            drgt = 2._rt*(q(i+1,j,k,n)-q(i  ,j,k,n));
-           dlim = (dlft*drgt >= 0.0_rt) ? amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
-           dsgn = Math::copysign(1.e0_rt, dtemp);
+           dlim = (dlft*drgt >= 0.0_rt) ? amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
+           dsgn = std::copysign(1.e0_rt, dtemp);
         } else if (edhi && i == domhi-1) {
            dfp  = 16._rt/15._rt*q(domhi+1,j,k,n) - .5_rt*q(domhi,j,k,n) - 2._rt/3._rt*q(domhi-1,j,k,n) +  0.1_rt*q(domhi-2,j,k,n);
            dlft = 2._rt*(q(domhi  ,j,k,n)-q(domhi-1,j,k,n));
            drgt = 2._rt*(q(domhi+1,j,k,n)-q(domhi  ,j,k,n));
-           dlimsh = (dlft*drgt >= 0.0_rt) ? amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
-           dsgnsh = Math::copysign(1.e0_rt, dfp);
-           dfp = dsgnsh*amrex::min(dlimsh, Math::abs(dfp));
+           dlimsh = (dlft*drgt >= 0.0_rt) ? amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
+           dsgnsh = std::copysign(1.e0_rt, dfp);
+           dfp = dsgnsh*amrex::min(dlimsh, std::abs(dfp));
            dtemp  = 4.0_rt/3.0_rt*dcen - 1.0_rt/6.0_rt*(dfp + dfm);
         }
 
-        return dsgn*amrex::min(dlim, Math::abs(dtemp));
+        return dsgn*amrex::min(dlim, std::abs(dtemp));
 
     } else {
-        return 0.;
+        return 0._rt;
     }
 
 }
@@ -162,7 +156,7 @@ Real amrex_calc_yslope (int i, int j, int k, int n, int order,
         Real dl = 2.0_rt*(q(i,j  ,k,n) - q(i,j-1,k,n));
         Real dr = 2.0_rt*(q(i,j+1,k,n) - q(i,j  ,k,n));
         Real dc = 0.5_rt*(q(i,j+1,k,n) - q(i,j-1,k,n));
-        Real slope = amrex::min(Math::abs(dl),Math::abs(dc),Math::abs(dr));
+        Real slope = amrex::min(std::abs(dl),std::abs(dc),std::abs(dr));
         slope = (dr*dl > 0.0_rt) ? slope : 0.0_rt;
         return (dc > 0.0_rt) ? slope : -slope;
 
@@ -177,28 +171,28 @@ Real amrex_calc_yslope (int i, int j, int k, int n, int order,
         dlft = qm - q(i,j-2,k,n);
         drgt = qj - qm;
         dcen = 0.5_rt*(dlft+drgt);
-        dsgn = Math::copysign(1.e0_rt, dcen);
-        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
-        dfm = dsgn*amrex::min(dlim, Math::abs(dcen));
+        dsgn = std::copysign(1.e0_rt, dcen);
+        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
+        dfm = dsgn*amrex::min(dlim, std::abs(dcen));
 
         dlft = qp - qj;
         drgt = q(i,j+2,k,n) - qp;
         dcen = 0.5_rt*(dlft+drgt);
-        dsgn = Math::copysign(1.e0_rt, dcen);
-        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
-        dfp = dsgn*amrex::min(dlim, Math::abs(dcen));
+        dsgn = std::copysign(1.e0_rt, dcen);
+        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
+        dfp = dsgn*amrex::min(dlim, std::abs(dcen));
 
         dlft = qj - qm;
         drgt = qp - qj;
         dcen = 0.5_rt*(dlft+drgt);
-        dsgn = Math::copysign(1.e0_rt, dcen);
-        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
+        dsgn = std::copysign(1.e0_rt, dcen);
+        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
 
         dtemp  = 4.0_rt/3.0_rt*dcen - 1.0_rt/6.0_rt*(dfp + dfm);
-        return dsgn*amrex::min(dlim, Math::abs(dtemp));
+        return dsgn*amrex::min(dlim, std::abs(dtemp));
 
     } else {
-        return 0.;
+        return 0._rt;
     }
 }
 
@@ -217,7 +211,7 @@ Real amrex_calc_yslope_extdir (int i, int j, int k, int n, int order,
         } else if (edhi && j == domhi) {
             dc = (4.0_rt*q(i,j+1,k,n)-3.0_rt*q(i,j,k,n)-q(i,j-1,k,n))/3.0_rt;
         }
-        Real slope = amrex::min(Math::abs(dl),Math::abs(dc),Math::abs(dr));
+        Real slope = amrex::min(std::abs(dl),std::abs(dc),std::abs(dr));
         slope = (dr*dl > 0.0_rt) ? slope : 0.0_rt;
         return (dc > 0.0_rt) ? slope : -slope;
 
@@ -232,22 +226,22 @@ Real amrex_calc_yslope_extdir (int i, int j, int k, int n, int order,
         dlft = qm - q(i,j-2,k,n);
         drgt = qj - qm;
         dcen = 0.5_rt*(dlft+drgt);
-        dsgn = Math::copysign(1.e0_rt, dcen);
-        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
-        dfm = dsgn*amrex::min(dlim, Math::abs(dcen));
+        dsgn = std::copysign(1.e0_rt, dcen);
+        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
+        dfm = dsgn*amrex::min(dlim, std::abs(dcen));
 
         dlft = qp - qj;
         drgt = q(i,j+2,k,n) - qp;
         dcen = 0.5_rt*(dlft+drgt);
-        dsgn = Math::copysign(1.e0_rt, dcen);
-        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
-        dfp = dsgn*amrex::min(dlim, Math::abs(dcen));
+        dsgn = std::copysign(1.e0_rt, dcen);
+        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
+        dfp = dsgn*amrex::min(dlim, std::abs(dcen));
 
         dlft = qj - qm;
         drgt = qp - qj;
         dcen = 0.5_rt*(dlft+drgt);
-        dsgn = Math::copysign(1.e0_rt, dcen);
-        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
+        dsgn = std::copysign(1.e0_rt, dcen);
+        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
 
         dtemp  = 4.0_rt/3.0_rt*dcen - 1.0_rt/6.0_rt*(dfp + dfm);
 
@@ -255,15 +249,15 @@ Real amrex_calc_yslope_extdir (int i, int j, int k, int n, int order,
            dtemp  = -16._rt/15._rt*q(i,j-1,k,n) + .5_rt*q(i,j,k,n) + 2._rt/3._rt*q(i,j+1,k,n) -  0.1_rt*q(i,j+2,k,n);
            dlft = 2._rt*(q(i  ,j,k,n)-q(i,j-1,k,n));
            drgt = 2._rt*(q(i,j+1,k,n)-q(i  ,j,k,n));
-           dlim = (dlft*drgt >= 0.0_rt) ? amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
-           dsgn = Math::copysign(1.e0_rt, dtemp);
+           dlim = (dlft*drgt >= 0.0_rt) ? amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
+           dsgn = std::copysign(1.e0_rt, dtemp);
         } else if (edlo && j == domlo+1) {
            dfm  = -16._rt/15._rt*q(i,domlo-1,k,n) + .5_rt*q(i,domlo,k,n) + 2._rt/3._rt*q(i,domlo+1,k,n) -  0.1_rt*q(i,domlo+2,k,n);
            dlft = 2._rt*(q(i  ,domlo,k,n)-q(i,domlo-1,k,n));
            drgt = 2._rt*(q(i,domlo+1,k,n)-q(i  ,domlo,k,n));
-           dlimsh = (dlft*drgt >= 0.0_rt) ? amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
-           dsgnsh = Math::copysign(1.e0_rt, dfm);
-           dfm = dsgnsh*amrex::min(dlimsh, Math::abs(dfm));
+           dlimsh = (dlft*drgt >= 0.0_rt) ? amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
+           dsgnsh = std::copysign(1.e0_rt, dfm);
+           dfm = dsgnsh*amrex::min(dlimsh, std::abs(dfm));
            dtemp  = 4.0_rt/3.0_rt*dcen - 1.0_rt/6.0_rt*(dfp + dfm);
         }
 
@@ -271,22 +265,22 @@ Real amrex_calc_yslope_extdir (int i, int j, int k, int n, int order,
            dtemp  = 16._rt/15._rt*q(i,j+1,k,n) - .5_rt*q(i,j,k,n) - 2._rt/3._rt*q(i,j-1,k,n) +  0.1_rt*q(i,j-2,k,n);
            dlft = 2._rt*(q(i  ,j,k,n)-q(i,j-1,k,n));
            drgt = 2._rt*(q(i,j+1,k,n)-q(i  ,j,k,n));
-           dlim = (dlft*drgt >= 0.0_rt) ? amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
-           dsgn = Math::copysign(1.e0_rt, dtemp);
+           dlim = (dlft*drgt >= 0.0_rt) ? amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
+           dsgn = std::copysign(1.e0_rt, dtemp);
         } else if (edhi && j == domhi-1) {
            dfp  = 16._rt/15._rt*q(i,domhi+1,k,n) - .5_rt*q(i,domhi,k,n) - 2._rt/3._rt*q(i,domhi-1,k,n) +  0.1_rt*q(i,domhi-2,k,n);
            dlft = 2._rt*(q(i  ,domhi,k,n)-q(i,domhi-1,k,n));
            drgt = 2._rt*(q(i,domhi+1,k,n)-q(i  ,domhi,k,n));
-           dlimsh = (dlft*drgt >= 0.0_rt) ? amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
-           dsgnsh = Math::copysign(1.e0_rt, dfp);
-           dfp = dsgnsh*amrex::min(dlimsh, Math::abs(dfp));
+           dlimsh = (dlft*drgt >= 0.0_rt) ? amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
+           dsgnsh = std::copysign(1.e0_rt, dfp);
+           dfp = dsgnsh*amrex::min(dlimsh, std::abs(dfp));
            dtemp  = 4.0_rt/3.0_rt*dcen - 1.0_rt/6.0_rt*(dfp + dfm);
         }
 
-        return dsgn*amrex::min(dlim, Math::abs(dtemp));
+        return dsgn*amrex::min(dlim, std::abs(dtemp));
 
     } else {
-        return 0.;
+        return 0._rt;
     }
 }
 
@@ -300,7 +294,7 @@ Real amrex_calc_zslope (int i, int j, int k, int n, int order,
         Real dl = 2.0_rt*(q(i,j,k  ,n) - q(i,j,k-1,n));
         Real dr = 2.0_rt*(q(i,j,k+1,n) - q(i,j,k  ,n));
         Real dc = 0.5_rt*(q(i,j,k+1,n) - q(i,j,k-1,n));
-        Real slope = amrex::min(Math::abs(dl),Math::abs(dc),Math::abs(dr));
+        Real slope = amrex::min(std::abs(dl),std::abs(dc),std::abs(dr));
         slope = (dr*dl > 0.0_rt) ? slope : 0.0_rt;
         return (dc > 0.0_rt) ? slope : -slope;
 
@@ -315,28 +309,28 @@ Real amrex_calc_zslope (int i, int j, int k, int n, int order,
         dlft = qm - q(i,j,k-2,n);
         drgt = qk - qm;
         dcen = 0.5_rt*(dlft+drgt);
-        dsgn = Math::copysign(1.e0_rt, dcen);
-        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
-        dfm = dsgn*amrex::min(dlim, Math::abs(dcen));
+        dsgn = std::copysign(1.e0_rt, dcen);
+        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
+        dfm = dsgn*amrex::min(dlim, std::abs(dcen));
 
         dlft = qp - qk;
         drgt = q(i,j,k+2,n) - qp;
         dcen = 0.5_rt*(dlft+drgt);
-        dsgn = Math::copysign(1.e0_rt, dcen);
-        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
-        dfp = dsgn*amrex::min(dlim, Math::abs(dcen));
+        dsgn = std::copysign(1.e0_rt, dcen);
+        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
+        dfp = dsgn*amrex::min(dlim, std::abs(dcen));
 
         dlft = qk - qm;
         drgt = qp - qk;
         dcen = 0.5_rt*(dlft+drgt);
-        dsgn = Math::copysign(1.e0_rt, dcen);
-        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
+        dsgn = std::copysign(1.e0_rt, dcen);
+        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
 
         dtemp  = 4.0_rt/3.0_rt*dcen - 1.0_rt/6.0_rt*(dfp + dfm);
-        return dsgn*amrex::min(dlim, Math::abs(dtemp));
+        return dsgn*amrex::min(dlim, std::abs(dtemp));
 
     } else {
-        return 0.;
+        return 0._rt;
     }
 }
 
@@ -356,7 +350,7 @@ Real amrex_calc_zslope_extdir (int i, int j, int k, int n, int order,
         } else if (edhi && k == domhi) {
             dc = (4.0_rt*q(i,j,k+1,n)-3.0_rt*q(i,j,k,n)-q(i,j,k-1,n))/3.0_rt;
         }
-        Real slope = amrex::min(Math::abs(dl),Math::abs(dc),Math::abs(dr));
+        Real slope = amrex::min(std::abs(dl),std::abs(dc),std::abs(dr));
         slope = (dr*dl > 0.0_rt) ? slope : 0.0_rt;
         return (dc > 0.0_rt) ? slope : -slope;
 
@@ -371,22 +365,22 @@ Real amrex_calc_zslope_extdir (int i, int j, int k, int n, int order,
         dlft = qm - q(i,j,k-2,n);
         drgt = qk - qm;
         dcen = 0.5_rt*(dlft+drgt);
-        dsgn = Math::copysign(1.e0_rt, dcen);
-        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
-        dfm = dsgn*amrex::min(dlim, Math::abs(dcen));
+        dsgn = std::copysign(1.e0_rt, dcen);
+        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
+        dfm = dsgn*amrex::min(dlim, std::abs(dcen));
 
         dlft = qp - qk;
         drgt = q(i,j,k+2,n) - qp;
         dcen = 0.5_rt*(dlft+drgt);
-        dsgn = Math::copysign(1.e0_rt, dcen);
-        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
-        dfp = dsgn*amrex::min(dlim, Math::abs(dcen));
+        dsgn = std::copysign(1.e0_rt, dcen);
+        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
+        dfp = dsgn*amrex::min(dlim, std::abs(dcen));
 
         dlft = qk - qm;
         drgt = qp - qk;
         dcen = 0.5_rt*(dlft+drgt);
-        dsgn = Math::copysign(1.e0_rt, dcen);
-        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
+        dsgn = std::copysign(1.e0_rt, dcen);
+        dlim = (dlft*drgt >= 0.0_rt) ? 2.0_rt*amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
 
         dtemp  = 4.0_rt/3.0_rt*dcen - 1.0_rt/6.0_rt*(dfp + dfm);
 
@@ -394,15 +388,15 @@ Real amrex_calc_zslope_extdir (int i, int j, int k, int n, int order,
            dtemp  = -16._rt/15._rt*q(i,j,k-1,n) + .5_rt*q(i,j,k,n) + 2._rt/3._rt*q(i,j,k+1,n) -  0.1_rt*q(i,j,k+2,n);
            dlft = 2._rt*(q(i  ,j,k,n)-q(i,j,k-1,n));
            drgt = 2._rt*(q(i,j,k+1,n)-q(i  ,j,k,n));
-           dlim = (dlft*drgt >= 0.0_rt) ? amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
-           dsgn = Math::copysign(1.e0_rt, dtemp);
+           dlim = (dlft*drgt >= 0.0_rt) ? amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
+           dsgn = std::copysign(1.e0_rt, dtemp);
         } else if (edlo && k == domlo+1) {
            dfm  = -16._rt/15._rt*q(i,j,domlo-1,n) + .5_rt*q(i,j,domlo,n) + 2._rt/3._rt*q(i,j,domlo+1,n) -  0.1_rt*q(i,j,domlo+2,n);
            dlft = 2._rt*(q(i  ,j,domlo,n)-q(i,j,domlo-1,n));
            drgt = 2._rt*(q(i,j,domlo+1,n)-q(i  ,j,domlo,n));
-           dlimsh = (dlft*drgt >= 0.0_rt) ? amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
-           dsgnsh = Math::copysign(1.e0_rt, dfm);
-           dfm = dsgnsh*amrex::min(dlimsh, Math::abs(dfm));
+           dlimsh = (dlft*drgt >= 0.0_rt) ? amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
+           dsgnsh = std::copysign(1.e0_rt, dfm);
+           dfm = dsgnsh*amrex::min(dlimsh, std::abs(dfm));
            dtemp  = 4.0_rt/3.0_rt*dcen - 1.0_rt/6.0_rt*(dfp + dfm);
         }
 
@@ -410,21 +404,21 @@ Real amrex_calc_zslope_extdir (int i, int j, int k, int n, int order,
            dtemp  = 16._rt/15._rt*q(i,j,k+1,n) - .5_rt*q(i,j,k,n) - 2._rt/3._rt*q(i,j,k-1,n) +  0.1_rt*q(i,j,k-2,n);
            dlft = 2._rt*(q(i  ,j,k,n)-q(i,j,k-1,n));
            drgt = 2._rt*(q(i,j,k+1,n)-q(i  ,j,k,n));
-           dlim = (dlft*drgt >= 0.0_rt) ? amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
-           dsgn = Math::copysign(1.e0_rt, dtemp);
+           dlim = (dlft*drgt >= 0.0_rt) ? amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
+           dsgn = std::copysign(1.e0_rt, dtemp);
         } else if (edhi && k == domhi-1) {
            dfp  = 16._rt/15._rt*q(i,j,domhi+1,n) - .5_rt*q(i,j,domhi,n) - 2._rt/3._rt*q(i,j,domhi-1,n) +  0.1_rt*q(i,j,domhi-2,n);
            dlft = 2._rt*(q(i  ,j,domhi,n)-q(i,j,domhi-1,n));
            drgt = 2._rt*(q(i,j,domhi+1,n)-q(i  ,j,domhi,n));
-           dlimsh = (dlft*drgt >= 0.0_rt) ? amrex::min(Math::abs(dlft), Math::abs(drgt)) : 0.0_rt;
-           dsgnsh = Math::copysign(1.e0_rt, dfp);
-           dfp = dsgnsh*amrex::min(dlimsh, Math::abs(dfp));
+           dlimsh = (dlft*drgt >= 0.0_rt) ? amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0_rt;
+           dsgnsh = std::copysign(1.e0_rt, dfp);
+           dfp = dsgnsh*amrex::min(dlimsh, std::abs(dfp));
            dtemp  = 4.0_rt/3.0_rt*dcen - 1.0_rt/6.0_rt*(dfp + dfm);
         }
-        return dsgn*amrex::min(dlim, Math::abs(dtemp));
+        return dsgn*amrex::min(dlim, std::abs(dtemp));
 
     } else {
-        return 0.;
+        return 0._rt;
     }
 }
 #endif

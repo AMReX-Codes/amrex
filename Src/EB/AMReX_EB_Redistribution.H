@@ -73,7 +73,7 @@ namespace amrex {
                  amrex::Real dt, std::string const& redistribution_type,
                  bool use_wts_in_divnc = false,
                  int srd_max_order = 2,
-                 amrex::Real target_volfrac = 0.5,
+                 amrex::Real target_volfrac = 0.5_rt,
                  amrex::Array4<amrex::Real const> const& update_scale={});
 
     // Interface to redistribution schemes that calls multi-level routines
@@ -105,7 +105,7 @@ namespace amrex {
         bool use_wts_in_divnc = false,
         int icomp = 0,
         int srd_max_order = 2,
-        amrex::Real target_volfrac = 0.5,
+        amrex::Real target_volfrac = 0.5_rt,
         amrex::Array4<amrex::Real const> const& update_scale={});
 
     void ApplyInitialRedistribution (
@@ -124,7 +124,7 @@ namespace amrex {
         amrex::BCRec  const* d_bcrec_ptr,
         amrex::Geometry const& geom, std::string const& redistribution_type,
         int srd_max_order = 2,
-        amrex::Real target_volfrac = 0.5);
+        amrex::Real target_volfrac = 0.5_rt);
 
     void StateRedistribute ( amrex::Box const& bx, int ncomp,
                              amrex::Array4<amrex::Real> const& U_out,

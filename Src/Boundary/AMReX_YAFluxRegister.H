@@ -52,8 +52,8 @@ public:
 
     void CrseAdd (const MFIter& mfi,
                   const std::array<FAB const*, AMREX_SPACEDIM>& flux,
-                  const Real* dx, Real dt,
-                  int destcomp, int numcomp, RunOn runon) noexcept;
+                  const Real* dx, Real dt, int srccomp, int destcomp,
+                  int numcomp, RunOn runon) noexcept;
 
     void FineAdd (const MFIter& mfi,
                   const std::array<FAB const*, AMREX_SPACEDIM>& flux,
@@ -61,8 +61,8 @@ public:
 
     void FineAdd (const MFIter& mfi,
                   const std::array<FAB const*, AMREX_SPACEDIM>& flux,
-                  const Real* dx, Real dt,
-                  int destcomp, int numcomp, RunOn runon) noexcept;
+                  const Real* dx, Real dt, int srccomp, int destcomp,
+                  int numcomp, RunOn runon) noexcept;
 
     void Reflux (MF& state, int dc = 0);
     void Reflux (MF& state, int srccomp, int destcomp, int numcomp);
@@ -337,22 +337,24 @@ YAFluxRegisterT<MF>::CrseAdd (const MFIter& mfi,
                               const Real* dx, Real dt, RunOn runon) noexcept
 {
     BL_ASSERT(m_crse_data.nComp() == flux[0]->nComp());
+    int srccomp = 0;
     int destcomp = 0;
     int  numcomp = m_crse_data.nComp();
-    CrseAdd(mfi, flux, dx, dt, destcomp, numcomp, runon);
+    CrseAdd(mfi, flux, dx, dt, srccomp, destcomp, numcomp, runon);
 }
 
 template <typename MF>
 void
 YAFluxRegisterT<MF>::CrseAdd (const MFIter& mfi,
                               const std::array<FAB const*, AMREX_SPACEDIM>& flux,
-                              const Real* dx, Real dt,
-                              int destcomp, int numcomp, RunOn runon) noexcept
+                              const Real* dx, Real dt, int srccomp, int destcomp,
+                              int numcomp, RunOn runon) noexcept
 {
-    BL_ASSERT(m_crse_data.nComp() >= flux[0]->nComp());
+    BL_ASSERT(m_crse_data.nComp() >= destcomp+numcomp &&
+              flux[0]->nComp()    >=  srccomp+numcomp);
 
     //
-    // We assume that the fluxes have been passed in starting at component 0
+    // We assume that the fluxes have been passed in starting at component srccomp
     // "destcomp" refers to the indexing in the arrays internal to the EBFluxRegister
     //
 
@@ -371,9 +373,9 @@ YAFluxRegisterT<MF>::CrseAdd (const MFIter& mfi,
     auto dest_arr   = m_crse_data.array(mfi,destcomp);
     auto const flag = m_crse_flag.const_array(mfi);
 
-    AMREX_D_TERM(Array4<T const> fxarr = fx->const_array();,
-                 Array4<T const> fyarr = fy->const_array();,
-                 Array4<T const> fzarr = fz->const_array(););
+    AMREX_D_TERM(Array4<T const> fxarr = fx->const_array(srccomp);,
+                 Array4<T const> fyarr = fy->const_array(srccomp);,
+                 Array4<T const> fzarr = fz->const_array(srccomp););
 
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG ( runon, bx, tbx,
     {
@@ -389,22 +391,24 @@ YAFluxRegisterT<MF>::FineAdd (const MFIter& mfi,
                               const Real* dx, Real dt, RunOn runon) noexcept
 {
     BL_ASSERT(m_crse_data.nComp() == flux[0]->nComp());
+    int srccomp = 0;
     int destcomp = 0;
     int  numcomp = m_crse_data.nComp();
-    FineAdd(mfi, flux, dx, dt, destcomp, numcomp, runon);
+    FineAdd(mfi, flux, dx, dt, srccomp, destcomp, numcomp, runon);
 }
 
 template <typename MF>
 void
 YAFluxRegisterT<MF>::FineAdd (const MFIter& mfi,
                               const std::array<FAB const*, AMREX_SPACEDIM>& a_flux,
-                              const Real* dx, Real dt,
-                              int destcomp, int numcomp, RunOn runon) noexcept
+                              const Real* dx, Real dt, int srccomp, int destcomp,
+                              int numcomp, RunOn runon) noexcept
 {
-    BL_ASSERT(m_cfpatch.nComp() >= a_flux[0]->nComp());
+    BL_ASSERT(m_cfpatch.nComp() >= destcomp+numcomp &&
+              a_flux[0]->nComp() >= srccomp+numcomp);
 
     //
-    // We assume that the fluxes have been passed in starting at component 0
+    // We assume that the fluxes have been passed in starting at component srccomp
     // "destcomp" refers to the indexing in the arrays internal to the EBFluxRegister
     //
     const int li = mfi.LocalIndex();
@@ -421,6 +425,7 @@ YAFluxRegisterT<MF>::FineAdd (const MFIter& mfi,
                                                     static_cast<T>(dt/(dx[2]*ratio)))}};
     const Dim3 rr = m_ratio.dim3();
 
+    int fluxcomp = srccomp;
     std::array<FAB const*,AMREX_SPACEDIM> flux{{AMREX_D_DECL(a_flux[0],a_flux[1],a_flux[2])}};
     bool use_gpu = (runon == RunOn::Gpu) && Gpu::inLaunchRegion();
     amrex::ignore_unused(use_gpu);
@@ -431,8 +436,9 @@ YAFluxRegisterT<MF>::FineAdd (const MFIter& mfi,
             const Box& b = amrex::surroundingNodes(fbx,idim);
             ftmp[idim].resize(b,numcomp);
             ftmp[idim].template setVal<RunOn::Host>(T(0.0));
-            ftmp[idim].template copy<RunOn::Host>(*a_flux[idim], 0, 0, numcomp);
+            ftmp[idim].template copy<RunOn::Host>(*a_flux[idim], srccomp, 0, numcomp);
             flux[idim] = &ftmp[idim];
+            fluxcomp = 0;
         }
     }
 
@@ -453,7 +459,7 @@ YAFluxRegisterT<MF>::FineAdd (const MFIter& mfi,
                     auto d = cfp->array(destcomp);
                     auto dtdxs = dtdx[idim];
                     int dirside = idim*2+side;
-                    Array4<T const> farr = f->const_array();
+                    Array4<T const> farr = f->const_array(fluxcomp);
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(runon, lobx_is, tmpbox,
                     {
                         yafluxreg_fineadd(tmpbox, d, farr, dtdxs, numcomp, dirside, rr);
@@ -468,7 +474,7 @@ YAFluxRegisterT<MF>::FineAdd (const MFIter& mfi,
                     auto d = cfp->array(destcomp);
                     auto dtdxs = dtdx[idim];
                     int dirside = idim*2+side;
-                    Array4<T const> farr = f->const_array();
+                    Array4<T const> farr = f->const_array(fluxcomp);
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(runon, hibx_is, tmpbox,
                     {
                         yafluxreg_fineadd(tmpbox, d, farr, dtdxs, numcomp, dirside, rr);
