@@ -279,6 +279,7 @@ Arena::Initialize ()
     BL_ASSERT(the_managed_arena == nullptr || the_managed_arena == The_BArena());
     BL_ASSERT(the_pinned_arena == nullptr);
     BL_ASSERT(the_cpu_arena == nullptr || the_cpu_arena == The_BArena());
+    BL_ASSERT(the_comms_arena == nullptr || the_comms_arena == The_BArena());
 
 #ifdef AMREX_USE_GPU
 #ifdef AMREX_USE_SYCL
@@ -365,15 +366,6 @@ Arena::Initialize ()
     the_pinned_arena = new CArena(0, ArenaInfo{}.SetHostAlloc().SetReleaseThreshold
                                   (the_pinned_arena_release_threshold));
     the_pinned_arena->registerForProfiling("Pinned Memory");
-
-    /*
-    if (!(the_arena->isDevice())) {
-        the_comms_arena = the_device_arena;
-    } else {
-        the_comms_arena = new CArena(0, ArenaInfo{}.SetDeviceMemory().SetReleaseThreshold
-                                      (the_comms_arena_release_threshold));
-        the_comms_arena->registerForProfiling("Comms Memory");
-    } */
 
 #ifdef AMREX_USE_GPU
     if (ParallelDescriptor::UseGpuAwareMpi()) {
@@ -471,17 +463,17 @@ Arena::PrintUsage ()
             p->PrintUsage("The Managed Arena");
         }
     }
-    if (The_Comms_Arena() && The_Comms_Arena() != The_Device_Arena()
-         && The_Comms_Arena() != The_Pinned_Arena()) {
-        auto* p = dynamic_cast<CArena*>(The_Comms_Arena());
-        if (p) {
-            p->PrintUsage("The Comms Arena");
-        }
-    }
     if (The_Pinned_Arena()) {
         auto* p = dynamic_cast<CArena*>(The_Pinned_Arena());
         if (p) {
             p->PrintUsage("The  Pinned Arena");
+        }
+    }
+    if (The_Comms_Arena() && The_Comms_Arena() != The_Device_Arena()
+         && The_Comms_Arena() != The_Pinned_Arena()) {
+        auto* p = dynamic_cast<CArena*>(The_Comms_Arena());
+        if (p) {
+            p->PrintUsage("The   Comms Arena");
         }
     }
 }
@@ -523,17 +515,17 @@ Arena::PrintUsageToFiles (const std::string& filename, const std::string& messag
             p->PrintUsage(ofs, "The Managed Arena", "    ");
         }
     }
-    if (The_Comms_Arena() && The_Comms_Arena() != The_Device_Arena()
-        && The_Comms_Arena() != The_Pinned_Arena()) {
-        auto* p = dynamic_cast<CArena*>(The_Comms_Arena());
-        if (p) {
-            p->PrintUsage(ofs, "The Comms Arena", "    ");
-        }
-    }
     if (The_Pinned_Arena()) {
         auto* p = dynamic_cast<CArena*>(The_Pinned_Arena());
         if (p) {
             p->PrintUsage(ofs, "The  Pinned Arena", "    ");
+        }
+    }
+    if (The_Comms_Arena() && The_Comms_Arena() != The_Device_Arena()
+        && The_Comms_Arena() != The_Pinned_Arena()) {
+        auto* p = dynamic_cast<CArena*>(The_Comms_Arena());
+        if (p) {
+            p->PrintUsage(ofs, "The   Comms Arena", "    ");
         }
     }
 
@@ -639,16 +631,6 @@ The_Managed_Arena ()
 }
 
 Arena*
-The_Comms_Arena ()
-{
-    if        (the_comms_arena) {
-        return the_comms_arena;
-    } else {
-        return The_Null_Arena();
-    }
-}
-
-Arena*
 The_Pinned_Arena ()
 {
     if        (the_pinned_arena) {
@@ -663,6 +645,16 @@ The_Cpu_Arena ()
 {
     if        (the_cpu_arena) {
         return the_cpu_arena;
+    } else {
+        return The_Null_Arena();
+    }
+}
+
+Arena*
+The_Comms_Arena ()
+{
+    if        (the_comms_arena) {
+        return the_comms_arena;
     } else {
         return The_Null_Arena();
     }
