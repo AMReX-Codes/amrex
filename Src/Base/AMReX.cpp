@@ -604,6 +604,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     iMultiFab::Initialize();
     VisMF::Initialize();
     AsyncOut::Initialize();
+    VectorGrowthStrategy::Initialize();
 
 #ifdef AMREX_USE_EB
     EB2::Initialize();
