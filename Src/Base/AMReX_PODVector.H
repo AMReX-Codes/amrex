@@ -621,7 +621,7 @@ namespace amrex
             while (new_capacity < (capacity() + a_num_to_be_added))
             {
                 new_capacity = static_cast<size_type>(
-                    VectorGrowthStrategy::GetFactor() * (new_capacity + 1));
+                    VectorGrowthStrategy::GetGrowthFactor() * (new_capacity + 1));
             }
 
             return new_capacity;
