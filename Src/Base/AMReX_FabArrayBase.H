@@ -721,8 +721,6 @@ bool CheckRcvStats (Vector<MPI_Status>& recv_stats, const Vector<std::size_t>& r
 
 std::ostream& operator<< (std::ostream& os, const FabArrayBase::BDKey& id);
 
-Arena* The_FA_Arena ();
-
 }
 
 #endif

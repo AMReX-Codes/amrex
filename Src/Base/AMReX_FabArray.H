@@ -144,7 +144,7 @@ struct MFInfo {
 struct TheFaArenaDeleter {
     using pointer = char*;
     void operator()(pointer p) const noexcept {
-        The_FA_Arena()->free(p);
+        The_Comms_Arena()->free(p);
     }
 };
 using TheFaArenaPointer = std::unique_ptr<char, TheFaArenaDeleter>;

@@ -228,7 +228,7 @@ FabArray<FAB>::FillBoundary_finish ()
 
         if (fbd->the_recv_data)
         {
-            amrex::The_FA_Arena()->free(fbd->the_recv_data);
+            amrex::The_Comms_Arena()->free(fbd->the_recv_data);
             fbd->the_recv_data = nullptr;
         }
     }
@@ -237,7 +237,7 @@ FabArray<FAB>::FillBoundary_finish ()
     if (N_snds > 0) {
         Vector<MPI_Status> stats(fbd->send_reqs.size());
         ParallelDescriptor::Waitall(fbd->send_reqs, stats);
-        amrex::The_FA_Arena()->free(fbd->the_send_data);
+        amrex::The_Comms_Arena()->free(fbd->the_send_data);
         fbd->the_send_data = nullptr;
     }
 
@@ -548,7 +548,7 @@ FabArray<FAB>::ParallelCopy_finish ()
 
         if (pcd->the_recv_data)
         {
-            amrex::The_FA_Arena()->free(pcd->the_recv_data);
+            amrex::The_Comms_Arena()->free(pcd->the_recv_data);
             pcd->the_recv_data = nullptr;
         }
     }
@@ -558,7 +558,7 @@ FabArray<FAB>::ParallelCopy_finish ()
             Vector<MPI_Status> stats(pcd->send_reqs.size());
             ParallelDescriptor::Waitall(pcd->send_reqs, stats);
         }
-        amrex::The_FA_Arena()->free(pcd->the_send_data);
+        amrex::The_Comms_Arena()->free(pcd->the_send_data);
         pcd->the_send_data = nullptr;
     }
 
@@ -685,7 +685,7 @@ FabArray<FAB>::PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
 
     if (total_volume > 0)
     {
-        the_send_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(total_volume));
+        the_send_data = static_cast<char*>(amrex::The_Comms_Arena()->alloc(total_volume));
         for (int i = 0, N = static_cast<int>(send_size.size()); i < N; ++i) {
             send_data[i] = the_send_data + offset[i];
         }
@@ -783,7 +783,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  RcvTags,
     }
     else
     {
-        the_recv_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(TotalRcvsVolume));
+        the_recv_data = static_cast<char*>(amrex::The_Comms_Arena()->alloc(TotalRcvsVolume));
 
         for (int i = 0; i < nrecv; ++i)
         {
@@ -1004,7 +1004,7 @@ FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
             recv_size.push_back(nbytes);
         }
 
-        the_recv_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(TotalRcvsVolume));
+        the_recv_data = static_cast<char*>(amrex::The_Comms_Arena()->alloc(TotalRcvsVolume));
 
         int k = 0;
         for (int i = 0; i < nrecv; ++i) {
@@ -1077,7 +1077,7 @@ FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
             send_size.push_back(nbytes);
         }
 
-        the_send_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(TotalSndsVolume));
+        the_send_data = static_cast<char*>(amrex::The_Comms_Arena()->alloc(TotalSndsVolume));
         int k = 0;
         for (int i = 0; i < nsend; ++i) {
             send_data[i] = the_send_data + offset[i];
@@ -1113,13 +1113,13 @@ FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
 
         detail::fbv_copy(recv_tags);
 
-        amrex::The_FA_Arena()->free(the_recv_data);
+        amrex::The_Comms_Arena()->free(the_recv_data);
     }
 
     if (N_snds > 0) {
         Vector<MPI_Status> stats(send_reqs.size());
         ParallelDescriptor::Waitall(send_reqs, stats);
-        amrex::The_FA_Arena()->free(the_send_data);
+        amrex::The_Comms_Arena()->free(the_send_data);
     }
 
 #endif  // #ifdef AMREX_USE_MPI
