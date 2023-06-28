@@ -4,7 +4,7 @@
 
 namespace amrex::VectorGrowthStrategy
 {
-    Real growth_factor = 1.5._rt;
+    Real growth_factor = 1.5_rt;
 
     void Initialize () {
         ParmParse pp("amrex");
