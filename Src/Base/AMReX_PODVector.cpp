@@ -10,12 +10,24 @@ namespace amrex::VectorGrowthStrategy
         ParmParse pp("amrex");
         pp.queryAdd("vector_growth_factor", growth_factor);
 
-        // sanity checks
-        auto eps = std::numeric_limits<Real>::epsilon();
-        auto huge = 1000._rt;  // huge enough for our purposes...
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(growth_factor - 1.0_rt >= eps,
-            "User-specified vector growth factor is too small.");
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(growth_factor < huge,
-            "User-specified vector growth factor is too large.");
+        // clamp user input to reasonable values
+        constexpr Real min_factor = 1.05_rt;
+        constexpr Real max_factorf = 4._rt;
+
+        if (growth_factor < min_factor) {
+            if (Verbose()) {
+                amrex::Print() << "Warning: user-provided vector growth factor is to small."
+                               << " Clamping to " << min_factor << ". \n";
+            }
+            growth_factor = min_factor;
+        }
+
+        if (growth_factor > max_factor) {
+            if (Verbose()) {
+                amrex::Print() << "Warning: user-provided vector growth factor is to large."
+                               << " Clamping to " << max_factor << ". \n";
+            }
+            growth_factor = max_factor;
+        }
     }
 }
