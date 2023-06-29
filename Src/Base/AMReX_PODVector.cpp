@@ -12,7 +12,7 @@ namespace amrex::VectorGrowthStrategy
 
         // clamp user input to reasonable values
         constexpr Real min_factor = 1.05_rt;
-        constexpr Real max_factorf = 4._rt;
+        constexpr Real max_factor = 4._rt;
 
         if (growth_factor < min_factor) {
             if (Verbose()) {
