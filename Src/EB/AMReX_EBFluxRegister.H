@@ -87,14 +87,14 @@ public:
 
     using YAFluxRegister::FineAdd;
     void FineAdd (const MFIter& mfi,
-                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& a_flux,
+                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt,
                   const FArrayBox& volfrac,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
                   const FArrayBox& dm,
                   RunOn runon);
     void FineAdd (const MFIter& mfi,
-                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& a_flux,
+                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt,
                   const FArrayBox& volfrac,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,

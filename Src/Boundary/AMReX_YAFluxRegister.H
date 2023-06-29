@@ -60,7 +60,7 @@ public:
                   const Real* dx, Real dt, RunOn runon) noexcept;
 
     void FineAdd (const MFIter& mfi,
-                  const std::array<FAB const*, AMREX_SPACEDIM>& flux,
+                  const std::array<FAB const*, AMREX_SPACEDIM>& a_flux,
                   const Real* dx, Real dt, int srccomp, int destcomp,
                   int numcomp, RunOn runon) noexcept;
 

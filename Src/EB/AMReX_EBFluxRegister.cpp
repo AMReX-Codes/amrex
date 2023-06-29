@@ -100,8 +100,8 @@ EBFluxRegister::CrseAdd (const MFIter& mfi,
     // "destcomp" refers to the indexing in the arrays internal to the EBFluxRegister
     //
 
-    AMREX_ASSERT(flux[0]->nComp()    >=  srccomp+numcomp);
-    AMREX_ASSERT(m_crse_data.nComp() >= destcomp+numcomp);
+    AMREX_ASSERT(   flux[0]->nComp() >=  srccomp+numcomp &&
+                 m_crse_data.nComp() >= destcomp+numcomp);
 
     if (m_crse_fab_flag[mfi.LocalIndex()] == crse_cell) {
         return;  // this coarse fab is not close to fine fabs.
@@ -134,23 +134,23 @@ EBFluxRegister::CrseAdd (const MFIter& mfi,
 
 void
 EBFluxRegister::FineAdd (const MFIter& mfi,
-                         const std::array<FArrayBox const*, AMREX_SPACEDIM>& a_flux,
+                         const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                          const Real* dx, Real dt,
                          const FArrayBox& volfrac,
                          const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
                          const FArrayBox& dm,
                          RunOn runon)
 {
-    AMREX_ASSERT(m_cfpatch.nComp() == a_flux[0]->nComp());
+    AMREX_ASSERT(m_cfpatch.nComp() == flux[0]->nComp());
     int srccomp = 0;
     int destcomp = 0;
     int  numcomp = m_crse_data.nComp();
-    FineAdd(mfi, a_flux, dx, dt, volfrac, areafrac, dm, srccomp, destcomp, numcomp, runon);
+    FineAdd(mfi, flux, dx, dt, volfrac, areafrac, dm, srccomp, destcomp, numcomp, runon);
 }
 
 void
 EBFluxRegister::FineAdd (const MFIter& mfi,
-                         const std::array<FArrayBox const*, AMREX_SPACEDIM>& a_flux,
+                         const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                          const Real* dx, Real dt,
                          const FArrayBox& volfrac,
                          const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
@@ -161,7 +161,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
     // We assume that the fluxes and dm have been passed in starting at component srccomp.
     // "destcomp" refers to the indexing in the arrays internal to the EBFluxRegister
     //
-    AMREX_ASSERT( srccomp + numcomp <= a_flux[0]->nComp() &&
+    AMREX_ASSERT( srccomp + numcomp <= flux[0]->nComp() &&
                   srccomp + numcomp <= dm.nComp() &&
                  destcomp + numcomp <= m_ncomp);
 
@@ -173,9 +173,9 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
     BL_ASSERT(tbx.cellCentered());
     const Box& cbx = amrex::coarsen(tbx, m_ratio);
 
-    AMREX_D_TERM(Array4<Real const> const& fx = a_flux[0]->const_array(srccomp);,
-                 Array4<Real const> const& fy = a_flux[1]->const_array(srccomp);,
-                 Array4<Real const> const& fz = a_flux[2]->const_array(srccomp););
+    AMREX_D_TERM(Array4<Real const> const& fx = flux[0]->const_array(srccomp);,
+                 Array4<Real const> const& fy = flux[1]->const_array(srccomp);,
+                 Array4<Real const> const& fz = flux[2]->const_array(srccomp););
 
     Array4<Real const> const& vfrac = volfrac.const_array();
     AMREX_D_TERM(Array4<Real const> const& apx = areafrac[0]->const_array();,
