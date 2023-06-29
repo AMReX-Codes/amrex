@@ -16,7 +16,7 @@ namespace amrex::VectorGrowthStrategy
 
         if (growth_factor < min_factor) {
             if (Verbose()) {
-                amrex::Print() << "Warning: user-provided vector growth factor is to small."
+                amrex::Print() << "Warning: user-provided vector growth factor is too small."
                                << " Clamping to " << min_factor << ". \n";
             }
             growth_factor = min_factor;
