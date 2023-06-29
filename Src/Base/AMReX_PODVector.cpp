@@ -24,7 +24,7 @@ namespace amrex::VectorGrowthStrategy
 
         if (growth_factor > max_factor) {
             if (Verbose()) {
-                amrex::Print() << "Warning: user-provided vector growth factor is to large."
+                amrex::Print() << "Warning: user-provided vector growth factor is too large."
                                << " Clamping to " << max_factor << ". \n";
             }
             growth_factor = max_factor;
