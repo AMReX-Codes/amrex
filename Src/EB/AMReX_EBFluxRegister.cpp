@@ -138,13 +138,14 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
                          const Real* dx, Real dt,
                          const FArrayBox& volfrac,
                          const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
+                         const FArrayBox& dm,
                          RunOn runon)
 {
     AMREX_ASSERT(m_cfpatch.nComp() == a_flux[0]->nComp());
     int srccomp = 0;
     int destcomp = 0;
     int  numcomp = m_crse_data.nComp();
-    FineAdd(mfi, a_flux, dx, dt, volfrac, areafrac, srccomp, destcomp, numcomp, runon);
+    FineAdd(mfi, a_flux, dx, dt, volfrac, areafrac, dm, srccomp, destcomp, numcomp, runon);
 }
 
 void
@@ -153,23 +154,23 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
                          const Real* dx, Real dt,
                          const FArrayBox& volfrac,
                          const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
+                         const FArrayBox& dm,
                          int srccomp, int destcomp, int numcomp, RunOn runon)
 {
     //
-    // We assume that the fluxes have been passed in starting at component srccomp.
+    // We assume that the fluxes and dm have been passed in starting at component srccomp.
     // "destcomp" refers to the indexing in the arrays internal to the EBFluxRegister
     //
-
-    AMREX_ASSERT(m_cfpatch.nComp() >= destcomp+numcomp);
-    AMREX_ASSERT(a_flux[0]->nComp() >= srccomp+numcomp);
+    AMREX_ASSERT( srccomp + numcomp <= a_flux[0]->nComp() &&
+                  srccomp + numcomp <= dm.nComp() &&
+                 destcomp + numcomp <= m_ncomp);
 
     const int li = mfi.LocalIndex();
     Vector<FArrayBox*>& cfp_fabs = m_cfp_fab[li];
     if (cfp_fabs.empty()) return;
 
-    const int nc = numcomp;
     const Box& tbx = mfi.tilebox();
-    AMREX_ASSERT(tbx.cellCentered());
+    BL_ASSERT(tbx.cellCentered());
     const Box& cbx = amrex::coarsen(tbx, m_ratio);
 
     AMREX_D_TERM(Array4<Real const> const& fx = a_flux[0]->const_array(srccomp);,
@@ -197,7 +198,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
                 {
                     AMREX_HOST_DEVICE_FOR_4D_FLAG(runon,lobx_is,numcomp,i,j,k,n,
                     {
-                        eb_flux_reg_fineadd_va_xlo(i,j,k,n,cfa,fx,vfrac,apx,fac,ratio);
+                        eb_flux_reg_fineadd_va_xlo(i,j,k,n, cfa, fx, vfrac, apx, fac, ratio);
                     });
                 }
 #if (AMREX_SPACEDIM >= 2)
@@ -205,7 +206,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
                 {
                     AMREX_HOST_DEVICE_FOR_4D_FLAG(runon,lobx_is,numcomp,i,j,k,n,
                     {
-                        eb_flux_reg_fineadd_va_ylo(i,j,k,n,cfa,fy,vfrac,apy,fac,ratio);
+                        eb_flux_reg_fineadd_va_ylo(i,j,k,n, cfa, fy, vfrac, apy, fac, ratio);
                     });
                 }
 #if (AMREX_SPACEDIM == 3)
@@ -213,7 +214,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
                 {
                     AMREX_HOST_DEVICE_FOR_4D_FLAG(runon,lobx_is,numcomp,i,j,k,n,
                     {
-                        eb_flux_reg_fineadd_va_zlo(i,j,k,n,cfa,fz,vfrac,apz,fac,ratio);
+                        eb_flux_reg_fineadd_va_zlo(i,j,k,n, cfa, fz, vfrac, apz, fac, ratio);
                     });
                 }
 #endif
@@ -223,7 +224,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
             if (hibx_is.ok()) {
                 if (idim == 0)
                 {
-                    AMREX_HOST_DEVICE_FOR_4D_FLAG(runon,hibx_is,nc,i,j,k,n,
+                    AMREX_HOST_DEVICE_FOR_4D_FLAG(runon,hibx_is,numcomp,i,j,k,n,
                     {
                         eb_flux_reg_fineadd_va_xhi(i,j,k,n, cfa, fx, vfrac, apx, fac, ratio);
                     });
@@ -231,7 +232,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
 #if (AMREX_SPACEDIM >= 2)
                 else if (idim == 1)
                 {
-                    AMREX_HOST_DEVICE_FOR_4D_FLAG(runon,hibx_is,nc,i,j,k,n,
+                    AMREX_HOST_DEVICE_FOR_4D_FLAG(runon,hibx_is,numcomp,i,j,k,n,
                     {
                         eb_flux_reg_fineadd_va_yhi(i,j,k,n, cfa, fy, vfrac, apy, fac, ratio);
                     });
@@ -239,7 +240,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
 #if (AMREX_SPACEDIM == 3)
                 else
                 {
-                    AMREX_HOST_DEVICE_FOR_4D_FLAG(runon,hibx_is,nc,i,j,k,n,
+                    AMREX_HOST_DEVICE_FOR_4D_FLAG(runon,hibx_is,numcomp,i,j,k,n,
                     {
                         eb_flux_reg_fineadd_va_zhi(i,j,k,n, cfa, fz, vfrac, apz, fac, ratio);
                     });
@@ -249,54 +250,11 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
             }
         }
     }
-}
-
-void
-EBFluxRegister::FineAdd (const MFIter& mfi,
-                         const std::array<FArrayBox const*, AMREX_SPACEDIM>& a_flux,
-                         const Real* dx, Real dt,
-                         const FArrayBox& vfrac,
-                         const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
-                         const FArrayBox& dm,
-                         RunOn runon)
-{
-    AMREX_ASSERT(m_cfpatch.nComp() == a_flux[0]->nComp());
-    int srccomp = 0;
-    int destcomp = 0;
-    int  numcomp = m_crse_data.nComp();
-    FineAdd(mfi, a_flux, dx, dt, vfrac, areafrac, dm, srccomp, destcomp, numcomp, runon);
-}
-
-void
-EBFluxRegister::FineAdd (const MFIter& mfi,
-                         const std::array<FArrayBox const*, AMREX_SPACEDIM>& a_flux,
-                         const Real* dx, Real dt,
-                         const FArrayBox& vfrac,
-                         const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
-                         const FArrayBox& dm,
-                         int srccomp, int destcomp, int numcomp, RunOn runon)
-{
-    //
-    // We assume that the fluxes and dm have been passed in starting at component srccomp.
-    // "destcomp" refers to the indexing in the arrays internal to the EBFluxRegister
-    //
-
-    FineAdd(mfi, a_flux, dx, dt, vfrac, areafrac, srccomp, destcomp, numcomp, runon);
-
-    const Box& tbx = mfi.tilebox();
-
-    const int li = mfi.LocalIndex();
-    Vector<FArrayBox*>& cfp_fabs = m_cfp_fab[li];
-    if (cfp_fabs.empty()) return;
-    const Box& cbx = amrex::coarsen(tbx, m_ratio);
-
-    Dim3 ratio = m_ratio.dim3();
 
     Real threshold = amrex_eb_get_reredistribution_threshold()*static_cast<Real>(AMREX_D_TERM(ratio.x,*ratio.y,*ratio.z));
     const Box& tbxg1 = amrex::grow(tbx,1);
     const Box& cbxg1 = amrex::grow(cbx,1);
     Array4<Real const> const& dma = dm.const_array(srccomp);
-    Array4<Real const> const& vfrac_arr = vfrac.const_array();
     for (FArrayBox* cfp : cfp_fabs)
     {
         const Box& wbx = cbxg1 & cfp->box();
@@ -305,7 +263,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
             Array4<Real> const& cfa = cfp->array(destcomp);
             AMREX_HOST_DEVICE_FOR_4D_FLAG(runon, wbx, numcomp, i, j, k, n,
             {
-                eb_flux_reg_fineadd_dm(i,j,k,n,tbxg1,cfa,dma, vfrac_arr, ratio, threshold);
+                eb_flux_reg_fineadd_dm(i,j,k,n,tbxg1,cfa,dma, vfrac, ratio, threshold);
             });
         }
     }
@@ -331,60 +289,9 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
     // Here "srccomp" refers to the indexing in the arrays internal to the EBFluxRegister
     //     "destcomp" refers to the indexing in the external arrays being filled by refluxing
     //
-    Reflux(crse_state, crse_vfrac, srccomp, destcomp, numcomp);
-
-    // The fine-covered cells of m_crse_data contain the data that should go to the fine level
-    BoxArray ba = fine_state.boxArray();
-    ba.coarsen(m_ratio);
-    MultiFab cf(ba, fine_state.DistributionMap(), m_ncomp, 0, MFInfo(), FArrayBoxFactory());
-    cf.ParallelCopy(m_crse_data);
-
-    auto const& factory = dynamic_cast<EBFArrayBoxFactory const&>(fine_state.Factory());
-    auto const& flags = factory.getMultiEBCellFlagFab();
-
-    Dim3 ratio = m_ratio.dim3();
-
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(cf,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
-        const Box& cbx = mfi.tilebox();
-        const Box& fbx = amrex::refine(cbx, m_ratio);
-
-        const auto& ebflag = flags[mfi];
-
-        if (ebflag.getType(fbx) != FabType::covered)
-        {
-            Array4<Real> const& d = fine_state.array(mfi,destcomp);
-            Array4<Real const> const& s = cf.const_array(mfi,srccomp);
-            Array4< int const> const& m = m_cfp_inside_mask.const_array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D(fbx,numcomp,i,j,k,n,
-            {
-                eb_rereflux_to_fine(i,j,k,n,d,s,m,ratio);
-            });
-        }
-    }
-}
-
-void
-EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac)
-{
-    int  srccomp = 0;
-    int destcomp = 0;
-    int numcomp  = m_ncomp;
-    Reflux(crse_state, crse_vfrac, srccomp, destcomp, numcomp);
-}
-
-void
-EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
-                        int srccomp, int destcomp, int numcomp)
-{
-    //
-    // Here "srccomp" refers to the indexing in the arrays internal to the EBFluxRegister
-    //     "destcomp" refers to the indexing in the external arrays being filled by refluxing
-    //
-    AMREX_ASSERT( srccomp+numcomp <= m_ncomp);
-    AMREX_ASSERT(destcomp+numcomp <= m_ncomp);
+    AMREX_ASSERT( srccomp+numcomp <= m_ncomp &&
+                 destcomp+numcomp <= crse_state.nComp() &&
+                 destcomp+numcomp <= fine_state.nComp());
 
     if (!m_cfp_mask.empty())
     {
@@ -457,5 +364,38 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
     }
 
     MultiFab::Add(crse_state, m_crse_data, srccomp, destcomp, numcomp, 0);
+
+    // The fine-covered cells of m_crse_data contain the data that should go to the fine level
+    BoxArray ba = fine_state.boxArray();
+    ba.coarsen(m_ratio);
+    MultiFab cf(ba, fine_state.DistributionMap(), numcomp, 0, MFInfo(), FArrayBoxFactory());
+    cf.ParallelCopy(m_crse_data,srccomp,0,numcomp);
+
+    auto const& factory = dynamic_cast<EBFArrayBoxFactory const&>(fine_state.Factory());
+    auto const& flags = factory.getMultiEBCellFlagFab();
+
+    Dim3 ratio = m_ratio.dim3();
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(cf,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        const Box& cbx = mfi.tilebox();
+        const Box& fbx = amrex::refine(cbx, m_ratio);
+
+        const auto& ebflag = flags[mfi];
+
+        if (ebflag.getType(fbx) != FabType::covered)
+        {
+            Array4<Real> const& d = fine_state.array(mfi,destcomp);
+            Array4<Real const> const& s = cf.const_array(mfi,0);
+            Array4< int const> const& m = m_cfp_inside_mask.const_array(mfi);
+            AMREX_HOST_DEVICE_FOR_4D(fbx,numcomp,i,j,k,n,
+            {
+                eb_rereflux_to_fine(i,j,k,n,d,s,m,ratio);
+            });
+        }
+    }
 }
+
 }
