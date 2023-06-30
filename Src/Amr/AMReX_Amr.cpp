@@ -1993,7 +1993,8 @@ Amr::timeStep (int  level,
     if (verbose > 0)
     {
         amrex::Print() << "[Level " << level << " step " << level_steps[level]+1 << "] "
-                       << "ADVANCE with dt = " << dt_level[level] << "\n";
+                       << "ADVANCE at time " << time
+                       << " with dt = " << dt_level[level] << "\n";
     }
 
     Real dt_new = amr_level[level]->advance(time,dt_level[level],iteration,niter);
