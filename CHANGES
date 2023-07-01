@@ -1,3 +1,43 @@
+# 23.07
+
+  -- Allow users to change the default vector growth stategy (#3389)
+
+  -- Communications arena implementation (#3388)
+
+  -- CI: oneAPI SYCL for AMD GPUs (#3341)
+
+  -- GPU: Always deallocate gpu_rand_state in Finalize() (#3384)
+
+  -- Hypre ILU options (#3381)
+
+  -- Amr Class: Synchronization of StateData's Time (#3375)
+
+  -- EB 2D: Fix levelset on nodes adjacent to covered edges (#3370)
+
+  -- Add workflow for oneAPI SYCL on Nvidia GPUs (#3360)
+
+  -- CMake: Enforce >= C++17 for ROCm (#3355)
+
+  -- Use device arena for the_fa_arena when activating GPU-aware MPI (#3362)
+
+  -- Coverity Scan (#3361)
+
+  -- CMake: AMReX_TEST_TYPE (#3357)
+
+  -- CMake: Enable AMReX_PARTICLES by default (#3358)
+
+  -- Add AMReX Apps to CI (#3348)
+
+  -- Make sure amrex::Long is wider than int. (#3345)
+
+  -- Particle Ids: Add int Constants (#3338)
+
+  -- CI: Clang CUDA (#3184)
+
+  -- Reinforce __CUDACC__ conditionals w/ AMREX_USE_CUDA (#3331)
+
+  -- CMake: Link option when HIP is a language (#3335)
+
 # 23.06
 
   -- Implement Checkpoint, Restart, and Plotfile for pure SOA (#3332)
