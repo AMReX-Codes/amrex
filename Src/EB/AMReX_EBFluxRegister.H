@@ -100,12 +100,21 @@ public:
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
                   const FArrayBox& dm,
                   int srccomp, int destcomp, int numcomp, RunOn runon);
+    //! This version does not do re-redistribution.
+    void FineAdd (const MFIter& mfi,
+                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
+                  const Real* dx, Real dt,
+                  const FArrayBox& volfrac,
+                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
+                  int srccomp, int destcomp, int numcomp, RunOn runon);
 
-    using YAFluxRegister::Reflux;
     void Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
                  MultiFab& fine_state, const amrex::MultiFab& fine_vfrac);
     void Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
                  MultiFab& fine_state, const amrex::MultiFab& fine_vfrac,
+                 int srccomp, int destcomp, int numcomp);
+    //! This version does not do re-redistribution.
+    void Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
                  int srccomp, int destcomp, int numcomp);
 
     FArrayBox* getCrseData (const MFIter& mfi) {
