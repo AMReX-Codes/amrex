@@ -84,6 +84,13 @@ public:
         crse_cell = 0, crse_fine_boundary_cell, fine_cell
     };
 
+    //! For curvilinear cooordinates only. In that case, the flux passed to
+    //! YAFluxRegister is assumed to have been multiplied by area. Note that
+    //! YAFluxRegister does NOT make a copy of the volume data. So the
+    //! coarse volume MF must be alive during the life time of
+    //! YAFluxRegister.
+    void setCrseVolume (MF const* cvol) { m_cvol = cvol; }
+
 protected:
 
     MF m_crse_data;
@@ -101,6 +108,8 @@ protected:
     IntVect m_ratio;
     int m_fine_level;
     int m_ncomp;
+
+    MF const* m_cvol = nullptr;
 };
 
 template <typename MF>
@@ -363,12 +372,16 @@ YAFluxRegisterT<MF>::CrseAdd (const MFIter& mfi,
     }
 
     const Box& bx = mfi.tilebox();
-    AMREX_D_TERM(const T dtdx = static_cast<T>(dt/dx[0]);,
-                 const T dtdy = static_cast<T>(dt/dx[1]);,
-                 const T dtdz = static_cast<T>(dt/dx[2]););
+    AMREX_D_TERM(auto dtdx = static_cast<T>(dt/dx[0]);,
+                 auto dtdy = static_cast<T>(dt/dx[1]);,
+                 auto dtdz = static_cast<T>(dt/dx[2]););
     AMREX_D_TERM(FAB const* fx = flux[0];,
                  FAB const* fy = flux[1];,
                  FAB const* fz = flux[2];);
+
+    if (m_cvol) {
+        AMREX_D_TERM(T dtdx = T(dt);, T dtdy = T(dt);, T dtdz = T(dt););
+    }
 
     auto dest_arr   = m_crse_data.array(mfi,destcomp);
     auto const flag = m_crse_flag.const_array(mfi);
@@ -424,6 +437,12 @@ YAFluxRegisterT<MF>::FineAdd (const MFIter& mfi,
                                                     static_cast<T>(dt/(dx[1]*ratio)),
                                                     static_cast<T>(dt/(dx[2]*ratio)))}};
     const Dim3 rr = m_ratio.dim3();
+
+    if (m_cvol) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            dtdx[idim] = T(dt);
+        }
+    }
 
     int fluxcomp = srccomp;
     std::array<FAB const*,AMREX_SPACEDIM> flux{{AMREX_D_DECL(a_flux[0],a_flux[1],a_flux[2])}};
@@ -523,7 +542,18 @@ YAFluxRegisterT<MF>::Reflux (MF& state, int srccomp, int destcomp, int numcomp)
     m_crse_data.ParallelCopy(m_cfpatch, srccomp, srccomp, numcomp, m_crse_geom.periodicity(), FabArrayBase::ADD);
 
     BL_ASSERT(state.nComp() >= destcomp + numcomp);
-    amrex::Add(state, m_crse_data, srccomp, destcomp, numcomp, 0);
+    if (m_cvol) {
+        auto const& dst = state.arrays();
+        auto const& src = m_crse_data.const_arrays();
+        auto const& vol = m_cvol->const_arrays();
+        amrex::ParallelFor(state, IntVect(0), numcomp,
+        [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k, int n)
+        {
+            dst[bno](i,j,k,destcomp+n) += src[bno](i,j,k,srccomp+n) / vol[bno](i,j,k);
+        });
+    } else {
+        amrex::Add(state, m_crse_data, srccomp, destcomp, numcomp, 0);
+    }
 }
 
 template <typename MF>
