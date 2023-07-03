@@ -380,7 +380,7 @@ YAFluxRegisterT<MF>::CrseAdd (const MFIter& mfi,
                  FAB const* fz = flux[2];);
 
     if (m_cvol) {
-        AMREX_D_TERM(T dtdx = T(dt);, T dtdy = T(dt);, T dtdz = T(dt););
+        AMREX_D_TERM(dtdx = T(dt);, dtdy = T(dt);, dtdz = T(dt););
     }
 
     auto dest_arr   = m_crse_data.array(mfi,destcomp);
