@@ -654,6 +654,7 @@ void AmrLevel::storeRKCoarseData (int state_type, Real time, Real dt,
                                   MultiFab const& S_old,
                                   Array<MultiFab,order> const& rkk)
 {
+    BL_PROFILE("AmrLevel::storeRKCoarseData()");
     if (level == parent->finestLevel()) { return; }
 
     const StateDescriptor& desc = AmrLevel::desc_lst[state_type];
