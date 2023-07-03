@@ -137,6 +137,7 @@ If you want to synchronize your branch with the `development` branch (this is us
 when `development` is being modified while you are working on
 `<branch_name>`), you can use
 ```
+# merge amrex main repo's development into current branch
 git pull origin development
 ```
 and fix any conflicts that may occur.
@@ -232,9 +233,8 @@ AMReX developers should adhere to the following coding guidelines:
        for (int n=0; n<10; ++n)
           Print() << "Not like this.";
 ```
-  * Add a space after the function name and before the
-parenthesis of the parameter list (but
-not when simply calling the function). For example:
+  * When declaring and defining a function, add a space after the function name and before the
+parenthesis of the parameter list (but not when simply calling the function). For example:
 ```cpp
         void CorrectFunctionDec (int input)
 ```
