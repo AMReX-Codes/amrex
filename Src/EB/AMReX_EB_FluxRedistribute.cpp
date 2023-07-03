@@ -27,15 +27,6 @@ amrex_flux_redistribute (
     int level_mask_not_covered,
     int icomp, int ncomp, Real dt)
 {
-    // if (as_crse == 0 && as_fine == 0) {
-    //     amrex::Print() << "In amrex_flux_redistribution on neither side" << std::endl;
-    // } else if (as_crse == 0 && as_fine == 1) {
-    //     amrex::Print() << "In amrex_flux_redistribution on  fine   side" << std::endl;
-    // } else if (as_crse == 1 && as_fine == 0) {
-    //     amrex::Print() << "In amrex_flux_redistribution on  coarse side" << std::endl;
-    // } else if (as_crse == 1 && as_fine == 1) {
-    //     amrex::Print() << "In amrex_flux_redistribution on  both   sides" << std::endl;
-    // }
     //
     // Check that grid is uniform
     //
@@ -43,13 +34,13 @@ amrex_flux_redistribute (
 
 #if (AMREX_SPACEDIM == 2)
     if (! amrex::almostEqual(dx[0], dx[1]))
-        amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
 #elif (AMREX_SPACEDIM == 3)
     if( ! amrex::almostEqual(dx[0],dx[1]) ||
-        ! amrex::almostEqual(dx[0],dx[2]) ||
         ! amrex::almostEqual(dx[1],dx[2]) )
-        amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
 #endif
+    {
+        amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
+    }
 
     const Box dbox = geom.growPeriodicDomain(2);
     const Box& grown1_bx = amrex::grow(bx,1);
