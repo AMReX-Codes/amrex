@@ -87,9 +87,13 @@ void NFilesIter::SetDynamic(int deciderproc)
   if(currentDeciderIndex >= availableDeciders.size() || currentDeciderIndex < 0) {
     currentDeciderIndex = 0;
   }
+#if 0
+  // The following has no effect because WhichSetPostion is a pure function and
+  // its return type is not used. So not sure why this is here in the first place.
   if(myProc == deciderProc) {
     NFilesIter::WhichSetPosition(myProc, nProcs, nOutFiles, groupSets);
   }
+#endif
 
   deciderTag = ParallelDescriptor::SeqNum();
   coordinatorTag = ParallelDescriptor::SeqNum();

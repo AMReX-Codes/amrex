@@ -772,7 +772,7 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
 
     BL_ASSERT(ioffset == nmtags[ParallelDescriptor::MyProc(comm)]);
 
-    Vector<Real> recvdata(mf.size()*2*m_ncomp);
+    Vector<Real> recvdata(std::size_t(mf.size())*2*m_ncomp);
 
     BL_COMM_PROFILE(BLProfiler::Gatherv, recvdata.size() * sizeof(Real),
                     ParallelDescriptor::MyProc(comm), BLProfiler::BeforeCall());
