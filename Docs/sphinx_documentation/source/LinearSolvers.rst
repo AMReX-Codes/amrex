@@ -509,7 +509,7 @@ passed to the constructor of a linear operator to disable the
 coarsening completely.  In that case the bottom solver is solving the
 residual correction form of the original problem. To build Hypre, follow the next steps:
 
-.. highlight:: c++
+.. highlight:: console
 
 ::
 
@@ -577,7 +577,7 @@ The user is referred to the
 AMReX can also use `PETSc <https://www.mcs.anl.gov/petsc/>`_ as a bottom solver for cell-centered
 problems. To build PETSc, follow the next steps:
 
-.. highlight:: c++
+.. highlight:: console
 
 ::
 

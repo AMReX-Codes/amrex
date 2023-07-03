@@ -268,6 +268,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        Parser/amrex_iparser.tab.cpp
        Parser/amrex_iparser.tab.nolint.H
        Parser/amrex_iparser.tab.h
+       # AMReX Hydro -----------------------------------------------------
+       AMReX_Slopes_K.H
        # Forward declaration -----------------------------------------------------
        AMReX_BaseFwd.H
        )

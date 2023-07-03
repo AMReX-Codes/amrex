@@ -214,6 +214,11 @@ C$(AMREX_BASE)_headers += AMReX_TimeIntegrator.H
 C$(AMREX_BASE)_headers += AMReX_RungeKutta.H
 
 #
+# Slopes
+#
+C$(AMREX_BASE)_headers += AMReX_Slopes_K.H
+
+#
 # Fortran interface routines.
 #
 ifneq ($(BL_NO_FORT),TRUE)
