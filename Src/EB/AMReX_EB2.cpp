@@ -223,7 +223,7 @@ Build (const Geometry& geom, int required_coarsening_level,
                                            max_coarsening_level, ngrow,
                                            build_coarse_level_by_coarsening,
                                            a_extend_domain_face,
-                                           a_num_coarsen_opt));
+                                           a_num_coarsen_opt)); // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
     }
     else
     {
@@ -251,7 +251,7 @@ BuildFromChkptFile (std::string const& fname,
                      geom, required_coarsening_level,
                      max_coarsening_level, ngrow,
                      build_coarse_level_by_coarsening,
-                     a_extend_domain_face));
+                     a_extend_domain_face)); // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
 }
 
 namespace {
