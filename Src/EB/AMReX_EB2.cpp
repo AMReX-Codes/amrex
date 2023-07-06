@@ -216,14 +216,14 @@ Build (const Geometry& geom, int required_coarsening_level,
         pp.queryAdd("stl_center", stl_center);
         int stl_reverse_normal = 0;
         pp.queryAdd("stl_reverse_normal", stl_reverse_normal);
-        IndexSpace::push(new IndexSpaceSTL(stl_file, stl_scale,
+        IndexSpace::push(new IndexSpaceSTL(stl_file, stl_scale, // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
                                            {stl_center[0], stl_center[1], stl_center[2]},
                                            stl_reverse_normal,
                                            geom, required_coarsening_level,
                                            max_coarsening_level, ngrow,
                                            build_coarse_level_by_coarsening,
                                            a_extend_domain_face,
-                                           a_num_coarsen_opt)); // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
+                                           a_num_coarsen_opt));
     }
     else
     {
@@ -247,11 +247,11 @@ BuildFromChkptFile (std::string const& fname,
                     bool a_extend_domain_face)
 {
     ChkptFile chkpt_file(fname);
-    IndexSpace::push(new IndexSpaceChkptFile(chkpt_file,
+    IndexSpace::push(new IndexSpaceChkptFile(chkpt_file, // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
                      geom, required_coarsening_level,
                      max_coarsening_level, ngrow,
                      build_coarse_level_by_coarsening,
-                     a_extend_domain_face)); // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
+                     a_extend_domain_face));
 }
 
 namespace {
