@@ -123,7 +123,7 @@ Build (const G& gshop, const Geometry& geom,
                                           max_coarsening_level,
                                           ngrow, build_coarse_level_by_coarsening,
                                           extend_domain_face,
-                                          num_coarsen_opt));
+                                          num_coarsen_opt));  // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
 }
 
 void Build (const Geometry& geom,
