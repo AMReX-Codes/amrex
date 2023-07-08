@@ -1860,7 +1860,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     int doneTag(ParallelDescriptor::SeqNum());
 
     if(myProc == coordinatorProc) {  // manage the file locks
-      int reqsPending(0), iopFileIndex;
+      int reqsPending(0), iopFileIndex(0);
       std::deque<int> iopReads;
       MPI_Status status;
       int doneFlag;
