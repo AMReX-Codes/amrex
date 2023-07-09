@@ -1,6 +1,7 @@
 
 #include <AMReX_EBDataCollection.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_iMultiFab.H>
 #include <AMReX_MultiCutFab.H>
 
 #include <AMReX_EB2_Level.H>
@@ -65,6 +66,12 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
         a_level.fillFaceCent(m_facecent, m_geom);
         a_level.fillEdgeCent(m_edgecent, m_geom);
     }
+
+    if (! a_level.hasEBInfo()) {
+        m_cutcellmask = new iMultiFab(a_ba, a_dm, 1, 0, MFInfo(),
+                                      DefaultFabFactory<IArrayBox>());
+        a_level.fillCutCellMask(*m_cutcellmask, m_geom);
+    }
 }
 
 EBDataCollection::~EBDataCollection ()
@@ -81,6 +88,7 @@ EBDataCollection::~EBDataCollection ()
         delete m_facecent[idim];
         delete m_edgecent[idim];
     }
+    delete m_cutcellmask;
 }
 
 const FabArray<EBCellFlagFab>&
@@ -151,6 +159,12 @@ EBDataCollection::getBndryNormal () const
 {
     AMREX_ASSERT(m_bndrynorm != nullptr);
     return *m_bndrynorm;
+}
+
+const iMultiFab*
+EBDataCollection::getCutCellMask () const
+{
+    return m_cutcellmask;
 }
 
 }
