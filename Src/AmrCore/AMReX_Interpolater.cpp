@@ -411,7 +411,11 @@ CellConservativeLinear::CoarseBox (const Box&     fine,
                                    const IntVect& ratio)
 {
     Box crse = amrex::coarsen(fine,ratio);
-    crse.grow(1);
+    for (int dim = 0; dim < AMREX_SPACEDIM; dim++) {
+        if (ratio[dim] > 1) {
+            crse.grow(dim,1);
+        }
+    }
     return crse;
 }
 
@@ -454,7 +458,12 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     Array4<Real> const& finearr = fine.array();
 
     const Box& crse_region = CoarseBox(fine_region,ratio);
-    const Box& cslope_bx = amrex::grow(crse_region,-1);
+    Box cslope_bx(crse_region);
+    for (int dim = 0; dim < AMREX_SPACEDIM; dim++) {
+        if (ratio[dim] > 1) {
+            cslope_bx.grow(dim,-1);
+        }
+    }
 
     FArrayBox ccfab(cslope_bx, ncomp*AMREX_SPACEDIM);
     Array4<Real> const& tmp = ccfab.array();
@@ -551,7 +560,11 @@ CellQuadratic::CoarseBox (const Box&     fine,
                           const IntVect& ratio)
 {
     Box crse = amrex::coarsen(fine,ratio);
-    crse.grow(1);
+    for (int dim = 0; dim < AMREX_SPACEDIM; dim++) {
+        if (ratio[dim] > 1) {
+            crse.grow(dim,1);
+        }
+    }
     return crse;
 }
 
