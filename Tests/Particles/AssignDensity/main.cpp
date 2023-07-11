@@ -21,7 +21,7 @@ void test_assign_density(TestParams& parms)
 {
 
   RealBox real_box;
-  for (int n = 0; n < BL_SPACEDIM; n++) {
+  for (int n = 0; n < AMREX_SPACEDIM; n++) {
     real_box.setLo(n, 0.0);
     real_box.setHi(n, 1.0);
   }
@@ -48,10 +48,10 @@ void test_assign_density(TestParams& parms)
   MultiFab density(ba, dmap, 1, 0);
   density.setVal(0.0);
 
-  MultiFab partMF(ba, dmap, 1 + BL_SPACEDIM, 1);
+  MultiFab partMF(ba, dmap, 1 + AMREX_SPACEDIM, 1);
   partMF.setVal(0.0);
 
-  typedef ParticleContainer<1 + BL_SPACEDIM> MyParticleContainer;
+  typedef ParticleContainer<1 + AMREX_SPACEDIM> MyParticleContainer;
   MyParticleContainer myPC(geom, dmap, ba);
   myPC.SetVerbose(false);
 

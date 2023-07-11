@@ -1,10 +1,11 @@
+#include "AMReX_Vector.H"
+#include "AMReX_FabArray.H"
+#include "AMReX_Particles.H"
+
 #include <iostream>
 #include <map>
 #include <vector>
 
-#include <AMReX_Vector.H>
-#include "AMReX_FabArray.H"
-#include "AMReX_Particles.H"
 
 using namespace amrex;
 
@@ -19,7 +20,7 @@ int main(int argc, char* argv[])
   int coord = 0;
 
   RealBox real_box;
-  for (int n = 0; n < BL_SPACEDIM; n++)
+  for (int n = 0; n < AMREX_SPACEDIM; n++)
     {
       real_box.setLo(n,0.0);
       real_box.setHi(n,1.0);
@@ -49,10 +50,10 @@ int main(int argc, char* argv[])
   for (int lev = 0; lev < nlevs; lev++)
     dmap[lev].define(ba[lev]);
 
-  typedef ParticleContainer<1+BL_SPACEDIM> MyParticleContainer;
+  using MyParticleContainer = ParticleContainer<1+AMREX_SPACEDIM>;
   MyParticleContainer MyPC(geom, dmap, ba, rr);
 
-  MyParticleContainer::ParticleInitData pdata = {{1.0},{},{},{}};
+  MyParticleContainer::ParticleInitData pdata = {{1.0, AMREX_D_DECL(1.0, 2.0, 3.0)},{},{},{}};
   MyPC.InitOnePerCell(0.5, 0.5, 0.5, pdata);
   MyParticleContainer::do_tiling = true;
 
@@ -61,7 +62,7 @@ int main(int argc, char* argv[])
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
-  for (ParIter<1+BL_SPACEDIM> mfi(MyPC, 0); mfi.isValid(); ++mfi) {
+  for (ParIter<1+AMREX_SPACEDIM> mfi(MyPC, 0); mfi.isValid(); ++mfi) {
       amrex::AllPrintToFile("particle_iterator_out") << mfi.index() << " " << mfi.tileIndex() << "\n";
   }
   }

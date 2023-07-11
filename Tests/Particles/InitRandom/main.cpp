@@ -60,8 +60,8 @@ void testSOA ()
     }
 
     // Add some particles
-    constexpr int NReal  = 12;
-    constexpr int NInt   = 4;
+    constexpr int NReal  = AMREX_SPACEDIM + 12;
+    constexpr int NInt   = 2 + 4;
 
     typedef ParticleContainerPureSoA<NReal, NInt> MyPC;
     MyPC myPC(geom, dmap, ba, ref_ratio);
@@ -70,7 +70,7 @@ void testSOA ()
     int num_particles = nppc * AMREX_D_TERM(ncells, * ncells, * ncells);
     bool serialize = false;
     int iseed = 451;
-    MyPC::ParticleInitData pdata = {{}, {},
+    MyPC::ParticleInitData pdata = {
                       {1.0, 2.0, 3.0, 4.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0},
                       {5, 14, 15, 16}};
 
