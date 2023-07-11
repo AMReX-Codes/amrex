@@ -234,6 +234,14 @@ public:
     const DistributionMapping& DistributionMap () const noexcept { return dmap; }
     //
     const FabFactory<FArrayBox>& Factory () const noexcept { return *m_factory; }
+    //
+#ifdef AMREX_USE_EB
+    const EBFArrayBoxFactory&
+    EBFactory () const noexcept {
+        return static_cast<amrex::EBFArrayBoxFactory const&>(*m_factory);
+    }
+#endif
+
     //! Number of grids at this level.
     int numGrids () const noexcept { return static_cast<int>(grids.size()); }
     //! Number of states at this level.
