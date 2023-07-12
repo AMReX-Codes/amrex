@@ -3,9 +3,9 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Particles.H>
 
-//#if !defined(AMREX_PARTICLES) || !defined(AMREX_NO_SENSEI_AMR_INST)
-//#error Incompatible AMReX library configuration! This tutorial requires AMREX_PARTICLES and AMREX_NO_SENSEI_AMR_INST
-//#endif
+#if !defined(AMREX_PARTICLES) || !defined(AMREX_USE_SENSEI_INSITU)
+#error Incompatible AMReX library configuration! This tutorial requires AMREX_PARTICLES and AMREX_USE_SENSEI_INSITU
+#endif
 #include <AMReX_AmrParticleInSituBridge.H>
 
 using namespace amrex;
